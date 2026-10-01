@@ -1,0 +1,30 @@
+---
+description: Safe deploy and regression rules for daryadarcy_app
+globs:
+  - app/**/*
+  - components/**/*
+  - lib/**/*
+  - scripts/**/*
+---
+
+# Deploy & regression safety
+
+Before deploying web changes to production:
+
+1. Run `npm run verify` (regression + quiz tests).
+2. Deploy only via `npm run deploy:web` — never skip S3 upload before SSH deploy.
+3. If fixing a user-reported UI bug, add a guard in `__tests__/regression.test.ts`.
+
+## Do not regress these areas
+
+- **Feed**: lazy PhotoViewer (`viewerVisible ?`), `normalizeFeedPost`, cache invalidation on delete/refresh, ScrollView carousel (not nested FlatList).
+- **Secret Garden**: poster before play; no top-level `expo-video` import on web.
+- **Shop**: price tags use `PRICE_TAG_TOP` / `DIGITAL_ROW_BOTTOM`.
+- **Quiz**: Q1/Q2 without «Ты», Q8 «расстаться», Q9 evening future tense.
+- **Library loshadka**: `cover` + aspect `1176/1500`.
+
+## Deploy pipeline
+
+`verify` → `build:web` → `upload-web-dist.mjs` → `ssh-deploy-web.py` → `smoke-production.mjs`
+
+Never commit `.env` or deploy secrets.

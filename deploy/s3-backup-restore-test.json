@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "backup_bucket": "daryadarcy-s3-backup",
+  "test_prefix": "restore-test/2026-09-18/",
+  "files": [
+    {
+      "source_key": "avatars/30001_1786969468965_avatar.jpg",
+      "restored_key": "restore-test/2026-09-18/30001_1786969468965_avatar.jpg",
+      "key": "restore-test/2026-09-18/30001_1786969468965_avatar.jpg",
+      "bytes": 75202,
+      "content_type": "image/jpeg",
+      "size_ok": true,
+      "readable": true,
+      "public_url": "https://s3.twcstorage.ru/daryadarcy-s3-backup/restore-test/2026-09-18/30001_1786969468965_avatar.jpg"
+    },
+    {
+      "source_key": "feed/C-719qdIiMM/photo_1.jpg",
+      "restored_key": "restore-test/2026-09-18/photo_1.jpg",
+      "key": "restore-test/2026-09-18/photo_1.jpg",
+      "bytes": 392168,
+      "content_type": "image/jpeg",
+      "size_ok": true,
+      "readable": true,
+      "public_url": "https://s3.twcstorage.ru/daryadarcy-s3-backup/restore-test/2026-09-18/photo_1.jpg"
+    },
+    {
+      "source_key": "app-assets/about-me/IMG_4523.JPG",
+      "restored_key": "restore-test/2026-09-18/IMG_4523.JPG",
+      "key": "restore-test/2026-09-18/IMG_4523.JPG",
+      "bytes": 153661,
+      "content_type": "image/jpeg",
+      "size_ok": true,
+      "readable": true,
+      "public_url": "https://s3.twcstorage.ru/daryadarcy-s3-backup/restore-test/2026-09-18/IMG_4523.JPG"
+    }
+  ],
+  "note": "Test files copied inside backup bucket only; production bucket untouched."
+}

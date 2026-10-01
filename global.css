@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+html {
+  background-color: #cbbba6;
+}
+#root {
+  height: 100%;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background-color: #fdf8f0;
+  overflow: hidden;
+}
+@media (min-width: 481px) {
+  #root {
+    box-shadow: 0 0 48px rgba(74, 55, 40, 0.22);
+  }
+}
+
+/* Club post tags sit at the bottom of the card and should read comfortably. */
+.club-post-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: auto !important;
+  max-height: none !important;
+  padding: 5px 10px !important;
+  overflow: hidden !important;
+  line-height: 1.2 !important;
+}
+.club-post-tag * {
+  line-height: 1.2 !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.club-post-tag-rubric {
+  background-color: rgba(92, 64, 51, 0.16) !important;
+}
+.club-post-tag-rubric * {
+  color: #5c4033 !important;
+}
+
+/* Club content: no copy / long-press callout / image drag. */
+.club-protected,
+.club-protected * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-drag: none !important;
+}
+.club-protected input,
+.club-protected textarea,
+.club-protected [contenteditable="true"] {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}

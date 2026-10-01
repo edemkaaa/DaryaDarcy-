@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "finished_at": "2026-09-18T09:12:23.055Z",
+  "source_bucket": "daryadarcy-s3",
+  "backup_bucket": "daryadarcy-s3-backup",
+  "objects_listed": 5710,
+  "objects_copied": 5710,
+  "objects_skipped_unchanged": 0,
+  "bytes_copied": 7647413511,
+  "bytes_copied_mb": 7293.1,
+  "duration_sec": 353.9,
+  "mode": "append-only copy (no deletes in backup bucket)",
+  "versioning": "enabled",
+  "noncurrent_retention_days": 90
+}

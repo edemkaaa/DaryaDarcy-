@@ -1,0 +1,92 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+web-dist/
+web-dist2/
+web-dist-broken-*/
+tmp/
+scripts/.ssh-*.txt
+scripts/.route-test.txt
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+app-example
+
+# generated native folders
+/ios
+/android
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs
+*.log
+
+# OS
+Thumbs.db
+
+# Build files
+*.tgz
+*.tar.gz
+.cache/
+
+# Webdev artifacts (checkpoint zips, migrations, etc.)
+.webdev/
+.tmp-*/
+.project-config.json
+.vps-pass
+scripts/deploy_vps.py
+scripts/bootstrap_vps.py
+
+# Handover security: never commit operational credentials
+production.env
+.env.*
+!.env.example
+.vps-pass
+.project-config.json
+
+# Local operational state and diagnostics
+.manus/
+.s3-upload-progress.json
+.tmp-*.json
+.tmp-*.txt
+ig_posts_processed.json
+scripts/*.out.txt
+docs/VPS-INFRA-PROBE.txt

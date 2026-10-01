@@ -1,0 +1,614 @@
+[
+  {
+    "id": "a1",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a1-1.webp",
+    "aspect": 0.6666666666666666,
+    "cutout": false
+  },
+  {
+    "id": "a2",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a2-10.webp",
+    "aspect": 0.9663250366032211,
+    "cutout": true
+  },
+  {
+    "id": "a3",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a3-11.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a4",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a4-12.webp",
+    "aspect": 0.7504953297480894,
+    "cutout": false
+  },
+  {
+    "id": "a5",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a5-13.webp",
+    "aspect": 0.7505494505494505,
+    "cutout": false
+  },
+  {
+    "id": "a6",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a6-14.webp",
+    "aspect": 1,
+    "cutout": false
+  },
+  {
+    "id": "a7",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a7-15.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a8",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a8-16.webp",
+    "aspect": 0.6410970346651816,
+    "cutout": false
+  },
+  {
+    "id": "a9",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a9-17.webp",
+    "aspect": 1.3275862068965518,
+    "cutout": false
+  },
+  {
+    "id": "a10",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a10-18.webp",
+    "aspect": 0.6666666666666666,
+    "cutout": false
+  },
+  {
+    "id": "a11",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a11-19.webp",
+    "aspect": 1.7766143106457242,
+    "cutout": false
+  },
+  {
+    "id": "a12",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a12-2.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a13",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a13-20.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a14",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a14-21.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a15",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a15-22.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a16",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a16-23.webp",
+    "aspect": 1,
+    "cutout": false
+  },
+  {
+    "id": "a17",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a17-24.webp",
+    "aspect": 0.7999122422114963,
+    "cutout": false
+  },
+  {
+    "id": "a18",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a18-25.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a19",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a19-26.webp",
+    "aspect": 0.7999259670553396,
+    "cutout": false
+  },
+  {
+    "id": "a20",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a20-27.webp",
+    "aspect": 1.3323572474377745,
+    "cutout": false
+  },
+  {
+    "id": "a21",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a21-28.webp",
+    "aspect": 1.5034079844206427,
+    "cutout": true
+  },
+  {
+    "id": "a22",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a22-29.webp",
+    "aspect": 0.75,
+    "cutout": false
+  },
+  {
+    "id": "a23",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a23-3.webp",
+    "aspect": 1.3332589285714285,
+    "cutout": false
+  },
+  {
+    "id": "a24",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a24-30.webp",
+    "aspect": 0.7505494505494505,
+    "cutout": false
+  },
+  {
+    "id": "a25",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a25-31.webp",
+    "aspect": 0.7999269139411658,
+    "cutout": false
+  },
+  {
+    "id": "a26",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a26-32.webp",
+    "aspect": 0.8001168907071888,
+    "cutout": false
+  },
+  {
+    "id": "a27",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a27-33.webp",
+    "aspect": 0.547356188262638,
+    "cutout": false
+  },
+  {
+    "id": "a28",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a28-34.webp",
+    "aspect": 0.6907378335949764,
+    "cutout": true
+  },
+  {
+    "id": "a29",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a29-35.webp",
+    "aspect": 0.8000846202665538,
+    "cutout": false
+  },
+  {
+    "id": "a30",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a30-36.webp",
+    "aspect": 0.8229426433915212,
+    "cutout": false
+  },
+  {
+    "id": "a31",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a31-37.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a32",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a32-38.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a33",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a33-39.webp",
+    "aspect": 0.7500418550142307,
+    "cutout": false
+  },
+  {
+    "id": "a34",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a34-4.webp",
+    "aspect": 0.5696035242290749,
+    "cutout": false
+  },
+  {
+    "id": "a35",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a35-40.webp",
+    "aspect": 0.7999202869669191,
+    "cutout": false
+  },
+  {
+    "id": "a36",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a36-41.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a37",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a37-42.webp",
+    "aspect": 0.7999213836477987,
+    "cutout": false
+  },
+  {
+    "id": "a38",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a38-43.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a39",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a39-44.webp",
+    "aspect": 0.7999643430201462,
+    "cutout": false
+  },
+  {
+    "id": "a40",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a40-45.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a41",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a41-46.webp",
+    "aspect": 0.8001555209953344,
+    "cutout": false
+  },
+  {
+    "id": "a42",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a42-47.webp",
+    "aspect": 0.7999451904631406,
+    "cutout": false
+  },
+  {
+    "id": "a43",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a43-48.webp",
+    "aspect": 1.123404255319149,
+    "cutout": true
+  },
+  {
+    "id": "a44",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a44-49.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a45",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a45-5.webp",
+    "aspect": 0.7999636957705573,
+    "cutout": false
+  },
+  {
+    "id": "a46",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a46-50.webp",
+    "aspect": 1.5,
+    "cutout": false
+  },
+  {
+    "id": "a47",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a47-51.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a48",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a48-6.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a49",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a49-7.webp",
+    "aspect": 0.8000720461095101,
+    "cutout": false
+  },
+  {
+    "id": "a50",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a50-8.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a51",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a51-9.webp",
+    "aspect": 0.75,
+    "cutout": false
+  },
+  {
+    "id": "a52",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a52-1.webp",
+    "aspect": 0.7500346788736302,
+    "cutout": false
+  },
+  {
+    "id": "a53",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a53-10.webp",
+    "aspect": 0.799962469506474,
+    "cutout": false
+  },
+  {
+    "id": "a54",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a54-11.webp",
+    "aspect": 1.2360876897133222,
+    "cutout": true
+  },
+  {
+    "id": "a55",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a55-12.webp",
+    "aspect": 0.66640625,
+    "cutout": false
+  },
+  {
+    "id": "a56",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a56-13.webp",
+    "aspect": 0.5660377358490566,
+    "cutout": false
+  },
+  {
+    "id": "a57",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a57-14.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a58",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a58-15.webp",
+    "aspect": 0.7500425097772487,
+    "cutout": false
+  },
+  {
+    "id": "a59",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a59-16.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a60",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a60-17.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a61",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a61-18.webp",
+    "aspect": 0.749934878874707,
+    "cutout": false
+  },
+  {
+    "id": "a62",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a62-19.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a63",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a63-2.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a64",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a64-20.webp",
+    "aspect": 0.750042279722645,
+    "cutout": false
+  },
+  {
+    "id": "a65",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a65-21.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a66",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a66-22.webp",
+    "aspect": 0.7500358320194926,
+    "cutout": false
+  },
+  {
+    "id": "a67",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a67-23.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a68",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a68-24.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a69",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a69-25.webp",
+    "aspect": 0.7505494505494505,
+    "cutout": false
+  },
+  {
+    "id": "a70",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a70-26.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a71",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a71-27.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a72",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a72-28.webp",
+    "aspect": 1.3323572474377745,
+    "cutout": false
+  },
+  {
+    "id": "a73",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a73-29.webp",
+    "aspect": 1.6,
+    "cutout": true
+  },
+  {
+    "id": "a74",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a74-3.webp",
+    "aspect": 0.8000752303930788,
+    "cutout": false
+  },
+  {
+    "id": "a75",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a75-30.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a76",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a76-31.webp",
+    "aspect": 0.8000907646925346,
+    "cutout": false
+  },
+  {
+    "id": "a77",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a77-32.webp",
+    "aspect": 1.1665725578769057,
+    "cutout": true
+  },
+  {
+    "id": "a78",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a78-33.webp",
+    "aspect": 0.8004446914952752,
+    "cutout": false
+  },
+  {
+    "id": "a79",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a79-34.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a80",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a80-35.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a81",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a81-36.webp",
+    "aspect": 0.7997982854261221,
+    "cutout": false
+  },
+  {
+    "id": "a82",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a82-37.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a83",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a83-38.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a84",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a84-39.webp",
+    "aspect": 0.7997982854261221,
+    "cutout": false
+  },
+  {
+    "id": "a85",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a85-4.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a86",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a86-40.webp",
+    "aspect": 0.765661252900232,
+    "cutout": false
+  },
+  {
+    "id": "a87",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a87-41.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a88",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a88-42.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a89",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a89-43.webp",
+    "aspect": 0.750042279722645,
+    "cutout": false
+  },
+  {
+    "id": "a90",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a90-44.webp",
+    "aspect": 0.75,
+    "cutout": false
+  },
+  {
+    "id": "a91",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a91-45.webp",
+    "aspect": 0.75,
+    "cutout": false
+  },
+  {
+    "id": "a92",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a92-46.webp",
+    "aspect": 0.8123076923076923,
+    "cutout": false
+  },
+  {
+    "id": "a93",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a93-47.webp",
+    "aspect": 0.6666666666666666,
+    "cutout": false
+  },
+  {
+    "id": "a94",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a94-48.webp",
+    "aspect": 1.123404255319149,
+    "cutout": true
+  },
+  {
+    "id": "a95",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a95-49.webp",
+    "aspect": 0.7500833055648117,
+    "cutout": false
+  },
+  {
+    "id": "a96",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a96-5.webp",
+    "aspect": 0.7084656084656085,
+    "cutout": false
+  },
+  {
+    "id": "a97",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a97-50.webp",
+    "aspect": 1.5,
+    "cutout": false
+  },
+  {
+    "id": "a98",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a98-51.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a99",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a99-6.webp",
+    "aspect": 0.7500354057498938,
+    "cutout": false
+  },
+  {
+    "id": "a100",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a100-7.webp",
+    "aspect": 1,
+    "cutout": true
+  },
+  {
+    "id": "a101",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a101-8.webp",
+    "aspect": 0.8,
+    "cutout": false
+  },
+  {
+    "id": "a102",
+    "uri": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/moodboard/autumn/a102-9.webp",
+    "aspect": 1,
+    "cutout": true
+  }
+]
