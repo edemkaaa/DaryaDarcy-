@@ -55,6 +55,15 @@
   новых фасадов; router и maintenance используют модуль напрямую. Три старых
   неиспользуемых comment-метода удалены из db.ts, чтобы не оставлять обходной путь.
   Повторный полный набор 373 / 3 пропуска и границы на 264 файлах прошли.
+- HTTP body parsing выделен в отдельный модуль. Аутентификация и роль проверяются
+  до чтения больших видео/JSON upload, включая batched tRPC. Обычный JSON —
+  256 KiB, auth JSON/формы — 16 KiB; фото — 6 MiB, admin media — 50 MiB,
+  raw video — 80 MiB только после допуска администратора. Подписанный webhook
+  остаётся отдельным raw-путём с 2 MiB. Повторная проверка сессии после upload
+  сохранена. Ошибки JSON/storage не возвращают или логируют детали payload.
+  Десять HTTP-сценариев; полный набор 387 / 3 пропуска, типы/границы/API прошли.
+  Это ограничивает расход памяти, **не является полной проверкой формата видео**
+  и не заменяет лимиты reverse proxy, stream upload и нагрузочную приёмку.
 
 ## Новые API настройки
 
@@ -144,6 +153,11 @@ Production требует TLS и не отправляет пароль, есл�
 Не выполнялась нативная сборка iOS/Android. Изменения сверены с
 [shell-quote advisory](https://github.com/ljharb/shell-quote/security/advisories/GHSA-w7jw-789q-3m8p)
 и [tar advisory](https://github.com/isaacs/node-tar/security/advisories/GHSA-23hp-3jrh-7fpw).
+
+Повторный production audit после этих overrides: **0 critical**, 84 high,
+51 moderate, 8 low. Шесть обновлённых пакетов больше не фигурируют в отчёте.
+High остаются, в том числе Axios/tRPC и клиентские зависимости; автоматическое
+разрешение на выпуск не выдаётся. Цифры — снимок lockfile на этом этапе.
 
 Технические решения сверены с [sharp](https://sharp.pixelplumbing.com/api-constructor/),
 [Express trusted proxies](https://expressjs.com/en/guide/behind-proxies/) и

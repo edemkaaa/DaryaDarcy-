@@ -97,8 +97,7 @@ export async function handleAdminVideoUpload(req: Request, res: Response) {
     const put = await storagePut(key, body, mime);
     res.json({ url: put.url });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Не удалось загрузить видео";
-    console.error("[admin-video] upload failed:", error);
-    res.status(500).json({ error: message });
+    console.error("[admin-video] upload failed");
+    res.status(500).json({ error: "Не удалось загрузить видео" });
   }
 }

@@ -7,7 +7,6 @@ import { registerOAuthRoutes } from "./oauth";
 import { cancelProdamusSubscription, handleProdamusWebhook, registerProdamusRoutes } from "../prodamus";
 import { processCancellations } from "../billing/cancellation";
 import { registerYoutubeStream } from "../youtube-stream";
-import { handleAdminVideoUpload } from "../admin-video";
 import { appRouter, sendNewPostNotification } from "../routers";
 import { processPendingShopDeliveryEmails } from "../shop-delivery";
 import * as platformDb from "../platform-db";
@@ -20,6 +19,7 @@ import { sendTransactionalEmail } from "./email";
 import { registerCapabilityRoutes } from "../launch/capabilities";
 import { registerHttpSecurity } from "./http-security";
 import { registerLaunchRoutes } from "../launch/routes";
+import { registerRequestBodies } from "./request-bodies";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -60,18 +60,7 @@ async function startServer() {
     void handleProdamusWebhook(req, res);
   });
 
-  app.post("/api/admin/upload-video", (req, res) => {
-    express.raw({ type: () => true, limit: "80mb" })(req, res, (err) => {
-      if (err) {
-        res.status(413).json({ error: "Видео больше 80 МБ. Сожмите ролик или загрузите более короткий файл." });
-        return;
-      }
-      void handleAdminVideoUpload(req, res);
-    });
-  });
-
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  registerRequestBodies(app);
 
   registerOAuthRoutes(app);
   registerCapabilityRoutes(app);
