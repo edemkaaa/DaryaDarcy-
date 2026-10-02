@@ -135,6 +135,16 @@ Production требует TLS и не отправляет пароль, есл�
 зависимостей ещё требуют отдельной проверки. Зависимости не признаны безопасными
 целиком, release gate остаётся открытым.
 
+Вложенные shell-quote 1.8.3 и tar 7.5.2 заменены узкими pnpm overrides на
+1.11.0 и 7.5.22. Тесты разрешают именно копии concurrently/Expo CLI, а не
+отдельную тестовую установку. Ошибка operator-token с переводом строки и отсутствие
+лимита распаковки воспроизведены до обновления; после проходят, обычные аргументы
+и gzip-архив тоже проверены (без исполнения команд и извлечения файлов).
+377 тестов / 3 пропуска, типы/границы/API/web и post-build regression прошли.
+Не выполнялась нативная сборка iOS/Android. Изменения сверены с
+[shell-quote advisory](https://github.com/ljharb/shell-quote/security/advisories/GHSA-w7jw-789q-3m8p)
+и [tar advisory](https://github.com/isaacs/node-tar/security/advisories/GHSA-23hp-3jrh-7fpw).
+
 Технические решения сверены с [sharp](https://sharp.pixelplumbing.com/api-constructor/),
 [Express trusted proxies](https://expressjs.com/en/guide/behind-proxies/) и
 [браузерной моделью CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS).
