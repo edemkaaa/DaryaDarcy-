@@ -14,7 +14,7 @@ describe("enforced workspace dependency direction", () => {
     ["apps/frontend/lib/test.ts", 'import { AppRouter } from "../../backend/src/routers";'],
     ["apps/frontend/lib/test.ts", 'import type * as Server from "../../backend/src/routers";'],
     ["apps/legacy-web/src/test.ts", 'import { AppRouter } from "../../backend/src/routers";'],
-    ["apps/frontend/app.config.ts", 'import "../../tooling/scripts/deploy-web.mjs";'],
+    ["apps/frontend/app.config.ts", 'import "../../tooling/operations/deploy-web.mjs";'],
   ])("rejects invalid dependency in %s", (file, source) => { expect(check(file, source)).toHaveLength(1); });
   it.each([
     ["apps/frontend/lib/test.ts", 'import { normalizeEmail } from "@shared/email";'],

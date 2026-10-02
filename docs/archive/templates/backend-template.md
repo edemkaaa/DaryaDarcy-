@@ -70,7 +70,7 @@ function MyScreen() {
   const { user, isAuthenticated, loading, logout } = useAuth();
 
   if (loading) return <ActivityIndicator />;
-  
+
   if (!isAuthenticated) {
     return <LoginButton />;
   }
@@ -211,14 +211,14 @@ import { items, InsertItem } from "../drizzle/schema";
 export async function getUserItems(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  
+
   return db.select().from(items).where(eq(items.userId, userId));
 }
 
 export async function createItem(data: InsertItem) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const result = await db.insert(items).values(data);
   return result.insertId;
 }
@@ -226,14 +226,14 @@ export async function createItem(data: InsertItem) {
 export async function updateItem(id: number, data: Partial<InsertItem>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   await db.update(items).set(data).where(eq(items.id, id));
 }
 
 export async function deleteItem(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   await db.delete(items).where(eq(items.id, id));
 }
 ```
@@ -1102,7 +1102,7 @@ type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
 function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] } {
   const clearedCookies: CookieCall[] = [];
-  
+
   const user: AuthenticatedUser = {
     id: 1,
     openId: "sample-user",
@@ -1114,7 +1114,7 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
     updatedAt: new Date(),
     lastSignedIn: new Date(),
   };
-  
+
   const ctx: TrpcContext = {
     user,
     req: {
@@ -1127,7 +1127,7 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
       },
     } as TrpcContext["res"],
   };
-  
+
   return { ctx, clearedCookies };
 }
 
@@ -1166,10 +1166,10 @@ const toggleComplete = trpc.items.update.useMutation({
   onMutate: async (input) => {
     // Cancel outgoing queries
     await utils.items.list.cancel();
-    
+
     // Snapshot previous value
     const previous = utils.items.list.getData();
-    
+
     // Optimistically update
     utils.items.list.setData(undefined, (old) =>
       old?.map((item) =>
@@ -1178,7 +1178,7 @@ const toggleComplete = trpc.items.update.useMutation({
           : item
       )
     );
-    
+
     return { previous };
   },
   onError: (err, input, context) => {
@@ -1207,13 +1207,13 @@ list: protectedProcedure
       limit: input.limit + 1,
       cursor: input.cursor,
     });
-    
+
     let nextCursor: number | undefined;
     if (items.length > input.limit) {
       const next = items.pop();
       nextCursor = next?.id;
     }
-    
+
     return { items, nextCursor };
   }),
 
