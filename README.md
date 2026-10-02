@@ -55,7 +55,12 @@ components/       UI-компоненты
 server/           Express + tRPC API
 drizzle/          Схема БД и SQL-миграции
 lib/              Клиентские утилиты, tRPC, форматирование текста
-scripts/          Деплой, миграции, импорт данных
+apps/             Клиентские и серверные приложения
+  legacy-web/     Альтернативный Vite-клиент (legacy)
+infrastructure/   Конфигурация окружения и деплоя
+  deploy/         nginx, PM2 и подготовка VPS
+scripts/          Временные служебные скрипты (переносятся в tooling/)
+docs/decisions/   Архитектурные решения
 web-dist/         Собранный фронт (генерируется, не в git)
 docs/             Документация для аудита
 ```

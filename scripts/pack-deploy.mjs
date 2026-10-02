@@ -4,16 +4,17 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const out = path.join(root, "deploy", "daryadarcy-src.tgz");
+const deployDir = path.join(root, "infrastructure", "deploy");
+const out = path.join(deployDir, "daryadarcy-src.tgz");
 
 for (const name of ["install.sh", "vps-fresh.sh", "apply-ip-nginx.sh", "restart.sh"]) {
-  const file = path.join(root, "deploy", name);
+  const file = path.join(deployDir, name);
   if (fs.existsSync(file)) {
     fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n"), "utf8");
   }
 }
 
-const staging = path.join(root, "deploy", ".stage");
+const staging = path.join(deployDir, ".stage");
 fs.rmSync(staging, { recursive: true, force: true });
 fs.mkdirSync(staging, { recursive: true });
 
@@ -22,11 +23,11 @@ const copy = [
   "pnpm-lock.yaml",
   ".npmrc",
   "dist/index.mjs",
-  "deploy/nginx-daryadarcy.conf",
-  "deploy/ecosystem.config.cjs",
-  "deploy/install.sh",
-  "deploy/restart.sh",
-  "deploy/apply-ip-nginx.sh",
+  "infrastructure/deploy/nginx-daryadarcy.conf",
+  "infrastructure/deploy/ecosystem.config.cjs",
+  "infrastructure/deploy/install.sh",
+  "infrastructure/deploy/restart.sh",
+  "infrastructure/deploy/apply-ip-nginx.sh",
 ];
 
 for (const rel of copy) {

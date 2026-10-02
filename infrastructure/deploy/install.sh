@@ -25,7 +25,7 @@ fi
 
 pnpm install --prod --frozen-lockfile
 
-cp "$APP/deploy/nginx-daryadarcy.conf" /etc/nginx/sites-available/daryadarcy
+cp "$APP/infrastructure/deploy/nginx-daryadarcy.conf" /etc/nginx/sites-available/daryadarcy
 ln -sfn /etc/nginx/sites-available/daryadarcy /etc/nginx/sites-enabled/daryadarcy
 rm -f /etc/nginx/sites-enabled/default
 

@@ -27,7 +27,7 @@
   "exclude": [
     "node_modules",
     "dist",
-    "site",
+    "apps/legacy-web",
     "web-dist",
     "vite.config.ts"
   ]

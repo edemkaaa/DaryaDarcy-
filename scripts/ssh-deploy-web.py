@@ -18,7 +18,7 @@ if not entry_files:
 entry_js = entry_files[0]
 print("entry bundle", entry_js)
 
-nginx = (root / "deploy" / "nginx-daryadarcy.conf").read_text(encoding="utf-8")
+nginx = (root / "infrastructure" / "deploy" / "nginx-daryadarcy.conf").read_text(encoding="utf-8")
 cmd = (
     "set -e\n"
     "cat > /etc/nginx/sites-available/daryadarcy << 'NGINX'\n"

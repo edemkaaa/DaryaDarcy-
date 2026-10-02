@@ -9,7 +9,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         k, v = line.split("=", 1)
         env[k.strip()] = v.strip()
 
-local_nginx = root / "deploy" / "nginx-daryadarcy.conf"
+local_nginx = root / "infrastructure" / "deploy" / "nginx-daryadarcy.conf"
 
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -26,9 +26,10 @@ client.connect(
     look_for_keys=False,
 )
 
+client.exec_command("mkdir -p /var/www/daryadarcy/infrastructure/deploy")[1].channel.recv_exit_status()
 sftp = client.open_sftp()
 sftp.put(str(local_nginx), "/etc/nginx/sites-available/daryadarcy")
-sftp.put(str(local_nginx), "/var/www/daryadarcy/deploy/nginx-daryadarcy.conf")
+sftp.put(str(local_nginx), "/var/www/daryadarcy/infrastructure/deploy/nginx-daryadarcy.conf")
 sftp.close()
 print("uploaded nginx conf")
 

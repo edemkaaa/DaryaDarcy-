@@ -11,7 +11,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         env[k.strip()] = v.strip()
 
 web_dist = root / "web-dist"
-tgz = root / "deploy" / "web-dist.tgz"
+tgz = root / "infrastructure" / "deploy" / "web-dist.tgz"
 pack_script = root / "scripts" / "pack-web-dist.mjs"
 
 if not (web_dist / "index.html").exists():
@@ -34,7 +34,7 @@ if not entry_files:
 entry_js = entry_files[0]
 print("entry bundle", entry_js)
 
-nginx = (root / "deploy" / "nginx-daryadarcy.conf").read_text(encoding="utf-8")
+nginx = (root / "infrastructure" / "deploy" / "nginx-daryadarcy.conf").read_text(encoding="utf-8")
 
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())

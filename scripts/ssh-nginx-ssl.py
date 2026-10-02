@@ -8,12 +8,13 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         k, v = line.split("=", 1)
         env[k.strip()] = v.strip()
 
-nginx = (root / "deploy" / "nginx-daryadarcy.conf").read_text(encoding="utf-8")
+nginx = (root / "infrastructure" / "deploy" / "nginx-daryadarcy.conf").read_text(encoding="utf-8")
 cmd = (
     "set -e\ncat > /etc/nginx/sites-available/daryadarcy << 'NGINX'\n"
     + nginx
     + "\nNGINX\nnginx -t\nsystemctl reload nginx\n"
-    "cp /etc/nginx/sites-available/daryadarcy /var/www/daryadarcy/deploy/nginx-daryadarcy.conf\n"
+    "mkdir -p /var/www/daryadarcy/infrastructure/deploy\n"
+    "cp /etc/nginx/sites-available/daryadarcy /var/www/daryadarcy/infrastructure/deploy/nginx-daryadarcy.conf\n"
     "echo DONE\n"
 )
 

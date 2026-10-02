@@ -38,9 +38,9 @@ async function upload(rel, contentType) {
   console.log("bytes", body.length);
 }
 
-await upload("deploy/daryadarcy-src.tgz", "application/gzip");
-await upload("deploy/vps-fresh.sh", "text/x-shellscript");
-await upload("deploy/start-api.sh", "text/x-shellscript");
-await upload("deploy/ecosystem.config.cjs", "application/javascript");
+await upload("infrastructure/deploy/daryadarcy-src.tgz", "application/gzip");
+await upload("infrastructure/deploy/vps-fresh.sh", "text/x-shellscript");
+await upload("infrastructure/deploy/start-api.sh", "text/x-shellscript");
+await upload("infrastructure/deploy/ecosystem.config.cjs", "application/javascript");
 await upload("scripts/diag-tidb.mjs", "text/javascript");
-await upload("deploy/nginx-daryadarcy.conf", "text/plain");
+await upload("infrastructure/deploy/nginx-daryadarcy.conf", "text/plain");

@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const publicDir = path.join(root, "site", "public");
+const publicDir = path.join(root, "apps", "legacy-web", "public");
 
 function copyDir(from, to) {
   if (!fs.existsSync(from)) throw new Error(`Missing ${from}`);
@@ -13,4 +13,4 @@ function copyDir(from, to) {
 
 copyDir(path.join(root, "assets", "fonts"), path.join(publicDir, "fonts"));
 copyDir(path.join(root, "assets", "images", "home"), path.join(publicDir, "home"));
-console.log("copied fonts + home images into site/public");
+console.log("copied fonts + home images into apps/legacy-web/public");

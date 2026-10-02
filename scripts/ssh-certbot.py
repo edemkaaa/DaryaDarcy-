@@ -121,7 +121,8 @@ cat > /etc/nginx/sites-available/daryadarcy << 'NGINX'
 NGINX
 nginx -t
 systemctl reload nginx
-cp /etc/nginx/sites-available/daryadarcy /var/www/daryadarcy/deploy/nginx-daryadarcy.conf
+mkdir -p /var/www/daryadarcy/infrastructure/deploy
+cp /etc/nginx/sites-available/daryadarcy /var/www/daryadarcy/infrastructure/deploy/nginx-daryadarcy.conf
 systemctl enable --now certbot.timer
 echo '==== cert ===='
 openssl x509 -in /etc/letsencrypt/live/daryadarcy.com/fullchain.pem -noout -issuer -subject -dates

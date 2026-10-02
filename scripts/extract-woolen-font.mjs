@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Extract Woolen webfont from Woolen.zip into assets/fonts and site/public/fonts. */
+/** Extract Woolen webfont into the Expo and legacy Vite font directories. */
 import { execSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -37,9 +37,9 @@ print("ok")
 
 execSync(`python -c "${py.replace(/"/g, '\\"')}"`, { stdio: "inherit" });
 
-const siteFonts = join(root, "site", "public", "fonts");
+const siteFonts = join(root, "apps", "legacy-web", "public", "fonts");
 mkdirSync(siteFonts, { recursive: true });
 for (const name of ["Woolen-Regular.ttf", "Woolen-Regular.woff", "Woolen-webfont.woff2", "Woolen-EULA.txt"]) {
   copyFileSync(join(assets, name), join(siteFonts, name));
 }
-console.log("Woolen fonts: assets/fonts + site/public/fonts");
+console.log("Woolen fonts: assets/fonts + apps/legacy-web/public/fonts");

@@ -33,7 +33,10 @@ client.connect(
 # Upload scripts and config
 files = [
     (root / "scripts" / "s3-media-backup.mjs", f"{REMOTE_ROOT}/scripts/s3-media-backup.mjs"),
-    (root / "deploy" / "s3-backup-lifecycle.json", f"{REMOTE_ROOT}/deploy/s3-backup-lifecycle.json"),
+    (
+        root / "infrastructure" / "deploy" / "s3-backup-lifecycle.json",
+        f"{REMOTE_ROOT}/infrastructure/deploy/s3-backup-lifecycle.json",
+    ),
     (root / "scripts" / "_s3-bucket-size.mjs", f"{REMOTE_ROOT}/scripts/_s3-bucket-size.mjs"),
 ]
 
@@ -98,8 +101,8 @@ if err.strip():
 # Fetch report
 try:
     with client.open_sftp() as sftp:
-        report_path = f"{REMOTE_ROOT}/deploy/s3-backup-last-run.json"
-        local_report = root / "deploy" / "s3-backup-last-run.json"
+        report_path = f"{REMOTE_ROOT}/infrastructure/deploy/s3-backup-last-run.json"
+        local_report = root / "infrastructure" / "deploy" / "s3-backup-last-run.json"
         sftp.get(report_path, str(local_report))
         print("saved", local_report)
         print(local_report.read_text(encoding="utf-8"))

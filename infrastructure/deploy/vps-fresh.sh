@@ -42,10 +42,10 @@ if [ -f /root/daryadarcy.env.bak ]; then
 fi
 
 if [ ! -f "$APP/.env" ]; then
-  echo "Put .env at $APP/.env then run: bash $APP/deploy/install.sh"
+  echo "Put .env at $APP/.env then run: bash $APP/infrastructure/deploy/install.sh"
   exit 1
 fi
 
 sed -i 's|^PUBLIC_APP_URL=.*|PUBLIC_APP_URL=http://200.165.234.36|' "$APP/.env"
 
-bash "$APP/deploy/install.sh"
+bash "$APP/infrastructure/deploy/install.sh"

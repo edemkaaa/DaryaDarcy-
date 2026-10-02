@@ -44,13 +44,16 @@ def ensure_dir(path: str):
 ensure_dir(remote_mig)
 for file in sql_files:
     sftp.put(str(file), f"{remote_mig}/{file.name}")
-sftp.put(str(root / "deploy" / "setup-local-mysql.sh"), "/var/www/daryadarcy/deploy/setup-local-mysql.sh")
+sftp.put(
+    str(root / "infrastructure" / "deploy" / "setup-local-mysql.sh"),
+    "/var/www/daryadarcy/infrastructure/deploy/setup-local-mysql.sh",
+)
 sftp.close()
 
 cmd = r"""
 set -e
-chmod +x /var/www/daryadarcy/deploy/setup-local-mysql.sh
-bash /var/www/daryadarcy/deploy/setup-local-mysql.sh
+chmod +x /var/www/daryadarcy/infrastructure/deploy/setup-local-mysql.sh
+bash /var/www/daryadarcy/infrastructure/deploy/setup-local-mysql.sh
 pm2 delete daryadarcy-api >/dev/null 2>&1 || true
 cd /var/www/daryadarcy
 NODE_ENV=production PORT=3000 HOST=127.0.0.1 pm2 start /usr/bin/node --name daryadarcy-api --cwd /var/www/daryadarcy --interpreter none -- dist/index.mjs

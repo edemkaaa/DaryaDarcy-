@@ -1,0 +1,25 @@
+{
+  "name": "@daryadarcy/legacy-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.90.12",
+    "@trpc/client": "11.7.2",
+    "@trpc/react-query": "11.7.2",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-router-dom": "^7.18.2",
+    "superjson": "^1.13.3"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.17",
+    "@vitejs/plugin-react": "^6.0.5",
+    "typescript": "~5.9.3",
+    "vite": "^8.2.1"
+  }
+}

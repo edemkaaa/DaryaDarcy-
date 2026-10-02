@@ -6,15 +6,15 @@ import { fileURLToPath } from "node:url";
 const dir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  root: "site",
+  root: dir,
   plugins: [react()],
   resolve: {
     alias: {
-      "@site": path.resolve(dir, "site/src"),
+      "@site": path.resolve(dir, "src"),
     },
   },
   build: {
-    outDir: path.resolve(dir, "web-dist"),
+    outDir: path.resolve(dir, "../../web-dist"),
     emptyOutDir: true,
     target: "es2020",
     cssMinify: true,

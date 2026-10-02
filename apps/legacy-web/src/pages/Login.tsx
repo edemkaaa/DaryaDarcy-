@@ -4,7 +4,7 @@ import { useAuth } from "../auth";
 import {
   EMAIL_REGISTER_CONSENT_LABEL,
   EMAIL_REGISTER_CONSENT_VERSION,
-} from "../../../shared/consent-texts";
+} from "../../../../shared/consent-texts";
 
 export default function Login() {
   const { login, register } = useAuth();

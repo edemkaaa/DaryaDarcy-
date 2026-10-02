@@ -10,8 +10,8 @@ if [ ! -f /etc/ssl/certs/daryadarcy.crt ] || [ ! -f /etc/ssl/private/daryadarcy.
   chmod 600 /etc/ssl/private/daryadarcy.key
 fi
 
-curl -fsSL -o "$APP/deploy/nginx-daryadarcy.conf" https://s3.twcstorage.ru/daryadarcy-s3/deploy/nginx-daryadarcy.conf
-cp "$APP/deploy/nginx-daryadarcy.conf" /etc/nginx/sites-available/daryadarcy
+curl -fsSL -o "$APP/infrastructure/deploy/nginx-daryadarcy.conf" https://s3.twcstorage.ru/daryadarcy-s3/deploy/nginx-daryadarcy.conf
+cp "$APP/infrastructure/deploy/nginx-daryadarcy.conf" /etc/nginx/sites-available/daryadarcy
 ln -sfn /etc/nginx/sites-available/daryadarcy /etc/nginx/sites-enabled/daryadarcy
 rm -f /etc/nginx/sites-enabled/default
 

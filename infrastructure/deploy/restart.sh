@@ -1,6 +1,6 @@
 #!/bin/bash
 # Restart after reboot. Run as root:
-#   bash /var/www/daryadarcy/deploy/restart.sh
+#   bash /var/www/daryadarcy/infrastructure/deploy/restart.sh
 set -euo pipefail
 
 APP=/var/www/daryadarcy
@@ -16,7 +16,7 @@ ufw allow 80/tcp
 ufw allow 8080/tcp
 ufw --force enable >/dev/null
 
-cp "$APP/deploy/nginx-daryadarcy.conf" /etc/nginx/sites-available/daryadarcy
+cp "$APP/infrastructure/deploy/nginx-daryadarcy.conf" /etc/nginx/sites-available/daryadarcy
 ln -sfn /etc/nginx/sites-available/daryadarcy /etc/nginx/sites-enabled/daryadarcy
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
@@ -24,7 +24,7 @@ systemctl enable --now nginx
 systemctl restart nginx
 
 pm2 delete daryadarcy-api >/dev/null 2>&1 || true
-pm2 start "$APP/deploy/ecosystem.config.cjs"
+pm2 start "$APP/infrastructure/deploy/ecosystem.config.cjs"
 pm2 save
 env PATH=$PATH:/usr/bin pm2 startup systemd -u root --hp /root >/dev/null 2>&1 || true
 
