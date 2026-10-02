@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "../packages/database/src/schema";
 import type { TrpcContext } from "../apps/backend/src/_core/context";
 
@@ -25,7 +25,16 @@ beforeEach(() => {
   state.orders = []; state.issued = false; state.activated = false;
   state.blocked = false; state.paid = false; state.password = false;
 });
+afterEach(() => vi.restoreAllMocks());
 describe("checkout cannot establish identity or payment", () => {
+  it.each(["monthly", "semiannual"] as const)("creates distinct %s orders for concurrent requests in the same millisecond", async plan => {
+    vi.spyOn(Date, "now").mockReturnValue(1790940000000);
+    const results = await Promise.all(Array.from({ length: 8 }, () => caller().club.createCheckout({ email: member.email!, plan })));
+    expect(new Set(state.orders).size).toBe(8);
+    expect(state.orders.every(id => id.length <= 64 && id.startsWith(plan === "semiannual" ? "club6m-7-" : "club-7-"))).toBe(true);
+    expect(results.every(result => result.user === null)).toBe(true);
+    expect(results.map(result => new URL(result.url).searchParams.get("order_id")).sort()).toEqual([...state.orders].sort());
+  });
   it("creates checkout without logging into a passwordless existing account", async () => {
     const result = await caller().club.createCheckout({ email: member.email! });
     expect(result.url).toContain("order_id=club-7-");

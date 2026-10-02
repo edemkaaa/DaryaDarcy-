@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
   router,
@@ -116,8 +117,8 @@ export const clubRouter = router({
       const plan = input?.plan ?? "monthly";
       const orderId =
         plan === "semiannual"
-          ? `club6m-${user.id}-${Date.now()}`
-          : `club-${user.id}-${Date.now()}`;
+          ? `club6m-${user.id}-${randomUUID()}`
+          : `club-${user.id}-${randomUUID()}`;
       await db.createClubPayment({
         userId: user.id,
         orderId,
