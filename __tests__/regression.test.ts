@@ -317,7 +317,7 @@ describe("Push — EAS wiring", () => {
 
 describe("Articles — photo captions", () => {
   it("keeps caption in createArticle/updateArticle API schema", () => {
-    const routers = read("apps/backend/src/routers.ts");
+    const routers = read("apps/backend/src/admin/router.ts");
     expect(routers).toMatch(/createArticle:[\s\S]*caption: z\.string\(\)/);
     expect(routers).toMatch(/updateArticle:[\s\S]*caption: z\.string\(\)/);
   });

@@ -428,6 +428,7 @@ describe("Feed API Routes", () => {
   const routerPath = path.join(REPOSITORY_ROOT, "apps/backend/src/routers.ts");
   const routerContent = fs.readFileSync(routerPath, "utf-8");
   const feedContent = fs.readFileSync(path.join(REPOSITORY_ROOT, "apps/backend/src/content/feed-router.ts"), "utf-8");
+  const adminContent = fs.readFileSync(path.join(REPOSITORY_ROOT, "apps/backend/src/admin/router.ts"), "utf-8");
 
   it("should have feed router with list and tags endpoints", () => {
     expect(routerContent).toContain("feed: feedRouter");
@@ -441,10 +442,10 @@ describe("Feed API Routes", () => {
   });
 
   it("should have admin router with CRUD endpoints", () => {
-    expect(routerContent).toContain("admin: router");
-    expect(routerContent).toContain("createPost: adminProcedure");
-    expect(routerContent).toContain("updatePost: adminProcedure");
-    expect(routerContent).toContain("deletePost: adminProcedure");
+    expect(routerContent).toContain("admin: adminRouter");
+    expect(adminContent).toContain("createPost: adminProcedure");
+    expect(adminContent).toContain("updatePost: adminProcedure");
+    expect(adminContent).toContain("deletePost: adminProcedure");
   });
 });
 
@@ -524,7 +525,8 @@ describe("Push Notifications", () => {
   });
 
   it("should send marketing notifications when post is published", () => {
-    expect(routerContent).toContain("sendNewPostNotification");
+    const adminContent = fs.readFileSync(path.join(REPOSITORY_ROOT, "apps/backend/src/admin/router.ts"), "utf-8");
+    expect(adminContent).toContain("sendNewPostNotification");
     const pushModule = fs.readFileSync(
       path.join(REPOSITORY_ROOT, "apps/backend/src/push.ts"),
       "utf-8",

@@ -329,6 +329,16 @@ push и не изменение правил доступа/согласия. Н
 447 тестов / 2 пропуска, типы, границы 273 файлов, сборка API и diff-check проходят.
 README содержит карту модулей; оставшиеся крупные admin/legacy/data части не скрыты.
 
+Все оставшиеся tRPC-группы также вынесены по доменам: identity/router,
+profile/router (включая profileExtras), content/videos-router, admin/router,
+pen-pals/router и shop/router. Центр больше не содержит обработчиков или бизнес-
+проверок, только imports и сборку. Старый forwarding export для push удалён;
+admin и планировщик используют исходный сервис напрямую (через имя импорта).
+Состав API и нормализованный скомпилированный код семи групп совпадают с прежними.
+Полный набор 447 / 2 пропуска, типы, границы 279 файлов, сборка API и diff-check
+проходят. Магазин/SMS/pen-pals не включены переносом. Крупные репозитории и
+внутреннее дробление admin остаются отдельными шагами.
+
 Область действия и очистка сверены с [моделью Set-Cookie](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie)
 и [Express clearCookie](https://expressjs.com/en/4x/api/response/#res.clearCookie).
 

@@ -23,7 +23,9 @@
   HTTP policy, billing, identity, launch configuration and comment repositories
   separated; club and moderation routers extracted without API changes;
   feed, articles and notification routers extracted with unchanged compiled handlers;
-  legacy unused comment accessors removed. Other domains remain.
+  legacy unused comment accessors removed; all tRPC namespaces now have domain
+  modules, the root composes only. Remaining work: split db.ts/platform-db.ts
+  repositories and large admin internals.
 - [ ] Green checkpoint: API contract, tests, check, backend build.
 
 ## Phase 3 — Frontend
