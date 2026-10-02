@@ -1,4 +1,6 @@
 import mysql from "mysql2/promise";
+import { readFile } from "node:fs/promises";
+import { URL } from "node:url";
 
 export const testDatabaseUrl = process.env.BACKEND_TEST_DATABASE_URL;
 export async function openTestDatabase() {
@@ -23,5 +25,15 @@ export async function openTestDatabase() {
     cancelledAt TIMESTAMP NULL, createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   ) ENGINE=InnoDB`);
+  await conn.query("SELECT GET_LOCK('backend_test_schema',30)");
+  try {
+    await conn.query("CREATE TABLE IF NOT EXISTS backend_test_migrations (name VARCHAR(100) PRIMARY KEY)");
+    const [rows] = await conn.query<mysql.RowDataPacket[]>("SELECT name FROM backend_test_migrations WHERE name='0020_billing_identity'");
+    if (!rows.length) {
+      const sql = await readFile(new URL("../../packages/database/drizzle/0020_billing_identity.sql", import.meta.url), "utf8");
+      for (const statement of sql.split("--> statement-breakpoint")) await conn.query(statement);
+      await conn.query("INSERT INTO backend_test_migrations VALUES ('0020_billing_identity')");
+    }
+  } finally { await conn.query("SELECT RELEASE_LOCK('backend_test_schema')"); }
   return conn;
 }

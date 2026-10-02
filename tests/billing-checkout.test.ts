@@ -5,7 +5,7 @@ import type { TrpcContext } from "../apps/backend/src/_core/context";
 const state = vi.hoisted(() => ({ orders: [] as string[], issued: false, activated: false, blocked: false, paid: false, password: false }));
 const member: User = {
   id: 7, openId: "member", email: "member@example.test", name: null, phone: null,
-  passwordHash: null, loginMethod: "email", gender: null, avatarUrl: null, role: "user",
+  passwordHash: null, sessionVersion: 0, loginMethod: "email", gender: null, avatarUrl: null, role: "user",
   blockedAt: null, blockedReason: null, accountDeletionRequestedAt: null,
   createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date(),
 };

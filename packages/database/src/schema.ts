@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean, unique } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean, unique, index } from "drizzle-orm/mysql-core";
 import type { RichTextBlock, RichTextInline } from "../../shared/src/rich-text-types";
 
 export type { RichTextBlock, RichTextInline } from "../../shared/src/rich-text-types";
@@ -13,6 +13,7 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   phone: varchar("phone", { length: 16 }).unique(),
   passwordHash: varchar("passwordHash", { length: 255 }),
+  sessionVersion: int("sessionVersion").default(0).notNull(),
   loginMethod: varchar("loginMethod", { length: 64 }),
   gender: mysqlEnum("gender", ["female", "male"]),
   avatarUrl: text("avatarUrl"),
@@ -254,6 +255,56 @@ export const clubPayments = mysqlTable("club_payments", {
 
 export type ClubPayment = typeof clubPayments.$inferSelect;
 export type InsertClubPayment = typeof clubPayments.$inferInsert;
+
+export const billingReceipts = mysqlTable("billing_receipts", {
+  paymentKey: varchar("paymentKey", { length: 64 }).primaryKey(),
+  userId: int("userId").notNull(),
+  orderId: varchar("orderId", { length: 64 }).notNull(),
+  payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
+  amountMinor: int("amountMinor").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const billingProfiles = mysqlTable("billing_profiles", {
+  profileKey: varchar("profileKey", { length: 64 }).primaryKey(),
+  userId: int("userId").notNull(),
+  domain: varchar("domain", { length: 255 }).notNull(),
+  subscriptionId: varchar("subscriptionId", { length: 64 }).notNull(),
+  profileId: varchar("profileId", { length: 64 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  amountMinor: int("amountMinor").notNull(),
+  cancelRequestedAt: timestamp("cancelRequestedAt"),
+  cancelledAt: timestamp("cancelledAt"),
+  attempts: int("attempts").default(0).notNull(),
+  nextAttemptAt: timestamp("nextAttemptAt").defaultNow().notNull(),
+  leaseId: varchar("leaseId", { length: 36 }),
+  leaseUntil: timestamp("leaseUntil"),
+}, (table) => [index("billing_profiles_user").on(table.userId)]);
+
+export const passwordTokens = mysqlTable("password_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  tokenHash: varchar("tokenHash", { length: 64 }).notNull().unique(),
+  purpose: mysqlEnum("purpose", ["setup", "reset"]).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  consumedAt: timestamp("consumedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [index("password_tokens_user").on(table.userId)]);
+
+export const accessEmailOutbox = mysqlTable("access_email_outbox", {
+  id: int("id").autoincrement().primaryKey(),
+  eventKey: varchar("eventKey", { length: 128 }).notNull().unique(),
+  userId: int("userId").notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  kind: mysqlEnum("kind", ["club-access", "password-setup", "password-reset"]).notNull(),
+  payload: json("payload").$type<{ orderId?: string; tokenCipher?: string }>().notNull(),
+  sentAt: timestamp("sentAt"),
+  nextAttemptAt: timestamp("nextAttemptAt").defaultNow().notNull(),
+  attempts: int("attempts").default(0).notNull(),
+  leaseId: varchar("leaseId", { length: 36 }),
+  leaseUntil: timestamp("leaseUntil"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [index("access_email_outbox_due").on(table.sentAt, table.nextAttemptAt)]);
 
 export const shopPurchases = mysqlTable("shop_purchases", {
   id: int("id").autoincrement().primaryKey(),
