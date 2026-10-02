@@ -90,6 +90,11 @@
   entry points (checkout/redirect/webhook/queued mail). Privacy withdrawal remains
   available. Shop cannot be enabled by an environment flag before durable repair.
   Seasonal/manager configuration and client wiring are still pending.
+  Configuration slice checked locally: four seasonal sets/annual Moscow dates,
+  fixed winter default, managerEmail, administrator-only revisioned/audited writes.
+  Tests include concurrent edits, blocked actor, invalid dates/URLs and real JWT
+  HTTP admin/public roundtrip. Migration 0023 rehearsed only on disposable MySQL.
+  Client wiring/order submission still pending; contact config is not sent mail.
 - [ ] Release checkpoint: sandbox E2E, migrations rehearsal, mail/load/security
   checks and approved rollout. Optional HLS/web push require separate scope review.
   Browser/API repair checked: explicit credentialed Origin allowlist, cross-site

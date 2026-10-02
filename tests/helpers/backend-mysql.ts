@@ -19,7 +19,7 @@ export async function openTestDatabase() {
     timezone: "Z",
   });
   await conn.query(`CREATE TABLE IF NOT EXISTS users (
-    id INT PRIMARY KEY, openId VARCHAR(64) NOT NULL UNIQUE, email VARCHAR(320),
+    id INT AUTO_INCREMENT PRIMARY KEY, openId VARCHAR(64) NOT NULL UNIQUE, email VARCHAR(320),
     name TEXT, phone VARCHAR(16), passwordHash VARCHAR(255), loginMethod VARCHAR(64),
     gender ENUM('female','male'), avatarUrl TEXT, role ENUM('user','admin','moderator') NOT NULL DEFAULT 'user',
     blockedAt TIMESTAMP NULL, blockedReason VARCHAR(512), accountDeletionRequestedAt TIMESTAMP NULL,
@@ -40,6 +40,12 @@ export async function openTestDatabase() {
   ) ENGINE=InnoDB`);
   await conn.query("SELECT GET_LOCK('backend_test_schema',30)");
   try {
+    // Upgrade only the disposable fixture created by earlier test iterations.
+    // Production schema already has AUTO_INCREMENT; authentication upserts need it.
+    const [idColumns] = await conn.query<mysql.RowDataPacket[]>("SELECT EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='id'");
+    if (!String(idColumns[0]?.EXTRA).includes("auto_increment")) {
+      await conn.query("ALTER TABLE users MODIFY id INT NOT NULL AUTO_INCREMENT");
+    }
     await conn.query(
       "CREATE TABLE IF NOT EXISTS backend_test_migrations (name VARCHAR(100) PRIMARY KEY)",
     );
@@ -47,6 +53,7 @@ export async function openTestDatabase() {
       "0020_billing_identity",
       "0021_access_mail_status",
       "0022_password_token_recipient",
+      "0023_launch_settings",
     ]) {
       const [rows] = await conn.query<mysql.RowDataPacket[]>(
         "SELECT name FROM backend_test_migrations WHERE name=?",

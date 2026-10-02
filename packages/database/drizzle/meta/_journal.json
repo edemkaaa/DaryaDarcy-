@@ -141,6 +141,13 @@
       "when": 1790937200000,
       "tag": "0022_password_token_recipient",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1790937300000,
+      "tag": "0023_launch_settings",
+      "breakpoints": true
     }
   ]
 }

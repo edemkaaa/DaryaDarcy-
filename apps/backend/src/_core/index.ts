@@ -19,6 +19,7 @@ import { processAccessEmails } from "../identity/access";
 import { sendTransactionalEmail } from "./email";
 import { registerCapabilityRoutes } from "../launch/capabilities";
 import { registerHttpSecurity } from "./http-security";
+import { registerLaunchRoutes } from "../launch/routes";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -74,6 +75,7 @@ async function startServer() {
 
   registerOAuthRoutes(app);
   registerCapabilityRoutes(app);
+  registerLaunchRoutes(app);
   registerPasswordRoutes(app);
   registerProdamusRoutes(app);
   registerYoutubeStream(app);

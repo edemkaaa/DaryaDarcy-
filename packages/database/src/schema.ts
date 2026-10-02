@@ -1,5 +1,14 @@
 import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean, unique, index } from "drizzle-orm/mysql-core";
 import type { RichTextBlock, RichTextInline } from "../../shared/src/rich-text-types";
+import type { LaunchConfiguration } from "../../shared/src/launch-settings";
+
+export const launchSettings = mysqlTable("launch_settings", {
+  id: int("id").primaryKey(),
+  revision: int("revision").default(0).notNull(),
+  config: json("config").$type<LaunchConfiguration>().notNull(),
+  updatedBy: int("updatedBy"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
 
 export type { RichTextBlock, RichTextInline } from "../../shared/src/rich-text-types";
 

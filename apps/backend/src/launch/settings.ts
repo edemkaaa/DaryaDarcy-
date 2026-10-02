@@ -1,0 +1,64 @@
+import type { MySql2Database } from "drizzle-orm/mysql2";
+import type { LaunchConfiguration, LaunchConfigurationSnapshot, Season } from "../../../../packages/shared/src/launch-settings";
+import { PUBLIC_CONTACT_EMAIL } from "../../../../packages/shared/src/contact";
+import { eq } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import { launchSettings, users, adminAuditLog } from "../../../../packages/database/src/schema";
+
+const seasonName = z.enum(["winter", "spring", "summer", "autumn"]);
+const annualDate = z.string().regex(/^\d{2}-\d{2}$/).refine(value => {
+  const parsed = new Date(`2001-${value}T00:00:00Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(5, 10) === value;
+}, "Нужна ежегодная дата MM-DD (без 29 февраля)");
+const assetUrl = z.string().max(2048).url().refine(value => {
+  const url = new URL(value);
+  return url.protocol === "https:" && !url.username && !url.password;
+}, "Изображения должны использовать HTTPS").nullable();
+const appearance = z.object({ startsOn: annualDate, backgroundUrl: assetUrl, bannerUrl: assetUrl }).strict();
+export const launchConfigurationSchema = z.object({
+  timezone: z.literal("Europe/Moscow"), seasonMode: z.enum(["fixed", "calendar"]), fixedSeason: seasonName,
+  seasons: z.object({ winter: appearance, spring: appearance, summer: appearance, autumn: appearance }).strict(),
+  managerEmail: z.string().max(320).email().transform(value => value.trim().toLowerCase()),
+}).strict().refine(config => new Set(Object.values(config.seasons).map(value => value.startsOn)).size === 4, "Даты начала сезонов должны отличаться");
+
+export const defaultLaunchConfiguration: LaunchConfiguration = {
+  timezone: "Europe/Moscow", seasonMode: "fixed", fixedSeason: "winter",
+  seasons: {
+    winter: { startsOn: "11-20", backgroundUrl: null, bannerUrl: null },
+    spring: { startsOn: "03-20", backgroundUrl: null, bannerUrl: null },
+    summer: { startsOn: "06-01", backgroundUrl: null, bannerUrl: null },
+    autumn: { startsOn: "09-01", backgroundUrl: null, bannerUrl: null },
+  },
+  managerEmail: PUBLIC_CONTACT_EMAIL,
+};
+export async function getLaunchConfiguration(database: MySql2Database): Promise<LaunchConfigurationSnapshot> {
+  const [saved] = await database.select().from(launchSettings).where(eq(launchSettings.id, 1));
+  return saved ? { revision: saved.revision, config: saved.config } : { revision: 0, config: structuredClone(defaultLaunchConfiguration) };
+}
+/** Boundary for untrusted admin JSON; changes are versioned and audited atomically. */
+export async function saveLaunchConfiguration(database: MySql2Database, actorId: number, expectedRevision: number, input: unknown): Promise<LaunchConfigurationSnapshot> {
+  const parsed = launchConfigurationSchema.safeParse(input);
+  if (!parsed.success || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0 || expectedRevision >= 2147483647) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Некорректные настройки" });
+  }
+  const config = parsed.data;
+  return database.transaction(async tx => {
+    const [actor] = await tx.select().from(users).where(eq(users.id, actorId)).for("update");
+    if (!actor || actor.blockedAt || actor.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+    await tx.insert(launchSettings).ignore().values({ id: 1, config: defaultLaunchConfiguration });
+    const [saved] = await tx.select().from(launchSettings).where(eq(launchSettings.id, 1)).for("update");
+    if (saved.revision !== expectedRevision) throw new TRPCError({ code: "CONFLICT", message: "Настройки изменились. Обновите страницу" });
+    const revision = saved.revision + 1;
+    await tx.update(launchSettings).set({ config, revision, updatedBy: actorId }).where(eq(launchSettings.id, 1));
+    await tx.insert(adminAuditLog).values({ actorUserId: actorId, action: "update_launch_settings", targetType: "launch_settings", targetId: 1, details: `revision:${revision}` });
+    return { revision, config };
+  });
+}
+export function currentSeason(config: LaunchConfiguration, date = new Date()): Season {
+  if (config.seasonMode === "fixed") return config.fixedSeason;
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: config.timezone, month: "2-digit", day: "2-digit" }).formatToParts(date);
+  const day = `${parts.find(part => part.type === "month")!.value}-${parts.find(part => part.type === "day")!.value}`;
+  const ordered = (Object.keys(config.seasons) as Season[]).sort((a, b) => config.seasons[a].startsOn.localeCompare(config.seasons[b].startsOn));
+  return ordered.filter(season => config.seasons[season].startsOn <= day).at(-1) ?? ordered[ordered.length - 1];
+}
