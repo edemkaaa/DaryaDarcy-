@@ -15,6 +15,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "./db";
 import * as platformDb from "./platform-db";
+import * as commentDb from "./content/comments";
 import { storagePut } from "./storage";
 import { photoInput, uploadPhoto } from "./media/photos";
 import { requireCapability } from "./launch/capabilities";
@@ -50,7 +51,7 @@ const penPalProcedure = protectedProcedure.use(({ next }) => {
 });
 
 async function requireReadableComment(id: number, user: Parameters<typeof userHasClubAccess>[0]) {
-  const comment = await platformDb.getPostCommentById(id);
+  const comment = await commentDb.getPostCommentById(id);
   const post = comment ? await db.getPostById(comment.postId) : undefined;
   if (!comment || !post || !post.published || post.status !== "published") {
     throw new TRPCError({ code: "NOT_FOUND", message: "Комментарий не найден" });
@@ -685,7 +686,7 @@ export const appRouter = router({
         if (!post || !post.published || post.status !== "published") {
           throw new TRPCError({ code: "NOT_FOUND", message: "Пост не найден" });
         }
-        return platformDb.listPostCommentsV2(input.postId, ctx.user.id);
+        return commentDb.listPostCommentsV2(input.postId, ctx.user.id);
       }),
     addComment: protectedProcedure
       .input(z.object({
@@ -708,7 +709,7 @@ export const appRouter = router({
         if (!areCommentsOpen(post.tags as string[], post.publishedAt ?? post.createdAt)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Комментарии к этому посту закрыты" });
         }
-        const id = await platformDb.addPostCommentV2({
+        const id = await commentDb.addPostCommentV2({
           postId: input.postId,
           userId: ctx.user.id,
           text: input.text,
@@ -716,7 +717,7 @@ export const appRouter = router({
           photos: input.photos,
         });
         if (input.parentId) {
-          const parent = await platformDb.getPostCommentById(input.parentId);
+          const parent = await commentDb.getPostCommentById(input.parentId);
           if (parent && parent.userId !== ctx.user.id) {
             const preview = input.text.length > 80 ? `${input.text.slice(0, 80)}…` : input.text;
             const author = (ctx.user.name || "Участница").trim();
@@ -735,28 +736,28 @@ export const appRouter = router({
       .input(z.object({ id: z.number(), text: z.string().trim().min(1).max(1000) }))
       .mutation(async ({ ctx, input }) => {
         await requireReadableComment(input.id, ctx.user);
-        await platformDb.updatePostCommentV2(input.id, ctx.user.id, input.text);
+        await commentDb.updatePostCommentV2(input.id, ctx.user.id, input.text);
         return { ok: true as const };
       }),
     toggleCommentLike: protectedProcedure
       .input(z.object({ commentId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         await requireReadableComment(input.commentId, ctx.user);
-        return platformDb.toggleCommentLike(ctx.user.id, input.commentId);
+        return commentDb.toggleCommentLike(ctx.user.id, input.commentId);
       }),
     deleteComment: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         await requireReadableComment(input.id, ctx.user);
         const staff = platformDb.isStaffAccount(ctx.user);
-        await platformDb.deletePostCommentV2(input.id, ctx.user.id, staff);
+        await commentDb.deletePostCommentV2(input.id, ctx.user.id, staff);
         return { ok: true as const };
       }),
     reportComment: protectedProcedure
       .input(z.object({ id: z.number(), reason: z.string().trim().min(3).max(512) }))
       .mutation(async ({ ctx, input }) => {
         await requireReadableComment(input.id, ctx.user);
-        await platformDb.reportComment(input.id, ctx.user.id, input.reason);
+        await commentDb.reportComment(input.id, ctx.user.id, input.reason);
         return { ok: true as const };
       }),
     uploadCommentPhoto: protectedProcedure
@@ -885,12 +886,12 @@ export const appRouter = router({
 
   moderation: router({
     listCommentReports: moderatorProcedure.query(async () => {
-      return platformDb.listCommentReports(100);
+      return commentDb.listCommentReports(100);
     }),
     dismissCommentReport: moderatorProcedure
       .input(z.object({ reportId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        await platformDb.dismissCommentReport(input.reportId);
+        await commentDb.dismissCommentReport(input.reportId);
         await platformDb.logAdminAction({
           actorUserId: ctx.user.id,
           action: "dismiss_comment_report",
@@ -902,7 +903,7 @@ export const appRouter = router({
     deleteReportedComment: moderatorProcedure
       .input(z.object({ commentId: z.number(), reportId: z.number().optional() }))
       .mutation(async ({ ctx, input }) => {
-        await platformDb.deleteCommentAndReports(input.commentId);
+        await commentDb.deleteCommentAndReports(input.commentId);
         await platformDb.logAdminAction({
           actorUserId: ctx.user.id,
           action: "delete_reported_comment",

@@ -3,7 +3,7 @@ import type { Connection, RowDataPacket } from "mysql2/promise";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openContentTestDatabase } from "./helpers/content-mysql";
 import { getDb, getPosts, getPostsPaginated, getPostsForTarget, getPostsByIds, getLatestPublishedPost } from "../apps/backend/src/db";
-import { purgeOldPostComments } from "../apps/backend/src/platform-db";
+import { purgeOldPostComments } from "../apps/backend/src/content/comments";
 
 describe.skipIf(!testDatabaseUrl)("content visibility and retention on disposable MySQL", () => {
   let conn: Connection;

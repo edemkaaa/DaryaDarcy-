@@ -9,6 +9,8 @@ vi.mock("../apps/backend/src/db", () => ({
 }));
 vi.mock("../apps/backend/src/platform-db", () => ({
   isStaffAccount: (user: User) => ["admin", "moderator"].includes(user.role),
+}));
+vi.mock("../apps/backend/src/content/comments", () => ({
   getPostCommentById: async () => ({ id: 10, postId: state.parentPostId, userId: 7 }),
   toggleCommentLike: state.mutations, reportComment: state.mutations,
   deletePostCommentV2: state.mutations, updatePostCommentV2: state.mutations,

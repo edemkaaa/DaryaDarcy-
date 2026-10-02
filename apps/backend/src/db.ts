@@ -194,7 +194,7 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
 
 // ── Feed queries ──
 
-import { posts, tags, likes, savedPosts, videos, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, PostComment, articles, Article, ArticleBlock } from "../../../packages/database/src/schema";
+import { posts, tags, likes, savedPosts, videos, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, articles, Article, ArticleBlock } from "../../../packages/database/src/schema";
 import { normalizeArticleBlocks } from "../../../packages/shared/src/article-blocks";
 import { desc, asc, and, sql, or, ne, gte, lte, isNotNull } from "drizzle-orm";
 
@@ -1470,48 +1470,6 @@ export async function userOwnsShopProduct(userId: number, productId: string): Pr
   return Boolean(rows[0]);
 }
 
-export async function listPostComments(
-  postId: number,
-): Promise<(PostComment & { authorName: string | null; authorAvatarUrl: string | null })[]> {
-  const db = await getDb();
-  if (!db) return [];
-  const rows = await db
-    .select({
-      comment: postComments,
-      authorName: users.name,
-      authorAvatarUrl: users.avatarUrl,
-    })
-    .from(postComments)
-    .leftJoin(users, eq(users.id, postComments.userId))
-    .where(eq(postComments.postId, postId))
-    .orderBy(asc(postComments.createdAt));
-  return rows.map((row) => ({
-    ...row.comment,
-    authorName: row.authorName ?? null,
-    authorAvatarUrl: row.authorAvatarUrl ?? null,
-  }));
-}
-
-export async function addPostComment(data: { postId: number; userId: number; text: string }): Promise<number> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const result = await db.insert(postComments).values({
-    postId: data.postId,
-    userId: data.userId,
-    text: data.text,
-  });
-  return Number(result[0].insertId);
-}
-
-export async function deletePostComment(id: number, userId: number, asAdmin = false): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  if (asAdmin) {
-    await db.delete(postComments).where(eq(postComments.id, id));
-    return;
-  }
-  await db.delete(postComments).where(and(eq(postComments.id, id), eq(postComments.userId, userId)));
-}
 
 function asArticleSections(value: unknown): ArticleBlock[] {
   return normalizeArticleBlocks(value).filter((block) => {

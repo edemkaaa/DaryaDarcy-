@@ -20,6 +20,8 @@
 - [x] Move backend to `apps/backend`.
 - [x] Move schema/migrations to `packages/database`.
 - [ ] Extract domain routers and repositories.
+  HTTP policy, billing, identity, launch configuration and comment repositories
+  separated; legacy unused comment accessors removed. Other domains remain.
 - [ ] Green checkpoint: API contract, tests, check, backend build.
 
 ## Phase 3 — Frontend

@@ -3,7 +3,7 @@ import type { Connection, RowDataPacket } from "mysql2/promise";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openContentTestDatabase } from "./helpers/content-mysql";
 import { deletePost, getDb } from "../apps/backend/src/db";
-import { addPostCommentV2, deletePostCommentV2, toggleCommentLike, reportComment, updatePostCommentV2 } from "../apps/backend/src/platform-db";
+import { addPostCommentV2, deletePostCommentV2, toggleCommentLike, reportComment, updatePostCommentV2 } from "../apps/backend/src/content/comments";
 
 describe.skipIf(!testDatabaseUrl)("atomic comment mutations on disposable MySQL", () => {
   let conn: Connection;

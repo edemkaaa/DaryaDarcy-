@@ -12,7 +12,7 @@ vi.mock("../apps/backend/src/db", () => ({
   getUserSavedPostIds: async () => [1],
   getPostsByIds: async () => [{ id: 1, target: "club", published: state.published, status: state.status, text: "paid material", media: [{ url: "https://assets.example.test/private" }] }],
 }));
-vi.mock("../apps/backend/src/platform-db", () => ({ listCommentReports: async () => ["reports"], listPostCommentsV2: async () => ["draft discussion"] }));
+vi.mock("../apps/backend/src/content/comments", () => ({ listCommentReports: async () => ["reports"], listPostCommentsV2: async () => ["draft discussion"] }));
 import { appRouter } from "../apps/backend/src/routers";
 import { userHasClubAccess } from "../apps/backend/src/_core/trpc";
 const member: User = {
