@@ -6,6 +6,7 @@ import { settleClubOrder } from "./billing/settlement";
 import { grantClubAccess } from "./billing/grants";
 import { confirmPostPublication, type PostPublication } from "./content/publication";
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
+import { createPostWithVideos as persistNewPost } from "./content/post-creator";
 import { replacePostVideoRows } from "./content/post-videos";
 import {
   MARKETING_PUSH_CONSENT_VERSION,
@@ -509,6 +510,15 @@ export async function createPost(data: InsertPost): Promise<number> {
 
   const result = await db.insert(posts).values(data);
   return Number(result[0].insertId);
+}
+
+export async function createPostWithVideos(
+  data: InsertPost,
+  videos: string[],
+): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return persistNewPost(db, data, videos);
 }
 
 export async function updatePost(id: number, data: Partial<InsertPost>): Promise<void> {

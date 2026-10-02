@@ -463,3 +463,36 @@ precise cause is established. Five later full runs pass without registration
 changes. Keep that investigation open, without retries or an asserted fix.
 No production/provider/deploy changes. Last whole transaction wins; optimistic
 revision checking, request idempotency and crash-safe push remain open.
+
+## Backend continuation: atomic post creation — 2026-10-03
+
+N09: admin.createPost must commit the new post and its initial videos together.
+Boundary: authenticated creation → visible persisted post/media → notification.
+Keep existing normalization/status/date/tag rules and numeric post ID response.
+Reuse the canonical video writer inside one transaction, without changing the
+legacy single-row creator used for article teasers or the standalone upload API.
+Reproduce second-media insert and filename decoding failures before the fix;
+verify no partial post/media or announcement. Observe a pending real MySQL
+transaction to check that readers/scheduler cannot see an unfinished creation.
+Check published/draft/scheduled cases and unchanged access rules; then full suite,
+types, boundaries, docs, API build and regression checks. No external push, schema
+change in production, deployment, revision policy or HTTP idempotency promise.
+
+N09 verified: four genuine old-path failures for post/media rollback and pending
+published/scheduled visibility. All 35 real HTTP/MySQL cases (11 new creation
+cases) pass after the fix. Pending insertion is observed through a real test-only
+MySQL lock, not a repository mock or arbitrary sleep. The scheduler skips an
+unfinished scheduled create and publishes it only on the next post-commit tick.
+Published creation announces once after commit; draft and scheduled creates do
+not. Numeric response, dates, normalized text, video names/order and permissions
+remain compatible. Production uses post-creator.ts and the canonical video writer;
+legacy teaser creation is intentionally unchanged. Full suite: 572 pass / 2 skip;
+types/284-file boundaries/docs/API build/52-test verify pass. No production writes,
+notifications, migrations or deployment. Failed inserts can leave ID gaps; no
+request idempotency or crash-safe notification guarantee is claimed.
+
+Registration investigation remains open: before N09, 11 full runs on a new
+disposable database and 8 registration/retention pair runs passed without a
+registration change. MySQL statement history captures no actual registration
+deadlock, while global deadlock counters also rise during successful runs.
+The earlier timing correlation is not sufficient to identify the root cause.

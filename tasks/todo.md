@@ -266,3 +266,18 @@
   time, but the precise cause is not established. Five subsequent full runs
   pass without changes to registration. Do not treat this as repaired or hide
   it with test retries. Reproduce with SQL diagnostics on a fresh test database.
+  Investigation 2026-10-03: 11 full runs on a new disposable database and
+  8 paired registration/retention runs pass. Statement history captures no
+  registration deadlock; global error counters also rise during successful runs.
+  Those counters alone do not establish the endpoint failure's cause. Still open.
+
+## Backend continuation: atomic post creation — 2026-10-03
+
+- [x] N09: New post and initial videos commit or roll back together. Preserve
+  numeric response, normalization/status/date rules and permissions; announce
+  only after commit. Check real HTTP/MySQL failures/pending visibility and
+  scheduler behaviour, then full suite/types/boundaries/docs/build/regressions.
+  Legacy teasers, standalone uploads, HTTP idempotency and push outbox stay open.
+  Four real regression failures on the old path → all 35 HTTP/MySQL content
+  cases pass, including 11 new creation cases. Full suite: 572 pass / 2 skip;
+  types, 284-file boundaries, docs, API build and 52-test verify pass.

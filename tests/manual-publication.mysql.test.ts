@@ -39,6 +39,14 @@ describe.skipIf(!testDatabaseUrl)(
   () => {
     let conn: Connection, server: Server, base: string;
     let admin: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
+    const creationSource = "backend-test-post-create";
+    const creationInput = {
+      text: "Created post",
+      photos: [],
+      tags: [],
+      source: creationSource,
+      target: "club" as const,
+    };
     const client = (token?: string) =>
       createTRPCProxyClient<AppRouter>({
         links: [
@@ -50,6 +58,22 @@ describe.skipIf(!testDatabaseUrl)(
         ],
       });
     async function cleanup() {
+      const [created] = await conn.query<RowDataPacket[]>(
+        "SELECT id FROM posts WHERE source=?",
+        [creationSource],
+      );
+      if (created.length) {
+        const ids = created.map((post) => post.id);
+        const placeholders = ids.map(() => "?").join(",");
+        await conn.query(
+          `DELETE FROM post_media WHERE postId IN (${placeholders})`,
+          ids,
+        );
+        await conn.query(
+          `DELETE FROM posts WHERE id IN (${placeholders})`,
+          ids,
+        );
+      }
       await conn.query(
         "DELETE FROM post_media WHERE postId BETWEEN 11401 AND 11405",
       );
@@ -549,6 +573,205 @@ describe.skipIf(!testDatabaseUrl)(
         await Promise.allSettled(requests);
         await guard.end();
       }
+    });
+    async function creationSnapshot() {
+      const [[created], [media]] = await Promise.all([
+        conn.query<RowDataPacket[]>(
+          "SELECT id,text,tags,status,published,target,DATE_FORMAT(scheduledAt,'%Y-%m-%d %H:%i:%s') scheduledAt,DATE_FORMAT(publishedAt,'%Y-%m-%d %H:%i:%s') publishedAt FROM posts WHERE source=? ORDER BY id",
+          [creationSource],
+        ),
+        conn.query<RowDataPacket[]>(
+          "SELECT postId,url,filename,sortOrder FROM post_media WHERE url LIKE 'https://assets.example.test/create-%' ORDER BY id",
+        ),
+      ]);
+      return { created, media };
+    }
+    it("does not retain a new published post when its second video insert fails", async () => {
+      await conn.query(`CREATE TRIGGER backend_test_create_media_failure BEFORE INSERT ON post_media FOR EACH ROW
+        BEGIN IF NEW.url='https://assets.example.test/create-broken.mp4' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Fixture creation media failure'; END IF; END`);
+      try {
+        await expect(
+          admin.admin.createPost.mutate({
+            ...creationInput,
+            videos: [
+              "https://assets.example.test/create-good.mp4",
+              "https://assets.example.test/create-broken.mp4",
+            ],
+          }),
+        ).rejects.toMatchObject({ message: "Внутренняя ошибка сервера" });
+        expect(await creationSnapshot()).toEqual({ created: [], media: [] });
+        expect(transport.announcements).toEqual([]);
+      } finally {
+        await conn.query("DROP TRIGGER backend_test_create_media_failure");
+      }
+    });
+    it("rolls back a new draft and its first video after a filename decoding failure", async () => {
+      await expect(
+        admin.admin.createPost.mutate({
+          ...creationInput,
+          status: "draft",
+          videos: [
+            "https://assets.example.test/create-good.mp4",
+            "https://assets.example.test/create-%broken.mp4",
+          ],
+        }),
+      ).rejects.toThrow();
+      expect(await creationSnapshot()).toEqual({ created: [], media: [] });
+      expect(transport.announcements).toEqual([]);
+    });
+    it("returns the created numeric ID and announces normalized text after saving videos", async () => {
+      const id = await admin.admin.createPost.mutate({
+        ...creationInput,
+        text: " \uFEFFCreated title\r\n ",
+        publishedAt: "2024-01-01T00:00:00Z",
+        videos: [
+          " https://assets.example.test/create-one%20video.mp4?key=fixture ",
+          " ",
+          "https://assets.example.test/create-two.mp4",
+        ],
+      });
+      expect(id).toBeGreaterThanOrEqual(1_000_000);
+      const snapshot = await creationSnapshot();
+      expect(snapshot.created).toEqual([
+        expect.objectContaining({
+          id,
+          text: "Created title",
+          status: "published",
+          published: 1,
+          target: "club",
+          tags: ["video"],
+          publishedAt: "2024-01-01 00:00:00",
+        }),
+      ]);
+      expect(snapshot.media).toEqual([
+        {
+          postId: id,
+          url: "https://assets.example.test/create-one%20video.mp4?key=fixture",
+          filename: "create-one video.mp4",
+          sortOrder: 0,
+        },
+        {
+          postId: id,
+          url: "https://assets.example.test/create-two.mp4",
+          filename: "create-two.mp4",
+          sortOrder: 2,
+        },
+      ]);
+      expect(transport.announcements).toEqual([
+        { text: "Created title", id, target: "club" },
+      ]);
+    });
+    it.each([
+      {
+        input: {
+          status: "draft" as const,
+          publishedAt: "2024-01-01T00:00:00Z",
+        },
+        status: "draft",
+        publishedAt: "2024-01-01 00:00:00",
+      },
+      { input: { published: false }, status: "draft", publishedAt: null },
+      {
+        input: {
+          status: "scheduled" as const,
+          scheduledAt: "2024-01-01T00:00:00Z",
+        },
+        status: "scheduled",
+        publishedAt: null,
+      },
+    ])(
+      "preserves nonpublic creation semantics: $status/$publishedAt",
+      async ({ input, status, publishedAt }) => {
+        const id = await admin.admin.createPost.mutate({
+          ...creationInput,
+          ...input,
+        });
+        expect((await creationSnapshot()).created).toEqual([
+          expect.objectContaining({ id, status, published: 0, publishedAt }),
+        ]);
+        expect(transport.announcements).toEqual([]);
+      },
+    );
+    it.each(["scheduled", "published"] as const)(
+      "an unfinished %s creation is invisible to readers and the scheduler",
+      async (status) => {
+        await conn.query(
+          "UPDATE posts SET scheduledAt=DATE_ADD(NOW(),INTERVAL 1 DAY) WHERE id=11401",
+        );
+        const [lock] = await conn.query<RowDataPacket[]>(
+          "SELECT GET_LOCK('backend_test_creation_gate',3) acquired",
+        );
+        expect(lock[0].acquired).toBe(1);
+        let request: Promise<number> | undefined;
+        await conn.query(`CREATE TRIGGER backend_test_create_gate BEFORE INSERT ON post_media FOR EACH ROW
+        BEGIN IF NEW.url='https://assets.example.test/create-gated.mp4' THEN
+        SET @backend_test_gate=GET_LOCK('backend_test_creation_gate',5);
+        DO RELEASE_LOCK('backend_test_creation_gate'); END IF; END`);
+        try {
+          request = admin.admin.createPost.mutate({
+            ...creationInput,
+            status,
+            scheduledAt: "2024-01-01T00:00:00Z",
+            videos: ["https://assets.example.test/create-gated.mp4"],
+          });
+          await vi.waitFor(
+            async () => {
+              const [waiting] = await conn.query<RowDataPacket[]>(
+                "SELECT 1 FROM performance_schema.metadata_locks WHERE OBJECT_TYPE='USER LEVEL LOCK' AND OBJECT_NAME='backend_test_creation_gate' AND LOCK_STATUS='PENDING'",
+              );
+              expect(waiting.length).toBeGreaterThan(0);
+            },
+            { timeout: 3000, interval: 20 },
+          );
+          expect(await creationSnapshot()).toEqual({ created: [], media: [] });
+          expect(await publishDueScheduledPosts()).toEqual([]);
+          expect(transport.announcements).toEqual([]);
+          await conn.query("SELECT RELEASE_LOCK('backend_test_creation_gate')");
+          const id = await request;
+          expect((await creationSnapshot()).media).toHaveLength(1);
+          expect(await publishDueScheduledPosts()).toEqual(
+            status === "scheduled"
+              ? [{ id, text: "Created post", target: "club" }]
+              : [],
+          );
+          expect(transport.announcements).toEqual(
+            status === "published"
+              ? [{ id, text: "Created post", target: "club" }]
+              : [],
+          );
+        } finally {
+          await conn.query("SELECT RELEASE_LOCK('backend_test_creation_gate')");
+          if (request) await Promise.allSettled([request]);
+          await conn.query("DROP TRIGGER backend_test_create_gate");
+        }
+      },
+    );
+    it.each(["member", "anonymous"])(
+      "%s cannot create a post",
+      async (role) => {
+        const token =
+          role === "member"
+            ? await sdk.createSessionToken("publication-member", {
+                sessionVersion: 0,
+              })
+            : undefined;
+        await expect(
+          client(token).admin.createPost.mutate(creationInput),
+        ).rejects.toMatchObject({
+          data: { code: role === "member" ? "FORBIDDEN" : "UNAUTHORIZED" },
+        });
+        expect(await creationSnapshot()).toEqual({ created: [], media: [] });
+        expect(transport.announcements).toEqual([]);
+      },
+    );
+    it("a blocked administrator cannot create a post", async () => {
+      await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=92601");
+      await expect(
+        admin.admin.createPost.mutate(creationInput),
+      ).rejects.toMatchObject({ data: { code: "UNAUTHORIZED" } });
+      expect(await creationSnapshot()).toEqual({ created: [], media: [] });
+      expect(transport.announcements).toEqual([]);
     });
   },
 );

@@ -59,7 +59,7 @@ export const adminRouter = router({
           : published === false || status === "draft"
             ? "draft"
             : "published";
-      const postData = {
+      const postData: InsertPost = {
         ...rest,
         text,
         richText,
@@ -76,12 +76,9 @@ export const adminRouter = router({
               ? new Date(publishedAt)
               : null,
       };
-      const postId = await db.createPost(postData as any);
-      if (videos.length > 0) {
-        await db.replacePostVideos(postId, videos);
-      }
+      const postId = await db.createPostWithVideos(postData, videos);
       if (resolvedStatus === "published") {
-        sendNewPostNotification(text, postId, rest.target);
+        void sendNewPostNotification(text, postId, rest.target);
       }
       return postId;
     }),
