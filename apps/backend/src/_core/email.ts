@@ -1,9 +1,10 @@
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
+import { z } from "zod";
 import { PUBLIC_CONTACT_EMAIL } from "../../../../packages/shared/src/contact";
 
-let transporter: nodemailer.Transporter | null = null;
+let transporter: Transporter | null = null;
 
-function getTransporter(): nodemailer.Transporter | null {
+function getTransporter(): Transporter | null {
   if (transporter) return transporter;
   const host = (process.env.SMTP_HOST || "smtp.yandex.ru").trim();
   const user = (process.env.SMTP_USER || PUBLIC_CONTACT_EMAIL).trim();
@@ -13,6 +14,11 @@ function getTransporter(): nodemailer.Transporter | null {
     host,
     port: Number(process.env.SMTP_PORT || 465),
     secure: process.env.SMTP_SECURE !== "false",
+    // Never fall back to plaintext password authentication in production.
+    requireTLS: process.env.NODE_ENV === "production",
+    disableFileAccess: true,
+    disableUrlAccess: true,
+    maxRecipients: 1,
     auth: { user, pass },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
@@ -29,17 +35,19 @@ export async function sendTransactionalEmail(input: {
   messageId?: string;
 }): Promise<boolean> {
   const to = input.to.trim();
-  if (!to) return false;
+  const from = (process.env.SMTP_FROM || PUBLIC_CONTACT_EMAIL).trim();
+  // Access links are private: never accept a display-name/address-list here.
+  const recipient = z.email().max(320);
+  if (!recipient.safeParse(to).success || !recipient.safeParse(from).success) return false;
   const tx = getTransporter();
   if (!tx) {
     console.warn("[email] SMTP not configured");
     return false;
   }
-  const from = (process.env.SMTP_FROM || PUBLIC_CONTACT_EMAIL).trim();
   try {
     await tx.sendMail({
-      from: `DARYADARCY <${from}>`,
-      to,
+      from: { name: "DARYADARCY", address: from },
+      to: { name: "", address: to },
       subject: input.subject,
       text: input.text,
       messageId: input.messageId,

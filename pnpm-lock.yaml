@@ -159,8 +159,8 @@ importers:
         specifier: ^4.2.1
         version: 4.2.1(react-native-reanimated@4.1.6(@babel/core@7.28.5)(react-native-worklets@0.5.1(@babel/core@7.28.5)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-safe-area-context@5.6.2(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-svg@15.12.1(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.8.2))
       nodemailer:
-        specifier: ^6.10.1
-        version: 6.10.1
+        specifier: 10.0.13
+        version: 10.0.13
       react:
         specifier: 19.1.0
         version: 19.1.0
@@ -219,9 +219,6 @@ importers:
       '@types/node':
         specifier: ^22.19.3
         version: 22.19.3
-      '@types/nodemailer':
-        specifier: ^6.4.17
-        version: 6.4.24
       '@types/qrcode':
         specifier: ^1.5.6
         version: 1.5.6
@@ -304,8 +301,8 @@ importers:
         specifier: 3.24.5
         version: 3.24.5(@types/node@22.19.3)
       nodemailer:
-        specifier: ^6.10.1
-        version: 6.10.1
+        specifier: 10.0.13
+        version: 10.0.13
       sharp:
         specifier: 0.35.4
         version: 0.35.4(@types/node@22.19.3)
@@ -325,9 +322,6 @@ importers:
       '@types/node':
         specifier: ^22.19.3
         version: 22.19.3
-      '@types/nodemailer':
-        specifier: ^6.4.17
-        version: 6.4.24
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -2933,9 +2927,6 @@ packages:
 
   '@types/node@22.19.3':
     resolution: {integrity: sha512-1N9SBnWYOJTrNZCdh/yJE+t910Y128BoyY+zBLWhL3r0TYzlTmFdXrPwHL9DyFZmlEXNQQolTZh3KHV31QDhyA==}
-
-  '@types/nodemailer@6.4.24':
-    resolution: {integrity: sha512-Ww4u0rT9wQNXh4JiQaIwx3QWdcOFXzOjQA2zc+jtFYNmQiT4mIUqcDin51bDFdkzKubFnQCZNK7FIHlPKQ/q9w==}
 
   '@types/qrcode@1.5.6':
     resolution: {integrity: sha512-te7NQcV2BOvdj2b1hCAHzAoMNuj65kNBMz0KBaxM6c3VGBOhU0dURQKOtH8CFNI/dsKkwlv32p26qYQTWoB5bw==}
@@ -5543,9 +5534,9 @@ packages:
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
 
-  nodemailer@6.10.1:
-    resolution: {integrity: sha512-Z+iLaBGVaSjbIzQ4pX6XV41HrooLsQ10ZWPUehGmuantvzWoDVBnmsdUcOIDM1t+yPor5pDhVlDESgOMEGxhHA==}
-    engines: {node: '>=6.0.0'}
+  nodemailer@10.0.13:
+    resolution: {integrity: sha512-SzG86OlvcW/NNhUFC6uROMwRTL4n7MswfQqC/T8mhkmnY1YVa23zUEMYi4ijSeXSl9GLz9ZeTJDUatEDuY5FeQ==}
+    engines: {node: '>=20.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -9494,10 +9485,6 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
-  '@types/nodemailer@6.4.24':
-    dependencies:
-      '@types/node': 22.19.3
-
   '@types/qrcode@1.5.6':
     dependencies:
       '@types/node': 22.19.3
@@ -12595,7 +12582,7 @@ snapshots:
 
   node-releases@2.0.27: {}
 
-  nodemailer@6.10.1: {}
+  nodemailer@10.0.13: {}
 
   normalize-path@3.0.0: {}
 
