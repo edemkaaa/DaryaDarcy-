@@ -139,3 +139,14 @@
   Final local disposable-MySQL suite: 469 passed / 2 skipped. Types, 279-file
   boundaries, API build, legacy Vite build, main Expo web build and 52-test verify
   passed. Legacy font warning remains; no deployment or release approval.
+
+## Repository hygiene follow-up — 2026-10-02
+
+- [x] C01: Canonical frontend public resources; packaging fails on missing files.
+  Verify: red/green isolated packaging tests and both web builds with byte checks.
+  Three fixture tests failed for the intended omissions before the repair, then
+  passed. Legacy Vite and Expo exports passed; public-resource bytes preserved.
+- [ ] C02: Preserve historical deployment artifacts in the audit archive; ignore
+  generated reports and document active configuration versus old snapshots.
+- [ ] C03: Remove empty root placeholder; align Cursor guidance with monorepo and
+  explicit deployment authorization; verify links/types/boundaries/local tests.

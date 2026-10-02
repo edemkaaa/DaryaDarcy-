@@ -226,3 +226,20 @@ builds (API/legacy/Expo), 52-test verify and frozen install passed locally.
 Deployment scripts retain legacy environment assumptions and require separate
 review. Migration history, production/sandbox/mail/device/private-media release
 blockers above remain open; no remote CI, deploy, payment, email or S3 operation.
+
+## Repository hygiene follow-up — 2026-10-02
+
+User approved the follow-up inspection findings. Work stays on staging; no push,
+default-branch change or deployment is included. Preserve unfinished release tasks.
+
+1. Repair the previously broken web-public path: move manifest/privacy into the
+   frontend and fail packaging when either required resource is missing. This is
+   an explicit build repair, separate from behavior-preserving file organization.
+   Verify: isolated packaging tests fail first, then pass; both web builds retain
+   exact public-resource bytes and the existing mobile icon.
+2. Archive historical deployment screenshots/backup reports without losing bytes.
+   Keep lifecycle policy active; ignore generated reports, distinguish snapshots
+   from operational configuration. Do not execute or modernize remote S3 tools.
+3. Remove the empty root placeholder and update Cursor paths/pnpm instructions.
+   Verify documentation links, boundaries, types, local suite and build checks;
+   record skipped database coverage and unresolved release blockers accurately.

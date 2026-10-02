@@ -6,15 +6,17 @@ import { fileURLToPath } from "node:url";
 const projectRoot = fileURLToPath(new URL("../..", import.meta.url));
 const root = join(projectRoot, "web-dist");
 const frontendRoot = join(projectRoot, "apps", "frontend");
-const privacySrc = join(frontendRoot, "public", "privacy.html");
-if (existsSync(privacySrc)) {
-  copyFileSync(privacySrc, join(root, "privacy.html"));
-  console.log("copied privacy.html");
+const requiredPublicFiles = ["privacy.html", "manifest.webmanifest"];
+// Validate all required resources before modifying any build output.
+for (const name of requiredPublicFiles) {
+  const source = join(frontendRoot, "public", name);
+  if (!existsSync(source) || !statSync(source).isFile()) {
+    throw new Error(`Missing required web public resource: ${source}`);
+  }
 }
-const manifestSrc = join(frontendRoot, "public", "manifest.webmanifest");
-if (existsSync(manifestSrc)) {
-  copyFileSync(manifestSrc, join(root, "manifest.webmanifest"));
-  console.log("copied manifest.webmanifest");
+for (const name of requiredPublicFiles) {
+  copyFileSync(join(frontendRoot, "public", name), join(root, name));
+  console.log(`copied ${name}`);
 }
 const iconSrc = join(frontendRoot, "assets", "images", "icon.png");
 if (existsSync(iconSrc)) {
