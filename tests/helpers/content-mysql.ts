@@ -23,10 +23,14 @@ export async function openContentTestDatabase() {
     ) ENGINE=InnoDB`);
     await conn.query("CREATE TABLE IF NOT EXISTS comment_likes (id INT AUTO_INCREMENT PRIMARY KEY,userId INT NOT NULL,commentId INT NOT NULL,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB");
     await conn.query("CREATE TABLE IF NOT EXISTS comment_reports (id INT AUTO_INCREMENT PRIMARY KEY,commentId INT NOT NULL,reporterUserId INT NOT NULL,reason VARCHAR(512) NOT NULL,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB");
-    for (const table of ["post_comments", "comment_likes", "comment_reports"]) {
+    for (const table of ["post_media", "post_comments", "comment_likes", "comment_reports"]) {
       const [columns] = await conn.query<RowDataPacket[]>("SELECT EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME='id'", [table]);
       if (!String(columns[0]?.EXTRA).includes("auto_increment")) await conn.query(`ALTER TABLE ${table} MODIFY id INT NOT NULL AUTO_INCREMENT`);
     }
+    // Production post_media has generated IDs. Keep those outside explicit
+    // fixture IDs, so real replacement inserts cannot collide with other suites.
+    const [counters] = await conn.query<RowDataPacket[]>("SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='post_media'");
+    if (Number(counters[0]?.AUTO_INCREMENT) < 1_000_000) await conn.query("ALTER TABLE post_media AUTO_INCREMENT=1000000");
     for (const [table, index, columns] of [
       ["comment_likes", "comment_likes_unique", "userId,commentId"],
       ["comment_reports", "comment_reports_unique", "commentId,reporterUserId"],

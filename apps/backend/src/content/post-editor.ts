@@ -1,0 +1,58 @@
+import { eq } from "drizzle-orm";
+import type { MySql2Database } from "drizzle-orm/mysql2";
+import {
+  posts,
+  type InsertPost,
+} from "../../../../packages/database/src/schema";
+import type { PostPublication } from "./publication";
+import { replacePostVideoRows } from "./post-videos";
+
+/** Save a normalized partial edit and optional videos as one committed change. */
+export async function savePostEdit(
+  database: MySql2Database,
+  postId: number,
+  data: Partial<InsertPost>,
+  videos?: string[],
+): Promise<PostPublication | undefined> {
+  return database.transaction(async (tx) => {
+    const [post] = await tx
+      .select({
+        id: posts.id,
+        text: posts.text,
+        target: posts.target,
+        status: posts.status,
+        published: posts.published,
+        publishedAt: posts.publishedAt,
+      })
+      .from(posts)
+      .where(eq(posts.id, postId))
+      .for("update");
+    if (!post) return undefined;
+
+    const updateData = { ...data };
+    if (data.status !== undefined)
+      updateData.published = data.status === "published";
+    if (
+      data.status === "published" &&
+      data.publishedAt === undefined &&
+      !post.publishedAt
+    )
+      updateData.publishedAt = new Date();
+    if (Object.values(updateData).some((value) => value !== undefined))
+      await tx.update(posts).set(updateData).where(eq(posts.id, postId));
+    if (videos !== undefined) await replacePostVideoRows(tx, postId, videos);
+
+    // The locked previous visibility picks one owner, shared with manual/timed
+    // publication. Plain corrections and legacy flag-only edits are not a push.
+    if (
+      data.status !== "published" ||
+      (post.status === "published" && post.published)
+    )
+      return undefined;
+    return {
+      id: post.id,
+      text: data.text ?? post.text,
+      target: data.target ?? post.target,
+    };
+  });
+}

@@ -249,3 +249,20 @@
   remains {success:true}. Full suite: 547 pass / 2 skip, types/281-file boundaries/
   docs/API build/52-test verify pass. Fixtures for global scheduler suites are
   mutually exclusive, while their actual concurrent workers remain real.
+
+## Backend continuation: atomic post editing — 2026-10-02
+
+- [x] N08: Post edits and replacement videos commit/rollback together; edit
+  publication shares ownership with manual/scheduled paths and uses saved text.
+  Verify real HTTP/MySQL partial failure/decoded filenames/optional vs empty video
+  lists/non-video preservation/concurrency/date and missing-row regressions,
+  full suite/types/contract/boundaries/docs/API build. createPost, uploadMedia,
+  optimistic revisions, full request idempotency and push outbox remain separate.
+  Nine genuine regression failures on the original route → 24 real HTTP/MySQL
+  cases and 6 route unit cases pass. Full suite: 561 pass / 2 skip; types,
+  283-file boundaries, docs, API build and 52-test verify pass.
+- [ ] Investigate one transient parallel registration failure (both race
+  requests returned 500); MySQL's error counters record deadlocks at the same
+  time, but the precise cause is not established. Five subsequent full runs
+  pass without changes to registration. Do not treat this as repaired or hide
+  it with test retries. Reproduce with SQL diagnostics on a fresh test database.

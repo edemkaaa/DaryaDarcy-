@@ -427,3 +427,39 @@ Early confirmation, backdated publication and repair of legacy hidden flags are
 preserved. Global scheduler suites share test-only fixture ownership, not fake
 worker locks. Full suite: 547 pass / 2 skip; types/281-file boundaries/docs/API
 build/52-test verify pass. updatePost concurrency and durable push remain open.
+
+## Backend continuation: atomic post editing — 2026-10-02
+
+N08 covers admin.updatePost's separate post/video writes and stale announcement
+pre-read. Boundary: authenticated edit → persisted post/media visibility → push
+input. Reproduce partial saves, lost old videos and duplicate transitions with
+real HTTP/MySQL, faking only external push. Save the post and optional replacement
+videos under the same post lock/transaction used by confirmation and scheduling.
+
+- Keep normalization, partial-update semantics, dates, HTTP {success:true} and
+  non-video attachments. videos omitted keeps them, [] explicitly clears videos.
+- Announce only this transaction's new explicit publication, using saved text
+  and target; repeated corrections are not new publications. Rollback all writes
+  on a failed media insert/filename decode. Missing IDs cannot create orphan media.
+- Verify persistence/rollback/concurrent edits/confirmation/scheduler and existing
+  role restrictions, then full suite/types/contract/boundaries/docs/API build.
+  No new auth/upload policy, production DB/migration, S3 or actual notification.
+  createPost, standalone uploadMedia writes, edit revision conflicts, request
+  idempotency keys and durable push outbox remain separate work.
+
+N08 verified: nine genuine assertion/request failures on the original route,
+then all 24 real authenticated HTTP/MySQL cases and 6 route unit cases pass.
+post-editor.ts owns locking/atomic post-and-video edits, and post-videos.ts
+shares the existing video writer without a new URL/MIME policy. Media-only
+edits avoid empty SQL SET; explicit null/backdated dates, decoded filenames,
+documents and HTTP {success:true} stay compatible. Parallel edits retain one
+complete matching post/video revision, not mixed attachments. Announcements
+use normalized saved text (including empty text) and follow commit.
+
+Full suite: 561 pass / 2 skip; types, 283-file boundaries, docs, API build and
+52-test verify pass. One earlier full run had two 500 responses in the concurrent
+registration test; MySQL deadlock counters have matching timestamps, but no
+precise cause is established. Five later full runs pass without registration
+changes. Keep that investigation open, without retries or an asserted fix.
+No production/provider/deploy changes. Last whole transaction wins; optimistic
+revision checking, request idempotency and crash-safe push remain open.

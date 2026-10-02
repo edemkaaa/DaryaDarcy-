@@ -5,6 +5,8 @@ import mysql from "mysql2/promise";
 import { settleClubOrder } from "./billing/settlement";
 import { grantClubAccess } from "./billing/grants";
 import { confirmPostPublication, type PostPublication } from "./content/publication";
+import { savePostEdit as persistPostEdit } from "./content/post-editor";
+import { replacePostVideoRows } from "./content/post-videos";
 import {
   MARKETING_PUSH_CONSENT_VERSION,
   type PushConsentStatus,
@@ -516,6 +518,16 @@ export async function updatePost(id: number, data: Partial<InsertPost>): Promise
   await db.update(posts).set(data).where(eq(posts.id, id));
 }
 
+export async function savePostEdit(
+  id: number,
+  data: Partial<InsertPost>,
+  videos?: string[],
+): Promise<PostPublication | undefined> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return persistPostEdit(db, id, data, videos);
+}
+
 export async function deletePost(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1015,28 +1027,11 @@ export async function deletePostMediaByPostId(postId: number): Promise<void> {
   await db.delete(postMedia).where(eq(postMedia.postId, postId));
 }
 
-function videoFilenameFromUrl(url: string): string | null {
-  const base = decodeURIComponent(url.split("/").pop()?.split("?")[0] || "");
-  return base || null;
-}
-
 export async function replacePostVideos(postId: number, urls: string[]): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.delete(postMedia).where(and(eq(postMedia.postId, postId), eq(postMedia.type, "video")));
-  for (let i = 0; i < urls.length; i++) {
-    const url = urls[i]?.trim();
-    if (!url) continue;
-    await db.insert(postMedia).values({
-      postId,
-      type: "video",
-      url,
-      filename: videoFilenameFromUrl(url),
-      mimeType: "video/mp4",
-      sortOrder: i,
-    });
-  }
+  return replacePostVideoRows(db, postId, urls);
 }
 
 export async function clearRawCameraFilenames(): Promise<void> {

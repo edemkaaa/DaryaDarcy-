@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, adminProcedure } from "../_core/trpc";
+import type { InsertPost } from "../../../../packages/database/src/schema";
 import * as db from "../db";
 import { storagePut } from "../storage";
 import { photoInput, uploadPhoto } from "../media/photos";
@@ -105,10 +106,7 @@ export const adminRouter = router({
     )
     .mutation(async ({ input }) => {
       const { id, scheduledAt, publishedAt, videos, ...data } = input;
-      const updateData: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(data)) {
-        if (value !== undefined) updateData[key] = value;
-      }
+      const updateData: Partial<InsertPost> = { ...data };
       if (typeof data.text === "string") {
         updateData.text = sanitizePlainPostText(data.text);
       }
@@ -140,32 +138,13 @@ export const adminRouter = router({
       if (publishedAt !== undefined) {
         updateData.publishedAt = publishedAt ? new Date(publishedAt) : null;
       }
-      if (data.status === "published" && publishedAt === undefined) {
-        const existing = await db.getPostById(id);
-        if (existing && !existing.publishedAt) {
-          updateData.publishedAt = new Date();
-        }
-      }
-      if (data.status !== undefined) {
-        updateData.published = data.status === "published";
-      }
-      // Capture the transition before writing; announce only after all writes succeed.
-      let announcement: Parameters<typeof sendNewPostNotification> | undefined;
-      if (data.status === "published") {
-        const existing = await db.getPostById(id);
-        if (existing && existing.status !== "published") {
-          announcement = [
-            data.text || existing.text,
-            id,
-            data.target || existing.target,
-          ];
-        }
-      }
-      await db.updatePost(id, updateData);
-      if (videos !== undefined) {
-        await db.replacePostVideos(id, videos);
-      }
-      if (announcement) void sendNewPostNotification(...announcement);
+      const publication = await db.savePostEdit(id, updateData, videos);
+      if (publication)
+        void sendNewPostNotification(
+          publication.text,
+          publication.id,
+          publication.target,
+        );
       return { success: true };
     }),
 
