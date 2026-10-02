@@ -149,21 +149,23 @@ export const adminRouter = router({
       if (data.status !== undefined) {
         updateData.published = data.status === "published";
       }
-      // If publishing (draft/scheduled → published), send notification
+      // Capture the transition before writing; announce only after all writes succeed.
+      let announcement: Parameters<typeof sendNewPostNotification> | undefined;
       if (data.status === "published") {
         const existing = await db.getPostById(id);
         if (existing && existing.status !== "published") {
-          sendNewPostNotification(
+          announcement = [
             data.text || existing.text,
             id,
             data.target || existing.target,
-          );
+          ];
         }
       }
       await db.updatePost(id, updateData);
       if (videos !== undefined) {
         await db.replacePostVideos(id, videos);
       }
+      if (announcement) void sendNewPostNotification(...announcement);
       return { success: true };
     }),
 
