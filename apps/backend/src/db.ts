@@ -1386,34 +1386,6 @@ export async function markClubPaymentPaid(data: {
   });
 }
 
-/** Activate the latest pending club checkout for a user (return-URL fallback). */
-export async function activateLatestPendingClubPayment(userId: number): Promise<{ granted: boolean; orderId?: string }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const pending = await db
-    .select()
-    .from(clubPayments)
-    .where(and(eq(clubPayments.userId, userId), eq(clubPayments.status, "pending"), gte(clubPayments.createdAt, cutoff)))
-    .orderBy(desc(clubPayments.createdAt))
-    .limit(1);
-
-  const row = pending[0];
-  if (!row) return { granted: false };
-
-  const expiresAt = await nextClubExpiry(userId);
-  await db.update(clubPayments).set({
-    status: "paid",
-    paidAt: new Date(),
-    expiresAt,
-    cancelAtPeriodEnd: false,
-    cancelledAt: null,
-  }).where(eq(clubPayments.id, row.id));
-
-  return { granted: true, orderId: row.orderId };
-}
-
 export async function cancelClubSubscription(userId: number): Promise<{ cancelled: boolean; expiresAt: Date | null }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

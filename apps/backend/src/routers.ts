@@ -1,6 +1,5 @@
 import { COOKIE_NAME } from "../../../packages/shared/src/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
-import { issueSession } from "./_core/oauth";
 import { isValidEmail, normalizeEmail } from "./_core/password";
 import { systemRouter } from "./_core/systemRouter";
 import {
@@ -644,42 +643,16 @@ export const appRouter = router({
         if (!isValidEmail(email)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Укажите почту для оплаты" });
         }
-        let user = ctx.user;
-        let sessionUser: {
-          id: number;
-          openId: string;
-          name: string | null;
-          email: string | null;
-          phone: string | null;
-          loginMethod: string | null;
-          gender: "female" | "male" | null;
-          avatarUrl: string | null;
-          lastSignedIn: string;
-          role: string;
-        } | null = null;
-        if (!user) {
-          const existing = await db.getUserByEmail(email);
-          if (existing?.passwordHash) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Этот email уже зарегистрирован. Войдите, затем нажмите Оплатить.",
-            });
-          }
-          user = existing || await db.ensureUserByEmail(email);
-          await issueSession(ctx.req, ctx.res, user);
-          sessionUser = {
-            id: user.id,
-            openId: user.openId,
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            loginMethod: user.loginMethod,
-            gender: user.gender ?? null,
-            avatarUrl: user.avatarUrl ?? null,
-            lastSignedIn: new Date(user.lastSignedIn).toISOString(),
-            role: user.role || "user",
-          };
+        if (ctx.user && email !== normalizeEmail(ctx.user.email || "")) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Используйте почту своего аккаунта" });
         }
+        const existing = await db.getUserByEmail(email);
+        if (ctx.user?.blockedAt || existing?.blockedAt) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Не удалось создать платёж. Обратитесь в поддержку." });
+        }
+        // A billing recipient is not an authenticated identity. Never issue a
+        // session or expose account details merely because an email was supplied.
+        const user = ctx.user || existing || await db.ensureUserByEmail(email);
         const plan = input?.plan ?? "monthly";
         const orderId = plan === "semiannual"
           ? `club6m-${user.id}-${Date.now()}`
@@ -687,7 +660,7 @@ export const appRouter = router({
         await db.createClubPayment({ userId: user.id, orderId, email });
         return {
           url: buildCheckoutUrl({ orderId, email, userId: user.id, plan }),
-          user: sessionUser,
+          user: null,
         };
       }),
     claimPending: protectedProcedure.mutation(async ({ ctx }) => {
@@ -695,8 +668,9 @@ export const appRouter = router({
       if (already) {
         return { granted: true as const, orderId: already.orderId };
       }
-      const result = await db.activateLatestPendingClubPayment(ctx.user.id);
-      return { granted: result.granted, orderId: result.orderId ?? null };
+      // Compatibility endpoint for the current client: report verified access,
+      // never turn a checkout into a paid subscription.
+      return { granted: false as const, orderId: null };
     }),
     cancel: protectedProcedure.mutation(async ({ ctx }) => {
       const result = await db.cancelClubSubscription(ctx.user.id);
