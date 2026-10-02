@@ -9,6 +9,8 @@ beforeAll(async () => {
   vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
   const app = express(); registerHttpSecurity(app);
   app.post("/api/write", (_req, res) => res.json({ saved: true }));
+  app.post("/api/prodamus/webhook", (_req, res) => res.json({ checkedByWebhook: true }));
+  app.post("/api/prodamus/return", (_req, res) => res.redirect(303, "/club"));
   server = createServer(app);
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -25,5 +27,38 @@ describe("HTTP policy preserves supported browser/native access", () => {
     const response = await fetch(`${base}/api/write`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ saved: true });
+  });
+  it.each(["https://evil.example", "null", "https://club.example.test.evil.example"])("rejects untrusted Origin %s before mutation", async (origin) => {
+    const response = await fetch(`${base}/api/write`, { method: "POST", headers: { Origin: origin, Cookie: "app_session=fake", "Content-Type": "application/json" }, body: "{}" });
+    expect(response.status).toBe(403);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+  });
+  it("rejects foreign preflight instead of reflecting credentials", async () => {
+    const response = await fetch(`${base}/api/write`, { method: "OPTIONS", headers: { Origin: "https://evil.example", "Access-Control-Request-Method": "POST" } });
+    expect(response.status).toBe(403);
+    expect(response.headers.get("access-control-allow-credentials")).toBeNull();
+  });
+  it("rejects cookie-bearing form submissions without an Origin", async () => {
+    const response = await fetch(`${base}/api/write`, { method: "POST", headers: { Cookie: "app_session=fake", "Content-Type": "application/x-www-form-urlencoded" }, body: "a=b" });
+    expect(response.status).toBe(403);
+  });
+  it("rejects cross-site fetch metadata even if Origin is omitted", async () => {
+    const response = await fetch(`${base}/api/write`, { method: "POST", headers: { "Sec-Fetch-Site": "cross-site", "Content-Type": "application/json" }, body: "{}" });
+    expect(response.status).toBe(403);
+  });
+  it("lets provider callbacks reach signature verification without trusting their Origin", async () => {
+    const response = await fetch(`${base}/api/prodamus/webhook`, { method: "POST", headers: { Origin: "https://payform.example", "Content-Type": "application/x-www-form-urlencoded" }, body: "signed=fixture" });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    const returned = await fetch(`${base}/api/prodamus/return`, { method: "POST", headers: { Origin: "https://payform.example" }, redirect: "manual" });
+    expect(returned.status).toBe(303);
+  });
+  it("sends no-sniff, no-referrer and anti-framing headers on API responses", async () => {
+    const response = await fetch(`${base}/api/write`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(response.headers.get("x-frame-options")).toBe("DENY");
+    expect(response.headers.get("x-powered-by")).toBeNull();
+    expect(response.headers.get("vary")).toContain("Origin");
   });
 });

@@ -92,3 +92,7 @@
   Seasonal/manager configuration and client wiring are still pending.
 - [ ] Release checkpoint: sandbox E2E, migrations rehearsal, mail/load/security
   checks and approved rollout. Optional HLS/web push require separate scope review.
+  Browser/API repair checked: explicit credentialed Origin allowlist, cross-site
+  rejection before handlers, provider signature/return boundaries exempt, native
+  JSON compatibility, no-sniff/referrer/framing headers and canonical client IP.
+  Reverse proxy trust restricted to loopback; remote proxy topologies need review.

@@ -25,15 +25,8 @@ function hashesEqual(a: string, b: string): boolean {
 }
 
 export function clientIp(req: { ip?: string; headers: Record<string, unknown>; socket?: { remoteAddress?: string } }): string {
-  const forwarded = req.headers["x-forwarded-for"];
-  const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-  if (typeof raw === "string" && raw.trim()) {
-    return raw.split(",")[0].trim().slice(0, 45);
-  }
-  const realIp = req.headers["x-real-ip"];
-  if (typeof realIp === "string" && realIp.trim()) {
-    return realIp.trim().slice(0, 45);
-  }
+  // Express resolves req.ip through the configured trusted proxy chain. Never
+  // take the first raw forwarded header, which the browser/client can supply.
   return String(req.ip || req.socket?.remoteAddress || "").slice(0, 45);
 }
 

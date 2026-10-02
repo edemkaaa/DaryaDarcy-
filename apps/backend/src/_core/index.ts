@@ -42,7 +42,9 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
-  app.set("trust proxy", 1);
+  // Production nginx is on loopback; public callers cannot declare themselves
+  // trusted proxies merely by supplying one forwarded hop.
+  app.set("trust proxy", "loopback");
 
   registerHttpSecurity(app);
 
