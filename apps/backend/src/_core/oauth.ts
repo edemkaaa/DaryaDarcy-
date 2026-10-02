@@ -62,9 +62,11 @@ function publicUser(user: User | { openId?: string | null; name?: string | null;
 }
 
 export async function issueSession(req: Request, res: Response, user: User) {
+  if(user.blockedAt) throw new Error("Account unavailable");
   const sessionToken = await sdk.createSessionToken(user.openId, {
     name: user.name || user.email || user.phone || "",
     expiresInMs: ONE_YEAR_MS,
+    sessionVersion: user.sessionVersion,
   });
   const cookieOptions = getSessionCookieOptions(req);
   res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
@@ -132,7 +134,7 @@ export function registerOAuthRoutes(app: Express) {
 
       const openId = emailToOpenId(email);
       const passwordHash = await hashPassword(password);
-      const role = isOwnerAccount({ email, openId }) ? "admin" : "user";
+      const role = "user";
 
       await upsertUser({
         openId,
@@ -189,11 +191,6 @@ export function registerOAuthRoutes(app: Express) {
       }
 
       if (isStaffUser(user) && !verifyStaffTotp(req, res)) return;
-
-      if (isOwnerAccount(user) && user.role !== "admin") {
-        await upsertUser({ openId: user.openId, role: "admin" });
-        user.role = "admin";
-      }
 
       await upsertUser({ openId: user.openId, lastSignedIn: new Date() });
       const session = await issueSession(req, res, user);

@@ -2,6 +2,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Express, Request, Response } from "express";
 import { ENV } from "./_core/env";
 import * as db from "./db";
+import type { PaymentProof } from "./billing/protocol";
+import { confirmProviderCancellation, type Profile } from "./billing/cancellation";
 
 const PRODUCT_NAME = "Подписка Клуб Darcy";
 export const CLUB_PRICE = (process.env.CLUB_PRICE || "790").trim() || "790";
@@ -344,10 +346,10 @@ function subscriptionAction(body: Record<string, unknown>): string {
   return pickString({ ...body, ...nested }, ["action_code", "actionCode", "action"]).toLowerCase();
 }
 
-export async function fulfillPaidOrder(orderId: string, extra?: { email?: string | null; sum?: string | null; userId?: number | null }): Promise<"club" | "shop" | null> {
+export async function fulfillPaidOrder(orderId: string, extra?: { email?: string | null; sum?: string | null; userId?: number | null; proof?:PaymentProof;recurring?:boolean }): Promise<"club" | "shop" | null> {
   if (orderId.startsWith("club-") || orderId.startsWith("club6m-")) {
     const granted = await db.settleClubPayment({ orderId,
-      periodMs: clubAccessMsForOrder(orderId), sum: extra?.sum });
+      periodMs: clubAccessMsForOrder(orderId), sum: extra?.sum,proof:extra?.proof,recurring:extra?.recurring });
     return granted ? "club" : null;
   }
 
@@ -380,20 +382,16 @@ export async function fulfillPaidOrder(orderId: string, extra?: { email?: string
   return null;
 }
 
-export async function deactivateClubByEmail(email: string): Promise<void> {
-  const user = await db.getUserByEmail(email);
-  if (!user) return;
-  await db.cancelClubSubscription(user.id);
-}
-
-export async function cancelProdamusSubscription(email: string): Promise<boolean> {
-  const subId = subscriptionId();
+export async function cancelProdamusSubscription(profile:Profile): Promise<boolean> {
+  const subId = profile.subscriptionId;
   const secret = getSecret();
-  if (!subId || !secret || !email) return false;
+  const configured=new URL(getPayformUrl());
+  if (!subId || subId!==subscriptionId() || !secret || !profile.profileId || profile.domain!==configured.hostname) return false;
+  if(configured.protocol!=="https:" && !(process.env.NODE_ENV!=="production" && ["127.0.0.1","localhost"].includes(configured.hostname))) return false;
   const data: Record<string, unknown> = {
     subscription: subId,
-    customer_email: email,
-    active_user: "0",
+    profile: profile.profileId,
+    [profile.manager?"active_manager":"active_user"]: "0",
   };
   data.signature = createProdamusSign(data, secret);
   const url = `${getPayformUrl()}/rest/setActivity/`;
@@ -402,12 +400,12 @@ export async function cancelProdamusSubscription(email: string): Promise<boolean
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: buildQuery(data),
+      signal: AbortSignal.timeout(10000),
     });
     const text = await response.text();
-    console.log("[prodamus] setActivity", response.status, text.slice(0, 200));
-    return response.ok;
+    return response.ok && text.trim()==="success";
   } catch (error) {
-    console.warn("[prodamus] setActivity failed", error);
+    console.warn("[prodamus] setActivity failed");
     return false;
   }
 }
@@ -441,9 +439,13 @@ export async function handleProdamusWebhook(req: Request, res: Response) {
     });
 
     if (action === "deactivation" || action === "finish") {
-      const email = pickString(body, ["customer_email", "customerEmail"]).toLowerCase();
-      if (email) await deactivateClubByEmail(email);
-      res.status(200).send("cancelled");
+      const subscription=asRecord(body.subscription);
+      const domain=pickString(body,["domain"]).toLowerCase();
+      const key=getSubscriptionSecret()||getSecret();
+      if(!key || !signsMatch(createProdamusSign(body,key),signature) || domain!==new URL(getPayformUrl()).hostname || pickString(subscription,["id"])!==subscriptionId() || !pickString(subscription,["profile_id"])) {res.status(422).send("profile binding invalid");return;}
+      const database=await db.getDb();if(!database) throw new Error("Database unavailable");
+      const confirmed=await confirmProviderCancellation(database,{domain,subscriptionId:pickString(subscription,["id"]),profileId:pickString(subscription,["profile_id"])});
+      res.status(confirmed?200:422).send(confirmed?"cancelled":"profile binding invalid");
       return;
     }
 
@@ -456,22 +458,21 @@ export async function handleProdamusWebhook(req: Request, res: Response) {
     const userId = pickUserId(body);
     const sum = pickString(body, ["sum"]) || null;
     let orderId = pickOrderId(body);
+    const subscription=asRecord(body.subscription);
+    const domain=pickString(body,["domain"]).toLowerCase();
+    const proof:PaymentProof={domain,paymentId:pickString(body,["order_id"]),email,currency:pickString(body,["currency"]),subscriptionId:pickString(subscription,["id"]),profileId:pickString(subscription,["profile_id"])};
+    const isClub=action==="auto_payment" || orderId.startsWith("club-") || orderId.startsWith("club6m-");
+    if(isClub) {
+      const allowedDomain=new URL(getPayformUrl()).hostname;
+      const key=action==="auto_payment"?(getSubscriptionSecret()||getSecret()):getSecret();
+      if(domain!==allowedDomain || !key || !signsMatch(createProdamusSign(body,key),signature) || !proof.paymentId || proof.currency.toLowerCase()!=="rub" || (proof.subscriptionId && proof.subscriptionId!==subscriptionId()) || (proof.subscriptionId && !/^\d{1,64}$/.test(proof.profileId||"")) || (subscriptionId() && !orderId.startsWith("club6m-") && !proof.subscriptionId)) {
+        res.status(422).send("payment binding invalid");return;
+      }
+    }
 
     if (action === "auto_payment") {
-      let uid = userId;
-      if (!uid && email) {
-        const user = await db.getUserByEmail(email);
-        if (user) uid = user.id;
-      }
-      if (uid) {
-        const stamp = pickString(body, ["order_id", "orderId"]) || String(Date.now());
-        orderId = `club-${uid}-renew-${stamp}`;
-        const granted = await fulfillPaidOrder(orderId, { email: email || null, sum, userId: uid });
-        res.status(200).send(granted ? "success" : "ignored");
-        return;
-      }
-      console.warn("[prodamus] auto_payment without user", { email, userId });
-      res.status(200).send("ignored");
+      const granted=await fulfillPaidOrder("club-renew",{email,sum,proof,recurring:true});
+      res.status(granted?200:422).send(granted?"success":"payment binding invalid");
       return;
     }
 
@@ -484,8 +485,9 @@ export async function handleProdamusWebhook(req: Request, res: Response) {
       email: email || null,
       sum,
       userId,
+      proof,
     });
-    res.status(200).send(granted ? "success" : "ignored");
+    res.status(granted?200:422).send(granted ? "success" : "payment binding invalid");
   } catch (error) {
     console.error("[prodamus] webhook failed", error);
     res.status(500).send("error");

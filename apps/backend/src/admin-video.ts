@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { isOwnerAccount } from "./db";
 import { ENV } from "./_core/env";
 import { sdk } from "./_core/sdk";
 import { storagePut } from "./storage";
@@ -6,11 +7,7 @@ import { storagePut } from "./storage";
 export const MAX_VIDEO_BYTES = 80 * 1024 * 1024;
 
 function isAdminUser(user: { role?: string | null; email?: string | null; openId?: string | null }) {
-  if (user.role === "admin") return true;
-  const email = (user.email || "").trim().toLowerCase();
-  if (ENV.ownerEmail && email === ENV.ownerEmail) return true;
-  if (ENV.ownerOpenId && user.openId === ENV.ownerOpenId) return true;
-  return false;
+  return isOwnerAccount(user);
 }
 
 function safeVideoFilename(name: string): string {

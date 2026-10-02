@@ -32,10 +32,7 @@ export function phoneToOpenId(phone: string): string {
 }
 
 export function isOwnerAccount(user: { email?: string | null; openId?: string | null; role?: string | null }): boolean {
-  if (user.role === "admin") return true;
-  if (ENV.ownerOpenId && user.openId === ENV.ownerOpenId) return true;
-  const email = user.email ? normalizeEmail(user.email) : "";
-  return Boolean(ENV.ownerEmail && email === ENV.ownerEmail);
+  return user.role === "admin";
 }
 
 let _db: MySql2Database | null = null;
@@ -97,9 +94,6 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     if (user.role !== undefined) {
       values.role = user.role;
       updateSet.role = user.role;
-    } else if (isOwnerAccount(user)) {
-      values.role = "admin";
-      updateSet.role = "admin";
     }
 
     if (user.passwordHash !== undefined) {
@@ -1288,7 +1282,7 @@ export async function settleClubPayment(input: Parameters<typeof settleClubOrder
   return settleClubOrder(database, input);
 }
 
-export async function createClubPayment(data: { userId: number; orderId: string; email?: string | null }): Promise<void> {
+export async function createClubPayment(data: { userId: number; orderId: string; email?: string | null; sum:string }): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.insert(clubPayments).values({
@@ -1296,6 +1290,7 @@ export async function createClubPayment(data: { userId: number; orderId: string;
     orderId: data.orderId,
     email: data.email ?? null,
     status: "pending",
+    sum: data.sum,
   });
 }
 
@@ -1388,15 +1383,12 @@ export async function markClubPaymentPaid(data: {
 }
 
 export async function cancelClubSubscription(userId: number): Promise<{ cancelled: boolean; expiresAt: Date | null }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const active = await getActiveClubSubscription(userId);
-  if (!active) return { cancelled: false, expiresAt: null };
-  await db.update(clubPayments).set({
-    cancelAtPeriodEnd: true,
-    cancelledAt: new Date(),
-  }).where(eq(clubPayments.id, active.id));
-  return { cancelled: true, expiresAt: active.expiresAt };
+  // Compatibility facade: local flags are never an alternative to provider confirmation.
+  const database=await getDb();if(!database) throw new Error("Database not available");
+  const {requestClubCancellation}=await import("./billing/cancellation");
+  const {cancelProdamusSubscription}=await import("./prodamus");
+  const result=await requestClubCancellation(database,userId,cancelProdamusSubscription);
+  return {cancelled:result.confirmed,expiresAt:result.expiresAt};
 }
 
 export async function createShopPurchase(data: {

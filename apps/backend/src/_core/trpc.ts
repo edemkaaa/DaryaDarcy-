@@ -2,7 +2,6 @@ import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from "../../../../packages/shared
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
-import { ENV } from "./env";
 import * as db from "../db";
 
 const t = initTRPC.context<TrpcContext>().create({
@@ -13,11 +12,7 @@ export const router = t.router;
 export const publicProcedure = t.procedure;
 
 function isAdminUser(user: { role?: string | null; email?: string | null; openId?: string | null }) {
-  if (user.role === "admin") return true;
-  const email = (user.email || "").trim().toLowerCase();
-  if (ENV.ownerEmail && email === ENV.ownerEmail) return true;
-  if (ENV.ownerOpenId && user.openId === ENV.ownerOpenId) return true;
-  return false;
+  return db.isOwnerAccount(user);
 }
 
 const requireUser = t.middleware(async (opts) => {

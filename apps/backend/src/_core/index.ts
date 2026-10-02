@@ -4,7 +4,8 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
-import { handleProdamusWebhook, registerProdamusRoutes } from "../prodamus";
+import { cancelProdamusSubscription, handleProdamusWebhook, registerProdamusRoutes } from "../prodamus";
+import { processCancellations } from "../billing/cancellation";
 import { registerYoutubeStream } from "../youtube-stream";
 import { handleAdminVideoUpload } from "../admin-video";
 import { appRouter, sendNewPostNotification } from "../routers";
@@ -13,6 +14,9 @@ import * as platformDb from "../platform-db";
 import { createContext } from "./context";
 import * as db from "../db";
 import { runMysqlBackupIfDue } from "./backup";
+import { registerPasswordRoutes } from "../identity/routes";
+import { processAccessEmails } from "../identity/access";
+import { sendTransactionalEmail } from "./email";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -84,6 +88,7 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
   registerOAuthRoutes(app);
+  registerPasswordRoutes(app);
   registerProdamusRoutes(app);
   registerYoutubeStream(app);
 
@@ -140,6 +145,16 @@ async function startServer() {
     setInterval(() => {
       void tick();
     }, 60_000);
+
+    const billingTick=async()=>{
+      const database=await db.getDb();if(!database) return;
+      await Promise.allSettled([
+        processCancellations(database,cancelProdamusSubscription).catch(()=>console.warn("[billing] cancellation worker failed")),
+        processAccessEmails(database,sendTransactionalEmail).catch(()=>console.warn("[billing] email worker failed")),
+      ]);
+    };
+    void billingTick();
+    setInterval(()=>{void billingTick();},30000);
 
     const maintenance = async () => {
       try {

@@ -1,5 +1,6 @@
 import { alias } from "drizzle-orm/mysql-core";
-import { and, asc, count, desc, eq, inArray, isNotNull, isNull, lt, ne, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
+import { queueCancellationForUser } from "./billing/cancellation";
 import {
   adminAuditLog,
   commentLikes,
@@ -96,7 +97,11 @@ export async function logAdminAction(input: {
 export async function blockUser(actorId: number, targetUserId: number, reason: string): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(users).set({ blockedAt: new Date(), blockedReason: reason.slice(0, 512) }).where(eq(users.id, targetUserId));
+  await db.transaction(async tx=>{
+    await tx.select().from(users).where(eq(users.id,targetUserId)).for("update");
+    await tx.update(users).set({ blockedAt: new Date(), blockedReason: reason.slice(0, 512),sessionVersion:sql`${users.sessionVersion}+1` }).where(eq(users.id, targetUserId));
+    await queueCancellationForUser(tx,targetUserId);
+  });
   await logAdminAction({
     actorUserId: actorId,
     action: "block_user",

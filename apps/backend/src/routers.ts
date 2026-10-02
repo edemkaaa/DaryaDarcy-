@@ -16,7 +16,8 @@ import { z } from "zod";
 import * as db from "./db";
 import * as platformDb from "./platform-db";
 import { storagePut } from "./storage";
-import { buildCheckoutUrl, buildShopCheckoutUrl, cancelProdamusSubscription, CLUB_PRICE, getShopProduct } from "./prodamus";
+import { buildCheckoutUrl, buildShopCheckoutUrl, cancelProdamusSubscription, CLUB_PRICE, CLUB_SEMIANNUAL_PRICE, getShopProduct } from "./prodamus";
+import { requestClubCancellation } from "./billing/cancellation";
 import {
   PEN_PAL_INTEREST_SET,
   PEN_PAL_CONSENT_VERSION,
@@ -651,7 +652,7 @@ export const appRouter = router({
         const orderId = plan === "semiannual"
           ? `club6m-${user.id}-${Date.now()}`
           : `club-${user.id}-${Date.now()}`;
-        await db.createClubPayment({ userId: user.id, orderId, email });
+        await db.createClubPayment({ userId: user.id, orderId, email, sum:plan==="semiannual"?CLUB_SEMIANNUAL_PRICE:CLUB_PRICE });
         return {
           url: buildCheckoutUrl({ orderId, email, userId: user.id, plan }),
           user: null,
@@ -667,14 +668,10 @@ export const appRouter = router({
       return { granted: false as const, orderId: null };
     }),
     cancel: protectedProcedure.mutation(async ({ ctx }) => {
-      const result = await db.cancelClubSubscription(ctx.user.id);
-      if (!result.cancelled) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Нет активной подписки" });
-      }
-      const email = (ctx.user.email || "").trim();
-      if (email) {
-        await cancelProdamusSubscription(email);
-      }
+      const database=await db.getDb();if(!database) throw new TRPCError({code:"INTERNAL_SERVER_ERROR"});
+      let result;
+      try {result=await requestClubCancellation(database,ctx.user.id,cancelProdamusSubscription);} catch {throw new TRPCError({code:"BAD_REQUEST",message:"Не удалось определить подписку. Обратитесь в поддержку."});}
+      if(!result.confirmed) throw new TRPCError({code:"INTERNAL_SERVER_ERROR",message:"Запрос отмены сохранён, но платёжная система пока не подтвердила отмену. Мы повторим попытку. До подтверждения автосписание может оставаться активным."});
       return { ok: true as const, expiresAt: result.expiresAt };
     }),
     comments: clubMemberProcedure

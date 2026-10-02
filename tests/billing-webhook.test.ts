@@ -80,9 +80,19 @@ describe("billing notification trust boundary", () => {
     expect(result.body).toBe("success");
     expect(state.paid).toBe(true);
   });
-  it("accepts signed cancellation without granting a payment", async () => {
-    await notify({ ...payment, subscription: { action_code: "deactivation" } }, "test-only-secret");
-    expect(state.cancelled).toBe(true);
+  it("rejects signed cancellation without a bound subscription profile", async () => {
+    const result=await notify({ ...payment, subscription: { action_code: "deactivation" } }, "test-only-secret");
+    expect(result.status).toBe(422);
+    expect(state.cancelled).toBe(false);
+    expect(state.paid).toBe(false);
+  });
+  it("rejects a shop signature reused for a club payment",async()=>{
+    vi.stubEnv("PRODAMUS_SHOP_SECRET","shop-only-key");
+    expect((await notify(payment,"shop-only-key")).status).toBe(422);
+    expect(state.paid).toBe(false);
+  });
+  it.each([{order_id:""},{domain:"another.payform.ru"},{currency:"usd"}])("rejects missing or foreign payment identifiers: %j",async(extra)=>{
+    expect((await notify({...payment,...extra},"test-only-secret")).status).toBe(422);
     expect(state.paid).toBe(false);
   });
 });
