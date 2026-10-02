@@ -82,6 +82,21 @@ MySQL backend_test и запретом тестирования рабочей/�
 регрессия после сборки прошли. YAML разобран, но удалённый runner ещё не запускался.
 CI не выполняет деплой или production-миграции; это не разрешение на выпуск.
 
+## Серверные зависимости
+
+Drizzle обновлён с 0.44.7 до 0.45.3, mysql2 — с 3.16.0 до 3.24.5 во всех
+использующих их workspace-пакетах. Версии зафиксированы, lockfile обновлён без
+install scripts. Для Drizzle добавлены два теста экранирования SQL-идентификаторов
+и aliases: оба воспроизводили ошибку до обновления и проходят после. Проверено
+343 теста / 3 пропуска, типы, границы и сборка API.
+
+Это подтверждённый дефект старой зависимости, **не доказательство доступной
+SQL-инъекции в приложении**: опасные динамические идентификаторы в текущих
+обработчиках не обнаружены. [Исправление Drizzle](https://github.com/drizzle-team/drizzle-orm/security/advisories/GHSA-gpj5-g38j-94v9)
+и [изменения mysql2](https://github.com/sidorares/node-mysql2/blob/master/Changelog.md)
+проверены по источникам разработчиков. TLS рабочей БД требует отдельной проверки;
+обновление клиента само по себе не подтверждает защищённость соединения.
+
 Технические решения сверены с [sharp](https://sharp.pixelplumbing.com/api-constructor/),
 [Express trusted proxies](https://expressjs.com/en/guide/behind-proxies/) и
 [браузерной моделью CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS).
