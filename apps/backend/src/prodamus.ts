@@ -489,7 +489,8 @@ export async function handleProdamusWebhook(req: Request, res: Response) {
     });
     res.status(granted?200:422).send(granted ? "success" : "payment binding invalid");
   } catch (error) {
-    console.error("[prodamus] webhook failed", error);
+    // Drizzle errors can embed parameterized mail payloads and recipient data.
+    console.error("[prodamus] webhook failed");
     res.status(500).send("error");
   }
 }
