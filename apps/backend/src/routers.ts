@@ -16,6 +16,7 @@ import { z } from "zod";
 import * as db from "./db";
 import * as platformDb from "./platform-db";
 import { storagePut } from "./storage";
+import { photoInput, uploadPhoto } from "./media/photos";
 import { buildCheckoutUrl, buildShopCheckoutUrl, cancelProdamusSubscription, CLUB_PRICE, CLUB_SEMIANNUAL_PRICE, getShopProduct } from "./prodamus";
 import { requestClubCancellation } from "./billing/cancellation";
 import {
@@ -74,15 +75,9 @@ export const appRouter = router({
         return { success: true };
       }),
     uploadAvatar: protectedProcedure
-      .input(z.object({
-        base64: z.string(),
-        filename: z.string(),
-        mimeType: z.string().default("image/jpeg"),
-      }))
+      .input(photoInput)
       .mutation(async ({ ctx, input }) => {
-        const buffer = Buffer.from(input.base64, "base64");
-        const key = `avatars/${ctx.user.id}_${Date.now()}_${input.filename}`;
-        const result = await storagePut(key, buffer, input.mimeType);
+        const result = await uploadPhoto(input.base64, `avatars/${ctx.user.id}`);
         // Also update the user's avatarUrl in DB
         await db.updateUserProfile(ctx.user.id, { avatarUrl: result.url });
         return { url: result.url };
@@ -377,16 +372,9 @@ export const appRouter = router({
 
     // Upload photo (admin only)
     uploadPhoto: adminProcedure
-      .input(z.object({
-        base64: z.string(),
-        filename: z.string(),
-        mimeType: z.string().default("image/jpeg"),
-      }))
+      .input(photoInput)
       .mutation(async ({ input }) => {
-        const buffer = Buffer.from(input.base64, "base64");
-        const key = `feed/photos/${Date.now()}_${input.filename}`;
-        const result = await storagePut(key, buffer, input.mimeType);
-        return { url: result.url };
+        return uploadPhoto(input.base64, "feed/photos");
       }),
 
     // Upload media file (video/audio/document) (admin only)
@@ -746,24 +734,9 @@ export const appRouter = router({
         return { ok: true as const };
       }),
     uploadCommentPhoto: protectedProcedure
-      .input(z.object({
-        base64: z.string().max(6_000_000),
-        filename: z.string().max(128),
-        mimeType: z.string().default("image/jpeg"),
-      }))
+      .input(photoInput)
       .mutation(async ({ ctx, input }) => {
-        const buffer = Buffer.from(input.base64, "base64");
-        if (buffer.length > 4 * 1024 * 1024) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Фото больше 4 МБ" });
-        }
-        const ext = input.mimeType.includes("png")
-          ? "png"
-          : input.mimeType.includes("webp")
-            ? "webp"
-            : "jpg";
-        const key = `club/comments/${ctx.user.id}/${Date.now()}.${ext}`;
-        const result = await storagePut(key, buffer, input.mimeType);
-        return { url: result.url };
+        return uploadPhoto(input.base64, `club/comments/${ctx.user.id}`);
       }),
   }),
 

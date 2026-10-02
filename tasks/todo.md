@@ -70,6 +70,10 @@
 - [ ] B08: Media validation, closed-body access and comment retention.
   Acceptance: non-image rejected, EXIF removed, protected body unavailable publicly.
   Verify: file fixtures and API authorization tests.
+  Photo slice checked: avatar/post/comment JPEG/PNG/WebP decode and re-encode,
+  metadata removal, server-owned filenames, 4 MiB/20 MP/concurrent decoder limits.
+  13 photo scenarios pass; full local suite 236 pass / 32 skip (DB not provisioned),
+  check/build/diff-check pass. Private legacy assets and retention still pending.
 - [ ] B09: First-release capabilities and seasonal/manager configuration.
   Acceptance: disabled SMS/shop payment/pen-pal routes cannot be called directly.
   Verify: capability matrix API tests and admin configuration roundtrip.
