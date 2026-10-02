@@ -334,3 +334,20 @@ checks. Helpers accept the same transaction executor; exported signatures stay
 unchanged. Test push fixture is disabled and removed at teardown so parallel
 audience tests do not see unrelated tokens. Full suite: 512 pass / 2 skip;
 types/boundaries/API build and 52-test verify pass. No live data was deleted.
+
+N04 continues B04/B07: manual admin grants use a read/compute/write sequence
+outside the billing owner lock and timestamp-derived order IDs. Reproduce lost
+days/colliding grants on disposable MySQL, then serialize grants on the same
+owner as settlement/retention. Preserve admin.grantClub input/output and default
+31 days; validate the internal duration, refuse blocked/anonymized recipients,
+and assign each distinct grant its own unique order. Verify concurrency, expiry
+stacking, recipient exclusions and the full suite before the next local commit.
+This does not add role permissions or an auth flow, send mail, cancel providers
+or make retries of one admin request idempotent; request-id support is separate.
+
+N04 verified: 6 of 12 focused cases failed on the original helper, all 12 pass
+after repair. Calculation/write now lives in billing/grants.ts, not additional
+branches in the oversized db.ts; the existing facade and router contract remain.
+Full disposable-MySQL suite: 524 pass / 2 skip, 280-file boundaries, types/docs/API
+build and 52-test verify pass. Public grant retries and legacy paid-write helpers
+are not claimed repaired; neither is the overall billing/release checkpoint.

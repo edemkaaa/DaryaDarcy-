@@ -3,6 +3,7 @@ import { eq, inArray } from "drizzle-orm";
 import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { settleClubOrder } from "./billing/settlement";
+import { grantClubAccess } from "./billing/grants";
 import {
   MARKETING_PUSH_CONSENT_VERSION,
   type PushConsentStatus,
@@ -1351,17 +1352,9 @@ export async function nextClubExpiry(userId: number, periodMs = CLUB_ACCESS_MS):
 }
 
 export async function grantClubDays(userId: number, days = 31): Promise<Date> {
-  const user = await getUserById(userId);
-  if (!user) throw new Error("Пользователь не найден");
-  const expiresAt = await nextClubExpiry(userId, days * 24 * 60 * 60 * 1000);
-  await markClubPaymentPaid({
-    userId,
-    orderId: `admin-grant-${userId}-${Date.now()}`,
-    email: user.email,
-    sum: "0",
-    expiresAt,
-  });
-  return expiresAt;
+  const database = await getDb();
+  if (!database) throw new Error("Database not available");
+  return grantClubAccess(database, userId, days);
 }
 
 export async function markClubPaymentPaid(data: {

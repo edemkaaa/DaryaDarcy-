@@ -202,3 +202,12 @@
   Full suite: 512 pass / 2 skip; types/boundaries/API build/52-test verify pass.
   Financial/audit/backup/S3 and old mail/link retention remain separate work;
   B08 and release checkpoint remain open, not complete erasure or release approval.
+- [x] N04: Manual club grants serialize with settlement and account retention;
+  distinct simultaneous grants accumulate every day with distinct order IDs.
+  Preserve API/default duration; validate days and reject blocked/deleted users.
+  Verify: real MySQL concurrency/expiry/recipient/bounds tests, full suite and API
+  contract/types/boundaries/docs/build. Retried HTTP intent idempotency not added.
+  Six original failures → all 12 focused cases pass, including 10 simultaneous
+  grants with independent order IDs and all added days preserved. Full suite:
+  524 pass / 2 skip; types/280-file boundaries/docs/API build/52-test verify pass.
+  Module billing/grants.ts owns the transaction; router/facade signatures unchanged.
