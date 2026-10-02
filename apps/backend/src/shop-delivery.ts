@@ -2,6 +2,7 @@ import { PUBLIC_CONTACT_EMAIL } from "../../../packages/shared/src/contact";
 import { sendTransactionalEmail } from "./_core/email";
 import { sendServicePushNotification } from "./push";
 import * as platformDb from "./platform-db";
+import { getCapabilities } from "./launch/capabilities";
 
 const PRODUCT_LABELS: Record<string, string> = {
   "digital-1": "Пособие по атмосферной фотографии",
@@ -24,6 +25,7 @@ export async function deliverShopPurchase(input: {
   email: string;
   userId: number | null;
 }): Promise<void> {
+  if (!getCapabilities().shopOnlinePayment) return;
   const email = input.email.trim();
   if (!email) return;
 
@@ -68,6 +70,7 @@ export async function deliverShopPurchase(input: {
 }
 
 export async function processPendingShopDeliveryEmails(): Promise<void> {
+  if (!getCapabilities().shopOnlinePayment) return;
   const pending = await platformDb.listPendingShopDeliveryEmails(10);
   for (const row of pending) {
     await deliverShopPurchase({

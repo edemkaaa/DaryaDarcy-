@@ -17,6 +17,7 @@ import * as db from "./db";
 import * as platformDb from "./platform-db";
 import { storagePut } from "./storage";
 import { photoInput, uploadPhoto } from "./media/photos";
+import { requireCapability } from "./launch/capabilities";
 import { buildCheckoutUrl, buildShopCheckoutUrl, cancelProdamusSubscription, CLUB_PRICE, CLUB_SEMIANNUAL_PRICE, getShopProduct } from "./prodamus";
 import { requestClubCancellation } from "./billing/cancellation";
 import {
@@ -42,6 +43,11 @@ export async function sendNewPostNotification(
 ) {
   return sendMarketingPostNotification(postText, postId, target);
 }
+
+const penPalProcedure = protectedProcedure.use(({ next }) => {
+  requireCapability("penPals");
+  return next();
+});
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -746,7 +752,7 @@ export const appRouter = router({
   }),
 
   penPals: router({
-    me: protectedProcedure.query(async ({ ctx }) => {
+    me: penPalProcedure.query(async ({ ctx }) => {
       const profile = await db.getPenPalProfile(ctx.user.id);
       if (!profile || !profile.active) return null;
       return {
@@ -755,7 +761,7 @@ export const appRouter = router({
         address: profile.address,
       };
     }),
-    upsert: protectedProcedure
+    upsert: penPalProcedure
       .input(z.object({
         fullName: z.string().trim().min(2).max(128),
         interests: z.array(z.string()).min(2).max(3),
@@ -786,7 +792,7 @@ export const appRouter = router({
           address: profile.address,
         };
       }),
-    find: protectedProcedure.mutation(async ({ ctx }) => {
+    find: penPalProcedure.mutation(async ({ ctx }) => {
       const profile = await db.getPenPalProfile(ctx.user.id);
       if (!profile || !profile.active) {
         return { needsProfile: true as const, matches: [] as platformDb.PenPalMatchCard[] };
@@ -794,13 +800,13 @@ export const appRouter = router({
       const matches = await platformDb.listPenPalCards(ctx.user.id, 4);
       return { needsProfile: false as const, matches };
     }),
-    requestMatch: protectedProcedure
+    requestMatch: penPalProcedure
       .input(z.object({ targetUserId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const matchId = await platformDb.requestPenPalMatch(ctx.user.id, input.targetUserId);
         return { matchId };
       }),
-    respondMatch: protectedProcedure
+    respondMatch: penPalProcedure
       .input(z.object({ matchId: z.number(), accept: z.boolean() }))
       .mutation(async ({ ctx, input }) => {
         await platformDb.respondPenPalMatch(ctx.user.id, input.matchId, input.accept);
@@ -833,6 +839,7 @@ export const appRouter = router({
     createCheckout: protectedProcedure
       .input(z.object({ productId: z.string() }))
       .mutation(async ({ ctx, input }) => {
+        requireCapability("shopOnlinePayment");
         const product = getShopProduct(input.productId);
         if (!product) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Товар не найден" });

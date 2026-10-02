@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Express, Request, Response } from "express";
 import { ENV } from "./_core/env";
+import { getCapabilities } from "./launch/capabilities";
 import * as db from "./db";
 import type { PaymentProof } from "./billing/protocol";
 import { confirmProviderCancellation, type Profile } from "./billing/cancellation";
@@ -355,6 +356,7 @@ export async function fulfillPaidOrder(orderId: string, extra?: { email?: string
 
   const productId = parseShopProductId(orderId);
   if (productId) {
+    if (!getCapabilities().shopOnlinePayment) return null;
     let userId = extra?.userId ?? null;
     const existing = await db.getShopPurchaseByOrderId(orderId);
     if (!userId && existing?.userId) userId = existing.userId;
@@ -503,6 +505,7 @@ export function registerProdamusRoutes(app: Express) {
     void handleProdamusReturn(req, res);
   });
   app.get("/api/pay/:productId", (req, res) => {
+    if (!getCapabilities().shopOnlinePayment) { res.status(503).json({ code: "FEATURE_DISABLED", error: "Онлайн-оплата магазина пока недоступна" }); return; }
     void (async () => {
       const productId = String(req.params.productId || "");
       const product = getShopProduct(productId);

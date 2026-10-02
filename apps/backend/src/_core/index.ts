@@ -17,6 +17,7 @@ import { runMysqlBackupIfDue } from "./backup";
 import { registerPasswordRoutes } from "../identity/routes";
 import { processAccessEmails } from "../identity/access";
 import { sendTransactionalEmail } from "./email";
+import { registerCapabilityRoutes } from "../launch/capabilities";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -88,6 +89,7 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
   registerOAuthRoutes(app);
+  registerCapabilityRoutes(app);
   registerPasswordRoutes(app);
   registerProdamusRoutes(app);
   registerYoutubeStream(app);

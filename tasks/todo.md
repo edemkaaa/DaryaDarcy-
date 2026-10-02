@@ -83,5 +83,9 @@
 - [ ] B09: First-release capabilities and seasonal/manager configuration.
   Acceptance: disabled SMS/shop payment/pen-pal routes cannot be called directly.
   Verify: capability matrix API tests and admin configuration roundtrip.
+  Server guards checked for SMS, pen-pal discovery/matching and all legacy shop
+  entry points (checkout/redirect/webhook/queued mail). Privacy withdrawal remains
+  available. Shop cannot be enabled by an environment flag before durable repair.
+  Seasonal/manager configuration and client wiring are still pending.
 - [ ] Release checkpoint: sandbox E2E, migrations rehearsal, mail/load/security
   checks and approved rollout. Optional HLS/web push require separate scope review.

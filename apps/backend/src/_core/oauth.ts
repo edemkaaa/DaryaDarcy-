@@ -15,6 +15,7 @@ import { sdk } from "./sdk";
 import type { User } from "../../../../packages/database/src/schema";
 import { normalizeRuPhone } from "../../../../packages/shared/src/phone";
 import { clientIp, consumeSmsCode, issueSmsCode } from "../sms-auth";
+import { getCapabilities } from "../launch/capabilities";
 import { checkRateLimit } from "./rate-limit";
 import { logUserConsent } from "../platform-db";
 import {
@@ -234,6 +235,7 @@ export function registerOAuthRoutes(app: Express) {
   });
 
   app.post("/api/auth/sms/send", async (req: Request, res: Response) => {
+    if (!getCapabilities().smsLogin) { res.status(503).json({ code: "FEATURE_DISABLED", error: "Вход по SMS пока недоступен" }); return; }
     try {
       const phone = normalizeRuPhone(typeof req.body?.phone === "string" ? req.body.phone : "");
       if (!phone) {
@@ -251,6 +253,7 @@ export function registerOAuthRoutes(app: Express) {
   });
 
   app.post("/api/auth/sms/verify", async (req: Request, res: Response) => {
+    if (!getCapabilities().smsLogin) { res.status(503).json({ code: "FEATURE_DISABLED", error: "Вход по SMS пока недоступен" }); return; }
     try {
       const phone = normalizeRuPhone(typeof req.body?.phone === "string" ? req.body.phone : "");
       const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
