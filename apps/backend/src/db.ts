@@ -1063,28 +1063,31 @@ export async function publishDueScheduledPosts(): Promise<{ id: number; text: st
   const db = await getDb();
   if (!db) return [];
 
-  const due = await db
-    .select({ id: posts.id, text: posts.text, target: posts.target })
-    .from(posts)
-    .where(and(
-      eq(posts.status, "scheduled"),
-      isNotNull(posts.scheduledAt),
-      lte(posts.scheduledAt, new Date()),
-    ));
+  return db.transaction(async (tx) => {
+    // Claim the current rows before changing them. Another scheduler/admin
+    // holding a row leaves it for a later tick, never a stale announcement.
+    const due = await tx
+      .select({ id: posts.id, text: posts.text, target: posts.target })
+      .from(posts)
+      .where(and(
+        eq(posts.status, "scheduled"),
+        isNotNull(posts.scheduledAt),
+        lte(posts.scheduledAt, new Date()),
+      ))
+      .orderBy(asc(posts.id))
+      .for("update", { skipLocked: true });
 
-  if (due.length === 0) return [];
+    if (due.length === 0) return [];
 
-  await db.update(posts).set({
-    status: "published",
-    published: true,
-    publishedAt: sql`COALESCE(${posts.publishedAt}, ${posts.scheduledAt}, UTC_TIMESTAMP())`,
-  }).where(and(
-    eq(posts.status, "scheduled"),
-    isNotNull(posts.scheduledAt),
-    lte(posts.scheduledAt, new Date()),
-  ));
+    await tx.update(posts).set({
+      status: "published",
+      published: true,
+      publishedAt: sql`COALESCE(${posts.publishedAt}, ${posts.scheduledAt}, UTC_TIMESTAMP())`,
+    }).where(inArray(posts.id, due.map((post) => post.id)));
 
-  return due;
+    // The transaction resolves only after commit; callers announce this batch.
+    return due;
+  });
 }
 
 // ── Post Statistics (admin dashboard) ──

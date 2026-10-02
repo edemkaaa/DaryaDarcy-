@@ -376,3 +376,27 @@ parallel test cleanup collision; guarded fixtures now keep auto IDs >=1000000.
 Full suite on reused and new disposable MySQL: 533 pass / 2 skip; types, 280-file
 boundaries, docs, API build and 52-test verify pass. No provider/media download,
 production schema change or release approval.
+
+## Backend continuation: scheduled publication ownership — 2026-10-02
+
+N06 extends the publication-before-announcement boundary. Hypothesis: independent
+SELECT/UPDATE let two workers return the same publication, or return a draft
+withdrawn while the worker waits. Assets: unpublished text and announcement
+audiences. Boundary: scheduled row → committed publication → notification input.
+
+- Reproduce with real MySQL row locks, two workers and a concurrent withdrawal;
+  verify rollback and due/future/null/published status exclusions.
+- Claim and publish the same selected rows transactionally; skip temporarily
+  locked rows until the next tick. Preserve existing text/target/date contracts.
+- Verify each returned ID corresponds to this worker's committed transition,
+  then full suite/types/boundaries/docs/API build before a local commit.
+  No actual push, schema migration, manual admin-confirm rewrite or deploy.
+  Crash-safe notification delivery/outbox remains separate; not exactly-once push.
+
+N06 verified: two assertion failures reproduced duplicate returned IDs and a
+withdrawn draft in announcement input. All 4 real-MySQL scenarios now pass.
+FOR UPDATE SKIP LOCKED claims current due rows; only those IDs are updated in
+the same transaction and returned after commit. Dates/target/status exclusions
+are preserved. Full suite: 537 pass / 2 skip, types/280-file boundaries/docs/API
+build/52-test verify pass. Batch size/index/load profiling and a durable push
+outbox remain open; admin manual-confirm semantics were not changed.

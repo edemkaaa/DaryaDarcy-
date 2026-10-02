@@ -223,3 +223,16 @@
   ID collision separately reproduced and fixed only in guarded test setup.
   Full suite on reused and freshly provisioned MySQL: 533 pass / 2 skip;
   types/280-file boundaries/docs/API build/52-test verify pass. B08 stays open.
+
+## Backend continuation: scheduled publication ownership — 2026-10-02
+
+- [x] N06: Scheduled workers return only their own committed publications;
+  concurrent workers do not duplicate announcement inputs, and an admin's
+  withdrawal while a row is locked is not returned as a publication.
+  Verify: real MySQL locks/concurrency/rollback/date and eligibility matrix,
+  full suite/types/contract/boundaries/docs/API build. Push outbox/retries and
+  manual confirmScheduledPost announcement ownership remain separate work.
+  Two actual assertion failures on the original worker → all 4 MySQL scenarios
+  pass, including two worker batches, next tick, withdrawal and trigger rollback.
+  Full suite: 537 pass / 2 skip; types/280-file boundaries/docs/API build and
+  52-test verify pass. No real push or schema change; release checkpoint stays open.
