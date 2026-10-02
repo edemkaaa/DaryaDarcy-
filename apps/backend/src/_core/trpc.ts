@@ -6,6 +6,14 @@ import * as db from "../db";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
+  errorFormatter({ shape, error }) {
+    const { stack: _stack, ...data } = shape.data;
+    return {
+      ...shape,
+      message: error.code === "INTERNAL_SERVER_ERROR" ? "Внутренняя ошибка сервера" : shape.message,
+      data,
+    };
+  },
 });
 
 export const router = t.router;

@@ -90,9 +90,8 @@ async function startServer() {
       router: appRouter,
       createContext,
       onError({ path, error }) {
-        const cause = error.cause;
-        const causeMsg = cause instanceof Error ? cause.message : cause ? String(cause) : "";
-        console.error(`[trpc] ${path ?? "?"}: ${error.message}${causeMsg ? ` | ${causeMsg}` : ""}`);
+        const safePath = path && /^[a-zA-Z0-9._-]{1,128}$/.test(path) ? path : "?";
+        console.error(`[trpc] ${safePath}: ${error.code}`);
       },
     }),
   );

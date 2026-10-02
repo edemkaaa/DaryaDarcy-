@@ -164,7 +164,7 @@ export function registerOAuthRoutes(app: Express) {
       const session = await issueSession(req, res, user);
       res.json(session);
     } catch (error) {
-      console.error("[Auth] Register failed", error);
+      console.error("[Auth] Register failed");
       res.status(500).json({ error: "Не удалось создать аккаунт" });
     }
   });
@@ -197,7 +197,7 @@ export function registerOAuthRoutes(app: Express) {
       const session = await issueSession(req, res, user);
       res.json(session);
     } catch (error) {
-      console.error("[Auth] Login failed", error);
+      console.error("[Auth] Login failed");
       res.status(500).json({ error: "Не удалось войти" });
     }
   });

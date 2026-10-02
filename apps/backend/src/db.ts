@@ -51,7 +51,7 @@ export async function getDb() {
     });
     _db = drizzle({ client: pool });
   } catch (error) {
-    console.warn("[Database] Failed to connect:", error);
+    console.warn("[Database] Failed to connect");
     _db = null;
   }
   return _db;
@@ -113,7 +113,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       set: updateSet,
     });
   } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
+    console.error("[Database] Failed to upsert user");
     throw error;
   }
 }
@@ -281,7 +281,7 @@ async function attachPostMedia<T extends { id: number }>(
     }
     return page.map((p) => ({ ...p, media: byPost.get(p.id) ?? [] }));
   } catch (error) {
-    console.warn("[Feed] post_media query failed:", error);
+    console.warn("[Feed] post_media query failed");
     return page.map((p) => ({ ...p, media: [] as PostMedia[] }));
   }
 }
@@ -371,8 +371,7 @@ export async function getAllTags(): Promise<Tag[]> {
   try {
     return await db.select().from(tags).orderBy(asc(tags.sortOrder));
   } catch (error) {
-    const cause = error && typeof error === "object" && "cause" in error ? (error as { cause?: unknown }).cause : error;
-    console.error("[Feed] getAllTags failed:", cause);
+    console.error("[Feed] getAllTags failed");
     throw error;
   }
 }
