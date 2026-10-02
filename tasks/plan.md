@@ -111,3 +111,53 @@ The repository remains a **modular monolith**, not a microservice system. Worksp
 - No payment/auth behavior changes in structural commits.
 - No visual redesign.
 - No deletion of the legacy web client until its ownership is confirmed.
+
+## Backend launch follow-up — 2026-10-02
+
+The user has now requested a backend audit and implementation. The structural
+non-goals above still apply to structural commits; security repairs get separate
+behavior-changing commits. The existing unfinished refactor tasks are retained.
+
+Recommendation: keep Express/tRPC, TypeScript, Drizzle/MySQL and the frontend
+contract. Replace unsafe business flows incrementally, not the entire service.
+See `docs/decisions/0002-backend-evolution.md` and
+`docs/BACKEND-AUDIT-2026-10-02.md` for evidence and remaining release blockers.
+
+### Immediate repair scope
+
+1. Browser return is navigation only; webhook authentication precedes all mutations.
+   Explicit non-success and missing payment statuses cannot grant access. Demo
+   signatures do not grant production access. Verify with `pnpm test tests/billing-webhook.test.ts`.
+2. Preserve `club.claimPending` as a read-only compatibility check; never activate
+   a pending checkout. Checkout email is not proof of identity and never issues a
+   session. Blocked account cannot create checkout. Verify with
+   `pnpm test tests/billing-checkout.test.ts`.
+3. Centralize access policy: blocked staff have no privileges; blocked users and
+   unpublished posts cannot bypass restrictions through public detail endpoints.
+   Verify with `pnpm test tests/access-policy.test.ts`.
+4. Checkpoint: `pnpm test`, `pnpm check`, `pnpm build`, review diff and API contracts.
+
+### Subsequent vertical slices (not claimed implemented)
+
+- Billing transaction: isolated pooled DB connection; lock user/payment, stable
+  provider payment key, amount/currency/domain/subscription validation, duplicate
+  and concurrent replay tests against disposable MySQL. No in-memory deduplication.
+- Identity: email ownership verification, setup/reset token hashing + expiry +
+  single use, existing password preserved. Stop privilege inference from unverified
+  email. Requires migration design before adding tables.
+- Email: durable outbox committed with payment; retry, unique event and manager
+  resend. Do not email plaintext passwords; use a one-time setup link.
+- Subscription: provider-confirmed cancellation/retry; paid expiry preserved;
+  durable provider identity for renewals; admin block revokes sessions/access.
+- Content: public teaser/protected body, safe photos with EXIF removal and MIME
+  verification, draft attachments, one-year comment retention, seasonal config.
+- Launch switches: SMS and shop online payment off for web launch; manager orders.
+  Pen pals and web push kept out of first release unless explicitly selected.
+- Release: sandbox provider end-to-end, migrations backup/rollback, mail failure
+  cases, security headers/CORS, load test, deployment smoke test. No production
+  deployment or migrations during this local audit.
+
+Modules: `identity` → `billing` → `email-delivery`; `identity` → `content-access`
+→ `content-media`; `admin-operations` consumes these modules, never vice versa.
+Module boundaries and full launch scope remain a proposal for review, not approval
+of a framework rewrite or optional paid-video integration.
