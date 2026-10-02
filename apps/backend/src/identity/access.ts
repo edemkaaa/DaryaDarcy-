@@ -15,6 +15,7 @@ import {
   users,
 } from "../../../../packages/database/src/schema";
 import { hashPassword, normalizeEmail } from "../_core/password";
+import { publicAccessUrl } from "./urls";
 export type Transaction = Parameters<
   Parameters<MySql2Database["transaction"]>[0]
 >[0];
@@ -310,22 +311,7 @@ export async function processAccessEmails(
           }
         }
         if (!discard) {
-          const url = new URL(
-            (token ? process.env.PUBLIC_AUTH_URL : undefined) ||
-              process.env.PUBLIC_APP_URL ||
-              "",
-          );
-          if (
-            url.protocol !== "https:" &&
-            !(
-              process.env.NODE_ENV !== "production" &&
-              ["localhost", "127.0.0.1"].includes(url.hostname)
-            )
-          )
-            throw new Error("PUBLIC_APP_URL must use HTTPS");
-          url.pathname = token ? "/api/auth/password" : "/login";
-          url.search = "";
-          url.hash = token ? `token=${token}` : "";
+          const url = publicAccessUrl(token);
           const text =
             mail.kind === "club-access"
               ? "Оплата получена. Доступ к клубу открыт."
