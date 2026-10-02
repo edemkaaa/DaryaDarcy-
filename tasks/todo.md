@@ -58,7 +58,8 @@
   Acceptance: expired/reused token rejected, existing password untouched.
   Verify: identity HTTP tests + migration rehearsal.
   Backend links/versioned sessions/explicit staff roles done locally;
-  frontend recovery entry, staff preflight and production migration rehearsal pending.
+  Frontend recovery entry and strict SMS capability switch checked locally;
+  staff preflight and production migration rehearsal pending.
 - [ ] B06: Transactional email outbox and resend.
   Acceptance: crash/retry loses no event, duplicate payment queues one message.
   Verify: worker failure/recovery integration tests.

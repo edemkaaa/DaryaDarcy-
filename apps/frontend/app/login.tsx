@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   View,
   Text,
@@ -26,7 +27,12 @@ const OLIVE = "#6B7B5E";
 
 function safeNextPath(value: string | string[] | undefined): string | null {
   const raw = Array.isArray(value) ? value[0] : value;
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.includes("://")) {
+  if (
+    !raw ||
+    !raw.startsWith("/") ||
+    raw.startsWith("//") ||
+    raw.includes("://")
+  ) {
     return null;
   }
   return raw;
@@ -35,13 +41,22 @@ function safeNextPath(value: string | string[] | undefined): string | null {
 export default function LoginScreen() {
   const { applySession } = useAuth();
   const params = useLocalSearchParams<{ next?: string }>();
-  const [method, setMethod] = useState<"sms" | "email">("sms");
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const capabilities = useQuery({
+    queryKey: ["app-capabilities"],
+    queryFn: Api.getAppCapabilities,
+    staleTime: 60000,
+    retry: false,
+  });
+  const [method, setMethod] = useState<"sms" | "email">("email");
+  const [mode, setMode] = useState<"login" | "register" | "recover">("login");
+  const smsEnabled = capabilities.data?.smsLogin === true;
+  const useSms = smsEnabled && method === "sms";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const goNext = async (user: Api.AuthUser | null) => {
     await applySession(user);
@@ -56,9 +71,16 @@ export default function LoginScreen() {
   };
 
   const submitEmail = async () => {
+    if (busy) return;
     setError(null);
+    setNotice(null);
     setBusy(true);
     try {
+      if (mode === "recover") {
+        const result = await Api.requestPasswordInstructions(email);
+        setNotice(result.message);
+        return;
+      }
       const result =
         mode === "login"
           ? await Api.loginWithEmail(email, password)
@@ -73,26 +95,44 @@ export default function LoginScreen() {
 
   return (
     <ScreenContainer containerClassName="bg-[#FDF8F0]">
-      <ImageBackground source={{ uri: PAPER_TEXTURE_URI }} resizeMode="cover" style={{ flex: 1 }}>
+      <ImageBackground
+        source={{ uri: PAPER_TEXTURE_URI }}
+        resizeMode="cover"
+        style={{ flex: 1 }}
+      >
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+          >
             <Text style={styles.kicker}>DARYADARCY</Text>
             <Text style={styles.title}>
-              {method === "sms" ? "Вход" : mode === "login" ? "Вход по почте" : "Регистрация"}
+              {useSms
+                ? "Вход"
+                : mode === "recover"
+                  ? "Восстановление доступа"
+                  : mode === "login"
+                    ? "Вход по почте"
+                    : "Регистрация"}
             </Text>
             <Text style={styles.subtitle}>
-              {method === "sms"
+              {useSms
                 ? "Введите номер — код придёт в SMS в течение минуты"
                 : mode === "login"
                   ? "Войдите, чтобы сохранять посты и пользоваться клубом"
-                  : "Создайте аккаунт по email"}
+                  : mode === "recover"
+                    ? "Введите почту аккаунта. Если он доступен, мы отправим письмо с инструкцией."
+                    : "Создайте аккаунт по email"}
             </Text>
 
-            {method === "sms" ? (
-              <SmsCodeForm purpose="login" onSuccess={(user) => void goNext(user)} />
+            {useSms ? (
+              <SmsCodeForm
+                purpose="login"
+                onSuccess={(user) => void goNext(user)}
+              />
             ) : (
               <>
                 {mode === "register" && (
@@ -114,32 +154,53 @@ export default function LoginScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="email-address"
+                  autoComplete="email"
+                  accessibilityLabel="Email"
                 />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Пароль"
-                  placeholderTextColor={BROWN_MUTED}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  returnKeyType="go"
-                  onSubmitEditing={() => {
-                    if (!busy) void submitEmail();
-                  }}
-                />
+                {mode !== "recover" ? (
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Пароль"
+                    placeholderTextColor={BROWN_MUTED}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    accessibilityLabel="Пароль"
+                    returnKeyType="go"
+                    onSubmitEditing={() => {
+                      if (!busy) void submitEmail();
+                    }}
+                  />
+                ) : null}
 
                 {error ? <Text style={styles.error}>{error}</Text> : null}
+                {notice ? (
+                  <Text
+                    style={styles.subtitle}
+                    accessibilityLiveRegion="polite"
+                  >
+                    {notice}
+                  </Text>
+                ) : null}
 
                 <Pressable
-                  style={({ pressed }) => [styles.button, pressed && { opacity: 0.85 }]}
+                  style={({ pressed }) => [
+                    styles.button,
+                    pressed && { opacity: 0.85 },
+                  ]}
                   onPress={submitEmail}
                   disabled={busy}
+                  accessibilityRole="button"
                 >
                   {busy ? (
                     <ActivityIndicator color={CREAM} />
                   ) : (
                     <Text style={styles.buttonText}>
-                      {mode === "login" ? "Войти" : "Создать аккаунт"}
+                      {mode === "recover"
+                        ? "Отправить инструкцию"
+                        : mode === "login"
+                          ? "Войти"
+                          : "Создать аккаунт"}
                     </Text>
                   )}
                 </Pressable>
@@ -147,27 +208,49 @@ export default function LoginScreen() {
                 <Pressable
                   onPress={() => {
                     setError(null);
+                    setNotice(null);
                     setMode(mode === "login" ? "register" : "login");
                   }}
+                  disabled={busy}
                 >
                   <Text style={styles.switchText}>
-                    {mode === "login" ? "Нет аккаунта? Зарегистрироваться" : "Уже есть аккаунт? Войти"}
+                    {mode === "login"
+                      ? "Нет аккаунта? Зарегистрироваться"
+                      : "Уже есть аккаунт? Войти"}
                   </Text>
                 </Pressable>
+                {mode === "login" ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={busy}
+                    onPress={() => {
+                      setError(null);
+                      setNotice(null);
+                      setMode("recover");
+                    }}
+                  >
+                    <Text style={styles.switchText}>
+                      Забыли пароль или ещё не установили его?
+                    </Text>
+                  </Pressable>
+                ) : null}
               </>
             )}
 
-            <Pressable
-              onPress={() => {
-                setError(null);
-                setMethod(method === "sms" ? "email" : "sms");
-                setMode("login");
-              }}
-            >
-              <Text style={styles.switchText}>
-                {method === "sms" ? "Войти по почте" : "Войти по телефону"}
-              </Text>
-            </Pressable>
+            {smsEnabled ? (
+              <Pressable
+                onPress={() => {
+                  setError(null);
+                  setNotice(null);
+                  setMethod(method === "sms" ? "email" : "sms");
+                  setMode("login");
+                }}
+              >
+                <Text style={styles.switchText}>
+                  {method === "sms" ? "Войти по почте" : "Войти по телефону"}
+                </Text>
+              </Pressable>
+            ) : null}
 
             <Pressable onPress={() => router.back()}>
               <Text style={styles.backText}>Назад</Text>

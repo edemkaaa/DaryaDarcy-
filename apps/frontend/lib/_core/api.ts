@@ -1,12 +1,30 @@
 import { getApiBaseUrl } from "@/constants/oauth";
 import * as Auth from "./auth";
+import type { LaunchCapabilities } from "../../../../packages/shared/src/capabilities";
 
-type ApiResponse<T> = {
-  data?: T;
-  error?: string;
-};
+export async function requestPasswordInstructions(
+  email: string,
+): Promise<{ ok: boolean; message: string }> {
+  return apiCall("/api/auth/password/request", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+export async function getAppCapabilities(): Promise<LaunchCapabilities> {
+  const result =
+    await apiCall<Partial<LaunchCapabilities>>("/api/capabilities");
+  return {
+    smsLogin: result?.smsLogin === true,
+    penPals: result?.penPals === true,
+    shopOnlinePayment: result?.shopOnlinePayment === true,
+    webPush: result?.webPush === true,
+  };
+}
 
-export async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+export async function apiCall<T>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...((options.headers as Record<string, string>) || {}),
@@ -22,29 +40,16 @@ export async function apiCall<T>(endpoint: string, options: RequestInit = {}): P
   const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
   const url = baseUrl ? `${cleanBaseUrl}${cleanEndpoint}` : endpoint;
-  console.log("[API] Full URL:", url);
 
   try {
-    console.log("[API] Making request...");
     const response = await fetch(url, {
       ...options,
       headers,
       credentials: "include",
     });
 
-    console.log("[API] Response status:", response.status, response.statusText);
-    const responseHeaders = Object.fromEntries(response.headers.entries());
-    console.log("[API] Response headers:", responseHeaders);
-
-    // Check if Set-Cookie header is present (cookies are automatically handled in React Native)
-    const setCookie = response.headers.get("Set-Cookie");
-    if (setCookie) {
-      console.log("[API] Set-Cookie header received:", setCookie);
-    }
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[API] Error response:", errorText);
       let errorMessage = errorText;
       let retryAfterSec: number | undefined;
       try {
@@ -53,7 +58,9 @@ export async function apiCall<T>(endpoint: string, options: RequestInit = {}): P
         if (typeof errorJson.retryAfterSec === "number") {
           retryAfterSec = errorJson.retryAfterSec;
         }
-        const error = new Error(errorMessage || `API call failed: ${response.statusText}`) as Error & {
+        const error = new Error(
+          errorMessage || `API call failed: ${response.statusText}`,
+        ) as Error & {
           retryAfterSec?: number;
           requiresTotp?: boolean;
         };
@@ -61,10 +68,13 @@ export async function apiCall<T>(endpoint: string, options: RequestInit = {}): P
         if (errorJson.requiresTotp) error.requiresTotp = true;
         throw error;
       } catch (parseErr) {
-        if (parseErr instanceof Error && "requiresTotp" in parseErr) throw parseErr;
+        if (parseErr instanceof Error && "requiresTotp" in parseErr)
+          throw parseErr;
         // Not JSON, use text as is
       }
-      const error = new Error(errorMessage || `API call failed: ${response.statusText}`) as Error & {
+      const error = new Error(
+        errorMessage || `API call failed: ${response.statusText}`,
+      ) as Error & {
         retryAfterSec?: number;
       };
       if (retryAfterSec) error.retryAfterSec = retryAfterSec;
@@ -74,15 +84,12 @@ export async function apiCall<T>(endpoint: string, options: RequestInit = {}): P
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
       const data = await response.json();
-      console.log("[API] JSON response received");
       return data as T;
     }
 
     const text = await response.text();
-    console.log("[API] Text response received");
     return (text ? JSON.parse(text) : {}) as T;
   } catch (error) {
-    console.error("[API] Request failed:", error);
     if (error instanceof Error) {
       throw error;
     }
@@ -115,10 +122,13 @@ export async function loginWithEmail(
   password: string,
   totp?: string,
 ): Promise<{ sessionToken: string; user: AuthUser }> {
-  const result = await apiCall<{ sessionToken: string; user: AuthUser }>("/api/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password, totp }),
-  });
+  const result = await apiCall<{ sessionToken: string; user: AuthUser }>(
+    "/api/auth/login",
+    {
+      method: "POST",
+      body: JSON.stringify({ email, password, totp }),
+    },
+  );
   if (result.sessionToken) {
     await Auth.setSessionToken(result.sessionToken);
   }
@@ -131,17 +141,22 @@ export async function registerWithEmail(
   name?: string,
   consentVersion?: string,
 ): Promise<{ sessionToken: string; user: AuthUser }> {
-  const result = await apiCall<{ sessionToken: string; user: AuthUser }>("/api/auth/register", {
-    method: "POST",
-    body: JSON.stringify({ email, password, name, consentVersion }),
-  });
+  const result = await apiCall<{ sessionToken: string; user: AuthUser }>(
+    "/api/auth/register",
+    {
+      method: "POST",
+      body: JSON.stringify({ email, password, name, consentVersion }),
+    },
+  );
   if (result.sessionToken) {
     await Auth.setSessionToken(result.sessionToken);
   }
   return result;
 }
 
-export async function sendSmsCode(phone: string): Promise<{ ok: true; retryAfterSec: number }> {
+export async function sendSmsCode(
+  phone: string,
+): Promise<{ ok: true; retryAfterSec: number }> {
   return apiCall<{ ok: true; retryAfterSec: number }>("/api/auth/sms/send", {
     method: "POST",
     body: JSON.stringify({ phone }),
@@ -154,10 +169,13 @@ export async function verifySmsCode(
   consentVersion?: string,
   totp?: string,
 ): Promise<{ sessionToken: string; user: AuthUser }> {
-  const result = await apiCall<{ sessionToken: string; user: AuthUser }>("/api/auth/sms/verify", {
-    method: "POST",
-    body: JSON.stringify({ phone, code, consentVersion, totp }),
-  });
+  const result = await apiCall<{ sessionToken: string; user: AuthUser }>(
+    "/api/auth/sms/verify",
+    {
+      method: "POST",
+      body: JSON.stringify({ phone, code, consentVersion, totp }),
+    },
+  );
   if (result.sessionToken) {
     await Auth.setSessionToken(result.sessionToken);
   }
@@ -181,7 +199,6 @@ export async function getMe(): Promise<{
     const result = await apiCall<{ user: any }>("/api/auth/me");
     return result.user || null;
   } catch (error) {
-    console.error("[API] getMe failed:", error);
     return null;
   }
 }
@@ -190,7 +207,6 @@ export async function getMe(): Promise<{
 // Called after receiving token via postMessage to get a proper Set-Cookie from the backend
 export async function establishSession(token: string): Promise<boolean> {
   try {
-    console.log("[API] establishSession: setting cookie on backend...");
     const baseUrl = getApiBaseUrl();
     const url = `${baseUrl}/api/auth/session`;
 
@@ -204,14 +220,11 @@ export async function establishSession(token: string): Promise<boolean> {
     });
 
     if (!response.ok) {
-      console.error("[API] establishSession failed:", response.status);
       return false;
     }
 
-    console.log("[API] establishSession: cookie set successfully");
     return true;
   } catch (error) {
-    console.error("[API] establishSession error:", error);
     return false;
   }
 }

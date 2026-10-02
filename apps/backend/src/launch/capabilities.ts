@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { TRPCError } from "@trpc/server";
+import type { LaunchCapabilities } from "../../../../packages/shared/src/capabilities";
 
 /** Server-owned release policy, not client visibility flags. */
-export function getCapabilities() {
+export function getCapabilities(): LaunchCapabilities {
   return {
     smsLogin: process.env.ENABLE_SMS_LOGIN === "true",
     penPals: process.env.ENABLE_PEN_PALS === "true",
@@ -12,9 +13,14 @@ export function getCapabilities() {
   } as const;
 }
 
-export function requireCapability(name: keyof ReturnType<typeof getCapabilities>): void {
+export function requireCapability(
+  name: keyof ReturnType<typeof getCapabilities>,
+): void {
   if (!getCapabilities()[name]) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Функция пока недоступна" });
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Функция пока недоступна",
+    });
   }
 }
 
