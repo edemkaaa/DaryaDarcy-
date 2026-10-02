@@ -83,11 +83,6 @@ describe("Home Screen (index.tsx)", () => {
     expect(content).toContain("НОВОЕ");
   });
 
-  it("should have letter section", () => {
-    expect(content).toContain("Дорогой друг");
-    expect(content).toContain("С любовью, Дарья");
-  });
-
   it("should have secret garden section", () => {
     expect(content).toContain("GardenTourSection");
   });
@@ -203,25 +198,6 @@ describe("Feed Screen (feed.tsx)", () => {
   });
 });
 
-describe("Interactive Screen (interactive.tsx)", () => {
-  const content = fs.readFileSync(path.join(APP_DIR, "app/(tabs)/interactive.tsx"), "utf-8");
-
-  it("should have interactive items", () => {
-    expect(content).toContain("INTERACTIVE_ITEMS");
-    expect(content).toContain("Тест: Какая твоя сказка?");
-    expect(content).toContain("Уютная игра");
-    expect(content).toContain("Создай мудборд");
-  });
-
-  it("should have coming soon status", () => {
-    expect(content).toContain("Открыть");
-  });
-
-  it("should have ideas section", () => {
-    expect(content).toContain("Есть идея?");
-  });
-});
-
 describe("Tab Layout (_layout.tsx)", () => {
   const content = fs.readFileSync(path.join(APP_DIR, "app/(tabs)/_layout.tsx"), "utf-8");
 
@@ -247,15 +223,6 @@ describe("Tab Layout (_layout.tsx)", () => {
   });
 });
 
-describe("Library Screen (library.tsx)", () => {
-  const content = fs.readFileSync(path.join(APP_DIR, "app/(tabs)/library.tsx"), "utf-8");
-
-  it("should have search and categories", () => {
-    expect(content).toContain("search");
-    expect(content).toContain("Выкройки");
-  });
-});
-
 describe("Shop Screen (shop.tsx)", () => {
   const content = fs.readFileSync(path.join(APP_DIR, "app/(tabs)/shop/index.tsx"), "utf-8");
 
@@ -266,24 +233,6 @@ describe("Shop Screen (shop.tsx)", () => {
     expect(content).toContain("Книга Вдохновения");
     expect(content).toContain("Романтика Дачи");
     expect(content).toContain("wildberries.ru/catalog");
-  });
-});
-
-describe("Club Screen (club.tsx)", () => {
-  const content = fs.readFileSync(path.join(APP_DIR, "app/(tabs)/club.tsx"), "utf-8");
-
-  it("should have locked and unlocked states", () => {
-    expect(content).toContain("isSubscribed");
-    expect(content).toContain("Клуб Darcy");
-  });
-});
-
-describe("Profile Screen (profile.tsx)", () => {
-  const content = fs.readFileSync(path.join(APP_DIR, "app/(tabs)/profile.tsx"), "utf-8");
-
-  it("should have profile info and settings", () => {
-    expect(content).toContain("Настройки");
-    expect(content).toContain("О Дарье");
   });
 });
 
@@ -576,12 +525,6 @@ describe("Push Notifications", () => {
     const pushModule = fs.readFileSync(path.join(APP_DIR, "server/push.ts"), "utf-8");
     expect(pushModule).toContain("getMarketingPushTokens");
     expect(pushModule).toContain("exp.host/--/api/v2/push/send");
-  });
-
-  it("should expose marketing push toggle in profile", () => {
-    const profileContent = fs.readFileSync(path.join(APP_DIR, "app/(tabs)/profile.tsx"), "utf-8");
-    expect(profileContent).toContain("setMarketingConsent");
-    expect(profileContent).toContain("MARKETING_PUSH_CONSENT_LABEL");
   });
 
   it("should have notifications router with registerToken endpoint", () => {

@@ -1,8 +1,14 @@
 import { describe, it, expect } from "vitest";
 
-describe("Timeweb S3 Connection", () => {
+const hasS3Credentials = [
+  process.env.S3_ENDPOINT,
+  process.env.S3_ACCESS_KEY,
+  process.env.S3_SECRET_KEY,
+  process.env.S3_BUCKET,
+].every(Boolean);
+
+describe.runIf(hasS3Credentials)("Timeweb S3 Connection", () => {
   it("should have S3 environment variables configured", () => {
-    // These are set via webdev_request_secrets
     expect(process.env.S3_ENDPOINT).toBeDefined();
     expect(process.env.S3_ENDPOINT).toBe("https://s3.twcstorage.ru");
     expect(process.env.S3_ACCESS_KEY).toBeDefined();
