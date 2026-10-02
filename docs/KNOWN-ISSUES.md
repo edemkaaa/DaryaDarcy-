@@ -25,7 +25,7 @@
 
 ## Технический долг
 
-- Много одноразовых `scripts/_probe-*.mjs` — можно заархивировать
+- Много одноразовых `tooling/scripts/_probe-*.mjs` — можно заархивировать
 - `drizzle/` — смешение SQL-файлов и schema.ts; миграции не автоматизированы в CI
 - Admin rich text editor — сложная связка native selection + web
 - Дублирование логики feed/club в UI-компонентах

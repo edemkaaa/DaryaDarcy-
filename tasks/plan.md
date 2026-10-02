@@ -59,8 +59,8 @@ The repository remains a **modular monolith**, not a microservice system. Worksp
 - [x] Record the architecture decision and migration/rollback rules.
 - [x] Move `site/` to `apps/legacy-web` and keep its build working.
 - [x] Move `deploy/` to `infrastructure/deploy` and update all references.
-- [ ] Move repository-only helpers to `tooling/scripts`.
-- [ ] Acceptance: root commands still work and no old path is required.
+- [x] Move repository-only helpers to `tooling/scripts`.
+- [x] Acceptance: root commands still work and no old path is required.
 
 ### Phase 2 — Backend and database ownership
 

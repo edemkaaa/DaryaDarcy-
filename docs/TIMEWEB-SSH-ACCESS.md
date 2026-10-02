@@ -83,7 +83,7 @@ npm run deploy:api
 
 ```powershell
 cd C:\Users\Иван\Downloads\daryadarcy_app
-python scripts/set-hidemy-vps-bypass.py
+python3 tooling/scripts/set-hidemy-vps-bypass.py
 ```
 
 Затем в hidemy.name: **Отключить → Подключить** VPN.

@@ -7,8 +7,8 @@ web-dist/
 web-dist2/
 web-dist-broken-*/
 tmp/
-scripts/.ssh-*.txt
-scripts/.route-test.txt
+tooling/scripts/.ssh-*.txt
+tooling/scripts/.route-test.txt
 .expo/
 dist/
 web-build/
@@ -76,8 +76,8 @@ Thumbs.db
 .tmp-*/
 .project-config.json
 .vps-pass
-scripts/deploy_vps.py
-scripts/bootstrap_vps.py
+tooling/scripts/deploy_vps.py
+tooling/scripts/bootstrap_vps.py
 
 # Handover security: never commit operational credentials
 production.env
@@ -92,5 +92,5 @@ production.env
 .tmp-*.json
 .tmp-*.txt
 ig_posts_processed.json
-scripts/*.out.txt
+tooling/scripts/*.out.txt
 docs/VPS-INFRA-PROBE.txt

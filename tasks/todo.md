@@ -12,8 +12,8 @@
 - [x] Create workspace/ADR/package skeleton.
 - [x] Move legacy Vite client to `apps/legacy-web`.
 - [x] Move deployment assets to `infrastructure/deploy`.
-- [ ] Move repository helpers to `tooling/scripts`.
-- [ ] Green checkpoint: root commands and both current builds.
+- [x] Move repository helpers to `tooling/scripts`.
+- [x] Green checkpoint: root commands and both current builds.
 
 ## Phase 2 — Backend and data
 

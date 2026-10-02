@@ -59,7 +59,8 @@ packages/
   database/       Drizzle-схема и SQL-миграции
 infrastructure/   Конфигурация окружения и деплоя
   deploy/         nginx, PM2 и подготовка VPS
-scripts/          Временные служебные скрипты (переносятся в tooling/)
+tooling/
+  scripts/        Импорт, обслуживание и сценарии деплоя
 docs/decisions/   Архитектурные решения
 web-dist/         Собранный фронт (генерируется, не в git)
 docs/             Документация для аудита

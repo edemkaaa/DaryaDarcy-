@@ -88,4 +88,4 @@ OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)
 nginx version: nginx/1.24.0 (Ubuntu)
 ```
 
-Источник: `docs/VPS-INFRA-PROBE.txt`, скрипт `scripts/ssh-audit-infra.py`.
+Источник: `docs/VPS-INFRA-PROBE.txt`, скрипт `tooling/scripts/ssh-audit-infra.py`.

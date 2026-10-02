@@ -4,11 +4,11 @@
 |--------|------------|------------|---------|
 | **Timeweb MySQL** | Основная БД | `server/db.ts`, `DATABASE_URL` | Не передаются |
 | **Timeweb S3** | Фото, аватары, медиа | `lib/s3.ts`, `S3_*` env | Не передаются |
-| **Timeweb VPS** | Хостинг API + nginx | `scripts/deploy-*`, PM2 | SSH — отдельно |
+| **Timeweb VPS** | Хостинг API + nginx | `tooling/scripts/deploy-*`, PM2 | SSH — отдельно |
 | **SMS.ru** | OTP вход по SMS | `server/sms.ts` | `SMSRU_API_ID` |
 | **Prodamus** | Оплата подписки клуба | `server/prodamus.ts`, `club.createCheckout` | Webhook secret |
 | **YouTube** | Импорт/превью видео | `server/youtube.ts`, `/media/yt-thumb/` | Публичный API |
-| **Instagram (legacy)** | Импорт постов | `scripts/import-instagram.ts`, JSON backfill | Нет API в prod |
+| **Instagram (legacy)** | Импорт постов | `tooling/scripts/import-instagram.ts`, JSON backfill | Нет API в prod |
 | **Expo Push** | Push-уведомления | `notifications.registerToken` | Expo credentials |
 | **Google Fonts** | EB Garamond и др. | `app/_layout.tsx`, web | Публично |
 

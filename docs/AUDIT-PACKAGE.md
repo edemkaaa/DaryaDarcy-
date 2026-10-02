@@ -71,7 +71,7 @@ npm run build          # API bundle
 | **Файлы** | S3-compatible (Timeweb S3) |
 | **Auth** | JWT cookie (web) / Bearer (native), SMS.ru OTP, email+password |
 | **Платежи клуба** | Prodamus |
-| **Деплой** | VPS Timeweb, nginx, PM2, скрипты в `scripts/` |
+| **Деплой** | VPS Timeweb, nginx, PM2, скрипты в `tooling/scripts/` |
 | **Тесты** | Vitest |
 
 ---

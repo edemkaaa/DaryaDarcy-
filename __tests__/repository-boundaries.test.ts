@@ -58,4 +58,11 @@ describe("repository ownership boundaries", () => {
     expect(workspace).toContain("apps/*");
     expect(workspace).toContain("packages/*");
   });
+
+  it("keeps repository automation under tooling", () => {
+    expect(existsSync(resolve(repositoryRoot, "tooling/scripts/load-env.js"))).toBe(
+      true,
+    );
+    expect(existsSync(resolve(repositoryRoot, "scripts"))).toBe(false);
+  });
 });

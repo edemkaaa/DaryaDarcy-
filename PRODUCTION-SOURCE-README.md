@@ -23,7 +23,7 @@
 - Shop routes в tabs (`app/(tabs)/shop/`) — профиль и магазин работают
 - UI из сентября: карусель, Woolen, документы, видео, shop UI
 - **Отключено:** moodboard (`_disabled/moodboard-routes/`), AppBootGate, web-touch-unblock
-- S3 media backup: `scripts/s3-media-backup.mjs`, `docs/S3-BACKUP.md`
+- S3 media backup: `tooling/scripts/s3-media-backup.mjs`, `docs/S3-BACKUP.md`
 
 ## Быстрый старт
 
@@ -39,7 +39,7 @@ npm run dev              # API :3000 + web :8081
 
 ```bash
 npm run verify && npm run build:web
-python scripts/ssh-deploy-web-direct.py
+python3 tooling/scripts/ssh-deploy-web-direct.py
 npm run deploy:api
 npm run smoke
 ```
