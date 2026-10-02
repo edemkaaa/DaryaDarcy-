@@ -10,6 +10,7 @@ vi.mock("../apps/backend/src/db", () => ({
   getActiveClubSubscription: async () => ({ userId: 7, status: "paid" }),
   nextClubExpiry: async () => new Date("2026-11-01T00:00:00Z"),
   markClubPaymentPaid: async () => { state.paid = true; },
+  settleClubPayment: async () => { state.paid = true; return true; },
   cancelClubSubscription: async () => { state.cancelled = true; },
 }));
 import { createProdamusSign, handleProdamusReturn, handleProdamusWebhook } from "../apps/backend/src/prodamus";

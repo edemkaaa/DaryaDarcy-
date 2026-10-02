@@ -346,28 +346,9 @@ function subscriptionAction(body: Record<string, unknown>): string {
 
 export async function fulfillPaidOrder(orderId: string, extra?: { email?: string | null; sum?: string | null; userId?: number | null }): Promise<"club" | "shop" | null> {
   if (orderId.startsWith("club-") || orderId.startsWith("club6m-")) {
-    let userId = extra?.userId ?? null;
-    if (!userId) {
-      const fromOrder = Number(orderId.split("-")[1]);
-      if (Number.isFinite(fromOrder) && fromOrder > 0) userId = fromOrder;
-    }
-    const existing = await db.getClubPaymentByOrderId(orderId);
-    if (!userId && existing) userId = existing.userId;
-    if (!userId && extra?.email) {
-      const user = await db.getUserByEmail(extra.email);
-      if (user) userId = user.id;
-    }
-    if (!userId) return null;
-    const expiresAt = await db.nextClubExpiry(userId, clubAccessMsForOrder(orderId));
-    await db.markClubPaymentPaid({
-      userId,
-      orderId,
-      email: extra?.email ?? existing?.email ?? null,
-      sum: extra?.sum ?? CLUB_PRICE,
-      expiresAt,
-    });
-    console.log("[prodamus] club access granted", userId, orderId);
-    return "club";
+    const granted = await db.settleClubPayment({ orderId,
+      periodMs: clubAccessMsForOrder(orderId), sum: extra?.sum });
+    return granted ? "club" : null;
   }
 
   const productId = parseShopProductId(orderId);

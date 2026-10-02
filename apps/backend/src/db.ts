@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { ensureUtf8Mb4 } from "./database/mysql-utf8";
+import { settleClubOrder } from "./billing/settlement";
 import {
   MARKETING_PUSH_CONSENT_VERSION,
   type PushConsentStatus,
@@ -40,7 +40,6 @@ export function isOwnerAccount(user: { email?: string | null; openId?: string | 
 
 let _db: MySql2Database | null = null;
 type Db = NonNullable<Awaited<ReturnType<typeof getDb>>>;
-let _conn: mysql.Connection | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -48,19 +47,15 @@ export async function getDb() {
   const url = process.env.DATABASE_URL?.replace(/\r/g, "").trim();
   if (!url) return null;
   try {
-    _conn = await mysql.createConnection(url);
-    await ensureUtf8Mb4(_conn);
-    await _conn.query("SET time_zone = '+00:00'");
-    _conn.on("error", (err) => {
-      console.warn("[Database] connection error:", err.message);
-      _db = null;
-      _conn = null;
+    const pool = mysql.createPool({ uri: url, charset: "utf8mb4_unicode_ci", timezone: "Z", connectionLimit: 10 });
+    pool.on("connection", (connection) => {
+      // mysql2 queues this before the first command on each new connection.
+      connection.query("SET time_zone = '+00:00'");
     });
-    _db = drizzle({ client: _conn });
+    _db = drizzle({ client: pool });
   } catch (error) {
     console.warn("[Database] Failed to connect:", error);
     _db = null;
-    _conn = null;
   }
   return _db;
 }
@@ -1286,6 +1281,12 @@ export async function getUserById(id: number): Promise<User | undefined> {
 }
 
 const CLUB_ACCESS_MS = 31 * 24 * 60 * 60 * 1000;
+
+export async function settleClubPayment(input: Parameters<typeof settleClubOrder>[1]) {
+  const database = await getDb();
+  if (!database) throw new Error("Database not available");
+  return settleClubOrder(database, input);
+}
 
 export async function createClubPayment(data: { userId: number; orderId: string; email?: string | null }): Promise<void> {
   const db = await getDb();
