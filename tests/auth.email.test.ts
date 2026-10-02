@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hashPassword, isValidEmail, normalizeEmail, verifyPassword } from "../server/_core/password";
+import { hashPassword, isValidEmail, normalizeEmail, verifyPassword } from "../apps/backend/src/_core/password";
 
 describe("email auth helpers", () => {
   it("normalizes and validates email", () => {

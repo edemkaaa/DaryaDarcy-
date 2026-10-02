@@ -15,7 +15,10 @@ const env = Object.fromEntries(
     }),
 );
 
-const sql = fs.readFileSync(path.join(root, "drizzle/0007_password_hash.sql"), "utf8");
+const sql = fs.readFileSync(
+  path.join(root, "packages/database/drizzle/0007_password_hash.sql"),
+  "utf8",
+);
 const conn = await mysql.createConnection(env.DATABASE_URL);
 const [rows] = await conn.query("SHOW COLUMNS FROM users LIKE 'passwordHash'");
 if (Array.isArray(rows) && rows.length > 0) {

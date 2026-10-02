@@ -10,7 +10,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         k, v = line.split("=", 1)
         env[k.strip()] = v.strip()
 
-drizzle = root / "drizzle"
+drizzle = root / "packages" / "database" / "drizzle"
 sql_files = sorted(drizzle.glob("*.sql"))
 
 client = paramiko.SSHClient()

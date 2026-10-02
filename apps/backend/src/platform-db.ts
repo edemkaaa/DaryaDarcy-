@@ -16,8 +16,8 @@ import {
   type PenPalProfile,
   type PostComment,
   type User,
-} from "../drizzle/schema";
-import { PEN_PAL_CONFIRM_DAYS } from "../shared/pen-pals";
+} from "../../../packages/database/src/schema";
+import { PEN_PAL_CONFIRM_DAYS } from "../../../shared/pen-pals";
 import { getDb, isOwnerAccount } from "./db";
 
 export function isModeratorAccount(user: { role?: string | null; email?: string | null; openId?: string | null }): boolean {

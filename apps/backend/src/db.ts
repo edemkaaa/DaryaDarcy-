@@ -2,12 +2,12 @@ import { createHash } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { ensureUtf8Mb4 } from "../lib/mysql-utf8";
+import { ensureUtf8Mb4 } from "../../../lib/mysql-utf8";
 import {
   MARKETING_PUSH_CONSENT_VERSION,
   type PushConsentStatus,
   type PushConsentType,
-} from "../shared/push-consent";
+} from "../../../shared/push-consent";
 import {
   InsertUser,
   User,
@@ -17,7 +17,7 @@ import {
   postMedia,
   InsertPostMedia,
   PostMedia,
-} from "../drizzle/schema";
+} from "../../../packages/database/src/schema";
 import { ENV } from "./_core/env";
 import { normalizeEmail } from "./_core/password";
 
@@ -205,8 +205,8 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
 
 // ── Feed queries ──
 
-import { posts, tags, likes, savedPosts, videos, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, PostComment, articles, Article, ArticleBlock } from "../drizzle/schema";
-import { normalizeArticleBlocks } from "../lib/article-blocks";
+import { posts, tags, likes, savedPosts, videos, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, PostComment, articles, Article, ArticleBlock } from "../../../packages/database/src/schema";
+import { normalizeArticleBlocks } from "../../../lib/article-blocks";
 import { desc, asc, and, sql, or, ne, gte, lte, isNotNull } from "drizzle-orm";
 
 const postDateOrder = desc(sql`COALESCE(${posts.publishedAt}, ${posts.createdAt})`);

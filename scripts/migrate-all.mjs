@@ -5,7 +5,7 @@ import mysql from "mysql2/promise";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const journal = JSON.parse(
-  fs.readFileSync(path.join(root, "drizzle/meta/_journal.json"), "utf8"),
+  fs.readFileSync(path.join(root, "packages/database/drizzle/meta/_journal.json"), "utf8"),
 );
 
 const url = process.env.DATABASE_URL;

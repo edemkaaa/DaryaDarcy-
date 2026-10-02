@@ -274,6 +274,70 @@ importers:
         specifier: 4.1.9
         version: 4.1.9(@types/node@22.19.3)(vite@8.2.1(@types/node@22.19.3)(esbuild@0.28.2)(jiti@1.21.7)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
 
+  apps/backend:
+    dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.1062.0
+        version: 3.1062.0
+      '@trpc/server':
+        specifier: 11.7.2
+        version: 11.7.2(typescript@5.9.3)
+      axios:
+        specifier: ^1.13.2
+        version: 1.13.2
+      cookie:
+        specifier: ^1.1.1
+        version: 1.1.1
+      dotenv:
+        specifier: ^16.6.1
+        version: 16.6.1
+      drizzle-orm:
+        specifier: ^0.44.7
+        version: 0.44.7(mysql2@3.16.0)
+      express:
+        specifier: ^4.22.1
+        version: 4.22.1
+      jose:
+        specifier: 6.1.0
+        version: 6.1.0
+      mysql2:
+        specifier: ^3.16.0
+        version: 3.16.0
+      nodemailer:
+        specifier: ^6.10.1
+        version: 6.10.1
+      superjson:
+        specifier: ^1.13.3
+        version: 1.13.3
+      zod:
+        specifier: ^4.2.1
+        version: 4.2.1
+    devDependencies:
+      '@types/cookie':
+        specifier: ^0.6.0
+        version: 0.6.0
+      '@types/express':
+        specifier: ^4.17.25
+        version: 4.17.25
+      '@types/node':
+        specifier: ^22.19.3
+        version: 22.19.3
+      '@types/nodemailer':
+        specifier: ^6.4.17
+        version: 6.4.24
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+
   apps/legacy-web:
     dependencies:
       '@tanstack/react-query':
@@ -310,6 +374,12 @@ importers:
       vite:
         specifier: ^8.2.1
         version: 8.2.1(@types/node@22.19.3)(esbuild@0.28.2)(jiti@1.21.7)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+
+  packages/database:
+    dependencies:
+      drizzle-orm:
+        specifier: ^0.44.7
+        version: 0.44.7(mysql2@3.16.0)
 
 packages:
 

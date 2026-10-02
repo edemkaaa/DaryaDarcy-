@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { scryptSync } from "node:crypto";
-import { hashPassword, verifyPassword } from "../server/_core/password";
+import { hashPassword, verifyPassword } from "../apps/backend/src/_core/password";
 
 describe("password compatibility", () => {
   it("preserves the existing scrypt format and verifies correct passwords", async () => {

@@ -1,5 +1,5 @@
-import { getDb } from '../server/db';
-import { posts } from '../drizzle/schema';
+import { getDb } from '../apps/backend/src/db';
+import { posts } from '../packages/database/src/schema';
 
 async function verify() {
   const db = await getDb();

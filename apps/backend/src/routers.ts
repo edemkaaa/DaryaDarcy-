@@ -1,4 +1,4 @@
-import { COOKIE_NAME } from "../shared/const.js";
+import { COOKIE_NAME } from "../../../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { issueSession } from "./_core/oauth";
 import { isValidEmail, normalizeEmail } from "./_core/password";
@@ -22,16 +22,16 @@ import {
   PEN_PAL_INTEREST_SET,
   PEN_PAL_CONSENT_VERSION,
   PEN_PAL_ADULT_CONSENT_LABEL,
-} from "../shared/pen-pals";
-import { isRawMediaFilename } from "../lib/media-label";
+} from "../../../shared/pen-pals";
+import { isRawMediaFilename } from "../../../lib/media-label";
 import { importVideoFromUrl } from "./admin-video";
-import { areCommentsOpen } from "../lib/club-tags";
-import { normalizeRichTextForStorage, sanitizePlainPostText } from "../lib/post-text-sanitize";
+import { areCommentsOpen } from "../../../lib/club-tags";
+import { normalizeRichTextForStorage, sanitizePlainPostText } from "../../../lib/post-text-sanitize";
 import { sendMarketingPostNotification, sendServicePushNotification } from "./push";
 import {
   MARKETING_PUSH_CONSENT_LABEL,
   MARKETING_PUSH_CONSENT_VERSION,
-} from "../shared/push-consent";
+} from "../../../shared/push-consent";
 
 // Legacy export kept for tests and index.ts cron
 export async function sendNewPostNotification(

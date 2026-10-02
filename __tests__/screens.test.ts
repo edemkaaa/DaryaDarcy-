@@ -396,7 +396,7 @@ describe("Admin Panel", () => {
 });
 
 describe("Database Schema", () => {
-  const schemaPath = path.join(APP_DIR, "drizzle/schema.ts");
+  const schemaPath = path.join(APP_DIR, "packages/database/src/schema.ts");
   const schemaContent = fs.readFileSync(schemaPath, "utf-8");
 
   it("should have posts table", () => {
@@ -424,7 +424,7 @@ describe("Database Schema", () => {
 });
 
 describe("Feed API Routes", () => {
-  const routerPath = path.join(APP_DIR, "server/routers.ts");
+  const routerPath = path.join(APP_DIR, "apps/backend/src/routers.ts");
   const routerContent = fs.readFileSync(routerPath, "utf-8");
 
   it("should have feed router with list and tags endpoints", () => {
@@ -477,9 +477,9 @@ describe("Feed Search", () => {
 });
 
 describe("Feed Search - Server Side", () => {
-  const routerPath = path.join(APP_DIR, "server/routers.ts");
+  const routerPath = path.join(APP_DIR, "apps/backend/src/routers.ts");
   const routerContent = fs.readFileSync(routerPath, "utf-8");
-  const dbPath = path.join(APP_DIR, "server/db.ts");
+  const dbPath = path.join(APP_DIR, "apps/backend/src/db.ts");
   const dbContent = fs.readFileSync(dbPath, "utf-8");
 
   it("should accept search parameter in listPaginated endpoint", () => {
@@ -495,11 +495,11 @@ describe("Feed Search - Server Side", () => {
 describe("Push Notifications", () => {
   const layoutPath = path.join(APP_DIR, "app/_layout.tsx");
   const layoutContent = fs.readFileSync(layoutPath, "utf-8");
-  const routerPath = path.join(APP_DIR, "server/routers.ts");
+  const routerPath = path.join(APP_DIR, "apps/backend/src/routers.ts");
   const routerContent = fs.readFileSync(routerPath, "utf-8");
-  const schemaPath = path.join(APP_DIR, "drizzle/schema.ts");
+  const schemaPath = path.join(APP_DIR, "packages/database/src/schema.ts");
   const schemaContent = fs.readFileSync(schemaPath, "utf-8");
-  const dbPath = path.join(APP_DIR, "server/db.ts");
+  const dbPath = path.join(APP_DIR, "apps/backend/src/db.ts");
   const dbContent = fs.readFileSync(dbPath, "utf-8");
 
   it("should have push_tokens table in schema", () => {
@@ -522,7 +522,7 @@ describe("Push Notifications", () => {
 
   it("should send marketing notifications when post is published", () => {
     expect(routerContent).toContain("sendNewPostNotification");
-    const pushModule = fs.readFileSync(path.join(APP_DIR, "server/push.ts"), "utf-8");
+    const pushModule = fs.readFileSync(path.join(APP_DIR, "apps/backend/src/push.ts"), "utf-8");
     expect(pushModule).toContain("getMarketingPushTokens");
     expect(pushModule).toContain("exp.host/--/api/v2/push/send");
   });

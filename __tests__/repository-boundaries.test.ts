@@ -17,6 +17,23 @@ describe("repository ownership boundaries", () => {
     expect(existsSync(resolve(repositoryRoot, "deploy"))).toBe(false);
   });
 
+  it("owns the API service inside the backend application", () => {
+    expect(existsSync(resolve(repositoryRoot, "apps/backend/src/_core/index.ts"))).toBe(
+      true,
+    );
+    expect(existsSync(resolve(repositoryRoot, "server"))).toBe(false);
+  });
+
+  it("owns the schema and migrations inside the database package", () => {
+    expect(existsSync(resolve(repositoryRoot, "packages/database/src/schema.ts"))).toBe(
+      true,
+    );
+    expect(
+      existsSync(resolve(repositoryRoot, "packages/database/drizzle/meta/_journal.json")),
+    ).toBe(true);
+    expect(existsSync(resolve(repositoryRoot, "drizzle"))).toBe(false);
+  });
+
   it("declares application and package workspace globs", () => {
     const workspace = readFileSync(
       resolve(repositoryRoot, "pnpm-workspace.yaml"),

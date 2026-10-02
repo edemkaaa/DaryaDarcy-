@@ -17,8 +17,8 @@
 
 ## Phase 2 — Backend and data
 
-- [ ] Move backend to `apps/backend`.
-- [ ] Move schema/migrations to `packages/database`.
+- [x] Move backend to `apps/backend`.
+- [x] Move schema/migrations to `packages/database`.
 - [ ] Extract domain routers and repositories.
 - [ ] Green checkpoint: API contract, tests, check, backend build.
 

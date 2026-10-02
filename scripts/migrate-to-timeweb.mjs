@@ -97,7 +97,10 @@ async function connect(url, label) {
 
 async function applySchema(conn) {
   const journal = JSON.parse(
-    fs.readFileSync(path.join(root, "drizzle/meta/_journal.json"), "utf8"),
+    fs.readFileSync(
+      path.join(root, "packages/database/drizzle/meta/_journal.json"),
+      "utf8",
+    ),
   );
   for (const entry of journal.entries) {
     const raw = fs.readFileSync(path.join(root, "drizzle", `${entry.tag}.sql`), "utf8");
@@ -196,7 +199,7 @@ async function seedOwner(conn) {
   const name = env.OWNER_NAME || "Дарья Левина";
   let passwordHash = null;
   if (env.OWNER_PASSWORD && env.OWNER_PASSWORD.length >= 8) {
-    const { hashPassword } = await import("../server/_core/password.ts");
+    const { hashPassword } = await import("../apps/backend/src/_core/password.ts");
     passwordHash = await hashPassword(env.OWNER_PASSWORD);
   }
   await conn.query(

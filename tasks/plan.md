@@ -64,8 +64,8 @@ The repository remains a **modular monolith**, not a microservice system. Worksp
 
 ### Phase 2 — Backend and database ownership
 
-- [ ] Move the service into `apps/backend` without changing HTTP/tRPC behavior.
-- [ ] Move Drizzle schema/migrations and database ownership into `packages/database`.
+- [x] Move the service into `apps/backend` without changing HTTP/tRPC behavior.
+- [x] Move Drizzle schema/migrations and database ownership into `packages/database`.
 - [ ] Split backend code by business domain behind composition facades.
 - [ ] Acceptance: backend builds from its workspace and public router contract is unchanged.
 

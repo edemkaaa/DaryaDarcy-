@@ -1,0 +1,13 @@
+{
+  "name": "@daryadarcy/database",
+  "version": "0.0.0",
+  "private": true,
+  "type": "commonjs",
+  "exports": {
+    "./schema": "./src/schema.ts",
+    "./relations": "./src/relations.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.44.7"
+  }
+}

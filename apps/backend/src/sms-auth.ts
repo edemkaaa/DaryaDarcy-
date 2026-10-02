@@ -1,6 +1,6 @@
 import { createHash, randomInt, timingSafeEqual } from "node:crypto";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
-import { smsCodes } from "../drizzle/schema";
+import { smsCodes } from "../../../packages/database/src/schema";
 import { ENV } from "./_core/env";
 import { sendLoginSms } from "./_core/sms.ru";
 import { getDb } from "./db";

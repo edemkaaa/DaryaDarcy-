@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock the database module
-vi.mock("../server/db", () => ({
+vi.mock("../apps/backend/src/db", () => ({
   getVideos: vi.fn(),
   getVideoById: vi.fn(),
   bulkImportVideos: vi.fn(),
 }));
 
-import * as db from "../server/db";
+import * as db from "../apps/backend/src/db";
 
 describe("Videos API", () => {
   beforeEach(() => {

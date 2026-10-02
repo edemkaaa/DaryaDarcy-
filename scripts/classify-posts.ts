@@ -10,7 +10,7 @@
  */
 
 import { drizzle } from "drizzle-orm/mysql2";
-import { posts } from "../drizzle/schema";
+import { posts } from "../packages/database/src/schema";
 import { eq, asc, desc } from "drizzle-orm";
 import * as fs from "fs";
 import * as path from "path";

@@ -4,7 +4,7 @@
  */
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/mysql2";
-import { videos } from "../drizzle/schema";
+import { videos } from "../packages/database/src/schema";
 import { eq } from "drizzle-orm";
 import * as fs from "fs";
 import * as path from "path";

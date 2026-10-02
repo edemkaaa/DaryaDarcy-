@@ -280,23 +280,23 @@ describe("Boot lock — native parity", () => {
 
 describe("Club access — server gates", () => {
   it("requires club membership for club.list and comments", () => {
-    const trpc = read("server/_core/trpc.ts");
-    const routers = read("server/routers.ts");
+    const trpc = read("apps/backend/src/_core/trpc.ts");
+    const routers = read("apps/backend/src/routers.ts");
     expect(trpc).toContain("clubMemberProcedure");
     expect(routers).toContain("list: clubMemberProcedure");
     expect(routers).toContain("comments: clubMemberProcedure");
   });
 
   it("filters saved club posts for non-members", () => {
-    const routers = read("server/routers.ts");
+    const routers = read("apps/backend/src/routers.ts");
     expect(routers).toContain('post.target !== "club"');
   });
 });
 
 describe("Shop email delivery", () => {
   it("skips duplicate delivery emails for the same order", () => {
-    const delivery = read("server/shop-delivery.ts");
-    const db = read("server/platform-db.ts");
+    const delivery = read("apps/backend/src/shop-delivery.ts");
+    const db = read("apps/backend/src/platform-db.ts");
     expect(db).toContain("isShopDeliveryEmailSent");
     expect(delivery).toContain("isShopDeliveryEmailSent");
   });
@@ -312,7 +312,7 @@ describe("Push — EAS wiring", () => {
 
 describe("Articles — photo captions", () => {
   it("keeps caption in createArticle/updateArticle API schema", () => {
-    const routers = read("server/routers.ts");
+    const routers = read("apps/backend/src/routers.ts");
     expect(routers).toMatch(/createArticle:[\s\S]*caption: z\.string\(\)/);
     expect(routers).toMatch(/updateArticle:[\s\S]*caption: z\.string\(\)/);
   });
