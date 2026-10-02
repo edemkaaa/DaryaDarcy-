@@ -1,0 +1,36 @@
+image: node:22-bookworm
+
+stages: [verify]
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH =~ /^(main|master|dev|staging)$/'
+
+verify:
+  stage: verify
+  services:
+    - name: mysql:8.4
+      alias: backend-mysql
+  variables:
+    MYSQL_DATABASE: backend_test
+    MYSQL_ROOT_PASSWORD: ci-test-only
+    MYSQL_ROOT_HOST: '%'
+    BACKEND_TEST_CI_SERVICE: 'true'
+    BACKEND_TEST_DATABASE_URL: mysql://root:ci-test-only@backend-mysql:3306/backend_test
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@9.12.0 --activate
+    - pnpm install --frozen-lockfile --ignore-scripts
+    - pnpm test:db:wait
+  script:
+    - pnpm check:boundaries
+    - pnpm check
+    - pnpm test
+    - pnpm build
+    - pnpm build:web
+    - pnpm test:regression
+  artifacts:
+    paths: [dist/index.mjs]
+    expire_in: 7 days
+    when: on_success

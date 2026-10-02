@@ -1,19 +1,12 @@
 import mysql from "mysql2/promise";
 import { readFile } from "node:fs/promises";
 import { URL } from "node:url";
+import { assertTestDatabase } from "../../tooling/scripts/test-database-policy";
 
 export const testDatabaseUrl = process.env.BACKEND_TEST_DATABASE_URL;
 export async function openTestDatabase() {
   if (!testDatabaseUrl) throw new Error("BACKEND_TEST_DATABASE_URL required");
-  const url = new URL(testDatabaseUrl);
-  if (
-    !["127.0.0.1", "localhost"].includes(url.hostname) ||
-    url.pathname !== "/backend_test"
-  ) {
-    throw new Error(
-      "Integration tests require local disposable backend_test database",
-    );
-  }
+  assertTestDatabase(testDatabaseUrl);
   const conn = await mysql.createConnection({
     uri: testDatabaseUrl,
     timezone: "Z",

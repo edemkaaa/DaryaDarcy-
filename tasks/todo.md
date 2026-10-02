@@ -31,7 +31,7 @@
 
 ## Phase 4 — Enforcement
 
-- [ ] Add dependency-boundary checks.
+- [x] Add dependency-boundary checks (263 source files, narrow type/build exceptions).
 - [ ] Remove temporary facades and stale paths.
 - [ ] Split remaining oversized modules.
 - [ ] Run final correctness, architecture, security, and performance review.
@@ -101,3 +101,7 @@
   rejection before handlers, provider signature/return boundaries exempt, native
   JSON compatibility, no-sniff/referrer/framing headers and canonical client IP.
   Reverse proxy trust restricted to loopback; remote proxy topologies need review.
+  GitLab/GitHub verification pipelines added with disposable MySQL, guarded test
+  database URLs, frozen installs, boundaries/types/tests/API/web/post-build checks.
+  Local equivalent: 341 passed / 3 skipped, both builds and regression pass.
+  YAML parsed; remote runner execution has NOT been performed. No auto deployment.

@@ -13,6 +13,7 @@
     "start": "pnpm --filter @daryadarcy/backend start",
     "check": "tsc --noEmit",
     "check:boundaries": "tsx tooling/scripts/verify-boundaries.ts",
+    "test:db:wait": "tsx tooling/scripts/wait-test-database.ts",
     "lint": "pnpm --filter @daryadarcy/frontend lint",
     "format": "prettier --write .",
     "test": "vitest run",
