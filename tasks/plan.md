@@ -161,3 +161,27 @@ Modules: `identity` → `billing` → `email-delivery`; `identity` → `content-
 → `content-media`; `admin-operations` consumes these modules, never vice versa.
 Module boundaries and full launch scope remain a proposal for review, not approval
 of a framework rewrite or optional paid-video integration.
+
+### Approved next implementation scope
+
+User approved B04/B05/B06/B07 on 2026-10-02. Additive schema migrations are prepared
+and rehearsed on disposable local MySQL only. No deployment, production migration,
+external emails or live subscription changes are authorized by this local work.
+
+- Isolated pooled connections; atomic receipts + entitlement under a user lock.
+  A stable provider payment ID is required; same ID/different business payload is
+  rejected. Price snapshot stored at checkout. Unknown renewal profile denied.
+- Provider profile captured from a verified initial monthly payment; renewal uses
+  that binding, not a client user ID or an email-only guess.
+- Single-use hashed password tokens; optional encrypted token payload in outbox
+  to survive delivery failure; expiry, supersession and atomic consumption. Token
+  links never returned by public HTTP or logged. Reset invalidates older sessions.
+- Payment and access-email event commit together. Worker uses bounded leases,
+  backoff, retry and unique message IDs. SMTP is at-least-once, not exactly-once.
+- Cancellation persists request before provider call; only provider-confirmed
+  success marks it cancelled; worker retries uncertain failures and preserves
+  paid expiry. Blocked users cannot log in or access protected media/API.
+
+Acceptance tests: real MySQL concurrent duplicates/different payments, rollback
+on queue failure, token replay/expiry, worker leases/retry, provider rejection and
+timeout. Public HTTP tests use local server and mocked SMTP/provider only.

@@ -50,15 +50,23 @@
 - [ ] B04: Atomic/idempotent billing + amount/currency/provider identity validation.
   Acceptance: sequential/concurrent duplicate extends once, mismatched sum rejected.
   Verify: isolated MySQL integration tests + sandbox notification fixtures.
+  Local club implementation and real-MySQL tests done; sandbox and legacy
+  reconciliation pending. Shop remains outside this stage and must stay off at launch.
 - [ ] B05: Email verification/setup/reset; no email-inferred staff privileges.
   Acceptance: expired/reused token rejected, existing password untouched.
   Verify: identity HTTP tests + migration rehearsal.
+  Backend links/versioned sessions/explicit staff roles done locally;
+  frontend recovery entry, staff preflight and production migration rehearsal pending.
 - [ ] B06: Transactional email outbox and resend.
   Acceptance: crash/retry loses no event, duplicate payment queues one message.
   Verify: worker failure/recovery integration tests.
+  Atomic club outbox, leased workers, discarded status and audited staff resend
+  implemented locally; real SMTP/device/operator acceptance pending.
 - [ ] B07: Provider-confirmed cancellation and immediate block enforcement.
   Acceptance: failed provider response cannot report cancellation success;
   paid expiry retained. Verify: sandbox cancellation + all access-path tests.
+  Durable request/confirmation, real local HTTP provider errors and retry checked;
+  live sandbox profiles and legacy blacklist reconciliation pending.
 - [ ] B08: Media validation, closed-body access and comment retention.
   Acceptance: non-image rejected, EXIF removed, protected body unavailable publicly.
   Verify: file fixtures and API authorization tests.

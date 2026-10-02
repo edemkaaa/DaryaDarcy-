@@ -194,6 +194,8 @@ pnpm smoke        # безопасная HTTP-проверка текущего 
 
 ## Документация
 
+- [Оплаты клуба, пароли и письма: реализация и запрет выпуска](docs/BACKEND-BILLING-IDENTITY-STAGE.md)
+- [Серверный аудит и оставшиеся блокеры](docs/BACKEND-AUDIT-2026-10-02.md)
 - [Обзор API](docs/API-OVERVIEW.md)
 - [Схема базы данных](docs/DATABASE-SCHEMA.md)
 - [Интеграции](docs/INTEGRATIONS.md)
