@@ -22,7 +22,6 @@
     "test:quiz": "vitest run __tests__/quiz-data.test.ts",
     "verify": "vitest run __tests__/regression.test.ts __tests__/quiz-data.test.ts",
     "extract:woolen": "node tooling/assets/extract-woolen-font.mjs",
-    "generate:audit-pdf": "python3 tooling/legacy/generate-audit-report-pdf.py",
     "smoke": "node tooling/operations/smoke-production.mjs",
     "optimize:s3": "node tooling/operations/optimize-s3-assets.mjs",
     "optimize:assets": "node tooling/assets/optimize-local-assets.mjs && node tooling/assets/fix-asset-webp-refs.mjs",
@@ -132,13 +131,6 @@
       "tar@7.5.2": "7.5.22"
     }
   },
-  "description": "",
-  "directories": {
-    "lib": "lib",
-    "test": "tests"
-  },
-  "keywords": [],
-  "author": "",
   "license": "ISC",
   "type": "commonjs"
 }

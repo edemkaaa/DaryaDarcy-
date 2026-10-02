@@ -157,3 +157,17 @@
   279-file boundaries, 40-document links, API/Vite/Expo builds and 52-test verify
   passed. Legacy Vite font warning remains. Root .gitkeep removed (recoverable in
   Git); source, licences and unfinished backend tasks preserved. No push/deploy.
+
+## Current-team ownership cleanup — 2026-10-02
+
+- [x] C04: Delete irrelevant editor/generator/one-off artifacts, remove stale
+  commands/links and ignore local Cursor settings. Preserve deployment and its
+  helper closure, current requirements/audits, CI, runtime sources and open tasks.
+  Verify: protected-file hashes, reference scan, docs/boundaries/types/tests/builds.
+  Removed 37 tracked files, including Cursor rules, unused Expo reset, old report
+  generator/command, archived npm lock/QR and spent notes/diagnostic scripts.
+  Protected-file digest confirms 815 runtime/deploy/CI/lock files unchanged.
+  Frozen install, 37-document links, 279-file boundaries, types, API/Vite/Expo
+  builds and 52-test verify passed; final local suite 409 pass / 65 skip without
+  test MySQL. Vite font warning remains. Removed files recoverable from 9c39659;
+  no push, external operation or release approval.

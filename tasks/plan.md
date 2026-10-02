@@ -253,3 +253,24 @@ Cursor guidance uses monorepo paths/pnpm and explicit release authorization.
 and 52-test verify passed. Default remote branch is still dev; staging remains
 the current-work branch. No push, remote operation or release gate was performed.
 Legacy Vite font warning and S3/SSH path mismatch remain documented follow-ups.
+
+## Current-team ownership cleanup — 2026-10-02
+
+User explicitly requested deletion of unnecessary editor/generator/one-off files,
+not another archive relocation. Deployment is excluded from this deletion scope.
+
+- Remove Cursor rules, Expo reset/template, old audit generator/command, archived
+  npm lock/QR, spent visual-generation notes and unreferenced legacy diagnostics.
+- Preserve application code, tests, SQL history, open tasks, requirements, ADRs,
+  audit evidence, CI, licences and all deployment/SSH/backup/migration helpers.
+- Check remaining references before deletion; update navigation rather than leave
+  dead links. Deleted tracked files remain recoverable from the preceding commit.
+- Verify protected-file hashes, package commands, docs links, boundaries, types,
+  tests and local builds. No push, deployment or external operation is included.
+
+Ownership cleanup verified: 37 tracked files removed, stale command/navigation
+cleaned, local Cursor settings ignored. No new editor/agent rules introduced.
+815 protected runtime/deploy/CI/lock files are byte-identical; package entry points
+resolve. Frozen install, docs/boundaries/types/API/Vite/Expo and verify passed;
+409 tests passed / 65 skipped without MySQL. Deleted files remain in Git history
+at 9c39659. Current requirements, audit evidence and unfinished tasks are intact.

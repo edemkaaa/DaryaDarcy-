@@ -57,6 +57,7 @@ app-example
 /android
 
 # IDE
+.cursor/
 .vscode/
 .idea/
 *.swp
