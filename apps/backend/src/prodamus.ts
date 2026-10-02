@@ -112,7 +112,8 @@ function getSubscriptionSecret(): string {
 export function verifyProdamusSign(data: unknown, signature: string): boolean {
   if (!signature) return false;
   const secrets = [getSecret(), getShopSecret(), getSubscriptionSecret()].filter(Boolean);
-  const keys = [...new Set(secrets.flatMap((secret) => [secret, `${secret}demo`]))];
+  // Demo notifications must never create production entitlements.
+  const keys = [...new Set(secrets)];
   return keys.some((key) => signsMatch(createProdamusSign(data, key), signature));
 }
 
@@ -324,7 +325,7 @@ function pickUserId(body: Record<string, unknown>): number | null {
 
 function isPaidStatus(body: Record<string, unknown>): boolean {
   const status = pickString(body, ["payment_status", "paymentStatus", "status"]).toLowerCase();
-  return !status || status === "success" || status === "ok" || status === "paid";
+  return status === "success";
 }
 
 function pickOrderId(body: Record<string, unknown>): string {
@@ -431,16 +432,7 @@ export async function cancelProdamusSubscription(email: string): Promise<boolean
 export async function handleProdamusReturn(req: Request, res: Response) {
   const body = parseWebhookPayload(req);
   const orderId = pickOrderId({ ...asRecord(req.query), ...body }) || pickString(asRecord(req.query), ["order"]);
-  try {
-    if (orderId) {
-      await fulfillPaidOrder(orderId, {
-        email: pickString(body, ["customer_email", "customerEmail"]).toLowerCase() || null,
-        sum: pickString(body, ["sum"]) || null,
-      });
-    }
-  } catch (error) {
-    console.error("[prodamus] return fulfill failed", error);
-  }
+  // Browser navigation is not proof of payment. paid=1 only triggers UI polling.
   const appUrl = publicSiteUrl();
   const productId = parseShopProductId(orderId);
   const dest = productId ? `${appUrl}/shop/${productId}?paid=1` : `${appUrl}/club?paid=1`;
@@ -452,6 +444,10 @@ export async function handleProdamusWebhook(req: Request, res: Response) {
     const body = parseWebhookPayload(req);
     const signature = headerSign(req) || pickString(body, ["signature", "sign"]);
     const signed = signature ? verifyProdamusSign(body, signature) : false;
+    if (!signed) {
+      res.status(400).send("signature incorrect");
+      return;
+    }
     const action = subscriptionAction(body);
     console.log("[prodamus] webhook", req.method, {
       keys: Object.keys(body).slice(0, 20),
@@ -468,6 +464,11 @@ export async function handleProdamusWebhook(req: Request, res: Response) {
       return;
     }
 
+    if (!isPaidStatus(body)) {
+      res.status(200).send("ignored");
+      return;
+    }
+
     const email = pickString(body, ["customer_email", "customerEmail"]).toLowerCase();
     const userId = pickUserId(body);
     const sum = pickString(body, ["sum"]) || null;
@@ -480,14 +481,6 @@ export async function handleProdamusWebhook(req: Request, res: Response) {
         if (user) uid = user.id;
       }
       if (uid) {
-        if (!signed) {
-          const existing = await db.getActiveClubSubscription(uid);
-          if (!existing) {
-            console.warn("[prodamus] unsigned auto_payment for unknown subscriber", uid);
-            res.status(400).send("signature incorrect");
-            return;
-          }
-        }
         const stamp = pickString(body, ["order_id", "orderId"]) || String(Date.now());
         orderId = `club-${uid}-renew-${stamp}`;
         const granted = await fulfillPaidOrder(orderId, { email: email || null, sum, userId: uid });
@@ -499,26 +492,9 @@ export async function handleProdamusWebhook(req: Request, res: Response) {
       return;
     }
 
-    if (!isPaidStatus(body)) {
-      res.status(200).send("ignored");
-      return;
-    }
-
     if (!orderId) {
       res.status(200).send("ignored");
       return;
-    }
-
-    if (!signed) {
-      const pendingClub = orderId.startsWith("club-") ? await db.getClubPaymentByOrderId(orderId) : null;
-      const pendingShop = orderId.startsWith("shop-") ? await db.getShopPurchaseByOrderId(orderId) : null;
-      const pending = pendingClub || pendingShop;
-      if (!pending || pending.status !== "pending") {
-        console.warn("[prodamus] bad signature and unknown order", orderId);
-        res.status(400).send("signature incorrect");
-        return;
-      }
-      console.warn("[prodamus] unsigned webhook for known pending order", orderId);
     }
 
     const granted = await fulfillPaidOrder(orderId, {
