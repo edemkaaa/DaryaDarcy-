@@ -28,6 +28,7 @@
     "deploy:web": "node tooling/scripts/deploy-web.mjs",
     "deploy:api": "node tooling/scripts/deploy-api.mjs",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
+    "db:preflight": "tsx tooling/scripts/migration-preflight.ts",
     "android": "pnpm --filter @daryadarcy/frontend android",
     "ios": "pnpm --filter @daryadarcy/frontend ios",
     "qr": "node tooling/scripts/generate_qr.mjs"

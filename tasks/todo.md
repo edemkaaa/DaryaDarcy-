@@ -63,6 +63,9 @@
   insert-only registration + atomic consent/setup outbox, email proof before
   password/login and explicit frontend consent checked on local HTTP/MySQL.
   staff preflight and production migration rehearsal pending.
+  Read-only migration preflight added: detects orphan 0017–0019, changed hashes,
+  unknown/gapped DB history; explicit connection only, no auto-apply. Migration
+  0024 email/outbox indexes checked on disposable MySQL with lock-scope tests.
 - [ ] B06: Transactional email outbox and resend.
   Acceptance: crash/retry loses no event, duplicate payment queues one message.
   Verify: worker failure/recovery integration tests.

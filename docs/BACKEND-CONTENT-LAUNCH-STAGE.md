@@ -300,6 +300,24 @@ locking read блокирует сканируемые записи, а не т�
 сборка API и diff-check проходят. Production migration/SMTP/provider acceptance
 по-прежнему не выполнены и не разрешают выпуск.
 
+## Проверка истории миграций без применения
+
+Добавлена `pnpm db:preflight`: без дополнительных переменных она проверяет только
+локальные файлы. Проверяет журнал/порядок/файлы и SHA-256 тех же байтов, что Drizzle.
+При явно заданном MIGRATION_PREFLIGHT_DATABASE_URL читает только метаданные и
+__drizzle_migrations в read-only транзакции; обычный DATABASE_URL/.env не выбирает.
+Не создаёт отсутствующий журнал, не выполняет SQL миграций, не меняет пользователей.
+Неизвестные/изменённые/повторные записи и пропуски истории требуют ручной сверки.
+
+Фактический локальный результат — exit 1 из-за 0017–0019 вне journal. На одноразовой
+MySQL дополнительно выявлен отсутствующий __drizzle_migrations (тестовый helper
+ведёт свой backend_test_migrations): это ожидаемо и не говорит о production.
+Пропуски не исправлены автоматическим добавлением. README больше не предлагает
+db:push как безусловный шаг и предупреждает об устаревших обходных migrator scripts.
+18 новых проверок, общий набор 447 тестов / 2 внешних пропуска; типы, границы,
+API/web-сборки и regression проходят. Preflight не проверяет содержимое всех
+таблиц и не заменяет сверку схемы, backup/rehearsal и согласованный rollout.
+
 Область действия и очистка сверены с [моделью Set-Cookie](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie)
 и [Express clearCookie](https://expressjs.com/en/4x/api/response/#res.clearCookie).
 
