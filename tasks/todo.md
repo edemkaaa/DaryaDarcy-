@@ -211,3 +211,15 @@
   grants with independent order IDs and all added days preserved. Full suite:
   524 pass / 2 skip; types/280-file boundaries/docs/API build/52-test verify pass.
   Module billing/grants.ts owns the transaction; router/facade signatures unchanged.
+
+## Backend continuation: video publication boundaries — 2026-10-02
+
+- [x] N05: Hidden videos cannot be fetched by public ID or streamed through the
+  YouTube proxy; unknown catalog IDs never invoke downloader/upstream transport.
+  Verify: real HTTP/MySQL list/detail/stream/Range/cache-revocation fixtures,
+  internal hidden-video dedup, full suite/types/contract/boundaries/docs/API build.
+  Public S3/YouTube originals and already-open streams stay outside this guarantee.
+  Four original assertion failures → all 8 HTTP/MySQL cases pass. Parallel fixture
+  ID collision separately reproduced and fixed only in guarded test setup.
+  Full suite on reused and freshly provisioned MySQL: 533 pass / 2 skip;
+  types/280-file boundaries/docs/API build/52-test verify pass. B08 stays open.

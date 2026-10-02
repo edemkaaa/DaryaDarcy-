@@ -351,3 +351,28 @@ branches in the oversized db.ts; the existing facade and router contract remain.
 Full disposable-MySQL suite: 524 pass / 2 skip, 280-file boundaries, types/docs/API
 build and 52-test verify pass. Public grant retries and legacy paid-write helpers
 are not claimed repaired; neither is the overall billing/release checkpoint.
+
+## Backend continuation: video publication boundaries — 2026-10-02
+
+N05 extends B08's published-content gate to the existing public video paths.
+Hypothesis: videos.getById returns an unpublished row, and /api/yt/:id resolves
+arbitrary/hidden YouTube IDs without checking the catalog. Trust boundary:
+anonymous HTTP ID → database publication flag → external downloader/stream;
+assets are unpublished metadata/URLs and API host resources.
+
+- Reproduce both paths using real local HTTP and disposable MySQL. Replace only
+  external child-process/media transport; denied IDs must cause neither call.
+- Require published=true for public details and for YouTube streaming before
+  resolution, including cache hits. Keep published public videos playable and
+  internal YouTube dedup able to see hidden entries. No auth/role changes.
+- Verify direct/list/stream/revocation/Range paths, then the full suite, API
+  contract, types, boundaries, docs and API build before a local commit.
+  No actual video downloads, S3 writes, provider changes, Web Push, production
+  cleanup or deploy. Existing public S3 links are not revoked by this API fix.
+
+N05 verified: four actual boundary failures before repair, then all 8 real HTTP/
+MySQL scenarios pass. A separate failing ID-allocation regression established a
+parallel test cleanup collision; guarded fixtures now keep auto IDs >=1000000.
+Full suite on reused and new disposable MySQL: 533 pass / 2 skip; types, 280-file
+boundaries, docs, API build and 52-test verify pass. No provider/media download,
+production schema change or release approval.

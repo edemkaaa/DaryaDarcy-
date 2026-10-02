@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { Readable } from "node:stream";
 import { promisify } from "node:util";
 import type { Express, Request, Response } from "express";
+import { getVideoByYoutubeId } from "./db";
 
 const execFileAsync = promisify(execFile);
 const YT_ID = /^[\w-]{6,20}$/;
@@ -47,6 +48,14 @@ export function registerYoutubeStream(app: Express) {
       return;
     }
     try {
+      // Check current publication before cache resolution or external work.
+      // A public catalog player must not become a proxy for arbitrary IDs.
+      const video = await getVideoByYoutubeId(id);
+      if (!video?.published) {
+        cache.delete(id);
+        res.status(404).json({ error: "video unavailable" });
+        return;
+      }
       const url = await playbackUrl(id);
       const headers: Record<string, string> = {
         "User-Agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/122.0.0.0 Mobile Safari/537.36",

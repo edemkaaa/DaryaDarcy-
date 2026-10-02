@@ -844,12 +844,13 @@ export async function getVideos(): Promise<Video[]> {
   return rows.map((row) => ({ ...row, title: (row.title || "").normalize("NFC") }));
 }
 
-// Get single video by ID
+// Public details must obey the same publication gate as the list.
 export async function getVideoById(id: number): Promise<Video | undefined> {
   const db = await getDb();
   if (!db) return undefined;
 
-  const result = await db.select().from(videos).where(eq(videos.id, id)).limit(1);
+  const result = await db.select().from(videos)
+    .where(and(eq(videos.id, id), eq(videos.published, true))).limit(1);
   const row = result[0];
   if (!row) return undefined;
   return { ...row, title: (row.title || "").normalize("NFC") };
