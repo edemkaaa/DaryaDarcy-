@@ -194,7 +194,7 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
 
 // ── Feed queries ──
 
-import { posts, tags, likes, savedPosts, videos, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, PostComment, articles, Article, ArticleBlock } from "../../../packages/database/src/schema";
+import { posts, tags, likes, savedPosts, videos, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, PostComment, articles, Article, ArticleBlock } from "../../../packages/database/src/schema";
 import { normalizeArticleBlocks } from "../../../packages/shared/src/article-blocks";
 import { desc, asc, and, sql, or, ne, gte, lte, isNotNull } from "drizzle-orm";
 
@@ -518,11 +518,21 @@ export async function deletePost(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.delete(likes).where(eq(likes.postId, id));
-  await db.delete(savedPosts).where(eq(savedPosts.postId, id));
-  await db.delete(postMedia).where(eq(postMedia.postId, id));
-  await db.delete(postComments).where(eq(postComments.postId, id));
-  await db.delete(posts).where(eq(posts.id, id));
+  await db.transaction(async tx => {
+    await tx.select({ id: posts.id }).from(posts).where(eq(posts.id, id)).for("update");
+    const comments = await tx.select({ id: postComments.id }).from(postComments).where(eq(postComments.postId, id)).orderBy(asc(postComments.id)).for("update");
+    const commentIds = comments.map(comment => comment.id);
+    if (commentIds.length) {
+      await tx.update(postComments).set({ parentId: null }).where(inArray(postComments.parentId, commentIds));
+      await tx.delete(commentLikes).where(inArray(commentLikes.commentId, commentIds));
+      await tx.delete(commentReports).where(inArray(commentReports.commentId, commentIds));
+    }
+    await tx.delete(likes).where(eq(likes.postId, id));
+    await tx.delete(savedPosts).where(eq(savedPosts.postId, id));
+    await tx.delete(postMedia).where(eq(postMedia.postId, id));
+    await tx.delete(postComments).where(eq(postComments.postId, id));
+    await tx.delete(posts).where(eq(posts.id, id));
+  });
 }
 
 // Get all posts for admin (including unpublished)

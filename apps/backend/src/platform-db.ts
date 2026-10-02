@@ -1,4 +1,5 @@
 import { alias } from "drizzle-orm/mysql-core";
+import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { queueCancellationForUser } from "./billing/cancellation";
 import {
@@ -10,6 +11,7 @@ import {
   penPalProfiles,
   penPalShown,
   postComments,
+  posts,
   savedPosts,
   shopDeliveryEmails,
   userConsentEvents,
@@ -400,73 +402,81 @@ export async function addPostCommentV2(data: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const photos = (data.photos || []).slice(0, 2);
-  const result = await db.insert(postComments).values({
-    postId: data.postId,
-    parentId: data.parentId ?? null,
-    userId: data.userId,
-    text: data.text,
-    photos: photos.length ? photos : null,
+  return db.transaction(async tx => {
+    const [post] = await tx.select({ id: posts.id, published: posts.published, status: posts.status }).from(posts).where(eq(posts.id, data.postId)).for("share");
+    if (!post || !post.published || post.status !== "published") throw new TRPCError({ code: "NOT_FOUND", message: "Пост не найден" });
+    if (data.parentId != null) {
+      const parent = await lockComment(tx, data.parentId);
+      if (parent.postId !== data.postId) throw new TRPCError({ code: "BAD_REQUEST", message: "Ответ должен относиться к тому же посту" });
+    }
+    const result = await tx.insert(postComments).values({
+      postId: data.postId, parentId: data.parentId ?? null, userId: data.userId,
+      text: data.text, photos: photos.length ? photos : null,
+    });
+    return Number(result[0].insertId);
   });
-  return Number(result[0].insertId);
+}
+
+type CommentTransaction = Parameters<Parameters<NonNullable<Awaited<ReturnType<typeof getDb>>>["transaction"]>[0]>[0];
+async function lockComment(tx: CommentTransaction, id: number) {
+  const [comment] = await tx.select().from(postComments).where(eq(postComments.id, id)).for("update");
+  if (!comment) throw new TRPCError({ code: "NOT_FOUND", message: "Комментарий не найден" });
+  return comment;
 }
 
 export async function deletePostCommentV2(id: number, userId: number, asStaff = false): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.delete(commentLikes).where(eq(commentLikes.commentId, id));
-  if (asStaff) {
-    await db.delete(postComments).where(eq(postComments.id, id));
-    return;
-  }
-  await db.delete(postComments).where(and(eq(postComments.id, id), eq(postComments.userId, userId)));
+  await db.transaction(async tx => {
+    const comment = await lockComment(tx, id);
+    if (!asStaff && comment.userId !== userId) throw new TRPCError({ code: "FORBIDDEN", message: "Можно удалить только свой комментарий" });
+    await tx.update(postComments).set({ parentId: null }).where(eq(postComments.parentId, id));
+    await tx.delete(commentLikes).where(eq(commentLikes.commentId, id));
+    await tx.delete(commentReports).where(eq(commentReports.commentId, id));
+    await tx.delete(postComments).where(eq(postComments.id, id));
+  });
 }
 
 export async function updatePostCommentV2(id: number, userId: number, text: string): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db
-    .update(postComments)
-    .set({ text })
-    .where(and(eq(postComments.id, id), eq(postComments.userId, userId)));
+  await db.transaction(async tx => {
+    const comment = await lockComment(tx, id);
+    if (comment.userId !== userId) throw new TRPCError({ code: "FORBIDDEN", message: "Можно изменить только свой комментарий" });
+    await tx.update(postComments).set({ text }).where(eq(postComments.id, id));
+  });
 }
 
 export async function toggleCommentLike(userId: number, commentId: number): Promise<{ liked: boolean; likeCount: number }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const existing = await db
-    .select({ id: commentLikes.id })
-    .from(commentLikes)
-    .where(and(eq(commentLikes.userId, userId), eq(commentLikes.commentId, commentId)))
-    .limit(1);
-
-  if (existing.length > 0) {
-    await db.delete(commentLikes).where(and(eq(commentLikes.userId, userId), eq(commentLikes.commentId, commentId)));
-  } else {
-    await db.insert(commentLikes).values({ userId, commentId });
-  }
-
-  const countRows = await db
-    .select({ likeCount: count() })
-    .from(commentLikes)
-    .where(eq(commentLikes.commentId, commentId));
-  return { liked: existing.length === 0, likeCount: Number(countRows[0]?.likeCount ?? 0) };
+  return db.transaction(async tx => {
+    await lockComment(tx, commentId);
+    const existing = await tx
+      .select({ id: commentLikes.id })
+      .from(commentLikes)
+      .where(and(eq(commentLikes.userId, userId), eq(commentLikes.commentId, commentId)))
+      .limit(1);
+    if (existing.length > 0) {
+      await tx.delete(commentLikes).where(and(eq(commentLikes.userId, userId), eq(commentLikes.commentId, commentId)));
+    } else {
+      await tx.insert(commentLikes).values({ userId, commentId });
+    }
+    const countRows = await tx.select({ likeCount: count() }).from(commentLikes).where(eq(commentLikes.commentId, commentId));
+    return { liked: existing.length === 0, likeCount: Number(countRows[0]?.likeCount ?? 0) };
+  });
 }
 
 export async function reportComment(commentId: number, reporterUserId: number, reason: string): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const existing = await db
-    .select({ id: postComments.id })
-    .from(postComments)
-    .where(eq(postComments.id, commentId))
-    .limit(1);
-  if (!existing[0]) throw new Error("Комментарий не найден");
-  await db.insert(commentReports).values({
-    commentId,
-    reporterUserId,
-    reason: reason.slice(0, 512),
-  }).onDuplicateKeyUpdate({ set: { reason: reason.slice(0, 512) } });
+  await db.transaction(async tx => {
+    await lockComment(tx, commentId);
+    await tx.insert(commentReports).values({
+      commentId, reporterUserId, reason: reason.slice(0, 512),
+    }).onDuplicateKeyUpdate({ set: { reason: reason.slice(0, 512) } });
+  });
 }
 
 export type CommentReportInboxRow = {
@@ -518,11 +528,7 @@ export async function dismissCommentReport(reportId: number): Promise<void> {
 }
 
 export async function deleteCommentAndReports(commentId: number): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.delete(commentLikes).where(eq(commentLikes.commentId, commentId));
-  await db.delete(commentReports).where(eq(commentReports.commentId, commentId));
-  await db.delete(postComments).where(eq(postComments.id, commentId));
+  await deletePostCommentV2(commentId, 0, true);
 }
 
 export async function queueShopDeliveryEmail(input: {

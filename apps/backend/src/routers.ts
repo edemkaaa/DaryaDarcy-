@@ -49,6 +49,17 @@ const penPalProcedure = protectedProcedure.use(({ next }) => {
   return next();
 });
 
+async function requireReadableComment(id: number, user: Parameters<typeof userHasClubAccess>[0]) {
+  const comment = await platformDb.getPostCommentById(id);
+  const post = comment ? await db.getPostById(comment.postId) : undefined;
+  if (!comment || !post || !post.published || post.status !== "published") {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Комментарий не найден" });
+  }
+  if (post.target === "club" && !(await userHasClubAccess(user))) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Доступно только участницам клуба Darcy" });
+  }
+}
+
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
@@ -723,17 +734,20 @@ export const appRouter = router({
     updateComment: protectedProcedure
       .input(z.object({ id: z.number(), text: z.string().trim().min(1).max(1000) }))
       .mutation(async ({ ctx, input }) => {
+        await requireReadableComment(input.id, ctx.user);
         await platformDb.updatePostCommentV2(input.id, ctx.user.id, input.text);
         return { ok: true as const };
       }),
     toggleCommentLike: protectedProcedure
       .input(z.object({ commentId: z.number() }))
       .mutation(async ({ ctx, input }) => {
+        await requireReadableComment(input.commentId, ctx.user);
         return platformDb.toggleCommentLike(ctx.user.id, input.commentId);
       }),
     deleteComment: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
+        await requireReadableComment(input.id, ctx.user);
         const staff = platformDb.isStaffAccount(ctx.user);
         await platformDb.deletePostCommentV2(input.id, ctx.user.id, staff);
         return { ok: true as const };
@@ -741,6 +755,7 @@ export const appRouter = router({
     reportComment: protectedProcedure
       .input(z.object({ id: z.number(), reason: z.string().trim().min(3).max(512) }))
       .mutation(async ({ ctx, input }) => {
+        await requireReadableComment(input.id, ctx.user);
         await platformDb.reportComment(input.id, ctx.user.id, input.reason);
         return { ok: true as const };
       }),

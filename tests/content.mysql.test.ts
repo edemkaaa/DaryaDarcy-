@@ -1,31 +1,15 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Connection, RowDataPacket } from "mysql2/promise";
-import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
+import { testDatabaseUrl } from "./helpers/backend-mysql";
+import { openContentTestDatabase } from "./helpers/content-mysql";
 import { getDb, getPosts, getPostsPaginated, getPostsForTarget, getPostsByIds, getLatestPublishedPost } from "../apps/backend/src/db";
 import { purgeOldPostComments } from "../apps/backend/src/platform-db";
 
 describe.skipIf(!testDatabaseUrl)("content visibility and retention on disposable MySQL", () => {
   let conn: Connection;
   beforeAll(async () => {
-    conn = await openTestDatabase();
+    conn = await openContentTestDatabase();
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
-    await conn.query(`CREATE TABLE IF NOT EXISTS posts (
-      id INT PRIMARY KEY, text TEXT NOT NULL, photos JSON NOT NULL, tags JSON NOT NULL,
-      source VARCHAR(32) DEFAULT 'manual', instagramId VARCHAR(128), sortOrder INT DEFAULT 0,
-      published BOOLEAN NOT NULL DEFAULT TRUE, status ENUM('draft','scheduled','published') DEFAULT 'published',
-      target ENUM('feed','club','both') DEFAULT 'feed', scheduledAt TIMESTAMP NULL, publishedAt TIMESTAMP NULL,
-      richText JSON, createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB`);
-    await conn.query(`CREATE TABLE IF NOT EXISTS post_media (
-      id INT PRIMARY KEY,postId INT NOT NULL,type ENUM('video','audio','document') NOT NULL,url TEXT NOT NULL,
-      filename VARCHAR(512),mimeType VARCHAR(128),fileSize INT,duration INT,sortOrder INT DEFAULT 0,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB`);
-    await conn.query("CREATE TABLE IF NOT EXISTS likes (id INT AUTO_INCREMENT PRIMARY KEY,userId INT,postId INT,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
-    await conn.query(`CREATE TABLE IF NOT EXISTS post_comments (
-      id INT PRIMARY KEY,postId INT NOT NULL,parentId INT NULL,userId INT NOT NULL,text TEXT NOT NULL,photos JSON,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB`);
-    await conn.query("CREATE TABLE IF NOT EXISTS comment_likes (id INT PRIMARY KEY,userId INT NOT NULL,commentId INT NOT NULL,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB");
-    await conn.query("CREATE TABLE IF NOT EXISTS comment_reports (id INT PRIMARY KEY,commentId INT NOT NULL,reporterUserId INT NOT NULL,reason VARCHAR(512) NOT NULL,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB");
   });
   beforeEach(async () => {
     await conn.query("DELETE FROM post_media WHERE postId BETWEEN 8800 AND 8899");
@@ -46,9 +30,10 @@ describe.skipIf(!testDatabaseUrl)("content visibility and retention on disposabl
       (8802,'draft secret',JSON_ARRAY(),JSON_ARRAY(),'draft','both'),
       (8803,'scheduled secret',JSON_ARRAY(),JSON_ARRAY(),'scheduled','both'),
       (8804,'club visible',JSON_ARRAY(),JSON_ARRAY(),'published','club')`);
-    expect((await getPosts()).map(p => p.id)).toEqual([8801]);
-    expect((await getPostsPaginated({ limit: 20 })).posts.map(p => p.id)).toEqual([8801]);
-    expect((await getPostsForTarget("club")).posts.map(p => p.id)).toEqual([8804]);
+    const ownedIds = (rows: { id: number }[]) => rows.filter(p => p.id >= 8800 && p.id <= 8899).map(p => p.id);
+    expect(ownedIds(await getPosts())).toEqual([8801]);
+    expect(ownedIds((await getPostsPaginated({ limit: 20 })).posts)).toEqual([8801]);
+    expect(ownedIds((await getPostsForTarget("club")).posts)).toEqual([8804]);
     expect((await getPostsByIds([8801, 8802, 8803, 8804])).map(p => p.id)).toEqual([8801, 8804]);
     expect((await getLatestPublishedPost("club"))?.id).toBe(8804);
   });
