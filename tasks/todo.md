@@ -146,7 +146,14 @@
   Verify: red/green isolated packaging tests and both web builds with byte checks.
   Three fixture tests failed for the intended omissions before the repair, then
   passed. Legacy Vite and Expo exports passed; public-resource bytes preserved.
-- [ ] C02: Preserve historical deployment artifacts in the audit archive; ignore
+- [x] C02: Preserve historical deployment artifacts in the audit archive; ignore
   generated reports and document active configuration versus old snapshots.
-- [ ] C03: Remove empty root placeholder; align Cursor guidance with monorepo and
+  Four artifacts moved with exact byte comparison against Git originals. Lifecycle
+  policy unchanged; both old/current report output paths ignored, archive tracked.
+  Existing S3/SSH root/path mismatch documented; repair remains separate work.
+- [x] C03: Remove empty root placeholder; align Cursor guidance with monorepo and
   explicit deployment authorization; verify links/types/boundaries/local tests.
+  Local checkpoint: 409 tests passed / 65 skipped without a test MySQL. Types,
+  279-file boundaries, 40-document links, API/Vite/Expo builds and 52-test verify
+  passed. Legacy Vite font warning remains. Root .gitkeep removed (recoverable in
+  Git); source, licences and unfinished backend tasks preserved. No push/deploy.

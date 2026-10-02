@@ -91,6 +91,11 @@ production.env
 .project-config.json
 
 # Local operational state and diagnostics
+# Backup reports are generated state, not deployment configuration.
+/infrastructure/deploy/s3-backup-last-run.json
+/infrastructure/deploy/s3-backup-restore-test.json
+/deploy/s3-backup-last-run.json
+/deploy/s3-backup-restore-test.json
 .manus/
 .s3-upload-progress.json
 .tmp-*.json

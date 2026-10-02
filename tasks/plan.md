@@ -243,3 +243,13 @@ default-branch change or deployment is included. Preserve unfinished release tas
 3. Remove the empty root placeholder and update Cursor paths/pnpm instructions.
    Verify documentation links, boundaries, types, local suite and build checks;
    record skipped database coverage and unresolved release blockers accurately.
+
+Follow-up verified locally: three packaging regressions first failed as expected,
+then passed; both web exports contain unchanged manifest/privacy/mobile icon.
+Six files relocated without content loss; only the empty root .gitkeep removed.
+Historical artifacts separated from active policy and ignored generated reports.
+Cursor guidance uses monorepo paths/pnpm and explicit release authorization.
+409 tests passed / 65 skipped without MySQL; types/boundaries/docs/API/Vite/Expo
+and 52-test verify passed. Default remote branch is still dev; staging remains
+the current-work branch. No push, remote operation or release gate was performed.
+Legacy Vite font warning and S3/SSH path mismatch remain documented follow-ups.
