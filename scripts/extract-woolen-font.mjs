@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const assets = join(root, "assets", "fonts");
+const assets = join(root, "apps", "frontend", "assets", "fonts");
 const zipPath = process.env.WOOLEN_ZIP || join(process.env.USERPROFILE || "", "Downloads", "Woolen.zip");
 
 if (!existsSync(zipPath)) {

@@ -6,8 +6,8 @@ import {
   buildTelegramPostContent,
   isTaggedClubMessage,
   resolveRubricTags,
-} from "../lib/telegram-post-tags.mjs";
-import { buildAlbumGroups } from "../lib/telegram-albums.mjs";
+} from "../apps/frontend/lib/telegram-post-tags.mjs";
+import { buildAlbumGroups } from "../apps/frontend/lib/telegram-albums.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const env = Object.fromEntries(

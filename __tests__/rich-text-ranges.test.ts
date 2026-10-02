@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rangesToRichText, richTextToRanges } from "../lib/rich-text-ranges";
+import { rangesToRichText, richTextToRanges } from "../packages/shared/src/rich-text-ranges";
 
 describe("rich-text-ranges", () => {
   it("roundtrips multiple bold ranges in one paragraph", () => {

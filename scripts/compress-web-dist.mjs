@@ -5,17 +5,18 @@ import { fileURLToPath } from "node:url";
 
 const projectRoot = fileURLToPath(new URL("..", import.meta.url));
 const root = join(projectRoot, "web-dist");
-const privacySrc = join(projectRoot, "public", "privacy.html");
+const frontendRoot = join(projectRoot, "apps", "frontend");
+const privacySrc = join(frontendRoot, "public", "privacy.html");
 if (existsSync(privacySrc)) {
   copyFileSync(privacySrc, join(root, "privacy.html"));
   console.log("copied privacy.html");
 }
-const manifestSrc = join(projectRoot, "public", "manifest.webmanifest");
+const manifestSrc = join(frontendRoot, "public", "manifest.webmanifest");
 if (existsSync(manifestSrc)) {
   copyFileSync(manifestSrc, join(root, "manifest.webmanifest"));
   console.log("copied manifest.webmanifest");
 }
-const iconSrc = join(projectRoot, "assets", "images", "icon.png");
+const iconSrc = join(frontendRoot, "assets", "images", "icon.png");
 if (existsSync(iconSrc)) {
   copyFileSync(iconSrc, join(root, "apple-touch-icon.png"));
   console.log("copied apple-touch-icon.png");

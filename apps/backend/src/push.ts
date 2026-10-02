@@ -1,4 +1,4 @@
-import type { PushConsentType } from "../../../shared/push-consent";
+import type { PushConsentType } from "../../../packages/shared/src/push-consent";
 import * as db from "./db";
 
 export type ExpoPushMessage = {

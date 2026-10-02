@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const assetsDir = path.join(root, "assets");
+const assetsDir = path.join(root, "apps", "frontend", "assets");
 const SKIP_BASENAMES = new Set([
   "icon.png",
   "splash-icon.png",

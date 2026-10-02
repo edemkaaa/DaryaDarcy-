@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("react-native", () => ({ Platform: { OS: "web" } }));
-vi.mock("../lib/device", () => ({ isAppleMobileWeb: () => true }));
-import { pressableProps } from "../lib/ios-web-press";
+vi.mock("../apps/frontend/lib/device", () => ({ isAppleMobileWeb: () => true }));
+import { pressableProps } from "../apps/frontend/lib/ios-web-press";
 
 afterEach(() => vi.restoreAllMocks());
 describe("iOS press fallback", () => {

@@ -34,6 +34,21 @@ describe("repository ownership boundaries", () => {
     expect(existsSync(resolve(repositoryRoot, "drizzle"))).toBe(false);
   });
 
+  it("owns the universal client inside the frontend application", () => {
+    expect(existsSync(resolve(repositoryRoot, "apps/frontend/app/_layout.tsx"))).toBe(
+      true,
+    );
+    expect(existsSync(resolve(repositoryRoot, "app"))).toBe(false);
+    expect(existsSync(resolve(repositoryRoot, "components"))).toBe(false);
+  });
+
+  it("owns platform-neutral contracts inside the shared package", () => {
+    expect(existsSync(resolve(repositoryRoot, "packages/shared/src/const.ts"))).toBe(
+      true,
+    );
+    expect(existsSync(resolve(repositoryRoot, "shared"))).toBe(false);
+  });
+
   it("declares application and package workspace globs", () => {
     const workspace = readFileSync(
       resolve(repositoryRoot, "pnpm-workspace.yaml"),

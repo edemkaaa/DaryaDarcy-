@@ -5,7 +5,7 @@ import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const outDir = path.join(root, "assets", "images", "moodboard");
+const outDir = path.join(root, "apps", "frontend", "assets", "images", "moodboard");
 fs.mkdirSync(outDir, { recursive: true });
 
 const env = Object.fromEntries(
@@ -162,7 +162,7 @@ async function main() {
   }
 
   fs.writeFileSync(
-    path.join(root, "lib", "moodboard", "autumn-catalog.generated.json"),
+    path.join(root, "apps", "frontend", "lib", "moodboard", "autumn-catalog.generated.json"),
     JSON.stringify(catalog, null, 2),
   );
   console.log("\nUploaded UI:", uploaded);

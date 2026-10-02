@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rangeForOccurrence, selectionOccurrence } from "../lib/rich-text-anchors";
+import { rangeForOccurrence, selectionOccurrence } from "../apps/frontend/lib/rich-text-anchors";
 
 describe("rich-text-anchors", () => {
   const text = "~ Осенний кемпинг\n• газовая плитка\n• клетчатая куртка\n• фонарь";

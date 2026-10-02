@@ -50,13 +50,12 @@ npm run smoke           # HTTP smoke production
 ## Структура проекта
 
 ```
-app/              Expo Router экраны (переносятся в apps/frontend)
-components/       UI-компоненты (переносятся в apps/frontend)
-lib/              Клиентские утилиты (переносятся в apps/frontend)
 apps/             Клиентские и серверные приложения
+  frontend/       Expo Router: web, iOS и Android
   backend/        Express + tRPC API
   legacy-web/     Альтернативный Vite-клиент (legacy)
 packages/
+  shared/         Общие контракты и чистые утилиты
   database/       Drizzle-схема и SQL-миграции
 infrastructure/   Конфигурация окружения и деплоя
   deploy/         nginx, PM2 и подготовка VPS

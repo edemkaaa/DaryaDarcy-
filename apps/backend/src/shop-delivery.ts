@@ -1,4 +1,4 @@
-import { PUBLIC_CONTACT_EMAIL } from "../../../shared/contact";
+import { PUBLIC_CONTACT_EMAIL } from "../../../packages/shared/src/contact";
 import { sendTransactionalEmail } from "./_core/email";
 import { sendServicePushNotification } from "./push";
 import * as platformDb from "./platform-db";

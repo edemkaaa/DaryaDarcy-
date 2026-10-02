@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const outDir = path.join(root, "assets", "images", "moodboard");
+const outDir = path.join(root, "apps", "frontend", "assets", "images", "moodboard");
 
 function knockOutBackground(data, width, height, threshold = 72) {
   for (let y = 0; y < height; y++) {

@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const frontendRoot = path.join(root, "apps", "frontend");
 const skip = /node_modules|web-dist|\.git|\.tmp-/;
 const codeExt = new Set([".ts", ".tsx", ".js"]);
 let changed = 0;
@@ -24,7 +25,7 @@ function walkCode(dir) {
         seen.add(req);
         const rel = req.slice(2);
         const webp = rel.replace(/\.png$/, ".webp");
-        if (fs.existsSync(path.join(root, webp))) {
+        if (fs.existsSync(path.join(frontendRoot, webp))) {
           text = text.split(req).join(req.replace(/\.png$/, ".webp"));
           hit = true;
         }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sanitizePhotoUrls } from "../lib/photo-urls";
+import { sanitizePhotoUrls } from "../apps/frontend/lib/photo-urls";
 
 describe("API photo URLs", () => {
   it("keeps valid signed URLs unchanged and in order", () => {

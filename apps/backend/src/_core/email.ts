@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { PUBLIC_CONTACT_EMAIL } from "../../../../shared/contact";
+import { PUBLIC_CONTACT_EMAIL } from "../../../../packages/shared/src/contact";
 
 let transporter: nodemailer.Transporter | null = null;
 

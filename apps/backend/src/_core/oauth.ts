@@ -1,4 +1,4 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "../../../../shared/const.js";
+import { COOKIE_NAME, ONE_YEAR_MS } from "../../../../packages/shared/src/const.js";
 import type { Express, Request, Response } from "express";
 import {
   emailToOpenId,
@@ -13,7 +13,7 @@ import { getSessionCookieOptions } from "./cookies";
 import { hashPassword, isValidEmail, normalizeEmail, verifyPassword } from "./password";
 import { sdk } from "./sdk";
 import type { User } from "../../../../packages/database/src/schema";
-import { normalizeRuPhone } from "../../../../lib/phone";
+import { normalizeRuPhone } from "../../../../packages/shared/src/phone";
 import { clientIp, consumeSmsCode, issueSmsCode } from "../sms-auth";
 import { checkRateLimit } from "./rate-limit";
 import { logUserConsent } from "../platform-db";
@@ -24,7 +24,7 @@ import {
   SMS_LOGIN_CONSENT_KEY,
   SMS_LOGIN_CONSENT_TEXT,
   SMS_LOGIN_CONSENT_VERSION,
-} from "../../../../shared/consent-texts";
+} from "../../../../packages/shared/src/consent-texts";
 import { adminTotpEnabled, verifyTotp } from "./totp";
 
 function isStaffUser(user: Pick<User, "role" | "email" | "openId">): boolean {

@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const webDist = path.join(root, "web-dist");
-const staging = path.join(root, "deploy", ".web-stage");
-const out = path.join(root, "deploy", "web-dist.tgz");
+const staging = path.join(root, "infrastructure", "deploy", ".web-stage");
+const out = path.join(root, "infrastructure", "deploy", "web-dist.tgz");
 
 if (!fs.existsSync(path.join(webDist, "index.html"))) {
   throw new Error("Missing web-dist — run npm run build:web first");

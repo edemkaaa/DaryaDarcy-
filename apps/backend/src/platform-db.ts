@@ -17,7 +17,7 @@ import {
   type PostComment,
   type User,
 } from "../../../packages/database/src/schema";
-import { PEN_PAL_CONFIRM_DAYS } from "../../../shared/pen-pals";
+import { PEN_PAL_CONFIRM_DAYS } from "../../../packages/shared/src/pen-pals";
 import { getDb, isOwnerAccount } from "./db";
 
 export function isModeratorAccount(user: { role?: string | null; email?: string | null; openId?: string | null }): boolean {

@@ -75,7 +75,7 @@ async function main() {
       }
       const dl = await api(file.path);
       const href = dl.file;
-      const dest = path.join(root, "assets", "quiz", target, `${aesthetic}.jpg`);
+      const dest = path.join(root, "apps", "frontend", "assets", "quiz", target, `${aesthetic}.jpg`);
       console.log(`  ${file.name} -> ${path.relative(root, dest)}`);
       if (!dryRun && href) {
         await downloadHref(href, dest);

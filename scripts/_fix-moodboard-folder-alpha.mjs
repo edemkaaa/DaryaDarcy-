@@ -44,7 +44,7 @@ const client = new S3Client({
 });
 
 for (const name of files) {
-  const local = path.join(root, "assets", "images", "moodboard", name);
+  const local = path.join(root, "apps", "frontend", "assets", "images", "moodboard", name);
   const buf = fs.readFileSync(local);
   const out = await knockOutDark(buf);
   const key = `app-assets/moodboard/ui/${name.replace(/\.(png|jpg|jpeg)$/i, ".webp")}`;

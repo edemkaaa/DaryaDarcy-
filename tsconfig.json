@@ -1,34 +1,21 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "./apps/frontend/tsconfig.json",
   "compilerOptions": {
-    "resolveJsonModule": true,
-    "strict": true,
-    "types": [
-      "node",
-      "vitest/globals",
-      "nativewind/types"
-    ],
+    "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@shared/*": [
-        "./shared/*"
-      ]
+      "@/*": ["./apps/frontend/*"],
+      "@shared/*": ["./packages/shared/src/*"]
     }
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts",
-    "nativewind-env.d.ts"
+    "apps/**/*.ts",
+    "apps/**/*.tsx",
+    "packages/**/*.ts",
+    "scripts/**/*.ts",
+    "tests/**/*.ts",
+    "__tests__/**/*.ts",
+    "vitest.config.mts",
+    "vitest.setup.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "apps/legacy-web",
-    "web-dist",
-    "vite.config.ts"
-  ]
+  "exclude": ["node_modules", "dist", "web-dist", "apps/legacy-web"]
 }

@@ -6,12 +6,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { splitVideoPhotos } from "../lib/post-media-photos";
+import { splitVideoPhotos } from "../apps/frontend/lib/post-media-photos";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const frontendRoot = path.join(root, "apps", "frontend");
 
 function read(rel: string): string {
-  return fs.readFileSync(path.join(root, rel), "utf8");
+  const repositoryPath = path.join(root, rel);
+  const filePath = fs.existsSync(repositoryPath)
+    ? repositoryPath
+    : path.join(frontendRoot, rel);
+  return fs.readFileSync(filePath, "utf8");
 }
 
 describe("Feed stability", () => {

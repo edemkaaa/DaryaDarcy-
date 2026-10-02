@@ -1,4 +1,7 @@
 import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean, unique } from "drizzle-orm/mysql-core";
+import type { RichTextBlock, RichTextInline } from "../../shared/src/rich-text-types";
+
+export type { RichTextBlock, RichTextInline } from "../../shared/src/rich-text-types";
 
 /**
  * Core user table backing auth flow.
@@ -24,18 +27,6 @@ export const users = mysqlTable("users", {
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
-
-// ── Rich Text Types ──
-export interface RichTextBlock {
-  type: "paragraph" | "heading";
-  children: RichTextInline[];
-}
-export interface RichTextInline {
-  text: string;
-  bold?: boolean;
-  italic?: boolean;
-  link?: string; // URL for inline links
-}
 
 // ── Feed: Posts ──
 export const posts = mysqlTable("posts", {

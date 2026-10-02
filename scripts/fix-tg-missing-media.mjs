@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import mysql from "mysql2/promise";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { buildAlbumGroups } from "../lib/telegram-albums.mjs";
+import { buildAlbumGroups } from "../apps/frontend/lib/telegram-albums.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const env = Object.fromEntries(

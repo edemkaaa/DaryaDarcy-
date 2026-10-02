@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { rangesToRichText } from "../lib/rich-text-ranges";
+import { rangesToRichText } from "../packages/shared/src/rich-text-ranges";
 import {
   normalizeRichTextForStorage,
   sanitizePlainPostText,
   sanitizeRichTextForDisplay,
-} from "../lib/post-text-sanitize";
+} from "../packages/shared/src/post-text-sanitize";
 
 describe("post-text-sanitize", () => {
   it("strips control characters after line breaks", () => {

@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const src = path.join(root, "assets/images/legal/music-license-darcys-autumn.jpg");
+const src = path.join(root, "apps/frontend/assets/images/legal/music-license-darcys-autumn.jpg");
 const key = "app-assets/legal/music-license-darcys-autumn.jpg";
 
 const env = Object.fromEntries(

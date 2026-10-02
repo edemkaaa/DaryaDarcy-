@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { rangesToRichText } from "../lib/rich-text-ranges";
-import { preparePostRichTextForSave } from "../lib/rich-text-save";
+import { rangesToRichText } from "../packages/shared/src/rich-text-ranges";
+import { preparePostRichTextForSave } from "../packages/shared/src/rich-text-save";
 
 describe("rich-text-save", () => {
   it("keeps links after plain text whitespace normalization", () => {

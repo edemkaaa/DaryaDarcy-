@@ -3,7 +3,9 @@ import re
 import urllib.request
 
 root = pathlib.Path(__file__).resolve().parents[1]
-src = (root / "app" / "shop" / "[id].tsx").read_text(encoding="utf-8")
+src = (
+    root / "apps" / "frontend" / "app" / "(tabs)" / "shop" / "[id].tsx"
+).read_text(encoding="utf-8")
 keys = sorted(set(re.findall(r"https://s3\.twcstorage\.ru/daryadarcy-s3/(app-assets/shop/[^\"']+)", src)))
 out = root / ".tmp-shop-photos"
 out.mkdir(exist_ok=True)

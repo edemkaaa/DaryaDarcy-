@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const out = path.join(root, "assets", "images", "moodboard", "board-frame-alpha.png");
+const out = path.join(root, "apps", "frontend", "assets", "images", "moodboard", "board-frame-alpha.png");
 
 function isBackground(r, g, b, a, threshold = 48) {
   if (a < 8) return true;
@@ -48,7 +48,7 @@ function floodBackground(data, width, height) {
   }
 }
 
-const input = path.join(root, "assets", "images", "moodboard", "board-frame.png");
+const input = path.join(root, "apps", "frontend", "assets", "images", "moodboard", "board-frame.png");
 const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
 floodBackground(data, info.width, info.height);
 

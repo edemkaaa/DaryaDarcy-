@@ -71,10 +71,10 @@ The repository remains a **modular monolith**, not a microservice system. Worksp
 
 ### Phase 3 — Frontend ownership
 
-- [ ] Move the Expo app, components, hooks, assets and client utilities into `apps/frontend`.
-- [ ] Give the frontend its own manifest/config while keeping root convenience commands.
-- [ ] Replace cross-layer imports with `packages/shared` contracts or explicit facades.
-- [ ] Acceptance: Expo web build, type check, and app route inventory pass.
+- [x] Move the Expo app, components, hooks, assets and client utilities into `apps/frontend`.
+- [x] Give the frontend its own manifest/config while keeping root convenience commands.
+- [x] Replace cross-layer imports with `packages/shared` contracts or explicit facades.
+- [x] Acceptance: Expo web build, type check, and app route inventory pass.
 
 ### Phase 4 — Simplification and enforcement
 

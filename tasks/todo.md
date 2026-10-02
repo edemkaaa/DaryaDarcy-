@@ -24,10 +24,10 @@
 
 ## Phase 3 — Frontend
 
-- [ ] Move Expo application to `apps/frontend`.
-- [ ] Isolate shared contracts in `packages/shared`.
-- [ ] Verify web/iOS/Android configuration paths.
-- [ ] Green checkpoint: Expo web build, tests, check.
+- [x] Move Expo application to `apps/frontend`.
+- [x] Isolate shared contracts in `packages/shared`.
+- [x] Verify web/iOS/Android configuration paths.
+- [x] Green checkpoint: Expo web build, tests, check.
 
 ## Phase 4 — Enforcement
 

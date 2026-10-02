@@ -15,7 +15,10 @@ const env = Object.fromEntries(
     }),
 );
 
-const src = fs.readFileSync(path.join(root, "app/shop/[id].tsx"), "utf8");
+const src = fs.readFileSync(
+  path.join(root, "apps/frontend/app/(tabs)/shop/[id].tsx"),
+  "utf8",
+);
 const urls = [...src.matchAll(/https:\/\/s3\.twcstorage\.ru\/daryadarcy-s3\/([^"']+)/g)].map((m) => m[1]);
 const unique = [...new Set(urls)];
 

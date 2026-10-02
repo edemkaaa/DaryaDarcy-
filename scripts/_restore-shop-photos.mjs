@@ -15,7 +15,10 @@ const env = Object.fromEntries(
     }),
 );
 
-const src = fs.readFileSync(path.join(root, "app/shop/[id].tsx"), "utf8");
+const src = fs.readFileSync(
+  path.join(root, "apps/frontend/app/(tabs)/shop/[id].tsx"),
+  "utf8",
+);
 const keys = [...new Set([...src.matchAll(/https:\/\/s3\.twcstorage\.ru\/daryadarcy-s3\/(app-assets\/shop\/[^"']+)/g)].map((m) => m[1]))];
 
 const client = new S3Client({

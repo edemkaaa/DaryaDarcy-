@@ -14,7 +14,7 @@ afterEach(() => vi.unstubAllGlobals());
 it("clamps window dimensions and keeps subscription cleanup", async () => {
   vi.stubGlobal("window", { innerWidth: 1000 });
   mock.add.mockReturnValue({ remove: mock.remove });
-  await import("../lib/web-viewport");
+  await import("../apps/frontend/lib/web-viewport");
   const { Dimensions } = await import("react-native");
   expect(Dimensions.get("window").width).toBe(480);
   expect(Dimensions.get("screen").width).toBe(1000);

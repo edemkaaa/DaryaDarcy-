@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import mysql from "mysql2/promise";
-import { isTaggedClubMessage } from "../lib/telegram-post-tags.mjs";
+import { isTaggedClubMessage } from "../apps/frontend/lib/telegram-post-tags.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const env = Object.fromEntries(

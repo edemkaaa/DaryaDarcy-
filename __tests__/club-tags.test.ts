@@ -4,7 +4,7 @@ import {
   commentsCloseAt,
   isCommunityPost,
   primaryClubTab,
-} from "../lib/club-tags";
+} from "../packages/shared/src/club-tags";
 
 describe("club-tags comments", () => {
   it("opens comments only for community posts within 48h", () => {
