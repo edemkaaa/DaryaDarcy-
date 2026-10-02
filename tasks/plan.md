@@ -124,7 +124,7 @@ behavior-changing commits. The existing unfinished refactor tasks are retained.
 Recommendation: keep Express/tRPC, TypeScript, Drizzle/MySQL and the frontend
 contract. Replace unsafe business flows incrementally, not the entire service.
 See `docs/decisions/0002-backend-evolution.md` and
-`docs/BACKEND-AUDIT-2026-10-02.md` for evidence and remaining release blockers.
+`docs/audits/backend-2026-10-02.md` for evidence and remaining release blockers.
 
 ### Immediate repair scope
 
@@ -188,3 +188,41 @@ external emails or live subscription changes are authorized by this local work.
 Acceptance tests: real MySQL concurrent duplicates/different payments, rollback
 on queue failure, token replay/expiry, worker leases/retry, provider rejection and
 timeout. Public HTTP tests use local server and mocked SMTP/provider only.
+
+## Repository navigation cleanup — 2026-10-02
+
+User requested a readable repository, including Markdown and miscellaneous files.
+This extends the existing structural cleanup; unfinished backend/release work above
+is preserved, not replaced or marked complete.
+
+1. Group current docs by architecture/development/operations/audits/compliance;
+   move handover snapshots, design experiments and the old product checklist to
+   an explicitly historical archive. Keep content, license files and open tasks.
+   Acceptance: only the entry README remains as root Markdown, all moved files
+   are accounted for, relative links and source references follow the new paths.
+2. Replace the template backend guide with a short accurate guide; add a docs
+   entry point and current workflow, distinguish current instructions from archive.
+   Acceptance: onboarding finds commands, module owners, active tasks and release
+   blockers without reading historical chat-like reports.
+3. Separate one-off legacy tools from normal commands without changing directory
+   depth/root resolution. Do not execute deployment/migration/remote tools.
+   Acceptance: every package/CI entry point resolves, legacy tools are indexed
+   and marked unreviewed, no runtime asset or secret is deleted/moved into Git.
+4. Add a small local-link check and CI gate; verify fixture failures first.
+   Acceptance: missing local links in maintained docs fail, external links are
+   not fetched; local tests/types/boundaries/API/web and legacy builds pass.
+
+No release, push, production mutation, dependency upgrade or runtime behavior
+change belongs to this cleanup. No old ADR or unfinished plan is discarded.
+
+Cleanup verified locally: root README + docs navigation, all 1070 pre-existing
+tracked files accounted for, 253 relocations, no runtime asset/licence changes.
+Tools remain at the same depth; pnpm command names are preserved. Added a local
+Markdown-target checker with failing fixtures before implementation and a CI gate.
+The QR developer tool now writes its generated PNG to ignored tmp/, not the root;
+historical npm lock/QR and the old server/audit templates remain recoverable.
+469 tests passed / 2 skipped on disposable MySQL; types/boundaries, all three
+builds (API/legacy/Expo), 52-test verify and frozen install passed locally.
+Deployment scripts retain legacy environment assumptions and require separate
+review. Migration history, production/sandbox/mail/device/private-media release
+blockers above remain open; no remote CI, deploy, payment, email or S3 operation.

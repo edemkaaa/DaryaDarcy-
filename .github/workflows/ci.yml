@@ -14,7 +14,7 @@ jobs:
         env:
           MYSQL_DATABASE: backend_test
           MYSQL_ROOT_PASSWORD: ci-test-only
-        ports: ['3306:3306']
+        ports: ["3306:3306"]
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-test-only"
           --health-interval=5s --health-timeout=3s --health-retries=20
@@ -35,6 +35,7 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
 
       - run: pnpm test:db:wait
+      - run: pnpm check:docs
       - run: pnpm check:boundaries
       - run: pnpm check
       - run: pnpm test

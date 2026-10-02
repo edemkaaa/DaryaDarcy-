@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import QRCode from "qrcode";
+import fs from "node:fs";
+import path from "node:path";
 
 const url = process.argv[2];
 
@@ -8,5 +10,7 @@ if (!url) {
   process.exit(1);
 }
 
-await QRCode.toFile("expo-qr-code.png", url, { width: 512 });
-console.log(`✅ QR code saved to expo-qr-code.png`);
+const output = path.join("tmp", "expo-qr-code.png");
+fs.mkdirSync(path.dirname(output), { recursive: true });
+await QRCode.toFile(output, url, { width: 512 });
+console.log(`✅ QR code saved to ${output}`);

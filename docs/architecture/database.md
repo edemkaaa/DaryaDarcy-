@@ -1,0 +1,40 @@
+# База данных и миграции
+
+MySQL 8, utf8mb4. Источник истины — [packages/database/src/schema.ts](../../packages/database/src/schema.ts); SQL-история — [packages/database/drizzle](../../packages/database/drizzle/); конфигурация — [drizzle.config.ts](../../drizzle.config.ts).
+
+## Основные группы таблиц
+
+| Область                 | Таблицы                                           |
+| ----------------------- | ------------------------------------------------- |
+| Пользователи и согласия | users, user_consent_events, admin_audit_log       |
+| Публикации              | posts, post_media, tags, likes, saved_posts       |
+| Обсуждения              | post_comments, comment_likes, comment_reports     |
+| Видео и статьи          | videos, articles                                  |
+| Платежи клуба           | club_payments, billing_receipts, billing_profiles |
+| Пароли и письма         | password_tokens, access_email_outbox              |
+| Уведомления             | push_tokens, push_consent_events                  |
+| Почтовое отделение      | pen_pal_profiles, pen_pal_shown, pen_pal_matches  |
+| Настройки запуска       | launch_settings                                   |
+| Старый магазин          | shop_purchases, shop_delivery_emails              |
+| SMS                     | sms_codes                                         |
+
+Таблицы club_subscriptions в текущей схеме нет: доступ к клубу определяется платёжными данными и серверной логикой, а не таблицей из старого описания.
+
+## Поля, важные для безопасности
+
+- users: роли user / moderator / admin, passwordHash, sessionVersion, blockedAt и причина блокировки. Смена пароля увеличивает версию сессий.
+- billing_receipts: зарегистрированные события провайдера; повторный webhook не должен повторно выдавать доступ.
+- billing_profiles: идентификаторы подписки, запрос и подтверждение отмены, lease обработки.
+- password_tokens: хеш одноразового токена, назначение, срок и факт использования.
+- access_email_outbox: очередь доставки и состояние попыток; токен ссылки в payload зашифрован, не хранится открытым.
+- posts и articles: состояние публикации и доступ. Наличие URL в БД само по себе не обеспечивает защиту файла в хранилище.
+
+Смотрите точные типы, индексы и ограничения в схеме, а не в сокращённой таблице этого документа.
+
+## Безопасная работа
+
+Не экспортируйте реальные email, телефоны, почтовые адреса, токены, платёжные данные и дампы в репозиторий. Для тестов используйте отдельную backend_test, не рабочую БД.
+
+Перед изменением SQL проверяйте историю миграций и репетируйте применение на отдельной копии. История содержит нерешённое рассогласование миграций 0017–0019. Не исправляйте его удалением файлов без анализа базы.
+
+[Порядок проверок и миграций](../development/workflow.md) · [тестовая политика подключения](../../tooling/scripts/test-database-policy.ts) · [активные задачи](../../tasks/todo.md).

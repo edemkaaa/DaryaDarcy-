@@ -42,4 +42,4 @@ Additive migrations, a separate encryption key, worker monitoring, explicit staf
 role preflight and legacy billing reconciliation are required before deployment.
 SMTP remains at-least-once. SKIP LOCKED workers can defer a locked record until a
 later scheduler tick; tests wait for the delivery condition, not one immediate pass.
-See ../BACKEND-BILLING-IDENTITY-STAGE.md for API contracts and release gates.
+See [billing/identity stage](../audits/billing-identity.md) for API contracts and release gates.

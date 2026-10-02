@@ -117,3 +117,25 @@
   database URLs, frozen installs, boundaries/types/tests/API/web/post-build checks.
   Local equivalent: 341 passed / 3 skipped, both builds and regression pass.
   YAML parsed; remote runner execution has NOT been performed. No auto deployment.
+
+## Repository navigation cleanup — 2026-10-02
+
+- [x] R01: Group documents and archive historical notes without losing files/tasks.
+  Verify: move inventory, relative links and tracked reference scan.
+- [x] R02: Concise entry README/docs index/current backend and workflow guides.
+  Verify: manual onboarding walk-through and link check.
+- [x] R03: Separate one-off legacy tools; preserve normal command paths.
+  Verify: command/import inventory and local build commands; no remote script run.
+- [x] R04: Local-doc links tested and checked in CI; final types/tests/build review.
+  Verify: failing fixtures → passing check, API/web/legacy builds, clean diff.
+  Cleanup checkpoint: all 1070 original tracked files accounted for; 253 paths
+  relocated, root Markdown reduced to README only. Current docs separated from
+  archival snapshots; active tasks and runtime assets/licences preserved.
+  Tools grouped into scripts/assets/data/operations/legacy at the same depth.
+  Package command paths resolved; 99 JS/60 Python/4 shell files syntax-checked
+  without executing remote operations. Frozen install passed without lock changes.
+  Link checker: red fixtures first, then unit/isolated-Git CLI coverage; 40 current
+  documents pass. CI gate added; remote pipelines have not been executed.
+  Final local disposable-MySQL suite: 469 passed / 2 skipped. Types, 279-file
+  boundaries, API build, legacy Vite build, main Expo web build and 52-test verify
+  passed. Legacy font warning remains; no deployment or release approval.
