@@ -1,5 +1,14 @@
 import type { PushConsentType } from "../../../packages/shared/src/push-consent";
 import * as db from "./db";
+import { z } from "zod";
+
+const pushBatchResponse = z.object({
+  data: z.array(z.discriminatedUnion("status", [
+    z.object({ status: z.literal("ok"), id: z.string().min(1) }),
+    z.object({ status: z.literal("error") }),
+  ])),
+  errors: z.array(z.unknown()).optional(),
+});
 
 export type ExpoPushMessage = {
   to: string;
@@ -9,7 +18,7 @@ export type ExpoPushMessage = {
   data?: Record<string, unknown>;
 };
 
-/** Send push via Expo Push API. Service vs marketing audiences are filtered in db helpers. */
+/** Return valid Expo acceptance tickets, not device deliveries. Audiences are filtered in db helpers. */
 export async function sendExpoPushBatch(
   category: PushConsentType,
   messages: ExpoPushMessage[],
@@ -25,19 +34,35 @@ export async function sendExpoPushBatch(
   const filtered = messages.filter((m) => allowed.has(m.to));
   if (filtered.length === 0) return 0;
 
+  let accepted = 0;
   for (let i = 0; i < filtered.length; i += 100) {
     const batch = filtered.slice(i, i + 100);
-    await fetch("https://exp.host/--/api/v2/push/send", {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(batch),
-    }).catch((err) => console.warn("[Push] Failed to send batch:", err));
+    try {
+      const response = await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(batch),
+      });
+      if (!response.ok) {
+        console.warn(`[Push] Batch rejected: HTTP ${response.status}`);
+        continue;
+      }
+      const result = pushBatchResponse.safeParse(await response.json());
+      if (!result.success || result.data.data.length !== batch.length || result.data.errors?.length) {
+        console.warn("[Push] Invalid batch acknowledgement");
+        continue;
+      }
+      accepted += result.data.data.filter(ticket => ticket.status === "ok").length;
+    } catch {
+      // Provider messages and transport errors can contain recipient tokens.
+      console.warn("[Push] Batch transport or response failed");
+    }
   }
 
-  return filtered.length;
+  return accepted;
 }
 
 /** Marketing/content push: new posts, promos, etc. Requires explicit user consent. */
@@ -60,8 +85,8 @@ export async function sendMarketingPostNotification(
       data: { postId, type: "new_post", target, category: "marketing" },
     }));
 
-    const sent = await sendExpoPushBatch("marketing", messages, target);
-    console.log(`[Push] Sent marketing notification to ${sent} devices for post #${postId}`);
+    const accepted = await sendExpoPushBatch("marketing", messages, target);
+    console.log(`[Push] Expo accepted ${accepted} marketing notifications for post #${postId}`);
   } catch (err) {
     console.warn("[Push] Error sending marketing notifications:", err);
   }

@@ -183,6 +183,10 @@
   types/boundaries/docs/API build/52-test verify pass. No schema/API changes or
   external notifications. Already-queued messages/device acceptance remain out
   of this local guarantee; B07 and the overall release checkpoint stay open.
-- [ ] N02: Push failures cannot be reported as successful submissions. Validate
+- [x] N02: Push failures cannot be reported as successful submissions. Validate
   HTTP/JSON/ticket outcomes, preserve audience filtering and 100-message chunks.
   Verify: failing transport fixtures, partial batches, full suite/types/API build.
+  Confirmed 13 failing cases before repair; all 17 transport regressions pass.
+  Full disposable-MySQL suite: 504 pass / 2 skip; types/boundaries/docs/API build
+  and 52-test verify pass. Only provider acceptance is counted, not device delivery.
+  Real devices, receipts/retries and stale-token cleanup remain separate work.

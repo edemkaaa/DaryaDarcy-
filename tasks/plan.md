@@ -303,3 +303,10 @@ the external Expo ticket response and preserve the 100-message batch limit and
 audience filtering. No retry queue, receipt polling, token cleanup, new service
 or Web Push implementation belongs to this slice. Test only mocked transport;
 provider acceptance is not device delivery. Reference: Expo sending documentation.
+
+N02 verified: the old sender failed 13 of 17 transport regressions; all 17 now
+pass. Only valid successful Expo tickets count as accepted, with partial rejection,
+invalid JSON, HTTP/network errors and later batches covered. Logs do not include
+provider response bodies or recipient tokens. Full disposable-MySQL suite:
+504 pass / 2 skip; types/boundaries/docs/API build and 52-test verify pass.
+No external sends, retry queue, receipt polling, token cleanup or deployment.
