@@ -17,6 +17,10 @@ import { ScreenContainer } from "@/components/screen-container";
 import { SmsCodeForm } from "@/components/sms-code-form";
 import * as Api from "@/lib/_core/api";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  EMAIL_REGISTER_CONSENT_LABEL,
+  EMAIL_REGISTER_CONSENT_VERSION,
+} from "../../../packages/shared/src/consent-texts";
 
 const PAPER_TEXTURE_URI =
   "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/d0db18ed8f2e-MasrlKbgCBdeyOhE.jpg";
@@ -57,6 +61,7 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [registrationConsent, setRegistrationConsent] = useState(false);
 
   const goNext = async (user: Api.AuthUser | null) => {
     await applySession(user);
@@ -81,10 +86,20 @@ export default function LoginScreen() {
         setNotice(result.message);
         return;
       }
-      const result =
-        mode === "login"
-          ? await Api.loginWithEmail(email, password)
-          : await Api.registerWithEmail(email, password, name);
+      if (mode === "register") {
+        if (!registrationConsent)
+          throw new Error(
+            "Подтвердите согласие на обработку персональных данных",
+          );
+        const result = await Api.registerWithEmail(
+          email,
+          name,
+          EMAIL_REGISTER_CONSENT_VERSION,
+        );
+        setNotice(result.message);
+        return;
+      }
+      const result = await Api.loginWithEmail(email, password);
       await goNext(result.user ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось войти");
@@ -125,7 +140,7 @@ export default function LoginScreen() {
                   ? "Войдите, чтобы сохранять посты и пользоваться клубом"
                   : mode === "recover"
                     ? "Введите почту аккаунта. Если он доступен, мы отправим письмо с инструкцией."
-                    : "Создайте аккаунт по email"}
+                    : "Введите почту. Подтвердите её по ссылке из письма и установите пароль, затем войдите."}
             </Text>
 
             {useSms ? (
@@ -157,7 +172,7 @@ export default function LoginScreen() {
                   autoComplete="email"
                   accessibilityLabel="Email"
                 />
-                {mode !== "recover" ? (
+                {mode === "login" ? (
                   <TextInput
                     style={styles.input}
                     placeholder="Пароль"
@@ -173,6 +188,36 @@ export default function LoginScreen() {
                   />
                 ) : null}
 
+                {mode === "register" ? (
+                  <>
+                    <Pressable
+                      accessibilityRole="checkbox"
+                      aria-checked={registrationConsent}
+                      accessibilityLabel={EMAIL_REGISTER_CONSENT_LABEL}
+                      accessibilityState={{
+                        checked: registrationConsent,
+                        disabled: busy,
+                      }}
+                      disabled={busy}
+                      onPress={() =>
+                        setRegistrationConsent(!registrationConsent)
+                      }
+                    >
+                      <Text style={styles.switchText}>
+                        {registrationConsent ? "☑" : "☐"}{" "}
+                        {EMAIL_REGISTER_CONSENT_LABEL}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="link"
+                      onPress={() => router.push("/privacy")}
+                    >
+                      <Text style={styles.switchText}>
+                        Политика конфиденциальности
+                      </Text>
+                    </Pressable>
+                  </>
+                ) : null}
                 {error ? <Text style={styles.error}>{error}</Text> : null}
                 {notice ? (
                   <Text
@@ -189,7 +234,9 @@ export default function LoginScreen() {
                     pressed && { opacity: 0.85 },
                   ]}
                   onPress={submitEmail}
-                  disabled={busy}
+                  disabled={
+                    busy || (mode === "register" && !registrationConsent)
+                  }
                   accessibilityRole="button"
                 >
                   {busy ? (
@@ -200,7 +247,7 @@ export default function LoginScreen() {
                         ? "Отправить инструкцию"
                         : mode === "login"
                           ? "Войти"
-                          : "Создать аккаунт"}
+                          : "Получить письмо"}
                     </Text>
                   )}
                 </Pressable>
@@ -209,6 +256,7 @@ export default function LoginScreen() {
                   onPress={() => {
                     setError(null);
                     setNotice(null);
+                    setRegistrationConsent(false);
                     setMode(mode === "login" ? "register" : "login");
                   }}
                   disabled={busy}
@@ -239,6 +287,7 @@ export default function LoginScreen() {
 
             {smsEnabled ? (
               <Pressable
+                disabled={busy}
                 onPress={() => {
                   setError(null);
                   setNotice(null);

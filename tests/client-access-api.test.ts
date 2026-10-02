@@ -11,6 +11,7 @@ import {
   apiCall,
   getAppCapabilities,
   requestPasswordInstructions,
+  registerWithEmail,
 } from "../apps/frontend/lib/_core/api";
 let fetcher: ReturnType<typeof vi.fn>;
 beforeEach(() => {
@@ -42,6 +43,25 @@ it("requests instructions without issuing or saving a login session", async () =
       body: JSON.stringify({ email: "member@example.test" }),
     }),
   );
+  expect(auth.setSessionToken).not.toHaveBeenCalled();
+});
+it("starts registration without a password or a client session", async () => {
+  fetcher.mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        ok: true,
+        message: "Подтвердите почту по инструкции в письме.",
+      }),
+      { status: 202, headers: { "Content-Type": "application/json" } },
+    ),
+  );
+  await registerWithEmail("new@example.test", "Member", "2026-09-1");
+  const body = JSON.parse(fetcher.mock.calls[0][1].body);
+  expect(body).toEqual({
+    email: "new@example.test",
+    name: "Member",
+    consentVersion: "2026-09-1",
+  });
   expect(auth.setSessionToken).not.toHaveBeenCalled();
 });
 it("reads capabilities from the server and does not accept a string as permission", async () => {

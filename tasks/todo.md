@@ -59,6 +59,8 @@
   Verify: identity HTTP tests + migration rehearsal.
   Backend links/versioned sessions/explicit staff roles done locally;
   Frontend recovery entry and strict SMS capability switch checked locally;
+  insert-only registration + atomic consent/setup outbox, email proof before
+  password/login and explicit frontend consent checked on local HTTP/MySQL.
   staff preflight and production migration rehearsal pending.
 - [ ] B06: Transactional email outbox and resend.
   Acceptance: crash/retry loses no event, duplicate payment queues one message.

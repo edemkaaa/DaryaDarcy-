@@ -137,21 +137,13 @@ export async function loginWithEmail(
 
 export async function registerWithEmail(
   email: string,
-  password: string,
   name?: string,
   consentVersion?: string,
-): Promise<{ sessionToken: string; user: AuthUser }> {
-  const result = await apiCall<{ sessionToken: string; user: AuthUser }>(
-    "/api/auth/register",
-    {
-      method: "POST",
-      body: JSON.stringify({ email, password, name, consentVersion }),
-    },
-  );
-  if (result.sessionToken) {
-    await Auth.setSessionToken(result.sessionToken);
-  }
-  return result;
+): Promise<{ ok: boolean; message: string }> {
+  return apiCall("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ email, name, consentVersion }),
+  });
 }
 
 export async function sendSmsCode(

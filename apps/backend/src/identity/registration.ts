@@ -1,5 +1,6 @@
 import { eq, or } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
+import { queueAccessEmail } from "./access";
 import {
   users,
   userConsentEvents,
@@ -31,7 +32,6 @@ export async function createEmailAccount(
   input: {
     openId: string;
     email: string;
-    passwordHash: string;
     name: string | null;
   },
 ): Promise<User | null> {
@@ -47,6 +47,7 @@ export async function createEmailAccount(
         .insert(users)
         .values({
           ...input,
+          passwordHash: null,
           role: "user",
           loginMethod: "email",
           lastSignedIn: new Date(),
@@ -59,6 +60,13 @@ export async function createEmailAccount(
         consentVersion: EMAIL_REGISTER_CONSENT_VERSION,
         consentText: EMAIL_REGISTER_CONSENT_TEXT,
       });
+      await queueAccessEmail(
+        tx,
+        inserted.id,
+        input.email,
+        "password-setup",
+        `registration:${inserted.id}`,
+      );
       const [user] = await tx
         .select()
         .from(users)

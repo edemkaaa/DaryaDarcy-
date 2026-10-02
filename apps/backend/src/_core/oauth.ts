@@ -11,7 +11,7 @@ import {
   upsertUser,
 } from "../db";
 import { clearSessionCookie, setSessionCookie } from "./cookies";
-import { hashPassword, isValidEmail, normalizeEmail, verifyPassword } from "./password";
+import { isValidEmail, normalizeEmail, verifyPassword } from "./password";
 import { sdk } from "./sdk";
 import type { User } from "../../../../packages/database/src/schema";
 import { normalizeRuPhone } from "../../../../packages/shared/src/phone";
@@ -103,7 +103,6 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       const email = typeof req.body?.email === "string" ? normalizeEmail(req.body.email) : "";
-      const password = typeof req.body?.password === "string" ? req.body.password : "";
       const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
       const consentVersion =
         typeof req.body?.consentVersion === "string" ? req.body.consentVersion.trim() : "";
@@ -113,16 +112,8 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
-      if (!isValidEmail(email)) {
+      if (!isValidEmail(email) || email.length > 320) {
         res.status(400).json({ error: "Укажите корректный email" });
-        return;
-      }
-      if (password.length < 8) {
-        res.status(400).json({ error: "Пароль должен быть не короче 8 символов" });
-        return;
-      }
-      if (password.length > 200) {
-        res.status(400).json({ error: "Пароль слишком длинный" });
         return;
       }
 
@@ -133,7 +124,6 @@ export function registerOAuthRoutes(app: Express) {
       }
 
       const openId = emailToOpenId(email);
-      const passwordHash = await hashPassword(password);
       const database = await getDb();
       if (!database) {
         res.status(503).json({ error: "Регистрация временно недоступна" });
@@ -143,15 +133,13 @@ export function registerOAuthRoutes(app: Express) {
         openId,
         email,
         name: name || null,
-        passwordHash,
       });
       if (!user) {
         res.status(409).json({ error: "Этот email уже зарегистрирован. Войдите." });
         return;
       }
 
-      const session = await issueSession(req, res, user);
-      res.json(session);
+      res.status(202).json({ ok: true, message: "Запрос принят. Проверьте почту: в письме будет ссылка для установки пароля." });
     } catch (error) {
       console.error("[Auth] Register failed");
       res.status(500).json({ error: "Не удалось создать аккаунт" });

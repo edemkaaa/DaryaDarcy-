@@ -16,6 +16,8 @@ import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import * as db from "../apps/backend/src/db";
 import { registerOAuthRoutes } from "../apps/backend/src/_core/oauth";
 import { EMAIL_REGISTER_CONSENT_VERSION } from "../packages/shared/src/consent-texts";
+import { registerPasswordRoutes } from "../apps/backend/src/identity/routes";
+import { processAccessEmails } from "../apps/backend/src/identity/access";
 
 describe.skipIf(!testDatabaseUrl)(
   "insert-only email registration on disposable MySQL",
@@ -31,18 +33,32 @@ describe.skipIf(!testDatabaseUrl)(
         "JWT_SECRET",
         "registration-local-test-secret-with-at-least-32-characters",
       );
+      vi.stubEnv(
+        "AUTH_LINK_ENCRYPTION_KEY",
+        Buffer.alloc(32, 11).toString("base64"),
+      );
       await conn.query(
         `CREATE TABLE IF NOT EXISTS user_consent_events (id INT AUTO_INCREMENT PRIMARY KEY, userId INT NOT NULL, consentKey VARCHAR(64) NOT NULL, status ENUM('granted','revoked') NOT NULL, consentVersion VARCHAR(32) NOT NULL, consentText TEXT, createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB`,
       );
       const app = express();
       app.use(express.json({ limit: "16kb" }));
       registerOAuthRoutes(app);
+      registerPasswordRoutes(app);
       server = await new Promise<Server>((resolve) => {
         const s = app.listen(0, "127.0.0.1", () => resolve(s));
       });
       base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+      vi.stubEnv("PUBLIC_APP_URL", base);
     });
     async function cleanup() {
+      await conn.query(
+        "DELETE t FROM password_tokens t INNER JOIN users u ON u.id=t.userId WHERE u.email LIKE ?",
+        [`${prefix}%`],
+      );
+      await conn.query(
+        "DELETE m FROM access_email_outbox m INNER JOIN users u ON u.id=m.userId WHERE u.email LIKE ?",
+        [`${prefix}%`],
+      );
       await conn.query(
         "DELETE c FROM user_consent_events c INNER JOIN users u ON u.id=c.userId WHERE u.email LIKE ?",
         [`${prefix}%`],
@@ -75,7 +91,7 @@ describe.skipIf(!testDatabaseUrl)(
           consentVersion,
         }),
       });
-    it("concurrent registration has one winner and never replaces its password", async () => {
+    it("concurrent registration has one winner and queues one setup without a password or session", async () => {
       let arrivals = 0;
       let release!: () => void;
       const barrier = new Promise<void>((resolve) => {
@@ -93,23 +109,28 @@ describe.skipIf(!testDatabaseUrl)(
         post(email, "first-password"),
         post(email, "second-password"),
       ]);
-      expect(results.map((result) => result.status).sort()).toEqual([200, 409]);
+      expect(results.map((result) => result.status).sort()).toEqual([202, 409]);
+      expect(
+        results.every((result) => result.headers.getSetCookie().length === 0),
+      ).toBe(true);
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT * FROM users WHERE email=?",
         [email],
       );
       expect(rows).toHaveLength(1);
-      const winner = results.findIndex((result) => result.status === 200);
+      const winner = results.findIndex((result) => result.status === 202);
       const winnerData = await results[winner].json();
-      expect(winnerData.user.role).toBe("user");
-      const { verifyPassword } =
-        await import("../apps/backend/src/_core/password");
-      expect(
-        await verifyPassword(
-          winner === 0 ? "first-password" : "second-password",
-          rows[0].passwordHash,
-        ),
-      ).toBe(true);
+      expect(winnerData).not.toHaveProperty("sessionToken");
+      expect(winnerData).not.toHaveProperty("user");
+      expect(rows[0].role).toBe("user");
+      expect(rows[0].passwordHash).toBeNull();
+      const [outbox] = await conn.query<RowDataPacket[]>(
+        "SELECT kind FROM access_email_outbox WHERE userId=?",
+        [rows[0].id],
+      );
+      expect(outbox).toEqual([
+        expect.objectContaining({ kind: "password-setup" }),
+      ]);
       const [consents] = await conn.query<RowDataPacket[]>(
         "SELECT * FROM user_consent_events WHERE userId=?",
         [rows[0].id],
@@ -160,6 +181,69 @@ describe.skipIf(!testDatabaseUrl)(
         expect(rows).toHaveLength(0);
       } finally {
         await conn.query("DROP TRIGGER backend_test_registration_consent");
+      }
+    });
+    it("can log in only after consuming the emailed setup link, without an automatic session on completion", async () => {
+      const recipient = `${prefix}proof@example.test`;
+      expect((await post(recipient)).status).toBe(202);
+      const login = () =>
+        fetch(`${base}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: recipient,
+            password: "verified-password",
+          }),
+        });
+      expect((await login()).status).toBe(401);
+      const [rows] = await conn.query<RowDataPacket[]>(
+        "SELECT id FROM users WHERE email=?",
+        [recipient],
+      );
+      let text = "";
+      await vi.waitFor(
+        async () => {
+          if (!text)
+            await processAccessEmails(
+              (await db.getDb())!,
+              async (mail) => {
+                text = mail.text;
+                return true;
+              },
+              rows[0].id,
+            );
+          expect(text).not.toBe("");
+        },
+        { timeout: 3000, interval: 20 },
+      );
+      const token = new URL(text.match(/http:\/\/\S+/)![0]).hash.slice(
+        "#token=".length,
+      );
+      const completed = await fetch(`${base}/api/auth/password/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password: "verified-password" }),
+      });
+      expect(completed.status).toBe(200);
+      expect(completed.headers.getSetCookie()).toHaveLength(0);
+      const signedIn = await login();
+      expect(signedIn.status).toBe(200);
+      expect(signedIn.headers.getSetCookie()).toHaveLength(1);
+    });
+    it("rolls registration back if durable mail cannot be encrypted", async () => {
+      vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", "invalid-test-key");
+      try {
+        expect((await post()).status).toBe(500);
+        const [rows] = await conn.query<RowDataPacket[]>(
+          "SELECT id FROM users WHERE email=?",
+          [email],
+        );
+        expect(rows).toHaveLength(0);
+      } finally {
+        vi.stubEnv(
+          "AUTH_LINK_ENCRYPTION_KEY",
+          Buffer.alloc(32, 11).toString("base64"),
+        );
       }
     });
   },
