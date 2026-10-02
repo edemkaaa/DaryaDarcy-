@@ -49,7 +49,7 @@ function isModeratorUser(user: { role?: string | null; email?: string | null; op
   return isAdminUser(user);
 }
 
-export const moderatorProcedure = t.procedure.use(
+export const moderatorProcedure = protectedProcedure.use(
   t.middleware(async (opts) => {
     const { ctx, next } = opts;
     if (!ctx.user || !isModeratorUser(ctx.user)) {
@@ -59,7 +59,7 @@ export const moderatorProcedure = t.procedure.use(
   }),
 );
 
-export const adminProcedure = t.procedure.use(
+export const adminProcedure = protectedProcedure.use(
   t.middleware(async (opts) => {
     const { ctx, next } = opts;
 
@@ -81,7 +81,9 @@ export async function userHasClubAccess(user: {
   role?: string | null;
   email?: string | null;
   openId?: string | null;
+  blockedAt?: Date | null;
 }): Promise<boolean> {
+  if (user.blockedAt) return false;
   if (db.isOwnerAccount(user)) return true;
   if (user.role === "admin" || user.role === "moderator") return true;
   return Boolean(await db.getActiveClubSubscription(user.id));

@@ -119,12 +119,10 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {
         const post = await db.getPostById(input.id);
-        if (!post) return undefined;
+        if (!post || !post.published || post.status !== "published") return undefined;
         if (post.target === "club") {
           if (!ctx.user) return undefined;
-          const owner = db.isOwnerAccount(ctx.user);
-          const paid = await db.getActiveClubSubscription(ctx.user.id);
-          if (!owner && !paid) return undefined;
+          if (!(await userHasClubAccess(ctx.user))) return undefined;
         }
         return post;
       }),
@@ -203,12 +201,8 @@ export const appRouter = router({
     latest: publicProcedure.query(async ({ ctx }) => {
       const feed = await db.getLatestPublishedPost("feed");
       let club: { id: number; text: string } | undefined;
-      if (ctx.user) {
-        const owner = db.isOwnerAccount(ctx.user);
-        const paid = await db.getActiveClubSubscription(ctx.user.id);
-        if (owner || paid) {
-          club = await db.getLatestPublishedPost("club");
-        }
+      if (ctx.user && await userHasClubAccess(ctx.user)) {
+        club = await db.getLatestPublishedPost("club");
       }
       return {
         feedId: feed?.id ?? null,
@@ -614,7 +608,7 @@ export const appRouter = router({
         });
       }),
     subscription: publicProcedure.query(async ({ ctx }) => {
-      if (!ctx.user) {
+      if (!ctx.user || ctx.user.blockedAt) {
         return {
           subscribed: false,
           expiresAt: null as Date | null,
@@ -959,9 +953,7 @@ export const appRouter = router({
         const article = await db.getArticleById(input.id);
         if (!article || !article.published) return undefined;
         const user = ctx.user;
-        const allowed = user
-          ? db.isOwnerAccount(user) || Boolean(await db.getActiveClubSubscription(user.id))
-          : false;
+        const allowed = article.access === "public" || Boolean(user && await userHasClubAccess(user));
         if (!allowed) {
           return {
             id: article.id,
