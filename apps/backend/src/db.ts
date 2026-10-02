@@ -226,7 +226,7 @@ export async function getPosts(tagFilter?: string): Promise<(Post & { likeCount:
       likeCount: sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.postId = posts.id)`.as("likeCount"),
     })
     .from(posts)
-    .where(and(eq(posts.published, true), or(eq(posts.target, "feed"), eq(posts.target, "both"))))
+    .where(and(eq(posts.published, true), eq(posts.status, "published"), or(eq(posts.target, "feed"), eq(posts.target, "both"))))
     .orderBy(...postListOrder);
 
   const results = await query;
@@ -289,6 +289,7 @@ async function attachPostMedia<T extends { id: number }>(
 function feedFilterConditions(options: { tagFilter?: string; search?: string }) {
   const conditions = [
     eq(posts.published, true),
+    eq(posts.status, "published"),
     or(eq(posts.target, "feed"), eq(posts.target, "both")),
   ];
   if (options.tagFilter && options.tagFilter !== "all") {
@@ -441,7 +442,7 @@ export async function getUserSavedPostIds(userId: number): Promise<number[]> {
 export async function getPostsByIds(ids: number[]): Promise<(Post & { likeCount: number; media: PostMedia[] })[]> {
   const db = await getDb();
   if (!db || ids.length === 0) return [];
-  const rows = await db.select(postListColumns).from(posts).where(inArray(posts.id, ids));
+  const rows = await db.select(postListColumns).from(posts).where(and(inArray(posts.id, ids), eq(posts.published, true), eq(posts.status, "published")));
   const withMedia = await attachPostMedia(db, rows);
   const byId = new Map(withMedia.map((row) => [row.id, row]));
   return ids.map((id) => byId.get(id)).filter((row): row is NonNullable<typeof row> => Boolean(row));
@@ -804,6 +805,7 @@ export async function getLatestPublishedPost(
     .from(posts)
     .where(and(
       eq(posts.published, true),
+      eq(posts.status, "published"),
       or(eq(posts.target, target), eq(posts.target, "both")),
     ))
     .orderBy(postDateOrder)
@@ -902,6 +904,7 @@ export async function getPostsForTarget(target: "feed" | "club", options?: {
   const limit = options?.limit ?? 20;
   const conditions = [
     eq(posts.published, true),
+    eq(posts.status, "published"),
     or(eq(posts.target, target), eq(posts.target, "both")),
   ];
   if (options?.tagFilter && options.tagFilter !== "all") {

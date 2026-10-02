@@ -153,8 +153,7 @@ export const appRouter = router({
       const ids = await db.getUserSavedPostIds(ctx.user.id);
       const posts = await db.getPostsByIds(ids);
       const hasClub = await userHasClubAccess(ctx.user);
-      if (hasClub) return posts;
-      return posts.filter((post) => post.target !== "club");
+      return posts.filter((post) => post.published && post.status === "published" && (hasClub || post.target !== "club"));
     }),
   }),
 
@@ -664,7 +663,13 @@ export const appRouter = router({
     }),
     comments: clubMemberProcedure
       .input(z.object({ postId: z.number() }))
-      .query(({ ctx, input }) => platformDb.listPostCommentsV2(input.postId, ctx.user.id)),
+      .query(async ({ ctx, input }) => {
+        const post = await db.getPostById(input.postId);
+        if (!post || !post.published || post.status !== "published") {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Пост не найден" });
+        }
+        return platformDb.listPostCommentsV2(input.postId, ctx.user.id);
+      }),
     addComment: protectedProcedure
       .input(z.object({
         postId: z.number(),
@@ -674,7 +679,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const post = await db.getPostById(input.postId);
-        if (!post || !post.published) {
+        if (!post || !post.published || post.status !== "published") {
           throw new TRPCError({ code: "NOT_FOUND", message: "Пост не найден" });
         }
         if (post.target === "club" && !(await userHasClubAccess(ctx.user))) {

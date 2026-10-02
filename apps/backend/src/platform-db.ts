@@ -571,12 +571,23 @@ export async function listPendingShopDeliveryEmails(limit = 20) {
     .limit(limit);
 }
 
-export async function purgeOldPostComments(days = 90): Promise<number> {
+/** One bounded batch per maintenance tick; retain a full 365 days. */
+export async function purgeOldPostComments(): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
-  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  const result = await db.delete(postComments).where(lt(postComments.createdAt, cutoff));
-  return Number(result[0]?.affectedRows ?? 0);
+  return db.transaction(async (tx) => {
+    const expired = await tx.select({ id: postComments.id }).from(postComments)
+      .where(sql`${postComments.createdAt} < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 365 DAY)`)
+      .orderBy(asc(postComments.id)).limit(500).for("update", { skipLocked: true });
+    if (!expired.length) return 0;
+    const ids = expired.map(row => row.id);
+    // Retain newer replies, but turn them into roots rather than orphaning them.
+    await tx.update(postComments).set({ parentId: null }).where(inArray(postComments.parentId, ids));
+    await tx.delete(commentLikes).where(inArray(commentLikes.commentId, ids));
+    await tx.delete(commentReports).where(inArray(commentReports.commentId, ids));
+    const result = await tx.delete(postComments).where(inArray(postComments.id, ids));
+    return Number(result[0]?.affectedRows ?? 0);
+  });
 }
 
 const DELETED_USER_LABEL = "Удалённый аккаунт";
@@ -702,7 +713,7 @@ export async function purgeStalePenPalData(): Promise<{ profiles: number; matche
 }
 
 export async function runDataRetentionMaintenance(): Promise<void> {
-  const comments = await purgeOldPostComments(90);
+  const comments = await purgeOldPostComments();
   const deleted = await processScheduledAccountDeletions();
   const penPals = await purgeStalePenPalData();
   if (comments || deleted || penPals.profiles || penPals.matches) {

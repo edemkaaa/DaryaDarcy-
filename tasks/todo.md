@@ -74,6 +74,12 @@
   metadata removal, server-owned filenames, 4 MiB/20 MP/concurrent decoder limits.
   13 photo scenarios pass; full local suite 236 pass / 32 skip (DB not provisioned),
   check/build/diff-check pass. Private legacy assets and retention still pending.
+  Content/retention slice checked: published status enforced in feed/club/saved
+  queries and discussion API; comments retained 365 days, bounded transactional
+  cleanup also removes likes/reports and detaches newer replies.
+  Disposable-MySQL checkpoint: 271 passed / 3 skipped, check/build/diff-check pass.
+  Existing public storage links are NOT revoked by this API repair; migration and
+  any optional protected-video implementation remain explicit release decisions.
 - [ ] B09: First-release capabilities and seasonal/manager configuration.
   Acceptance: disabled SMS/shop payment/pen-pal routes cannot be called directly.
   Verify: capability matrix API tests and admin configuration roundtrip.
