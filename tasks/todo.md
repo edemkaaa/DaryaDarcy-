@@ -171,3 +171,18 @@
   builds and 52-test verify passed; final local suite 409 pass / 65 skip without
   test MySQL. Vite font warning remains. Removed files recoverable from 9c39659;
   no push, external operation or release approval.
+
+## Backend continuation: notification access — 2026-10-02
+
+- [x] N01: Blocked accounts excluded from every push delivery audience; latest
+  consent resolves equal-second events deterministically. Extends B07.
+  Verify: failing real-MySQL regressions, permitted/denied recipient matrix,
+  grant/revoke ties, full local suite/types/boundaries/API build and contract.
+  Confirmed both defects with real MySQL: 14 of 15 focused cases failed before
+  the fix; all 15 pass after. Full disposable-MySQL suite: 487 pass / 2 skip;
+  types/boundaries/docs/API build/52-test verify pass. No schema/API changes or
+  external notifications. Already-queued messages/device acceptance remain out
+  of this local guarantee; B07 and the overall release checkpoint stay open.
+- [ ] N02: Push failures cannot be reported as successful submissions. Validate
+  HTTP/JSON/ticket outcomes, preserve audience filtering and 100-message chunks.
+  Verify: failing transport fixtures, partial batches, full suite/types/API build.

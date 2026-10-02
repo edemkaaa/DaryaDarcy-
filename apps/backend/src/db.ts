@@ -196,7 +196,7 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
 
 import { posts, tags, likes, savedPosts, videos, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, articles, Article, ArticleBlock } from "../../../packages/database/src/schema";
 import { normalizeArticleBlocks } from "../../../packages/shared/src/article-blocks";
-import { desc, asc, and, sql, or, ne, gte, lte, isNotNull } from "drizzle-orm";
+import { desc, asc, and, sql, or, ne, gte, lte, isNotNull, isNull } from "drizzle-orm";
 
 const postDateOrder = desc(sql`COALESCE(${posts.publishedAt}, ${posts.createdAt})`);
 const postListOrder = [asc(posts.sortOrder), postDateOrder] as const;
@@ -622,7 +622,8 @@ export async function getAllEnabledPushTokens(): Promise<string[]> {
   const results = await db
     .select({ token: pushTokens.token })
     .from(pushTokens)
-    .where(eq(pushTokens.enabled, true));
+    .innerJoin(users, eq(users.id, pushTokens.userId))
+    .where(and(eq(pushTokens.enabled, true), isNull(users.blockedAt)));
 
   return results.map((r) => r.token);
 }
@@ -633,7 +634,8 @@ export async function getPushTokensForUser(userId: number): Promise<string[]> {
   const results = await db
     .select({ token: pushTokens.token })
     .from(pushTokens)
-    .where(and(eq(pushTokens.enabled, true), eq(pushTokens.userId, userId)));
+    .innerJoin(users, eq(users.id, pushTokens.userId))
+    .where(and(eq(pushTokens.enabled, true), eq(pushTokens.userId, userId), isNull(users.blockedAt)));
   return results.map((r) => r.token);
 }
 
@@ -658,7 +660,8 @@ export async function getClubMemberPushTokens(): Promise<string[]> {
   const results = await db
     .select({ token: pushTokens.token })
     .from(pushTokens)
-    .where(and(eq(pushTokens.enabled, true), inArray(pushTokens.userId, [...memberIds])));
+    .innerJoin(users, eq(users.id, pushTokens.userId))
+    .where(and(eq(pushTokens.enabled, true), inArray(pushTokens.userId, [...memberIds]), isNull(users.blockedAt)));
 
   return results.map((r) => r.token);
 }
@@ -692,7 +695,7 @@ export async function hasMarketingPushConsent(userId: number): Promise<boolean> 
     .select({ status: pushConsentEvents.status })
     .from(pushConsentEvents)
     .where(and(eq(pushConsentEvents.userId, userId), eq(pushConsentEvents.consentType, "marketing")))
-    .orderBy(desc(pushConsentEvents.createdAt))
+    .orderBy(desc(pushConsentEvents.createdAt), desc(pushConsentEvents.id))
     .limit(1);
 
   return rows[0]?.status === "granted";
@@ -709,7 +712,7 @@ async function getUserIdsWithMarketingConsent(): Promise<Set<number>> {
     })
     .from(pushConsentEvents)
     .where(eq(pushConsentEvents.consentType, "marketing"))
-    .orderBy(desc(pushConsentEvents.createdAt));
+    .orderBy(desc(pushConsentEvents.createdAt), desc(pushConsentEvents.id));
 
   const latest = new Map<number, PushConsentStatus>();
   for (const row of rows) {
@@ -761,8 +764,9 @@ export async function getMarketingPushTokens(
   const results = await db
     .select({ token: pushTokens.token })
     .from(pushTokens)
+    .innerJoin(users, eq(users.id, pushTokens.userId))
     .where(
-      and(eq(pushTokens.enabled, true), inArray(pushTokens.userId, [...userIds]), isNotNull(pushTokens.userId)),
+      and(eq(pushTokens.enabled, true), inArray(pushTokens.userId, [...userIds]), isNull(users.blockedAt)),
     );
 
   return results.map((r) => r.token);
@@ -780,11 +784,12 @@ export async function getServicePushTokens(
     const results = await db
       .select({ token: pushTokens.token })
       .from(pushTokens)
+      .innerJoin(users, eq(users.id, pushTokens.userId))
       .where(
         and(
           eq(pushTokens.enabled, true),
           inArray(pushTokens.userId, [...memberIds]),
-          isNotNull(pushTokens.userId),
+          isNull(users.blockedAt),
         ),
       );
     return results.map((r) => r.token);
@@ -793,7 +798,8 @@ export async function getServicePushTokens(
   const results = await db
     .select({ token: pushTokens.token })
     .from(pushTokens)
-    .where(and(eq(pushTokens.enabled, true), isNotNull(pushTokens.userId)));
+    .innerJoin(users, eq(users.id, pushTokens.userId))
+    .where(and(eq(pushTokens.enabled, true), isNull(users.blockedAt)));
 
   return results.map((r) => r.token);
 }

@@ -274,3 +274,32 @@ cleaned, local Cursor settings ignored. No new editor/agent rules introduced.
 resolve. Frozen install, docs/boundaries/types/API/Vite/Expo and verify passed;
 409 tests passed / 65 skipped without MySQL. Deleted files remain in Git history
 at 9c39659. Current requirements, audit evidence and unfinished tasks are intact.
+
+## Backend continuation: notification access — 2026-10-02
+
+User chose to continue the existing backend plan. Extend B07's immediate block
+enforcement to native notification audiences, without adding Web Push or changing
+login/registration flows. Existing open billing/media/release work stays open.
+
+- Reproduce blocked recipients and consent events with equal-second timestamps
+  using real disposable MySQL. Assert recipients, not query/source text.
+- Exclude blocked, missing-user, disabled and anonymous tokens from delivery
+  audiences; preserve subscription and marketing-consent gates. Use event ID as
+  the tie-breaker so the last recorded consent wins within the same second.
+- Verify focused regressions, complete disposable-MySQL suite, API contract,
+  boundaries, types and API build; document remaining native-device acceptance.
+  Do not send real push/email, modify production, deploy or push this new work.
+
+N01 verified on disposable MySQL: 14 expected failures before repair, all 15
+focused regressions now pass; full suite 487 pass / 2 skip. Recipient queries
+join users and check the current block status; consent ties use descending ID.
+SQL joins use the existing primary key, no schema/role/API/dependency change.
+Types/boundaries/docs/API build and 52-test verify pass. Remaining release gates
+and native-device acceptance stay open; messages already handed off are not recalled.
+
+Next thin slice N02: repair the existing push sender's false success count. A
+network/HTTP failure or per-message error must not count as accepted. Validate
+the external Expo ticket response and preserve the 100-message batch limit and
+audience filtering. No retry queue, receipt polling, token cleanup, new service
+or Web Push implementation belongs to this slice. Test only mocked transport;
+provider acceptance is not device delivery. Reference: Expo sending documentation.
