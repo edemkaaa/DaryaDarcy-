@@ -25,6 +25,10 @@ export async function uploadPhoto(base64: string, folder: string): Promise<{ url
   if (bytes.length > MAX_PHOTO_BYTES || bytes.toString("base64") !== base64) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Некорректное фото или размер больше 4 МБ" });
   }
+  const jpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  const png = bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  const webp = bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WEBP";
+  if (!jpeg && !png && !webp) throw new TRPCError({ code: "BAD_REQUEST", message: "Нужно фото JPEG, PNG или WebP" });
   // Bound native decoder pressure even if one user starts many concurrent calls.
   if (decoding >= 4) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Загрузка занята. Повторите позже" });
   decoding++;
