@@ -284,6 +284,7 @@ export const billingProfiles = mysqlTable("billing_profiles", {
 export const passwordTokens = mysqlTable("password_tokens", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
+  email: varchar("email", { length: 320 }),
   tokenHash: varchar("tokenHash", { length: 64 }).notNull().unique(),
   purpose: mysqlEnum("purpose", ["setup", "reset"]).notNull(),
   expiresAt: timestamp("expiresAt").notNull(),
@@ -299,6 +300,8 @@ export const accessEmailOutbox = mysqlTable("access_email_outbox", {
   kind: mysqlEnum("kind", ["club-access", "password-setup", "password-reset"]).notNull(),
   payload: json("payload").$type<{ orderId?: string; tokenCipher?: string }>().notNull(),
   sentAt: timestamp("sentAt"),
+  discardedAt: timestamp("discardedAt"),
+  lastError: varchar("lastError", { length: 64 }),
   nextAttemptAt: timestamp("nextAttemptAt").defaultNow().notNull(),
   attempts: int("attempts").default(0).notNull(),
   leaseId: varchar("leaseId", { length: 36 }),

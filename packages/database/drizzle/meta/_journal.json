@@ -127,6 +127,20 @@
       "when": 1790937000000,
       "tag": "0020_billing_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1790937100000,
+      "tag": "0021_access_mail_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1790937200000,
+      "tag": "0022_password_token_recipient",
+      "breakpoints": true
     }
   ]
 }
