@@ -80,6 +80,9 @@
   Disposable-MySQL checkpoint: 271 passed / 3 skipped, check/build/diff-check pass.
   Existing public storage links are NOT revoked by this API repair; migration and
   any optional protected-video implementation remain explicit release decisions.
+  URL-import SSRF repaired: no external server-side download; accept only exact
+  configured S3 origin + bucket. File upload/provider embeds remain separate paths.
+  Eight spoofed/internal URL scenarios checked; full MySQL suite 292 pass / 3 skip.
 - [ ] B09: First-release capabilities and seasonal/manager configuration.
   Acceptance: disabled SMS/shop payment/pen-pal routes cannot be called directly.
   Verify: capability matrix API tests and admin configuration roundtrip.

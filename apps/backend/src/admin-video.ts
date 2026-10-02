@@ -16,15 +16,6 @@ function safeVideoFilename(name: string): string {
   return cleaned || "video.mp4";
 }
 
-function guessExt(url: string, contentType: string): string {
-  if (contentType.includes("webm")) return ".webm";
-  if (contentType.includes("quicktime")) return ".mov";
-  if (/\.webm(\?|$)/i.test(url)) return ".webm";
-  if (/\.mov(\?|$)/i.test(url)) return ".mov";
-  if (/\.m4v(\?|$)/i.test(url)) return ".m4v";
-  return ".mp4";
-}
-
 export function blockedVideoPageReason(url: string): string | null {
   let host = "";
   try {
@@ -48,12 +39,15 @@ export function blockedVideoPageReason(url: string): string | null {
 }
 
 export function isOurStorageUrl(url: string): boolean {
-  const endpoint = (ENV.s3Endpoint || "").replace(/\/$/, "");
-  const bucket = ENV.s3Bucket || "";
-  if (endpoint && url.startsWith(endpoint)) return true;
-  if (url.includes("twcstorage.ru") && url.includes("daryadarcy")) return true;
-  if (bucket && url.includes(`/${bucket}/`)) return true;
-  return false;
+  try {
+    if (!ENV.s3Endpoint || !ENV.s3Bucket) return false;
+    const endpoint = new URL(ENV.s3Endpoint);
+    const candidate = new URL(url);
+    const prefix = `${endpoint.pathname.replace(/\/$/, "")}/${encodeURIComponent(ENV.s3Bucket)}/`;
+    return candidate.protocol === "https:" && candidate.origin === endpoint.origin &&
+      !candidate.username && !candidate.password && candidate.pathname.startsWith(prefix) &&
+      candidate.pathname.length > prefix.length;
+  } catch { return false; }
 }
 
 export async function importVideoFromUrl(url: string): Promise<{ url: string; fileSize?: number }> {
@@ -61,41 +55,9 @@ export async function importVideoFromUrl(url: string): Promise<{ url: string; fi
   const blocked = blockedVideoPageReason(trimmed);
   if (blocked) throw new Error(blocked);
   if (isOurStorageUrl(trimmed)) return { url: trimmed };
-
-  const res = await fetch(trimmed, {
-    redirect: "follow",
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; DaryaDarcy/1.0)" },
-  });
-  if (!res.ok) {
-    throw new Error(`Не удалось скачать видео (${res.status}). Нужна прямая ссылка на файл или загрузите его с телефона.`);
-  }
-  const contentLength = res.headers.get("content-length");
-  if (contentLength && Number(contentLength) > MAX_VIDEO_BYTES) {
-    throw new Error("Видео больше 80 МБ. Сожмите ролик или загрузите более короткий файл.");
-  }
-  const contentType = (res.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
-  const looksVideo =
-    contentType.startsWith("video/") ||
-    /\.(mp4|mov|webm|m4v)(\?|$)/i.test(trimmed) ||
-    contentType.includes("octet-stream") ||
-    contentType.includes("binary") ||
-    !contentType;
-  if (!looksVideo) {
-    throw new Error("Нужна прямая ссылка на видеофайл (mp4) или загрузите файл с телефона.");
-  }
-
-  const buffer = Buffer.from(await res.arrayBuffer());
-  if (buffer.length > MAX_VIDEO_BYTES) {
-    throw new Error("Видео больше 80 МБ. Сожмите ролик или загрузите более короткий файл.");
-  }
-  if (buffer.length < 64) {
-    throw new Error("По этой ссылке нет видеофайла. Загрузите ролик файлом.");
-  }
-
-  const mime = contentType.startsWith("video/") ? contentType : "video/mp4";
-  const key = `feed/reels/${Date.now()}_import${guessExt(trimmed, mime)}`;
-  const put = await storagePut(key, buffer, mime);
-  return { url: put.url, fileSize: buffer.length };
+  // Do not fetch user-controlled URLs: redirects/DNS can reach internal services.
+  // Upload local files instead; provider embeds are a separate publishing path.
+  throw new Error("Импорт с внешнего адреса отключён. Загрузите видео файлом или выберите файл из своего хранилища.");
 }
 
 async function requireAdmin(req: Request, res: Response) {
