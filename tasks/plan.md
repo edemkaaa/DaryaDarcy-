@@ -37,7 +37,10 @@ The repository remains a **modular monolith**, not a microservice system. Worksp
 
 ## Dependency Rules
 
-1. `apps/frontend` may import `packages/shared`, never backend/database internals.
+1. `apps/frontend` may import `packages/shared`, never backend/database runtime.
+   Explicit existing tRPC exception: only named type-only AppRouter import from
+   backend/routers in either client. Expo app.config.ts alone may load the one
+   build-only tooling/scripts/load-env.js helper; application runtime may not.
 2. `apps/backend` may import `packages/shared` and `packages/database`.
 3. `packages/database` may import `packages/shared`, but never an app.
 4. `packages/shared` is platform-neutral and imports no app or database code.

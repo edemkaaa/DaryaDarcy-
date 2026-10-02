@@ -84,10 +84,16 @@ tasks/               План дальнейшего рефакторинга
 
 ### Границы модулей
 
-- `frontend` использует только публичные контракты из `packages/shared` и не импортирует код API или БД.
+- `frontend` использует общие контракты из `packages/shared`; runtime-код API и БД запрещён.
+  Узкое исключение для обоих клиентов — только `import type { AppRouter }` для
+  tRPC-инференса; этот импорт не попадает в JavaScript-бандл. Expo app.config.ts
+  использует один build-only environment loader, не приложение времени выполнения.
 - `backend` отвечает за HTTP, tRPC, авторизацию и бизнес-логику; он может использовать `shared` и `database`.
 - `database` владеет схемой и миграциями, но не зависит от приложений.
 - `infrastructure` и `tooling` не содержат пользовательский интерфейс или бизнес-логику.
+
+Границы проверяются `pnpm check:boundaries` по синтаксическому дереву TypeScript,
+включая re-export, require и dynamic import. `pnpm check` дополнительно проверяет типы.
 - `legacy-web` не считается основным клиентом и не должен получать новые функции без отдельного решения.
 
 Подробнее: [ADR-0001 — Modular Monorepo](docs/decisions/0001-modular-monorepo.md).
