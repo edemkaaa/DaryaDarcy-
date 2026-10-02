@@ -318,6 +318,17 @@ db:push как безусловный шаг и предупреждает об 
 API/web-сборки и regression проходят. Preflight не проверяет содержимое всех
 таблиц и не заменяет сверку схемы, backup/rehearsal и согласованный rollout.
 
+## Отдельные маршруты контента и уведомлений
+
+Лента, чтение статей и существующие уведомления перенесены в
+content/feed-router.ts, content/articles-router.ts и notifications/router.ts.
+Главный assembler уменьшился ещё на 164 строки. Это перенос, не новая реализация
+push и не изменение правил доступа/согласия. Нормализованный скомпилированный код
+трёх обработчиков совпадает с предыдущим; snapshot всех tRPC-процедур сохранён.
+Исходниковые regression-проверки теперь смотрят соответствующие модули.
+447 тестов / 2 пропуска, типы, границы 273 файлов, сборка API и diff-check проходят.
+README содержит карту модулей; оставшиеся крупные admin/legacy/data части не скрыты.
+
 Область действия и очистка сверены с [моделью Set-Cookie](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie)
 и [Express clearCookie](https://expressjs.com/en/4x/api/response/#res.clearCookie).
 

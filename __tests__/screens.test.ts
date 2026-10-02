@@ -427,16 +427,17 @@ describe("Database Schema", () => {
 describe("Feed API Routes", () => {
   const routerPath = path.join(REPOSITORY_ROOT, "apps/backend/src/routers.ts");
   const routerContent = fs.readFileSync(routerPath, "utf-8");
+  const feedContent = fs.readFileSync(path.join(REPOSITORY_ROOT, "apps/backend/src/content/feed-router.ts"), "utf-8");
 
   it("should have feed router with list and tags endpoints", () => {
-    expect(routerContent).toContain("feed: router");
-    expect(routerContent).toContain("list: publicProcedure");
-    expect(routerContent).toContain("tags: publicProcedure");
+    expect(routerContent).toContain("feed: feedRouter");
+    expect(feedContent).toContain("list: publicProcedure");
+    expect(feedContent).toContain("tags: publicProcedure");
   });
 
   it("should have protected like/save endpoints", () => {
-    expect(routerContent).toContain("toggleLike: protectedProcedure");
-    expect(routerContent).toContain("toggleSave: protectedProcedure");
+    expect(feedContent).toContain("toggleLike: protectedProcedure");
+    expect(feedContent).toContain("toggleSave: protectedProcedure");
   });
 
   it("should have admin router with CRUD endpoints", () => {
@@ -478,7 +479,7 @@ describe("Feed Search", () => {
 });
 
 describe("Feed Search - Server Side", () => {
-  const routerPath = path.join(REPOSITORY_ROOT, "apps/backend/src/routers.ts");
+  const routerPath = path.join(REPOSITORY_ROOT, "apps/backend/src/content/feed-router.ts");
   const routerContent = fs.readFileSync(routerPath, "utf-8");
   const dbPath = path.join(REPOSITORY_ROOT, "apps/backend/src/db.ts");
   const dbContent = fs.readFileSync(dbPath, "utf-8");
@@ -498,6 +499,7 @@ describe("Push Notifications", () => {
   const layoutContent = fs.readFileSync(layoutPath, "utf-8");
   const routerPath = path.join(REPOSITORY_ROOT, "apps/backend/src/routers.ts");
   const routerContent = fs.readFileSync(routerPath, "utf-8");
+  const notificationsContent = fs.readFileSync(path.join(REPOSITORY_ROOT, "apps/backend/src/notifications/router.ts"), "utf-8");
   const schemaPath = path.join(REPOSITORY_ROOT, "packages/database/src/schema.ts");
   const schemaContent = fs.readFileSync(schemaPath, "utf-8");
   const dbPath = path.join(REPOSITORY_ROOT, "apps/backend/src/db.ts");
@@ -516,8 +518,8 @@ describe("Push Notifications", () => {
   });
 
   it("should have marketing push consent endpoints", () => {
-    expect(routerContent).toContain("marketingConsent");
-    expect(routerContent).toContain("setMarketingConsent");
+    expect(notificationsContent).toContain("marketingConsent");
+    expect(notificationsContent).toContain("setMarketingConsent");
     expect(schemaContent).toContain('mysqlTable("push_consent_events"');
   });
 
@@ -532,8 +534,8 @@ describe("Push Notifications", () => {
   });
 
   it("should have notifications router with registerToken endpoint", () => {
-    expect(routerContent).toContain("notifications: router");
-    expect(routerContent).toContain("registerToken");
+    expect(routerContent).toContain("notifications: notificationsRouter");
+    expect(notificationsContent).toContain("registerToken");
   });
 
   it("should initialize notifications in root layout (native only)", () => {

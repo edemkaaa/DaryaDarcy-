@@ -1,4 +1,7 @@
 import { clearSessionCookie } from "./_core/cookies";
+import { feedRouter } from "./content/feed-router";
+import { notificationsRouter } from "./notifications/router";
+import { articlesRouter } from "./content/articles-router";
 import { clubRouter } from "./club/router";
 import { moderationRouter } from "./moderation/router";
 import { systemRouter } from "./_core/systemRouter";
@@ -7,7 +10,6 @@ import {
   protectedProcedure,
   adminProcedure,
   router,
-  userHasClubAccess,
 } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -26,10 +28,6 @@ import { isRawMediaFilename } from "../../../packages/shared/src/media-label";
 import { importVideoFromUrl } from "./admin-video";
 import { normalizeRichTextForStorage, sanitizePlainPostText } from "../../../packages/shared/src/post-text-sanitize";
 import { sendMarketingPostNotification } from "./push";
-import {
-  MARKETING_PUSH_CONSENT_LABEL,
-  MARKETING_PUSH_CONSENT_VERSION,
-} from "../../../packages/shared/src/push-consent";
 
 // Legacy export kept for tests and index.ts cron
 export async function sendNewPostNotification(
@@ -87,128 +85,10 @@ export const appRouter = router({
   }),
 
   // Feed router
-  feed: router({
-    // Get published posts (public)
-    list: publicProcedure
-      .input(z.object({ tag: z.string().optional() }).optional())
-      .query(({ input }) => {
-        return db.getPosts(input?.tag);
-      }),
-
-    // Paginated posts (public) - offset-based with search
-    listPaginated: publicProcedure
-      .input(z.object({
-        tag: z.string().optional(),
-        search: z.string().optional(),
-        limit: z.number().min(1).max(50).default(12),
-        cursor: z.number().nullish(), // offset value
-      }))
-      .query(({ input }) => {
-        return db.getPostsPaginated({
-          tagFilter: input.tag,
-          search: input.search,
-          limit: input.limit,
-          cursor: input.cursor ?? undefined,
-        });
-      }),
-
-    // Get single post by ID (public feed; club posts only for subscribers)
-    getById: publicProcedure
-      .input(z.object({ id: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const post = await db.getPostById(input.id);
-        if (!post || !post.published || post.status !== "published") return undefined;
-        if (post.target === "club") {
-          if (!ctx.user) return undefined;
-          if (!(await userHasClubAccess(ctx.user))) return undefined;
-        }
-        return post;
-      }),
-
-    // Get all tags (public)
-    tags: publicProcedure.query(() => {
-      return db.getAllTags();
-    }),
-
-    // Toggle like (requires auth)
-    toggleLike: protectedProcedure
-      .input(z.object({ postId: z.coerce.number() }))
-      .mutation(({ ctx, input }) => {
-        return db.toggleLike(ctx.user.id, input.postId);
-      }),
-
-    // Toggle save/bookmark (requires auth)
-    toggleSave: protectedProcedure
-      .input(z.object({ postId: z.coerce.number() }))
-      .mutation(({ ctx, input }) => {
-        return db.toggleSave(ctx.user.id, input.postId);
-      }),
-
-    // Get user's liked and saved post IDs (requires auth)
-    userInteractions: protectedProcedure.query(({ ctx }) => {
-      return Promise.all([
-        db.getUserLikedPostIds(ctx.user.id),
-        db.getUserSavedPostIds(ctx.user.id),
-      ]).then(([likedIds, savedIds]) => ({ likedIds, savedIds }));
-    }),
-    savedPosts: protectedProcedure.query(async ({ ctx }) => {
-      const ids = await db.getUserSavedPostIds(ctx.user.id);
-      const posts = await db.getPostsByIds(ids);
-      const hasClub = await userHasClubAccess(ctx.user);
-      return posts.filter((post) => post.published && post.status === "published" && (hasClub || post.target !== "club"));
-    }),
-  }),
+  feed: feedRouter,
 
   // Push notifications
-  notifications: router({
-    // Register device push token (public - any device can register)
-    registerToken: publicProcedure
-      .input(z.object({
-        token: z.string().min(1),
-        platform: z.string().optional(),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        await db.registerPushToken(input.token, ctx.user?.id, input.platform);
-        return { success: true };
-      }),
-    marketingConsent: protectedProcedure.query(async ({ ctx }) => {
-      const enabled = await db.hasMarketingPushConsent(ctx.user.id);
-      return {
-        enabled,
-        label: MARKETING_PUSH_CONSENT_LABEL,
-        version: MARKETING_PUSH_CONSENT_VERSION,
-      };
-    }),
-    setMarketingConsent: protectedProcedure
-      .input(z.object({
-        enabled: z.boolean(),
-        platform: z.string().optional(),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        await db.logPushConsentEvent(
-          ctx.user.id,
-          "marketing",
-          input.enabled ? "granted" : "revoked",
-          input.platform,
-          MARKETING_PUSH_CONSENT_VERSION,
-          MARKETING_PUSH_CONSENT_LABEL,
-        );
-        return { success: true, enabled: input.enabled };
-      }),
-    latest: publicProcedure.query(async ({ ctx }) => {
-      const feed = await db.getLatestPublishedPost("feed");
-      let club: { id: number; text: string } | undefined;
-      if (ctx.user && await userHasClubAccess(ctx.user)) {
-        club = await db.getLatestPublishedPost("club");
-      }
-      return {
-        feedId: feed?.id ?? null,
-        feedText: feed?.text ?? "",
-        clubId: club?.id ?? null,
-        clubText: club?.text ?? "",
-      };
-    }),
-  }),
+  notifications: notificationsRouter,
 
   // Videos router (public)
   videos: router({
@@ -711,45 +591,7 @@ export const appRouter = router({
     }),
   }),
 
-  articles: router({
-    list: publicProcedure.query(async () => {
-      const rows = await db.listPublishedArticles();
-      return rows
-        .filter((row) => row.access === "public")
-        .map((row) => ({
-          id: row.id,
-          title: row.title,
-          coverUrl: row.coverUrl,
-          access: row.access,
-        }));
-    }),
-    getById: publicProcedure
-      .input(z.object({ id: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const article = await db.getArticleById(input.id);
-        if (!article || !article.published) return undefined;
-        const user = ctx.user;
-        const allowed = article.access === "public" || Boolean(user && await userHasClubAccess(user));
-        if (!allowed) {
-          return {
-            id: article.id,
-            title: article.title,
-            coverUrl: article.coverUrl,
-            access: article.access,
-            locked: true as const,
-            sections: [],
-          };
-        }
-        return {
-          id: article.id,
-          title: article.title,
-          coverUrl: article.coverUrl,
-          access: article.access,
-          locked: false as const,
-          sections: article.sections || [],
-        };
-      }),
-  }),
+  articles: articlesRouter,
 });
 
 export type AppRouter = typeof appRouter;

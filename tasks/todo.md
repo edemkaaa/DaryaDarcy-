@@ -22,6 +22,7 @@
 - [ ] Extract domain routers and repositories.
   HTTP policy, billing, identity, launch configuration and comment repositories
   separated; club and moderation routers extracted without API changes;
+  feed, articles and notification routers extracted with unchanged compiled handlers;
   legacy unused comment accessors removed. Other domains remain.
 - [ ] Green checkpoint: API contract, tests, check, backend build.
 

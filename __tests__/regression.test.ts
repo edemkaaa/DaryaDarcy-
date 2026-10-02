@@ -293,7 +293,7 @@ describe("Club access — server gates", () => {
   });
 
   it("filters saved club posts for non-members", () => {
-    const routers = read("apps/backend/src/routers.ts");
+    const routers = read("apps/backend/src/content/feed-router.ts");
     expect(routers).toContain('post.target !== "club"');
   });
 });
