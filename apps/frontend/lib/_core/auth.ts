@@ -15,99 +15,86 @@ export type User = {
   role: string;
 };
 
-export async function getSessionToken(): Promise<string | null> {
-  try {
-    if (Platform.OS === "web") {
-      return window.localStorage.getItem(SESSION_TOKEN_KEY);
+let webUser: User | null = null;
+
+function discardLegacyWebStorage(): void {
+  if (typeof window === "undefined") return;
+  for (const key of [SESSION_TOKEN_KEY, USER_INFO_KEY]) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // Cookie authentication must not depend on localStorage availability.
     }
+  }
+}
+
+export async function getSessionToken(): Promise<string | null> {
+  if (Platform.OS === "web") {
+    discardLegacyWebStorage();
+    return null; // Web requests authenticate with the server's HttpOnly cookie.
+  }
+  try {
     return await SecureStore.getItemAsync(SESSION_TOKEN_KEY);
-  } catch (error) {
-    console.error("[Auth] Failed to get session token:", error);
+  } catch {
     return null;
   }
 }
 
 export async function setSessionToken(token: string): Promise<void> {
+  if (Platform.OS === "web") {
+    discardLegacyWebStorage();
+    return; // Set-Cookie was already processed by the credentialed login request.
+  }
   try {
-    if (Platform.OS === "web") {
-      window.localStorage.setItem(SESSION_TOKEN_KEY, token);
-      return;
-    }
     await SecureStore.setItemAsync(SESSION_TOKEN_KEY, token);
-  } catch (error) {
-    console.error("[Auth] Failed to set session token:", error);
-    throw error;
+  } catch {
+    throw new Error("Не удалось сохранить сессию на устройстве");
   }
 }
 
 export async function removeSessionToken(): Promise<void> {
-  try {
-    if (Platform.OS === "web") {
-      window.localStorage.removeItem(SESSION_TOKEN_KEY);
-      return;
-    }
-    await SecureStore.deleteItemAsync(SESSION_TOKEN_KEY);
-  } catch (error) {
-    console.error("[Auth] Failed to remove session token:", error);
+  if (Platform.OS === "web") {
+    discardLegacyWebStorage();
+    return;
   }
+  try {
+    await SecureStore.deleteItemAsync(SESSION_TOKEN_KEY);
+  } catch {}
 }
 
 export async function getUserInfo(): Promise<User | null> {
+  if (Platform.OS === "web") {
+    discardLegacyWebStorage();
+    return webUser;
+  }
   try {
-    console.log("[Auth] Getting user info...");
-
-    let info: string | null = null;
-    if (Platform.OS === "web") {
-      // Use localStorage for web
-      info = window.localStorage.getItem(USER_INFO_KEY);
-    } else {
-      // Use SecureStore for native
-      info = await SecureStore.getItemAsync(USER_INFO_KEY);
-    }
-
-    if (!info) {
-      console.log("[Auth] No user info found");
-      return null;
-    }
-    const user = JSON.parse(info);
-    console.log("[Auth] User info retrieved:", user);
-    return user;
-  } catch (error) {
-    console.error("[Auth] Failed to get user info:", error);
+    const info = await SecureStore.getItemAsync(USER_INFO_KEY);
+    return info ? JSON.parse(info) : null;
+  } catch {
     return null;
   }
 }
 
 export async function setUserInfo(user: User): Promise<void> {
+  if (Platform.OS === "web") {
+    discardLegacyWebStorage();
+    webUser = user;
+    return;
+  }
   try {
-    console.log("[Auth] Setting user info...", user);
-
-    if (Platform.OS === "web") {
-      // Use localStorage for web
-      window.localStorage.setItem(USER_INFO_KEY, JSON.stringify(user));
-      console.log("[Auth] User info stored in localStorage successfully");
-      return;
-    }
-
-    // Use SecureStore for native
     await SecureStore.setItemAsync(USER_INFO_KEY, JSON.stringify(user));
-    console.log("[Auth] User info stored in SecureStore successfully");
-  } catch (error) {
-    console.error("[Auth] Failed to set user info:", error);
+  } catch {
+    // The cached profile is optional; API authorization remains server-owned.
   }
 }
 
 export async function clearUserInfo(): Promise<void> {
-  try {
-    if (Platform.OS === "web") {
-      // Use localStorage for web
-      window.localStorage.removeItem(USER_INFO_KEY);
-      return;
-    }
-
-    // Use SecureStore for native
-    await SecureStore.deleteItemAsync(USER_INFO_KEY);
-  } catch (error) {
-    console.error("[Auth] Failed to clear user info:", error);
+  if (Platform.OS === "web") {
+    discardLegacyWebStorage();
+    webUser = null;
+    return;
   }
+  try {
+    await SecureStore.deleteItemAsync(USER_INFO_KEY);
+  } catch {}
 }
