@@ -1,4 +1,8 @@
-import type { CookieOptions, Request } from "express";
+import type { CookieOptions, Request, Response } from "express";
+import {
+  COOKIE_NAME,
+  ONE_YEAR_MS,
+} from "../../../../packages/shared/src/const";
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
@@ -8,23 +12,9 @@ function isIpAddress(host: string) {
   return host.includes(":");
 }
 
-function isSecureRequest(req: Request) {
-  if (req.protocol === "https") return true;
-
-  const forwardedProto = req.headers["x-forwarded-proto"];
-  if (!forwardedProto) return false;
-
-  const protoList = Array.isArray(forwardedProto) ? forwardedProto : forwardedProto.split(",");
-
-  return protoList.some((proto) => proto.trim().toLowerCase() === "https");
-}
-
-/**
- * Extract parent domain for cookie sharing across subdomains.
- * e.g., "3000-xxx.manuspre.computer" -> ".manuspre.computer"
- * This allows cookies set by 3000-xxx to be read by 8081-xxx
- */
-function getParentDomain(hostname: string): string | undefined {
+/** Old domain calculation is retained only to expire previously issued cookies. */
+function legacyParentDomain(hostname: string | undefined): string | undefined {
+  if (!hostname) return undefined;
   // Don't set domain for localhost or IP addresses
   if (LOCAL_HOSTS.has(hostname) || isIpAddress(hostname)) {
     return undefined;
@@ -39,24 +29,40 @@ function getParentDomain(hostname: string): string | undefined {
     return undefined;
   }
 
-  // Return parent domain with leading dot (e.g., ".manuspre.computer")
-  // This allows cookie to be shared across all subdomains
   return "." + parts.slice(-2).join(".");
 }
 
 export function getSessionCookieOptions(
   req: Request,
 ): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
-  const hostname = req.hostname;
-  const domain = getParentDomain(hostname);
-
-  const secure = isSecureRequest(req);
-
   return {
-    domain,
     httpOnly: true,
     path: "/",
     sameSite: "lax",
-    secure,
+    // req.protocol is resolved by Express's configured trust-proxy policy.
+    secure: process.env.NODE_ENV === "production" || req.protocol === "https",
   };
+}
+
+function expireLegacySessionCookie(req: Request, res: Response): void {
+  const domain = legacyParentDomain(req.hostname);
+  if (domain)
+    res.clearCookie(COOKIE_NAME, { ...getSessionCookieOptions(req), domain });
+}
+
+export function setSessionCookie(
+  req: Request,
+  res: Response,
+  token: string,
+): void {
+  expireLegacySessionCookie(req, res);
+  res.cookie(COOKIE_NAME, token, {
+    ...getSessionCookieOptions(req),
+    maxAge: ONE_YEAR_MS,
+  });
+}
+
+export function clearSessionCookie(req: Request, res: Response): void {
+  res.clearCookie(COOKIE_NAME, getSessionCookieOptions(req));
+  expireLegacySessionCookie(req, res);
 }

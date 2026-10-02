@@ -188,6 +188,19 @@ UI-проверки — локальная заглушка без БД/расс
 cookies не предусмотрен. Вход в стороннем iframe не является launch-сценарием.
 Реальные iOS/Android и рабочая топология cookies требуют приёмки.
 
+Сервер выдаёт новые cookie только хосту API, без автоматического родительского
+Domain. Старый расчёт домена применяется лишь для удаления прежней cookie при
+выдаче/выходе; выход REST и tRPC очищает оба варианта без устаревшего maxAge.
+Production всегда требует Secure; вне production HTTPS определяется только через
+Express trust-proxy, а не произвольный сырой заголовок. Ответы авторизации и запросы
+с cookie/Bearer получают no-store. Восемь сценариев проверены, включая настоящие
+HTTP-заголовки Set-Cookie; старый пропущенный тест logout включён.
+Контрольная точка: 405 тестов / 2 пропуска, типы/границы/API проходят.
+Прежние потенциально раскрытые сессии этим не отзываются задним числом; политика
+их отзыва и HTTPS рабочего окружения остаются preflight-вопросами.
+Область действия и очистка сверены с [моделью Set-Cookie](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie)
+и [Express clearCookie](https://expressjs.com/en/4x/api/response/#res.clearCookie).
+
 Технические решения сверены с [sharp](https://sharp.pixelplumbing.com/api-constructor/),
 [Express trusted proxies](https://expressjs.com/en/guide/behind-proxies/) и
 [браузерной моделью CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS).

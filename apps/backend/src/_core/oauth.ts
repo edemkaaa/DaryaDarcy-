@@ -1,4 +1,4 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "../../../../packages/shared/src/const.js";
+import { ONE_YEAR_MS } from "../../../../packages/shared/src/const.js";
 import type { Express, Request, Response } from "express";
 import {
   emailToOpenId,
@@ -9,7 +9,7 @@ import {
   phoneToOpenId,
   upsertUser,
 } from "../db";
-import { getSessionCookieOptions } from "./cookies";
+import { clearSessionCookie, setSessionCookie } from "./cookies";
 import { hashPassword, isValidEmail, normalizeEmail, verifyPassword } from "./password";
 import { sdk } from "./sdk";
 import type { User } from "../../../../packages/database/src/schema";
@@ -69,8 +69,7 @@ export async function issueSession(req: Request, res: Response, user: User) {
     expiresInMs: ONE_YEAR_MS,
     sessionVersion: user.sessionVersion,
   });
-  const cookieOptions = getSessionCookieOptions(req);
-  res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+  setSessionCookie(req, res, sessionToken);
   return { sessionToken, user: publicUser(user) };
 }
 
@@ -203,8 +202,7 @@ export function registerOAuthRoutes(app: Express) {
   });
 
   app.post("/api/auth/logout", (req: Request, res: Response) => {
-    const cookieOptions = getSessionCookieOptions(req);
-    res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+    clearSessionCookie(req, res);
     res.json({ success: true });
   });
 
@@ -226,8 +224,7 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       const token = authHeader.slice("Bearer ".length).trim();
-      const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      setSessionCookie(req, res, token);
       res.json({ success: true, user: publicUser(user) });
     } catch {
       res.status(401).json({ error: "Invalid token" });

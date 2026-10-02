@@ -14,6 +14,9 @@ export function registerHttpSecurity(app: Express): void {
   app.disable("x-powered-by");
   app.use((req, res, next) => {
     res.vary("Origin");
+    if (/^\/api\/auth(?:\/|$)/.test(req.path) || req.headers.cookie || req.headers.authorization) {
+      res.setHeader("Cache-Control", "no-store");
+    }
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "no-referrer");
     res.setHeader("X-Frame-Options", "DENY");

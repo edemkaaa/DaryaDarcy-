@@ -1,5 +1,4 @@
-import { COOKIE_NAME } from "../../../packages/shared/src/const.js";
-import { getSessionCookieOptions } from "./_core/cookies";
+import { clearSessionCookie } from "./_core/cookies";
 import { isValidEmail, normalizeEmail } from "./_core/password";
 import { systemRouter } from "./_core/systemRouter";
 import {
@@ -72,8 +71,7 @@ export const appRouter = router({
       return safeUser;
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      clearSessionCookie(ctx.req, ctx.res);
       return {
         success: true,
       } as const;
