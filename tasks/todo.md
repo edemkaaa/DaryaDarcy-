@@ -236,3 +236,16 @@
   pass, including two worker batches, next tick, withdrawal and trigger rollback.
   Full suite: 537 pass / 2 skip; types/280-file boundaries/docs/API build and
   52-test verify pass. No real push or schema change; release checkpoint stays open.
+
+## Backend continuation: manual publication ownership — 2026-10-02
+
+- [x] N07: admin.confirmPost announces only its own committed draft/scheduled
+  transition, never an already-published retry or scheduler-owned publication.
+  Preserve early confirmation/date rules and HTTP result. Verify real authenticated
+  HTTP/MySQL repeats/concurrency/scheduler/rollback/role and missing-row cases,
+  full suite/types/boundaries/docs/build. No push-outbox or updatePost guarantee.
+  Four original assertion failures → all 10 real authenticated HTTP/MySQL cases
+  pass. Legacy published/false visibility is still repairable; repeat HTTP result
+  remains {success:true}. Full suite: 547 pass / 2 skip, types/281-file boundaries/
+  docs/API build/52-test verify pass. Fixtures for global scheduler suites are
+  mutually exclusive, while their actual concurrent workers remain real.

@@ -4,6 +4,7 @@ import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { settleClubOrder } from "./billing/settlement";
 import { grantClubAccess } from "./billing/grants";
+import { confirmPostPublication, type PostPublication } from "./content/publication";
 import {
   MARKETING_PUSH_CONSENT_VERSION,
   type PushConsentStatus,
@@ -1048,15 +1049,11 @@ export async function clearRawCameraFilenames(): Promise<void> {
 }
 
 // Update post status (for confirming scheduled posts)
-export async function confirmScheduledPost(postId: number): Promise<void> {
+export async function confirmScheduledPost(postId: number): Promise<PostPublication | undefined> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.update(posts).set({
-    status: "published",
-    published: true,
-    publishedAt: sql`COALESCE(${posts.publishedAt}, UTC_TIMESTAMP())`,
-  }).where(eq(posts.id, postId));
+  return confirmPostPublication(db, postId);
 }
 
 export async function publishDueScheduledPosts(): Promise<{ id: number; text: string; target: "feed" | "club" | "both" }[]> {

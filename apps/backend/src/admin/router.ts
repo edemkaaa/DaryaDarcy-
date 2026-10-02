@@ -376,10 +376,9 @@ export const adminRouter = router({
   confirmPost: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      await db.confirmScheduledPost(input.id);
-      const post = await db.getPostById(input.id);
+      const post = await db.confirmScheduledPost(input.id);
       if (post) {
-        sendNewPostNotification(post.text, input.id, post.target);
+        void sendNewPostNotification(post.text, post.id, post.target);
       }
       return { success: true };
     }),

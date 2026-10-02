@@ -400,3 +400,30 @@ the same transaction and returned after commit. Dates/target/status exclusions
 are preserved. Full suite: 537 pass / 2 skip, types/280-file boundaries/docs/API
 build/52-test verify pass. Batch size/index/load profiling and a durable push
 outbox remain open; admin manual-confirm semantics were not changed.
+
+## Backend continuation: manual publication ownership — 2026-10-02
+
+N07 extends N06 to admin.confirmPost. Hypothesis: the unconditional write and
+subsequent read announce an already-published post on every retry; manual and
+scheduled workers may both announce the same transition. Boundary: authenticated
+admin intent → committed post transition → marketing notification input.
+
+- Reproduce via real authenticated local HTTP/MySQL; fake only external push.
+- Return the committed announcement snapshot only to the writer that transitions
+  draft/scheduled to published under the post lock. Keep early manual confirmation,
+  current publication-date semantics and HTTP {success:true}, including no-ops.
+- Check repeat/concurrent/manual-scheduler requests, rollback, missing rows and
+  unchanged anonymous/member/blocked-staff restrictions. No auth/role changes.
+- Run the complete local suite/types/boundaries/docs/build before committing.
+  No actual push, production DB, migration, provider changes or deployment.
+  Draft→published via updatePost and crash-safe push outbox remain separate work.
+
+N07 verified: four expected assertion failures before repair; all 10 real JWT/
+HTTP/MySQL cases pass after. content/publication.ts owns the row-lock transaction,
+returning only the successful writer's id/text/target snapshot after commit.
+db.confirmScheduledPost's internal return type is now PostPublication|undefined;
+the only production consumer was updated, with unchanged tRPC input/output.
+Early confirmation, backdated publication and repair of legacy hidden flags are
+preserved. Global scheduler suites share test-only fixture ownership, not fake
+worker locks. Full suite: 547 pass / 2 skip; types/281-file boundaries/docs/API
+build/52-test verify pass. updatePost concurrency and durable push remain open.

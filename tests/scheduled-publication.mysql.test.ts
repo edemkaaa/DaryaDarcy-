@@ -19,6 +19,11 @@ describe.skipIf(!testDatabaseUrl)(
     let conn: Connection;
     beforeAll(async () => {
       conn = await openContentTestDatabase();
+      // Share fixture ownership with manual publication tests, not worker locks.
+      const [locks] = await conn.query<RowDataPacket[]>(
+        "SELECT GET_LOCK('backend_test_post_publication',30) AS acquired",
+      );
+      expect(locks[0].acquired).toBe(1);
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
     });
     async function cleanup() {
