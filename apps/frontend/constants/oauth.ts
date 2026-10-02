@@ -52,11 +52,7 @@ export const SESSION_TOKEN_KEY = "app_session_token";
 export const USER_INFO_KEY = "daryadarcy-user-info";
 
 export function isOwnerUser(user: { role?: string | null; openId?: string | null; email?: string | null } | null | undefined): boolean {
-  if (!user) return false;
-  if (user.role === "admin") return true;
-  if (OWNER_OPEN_ID && user.openId === OWNER_OPEN_ID) return true;
-  const email = (user.email || "").trim().toLowerCase();
-  return Boolean(OWNER_EMAIL && email === OWNER_EMAIL);
+  return user?.role === "admin";
 }
 
 /**
