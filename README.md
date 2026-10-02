@@ -1,75 +1,212 @@
 # Daryadarcy App
 
-Мобильное и веб-приложение бренда Darya Darcy: лента, видео, клуб по подписке, библиотека, магазин, интерактив (квиз, moodboard).
+Приложение бренда Darya Darcy для web, iOS и Android. В проект входят публичная лента, видео, закрытый клуб по подписке, библиотека, магазин и интерактивные разделы.
 
-Production: https://daryadarcy.com
+- Production: [daryadarcy.com](https://daryadarcy.com)
+- Основной клиент: Expo Router (`apps/frontend`)
+- API: Express + tRPC (`apps/backend`)
+- Репозиторий: модульный монолит на pnpm workspaces
 
-## Требования
+## Быстрый старт
 
-- Node.js 20+
-- npm или pnpm
-- MySQL 8+ (utf8mb4) для локального API
-- Доступ к S3 Timeweb (только для полного локального запуска с медиа)
+### 1. Требования
 
-## Быстрый старт (локально)
+- Node.js 20 или новее
+- pnpm 9
+- MySQL 8 с кодировкой `utf8mb4`
+
+Для обычной разработки доступ к production, VPS и S3 не нужен.
+
+### 2. Установка
 
 ```bash
-npm install
-cp .env.example .env   # заполнить без production-секретов
-npm run dev            # API :3000 + Metro web :8081
+pnpm install
+cp .env.example .env
 ```
 
-Отдельно для web-only (статика + production API):
+В `.env` для локального запуска достаточно указать:
 
-```bash
-npm run build:web
-npx serve web-dist
+```dotenv
+DATABASE_URL=mysql://user:password@127.0.0.1:3306/daryadarcy?charset=utf8mb4
+JWT_SECRET=change-me-local-dev-only
+PUBLIC_APP_URL=http://localhost:8081
+EXPO_PUBLIC_API_BASE_URL=http://localhost:3000
 ```
 
-## Сборка и деплой
+Полный список параметров и пояснения находятся в [`.env.example`](.env.example). Не копируйте production-секреты в локальный `.env` и никогда не добавляйте `.env` в Git.
 
-| Команда | Назначение |
-|---------|------------|
-| `npm run verify` | Регрессионные тесты перед релизом |
-| `npm run build:web` | Сборка PWA (Expo export → `web-dist/`) |
-| `npm run build` | Сборка API (`dist/index.mjs`) |
-| `npm run deploy:web` | verify → build → S3 → VPS (nginx) |
-| `npm run smoke` | Smoke-тест production |
-
-API на VPS: PM2 `daryadarcy-api`, nginx проксирует `/api/` → `127.0.0.1:3000`.
-
-## Тестирование
+### 3. Запуск
 
 ```bash
-npm run verify          # regression + quiz (30 тестов)
-npm run test            # все vitest-тесты
-npm run test:regression
-npm run smoke           # HTTP smoke production
+pnpm dev
+```
+
+Команда одновременно запускает:
+
+- основной web-клиент — [http://localhost:8081](http://localhost:8081);
+- API — [http://localhost:3000](http://localhost:3000);
+- проверку API — [http://localhost:3000/api/health](http://localhost:3000/api/health);
+- tRPC — `http://localhost:3000/api/trpc`.
+
+Если нужна только одна часть:
+
+```bash
+pnpm dev:metro    # основной Expo-клиент
+pnpm dev:server   # только API
+pnpm dev:web      # старый Vite-клиент, не production-фронтенд
 ```
 
 ## Структура проекта
 
-```
-apps/             Клиентские и серверные приложения
-  frontend/       Expo Router: web, iOS и Android
-  backend/        Express + tRPC API
-  legacy-web/     Альтернативный Vite-клиент (legacy)
+```text
+apps/
+  frontend/          Основной Expo Router клиент: web, iOS, Android
+  backend/           Express + tRPC API
+  legacy-web/        Старый Vite-клиент, сохранён для совместимости
+
 packages/
-  shared/         Общие контракты и чистые утилиты
-  database/       Drizzle-схема и SQL-миграции
-infrastructure/   Конфигурация окружения и деплоя
-  deploy/         nginx, PM2 и подготовка VPS
+  shared/            Общие контракты и платформо-независимые функции
+  database/          Drizzle-схема, связи и SQL-миграции
+
+infrastructure/
+  deploy/            nginx, PM2, подготовка и артефакты VPS
+
 tooling/
-  scripts/        Импорт, обслуживание и сценарии деплоя
-docs/decisions/   Архитектурные решения
-web-dist/         Собранный фронт (генерируется, не в git)
-docs/             Документация для аудита
+  scripts/           Импорт данных, обслуживание и сценарии деплоя
+
+docs/                Техническая документация и материалы аудита
+  decisions/         Архитектурные решения (ADR)
+
+tests/               Дополнительные тестовые сценарии
+__tests__/           Основной набор Vitest-тестов
+tasks/               План дальнейшего рефакторинга
 ```
 
-## Документация для аудита
+### Границы модулей
 
-См. [`docs/AUDIT-PACKAGE.md`](docs/AUDIT-PACKAGE.md) — полный пакет для независимого аудита.
+- `frontend` использует только публичные контракты из `packages/shared` и не импортирует код API или БД.
+- `backend` отвечает за HTTP, tRPC, авторизацию и бизнес-логику; он может использовать `shared` и `database`.
+- `database` владеет схемой и миграциями, но не зависит от приложений.
+- `infrastructure` и `tooling` не содержат пользовательский интерфейс или бизнес-логику.
+- `legacy-web` не считается основным клиентом и не должен получать новые функции без отдельного решения.
 
-## Переменные окружения
+Подробнее: [ADR-0001 — Modular Monorepo](docs/decisions/0001-modular-monorepo.md).
 
-Шаблон: `.env.example` (без секретов). Production `.env` на VPS, **не включать в архивы и репозиторий**.
+### Куда вносить изменения
+
+| Задача                                     | Папка                      |
+| ------------------------------------------ | -------------------------- |
+| Экран или маршрут основного приложения     | `apps/frontend/app`        |
+| Переиспользуемый UI-компонент              | `apps/frontend/components` |
+| Клиентская работа с API                    | `apps/frontend/lib`        |
+| API, авторизация или бизнес-логика         | `apps/backend/src`         |
+| Таблица, поле или связь БД                 | `packages/database`        |
+| Общий тип, контракт или чистая функция     | `packages/shared`          |
+| nginx, PM2 или настройка VPS               | `infrastructure/deploy`    |
+| Импорт, диагностика или служебная операция | `tooling/scripts`          |
+
+Если задача относится к интерфейсу, начинайте с `apps/frontend`. Папку `apps/legacy-web` меняйте только тогда, когда задача явно касается старого клиента.
+
+## Основные команды
+
+### Разработка
+
+| Команда           | Что делает                                          |
+| ----------------- | --------------------------------------------------- |
+| `pnpm dev`        | Запускает API и основной Expo web-клиент            |
+| `pnpm dev:server` | Запускает только API с автоматической перезагрузкой |
+| `pnpm dev:metro`  | Запускает основной Expo-клиент                      |
+| `pnpm android`    | Открывает Expo-клиент для Android                   |
+| `pnpm ios`        | Открывает Expo-клиент для iOS                       |
+| `pnpm dev:web`    | Запускает старый Vite-клиент                        |
+
+### Проверка качества
+
+| Команда       | Что делает                                         |
+| ------------- | -------------------------------------------------- |
+| `pnpm test`   | Запускает все Vitest-тесты                         |
+| `pnpm verify` | Запускает быстрый релизный набор regression + quiz |
+| `pnpm check`  | Проверяет TypeScript без сборки                    |
+| `pnpm lint`   | Проверяет основной Expo-клиент линтером            |
+| `pnpm format` | Форматирует файлы через Prettier                   |
+
+### Сборка
+
+| Команда               | Результат                                                          |
+| --------------------- | ------------------------------------------------------------------ |
+| `pnpm build`          | Собирает API в `dist/index.mjs`                                    |
+| `pnpm build:web`      | Собирает основной Expo web-клиент в `web-dist/` и архив для деплоя |
+| `pnpm build:web:vite` | Собирает старый Vite-клиент в `web-dist/`                          |
+| `pnpm start`          | Запускает ранее собранный API                                      |
+
+Перед отправкой изменений рекомендуется выполнить:
+
+```bash
+pnpm test
+pnpm check
+pnpm build
+pnpm build:web
+```
+
+## База данных
+
+- Схема: [`packages/database/src/schema.ts`](packages/database/src/schema.ts)
+- Связи: [`packages/database/src/relations.ts`](packages/database/src/relations.ts)
+- Миграции: [`packages/database/drizzle`](packages/database/drizzle)
+- Обзор таблиц: [`docs/DATABASE-SCHEMA.md`](docs/DATABASE-SCHEMA.md)
+
+Применение изменений схемы:
+
+```bash
+pnpm db:push
+```
+
+Сначала проверьте `DATABASE_URL`: команда изменяет указанную базу данных.
+
+## Конфигурация
+
+Все переменные перечислены в [`.env.example`](.env.example) и разделены по назначению:
+
+- БД и авторизация;
+- S3 Timeweb;
+- Prodamus;
+- SMS.ru;
+- SMTP;
+- Expo Push;
+- Admin 2FA;
+- параметры деплоя.
+
+S3, платежи, SMS, почта и push-уведомления необязательны для базового локального запуска. Тесты, которым нужны внешние сервисы, пропускаются без соответствующих ключей.
+
+## Деплой
+
+Production работает на VPS под nginx и PM2. Процесс API в PM2 называется `daryadarcy-api`; nginx проксирует `/api/` на `127.0.0.1:3000`.
+
+```bash
+pnpm deploy:web   # тесты → сборка → загрузка → обновление VPS → smoke
+pnpm deploy:api   # тесты → сборка API → обновление VPS
+pnpm smoke        # безопасная HTTP-проверка текущего production
+```
+
+> `deploy:web` и `deploy:api` изменяют production. Запускайте их только с разрешённого компьютера, корректным `.env` и доступом к VPS/S3.
+
+Конфигурация деплоя лежит в [`infrastructure/deploy`](infrastructure/deploy), сценарии — в [`tooling/scripts`](tooling/scripts).
+
+## Документация
+
+- [Обзор API](docs/API-OVERVIEW.md)
+- [Схема базы данных](docs/DATABASE-SCHEMA.md)
+- [Интеграции](docs/INTEGRATIONS.md)
+- [Push-уведомления](docs/PUSH-NOTIFICATIONS.md)
+- [S3 backup](docs/S3-BACKUP.md)
+- [Известные проблемы](docs/KNOWN-ISSUES.md)
+- [Пакет для аудита](docs/AUDIT-PACKAGE.md)
+- [План рефакторинга](tasks/plan.md)
+
+## Правила безопасной работы
+
+- Не коммитьте `.env`, пароли, токены, приватные ключи и выгрузки пользовательских данных.
+- Не меняйте публичные tRPC-процедуры без проверки обратной совместимости.
+- Не смешивайте структурный рефакторинг с изменениями оплаты или авторизации в одном коммите.
+- После изменения путей проверяйте основной Expo web build и отдельно legacy Vite build.
+- Новую общую логику размещайте в `packages/shared`, а работу с БД — в `packages/database` или бэкенде.
