@@ -18,6 +18,7 @@ import { registerPasswordRoutes } from "../identity/routes";
 import { processAccessEmails } from "../identity/access";
 import { sendTransactionalEmail } from "./email";
 import { registerCapabilityRoutes } from "../launch/capabilities";
+import { registerHttpSecurity } from "./http-security";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -43,26 +44,7 @@ async function startServer() {
   const server = createServer(app);
   app.set("trust proxy", 1);
 
-  // Enable CORS for all routes - reflect the request origin to support credentials
-  app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin) {
-      res.header("Access-Control-Allow-Origin", origin);
-    }
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Origin, X-Requested-With, Content-Type, Accept, Authorization",
-    );
-    res.header("Access-Control-Allow-Credentials", "true");
-
-    // Handle preflight requests
-    if (req.method === "OPTIONS") {
-      res.sendStatus(200);
-      return;
-    }
-    next();
-  });
+  registerHttpSecurity(app);
 
   app.post(
     "/api/prodamus/webhook",
