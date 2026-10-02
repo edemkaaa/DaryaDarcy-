@@ -190,3 +190,15 @@
   Full disposable-MySQL suite: 504 pass / 2 skip; types/boundaries/docs/API build
   and 52-test verify pass. Only provider acceptance is counted, not device delivery.
   Real devices, receipts/retries and stale-token cleanup remain separate work.
+
+## Backend continuation: account retention — 2026-10-02
+
+- [x] N03: Account anonymization is atomic and rechecks eligibility under the
+  billing owner lock. Late failure rolls back all profile/comment/activity edits;
+  concurrent workers count once; a committed renewal prevents stale deletion.
+  Verify: real-MySQL failure/renewal/concurrency tests, existing 30-day and active
+  subscription rules, full suite/types/boundaries/docs/API build. No live purge.
+  Three failures reproduced before repair; all 8 real-MySQL cases pass after.
+  Full suite: 512 pass / 2 skip; types/boundaries/API build/52-test verify pass.
+  Financial/audit/backup/S3 and old mail/link retention remain separate work;
+  B08 and release checkpoint remain open, not complete erasure or release approval.

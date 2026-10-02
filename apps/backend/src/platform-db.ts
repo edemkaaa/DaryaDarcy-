@@ -1,14 +1,16 @@
 import { purgeOldPostComments } from "./content/comments";
-import { and, asc, eq, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { queueCancellationForUser } from "./billing/cancellation";
 import {
   adminAuditLog,
+  clubPayments,
   commentReports,
   likes,
   penPalMatches,
   penPalProfiles,
   penPalShown,
   postComments,
+  pushTokens,
   savedPosts,
   shopDeliveryEmails,
   userConsentEvents,
@@ -18,6 +20,10 @@ import {
 } from "../../../packages/database/src/schema";
 import { PEN_PAL_CONFIRM_DAYS } from "../../../packages/shared/src/pen-pals";
 import { getDb, isOwnerAccount } from "./db";
+
+type Database = NonNullable<Awaited<ReturnType<typeof getDb>>>;
+type DatabaseTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+type DataWriter = Database | DatabaseTransaction;
 
 export function isModeratorAccount(user: { role?: string | null; email?: string | null; openId?: string | null }): boolean {
   if (user.role === "moderator" || user.role === "admin") return true;
@@ -162,6 +168,10 @@ export async function upsertPenPalProfileV2(
 export async function deactivatePenPalProfileV2(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  await deactivatePenPalProfile(db, userId);
+}
+
+async function deactivatePenPalProfile(db: DataWriter, userId: number): Promise<void> {
   await db.update(penPalProfiles).set({ active: false }).where(eq(penPalProfiles.userId, userId));
   await db.delete(penPalMatches).where(or(eq(penPalMatches.userLowId, userId), eq(penPalMatches.userHighId, userId)));
 }
@@ -382,6 +392,10 @@ const MS_DAY = 24 * 60 * 60 * 1000;
 export async function anonymizeUserComments(userId: number): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
+  return scrubUserComments(db, userId);
+}
+
+async function scrubUserComments(db: DataWriter, userId: number): Promise<number> {
   const result = await db
     .update(postComments)
     .set({ text: ANONYMIZED_COMMENT_TEXT, photos: null })
@@ -389,9 +403,7 @@ export async function anonymizeUserComments(userId: number): Promise<number> {
   return Number(result[0]?.affectedRows ?? 0);
 }
 
-async function scrubPenPalProfilePii(userId: number): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
+async function scrubPenPalProfilePii(db: DataWriter, userId: number): Promise<void> {
   await db
     .update(penPalProfiles)
     .set({
@@ -404,11 +416,8 @@ async function scrubPenPalProfilePii(userId: number): Promise<void> {
     .where(eq(penPalProfiles.userId, userId));
 }
 
-async function purgeUserActivity(userId: number): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  const { deletePushTokensForUser } = await import("./db");
-  await deletePushTokensForUser(userId);
+async function purgeUserActivity(db: DataWriter, userId: number): Promise<void> {
+  await db.delete(pushTokens).where(eq(pushTokens.userId, userId));
   await db.delete(likes).where(eq(likes.userId, userId));
   await db.delete(savedPosts).where(eq(savedPosts.userId, userId));
   await db.delete(penPalShown).where(or(eq(penPalShown.userId, userId), eq(penPalShown.matchUserId, userId)));
@@ -418,33 +427,31 @@ async function purgeUserActivity(userId: number): Promise<void> {
 export async function processScheduledAccountDeletions(): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
-  const { getActiveClubSubscription, getLatestClubExpiry } = await import("./db");
   const candidates = await db
-    .select()
+    .select({ id: users.id })
     .from(users)
     .where(isNotNull(users.accountDeletionRequestedAt));
   let processed = 0;
   const cutoffAfterClubMs = 30 * MS_DAY;
 
-  for (const user of candidates) {
-    const active = await getActiveClubSubscription(user.id);
-    if (active) continue;
-    const lastExpiry = await getLatestClubExpiry(user.id);
-    if (lastExpiry) {
-      const deleteAfter = lastExpiry.getTime() + cutoffAfterClubMs;
-      if (Date.now() < deleteAfter) continue;
-    } else if (user.accountDeletionRequestedAt) {
-      const requestedAt = new Date(user.accountDeletionRequestedAt).getTime();
-      if (Date.now() < requestedAt + cutoffAfterClubMs) continue;
-    }
+  for (const candidate of candidates) {
+    const deleted = await db.transaction(async tx => {
+      // Settlement locks this same owner. Re-read after waiting, not from the
+      // candidate snapshot, and keep every scrub operation on this transaction.
+      const [user] = await tx.select().from(users).where(eq(users.id, candidate.id)).for("update");
+      if (!user?.accountDeletionRequestedAt) return false;
+      const [latest] = await tx.select({ expiresAt: clubPayments.expiresAt })
+        .from(clubPayments)
+        .where(and(eq(clubPayments.userId, user.id), eq(clubPayments.status, "paid")))
+        .orderBy(desc(clubPayments.expiresAt)).limit(1);
+      const retentionStart = latest?.expiresAt ?? user.accountDeletionRequestedAt;
+      if (Date.now() < retentionStart.getTime() + cutoffAfterClubMs) return false;
 
-    await deactivatePenPalProfileV2(user.id);
-    await scrubPenPalProfilePii(user.id);
-    await anonymizeUserComments(user.id);
-    await purgeUserActivity(user.id);
-    await db
-      .update(users)
-      .set({
+      await deactivatePenPalProfile(tx, user.id);
+      await scrubPenPalProfilePii(tx, user.id);
+      await scrubUserComments(tx, user.id);
+      await purgeUserActivity(tx, user.id);
+      await tx.update(users).set({
         name: DELETED_USER_LABEL,
         email: null,
         phone: null,
@@ -455,9 +462,10 @@ export async function processScheduledAccountDeletions(): Promise<number> {
         blockedReason: null,
         accountDeletionRequestedAt: null,
         openId: `deleted-${user.id}-${Date.now()}`,
-      })
-      .where(eq(users.id, user.id));
-    processed += 1;
+      }).where(eq(users.id, user.id));
+      return true;
+    });
+    if (deleted) processed += 1;
   }
   return processed;
 }

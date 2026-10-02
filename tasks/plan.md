@@ -310,3 +310,27 @@ invalid JSON, HTTP/network errors and later batches covered. Logs do not include
 provider response bodies or recipient tokens. Full disposable-MySQL suite:
 504 pass / 2 skip; types/boundaries/docs/API build and 52-test verify pass.
 No external sends, retry queue, receipt polling, token cleanup or deployment.
+
+## Backend continuation: account retention — 2026-10-02
+
+N03 extends existing B08 maintenance, not a new deletion/authentication flow.
+The current worker performs profile/comment/activity scrubbing as independent
+commits before anonymizing users; late failure can erase part of a live account.
+It also reads subscription eligibility before taking the billing owner lock.
+
+- Reproduce a late cleanup failure, concurrent workers and a renewal committed
+  while maintenance waits, using only guarded disposable MySQL fixtures.
+- Lock/re-read each candidate in a per-account transaction, check the latest
+  paid expiry there and keep every existing scrub operation in that transaction.
+  Preserve the current 30-day eligibility rule, anonymized labels and public API.
+- Verify success/rollback/isolation and existing active/grace-period exclusions,
+  then run the full suite/types/boundaries/docs/API build before a local commit.
+  No production maintenance, financial-data purge, S3 deletion, new retention
+  policy, auth flow or deployment. Audit/backup/legal retention remains open.
+
+N03 focused verification: 3 expected assertion failures on the original worker,
+then all 8 real-MySQL scenarios pass with rollback, renewal and concurrent worker
+checks. Helpers accept the same transaction executor; exported signatures stay
+unchanged. Test push fixture is disabled and removed at teardown so parallel
+audience tests do not see unrelated tokens. Full suite: 512 pass / 2 skip;
+types/boundaries/API build and 52-test verify pass. No live data was deleted.
