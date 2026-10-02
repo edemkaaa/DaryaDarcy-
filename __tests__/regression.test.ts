@@ -286,7 +286,7 @@ describe("Boot lock — native parity", () => {
 describe("Club access — server gates", () => {
   it("requires club membership for club.list and comments", () => {
     const trpc = read("apps/backend/src/_core/trpc.ts");
-    const routers = read("apps/backend/src/routers.ts");
+    const routers = read("apps/backend/src/club/router.ts");
     expect(trpc).toContain("clubMemberProcedure");
     expect(routers).toContain("list: clubMemberProcedure");
     expect(routers).toContain("comments: clubMemberProcedure");
