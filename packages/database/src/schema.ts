@@ -33,7 +33,7 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
-});
+}, (table) => [index("users_email_lookup").on(table.email)]);
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -316,7 +316,10 @@ export const accessEmailOutbox = mysqlTable("access_email_outbox", {
   leaseId: varchar("leaseId", { length: 36 }),
   leaseUntil: timestamp("leaseUntil"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, (table) => [index("access_email_outbox_due").on(table.sentAt, table.nextAttemptAt)]);
+}, (table) => [
+  index("access_email_outbox_due").on(table.sentAt, table.nextAttemptAt),
+  index("access_email_outbox_user").on(table.userId),
+]);
 
 export const shopPurchases = mysqlTable("shop_purchases", {
   id: int("id").autoincrement().primaryKey(),

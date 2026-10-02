@@ -51,19 +51,26 @@ describe.skipIf(!testDatabaseUrl)(
       vi.stubEnv("PUBLIC_APP_URL", base);
     });
     async function cleanup() {
-      await conn.query(
-        "DELETE t FROM password_tokens t INNER JOIN users u ON u.id=t.userId WHERE u.email LIKE ?",
+      // Resolve owned fixture IDs without locks, then use indexed predicates.
+      // DELETE JOIN previously scanned/locked other suites' tokens and owners.
+      const [owned] = await conn.query<RowDataPacket[]>(
+        "SELECT id FROM users WHERE email LIKE ?",
         [`${prefix}%`],
       );
-      await conn.query(
-        "DELETE m FROM access_email_outbox m INNER JOIN users u ON u.id=m.userId WHERE u.email LIKE ?",
-        [`${prefix}%`],
-      );
-      await conn.query(
-        "DELETE c FROM user_consent_events c INNER JOIN users u ON u.id=c.userId WHERE u.email LIKE ?",
-        [`${prefix}%`],
-      );
-      await conn.query("DELETE FROM users WHERE email LIKE ?", [`${prefix}%`]);
+      if (!owned.length) return;
+      const ids = owned.map((row) => row.id);
+      const placeholders = ids.map(() => "?").join(",");
+      for (const table of [
+        "password_tokens",
+        "access_email_outbox",
+        "user_consent_events",
+      ]) {
+        await conn.query(
+          `DELETE FROM ${table} WHERE userId IN (${placeholders})`,
+          ids,
+        );
+      }
+      await conn.query(`DELETE FROM users WHERE id IN (${placeholders})`, ids);
     }
     beforeEach(cleanup);
     afterEach(() => vi.restoreAllMocks());
@@ -229,6 +236,49 @@ describe.skipIf(!testDatabaseUrl)(
       const signedIn = await login();
       expect(signedIn.status).toBe(200);
       expect(signedIn.headers.getSetCookie()).toHaveLength(1);
+    });
+    it("fixture cleanup does not lock an unrelated owner's password token", async () => {
+      expect((await post()).status).toBe(202);
+      const [inserted] = await conn.execute<
+        import("mysql2/promise").ResultSetHeader
+      >(
+        "INSERT INTO users (openId,email) VALUES ('registration-cleanup-unrelated','cleanup-unrelated@example.test')",
+      );
+      const otherId = inserted.insertId;
+      await conn.query(
+        "INSERT INTO password_tokens (userId,email,tokenHash,purpose,expiresAt) VALUES (?,? ,?,'setup',DATE_ADD(NOW(),INTERVAL 1 DAY))",
+        [
+          otherId,
+          "cleanup-unrelated@example.test",
+          "cleanup-unrelated-token".padEnd(64, "x"),
+        ],
+      );
+      const guard = await openTestDatabase();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let cleaned: Promise<boolean> | undefined;
+      try {
+        await guard.beginTransaction();
+        await guard.query("SELECT id FROM users WHERE id=? FOR UPDATE", [
+          otherId,
+        ]);
+        cleaned = cleanup().then(() => true);
+        const result = await Promise.race([
+          cleaned,
+          new Promise<boolean>((resolve) => {
+            timer = setTimeout(() => resolve(false), 1000);
+          }),
+        ]);
+        expect(result).toBe(true);
+      } finally {
+        if (timer) clearTimeout(timer);
+        await guard.rollback();
+        await cleaned;
+        await guard.end();
+        await conn.query("DELETE FROM password_tokens WHERE userId=?", [
+          otherId,
+        ]);
+        await conn.query("DELETE FROM users WHERE id=?", [otherId]);
+      }
     });
     it("rolls registration back if durable mail cannot be encrypted", async () => {
       vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", "invalid-test-key");

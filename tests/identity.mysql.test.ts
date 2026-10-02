@@ -75,6 +75,38 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
       "#token=".length,
     );
   }
+  it("password requests do not lock a different account while searching by email", async () => {
+    const guardId = -20261002;
+    await conn.query(
+      "INSERT INTO users (id,openId,email) VALUES (?,'identity-query-lock-fixture','lock-fixture@example.test')",
+      [guardId],
+    );
+    const guard = await openTestDatabase();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let requested: Promise<boolean> | undefined;
+    try {
+      await guard.beginTransaction();
+      await guard.query("SELECT id FROM users WHERE id=? FOR UPDATE", [
+        guardId,
+      ]);
+      requested = requestPasswordEmail(database, "identity@example.test").then(
+        () => true,
+      );
+      const completed = await Promise.race([
+        requested,
+        new Promise<boolean>((resolve) => {
+          timer = setTimeout(() => resolve(false), 1000);
+        }),
+      ]);
+      expect(completed).toBe(true);
+    } finally {
+      if (timer) clearTimeout(timer);
+      await guard.rollback();
+      await requested;
+      await guard.end();
+      await conn.query("DELETE FROM users WHERE id=?", [guardId]);
+    }
+  });
   it("queues a private setup link, consumed once without logging in", async () => {
     await requestPasswordEmail(database, "identity@example.test");
     const token = await link();
