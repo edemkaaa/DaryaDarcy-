@@ -42,6 +42,17 @@ beforeEach(() => {
   vi.stubEnv("PRODAMUS_SUBSCRIPTION_SECRET", "");
 });
 describe("billing notification trust boundary", () => {
+  it("does not allow unsigned form parsing to mutate Object.prototype", async () => {
+    const { res } = response();
+    const req: Partial<Request> = { method: "POST", query: {}, headers: {},
+      body: Buffer.from("__proto__[billingAuditPolluted]=yes") };
+    try {
+      await handleProdamusWebhook(req as Request, res);
+      expect(({} as Record<string, unknown>).billingAuditPolluted).toBeUndefined();
+    } finally {
+      delete (Object.prototype as Record<string, unknown>).billingAuditPolluted;
+    }
+  });
   it("browser return never activates an order", async () => {
     const { result, res } = response();
     const req: Partial<Request> = { query: { order: "club-7-100" }, body: {}, headers: {} };
