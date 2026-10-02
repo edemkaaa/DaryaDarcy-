@@ -2,6 +2,7 @@ import { ONE_YEAR_MS } from "../../../../packages/shared/src/const.js";
 import type { Express, Request, Response } from "express";
 import {
   emailToOpenId,
+  getDb,
   getUserByEmail,
   getUserByOpenId,
   getUserByPhone,
@@ -19,14 +20,13 @@ import { getCapabilities } from "../launch/capabilities";
 import { checkRateLimit } from "./rate-limit";
 import { logUserConsent } from "../platform-db";
 import {
-  EMAIL_REGISTER_CONSENT_KEY,
-  EMAIL_REGISTER_CONSENT_TEXT,
   EMAIL_REGISTER_CONSENT_VERSION,
   SMS_LOGIN_CONSENT_KEY,
   SMS_LOGIN_CONSENT_TEXT,
   SMS_LOGIN_CONSENT_VERSION,
 } from "../../../../packages/shared/src/consent-texts";
 import { adminTotpEnabled, verifyTotp } from "./totp";
+import { createEmailAccount } from "../identity/registration";
 
 function isStaffUser(user: Pick<User, "role" | "email" | "openId">): boolean {
   return isOwnerAccount(user) || user.role === "admin" || user.role === "moderator";
@@ -108,7 +108,7 @@ export function registerOAuthRoutes(app: Express) {
       const consentVersion =
         typeof req.body?.consentVersion === "string" ? req.body.consentVersion.trim() : "";
 
-      if (!consentVersion) {
+      if (consentVersion !== EMAIL_REGISTER_CONSENT_VERSION) {
         res.status(400).json({ error: "Подтвердите согласие на обработку персональных данных" });
         return;
       }
@@ -134,31 +134,21 @@ export function registerOAuthRoutes(app: Express) {
 
       const openId = emailToOpenId(email);
       const passwordHash = await hashPassword(password);
-      const role = "user";
-
-      await upsertUser({
+      const database = await getDb();
+      if (!database) {
+        res.status(503).json({ error: "Регистрация временно недоступна" });
+        return;
+      }
+      const user = await createEmailAccount(database, {
         openId,
         email,
         name: name || null,
-        loginMethod: "email",
         passwordHash,
-        role,
-        lastSignedIn: new Date(),
       });
-
-      const user = await getUserByOpenId(openId);
       if (!user) {
-        res.status(500).json({ error: "Не удалось создать аккаунт" });
+        res.status(409).json({ error: "Этот email уже зарегистрирован. Войдите." });
         return;
       }
-
-      await logUserConsent(
-        user.id,
-        EMAIL_REGISTER_CONSENT_KEY,
-        "granted",
-        consentVersion || EMAIL_REGISTER_CONSENT_VERSION,
-        EMAIL_REGISTER_CONSENT_TEXT,
-      );
 
       const session = await issueSession(req, res, user);
       res.json(session);
