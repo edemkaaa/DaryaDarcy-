@@ -39,6 +39,17 @@ export async function openTestDatabase() {
     if (!String(idColumns[0]?.EXTRA).includes("auto_increment")) {
       await conn.query("ALTER TABLE users MODIFY id INT NOT NULL AUTO_INCREMENT");
     }
+    // Fixed parallel fixtures reserve IDs below one million. Keep accounts
+    // created through real registration outside those suites' cleanup ranges.
+    // Cached MySQL table statistics would otherwise repeat this DDL while
+    // another suite holds a row lock. Inspect the live counter instead.
+    await conn.query("SET SESSION information_schema_stats_expiry=0");
+    const [counters] = await conn.query<mysql.RowDataPacket[]>(
+      "SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users'",
+    );
+    if (Number(counters[0]?.AUTO_INCREMENT) < 1_000_000) {
+      await conn.query("ALTER TABLE users AUTO_INCREMENT=1000000");
+    }
     await conn.query(
       "CREATE TABLE IF NOT EXISTS backend_test_migrations (name VARCHAR(100) PRIMARY KEY)",
     );

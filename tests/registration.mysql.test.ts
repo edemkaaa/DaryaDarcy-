@@ -11,7 +11,7 @@ import {
 import express from "express";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import type { Connection, RowDataPacket } from "mysql2/promise";
+import type { Connection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import * as db from "../apps/backend/src/db";
 import { registerOAuthRoutes } from "../apps/backend/src/_core/oauth";
@@ -98,6 +98,14 @@ describe.skipIf(!testDatabaseUrl)(
           consentVersion,
         }),
       });
+    it("auto-generated account IDs do not overlap reserved parallel fixture ranges", async () => {
+      const recipient = `${prefix}isolation@example.test`;
+      const [inserted] = await conn.query<ResultSetHeader>(
+        "INSERT INTO users (openId,email) VALUES (?,?)",
+        [db.emailToOpenId(recipient), recipient],
+      );
+      expect(inserted.insertId).toBeGreaterThanOrEqual(1_000_000);
+    });
     it("concurrent registration has one winner and queues one setup without a password or session", async () => {
       let arrivals = 0;
       let release!: () => void;
