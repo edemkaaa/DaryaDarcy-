@@ -1,0 +1,108 @@
+@layer base {
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+  }
+  html {
+    background-color: #cbbba6;
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-right: env(safe-area-inset-right, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  }
+  #root {
+    height: 100%;
+    width: 100%;
+    max-width: var(--app-max-width);
+    margin: 0 auto;
+    background-color: var(--paper);
+    overflow: hidden;
+  }
+  @media (min-width: 481px) {
+    #root {
+      box-shadow: 0 0 48px rgba(74, 55, 40, 0.22);
+    }
+  }
+
+  /* Club post tags sit at the bottom of the card and should read comfortably. */
+  .club-post-tag {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: auto !important;
+    max-height: none !important;
+    padding: 5px 10px !important;
+    overflow: hidden !important;
+    line-height: 1.2 !important;
+  }
+  .club-post-tag * {
+    line-height: 1.2 !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .club-post-tag-rubric {
+    background-color: rgba(92, 64, 51, 0.16) !important;
+  }
+  .club-post-tag-rubric * {
+    color: var(--brown) !important;
+  }
+
+  /* Club content: no copy / long-press callout / image drag. */
+  .club-protected,
+  .club-protected * {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-drag: none !important;
+  }
+  .club-protected input,
+  .club-protected textarea,
+  .club-protected [contenteditable="true"] {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+  }
+  #root {
+    display: flex;
+    flex-direction: column;
+    height: var(--app-height, 100dvh);
+    min-height: 0;
+  }
+  .flex-1 {
+    flex: 1;
+  }
+  .bg-background {
+    background-color: var(--color-background, var(--paper));
+  }
+  .boot-loader {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    font: 24px Woolen-Regular;
+    color: var(--muted);
+  }
+  .route-error {
+    padding: 32px;
+    font: 18px EBGaramond-Regular;
+    color: var(--brown);
+  }
+  .route-error a,
+  .route-error button {
+    color: inherit;
+  }
+  .route-loading {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    font: 16px EBGaramond-Regular;
+    color: var(--brown);
+  }
+}

@@ -1,0 +1,360 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .background {
+    flex: 1;
+  }
+
+  .scrollContent {
+    padding-bottom: 80px;
+  }
+
+  .bannerContainer {
+    width: 100%;
+    aspect-ratio: 1.4281729428172942;
+    position: relative;
+  }
+
+  .bannerImage {
+    width: 100%;
+    height: 100%;
+  }
+
+  .backButtonOverlay {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background-color: rgba(0, 0, 0, 0.35);
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    border-radius: 16px;
+  }
+
+  .backButtonOverlayText {
+    font-size: 15px;
+    font-family: var(--font-italic);
+    color: #fff;
+  }
+
+  .lockedContainer {
+    align-items: center;
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-top: 32px;
+    padding-bottom: 40px;
+    gap: 20px;
+  }
+
+  .lockedText {
+    font-size: 17px;
+    font-family: EBGaramond_400Regular_Italic;
+    color: var(--muted);
+    text-align: center;
+    line-height: 24px;
+  }
+
+  .ctaButtonOlive {
+    padding-top: 16px;
+    padding-bottom: 16px;
+    padding-left: 32px;
+    padding-right: 32px;
+    border-radius: 14px;
+    align-items: center;
+    background-color: #e4e0cd;
+  }
+
+  .ctaButtonOliveText {
+    color: var(--brown);
+    font-size: 18px;
+    font-family: var(--font-body);
+    letter-spacing: 1px;
+  }
+
+  .quizLinkContainer {
+    margin-top: 8px;
+  }
+
+  .quizLinkText {
+    font-size: 15px;
+    font-family: EBGaramond_400Regular;
+    color: var(--muted);
+    text-decoration-line: underline;
+  }
+
+  .blurPreviewWrapper {
+    width: 100%;
+    margin-top: 24px;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    background-color: var(--paper);
+    border-width: 1px;
+    border-color: #a0845c30;
+  }
+
+  .blurPreviewContent {
+    padding: 20px;
+  }
+
+  .tocTitle {
+    font-size: 16px;
+    font-family: var(--font-bold);
+    color: var(--brown);
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+
+  .tocItem {
+    flex-direction: row;
+    align-items: center;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-bottom-width: 0.5px;
+    border-bottom-color: #a0845c20;
+  }
+
+  .tocNumber {
+    font-size: 15px;
+    font-family: var(--font-bold);
+    color: #a0845c;
+    width: 28px;
+  }
+
+  .tocName {
+    font-size: 16px;
+    font-family: var(--font-body);
+    color: var(--brown);
+  }
+
+  .blurView {
+    position: absolute;
+    inset: 0;
+  }
+
+  .blurFadeGradient {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 60%;
+  }
+
+  .ctaContainer {
+    padding-left: 24px;
+    padding-right: 24px;
+    gap: 10px;
+    margin-top: 20px;
+    margin-bottom: 24px;
+  }
+
+  .tocContainer {
+    margin-left: 24px;
+    margin-right: 24px;
+    padding: 20px;
+    border-radius: 16px;
+    background-color: var(--paper);
+    border-width: 1px;
+    border-color: #a0845c30;
+    margin-bottom: 32px;
+  }
+
+  .aestheticSection {
+    margin-bottom: 8px;
+  }
+
+  .heroContainer {
+    position: relative;
+  }
+
+  .gradient {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60%;
+  }
+
+  .heroOverlay {
+    position: absolute;
+    bottom: 20px;
+    left: 24px;
+    right: 24px;
+  }
+
+  .aestheticLabel {
+    font-size: 13px;
+    font-family: var(--font-bold);
+    color: rgba(255, 255, 255, 0.85);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 4px;
+  }
+
+  .heroTitle {
+    font-size: 22px;
+    font-family: var(--font-bold);
+    color: #fff;
+    line-height: 30px;
+  }
+
+  .section {
+    padding-left: 24px;
+    padding-right: 24px;
+    margin-top: 20px;
+  }
+
+  .sectionTitle {
+    font-size: 18px;
+    font-family: var(--font-bold);
+    color: var(--brown);
+    margin-bottom: 8px;
+  }
+
+  .bodyText {
+    font-size: 15px;
+    line-height: 22px;
+    font-family: var(--font-italic);
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .clubSectionTitle {
+    font-size: 20px;
+    font-family: var(--font-bold);
+    color: var(--brown);
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  .styleTable {
+    margin-top: 14px;
+    margin-bottom: 14px;
+    border-radius: 10px;
+    overflow: hidden;
+    border-width: 1px;
+    border-color: #a0845c30;
+  }
+
+  .styleTableRow {
+    flex-direction: row;
+  }
+
+  .styleTableHeader {
+    flex: 1;
+    padding: 10px;
+    background-color: var(--paper);
+    border-bottom-width: 1px;
+    border-bottom-color: #a0845c30;
+  }
+
+  .styleTableHeaderText {
+    font-size: 13px;
+    font-family: var(--font-bold);
+    color: var(--brown);
+    text-align: center;
+  }
+
+  .styleTableCell {
+    flex: 1;
+    padding: 10px;
+    border-bottom-width: 0.5px;
+    border-bottom-color: #a0845c20;
+  }
+
+  .styleTableCellText {
+    font-size: 13px;
+    font-family: var(--font-body);
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .carouselContainer {
+    margin-top: 16px;
+    margin-bottom: 12px;
+  }
+
+  .carouselList {
+    padding-right: 24px;
+  }
+
+  .carouselItemOutfit {
+    margin-right: 10px;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #f5f0e6;
+  }
+
+  .italicLabel {
+    font-family: var(--font-italic);
+    color: var(--brown);
+  }
+
+  .typography {
+    font-size: 15px;
+    line-height: 22px;
+    font-family: var(--font-italic);
+    color: var(--muted);
+    margin-bottom: 8px;
+    margin-top: 12px;
+  }
+
+  .carouselItemMoodboard {
+    margin-right: 10px;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: var(--paper);
+  }
+
+  .carouselItemInterior {
+    margin-right: 10px;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .ritualItem {
+    margin-bottom: 12px;
+  }
+
+  .ritualTitle {
+    font-size: 15px;
+    font-family: var(--font-bold);
+    color: var(--brown);
+    margin-bottom: 4px;
+  }
+
+  .clubSubtitle {
+    font-size: 16px;
+    font-family: var(--font-bold);
+    color: var(--brown);
+    margin-top: 14px;
+    margin-bottom: 6px;
+  }
+
+  .tipText {
+    font-size: 14px;
+    line-height: 20px;
+    font-family: var(--font-body);
+    color: var(--muted);
+    margin-bottom: 4px;
+    padding-left: 8px;
+  }
+
+  .divider {
+    height: 1px;
+    background-color: #a0845c25;
+    margin-left: 24px;
+    margin-right: 24px;
+    margin-top: 32px;
+    margin-bottom: 16px;
+  }
+
+  .bottomCTA {
+    padding-left: 24px;
+    padding-right: 24px;
+    gap: 10px;
+    margin-top: 24px;
+  }
+}

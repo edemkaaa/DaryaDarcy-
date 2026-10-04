@@ -1,15 +1,34 @@
 {
-  "extends": "./apps/frontend/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": [
+      "node",
+      "vitest/globals"
+    ],
     "paths": {
-      "@/*": ["./apps/frontend/*"],
-      "@shared/*": ["./packages/shared/src/*"]
+      "@/*": [
+        "./apps/frontend/src/*"
+      ],
+      "@shared/*": [
+        "./packages/shared/src/*"
+      ]
     }
   },
   "include": [
-    "apps/**/*.ts",
-    "apps/**/*.tsx",
+    "apps/backend/**/*.ts",
     "packages/**/*.ts",
     "tooling/scripts/**/*.ts",
     "tests/**/*.ts",
@@ -17,5 +36,11 @@
     "vitest.config.mts",
     "vitest.setup.ts"
   ],
-  "exclude": ["node_modules", "dist", "web-dist", "apps/legacy-web"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "web-dist",
+    "apps/legacy-web",
+    "apps/legacy-expo"
+  ]
 }

@@ -1,0 +1,2233 @@
+{
+  "counts": {
+    "files": 341,
+    "code": 257,
+    "scss": 83,
+    "pages": 22,
+    "clientModules": 142,
+    "lines": 32039,
+    "queries": 24,
+    "mutations": 44
+  },
+  "unreachable": [],
+  "largest": [
+    {
+      "file": "features/admin/admin-screen.tsx",
+      "lines": 1870,
+      "bytes": 65298,
+      "client": true,
+      "queries": 4,
+      "mutations": 9
+    },
+    {
+      "file": "features/profile/profile-screen.tsx",
+      "lines": 1109,
+      "bytes": 39695,
+      "client": true,
+      "queries": 1,
+      "mutations": 3
+    },
+    {
+      "file": "features/admin/create-post-modal.tsx",
+      "lines": 901,
+      "bytes": 30992,
+      "client": true,
+      "queries": 0,
+      "mutations": 4
+    },
+    {
+      "file": "features/home/home-screen.tsx",
+      "lines": 893,
+      "bytes": 33389,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/api/contract.ts",
+      "lines": 884,
+      "bytes": 24748,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/aesthetics-screen.tsx",
+      "lines": 840,
+      "bytes": 35505,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/quiz/quiz-data.ts",
+      "lines": 822,
+      "bytes": 54238,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/articles-admin.tsx",
+      "lines": 700,
+      "bytes": 25873,
+      "client": true,
+      "queries": 1,
+      "mutations": 4
+    },
+    {
+      "file": "features/club/club-screen.tsx",
+      "lines": 676,
+      "bytes": 26579,
+      "client": true,
+      "queries": 0,
+      "mutations": 2
+    },
+    {
+      "file": "features/club/club-comments.tsx",
+      "lines": 632,
+      "bytes": 20179,
+      "client": true,
+      "queries": 1,
+      "mutations": 6
+    },
+    {
+      "file": "features/shop/product-screen.tsx",
+      "lines": 601,
+      "bytes": 20117,
+      "client": true,
+      "queries": 1,
+      "mutations": 1
+    },
+    {
+      "file": "features/shop/shop-screen.tsx",
+      "lines": 598,
+      "bytes": 21520,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/club/club-subscribed.tsx",
+      "lines": 573,
+      "bytes": 20376,
+      "client": true,
+      "queries": 2,
+      "mutations": 4
+    },
+    {
+      "file": "features/feed/feed-screen.tsx",
+      "lines": 572,
+      "bytes": 17840,
+      "client": true,
+      "queries": 3,
+      "mutations": 2
+    },
+    {
+      "file": "features/admin/use-rich-text-formatting.ts",
+      "lines": 571,
+      "bytes": 17893,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/club/pen-pals.tsx",
+      "lines": 563,
+      "bytes": 20751,
+      "client": true,
+      "queries": 1,
+      "mutations": 5
+    },
+    {
+      "file": "features/quiz/aesthetic-result-content.tsx",
+      "lines": 522,
+      "bytes": 19405,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/patterns-screen.tsx",
+      "lines": 485,
+      "bytes": 16001,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/quiz/quiz-question.tsx",
+      "lines": 466,
+      "bytes": 16712,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/browser/motion.tsx",
+      "lines": 437,
+      "bytes": 13103,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    }
+  ],
+  "rows": [
+    {
+      "file": "app/(main)/club/page.tsx",
+      "lines": 20,
+      "bytes": 512,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/(main)/feed/page.tsx",
+      "lines": 7,
+      "bytes": 203,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/(main)/interactive/page.tsx",
+      "lines": 7,
+      "bytes": 220,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/(main)/layout.tsx",
+      "lines": 6,
+      "bytes": 196,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/(main)/library/page.tsx",
+      "lines": 7,
+      "bytes": 219,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/(main)/loading.tsx",
+      "lines": 2,
+      "bytes": 53,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/(main)/page.tsx",
+      "lines": 7,
+      "bytes": 263,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/(main)/profile/page.tsx",
+      "lines": 10,
+      "bytes": 259,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/(main)/shop/[id]/page.tsx",
+      "lines": 23,
+      "bytes": 877,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/(main)/shop/page.tsx",
+      "lines": 7,
+      "bytes": 207,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/(main)/videos/page.tsx",
+      "lines": 7,
+      "bytes": 207,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/admin/page.tsx",
+      "lines": 10,
+      "bytes": 275,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/error.tsx",
+      "lines": 10,
+      "bytes": 311,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/layout.tsx",
+      "lines": 37,
+      "bytes": 1005,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/legal/[slug]/page.tsx",
+      "lines": 21,
+      "bytes": 867,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/legal/page.tsx",
+      "lines": 7,
+      "bytes": 236,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/library/about-me/page.tsx",
+      "lines": 7,
+      "bytes": 221,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/library/aesthetics-guide/page.tsx",
+      "lines": 7,
+      "bytes": 250,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/library/article/[id]/page.tsx",
+      "lines": 12,
+      "bytes": 334,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/library/patterns/page.tsx",
+      "lines": 7,
+      "bytes": 216,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/loading.tsx",
+      "lines": 2,
+      "bytes": 53,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/login/page.tsx",
+      "lines": 15,
+      "bytes": 384,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/not-found.tsx",
+      "lines": 10,
+      "bytes": 261,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/oauth/callback/page.tsx",
+      "lines": 5,
+      "bytes": 101,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/post/[id]/page.tsx",
+      "lines": 12,
+      "bytes": 299,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/privacy/page.tsx",
+      "lines": 7,
+      "bytes": 250,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/providers.tsx",
+      "lines": 36,
+      "bytes": 1323,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/quiz/page.tsx",
+      "lines": 7,
+      "bytes": 226,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/tab-shell.tsx",
+      "lines": 17,
+      "bytes": 610,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "app/video/[id]/page.tsx",
+      "lines": 12,
+      "bytes": 304,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/content/article-blocks.ts",
+      "lines": 2,
+      "bytes": 40,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/content/article-content.tsx",
+      "lines": 224,
+      "bytes": 6486,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/content/post-text-sanitize.ts",
+      "lines": 2,
+      "bytes": 44,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/content/rich-text-anchors.ts",
+      "lines": 45,
+      "bytes": 993,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/content/rich-text-edit.ts",
+      "lines": 2,
+      "bytes": 40,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/content/rich-text-ranges.ts",
+      "lines": 2,
+      "bytes": 42,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/content/rich-text-renderer.tsx",
+      "lines": 166,
+      "bytes": 4605,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/content/rich-text-save.ts",
+      "lines": 2,
+      "bytes": 40,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/content/types.ts",
+      "lines": 2,
+      "bytes": 41,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/pen-pals/types.ts",
+      "lines": 25,
+      "bytes": 1053,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/post/club-tags.ts",
+      "lines": 2,
+      "bytes": 35,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/post/comment-count-label.ts",
+      "lines": 15,
+      "bytes": 542,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/post/draft.ts",
+      "lines": 44,
+      "bytes": 1488,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/post/inspiration-titles.ts",
+      "lines": 24,
+      "bytes": 795,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/post/post-date.ts",
+      "lines": 11,
+      "bytes": 334,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/post/post-media-photos.ts",
+      "lines": 53,
+      "bytes": 1480,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/post/post-tags.ts",
+      "lines": 73,
+      "bytes": 2725,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/post/resolve-post-video.ts",
+      "lines": 55,
+      "bytes": 1609,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/product/catalog.ts",
+      "lines": 391,
+      "bytes": 32985,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/profile/sync-profile.ts",
+      "lines": 69,
+      "bytes": 2196,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/quiz/content/castlecore-result.ts",
+      "lines": 228,
+      "bytes": 19827,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/quiz/content/cottagecore-result.ts",
+      "lines": 320,
+      "bytes": 27909,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/quiz/content/darkacademia-result.ts",
+      "lines": 226,
+      "bytes": 18974,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/quiz/content/fairycore-result.ts",
+      "lines": 241,
+      "bytes": 23597,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/quiz/content/goblincore-result.ts",
+      "lines": 228,
+      "bytes": 21641,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/quiz/content/lightacademia-result.ts",
+      "lines": 237,
+      "bytes": 20428,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/quiz/content/witchcore-result.ts",
+      "lines": 214,
+      "bytes": 22391,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/quiz/quiz-data.ts",
+      "lines": 822,
+      "bytes": 54238,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/quiz/quiz-state.ts",
+      "lines": 90,
+      "bytes": 2951,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/session/consent-texts.ts",
+      "lines": 2,
+      "bytes": 39,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/session/phone.ts",
+      "lines": 2,
+      "bytes": 31,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/session/session-context.tsx",
+      "lines": 91,
+      "bytes": 2556,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/session/storage.ts",
+      "lines": 46,
+      "bytes": 1217,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "domain/subscription/subscription-context.tsx",
+      "lines": 81,
+      "bytes": 2179,
+      "client": true,
+      "queries": 1,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/admin-fab.content.ts",
+      "lines": 3,
+      "bytes": 68,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/admin-fab.tsx",
+      "lines": 80,
+      "bytes": 2264,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/admin-screen.content.ts",
+      "lines": 31,
+      "bytes": 749,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/admin-screen.layout.ts",
+      "lines": 11,
+      "bytes": 255,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/admin-screen.tsx",
+      "lines": 1870,
+      "bytes": 65298,
+      "client": true,
+      "queries": 4,
+      "mutations": 9
+    },
+    {
+      "file": "features/admin/articles-admin.content.ts",
+      "lines": 27,
+      "bytes": 992,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/articles-admin.tsx",
+      "lines": 700,
+      "bytes": 25873,
+      "client": true,
+      "queries": 1,
+      "mutations": 4
+    },
+    {
+      "file": "features/admin/calendar-tracker.content.ts",
+      "lines": 21,
+      "bytes": 495,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/calendar-tracker.tsx",
+      "lines": 405,
+      "bytes": 13487,
+      "client": true,
+      "queries": 1,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/create-post-modal.content.ts",
+      "lines": 6,
+      "bytes": 175,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/create-post-modal.tsx",
+      "lines": 901,
+      "bytes": 30992,
+      "client": true,
+      "queries": 0,
+      "mutations": 4
+    },
+    {
+      "file": "features/admin/media/video-upload.ts",
+      "lines": 79,
+      "bytes": 2543,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/photo-editor.content.ts",
+      "lines": 9,
+      "bytes": 204,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/photo-editor.tsx",
+      "lines": 436,
+      "bytes": 12856,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/post-management.content.ts",
+      "lines": 7,
+      "bytes": 245,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/post-management.tsx",
+      "lines": 396,
+      "bytes": 12429,
+      "client": true,
+      "queries": 0,
+      "mutations": 2
+    },
+    {
+      "file": "features/admin/rich-text-field.content.ts",
+      "lines": 5,
+      "bytes": 143,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/rich-text-field.tsx",
+      "lines": 247,
+      "bytes": 7781,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/schedule-datetime.content.ts",
+      "lines": 3,
+      "bytes": 65,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/schedule-datetime.tsx",
+      "lines": 76,
+      "bytes": 2576,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/stats-dashboard.content.ts",
+      "lines": 5,
+      "bytes": 143,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/stats-dashboard.tsx",
+      "lines": 292,
+      "bytes": 9821,
+      "client": true,
+      "queries": 1,
+      "mutations": 0
+    },
+    {
+      "file": "features/admin/use-rich-text-formatting.ts",
+      "lines": 571,
+      "bytes": 17893,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/auth/login-screen.content.ts",
+      "lines": 7,
+      "bytes": 262,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/auth/login-screen.tsx",
+      "lines": 278,
+      "bytes": 10354,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/auth/sms-code-form.content.ts",
+      "lines": 5,
+      "bytes": 134,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/auth/sms-code-form.tsx",
+      "lines": 280,
+      "bytes": 9397,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/club/club-comments.content.ts",
+      "lines": 4,
+      "bytes": 102,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/club/club-comments.tsx",
+      "lines": 632,
+      "bytes": 20179,
+      "client": true,
+      "queries": 1,
+      "mutations": 6
+    },
+    {
+      "file": "features/club/club-post-card.tsx",
+      "lines": 277,
+      "bytes": 9072,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/club/club-screen.content.ts",
+      "lines": 152,
+      "bytes": 6464,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/club/club-screen.layout.ts",
+      "lines": 26,
+      "bytes": 653,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/club/club-screen.tsx",
+      "lines": 676,
+      "bytes": 26579,
+      "client": true,
+      "queries": 0,
+      "mutations": 2
+    },
+    {
+      "file": "features/club/club-subscribed.content.ts",
+      "lines": 100,
+      "bytes": 3057,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/club/club-subscribed.layout.ts",
+      "lines": 15,
+      "bytes": 415,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/club/club-subscribed.tsx",
+      "lines": 573,
+      "bytes": 20376,
+      "client": true,
+      "queries": 2,
+      "mutations": 4
+    },
+    {
+      "file": "features/club/pen-pals.content.ts",
+      "lines": 6,
+      "bytes": 165,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/club/pen-pals.tsx",
+      "lines": 563,
+      "bytes": 20751,
+      "client": true,
+      "queries": 1,
+      "mutations": 5
+    },
+    {
+      "file": "features/club/profile-setup.content.ts",
+      "lines": 5,
+      "bytes": 134,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/club/profile-setup.tsx",
+      "lines": 258,
+      "bytes": 7912,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/club/tag-board-drawer.content.ts",
+      "lines": 54,
+      "bytes": 1750,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/club/tag-board-drawer.layout.ts",
+      "lines": 44,
+      "bytes": 1008,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/club/tag-board-drawer.tsx",
+      "lines": 323,
+      "bytes": 10664,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/feed/feed-grid-item.tsx",
+      "lines": 74,
+      "bytes": 1943,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/feed/feed-screen.content.ts",
+      "lines": 64,
+      "bytes": 1674,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/feed/feed-screen.layout.ts",
+      "lines": 15,
+      "bytes": 411,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/feed/feed-screen.tsx",
+      "lines": 572,
+      "bytes": 17840,
+      "client": true,
+      "queries": 3,
+      "mutations": 2
+    },
+    {
+      "file": "features/feed/post-card.tsx",
+      "lines": 236,
+      "bytes": 7470,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/feed/post-screen.content.ts",
+      "lines": 15,
+      "bytes": 479,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/feed/post-screen.tsx",
+      "lines": 382,
+      "bytes": 12615,
+      "client": true,
+      "queries": 2,
+      "mutations": 2
+    },
+    {
+      "file": "features/home/garden-confetti.content.ts",
+      "lines": 31,
+      "bytes": 617,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/home/garden-confetti.tsx",
+      "lines": 66,
+      "bytes": 1843,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/home/garden-tour-video.content.ts",
+      "lines": 5,
+      "bytes": 229,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/home/garden-tour-video.tsx",
+      "lines": 115,
+      "bytes": 3415,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/home/home-promo-carousel.content.ts",
+      "lines": 16,
+      "bytes": 596,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/home/home-promo-carousel.layout.ts",
+      "lines": 15,
+      "bytes": 418,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/home/home-promo-carousel.tsx",
+      "lines": 104,
+      "bytes": 3361,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/home/home-screen.content.ts",
+      "lines": 94,
+      "bytes": 3454,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/home/home-screen.layout.ts",
+      "lines": 29,
+      "bytes": 756,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/home/home-screen.tsx",
+      "lines": 893,
+      "bytes": 33389,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/home/promo-slides.ts",
+      "lines": 27,
+      "bytes": 853,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/home/zoom-card.tsx",
+      "lines": 26,
+      "bytes": 536,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/legal/contact-email-footer.tsx",
+      "lines": 35,
+      "bytes": 1083,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/legal/contact-email-line.tsx",
+      "lines": 38,
+      "bytes": 1044,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/legal/legal-back-button.tsx",
+      "lines": 19,
+      "bytes": 401,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/legal/legal-document-screen.tsx",
+      "lines": 51,
+      "bytes": 1862,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/legal/legal-documents-footer.content.ts",
+      "lines": 6,
+      "bytes": 160,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/legal/legal-documents-footer.tsx",
+      "lines": 61,
+      "bytes": 2054,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/legal/legal-documents.ts",
+      "lines": 226,
+      "bytes": 12074,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/legal/legal-screen.tsx",
+      "lines": 40,
+      "bytes": 1638,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/legal/privacy-screen.content.ts",
+      "lines": 76,
+      "bytes": 6284,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/legal/privacy-screen.tsx",
+      "lines": 46,
+      "bytes": 1783,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/about-screen.content.ts",
+      "lines": 96,
+      "bytes": 57628,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/about-screen.layout.ts",
+      "lines": 14,
+      "bytes": 351,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/about-screen.tsx",
+      "lines": 267,
+      "bytes": 8300,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/aesthetics-screen.content.ts",
+      "lines": 186,
+      "bytes": 8746,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/aesthetics-screen.layout.ts",
+      "lines": 27,
+      "bytes": 664,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/aesthetics-screen.tsx",
+      "lines": 840,
+      "bytes": 35505,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/article-screen.content.ts",
+      "lines": 6,
+      "bytes": 218,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/article-screen.tsx",
+      "lines": 132,
+      "bytes": 4783,
+      "client": true,
+      "queries": 1,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/library-screen.content.ts",
+      "lines": 115,
+      "bytes": 3807,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/library-screen.tsx",
+      "lines": 299,
+      "bytes": 9672,
+      "client": true,
+      "queries": 1,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/patterns-screen.content.ts",
+      "lines": 57,
+      "bytes": 1926,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/patterns-screen.layout.ts",
+      "lines": 27,
+      "bytes": 708,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/library/patterns-screen.tsx",
+      "lines": 485,
+      "bytes": 16001,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/profile/profile-screen.content.ts",
+      "lines": 11,
+      "bytes": 505,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/profile/profile-screen.tsx",
+      "lines": 1109,
+      "bytes": 39695,
+      "client": true,
+      "queries": 1,
+      "mutations": 3
+    },
+    {
+      "file": "features/pwa/install-guide.content.ts",
+      "lines": 5,
+      "bytes": 155,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/pwa/install-guide.tsx",
+      "lines": 115,
+      "bytes": 3894,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/pwa/web-post-alerts.tsx",
+      "lines": 82,
+      "bytes": 2752,
+      "client": true,
+      "queries": 1,
+      "mutations": 0
+    },
+    {
+      "file": "features/quiz/aesthetic-result-content.tsx",
+      "lines": 522,
+      "bytes": 19405,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/quiz/interactive-screen.content.ts",
+      "lines": 6,
+      "bytes": 230,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/quiz/interactive-screen.tsx",
+      "lines": 137,
+      "bytes": 4907,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/quiz/quiz-question.content.ts",
+      "lines": 28,
+      "bytes": 819,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/quiz/quiz-question.layout.ts",
+      "lines": 39,
+      "bytes": 991,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/quiz/quiz-question.tsx",
+      "lines": 466,
+      "bytes": 16712,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/quiz/quiz-result.content.ts",
+      "lines": 288,
+      "bytes": 16080,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/quiz/quiz-result.layout.ts",
+      "lines": 27,
+      "bytes": 643,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/quiz/quiz-result.tsx",
+      "lines": 425,
+      "bytes": 15119,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/quiz/quiz-screen.tsx",
+      "lines": 25,
+      "bytes": 857,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/quiz/quiz-welcome.content.ts",
+      "lines": 12,
+      "bytes": 379,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/quiz/quiz-welcome.layout.ts",
+      "lines": 15,
+      "bytes": 383,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/quiz/quiz-welcome.tsx",
+      "lines": 132,
+      "bytes": 4981,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/shop/product-screen.content.ts",
+      "lines": 37,
+      "bytes": 1245,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/shop/product-screen.layout.ts",
+      "lines": 26,
+      "bytes": 674,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/shop/product-screen.tsx",
+      "lines": 601,
+      "bytes": 20117,
+      "client": true,
+      "queries": 1,
+      "mutations": 1
+    },
+    {
+      "file": "features/shop/shelf-item.tsx",
+      "lines": 63,
+      "bytes": 1754,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/shop/shelf-label.tsx",
+      "lines": 37,
+      "bytes": 1038,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/shop/shop-screen.content.ts",
+      "lines": 51,
+      "bytes": 1926,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/shop/shop-screen.tsx",
+      "lines": 598,
+      "bytes": 21520,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/videos/video-screen.content.ts",
+      "lines": 11,
+      "bytes": 392,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/videos/video-screen.layout.ts",
+      "lines": 15,
+      "bytes": 409,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/videos/video-screen.tsx",
+      "lines": 154,
+      "bytes": 5093,
+      "client": true,
+      "queries": 1,
+      "mutations": 0
+    },
+    {
+      "file": "features/videos/videos-screen.content.ts",
+      "lines": 22,
+      "bytes": 774,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/videos/videos-screen.layout.ts",
+      "lines": 14,
+      "bytes": 384,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "features/videos/videos-screen.tsx",
+      "lines": 224,
+      "bytes": 6768,
+      "client": true,
+      "queries": 1,
+      "mutations": 0
+    },
+    {
+      "file": "shared/api/auth.ts",
+      "lines": 112,
+      "bytes": 3180,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/api/capabilities.ts",
+      "lines": 33,
+      "bytes": 889,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/api/contract.ts",
+      "lines": 884,
+      "bytes": 24748,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/api/token-storage.ts",
+      "lines": 26,
+      "bytes": 684,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/api/trpc.ts",
+      "lines": 38,
+      "bytes": 1213,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/api/types.ts",
+      "lines": 7,
+      "bytes": 293,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/browser/actions.ts",
+      "lines": 41,
+      "bytes": 1045,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/browser/file-picker.ts",
+      "lines": 117,
+      "bytes": 2984,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/browser/gestures.tsx",
+      "lines": 235,
+      "bytes": 6440,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/browser/links.ts",
+      "lines": 4,
+      "bytes": 109,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/browser/motion.tsx",
+      "lines": 437,
+      "bytes": 13103,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/browser/press.ts",
+      "lines": 29,
+      "bytes": 689,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/browser/selection.ts",
+      "lines": 112,
+      "bytes": 3475,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/browser/storage.ts",
+      "lines": 27,
+      "bytes": 614,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/browser/use-browser-ready.ts",
+      "lines": 12,
+      "bytes": 301,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/browser/use-club-protection.ts",
+      "lines": 37,
+      "bytes": 1478,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/browser/use-scroll-header.ts",
+      "lines": 23,
+      "bytes": 810,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/browser/viewport.ts",
+      "lines": 107,
+      "bytes": 3310,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/config/api.ts",
+      "lines": 25,
+      "bytes": 591,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/config/contact.ts",
+      "lines": 3,
+      "bytes": 135,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/audio-player.tsx",
+      "lines": 139,
+      "bytes": 4567,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/audio.ts",
+      "lines": 43,
+      "bytes": 1053,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/avatar-cropper.tsx",
+      "lines": 218,
+      "bytes": 7596,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/canvas-image.ts",
+      "lines": 80,
+      "bytes": 2008,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/document-attachment.tsx",
+      "lines": 72,
+      "bytes": 2380,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/emoji-text.ts",
+      "lines": 29,
+      "bytes": 914,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/image-upload.ts",
+      "lines": 175,
+      "bytes": 4985,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/image.tsx",
+      "lines": 99,
+      "bytes": 2601,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/media-label.ts",
+      "lines": 34,
+      "bytes": 1254,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/natural-photo-stack.tsx",
+      "lines": 299,
+      "bytes": 8616,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/photo-aspect-ratios.ts",
+      "lines": 93,
+      "bytes": 2721,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/photo-urls.ts",
+      "lines": 20,
+      "bytes": 626,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/photo-viewer.tsx",
+      "lines": 195,
+      "bytes": 6095,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/post-media-section.tsx",
+      "lines": 66,
+      "bytes": 1851,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/post-photo-carousel.tsx",
+      "lines": 88,
+      "bytes": 2572,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/read-attachment.ts",
+      "lines": 13,
+      "bytes": 625,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/video-grid-cell.tsx",
+      "lines": 113,
+      "bytes": 3041,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/video-poster.ts",
+      "lines": 58,
+      "bytes": 1517,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/video-preview.tsx",
+      "lines": 83,
+      "bytes": 2360,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/video-title.ts",
+      "lines": 30,
+      "bytes": 1638,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/media/youtube-embed.tsx",
+      "lines": 33,
+      "bytes": 826,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/navigation/paths.ts",
+      "lines": 14,
+      "bytes": 290,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/navigation/router.tsx",
+      "lines": 66,
+      "bytes": 1895,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/styles/palette.ts",
+      "lines": 15,
+      "bytes": 554,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/styles/tab-assets.ts",
+      "lines": 10,
+      "bytes": 484,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/styles/theme-core.ts",
+      "lines": 56,
+      "bytes": 1922,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/styles/theme-provider.tsx",
+      "lines": 66,
+      "bytes": 1911,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/styles/theme.ts",
+      "lines": 14,
+      "bytes": 298,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/styles/use-color-scheme.ts",
+      "lines": 18,
+      "bytes": 492,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/styles/use-colors.ts",
+      "lines": 19,
+      "bytes": 547,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/action.tsx",
+      "lines": 139,
+      "bytes": 3464,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/background.tsx",
+      "lines": 52,
+      "bytes": 1166,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/blur.tsx",
+      "lines": 29,
+      "bytes": 596,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/bottom-tabs.tsx",
+      "lines": 41,
+      "bytes": 1155,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/collection.tsx",
+      "lines": 166,
+      "bytes": 5287,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/css.ts",
+      "lines": 31,
+      "bytes": 939,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/dialog.tsx",
+      "lines": 77,
+      "bytes": 2161,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/dom-image.tsx",
+      "lines": 60,
+      "bytes": 1546,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/elements.tsx",
+      "lines": 12,
+      "bytes": 311,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/field.tsx",
+      "lines": 77,
+      "bytes": 2131,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/gradient.tsx",
+      "lines": 38,
+      "bytes": 852,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/icons.tsx",
+      "lines": 38,
+      "bytes": 1007,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/material-icon.ts",
+      "lines": 2,
+      "bytes": 52,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/measured-box.tsx",
+      "lines": 40,
+      "bytes": 1104,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/post-menu-button.tsx",
+      "lines": 20,
+      "bytes": 591,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/query-retry-state.tsx",
+      "lines": 63,
+      "bytes": 1643,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/route-loading.tsx",
+      "lines": 10,
+      "bytes": 261,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/safe-area.tsx",
+      "lines": 38,
+      "bytes": 1063,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/screen-container.tsx",
+      "lines": 53,
+      "bytes": 1500,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/screen-error-boundary.tsx",
+      "lines": 48,
+      "bytes": 1531,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/scroll-area.tsx",
+      "lines": 115,
+      "bytes": 3175,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/scroll-to-top-button.tsx",
+      "lines": 46,
+      "bytes": 1225,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/spinner.tsx",
+      "lines": 27,
+      "bytes": 607,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/tab-header.tsx",
+      "lines": 55,
+      "bytes": 1672,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/tab-music-toggle.tsx",
+      "lines": 59,
+      "bytes": 1414,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/types.ts",
+      "lines": 16,
+      "bytes": 365,
+      "client": false,
+      "queries": 0,
+      "mutations": 0
+    },
+    {
+      "file": "shared/ui/typography.tsx",
+      "lines": 55,
+      "bytes": 1511,
+      "client": true,
+      "queries": 0,
+      "mutations": 0
+    }
+  ]
+}

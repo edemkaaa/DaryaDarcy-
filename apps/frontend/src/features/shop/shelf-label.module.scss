@@ -1,0 +1,22 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .label {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .frame {
+    position: absolute;
+    inset: 0;
+  }
+
+  .text {
+    font-family: var(--font-body);
+    font-size: 7px;
+    color: #5c3d2e;
+    text-align: center;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+}

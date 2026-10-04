@@ -1,0 +1,8 @@
+@use "../styles/layers";
+
+@layer elements {
+  .typography {
+    font-weight: normal;
+    font-style: normal;
+  }
+}

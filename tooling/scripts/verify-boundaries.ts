@@ -6,7 +6,7 @@ const violations: string[] = [];
 let checked = 0;
 function walk(directory: string) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    if (["node_modules", ".expo", "dist", "web-dist", ".git"].includes(entry.name)) continue;
+    if (["node_modules", ".expo", ".next", "dist", "web-dist", ".git", "legacy-expo"].includes(entry.name)) continue;
     const path = resolve(directory, entry.name);
     if (entry.isDirectory()) walk(path);
     else if (entry.isFile() && /\.[cm]?[jt]sx?$/.test(entry.name)) {

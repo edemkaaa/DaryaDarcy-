@@ -1,0 +1,161 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .cardWrapper {
+    width: 100%;
+  }
+
+  .action {
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .picture {
+    width: 100%;
+    border-radius: 4px;
+    background-color: #efe6d6;
+  }
+
+  .cardTitle {
+    font-size: 13px;
+    font-family: var(--font-body);
+    color: var(--brown);
+    margin-top: 2px;
+    line-height: 18px;
+  }
+
+  .actionButtonLocked {
+    margin-top: 2px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    padding-left: 10px;
+    padding-right: 10px;
+    border-radius: 8px;
+    align-items: center;
+  }
+
+  .actionButtonContent {
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .actionButtonLockedText {
+    font-size: 11px;
+    font-family: var(--font-italic);
+    color: var(--muted);
+  }
+
+  .actionButtonActiveText {
+    font-size: 12px;
+    font-family: var(--font-body);
+    color: var(--brown);
+    letter-spacing: 0.3px;
+  }
+
+  .container {
+    flex: 1;
+  }
+
+  .scrollContent {
+    padding-bottom: 100px;
+  }
+
+  .heroBanner {
+    width: 100%;
+    aspect-ratio: 2.8;
+    position: relative;
+  }
+
+  .heroBannerImage {
+    width: 100%;
+    height: 100%;
+  }
+
+  .heroBannerOverlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.25);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .heroBannerTitle {
+    font-size: 28px;
+    font-family: var(--font-body);
+    color: var(--paper);
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
+  }
+
+  .div {
+    flex-direction: row;
+    align-items: center;
+    margin-left: 16px;
+    margin-right: 16px;
+    margin-top: 12px;
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-radius: 12px;
+    border-width: 1px;
+    gap: 8px;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-color: var(--color-border);
+  }
+
+  .field {
+    flex: 1;
+    font-size: 15px;
+    font-family: var(--font-body);
+    padding-top: 0;
+    padding-bottom: 0;
+    color: var(--brown);
+  }
+
+  .emptyContainer {
+    align-items: center;
+    justify-content: center;
+    padding-top: 60px;
+    gap: 12px;
+  }
+
+  .emptyText {
+    font-size: 16px;
+    font-family: var(--font-body);
+    color: var(--muted);
+  }
+
+  .masonry {
+    flex-direction: row;
+    align-items: flex-start;
+    padding-left: 16px;
+    padding-right: 16px;
+    margin-top: 12px;
+    gap: 12px;
+  }
+
+  .masonryColumn {
+    flex: 1;
+    gap: 12px;
+  }
+  .opacityState {
+    opacity: 0.85;
+    --action-base-opacity: 0.85;
+  }
+
+  .opacityState2 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+
+  .backgroundColorState {
+    background-color: rgba(228, 224, 205, 0.5);
+  }
+
+  .backgroundColorState2 {
+    background-color: #e4e0cd;
+  }
+}

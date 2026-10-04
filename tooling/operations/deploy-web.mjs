@@ -9,6 +9,14 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
+// The previous deploy pipeline publishes a static Expo bundle. Next.js needs
+// a Node.js deployment; fail before removing artifacts or contacting services.
+const frontendPackage = JSON.parse(fs.readFileSync(path.join(root, "apps/frontend/package.json"), "utf8"));
+if (frontendPackage.dependencies?.next) {
+  console.error("Deploy stopped: apps/frontend now uses Next.js. Configure a Next.js server deployment before publishing.");
+  process.exit(1);
+}
+
 function run(label, command, args = []) {
   console.log(`\n=== ${label} ===`);
   const result = spawnSync(command, args, {

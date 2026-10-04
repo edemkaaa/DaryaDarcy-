@@ -18,7 +18,7 @@ for (const name of requiredPublicFiles) {
   copyFileSync(join(frontendRoot, "public", name), join(root, name));
   console.log(`copied ${name}`);
 }
-const iconSrc = join(frontendRoot, "assets", "images", "icon.png");
+const iconSrc = join(frontendRoot, "public", "assets", "images", "icon.png");
 if (existsSync(iconSrc)) {
   copyFileSync(iconSrc, join(root, "apple-touch-icon.png"));
   console.log("copied apple-touch-icon.png");

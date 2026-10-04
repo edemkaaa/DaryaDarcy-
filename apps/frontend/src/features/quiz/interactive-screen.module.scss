@@ -1,0 +1,151 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .background {
+    flex: 1;
+  }
+
+  .scrollContent {
+    padding-bottom: 40px;
+  }
+
+  .headerSection {
+    align-items: center;
+    padding-top: 0;
+    padding-bottom: 4px;
+    margin-top: -18px;
+    position: relative;
+    overflow: visible;
+    z-index: 0;
+  }
+
+  .keyDecor {
+    width: 130px;
+    height: 78px;
+    margin-bottom: -10px;
+  }
+
+  .headerTitle {
+    font-family: var(--font-body);
+    font-size: 28px;
+    color: var(--brown);
+    letter-spacing: 8px;
+    text-align: center;
+    text-transform: uppercase;
+    margin-top: -6px;
+    z-index: 3;
+  }
+
+  .headerSubtitle {
+    font-family: var(--font-italic);
+    font-size: 15.5px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 0;
+    z-index: 3;
+  }
+
+  .ivyLeft {
+    position: absolute;
+    left: -20px;
+    top: 18px;
+    width: 140px;
+    height: 180px;
+    z-index: 1;
+  }
+
+  .ivyRight {
+    position: absolute;
+    right: -20px;
+    top: 18px;
+    width: 140px;
+    height: 180px;
+    z-index: 1;
+  }
+
+  .cardsContainer {
+    padding-left: 20px;
+    padding-right: 20px;
+    gap: 24px;
+    margin-top: 30px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .card {
+    border-radius: 16px;
+    overflow: hidden;
+    background-color: var(--paper);
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .action {
+    height: 180px;
+    position: relative;
+    overflow: hidden;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+  }
+
+  .cardImage {
+    width: 100%;
+    height: 100%;
+  }
+
+  .cardBottomLeft {
+    position: absolute;
+    bottom: 14px;
+    left: 14px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cardTitle {
+    font-family: var(--font-bold);
+    font-size: 16px;
+    color: #ffffff;
+    letter-spacing: 1.5px;
+    text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.5);
+  }
+
+  .cardBottomRight {
+    position: absolute;
+    bottom: 14px;
+    right: 14px;
+  }
+
+  .cardButton {
+    background-color: rgba(253, 248, 240, 0.93);
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    border-radius: 6px;
+  }
+
+  .cardButtonText {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--brown);
+  }
+
+  .cardDescriptionContainer {
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    background-color: var(--paper);
+  }
+
+  .cardDescription {
+    font-family: var(--font-italic);
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 20px;
+  }
+  .opacityState {
+    opacity: 0.9;
+    --action-base-opacity: 0.9;
+  }
+}

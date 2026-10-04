@@ -3,16 +3,16 @@ const auth = vi.hoisted(() => ({
   setSessionToken: vi.fn(),
   getSessionToken: vi.fn(async () => null),
 }));
-vi.mock("../apps/frontend/constants/oauth", () => ({
-  getApiBaseUrl: () => "https://api.example.test",
+vi.mock("../apps/frontend/src/shared/config/api", () => ({
+  apiUrl: (path: string) => "https://api.example.test" + path,
 }));
-vi.mock("../apps/frontend/lib/_core/auth", () => auth);
+vi.mock("../apps/frontend/src/domain/session/storage", () => auth);
 import {
   apiCall,
-  getAppCapabilities,
   requestPasswordInstructions,
   registerWithEmail,
-} from "../apps/frontend/lib/_core/api";
+} from "../apps/frontend/src/shared/api/auth";
+import { getAppCapabilities } from "../apps/frontend/src/shared/api/capabilities";
 let fetcher: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   auth.setSessionToken.mockReset();

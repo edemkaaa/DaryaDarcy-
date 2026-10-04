@@ -1,0 +1,219 @@
+@layer base {
+  /* Shared HTML/CSS elements. Layout values are inherited from the original design. */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  body {
+    font:
+      14px Arial,
+      Helvetica,
+      sans-serif;
+    color: #000;
+  }
+  .ui-stack,
+  .ui-action {
+    position: relative;
+    z-index: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    flex-shrink: 0;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+  }
+  .ui-text {
+    position: relative;
+    display: block;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    color: inherit;
+    font: inherit;
+  }
+  .ui-text-inline {
+    display: inline;
+  }
+  .ui-action {
+    appearance: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ui-action:disabled {
+    cursor: default;
+  }
+  .ui-action:focus-visible,
+  .ui-field:focus-visible {
+    outline: 2px solid var(--muted);
+    outline-offset: 3px;
+  }
+  .ui-field {
+    appearance: none;
+    display: block;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: inherit;
+    resize: none;
+    outline: none;
+  }
+  .ui-field::placeholder {
+    color: var(--placeholder-color, #888);
+    opacity: 1;
+  }
+  .ui-scroll {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    flex: 1 1 0%;
+    min-width: 0;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ui-scroll-horizontal {
+    flex: 0 0 auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-y: auto;
+  }
+  .ui-scroll-hide {
+    scrollbar-width: none;
+  }
+  .ui-scroll-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .ui-scroll-content {
+    flex-shrink: 0;
+  }
+  .ui-scroll-content-horizontal,
+  .ui-collection-horizontal,
+  .ui-collection-row {
+    flex-direction: row;
+  }
+  .ui-scroll-snap > *,
+  .ui-scroll-snap .ui-collection-item {
+    scroll-snap-align: start;
+  }
+  .ui-scroll-content-horizontal {
+    min-width: 100%;
+  }
+  .ui-collection-horizontal {
+    align-self: flex-start;
+  }
+  .ui-spinner {
+    border: 3px solid;
+    border-radius: 50%;
+    animation: ui-spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+  .ui-refresh {
+    padding: 8px;
+    text-align: center;
+    font: 14px EBGaramond-Regular;
+    color: var(--muted);
+  }
+  .ui-dialog {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    outline: none;
+  }
+  .ui-dialog-fade {
+    animation: ui-fade 0.2s ease-out;
+  }
+  .ui-dialog-slide {
+    animation: ui-slide 0.25s ease-out;
+  }
+  .ui-pointer-none {
+    pointer-events: none;
+  }
+  @keyframes ui-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes ui-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes ui-slide {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ui-spinner,
+    .ui-dialog {
+      animation: none;
+    }
+  }
+  .ui-pointer-children {
+    pointer-events: none;
+  }
+  .ui-pointer-children > * {
+    pointer-events: auto;
+  }
+  .ui-clickable-card {
+    cursor: pointer;
+  }
+  .ui-clickable-card:focus-visible {
+    outline: 2px solid var(--muted);
+    outline-offset: -2px;
+  }
+  .ui-navigation-card > * {
+    transition: transform 120ms ease-out;
+  }
+  .ui-navigation-card:active > * {
+    transform: scale(0.98);
+  }
+  .ui-navigation-card:active {
+    opacity: 0.85;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ui-navigation-card > * {
+      transition: none;
+    }
+  }
+  .ui-inline-link {
+    color: inherit;
+    font: inherit;
+    white-space: inherit;
+    text-decoration: none;
+  }
+  .ui-action[data-hit-area]::after {
+    content: "";
+    position: absolute;
+    inset: calc(-1 * var(--hit-area));
+  }
+}

@@ -1,0 +1,352 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .background {
+    flex: 1;
+  }
+
+  .div {
+    position: relative;
+  }
+
+  .heroBanner {
+    width: 100%;
+    aspect-ratio: 1.7777777777777777;
+    position: relative;
+  }
+
+  .heroBannerImage {
+    width: 100%;
+    height: 100%;
+  }
+
+  .subtitleContainer {
+    padding-left: 28px;
+    padding-right: 28px;
+    padding-top: 20px;
+    padding-bottom: 8px;
+    align-items: center;
+  }
+
+  .subtitleDescription {
+    font-size: 16px;
+    font-family: var(--font-body);
+    color: var(--ink);
+    text-align: center;
+    line-height: 22px;
+  }
+
+  .dotSeparator {
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 3px;
+    margin-bottom: 3px;
+  }
+
+  .italicText {
+    font-family: var(--font-italic);
+    color: var(--ink);
+  }
+
+  .priceSection {
+    padding-left: 20px;
+    padding-right: 20px;
+    margin-top: 24px;
+  }
+
+  .guestEmail {
+    width: 100%;
+    border-width: 1px;
+    border-color: rgba(107, 123, 94, 0.35);
+    border-radius: 8px;
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--brown);
+    background-color: rgba(253, 248, 240, 0.9);
+    margin-bottom: 4px;
+  }
+
+  .action {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding-left: 32px;
+    padding-right: 32px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    border-radius: 8px;
+    background-color: var(--olive);
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .subscribeButtonText {
+    color: var(--paper);
+    font-size: 16px;
+    font-family: EBGaramond-SemiBold;
+    letter-spacing: 0.5px;
+  }
+
+  .typography {
+    font-size: 12px;
+    font-family: var(--font-italic);
+    color: var(--muted);
+    margin-top: 8px;
+    text-align: center;
+  }
+
+  .benefitsSection {
+    padding-left: 20px;
+    padding-right: 20px;
+    margin-top: 20px;
+  }
+
+  .benefitsSectionTitle {
+    font-size: 28px;
+    font-family: var(--font-display);
+    color: var(--brown);
+    text-align: center;
+    margin-bottom: 18px;
+  }
+
+  .benefitCard {
+    flex-direction: row;
+    align-items: center;
+    padding: 14px;
+    border-radius: 14px;
+    background-color: rgba(255, 255, 255, 0.6);
+    border-width: 1px;
+    border-color: rgba(139, 115, 85, 0.15);
+    margin-bottom: 4px;
+    gap: 14px;
+  }
+
+  .benefitIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background-color: rgba(107, 123, 94, 0.12);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .benefitText {
+    flex: 1;
+    gap: 2px;
+  }
+
+  .benefitTitle {
+    font-size: 15px;
+    font-family: EBGaramond-SemiBold;
+    color: var(--brown);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .benefitDescription {
+    font-size: 13px;
+    font-family: var(--font-body);
+    color: var(--muted);
+    line-height: 18px;
+  }
+
+  .letterCarouselContainer {
+    margin-top: 2px;
+    margin-bottom: 20px;
+    margin-left: -20px;
+    margin-right: -20px;
+  }
+
+  .collectioncontent {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .exclusiveCarouselSlide {
+    margin-right: 10px;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .exclusiveCarouselImage {
+    width: 100%;
+    aspect-ratio: 1.3333333333333333;
+    border-radius: 16px;
+  }
+
+  .giveawayCarouselSlide {
+    margin-right: 10px;
+    background-color: #f5ede3;
+    border-radius: 16px;
+    padding: 8px;
+  }
+
+  .giveawayCarouselImage {
+    width: 100%;
+    aspect-ratio: 1.8;
+    border-radius: 12px;
+  }
+
+  .communityCarouselSlide {
+    margin-right: 10px;
+    background-color: #f5ede3;
+    border-radius: 16px;
+    padding: 8px;
+    overflow: hidden;
+  }
+
+  .communityCarouselImage {
+    width: 100%;
+    aspect-ratio: 2.2;
+    border-radius: 12px;
+  }
+
+  .letterCarouselSlide {
+    margin-right: 10px;
+  }
+
+  .letterCarouselImage {
+    width: 100%;
+    aspect-ratio: 0.75;
+    border-radius: 16px;
+  }
+
+  .privilegesTitle {
+    font-size: 17px;
+    font-family: EBGaramond-SemiBold;
+    color: var(--ink);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .privilegesItem {
+    font-size: 15px;
+    font-family: var(--font-body);
+    color: var(--ink);
+    line-height: 22px;
+    margin-bottom: 4px;
+  }
+
+  .priceCard {
+    padding: 24px;
+    border-radius: 18px;
+    border-width: 1.5px;
+    border-color: rgba(107, 123, 94, 0.3);
+    background-color: rgba(107, 123, 94, 0.06);
+    align-items: center;
+    gap: 8px;
+  }
+
+  .priceLabel {
+    font-size: 12px;
+    font-family: var(--font-body);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .planName {
+    font-size: 18px;
+    font-family: var(--font-body);
+    color: var(--brown);
+    margin-top: 4px;
+  }
+
+  .priceRow {
+    flex-direction: row;
+    align-items: baseline;
+  }
+
+  .priceAmount {
+    font-size: 36px;
+    font-family: var(--font-body);
+    color: var(--brown);
+  }
+
+  .pricePeriod {
+    font-size: 16px;
+    font-family: var(--font-body);
+    color: var(--muted);
+  }
+
+  .priceNote {
+    font-size: 12px;
+    font-family: var(--font-italic);
+    color: var(--muted);
+    margin-top: 4px;
+    text-align: center;
+  }
+
+  .action2 {
+    margin-top: 12px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .privacyLink {
+    font-size: 13px;
+    font-family: var(--font-body);
+    color: var(--olive);
+    text-align: center;
+    text-decoration-line: underline;
+  }
+
+  .action3 {
+    margin-top: 10px;
+  }
+
+  .reviewsSection {
+    margin-top: 28px;
+    margin-left: -20px;
+    margin-right: -20px;
+  }
+
+  .reviewsSectionTitle {
+    font-size: 28px;
+    font-family: var(--font-display);
+    color: var(--brown);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .reviewCarouselImage {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 12px;
+  }
+
+  .reviewCarouselImageHalf {
+    width: 100%;
+    flex: 1;
+    border-radius: 12px;
+  }
+
+  .div2 {
+    height: 100px;
+  }
+  .opacityState {
+    opacity: 0.9;
+    --action-base-opacity: 0.9;
+  }
+
+  .opacityState2 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+
+  .opacityState3 {
+    opacity: 0.9;
+    --action-base-opacity: 0.9;
+  }
+
+  .opacityState4 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+}

@@ -1,0 +1,75 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .frame {
+    width: 100%;
+    aspect-ratio: 1.7777777777777777;
+    background-color: #2a2a2a;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+
+  .picture {
+    position: absolute;
+    inset: 0;
+  }
+
+  .action {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-radius: 4px;
+    background-color: rgba(245, 237, 224, 0.85);
+    max-width: 88%;
+  }
+
+  .watchBtnText {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--ink);
+    letter-spacing: 1px;
+    line-height: 18px;
+  }
+
+  .section {
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 28px;
+    padding-bottom: 12px;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .title {
+    text-align: center;
+    line-height: 30px;
+  }
+
+  .titleLead {
+    font-family: var(--font-italic);
+    font-size: 22px;
+    letter-spacing: 0.4px;
+    color: var(--ink);
+  }
+
+  .titleMain {
+    font-family: var(--font-body);
+    font-size: 24px;
+    letter-spacing: 1.2px;
+    color: var(--ink);
+  }
+  .videoElement {
+    width: 100%;
+    height: 100%;
+    background-color: #2a2a2a;
+    object-fit: cover;
+  }
+  .opacityState {
+    opacity: 0.88;
+    --action-base-opacity: 0.88;
+  }
+}

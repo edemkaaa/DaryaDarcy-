@@ -1,0 +1,26 @@
+@use "../shared/styles/layers";
+
+@layer components {
+  .shell {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+  }
+  .content {
+    --screen-safe-top: 0px;
+    --screen-safe-bottom: 0px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  // Bound route wrappers before sizing their own scroll areas.
+  .content > * {
+    flex: 1 1 0%;
+    min-height: 0;
+  }
+}

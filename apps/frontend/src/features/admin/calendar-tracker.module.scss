@@ -1,0 +1,285 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .loadingContainer {
+    padding: 40px;
+    align-items: center;
+  }
+
+  .container {
+    padding: 16px;
+  }
+
+  .monthHeader {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .action {
+    padding: 8px;
+  }
+
+  .monthTitle {
+    font-size: 18px;
+    font-family: var(--font-bold);
+    color: var(--ink);
+    text-align: center;
+    flex: 1;
+  }
+
+  .upcoming {
+    margin-top: 4px;
+    margin-bottom: 8px;
+  }
+
+  .upcomingTitle {
+    font-size: 15px;
+    font-family: EBGaramond-SemiBold;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .action2 {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .div {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background-color: var(--muted);
+  }
+
+  .upcomingDate {
+    font-size: 12px;
+    color: var(--muted);
+    width: 92px;
+  }
+
+  .upcomingText {
+    flex: 1;
+    font-size: 13px;
+    color: var(--ink);
+  }
+
+  .emptySchedule {
+    font-size: 13px;
+    color: #7a6b5e;
+    text-align: center;
+    margin-top: 8px;
+    margin-bottom: 4px;
+  }
+
+  .legend {
+    flex-direction: row;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top-width: 1px;
+    border-top-color: var(--border);
+  }
+
+  .legendItem {
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .div2 {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background-color: var(--olive);
+  }
+
+  .legendText {
+    font-size: 11px;
+    color: #7a6b5e;
+  }
+
+  .div3 {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background-color: #7a6b5e;
+  }
+
+  .monthBlock {
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--border);
+  }
+
+  .monthBlockTitle {
+    font-size: 16px;
+    font-family: EBGaramond-SemiBold;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+
+  .monthStats {
+    font-size: 12px;
+    color: #7a6b5e;
+    margin-bottom: 10px;
+  }
+
+  .weekdayRow {
+    flex-direction: row;
+    margin-bottom: 8px;
+  }
+
+  .weekdayCell {
+    flex: 1;
+    align-items: center;
+  }
+
+  .weekdayText {
+    font-size: 12px;
+    font-weight: 600;
+    color: #7a6b5e;
+  }
+
+  .calendarGrid {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .dayCell {
+    width: 14.28%;
+    aspect-ratio: 1;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+  }
+
+  .photoCircle {
+    width: 90%;
+    aspect-ratio: 1;
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .photoCircleImage {
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+  }
+
+  .photoOverlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.2);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .dayNumberOnPhoto {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .div4 {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    border-width: 1.5px;
+    border-color: var(--paper);
+  }
+
+  .div5 {
+    width: 80%;
+    aspect-ratio: 1;
+    border-radius: 999px;
+    border-width: 2px;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .dayNumber {
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .emptyDay {
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .todayNumber {
+    font-size: 14px;
+  }
+
+  .addHint {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: -2px;
+  }
+
+  .multiPostBadge {
+    position: absolute;
+    top: 0;
+    right: 2px;
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  .opacityState {
+    opacity: 0.6;
+    --action-base-opacity: 0.6;
+  }
+
+  .opacityState2 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+
+  .opacityState3 {
+    opacity: 0.6;
+    --action-base-opacity: 0.6;
+  }
+
+  .opacityState4 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+
+  .opacityState5 {
+    opacity: 0.7;
+    --action-base-opacity: 0.7;
+  }
+
+  .backgroundColorState {
+    background-color: rgba(139, 115, 85, 0.08);
+  }
+
+  .borderRadiusState {
+    border-radius: 8px;
+  }
+
+  .appearanceState {
+    color: var(--muted);
+    font-weight: 800;
+  }
+
+  .appearanceState2 {
+    color: var(--ink);
+    font-weight: 500;
+  }
+}

@@ -1,0 +1,94 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .postCard {
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 12px;
+    background-color: transparent;
+    overflow: hidden;
+  }
+
+  .postContent {
+    padding: 14px;
+    gap: 8px;
+  }
+
+  .postText {
+    font-size: 17px;
+    line-height: 25px;
+    color: #3c2a1a;
+    font-family: var(--font-body);
+  }
+
+  .expandButton {
+    margin-top: 2px;
+  }
+
+  .expandButtonText {
+    font-size: 14px;
+    color: var(--muted);
+    font-family: var(--font-body);
+    letter-spacing: 0.5px;
+  }
+
+  .postTagsRow {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .postTag {
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border-radius: 8px;
+    background-color: #eee9e0;
+  }
+
+  .postTagText {
+    font-size: 13px;
+    color: #7a6b5e;
+    font-family: var(--font-body);
+  }
+
+  .postFooter {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+  }
+
+  .postDate {
+    font-size: 12px;
+    color: #7a6b5e;
+    font-family: var(--font-italic);
+  }
+
+  .postActions {
+    flex-direction: row;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .actionButton {
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .typography {
+    font-size: 12px;
+    font-family: var(--font-body);
+  }
+  .colorState {
+    color: #a85c5c;
+  }
+
+  .colorState2 {
+    color: #7a6b5e;
+  }
+}

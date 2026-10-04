@@ -1,0 +1,9 @@
+@use "../styles/layers";
+
+@layer elements {
+  .div {
+    height: 1px;
+    width: 1px;
+    flex-shrink: 0;
+  }
+}

@@ -1,0 +1,44 @@
+@use "../styles/layers";
+
+@layer elements {
+  .portraitFrame {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .videoElement {
+    width: 100%;
+    height: 100%;
+  }
+  .borderTopLeftRadiusState {
+    border-top-left-radius: 16px;
+  }
+
+  .borderTopRightRadiusState {
+    border-top-right-radius: 16px;
+  }
+
+  .borderBottomLeftRadiusState {
+    border-bottom-left-radius: 0;
+  }
+
+  .borderBottomRightRadiusState {
+    border-bottom-right-radius: 0;
+  }
+
+  .marginTopState {
+    margin-top: 0;
+  }
+
+  .marginTopState2 {
+    margin-top: 8px;
+  }
+
+  .backgroundColorState {
+    background-color: #ede6da;
+  }
+
+  .backgroundColorState2 {
+    background-color: #2a2a2a;
+  }
+}

@@ -1,0 +1,288 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .background {
+    flex: 1;
+  }
+
+  .scrollContent {
+    padding-bottom: 60px;
+  }
+
+  .blendTabs {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    padding-left: 24px;
+    padding-right: 24px;
+    background-color: var(--paper);
+  }
+
+  .blendTabActive {
+    flex: 1;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    align-items: center;
+    border-bottom-width: 2px;
+  }
+
+  .blendTabTextActive {
+    font-size: 15px;
+  }
+
+  .heroContainer {
+    position: relative;
+  }
+
+  .heroImage {
+    width: 100%;
+    height: 100%;
+  }
+
+  .gradient {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60%;
+  }
+
+  .heroOverlay {
+    position: absolute;
+    bottom: 24px;
+    left: 24px;
+    right: 24px;
+  }
+
+  .aestheticLabel {
+    font-size: 14px;
+    font-family: EBGaramond_700Bold;
+    color: rgba(255, 255, 255, 0.85);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+
+  .heroTitle {
+    font-size: 26px;
+    font-family: EBGaramond_700Bold;
+    color: #fff;
+    line-height: 34px;
+  }
+
+  .blendLabel {
+    font-size: 15px;
+    font-family: EBGaramond_400Regular_Italic;
+    color: rgba(255, 255, 255, 0.75);
+    margin-top: 6px;
+  }
+
+  .div {
+    margin-left: 24px;
+    margin-right: 24px;
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 14px;
+    background-color: var(--color-surface);
+  }
+
+  .cardLabel {
+    font-size: 13px;
+    font-family: EBGaramond_700Bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    color: #a0845c;
+  }
+
+  .cardValue {
+    font-size: 17px;
+    line-height: 24px;
+    font-family: EBGaramond_400Regular;
+    color: var(--brown);
+  }
+
+  .section {
+    padding-left: 24px;
+    padding-right: 24px;
+    margin-top: 28px;
+  }
+
+  .sectionTitle {
+    font-size: 20px;
+    font-family: EBGaramond_700Bold;
+    color: var(--brown);
+    margin-bottom: 12px;
+  }
+
+  .bodyText {
+    font-size: 16px;
+    line-height: 24px;
+    font-family: EBGaramond_400Regular_Italic;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .scoresContainer {
+    gap: 10px;
+  }
+
+  .scoreRow {
+    gap: 4px;
+  }
+
+  .typography {
+    font-size: 14px;
+    font-family: EBGaramond_400Regular;
+  }
+
+  .scoreBarContainer {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .div2 {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: var(--color-surface);
+  }
+
+  .div3 {
+    height: 100%;
+    border-radius: 4px;
+  }
+
+  .scoreValue {
+    font-size: 13px;
+    width: 24px;
+    text-align: right;
+    font-family: EBGaramond_400Regular;
+    color: var(--muted);
+  }
+
+  .clubCTA {
+    margin-left: 24px;
+    margin-right: 24px;
+    margin-top: 32px;
+    padding: 24px;
+    border-radius: 16px;
+    background-color: var(--paper);
+    border-width: 1px;
+    border-color: #a0845c30;
+    align-items: center;
+  }
+
+  .clubCTAPrivilege {
+    font-size: 17px;
+    font-family: EBGaramond_700Bold;
+    color: var(--brown);
+    text-align: center;
+    line-height: 24px;
+    margin-bottom: 8px;
+  }
+
+  .clubCTASubtext {
+    font-size: 14px;
+    font-family: EBGaramond_400Regular_Italic;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .action {
+    padding-top: 14px;
+    padding-bottom: 14px;
+    padding-left: 32px;
+    padding-right: 32px;
+    border-radius: 12px;
+    background-color: var(--brown);
+  }
+
+  .clubCTAButtonText {
+    color: #fff;
+    font-size: 16px;
+    font-family: EBGaramond_700Bold;
+  }
+
+  .actionsContainer {
+    padding-left: 24px;
+    padding-right: 24px;
+    margin-top: 36px;
+    gap: 12px;
+  }
+
+  .action2 {
+    padding-top: 16px;
+    padding-bottom: 16px;
+    border-radius: 14px;
+    align-items: center;
+    background-color: var(--brown);
+  }
+
+  .action3 {
+    padding-top: 14px;
+    padding-bottom: 14px;
+    border-radius: 14px;
+    align-items: center;
+    border-width: 1px;
+    border-color: #a0845c;
+  }
+
+  .restartButtonText {
+    font-size: 16px;
+    font-family: EBGaramond_400Regular;
+    color: var(--brown);
+  }
+
+  .backLink {
+    align-items: center;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .backLinkText {
+    font-size: 15px;
+    font-family: EBGaramond_400Regular_Italic;
+    color: var(--muted);
+  }
+  .borderBottomColorState {
+    border-bottom-color: var(--brown);
+  }
+
+  .borderBottomColorState2 {
+    border-bottom-color: transparent;
+  }
+
+  .appearanceState {
+    font-family: EBGaramond_700Bold;
+    color: var(--brown);
+  }
+
+  .appearanceState2 {
+    font-family: EBGaramond_400Regular;
+    color: var(--muted);
+  }
+
+  .borderBottomColorState3 {
+    border-bottom-color: var(--brown);
+  }
+
+  .borderBottomColorState4 {
+    border-bottom-color: transparent;
+  }
+
+  .appearanceState3 {
+    font-family: EBGaramond_700Bold;
+    color: var(--brown);
+  }
+
+  .appearanceState4 {
+    font-family: EBGaramond_400Regular;
+    color: var(--muted);
+  }
+}

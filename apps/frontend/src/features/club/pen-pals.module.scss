@@ -1,0 +1,361 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .container {
+    flex: 1;
+    background-color: var(--paper);
+  }
+
+  .header {
+    flex-direction: row;
+    justify-content: flex-end;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 16px;
+    padding-bottom: 8px;
+  }
+
+  .closeButton {
+    padding: 8px;
+    border-radius: 20px;
+    background-color: rgba(139, 115, 85, 0.08);
+  }
+
+  .centered {
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    padding-left: 28px;
+    padding-right: 28px;
+    gap: 14px;
+  }
+
+  .successTitle {
+    font-size: 22px;
+    font-family: var(--font-display);
+    color: var(--brown);
+    text-align: center;
+  }
+
+  .successText {
+    font-size: 15px;
+    font-family: var(--font-body);
+    color: var(--muted);
+    text-align: center;
+    line-height: 21px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .submitButton {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    padding-left: 28px;
+    padding-right: 28px;
+    border-radius: 28px;
+    background-color: var(--olive);
+    gap: 8px;
+    align-self: center;
+    margin-top: 8px;
+    min-width: 220px;
+  }
+
+  .submitButtonText {
+    font-size: 16px;
+    font-family: EBGaramond-SemiBold;
+    color: var(--paper);
+    letter-spacing: 0.3px;
+  }
+
+  .content {
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-bottom: 40px;
+  }
+
+  .title {
+    font-size: 28px;
+    font-family: var(--font-display);
+    color: var(--brown);
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-size: 15px;
+    font-family: var(--font-body);
+    color: var(--muted);
+    text-align: center;
+    line-height: 21px;
+    margin-bottom: 28px;
+  }
+
+  .letterCard {
+    background-color: rgba(255, 255, 255, 0.78);
+    border-width: 1px;
+    border-color: rgba(139, 115, 85, 0.18);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
+    gap: 8px;
+  }
+
+  .letterHeader {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 24px;
+    background-color: rgba(139, 115, 85, 0.12);
+  }
+
+  .avatarFallback {
+    width: 48px;
+    height: 48px;
+    border-radius: 24px;
+    background-color: rgba(107, 123, 94, 0.18);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .avatarInitial {
+    font-family: EBGaramond-SemiBold;
+    font-size: 20px;
+    color: var(--olive);
+  }
+
+  .div {
+    flex: 1;
+  }
+
+  .letterName {
+    font-family: EBGaramond-SemiBold;
+    font-size: 18px;
+    color: var(--brown);
+  }
+
+  .letterCity {
+    font-family: var(--font-italic);
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .letterLabel {
+    font-family: EBGaramond-SemiBold;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+
+  .letterAddress {
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--brown);
+    line-height: 22px;
+  }
+
+  .interestsGrid {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .interestChipSelected {
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-radius: 20px;
+    border-width: 1px;
+  }
+
+  .interestChipTextSelected {
+    font-size: 14px;
+  }
+
+  .matchActions {
+    margin-top: 10px;
+    gap: 8px;
+  }
+
+  .confirmBtn {
+    background-color: var(--olive);
+    border-radius: 10px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 14px;
+    padding-right: 14px;
+    align-self: flex-start;
+  }
+
+  .confirmBtnText {
+    color: var(--paper);
+    font-family: EBGaramond-SemiBold;
+    font-size: 14px;
+  }
+
+  .textButtonMuted {
+    font-size: 14px;
+    font-family: var(--font-body);
+    color: var(--muted);
+  }
+
+  .successSection {
+    align-items: center;
+    padding-top: 24px;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .textButton {
+    align-self: center;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .textButtonLabel {
+    font-size: 15px;
+    font-family: EBGaramond-SemiBold;
+    color: var(--olive);
+  }
+
+  .div2 {
+    height: 40px;
+  }
+
+  .section {
+    margin-bottom: 24px;
+  }
+
+  .sectionLabel {
+    font-size: 15px;
+    font-family: EBGaramond-SemiBold;
+    color: var(--brown);
+    margin-bottom: 12px;
+  }
+
+  .cityInput {
+    background-color: rgba(255, 255, 255, 0.8);
+    border-width: 1px;
+    border-color: rgba(139, 115, 85, 0.2);
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 15px;
+    font-family: var(--font-body);
+    color: var(--brown);
+  }
+
+  .interestHint {
+    font-size: 12px;
+    font-family: var(--font-body);
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  .addressInput {
+    background-color: rgba(255, 255, 255, 0.8);
+    border-width: 1px;
+    border-color: rgba(139, 115, 85, 0.2);
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 15px;
+    font-family: var(--font-body);
+    color: var(--brown);
+    min-height: 80px;
+    line-height: 21px;
+  }
+
+  .consentRow {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .consentText {
+    flex: 1;
+    font-size: 12px;
+    font-family: var(--font-body);
+    color: var(--muted);
+    line-height: 17px;
+  }
+
+  .privacyNote {
+    font-size: 12px;
+    font-family: var(--font-italic);
+    color: var(--muted);
+    text-align: center;
+    line-height: 17px;
+    margin-top: 16px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .appearanceState {
+    background-color: rgba(107, 123, 94, 0.15);
+    border-color: var(--olive);
+  }
+
+  .appearanceState2 {
+    background-color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(139, 115, 85, 0.2);
+  }
+
+  .appearanceState3 {
+    font-family: EBGaramond-SemiBold;
+    color: var(--olive);
+  }
+
+  .appearanceState4 {
+    font-family: var(--font-body);
+    color: var(--muted);
+  }
+
+  .opacityState {
+    opacity: 0.8;
+    --action-base-opacity: 0.8;
+  }
+
+  .opacityState2 {
+    opacity: 0.5;
+    --action-base-opacity: 0.5;
+  }
+
+  .appearanceState5 {
+    background-color: rgba(107, 123, 94, 0.15);
+    border-color: var(--olive);
+  }
+
+  .appearanceState6 {
+    background-color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(139, 115, 85, 0.2);
+  }
+
+  .appearanceState7 {
+    font-family: EBGaramond-SemiBold;
+    color: var(--olive);
+  }
+
+  .appearanceState8 {
+    font-family: var(--font-body);
+    color: var(--muted);
+  }
+
+  .opacityState3 {
+    opacity: 0.8;
+    --action-base-opacity: 0.8;
+  }
+
+  .opacityState4 {
+    opacity: 0.5;
+    --action-base-opacity: 0.5;
+  }
+}

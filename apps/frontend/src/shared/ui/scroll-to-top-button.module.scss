@@ -1,0 +1,27 @@
+@use "../styles/layers";
+
+@layer elements {
+  .div {
+    position: absolute;
+    left: 20px;
+    z-index: 99;
+  }
+
+  .btnPressed {
+    width: 44px;
+    height: 44px;
+    border-radius: 22px;
+    background-color: var(--muted);
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
+  }
+  .opacityState {
+    opacity: 0.88;
+    --action-base-opacity: 0.88;
+  }
+
+  .transformState {
+    transform: scale(0.94);
+  }
+}

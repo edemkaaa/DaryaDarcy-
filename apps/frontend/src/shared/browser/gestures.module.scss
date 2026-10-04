@@ -1,0 +1,7 @@
+@use "../styles/layers";
+
+@layer elements {
+  .div {
+    display: contents;
+  }
+}

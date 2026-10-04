@@ -1,0 +1,20 @@
+[
+  {
+    "scenario": "tRPC timeout selection",
+    "signalUsed": true,
+    "timeoutCalls": 0,
+    "meaning": "A supplied tRPC signal bypasses AbortSignal.timeout(15000)"
+  },
+  {
+    "scenario": "non JSON upload error",
+    "error": "Body is unusable: Body has already been read",
+    "statusExpected": 413
+  },
+  {
+    "scenario": "failed image conversion MIME",
+    "inputType": "image/heic",
+    "outputType": "image/jpeg",
+    "outputName": "audit.jpg",
+    "rawBytesUnchanged": true
+  }
+]

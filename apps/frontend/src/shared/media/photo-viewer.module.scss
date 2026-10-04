@@ -1,0 +1,75 @@
+@use "../styles/layers";
+
+@layer elements {
+  .div {
+    position: absolute;
+    inset: 0;
+    background-color: #000;
+  }
+
+  .div2 {
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .action {
+    position: absolute;
+    right: 16px;
+    z-index: 100;
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .div3 {
+    position: absolute;
+    left: 16px;
+    z-index: 100;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .counterText {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .scroll {
+    flex: 1;
+    width: 100%;
+  }
+
+  .div4 {
+    justify-content: center;
+    align-items: center;
+  }
+
+  .div5 {
+    position: absolute;
+    flex-direction: row;
+    align-self: center;
+    gap: 6px;
+  }
+  .appearanceState {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background-color: #fff;
+  }
+
+  .appearanceState2 {
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+    background-color: rgba(255, 255, 255, 0.4);
+  }
+}

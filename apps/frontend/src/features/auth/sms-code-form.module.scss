@@ -1,0 +1,155 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .phoneRow {
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.72);
+    border-width: 1px;
+    border-color: rgba(139, 115, 85, 0.25);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    padding-left: 14px;
+  }
+
+  .prefix {
+    font-family: EBGaramond-SemiBold;
+    font-size: 18px;
+    color: var(--brown);
+    margin-right: 8px;
+  }
+
+  .phoneInput {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: 18px;
+    color: var(--brown);
+    padding-left: 0;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    padding-right: 14px;
+  }
+
+  .error {
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: #8b3a3a;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  .consentRow {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 12px;
+    margin-top: 4px;
+  }
+
+  .consentCheckboxText {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 20px;
+  }
+
+  .action {
+    background-color: var(--olive);
+    border-radius: 8px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    align-items: center;
+    margin-top: 4px;
+  }
+
+  .buttonText {
+    font-family: EBGaramond-SemiBold;
+    font-size: 17px;
+    color: var(--paper);
+  }
+
+  .consent {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 20px;
+    margin-top: 14px;
+  }
+
+  .consentLink {
+    text-decoration-line: underline;
+    color: var(--brown);
+  }
+
+  .sentTo {
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--brown);
+    text-align: center;
+    margin-bottom: 6px;
+  }
+
+  .hint {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 20px;
+    margin-bottom: 10px;
+  }
+
+  .changeNumber {
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--muted);
+    text-align: center;
+    text-decoration-line: underline;
+    margin-bottom: 16px;
+  }
+
+  .input {
+    font-family: var(--font-body);
+    font-size: 18px;
+    color: var(--brown);
+    background-color: rgba(255, 255, 255, 0.72);
+    border-width: 1px;
+    border-color: rgba(139, 115, 85, 0.25);
+    border-radius: 8px;
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    letter-spacing: 4px;
+    text-align: center;
+  }
+
+  .typography {
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--brown);
+    text-align: center;
+    margin-top: 16px;
+    text-decoration-line: underline;
+  }
+  .opacityState {
+    opacity: 0.85;
+    --action-base-opacity: 0.85;
+  }
+
+  .opacityState2 {
+    opacity: 0.5;
+    --action-base-opacity: 0.5;
+  }
+
+  .opacityState3 {
+    opacity: 0.85;
+    --action-base-opacity: 0.85;
+  }
+
+  .opacityState4 {
+    opacity: 0.5;
+  }
+}
