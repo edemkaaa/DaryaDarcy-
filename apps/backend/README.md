@@ -1,12 +1,14 @@
 # Бэкенд Daryadarcy
 
-Express + tRPC, TypeScript, Drizzle / MySQL. Основная работа — в src; схема и миграции — в [packages/database](../../packages/database/). Это существующий сервер проекта, а не отдельная переписанная система.
+NestJS + tRPC с Express-адаптером, TypeScript, Drizzle / MySQL. Основная работа — в src; схема и миграции — в [packages/database](../../packages/database/). Это постепенный перенос существующего сервера, а не параллельная переписанная система. HTTP-сервер уже запускается через NestJS; остальные доменные адаптеры переводятся по [плану](../../tasks/plan.md). Решение и ограничения — в [ADR 0005](../../docs/decisions/0005-nestjs-modular-backend.md).
 
 ## Навигация
 
 ```text
 src/
-  _core/          запуск Express, контекст, сессии и общие middleware
+  app.module.ts   композиция Nest-модулей
+  _core/          запуск NestJS, контекст, сессии и общие middleware
+  system/         Nest-контроллер состояния сервера
   routers.ts      только сборка tRPC-роутеров
   identity/       регистрация, пароль, письма доступа
   billing/        checkout, обработка платежей и отмена подписки

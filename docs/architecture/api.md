@@ -1,6 +1,15 @@
 # API и границы модулей
 
-API построен на Express + tRPC. Точка запуска — [src/\_core/index.ts](../../apps/backend/src/_core/index.ts), состав tRPC — [routers.ts](../../apps/backend/src/routers.ts). Этот документ описывает исходный код, не подтверждает состояние сервера.
+API запускается через NestJS с Express-адаптером; контракт tRPC сохраняется. Точка запуска — [src/\_core/index.ts](../../apps/backend/src/_core/index.ts), композиция без запуска фоновых задач — [application.ts](../../apps/backend/src/_core/application.ts), модули Nest — [app.module.ts](../../apps/backend/src/app.module.ts), состав tRPC — [routers.ts](../../apps/backend/src/routers.ts). Этот документ описывает исходный код, не подтверждает состояние сервера.
+
+Перенос идёт по модулям: health и capabilities уже обслуживаются контроллерами
+NestJS; остальные HTTP-адаптеры и tRPC подключены в ту же HTTP-программу и
+сохраняют существующие проверки доступа. MySQL / Drizzle не меняются; TypeORM
+не вводится. План и проверки — в [ADR-005](../decisions/0005-nestjs-modular-backend.md).
+Порядок middleware остаётся обязательным: HTTP-защита → raw webhook и проверка
+загрузок → ограниченные парсеры → обработчики. Стандартные body-парсеры Nest
+отключены. Фоновые интервалы пока запускаются из index.ts; их lifecycle ещё
+не перенесён в Nest, штатное завершение workers не заявляется.
 
 ## tRPC
 

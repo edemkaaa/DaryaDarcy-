@@ -328,12 +328,18 @@
   Files: runtime factory, app module, system controller, launch module, HTTP tests.
   Dependencies: M01; scope: medium. Executable switch is a separately verified step.
   Real factory starts no jobs/listener; 20 real HTTP checks cover parser/auth/CORS/
-  HMAC/logout/tRPC/disabled features/close. Existing executable not yet switched.
-- [ ] M02b: Use Nest runtime from the existing production/dev executable.
+  HMAC/logout/tRPC/disabled features/close. Executable switched in M02b below.
+- [x] M02b: Use Nest runtime from the existing production/dev executable.
   Acceptance: same host/port/timeouts and routes; actual built artifact starts.
   Verify: built-process loopback smoke; full suite/types/build/contract checks.
   Files: _core/index.ts, backend README, root README, architecture API docs.
   Dependencies: M02; scope: medium.
+  Verified: the compiled Node entrypoint includes the Nest modules, serves real
+  health/capabilities HTTP, and rejects an occupied production port (3 tests).
+  Full MySQL suite: 612 pass / 2 external skip; types/build/lint/API/boundaries/
+  documentation pass. A shared-fixture latest-post assertion failed once;
+  deterministic owned ordering dates fixed it, without changing production code.
+  Workers still use existing intervals; Nest shutdown lifecycle is deferred to M07.
 - [ ] M03: Native launch settings controller/service, preserving JWT/Drizzle.
   Acceptance: HTTP shapes/statuses, role checks, optimistic revision and audit
   transaction preserved; only one production registration for each endpoint.

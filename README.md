@@ -1,6 +1,6 @@
 # Daryadarcy
 
-Монорепозиторий Daryadarcy: основной веб-клиент Next.js, сервер Express + tRPC и архивные клиенты Expo и Vite. Нативный клиент Expo сохранён, но исключён из активного workspace.
+Монорепозиторий Daryadarcy: основной веб-клиент Next.js, сервер NestJS + tRPC (Express-адаптер) и архивные клиенты Expo и Vite. Нативный клиент Expo сохранён, но исключён из активного workspace. Сервер переводится на NestJS по модулям; текущие API и MySQL / Drizzle сохраняются.
 
 ## С чего начать
 
@@ -16,7 +16,7 @@
 ```text
 apps/
   frontend/       основной веб-клиент: Next.js
-  backend/        API: Express + tRPC, доменные модули
+  backend/        API: NestJS + tRPC, доменные модули
   legacy-web/     предыдущий веб-клиент: Vite, не основной интерфейс
   legacy-expo/    прежний Expo-клиент, вне активного workspace
 packages/
