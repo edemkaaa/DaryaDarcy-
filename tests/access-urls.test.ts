@@ -1,20 +1,16 @@
 import { afterAll, afterEach, beforeAll, expect, it, vi } from "vitest";
-import express from "express";
-import type { Server } from "node:http";
+import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
-import { registerPasswordRoutes } from "../apps/backend/src/identity/routes";
+import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { publicAccessUrl } from "../apps/backend/src/identity/urls";
-let server: Server, base: string;
+let application: INestApplication, base: string;
 beforeAll(async () => {
-  const app = express();
-  registerPasswordRoutes(app);
-  server = await new Promise<Server>((resolve) => {
-    const instance = app.listen(0, "127.0.0.1", () => resolve(instance));
-  });
-  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  application = await createBackendApplication();
+  await application.listen(0, "127.0.0.1");
+  base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
 });
 afterAll(async () => {
-  await new Promise<void>((resolve) => server.close(() => resolve()));
+  await application.close();
 });
 afterEach(() => vi.unstubAllEnvs());
 it("links from the backend password page to the configured frontend login", async () => {
@@ -22,10 +18,16 @@ it("links from the backend password page to the configured frontend login", asyn
   vi.stubEnv("PUBLIC_AUTH_URL", "https://api.example.test");
   const response = await fetch(`${base}/api/auth/password`);
   expect(response.status).toBe(200);
-  expect(await response.text()).toContain(
-    'href="https://club.example.test/login"',
-  );
+  const page = await response.text();
+  expect(page).toContain('href="https://club.example.test/login"');
   expect(response.headers.get("cache-control")).toBe("no-store");
+  const nonce = page.match(/<script nonce="([^"]+)"/)![1];
+  expect(page).toContain("history.replaceState(null,'',location.pathname)");
+  expect(response.headers.get("content-security-policy")).toContain(
+    `script-src 'nonce-${nonce}'`,
+  );
+  expect(nonce).not.toBe("");
+  expect(response.headers.get("referrer-policy")).toBe("no-referrer");
 });
 it.each([
   "javascript:alert(1)",

@@ -3,7 +3,9 @@
 API запускается через NestJS с Express-адаптером; контракт tRPC сохраняется. Точка запуска — [src/\_core/index.ts](../../apps/backend/src/_core/index.ts), композиция без запуска фоновых задач — [application.ts](../../apps/backend/src/_core/application.ts), модули Nest — [app.module.ts](../../apps/backend/src/app.module.ts), состав tRPC — [routers.ts](../../apps/backend/src/routers.ts). Этот документ описывает исходный код, не подтверждает состояние сервера.
 
 Перенос идёт по модулям: health, capabilities и настройки запуска уже обслуживаются
-контроллерами NestJS; остальные HTTP-адаптеры и tRPC подключены в ту же HTTP-программу и
+контроллерами NestJS. Установка/восстановление пароля и повторное письмо доступа
+тоже перенесены в нативный IdentityModule; вход/регистрация пока в переходном
+адаптере. Остальные HTTP-адаптеры и tRPC подключены в ту же HTTP-программу и
 сохраняют существующие проверки доступа. MySQL / Drizzle не меняются; TypeORM
 не вводится. План и проверки — в [ADR-005](../decisions/0005-nestjs-modular-backend.md).
 Порядок middleware остаётся обязательным: HTTP-защита → raw webhook и проверка
@@ -101,7 +103,7 @@ optional removedMediaIds. Добавления и удаления привяз�
 - POST /api/auth/login, /api/auth/logout, /api/auth/session; GET /api/auth/me — вход и сессия, см. [\_core/oauth.ts](../../apps/backend/src/_core/oauth.ts).
 - POST /api/auth/logout возвращает {success:true}; только этот ответ подтверждает выход клиенту. Пустой/невалидный ответ не снимает локальную блокировку доступа.
 - POST /api/auth/password/request, /api/auth/password/complete; GET /api/auth/password — установка/восстановление пароля.
-- POST /api/admin/access-email/resend — повторное письмо администратором. См. [identity/routes.ts](../../apps/backend/src/identity/routes.ts).
+- POST /api/admin/access-email/resend — повторное письмо администратором. См. [identity/password.controller.ts](../../apps/backend/src/identity/password.controller.ts) и [PasswordService](../../apps/backend/src/identity/password.service.ts). Пароли и письма используют прежние одноразовые токены и outbox; смена пароля не создаёт сессию автоматически.
 - GET /api/launch-config; GET и PUT /api/admin/launch-settings — настройки запуска, см. [launch/launch.controller.ts](../../apps/backend/src/launch/launch.controller.ts) и [launch/launch.service.ts](../../apps/backend/src/launch/launch.service.ts). Проверка revision, актуальной роли и аудит остаются в одной Drizzle-транзакции; устаревшая правка возвращает 409, не меняя данные.
 - GET /api/capabilities — фактические серверные флаги, см. [launch/capabilities.ts](../../apps/backend/src/launch/capabilities.ts).
 - Обработчики Prodamus и операций с файлами подключены в [композиции приложения](../../apps/backend/src/_core/application.ts); протокол платежей — [prodamus.ts](../../apps/backend/src/prodamus.ts).

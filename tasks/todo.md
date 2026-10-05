@@ -361,6 +361,15 @@
   code, SQL schema, deployment configuration, production data or remote push changed.
 - [ ] M04: Specify and migrate identity adapters/guards; retain sessions/password
   invariants and investigate the existing intermittent registration race.
+  - [x] M04a: Native PasswordController/PasswordService and IdentityModule;
+    password request/completion/setup page + staff access resend. Previous
+    identity/routes adapter removed; real Nest/MySQL mail/setup/provider-boundary
+    tests retain one-use links, no automatic session, safe recipient response,
+    CSP nonce, no-store and staff/block/audit rules. 621 pass / 2 external skip;
+    types/lint/API/boundaries/docs/backend build pass; Next production build passes.
+  - [ ] M04b: Native session/login/registration/SMS transport + injected service;
+    remove OAuth adapter, preserve cookies/TOTP/rate limits/disabled features.
+  - [ ] M04c: Shared injectable session/role policy and registration-race diagnosis.
 - [ ] M05: Specify and migrate content service wiring; preserve N07–N11 regressions.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.

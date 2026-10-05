@@ -8,21 +8,23 @@ import {
   it,
   vi,
 } from "vitest";
-import express from "express";
-import type { Server } from "node:http";
+import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
-import type { Connection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import type {
+  Connection,
+  ResultSetHeader,
+  RowDataPacket,
+} from "mysql2/promise";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import * as db from "../apps/backend/src/db";
-import { registerOAuthRoutes } from "../apps/backend/src/_core/oauth";
+import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { EMAIL_REGISTER_CONSENT_VERSION } from "../packages/shared/src/consent-texts";
-import { registerPasswordRoutes } from "../apps/backend/src/identity/routes";
 import { processAccessEmails } from "../apps/backend/src/identity/access";
 
 describe.skipIf(!testDatabaseUrl)(
   "insert-only email registration on disposable MySQL",
   () => {
-    let conn: Connection, server: Server, base: string;
+    let conn: Connection, application: INestApplication, base: string;
     const prefix = "registration-fixture-";
     const email = `${prefix}race@example.test`;
     const originalLookup = db.getUserByEmail;
@@ -40,14 +42,9 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query(
         `CREATE TABLE IF NOT EXISTS user_consent_events (id INT AUTO_INCREMENT PRIMARY KEY, userId INT NOT NULL, consentKey VARCHAR(64) NOT NULL, status ENUM('granted','revoked') NOT NULL, consentVersion VARCHAR(32) NOT NULL, consentText TEXT, createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB`,
       );
-      const app = express();
-      app.use(express.json({ limit: "16kb" }));
-      registerOAuthRoutes(app);
-      registerPasswordRoutes(app);
-      server = await new Promise<Server>((resolve) => {
-        const s = app.listen(0, "127.0.0.1", () => resolve(s));
-      });
-      base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+      application = await createBackendApplication();
+      await application.listen(0, "127.0.0.1");
+      base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
       vi.stubEnv("PUBLIC_APP_URL", base);
     });
     async function cleanup() {
@@ -76,7 +73,7 @@ describe.skipIf(!testDatabaseUrl)(
     afterEach(() => vi.restoreAllMocks());
     afterAll(async () => {
       await cleanup();
-      await new Promise<void>((resolve) => server?.close(() => resolve()));
+      await application?.close();
       await conn?.end();
       await (
         (await db.getDb()) as unknown as { $client: { end(): Promise<void> } }

@@ -562,6 +562,18 @@ preflight rejects only the existing untracked 0017–0019 files; no release appr
 
 ## NestJS migration — 2026-10-05 (user-authorized continuation)
 
+M04 is split into transport slices after the verified foundation checkpoint:
+M04a password request/completion/setup page and staff resend; M04b sessions,
+email registration/login and disabled SMS endpoints; M04c common injectable
+session/role policy and diagnosis of the intermittent registration race.
+M04a preserves one-use encrypted mail links, session-version invalidation,
+account-enumeration-safe 202 responses, quotas, staff audit and nonce CSP.
+Move database actions into an injected PasswordService, not a new ORM. Run
+existing setup/URL/JWT/MySQL checks through the production Nest factory; external
+provider fixtures use a separate loopback mock server. Keep response/error
+statuses and no-store headers, including explicit HTTP 200 for Nest POST routes.
+Do not claim all identity migration complete after password transport alone.
+
 The user explicitly requests a plan and its execution, not another approval-only
 proposal. Extend this backend plan; preserve all open N12/release/registration
 tasks. Work locally on fix/backend-hardening. No push, deployment, working-data

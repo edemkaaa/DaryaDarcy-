@@ -1,16 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import express from "express";
 import type { Server } from "node:http";
+import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { getDb } from "../apps/backend/src/db";
-import { registerPasswordRoutes } from "../apps/backend/src/identity/routes";
+import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { processAccessEmails } from "../apps/backend/src/identity/access";
+import { sdk } from "../apps/backend/src/_core/sdk";
 import {
   cancelProdamusSubscription,
   createProdamusSign,
-  handleProdamusWebhook,
 } from "../apps/backend/src/prodamus";
 import {
   processCancellations,
@@ -19,12 +20,16 @@ import {
 describe.skipIf(!testDatabaseUrl)(
   "local HTTP → MySQL → mail/provider boundaries",
   () => {
-    let conn: Connection, server: Server, base: string;
+    let conn: Connection,
+      provider: Server,
+      application: INestApplication,
+      base: string;
     let providerBody = "provider error",
       lastParameters: Record<string, string> = {};
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
+      vi.stubEnv("JWT_SECRET", "password-http-fixture-secret-32-characters");
       vi.stubEnv(
         "AUTH_LINK_ENCRYPTION_KEY",
         Buffer.alloc(32, 7).toString("base64"),
@@ -45,28 +50,34 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query(
         "INSERT INTO club_payments (userId,orderId,email,sum) VALUES (780,'club-780-http','http@example.test','790')",
       );
-      const app = express();
-      app.post(
-        "/api/prodamus/webhook",
-        express.raw({ type: () => true }),
-        handleProdamusWebhook,
+      await conn.query(
+        "INSERT IGNORE INTO users (id,openId,role) VALUES (792,'password-http-staff','moderator')",
       );
-      app.use(express.json());
+      await conn.query(
+        "UPDATE users SET role='moderator',blockedAt=NULL WHERE id=792",
+      );
+      await conn.query("DELETE FROM admin_audit_log WHERE actorUserId=792");
+      const app = express();
       app.use(express.urlencoded({ extended: false }));
-      registerPasswordRoutes(app);
       app.post("/rest/setActivity/", (req, res) => {
         lastParameters = req.body;
         res.send(providerBody);
       });
-      server = await new Promise<Server>((resolve) => {
+      provider = await new Promise<Server>((resolve) => {
         const s = app.listen(0, "127.0.0.1", () => resolve(s));
       });
-      base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-      vi.stubEnv("PRODAMUS_PAYFORM_URL", base);
+      vi.stubEnv(
+        "PRODAMUS_PAYFORM_URL",
+        `http://127.0.0.1:${(provider.address() as AddressInfo).port}`,
+      );
+      application = await createBackendApplication();
+      await application.listen(0, "127.0.0.1");
+      base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
       vi.stubEnv("PUBLIC_APP_URL", base);
     });
     afterAll(async () => {
-      await new Promise<void>((resolve) => server?.close(() => resolve()));
+      await application?.close();
+      await new Promise<void>((resolve) => provider?.close(() => resolve()));
       await conn?.end();
       const database = await getDb();
       await (
@@ -160,6 +171,36 @@ describe.skipIf(!testDatabaseUrl)(
       expect(known.status).toBe(202);
       expect(unknown.status).toBe(202);
       expect(await known.json()).toEqual(await unknown.json());
+    });
+    it("queues a staff resend through the native password service and audits its author", async () => {
+      const token = await sdk.createSessionToken("password-http-staff", {
+        sessionVersion: 0,
+      });
+      const response = await fetch(`${base}/api/admin/access-email/resend`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: 780 }),
+      });
+      expect(response.status).toBe(202);
+      expect(await response.json()).toEqual({ queued: true });
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      const [audit] = await conn.query<RowDataPacket[]>(
+        "SELECT action,targetId FROM admin_audit_log WHERE actorUserId=792",
+      );
+      expect(audit).toEqual([{ action: "resend_club_access", targetId: 780 }]);
+      await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=792");
+      const blocked = await fetch(`${base}/api/admin/access-email/resend`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: 780 }),
+      });
+      expect(blocked.status).toBe(403);
     });
     it("HTTP 200 with an error body is not a successful cancellation", async () => {
       const database = (await getDb())!;
