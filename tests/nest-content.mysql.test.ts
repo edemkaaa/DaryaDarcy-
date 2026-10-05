@@ -108,6 +108,18 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(await client().feed.getById.query({ id: 8971 })).toBeUndefined();
     });
+    it.each([
+      { limit: 1.5 },
+      { limit: 12, cursor: -1 },
+      { limit: 12, cursor: 0.5 },
+      { limit: 12, cursor: Number.MAX_SAFE_INTEGER + 1 },
+    ])("rejects invalid pagination before SQL (%#)", async (input) => {
+      await expect(
+        client().feed.listPaginated.query(input),
+      ).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST", httpStatus: 400 },
+      });
+    });
     it.each([8972, 8973, 8974])(
       "hides non-published detail %s even from a subscribed administrator",
       async (id) => {

@@ -739,6 +739,29 @@ intent hash and actual transaction helpers; no new service locator or optional
 injection fallback. This checkpoint covers only the three admin post writes, not
 all admin/content, durable delivery, SQL ownership or release acceptance.
 
+M05d specification: migrate feed list/pagination/tags and public video list/detail
+to the already injected ContentReadService. Keep SQL visibility predicates, media
+aggregation, counts, sorting, search/tag semantics, default limit and nullable
+offset behavior. Video router becomes an explicitly supplied factory; no global
+locator or optional service fallback. Existing query helpers/pool remain until M08,
+without a duplicate repository layer. Characterize native HTTP/MySQL catalog
+behavior, including hidden/draft/club bodies, pagination and media, and prove
+publication protection with a deliberate local mutation restored immediately.
+First investigate a separate pagination defect: the schema currently accepts
+fractional limits and negative/fractional/unsafe offsets while SQL LIMIT/OFFSET
+expects bounded integers. Reproduce HTTP behavior before deciding the fix; if
+confirmed, reject at the input boundary in a separate verified commit. No frontend,
+payment, upload, worker, provider or production/deployment changes.
+
+M05d separate pagination repair: native HTTP reproduced 500 for limit=1.5 and
+cursor=-1/0.5; the unsafe integer cursor was silently accepted. Direct invocation
+of the unchanged real Drizzle helper confirms ER_PARSE_ERROR for the three SQL
+cases. Input schemas now enforce integer limit and nonnegative safe integer offset;
+default 12/nullish semantics and numeric wire types stay unchanged. Four regressions
+pass after repair. Full suite 663 pass / 2 external skip, types, lint, backend build
+and unchanged API contract pass. The analogous club schema is noted for a later
+club slice; it is not declared repaired or reproduced here.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

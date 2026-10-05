@@ -438,6 +438,14 @@
     unchanged 72-procedure contract, 413-file boundaries and docs pass. Existing
     db.ts pool/helpers remain transitional; N12 delivery and registration diagnosis
     remain open. No frontend/schema/dependency/deployment/provider changes.
+  - [x] M05d separate pagination fix: four native HTTP/MySQL regressions reject
+    fractional limit, negative/fractional offset and unsafe integers with 400.
+    Before repair the first three returned 500 (real helper: ER_PARSE_ERROR), and
+    unsafe integers were accepted. Default 12/nullish cursor and wire types remain.
+    Full suite 663 pass / 2 external skip; types/lint/backend build/API check pass.
+  - [ ] M05d: Inject feed list/pagination/tags and public video catalog reads.
+  - [ ] Club pagination: inspect analogous permissive schema in its own module;
+    no fix or reproduction is claimed for club after the public feed repair.
   - [ ] Remaining M05: Feed list/video/reaction/comment/upload wiring; no false
     claim that all content or SQL ownership has been migrated after read slices.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance

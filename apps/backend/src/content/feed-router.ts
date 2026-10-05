@@ -18,8 +18,8 @@ export const createFeedRouter = (content: ContentReadService) =>
         z.object({
           tag: z.string().optional(),
           search: z.string().optional(),
-          limit: z.number().min(1).max(50).default(12),
-          cursor: z.number().nullish(), // offset value
+          limit: z.number().int().min(1).max(50).default(12),
+          cursor: z.number().int().nonnegative().nullish(), // offset value
         }),
       )
       .query(({ input }) => {
