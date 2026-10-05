@@ -1,6 +1,10 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { pipeline } from "node:stream/promises";
+import { createGzip } from "node:zlib";
+import { randomUUID } from "node:crypto";
 import {
   DeleteObjectCommand,
   ListObjectsV2Command,
@@ -15,16 +19,124 @@ export const LOCAL_BACKUP_RETAIN_MS = 14 * 24 * 60 * 60_000;
 export const S3_BACKUP_RETAIN_MS = 90 * 24 * 60 * 60_000;
 
 let lastBackupAt = 0;
+let activeBackup: Promise<void> | undefined;
 
 function parseDatabaseUrl(url: string) {
-  const parsed = new URL(url);
-  return {
-    host: parsed.hostname,
-    port: parsed.port || "3306",
-    user: decodeURIComponent(parsed.username),
-    password: decodeURIComponent(parsed.password),
-    database: parsed.pathname.replace(/^\//, "").split("?")[0] || "daryadarcy",
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "mysql:") throw new Error();
+    const cfg = {
+      host: parsed.hostname,
+      port: parsed.port || "3306",
+      user: decodeURIComponent(parsed.username),
+      password: decodeURIComponent(parsed.password),
+      database:
+        decodeURIComponent(parsed.pathname.replace(/^\//, "")) || "daryadarcy",
+    };
+    if (Object.values(cfg).some((value) => value.includes("\0")))
+      throw new Error();
+    return cfg;
+  } catch {
+    // URL/decoding errors can carry the original credential-bearing input.
+    throw new Error("MySQL backup configuration is invalid");
+  }
+}
+
+function optionFilePassword(password: string): string {
+  if (password.includes("\0"))
+    throw new Error("MySQL backup configuration is invalid");
+  const escapes: Record<string, string> = {
+    "\\": "\\\\",
+    '"': '\\"',
+    "\n": "\\n",
+    "\r": "\\r",
+    "\t": "\\t",
+    "\b": "\\b",
   };
+  return `[client]\npassword="${password.replace(/[\\"\n\r\t\x08]/g, (char) => escapes[char])}"\n`;
+}
+
+async function writeMysqlDump(
+  cfg: ReturnType<typeof parseDatabaseUrl>,
+  filePath: string,
+): Promise<void> {
+  const options = optionFilePassword(cfg.password);
+  const credentialsDir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "daryadarcy-mysql-"),
+  );
+  const configPath = path.join(credentialsDir, "client.cnf");
+  const partialPath = `${filePath}.partial`;
+  let ownsPartial = false;
+  try {
+    fs.writeFileSync(configPath, options, { flag: "wx", mode: 0o600 });
+    const dump = spawn(
+      "mysqldump",
+      [
+        `--defaults-extra-file=${configPath}`, // MySQL requires this option first.
+        `-h${cfg.host}`,
+        `-P${cfg.port}`,
+        `-u${cfg.user}`,
+        "--single-transaction",
+        "--quick",
+        "--",
+        cfg.database,
+      ],
+      {
+        stdio: ["ignore", "pipe", "pipe"],
+        env: { ...process.env, DATABASE_URL: undefined, MYSQL_PWD: undefined },
+      },
+    );
+    // Drain diagnostics without retaining or logging data from the DB tool.
+    dump.stderr.resume();
+    const closed = new Promise<void>((resolve, reject) => {
+      dump.once("error", () =>
+        reject(new Error("MySQL backup dump could not start")),
+      );
+      dump.once("close", (code, signal) => {
+        if (code === 0) resolve();
+        else
+          reject(
+            new Error(`MySQL backup dump failed (exit ${code ?? signal})`),
+          );
+      });
+    });
+    let streamed: Promise<void> | undefined;
+    try {
+      const fd = fs.openSync(partialPath, "wx", 0o600);
+      ownsPartial = true;
+      const out = fs.createWriteStream(partialPath, { fd });
+      streamed = pipeline(dump.stdout, createGzip(), out);
+      await Promise.all([closed, streamed]);
+    } catch {
+      if (dump.exitCode === null && dump.signalCode === null)
+        dump.kill("SIGKILL");
+      await Promise.allSettled([closed, streamed]);
+      throw new Error("MySQL backup dump or output failed");
+    }
+    fs.renameSync(partialPath, filePath);
+    ownsPartial = false;
+  } catch {
+    // Do not attach raw spawn/stream errors as causes; callers log this error.
+    throw new Error("MySQL backup dump or output failed");
+  } finally {
+    // Only exact files created for this invocation; never a broad recursive delete.
+    let cleanupFailed = false;
+    for (const target of [
+      ownsPartial ? partialPath : undefined,
+      configPath,
+      credentialsDir,
+    ]) {
+      if (!target) continue;
+      try {
+        if (target === credentialsDir) fs.rmdirSync(target);
+        else fs.rmSync(target, { force: true });
+      } catch {
+        cleanupFailed = true;
+      }
+    }
+    if (cleanupFailed)
+      throw new Error("MySQL backup temporary-file cleanup failed");
+  }
 }
 
 async function uploadBackup(filePath: string): Promise<void> {
@@ -47,11 +159,15 @@ async function uploadBackup(filePath: string): Promise<void> {
 }
 
 function s3Client(): S3Client | null {
-  if (!ENV.s3Endpoint || !ENV.s3AccessKey || !ENV.s3SecretKey || !ENV.s3Bucket) return null;
+  if (!ENV.s3Endpoint || !ENV.s3AccessKey || !ENV.s3SecretKey || !ENV.s3Bucket)
+    return null;
   return new S3Client({
     region: "ru-1",
     endpoint: ENV.s3Endpoint,
-    credentials: { accessKeyId: ENV.s3AccessKey, secretAccessKey: ENV.s3SecretKey },
+    credentials: {
+      accessKeyId: ENV.s3AccessKey,
+      secretAccessKey: ENV.s3SecretKey,
+    },
     forcePathStyle: true,
   });
 }
@@ -82,7 +198,9 @@ export function pruneLocalBackups(
 }
 
 /** Remove S3 backups/mysql/* older than S3_BACKUP_RETAIN_MS. */
-export async function pruneS3Backups(retainMs = S3_BACKUP_RETAIN_MS): Promise<number> {
+export async function pruneS3Backups(
+  retainMs = S3_BACKUP_RETAIN_MS,
+): Promise<number> {
   const client = s3Client();
   if (!client || !ENV.s3Bucket) return 0;
   const cutoff = Date.now() - retainMs;
@@ -110,51 +228,29 @@ export async function pruneS3Backups(retainMs = S3_BACKUP_RETAIN_MS): Promise<nu
   return removed;
 }
 
-export async function runMysqlBackupIfDue(minIntervalMs = 24 * 60 * 60_000): Promise<void> {
+export async function runMysqlBackupIfDue(
+  minIntervalMs = 24 * 60 * 60_000,
+): Promise<void> {
+  if (activeBackup) return activeBackup;
   const dbUrl = ENV.databaseUrl;
   if (!dbUrl) return;
-  const now = Date.now();
-  if (now - lastBackupAt < minIntervalMs) return;
-  lastBackupAt = now;
+  if (Date.now() - lastBackupAt < minIntervalMs) return;
+  activeBackup = runMysqlBackup(dbUrl);
+  try {
+    await activeBackup;
+  } finally {
+    activeBackup = undefined;
+  }
+}
 
+async function runMysqlBackup(dbUrl: string): Promise<void> {
   const cfg = parseDatabaseUrl(dbUrl);
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const dir = path.join(process.cwd(), "backups");
-  fs.mkdirSync(dir, { recursive: true });
-  const filePath = path.join(dir, `daryadarcy-${stamp}.sql.gz`);
-
-  await new Promise<void>((resolve, reject) => {
-    const args = [
-      `-h${cfg.host}`,
-      `-P${cfg.port}`,
-      `-u${cfg.user}`,
-      `--password=${cfg.password}`,
-      "--single-transaction",
-      "--quick",
-      cfg.database,
-    ];
-    const dump = spawn("mysqldump", args, { stdio: ["ignore", "pipe", "pipe"] });
-    const gzip = spawn("gzip", ["-c"], { stdio: ["pipe", "pipe", "pipe"] });
-    const out = fs.createWriteStream(filePath);
-    dump.stdout.pipe(gzip.stdin);
-    gzip.stdout.pipe(out);
-    let err = "";
-    dump.stderr.on("data", (chunk) => {
-      err += String(chunk);
-    });
-    gzip.stderr.on("data", (chunk) => {
-      err += String(chunk);
-    });
-    out.on("close", () => {
-      if (dump.exitCode && dump.exitCode !== 0) {
-        reject(new Error(err || `mysqldump exit ${dump.exitCode}`));
-        return;
-      }
-      resolve();
-    });
-    dump.on("error", reject);
-    gzip.on("error", reject);
-  });
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const filePath = path.join(dir, `daryadarcy-${stamp}-${randomUUID()}.sql.gz`);
+  await writeMysqlDump(cfg, filePath);
+  lastBackupAt = Date.now();
 
   try {
     await uploadBackup(filePath);

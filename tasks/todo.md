@@ -281,3 +281,19 @@
   Four real regression failures on the old path → all 35 HTTP/MySQL content
   cases pass, including 11 new creation cases. Full suite: 572 pass / 2 skip;
   types, 284-file boundaries, docs, API build and 52-test verify pass.
+
+## Backend continuation: safe MySQL backups — 2026-10-05
+
+- [x] N10: Remove database credentials from process arguments/errors; finalize a
+  private gzip only after successful dump exit and completed output. Failed jobs
+  remove their own partial/config files and can retry on the next scheduled tick;
+  concurrent callers share one in-process job. Regression tests reproduce four
+  original failures and two scheduling failures; real MySQL 8.4 option parsing
+  and dump/restore on a disposable fixture checked. Full suite 554 pass / 2 skip;
+  types/lint/API build/contract/boundaries/docs/format pass. Production restore, S3 retry,
+  timeout, crash-leftover cleanup and cross-process ownership remain outside N10.
+- [ ] N11: Server-side createPost request idempotency. Lost response/retry must
+  return the original post ID, including concurrent identical requests; reject
+  reuse of a key for another payload. Preserve legacy clients without a key.
+- [ ] N12: Transactional publication push outbox; worker crash/retry cannot lose
+  an announcement. Provider delivery/deduplication limits must remain explicit.

@@ -496,3 +496,26 @@ disposable database and 8 registration/retention pair runs passed without a
 registration change. MySQL statement history captures no actual registration
 deadlock, while global deadlock counters also rise during successful runs.
 The earlier timing correlation is not sufficient to identify the root cause.
+
+## Backend continuation: safe MySQL backups — 2026-10-05
+
+N10: Credentials belong in a temporary owner-only MySQL option file, never argv
+or raw logged errors. Keep real processes/streams/filesystem in regression tests;
+replace only the database executable for deterministic failures. Four original
+assertion failures prove password exposure, sensitive stderr, leftover partial
+files and success before the dump exits. Two further failures prove a failed job
+suppresses the next day's attempts and explicit parallel calls duplicate work.
+
+Finalize the private gzip by rename only after successful process close and
+stream completion; use Node's gzip stream to remove a second process lifecycle.
+Remove exact owned temporary files, sanitize configuration/dump errors, mark
+the interval only after successful local output and share the in-process job.
+Check the real MySQL option parser and dump/restore of an isolated fixture, then
+full disposable-MySQL tests, types, lint, boundaries, contract, docs and API build.
+No working database, external storage, deployment or dependency upgrade.
+
+Next thin slices: N11 adds request-key idempotency for createPost, N12 adds a
+transactional publication push outbox. Neither is implemented by N10. Existing
+release gates remain: dependencies, migration history, provider sandbox, SMTP,
+private legacy files and approved rollout. Backup timeouts, abandoned-file
+reconciliation, S3 upload retry and cross-process coordination remain separate.
