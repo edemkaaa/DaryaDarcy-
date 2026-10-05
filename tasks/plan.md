@@ -711,6 +711,34 @@ skip; root/Next types, lint, backend/Next builds, unchanged 72-procedure contrac
 deployment changes. Admin writes and other content paths remain M05c/later;
 registration diagnosis, worker/outbox ownership and release gates remain open.
 
+M05c specification: ContentWriteService owns validated administrative create/edit/
+manual-confirm orchestration. ContentModule exports it; TrpcService explicitly
+injects it into required createAppRouter/createAdminRouter factory arguments.
+Transport schemas move unchanged into content/post-write-input.ts and provide
+typed validated inputs without circular imports or duplicated validation. Existing
+adminProcedure stays the authorization boundary; actor identity comes from the
+fresh server context, never from the payload. Preserve numeric IDs, boolean success,
+schema defaults, normalization, partial fields, explicit null dates, transaction
+rollback/row locks, idempotency intent and post-commit single-owner announcements.
+No schema/ORM/provider/frontend change. Existing transaction helpers and global
+pool remain transitional, and N12 durable push delivery is explicitly not solved.
+Move existing real HTTP/JWT/MySQL regressions to the production Nest application;
+add live moderator/session-revocation denial before all three writes and replay.
+Deliberate pre-extraction idempotency bypass must fail the numeric-ID retry check,
+then restore immediately; it is a mutation check, not an existing production defect.
+Verify full suite, types, builds, compiled Node denials, unchanged API, boundaries
+and docs before the save-point commit.
+
+M05c checkpoint: 82 production-factory HTTP/JWT/MySQL write cases pass after
+extraction, including the three new live-authorization cases. Focused tests with
+standalone adapter and compiled Node smoke: 91 pass. Full suite: 659 pass /
+2 external skip; root/Next types, frontend lint, backend and Next production builds,
+unchanged 72-procedure/25376-byte contract, 413-file boundaries and 42-document
+link checks pass. Review preserved defaults/date/partial-field semantics, validated
+intent hash and actual transaction helpers; no new service locator or optional
+injection fallback. This checkpoint covers only the three admin post writes, not
+all admin/content, durable delivery, SQL ownership or release acceptance.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

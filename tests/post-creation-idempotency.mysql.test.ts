@@ -7,11 +7,9 @@ import {
   it,
   vi,
 } from "vitest";
-import express from "express";
-import type { Server } from "node:http";
+import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
 import type { Connection, RowDataPacket } from "mysql2/promise";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { createTRPCProxyClient, httpLink } from "@trpc/client";
 import superjson from "superjson";
 import { openContentTestDatabase } from "./helpers/content-mysql";
@@ -23,15 +21,18 @@ vi.mock("../apps/backend/src/push", () => ({
     transport.announcements.push(id);
   },
 }));
-import { appRouter, type AppRouter } from "../apps/backend/src/routers";
-import { createContext } from "../apps/backend/src/_core/context";
+import type { AppRouter } from "../apps/backend/src/routers";
+import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
 
 describe.skipIf(!testDatabaseUrl)(
   "idempotent post creation over real HTTP/JWT/MySQL",
   () => {
-    let conn: Connection, server: Server, base: string, adminToken: string;
+    let conn: Connection,
+      application: INestApplication,
+      base: string,
+      adminToken: string;
     let admin: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
     const source = "backend-test-idempotent-create";
     const input = {
@@ -89,15 +90,9 @@ describe.skipIf(!testDatabaseUrl)(
       vi.stubEnv("JWT_SECRET", "post-idempotency-test-secret-32-characters");
       await conn.query(`INSERT INTO users (id,openId,role) VALUES
       (97401,'idempotent-admin','admin'),(97402,'idempotent-other-admin','admin'),(97403,'idempotent-member','user')`);
-      const app = express();
-      app.use(
-        "/api/trpc",
-        createExpressMiddleware({ router: appRouter, createContext }),
-      );
-      server = await new Promise<Server>((resolve) => {
-        const listening = app.listen(0, "127.0.0.1", () => resolve(listening));
-      });
-      base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+      application = await createBackendApplication();
+      await application.listen(0, "127.0.0.1");
+      base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
       adminToken = await sdk.createSessionToken("idempotent-admin", {
         sessionVersion: 0,
       });
@@ -107,11 +102,11 @@ describe.skipIf(!testDatabaseUrl)(
       await cleanup();
       transport.announcements.length = 0;
       await conn.query(
-        "UPDATE users SET blockedAt=NULL,role='admin' WHERE id=97401",
+        "UPDATE users SET blockedAt=NULL,role='admin',sessionVersion=0 WHERE id=97401",
       );
     });
     afterAll(async () => {
-      await new Promise<void>((resolve) => server?.close(() => resolve()));
+      await application?.close();
       await cleanup();
       await conn.query("DELETE FROM users WHERE id IN (97401,97402,97403)");
       await conn.end();
@@ -491,5 +486,14 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await created()).toEqual([{ id, text: input.text }]);
       },
     );
+    it("rejects a revoked session before replaying a committed creation", async () => {
+      const id = await admin.admin.createPost.mutate(input);
+      await conn.query("UPDATE users SET sessionVersion=1 WHERE id=97401");
+      await expect(admin.admin.createPost.mutate(input)).rejects.toMatchObject({
+        data: { code: "UNAUTHORIZED", httpStatus: 401 },
+      });
+      expect(await created()).toEqual([{ id, text: "One creation intent" }]);
+      expect(transport.announcements).toEqual([id]);
+    });
   },
 );

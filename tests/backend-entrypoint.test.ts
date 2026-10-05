@@ -183,6 +183,20 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
         await expect(client.feed.savedPosts.query()).rejects.toMatchObject({
           data: { code: "UNAUTHORIZED", httpStatus: 401 },
         });
+        for (const write of [
+          () =>
+            client.admin.createPost.mutate({
+              text: "Denied",
+              photos: [],
+              tags: [],
+            }),
+          () => client.admin.updatePost.mutate({ id: 1, text: "Denied" }),
+          () => client.admin.confirmPost.mutate({ id: 1 }),
+        ]) {
+          await expect(write()).rejects.toMatchObject({
+            data: { code: "UNAUTHORIZED", httpStatus: 401 },
+          });
+        }
       } finally {
         await stop(child);
       }

@@ -7,11 +7,9 @@ import {
   it,
   vi,
 } from "vitest";
-import express from "express";
-import type { Server } from "node:http";
+import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
 import type { Connection, RowDataPacket } from "mysql2/promise";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { createTRPCProxyClient, httpLink } from "@trpc/client";
 import superjson from "superjson";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
@@ -29,15 +27,15 @@ vi.mock("../apps/backend/src/push", () => ({
     transport.announcements.push({ text, id, target });
   },
 }));
-import { appRouter, type AppRouter } from "../apps/backend/src/routers";
-import { createContext } from "../apps/backend/src/_core/context";
+import type { AppRouter } from "../apps/backend/src/routers";
+import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb, publishDueScheduledPosts } from "../apps/backend/src/db";
 
 describe.skipIf(!testDatabaseUrl)(
   "manual publication ownership over HTTP and MySQL",
   () => {
-    let conn: Connection, server: Server, base: string;
+    let conn: Connection, application: INestApplication, base: string;
     let admin: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
     const creationSource = "backend-test-post-create";
     const creationInput = {
@@ -94,15 +92,9 @@ describe.skipIf(!testDatabaseUrl)(
       );
       await conn.query(`INSERT INTO users (id,openId,role) VALUES
       (92601,'publication-admin','admin'),(92602,'publication-member','user')`);
-      const app = express();
-      app.use(
-        "/api/trpc",
-        createExpressMiddleware({ router: appRouter, createContext }),
-      );
-      server = await new Promise<Server>((resolve) => {
-        const listening = app.listen(0, "127.0.0.1", () => resolve(listening));
-      });
-      base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+      application = await createBackendApplication();
+      await application.listen(0, "127.0.0.1");
+      base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
       admin = client(
         await sdk.createSessionToken("publication-admin", {
           sessionVersion: 0,
@@ -112,7 +104,9 @@ describe.skipIf(!testDatabaseUrl)(
     beforeEach(async () => {
       transport.announcements = [];
       await cleanup();
-      await conn.query("UPDATE users SET blockedAt=NULL WHERE id=92601");
+      await conn.query(
+        "UPDATE users SET blockedAt=NULL,role='admin',sessionVersion=0 WHERE id=92601",
+      );
       await conn.query(`INSERT INTO posts (id,text,photos,tags,status,published,target,scheduledAt,publishedAt) VALUES
       (11401,'Scheduled club',JSON_ARRAY(),JSON_ARRAY(),'scheduled',FALSE,'club','2026-01-01 00:00:00',NULL),
       (11402,'Draft feed',JSON_ARRAY(),JSON_ARRAY(),'draft',FALSE,'feed',NULL,'2025-01-01 00:00:00'),
@@ -123,7 +117,7 @@ describe.skipIf(!testDatabaseUrl)(
         (11412,11402,'document','https://assets.example.test/guide.pdf','guide.pdf','application/pdf',0)`);
     });
     afterAll(async () => {
-      await new Promise<void>((resolve) => server?.close(() => resolve()));
+      await application?.close();
       await cleanup();
       await conn?.query("DELETE FROM users WHERE id IN (92601,92602)");
       await conn?.end();
@@ -240,6 +234,37 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await state(11401)).toEqual(before);
       expect(transport.announcements).toEqual([]);
     });
+    it.each([
+      { change: "role='moderator'", code: "FORBIDDEN", httpStatus: 403 },
+      { change: "sessionVersion=1", code: "UNAUTHORIZED", httpStatus: 401 },
+    ])(
+      "rechecks live $change before any post write",
+      async ({ change, code, httpStatus }) => {
+        const before = await editSnapshot();
+        await conn.query(`UPDATE users SET ${change} WHERE id=92601`);
+        for (const write of [
+          () => admin.admin.createPost.mutate(creationInput),
+          () =>
+            admin.admin.updatePost.mutate({
+              id: 11402,
+              text: "Denied edit",
+              status: "published",
+            }),
+          () => admin.admin.confirmPost.mutate({ id: 11402 }),
+        ]) {
+          await expect(write()).rejects.toMatchObject({
+            data: { code, httpStatus },
+          });
+        }
+        expect(await editSnapshot()).toEqual(before);
+        const [created] = await conn.query<RowDataPacket[]>(
+          "SELECT id FROM posts WHERE source=?",
+          [creationSource],
+        );
+        expect(created).toEqual([]);
+        expect(transport.announcements).toEqual([]);
+      },
+    );
     it("manual and scheduled confirmation have only one announcement owner", async () => {
       const guard = await openTestDatabase();
       let manual: Promise<unknown> | undefined;

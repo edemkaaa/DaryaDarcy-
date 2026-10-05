@@ -1,20 +1,14 @@
 import { z } from "zod";
 import { router, adminProcedure } from "../_core/trpc";
-import type { InsertPost } from "../../../../packages/database/src/schema";
 import * as db from "../db";
 import { storagePut } from "../storage";
 import { photoInput, uploadPhoto } from "../media/photos";
 import { importVideoFromUrl } from "../admin-video";
-import { postAttachmentInput } from "../content/post-attachments";
-import { postCreationIntent } from "../content/post-creation-request";
-import { sendMarketingPostNotification as sendNewPostNotification } from "../push";
+import type { ContentWriteService } from "../content/content-write.service";
+import { createPostInput, updatePostInput } from "../content/post-write-input";
 import { isRawMediaFilename } from "../../../../packages/shared/src/media-label";
-import {
-  normalizeRichTextForStorage,
-  sanitizePlainPostText,
-} from "../../../../packages/shared/src/post-text-sanitize";
 
-export const adminRouter = router({
+export const createAdminRouter = (posts: ContentWriteService) => router({
   // Get all posts including unpublished (admin only)
   posts: adminProcedure.query(() => {
     return db.getAllPostsAdmin();
@@ -22,147 +16,13 @@ export const adminRouter = router({
 
   // Create a new post (admin only)
   createPost: adminProcedure
-    .input(
-      z.object({
-        text: z.string().min(1),
-        idempotencyKey: z.string().regex(/^[A-Za-z0-9._:-]{16,128}$/).optional(),
-        photos: z.array(z.string()),
-        tags: z.array(z.string()),
-        videos: z.array(z.string()).optional(),
-        attachments: z.array(postAttachmentInput).max(100).optional(),
-        source: z.string().default("manual"),
-        published: z.boolean().default(true),
-        sortOrder: z.number().default(0),
-        status: z
-          .enum(["draft", "scheduled", "published"])
-          .default("published"),
-        target: z.enum(["feed", "club", "both"]).default("feed"),
-        scheduledAt: z.string().nullable().optional(), // ISO date string
-        publishedAt: z.string().nullable().optional(),
-        richText: z.any().optional(), // JSON rich text blocks
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
-      const { idempotencyKey, ...payload } = input;
-      const {
-        scheduledAt,
-        publishedAt,
-        published,
-        status,
-        videos = [],
-        attachments,
-        ...rest
-      } = payload;
-      const text = sanitizePlainPostText(rest.text);
-      const richText = normalizeRichTextForStorage(rest.richText, text);
-      const tags =
-        videos.length > 0 && !rest.tags.includes("video")
-          ? [...rest.tags, "video"]
-          : rest.tags;
-      const resolvedStatus =
-        status === "scheduled"
-          ? "scheduled"
-          : published === false || status === "draft"
-            ? "draft"
-            : "published";
-      const postData: InsertPost = {
-        ...rest,
-        text,
-        richText,
-        tags,
-        status: resolvedStatus,
-        published: resolvedStatus === "published",
-        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
-        publishedAt:
-          resolvedStatus === "published"
-            ? publishedAt
-              ? new Date(publishedAt)
-              : new Date()
-            : resolvedStatus === "draft" && publishedAt
-              ? new Date(publishedAt)
-              : null,
-      };
-      const result = idempotencyKey
-        ? await db.createPostOnce(
-            postData,
-            videos,
-            { attachments },
-            postCreationIntent(ctx.user.id, idempotencyKey, payload),
-          )
-        : {
-            postId: await db.createPostWithVideos(postData, videos, { attachments }),
-            created: true,
-          };
-      const postId = result.postId;
-      if (result.created && resolvedStatus === "published") {
-        void sendNewPostNotification(text, postId, rest.target);
-      }
-      return postId;
-    }),
+    .input(createPostInput)
+    .mutation(({ input, ctx }) => posts.createPost(ctx.user.id, input)),
 
   // Update an existing post (admin only)
   updatePost: adminProcedure
-    .input(
-      z.object({
-        id: z.number(),
-        text: z.string().optional(),
-        photos: z.array(z.string()).optional(),
-        tags: z.array(z.string()).optional(),
-        videos: z.array(z.string()).optional(),
-        attachments: z.array(postAttachmentInput).max(100).optional(),
-        removedMediaIds: z.array(z.number().int().positive()).max(100).optional(),
-        published: z.boolean().optional(),
-        sortOrder: z.number().optional(),
-        status: z.enum(["draft", "scheduled", "published"]).optional(),
-        target: z.enum(["feed", "club", "both"]).optional(),
-        scheduledAt: z.string().nullable().optional(),
-        publishedAt: z.string().nullable().optional(),
-        richText: z.any().optional(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const { id, scheduledAt, publishedAt, videos, attachments, removedMediaIds, ...data } = input;
-      const updateData: Partial<InsertPost> = { ...data };
-      if (typeof data.text === "string") {
-        updateData.text = sanitizePlainPostText(data.text);
-      }
-      if (data.richText !== undefined) {
-        const plain =
-          typeof updateData.text === "string"
-            ? updateData.text
-            : typeof data.text === "string"
-              ? sanitizePlainPostText(data.text)
-              : "";
-        updateData.richText = normalizeRichTextForStorage(data.richText, plain);
-      }
-      // Editing plain text must drop stale richText, otherwise the old formatted
-      // blocks keep rendering and it looks like the save did nothing.
-      if (data.text !== undefined && data.richText === undefined) {
-        updateData.richText = null;
-      }
-      if (
-        videos !== undefined &&
-        videos.length > 0 &&
-        Array.isArray(data.tags) &&
-        !data.tags.includes("video")
-      ) {
-        updateData.tags = [...data.tags, "video"];
-      }
-      if (scheduledAt !== undefined) {
-        updateData.scheduledAt = scheduledAt ? new Date(scheduledAt) : null;
-      }
-      if (publishedAt !== undefined) {
-        updateData.publishedAt = publishedAt ? new Date(publishedAt) : null;
-      }
-      const publication = await db.savePostEdit(id, updateData, videos, { attachments, removedMediaIds });
-      if (publication)
-        void sendNewPostNotification(
-          publication.text,
-          publication.id,
-          publication.target,
-        );
-      return { success: true };
-    }),
+    .input(updatePostInput)
+    .mutation(({ input }) => posts.updatePost(input)),
 
   // Delete a post (admin only)
   deletePost: adminProcedure
@@ -370,13 +230,7 @@ export const adminRouter = router({
   // Confirm a scheduled post (publish it) (admin only)
   confirmPost: adminProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
-      const post = await db.confirmScheduledPost(input.id);
-      if (post) {
-        void sendNewPostNotification(post.text, post.id, post.target);
-      }
-      return { success: true };
-    }),
+    .mutation(({ input }) => posts.confirmPost(input.id)),
 
   // Get admin posts filtered by status/target
   postsFiltered: adminProcedure

@@ -1,0 +1,140 @@
+import { Injectable } from "@nestjs/common";
+import type { InsertPost } from "../../../../packages/database/src/schema";
+import {
+  normalizeRichTextForStorage,
+  sanitizePlainPostText,
+} from "../../../../packages/shared/src/post-text-sanitize";
+import * as db from "../db";
+import { sendMarketingPostNotification } from "../push";
+import { postCreationIntent } from "./post-creation-request";
+import type { CreatePostInput, UpdatePostInput } from "./post-write-input";
+
+/** The adapter authorizes/validates inputs; existing helpers own transactions. */
+@Injectable()
+export class ContentWriteService {
+  async createPost(
+    actorUserId: number,
+    input: CreatePostInput,
+  ): Promise<number> {
+    const { idempotencyKey, ...payload } = input;
+    const {
+      scheduledAt,
+      publishedAt,
+      published,
+      status,
+      videos = [],
+      attachments,
+      ...rest
+    } = payload;
+    const text = sanitizePlainPostText(rest.text);
+    const richText = normalizeRichTextForStorage(rest.richText, text);
+    const tags =
+      videos.length > 0 && !rest.tags.includes("video")
+        ? [...rest.tags, "video"]
+        : rest.tags;
+    const resolvedStatus =
+      status === "scheduled"
+        ? "scheduled"
+        : published === false || status === "draft"
+          ? "draft"
+          : "published";
+    const postData: InsertPost = {
+      ...rest,
+      text,
+      richText,
+      tags,
+      status: resolvedStatus,
+      published: resolvedStatus === "published",
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+      publishedAt:
+        resolvedStatus === "published"
+          ? publishedAt
+            ? new Date(publishedAt)
+            : new Date()
+          : resolvedStatus === "draft" && publishedAt
+            ? new Date(publishedAt)
+            : null,
+    };
+    // Hash the validated intent, not generated dates or normalized storage data.
+    const result = idempotencyKey
+      ? await db.createPostOnce(
+          postData,
+          videos,
+          { attachments },
+          postCreationIntent(actorUserId, idempotencyKey, payload),
+        )
+      : {
+          postId: await db.createPostWithVideos(postData, videos, {
+            attachments,
+          }),
+          created: true,
+        };
+    if (result.created && resolvedStatus === "published") {
+      void sendMarketingPostNotification(text, result.postId, rest.target);
+    }
+    return result.postId;
+  }
+
+  async updatePost(input: UpdatePostInput): Promise<{ success: boolean }> {
+    const {
+      id,
+      scheduledAt,
+      publishedAt,
+      videos,
+      attachments,
+      removedMediaIds,
+      ...data
+    } = input;
+    const updateData: Partial<InsertPost> = { ...data };
+    if (typeof data.text === "string") {
+      updateData.text = sanitizePlainPostText(data.text);
+    }
+    if (data.richText !== undefined) {
+      const plain =
+        typeof updateData.text === "string"
+          ? updateData.text
+          : typeof data.text === "string"
+            ? sanitizePlainPostText(data.text)
+            : "";
+      updateData.richText = normalizeRichTextForStorage(data.richText, plain);
+    }
+    // Plain edits must not keep stale formatted blocks rendering the old text.
+    if (data.text !== undefined && data.richText === undefined) {
+      updateData.richText = null;
+    }
+    if (
+      videos !== undefined &&
+      videos.length > 0 &&
+      Array.isArray(data.tags) &&
+      !data.tags.includes("video")
+    ) {
+      updateData.tags = [...data.tags, "video"];
+    }
+    if (scheduledAt !== undefined) {
+      updateData.scheduledAt = scheduledAt ? new Date(scheduledAt) : null;
+    }
+    if (publishedAt !== undefined) {
+      updateData.publishedAt = publishedAt ? new Date(publishedAt) : null;
+    }
+    const publication = await db.savePostEdit(id, updateData, videos, {
+      attachments,
+      removedMediaIds,
+    });
+    if (publication) {
+      void sendMarketingPostNotification(
+        publication.text,
+        publication.id,
+        publication.target,
+      );
+    }
+    return { success: true };
+  }
+
+  async confirmPost(postId: number): Promise<{ success: boolean }> {
+    const post = await db.confirmScheduledPost(postId);
+    if (post) {
+      void sendMarketingPostNotification(post.text, post.id, post.target);
+    }
+    return { success: true };
+  }
+}

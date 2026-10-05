@@ -11,10 +11,11 @@ vi.mock("../apps/backend/src/db", () => ({
 vi.mock("../apps/backend/src/push", () => ({
   sendMarketingPostNotification: state.notify,
 }));
-import { adminRouter } from "../apps/backend/src/admin/router";
+import { createAdminRouter } from "../apps/backend/src/admin/router";
+import { ContentWriteService } from "../apps/backend/src/content/content-write.service";
 
 const caller = () =>
-  adminRouter.createCaller({
+  createAdminRouter(new ContentWriteService()).createCaller({
     user: { id: 1, role: "admin", blockedAt: null },
     req: {},
     res: {},

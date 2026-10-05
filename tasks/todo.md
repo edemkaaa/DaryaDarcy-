@@ -426,8 +426,18 @@
     smoke exercises feed/article reads, optional context and protected denial.
     Full suite: 656 pass / 2 external skip; root/Next types, lint, server/Next
     builds, unchanged 72-procedure contract and 411-file boundaries pass.
-  - [ ] M05c: Inject administrative post creation/edit/publication services;
-    preserve real transaction/idempotency/media/notification regressions N07–N11.
+  - [x] M05c: ContentWriteService injected through ContentModule/TrpcService and
+    required router factories; unchanged shared schemas define validated inputs.
+    Existing 79 creation/edit/publication HTTP/JWT/MySQL regressions now use the
+    production Nest application. Three added cases cover live moderator/session
+    denial for all writes and revoked replay. Deliberate idempotency bypass failed
+    the numeric-ID retry assertion and was restored before extraction; no newly
+    found production duplicate is claimed. Transactions, intent hash, media rollback
+    and post-commit announcement ownership preserved. Compiled Node admin denials,
+    full suite 659 pass / 2 external skip, root/Next types, lint, API/Next builds,
+    unchanged 72-procedure contract, 413-file boundaries and docs pass. Existing
+    db.ts pool/helpers remain transitional; N12 delivery and registration diagnosis
+    remain open. No frontend/schema/dependency/deployment/provider changes.
   - [ ] Remaining M05: Feed list/video/reaction/comment/upload wiring; no false
     claim that all content or SQL ownership has been migrated after read slices.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
