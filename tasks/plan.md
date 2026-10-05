@@ -1159,6 +1159,23 @@ MySQL suite with backup/restore: 889 pass / 2 external S3 skip. Storage transpor
 alone is mocked in native cases. Old objects/Word bypass/ownership/privacy remain
 open; raw URL-only contract preserved and no frontend files changed.
 
+Raw-video key collision slice: reproduce separate valid HTTP uploads with the
+same sanitized filename and fixed Date.now(), both sequentially and concurrently.
+Each accepted request must get a distinct server-generated object key without
+relying on clock resolution. Reuse built-in crypto.randomUUID (already used by
+JSON media uploads), preserve feed/reels folder and sanitized filename suffix,
+original bytes/MIME and URL-only response. This is collision isolation, not
+idempotent upload, durable ownership or provider end-to-end verification.
+No schema/dependency/frontend/old-object migration or automatic deletion.
+
+Raw-video key checkpoint: both collision regressions failed with one key instead
+of two/four, then passed with UUID keys. Native raw suite 36 pass, focused 63 pass;
+full disposable MySQL/backup/restore 891 pass / 2 external S3 skip. Type checks,
+lint, backend build, boundaries and changed test formatting pass. Frontend upload
+consumer reads the URL without parsing the old timestamp (read-only inspection).
+Strict check:api remains blocked by the intentionally untouched client snapshot;
+no bypass/merge/push/deployment. File transport/ownership/privacy remain separate.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

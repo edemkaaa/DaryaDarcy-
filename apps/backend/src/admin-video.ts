@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { isOwnerAccount } from "./db";
 import { ENV } from "./_core/env";
@@ -109,7 +110,8 @@ export async function handleAdminVideoUpload(req: Request, res: Response) {
       res.status(400).json({ error: "Некорректный видеофайл" });
       return;
     }
-    const key = `feed/reels/${Date.now()}_${safeVideoFilename(filenameRaw)}`;
+    // Clock precision cannot isolate same-name uploads; identity is server-owned.
+    const key = `feed/reels/${randomUUID()}_${safeVideoFilename(filenameRaw)}`;
     const put = await storagePut(key, body, mime);
     res.json({ url: put.url });
   } catch (error) {

@@ -179,10 +179,41 @@ describe.skipIf(!testDatabaseUrl)(
         });
         expect(storage.writes).toHaveLength(1);
         expect(storage.writes[0].key).toMatch(
-          /^feed\/reels\/\d+_lesson\.html$/,
+          /^feed\/reels\/[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}_lesson\.html$/,
         );
         expect(storage.writes[0].bytes).toEqual(bytes);
         expect(storage.writes[0].mime).toBe(canonical);
+      },
+    );
+
+    it.each(["sequential", "concurrent"] as const)(
+      "isolates same-name uploads with a fixed clock: %s",
+      async (mode) => {
+        const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now());
+        try {
+          const responses =
+            mode === "concurrent"
+              ? await Promise.all(
+                  Array.from({ length: 4 }, () => upload(mp4Fixture)),
+                )
+              : [await upload(mp4Fixture), await upload(mp4Fixture)];
+          for (const response of responses) {
+            expect(response.status).toBe(200);
+            expect(await response.json()).toEqual({
+              url: "https://assets.example.test/native-raw-video",
+            });
+          }
+          expect(storage.writes).toHaveLength(responses.length);
+          expect(new Set(storage.writes.map((write) => write.key)).size).toBe(
+            responses.length,
+          );
+          for (const write of storage.writes) {
+            expect(write.bytes).toEqual(mp4Fixture);
+            expect(write.mime).toBe("video/mp4");
+          }
+        } finally {
+          clock.mockRestore();
+        }
       },
     );
 

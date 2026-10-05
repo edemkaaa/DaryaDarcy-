@@ -566,6 +566,13 @@
     retained. No frontend/dependency/schema/quota changes. Full suite: 889 pass /
     2 external S3 skip with disposable MySQL backup/restore enabled. This is not
     playback/antivirus/provider acceptance or migration of raw wiring to Nest.
+  - [x] Raw-video object key isolation: fixed-clock native HTTP/JWT/MySQL tests
+    reproduced collisions for two sequential/four concurrent same-name uploads.
+    Built-in randomUUID now replaces timestamps; folder, sanitized filename,
+    original bytes/MIME and URL-only response preserved. Two failing regressions
+    now pass; focused 63/full 891 pass with 2 external S3 skip. Types/lint/backend
+    build/boundaries pass. No old-object migration, frontend or dependency changes;
+    distinct keys do not make retries idempotent or prove provider acceptance.
   - [ ] Remaining document format/ownership: reviewed Word-specific detector for
     legacy DOC, frontend consumption of canonical standalone upload metadata
     (backend response ready; editor unchanged), and orphan cleanup after failed
@@ -574,7 +581,7 @@
     document boundary. Signatures do not prove absence of active content or
     protect public URLs. Reconcile persisted ownership/references before deletion,
     not on ambiguous SQL errors. Provider/header/privacy acceptance remains open.
-  - [ ] Remaining M05: Raw-video key collision, raw upload/URL import/admin Nest wiring; no
+  - [ ] Remaining M05: Raw upload/URL import/admin Nest wiring; no
     claim that all content, storage or SQL ownership has been migrated.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.
