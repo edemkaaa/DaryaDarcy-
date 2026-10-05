@@ -321,12 +321,14 @@
   Verified: Nest 12.1.2 family, reflect-metadata 0.2.2, RxJS 7.8.2; frozen
   ignore-scripts install. Baseline and post-dependency runs: 589 pass / 2 skip.
   Types/build/lint/API/docs pass; audit unchanged at 33 high/36 moderate/4 low.
-- [ ] M02: Nest HTTP runtime with native health/capability controllers.
+- [x] M02: Nest HTTP runtime with native health/capability controllers.
   Acceptance: one HTTP application, unchanged security/parsers/tRPC contracts;
   runtime creation performs no worker/external side effects, close releases port.
   Verify: tests/nest-application.test.ts; pnpm check; pnpm build; full suite.
   Files: runtime factory, app module, system controller, launch module, HTTP tests.
   Dependencies: M01; scope: medium. Executable switch is a separately verified step.
+  Real factory starts no jobs/listener; 20 real HTTP checks cover parser/auth/CORS/
+  HMAC/logout/tRPC/disabled features/close. Existing executable not yet switched.
 - [ ] M02b: Use Nest runtime from the existing production/dev executable.
   Acceptance: same host/port/timeouts and routes; actual built artifact starts.
   Verify: built-process loopback smoke; full suite/types/build/contract checks.
