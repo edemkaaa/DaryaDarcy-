@@ -589,7 +589,17 @@
     no outbound fetch or storage write. Focused 69/full 912 pass with 2 external
     S3 skip, types/lint/backend build/boundaries pass. No dependencies/frontend,
     ownership proof or reopening external imports; Nest wiring is the next slice.
-  - [ ] Remaining M05: Raw upload/URL import/admin Nest wiring; no
+  - [x] URL-import Nest wiring: admin.importVideoUrl now uses the existing injected
+    ContentUploadService, with the origin/bucket policy owned by content instead
+    of the raw Express upload adapter. Reuse the 21 native API/eight policy tests;
+    focused 210/full 912 pass with 2 external S3 skip. Compiler-rendered contracts
+    before/after refactor are identical across 72 procedures (read-only comparison,
+    no frontend generation); types/lint/backend build/423-file boundaries pass.
+    Existing live authorization/input/error/success behavior preserved. No new
+    provider/module/schema/dependency/frontend or outbound fetch. Strict check:api
+    still fails on the intentionally untouched snapshot from the earlier metadata
+    change; migration does not unblock staging/CI/deploy or prove storage ownership.
+  - [ ] Remaining M05: Raw upload/admin Nest wiring; no
     claim that all content, storage or SQL ownership has been migrated.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.

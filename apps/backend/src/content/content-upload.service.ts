@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
 import { isRawMediaFilename } from "../../../../packages/shared/src/media-label";
 import { createPostMedia } from "../db";
@@ -6,6 +7,7 @@ import { uploadPhoto } from "../media/photos";
 import { decodeMediaBase64 } from "../media/media-encoding";
 import { storagePut } from "../storage";
 import type { MediaUploadInput } from "./media-upload-input";
+import { blockedVideoPageReason, isOurStorageUrl } from "./video-import-policy";
 import {
   normalizeMediaContentType,
   resolveMediaContentType,
@@ -14,6 +16,26 @@ import {
 /** The adapter authorizes/validates; storage and SQL helpers retain their ownership. */
 @Injectable()
 export class ContentUploadService {
+  /**
+   * Retains a link without fetching/inspecting/copying its object. Keep optional
+   * fileSize in the existing wire type; retaining a URL does not report its size.
+   */
+  async importVideoFromUrl(
+    url: string,
+  ): Promise<{ url: string; fileSize?: number }> {
+    const trimmed = url.trim();
+    const blocked = blockedVideoPageReason(trimmed);
+    if (blocked) throw new TRPCError({ code: "BAD_REQUEST", message: blocked });
+    if (isOurStorageUrl(trimmed)) return { url: trimmed };
+    // Do not fetch user-controlled URLs: redirects/DNS can reach internal services.
+    // Upload local files instead; provider embeds are a separate publishing path.
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        "Импорт с внешнего адреса отключён. Загрузите видео файлом или выберите файл из своего хранилища.",
+    });
+  }
+
   uploadPhoto(base64: string): Promise<{ url: string }> {
     return uploadPhoto(base64, "feed/photos");
   }

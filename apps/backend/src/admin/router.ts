@@ -2,7 +2,6 @@ import { z } from "zod";
 import { router, adminProcedure } from "../_core/trpc";
 import * as db from "../db";
 import { photoInput } from "../media/photos";
-import { importVideoFromUrl } from "../admin-video";
 import type { ContentWriteService } from "../content/content-write.service";
 import { createPostInput, updatePostInput } from "../content/post-write-input";
 import type { ContentUploadService } from "../content/content-upload.service";
@@ -37,9 +36,7 @@ export const createAdminRouter = (posts: ContentWriteService, uploads: ContentUp
         url: z.string().min(8),
       }),
     )
-    .mutation(async ({ input }) => {
-      return importVideoFromUrl(input.url);
-    }),
+    .mutation(({ input }) => uploads.importVideoFromUrl(input.url)),
 
   // Upload photo (admin only)
   uploadPhoto: adminProcedure.input(photoInput).mutation(({ input }) => uploads.uploadPhoto(input.base64)),

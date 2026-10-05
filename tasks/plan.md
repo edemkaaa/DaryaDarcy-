@@ -1193,6 +1193,17 @@ boundaries and new test formatting pass. URL policy refusal is not a server
 outage; this change does not establish object existence/type/ownership. Existing
 external-import prohibition, messages and URL-only success remain intact.
 
+Video-link Nest checkpoint: route now calls the existing injected upload service;
+URL guidance/origin/bucket policy moved from raw admin-video to content, without
+an alternate runtime or forwarding facade. Previous regressions remain intact:
+210 focused / 912 full pass, 2 external S3 skip, real disposable backup/restore.
+Read-only compiler rendering gives identical 72-procedure contract before/after
+the refactor (18653 unformatted bytes; SHA-256 e9b921094146806f666968b4bf96d58fdea862efe0fc5322230d720e2c84c449).
+No frontend file is generated/edited; check:api still detects the earlier upload
+metadata snapshot gap. Types/lint/backend build/423-file boundaries pass. No new
+dependency/schema/quota/auth/CORS/outbound requests. Raw upload Nest wiring,
+legacy DOC/ownership/privacy and release gates remain open.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.
