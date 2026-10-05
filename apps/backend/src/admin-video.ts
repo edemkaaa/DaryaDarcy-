@@ -59,11 +59,14 @@ export function isOurStorageUrl(url: string): boolean {
 export async function importVideoFromUrl(url: string): Promise<{ url: string; fileSize?: number }> {
   const trimmed = url.trim();
   const blocked = blockedVideoPageReason(trimmed);
-  if (blocked) throw new Error(blocked);
+  if (blocked) throw new TRPCError({ code: "BAD_REQUEST", message: blocked });
   if (isOurStorageUrl(trimmed)) return { url: trimmed };
   // Do not fetch user-controlled URLs: redirects/DNS can reach internal services.
   // Upload local files instead; provider embeds are a separate publishing path.
-  throw new Error("Импорт с внешнего адреса отключён. Загрузите видео файлом или выберите файл из своего хранилища.");
+  throw new TRPCError({
+    code: "BAD_REQUEST",
+    message: "Импорт с внешнего адреса отключён. Загрузите видео файлом или выберите файл из своего хранилища.",
+  });
 }
 
 async function requireAdmin(req: Request, res: Response) {

@@ -1176,6 +1176,23 @@ consumer reads the URL without parsing the old timestamp (read-only inspection).
 Strict check:api remains blocked by the intentionally untouched client snapshot;
 no bypass/merge/push/deployment. File transport/ownership/privacy remain separate.
 
+Video-link continuation: first reproduce the existing admin.importVideoUrl error
+mapping on native HTTP/JWT/MySQL. Unsupported/external/malformed URLs are client
+input errors, not infrastructure failures: return BAD_REQUEST / 400 while keeping
+the same safe messages and URL-only success shape (optional fileSize type intact).
+Keep exact configured HTTPS origin/bucket acceptance, live admin authorization,
+no server-side fetch or storage write, and prior traversal rejection. No new
+integration, network fetch, auth/quota/CORS/dependency/schema/frontend change.
+Then move this tested policy behind the existing injected ContentUploadService
+in a separate behavior-preserving commit; raw upload wiring remains separate.
+
+Video-link error checkpoint: fourteen native failures reproduced (500 instead of
+400), then 21 native cases and 69 focused cases passed. Full disposable MySQL
+with backup/restore: 912 pass / 2 external S3 skip. Types, lint, backend build,
+boundaries and new test formatting pass. URL policy refusal is not a server
+outage; this change does not establish object existence/type/ownership. Existing
+external-import prohibition, messages and URL-only success remain intact.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

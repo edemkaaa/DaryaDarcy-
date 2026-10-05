@@ -581,6 +581,14 @@
     document boundary. Signatures do not prove absence of active content or
     protect public URLs. Reconcile persisted ownership/references before deletion,
     not on ambiguous SQL errors. Provider/header/privacy acceptance remains open.
+  - [x] Video-link input error mapping: native HTTP/JWT/MySQL reproduced 14
+    unsupported/malformed URL failures returning 500 rather than 400. Trusted
+    policy refusals now use BAD_REQUEST; safe messages/success response and exact
+    configured HTTPS origin/bucket boundary preserved. Twenty-one native cases
+    cover URL refusals, trim/retain, live role/block/revocation and anonymous access;
+    no outbound fetch or storage write. Focused 69/full 912 pass with 2 external
+    S3 skip, types/lint/backend build/boundaries pass. No dependencies/frontend,
+    ownership proof or reopening external imports; Nest wiring is the next slice.
   - [ ] Remaining M05: Raw upload/URL import/admin Nest wiring; no
     claim that all content, storage or SQL ownership has been migrated.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
