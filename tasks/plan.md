@@ -1204,6 +1204,26 @@ metadata snapshot gap. Types/lint/backend build/423-file boundaries pass. No new
 dependency/schema/quota/auth/CORS/outbound requests. Raw upload Nest wiring,
 legacy DOC/ownership/privacy and release gates remain open.
 
+Raw-video Nest continuation: move the existing binary POST /api/admin/upload-video
+into a native ContentModule controller and the injected ContentUploadService.
+Retain pre-parser admission and a fresh JWT/live SQL check after receiving the
+body, 80 MiB limit, URL-only 200 response, canonical MIME, UUID keys and safe
+401/403/400/413/500 messages. Characterize identity revocation during streaming
+before migration. Trusted input errors alone map to 400; provider errors remain
+500 even when they use BAD_REQUEST. Remove the superseded Express business
+handler; retain parser middleware and one server. No frontend/API type writes,
+new auth policy, schema/dependency changes, outbound integration or deployment.
+
+Raw-video Nest checkpoint: 53 pre-migration characterization cases pass; all
+three mid-stream live identity tests fail (unsafe 200) when the post-body check
+is deliberately disabled, then pass with the real check restored. Native
+controller/service/parser composition passes 238 focused cases plus a separate
+compiled ESM HTTP/JWT/MySQL/worker case. Full suite with disposable backup/restore:
+916 pass / 2 external S3 skip. Types/lint/backend build/423-file boundaries pass.
+The read-only 72-procedure fingerprint remains identical to the URL-import stage;
+no frontend generation or new contract change. Superseded admin-video.ts removed.
+Remaining admin/data/worker migrations and release gates are not marked complete.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

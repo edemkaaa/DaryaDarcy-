@@ -1,5 +1,4 @@
 import express, { type Express, type Request, type Response } from "express";
-import { handleAdminVideoUpload } from "../admin-video";
 import { sdk } from "./sdk";
 
 const photoProcedures = new Set(["profile.uploadAvatar", "club.uploadCommentPhoto", "admin.uploadPhoto"]);
@@ -24,11 +23,11 @@ function bodyError(res: Response, error: unknown) {
 }
 
 export function registerRequestBodies(app: Express) {
-  app.post("/api/admin/upload-video", async (req, res) => {
+  app.post("/api/admin/upload-video", async (req, res, next) => {
     if (!(await requireUploadIdentity(req, res, true))) return;
     express.raw({ type: () => true, limit: "80mb" })(req, res, err => {
       if (err) { bodyError(res, err); return; }
-      void handleAdminVideoUpload(req, res);
+      next();
     });
   });
   app.use(async (req, res, next) => {

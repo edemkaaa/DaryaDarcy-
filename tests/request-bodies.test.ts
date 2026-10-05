@@ -7,10 +7,15 @@ vi.mock("../apps/backend/src/_core/sdk", () => ({ sdk: { authenticateRequest: bo
 vi.mock("../apps/backend/src/storage", () => ({ storagePut: boundary.storage }));
 vi.mock("../apps/backend/src/db", () => ({ isOwnerAccount: (user: { role: string }) => user.role === "admin" }));
 import { registerRequestBodies } from "../apps/backend/src/_core/request-bodies";
+import { ContentUploadService } from "../apps/backend/src/content/content-upload.service";
+import { VideoUploadController } from "../apps/backend/src/content/video-upload.controller";
+import { SessionService } from "../apps/backend/src/identity/session.service";
 import { mp4Fixture } from "./helpers/media-fixtures";
 let server: Server, base: string;
 beforeAll(async () => {
   const app = express(); registerRequestBodies(app);
+  const controller = new VideoUploadController(new ContentUploadService(), new SessionService());
+  app.post("/api/admin/upload-video", (req, res) => { void controller.uploadVideo(req, res); });
   for (const path of ["/api/auth/login", "/api/write", "/api/trpc/admin.uploadMedia", "/api/trpc/profile.uploadAvatar", "/api/trpc/profile.uploadAvatar,auth.me"]) app.post(path, (req, res) => res.json({ parsed: Boolean(req.body) }));
   server = createServer(app); await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;

@@ -14,12 +14,22 @@ vi.mock("../apps/backend/src/media/file-signature", () => ({
 }));
 vi.mock("../apps/backend/src/storage", () => ({ storagePut: boundary.store }));
 import { registerRequestBodies } from "../apps/backend/src/_core/request-bodies";
+import { ContentUploadService } from "../apps/backend/src/content/content-upload.service";
+import { VideoUploadController } from "../apps/backend/src/content/video-upload.controller";
+import { SessionService } from "../apps/backend/src/identity/session.service";
 
 // Fault injection complements native real-worker tests; do not mock the policy or handler.
 let server: Server, base: string;
 beforeAll(async () => {
   const app = express();
   registerRequestBodies(app);
+  const controller = new VideoUploadController(
+    new ContentUploadService(),
+    new SessionService(),
+  );
+  app.post("/api/admin/upload-video", (req, res) => {
+    void controller.uploadVideo(req, res);
+  });
   server = createServer(app);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;

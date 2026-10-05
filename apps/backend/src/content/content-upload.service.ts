@@ -13,9 +13,44 @@ import {
   resolveMediaContentType,
 } from "./media-content-type";
 
-/** The adapter authorizes/validates; storage and SQL helpers retain their ownership. */
+// Distinguish trusted input-policy refusal from provider exceptions of any shape.
+export class InvalidVideoFileError extends Error {
+  constructor() {
+    super("Некорректный видеофайл");
+    this.name = "InvalidVideoFileError";
+  }
+}
+
+function safeVideoFilename(name: string): string {
+  const base = (name || "video.mp4").split(/[\\/]/).pop() || "video.mp4";
+  const cleaned = base.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 80);
+  return cleaned || "video.mp4";
+}
+
+/** The adapter authorizes; storage and SQL helpers retain their ownership. */
 @Injectable()
 export class ContentUploadService {
+  async uploadRawVideo(
+    buffer: Buffer,
+    filename: string,
+    contentType: string,
+  ): Promise<{ url: string }> {
+    let mime: string;
+    try {
+      const declared = normalizeMediaContentType("video", contentType);
+      mime = await resolveMediaContentType("video", declared, buffer);
+    } catch (error) {
+      if (error instanceof TRPCError && error.code === "BAD_REQUEST") {
+        throw new InvalidVideoFileError();
+      }
+      throw error;
+    }
+    // Clock precision cannot isolate same-name uploads; identity is server-owned.
+    const key = `feed/reels/${randomUUID()}_${safeVideoFilename(filename)}`;
+    const put = await storagePut(key, buffer, mime);
+    return { url: put.url };
+  }
+
   /**
    * Retains a link without fetching/inspecting/copying its object. Keep optional
    * fileSize in the existing wire type; retaining a URL does not report its size.

@@ -599,7 +599,19 @@
     provider/module/schema/dependency/frontend or outbound fetch. Strict check:api
     still fails on the intentionally untouched snapshot from the earlier metadata
     change; migration does not unblock staging/CI/deploy or prove storage ownership.
-  - [ ] Remaining M05: Raw upload/admin Nest wiring; no
+  - [x] Raw-video Nest wiring: native VideoUploadController calls injected upload
+    and session services. Parser middleware retains pre-body admission, then
+    fresh JWT/SQL authorization runs after body reception; superseded admin-video
+    business handler removed. Same endpoint, URL-only 200, 80 MiB limit, MIME
+    checks, UUID keys and errors. Three streaming revocation tests pass before/
+    after migration and fail when the late check is deliberately disabled.
+    Compiled ESM HTTP/JWT/SQL/worker test proves actual runtime injection;
+    no provider/production jobs, frontend/schema/dependency/auth-policy change.
+    Focused 238 plus one compiled case; full 916 pass / 2 external S3 skip with
+    disposable MySQL backup/restore. Types/lint/backend build/423-file boundaries
+    pass; read-only 72-procedure contract fingerprint unchanged. Strict check:api
+    remains blocked on the earlier metadata snapshot; no staging merge/deploy.
+  - [ ] Remaining M05: Remaining admin service wiring; no
     claim that all content, storage or SQL ownership has been migrated.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.

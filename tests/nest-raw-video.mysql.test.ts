@@ -9,6 +9,7 @@ import {
 } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
+import { request } from "node:http";
 import type { Connection } from "mysql2/promise";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
@@ -243,6 +244,70 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await response.json()).toEqual({ error: "Нужно войти" });
       expect(storage.writes).toEqual([]);
     });
+    it.each([
+      ["role='user'", 403, "Только для администратора"],
+      ["blockedAt=NOW()", 401, "Нужно войти"],
+      ["sessionVersion=1", 401, "Нужно войти"],
+    ] as const)(
+      "rechecks live identity after streaming the body: %s",
+      async (patch, status, message) => {
+        let admit!: () => void;
+        const admitted = new Promise<void>((resolve) => {
+          admit = resolve;
+        });
+        const authenticate = sdk.authenticateRequest.bind(sdk);
+        // Observe real JWT/SQL admission, then change SQL while the body is incomplete.
+        const auth = vi
+          .spyOn(sdk, "authenticateRequest")
+          .mockImplementation(async (req) => {
+            const user = await authenticate(req);
+            admit();
+            return user;
+          });
+        const client = request(`${base}/api/admin/upload-video`, {
+          method: "POST",
+          signal: AbortSignal.timeout(5000),
+          headers: {
+            Authorization: `Bearer ${bearer}`,
+            "Content-Type": "video/mp4",
+            "Content-Length": mp4Fixture.length,
+          },
+        });
+        const response = new Promise<{
+          status: number | undefined;
+          body: string;
+        }>((resolve, reject) => {
+          client.on("error", reject);
+          client.on("response", (res) => {
+            let body = "";
+            res.setEncoding("utf8");
+            res.on("data", (chunk) => {
+              body += chunk;
+            });
+            res.on("error", reject);
+            res.on("end", () => resolve({ status: res.statusCode, body }));
+          });
+        });
+        try {
+          client.write(mp4Fixture.subarray(0, 8));
+          await Promise.race([
+            admitted,
+            response.then(() => {
+              throw new Error("Response before streaming body completed");
+            }),
+          ]);
+          await conn.query(`UPDATE users SET ${patch} WHERE id=9020`);
+          client.end(mp4Fixture.subarray(8));
+          const result = await response;
+          expect(result.status).toBe(status);
+          expect(JSON.parse(result.body)).toEqual({ error: message });
+          expect(storage.writes).toEqual([]);
+        } finally {
+          client.destroy();
+          auth.mockRestore();
+        }
+      },
+    );
     it("retains the 80 MiB HTTP body limit without a storage write", async () => {
       const response = await upload(Buffer.alloc(80 * 1024 * 1024 + 1));
       expect(response.status).toBe(413);
