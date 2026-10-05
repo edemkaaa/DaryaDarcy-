@@ -174,7 +174,7 @@ describe.skipIf(!testDatabaseUrl)(
         });
         expect(storage.writes).toHaveLength(1);
         expect(storage.writes[0].key).toMatch(
-          new RegExp(`^feed/${folder}/[0-9]+_${filename.replace(".", "\\.")}$`),
+          new RegExp(`^feed/${folder}/[a-f0-9-]{36}$`),
         );
         expect(storage.writes[0].bytes).toEqual(Buffer.from("fixture"));
         expect(storage.writes[0].mime).toBe(mimeType);
@@ -200,9 +200,7 @@ describe.skipIf(!testDatabaseUrl)(
           ...media,
           filename,
         });
-        expect(storage.writes[0].key).toMatch(
-          /^feed\/audio\/[0-9]+_audio-[0-9]+$/,
-        );
+        expect(storage.writes[0].key).toMatch(/^feed\/audio\/[a-f0-9-]{36}$/);
         expect(await rows()).toEqual([
           {
             id: response.mediaId,
@@ -227,6 +225,68 @@ describe.skipIf(!testDatabaseUrl)(
         });
       expect(storage.writes).toHaveLength(2);
       expect(await rows()).toEqual([]);
+    });
+    it.each([
+      "",
+      "Zml4dHVyZQ",
+      "Zml4dHVyZQ==!",
+      "Zml4\ndHVyZQ==",
+      "Zml4dHVyZQ====",
+      "data:audio/mpeg;base64,Zml4dHVyZQ==",
+      "-_8=",
+      "Zh==",
+      "====",
+    ])(
+      "rejects malformed media base64 %j before storing or associating",
+      async (base64) => {
+        await expect(
+          client(bearer).admin.uploadMedia.mutate({ ...media, base64 }),
+        ).rejects.toMatchObject({
+          data: { code: "BAD_REQUEST", httpStatus: 400 },
+        });
+        expect(storage.writes).toEqual([]);
+        expect(await rows()).toEqual([]);
+      },
+    );
+    it.each([
+      ["Zg==", "f"],
+      ["Zm8=", "fo"],
+      ["Zm9v", "foo"],
+    ])("preserves canonical media padding for %s", async (base64, text) => {
+      await client(bearer).admin.uploadMedia.mutate({ ...media, base64 });
+      expect(storage.writes[0].bytes).toEqual(Buffer.from(text));
+      expect(await rows()).toMatchObject([{ fileSize: text.length }]);
+    });
+    it.each([
+      "../../private/file.mp3?token=x#part",
+      "C:\\private\\lesson.mp3",
+      "Урок #1 ?.mp3",
+    ])("keeps filename %s out of the object key", async (filename) => {
+      await client(bearer).admin.uploadMedia.mutate({ ...media, filename });
+      expect(storage.writes[0].key).toMatch(/^feed\/audio\/[a-f0-9-]{36}$/);
+      // Display metadata remains separate from object identity, as before.
+      expect(await rows()).toMatchObject([{ filename }]);
+    });
+    it("does not overwrite same-name uploads within one millisecond", async () => {
+      const now = vi.spyOn(Date, "now").mockReturnValue(Date.now());
+      try {
+        const responses = await Promise.all(
+          ["first", "second"].map((text) =>
+            client(bearer).admin.uploadMedia.mutate({
+              ...media,
+              base64: Buffer.from(text).toString("base64"),
+            }),
+          ),
+        );
+        expect(storage.writes).toHaveLength(2);
+        expect(new Set(storage.writes.map((write) => write.key)).size).toBe(2);
+        expect(
+          new Set(responses.map((response) => response.mediaId)).size,
+        ).toBe(2);
+        expect(await rows()).toHaveLength(2);
+      } finally {
+        now.mockRestore();
+      }
     });
     it.each([
       ["role='user'", 403],

@@ -1,7 +1,9 @@
 import { Injectable } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import { isRawMediaFilename } from "../../../../packages/shared/src/media-label";
 import { createPostMedia } from "../db";
 import { uploadPhoto } from "../media/photos";
+import { decodeMediaBase64 } from "../media/media-encoding";
 import { storagePut } from "../storage";
 import type { MediaUploadInput } from "./media-upload-input";
 
@@ -13,20 +15,19 @@ export class ContentUploadService {
   }
 
   async uploadMedia(input: MediaUploadInput) {
-    const buffer = Buffer.from(input.base64, "base64");
+    const buffer = decodeMediaBase64(input.base64);
     const folder =
       input.type === "video"
         ? "videos"
         : input.type === "audio"
           ? "audio"
           : "documents";
-    const safeName = isRawMediaFilename(input.filename)
-      ? `${input.type}-${Date.now()}`
-      : input.filename;
     const storedName = isRawMediaFilename(input.filename)
       ? null
       : input.filename;
-    const key = `feed/${folder}/${Date.now()}_${safeName}`;
+    // Object identity is independent of client paths, extensions and clock precision.
+    // Human filenames stay in display metadata; this is not MIME/format detection.
+    const key = `feed/${folder}/${randomUUID()}`;
     const result = await storagePut(key, buffer, input.mimeType);
 
     // Preserve legacy attachment ordering: storage succeeds before SQL association.

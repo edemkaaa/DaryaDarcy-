@@ -887,6 +887,39 @@ after forced SQL failure; the latter still leaves the stored object. Generic med
 validation/key ownership and cleanup are explicitly open, not silently changed.
 No frontend/provider/schema/quota/deployment changes or release-ready claim.
 
+Generic media encoding/key safety specification: admin.uploadMedia currently
+silently decodes invalid/empty/noncanonical base64 and uses a client filename plus
+millisecond timestamp as the object key. Reproduce both malformed-input acceptance
+and same-name/same-time collision before implementation. Require nonempty canonical
+standard padded base64; bound encoded length by the existing 50 MiB JSON ceiling
+before decoding, without changing HTTP parsers/quotas or wire types. Use fixed
+type folders plus a server-generated UUID, with no client filename/extension in
+the key. Preserve human display names/raw-camera suppression, MIME/type metadata,
+byte sizes, optional association and success response; keys are opaque, not URLs
+with trusted extensions. No new provider/endpoint/role or legacy object rewrite.
+This does NOT validate the actual audio/video/document format or prevent active
+content: MIME still requires its own acceptance policy (current clients support
+PDF/DOC/DOCX/TXT and broad audio). Orphan cleanup must reconcile persisted ownership
+and references before deletion; never delete on an ambiguous SQL error. Raw-video
+uploads, private storage, durable intent/retry and those checks remain separate.
+
+Generic media encoding/key safety checkpoint: tests against the previous code
+confirmed nine invalid encodings were accepted, client path/query fragments entered
+keys, and two same-name uploads at a fixed millisecond produced one storage key.
+An independent service test also confirmed acceptance above the existing encoded
+JSON ceiling. This is reproduced behavior, not an intentional mutation or evidence
+of a historical production overwrite. The media decoder now requires nonempty
+canonical standard base64 within 50 MiB encoded characters before allocating the
+decoded buffer; ContentUploadService uses fixed folders and server UUIDs. Filename
+and MIME remain client metadata, with existing raw-name suppression and byte-size
+calculation. Seventeen added regressions include actual native HTTP/JWT/MySQL;
+only external storage is replaced. Focused suite: 47 pass. Full suite: 731 pass /
+2 external skip; root/Next types, lint, backend/Next builds, unchanged
+72-procedure/25376-byte API and 419-file boundaries pass. HTTP parsers, quotas,
+auth, frontend, schemas and dependencies are unchanged. No existing objects are
+rewritten. File-format/MIME detection, orphan reconciliation, raw-video hardening,
+private storage and provider acceptance remain open; no release-ready claim.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

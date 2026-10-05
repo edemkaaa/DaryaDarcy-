@@ -495,9 +495,18 @@
     Focused 39 pass, full suite 714 pass / 2 external skip; root/Next types, lint,
     backend/Next builds, exact 72-procedure/25376-byte API, 418-file boundaries
     and docs pass. No new endpoint, frontend, provider, schema or deployment change.
-  - [ ] Generic media safety/ownership: strict base64/format validation, server-owned
-    object names and orphan-object cleanup after failed SQL association; current
-    permissive media semantics are not declared hardened by service extraction.
+  - [x] Generic media encoding/key safety: invalid/empty/noncanonical base64 and
+    same-name/same-millisecond key collisions reproduced before repair. Bound
+    encoded length by the existing 50 MiB JSON ceiling before decoding; fixed
+    folders plus server UUID keys exclude client paths/names/extensions. Human
+    metadata, MIME/type, association, auth and API shapes preserved. Seventeen
+    added regressions; focused 47 pass, full suite 731 pass / 2 external skip;
+    root/Next types, lint, backend/Next builds, unchanged 72-procedure/25376-byte
+    API and 419-file boundaries pass. No legacy object rewrite or provider calls.
+  - [ ] Generic media format/ownership: actual file-format/MIME validation and
+    orphan-object cleanup after failed SQL association. Encoding/key repairs do
+    not reject active content disguised with client MIME or protect public URLs;
+    reconcile persisted ownership/references before deletion, not on SQL errors.
   - [ ] Remaining M05: Raw-video upload, URL imports and other admin wiring; no
     claim that all content, storage or SQL ownership has been migrated.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
