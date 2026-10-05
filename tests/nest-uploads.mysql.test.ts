@@ -25,6 +25,13 @@ import {
   audioWebmFixture,
   wavFixture,
 } from "./helpers/media-fixtures";
+import {
+  docxMime,
+  docxFixture,
+  docmFixture,
+  pdfFixture,
+  zipFixture,
+} from "./helpers/document-fixtures";
 
 // Only storage transport is replaced; image processing, sessions and SQL are real.
 const storage = vi.hoisted(() => ({
@@ -172,7 +179,7 @@ describe.skipIf(!testDatabaseUrl)(
             ? mp3Fixture
             : type === "video"
               ? mp4Fixture
-              : Buffer.from("fixture");
+              : pdfFixture;
         const response = await client(bearer).admin.uploadMedia.mutate({
           ...media,
           base64: bytes.toString("base64"),
@@ -317,6 +324,115 @@ describe.skipIf(!testDatabaseUrl)(
       // Display metadata remains separate from object identity, as before.
       expect(await rows()).toMatchObject([{ filename }]);
     });
+    it.each(
+      (
+        [
+          ["HTML", Buffer.from("<html><script>alert(1)</script></html>")],
+          ["SVG", Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>')],
+          ["MP3", mp3Fixture],
+          ["ordinary ZIP", zipFixture],
+          ["macro-enabled Word package", docmFixture],
+          ["unrecognized text", Buffer.from("not a PDF or DOCX")],
+        ] as const
+      ).flatMap(([name, bytes]) =>
+        ["application/pdf", docxMime].map(
+          (mimeType) => [name, mimeType, bytes] as const,
+        ),
+      ),
+    )(
+      "rejects %s bytes declared as %s document before any write",
+      async (_name, mimeType, bytes) => {
+        await expect(
+          client(bearer).admin.uploadMedia.mutate({
+            ...media,
+            type: "document",
+            filename: "lesson.pdf",
+            mimeType,
+            base64: bytes.toString("base64"),
+          }),
+        ).rejects.toMatchObject({
+          data: { code: "BAD_REQUEST", httpStatus: 400 },
+        });
+        expect(storage.writes).toEqual([]);
+        expect(await rows()).toEqual([]);
+      },
+    );
+    it.each([
+      ["PDF as DOCX", pdfFixture, docxMime],
+      ["DOCX as PDF", docxFixture, "application/pdf"],
+    ] as const)(
+      "rejects the document format swap %s",
+      async (_name, bytes, mimeType) => {
+        await expect(
+          client(bearer).admin.uploadMedia.mutate({
+            ...media,
+            type: "document",
+            mimeType,
+            base64: bytes.toString("base64"),
+          }),
+        ).rejects.toMatchObject({
+          data: { code: "BAD_REQUEST", httpStatus: 400 },
+        });
+        expect(storage.writes).toEqual([]);
+        expect(await rows()).toEqual([]);
+      },
+    );
+    it.each([
+      [
+        "PDF",
+        pdfFixture,
+        ' APPLICATION/PDF ; version="1.4"',
+        'application/pdf; version="1.4"',
+      ],
+      [
+        "DOCX",
+        docxFixture,
+        `${docxMime}; fixture=token`,
+        `${docxMime}; fixture=token`,
+      ],
+    ] as const)(
+      "preserves %s bytes and valid MIME parameters after detection",
+      async (_name, bytes, mimeType, canonical) => {
+        const response = await client(bearer).admin.uploadMedia.mutate({
+          ...media,
+          type: "document",
+          base64: bytes.toString("base64"),
+          mimeType,
+        });
+        expect(storage.writes).toHaveLength(1);
+        expect(storage.writes[0]).toMatchObject({ bytes, mime: canonical });
+        expect(await rows()).toMatchObject([
+          {
+            id: response.mediaId,
+            type: "document",
+            mimeType: canonical,
+            fileSize: bytes.length,
+          },
+        ]);
+      },
+    );
+    it.each([
+      ["PDF", pdfFixture, "application/pdf"],
+      ["DOCX", docxFixture, docxMime],
+    ] as const)(
+      "keeps standalone %s uploads unassociated",
+      async (_name, bytes, mimeType) => {
+        const { postId: _postId, ...standalone } = media;
+        await expect(
+          client(bearer).admin.uploadMedia.mutate({
+            ...standalone,
+            type: "document",
+            base64: bytes.toString("base64"),
+            mimeType,
+          }),
+        ).resolves.toEqual({
+          url: "https://assets.example.test/native-upload",
+          mediaId: undefined,
+        });
+        expect(storage.writes[0].bytes).toEqual(bytes);
+        expect(await rows()).toEqual([]);
+      },
+    );
     it("does not overwrite same-name uploads within one millisecond", async () => {
       const now = vi.spyOn(Date, "now").mockReturnValue(Date.now());
       try {
@@ -418,38 +534,46 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await rows()).toMatchObject([{ mimeType: "audio/mp4" }]);
     });
     it.each([
-      ["document", "application/pdf", "application/pdf"],
-      ["document", "application/msword", "application/msword"],
+      ["document", "application/pdf", "application/pdf", pdfFixture],
+      // Legacy DOC/TXT/opaque fallback deliberately remain metadata-only here.
+      [
+        "document",
+        "application/msword",
+        "application/msword",
+        Buffer.from("fixture"),
+      ],
       [
         "document",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        docxFixture,
       ],
       [
         "document",
         "text/plain; charset=windows-1251",
         "text/plain; charset=windows-1251",
+        Buffer.from("fixture"),
       ],
-      ["document", "application/octet-stream", "application/octet-stream"],
-      ["audio", " Audio/MPEG ", "audio/mpeg"],
-      ["audio", 'audio/webm; codecs="opus"', 'audio/webm; codecs="opus"'],
-      ["audio", "audio/x-wav", "audio/wav"],
-      ["audio", "application/octet-stream", "audio/mpeg"],
-      ["video", "VIDEO/MP4", "video/mp4"],
-      ["video", "application/octet-stream", "video/mp4"],
+      [
+        "document",
+        "application/octet-stream",
+        "application/octet-stream",
+        Buffer.from("fixture"),
+      ],
+      ["audio", " Audio/MPEG ", "audio/mpeg", mp3Fixture],
+      [
+        "audio",
+        'audio/webm; codecs="opus"',
+        'audio/webm; codecs="opus"',
+        audioWebmFixture,
+      ],
+      ["audio", "audio/x-wav", "audio/wav", wavFixture()],
+      ["audio", "application/octet-stream", "audio/mpeg", mp3Fixture],
+      ["video", "VIDEO/MP4", "video/mp4", mp4Fixture],
+      ["video", "application/octet-stream", "video/mp4", mp4Fixture],
     ] as const)(
       "stores resolved %s MIME %s consistently",
-      async (type, mimeType, canonical) => {
-        const bytes =
-          type === "document"
-            ? Buffer.from("fixture")
-            : type === "video"
-              ? mp4Fixture
-              : mimeType.includes("webm")
-                ? audioWebmFixture
-                : mimeType.includes("wav")
-                  ? wavFixture()
-                  : mp3Fixture;
+      async (type, mimeType, canonical, bytes) => {
         const response = await client(bearer).admin.uploadMedia.mutate({
           ...media,
           base64: bytes.toString("base64"),

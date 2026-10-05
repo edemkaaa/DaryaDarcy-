@@ -12,6 +12,7 @@ import {
   audioWebmFixture,
   wavFixture,
 } from "./helpers/media-fixtures";
+import { pdfFixture, docxFixture, docxMime } from "./helpers/document-fixtures";
 
 it.each([
   ["MP3", mp3Fixture, "mp3", "audio/mpeg"],
@@ -85,4 +86,47 @@ it("runs the same detector under the existing CommonJS/tsx development runtime",
     },
   );
   expect(JSON.parse(output)).toEqual({ ext: "mp3", mime: "audio/mpeg" });
+});
+
+it("applies PDF/DOCX rejection policy from compiled ESM with real workers", async () => {
+  const directory = mkdtempSync(resolve(".tmp-document-signature-"));
+  const entry = join(directory, "policy.mjs");
+  try {
+    await build({
+      entryPoints: [resolve("apps/backend/src/content/media-content-type.ts")],
+      platform: "node",
+      packages: "external",
+      bundle: true,
+      format: "esm",
+      outfile: entry,
+    });
+    const inputs = [
+      ["application/pdf", pdfFixture.toString("base64")],
+      [docxMime, docxFixture.toString("base64")],
+      [
+        "application/pdf",
+        Buffer.from("<html>not a PDF</html>").toString("base64"),
+      ],
+      [docxMime, pdfFixture.toString("base64")],
+    ];
+    const source = `import {resolveMediaContentType} from ${JSON.stringify(pathToFileURL(entry).href)};
+      const results = await Promise.all(${JSON.stringify(inputs)}.map(async ([mime, base64]) => {
+        try { return await resolveMediaContentType("document", mime, Buffer.from(base64, "base64")); }
+        catch (error) { return {code: error.code}; }
+      }));console.log(JSON.stringify(results));`;
+    const output = execFileSync(
+      process.execPath,
+      ["--input-type=module", "-e", source],
+      { cwd: tmpdir(), env: {}, encoding: "utf8", timeout: 10_000 },
+    );
+    expect(JSON.parse(output)).toEqual([
+      "application/pdf",
+      docxMime,
+      { code: "BAD_REQUEST" },
+      { code: "BAD_REQUEST" },
+    ]);
+  } finally {
+    rmSync(entry, { force: true });
+    rmdirSync(directory);
+  }
 });

@@ -8,6 +8,10 @@ const DOCUMENT_MIMES = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "text/plain",
 ]);
+const BYTE_CHECKED_DOCUMENT_MIMES = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
 
 // Bounded ASCII token / quoted-string parameters (RFC 9110 §5.6.6). No controls,
 // obs-text or empty parameters; preserve valid charset/codecs rather than discard.
@@ -57,13 +61,28 @@ export async function resolveMediaContentType(
   declared: string,
   bytes: Buffer,
 ): Promise<string> {
-  if (type === "document") return declared;
+  const semicolon = declared.indexOf(";");
+  const declaredEssence =
+    semicolon < 0 ? declared : declared.slice(0, semicolon);
+  // Legacy DOC, text encodings and opaque fallback need a separate acceptance
+  // policy. Do not mistake a generic CFB signature for proof of a Word document.
+  if (type === "document" && !BYTE_CHECKED_DOCUMENT_MIMES.has(declaredEssence))
+    return declared;
   const detected = await detectBinaryFileType(bytes);
   if (!detected)
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Не удалось распознать файл",
     });
+  if (type === "document") {
+    if (detected.mime !== declaredEssence) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Формат файла не соответствует заявленному типу",
+      });
+    }
+    return declared;
+  }
   // Audio-only WebM and generic MP4 share video container signatures. Do not
   // mistake container branding or retained codec metadata for track inspection.
   const canonical =
@@ -76,9 +95,6 @@ export async function resolveMediaContentType(
       message: "Формат файла не соответствует категории",
     });
   }
-  const semicolon = declared.indexOf(";");
-  const declaredEssence =
-    semicolon < 0 ? declared : declared.slice(0, semicolon);
   // Keep parameters only for an exact essence match; otherwise the server's
   // detected MIME replaces aliases, picker fallback and wrong same-family labels.
   return declaredEssence === canonical ? declared : canonical;

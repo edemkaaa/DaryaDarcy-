@@ -1018,6 +1018,52 @@ No schema, frontend, body quota, provider call, old-object rewrite or deployment
 change. Document byte policy, raw-video, private storage, orphan reconciliation,
 full file/track validation and provider acceptance remain open; no release claim.
 
+PDF/DOCX signature slice: the existing document branch bypasses byte detection.
+For normalized declared application/pdf or DOCX MIME only, require the existing
+isolated file-type detector to return exactly that MIME before storage/SQL.
+Unknown/foreign signatures (including a PDF/DOCX swap, ordinary ZIP and a package
+advertising macro-enabled Word) return BAD_REQUEST / 400. Keep valid declared
+parameters, stored bytes, display names, UUID keys, association and API shapes.
+Preserve legacy DOC, TXT and application/octet-stream behavior in this slice:
+they remain unverified, are not a safe alternative, and need their own acceptance
+policy. No new dependency, parser, schema, quota, frontend or provider call.
+This is signature/package classification, not full PDF/OPC validation, exclusion
+of hidden macros/scripts/polyglots or antivirus. Use native HTTP/JWT/MySQL with
+only storage transport replaced: prove prior acceptance first, then validate
+locally constructed PDF and minimal DOCX packages plus unchanged legacy behavior.
+Owner: content/media-content-type.ts; fixtures/tests: tests/helpers and native
+upload suite. Follow existing TRPCError/Prettier conventions. Verify with pnpm exec
+vitest run tests/nest-uploads.mysql.test.ts tests/file-signature.test.ts and pnpm
+test/check/lint/build/build:frontend/check:api/check:boundaries/check:docs under
+Node 22 and disposable backend_test MySQL. Run tests before a local atomic commit;
+ask before new dependencies/schema/auth/provider changes; never read private files
+or automatically delete an object after an ambiguous SQL error.
+
+PDF/DOCX signature checkpoint: fourteen native HTTP/JWT/MySQL rejection cases
+failed against the prior handler because all payloads were accepted and associated
+after the replaced storage boundary. Cases include HTML/SVG, MP3, ordinary ZIP,
+unknown text, a package advertising macro-enabled Word and PDF/DOCX swaps. This
+is reproduced acceptance, not historical browser exploitation or macro execution.
+The owning MIME policy now applies exact signature-MIME matching to declared
+PDF/DOCX, reusing the already approved isolated detector and its deadline/teardown.
+Eighteen native additions cover rejection, real supported bytes, preserved valid
+parameters and standalone uploads; one compiled ESM/Node 22 policy case uses real
+workers from a foreign cwd. Fixtures are locally constructed, not user documents;
+the PDF was independently accepted by pdfinfo as one page, while ZIP package MIME
+classification was separately observed for DOCX/DOCM/ZIP. No executable macro
+payload or full Microsoft Office/PDF rendering acceptance is claimed.
+Focused 118 pass; full 802 pass / 2 external skip across 82 passing files and one
+skipped file. Root/Next types, lint, backend/Next builds, exact 72-procedure/25376-byte
+API and 421-file boundaries pass. No dependencies/lockfile/schema/frontend/parser/
+HTTP quota/provider/deployment change or old-object rewrite. Native audit still
+reports 33 high / 36 moderate / 4 low / 0 critical; existing graph triage is separate.
+Legacy DOC, TXT and document/octet-stream intentionally remain metadata-only:
+choosing those labels still bypasses this document content check. They are not a
+safe alternative or proof of a complete document boundary; their acceptance policy,
+provider headers/privacy and full file/active-content validation remain open.
+Storage/SQL are still non-atomic; orphan reconciliation must resolve ownership and
+persisted references, never delete immediately on an ambiguous SQL failure.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

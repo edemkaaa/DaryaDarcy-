@@ -527,11 +527,21 @@
     no added transitive versions. Audit still reports 33 high / 36 moderate / 4 low
     in the existing workspace graph; no detector-chain advisories in this snapshot.
     This is signature classification, not full validation/playback/antivirus.
-  - [ ] Document format/ownership: define safe PDF/DOC/DOCX/TXT byte policy and
-    orphan-object cleanup after failed SQL association. Documents still trust
-    compatible declared MIME; signatures do not prove absence of active content
-    or protect public URLs. Reconcile persisted ownership/references before
-    deletion, not on ambiguous SQL errors.
+  - [x] Declared PDF/DOCX signature slice: native HTTP/JWT/MySQL reproduced
+    fourteen accepted invalid/mislabelled payloads before repair. Require exact
+    detected MIME for these two declared types before storage/SQL; preserve bytes,
+    valid MIME parameters and standalone/associated contracts. Locally constructed
+    PDF/minimal DOCX, ordinary ZIP and a package advertising macro-enabled Word;
+    no user's documents or executable macro payloads. Eighteen added native cases
+    and one compiled ESM/real-worker policy case; focused 118 pass, full 802 pass /
+    2 external skip. No dependency, schema, frontend, parser, provider or quota change.
+    This is classification, not full PDF/OPC validation or antivirus.
+  - [ ] Remaining document format/ownership: define safe legacy DOC/TXT/opaque
+    fallback byte policy and orphan cleanup after failed SQL association. These
+    declared types still bypass document content checks; do not claim a safe
+    document boundary. Signatures do not prove absence of active content or
+    protect public URLs. Reconcile persisted ownership/references before deletion,
+    not on ambiguous SQL errors. Provider/header/privacy acceptance remains open.
   - [ ] Remaining M05: Raw-video upload, URL imports and other admin wiring; no
     claim that all content, storage or SQL ownership has been migrated.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
