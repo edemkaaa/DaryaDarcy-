@@ -1,15 +1,12 @@
 import { z } from "zod";
 import { router, publicProcedure } from "../_core/trpc";
-import * as db from "../db";
+import type { ContentReadService } from "./content-read.service";
 
-export const videosRouter = router({
-  list: publicProcedure.query(() => {
-    return db.getVideos();
-  }),
+export const createVideosRouter = (content: ContentReadService) =>
+  router({
+    list: publicProcedure.query(() => content.listVideos()),
 
-  getById: publicProcedure
-    .input(z.object({ id: z.number() }))
-    .query(({ input }) => {
-      return db.getVideoById(input.id);
-    }),
-});
+    getById: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(({ input }) => content.videoById(input.id)),
+  });

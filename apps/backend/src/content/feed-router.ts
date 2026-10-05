@@ -8,9 +8,7 @@ export const createFeedRouter = (content: ContentReadService) =>
     // Get published posts (public)
     list: publicProcedure
       .input(z.object({ tag: z.string().optional() }).optional())
-      .query(({ input }) => {
-        return db.getPosts(input?.tag);
-      }),
+      .query(({ input }) => content.listFeed(input?.tag)),
 
     // Paginated posts (public) - offset-based with search
     listPaginated: publicProcedure
@@ -22,14 +20,7 @@ export const createFeedRouter = (content: ContentReadService) =>
           cursor: z.number().int().nonnegative().nullish(), // offset value
         }),
       )
-      .query(({ input }) => {
-        return db.getPostsPaginated({
-          tagFilter: input.tag,
-          search: input.search,
-          limit: input.limit,
-          cursor: input.cursor ?? undefined,
-        });
-      }),
+      .query(({ input }) => content.listFeedPage(input)),
 
     // Get single post by ID (public feed; club posts only for subscribers)
     getById: publicProcedure
@@ -37,9 +28,7 @@ export const createFeedRouter = (content: ContentReadService) =>
       .query(({ input, ctx }) => content.postById(input.id, ctx.user)),
 
     // Get all tags (public)
-    tags: publicProcedure.query(() => {
-      return db.getAllTags();
-    }),
+    tags: publicProcedure.query(() => content.listTags()),
 
     // Toggle like (requires auth)
     toggleLike: protectedProcedure

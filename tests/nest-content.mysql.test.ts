@@ -57,6 +57,32 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query(
         "INSERT INTO post_media (id,postId,type,url) VALUES (8970,8971,'document','https://assets.example.test/club-fixture.pdf')",
       );
+      await conn.query(`CREATE TABLE IF NOT EXISTS tags (
+        id INT AUTO_INCREMENT PRIMARY KEY,slug VARCHAR(64) NOT NULL UNIQUE,
+        label VARCHAR(128) NOT NULL,category ENUM('season','topic') NOT NULL DEFAULT 'topic',
+        sortOrder INT NOT NULL DEFAULT 0
+      ) ENGINE=InnoDB`);
+      await conn.query(`INSERT INTO tags (id,slug,label,category,sortOrder) VALUES
+        (8975,'native-catalog','Catalog','topic',2),
+        (8976,'native-season','Season','season',1)`);
+      await conn.query(
+        "UPDATE posts SET tags=JSON_ARRAY('native-catalog') WHERE id BETWEEN 8971 AND 8974",
+      );
+      const catalog = Array.from({ length: 13 }, (_, index) => [
+        8975 + index,
+        index === 12 ? "Last tea needle" : `Coffee item ${index}`,
+        "[]",
+        '["native-catalog"]',
+        index === 0 ? "both" : "feed",
+        -100 + index,
+      ]);
+      await conn.query(
+        "INSERT INTO posts (id,text,photos,tags,target,sortOrder) VALUES ?",
+        [catalog],
+      );
+      await conn.query(`INSERT INTO post_media (id,postId,type,url,sortOrder) VALUES
+        (8975,8975,'document','https://assets.example.test/catalog.pdf',1),
+        (8976,8975,'audio','https://assets.example.test/catalog.mp3',0)`);
       application = await createBackendApplication();
       await application.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
@@ -78,8 +104,10 @@ describe.skipIf(!testDatabaseUrl)(
       await application?.close();
       await conn?.query("DELETE FROM saved_posts WHERE userId=8970");
       await conn?.query("DELETE FROM likes WHERE userId=8970");
-      await conn?.query("DELETE FROM post_media WHERE id=8970");
-      await conn?.query("DELETE FROM posts WHERE id BETWEEN 8970 AND 8974");
+      await conn?.query("DELETE FROM post_comments WHERE id=8975");
+      await conn?.query("DELETE FROM post_media WHERE id IN (8970,8975,8976)");
+      await conn?.query("DELETE FROM posts WHERE id BETWEEN 8970 AND 8987");
+      await conn?.query("DELETE FROM tags WHERE id IN (8975,8976)");
       await conn?.query(
         "DELETE FROM club_payments WHERE orderId='native-content-subscription'",
       );
@@ -119,6 +147,123 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({
         data: { code: "BAD_REQUEST", httpStatus: 400 },
       });
+    });
+    it("lists only public feed/both posts, retaining order and media without paid or hidden bodies", async () => {
+      const expected = [
+        8975, 8976, 8977, 8978, 8979, 8980, 8981, 8982, 8983, 8984, 8985, 8986,
+        8987,
+      ];
+      const rows = await client().feed.list.query({ tag: "native-catalog" });
+      expect(rows.map((post) => post.id)).toEqual(expected);
+      expect(rows[0].media.map((media) => media.url)).toEqual([
+        "https://assets.example.test/catalog.mp3",
+        "https://assets.example.test/catalog.pdf",
+      ]);
+      for (const input of [undefined, { tag: "all" }]) {
+        const all = await client().feed.list.query(input);
+        expect(
+          all
+            .filter((post) => post.id >= 8970 && post.id <= 8987)
+            .map((post) => post.id),
+        ).toEqual([...expected, 8970]);
+      }
+      expect(await client().feed.list.query({ tag: "native-missing" })).toEqual(
+        [],
+      );
+    });
+    it("paginates filtered rows with default 12 and treats null cursor as the first page", async () => {
+      const first = await client().feed.listPaginated.query({
+        tag: "native-catalog",
+      });
+      expect(first.posts.map((post) => post.id)).toEqual([
+        8975, 8976, 8977, 8978, 8979, 8980, 8981, 8982, 8983, 8984, 8985, 8986,
+      ]);
+      expect(first.nextCursor).toBe(12);
+      expect(
+        await client().feed.listPaginated.query({
+          tag: "native-catalog",
+          cursor: null,
+        }),
+      ).toEqual(first);
+      const last = await client().feed.listPaginated.query({
+        tag: "native-catalog",
+        cursor: 12,
+      });
+      expect(last.posts.map((post) => post.id)).toEqual([8987]);
+      expect(last.nextCursor).toBeNull();
+      expect(
+        await client().feed.listPaginated.query({
+          tag: "native-catalog",
+          cursor: 13,
+        }),
+      ).toEqual({ posts: [], nextCursor: null });
+    });
+    it("combines tags and trimmed case-insensitive search using bound SQL values", async () => {
+      const coffee = await client().feed.listPaginated.query({
+        tag: "native-catalog",
+        search: "  COFFEE  ",
+        limit: 50,
+      });
+      expect(coffee.posts.map((post) => post.id)).toEqual([
+        8975, 8976, 8977, 8978, 8979, 8980, 8981, 8982, 8983, 8984, 8985, 8986,
+      ]);
+      expect(coffee.nextCursor).toBeNull();
+      const needle = await client().feed.listPaginated.query({
+        tag: "native-catalog",
+        search: "needle",
+        limit: 1,
+      });
+      expect(needle.posts.map((post) => post.id)).toEqual([8987]);
+      expect(needle.nextCursor).toBeNull();
+      for (const filter of [
+        { search: "' OR 1=1 --" },
+        { tag: "' OR 1=1 --" },
+      ]) {
+        expect(
+          await client().feed.listPaginated.query({ ...filter, limit: 50 }),
+        ).toEqual({ posts: [], nextCursor: null });
+      }
+    });
+    it("preserves feed like/comment counts and ordered attachments in paginated replies", async () => {
+      await conn.query("INSERT INTO likes (userId,postId) VALUES (8970,8975)");
+      await conn.query(
+        "INSERT INTO post_comments (id,postId,userId,text) VALUES (8975,8975,8970,'catalog comment')",
+      );
+      const page = await client().feed.listPaginated.query({
+        tag: "native-catalog",
+        limit: 1,
+      });
+      expect(page.nextCursor).toBe(1);
+      expect(page.posts[0]).toMatchObject({
+        id: 8975,
+        likeCount: 1,
+        commentCount: 1,
+      });
+      expect(page.posts[0].media.map((media) => media.url)).toEqual([
+        "https://assets.example.test/catalog.mp3",
+        "https://assets.example.test/catalog.pdf",
+      ]);
+    });
+    it("returns reference tags in display order without changing the public fields", async () => {
+      const tags = (await client().feed.tags.query()).filter(
+        (tag) => tag.id === 8975 || tag.id === 8976,
+      );
+      expect(tags).toEqual([
+        {
+          id: 8976,
+          slug: "native-season",
+          label: "Season",
+          category: "season",
+          sortOrder: 1,
+        },
+        {
+          id: 8975,
+          slug: "native-catalog",
+          label: "Catalog",
+          category: "topic",
+          sortOrder: 2,
+        },
+      ]);
     });
     it.each([8972, 8973, 8974])(
       "hides non-published detail %s even from a subscribed administrator",

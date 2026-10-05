@@ -2,7 +2,7 @@ import { router } from "./_core/trpc";
 import { systemRouter } from "./_core/systemRouter";
 import { authRouter } from "./identity/router";
 import { profileRouter, profileExtrasRouter } from "./profile/router";
-import { videosRouter } from "./content/videos-router";
+import { createVideosRouter } from "./content/videos-router";
 import { createAdminRouter } from "./admin/router";
 import { penPalsRouter } from "./pen-pals/router";
 import { shopRouter } from "./shop/router";
@@ -25,7 +25,7 @@ export const createAppRouter = (
     profile: profileRouter,
     feed: createFeedRouter(content),
     notifications: notificationsRouter,
-    videos: videosRouter,
+    videos: createVideosRouter(content),
     admin: createAdminRouter(posts),
     club: clubRouter,
     penPals: penPalsRouter,

@@ -443,10 +443,22 @@
     Before repair the first three returned 500 (real helper: ER_PARSE_ERROR), and
     unsafe integers were accepted. Default 12/nullish cursor and wire types remain.
     Full suite 663 pass / 2 external skip; types/lint/backend build/API check pass.
-  - [ ] M05d: Inject feed list/pagination/tags and public video catalog reads.
+  - [x] M05d: Feed list/pagination/tags and public video list/detail use the
+    injected ContentReadService; video router requires the same service factory.
+    Five new native HTTP/MySQL cases cover public visibility, exact page IDs/default
+    12/null cursor, tag+trimmed search/bound values, counts/ordered attachments and
+    reference tags. Removing the existing club-target filter deliberately failed
+    the page assertion, then was restored before extraction (not a real new leak).
+    Eight video/stream regressions now use the production application, mocking
+    only the downloader/upstream; hidden/revoked playback and Range preserved.
+    Compiled Node smoke exercises catalog fallback/invalid input as well. Full
+    suite 668 pass / 2 external skip; root/Next types, lint, backend/Next builds,
+    unchanged 72-procedure contract and 413-file boundaries pass. Query helpers
+    and pool still transitional; no frontend/schema/provider or deployment changes,
+    reaction/comment/upload paths remain next.
   - [ ] Club pagination: inspect analogous permissive schema in its own module;
     no fix or reproduction is claimed for club after the public feed repair.
-  - [ ] Remaining M05: Feed list/video/reaction/comment/upload wiring; no false
+  - [ ] Remaining M05: Reaction/comment/upload and other admin wiring; no false
     claim that all content or SQL ownership has been migrated after read slices.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.

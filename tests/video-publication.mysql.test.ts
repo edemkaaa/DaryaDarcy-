@@ -7,11 +7,9 @@ import {
   it,
   vi,
 } from "vitest";
-import express from "express";
-import type { Server } from "node:http";
+import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
 import type { Connection } from "mysql2/promise";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { createTRPCProxyClient, httpLink } from "@trpc/client";
 import superjson from "superjson";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
@@ -40,15 +38,15 @@ vi.mock("node:child_process", () => ({
     },
   ),
 }));
-import { appRouter, type AppRouter } from "../apps/backend/src/routers";
+import type { AppRouter } from "../apps/backend/src/routers";
+import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { getDb, getVideoByYoutubeId } from "../apps/backend/src/db";
-import { registerYoutubeStream } from "../apps/backend/src/youtube-stream";
 
 const httpFetch = globalThis.fetch;
 describe.skipIf(!testDatabaseUrl)(
   "public video HTTP boundaries on disposable MySQL",
   () => {
-    let conn: Connection, server: Server, base: string;
+    let conn: Connection, application: INestApplication, base: string;
     let client: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
     beforeAll(async () => {
       conn = await openTestDatabase();
@@ -60,19 +58,9 @@ describe.skipIf(!testDatabaseUrl)(
       published BOOLEAN NOT NULL DEFAULT TRUE,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB`);
-      const app = express();
-      registerYoutubeStream(app);
-      app.use(
-        "/api/trpc",
-        createExpressMiddleware({
-          router: appRouter,
-          createContext: ({ req, res }) => ({ req, res, user: null }),
-        }),
-      );
-      server = await new Promise<Server>((resolve) => {
-        const listening = app.listen(0, "127.0.0.1", () => resolve(listening));
-      });
-      base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+      application = await createBackendApplication();
+      await application.listen(0, "127.0.0.1");
+      base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
       client = createTRPCProxyClient<AppRouter>({
         links: [
           httpLink({
@@ -113,7 +101,7 @@ describe.skipIf(!testDatabaseUrl)(
     });
     afterAll(async () => {
       vi.unstubAllGlobals();
-      await new Promise<void>((resolve) => server?.close(() => resolve()));
+      await application?.close();
       await conn?.query("DELETE FROM videos WHERE id BETWEEN 10901 AND 10906");
       await conn?.end();
       const database = await getDb();

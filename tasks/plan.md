@@ -762,6 +762,18 @@ pass after repair. Full suite 663 pass / 2 external skip, types, lint, backend b
 and unchanged API contract pass. The analogous club schema is noted for a later
 club slice; it is not declared repaired or reproduced here.
 
+M05d catalog checkpoint: canonical SQL helpers are reused by ContentReadService,
+and feed/video transport adapters dispatch through mandatory service factories.
+Five added native HTTP/MySQL cases and eight migrated video/stream cases preserve
+visibility, ordering, search/tag binding, counts/media, default/null offsets and
+external playback boundaries. Intentional target-filter bypass failed the real
+page assertion, restored immediately before extraction. Full suite 668 pass /
+2 external skip; root/Next types, lint, backend/Next production builds, unchanged
+72-procedure/25376-byte API and 413-file boundaries pass. Actual compiled Node
+smoke also calls the catalog and verifies invalid pagination HTTP 400. Remaining
+content writes, club pagination, SQL/pool ownership, registration diagnosis and
+durable announcement delivery remain separate; no release readiness is claimed.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

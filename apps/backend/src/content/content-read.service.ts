@@ -5,6 +5,36 @@ import * as db from "../db";
 
 @Injectable()
 export class ContentReadService {
+  listFeed(tag?: string) {
+    return db.getPosts(tag);
+  }
+
+  listFeedPage(input: {
+    tag?: string;
+    search?: string;
+    limit: number;
+    cursor?: number | null;
+  }) {
+    return db.getPostsPaginated({
+      tagFilter: input.tag,
+      search: input.search,
+      limit: input.limit,
+      cursor: input.cursor ?? undefined,
+    });
+  }
+
+  listTags() {
+    return db.getAllTags();
+  }
+
+  listVideos() {
+    return db.getVideos();
+  }
+
+  videoById(id: number) {
+    return db.getVideoById(id);
+  }
+
   async postById(id: number, user: User | null) {
     const post = await db.getPostById(id);
     if (!post || !post.published || post.status !== "published")
