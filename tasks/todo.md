@@ -340,14 +340,25 @@
   documentation pass. A shared-fixture latest-post assertion failed once;
   deterministic owned ordering dates fixed it, without changing production code.
   Workers still use existing intervals; Nest shutdown lifecycle is deferred to M07.
-- [ ] M03: Native launch settings controller/service, preserving JWT/Drizzle.
+- [x] M03: Native launch settings controller/service, preserving JWT/Drizzle.
   Acceptance: HTTP shapes/statuses, role checks, optimistic revision and audit
   transaction preserved; only one production registration for each endpoint.
   Verify: real Nest HTTP/JWT/MySQL roundtrip/conflict/blocked-user tests.
   Files: launch controller/service/module, runtime factory, existing settings tests.
   Dependencies: M02b; scope: medium.
-- [ ] Checkpoint: Nest foundation + launch verified; record actual migration gaps,
+  Verified: launch routes now belong only to LaunchController/LaunchService;
+  unused Express launch adapter removed. Real Nest/JWT/MySQL suite preserves
+  save/read/public response shapes, 401/403/415, safe 400, stale-edit 409, audit
+  transaction and role/block changes with an existing token. Full suite: 620
+  pass / 2 external skip; types/build/lint/72-procedure API/402-file boundaries/
+  42-document checks pass. Built Node process also exercises safe settings failure.
+- [x] Checkpoint: Nest foundation + launch verified; record actual migration gaps,
   dependency advisories and earlier registration failure before continuing.
+  Only foundation + launch are native so far. Identity/password/payment/media
+  adapters, tRPC service composition, worker intervals and Drizzle pool ownership
+  are transitional. Native audit and release gates remain open; registration
+  race was not reproduced in these runs and is NOT declared fixed. No frontend
+  code, SQL schema, deployment configuration, production data or remote push changed.
 - [ ] M04: Specify and migrate identity adapters/guards; retain sessions/password
   invariants and investigate the existing intermittent registration race.
 - [ ] M05: Specify and migrate content service wiring; preserve N07–N11 regressions.

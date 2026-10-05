@@ -33,6 +33,13 @@ const post = (
     body,
   });
 
+it("fails safely without a database for public launch configuration", async () => {
+  const response = await fetch(base + "/api/launch-config");
+  expect(response.status).toBe(503);
+  expect(await response.json()).toEqual({ error: "Запрос недоступен" });
+  expect(response.headers.get("cache-control")).toBe("no-store");
+});
+
 it.each([
   "https://evil.example",
   "null",

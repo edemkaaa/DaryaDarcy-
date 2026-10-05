@@ -9,7 +9,6 @@ import { appRouter } from "../routers";
 import { registerProdamusRoutes, handleProdamusWebhook } from "../prodamus";
 import { registerYoutubeStream } from "../youtube-stream";
 import { registerPasswordRoutes } from "../identity/routes";
-import { registerLaunchRoutes } from "../launch/routes";
 import { createContext } from "./context";
 import { registerOAuthRoutes } from "./oauth";
 import { registerHttpSecurity } from "./http-security";
@@ -36,7 +35,6 @@ export async function createBackendApplication(): Promise<INestApplication> {
 
   // Transitional adapters: replace one domain at a time behind the same API.
   registerOAuthRoutes(http);
-  registerLaunchRoutes(http);
   registerPasswordRoutes(http);
   registerProdamusRoutes(http);
   registerYoutubeStream(http);

@@ -118,7 +118,13 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
           { signal: AbortSignal.timeout(3000) },
         );
         expect(capabilities.status).toBe(200);
-        expect(capabilities.headers.get("cache-control")).toBe("no-store");
+      expect(capabilities.headers.get("cache-control")).toBe("no-store");
+      const settings = await fetch(`http://127.0.0.1:${port}/api/launch-config`, {
+        signal: AbortSignal.timeout(3000),
+      });
+      expect(settings.status).toBe(503);
+      expect(await settings.json()).toEqual({ error: "Запрос недоступен" });
+      expect(settings.headers.get("cache-control")).toBe("no-store");
       } finally {
         await stop(child);
       }

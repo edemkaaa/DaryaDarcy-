@@ -1,5 +1,7 @@
 import { Controller, Get, Header, Module } from "@nestjs/common";
 import { getCapabilities } from "./capabilities";
+import { LaunchController } from "./launch.controller";
+import { LaunchService } from "./launch.service";
 
 @Controller("api/capabilities")
 class CapabilitiesController {
@@ -10,5 +12,8 @@ class CapabilitiesController {
   }
 }
 
-@Module({ controllers: [CapabilitiesController] })
+@Module({
+  controllers: [CapabilitiesController, LaunchController],
+  providers: [LaunchService],
+})
 export class LaunchModule {}
