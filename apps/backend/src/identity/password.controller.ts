@@ -7,6 +7,8 @@ import {
   Post,
   Req,
   Res,
+  UseFilters,
+  UseGuards,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { createHash, randomBytes } from "node:crypto";
@@ -14,39 +16,27 @@ import { isValidEmail, normalizeEmail } from "../_core/password";
 import { checkRateLimit } from "../_core/rate-limit";
 import { clientIp } from "../sms-auth";
 import { PasswordService } from "./password.service";
-import { SessionService } from "./session.service";
+import {
+  AccessEmailStaffGuard,
+  SessionAccessFilter,
+  type AuthenticatedRequest,
+} from "./http-access";
 import { publicAccessUrl } from "./urls";
 
 @Controller("api")
 export class PasswordController {
   constructor(
     @Inject(PasswordService) private readonly passwords: PasswordService,
-    @Inject(SessionService) private readonly sessions: SessionService,
   ) {}
 
   @Post("admin/access-email/resend")
   @HttpCode(200)
   @Header("Cache-Control", "no-store")
-  async resend(@Req() req: Request, @Res() res: Response) {
-    if (!req.is("application/json")) {
-      res.sendStatus(415);
-      return;
-    }
+  @UseGuards(AccessEmailStaffGuard)
+  @UseFilters(SessionAccessFilter)
+  async resend(@Req() req: AuthenticatedRequest, @Res() res: Response) {
     try {
-      const origin = req.headers.origin;
-      if (
-        origin &&
-        origin !==
-          new URL(process.env.PUBLIC_APP_URL || "https://daryadarcy.com").origin
-      ) {
-        res.sendStatus(403);
-        return;
-      }
-      const actor = await this.sessions.authenticateRequest(req);
-      if (!this.sessions.isStaff(actor)) {
-        res.sendStatus(403);
-        return;
-      }
+      const actor = req.authenticatedUser;
       if (!checkRateLimit(`access-resend:${actor.id}`, 20, 3600000).ok) {
         res.sendStatus(429);
         return;

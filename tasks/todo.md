@@ -382,6 +382,12 @@
       New provider contract assertion failed before implementation; real JWT/MySQL
       verifies live role changes, blocking and session-version revocation. Focused
       71 tests and root/Next typechecks pass. Native guards and race diagnosis remain.
+    - [x] M04c2: Native AdministratorGuard/AccessEmailStaffGuard + narrow HTTP
+      denial filter. Eight added HTTP/JWT/MySQL characterization cases passed
+      before and after extraction: legacy plain/JSON errors, no-store, JSON-body
+      spoofing, live roles/revocation/blocking, content-type ordering and stricter
+      resend origin. Existing successful resend/audit/quotas remain covered.
+      Full disposable-MySQL suite: 640 pass / 2 external skip; root/Next types pass.
   - [x] N13 separate repair: a blocked account with a correct password previously
     reached a sign-in write and HTTP 500. A real HTTP/MySQL assertion reproduced
     500 vs required 401; PasswordUser now rejects before lastSignedIn/session

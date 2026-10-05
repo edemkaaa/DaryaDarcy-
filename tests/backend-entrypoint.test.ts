@@ -144,6 +144,25 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
           error: "Неверный email или пароль",
         });
         expect(login.headers.get("set-cookie")).toBeNull();
+        const privateSettings = await fetch(
+          `http://127.0.0.1:${port}/api/admin/launch-settings`,
+          { signal: AbortSignal.timeout(3000) },
+        );
+        expect(privateSettings.status).toBe(401);
+        expect(await privateSettings.text()).toBe("Unauthorized");
+        expect(privateSettings.headers.get("cache-control")).toBe("no-store");
+        const resend = await fetch(
+          `http://127.0.0.1:${port}/api/admin/access-email/resend`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: 1 }),
+            signal: AbortSignal.timeout(3000),
+          },
+        );
+        expect(resend.status).toBe(403);
+        expect(await resend.json()).toEqual({ error: "Запрос недоступен." });
+        expect(resend.headers.get("cache-control")).toBe("no-store");
       } finally {
         await stop(child);
       }

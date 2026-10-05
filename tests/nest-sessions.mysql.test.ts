@@ -45,6 +45,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
       vi.stubEnv("JWT_SECRET", "native-sessions-fixture-secret-32-characters");
       vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
+      vi.stubEnv("CORS_ALLOWED_ORIGINS", "https://manager.example.test");
       const hash = await hashPassword(password);
       await conn.query("DELETE FROM users WHERE id IN (8940,8941)");
       await conn.query(
@@ -61,6 +62,7 @@ describe.skipIf(!testDatabaseUrl)(
         "UPDATE users SET blockedAt=NULL,sessionVersion=0 WHERE id IN (8940,8941)",
       );
       await conn.query("UPDATE users SET role='user' WHERE id=8940");
+      await conn.query("UPDATE users SET role='admin' WHERE id=8941");
     });
     afterAll(async () => {
       await application?.close();
@@ -83,6 +85,145 @@ describe.skipIf(!testDatabaseUrl)(
       });
     const token = () =>
       sdk.createSessionToken("native-session-member", { sessionVersion: 0 });
+    const staffToken = () =>
+      sdk.createSessionToken("native-session-staff", { sessionVersion: 0 });
+    it.each(["GET", "PUT"])(
+      "preserves plain settings denial and rejects identity supplied in JSON on %s",
+      async (method) => {
+        for (const [bearer, status, text] of [
+          ["invalid.fixture", 401, "Unauthorized"],
+          [await token(), 403, "Forbidden"],
+        ] as const) {
+          const response = await fetch(base + "/api/admin/launch-settings", {
+            method,
+            headers: {
+              Authorization: `Bearer ${bearer}`,
+              "Content-Type": "application/json",
+            },
+            ...(method === "PUT"
+              ? { body: JSON.stringify({ actor: { id: 8941, role: "admin" } }) }
+              : {}),
+          });
+          expect(response.status).toBe(status);
+          expect(await response.text()).toBe(text);
+          expect(response.headers.get("cache-control")).toBe("no-store");
+          expect(response.headers.get("set-cookie")).toBeNull();
+        }
+      },
+    );
+    it("keeps resend's JSON authentication denial distinct from plain role denial", async () => {
+      const attempts: Record<string, string>[] = [
+        {},
+        { Authorization: "Bearer invalid.fixture" },
+      ];
+      for (const headers of attempts) {
+        const response = await post(
+          "/api/admin/access-email/resend",
+          { userId: -1 },
+          headers,
+        );
+        expect(response.status).toBe(403);
+        expect(await response.json()).toEqual({ error: "Запрос недоступен." });
+        expect(response.headers.get("cache-control")).toBe("no-store");
+        expect(response.headers.get("set-cookie")).toBeNull();
+      }
+      const denied = await post(
+        "/api/admin/access-email/resend",
+        {
+          userId: -1,
+          actor: { id: 8941, role: "admin" },
+        },
+        { Authorization: `Bearer ${await token()}` },
+      );
+      expect(denied.status).toBe(403);
+      expect(await denied.text()).toBe("Forbidden");
+      expect(denied.headers.get("cache-control")).toBe("no-store");
+    });
+    it("allows staff resend but does not grant launch settings to moderators", async () => {
+      const bearer = await staffToken();
+      for (const role of ["admin", "moderator"]) {
+        await conn.query("UPDATE users SET role=? WHERE id=8941", [role]);
+        const resend = await post(
+          "/api/admin/access-email/resend",
+          { userId: -1 },
+          { Authorization: `Bearer ${bearer}` },
+        );
+        expect(resend.status).toBe(400);
+        expect(await resend.text()).toBe("Bad Request");
+        expect(resend.headers.get("cache-control")).toBe("no-store");
+        const settings = await fetch(base + "/api/admin/launch-settings", {
+          headers: { Authorization: `Bearer ${bearer}` },
+        });
+        expect(settings.status).toBe(role === "admin" ? 200 : 403);
+      }
+    });
+    it.each(["sessionVersion=1", "blockedAt=NOW()"])(
+      "denies both administrative routes after %s without touching sign-in or issuing cookies",
+      async (patch) => {
+        const bearer = await staffToken();
+        await conn.query(
+          `UPDATE users SET ${patch},lastSignedIn='2020-01-01 00:00:00' WHERE id=8941`,
+        );
+        const settings = await fetch(base + "/api/admin/launch-settings", {
+          headers: { Authorization: `Bearer ${bearer}` },
+        });
+        const resend = await post(
+          "/api/admin/access-email/resend",
+          { userId: -1 },
+          { Authorization: `Bearer ${bearer}` },
+        );
+        expect(settings.status).toBe(401);
+        expect(await settings.text()).toBe("Unauthorized");
+        expect(resend.status).toBe(403);
+        expect(await resend.json()).toEqual({ error: "Запрос недоступен." });
+        for (const response of [settings, resend]) {
+          expect(response.headers.get("cache-control")).toBe("no-store");
+          expect(response.headers.get("set-cookie")).toBeNull();
+        }
+        const [rows] = await conn.query<
+          import("mysql2/promise").RowDataPacket[]
+        >("SELECT lastSignedIn FROM users WHERE id=8941");
+        expect(rows[0].lastSignedIn.toISOString()).toBe(
+          "2020-01-01T00:00:00.000Z",
+        );
+      },
+    );
+    it("preserves non-JSON rejection before auth on both administrative writes", async () => {
+      for (const [path, method] of [
+        ["/api/admin/launch-settings", "PUT"],
+        ["/api/admin/access-email/resend", "POST"],
+      ]) {
+        const response = await fetch(base + path, {
+          method,
+          body: "userId=8941",
+        });
+        expect(response.status).toBe(415);
+        expect(await response.text()).toBe("Unsupported Media Type");
+        expect(response.headers.get("cache-control")).toBe("no-store");
+      }
+    });
+    it("retains the stricter resend origin rule even for another CORS-allowed origin", async () => {
+      await conn.query(
+        "UPDATE users SET lastSignedIn='2020-01-01 00:00:00' WHERE id=8941",
+      );
+      const response = await post(
+        "/api/admin/access-email/resend",
+        { userId: -1 },
+        {
+          Origin: "https://manager.example.test",
+          Authorization: `Bearer ${await staffToken()}`,
+        },
+      );
+      expect(response.status).toBe(403);
+      expect(await response.text()).toBe("Forbidden");
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      const [rows] = await conn.query<import("mysql2/promise").RowDataPacket[]>(
+        "SELECT lastSignedIn FROM users WHERE id=8941",
+      );
+      expect(rows[0].lastSignedIn.toISOString()).toBe(
+        "2020-01-01T00:00:00.000Z",
+      );
+    });
     it("exports a shared session policy that rechecks real JWTs and database roles", async () => {
       const sessions = application.get(SessionService);
       expect(sessions).toHaveProperty(
