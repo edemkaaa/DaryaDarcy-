@@ -25,7 +25,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(locks[0].acquired).toBe(1);
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
-    });
+    }, 35_000);
     async function cleanup() {
       await conn.query("DELETE FROM posts WHERE id BETWEEN 11201 AND 11206");
     }

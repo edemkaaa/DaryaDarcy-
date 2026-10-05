@@ -100,7 +100,7 @@ describe.skipIf(!testDatabaseUrl)(
           sessionVersion: 0,
         }),
       );
-    });
+    }, 35_000);
     beforeEach(async () => {
       transport.announcements = [];
       await cleanup();

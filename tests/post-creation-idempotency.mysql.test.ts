@@ -86,6 +86,13 @@ describe.skipIf(!testDatabaseUrl)(
     }
     beforeAll(async () => {
       conn = await openContentTestDatabase();
+      // These suites deliberately stall media transactions with database triggers.
+      // Share fixture ownership so another suite cannot insert into their locked
+      // media gaps; concurrent requests within each suite remain unmodified.
+      const [locks] = await conn.query<RowDataPacket[]>(
+        "SELECT GET_LOCK('backend_test_post_publication',30) AS acquired",
+      );
+      expect(locks[0].acquired).toBe(1);
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
       vi.stubEnv("JWT_SECRET", "post-idempotency-test-secret-32-characters");
       await conn.query(`INSERT INTO users (id,openId,role) VALUES
@@ -97,7 +104,7 @@ describe.skipIf(!testDatabaseUrl)(
         sessionVersion: 0,
       });
       admin = client(adminToken);
-    });
+    }, 35_000);
     beforeEach(async () => {
       await cleanup();
       transport.announcements.length = 0;
