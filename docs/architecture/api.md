@@ -99,6 +99,8 @@ optional removedMediaIds. Добавления и удаления привяз�
 
 ## HTTP вне tRPC
 
+Общая HTTP-политика сессии и ролей — [SessionService](../../apps/backend/src/identity/session.service.ts), экспортированный IdentityModule. Каждый запрос повторно проверяет JWT и актуальный аккаунт в БД; optional-проверка возвращает null при недоступной сессии. Контроллеры сохраняют собственные форматы ошибок. Контекст и проверки tRPC пока остаются в \_core, до отдельного этапа переноса.
+
 - POST /api/auth/register — регистрация через письмо, ответ 202 без сессии.
 - POST /api/auth/login, /api/auth/logout, /api/auth/session; GET /api/auth/me — вход и сессия, см. [SessionController](../../apps/backend/src/identity/session.controller.ts) и [SessionService](../../apps/backend/src/identity/session.service.ts). Пароль, TOTP, актуальная версия сессии и host-only cookie сохраняют прежние правила; регистрация не авторизует по email.
 - Заблокированный аккаунт не входит даже с верным паролем: ответ 401 совпадает с неверными credentials, без cookie и обновления даты входа. Прежний побочный эффект и ответ 500 устранены отдельной правкой N13.

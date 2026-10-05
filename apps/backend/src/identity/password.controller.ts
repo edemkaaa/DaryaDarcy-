@@ -14,13 +14,14 @@ import { isValidEmail, normalizeEmail } from "../_core/password";
 import { checkRateLimit } from "../_core/rate-limit";
 import { clientIp } from "../sms-auth";
 import { PasswordService } from "./password.service";
-import { sdk } from "../_core/sdk";
+import { SessionService } from "./session.service";
 import { publicAccessUrl } from "./urls";
 
 @Controller("api")
 export class PasswordController {
   constructor(
     @Inject(PasswordService) private readonly passwords: PasswordService,
+    @Inject(SessionService) private readonly sessions: SessionService,
   ) {}
 
   @Post("admin/access-email/resend")
@@ -41,8 +42,8 @@ export class PasswordController {
         res.sendStatus(403);
         return;
       }
-      const actor = await sdk.authenticateRequest(req);
-      if (!["admin", "moderator"].includes(actor.role)) {
+      const actor = await this.sessions.authenticateRequest(req);
+      if (!this.sessions.isStaff(actor)) {
         res.sendStatus(403);
         return;
       }

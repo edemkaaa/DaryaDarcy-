@@ -574,6 +574,24 @@ provider fixtures use a separate loopback mock server. Keep response/error
 statuses and no-store headers, including explicit HTTP 200 for Nest POST routes.
 Do not claim all identity migration complete after password transport alone.
 
+M04c1: Export SessionService from IdentityModule as the injectable HTTP session
+and role policy. Its required/optional authentication must delegate to the real
+SDK on every request (database role, block and sessionVersion, Bearer/cookie
+precedence); do not cache actors or accept an identity from request JSON. Share
+the existing administrator/staff predicates with session/TOTP and native launch/
+password transport. Keep tRPC policy/context unchanged until its service wiring
+slice. Verify the exported provider with real JWT/MySQL, plus legacy HTTP denials.
+
+M04c2: Native guards protect launch settings and staff access-email resend.
+Preserve their different plain-text/JSON auth failures, no-store headers and
+content-type-before-auth ordering. Resend retains its stricter PUBLIC_APP_URL
+origin check, actor quota and domain transaction/audit checks. Guard exceptions
+need a narrow filter: Nest executes guards before controller @Header metadata.
+Do not install a global guard or change public registration/SMS/tRPC routes.
+Run real HTTP/JWT/MySQL denied-role, revoked-session and untrusted-body cases,
+then full tests/types/contracts/build. Registration-race diagnosis is a separate
+M04c3 step; passing identity refactor tests does not establish a race repair.
+
 Separate identity repair N13: the inherited password-login flow updated a
 blocked user's lastSignedIn before session issuance threw, producing a misleading
 HTTP 500. Reproduce through native HTTP/MySQL with a real correct password and a

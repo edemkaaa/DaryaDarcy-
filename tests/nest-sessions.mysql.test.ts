@@ -17,6 +17,8 @@ import { hashPassword } from "../apps/backend/src/_core/password";
 import { getDb } from "../apps/backend/src/db";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { COOKIE_NAME } from "../packages/shared/src/const";
+import type { Request } from "express";
+import { SessionService } from "../apps/backend/src/identity/session.service";
 
 describe.skipIf(!testDatabaseUrl)(
   "native Nest sessions with real JWT/MySQL/passwords",
@@ -58,6 +60,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query(
         "UPDATE users SET blockedAt=NULL,sessionVersion=0 WHERE id IN (8940,8941)",
       );
+      await conn.query("UPDATE users SET role='user' WHERE id=8940");
     });
     afterAll(async () => {
       await application?.close();
@@ -80,6 +83,37 @@ describe.skipIf(!testDatabaseUrl)(
       });
     const token = () =>
       sdk.createSessionToken("native-session-member", { sessionVersion: 0 });
+    it("exports a shared session policy that rechecks real JWTs and database roles", async () => {
+      const sessions = application.get(SessionService);
+      expect(sessions).toHaveProperty(
+        "authenticateRequest",
+        expect.any(Function),
+      );
+      expect(sessions).toHaveProperty("optionalUser", expect.any(Function));
+      expect(sessions).toHaveProperty("isAdministrator", expect.any(Function));
+      const request = {
+        headers: { authorization: `Bearer ${await token()}` },
+      } as Request;
+      const member = await sessions.authenticateRequest(request);
+      expect(member.id).toBe(8940);
+      expect(sessions.isStaff(member)).toBe(false);
+      expect(sessions.isAdministrator(member)).toBe(false);
+      await conn.query("UPDATE users SET role='moderator' WHERE id=8940");
+      const moderator = await sessions.authenticateRequest(request);
+      expect(sessions.isStaff(moderator)).toBe(true);
+      expect(sessions.isAdministrator(moderator)).toBe(false);
+      await conn.query("UPDATE users SET role='admin' WHERE id=8940");
+      expect(
+        sessions.isAdministrator(await sessions.authenticateRequest(request)),
+      ).toBe(true);
+      await conn.query("UPDATE users SET sessionVersion=1 WHERE id=8940");
+      await expect(sessions.authenticateRequest(request)).rejects.toThrow();
+      expect(await sessions.optionalUser(request)).toBeNull();
+      await conn.query(
+        "UPDATE users SET role='user',sessionVersion=0,blockedAt=NOW() WHERE id=8940",
+      );
+      expect(await sessions.optionalUser(request)).toBeNull();
+    });
     it("logs in with a real password and emits a safe user and host-only cookie", async () => {
       const response = await post("/api/auth/login", {
         email: memberEmail,

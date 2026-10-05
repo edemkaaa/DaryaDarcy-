@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import type { Request } from "express";
 import { ONE_YEAR_MS } from "../../../../packages/shared/src/const";
 import type { User } from "../../../../packages/database/src/schema";
 import {
@@ -31,10 +32,25 @@ export function publicUser(user: User) {
 
 @Injectable()
 export class SessionService {
+  // Do not retain actors between requests: revocation and roles come from MySQL.
+  authenticateRequest(request: Request): Promise<User> {
+    return sdk.authenticateRequest(request);
+  }
+
+  async optionalUser(request: Request): Promise<User | null> {
+    try {
+      return await this.authenticateRequest(request);
+    } catch {
+      return null;
+    }
+  }
+
+  isAdministrator(user: Pick<User, "role">) {
+    return isOwnerAccount(user);
+  }
+
   isStaff(user: Pick<User, "role" | "email" | "openId">) {
-    return (
-      isOwnerAccount(user) || user.role === "admin" || user.role === "moderator"
-    );
+    return this.isAdministrator(user) || user.role === "moderator";
   }
 
   async register(

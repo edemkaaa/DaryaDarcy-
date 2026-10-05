@@ -377,6 +377,11 @@
     API/boundaries/docs pass. Common policy/guards and the registration-race
     investigation still remain; M04 as a whole is not marked complete.
   - [ ] M04c: Shared injectable session/role policy and registration-race diagnosis.
+    - [x] M04c1: IdentityModule exports SessionService; native session/launch/
+      password controllers share required/optional authentication and role checks.
+      New provider contract assertion failed before implementation; real JWT/MySQL
+      verifies live role changes, blocking and session-version revocation. Focused
+      71 tests and root/Next typechecks pass. Native guards and race diagnosis remain.
   - [x] N13 separate repair: a blocked account with a correct password previously
     reached a sign-in write and HTTP 500. A real HTTP/MySQL assertion reproduced
     500 vs required 401; PasswordUser now rejects before lastSignedIn/session

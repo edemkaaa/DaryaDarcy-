@@ -11,7 +11,6 @@ import type { Request, Response } from "express";
 import { phoneToOpenId } from "../db";
 import { clearSessionCookie, setSessionCookie } from "../_core/cookies";
 import { isValidEmail, normalizeEmail } from "../_core/password";
-import { sdk } from "../_core/sdk";
 import type { User } from "../../../../packages/database/src/schema";
 import { normalizeRuPhone } from "../../../../packages/shared/src/phone";
 import { clientIp, consumeSmsCode, issueSmsCode } from "../sms-auth";
@@ -45,14 +44,6 @@ function verifyStaffTotp(req: Request, res: Response): boolean {
     return false;
   }
   return true;
-}
-
-async function optionalSessionUser(req: Request): Promise<User | null> {
-  try {
-    return await sdk.authenticateRequest(req);
-  } catch {
-    return null;
-  }
 }
 
 function smsErrorStatus(message: string): number {
@@ -204,19 +195,15 @@ export class SessionController {
 
   @Get("me")
   async me(@Req() req: Request, @Res() res: Response) {
-    try {
-      const user = await sdk.authenticateRequest(req);
-      res.json({ user: publicUser(user) });
-    } catch {
-      res.json({ user: null });
-    }
+    const user = await this.identity.optionalUser(req);
+    res.json({ user: user ? publicUser(user) : null });
   }
 
   @Post("session")
   @HttpCode(200)
   async session(@Req() req: Request, @Res() res: Response) {
     try {
-      const user = await sdk.authenticateRequest(req);
+      const user = await this.identity.authenticateRequest(req);
       const authHeader = req.headers.authorization || req.headers.Authorization;
       if (typeof authHeader !== "string" || !authHeader.startsWith("Bearer ")) {
         res.status(400).json({ error: "Bearer token required" });
@@ -307,7 +294,7 @@ export class SessionController {
         res.json(session);
       };
 
-      const sessionUser = await optionalSessionUser(req);
+      const sessionUser = await this.identity.optionalUser(req);
       const existing = await this.identity.findByPhone(phone);
 
       if (existing) {

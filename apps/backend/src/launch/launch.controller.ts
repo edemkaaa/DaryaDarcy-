@@ -1,13 +1,16 @@
 import { Controller, Get, Header, Inject, Put, Req, Res } from "@nestjs/common";
 import { TRPCError } from "@trpc/server";
 import type { Request, Response } from "express";
-import { sdk } from "../_core/sdk";
+import { SessionService } from "../identity/session.service";
 import { LaunchService } from "./launch.service";
 
 @Controller("api")
 export class LaunchController {
   // esbuild does not emit TypeScript's constructor type metadata.
-  constructor(@Inject(LaunchService) private readonly launch: LaunchService) {}
+  constructor(
+    @Inject(LaunchService) private readonly launch: LaunchService,
+    @Inject(SessionService) private readonly sessions: SessionService,
+  ) {}
 
   @Get("launch-config")
   @Header("Cache-Control", "no-store")
@@ -57,12 +60,12 @@ export class LaunchController {
   private async adminActor(req: Request, res: Response) {
     let actor;
     try {
-      actor = await sdk.authenticateRequest(req);
+      actor = await this.sessions.authenticateRequest(req);
     } catch {
       res.sendStatus(401);
       return null;
     }
-    if (actor.role !== "admin") {
+    if (!this.sessions.isAdministrator(actor)) {
       res.sendStatus(403);
       return null;
     }
