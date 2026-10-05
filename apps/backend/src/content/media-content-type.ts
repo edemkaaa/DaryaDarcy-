@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { detectBinaryFileType } from "../media/file-signature";
 import type { MediaUploadInput } from "./media-upload-input";
 
 const DOCUMENT_MIMES = new Set([
@@ -48,4 +49,37 @@ export function normalizeMediaContentType(
     });
   }
   return mime + parameters;
+}
+
+/** Expects normalized declared metadata; signatures are not track/playback/safety validation. */
+export async function resolveMediaContentType(
+  type: MediaUploadInput["type"],
+  declared: string,
+  bytes: Buffer,
+): Promise<string> {
+  if (type === "document") return declared;
+  const detected = await detectBinaryFileType(bytes);
+  if (!detected)
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Не удалось распознать файл",
+    });
+  // Audio-only WebM and generic MP4 share video container signatures. Do not
+  // mistake container branding or retained codec metadata for track inspection.
+  const canonical =
+    type === "audio" && ["webm", "mp4"].includes(detected.ext)
+      ? `audio/${detected.ext}`
+      : detected.mime.toLowerCase();
+  if (!canonical.startsWith(`${type}/`)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Формат файла не соответствует категории",
+    });
+  }
+  const semicolon = declared.indexOf(";");
+  const declaredEssence =
+    semicolon < 0 ? declared : declared.slice(0, semicolon);
+  // Keep parameters only for an exact essence match; otherwise the server's
+  // detected MIME replaces aliases, picker fallback and wrong same-family labels.
+  return declaredEssence === canonical ? declared : canonical;
 }

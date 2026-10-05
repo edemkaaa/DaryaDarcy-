@@ -19,6 +19,12 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import type { AppRouter } from "../apps/backend/src/routers";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
+import {
+  mp3Fixture,
+  mp4Fixture,
+  audioWebmFixture,
+  wavFixture,
+} from "./helpers/media-fixtures";
 
 // Only storage transport is replaced; image processing, sessions and SQL are real.
 const storage = vi.hoisted(() => ({
@@ -51,7 +57,7 @@ describe.skipIf(!testDatabaseUrl)(
         ],
       });
     const media = {
-      base64: "Zml4dHVyZQ==",
+      base64: mp3Fixture.toString("base64"),
       filename: "lesson.mp3",
       mimeType: "audio/mpeg",
       type: "audio" as const,
@@ -161,8 +167,15 @@ describe.skipIf(!testDatabaseUrl)(
     ] as const)(
       "stores %s and its complete association before returning",
       async (type, folder, mimeType, filename) => {
+        const bytes =
+          type === "audio"
+            ? mp3Fixture
+            : type === "video"
+              ? mp4Fixture
+              : Buffer.from("fixture");
         const response = await client(bearer).admin.uploadMedia.mutate({
           ...media,
+          base64: bytes.toString("base64"),
           type,
           mimeType,
           filename,
@@ -176,7 +189,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(storage.writes[0].key).toMatch(
           new RegExp(`^feed/${folder}/[a-f0-9-]{36}$`),
         );
-        expect(storage.writes[0].bytes).toEqual(Buffer.from("fixture"));
+        expect(storage.writes[0].bytes).toEqual(bytes);
         expect(storage.writes[0].mime).toBe(mimeType);
         expect(await rows()).toEqual([
           {
@@ -186,7 +199,7 @@ describe.skipIf(!testDatabaseUrl)(
             url: "https://assets.example.test/native-upload",
             filename,
             mimeType,
-            fileSize: 7,
+            fileSize: bytes.length,
             duration: 42,
             sortOrder: 0,
           },
@@ -209,7 +222,7 @@ describe.skipIf(!testDatabaseUrl)(
             url: "https://assets.example.test/native-upload",
             filename: null,
             mimeType: "audio/mpeg",
-            fileSize: 7,
+            fileSize: mp3Fixture.length,
             duration: null,
             sortOrder: 0,
           },
@@ -253,10 +266,47 @@ describe.skipIf(!testDatabaseUrl)(
       ["Zm8=", "fo"],
       ["Zm9v", "foo"],
     ])("preserves canonical media padding for %s", async (base64, text) => {
-      await client(bearer).admin.uploadMedia.mutate({ ...media, base64 });
+      await client(bearer).admin.uploadMedia.mutate({
+        ...media,
+        type: "document",
+        mimeType: "text/plain",
+        base64,
+      });
       expect(storage.writes[0].bytes).toEqual(Buffer.from(text));
       expect(await rows()).toMatchObject([{ fileSize: text.length }]);
     });
+    it.each([
+      ["HTML", Buffer.from("<html><script>alert(1)</script></html>")],
+      ["SVG", Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>')],
+      ["PDF", Buffer.from("%PDF-1.7\nnot an audio or video file")],
+      [
+        "ZIP",
+        Buffer.from(
+          "504b030414000000000000000000000000000000000000000000000000",
+          "hex",
+        ),
+      ],
+      ["unknown", Buffer.from("not a media file")],
+      ["truncated MP4", Buffer.from("0000001866747970", "hex")],
+    ])(
+      "rejects %s bytes disguised as audio or video before any write",
+      async (_name, bytes) => {
+        for (const type of ["audio", "video"] as const) {
+          await expect(
+            client(bearer).admin.uploadMedia.mutate({
+              ...media,
+              type,
+              mimeType: type === "audio" ? "audio/mpeg" : "video/mp4",
+              base64: bytes.toString("base64"),
+            }),
+          ).rejects.toMatchObject({
+            data: { code: "BAD_REQUEST", httpStatus: 400 },
+          });
+          expect(storage.writes).toEqual([]);
+          expect(await rows()).toEqual([]);
+        }
+      },
+    );
     it.each([
       "../../private/file.mp3?token=x#part",
       "C:\\private\\lesson.mp3",
@@ -271,10 +321,11 @@ describe.skipIf(!testDatabaseUrl)(
       const now = vi.spyOn(Date, "now").mockReturnValue(Date.now());
       try {
         const responses = await Promise.all(
-          ["first", "second"].map((text) =>
+          [1, 2].map((sample) =>
             client(bearer).admin.uploadMedia.mutate({
               ...media,
-              base64: Buffer.from(text).toString("base64"),
+              mimeType: "audio/wav",
+              base64: wavFixture(sample).toString("base64"),
             }),
           ),
         );
@@ -328,6 +379,44 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await rows()).toEqual([]);
       },
     );
+    it("corrects a misleading same-family MIME without changing the uploaded bytes", async () => {
+      const bytes = wavFixture();
+      await client(bearer).admin.uploadMedia.mutate({
+        ...media,
+        mimeType: 'audio/mpeg; codecs="mp3"',
+        base64: bytes.toString("base64"),
+      });
+      expect(storage.writes[0]).toMatchObject({ mime: "audio/wav", bytes });
+      expect(await rows()).toMatchObject([
+        { mimeType: "audio/wav", fileSize: bytes.length },
+      ]);
+    });
+    it.each([mp3Fixture, wavFixture()])(
+      "rejects an unambiguous audio signature in the video category",
+      async (bytes) => {
+        await expect(
+          client(bearer).admin.uploadMedia.mutate({
+            ...media,
+            type: "video",
+            mimeType: "video/mp4",
+            base64: bytes.toString("base64"),
+          }),
+        ).rejects.toMatchObject({
+          data: { code: "BAD_REQUEST", httpStatus: 400 },
+        });
+        expect(storage.writes).toEqual([]);
+        expect(await rows()).toEqual([]);
+      },
+    );
+    it("accepts the generic MP4 container for the audio category without claiming track validation", async () => {
+      await client(bearer).admin.uploadMedia.mutate({
+        ...media,
+        mimeType: "application/octet-stream",
+        base64: mp4Fixture.toString("base64"),
+      });
+      expect(storage.writes[0].mime).toBe("audio/mp4");
+      expect(await rows()).toMatchObject([{ mimeType: "audio/mp4" }]);
+    });
     it.each([
       ["document", "application/pdf", "application/pdf"],
       ["document", "application/msword", "application/msword"],
@@ -344,17 +433,26 @@ describe.skipIf(!testDatabaseUrl)(
       ["document", "application/octet-stream", "application/octet-stream"],
       ["audio", " Audio/MPEG ", "audio/mpeg"],
       ["audio", 'audio/webm; codecs="opus"', 'audio/webm; codecs="opus"'],
-      ["audio", "audio/x-wav", "audio/x-wav"],
-      ["audio", "application/octet-stream", "application/octet-stream"],
+      ["audio", "audio/x-wav", "audio/wav"],
+      ["audio", "application/octet-stream", "audio/mpeg"],
       ["video", "VIDEO/MP4", "video/mp4"],
-      ["video", "application/octet-stream", "application/octet-stream"],
+      ["video", "application/octet-stream", "video/mp4"],
     ] as const)(
-      "stores canonical declared %s MIME %s consistently",
+      "stores resolved %s MIME %s consistently",
       async (type, mimeType, canonical) => {
-        // Deliberately not a real media file: these tests cover declared headers,
-        // not byte detection, playback, antivirus or document sanitization.
+        const bytes =
+          type === "document"
+            ? Buffer.from("fixture")
+            : type === "video"
+              ? mp4Fixture
+              : mimeType.includes("webm")
+                ? audioWebmFixture
+                : mimeType.includes("wav")
+                  ? wavFixture()
+                  : mp3Fixture;
         const response = await client(bearer).admin.uploadMedia.mutate({
           ...media,
+          base64: bytes.toString("base64"),
           type,
           mimeType,
         });
@@ -366,7 +464,7 @@ describe.skipIf(!testDatabaseUrl)(
             type,
             mimeType: canonical,
             filename: "lesson.mp3",
-            fileSize: 7,
+            fileSize: bytes.length,
           },
         ]);
       },

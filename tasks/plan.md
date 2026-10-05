@@ -967,6 +967,57 @@ antivirus/macros/active content, raw-video, private storage and orphan cleanup s
 open. A new byte-detector dependency was proposed separately for human approval,
 not installed or assumed to validate legacy DOC/text/document safety.
 
+Audio/video signature specification (next verified slice): after declared-MIME and
+base64 checks, detect binary format before storage/SQL. Reject unknown signatures,
+non-media formats and unambiguous category swaps with BAD_REQUEST. Keep document
+byte validation separate; existing PDF/DOC/DOCX/TXT metadata policy is unchanged.
+Use approved file-type 22.1.1 as a direct backend dependency, with scripts disabled
+and reviewed lockfile/audit. Detection is a hint, not playback/track validation or
+antivirus. MP4 and WebM are shared containers: permit audio and video categories,
+using audio/mp4 or audio/webm for audio, without claiming to inspect their tracks.
+Store the detected MIME consistently in storage/SQL; preserve declared parameters
+only when their MIME essence equals the detected canonical value. Correct aliases,
+incorrect same-family labels and octet-stream fallback rather than trusting them.
+Run detection in an isolated worker with a five-second active-task deadline; one
+active detector per process, serialized without introducing HTTP quotas or 429s.
+Transfer a dedicated copy of the already size-bounded bytes, preserving storage
+bytes; terminate/await the worker on every outcome. Malformed/parser-limit/timeout
+input fails closed; worker startup/runtime infrastructure failure stays a generic
+500. Test native HTTP/JWT/MySQL rejection and unchanged supported uploads, plus
+worker teardown/recovery and compiled Node 22 execution. No schema, frontend,
+provider, raw-video, storage privacy or orphan-object deletion changes.
+
+Audio/video signature checkpoint: six added native cases failed against the prior
+handler because HTML/SVG/PDF/ZIP/unknown/truncated-MP4 bytes were accepted as audio
+and associated in SQL after the replaced storage boundary. This is a reproduced
+code defect, not evidence of historical exploitation; final cases check both
+audio and video. Correct uploads use locally generated MP3/MP4/audio-WebM and PCM
+WAV fixtures, without private or remote media. Same-family label correction and
+shared-container category handling are compatibility policy, not codec validation.
+ContentUploadService now resolves audio/video MIME after strict decoding and before
+storage/SQL. Documents retain their separate declared-header-only policy. Fixed
+trusted worker code imports the exact installed dependency, receives only an owned
+byte copy and no application environment/preload flags, runs one active task per
+process, and is terminated/awaited on success, failure and deadline. Pending HTTP
+request memory and queue wait are not bounded by this worker slot; no general DoS
+protection or OS sandbox is claimed. Deadline uses fault injection; parser/byte
+preservation, parallel results, compiled ESM from a foreign cwd and existing
+CommonJS/tsx dev runtime use real workers. Native HTTP/JWT/MySQL replaces only
+storage transport; actual provider Content-Type behavior remains unverified.
+Twenty-two added cases: focused 99 pass; full 783 pass / 2 external skip across
+82 passing files and one skipped file. Root/Next types, lint, backend/Next builds,
+unchanged 72-procedure/25376-byte API, 421-file boundaries and 42 current docs pass.
+Approved file-type 22.1.1 was already in the Nest transitive graph; the only lock
+change is its exact direct backend importer entry. Reviewed MIT/BSD dependency
+chain has no install hooks. A clean, frozen, offline pnpm 9.12.0/Node 22 workspace
+install with scripts disabled and a detector call from its backend passed. Native
+audit snapshot remains 33 high / 36 moderate / 4 low / 0 critical across 821 entries;
+no detector-chain advisory was returned, which is not a general safety guarantee.
+Existing audit findings need separate reachability/fix triage; no forced upgrade.
+No schema, frontend, body quota, provider call, old-object rewrite or deployment
+change. Document byte policy, raw-video, private storage, orphan reconciliation,
+full file/track validation and provider acceptance remain open; no release claim.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

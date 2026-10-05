@@ -19,6 +19,7 @@
     "dotenv": "^16.6.1",
     "drizzle-orm": "0.45.3",
     "express": "^4.22.1",
+    "file-type": "22.1.1",
     "jose": "6.1.0",
     "mysql2": "3.24.5",
     "nodemailer": "10.0.13",

@@ -515,10 +515,23 @@
     builds, unchanged 72-procedure/25376-byte API and 420-file boundaries pass.
     No dependencies, schema, parser, frontend or provider changes. Format-byte
     detection is a separate step; this does not certify safe files/playback.
-  - [ ] Generic media format/ownership: actual file-format/MIME detection and
-    orphan-object cleanup after failed SQL association. Encoding/key repairs do
-    not reject active content disguised with client MIME or protect public URLs;
-    reconcile persisted ownership/references before deletion, not on SQL errors.
+  - [x] Audio/video signature detection: approved file-type 22.1.1 promoted from
+    the existing lock graph to an exact direct backend dependency. Unknown/foreign
+    signatures fail before storage/SQL; canonical MIME replaces misleading labels,
+    aliases and binary fallback. MP4/WebM are shared containers, not proof of tracks.
+    One active worker, five-second active deadline, owned byte copy and awaited
+    teardown; no new HTTP quota/429. Native HTTP/JWT/MySQL regression, genuine
+    generated fixtures, worker failure/timeout/serialization tests and compiled
+    ESM plus existing CommonJS/tsx runtime checks. Focused 99 pass; full 783 pass /
+    2 external skip. Clean frozen offline install with scripts disabled passed;
+    no added transitive versions. Audit still reports 33 high / 36 moderate / 4 low
+    in the existing workspace graph; no detector-chain advisories in this snapshot.
+    This is signature classification, not full validation/playback/antivirus.
+  - [ ] Document format/ownership: define safe PDF/DOC/DOCX/TXT byte policy and
+    orphan-object cleanup after failed SQL association. Documents still trust
+    compatible declared MIME; signatures do not prove absence of active content
+    or protect public URLs. Reconcile persisted ownership/references before
+    deletion, not on ambiguous SQL errors.
   - [ ] Remaining M05: Raw-video upload, URL imports and other admin wiring; no
     claim that all content, storage or SQL ownership has been migrated.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
