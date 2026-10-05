@@ -12,6 +12,14 @@ import type { CreatePostInput, UpdatePostInput } from "./post-write-input";
 /** The adapter authorizes/validates inputs; existing helpers own transactions. */
 @Injectable()
 export class ContentWriteService {
+  toggleLike(userId: number, postId: number): Promise<boolean> {
+    return db.toggleLike(userId, postId);
+  }
+
+  toggleSave(userId: number, postId: number): Promise<boolean> {
+    return db.toggleSave(userId, postId);
+  }
+
   async createPost(
     actorUserId: number,
     input: CreatePostInput,

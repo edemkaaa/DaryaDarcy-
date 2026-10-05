@@ -198,6 +198,11 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
         await expect(client.feed.savedPosts.query()).rejects.toMatchObject({
           data: { code: "UNAUTHORIZED", httpStatus: 401 },
         });
+        await expect(
+          client.club.comments.query({ postId: 1 }),
+        ).rejects.toMatchObject({
+          data: { code: "UNAUTHORIZED", httpStatus: 401 },
+        });
         for (const write of [
           () =>
             client.admin.createPost.mutate({
@@ -207,6 +212,13 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
             }),
           () => client.admin.updatePost.mutate({ id: 1, text: "Denied" }),
           () => client.admin.confirmPost.mutate({ id: 1 }),
+          () => client.club.addComment.mutate({ postId: 1, text: "Denied" }),
+          () => client.club.updateComment.mutate({ id: 1, text: "Denied" }),
+          () => client.club.toggleCommentLike.mutate({ commentId: 1 }),
+          () => client.club.deleteComment.mutate({ id: 1 }),
+          () => client.club.reportComment.mutate({ id: 1, reason: "Denied" }),
+          () => client.feed.toggleLike.mutate({ postId: 1 }),
+          () => client.feed.toggleSave.mutate({ postId: 1 }),
         ]) {
           await expect(write()).rejects.toMatchObject({
             data: { code: "UNAUTHORIZED", httpStatus: 401 },

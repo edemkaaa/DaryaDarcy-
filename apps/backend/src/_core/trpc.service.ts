@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import { ContentReadService } from "../content/content-read.service";
 import { ContentWriteService } from "../content/content-write.service";
+import { ContentCommentService } from "../content/content-comment.service";
 import { SessionService } from "../identity/session.service";
 import { createAppRouter, type AppRouter } from "../routers";
 import type { TrpcContext } from "./context";
@@ -14,9 +15,10 @@ export class TrpcService {
   constructor(
     @Inject(ContentReadService) content: ContentReadService,
     @Inject(ContentWriteService) posts: ContentWriteService,
+    @Inject(ContentCommentService) comments: ContentCommentService,
     @Inject(SessionService) private readonly sessions: SessionService,
   ) {
-    this.router = createAppRouter(content, posts);
+    this.router = createAppRouter(content, posts, comments);
   }
 
   readonly createContext = async (

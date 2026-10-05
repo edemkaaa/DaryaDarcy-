@@ -801,6 +801,24 @@ code, mutation-check the club guard locally and restore it immediately. Verify
 compiled startup, exact API types, full tests, types/builds/boundaries/docs before
 the checkpoint. No frontend/schema/provider/deployment or permission changes.
 
+M05e checkpoint: fourteen new real native HTTP/JWT/MySQL cases characterize the
+same six comment and two post-toggle procedures before/after extraction. An
+intentional club-read guard bypass allowed a like after expiry and failed the
+assertion; restored before extraction (not an existing production vulnerability).
+ContentCommentService owns orchestration and shares the domain access policy;
+transport schemas/auth remain at the adapter and existing helpers retain SQL locks.
+Actual compiled Node starts with explicit provider injection and verifies anonymous
+comment/reaction denials. Full suite 687 pass / 2 external skip; root/Next types,
+lint, backend/Next builds, exact 72-procedure/25376-byte API and 415-file boundaries
+pass. The first full run hit a fixture-setup deadlock: InnoDB traced an unrelated
+manual media insert against the idempotency suite's deliberately stalled media
+transaction. A separate test-only commit shares existing fixture ownership among
+gated publication suites, with hook timeouts above the bounded DB wait; real
+request/worker concurrency remains tested. No production schema/locking fix is
+claimed by this isolation repair. Concurrent post toggles, media index/transaction
+review, uploads/other admin, SQL/pool ownership, durable delivery, registration
+diagnosis and release gates remain open.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

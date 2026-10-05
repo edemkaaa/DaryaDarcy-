@@ -462,7 +462,22 @@
     retain default 20, optional input/null cursor, max 200, paging, visibility and
     anonymous denial. Full suite 673 pass / 2 external skip; types, lint, backend
     build and unchanged 72-procedure/25376-byte API pass. No SQL/auth policy change.
-  - [ ] Remaining M05: Reaction/comment/upload and other admin wiring; no false
+  - [x] M05e: Six discussion operations now use injected ContentCommentService;
+    post reactions use ContentWriteService and mandatory feed/club factories.
+    Fourteen new native HTTP/JWT/MySQL cases preserve club/public distinctions,
+    publication/window rules, ownership/live staff, blocked/revoked sessions,
+    text/photos, replies, report upserts and cleanup, boolean/coerced post toggles.
+    Deliberate club guard bypass failed the expiry-denial assertion, restored
+    immediately; not a production leak. Full suite 687 pass / 2 external skip;
+    root/Next types, lint, backend/Next builds, exact 72-procedure/25376-byte API
+    and 415-file boundaries pass. SQL helpers/pool and durable reply delivery
+    remain transitional. A test-fixture media deadlock was diagnosed via InnoDB;
+    intentionally gated suites now share fixture ownership without disabling
+    concurrent requests inside them. No production locking/schema change claimed.
+  - [ ] Post reaction atomicity: reproduce concurrent like/save behavior of the
+    existing SELECT-then-write helpers; fix in a separate regression-backed slice.
+    Review media query indexes/transaction deadlocks separately from test isolation.
+  - [ ] Remaining M05: Upload and other admin wiring; no false
     claim that all content or SQL ownership has been migrated after read slices.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.

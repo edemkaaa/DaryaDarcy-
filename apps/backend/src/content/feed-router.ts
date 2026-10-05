@@ -1,9 +1,12 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
-import * as db from "../db";
 import type { ContentReadService } from "./content-read.service";
+import type { ContentWriteService } from "./content-write.service";
 
-export const createFeedRouter = (content: ContentReadService) =>
+export const createFeedRouter = (
+  content: ContentReadService,
+  posts: ContentWriteService,
+) =>
   router({
     // Get published posts (public)
     list: publicProcedure
@@ -34,14 +37,14 @@ export const createFeedRouter = (content: ContentReadService) =>
     toggleLike: protectedProcedure
       .input(z.object({ postId: z.coerce.number() }))
       .mutation(({ ctx, input }) => {
-        return db.toggleLike(ctx.user.id, input.postId);
+        return posts.toggleLike(ctx.user.id, input.postId);
       }),
 
     // Toggle save/bookmark (requires auth)
     toggleSave: protectedProcedure
       .input(z.object({ postId: z.coerce.number() }))
       .mutation(({ ctx, input }) => {
-        return db.toggleSave(ctx.user.id, input.postId);
+        return posts.toggleSave(ctx.user.id, input.postId);
       }),
 
     // Get user's liked and saved post IDs (requires auth)

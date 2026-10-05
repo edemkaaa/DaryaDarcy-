@@ -11,23 +11,25 @@ import { ContentReadService } from "./content/content-read.service";
 import { ContentWriteService } from "./content/content-write.service";
 import { createArticlesRouter } from "./content/articles-router";
 import { notificationsRouter } from "./notifications/router";
-import { clubRouter } from "./club/router";
+import { createClubRouter } from "./club/router";
+import { ContentCommentService } from "./content/content-comment.service";
 import { moderationRouter } from "./moderation/router";
 
 /** Composition only: input validation, authorization and behavior live in domains. */
 export const createAppRouter = (
   content: ContentReadService,
   posts: ContentWriteService,
+  comments: ContentCommentService,
 ) =>
   router({
     system: systemRouter,
     auth: authRouter,
     profile: profileRouter,
-    feed: createFeedRouter(content),
+    feed: createFeedRouter(content, posts),
     notifications: notificationsRouter,
     videos: createVideosRouter(content),
     admin: createAdminRouter(posts),
-    club: clubRouter,
+    club: createClubRouter(comments),
     penPals: penPalsRouter,
     shop: shopRouter,
     moderation: moderationRouter,
@@ -40,6 +42,7 @@ export const createAppRouter = (
 export const appRouter = createAppRouter(
   new ContentReadService(),
   new ContentWriteService(),
+  new ContentCommentService(),
 );
 
 export type AppRouter = typeof appRouter;
