@@ -38,6 +38,7 @@ jobs:
       - run: pnpm check:docs
       - run: pnpm check:boundaries
       - run: pnpm check
+      - run: pnpm check:api
       - run: pnpm test
       - run: pnpm build
 
@@ -52,3 +53,7 @@ jobs:
 
       - name: Post-build regression
         run: pnpm run test:regression
+      - name: Install test browser
+        run: pnpm --filter @daryadarcy/frontend exec playwright install --with-deps chromium
+      - name: Browser regression tests
+        run: pnpm test:frontend

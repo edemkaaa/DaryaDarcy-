@@ -1,0 +1,6 @@
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "./contract";
+
+export type ApiInputs = inferRouterInputs<AppRouter>;
+export type ApiOutputs = inferRouterOutputs<AppRouter>;
+export type AdminPost = ApiOutputs["admin"]["posts"][number];

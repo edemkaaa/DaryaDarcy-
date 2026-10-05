@@ -1,0 +1,570 @@
+{
+  "routes": [
+    {
+      "route": "/",
+      "url": "http://127.0.0.1:8081/",
+      "title": "DARYADARCY",
+      "text": "\n\nDARYADARCY\n– ДОБРО ПОЖАЛОВАТЬ –\nпространство\nвдохновения\nдля тех, кто мечтает вести\nжизнь\nудивительной\nкрасоты и глубины\n– ОБ АВТОРЕ –\nДарья Левина–\ncottagecore-блогер,\nавтор «Книги вдохновения», «Романтика дачи»\nи «Тропинка к творчеству».\nХозяйка сказочного лесного дома и сада с\nанглийскими розами.\nУзнать больше →\n«Все великие дела тесно\nпереплетаются с маленькими»\nЛюси Мод Монтгомери\n«Энн из Зелёных крыш»\nМои книги →\n– ИССЛЕДУЙТЕ –\nБлог о загородной жизни, винтажном стиле и вдохновении\n→\nКамерное сообщество с эксклюзивными материалами\n→\nТесты, игры, творческие задания\n→\nБесплатные матери",
+      "nodes": 240,
+      "images": 17,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [
+        {
+          "tag": "DIV",
+          "height": 768,
+          "scrollHeight": 3726
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "route": "/feed",
+      "url": "http://127.0.0.1:8081/feed",
+      "title": "Лента · DARYADARCY",
+      "text": "\n\n\n\n\nВсе\nВесна\nЛето\nОсень\nЗима\nДом\nСад\nДетское\nМужское\nНовый год\nПасха\nПутешествия\nРецепты\nКрасота\nГардероб\nТворчество\nРемонт\nКино\nВидео\nСтилизации\nМастер-классы\nЛичное\nКниги\nПисьмо месяца\nПодкаст\nЗакулисье\nПроверочная публикация 1\nТекст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации.\nЧит",
+      "nodes": 348,
+      "images": 2,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [
+        {
+          "tag": "DIV",
+          "height": 768,
+          "scrollHeight": 2689
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "route": "/videos",
+      "url": "http://127.0.0.1:8081/videos",
+      "title": "Видео · DARYADARCY",
+      "text": "\n\nВИДЕО\nмини-фильмы об уютной жизни\n\nЛента\n\nВидео\n\nКлуб\n\nИнтерактив\n\nБиблиотека\n\nМагазин",
+      "nodes": 86,
+      "images": 5,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/club",
+      "url": "http://127.0.0.1:8081/club",
+      "title": "Клуб Darcy · DARYADARCY",
+      "text": "\n\n\nБезопасное пространство для тех, кому важна красота в жизни, а не только на экране.\n•\nТворческая атмосфера, доброе комьюнити, эксклюзивные материалы и подборки от Дарьи — не просто вдохновение, а часть вашей повседневной жизни.\n•\nМесто, где можно быть ближе и получать больше.\n\nОплатить 790 ₽\nЧто входит в подписку:\n\nПИСЬМО МЕСЯЦА\nЛичное письмо от Дарьи с историями, размышлениями и рекомендациями\n\nПОДБОРКИ\nСтиль, дом, подарки, кино — со ссылками на доступные магазины и маркетплейсы\n\nЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ\nСтатьи, видео, подкасты\n\nДОБРОЕ КОМЬЮНИТИ\nКаждую среду – день общения, поддержки",
+      "nodes": 305,
+      "images": 27,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [
+        {
+          "tag": "DIV",
+          "height": 768,
+          "scrollHeight": 3129
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "route": "/interactive",
+      "url": "http://127.0.0.1:8081/interactive",
+      "title": "Интерактив · DARYADARCY",
+      "text": "\n\nИНТЕРАКТИВ\nтесты, игры, творческие задания\n\nТЕСТ-ПУТЕШЕСТВИЕ\nНачать →\nУзнай свою эстетику через атмосферное путешествие по сказочным мирам\n\nЛента\n\nВидео\n\nКлуб\n\nИнтерактив\n\nБиблиотека\n\nМагазин",
+      "nodes": 97,
+      "images": 6,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/library",
+      "url": "http://127.0.0.1:8081/library",
+      "title": "Библиотека · DARYADARCY",
+      "text": "\n\nБИБЛИОТЕКА\n\nГид по эстетикам\n\nДля участниц клуба Darcy →\nСборник стилизаций\n\nСкачать →\nВыкройка лошадка-качалка\n\nСкачать →\nОбо мне\n\nЧитать →\nСборник рецептов\n\nДля участниц клуба Darcy →\nГид по Петербургу\n\nДля участниц клуба Darcy →\nЗимние выкройки'26\n\nДля участниц клуба Darcy →\n\nЛента\n\nВидео\n\nКлуб\n\nИнтерактив\n\nБиблиотека\n\nМагазин",
+      "nodes": 147,
+      "images": 9,
+      "unlabelledButtons": 7,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [
+        {
+          "tag": "DIV",
+          "height": 768,
+          "scrollHeight": 1251
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "route": "/shop",
+      "url": "http://127.0.0.1:8081/shop",
+      "title": "Магазин · DARYADARCY",
+      "text": "\n\nМАГАЗИН\nПечатные книги\nЭлектронные продукты\nКнига Вдохновения\nТропинка к Творчеству\nРомантика Дачи\nПособие\nМастер-класс\n\nДоставка по всей России через маркетплейсы\nЕсли письмо не пришло в течение 15 минут или нужна помощь — напишите нам:\ndaryadarcyapp@yandex.ru\nЮридические\nдокументы →\nПолитика\nконфиденциальности →\n\nЛента\n\nВидео\n\nКлуб\n\nИнтерактив\n\nБиблиотека\n\nМагазин",
+      "nodes": 182,
+      "images": 16,
+      "unlabelledButtons": 7,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [
+        {
+          "tag": "DIV",
+          "height": 768,
+          "scrollHeight": 1830
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "route": "/profile",
+      "url": "http://127.0.0.1:8081/profile",
+      "title": "Профиль · DARYADARCY",
+      "text": "\n\n\nDARCY\nВойдите, чтобы открыть личный кабинет: сохранённое, эстетика, подписка и профиль.\nВойти →\n\nЛента\n\nВидео\n\nКлуб\n\nИнтерактив\n\nБиблиотека\n\nМагазин",
+      "nodes": 82,
+      "images": 2,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/login",
+      "url": "http://127.0.0.1:8081/login",
+      "title": "Вход · DARYADARCY",
+      "text": "DARYADARCY\nВход по почте\nВойдите, чтобы сохранять посты и пользоваться клубом\nВойти\nНет аккаунта? Зарегистрироваться\nЗабыли пароль?\nНа главную",
+      "nodes": 65,
+      "images": 2,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/quiz",
+      "url": "http://127.0.0.1:8081/quiz",
+      "title": "Какая твоя сказка? · DARYADARCY",
+      "text": "← Назад\nТЕСТ-ПУТЕШЕСТВИЕ:\nнайди свою эстетику\nЗакрой глаза. Представь: ты лежишь на мягкой траве, сквозь ветви пробивается свет. Просыпаешься, и начинается странствие.\nСемь миров будут открываться перед тобой. Пейзажи, текстуры, существа, артефакты — выбирай то, что зовёт.\nВ конце ты узнаешь свою эстетику — не просто название, а глубокий портрет: к чему тянется твоя душа и как проявлять это в жизни каждый день.\n10\nвопросов\n7\nэстетик\n5\nмин\nНачать путешествие",
+      "nodes": 68,
+      "images": 3,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/library/about-me",
+      "url": "http://127.0.0.1:8081/library/about-me",
+      "title": "О Дарье Дарси · DARYADARCY",
+      "text": "← Назад\nТВОРЧЕСКИЙ ПУТЬ\nОГЛАВЛЕНИЕ\n▼\nЧасть I\nДетство\nЕсли бы мне в детстве показали, каким будет моё будущее, чем я буду заниматься и чему научусь, я бы, конечно, очень удивилась! И несомненно обрадовалась: все детские увлечения, любовь к творчеству, перевоплощениям и сказкам, украшательству всего и вся, дизайну, моде, фотографии, кино – всё слилось в одну даже не существовавшую ранее профессию.\nЭто сейчас я вижу склонности и предпосылки, а пятилетняя Даша мечтала связать жизнь…с музыкой! Стать композитором и писать для Игоря Николаева (не спрашивайте, я не знаю почему выбор пал на него).\n\nРод",
+      "nodes": 265,
+      "images": 31,
+      "unlabelledButtons": 29,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [
+        {
+          "tag": "DIV",
+          "height": 844,
+          "scrollHeight": 26287
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "route": "/library/aesthetics-guide",
+      "url": "http://127.0.0.1:8081/library/aesthetics-guide",
+      "title": "Путеводитель по эстетикам · DARYADARCY",
+      "text": "← Назад\nпривилегия участниц Клуба Darcy\nВступить в клуб →\nОпределить свою эстетику →\nОГЛАВЛЕНИЕ\n1.\nCottagecore\n2.\nGoblincore\n3.\nWitchcore\n4.\nCastlecore\n5.\nFairycore\n6.\nDark Academia\n7.\nLight Academia",
+      "nodes": 82,
+      "images": 3,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [
+        {
+          "tag": "DIV",
+          "height": 844,
+          "scrollHeight": 956
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "route": "/library/patterns",
+      "url": "http://127.0.0.1:8081/library/patterns",
+      "title": "Выкройки · DARYADARCY",
+      "text": "ВЫКРОЙКИ\n← Назад\nпривилегия участниц Клуба Darcy\nВступить в клуб →\nОпределить свою эстетику →\nРождественские игрушки",
+      "nodes": 77,
+      "images": 7,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [
+        {
+          "tag": "DIV",
+          "height": 844,
+          "scrollHeight": 1463
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "route": "/library/article/1",
+      "url": "http://127.0.0.1:8081/library/article/1",
+      "title": "Материал библиотеки · DARYADARCY",
+      "text": "← Назад\nПроверочная статья\nЭта статья для участниц клуба Darcy.\nВступить в клуб",
+      "nodes": 52,
+      "images": 3,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/post/1",
+      "url": "http://127.0.0.1:8081/post/1",
+      "title": "Пост · DARYADARCY",
+      "text": "\nПост\nПроверочная публикация 1\nТекст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации. Текст публикации.\n1 октября 2026\n\n0\n",
+      "nodes": 61,
+      "images": 2,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/video/1",
+      "url": "http://127.0.0.1:8081/video/1",
+      "title": "Видео · DARYADARCY",
+      "text": "\nПроверочное видео\n100 просмотров • 1 октября\nВ приложении видео доступно к просмотру без VPN, но в более низком качестве. Для просмотра в высоком разрешении рекомендую перейти на YouTube\n\nСмотреть на YouTube →",
+      "nodes": 57,
+      "images": 2,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/shop/1",
+      "url": "http://127.0.0.1:8081/shop/1",
+      "title": "Товар не найден · DARYADARCY",
+      "text": "Страница не найдена.\n\nВернуться на главную →",
+      "nodes": 45,
+      "images": 0,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/legal",
+      "url": "http://127.0.0.1:8081/legal",
+      "title": "Юридические документы · DARYADARCY",
+      "text": "← Назад\nDARYADARCY\nЮридические документы\nКлуб Darcy · daryadarcy.com\nПолитика конфиденциальности\n→\nПубличная оферта\n→\nПолитика обработки ПД\n→\nСогласие на обработку ПД\n→\nПользовательское соглашение\n→\nОплата, отмена и возврат\n→\nCookie\n→\nРеквизиты\n→\nЛицензия на музыку\n→",
+      "nodes": 73,
+      "images": 1,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/legal/offer",
+      "url": "http://127.0.0.1:8081/legal/offer",
+      "title": "Публичная оферта · DARYADARCY",
+      "text": "← Назад\nDARYADARCY\nПубличная оферта\nКлуб Darcy · 1 сентября 2026 г.\n1. Общие положения\nНастоящий документ является официальным предложением (публичной офертой) ИП Левина Дарья Сергеевна (далее — «Исполнитель») заключить договор на оказание услуг по предоставлению доступа к веб-приложению «Клуб Darcy» (daryadarcy.com).\nАкцептом оферты считается оплата подписки или цифрового товара через платёжную форму Prodamus.\n2. Предмет договора\nИсполнитель предоставляет Пользователю доступ к закрытым материалам Клуба Darcy и/или цифровым товарам магазина на срок, указанный при оплате.\nКонтент является интел",
+      "nodes": 62,
+      "images": 1,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [
+        {
+          "tag": "DIV",
+          "height": 844,
+          "scrollHeight": 909
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "route": "/legal/personal-data",
+      "url": "http://127.0.0.1:8081/legal/personal-data",
+      "title": "Политика обработки персональных данных · DARYADARCY",
+      "text": "← Назад\nDARYADARCY\nПолитика обработки персональных данных\nКлуб Darcy · 1 сентября 2026 г.\n1. Оператор\nИП Левина Дарья Сергеевна, сайт daryadarcy.com, email для связи: daryadarcyapp@yandex.ru\n2. Категории данных\nИмя, email, телефон, фото профиля, данные подписки, данные раздела «Почтовое отделение» (по желанию), технические данные устройства и действия в приложении.\n3. Цели обработки\nРегистрация и вход, предоставление доступа к Клубу, подбор друга по переписке, поддержка пользователей, исполнение договора и соблюдение законодательства РФ.\n4. Срок хранения\nДанные хранятся, пока действует аккаунт",
+      "nodes": 62,
+      "images": 1,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [
+        {
+          "tag": "DIV",
+          "height": 844,
+          "scrollHeight": 921
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "route": "/privacy",
+      "url": "http://127.0.0.1:8081/privacy",
+      "title": "Политика конфиденциальности · DARYADARCY",
+      "text": "← Назад\nDARYADARCY\nПолитика конфиденциальности\nи Условия использования\nКлуб Darcy · 17 августа 2026 г.\nВсе юридические документы →\n1. Общие положения\nНастоящая Политика конфиденциальности описывает порядок сбора, хранения, использования и защиты персональных данных пользователей веб-приложения «Клуб Darcy» (далее — «Приложение»), расположенного по адресу daryadarcy.com и принадлежащего ИП Левина Дарья Сергеевна (далее — «Администратор»).\nИспользуя Приложение, вы соглашаетесь с условиями настоящей Политики. Если вы не согласны с какими-либо положениями, пожалуйста, воздержитесь от использования",
+      "nodes": 85,
+      "images": 1,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [
+        {
+          "tag": "DIV",
+          "height": 844,
+          "scrollHeight": 2216
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "route": "/admin",
+      "url": "http://127.0.0.1:8081/admin",
+      "title": "Администрирование · DARYADARCY",
+      "text": "\nАдминка доступна только Дарье\nВойти",
+      "nodes": 47,
+      "images": 1,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/oauth/callback",
+      "url": "http://127.0.0.1:8081/login",
+      "title": "Вход · DARYADARCY",
+      "text": "DARYADARCY\nВход по почте\nВойдите, чтобы сохранять посты и пользоваться клубом\nВойти\nНет аккаунта? Зарегистрироваться\nЗабыли пароль?\nНа главную",
+      "nodes": 61,
+      "images": 2,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/legal/invalid",
+      "url": "http://127.0.0.1:8081/legal/invalid",
+      "title": "Документ не найден · DARYADARCY",
+      "text": "Страница не найдена.\n\nВернуться на главную →",
+      "nodes": 43,
+      "images": 0,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/post/invalid",
+      "url": "http://127.0.0.1:8081/post/invalid",
+      "title": "Пост · DARYADARCY",
+      "text": "\nПост\nПост не найден",
+      "nodes": 48,
+      "images": 2,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/video/invalid",
+      "url": "http://127.0.0.1:8081/video/invalid",
+      "title": "Видео · DARYADARCY",
+      "text": "\nПроверочное видео\n100 просмотров • 1 октября\nВ приложении видео доступно к просмотру без VPN, но в более низком качестве. Для просмотра в высоком разрешении рекомендую перейти на YouTube\n\nСмотреть на YouTube →",
+      "nodes": 57,
+      "images": 2,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    },
+    {
+      "route": "/shop/invalid",
+      "url": "http://127.0.0.1:8081/shop/invalid",
+      "title": "Товар не найден · DARYADARCY",
+      "text": "Страница не найдена.\n\nВернуться на главную →",
+      "nodes": 45,
+      "images": 0,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "httpStatus": 200
+    }
+  ],
+  "issues": [
+    {
+      "scenario": "API500",
+      "route": "/video/999",
+      "url": "http://127.0.0.1:8081/video/999",
+      "title": "Видео · DARYADARCY",
+      "text": "",
+      "nodes": 45,
+      "images": 2,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": []
+    },
+    {
+      "scenario": "API500",
+      "route": "/library/article/999",
+      "url": "http://127.0.0.1:8081/library/article/999",
+      "title": "Материал библиотеки · DARYADARCY",
+      "text": "← Назад\nСтатья не найдена",
+      "nodes": 47,
+      "images": 2,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": []
+    },
+    {
+      "scenario": "API500",
+      "route": "/post/999",
+      "url": "http://127.0.0.1:8081/post/999",
+      "title": "Пост · DARYADARCY",
+      "text": "\nПост\nПост не найден",
+      "nodes": 50,
+      "images": 2,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": []
+    },
+    {
+      "scenario": "locked article short screen",
+      "route": "/library/article/1",
+      "url": "http://127.0.0.1:8081/library/article/1",
+      "title": "Материал библиотеки · DARYADARCY",
+      "text": "← Назад\nПроверочная статья\nЭта статья для участниц клуба Darcy.\nВступить в клуб",
+      "nodes": 52,
+      "images": 3,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [],
+      "button": {
+        "x": 22,
+        "y": 276.65625,
+        "width": 276,
+        "height": 40
+      }
+    },
+    {
+      "scenario": "profile A",
+      "route": "/profile",
+      "url": "http://127.0.0.1:8081/profile",
+      "title": "Профиль · DARYADARCY",
+      "text": "\n\n\nDARCY\nЛичный профиль с возможностью сохранять публикации и результаты интерактивов доступен для участниц клуба Darcy\nВступить в клуб →\n\nЛента\n\nВидео\n\nКлуб\n\nИнтерактив\n\nБиблиотека\n\nМагазин",
+      "nodes": 82,
+      "images": 2,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": []
+    },
+    {
+      "scenario": "A to B without logout",
+      "oldSavedVisibleAfterLogin": false,
+      "final": {
+        "route": "/profile",
+        "url": "http://127.0.0.1:8081/login?email=audit-202%40example.test&password=AuditPassword123",
+        "title": "Вход · DARYADARCY",
+        "text": "DARYADARCY\nВход по почте\nВойдите, чтобы сохранять посты и пользоваться клубом\nВойти\nНет аккаунта? Зарегистрироваться\nЗабыли пароль?\nНа главную",
+        "nodes": 65,
+        "images": 2,
+        "unlabelledButtons": 0,
+        "dialogs": [],
+        "horizontalOverflow": false,
+        "scrollers": []
+      },
+      "samples": []
+    }
+  ],
+  "console": [
+    {
+      "kind": "warning",
+      "url": "http://127.0.0.1:8081/quiz",
+      "message": "[Fast Refresh] performing full reload\n\nFast Refresh will perform a full reload when you edit a file that's imported by modules outside of the React rendering tree.\nYou might have a file which exports a React component but also exports a value that is imported by a non-React component file.\nConsider migrating the non-React component export to a separate file and importing it into both files.\n\nIt is also possible the parent component of the component you edited is a class component, which disables Fast Refresh.\nFast Refresh requires at least one parent function component in your React tree."
+    },
+    {
+      "kind": "warning",
+      "url": "http://127.0.0.1:8081/library/aesthetics-guide",
+      "message": "[Fast Refresh] performing full reload\n\nFast Refresh will perform a full reload when you edit a file that's imported by modules outside of the React rendering tree.\nYou might have a file which exports a React component but also exports a value that is imported by a non-React component file.\nConsider migrating the non-React component export to a separate file and importing it into both files.\n\nIt is also possible the parent component of the component you edited is a class component, which disables Fast Refresh.\nFast Refresh requires at least one parent function component in your React tree."
+    },
+    {
+      "kind": "error",
+      "url": "http://127.0.0.1:8081/video/1",
+      "message": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "kind": "error",
+      "url": "http://127.0.0.1:8081/video/1",
+      "message": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    },
+    {
+      "kind": "warning",
+      "url": "http://127.0.0.1:8081/shop/1",
+      "message": "[Fast Refresh] performing full reload\n\nFast Refresh will perform a full reload when you edit a file that's imported by modules outside of the React rendering tree.\nYou might have a file which exports a React component but also exports a value that is imported by a non-React component file.\nConsider migrating the non-React component export to a separate file and importing it into both files.\n\nIt is also possible the parent component of the component you edited is a class component, which disables Fast Refresh.\nFast Refresh requires at least one parent function component in your React tree."
+    },
+    {
+      "kind": "warning",
+      "url": "http://127.0.0.1:8081/legal/personal-data",
+      "message": "[Fast Refresh] performing full reload\n\nFast Refresh will perform a full reload when you edit a file that's imported by modules outside of the React rendering tree.\nYou might have a file which exports a React component but also exports a value that is imported by a non-React component file.\nConsider migrating the non-React component export to a separate file and importing it into both files.\n\nIt is also possible the parent component of the component you edited is a class component, which disables Fast Refresh.\nFast Refresh requires at least one parent function component in your React tree."
+    },
+    {
+      "kind": "warning",
+      "url": "http://127.0.0.1:8081/privacy",
+      "message": "[Fast Refresh] performing full reload\n\nFast Refresh will perform a full reload when you edit a file that's imported by modules outside of the React rendering tree.\nYou might have a file which exports a React component but also exports a value that is imported by a non-React component file.\nConsider migrating the non-React component export to a separate file and importing it into both files.\n\nIt is also possible the parent component of the component you edited is a class component, which disables Fast Refresh.\nFast Refresh requires at least one parent function component in your React tree."
+    },
+    {
+      "kind": "warning",
+      "url": "http://127.0.0.1:8081/admin",
+      "message": "[Fast Refresh] performing full reload\n\nFast Refresh will perform a full reload when you edit a file that's imported by modules outside of the React rendering tree.\nYou might have a file which exports a React component but also exports a value that is imported by a non-React component file.\nConsider migrating the non-React component export to a separate file and importing it into both files.\n\nIt is also possible the parent component of the component you edited is a class component, which disables Fast Refresh.\nFast Refresh requires at least one parent function component in your React tree."
+    },
+    {
+      "kind": "error",
+      "url": "http://127.0.0.1:8081/video/invalid",
+      "message": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "kind": "error",
+      "url": "http://127.0.0.1:8081/video/invalid",
+      "message": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    }
+  ],
+  "chunks": [
+    {
+      "url": "http://127.0.0.1:8081/_next/static/chunks/app/library/aesthetics-guide/page.js",
+      "bytes": 2739878,
+      "clubContentFound": true
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+@use "../../shared/styles/layers";
+
+@layer elements {
+  .paragraph {
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--ink);
+    font-family: var(--font-body);
+  }
+  .paragraphGap {
+    margin-bottom: 14px;
+  }
+  .heading {
+    font-size: 17px;
+    line-height: 24px;
+    font-family: var(--font-bold);
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .bodyText {
+    font-family: var(--font-body);
+  }
+  .bold {
+    font-family: var(--font-bold);
+    font-weight: 700;
+    font-size: inherit;
+    line-height: inherit;
+  }
+  .italic {
+    font-family: var(--font-italic);
+    font-style: normal;
+    font-size: inherit;
+    line-height: inherit;
+  }
+  .link {
+    text-decoration-line: underline;
+  }
+}

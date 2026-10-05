@@ -1,0 +1,95 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .background {
+    flex: 1;
+  }
+
+  .loadingContainer {
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .container {
+    flex: 1;
+    background-color: transparent;
+  }
+
+  .videoContainer {
+    background-color: #000000;
+  }
+
+  .action {
+    position: absolute;
+    left: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .infoContainer {
+    padding: 16px;
+  }
+
+  .title {
+    font-size: 20px;
+    color: #3c2a1a;
+    line-height: 26px;
+    font-family: EBGaramond-Bold, "Times New Roman", serif;
+  }
+
+  .meta {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 8px;
+    font-family: var(--font-body);
+  }
+
+  .qualityHint {
+    margin-top: 14px;
+    font-size: 15px;
+    color: var(--brown);
+    line-height: 22px;
+    font-family: var(--font-body);
+  }
+
+  .action2 {
+    margin-top: 16px;
+    align-self: center;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(245, 237, 224, 0.92);
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-radius: 8px;
+  }
+
+  .youtubeBtnText {
+    font-size: 14px;
+    color: var(--brown);
+    font-family: var(--font-body);
+    letter-spacing: 0.6px;
+  }
+  .videoElement {
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    object-fit: contain;
+  }
+  .opacityState {
+    opacity: 0.6;
+    --action-base-opacity: 0.6;
+  }
+
+  .opacityState2 {
+    opacity: 0.7;
+    --action-base-opacity: 0.7;
+  }
+}

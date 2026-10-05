@@ -1,6 +1,6 @@
 # Daryadarcy
 
-Монорепозиторий приложения Daryadarcy: общий клиент на Expo для web, iOS и Android, сервер Express + tRPC и сохранённый старый веб-клиент Vite.
+Монорепозиторий Daryadarcy: основной веб-клиент Next.js, сервер Express + tRPC и архивные клиенты Expo и Vite. Нативный клиент Expo сохранён, но исключён из активного workspace.
 
 ## С чего начать
 
@@ -15,9 +15,10 @@
 
 ```text
 apps/
-  frontend/       основной клиент: Expo, web / iOS / Android
+  frontend/       основной веб-клиент: Next.js
   backend/        API: Express + tRPC, доменные модули
   legacy-web/     предыдущий веб-клиент: Vite, не основной интерфейс
+  legacy-expo/    прежний Expo-клиент, вне активного workspace
 packages/
   shared/         общие контракты и утилиты
   database/       Drizzle-схема и SQL-миграции
@@ -37,6 +38,7 @@ tasks/            рабочий план и чеклист
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts
 cp .env.example .env
+cp apps/frontend/.env.example apps/frontend/.env.local
 # Заполните .env локальными настройками, не данными production.
 pnpm dev
 ```

@@ -1,0 +1,351 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .container {
+    flex: 1;
+    background-color: var(--paper);
+  }
+
+  .header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--border);
+  }
+
+  .headerTitle {
+    font-size: 17px;
+    font-family: EBGaramond-SemiBold;
+    color: var(--ink);
+  }
+
+  .action {
+    background-color: var(--muted);
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    border-radius: 16px;
+  }
+
+  .submitBtnText {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--paper);
+  }
+
+  .scroll {
+    flex: 1;
+  }
+
+  .scrollContent {
+    padding: 16px;
+    gap: 20px;
+    padding-bottom: 40px;
+  }
+
+  .section {
+    gap: 8px;
+  }
+
+  .sectionLabel {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .targetRow {
+    flex-direction: row;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .targetChipActive {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-radius: 16px;
+    border-width: 1px;
+  }
+
+  .targetChipTextActive {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .hint {
+    font-size: 11px;
+    color: #7a6b5e;
+    margin-top: 2px;
+  }
+
+  .textArea {
+    --editor-background: #fff;
+    --editor-border-width: 1px;
+    --editor-border-color: var(--border);
+    --editor-radius: 10px;
+    --editor-padding: 14px;
+    --editor-font-size: 15px;
+    --editor-color: var(--ink);
+    --editor-min-height: 200px;
+    --editor-line-height: 22px;
+  }
+
+  .sectionHint {
+    font-size: 12px;
+    color: #7a6b5e;
+    margin-top: 4px;
+    margin-bottom: 8px;
+  }
+
+  .action2 {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: var(--muted);
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-radius: 10px;
+  }
+
+  .uploadBtnText {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--paper);
+  }
+
+  .action3 {
+    flex: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background-color: var(--muted);
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-radius: 10px;
+  }
+
+  .mediaBtnText {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--paper);
+  }
+
+  .mediaList {
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .mediaItem {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    background-color: #fff;
+    border-width: 1px;
+    border-color: var(--border);
+    border-radius: 8px;
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .mediaItemName {
+    flex: 1;
+    font-size: 13px;
+    color: var(--ink);
+  }
+
+  .mediaRemoveBtn {
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .mediaButtonsRow {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .action4 {
+    flex: 1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background-color: var(--muted);
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-radius: 10px;
+  }
+
+  .tagsGrid {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tagChipRubricSelected {
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    border-radius: 16px;
+  }
+  .opacityState {
+    opacity: 0.6;
+    --action-base-opacity: 0.6;
+  }
+
+  .opacityState2 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+
+  .opacityState3 {
+    opacity: 0.6;
+    --action-base-opacity: 0.6;
+  }
+
+  .opacityState4 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+
+  .appearanceState {
+    background-color: var(--muted);
+    border-color: var(--muted);
+  }
+
+  .appearanceState2 {
+    background-color: #eee9e0;
+    border-color: #d8d2c6;
+  }
+
+  .colorState {
+    color: var(--paper);
+  }
+
+  .colorState2 {
+    color: var(--ink);
+  }
+
+  .appearanceState3 {
+    background-color: var(--muted);
+    border-color: var(--muted);
+  }
+
+  .appearanceState4 {
+    background-color: #eee9e0;
+    border-color: #d8d2c6;
+  }
+
+  .colorState3 {
+    color: var(--paper);
+  }
+
+  .colorState4 {
+    color: var(--ink);
+  }
+
+  .opacityState5 {
+    opacity: 0.7;
+    --action-base-opacity: 0.7;
+  }
+
+  .opacityState6 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+
+  .opacityState7 {
+    opacity: 0.7;
+    --action-base-opacity: 0.7;
+  }
+
+  .opacityState8 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+
+  .opacityState9 {
+    opacity: 0.7;
+    --action-base-opacity: 0.7;
+  }
+
+  .opacityState10 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+
+  .opacityState11 {
+    opacity: 0.7;
+    --action-base-opacity: 0.7;
+  }
+
+  .opacityState12 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+
+  .appearanceState5 {
+    background-color: var(--ink);
+    border-color: var(--ink);
+  }
+
+  .appearanceState6 {
+    background-color: var(--olive);
+    border-color: var(--olive);
+  }
+
+  .appearanceState7 {
+    background-color: #e4d9c8;
+    border-color: #6b5344;
+  }
+
+  .appearanceState8 {
+    background-color: #f3eee4;
+    border-color: var(--border);
+  }
+
+  .borderWidthState {
+    border-width: 1.5px;
+  }
+
+  .borderWidthState2 {
+    border-width: 1px;
+  }
+
+  .appearanceState9 {
+    font-size: 12px;
+    font-family: var(--font-body);
+    font-weight: 400;
+  }
+
+  .appearanceState10 {
+    font-size: 12px;
+    font-family: var(--font-body);
+    font-weight: 400;
+  }
+
+  .colorState5 {
+    color: var(--paper);
+  }
+
+  .colorState6 {
+    color: var(--ink);
+  }
+}

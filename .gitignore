@@ -106,3 +106,10 @@ tooling/scripts/*.out.txt
 tooling/operations/*.out.txt
 tooling/legacy/*.out.txt
 docs/VPS-INFRA-PROBE.txt
+
+# Next.js output and browser-test reports
+.next/
+out/
+playwright-report/
+test-results/
+/apps/backend/backups/

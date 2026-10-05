@@ -1,0 +1,217 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .div {
+    overflow: hidden;
+    background-color: var(--editor-background, #fff);
+    border-width: var(--editor-border-width, 1px);
+    border-color: var(--editor-border-color, var(--border));
+    border-radius: var(--editor-radius, 10px);
+    min-height: var(--editor-min-height, 200px);
+  }
+
+  .editorInputWithBar {
+    flex: 1;
+    min-height: 168px;
+    padding-bottom: 8px;
+    padding-left: var(--editor-padding, 14px);
+    padding-right: var(--editor-padding, 14px);
+    padding-top: var(--editor-padding, 14px);
+    font-size: var(--editor-font-size, 15px);
+    color: var(--editor-color, var(--ink));
+    line-height: var(--editor-line-height, 22px);
+    font-family: var(--editor-font-family, inherit);
+  }
+
+  .inlineToolbar {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-top-width: 1px;
+    border-top-color: var(--border);
+    background-color: #faf7f1;
+  }
+
+  .formatBtnActive {
+    width: 34px;
+    height: 32px;
+    border-radius: 8px;
+    border-width: 1px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .formatBtnTextActive {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .formatBtnTextActive2 {
+    font-size: 15px;
+    font-style: italic;
+  }
+
+  .formatBtn {
+    width: 34px;
+    height: 32px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: var(--border);
+    background-color: #fff;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .formatHint {
+    flex: 1;
+    font-size: 12px;
+    color: #7a6b5e;
+    margin-left: 4px;
+  }
+
+  .action {
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+    margin-top: 10px;
+    align-self: flex-start;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .previewToggleText {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .previewBox {
+    margin-top: 8px;
+    padding: 14px;
+    border-radius: 10px;
+    background-color: #f3eee4;
+    border-width: 1px;
+    border-color: var(--border);
+  }
+
+  .linkModalOverlay {
+    flex: 1;
+    background-color: rgba(0, 0, 0, 0.35);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .linkModalCard {
+    width: 88%;
+    max-width: 360px;
+    background-color: var(--paper);
+    border-radius: 14px;
+    padding: 16px;
+    border-width: 1px;
+    border-color: var(--border);
+  }
+
+  .linkModalTitle {
+    font-size: 16px;
+    font-family: EBGaramond-SemiBold;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+
+  .linkModalInput {
+    border-width: 1px;
+    border-color: var(--border);
+    border-radius: 8px;
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    font-size: 14px;
+    color: var(--ink);
+    background-color: #fff;
+  }
+
+  .linkModalActions {
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .linkModalCancel {
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .linkModalCancelText {
+    font-size: 14px;
+    color: #7a6b5e;
+  }
+
+  .linkModalApply {
+    background-color: var(--muted);
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-radius: 16px;
+  }
+
+  .linkModalApplyText {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--paper);
+  }
+  .appearanceState {
+    border-color: var(--muted);
+    background-color: var(--muted);
+  }
+
+  .appearanceState2 {
+    border-color: var(--border);
+    background-color: #fff;
+  }
+
+  .colorState {
+    color: var(--paper);
+  }
+
+  .colorState2 {
+    color: var(--ink);
+  }
+
+  .appearanceState3 {
+    border-color: var(--muted);
+    background-color: var(--muted);
+  }
+
+  .appearanceState4 {
+    border-color: var(--border);
+    background-color: #fff;
+  }
+
+  .colorState3 {
+    color: var(--paper);
+  }
+
+  .colorState4 {
+    color: var(--ink);
+  }
+
+  .opacityState {
+    opacity: 0.75;
+    --action-base-opacity: 0.75;
+  }
+
+  .opacityState2 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+}

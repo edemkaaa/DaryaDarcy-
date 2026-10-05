@@ -1,0 +1,25 @@
+import type { ViewportSize } from "@/shared/browser/viewport";
+
+import { getProductScreenContent } from "./product-screen.content";
+
+export function getProductScreenLayout(viewport: ViewportSize) {
+  const { SCREEN_WIDTH, CAROUSEL_ITEM_WIDTH, CAROUSEL_ITEM_HEIGHT } =
+    getProductScreenContent(viewport);
+  const stylesLayout = {
+    coverImage: {
+      width: SCREEN_WIDTH * 0.88,
+    },
+    coverImagePng: {
+      width: SCREEN_WIDTH * 0.72,
+    },
+    carouselItem: {
+      width: CAROUSEL_ITEM_WIDTH,
+      height: CAROUSEL_ITEM_HEIGHT,
+    },
+    zoomImage: {
+      width: SCREEN_WIDTH - 32,
+      height: SCREEN_WIDTH * 1.2,
+    },
+  };
+  return { stylesLayout };
+}

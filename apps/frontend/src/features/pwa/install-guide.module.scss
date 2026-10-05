@@ -1,0 +1,102 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .stepRow {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .stepIcon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background-color: rgba(245, 237, 224, 0.95);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .step {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--brown);
+  }
+
+  .backdrop {
+    flex: 1;
+    background-color: rgba(60, 42, 26, 0.45);
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .action {
+    position: absolute;
+    inset: 0;
+  }
+
+  .card {
+    background-color: var(--paper);
+    border-radius: 12px;
+    padding-left: 22px;
+    padding-right: 22px;
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+
+  .kicker {
+    font-family: var(--font-wordmark);
+    letter-spacing: 2px;
+    font-size: 20px;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .title {
+    font-family: var(--font-bold);
+    font-size: 22px;
+    color: var(--brown);
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .body {
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--brown);
+    text-align: center;
+    margin-bottom: 14px;
+  }
+
+  .steps {
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .action2 {
+    align-self: center;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(245, 237, 224, 0.95);
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-radius: 8px;
+  }
+
+  .buttonText {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--brown);
+    letter-spacing: 0.6px;
+  }
+  .opacityState {
+    opacity: 0.7;
+    --action-base-opacity: 0.7;
+  }
+}

@@ -5,6 +5,7 @@ import * as db from "../db";
 import { storagePut } from "../storage";
 import { photoInput, uploadPhoto } from "../media/photos";
 import { importVideoFromUrl } from "../admin-video";
+import { postAttachmentInput } from "../content/post-attachments";
 import { sendMarketingPostNotification as sendNewPostNotification } from "../push";
 import { isRawMediaFilename } from "../../../../packages/shared/src/media-label";
 import {
@@ -26,6 +27,7 @@ export const adminRouter = router({
         photos: z.array(z.string()),
         tags: z.array(z.string()),
         videos: z.array(z.string()).optional(),
+        attachments: z.array(postAttachmentInput).max(100).optional(),
         source: z.string().default("manual"),
         published: z.boolean().default(true),
         sortOrder: z.number().default(0),
@@ -45,6 +47,7 @@ export const adminRouter = router({
         published,
         status,
         videos = [],
+        attachments,
         ...rest
       } = input;
       const text = sanitizePlainPostText(rest.text);
@@ -76,7 +79,7 @@ export const adminRouter = router({
               ? new Date(publishedAt)
               : null,
       };
-      const postId = await db.createPostWithVideos(postData, videos);
+      const postId = await db.createPostWithVideos(postData, videos, { attachments });
       if (resolvedStatus === "published") {
         void sendNewPostNotification(text, postId, rest.target);
       }
@@ -92,6 +95,8 @@ export const adminRouter = router({
         photos: z.array(z.string()).optional(),
         tags: z.array(z.string()).optional(),
         videos: z.array(z.string()).optional(),
+        attachments: z.array(postAttachmentInput).max(100).optional(),
+        removedMediaIds: z.array(z.number().int().positive()).max(100).optional(),
         published: z.boolean().optional(),
         sortOrder: z.number().optional(),
         status: z.enum(["draft", "scheduled", "published"]).optional(),
@@ -102,7 +107,7 @@ export const adminRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
-      const { id, scheduledAt, publishedAt, videos, ...data } = input;
+      const { id, scheduledAt, publishedAt, videos, attachments, removedMediaIds, ...data } = input;
       const updateData: Partial<InsertPost> = { ...data };
       if (typeof data.text === "string") {
         updateData.text = sanitizePlainPostText(data.text);
@@ -135,7 +140,7 @@ export const adminRouter = router({
       if (publishedAt !== undefined) {
         updateData.publishedAt = publishedAt ? new Date(publishedAt) : null;
       }
-      const publication = await db.savePostEdit(id, updateData, videos);
+      const publication = await db.savePostEdit(id, updateData, videos, { attachments, removedMediaIds });
       if (publication)
         void sendNewPostNotification(
           publication.text,

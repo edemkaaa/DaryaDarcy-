@@ -7,6 +7,7 @@ import { grantClubAccess } from "./billing/grants";
 import { confirmPostPublication, type PostPublication } from "./content/publication";
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
 import { createPostWithVideos as persistNewPost } from "./content/post-creator";
+import type { PostAttachmentChanges } from "./content/post-attachments";
 import { replacePostVideoRows } from "./content/post-videos";
 import {
   MARKETING_PUSH_CONSENT_VERSION,
@@ -515,10 +516,11 @@ export async function createPost(data: InsertPost): Promise<number> {
 export async function createPostWithVideos(
   data: InsertPost,
   videos: string[],
+  attachments: PostAttachmentChanges = {},
 ): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return persistNewPost(db, data, videos);
+  return persistNewPost(db, data, videos, attachments);
 }
 
 export async function updatePost(id: number, data: Partial<InsertPost>): Promise<void> {
@@ -532,10 +534,11 @@ export async function savePostEdit(
   id: number,
   data: Partial<InsertPost>,
   videos?: string[],
+  attachments: PostAttachmentChanges = {},
 ): Promise<PostPublication | undefined> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return persistPostEdit(db, id, data, videos);
+  return persistPostEdit(db, id, data, videos, attachments);
 }
 
 export async function deletePost(id: number): Promise<void> {

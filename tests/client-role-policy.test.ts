@@ -1,10 +1,9 @@
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
-vi.mock("react-native", () => ({ Platform: { OS: "web" } }));
-let isOwnerUser: typeof import("../apps/frontend/constants/oauth").isOwnerUser;
+let isOwnerUser: typeof import("../apps/frontend/src/shared/config/api").isOwnerUser;
 beforeAll(async () => {
-  vi.stubEnv("EXPO_PUBLIC_OWNER_EMAIL", "owner@example.test");
-  vi.stubEnv("EXPO_PUBLIC_OWNER_OPEN_ID", "legacy-owner-id");
-  ({ isOwnerUser } = await import("../apps/frontend/constants/oauth"));
+  vi.stubEnv("NEXT_PUBLIC_OWNER_EMAIL", "owner@example.test");
+  vi.stubEnv("NEXT_PUBLIC_OWNER_OPEN_ID", "legacy-owner-id");
+  ({ isOwnerUser } = await import("../apps/frontend/src/shared/config/api"));
 });
 afterAll(() => vi.unstubAllEnvs());
 it("uses an explicit administrator role for owner controls", () => {

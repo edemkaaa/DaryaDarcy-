@@ -89,6 +89,7 @@ describe("publication notification follows successful persistence", () => {
         status: "published",
       }),
       [],
+      { attachments: undefined, removedMediaIds: undefined },
     );
   });
   it("does not reannounce an already published post", async () => {

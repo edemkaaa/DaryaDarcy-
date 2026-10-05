@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commentCountLabel, COMMENT_CHAR_LIMIT } from "@/lib/comment-count-label";
+import { commentCountLabel, COMMENT_CHAR_LIMIT } from "@/domain/post/comment-count-label";
 
 describe("commentCountLabel", () => {
   it("declines Russian comment counts", () => {

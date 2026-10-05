@@ -1,0 +1,390 @@
+// Original product copy and imagery: shelf and detail have distinct presentations.
+export interface ShelfProduct {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  price: string;
+  imageUrl: string;
+  type: "book" | "digital";
+  links: {
+    name: string;
+    url: string;
+  }[];
+}
+
+export const SHELF_PRODUCTS: ShelfProduct[] = [
+  {
+    id: "book-1",
+    title: "Книга Вдохновения",
+    subtitle: "Сезонные рецепты, стиль и идеи домашнего декора",
+    description:
+      "Путеводитель по миру Slow Living. Сезонные рецепты, стиль, идеи домашнего декора и вдохновение на каждый день.",
+    price: "",
+    imageUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/24c37be76c6e-lURmCnSESVWSORUh.webp",
+    type: "book",
+    links: [
+      {
+        name: "Wildberries",
+        url: "https://www.wildberries.ru/catalog/41571054/detail.aspx?size=83497342",
+      },
+    ],
+  },
+  {
+    id: "book-2",
+    title: "Тропинка к Творчеству",
+    subtitle: "Рукотворная уютная жизнь",
+    description:
+      "Новая книга от Дарьи Дарси о рукотворной уютной жизни. Вдохновение, творчество и красота в каждом дне.",
+    price: "",
+    imageUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/02ac70f42cc6-RleAncWBrOTmRsWP.webp",
+    type: "book",
+    links: [
+      {
+        name: "Wildberries",
+        url: "https://www.wildberries.ru/catalog/583300940/detail.aspx?size=797386247",
+      },
+    ],
+  },
+  {
+    id: "book-3",
+    title: "Романтика Дачи",
+    subtitle: "Традиции прошлого и уютная загородная жизнь",
+    description:
+      "Книга о загородной жизни, традициях прошлого, детских воспоминаниях и уютной загородной жизни настоящего.",
+    price: "",
+    imageUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/61940224ff85-PbhSAqAqJmSvelQW.webp",
+    type: "book",
+    links: [
+      {
+        name: "Wildberries",
+        url: "https://www.wildberries.ru/catalog/149198904/detail.aspx?size=250442622",
+      },
+    ],
+  },
+  {
+    id: "digital-1",
+    title: "Пособие по атмосферной фотографии",
+    subtitle: "Создаём атмосферные фотографии",
+    description:
+      "Подробное пособие о том, как создавать атмосферные, тёплые фотографии в стиле cottagecore. Обработка, свет, композиция.",
+    price: "",
+    imageUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/f74380dbb7e5-LhJhOevOxDNnKdkT.webp",
+    type: "digital",
+    links: [],
+  },
+  {
+    id: "digital-2",
+    title: "Винтажные книги и открытки",
+    subtitle: "Мастер-класс по дизайну обложек",
+    description:
+      "Мастер-класс по созданию винтажных обложек для книг и открыток. Дизайн, типографика, иллюстрации в стиле daryadarcy.",
+    price: "",
+    imageUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/78b61d3f13ad-ecZVWefzXRwRboPv.webp",
+    type: "digital",
+    links: [],
+  },
+];
+
+export interface Product {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  price: string;
+  coverUrl: string;
+  imageUrl: string;
+  type: "book" | "digital";
+  links: {
+    name: string;
+    url: string;
+    size?: "primary" | "secondary";
+  }[];
+  details?: string[];
+  aboutTitle?: string;
+  gallery?: string[];
+  reviews?: {
+    text: string;
+    author?: string;
+  }[];
+  reviewImages?: string[];
+}
+
+export const PRODUCT_DETAILS: Product[] = [
+  {
+    id: "book-1",
+    title: "Книга Вдохновения",
+    subtitle: "Сезонные рецепты, стиль и идеи домашнего декора",
+    aboutTitle: "О чём эта книга?",
+    description:
+      "Конечно же, о вдохновении! На атмосферную, эстетичную и немного сказочную повседневность, на поиск радости и красоты в простых вещах. Содержание разделено на 4 части по временам года, и в каждой собраны сезонные рецепты, мастер-классы по вышивке и декору дома, главы о стиле, уютных делах, подготовке к праздникам...\n\nЯ мечтала создать такую книгу, к которой хотелось бы возвращаться каждый месяц за небольшой порцией вдохновения и напоминанием, что счастье в простом и очень близком. Это не художественное произведение по своему жанру, но, мне кажется, что именно таким оно получилось — очень художественным. С поэтичными описаниями и образами, с медовыми фотографиями, рисованными рамочками на состаренных страницах.\n\nЭта книга наполнена теплом и любовью, и поселилась уже в 40000 домах. Пусть она согреет и вас!",
+    price: "",
+    coverUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/cover.webp",
+    imageUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/b8106c44719f-tlMfbAYBCxFjOQfm.webp",
+    type: "book",
+    links: [
+      { name: "Ozon", url: "https://ozon.ru/t/1fcfQng", size: "primary" },
+      {
+        name: "Wildberries",
+        url: "https://www.wildberries.ru/catalog/41571054/detail.aspx?size=83497342",
+        size: "primary",
+      },
+      {
+        name: "Купить в Европе",
+        url: "https://kniga.lv/shop/kniga-vdohnovenija-sezonnye-recepty-stil-i-idei-domashnego-dekora-na-kazhdoe-vremja-goda",
+        size: "secondary",
+      },
+      {
+        name: "На сайте издательства",
+        url: "https://shop.kp.ru/Kniga-vdohnoveniya-Sezonnie-recepti-stil-i-idei-domashnego-dekora-na-kajdoe-vremy-goda-797194.html",
+        size: "secondary",
+      },
+    ],
+    details: [
+      "Автор: Дарья Левина",
+      "Формат: 25.5 × 19.7 см",
+      "192 страницы",
+      "Твёрдая обложка",
+      "Мелованная бумага",
+      "Полноцветная печать",
+    ],
+    gallery: [
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6129.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6133.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6130.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6127.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6131.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6132.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6126.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6128.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6125.jpg",
+    ],
+  },
+  {
+    id: "book-2",
+    title: "Тропинка к Творчеству",
+    subtitle: "Рукотворная уютная жизнь",
+    description:
+      "О чём же эта книга? Я описываю её как подорожник для каждой творческой души. В ней переплетается как психологическая часть творчества, так и практические идеи, мастер-классы, рецепты, упражнения! Вместе мы будем искать вдохновение, набираться уверенности, чтобы начать делиться своими творениями, я постараюсь помочь справиться с трудными моментами и не опускать руки!\n\nСезонное вдохновение пронизывает всю книгу, и вы чётко будете различать его от разворота к развороту, но в этот раз она не разбита на 4 части по сезонам, как предыдущие. Она действительно как извилистая тропинка с непредсказуемыми поворотами, которая в итоге приведет вас к совершенно новому взгляду на творчество и реализацию себя!\n\nЧто касается оформления, то вас ждёт самое тёплое и уютное издание, которое ощущается как лоскутное одеяло. Акварельные иллюстрации и рамочки на каждом развороте, огромное количество элементов, которые можно рассматривать часами, насыщенная, но приятная глазу цветовая гамма.\n\nМой личный фаворит из всех трёх книг!",
+    price: "",
+    coverUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-2/cover.webp",
+    imageUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/13d6a513f39b-nJGBnjSsHvYTlKyD.webp",
+    type: "book",
+    links: [
+      { name: "Ozon", url: "https://ozon.ru/t/7GNGr2o", size: "primary" },
+      {
+        name: "Wildberries",
+        url: "https://www.wildberries.ru/catalog/583300940/detail.aspx?size=797386247",
+        size: "primary",
+      },
+      {
+        name: "Купить в Европе",
+        url: "https://kniga.lv/shop/tropinka-k-tvorchestvu-rukotvornaja-ujutnaja-zhizn",
+        size: "secondary",
+      },
+      {
+        name: "На сайте издательства",
+        url: "https://shop.kp.ru/Kniga-Tropinka-k-tvorchestvu-Rukotvornaya-uyutnaya-jizn-797872.html",
+        size: "secondary",
+      },
+    ],
+    details: [
+      "Автор: Дарья Левина",
+      "Формат: 24.0 × 19.7 см",
+      "192 страницы",
+      "Твёрдая обложка",
+      "Мелованная бумага",
+      "Акварельные иллюстрации",
+      "Мастер-классы, рецепты, упражнения",
+    ],
+    gallery: [
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-2/cover-shelf.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-2/toc.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-2/autumn.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-2/crafts.jpg",
+    ],
+  },
+  {
+    id: "book-3",
+    title: "Романтика Дачи",
+    subtitle: "Традиции, воспоминания, вдохновение",
+    aboutTitle: "Что вы найдёте на состаренных страницах этой книги?",
+    description:
+      "~ эстетику дореволюционной России и главы об истории возникновения дач, архитектуре, традициях, досуге, гардеробе первых дачников и многое, многое другое.\n\n~ личные главы с моими дачными воспоминаниями: душевные рассказы о моём детстве, любимых щитовых домиках на шести сотках и дорогих людях.\n\n~ главы о переделке нашей сказочной дачи, советы по обустройству, дизайну, сочетанию цветов и стилей. Всё о том, как сохранить или создать с нуля ту самую неповторимую дачную атмосферу!\n\n~ Сезонное вдохновение: как провести каждое время года на даче волшебно и уютно. Здесь вы встретите и мои советы по дачному гардеробу, и списки дел, и секреты «медленной» жизни.\n\nКонечно же, в каждой главе спрятаны рецепты! Простые, вкусные, красивые. А ещё мастер-классы по декору, коллажи, акварельные иллюстрации и скетчи, рисованные от руки рамочки и тёплые фотографии.\n\nЭто очень личная и душевная книга станет украшением дачи или загородного дома, подарит вдохновение и ощущение летнего отдыха.",
+    price: "",
+    coverUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/cover.webp",
+    imageUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/94b5bebfd7f4-IbTlGDtcIAJBcJAR.webp",
+    type: "book",
+    links: [
+      { name: "Ozon", url: "https://ozon.ru/t/j7o7PNl", size: "primary" },
+      {
+        name: "Wildberries",
+        url: "https://www.wildberries.ru/catalog/149198904/detail.aspx?size=250442622",
+        size: "primary",
+      },
+      {
+        name: "Купить в Европе",
+        url: "https://kniga.lv/shop/romantika-dachi",
+        size: "secondary",
+      },
+      {
+        name: "На сайте издательства",
+        url: "https://shop.kp.ru/Kniga-Romantika-dachi-Tradicii-proshlogo-detskie-vospominaniya-i-uyutnaya-zagorodnaya-zhizn-nastoyashchego-797521.html",
+        size: "secondary",
+      },
+    ],
+    details: [
+      "Автор: Дарья Левина",
+      "Формат: 25.5 × 19.7 см",
+      "192 страницы",
+      "Твёрдая обложка",
+      "Мелованная бумага",
+      "Рецепты, мастер-классы, акварельные иллюстрации",
+    ],
+    gallery: [
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/cover-shelf.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/toc.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/book-desk.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/spread-life.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/spread-pokoy.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/spread-makeover.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/book-open.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/spread-wardrobe.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/spread-clothes.jpg",
+    ],
+  },
+  {
+    id: "digital-1",
+    title: "Пособие по атмосферной фотографии",
+    subtitle: "Электронная книга-курс в формате PDF",
+    description:
+      "Это электронная книга-курс (в формате PDF), в которой я делюсь всеми своими секретами и приёмами; очень простым языком объясняю техническую сторону и теорию фотографии; вдохновляю на творчество и смелое выражение себя.\n\nВсего в пособии 8 глав:\n\n~ Техническая сторона фотографии (обещаю, что вы за несколько минут раз и навсегда разберётесь со всеми настройками и ручным режимом съёмки)\n~ Свет (каким бывает свет, как с ним работать, его влияние на атмосферу)\n~ Цвет (гармоничные сочетания цветов и цветовые схемы)\n~ Композиция (лучшие композиционные приёмы и ракурсы с подробным разбором на примерах)\n~ Реквизит (где искать и хранить реквизит для съёмок, как создавать его самому и сочетать в кадре)\n~ Психологические аспекты фотографии (что ещё влияет на атмосферность и душевность кадров?)\n~ Обработка (описание каждой настройки и подробный алгоритм действий, мои любимые приложения и секреты тёплых, медовых фотографий)\n~ Собственный стиль (моя личная история поиска собственного стиля, разбор эстетик и советы по созданию собственной, а также список фильмов, развивающих эстетический вкус)\n\nПособие оформлено как старинная книга: с фактурной обложкой, ботаническими иллюстрациями и сокровищами на пожелтевших страницах: винтажными ножницами, ключами, медальонами... Чтобы листая его, вы могли вдохновиться на творчество и создание собственной красоты!",
+    price: "50 \u20bd",
+    coverUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/vjdQHvFhVxKjVyWq.webp",
+    imageUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/76751795802b-cvPWAEJjkmXMKPjM.webp",
+    type: "digital",
+    links: [{ name: "Оплатить", url: "prodamus:digital-1", size: "primary" }],
+    details: [
+      "Автор: Дарья Левина",
+      "Формат: PDF",
+      "8 глав",
+      "136+ страниц",
+      "Ботанические иллюстрации",
+      "Цифровой продукт — мгновенная доставка",
+    ],
+    gallery: [
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/PBfYGmrZAiWpzHvD.JPG",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/aaDcJuCLOeCrHfxk.JPG",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/nZoznAbRePJnvALl.JPG",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/VTdmWRaePLfvfgrq.JPG",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/aNIPzDLqCSCRrrKT.JPG",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/mltnKcpNhCFwXkYN.JPG",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/KmoncPQbMmceOtFu.jpeg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/OpGQZMvzgVXxbwhN.jpeg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/moLPhaYtFBzPVhrp.jpeg",
+    ],
+    reviews: [
+      {
+        text: "Хочу поблагодарить Вас за прекрасное пособие по атмосферной фотографии. Я прочитала его с огромным удовольствием и пользуюсь полученными знаниями. Отдельно хотелось бы остановится на оформлении. Очень красивая книга с особой аурой, как и все что вы делаете. Приятный цвет страниц, чудесные иллюстрации вашими фотографиями. Сам материал шикарно изложен, даже новичку все понятно. Особенно понравилась глава про эстетику. Книга не похожа на сухую методичку, как многие другие книги по фотографии, она больше напоминает художественную литературу. Спасибо большое за то что поделились своими знаниями:)",
+      },
+      {
+        text: "Это Пособие способно изменить взгляд на фотографию! Кроме того, что техническая сторона теперь не кажется такой пугающе сложной, а знания о свете, цвете и композиции наконец разложены по полочкам в голове, самое ценное — это бесконечная вера автора в нас, читателей. Она верит, что каждый из нас уже имеет свой собственный стиль и может творить, главное — делать это регулярно. А для того, чтобы развить свой потенциал быстрее, интереснее и проще, Пособие подходит как нельзя лучше!",
+      },
+      {
+        text: "Очень благодарна за ваше пособие, оно волшебное! Его так легко и приятно изучать, невероятно вдохновляет, а главное, в нём собрано именно то, что нужно! Оттягивала изучение настроек фотоаппарата, казалось, что сейчас не готова столько много сложной информации усвоить. Но с вашим пособием всё оказалось очень просто. Визуальное оформление пособия — отдельное удовольствие, я в восторге!",
+      },
+      {
+        text: "Я в восторге от пособия. Отозвалось и ответило на те вопросы, которые волновали именно меня. Спасибо!!!",
+      },
+      {
+        text: "Огромное Вам спасибо за пособие! Читается как художественная книга. Читаю и не хочется останавливаться. Первый раз прочла залпом. Просто было очень интересно. Как в детективе — а что же дальше? Написано очень доступно и понятно. А примеры фото просто завораживают. Многое хочется сразу повторить.",
+      },
+      {
+        text: "Вы не думаете об издании печатного варианта? Очень хочется именно полистать, перечитать, положить на прикроватную тумбочку это волшебство.",
+      },
+      {
+        text: "Я в восторге от вашего Пособия по созданию атмосферных фотографий! Очень много ценной информации и по настройке камеры, и по композиции, по свету, по подбору реквизита, с подробным объяснением его применения. А оформление Пособия — это просто нереальная красота, получаешь не только ценные знания, но и истинное эстетическое удовольствие. Спасибо огромное, за такую замечательную возможность прикоснуться к прекрасному и получить новый стимул для творчества!",
+      },
+      {
+        text: "Читая пособие я прыгала от радости! Потому что нашла ответы на все свои вопросы, поняла в каком стиле хочу фотографировать и получила кучу вдохновения. Ваше пособие это лучшее что я читала на тему фотографии. Простой и полезный текст и потрясающее оформление.",
+      },
+      {
+        text: "Спасибо огромное за чудесное Пособие! Великолепные фотографии, которые можно рассматривать бесконечно, отличные рекомендации по техническим вопросам. Информация подана совершенно по-новому, искренне и с душой. Ничего общего с обычной сухостью учебников по фото. Я в восторге, и очень хотела бы купить такую печатную книгу.",
+      },
+      {
+        text: "Это самое доступное для понимания и самое полезное пособие, которое я когда-либо видела. Все настолько легко и понятно написано, что все само моментально запоминается. Кроме того, в нем очень много фотографий, что придаёт пособию ещё больше атмосферы уюта и тепла. После прочтения появляется столько вдохновения, что руки сами тянутся что-нибудь поснимать.",
+        author: "rudyuk_anastasia",
+      },
+      {
+        text: "Даша, добрый день! Мой отзыв о Вашем пособии по фотографии будет длинным, но сказать кратко я не смогу, потому что переполнена эмоциями и благодарностью! Я влюбилась в Ваши фотоработы с первого взгляда. Будучи преданным поклонником истории, я просто не могла пройти мимо той атмосферы, которой пронизана Ваша страница. Вы тонкая, изящная, вдохновляющая. И все это отражено в Ваших работах. Я читала пособие на одном дыхании, и знаете, о чем думала? Как бы я хотела вживую учиться у такого мастера, как Вы!",
+      },
+      {
+        text: "Ознакомилась с вашим пособием. Оно прекрасно!!! Столько много полезной информации, неочевидных мелочей, которые превращают обычное фото в иллюстрацию сказки! Все написано очень доступно, тепло, как-будто не просто прочитал инструкцию, а поговорил с хорошим другом. А самое главное, что вы очень вдохновляете! Спасибо вам за ваше творчество!",
+      },
+      {
+        text: "Ваше пособие невероятно вдохновляющее. И спасибо, что выделили самое главное, без воды и пафоса! Я впервые перевела камеру в режим М. Раньше это было настолько боязно, что я боялась даже начать разобраться, ибо понимала, какой объем специфической информации нужно переработать, чтобы найти всего несколько нужных мне опций! Благодарю!",
+        author: "galina_kykolkina",
+      },
+      {
+        text: "Дарья, вы моё вдохновение! Именно встретившись с вашим творчеством я увидела вектор своего развития. А благодаря вашему пособию теперь знаю как воплотить свои творческие задумки! Огромное вам спасибо!",
+        author: "galina_kykolkina",
+      },
+      {
+        text: "Огромная моя сердечная благодарность, дорогая Дарья, за ваше увлекательное, вдохновляющее и познавательное пособие по атмосферной предметной фотографии!!! 100 страниц сплошного удовольствия! Все сложные для меня технические характеристики изложены максимально доступно. Прибегаю к вашему пособию каждый раз для вдохновения и отдохновения. Так приятно полистать страницы, созданные с такой эстетикой, стилем и любовью к фотографии. Всё ваше пособие пропитано теплом и уютным светом.",
+      },
+    ],
+  },
+  {
+    id: "digital-2",
+    title: "Винтажные книги и открытки",
+    subtitle: "Мастер-класс по дизайну обложек",
+    description:
+      "В мастер-класс входит:\n\n~ пошаговая инструкция по созданию «старинных» книг\n~ более 200(!) книжных обложек для скачивания\n~ секреты печати винтажных открыток\n~ более 200(!) винтажных открыток для печати\n~ идеи использования книг и открыток в декоре и на фотографиях\n~ бесконечное вдохновение!\n\nЯ очень старалась сделать его эстетичным и вдохновляющим. Чтобы листая его, вы словно переворачивали пожелтевшие от времени страницы книги, встречая на них цветочный гербарий, почтовые марки и нежные крылья бабочек. Чтобы иллюстрации хотелось разглядывать, а после прочтения появлялось желание творить!",
+    price: "50 \u20bd",
+    coverUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/eWHYEgFyQkkTVIac.webp",
+    imageUrl:
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/b573a5cea177-nNMSLpNDmzQdnfqe.webp",
+    type: "digital",
+    links: [{ name: "Оплатить", url: "prodamus:digital-2", size: "primary" }],
+    details: [
+      "Формат: PDF",
+      "Цифровой продукт",
+      "Мгновенная доставка",
+      "Шаблоны и материалы",
+    ],
+    gallery: [
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/fHBiLIdoOBjhvOYB.JPG", // Содержание
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/SposdtLMcZWpTsyM.JPG", // Фото винтажных книг
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/xGKrarMYfeycHdkb.JPG", // Что входит в мастер-класс
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/GyoFVkxRZaWzdOws.JPG", // Фото с перьями и книгами
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/bqfYlZTjwUTYkjTU.JPG", // Отрывки мастер-класса 1
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/duefjXzIoLGcxdSk.JPG", // Фото с чаем на книгах
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/luiZwEIyLvSFPdXH.JPG", // Отрывки мастер-класса 2
+    ],
+    reviewImages: [
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/fd2a40d2d655-odfxOAxwqkixLoZd.jpeg",
+    ],
+  },
+];
+
+export const PRODUCT_CATALOG = PRODUCT_DETAILS.map((detail) => ({
+  ...detail,
+  shelf: SHELF_PRODUCTS.find((item) => item.id === detail.id)!,
+}));
+export function getProduct(id: string) {
+  return PRODUCT_CATALOG.find((product) => product.id === id);
+}

@@ -1,0 +1,12 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .div {
+    position: absolute;
+  }
+
+  .div2 {
+    position: absolute;
+    inset: 0;
+  }
+}

@@ -1,0 +1,200 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .div {
+    position: absolute;
+    right: 0;
+    width: 18px;
+    height: 70px;
+    z-index: 95;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+    background-color: rgba(92, 64, 51, 0.65);
+  }
+
+  .action {
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .peekHandle {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .peekLine {
+    width: 3px;
+    height: 16px;
+    border-radius: 2px;
+    background-color: rgba(253, 248, 240, 0.75);
+  }
+
+  .div2 {
+    width: 3px;
+    height: 16px;
+    border-radius: 2px;
+    background-color: rgba(253, 248, 240, 0.75);
+    margin-top: 3px;
+  }
+
+  .div3 {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    overflow: hidden;
+    background-color: transparent;
+  }
+
+  .boardFrame {
+    position: absolute;
+    top: 4px;
+    overflow: hidden;
+  }
+
+  .action2 {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 110;
+    width: 28px;
+    height: 28px;
+    border-radius: 14px;
+    background-color: rgba(253, 248, 240, 0.85);
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.15);
+  }
+
+  .drawerContent {
+    position: absolute;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  .tagBoardInner {
+    width: 100%;
+    align-items: center;
+  }
+
+  .tagSection {
+    margin-bottom: 1px;
+    align-items: center;
+    width: 100%;
+  }
+
+  .tagRow {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 2px;
+    margin-bottom: 1px;
+  }
+
+  .action3 {
+    padding-left: 6px;
+    padding-right: 6px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    border-radius: 4px;
+    border-width: 1px;
+    box-shadow: 1px 1px 2px rgba(92, 64, 51, 0.06);
+  }
+
+  .tagChipTextActive {
+    font-family: var(--font-body);
+    font-size: 11px;
+    letter-spacing: 0.05px;
+  }
+
+  .action4 {
+    align-self: center;
+    margin-top: 14px;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-radius: 8px;
+    background-color: rgba(92, 64, 51, 0.1);
+  }
+
+  .clearButtonText {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--brown);
+    letter-spacing: 0.5px;
+  }
+  .opacityState {
+    opacity: 0.6;
+    --action-base-opacity: 0.6;
+  }
+
+  .opacityState2 {
+    opacity: 0.5;
+    --action-base-opacity: 0.5;
+  }
+
+  .transformState {
+    transform: scale(0.9);
+  }
+
+  .opacityState3 {
+    opacity: 0.7;
+    --action-base-opacity: 0.7;
+  }
+
+  .transformState2 {
+    transform: scale(0.95);
+  }
+
+  .appearanceState {
+    background-color: rgba(92, 64, 51, 0.85);
+    border-color: rgba(92, 64, 51, 0.9);
+  }
+
+  .appearanceState2 {
+    background-color: rgba(232, 210, 180, 0.92);
+    border-color: rgba(180, 150, 110, 0.4);
+  }
+
+  .colorState {
+    color: var(--paper);
+  }
+
+  .colorState2 {
+    color: #6b4e37;
+  }
+
+  .opacityState4 {
+    opacity: 0.7;
+    --action-base-opacity: 0.7;
+  }
+
+  .transformState3 {
+    transform: scale(0.95);
+  }
+
+  .appearanceState3 {
+    background-color: rgba(92, 64, 51, 0.85);
+    border-color: rgba(92, 64, 51, 0.9);
+  }
+
+  .appearanceState4 {
+    background-color: rgba(245, 238, 228, 0.92);
+    border-color: rgba(160, 140, 120, 0.3);
+  }
+
+  .colorState3 {
+    color: var(--paper);
+  }
+
+  .colorState4 {
+    color: var(--muted);
+  }
+
+  .opacityState5 {
+    opacity: 0.7;
+    --action-base-opacity: 0.7;
+  }
+}

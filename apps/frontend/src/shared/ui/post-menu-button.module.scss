@@ -1,0 +1,17 @@
+@use "../styles/layers";
+
+@layer elements {
+  .action {
+    padding: 6px;
+    border-radius: 16px;
+  }
+  .opacityState {
+    opacity: 0.5;
+    --action-base-opacity: 0.5;
+  }
+
+  .opacityState2 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+}

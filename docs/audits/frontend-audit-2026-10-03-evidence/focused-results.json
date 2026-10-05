@@ -1,0 +1,95 @@
+[
+  {
+    "scenario": "native login submit contract with JS disabled",
+    "method": "GET",
+    "passwordInURL": true,
+    "form": {
+      "method": "get",
+      "action": null,
+      "hiddenAncestor": true
+    },
+    "limitation": "DOM requestSubmit used because streamed SSR form is hidden without JS in this Next dev response"
+  },
+  {
+    "scenario": "wrong favourites tab",
+    "feedInClub": 2,
+    "page": {
+      "route": "/profile",
+      "url": "http://127.0.0.1:8081/profile",
+      "title": "Профиль · DARYADARCY",
+      "text": "\n\n\n\nЛокальное имя А\n\n\nКлуб Darcy\n\nСОХРАНЁННОЕ\nИз ленты\nИз клуба\nИЗБРАННОЕ_ПОЛЬЗОВАТЕЛЯ_А\nИЗБРАННОЕ_ПОЛЬЗОВАТЕЛЯ_А\n\nЭСТЕТИКА\n\nПройди тест, чтобы узнать свою эстетику\nПройти тест →\n\nМОИ МУДБОРДЫ\n\nЗдесь появится твой мудборд\nСоздать мудборд →\n\nПОДПИСКА НА КЛУБ DARCY\nАктивна\nЕжемесячная подписка 790 ₽\nОтменить подписку\nПродлить клуб →\n\nЗАДАТЬ ВОПРОС\n\nПо подписке\nСпециалист по подпискам\n\nПо приложению\nТехнический специалист\n\nАККАУНТ\naudit-101@example.test\nВыйти\n\nЛента\n\nВидео\n\nКлуб\n\nИнтерактив\n\nБиблиотека\n\nМагазин",
+      "nodes": 157,
+      "images": 2,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [
+        {
+          "tag": "DIV",
+          "height": 768,
+          "scrollHeight": 1508
+        }
+      ]
+    }
+  },
+  {
+    "scenario": "cross-user cache",
+    "oldSavedInB": false,
+    "localNameInB": true,
+    "url": "http://127.0.0.1:8081/profile",
+    "profileSamples": 61,
+    "final": {
+      "route": "/profile",
+      "url": "http://127.0.0.1:8081/profile",
+      "title": "Профиль · DARYADARCY",
+      "text": "\n\n\n\nЛокальное имя А\n\n\nКлуб Darcy\n\nСОХРАНЁННОЕ\nИз ленты\nИз клуба\n\nЗдесь будут сохранённые посты из ленты\n\nЭСТЕТИКА\n\nПройди тест, чтобы узнать свою эстетику\nПройти тест →\n\nМОИ МУДБОРДЫ\n\nЗдесь появится твой мудборд\nСоздать мудборд →\n\nПОДПИСКА НА КЛУБ DARCY\nАктивна\nЕжемесячная подписка 790 ₽\nОтменить подписку\nПродлить клуб →\n\nЗАДАТЬ ВОПРОС\n\nПо подписке\nСпециалист по подпискам\n\nПо приложению\nТехнический специалист\n\nАККАУНТ\naudit-202@example.test\nВыйти\n\nЛента\n\nВидео\n\nКлуб\n\nИнтерактив\n\nБиблиотека\n\nМагазин",
+      "nodes": 159,
+      "images": 2,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": [
+        {
+          "tag": "DIV",
+          "height": 768,
+          "scrollHeight": 1525
+        }
+      ]
+    }
+  },
+  {
+    "scenario": "patterns quiz CTA",
+    "destination": "/"
+  },
+  {
+    "scenario": "locked article long title",
+    "button": {
+      "x": 22,
+      "y": 888.65625,
+      "width": 276,
+      "height": 40
+    },
+    "page": {
+      "route": "/library/article/1",
+      "url": "http://127.0.0.1:8081/library/article/1",
+      "title": "Материал библиотеки · DARYADARCY",
+      "text": "← Назад\nОчень длинное название закрытой статьи Очень длинное название закрытой статьи Очень длинное название закрытой статьи Очень длинное название закрытой статьи Очень длинное название закрытой статьи Очень длинное название закрытой статьи Очень длинное название закрытой статьи \nЭта статья для участниц клуба Darcy.\nВступить в клуб",
+      "nodes": 52,
+      "images": 3,
+      "unlabelledButtons": 0,
+      "dialogs": [],
+      "horizontalOverflow": false,
+      "scrollers": []
+    }
+  },
+  {
+    "scenario": "photo viewer resize",
+    "before": "\n3 / 18",
+    "after": "\n1 / 18",
+    "accessibleName": null
+  },
+  {
+    "scenario": "browser exceptions",
+    "errors": []
+  }
+]

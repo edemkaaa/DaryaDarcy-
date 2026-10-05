@@ -1,0 +1,217 @@
+"use client";
+import { useViewport } from "@/shared/browser/viewport";
+
+import classes from "./avatar-cropper.module.scss";
+import { cssTransform } from "@/shared/ui/css";
+import { Typography, Action } from "@/shared/ui/elements";
+
+import { useState } from "react";
+import { Picture } from "@/shared/media/image";
+import { Gesture, GestureDetector } from "@/shared/browser/gestures";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+} from "@/shared/browser/motion";
+import * as ImageManipulator from "@/shared/media/canvas-image";
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+interface AvatarCropperProps {
+  imageUri: string;
+  imageWidth: number;
+  imageHeight: number;
+  onCrop: (croppedUri: string) => void;
+  onCancel: () => void;
+}
+// ─── Component ──────────────────────────────────────────────────────────────
+export function AvatarCropper({
+  imageUri,
+  imageWidth,
+  imageHeight,
+  onCrop,
+  onCancel,
+}: AvatarCropperProps) {
+  const viewport = useViewport();
+
+  const { width: SCREEN_WIDTH } = viewport;
+  const CIRCLE_SIZE = SCREEN_WIDTH * 0.7;
+  const stylesLayout = {
+    circleFrame: {
+      width: CIRCLE_SIZE,
+      height: CIRCLE_SIZE,
+      borderRadius: CIRCLE_SIZE / 2,
+    },
+  };
+
+  const [cropping, setCropping] = useState(false);
+  // Calculate initial scale to fill the circle
+  const aspectRatio = imageWidth / imageHeight;
+  // Shared values for gestures
+  const scale = useSharedValue(1);
+  const savedScale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const savedTranslateX = useSharedValue(0);
+  const savedTranslateY = useSharedValue(0);
+  // Image display size (fill circle width or height depending on aspect)
+  const displayWidth =
+    aspectRatio >= 1 ? CIRCLE_SIZE : CIRCLE_SIZE * aspectRatio;
+  const displayHeight =
+    aspectRatio >= 1 ? CIRCLE_SIZE / aspectRatio : CIRCLE_SIZE;
+  const pinchGesture = Gesture.Pinch()
+    .onUpdate((e) => {
+      scale.value = Math.max(0.5, Math.min(savedScale.value * e.scale, 4));
+    })
+    .onEnd(() => {
+      if (scale.value < 1) {
+        scale.value = withTiming(1);
+        savedScale.value = 1;
+      } else {
+        savedScale.value = scale.value;
+      }
+    });
+  const panGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      translateX.value = savedTranslateX.value + e.translationX;
+      translateY.value = savedTranslateY.value + e.translationY;
+    })
+    .onEnd(() => {
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+    });
+  const composed = Gesture.Simultaneous(pinchGesture, panGesture);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: cssTransform([
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ]),
+  }));
+  const handleCrop = async () => {
+    setCropping(true);
+    try {
+      // Calculate crop region based on current transform
+      const currentScale = scale.value;
+      const currentTranslateX = translateX.value;
+      const currentTranslateY = translateY.value;
+      // The visible area in the circle corresponds to a region of the original image
+      const scaledDisplayWidth = displayWidth * currentScale;
+      const scaledDisplayHeight = displayHeight * currentScale;
+      // Center of the circle in image coordinates
+      const centerOffsetX =
+        (scaledDisplayWidth - CIRCLE_SIZE) / 2 - currentTranslateX;
+      const centerOffsetY =
+        (scaledDisplayHeight - CIRCLE_SIZE) / 2 - currentTranslateY;
+      // Convert to original image pixels
+      const scaleToOriginalX = imageWidth / scaledDisplayWidth;
+      const scaleToOriginalY = imageHeight / scaledDisplayHeight;
+      const cropX = Math.max(0, Math.round(centerOffsetX * scaleToOriginalX));
+      const cropY = Math.max(0, Math.round(centerOffsetY * scaleToOriginalY));
+      const cropSize = Math.round(CIRCLE_SIZE * scaleToOriginalX);
+      // Ensure crop doesn't exceed image bounds
+      const safeCropX = Math.min(cropX, imageWidth - cropSize);
+      const safeCropY = Math.min(cropY, imageHeight - cropSize);
+      const safeCropSize = Math.min(
+        cropSize,
+        imageWidth - safeCropX,
+        imageHeight - safeCropY,
+      );
+      const manipResult = await ImageManipulator.manipulateAsync(
+        imageUri,
+        [
+          {
+            crop: {
+              originX: Math.max(0, safeCropX),
+              originY: Math.max(0, safeCropY),
+              width: Math.max(100, safeCropSize),
+              height: Math.max(100, safeCropSize),
+            },
+          },
+          { resize: { width: 400, height: 400 } },
+        ],
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      onCrop(manipResult.uri);
+    } catch (error) {
+      console.error("[AvatarCropper] Crop error:", error);
+      // Fallback: just use the original image
+      onCrop(imageUri);
+    } finally {
+      setCropping(false);
+    }
+  };
+  return (
+    <div className={["ui-stack ", classes.container].filter(Boolean).join(" ")}>
+      <Typography className={classes.title}>Выбери область</Typography>
+      <Typography className={classes.hint}>
+        Двигай и масштабируй фото
+      </Typography>
+
+      {/* Crop area */}
+      <div
+        className={["ui-stack ", classes.cropContainer]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {/* Dark overlay with circular cutout */}
+        <div
+          style={{
+            width: stylesLayout.circleFrame.width,
+            height: stylesLayout.circleFrame.height,
+            borderRadius: stylesLayout.circleFrame.borderRadius,
+          }}
+          className={["ui-stack ", classes.circleFrame]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          <GestureDetector gesture={composed}>
+            <Animated.div style={animatedStyle} className={classes.div}>
+              <Picture
+                source={{ uri: imageUri }}
+                style={{ width: displayWidth, height: displayHeight }}
+                contentFit="contain"
+              />
+            </Animated.div>
+          </GestureDetector>
+        </div>
+      </div>
+
+      {/* Buttons */}
+      <div
+        className={["ui-stack ", classes.buttonRow].filter(Boolean).join(" ")}
+      >
+        <Action
+          onClick={onCancel}
+          className={({ pressed }) =>
+            [classes.action, pressed ? classes.opacityState : ""]
+              .filter(Boolean)
+              .join(" ")
+          }
+        >
+          <Typography className={classes.cancelButtonText}>Отмена</Typography>
+        </Action>
+        <Action
+          onClick={handleCrop}
+          disabled={cropping}
+          className={({ pressed }) =>
+            [
+              classes.action2,
+              pressed ? classes.transformState : "",
+              cropping
+                ? classes.opacityState2
+                : pressed
+                  ? classes.opacityState3
+                  : "",
+            ]
+              .filter(Boolean)
+              .join(" ")
+          }
+        >
+          <Typography className={classes.confirmButtonText}>
+            {cropping ? "..." : "Готово"}
+          </Typography>
+        </Action>
+      </div>
+    </div>
+  );
+}

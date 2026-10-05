@@ -1,0 +1,122 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .banner {
+    width: 100%;
+    aspect-ratio: 3;
+    background-color: #e8e0d4;
+  }
+
+  .pad {
+    padding-left: 22px;
+    padding-right: 22px;
+    padding-bottom: 20px;
+  }
+
+  .title {
+    font-size: 30px;
+    line-height: 36px;
+    font-family: var(--font-bold);
+    color: #3d3028;
+    text-align: center;
+    margin-top: 22px;
+    margin-bottom: 8px;
+  }
+
+  .byline {
+    text-align: center;
+    color: var(--muted);
+    font-family: var(--font-italic);
+    font-size: 14px;
+    margin-bottom: 22px;
+  }
+
+  .heading {
+    font-size: 22px;
+    font-family: var(--font-bold);
+    color: #3d3028;
+    text-align: center;
+    margin-top: 28px;
+    margin-bottom: 16px;
+  }
+
+  .body {
+    font-size: 17px;
+    font-family: var(--font-body);
+    color: #3d3028;
+    line-height: 27px;
+    margin-bottom: 16px;
+  }
+
+  .inlineLink {
+    color: var(--muted);
+    text-decoration-line: underline;
+    font-family: var(--font-italic);
+  }
+
+  .bold {
+    font-family: var(--font-bold);
+  }
+
+  .pngWrap {
+    align-items: center;
+  }
+
+  .mediaBlock {
+    margin-bottom: 16px;
+  }
+
+  .caption {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 18px;
+    font-family: var(--font-italic);
+    color: #a89880;
+    text-align: center;
+  }
+
+  .linkBtn {
+    align-self: center;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+
+  .linkBtnText {
+    color: var(--muted);
+    font-family: var(--font-italic);
+    font-size: 17px;
+    text-decoration-line: underline;
+  }
+
+  .carouselWrap {
+    margin-left: -22px;
+    margin-right: -22px;
+  }
+
+  .carouselList {
+    padding-left: 22px;
+    padding-right: 22px;
+    gap: 8px;
+  }
+
+  .carouselItem {
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: #ede6da;
+  }
+
+  .carouselImage {
+    width: 100%;
+    height: 100%;
+  }
+  .appearanceState {
+    width: 86%;
+    background-color: transparent;
+  }
+
+  .appearanceState2 {
+    width: 100%;
+    background-color: #e8e0d4;
+  }
+}

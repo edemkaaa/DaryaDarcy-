@@ -1,0 +1,81 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .scroll {
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-bottom: 48px;
+    padding-top: 8px;
+  }
+
+  .back {
+    align-self: flex-start;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .backText {
+    font-family: var(--font-body);
+    color: var(--muted);
+    font-size: 15px;
+  }
+
+  .kicker {
+    letter-spacing: 2px;
+    text-align: center;
+    color: var(--muted);
+    font-family: var(--font-wordmark);
+    font-size: 22px;
+    margin-top: 8px;
+  }
+
+  .title {
+    margin: 0;
+    font-weight: 400;
+    font-family: var(--font-body);
+    font-size: 26px;
+    color: var(--brown);
+    text-align: center;
+    margin-top: 10px;
+    line-height: 32px;
+  }
+
+  .date {
+    font-family: var(--font-italic);
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 8px;
+    margin-bottom: 12px;
+  }
+
+  .legalLink {
+    align-self: center;
+    margin-bottom: 20px;
+  }
+
+  .legalLinkText {
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--brown);
+    text-decoration-line: underline;
+  }
+
+  .block {
+    margin-bottom: 18px;
+    gap: 8px;
+  }
+
+  .heading {
+    font-family: EBGaramond-SemiBold;
+    font-size: 17px;
+    color: var(--brown);
+  }
+
+  .body {
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--brown);
+    line-height: 22px;
+  }
+}

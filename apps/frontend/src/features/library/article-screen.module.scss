@@ -1,0 +1,76 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .bg {
+    flex: 1;
+    background-color: var(--paper);
+  }
+
+  .back {
+    align-self: flex-start;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .backText {
+    color: var(--muted);
+    font-size: 16px;
+    font-family: var(--font-italic);
+  }
+
+  .center {
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .body {
+    font-size: 17px;
+    font-family: var(--font-body);
+    color: #3d3028;
+    line-height: 27px;
+    margin-bottom: 16px;
+  }
+
+  .banner {
+    width: 100%;
+    aspect-ratio: 3;
+    background-color: #e8e0d4;
+  }
+
+  .pad {
+    padding-left: 22px;
+    padding-right: 22px;
+    padding-bottom: 20px;
+  }
+
+  .title {
+    font-size: 30px;
+    line-height: 36px;
+    font-family: var(--font-bold);
+    color: #3d3028;
+    text-align: center;
+    margin-top: 22px;
+    margin-bottom: 8px;
+  }
+
+  .clubBtn {
+    margin-top: 16px;
+    background-color: var(--muted);
+    border-radius: 10px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    align-items: center;
+  }
+
+  .clubBtnText {
+    color: var(--paper);
+    font-weight: 700;
+  }
+
+  .scroll {
+    padding-bottom: 72px;
+  }
+}

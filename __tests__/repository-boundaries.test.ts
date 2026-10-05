@@ -34,10 +34,11 @@ describe("repository ownership boundaries", () => {
     expect(existsSync(resolve(repositoryRoot, "drizzle"))).toBe(false);
   });
 
-  it("owns the universal client inside the frontend application", () => {
-    expect(existsSync(resolve(repositoryRoot, "apps/frontend/app/_layout.tsx"))).toBe(
+  it("owns the Next.js client and preserves the Expo source separately", () => {
+    expect(existsSync(resolve(repositoryRoot, "apps/frontend/src/app/layout.tsx"))).toBe(
       true,
     );
+    expect(existsSync(resolve(repositoryRoot, "apps/legacy-expo/app/_layout.tsx"))).toBe(true);
     expect(existsSync(resolve(repositoryRoot, "app"))).toBe(false);
     expect(existsSync(resolve(repositoryRoot, "components"))).toBe(false);
   });

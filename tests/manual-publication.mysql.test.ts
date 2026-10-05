@@ -373,6 +373,27 @@ describe.skipIf(!testDatabaseUrl)(
       expect(media).toEqual([]);
       expect(transport.announcements).toEqual([]);
     });
+    it("does not report attachment save success when the post no longer exists", async () => {
+      await expect(
+        admin.admin.updatePost.mutate({
+          id: 11405,
+          attachments: [
+            {
+              type: "audio",
+              url: "https://assets.example.test/orphan.mp3",
+              filename: "Lesson.mp3",
+              mimeType: "audio/mpeg",
+              fileSize: 5,
+            },
+          ],
+        }),
+      ).rejects.toMatchObject({ data: { code: "NOT_FOUND" } });
+      const [media] = await conn.query<RowDataPacket[]>(
+        "SELECT id FROM post_media WHERE postId=11405",
+      );
+      expect(media).toEqual([]);
+      expect(transport.announcements).toEqual([]);
+    });
     async function waitForPostWriters(count: number) {
       await vi.waitFor(
         async () => {
@@ -586,6 +607,150 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       return { created, media };
     }
+    const audio = {
+      type: "audio" as const,
+      url: "https://assets.example.test/create-audio.mp3",
+      filename: "Lesson.mp3",
+      mimeType: "audio/mpeg",
+      fileSize: 5,
+    };
+    it("creates a post with audio and documents committed before announcing", async () => {
+      const id = await admin.admin.createPost.mutate({
+        ...creationInput,
+        attachments: [
+          audio,
+          {
+            ...audio,
+            type: "document",
+            url: "https://assets.example.test/create-guide.pdf",
+            filename: "Guide.pdf",
+            mimeType: "application/pdf",
+          },
+        ],
+      });
+      const [rows] = await conn.query<RowDataPacket[]>(
+        "SELECT type,filename,mimeType,fileSize FROM post_media WHERE postId=? ORDER BY id",
+        [id],
+      );
+      expect(rows).toEqual([
+        {
+          type: "audio",
+          filename: "Lesson.mp3",
+          mimeType: "audio/mpeg",
+          fileSize: 5,
+        },
+        {
+          type: "document",
+          filename: "Guide.pdf",
+          mimeType: "application/pdf",
+          fileSize: 5,
+        },
+      ]);
+      expect(transport.announcements).toEqual([
+        { id, text: "Created post", target: "club" },
+      ]);
+    });
+    it("rolls back new posts and earlier media when an attachment insert fails", async () => {
+      await conn.query(`CREATE TRIGGER backend_test_attachment_create_failure BEFORE INSERT ON post_media FOR EACH ROW
+        BEGIN IF NEW.url='https://assets.example.test/create-broken.pdf' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Fixture attachment failure'; END IF; END`);
+      try {
+        await expect(
+          admin.admin.createPost.mutate({
+            ...creationInput,
+            videos: ["https://assets.example.test/create-good.mp4"],
+            attachments: [
+              audio,
+              {
+                ...audio,
+                type: "document",
+                url: "https://assets.example.test/create-broken.pdf",
+              },
+            ],
+          }),
+        ).rejects.toThrow();
+        expect(await creationSnapshot()).toEqual({ created: [], media: [] });
+        expect(transport.announcements).toEqual([]);
+      } finally {
+        await conn.query("DROP TRIGGER backend_test_attachment_create_failure");
+      }
+    });
+    it("edits a published post and removes its document without a second announcement", async () => {
+      await conn.query(
+        "UPDATE posts SET status='published',published=TRUE WHERE id=11402",
+      );
+      await admin.admin.updatePost.mutate({
+        id: 11402,
+        text: "Revised",
+        status: "published",
+        attachments: [audio],
+        removedMediaIds: [11412],
+      });
+      const snapshot = await editSnapshot();
+      expect(snapshot.post).toMatchObject({
+        text: "Revised",
+        status: "published",
+        published: 1,
+      });
+      expect(snapshot.media.map((row) => row.type)).toEqual(["video", "audio"]);
+      expect(transport.announcements).toEqual([]);
+    });
+    it("rolls back text, visibility, videos and removals when attachment persistence fails", async () => {
+      await conn.query(
+        "UPDATE posts SET status='published',published=TRUE WHERE id=11402",
+      );
+      const before = await editSnapshot();
+      await conn.query(`CREATE TRIGGER backend_test_attachment_edit_failure BEFORE INSERT ON post_media FOR EACH ROW
+        BEGIN IF NEW.postId=11402 AND NEW.type='audio' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Fixture attachment failure'; END IF; END`);
+      try {
+        await expect(
+          admin.admin.updatePost.mutate({
+            id: 11402,
+            text: "Revised",
+            status: "published",
+            videos: [],
+            attachments: [audio],
+            removedMediaIds: [11412],
+          }),
+        ).rejects.toThrow();
+        expect(await editSnapshot()).toEqual(before);
+        expect(transport.announcements).toEqual([]);
+      } finally {
+        await conn.query("DROP TRIGGER backend_test_attachment_edit_failure");
+      }
+    });
+    it("cannot remove another post's attachment or use attachment removal to delete a video", async () => {
+      const before = await editSnapshot();
+      for (const id of [11412, 11411]) {
+        await expect(
+          admin.admin.updatePost.mutate({
+            id: id === 11412 ? 11403 : 11402,
+            text: "Must not commit",
+            removedMediaIds: [id],
+          }),
+        ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } });
+      }
+      expect(await editSnapshot()).toEqual(before);
+      expect((await state(11403)).status).toBe("published");
+      expect(transport.announcements).toEqual([]);
+    });
+    it.each([
+      "not-a-url",
+      "javascript:alert(1)",
+      "https://user:password@example.test/audio.mp3",
+    ])(
+      "rejects unsafe attachment URLs at the API boundary: %s",
+      async (url) => {
+        await expect(
+          admin.admin.createPost.mutate({
+            ...creationInput,
+            attachments: [{ ...audio, url }],
+          }),
+        ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } });
+        expect(await creationSnapshot()).toEqual({ created: [], media: [] });
+      },
+    );
     it("does not retain a new published post when its second video insert fails", async () => {
       await conn.query(`CREATE TRIGGER backend_test_create_media_failure BEFORE INSERT ON post_media FOR EACH ROW
         BEGIN IF NEW.url='https://assets.example.test/create-broken.mp4' THEN

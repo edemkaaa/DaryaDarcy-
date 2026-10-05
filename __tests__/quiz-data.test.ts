@@ -1,56 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from "vitest";
-
-// Mock all image requires globally before importing quiz-data
-// Landscapes (.jpg)
-vi.mock("@/assets/quiz/landscapes/cottagecore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/landscapes/goblincore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/landscapes/witchcore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/landscapes/castlecore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/landscapes/fairycore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/landscapes/dark-academia.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/landscapes/light-academia.jpg", () => "mock-img");
-// Shelters (.jpg)
-vi.mock("@/assets/quiz/shelters/cottagecore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/shelters/goblincore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/shelters/witchcore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/shelters/castlecore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/shelters/fairycore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/shelters/dark-academia.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/shelters/light-academia.jpg", () => "mock-img");
-// Outfits (.jpg)
-vi.mock("@/assets/quiz/outfits/cottagecore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/outfits/goblincore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/outfits/witchcore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/outfits/castlecore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/outfits/fairycore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/outfits/dark-academia.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/outfits/light-academia.jpg", () => "mock-img");
-// Animals (.png with transparency)
-vi.mock("@/assets/quiz/animals/cottagecore.png", () => "mock-img");
-vi.mock("@/assets/quiz/animals/goblincore.webp", () => "mock-img");
-vi.mock("@/assets/quiz/animals/witchcore.png", () => "mock-img");
-vi.mock("@/assets/quiz/animals/castlecore.png", () => "mock-img");
-vi.mock("@/assets/quiz/animals/fairycore.png", () => "mock-img");
-vi.mock("@/assets/quiz/animals/dark-academia.png", () => "mock-img");
-vi.mock("@/assets/quiz/animals/light-academia.png", () => "mock-img");
-// Artifacts (.jpg)
-vi.mock("@/assets/quiz/artifacts/cottagecore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/artifacts/goblincore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/artifacts/witchcore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/artifacts/castlecore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/artifacts/fairycore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/artifacts/dark-academia.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/artifacts/light-academia.jpg", () => "mock-img");
-// Houses (.jpg)
-vi.mock("@/assets/quiz/houses/cottagecore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/houses/goblincore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/houses/witchcore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/houses/castlecore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/houses/fairycore.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/houses/dark-academia.jpg", () => "mock-img");
-vi.mock("@/assets/quiz/houses/light-academia.jpg", () => "mock-img");
-// Chest (.png)
-vi.mock("@/assets/quiz/chest.webp", () => "mock-img");
+import { describe, it, expect } from "vitest";
 
 import {
   QUESTIONS,
@@ -59,7 +7,7 @@ import {
   calculateResult,
   createEmptyScores,
   type AestheticKey,
-} from "@/lib/quiz-data";
+} from "@/domain/quiz/quiz-data";
 
 describe("Quiz Data", () => {
   it("should have exactly 10 questions", () => {

@@ -27,9 +27,12 @@ verify:
     - pnpm check:docs
     - pnpm check:boundaries
     - pnpm check
+    - pnpm check:api
     - pnpm test
     - pnpm build
     - pnpm build:web
+    - pnpm --filter @daryadarcy/frontend exec playwright install --with-deps chromium
+    - pnpm test:frontend
     - pnpm test:regression
   artifacts:
     paths: [dist/index.mjs]

@@ -1,0 +1,233 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .actionSheetOverlay {
+    flex: 1;
+    background-color: rgba(0, 0, 0, 0.4);
+    justify-content: flex-end;
+  }
+
+  .actionSheetContainer {
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-bottom: 34px;
+    gap: 8px;
+  }
+
+  .actionSheetContent {
+    background-color: var(--paper);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .actionSheetItemPressed {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .actionSheetText {
+    font-size: 16px;
+    color: var(--ink);
+    font-family: var(--font-body);
+  }
+
+  .actionSheetDivider {
+    height: 1px;
+    background-color: var(--border);
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+
+  .typography {
+    font-size: 16px;
+    color: #a85c5c;
+    font-family: var(--font-body);
+  }
+
+  .actionSheetItemPressed2 {
+    border-radius: 14px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    align-items: center;
+  }
+
+  .actionSheetCancelText {
+    font-size: 16px;
+    color: var(--muted);
+    font-weight: 600;
+    font-family: EBGaramond-SemiBold;
+  }
+
+  .modalContainer {
+    flex: 1;
+    background-color: var(--paper);
+  }
+
+  .modalHeader {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--border);
+  }
+
+  .modalTitle {
+    font-size: 17px;
+    font-family: EBGaramond-SemiBold;
+    color: var(--ink);
+  }
+
+  .action {
+    background-color: var(--muted);
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    border-radius: 16px;
+  }
+
+  .saveBtnText {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--paper);
+  }
+
+  .formScroll {
+    flex: 1;
+  }
+
+  .formContent {
+    padding: 16px;
+    gap: 20px;
+    padding-bottom: 40px;
+  }
+
+  .tagHint {
+    font-size: 14px;
+    color: #7a6b5e;
+    font-family: var(--font-italic);
+    margin-bottom: 4px;
+  }
+
+  .tagsGrid {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tagChipRubricSelected {
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-radius: 16px;
+  }
+
+  .tagChipTextSelected {
+    font-size: 14px;
+  }
+
+  .tagCount {
+    font-size: 13px;
+    color: var(--muted);
+    font-family: EBGaramond-SemiBold;
+    margin-top: 12px;
+    text-align: center;
+  }
+  .backgroundColorState {
+    background-color: rgba(139, 115, 85, 0.08);
+  }
+
+  .backgroundColorState2 {
+    background-color: rgba(139, 115, 85, 0.08);
+  }
+
+  .backgroundColorState3 {
+    background-color: rgba(139, 115, 85, 0.08);
+  }
+
+  .backgroundColorState4 {
+    background-color: rgba(139, 115, 85, 0.08);
+  }
+
+  .backgroundColorState5 {
+    background-color: var(--paper);
+  }
+
+  .opacityState {
+    opacity: 0.6;
+    --action-base-opacity: 0.6;
+  }
+
+  .opacityState2 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+
+  .opacityState3 {
+    opacity: 0.7;
+    --action-base-opacity: 0.7;
+  }
+
+  .opacityState4 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+
+  .appearanceState {
+    background-color: var(--ink);
+    border-color: var(--ink);
+  }
+
+  .appearanceState2 {
+    background-color: var(--muted);
+    border-color: var(--muted);
+  }
+
+  .appearanceState3 {
+    background-color: #e4d9c8;
+    border-color: #6b5344;
+  }
+
+  .appearanceState4 {
+    background-color: #eee9e0;
+    border-color: #d8d2c6;
+  }
+
+  .borderWidthState {
+    border-width: 1.5px;
+  }
+
+  .borderWidthState2 {
+    border-width: 1px;
+  }
+
+  .fontWeightState {
+    font-weight: 400;
+  }
+
+  .fontFamilyState {
+    font-family: var(--font-body);
+  }
+
+  .fontFamilyState2 {
+    font-family: var(--font-body);
+  }
+
+  .colorState {
+    color: var(--paper);
+  }
+
+  .colorState2 {
+    color: var(--ink);
+  }
+}

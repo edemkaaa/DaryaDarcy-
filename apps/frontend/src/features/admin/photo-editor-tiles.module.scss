@@ -1,0 +1,34 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .dragging.dragging {
+    opacity: 0.62;
+    box-shadow: 0 4px 10px rgba(74, 55, 40, 0.35);
+  }
+  .dropTarget.dropTarget {
+    border-width: 2px;
+    border-color: #8fa87a;
+  }
+  .thumbImage.thumbImage,
+  .thumbSurface.thumbSurface {
+    width: 100%;
+    height: 100%;
+  }
+  .carouselImage.carouselImage {
+    height: 240px;
+    border-radius: 10px;
+    background-color: #eee9e0;
+  }
+  .carouselSurface.carouselSurface {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .gridImage.gridImage {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    background-color: #eee9e0;
+  }
+}

@@ -1,0 +1,170 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .loadingContainer {
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding-top: 60px;
+  }
+
+  .loadingText {
+    font-size: 14px;
+    color: #7a6b5e;
+  }
+
+  .scrollArea {
+    flex: 1;
+  }
+
+  .container {
+    padding: 16px;
+    padding-bottom: 40px;
+  }
+
+  .sectionTitle {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-top: 16px;
+    margin-bottom: 8px;
+    font-family: EBGaramond-SemiBold;
+  }
+
+  .cardsRow {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .card {
+    flex: 1;
+    background-color: var(--paper);
+    border-radius: 12px;
+    padding: 14px;
+    align-items: center;
+    gap: 6px;
+    border-width: 1px;
+    border-color: var(--border);
+  }
+
+  .cardNumber {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    font-family: var(--font-bold);
+  }
+
+  .cardLabel {
+    font-size: 11px;
+    color: #7a6b5e;
+    text-align: center;
+  }
+
+  .breakdownCard {
+    background-color: var(--paper);
+    border-radius: 12px;
+    padding: 14px;
+    gap: 10px;
+    border-width: 1px;
+    border-color: var(--border);
+  }
+
+  .breakdownRow {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .div {
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    background-color: #4caf50;
+  }
+
+  .breakdownLabel {
+    flex: 1;
+    font-size: 14px;
+    color: var(--ink);
+  }
+
+  .breakdownValue {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .div2 {
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    background-color: #ff9800;
+  }
+
+  .div3 {
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    background-color: #9e9e9e;
+  }
+
+  .typography {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .rankNumber {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    width: 24px;
+  }
+
+  .topPostText {
+    flex: 1;
+    font-size: 13px;
+    color: var(--ink);
+  }
+
+  .likesBadge {
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+    background-color: #fff0f0;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    border-radius: 10px;
+  }
+
+  .likesCount {
+    font-size: 12px;
+    font-weight: 600;
+    color: #e57373;
+  }
+
+  .div4 {
+    height: 40px;
+  }
+  .colorState {
+    color: #4caf50;
+  }
+
+  .colorState2 {
+    color: #e57373;
+  }
+
+  .borderTopWidthState {
+    border-top-width: 1px;
+  }
+
+  .borderTopColorState {
+    border-top-color: var(--border);
+  }
+
+  .paddingTopState {
+    padding-top: 8px;
+  }
+}

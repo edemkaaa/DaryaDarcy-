@@ -3,16 +3,17 @@ const auth = vi.hoisted(() => ({
   setSessionToken: vi.fn(),
   getSessionToken: vi.fn(async () => null),
 }));
-vi.mock("../apps/frontend/constants/oauth", () => ({
-  getApiBaseUrl: () => "https://api.example.test",
+vi.mock("../apps/frontend/src/shared/config/api", () => ({
+  apiUrl: (path: string) => "https://api.example.test" + path,
 }));
-vi.mock("../apps/frontend/lib/_core/auth", () => auth);
+vi.mock("../apps/frontend/src/domain/session/storage", () => auth);
 import {
   apiCall,
-  getAppCapabilities,
   requestPasswordInstructions,
   registerWithEmail,
-} from "../apps/frontend/lib/_core/api";
+  logout,
+} from "../apps/frontend/src/shared/api/auth";
+import { getAppCapabilities } from "../apps/frontend/src/shared/api/capabilities";
 let fetcher: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   auth.setSessionToken.mockReset();
@@ -23,6 +24,21 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
+it("accepts the backend's confirmed logout response", async () => {
+  fetcher.mockResolvedValue(new Response(JSON.stringify({ success: true })));
+  await expect(logout()).resolves.toBeUndefined();
+  expect(fetcher).toHaveBeenCalledWith(
+    "https://api.example.test/api/auth/logout",
+    expect.objectContaining({ method: "POST", credentials: "include" }),
+  );
+});
+it.each([{}, { success: false }, { success: "true" }, { ok: true }, null])(
+  "rejects an unconfirmed logout response: %j",
+  async (body) => {
+    fetcher.mockResolvedValue(new Response(JSON.stringify(body)));
+    await expect(logout()).rejects.toThrow();
+  },
+);
 it("requests instructions without issuing or saving a login session", async () => {
   fetcher.mockResolvedValue(
     new Response(

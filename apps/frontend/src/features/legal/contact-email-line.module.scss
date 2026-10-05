@@ -1,0 +1,17 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .typography {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 18px;
+    text-align: center;
+  }
+
+  .typography2 {
+    font-family: EBGaramond-SemiBold;
+    color: var(--olive);
+    text-decoration-line: underline;
+  }
+}

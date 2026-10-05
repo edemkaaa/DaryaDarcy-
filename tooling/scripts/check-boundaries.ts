@@ -16,7 +16,7 @@ export function inspectBoundary(file: string, source: string, root: string): str
     let targetPath: string | undefined;
     if (specifier.startsWith(".")) targetPath = resolve(dirname(file), specifier);
     else if (specifier.startsWith("@shared/")) targetPath = resolve(root, "packages/shared/src", specifier.slice(8));
-    else if (specifier.startsWith("@/")) targetPath = resolve(root, "apps/frontend", specifier.slice(2));
+    else if (specifier.startsWith("@/")) targetPath = resolve(root, "apps/frontend/src", specifier.slice(2));
     else if (specifier.startsWith("@daryadarcy/")) {
       const [name, ...rest] = specifier.slice(12).split("/");
       const base = ["shared", "database"].includes(name) ? "packages" : "apps";

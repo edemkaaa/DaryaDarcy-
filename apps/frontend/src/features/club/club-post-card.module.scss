@@ -1,0 +1,171 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .postCard {
+    border-radius: 16px;
+    overflow: hidden;
+    border-width: 1px;
+    border-color: rgba(139, 115, 85, 0.12);
+    margin-left: 20px;
+    margin-right: 20px;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.04);
+  }
+
+  .postCardInner {
+    overflow: hidden;
+    border-radius: 16px;
+  }
+
+  .backgroundimage {
+    border-radius: 16px;
+  }
+
+  .postPhotoWrap {
+    position: relative;
+    width: 100%;
+    background-color: transparent;
+  }
+
+  .photoMenu {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    background-color: rgba(253, 248, 240, 0.9);
+    border-radius: 16px;
+  }
+
+  .postContent {
+    padding: 16px;
+    gap: 6px;
+  }
+
+  .menuOnlyRow {
+    align-items: flex-end;
+    margin-bottom: 4px;
+  }
+
+  .postPreview {
+    font-size: 17px;
+    font-family: var(--font-body);
+    color: #3c2a1a;
+    line-height: 24px;
+    margin-top: 0;
+  }
+
+  .readArticleBtn {
+    align-self: flex-start;
+    margin-top: 8px;
+  }
+
+  .readArticleText {
+    font-size: 16px;
+    font-family: var(--font-italic);
+    font-style: normal;
+    color: var(--olive);
+  }
+
+  .postTagsRow {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .postTagRubric {
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    justify-content: center;
+    align-items: center;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .postTagRubricText {
+    font-size: 13px;
+    line-height: 16px;
+    font-family: var(--font-body);
+    font-weight: 400;
+    letter-spacing: 0.15px;
+  }
+
+  .postActions {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top-width: 1px;
+    border-top-color: rgba(139, 115, 85, 0.1);
+  }
+
+  .postDate {
+    font-size: 12px;
+    font-family: var(--font-body);
+    color: #a89880;
+    margin-top: 4px;
+  }
+
+  .div {
+    flex: 1;
+  }
+
+  .action {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .picture {
+    width: 30px;
+    height: 30px;
+  }
+  .opacityState {
+    opacity: 0.92;
+    --action-base-opacity: 0.92;
+  }
+
+  .backgroundColorState {
+    background-color: rgba(92, 64, 51, 0.16);
+  }
+
+  .backgroundColorState2 {
+    background-color: rgba(143, 168, 122, 0.22);
+  }
+
+  .colorState {
+    color: var(--brown);
+  }
+
+  .colorState2 {
+    color: var(--olive);
+  }
+
+  .opacityState2 {
+    opacity: 0.6;
+    --action-base-opacity: 0.6;
+  }
+
+  .opacityState3 {
+    opacity: 1;
+  }
+
+  .opacityState4 {
+    opacity: 0.4;
+  }
+
+  .opacityState5 {
+    opacity: 0.6;
+    --action-base-opacity: 0.6;
+  }
+
+  .opacityState6 {
+    opacity: 1;
+  }
+
+  .opacityState7 {
+    opacity: 0.4;
+  }
+}

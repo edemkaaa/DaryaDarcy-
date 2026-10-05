@@ -6,6 +6,11 @@ import {
 } from "../../../../packages/database/src/schema";
 import type { PostPublication } from "./publication";
 import { replacePostVideoRows } from "./post-videos";
+import {
+  savePostAttachments,
+  type PostAttachmentChanges,
+} from "./post-attachments";
+import { TRPCError } from "@trpc/server";
 
 /** Save a normalized partial edit and optional videos as one committed change. */
 export async function savePostEdit(
@@ -13,6 +18,7 @@ export async function savePostEdit(
   postId: number,
   data: Partial<InsertPost>,
   videos?: string[],
+  attachments: PostAttachmentChanges = {},
 ): Promise<PostPublication | undefined> {
   return database.transaction(async (tx) => {
     const [post] = await tx
@@ -27,7 +33,17 @@ export async function savePostEdit(
       .from(posts)
       .where(eq(posts.id, postId))
       .for("update");
-    if (!post) return undefined;
+    if (!post) {
+      if (
+        attachments.attachments?.length ||
+        attachments.removedMediaIds?.length
+      )
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Публикация не найдена",
+        });
+      return undefined;
+    }
 
     const updateData = { ...data };
     if (data.status !== undefined)
@@ -41,6 +57,7 @@ export async function savePostEdit(
     if (Object.values(updateData).some((value) => value !== undefined))
       await tx.update(posts).set(updateData).where(eq(posts.id, postId));
     if (videos !== undefined) await replacePostVideoRows(tx, postId, videos);
+    await savePostAttachments(tx, postId, attachments);
 
     // The locked previous visibility picks one owner, shared with manual/timed
     // publication. Plain corrections and legacy flag-only edits are not a push.

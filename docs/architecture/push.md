@@ -1,10 +1,10 @@
 # Push-уведомления
 
-В проекте есть нативная интеграция Expo Push для iOS и Android. Для web, включая браузеры Android/iPhone, Web Push не реализован: [web-регистрация](../../apps/frontend/lib/register-push.web.ts) — пустая реализация, а [серверный флаг webPush](../../apps/backend/src/launch/capabilities.ts) равен false.
+В проекте есть нативная интеграция Expo Push для iOS и Android. Для web, включая браузеры Android/iPhone, Web Push не реализован: [web-регистрация](../../apps/legacy-expo/lib/register-push.web.ts) — пустая реализация, а [серверный флаг webPush](../../apps/backend/src/launch/capabilities.ts) равен false.
 
 ## Где находится код
 
-- [Нативная регистрация устройства](../../apps/frontend/lib/register-push.ts).
+- [Нативная регистрация устройства](../../apps/legacy-expo/lib/register-push.ts).
 - [Серверная отправка](../../apps/backend/src/push.ts).
 - [tRPC: токены и согласия](../../apps/backend/src/notifications/router.ts).
 - [Текст и версия согласия](../../packages/shared/src/push-consent.ts).

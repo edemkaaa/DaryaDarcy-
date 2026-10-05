@@ -1,7 +1,7 @@
 import {
   formatInspirationList,
   stripInspirationDescription,
-} from "@/lib/inspiration-titles";
+} from "@/domain/post/inspiration-titles";
 
 describe("stripInspirationDescription", () => {
   it("removes trailing description after em dash", () => {

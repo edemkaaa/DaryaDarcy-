@@ -1,0 +1,43 @@
+@use "../styles/layers";
+
+@layer elements {
+  .div {
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    gap: 12px;
+  }
+
+  .hint {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .message {
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .action {
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    border-radius: 8px;
+    background-color: var(--olive);
+  }
+
+  .buttonText {
+    font-family: EBGaramond-SemiBold;
+    font-size: 16px;
+    color: var(--paper);
+  }
+  .opacityState {
+    opacity: 0.85;
+    --action-base-opacity: 0.85;
+  }
+}

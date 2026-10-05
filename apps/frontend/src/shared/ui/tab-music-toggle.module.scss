@@ -1,0 +1,31 @@
+@use "../styles/layers";
+
+@layer elements {
+  .buttonActive {
+    width: 34px;
+    height: 34px;
+    border-radius: 17px;
+    align-items: center;
+    justify-content: center;
+    border-width: 1px;
+  }
+  .appearanceState {
+    background-color: var(--muted);
+    border-color: var(--muted);
+  }
+
+  .appearanceState2 {
+    background-color: rgba(61, 46, 31, 0.6);
+    border-color: rgba(212, 196, 168, 0.5);
+  }
+
+  .opacityState {
+    opacity: 0.7;
+    --action-base-opacity: 0.7;
+  }
+
+  .opacityState2 {
+    opacity: 1;
+    --action-base-opacity: 1;
+  }
+}

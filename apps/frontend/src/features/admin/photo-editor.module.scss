@@ -1,0 +1,142 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .picture {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: none;
+    pointer-events: none;
+  }
+
+  .div {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: none;
+  }
+
+  .thumbStrip {
+    margin-top: 10px;
+  }
+
+  .measuredBox {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-right: 8px;
+    position: relative;
+    border-width: 1px;
+    border-color: var(--border);
+  }
+
+  .thumbIndex {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 10px;
+    color: #fff;
+    font-weight: 700;
+    text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8);
+  }
+
+  .div2 {
+    height: 240px;
+    margin-right: 0;
+    position: relative;
+  }
+
+  .measuredBox2 {
+    height: 240px;
+  }
+
+  .dragHint {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--font-italic);
+  }
+
+  .div3 {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: none;
+  }
+
+  .measuredBox3 {
+    position: relative;
+  }
+
+  .removeBtn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    background-color: #a85c5c;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+  }
+
+  .indexBadge {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    background-color: rgba(0, 0, 0, 0.55);
+    border-radius: 4px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    z-index: 2;
+  }
+
+  .indexText {
+    font-size: 10px;
+    color: #fff;
+    font-weight: 700;
+  }
+
+  .reorderRow {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    flex-direction: row;
+    gap: 4px;
+    z-index: 2;
+  }
+
+  .reorderBtn {
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.55);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .replaceBtn {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    background-color: rgba(74, 55, 40, 0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+  }
+}

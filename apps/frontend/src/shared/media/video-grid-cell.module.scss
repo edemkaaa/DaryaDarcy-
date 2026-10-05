@@ -1,0 +1,77 @@
+@use "../styles/layers";
+
+@layer elements {
+  .portraitBg {
+    overflow: hidden;
+  }
+
+  .picture {
+    position: absolute;
+    inset: 0;
+  }
+
+  .placeholder {
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: #e8e0d8;
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.22);
+  }
+
+  .playCircle {
+    width: 44px;
+    height: 44px;
+    border-radius: 22px;
+    background-color: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+  }
+  .videoElement {
+    width: 100%;
+    height: 100%;
+  }
+  .widthState {
+    width: 100%;
+  }
+
+  .flexState {
+    flex: 1;
+  }
+
+  .backgroundColorState {
+    background-color: #ede6da;
+  }
+
+  .backgroundColorState2 {
+    background-color: #2a2a2a;
+  }
+
+  .widthState2 {
+    width: 100%;
+  }
+
+  .opacityState {
+    opacity: 0.92;
+    --action-base-opacity: 0.92;
+  }
+
+  .flexState2 {
+    flex: 1;
+  }
+
+  .backgroundColorState3 {
+    background-color: #ede6da;
+  }
+
+  .backgroundColorState4 {
+    background-color: #2a2a2a;
+  }
+}

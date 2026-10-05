@@ -1,0 +1,10 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .item {
+    align-items: center;
+  }
+  .imageMotion {
+    align-items: center;
+  }
+}

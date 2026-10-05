@@ -1,0 +1,69 @@
+[
+  {
+    "scenario": "full quiz",
+    "answered": 10,
+    "route": "/quiz",
+    "url": "http://127.0.0.1:8081/quiz",
+    "title": "Какая твоя сказка? · DARYADARCY",
+    "text": "COTTAGECORE\nДевушка, вернувшая жизнь заброшенному саду\nАРХЕТИП\nХранительница очага\nТвоя сказка\nОднажды она нашла заброшенный дом на краю деревни — с покрытой пылью дубовой мебелью, заросшим садом и кованной калиткой, которую давно никто не открывал. Месяц за месяцем она возвращала ему жизнь: чинила ставни, сажала розы под окном, вешала занавески на окна. Соседи сначала приходили просто посмотреть из любопытства, затем предлагали помощь, а после и вовсе оставались на чай до позднего вечера. И когда однажды утром она вышла на порог с чашкой в руках и увидела цветущий сад, полный птиц и новых дру",
+    "nodes": 121,
+    "images": 3,
+    "unlabelledButtons": 0,
+    "dialogs": [],
+    "horizontalOverflow": false,
+    "scrollers": [
+      {
+        "tag": "DIV",
+        "height": 844,
+        "scrollHeight": 2660
+      }
+    ],
+    "savedResult": "{\"primaryKey\":\"cottagecore\",\"primaryTitle\":\"Девушка, вернувшая жизнь заброшенному саду\",\"secondaryKey\":null,\"isBlend\":false,\"scores\":{\"cottagecore\":21,\"goblincore\":0,\"witchcore\":0,\"castlecore\":0,\"fairycore\":0,\"darkAcademia\":0,\"lightAcademia\":0},\"completedAt\":\"2026-10-03T17:04:02.095Z\"}"
+  },
+  {
+    "scenario": "member club settled",
+    "route": "/club",
+    "url": "http://127.0.0.1:8081/club",
+    "title": "Клуб Darcy · DARYADARCY",
+    "text": "Загрузка страницы…",
+    "nodes": 75,
+    "images": 0,
+    "unlabelledButtons": 0,
+    "dialogs": [],
+    "horizontalOverflow": false,
+    "scrollers": []
+  },
+  {
+    "scenario": "bottom icon margins",
+    "icons": [
+      {
+        "bottom": "4px",
+        "font": "22px"
+      },
+      {
+        "bottom": "4px",
+        "font": "22px"
+      },
+      {
+        "bottom": "4px",
+        "font": "22px"
+      },
+      {
+        "bottom": "4px",
+        "font": "22px"
+      },
+      {
+        "bottom": "4px",
+        "font": "22px"
+      },
+      {
+        "bottom": "4px",
+        "font": "22px"
+      }
+    ]
+  },
+  {
+    "scenario": "browser errors",
+    "errors": []
+  }
+]

@@ -1,0 +1,41 @@
+@use "../styles/layers";
+
+@layer elements {
+  .wrap {
+    width: 100%;
+    position: relative;
+    background-color: #ede6da;
+  }
+
+  .action {
+    overflow: hidden;
+    background-color: #ede6da;
+  }
+
+  .picture {
+    position: absolute;
+    inset: 0;
+  }
+
+  .counter {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.45);
+    border-radius: 12px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .counterText {
+    color: var(--paper);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .opacityState {
+    opacity: 0.92;
+    --action-base-opacity: 0.92;
+  }
+}
