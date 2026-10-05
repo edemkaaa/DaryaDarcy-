@@ -558,6 +558,14 @@
     until the frontend owner regenerates it. Full suite: 851 pass / 2 external S3
     skip with real disposable MySQL backup/restore enabled; types, lint, backend
     build, 422 source boundaries pass. No new dependency/schema/provider.
+  - [x] Raw-video signature validation: the existing HTTP endpoint reuses the
+    canonical MIME policy/isolated detector before storage. Native HTTP/JWT/MySQL
+    reproduced 20 incorrect outcomes before repair; 34 native scenarios plus
+    four injected-failure cases pass. MP4/WebM/MOV container compatibility,
+    URL-only response, live admin/block/revocation and actual 80 MiB HTTP ceiling
+    retained. No frontend/dependency/schema/quota changes. Full suite: 889 pass /
+    2 external S3 skip with disposable MySQL backup/restore enabled. This is not
+    playback/antivirus/provider acceptance or migration of raw wiring to Nest.
   - [ ] Remaining document format/ownership: reviewed Word-specific detector for
     legacy DOC, frontend consumption of canonical standalone upload metadata
     (backend response ready; editor unchanged), and orphan cleanup after failed
@@ -566,7 +574,7 @@
     document boundary. Signatures do not prove absence of active content or
     protect public URLs. Reconcile persisted ownership/references before deletion,
     not on ambiguous SQL errors. Provider/header/privacy acceptance remains open.
-  - [ ] Remaining M05: Raw-video upload, URL imports and other admin wiring; no
+  - [ ] Remaining M05: Raw-video key collision, raw upload/URL import/admin Nest wiring; no
     claim that all content, storage or SQL ownership has been migrated.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.

@@ -7,6 +7,7 @@ vi.mock("../apps/backend/src/_core/sdk", () => ({ sdk: { authenticateRequest: bo
 vi.mock("../apps/backend/src/storage", () => ({ storagePut: boundary.storage }));
 vi.mock("../apps/backend/src/db", () => ({ isOwnerAccount: (user: { role: string }) => user.role === "admin" }));
 import { registerRequestBodies } from "../apps/backend/src/_core/request-bodies";
+import { mp4Fixture } from "./helpers/media-fixtures";
 let server: Server, base: string;
 beforeAll(async () => {
   const app = express(); registerRequestBodies(app);
@@ -30,7 +31,7 @@ it("authenticates raw video before allocating its body", async () => {
   let firstBody: unknown = "not called";
   const authenticate = boundary.auth.getMockImplementation()!;
   boundary.auth.mockImplementation(async req => { if (boundary.auth.mock.calls.length === 1) firstBody = req.body; return authenticate(req); });
-  const response = await fetch(base + "/api/admin/upload-video", { method: "POST", headers: { Authorization: "Bearer admin", "Content-Type": "video/mp4" }, body: "small fixture" });
+  const response = await fetch(base + "/api/admin/upload-video", { method: "POST", headers: { Authorization: "Bearer admin", "Content-Type": "video/mp4" }, body: new Uint8Array(mp4Fixture) });
   expect(response.status).toBe(200); expect(firstBody).toBeUndefined();
 });
 it("bounds public authentication JSON to 16 KiB", async () => { expect((await json("/api/auth/login", 17000)).status).toBe(413); });
@@ -55,7 +56,7 @@ it("keeps storage exception details out of raw upload responses and logs", async
   boundary.storage.mockRejectedValue(new Error("SECRET_STORAGE_ERROR"));
   const log = vi.spyOn(console, "error").mockImplementation(() => {});
   try {
-    const response = await fetch(base + "/api/admin/upload-video", { method: "POST", headers: { Authorization: "Bearer admin", "Content-Type": "video/mp4" }, body: "small fixture" });
+    const response = await fetch(base + "/api/admin/upload-video", { method: "POST", headers: { Authorization: "Bearer admin", "Content-Type": "video/mp4" }, body: new Uint8Array(mp4Fixture) });
     expect(response.status).toBe(500); expect(await response.text()).not.toContain("SECRET_STORAGE_ERROR");
     expect(log.mock.calls.flat().join(" ")).not.toContain("SECRET_STORAGE_ERROR");
   } finally { log.mockRestore(); }

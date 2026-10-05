@@ -1136,6 +1136,29 @@ database/provider/mail settings; the old production/static deploy is not reusabl
 Legacy DOC detector/dependency and dependency audit triage remain explicit gates,
 not presumed covered by this contract repair.
 
+Raw-video signature slice: harden the existing POST /api/admin/upload-video
+without adding a handler or changing authentication/CORS/body quotas. Retain
+pre-parser live admin authorization, repeat authorization in the handler, the
+80 MiB body ceiling, filename query/folder and URL-only success response. Reuse
+the canonical media MIME normalizer and isolated signature detector for video;
+retain video/mp4 as the absent-header default, accept recognized video containers
+and binary picker fallback, reject foreign/unknown bytes and incompatible or
+malformed declared MIME before storage. Store the canonical MIME and original
+bytes. Map only trusted policy BAD_REQUEST failures to safe HTTP 400; worker/
+storage infrastructure failures remain generic 500 without internal messages.
+Native HTTP/JWT/MySQL tests must reproduce acceptance before repair, cover live
+role/block/revocation and compatibility, and keep only storage transport mocked.
+Signature classification does not certify tracks, playback or antivirus. No
+new dependencies, schema, ownership/cleanup, URL import, Nest wiring or frontend
+changes. Timestamp object keys remain a separately testable collision repair.
+
+Raw-video signature checkpoint: 20 native failures reproduced before repair;
+34 native HTTP/JWT/MySQL and four injected-fault cases pass, including actual
+80 MiB HTTP ceiling, MP4/WebM/MOV and live identity changes. Full disposable
+MySQL suite with backup/restore: 889 pass / 2 external S3 skip. Storage transport
+alone is mocked in native cases. Old objects/Word bypass/ownership/privacy remain
+open; raw URL-only contract preserved and no frontend files changed.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.
