@@ -1224,6 +1224,30 @@ The read-only 72-procedure fingerprint remains identical to the URL-import stage
 no frontend generation or new contract change. Superseded admin-video.ts removed.
 Remaining admin/data/worker migrations and release gates are not marked complete.
 
+Admin-content read continuation: wire admin.posts/postsFiltered/scheduledPosts/
+getPostMedia/stats through the existing injected ContentReadService. Keep the
+current schemas, adminProcedure, unpublished/private visibility for admins,
+three ordering rules, ordered attachment metadata, dashboard semantics and
+empty/unavailable results. First characterize real HTTP/JWT/MySQL, then move
+only these reads without a new module/port or fallback composition. Preserve
+the read-only contract fingerprint and run the compiled Node entrypoint.
+No frontend/generated types, schema, auth, provider or deployment changes.
+Unbounded admin catalogs/statistics SQL and all write paths remain separate.
+
+Admin-content read checkpoint: 19 native cases (including compiled ESM HTTP/
+JWT/SQL) pass before/after wiring. Deliberately substituting the public catalog
+makes the unpublished/ordering test fail. Five-suite focused run: 90 pass;
+the old direct-router publication fixture required its new read dependency
+(six failures/type error reproduced, all six pass after composition repair).
+Final unmodified-concurrency full suite: 935 pass / 2 external S3 skip with real
+disposable MySQL backup/restore. Types/lint/build/423-file boundaries pass;
+read-only 72-procedure fingerprint unchanged. Strict check:api remains blocked
+by the older untouched frontend metadata snapshot. One earlier full run failed
+the native toggleSave actor-lock observation; diagnostic/isolated/paired runs
+and final original-test full run passed without proving a cause or fix. Keep
+that investigation open before merge, not hidden by retries/skip/timeouts.
+No staging merge/push/deploy, new dependencies/schema/frontend/auth changes.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

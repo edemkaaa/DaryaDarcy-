@@ -14,9 +14,11 @@ vi.mock("../apps/backend/src/push", () => ({
 import { createAdminRouter } from "../apps/backend/src/admin/router";
 import { ContentWriteService } from "../apps/backend/src/content/content-write.service";
 import { ContentUploadService } from "../apps/backend/src/content/content-upload.service";
+import { ContentReadService } from "../apps/backend/src/content/content-read.service";
 
 const caller = () =>
   createAdminRouter(
+    new ContentReadService(),
     new ContentWriteService(),
     new ContentUploadService(),
   ).createCaller({

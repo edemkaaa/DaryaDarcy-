@@ -30,7 +30,7 @@ export const createAppRouter = (
     feed: createFeedRouter(content, posts),
     notifications: notificationsRouter,
     videos: createVideosRouter(content),
-    admin: createAdminRouter(posts, uploads),
+    admin: createAdminRouter(content, posts, uploads),
     club: createClubRouter(comments),
     penPals: penPalsRouter,
     shop: shopRouter,

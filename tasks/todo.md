@@ -611,6 +611,24 @@
     disposable MySQL backup/restore. Types/lint/backend build/423-file boundaries
     pass; read-only 72-procedure contract fingerprint unchanged. Strict check:api
     remains blocked on the earlier metadata snapshot; no staging merge/deploy.
+  - [x] Admin-content read wiring: five admin queries (posts/postsFiltered/
+    scheduledPosts/getPostMedia/stats) now use the existing injected read service.
+    Same schemas/adminProcedure, private/unpublished catalog, three post ordering
+    rules, ordered metadata and legacy dashboard counts. No extra module,
+    fallback service locator, frontend/schema/dependency/auth-policy change.
+    Nineteen native cases include compiled ESM HTTP/JWT/SQL; public-catalog
+    mutation is detected. Focused 90 pass; the old direct-router publication
+    fixture now supplies the mandatory read dependency (six failures resolved).
+    Final full suite: 935 pass / 2 external S3 skip, disposable backup/restore;
+    types/lint/build/boundaries pass, 72-procedure fingerprint unchanged.
+    Strict check:api remains blocked on the earlier untouched frontend snapshot.
+    Other admin reads/writes and unbounded admin lists/statistics SQL remain open.
+  - [ ] Investigate intermittent concurrency verification: one full run timed out
+    observing the second in-flight toggleSave's MySQL actor lock (native comments
+    suite). Isolated, paired-with-admin and instrumented full runs passed; no
+    cause/fix proven. Final original-test full run passed as well. Temporary
+    diagnostic removed; assertions/timeouts unchanged.
+    Do not call this fixed or conceal it with automatic retries/skip flags.
   - [ ] Remaining M05: Remaining admin service wiring; no
     claim that all content, storage or SQL ownership has been migrated.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance

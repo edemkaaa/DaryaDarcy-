@@ -5,6 +5,31 @@ import * as db from "../db";
 
 @Injectable()
 export class ContentReadService {
+  // Administrative views include private/unpublished content: adapters must use
+  // adminProcedure before calling these reads, never the public feed boundary.
+  listAllAdminPosts() {
+    return db.getAllPostsAdmin();
+  }
+
+  listAdminPosts(input?: {
+    status?: "draft" | "scheduled" | "published";
+    target?: "feed" | "club" | "both";
+  }) {
+    return db.getAdminPostsFiltered(input);
+  }
+
+  listScheduledPosts() {
+    return db.getScheduledPosts();
+  }
+
+  postMedia(postId: number) {
+    return db.getPostMediaByPostId(postId);
+  }
+
+  postStatistics() {
+    return db.getPostStatistics();
+  }
+
   listFeed(tag?: string) {
     return db.getPosts(tag);
   }

@@ -6,12 +6,15 @@ import type { ContentWriteService } from "../content/content-write.service";
 import { createPostInput, updatePostInput } from "../content/post-write-input";
 import type { ContentUploadService } from "../content/content-upload.service";
 import { mediaUploadInput } from "../content/media-upload-input";
+import type { ContentReadService } from "../content/content-read.service";
 
-export const createAdminRouter = (posts: ContentWriteService, uploads: ContentUploadService) => router({
+export const createAdminRouter = (
+  content: ContentReadService,
+  posts: ContentWriteService,
+  uploads: ContentUploadService,
+) => router({
   // Get all posts including unpublished (admin only)
-  posts: adminProcedure.query(() => {
-    return db.getAllPostsAdmin();
-  }),
+  posts: adminProcedure.query(() => content.listAllAdminPosts()),
 
   // Create a new post (admin only)
   createPost: adminProcedure
@@ -49,9 +52,7 @@ export const createAdminRouter = (posts: ContentWriteService, uploads: ContentUp
   // Get media for a post (admin only)
   getPostMedia: adminProcedure
     .input(z.object({ postId: z.number() }))
-    .query(({ input }) => {
-      return db.getPostMediaByPostId(input.postId);
-    }),
+    .query(({ input }) => content.postMedia(input.postId)),
 
   // Delete a media attachment (admin only)
   deleteMedia: adminProcedure
@@ -61,14 +62,10 @@ export const createAdminRouter = (posts: ContentWriteService, uploads: ContentUp
     }),
 
   // Get scheduled posts for calendar (admin only)
-  scheduledPosts: adminProcedure.query(() => {
-    return db.getScheduledPosts();
-  }),
+  scheduledPosts: adminProcedure.query(() => content.listScheduledPosts()),
 
   // Get post statistics for admin dashboard
-  stats: adminProcedure.query(() => {
-    return db.getPostStatistics();
-  }),
+  stats: adminProcedure.query(() => content.postStatistics()),
   members: adminProcedure.query(() => {
     return db.listAdminMembers();
   }),
@@ -195,9 +192,7 @@ export const createAdminRouter = (posts: ContentWriteService, uploads: ContentUp
         })
         .optional(),
     )
-    .query(({ input }) => {
-      return db.getAdminPostsFiltered(input);
-    }),
+    .query(({ input }) => content.listAdminPosts(input)),
 
   // Import YouTube videos (admin only)
   importVideos: adminProcedure
