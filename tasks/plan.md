@@ -1064,6 +1064,59 @@ provider headers/privacy and full file/active-content validation remain open.
 Storage/SQL are still non-atomic; orphan reconciliation must resolve ownership and
 persisted references, never delete immediately on an ambiguous SQL failure.
 
+TXT/opaque fallback slice: reuse the isolated binary detector before storage/SQL.
+Declared text/plain must not contain a recognized binary signature. Validate the
+complete decoded text with fatal TextDecoder and reject C0/C1 controls except
+tab, LF, CR and form feed. Support UTF-8 by default, UTF-16LE/BE BOM detection,
+and explicit supported charset labels/aliases for UTF-8, UTF-16LE/BE and
+Windows-1251; reject duplicate/unsupported charset, BOM conflicts and malformed
+encoding. Validate in bounded chunks without changing the original storage bytes.
+Plain text may contain literal markup/code: this is encoding/type validation,
+not an HTML filter or antivirus. Add an explicit charset when it was absent.
+For document/application/octet-stream, accept detected PDF/DOCX or validated
+UTF-8/BOM Unicode text, replace the opaque header with its canonical MIME and
+discard unrelated opaque parameters. Reject recognized foreign binaries and
+malformed/unknown non-text bytes. Do not guess a legacy encoding from arbitrary
+bytes. Legacy declared DOC remains unchanged until a reviewed CFB format detector
+can distinguish Word from Excel/PowerPoint/MSI; generic CFB magic is insufficient.
+No dependency, schema, frontend, HTTP quota, raw-video or provider change. Native
+HTTP/JWT/MySQL tests must prove prior acceptance before implementation, then assert
+rejection before any write and stored MIME/bytes/association compatibility.
+Compiled Node 22 must exercise the same text/fallback policy with real workers.
+Standalone editor metadata still comes from the client; no ownership/association
+integrity or provider Content-Disposition/nosniff/privacy claim is made here.
+
+TXT/opaque checkpoint: the pre-repair native HTTP/JWT/MySQL run had 40 failures,
+including 28 cases that accepted known foreign binaries, invalid encodings,
+controls and ambiguous/unsupported charset before writes. Other failures exposed
+missing canonical MIME; the compiled ESM policy also failed before repair. This
+is reproduced acceptance, not historical exploitation. Reuse the existing worker
+for binary classification; the content-owned text helper uses Node TextDecoder
+and the standard MIME parser, rejecting duplicate charset without reading a
+substring inside a quoted parameter. Scan complete text in 16 KiB chunks, flush
+incomplete tails and preserve original bytes. Text scanning is synchronous linear
+work over the existing size-bounded buffer: chunking bounds temporary strings,
+not CPU/request memory. No generic DoS or parser-sandbox guarantee is claimed.
+Review caught an introduced edge case: adding charset could exceed the 128-char
+SQL MIME ceiling and fail with 500 after storage. A failing regression preceded
+the guard; at-limit success and over-limit rejection now pass before any write.
+Forty-eight native additions plus an expanded compiled real-worker case cover
+foreign signatures, actual locally constructed Cyrillic encodings, BOM conflicts,
+split UTF-8/UTF-16 characters, invalid late bytes, opaque PDF/DOCX/text and unchanged
+standalone response/association. A CFB-magic fixture is explicitly not a valid DOC;
+literal markup is valid text, not evidence of HTML execution or its prevention.
+Focused 166 pass; full 850 pass / 2 external skip across 82 passing files and one
+skipped file. Root/Next types, lint, backend/Next builds, unchanged 72-procedure /
+25376-byte API, 422-file boundaries, formatting and 42 current docs pass. No new
+dependency/lockfile/schema/frontend/body quota/provider/deployment changes.
+Compatibility: Windows-1251 needs explicit text/plain + charset; picker fallback
+does not guess this encoding. Legacy DOC still bypasses byte validation; review
+Word-specific detector separately. Source inspection confirmed standalone editor
+post-save still writes client MIME: that contract and durable ownership/orphan
+reconciliation are next, not falsely covered by native postId upload assertions.
+Provider headers/privacy, whole-file/active-content checks and existing workspace
+dependency audit triage remain release gates. No immediate deletion on SQL failure.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

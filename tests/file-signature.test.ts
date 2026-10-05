@@ -13,6 +13,7 @@ import {
   wavFixture,
 } from "./helpers/media-fixtures";
 import { pdfFixture, docxFixture, docxMime } from "./helpers/document-fixtures";
+import { utf8Text, utf16beText } from "./helpers/text-fixtures";
 
 it.each([
   ["MP3", mp3Fixture, "mp3", "audio/mpeg"],
@@ -88,7 +89,7 @@ it("runs the same detector under the existing CommonJS/tsx development runtime",
   expect(JSON.parse(output)).toEqual({ ext: "mp3", mime: "audio/mpeg" });
 });
 
-it("applies PDF/DOCX rejection policy from compiled ESM with real workers", async () => {
+it("applies document rejection and text/fallback policy from compiled ESM with real workers", async () => {
   const directory = mkdtempSync(resolve(".tmp-document-signature-"));
   const entry = join(directory, "policy.mjs");
   try {
@@ -108,6 +109,12 @@ it("applies PDF/DOCX rejection policy from compiled ESM with real workers", asyn
         Buffer.from("<html>not a PDF</html>").toString("base64"),
       ],
       [docxMime, pdfFixture.toString("base64")],
+      ["text/plain", pdfFixture.toString("base64")],
+      ["text/plain", utf8Text.toString("base64")],
+      ["text/plain", Buffer.from([0xff, 0x41]).toString("base64")],
+      ["application/octet-stream", pdfFixture.toString("base64")],
+      ["application/octet-stream", utf16beText.toString("base64")],
+      ["application/octet-stream", mp3Fixture.toString("base64")],
     ];
     const source = `import {resolveMediaContentType} from ${JSON.stringify(pathToFileURL(entry).href)};
       const results = await Promise.all(${JSON.stringify(inputs)}.map(async ([mime, base64]) => {
@@ -123,6 +130,12 @@ it("applies PDF/DOCX rejection policy from compiled ESM with real workers", asyn
       "application/pdf",
       docxMime,
       { code: "BAD_REQUEST" },
+      { code: "BAD_REQUEST" },
+      { code: "BAD_REQUEST" },
+      "text/plain; charset=utf-8",
+      { code: "BAD_REQUEST" },
+      "application/pdf",
+      "text/plain; charset=utf-16be",
       { code: "BAD_REQUEST" },
     ]);
   } finally {

@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { detectBinaryFileType } from "../media/file-signature";
 import type { MediaUploadInput } from "./media-upload-input";
+import { resolveTextContentType } from "./text-content-type";
 
 const DOCUMENT_MIMES = new Set([
   "application/pdf",
@@ -64,25 +65,30 @@ export async function resolveMediaContentType(
   const semicolon = declared.indexOf(";");
   const declaredEssence =
     semicolon < 0 ? declared : declared.slice(0, semicolon);
-  // Legacy DOC, text encodings and opaque fallback need a separate acceptance
-  // policy. Do not mistake a generic CFB signature for proof of a Word document.
-  if (type === "document" && !BYTE_CHECKED_DOCUMENT_MIMES.has(declaredEssence))
+  // Legacy DOC needs a Word-specific detector, not generic CFB magic. This one
+  // declared type remains unverified; do not claim a complete document boundary.
+  if (type === "document" && declaredEssence === "application/msword")
     return declared;
   const detected = await detectBinaryFileType(bytes);
+  if (type === "document") {
+    if (declaredEssence === "application/octet-stream") {
+      if (detected && BYTE_CHECKED_DOCUMENT_MIMES.has(detected.mime))
+        return detected.mime;
+      if (!detected) return resolveTextContentType("text/plain", bytes);
+    }
+    if (declaredEssence === "text/plain" && !detected)
+      return resolveTextContentType(declared, bytes);
+    if (detected?.mime === declaredEssence) return declared;
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Формат файла не соответствует заявленному типу",
+    });
+  }
   if (!detected)
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Не удалось распознать файл",
     });
-  if (type === "document") {
-    if (detected.mime !== declaredEssence) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Формат файла не соответствует заявленному типу",
-      });
-    }
-    return declared;
-  }
   // Audio-only WebM and generic MP4 share video container signatures. Do not
   // mistake container branding or retained codec metadata for track inspection.
   const canonical =

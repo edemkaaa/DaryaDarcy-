@@ -536,9 +536,21 @@
     and one compiled ESM/real-worker policy case; focused 118 pass, full 802 pass /
     2 external skip. No dependency, schema, frontend, parser, provider or quota change.
     This is classification, not full PDF/OPC validation or antivirus.
-  - [ ] Remaining document format/ownership: define safe legacy DOC/TXT/opaque
-    fallback byte policy and orphan cleanup after failed SQL association. These
-    declared types still bypass document content checks; do not claim a safe
+  - [x] TXT/opaque upload slice: native HTTP/JWT/MySQL reproduced byte-validation
+    bypass before repair. Known foreign binaries no longer pass as text/opaque;
+    complete fatal text decoding supports Unicode/BOM and explicit Windows-1251,
+    rejects malformed bytes/controls/charset ambiguity and preserves storage bytes.
+    Opaque PDF/DOCX/text gets canonical MIME; appended charset respects SQL ceiling.
+    Forty-eight native additions and expanded compiled ESM real-worker policy;
+    focused 166 pass, full 850 pass / 2 external skip. Root/Next types, lint,
+    backend/Next builds, unchanged 72-procedure/25376-byte API, 422-file boundaries
+    and docs pass. No dependencies/schema/frontend/quota/provider change. This
+    is encoding/type validation, not an HTML filter/antivirus or all-document safety.
+    Windows-1251 picker text without explicit charset may require UTF-8 conversion.
+  - [ ] Remaining document format/ownership: reviewed Word-specific detector for
+    legacy DOC, canonical metadata for the editor's standalone upload -> post-save
+    flow, and orphan cleanup after failed SQL association. Declared msword still
+    bypasses byte checks; generic CFB is not proof of Word. Do not claim a safe
     document boundary. Signatures do not prove absence of active content or
     protect public URLs. Reconcile persisted ownership/references before deletion,
     not on ambiguous SQL errors. Provider/header/privacy acceptance remains open.

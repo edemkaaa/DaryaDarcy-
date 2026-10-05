@@ -32,6 +32,12 @@ import {
   pdfFixture,
   zipFixture,
 } from "./helpers/document-fixtures";
+import {
+  utf8Text,
+  cp1251Text,
+  utf16leText,
+  utf16beText,
+} from "./helpers/text-fixtures";
 
 // Only storage transport is replaced; image processing, sessions and SQL are real.
 const storage = vi.hoisted(() => ({
@@ -414,6 +420,8 @@ describe.skipIf(!testDatabaseUrl)(
     it.each([
       ["PDF", pdfFixture, "application/pdf"],
       ["DOCX", docxFixture, docxMime],
+      ["TXT", utf8Text, "text/plain"],
+      ["opaque PDF", pdfFixture, "application/octet-stream"],
     ] as const)(
       "keeps standalone %s uploads unassociated",
       async (_name, bytes, mimeType) => {
@@ -455,6 +463,219 @@ describe.skipIf(!testDatabaseUrl)(
         now.mockRestore();
       }
     });
+    it.each(
+      (
+        [
+          ["PDF", pdfFixture],
+          ["DOCX", docxFixture],
+          ["macro-labelled Word", docmFixture],
+          ["ZIP", zipFixture],
+          ["MP3", mp3Fixture],
+          ["MP4", mp4Fixture],
+          [
+            "generic CFB magic (not a valid DOC)",
+            Buffer.from("d0cf11e0a1b11ae10000000000000000", "hex"),
+          ],
+        ] as const
+      ).flatMap(([name, bytes]) =>
+        (name === "PDF" || name === "DOCX"
+          ? ["text/plain"]
+          : ["text/plain", "application/octet-stream"]
+        ).map((mimeType) => [name, bytes, mimeType] as const),
+      ),
+    )(
+      "rejects %s bytes that bypass document type checking",
+      async (_name, bytes, mimeType) => {
+        await expect(
+          client(bearer).admin.uploadMedia.mutate({
+            ...media,
+            type: "document",
+            mimeType,
+            base64: bytes.toString("base64"),
+          }),
+        ).rejects.toMatchObject({
+          data: { code: "BAD_REQUEST", httpStatus: 400 },
+        });
+        expect(storage.writes).toEqual([]);
+        expect(await rows()).toEqual([]);
+      },
+    );
+    it.each([
+      ["invalid UTF-8", Buffer.from([0xff, 0x41]), "text/plain"],
+      ["opaque binary", Buffer.from([0xff, 0x41]), "application/octet-stream"],
+      ["NUL", Buffer.from("hello\0world"), "text/plain"],
+      ["opaque NUL", Buffer.from("hello\0world"), "application/octet-stream"],
+      ["escape control", Buffer.from("hello\u001bworld"), "text/plain"],
+      ["C1 control", Buffer.from("hello\u0085world"), "text/plain"],
+      ["unsupported charset", utf8Text, "text/plain; charset=shift_jis"],
+      [
+        "duplicate charset",
+        utf8Text,
+        "text/plain; charset=utf-8; CHARSET=windows-1251",
+      ],
+      ["empty charset", utf8Text, 'text/plain; charset=""'],
+      ["missing legacy charset", cp1251Text, "text/plain"],
+      [
+        "opaque legacy text",
+        cp1251Text,
+        "application/octet-stream; charset=windows-1251",
+      ],
+      ["BOM conflict", utf16beText, "text/plain; charset=utf-16le"],
+      [
+        "UTF-8 BOM conflict",
+        Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), utf8Text]),
+        "text/plain; charset=windows-1251",
+      ],
+      [
+        "resolved MIME exceeds SQL ceiling",
+        utf8Text,
+        `text/plain; note="${"a".repeat(109)}"`,
+      ],
+      ["truncated UTF-16", Buffer.from([0xff, 0xfe, 0x41]), "text/plain"],
+      [
+        "unpaired UTF-16 surrogate",
+        Buffer.from("fffe00d8", "hex"),
+        "text/plain",
+      ],
+      [
+        "invalid UTF-8 past a chunk boundary",
+        Buffer.concat([Buffer.alloc(16_384, 0x61), Buffer.from([0xe2, 0x82])]),
+        "text/plain",
+      ],
+      [
+        "control past a chunk boundary",
+        Buffer.concat([Buffer.alloc(16_384, 0x61), Buffer.from([0])]),
+        "text/plain",
+      ],
+    ] as const)(
+      "rejects document text with %s before any write",
+      async (_name, bytes, mimeType) => {
+        await expect(
+          client(bearer).admin.uploadMedia.mutate({
+            ...media,
+            type: "document",
+            mimeType,
+            base64: bytes.toString("base64"),
+          }),
+        ).rejects.toMatchObject({
+          data: { code: "BAD_REQUEST", httpStatus: 400 },
+        });
+        expect(storage.writes).toEqual([]);
+        expect(await rows()).toEqual([]);
+      },
+    );
+    it.each([
+      ["UTF-8", utf8Text, "text/plain", "text/plain; charset=utf-8"],
+      [
+        "UTF-8 alias",
+        utf8Text,
+        'text/plain; CHARSET="utf8"',
+        'text/plain; CHARSET="utf8"',
+      ],
+      [
+        "UTF-16LE BOM",
+        utf16leText,
+        "text/plain",
+        "text/plain; charset=utf-16le",
+      ],
+      [
+        "UTF-16BE BOM",
+        utf16beText,
+        "text/plain",
+        "text/plain; charset=utf-16be",
+      ],
+      [
+        "UTF-16 without BOM",
+        Buffer.from("Привет!", "utf16le"),
+        "text/plain; charset=utf-16",
+        "text/plain; charset=utf-16",
+      ],
+      [
+        "Windows-1251",
+        cp1251Text,
+        "text/plain; charset=windows-1251",
+        "text/plain; charset=windows-1251",
+      ],
+      [
+        "resolved MIME at SQL ceiling",
+        utf8Text,
+        `text/plain; note="${"a".repeat(94)}"`,
+        `text/plain; note="${"a".repeat(94)}"; charset=utf-8`,
+      ],
+      [
+        "quoted escaped charset",
+        utf8Text,
+        'text/plain; charset="utf\\-8"',
+        'text/plain; charset="utf\\-8"',
+      ],
+      [
+        "charset inside another parameter",
+        utf8Text,
+        'text/plain; note=";charset=windows-1251"',
+        'text/plain; note=";charset=windows-1251"; charset=utf-8',
+      ],
+      [
+        "literal markup",
+        Buffer.from("<html><script>example only</script></html>"),
+        "text/plain",
+        "text/plain; charset=utf-8",
+      ],
+      [
+        "split UTF-8 character",
+        Buffer.concat([Buffer.alloc(16_383, 0x61), Buffer.from("🙂")]),
+        "text/plain",
+        "text/plain; charset=utf-8",
+      ],
+      [
+        "split UTF-16 surrogate pair",
+        Buffer.concat([
+          Buffer.from([0xff, 0xfe]),
+          Buffer.from("a".repeat(8_190) + "🙂", "utf16le"),
+        ]),
+        "text/plain",
+        "text/plain; charset=utf-16le",
+      ],
+      [
+        "opaque PDF",
+        pdfFixture,
+        "application/octet-stream; charset=invalid",
+        "application/pdf",
+      ],
+      ["opaque DOCX", docxFixture, "application/octet-stream", docxMime],
+      [
+        "opaque UTF-8",
+        utf8Text,
+        "application/octet-stream",
+        "text/plain; charset=utf-8",
+      ],
+      [
+        "opaque UTF-16BE",
+        utf16beText,
+        "application/octet-stream",
+        "text/plain; charset=utf-16be",
+      ],
+    ] as const)(
+      "stores %s with byte-preserving resolved MIME",
+      async (_name, bytes, mimeType, canonical) => {
+        const response = await client(bearer).admin.uploadMedia.mutate({
+          ...media,
+          type: "document",
+          mimeType,
+          base64: bytes.toString("base64"),
+        });
+        expect(storage.writes).toHaveLength(1);
+        expect(storage.writes[0].bytes).toEqual(bytes);
+        expect(storage.writes[0].mime).toBe(canonical);
+        expect(await rows()).toMatchObject([
+          {
+            id: response.mediaId,
+            type: "document",
+            fileSize: bytes.length,
+            mimeType: canonical,
+          },
+        ]);
+      },
+    );
     it.each([
       ["audio", "text/html"],
       ["video", "text/html"],
@@ -535,7 +756,7 @@ describe.skipIf(!testDatabaseUrl)(
     });
     it.each([
       ["document", "application/pdf", "application/pdf", pdfFixture],
-      // Legacy DOC/TXT/opaque fallback deliberately remain metadata-only here.
+      // Legacy DOC remains metadata-only until a Word-specific detector is reviewed.
       [
         "document",
         "application/msword",
@@ -557,7 +778,7 @@ describe.skipIf(!testDatabaseUrl)(
       [
         "document",
         "application/octet-stream",
-        "application/octet-stream",
+        "text/plain; charset=utf-8",
         Buffer.from("fixture"),
       ],
       ["audio", " Audio/MPEG ", "audio/mpeg", mp3Fixture],
