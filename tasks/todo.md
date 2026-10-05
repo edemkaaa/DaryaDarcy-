@@ -377,6 +377,12 @@
     API/boundaries/docs pass. Common policy/guards and the registration-race
     investigation still remain; M04 as a whole is not marked complete.
   - [ ] M04c: Shared injectable session/role policy and registration-race diagnosis.
+  - [x] N13 separate repair: a blocked account with a correct password previously
+    reached a sign-in write and HTTP 500. A real HTTP/MySQL assertion reproduced
+    500 vs required 401; PasswordUser now rejects before lastSignedIn/session
+    issuance. Uniform invalid-credential response, no cookie/JWT/sign-in write
+    verified; staff TOTP and quotas still pass. Latest full suite: 631 pass /
+    2 external skip; types/lint/API/boundaries/docs/API build/Next build pass.
 - [ ] M05: Specify and migrate content service wiring; preserve N07–N11 regressions.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.

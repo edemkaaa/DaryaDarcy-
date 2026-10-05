@@ -54,10 +54,15 @@ export class SessionService {
 
   async passwordUser(email: string, password: string) {
     const user = await getUserByEmail(email);
-    return user?.passwordHash &&
-      (await verifyPassword(password, user.passwordHash))
-      ? user
-      : null;
+    if (
+      !user?.passwordHash ||
+      !(await verifyPassword(password, user.passwordHash))
+    ) {
+      return null;
+    }
+    // Blocked credentials must fail before updating lastSignedIn or minting a
+    // JWT, with the same public response as any other invalid credentials.
+    return user.blockedAt ? null : user;
   }
 
   async issueSession(user: User) {

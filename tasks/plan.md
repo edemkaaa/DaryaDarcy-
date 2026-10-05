@@ -574,6 +574,14 @@ provider fixtures use a separate loopback mock server. Keep response/error
 statuses and no-store headers, including explicit HTTP 200 for Nest POST routes.
 Do not claim all identity migration complete after password transport alone.
 
+Separate identity repair N13: the inherited password-login flow updated a
+blocked user's lastSignedIn before session issuance threw, producing a misleading
+HTTP 500. Reproduce through native HTTP/MySQL with a real correct password and a
+known old sign-in date. Reject blocked credentials inside passwordUser before any
+sign-in update or token mint; public 401 matches other invalid credentials.
+Retain the final issuance block check, existing quotas and staff TOTP. Verify
+the rejection has no cookie, no JWT and no lastSignedIn write, then the full suite.
+
 The user explicitly requests a plan and its execution, not another approval-only
 proposal. Extend this backend plan; preserve all open N12/release/registration
 tasks. Work locally on fix/backend-hardening. No push, deployment, working-data

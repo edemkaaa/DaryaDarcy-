@@ -101,6 +101,7 @@ optional removedMediaIds. Добавления и удаления привяз�
 
 - POST /api/auth/register — регистрация через письмо, ответ 202 без сессии.
 - POST /api/auth/login, /api/auth/logout, /api/auth/session; GET /api/auth/me — вход и сессия, см. [SessionController](../../apps/backend/src/identity/session.controller.ts) и [SessionService](../../apps/backend/src/identity/session.service.ts). Пароль, TOTP, актуальная версия сессии и host-only cookie сохраняют прежние правила; регистрация не авторизует по email.
+- Заблокированный аккаунт не входит даже с верным паролем: ответ 401 совпадает с неверными credentials, без cookie и обновления даты входа. Прежний побочный эффект и ответ 500 устранены отдельной правкой N13.
 - POST /api/auth/logout возвращает {success:true}; только этот ответ подтверждает выход клиенту. Пустой/невалидный ответ не снимает локальную блокировку доступа.
 - POST /api/auth/password/request, /api/auth/password/complete; GET /api/auth/password — установка/восстановление пароля.
 - POST /api/admin/access-email/resend — повторное письмо администратором. См. [identity/password.controller.ts](../../apps/backend/src/identity/password.controller.ts) и [PasswordService](../../apps/backend/src/identity/password.service.ts). Пароли и письма используют прежние одноразовые токены и outbox; смена пароля не создаёт сессию автоматически.

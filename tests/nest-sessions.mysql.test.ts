@@ -162,14 +162,24 @@ describe.skipIf(!testDatabaseUrl)(
       }
     });
     it("does not issue a session for a blocked password login", async () => {
-      await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=8940");
+      await conn.query(
+        "UPDATE users SET blockedAt=NOW(),lastSignedIn='2020-01-01 00:00:00' WHERE id=8940",
+      );
       const response = await post("/api/auth/login", {
         email: memberEmail,
         password,
       });
-      expect(response.status).not.toBe(200);
+      expect(response.status).toBe(401);
       expect(response.headers.get("set-cookie")).toBeNull();
-      expect(await response.json()).not.toHaveProperty("sessionToken");
+      expect(await response.json()).toEqual({
+        error: "Неверный email или пароль",
+      });
+      const [rows] = await conn.query<import("mysql2/promise").RowDataPacket[]>(
+        "SELECT lastSignedIn FROM users WHERE id=8940",
+      );
+      expect(rows[0].lastSignedIn.toISOString()).toBe(
+        "2020-01-01T00:00:00.000Z",
+      );
     });
     it("requires staff TOTP and rejects a wrong code without creating a session", async () => {
       vi.stubEnv("ADMIN_TOTP_SECRET", totpSecret);
