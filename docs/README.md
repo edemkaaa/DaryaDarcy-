@@ -8,6 +8,7 @@
 2. [Ветки, проверки, безопасная работа](development/workflow.md).
 3. [Бэкенд](../apps/backend/README.md) или [фронтенд](../apps/frontend/README.md).
 4. [Инструменты репозитория](../tooling/README.md).
+5. [Передача изменений бэкенда фронтендеру](development/backend-handoff-2026-10-05.md).
 
 ## Устройство системы
 

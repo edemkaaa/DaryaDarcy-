@@ -547,9 +547,21 @@
     and docs pass. No dependencies/schema/frontend/quota/provider change. This
     is encoding/type validation, not an HTML filter/antivirus or all-document safety.
     Windows-1251 picker text without explicit charset may require UTF-8 conversion.
+  - [x] Backend standalone upload metadata: return the canonical mimeType and
+    decoded fileSize alongside unchanged url/mediaId for associated and standalone
+    uploads. Native HTTP/JWT/MySQL reproduced six missing-metadata failures before
+    repair; 140 upload cases now pass, including WAV labelled MP3, opaque PDF and
+    TXT with appended charset. No frontend source/tests/generated types changed;
+    the user explicitly reserves those updates for the frontend developer.
+    Handoff: docs/development/backend-handoff-2026-10-05.md. Strict check:api is
+    intentionally not bypassed: its stale frontend snapshot blocks staging merge
+    until the frontend owner regenerates it. Full suite: 851 pass / 2 external S3
+    skip with real disposable MySQL backup/restore enabled; types, lint, backend
+    build, 422 source boundaries pass. No new dependency/schema/provider.
   - [ ] Remaining document format/ownership: reviewed Word-specific detector for
-    legacy DOC, canonical metadata for the editor's standalone upload -> post-save
-    flow, and orphan cleanup after failed SQL association. Declared msword still
+    legacy DOC, frontend consumption of canonical standalone upload metadata
+    (backend response ready; editor unchanged), and orphan cleanup after failed
+    SQL association. Declared msword still
     bypasses byte checks; generic CFB is not proof of Word. Do not claim a safe
     document boundary. Signatures do not prove absence of active content or
     protect public URLs. Reconcile persisted ownership/references before deletion,

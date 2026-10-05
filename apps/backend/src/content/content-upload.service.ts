@@ -55,6 +55,7 @@ export class ContentUploadService {
         sortOrder: 0,
       });
     }
-    return { url: result.url, mediaId };
+    // Standalone editor uploads need the same canonical metadata as SQL associations.
+    return { url: result.url, mediaId, mimeType, fileSize: buffer.length };
   }
 }

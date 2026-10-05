@@ -1117,6 +1117,25 @@ reconciliation are next, not falsely covered by native postId upload assertions.
 Provider headers/privacy, whole-file/active-content checks and existing workspace
 dependency audit triage remain release gates. No immediate deletion on SQL failure.
 
+Staging integration checkpoint (2026-10-05): origin frontend migration is already
+contained in origin/staging; integrate the pending backend commits after fresh
+verification. First repair the already-planned standalone upload metadata flow:
+return additive canonical mimeType/fileSize from the server. After the user's
+scope correction, do not change frontend source, tests or its local generated
+contract; describe the editor's required metadata/retry handling in the handoff.
+The user explicitly declined even generated frontend type updates. Keep the
+strict check:api gate; do not merge/deploy this new API slice until that client
+snapshot is updated by its owner. Backend-only verification is not full CI.
+Photo URL-only responses are unchanged. Deploy the server before the later editor
+update (old editors ignore added fields). Verify native HTTP/JWT/MySQL and the
+existing regression suite. Record the expected regenerated API contract for the
+frontend developer without changing their files. This does not establish persisted
+ownership, repair the existing editor or authorize orphan deletion.
+Test deployment still requires a confirmed test-only host, SSH access and isolated
+database/provider/mail settings; the old production/static deploy is not reusable.
+Legacy DOC detector/dependency and dependency audit triage remain explicit gates,
+not presumed covered by this contract repair.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

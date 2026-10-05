@@ -197,6 +197,8 @@ describe.skipIf(!testDatabaseUrl)(
         expect(response).toEqual({
           url: "https://assets.example.test/native-upload",
           mediaId: expect.any(Number),
+          mimeType,
+          fileSize: bytes.length,
         });
         expect(storage.writes).toHaveLength(1);
         expect(storage.writes[0].key).toMatch(
@@ -248,8 +250,26 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await client(bearer).admin.uploadMedia.mutate(input)).toEqual({
           url: "https://assets.example.test/native-upload",
           mediaId: undefined,
+          mimeType: "audio/mpeg",
+          fileSize: mp3Fixture.length,
         });
       expect(storage.writes).toHaveLength(2);
+      expect(await rows()).toEqual([]);
+    });
+    it("confirms canonical metadata for a standalone WAV labelled as MP3", async () => {
+      const bytes = wavFixture();
+      const { postId: _postId, ...standalone } = media;
+      const response = await client(bearer).admin.uploadMedia.mutate({
+        ...standalone,
+        base64: bytes.toString("base64"),
+      });
+      expect(response).toEqual({
+        url: "https://assets.example.test/native-upload",
+        mediaId: undefined,
+        mimeType: "audio/wav",
+        fileSize: 46,
+      });
+      expect(storage.writes[0]).toMatchObject({ mime: "audio/wav", bytes });
       expect(await rows()).toEqual([]);
     });
     it.each([
@@ -418,13 +438,13 @@ describe.skipIf(!testDatabaseUrl)(
       },
     );
     it.each([
-      ["PDF", pdfFixture, "application/pdf"],
-      ["DOCX", docxFixture, docxMime],
-      ["TXT", utf8Text, "text/plain"],
-      ["opaque PDF", pdfFixture, "application/octet-stream"],
+      ["PDF", pdfFixture, "application/pdf", "application/pdf"],
+      ["DOCX", docxFixture, docxMime, docxMime],
+      ["TXT", utf8Text, "text/plain", "text/plain; charset=utf-8"],
+      ["opaque PDF", pdfFixture, "application/octet-stream", "application/pdf"],
     ] as const)(
       "keeps standalone %s uploads unassociated",
-      async (_name, bytes, mimeType) => {
+      async (_name, bytes, mimeType, canonical) => {
         const { postId: _postId, ...standalone } = media;
         await expect(
           client(bearer).admin.uploadMedia.mutate({
@@ -436,6 +456,8 @@ describe.skipIf(!testDatabaseUrl)(
         ).resolves.toEqual({
           url: "https://assets.example.test/native-upload",
           mediaId: undefined,
+          mimeType: canonical,
+          fileSize: bytes.length,
         });
         expect(storage.writes[0].bytes).toEqual(bytes);
         expect(await rows()).toEqual([]);
