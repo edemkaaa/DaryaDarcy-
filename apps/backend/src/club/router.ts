@@ -49,8 +49,8 @@ export const clubRouter = router({
       z
         .object({
           tag: z.string().optional(),
-          limit: z.number().min(1).max(200).default(20),
-          cursor: z.number().nullish(),
+          limit: z.number().int().min(1).max(200).default(20),
+          cursor: z.number().int().nonnegative().nullish(),
         })
         .optional(),
     )

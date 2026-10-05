@@ -171,6 +171,50 @@ describe.skipIf(!testDatabaseUrl)(
         [],
       );
     });
+    it.each([
+      { limit: 1.5 },
+      { limit: 20, cursor: -1 },
+      { limit: 20, cursor: 0.5 },
+      { limit: 20, cursor: Number.MAX_SAFE_INTEGER + 1 },
+    ])("rejects invalid club pagination before SQL (%#)", async (input) => {
+      await expect(client(bearer).club.list.query(input)).rejects.toMatchObject(
+        {
+          data: { code: "BAD_REQUEST", httpStatus: 400 },
+        },
+      );
+    });
+    it("preserves club pagination defaults, null cursor, upper limit and visibility", async () => {
+      const first = await client(bearer).club.list.query({
+        tag: "native-catalog",
+      });
+      expect(first.posts.map((post) => post.id)).toEqual([8975, 8971]);
+      expect(first.nextCursor).toBeNull();
+      for (const input of [
+        { tag: "native-catalog", cursor: null },
+        { tag: "native-catalog", limit: 200 },
+      ]) {
+        expect(await client(bearer).club.list.query(input)).toEqual(first);
+      }
+      const page = await client(bearer).club.list.query({
+        tag: "native-catalog",
+        limit: 1,
+      });
+      expect(page.posts.map((post) => post.id)).toEqual([8975]);
+      expect(page.nextCursor).toBe(1);
+      const last = await client(bearer).club.list.query({
+        tag: "native-catalog",
+        limit: 1,
+        cursor: 1,
+      });
+      expect(last.posts.map((post) => post.id)).toEqual([8971]);
+      expect(last.nextCursor).toBeNull();
+      expect(
+        (await client(bearer).club.list.query()).posts.length,
+      ).toBeLessThanOrEqual(20);
+      await expect(client().club.list.query()).rejects.toMatchObject({
+        data: { code: "UNAUTHORIZED", httpStatus: 401 },
+      });
+    });
     it("paginates filtered rows with default 12 and treats null cursor as the first page", async () => {
       const first = await client().feed.listPaginated.query({
         tag: "native-catalog",

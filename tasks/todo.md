@@ -456,8 +456,12 @@
     unchanged 72-procedure contract and 413-file boundaries pass. Query helpers
     and pool still transitional; no frontend/schema/provider or deployment changes,
     reaction/comment/upload paths remain next.
-  - [ ] Club pagination: inspect analogous permissive schema in its own module;
-    no fix or reproduction is claimed for club after the public feed repair.
+  - [x] Club pagination: native HTTP/JWT/MySQL reproduced 500 for fractional
+    limit and negative/fractional offset, and silent acceptance of unsafe integers.
+    Integer/nonnegative safe-number validation now returns 400. Five new cases
+    retain default 20, optional input/null cursor, max 200, paging, visibility and
+    anonymous denial. Full suite 673 pass / 2 external skip; types, lint, backend
+    build and unchanged 72-procedure/25376-byte API pass. No SQL/auth policy change.
   - [ ] Remaining M05: Reaction/comment/upload and other admin wiring; no false
     claim that all content or SQL ownership has been migrated after read slices.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance

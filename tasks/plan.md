@@ -774,6 +774,15 @@ smoke also calls the catalog and verifies invalid pagination HTTP 400. Remaining
 content writes, club pagination, SQL/pool ownership, registration diagnosis and
 durable announcement delivery remain separate; no release readiness is claimed.
 
+Club pagination repair checkpoint: native HTTP/JWT/MySQL first reproduced three
+500 responses (fractional limit, negative/fractional offset) and accepted an unsafe
+integer. The club schema now enforces integer limits and nonnegative safe integer
+offsets before the unchanged SQL LIMIT/OFFSET helper. Four rejection regressions
+and one compatibility case retain optional input/default 20/null cursor/max 200,
+publication/target filters and anonymous denial. Full suite 673 pass / 2 external
+skip; root/Next types, lint, backend build and unchanged API contract pass. This is
+a separate bugfix, not a comment/reaction migration or a release-ready checkpoint.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.
