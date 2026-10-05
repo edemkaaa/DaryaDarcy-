@@ -310,3 +310,43 @@
   support alone does not protect today's unkeyed frontend calls.
 - [ ] N12: Transactional publication push outbox; worker crash/retry cannot lose
   an announcement. Provider delivery/deduplication limits must remain explicit.
+
+## NestJS migration — 2026-10-05
+
+- [x] M01: Review/pin Nest dependencies; keep pnpm/Vitest/esbuild/Drizzle.
+  Acceptance: scripts disabled, one lockfile, baseline suite/types/build preserved.
+  Verify: pnpm test with disposable MySQL; pnpm check; pnpm build; native audit.
+  Files: apps/backend/package.json, pnpm-lock.yaml, tsconfig.json, ADR-005.
+  Dependencies: none; scope: medium.
+  Verified: Nest 12.1.2 family, reflect-metadata 0.2.2, RxJS 7.8.2; frozen
+  ignore-scripts install. Baseline and post-dependency runs: 589 pass / 2 skip.
+  Types/build/lint/API/docs pass; audit unchanged at 33 high/36 moderate/4 low.
+- [ ] M02: Nest HTTP runtime with native health/capability controllers.
+  Acceptance: one HTTP application, unchanged security/parsers/tRPC contracts;
+  runtime creation performs no worker/external side effects, close releases port.
+  Verify: tests/nest-application.test.ts; pnpm check; pnpm build; full suite.
+  Files: runtime factory, app module, system controller, launch module, HTTP tests.
+  Dependencies: M01; scope: medium. Executable switch is a separately verified step.
+- [ ] M02b: Use Nest runtime from the existing production/dev executable.
+  Acceptance: same host/port/timeouts and routes; actual built artifact starts.
+  Verify: built-process loopback smoke; full suite/types/build/contract checks.
+  Files: _core/index.ts, backend README, root README, architecture API docs.
+  Dependencies: M02; scope: medium.
+- [ ] M03: Native launch settings controller/service, preserving JWT/Drizzle.
+  Acceptance: HTTP shapes/statuses, role checks, optimistic revision and audit
+  transaction preserved; only one production registration for each endpoint.
+  Verify: real Nest HTTP/JWT/MySQL roundtrip/conflict/blocked-user tests.
+  Files: launch controller/service/module, runtime factory, existing settings tests.
+  Dependencies: M02b; scope: medium.
+- [ ] Checkpoint: Nest foundation + launch verified; record actual migration gaps,
+  dependency advisories and earlier registration failure before continuing.
+- [ ] M04: Specify and migrate identity adapters/guards; retain sessions/password
+  invariants and investigate the existing intermittent registration race.
+- [ ] M05: Specify and migrate content service wiring; preserve N07–N11 regressions.
+- [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
+  remains separate from local tests, no TypeORM/data-model rewrite.
+- [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
+- [ ] M08: Specify/migrate remaining API services, remove superseded adapters and
+  decompose db.ts without changing contracts. Review every module separately.
+- [ ] Final checkpoint: whole Nest runtime/MySQL/frontend flow, release rehearsal,
+  audit triage/migration history/provider/SMTP/private-file gates and approved rollout.

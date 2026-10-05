@@ -559,3 +559,74 @@ deadlock; that investigation remains open. Two subsequent diagnostic full runs:
 each 589 pass / 2 external skip. Types, lint, API build/contract, boundaries/docs pass.
 Native audit remains 0 critical / 33 high / 36 moderate / 4 low. Read-only migration
 preflight rejects only the existing untracked 0017–0019 files; no release approval.
+
+## NestJS migration — 2026-10-05 (user-authorized continuation)
+
+The user explicitly requests a plan and its execution, not another approval-only
+proposal. Extend this backend plan; preserve all open N12/release/registration
+tasks. Work locally on fix/backend-hardening. No push, deployment, working-data
+migration, provider request or permission-policy change is authorized.
+
+Assumptions: keep Next.js and all 72 tRPC procedures, existing HTTP paths/statuses,
+JWT/cookies, MySQL/Drizzle and approved security policies. NestJS owns composition
+and lifecycle; native controllers/services replace HTTP adapters gradually.
+Existing tRPC adapters bridge verified domains until their service wiring moves.
+Do not replace tRPC with REST or Drizzle with TypeORM in the same migration.
+
+### Capability map and build order
+
+| Module id | Responsibility | Depends on |
+| --- | --- | --- |
+| http-runtime | Nest bootstrap, security/parsers, HTTP lifecycle | — |
+| launch | Health/capabilities, seasonal settings | http-runtime, existing database/identity |
+| identity | Registration, session, passwords and authorization | http-runtime, database |
+| content | Post/media/edit/publication behaviour | identity, database |
+| billing | Checkout, receipts, cancellation | identity, database |
+| workers | Existing background jobs and later durable publication delivery | content, billing |
+| remaining-api | Profile, club, moderation, pen pals, disabled shop | identity, content |
+
+Build order: dependency/tooling proof → http-runtime → launch → identity → content
+→ billing → workers → remaining-api → release rehearsal. Module specs/acceptance
+are added before each module, not one speculative rewrite specification.
+
+### First increments
+
+M01: Add reviewed, exact-version Nest core/common/Express adapter, reflect-metadata
+and RxJS using the authoritative pnpm lockfile with install scripts disabled.
+Use Node 22 and existing Vitest/esbuild. Explicit constructor injection avoids
+relying on decorator metadata that esbuild does not emit. Verify current full
+disposable-MySQL suite, typecheck and build before introducing the runtime.
+
+M02: Nest owns the real HTTP application; preserve security-before-body parsing,
+raw provider webhook bytes, upload auth-before-body, all tRPC context/paths and
+numeric results. Move health/capabilities into native Nest controllers. Runtime
+factory initializes routes but does not bind a public port, start workers or
+load production secrets. The existing executable uses it and retains host/port
+and timeout policy. Verify actual network requests through this factory, including
+unsafe origins, invalid JSON/size limits, anonymous uploads, HMAC rejection,
+disabled features, missing routes, tRPC anonymous access and shutdown.
+
+M03: Move launch settings to native controller + injected service using unchanged
+domain transactions/validation. Compare real JWT/MySQL public/admin roundtrip,
+roles/blocked sessions, JSON errors, revision conflict and audit effects. Remove
+production duplicate route registration only after these checks pass.
+
+Checkpoint after M02/M03: tests/types/lint/API-contract/boundaries/docs/build;
+production-bundle startup and graceful close on loopback without workers/external
+effects. New dependency audit and lockfile review. Each verified increment gets
+its own commit. Record failures honestly; the existing intermittent registration
+race, dependency advisories and migration-history mismatch do not disappear.
+
+### Risks and controls
+
+- Nest's parser defaults or Express adapter can change webhook/body/error semantics:
+  disable default parsers and retain tested application middleware; HTTP regression
+  gates decide compatibility, not source greps or mocked controllers.
+- Two runtimes/duplicate routes conceal incomplete migration: one server/port,
+  one composition root, explicit temporary adapters and per-module removal.
+- Framework decorators may fail in tests/bundles: prove actual compiled startup,
+  use explicit injection and avoid adding a second compiler/CLI unnecessarily.
+- Worker teardown and DB lifecycle currently lack clear ownership: migrate them
+  in dedicated slices, never start production jobs as an import side effect.
+- Payment/auth bugs found along the way: reproduce with tests and fix in separate
+  commits; do not revert security repairs or silently change frontend contracts.
