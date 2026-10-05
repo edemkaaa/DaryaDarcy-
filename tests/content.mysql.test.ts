@@ -52,11 +52,14 @@ describe.skipIf(!testDatabaseUrl)(
       vi.unstubAllEnvs();
     });
     it("public and club queries exclude scheduled/draft rows even when the legacy published flag is true", async () => {
-      await conn.query(`INSERT INTO posts (id,text,photos,tags,status,target) VALUES
-      (8801,'public visible',JSON_ARRAY(),JSON_ARRAY(),'published','feed'),
-      (8802,'draft secret',JSON_ARRAY(),JSON_ARRAY(),'draft','both'),
-      (8803,'scheduled secret',JSON_ARRAY(),JSON_ARRAY(),'scheduled','both'),
-      (8804,'club visible',JSON_ARRAY(),JSON_ARRAY(),'published','club')`);
+      // The database is shared with parallel creation suites. Explicit ordering
+      // dates (within MySQL TIMESTAMP's range) put our fixture before those rows
+      // while newer draft/scheduled rows must still be excluded by every query.
+      await conn.query(`INSERT INTO posts (id,text,photos,tags,status,target,createdAt) VALUES
+      (8801,'public visible',JSON_ARRAY(),JSON_ARRAY(),'published','feed','2037-01-01'),
+      (8802,'draft secret',JSON_ARRAY(),JSON_ARRAY(),'draft','both','2037-01-03'),
+      (8803,'scheduled secret',JSON_ARRAY(),JSON_ARRAY(),'scheduled','both','2037-01-04'),
+      (8804,'club visible',JSON_ARRAY(),JSON_ARRAY(),'published','club','2037-01-02')`);
       const ownedIds = (rows: { id: number }[]) =>
         rows.filter((p) => p.id >= 8800 && p.id <= 8899).map((p) => p.id);
       expect(ownedIds(await getPosts())).toEqual([8801]);
