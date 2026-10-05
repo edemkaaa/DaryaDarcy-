@@ -118,13 +118,32 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
           { signal: AbortSignal.timeout(3000) },
         );
         expect(capabilities.status).toBe(200);
-      expect(capabilities.headers.get("cache-control")).toBe("no-store");
-      const settings = await fetch(`http://127.0.0.1:${port}/api/launch-config`, {
-        signal: AbortSignal.timeout(3000),
-      });
-      expect(settings.status).toBe(503);
-      expect(await settings.json()).toEqual({ error: "Запрос недоступен" });
-      expect(settings.headers.get("cache-control")).toBe("no-store");
+        expect(capabilities.headers.get("cache-control")).toBe("no-store");
+        const settings = await fetch(
+          `http://127.0.0.1:${port}/api/launch-config`,
+          {
+            signal: AbortSignal.timeout(3000),
+          },
+        );
+        expect(settings.status).toBe(503);
+        expect(await settings.json()).toEqual({ error: "Запрос недоступен" });
+        expect(settings.headers.get("cache-control")).toBe("no-store");
+        // A real call into the injected service: an undefined dependency would
+        // be caught as HTTP 500, rather than the expected unauthenticated 401.
+        const login = await fetch(`http://127.0.0.1:${port}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: "built-fixture@example.test",
+            password: "not-a-password",
+          }),
+          signal: AbortSignal.timeout(3000),
+        });
+        expect(login.status).toBe(401);
+        expect(await login.json()).toEqual({
+          error: "Неверный email или пароль",
+        });
+        expect(login.headers.get("set-cookie")).toBeNull();
       } finally {
         await stop(child);
       }

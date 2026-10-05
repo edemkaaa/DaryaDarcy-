@@ -4,8 +4,8 @@ API запускается через NestJS с Express-адаптером; ко
 
 Перенос идёт по модулям: health, capabilities и настройки запуска уже обслуживаются
 контроллерами NestJS. Установка/восстановление пароля и повторное письмо доступа
-тоже перенесены в нативный IdentityModule; вход/регистрация пока в переходном
-адаптере. Остальные HTTP-адаптеры и tRPC подключены в ту же HTTP-программу и
+тоже перенесены в нативный IdentityModule, вместе со входом, регистрацией,
+сессией и закрытыми по флагу SMS-маршрутами. Остальные HTTP-адаптеры и tRPC подключены в ту же HTTP-программу и
 сохраняют существующие проверки доступа. MySQL / Drizzle не меняются; TypeORM
 не вводится. План и проверки — в [ADR-005](../decisions/0005-nestjs-modular-backend.md).
 Порядок middleware остаётся обязательным: HTTP-защита → raw webhook и проверка
@@ -100,7 +100,7 @@ optional removedMediaIds. Добавления и удаления привяз�
 ## HTTP вне tRPC
 
 - POST /api/auth/register — регистрация через письмо, ответ 202 без сессии.
-- POST /api/auth/login, /api/auth/logout, /api/auth/session; GET /api/auth/me — вход и сессия, см. [\_core/oauth.ts](../../apps/backend/src/_core/oauth.ts).
+- POST /api/auth/login, /api/auth/logout, /api/auth/session; GET /api/auth/me — вход и сессия, см. [SessionController](../../apps/backend/src/identity/session.controller.ts) и [SessionService](../../apps/backend/src/identity/session.service.ts). Пароль, TOTP, актуальная версия сессии и host-only cookie сохраняют прежние правила; регистрация не авторизует по email.
 - POST /api/auth/logout возвращает {success:true}; только этот ответ подтверждает выход клиенту. Пустой/невалидный ответ не снимает локальную блокировку доступа.
 - POST /api/auth/password/request, /api/auth/password/complete; GET /api/auth/password — установка/восстановление пароля.
 - POST /api/admin/access-email/resend — повторное письмо администратором. См. [identity/password.controller.ts](../../apps/backend/src/identity/password.controller.ts) и [PasswordService](../../apps/backend/src/identity/password.service.ts). Пароли и письма используют прежние одноразовые токены и outbox; смена пароля не создаёт сессию автоматически.

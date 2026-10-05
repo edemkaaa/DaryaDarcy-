@@ -2,11 +2,13 @@ import { afterAll, afterEach, beforeAll, expect, it, vi } from "vitest";
 import express, { type Request } from "express";
 import { createServer, request as httpRequest, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { getSessionCookieOptions } from "../apps/backend/src/_core/cookies";
+import type { INestApplication } from "@nestjs/common";
 import {
-  registerOAuthRoutes,
-  issueSession,
-} from "../apps/backend/src/_core/oauth";
+  getSessionCookieOptions,
+  setSessionCookie,
+} from "../apps/backend/src/_core/cookies";
+import { SessionService } from "../apps/backend/src/identity/session.service";
+import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { registerHttpSecurity } from "../apps/backend/src/_core/http-security";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { appRouter } from "../apps/backend/src/routers";
@@ -15,6 +17,8 @@ import { COOKIE_NAME } from "../packages/shared/src/const";
 
 let server: Server;
 let base: string;
+let fixtureBase: string;
+let application: INestApplication;
 const user = {
   openId: "cookie-fixture",
   name: "Member",
@@ -24,15 +28,20 @@ const user = {
 beforeAll(async () => {
   const app = express();
   registerHttpSecurity(app);
-  registerOAuthRoutes(app);
-  app.post("/fixture/session", async (req, res) =>
-    res.json(
-      await issueSession(req, res, user as Parameters<typeof issueSession>[2]),
-    ),
-  );
+  const sessions = new SessionService();
+  app.post("/fixture/session", async (req, res) => {
+    const session = await sessions.issueSession(
+      user as Parameters<SessionService["issueSession"]>[0],
+    );
+    setSessionCookie(req, res, session.sessionToken);
+    res.json(session);
+  });
   server = createServer(app);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  fixtureBase = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  application = await createBackendApplication();
+  await application.listen(0, "127.0.0.1");
+  base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
 });
 afterEach(() => {
   vi.restoreAllMocks();
@@ -40,6 +49,7 @@ afterEach(() => {
 });
 afterAll(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
+  await application.close();
 });
 function request(
   hostname: string,
@@ -58,7 +68,7 @@ function postFromSubdomain(
   // Node fetch rewrites Host in this runtime; use the actual HTTP client for this fixture.
   return new Promise((resolve, reject) => {
     const req = httpRequest(
-      `${base}${path}`,
+      `${path.startsWith("/fixture/") ? fixtureBase : base}${path}`,
       { method: "POST", headers: { Host: "api.example.test" } },
       (res) => {
         res.resume();

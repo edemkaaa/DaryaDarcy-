@@ -624,8 +624,10 @@ roles/blocked sessions, JSON errors, revision conflict and audit effects. Remove
 production duplicate route registration only after these checks pass.
 
 Checkpoint after M02/M03: tests/types/lint/API-contract/boundaries/docs/build;
-production-bundle startup and graceful close on loopback without workers/external
-effects. New dependency audit and lockfile review. Each verified increment gets
+production-bundle startup with isolated configuration and no database/provider
+effects, plus worker-free factory/listener close. Executable worker teardown
+remains M07; current background intervals are not declared graceful. New dependency
+audit and lockfile review. Each verified increment gets
 its own commit. Record failures honestly; the existing intermittent registration
 race, dependency advisories and migration-history mismatch do not disappear.
 

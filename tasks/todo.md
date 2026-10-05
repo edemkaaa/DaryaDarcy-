@@ -367,8 +367,15 @@
     tests retain one-use links, no automatic session, safe recipient response,
     CSP nonce, no-store and staff/block/audit rules. 621 pass / 2 external skip;
     types/lint/API/boundaries/docs/backend build pass; Next production build passes.
-  - [ ] M04b: Native session/login/registration/SMS transport + injected service;
+  - [x] M04b: Native session/login/registration/SMS transport + injected service;
     remove OAuth adapter, preserve cookies/TOTP/rate limits/disabled features.
+    Verified: 10 real-password/JWT/MySQL tests cover login/cookie/Bearer bridge,
+    database session revocation/blocking, independently calculated TOTP and
+    quota; existing registration and cookie regressions pass through Nest.
+    Built Node artifact invokes the injected login service. Previous OAuth
+    adapter removed. Full suite: 631 pass / 2 external skip; types/build/lint/
+    API/boundaries/docs pass. Common policy/guards and the registration-race
+    investigation still remain; M04 as a whole is not marked complete.
   - [ ] M04c: Shared injectable session/role policy and registration-race diagnosis.
 - [ ] M05: Specify and migrate content service wiring; preserve N07–N11 regressions.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
