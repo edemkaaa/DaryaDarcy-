@@ -11,17 +11,15 @@ import { useEffect, useRef, useState } from "react";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { trpc } from "@/shared/api/trpc";
 
-import * as DocumentPicker from "@/shared/browser/file-picker";
 import {
   useSessionOperation,
   checkOperationAccessError,
 } from "@/domain/session/use-session-operation";
 import { MAX_VIDEO_BYTES } from "@/shared/browser/file-operations";
 import { requireUploadedUrl } from "@/shared/media/upload-result";
-import {
-  PostSaveCoordinator,
-  type PostAttachment,
-} from "@/domain/post/save-post";
+import { PostSaveCoordinator } from "@/domain/post/save-post";
+import { usePostAttachments } from "./use-post-attachments";
+import { PostAttachmentsField } from "./post-attachments-field";
 import { uploadAdminVideoBlob } from "@/features/admin/media/video-upload";
 import { fileToUpload, pickWebFiles } from "@/shared/media/image-upload";
 import { PhotoEditor } from "@/features/admin/photo-editor";
@@ -39,7 +37,6 @@ import {
   BROWN_LIGHT,
   ACCENT,
 } from "./create-post-modal.content";
-type MediaAttachment = PostAttachment;
 type PostTarget = "feed" | "club" | "both";
 type PostStatus = "draft" | "scheduled" | "published";
 interface CreatePostModalProps {
@@ -90,9 +87,14 @@ export function CreatePostModal({
   const uploading = operation.kind === "photos";
   const mediaUploading = operation.kind === "video";
   const [videos, setVideos] = useState<string[]>([]);
-  const [mediaAttachments, setMediaAttachments] = useState<MediaAttachment[]>(
-    [],
-  );
+  const notifyError = (message: string) => window.alert(message);
+  const {
+    attachments: mediaAttachments,
+    removedIds: removedMediaIds,
+    reset: resetAttachments,
+    pick: pickAttachment,
+    remove: removeMedia,
+  } = usePostAttachments(operation, notifyError);
   const [richText, setRichText] = useState<RichTextBlock[] | undefined>();
   const [richTextSeed, setRichTextSeed] = useState<
     RichTextBlock[] | null | undefined
@@ -103,7 +105,6 @@ export function CreatePostModal({
   const saveCoordinator = useRef(
     new PostSaveCoordinator(editingPost?.id ?? null),
   );
-  const removedMediaIds = useRef<number[]>([]);
   const seeded = useRef<string | null>(null);
   useEffect(() => {
     if (!visible) {
@@ -115,7 +116,6 @@ export function CreatePostModal({
     seeded.current = seedKey;
     cancelOperation();
     saveCoordinator.current = new PostSaveCoordinator(editingPost?.id ?? null);
-    removedMediaIds.current = [];
     setText(editingPost?.text || "");
     setPhotos(editingPost?.photos || []);
     setTags(editingPost?.tags || []);
@@ -138,24 +138,8 @@ export function CreatePostModal({
       editingPost?.media?.filter((m) => m.type === "video").map((m) => m.url) ??
         [],
     );
-    setMediaAttachments(
-      editingPost?.media
-        ?.filter((m) => m.type === "audio" || m.type === "document")
-        .map((m) => ({
-          id: m.id,
-          type: m.type as "audio" | "document",
-          url: m.url,
-          name: m.filename || m.url.split("/").at(-1) || "Вложение",
-          mimeType: m.mimeType || "",
-        })) ?? [],
-    );
-  }, [visible, editingPost, defaultTarget, cancelOperation]);
-  const notifyError = (message: string) => {
-    {
-      window.alert(message);
-      return;
-    }
-  };
+    resetAttachments(editingPost?.media);
+  }, [visible, editingPost, defaultTarget, cancelOperation, resetAttachments]);
   const closeEditor = () => {
     operation.cancel();
     setText("");
@@ -165,7 +149,7 @@ export function CreatePostModal({
     setStatus("published");
     setScheduledAt(null);
     setVideos([]);
-    setMediaAttachments([]);
+    resetAttachments();
     setRichText(undefined);
     setRichTextSeed(null);
     if (!editingPost) setDraftKey((key) => key + 1);
@@ -176,7 +160,7 @@ export function CreatePostModal({
       text !== (editingPost?.text ?? "") ||
       JSON.stringify(photos) !== JSON.stringify(editingPost?.photos ?? []) ||
       mediaAttachments.some((item) => item.file) ||
-      removedMediaIds.current.length > 0 ||
+      removedMediaIds.length > 0 ||
       JSON.stringify(richText ?? null) !==
         JSON.stringify(editingPost?.richText ?? null) ||
       JSON.stringify(videos) !==
@@ -228,67 +212,6 @@ export function CreatePostModal({
       task.finish();
     }
   };
-  const pickAttachment = async (type: "audio" | "document") => {
-    const task = operation.begin("attachment");
-    if (!task) return;
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type:
-          type === "audio"
-            ? ["audio/*"]
-            : [
-                "application/pdf",
-                "application/msword",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                "text/plain",
-              ],
-        signal: task.signal,
-        createPreviewUrl: false,
-      });
-      if (result.canceled || !result.assets.length) return;
-      task.assertCurrent();
-      const asset = result.assets[0];
-      if (
-        type === "audio" &&
-        asset.mimeType &&
-        !asset.mimeType.startsWith("audio/")
-      )
-        throw new Error("Выберите аудиофайл.");
-      if (type === "document" && !/\.(pdf|docx?|txt)$/i.test(asset.name))
-        throw new Error("Выберите PDF, DOC, DOCX или TXT.");
-      setMediaAttachments((prev) => [
-        ...prev,
-        {
-          type,
-          file: asset.file,
-          name: asset.name,
-          mimeType:
-            asset.mimeType ||
-            (type === "audio" ? "audio/mpeg" : "application/octet-stream"),
-        },
-      ]);
-    } catch (error) {
-      checkOperationAccessError(error);
-      if (task.isCurrent())
-        notifyError(
-          error instanceof Error
-            ? error.message
-            : "Не удалось выбрать вложение",
-        );
-    } finally {
-      task.finish();
-    }
-  };
-  const pickAudio = () => pickAttachment("audio");
-  const pickDocument = () => pickAttachment("document");
-  const removeMedia = (index: number) => {
-    if (operation.busy) return;
-    const attachment = mediaAttachments[index];
-    if (!attachment) return;
-    const id = attachment.id;
-    if (id) removedMediaIds.current.push(id);
-    setMediaAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
   const replacePhoto = async (index: number) => {
     const task = operation.begin("photos");
     if (!task) return;
@@ -328,7 +251,7 @@ export function CreatePostModal({
       videos.length === 0 &&
       mediaAttachments.length === 0
     ) {
-      notifyError("Добавьте текст, фото или видео");
+      notifyError("Добавьте текст, фото, видео, аудио или документ");
       return;
     }
     if (
@@ -364,7 +287,7 @@ export function CreatePostModal({
       await saveCoordinator.current.save(
         payload,
         mediaAttachments,
-        removedMediaIds.current,
+        removedMediaIds,
         {
           create: (input, signal) =>
             utils.client.admin.createPost.mutate(input, { signal }),
@@ -460,7 +383,12 @@ export function CreatePostModal({
   const isPending = operation.busy;
   if (!visible) return null;
   return (
-    <Dialog open motion="slide" onClose={handleClose}>
+    <Dialog
+      label="Редактор публикации"
+      open
+      motion="slide"
+      onClose={handleClose}
+    >
       <div
         className={["ui-stack ", classes.container].filter(Boolean).join(" ")}
       >
@@ -483,6 +411,16 @@ export function CreatePostModal({
           <Action
             onClick={handleSubmit}
             disabled={isPending}
+            aria-busy={isPending}
+            aria-label={
+              editingPost
+                ? "Сохранить"
+                : status === "scheduled"
+                  ? "Запланировать"
+                  : status === "draft"
+                    ? "Черновик"
+                    : "Опубликовать"
+            }
             className={({ pressed }) =>
               [
                 classes.action,
@@ -784,6 +722,7 @@ export function CreatePostModal({
                       Видео {i + 1}
                     </Typography>
                     <Action
+                      aria-label={`Удалить видео ${i + 1}`}
                       onClick={() =>
                         setVideos((prev) => prev.filter((_, idx) => idx !== i))
                       }
@@ -797,85 +736,12 @@ export function CreatePostModal({
             )}
           </div>
 
-          {/* Other attachments */}
-          <div
-            className={["ui-stack ", classes.section].filter(Boolean).join(" ")}
-          >
-            <Typography className={classes.sectionLabel}>
-              Аудио и документы ({mediaAttachments.length})
-            </Typography>
-            <div
-              className={["ui-stack ", classes.mediaButtonsRow]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              <Action
-                onClick={pickAudio}
-                disabled={isPending}
-                className={({ pressed }) =>
-                  [
-                    classes.action4,
-                    pressed ? classes.opacityState9 : classes.opacityState10,
-                  ]
-                    .filter(Boolean)
-                    .join(" ")
-                }
-              >
-                <MaterialIcons name="headphones" size={18} color={CREAM_BG} />
-                <Typography className={classes.mediaBtnText}>Аудио</Typography>
-              </Action>
-              <Action
-                onClick={pickDocument}
-                disabled={isPending}
-                className={({ pressed }) =>
-                  [
-                    classes.action4,
-                    pressed ? classes.opacityState11 : classes.opacityState12,
-                  ]
-                    .filter(Boolean)
-                    .join(" ")
-                }
-              >
-                <MaterialIcons name="description" size={18} color={CREAM_BG} />
-                <Typography className={classes.mediaBtnText}>
-                  Документ
-                </Typography>
-              </Action>
-            </div>
-            {mediaAttachments.length > 0 && (
-              <div
-                className={["ui-stack ", classes.mediaList]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                {mediaAttachments.map((media, i) => (
-                  <div
-                    key={`${media.type}-${i}`}
-                    className={["ui-stack ", classes.mediaItem]
-                      .filter(Boolean)
-                      .join(" ")}
-                  >
-                    <MaterialIcons
-                      name={
-                        media.type === "audio" ? "headphones" : "description"
-                      }
-                      size={16}
-                      color={ACCENT}
-                    />
-                    <Typography lines={1} className={classes.mediaItemName}>
-                      {media.name}
-                    </Typography>
-                    <Action
-                      onClick={() => removeMedia(i)}
-                      className={classes.mediaRemoveBtn}
-                    >
-                      <MaterialIcons name="close" size={14} color="#A85C5C" />
-                    </Action>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <PostAttachmentsField
+            attachments={mediaAttachments}
+            disabled={isPending}
+            onPick={pickAttachment}
+            onRemove={removeMedia}
+          />
 
           {/* Tags */}
           <div

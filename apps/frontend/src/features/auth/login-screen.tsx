@@ -282,6 +282,14 @@ export default function LoginScreen({
                 )}
                 <Action
                   type="submit"
+                  aria-busy={busy}
+                  aria-label={
+                    mode === "register"
+                      ? "Получить письмо"
+                      : mode === "recover"
+                        ? "Отправить инструкцию"
+                        : "Войти"
+                  }
                   disabled={
                     !ready ||
                     busy ||

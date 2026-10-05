@@ -1,14 +1,30 @@
 "use client";
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-const dialogStack: symbol[] = [];
+const dialogStack: HTMLElement[] = [];
+const originalInert = new Map<HTMLElement, boolean>();
+function syncDialogBackground() {
+  const top = dialogStack.at(-1);
+  if (!top) {
+    for (const [element, inert] of originalInert) element.inert = inert;
+    originalInert.clear();
+    return;
+  }
+  for (const element of document.body.children) {
+    if (!(element instanceof HTMLElement)) continue;
+    if (!originalInert.has(element)) originalInert.set(element, element.inert);
+    element.inert = element !== top;
+  }
+}
 type DialogProps = {
+  label: string;
   open?: boolean;
   onClose?: () => void;
   motion?: "fade" | "slide" | "none";
   children: ReactNode;
 };
 export function Dialog({
+  label,
   open,
   onClose,
   motion = "none",
@@ -16,22 +32,36 @@ export function Dialog({
 }: DialogProps) {
   const node = useRef<HTMLDivElement | null>(null),
     close = useRef(onClose);
+  const trigger = useRef<HTMLElement | null>(null);
+  // Capture before a newly mounted input can autofocus inside the portal.
+  if (!open) trigger.current = null;
+  else if (!trigger.current && typeof document !== "undefined")
+    trigger.current = document.activeElement as HTMLElement | null;
   close.current = onClose;
   useEffect(() => {
-    if (!open) return;
-    const token = Symbol("dialog");
-    dialogStack.push(token);
-    const previous = document.activeElement as HTMLElement | null;
+    const current = node.current;
+    if (!open || !current) return;
+    const previous = trigger.current;
+    dialogStack.push(current);
+    syncDialogBackground();
+    const observer = new MutationObserver(syncDialogBackground);
+    observer.observe(document.body, { childList: true });
     const focusables = () =>
       [
         ...(node.current?.querySelectorAll<HTMLElement>(
-          'button:not(:disabled),input:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]',
+          "button,input,textarea,select,a[href],[tabindex]",
         ) || []),
-      ].filter((el) => el.getClientRects().length > 0);
+      ].filter(
+        (el) =>
+          el.tabIndex >= 0 &&
+          !el.matches(':disabled,[aria-disabled="true"]') &&
+          !el.closest("[inert]") &&
+          el.getClientRects().length > 0,
+      );
     const first = focusables()[0];
     (first || node.current)?.focus();
     const key = (e: KeyboardEvent) => {
-      if (dialogStack.at(-1) !== token) return;
+      if (dialogStack.at(-1) !== current) return;
       if (e.key === "Escape") {
         e.preventDefault();
         close.current?.();
@@ -44,7 +74,13 @@ export function Dialog({
           e.preventDefault();
           return;
         }
-        if (e.shiftKey && document.activeElement === first) {
+        if (
+          !current.contains(document.activeElement) ||
+          document.activeElement === current
+        ) {
+          e.preventDefault();
+          (e.shiftKey ? last : first).focus();
+        } else if (e.shiftKey && document.activeElement === first) {
           e.preventDefault();
           last.focus();
         } else if (!e.shiftKey && document.activeElement === last) {
@@ -53,11 +89,26 @@ export function Dialog({
         }
       }
     };
+    const containFocus = (event: FocusEvent) => {
+      if (
+        dialogStack.at(-1) === current &&
+        event.target instanceof Node &&
+        !current.contains(event.target)
+      )
+        (focusables()[0] || current).focus();
+    };
     document.addEventListener("keydown", key);
+    document.addEventListener("focusin", containFocus);
     return () => {
+      observer.disconnect();
       document.removeEventListener("keydown", key);
-      dialogStack.splice(dialogStack.indexOf(token), 1);
-      previous?.focus();
+      document.removeEventListener("focusin", containFocus);
+      const index = dialogStack.indexOf(current);
+      const wasTop = index === dialogStack.length - 1;
+      if (index !== -1) dialogStack.splice(index, 1);
+      syncDialogBackground();
+      if (wasTop && previous?.isConnected && !previous.closest("[inert]"))
+        previous.focus();
     };
   }, [open]);
   if (!open || typeof document === "undefined") return null;
@@ -65,6 +116,7 @@ export function Dialog({
     <div
       className={`ui-dialog ui-dialog-${motion}`}
       role="dialog"
+      aria-label={label}
       aria-modal="true"
       tabIndex={-1}
       ref={node}

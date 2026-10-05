@@ -95,35 +95,54 @@ test("a delayed initial session check cannot undo a successful login", async ({
 }) => {
   let current: Member | null = null;
   await mockApp(page, () => current);
+  // Login must work even if the decorative background never finishes loading.
+  let pendingDecorations = 0;
+  await page.route("https://s3.twcstorage.ru/**", () => {
+    pendingDecorations++;
+  });
   let release!: () => void;
   const held = new Promise<void>((resolve) => {
     release = resolve;
   });
+  let markStarted!: () => void;
+  const started = new Promise<void>((resolve) => {
+    markStarted = resolve;
+  });
+  let initialSettled = false;
   let initial = true;
   await page.route("**/api/auth/me", async (route) => {
     if (initial) {
       initial = false;
+      markStarted();
       await held;
       await route.fulfill({ json: { user: null } }).catch(() => {});
+      initialSettled = true;
     } else await route.fulfill({ json: { user: current } });
   });
   await page.route("**/api/auth/login", (route) => {
     current = member(2);
     return route.fulfill({ json: { user: current } });
   });
-  await page.goto("/login");
-  await enter(page, "member-2@example.test");
-  await expect(page).toHaveURL(/\/profile$/);
-  await expect(
-    page.getByText("member-2@example.test", { exact: true }),
-  ).toBeVisible();
-  release();
-  await expect(
-    page.getByText("member-2@example.test", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByText("Войдите, чтобы открыть личный кабинет", { exact: false }),
-  ).toHaveCount(0);
+  try {
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
+    await started;
+    await enter(page, "member-2@example.test");
+    await expect(page).toHaveURL(/\/profile$/);
+    await expect(
+      page.getByText("member-2@example.test", { exact: true }),
+    ).toBeVisible();
+    expect(pendingDecorations).toBeGreaterThan(0);
+    release();
+    await expect.poll(() => initialSettled).toBe(true);
+    await expect(
+      page.getByText("member-2@example.test", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Войдите, чтобы открыть личный кабинет", { exact: false }),
+    ).toHaveCount(0);
+  } finally {
+    release();
+  }
 });
 
 test("switching people cannot transfer local profile or quiz data", async ({

@@ -55,8 +55,11 @@ test("feed and guest club headers scroll with their banners; library and shop he
 }) => {
   await layoutApi(page);
   for (const path of ["/feed", "/club", "/library", "/shop", "/profile"]) {
-    await page.goto(path);
-    const header = page.locator(headerSelector);
+    // Assert the UI below instead of waiting for every remote media resource.
+    await page.goto(path, { waitUntil: "domcontentloaded" });
+    // Streamed HTML can retain hidden nodes while the visible screen resolves.
+    const header = page.locator(`${headerSelector}:visible`);
+    await expect(header).toHaveCount(1);
     await expect(header).toBeVisible();
     const scroll = page.locator(scrollSelector).first();
     await expect(scroll).toBeVisible();

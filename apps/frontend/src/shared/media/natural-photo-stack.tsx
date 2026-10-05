@@ -29,6 +29,8 @@ function Cell({
 }) {
   return (
     <Action
+      aria-label="Открыть фото"
+      disabled={!onClick}
       onClick={onClick}
       style={mergeStyles({ aspectRatio: aspectRatio }, style)}
       className={classes.action}
@@ -158,6 +160,8 @@ function SinglePhoto({ uri, onClick }: { uri: string; onClick?: () => void }) {
   const displayRatio = loadedRatio ?? ratio;
   return (
     <Action
+      aria-label="Открыть фото"
+      disabled={!onClick}
       onClick={onClick}
       className={({ pressed }) => (pressed ? classes.opacityState : "")}
     >

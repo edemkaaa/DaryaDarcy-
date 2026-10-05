@@ -113,6 +113,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
           {/* Avatar picker */}
           <Action
             onClick={pickImage}
+            aria-label="Выбрать фото профиля"
             className={({ pressed }) =>
               [classes.action, pressed ? classes.opacityState : ""]
                 .filter(Boolean)
@@ -233,6 +234,8 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
           <Action
             onClick={handleSubmit}
             disabled={!isValid || submitting}
+            aria-label="Продолжить"
+            aria-busy={submitting}
             className={({ pressed }) =>
               [
                 classes.action3,

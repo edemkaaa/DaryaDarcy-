@@ -15,9 +15,11 @@ const serverViewport: ViewportSize = {
   fontScale: 1,
 };
 let browserViewport = serverViewport;
+let browserScreenViewport = serverViewport;
 const listeners = new Set<() => void>();
 function measureViewport() {
-  const next = getViewport();
+  const nextScreen = getViewport("screen");
+  const next = { ...nextScreen, width: Math.min(nextScreen.width, 480) };
   document.documentElement.style.setProperty(
     "--app-height",
     `${next.height}px`,
@@ -33,6 +35,7 @@ function measureViewport() {
   };
   if (
     next.width === browserViewport.width &&
+    nextScreen.width === browserScreenViewport.width &&
     next.height === browserViewport.height &&
     next.scale === browserViewport.scale &&
     Object.entries(nextInsets).every(
@@ -42,6 +45,7 @@ function measureViewport() {
   )
     return;
   browserViewport = next;
+  browserScreenViewport = nextScreen;
   browserInsets = nextInsets;
   listeners.forEach((listener) => listener());
 }
@@ -73,10 +77,10 @@ export function getViewport(scope: "window" | "screen" = "window") {
     fontScale: 1,
   };
 }
-export function useViewport() {
+export function useViewport(scope: "window" | "screen" = "window") {
   return useSyncExternalStore(
     subscribeViewport,
-    () => browserViewport,
+    () => (scope === "screen" ? browserScreenViewport : browserViewport),
     () => serverViewport,
   );
 }

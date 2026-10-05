@@ -16,6 +16,7 @@ import {
   Collection,
 } from "@/shared/ui/elements";
 import { openExternalUrl } from "@/shared/browser/actions";
+import { requirePaymentUrl } from "@/shared/navigation/external-url";
 import { useState, useCallback, useEffect } from "react";
 import { ClubSubscribed } from "@/features/club/club-subscribed";
 import { useClub } from "@/domain/subscription/subscription-context";
@@ -73,11 +74,12 @@ export default function ClubScreen({
   const forceCheckout = checkoutFlag === "1";
   const justPaid = paid === "1";
   const openPayUrl = useCallback((url: string) => {
+    const safe = requirePaymentUrl(url);
     if (typeof window !== "undefined") {
-      window.location.assign(url);
+      window.location.assign(safe);
       return;
     }
-    void openExternalUrl(url);
+    void openExternalUrl(safe);
   }, []);
   const handlePay = useCallback(async () => {
     setPayError(null);

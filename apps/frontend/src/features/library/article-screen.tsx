@@ -78,30 +78,34 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
     return (
       <ScreenContainer edges={["top", "bottom", "left", "right"]}>
         <Background source={{ uri: PAPER }} fit="cover" className={classes.bg}>
-          <Action onClick={() => router.back()} className={classes.back}>
-            <Typography className={classes.backText}>← Назад</Typography>
-          </Action>
-          {data.coverUrl ? (
-            <Picture
-              source={{ uri: data.coverUrl }}
-              contentFit="cover"
-              className={classes.banner}
-            />
-          ) : null}
-          <div className={["ui-stack ", classes.pad].filter(Boolean).join(" ")}>
-            <Typography className={classes.title}>{data.title}</Typography>
-            <Typography className={classes.body}>
-              Эта статья для участниц клуба Darcy.
-            </Typography>
-            <Action
-              onClick={() => router.push("/club")}
-              className={classes.clubBtn}
-            >
-              <Typography className={classes.clubBtnText}>
-                {isSubscribed ? "Открыть клуб" : "Вступить в клуб"}
-              </Typography>
+          <ScrollArea hideScrollbar contentClassName={classes.scroll}>
+            <Action onClick={() => router.back()} className={classes.back}>
+              <Typography className={classes.backText}>← Назад</Typography>
             </Action>
-          </div>
+            {data.coverUrl ? (
+              <Picture
+                source={{ uri: data.coverUrl }}
+                contentFit="cover"
+                className={classes.banner}
+              />
+            ) : null}
+            <div
+              className={["ui-stack ", classes.pad].filter(Boolean).join(" ")}
+            >
+              <Typography className={classes.title}>{data.title}</Typography>
+              <Typography className={classes.body}>
+                Эта статья для участниц клуба Darcy.
+              </Typography>
+              <Action
+                onClick={() => router.push("/club")}
+                className={classes.clubBtn}
+              >
+                <Typography className={classes.clubBtnText}>
+                  {isSubscribed ? "Открыть клуб" : "Вступить в клуб"}
+                </Typography>
+              </Action>
+            </div>
+          </ScrollArea>
         </Background>
       </ScreenContainer>
     );

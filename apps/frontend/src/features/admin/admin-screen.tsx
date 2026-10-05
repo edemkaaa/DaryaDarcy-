@@ -47,6 +47,11 @@ import {
   checkOperationAccessError,
 } from "@/domain/session/use-session-operation";
 import { PostSaveCoordinator } from "@/domain/post/save-post";
+import { usePostAttachments } from "./use-post-attachments";
+import {
+  PostAttachmentsField,
+  PostAttachmentsList,
+} from "./post-attachments-field";
 import { requireUploadedUrl } from "@/shared/media/upload-result";
 import { MAX_VIDEO_BYTES } from "@/shared/browser/file-operations";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
@@ -111,6 +116,7 @@ export default function AdminScreen() {
       return;
     }
   };
+  const attachments = usePostAttachments(operation, notifyAdminError);
   // Mutations
   const deleteMutation = trpc.admin.deletePost.useMutation({
     onSuccess: () => invalidatePublicFeeds(),
@@ -180,6 +186,8 @@ export default function AdminScreen() {
     operation.cancel();
     saveCoordinator.current = new PostSaveCoordinator();
     setForm(EMPTY_FORM);
+    attachments.reset();
+    setShowPreview(false);
     setEditingId(null);
     setShowForm(false);
     setRichText(undefined);
@@ -191,6 +199,7 @@ export default function AdminScreen() {
     saveCoordinator.current = new PostSaveCoordinator();
     setEditingId(null);
     setForm(EMPTY_FORM);
+    attachments.reset();
     setRichText(undefined);
     setRichTextSeed(null);
     setDraftKey((key) => key + 1);
@@ -199,6 +208,7 @@ export default function AdminScreen() {
   const handleEdit = (post: AdminPost) => {
     operation.cancel();
     saveCoordinator.current = new PostSaveCoordinator(post.id);
+    attachments.reset(post.media);
     setEditingId(post.id);
     setRichTextSeed(post.richText ?? null);
     setRichText(post.richText ?? undefined);
@@ -253,8 +263,13 @@ export default function AdminScreen() {
     });
   };
   const handleSubmit = async () => {
-    if (!form.text.trim() && !form.photos.length && !form.videos.length) {
-      notifyAdminError("Добавьте текст, фото или видео");
+    if (
+      !form.text.trim() &&
+      !form.photos.length &&
+      !form.videos.length &&
+      !attachments.attachments.length
+    ) {
+      notifyAdminError("Добавьте текст, фото, видео, аудио или документ");
       return;
     }
     if (
@@ -284,8 +299,8 @@ export default function AdminScreen() {
       });
       await saveCoordinator.current.save(
         payload,
-        [],
-        [],
+        attachments.attachments,
+        attachments.removedIds,
         {
           create: (input, signal) =>
             utils.client.admin.createPost.mutate(input, { signal }),
@@ -591,6 +606,8 @@ export default function AdminScreen() {
       (form.text.trim() ||
         form.photos.length ||
         form.videos.length ||
+        attachments.attachments.length ||
+        attachments.removedIds.length ||
         operation.busy) &&
       !window.confirm(
         "Закрыть редактор? Несохранённые изменения будут потеряны.",
@@ -603,7 +620,12 @@ export default function AdminScreen() {
   const renderForm = () => {
     if (!showForm) return null;
     return (
-      <Dialog open motion="slide" onClose={closeForm}>
+      <Dialog
+        label="Редактор публикации"
+        open
+        motion="slide"
+        onClose={closeForm}
+      >
         <div
           className={["ui-stack ", classes.modalContainer]
             .filter(Boolean)
@@ -628,7 +650,7 @@ export default function AdminScreen() {
             </Typography>
             <Action
               onClick={handleSubmit}
-              disabled={videoUploading || uploading || saving}
+              disabled={operation.busy}
               className={({ pressed }) =>
                 [
                   classes.action2,
@@ -763,22 +785,25 @@ export default function AdminScreen() {
                     </Typography>
                   </div>
                 )}
-                <div
-                  className={["ui-stack ", classes.previewTextContainer]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  {richText?.length ? (
-                    <RichTextRenderer
-                      richText={richText}
-                      plainText={form.text}
-                    />
-                  ) : (
-                    <Typography lines={0} className={classes.previewPostText}>
-                      {form.text || "Текст поста..."}
-                    </Typography>
-                  )}
-                </div>
+                <PostAttachmentsList attachments={attachments.attachments} />
+                {form.text.trim() ? (
+                  <div
+                    className={["ui-stack ", classes.previewTextContainer]
+                      .filter(Boolean)
+                      .join(" ")}
+                  >
+                    {richText?.length ? (
+                      <RichTextRenderer
+                        richText={richText}
+                        plainText={form.text}
+                      />
+                    ) : (
+                      <Typography lines={0} className={classes.previewPostText}>
+                        {form.text}
+                      </Typography>
+                    )}
+                  </div>
+                ) : null}
                 {form.tags.length > 0 && (
                   <div
                     className={["ui-stack ", classes.previewTagsRow]
@@ -834,7 +859,7 @@ export default function AdminScreen() {
             </ScrollArea>
           ) : null}
           <ScrollArea
-            inert={operation.busy}
+            inert={operation.busy || showPreview}
             key="editor"
             contentClassName={classes.formContent}
             className={[
@@ -967,6 +992,7 @@ export default function AdminScreen() {
                         Видео {i + 1}
                       </Typography>
                       <Action
+                        aria-label={`Удалить видео ${i + 1}`}
                         onClick={() => removeVideo(i)}
                         className={classes.mediaRemoveBtn}
                       >
@@ -977,6 +1003,13 @@ export default function AdminScreen() {
                 </div>
               )}
             </div>
+
+            <PostAttachmentsField
+              attachments={attachments.attachments}
+              disabled={operation.busy}
+              onPick={attachments.pick}
+              onRemove={attachments.remove}
+            />
 
             {/* Tags */}
             <div
@@ -1574,6 +1607,7 @@ export default function AdminScreen() {
             onDayPress={(date) => {
               operation.cancel();
               saveCoordinator.current = new PostSaveCoordinator();
+              attachments.reset();
               setEditingId(null);
               setForm({
                 ...EMPTY_FORM,

@@ -3,6 +3,7 @@ import { memo } from "react";
 import { Typography } from "@/shared/ui/elements";
 import { splitForEmojiRendering } from "@/shared/media/emoji-text";
 import { normalizeLinkUrl } from "@/shared/media/photo-aspect-ratios";
+import { safeExternalUrl } from "@/shared/navigation/external-url";
 import {
   sanitizePlainPostText,
   sanitizeRichTextForDisplay,
@@ -130,7 +131,7 @@ function renderInlines(
       return (
         <a
           key={index}
-          href={normalizeLinkUrl(inline.link)}
+          href={safeExternalUrl(normalizeLinkUrl(inline.link)) ?? undefined}
           target="_blank"
           rel="noopener noreferrer"
           className={["ui-inline-link", classes.link, className]

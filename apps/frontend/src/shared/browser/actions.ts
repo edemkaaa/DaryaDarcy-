@@ -1,7 +1,10 @@
 "use client";
+import { safeExternalUrl } from "@/shared/navigation/external-url";
 export async function openExternalUrl(url: string) {
-  if (/^(mailto:|tel:)/i.test(url)) window.location.href = url;
-  else window.open(url, "_blank", "noopener,noreferrer");
+  const safe = safeExternalUrl(url);
+  if (!safe) return;
+  if (/^(mailto:|tel:)/i.test(safe)) window.location.href = safe;
+  else window.open(safe, "_blank", "noopener,noreferrer");
 }
 export async function shareContent({
   message,

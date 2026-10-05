@@ -129,6 +129,7 @@ export const RichTextField = forwardRef<
           </Action>
           <Action
             {...formatActionProps(fmt.addLink)}
+            aria-label="Добавить ссылку"
             className={classes.formatBtn}
           >
             <MaterialIcons
@@ -178,6 +179,7 @@ export const RichTextField = forwardRef<
 
       {fmt.linkModalVisible ? (
         <Dialog
+          label="Ссылка в публикации"
           open
           motion="fade"
           onClose={() => {

@@ -55,21 +55,6 @@
 
   .div5 {
     position: absolute;
-    flex-direction: row;
     align-self: center;
-    gap: 6px;
-  }
-  .appearanceState {
-    width: 8px;
-    height: 8px;
-    border-radius: 4px;
-    background-color: #fff;
-  }
-
-  .appearanceState2 {
-    width: 6px;
-    height: 6px;
-    border-radius: 3px;
-    background-color: rgba(255, 255, 255, 0.4);
   }
 }

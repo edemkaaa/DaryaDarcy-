@@ -4,8 +4,8 @@ import { useViewport } from "@/shared/browser/viewport";
 import { getTagBoardDrawerLayout } from "./tag-board-drawer.layout";
 import classes from "./tag-board-drawer.module.scss";
 import { cssTransform } from "@/shared/ui/css";
-import { Action, Typography } from "@/shared/ui/elements";
-import { useEffect, useCallback } from "react";
+import { Action, ScrollArea, Typography } from "@/shared/ui/elements";
+import { useEffect, useCallback, useId, useRef, useState } from "react";
 import { Picture } from "@/shared/media/image";
 import Animated, {
   useSharedValue,
@@ -37,10 +37,14 @@ export function TagBoardDrawer({
   const viewport = useViewport();
   const { stylesLayout } = getTagBoardDrawerLayout(viewport);
   const { DRAWER_WIDTH } = getTagBoardDrawerContent(viewport);
+  const [isOpen, setIsOpen] = useState(false);
+  const drawerId = useId();
+  const openButton = useRef<HTMLButtonElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
 
   // translateX: 0 = fully open (drawer visible), DRAWER_WIDTH = fully closed (hidden off-screen right)
   const translateX = useSharedValue(DRAWER_WIDTH);
-  const isOpenRef = useSharedValue(false);
   // Peek animation — subtle jiggle of the edge strip
   const peekAnim = useSharedValue(0);
   // Start peek animation loop (only when drawer is closed)
@@ -58,31 +62,37 @@ export function TagBoardDrawer({
       ),
     );
   }, [peekAnim]);
-  useEffect(() => {
-    startPeekAnimation();
-  }, [startPeekAnimation]);
   const stopPeekAnimation = useCallback(() => {
     peekAnim.value = withTiming(0, { duration: 100 });
   }, [peekAnim]);
-  const openDrawer = useCallback(() => {
-    isOpenRef.value = true;
-    translateX.value = withTiming(0, {
-      duration: 300,
-      easing: Easing.out(Easing.cubic),
+  const openDrawer = () => setIsOpen(true);
+  const closeDrawer = () => {
+    returnFocus.current = true;
+    setIsOpen(false);
+  };
+  useEffect(() => {
+    translateX.value = withTiming(isOpen ? 0 : DRAWER_WIDTH, {
+      duration: isOpen ? 300 : 280,
+      easing: isOpen ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
     });
-    stopPeekAnimation();
-  }, [isOpenRef, stopPeekAnimation, translateX]);
-  const closeDrawer = useCallback(() => {
-    isOpenRef.value = false;
-    translateX.value = withTiming(DRAWER_WIDTH, {
-      duration: 280,
-      easing: Easing.in(Easing.cubic),
-    });
-    // Restart peek after closing
-    setTimeout(() => {
-      startPeekAnimation();
-    }, 1500);
-  }, [DRAWER_WIDTH, isOpenRef, startPeekAnimation, translateX]);
+    if (isOpen) {
+      stopPeekAnimation();
+      return;
+    }
+    // Cancel a pending restart when reopened or unmounted.
+    const timer = setTimeout(
+      startPeekAnimation,
+      returnFocus.current ? 1500 : 0,
+    );
+    return () => clearTimeout(timer);
+  }, [isOpen, DRAWER_WIDTH, translateX, startPeekAnimation, stopPeekAnimation]);
+  useEffect(() => {
+    if (isOpen) closeButton.current?.focus({ preventScroll: true });
+    else if (returnFocus.current) {
+      openButton.current?.focus({ preventScroll: true });
+      returnFocus.current = false;
+    }
+  }, [isOpen]);
   // Animated styles
   const drawerStyle = useAnimatedStyle(() => ({
     transform: cssTransform([{ translateX: translateX.value }]),
@@ -112,11 +122,17 @@ export function TagBoardDrawer({
     <>
       {/* Peek strip — visible edge that jiggles, tap to open */}
       <Animated.div
+        inert={isOpen}
+        aria-hidden={isOpen}
         style={[{ top: stylesLayout.peekStrip.top }, peekStyle]}
         className={classes.div}
       >
         <Action
+          ref={openButton}
           onClick={openDrawer}
+          aria-label="Открыть фильтры клуба"
+          aria-expanded={isOpen}
+          aria-controls={drawerId}
           className={({ pressed }) =>
             [classes.action, pressed ? classes.opacityState : ""]
               .filter(Boolean)
@@ -142,6 +158,18 @@ export function TagBoardDrawer({
 
       {/* Main Drawer */}
       <Animated.div
+        id={drawerId}
+        role="region"
+        aria-label="Фильтры клуба"
+        aria-hidden={!isOpen}
+        inert={!isOpen}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            closeDrawer();
+          }
+        }}
         style={[
           { top: stylesLayout.drawer.top, width: stylesLayout.drawer.width },
           drawerStyle,
@@ -170,7 +198,9 @@ export function TagBoardDrawer({
 
           {/* Close button — top right of board */}
           <Action
+            ref={closeButton}
             onClick={closeDrawer}
+            aria-label="Закрыть фильтры клуба"
             className={({ pressed }) =>
               [
                 classes.action2,
@@ -185,13 +215,22 @@ export function TagBoardDrawer({
           </Action>
 
           {/* Content on top of board */}
-          <div
+          <ScrollArea
+            hideScrollbar
+            tabIndex={-1}
+            role="group"
+            aria-label="Сезоны и темы"
             style={{
               top: stylesLayout.drawerContent.top,
-              left: stylesLayout.drawerContent.left,
-              right: stylesLayout.drawerContent.right,
+              left: 0,
+              right: 0,
               height: stylesLayout.drawerContent.height,
               paddingTop: stylesLayout.drawerContent.paddingTop,
+            }}
+            contentStyle={{
+              width: "100%",
+              paddingLeft: stylesLayout.drawerContent.left,
+              paddingRight: stylesLayout.drawerContent.right,
             }}
             className={["ui-stack ", classes.drawerContent]
               .filter(Boolean)
@@ -216,6 +255,7 @@ export function TagBoardDrawer({
                   {SEASON_TAGS.map((tag) => (
                     <Action
                       key={tag.slug}
+                      aria-pressed={selectedTag === tag.slug}
                       onClick={() => handleTagPress(tag.slug)}
                       className={({ pressed }) =>
                         [
@@ -263,6 +303,7 @@ export function TagBoardDrawer({
                     {row.map((tag) => (
                       <Action
                         key={tag.slug}
+                        aria-pressed={selectedTag === tag.slug}
                         onClick={() => handleTagPress(tag.slug)}
                         className={({ pressed }) =>
                           [
@@ -314,7 +355,7 @@ export function TagBoardDrawer({
                 </Action>
               )}
             </div>
-          </div>
+          </ScrollArea>
         </div>
       </Animated.div>
     </>

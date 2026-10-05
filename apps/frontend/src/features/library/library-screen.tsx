@@ -14,6 +14,7 @@ import { getLibraryScreenContent } from "./library-screen.content";
 import { useRouter } from "@/shared/navigation/router";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
+import { QueryRetryState } from "@/shared/ui/query-retry-state";
 
 import { useClub } from "@/domain/subscription/subscription-context";
 import { trpc } from "@/shared/api/trpc";
@@ -68,7 +69,7 @@ export default function LibraryScreen() {
       title: article.title,
       coverUrl: article.coverUrl || ABOUT_ME_COVER_URL,
       coverAspectRatio: DEFAULT_COVER_ASPECT,
-      isClubOnly: true,
+      isClubOnly: article.access !== "public",
       action: "navigate" as const,
       route: `/library/article/${article.id}`,
     }));
@@ -127,6 +128,7 @@ export default function LibraryScreen() {
         className={["ui-stack ", classes.cardWrapper].filter(Boolean).join(" ")}
       >
         <Action
+          aria-label={`Открыть материал: ${item.title}`}
           onClick={() => handleMaterialPress(item)}
           className={({ pressed }) =>
             [
@@ -255,13 +257,24 @@ export default function LibraryScreen() {
             className={classes.field}
           />
           {searchQuery.length > 0 && (
-            <Action onClick={() => setSearchQuery("")}>
+            <Action
+              aria-label="Очистить поиск"
+              onClick={() => setSearchQuery("")}
+            >
               <MaterialIcons name="close" size={18} color={BROWN_MUTED} />
             </Action>
           )}
         </div>
 
-        {filteredMaterials.length === 0 ? (
+        <QueryRetryState
+          isLoading={articlesQuery.isPending}
+          isError={articlesQuery.isError}
+          onRetry={() => void articlesQuery.refetch()}
+          message="Не удалось загрузить статьи библиотеки"
+        />
+        {filteredMaterials.length === 0 &&
+        !articlesQuery.isPending &&
+        !articlesQuery.isError ? (
           <div
             className={["ui-stack ", classes.emptyContainer]
               .filter(Boolean)

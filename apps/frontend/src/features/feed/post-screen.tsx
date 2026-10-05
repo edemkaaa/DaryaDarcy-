@@ -102,6 +102,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
             className={["ui-stack ", classes.header].filter(Boolean).join(" ")}
           >
             <Action
+              aria-label="Назад"
               {...pressableProps(() => router.back())}
               className={({ pressed }) =>
                 [
@@ -142,6 +143,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
             className={["ui-stack ", classes.header].filter(Boolean).join(" ")}
           >
             <Action
+              aria-label="Назад"
               onClick={() => router.back()}
               className={({ pressed }) =>
                 [
@@ -209,6 +211,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
           className={["ui-stack ", classes.header].filter(Boolean).join(" ")}
         >
           <Action
+            aria-label="Назад"
             {...pressableProps(() => router.back())}
             className={({ pressed }) =>
               [

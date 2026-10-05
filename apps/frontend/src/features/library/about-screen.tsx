@@ -73,6 +73,7 @@ export default function AboutMeScreen() {
     index: number;
   }) => (
     <Action
+      aria-label={`Открыть фото ${index + 1}`}
       activeOpacity={0.9}
       onClick={() => openViewer(CAROUSEL_IMAGES, index)}
       style={{ width: stylesLayout.carouselItem.width }}
@@ -211,6 +212,7 @@ export default function AboutMeScreen() {
 
               {/* Part photo (tappable for fullscreen) */}
               <Action
+                aria-label={`Открыть фото раздела ${index + 1}`}
                 activeOpacity={0.9}
                 onClick={() => openViewer([PART_PHOTOS[index]], 0)}
               >

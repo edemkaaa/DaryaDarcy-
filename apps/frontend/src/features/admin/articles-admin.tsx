@@ -400,14 +400,22 @@ export function ArticlesAdmin() {
                         .filter(Boolean)
                         .join(" ")}
                     >
-                      <Action onClick={() => moveBlock(index, -1)} hitArea={8}>
+                      <Action
+                        aria-label={`Переместить блок ${index + 1} вверх`}
+                        onClick={() => moveBlock(index, -1)}
+                        hitArea={8}
+                      >
                         <MaterialIcons
                           name="keyboard-arrow-up"
                           size={20}
                           color={BROWN_LIGHT}
                         />
                       </Action>
-                      <Action onClick={() => moveBlock(index, 1)} hitArea={8}>
+                      <Action
+                        aria-label={`Переместить блок ${index + 1} вниз`}
+                        onClick={() => moveBlock(index, 1)}
+                        hitArea={8}
+                      >
                         <MaterialIcons
                           name="keyboard-arrow-down"
                           size={20}
@@ -416,6 +424,7 @@ export function ArticlesAdmin() {
                       </Action>
                       {blocks.length > 1 ? (
                         <Action
+                          aria-label={`Удалить блок ${index + 1}`}
                           onClick={() =>
                             setBlocks((prev) =>
                               prev.filter((_, i) => i !== index),
@@ -539,6 +548,7 @@ export function ArticlesAdmin() {
                         >
                           {block.urls.map((url, photoIndex) => (
                             <Action
+                              aria-label={`Удалить фото ${photoIndex + 1} из блока ${index + 1}`}
                               key={`${url}-${photoIndex}`}
                               onClick={() =>
                                 updateBlock(index, {
@@ -695,7 +705,19 @@ export function ArticlesAdmin() {
           <Action onClick={reset} className={classes.btnGhost}>
             <Typography className={classes.btnGhostText}>Отмена</Typography>
           </Action>
-          <Action onClick={save} disabled={busy} className={classes.btn}>
+          <Action
+            onClick={save}
+            disabled={busy}
+            aria-busy={busy}
+            aria-label={
+              editingId
+                ? "Сохранить"
+                : published
+                  ? "Опубликовать"
+                  : "Сохранить черновик"
+            }
+            className={classes.btn}
+          >
             {busy ? (
               <Spinner color={CREAM} />
             ) : (

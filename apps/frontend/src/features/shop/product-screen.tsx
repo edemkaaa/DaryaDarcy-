@@ -13,6 +13,7 @@ import {
   Dialog,
 } from "@/shared/ui/elements";
 import { openExternalUrl } from "@/shared/browser/actions";
+import { requirePaymentUrl } from "@/shared/navigation/external-url";
 import { useEffect, useState } from "react";
 import { Picture } from "@/shared/media/image";
 import { useRouter } from "@/shared/navigation/router";
@@ -99,11 +100,12 @@ export default function ProductDetailScreen({
         }
         try {
           const result = await checkout.mutateAsync({ productId: product.id });
+          const paymentUrl = requirePaymentUrl(result.url);
           if (typeof window !== "undefined") {
-            window.location.assign(result.url);
+            window.location.assign(paymentUrl);
             return;
           }
-          await openExternalUrl(result.url);
+          await openExternalUrl(paymentUrl);
         } catch (error) {
           setPayError(
             error instanceof Error
@@ -148,6 +150,7 @@ export default function ProductDetailScreen({
           className={["ui-stack ", classes.div2].filter(Boolean).join(" ")}
         >
           <Action
+            aria-label="Назад"
             onClick={() => router.back()}
             className={({ pressed }) =>
               [
@@ -217,6 +220,7 @@ export default function ProductDetailScreen({
               keyExtractor={(_, i) => `gallery-${i}`}
               renderItem={({ item, index }) => (
                 <Action
+                  aria-label={`Открыть фото товара ${index + 1}`}
                   onClick={() => openZoom(item, index)}
                   style={() => ({
                     width: stylesLayout.carouselItem.width,
@@ -446,6 +450,7 @@ export default function ProductDetailScreen({
             {/* Review Images (tappable for fullscreen) */}
             {reviewImages.map((imgUri, idx) => (
               <Action
+                aria-label={`Открыть фото отзыва ${idx + 1}`}
                 key={`review-img-${idx}`}
                 onClick={() => {
                   setZoomImageUri(imgUri);
@@ -521,6 +526,7 @@ export default function ProductDetailScreen({
 
       {/* Fullscreen Zoom Modal */}
       <Dialog
+        label="Просмотр фотографии товара"
         open={zoomVisible}
         motion="fade"
         onClose={() => setZoomVisible(false)}
@@ -531,6 +537,7 @@ export default function ProductDetailScreen({
             .join(" ")}
         >
           <Action
+            aria-label="Закрыть просмотр фото"
             onClick={() => setZoomVisible(false)}
             style={{ top: insets.top + 16 }}
             className={classes.action6}
@@ -554,6 +561,7 @@ export default function ProductDetailScreen({
               .join(" ")}
           >
             <Action
+              aria-label="Предыдущее фото"
               onClick={zoomPrev}
               disabled={zoomIndex === 0}
               className={({ pressed }) =>
@@ -575,6 +583,7 @@ export default function ProductDetailScreen({
               {zoomIndex + 1} / {gallery.length}
             </Typography>
             <Action
+              aria-label="Следующее фото"
               onClick={zoomNext}
               disabled={zoomIndex === gallery.length - 1}
               className={({ pressed }) =>

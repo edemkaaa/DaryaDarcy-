@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { layoutApi } from "./layout-fixtures";
+import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() =>
@@ -11,41 +11,39 @@ async function guestApi(page: Page) {
   await layoutApi(page);
 }
 
+const publicPaths = [
+  "/",
+  "/feed",
+  "/videos",
+  "/club",
+  "/interactive",
+  "/library",
+  "/shop",
+  "/profile",
+  "/login",
+  "/quiz",
+  "/legal",
+  "/privacy",
+  "/admin",
+];
+
 for (const width of [320, 390, 1440]) {
-  test(`public routes render without hydration errors at ${width}px`, async ({
-    page,
-  }) => {
-    await guestApi(page);
-    await page.setViewportSize({ width, height: 900 });
-    const errors: string[] = [];
-    page.on("pageerror", (error) => errors.push(error.message));
-    page.on("console", (message) => {
-      if (
-        message.type() === "error" &&
-        /hydration|did not match|server rendered/i.test(message.text())
-      )
-        errors.push(message.text());
-    });
-    for (const path of [
-      "/",
-      "/feed",
-      "/videos",
-      "/club",
-      "/interactive",
-      "/library",
-      "/shop",
-      "/profile",
-      "/login",
-      "/quiz",
-      "/legal",
-      "/privacy",
-      "/admin",
-    ]) {
-      const sessionChecked = page.waitForResponse((response) =>
-        response.url().endsWith("/api/auth/me"),
-      );
-      const response = await page.goto(path, { waitUntil: "domcontentloaded" });
-      await sessionChecked;
+  for (const path of publicPaths) {
+    test(`public route ${path} renders without hydration errors at ${width}px`, async ({
+      page,
+    }) => {
+      await guestApi(page);
+      await page.setViewportSize({ width, height: 900 });
+      const errors: string[] = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      page.on("console", (message) => {
+        if (
+          message.type() === "error" &&
+          /hydration|did not match|server rendered/i.test(message.text())
+        )
+          errors.push(message.text());
+      });
+      const response = await gotoWithSession(page, path);
       expect(response?.status(), path).toBe(200);
       await expect(page.locator("#root")).toBeVisible();
       await expect.poll(() => page.locator("body").innerText()).not.toBe("");
@@ -61,15 +59,20 @@ for (const width of [320, 390, 1440]) {
           .evaluate((element) => element.getBoundingClientRect().width),
         path,
       ).toBeLessThanOrEqual(480);
-    }
-    expect(errors).toEqual([]);
-  });
+      expect(errors).toEqual([]);
+    });
+  }
 }
 
 test("registration requests an email instruction and stays signed out", async ({
   page,
 }) => {
   await guestApi(page);
+  // A pending decorative image must not prevent registration.
+  let pendingDecorations = 0;
+  await page.route("https://s3.twcstorage.ru/**", () => {
+    pendingDecorations++;
+  });
   let body: Record<string, unknown> | undefined;
   await page.route("**/api/auth/register", async (route) => {
     body = route.request().postDataJSON();
@@ -81,7 +84,7 @@ test("registration requests an email instruction and stays signed out", async ({
       },
     });
   });
-  await page.goto("/login?next=/admin");
+  await gotoWithSession(page, "/login?next=/admin");
   await page
     .getByRole("button", { name: "Нет аккаунта? Зарегистрироваться" })
     .click();
@@ -100,6 +103,7 @@ test("registration requests an email instruction and stays signed out", async ({
   await expect(page.getByRole("status")).toContainText(
     "ссылка для установки пароля",
   );
+  expect(pendingDecorations).toBeGreaterThan(0);
   expect(body).toMatchObject({
     email: "registration@example.test",
     name: "Тестовый пользователь",
@@ -122,7 +126,7 @@ test("disabled SMS stays hidden and a failed login offers an actionable error", 
       json: { error: "Неверный email или пароль" },
     }),
   );
-  await page.goto("/login");
+  await gotoWithSession(page, "/login");
   await expect(
     page.getByRole("button", { name: "Войти по телефону" }),
   ).toHaveCount(0);
@@ -148,7 +152,7 @@ test("password recovery displays the server instruction", async ({ page }) => {
       },
     }),
   );
-  await page.goto("/login");
+  await gotoWithSession(page, "/login");
   await page
     .getByRole("button", { name: "Забыли пароль или ещё не установили его?" })
     .click();

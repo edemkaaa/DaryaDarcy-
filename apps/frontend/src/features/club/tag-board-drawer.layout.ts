@@ -11,7 +11,6 @@ export function getTagBoardDrawerLayout(viewport: ViewportSize) {
     BOARD_HEIGHT,
     BOARD_LINEN_TOP,
     BOARD_LINEN_SIDE,
-    BOARD_LINEN_HEIGHT,
     TAG_GRID_TOP_PADDING,
   } = getTagBoardDrawerContent(viewport);
   const stylesLayout = {
@@ -35,7 +34,14 @@ export function getTagBoardDrawerLayout(viewport: ViewportSize) {
       top: BOARD_LINEN_TOP,
       left: BOARD_LINEN_SIDE,
       right: BOARD_LINEN_SIDE,
-      height: BOARD_LINEN_HEIGHT,
+      // Keep the board geometry; scroll controls within its visible remainder.
+      height: Math.max(
+        0,
+        Math.min(
+          BOARD_HEIGHT - BOARD_LINEN_TOP,
+          viewport.height - DRAWER_TOP_OFFSET - 4 - BOARD_LINEN_TOP,
+        ),
+      ),
       paddingTop: TAG_GRID_TOP_PADDING,
     },
   };

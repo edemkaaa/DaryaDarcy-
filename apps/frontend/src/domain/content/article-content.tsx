@@ -5,6 +5,7 @@ import classes from "./article-content.module.scss";
 import { Action, Typography, Collection } from "@/shared/ui/elements";
 
 import { openExternalUrl } from "@/shared/browser/actions";
+import { safeExternalUrl } from "@/shared/navigation/external-url";
 import { useState } from "react";
 import { Picture } from "@/shared/media/image";
 import {
@@ -27,6 +28,7 @@ export function ArticleContent({
     <div className="ui-stack ">
       {coverUrl ? (
         <Action
+          aria-label="Открыть обложку статьи"
           onClick={() => (onOpenImage ? onOpenImage(coverUrl) : undefined)}
           disabled={!onOpenImage}
         >
@@ -88,7 +90,7 @@ function ArticleBlockView({
                 return (
                   <a
                     key={i}
-                    href={part.url}
+                    href={safeExternalUrl(part.url) ?? undefined}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={["ui-inline-link", classes.inlineLink]
@@ -138,6 +140,7 @@ function ArticleBlockView({
     );
     const media = onOpenImage ? (
       <Action
+        aria-label="Открыть изображение статьи"
         onClick={() => onOpenImage(block.url!)}
         style={{
           ...((png ? true : false)
@@ -195,6 +198,7 @@ function ArticleBlockView({
             keyExtractor={(url, index) => `${url}-${index}`}
             renderItem={({ item }) => (
               <Action
+                aria-label="Открыть изображение статьи"
                 onClick={() => onOpenImage?.(item)}
                 style={{
                   width: stylesLayout.carouselItem.width,

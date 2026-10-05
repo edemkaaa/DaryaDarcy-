@@ -118,6 +118,7 @@ export function CalendarTracker({
         className={["ui-stack ", classes.monthHeader].filter(Boolean).join(" ")}
       >
         <Action
+          aria-label="Предыдущий месяц"
           onClick={goToPrevMonth}
           className={({ pressed }) =>
             [
@@ -135,6 +136,7 @@ export function CalendarTracker({
           {monthsToShow[1].year}
         </Typography>
         <Action
+          aria-label="Следующий месяц"
           onClick={goToNextMonth}
           className={({ pressed }) =>
             [
@@ -320,6 +322,7 @@ function MonthGrid({
             year === new Date().getFullYear();
           return (
             <Action
+              aria-label={`${new Date(year, month, day).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}${hasPost ? ": открыть публикацию" : ": создать публикацию"}`}
               key={`day-${year}-${month}-${day}`}
               onClick={() => {
                 if (firstPost && onPostPress) {

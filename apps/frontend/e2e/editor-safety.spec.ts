@@ -1,77 +1,11 @@
-import { test, expect, type Page, type Route } from "@playwright/test";
-import { layoutApi } from "./layout-fixtures";
+import { test, expect, type Page } from "@playwright/test";
+import { gotoWithSession } from "./layout-fixtures";
+import { editorApi, ok, failure } from "./editor-fixtures";
 
 test.setTimeout(45_000);
-const ok = (data: unknown) => ({ result: { data: { json: data } } });
-const failure = (status = 400) => ({
-  error: {
-    json: {
-      message:
-        status === 400
-          ? "Тестовая ошибка сохранения"
-          : "PRIVATE_INTERNAL_DETAILS",
-      code: -32603,
-      data: {
-        code: status === 400 ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR",
-        httpStatus: status,
-      },
-    },
-  },
-});
-async function editorApi(
-  page: Page,
-  answer?: (
-    name: string,
-    input: Record<string, unknown>,
-    route: Route,
-  ) => Promise<unknown> | unknown,
-) {
-  await layoutApi(page, true);
-  await page.route("**/api/auth/me", (route) =>
-    route.fulfill({
-      json: {
-        user: {
-          id: 101,
-          openId: "test-admin",
-          name: "Тест",
-          email: "test@example.test",
-          role: "admin",
-          lastSignedIn: "2026-10-04T10:00:00Z",
-        },
-      },
-    }),
-  );
-  await page.route("**/api/trpc/**", async (route) => {
-    const url = new URL(route.request().url());
-    const names = url.pathname.split("/api/trpc/")[1].split(",");
-    const encoded =
-      route.request().postData() ?? url.searchParams.get("input") ?? "{}";
-    const inputs = JSON.parse(encoded);
-    const results = await Promise.all(
-      names.map(async (name, index) => {
-        const input = inputs[index]?.json ?? {};
-        const custom = await answer?.(name, input, route);
-        if (custom !== undefined) return custom;
-        if (name === "feed.userInteractions")
-          return ok({ likedIds: [], savedIds: [] });
-        if (name === "feed.listPaginated" || name === "club.list")
-          return ok({ posts: [], nextCursor: null });
-        if (name === "admin.createPost" || name === "admin.createArticle")
-          return ok(42);
-        if (name === "admin.updatePost") return ok({ success: true });
-        if (name === "admin.updateArticle") return ok({ ok: true });
-        return ok([]);
-      }),
-    );
-    await route
-      .fulfill({
-        json: url.searchParams.get("batch") === "1" ? results : results[0],
-      })
-      .catch(() => {});
-  });
-}
+
 async function openQuickEditor(page: Page) {
-  await page.goto("/feed");
+  await gotoWithSession(page, "/feed");
   await page.getByRole("button", { name: "Новый пост", exact: true }).click();
   await expect(
     page.getByPlaceholder("Текст поста… Enter — новый абзац"),
@@ -473,19 +407,8 @@ test("an empty saved category does not show posts from the other category", asyn
 test("the photo viewer preserves the chosen photo when the viewport changes", async ({
   page,
 }) => {
-  const photos = [1, 2, 3].map(
-    (index) => `https://example.test/photo${index}.png`,
-  );
-  await editorApi(page, (name) =>
-    name === "feed.getById" ? ok(contentPost({ photos })) : undefined,
-  );
-  await page.route("https://example.test/photo*.png", (route) =>
-    route.fulfill({
-      contentType: "image/svg+xml",
-      body: '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="beige"/></svg>',
-    }),
-  );
-  await page.goto("/post/1");
+  await photoPostApi(page, 3);
+  await gotoWithSession(page, "/post/1");
   await page.locator('img[src="https://example.test/photo3.png"]').click();
   await expect(page.getByText("3 / 3", { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 375, height: 812 });
@@ -499,6 +422,229 @@ test("the photo viewer preserves the chosen photo when the viewport changes", as
     )
     .toBe(750);
 });
+
+async function photoPostApi(page: Page, count: number) {
+  const makePhotos = (length: number) =>
+    Array.from(
+      { length },
+      (_, index) => `https://example.test/photo${index + 1}.png`,
+    );
+  let photos = makePhotos(count);
+  await editorApi(page, (name) => {
+    if (name === "feed.getById") return ok(contentPost({ photos }));
+    if (name === "feed.listPaginated" || name === "club.list")
+      return ok({
+        posts: [
+          contentPost({
+            photos,
+            target: name === "club.list" ? "club" : "feed",
+          }),
+        ],
+        nextCursor: null,
+      });
+  });
+  await page.route("https://example.test/photo*.png", (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="beige"/></svg>',
+    }),
+  );
+  return (nextCount: number) => {
+    photos = makePhotos(nextCount);
+  };
+}
+
+test("a photo scroll immediately followed by resize preserves the new selection", async ({
+  page,
+}) => {
+  await photoPostApi(page, 3);
+  await gotoWithSession(page, "/post/1");
+  await page.locator('img[src="https://example.test/photo1.png"]').click();
+  const viewer = page.getByRole("dialog", { name: "Просмотр фотографий" });
+  const scroll = viewer.locator(".ui-scroll-horizontal");
+  await expect(viewer.getByText("1 / 3", { exact: true })).toBeVisible();
+  await scroll.evaluate(
+    (node) =>
+      new Promise<void>((resolve) => {
+        node.addEventListener("scroll", () => resolve(), { once: true });
+        node.scrollTo({ left: node.clientWidth * 2, behavior: "instant" });
+      }),
+  );
+  await page.setViewportSize({ width: 844, height: 390 });
+  await expect(viewer.getByText("3 / 3", { exact: true })).toBeVisible();
+  await expect(viewer.getByRole("img", { name: "Фото 3 из 3" })).toBeVisible();
+  await expect
+    .poll(() => scroll.evaluate((node) => node.scrollLeft))
+    .toBe(1688);
+});
+
+for (const path of ["/post/1", "/feed", "/club"]) {
+  test(`photo carousel dots, edges and resize work in ${path}`, async ({
+    page,
+  }) => {
+    await photoPostApi(page, 10);
+    await gotoWithSession(page, path);
+    const carousel = page.getByRole("region", { name: "Фотографии поста" });
+    const scroll = carousel.locator(".ui-scroll-horizontal");
+    const dots = carousel.getByRole("img", { name: "Фото 1 из 10" });
+    await expect(dots).toBeVisible();
+    await expect(dots.locator("[aria-current=true]")).toHaveCount(1);
+    await scroll.focus();
+    await page.keyboard.press("End");
+    await expect(carousel.getByText("10 / 10", { exact: true })).toBeVisible();
+    await expect(
+      carousel
+        .getByRole("img", { name: "Фото 10 из 10" })
+        .locator("[aria-current=true]"),
+    ).toHaveCount(1);
+    await page.keyboard.press("ArrowRight");
+    await expect(carousel.getByText("10 / 10", { exact: true })).toBeVisible();
+    await page.setViewportSize({ width: 844, height: 390 });
+    await expect(carousel.getByText("10 / 10", { exact: true })).toBeVisible();
+    await expect
+      .poll(() =>
+        scroll.evaluate((node) =>
+          Math.abs(node.scrollLeft - 9 * node.clientWidth),
+        ),
+      )
+      .toBeLessThan(2);
+    await page.keyboard.press("Home");
+    await expect(
+      carousel.getByRole("img", { name: "Фото 1 из 10" }),
+    ).toBeVisible();
+    await page.keyboard.press("ArrowLeft");
+    await expect(carousel.getByText("1 / 10", { exact: true })).toBeVisible();
+    await page.keyboard.press("ArrowRight");
+    await expect(
+      carousel.getByRole("img", { name: "Фото 2 из 10" }),
+    ).toBeVisible();
+    await carousel
+      .getByRole("button", { name: "Открыть фото 2 из 10" })
+      .click();
+    const viewer = page.getByRole("dialog", { name: "Просмотр фотографий" });
+    await expect(
+      viewer.getByRole("img", { name: "Фото 2 из 10" }),
+    ).toBeVisible();
+    const viewerScroll = viewer.locator(".ui-scroll-horizontal");
+    await viewerScroll.focus();
+    await page.keyboard.press("End");
+    await expect(
+      viewer.getByRole("img", { name: "Фото 10 из 10" }),
+    ).toBeVisible();
+    await page.keyboard.press("ArrowRight");
+    await expect(viewer.getByText("10 / 10", { exact: true })).toBeVisible();
+    for (const width of [1280, 320]) {
+      await page.setViewportSize({ width, height: 568 });
+      await expect(
+        viewer.getByRole("img", { name: "Фото 10 из 10" }),
+      ).toBeVisible();
+      await expect
+        .poll(() => viewerScroll.evaluate((node) => node.clientWidth))
+        .toBe(width);
+      await expect
+        .poll(() => viewerScroll.evaluate((node) => node.scrollLeft))
+        .toBe(9 * width);
+    }
+    await page.keyboard.press("Home");
+    await expect(
+      viewer.getByRole("img", { name: "Фото 1 из 10" }),
+    ).toBeVisible();
+    await viewer.getByRole("button", { name: "Закрыть фотографии" }).click();
+    await expect(viewer).toHaveCount(0);
+    await expect(
+      carousel.getByRole("img", { name: "Фото 2 из 10" }),
+    ).toBeVisible();
+  });
+}
+
+test("a refreshed photo list clamps selection and removes empty indicators", async ({
+  page,
+}) => {
+  const setPhotoCount = await photoPostApi(page, 12);
+  await gotoWithSession(page, "/feed");
+  const carousel = page.getByRole("region", { name: "Фотографии поста" });
+  const scroll = carousel.locator(".ui-scroll-horizontal");
+  await expect(carousel.getByText("1 / 12", { exact: true })).toBeVisible();
+  await scroll.focus();
+  await page.keyboard.press("End");
+  await expect(carousel.getByText("12 / 12", { exact: true })).toBeVisible();
+  const refresh = async () => {
+    await page
+      .locator(".ui-scroll:not(.ui-scroll-horizontal)")
+      .filter({ has: carousel })
+      .first()
+      .evaluate((node) => {
+        node.scrollTop = 0;
+        node.dispatchEvent(
+          new TouchEvent("touchstart", {
+            bubbles: true,
+            touches: [new Touch({ identifier: 1, target: node, clientY: 0 })],
+          }),
+        );
+        node.dispatchEvent(
+          new TouchEvent("touchend", {
+            bubbles: true,
+            changedTouches: [
+              new Touch({ identifier: 1, target: node, clientY: 200 }),
+            ],
+          }),
+        );
+      });
+  };
+  setPhotoCount(10);
+  await refresh();
+  await expect(
+    carousel.getByRole("img", { name: "Фото 10 из 10" }),
+  ).toBeVisible();
+  await expect
+    .poll(() =>
+      scroll.evaluate((node) =>
+        Math.abs(node.scrollLeft - 9 * node.clientWidth),
+      ),
+    )
+    .toBeLessThan(2);
+  setPhotoCount(0);
+  await refresh();
+  await expect(carousel).toHaveCount(0);
+  await expect(
+    page.getByText("INTERACTION_TEST_POST", { exact: true }),
+  ).toBeVisible();
+});
+
+for (const count of [0, 1, 11]) {
+  test(`photo indicators handle ${count} photos without overflow`, async ({
+    page,
+  }) => {
+    await photoPostApi(page, count);
+    await gotoWithSession(page, "/post/1");
+    await expect(
+      page.getByText("INTERACTION_TEST_POST", { exact: true }),
+    ).toBeVisible();
+    if (count === 0) {
+      await expect(
+        page.locator('img[src^="https://example.test/photo"]'),
+      ).toHaveCount(0);
+    } else {
+      await page.locator('img[src="https://example.test/photo1.png"]').click();
+      const viewer = page.getByRole("dialog", { name: "Просмотр фотографий" });
+      await expect(viewer).toBeVisible();
+      await expect(
+        viewer.getByRole("img", { name: /^Фото \d+ из/ }),
+      ).toHaveCount(0);
+      if (count > 1)
+        await expect(
+          viewer.getByText(`1 / ${count}`, { exact: true }),
+        ).toBeVisible();
+      else
+        await expect(viewer.getByText("1 / 1", { exact: true })).toHaveCount(0);
+    }
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  });
+}
 
 test("a rejected audio play does not display playing state", async ({
   page,
@@ -564,7 +710,7 @@ test("a failed comment photo upload keeps the text and reports its error", async
       return failure();
     }
   });
-  await page.goto("/club");
+  await gotoWithSession(page, "/club");
   const field = page.getByPlaceholder("Написать комментарий...");
   await field.fill("UNSENT_COMMENT");
   const chooser = page.waitForEvent("filechooser");

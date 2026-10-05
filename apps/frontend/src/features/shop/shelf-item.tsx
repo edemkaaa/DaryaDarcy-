@@ -43,6 +43,7 @@ export function ShelfItem({
   };
   return (
     <Action
+      aria-label={`Открыть товар: ${product.title}`}
       {...pressableProps(onClick)}
       onPointerDown={handlePressIn}
       onPointerUp={handlePressOut}
