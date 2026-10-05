@@ -819,6 +819,41 @@ claimed by this isolation repair. Concurrent post toggles, media index/transacti
 review, uploads/other admin, SQL/pool ownership, durable delivery, registration
 diagnosis and release gates remain open.
 
+Post reaction atomicity specification: native HTTP/JWT/MySQL reproduces lost
+switches in even bursts; a real gated insert makes two requests observe absence
+and both return true. Keep the existing boolean/coerced-input API and access
+middleware, without changing post visibility policy, roles or quotas. One short
+SQL transaction locks the existing authenticated actor row before reading the
+reaction, then deletes all existing rows for that pair or inserts one, returning
+only after commit. The actor row is the stable mutex even when no reaction exists;
+do not rely on SELECT-for-update of an absent unindexed reaction or a process-local
+lock. Different actors keep independent mutexes; no external work inside the
+transaction, no blanket retries or new migration/data cleanup in this slice.
+Use a focused content SQL helper rather than growing db.ts; facade signatures and
+Nest wiring stay unchanged. Validate deterministic in-flight behavior, even/odd
+bursts, independent actors, legacy duplicate disable, rollback and current auth
+denials through the real production application. Schema/index review remains
+separate, as do unique constraints, invalid post IDs and automatic retry safety:
+a toggle remains non-idempotent after an ambiguous network result.
+
+Post reaction atomicity checkpoint: before repair, twenty concurrent requests
+returned only nine like enables / seven save enables instead of ten each. Gated
+inserts independently reproduced two rows for the same actor/post and two true
+responses instead of an enabled/disabled pair with no remaining row. The focused
+content/post-reactions.ts helper now acquires the actor lock before reading state;
+the existing db.ts facade delegates without changing the API or Nest composition.
+Ten added real HTTP/JWT/MySQL regressions pass, including forced overlap, even/odd
+bursts, two actors, legacy duplicate removal and rollback/released locks. Focused
+suite: 24 pass. Full suite: 697 pass / 2 external skip; root/Next types, lint,
+backend/Next builds, unchanged 72-procedure/25376-byte API, 416-file boundaries
+and 42-document link checks pass. Review confirms there is no external work in
+the transaction, process-local mutex, blind retry, new migration or data cleanup.
+The guarantee covers canonical API toggle writers, not arbitrary SQL writers;
+per-actor locking is intentionally broader than a single post. Pair indexes/unique
+constraints, invalid post IDs, post deletion races and ambiguous network retries
+remain separate. Upload/admin wiring, SQL/pool ownership, durable delivery,
+registration diagnosis and release acceptance are not marked complete.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

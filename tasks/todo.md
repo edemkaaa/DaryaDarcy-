@@ -474,9 +474,18 @@
     remain transitional. A test-fixture media deadlock was diagnosed via InnoDB;
     intentionally gated suites now share fixture ownership without disabling
     concurrent requests inside them. No production locking/schema change claimed.
-  - [ ] Post reaction atomicity: reproduce concurrent like/save behavior of the
-    existing SELECT-then-write helpers; fix in a separate regression-backed slice.
-    Review media query indexes/transaction deadlocks separately from test isolation.
+  - [x] Post reaction atomicity: native HTTP/JWT/MySQL reproduced lost toggles
+    in concurrent bursts and two duplicate rows from deterministically gated
+    inserts. Canonical like/save helpers now lock the actor row and toggle inside
+    one transaction, returning after commit. Ten new regressions cover gated/even/
+    odd requests, independent actors, legacy duplicate disable and failed-write
+    rollback; existing auth/coercion/boolean contract preserved. Full suite:
+    697 pass / 2 external skip; root/Next types, lint, backend/Next builds,
+    unchanged 72-procedure/25376-byte API, 416-file boundaries and docs pass.
+    No schema, frontend, provider or deployment changes.
+  - [ ] Review reaction pair indexes/unique constraints and missing-post policy
+    separately; network retries of a toggle are still non-idempotent. Review media
+    query indexes/transaction deadlocks separately from test-fixture isolation.
   - [ ] Remaining M05: Upload and other admin wiring; no false
     claim that all content or SQL ownership has been migrated after read slices.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance

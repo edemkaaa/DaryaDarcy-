@@ -366,6 +366,183 @@ describe.skipIf(!testDatabaseUrl)(
       },
     );
     it.each(["toggleLike", "toggleSave"] as const)(
+      "waits for an in-flight %s transaction and observes its committed state",
+      async (method) => {
+        const table = method === "toggleLike" ? "likes" : "saved_posts";
+        const gate = `backend_test_native_${table}_gate`;
+        const requests: Promise<boolean>[] = [];
+        const [lock] = await conn.query<RowDataPacket[]>(
+          "SELECT GET_LOCK(?,3) acquired",
+          [gate],
+        );
+        expect(lock[0].acquired).toBe(1);
+        let ownsTrigger = false;
+        try {
+          await conn.query(`CREATE TRIGGER ${gate} BEFORE INSERT ON ${table} FOR EACH ROW
+            BEGIN IF NEW.userId=8990 AND NEW.postId=8991 THEN
+            SET @native_reaction_gate=GET_LOCK('${gate}',10);
+            IF @native_reaction_gate<>1 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Fixture gate timeout'; END IF;
+            DO RELEASE_LOCK('${gate}'); END IF; END`);
+          ownsTrigger = true;
+          requests.push(client(bearer).feed[method].mutate({ postId: 8991 }));
+          const waiting = async () => {
+            const [rows] = await conn.query<RowDataPacket[]>(
+              "SELECT COUNT(*) n FROM performance_schema.metadata_locks WHERE OBJECT_TYPE='USER LEVEL LOCK' AND OBJECT_NAME=? AND LOCK_STATUS='PENDING'",
+              [gate],
+            );
+            return Number(rows[0].n);
+          };
+          await vi.waitFor(async () => expect(await waiting()).toBe(1), {
+            timeout: 3000,
+            interval: 20,
+          });
+          requests.push(client(bearer).feed[method].mutate({ postId: 8991 }));
+          // Before repair both inserts reach the gate after observing absence.
+          // After repair the second request waits on the real actor row instead.
+          await vi.waitFor(
+            async () => {
+              const [rows] = await conn.query<RowDataPacket[]>(
+                "SELECT COUNT(*) n FROM performance_schema.data_lock_waits w JOIN performance_schema.data_locks l ON l.ENGINE_LOCK_ID=w.REQUESTING_ENGINE_LOCK_ID AND l.ENGINE=w.ENGINE WHERE l.OBJECT_SCHEMA=DATABASE() AND l.OBJECT_NAME='users' AND l.INDEX_NAME='PRIMARY' AND l.LOCK_DATA='8990'",
+              );
+              expect((await waiting()) >= 2 || Number(rows[0].n) >= 1).toBe(
+                true,
+              );
+            },
+            { timeout: 3000, interval: 20 },
+          );
+          const [before] = await conn.query<RowDataPacket[]>(
+            `SELECT id FROM ${table} WHERE userId=8990 AND postId=8991`,
+          );
+          expect(before).toEqual([]);
+          await conn.query("SELECT RELEASE_LOCK(?)", [gate]);
+          const results = await Promise.all(requests);
+          const [after] = await conn.query<RowDataPacket[]>(
+            `SELECT id FROM ${table} WHERE userId=8990 AND postId=8991`,
+          );
+          expect(after).toHaveLength(0);
+          expect(results).toEqual([true, false]);
+        } finally {
+          await conn.query("SELECT RELEASE_LOCK(?)", [gate]);
+          await Promise.allSettled(requests);
+          if (ownsTrigger) await conn.query(`DROP TRIGGER ${gate}`);
+        }
+      },
+      15_000,
+    );
+    it.each(["toggleLike", "toggleSave"] as const)(
+      "serializes concurrent %s requests without duplicates or lost toggles",
+      async (method) => {
+        const table = method === "toggleLike" ? "likes" : "saved_posts";
+        for (const [requests, enabled, disabled, remaining] of [
+          [20, 10, 10, 0],
+          [21, 11, 10, 1],
+        ]) {
+          await conn.query(`DELETE FROM ${table} WHERE userId=8990`);
+          const results = await Promise.all(
+            Array.from({ length: requests }, () =>
+              client(bearer).feed[method].mutate({ postId: 8991 }),
+            ),
+          );
+          expect(results.filter((result) => result === true)).toHaveLength(
+            enabled,
+          );
+          expect(results.filter((result) => result === false)).toHaveLength(
+            disabled,
+          );
+          const [rows] = await conn.query<RowDataPacket[]>(
+            `SELECT userId,postId FROM ${table} WHERE userId=8990 AND postId=8991`,
+          );
+          expect(rows).toHaveLength(remaining);
+          if (remaining) expect(rows).toEqual([{ userId: 8990, postId: 8991 }]);
+        }
+      },
+    );
+    it.each(["toggleLike", "toggleSave"] as const)(
+      "keeps concurrent %s requests isolated between actors",
+      async (method) => {
+        const table = method === "toggleLike" ? "likes" : "saved_posts";
+        const author = await sdk.createSessionToken("native-comment-author", {
+          sessionVersion: 0,
+        });
+        try {
+          const [readerResults, authorResults] = await Promise.all(
+            [bearer, author].map((token) =>
+              Promise.all(
+                Array.from({ length: 14 }, () =>
+                  client(token).feed[method].mutate({ postId: 8991 }),
+                ),
+              ),
+            ),
+          );
+          for (const results of [readerResults, authorResults]) {
+            expect(results.filter((value) => value === true)).toHaveLength(7);
+            expect(results.filter((value) => value === false)).toHaveLength(7);
+          }
+          const [rows] = await conn.query<RowDataPacket[]>(
+            `SELECT userId FROM ${table} WHERE userId IN (8990,8991) AND postId=8991`,
+          );
+          expect(rows).toEqual([]);
+        } finally {
+          await conn.query(
+            `DELETE FROM ${table} WHERE userId=8991 AND postId=8991`,
+          );
+        }
+      },
+    );
+    it.each(["toggleLike", "toggleSave"] as const)(
+      "disables all legacy %s duplicates without changing another post",
+      async (method) => {
+        const table = method === "toggleLike" ? "likes" : "saved_posts";
+        await conn.query(
+          `INSERT INTO ${table} (userId,postId) VALUES (8990,8991),(8990,8991),(8990,8990)`,
+        );
+        expect(await client(bearer).feed[method].mutate({ postId: 8991 })).toBe(
+          false,
+        );
+        const [rows] = await conn.query<RowDataPacket[]>(
+          `SELECT postId FROM ${table} WHERE userId=8990`,
+        );
+        expect(rows).toEqual([{ postId: 8990 }]);
+        expect(await client(bearer).feed[method].mutate({ postId: 8991 })).toBe(
+          true,
+        );
+        const [enabled] = await conn.query<RowDataPacket[]>(
+          `SELECT postId FROM ${table} WHERE userId=8990 AND postId=8991`,
+        );
+        expect(enabled).toEqual([{ postId: 8991 }]);
+      },
+    );
+    it.each(["toggleLike", "toggleSave"] as const)(
+      "rolls back failed %s writes and releases locks for the next request",
+      async (method) => {
+        const table = method === "toggleLike" ? "likes" : "saved_posts";
+        const trigger = `backend_test_native_${table}_failure`;
+        await conn.query(`CREATE TRIGGER ${trigger} BEFORE INSERT ON ${table} FOR EACH ROW
+          BEGIN IF NEW.userId=8990 AND NEW.postId=8991 THEN
+          SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Fixture reaction failure'; END IF; END`);
+        try {
+          await expect(
+            client(bearer).feed[method].mutate({ postId: 8991 }),
+          ).rejects.toMatchObject({
+            data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+          });
+          const [rows] = await conn.query<RowDataPacket[]>(
+            `SELECT id FROM ${table} WHERE userId=8990 AND postId=8991`,
+          );
+          expect(rows).toEqual([]);
+        } finally {
+          await conn.query(`DROP TRIGGER ${trigger}`);
+        }
+        expect(await client(bearer).feed[method].mutate({ postId: 8991 })).toBe(
+          true,
+        );
+        const [rows] = await conn.query<RowDataPacket[]>(
+          `SELECT userId,postId FROM ${table} WHERE userId=8990 AND postId=8991`,
+        );
+        expect(rows).toEqual([{ userId: 8990, postId: 8991 }]);
+      },
+    );
+    it.each(["toggleLike", "toggleSave"] as const)(
       "retains boolean/coerced input and actor identity for %s",
       async (method) => {
         const table = method === "toggleLike" ? "likes" : "saved_posts";

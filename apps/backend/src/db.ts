@@ -13,6 +13,7 @@ import {
 import type { PostCreationIntent } from "./content/post-creation-request";
 import type { PostAttachmentChanges } from "./content/post-attachments";
 import { replacePostVideoRows } from "./content/post-videos";
+import { togglePostReaction } from "./content/post-reactions";
 import {
   MARKETING_PUSH_CONSENT_VERSION,
   type PushConsentStatus,
@@ -391,19 +392,7 @@ export async function toggleLike(userId: number, postId: number): Promise<boolea
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const existing = await db
-    .select()
-    .from(likes)
-    .where(and(eq(likes.userId, userId), eq(likes.postId, postId)))
-    .limit(1);
-
-  if (existing.length > 0) {
-    await db.delete(likes).where(and(eq(likes.userId, userId), eq(likes.postId, postId)));
-    return false; // unliked
-  } else {
-    await db.insert(likes).values({ userId, postId });
-    return true; // liked
-  }
+  return togglePostReaction(db, "like", userId, postId);
 }
 
 // Toggle save/bookmark on a post
@@ -411,19 +400,7 @@ export async function toggleSave(userId: number, postId: number): Promise<boolea
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const existing = await db
-    .select()
-    .from(savedPosts)
-    .where(and(eq(savedPosts.userId, userId), eq(savedPosts.postId, postId)))
-    .limit(1);
-
-  if (existing.length > 0) {
-    await db.delete(savedPosts).where(and(eq(savedPosts.userId, userId), eq(savedPosts.postId, postId)));
-    return false; // unsaved
-  } else {
-    await db.insert(savedPosts).values({ userId, postId });
-    return true; // saved
-  }
+  return togglePostReaction(db, "save", userId, postId);
 }
 
 // Get user's liked post IDs
