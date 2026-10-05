@@ -27,9 +27,9 @@ export async function openContentTestDatabase() {
       const [columns] = await conn.query<RowDataPacket[]>("SELECT EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME='id'", [table]);
       if (!String(columns[0]?.EXTRA).includes("auto_increment")) await conn.query(`ALTER TABLE ${table} MODIFY id INT NOT NULL AUTO_INCREMENT`);
     }
-    // Production posts/media have generated IDs. Keep those outside explicit
+    // Production posts/media/comments have generated IDs. Keep those outside explicit
     // fixture IDs, so real creation/replacement cannot collide with other suites.
-    for (const table of ["posts", "post_media"]) {
+    for (const table of ["posts", "post_media", "post_comments"]) {
       const [counters] = await conn.query<RowDataPacket[]>("SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?", [table]);
       if (Number(counters[0]?.AUTO_INCREMENT) < 1_000_000) await conn.query(`ALTER TABLE ${table} AUTO_INCREMENT=1000000`);
     }

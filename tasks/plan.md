@@ -783,6 +783,24 @@ publication/target filters and anonymous denial. Full suite 673 pass / 2 externa
 skip; root/Next types, lint, backend build and unchanged API contract pass. This is
 a separate bugfix, not a comment/reaction migration or a release-ready checkpoint.
 
+M05e specification: ContentCommentService owns the existing six discussion
+operations (list/add/update/like/delete/report), publication/club-read policy,
+comment window and post-commit reply notification. Club router becomes a mandatory
+service factory; ContentModule exports the provider and TrpcService explicitly
+injects it at composition. Transport schemas/types/errors and middleware stay
+unchanged, including subscriber-only list versus authenticated public mutations,
+staff delete versus author-only edits, parent same-post validation, photos and
+notification payload/preview/self-reply behavior. Existing SQL transactions/locks
+remain in content/comments.ts; no new upload, billing or durable push feature.
+Post like/save dispatch uses the existing ContentWriteService with the same coerced
+input, boolean result and authenticated actor. Keep current toggle SQL semantics;
+concurrent post toggles are not silently repaired during a behavior-preserving
+extraction and need their own reproduced regression/atomicity slice.
+Characterize real native HTTP/JWT/MySQL effects and denied mutations before moving
+code, mutation-check the club guard locally and restore it immediately. Verify
+compiled startup, exact API types, full tests, types/builds/boundaries/docs before
+the checkpoint. No frontend/schema/provider/deployment or permission changes.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.
