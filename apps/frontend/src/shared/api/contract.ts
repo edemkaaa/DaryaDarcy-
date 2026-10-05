@@ -389,6 +389,7 @@ export type AppRouter = BuiltRouter<
           text: string;
           photos: Array<string>;
           tags: Array<string>;
+          idempotencyKey?: string | undefined;
           videos?: Array<string> | undefined;
           attachments?:
             | Array<{

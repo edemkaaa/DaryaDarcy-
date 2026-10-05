@@ -1,0 +1,8 @@
+CREATE TABLE `post_creation_requests` (
+  `requestKey` varchar(64) NOT NULL,
+  `actorUserId` int NOT NULL,
+  `payloadHash` varchar(64) NOT NULL,
+  `postId` int,
+  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`requestKey`)
+) ENGINE=InnoDB;

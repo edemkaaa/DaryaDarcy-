@@ -6,6 +6,7 @@ import { storagePut } from "../storage";
 import { photoInput, uploadPhoto } from "../media/photos";
 import { importVideoFromUrl } from "../admin-video";
 import { postAttachmentInput } from "../content/post-attachments";
+import { postCreationIntent } from "../content/post-creation-request";
 import { sendMarketingPostNotification as sendNewPostNotification } from "../push";
 import { isRawMediaFilename } from "../../../../packages/shared/src/media-label";
 import {
@@ -24,6 +25,7 @@ export const adminRouter = router({
     .input(
       z.object({
         text: z.string().min(1),
+        idempotencyKey: z.string().regex(/^[A-Za-z0-9._:-]{16,128}$/).optional(),
         photos: z.array(z.string()),
         tags: z.array(z.string()),
         videos: z.array(z.string()).optional(),
@@ -40,7 +42,8 @@ export const adminRouter = router({
         richText: z.any().optional(), // JSON rich text blocks
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const { idempotencyKey, ...payload } = input;
       const {
         scheduledAt,
         publishedAt,
@@ -49,7 +52,7 @@ export const adminRouter = router({
         videos = [],
         attachments,
         ...rest
-      } = input;
+      } = payload;
       const text = sanitizePlainPostText(rest.text);
       const richText = normalizeRichTextForStorage(rest.richText, text);
       const tags =
@@ -79,8 +82,19 @@ export const adminRouter = router({
               ? new Date(publishedAt)
               : null,
       };
-      const postId = await db.createPostWithVideos(postData, videos, { attachments });
-      if (resolvedStatus === "published") {
+      const result = idempotencyKey
+        ? await db.createPostOnce(
+            postData,
+            videos,
+            { attachments },
+            postCreationIntent(ctx.user.id, idempotencyKey, payload),
+          )
+        : {
+            postId: await db.createPostWithVideos(postData, videos, { attachments }),
+            created: true,
+          };
+      const postId = result.postId;
+      if (result.created && resolvedStatus === "published") {
         void sendNewPostNotification(text, postId, rest.target);
       }
       return postId;

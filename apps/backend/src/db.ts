@@ -6,7 +6,11 @@ import { settleClubOrder } from "./billing/settlement";
 import { grantClubAccess } from "./billing/grants";
 import { confirmPostPublication, type PostPublication } from "./content/publication";
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
-import { createPostWithVideos as persistNewPost } from "./content/post-creator";
+import {
+  createPostWithVideos as persistNewPost,
+  createPostOnce as persistPostOnce,
+} from "./content/post-creator";
+import type { PostCreationIntent } from "./content/post-creation-request";
 import type { PostAttachmentChanges } from "./content/post-attachments";
 import { replacePostVideoRows } from "./content/post-videos";
 import {
@@ -528,6 +532,17 @@ export async function updatePost(id: number, data: Partial<InsertPost>): Promise
   if (!db) throw new Error("Database not available");
 
   await db.update(posts).set(data).where(eq(posts.id, id));
+}
+
+export async function createPostOnce(
+  data: InsertPost,
+  videos: string[],
+  attachments: PostAttachmentChanges,
+  intent: PostCreationIntent,
+): Promise<{ postId: number; created: boolean }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return persistPostOnce(db, data, videos, attachments, intent);
 }
 
 export async function savePostEdit(

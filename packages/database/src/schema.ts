@@ -77,6 +77,15 @@ export type PostTarget = "feed" | "club" | "both";
 export type Post = typeof posts.$inferSelect;
 export type InsertPost = typeof posts.$inferInsert;
 
+// A committed request survives post edits/deletion so a late retry cannot recreate it.
+export const postCreationRequests = mysqlTable("post_creation_requests", {
+  requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
+  actorUserId: int("actorUserId").notNull(),
+  payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
+  postId: int("postId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 // ── Post Media (video, audio, documents — photos stay in posts.photos for backward compat) ──
 export const postMedia = mysqlTable("post_media", {
   id: int("id").autoincrement().primaryKey(),

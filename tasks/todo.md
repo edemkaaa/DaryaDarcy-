@@ -270,6 +270,10 @@
   8 paired registration/retention runs pass. Statement history captures no
   registration deadlock; global error counters also rise during successful runs.
   Those counters alone do not establish the endpoint failure's cause. Still open.
+  Recurred during N11 on 2026-10-05: both responses were 500. InnoDB's latest
+  deadlock was an earlier content-test cleanup, not this registration attempt.
+  A subsequent diagnostic full run with statement history enabled passed;
+  do not call registration fixed or enable automatic test retries.
 
 ## Backend continuation: atomic post creation — 2026-10-03
 
@@ -292,8 +296,17 @@
   and dump/restore on a disposable fixture checked. Full suite 554 pass / 2 skip;
   types/lint/API build/contract/boundaries/docs/format pass. Production restore, S3 retry,
   timeout, crash-leftover cleanup and cross-process ownership remain outside N10.
-- [ ] N11: Server-side createPost request idempotency. Lost response/retry must
+- [x] N11: Server-side createPost request idempotency. Lost response/retry must
   return the original post ID, including concurrent identical requests; reject
   reuse of a key for another payload. Preserve legacy clients without a key.
+  Four old-path HTTP assertion failures → 35 real HTTP/JWT/MySQL cases pass,
+  including a duplicate observed waiting on the owner's actual transaction.
+  Additive migration 0025 rehearsed only on disposable MySQL. Latest full suite:
+  589 pass / 2 external skip; types/lint/build/72-procedure contract/397-file
+  boundaries/41-document links pass. Earlier full run failed the existing
+  registration race, still open above. No production migrations or external push.
+- [ ] Wire stable createPost intent keys into the frontend editor and its
+  uncertain-response/retry flow, with browser verification. Backend optional
+  support alone does not protect today's unkeyed frontend calls.
 - [ ] N12: Transactional publication push outbox; worker crash/retry cannot lose
   an announcement. Provider delivery/deduplication limits must remain explicit.

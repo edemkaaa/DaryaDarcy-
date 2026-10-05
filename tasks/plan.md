@@ -519,3 +519,43 @@ transactional publication push outbox. Neither is implemented by N10. Existing
 release gates remain: dependencies, migration history, provider sandbox, SMTP,
 private legacy files and approved rollout. Backup timeouts, abandoned-file
 reconciliation, S3 upload retry and cross-process coordination remain separate.
+
+## N11 contract and verification — 2026-10-05
+
+Add optional ASCII idempotencyKey (16–128 characters) to admin.createPost;
+keep its numeric response and legacy unkeyed semantics. Scope the durable key
+to the authenticated actor and operation, never a client-supplied user ID.
+Hash the validated request, excluding the key and generated server timestamps;
+object-property ordering must not change the hash. Same key/different payload
+returns CONFLICT before another post or announcement. Authorization still runs
+on every replay; deleted/edited posts are not resurrected or reverted.
+
+An additive 0025 table claims the key by a unique atomic upsert and commits its
+post ID with post/media in one transaction. Concurrent duplicates wait for the
+row lock under MySQL's configured timeout; rollback allows a safe new attempt.
+No key expiry: late retries remain protected; review retention before deployment.
+Only the creator announces after commit. This is not crash-safe push delivery.
+First reproduce sequential/concurrent repeats, lost HTTP response and conflicting
+payload against the old route. Then verify real HTTP/JWT/MySQL, rollback/media,
+actor isolation, key validation, tombstones and unchanged legacy calls; full tests,
+types, contract generation, boundaries/docs/build/lint. Rehearse 0025 only on
+disposable MySQL. Preserve unresolved 0017–0019 history and do not apply production
+migrations. Frontend request-key wiring and publication push outbox stay separate.
+
+N11 verified: four genuine old-route failures (sequential/concurrent repeats,
+conflicting payload and lost response); 35 HTTP/JWT/MySQL scenarios pass after.
+Twelve simultaneous calls return one ID. A trigger-held transaction proves the
+second call waits on the unique request row, and neither post nor key is visible
+before commit. Key/payload/media rollback, default/object-order consistency,
+array-order conflicts, actor/access isolation and edited/deleted tombstones pass.
+Only the first committed creator announces. No frontend retry promise or outbox.
+
+The new cleanup's joined DELETE deadlock with another suite was established by
+InnoDB's transaction trace; changed only fixture cleanup to resolve owned IDs
+first, matching the existing indexed cleanup pattern. Paired content suites:
+77 pass before the two additional array/JSON cases. A full run then reproduced
+the existing registration race (500/500), without a new corresponding InnoDB
+deadlock; that investigation remains open. Two subsequent diagnostic full runs:
+each 589 pass / 2 external skip. Types, lint, API build/contract, boundaries/docs pass.
+Native audit remains 0 critical / 33 high / 36 moderate / 4 low. Read-only migration
+preflight rejects only the existing untracked 0017–0019 files; no release approval.
