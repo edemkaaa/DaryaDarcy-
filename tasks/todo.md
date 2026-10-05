@@ -407,6 +407,16 @@
     verified; staff TOTP and quotas still pass. Latest full suite: 631 pass /
     2 external skip; types/lint/API/boundaries/docs/API build/Next build pass.
 - [ ] M05: Specify and migrate content service wiring; preserve N07–N11 regressions.
+  - [x] M05a: ContentModule/ContentReadService for post detail, bookmarks and
+    interaction aggregation; application-scoped TrpcModule/TrpcService composes
+    the HTTP router and optional session via injected services. Common club policy
+    moved unchanged into identity, no content→tRPC policy dependency. Nine added
+    real HTTP/JWT/MySQL cases preserve unpublished/paid visibility, saved order/
+    media, live role/expiry/block/version and auth failures. Removing the existing
+    paid-detail check deliberately caused four assertion failures; restored before
+    extraction (mutation proof, not a newly found production bug). Full suite:
+    650 pass / 2 external skip; types/lint/API build/72-procedure contract/411-file
+    boundaries pass. Article/read and admin/write slices still remain.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.

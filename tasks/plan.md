@@ -673,6 +673,31 @@ race, dependency advisories and migration-history mismatch do not disappear.
 
 ### Risks and controls
 
+M05a specification: ContentReadService owns published post detail, saved-post
+visibility/order and interaction aggregation. ContentModule exports the service;
+TrpcModule injects it and SessionService into one application-scoped router/context
+composition. Router factories retain Zod inputs, middleware and all 72 wire types.
+Standalone appRouter/createContext remain for existing callers/tools, but the HTTP
+factory must explicitly use the Nest-owned composition without global service
+locators, optional service fallbacks or a second HTTP server. Nest creation happens
+before mounting tRPC, still before init and after security/raw/body middleware.
+Existing queries/Drizzle pool remain transitional; no ORM/schema/frontend change.
+Move the unchanged club-access predicate from tRPC to identity/club-access.ts;
+tRPC re-exports it for current consumers. Content services must not import the
+transport implementation to obtain domain authorization rules.
+Verify actual native HTTP/JWT/MySQL for public/club/draft/scheduled/unpublished
+detail, bookmark order and paid attachments, live role/block/version/expiry changes,
+public auth and protected failures. Characterize current behaviour and mutation-
+check paid-content denial before extraction; do not call an intentional mutation
+an existing production bug. Built Node smoke covers the new composition as well.
+
+M05b specification: reuse ContentReadService for public article summaries and
+article detail/locked previews, keeping field allowlists, [] sections when locked,
+publication rules and independent database subscription checks. Preserve exact
+inferred API types; no route rename or frontend regeneration without a wire change.
+M05 admin creation/edit/publication, videos, reactions, comments and upload wiring
+remain later slices; N12 durable announcement delivery is not part of read migration.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

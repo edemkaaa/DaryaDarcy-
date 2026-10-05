@@ -3,6 +3,8 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
 import * as db from "../db";
+import { userHasClubAccess } from "../identity/club-access";
+export { userHasClubAccess } from "../identity/club-access";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -78,19 +80,6 @@ export const adminProcedure = protectedProcedure.use(
     });
   }),
 );
-
-export async function userHasClubAccess(user: {
-  id: number;
-  role?: string | null;
-  email?: string | null;
-  openId?: string | null;
-  blockedAt?: Date | null;
-}): Promise<boolean> {
-  if (user.blockedAt) return false;
-  if (db.isOwnerAccount(user)) return true;
-  if (user.role === "admin" || user.role === "moderator") return true;
-  return Boolean(await db.getActiveClubSubscription(user.id));
-}
 
 /** Authenticated users with an active club subscription (or staff). */
 export const clubMemberProcedure = protectedProcedure.use(

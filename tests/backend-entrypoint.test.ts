@@ -6,6 +6,9 @@ import { createServer, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { once } from "node:events";
+import { createTRPCProxyClient, httpLink } from "@trpc/client";
+import superjson from "superjson";
+import type { AppRouter } from "../apps/backend/src/routers";
 
 // The executable reads this legacy absolute env path. Never let a test read
 // deployment credentials; the importable application tests do not load env files.
@@ -163,6 +166,21 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
         expect(resend.status).toBe(403);
         expect(await resend.json()).toEqual({ error: "Запрос недоступен." });
         expect(resend.headers.get("cache-control")).toBe("no-store");
+        const client = createTRPCProxyClient<AppRouter>({
+          links: [
+            httpLink({
+              url: `http://127.0.0.1:${port}/api/trpc`,
+              transformer: superjson,
+            }),
+          ],
+        });
+        expect(await client.auth.me.query()).toBeNull();
+        // An undefined content/session injection or unbound context callback
+        // returns INTERNAL_SERVER_ERROR, not these public/protected contracts.
+        expect(await client.feed.getById.query({ id: 1 })).toBeUndefined();
+        await expect(client.feed.savedPosts.query()).rejects.toMatchObject({
+          data: { code: "UNAUTHORIZED", httpStatus: 401 },
+        });
       } finally {
         await stop(child);
       }

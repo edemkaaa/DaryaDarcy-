@@ -5,10 +5,9 @@ import { ExpressAdapter } from "@nestjs/platform-express";
 import type { INestApplication } from "@nestjs/common";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { AppModule } from "../app.module";
-import { appRouter } from "../routers";
 import { registerProdamusRoutes, handleProdamusWebhook } from "../prodamus";
 import { registerYoutubeStream } from "../youtube-stream";
-import { createContext } from "./context";
+import { TrpcService } from "./trpc.service";
 import { registerHttpSecurity } from "./http-security";
 import { registerRequestBodies } from "./request-bodies";
 
@@ -34,25 +33,27 @@ export async function createBackendApplication(): Promise<INestApplication> {
   // Transitional adapters: replace one domain at a time behind the same API.
   registerProdamusRoutes(http);
   registerYoutubeStream(http);
-  http.use(
-    "/api/trpc",
-    createExpressMiddleware({
-      router: appRouter,
-      createContext,
-      onError({ path, error }) {
-        const safePath =
-          path && /^[a-zA-Z0-9._-]{1,128}$/.test(path) ? path : "?";
-        console.error(`[trpc] ${safePath}: ${error.code}`);
-      },
-    }),
-  );
-
   const application = await NestFactory.create(AppModule, adapter, {
     bodyParser: false,
     logger: false,
     abortOnError: false,
   });
   try {
+    // Resolve only at the composition root, after Nest creates its providers.
+    // Mount before init so security/parsers/tRPC still precede native routes.
+    const trpc = application.get(TrpcService);
+    http.use(
+      "/api/trpc",
+      createExpressMiddleware({
+        router: trpc.router,
+        createContext: trpc.createContext,
+        onError({ path, error }) {
+          const safePath =
+            path && /^[a-zA-Z0-9._-]{1,128}$/.test(path) ? path : "?";
+          console.error(`[trpc] ${safePath}: ${error.code}`);
+        },
+      }),
+    );
     await application.init();
     return application;
   } catch (error) {
