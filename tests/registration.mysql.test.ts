@@ -20,6 +20,29 @@ import * as db from "../apps/backend/src/db";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { EMAIL_REGISTER_CONSENT_VERSION } from "../packages/shared/src/consent-texts";
 import { processAccessEmails } from "../apps/backend/src/identity/access";
+import { SessionService } from "../apps/backend/src/identity/session.service";
+
+// An HTTP 500 intentionally contains no internal cause. Keep bounded diagnostic
+// codes in the assertion, not raw SQL/params, recipients, tokens or key material.
+function registrationFailureCodes(error: unknown): string[] {
+  const codes: string[] = [];
+  let current = error;
+  for (let depth = 0; depth < 4 && current instanceof Error; depth++) {
+    const detail = current as Error & { code?: string; cause?: unknown };
+    if (
+      typeof detail.code === "string" &&
+      /^[A-Z][A-Z0-9_]{1,63}$/.test(detail.code)
+    )
+      codes.push(detail.code);
+    if (detail.message === "Invalid mail recipient")
+      codes.push("MAIL_RECIPIENT_INVALID");
+    if (detail.message.startsWith("AUTH_LINK_ENCRYPTION_KEY must be"))
+      codes.push("AUTH_LINK_KEY_INVALID");
+    if (detail.message === "Pool is closed.") codes.push("MYSQL_POOL_CLOSED");
+    current = detail.cause;
+  }
+  return codes.length ? codes : ["UNCLASSIFIED_REGISTRATION_ERROR"];
+}
 
 describe.skipIf(!testDatabaseUrl)(
   "insert-only email registration on disposable MySQL",
@@ -28,6 +51,21 @@ describe.skipIf(!testDatabaseUrl)(
     const prefix = "registration-fixture-";
     const email = `${prefix}race@example.test`;
     const originalLookup = db.getUserByEmail;
+    function captureRegistrationFailures() {
+      const failures: string[][] = [];
+      const originalRegister = SessionService.prototype.register;
+      vi.spyOn(SessionService.prototype, "register").mockImplementation(
+        async function (this: SessionService, email, name) {
+          try {
+            return await originalRegister.call(this, email, name);
+          } catch (error) {
+            failures.push(registrationFailureCodes(error));
+            throw error;
+          }
+        },
+      );
+      return failures;
+    }
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -104,6 +142,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(inserted.insertId).toBeGreaterThanOrEqual(1_000_000);
     });
     it("concurrent registration has one winner and queues one setup without a password or session", async () => {
+      const failures = captureRegistrationFailures();
       let arrivals = 0;
       let release!: () => void;
       const barrier = new Promise<void>((resolve) => {
@@ -121,7 +160,10 @@ describe.skipIf(!testDatabaseUrl)(
         post(email, "first-password"),
         post(email, "second-password"),
       ]);
-      expect(results.map((result) => result.status).sort()).toEqual([202, 409]);
+      expect({
+        statuses: results.map((result) => result.status).sort(),
+        failures,
+      }).toEqual({ statuses: [202, 409], failures: [] });
       expect(
         results.every((result) => result.headers.getSetCookie().length === 0),
       ).toBe(true);
@@ -148,6 +190,60 @@ describe.skipIf(!testDatabaseUrl)(
         [rows[0].id],
       );
       expect(consents).toHaveLength(1);
+    });
+    it("arbitrates twenty simultaneous registrations without claiming an existing account", async () => {
+      const recipient = `${prefix}burst@example.test`;
+      let arrivals = 0;
+      let release!: () => void;
+      const barrier = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const failures = captureRegistrationFailures();
+      vi.spyOn(db, "getUserByEmail").mockImplementation(async (value) => {
+        const result = await originalLookup(value).finally(() => {
+          // A failed lookup must still release other real requests, not strand
+          // their precheck barriers and turn a useful SQL failure into a timeout.
+          if (value === recipient && ++arrivals === 20) release();
+        });
+        if (value === recipient) await barrier;
+        return result;
+      });
+      // Exercise actual domain transactions; HTTP's 15/IP quota intentionally
+      // precludes a twenty-request burst and is not disabled for this test.
+      const sessions = application.get(SessionService);
+      const results = await Promise.allSettled(
+        Array.from({ length: 20 }, (_, index) =>
+          sessions.register(recipient, `Member ${index}`),
+        ),
+      );
+      expect(failures).toEqual([]);
+      expect(
+        results.filter((result) => result.status === "rejected"),
+      ).toHaveLength(0);
+      const outcomes = results.flatMap((result) =>
+        result.status === "fulfilled" ? [result.value] : [],
+      );
+      expect(outcomes.filter((value) => value === "created")).toHaveLength(1);
+      expect(outcomes.filter((value) => value === "duplicate")).toHaveLength(
+        19,
+      );
+      const [rows] = await conn.query<RowDataPacket[]>(
+        "SELECT id,role,passwordHash FROM users WHERE email=?",
+        [recipient],
+      );
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ role: "user", passwordHash: null });
+      for (const table of [
+        "access_email_outbox",
+        "password_tokens",
+        "user_consent_events",
+      ]) {
+        const [records] = await conn.query<RowDataPacket[]>(
+          `SELECT id FROM ${table} WHERE userId=?`,
+          [rows[0].id],
+        );
+        expect(records).toHaveLength(1);
+      }
     });
     it("a checkout-created account appearing after the precheck cannot be claimed", async () => {
       vi.spyOn(db, "getUserByEmail").mockImplementationOnce(
@@ -179,12 +275,14 @@ describe.skipIf(!testDatabaseUrl)(
       expect(rows).toHaveLength(0);
     });
     it("does not leave an account or issue a session if consent recording fails", async () => {
+      const failures = captureRegistrationFailures();
       await conn.query(
         `CREATE TRIGGER backend_test_registration_consent BEFORE INSERT ON user_consent_events FOR EACH ROW BEGIN IF (SELECT email FROM users WHERE id=NEW.userId) LIKE '${prefix}%' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='local consent failure'; END IF; END`,
       );
       try {
         const result = await post();
         expect(result.status).toBe(500);
+        expect(failures).toEqual([["ER_SIGNAL_EXCEPTION"]]);
         expect(result.headers.getSetCookie()).toHaveLength(0);
         const [rows] = await conn.query<RowDataPacket[]>(
           "SELECT id FROM users WHERE email=?",
@@ -286,9 +384,11 @@ describe.skipIf(!testDatabaseUrl)(
       }
     });
     it("rolls registration back if durable mail cannot be encrypted", async () => {
+      const failures = captureRegistrationFailures();
       vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", "invalid-test-key");
       try {
         expect((await post()).status).toBe(500);
+        expect(failures).toEqual([["AUTH_LINK_KEY_INVALID"]]);
         const [rows] = await conn.query<RowDataPacket[]>(
           "SELECT id FROM users WHERE email=?",
           [email],

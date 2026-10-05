@@ -388,6 +388,18 @@
       spoofing, live roles/revocation/blocking, content-type ordering and stricter
       resend origin. Existing successful resend/audit/quotas remain covered.
       Full disposable-MySQL suite: 640 pass / 2 external skip; root/Next types pass.
+    - [ ] M04c3: Reproduce and establish the intermittent registration cause.
+      Added bounded, code-only error capture around the actual SessionService
+      calls; existing HTTP race assertions now retain nested SQL/configuration
+      classifications without SQL/recipients/tokens/key material. Its diagnostics
+      are verified against actual consent-trigger and invalid-encryption failures.
+      A forced twenty-way precheck burst produces one account/token/mail/consent
+      and nineteen duplicates; HTTP quota is not disabled (burst uses the domain
+      service). Two full runs in this continuation pass, latest 641 / 2 external
+      skip. Test MySQL history enabled, no new 1213/1205 observed in that run.
+      This does NOT reproduce or repair the earlier HTTP 500/500; no speculative
+      retry or registration production change. API build/Next build/types/lint/
+      72-procedure contract/406-file boundaries/42-document links pass.
   - [x] N13 separate repair: a blocked account with a correct password previously
     reached a sign-in write and HTTP 500. A real HTTP/MySQL assertion reproduced
     500 vs required 401; PasswordUser now rejects before lastSignedIn/session

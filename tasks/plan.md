@@ -592,6 +592,20 @@ Run real HTTP/JWT/MySQL denied-role, revoked-session and untrusted-body cases,
 then full tests/types/contracts/build. Registration-race diagnosis is a separate
 M04c3 step; passing identity refactor tests does not establish a race repair.
 
+M04c checkpoint: required/optional session policy and administrative HTTP guards
+are native and verified. Narrow exception filtering preserves legacy 401/403/415
+formats and no-store even before controller execution; actual bundled Node smoke
+also covers both denied staff routes. Registration diagnostics observe the real
+service and rethrow unchanged errors, storing only bounded cause codes in test
+assertions. Real SQL-trigger/configuration failures prove the diagnostic capture;
+twenty simultaneous domain requests commit one account/setup/token/consent, with
+nineteen duplicates and unchanged HTTP quotas. The earlier 500/500 remains
+unreproduced; no production registration fix or retries are claimed. Latest full
+disposable MySQL run: 641 pass / 2 external skip; types, lint, server/Next builds,
+72-procedure contract, 406-file boundaries and 42-document links pass. No new
+1213/1205 statement recorded during that diagnostic run. Continue domain wiring
+after this verified authorization slice while retaining M04c3 as an open issue.
+
 Separate identity repair N13: the inherited password-login flow updated a
 blocked user's lastSignedIn before session issuance threw, producing a misleading
 HTTP 500. Reproduce through native HTTP/MySQL with a real correct password and a
