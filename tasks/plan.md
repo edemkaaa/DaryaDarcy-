@@ -854,6 +854,39 @@ constraints, invalid post IDs, post deletion races and ambiguous network retries
 remain separate. Upload/admin wiring, SQL/pool ownership, durable delivery,
 registration diagnosis and release acceptance are not marked complete.
 
+M05f specification: migrate only admin.uploadPhoto and admin.uploadMedia into
+an explicitly injected ContentUploadService in ContentModule. Preserve procedure
+names, schemas/defaults, pre-parser authentication/body limits, current admin-only
+policy and fresh session checks. Reuse media/photos.ts without bypassing byte
+validation/re-encoding; generic media retains its current base64 decoding, type
+folder, name suppression, timestamp key, optional truthy postId association and
+duration/default fields. Capture input types from shared schemas, keep router
+validation/authorization thin and standalone callers on the same mandatory factory.
+Characterize native HTTP/JWT/MySQL with real image processing and SQL, replacing
+only external storage. Mutation-check a safety guard and restore before extraction;
+verify compiled Node startup, API types, full suite and builds. No new upload
+endpoint, provider, quota, MIME policy, retry behavior or schema. Raw-video upload,
+URL imports, orphan-object cleanup after DB failure and stronger generic-media
+validation remain separate; do not disguise them as fixed by service extraction.
+
+M05f checkpoint: seventeen new native HTTP/JWT/MySQL upload cases characterize
+the existing admin endpoints; only external storage is replaced. Real Sharp
+processing proves WebP output, EXIF orientation/metadata removal and byte rejection;
+SQL verifies exact optional associations, names, size, duration and ordering.
+Fresh role/block/session-version denial occurs in the pre-parser guard and returns
+plain JSON, not a tRPC error envelope; tests assert the actual HTTP contract.
+Deliberately bypassing photo byte validation caused three rejection assertions to
+fail; restored before extraction (not a newly found production vulnerability).
+The injected ContentUploadService now owns the two operations, with unchanged
+schemas/defaults and required factory composition; raw/upload imports remain
+transitional. Focused tests including compiled Node startup: 39 pass. Full suite:
+714 pass / 2 external skip; root/Next types, lint, backend/Next builds, unchanged
+72-procedure/25376-byte API, 418-file boundaries and 42-document links pass.
+Failure tests confirm no SQL association after storage failure and a safe 500
+after forced SQL failure; the latter still leaves the stored object. Generic media
+validation/key ownership and cleanup are explicitly open, not silently changed.
+No frontend/provider/schema/quota/deployment changes or release-ready claim.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

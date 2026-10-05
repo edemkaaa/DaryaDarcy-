@@ -13,9 +13,13 @@ vi.mock("../apps/backend/src/push", () => ({
 }));
 import { createAdminRouter } from "../apps/backend/src/admin/router";
 import { ContentWriteService } from "../apps/backend/src/content/content-write.service";
+import { ContentUploadService } from "../apps/backend/src/content/content-upload.service";
 
 const caller = () =>
-  createAdminRouter(new ContentWriteService()).createCaller({
+  createAdminRouter(
+    new ContentWriteService(),
+    new ContentUploadService(),
+  ).createCaller({
     user: { id: 1, role: "admin", blockedAt: null },
     req: {},
     res: {},

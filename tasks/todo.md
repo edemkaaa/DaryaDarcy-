@@ -486,8 +486,20 @@
   - [ ] Review reaction pair indexes/unique constraints and missing-post policy
     separately; network retries of a toggle are still non-idempotent. Review media
     query indexes/transaction deadlocks separately from test-fixture isolation.
-  - [ ] Remaining M05: Upload and other admin wiring; no false
-    claim that all content or SQL ownership has been migrated after read slices.
+  - [x] M05f: admin.uploadPhoto/admin.uploadMedia use injected ContentUploadService;
+    ContentModule/TrpcService and mandatory router factories own composition.
+    Seventeen new native HTTP/JWT/MySQL cases preserve live access/pre-parser
+    denial, real photo re-encoding, media folders/names/association/defaults and
+    safe storage/SQL failures. Deliberate byte-validation bypass failed three
+    rejection assertions, restored before extraction (not a production leak).
+    Focused 39 pass, full suite 714 pass / 2 external skip; root/Next types, lint,
+    backend/Next builds, exact 72-procedure/25376-byte API, 418-file boundaries
+    and docs pass. No new endpoint, frontend, provider, schema or deployment change.
+  - [ ] Generic media safety/ownership: strict base64/format validation, server-owned
+    object names and orphan-object cleanup after failed SQL association; current
+    permissive media semantics are not declared hardened by service extraction.
+  - [ ] Remaining M05: Raw-video upload, URL imports and other admin wiring; no
+    claim that all content, storage or SQL ownership has been migrated.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.

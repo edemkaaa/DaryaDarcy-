@@ -3,6 +3,7 @@ import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import { ContentReadService } from "../content/content-read.service";
 import { ContentWriteService } from "../content/content-write.service";
 import { ContentCommentService } from "../content/content-comment.service";
+import { ContentUploadService } from "../content/content-upload.service";
 import { SessionService } from "../identity/session.service";
 import { createAppRouter, type AppRouter } from "../routers";
 import type { TrpcContext } from "./context";
@@ -16,9 +17,10 @@ export class TrpcService {
     @Inject(ContentReadService) content: ContentReadService,
     @Inject(ContentWriteService) posts: ContentWriteService,
     @Inject(ContentCommentService) comments: ContentCommentService,
+    @Inject(ContentUploadService) uploads: ContentUploadService,
     @Inject(SessionService) private readonly sessions: SessionService,
   ) {
-    this.router = createAppRouter(content, posts, comments);
+    this.router = createAppRouter(content, posts, comments, uploads);
   }
 
   readonly createContext = async (

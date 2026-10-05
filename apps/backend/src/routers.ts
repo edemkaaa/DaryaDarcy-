@@ -13,6 +13,7 @@ import { createArticlesRouter } from "./content/articles-router";
 import { notificationsRouter } from "./notifications/router";
 import { createClubRouter } from "./club/router";
 import { ContentCommentService } from "./content/content-comment.service";
+import { ContentUploadService } from "./content/content-upload.service";
 import { moderationRouter } from "./moderation/router";
 
 /** Composition only: input validation, authorization and behavior live in domains. */
@@ -20,6 +21,7 @@ export const createAppRouter = (
   content: ContentReadService,
   posts: ContentWriteService,
   comments: ContentCommentService,
+  uploads: ContentUploadService,
 ) =>
   router({
     system: systemRouter,
@@ -28,7 +30,7 @@ export const createAppRouter = (
     feed: createFeedRouter(content, posts),
     notifications: notificationsRouter,
     videos: createVideosRouter(content),
-    admin: createAdminRouter(posts),
+    admin: createAdminRouter(posts, uploads),
     club: createClubRouter(comments),
     penPals: penPalsRouter,
     shop: shopRouter,
@@ -43,6 +45,7 @@ export const appRouter = createAppRouter(
   new ContentReadService(),
   new ContentWriteService(),
   new ContentCommentService(),
+  new ContentUploadService(),
 );
 
 export type AppRouter = typeof appRouter;

@@ -1,14 +1,14 @@
 import { z } from "zod";
 import { router, adminProcedure } from "../_core/trpc";
 import * as db from "../db";
-import { storagePut } from "../storage";
-import { photoInput, uploadPhoto } from "../media/photos";
+import { photoInput } from "../media/photos";
 import { importVideoFromUrl } from "../admin-video";
 import type { ContentWriteService } from "../content/content-write.service";
 import { createPostInput, updatePostInput } from "../content/post-write-input";
-import { isRawMediaFilename } from "../../../../packages/shared/src/media-label";
+import type { ContentUploadService } from "../content/content-upload.service";
+import { mediaUploadInput } from "../content/media-upload-input";
 
-export const createAdminRouter = (posts: ContentWriteService) => router({
+export const createAdminRouter = (posts: ContentWriteService, uploads: ContentUploadService) => router({
   // Get all posts including unpublished (admin only)
   posts: adminProcedure.query(() => {
     return db.getAllPostsAdmin();
@@ -42,56 +42,12 @@ export const createAdminRouter = (posts: ContentWriteService) => router({
     }),
 
   // Upload photo (admin only)
-  uploadPhoto: adminProcedure.input(photoInput).mutation(async ({ input }) => {
-    return uploadPhoto(input.base64, "feed/photos");
-  }),
+  uploadPhoto: adminProcedure.input(photoInput).mutation(({ input }) => uploads.uploadPhoto(input.base64)),
 
   // Upload media file (video/audio/document) (admin only)
   uploadMedia: adminProcedure
-    .input(
-      z.object({
-        base64: z.string(),
-        filename: z.string(),
-        mimeType: z.string(),
-        type: z.enum(["video", "audio", "document"]),
-        postId: z.number().optional(),
-        duration: z.number().optional(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const buffer = Buffer.from(input.base64, "base64");
-      const folder =
-        input.type === "video"
-          ? "videos"
-          : input.type === "audio"
-            ? "audio"
-            : "documents";
-      const safeName = isRawMediaFilename(input.filename)
-        ? `${input.type}-${Date.now()}`
-        : input.filename;
-      const storedName = isRawMediaFilename(input.filename)
-        ? null
-        : input.filename;
-      const key = `feed/${folder}/${Date.now()}_${safeName}`;
-      const result = await storagePut(key, buffer, input.mimeType);
-
-      // If postId provided, create post_media record
-      let mediaId: number | undefined;
-      if (input.postId) {
-        mediaId = await db.createPostMedia({
-          postId: input.postId,
-          type: input.type,
-          url: result.url,
-          filename: storedName,
-          mimeType: input.mimeType,
-          fileSize: buffer.length,
-          duration: input.duration ?? null,
-          sortOrder: 0,
-        });
-      }
-
-      return { url: result.url, mediaId };
-    }),
+    .input(mediaUploadInput)
+    .mutation(({ input }) => uploads.uploadMedia(input)),
 
   // Get media for a post (admin only)
   getPostMedia: adminProcedure

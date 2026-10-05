@@ -224,6 +224,19 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
             data: { code: "UNAUTHORIZED", httpStatus: 401 },
           });
         }
+        for (const method of ["uploadPhoto", "uploadMedia"]) {
+          const denied = await fetch(
+            `http://127.0.0.1:${port}/api/trpc/admin.${method}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: "{}",
+              signal: AbortSignal.timeout(3000),
+            },
+          );
+          expect(denied.status).toBe(401);
+          expect(await denied.json()).toEqual({ error: "Нужно войти" });
+        }
       } finally {
         await stop(child);
       }
