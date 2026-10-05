@@ -920,6 +920,53 @@ auth, frontend, schemas and dependencies are unchanged. No existing objects are
 rewritten. File-format/MIME detection, orphan reconciliation, raw-video hardening,
 private storage and provider acceptance remain open; no release-ready claim.
 
+Generic media declared Content-Type specification: existing admin.uploadMedia
+forwards caller MIME directly into public storage and SQL, even text/html for a
+PDF-named document. Reproduce this through native HTTP/JWT/MySQL before repair.
+This small slice checks declared category/MIME compatibility, NOT file signatures:
+audio/* for audio, video/* for video; PDF, DOC, DOCX and text/plain for documents;
+application/octet-stream remains the existing picker fallback for every category.
+Reject missing/malformed/control-bearing or over-128-character MIME values and
+incompatible categories as BAD_REQUEST before decoding/storage/SQL. Normalize
+the MIME essence to lowercase and preserve valid ASCII token/quoted parameters
+including charset/codecs for storage and SQL. Reject malformed/empty parameters,
+unclosed quotes, HTAB and parameter obs-text. Preserve API shapes, human names,
+UUID keys, parsers, quota, authorization and association behavior. No new
+dependency, endpoint, provider call, database migration or old-object rewrite.
+Tests cover active header types, category swaps, invalid header syntax/size,
+supported editor types, binary fallback and matching storage/SQL metadata.
+Verification: pnpm exec vitest run tests/nest-uploads.mysql.test.ts with disposable
+MySQL, then pnpm test/check/lint/build/build:frontend/check:api/check:boundaries/
+check:docs. Content-byte detection needs its own reviewed acceptance policy and
+explicit dependency approval; MIME-family acceptance is not proof of safe bytes,
+valid playback, absence of macros/scripts/polyglots or private storage. Orphan
+reconciliation remains separate; no deletion after ambiguous SQL errors.
+
+Generic media declared Content-Type checkpoint: prior implementation accepted
+text/html and image/svg+xml in audio/video/document uploads, category swaps and
+malformed MIME names. Over-128-character metadata caused a real SQL 500 after
+the external storage boundary had accepted the object (not a historical provider
+incident). Initial tests failed twenty assertions against the prior implementation:
+fifteen invalid/incompatible values were accepted, one overlong value caused SQL
+500, and four differed from the proposed normalization (not all are security bugs).
+The owning content/media-content-type.ts policy now rejects incompatible/invalid
+declared values, keeps supported editor types and binary fallback, and produces
+one normalized value for both storage and SQL. Review caught parameter loss in
+the first uncommitted version; five failing assertions separately proved malformed
+parameter acceptance and lost charset/codecs. Final policy preserves valid ASCII
+token/quoted-string parameters with case-sensitive values unchanged. Thirty added
+cases cover rejection and supported metadata normalization. Focused suite: 77 pass;
+full suite: 761 pass / 2 external skip; root/Next types, lint, backend/Next builds, unchanged
+72-procedure/25376-byte API and 420-file boundaries pass. Tests use real HTTP/JWT/
+MySQL but replace only external storage; they do not exercise actual storage
+provider header behavior or claim browser exploitation. Human filenames, UUIDs,
+association behavior, body limits, roles and shapes remain unchanged. No new
+dependency/schema/frontend/parser/provider/deployment changes. The stricter ASCII
+parameter grammar is documented; this is not a generic HTTP parser. Byte formats/playback,
+antivirus/macros/active content, raw-video, private storage and orphan cleanup stay
+open. A new byte-detector dependency was proposed separately for human approval,
+not installed or assumed to validate legacy DOC/text/document safety.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

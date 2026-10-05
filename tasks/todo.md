@@ -503,7 +503,19 @@
     added regressions; focused 47 pass, full suite 731 pass / 2 external skip;
     root/Next types, lint, backend/Next builds, unchanged 72-procedure/25376-byte
     API and 419-file boundaries pass. No legacy object rewrite or provider calls.
-  - [ ] Generic media format/ownership: actual file-format/MIME validation and
+  - [x] Generic media declared Content-Type: native HTTP/JWT/MySQL reproduced
+    acceptance of HTML/SVG headers for every category and incompatible/malformed
+    MIME values; an overlong value failed SQL with 500 after storage. MIME essence
+    is now validated against the category and normalized consistently for storage
+    and SQL, before decoding. Editor PDF/DOC/DOCX/TXT, audio/video families and
+    octet-stream fallback remain accepted; valid ASCII token/quoted parameters
+    including charset/codecs are preserved, malformed parameters rejected.
+    Thirty new cases; focused 77 pass,
+    full suite 761 pass / 2 external skip; root/Next types, lint, backend/Next
+    builds, unchanged 72-procedure/25376-byte API and 420-file boundaries pass.
+    No dependencies, schema, parser, frontend or provider changes. Format-byte
+    detection is a separate step; this does not certify safe files/playback.
+  - [ ] Generic media format/ownership: actual file-format/MIME detection and
     orphan-object cleanup after failed SQL association. Encoding/key repairs do
     not reject active content disguised with client MIME or protect public URLs;
     reconcile persisted ownership/references before deletion, not on SQL errors.

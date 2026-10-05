@@ -6,6 +6,7 @@ import { uploadPhoto } from "../media/photos";
 import { decodeMediaBase64 } from "../media/media-encoding";
 import { storagePut } from "../storage";
 import type { MediaUploadInput } from "./media-upload-input";
+import { normalizeMediaContentType } from "./media-content-type";
 
 /** The adapter authorizes/validates; storage and SQL helpers retain their ownership. */
 @Injectable()
@@ -15,6 +16,7 @@ export class ContentUploadService {
   }
 
   async uploadMedia(input: MediaUploadInput) {
+    const mimeType = normalizeMediaContentType(input.type, input.mimeType);
     const buffer = decodeMediaBase64(input.base64);
     const folder =
       input.type === "video"
@@ -28,7 +30,7 @@ export class ContentUploadService {
     // Object identity is independent of client paths, extensions and clock precision.
     // Human filenames stay in display metadata; this is not MIME/format detection.
     const key = `feed/${folder}/${randomUUID()}`;
-    const result = await storagePut(key, buffer, input.mimeType);
+    const result = await storagePut(key, buffer, mimeType);
 
     // Preserve legacy attachment ordering: storage succeeds before SQL association.
     // This is not an atomic storage/DB write; orphan-object cleanup remains separate.
@@ -39,7 +41,7 @@ export class ContentUploadService {
         type: input.type,
         url: result.url,
         filename: storedName,
-        mimeType: input.mimeType,
+        mimeType,
         fileSize: buffer.length,
         duration: input.duration ?? null,
         sortOrder: 0,

@@ -289,6 +289,89 @@ describe.skipIf(!testDatabaseUrl)(
       }
     });
     it.each([
+      ["audio", "text/html"],
+      ["video", "text/html"],
+      ["document", "text/html"],
+      ["audio", "image/svg+xml"],
+      ["video", "image/svg+xml"],
+      ["document", "image/svg+xml"],
+      ["audio", "application/pdf"],
+      ["document", "audio/mpeg"],
+      ["document", "application/javascript"],
+      ["document", "text/xml"],
+      ["video", "application/x-msdownload"],
+      ["audio", ""],
+      ["audio", "audio/"],
+      ["audio", "audio/mpeg/extra"],
+      ["audio", "audio/mpeg\r\nX-Injected: yes"],
+      ["audio", "audio/" + "x".repeat(124)],
+      ["audio", "audio/mpeg;garbage"],
+      ["audio", "audio/mpeg; codecs=opus, text/html"],
+      ["document", 'text/plain; charset="utf-8'],
+    ] as const)(
+      "rejects incompatible or invalid %s Content-Type %j before any write",
+      async (type, mimeType) => {
+        await expect(
+          client(bearer).admin.uploadMedia.mutate({
+            ...media,
+            type,
+            filename: "lesson.pdf",
+            base64: Buffer.from("<html>not a media file</html>").toString(
+              "base64",
+            ),
+            mimeType,
+          }),
+        ).rejects.toMatchObject({
+          data: { code: "BAD_REQUEST", httpStatus: 400 },
+        });
+        expect(storage.writes).toEqual([]);
+        expect(await rows()).toEqual([]);
+      },
+    );
+    it.each([
+      ["document", "application/pdf", "application/pdf"],
+      ["document", "application/msword", "application/msword"],
+      [
+        "document",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ],
+      [
+        "document",
+        "text/plain; charset=windows-1251",
+        "text/plain; charset=windows-1251",
+      ],
+      ["document", "application/octet-stream", "application/octet-stream"],
+      ["audio", " Audio/MPEG ", "audio/mpeg"],
+      ["audio", 'audio/webm; codecs="opus"', 'audio/webm; codecs="opus"'],
+      ["audio", "audio/x-wav", "audio/x-wav"],
+      ["audio", "application/octet-stream", "application/octet-stream"],
+      ["video", "VIDEO/MP4", "video/mp4"],
+      ["video", "application/octet-stream", "application/octet-stream"],
+    ] as const)(
+      "stores canonical declared %s MIME %s consistently",
+      async (type, mimeType, canonical) => {
+        // Deliberately not a real media file: these tests cover declared headers,
+        // not byte detection, playback, antivirus or document sanitization.
+        const response = await client(bearer).admin.uploadMedia.mutate({
+          ...media,
+          type,
+          mimeType,
+        });
+        expect(storage.writes).toHaveLength(1);
+        expect(storage.writes[0].mime).toBe(canonical);
+        expect(await rows()).toMatchObject([
+          {
+            id: response.mediaId,
+            type,
+            mimeType: canonical,
+            filename: "lesson.mp3",
+            fileSize: 7,
+          },
+        ]);
+      },
+    );
+    it.each([
       ["role='user'", 403],
       ["role='moderator'", 403],
       ["blockedAt=NOW()", 401],
