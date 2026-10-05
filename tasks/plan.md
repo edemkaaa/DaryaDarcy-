@@ -698,6 +698,19 @@ inferred API types; no route rename or frontend regeneration without a wire chan
 M05 admin creation/edit/publication, videos, reactions, comments and upload wiring
 remain later slices; N12 durable announcement delivery is not part of read migration.
 
+M05 read checkpoint: native ContentModule and TrpcModule are in the production
+application, with explicit injection at composition only. Post/bookmark/interaction
+and article visibility orchestration lives in ContentReadService; tRPC inputs,
+middleware, one-server ordering and wire types stay compatible. Fifteen native
+HTTP/JWT/MySQL cases characterize real data; deliberate guard bypasses produced
+four post and four article failures, restored immediately (mutation checks, not
+discoveries of existing production bugs). Compiled Node smoke also invokes feed/
+article service reads and protected denial. Latest full suite: 656 pass / 2 external
+skip; root/Next types, lint, backend/Next builds, unchanged 72-procedure contract,
+411-file boundaries pass. No frontend/schema/dependencies/provider/production or
+deployment changes. Admin writes and other content paths remain M05c/later;
+registration diagnosis, worker/outbox ownership and release gates remain open.
+
 - Nest's parser defaults or Express adapter can change webhook/body/error semantics:
   disable default parsers and retain tested application middleware; HTTP regression
   gates decide compatibility, not source greps or mocked controllers.

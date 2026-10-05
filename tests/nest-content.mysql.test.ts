@@ -31,6 +31,17 @@ describe.skipIf(!testDatabaseUrl)(
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
       vi.stubEnv("JWT_SECRET", "native-content-fixture-secret-32-characters");
       vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
+      await conn.query(`CREATE TABLE IF NOT EXISTS articles (
+        id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(255) NOT NULL, coverUrl TEXT,
+        access ENUM('public','club') NOT NULL DEFAULT 'public', published BOOLEAN NOT NULL DEFAULT TRUE,
+        sortOrder INT NOT NULL DEFAULT 0, sections JSON NOT NULL,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB`);
+      await conn.query(`INSERT INTO articles (id,title,access,published,sections) VALUES
+        (8970,'public article','public',TRUE,JSON_ARRAY(JSON_OBJECT('type','text','text','public article body'))),
+        (8971,'club article','club',TRUE,JSON_ARRAY(JSON_OBJECT('type','text','text','club article body'))),
+        (8972,'hidden article','public',FALSE,JSON_ARRAY(JSON_OBJECT('type','text','text','hidden article body')))`);
       await conn.query(
         "INSERT INTO users (id,openId,role) VALUES (8970,'native-content-reader','user')",
       );
@@ -73,6 +84,7 @@ describe.skipIf(!testDatabaseUrl)(
         "DELETE FROM club_payments WHERE orderId='native-content-subscription'",
       );
       await conn?.query("DELETE FROM users WHERE id=8970");
+      await conn?.query("DELETE FROM articles WHERE id BETWEEN 8970 AND 8972");
       await conn?.end();
       await (
         (await getDb()) as unknown as { $client: { end(): Promise<void> } }
@@ -168,6 +180,73 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED", httpStatus: 401 },
       });
+    });
+    it("lists only public article summaries, never paid sections", async () => {
+      const rows = (await client().articles.list.query()).filter(
+        (article) => article.id >= 8970 && article.id <= 8972,
+      );
+      expect(rows).toEqual([
+        { id: 8970, title: "public article", coverUrl: null, access: "public" },
+      ]);
+    });
+    it("serves public article sections but only an allowlisted locked club preview to anonymous readers", async () => {
+      expect(await client().articles.getById.query({ id: 8970 })).toEqual({
+        id: 8970,
+        title: "public article",
+        coverUrl: null,
+        access: "public",
+        locked: false,
+        sections: [{ type: "text", text: "public article body" }],
+      });
+      expect(await client().articles.getById.query({ id: 8971 })).toEqual({
+        id: 8971,
+        title: "club article",
+        coverUrl: null,
+        access: "club",
+        locked: true,
+        sections: [],
+      });
+    });
+    it("relocks article sections immediately after subscription expiry with the same JWT", async () => {
+      expect(
+        await client(bearer).articles.getById.query({ id: 8971 }),
+      ).toMatchObject({
+        locked: false,
+        sections: [{ type: "text", text: "club article body" }],
+      });
+      await conn.query(
+        "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-content-subscription'",
+      );
+      expect(
+        await client(bearer).articles.getById.query({ id: 8971 }),
+      ).toMatchObject({ locked: true, sections: [] });
+      await conn.query("UPDATE users SET role='moderator' WHERE id=8970");
+      expect(
+        await client(bearer).articles.getById.query({ id: 8971 }),
+      ).toMatchObject({
+        locked: false,
+        sections: [{ type: "text", text: "club article body" }],
+      });
+    });
+    it.each(["blockedAt=NOW()", "sessionVersion=1"])(
+      "does not leak article sections after %s",
+      async (patch) => {
+        await conn.query(
+          `UPDATE users SET role='admin',${patch} WHERE id=8970`,
+        );
+        expect(
+          await client(bearer).articles.getById.query({ id: 8971 }),
+        ).toMatchObject({ locked: true, sections: [] });
+      },
+    );
+    it("hides unpublished and missing articles even from an administrator", async () => {
+      await conn.query("UPDATE users SET role='admin' WHERE id=8970");
+      expect(
+        await client(bearer).articles.getById.query({ id: 8972 }),
+      ).toBeUndefined();
+      expect(
+        await client(bearer).articles.getById.query({ id: -1 }),
+      ).toBeUndefined();
     });
   },
 );

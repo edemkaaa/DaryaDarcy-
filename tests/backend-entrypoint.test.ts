@@ -178,6 +178,8 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
         // An undefined content/session injection or unbound context callback
         // returns INTERNAL_SERVER_ERROR, not these public/protected contracts.
         expect(await client.feed.getById.query({ id: 1 })).toBeUndefined();
+        expect(await client.articles.list.query()).toEqual([]);
+        expect(await client.articles.getById.query({ id: 1 })).toBeUndefined();
         await expect(client.feed.savedPosts.query()).rejects.toMatchObject({
           data: { code: "UNAUTHORIZED", httpStatus: 401 },
         });

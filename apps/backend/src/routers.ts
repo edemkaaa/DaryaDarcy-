@@ -8,7 +8,7 @@ import { penPalsRouter } from "./pen-pals/router";
 import { shopRouter } from "./shop/router";
 import { createFeedRouter } from "./content/feed-router";
 import { ContentReadService } from "./content/content-read.service";
-import { articlesRouter } from "./content/articles-router";
+import { createArticlesRouter } from "./content/articles-router";
 import { notificationsRouter } from "./notifications/router";
 import { clubRouter } from "./club/router";
 import { moderationRouter } from "./moderation/router";
@@ -28,7 +28,7 @@ export const createAppRouter = (content: ContentReadService) =>
     shop: shopRouter,
     moderation: moderationRouter,
     profileExtras: profileExtrasRouter,
-    articles: articlesRouter,
+    articles: createArticlesRouter(content),
   });
 
 // Standalone callers/tools use the same factories; HTTP supplies Nest's service.

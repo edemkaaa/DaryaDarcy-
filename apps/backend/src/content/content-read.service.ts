@@ -34,4 +34,42 @@ export class ContentReadService {
     ]);
     return { likedIds, savedIds };
   }
+
+  async listArticles() {
+    const rows = await db.listPublishedArticles();
+    return rows
+      .filter((row) => row.access === "public")
+      .map((row) => ({
+        id: row.id,
+        title: row.title,
+        coverUrl: row.coverUrl,
+        access: row.access,
+      }));
+  }
+
+  async articleById(id: number, user: User | null) {
+    const article = await db.getArticleById(id);
+    if (!article || !article.published) return undefined;
+    const allowed =
+      article.access === "public" ||
+      Boolean(user && (await userHasClubAccess(user)));
+    if (!allowed) {
+      return {
+        id: article.id,
+        title: article.title,
+        coverUrl: article.coverUrl,
+        access: article.access,
+        locked: true as const,
+        sections: [],
+      };
+    }
+    return {
+      id: article.id,
+      title: article.title,
+      coverUrl: article.coverUrl,
+      access: article.access,
+      locked: false as const,
+      sections: article.sections || [],
+    };
+  }
 }

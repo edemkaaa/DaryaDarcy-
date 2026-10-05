@@ -417,6 +417,19 @@
     extraction (mutation proof, not a newly found production bug). Full suite:
     650 pass / 2 external skip; types/lint/API build/72-procedure contract/411-file
     boundaries pass. Article/read and admin/write slices still remain.
+  - [x] M05b: Article summaries/detail/locked previews use the same injected
+    ContentReadService; article router now only validates/dispatches. Six new
+    native HTTP/JWT/MySQL cases cover public summaries, allowlisted previews,
+    paid sections/expiry/staff, revoked/blocked sessions and unpublished/missing
+    articles. Intentional bypass produced four assertion failures, restored before
+    extraction; no newly found production leak is claimed. Actual compiled Node
+    smoke exercises feed/article reads, optional context and protected denial.
+    Full suite: 656 pass / 2 external skip; root/Next types, lint, server/Next
+    builds, unchanged 72-procedure contract and 411-file boundaries pass.
+  - [ ] M05c: Inject administrative post creation/edit/publication services;
+    preserve real transaction/idempotency/media/notification regressions N07–N11.
+  - [ ] Remaining M05: Feed list/video/reaction/comment/upload wiring; no false
+    claim that all content or SQL ownership has been migrated after read slices.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
