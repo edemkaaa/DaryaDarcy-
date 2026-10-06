@@ -223,7 +223,7 @@ const postListOrder = [asc(posts.sortOrder), postDateOrder] as const;
 // Get all published posts, optionally filtered by tag
 export async function getPosts(tagFilter?: string): Promise<(Post & { likeCount: number; media: PostMedia[] })[]> {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) throw new Error("Database not available");
 
   let query = db
     .select({
@@ -301,7 +301,7 @@ async function attachPostMedia<T extends { id: number }>(
     return page.map((p) => ({ ...p, media: byPost.get(p.id) ?? [] }));
   } catch (error) {
     console.warn("[Feed] post_media query failed");
-    return page.map((p) => ({ ...p, media: [] as PostMedia[] }));
+    throw error;
   }
 }
 
@@ -329,7 +329,7 @@ export async function getPostsPaginated(options: {
   cursor?: number; // offset (page number * limit)
 }): Promise<{ posts: (Post & { likeCount: number; media: PostMedia[] })[]; nextCursor: number | null }> {
   const db = await getDb();
-  if (!db) return { posts: [], nextCursor: null };
+  if (!db) throw new Error("Database not available");
 
   const offset = options.cursor ?? 0;
   const rows = await db
@@ -351,7 +351,7 @@ export async function getPostsPaginated(options: {
 // Get a single post by ID
 export async function getPostById(id: number): Promise<(Post & { likeCount: number }) | undefined> {
   const db = await getDb();
-  if (!db) return undefined;
+  if (!db) throw new Error("Database not available");
 
   const result = await db
     .select({
@@ -434,8 +434,9 @@ export async function getUserSavedPostIds(userId: number): Promise<number[]> {
 }
 
 export async function getPostsByIds(ids: number[]): Promise<(Post & { likeCount: number; media: PostMedia[] })[]> {
+  if (ids.length === 0) return [];
   const db = await getDb();
-  if (!db || ids.length === 0) return [];
+  if (!db) throw new Error("Database not available");
   const rows = await db.select(postListColumns).from(posts).where(and(inArray(posts.id, ids), eq(posts.published, true), eq(posts.status, "published")));
   const withMedia = await attachPostMedia(db, rows);
   const byId = new Map(withMedia.map((row) => [row.id, row]));
@@ -550,7 +551,7 @@ export async function deletePost(id: number): Promise<void> {
 // Get all posts for admin (including unpublished)
 export async function getAllPostsAdmin(): Promise<(Post & { media: PostMedia[] })[]> {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) throw new Error("Database not available");
 
   const rows = await db.select().from(posts).orderBy(...postListOrder);
   return attachPostMedia(db, rows);
@@ -897,7 +898,7 @@ export async function getPostsForTarget(target: "feed" | "club", options?: {
   cursor?: number;
 }): Promise<{ posts: (Post & { likeCount: number })[]; nextCursor: number | null }> {
   const db = await getDb();
-  if (!db) return { posts: [], nextCursor: null };
+  if (!db) throw new Error("Database not available");
 
   const offset = options?.cursor ?? 0;
   const limit = options?.limit ?? 20;
@@ -973,7 +974,7 @@ export async function createPostMedia(data: InsertPostMedia): Promise<number> {
 
 export async function getPostMediaByPostId(postId: number): Promise<PostMedia[]> {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) throw new Error("Database not available");
 
   return db
     .select()

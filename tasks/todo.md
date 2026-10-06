@@ -731,3 +731,18 @@
   Local Docker info reports EOF; no native MySQL available. Added SQL tests are
   skipped, not verified. Frontend draft retention/notification still needs its
   owner's acceptance; existing browser photo-viewer failure is not addressed.
+
+## Frontend/backend handoff: complete media reads (B1) — 2026-10-07
+
+- [x] Propagate post_media failures instead of returning a complete empty model;
+  reject unavailable DB in the seven media/post read helpers, preserve genuine
+  empty results and original media metadata after recovery.
+  21 failing outcomes reproduced before repair; 33 fault/empty/recovery/HTTP
+  scenarios pass with real repositories/Drizzle and a doubled SQL transport.
+- [x] Verify compiled runtime without DB, static/build/API gates and handoff.
+  Non-MySQL suite 683 pass / 4 skip; verify 239 pass. Types, lint, API, backend
+  build and 452-file boundaries pass. No frontend, schema, push or deployment.
+- [ ] Run existing content.mysql/nest-content.mysql/nest-admin-content.mysql
+  suites on disposable MySQL (51 cases currently skipped; Docker reports EOF)
+  and accept editor refusal to change videos without a complete initial model.
+  Client UI acceptance and version conflicts are not fixed by read errors alone.

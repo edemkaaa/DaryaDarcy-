@@ -175,17 +175,19 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
           ],
         });
         expect(await client.auth.me.query()).toBeNull();
-        // An undefined content/session injection or unbound context callback
-        // returns INTERNAL_SERVER_ERROR, not these public/protected contracts.
-        expect(await client.feed.getById.query({ id: 1 })).toBeUndefined();
-        expect(await client.feed.list.query()).toEqual([]);
+        // An unavailable DB is not evidence of absent posts or empty media.
+        // Verify this contract in the actual compiled runtime, without mocks.
+        for (const read of [
+          () => client.feed.getById.query({ id: 1 }),
+          () => client.feed.list.query(),
+          () => client.feed.listPaginated.query({ cursor: null }),
+        ]) {
+          await expect(read()).rejects.toMatchObject({
+            message: "Внутренняя ошибка сервера",
+            data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+          });
+        }
         expect(await client.feed.tags.query()).toEqual([]);
-        expect(await client.feed.listPaginated.query({ cursor: null })).toEqual(
-          {
-            posts: [],
-            nextCursor: null,
-          },
-        );
         await expect(
           client.feed.listPaginated.query({ limit: 1.5 }),
         ).rejects.toMatchObject({
