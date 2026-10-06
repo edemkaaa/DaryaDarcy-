@@ -14,7 +14,7 @@ import {
 import type { PostCreationIntent } from "./post-creation-request";
 
 async function insertPost(
-  writer: Pick<MySql2Database, "insert" | "delete" | "select">,
+  writer: Pick<MySql2Database, "insert" | "delete" | "select" | "update">,
   data: InsertPost,
   videos: string[],
   attachments: PostAttachmentChanges,

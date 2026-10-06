@@ -20,7 +20,6 @@ import {
 } from "./content/post-creator";
 import type { PostCreationIntent } from "./content/post-creation-request";
 import type { PostAttachmentChanges } from "./content/post-attachments";
-import { replacePostVideoRows } from "./content/post-videos";
 import { togglePostReaction } from "./content/post-reactions";
 import {
   MARKETING_PUSH_CONSENT_VERSION,
@@ -1001,7 +1000,8 @@ export async function replacePostVideos(postId: number, urls: string[]): Promise
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return replacePostVideoRows(db, postId, urls);
+  // Use the same post lock and transaction as the canonical edit path.
+  await persistPostEdit(db, postId, {}, urls);
 }
 
 export async function clearRawCameraFilenames(): Promise<void> {

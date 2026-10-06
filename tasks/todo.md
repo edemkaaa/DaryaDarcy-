@@ -746,3 +746,26 @@
   suites on disposable MySQL (51 cases currently skipped; Docker reports EOF)
   and accept editor refusal to change videos without a complete initial model.
   Client UI acceptance and version conflicts are not fixed by read errors alone.
+
+## Frontend/backend handoff: preserve video identity (B2) — 2026-10-07
+
+- [x] Reconcile exact URL occurrences instead of deleting/recreating every video;
+  preserve retained IDs and all metadata, update only order, scope deletions to
+  this post's excluded video IDs. Keep omitted/empty videos semantics and other
+  media unchanged. Route the internal replacement wrapper through the post lock
+  and edit transaction. New URL-only videos have unknown MIME, not a guessed MP4.
+  All 16 new transport-level tests failed before repair and now pass; the real
+  helper/Drizzle are exercised, not mocked application logic.
+- [x] Verify non-MySQL/static/build/API gates and update the existing handoff.
+  699 pass / 4 skip; verify 239 pass. Types, lint, compiled runtime, backend
+  build, unchanged 72-procedure API, 452-file boundaries and 47-document checks
+  pass. No frontend/generated types, schema, push, staging update or deployment.
+- [ ] Verify disposable MySQL acceptance: unchanged/add/remove/reorder, omitted/
+  empty lists, duplicate occurrences and rollback of the post plus all media.
+  Added 10 focused SQL tests; currently skipped because Docker reports EOF and
+  BACKEND_TEST_DATABASE_URL is absent. Existing manual-publication SQL gates
+  remain pending too. Non-MySQL suite: 699 pass / 4 skip.
+- [ ] Agree and implement a trusted metadata source for newly uploaded videos;
+  URL-derived filename is only a compatibility label, MIME/size/duration stay
+  null. No client metadata guessing or server fetch of arbitrary URLs. B2 is not
+  fully accepted until this and real SQL verification are completed.
