@@ -20,6 +20,47 @@ export class ContentWriteService {
     return db.toggleSave(userId, postId);
   }
 
+  async createArticle(
+    input: Parameters<typeof db.createArticle>[0],
+  ): Promise<number> {
+    const id = await db.createArticle({
+      ...input,
+      coverUrl: input.coverUrl ?? null,
+      sections: input.sections,
+    });
+    await db.upsertArticleTeaser({
+      id,
+      title: input.title,
+      coverUrl: input.coverUrl ?? null,
+      access: input.access,
+      published: input.published,
+    });
+    return id;
+  }
+
+  async updateArticle(
+    input: { id: number } & Parameters<typeof db.updateArticle>[1],
+  ): Promise<{ ok: true }> {
+    const { id, ...data } = input;
+    await db.updateArticle(id, data);
+    const article = await db.getArticleById(id);
+    if (article) {
+      await db.upsertArticleTeaser({
+        id: article.id,
+        title: article.title,
+        coverUrl: article.coverUrl,
+        access: article.access as "public" | "club",
+        published: Boolean(article.published),
+      });
+    }
+    return { ok: true };
+  }
+
+  async deleteArticle(id: number): Promise<{ ok: true }> {
+    await db.deleteArticle(id);
+    return { ok: true };
+  }
+
   async createPost(
     actorUserId: number,
     input: CreatePostInput,

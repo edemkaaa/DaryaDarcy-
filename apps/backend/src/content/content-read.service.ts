@@ -11,6 +11,10 @@ export class ContentReadService {
     return db.getAllPostsAdmin();
   }
 
+  listAllAdminArticles() {
+    return db.listAllArticles();
+  }
+
   listAdminPosts(input?: {
     status?: "draft" | "scheduled" | "published";
     target?: "feed" | "club" | "both";

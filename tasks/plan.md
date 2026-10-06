@@ -1326,3 +1326,70 @@ orphan files. Full local suite 518 pass / 498 skip, with real MySQL unavailable;
 types/lint/backend build/API/boundaries/docs pass. No SQL/journal/schema, frontend,
 dependency, provider, server or production data changes. History reconciliation,
 actual migration rehearsal and all other release gates remain open.
+
+## M05 admin article continuation — 2026-10-06
+
+Move admin.articles/createArticle/updateArticle/deleteArticle through the existing
+injected ContentReadService/ContentWriteService. Preserve the schemas, defaults,
+adminProcedure, private/draft list ordering, block normalization, numeric create
+result, {ok:true} update/delete results and current article teaser side effects.
+No new module/dependency, frontend/types, auth policy, schema or provider changes.
+
+1. Characterize real HTTP/JWT/MySQL CRUD, publication/cover teaser transitions,
+   invalid inputs and live denied/revoked identity. Demonstrate that a deliberate
+   public-only catalog mutation fails the private/draft assertion before wiring.
+2. Move only this orchestration behind the existing injected services; keep
+   canonical db helpers and input schemas unchanged. Verify compiled ESM startup
+   and read-only API contract check, then the focused/full regression suite.
+3. Record remaining risks: article/teaser writes are not a single transaction,
+   teaser target policy and missing/empty update semantics remain legacy behavior;
+   ownership/privacy/provider/migration release gates do not disappear.
+
+Local Docker still returns EOF. Use a separately named disposable MySQL container
+on the user-provided test host only after inventory confirms resources. Bind only
+loopback and connect through a private SSH tunnel; random ephemeral credentials,
+512 MiB/0.4 CPU limits, exact ownership-labelled volume. Do not reuse the deployed
+staging DB or change its containers. Remove only this fixture/tunnel/volume after
+verification; no real users, provider calls, payments or email. Full backup/restore
+gates requiring local Docker remain distinct from HTTP/SQL regression verification.
+
+Test topology correction: the initial article beforeAll exceeded 10 seconds on
+fresh DDL over SSH. A separate schema diagnostic measured 36 queries at 156–205 ms
+each (6.8 seconds even after initialization). Do not increase assertion/hook
+timeouts or interpret this as a product fix. Run a separate bounded Node test
+container beside the disposable MySQL, using the existing staging image for
+production dependencies and only frozen lockfile-selected test tools (scripts
+disabled). Connect the two only on an ownership-labelled internal network and
+disable external egress before tests. No HTTP port/jobs/deploy.env or other app
+volume mounts. Remove this runner/network along with the SQL fixture afterwards.
+
+Full-suite environment diagnosis: the first remote full run had 1015 pass,
+15 failed tests, two failed suite imports and four skips. This runner lacked
+Git/concurrently/qrcode, and the macOS tar transfer introduced an AppleDouble
+sidecar matching Vitest's test glob. The SQL fixture had performance_schema=OFF,
+so the lock-observation assertions could not see any pending locks; the image's
+inherited NODE_ENV=production also refused the suites' loopback HTTP provider/
+access URLs. Recreate only the owned SQL container with instrumentation ON,
+retain its synthetic volume, install only the missing locked Node tools and Git
+in the owned runner, remove the exact generated sidecar, and pass NODE_ENV=test
+to Vitest (compiled production-child checks still set their own environment).
+Verify instrumentation and internal-only network, then run a new full regression.
+No product fix, assertion/timeout change, retry loop or deployed-DB repair is implied.
+
+Article checkpoint: all four operations now use the existing injected services;
+the route schemas and DB helpers are unchanged. Twenty characterization cases
+pass; the deliberate published-only catalog mutation fails on missing draft 9061.
+Focused three-file run: 68 pass. After the diagnosed fixture corrections, a fresh
+full run passes 1032 / skips 4 across 90 files (two external S3, two native Docker
+backup/restore). Local no-DB run: 518 pass / 518 skip. Types, lint, backend build,
+strict 72-procedure/25461-byte API check, 434-file boundaries and 44-doc check pass.
+Services/new tests match Prettier; admin router/README/tasks already differ from
+the formatter at HEAD, so no unrelated whole-file reformat is included. No frontend,
+schema/journal, dependency, provider or deployed application changes. Remaining
+article consistency/policy/update semantics and release gates stay separate.
+
+Cleanup verified: ownership labels/mounts/network peers and exact artifact paths
+matched before removal. Both disposable containers, their synthetic SQL volume,
+internal network and private generated local/remote artifacts were removed. The
+four staging containers remain healthy at the previous version; other shared-host
+applications retain their original uptime. No production data was removed.

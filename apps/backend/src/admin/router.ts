@@ -78,7 +78,7 @@ export const createAdminRouter = (
       const expiresAt = await db.grantClubDays(input.userId);
       return { ok: true as const, expiresAt: expiresAt.toISOString() };
     }),
-  articles: adminProcedure.query(() => db.listAllArticles()),
+  articles: adminProcedure.query(() => content.listAllAdminArticles()),
   createArticle: adminProcedure
     .input(
       z.object({
@@ -106,21 +106,7 @@ export const createAdminRouter = (
         ),
       }),
     )
-    .mutation(async ({ input }) => {
-      const id = await db.createArticle({
-        ...input,
-        coverUrl: input.coverUrl ?? null,
-        sections: input.sections,
-      });
-      await db.upsertArticleTeaser({
-        id,
-        title: input.title,
-        coverUrl: input.coverUrl ?? null,
-        access: input.access,
-        published: input.published,
-      });
-      return id;
-    }),
+    .mutation(({ input }) => posts.createArticle(input)),
   updateArticle: adminProcedure
     .input(
       z.object({
@@ -151,27 +137,10 @@ export const createAdminRouter = (
           .optional(),
       }),
     )
-    .mutation(async ({ input }) => {
-      const { id, ...data } = input;
-      await db.updateArticle(id, data);
-      const article = await db.getArticleById(id);
-      if (article) {
-        await db.upsertArticleTeaser({
-          id: article.id,
-          title: article.title,
-          coverUrl: article.coverUrl,
-          access: article.access as "public" | "club",
-          published: Boolean(article.published),
-        });
-      }
-      return { ok: true as const };
-    }),
+    .mutation(({ input }) => posts.updateArticle(input)),
   deleteArticle: adminProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
-      await db.deleteArticle(input.id);
-      return { ok: true as const };
-    }),
+    .mutation(({ input }) => posts.deleteArticle(input.id)),
   cleanupMediaNames: adminProcedure.mutation(async () => {
     await db.clearRawCameraFilenames();
     return { ok: true as const };

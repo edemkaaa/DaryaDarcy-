@@ -631,6 +631,21 @@
     Do not call this fixed or conceal it with automatic retries/skip flags.
   - [ ] Remaining M05: Remaining admin service wiring; no
     claim that all content, storage or SQL ownership has been migrated.
+  - [x] Admin article slice: four operations use existing injected read/write
+    services; schemas, private/draft order, block normalization and teaser lifecycle
+    are unchanged. Twenty real HTTP/JWT/MySQL cases include compiled ESM; a
+    deliberate published-only list mutation fails the private/draft assertion.
+    Focused 68 pass; corrected-environment full run 1032 pass / 4 skip (two external
+    S3 and two native Docker backup/restore cases not run). The first full failure
+    and environment diagnosis are recorded in plan.md; no assertions/timeouts
+    changed. Types/lint/build/API/boundaries/docs pass, 72-procedure contract intact.
+    Owned temporary containers/SQL volume/network/artifacts removed after exact
+    ownership checks; staging and other shared-server applications remain healthy.
+    No frontend/schema/dependency/provider or staging-deployment change.
+  - [ ] Article write consistency: specify atomic article/teaser create/edit/delete
+    and concurrent publication behavior. Current helpers write separately; do not
+    confuse the service-wiring slice with this repair or silently change teaser
+    visibility, missing-ID/empty-patch behavior or production schema/history.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
