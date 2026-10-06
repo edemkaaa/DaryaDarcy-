@@ -178,8 +178,7 @@ it("does not grant a session on the provider browser return", async () => {
   );
   expect(response.status).toBe(302);
   expect(response.headers.get("location")).toBe(
-    // Existing provider-return policy falls back to this canonical host.
-    "https://daryadarcy.com/club?paid=1",
+    "https://club.example.test/club?paid=1",
   );
   expect(response.headers.get("set-cookie")).toBeNull();
 });

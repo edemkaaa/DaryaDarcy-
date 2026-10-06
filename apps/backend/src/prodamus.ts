@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Express, Request, Response } from "express";
-import { ENV } from "./_core/env";
+import { publicAccessUrl } from "./identity/urls";
 import { getCapabilities } from "./launch/capabilities";
 import * as db from "./db";
 import type { PaymentProof } from "./billing/protocol";
@@ -37,9 +37,7 @@ export function parseShopProductId(orderId: string): string | null {
 }
 
 function publicSiteUrl(): string {
-  const fromEnv = (ENV.publicAppUrl || "").replace(/\/$/, "");
-  if (fromEnv.includes("daryadarcy.com")) return fromEnv;
-  return "https://daryadarcy.com";
+  return publicAccessUrl().origin;
 }
 
 function getPayformUrl(): string {
@@ -416,7 +414,13 @@ export async function handleProdamusReturn(req: Request, res: Response) {
   const body = parseWebhookPayload(req);
   const orderId = pickOrderId({ ...asRecord(req.query), ...body }) || pickString(asRecord(req.query), ["order"]);
   // Browser navigation is not proof of payment. paid=1 only triggers UI polling.
-  const appUrl = publicSiteUrl();
+  let appUrl: string;
+  try {
+    appUrl = publicSiteUrl();
+  } catch {
+    res.status(503).send("payment return unavailable");
+    return;
+  }
   const productId = parseShopProductId(orderId);
   const dest = productId ? `${appUrl}/shop/${productId}?paid=1` : `${appUrl}/club?paid=1`;
   res.redirect(302, dest);

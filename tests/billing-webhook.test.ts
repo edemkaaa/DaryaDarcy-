@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Request, Response } from "express";
 
 // Only persistence is replaced: the real parser, signature check and HTTP handlers run.
@@ -75,6 +75,7 @@ async function notify(body: Record<string, unknown>, secret?: string) {
   return result;
 }
 beforeEach(() => {
+  vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
   state.paid = false;
   state.cancelled = false;
   state.failDatabase = false;
@@ -82,6 +83,7 @@ beforeEach(() => {
   vi.stubEnv("PRODAMUS_SHOP_SECRET", "");
   vi.stubEnv("PRODAMUS_SUBSCRIPTION_SECRET", "");
 });
+afterEach(() => vi.unstubAllEnvs());
 describe("billing notification trust boundary", () => {
   it("does not log database error objects that can contain mail tokens and personal data", async () => {
     state.failDatabase = true;

@@ -59,6 +59,7 @@ function caller(user: User | null = null) {
   return appRouter.createCaller({ user, req: {}, res: {} } as TrpcContext);
 }
 beforeEach(() => {
+  vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
   state.orders = [];
   state.issued = false;
   state.activated = false;
@@ -66,7 +67,7 @@ beforeEach(() => {
   state.paid = false;
   state.password = false;
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 describe("checkout cannot establish identity or payment", () => {
   it.each(["monthly", "semiannual"] as const)(
     "creates distinct %s orders for concurrent requests in the same millisecond",
