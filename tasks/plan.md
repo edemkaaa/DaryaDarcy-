@@ -1488,3 +1488,81 @@ containers remain healthy, API/web at 12cfc8d; other host applications retain
 their original uptime. No frontend files/types, schema/journal, dependency,
 provider, push/merge or deployed application changes. Remaining M05 administrative
 service wiring is next; broader release blockers are still open.
+
+## Pending registration retry — 2026-10-06
+
+User-reported staging flow: registration inserts a passwordless account and durable
+mail, but SMTP is absent; a second request gets 409/"Войдите" although password
+setup is incomplete. Read-only staging diagnosis confirmed passwordHash=NULL,
+unsent setup mail and SMTP_PASS absent. No staging data/configuration changed.
+
+Backend-only repair on fix/pending-registration-retry. Trust boundary: public
+registration → identity service → locked user + registration provenance + durable
+setup-mail transaction. No password/profile/role/session mutation on retry. Existing
+active/staff/blocked/checkout-only accounts keep duplicate behavior. Do not treat
+every passwordless row as a pending public registration.
+
+1. Reproduce sequential/concurrent retry through native HTTP/MySQL. Existing origin
+   registration mail proves the account's flow; identity fields/consent/password
+   remain unchanged. Retry returns the existing 202/ok/message shape, never a
+   session; active accounts still return 409. Preserve consent/IP checks.
+2. Reuse a still-usable queued setup; otherwise queue a new setup without consuming
+   previous valid links. User approved a durable per-recipient maximum of three
+   setup mails per rolling hour (initial mail included), same 202 on suppression.
+   Row lock serializes retries; SQL failure rolls token/mail creation back.
+   Passwordless recovery uses the same setup policy so changing the URL cannot
+   bypass the quota or consume the earlier valid link. Active-account password
+   reset keeps its existing superseding-link behavior. Initial concurrent losers
+   now return pending/202 when origin registration exists; one account/mail remains.
+3. Verify real loopback SMTP delivery/rejection + retry + password completion/login
+   on a disposable isolated fixture, then full/static/API/compiled checks, review
+   and ownership-checked cleanup. No frontend or generated-type edits, migration,
+   external mail, push/merge or staging rollout in this slice.
+
+Actual Gmail delivery is a separate checkpoint. User will provide test SMTP
+configuration in a protected local file; until then do not invent credentials,
+enable live integrations or open staging egress. Real delivery and application
+deployment cannot be claimed from the isolated receiver tests.
+
+Implementation/review evidence: 12 expected failures before production changes
+(ten retry cases and two deliberately changed initial-concurrency outcomes).
+The first increment then independently exposed passwordless recovery creating a
+fourth setup and consuming earlier links; routing that branch through the shared
+setup policy fixes the cross-route bypass. Active-password reset regressions pass.
+The new native SMTP receiver exercises real Nodemailer recipient acceptance and
+rejection, durable outbox state, link completion and explicit later login, not a
+mocked sender. Initial account creation remains insert-only; retry requires the
+exact originating event/user/email/kind and never updates identity or consent.
+
+Five-axis review: user lock precedes the retry snapshot and token/mail writes;
+password completion takes the same lock. The unique origin event guards pending
+eligibility; bounded latest-mail lookup and quota use the existing user index,
+token lookup uses its unique hash. Queue budget includes initial/failed/discarded
+setup records, not just accepted SMTP deliveries. No new migration, dependency,
+cookie, response field or frontend code. Encrypted links never leave the mail
+worker; errors remain generic. Reusing a pending link preserves backoff/lease;
+successful completion still consumes all outstanding tokens. Staff/blocked/active
+and checkout-only duplicate behavior remains tested. Historical duplicate emails,
+outbox retention and general auth/IP-limit redesign are not addressed here.
+
+Test environment diagnosis: compiled-ESM case hit its unchanged five-second
+timeout with the disposable runner capped at 0.5 CPU; cgroup statistics showed
+1409 throttled periods out of 1918 and ~97 seconds of cumulative throttling.
+Only that owned runner was increased to one CPU, with memory cap unchanged.
+All 58 focused tests then passed, followed by 1059 pass / 4 skip in the full
+suite. No retries, relaxed assertions or increased test timeout were added.
+Final indexed version: 1059 pass / 4 skip across 92 files (91 passing, one
+external-S3 suite skipped; two external S3 and two native Docker backup/restore
+cases not run). No failures; no retry/timeout/assertion relaxation. Fresh types,
+lint, backend ESM build, unchanged 72-procedure/25461-byte API, 436-file boundaries,
+44-document links and changed TypeScript formatting pass. README retains its
+existing formatting convention, not a whole-file reformat. Live SMTP and staging
+application remain unchanged; local Docker is still unavailable.
+
+Ownership-checked cleanup completed: removed only the two disposable containers,
+their synthetic SQL volume, isolated network and protected local/remote artifacts.
+Fixtures can be recreated from tests; no real user data was removed. All four
+staging containers remain healthy, API/web image stays at 12cfc8d, HTTPS returns
+200; other applications retain their original uptime. Backend-only repair is
+ready locally. No push/merge/deployment or real mailbox delivery performed;
+test SMTP credentials/provider/network/rollout remain the explicit next checkpoint.

@@ -13,7 +13,7 @@ import {
 } from "../db";
 import { verifyPassword } from "../_core/password";
 import { sdk } from "../_core/sdk";
-import { createEmailAccount } from "./registration";
+import { createEmailAccount, retryEmailRegistration } from "./registration";
 
 export function publicUser(user: User) {
   return {
@@ -56,16 +56,23 @@ export class SessionService {
   async register(
     email: string,
     name: string,
-  ): Promise<"created" | "duplicate" | "unavailable"> {
-    if (await getUserByEmail(email)) return "duplicate";
+  ): Promise<"created" | "pending" | "duplicate" | "unavailable"> {
+    const existing = await getUserByEmail(email);
     const database = await getDb();
     if (!database) return "unavailable";
+    if (existing)
+      return (await retryEmailRegistration(database, email))
+        ? "pending"
+        : "duplicate";
     const user = await createEmailAccount(database, {
       openId: emailToOpenId(email),
       email,
       name: name || null,
     });
-    return user ? "created" : "duplicate";
+    if (user) return "created";
+    return (await retryEmailRegistration(database, email))
+      ? "pending"
+      : "duplicate";
   }
 
   async passwordUser(email: string, password: string) {

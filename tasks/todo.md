@@ -702,3 +702,16 @@
   Actual db:push refuses the existing three orphan files before DB/migrate.
 - [ ] Reconcile 0017–0019 with source database evidence and rehearse approved
   migrations on a disposable copy. This command guard does not close B05/release.
+
+## Pending registration retry — 2026-10-06
+
+- [x] Reproduce passwordless public-registration retry without account takeover;
+  return 202 instead of misleading 409, preserve all identity fields and consent.
+- [x] Preserve usable queued/prior links, enforce approved three-mail/hour bound
+  under concurrent retries, prove transactional rollback and real local SMTP flow.
+- [x] Full/static/API/compiled verification, review, handoff and fixture cleanup.
+  58 focused; final full suite 1059 pass / 4 provider/native-Docker skips.
+  Types/lint/build/API/boundaries/docs pass. Only owned disposable resources
+  removed; staging remains healthy at 12cfc8d. No frontend, migration or rollout.
+- [ ] Receive test SMTP configuration securely; agree provider/network setup and
+  rollout, then verify real mailbox delivery. No live credentials provided yet.

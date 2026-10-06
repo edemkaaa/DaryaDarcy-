@@ -141,7 +141,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(inserted.insertId).toBeGreaterThanOrEqual(1_000_000);
     });
-    it("concurrent registration has one winner and queues one setup without a password or session", async () => {
+    it("concurrent registration accepts the pending loser while creating one account and setup", async () => {
       const failures = captureRegistrationFailures();
       let arrivals = 0;
       let release!: () => void;
@@ -163,7 +163,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect({
         statuses: results.map((result) => result.status).sort(),
         failures,
-      }).toEqual({ statuses: [202, 409], failures: [] });
+      }).toEqual({ statuses: [202, 202], failures: [] });
       expect(
         results.every((result) => result.headers.getSetCookie().length === 0),
       ).toBe(true);
@@ -224,9 +224,7 @@ describe.skipIf(!testDatabaseUrl)(
         result.status === "fulfilled" ? [result.value] : [],
       );
       expect(outcomes.filter((value) => value === "created")).toHaveLength(1);
-      expect(outcomes.filter((value) => value === "duplicate")).toHaveLength(
-        19,
-      );
+      expect(outcomes.filter((value) => value === "pending")).toHaveLength(19);
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT id,role,passwordHash FROM users WHERE email=?",
         [recipient],

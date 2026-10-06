@@ -1,5 +1,16 @@
 import type { MySql2Database } from "drizzle-orm/mysql2";
-import { and, desc, eq, isNull, lte, or, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  isNull,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import {
   createCipheriv,
   createDecipheriv,
@@ -89,21 +100,81 @@ export async function queueAccessEmail(
     const purpose = user.passwordHash ? "reset" : "setup";
     const token = randomBytes(32).toString("base64url");
     payload.tokenCipher = encrypt(token);
-    await tx
-      .insert(passwordTokens)
-      .values({
-        userId,
-        email: normalizeEmail(email),
-        tokenHash: digest(token),
-        purpose,
-        expiresAt: new Date(
-          Date.now() + (purpose === "reset" ? 3600000 : 86400000),
-        ),
-      });
+    await tx.insert(passwordTokens).values({
+      userId,
+      email: normalizeEmail(email),
+      tokenHash: digest(token),
+      purpose,
+      expiresAt: new Date(
+        Date.now() + (purpose === "reset" ? 3600000 : 86400000),
+      ),
+    });
   }
   await tx
     .insert(accessEmailOutbox)
     .values({ eventKey, userId, email: normalizeEmail(email), kind, payload });
+}
+/** Caller holds the recipient's user lock, shared with password completion. */
+export async function queuePasswordSetupRetry(
+  tx: Transaction,
+  userId: number,
+  email: string,
+): Promise<void> {
+  const recipient = normalizeEmail(email);
+  const [latest] = await tx
+    .select()
+    .from(accessEmailOutbox)
+    .where(
+      and(
+        eq(accessEmailOutbox.userId, userId),
+        eq(accessEmailOutbox.email, recipient),
+        eq(accessEmailOutbox.kind, "password-setup"),
+      ),
+    )
+    .orderBy(desc(accessEmailOutbox.id))
+    .limit(1);
+  if (!latest?.sentAt && !latest?.discardedAt && latest?.payload.tokenCipher) {
+    const [usable] = await tx
+      .select({ id: passwordTokens.id })
+      .from(passwordTokens)
+      .where(
+        and(
+          eq(
+            passwordTokens.tokenHash,
+            digest(decrypt(latest.payload.tokenCipher)),
+          ),
+          eq(passwordTokens.userId, userId),
+          eq(passwordTokens.email, recipient),
+          eq(passwordTokens.purpose, "setup"),
+          isNull(passwordTokens.consumedAt),
+          gt(passwordTokens.expiresAt, sql`CURRENT_TIMESTAMP`),
+        ),
+      );
+    if (usable) return; // Keep the queued link and the worker's backoff/lease.
+  }
+  const [budget] = await tx
+    .select({ used: count() })
+    .from(accessEmailOutbox)
+    .where(
+      and(
+        eq(accessEmailOutbox.userId, userId),
+        eq(accessEmailOutbox.email, recipient),
+        eq(accessEmailOutbox.kind, "password-setup"),
+        gte(
+          accessEmailOutbox.createdAt,
+          sql`DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)`,
+        ),
+      ),
+    );
+  if (budget.used >= 3) return;
+  // No invalidation: any already emailed, unexpired setup remains usable.
+  await queueAccessEmail(
+    tx,
+    userId,
+    recipient,
+    "password-setup",
+    `setup-retry:${randomUUID()}`,
+  );
 }
 export async function requestPasswordEmail(
   database: MySql2Database,
@@ -117,6 +188,10 @@ export async function requestPasswordEmail(
       .for("update");
     if (!user || user.blockedAt || (!user.passwordHash && user.role !== "user"))
       return;
+    if (!user.passwordHash) {
+      await queuePasswordSetupRetry(tx, user.id, user.email!);
+      return;
+    }
     await tx
       .update(passwordTokens)
       .set({ consumedAt: new Date() })
@@ -130,7 +205,7 @@ export async function requestPasswordEmail(
       tx,
       user.id,
       user.email!,
-      user.passwordHash ? "password-reset" : "password-setup",
+      "password-reset",
       `password:${randomUUID()}`,
     );
   });
@@ -228,14 +303,12 @@ export async function resendClubAccess(
       `resend:${randomUUID()}`,
       payment.orderId,
     );
-    await tx
-      .insert(adminAuditLog)
-      .values({
-        actorUserId: actorId,
-        action: "resend_club_access",
-        targetType: "user",
-        targetId: userId,
-      });
+    await tx.insert(adminAuditLog).values({
+      actorUserId: actorId,
+      action: "resend_club_access",
+      targetType: "user",
+      targetId: userId,
+    });
     return true;
   });
 }
