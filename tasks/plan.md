@@ -1436,3 +1436,55 @@ each pass 33 HTTP/JWT/MySQL cases (20 article cases including compiled ESM, 13
 comment/delete cases including rollback and concurrency). Types and backend build
 pass. Review found no changed schema, permission, return value or storage effect.
 Commit this extraction separately; article atomicity is not implemented yet.
+
+Behavior checkpoint: the new real HTTP/JWT/MySQL suite failed nine assertions
+before implementation (two unchanged deletion characterizations passed). Observed
+persisted orphan article, changed article fields/visibility despite teaser failure,
+deleted teaser despite final article failure, partially visible create/edit, and
+absence of article row waiting during competing publication/deletion. Triggers
+use only owned fixture predicates; assertions/timeouts were not relaxed.
+
+article-writes.ts now owns one transaction per create/edit/delete and shares the
+canonical deletion cascade. Existing rows are locked by article PK before any
+snapshot/teaser lookup. The plain source lookup avoids locking an unindexed scan
+of all posts; same-article API writers wait for the previous owner. No generic
+post-source ownership guarantee or cleanup of existing source duplicates is made.
+Storage normalization, first-match teaser behavior, club target, return shapes,
+missing-ID/nonempty update and empty-patch error remain unchanged. The service no
+longer runs a second independently committed teaser operation. Focused run: 44
+pass (11 new consistency cases, 20 native admin/compiled ESM, 13 cascade cases).
+Full regression started at this checkpoint; no push/merge or staging deployment.
+
+Review hygiene: getPostBySource has no remaining callers; postComments,
+commentLikes and commentReports imports in db.ts became unused after extraction.
+The user explicitly chose to leave them for now. No unrelated cleanup is included.
+
+Five-axis review: the failure/gate tests check committed raw SQL, not mocks; the
+first article lock precedes all consistent reads; helpers contain no nested commit
+or external effects. Canonical cascade, input schemas and fresh-session admin guard
+remain unchanged. Storage filtering and teaser fields match the old helpers; no
+new date/richText reset or announcement was introduced. Feature SQL now belongs
+to content/article-writes.ts instead of expanding db.ts; no new dependency or
+cycle. Queries remain parameterized. Article lock uses its PK; the existing
+unindexed source scan remains a performance limit, not a new global locking scan.
+Read consistency across separate requests, historical duplicates, generic-post
+source ownership, creation idempotency and file deletion remain explicit limits.
+
+Final regression checkpoint: 1043 pass / 4 skip across 91 files (90 passing, one
+external-S3 suite skipped; two S3 and two native Docker backup/restore cases not
+run). No failure, automatic retry, relaxed assertion or changed timeout. Includes
+the final explicit-field article insertion and native compiled ESM regressions.
+Types, lint, backend build, unchanged strict 72-procedure/25461-byte API,
+436-file dependency boundaries, 44-doc links and changed-module/test formatting
+pass. Local Docker remains unavailable; this remote internal-only fixture is not
+a rehearsal of production migrations or native Docker backup/restore. HTTPS on
+the unchanged test stand returns 200.
+
+Cleanup completed after exact ownership label/mount/network-peer/path checks:
+only the two disposable containers, their synthetic SQL volume, isolated network
+and private generated local/remote artifacts were removed. Fixtures are
+reproducible from tests; no production data was removed. All four staging
+containers remain healthy, API/web at 12cfc8d; other host applications retain
+their original uptime. No frontend files/types, schema/journal, dependency,
+provider, push/merge or deployed application changes. Remaining M05 administrative
+service wiring is next; broader release blockers are still open.

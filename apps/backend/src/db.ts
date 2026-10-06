@@ -8,6 +8,13 @@ import { confirmPostPublication, type PostPublication } from "./content/publicat
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
 import { deletePost as persistPostDeletion } from "./content/post-deletion";
 import {
+  createArticle as persistArticleCreation,
+  updateArticle as persistArticleUpdate,
+  deleteArticle as persistArticleDeletion,
+  type CreateArticleInput,
+  type UpdateArticleInput,
+} from "./content/article-writes";
+import {
   createPostWithVideos as persistNewPost,
   createPostOnce as persistPostOnce,
 } from "./content/post-creator";
@@ -206,7 +213,7 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
 
 // ── Feed queries ──
 
-import { posts, tags, likes, savedPosts, videos, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, articles, Article, ArticleBlock } from "../../../packages/database/src/schema";
+import { posts, tags, likes, savedPosts, videos, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, articles, Article } from "../../../packages/database/src/schema";
 import { normalizeArticleBlocks } from "../../../packages/shared/src/article-blocks";
 import { desc, asc, and, sql, or, ne, gte, lte, isNotNull, isNull } from "drizzle-orm";
 
@@ -568,35 +575,6 @@ export async function getPostBySource(source: string): Promise<Post | undefined>
   if (!db) return undefined;
   const result = await db.select().from(posts).where(eq(posts.source, source)).limit(1);
   return result[0];
-}
-
-export async function upsertArticleTeaser(article: {
-  id: number;
-  title: string;
-  coverUrl?: string | null;
-  access: "public" | "club";
-  published: boolean;
-}): Promise<void> {
-  const source = `article:${article.id}`;
-  const existing = await getPostBySource(source);
-  if (!article.published) {
-    if (existing) await deletePost(existing.id);
-    return;
-  }
-  const payload = {
-    text: article.title,
-    photos: article.coverUrl ? [article.coverUrl] : [],
-    tags: ["exclusive"],
-    source,
-    target: "club" as const,
-    published: true,
-    status: "published" as const,
-  };
-  if (existing) {
-    await updatePost(existing.id, payload);
-    return;
-  }
-  await createPost(payload);
 }
 
 // ── Push Tokens ──
@@ -1457,15 +1435,6 @@ export async function userOwnsShopProduct(userId: number, productId: string): Pr
 }
 
 
-function asArticleSections(value: unknown): ArticleBlock[] {
-  return normalizeArticleBlocks(value).filter((block) => {
-    if (block.type === "photo" || block.type === "png") return Boolean(block.url);
-    if (block.type === "link") return Boolean(block.url);
-    if (block.type === "carousel") return Boolean(block.urls?.length);
-    return Boolean(block.text?.trim());
-  });
-}
-
 export async function listPublishedArticles(): Promise<Article[]> {
   const db = await getDb();
   if (!db) return [];
@@ -1493,46 +1462,20 @@ export async function getArticleById(id: number): Promise<Article | undefined> {
   return { ...row, sections: normalizeArticleBlocks(row.sections) };
 }
 
-export async function createArticle(data: {
-  title: string;
-  coverUrl?: string | null;
-  access: "public" | "club";
-  published: boolean;
-  sortOrder?: number;
-  sections: ArticleBlock[];
-}): Promise<number> {
+export async function createArticle(data: CreateArticleInput): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(articles).values({
-    title: data.title,
-    coverUrl: data.coverUrl ?? null,
-    access: data.access,
-    published: data.published,
-    sortOrder: data.sortOrder ?? 0,
-    sections: asArticleSections(data.sections),
-  });
-  return Number(result[0].insertId);
+  return persistArticleCreation(db, data);
 }
 
-export async function updateArticle(id: number, data: Partial<{
-  title: string;
-  coverUrl: string | null;
-  access: "public" | "club";
-  published: boolean;
-  sortOrder: number;
-  sections: ArticleBlock[];
-}>): Promise<void> {
+export async function updateArticle(id: number, data: UpdateArticleInput): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const patch: Record<string, unknown> = { ...data };
-  if (data.sections) patch.sections = asArticleSections(data.sections);
-  await db.update(articles).set(patch).where(eq(articles.id, id));
+  await persistArticleUpdate(db, id, data);
 }
 
 export async function deleteArticle(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const teaser = await getPostBySource(`article:${id}`);
-  if (teaser) await deletePost(teaser.id);
-  await db.delete(articles).where(eq(articles.id, id));
+  await persistArticleDeletion(db, id);
 }

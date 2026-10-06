@@ -642,16 +642,23 @@
     Owned temporary containers/SQL volume/network/artifacts removed after exact
     ownership checks; staging and other shared-server applications remain healthy.
     No frontend/schema/dependency/provider or staging-deployment change.
-  - [ ] Article write consistency: specify atomic article/teaser create/edit/delete
-    and concurrent publication behavior. Current helpers write separately; do not
-    confuse the service-wiring slice with this repair or silently change teaser
-    visibility, missing-ID/empty-patch behavior or production schema/history.
+  - [x] Article write consistency: atomic article/teaser create/edit/delete
+    and concurrent publication behavior. Keep teaser visibility, missing-ID/empty-
+    patch semantics and production schema/history unchanged.
     - [x] Extract and verify reusable in-transaction post deletion cascade.
       Before/after: 33 real HTTP/JWT/MySQL tests pass, including compiled ESM
       and deletion rollback/concurrency. Types and backend build pass.
-    - [ ] Reproduce partial writes/visibility with real SQL failures and gates;
+    - [x] Reproduce partial writes/visibility with real SQL failures and gates;
       implement atomic article mutations and serialize same-article writers.
-    - [ ] Full/static/compiled verification, review and exact fixture cleanup.
+      Nine behavioral failures reproduced before repair; 11 new cases pass after
+      repair, focused HTTP/JWT/MySQL + cascade + compiled ESM run: 44 pass.
+    - [x] Full/static/compiled verification, review and exact fixture cleanup.
+      Full 1043 pass / 4 skip (external S3 and native Docker backup/restore not
+      run); types/lint/build/API/436-file boundaries/44-doc check pass. Owned
+      containers, synthetic SQL volume, network and temporary artifacts removed.
+      Staging remains healthy at 12cfc8d; no frontend/schema/provider/push/deploy.
+      Historical duplicates, generic post-source ownership, article creation
+      idempotency and teaser visibility/update policy remain separate tasks.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
