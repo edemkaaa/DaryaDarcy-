@@ -184,7 +184,8 @@ export function buildCheckoutUrl(input: {
   };
   const subId = subscriptionId();
   // Monthly club checkout must include subscription id so Prodamus creates autopayments.
-  // Price comes from products[].price (CLUB_PRICE); semiannual is a one-off, no subscription.
+  // Prodamus ignores products for subscriptions: the cabinet price must match CLUB_PRICE.
+  // Semiannual is a one-off payment priced by products[].price.
   if (subId && !semiannual) {
     payload.subscription = subId;
   }
@@ -196,8 +197,8 @@ export function buildCheckoutUrl(input: {
       type: "service",
     },
   ];
-  // Prefer SBP in the payform when the method is enabled in the Prodamus cabinet.
-  payload.payment_method = "sbp";
+  // SBP is Russian-only; let the foreign-card plan offer the merchant's available methods.
+  if (!semiannual) payload.payment_method = "SBP";
   return signedPayUrl(getPayformUrl(), payload);
 }
 

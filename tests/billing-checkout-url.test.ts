@@ -21,6 +21,17 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("checkout links stay on the configured application", () => {
+  it("uses Prodamus's documented SBP identifier for the monthly subscription", () => {
+    const params = new URL(buildCheckoutUrl(input)).searchParams;
+    expect(params.get("payment_method")).toBe("SBP");
+    expect(params.get("subscription")).toBe("12345");
+  });
+  it("does not force Russian SBP on the foreign-card one-off plan", () => {
+    const params = new URL(buildCheckoutUrl({ ...input, orderId: "club6m-7-fixture", plan: "semiannual" })).searchParams;
+    expect(params.has("payment_method")).toBe(false);
+    expect(params.has("subscription")).toBe(false);
+    expect(params.get("products[0][price]")).toBe("4740");
+  });
   it.each(["monthly", "semiannual"] as const)(
     "keeps every %s callback on staging rather than production or the auth host",
     (plan) => {
