@@ -59,10 +59,18 @@ export class PostSaveCoordinator {
   private uploaded = new Map<PostAttachment, UploadedAttachment>();
   private uncertain = false;
   private completed = false;
+  private postWritePending = false;
   private original?: Payload;
   constructor(editingId: number | null = null, original?: Payload) {
     this.savedId = editingId;
     this.original = original ? structuredClone(original) : undefined;
+  }
+  assertCanClose(): void {
+    if (this.postWritePending)
+      throw new PostSaveError(
+        "Сохранение ещё выполняется или его результат не подтверждён. Проверьте публикацию в отдельной вкладке. Черновик остаётся в редакторе; закрытие сейчас может привести к повторному созданию.",
+        true,
+      );
   }
   async save(
     payload: Payload,
@@ -124,6 +132,7 @@ export class PostSaveCoordinator {
       };
       operation.assertCurrent();
       writing = true;
+      this.postWritePending = true;
       if (this.savedId === null) {
         const id = await api.create(savePayload, operation.signal);
         if (typeof id !== "number" || !Number.isSafeInteger(id) || id <= 0)
@@ -154,11 +163,14 @@ export class PostSaveCoordinator {
       // A confirmed commit is terminal, even if closing/refreshing the UI is cancelled.
       // Reusing this coordinator must never insert its new attachments a second time.
       this.completed = true;
+      this.postWritePending = false;
       writing = false;
       operation.assertCurrent();
       return this.savedId;
     } catch (error) {
       const status = getHttpStatus(error);
+      if (status && status >= 400 && status < 500)
+        this.postWritePending = false;
       this.uncertain =
         this.uncertain || (writing && (!status || status >= 500));
       const message = this.completed

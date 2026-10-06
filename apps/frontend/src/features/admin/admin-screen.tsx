@@ -48,6 +48,8 @@ import {
 } from "@/domain/session/use-session-operation";
 import { PostSaveCoordinator } from "@/domain/post/save-post";
 import { usePostAttachments } from "./use-post-attachments";
+import { usePostUploadSelection } from "./use-post-upload-selection";
+import { PostUploadStatus } from "./post-upload-status";
 import {
   PostAttachmentsField,
   PostAttachmentsList,
@@ -84,6 +86,7 @@ export default function AdminScreen() {
   const uploading = operation.kind === "photos";
   const saving = operation.kind === "save";
   const saveCoordinator = useRef(new PostSaveCoordinator());
+  const uploadSelection = usePostUploadSelection();
   const [showPreview, setShowPreview] = useState(false);
   const [richText, setRichText] = useState<RichTextBlock[] | undefined>();
   const [richTextSeed, setRichTextSeed] = useState<
@@ -184,6 +187,7 @@ export default function AdminScreen() {
     });
   const resetForm = () => {
     operation.cancel();
+    uploadSelection.reset();
     saveCoordinator.current = new PostSaveCoordinator();
     setForm(EMPTY_FORM);
     attachments.reset();
@@ -196,6 +200,7 @@ export default function AdminScreen() {
   };
   const handleCreate = () => {
     operation.cancel();
+    uploadSelection.reset();
     saveCoordinator.current = new PostSaveCoordinator();
     setEditingId(null);
     setForm(EMPTY_FORM);
@@ -207,6 +212,7 @@ export default function AdminScreen() {
   };
   const handleEdit = (post: AdminPost) => {
     operation.cancel();
+    uploadSelection.reset();
     attachments.reset(post.media);
     setEditingId(post.id);
     setRichTextSeed(post.richText ?? null);
@@ -293,6 +299,7 @@ export default function AdminScreen() {
     const task = operation.begin("save");
     if (!task) return;
     try {
+      uploadSelection.assertReady();
       const payload = serializePostDraft({
         ...form,
         richText:
@@ -359,13 +366,17 @@ export default function AdminScreen() {
   const pickVideo = async () => {
     const task = operation.begin("video");
     if (!task) return;
+    let selected: number | undefined;
     try {
+      uploadSelection.assertReady();
       const files = await pickWebFiles("video/*", false, {
         signal: task.signal,
         maxBytes: MAX_VIDEO_BYTES,
       });
       if (!files.length) return;
       task.assertCurrent();
+      [selected] = uploadSelection.select(files);
+      uploadSelection.sending(selected);
       const file = files[0];
       const url = await uploadAdminVideoBlob(
         file,
@@ -373,12 +384,14 @@ export default function AdminScreen() {
         task.signal,
       );
       task.assertCurrent();
+      uploadSelection.confirmed(selected);
       // Keep the confirmed video even if preparing its optional cover fails.
       addVideoUrl(url);
       const posterUrl = await uploadVideoPoster(url, file, task);
       task.assertCurrent();
       if (posterUrl) addVideoUrl(url, posterUrl);
     } catch (error) {
+      if (task.isCurrent()) uploadSelection.failed(selected, error);
       checkOperationAccessError(error);
       if (task.isCurrent())
         notifyAdminError(
@@ -399,23 +412,31 @@ export default function AdminScreen() {
     const task = operation.begin("photos");
     if (!task) return;
     let uploaded = 0;
+    let selected: number | undefined;
     try {
+      uploadSelection.assertReady();
       const files = await pickWebFiles("image/*,.heic,.heif", true, {
         signal: task.signal,
       });
-      for (const file of files) {
+      task.assertCurrent();
+      const selections = uploadSelection.select(files);
+      for (const [index, file] of files.entries()) {
+        selected = selections[index];
         const payload = await fileToUpload(file, { signal: task.signal });
         task.assertCurrent();
+        uploadSelection.sending(selected);
         const url = requireUploadedUrl(
           await utils.client.admin.uploadPhoto.mutate(payload, {
             signal: task.signal,
           }),
         );
         task.assertCurrent();
+        uploadSelection.confirmed(selected);
         setForm((prev) => ({ ...prev, photos: [...prev.photos, url] }));
         uploaded++;
       }
     } catch (error) {
+      if (task.isCurrent()) uploadSelection.failed(selected, error);
       checkOperationAccessError(error);
       if (task.isCurrent())
         notifyAdminError(
@@ -606,12 +627,19 @@ export default function AdminScreen() {
     </div>
   );
   const closeForm = () => {
+    try {
+      saveCoordinator.current.assertCanClose();
+    } catch (error) {
+      notifyAdminError((error as Error).message);
+      return;
+    }
     if (
       (form.text.trim() ||
         form.photos.length ||
         form.videos.length ||
         attachments.attachments.length ||
         attachments.removedIds.length ||
+        uploadSelection.pending.length ||
         operation.busy) &&
       !window.confirm(
         "Закрыть редактор? Несохранённые изменения будут потеряны.",
@@ -673,6 +701,7 @@ export default function AdminScreen() {
           </div>
 
           {/* Preview/Edit toggle */}
+          <PostUploadStatus selection={uploadSelection} busy={operation.busy} />
           <div
             className={["ui-stack ", classes.previewToggleRow]
               .filter(Boolean)

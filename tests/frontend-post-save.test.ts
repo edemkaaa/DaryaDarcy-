@@ -125,6 +125,33 @@ it("does not repeat a create after the server response was lost", async () => {
     "не подтверждён",
   );
   expect(api.create).toHaveBeenCalledTimes(1);
+  expect(() => coordinator.assertCanClose()).toThrow("не подтверждён");
+});
+it("blocks abandonment only during the final write, then releases after confirmation", async () => {
+  const coordinator = new PostSaveCoordinator();
+  let release!: (id: number) => void;
+  api.create.mockImplementation(
+    () =>
+      new Promise<number>((resolve) => {
+        release = resolve;
+      }),
+  );
+  expect(() => coordinator.assertCanClose()).not.toThrow();
+  const saving = coordinator.save(payload, [], [], api, scope());
+  expect(() => coordinator.assertCanClose()).toThrow(
+    "Сохранение ещё выполняется",
+  );
+  release(42);
+  await expect(saving).resolves.toBe(42);
+  expect(() => coordinator.assertCanClose()).not.toThrow();
+});
+it("a definite 404 rejection allows closing without pretending the post was saved", async () => {
+  const coordinator = new PostSaveCoordinator(42);
+  api.update.mockRejectedValue(new ApiError("Публикация не найдена", 404));
+  await expect(
+    coordinator.save(payload, [], [], api, scope()),
+  ).rejects.toMatchObject({ uncertain: false });
+  expect(() => coordinator.assertCanClose()).not.toThrow();
 });
 it("does not repeat an unconfirmed attachment upload", async () => {
   const coordinator = new PostSaveCoordinator();

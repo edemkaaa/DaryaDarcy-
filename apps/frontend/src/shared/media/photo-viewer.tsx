@@ -72,14 +72,6 @@ function PhotoViewerInner({
     setCurrentIndex(preservedIndex);
     const offset = preservedIndex * screenWidth;
     scrollRef.current?.scrollTo({ left: offset, top: 0, behavior: "instant" });
-    const timer = setTimeout(() => {
-      scrollRef.current?.scrollTo({
-        left: offset,
-        top: 0,
-        behavior: "instant",
-      });
-    }, 0);
-    return () => clearTimeout(timer);
   }, [screenWidth, photos.length]);
   const panGesture = Gesture.Pan()
     .activeOffsetY(28)

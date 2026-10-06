@@ -149,7 +149,7 @@ test("an unconfirmed save is never automatically repeated", async ({
   expect(messages.join(" ")).not.toContain("PRIVATE_INTERNAL_DETAILS");
 });
 
-test("closing and reopening an editor ignores a late save response", async ({
+test("a pending final write cannot be abandoned; confirmed completion allows a fresh editor", async ({
   page,
 }) => {
   let release!: () => void;
@@ -157,8 +157,10 @@ test("closing and reopening an editor ignores a late save response", async ({
     release = resolve;
   });
   let started = false;
+  let calls = 0;
   await editorApi(page, async (name) => {
     if (name === "admin.createPost") {
+      calls++;
       started = true;
       await held;
       return ok(42);
@@ -175,10 +177,17 @@ test("closing and reopening an editor ignores a late save response", async ({
   await page
     .getByRole("button", { name: "Закрыть редактор", exact: true })
     .click();
+  await expect(
+    page.getByPlaceholder("Текст поста… Enter — новый абзац"),
+  ).toHaveValue("OLD_TEXT");
+  expect(calls).toBe(1);
+  release();
+  await expect(
+    page.getByPlaceholder("Текст поста… Enter — новый абзац"),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: /Новый$/ }).click();
   const field = page.getByPlaceholder("Текст поста… Enter — новый абзац");
   await field.fill("NEW_TEXT");
-  release();
   await expect(field).toHaveValue("NEW_TEXT");
   await expect(
     page.getByRole("button", { name: "Сохранить", exact: true }),

@@ -769,3 +769,21 @@
   URL-derived filename is only a compatibility label, MIME/size/duration stay
   null. No client metadata guessing or server fetch of arbitrary URLs. B2 is not
   fully accepted until this and real SQL verification are completed.
+
+## Frontend compatibility and test rollout — 2026-10-07
+
+- [x] B2 native SQL acceptance: all 10 cases pass on an owned disposable MySQL.
+  Content/Nest read suites and creation idempotency: 87 cases pass; publication
+  and B7: 52 cases pass. Existing
+  earlier native-SQL skips above are historical; metadata registry remains open.
+- [x] Retain pending photo/video selections after failed/unknown upload in both
+  editors; prevent partial saves and blind reselection until explicit discard.
+  Prevent closing a pending/unknown final post write from resetting its guard.
+  Six new regressions fail before repair and pass after; 38 upload/editor browser
+  cases pass. Reload-safe intent/idempotency recovery (full F5.1) remains open.
+- [x] Final gates: 701 non-MySQL cases pass / 4 skips; verify 241 pass;
+  complete browser run 232 pass / 3 real-development-API skips; native SQL 149
+  pass. Types, lint, both builds, unchanged API, boundaries and docs pass.
+  Local generated Next cache removed after screenshot ENOSPC; full rerun passes.
+- [ ] Update isolated test images, preserving the existing database, SMTP proxy
+  and payment prohibition; verify health/HTTPS and record actual release.

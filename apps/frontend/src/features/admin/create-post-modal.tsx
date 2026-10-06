@@ -19,6 +19,8 @@ import { MAX_VIDEO_BYTES } from "@/shared/browser/file-operations";
 import { requireUploadedUrl } from "@/shared/media/upload-result";
 import { PostSaveCoordinator } from "@/domain/post/save-post";
 import { usePostAttachments } from "./use-post-attachments";
+import { usePostUploadSelection } from "./use-post-upload-selection";
+import { PostUploadStatus } from "./post-upload-status";
 import { PostAttachmentsField } from "./post-attachments-field";
 import { uploadAdminVideoBlob } from "@/features/admin/media/video-upload";
 import { fileToUpload, pickWebFiles } from "@/shared/media/image-upload";
@@ -105,6 +107,8 @@ export function CreatePostModal({
   const saveCoordinator = useRef(
     new PostSaveCoordinator(editingPost?.id ?? null),
   );
+  const uploadSelection = usePostUploadSelection();
+  const resetUploads = uploadSelection.reset;
   const seeded = useRef<string | null>(null);
   useEffect(() => {
     if (!visible) {
@@ -115,6 +119,7 @@ export function CreatePostModal({
     if (seeded.current === seedKey) return;
     seeded.current = seedKey;
     cancelOperation();
+    resetUploads();
     setText(editingPost?.text || "");
     setPhotos(editingPost?.photos || []);
     setTags(editingPost?.tags || []);
@@ -156,9 +161,17 @@ export function CreatePostModal({
     setRichText(editingPost?.richText ?? undefined);
     setVideos(initialVideos);
     resetAttachments(editingPost?.media);
-  }, [visible, editingPost, defaultTarget, cancelOperation, resetAttachments]);
+  }, [
+    visible,
+    editingPost,
+    defaultTarget,
+    cancelOperation,
+    resetAttachments,
+    resetUploads,
+  ]);
   const closeEditor = () => {
     operation.cancel();
+    resetUploads();
     setText("");
     setPhotos([]);
     setTags([]);
@@ -173,6 +186,12 @@ export function CreatePostModal({
     onClose();
   };
   const handleClose = () => {
+    try {
+      saveCoordinator.current.assertCanClose();
+    } catch (error) {
+      notifyError((error as Error).message);
+      return;
+    }
     const changed =
       text !== (editingPost?.text ?? "") ||
       JSON.stringify(photos) !== JSON.stringify(editingPost?.photos ?? []) ||
@@ -190,7 +209,7 @@ export function CreatePostModal({
       status !== (editingPost?.status ?? "published") ||
       target !== (editingPost?.target ?? defaultTarget);
     if (
-      (changed || operation.busy) &&
+      (changed || operation.busy || uploadSelection.pending.length) &&
       !window.confirm(
         "Закрыть редактор? Несохранённые изменения будут потеряны.",
       )
@@ -205,21 +224,27 @@ export function CreatePostModal({
   const pickVideo = async () => {
     const task = operation.begin("video");
     if (!task) return;
+    let selected: number | undefined;
     try {
+      uploadSelection.assertReady();
       const files = await pickWebFiles("video/*", false, {
         signal: task.signal,
         maxBytes: MAX_VIDEO_BYTES,
       });
       if (!files.length) return;
       task.assertCurrent();
+      [selected] = uploadSelection.select(files);
+      uploadSelection.sending(selected);
       const url = await uploadAdminVideoBlob(
         files[0],
         files[0].name || "video.mp4",
         task.signal,
       );
       task.assertCurrent();
+      uploadSelection.confirmed(selected);
       addVideoUrl(url);
     } catch (error) {
+      if (task.isCurrent()) uploadSelection.failed(selected, error);
       checkOperationAccessError(error);
       if (task.isCurrent())
         notifyError(
@@ -233,25 +258,32 @@ export function CreatePostModal({
     const task = operation.begin("photos");
     if (!task) return;
     const previous = photos[index];
+    let selected: number | undefined;
     try {
+      uploadSelection.assertReady();
       const files = await pickWebFiles("image/*", false, {
         signal: task.signal,
       });
       if (!files.length) return;
+      task.assertCurrent();
+      [selected] = uploadSelection.select(files);
       const payload = await fileToUpload(files[0], { signal: task.signal });
       task.assertCurrent();
+      uploadSelection.sending(selected);
       const url = requireUploadedUrl(
         await utils.client.admin.uploadPhoto.mutate(payload, {
           signal: task.signal,
         }),
       );
       task.assertCurrent();
+      uploadSelection.confirmed(selected);
       setPhotos((prev) =>
         prev.map((photo, i) =>
           i === index && photo === previous ? url : photo,
         ),
       );
     } catch (error) {
+      if (task.isCurrent()) uploadSelection.failed(selected, error);
       checkOperationAccessError(error);
       if (task.isCurrent())
         notifyError(
@@ -285,6 +317,7 @@ export function CreatePostModal({
     const task = operation.begin("save");
     if (!task) return;
     try {
+      uploadSelection.assertReady();
       const payload = serializePostDraft({
         text,
         photos,
@@ -340,23 +373,31 @@ export function CreatePostModal({
     const task = operation.begin("photos");
     if (!task) return;
     let uploaded = 0;
+    let selected: number | undefined;
     try {
+      uploadSelection.assertReady();
       const files = await pickWebFiles("image/*,.heic,.heif", true, {
         signal: task.signal,
       });
-      for (const file of files) {
+      task.assertCurrent();
+      const selections = uploadSelection.select(files);
+      for (const [index, file] of files.entries()) {
+        selected = selections[index];
         const payload = await fileToUpload(file, { signal: task.signal });
         task.assertCurrent();
+        uploadSelection.sending(selected);
         const url = requireUploadedUrl(
           await utils.client.admin.uploadPhoto.mutate(payload, {
             signal: task.signal,
           }),
         );
         task.assertCurrent();
+        uploadSelection.confirmed(selected);
         setPhotos((prev) => [...prev, url]);
         uploaded++;
       }
     } catch (error) {
+      if (task.isCurrent()) uploadSelection.failed(selected, error);
       checkOperationAccessError(error);
       if (task.isCurrent())
         notifyError(
@@ -410,6 +451,7 @@ export function CreatePostModal({
         className={["ui-stack ", classes.container].filter(Boolean).join(" ")}
       >
         {/* Header */}
+        <PostUploadStatus selection={uploadSelection} busy={operation.busy} />
         <div
           className={["ui-stack ", classes.header].filter(Boolean).join(" ")}
         >
