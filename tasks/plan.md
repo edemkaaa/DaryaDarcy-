@@ -1566,3 +1566,46 @@ staging containers remain healthy, API/web image stays at 12cfc8d, HTTPS returns
 200; other applications retain their original uptime. Backend-only repair is
 ready locally. No push/merge/deployment or real mailbox delivery performed;
 test SMTP credentials/provider/network/rollout remain the explicit next checkpoint.
+
+## 2026-10-07 — F5.1 create-intent key wiring (increment only)
+
+Existing `admin.createPost` accepts an actor-scoped idempotency key; both editors
+share `PostSaveCoordinator` but currently omit it. Connect that existing contract
+without changing the API, authentication, uploads, update payload or storage.
+
+1. RED: test UUID per independent creation, key retention for identical payload
+   after a definite rejection, rotation for changed content/attachments, no key
+   on updates, no browser-crypto access during construction, fail before dispatch
+   when secure UUID support is unavailable, and no concurrent final create.
+2. GREEN: generate the key lazily after all uploads are confirmed; retain its
+   serialized final-payload identity in memory. A changed payload after a definite
+   rejection starts a new intent. Never replay an unknown upload/update/create;
+   the existing unknown-result and terminal-success guards remain in place.
+3. Verify affected tests, types, lint, API/boundaries/docs and backend build;
+   review the diff and record evidence. A fresh frontend production build/browser
+   run requires enough local disk (currently <300 MiB free); do not delete user
+   files or claim stale-build browser results as verification of this change.
+
+Acceptance: actual create transport receives UUID, retries of identical confirmed
+data keep it, edits and separate intents never inherit it. No persistent draft,
+reload recovery or automatic replay is implemented by this slice: full F5.1
+remains open. No push or rollout in this increment.
+
+Verified: ten new coordinator cases (seven initial RED failures, then a separate
+RED late-upload-after-confirmed-create case); 82 affected save cases pass.
+Complete non-MySQL run: 711 pass / 4 skip. Curated verify: 251 pass. Fresh Next
+production build: 28 routes, local disk-cache disabled only temporarily through
+webpack; config restored with zero diff. Focused browser: 34 pass; full browser:
+236 pass / 3 real-development-API skips, using fixtures rather than a real SQL API.
+Types, lint, backend build, unchanged 72-procedure API, 456-file boundaries,
+47-document links and formatting pass. Existing staging's eight read-only HTTPS
+checks pass; no provider calls, migrations, writes, rollout or Git push.
+
+Five-axis review: key created only at the final create boundary, before marking a
+write dispatched; same-payload identity retained by value, not a mutable array
+reference. The final guard rechecks completed/unknown/pending after asynchronous
+uploads. Creation keys never leak into partial update payloads. Browser crypto
+is lazy (no render/SSR access), no fallback to weak randomness. No dependency or
+authentication change, browser persistence, telemetry of content or new storage
+category. UUID plus payload comparison is the first F5.1 increment, not reload
+recovery; the existing unknown-result prohibition is intentionally retained.

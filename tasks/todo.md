@@ -790,3 +790,18 @@
   API/web 5c4a9cc deployed, five containers healthy, eight HTTPS checks pass;
   public feed visible. Database counts unchanged; protected backup recorded in
   operations guide. No remote Git push or staging-branch merge in this rollout.
+
+### 2026-10-07 — F5.1, подключение ключа create без постоянного черновика
+
+- [x] Воспроизвести отсутствующий ключ, отсутствие защиты конкурирующего
+      финального запроса и поздний upload после подтверждённого create.
+- [x] Оба редактора отправляют UUID через общий coordinator; одинаковый повтор
+      после явного отказа сохраняет ключ, изменённые данные получают новый.
+- [x] Update не получает ключ; неизвестная запись не повторяется; отсутствие
+      безопасного UUID не отправляет create и не блокирует закрытие.
+- [x] 711 проверок без MySQL / 4 пропуска; verify 251; 34 выбранные и полный
+      браузерный прогон 236 / 3 real-development-API пропуска на свежей сборке;
+      типы, lint, API, границы, ссылки и обе сборки проходят. SQL не запускался.
+- [ ] Полный F5.1: постоянное намерение того же пользователя, payload после reload
+      и осознанное восстановление неизвестного create. Текущий ключ только в RAM.
+- [ ] Push и новый rollout. Сервер пока остаётся на предыдущем 5c4a9cc.

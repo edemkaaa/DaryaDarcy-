@@ -14,6 +14,7 @@ type SavePayload = Payload & {
   attachments?: UploadedAttachment[];
   removedMediaIds?: number[];
 };
+type CreatePayload = SavePayload & { idempotencyKey: string };
 type UpdatePayload = Partial<SavePayload>;
 export type PostAttachment = {
   type: "audio" | "document";
@@ -24,7 +25,7 @@ export type PostAttachment = {
   url?: string;
 };
 export type PostSaveApi = {
-  create: (payload: SavePayload, signal: AbortSignal) => Promise<unknown>;
+  create: (payload: CreatePayload, signal: AbortSignal) => Promise<unknown>;
   update: (
     id: number,
     payload: UpdatePayload,
@@ -60,6 +61,7 @@ export class PostSaveCoordinator {
   private uncertain = false;
   private completed = false;
   private postWritePending = false;
+  private creationIntent?: { key: string; payloadJson: string };
   private original?: Payload;
   constructor(editingId: number | null = null, original?: Payload) {
     this.savedId = editingId;
@@ -79,16 +81,7 @@ export class PostSaveCoordinator {
     api: PostSaveApi,
     operation: ScopedOperation,
   ): Promise<number> {
-    if (this.completed)
-      throw new PostSaveError(
-        "Публикация уже сохранена. Обновите список перед новой правкой.",
-        false,
-      );
-    if (this.uncertain)
-      throw new PostSaveError(
-        "Результат предыдущего сохранения не подтверждён. Проверьте публикацию в списке перед новой попыткой.",
-        true,
-      );
+    this.assertCanSave();
     for (const attachment of attachments)
       if (attachment.file) validateFileSize(attachment.file);
     operation.assertCurrent();
@@ -131,10 +124,12 @@ export class PostSaveCoordinator {
           : {}),
       };
       operation.assertCurrent();
-      writing = true;
-      this.postWritePending = true;
+      this.assertCanSave();
       if (this.savedId === null) {
-        const id = await api.create(savePayload, operation.signal);
+        const createPayload = this.withCreationKey(savePayload);
+        writing = true;
+        this.postWritePending = true;
+        const id = await api.create(createPayload, operation.signal);
         if (typeof id !== "number" || !Number.isSafeInteger(id) || id <= 0)
           throw new Error("Сервер не подтвердил номер публикации");
         this.savedId = id;
@@ -156,6 +151,8 @@ export class PostSaveCoordinator {
         if (uploads.length) changes.attachments = uploads;
         if (removedIds.length)
           changes.removedMediaIds = [...new Set(removedIds)];
+        writing = true;
+        this.postWritePending = true;
         this.assertUpdate(
           await api.update(this.savedId, changes, operation.signal),
         );
@@ -182,6 +179,35 @@ export class PostSaveCoordinator {
             : "Не удалось сохранить публикацию";
       throw new PostSaveError(message, this.uncertain, error);
     }
+  }
+  private assertCanSave(): void {
+    if (this.completed)
+      throw new PostSaveError(
+        "Публикация уже сохранена. Обновите список перед новой правкой.",
+        false,
+      );
+    if (this.uncertain)
+      throw new PostSaveError(
+        "Результат предыдущего сохранения не подтверждён. Проверьте публикацию в списке перед новой попыткой.",
+        true,
+      );
+    this.assertCanClose();
+  }
+  private withCreationKey(payload: SavePayload): CreatePayload {
+    // Only definite rejections permit another save. Changed confirmed data is a
+    // new intent; an identical retry keeps the key and must not conflict on SQL.
+    const payloadJson = JSON.stringify(payload);
+    if (this.creationIntent?.payloadJson !== payloadJson) {
+      if (typeof globalThis.crypto?.randomUUID !== "function")
+        throw new Error(
+          "Для безопасного сохранения откройте сайт через HTTPS в актуальном браузере.",
+        );
+      this.creationIntent = {
+        key: globalThis.crypto.randomUUID(),
+        payloadJson,
+      };
+    }
+    return { ...payload, idempotencyKey: this.creationIntent.key };
   }
   private assertUpdate(result: unknown) {
     if (
