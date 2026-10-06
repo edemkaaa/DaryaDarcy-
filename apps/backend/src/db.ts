@@ -6,6 +6,7 @@ import { settleClubOrder } from "./billing/settlement";
 import { grantClubAccess } from "./billing/grants";
 import { confirmPostPublication, type PostPublication } from "./content/publication";
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
+import { deletePost as persistPostDeletion } from "./content/post-deletion";
 import {
   createPostWithVideos as persistNewPost,
   createPostOnce as persistPostOnce,
@@ -536,22 +537,7 @@ export async function savePostEdit(
 export async function deletePost(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-
-  await db.transaction(async tx => {
-    await tx.select({ id: posts.id }).from(posts).where(eq(posts.id, id)).for("update");
-    const comments = await tx.select({ id: postComments.id }).from(postComments).where(eq(postComments.postId, id)).orderBy(asc(postComments.id)).for("update");
-    const commentIds = comments.map(comment => comment.id);
-    if (commentIds.length) {
-      await tx.update(postComments).set({ parentId: null }).where(inArray(postComments.parentId, commentIds));
-      await tx.delete(commentLikes).where(inArray(commentLikes.commentId, commentIds));
-      await tx.delete(commentReports).where(inArray(commentReports.commentId, commentIds));
-    }
-    await tx.delete(likes).where(eq(likes.postId, id));
-    await tx.delete(savedPosts).where(eq(savedPosts.postId, id));
-    await tx.delete(postMedia).where(eq(postMedia.postId, id));
-    await tx.delete(postComments).where(eq(postComments.postId, id));
-    await tx.delete(posts).where(eq(posts.id, id));
-  });
+  await persistPostDeletion(db, id);
 }
 
 // Get all posts for admin (including unpublished)

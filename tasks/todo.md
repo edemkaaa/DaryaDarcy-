@@ -646,6 +646,12 @@
     and concurrent publication behavior. Current helpers write separately; do not
     confuse the service-wiring slice with this repair or silently change teaser
     visibility, missing-ID/empty-patch behavior or production schema/history.
+    - [x] Extract and verify reusable in-transaction post deletion cascade.
+      Before/after: 33 real HTTP/JWT/MySQL tests pass, including compiled ESM
+      and deletion rollback/concurrency. Types and backend build pass.
+    - [ ] Reproduce partial writes/visibility with real SQL failures and gates;
+      implement atomic article mutations and serialize same-article writers.
+    - [ ] Full/static/compiled verification, review and exact fixture cleanup.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.

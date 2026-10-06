@@ -1393,3 +1393,46 @@ matched before removal. Both disposable containers, their synthetic SQL volume,
 internal network and private generated local/remote artifacts were removed. The
 four staging containers remain healthy at the previous version; other shared-host
 applications retain their original uptime. No production data was removed.
+
+## Article/teaser write consistency — 2026-10-06
+
+Continue the pending M05 article consistency item on fix/article-write-consistency.
+Trust boundary stays adminProcedure → injected write service → canonical DB helper.
+Assets: article visibility/content and teaser discussion/reactions. Current service
+create/update and DB delete commit those assets separately; an SQL failure can
+leave only half of an admin operation. No frontend/types, provider, auth-policy,
+production schema/history, push/merge or deployed-application changes.
+
+1. Prepare owned disposable SQL/Node fixtures, with performance_schema ON,
+   NODE_ENV=test, frozen test tools, no outside egress/HTTP port. Keep the test
+   host's other applications untouched and resource limits at the previous bounds.
+2. Prerequisite slice: extract the existing post deletion cascade into a domain
+   helper that accepts the caller's transaction. Preserve standalone deletePost's
+   lock order and transaction; verify existing real HTTP/SQL/cascade regression
+   tests, review and commit this extraction separately from the behavior fix.
+3. TDD fix: use real HTTP/JWT/MySQL with narrowly scoped SIGNAL/gate triggers to
+   reproduce partial create/edit/unpublish/delete and pre-commit visibility. Prove
+   concurrent edits/publications of one article wait for its row owner and leave
+   one matching teaser. Then make each article mutation one Drizzle transaction,
+   lock the existing article before teaser reads/writes, and reuse the canonical
+   post cascade without nested commits. Keep storage normalization/teaser fields,
+   target=club, missing-ID/nonempty update success and empty-patch failure intact.
+4. Verify focus/full regression, compiled ESM, unchanged strict API and static
+   gates. Record limits and remove only exact ownership-checked temporary resources.
+
+Acceptance: injected SQL failures leave the original article/teaser/related SQL
+rows unchanged; readers cannot observe an incomplete article/teaser write; two
+article-API writers serialize without a new duplicate or stale teaser. No schema
+index/legacy duplicate cleanup, generic post-source ownership policy, request
+idempotency or file deletion is added. Production DB reconciliation/rollout and
+the earlier intermittent concurrency investigation remain separate release gates.
+Skill supplementary definition-of-done/security reference files are absent; use
+the repository's existing verification and release gates, not an invented checklist.
+
+Prerequisite checkpoint: post-deletion.ts exposes the existing cascade to a caller
+transaction; standalone deletePost still opens exactly one transaction with the
+same post/comment lock order and SQL operations. The baseline and extracted runs
+each pass 33 HTTP/JWT/MySQL cases (20 article cases including compiled ESM, 13
+comment/delete cases including rollback and concurrency). Types and backend build
+pass. Review found no changed schema, permission, return value or storage effect.
+Commit this extraction separately; article atomicity is not implemented yet.
