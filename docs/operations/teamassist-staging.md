@@ -239,3 +239,101 @@ Docker; чужие контейнеры/тома и Docker data reset не ра�
   выше, метаданные новых видео, конкурирующие правки и воспроизведение каталога
   YouTube остаются отдельными задачами. Коммит не отправлялся в удалённый Git,
   ветка staging этим выпуском не менялась.
+
+## Изолированный видеосервис — 2026-10-07
+
+Блокер воспроизведения, описанный выше, устранён отдельным сервисом, а не
+открытием доступа основного API в интернет. Фронтенд не менялся.
+
+- Worker: `daryadarcy-video:2026-10-07-v1`, immutable image ID
+  `sha256:48ace7739325369fb93a874681d5b07ea4964d1c7680196e5b0467f5b9866b16`.
+  Официальный yt-dlp 2026.08.19 проверен по SHA-256, Node base закреплён digest,
+  FFmpeg 7:5.1.9-0+deb12u1 установлен из подписанного Debian-репозитория.
+- Обновлены только новый `video` и конфигурация `edge`. API/web остаются на
+  `5c4a9cc`; MySQL и SMTP-прокси не перезапускались. Все шесть контейнеров healthy.
+  Миграций, записей в SQL, отправки писем и вызовов платёжного провайдера не было.
+- Worker без npm-зависимостей, секретов, опубликованных портов и томов приложения.
+  Основная сеть API по-прежнему internal. Worker получает каталог через edge
+  в отдельной internal-сети `video-control`; только worker подключён к egress.
+  Разрешены только текущие опубликованные ID из каталога; каталог проверяется
+  повторно после подготовки. Неизвестные ID — 404, ошибка каталога — fail closed.
+- Ограничения: один процесс подготовки, 16 HTTP-запросов, 150 секунд подготовки,
+  170 секунд HTTP, 720p, до 45 минут и 112 МиБ готового файла. Готовый кеш до
+  128 МиБ/30 минут; общий cache tmpfs 384 МиБ включает промежуточные дорожки,
+  `/tmp` 96 МиБ, память 640 МиБ, 0.75 CPU, 128 PID. `/tmp` executable только для
+  распаковки standalone downloader, cache noexec. Снимок памяти idle: 129 МиБ.
+  Очистка/отмена, leases, лимиты, Range и повторная проверка публикации покрыты
+  37 native-тестами. Полный non-MySQL прогон: 716 pass / 4 skip; SQL не менялся.
+- Реальная подготовка первого ролика: 96 197 089 байт, H.264 + AAC, 1280×720,
+  926.383311 секунды. FFmpeg объединяет без перекодирования, ffprobe проверяет
+  обе дорожки. Отдельный полный preflight занял 21.473 секунды; первый холодный
+  HTTPS-запрос на стенде — 9.643 секунды. Это замеры, не обещание для других видео.
+- HTTPS: начальный и конечный byte range — 206, корректные Content-Range и MP4;
+  обложка — 200/image/jpeg; неизвестный ID — 404; launch-config — 200.
+  `/api/prodamus/test`, `/api/pay/test`, `/api/trpc/club.createCheckout` — 503.
+- Браузер: реальный ролик начал воспроизводиться; после перемотки на 463.19
+  секунды продолжил до 478.44 с readyState 4 и без ошибки. Проверочная вкладка
+  оставлена на паузе. Звуковая дорожка проверена ffprobe, физическое прослушивание
+  не выполнялось. Проверен один ролик, не все 60; доступность без VPN по всей РФ
+  не подтверждена. Первый запуск требует подготовки, кеш исчезает при рестарте;
+  это временный адаптер для тестового стенда, не CDN/постоянное хранилище.
+
+### Конфигурация и дальнейший запуск
+
+Исходная конфигурация сохранена без изменений. Добавлены `compose.video.yaml`,
+`edge.video.conf` и отдельный `video-image.env` (только тег образа). Защищённые
+конфиги/env имеют права 600, каталог проекта 700. **Несекретный** `edge.video.conf`
+должен иметь 644: nginx работает от UID 101. Синтаксис nginx проверен до замены
+edge. Исходники worker сохранены отдельно в серверном каталоге
+`/home/edem/apps/daryadarcy-staging/video-release-WfUbgw`, без env и ключей.
+
+Использовать оба env и все три Compose-файла: существующий override сохраняет
+настройки SMTP. Для обновления исключительно видеосервиса/edge:
+
+```sh
+cd /home/edem/apps/daryadarcy-staging
+docker compose --env-file .env --env-file video-image.env \
+  -f compose.yaml -f compose.override.yaml -f compose.video.yaml \
+  up -d --no-deps --wait --wait-timeout 45 video
+# Проверить nginx-конфигурацию перед переключением маршрутов.
+docker compose --env-file .env --env-file video-image.env \
+  -f compose.yaml -f compose.override.yaml -f compose.video.yaml \
+  up -d --no-deps --wait --wait-timeout 45 edge
+# Обновить DNS upstream даже если существующий edge не был пересоздан.
+docker compose --env-file .env --env-file video-image.env \
+  -f compose.yaml -f compose.override.yaml -f compose.video.yaml \
+  exec -T edge nginx -s reload
+```
+
+### Откат только видео
+
+Закрытые копии `.env`, `compose.yaml`, `compose.override.yaml`, `edge.conf`:
+`/home/edem/apps/daryadarcy-staging/video-rollback-8RdlI0`, каталог 700, файлы 600.
+Для возврата прежних маршрутов использовать неизменённую базовую конфигурацию
+без video-overlay, не восстанавливая старые env целиком:
+
+```sh
+cd /home/edem/apps/daryadarcy-staging
+docker compose --env-file .env -f compose.yaml -f compose.override.yaml \
+  up -d --no-deps --wait --wait-timeout 45 edge
+docker compose --env-file .env -f compose.yaml -f compose.override.yaml \
+  exec -T edge nginx -s reload
+# После проверки edge можно остановить только worker; это удалит tmpfs-кеш.
+docker compose --env-file .env --env-file video-image.env \
+  -f compose.yaml -f compose.override.yaml -f compose.video.yaml stop video
+```
+
+API/web/SMTP/БД не откатывать ради видео. Не выполнять `down -v`, очистку таблиц
+или общий Docker prune. Образ и копии сохранены для восстановления; исходный
+приватный каталог диагностики downloader остаётся вне Git, не публиковать его
+метаданные с подписанными upstream-ссылками.
+
+Свежий npm audit workspace: **1 critical / 35 high / 36 moderate / 4 low**.
+Worker не устанавливает npm-пакеты, но это не снимает обязательства проверить
+зависимости API/web. Критичный
+[GHSA-jqcg-44mw-7w3h](https://github.com/advisories/GHSA-jqcg-44mw-7w3h)
+описывает неверно сокращённую IPv4-mapped IPv6 trust-сеть; текущий API использует
+`loopback`, а read-only проверка этой настройки отвергает публичные IPv4 и
+mapped IPv6. Это только оценка описанного сценария, не общая гарантия безопасности.
+Следующая проверка advisories — до 2026-10-08. Production не разрешён. Этот выпуск
+не включает предыдущий локальный F5.1 increment, Git push или merge в staging.

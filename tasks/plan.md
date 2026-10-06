@@ -1609,3 +1609,88 @@ is lazy (no render/SSR access), no fallback to weak randomness. No dependency or
 authentication change, browser persistence, telemetry of content or new storage
 category. UUID plus payload comparison is the first F5.1 increment, not reload
 recovery; the existing unknown-result prohibition is intentionally retained.
+
+## 2026-10-07 — isolated public-video playback (approved scope)
+
+User approved investigating and setting up a separate internet-enabled video
+service; the main API must remain isolated. The current `/api/yt/:id` returns
+502 because its configured yt-dlp executable is absent. Installing that binary
+inside the isolated API alone cannot restore external playback.
+
+Preflight on the staging host, without changing application containers:
+official yt-dlp 2026.08.19 Linux executable verified against SHA-256
+`58162f9bfdc27458ea47bfcb311cf47028f17d8154a8bf7d689861d46399230a`;
+ran in a disposable, secretless, read-only container with CPU/memory/PID limits.
+The first catalog video yielded separate H.264 video and AAC audio, not a combined
+MP4. Bounded media reads confirmed HTTP 206 and MP4 signatures for video format
+136 and audio formats 139 and 140-drc. Format 140 first timed out, then returned 503. Metadata extraction and 1 KiB reads do not establish complete downloads,
+browser playback or reliable delivery across all 60 videos.
+
+Proposed single capability: serve the existing public video player through a
+separate non-root worker; combine video/audio without transcoding and keep only
+an ephemeral, bounded cache (proposed hard filesystem limit: 384 MiB). This adds
+first-load preparation latency. User approved this proposal on 2026-10-07;
+implementation follows the three increments below. No worker deployment or
+playback repair had been performed at the approval checkpoint.
+
+Success criteria and boundaries:
+
+- Existing `/api/yt/:id` supports GET/HEAD, byte ranges, actual playback with
+  sound and seeking in a browser. Serve the existing local thumbnail route too.
+- Check current publication through the existing anonymous `videos.list` API
+  before external work or cached reads; fail closed if catalog reads fail.
+  No arbitrary URL input or private/absent catalog video downloads.
+- No DB credentials, SMTP keys, account cookies or application volumes in the
+  worker; no access to the main isolated network. Reach the catalog through a
+  dedicated internal edge/worker network; only the worker gets video egress.
+- Bound downloads, preparation time, concurrency, memory and cache storage;
+  discard failed/partial output. Do not expose signed upstream URLs in logs.
+- Preserve API/web images, database, SMTP setup and payment prohibition. Rollout
+  changes only the optional worker and edge, with protected rollback copies.
+
+Approved increments:
+
+1. Secretless worker and behavioral tests: deny unpublished/unknown IDs and
+   unavailable catalogs; serve a prepared MP4 including ranges and HEAD; test
+   failure cleanup, concurrent preparation and resource limits. Native Node
+   tests, no new npm dependency, loopback fixtures rather than YouTube in CI.
+2. Pinned downloader/runtime plus FFmpeg image and optional Compose/edge routing;
+   validate non-root/read-only operation, topology and isolated API boundaries.
+3. Back up edge/config, deploy only the accepted worker and edge, verify public
+   HTTPS media data plus browser sound/playback/seek and unchanged payment blocks.
+   Record actual results, limitations and rollback; do not infer success from
+   metadata extraction or synthetic tests.
+
+Delivery evidence: implemented the optional worker with no npm dependencies,
+37 behavioral native tests and boundary rules rejecting API/database imports.
+Full non-MySQL suite: 716 pass / 4 skip. Types, lint, backend build and unchanged
+72-procedure API pass. The actual pinned Linux image passed native tests and
+prepared the first public video through yt-dlp, FFmpeg streamcopy and ffprobe:
+96,197,089 bytes, H.264 + AAC, duration 926.383311 seconds. Initial full
+preparation took 21.473 seconds; the deployed cold request took 9.643 seconds.
+These are observations, not a latency guarantee.
+
+Deployed only worker `daryadarcy-video:2026-10-07-v1` and the optional edge routes;
+API/web remain `5c4a9cc`, database and SMTP containers retain their uptime.
+Actual HTTPS range requests return 206, thumbnail returns 200, unknown IDs 404,
+payment routes 503. Browser playback advanced normally, then resumed after a
+seek to 463.19 seconds and reached 478.44 seconds with readyState 4 and no error;
+the verification tab was paused afterwards. Audio tracks were checked by ffprobe,
+not physically listened to. All 60 videos and nationwide/VPN-free delivery were
+not verified. Rollback and immutable image identity are in the operations guide.
+No frontend change, SQL write/migration, remote Git push or staging-branch merge.
+
+Five-axis review: publication is checked before fetching and after preparation;
+only fixed provider URLs are accepted, and fail-closed catalog errors prevent
+cached disclosure. Leases protect active files from eviction, abort/deadline
+cleanup kills the process group, and resource limits are enforced inside a
+non-root, secretless container. Public HTTP errors omit upstream stderr/URLs.
+No new storage category or dependency in the application runtime. This remains
+a bounded test adapter, not durable video hosting or a production CDN.
+
+Fresh dependency audit: 1 critical / 35 high / 36 moderate / 4 low in the existing
+workspace. The new worker does not install these npm packages. Current API
+trust-proxy is `loopback`, not the incorrectly shortened IPv4-mapped IPv6 subnet
+described in GHSA-jqcg-44mw-7w3h; a read-only compile check rejected public IPv4
+and its mapped IPv6 form. This is scoped triage, not blanket clearance of the
+existing dependencies. Follow up by 2026-10-08; production remains unapproved.
