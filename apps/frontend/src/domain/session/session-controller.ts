@@ -1,5 +1,9 @@
 import * as Api from "@/shared/api/auth";
-import { ApiError, getRequestErrorMessage } from "@/shared/api/errors";
+import {
+  ApiError,
+  getRequestErrorMessage,
+  isTemporaryRequestError,
+} from "@/shared/api/errors";
 
 export type SessionStatus =
   | "checking"
@@ -12,6 +16,7 @@ export type SessionState = {
   status: SessionStatus;
   user: Api.AuthUser | null;
   error: Error | null;
+  refreshError: Error | null;
   scope: number;
 };
 type Dependencies = {
@@ -28,6 +33,7 @@ export class SessionController {
     status: "checking",
     user: null,
     error: null,
+    refreshError: null,
     scope: 0,
   };
   private listeners = new Set<() => void>();
@@ -75,6 +81,7 @@ export class SessionController {
       user,
       status,
       error,
+      refreshError: null,
       scope: this.state.scope + (changed ? 1 : 0),
     });
   }
@@ -85,10 +92,12 @@ export class SessionController {
     )
       return;
     if (!force && (this.authenticating || this.refreshing)) return;
+    const background =
+      this.state.status === "guest" || this.state.status === "authenticated";
     const task = this.begin();
     this.refreshing = true;
     if (force) this.authenticating = false;
-    if (!this.state.user)
+    if (!background)
       this.publish({ ...this.state, status: "checking", error: null });
     try {
       const user = await this.dependencies.getMe(task.signal);
@@ -98,6 +107,11 @@ export class SessionController {
       if (task.version !== this.operation) return;
       if (error instanceof ApiError && [401, 403].includes(error.status))
         this.commit(null, "guest");
+      else if (background && isTemporaryRequestError(error))
+        this.publish({
+          ...this.state,
+          refreshError: new Error(getRequestErrorMessage(error)),
+        });
       else this.commit(null, "error", new Error(getRequestErrorMessage(error)));
     } finally {
       if (task.version === this.operation) {
@@ -165,7 +179,13 @@ export class SessionController {
     )
       return;
     this.begin();
-    this.publish({ ...this.state, status: "guest", user: null, error: null });
+    this.publish({
+      ...this.state,
+      status: "guest",
+      user: null,
+      error: null,
+      refreshError: null,
+    });
   };
   logout = async (): Promise<void> => {
     if (this.state.status === "logging-out") return;
@@ -180,6 +200,7 @@ export class SessionController {
       user: null,
       status: "logging-out",
       error: null,
+      refreshError: null,
       scope: this.state.scope + 1,
     });
     this.dependencies.broadcast();

@@ -1,18 +1,18 @@
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 export const PAPER_TEXTURE_URI =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/d0db18ed8f2e-MasrlKbgCBdeyOhE.jpg";
+  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg";
 export const SEASONAL_TARTANS = {
   autumn:
-    "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/ff49f6ba1a27-NdnEHWCbQbNuKmyB.JPG",
+    "/assets/responsive/ff49f6ba1a27-NdnEHWCbQbNuKmyB.w1199.6b6d4fd137d2ac51.jpg",
   winter:
-    "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/ea0b60bea0fe-EhNRvSBlhxWjRXfT.JPG",
+    "/assets/responsive/ea0b60bea0fe-EhNRvSBlhxWjRXfT.w1200.f59445d07c02988e.jpg",
 };
 export const SEASONAL_BANNERS = {
   autumn:
-    "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/e8e5386d449f-xGuqHGnxPOYPLwJz.webp",
+    "/assets/responsive/e8e5386d449f-xGuqHGnxPOYPLwJz.w900.c32035de391abc36.webp",
   winter:
-    "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/ea0b60bea0fe-EhNRvSBlhxWjRXfT.JPG",
+    "/assets/responsive/ea0b60bea0fe-EhNRvSBlhxWjRXfT.w1200.f59445d07c02988e.jpg",
 };
 export const BROWN = "#5C4033";
 export const BROWN_MUTED = "#8B7355";
@@ -31,33 +31,33 @@ export const CLUB_TABS: ClubTabItem[] = [
     id: "podborki",
     label: "Подборки",
     stickerUri:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/8cd6e38feb2b-GEblEVfYOlTMcdZL.webp",
+      "/assets/responsive/8cd6e38feb2b-GEblEVfYOlTMcdZL.w640.eeeac2bcbdaf78b8.webp",
   },
   {
     id: "community",
     label: "Комьюнити",
     stickerUri:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/1fbdc4edd1f6-WglvBAnfwHsodSFE.webp",
+      "/assets/responsive/1fbdc4edd1f6-WglvBAnfwHsodSFE.w864.266828b41b91d03d.webp",
   },
   {
     id: "exclusive",
     label: "Эксклюзив",
     stickerUri:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/4754542d454e-ioZaSTACsHELFmfu.PNG",
+      "/assets/responsive/4754542d454e-ioZaSTACsHELFmfu.w599.9390ce6b2a0a9ec6.webp",
   },
   {
     id: "life",
     label: "Лайф",
     stickerUri:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/011254ea51fb-iXlFvAzqcTIXBklq.png",
+      "/assets/responsive/011254ea51fb-iXlFvAzqcTIXBklq.w299.6730d3cb4a533066.webp",
   },
 ];
 export const STICKER_LIKE =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/049e3831441b-iirWKYJcvPUnEdXs.webp";
+  "/assets/responsive/049e3831441b-iirWKYJcvPUnEdXs.w900.edd13b8369b9091a.webp";
 export const STICKER_SAVE =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/8b44a02c41d1-avIlcuIRwQPHiWEZ.webp";
+  "/assets/responsive/8b44a02c41d1-avIlcuIRwQPHiWEZ.w564.4d4e95a1307037cb.webp";
 export const MAILBOX_URI =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/ce515dd1f602-yLEBPmBjoZXimIfm.webp";
+  "/assets/responsive/ce515dd1f602-yLEBPmBjoZXimIfm.w900.3839453db773a65e.webp";
 // First-stage release shows a placeholder; reopening also requires the API capability.
 export const PEN_PALS_ENABLED = false;
 export interface ClubPost {

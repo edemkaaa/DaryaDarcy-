@@ -325,7 +325,7 @@ export function ArticlesAdmin() {
           {previewing ? (
             <Background
               source={{
-                uri: "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/d0db18ed8f2e-MasrlKbgCBdeyOhE.jpg",
+                uri: "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
               }}
               className={classes.previewPaper}
               imageClassName={classes.backgroundimage}
@@ -622,7 +622,7 @@ export function ArticlesAdmin() {
                               ? "Заменить"
                               : block.type === "png"
                                 ? "Выбрать PNG без фона"
-                                : "Выбрать фото или GIF"}
+                                : "Выбрать фото"}
                         </Typography>
                       </Action>
                       {block.url ? (

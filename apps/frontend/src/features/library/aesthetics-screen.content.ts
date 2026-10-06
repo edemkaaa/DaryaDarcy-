@@ -2,7 +2,7 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { type AestheticKey } from "@/domain/quiz/quiz-data";
 export const PAPER_TEXTURE_URI =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/d0db18ed8f2e-MasrlKbgCBdeyOhE.jpg";
+  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg";
 
 export const BROWN = "#5C4033";
 export const BROWN_MUTED = "#8B7355";
@@ -102,7 +102,7 @@ export const OUTFITS: Record<AestheticKey, { uri: string }[]> = {
   castlecore: [
     { uri: "/assets/results/castlecore/outfits/outfit1.webp" },
     { uri: "/assets/results/castlecore/outfits/outfit2.webp" },
-    { uri: "/assets/results/castlecore/outfits/outfit3.png" },
+    { uri: "/assets/results/castlecore/outfits/outfit3.lossless.webp" },
     { uri: "/assets/results/castlecore/outfits/outfit4.webp" },
     { uri: "/assets/results/castlecore/outfits/outfit5.webp" },
   ],

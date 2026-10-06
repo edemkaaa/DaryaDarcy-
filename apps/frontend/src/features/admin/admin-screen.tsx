@@ -55,7 +55,7 @@ import {
 import { requireUploadedUrl } from "@/shared/media/upload-result";
 import { MAX_VIDEO_BYTES } from "@/shared/browser/file-operations";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
-import { serializePostDraft } from "@/domain/post/draft";
+import { serializePostDraft, postDraftSnapshot } from "@/domain/post/draft";
 import {
   CREAM_BG,
   BROWN_DARK,
@@ -207,12 +207,11 @@ export default function AdminScreen() {
   };
   const handleEdit = (post: AdminPost) => {
     operation.cancel();
-    saveCoordinator.current = new PostSaveCoordinator(post.id);
     attachments.reset(post.media);
     setEditingId(post.id);
     setRichTextSeed(post.richText ?? null);
     setRichText(post.richText ?? undefined);
-    setForm({
+    const initialForm: PostFormData = {
       text: post.text,
       photos: post.photos as string[],
       videos: Array.isArray(post.media)
@@ -235,7 +234,12 @@ export default function AdminScreen() {
       sortOrder: post.sortOrder,
       target:
         post.target === "club" || post.target === "both" ? post.target : "feed",
-    });
+    };
+    saveCoordinator.current = new PostSaveCoordinator(
+      post.id,
+      postDraftSnapshot({ ...initialForm, richText: post.richText }),
+    );
+    setForm(initialForm);
     setShowForm(true);
   };
   const handleDelete = (id: number) => {

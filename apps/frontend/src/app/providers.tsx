@@ -15,6 +15,7 @@ import { ThemeProvider } from "@/shared/styles/theme-provider";
 import { InstallGuide } from "@/features/pwa/install-guide";
 import { WebPostAlerts } from "@/features/pwa/web-post-alerts";
 import { ViewportSync } from "@/shared/browser/viewport";
+import { BackgroundCheckNotice } from "@/domain/session/background-check-notice";
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -48,6 +49,7 @@ export default function Providers({ children }: { children: ReactNode }) {
               {children}
               <InstallGuide />
               <WebPostAlerts />
+              <BackgroundCheckNotice />
             </ClubProvider>
           </AuthProvider>
         </QueryClientProvider>

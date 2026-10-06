@@ -122,12 +122,12 @@ test("the full editor restores existing attachments without reuploading or remov
       name: "admin.updatePost",
       input: expect.objectContaining({
         id: 1,
-        published: true,
-        status: "published",
-        videos: ["https://example.test/existing.mp4"],
       }),
     },
   ]);
+  expect(writes[0].input).not.toHaveProperty("videos");
+  expect(writes[0].input).not.toHaveProperty("sortOrder");
+  expect(writes[0].input).not.toHaveProperty("published");
   expect(writes[0].input).not.toHaveProperty("attachments");
   expect(writes[0].input).not.toHaveProperty("removedMediaIds");
 });
@@ -185,8 +185,6 @@ test("removing and adding attachments commits once and the reopened editor reads
   expect(writes[1].input).toMatchObject({
     id: 1,
     text: "UPDATED_WITH_DOCUMENT",
-    published: true,
-    status: "published",
     removedMediaIds: [7],
     attachments: [
       {
@@ -328,7 +326,6 @@ test("partial upload failure retains files and reuses the confirmed upload on ex
       name: "admin.updatePost",
       input: expect.objectContaining({
         text: "TEXT_SURVIVES_RETRY",
-        published: true,
         attachments: expect.any(Array),
       }),
     },
@@ -655,4 +652,139 @@ for (const mode of ["full", "quick"] as const) {
     expect(saves).toBe(0);
     await expect(form).toBeVisible();
   });
+}
+
+for (const mode of ["full", "quick"] as const) {
+  for (const removeVideo of [false, true]) {
+    test(`${mode} edit ${removeVideo ? "explicitly removes the last video" : "preserves videos and order during a text edit"}`, async ({
+      page,
+    }) => {
+      const current = { ...post(), sortOrder: 25 };
+      const writes: Write[] = [];
+      await api(page, (name, input) => {
+        if (name === "admin.posts") return ok([current]);
+        if (name === "feed.listPaginated")
+          return ok({ posts: [current], nextCursor: null });
+        if (name === "admin.uploadMedia" || name === "admin.updatePost")
+          writes.push({ name, input });
+      });
+      await page.route("https://example.test/**", (route) => route.abort());
+      const form = await open(page, mode, true);
+      await expect(
+        form.getByText("existing.mp3", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        form.getByText("existing.pdf", { exact: true }),
+      ).toBeVisible();
+      if (removeVideo)
+        await form
+          .getByRole("button", { name: "Удалить видео 1", exact: true })
+          .click();
+      await form
+        .getByPlaceholder("Текст поста… Enter — новый абзац")
+        .fill("TEXT_ONLY_EDIT");
+      await form
+        .getByRole("button", { name: "Сохранить", exact: true })
+        .click();
+      await expect(form).toHaveCount(0);
+      expect(writes).toHaveLength(1);
+      expect(writes[0].name).toBe("admin.updatePost");
+      expect(writes[0].input).toMatchObject({ id: 1, text: "TEXT_ONLY_EDIT" });
+      for (const field of [
+        "sortOrder",
+        "published",
+        "status",
+        "publishedAt",
+        "scheduledAt",
+        "attachments",
+        "removedMediaIds",
+      ])
+        expect(writes[0].input).not.toHaveProperty(field);
+      if (removeVideo) expect(writes[0].input.videos).toEqual([]);
+      else expect(writes[0].input).not.toHaveProperty("videos");
+    });
+  }
+  test(`${mode} editor shows a friendly attachment label without deriving it from URL`, async ({
+    page,
+  }) => {
+    const current = {
+      ...post(),
+      media: post().media.map((item) => ({
+        ...item,
+        filename: null,
+        url: `https://example.test/${item.type}/97b2a854-6f40-414d-a7b4-67e233031ee4`,
+      })),
+    };
+    await api(page, (name) => {
+      if (name === "admin.posts") return ok([current]);
+      if (name === "feed.listPaginated")
+        return ok({ posts: [current], nextCursor: null });
+    });
+    await page.route("https://example.test/**", (route) => route.abort());
+    const form = await open(page, mode, true);
+    await expect(
+      form.getByRole("button", { name: "Удалить вложение Аудио", exact: true }),
+    ).toBeVisible();
+    await expect(
+      form.getByRole("button", {
+        name: "Удалить вложение Документ",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      form.getByText("97b2a854-6f40-414d-a7b4-67e233031ee4", { exact: true }),
+    ).toHaveCount(0);
+  });
+  for (const mime of ["", "application/octet-stream"]) {
+    test(`${mode} audio with ${mime || "empty"} MIME saves server-confirmed metadata`, async ({
+      page,
+    }) => {
+      const writes: Write[] = [];
+      await api(page, (name, input) => {
+        if (name === "admin.uploadMedia") {
+          writes.push({ name, input });
+          return ok({
+            url: "https://example.test/opaque",
+            mimeType: "audio/wav",
+            fileSize: 46,
+          });
+        }
+        if (name === "admin.createPost") writes.push({ name, input });
+      });
+      const form = await open(page, mode);
+      await page.evaluate(
+        (mime) =>
+          Object.defineProperty(File.prototype, "type", {
+            configurable: true,
+            get() {
+              return mime;
+            },
+          }),
+        mime,
+      );
+      await choose(page, form, "Аудио", "recording.wav", "audio/wav");
+      await expect(
+        form.getByText("recording.wav", { exact: true }),
+      ).toBeVisible();
+      const submit =
+        mode === "full"
+          ? form.getByRole("button", { name: "Сохранить", exact: true })
+          : form.getByLabel("Опубликовать", { exact: true });
+      await submit.click();
+      await expect(form).toHaveCount(0);
+      expect(writes.map((write) => write.name)).toEqual([
+        "admin.uploadMedia",
+        "admin.createPost",
+      ]);
+      expect(writes[1].input.attachments).toEqual([
+        {
+          type: "audio",
+          filename: "recording.wav",
+          url: "https://example.test/opaque",
+          mimeType: "audio/wav",
+          fileSize: 46,
+        },
+      ]);
+    });
+  }
 }

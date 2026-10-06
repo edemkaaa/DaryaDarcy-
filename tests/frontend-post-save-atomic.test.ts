@@ -37,6 +37,85 @@ const api = {
   })),
   remove: vi.fn(async (_id: number, _signal: AbortSignal) => undefined),
 };
+it("a text edit leaves videos, order, dates and publication status untouched", async () => {
+  const original = {
+    ...payload,
+    videos: ["https://example.test/kept.webm"],
+    sortOrder: 25,
+  };
+  const coordinator = new PostSaveCoordinator(42, original);
+  await coordinator.save({ ...original, text: "Edited" }, [], [], api, scope());
+  expect(api.update.mock.calls[0][1]).toEqual({
+    text: "Edited",
+    richText: null,
+  });
+});
+it("a formatting-only edit supplies the plain text required by backend normalization", async () => {
+  const richText = [
+    {
+      type: "paragraph" as const,
+      children: [{ text: payload.text, bold: true }],
+    },
+  ];
+  await new PostSaveCoordinator(42, payload).save(
+    { ...payload, richText },
+    [],
+    [],
+    api,
+    scope(),
+  );
+  expect(api.update.mock.calls[0][1]).toEqual({ text: payload.text, richText });
+});
+it.each([
+  { videos: [] },
+  {
+    videos: ["https://example.test/new.webm", "https://example.test/kept.webm"],
+  },
+])("an explicit video change sends its final list %j", async ({ videos }) => {
+  const original = { ...payload, videos: ["https://example.test/kept.webm"] };
+  await new PostSaveCoordinator(42, original).save(
+    { ...original, videos },
+    [],
+    [],
+    api,
+    scope(),
+  );
+  expect(api.update.mock.calls[0][1]).toEqual({ videos });
+});
+it("the original snapshot survives changes to editor arrays", async () => {
+  const original = { ...payload, videos: ["https://example.test/kept.webm"] };
+  const coordinator = new PostSaveCoordinator(42, original);
+  original.videos.length = 0;
+  await coordinator.save(original, [], [], api, scope());
+  expect(api.update.mock.calls[0][1]).toEqual({ videos: [] });
+});
+it("a partial attachment-only edit preserves canonical metadata without replacing other media", async () => {
+  const file = attachment();
+  api.upload.mockResolvedValueOnce({
+    url: "https://example.test/opaque",
+    mimeType: "audio/wav",
+    fileSize: 46,
+  });
+  await new PostSaveCoordinator(42, payload).save(
+    payload,
+    [file],
+    [7, 7],
+    api,
+    scope(),
+  );
+  expect(api.update.mock.calls[0][1]).toEqual({
+    removedMediaIds: [7],
+    attachments: [
+      {
+        type: "audio",
+        filename: "test.mp3",
+        url: "https://example.test/opaque",
+        mimeType: "audio/wav",
+        fileSize: 46,
+      },
+    ],
+  });
+});
 beforeEach(() => {
   vi.resetAllMocks();
   api.create.mockResolvedValue(42);

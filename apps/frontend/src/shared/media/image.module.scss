@@ -5,6 +5,20 @@
     overflow: hidden;
   }
 
+  .fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--brown-muted, #8b7867);
+    background-color: #ede6da;
+    pointer-events: none;
+  }
+
   .img {
     position: absolute;
     inset: 0;

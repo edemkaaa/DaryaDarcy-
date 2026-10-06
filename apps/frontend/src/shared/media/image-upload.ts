@@ -39,6 +39,34 @@ const imageTypes: Record<string, string> = {
   heif: "image/heif",
   bmp: "image/bmp",
 };
+export const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
+
+/** Reject animation before canvas can silently reduce it to a single frame. */
+async function assertStaticImage(blob: Blob, signal?: AbortSignal) {
+  const bytes = new Uint8Array(
+    await runFileTask(() => blob.arrayBuffer(), signal),
+  );
+  const tag = (offset: number, length = 4) =>
+    String.fromCharCode(...bytes.subarray(offset, offset + length));
+  const animated = () => {
+    throw new Error(
+      "Анимированные изображения не поддерживаются. Выберите обычное фото JPG, PNG или WebP.",
+    );
+  };
+  if (tag(0, 3) === "GIF" || imageType(blob) === "image/gif") animated();
+  const png = bytes[0] === 137 && tag(1, 3) === "PNG";
+  const webp = tag(0) === "RIFF" && tag(8) === "WEBP";
+  if (!png && !webp) return;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  for (let offset = png ? 8 : 12; offset + 8 <= bytes.length; ) {
+    const length = view.getUint32(png ? offset : offset + 4, webp);
+    const name = tag(png ? offset + 4 : offset);
+    if (name === "acTL" || name === "ANIM" || name === "ANMF") animated();
+    const next = offset + 8 + length + (png ? 4 : length % 2);
+    if (next > bytes.length) break;
+    offset = next;
+  }
+}
 function imageType(blob: Blob): string {
   const type = blob.type.toLowerCase();
   if (type && type !== "application/octet-stream") return type;
@@ -132,6 +160,7 @@ export async function compressImageBlob(
   maxEdge = 1920,
   quality = 0.82,
   signal?: AbortSignal,
+  outputType: "image/jpeg" | "image/webp" = "image/jpeg",
 ): Promise<Blob> {
   signal?.throwIfAborted();
   if (
@@ -170,7 +199,7 @@ export async function compressImageBlob(
               taskSignal.removeEventListener("abort", cancel);
               resolve(blob);
             },
-            "image/jpeg",
+            outputType,
             quality,
           );
         } catch (error) {
@@ -187,6 +216,39 @@ export async function compressImageBlob(
     }
   }, signal);
 }
+async function preparePhotoBlob(
+  raw: Blob,
+  opts?: { preserveAlpha?: boolean; signal?: AbortSignal },
+): Promise<Blob> {
+  validateFileSize(raw);
+  if (!Object.values(imageTypes).includes(imageType(raw)))
+    throw new Error(
+      "Неподдерживаемый формат фото. Выберите JPG, PNG, WebP, AVIF, HEIC или BMP.",
+    );
+  await assertStaticImage(raw, opts?.signal);
+  const outputType = opts?.preserveAlpha ? "image/webp" : "image/jpeg";
+  for (const maxEdge of [1920, 1440, 1080]) {
+    const blob = await compressImageBlob(
+      raw,
+      maxEdge,
+      0.82,
+      opts?.signal,
+      outputType,
+    );
+    opts?.signal?.throwIfAborted();
+    if (!["image/jpeg", "image/png", "image/webp"].includes(blob.type))
+      throw new Error(
+        "Не удалось подготовить фото. Попробуйте JPG, PNG или WebP.",
+      );
+    if (blob.size <= MAX_PHOTO_BYTES) {
+      validateFileSize(blob, MAX_PHOTO_BYTES);
+      return blob;
+    }
+  }
+  throw new Error(
+    "Подготовленное фото больше 4 МБ. Уменьшите изображение или выберите другое.",
+  );
+}
 export async function uriToBase64(
   uri: string,
   opts?: { preserveAlpha?: boolean; signal?: AbortSignal },
@@ -201,9 +263,7 @@ export async function uriToBase64(
       return blob;
     },
   );
-  const blob = opts?.preserveAlpha
-    ? raw
-    : await compressImageBlob(raw, 1920, 0.82, opts?.signal);
+  const blob = await preparePhotoBlob(raw, opts);
   return blobToBase64(blob, opts?.signal);
 }
 export async function fileToUpload(
@@ -211,23 +271,9 @@ export async function fileToUpload(
   opts?: { preserveAlpha?: boolean; signal?: AbortSignal },
 ): Promise<{ base64: string; filename: string; mimeType: string }> {
   opts?.signal?.throwIfAborted();
-  validateFileSize(file);
-  const originalType = imageType(file);
-  if (!Object.values(imageTypes).includes(originalType))
-    throw new Error(
-      "Неподдерживаемый формат фото. Выберите JPG, PNG, WebP, GIF, AVIF, HEIC или BMP.",
-    );
-  const keepOriginal =
-    originalType === "image/gif" ||
-    (opts?.preserveAlpha && ["image/png", "image/webp"].includes(originalType));
-  const blob = keepOriginal
-    ? file
-    : await compressImageBlob(file, 1920, 0.82, opts?.signal);
+  const blob = await preparePhotoBlob(file, opts);
   opts?.signal?.throwIfAborted();
-  const mimeType =
-    blob.type && blob.type !== "application/octet-stream"
-      ? blob.type
-      : originalType;
+  const mimeType = blob.type;
   const ext =
     Object.keys(imageTypes).find((key) => imageTypes[key] === mimeType) ??
     file.name.split(".").at(-1) ??

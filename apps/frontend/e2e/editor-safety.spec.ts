@@ -317,12 +317,12 @@ test("a rejected attachment upload cannot unpublish an existing post; retry save
   failUpload = false;
   await page.getByRole("button", { name: "Сохранить", exact: true }).click();
   await expect(field).toHaveCount(0);
+  expect(edits[0]).not.toHaveProperty("published");
+  expect(edits[0]).not.toHaveProperty("status");
   expect(edits).toEqual([
     expect.objectContaining({
       id: 1,
       text: "EDITED_PUBLISHED_POST",
-      status: "published",
-      published: true,
       attachments: [
         expect.objectContaining({ url: "https://example.test/audio.mp3" }),
       ],
@@ -710,6 +710,7 @@ test("a failed comment photo upload keeps the text and reports its error", async
             target: "club",
             tags: ["community"],
             createdAt: new Date().toISOString(),
+            publishedAt: new Date().toISOString(),
           }),
         ],
         nextCursor: null,
@@ -720,6 +721,7 @@ test("a failed comment photo upload keeps the text and reports its error", async
     }
   });
   await gotoWithSession(page, "/club");
+  await page.getByRole("button", { name: "Комьюнити", exact: true }).click();
   const field = page.getByPlaceholder("Написать комментарий...");
   await field.fill("UNSENT_COMMENT");
   const chooser = page.waitForEvent("filechooser");
@@ -727,9 +729,12 @@ test("a failed comment photo upload keeps the text and reports its error", async
   await (
     await chooser
   ).setFiles({
-    name: "test.gif",
-    mimeType: "image/gif",
-    buffer: Buffer.from("GIF89a_test_image"),
+    name: "test.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==",
+      "base64",
+    ),
   });
   await expect(
     page.getByRole("alert").filter({ hasText: "Тестовая ошибка сохранения" }),

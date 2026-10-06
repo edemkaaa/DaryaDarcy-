@@ -30,7 +30,7 @@ import {
   type RichTextFieldHandle,
 } from "@/features/admin/rich-text-field";
 import type { RichTextBlock } from "@/domain/content/types";
-import { serializePostDraft } from "@/domain/post/draft";
+import { serializePostDraft, postDraftSnapshot } from "@/domain/post/draft";
 import {
   CREAM_BG,
   BROWN_DARK,
@@ -115,7 +115,6 @@ export function CreatePostModal({
     if (seeded.current === seedKey) return;
     seeded.current = seedKey;
     cancelOperation();
-    saveCoordinator.current = new PostSaveCoordinator(editingPost?.id ?? null);
     setText(editingPost?.text || "");
     setPhotos(editingPost?.photos || []);
     setTags(editingPost?.tags || []);
@@ -129,15 +128,33 @@ export function CreatePostModal({
       : editingPost?.createdAt
         ? new Date(editingPost.createdAt)
         : new Date();
-    setPublishedAt(
-      Number.isNaN(initialDate.getTime()) ? new Date() : initialDate,
+    const date = Number.isNaN(initialDate.getTime()) ? new Date() : initialDate;
+    const initialVideos =
+      editingPost?.media?.filter((m) => m.type === "video").map((m) => m.url) ??
+      [];
+    saveCoordinator.current = new PostSaveCoordinator(
+      editingPost?.id ?? null,
+      editingPost
+        ? postDraftSnapshot({
+            text: editingPost.text,
+            photos: editingPost.photos,
+            videos: initialVideos,
+            tags: editingPost.tags,
+            status: editingPost.status,
+            target: editingPost.target,
+            scheduledAt: editingPost.scheduledAt
+              ? new Date(editingPost.scheduledAt)
+              : null,
+            publishedAt: date,
+            sortOrder: 0,
+            richText: editingPost.richText,
+          })
+        : undefined,
     );
+    setPublishedAt(date);
     setRichTextSeed(editingPost?.richText ?? null);
     setRichText(editingPost?.richText ?? undefined);
-    setVideos(
-      editingPost?.media?.filter((m) => m.type === "video").map((m) => m.url) ??
-        [],
-    );
+    setVideos(initialVideos);
     resetAttachments(editingPost?.media);
   }, [visible, editingPost, defaultTarget, cancelOperation, resetAttachments]);
   const closeEditor = () => {

@@ -13,7 +13,7 @@ test("home header follows scroll direction while content reaches the bottom", as
   page,
 }) => {
   await layoutApi(page);
-  await page.goto("/");
+  await gotoWithSession(page, "/");
   const header = page.locator(headerSelector);
   const scroll = page.locator(scrollSelector).first();
   await expect(header).toBeVisible();

@@ -10,7 +10,7 @@ import {
 } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import { trpc } from "@/shared/api/trpc";
-import { shouldRetryQuery } from "@/shared/api/errors";
+import { isTemporaryRequestError, shouldRetryQuery } from "@/shared/api/errors";
 export type SubscriptionStatus =
   | "guest"
   | "checking"
@@ -20,9 +20,10 @@ export type SubscriptionStatus =
 interface ClubContextType {
   status: SubscriptionStatus;
   error: unknown;
+  refreshError: unknown;
   isSubscribed: boolean;
   setIsSubscribed: (value: boolean) => void;
-  refreshSubscription: () => void;
+  refreshSubscription: () => Promise<void>;
   expiresAt: Date | null;
   cancelAtPeriodEnd: boolean;
   isOwner: boolean;
@@ -37,21 +38,27 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     retry: shouldRetryQuery,
   });
   const refetchSubscription = subscription.refetch;
-  const refreshSubscription = useCallback(() => {
-    if (user) void refetchSubscription();
+  const refreshSubscription = useCallback(async () => {
+    if (user) await refetchSubscription();
   }, [user, refetchSubscription]);
+  const hasConfirmedData =
+    typeof subscription.data?.subscribed === "boolean" &&
+    typeof subscription.data?.cancelAtPeriodEnd === "boolean";
+  const backgroundFailure =
+    hasConfirmedData &&
+    subscription.isError &&
+    isTemporaryRequestError(subscription.error);
   const status: SubscriptionStatus = !user
     ? "guest"
     : isOwner
       ? "active"
-      : subscription.isError
+      : subscription.isError && !backgroundFailure
         ? "error"
         : subscription.isPending
           ? "checking"
-          : typeof subscription.data?.subscribed !== "boolean" ||
-              typeof subscription.data?.cancelAtPeriodEnd !== "boolean"
+          : !hasConfirmedData
             ? "error"
-            : subscription.data.subscribed === true
+            : subscription.data?.subscribed === true
               ? "active"
               : "inactive";
   const wasActive = useRef(false);
@@ -69,6 +76,8 @@ export function ClubProvider({ children }: { children: ReactNode }) {
   const value: ClubContextType = {
     status,
     error: subscription.error,
+    refreshError:
+      user && !isOwner && backgroundFailure ? subscription.error : null,
     isSubscribed: status === "active",
     setIsSubscribed: refreshSubscription,
     refreshSubscription,

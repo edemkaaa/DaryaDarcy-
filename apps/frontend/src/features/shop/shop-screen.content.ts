@@ -3,23 +3,23 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 export { SHELF_PRODUCTS as PRODUCTS } from "@/domain/product/catalog";
 export type { ShelfProduct as Product } from "@/domain/product/catalog";
 export const PAPER_TEXTURE_URI =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/d0db18ed8f2e-MasrlKbgCBdeyOhE.jpg";
+  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg";
 export const SHOP_BROWN = "#5C4033";
 export const ASSETS = {
   // User's Photoshop shelf background (1021x3118)
   shelfBg:
-    "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/ed5c0d6e67b1-XTxEeqUQaizDpkGL.jpg",
+    "/assets/responsive/ed5c0d6e67b1-XTxEeqUQaizDpkGL.w1021.d60d451a3b4a004d.jpg",
   // Decorative Tudor house figurine (transparent bg)
   house:
-    "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/b010b81b5866-rvMvDhDknWfcKisy.webp",
+    "/assets/responsive/b010b81b5866-rvMvDhDknWfcKisy.w900.85be0a511d9e1c58.webp",
   // Metal label frame for shelf edge (wide version)
   labelFrame:
-    "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/cloudfront/afae02aa817a-shelf-label-frame-wide-iUo6pePUPBamyiM9D5NVtE.webp",
+    "/assets/responsive/afae02aa817a-shelf-label-frame-wide-iUo6pePUPBamyiM9D5NVtE.w1200.30582a18c6fb5bad.webp",
   // Price tags (user-provided with transparent bg)
   priceTag2000:
-    "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/e197a59fb5c3-qFGLTXCnSORlpLhB.webp",
+    "/assets/responsive/e197a59fb5c3-qFGLTXCnSORlpLhB.w900.a5486ca7e1360951.webp",
   priceTag1000:
-    "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/98ab8fafc475-UumiPOEfgzXJXOMx.webp",
+    "/assets/responsive/98ab8fafc475-UumiPOEfgzXJXOMx.w900.cfac9f24edadc576.webp",
 };
 
 export const BOOK_GAP = 8;

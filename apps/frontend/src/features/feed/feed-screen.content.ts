@@ -52,7 +52,7 @@ export const DEFAULT_TAGS: Tag[] = [
   ...FEED_TAGS,
 ];
 export const FEED_BANNER_URI =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/feed/banner-shelf-v2.jpg";
+  "/assets/responsive/banner-shelf-v2.w1024.e6fad4d6b7c29e48.jpg";
 
 export function getFeedScreenContent(viewport: ViewportSize) {
   const { width: SCREEN_WIDTH } = viewport;

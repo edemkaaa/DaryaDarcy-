@@ -2,7 +2,7 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { type AestheticKey } from "@/domain/quiz/quiz-data";
 export const PAPER_TEXTURE_URI =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/d0db18ed8f2e-MasrlKbgCBdeyOhE.jpg";
+  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg";
 
 export const BROWN = "#5C4033";
 export const BROWN_MUTED = "#8B7355";
@@ -61,7 +61,7 @@ export const DARKACADEMIA_OUTFITS = [
   { uri: "/assets/results/darkacademia/outfits/outfit10.webp" },
   { uri: "/assets/results/darkacademia/outfits/outfit11.webp" },
   { uri: "/assets/results/darkacademia/outfits/outfit12.webp" },
-  { uri: "/assets/results/darkacademia/outfits/outfit13.png" },
+  { uri: "/assets/results/darkacademia/outfits/outfit13.lossless.webp" },
 ];
 export const DARKACADEMIA_MOODBOARDS = [
   { uri: "/assets/results/darkacademia/moodboards/moodboard1.jpg" },
@@ -123,7 +123,7 @@ export const GOBLINCORE_INTERIORS = [
 export const CASTLECORE_OUTFITS = [
   { uri: "/assets/results/castlecore/outfits/outfit1.webp" },
   { uri: "/assets/results/castlecore/outfits/outfit2.webp" },
-  { uri: "/assets/results/castlecore/outfits/outfit3.png" },
+  { uri: "/assets/results/castlecore/outfits/outfit3.lossless.webp" },
   { uri: "/assets/results/castlecore/outfits/outfit4.webp" },
   { uri: "/assets/results/castlecore/outfits/outfit5.webp" },
   { uri: "/assets/results/castlecore/outfits/outfit6.webp" },
@@ -170,11 +170,11 @@ export const WITCHCORE_OUTFITS = [
   { uri: "/assets/results/witchcore/outfits/outfit7.webp" },
   { uri: "/assets/results/witchcore/outfits/outfit8.webp" },
   { uri: "/assets/results/witchcore/outfits/outfit9.webp" },
-  { uri: "/assets/results/witchcore/outfits/outfit10.png" },
+  { uri: "/assets/results/witchcore/outfits/outfit10.lossless.webp" },
   { uri: "/assets/results/witchcore/outfits/outfit11.webp" },
   { uri: "/assets/results/witchcore/outfits/outfit12.webp" },
   { uri: "/assets/results/witchcore/outfits/outfit13.webp" },
-  { uri: "/assets/results/witchcore/outfits/outfit14.png" },
+  { uri: "/assets/results/witchcore/outfits/outfit14.lossless.webp" },
   { uri: "/assets/results/witchcore/outfits/outfit15.webp" },
   { uri: "/assets/results/witchcore/outfits/outfit16.webp" },
   { uri: "/assets/results/witchcore/outfits/outfit17.webp" },

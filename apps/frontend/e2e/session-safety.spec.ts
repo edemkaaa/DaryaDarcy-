@@ -38,9 +38,10 @@ async function mockApp(
   current: () => Member | null = () => null,
   answer?: (name: string) => unknown,
 ) {
-  await page.addInitScript(() =>
-    localStorage.setItem("@darcy_install_guide_seen", "1"),
-  );
+  await page.addInitScript(() => {
+    localStorage.setItem("@darcy_install_guide_seen", "1");
+    localStorage.setItem("darcy:user:1:@darcy_club_profile_completed", "true");
+  });
   await page.route("**/api/auth/me", (route) =>
     route.fulfill({ json: { user: current() } }),
   );
@@ -98,9 +99,12 @@ test("a delayed initial session check cannot undo a successful login", async ({
   await mockApp(page, () => current);
   // Login must work even if the decorative background never finishes loading.
   let pendingDecorations = 0;
-  await page.route("https://s3.twcstorage.ru/**", () => {
-    pendingDecorations++;
-  });
+  await page.route(
+    /(?:https:\/\/s3\.twcstorage\.ru\/|\/assets\/responsive\/|\/_next\/static\/media\/).*\.(?:png|jpe?g|webp)(?:\?.*)?$/i,
+    () => {
+      pendingDecorations++;
+    },
+  );
   let release!: () => void;
   const held = new Promise<void>((resolve) => {
     release = resolve;
@@ -396,7 +400,7 @@ test("logout is reflected in another tab", async ({ page, context }) => {
     current = null;
     return route.fulfill({ json: { success: true } });
   });
-  await page.goto("/profile");
+  await gotoWithSession(page, "/profile");
   await expect(
     page.getByText("member-1@example.test", { exact: true }),
   ).toBeVisible();
@@ -406,7 +410,7 @@ test("logout is reflected in another tab", async ({ page, context }) => {
     current = null;
     return route.fulfill({ json: { success: true } });
   });
-  await other.goto("/profile");
+  await gotoWithSession(other, "/profile");
   await expect(
     other.getByText("member-1@example.test", { exact: true }),
   ).toBeVisible();
@@ -433,7 +437,7 @@ test("late registration completion cannot redirect a screen the user left", asyn
       .fulfill({ status: 202, json: { ok: true, message: "Проверьте почту" } })
       .catch(() => {});
   });
-  await page.goto("/login");
+  await gotoWithSession(page, "/login");
   await page
     .getByRole("button", { name: "Нет аккаунта? Зарегистрироваться" })
     .click();
@@ -442,7 +446,7 @@ test("late registration completion cannot redirect a screen the user left", asyn
   await page
     .getByRole("button", { name: "Получить письмо", exact: true })
     .click();
-  await page.goto("/interactive");
+  await gotoWithSession(page, "/interactive");
   release();
   await expect(page).toHaveURL(/\/interactive$/);
   await expect(page.getByText("Проверьте почту", { exact: true })).toHaveCount(
@@ -468,11 +472,15 @@ test("a temporary session check failure preserves an administrator's unsaved tex
   offline = true;
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(
-    page.getByText("Проверьте соединение", { exact: false }),
+    page.getByText("Не удалось обновить сессию", { exact: false }),
   ).toBeVisible();
-  await expect(text).toHaveCount(0);
+  await expect(text).toHaveValue("UNSAVED_TEST_DRAFT");
   offline = false;
-  await page.getByRole("button", { name: "Повторить", exact: true }).click();
+  // Keep the editor's focus trap intact; a return to the window retries the check.
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(
+    page.getByText("Не удалось обновить сессию", { exact: false }),
+  ).toHaveCount(0);
   await expect(text).toHaveValue("UNSAVED_TEST_DRAFT");
 });
 
@@ -505,4 +513,276 @@ test("a string subscription flag never grants club access", async ({
   await expect(
     page.getByRole("button", { name: "Повторить", exact: true }),
   ).toBeVisible();
+});
+
+async function rememberScreen(page: Page) {
+  const verticalScroll = page
+    .locator("main .ui-scroll:not(.ui-scroll-horizontal)")
+    .first();
+  await verticalScroll.waitFor();
+  await page.evaluate(() => document.fonts.ready);
+  const node = (await verticalScroll.elementHandle())!;
+  const scrollTop = await node.evaluate((element) => {
+    element.scrollTop = 650;
+    return element.scrollTop;
+  });
+  const timeOrigin = await page.evaluate(() => performance.timeOrigin);
+  let documentRequests = 0;
+  page.on("request", (request) => {
+    if (request.isNavigationRequest() && request.frame() === page.mainFrame())
+      documentRequests++;
+  });
+  return {
+    async expectPreserved() {
+      expect(await node.evaluate((element) => element.isConnected)).toBe(true);
+      expect(await node.evaluate((element) => element.scrollTop)).toBe(
+        scrollTop,
+      );
+      expect(await page.evaluate(() => performance.timeOrigin)).toBe(
+        timeOrigin,
+      );
+      expect(documentRequests).toBe(0);
+    },
+    scrollTop,
+  };
+}
+
+async function returnToWindow(page: Page, event = "visibilitychange") {
+  await page.evaluate((event) => {
+    (event === "focus" ? window : document).dispatchEvent(
+      new Event(event, { bubbles: true }),
+    );
+  }, event);
+}
+
+for (const event of ["focus", "visibilitychange"]) {
+  test(`a guest's club scroll survives a pending ${event} session check`, async ({
+    page,
+  }) => {
+    await mockApp(page);
+    await gotoWithSession(page, "/club");
+    const screen = await rememberScreen(page);
+    expect(screen.scrollTop).toBe(650);
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let calls = 0;
+    await page.route("**/api/auth/me", async (route) => {
+      calls++;
+      await held;
+      await route.fulfill({ json: { user: null } });
+    });
+    try {
+      await returnToWindow(page, event);
+      await expect.poll(() => calls).toBe(1);
+      await screen.expectPreserved();
+      // Browsers may deliver both events for one return to the application.
+      await returnToWindow(
+        page,
+        event === "focus" ? "visibilitychange" : "focus",
+      );
+      await screen.expectPreserved();
+      expect(calls).toBe(1);
+      const settled = page.waitForResponse((response) =>
+        response.url().endsWith("/api/auth/me"),
+      );
+      release();
+      await settled;
+      await screen.expectPreserved();
+    } finally {
+      release();
+    }
+  });
+}
+
+test("a guest's club scroll survives a failed background check and retry", async ({
+  page,
+}) => {
+  await mockApp(page);
+  await gotoWithSession(page, "/club");
+  const screen = await rememberScreen(page);
+  let offline = true;
+  await page.route("**/api/auth/me", (route) =>
+    offline ? route.abort("failed") : route.fulfill({ json: { user: null } }),
+  );
+  await returnToWindow(page, "focus");
+  await expect(page.getByRole("status")).toContainText(
+    "Не удалось обновить сессию",
+  );
+  await screen.expectPreserved();
+  offline = false;
+  await page.getByRole("button", { name: "Повторить", exact: true }).click();
+  await expect(
+    page.getByText("Не удалось обновить сессию", { exact: false }),
+  ).toHaveCount(0);
+  await screen.expectPreserved();
+});
+
+for (const problem of ["network", "503"]) {
+  test(`profile scroll survives a temporary background session ${problem} failure`, async ({
+    page,
+  }) => {
+    await mockApp(page, () => member(1));
+    await gotoWithSession(page, "/profile");
+    await expect(
+      page.getByText("member-1@example.test", { exact: true }),
+    ).toBeVisible();
+    const screen = await rememberScreen(page);
+    expect(screen.scrollTop).toBeGreaterThan(0);
+    let fail = true;
+    await page.route("**/api/auth/me", (route) =>
+      !fail
+        ? route.fulfill({ json: { user: member(1) } })
+        : problem === "network"
+          ? route.abort("failed")
+          : route.fulfill({ status: 503, json: { error: "TEST_UNAVAILABLE" } }),
+    );
+    await returnToWindow(page, "focus");
+    await expect(page.getByRole("status")).toContainText(
+      "Не удалось обновить сессию",
+    );
+    await expect(
+      page.getByText("member-1@example.test", { exact: true }),
+    ).toBeAttached();
+    await screen.expectPreserved();
+    if (problem === "503")
+      await page.screenshot({
+        path: test.info().outputPath("background-session-warning.png"),
+      });
+    fail = false;
+    await page.getByRole("button", { name: "Повторить", exact: true }).click();
+    await expect(
+      page.getByText("Не удалось обновить сессию", { exact: false }),
+    ).toHaveCount(0);
+    await screen.expectPreserved();
+  });
+}
+
+for (const problem of ["network", "503"]) {
+  test(`the selected club section survives a temporary subscription ${problem} failure`, async ({
+    page,
+  }) => {
+    let fail = false;
+    await mockApp(
+      page,
+      () => member(1),
+      (name) =>
+        name === "club.subscription" && fail ? failure(503) : undefined,
+    );
+    if (problem === "network") {
+      await page.route("**/api/trpc/**", (route) =>
+        fail &&
+        new URL(route.request().url()).pathname.includes("club.subscription")
+          ? route.abort("failed")
+          : route.fallback(),
+      );
+    }
+    await gotoWithSession(page, "/club");
+    const tab = page.getByRole("button", { name: "Подборки", exact: true });
+    await tab.click();
+    const screen = await rememberScreen(page);
+    fail = true;
+    await returnToWindow(page);
+    await expect(page.getByRole("status")).toContainText(
+      "Не удалось обновить подписку",
+    );
+    await expect(tab).toHaveAttribute("aria-pressed", "true");
+    await screen.expectPreserved();
+    fail = false;
+    await page.getByRole("button", { name: "Повторить", exact: true }).click();
+    await expect(
+      page.getByText("Не удалось обновить подписку", { exact: false }),
+    ).toHaveCount(0);
+    await expect(tab).toHaveAttribute("aria-pressed", "true");
+    await screen.expectPreserved();
+  });
+}
+
+test("a confirmed subscription revocation still removes the private club screen", async ({
+  page,
+}) => {
+  let subscribed = true;
+  await mockApp(
+    page,
+    () => member(1),
+    (name) =>
+      name === "club.subscription"
+        ? {
+            result: {
+              data: {
+                json: {
+                  subscribed,
+                  cancelAtPeriodEnd: false,
+                  expiresAt: null,
+                  monthlyPrice: "790",
+                },
+              },
+            },
+          }
+        : undefined,
+  );
+  await gotoWithSession(page, "/club");
+  await page.getByRole("button", { name: "Подборки", exact: true }).click();
+  subscribed = false;
+  await returnToWindow(page);
+  await expect(
+    page.getByRole("button", { name: "Подборки", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("Не удалось проверить подписку", { exact: false }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("Не удалось обновить подписку", { exact: false }),
+  ).toHaveCount(0);
+});
+
+test("a subscription permission denial never keeps the previously active club visible", async ({
+  page,
+}) => {
+  let denied = false;
+  await mockApp(
+    page,
+    () => member(1),
+    (name) =>
+      name === "club.subscription" && denied ? failure(403) : undefined,
+  );
+  await gotoWithSession(page, "/club");
+  await page.getByRole("button", { name: "Подборки", exact: true }).click();
+  denied = true;
+  await returnToWindow(page);
+  await expect(
+    page.getByText("Не удалось проверить подписку", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Подборки", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("Не удалось обновить подписку", { exact: false }),
+  ).toHaveCount(0);
+});
+
+test("a 401 during an offline session recheck still closes the profile", async ({
+  page,
+}) => {
+  let unauthorized = false;
+  await mockApp(
+    page,
+    () => member(1),
+    (name) =>
+      name === "feed.savedPosts" && unauthorized ? failure(401) : undefined,
+  );
+  await gotoWithSession(page, "/profile");
+  await expect(
+    page.getByText("member-1@example.test", { exact: true }),
+  ).toBeVisible();
+  await page.route("**/api/auth/me", (route) => route.abort("failed"));
+  unauthorized = true;
+  await returnToWindow(page);
+  await expect(
+    page.getByText("Проверьте соединение", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("member-1@example.test", { exact: true }),
+  ).toHaveCount(0);
 });

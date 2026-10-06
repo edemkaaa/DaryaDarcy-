@@ -11,10 +11,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Picture } from "@/shared/media/image";
 import { PhotoDots } from "./photo-dots";
 import { scrollPhotoWithKeyboard } from "./photo-carousel-navigation";
-import {
-  FALLBACK_PHOTO_RATIO,
-  usePhotoAspectRatios,
-} from "@/shared/media/photo-aspect-ratios";
+import { POST_PHOTO_RATIO, POST_PHOTO_FIT } from "./post-photo-layout";
 export function PostPhotoCarousel({
   photos,
   onPhotoPress,
@@ -38,7 +35,6 @@ export function PostPhotoCarousel({
       behavior: "instant",
     });
   }, [width, photos.length]);
-  const aspectRatios = usePhotoAspectRatios(photos);
   const onScroll = (event: ScrollEvent) => {
     if (width <= 0 || !photos.length) return;
     const next = Math.round(event.currentTarget.scrollLeft / width);
@@ -56,6 +52,7 @@ export function PostPhotoCarousel({
         if (nextWidth > 0 && nextWidth !== width) setWidth(nextWidth);
       }}
       className={classes.wrap}
+      style={{ aspectRatio: POST_PHOTO_RATIO }}
     >
       {width > 0 ? (
         <ScrollArea
@@ -77,7 +74,7 @@ export function PostPhotoCarousel({
               aria-label={`Открыть фото ${photoIndex + 1} из ${photos.length}`}
               style={() => ({
                 width: width,
-                aspectRatio: aspectRatios[photoIndex] ?? FALLBACK_PHOTO_RATIO,
+                aspectRatio: POST_PHOTO_RATIO,
               })}
               className={({ pressed }) =>
                 [classes.action, pressed ? classes.opacityState : ""]
@@ -87,7 +84,7 @@ export function PostPhotoCarousel({
             >
               <Picture
                 source={{ uri }}
-                contentFit="contain"
+                contentFit={POST_PHOTO_FIT}
                 className={classes.picture}
               />
             </Action>
@@ -95,12 +92,12 @@ export function PostPhotoCarousel({
         </ScrollArea>
       ) : (
         <div
-          style={{ aspectRatio: aspectRatios[0] ?? FALLBACK_PHOTO_RATIO }}
+          style={{ aspectRatio: POST_PHOTO_RATIO }}
           className={["ui-stack ", classes.action].filter(Boolean).join(" ")}
         >
           <Picture
             source={{ uri: photos[0] }}
-            contentFit="contain"
+            contentFit={POST_PHOTO_FIT}
             className={classes.picture}
           />
         </div>

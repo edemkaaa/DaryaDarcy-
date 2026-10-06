@@ -7,6 +7,7 @@ import {
   type useSessionOperation,
 } from "@/domain/session/use-session-operation";
 import type { PostAttachment } from "@/domain/post/save-post";
+import { isRawMediaFilename } from "@/shared/media/media-label";
 
 type ExistingMedia = {
   id: number;
@@ -52,7 +53,11 @@ export function usePostAttachments(
                 id: item.id,
                 type: item.type,
                 url: item.url,
-                name: item.filename || item.url.split("/").at(-1) || "Вложение",
+                name: !isRawMediaFilename(item.filename)
+                  ? item.filename!.trim().split(/[\\/]/).at(-1)!
+                  : item.type === "audio"
+                    ? "Аудио"
+                    : "Документ",
                 mimeType: item.mimeType || "",
               },
             ]
@@ -87,9 +92,13 @@ export function usePostAttachments(
         !(extension === "docx" && asset.mimeType === "application/zip")
       )
         throw new Error("Формат файла не соответствует расширению документа.");
+      const declared = asset.mimeType?.trim().toLowerCase();
       const mimeType =
-        (type === "document" ? fallbackMime : asset.mimeType || fallbackMime) ??
-        "application/octet-stream";
+        (type === "document"
+          ? fallbackMime
+          : !declared || declared === "application/octet-stream"
+            ? fallbackMime
+            : declared) ?? "application/octet-stream";
       if (type === "audio" && !mimeType?.startsWith("audio/"))
         throw new Error("Выберите аудиофайл поддерживаемого формата.");
       setAttachments((previous) => [

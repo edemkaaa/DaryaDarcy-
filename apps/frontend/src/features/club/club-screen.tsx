@@ -313,6 +313,7 @@ export default function ClubScreen({
                             <Picture
                               source={{ uri: item }}
                               contentFit="contain"
+                              sizes="(max-width: 480px) 70vw, 336px"
                               transition={300}
                               className={classes.exclusiveCarouselImage}
                             />
@@ -349,6 +350,7 @@ export default function ClubScreen({
                             <Picture
                               source={{ uri: item }}
                               contentFit="contain"
+                              sizes="(max-width: 480px) 75vw, 360px"
                               transition={300}
                               className={classes.giveawayCarouselImage}
                             />
@@ -385,6 +387,7 @@ export default function ClubScreen({
                             <Picture
                               source={{ uri: item }}
                               contentFit="contain"
+                              sizes="(max-width: 480px) 75vw, 360px"
                               transition={300}
                               className={classes.communityCarouselImage}
                             />
@@ -421,6 +424,7 @@ export default function ClubScreen({
                             <Picture
                               source={{ uri: item }}
                               contentFit="cover"
+                              sizes="(max-width: 480px) 40vw, 192px"
                               transition={300}
                               className={classes.letterCarouselImage}
                             />
@@ -458,6 +462,7 @@ export default function ClubScreen({
                             <Picture
                               source={{ uri: item }}
                               contentFit="cover"
+                              sizes="(max-width: 480px) 40vw, 192px"
                               transition={300}
                               className={classes.letterCarouselImage}
                             />
@@ -637,6 +642,7 @@ export default function ClubScreen({
                         <Picture
                           source={{ uri: item.images[0] }}
                           contentFit="contain"
+                          sizes="(max-width: 480px) 75vw, 360px"
                           transition={300}
                           className={classes.reviewCarouselImage}
                         />
@@ -653,12 +659,14 @@ export default function ClubScreen({
                       <Picture
                         source={{ uri: item.images[0] }}
                         contentFit="contain"
+                        sizes="(max-width: 480px) 75vw, 360px"
                         transition={300}
                         className={classes.reviewCarouselImageHalf}
                       />
                       <Picture
                         source={{ uri: item.images[1] }}
                         contentFit="contain"
+                        sizes="(max-width: 480px) 75vw, 360px"
                         transition={300}
                         className={classes.reviewCarouselImageHalf}
                       />

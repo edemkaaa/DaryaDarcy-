@@ -309,6 +309,8 @@ export function ClubSubscribed() {
             contentFit="cover"
             contentPosition="top"
             className={classes.bannerImage}
+            loading="eager"
+            fetchPriority="high"
           />
         </div>
       ) : null}

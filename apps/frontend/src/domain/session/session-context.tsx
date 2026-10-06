@@ -32,6 +32,7 @@ type SessionContext = {
   status: SessionStatus;
   loading: boolean;
   error: Error | null;
+  refreshError: Error | null;
   isAuthenticated: boolean;
   isOwner: boolean;
   refresh: () => Promise<void>;
@@ -134,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status: state.status,
       loading: state.status === "checking" || state.status === "logging-out",
       error: state.error,
+      refreshError: state.refreshError,
       isAuthenticated: Boolean(user),
       isOwner: isOwnerUser(user),
       refresh: controller.refresh,
@@ -142,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       applySession: controller.applySession,
       invalidateAccess: controller.invalidateAccess,
     }),
-    [user, state.status, state.error, controller],
+    [user, state.status, state.error, state.refreshError, controller],
   );
   return (
     <Context.Provider value={value}>

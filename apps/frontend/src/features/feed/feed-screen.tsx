@@ -206,6 +206,8 @@ export default function FeedScreen() {
     >
       <Picture
         source={{ uri: FEED_BANNER_URI }}
+        loading="eager"
+        fetchPriority="high"
         contentFit="cover"
         transition={300}
         className={classes.bannerImage}
@@ -403,6 +405,7 @@ export default function FeedScreen() {
                 publishedAt: item.publishedAt ?? null,
                 createdAt: item.createdAt ?? null,
                 target: item.target || "feed",
+                media: item.media ?? [],
               })
           : undefined
       }

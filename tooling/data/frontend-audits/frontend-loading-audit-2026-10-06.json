@@ -1,0 +1,1035 @@
+{
+  "capturedAt": "2026-10-06T15:08:47.087Z",
+  "baselineUrl": "https://daryadarcy.dev.reeskeen.ru",
+  "currentBuild": "fix/frontend-improvements, local production .next",
+  "browser": "152.0.7977.64",
+  "settings": {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "deviceScaleFactor": 2,
+    "latency": 150,
+    "downloadThroughput": 375000,
+    "uploadThroughput": 93750,
+    "cpuSlowdown": 4,
+    "windowMs": 12000,
+    "runs": 3,
+    "serviceWorkers": "block",
+    "apiMode": "fixture",
+    "snapshotFile": ""
+  },
+  "imageRequestWindowMs": 12000,
+  "methodology": [
+    "Baseline: three cold runs per route with real public guest API; 20s observation window.",
+    "Current: three cold runs per route and one warm run, identical anonymous API fixtures; 12s observation window.",
+    "No authenticated session or backend/database writes. Service workers blocked.",
+    "Image totals use requests initiated within 12s, preferring actual Content-Length, otherwise the verified source inventory. These are requested file weights, not transferred bytes.",
+    "LCP is captured at the end of the initial observation window, before scrolling. Baseline Club LCP is incomplete because its visible S3 images never finished within 20s.",
+    "Different hosting and API conditions prevent attributing the full LCP difference to frontend changes.",
+    "Initial live current Club runs with a timeout screen or stopped local server are excluded from comparisons; valid live run: LCP 2348ms, requested images 3976448bytes.",
+    "Warm visits may request new rotating promo slides, so they can transfer images absent from the initial cold visit."
+  ],
+  "summary": [
+    {
+      "label": "baseline-live",
+      "route": "/",
+      "runs": 3,
+      "medianLcpMs": 8612,
+      "medianTtfbMs": 1289,
+      "medianFcpMs": 2996,
+      "medianCls": 0.016358481301265063,
+      "medianReadyMs": null,
+      "medianImageBytesWithin12Seconds": 1530549,
+      "imageBytesRangeWithin12Seconds": [
+        1470112,
+        1530549
+      ],
+      "readyCompletedRuns": 2
+    },
+    {
+      "label": "current-controlled",
+      "route": "/",
+      "runs": 3,
+      "medianLcpMs": 3544,
+      "medianTtfbMs": 22.800000000745058,
+      "medianFcpMs": 692,
+      "medianCls": 0.013692090854272747,
+      "medianReadyMs": 4466.699999999255,
+      "medianImageBytesWithin12Seconds": 1327443,
+      "imageBytesRangeWithin12Seconds": [
+        1071047,
+        1327443
+      ],
+      "readyCompletedRuns": 3
+    },
+    {
+      "label": "baseline-live",
+      "route": "/club",
+      "runs": 3,
+      "medianLcpMs": 6976,
+      "medianTtfbMs": 1290.3999999985099,
+      "medianFcpMs": 2672,
+      "medianCls": 0.0008361839219924451,
+      "medianReadyMs": null,
+      "medianImageBytesWithin12Seconds": 57506796,
+      "imageBytesRangeWithin12Seconds": [
+        57506796,
+        57506796
+      ],
+      "readyCompletedRuns": 0
+    },
+    {
+      "label": "current-controlled",
+      "route": "/club",
+      "runs": 3,
+      "medianLcpMs": 2568,
+      "medianTtfbMs": 125.39999999850988,
+      "medianFcpMs": 768,
+      "medianCls": 0.0008361839219924451,
+      "medianReadyMs": 6309.199999999255,
+      "medianImageBytesWithin12Seconds": 3258164,
+      "imageBytesRangeWithin12Seconds": [
+        3258164,
+        3976448
+      ],
+      "readyCompletedRuns": 3
+    }
+  ],
+  "baselineSamples": [
+    {
+      "label": "baseline",
+      "route": "/",
+      "run": 1,
+      "cache": "cold",
+      "elapsedMs": 20002,
+      "navigationError": null,
+      "contentError": null,
+      "markerPresent": true,
+      "lcpMs": 8612,
+      "lcpCandidate": {
+        "ms": 8612,
+        "url": "https://daryadarcy.dev.reeskeen.ru/assets/images/home/hero_header.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 6759.599999997765,
+      "fcpMs": 8088,
+      "cls": 0.018731373411672192,
+      "firstViewportImagesReadyMs": null,
+      "imageRequestsWithin12Seconds": 15,
+      "requestedImageFileBytesWithin12Seconds": 1470112,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 50,
+        "imageRequests": 16,
+        "imageFileBytesRequested": 1596754,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 1599680,
+        "imageWireBytes": 840799,
+        "pending": 13,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": null
+    },
+    {
+      "label": "baseline",
+      "route": "/",
+      "run": 1,
+      "cache": "warm",
+      "elapsedMs": 20001,
+      "navigationError": null,
+      "contentError": null,
+      "markerPresent": true,
+      "lcpMs": 824,
+      "lcpCandidate": {
+        "ms": 824,
+        "url": "https://daryadarcy.dev.reeskeen.ru/assets/images/home/hero_header.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 270.69999999925494,
+      "fcpMs": 424,
+      "cls": 0.005717612950154896,
+      "firstViewportImagesReadyMs": null,
+      "imageRequestsWithin12Seconds": 16,
+      "requestedImageFileBytesWithin12Seconds": 1596754,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 83,
+        "imageRequests": 17,
+        "imageFileBytesRequested": 1696338,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 246948,
+        "imageWireBytes": 102046,
+        "pending": 5,
+        "cached": 21,
+        "httpErrors": [],
+        "failures": [
+          {
+            "url": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/d0db18ed8f2e-MasrlKbgCBdeyOhE.jpg",
+            "failure": "net::ERR_TIMED_OUT"
+          },
+          {
+            "url": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/3f69fb85d89c-nbShGAsyJAWYwcXH.webp",
+            "failure": "net::ERR_TIMED_OUT"
+          },
+          {
+            "url": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/5c000c389c50-FumaYiYPevouyHwe.webp",
+            "failure": "net::ERR_TIMED_OUT"
+          },
+          {
+            "url": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/cc53a49e1416-qxGDcExHmMNZuoWc.jpg",
+            "failure": "net::ERR_TIMED_OUT"
+          },
+          {
+            "url": "https://daryadarcy.dev.reeskeen.ru/club?_rsc=tXyZJ52UQVBCVsD3",
+            "failure": "net::ERR_ABORTED"
+          }
+        ]
+      },
+      "scroll": null
+    },
+    {
+      "label": "baseline",
+      "route": "/",
+      "run": 2,
+      "cache": "cold",
+      "elapsedMs": 20002,
+      "navigationError": null,
+      "contentError": null,
+      "markerPresent": true,
+      "lcpMs": 8736,
+      "lcpCandidate": {
+        "ms": 8736,
+        "url": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/d0db18ed8f2e-MasrlKbgCBdeyOhE.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 1289,
+      "fcpMs": 2996,
+      "cls": 0.016358481301265063,
+      "firstViewportImagesReadyMs": 8637.300000000745,
+      "imageRequestsWithin12Seconds": 16,
+      "requestedImageFileBytesWithin12Seconds": 1530549,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 84,
+        "imageRequests": 18,
+        "imageFileBytesRequested": 1756775,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 2666292,
+        "imageWireBytes": 1764288,
+        "pending": 0,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": null
+    },
+    {
+      "label": "baseline",
+      "route": "/",
+      "run": 3,
+      "cache": "cold",
+      "elapsedMs": 20001,
+      "navigationError": null,
+      "contentError": null,
+      "markerPresent": true,
+      "lcpMs": 5200,
+      "lcpCandidate": {
+        "ms": 5200,
+        "url": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/d0db18ed8f2e-MasrlKbgCBdeyOhE.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 833.3000000007451,
+      "fcpMs": 1640,
+      "cls": 0.013746949635262877,
+      "firstViewportImagesReadyMs": 5176.199999999255,
+      "imageRequestsWithin12Seconds": 16,
+      "requestedImageFileBytesWithin12Seconds": 1530549,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 83,
+        "imageRequests": 17,
+        "imageFileBytesRequested": 1657191,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 2566338,
+        "imageWireBytes": 1664299,
+        "pending": 0,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": null
+    },
+    {
+      "label": "baseline",
+      "route": "/club",
+      "run": 1,
+      "cache": "cold",
+      "elapsedMs": 20001,
+      "navigationError": null,
+      "contentError": null,
+      "markerPresent": true,
+      "lcpMs": 6976,
+      "lcpCandidate": {
+        "ms": 6976,
+        "url": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/9e3aec1f0a5d-PUMBhecZrXmmctyT.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 832.1999999992549,
+      "fcpMs": 1316,
+      "cls": 0.0008361839219924451,
+      "firstViewportImagesReadyMs": null,
+      "imageRequestsWithin12Seconds": 26,
+      "requestedImageFileBytesWithin12Seconds": 57506796,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 74,
+        "imageRequests": 26,
+        "imageFileBytesRequested": 57506796,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 4121006,
+        "imageWireBytes": 3449833,
+        "pending": 30,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": null
+    },
+    {
+      "label": "baseline",
+      "route": "/club",
+      "run": 1,
+      "cache": "warm",
+      "elapsedMs": 20000,
+      "navigationError": null,
+      "contentError": null,
+      "markerPresent": true,
+      "lcpMs": 5680,
+      "lcpCandidate": {
+        "ms": 5680,
+        "url": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/9e3aec1f0a5d-PUMBhecZrXmmctyT.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 1786.699999999255,
+      "fcpMs": 1980,
+      "cls": 0.0025988914983364237,
+      "firstViewportImagesReadyMs": null,
+      "imageRequestsWithin12Seconds": 26,
+      "requestedImageFileBytesWithin12Seconds": 57506796,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 74,
+        "imageRequests": 26,
+        "imageFileBytesRequested": 57506796,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 2109295,
+        "imageWireBytes": 2099699,
+        "pending": 30,
+        "cached": 32,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": null
+    },
+    {
+      "label": "baseline",
+      "route": "/club",
+      "run": 2,
+      "cache": "cold",
+      "elapsedMs": 20001,
+      "navigationError": null,
+      "contentError": null,
+      "markerPresent": true,
+      "lcpMs": 9228,
+      "lcpCandidate": {
+        "ms": 9228,
+        "url": null,
+        "tag": "SPAN"
+      },
+      "ttfbMs": 4528.199999999255,
+      "fcpMs": 5220,
+      "cls": 0.0008361839219924451,
+      "firstViewportImagesReadyMs": null,
+      "imageRequestsWithin12Seconds": 26,
+      "requestedImageFileBytesWithin12Seconds": 57506796,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 76,
+        "imageRequests": 26,
+        "imageFileBytesRequested": 57506796,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 673519,
+        "imageWireBytes": 0,
+        "pending": 31,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": null
+    },
+    {
+      "label": "baseline",
+      "route": "/club",
+      "run": 3,
+      "cache": "cold",
+      "elapsedMs": 20000,
+      "navigationError": null,
+      "contentError": null,
+      "markerPresent": true,
+      "lcpMs": 6228,
+      "lcpCandidate": {
+        "ms": 6228,
+        "url": null,
+        "tag": "SPAN"
+      },
+      "ttfbMs": 1290.3999999985099,
+      "fcpMs": 2672,
+      "cls": 0.0008361839219924451,
+      "firstViewportImagesReadyMs": null,
+      "imageRequestsWithin12Seconds": 26,
+      "requestedImageFileBytesWithin12Seconds": 57506796,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 81,
+        "imageRequests": 26,
+        "imageFileBytesRequested": 57506796,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 677971,
+        "imageWireBytes": 0,
+        "pending": 34,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": [
+        {
+          "stem": "0479fc01d16a-MSbIPSMMSqmZweYd",
+          "decoded": false,
+          "ms": 30325,
+          "error": "locator.evaluate: Error: decode timeout 30s\n    at eval (eval at evaluate (:290:30), <anonymous>:2:76)"
+        },
+        {
+          "stem": "250423a7ec62-uyAaCmBzfqhlMwpt",
+          "decoded": false,
+          "ms": 30070,
+          "error": "locator.evaluate: Error: decode timeout 30s\n    at eval (eval at evaluate (:290:30), <anonymous>:2:76)"
+        }
+      ]
+    }
+  ],
+  "currentSamples": [
+    {
+      "label": "current",
+      "route": "/",
+      "run": 1,
+      "cache": "cold",
+      "elapsedMs": 12001,
+      "navigationError": null,
+      "contentError": false,
+      "markerPresent": true,
+      "lcpMs": 3544,
+      "lcpCandidate": {
+        "ms": 3544,
+        "url": "http://127.0.0.1:8082/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 42.80000000074506,
+      "fcpMs": 992,
+      "cls": 0.01629335491850864,
+      "firstViewportImagesReadyMs": 4466.699999999255,
+      "imageRequestsWithin12Seconds": 11,
+      "requestedImageFileBytesWithin12Seconds": 1071047,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 79,
+        "imageRequests": 11,
+        "imageFileBytesRequested": 1071047,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 2022341,
+        "imageWireBytes": 1074356,
+        "pending": 0,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": null
+    },
+    {
+      "label": "current",
+      "route": "/",
+      "run": 1,
+      "cache": "warm",
+      "elapsedMs": 12001,
+      "navigationError": null,
+      "contentError": false,
+      "markerPresent": true,
+      "lcpMs": 1232,
+      "lcpCandidate": {
+        "ms": 1232,
+        "url": "http://127.0.0.1:8082/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 33,
+      "fcpMs": 512,
+      "cls": 0.005717612950154896,
+      "firstViewportImagesReadyMs": 1293.699999999255,
+      "imageRequestsWithin12Seconds": 16,
+      "requestedImageFileBytesWithin12Seconds": 1454085,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 86,
+        "imageRequests": 16,
+        "imageFileBytesRequested": 1454085,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 281352,
+        "imageWireBytes": 257598,
+        "pending": 2,
+        "cached": 56,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": null
+    },
+    {
+      "label": "current",
+      "route": "/",
+      "run": 2,
+      "cache": "cold",
+      "elapsedMs": 12000,
+      "navigationError": null,
+      "contentError": false,
+      "markerPresent": true,
+      "lcpMs": 3608,
+      "lcpCandidate": {
+        "ms": 3608,
+        "url": "http://127.0.0.1:8082/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 22.800000000745058,
+      "fcpMs": 692,
+      "cls": 0.013692090854272747,
+      "firstViewportImagesReadyMs": 4372.20000000298,
+      "imageRequestsWithin12Seconds": 15,
+      "requestedImageFileBytesWithin12Seconds": 1327443,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 82,
+        "imageRequests": 15,
+        "imageFileBytesRequested": 1327443,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 2279841,
+        "imageWireBytes": 1331954,
+        "pending": 0,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": null
+    },
+    {
+      "label": "current",
+      "route": "/",
+      "run": 3,
+      "cache": "cold",
+      "elapsedMs": 12000,
+      "navigationError": null,
+      "contentError": false,
+      "markerPresent": true,
+      "lcpMs": 3440,
+      "lcpCandidate": {
+        "ms": 3440,
+        "url": "http://127.0.0.1:8082/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 21,
+      "fcpMs": 624,
+      "cls": 0.013692090854272747,
+      "firstViewportImagesReadyMs": 4672.300000000745,
+      "imageRequestsWithin12Seconds": 15,
+      "requestedImageFileBytesWithin12Seconds": 1327443,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 82,
+        "imageRequests": 15,
+        "imageFileBytesRequested": 1327443,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 2279841,
+        "imageWireBytes": 1331954,
+        "pending": 0,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": null
+    },
+    {
+      "label": "current",
+      "route": "/club",
+      "run": 1,
+      "cache": "cold",
+      "elapsedMs": 12001,
+      "navigationError": null,
+      "contentError": false,
+      "markerPresent": true,
+      "lcpMs": 2344,
+      "lcpCandidate": {
+        "ms": 2344,
+        "url": "http://127.0.0.1:8082/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 221.09999999776483,
+      "fcpMs": 832,
+      "cls": 0.0008361839219924451,
+      "firstViewportImagesReadyMs": 6112.300000000745,
+      "imageRequestsWithin12Seconds": 27,
+      "requestedImageFileBytesWithin12Seconds": 3976448,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 76,
+        "imageRequests": 27,
+        "imageFileBytesRequested": 3707270,
+        "imageFileBytesUnknown": 4,
+        "wireBytes": 4037139,
+        "imageWireBytes": 3309611,
+        "pending": 14,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": null
+    },
+    {
+      "label": "current",
+      "route": "/club",
+      "run": 1,
+      "cache": "warm",
+      "elapsedMs": 12000,
+      "navigationError": null,
+      "contentError": false,
+      "markerPresent": true,
+      "lcpMs": 548,
+      "lcpCandidate": {
+        "ms": 548,
+        "url": "http://127.0.0.1:8082/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 45.599999997764826,
+      "fcpMs": 548,
+      "cls": 0.0025988914983364237,
+      "firstViewportImagesReadyMs": 1838.800000000745,
+      "imageRequestsWithin12Seconds": 20,
+      "requestedImageFileBytesWithin12Seconds": 3258164,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 88,
+        "imageRequests": 20,
+        "imageFileBytesRequested": 3258164,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 117380,
+        "imageWireBytes": 0,
+        "pending": 1,
+        "cached": 52,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": null
+    },
+    {
+      "label": "current",
+      "route": "/club",
+      "run": 2,
+      "cache": "cold",
+      "elapsedMs": 12000,
+      "navigationError": null,
+      "contentError": false,
+      "markerPresent": true,
+      "lcpMs": 2568,
+      "lcpCandidate": {
+        "ms": 2568,
+        "url": "http://127.0.0.1:8082/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 57.19999999925494,
+      "fcpMs": 728,
+      "cls": 0.0008361839219924451,
+      "firstViewportImagesReadyMs": 6309.199999999255,
+      "imageRequestsWithin12Seconds": 20,
+      "requestedImageFileBytesWithin12Seconds": 3258164,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 88,
+        "imageRequests": 20,
+        "imageFileBytesRequested": 3258164,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 4100228,
+        "imageWireBytes": 3264194,
+        "pending": 1,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": null
+    },
+    {
+      "label": "current",
+      "route": "/club",
+      "run": 3,
+      "cache": "cold",
+      "elapsedMs": 12000,
+      "navigationError": null,
+      "contentError": false,
+      "markerPresent": true,
+      "lcpMs": 3180,
+      "lcpCandidate": {
+        "ms": 3180,
+        "url": "http://127.0.0.1:8082/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 125.39999999850988,
+      "fcpMs": 768,
+      "cls": 0.0008361839219924451,
+      "firstViewportImagesReadyMs": 6436.300000000745,
+      "imageRequestsWithin12Seconds": 20,
+      "requestedImageFileBytesWithin12Seconds": 3258164,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 88,
+        "imageRequests": 20,
+        "imageFileBytesRequested": 3258164,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 4100230,
+        "imageWireBytes": 3264194,
+        "pending": 1,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": [
+        {
+          "stem": "0479fc01d16a-MSbIPSMMSqmZweYd",
+          "decoded": true,
+          "ms": 364,
+          "source": "/assets/responsive/0479fc01d16a-MSbIPSMMSqmZweYd.w640.b31f7ef8d7b95c97.webp"
+        },
+        {
+          "stem": "250423a7ec62-uyAaCmBzfqhlMwpt",
+          "decoded": true,
+          "ms": 149,
+          "source": "/assets/responsive/250423a7ec62-uyAaCmBzfqhlMwpt.w640.5be8dd3b46671e0f.webp"
+        }
+      ]
+    }
+  ],
+  "excludedCurrentLiveSamples": [
+    {
+      "label": "current",
+      "route": "/club",
+      "run": 1,
+      "cache": "warm",
+      "elapsedMs": 20001,
+      "navigationError": null,
+      "contentError": null,
+      "markerPresent": false,
+      "lcpMs": 536,
+      "lcpCandidate": {
+        "ms": 536,
+        "url": "http://127.0.0.1:8082/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 37.5,
+      "fcpMs": 536,
+      "cls": 0,
+      "firstViewportImagesReadyMs": null,
+      "imageRequestsWithin12Seconds": 2,
+      "requestedImageFileBytesWithin12Seconds": 295232,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 58,
+        "imageRequests": 2,
+        "imageFileBytesRequested": 295232,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 21942,
+        "imageWireBytes": 0,
+        "pending": 0,
+        "cached": 41,
+        "httpErrors": [],
+        "failures": [
+          {
+            "url": "http://127.0.0.1:8082/api/auth/me",
+            "failure": "net::ERR_ABORTED"
+          }
+        ]
+      },
+      "scroll": null
+    },
+    {
+      "label": "current",
+      "route": "/club",
+      "run": 2,
+      "cache": "cold",
+      "elapsedMs": 20001,
+      "navigationError": null,
+      "contentError": null,
+      "markerPresent": false,
+      "lcpMs": 2280,
+      "lcpCandidate": {
+        "ms": 2280,
+        "url": "http://127.0.0.1:8082/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 55.29999999701977,
+      "fcpMs": 684,
+      "cls": 1.5951939850914495e-05,
+      "firstViewportImagesReadyMs": null,
+      "imageRequestsWithin12Seconds": 2,
+      "requestedImageFileBytesWithin12Seconds": 295232,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 58,
+        "imageRequests": 2,
+        "imageFileBytesRequested": 295232,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 998642,
+        "imageWireBytes": 295833,
+        "pending": 0,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": [
+          {
+            "url": "http://127.0.0.1:8082/api/auth/me",
+            "failure": "net::ERR_ABORTED"
+          }
+        ]
+      },
+      "scroll": null
+    },
+    {
+      "label": "current",
+      "route": "/club",
+      "run": 3,
+      "cache": "cold",
+      "elapsedMs": 187,
+      "navigationError": "page.goto: net::ERR_HTTP_RESPONSE_CODE_FAILURE at http://127.0.0.1:8082/club\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:8082/club\", waiting until \"commit\"\u001b[22m\n",
+      "contentError": null,
+      "markerPresent": false,
+      "lcpMs": null,
+      "lcpCandidate": null,
+      "ttfbMs": null,
+      "fcpMs": null,
+      "cls": null,
+      "firstViewportImagesReadyMs": null,
+      "imageRequestsWithin12Seconds": 0,
+      "requestedImageFileBytesWithin12Seconds": 0,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 1,
+        "imageRequests": 0,
+        "imageFileBytesRequested": 0,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 0,
+        "imageWireBytes": 0,
+        "pending": 0,
+        "cached": 0,
+        "httpErrors": [
+          {
+            "url": "http://127.0.0.1:8082/club",
+            "status": 502
+          }
+        ],
+        "failures": [
+          {
+            "url": "http://127.0.0.1:8082/club",
+            "failure": "net::ERR_HTTP_RESPONSE_CODE_FAILURE"
+          }
+        ]
+      },
+      "scroll": null
+    }
+  ],
+  "initialLiveCurrentHomeSamples": [
+    {
+      "label": "current",
+      "route": "/",
+      "run": 1,
+      "cache": "cold",
+      "elapsedMs": 20000,
+      "navigationError": null,
+      "contentError": null,
+      "markerPresent": true,
+      "lcpMs": 3428,
+      "lcpCandidate": {
+        "ms": 3428,
+        "url": "http://127.0.0.1:8082/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 88,
+      "fcpMs": 560,
+      "cls": 0.013692090854272747,
+      "firstViewportImagesReadyMs": 4521,
+      "imageRequestsWithin12Seconds": 11,
+      "requestedImageFileBytesWithin12Seconds": 1071047,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 80,
+        "imageRequests": 13,
+        "imageFileBytesRequested": 1297273,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 2249452,
+        "imageWireBytes": 1301185,
+        "pending": 0,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": [
+          {
+            "url": "http://127.0.0.1:8082/api/auth/me",
+            "failure": "net::ERR_ABORTED"
+          }
+        ]
+      },
+      "scroll": null
+    },
+    {
+      "label": "current",
+      "route": "/",
+      "run": 1,
+      "cache": "warm",
+      "elapsedMs": 20001,
+      "navigationError": null,
+      "contentError": null,
+      "markerPresent": true,
+      "lcpMs": 1124,
+      "lcpCandidate": {
+        "ms": 1124,
+        "url": "http://127.0.0.1:8082/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 29.699999999254942,
+      "fcpMs": 420,
+      "cls": 0.005717612950154896,
+      "firstViewportImagesReadyMs": 1228.199999999255,
+      "imageRequestsWithin12Seconds": 12,
+      "requestedImageFileBytesWithin12Seconds": 1197689,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 82,
+        "imageRequests": 13,
+        "imageFileBytesRequested": 1297273,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 24037,
+        "imageWireBytes": 0,
+        "pending": 2,
+        "cached": 57,
+        "httpErrors": [],
+        "failures": [
+          {
+            "url": "http://127.0.0.1:8082/api/auth/me",
+            "failure": "net::ERR_ABORTED"
+          }
+        ]
+      },
+      "scroll": null
+    },
+    {
+      "label": "current",
+      "route": "/",
+      "run": 2,
+      "cache": "cold",
+      "elapsedMs": 20000,
+      "navigationError": null,
+      "contentError": null,
+      "markerPresent": true,
+      "lcpMs": 3600,
+      "lcpCandidate": {
+        "ms": 3600,
+        "url": "http://127.0.0.1:8082/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 10,
+      "fcpMs": 688,
+      "cls": 0.013692090854272747,
+      "firstViewportImagesReadyMs": 4533.39999999851,
+      "imageRequestsWithin12Seconds": 11,
+      "requestedImageFileBytesWithin12Seconds": 1071047,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 80,
+        "imageRequests": 13,
+        "imageFileBytesRequested": 1297273,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 2250028,
+        "imageWireBytes": 1301185,
+        "pending": 0,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": []
+      },
+      "scroll": null
+    },
+    {
+      "label": "current",
+      "route": "/",
+      "run": 3,
+      "cache": "cold",
+      "elapsedMs": 20002,
+      "navigationError": null,
+      "contentError": null,
+      "markerPresent": true,
+      "lcpMs": 3496,
+      "lcpCandidate": {
+        "ms": 3496,
+        "url": "http://127.0.0.1:8082/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+        "tag": "IMG"
+      },
+      "ttfbMs": 24.5,
+      "fcpMs": 664,
+      "cls": 0.013692090854272747,
+      "firstViewportImagesReadyMs": 4337.5,
+      "imageRequestsWithin12Seconds": 15,
+      "requestedImageFileBytesWithin12Seconds": 1327443,
+      "unknownImageSizesWithin12Seconds": 0,
+      "network": {
+        "requests": 84,
+        "imageRequests": 17,
+        "imageFileBytesRequested": 1553669,
+        "imageFileBytesUnknown": 0,
+        "wireBytes": 2506988,
+        "imageWireBytes": 1558783,
+        "pending": 0,
+        "cached": 0,
+        "httpErrors": [],
+        "failures": [
+          {
+            "url": "http://127.0.0.1:8082/api/capabilities",
+            "failure": "net::ERR_ABORTED"
+          }
+        ]
+      },
+      "scroll": null
+    }
+  ],
+  "observedAvailabilityFailures": [
+    "Initial /club navigation exceeded timeout 45s. A later /club GET succeeded in 3424ms.",
+    "Later /api/auth/me requests timed out from Node, curl IPv4 and Chromium (10–20s).",
+    "Final root-page availability probe timed out at 15s. These observations apply to this environment and time."
+  ],
+  "nextCandidates": {
+    "homeSecondControlledColdRun": {
+      "fontRequests": 6,
+      "fontWireBytes": 511251,
+      "scriptRequests": 30,
+      "scriptWireBytes": 373385,
+      "rscPrefetchRequests": 16
+    }
+  },
+  "rawArtifacts": [
+    "/tmp/daryadarcy-loading-2026-10-06",
+    "/tmp/daryadarcy-loading-local-controlled-2026-10-06"
+  ],
+  "sources": [
+    "https://web.dev/articles/lcp",
+    "https://developer.chrome.com/docs/devtools/network/reference"
+  ]
+}

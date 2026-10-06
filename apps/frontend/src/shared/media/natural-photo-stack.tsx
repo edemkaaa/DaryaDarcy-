@@ -2,16 +2,11 @@
 import classes from "./natural-photo-stack.module.scss";
 import { mergeStyles } from "@/shared/ui/css";
 import { Action } from "@/shared/ui/elements";
-import { type ReactNode, useState } from "react";
+import { type ReactNode } from "react";
 import { Picture } from "@/shared/media/image";
 import { PostPhotoCarousel } from "@/shared/media/post-photo-carousel";
 import { VideoGridCell } from "@/shared/media/video-grid-cell";
-import {
-  FALLBACK_PHOTO_RATIO,
-  getCachedPhotoRatio,
-  rememberPhotoRatio,
-  usePhotoAspectRatios,
-} from "@/shared/media/photo-aspect-ratios";
+import { POST_PHOTO_RATIO, POST_PHOTO_FIT } from "./post-photo-layout";
 export interface VideoGridSlot {
   url: string;
   thumbnailUrl?: string;
@@ -20,24 +15,22 @@ function Cell({
   uri,
   onClick,
   style,
-  aspectRatio = FALLBACK_PHOTO_RATIO,
 }: {
   uri: string;
   onClick?: () => void;
   style?: object;
-  aspectRatio?: number;
 }) {
   return (
     <Action
       aria-label="Открыть фото"
       disabled={!onClick}
       onClick={onClick}
-      style={mergeStyles({ aspectRatio: aspectRatio }, style)}
+      style={mergeStyles({ aspectRatio: POST_PHOTO_RATIO }, style)}
       className={classes.action}
     >
       <Picture
         source={{ uri }}
-        contentFit="cover"
+        contentFit={POST_PHOTO_FIT}
         className={classes.picture}
       />
     </Action>
@@ -54,12 +47,10 @@ function PhotoGrid({
   photos,
   press,
   columns,
-  ratios,
 }: {
   photos: string[];
   press: (index: number) => (() => void) | undefined;
   columns: number;
-  ratios: number[];
 }) {
   const rows: string[][] = [];
   for (let i = 0; i < photos.length; i += columns) {
@@ -71,14 +62,7 @@ function PhotoGrid({
         <Row key={`row-${rowIndex}`}>
           {row.map((uri, colIndex) => {
             const index = rowIndex * columns + colIndex;
-            return (
-              <Cell
-                key={index}
-                uri={uri}
-                onClick={press(index)}
-                aspectRatio={ratios[index] ?? FALLBACK_PHOTO_RATIO}
-              />
-            );
+            return <Cell key={index} uri={uri} onClick={press(index)} />;
           })}
           {row.length < columns
             ? Array.from({ length: columns - row.length }).map((_, i) => (
@@ -99,12 +83,10 @@ function VideoPhotoGrid({
   video,
   photos,
   press,
-  ratios,
 }: {
   video: VideoGridSlot;
   photos: string[];
   press: (index: number) => (() => void) | undefined;
-  ratios: number[];
 }) {
   const topPhotos = photos.slice(0, 2);
   const bottomPhotos = photos.slice(2);
@@ -113,12 +95,7 @@ function VideoPhotoGrid({
       <Row>
         <VideoGridCell url={video.url} thumbnailUrl={video.thumbnailUrl} />
         {topPhotos.map((uri, index) => (
-          <Cell
-            key={`top-${index}`}
-            uri={uri}
-            onClick={press(index)}
-            aspectRatio={ratios[index] ?? FALLBACK_PHOTO_RATIO}
-          />
+          <Cell key={`top-${index}`} uri={uri} onClick={press(index)} />
         ))}
         {topPhotos.length < 2
           ? Array.from({ length: 2 - topPhotos.length }).map((_, i) => (
@@ -136,7 +113,6 @@ function VideoPhotoGrid({
               key={`bottom-${index}`}
               uri={uri}
               onClick={press(index + 2)}
-              aspectRatio={ratios[index + 2] ?? FALLBACK_PHOTO_RATIO}
             />
           ))}
         </Row>
@@ -144,20 +120,14 @@ function VideoPhotoGrid({
       {bottomPhotos.length > 4 ? (
         <PhotoGrid
           photos={bottomPhotos.slice(4)}
-          press={press}
+          press={(index) => press(index + 6)}
           columns={4}
-          ratios={ratios}
         />
       ) : null}
     </div>
   );
 }
 function SinglePhoto({ uri, onClick }: { uri: string; onClick?: () => void }) {
-  const [ratio] = usePhotoAspectRatios([uri]);
-  const [loadedRatio, setLoadedRatio] = useState<number | null>(
-    () => getCachedPhotoRatio(uri) ?? null,
-  );
-  const displayRatio = loadedRatio ?? ratio;
   return (
     <Action
       aria-label="Открыть фото"
@@ -167,13 +137,8 @@ function SinglePhoto({ uri, onClick }: { uri: string; onClick?: () => void }) {
     >
       <Picture
         source={{ uri }}
-        style={{ aspectRatio: displayRatio }}
-        contentFit="cover"
-        onLoad={(event) => {
-          const { width, height } = event.source;
-          const next = rememberPhotoRatio(uri, width, height);
-          if (next != null) setLoadedRatio(next);
-        }}
+        style={{ aspectRatio: POST_PHOTO_RATIO }}
+        contentFit={POST_PHOTO_FIT}
         className={classes.picture2}
       />
     </Action>
@@ -190,7 +155,6 @@ export function NaturalPhotoStack({
   video?: VideoGridSlot;
   posterUrl?: string;
 }) {
-  const ratios = usePhotoAspectRatios(photos);
   if (!photos.length && !video) return null;
   const press = (index: number) =>
     onPhotoPress ? () => onPhotoPress(index) : undefined;
@@ -203,7 +167,6 @@ export function NaturalPhotoStack({
         }}
         photos={photos}
         press={press}
-        ratios={ratios}
       />
     );
   }
@@ -228,8 +191,8 @@ export function NaturalPhotoStack({
         className={["ui-stack ", classes.stackCol].filter(Boolean).join(" ")}
       >
         <Row>
-          <Cell uri={photos[0]} onClick={press(0)} aspectRatio={ratios[0]} />
-          <Cell uri={photos[1]} onClick={press(1)} aspectRatio={ratios[1]} />
+          <Cell uri={photos[0]} onClick={press(0)} />
+          <Cell uri={photos[1]} onClick={press(1)} />
         </Row>
       </div>
     );
@@ -240,22 +203,18 @@ export function NaturalPhotoStack({
         className={["ui-stack ", classes.stackCol].filter(Boolean).join(" ")}
       >
         <Row>
-          <Cell uri={photos[0]} onClick={press(0)} aspectRatio={ratios[0]} />
-          <Cell uri={photos[1]} onClick={press(1)} aspectRatio={ratios[1]} />
-          <Cell uri={photos[2]} onClick={press(2)} aspectRatio={ratios[2]} />
+          <Cell uri={photos[0]} onClick={press(0)} />
+          <Cell uri={photos[1]} onClick={press(1)} />
+          <Cell uri={photos[2]} onClick={press(2)} />
         </Row>
       </div>
     );
   }
   if (photos.length === 4) {
-    return (
-      <PhotoGrid photos={photos} press={press} columns={2} ratios={ratios} />
-    );
+    return <PhotoGrid photos={photos} press={press} columns={2} />;
   }
   if (photos.length <= 6) {
-    return (
-      <PhotoGrid photos={photos} press={press} columns={3} ratios={ratios} />
-    );
+    return <PhotoGrid photos={photos} press={press} columns={3} />;
   }
   if (photos.length === 7) {
     return (
@@ -263,15 +222,15 @@ export function NaturalPhotoStack({
         className={["ui-stack ", classes.stackCol].filter(Boolean).join(" ")}
       >
         <Row>
-          <Cell uri={photos[0]} onClick={press(0)} aspectRatio={ratios[0]} />
-          <Cell uri={photos[1]} onClick={press(1)} aspectRatio={ratios[1]} />
-          <Cell uri={photos[2]} onClick={press(2)} aspectRatio={ratios[2]} />
+          <Cell uri={photos[0]} onClick={press(0)} />
+          <Cell uri={photos[1]} onClick={press(1)} />
+          <Cell uri={photos[2]} onClick={press(2)} />
         </Row>
         <Row>
-          <Cell uri={photos[3]} onClick={press(3)} aspectRatio={ratios[3]} />
-          <Cell uri={photos[4]} onClick={press(4)} aspectRatio={ratios[4]} />
-          <Cell uri={photos[5]} onClick={press(5)} aspectRatio={ratios[5]} />
-          <Cell uri={photos[6]} onClick={press(6)} aspectRatio={ratios[6]} />
+          <Cell uri={photos[3]} onClick={press(3)} />
+          <Cell uri={photos[4]} onClick={press(4)} />
+          <Cell uri={photos[5]} onClick={press(5)} />
+          <Cell uri={photos[6]} onClick={press(6)} />
         </Row>
       </div>
     );
@@ -282,21 +241,19 @@ export function NaturalPhotoStack({
         className={["ui-stack ", classes.stackCol].filter(Boolean).join(" ")}
       >
         <Row>
-          <Cell uri={photos[0]} onClick={press(0)} aspectRatio={ratios[0]} />
-          <Cell uri={photos[1]} onClick={press(1)} aspectRatio={ratios[1]} />
-          <Cell uri={photos[2]} onClick={press(2)} aspectRatio={ratios[2]} />
-          <Cell uri={photos[3]} onClick={press(3)} aspectRatio={ratios[3]} />
+          <Cell uri={photos[0]} onClick={press(0)} />
+          <Cell uri={photos[1]} onClick={press(1)} />
+          <Cell uri={photos[2]} onClick={press(2)} />
+          <Cell uri={photos[3]} onClick={press(3)} />
         </Row>
         <Row>
-          <Cell uri={photos[4]} onClick={press(4)} aspectRatio={ratios[4]} />
-          <Cell uri={photos[5]} onClick={press(5)} aspectRatio={ratios[5]} />
-          <Cell uri={photos[6]} onClick={press(6)} aspectRatio={ratios[6]} />
-          <Cell uri={photos[7]} onClick={press(7)} aspectRatio={ratios[7]} />
+          <Cell uri={photos[4]} onClick={press(4)} />
+          <Cell uri={photos[5]} onClick={press(5)} />
+          <Cell uri={photos[6]} onClick={press(6)} />
+          <Cell uri={photos[7]} onClick={press(7)} />
         </Row>
       </div>
     );
   }
-  return (
-    <PhotoGrid photos={photos} press={press} columns={3} ratios={ratios} />
-  );
+  return <PhotoGrid photos={photos} press={press} columns={3} />;
 }
