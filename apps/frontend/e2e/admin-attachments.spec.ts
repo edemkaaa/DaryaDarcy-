@@ -60,6 +60,11 @@ async function open(
   editing = false,
 ) {
   await gotoWithSession(page, mode === "full" ? "/admin" : "/feed");
+  if (mode === "quick" && editing)
+    await page
+      .getByRole("button", { name: "Действия с постом", exact: true })
+      .first()
+      .click();
   await page
     .getByRole("button", {
       name: editing
@@ -136,7 +141,11 @@ test("removing and adding attachments commits once and the reopened editor reads
     if (name === "admin.posts") return ok([current]);
     if (name === "admin.uploadMedia") {
       writes.push({ name, input });
-      return ok({ url: "https://example.test/new.pdf" });
+      return ok({
+        url: "https://example.test/new.pdf",
+        mimeType: "application/pdf",
+        fileSize: 18,
+      });
     }
     if (name === "admin.updatePost") {
       writes.push({ name, input });
@@ -205,7 +214,11 @@ test("an attachment-only full post previews filenames at mobile and desktop widt
   await api(page, (name, input) => {
     if (name === "admin.uploadMedia") {
       writes.push({ name, input });
-      return ok({ url: `https://example.test/${input.filename}` });
+      return ok({
+        url: `https://example.test/${input.filename}`,
+        mimeType: input.mimeType,
+        fileSize: 18,
+      });
     }
     if (name === "admin.createPost") writes.push({ name, input });
   });
@@ -278,7 +291,11 @@ test("partial upload failure retains files and reuses the confirmed upload on ex
       writes.push({ name, input });
       return input.filename === "second.mp3" && fail
         ? failure()
-        : ok({ url: `https://example.test/${input.filename}` });
+        : ok({
+            url: `https://example.test/${input.filename}`,
+            mimeType: input.mimeType,
+            fileSize: 18,
+          });
     }
     if (name === "admin.updatePost") writes.push({ name, input });
   });
@@ -326,7 +343,11 @@ test("an unconfirmed full editor write is not repeated and keeps the attachment"
     if (name === "admin.posts") return ok([post()]);
     if (name === "admin.uploadMedia") {
       writes.push({ name, input });
-      return ok({ url: "https://example.test/new.mp3" });
+      return ok({
+        url: "https://example.test/new.mp3",
+        mimeType: "audio/mpeg",
+        fileSize: 18,
+      });
     }
     if (name === "admin.updatePost") {
       writes.push({ name, input });
@@ -361,7 +382,11 @@ test("closing during upload ignores a late result and resets attachments and pre
     if (name === "admin.uploadMedia") {
       uploads++;
       await held;
-      return ok({ url: "https://example.test/late.mp3" });
+      return ok({
+        url: "https://example.test/late.mp3",
+        mimeType: "audio/mpeg",
+        fileSize: 18,
+      });
     }
     if (name === "admin.createPost") creates.push(input.text);
   });
@@ -464,7 +489,11 @@ for (const mode of ["full", "quick"] as const) {
     await api(page, (name, input) => {
       if (name === "admin.uploadMedia") {
         uploads.push(input);
-        return ok({ url: `https://example.test/${input.filename}` });
+        return ok({
+          url: `https://example.test/${input.filename}`,
+          mimeType: input.mimeType,
+          fileSize: 18,
+        });
       }
     });
     const form = await open(page, mode);
@@ -512,5 +541,118 @@ for (const mode of ["full", "quick"] as const) {
         type: "document",
       }),
     ]);
+  });
+}
+
+for (const mode of ["full", "quick"] as const) {
+  for (const editing of [false, true]) {
+    test(`${mode} ${editing ? "update" : "create"} saves server MIME and size after an explicit retry`, async ({
+      page,
+    }) => {
+      let uploads = 0;
+      let fail = true;
+      const writes: Record<string, unknown>[] = [];
+      await api(page, (name, input) => {
+        if (name === "admin.posts") return ok([post()]);
+        if (name === "feed.listPaginated")
+          return ok({ posts: [post()], nextCursor: null });
+        if (name === "admin.uploadMedia") {
+          uploads++;
+          return ok(
+            input.type === "audio"
+              ? {
+                  url: "https://example.test/opaque-audio",
+                  mimeType: "audio/wav",
+                  fileSize: 46,
+                }
+              : {
+                  url: "https://example.test/opaque-document",
+                  mimeType: "text/plain; charset=utf-8",
+                  fileSize: 123,
+                },
+          );
+        }
+        if (name === (editing ? "admin.updatePost" : "admin.createPost")) {
+          writes.push(input);
+          return fail ? failure() : editing ? ok({ success: true }) : ok(42);
+        }
+      });
+      const messages = alerts(page);
+      const form = await open(page, mode, editing);
+      await form
+        .getByPlaceholder("Текст поста… Enter — новый абзац")
+        .fill("SERVER_METADATA");
+      await choose(page, form, "Аудио", "claimed.mp3", "audio/mpeg");
+      await choose(
+        page,
+        form,
+        "Документ",
+        "notes.txt",
+        "application/octet-stream",
+      );
+      const save = form
+        .getByRole("button", {
+          name: editing || mode === "full" ? "Сохранить" : "Опубликовать",
+          exact: true,
+        })
+        .first();
+      await save.click();
+      await expect.poll(() => messages.length).toBe(1);
+      fail = false;
+      await save.click();
+      await expect(form).toHaveCount(0);
+      expect(uploads).toBe(2);
+      expect(writes).toHaveLength(2);
+      for (const input of writes) {
+        expect(input.attachments).toEqual([
+          {
+            type: "audio",
+            filename: "claimed.mp3",
+            url: "https://example.test/opaque-audio",
+            mimeType: "audio/wav",
+            fileSize: 46,
+          },
+          {
+            type: "document",
+            filename: "notes.txt",
+            url: "https://example.test/opaque-document",
+            mimeType: "text/plain; charset=utf-8",
+            fileSize: 123,
+          },
+        ]);
+      }
+    });
+  }
+  test(`${mode} incomplete upload confirmation blocks saving and automatic replay`, async ({
+    page,
+  }) => {
+    let uploads = 0;
+    let saves = 0;
+    await api(page, (name) => {
+      if (name === "admin.uploadMedia") {
+        uploads++;
+        return ok({ url: "https://example.test/incomplete" });
+      }
+      if (name === "admin.createPost" || name === "admin.updatePost") saves++;
+    });
+    const messages = alerts(page);
+    const form = await open(page, mode);
+    await form
+      .getByPlaceholder("Текст поста… Enter — новый абзац")
+      .fill("INCOMPLETE_METADATA");
+    await choose(page, form, "Аудио", "claimed.mp3", "audio/mpeg");
+    const save = form
+      .getByRole("button", {
+        name: mode === "full" ? "Сохранить" : "Опубликовать",
+        exact: true,
+      })
+      .first();
+    await save.click();
+    await expect.poll(() => messages.length).toBe(1);
+    await save.click();
+    await expect.poll(() => messages.length).toBe(2);
+    expect(uploads).toBe(1);
+    expect(saves).toBe(0);
+    await expect(form).toBeVisible();
   });
 }

@@ -3,7 +3,7 @@ import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { getHttpStatus } from "@/shared/api/errors";
 import { attachmentBase64 } from "@/shared/media/read-attachment";
 import { validateFileSize } from "@/shared/browser/file-operations";
-import { requireUploadedUrl } from "@/shared/media/upload-result";
+import { requireUploadedMedia } from "@/shared/media/upload-result";
 import type { ApiInputs } from "@/shared/api/types";
 
 type Payload = ReturnType<typeof serializePostDraft>;
@@ -101,11 +101,9 @@ export class PostSaveCoordinator {
           operation.signal,
         );
         this.uploaded.set(attachment, {
-          url: requireUploadedUrl(result),
+          ...requireUploadedMedia(result),
           filename: attachment.name,
-          mimeType: attachment.mimeType,
           type: attachment.type,
-          fileSize: attachment.file.size,
         });
         writing = false;
         operation.assertCurrent();

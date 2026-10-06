@@ -32,6 +32,8 @@ const api = {
   })),
   upload: vi.fn(async (_input: object, _signal: AbortSignal) => ({
     url: "https://example.test/audio.mp3",
+    mimeType: "audio/mpeg",
+    fileSize: 5,
   })),
   remove: vi.fn(async (_id: number, _signal: AbortSignal) => undefined),
 };
@@ -39,13 +41,21 @@ beforeEach(() => {
   vi.resetAllMocks();
   api.create.mockResolvedValue(42);
   api.update.mockResolvedValue({ success: true });
-  api.upload.mockResolvedValue({ url: "https://example.test/audio.mp3" });
+  api.upload.mockResolvedValue({
+    url: "https://example.test/audio.mp3",
+    mimeType: "audio/mpeg",
+    fileSize: 5,
+  });
 });
 it("uploads before creating one complete published post", async () => {
   const order: string[] = [];
   api.upload.mockImplementationOnce(async () => {
     order.push("upload");
-    return { url: "https://example.test/audio.mp3" };
+    return {
+      url: "https://example.test/audio.mp3",
+      mimeType: "audio/mpeg",
+      fileSize: 5,
+    };
   });
   api.create.mockImplementationOnce(async () => {
     order.push("create");
@@ -80,7 +90,11 @@ it.each([null, 42])(
     const coordinator = new PostSaveCoordinator(id);
     const files = [attachment(), attachment()];
     api.upload
-      .mockResolvedValueOnce({ url: "https://example.test/first.mp3" })
+      .mockResolvedValueOnce({
+        url: "https://example.test/first.mp3",
+        mimeType: "audio/mpeg",
+        fileSize: 5,
+      })
       .mockRejectedValueOnce(new ApiError("Файл отклонён", 413));
     await expect(
       coordinator.save(payload, files, [9], api, scope()),
@@ -95,8 +109,16 @@ it.each([null, 42])(
     expect(saved).toMatchObject({
       status: "published",
       attachments: [
-        { url: "https://example.test/first.mp3" },
-        { url: "https://example.test/audio.mp3" },
+        {
+          url: "https://example.test/first.mp3",
+          mimeType: "audio/mpeg",
+          fileSize: 5,
+        },
+        {
+          url: "https://example.test/audio.mp3",
+          mimeType: "audio/mpeg",
+          fileSize: 5,
+        },
       ],
     });
   },
@@ -116,7 +138,11 @@ it("cancelling after upload cannot commit a post", async () => {
   const task = local.begin("save", new AbortController().signal, () => true)!;
   api.upload.mockImplementationOnce(async () => {
     local.cancel();
-    return { url: "https://example.test/audio.mp3" };
+    return {
+      url: "https://example.test/audio.mp3",
+      mimeType: "audio/mpeg",
+      fileSize: 5,
+    };
   });
   await expect(
     new PostSaveCoordinator(42).save(payload, [attachment()], [9], api, task),

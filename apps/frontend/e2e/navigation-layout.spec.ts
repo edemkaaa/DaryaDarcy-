@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { layoutApi } from "./layout-fixtures";
+import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
 const headerSelector = 'header[aria-label="Навигация профиля"]';
 const tabsSelector = 'nav[aria-label="Разделы"]';
@@ -89,7 +89,7 @@ test("subscriber club hides the main tabs and keeps a route to the profile", asy
   page,
 }) => {
   await layoutApi(page, true);
-  await page.goto("/club");
+  await gotoWithSession(page, "/club");
   const header = page.locator(headerSelector);
   await expect(header).toBeVisible();
   await expect(page.locator(tabsSelector)).toHaveCount(0);

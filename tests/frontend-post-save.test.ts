@@ -37,6 +37,8 @@ beforeEach(() => {
     upload: vi.fn(async () => ({
       url: "https://example.test/audio.mp3",
       mediaId: 9,
+      mimeType: "audio/mpeg",
+      fileSize: 5,
     })),
   };
 });
@@ -48,7 +50,12 @@ it("keeps a post unpublished until all attachments are confirmed", async () => {
   });
   api.upload.mockImplementation(async () => {
     order.push("upload");
-    return { url: "https://example.test/audio.mp3", mediaId: 9 };
+    return {
+      url: "https://example.test/audio.mp3",
+      mediaId: 9,
+      mimeType: "audio/mpeg",
+      fileSize: 5,
+    };
   });
   api.update.mockImplementation(async (_id, input) => {
     order.push(`update:${input.status}`);
@@ -90,6 +97,8 @@ it("an explicit upload rejection cannot create a partial post; retry reuses conf
     .mockResolvedValueOnce({
       url: "https://example.test/first.mp3",
       mediaId: 7,
+      mimeType: "audio/mpeg",
+      fileSize: 5,
     })
     .mockRejectedValueOnce(new ApiError("Файл отклонён", 413));
   await expect(
@@ -156,3 +165,144 @@ it("existing media removal is explicit and completes before publication", async 
   expect(order).toEqual(["published"]);
   expect(api.update.mock.calls[0][1]).toMatchObject({ removedMediaIds: [9] });
 });
+
+it.each([null, 42])(
+  "post %s uses canonical server metadata for audio and documents",
+  async (id) => {
+    const audio = attachment();
+    const document = {
+      type: "document" as const,
+      file: new File(["local"], "notes.txt", {
+        type: "application/octet-stream",
+      }),
+      name: "notes.txt",
+      mimeType: "application/octet-stream",
+    };
+    api.upload
+      .mockResolvedValueOnce({
+        url: "https://example.test/opaque-audio",
+        mimeType: "audio/wav",
+        fileSize: 46,
+      })
+      .mockResolvedValueOnce({
+        url: "https://example.test/opaque-document",
+        mimeType: "text/plain; charset=utf-8",
+        fileSize: 123,
+      });
+    await new PostSaveCoordinator(id).save(
+      payload,
+      [audio, document],
+      [],
+      api,
+      scope(),
+    );
+    const saved =
+      id === null ? api.create.mock.calls[0][0] : api.update.mock.calls[0][1];
+    expect(saved.attachments).toEqual([
+      {
+        type: "audio",
+        filename: "test.mp3",
+        url: "https://example.test/opaque-audio",
+        mimeType: "audio/wav",
+        fileSize: 46,
+      },
+      {
+        type: "document",
+        filename: "notes.txt",
+        url: "https://example.test/opaque-document",
+        mimeType: "text/plain; charset=utf-8",
+        fileSize: 123,
+      },
+    ]);
+  },
+);
+
+it.each([null, 42])(
+  "post %s retains canonical metadata on an explicit save retry",
+  async (id) => {
+    const coordinator = new PostSaveCoordinator(id);
+    const files = [attachment(), attachment()];
+    api.upload
+      .mockResolvedValueOnce({
+        url: "https://example.test/removed",
+        mimeType: "audio/wav",
+        fileSize: 46,
+      })
+      .mockResolvedValueOnce({
+        url: "https://example.test/retained",
+        mimeType: "audio/wav",
+        fileSize: 99,
+      });
+    const write = id === null ? api.create : api.update;
+    write.mockRejectedValueOnce(new ApiError("Сохранение отклонено", 400));
+    await expect(
+      coordinator.save(payload, files, [], api, scope()),
+    ).rejects.toMatchObject({ uncertain: false });
+    await coordinator.save(payload, [files[1]], [], api, scope());
+    expect(api.upload).toHaveBeenCalledTimes(2);
+    const saved =
+      id === null ? api.create.mock.calls[1][0] : api.update.mock.calls[1][1];
+    expect(saved.attachments).toEqual([
+      {
+        type: "audio",
+        filename: "test.mp3",
+        url: "https://example.test/retained",
+        mimeType: "audio/wav",
+        fileSize: 99,
+      },
+    ]);
+  },
+);
+
+const confirmed = {
+  url: "https://example.test/opaque",
+  mimeType: "audio/wav",
+  fileSize: 46,
+};
+const malformedUploads: unknown[] = [
+  null,
+  {},
+  { url: confirmed.url },
+  { ...confirmed, url: "javascript:alert(1)" },
+  { ...confirmed, url: "https://user:password@example.test/file" },
+  ...[
+    undefined,
+    null,
+    "",
+    "  ",
+    "a".repeat(129),
+    "audio/wav\n",
+    "audio/\u007fwav",
+    42,
+  ].map((mimeType) => ({ ...confirmed, mimeType })),
+  ...[
+    undefined,
+    null,
+    "46",
+    0,
+    -1,
+    1.5,
+    NaN,
+    Infinity,
+    Number.MAX_SAFE_INTEGER + 1,
+  ].map((fileSize) => ({ ...confirmed, fileSize })),
+];
+for (const id of [null, 42]) {
+  it.each(malformedUploads.map((result, index) => ({ result, index })))(
+    `post ${id} rejects malformed upload $index without replaying writes`,
+    async ({ result }) => {
+      const coordinator = new PostSaveCoordinator(id);
+      const file = attachment();
+      api.upload.mockResolvedValueOnce(result);
+      await expect(
+        coordinator.save(payload, [file], [], api, scope()),
+      ).rejects.toMatchObject({ uncertain: true });
+      await expect(
+        coordinator.save(payload, [file], [], api, scope()),
+      ).rejects.toMatchObject({ uncertain: true });
+      expect(api.upload).toHaveBeenCalledTimes(1);
+      expect(api.create).not.toHaveBeenCalled();
+      expect(api.update).not.toHaveBeenCalled();
+    },
+  );
+}

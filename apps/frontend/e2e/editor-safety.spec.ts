@@ -62,7 +62,12 @@ test("audio upload rejection leaves the post untouched and retry commits it once
     if (name === "admin.uploadMedia")
       return failUpload
         ? failure()
-        : ok({ url: "https://example.test/audio.mp3", mediaId: 7 });
+        : ok({
+            url: "https://example.test/audio.mp3",
+            mediaId: 7,
+            mimeType: "audio/mpeg",
+            fileSize: 18,
+          });
   });
   await openQuickEditor(page);
   await page
@@ -272,7 +277,11 @@ test("a rejected attachment upload cannot unpublish an existing post; retry save
     if (name === "admin.uploadMedia")
       return failUpload
         ? failure()
-        : ok({ url: "https://example.test/audio.mp3" });
+        : ok({
+            url: "https://example.test/audio.mp3",
+            mimeType: "audio/mpeg",
+            fileSize: 18,
+          });
     if (name === "admin.updatePost") {
       edits.push(input);
       return ok({ success: true });
