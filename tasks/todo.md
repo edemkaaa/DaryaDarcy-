@@ -661,6 +661,12 @@
       idempotency and teaser visibility/update policy remain separate tasks.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
   remains separate from local tests, no TypeORM/data-model rewrite.
+  - [x] Club checkout: Nest-managed service and explicit router composition;
+    2 expected RED failures, 76 focused pass and 723 non-MySQL pass / 4 skip.
+    Real HTTP and compiled ESM verified; deliberate hidden-instance wiring
+    mutation fails the HTTP assertion. Types/build/lint/API/boundaries pass;
+    no frontend, dependencies, SQL/schema, provider, push or deploy changes.
+  - [ ] Subscription reads, read-only claimPending and cancellation use case.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
 - [ ] M08: Specify/migrate remaining API services, remove superseded adapters and
   decompose db.ts without changing contracts. Review every module separately.

@@ -1717,3 +1717,42 @@ Quotes use ink on translucent paper, 44px controls, visible focus, native scroll
 and reduced-motion support. No dependency, tracking, raw HTML or remote data load
 added. Existing screenshot-only style rules are retained for separate cleanup;
 no unrelated deletion. Preview captures are outside Git. No push or deployment.
+
+## 2026-10-07 — M06: club checkout service boundary
+
+First billing migration slice: move the existing `club.createCheckout` use case
+into a Nest-managed `ClubCheckoutService`, exported from `BillingModule` and
+injected through TrpcService/router composition. The standalone router uses the
+same implementation without starting Nest, listeners or workers.
+
+Preserve input validation, actor/email matching, block checks, provider
+configuration-before-writes, UUID orders, plan price snapshots and `{ url,
+user: null }`. No checkout session, entitlement, external provider request,
+schema/SQL/helper/dependency/frontend change. Checkout retries remain separate
+orders; this slice does not add client idempotency or alter payment settlement.
+
+Acceptance: router composition honors its supplied checkout service, not a
+hidden global instance; real Nest HTTP resolves the same provider. Existing
+checkout/config/signature tests must remain green. Verify public contract,
+types/build, full non-MySQL suite and compiled ESM checkout fail-closed smoke.
+Record SQL/provider coverage honestly: no MySQL or Prodamus sandbox acceptance
+is claimed by this adapter-only slice. Cancellation, subscription reads,
+webhook wiring and worker lifecycle remain later M06/M07 increments.
+
+Verified: two composition regressions failed on the inline implementation;
+76 focused cases pass after extraction. Real HTTP uses the application-scoped
+provider; replacing it with a hidden new instance deliberately fails that test,
+then passes after restoration. Compiled ESM preserves the injected boundary and
+returns PRECONDITION_FAILED/412 with missing provider configuration, without
+SQL/provider access. Full non-MySQL run: 723 pass / 4 skip. Types, lint, backend
+build, unchanged 72-procedure/25461-byte API and 470-file boundaries pass.
+The initial root pnpm test invocation rejected its exclude option before running
+tests; the same configured Vitest suite was then run directly with that exclusion.
+
+Five-axis review: one implementation for standalone and Nest callers; no service
+locator or optional fallback. Order/auth/config/error semantics retained, no new
+DB query or external effect, no pricing/account fields exposed. SQL transaction
+helpers and webhook/cancellation remain unchanged, so this does not claim real
+MySQL or provider sandbox acceptance. No new dependency, frontend/type-generation
+edit, scheduled job, remote push, deployment or migration. Next slice is the
+existing subscription read/claim/cancel use case, not new subscription behavior.

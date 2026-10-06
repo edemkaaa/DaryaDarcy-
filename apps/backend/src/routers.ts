@@ -15,6 +15,7 @@ import { createClubRouter } from "./club/router";
 import { ContentCommentService } from "./content/content-comment.service";
 import { ContentUploadService } from "./content/content-upload.service";
 import { moderationRouter } from "./moderation/router";
+import { ClubCheckoutService } from "./billing/club-checkout.service";
 
 /** Composition only: input validation, authorization and behavior live in domains. */
 export const createAppRouter = (
@@ -22,6 +23,7 @@ export const createAppRouter = (
   posts: ContentWriteService,
   comments: ContentCommentService,
   uploads: ContentUploadService,
+  checkout: ClubCheckoutService,
 ) =>
   router({
     system: systemRouter,
@@ -31,7 +33,7 @@ export const createAppRouter = (
     notifications: notificationsRouter,
     videos: createVideosRouter(content),
     admin: createAdminRouter(content, posts, uploads),
-    club: createClubRouter(comments),
+    club: createClubRouter(comments, checkout),
     penPals: penPalsRouter,
     shop: shopRouter,
     moderation: moderationRouter,
@@ -46,6 +48,7 @@ export const appRouter = createAppRouter(
   new ContentWriteService(),
   new ContentCommentService(),
   new ContentUploadService(),
+  new ClubCheckoutService(),
 );
 
 export type AppRouter = typeof appRouter;

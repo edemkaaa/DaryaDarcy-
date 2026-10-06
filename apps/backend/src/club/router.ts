@@ -1,5 +1,4 @@
 import { TRPCError } from "@trpc/server";
-import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
   router,
@@ -7,21 +6,21 @@ import {
   protectedProcedure,
   clubMemberProcedure,
 } from "../_core/trpc";
-import { isValidEmail, normalizeEmail } from "../_core/password";
 import * as db from "../db";
 import type { ContentCommentService } from "../content/content-comment.service";
 import { addCommentInput } from "../content/comment-input";
 import { photoInput, uploadPhoto } from "../media/photos";
 import {
-  assertClubCheckoutConfigured,
-  buildCheckoutUrl,
   cancelProdamusSubscription,
   CLUB_PRICE,
-  CLUB_SEMIANNUAL_PRICE,
 } from "../prodamus";
 import { requestClubCancellation } from "../billing/cancellation";
+import type { ClubCheckoutService } from "../billing/club-checkout.service";
 
-export const createClubRouter = (comments: ContentCommentService) =>
+export const createClubRouter = (
+  comments: ContentCommentService,
+  checkout: ClubCheckoutService,
+) =>
   router({
     list: clubMemberProcedure
       .input(
@@ -69,49 +68,7 @@ export const createClubRouter = (comments: ContentCommentService) =>
           })
           .optional(),
       )
-      .mutation(async ({ ctx, input }) => {
-        const email = normalizeEmail(input?.email || ctx.user?.email || "");
-        if (!isValidEmail(email)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Укажите почту для оплаты",
-          });
-        }
-        if (ctx.user && email !== normalizeEmail(ctx.user.email || "")) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Используйте почту своего аккаунта",
-          });
-        }
-        const existing = await db.getUserByEmail(email);
-        if (ctx.user?.blockedAt || existing?.blockedAt) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Не удалось создать платёж. Обратитесь в поддержку.",
-          });
-        }
-        const plan = input?.plan ?? "monthly";
-        assertClubCheckoutConfigured(plan);
-        // A billing recipient is not an authenticated identity. Never issue a
-        // session or expose account details merely because an email was supplied.
-        const user =
-          ctx.user || existing || (await db.ensureUserByEmail(email));
-        const orderId =
-          plan === "semiannual"
-            ? `club6m-${user.id}-${randomUUID()}`
-            : `club-${user.id}-${randomUUID()}`;
-        const url = buildCheckoutUrl({ orderId, email, userId: user.id, plan });
-        await db.createClubPayment({
-          userId: user.id,
-          orderId,
-          email,
-          sum: plan === "semiannual" ? CLUB_SEMIANNUAL_PRICE : CLUB_PRICE,
-        });
-        return {
-          url,
-          user: null,
-        };
-      }),
+      .mutation(({ ctx, input }) => checkout.createCheckout(ctx.user, input)),
     claimPending: protectedProcedure.mutation(async ({ ctx }) => {
       const already = await db.getActiveClubSubscription(ctx.user.id);
       if (already) {

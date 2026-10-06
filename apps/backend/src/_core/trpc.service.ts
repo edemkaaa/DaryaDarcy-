@@ -5,6 +5,7 @@ import { ContentWriteService } from "../content/content-write.service";
 import { ContentCommentService } from "../content/content-comment.service";
 import { ContentUploadService } from "../content/content-upload.service";
 import { SessionService } from "../identity/session.service";
+import { ClubCheckoutService } from "../billing/club-checkout.service";
 import { createAppRouter, type AppRouter } from "../routers";
 import type { TrpcContext } from "./context";
 
@@ -18,9 +19,10 @@ export class TrpcService {
     @Inject(ContentWriteService) posts: ContentWriteService,
     @Inject(ContentCommentService) comments: ContentCommentService,
     @Inject(ContentUploadService) uploads: ContentUploadService,
+    @Inject(ClubCheckoutService) checkout: ClubCheckoutService,
     @Inject(SessionService) private readonly sessions: SessionService,
   ) {
-    this.router = createAppRouter(content, posts, comments, uploads);
+    this.router = createAppRouter(content, posts, comments, uploads, checkout);
   }
 
   readonly createContext = async (

@@ -1,10 +1,11 @@
 import { Module } from "@nestjs/common";
 import { ContentModule } from "../content/content.module";
 import { IdentityModule } from "../identity/identity.module";
+import { BillingModule } from "../billing/billing.module";
 import { TrpcService } from "./trpc.service";
 
 @Module({
-  imports: [ContentModule, IdentityModule],
+  imports: [ContentModule, IdentityModule, BillingModule],
   providers: [TrpcService],
   exports: [TrpcService],
 })

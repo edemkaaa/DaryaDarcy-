@@ -1,0 +1,63 @@
+import { Injectable } from "@nestjs/common";
+import { TRPCError } from "@trpc/server";
+import { randomUUID } from "node:crypto";
+import type { User } from "../../../../packages/database/src/schema";
+import { isValidEmail, normalizeEmail } from "../_core/password";
+import * as db from "../db";
+import {
+  assertClubCheckoutConfigured,
+  buildCheckoutUrl,
+  CLUB_PRICE,
+  CLUB_SEMIANNUAL_PRICE,
+} from "../prodamus";
+
+export type ClubCheckoutInput = {
+  email?: string;
+  plan?: "monthly" | "semiannual";
+};
+
+/** Creates a billing intent, never a session or a paid entitlement. */
+@Injectable()
+export class ClubCheckoutService {
+  async createCheckout(
+    actor: User | null,
+    input?: ClubCheckoutInput,
+  ): Promise<{ url: string; user: null }> {
+    const email = normalizeEmail(input?.email || actor?.email || "");
+    if (!isValidEmail(email)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Укажите почту для оплаты",
+      });
+    }
+    if (actor && email !== normalizeEmail(actor.email || "")) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Используйте почту своего аккаунта",
+      });
+    }
+    const existing = await db.getUserByEmail(email);
+    if (actor?.blockedAt || existing?.blockedAt) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Не удалось создать платёж. Обратитесь в поддержку.",
+      });
+    }
+    const plan = input?.plan ?? "monthly";
+    assertClubCheckoutConfigured(plan);
+    // An email names the billing recipient, not a proven authenticated identity.
+    const user = actor || existing || (await db.ensureUserByEmail(email));
+    const orderId =
+      plan === "semiannual"
+        ? `club6m-${user.id}-${randomUUID()}`
+        : `club-${user.id}-${randomUUID()}`;
+    const url = buildCheckoutUrl({ orderId, email, userId: user.id, plan });
+    await db.createClubPayment({
+      userId: user.id,
+      orderId,
+      email,
+      sum: plan === "semiannual" ? CLUB_SEMIANNUAL_PRICE : CLUB_PRICE,
+    });
+    return { url, user: null };
+  }
+}
