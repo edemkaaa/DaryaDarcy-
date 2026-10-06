@@ -1,7 +1,8 @@
 "use client";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { MaterialIcons } from "./icons";
+import { parentRoute } from "@/shared/navigation/parent-route";
+import { BottomTabIcon } from "./bottom-tab-icon";
 import styles from "./bottom-tabs.module.scss";
 
 const tabs = [
@@ -13,26 +14,53 @@ const tabs = [
   ["/shop", "Магазин", "shopping-bag"],
 ] as const;
 
+function TabContents({
+  label,
+  icon,
+}: {
+  label: string;
+  icon: (typeof tabs)[number][2];
+}) {
+  const { pending } = useLinkStatus();
+  return (
+    <>
+      <BottomTabIcon name={icon} className={styles.icon} />
+      <span className={styles.label} aria-busy={pending}>
+        {label}
+      </span>
+      <span
+        className={styles.pendingIndicator}
+        data-pending={pending}
+        role={pending ? "status" : undefined}
+        aria-live="polite"
+      >
+        <span className={styles.pendingText}>
+          {pending ? `Открывается раздел «${label}»` : ""}
+        </span>
+      </span>
+    </>
+  );
+}
+
 export function BottomTabs() {
   const path = usePathname();
+  const section =
+    path.startsWith("/post/") || path.startsWith("/video/") || path === "/quiz"
+      ? parentRoute(path)
+      : path;
   return (
     <nav className={styles.tabs} aria-label="Разделы">
       {tabs.map(([href, label, icon]) => {
-        const active = path === href || path.startsWith(href + "/");
+        const active = section === href || section.startsWith(href + "/");
         return (
           <Link
             href={href}
             key={href}
+            aria-label={label}
             className={styles.tab}
             aria-current={active ? "page" : undefined}
           >
-            <MaterialIcons
-              name={icon}
-              size={22}
-              color={active ? "#5C4033" : "#8B7355"}
-              style={{ marginBottom: -2 }}
-            />
-            <span className={styles.label}>{label}</span>
+            <TabContents label={label} icon={icon} />
           </Link>
         );
       })}

@@ -1,13 +1,7 @@
 "use client";
 import { useState, type ReactNode } from "react";
-import {
-  QueryClient,
-  QueryClientProvider,
-  QueryCache,
-  MutationCache,
-} from "@tanstack/react-query";
-import { getHttpStatus, shouldRetryQuery } from "@/shared/api/errors";
-import { requestSessionCheck } from "@/shared/api/session-events";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createAppQueryClient } from "@/shared/api/query-client";
 import { trpc, createTRPCClient } from "@/shared/api/trpc";
 import { AuthProvider } from "@/domain/session/session-context";
 import { ClubProvider } from "@/domain/subscription/subscription-context";
@@ -16,37 +10,20 @@ import { InstallGuide } from "@/features/pwa/install-guide";
 import { WebPostAlerts } from "@/features/pwa/web-post-alerts";
 import { ViewportSync } from "@/shared/browser/viewport";
 import { BackgroundCheckNotice } from "@/domain/session/background-check-notice";
+import TabShell from "./tab-shell";
+import { NavigationHistory } from "@/shared/navigation/history";
 export default function Providers({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        queryCache: new QueryCache({
-          onError: (error) => {
-            const status = getHttpStatus(error);
-            if (status === 401 || status === 403) requestSessionCheck(status);
-          },
-        }),
-        mutationCache: new MutationCache({
-          onError: (error) => {
-            const status = getHttpStatus(error);
-            if (status === 401 || status === 403) requestSessionCheck(status);
-          },
-        }),
-        defaultOptions: {
-          queries: { refetchOnWindowFocus: false, retry: shouldRetryQuery },
-          mutations: { retry: false },
-        },
-      }),
-  );
+  const [queryClient] = useState(createAppQueryClient);
   const [client] = useState(createTRPCClient);
   return (
     <ThemeProvider>
       <trpc.Provider client={client} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
+          <NavigationHistory />
           <AuthProvider>
             <ClubProvider>
               <ViewportSync />
-              {children}
+              <TabShell>{children}</TabShell>
               <InstallGuide />
               <WebPostAlerts />
               <BackgroundCheckNotice />

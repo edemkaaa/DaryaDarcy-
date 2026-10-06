@@ -99,6 +99,56 @@ it("initial network failure is a recoverable error, not a confirmed guest", asyn
   });
 });
 
+it.each([
+  new ApiError("offline", 0, undefined, false, "network"),
+  new ApiError("unavailable", 503),
+  new ApiError("invalid", 0, undefined, false, "invalid-response"),
+])(
+  "failed initial session checks preserve public queries: %s",
+  async (error) => {
+    const getMe = vi
+      .fn<() => Promise<AuthUser | null>>()
+      .mockRejectedValue(error);
+    const f = fixture(getMe);
+    const startup = f.controller.refresh();
+    // Public screens load independently while auth/me is still pending.
+    f.cache.setQueryData(["feed"], ["PUBLIC_POST"]);
+    await startup;
+    await f.controller.refresh();
+    const screen = f.controller.getSnapshot();
+    const retry = deferred<AuthUser | null>();
+    getMe.mockReturnValueOnce(retry.promise);
+    const pending = f.controller.refresh();
+    expect(f.controller.getSnapshot()).toBe(screen);
+    expect(screen.status).toBe("error");
+    expect(f.cache.getQueryData(["feed"])).toEqual(["PUBLIC_POST"]);
+    retry.resolve(null);
+    await pending;
+    expect(f.controller.getSnapshot().status).toBe("guest");
+    expect(f.cache.getQueryData(["feed"])).toEqual(["PUBLIC_POST"]);
+    expect(f.resetIdentity).not.toHaveBeenCalled();
+  },
+);
+
+it("repeated initial errors keep public data until a real identity is established", async () => {
+  const getMe = vi
+    .fn<() => Promise<AuthUser | null>>()
+    .mockRejectedValue(new ApiError("unavailable", 503));
+  const f = fixture(getMe);
+  f.cache.setQueryData(["public"], "PUBLIC_DATA");
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await f.controller.refresh();
+    expect(f.controller.getSnapshot().status).toBe("error");
+    expect(f.cache.getQueryData(["public"])).toBe("PUBLIC_DATA");
+  }
+  expect(f.resetIdentity).not.toHaveBeenCalled();
+  getMe.mockResolvedValue(member(1));
+  await f.controller.refresh();
+  expect(f.controller.getSnapshot().status).toBe("authenticated");
+  expect(f.cache.getQueryData(["public"])).toBeUndefined();
+  expect(f.resetIdentity).toHaveBeenCalledExactlyOnceWith(1);
+});
+
 it("logout closes local access immediately and preserves an unconfirmed logout for retry", async () => {
   const request = deferred<void>();
   const f = fixture(

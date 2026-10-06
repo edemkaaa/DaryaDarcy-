@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/shared/navigation/router";
 import classes from "./login-screen.module.scss";
 import {
   Background,

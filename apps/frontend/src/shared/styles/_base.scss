@@ -6,6 +6,8 @@
     overflow: hidden;
   }
   html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     background-color: #cbbba6;
     --safe-area-inset-top: env(safe-area-inset-top, 0px);
     --safe-area-inset-right: env(safe-area-inset-right, 0px);

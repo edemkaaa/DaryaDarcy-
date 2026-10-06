@@ -29,6 +29,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ru">
       <head>
         <link rel="preconnect" href="https://s3.twcstorage.ru" />
+        <link
+          rel="preload"
+          href="/assets/fonts/EBGaramond-Regular.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
       </head>
       <body>
         <div id="root" className="ui-stack ">

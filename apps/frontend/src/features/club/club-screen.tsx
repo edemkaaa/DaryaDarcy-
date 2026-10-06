@@ -1,7 +1,5 @@
 "use client";
 import { useViewport } from "@/shared/browser/viewport";
-import { TabHeader } from "@/shared/ui/tab-header";
-import { CLUB_MUSIC_URL } from "@/shared/styles/tab-assets";
 
 import { getClubScreenLayout } from "./club-screen.layout";
 import classes from "./club-screen.module.scss";
@@ -168,7 +166,6 @@ export default function ClubScreen({
                   className={classes.heroBannerImage}
                 />
               </div>
-              <TabHeader musicUrl={CLUB_MUSIC_URL} />
             </div>
 
             {/* Description */}

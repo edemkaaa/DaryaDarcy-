@@ -50,6 +50,7 @@
   .boardFrame {
     position: absolute;
     top: 4px;
+    max-height: calc(100% - 4px);
     overflow: hidden;
   }
 

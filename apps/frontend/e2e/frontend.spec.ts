@@ -70,9 +70,12 @@ test("registration requests an email instruction and stays signed out", async ({
   await guestApi(page);
   // A pending decorative image must not prevent registration.
   let pendingDecorations = 0;
-  await page.route("https://s3.twcstorage.ru/**", () => {
-    pendingDecorations++;
-  });
+  await page.route(
+    /(?:https:\/\/s3\.twcstorage\.ru\/|\/assets\/responsive\/|\/_next\/static\/media\/).*\.(?:png|jpe?g|webp)(?:\?.*)?$/i,
+    () => {
+      pendingDecorations++;
+    },
+  );
   let body: Record<string, unknown> | undefined;
   await page.route("**/api/auth/register", async (route) => {
     body = route.request().postDataJSON();

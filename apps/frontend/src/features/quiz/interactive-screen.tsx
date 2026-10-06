@@ -1,5 +1,4 @@
 "use client";
-import { TabHeader } from "@/shared/ui/tab-header";
 import classes from "./interactive-screen.module.scss";
 import {
   Background,
@@ -27,7 +26,6 @@ export default function InteractiveScreen() {
         fit="cover"
         className={classes.background}
       >
-        <TabHeader transparent={false} />
         <ScrollArea hideScrollbar contentClassName={classes.scrollContent}>
           {/* Header: key + title + subtitle + ivy */}
           <Animated.div

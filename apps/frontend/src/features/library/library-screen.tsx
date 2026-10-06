@@ -1,5 +1,4 @@
 "use client";
-import { TabHeader } from "@/shared/ui/tab-header";
 import classes from "./library-screen.module.scss";
 import {
   Action,
@@ -222,7 +221,6 @@ export default function LibraryScreen() {
       fit="cover"
       className={classes.container}
     >
-      <TabHeader />
       <ScrollArea hideScrollbar contentClassName={classes.scrollContent}>
         {/* Hero Banner */}
         <div

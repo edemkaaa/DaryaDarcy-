@@ -1,54 +1,68 @@
 "use client";
 import Link from "next/link";
-import { forwardRef } from "react";
 import classes from "./tab-header.module.scss";
-import { MaterialIcons } from "@/shared/ui/icons";
+import { useRouter } from "@/shared/navigation/router";
 import { TabMusicToggle } from "@/shared/ui/tab-music-toggle";
 
-interface TabHeaderProps {
-  transparent?: boolean;
-  musicUrl?: string;
+// Material Icons, Google (Apache-2.0): glyphs/material-icons-LICENSE.txt.
+export function TabHeader({
+  overlay = false,
+  variant = "default",
+  showBack = false,
+  musicUrl,
+}: {
+  overlay?: boolean;
   variant?: "default" | "home" | "shop";
-}
-export const TabHeader = forwardRef<HTMLElement, TabHeaderProps>(
-  function TabHeader(
-    { transparent = true, musicUrl, variant = "default" },
-    ref,
-  ) {
-    const iconColor =
-      variant === "home"
-        ? "rgba(255,255,255,0.9)"
-        : variant === "shop"
-          ? "#FDF8F0"
-          : transparent
-            ? "#FFFFFF"
-            : "#5C4033";
-    return (
-      <header
-        ref={ref}
-        aria-label="Навигация профиля"
-        className={`ui-stack ${classes.header} ${transparent ? classes.overlay : ""} ${variant === "default" ? "" : classes[variant]}`}
-      >
-        <Link
-          href="/"
-          aria-label="На главную"
-          className={`ui-action ${classes.action}`}
-        >
-          <MaterialIcons name="home" size={22} color={iconColor} />
+  showBack?: boolean;
+  musicUrl?: string;
+}) {
+  const router = useRouter();
+  return (
+    <header
+      aria-label="Навигация профиля"
+      className={[
+        classes.header,
+        overlay ? classes.overlay : "",
+        classes[variant],
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <div className={classes.group}>
+        <Link href="/" aria-label="На главную" className={classes.action}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+          </svg>
         </Link>
-        <div className={`ui-stack ${classes.rightGroup}`}>
-          {musicUrl ? (
-            <TabMusicToggle url={musicUrl} iconColor={iconColor} />
-          ) : null}
-          <Link
-            href="/profile"
-            aria-label="Открыть профиль"
-            className={`ui-action ${classes.action}`}
+        {showBack ? (
+          <button
+            type="button"
+            onClick={() => router.back()}
+            aria-label="Вернуться назад"
+            className={classes.action}
           >
-            <MaterialIcons name="person-outline" size={22} color={iconColor} />
-          </Link>
-        </div>
-      </header>
-    );
-  },
-);
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              className={classes.backIcon}
+            >
+              <path d="m14 6-6 6 6 6M8 12h12" />
+            </svg>
+          </button>
+        ) : null}
+      </div>
+      <div className={classes.group}>
+        {musicUrl ? <TabMusicToggle url={musicUrl} /> : null}
+        <Link
+          href="/profile"
+          aria-label="Открыть профиль"
+          className={classes.action}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0-6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 7c-2.67 0-8 1.34-8 4v3h16v-3c0-2.66-5.33-4-8-4zm6 5H6v-1c0-.64 3.13-2 6-2s6 1.36 6 2v1z" />
+          </svg>
+        </Link>
+      </div>
+    </header>
+  );
+}

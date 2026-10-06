@@ -1,7 +1,5 @@
 "use client";
 import { useViewport } from "@/shared/browser/viewport";
-import { useScrollHeader } from "@/shared/browser/use-scroll-header";
-import { TabHeader } from "@/shared/ui/tab-header";
 
 import { getHomeScreenLayout } from "./home-screen.layout";
 import classes from "./home-screen.module.scss";
@@ -160,10 +158,8 @@ export default function HomeScreen({ initialDate }: { initialDate: string }) {
   }));
   // ── Scroll ──
   const scrollY = useSharedValue(0);
-  const { headerRef, onScroll: onHeaderScroll } = useScrollHeader();
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
-      onHeaderScroll(event);
       scrollY.value = event.currentTarget.scrollTop;
     },
   });
@@ -371,7 +367,6 @@ export default function HomeScreen({ initialDate }: { initialDate: string }) {
         fit="cover"
         className={classes.background}
       >
-        <TabHeader ref={headerRef} variant="home" />
         <Animated.ScrollArea
           aria-label="Главная"
           hideScrollbar

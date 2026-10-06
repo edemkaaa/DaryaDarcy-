@@ -71,8 +71,8 @@ export class SessionController {
     const changed = confirmed && this.confirmedIdentity !== nextIdentity;
     if (
       changed ||
-      status === "error" ||
-      status === "checking" ||
+      ((status === "error" || status === "checking") &&
+        this.state.user !== null) ||
       (status === "authenticated" && this.state.status !== "authenticated")
     )
       this.dependencies.resetIdentity(nextId ?? null);
@@ -97,7 +97,9 @@ export class SessionController {
     const task = this.begin();
     this.refreshing = true;
     if (force) this.authenticating = false;
-    if (!background)
+    // Retrying an already closed session must not replace its error screen or
+    // clear public queries. Access is reset only when an identity is lost.
+    if (!background && this.state.status !== "error")
       this.publish({ ...this.state, status: "checking", error: null });
     try {
       const user = await this.dependencies.getMe(task.signal);

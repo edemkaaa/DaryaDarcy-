@@ -129,11 +129,19 @@
     font-family: var(--font-italic);
   }
 
-  .loadingContainer {
-    flex: 1;
-    justify-content: center;
-    align-items: center;
-    padding-top: 40px;
+  .requestContent {
+    flex: 1 0 auto;
+    min-height: 100%;
+  }
+
+  .requestState {
+    flex: 1 0 auto;
+    padding: clamp(8px, 3dvh, 24px) 24px;
+  }
+
+  .refreshError {
+    flex: 0 0 auto;
+    padding: 12px 16px;
   }
 
   .listContent {

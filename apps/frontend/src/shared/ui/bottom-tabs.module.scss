@@ -13,6 +13,7 @@
       center/cover;
   }
   .tab {
+    position: relative;
     display: flex;
     flex: 1;
     min-width: 0;
@@ -22,13 +23,53 @@
     gap: 1px;
     color: var(--muted);
     text-decoration: none;
-    font: 10px "EBGaramond-Regular";
+    font: 10px/13px "EBGaramond-Regular";
     letter-spacing: 0.3px;
   }
   .tab[aria-current] {
     color: var(--brown);
   }
+  .tab:active,
+  .tab:has([aria-busy="true"]) {
+    color: var(--brown);
+    background-color: rgba(92, 64, 51, 0.08);
+  }
+  .pendingIndicator {
+    position: absolute;
+    top: 0;
+    width: 22px;
+    height: 2px;
+    border-radius: 1px;
+    background-color: currentColor;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .pendingIndicator[data-pending="true"] {
+    opacity: 1;
+  }
+  .pendingText {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .icon {
+    display: block;
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    margin-bottom: -2px;
+    fill: currentColor;
+  }
   .label {
+    display: block;
+    width: 100%;
+    height: 13px;
+    flex: 0 0 13px;
+    text-align: center;
+    white-space: nowrap;
     margin-bottom: 4px;
   }
   .tab:focus-visible {

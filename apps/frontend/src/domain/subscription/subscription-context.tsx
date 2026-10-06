@@ -34,7 +34,9 @@ export function ClubProvider({ children }: { children: ReactNode }) {
   const { user, isOwner, invalidateAccess } = useAuth();
   const subscription = trpc.club.subscription.useQuery(undefined, {
     enabled: Boolean(user),
+    staleTime: 0,
     refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     retry: shouldRetryQuery,
   });
   const refetchSubscription = subscription.refetch;

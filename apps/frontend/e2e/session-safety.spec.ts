@@ -476,8 +476,9 @@ test("a temporary session check failure preserves an administrator's unsaved tex
   ).toBeVisible();
   await expect(text).toHaveValue("UNSAVED_TEST_DRAFT");
   offline = false;
-  // Keep the editor's focus trap intact; a return to the window retries the check.
-  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  // Network recovery bypasses paired focus/visibility event suppression and
+  // keeps the editor's focus trap intact.
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
   await expect(
     page.getByText("Не удалось обновить сессию", { exact: false }),
   ).toHaveCount(0);
@@ -770,7 +771,8 @@ test("a 401 during an offline session recheck still closes the profile", async (
     page,
     () => member(1),
     (name) =>
-      name === "feed.savedPosts" && unauthorized ? failure(401) : undefined,
+      // Only access checks refetch on focus; saved content stays cached.
+      name === "club.subscription" && unauthorized ? failure(401) : undefined,
   );
   await gotoWithSession(page, "/profile");
   await expect(

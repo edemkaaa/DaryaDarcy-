@@ -1,7 +1,5 @@
 "use client";
 import { useViewport } from "@/shared/browser/viewport";
-import { TabHeader } from "@/shared/ui/tab-header";
-import { CLUB_MUSIC_URL } from "@/shared/styles/tab-assets";
 
 import { getClubSubscribedLayout } from "./club-subscribed.layout";
 import classes from "./club-subscribed.module.scss";
@@ -405,7 +403,6 @@ export function ClubSubscribed() {
       className={classes.tartanBackground}
     >
       <SafeArea edges={["left", "right"]} className={classes.tartanBackground}>
-        <TabHeader musicUrl={CLUB_MUSIC_URL} />
         {/* Content — banner scrolls with posts, tartan stays fixed behind */}
         <Collection
           ref={listRef}
