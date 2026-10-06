@@ -785,5 +785,8 @@
   complete browser run 232 pass / 3 real-development-API skips; native SQL 149
   pass. Types, lint, both builds, unchanged API, boundaries and docs pass.
   Local generated Next cache removed after screenshot ENOSPC; full rerun passes.
-- [ ] Update isolated test images, preserving the existing database, SMTP proxy
+- [x] Update isolated test images, preserving the existing database, SMTP proxy
   and payment prohibition; verify health/HTTPS and record actual release.
+  API/web 5c4a9cc deployed, five containers healthy, eight HTTPS checks pass;
+  public feed visible. Database counts unchanged; protected backup recorded in
+  operations guide. No remote Git push or staging-branch merge in this rollout.
