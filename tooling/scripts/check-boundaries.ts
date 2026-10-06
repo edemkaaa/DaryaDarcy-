@@ -2,7 +2,7 @@ import ts from "typescript";
 import { builtinModules } from "node:module";
 import { dirname, relative, resolve, sep } from "node:path";
 
-const layers = ["apps/frontend", "apps/backend", "apps/legacy-web", "packages/shared", "packages/database", "infrastructure", "tooling"];
+const layers = ["apps/frontend", "apps/backend", "apps/video-service", "apps/legacy-web", "packages/shared", "packages/database", "infrastructure", "tooling"];
 function layer(path: string) { return layers.find(value => path === value || path.startsWith(`${value}/`)); }
 
 /** Check actual syntax, including export/dynamic import/require, not source grep. */

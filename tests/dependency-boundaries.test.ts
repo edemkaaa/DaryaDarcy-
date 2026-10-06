@@ -15,6 +15,9 @@ describe("enforced workspace dependency direction", () => {
     ["apps/frontend/lib/test.ts", 'import type * as Server from "../../backend/src/routers";'],
     ["apps/legacy-web/src/test.ts", 'import { AppRouter } from "../../backend/src/routers";'],
     ["apps/frontend/app.config.ts", 'import "../../tooling/operations/deploy-web.mjs";'],
+    ["apps/video-service/server.mjs", 'import { getDb } from "../backend/src/db";'],
+    ["apps/video-service/server.mjs", 'import { users } from "../../packages/database/src/schema";'],
+    ["apps/backend/src/test.ts", 'import "../../video-service/main.mjs";'],
   ])("rejects invalid dependency in %s", (file, source) => { expect(check(file, source)).toHaveLength(1); });
   it.each([
     ["apps/frontend/lib/test.ts", 'import { normalizeEmail } from "@shared/email";'],
@@ -25,5 +28,6 @@ describe("enforced workspace dependency direction", () => {
     ["apps/backend/src/test.ts", 'import { readFile } from "node:fs";'],
     ["apps/legacy-web/src/trpc.ts", 'import type { AppRouter } from "../../backend/src/routers";'],
     ["apps/frontend/app.config.ts", 'import "../../tooling/scripts/load-env.js";'],
+    ["apps/video-service/server.mjs", 'import { createServer } from "node:http";'],
   ])("accepts supported dependency in %s", (file, source) => { expect(check(file, source)).toEqual([]); });
 });

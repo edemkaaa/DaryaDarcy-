@@ -1,0 +1,40 @@
+# Opt-in staging-only overlay. Preserve the existing SMTP/local override too.
+services:
+  video:
+    image: ${STAGING_VIDEO_IMAGE:?Set a versioned video-service image}
+    platform: linux/amd64
+    networks: [video-control, video-egress]
+    read_only: true
+    tmpfs:
+      - /cache:size=384m,mode=0700,uid=1000,gid=1000,noexec,nosuid,nodev
+      # The checksum-verified PyInstaller executable unpacks its runtime here.
+      - /tmp:size=96m,mode=1777,exec,nosuid,nodev
+    mem_limit: 640m
+    cpus: 0.75
+    pids_limit: 128
+    init: true
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8082/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "2" }
+  edge:
+    networks: [ingress, isolated, video-control]
+    volumes: ["./edge.video.conf:/etc/nginx/nginx.conf:ro"]
+    depends_on:
+      video: { condition: service_healthy }
+networks:
+  video-control: { internal: true }
+  video-egress: {}

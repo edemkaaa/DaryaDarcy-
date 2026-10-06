@@ -1,0 +1,19 @@
+import { createVideoCache } from "./cache.mjs";
+import { prepareVideo } from "./prepare.mjs";
+import { createVideoServer } from "./server.mjs";
+import { readPublicCatalog, readThumbnail } from "./upstream.mjs";
+
+const cache = await createVideoCache({ root: "/cache", prepare: prepareVideo });
+const server = createVideoServer({
+  cache,
+  readCatalog: (signal) =>
+    readPublicCatalog("http://edge:8080/api/trpc/videos.list", signal),
+  readThumbnail,
+});
+server.listen(8082, "0.0.0.0");
+for (const signal of ["SIGINT", "SIGTERM"])
+  process.once(signal, async () => {
+    const closing = new Promise((resolve) => server.close(resolve));
+    server.closeAllConnections();
+    await Promise.all([closing, cache.close()]);
+  });
