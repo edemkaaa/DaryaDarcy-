@@ -25,6 +25,11 @@ import { trpc } from "@/shared/api/trpc";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
+import { ClubTestimonials } from "./club-testimonials";
+import {
+  COMMUNITY_TESTIMONIALS,
+  CLUB_TESTIMONIALS,
+} from "./club-testimonials.content";
 
 import { useRouter } from "@/shared/navigation/router";
 import {
@@ -36,9 +41,7 @@ import {
   LETTER_CAROUSEL_IMAGES,
   EXCLUSIVE_CAROUSEL_IMAGES,
   GIVEAWAY_CAROUSEL_IMAGES,
-  COMMUNITY_CAROUSEL_IMAGES,
   PODBORKI_CAROUSEL_IMAGES,
-  REVIEWS_SLIDES,
   BENEFITS,
 } from "./club-screen.content";
 import { getClubScreenContent } from "./club-screen.content";
@@ -363,34 +366,9 @@ export default function ClubScreen({
                         .filter(Boolean)
                         .join(" ")}
                     >
-                      <Collection
-                        data={COMMUNITY_CAROUSEL_IMAGES}
-                        horizontal
-                        hideScrollbar
-                        keyExtractor={(_, i) => `community-${i}`}
-                        snapInterval={SCREEN_WIDTH * 0.75 + 10}
-                        renderItem={({ item }) => (
-                          <div
-                            style={{
-                              width: stylesLayout.communityCarouselSlide.width,
-                            }}
-                            className={[
-                              "ui-stack ",
-                              classes.communityCarouselSlide,
-                            ]
-                              .filter(Boolean)
-                              .join(" ")}
-                          >
-                            <Picture
-                              source={{ uri: item }}
-                              contentFit="contain"
-                              sizes="(max-width: 480px) 75vw, 360px"
-                              transition={300}
-                              className={classes.communityCarouselImage}
-                            />
-                          </div>
-                        )}
-                        contentClassName={classes.collectioncontent}
+                      <ClubTestimonials
+                        items={COMMUNITY_TESTIMONIALS}
+                        label="О клубном комьюнити"
                       />
                     </div>
                   )}
@@ -616,61 +594,10 @@ export default function ClubScreen({
                 .filter(Boolean)
                 .join(" ")}
             >
-              <Typography className={classes.reviewsSectionTitle}>
-                Отзывы участниц
-              </Typography>
-              <Collection
-                data={REVIEWS_SLIDES}
-                horizontal
-                hideScrollbar
-                keyExtractor={(_, i) => `review-${i}`}
-                snapInterval={SCREEN_WIDTH * 0.75 + 10}
-                renderItem={({ item }) => {
-                  if (item.type === "single") {
-                    return (
-                      <div
-                        style={{
-                          width: stylesLayout.reviewCarouselSlide.width,
-                        }}
-                        className={["ui-stack ", classes.communityCarouselSlide]
-                          .filter(Boolean)
-                          .join(" ")}
-                      >
-                        <Picture
-                          source={{ uri: item.images[0] }}
-                          contentFit="contain"
-                          sizes="(max-width: 480px) 75vw, 360px"
-                          transition={300}
-                          className={classes.reviewCarouselImage}
-                        />
-                      </div>
-                    );
-                  }
-                  return (
-                    <div
-                      style={{ width: stylesLayout.reviewCarouselSlide.width }}
-                      className={["ui-stack ", classes.communityCarouselSlide]
-                        .filter(Boolean)
-                        .join(" ")}
-                    >
-                      <Picture
-                        source={{ uri: item.images[0] }}
-                        contentFit="contain"
-                        sizes="(max-width: 480px) 75vw, 360px"
-                        transition={300}
-                        className={classes.reviewCarouselImageHalf}
-                      />
-                      <Picture
-                        source={{ uri: item.images[1] }}
-                        contentFit="contain"
-                        sizes="(max-width: 480px) 75vw, 360px"
-                        transition={300}
-                        className={classes.reviewCarouselImageHalf}
-                      />
-                    </div>
-                  );
-                }}
-                contentClassName={classes.collectioncontent}
+              <ClubTestimonials
+                items={CLUB_TESTIMONIALS}
+                label="Отзывы участниц"
+                title="Отзывы участниц"
               />
             </div>
 

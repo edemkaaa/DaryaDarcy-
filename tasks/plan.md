@@ -1694,3 +1694,26 @@ trust-proxy is `loopback`, not the incorrectly shortened IPv4-mapped IPv6 subnet
 described in GHSA-jqcg-44mw-7w3h; a read-only compile check rejected public IPv4
 and its mapped IPv6 form. This is scoped triage, not blanket clearance of the
 existing dependencies. Follow up by 2026-10-08; production remains unapproved.
+
+## 2026-10-07 — paper-style club testimonials
+
+User requested that white/green messenger screenshots fit the existing paper
+background. Replaced their inline presentation with selectable, accessible
+verbatim excerpts in the incumbent cream/brown/Garamond visual world. Three
+community and six review sources remain linked; only the three names visible
+in the originals are attributed. Excerpts are explicitly labelled, not invented
+or presented as complete transcriptions. Source images and all other content,
+payment/subscription behavior, backend and generated API types remain unchanged.
+
+Three browser cases failed on the original screenshot-only implementation, then
+passed: readable text/source links at 390/1440px, no automatic screenshot fetch,
+keyboard navigation and disabled endpoints. A missing default browser executable
+was an environment error, not counted as RED; the installed browser was used.
+Final production build: 28 routes; 49 selected browser checks pass, including
+club pagination, photo loading, original-byte integrity and static caching.
+Non-MySQL: 716 pass / 4 skip; types, lint, unchanged API and boundaries pass.
+Two bounded visual rounds corrected the lower carousel's horizontal margins.
+Quotes use ink on translucent paper, 44px controls, visible focus, native scrolling
+and reduced-motion support. No dependency, tracking, raw HTML or remote data load
+added. Existing screenshot-only style rules are retained for separate cleanup;
+no unrelated deletion. Preview captures are outside Git. No push or deployment.
