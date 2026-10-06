@@ -22,7 +22,6 @@ export function WebPostAlerts() {
   const latest = trpc.notifications.latest.useQuery(undefined, {
     enabled: webPush,
     refetchInterval: 90000,
-    refetchOnWindowFocus: true,
   });
   useEffect(() => {
     if (!webPush) return;

@@ -50,7 +50,17 @@ export async function uploadAdminVideoBlob(
         const message =
           response.status === 413
             ? "Видео слишком большое для загрузки. Сожмите файл или выберите другой."
-            : getRequestErrorMessage({ data: { httpStatus: response.status } });
+            : response.status === 400
+              ? data &&
+                typeof data === "object" &&
+                ["Некорректный видеофайл", "Пустой файл"].includes(
+                  String((data as { error?: unknown }).error),
+                )
+                ? String((data as { error: string }).error)
+                : "Не удалось загрузить видео. Проверьте формат файла."
+              : getRequestErrorMessage({
+                  data: { httpStatus: response.status },
+                });
         throw new ApiError(message, response.status);
       }
       const url =

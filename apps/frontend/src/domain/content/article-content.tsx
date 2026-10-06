@@ -34,6 +34,7 @@ export function ArticleContent({
         >
           <Picture
             source={{ uri: coverUrl }}
+            loading="eager"
             contentFit="cover"
             className={classes.banner}
           />

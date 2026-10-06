@@ -1,28 +1,28 @@
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 export const PAPER_TEXTURE_URI =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/d0db18ed8f2e-MasrlKbgCBdeyOhE.jpg";
+  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg";
 export const DEFAULT_COVER_ASPECT = 0.75;
 export const BANNER_URL =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/549a6bdf3cb0-aeHHNBoBXpIdgjhp.jpeg";
+  "/assets/responsive/549a6bdf3cb0-aeHHNBoBXpIdgjhp.w1200.30bbc5ec57345cca.jpg";
 export const GUIDE_BANNER_URL =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/47ae04f69998-VjKNaGyYogjUkMPQ.jpeg";
+  "/assets/responsive/47ae04f69998-VjKNaGyYogjUkMPQ.w1200.63560d2abc9d2c51.jpg";
 export const STILIZACII_COVER_URL =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/3b8642166933-rdRVzYWvuGEmSUdF.jpeg";
+  "/assets/responsive/3b8642166933-rdRVzYWvuGEmSUdF.w1081.ffe775e1b13881ae.jpg";
 export const STILIZACII_YANDEX_URL = "https://disk.yandex.ru/i/Y-XvbPF-NwOiLg";
 export const RECIPES_COVER_URL =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/877a6c2a49ef-JZjLEpuxmhqHszUD.jpg";
+  "/assets/responsive/877a6c2a49ef-JZjLEpuxmhqHszUD.w1200.cdc7c547845e8eda.jpg";
 export const RECIPES_YANDEX_URL = "https://disk.yandex.ru/i/nUoIS8gQ5VkClA";
 export const PETERBURG_COVER_URL =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/925076516046-CkdCchNXtpJkPNVd.JPG";
+  "/assets/responsive/925076516046-CkdCchNXtpJkPNVd.w1200.cecc8825fbd458b1.jpg";
 export const PETERBURG_YANDEX_URL = "https://disk.yandex.ru/d/BM0uzv2cWZeM0Q";
 export const PATTERNS_COVER_URL =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/4327bffa91b1-TRkGduziKBAAVhso.jpg";
+  "/assets/responsive/4327bffa91b1-TRkGduziKBAAVhso.w1200.7942f7a28be49f80.jpg";
 export const LOSHADKA_COVER_URL =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/library/loshadka-cover.jpg";
+  "/assets/responsive/loshadka-cover.w1176.457f881cc9263dc1.jpg";
 export const LOSHADKA_YANDEX_URL = "https://disk.yandex.ru/i/nDfsd5ptLO1xRA";
 export const ABOUT_ME_COVER_URL =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/1fbca647058b-LvxZFiaBWuJSsIgj.JPG";
+  "/assets/responsive/1fbca647058b-LvxZFiaBWuJSsIgj.full.2f55ac51fddc10db.jpg";
 export const BROWN = "#5C4033";
 export const BROWN_MUTED = "#8B7355";
 export const OLIVE_BG = "#e4e0cd";

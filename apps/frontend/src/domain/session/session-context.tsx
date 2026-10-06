@@ -20,6 +20,7 @@ import { SessionController, type SessionStatus } from "./session-controller";
 
 const SESSION_EVENT_KEY = "darcy:session-change";
 const LOGOUT_PENDING_KEY = "darcy:logout-pending";
+const RESUME_CHECK_COOLDOWN_MS = 1000;
 function logoutIsPending(): boolean {
   try {
     return window.localStorage.getItem(LOGOUT_PENDING_KEY) === "true";
@@ -32,6 +33,7 @@ type SessionContext = {
   status: SessionStatus;
   loading: boolean;
   error: Error | null;
+  refreshError: Error | null;
   isAuthenticated: boolean;
   isOwner: boolean;
   refresh: () => Promise<void>;
@@ -97,8 +99,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (logoutIsPending()) void controller.logout();
       else void controller.refresh();
     };
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") recheck();
+    let lastResumeCheck = -Infinity;
+    const onResume = () => {
+      if (document.visibilityState !== "visible") return;
+      const now = performance.now();
+      // A single return can emit both events even after a fast response has
+      // finished. Initial, online, storage and access-error checks bypass this.
+      if (now - lastResumeCheck < RESUME_CHECK_COOLDOWN_MS) return;
+      lastResumeCheck = now;
+      recheck();
     };
     const onStorage = (event: StorageEvent) => {
       if (event.key !== SESSION_EVENT_KEY && event.key !== LOGOUT_PENDING_KEY)
@@ -114,17 +123,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = subscribeSessionChecks(
       controller.verifyAfterAccessError,
     );
-    window.addEventListener("focus", recheck);
+    window.addEventListener("focus", onResume);
     window.addEventListener("online", recheck);
     window.addEventListener("storage", onStorage);
-    document.addEventListener("visibilitychange", onVisibility);
+    document.addEventListener("visibilitychange", onResume);
     recheck();
     return () => {
       unsubscribe();
-      window.removeEventListener("focus", recheck);
+      window.removeEventListener("focus", onResume);
       window.removeEventListener("online", recheck);
       window.removeEventListener("storage", onStorage);
-      document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("visibilitychange", onResume);
       controller.dispose();
     };
   }, [controller]);
@@ -134,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status: state.status,
       loading: state.status === "checking" || state.status === "logging-out",
       error: state.error,
+      refreshError: state.refreshError,
       isAuthenticated: Boolean(user),
       isOwner: isOwnerUser(user),
       refresh: controller.refresh,
@@ -142,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       applySession: controller.applySession,
       invalidateAccess: controller.invalidateAccess,
     }),
-    [user, state.status, state.error, controller],
+    [user, state.status, state.error, state.refreshError, controller],
   );
   return (
     <Context.Provider value={value}>

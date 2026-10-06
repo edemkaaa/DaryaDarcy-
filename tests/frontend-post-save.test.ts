@@ -158,7 +158,7 @@ it("cancelling before saving cannot start an attachment upload", async () => {
 it("existing media removal is explicit and completes before publication", async () => {
   const order: string[] = [];
   api.update.mockImplementation(async (_id, input) => {
-    order.push(input.status);
+    order.push(input.status ?? "missing");
     return { success: true };
   });
   await new PostSaveCoordinator(42).save(payload, [], [9], api, scope());

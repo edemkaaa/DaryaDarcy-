@@ -61,6 +61,21 @@ export function getHttpStatus(error: unknown): number | undefined {
   return cause instanceof ApiError ? cause.status : undefined;
 }
 
+/** A failed background read is not evidence that previously confirmed access ended. */
+export function isTemporaryRequestError(error: unknown): boolean {
+  const status = getHttpStatus(error);
+  if (status) return status >= 500 && status < 600;
+  const cause =
+    error && typeof error === "object"
+      ? (error as { cause?: unknown }).cause
+      : undefined;
+  const apiError = error instanceof ApiError ? error : cause;
+  return (
+    apiError instanceof ApiError &&
+    (apiError.kind === "network" || apiError.kind === "timeout")
+  );
+}
+
 export function shouldRetryQuery(
   failureCount: number,
   error: unknown,

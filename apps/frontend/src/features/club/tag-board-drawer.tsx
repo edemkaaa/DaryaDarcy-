@@ -225,6 +225,7 @@ export function TagBoardDrawer({
               left: 0,
               right: 0,
               height: stylesLayout.drawerContent.height,
+              maxHeight: `calc(100% - ${stylesLayout.drawerContent.top}px)`,
               paddingTop: stylesLayout.drawerContent.paddingTop,
             }}
             contentStyle={{

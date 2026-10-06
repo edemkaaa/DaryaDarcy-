@@ -1,5 +1,4 @@
 "use client";
-import { TabHeader } from "@/shared/ui/tab-header";
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getVideosScreenLayout } from "./videos-screen.layout";
@@ -171,7 +170,7 @@ function VideosScreenInner() {
           fit="cover"
           className={classes.background}
         >
-          <TabHeader transparent={false} />
+          <VideosBannerHeader />
           <QueryRetryState
             isLoading={isLoading}
             isError={isError}
@@ -190,7 +189,6 @@ function VideosScreenInner() {
         fit="cover"
         className={classes.background}
       >
-        <TabHeader transparent={false} />
         <Collection
           data={videos as Video[] | undefined}
           keyExtractor={(item) => item.id.toString()}

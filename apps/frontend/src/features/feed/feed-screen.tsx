@@ -1,6 +1,5 @@
 "use client";
 import { useBrowserReady } from "@/shared/browser/use-browser-ready";
-import { TabHeader } from "@/shared/ui/tab-header";
 import classes from "./feed-screen.module.scss";
 import {
   Field,
@@ -206,6 +205,8 @@ export default function FeedScreen() {
     >
       <Picture
         source={{ uri: FEED_BANNER_URI }}
+        loading="eager"
+        fetchPriority="high"
         contentFit="cover"
         transition={300}
         className={classes.bannerImage}
@@ -354,11 +355,19 @@ export default function FeedScreen() {
   const renderHeader = () => (
     <div className={["ui-stack ", classes.div].filter(Boolean).join(" ")}>
       {renderBanner()}
-      <TabHeader />
       <PostInteractionStatus
         error={interactions.error}
         retry={interactions.retry}
       />
+      {isError && paginatedData && (
+        <QueryRetryState
+          isLoading={false}
+          isError
+          message="Не удалось обновить ленту"
+          onRetry={() => void refetch()}
+          className={classes.refreshError}
+        />
+      )}
       {renderSearchRow()}
       {renderTagChips()}
     </div>
@@ -403,6 +412,7 @@ export default function FeedScreen() {
                 publishedAt: item.publishedAt ?? null,
                 createdAt: item.createdAt ?? null,
                 target: item.target || "feed",
+                media: item.media ?? [],
               })
           : undefined
       }
@@ -441,31 +451,25 @@ export default function FeedScreen() {
     }
     return null;
   };
-  // ── Loading state ──
-  if (isLoading && !paginatedData) {
+  // Keep the header above the request state, in the same position as the list.
+  if ((isLoading || isError) && !paginatedData) {
     return (
       <ScreenContainer>
         {renderHeader()}
-        <div
-          className={["ui-stack ", classes.loadingContainer]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <Spinner size="large" color={GREEN_ACCENT} />
-        </div>
+        <ScrollArea hideScrollbar contentClassName={classes.requestContent}>
+          <QueryRetryState
+            isLoading={isLoading}
+            isError={isError}
+            message="Не удалось загрузить ленту"
+            onRetry={() => void refetch()}
+            className={classes.requestState}
+          />
+        </ScrollArea>
       </ScreenContainer>
     );
   }
   return (
     <ScreenContainer>
-      {isError && (
-        <QueryRetryState
-          isLoading={false}
-          isError
-          message="Не удалось загрузить ленту"
-          onRetry={() => void refetch()}
-        />
-      )}
       {viewMode === "feed" ? (
         <Collection
           ref={listRef}

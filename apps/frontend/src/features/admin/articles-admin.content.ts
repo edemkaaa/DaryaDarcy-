@@ -11,7 +11,7 @@ export const ADD_BLOCKS: {
 }[] = [
   { type: "text", label: "Текст", icon: "notes" },
   { type: "heading", label: "Заголовок", icon: "title" },
-  { type: "photo", label: "Фото / GIF", icon: "photo" },
+  { type: "photo", label: "Фото", icon: "photo" },
   { type: "png", label: "PNG", icon: "image" },
   { type: "carousel", label: "Карусель", icon: "view-carousel" },
   { type: "link", label: "Ссылка", icon: "link" },
@@ -19,7 +19,7 @@ export const ADD_BLOCKS: {
 export const BLOCK_LABELS: Record<ArticleBlock["type"], string> = {
   heading: "Заголовок",
   text: "Текст",
-  photo: "Фото или GIF",
+  photo: "Фото",
   png: "PNG без фона",
   link: "Ссылка",
   carousel: "Карусель",

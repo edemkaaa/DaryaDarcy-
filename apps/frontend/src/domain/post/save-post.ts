@@ -14,6 +14,7 @@ type SavePayload = Payload & {
   attachments?: UploadedAttachment[];
   removedMediaIds?: number[];
 };
+type UpdatePayload = Partial<SavePayload>;
 export type PostAttachment = {
   type: "audio" | "document";
   name: string;
@@ -26,7 +27,7 @@ export type PostSaveApi = {
   create: (payload: SavePayload, signal: AbortSignal) => Promise<unknown>;
   update: (
     id: number,
-    payload: SavePayload,
+    payload: UpdatePayload,
     signal: AbortSignal,
   ) => Promise<unknown>;
   upload: (
@@ -58,8 +59,10 @@ export class PostSaveCoordinator {
   private uploaded = new Map<PostAttachment, UploadedAttachment>();
   private uncertain = false;
   private completed = false;
-  constructor(editingId: number | null = null) {
+  private original?: Payload;
+  constructor(editingId: number | null = null, original?: Payload) {
     this.savedId = editingId;
+    this.original = original ? structuredClone(original) : undefined;
   }
   async save(
     payload: Payload,
@@ -127,8 +130,25 @@ export class PostSaveCoordinator {
           throw new Error("Сервер не подтвердил номер публикации");
         this.savedId = id;
       } else {
+        const changes: UpdatePayload = this.original
+          ? Object.fromEntries(
+              Object.entries(payload).filter(
+                ([key, value]) =>
+                  JSON.stringify(value) !==
+                  JSON.stringify(this.original![key as keyof Payload]),
+              ),
+            )
+          : { ...payload };
+        // The backend normalizes richText against the text supplied in this request.
+        if ("text" in changes || "richText" in changes) {
+          changes.text = payload.text;
+          changes.richText = payload.richText;
+        }
+        if (uploads.length) changes.attachments = uploads;
+        if (removedIds.length)
+          changes.removedMediaIds = [...new Set(removedIds)];
         this.assertUpdate(
-          await api.update(this.savedId, savePayload, operation.signal),
+          await api.update(this.savedId, changes, operation.signal),
         );
       }
       // A confirmed commit is terminal, even if closing/refreshing the UI is cancelled.

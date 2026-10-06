@@ -76,6 +76,7 @@ export function HomePromoCarousel() {
             <Picture
               key={slide.id}
               source={slide.image}
+              loading="eager"
               contentFit="contain"
               className={classes.image}
             />

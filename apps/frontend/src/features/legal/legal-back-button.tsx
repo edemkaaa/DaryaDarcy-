@@ -1,5 +1,5 @@
 "use client";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/shared/navigation/router";
 import { Action } from "@/shared/ui/action";
 import type { ReactNode } from "react";
 export function LegalBackButton({

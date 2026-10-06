@@ -115,7 +115,7 @@ export default function AestheticsGuideScreen() {
           >
             <Picture
               source={{
-                uri: "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/47ae04f69998-VjKNaGyYogjUkMPQ.jpeg",
+                uri: "/assets/responsive/47ae04f69998-VjKNaGyYogjUkMPQ.w1200.63560d2abc9d2c51.jpg",
               }}
               contentFit="cover"
               className={classes.bannerImage}

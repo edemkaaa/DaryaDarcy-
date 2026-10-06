@@ -55,6 +55,9 @@ for (const width of [390, 1440]) {
     await expect(close).toBeFocused();
     const winter = panel.getByRole("button", { name: "Зима", exact: true });
     await winter.focus();
+    expect(await page.locator("main").evaluate((node) => node.scrollLeft)).toBe(
+      0,
+    );
     await page.keyboard.press("Space");
     await expect(winter).toHaveAttribute("aria-pressed", "true");
     await page.screenshot({
@@ -258,9 +261,10 @@ test("main screens expose named visible buttons without horizontal overflow", as
     ).toBe(false);
   }
   await gotoWithSession(page, "/feed");
-  await page.getByPlaceholder("Поиск...").fill("search");
+  const search = page.locator('input[placeholder="Поиск..."]:visible');
+  await search.fill("search");
   await page.getByRole("button", { name: "Очистить поиск" }).click();
-  await expect(page.getByPlaceholder("Поиск...")).toHaveValue("");
+  await expect(search).toHaveValue("");
   const grid = page.getByRole("button", { name: "Показать сеткой" });
   await grid.focus();
   await page.keyboard.press("Space");

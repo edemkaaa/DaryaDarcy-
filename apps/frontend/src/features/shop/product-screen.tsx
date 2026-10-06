@@ -238,6 +238,7 @@ export default function ProductDetailScreen({
                   <Picture
                     source={{ uri: item }}
                     contentFit="cover"
+                    sizes="(max-width: 480px) 58vw, 278px"
                     transition={200}
                     className={classes.carouselImage}
                   />
@@ -547,6 +548,7 @@ export default function ProductDetailScreen({
 
           <Picture
             source={{ uri: zoomImageUri }}
+            fullSize
             style={{
               width: stylesLayout.zoomImage.width,
               height: stylesLayout.zoomImage.height,

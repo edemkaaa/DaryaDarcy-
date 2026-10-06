@@ -11,6 +11,37 @@ import {
   validateFileSelection,
 } from "../apps/frontend/src/shared/browser/file-operations";
 import { OperationScope } from "../apps/frontend/src/shared/browser/operation-scope";
+import {
+  PHOTO_RATIO_CACHE_LIMIT,
+  getCachedPhotoRatio,
+  rememberPhotoRatio,
+} from "../apps/frontend/src/shared/media/photo-ratio-cache";
+
+it("rejects invalid image dimensions without poisoning remembered proportions", () => {
+  const uri = "https://images.example.test/valid-ratio";
+  expect(rememberPhotoRatio(uri, 800, 400)).toBe(2);
+  for (const [width, height] of [
+    [0, 400],
+    [800, -1],
+    [NaN, 400],
+    [800, Infinity],
+    [Number.MAX_VALUE, Number.MIN_VALUE],
+  ]) {
+    expect(rememberPhotoRatio(uri, width, height)).toBeNull();
+    expect(getCachedPhotoRatio(uri)).toBe(2);
+  }
+});
+
+it("bounds the photo metadata cache and retains recently used photos", () => {
+  const uri = (index: number) => `https://images.example.test/cache-${index}`;
+  for (let index = 0; index < PHOTO_RATIO_CACHE_LIMIT; index++)
+    rememberPhotoRatio(uri(index), 640, 800);
+  expect(getCachedPhotoRatio(uri(0))).toBe(0.8);
+  rememberPhotoRatio(uri(PHOTO_RATIO_CACHE_LIMIT), 800, 400);
+  expect(getCachedPhotoRatio(uri(1))).toBeUndefined();
+  expect(getCachedPhotoRatio(uri(0))).toBe(0.8);
+  expect(getCachedPhotoRatio(uri(PHOTO_RATIO_CACHE_LIMIT))).toBe(2);
+});
 
 afterEach(() => {
   vi.useRealTimers();
@@ -44,6 +75,40 @@ it("does not expose raw HTML or internal messages from an upload server", async 
   await expect(uploadAdminVideoBlob(video(), "test.mp4")).rejects.toMatchObject(
     { message: "Сервис временно недоступен. Попробуйте ещё раз." },
   );
+});
+it.each(["Некорректный видеофайл", "Пустой файл"])(
+  "explains the documented video validation refusal: %s",
+  async (message) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ error: message }, { status: 400 })),
+    );
+    await expect(
+      uploadAdminVideoBlob(video(), "test.mp4"),
+    ).rejects.toMatchObject({ status: 400, message });
+  },
+);
+it("does not expose an unexpected raw upload error", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () =>
+      Response.json({ error: "PRIVATE_SQL_SECRET" }, { status: 400 }),
+    ),
+  );
+  await expect(uploadAdminVideoBlob(video(), "test.mp4")).rejects.toMatchObject(
+    { message: "Не удалось загрузить видео. Проверьте формат файла." },
+  );
+});
+it("rejects GIF before decoding or reading it as base64", async () => {
+  const reader = vi.fn();
+  const bitmap = vi.fn();
+  vi.stubGlobal("FileReader", reader);
+  vi.stubGlobal("createImageBitmap", bitmap);
+  await expect(
+    fileToUpload(new File(["GIF89a"], "renamed.png", { type: "image/png" })),
+  ).rejects.toThrow("Анимированные изображения");
+  expect(reader).not.toHaveBeenCalled();
+  expect(bitmap).not.toHaveBeenCalled();
 });
 it.each([
   "javascript:alert(1)",

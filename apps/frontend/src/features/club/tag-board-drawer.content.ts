@@ -10,7 +10,7 @@ export const BROWN = "#5C4033";
 export const BROWN_MUTED = "#8B7355";
 export const CREAM = "#FDF8F0";
 export const TAG_BOARD_URI =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/c2a4341558e8-dZtWbRtaJLWFOYGX.webp";
+  "/assets/responsive/c2a4341558e8-dZtWbRtaJLWFOYGX.w1400.1ceb8381350df125.webp";
 export const TOPIC_TAG_ROWS = [
   TOPIC_TAGS.slice(0, 5),
   TOPIC_TAGS.slice(5, 9),

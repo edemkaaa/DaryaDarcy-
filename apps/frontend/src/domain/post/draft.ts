@@ -21,6 +21,10 @@ export function serializePostDraft(draft: PostDraft) {
     throw new Error("Выберите дату и время публикации");
   if (draft.status !== "scheduled" && Number.isNaN(draft.publishedAt.getTime()))
     throw new Error("Выберите дату публикации");
+  return postDraftSnapshot(draft);
+}
+/** Normalize the initial editor state without requiring an incomplete schedule to be valid. */
+export function postDraftSnapshot(draft: PostDraft) {
   const rich = preparePostRichTextForSave(
     draft.text || " ",
     draft.richText ?? null,
@@ -35,9 +39,16 @@ export function serializePostDraft(draft: PostDraft) {
     status: draft.status,
     target: draft.target,
     scheduledAt:
-      draft.status === "scheduled" ? draft.scheduledAt!.toISOString() : null,
+      draft.status === "scheduled" &&
+      draft.scheduledAt &&
+      Number.isFinite(draft.scheduledAt.getTime())
+        ? draft.scheduledAt.toISOString()
+        : null,
     publishedAt:
-      draft.status !== "scheduled" ? draft.publishedAt.toISOString() : null,
+      draft.status !== "scheduled" &&
+      Number.isFinite(draft.publishedAt.getTime())
+        ? draft.publishedAt.toISOString()
+        : null,
     richText: rich.richText,
   };
 }

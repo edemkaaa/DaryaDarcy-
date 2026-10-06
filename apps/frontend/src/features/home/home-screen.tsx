@@ -1,7 +1,5 @@
 "use client";
 import { useViewport } from "@/shared/browser/viewport";
-import { useScrollHeader } from "@/shared/browser/use-scroll-header";
-import { TabHeader } from "@/shared/ui/tab-header";
 
 import { getHomeScreenLayout } from "./home-screen.layout";
 import classes from "./home-screen.module.scss";
@@ -40,6 +38,7 @@ import {
   SECTION_BANNERS,
 } from "./home-screen.content";
 import { getHomeScreenContent } from "./home-screen.content";
+const heroImage = { src: "/assets/images/home/hero_header.jpg", width: 1400, height: 875 };
 type SeasonData = {
   name: string;
   nameRu: string;
@@ -53,10 +52,10 @@ function getCurrentSeason(month: number): SeasonData {
       nameRu: "Весна",
       emoji: "🌿",
       heroImages: [
-        "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/51246f8b81ec-vfwFbFYydFwyNDgc.jpg",
-        "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/43aa6a138c7a-vMZdQbHoxLvCLaHZ.jpg",
-        "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/f6dc8eaf6752-ilmNGaCKWJLSYlVp.jpg",
-        "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/e933a044db55-gMwUitXnrfSEIunK.jpg",
+        "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.48ccacfbc42d176d.jpg",
+        "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.04d76ddab61b0616.jpg",
+        "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.196506a4ab1c9214.jpg",
+        "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.ae25ba32d6e3dbcf.jpg",
       ],
     };
   if (month >= 5 && month <= 7)
@@ -65,10 +64,10 @@ function getCurrentSeason(month: number): SeasonData {
       nameRu: "Лето",
       emoji: "☀️",
       heroImages: [
-        "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/51246f8b81ec-vfwFbFYydFwyNDgc.jpg",
-        "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/43aa6a138c7a-vMZdQbHoxLvCLaHZ.jpg",
-        "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/f6dc8eaf6752-ilmNGaCKWJLSYlVp.jpg",
-        "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/e933a044db55-gMwUitXnrfSEIunK.jpg",
+        "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.48ccacfbc42d176d.jpg",
+        "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.04d76ddab61b0616.jpg",
+        "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.196506a4ab1c9214.jpg",
+        "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.ae25ba32d6e3dbcf.jpg",
       ],
     };
   if (month >= 8 && month <= 10)
@@ -77,10 +76,10 @@ function getCurrentSeason(month: number): SeasonData {
       nameRu: "Осень",
       emoji: "🍂",
       heroImages: [
-        "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/51246f8b81ec-vfwFbFYydFwyNDgc.jpg",
-        "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/43aa6a138c7a-vMZdQbHoxLvCLaHZ.jpg",
-        "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/f6dc8eaf6752-ilmNGaCKWJLSYlVp.jpg",
-        "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/e933a044db55-gMwUitXnrfSEIunK.jpg",
+        "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.48ccacfbc42d176d.jpg",
+        "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.04d76ddab61b0616.jpg",
+        "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.196506a4ab1c9214.jpg",
+        "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.ae25ba32d6e3dbcf.jpg",
       ],
     };
   return {
@@ -88,10 +87,10 @@ function getCurrentSeason(month: number): SeasonData {
     nameRu: "Зима",
     emoji: "❄️",
     heroImages: [
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/51246f8b81ec-vfwFbFYydFwyNDgc.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/43aa6a138c7a-vMZdQbHoxLvCLaHZ.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/f6dc8eaf6752-ilmNGaCKWJLSYlVp.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/e933a044db55-gMwUitXnrfSEIunK.jpg",
+      "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.48ccacfbc42d176d.jpg",
+      "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.04d76ddab61b0616.jpg",
+      "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.196506a4ab1c9214.jpg",
+      "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.ae25ba32d6e3dbcf.jpg",
     ],
   };
 }
@@ -159,10 +158,8 @@ export default function HomeScreen({ initialDate }: { initialDate: string }) {
   }));
   // ── Scroll ──
   const scrollY = useSharedValue(0);
-  const { headerRef, onScroll: onHeaderScroll } = useScrollHeader();
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
-      onHeaderScroll(event);
       scrollY.value = event.currentTarget.scrollTop;
     },
   });
@@ -362,7 +359,7 @@ export default function HomeScreen({ initialDate }: { initialDate: string }) {
   }));
   // ── Render ──
   const paperTextureUri =
-    "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/d0db18ed8f2e-MasrlKbgCBdeyOhE.jpg";
+    "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg";
   return (
     <div className="ui-stack ">
       <Background
@@ -370,7 +367,6 @@ export default function HomeScreen({ initialDate }: { initialDate: string }) {
         fit="cover"
         className={classes.background}
       >
-        <TabHeader ref={headerRef} variant="home" />
         <Animated.ScrollArea
           aria-label="Главная"
           hideScrollbar
@@ -391,7 +387,14 @@ with DARYADARCY logo overlay
             {/* Current slide */}
             <Animated.div style={currentSlideStyle} className={classes.div3}>
               <Picture
-                source={{ uri: "/assets/images/home/hero_header.jpg" }}
+                source={{
+                  uri: heroImage.src,
+                  width: heroImage.width,
+                  height: heroImage.height,
+                }}
+                style={{ width: "100%", height: "100%" }}
+                loading="eager"
+                fetchPriority="high"
                 contentFit="cover"
                 transition={0}
                 className={classes.div3}
@@ -400,7 +403,14 @@ with DARYADARCY logo overlay
             {/* Next slide (crossfade — seasonal images) */}
             <Animated.div style={nextSlideStyle} className={classes.div3}>
               <Picture
-                source={{ uri: "/assets/images/home/hero_header.jpg" }}
+                source={{
+                  uri: heroImage.src,
+                  width: heroImage.width,
+                  height: heroImage.height,
+                }}
+                style={{ width: "100%", height: "100%" }}
+                loading="eager"
+                fetchPriority="high"
                 contentFit="cover"
                 transition={0}
                 className={classes.div3}
@@ -581,9 +591,10 @@ Medallion overlaps from above onto this section
                   Дарья Левина–
                 </Typography>
                 <Typography className={classes.aboutDescription}>
-                  cottagecore-блогер,{"\n"}автор &quot;Книги вдохновения&quot;, &quot;Романтика
-                  дачи&quot;{"\n"}и &quot;Тропинка к творчеству&quot;.{"\n"}Хозяйка сказочного
-                  лесного дома и сада с{"\n"}английскими розами.
+                  cottagecore-блогер,{"\n"}автор &quot;Книги вдохновения&quot;,
+                  &quot;Романтика дачи&quot;{"\n"}и &quot;Тропинка к
+                  творчеству&quot;.{"\n"}Хозяйка сказочного лесного дома и сада
+                  с{"\n"}английскими розами.
                 </Typography>
                 <Action
                   onClick={() => router.push("/library/about-me")}
@@ -640,7 +651,7 @@ Open book on cream background with cottage illustration
                   </Typography>
                   <Picture
                     source={{
-                      uri: "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/3f69fb85d89c-nbShGAsyJAWYwcXH.webp",
+                      uri: "/assets/responsive/3f69fb85d89c-nbShGAsyJAWYwcXH.w600.abb89f30ea34c686.webp",
                     }}
                     contentFit="contain"
                     className={classes.cottageIllustration}
@@ -668,7 +679,7 @@ SECTION 5: STAMP COLLAGE
             >
               <Picture
                 source={{
-                  uri: "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/5c000c389c50-FumaYiYPevouyHwe.webp",
+                  uri: "/assets/responsive/5c000c389c50-FumaYiYPevouyHwe.w900.92f63b9289dd9144.webp",
                 }}
                 style={{ width: stylesLayout.stampImage.width }}
                 contentFit="contain"

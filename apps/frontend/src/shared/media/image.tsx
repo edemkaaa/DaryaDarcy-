@@ -2,7 +2,8 @@
 import classes from "./image.module.scss";
 import { mergeStyles } from "@/shared/ui/css";
 import { type BoxProps, DomImage } from "@/shared/ui/elements";
-import { forwardRef } from "react";
+import { forwardRef, useState, type ImgHTMLAttributes } from "react";
+import { resolveImageAttributes } from "@/shared/ui/static-images";
 export type ImageSource = {
   uri: string;
   width?: number;
@@ -10,6 +11,12 @@ export type ImageSource = {
 };
 export type ImageProps = Omit<BoxProps, "onLoad" | "onError"> & {
   source?: ImageSource | string | null;
+  loading?: ImgHTMLAttributes<HTMLImageElement>["loading"];
+  decoding?: ImgHTMLAttributes<HTMLImageElement>["decoding"];
+  fetchPriority?: ImgHTMLAttributes<HTMLImageElement>["fetchPriority"];
+  srcSet?: string;
+  sizes?: string;
+  fullSize?: boolean;
   contentFit?: "cover" | "contain" | "fill" | "none" | "scale-down";
   contentPosition?: string;
   transition?: number;
@@ -26,6 +33,12 @@ export const Picture = Object.assign(
   forwardRef<HTMLDivElement, ImageProps>(function Picture(
     {
       source,
+      loading = "lazy",
+      decoding = "async",
+      fetchPriority = "auto",
+      srcSet,
+      sizes,
+      fullSize = false,
       contentFit = "cover",
       contentPosition = "center",
       transition = 0,
@@ -44,6 +57,10 @@ export const Picture = Object.assign(
         : typeof source === "object"
           ? source
           : null;
+    const [failedSource, setFailedSource] = useState<string | null>(null);
+    const resolved = resolveImageAttributes(asset?.uri, fullSize);
+    const sourceKey = JSON.stringify([asset?.uri, srcSet ?? resolved.srcSet, fullSize]);
+    const failed = failedSource === sourceKey;
     return (
       <div
         ref={ref}
@@ -70,11 +87,22 @@ export const Picture = Object.assign(
           .join(" ")}
       >
         <img
-          src={asset?.uri}
+          src={resolved.src}
           alt={label || ""}
+          width={asset?.width}
+          height={asset?.height}
+          loading={loading}
+          decoding={decoding}
+          fetchPriority={fetchPriority}
+          srcSet={srcSet ?? resolved.srcSet}
+          sizes={sizes ?? resolved.sizes}
           draggable={false}
-          onError={onError}
+          onError={(event) => {
+            setFailedSource(sourceKey);
+            onError?.(event);
+          }}
           onLoad={(event) => {
+            setFailedSource(null);
             const image = event.currentTarget;
             onLoad?.({
               source: {
@@ -85,12 +113,22 @@ export const Picture = Object.assign(
             });
           }}
           style={{
+            visibility: failed ? "hidden" : undefined,
             objectFit: contentFit,
             objectPosition: contentPosition,
             transition: transition ? `opacity ${transition}ms` : undefined,
           }}
           className={classes.img}
         />
+        {failed ? (
+          <span
+            role="img"
+            aria-label="Изображение недоступно"
+            className={classes.fallback}
+          >
+            Изображение недоступно
+          </span>
+        ) : null}
       </div>
     );
   }),

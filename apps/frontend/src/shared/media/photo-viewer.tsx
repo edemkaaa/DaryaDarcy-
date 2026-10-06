@@ -178,6 +178,8 @@ function PhotoViewerInner({
               >
                 <Picture
                   source={{ uri }}
+                  fullSize
+                  loading={index === currentIndex ? "eager" : "lazy"}
                   style={{ width: screenWidth, height: imageHeight }}
                   contentFit="contain"
                   transition={150}

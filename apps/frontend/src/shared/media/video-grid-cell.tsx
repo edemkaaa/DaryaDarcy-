@@ -6,7 +6,7 @@ import { Picture } from "@/shared/media/image";
 import MaterialIcons from "@/shared/ui/material-icon";
 import {
   FALLBACK_PHOTO_RATIO,
-  useMediaAspectRatio,
+  usePhotoAspectRatios,
 } from "@/shared/media/photo-aspect-ratios";
 interface VideoGridCellProps {
   url: string;
@@ -21,7 +21,10 @@ export function VideoGridCell({
   standalone,
 }: VideoGridCellProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const aspectRatio = useMediaAspectRatio(thumbnailUrl, FALLBACK_PHOTO_RATIO);
+  const { ratios, onLoad } = usePhotoAspectRatios(
+    thumbnailUrl ? [thumbnailUrl] : [],
+  );
+  const aspectRatio = ratios[0] ?? FALLBACK_PHOTO_RATIO;
   const isPortrait = aspectRatio < 0.95;
   const fitMode = isPortrait ? "contain" : "cover";
   if (isPlaying) {
@@ -87,6 +90,7 @@ export function VideoGridCell({
       {thumbnailUrl ? (
         <Picture
           source={{ uri: thumbnailUrl }}
+          onLoad={onLoad(thumbnailUrl)}
           contentFit="cover"
           className={classes.picture}
         />

@@ -1,6 +1,5 @@
 "use client";
 import { useViewport } from "@/shared/browser/viewport";
-import { TabHeader } from "@/shared/ui/tab-header";
 
 import classes from "./shop-screen.module.scss";
 import { cssTransform } from "@/shared/ui/css";
@@ -329,7 +328,6 @@ function ShopScreenInner() {
   const TITLE_TOP = shelfImageHeight * 0.04;
   return (
     <div className={["ui-stack ", classes.container].filter(Boolean).join(" ")}>
-      <TabHeader variant="shop" />
       {/* Scrollable shelf with books positioned on planks */}
       <Animated.ScrollArea
         aria-label="Магазин"

@@ -1,5 +1,4 @@
 "use client";
-import { TabHeader } from "@/shared/ui/tab-header";
 import classes from "./profile-screen.module.scss";
 import {
   Action,
@@ -102,7 +101,6 @@ export default function ProfileScreen() {
   const uploadAvatar = trpc.profile.uploadAvatar.useMutation();
   const savedFromApi = trpc.feed.savedPosts.useQuery(undefined, {
     enabled: isAuthenticated,
-    refetchOnWindowFocus: true,
     refetchOnMount: "always",
   });
   const [profileName, setProfileName] = useState<string | null>(null);
@@ -311,7 +309,6 @@ export default function ProfileScreen() {
             hideScrollbar
             contentClassName={classes.scrollAreacontent}
           >
-            <TabHeader transparent={false} />
             <div
               className={["ui-stack ", classes.lockedContainer]
                 .filter(Boolean)
@@ -368,7 +365,6 @@ export default function ProfileScreen() {
             hideScrollbar
             contentClassName={classes.scrollAreacontent}
           >
-            <TabHeader transparent={false} />
             <div
               className={["ui-stack ", classes.lockedContainer]
                 .filter(Boolean)
@@ -414,7 +410,6 @@ export default function ProfileScreen() {
         className={classes.background2}
       >
         <ScrollArea hideScrollbar>
-          <TabHeader transparent={false} />
           {/* ─── Profile Header ─── */}
           <div
             className={["ui-stack ", classes.profileHeader]

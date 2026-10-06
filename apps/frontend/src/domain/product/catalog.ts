@@ -22,7 +22,7 @@ export const SHELF_PRODUCTS: ShelfProduct[] = [
       "Путеводитель по миру Slow Living. Сезонные рецепты, стиль, идеи домашнего декора и вдохновение на каждый день.",
     price: "",
     imageUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/24c37be76c6e-lURmCnSESVWSORUh.webp",
+      "/assets/responsive/24c37be76c6e-lURmCnSESVWSORUh.w900.3b96fc038e6de538.webp",
     type: "book",
     links: [
       {
@@ -39,7 +39,7 @@ export const SHELF_PRODUCTS: ShelfProduct[] = [
       "Новая книга от Дарьи Дарси о рукотворной уютной жизни. Вдохновение, творчество и красота в каждом дне.",
     price: "",
     imageUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/02ac70f42cc6-RleAncWBrOTmRsWP.webp",
+      "/assets/responsive/02ac70f42cc6-RleAncWBrOTmRsWP.w900.ca9267a9e3eb34cd.webp",
     type: "book",
     links: [
       {
@@ -56,7 +56,7 @@ export const SHELF_PRODUCTS: ShelfProduct[] = [
       "Книга о загородной жизни, традициях прошлого, детских воспоминаниях и уютной загородной жизни настоящего.",
     price: "",
     imageUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/61940224ff85-PbhSAqAqJmSvelQW.webp",
+      "/assets/responsive/61940224ff85-PbhSAqAqJmSvelQW.w900.895210adb7abaa3f.webp",
     type: "book",
     links: [
       {
@@ -73,7 +73,7 @@ export const SHELF_PRODUCTS: ShelfProduct[] = [
       "Подробное пособие о том, как создавать атмосферные, тёплые фотографии в стиле cottagecore. Обработка, свет, композиция.",
     price: "",
     imageUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/f74380dbb7e5-LhJhOevOxDNnKdkT.webp",
+      "/assets/responsive/f74380dbb7e5-LhJhOevOxDNnKdkT.w837.a191ee0a698b7ecb.webp",
     type: "digital",
     links: [],
   },
@@ -85,7 +85,7 @@ export const SHELF_PRODUCTS: ShelfProduct[] = [
       "Мастер-класс по созданию винтажных обложек для книг и открыток. Дизайн, типографика, иллюстрации в стиле daryadarcy.",
     price: "",
     imageUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/78b61d3f13ad-ecZVWefzXRwRboPv.webp",
+      "/assets/responsive/78b61d3f13ad-ecZVWefzXRwRboPv.w900.6bd950f10a33771e.webp",
     type: "digital",
     links: [],
   },
@@ -125,9 +125,9 @@ export const PRODUCT_DETAILS: Product[] = [
       "Конечно же, о вдохновении! На атмосферную, эстетичную и немного сказочную повседневность, на поиск радости и красоты в простых вещах. Содержание разделено на 4 части по временам года, и в каждой собраны сезонные рецепты, мастер-классы по вышивке и декору дома, главы о стиле, уютных делах, подготовке к праздникам...\n\nЯ мечтала создать такую книгу, к которой хотелось бы возвращаться каждый месяц за небольшой порцией вдохновения и напоминанием, что счастье в простом и очень близком. Это не художественное произведение по своему жанру, но, мне кажется, что именно таким оно получилось — очень художественным. С поэтичными описаниями и образами, с медовыми фотографиями, рисованными рамочками на состаренных страницах.\n\nЭта книга наполнена теплом и любовью, и поселилась уже в 40000 домах. Пусть она согреет и вас!",
     price: "",
     coverUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/cover.webp",
+      "/assets/responsive/cover.w900.0248fc3f3099e383.webp",
     imageUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/b8106c44719f-tlMfbAYBCxFjOQfm.webp",
+      "/assets/responsive/b8106c44719f-tlMfbAYBCxFjOQfm.w900.6c36d5714c688924.webp",
     type: "book",
     links: [
       { name: "Ozon", url: "https://ozon.ru/t/1fcfQng", size: "primary" },
@@ -156,15 +156,15 @@ export const PRODUCT_DETAILS: Product[] = [
       "Полноцветная печать",
     ],
     gallery: [
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6129.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6133.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6130.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6127.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6131.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6132.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6126.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6128.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-1/img-6125.jpg",
+      "/assets/responsive/img-6129.full.5021f6024b9727ca.jpg",
+      "/assets/responsive/img-6133.full.e8537fb81104b09d.jpg",
+      "/assets/responsive/img-6130.full.3b4cd772b626c784.jpg",
+      "/assets/responsive/img-6127.full.b8ff27c18632483f.jpg",
+      "/assets/responsive/img-6131.full.aa3e9dd990c9c871.jpg",
+      "/assets/responsive/img-6132.full.c71f8bb767c2b39c.jpg",
+      "/assets/responsive/img-6126.full.68a73756fbe976ec.jpg",
+      "/assets/responsive/img-6128.full.2c4844fd754f009f.jpg",
+      "/assets/responsive/img-6125.full.bc0537a754527090.jpg",
     ],
   },
   {
@@ -175,9 +175,9 @@ export const PRODUCT_DETAILS: Product[] = [
       "О чём же эта книга? Я описываю её как подорожник для каждой творческой души. В ней переплетается как психологическая часть творчества, так и практические идеи, мастер-классы, рецепты, упражнения! Вместе мы будем искать вдохновение, набираться уверенности, чтобы начать делиться своими творениями, я постараюсь помочь справиться с трудными моментами и не опускать руки!\n\nСезонное вдохновение пронизывает всю книгу, и вы чётко будете различать его от разворота к развороту, но в этот раз она не разбита на 4 части по сезонам, как предыдущие. Она действительно как извилистая тропинка с непредсказуемыми поворотами, которая в итоге приведет вас к совершенно новому взгляду на творчество и реализацию себя!\n\nЧто касается оформления, то вас ждёт самое тёплое и уютное издание, которое ощущается как лоскутное одеяло. Акварельные иллюстрации и рамочки на каждом развороте, огромное количество элементов, которые можно рассматривать часами, насыщенная, но приятная глазу цветовая гамма.\n\nМой личный фаворит из всех трёх книг!",
     price: "",
     coverUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-2/cover.webp",
+      "/assets/responsive/cover.w900.e925aea786078c15.webp",
     imageUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/13d6a513f39b-nJGBnjSsHvYTlKyD.webp",
+      "/assets/responsive/13d6a513f39b-nJGBnjSsHvYTlKyD.w900.d7c8b288aeb9bebb.webp",
     type: "book",
     links: [
       { name: "Ozon", url: "https://ozon.ru/t/7GNGr2o", size: "primary" },
@@ -207,10 +207,10 @@ export const PRODUCT_DETAILS: Product[] = [
       "Мастер-классы, рецепты, упражнения",
     ],
     gallery: [
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-2/cover-shelf.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-2/toc.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-2/autumn.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-2/crafts.jpg",
+      "/assets/responsive/cover-shelf.full.3f9a6ab4f24e170d.jpg",
+      "/assets/responsive/toc.full.03ddfa2db0d3cb15.jpg",
+      "/assets/responsive/autumn.full.0119a74ff0cd1692.jpg",
+      "/assets/responsive/crafts.full.f897a762c2317c73.jpg",
     ],
   },
   {
@@ -222,9 +222,9 @@ export const PRODUCT_DETAILS: Product[] = [
       "~ эстетику дореволюционной России и главы об истории возникновения дач, архитектуре, традициях, досуге, гардеробе первых дачников и многое, многое другое.\n\n~ личные главы с моими дачными воспоминаниями: душевные рассказы о моём детстве, любимых щитовых домиках на шести сотках и дорогих людях.\n\n~ главы о переделке нашей сказочной дачи, советы по обустройству, дизайну, сочетанию цветов и стилей. Всё о том, как сохранить или создать с нуля ту самую неповторимую дачную атмосферу!\n\n~ Сезонное вдохновение: как провести каждое время года на даче волшебно и уютно. Здесь вы встретите и мои советы по дачному гардеробу, и списки дел, и секреты «медленной» жизни.\n\nКонечно же, в каждой главе спрятаны рецепты! Простые, вкусные, красивые. А ещё мастер-классы по декору, коллажи, акварельные иллюстрации и скетчи, рисованные от руки рамочки и тёплые фотографии.\n\nЭто очень личная и душевная книга станет украшением дачи или загородного дома, подарит вдохновение и ощущение летнего отдыха.",
     price: "",
     coverUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/cover.webp",
+      "/assets/responsive/cover.w900.56aa8502ff9e5b2f.webp",
     imageUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/94b5bebfd7f4-IbTlGDtcIAJBcJAR.webp",
+      "/assets/responsive/94b5bebfd7f4-IbTlGDtcIAJBcJAR.w900.2f8ac09310638742.webp",
     type: "book",
     links: [
       { name: "Ozon", url: "https://ozon.ru/t/j7o7PNl", size: "primary" },
@@ -253,15 +253,15 @@ export const PRODUCT_DETAILS: Product[] = [
       "Рецепты, мастер-классы, акварельные иллюстрации",
     ],
     gallery: [
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/cover-shelf.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/toc.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/book-desk.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/spread-life.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/spread-pokoy.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/spread-makeover.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/book-open.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/spread-wardrobe.jpg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/book-3/spread-clothes.jpg",
+      "/assets/responsive/cover-shelf.full.17b02b7aeb1298e1.jpg",
+      "/assets/responsive/toc.full.cba2b271f35ac3b4.jpg",
+      "/assets/responsive/book-desk.full.5b2b0f6347e2e433.jpg",
+      "/assets/responsive/spread-life.full.c7f56ac555ff4f70.jpg",
+      "/assets/responsive/spread-pokoy.full.f4718e6b103c3138.jpg",
+      "/assets/responsive/spread-makeover.full.68b6ccc030f5ff14.jpg",
+      "/assets/responsive/book-open.full.fe7d1fe62750b2cf.jpg",
+      "/assets/responsive/spread-wardrobe.full.774faa515dcdce26.jpg",
+      "/assets/responsive/spread-clothes.full.389e0c07bcd539cf.jpg",
     ],
   },
   {
@@ -272,9 +272,9 @@ export const PRODUCT_DETAILS: Product[] = [
       "Это электронная книга-курс (в формате PDF), в которой я делюсь всеми своими секретами и приёмами; очень простым языком объясняю техническую сторону и теорию фотографии; вдохновляю на творчество и смелое выражение себя.\n\nВсего в пособии 8 глав:\n\n~ Техническая сторона фотографии (обещаю, что вы за несколько минут раз и навсегда разберётесь со всеми настройками и ручным режимом съёмки)\n~ Свет (каким бывает свет, как с ним работать, его влияние на атмосферу)\n~ Цвет (гармоничные сочетания цветов и цветовые схемы)\n~ Композиция (лучшие композиционные приёмы и ракурсы с подробным разбором на примерах)\n~ Реквизит (где искать и хранить реквизит для съёмок, как создавать его самому и сочетать в кадре)\n~ Психологические аспекты фотографии (что ещё влияет на атмосферность и душевность кадров?)\n~ Обработка (описание каждой настройки и подробный алгоритм действий, мои любимые приложения и секреты тёплых, медовых фотографий)\n~ Собственный стиль (моя личная история поиска собственного стиля, разбор эстетик и советы по созданию собственной, а также список фильмов, развивающих эстетический вкус)\n\nПособие оформлено как старинная книга: с фактурной обложкой, ботаническими иллюстрациями и сокровищами на пожелтевших страницах: винтажными ножницами, ключами, медальонами... Чтобы листая его, вы могли вдохновиться на творчество и создание собственной красоты!",
     price: "50 \u20bd",
     coverUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/vjdQHvFhVxKjVyWq.webp",
+      "/assets/responsive/vjdQHvFhVxKjVyWq.w900.b01f5f52dcb6fccf.webp",
     imageUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/76751795802b-cvPWAEJjkmXMKPjM.webp",
+      "/assets/responsive/76751795802b-cvPWAEJjkmXMKPjM.w900.b01f5f52dcb6fccf.webp",
     type: "digital",
     links: [{ name: "Оплатить", url: "prodamus:digital-1", size: "primary" }],
     details: [
@@ -286,15 +286,15 @@ export const PRODUCT_DETAILS: Product[] = [
       "Цифровой продукт — мгновенная доставка",
     ],
     gallery: [
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/PBfYGmrZAiWpzHvD.JPG",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/aaDcJuCLOeCrHfxk.JPG",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/nZoznAbRePJnvALl.JPG",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/VTdmWRaePLfvfgrq.JPG",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/aNIPzDLqCSCRrrKT.JPG",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/mltnKcpNhCFwXkYN.JPG",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/KmoncPQbMmceOtFu.jpeg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/OpGQZMvzgVXxbwhN.jpeg",
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/moLPhaYtFBzPVhrp.jpeg",
+      "/assets/responsive/PBfYGmrZAiWpzHvD.full.386097ba2cc4437d.jpg",
+      "/assets/responsive/aaDcJuCLOeCrHfxk.full.a08740122b3d8d46.jpg",
+      "/assets/responsive/nZoznAbRePJnvALl.full.8cc63ba653c19bde.jpg",
+      "/assets/responsive/VTdmWRaePLfvfgrq.full.909db07ec1151fec.jpg",
+      "/assets/responsive/aNIPzDLqCSCRrrKT.full.08def4656aa2f549.jpg",
+      "/assets/responsive/mltnKcpNhCFwXkYN.full.03207d8207495580.jpg",
+      "/assets/responsive/KmoncPQbMmceOtFu.full.646bdc76fc5091a6.jpg",
+      "/assets/responsive/OpGQZMvzgVXxbwhN.full.889b6a685557bc52.jpg",
+      "/assets/responsive/moLPhaYtFBzPVhrp.full.392611db3245d110.jpg",
     ],
     reviews: [
       {
@@ -355,9 +355,9 @@ export const PRODUCT_DETAILS: Product[] = [
       "В мастер-класс входит:\n\n~ пошаговая инструкция по созданию «старинных» книг\n~ более 200(!) книжных обложек для скачивания\n~ секреты печати винтажных открыток\n~ более 200(!) винтажных открыток для печати\n~ идеи использования книг и открыток в декоре и на фотографиях\n~ бесконечное вдохновение!\n\nЯ очень старалась сделать его эстетичным и вдохновляющим. Чтобы листая его, вы словно переворачивали пожелтевшие от времени страницы книги, встречая на них цветочный гербарий, почтовые марки и нежные крылья бабочек. Чтобы иллюстрации хотелось разглядывать, а после прочтения появлялось желание творить!",
     price: "50 \u20bd",
     coverUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/eWHYEgFyQkkTVIac.webp",
+      "/assets/responsive/eWHYEgFyQkkTVIac.w900.4acf43bd33947211.webp",
     imageUrl:
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/b573a5cea177-nNMSLpNDmzQdnfqe.webp",
+      "/assets/responsive/b573a5cea177-nNMSLpNDmzQdnfqe.w900.4acf43bd33947211.webp",
     type: "digital",
     links: [{ name: "Оплатить", url: "prodamus:digital-2", size: "primary" }],
     details: [
@@ -367,16 +367,16 @@ export const PRODUCT_DETAILS: Product[] = [
       "Шаблоны и материалы",
     ],
     gallery: [
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/fHBiLIdoOBjhvOYB.JPG", // Содержание
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/SposdtLMcZWpTsyM.JPG", // Фото винтажных книг
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/xGKrarMYfeycHdkb.JPG", // Что входит в мастер-класс
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/GyoFVkxRZaWzdOws.JPG", // Фото с перьями и книгами
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/bqfYlZTjwUTYkjTU.JPG", // Отрывки мастер-класса 1
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/duefjXzIoLGcxdSk.JPG", // Фото с чаем на книгах
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/luiZwEIyLvSFPdXH.JPG", // Отрывки мастер-класса 2
+      "/assets/responsive/fHBiLIdoOBjhvOYB.full.845ed9f9554d874f.jpg", // Содержание
+      "/assets/responsive/SposdtLMcZWpTsyM.full.1301ac8af2c0a8de.jpg", // Фото винтажных книг
+      "/assets/responsive/xGKrarMYfeycHdkb.full.2dbc4a52aafdc958.jpg", // Что входит в мастер-класс
+      "/assets/responsive/GyoFVkxRZaWzdOws.full.ad19dca6246121e4.jpg", // Фото с перьями и книгами
+      "/assets/responsive/bqfYlZTjwUTYkjTU.full.6a2251b19e6b7529.jpg", // Отрывки мастер-класса 1
+      "/assets/responsive/duefjXzIoLGcxdSk.full.7bd45334ad3a284b.jpg", // Фото с чаем на книгах
+      "/assets/responsive/luiZwEIyLvSFPdXH.full.4a441db854693621.jpg", // Отрывки мастер-класса 2
     ],
     reviewImages: [
-      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/fd2a40d2d655-odfxOAxwqkixLoZd.jpeg",
+      "/assets/responsive/fd2a40d2d655-odfxOAxwqkixLoZd.full.53ef0dbe95cf951e.jpg",
     ],
   },
 ];

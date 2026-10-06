@@ -87,17 +87,66 @@ it("login completion does not wait for unrelated query refetches", async () => {
   expect(f.cache.getQueryData(["slow"])).toBeUndefined();
 });
 
-it("network failure is a recoverable error, not a confirmed guest", async () => {
+it("initial network failure is a recoverable error, not a confirmed guest", async () => {
   const getMe = vi.fn(async () => {
     throw new ApiError("Нет сети", 0, undefined, false, "network");
   });
   const f = fixture(getMe);
-  await f.controller.applySession(member(1));
   await f.controller.refresh();
   expect(f.controller.getSnapshot()).toMatchObject({
     status: "error",
     user: null,
   });
+});
+
+it.each([
+  new ApiError("offline", 0, undefined, false, "network"),
+  new ApiError("unavailable", 503),
+  new ApiError("invalid", 0, undefined, false, "invalid-response"),
+])(
+  "failed initial session checks preserve public queries: %s",
+  async (error) => {
+    const getMe = vi
+      .fn<() => Promise<AuthUser | null>>()
+      .mockRejectedValue(error);
+    const f = fixture(getMe);
+    const startup = f.controller.refresh();
+    // Public screens load independently while auth/me is still pending.
+    f.cache.setQueryData(["feed"], ["PUBLIC_POST"]);
+    await startup;
+    await f.controller.refresh();
+    const screen = f.controller.getSnapshot();
+    const retry = deferred<AuthUser | null>();
+    getMe.mockReturnValueOnce(retry.promise);
+    const pending = f.controller.refresh();
+    expect(f.controller.getSnapshot()).toBe(screen);
+    expect(screen.status).toBe("error");
+    expect(f.cache.getQueryData(["feed"])).toEqual(["PUBLIC_POST"]);
+    retry.resolve(null);
+    await pending;
+    expect(f.controller.getSnapshot().status).toBe("guest");
+    expect(f.cache.getQueryData(["feed"])).toEqual(["PUBLIC_POST"]);
+    expect(f.resetIdentity).not.toHaveBeenCalled();
+  },
+);
+
+it("repeated initial errors keep public data until a real identity is established", async () => {
+  const getMe = vi
+    .fn<() => Promise<AuthUser | null>>()
+    .mockRejectedValue(new ApiError("unavailable", 503));
+  const f = fixture(getMe);
+  f.cache.setQueryData(["public"], "PUBLIC_DATA");
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await f.controller.refresh();
+    expect(f.controller.getSnapshot().status).toBe("error");
+    expect(f.cache.getQueryData(["public"])).toBe("PUBLIC_DATA");
+  }
+  expect(f.resetIdentity).not.toHaveBeenCalled();
+  getMe.mockResolvedValue(member(1));
+  await f.controller.refresh();
+  expect(f.controller.getSnapshot().status).toBe("authenticated");
+  expect(f.cache.getQueryData(["public"])).toBeUndefined();
+  expect(f.resetIdentity).toHaveBeenCalledExactlyOnceWith(1);
 });
 
 it("logout closes local access immediately and preserves an unconfirmed logout for retry", async () => {
@@ -207,12 +256,151 @@ it("a temporary session check failure preserves the screen scope for the same pe
     new ApiError("offline", 0, undefined, false, "network"),
   );
   await f.controller.refresh();
-  expect(f.controller.getSnapshot()).toMatchObject({ status: "error", scope });
+  expect(f.controller.getSnapshot()).toMatchObject({
+    status: "authenticated",
+    user: { id: 1 },
+    error: null,
+    refreshError: expect.any(Error),
+    scope,
+  });
   await f.controller.refresh();
   expect(f.controller.getSnapshot()).toMatchObject({
     status: "authenticated",
+    refreshError: null,
     scope,
   });
   await f.controller.applySession(member(2));
   expect(f.controller.getSnapshot().scope).toBeGreaterThan(scope);
+});
+
+it("a confirmed guest stays visible throughout a pending background check", async () => {
+  const check = deferred<AuthUser | null>();
+  const f = fixture(vi.fn(() => check.promise));
+  await f.controller.applySession(null);
+  const snapshots: string[] = [];
+  f.controller.subscribe(() =>
+    snapshots.push(f.controller.getSnapshot().status),
+  );
+  const pending = f.controller.refresh();
+  expect(f.controller.getSnapshot().status).toBe("guest");
+  // focus and visibilitychange can arrive while the same check is outstanding.
+  await f.controller.refresh();
+  check.resolve(null);
+  await pending;
+  expect(snapshots).toEqual(["guest"]);
+  expect(f.resetIdentity).not.toHaveBeenCalled();
+});
+
+it.each([
+  new ApiError("offline", 0, undefined, false, "network"),
+  new ApiError("timeout", 0, undefined, false, "timeout"),
+  new ApiError("unavailable", 503),
+])(
+  "a temporary background failure preserves identity, queries and scope: %s",
+  async (error) => {
+    const f = fixture(
+      vi.fn(async () => {
+        throw error;
+      }),
+    );
+    await f.controller.applySession(member(1));
+    f.resetIdentity.mockClear();
+    f.cache.setQueryData(["savedPosts"], ["SAVED_FOR_MEMBER_1"]);
+    const scope = f.controller.getSnapshot().scope;
+    await f.controller.refresh();
+    expect(f.controller.getSnapshot()).toMatchObject({
+      status: "authenticated",
+      user: { id: 1 },
+      scope,
+      error: null,
+      refreshError: expect.any(Error),
+    });
+    expect(f.cache.getQueryData(["savedPosts"])).toEqual([
+      "SAVED_FOR_MEMBER_1",
+    ]);
+    expect(f.resetIdentity).not.toHaveBeenCalled();
+  },
+);
+
+it("a guest's failed background check does not become an initial loading screen", async () => {
+  const f = fixture(
+    vi.fn(async () => {
+      throw new ApiError("offline", 0, undefined, false, "network");
+    }),
+  );
+  await f.controller.applySession(null);
+  await f.controller.refresh();
+  expect(f.controller.getSnapshot()).toMatchObject({
+    status: "guest",
+    user: null,
+    error: null,
+    refreshError: expect.any(Error),
+  });
+});
+
+it("a 401 followed by a failed recheck never restores the previous identity", async () => {
+  const f = fixture(
+    vi.fn(async () => {
+      throw new ApiError("offline", 0, undefined, false, "network");
+    }),
+  );
+  await f.controller.applySession(member(1));
+  f.cache.setQueryData(["private"], "PRIVATE");
+  f.controller.verifyAfterAccessError(401);
+  await vi.waitFor(() =>
+    expect(f.controller.getSnapshot().status).toBe("error"),
+  );
+  expect(f.controller.getSnapshot()).toMatchObject({
+    user: null,
+    refreshError: null,
+  });
+  expect(f.cache.getQueryData(["private"])).toBeUndefined();
+});
+
+it.each([401, 403])(
+  "a session endpoint rejection clears previously confirmed access: %s",
+  async (status) => {
+    const f = fixture(
+      vi.fn(async () => {
+        throw new ApiError("denied", status);
+      }),
+    );
+    await f.controller.applySession(member(1));
+    f.cache.setQueryData(["private"], "PRIVATE");
+    await f.controller.refresh();
+    expect(f.controller.getSnapshot()).toMatchObject({
+      status: "guest",
+      user: null,
+      refreshError: null,
+    });
+    expect(f.cache.getQueryData(["private"])).toBeUndefined();
+  },
+);
+
+it("a malformed background session response still closes private access", async () => {
+  const f = fixture(
+    vi.fn(async () => {
+      throw new ApiError("invalid", 0, undefined, false, "invalid-response");
+    }),
+  );
+  await f.controller.applySession(member(1));
+  f.cache.setQueryData(["private"], "PRIVATE");
+  await f.controller.refresh();
+  expect(f.controller.getSnapshot()).toMatchObject({
+    status: "error",
+    user: null,
+    refreshError: null,
+  });
+  expect(f.cache.getQueryData(["private"])).toBeUndefined();
+});
+
+it("a confirmed role change clears cached access and remounts the old screen", async () => {
+  const f = fixture(vi.fn(async () => member(1)));
+  await f.controller.applySession({ ...member(1), role: "admin" });
+  const scope = f.controller.getSnapshot().scope;
+  f.cache.setQueryData(["private"], "PRIVATE_ADMIN");
+  await f.controller.refresh();
+  expect(f.controller.getSnapshot().scope).toBeGreaterThan(scope);
+  expect(f.controller.getSnapshot().user?.role).toBe("user");
+  expect(f.cache.getQueryData(["private"])).toBeUndefined();
 });

@@ -222,6 +222,7 @@ export default function PatternsScreen() {
                       <Picture
                         source={{ uri: pattern.imageUrl }}
                         contentFit="cover"
+                        sizes="(max-width: 480px) calc((100vw - 60px) / 2), 210px"
                         transition={200}
                         className={classes.patternCardImage}
                       />
@@ -452,6 +453,7 @@ function FullScreenViewer({
             >
               <Picture
                 source={{ uri: imageUrl }}
+                fullSize
                 style={{
                   width: viewerStylesLayout.image.width,
                   height: viewerStylesLayout.image.height,

@@ -2,6 +2,8 @@
 import { useRouter as useNextRouter, usePathname } from "next/navigation";
 import { useEffect, useMemo, type ReactNode } from "react";
 import NextLink from "next/link";
+import { hasAppHistory } from "./history";
+import { parentRoute } from "./parent-route";
 type Destination =
   | string
   | {
@@ -26,15 +28,16 @@ export function publicPath(to: Destination): string {
 }
 export function useRouter() {
   const next = useNextRouter();
+  const path = usePathname();
   return useMemo(
     () => ({
       push: (to: Destination) => next.push(publicPath(to)),
       replace: (to: Destination) => next.replace(publicPath(to)),
-      back: () => next.back(),
-      canGoBack: () =>
-        typeof window !== "undefined" && window.history.length > 1,
+      back: () =>
+        hasAppHistory() ? next.back() : next.replace(parentRoute(path)),
+      canGoBack: hasAppHistory,
     }),
-    [next],
+    [next, path],
   );
 }
 export type Router = ReturnType<typeof useRouter>;

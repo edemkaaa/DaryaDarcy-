@@ -3,7 +3,7 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 export { PRODUCT_DETAILS as PRODUCTS } from "@/domain/product/catalog";
 export type { Product as Product } from "@/domain/product/catalog";
 export const PAPER_TEXTURE_URI =
-  "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/d0db18ed8f2e-MasrlKbgCBdeyOhE.jpg";
+  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg";
 export const BROWN = "#3D2B1F";
 export const BROWN_MUTED = "#8B7355";
 export const BROWN_LIGHT = "#D4C4A8";
