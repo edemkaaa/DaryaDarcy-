@@ -715,3 +715,19 @@
   removed; staging remains healthy at 12cfc8d. No frontend, migration or rollout.
 - [ ] Receive test SMTP configuration securely; agree provider/network setup and
   rollout, then verify real mailbox delivery. No live credentials provided yet.
+
+## Frontend/backend handoff: deleted post update (B7) — 2026-10-07
+
+- [x] Reject every missing-post admin.updatePost with NOT_FOUND, not success;
+  preserve successful response and stop before media writes/announcements.
+  Six false-success cases reproduced before repair; 13 focused cases pass after
+  repair with real editor/service/router and a doubled SQL reader.
+- [x] Verify local non-MySQL/static/build gates and document frontend handling.
+  650 pass / 4 skip excluding MySQL suites; verify 239 pass. Types, lint, API,
+  backend build, 452-file boundaries and documentation checks pass.
+  No frontend/generated types, migration, push, staging update or deployment.
+- [ ] Run manual-publication.mysql.test.ts against disposable MySQL and accept
+  deleted-post HTTP 404/media invariants plus existing successful writes.
+  Local Docker info reports EOF; no native MySQL available. Added SQL tests are
+  skipped, not verified. Frontend draft retention/notification still needs its
+  owner's acceptance; existing browser photo-viewer failure is not addressed.

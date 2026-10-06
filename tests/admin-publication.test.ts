@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "../apps/backend/src/_core/context";
+import type { MySql2Database } from "drizzle-orm/mysql2";
+import { savePostEdit } from "../apps/backend/src/content/post-editor";
+import type { UpdatePostInput } from "../apps/backend/src/content/post-write-input";
 const state = vi.hoisted(() => ({
   update: vi.fn(),
   notify: vi.fn(),
@@ -43,6 +46,44 @@ describe("publication notification follows successful persistence", () => {
     ).rejects.toThrow("fixture write failed");
     expect(state.notify).not.toHaveBeenCalled();
   });
+  it.each<{ change: string; input: UpdatePostInput }>([
+    { change: "text", input: { id: 8, text: "Unsaved correction" } },
+    {
+      change: "video",
+      input: { id: 8, videos: ["https://assets.example.test/video.mp4"] },
+    },
+    { change: "publication", input: { id: 8, status: "published" } },
+    { change: "photos", input: { id: 8, photos: [] } },
+    {
+      change: "empty media lists",
+      input: { id: 8, videos: [], attachments: [], removedMediaIds: [] },
+    },
+    { change: "no fields", input: { id: 8 } },
+    { change: "attachment removal", input: { id: 8, removedMediaIds: [1] } },
+  ])(
+    "rejects $change edits of a missing post without announcing success",
+    async ({ input }) => {
+      // Only the unavailable SQL reader is doubled; the editor, service and
+      // router execute their real missing-post/error propagation paths.
+      const reader = {
+        select: () => ({
+          from: () => ({ where: () => ({ for: async () => [] }) }),
+        }),
+      };
+      const database = {
+        transaction: async (run: (tx: typeof reader) => Promise<unknown>) =>
+          run(reader),
+      } as unknown as MySql2Database;
+      state.update.mockImplementation((id, data, videos, attachments) =>
+        savePostEdit(database, id, data, videos, attachments),
+      );
+      await expect(caller().updatePost(input)).rejects.toMatchObject({
+        code: "NOT_FOUND",
+        message: "Публикация не найдена",
+      });
+      expect(state.notify).not.toHaveBeenCalled();
+    },
+  );
   it("does not notify before associated video updates succeed", async () => {
     state.update.mockRejectedValue(new Error("fixture media failed"));
     await expect(
@@ -101,17 +142,23 @@ describe("publication notification follows successful persistence", () => {
   });
   it("does not reannounce an already published post", async () => {
     state.update.mockResolvedValue(undefined);
-    await caller().updatePost({
-      id: 8,
-      status: "published",
-      text: "correction",
-    });
+    expect(
+      await caller().updatePost({
+        id: 8,
+        status: "published",
+        text: "correction",
+      }),
+    ).toEqual({ success: true });
     expect(state.notify).not.toHaveBeenCalled();
   });
   it("does not notify on draft edits or scheduling", async () => {
     state.update.mockResolvedValue(undefined);
-    await caller().updatePost({ id: 8, status: "draft" });
-    await caller().updatePost({ id: 8, status: "scheduled" });
+    expect(await caller().updatePost({ id: 8, status: "draft" })).toEqual({
+      success: true,
+    });
+    expect(await caller().updatePost({ id: 8, status: "scheduled" })).toEqual({
+      success: true,
+    });
     expect(state.notify).not.toHaveBeenCalled();
   });
 });

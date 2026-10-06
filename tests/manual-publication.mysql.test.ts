@@ -31,6 +31,7 @@ import type { AppRouter } from "../apps/backend/src/routers";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb, publishDueScheduledPosts } from "../apps/backend/src/db";
+import type { UpdatePostInput } from "../apps/backend/src/content/post-write-input";
 
 describe.skipIf(!testDatabaseUrl)(
   "manual publication ownership over HTTP and MySQL",
@@ -385,19 +386,49 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
     });
     it("a missing post edit cannot create orphan videos", async () => {
-      expect(
-        await admin.admin.updatePost.mutate({
+      await expect(
+        admin.admin.updatePost.mutate({
           id: 11405,
           text: "Missing",
           videos: ["https://assets.example.test/orphan.mp4"],
         }),
-      ).toEqual({ success: true });
+      ).rejects.toMatchObject({
+        message: "Публикация не найдена",
+        data: { code: "NOT_FOUND", httpStatus: 404 },
+      });
       const [media] = await conn.query<RowDataPacket[]>(
         "SELECT id FROM post_media WHERE postId=11405",
       );
       expect(media).toEqual([]);
       expect(transport.announcements).toEqual([]);
     });
+    it.each<{ change: string; input: Omit<UpdatePostInput, "id"> }>([
+      { change: "text", input: { text: "Deleted post correction" } },
+      { change: "publication", input: { status: "published" } },
+      { change: "photos", input: { photos: [] } },
+      {
+        change: "empty media lists",
+        input: { videos: [], attachments: [], removedMediaIds: [] },
+      },
+      { change: "no fields", input: {} },
+      { change: "attachment removal", input: { removedMediaIds: [11412] } },
+    ])(
+      "rejects $change edits after deletion without touching media",
+      async ({ input }) => {
+        const before = (await editSnapshot()).media;
+        await conn.query("DELETE FROM posts WHERE id=11402");
+        await expect(
+          admin.admin.updatePost.mutate({ id: 11402, ...input }),
+        ).rejects.toMatchObject({
+          message: "Публикация не найдена",
+          data: { code: "NOT_FOUND", httpStatus: 404 },
+        });
+        const after = await editSnapshot();
+        expect(after.post).toBeUndefined();
+        expect(after.media).toEqual(before);
+        expect(transport.announcements).toEqual([]);
+      },
+    );
     it("does not report attachment save success when the post no longer exists", async () => {
       await expect(
         admin.admin.updatePost.mutate({

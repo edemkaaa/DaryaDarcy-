@@ -34,15 +34,10 @@ export async function savePostEdit(
       .where(eq(posts.id, postId))
       .for("update");
     if (!post) {
-      if (
-        attachments.attachments?.length ||
-        attachments.removedMediaIds?.length
-      )
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Публикация не найдена",
-        });
-      return undefined;
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Публикация не найдена",
+      });
     }
 
     const updateData = { ...data };
