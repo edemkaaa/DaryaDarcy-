@@ -1,9 +1,10 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { TRPCError } from "@trpc/server";
 import type { Express, Request, Response } from "express";
 import { publicAccessUrl } from "./identity/urls";
 import { getCapabilities } from "./launch/capabilities";
 import * as db from "./db";
-import type { PaymentProof } from "./billing/protocol";
+import { moneyMinor, type PaymentProof } from "./billing/protocol";
 import { confirmProviderCancellation, type Profile } from "./billing/cancellation";
 
 const PRODUCT_NAME = "Подписка Клуб Darcy";
@@ -41,7 +42,9 @@ function publicSiteUrl(): string {
 }
 
 function getPayformUrl(): string {
-  return (process.env.PRODAMUS_PAYFORM_URL || "https://daryadarcy-club.payform.ru").replace(/\/$/, "");
+  return (process.env.PRODAMUS_PAYFORM_URL || "https://daryadarcy-club.payform.ru")
+    .trim()
+    .replace(/\/$/, "");
 }
 
 function getShopPayformUrl(): string {
@@ -63,6 +66,39 @@ function shopUsesDemoSign(): boolean {
 
 function subscriptionId(): string {
   return (process.env.PRODAMUS_SUBSCRIPTION_ID || "").trim();
+}
+
+/** Checkout must fail before creating a billing recipient or pending order. */
+export function assertClubCheckoutConfigured(
+  plan: "monthly" | "semiannual",
+): void {
+  try {
+    // No implicit live merchant, unsigned link, or injected payform parameters.
+    const form = new URL((process.env.PRODAMUS_PAYFORM_URL || "").trim());
+    if (
+      form.protocol !== "https:" ||
+      !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.payform\.ru$/.test(form.hostname) ||
+      form.username ||
+      form.password ||
+      form.port ||
+      form.pathname !== "/" ||
+      form.search ||
+      form.hash ||
+      !getSecret() ||
+      moneyMinor(plan === "semiannual" ? CLUB_SEMIANNUAL_PRICE : CLUB_PRICE) ===
+        null ||
+      (plan === "monthly" && !/^[1-9]\d*$/.test(subscriptionId()))
+    ) {
+      throw new Error();
+    }
+    publicSiteUrl();
+  } catch {
+    // Configuration may contain secrets: never expose the rejected value or cause.
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Оплата временно недоступна. Попробуйте позже.",
+    });
+  }
 }
 
 function stringifyValues(value: unknown): unknown {
@@ -152,8 +188,9 @@ export function buildCheckoutUrl(input: {
   userId: number;
   plan?: "monthly" | "semiannual";
 }): string {
-  const appUrl = publicSiteUrl();
   const semiannual = input.plan === "semiannual" || input.orderId.startsWith("club6m-");
+  assertClubCheckoutConfigured(semiannual ? "semiannual" : "monthly");
+  const appUrl = publicSiteUrl();
   const price = semiannual ? CLUB_SEMIANNUAL_PRICE : CLUB_PRICE;
   const productLabel = semiannual
     ? `${PRODUCT_NAME} — 6 месяцев (зарубежные карты)`
@@ -186,7 +223,7 @@ export function buildCheckoutUrl(input: {
   // Monthly club checkout must include subscription id so Prodamus creates autopayments.
   // Prodamus ignores products for subscriptions: the cabinet price must match CLUB_PRICE.
   // Semiannual is a one-off payment priced by products[].price.
-  if (subId && !semiannual) {
+  if (!semiannual) {
     payload.subscription = subId;
   }
   payload.products = [

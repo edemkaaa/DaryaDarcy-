@@ -9,6 +9,8 @@ const state = vi.hoisted(() => ({
   blocked: false,
   paid: false,
   password: false,
+  existing: true,
+  created: 0,
 }));
 const member: User = {
   id: 7,
@@ -30,12 +32,18 @@ const member: User = {
   lastSignedIn: new Date(),
 };
 vi.mock("../apps/backend/src/db", () => ({
-  getUserByEmail: async () => ({
-    ...member,
-    blockedAt: state.blocked ? new Date() : null,
-    passwordHash: state.password ? "existing-hash" : null,
-  }),
-  ensureUserByEmail: async () => member,
+  getUserByEmail: async () =>
+    state.existing
+      ? {
+          ...member,
+          blockedAt: state.blocked ? new Date() : null,
+          passwordHash: state.password ? "existing-hash" : null,
+        }
+      : undefined,
+  ensureUserByEmail: async () => {
+    state.created += 1;
+    return member;
+  },
   createClubPayment: async ({ orderId }: { orderId: string }) => {
     state.orders.push(orderId);
   },
@@ -55,20 +63,77 @@ vi.mock("../apps/backend/src/_core/sdk", () => ({
   },
 }));
 import { appRouter } from "../apps/backend/src/routers";
+import * as prodamus from "../apps/backend/src/prodamus";
 function caller(user: User | null = null) {
   return appRouter.createCaller({ user, req: {}, res: {} } as TrpcContext);
 }
 beforeEach(() => {
   vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
+  vi.stubEnv("PRODAMUS_PAYFORM_URL", "https://fixture.payform.ru");
+  vi.stubEnv("PRODAMUS_SECRET", "synthetic-signing-key");
+  vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "12345");
   state.orders = [];
   state.issued = false;
   state.activated = false;
   state.blocked = false;
   state.paid = false;
   state.password = false;
+  state.existing = true;
+  state.created = 0;
 });
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});
 describe("checkout cannot establish identity or payment", () => {
+  it("does not persist an order if building its payment link fails", async () => {
+    vi.spyOn(prodamus, "buildCheckoutUrl").mockImplementation(() => {
+      throw new Error("synthetic checkout failure");
+    });
+    await expect(
+      caller().club.createCheckout({ email: member.email! }),
+    ).rejects.toThrow("synthetic checkout failure");
+    expect(state.orders).toEqual([]);
+    expect(state.issued).toBe(false);
+  });
+  it.each([
+    ["PRODAMUS_SECRET", ""],
+    ["PRODAMUS_PAYFORM_URL", ""],
+    ["PRODAMUS_PAYFORM_URL", "https://payments-disabled.invalid"],
+    ["PUBLIC_APP_URL", ""],
+    ["PUBLIC_APP_URL", "https://user:PRIVATE_VALUE@club.example.test"],
+    ["PRODAMUS_SUBSCRIPTION_ID", ""],
+    ["PRODAMUS_SUBSCRIPTION_ID", "not-an-id"],
+  ])(
+    "rejects invalid %s before creating a recipient or order",
+    async (name, value) => {
+      vi.stubEnv(name, value);
+      for (const existing of [false, true]) {
+        state.existing = existing;
+        await expect(
+          caller().club.createCheckout({ email: member.email! }),
+        ).rejects.toMatchObject({
+          code: "PRECONDITION_FAILED",
+          message: "Оплата временно недоступна. Попробуйте позже.",
+        });
+      }
+      expect(state.orders).toEqual([]);
+      expect(state.created).toBe(0);
+      expect(state.issued).toBe(false);
+    },
+  );
+  it("keeps the semiannual one-off checkout independent of a monthly subscription ID", async () => {
+    vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "");
+    state.existing = false;
+    const result = await caller().club.createCheckout({
+      email: member.email!,
+      plan: "semiannual",
+    });
+    expect(new URL(result.url).searchParams.has("subscription")).toBe(false);
+    expect(state.orders).toHaveLength(1);
+    expect(state.created).toBe(1);
+    expect(result.user).toBeNull();
+  });
   it.each(["monthly", "semiannual"] as const)(
     "creates distinct %s orders for concurrent requests in the same millisecond",
     async (plan) => {

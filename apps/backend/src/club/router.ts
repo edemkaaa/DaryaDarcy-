@@ -13,6 +13,7 @@ import type { ContentCommentService } from "../content/content-comment.service";
 import { addCommentInput } from "../content/comment-input";
 import { photoInput, uploadPhoto } from "../media/photos";
 import {
+  assertClubCheckoutConfigured,
   buildCheckoutUrl,
   cancelProdamusSubscription,
   CLUB_PRICE,
@@ -89,15 +90,17 @@ export const createClubRouter = (comments: ContentCommentService) =>
             message: "Не удалось создать платёж. Обратитесь в поддержку.",
           });
         }
+        const plan = input?.plan ?? "monthly";
+        assertClubCheckoutConfigured(plan);
         // A billing recipient is not an authenticated identity. Never issue a
         // session or expose account details merely because an email was supplied.
         const user =
           ctx.user || existing || (await db.ensureUserByEmail(email));
-        const plan = input?.plan ?? "monthly";
         const orderId =
           plan === "semiannual"
             ? `club6m-${user.id}-${randomUUID()}`
             : `club-${user.id}-${randomUUID()}`;
+        const url = buildCheckoutUrl({ orderId, email, userId: user.id, plan });
         await db.createClubPayment({
           userId: user.id,
           orderId,
@@ -105,7 +108,7 @@ export const createClubRouter = (comments: ContentCommentService) =>
           sum: plan === "semiannual" ? CLUB_SEMIANNUAL_PRICE : CLUB_PRICE,
         });
         return {
-          url: buildCheckoutUrl({ orderId, email, userId: user.id, plan }),
+          url,
           user: null,
         };
       }),
