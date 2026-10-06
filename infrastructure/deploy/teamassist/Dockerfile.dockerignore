@@ -1,0 +1,14 @@
+**/node_modules
+**/.next
+**/.env*
+**/*.env
+**/*.tar
+baseline
+.git
+dist
+backups
+**/test-results
+**/playwright-report
+**/*.pem
+**/*.key
+**/.DS_Store

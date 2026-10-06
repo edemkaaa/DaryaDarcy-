@@ -1259,3 +1259,35 @@ No staging merge/push/deploy, new dependencies/schema/frontend/auth changes.
   in dedicated slices, never start production jobs as an import side effect.
 - Payment/auth bugs found along the way: reproduce with tests and fix in separate
   commits; do not revert security repairs or silently change frontend contracts.
+
+## TeamAssist isolated staging deployment — 2026-10-06
+
+Extends the staging integration/deployment work, without replacing the open
+backend release plan. User supplied SSH access and approved a new empty test DB.
+Deploy source 12cfc8dd76e801809828e2ef8af4bdcc8577019f; do not edit frontend
+sources, generated API types or tests. No production data/credentials/providers.
+
+1. Inventory the shared host and triage the fresh lockfile audit. Checkpoint:
+   no unrelated application changes and no unmitigated reachable high/critical
+   finding for this exact test configuration; retain dated dependency follow-up.
+2. Build a Linux/amd64 artifact with frozen dependencies and install scripts
+   disabled. Prefer local build; bounded 1 GiB/0.6 CPU isolated remote builder
+   is the fallback if local Docker is unavailable. Keep runtime and secrets
+   separate. Verify actual startup.
+3. Start isolated MySQL with no published DB port. Initialize canonical schema
+   only after verifying this new DB is empty. This is a test-only baseline, NOT
+   reconciliation/approval of the existing 0017–0019 migration-history gap.
+4. Start frontend/API on their own bounded Compose project; expose only a
+   loopback edge port and then HTTPS via host nginx. Verify guest UI, real SQL
+   catalog/config queries, protected-route refusals and disabled providers.
+5. Record artifact SHA, runtime health, resource use, secret locations and
+   stop/rollback steps. Keep the known three browser failures and production
+   migration/provider/private-storage release gates explicitly open.
+
+Deployment checkpoint: server image c08e021f95ae6c57fd5594dfcce0925f0298e2f131e052ff4813aba011ed5748
+built/started with production-only dependencies and native sharp/file-type checks.
+All four containers healthy; HTTPS guest/SQL/admin-refusal/payment-off smoke passes,
+home page rendered in the browser. Native backup decompresses to 28 tables;
+users/payments remain zero; API outbound TCP blocked. Other server projects retain
+their original uptime. Temporary server builder/cache removed. This is only a
+test baseline, not production migration/provider/privacy acceptance.

@@ -638,3 +638,23 @@
   decompose db.ts without changing contracts. Review every module separately.
 - [ ] Final checkpoint: whole Nest runtime/MySQL/frontend flow, release rehearsal,
   audit triage/migration history/provider/SMTP/private-file gates and approved rollout.
+
+## TeamAssist isolated staging deployment — 2026-10-06
+
+- [x] Confirm SSH host/teamassist-dev, free resources and existing applications.
+  User approved a separate empty test DB; no production imports/providers.
+- [x] Triage current runtime/build dependency advisories for the exact test setup;
+  see docs/operations/teamassist-staging.md; dependency updates remain separate.
+- [x] Build and verify exact staging SHA as Linux/amd64 containers using the
+  bounded remote builder after local disk exhaustion. Native sharp/file-type,
+  production-only dependencies and absence of env files verified.
+- [x] Initialize new isolated empty MySQL from the canonical test baseline;
+  retain production migration-history blocker (0017–0019).
+- [x] Verify HTTPS UI/API/SQL, protected routes, disabled integrations and bounded
+  resources without editing frontend source/types/tests or other server projects.
+- [x] Record deployment version and safe stop/rollback instructions; keep known
+  browser failures and remaining production release gates open.
+- [ ] Local build cleanup: Docker became unavailable after disk exhaustion.
+  Generated source/config temp directory removed; old failed local staging image
+  and task-specific cache need removal once the local engine works. Do not delete
+  unrelated images/containers/volumes or reset Docker Desktop.
