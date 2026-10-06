@@ -27,7 +27,7 @@
     "optimize:assets": "node tooling/assets/optimize-local-assets.mjs && node tooling/assets/fix-asset-webp-refs.mjs",
     "deploy:web": "node tooling/operations/deploy-web.mjs",
     "deploy:api": "node tooling/operations/deploy-api.mjs",
-    "db:push": "drizzle-kit generate && drizzle-kit migrate",
+    "db:push": "pnpm db:preflight --require-database && drizzle-kit migrate",
     "db:preflight": "tsx tooling/scripts/migration-preflight.ts",
     "qr": "node tooling/scripts/generate_qr.mjs",
     "dev:frontend": "pnpm --filter @daryadarcy/frontend dev",

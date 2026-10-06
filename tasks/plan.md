@@ -1291,3 +1291,38 @@ home page rendered in the browser. Native backup decompresses to 28 tables;
 users/payments remain zero; API outbound TCP blocked. Other server projects retain
 their original uptime. Temporary server builder/cache removed. This is only a
 test baseline, not production migration/provider/privacy acceptance.
+
+## Migration application guard — 2026-10-06
+
+Continue the B05/release migration gate, not the frontend or live deployment.
+The existing db:push command generates and applies SQL before enforcing the
+known 0017–0019 manifest failure. Do not reconcile that history without source
+database evidence; prevent this unsafe default instead.
+
+1. Reproduce command execution with disposable executable probes: a failed
+   preflight must prevent both generation and application. Assert real child
+   process effects/exit codes, not package.json source strings.
+2. Make db:push apply reviewed SQL only after a database-required preflight using
+   the same explicit DATABASE_URL as Drizzle. Refuse conflicting preflight URLs,
+   unknown arguments and missing database configuration. An invalid manifest must
+   fail before any connection attempt; existing read-only preflight semantics stay.
+3. Verify focused migration tests, types/API/build/boundaries/docs and review the
+   diff. Update workflow docs. Do not run migrate, change SQL/journal, seed an
+   administrator, modify frontend files, push/merge or update the test server.
+
+This is a fail-closed command guard, not migration reconciliation, a DB snapshot
+lock, a backup/restore rehearsal, production approval or a restriction on someone
+deliberately invoking drizzle-kit directly. Local Docker is currently unavailable;
+do not silently skip SQL-dependent verification or reuse the deployed test DB.
+
+Guard checkpoint: six failures reproduced before repair, then 13 command/CLI
+cases and the existing 18 history/policy cases passed. Executable probes prove
+failed preflight prevents generation/application; actual CLI tests prove unknown
+flags/missing/conflicting URLs fail closed, .env is not loaded, dirty manifests
+open no TCP connection, and the required gate does contact DATABASE_URL for a
+clean manifest (a refused handshake remains a safe failure with no secrets).
+Actual repository db:push exits 1 before any Drizzle write on the three known
+orphan files. Full local suite 518 pass / 498 skip, with real MySQL unavailable;
+types/lint/backend build/API/boundaries/docs pass. No SQL/journal/schema, frontend,
+dependency, provider, server or production data changes. History reconciliation,
+actual migration rehearsal and all other release gates remain open.

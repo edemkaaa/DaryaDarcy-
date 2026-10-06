@@ -658,3 +658,19 @@
   Generated source/config temp directory removed; old failed local staging image
   and task-specific cache need removal once the local engine works. Do not delete
   unrelated images/containers/volumes or reset Docker Desktop.
+
+## Migration application guard — 2026-10-06
+
+- [x] Reproduce unsafe db:push ordering using disposable process probes.
+  Six behavioral failures observed before repair; no real SQL generated/applied.
+- [x] Require a clean manifest and matching explicit database history before
+  applying reviewed SQL; no automatic generation, journal repair or live SQL.
+- [x] Verify focused command/CLI/history tests and static/build gates; record
+  missing real-MySQL rehearsal separately from this tooling slice.
+  31 focused tests pass; full local run 518 pass / 498 skip (SQL/provider gates
+  not run). Disposable MySQL is unavailable (Docker info reports EOF).
+  Types, lint, backend build,
+  exact 72-procedure/25461-byte API, 434-file boundaries and 44-doc check pass.
+  Actual db:push refuses the existing three orphan files before DB/migrate.
+- [ ] Reconcile 0017–0019 with source database evidence and rehearse approved
+  migrations on a disposable copy. This command guard does not close B05/release.

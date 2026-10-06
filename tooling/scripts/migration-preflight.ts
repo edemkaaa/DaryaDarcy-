@@ -7,6 +7,15 @@ import {
 import { readMigrationHistory } from "./migration-history";
 
 async function main() {
+  const args = process.argv.slice(2);
+  if (args.length > 1 || args.some((arg) => arg !== "--require-database")) {
+    console.error(
+      "Unsupported preflight arguments; no database checked or changed.",
+    );
+    process.exitCode = 1;
+    return;
+  }
+  const requireDatabase = args.includes("--require-database");
   const folder = new URL("../../packages/database/drizzle/", import.meta.url);
   const journal = JSON.parse(
     await readFile(new URL("meta/_journal.json", folder), "utf8"),
@@ -22,23 +31,37 @@ async function main() {
     ),
   );
   const manifest = inspectMigrationManifest(journal, files);
-  // Do not implicitly load .env or use the application DATABASE_URL.
-  const uri = process.env.MIGRATION_PREFLIGHT_DATABASE_URL;
-  const history = uri
-    ? inspectMigrationHistory(
-        manifest.migrations,
-        await readMigrationHistory(uri),
-      )
-    : undefined;
-  const issues = [...manifest.issues, ...(history?.issues ?? [])];
+  // Normal diagnostics never use application credentials. The apply gate must
+  // inspect exactly the DATABASE_URL that the following Drizzle command uses.
+  // Neither mode loads .env, creates history or repairs the journal.
+  const inspectionUri = process.env.MIGRATION_PREFLIGHT_DATABASE_URL;
+  const uri = requireDatabase ? process.env.DATABASE_URL : inspectionUri;
+  const issues = [...manifest.issues];
+  if (requireDatabase && !uri?.trim())
+    issues.push("database-connection-required");
+  if (requireDatabase && inspectionUri && inspectionUri !== uri)
+    issues.push("database-connection-mismatch");
+
+  let databaseChecked = false;
+  let pending: string[] | null = null;
+  // Fail before opening any connection if file/configuration checks fail.
+  if (!issues.length && uri) {
+    const history = inspectMigrationHistory(
+      manifest.migrations,
+      await readMigrationHistory(uri),
+    );
+    databaseChecked = true;
+    issues.push(...history.issues);
+    pending = history.pending;
+  }
   console.log(
     JSON.stringify(
       {
         mode: "read-only",
-        databaseChecked: !!uri,
+        databaseChecked,
         issues,
         migrations: manifest.migrations,
-        pending: history?.pending ?? null,
+        pending,
         releaseApproval: false,
       },
       null,
