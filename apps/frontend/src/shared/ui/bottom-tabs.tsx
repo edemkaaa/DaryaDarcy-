@@ -30,8 +30,9 @@ export function BottomTabs() {
               name={icon}
               size={22}
               color={active ? "#5C4033" : "#8B7355"}
+              style={{ marginBottom: -2 }}
             />
-            <span>{label}</span>
+            <span className={styles.label}>{label}</span>
           </Link>
         );
       })}

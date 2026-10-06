@@ -227,6 +227,8 @@ export function QuizQuestion() {
                           height: stylesLayout.carouselCard.height,
                         }}
                         onClick={() => handleSelect(answer.id)}
+                        aria-label={`Выбрать изображение ${i + 1}`}
+                        aria-pressed={selectedAnswer === answer.id}
                         activeOpacity={0.9}
                         className={[
                           classes.action,
@@ -333,6 +335,8 @@ export function QuizQuestion() {
                                 : stylesLayout.visualCard3.height,
                         }}
                         onClick={() => handleSelect(answer.id)}
+                        aria-label={`Выбрать изображение ${question.answers.indexOf(answer) + 1}`}
+                        aria-pressed={selectedAnswer === answer.id}
                         activeOpacity={0.8}
                         className={[
                           selectedAnswer === answer.id
@@ -396,6 +400,7 @@ export function QuizQuestion() {
                           : "#E8DFD4",
                     }}
                     onClick={() => handleSelect(answer.id)}
+                    aria-pressed={selectedAnswer === answer.id}
                     activeOpacity={0.8}
                     className={[
                       classes.action2,

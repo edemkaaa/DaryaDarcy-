@@ -58,6 +58,8 @@ export const STICKER_SAVE =
   "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/8b44a02c41d1-avIlcuIRwQPHiWEZ.webp";
 export const MAILBOX_URI =
   "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/ce515dd1f602-yLEBPmBjoZXimIfm.webp";
+// First-stage release shows a placeholder; reopening also requires the API capability.
+export const PEN_PALS_ENABLED = false;
 export interface ClubPost {
   id: string;
   title: string;

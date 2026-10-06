@@ -3,7 +3,6 @@ import { useBrowserReady } from "@/shared/browser/use-browser-ready";
 import { TabHeader } from "@/shared/ui/tab-header";
 import classes from "./feed-screen.module.scss";
 import {
-  type ScrollEvent,
   Field,
   Action,
   Typography,
@@ -114,13 +113,6 @@ export default function FeedScreen() {
   const [viewerPhotos, setViewerPhotos] = useState<string[]>([]);
   const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  const handleListScroll = useCallback((event: ScrollEvent) => {
-    setShowScrollTop(event.currentTarget.scrollTop > 360);
-  }, []);
-  const scrollFeedToTop = useCallback(() => {
-    listRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
   // Debounce search input (300ms)
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
@@ -243,6 +235,7 @@ export default function FeedScreen() {
         />
         {searchQuery.length > 0 && (
           <Action
+            aria-label="Очистить поиск"
             onClick={() => setSearchQuery("")}
             className={({ pressed }) =>
               pressed ? classes.opacityState : classes.opacityState2
@@ -269,6 +262,8 @@ export default function FeedScreen() {
         className={["ui-stack ", classes.toggleRow].filter(Boolean).join(" ")}
       >
         <Action
+          aria-label="Показать лентой"
+          aria-pressed={viewMode === "feed"}
           onClick={() => setViewMode("feed")}
           className={[
             classes.toggleButtonActive,
@@ -286,6 +281,8 @@ export default function FeedScreen() {
           />
         </Action>
         <Action
+          aria-label="Показать сеткой"
+          aria-pressed={viewMode === "grid"}
           onClick={() => setViewMode("grid")}
           className={[
             classes.toggleButtonActive,
@@ -486,7 +483,6 @@ export default function FeedScreen() {
             )
           }
           hideScrollbar
-          onScroll={handleListScroll}
           onLoadMore={handleLoadMore}
           loadMoreThreshold={0.5}
           refreshing={refreshing}
@@ -511,7 +507,6 @@ export default function FeedScreen() {
             )
           }
           hideScrollbar
-          onScroll={handleListScroll}
           onLoadMore={handleLoadMore}
           loadMoreThreshold={0.5}
           refreshing={refreshing}
@@ -529,7 +524,7 @@ export default function FeedScreen() {
         />
       ) : null}
       {isOwner ? <ManagementModals /> : null}
-      <ScrollToTopButton visible={showScrollTop} onClick={scrollFeedToTop} />
+      <ScrollToTopButton key={`scroll-top-${viewMode}`} scrollRef={listRef} />
       <AdminFAB target="feed" />
     </ScreenContainer>
   );

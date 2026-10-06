@@ -60,9 +60,10 @@ export function postHasTag(
 ): boolean {
   const needle = filter.trim().toLowerCase();
   if (!needle) return false;
+  const label = LABEL_BY_SLUG.get(needle) ?? needle;
   return (tags || []).some((tag) => {
     const slug = tag.trim().toLowerCase();
-    return slug === needle || (LABEL_BY_SLUG.get(slug) || "") === needle;
+    return slug === needle || (LABEL_BY_SLUG.get(slug) ?? slug) === label;
   });
 }
 export function tagsForTarget(target: "feed" | "club" | "both"): PostTag[] {

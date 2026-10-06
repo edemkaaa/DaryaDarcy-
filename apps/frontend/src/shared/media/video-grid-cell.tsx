@@ -65,6 +65,7 @@ export function VideoGridCell({
   };
   return (
     <Action
+      aria-label="Открыть видео"
       onClick={handlePress}
       style={() => ({
         aspectRatio: aspectRatio,

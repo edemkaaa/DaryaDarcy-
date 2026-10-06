@@ -6,7 +6,6 @@ import { CLUB_MUSIC_URL } from "@/shared/styles/tab-assets";
 import { getClubSubscribedLayout } from "./club-subscribed.layout";
 import classes from "./club-subscribed.module.scss";
 import {
-  type ScrollEvent,
   Typography,
   Action,
   Background,
@@ -15,7 +14,7 @@ import {
 } from "@/shared/ui/elements";
 import { ClubPostCard } from "./club-post-card";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import AsyncStorage from "@/shared/browser/storage";
 import { Picture } from "@/shared/media/image";
@@ -58,6 +57,7 @@ import {
   SEASONAL_BANNERS,
   CLUB_TABS,
   MAILBOX_URI,
+  PEN_PALS_ENABLED,
   PROFILE_COMPLETED_KEY,
 } from "./club-subscribed.content";
 import type { ClubTab, ClubPost } from "./club-subscribed.content";
@@ -79,6 +79,7 @@ function getClubSeason(): "autumn" | "winter" {
 }
 export function ClubSubscribed() {
   const capabilities = useCapabilities();
+  const penPalsAvailable = PEN_PALS_ENABLED && capabilities.penPals;
   const viewport = useViewport();
   const { stylesLayout } = getClubSubscribedLayout(viewport);
 
@@ -119,13 +120,6 @@ export function ClubSubscribed() {
   const [viewerPhotos, setViewerPhotos] = useState<string[]>([]);
   const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  const handleListScroll = useCallback((event: ScrollEvent) => {
-    setShowScrollTop(event.currentTarget.scrollTop > 360);
-  }, []);
-  const scrollClubToTop = useCallback(() => {
-    listRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
   const openPhotoViewer = (photos: string[], index: number) => {
     setViewerPhotos(photos);
     setViewerInitialIndex(index);
@@ -169,13 +163,43 @@ export function ClubSubscribed() {
   // Use local profile data for greeting (fallback to user from auth)
   const displayName = profileName || user?.name;
   const displayGender = profileGender || user?.gender;
-  // Fetch club posts from DB
-  const clubQuery = trpc.club.list.useQuery(
-    { limit: 200 },
-    { refetchOnWindowFocus: false },
+  // Keep local rubric/alias filtering; the API currently supports one tag only.
+  const clubQuery = trpc.club.list.useInfiniteQuery(
+    { limit: 12 },
+    {
+      refetchOnWindowFocus: false,
+      getNextPageParam: (lastPage, _pages, _lastParam, pageParams) =>
+        pageParams.includes(lastPage.nextCursor)
+          ? undefined
+          : lastPage.nextCursor,
+    },
   );
+  const lastPage = clubQuery.data?.pages.at(-1);
+  const stalledCursor =
+    lastPage?.nextCursor != null &&
+    Boolean(clubQuery.data?.pageParams.includes(lastPage.nextCursor));
+  const hasPageError = clubQuery.isError || stalledCursor;
+  const { fetchNextPage, hasNextPage, isFetching, isError } = clubQuery;
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetching && !isError && !stalledCursor)
+      void fetchNextPage({ cancelRefetch: false });
+  }, [fetchNextPage, hasNextPage, isFetching, isError, stalledCursor]);
+  const retryPosts = () => {
+    if (clubQuery.isFetching) return;
+    if (clubQuery.isFetchNextPageError)
+      void clubQuery.fetchNextPage({ cancelRefetch: false });
+    else void clubQuery.refetch({ cancelRefetch: false });
+  };
+  const rows = useMemo(() => {
+    const unique = new Map(
+      (clubQuery.data?.pages.flatMap((page) => page.posts) ?? []).map(
+        (post) => [post.id, post] as const,
+      ),
+    );
+    return [...unique.values()];
+  }, [clubQuery.data]);
   // Convert API posts to the club presentation model.
-  const dbPosts: ClubPost[] = (clubQuery.data?.posts || [])
+  const dbPosts: ClubPost[] = rows
     .map((row) => {
       const p: typeof row & Pick<ClubPost, "media" | "commentCount"> = row;
       const cleanLines = String(p.text || "")
@@ -219,6 +243,10 @@ export function ClubSubscribed() {
   const posts = selectedBoardTag
     ? tabPosts.filter((p) => postHasTag(p.tags, selectedBoardTag))
     : tabPosts;
+  // An empty filtered page is not an empty section until all pages are checked.
+  useEffect(() => {
+    if (posts.length === 0) loadMore();
+  }, [posts.length, loadMore]);
   const season = getClubSeason();
   const tartanUri = SEASONAL_TARTANS[season];
   const bannerUri = SEASONAL_BANNERS[season];
@@ -297,7 +325,7 @@ export function ClubSubscribed() {
         </Typography>
       ) : null}
       {/* Mailbox + Pen Pals CTA on Community tab */}
-      {activeTab === "community" && capabilities.penPals ? (
+      {activeTab === "community" ? (
         <div
           className={["ui-stack ", classes.communityIntro]
             .filter(Boolean)
@@ -316,22 +344,30 @@ export function ClubSubscribed() {
               contentFit="contain"
               className={classes.mailboxImage}
             />
-            <Action
-              onClick={() => setShowPenPals(true)}
-              className={({ pressed }) =>
-                [
-                  classes.action,
-                  pressed ? classes.opacityState : "",
-                  pressed ? classes.transformState : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")
-              }
-            >
-              <Typography className={classes.penPalsCtaText}>
-                найти друга по переписке →
-              </Typography>
-            </Action>
+            {penPalsAvailable ? (
+              <Action
+                onClick={() => setShowPenPals(true)}
+                className={({ pressed }) =>
+                  [
+                    classes.action,
+                    pressed ? classes.opacityState : "",
+                    pressed ? classes.transformState : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
+                }
+              >
+                <Typography className={classes.penPalsCtaText}>
+                  найти друга по переписке →
+                </Typography>
+              </Action>
+            ) : (
+              <div className={classes.action}>
+                <Typography className={classes.penPalsCtaText}>
+                  Почтовое отделение — скоро
+                </Typography>
+              </div>
+            )}
           </div>
         </div>
       ) : null}
@@ -344,6 +380,7 @@ export function ClubSubscribed() {
         >
           <Typography className={classes.activeFilterLabel}>Фильтр:</Typography>
           <Action
+            aria-label={`Сбросить фильтр клуба: ${selectedBoardTag}`}
             onClick={() => setSelectedBoardTag(null)}
             className={({ pressed }) =>
               [classes.action2, pressed ? classes.opacityState2 : ""]
@@ -375,11 +412,40 @@ export function ClubSubscribed() {
           keyExtractor={(item) => item.id}
           hideScrollbar
           header={ListHeader()}
+          footer={
+            posts.length > 0 ? (
+              <QueryRetryState
+                isLoading={clubQuery.isFetching}
+                isError={hasPageError}
+                onRetry={retryPosts}
+                message={
+                  clubQuery.isRefetchError
+                    ? "Не удалось обновить публикации клуба"
+                    : "Не удалось загрузить следующие публикации клуба"
+                }
+                className={classes.emptyTab}
+              >
+                {clubQuery.hasNextPage ? (
+                  <div className={["ui-stack", classes.emptyTab].join(" ")}>
+                    <Action onClick={loadMore} className={classes.action2}>
+                      <Typography className={classes.activeFilterChipText}>
+                        Загрузить ещё
+                      </Typography>
+                    </Action>
+                  </div>
+                ) : null}
+              </QueryRetryState>
+            ) : null
+          }
           empty={
             <QueryRetryState
-              isLoading={clubQuery.isPending}
-              isError={clubQuery.isError}
-              onRetry={() => void clubQuery.refetch()}
+              isLoading={
+                clubQuery.isFetching ||
+                (!hasPageError &&
+                  (clubQuery.isPending || Boolean(clubQuery.hasNextPage)))
+              }
+              isError={hasPageError}
+              onRetry={retryPosts}
               message="Не удалось загрузить публикации клуба"
             >
               <div className={["ui-stack", classes.emptyTab].join(" ")}>
@@ -391,7 +457,9 @@ export function ClubSubscribed() {
               </div>
             </QueryRetryState>
           }
-          onScroll={handleListScroll}
+          onLoadMore={loadMore}
+          onRefresh={onRefresh}
+          refreshing={clubQuery.isRefetching}
           contentClassName={classes.postList}
         />
 
@@ -405,6 +473,7 @@ export function ClubSubscribed() {
             const isActive = activeTab === tab.id;
             return (
               <Action
+                aria-pressed={isActive}
                 key={tab.id}
                 onClick={() => setActiveTab(isActive ? null : tab.id)}
                 className={classes.clubTabItem}
@@ -444,8 +513,13 @@ export function ClubSubscribed() {
         </Background>
 
         {/* Pen Pals Modal */}
-        {showPenPals && capabilities.penPals ? (
-          <Dialog open motion="slide">
+        {showPenPals && penPalsAvailable ? (
+          <Dialog
+            label="Почтовое отделение"
+            open
+            motion="slide"
+            onClose={() => setShowPenPals(false)}
+          >
             <PenPals onClose={() => setShowPenPals(false)} />
           </Dialog>
         ) : null}
@@ -458,11 +532,12 @@ export function ClubSubscribed() {
 
         {/* Profile Setup Modal — shown only once for new users who haven't set up profile */}
         {needsProfileSetup ? (
-          <Dialog open motion="slide">
+          <Dialog label="Настройка профиля клуба" open motion="slide">
             <div
               className={["ui-stack ", classes.div].filter(Boolean).join(" ")}
             >
               <Action
+                aria-label="Закрыть настройку профиля"
                 onClick={async () => {
                   await AsyncStorage.setItem(PROFILE_COMPLETED_KEY, "true");
                   setProfileCompleted(true);
@@ -513,11 +588,7 @@ export function ClubSubscribed() {
         initialIndex={viewerInitialIndex}
         onClose={() => setViewerVisible(false)}
       />
-      <ScrollToTopButton
-        visible={showScrollTop}
-        onClick={scrollClubToTop}
-        bottom={120}
-      />
+      <ScrollToTopButton scrollRef={listRef} bottom={120} />
       <AdminFAB target="club" />
     </Background>
   );

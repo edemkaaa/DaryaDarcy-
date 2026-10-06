@@ -9,6 +9,8 @@ import {
 } from "@/shared/ui/elements";
 import { useLayoutEffect, useRef, useState } from "react";
 import { Picture } from "@/shared/media/image";
+import { PhotoDots } from "./photo-dots";
+import { scrollPhotoWithKeyboard } from "./photo-carousel-navigation";
 import {
   FALLBACK_PHOTO_RATIO,
   usePhotoAspectRatios,
@@ -38,7 +40,7 @@ export function PostPhotoCarousel({
   }, [width, photos.length]);
   const aspectRatios = usePhotoAspectRatios(photos);
   const onScroll = (event: ScrollEvent) => {
-    if (width <= 0) return;
+    if (width <= 0 || !photos.length) return;
     const next = Math.round(event.currentTarget.scrollLeft / width);
     const safeIndex = Math.min(Math.max(next, 0), photos.length - 1);
     currentIndex.current = safeIndex;
@@ -47,6 +49,8 @@ export function PostPhotoCarousel({
   if (!photos.length) return null;
   return (
     <MeasuredBox
+      role="region"
+      aria-label="Фотографии поста"
       onResize={(event) => {
         const nextWidth = event.width;
         if (nextWidth > 0 && nextWidth !== width) setWidth(nextWidth);
@@ -60,11 +64,17 @@ export function PostPhotoCarousel({
           paging
           hideScrollbar
           onScroll={onScroll}
+          aria-label="Перелистывание фотографий"
+          onKeyDown={(event) =>
+            scrollPhotoWithKeyboard(event, width, photos.length)
+          }
         >
           {photos.map((uri, photoIndex) => (
             <Action
               key={`${uri}-${photoIndex}`}
               onClick={() => onPhotoPress?.(photoIndex)}
+              disabled={!onPhotoPress}
+              aria-label={`Открыть фото ${photoIndex + 1} из ${photos.length}`}
               style={() => ({
                 width: width,
                 aspectRatio: aspectRatios[photoIndex] ?? FALLBACK_PHOTO_RATIO,
@@ -104,6 +114,7 @@ export function PostPhotoCarousel({
           </Typography>
         </div>
       ) : null}
+      <PhotoDots count={photos.length} index={index} className={classes.dots} />
     </MeasuredBox>
   );
 }

@@ -54,7 +54,7 @@ export default function PatternsScreen() {
     router.push("/club");
   };
   const handleQuizCTA = () => {
-    router.push("");
+    router.push("/quiz");
   };
   const openPattern = (pattern: PatternItem) => {
     setViewerImage(pattern.imageUrl);
@@ -63,7 +63,7 @@ export default function PatternsScreen() {
   };
   const handleDownload = useCallback(async () => {
     {
-      window.open(viewerImage, "_blank");
+      await WebBrowser.openBrowserAsync(viewerImage);
       return;
     }
   }, [viewerImage]);
@@ -215,6 +215,7 @@ export default function PatternsScreen() {
                       key={pattern.id}
                       style={{ width: stylesLayout.patternCard.width }}
                       onClick={() => openPattern(pattern)}
+                      aria-label={`Открыть выкройку: ${pattern.title}`}
                       activeOpacity={0.8}
                       className={classes.patternCard}
                     >
@@ -254,6 +255,7 @@ export default function PatternsScreen() {
                 />
                 <Action
                   onClick={handleOpenLoshadka}
+                  aria-label="Открыть выкройку лошадки-качалки"
                   activeOpacity={0.8}
                   className={classes.loshadkaCoverContainer}
                 >
@@ -401,7 +403,12 @@ function FullScreenViewer({
   };
   if (!visible) return null;
   return (
-    <Dialog open={visible} motion="fade" onClose={handleClose}>
+    <Dialog
+      label={title || "Просмотр выкройки"}
+      open={visible}
+      motion="fade"
+      onClose={handleClose}
+    >
       <div
         className={["ui-stack ", classes.backdrop].filter(Boolean).join(" ")}
       >
@@ -411,6 +418,7 @@ function FullScreenViewer({
           className={["ui-stack ", classes.div].filter(Boolean).join(" ")}
         >
           <Action
+            aria-label="Закрыть просмотр выкройки"
             onClick={handleClose}
             activeOpacity={0.7}
             className={classes.closeBtn}
@@ -464,6 +472,8 @@ function FullScreenViewer({
             onClick={onDownload}
             activeOpacity={0.8}
             disabled={downloading}
+            aria-label="Скачать для печати"
+            aria-busy={downloading}
             className={classes.downloadButton}
           >
             {downloading ? (

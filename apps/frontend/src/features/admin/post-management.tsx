@@ -42,7 +42,12 @@ function ActionSheet({
 }) {
   if (!visible) return null;
   return (
-    <Dialog open={visible} motion="fade" onClose={onClose}>
+    <Dialog
+      label="Действия с публикацией"
+      open={visible}
+      motion="fade"
+      onClose={onClose}
+    >
       <div
         onClick={onClose}
         className={["ui-stack ", classes.actionSheetOverlay]
@@ -168,7 +173,7 @@ function TagSelectionModal({
   };
   if (!visible || !post) return null;
   return (
-    <Dialog open motion="slide" onClose={onClose}>
+    <Dialog label="Теги публикации" open motion="slide" onClose={onClose}>
       <div
         className={["ui-stack ", classes.modalContainer]
           .filter(Boolean)
@@ -180,6 +185,7 @@ function TagSelectionModal({
             .join(" ")}
         >
           <Action
+            aria-label="Закрыть редактор тегов"
             onClick={onClose}
             className={({ pressed }) =>
               pressed ? classes.opacityState : classes.opacityState2

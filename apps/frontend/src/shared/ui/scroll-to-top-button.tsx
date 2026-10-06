@@ -3,18 +3,26 @@ import classes from "./scroll-to-top-button.module.scss";
 import { Action } from "@/shared/ui/elements";
 import { MaterialIcons } from "@/shared/ui/icons";
 import Animated, { FadeIn, FadeOut } from "@/shared/browser/motion";
+import { useEffect, useState, type RefObject } from "react";
 const CREAM_BG = "#FDF8F0";
 interface ScrollToTopButtonProps {
-  visible: boolean;
-  onClick: () => void;
+  scrollRef: RefObject<HTMLDivElement | null>;
   /** Distance from bottom edge (above tab bars / FAB stacks). */
   bottom?: number;
 }
 export function ScrollToTopButton({
-  visible,
-  onClick,
+  scrollRef,
   bottom = 90,
 }: ScrollToTopButtonProps) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const scroll = scrollRef.current;
+    if (!scroll) return;
+    const update = () => setVisible(scroll.scrollTop > 360);
+    update();
+    scroll.addEventListener("scroll", update, { passive: true });
+    return () => scroll.removeEventListener("scroll", update);
+  }, [scrollRef]);
   if (!visible) return null;
   return (
     <Animated.div
@@ -26,7 +34,7 @@ export function ScrollToTopButton({
       <Action
         aria-label="Наверх"
         onClick={() => {
-          onClick();
+          scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
         }}
         className={({ pressed }) =>
           [

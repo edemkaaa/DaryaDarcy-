@@ -40,6 +40,7 @@ import {
   PROFILE_NAME_KEY,
   PROFILE_AVATAR_KEY,
   SUPPORT_EMAIL,
+  PERSONAL_MOODBOARDS_ENABLED,
 } from "./profile-screen.content";
 type SavedPost = ApiOutputs["feed"]["savedPosts"][number];
 type SavedTab = "feed" | "club";
@@ -732,61 +733,69 @@ export default function ProfileScreen() {
           </div>
 
           {/* ─── Moodboards Section ─── */}
-          <div
-            className={["ui-stack ", classes.section].filter(Boolean).join(" ")}
-          >
+          {PERSONAL_MOODBOARDS_ENABLED && (
             <div
-              className={["ui-stack ", classes.sectionHeader]
+              className={["ui-stack ", classes.section]
                 .filter(Boolean)
                 .join(" ")}
             >
-              <MaterialIcons name="dashboard" size={18} color={BROWN_MUTED} />
-              <Typography className={classes.sectionTitle}>
-                Мои мудборды
-              </Typography>
-            </div>
-            {quizResult ? (
-              <Action
-                onClick={() => router.push("/library/aesthetics-guide")}
-                className={({ pressed }) =>
-                  [classes.action4, pressed ? classes.opacityState9 : ""]
-                    .filter(Boolean)
-                    .join(" ")
-                }
-              >
-                <MaterialIcons name="dashboard" size={24} color={OLIVE} />
-                <Typography className={classes.cardText}>
-                  Мудборд: {AESTHETIC_NAMES[quizResult.primaryKey]}
-                </Typography>
-                <Typography className={classes.aestheticViewMore}>
-                  Открыть подборку →
-                </Typography>
-              </Action>
-            ) : (
               <div
-                className={["ui-stack ", classes.card]
+                className={["ui-stack ", classes.sectionHeader]
                   .filter(Boolean)
                   .join(" ")}
               >
-                <MaterialIcons name="dashboard" size={24} color={BROWN_MUTED} />
-                <Typography className={classes.cardText}>
-                  Здесь появится твой мудборд
+                <MaterialIcons name="dashboard" size={18} color={BROWN_MUTED} />
+                <Typography className={classes.sectionTitle}>
+                  Мои мудборды
                 </Typography>
+              </div>
+              {quizResult ? (
                 <Action
-                  onClick={() => router.push("/interactive")}
+                  onClick={() => router.push("/library/aesthetics-guide")}
                   className={({ pressed }) =>
-                    [classes.action5, pressed ? classes.opacityState10 : ""]
+                    [classes.action4, pressed ? classes.opacityState9 : ""]
                       .filter(Boolean)
                       .join(" ")
                   }
                 >
-                  <Typography className={classes.cardButtonText}>
-                    Создать мудборд →
+                  <MaterialIcons name="dashboard" size={24} color={OLIVE} />
+                  <Typography className={classes.cardText}>
+                    Мудборд: {AESTHETIC_NAMES[quizResult.primaryKey]}
+                  </Typography>
+                  <Typography className={classes.aestheticViewMore}>
+                    Открыть подборку →
                   </Typography>
                 </Action>
-              </div>
-            )}
-          </div>
+              ) : (
+                <div
+                  className={["ui-stack ", classes.card]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  <MaterialIcons
+                    name="dashboard"
+                    size={24}
+                    color={BROWN_MUTED}
+                  />
+                  <Typography className={classes.cardText}>
+                    Здесь появится твой мудборд
+                  </Typography>
+                  <Action
+                    onClick={() => router.push("/interactive")}
+                    className={({ pressed }) =>
+                      [classes.action5, pressed ? classes.opacityState10 : ""]
+                        .filter(Boolean)
+                        .join(" ")
+                    }
+                  >
+                    <Typography className={classes.cardButtonText}>
+                      Создать мудборд →
+                    </Typography>
+                  </Action>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ─── Subscription Section ─── */}
           <div

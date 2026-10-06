@@ -1,0 +1,63 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .section {
+    gap: 8px;
+  }
+  .label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .buttons {
+    flex-direction: row;
+    gap: 8px;
+  }
+  .pick {
+    flex: 1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background-color: var(--muted);
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-radius: 10px;
+  }
+  .buttonText {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--paper);
+  }
+  .list {
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .item {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    background-color: #fff;
+    border-width: 1px;
+    border-color: var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+  }
+  .name {
+    flex: 1;
+    font-size: 13px;
+    color: var(--ink);
+    min-width: 0;
+  }
+  .remove {
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    justify-content: center;
+    align-items: center;
+  }
+  .pressed {
+    opacity: 0.7;
+    --action-base-opacity: 0.7;
+  }
+}

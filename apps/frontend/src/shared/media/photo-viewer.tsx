@@ -11,6 +11,8 @@ import {
 import { useViewport } from "@/shared/browser/viewport";
 import { useState, useCallback, useRef, useLayoutEffect } from "react";
 import { Picture } from "@/shared/media/image";
+import { PhotoDots } from "./photo-dots";
+import { scrollPhotoWithKeyboard } from "./photo-carousel-navigation";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { useSafeAreaInsets } from "@/shared/ui/safe-area";
 import Animated, {
@@ -47,7 +49,8 @@ function PhotoViewerInner({
   initialIndex = 0,
   onClose,
 }: Omit<PhotoViewerProps, "visible">) {
-  const { width: screenWidth, height: screenHeight } = useViewport();
+  // The dialog lives outside the 480px app frame and fills the browser window.
+  const { width: screenWidth, height: screenHeight } = useViewport("screen");
   const insets = useSafeAreaInsets();
   const safeInitialIndex = Math.min(
     Math.max(initialIndex, 0),
@@ -114,7 +117,7 @@ function PhotoViewerInner({
     },
     [photos.length, screenWidth],
   );
-  const onScrollEnd = useCallback(
+  const onScroll = useCallback(
     (event: ScrollEvent) => {
       updateIndexFromOffset(event.currentTarget.scrollLeft);
     },
@@ -122,12 +125,18 @@ function PhotoViewerInner({
   );
   const imageHeight = screenHeight * 0.8;
   return (
-    <Dialog open motion="fade" onClose={handleClose}>
+    <Dialog
+      label="Просмотр фотографий"
+      open
+      motion="fade"
+      onClose={handleClose}
+    >
       <Animated.div style={animatedBgStyle} className={classes.div} />
       <GestureDetector gesture={panGesture}>
         <Animated.div style={animatedContainerStyle} className={classes.div2}>
           <Action
             onClick={handleClose}
+            aria-label="Закрыть фотографии"
             style={{ top: insets.top + 10 }}
             className={classes.action}
           >
@@ -151,7 +160,11 @@ function PhotoViewerInner({
             paging
             hideScrollbar
             snapInterval={screenWidth}
-            onScrollSettled={onScrollEnd}
+            onScroll={onScroll}
+            aria-label="Перелистывание фотографий"
+            onKeyDown={(event) =>
+              scrollPhotoWithKeyboard(event, screenWidth, photos.length)
+            }
             contentStyle={{ width: screenWidth * photos.length }}
             className={classes.scroll}
           >
@@ -173,26 +186,12 @@ function PhotoViewerInner({
             ))}
           </ScrollArea>
 
-          {photos.length > 1 && photos.length <= 10 && (
-            <div
-              style={{ bottom: insets.bottom + 30 }}
-              className={["ui-stack ", classes.div5].filter(Boolean).join(" ")}
-            >
-              {photos.map((_, i) => (
-                <div
-                  key={i}
-                  className={[
-                    "ui-stack ",
-                    i === currentIndex
-                      ? classes.appearanceState
-                      : classes.appearanceState2,
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                />
-              ))}
-            </div>
-          )}
+          <PhotoDots
+            count={photos.length}
+            index={currentIndex}
+            style={{ bottom: insets.bottom + 30 }}
+            className={classes.div5}
+          />
         </Animated.div>
       </GestureDetector>
     </Dialog>

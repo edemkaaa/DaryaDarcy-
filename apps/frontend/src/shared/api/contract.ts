@@ -468,7 +468,12 @@ export type AppRouter = BuiltRouter<
           postId?: number | undefined;
           duration?: number | undefined;
         };
-        output: { url: string; mediaId: number | undefined };
+        output: {
+          url: string;
+          mediaId: number | undefined;
+          mimeType: string;
+          fileSize: number;
+        };
         meta: unknown;
       }>;
       getPostMedia: QueryProcedure<{

@@ -56,7 +56,7 @@ export function InstallGuide() {
   };
   if (!visible) return null;
   return (
-    <Dialog motion="fade" open onClose={dismiss}>
+    <Dialog label="Установка приложения" motion="fade" open onClose={dismiss}>
       <div
         className={["ui-stack  ui-pointer-children", classes.backdrop]
           .filter(Boolean)

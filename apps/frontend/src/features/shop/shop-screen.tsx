@@ -516,6 +516,8 @@ function ShopScreenInner() {
 
           {/* Price tags on shelf 3 — flank nameplate left/right edges */}
           <Action
+            aria-label="Открыть пособие"
+            disabled={!digitals[0]}
             {...pressableProps(() => {
               if (digitals[0]) handleProductPress(digitals[0]);
             })}
@@ -532,6 +534,8 @@ function ShopScreenInner() {
             </Animated.div>
           </Action>
           <Action
+            aria-label="Открыть мастер-класс"
+            disabled={!digitals[1]}
             {...pressableProps(() => {
               if (digitals[1]) handleProductPress(digitals[1]);
             })}

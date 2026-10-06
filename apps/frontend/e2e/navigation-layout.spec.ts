@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { layoutApi } from "./layout-fixtures";
+import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
 const headerSelector = 'header[aria-label="Навигация профиля"]';
 const tabsSelector = 'nav[aria-label="Разделы"]';
@@ -55,8 +55,11 @@ test("feed and guest club headers scroll with their banners; library and shop he
 }) => {
   await layoutApi(page);
   for (const path of ["/feed", "/club", "/library", "/shop", "/profile"]) {
-    await page.goto(path);
-    const header = page.locator(headerSelector);
+    // Assert the UI below instead of waiting for every remote media resource.
+    await page.goto(path, { waitUntil: "domcontentloaded" });
+    // Streamed HTML can retain hidden nodes while the visible screen resolves.
+    const header = page.locator(`${headerSelector}:visible`);
+    await expect(header).toHaveCount(1);
     await expect(header).toBeVisible();
     const scroll = page.locator(scrollSelector).first();
     await expect(scroll).toBeVisible();
@@ -86,7 +89,7 @@ test("subscriber club hides the main tabs and keeps a route to the profile", asy
   page,
 }) => {
   await layoutApi(page, true);
-  await page.goto("/club");
+  await gotoWithSession(page, "/club");
   const header = page.locator(headerSelector);
   await expect(header).toBeVisible();
   await expect(page.locator(tabsSelector)).toHaveCount(0);

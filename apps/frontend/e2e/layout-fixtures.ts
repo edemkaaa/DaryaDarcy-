@@ -1,5 +1,18 @@
 import type { Page } from "@playwright/test";
 
+/** Wait for client startup before interacting with server-rendered controls. */
+export async function gotoWithSession(page: Page, path: string) {
+  const [, response] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/api/auth/me" &&
+        response.status() === 200,
+    ),
+    page.goto(path, { waitUntil: "domcontentloaded" }),
+  ]);
+  return response;
+}
+
 /** Browser-only data: layout checks must not start an API or write to a database. */
 export async function layoutApi(page: Page, subscribed = false) {
   await page.addInitScript(() => {

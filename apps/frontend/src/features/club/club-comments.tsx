@@ -7,7 +7,7 @@ import {
   Field,
   Spinner,
 } from "@/shared/ui/elements";
-import { openExternalUrl } from "@/shared/browser/actions";
+import { safeExternalUrl } from "@/shared/navigation/external-url";
 import { useMemo, useRef, useState } from "react";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
@@ -76,15 +76,19 @@ function linkify(text: string) {
   const parts = text.split(/(https?:\/\/[^\s]+|www\.[^\s]+)/gi);
   return parts.map((part, index) => {
     if (/^(https?:\/\/|www\.)/i.test(part)) {
-      const url = normalizeLinkUrl(part);
+      const url = safeExternalUrl(normalizeLinkUrl(part));
+      if (!url) return <Typography key={`${index}-t`}>{part}</Typography>;
       return (
-        <Typography
+        <a
           key={`${index}-${part}`}
-          onClick={() => void openExternalUrl(url)}
-          className={classes.link}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(event) => event.stopPropagation()}
+          className={`ui-inline-link ${classes.link}`}
         >
           {part}
-        </Typography>
+        </a>
       );
     }
     return <Typography key={`${index}-t`}>{part}</Typography>;
@@ -114,7 +118,12 @@ function CommentMenu({
 }) {
   if (!visible) return null;
   return (
-    <Dialog open={visible} motion="fade" onClose={onClose}>
+    <Dialog
+      label="Действия с комментарием"
+      open={visible}
+      motion="fade"
+      onClose={onClose}
+    >
       <div
         onClick={onClose}
         className={["ui-stack ", classes.menuOverlay].filter(Boolean).join(" ")}
@@ -438,6 +447,7 @@ export function ClubComments({
             </Typography>
             {canOpenMenu ? (
               <Action
+                aria-label="Действия с комментарием"
                 onClick={() => setMenuCommentId(item.id)}
                 hitArea={8}
                 className={classes.menuBtn}
@@ -499,6 +509,8 @@ export function ClubComments({
                     update.mutate({ id: item.id, text: value });
                   }}
                   disabled={operation.busy || !editText.trim()}
+                  aria-label="Сохранить"
+                  aria-busy={update.isPending}
                   className={classes.editSave}
                 >
                   {update.isPending ? (
@@ -547,6 +559,12 @@ export function ClubComments({
               .join(" ")}
           >
             <Action
+              aria-label={
+                item.likedByMe
+                  ? "Убрать лайк комментария"
+                  : "Поставить лайк комментарию"
+              }
+              aria-pressed={Boolean(item.likedByMe)}
               onClick={() => {
                 if (!isAuthenticated) return;
                 toggleLike.mutate({ commentId: item.id });
@@ -675,6 +693,8 @@ export function ClubComments({
           >
             <Action
               onClick={() => void pickPhotos()}
+              aria-label={`Фото (${photos.length}/2)`}
+              aria-busy={uploading}
               disabled={operation.busy || photos.length >= 2}
               className={classes.attachBtn}
             >
@@ -698,6 +718,8 @@ export function ClubComments({
                 });
               }}
               disabled={operation.busy || !text.trim()}
+              aria-label="Отправить"
+              aria-busy={add.isPending}
               className={classes.send}
             >
               {add.isPending ? (

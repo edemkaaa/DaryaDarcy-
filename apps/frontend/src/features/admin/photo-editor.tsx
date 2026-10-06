@@ -389,7 +389,11 @@ function PhotoControls({
 }) {
   return (
     <>
-      <Action onClick={() => onRemove(index)} className={classes.removeBtn}>
+      <Action
+        aria-label={`Удалить фото ${index + 1}`}
+        onClick={() => onRemove(index)}
+        className={classes.removeBtn}
+      >
         <MaterialIcons name="close" size={12} color="#fff" />
       </Action>
       {hideIndex ? null : (
@@ -409,6 +413,7 @@ function PhotoControls({
         >
           {index > 0 ? (
             <Action
+              aria-label={`Переместить фото ${index + 1} влево`}
               onClick={() => onMove(index, "left")}
               className={classes.reorderBtn}
             >
@@ -417,6 +422,7 @@ function PhotoControls({
           ) : null}
           {index < total - 1 ? (
             <Action
+              aria-label={`Переместить фото ${index + 1} вправо`}
               onClick={() => onMove(index, "right")}
               className={classes.reorderBtn}
             >
@@ -426,7 +432,11 @@ function PhotoControls({
         </div>
       )}
       {onReplace ? (
-        <Action onClick={() => onReplace(index)} className={classes.replaceBtn}>
+        <Action
+          aria-label={`Заменить фото ${index + 1}`}
+          onClick={() => onReplace(index)}
+          className={classes.replaceBtn}
+        >
           <MaterialIcons name="swap-horiz" size={12} color="#fff" />
         </Action>
       ) : null}

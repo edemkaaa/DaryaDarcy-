@@ -1,4 +1,27 @@
 import { invalidResponse } from "@/shared/api/errors";
+export function requireUploadedMedia(result: unknown): {
+  url: string;
+  mimeType: string;
+  fileSize: number;
+} {
+  const url = requireUploadedUrl(result);
+  const { mimeType, fileSize } = result as {
+    mimeType?: unknown;
+    fileSize?: unknown;
+  };
+  if (
+    typeof mimeType !== "string" ||
+    !mimeType.trim() ||
+    mimeType.length > 128 ||
+    /[\u0000-\u001f\u007f-\u009f]/.test(mimeType) ||
+    typeof fileSize !== "number" ||
+    !Number.isSafeInteger(fileSize) ||
+    fileSize <= 0
+  )
+    throw invalidResponse();
+  return { url, mimeType, fileSize };
+}
+
 export function requireUploadedUrl(result: unknown): string {
   const url =
     result && typeof result === "object"

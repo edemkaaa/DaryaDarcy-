@@ -175,23 +175,6 @@
     align-items: center;
   }
 
-  .mediaButtonsRow {
-    flex-direction: row;
-    gap: 8px;
-  }
-
-  .action4 {
-    flex: 1;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    background-color: var(--muted);
-    padding-top: 10px;
-    padding-bottom: 10px;
-    border-radius: 10px;
-  }
-
   .tagsGrid {
     flex-direction: row;
     flex-wrap: wrap;
@@ -277,26 +260,6 @@
   }
 
   .opacityState8 {
-    opacity: 1;
-    --action-base-opacity: 1;
-  }
-
-  .opacityState9 {
-    opacity: 0.7;
-    --action-base-opacity: 0.7;
-  }
-
-  .opacityState10 {
-    opacity: 1;
-    --action-base-opacity: 1;
-  }
-
-  .opacityState11 {
-    opacity: 0.7;
-    --action-base-opacity: 0.7;
-  }
-
-  .opacityState12 {
     opacity: 1;
     --action-base-opacity: 1;
   }

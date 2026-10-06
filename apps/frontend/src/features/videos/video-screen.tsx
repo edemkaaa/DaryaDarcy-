@@ -65,7 +65,7 @@ export default function VideoDetailScreen({ id }: { id: string }) {
                   }}
                   notFoundText="Видео не найдено"
                 />
-                <Action onClick={handleBack}>
+                <Action aria-label="Назад" onClick={handleBack}>
                   <Typography>← Назад</Typography>
                 </Action>
               </>
@@ -109,6 +109,7 @@ export default function VideoDetailScreen({ id }: { id: string }) {
 
           {/* Back button */}
           <Action
+            aria-label="Назад"
             onClick={handleBack}
             style={() => ({
               top: insets.top + 8,
