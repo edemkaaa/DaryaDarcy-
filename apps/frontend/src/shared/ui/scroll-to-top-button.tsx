@@ -34,7 +34,10 @@ export function ScrollToTopButton({
       <Action
         aria-label="Наверх"
         onClick={() => {
-          scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+          const scroll = scrollRef.current;
+          if (scroll?.hasAttribute("data-windowed-collection"))
+            scroll.dataset.collectionScrollTarget = "start";
+          scroll?.scrollTo({ top: 0, behavior: "smooth" });
         }}
         className={({ pressed }) =>
           [

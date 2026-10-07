@@ -1,16 +1,16 @@
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 export const PAPER_TEXTURE_URI =
-  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg";
+  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.fe3ce71852fa6634.webp";
 export const CLUB_BANNER_URL =
-  "/assets/responsive/9e3aec1f0a5d-PUMBhecZrXmmctyT.w1000.83aa3e97448140d2.jpg";
+  "/assets/responsive/9e3aec1f0a5d-PUMBhecZrXmmctyT.w1000.bd9000e76cd109c4.webp";
 export const BROWN = "#5C4033";
 export const BROWN_MUTED = "#8B7355";
 export const CREAM = "#FDF8F0";
 export const OLIVE = "#6B7B5E";
 
 export const LETTER_CAROUSEL_IMAGES = [
-  "/assets/responsive/d41da8bb49e5-qtTdhxTQTceQjglS.w1200.48172bf7a0299259.jpg",
+  "/assets/responsive/d41da8bb49e5-qtTdhxTQTceQjglS.w1200.0a8117780a7ea503.webp",
   "/assets/responsive/248794a7bd51-TGjGBKCtCDaiNEGA.w1440.a7640d99e2f0dc6a.webp",
   "/assets/responsive/d4c9b66fca3b-SRsjwrPhBzgdUgKP.w1440.be2b100a48cab274.webp",
 ];

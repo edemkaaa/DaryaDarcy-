@@ -14,7 +14,7 @@ import { ScreenContainer } from "@/shared/ui/screen-container";
 import { useRouter } from "@/shared/navigation/router";
 import Animated, { FadeInDown } from "@/shared/browser/motion";
 import { PAPER_TEXTURE_URI } from "./interactive-screen.content";
-const quizCover = { uri: "/assets/interactive/quiz-cover.jpg" };
+const quizCover = { uri: "/assets/interactive/quiz-cover.webp" };
 export default function InteractiveScreen() {
   const router = useRouter();
   return (

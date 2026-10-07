@@ -1,5 +1,6 @@
 "use client";
 import classes from "./post-photo-carousel.module.scss";
+import frameClasses from "./post-photo-frame.module.scss";
 import {
   type ScrollEvent,
   MeasuredBox,
@@ -8,10 +9,10 @@ import {
   Typography,
 } from "@/shared/ui/elements";
 import { useLayoutEffect, useRef, useState } from "react";
+import { useCollectionItemRetention } from "@/shared/ui/collection-item-window";
 import { Picture } from "@/shared/media/image";
 import { PhotoDots } from "./photo-dots";
 import { scrollPhotoWithKeyboard } from "./photo-carousel-navigation";
-import { POST_PHOTO_RATIO, POST_PHOTO_FIT } from "./post-photo-layout";
 export function PostPhotoCarousel({
   photos,
   onPhotoPress,
@@ -21,6 +22,7 @@ export function PostPhotoCarousel({
 }) {
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
+  useCollectionItemRetention(index > 0);
   const currentIndex = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -51,8 +53,8 @@ export function PostPhotoCarousel({
         const nextWidth = event.width;
         if (nextWidth > 0 && nextWidth !== width) setWidth(nextWidth);
       }}
-      className={classes.wrap}
-      style={{ aspectRatio: POST_PHOTO_RATIO }}
+      className={`${frameClasses.frame} ${classes.wrap}`}
+      data-post-photo-frame
     >
       {width > 0 ? (
         <ScrollArea
@@ -74,7 +76,7 @@ export function PostPhotoCarousel({
               aria-label={`Открыть фото ${photoIndex + 1} из ${photos.length}`}
               style={() => ({
                 width: width,
-                aspectRatio: POST_PHOTO_RATIO,
+                height: "100%",
               })}
               className={({ pressed }) =>
                 [classes.action, pressed ? classes.opacityState : ""]
@@ -84,7 +86,9 @@ export function PostPhotoCarousel({
             >
               <Picture
                 source={Math.abs(photoIndex - index) <= 1 ? { uri } : undefined}
-                contentFit={POST_PHOTO_FIT}
+                contentFit="cover"
+                transition={180}
+                fadeOnLoad
                 className={classes.picture}
               />
             </Action>
@@ -92,12 +96,14 @@ export function PostPhotoCarousel({
         </ScrollArea>
       ) : (
         <div
-          style={{ aspectRatio: POST_PHOTO_RATIO }}
+          style={{ height: "100%" }}
           className={["ui-stack ", classes.action].filter(Boolean).join(" ")}
         >
           <Picture
             source={{ uri: photos[0] }}
-            contentFit={POST_PHOTO_FIT}
+            contentFit="cover"
+            transition={180}
+            fadeOnLoad
             className={classes.picture}
           />
         </div>

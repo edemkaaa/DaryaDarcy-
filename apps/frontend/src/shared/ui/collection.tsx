@@ -6,11 +6,13 @@ import React, {
   useEffect,
   useLayoutEffect,
   useRef,
+  useState,
   type CSSProperties,
   type ReactNode,
 } from "react";
 import type { VisibleItem } from "./types";
 import { ScrollArea, type ScrollAreaProps } from "./scroll-area";
+import { CollectionItemWindow } from "./collection-item-window";
 type Slot = ReactNode | (() => ReactNode);
 const slot = (value: Slot) => (typeof value === "function" ? value() : value);
 type CollectionProps<T> = Omit<ScrollAreaProps, "children"> & {
@@ -30,6 +32,8 @@ type CollectionProps<T> = Omit<ScrollAreaProps, "children"> & {
   visiblePercent?: number;
   /** Fade in the first loaded items, without moving them or replaying on return. */
   revealItems?: boolean;
+  /** Release measured offscreen rows while preserving explicit interaction state. */
+  windowItems?: boolean;
 };
 function CollectionInner<T>(
   {
@@ -48,6 +52,7 @@ function CollectionInner<T>(
     onVisibleItemsChange,
     visiblePercent = 50,
     revealItems = false,
+    windowItems = false,
     contentStyle,
     horizontal,
     ...props
@@ -58,6 +63,78 @@ function CollectionInner<T>(
     tail = useRef<HTMLDivElement | null>(null),
     body = useRef<HTMLDivElement | null>(null);
   const itemsShown = useRef(false);
+  const [windowEpoch, setWindowEpoch] = useState(0);
+  const anchorLocked = useRef(false);
+  const anchor = useRef<{
+    element?: Element;
+    offset: number;
+    end: boolean;
+  } | null>(null);
+  useEffect(() => {
+    const element = container.current;
+    if (!windowItems || !element) return;
+    let previous = `${element.clientWidth}:${element.clientHeight}`;
+    const captureAnchor = () => {
+      if (element.scrollTop < 1) delete element.dataset.collectionScrollTarget;
+      if (`${element.clientWidth}:${element.clientHeight}` !== previous) return;
+      const items = element.querySelectorAll("[data-window-mounted]");
+      const top = element.getBoundingClientRect().top;
+      let lower = 0,
+        upper = items.length;
+      while (lower < upper) {
+        const middle = Math.floor((lower + upper) / 2);
+        if (items[middle].getBoundingClientRect().bottom <= top)
+          lower = middle + 1;
+        else upper = middle;
+      }
+      const item = items[lower];
+      anchor.current = {
+        element: item,
+        offset: item ? item.getBoundingClientRect().top - top : 0,
+        end:
+          element.scrollHeight - element.clientHeight - element.scrollTop < 2,
+      };
+    };
+    const interruptScrollTarget = () => {
+      delete element.dataset.collectionScrollTarget;
+    };
+    captureAnchor();
+    for (const event of ["wheel", "touchstart", "pointerdown", "keydown"])
+      element.addEventListener(event, interruptScrollTarget, { passive: true });
+    element.addEventListener("scroll", captureAnchor, { passive: true });
+    const observer = new ResizeObserver(() => {
+      if (!element.clientWidth || !element.clientHeight) return;
+      const size = `${element.clientWidth}:${element.clientHeight}`;
+      if (size !== previous) {
+        previous = size;
+        anchorLocked.current = true;
+        setWindowEpoch((epoch) => epoch + 1);
+      }
+    });
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      element.removeEventListener("scroll", captureAnchor);
+      for (const event of ["wheel", "touchstart", "pointerdown", "keydown"])
+        element.removeEventListener(event, interruptScrollTarget);
+    };
+  }, [windowItems]);
+  useLayoutEffect(() => {
+    const element = container.current;
+    if (!element || !anchorLocked.current) return;
+    const saved =
+      element.dataset.collectionScrollTarget === "start"
+        ? null
+        : anchor.current;
+    if (saved?.end) element.scrollTop = element.scrollHeight;
+    else if (saved?.element?.isConnected) {
+      const bounds = saved.element.getBoundingClientRect();
+      const offset = Math.max(saved.offset, -bounds.height + 1);
+      element.scrollTop +=
+        bounds.top - element.getBoundingClientRect().top - offset;
+    }
+    anchorLocked.current = false;
+  }, [windowEpoch]);
   useLayoutEffect(() => {
     const element = body.current;
     if (!revealItems || !element || itemsShown.current) return;
@@ -126,7 +203,12 @@ function CollectionInner<T>(
     <ScrollArea
       {...props}
       horizontal={horizontal}
+      data-windowed-collection={windowItems ? "" : undefined}
       contentStyle={contentStyle}
+      style={{
+        ...props.style,
+        ...(windowItems ? { overflowAnchor: "none" } : {}),
+      }}
       ref={(el) => {
         container.current = el;
         if (typeof ref === "function") ref(el);
@@ -143,7 +225,12 @@ function CollectionInner<T>(
         >
           {columns > 1
             ? groups.map((group, row) => (
-                <div
+                <CollectionRow
+                  windowed={windowItems}
+                  root={container}
+                  anchorLocked={anchorLocked}
+                  epoch={windowEpoch}
+                  index={row * columns}
                   className={`ui-stack ui-collection-row ${rowClassName}`}
                   key={row}
                   style={mergeStyles(rowStyle)}
@@ -158,16 +245,28 @@ function CollectionInner<T>(
                       {renderItem({ item, index: row * columns + column })}
                     </React.Fragment>
                   ))}
-                </div>
+                </CollectionRow>
               ))
             : data.map((item, index) => (
                 <React.Fragment key={keyExtractor?.(item, index) || index}>
-                  <div
-                    className="ui-stack ui-collection-item"
-                    data-item-index={index}
-                  >
-                    {renderItem({ item, index })}
-                  </div>
+                  {windowItems ? (
+                    <CollectionItemWindow
+                      root={container}
+                      anchorLocked={anchorLocked}
+                      epoch={windowEpoch}
+                      index={index}
+                      className="ui-stack ui-collection-item"
+                    >
+                      {renderItem({ item, index })}
+                    </CollectionItemWindow>
+                  ) : (
+                    <div
+                      className="ui-stack ui-collection-item"
+                      data-item-index={index}
+                    >
+                      {renderItem({ item, index })}
+                    </div>
+                  )}
                   {index < data.length - 1 ? slot(divider) : null}
                 </React.Fragment>
               ))}
@@ -183,3 +282,15 @@ export const Collection = forwardRef(CollectionInner) as <T>(
     ref?: React.Ref<HTMLDivElement>;
   },
 ) => React.ReactElement;
+
+function CollectionRow({
+  windowed,
+  ...props
+}: React.ComponentProps<typeof CollectionItemWindow> & { windowed: boolean }) {
+  if (windowed) return <CollectionItemWindow {...props} />;
+  return (
+    <div className={props.className} style={props.style}>
+      {props.children}
+    </div>
+  );
+}

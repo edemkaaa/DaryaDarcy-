@@ -21,6 +21,7 @@ export type ImageProps = Omit<BoxProps, "onLoad" | "onError"> & {
   contentFit?: "cover" | "contain" | "fill" | "none" | "scale-down";
   contentPosition?: string;
   transition?: number;
+  fadeOnLoad?: boolean;
   onError?: (event: unknown) => void;
   onLoad?: (event: {
     source: {
@@ -44,6 +45,7 @@ export const Picture = Object.assign(
       contentFit = "cover",
       contentPosition = "center",
       transition = 0,
+      fadeOnLoad = false,
       onLoad,
       onError,
       style,
@@ -59,9 +61,20 @@ export const Picture = Object.assign(
         : typeof source === "object"
           ? source
           : null;
+    const [loadedSource, setLoadedSource] = useState<string | null>(null);
     const [failedSource, setFailedSource] = useState<string | null>(null);
-    const resolved = resolveImageAttributes(asset?.uri, fullSize, optimizeLocal, sizes);
-    const sourceKey = JSON.stringify([asset?.uri, srcSet ?? resolved.srcSet, fullSize, optimizeLocal]);
+    const resolved = resolveImageAttributes(
+      asset?.uri,
+      fullSize,
+      optimizeLocal,
+      sizes,
+    );
+    const sourceKey = JSON.stringify([
+      asset?.uri,
+      srcSet ?? resolved.srcSet,
+      fullSize,
+      optimizeLocal,
+    ]);
     const failed = failedSource === sourceKey;
     return (
       <div
@@ -89,6 +102,11 @@ export const Picture = Object.assign(
           .join(" ")}
       >
         <img
+          ref={(image) => {
+            // Cached images may finish before the load handler is attached.
+            if (fadeOnLoad && image?.complete && image.naturalWidth > 0)
+              setLoadedSource(sourceKey);
+          }}
           src={resolved.src}
           alt={label || ""}
           width={asset?.width}
@@ -105,6 +123,7 @@ export const Picture = Object.assign(
           }}
           onLoad={(event) => {
             setFailedSource(null);
+            if (fadeOnLoad) setLoadedSource(sourceKey);
             const image = event.currentTarget;
             onLoad?.({
               source: {
@@ -116,6 +135,7 @@ export const Picture = Object.assign(
           }}
           style={{
             visibility: failed ? "hidden" : undefined,
+            opacity: fadeOnLoad && loadedSource !== sourceKey ? 0 : undefined,
             objectFit: contentFit,
             objectPosition: contentPosition,
             transition: transition ? `opacity ${transition}ms` : undefined,

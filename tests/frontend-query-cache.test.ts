@@ -4,7 +4,11 @@ import {
   focusManager,
   onlineManager,
 } from "@tanstack/react-query";
-import { createAppQueryClient } from "../apps/frontend/src/shared/api/query-client";
+import {
+  createAppQueryClient,
+  INACTIVE_COMMENT_QUERY_LIMIT,
+  INACTIVE_FEED_QUERY_LIMIT,
+} from "../apps/frontend/src/shared/api/query-client";
 import { subscribeSessionChecks } from "../apps/frontend/src/shared/api/session-events";
 import { ApiError } from "../apps/frontend/src/shared/api/errors";
 
@@ -107,6 +111,104 @@ it("a failed mutation is never retried automatically", async () => {
     const mutation = client.getMutationCache().build(client, { mutationFn });
     await expect(mutation.execute(undefined)).rejects.toThrow("unavailable");
     expect(mutationFn).toHaveBeenCalledTimes(1);
+  } finally {
+    client.clear();
+  }
+});
+
+const commentKey = (postId: number) =>
+  [["club", "comments"], { input: { postId }, type: "query" }] as const;
+
+it("evicts the oldest unused comments while keeping an observed reply's data", async () => {
+  const client = createAppQueryClient();
+  const held = commentKey(0);
+  client.setQueryData(held, ["DRAFT_CONTEXT"]);
+  const observer = new QueryObserver(client, {
+    queryKey: held,
+    enabled: false,
+  });
+  const unsubscribe = observer.subscribe(() => {});
+  try {
+    for (let id = 1; id <= INACTIVE_COMMENT_QUERY_LIMIT + 10; id++)
+      client.setQueryData(commentKey(id), [`COMMENT_${id}`]);
+    await Promise.resolve();
+    expect(client.getQueryData(held)).toEqual(["DRAFT_CONTEXT"]);
+    expect(client.getQueryData(commentKey(1))).toBeUndefined();
+    expect(
+      client.getQueryData(commentKey(INACTIVE_COMMENT_QUERY_LIMIT + 10)),
+    ).toEqual([`COMMENT_${INACTIVE_COMMENT_QUERY_LIMIT + 10}`]);
+    expect(client.getQueryCache().getAll()).toHaveLength(
+      INACTIVE_COMMENT_QUERY_LIMIT + 1,
+    );
+    unsubscribe();
+    await Promise.resolve();
+    expect(client.getQueryCache().getAll()).toHaveLength(
+      INACTIVE_COMMENT_QUERY_LIMIT,
+    );
+  } finally {
+    unsubscribe();
+    client.clear();
+  }
+});
+
+it("bounds abandoned feed filters without removing pages of the current list", async () => {
+  const client = createAppQueryClient();
+  const key = (search: string) =>
+    [
+      ["feed", "listPaginated"],
+      { input: { search }, type: "infinite" },
+    ] as const;
+  const current = key("current");
+  const pages = {
+    pages: Array.from({ length: 30 }, (_, id) => ({ posts: [id] })),
+    pageParams: [],
+  };
+  client.setQueryData(current, pages);
+  const observer = new QueryObserver(client, {
+    queryKey: current,
+    enabled: false,
+  });
+  const unsubscribe = observer.subscribe(() => {});
+  try {
+    for (let id = 0; id < 10; id++)
+      client.setQueryData(key(`old-${id}`), pages);
+    await Promise.resolve();
+    expect(client.getQueryData(current)).toBe(pages);
+    expect(client.getQueryData(key("old-0"))).toBeUndefined();
+    expect(client.getQueryCache().getAll()).toHaveLength(
+      INACTIVE_FEED_QUERY_LIMIT + 1,
+    );
+    client.clear();
+    await Promise.resolve();
+    expect(client.getQueryCache().getAll()).toHaveLength(0);
+  } finally {
+    unsubscribe();
+    client.clear();
+  }
+});
+
+it("allows an unobserved comment request to settle before cache eviction", async () => {
+  const client = createAppQueryClient();
+  let resolve!: (data: string[]) => void;
+  const pending = client.fetchQuery({
+    queryKey: commentKey(0),
+    queryFn: () =>
+      new Promise<string[]>((done) => {
+        resolve = done;
+      }),
+  });
+  try {
+    for (let id = 1; id <= INACTIVE_COMMENT_QUERY_LIMIT + 10; id++)
+      client.setQueryData(commentKey(id), ["COMMENT"]);
+    await Promise.resolve();
+    expect(client.getQueryState(commentKey(0))?.fetchStatus).toBe("fetching");
+    resolve(["RESPONSE"]);
+    await expect(pending).resolves.toEqual(["RESPONSE"]);
+    await Promise.resolve();
+    expect(client.getQueryData(commentKey(0))).toEqual(["RESPONSE"]);
+    expect(client.getQueryCache().getAll()).toHaveLength(
+      INACTIVE_COMMENT_QUERY_LIMIT,
+    );
   } finally {
     client.clear();
   }

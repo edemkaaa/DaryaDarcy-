@@ -1,10 +1,14 @@
 import { test, expect, type Page } from "@playwright/test";
+import sharp from "sharp";
 import { editorApi, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
 const imageUrl = (id: number) => `https://images.example.test/photo-${id}.svg`;
-const svg = (width = 640, height = 800) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="#e4cfb4"/></svg>`;
+// Raster fixtures expose real intrinsic dimensions consistently in WebKit.
+const raster = (width = 640, height = 800) =>
+  sharp({ create: { width, height, channels: 3, background: "#e4cfb4" } })
+    .png()
+    .toBuffer();
 const post = (id: number, photos = [imageUrl(id)]) => ({
   id,
   text: `IMAGE_POST_${id}`,
@@ -37,8 +41,8 @@ async function imagesApi(page: Page, posts = [post(1)]) {
       });
     if (name === "feed.getById") return ok(posts[0]);
   });
-  await page.route("https://s3.twcstorage.ru/**", (route) =>
-    route.fulfill({ contentType: "image/svg+xml", body: svg() }),
+  await page.route("https://s3.twcstorage.ru/**", async (route) =>
+    route.fulfill({ contentType: "image/png", body: await raster() }),
   );
   await page.addInitScript(() => {
     const probes: string[] = [];
@@ -66,13 +70,14 @@ for (const width of [390, 1440]) {
       page,
       Array.from({ length: 12 }, (_, index) => post(index + 1)),
     );
-    await page.route("https://images.example.test/**", (route) => {
+    await page.route("https://images.example.test/**", async (route) => {
       requests.add(route.request().url());
-      return route.fulfill({ contentType: "image/svg+xml", body: svg() });
+      return route.fulfill({ contentType: "image/png", body: await raster() });
     });
     await gotoWithSession(page, "/feed");
+    const rows = page.locator(".ui-collection-item");
+    await expect(rows).toHaveCount(12);
     const photos = page.locator('img[src^="https://images.example.test/"]');
-    await expect(photos).toHaveCount(12);
     await expect
       .poll(() =>
         photos
@@ -89,12 +94,15 @@ for (const width of [390, 1440]) {
             .__photoProbes,
       ),
     ).toEqual([]);
-    await expect(photos.last()).toHaveAttribute("loading", "lazy");
-    await expect(photos.last()).toHaveAttribute("decoding", "async");
-    await photos.last().scrollIntoViewIfNeeded();
+    // Offscreen rows retain geometry while their images are unmounted.
+    await expect.poll(() => photos.count()).toBeLessThan(12);
+    await rows.last().scrollIntoViewIfNeeded();
+    const lastPhoto = rows.last().locator(`img[src="${imageUrl(12)}"]`);
+    await expect(lastPhoto).toHaveAttribute("loading", "lazy");
+    await expect(lastPhoto).toHaveAttribute("decoding", "async");
     await expect
       .poll(() =>
-        photos.last().evaluate((img) => (img as HTMLImageElement).naturalWidth),
+        lastPhoto.evaluate((img) => (img as HTMLImageElement).naturalWidth),
       )
       .toBe(640);
     expect(requests.has(imageUrl(12))).toBe(true);
@@ -147,29 +155,23 @@ async function refresh(page: Page) {
     )
     .evaluate((node) => {
       node.scrollTop = 0;
-      node.dispatchEvent(
-        new TouchEvent("touchstart", {
-          bubbles: true,
-          touches: [new Touch({ identifier: 1, target: node, clientY: 0 })],
-        }),
-      );
-      node.dispatchEvent(
-        new TouchEvent("touchend", {
-          bubbles: true,
-          changedTouches: [
-            new Touch({ identifier: 1, target: node, clientY: 200 }),
-          ],
-        }),
-      );
+      const start = new Event("touchstart", { bubbles: true });
+      Object.defineProperty(start, "touches", { value: [{ clientY: 0 }] });
+      node.dispatchEvent(start);
+      const end = new Event("touchend", { bubbles: true });
+      Object.defineProperty(end, "changedTouches", {
+        value: [{ clientY: 200 }],
+      });
+      node.dispatchEvent(end);
     });
 }
 
-test("replacing a photo preserves its fixed frame and clears a previous failure", async ({
+test("replacing a photo keeps its reserved frame and clears a previous failure", async ({
   page,
 }) => {
   const posts = [post(1)];
   await imagesApi(page, posts);
-  await page.route("https://images.example.test/**", (route) => {
+  await page.route("https://images.example.test/**", async (route) => {
     const id = route
       .request()
       .url()
@@ -177,8 +179,10 @@ test("replacing a photo preserves its fixed frame and clears a previous failure"
     return id === "2"
       ? route.fulfill({ status: 404 })
       : route.fulfill({
-          contentType: "image/svg+xml",
-          body: id === "3" ? svg(400, 800) : svg(800, 400),
+          contentType: "image/png",
+          body: await raster(
+            ...(id === "3" ? ([400, 800] as const) : ([800, 400] as const)),
+          ),
         });
   });
   await gotoWithSession(page, "/feed");
@@ -226,7 +230,7 @@ test("replacing a photo preserves its fixed frame and clears a previous failure"
   await expect(photo).toBeVisible();
 });
 
-test("recreated cards reserve their fixed frame before reloading a landscape photo", async ({
+test("recreated cards reserve the same frame before reloading a landscape photo", async ({
   page,
 }) => {
   await imagesApi(page);
@@ -237,7 +241,10 @@ test("recreated cards reserve their fixed frame before reloading a landscape pho
   });
   await page.route("https://images.example.test/**", async (route) => {
     if (block) await ready;
-    await route.fulfill({ contentType: "image/svg+xml", body: svg(800, 400) });
+    await route.fulfill({
+      contentType: "image/png",
+      body: await raster(800, 400),
+    });
   });
   try {
     await gotoWithSession(page, "/feed");
@@ -294,13 +301,17 @@ for (const width of [390, 1440]) {
       (img) => (img as HTMLImageElement).currentSrc,
     );
     expect(new URL(source).pathname).toMatch(
-      /^\/_next\/static\/media\/hero_header\.[a-f0-9]+\.jpg$/,
+      /^\/_next\/static\/media\/hero_header\.[a-f0-9]+\.webp$/,
     );
     expect(new URL(source).search).toBe("");
     // Intrinsic dimensions with width descriptors are density-corrected and
     // Chromium may round that correction down by one CSS pixel.
-    const intrinsicWidth = await hero.evaluate((img) => (img as HTMLImageElement).naturalWidth);
-    expect(Math.abs(intrinsicWidth - Math.min(width, 480))).toBeLessThanOrEqual(1);
+    const intrinsicWidth = await hero.evaluate(
+      (img) => (img as HTMLImageElement).naturalWidth,
+    );
+    expect(Math.abs(intrinsicWidth - Math.min(width, 480))).toBeLessThanOrEqual(
+      1,
+    );
     const response = await page.request.get(source);
     expect(response.headers()["cache-control"]).toBe(
       "public, max-age=31536000, immutable",
@@ -317,7 +328,7 @@ for (const width of [390, 1440]) {
 for (const width of [390, 1440]) {
   for (const path of ["/feed", "/club", "/post/1"]) {
     for (const count of [1, 4, 10]) {
-      test(`fixed photo frames keep publication text stable before and after loading ${count} photos in ${path} at ${width}px`, async ({
+      test(`reserved gallery frames keep text stable while loading ${count} photos in ${path} at ${width}px`, async ({
         page,
       }) => {
         await page.setViewportSize({ width, height: 844 });
@@ -341,15 +352,20 @@ for (const width of [390, 1440]) {
           );
           if (id === 4) return route.fulfill({ status: 404 });
           return route.fulfill({
-            contentType: "image/svg+xml",
-            body: id % 2 ? svg(1600, 400) : svg(400, 1200),
+            contentType: "image/png",
+            body: await raster(
+              ...(id % 2 ? ([1600, 400] as const) : ([400, 1200] as const)),
+            ),
           });
         });
         try {
           await gotoWithSession(page, path);
-          const photos = count === 10
-            ? page.getByRole("region", { name: "Фотографии поста" }).locator("img")
-            : page.locator('img[src^="https://images.example.test/"]');
+          const photos =
+            count === 10
+              ? page
+                  .getByRole("region", { name: "Фотографии поста" })
+                  .locator("img")
+              : page.locator('img[src^="https://images.example.test/"]');
           await expect(photos).toHaveCount(count);
           const text = page.getByText("IMAGE_POST_1", { exact: true });
           await expect(text).toHaveCount(1);
@@ -360,10 +376,16 @@ for (const width of [390, 1440]) {
               return { width, height };
             }),
           );
-          const textBefore = await text.boundingBox();
+          const frame = page.locator("[data-post-photo-frame]");
+          const frameBefore = (await frame.boundingBox())!;
+          const textBefore = (await text.boundingBox())!;
+          expect(frameBefore.height).toBeCloseTo(
+            Math.min(frameBefore.width * 1.25, 844 * 0.6),
+            1,
+          );
           for (const box of before) {
             expect(box.width).toBeGreaterThan(0);
-            expect(box.width / box.height).toBeCloseTo(0.8, 2);
+            expect(box.height).toBeGreaterThan(0);
           }
           release();
           await expect
@@ -373,19 +395,31 @@ for (const width of [390, 1440]) {
                 .evaluate((img) => (img as HTMLImageElement).naturalWidth),
             )
             .toBe(1600);
+          await expect(photos.first()).toHaveCSS("opacity", "1");
           const after = await photos.evaluateAll((nodes) =>
             nodes.map((node) => {
-              const { width, height } =
-                node.parentElement!.getBoundingClientRect();
+              const { width, height } = node.getBoundingClientRect();
               return { width, height, fit: getComputedStyle(node).objectFit };
             }),
           );
           after.forEach((box, index) => {
             expect(box.width).toBeCloseTo(before[index].width, 1);
             expect(box.height).toBeCloseTo(before[index].height, 1);
-            expect(box.fit).toBe("contain");
+            expect(box.fit).toBe("cover");
           });
-          expect((await text.boundingBox())!.y).toBeCloseTo(textBefore!.y, 1);
+          expect((await frame.boundingBox())!.height).toBeCloseTo(
+            frameBefore.height,
+            1,
+          );
+          expect((await text.boundingBox())!.y).toBeCloseTo(textBefore.y, 1);
+          if (count === 4) {
+            // Both rows fill the same reserved gallery, including failed photos.
+            expect(after[0].height).toBeCloseTo(after[1].height, 1);
+            expect(after[2].height).toBeCloseTo(after[3].height, 1);
+            await expect(
+              page.getByRole("img", { name: "Изображение недоступно" }),
+            ).toBeVisible();
+          }
           if (count === 10) {
             const carousel = page.getByRole("region", {
               name: "Фотографии поста",
@@ -425,7 +459,7 @@ for (const width of [390, 1440]) {
           }
           if (width === 390 && path === "/feed")
             await page.screenshot({
-              path: test.info().outputPath(`fixed-${count}.png`),
+              path: test.info().outputPath(`reserved-${count}.png`),
             });
           expect(
             await page.evaluate(
@@ -441,7 +475,7 @@ for (const width of [390, 1440]) {
 }
 
 for (const width of [390, 1440]) {
-  test(`photos beside a tall video retain their frames and the last photo opens correctly at ${width}px`, async ({
+  test(`photos beside a tall video stay inside the reserved gallery and the last photo opens correctly at ${width}px`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 844 });
@@ -458,30 +492,194 @@ for (const width of [390, 1440]) {
       },
     ];
     await imagesApi(page, [item]);
-    await page.route("https://images.example.test/**", (route) =>
-      route.fulfill({ contentType: "image/svg+xml", body: svg(400, 1600) }),
+    await page.route("https://images.example.test/**", async (route) =>
+      route.fulfill({
+        contentType: "image/png",
+        body: await raster(400, 1600),
+      }),
     );
     await gotoWithSession(page, "/post/1");
     const photos = page.locator('img[src*="/photo-"]');
     await expect(photos).toHaveCount(7);
-    await expect
-      .poll(() =>
-        page
-          .locator('img[src*="video_thumb"]')
-          .evaluate((img) => (img as HTMLImageElement).naturalHeight),
-      )
-      .toBe(1600);
-    for (const box of await photos.evaluateAll((nodes) =>
-      nodes.map((node) => {
-        const { width, height } = node.parentElement!.getBoundingClientRect();
-        return { width, height };
-      }),
-    ))
-      expect(box.width / box.height).toBeCloseTo(0.8, 2);
+    const frame = page.locator("[data-post-photo-frame]");
+    const before = (await frame.boundingBox())!;
+    for (const photo of await photos.all()) {
+      await photo.scrollIntoViewIfNeeded();
+      await expect
+        .poll(() =>
+          photo.evaluate((node) => (node as HTMLImageElement).naturalHeight),
+        )
+        .toBe(1600);
+      await expect(photo).toHaveCSS("object-fit", "cover");
+      const box = (await photo.boundingBox())!;
+      expect(box.height).toBeGreaterThan(0);
+      expect(box.height).toBeLessThanOrEqual(before.height);
+    }
+    await page
+      .getByRole("button", { name: "Открыть видео", exact: true })
+      .click();
+    await expect(
+      page.locator('video[src="https://images.example.test/video.mp4"]'),
+    ).toBeVisible();
+    expect((await frame.boundingBox())!.height).toBeCloseTo(before.height, 1);
     await photos.last().scrollIntoViewIfNeeded();
     await photos.last().click();
     const viewer = page.getByRole("dialog", { name: "Просмотр фотографий" });
     await expect(viewer.getByText("7 / 7", { exact: true })).toBeVisible();
     await expect(viewer.locator(`img[src="${imageUrl(7)}"]`)).toBeInViewport();
+  });
+}
+
+for (const reducedMotion of [false, true]) {
+  test(`photo fades in without resizing its frame; reduced motion: ${reducedMotion}`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({
+      reducedMotion: reducedMotion ? "reduce" : "no-preference",
+    });
+    await imagesApi(page);
+    let release!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("https://images.example.test/**", async (route) => {
+      await ready;
+      await route.fulfill({
+        contentType: "image/png",
+        body: await raster(800, 400),
+      });
+    });
+    try {
+      await gotoWithSession(page, "/feed");
+      const image = page
+        .locator('img[src^="https://images.example.test/"]')
+        .first();
+      await expect(image).toBeVisible();
+      await expect(image).toHaveCSS("opacity", "0");
+      const before = (await image.boundingBox())!.height;
+      const samples = image.evaluate(async (node) => {
+        const values: { height: number; opacity: number }[] = [];
+        const end = performance.now() + 600;
+        while (performance.now() < end) {
+          values.push({
+            height: node.getBoundingClientRect().height,
+            opacity: Number(getComputedStyle(node).opacity),
+          });
+          await new Promise<void>((resolve) =>
+            requestAnimationFrame(() => resolve()),
+          );
+        }
+        return values;
+      });
+      release();
+      const frames = await samples;
+      await expect(image).toHaveCSS("opacity", "1");
+      for (const sample of frames) expect(sample.height).toBeCloseTo(before, 1);
+      if (!reducedMotion)
+        expect(
+          frames.filter((sample) => sample.opacity > 0 && sample.opacity < 1)
+            .length,
+        ).toBeGreaterThan(2);
+      else await expect(image).toHaveCSS("transition-duration", "0s");
+      await page.getByRole("button", { name: "Показать сеткой" }).click();
+      await page.getByRole("button", { name: "Показать лентой" }).click();
+      expect((await image.boundingBox())!.height).toBeCloseTo(before, 1);
+    } finally {
+      release();
+    }
+  });
+}
+
+for (const viewport of [
+  { width: 390, height: 844 },
+  { width: 1440, height: 844 },
+  { width: 390, height: 568 },
+]) {
+  test(`one to ten photos share one reserved block at ${viewport.width}x${viewport.height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await imagesApi(
+      page,
+      Array.from({ length: 10 }, (_, index) =>
+        post(
+          index + 1,
+          Array.from({ length: index + 1 }, (_, photo) =>
+            imageUrl((index + 1) * 100 + photo),
+          ),
+        ),
+      ),
+    );
+    let release!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("https://images.example.test/**", async (route) => {
+      await ready;
+      const id = Number(
+        route
+          .request()
+          .url()
+          .match(/photo-(\d+)/)?.[1],
+      );
+      await route.fulfill({
+        contentType: "image/png",
+        body: await raster(
+          ...(id % 2 ? ([1600, 400] as const) : ([400, 1600] as const)),
+        ),
+      });
+    });
+    try {
+      await gotoWithSession(page, "/feed");
+      const rows = page.locator(".ui-collection-item");
+      await expect(rows).toHaveCount(10);
+      const before: number[] = [];
+      for (let index = 0; index < 10; index++) {
+        await rows.nth(index).scrollIntoViewIfNeeded();
+        const frame = rows.nth(index).locator("[data-post-photo-frame]");
+        await expect(frame).toBeVisible();
+        before.push((await frame.boundingBox())!.height);
+      }
+      expect(before[0]).toBeGreaterThan(0);
+      expect(before[0]).toBeLessThanOrEqual(viewport.height * 0.6 + 0.5);
+      for (const height of before) expect(height).toBeCloseTo(before[0], 1);
+      release();
+      for (let index = 0; index < 10; index++) {
+        await rows.nth(index).scrollIntoViewIfNeeded();
+        const frame = rows.nth(index).locator("[data-post-photo-frame]");
+        await expect(frame).toBeVisible();
+        const first = frame
+          .locator('img[src^="https://images.example.test/"]')
+          .first();
+        await expect
+          .poll(() =>
+            first.evaluate((node) => (node as HTMLImageElement).naturalWidth),
+          )
+          .toBeGreaterThan(0);
+        expect((await frame.boundingBox())!.height).toBeCloseTo(before[0], 1);
+        await expect(first).toHaveCSS("object-fit", "cover");
+        // Grid cells cover the entire block, allowing only the 1px separators.
+        if ((await frame.getAttribute("role")) === "group") {
+          const occupied = await frame.locator("img").evaluateAll((nodes) =>
+            nodes.reduce((sum, node) => {
+              const box = node.getBoundingClientRect();
+              return sum + box.width * box.height;
+            }, 0),
+          );
+          const box = (await frame.boundingBox())!;
+          expect(occupied / (box.width * box.height)).toBeGreaterThan(0.98);
+          expect(occupied / (box.width * box.height)).toBeLessThanOrEqual(
+            1.001,
+          );
+        }
+      }
+      await page.screenshot({
+        path: test
+          .info()
+          .outputPath(`gallery-${viewport.width}x${viewport.height}.png`),
+      });
+    } finally {
+      release();
+    }
   });
 }

@@ -1,7 +1,8 @@
 "use client";
 import classes from "./video-grid-cell.module.scss";
 import { Action } from "@/shared/ui/elements";
-import { createElement, useState } from "react";
+import { createElement, useState, type SyntheticEvent } from "react";
+import { useCollectionItemRetention } from "@/shared/ui/collection-item-window";
 import { Picture } from "@/shared/media/image";
 import MaterialIcons from "@/shared/ui/material-icon";
 import {
@@ -13,14 +14,18 @@ interface VideoGridCellProps {
   thumbnailUrl?: string;
   onClick?: () => void;
   standalone?: boolean;
+  fillCell?: boolean;
 }
 export function VideoGridCell({
   url,
   thumbnailUrl,
   onClick,
   standalone,
+  fillCell = false,
 }: VideoGridCellProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [ended, setEnded] = useState(false);
+  useCollectionItemRetention(isPlaying && !ended);
   const { ratios, onLoad } = usePhotoAspectRatios(
     thumbnailUrl ? [thumbnailUrl] : [],
   );
@@ -31,7 +36,9 @@ export function VideoGridCell({
     return (
       <div
         style={{
-          aspectRatio: aspectRatio,
+          aspectRatio: fillCell ? undefined : aspectRatio,
+          height: fillCell ? "100%" : undefined,
+          width: fillCell ? "100%" : undefined,
         }}
         className={[
           ["ui-stack ", classes.portraitBg].filter(Boolean).join(" "),
@@ -50,6 +57,10 @@ export function VideoGridCell({
           controls: true,
           playsInline: true,
           preload: "metadata",
+          onPlay: () => setEnded(false),
+          onSeeked: (event: SyntheticEvent<HTMLVideoElement>) =>
+            setEnded(event.currentTarget.ended),
+          onEnded: () => setEnded(true),
           style: {
             backgroundColor: isPortrait ? "#EDE6DA" : "#1a1a1a",
             objectFit: fitMode,
@@ -71,7 +82,9 @@ export function VideoGridCell({
       aria-label="Открыть видео"
       onClick={handlePress}
       style={() => ({
-        aspectRatio: aspectRatio,
+        aspectRatio: fillCell ? undefined : aspectRatio,
+        height: fillCell ? "100%" : undefined,
+        width: fillCell ? "100%" : undefined,
       })}
       className={({ pressed }) =>
         [

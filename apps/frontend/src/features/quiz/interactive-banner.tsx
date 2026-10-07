@@ -3,9 +3,9 @@ import { Picture } from "@/shared/media/image";
 import { Typography } from "@/shared/ui/elements";
 import Animated, { FadeIn } from "@/shared/browser/motion";
 import classes from "./interactive-screen.module.scss";
-const keyDecor = { uri: "/assets/interactive/key-decor.png" };
-const ivyLeft = { uri: "/assets/interactive/ivy-left.png" };
-const ivyRight = { uri: "/assets/interactive/ivy-right.png" };
+const keyDecor = { uri: "/assets/interactive/key-decor.webp" };
+const ivyLeft = { uri: "/assets/interactive/ivy-left.webp" };
+const ivyRight = { uri: "/assets/interactive/ivy-right.webp" };
 export function InteractiveBanner() {
   const content = (
     <>

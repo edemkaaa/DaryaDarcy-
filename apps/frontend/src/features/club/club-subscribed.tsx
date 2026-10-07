@@ -409,6 +409,7 @@ export function ClubSubscribed() {
       <SafeArea edges={["left", "right"]} className={classes.tartanBackground}>
         {/* Content — banner scrolls with posts, tartan stays fixed behind */}
         <Collection
+          windowItems
           ref={listRef}
           data={posts}
           renderItem={renderPost}

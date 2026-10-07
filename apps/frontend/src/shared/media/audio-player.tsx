@@ -1,6 +1,7 @@
 "use client";
 import classes from "./audio-player.module.scss";
 import { Action, Typography } from "@/shared/ui/elements";
+import { useCollectionItemRetention } from "@/shared/ui/collection-item-window";
 import { useMemo } from "react";
 import { useAudioPlayer, useAudioPlayerState } from "@/shared/media/audio";
 import MaterialIcons from "@/shared/ui/material-icon";
@@ -34,6 +35,7 @@ export function AudioPlayerCard({ url, filename, duration }: AudioPlayerProps) {
     duration: actualDuration,
     error,
   } = useAudioPlayerState(player);
+  useCollectionItemRetention(isPlaying || starting || currentTime > 0 || Boolean(error));
   const progress = actualDuration > 0 ? currentTime / actualDuration : 0;
   const WAVEFORM_BARS = 30;
   const waveform = useMemo(() => generateWaveform(WAVEFORM_BARS, url), [url]);

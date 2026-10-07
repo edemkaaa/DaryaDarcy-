@@ -32,6 +32,11 @@ import {
   COMMENT_CHAR_LIMIT,
   commentCountLabel,
 } from "@/domain/post/comment-count-label";
+import {
+  useCollectionItemRetention,
+  useCollectionItemPlaceholder,
+} from "@/shared/ui/collection-item-window";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { BROWN_MUTED, OLIVE } from "./club-comments.content";
 interface ClubCommentsProps {
   postId: number;
@@ -199,13 +204,35 @@ export function ClubComments({
   const [menuCommentId, setMenuCommentId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
+  const nearby = useCollectionItemRetention(
+    Boolean(
+      text ||
+      photos.length ||
+      replyTo ||
+      editingId ||
+      editText ||
+      menuCommentId ||
+      viewerVisible ||
+      operation.busy ||
+      actionError,
+    ),
+  );
+  const active = useScreenActive();
   const utils = trpc.useUtils();
   const community = isCommunityPost(tags);
   const open = areCommentsOpen(tags, createdAt);
   const until = commentsCloseAt(createdAt);
   const comments = trpc.club.comments.useQuery(
     { postId },
-    { enabled: community },
+    {
+      enabled: community && active && nearby,
+      staleTime: 60_000,
+      gcTime: 60_000,
+    },
+  );
+  const commentPlaceholder = useCollectionItemPlaceholder(
+    "comments",
+    !comments.data,
   );
   const runAction = async (
     kind: string,
@@ -598,12 +625,6 @@ export function ClubComments({
   };
   return (
     <div className={["ui-stack ", classes.wrap].filter(Boolean).join(" ")}>
-      <QueryRetryState
-        isLoading={comments.isLoading}
-        isError={comments.isError}
-        onRetry={() => void comments.refetch()}
-        message="Не удалось загрузить комментарии"
-      />
       {commentCount > 0 ? (
         <Typography className={classes.countHeading}>
           {commentCountLabel(commentCount)}
@@ -616,7 +637,15 @@ export function ClubComments({
       ) : null}
       <div
         className={["ui-stack ", classes.commentList].filter(Boolean).join(" ")}
+        ref={commentPlaceholder.ref}
+        style={commentPlaceholder.style}
       >
+        <QueryRetryState
+          isLoading={comments.isLoading}
+          isError={comments.isError}
+          onRetry={() => void comments.refetch()}
+          message="Не удалось загрузить комментарии"
+        />
         {tree.roots.map((item) => renderComment(item))}
       </div>
       {open && isAuthenticated ? (

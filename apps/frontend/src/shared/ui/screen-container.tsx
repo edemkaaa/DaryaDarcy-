@@ -5,7 +5,7 @@ import { Background, type BoxProps } from "./elements";
 import { SafeArea, type Edge } from "./safe-area";
 import { useColors } from "@/shared/styles/use-colors";
 const paper =
-  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg";
+  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.fe3ce71852fa6634.webp";
 export interface ScreenContainerProps extends BoxProps {
   edges?: Edge[];
   showTexture?: boolean;

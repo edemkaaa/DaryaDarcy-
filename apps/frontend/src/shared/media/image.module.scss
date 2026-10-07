@@ -19,6 +19,12 @@
     pointer-events: none;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .img {
+      transition: none !important;
+    }
+  }
+
   .img {
     position: absolute;
     inset: 0;

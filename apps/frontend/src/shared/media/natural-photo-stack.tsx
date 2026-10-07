@@ -1,148 +1,54 @@
 "use client";
 import classes from "./natural-photo-stack.module.scss";
-import { mergeStyles } from "@/shared/ui/css";
+import frameClasses from "./post-photo-frame.module.scss";
 import { Action } from "@/shared/ui/elements";
 import { type ReactNode } from "react";
 import { Picture } from "@/shared/media/image";
 import { PostPhotoCarousel } from "@/shared/media/post-photo-carousel";
 import { VideoGridCell } from "@/shared/media/video-grid-cell";
-import { POST_PHOTO_RATIO, POST_PHOTO_FIT } from "./post-photo-layout";
 export interface VideoGridSlot {
   url: string;
   thumbnailUrl?: string;
 }
-function Cell({
-  uri,
-  onClick,
-  style,
-}: {
-  uri: string;
-  onClick?: () => void;
-  style?: object;
-}) {
+function Cell({ uri, onClick }: { uri: string; onClick?: () => void }) {
   return (
     <Action
       aria-label="Открыть фото"
       disabled={!onClick}
       onClick={onClick}
-      style={mergeStyles({ aspectRatio: POST_PHOTO_RATIO }, style)}
-      className={classes.action}
+      className={({ pressed }) =>
+        [classes.cell, pressed ? classes.opacityState : ""]
+          .filter(Boolean)
+          .join(" ")
+      }
     >
       <Picture
         source={{ uri }}
-        contentFit={POST_PHOTO_FIT}
+        contentFit="cover"
+        transition={180}
+        fadeOnLoad
         className={classes.picture}
       />
     </Action>
   );
 }
 function Row({ children }: { children: ReactNode }) {
-  return (
-    <div className={["ui-stack ", classes.row].filter(Boolean).join(" ")}>
-      {children}
-    </div>
-  );
+  return <div className={`ui-stack ${classes.row}`}>{children}</div>;
 }
-function PhotoGrid({
-  photos,
-  press,
-  columns,
-}: {
-  photos: string[];
-  press: (index: number) => (() => void) | undefined;
-  columns: number;
-}) {
+function photoRows(photos: string[]): string[][] {
+  if (photos.length === 7) return [photos.slice(0, 3), photos.slice(3)];
+  const columns =
+    photos.length <= 3
+      ? photos.length
+      : photos.length === 4
+        ? 2
+        : photos.length === 8
+          ? 4
+          : 3;
   const rows: string[][] = [];
-  for (let i = 0; i < photos.length; i += columns) {
+  for (let i = 0; i < photos.length; i += columns)
     rows.push(photos.slice(i, i + columns));
-  }
-  return (
-    <div className={["ui-stack ", classes.stackCol].filter(Boolean).join(" ")}>
-      {rows.map((row, rowIndex) => (
-        <Row key={`row-${rowIndex}`}>
-          {row.map((uri, colIndex) => {
-            const index = rowIndex * columns + colIndex;
-            return <Cell key={index} uri={uri} onClick={press(index)} />;
-          })}
-          {row.length < columns
-            ? Array.from({ length: columns - row.length }).map((_, i) => (
-                <div
-                  key={`pad-${i}`}
-                  className={["ui-stack ", classes.div]
-                    .filter(Boolean)
-                    .join(" ")}
-                />
-              ))
-            : null}
-        </Row>
-      ))}
-    </div>
-  );
-}
-function VideoPhotoGrid({
-  video,
-  photos,
-  press,
-}: {
-  video: VideoGridSlot;
-  photos: string[];
-  press: (index: number) => (() => void) | undefined;
-}) {
-  const topPhotos = photos.slice(0, 2);
-  const bottomPhotos = photos.slice(2);
-  return (
-    <div className={["ui-stack ", classes.stackCol].filter(Boolean).join(" ")}>
-      <Row>
-        <VideoGridCell url={video.url} thumbnailUrl={video.thumbnailUrl} />
-        {topPhotos.map((uri, index) => (
-          <Cell key={`top-${index}`} uri={uri} onClick={press(index)} />
-        ))}
-        {topPhotos.length < 2
-          ? Array.from({ length: 2 - topPhotos.length }).map((_, i) => (
-              <div
-                key={`top-pad-${i}`}
-                className={["ui-stack ", classes.div].filter(Boolean).join(" ")}
-              />
-            ))
-          : null}
-      </Row>
-      {bottomPhotos.length > 0 ? (
-        <Row>
-          {bottomPhotos.slice(0, 4).map((uri, index) => (
-            <Cell
-              key={`bottom-${index}`}
-              uri={uri}
-              onClick={press(index + 2)}
-            />
-          ))}
-        </Row>
-      ) : null}
-      {bottomPhotos.length > 4 ? (
-        <PhotoGrid
-          photos={bottomPhotos.slice(4)}
-          press={(index) => press(index + 6)}
-          columns={4}
-        />
-      ) : null}
-    </div>
-  );
-}
-function SinglePhoto({ uri, onClick }: { uri: string; onClick?: () => void }) {
-  return (
-    <Action
-      aria-label="Открыть фото"
-      disabled={!onClick}
-      onClick={onClick}
-      className={({ pressed }) => (pressed ? classes.opacityState : "")}
-    >
-      <Picture
-        source={{ uri }}
-        style={{ aspectRatio: POST_PHOTO_RATIO }}
-        contentFit={POST_PHOTO_FIT}
-        className={classes.picture2}
-      />
-    </Action>
-  );
+  return rows;
 }
 export function NaturalPhotoStack({
   photos,
@@ -156,21 +62,7 @@ export function NaturalPhotoStack({
   posterUrl?: string;
 }) {
   if (!photos.length && !video) return null;
-  const press = (index: number) =>
-    onPhotoPress ? () => onPhotoPress(index) : undefined;
-  if (video && photos.length > 0) {
-    return (
-      <VideoPhotoGrid
-        video={{
-          url: video.url,
-          thumbnailUrl: posterUrl ?? video.thumbnailUrl,
-        }}
-        photos={photos}
-        press={press}
-      />
-    );
-  }
-  if (video && photos.length === 0) {
+  if (video && !photos.length) {
     return (
       <VideoGridCell
         url={video.url}
@@ -179,81 +71,54 @@ export function NaturalPhotoStack({
       />
     );
   }
-  if (photos.length > 9) {
+  if (!video && photos.length > 9) {
     return <PostPhotoCarousel photos={photos} onPhotoPress={onPhotoPress} />;
   }
-  if (photos.length === 1) {
-    return <SinglePhoto uri={photos[0]} onClick={press(0)} />;
-  }
-  if (photos.length === 2) {
-    return (
-      <div
-        className={["ui-stack ", classes.stackCol].filter(Boolean).join(" ")}
-      >
-        <Row>
-          <Cell uri={photos[0]} onClick={press(0)} />
-          <Cell uri={photos[1]} onClick={press(1)} />
-        </Row>
+  // Indices stay attached to the original list, including photos after video.
+  const indices = photos.map((uri, index) => ({ uri, index }));
+  const rows = video
+    ? [
+        indices.slice(0, 2),
+        ...Array.from(
+          { length: Math.ceil(Math.max(photos.length - 2, 0) / 4) },
+          (_, row) => indices.slice(2 + row * 4, 6 + row * 4),
+        ),
+      ]
+    : photoRows(photos).map((row, rowIndex, allRows) => {
+        const offset = allRows
+          .slice(0, rowIndex)
+          .reduce((count, items) => count + items.length, 0);
+        return row.map((uri, index) => ({ uri, index: offset + index }));
+      });
+  return (
+    <div
+      className={`ui-stack ${frameClasses.frame}`}
+      role="group"
+      aria-label="Фотографии поста"
+      data-post-photo-frame
+    >
+      <div className={`ui-stack ${classes.grid}`}>
+        {rows.map((row, rowIndex) => (
+          <Row key={rowIndex}>
+            {video && rowIndex === 0 ? (
+              <div className={`ui-stack ${classes.cell}`}>
+                <VideoGridCell
+                  url={video.url}
+                  thumbnailUrl={posterUrl ?? video.thumbnailUrl}
+                  fillCell
+                />
+              </div>
+            ) : null}
+            {row.map(({ uri, index }) => (
+              <Cell
+                key={index}
+                uri={uri}
+                onClick={onPhotoPress ? () => onPhotoPress(index) : undefined}
+              />
+            ))}
+          </Row>
+        ))}
       </div>
-    );
-  }
-  if (photos.length === 3) {
-    return (
-      <div
-        className={["ui-stack ", classes.stackCol].filter(Boolean).join(" ")}
-      >
-        <Row>
-          <Cell uri={photos[0]} onClick={press(0)} />
-          <Cell uri={photos[1]} onClick={press(1)} />
-          <Cell uri={photos[2]} onClick={press(2)} />
-        </Row>
-      </div>
-    );
-  }
-  if (photos.length === 4) {
-    return <PhotoGrid photos={photos} press={press} columns={2} />;
-  }
-  if (photos.length <= 6) {
-    return <PhotoGrid photos={photos} press={press} columns={3} />;
-  }
-  if (photos.length === 7) {
-    return (
-      <div
-        className={["ui-stack ", classes.stackCol].filter(Boolean).join(" ")}
-      >
-        <Row>
-          <Cell uri={photos[0]} onClick={press(0)} />
-          <Cell uri={photos[1]} onClick={press(1)} />
-          <Cell uri={photos[2]} onClick={press(2)} />
-        </Row>
-        <Row>
-          <Cell uri={photos[3]} onClick={press(3)} />
-          <Cell uri={photos[4]} onClick={press(4)} />
-          <Cell uri={photos[5]} onClick={press(5)} />
-          <Cell uri={photos[6]} onClick={press(6)} />
-        </Row>
-      </div>
-    );
-  }
-  if (photos.length === 8) {
-    return (
-      <div
-        className={["ui-stack ", classes.stackCol].filter(Boolean).join(" ")}
-      >
-        <Row>
-          <Cell uri={photos[0]} onClick={press(0)} />
-          <Cell uri={photos[1]} onClick={press(1)} />
-          <Cell uri={photos[2]} onClick={press(2)} />
-          <Cell uri={photos[3]} onClick={press(3)} />
-        </Row>
-        <Row>
-          <Cell uri={photos[4]} onClick={press(4)} />
-          <Cell uri={photos[5]} onClick={press(5)} />
-          <Cell uri={photos[6]} onClick={press(6)} />
-          <Cell uri={photos[7]} onClick={press(7)} />
-        </Row>
-      </div>
-    );
-  }
-  return <PhotoGrid photos={photos} press={press} columns={3} />;
+    </div>
+  );
 }

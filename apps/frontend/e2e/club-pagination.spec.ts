@@ -85,20 +85,16 @@ async function scrollToEnd(page: Page) {
 async function refreshList(page: Page) {
   await list(page).evaluate((node) => {
     node.scrollTop = 0;
-    node.dispatchEvent(
-      new TouchEvent("touchstart", {
-        bubbles: true,
-        touches: [new Touch({ identifier: 1, target: node, clientY: 0 })],
-      }),
-    );
-    node.dispatchEvent(
-      new TouchEvent("touchend", {
-        bubbles: true,
-        changedTouches: [
-          new Touch({ identifier: 1, target: node, clientY: 200 }),
-        ],
-      }),
-    );
+    for (const [type, property, y] of [
+      ["touchstart", "touches", 0],
+      ["touchend", "changedTouches", 200],
+    ] as const) {
+      const event = new Event(type, { bubbles: true });
+      Object.defineProperty(event, property, {
+        value: [{ identifier: 1, target: node, clientY: y }],
+      });
+      node.dispatchEvent(event);
+    }
   });
 }
 
@@ -139,7 +135,7 @@ test("the unfiltered club list exposes all 221 posts through successive pages", 
     return paged(posts, input);
   });
   await gotoWithSession(page, "/club");
-  const cards = page.getByText(/^CLUB_POST_\d+ /);
+  const cards = list(page).locator(".ui-collection-item");
   await expect(cards).toHaveCount(12);
   const initialNodes = await list(page).evaluate(
     (node) => node.querySelectorAll("*").length,
@@ -148,8 +144,12 @@ test("the unfiltered club list exposes all 221 posts through successive pages", 
     await scrollToEnd(page);
     await expect(cards).toHaveCount(Math.min(end, 221));
   }
-  await expect(page.getByText(/^CLUB_POST_1 /)).toBeAttached();
+  await scrollToEnd(page);
   await expect(page.getByText(/^CLUB_POST_221 /)).toBeAttached();
+  await list(page).evaluate((node) => {
+    node.scrollTop = 0;
+  });
+  await expect(page.getByText(/^CLUB_POST_1 /)).toBeVisible();
   expect(calls).toEqual([
     null,
     ...Array.from({ length: 18 }, (_, index) => (index + 1) * 12),
@@ -245,7 +245,11 @@ test("a failed next page keeps loaded posts and retries the same cursor once", a
     .getByRole("alert")
     .filter({ hasText: "Не удалось загрузить следующие публикации клуба" });
   await expect(error).toBeVisible();
-  await expect(page.getByText(/^CLUB_POST_1 /)).toBeAttached();
+  await expect(list(page).locator(".ui-collection-item")).toHaveCount(12);
+  await list(page).evaluate((node) => {
+    node.scrollTop = 0;
+  });
+  await expect(page.getByText(/^CLUB_POST_1 /)).toBeVisible();
   await expect(page.getByText("PRIVATE_PAGE_DETAILS")).toHaveCount(0);
   expect(calls).toEqual([null, 12]);
   fail = false;
@@ -302,7 +306,9 @@ test("retry in an empty filtered section displays loading until the page arrives
   await expect(error).toBeVisible();
   fail = false;
   await error.getByRole("button", { name: "Повторить" }).click();
-  await expect(page.getByText("Загрузка…", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("status", { name: "Загрузка материалов" }),
+  ).toBeVisible();
   await expect(error).toHaveCount(0);
   release();
   await expect(page.getByText(/^CLUB_POST_13 /)).toBeVisible();
@@ -440,11 +446,13 @@ test("refresh failure retains loaded pages and retry refreshes them in order", a
   });
   await expect(error).toBeAttached();
   await expect(page.getByText(/^CLUB_POST_1 /)).toBeAttached();
-  await expect(page.getByText(/^CLUB_POST_13 /)).toBeAttached();
+  await expect(list(page).locator(".ui-collection-item")).toHaveCount(13);
   expect(calls).toEqual([null, 12, null]);
   fail = false;
   updated = true;
   await error.getByRole("button", { name: "Повторить" }).click();
+  await expect(error).toHaveCount(0);
+  await scrollToEnd(page);
   await expect(
     page.getByText("REFRESHED_LAST_CLUB_POST", { exact: true }),
   ).toBeAttached();

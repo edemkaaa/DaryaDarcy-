@@ -156,15 +156,15 @@ export const PRODUCT_DETAILS: Product[] = [
       "Полноцветная печать",
     ],
     gallery: [
-      "/assets/responsive/img-6129.full.5021f6024b9727ca.jpg",
-      "/assets/responsive/img-6133.full.e8537fb81104b09d.jpg",
-      "/assets/responsive/img-6130.full.3b4cd772b626c784.jpg",
-      "/assets/responsive/img-6127.full.b8ff27c18632483f.jpg",
-      "/assets/responsive/img-6131.full.aa3e9dd990c9c871.jpg",
-      "/assets/responsive/img-6132.full.c71f8bb767c2b39c.jpg",
-      "/assets/responsive/img-6126.full.68a73756fbe976ec.jpg",
-      "/assets/responsive/img-6128.full.2c4844fd754f009f.jpg",
-      "/assets/responsive/img-6125.full.bc0537a754527090.jpg",
+      "/assets/responsive/img-6129.full.75c21e461cbd72fe.webp",
+      "/assets/responsive/img-6133.full.67a355a0f4a53a9f.webp",
+      "/assets/responsive/img-6130.full.4ea40548d68bdbde.webp",
+      "/assets/responsive/img-6127.full.12781e5ca35aa565.webp",
+      "/assets/responsive/img-6131.full.01ef115f7ee9bf95.webp",
+      "/assets/responsive/img-6132.full.14638cfa82c93323.webp",
+      "/assets/responsive/img-6126.full.e21251045accb2e5.webp",
+      "/assets/responsive/img-6128.full.2d5443ef28137842.webp",
+      "/assets/responsive/img-6125.full.7a0745aa1895bde3.webp",
     ],
   },
   {
@@ -207,10 +207,10 @@ export const PRODUCT_DETAILS: Product[] = [
       "Мастер-классы, рецепты, упражнения",
     ],
     gallery: [
-      "/assets/responsive/cover-shelf.full.3f9a6ab4f24e170d.jpg",
-      "/assets/responsive/toc.full.03ddfa2db0d3cb15.jpg",
-      "/assets/responsive/autumn.full.0119a74ff0cd1692.jpg",
-      "/assets/responsive/crafts.full.f897a762c2317c73.jpg",
+      "/assets/responsive/cover-shelf.full.33e5f05aa029ddcd.webp",
+      "/assets/responsive/toc.full.4ac73e8b2b097c0e.webp",
+      "/assets/responsive/autumn.full.8d4ed5ea16186367.webp",
+      "/assets/responsive/crafts.full.3dddb21b63eb1d9c.webp",
     ],
   },
   {
@@ -253,15 +253,15 @@ export const PRODUCT_DETAILS: Product[] = [
       "Рецепты, мастер-классы, акварельные иллюстрации",
     ],
     gallery: [
-      "/assets/responsive/cover-shelf.full.17b02b7aeb1298e1.jpg",
-      "/assets/responsive/toc.full.cba2b271f35ac3b4.jpg",
-      "/assets/responsive/book-desk.full.5b2b0f6347e2e433.jpg",
-      "/assets/responsive/spread-life.full.c7f56ac555ff4f70.jpg",
-      "/assets/responsive/spread-pokoy.full.f4718e6b103c3138.jpg",
-      "/assets/responsive/spread-makeover.full.68b6ccc030f5ff14.jpg",
-      "/assets/responsive/book-open.full.fe7d1fe62750b2cf.jpg",
-      "/assets/responsive/spread-wardrobe.full.774faa515dcdce26.jpg",
-      "/assets/responsive/spread-clothes.full.389e0c07bcd539cf.jpg",
+      "/assets/responsive/cover-shelf.full.ff546625089f9e7b.webp",
+      "/assets/responsive/toc.full.7edddfab84755f65.webp",
+      "/assets/responsive/book-desk.full.2710a7f1b463aa44.webp",
+      "/assets/responsive/spread-life.full.4c8875eefff9a6a2.webp",
+      "/assets/responsive/spread-pokoy.full.a8a8a923e37e6729.webp",
+      "/assets/responsive/spread-makeover.full.808cb8ab1f609b28.webp",
+      "/assets/responsive/book-open.full.62a0031b83e9e33c.webp",
+      "/assets/responsive/spread-wardrobe.full.4cb75bbbba217a5c.webp",
+      "/assets/responsive/spread-clothes.full.b404e9bc5119edb0.webp",
     ],
   },
   {
@@ -272,7 +272,7 @@ export const PRODUCT_DETAILS: Product[] = [
       "Это электронная книга-курс (в формате PDF), в которой я делюсь всеми своими секретами и приёмами; очень простым языком объясняю техническую сторону и теорию фотографии; вдохновляю на творчество и смелое выражение себя.\n\nВсего в пособии 8 глав:\n\n~ Техническая сторона фотографии (обещаю, что вы за несколько минут раз и навсегда разберётесь со всеми настройками и ручным режимом съёмки)\n~ Свет (каким бывает свет, как с ним работать, его влияние на атмосферу)\n~ Цвет (гармоничные сочетания цветов и цветовые схемы)\n~ Композиция (лучшие композиционные приёмы и ракурсы с подробным разбором на примерах)\n~ Реквизит (где искать и хранить реквизит для съёмок, как создавать его самому и сочетать в кадре)\n~ Психологические аспекты фотографии (что ещё влияет на атмосферность и душевность кадров?)\n~ Обработка (описание каждой настройки и подробный алгоритм действий, мои любимые приложения и секреты тёплых, медовых фотографий)\n~ Собственный стиль (моя личная история поиска собственного стиля, разбор эстетик и советы по созданию собственной, а также список фильмов, развивающих эстетический вкус)\n\nПособие оформлено как старинная книга: с фактурной обложкой, ботаническими иллюстрациями и сокровищами на пожелтевших страницах: винтажными ножницами, ключами, медальонами... Чтобы листая его, вы могли вдохновиться на творчество и создание собственной красоты!",
     price: "50 \u20bd",
     coverUrl:
-      "/assets/responsive/vjdQHvFhVxKjVyWq.w900.b01f5f52dcb6fccf.webp",
+      "/assets/responsive/76751795802b-cvPWAEJjkmXMKPjM.w900.b01f5f52dcb6fccf.webp",
     imageUrl:
       "/assets/responsive/76751795802b-cvPWAEJjkmXMKPjM.w900.b01f5f52dcb6fccf.webp",
     type: "digital",
@@ -286,15 +286,15 @@ export const PRODUCT_DETAILS: Product[] = [
       "Цифровой продукт — мгновенная доставка",
     ],
     gallery: [
-      "/assets/responsive/PBfYGmrZAiWpzHvD.full.386097ba2cc4437d.jpg",
-      "/assets/responsive/aaDcJuCLOeCrHfxk.full.a08740122b3d8d46.jpg",
-      "/assets/responsive/nZoznAbRePJnvALl.full.8cc63ba653c19bde.jpg",
-      "/assets/responsive/VTdmWRaePLfvfgrq.full.909db07ec1151fec.jpg",
-      "/assets/responsive/aNIPzDLqCSCRrrKT.full.08def4656aa2f549.jpg",
-      "/assets/responsive/mltnKcpNhCFwXkYN.full.03207d8207495580.jpg",
-      "/assets/responsive/KmoncPQbMmceOtFu.full.646bdc76fc5091a6.jpg",
-      "/assets/responsive/OpGQZMvzgVXxbwhN.full.889b6a685557bc52.jpg",
-      "/assets/responsive/moLPhaYtFBzPVhrp.full.392611db3245d110.jpg",
+      "/assets/responsive/PBfYGmrZAiWpzHvD.full.d6301c36d68af3e0.webp",
+      "/assets/responsive/aaDcJuCLOeCrHfxk.full.2aa50f34fb4cf1b0.webp",
+      "/assets/responsive/nZoznAbRePJnvALl.full.9f87c5ba4bc16f66.webp",
+      "/assets/responsive/VTdmWRaePLfvfgrq.full.129390c4908d9bda.webp",
+      "/assets/responsive/aNIPzDLqCSCRrrKT.full.8d01bba5a4385a0c.webp",
+      "/assets/responsive/mltnKcpNhCFwXkYN.full.459bf1cfa857dd56.webp",
+      "/assets/responsive/KmoncPQbMmceOtFu.full.33883b23c149f203.webp",
+      "/assets/responsive/OpGQZMvzgVXxbwhN.full.5513c7976f2f11df.webp",
+      "/assets/responsive/moLPhaYtFBzPVhrp.full.ac61390c0eeee930.webp",
     ],
     reviews: [
       {
@@ -355,7 +355,7 @@ export const PRODUCT_DETAILS: Product[] = [
       "В мастер-класс входит:\n\n~ пошаговая инструкция по созданию «старинных» книг\n~ более 200(!) книжных обложек для скачивания\n~ секреты печати винтажных открыток\n~ более 200(!) винтажных открыток для печати\n~ идеи использования книг и открыток в декоре и на фотографиях\n~ бесконечное вдохновение!\n\nЯ очень старалась сделать его эстетичным и вдохновляющим. Чтобы листая его, вы словно переворачивали пожелтевшие от времени страницы книги, встречая на них цветочный гербарий, почтовые марки и нежные крылья бабочек. Чтобы иллюстрации хотелось разглядывать, а после прочтения появлялось желание творить!",
     price: "50 \u20bd",
     coverUrl:
-      "/assets/responsive/eWHYEgFyQkkTVIac.w900.4acf43bd33947211.webp",
+      "/assets/responsive/b573a5cea177-nNMSLpNDmzQdnfqe.w900.4acf43bd33947211.webp",
     imageUrl:
       "/assets/responsive/b573a5cea177-nNMSLpNDmzQdnfqe.w900.4acf43bd33947211.webp",
     type: "digital",
@@ -367,16 +367,16 @@ export const PRODUCT_DETAILS: Product[] = [
       "Шаблоны и материалы",
     ],
     gallery: [
-      "/assets/responsive/fHBiLIdoOBjhvOYB.full.845ed9f9554d874f.jpg", // Содержание
-      "/assets/responsive/SposdtLMcZWpTsyM.full.1301ac8af2c0a8de.jpg", // Фото винтажных книг
-      "/assets/responsive/xGKrarMYfeycHdkb.full.2dbc4a52aafdc958.jpg", // Что входит в мастер-класс
-      "/assets/responsive/GyoFVkxRZaWzdOws.full.ad19dca6246121e4.jpg", // Фото с перьями и книгами
-      "/assets/responsive/bqfYlZTjwUTYkjTU.full.6a2251b19e6b7529.jpg", // Отрывки мастер-класса 1
-      "/assets/responsive/duefjXzIoLGcxdSk.full.7bd45334ad3a284b.jpg", // Фото с чаем на книгах
-      "/assets/responsive/luiZwEIyLvSFPdXH.full.4a441db854693621.jpg", // Отрывки мастер-класса 2
+      "/assets/responsive/fHBiLIdoOBjhvOYB.full.fc06a787b4a37772.webp", // Содержание
+      "/assets/responsive/SposdtLMcZWpTsyM.full.aae4a907b41a541b.webp", // Фото винтажных книг
+      "/assets/responsive/xGKrarMYfeycHdkb.full.ec50e4155dc86324.webp", // Что входит в мастер-класс
+      "/assets/responsive/GyoFVkxRZaWzdOws.full.be9e05f4adb7c400.webp", // Фото с перьями и книгами
+      "/assets/responsive/bqfYlZTjwUTYkjTU.full.182b4eaa46dda56a.webp", // Отрывки мастер-класса 1
+      "/assets/responsive/duefjXzIoLGcxdSk.full.e383d8ea3b016ba6.webp", // Фото с чаем на книгах
+      "/assets/responsive/luiZwEIyLvSFPdXH.full.366a3974bdf4231a.webp", // Отрывки мастер-класса 2
     ],
     reviewImages: [
-      "/assets/responsive/fd2a40d2d655-odfxOAxwqkixLoZd.full.53ef0dbe95cf951e.jpg",
+      "/assets/responsive/fd2a40d2d655-odfxOAxwqkixLoZd.full.94e55fef0b67cdee.webp",
     ],
   },
 ];

@@ -32,6 +32,7 @@ import "@/shared/media/natural-photo-stack.module.scss";
 import "@/shared/media/photo-dots.module.scss";
 import "@/shared/media/photo-viewer.module.scss";
 import "@/shared/media/post-photo-carousel.module.scss";
+import "@/shared/media/post-photo-frame.module.scss";
 import "@/shared/media/video-grid-cell.module.scss";
 import "@/shared/media/video-preview.module.scss";
 import "@/shared/ui/collection.module.scss";

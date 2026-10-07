@@ -6,7 +6,7 @@
     "dev": "next dev --webpack --hostname 127.0.0.1 --port 8081",
     "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1 --port 8081",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.e2e.json",
+    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tsconfig.e2e.json",
     "lint": "eslint src e2e playwright.config.ts",
     "test:e2e": "playwright test"
   },

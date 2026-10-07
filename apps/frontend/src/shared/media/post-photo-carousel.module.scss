@@ -5,6 +5,14 @@
     width: 100%;
     position: relative;
     background-color: #ede6da;
+    > :global(.ui-scroll-horizontal) {
+      position: absolute;
+      inset: 0;
+      height: 100%;
+      > :global(.ui-scroll-content-horizontal) {
+        height: 100%;
+      }
+    }
   }
 
   .action {
