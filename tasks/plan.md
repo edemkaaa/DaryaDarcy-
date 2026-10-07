@@ -1997,3 +1997,32 @@ transaction helpers reused, no new lookup/global locator, dependency, query,
 schema, authentication/CORS/quota policy or frontend/generated-file edits.
 Remaining admin service wiring and real SQL acceptance stay open. No remote
 push, shared-server mutation, deployment or payment configuration change.
+
+## 2026-10-07 — MySQL backup: safe S3 failure diagnostics
+
+Non-payment backend follow-up from b53c472. Trace: external S3 transport rejects
+with an arbitrary error object -> upload/prune orchestration catch -> raw
+console.warn arguments, including message, nested cause and request metadata.
+Three synthetic-marker cases reproduce disclosure on upload, list and delete
+failures. This proves a logging risk, not a discovered production-key incident.
+Keep the existing warning prefixes, but never pass the external error object.
+No new generic logging layer, SDK metadata allowlist or error serialization.
+
+Characterization baseline: 13 backup checks pass / 2 native MySQL skip. After
+three expected RED failures, focused run: 16 pass / 2 skip. Tests replace only
+the external S3 send boundary and existing dump-tool fixture; process lifecycle,
+pipes, gzip, SDK command construction, local retention and credential cleanup
+remain real. Assert command inputs outside the transport stub so swallowed
+assertions cannot masquerade as expected S3 failures. A complete local copy
+survives each error, local expired-copy cleanup still runs, and failed upload
+does not suppress the existing S3 retention attempt. All data and files are
+synthetic; no actual database dump, external upload or real S3 deletion.
+
+Fresh Node 22 gates: 839 non-MySQL pass / 4 skip; types, 351.4 KiB backend build,
+unchanged 72-procedure/25461-byte API, 472-file boundaries and existing
+frontend-only lint pass. Five-axis review: two existing failure paths only;
+warnings retained, SDK errors not stringified or attached as causes, backup
+schedule/retention/locking/lastBackupAt behavior unchanged. No frontend, schema,
+dependency, authentication, payment, shared-server, remote push or deployment
+changes. Native MySQL option parsing/restore and real S3 acceptance not run;
+off-site retry/durability, worker lifecycle and production restore stay open.

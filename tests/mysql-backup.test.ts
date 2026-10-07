@@ -6,6 +6,12 @@ import { gunzipSync } from "node:zlib";
 import { inspect } from "node:util";
 import type { ChildProcess } from "node:child_process";
 import { Writable } from "node:stream";
+import {
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import mysql from "mysql2/promise";
 import { assertTestDatabase } from "../tooling/scripts/test-database-policy";
 
@@ -235,6 +241,111 @@ describe("MySQL backup credentials and completion", () => {
     expect(harness.launches).toHaveLength(1);
     expect(copies(directory)).toHaveLength(1);
   });
+
+  it.each([
+    {
+      failure: "upload",
+      warning: "[backup] upload failed",
+      requests: ["upload", "list", "delete"],
+    },
+    {
+      failure: "list",
+      warning: "[backup] s3 prune failed",
+      requests: ["upload", "list"],
+    },
+    {
+      failure: "delete",
+      warning: "[backup] s3 prune failed",
+      requests: ["upload", "list", "delete"],
+    },
+  ])(
+    "keeps a complete local copy and a safe warning when S3 $failure fails",
+    async ({ failure, warning, requests }) => {
+      vi.stubEnv("S3_ENDPOINT", "https://backup.example.test");
+      vi.stubEnv("S3_ACCESS_KEY", "synthetic-backup-access");
+      vi.stubEnv("S3_SECRET_KEY", "synthetic-backup-key");
+      vi.stubEnv("S3_BUCKET", "synthetic-backups");
+      const oldFile = path.join(directory, "backups", "daryadarcy-old.sql.gz");
+      fs.mkdirSync(path.dirname(oldFile));
+      fs.writeFileSync(oldFile, "owned expired test copy");
+      const expiredAt = new Date("2020-01-01T00:00:00Z");
+      fs.utimesSync(oldFile, expiredAt, expiredAt);
+      const seen: string[] = [];
+      const issued: unknown[] = [];
+      // Only the external S3 transport is replaced. Real orchestration, dump
+      // process/pipes, gzip, local retention and SDK command construction run.
+      vi.spyOn(S3Client.prototype, "send").mockImplementation(
+        async (command) => {
+          issued.push(command);
+          const stage =
+            command instanceof PutObjectCommand
+              ? "upload"
+              : command instanceof ListObjectsV2Command
+                ? "list"
+                : command instanceof DeleteObjectCommand
+                  ? "delete"
+                  : "unexpected";
+          seen.push(stage);
+          if (stage === failure) {
+            throw Object.assign(
+              new Error("S3 failure S3_BACKUP_PRIVATE_MARKER", {
+                cause: new Error("signed URL S3_BACKUP_PRIVATE_MARKER"),
+              }),
+              { request: { authorization: "S3_BACKUP_PRIVATE_MARKER" } },
+            );
+          }
+          if (command instanceof ListObjectsV2Command) {
+            return {
+              $metadata: {},
+              IsTruncated: false,
+              Contents: [
+                {
+                  Key: "backups/mysql/daryadarcy-old.sql.gz",
+                  LastModified: expiredAt,
+                },
+              ],
+            };
+          }
+          return { $metadata: {} };
+        },
+      );
+
+      await runBackup();
+      expect(seen).toEqual(requests);
+      // Assert outside the transport: production deliberately catches errors,
+      // so an assertion thrown inside send could be mistaken for an S3 failure.
+      const upload = issued[0] as PutObjectCommand;
+      expect(upload.input.Bucket).toBe("synthetic-backups");
+      expect(upload.input.Key).toMatch(
+        /^backups\/mysql\/daryadarcy-.*\.sql\.gz$/,
+      );
+      expect(gunzipSync(upload.input.Body as Buffer).toString()).toBe(
+        "CREATE TABLE backup_fixture (id INT);\n",
+      );
+      expect((issued[1] as ListObjectsV2Command).input.Prefix).toBe(
+        "backups/mysql/",
+      );
+      if (issued.length === 3) {
+        expect((issued[2] as DeleteObjectCommand).input.Key).toBe(
+          "backups/mysql/daryadarcy-old.sql.gz",
+        );
+      }
+      expect(fs.existsSync(oldFile)).toBe(false);
+      const [name] = copies(directory);
+      expect(copies(directory)).toHaveLength(1);
+      expect(
+        gunzipSync(
+          fs.readFileSync(path.join(directory, "backups", name)),
+        ).toString(),
+      ).toBe("CREATE TABLE backup_fixture (id INT);\n");
+      expect(fs.existsSync(harness.launches[0].configPath!)).toBe(false);
+      const warnings = inspect(vi.mocked(console.warn).mock.calls, {
+        depth: null,
+      });
+      expect(warnings).toContain(warning);
+      expect(warnings).not.toContain("S3_BACKUP_PRIVATE_MARKER");
+    },
+  );
 
   it("cleans up credentials and stops the dump when writing fails", async () => {
     harness.scenario = "streaming";

@@ -296,6 +296,12 @@
   and dump/restore on a disposable fixture checked. Full suite 554 pass / 2 skip;
   types/lint/API build/contract/boundaries/docs/format pass. Production restore, S3 retry,
   timeout, crash-leftover cleanup and cross-process ownership remain outside N10.
+  - [x] Redact raw S3 exceptions in the MySQL backup orchestrator's upload and
+    retention failure warnings. Three synthetic private-marker RED cases repaired;
+    local gzip, exact SDK commands, local retention and warning visibility remain
+    verified. Backup tests: 16 pass / 2 native MySQL skip; whole non-MySQL suite:
+    839 pass / 4 skip. No real S3 or MySQL restore acceptance in this increment;
+    off-site retry/durability and production rehearsal remain open.
 - [x] N11: Server-side createPost request idempotency. Lost response/retry must
   return the original post ID, including concurrent identical requests; reject
   reuse of a key for another payload. Preserve legacy clients without a key.

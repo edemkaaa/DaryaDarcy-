@@ -254,14 +254,15 @@ async function runMysqlBackup(dbUrl: string): Promise<void> {
 
   try {
     await uploadBackup(filePath);
-  } catch (error) {
-    console.warn("[backup] upload failed:", error);
+  } catch {
+    // SDK errors may include signed requests, credentials or nested causes.
+    console.warn("[backup] upload failed:");
   }
 
   pruneLocalBackups(dir);
   try {
     await pruneS3Backups();
-  } catch (error) {
-    console.warn("[backup] s3 prune failed:", error);
+  } catch {
+    console.warn("[backup] s3 prune failed:");
   }
 }
