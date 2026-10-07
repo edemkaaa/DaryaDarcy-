@@ -680,6 +680,10 @@
     types/build/API/boundaries/docs pass; no live SQL/provider replay claim.
   - [ ] Webhook/settlement business-logic decomposition and shop service composition; preserve signature,
     payment replay protection and transaction boundaries with their own tests.
+  - [x] Remove millisecond-based shop checkout order collisions from both tRPC
+    and legacy redirects. Three concurrent same-clock failures reproduced;
+    UUID suffixes retain product parsing and fit the existing 80-character column.
+    Shop stays hard-disabled; SQL/provider settlement acceptance is still open.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
 - [ ] M08: Specify/migrate remaining API services, remove superseded adapters and
   decompose db.ts without changing contracts. Review every module separately.

@@ -1846,3 +1846,37 @@ Final gates: 767 non-MySQL pass / 4 skip; root/frontend type checks, existing
 frontend-only lint, 350.2 KiB backend build, unchanged 72-procedure/25461-byte
 API, 472-file dependency boundaries and 49-document link checks pass.
 No backend ESLint coverage or full MySQL/provider acceptance is claimed.
+
+## 2026-10-07 — staging integration and shop order identity
+
+User requested all prepared changes in staging, then backend continuation.
+Fast-forwarded and pushed staging from 12cfc8d to 3183e89 (30 prepared commits
+plus a browser-test locator correction). Remote SHA verified. Integration gates:
+767 non-MySQL pass / 4 skip, 82 selected production-build browser cases and 37
+video-worker tests pass; types, builds, frontend lint, API/boundaries/docs pass.
+The initial browser run exposed an ambiguous status locator after testimonials
+added two live counters. Scoped only the test to the session warning; UI unchanged.
+Native dependency audit remains 1 critical / 35 high / 36 moderate / 4 low,
+with existing isolated-test triage; no production approval or server deployment.
+
+Continued from that SHA in backend/shop-checkout-hardening-2026-10-07. Shop's
+two checkout paths used product + Date.now(), so concurrent buyers could receive
+the same order identity, conflicting with the SQL unique constraint. Replace only
+the timestamp suffix with Node's randomUUID(), as already used by club checkout.
+Keep signatures, product prefix parsing (including historical orders), actors,
+auth guards, prices, persistence and responses unchanged. No schema, dependency,
+frontend source or settlement changes; unsafe shop payment remains hard-disabled.
+
+TDD evidence: three real-router/loopback-HTTP tests fail with one identity instead
+of two under a fixed clock, and pass after both generators change. Two validation
+characterizations pass before/after. SQL write is controlled and the launch gate
+is bypassed only in these tests to exercise dormant code; real disabled-feature
+tests remain intact. This is not MySQL uniqueness or Prodamus sandbox acceptance.
+
+Final gates for this increment: 772 non-MySQL pass / 4 skip, types and backend
+build pass, unchanged 72-procedure API, 472-file boundaries and documentation
+links pass. Five-axis review: two minimal generator replacements, no shared
+abstraction or new side effects, independent concurrent cases catch reverting
+either path, no new dependency, recipient data or payment-state mutation.
+Shop settlement/outbox and configuration-before-write safety still need separate
+increments before enabling payments; production dependency gates remain open.

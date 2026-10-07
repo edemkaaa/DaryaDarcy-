@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import type { Express, Request, Response } from "express";
 import { publicAccessUrl } from "./identity/urls";
@@ -555,7 +555,7 @@ export function registerProdamusRoutes(app: Express) {
         res.status(404).send("unknown product");
         return;
       }
-      const orderId = `shop-${productId}-${Date.now()}`;
+      const orderId = `shop-${productId}-${randomUUID()}`;
       await db.createShopPurchase({ productId, orderId });
       const url = buildShopCheckoutUrl({ productId, orderId });
       if (!url) {

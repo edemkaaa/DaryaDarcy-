@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { randomUUID } from "node:crypto";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import * as db from "../db";
 import { requireCapability } from "../launch/capabilities";
@@ -29,7 +30,7 @@ export const shopRouter = router({
           message: "Для оплаты нужна почта в профиле",
         });
       }
-      const orderId = `shop-${input.productId}-${Date.now()}`;
+      const orderId = `shop-${input.productId}-${randomUUID()}`;
       await db.createShopPurchase({
         userId: ctx.user.id,
         productId: input.productId,
