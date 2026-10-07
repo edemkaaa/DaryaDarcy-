@@ -1942,3 +1942,29 @@ no new abstraction, dependency, query, sensitive data collection, auth/CORS/quot
 policy, frontend/schema edit, remote push or deployment. Continue with owned
 catalog lookup, native shop service composition and validated atomic settlement
 in separate increments. Online shop stays hard-disabled.
+
+## 2026-10-07 — shop checkout: own catalog entries only
+
+Continue backend only from 0c23918. User-controlled product IDs crossed a plain
+object lookup: __proto__, constructor and toString resolved to inherited values
+instead of unknown products. Twelve expected RED cases reproduce the helper,
+builder, actual tRPC caller and loopback legacy HTTP failure paths. Restrict the
+canonical lookup to Object.hasOwn and reuse it in URL construction. Unknown
+products now return null/NOT_FOUND/404 before merchant configuration or writes;
+known-product signatures, order IDs, capability policy and persistence stay intact.
+
+Five-axis review: two production-line changes, one canonical validation point,
+no added abstraction, dependency, query, financial grant, schema, auth policy or
+frontend/generated-file edit. 140 focused checks pass. Fresh Node 22 whole-suite
+repeat: 813 non-MySQL pass / 4 skip; types, backend build, unchanged 72-procedure
+API and 472-file boundaries pass. Initial whole-suite run concurrent with types
+hit the existing 5-second migration-command test timeout: 812 pass / 1 fail /
+4 skip. That file passed alone (13 checks), then the complete unchanged command
+passed without concurrent type/build work. No timeout/test-policy changes.
+
+Read-only staging investigation: club.createCheckout returns edge 503;
+PRODAMUS_SECRET is empty and both merchant form URLs are disabled placeholders.
+This is not a ready subscription checkout; provider sandbox configuration and
+full acceptance are still required. Shop additionally remains hard-disabled
+until atomic settlement/outbox is validated. Local Docker still returns EOF;
+no real SQL/provider acceptance, live payment, server mutation, push or deployment.

@@ -183,6 +183,30 @@ it("rejects an unknown product without persisting a pending order", async () => 
   expect(persistence.orders).toEqual([]);
 });
 
+it.each(["__proto__", "constructor", "toString"])(
+  "rejects inherited product keys in authenticated checkout before persistence: %s",
+  async (productId) => {
+    await expect(caller().createCheckout({ productId })).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+    expect(persistence.orders).toEqual([]);
+  },
+);
+
+it.each(["__proto__", "constructor", "toString"])(
+  "rejects inherited product keys in legacy checkout without redirect or write: %s",
+  async (productId) => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const response = await fetch(`${base}/api/pay/${productId}`, {
+      redirect: "manual",
+    });
+    expect(response.status).toBe(404);
+    expect(response.headers.get("location")).toBeNull();
+    expect(await response.text()).toBe("unknown product");
+    expect(persistence.orders).toEqual([]);
+  },
+);
+
 it("rejects a missing buyer email without persisting a pending order", async () => {
   await expect(
     caller(7, null).createCheckout({ productId: "digital-1" }),

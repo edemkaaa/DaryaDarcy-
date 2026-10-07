@@ -28,7 +28,7 @@ export function clubAccessMs(): number {
 }
 
 export function getShopProduct(productId: string) {
-  return SHOP_PRODUCTS[productId] ?? null;
+  return Object.hasOwn(SHOP_PRODUCTS, productId) ? SHOP_PRODUCTS[productId] : null;
 }
 
 export function parseShopProductId(orderId: string): string | null {
@@ -277,7 +277,7 @@ function shopCheckoutConfiguration(price: string) {
 }
 
 export function buildShopCheckoutUrl(input: { productId: string; orderId: string; email?: string; userId?: number }): string | null {
-  const product = SHOP_PRODUCTS[input.productId];
+  const product = getShopProduct(input.productId);
   if (!product) return null;
   const { appUrl, payform, signKey } = shopCheckoutConfiguration(product.price);
   const payload: Record<string, unknown> = {

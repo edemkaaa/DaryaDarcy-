@@ -693,6 +693,10 @@
   - [x] Legacy shop checkout errors no longer log raw database exceptions;
     one expected private-marker leakage failure repaired. 801 non-MySQL pass /
     4 skip, Node 22 gates pass; Docker EOF blocks disposable-MySQL acceptance.
+  - [x] Shop catalog lookup rejects inherited object properties in the builder,
+    authenticated checkout and legacy redirect before configuration/persistence.
+    12 expected RED cases repaired; 813 non-MySQL pass / 4 skip on Node 22.
+    Shop remains disabled; no real SQL/provider acceptance or deployment.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
 - [ ] M08: Specify/migrate remaining API services, remove superseded adapters and
   decompose db.ts without changing contracts. Review every module separately.

@@ -16,6 +16,24 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
+it.each(["__proto__", "constructor", "toString"])(
+  "does not resolve inherited object properties as shop products: %s",
+  async (productId) => {
+    const { getShopProduct } = await import("../apps/backend/src/prodamus");
+    expect(getShopProduct(productId)).toBeNull();
+  },
+);
+
+it.each(["__proto__", "constructor", "toString"])(
+  "does not build a payment URL for inherited catalog properties: %s",
+  async (productId) => {
+    // Unknown products must be rejected even before merchant configuration.
+    vi.stubEnv("PRODAMUS_SHOP_PAYFORM_URL", "");
+    const { buildShopCheckoutUrl } = await import("../apps/backend/src/prodamus");
+    expect(buildShopCheckoutUrl({ ...input, productId })).toBeNull();
+  },
+);
+
 it.each([
   "",
   "   ",
