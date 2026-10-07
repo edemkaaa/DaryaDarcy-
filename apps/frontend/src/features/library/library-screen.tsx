@@ -7,13 +7,15 @@ import {
   ScrollArea,
   Field,
 } from "@/shared/ui/elements";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useViewport } from "@/shared/browser/viewport";
 import { getLibraryScreenContent } from "./library-screen.content";
 import { useRouter } from "@/shared/navigation/router";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 
 import { useClub } from "@/domain/subscription/subscription-context";
 import { trpc } from "@/shared/api/trpc";
@@ -54,13 +56,14 @@ function splitMasonryColumns(
   return { left, right };
 }
 export default function LibraryScreen() {
+  const active = useScreenActive();
   const router = useRouter();
   const { COLUMN_WIDTH: columnWidth } = getLibraryScreenContent(useViewport());
   const [searchQuery, setSearchQuery] = useState("");
-  const [coverAspects, setCoverAspects] = useState<Record<string, number>>({});
   const { isSubscribed } = useClub();
   const articlesQuery = trpc.articles.list.useQuery(undefined, {
     staleTime: 30_000,
+    enabled: active,
   });
   const allMaterials = useMemo(() => {
     const extra: MaterialItem[] = (articlesQuery.data || []).map((article) => ({
@@ -99,28 +102,17 @@ export default function LibraryScreen() {
     if (item.action === "browser") return "Скачать →";
     return "Читать →";
   };
-  const aspectFor = useCallback(
-    (item: MaterialItem) =>
-      coverAspects[item.id] ?? item.coverAspectRatio ?? DEFAULT_COVER_ASPECT,
-    [coverAspects],
-  );
   const masonry = useMemo(
-    () => splitMasonryColumns(filteredMaterials, aspectFor, columnWidth),
-    [filteredMaterials, aspectFor, columnWidth],
+    () =>
+      splitMasonryColumns(
+        filteredMaterials,
+        (item) => item.coverAspectRatio,
+        columnWidth,
+      ),
+    [filteredMaterials, columnWidth],
   );
-  const rememberCoverAspect = (
-    itemId: string,
-    width: number,
-    height: number,
-  ) => {
-    if (!width || !height) return;
-    const next = width / height;
-    setCoverAspects((prev) =>
-      prev[itemId] === next ? prev : { ...prev, [itemId]: next },
-    );
-  };
   const renderCard = (item: MaterialItem) => {
-    const aspect = aspectFor(item);
+    const aspect = item.coverAspectRatio;
     return (
       <div
         key={item.id}
@@ -144,11 +136,6 @@ export default function LibraryScreen() {
             contentFit={item.id === "loshadka" ? "cover" : "contain"}
             contentPosition={item.id === "loshadka" ? "top" : "center"}
             transition={300}
-            onLoad={(event) => {
-              if (item.id === "loshadka") return;
-              const { width, height } = event.source;
-              rememberCoverAspect(item.id, width, height);
-            }}
             className={classes.picture}
           />
         </Action>
@@ -264,12 +251,6 @@ export default function LibraryScreen() {
           )}
         </div>
 
-        <QueryRetryState
-          isLoading={articlesQuery.isPending}
-          isError={articlesQuery.isError}
-          onRetry={() => void articlesQuery.refetch()}
-          message="Не удалось загрузить статьи библиотеки"
-        />
         {filteredMaterials.length === 0 &&
         !articlesQuery.isPending &&
         !articlesQuery.isError ? (
@@ -303,6 +284,13 @@ export default function LibraryScreen() {
             </div>
           </div>
         )}
+        <QueryRetryState
+          isLoading={articlesQuery.isPending}
+          loadingContent={<ContentPlaceholder kind="library" />}
+          isError={articlesQuery.isError}
+          onRetry={() => void articlesQuery.refetch()}
+          message="Не удалось загрузить статьи библиотеки"
+        />
       </ScrollArea>
     </Background>
   );

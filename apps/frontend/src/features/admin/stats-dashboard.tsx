@@ -1,6 +1,7 @@
 "use client";
 import classes from "./stats-dashboard.module.scss";
-import { Action, Spinner, Typography, ScrollArea } from "@/shared/ui/elements";
+import { Action, Typography, ScrollArea } from "@/shared/ui/elements";
+import { LoadingIndicator } from "@/shared/ui/loading-indicator";
 import { useState } from "react";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { trpc } from "@/shared/api/trpc";
@@ -24,10 +25,7 @@ export function StatsDashboard() {
           .filter(Boolean)
           .join(" ")}
       >
-        <Spinner size="large" color={ACCENT} />
-        <Typography className={classes.loadingText}>
-          Загрузка статистики...
-        </Typography>
+        <LoadingIndicator label="Загрузка статистики…" />
       </div>
     );
   }

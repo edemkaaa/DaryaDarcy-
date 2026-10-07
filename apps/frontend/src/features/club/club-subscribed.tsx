@@ -1,4 +1,5 @@
 "use client";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getClubSubscribedLayout } from "./club-subscribed.layout";
@@ -12,6 +13,7 @@ import {
 } from "@/shared/ui/elements";
 import { ClubPostCard } from "./club-post-card";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import AsyncStorage from "@/shared/browser/storage";
@@ -76,6 +78,7 @@ function getClubSeason(): "autumn" | "winter" {
   return "autumn";
 }
 export function ClubSubscribed() {
+  const active = useScreenActive();
   const capabilities = useCapabilities();
   const penPalsAvailable = PEN_PALS_ENABLED && capabilities.penPals;
   const viewport = useViewport();
@@ -166,6 +169,7 @@ export function ClubSubscribed() {
     { limit: 12 },
     {
       refetchOnWindowFocus: false,
+      enabled: active,
       getNextPageParam: (lastPage, _pages, _lastParam, pageParams) =>
         pageParams.includes(lastPage.nextCursor)
           ? undefined
@@ -414,7 +418,8 @@ export function ClubSubscribed() {
           footer={
             posts.length > 0 ? (
               <QueryRetryState
-                isLoading={clubQuery.isFetching}
+                isLoading={clubQuery.isFetchingNextPage}
+                loadingSize="small"
                 isError={hasPageError}
                 onRetry={retryPosts}
                 message={
@@ -438,6 +443,7 @@ export function ClubSubscribed() {
           }
           empty={
             <QueryRetryState
+              loadingContent={<ContentPlaceholder kind="feed" />}
               isLoading={
                 clubQuery.isFetching ||
                 (!hasPageError &&

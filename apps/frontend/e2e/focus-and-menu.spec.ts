@@ -54,7 +54,11 @@ for (const width of [320, 390, 480]) {
       for (const tab of before.tabs) {
         expect(tab.icon.width).toBe(22);
         expect(tab.icon.height).toBe(22);
-        expect(tab.label.height).toBe(13);
+        expect(tab.label.height).toBe(width < 360 ? 10 : 13);
+        // Coordinates measured from the original Expo menu at these widths.
+        expect(tab.icon.y - before.nav.y).toBe(15);
+        expect(tab.label.y - before.nav.y).toBe(39);
+        expect(tab.label.y - tab.icon.y - tab.icon.height).toBe(2);
       }
       release();
       await page.evaluate(() => document.fonts.ready);

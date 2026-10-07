@@ -5,13 +5,13 @@ import {
   Background,
   Action,
   Typography,
-  Spinner,
   ScrollArea,
 } from "@/shared/ui/elements";
 import { useMemo, useState } from "react";
 import { Picture } from "@/shared/media/image";
 import { useRouter } from "@/shared/navigation/router";
 import { ScreenContainer } from "@/shared/ui/screen-container";
+import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { ArticleContent } from "@/domain/content/article-content";
 import { trpc } from "@/shared/api/trpc";
 import { parseContentId } from "@/shared/navigation/content-id";
@@ -20,7 +20,7 @@ import { useClub } from "@/domain/subscription/subscription-context";
 import { PhotoViewer } from "@/shared/media/photo-viewer";
 import { useClubContentProtection } from "@/shared/browser/use-club-protection";
 import type { ArticleBlock } from "@/domain/content/article-blocks";
-import { PAPER, BROWN_MUTED } from "./article-screen.content";
+import { PAPER } from "./article-screen.content";
 export default function LibraryArticleScreen({ id }: { id: string }) {
   const router = useRouter();
   const { isSubscribed } = useClub();
@@ -59,7 +59,7 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
             className={["ui-stack ", classes.center].filter(Boolean).join(" ")}
           >
             {isLoading ? (
-              <Spinner color={BROWN_MUTED} />
+              <ContentPlaceholder />
             ) : (
               <ContentRequestState
                 error={error}

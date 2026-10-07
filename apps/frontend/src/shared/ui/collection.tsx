@@ -4,6 +4,7 @@ import classes from "./collection.module.scss";
 import React, {
   forwardRef,
   useEffect,
+  useLayoutEffect,
   useRef,
   type CSSProperties,
   type ReactNode,
@@ -27,6 +28,8 @@ type CollectionProps<T> = Omit<ScrollAreaProps, "children"> & {
   loadMoreThreshold?: number;
   onVisibleItemsChange?: (info: { visibleItems: VisibleItem<T>[] }) => void;
   visiblePercent?: number;
+  /** Fade in the first loaded items, without moving them or replaying on return. */
+  revealItems?: boolean;
 };
 function CollectionInner<T>(
   {
@@ -44,6 +47,7 @@ function CollectionInner<T>(
     loadMoreThreshold = 0.5,
     onVisibleItemsChange,
     visiblePercent = 50,
+    revealItems = false,
     contentStyle,
     horizontal,
     ...props
@@ -53,6 +57,22 @@ function CollectionInner<T>(
   const container = useRef<HTMLDivElement | null>(null),
     tail = useRef<HTMLDivElement | null>(null),
     body = useRef<HTMLDivElement | null>(null);
+  const itemsShown = useRef(false);
+  useLayoutEffect(() => {
+    const element = body.current;
+    if (!revealItems || !element || itemsShown.current) return;
+    itemsShown.current = true;
+    if (
+      !element.animate ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
+    const reveal = element.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: 180,
+      easing: "ease-out",
+    });
+    return () => reveal.cancel();
+  }, [data.length, revealItems]);
   const load = useRef(onLoadMore);
   load.current = onLoadMore;
   const visible = useRef(onVisibleItemsChange);

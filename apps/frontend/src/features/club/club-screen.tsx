@@ -1,5 +1,7 @@
 "use client";
 import { useViewport } from "@/shared/browser/viewport";
+import { useSearchParams } from "next/navigation";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 
 import { getClubScreenLayout } from "./club-screen.layout";
 import classes from "./club-screen.module.scss";
@@ -45,13 +47,14 @@ import {
   BENEFITS,
 } from "./club-screen.content";
 import { getClubScreenContent } from "./club-screen.content";
-export default function ClubScreen({
-  paid,
-  checkout: checkoutFlag,
-}: {
-  paid?: string;
-  checkout?: string;
-}) {
+export default function ClubScreen() {
+  const active = useScreenActive();
+  const currentParams = useSearchParams().toString();
+  const [tabParams, setTabParams] = useState(currentParams);
+  // Other routes may also have paid/checkout flags. Keep the hidden club's
+  // view intact and only accept URL changes when this tab is active.
+  if (active && tabParams !== currentParams) setTabParams(currentParams);
+  const searchParams = new URLSearchParams(active ? currentParams : tabParams);
   const router = useRouter();
   const viewport = useViewport();
   const { stylesLayout } = getClubScreenLayout(viewport);
@@ -72,8 +75,8 @@ export default function ClubScreen({
   const claimPending = trpc.club.claimPending.useMutation();
   const [payError, setPayError] = useState<string | null>(null);
   const [guestEmail, setGuestEmail] = useState("");
-  const forceCheckout = checkoutFlag === "1";
-  const justPaid = paid === "1";
+  const forceCheckout = searchParams.get("checkout") === "1";
+  const justPaid = searchParams.get("paid") === "1";
   const openPayUrl = useCallback((url: string) => {
     const safe = requirePaymentUrl(url);
     if (typeof window !== "undefined") {
@@ -97,10 +100,17 @@ export default function ClubScreen({
         error instanceof Error ? error.message : "Не удалось открыть оплату",
       );
     }
-  }, [checkout, guestEmail, isAuthenticated, openPayUrl, user?.email]);
+  }, [
+    checkout,
+    guestEmail,
+    isAuthenticated,
+    openPayUrl,
+    user?.email,
+    setPayError,
+  ]);
   const claimPendingPayment = claimPending.mutateAsync;
   useEffect(() => {
-    if (!justPaid || authLoading || !isAuthenticated) return;
+    if (!active || !justPaid || authLoading || !isAuthenticated) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -116,6 +126,7 @@ export default function ClubScreen({
       clearTimeout(stop);
     };
   }, [
+    active,
     justPaid,
     authLoading,
     isAuthenticated,
@@ -143,8 +154,8 @@ export default function ClubScreen({
   if (isSubscribed && !forceCheckout) {
     return <ClubSubscribed />;
   }
-  // ── Subscription Landing Page (not subscribed) ──
-  if (!isSubscribed) {
+  // ── Subscription Landing Page (including an explicit renewal) ──
+  if (!isSubscribed || forceCheckout) {
     return (
       <ScreenContainer edges={["left", "right"]} backgroundColor="#F5EDE3">
         <Background

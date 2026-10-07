@@ -91,7 +91,9 @@ test("a guest can open a public library article while club cards stay protected"
     .click();
   await expect(page).toHaveURL(/\/library\/article\/501$/);
   await expect(
-    page.getByText("Публичная статья", { exact: true }),
+    page
+      .getByText("Публичная статья", { exact: true })
+      .filter({ visible: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Вступить в клуб", exact: true }),
@@ -190,7 +192,7 @@ test("a valid HTTPS checkout still opens its payment destination", async ({
   await page.route(destination, (route) =>
     route.fulfill({
       contentType: "text/html; charset=utf-8",
-      body: "<p>Тестовый экран оплаты</p>",
+      body: '<!doctype html><html><head><meta charset="utf-8"></head><body><p>Тестовый экран оплаты</p></body></html>',
     }),
   );
   await page.goto("/club", { waitUntil: "domcontentloaded" });
@@ -204,6 +206,108 @@ test("a valid HTTPS checkout still opens its payment destination", async ({
     .click();
   await expect(page).toHaveURL(destination);
   await expect(page.getByText("Тестовый экран оплаты")).toBeVisible();
+});
+
+test("club payment return flags update on the client without granting guest access", async ({
+  page,
+}) => {
+  let claims = 0;
+  await mockContent(page, (name) => {
+    if (name === "club.claimPending") {
+      claims++;
+      return ok({ granted: false, orderId: null });
+    }
+  });
+  const notice = page.getByText(
+    "Проверяем оплату… Доступ откроется после подтверждения.",
+    { exact: true },
+  );
+  await gotoWithSession(page, "/club?paid=0&paid=1");
+  await expect(
+    page.getByPlaceholder("Почта для чека и входа").first(),
+  ).toBeVisible();
+  await expect(notice).toHaveCount(0);
+  await page.evaluate(() => window.history.pushState(null, "", "/club?paid=1"));
+  await expect(notice).toBeVisible();
+  expect(claims).toBe(0);
+  await expect(
+    page.getByRole("button", { name: "Открыть фильтры клуба" }),
+  ).toHaveCount(0);
+  await page.evaluate(() => window.history.pushState(null, "", "/club"));
+  await expect(notice).toHaveCount(0);
+});
+
+test("a subscribed member can open renewal and return to the club without reloading", async ({
+  page,
+}) => {
+  await layoutApi(page, true);
+  await gotoWithSession(page, "/club?checkout=1");
+  await expect(
+    page.getByRole("button", { name: /Оплатить 790/ }).first(),
+  ).toBeVisible();
+  await expect(page.getByPlaceholder("Почта для чека и входа")).toHaveCount(0);
+  await page.evaluate(() =>
+    window.history.pushState(null, "", "/club?checkout=0&checkout=1"),
+  );
+  await expect(
+    page.getByRole("button", { name: "Открыть фильтры клуба" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /Оплатить 790/ })).toHaveCount(
+    0,
+  );
+});
+
+test("an authenticated payment return still asks the API before opening club access", async ({
+  page,
+}) => {
+  let claims = 0;
+  await mockContent(
+    page,
+    (name) => {
+      if (name === "club.subscription")
+        return ok({
+          subscribed: false,
+          monthlyPrice: "790",
+          expiresAt: null,
+          cancelAtPeriodEnd: false,
+        });
+      if (name === "club.claimPending") {
+        claims++;
+        return ok({ granted: false, orderId: null });
+      }
+    },
+    true,
+  );
+  await page.route("**/api/auth/me", (route) =>
+    route.fulfill({
+      json: {
+        user: {
+          id: 101,
+          openId: "payment-return-member",
+          name: "Участница",
+          email: "member@example.test",
+          role: "user",
+          lastSignedIn: "2026-10-05T10:00:00Z",
+        },
+      },
+    }),
+  );
+  await gotoWithSession(page, "/club?paid=1");
+  await expect.poll(() => claims).toBe(1);
+  await expect(
+    page.getByText("Проверяем оплату… Доступ откроется после подтверждения.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Открыть фильтры клуба" }),
+  ).toHaveCount(0);
+  await page.evaluate(() => window.history.pushState(null, "", "/club"));
+  await expect(
+    page.getByText("Проверяем оплату… Доступ откроется после подтверждения.", {
+      exact: true,
+    }),
+  ).toHaveCount(0);
 });
 
 test("a long locked article can scroll to its club action on a small screen", async ({

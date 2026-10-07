@@ -12,6 +12,7 @@ import {
 } from "@/shared/ui/elements";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
+import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { useRouter } from "@/shared/navigation/router";
 import { usePostInteractions } from "@/domain/post/use-post-interactions";
 import { PostInteractionStatus } from "@/domain/post/post-interaction-status";
@@ -125,7 +126,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
               .filter(Boolean)
               .join(" ")}
           >
-            <Typography className={classes.loadingText}>Загрузка...</Typography>
+            <ContentPlaceholder />
           </div>
         </Background>
       </ScreenContainer>

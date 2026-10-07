@@ -1,19 +1,12 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Screen from "@/features/club/club-screen";
+import RouteLoading from "@/shared/ui/route-loading";
 export const metadata: Metadata = { title: "Клуб Darcy" };
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{
-    paid?: string | string[];
-    checkout?: string | string[];
-  }>;
-}) {
-  const { paid, checkout } = await searchParams;
+export default function Page() {
   return (
-    <Screen
-      paid={Array.isArray(paid) ? paid[0] : paid}
-      checkout={Array.isArray(checkout) ? checkout[0] : checkout}
-    />
+    <Suspense fallback={<RouteLoading />}>
+      <Screen />
+    </Suspense>
   );
 }

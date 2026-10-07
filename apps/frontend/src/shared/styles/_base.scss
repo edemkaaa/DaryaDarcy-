@@ -87,6 +87,35 @@
     font: 24px Woolen-Regular;
     color: var(--muted);
   }
+  .ui-route-loading {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font: 16px var(--font-body);
+  }
+  .ui-route-loading > span {
+    opacity: 0;
+    animation: route-loading-hint 180ms 500ms ease-out forwards;
+  }
+  @keyframes route-loading-hint {
+    to {
+      opacity: 1;
+    }
+  }
+  [data-motion-enter] {
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-motion-enter] {
+      opacity: 1;
+    }
+    .ui-route-loading > span {
+      animation: none;
+      opacity: 1;
+    }
+  }
   .route-error {
     padding: 32px;
     font: 18px EBGaramond-Regular;
@@ -95,16 +124,5 @@
   .route-error a,
   .route-error button {
     color: inherit;
-  }
-  .route-loading {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 24px;
-    font: 16px EBGaramond-Regular;
-    color: var(--brown);
   }
 }

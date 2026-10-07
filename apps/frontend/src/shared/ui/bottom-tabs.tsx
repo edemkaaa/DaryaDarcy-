@@ -29,14 +29,11 @@ function TabContents({
         {label}
       </span>
       <span
-        className={styles.pendingIndicator}
-        data-pending={pending}
+        className={styles.pendingText}
         role={pending ? "status" : undefined}
         aria-live="polite"
       >
-        <span className={styles.pendingText}>
-          {pending ? `Открывается раздел «${label}»` : ""}
-        </span>
+        {pending ? `Открывается раздел «${label}»` : ""}
       </span>
     </>
   );

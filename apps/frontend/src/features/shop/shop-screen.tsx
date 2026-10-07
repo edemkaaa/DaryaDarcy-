@@ -6,12 +6,13 @@ import { cssTransform } from "@/shared/ui/css";
 import { Action, Typography, Background } from "@/shared/ui/elements";
 import { ShelfLabel } from "./shelf-label";
 import { ShelfItem } from "./shelf-item";
-import { useEffect } from "react";
 import { Picture } from "@/shared/media/image";
-import { useRouter } from "@/shared/navigation/router";
+import { useRouter, useFocusEffect } from "@/shared/navigation/router";
+import { useCallback } from "react";
 import { MaterialIcons } from "@/shared/ui/icons";
 import Animated, {
   useSharedValue,
+  cancelAnimation,
   useAnimatedStyle,
   withTiming,
   withRepeat,
@@ -79,116 +80,138 @@ function ShopScreenInner() {
   const dustLoop15 = useSharedValue(0);
   const dustLoop16 = useSharedValue(0);
   const lightPulse = useSharedValue(0);
-  useEffect(() => {
-    // Light beam slow pulse
-    lightPulse.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 6000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0, { duration: 6000, easing: Easing.inOut(Easing.ease) }),
-      ),
-      -1,
-      false,
-    );
-    // Autonomous gentle loops for each mote (base drift when not scrolling)
-    dustLoop1.value = withRepeat(
-      withTiming(1, { duration: 8000, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop2.value = withRepeat(
-      withTiming(1, { duration: 10000, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop3.value = withRepeat(
-      withTiming(1, { duration: 7000, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop4.value = withRepeat(
-      withTiming(1, { duration: 9000, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop5.value = withRepeat(
-      withTiming(1, { duration: 11000, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop6.value = withRepeat(
-      withTiming(1, { duration: 7500, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop7.value = withRepeat(
-      withTiming(1, { duration: 9500, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop8.value = withRepeat(
-      withTiming(1, { duration: 12000, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop9.value = withRepeat(
-      withTiming(1, { duration: 8500, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop10.value = withRepeat(
-      withTiming(1, { duration: 10500, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop11.value = withRepeat(
-      withTiming(1, { duration: 9200, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop12.value = withRepeat(
-      withTiming(1, { duration: 7800, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop13.value = withRepeat(
-      withTiming(1, { duration: 11500, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop14.value = withRepeat(
-      withTiming(1, { duration: 8800, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop15.value = withRepeat(
-      withTiming(1, { duration: 10200, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-    dustLoop16.value = withRepeat(
-      withTiming(1, { duration: 6800, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-  }, [
-    lightPulse,
-    dustLoop1,
-    dustLoop2,
-    dustLoop3,
-    dustLoop4,
-    dustLoop5,
-    dustLoop6,
-    dustLoop7,
-    dustLoop8,
-    dustLoop9,
-    dustLoop10,
-    dustLoop11,
-    dustLoop12,
-    dustLoop13,
-    dustLoop14,
-    dustLoop15,
-    dustLoop16,
-  ]);
+  useFocusEffect(
+    useCallback(() => {
+      // Light beam slow pulse
+      lightPulse.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 6000, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 6000, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        false,
+      );
+      // Autonomous gentle loops for each mote (base drift when not scrolling)
+      dustLoop1.value = withRepeat(
+        withTiming(1, { duration: 8000, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop2.value = withRepeat(
+        withTiming(1, { duration: 10000, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop3.value = withRepeat(
+        withTiming(1, { duration: 7000, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop4.value = withRepeat(
+        withTiming(1, { duration: 9000, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop5.value = withRepeat(
+        withTiming(1, { duration: 11000, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop6.value = withRepeat(
+        withTiming(1, { duration: 7500, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop7.value = withRepeat(
+        withTiming(1, { duration: 9500, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop8.value = withRepeat(
+        withTiming(1, { duration: 12000, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop9.value = withRepeat(
+        withTiming(1, { duration: 8500, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop10.value = withRepeat(
+        withTiming(1, { duration: 10500, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop11.value = withRepeat(
+        withTiming(1, { duration: 9200, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop12.value = withRepeat(
+        withTiming(1, { duration: 7800, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop13.value = withRepeat(
+        withTiming(1, { duration: 11500, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop14.value = withRepeat(
+        withTiming(1, { duration: 8800, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop15.value = withRepeat(
+        withTiming(1, { duration: 10200, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      dustLoop16.value = withRepeat(
+        withTiming(1, { duration: 6800, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+      return () =>
+        [
+          lightPulse,
+          dustLoop1,
+          dustLoop2,
+          dustLoop3,
+          dustLoop4,
+          dustLoop5,
+          dustLoop6,
+          dustLoop7,
+          dustLoop8,
+          dustLoop9,
+          dustLoop10,
+          dustLoop11,
+          dustLoop12,
+          dustLoop13,
+          dustLoop14,
+          dustLoop15,
+          dustLoop16,
+        ].forEach(cancelAnimation);
+    }, [
+      lightPulse,
+      dustLoop1,
+      dustLoop2,
+      dustLoop3,
+      dustLoop4,
+      dustLoop5,
+      dustLoop6,
+      dustLoop7,
+      dustLoop8,
+      dustLoop9,
+      dustLoop10,
+      dustLoop11,
+      dustLoop12,
+      dustLoop13,
+      dustLoop14,
+      dustLoop15,
+      dustLoop16,
+    ]),
+  );
   // Light beam reacts to scroll - gets brighter AND shifts position when scrolling
   const lightBeamStyle = useAnimatedStyle(() => {
     const baseOpacity = interpolate(lightPulse.value, [0, 1], [0.1, 0.22]);

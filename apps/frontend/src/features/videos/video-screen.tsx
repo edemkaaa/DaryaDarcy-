@@ -5,7 +5,6 @@ import { getVideoScreenLayout } from "./video-screen.layout";
 import classes from "./video-screen.module.scss";
 import {
   Background,
-  Spinner,
   ScrollArea,
   Action,
   Typography,
@@ -16,6 +15,7 @@ import { MaterialIcons } from "@/shared/ui/icons";
 import { useRouter } from "@/shared/navigation/router";
 import { useSafeAreaInsets } from "@/shared/ui/safe-area";
 import { ScreenContainer } from "@/shared/ui/screen-container";
+import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { trpc } from "@/shared/api/trpc";
 import { parseContentId } from "@/shared/navigation/content-id";
 import { ContentRequestState } from "@/shared/ui/content-request-state";
@@ -55,7 +55,7 @@ export default function VideoDetailScreen({ id }: { id: string }) {
               .join(" ")}
           >
             {isLoading ? (
-              <Spinner size="large" color="#8B7355" />
+              <ContentPlaceholder kind="video" count={1} />
             ) : (
               <>
                 <ContentRequestState

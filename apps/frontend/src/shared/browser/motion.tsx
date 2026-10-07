@@ -311,8 +311,11 @@ function animatedComponent<C extends ElementType>(Component: C) {
         update();
         return () => off.forEach((fn) => fn());
       }, [style]);
-      useEffect(() => {
+      useLayoutEffect(() => {
         const element = node.current;
+        // SSR and a newly committed screen start hidden, then animate before
+        // the first paint. A passive effect would flash the final position.
+        element?.removeAttribute("data-motion-enter");
         if (
           !entranceName ||
           !element?.animate ||
@@ -321,13 +324,13 @@ function animatedComponent<C extends ElementType>(Component: C) {
           return;
         const transform = (
           {
-            down: "translateY(-20px)",
-            up: "translateY(20px)",
+            down: "translateY(25px)",
+            up: "translateY(-25px)",
             left: "translateX(-30px)",
             right: "translateX(30px)",
           } as Record<string, string>
         )[entranceName];
-        element.animate(
+        const entrance = element.animate(
           [
             { opacity: 0, transform: transform || "none" },
             { opacity: 1, transform: "none" },
@@ -335,10 +338,13 @@ function animatedComponent<C extends ElementType>(Component: C) {
           {
             duration: entranceDuration,
             delay: entranceDelay,
-            easing: "ease-out",
+            easing: ["fade", "down", "up"].includes(entranceName)
+              ? "linear"
+              : "ease-out",
             fill: "backwards",
           },
         );
+        return () => entrance.cancel();
       }, [entranceName, entranceDuration, entranceDelay]);
       const Element = (
         Component === "div" && props.onResize ? MeasuredBox : Component
@@ -346,6 +352,7 @@ function animatedComponent<C extends ElementType>(Component: C) {
       return (
         <Element
           {...props}
+          data-motion-enter={entranceName ? "" : undefined}
           className={
             Component === "div"
               ? `ui-stack ${props.className || ""}`

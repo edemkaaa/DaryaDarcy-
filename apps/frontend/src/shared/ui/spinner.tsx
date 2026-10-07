@@ -2,24 +2,26 @@
 import { type CSSProperties } from "react";
 export const Spinner = ({
   size = "small",
-  color = "#8b7355",
+  color = "#6b7b5e",
+  label = "Загрузка",
   style,
   className = "",
 }: {
   size?: "small" | "large" | number;
   color?: string;
+  label?: string;
   style?: CSSProperties;
   className?: string;
 }) => (
   <div
     role="status"
-    aria-label="Загрузка"
+    aria-label={label}
     className={`ui-spinner ${className}`}
     style={{
       width: size === "large" ? 36 : size === "small" ? 20 : size,
       height: size === "large" ? 36 : size === "small" ? 20 : size,
-      borderColor: `${color}33`,
-      borderTopColor: color,
+      color,
+      borderWidth: size === "large" ? 3 : 2,
       ...style,
     }}
   />
