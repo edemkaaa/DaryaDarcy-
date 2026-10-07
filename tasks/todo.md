@@ -684,6 +684,9 @@
     and legacy redirects. Three concurrent same-clock failures reproduced;
     UUID suffixes retain product parsing and fit the existing 80-character column.
     Shop stays hard-disabled; SQL/provider settlement acceptance is still open.
+  - [x] Build both shop checkout links before the pending-order write; two
+    expected persistence-order failures repaired, 774 non-MySQL pass / 4 skip.
+    Strict shop configuration checks remain the next increment.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
 - [ ] M08: Specify/migrate remaining API services, remove superseded adapters and
   decompose db.ts without changing contracts. Review every module separately.

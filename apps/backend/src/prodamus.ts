@@ -556,12 +556,12 @@ export function registerProdamusRoutes(app: Express) {
         return;
       }
       const orderId = `shop-${productId}-${randomUUID()}`;
-      await db.createShopPurchase({ productId, orderId });
       const url = buildShopCheckoutUrl({ productId, orderId });
       if (!url) {
         res.status(404).send("unknown product");
         return;
       }
+      await db.createShopPurchase({ productId, orderId });
       res.redirect(302, url);
     })().catch((error) => {
       console.error("[prodamus] shop pay redirect failed", error);

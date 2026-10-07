@@ -1880,3 +1880,19 @@ abstraction or new side effects, independent concurrent cases catch reverting
 either path, no new dependency, recipient data or payment-state mutation.
 Shop settlement/outbox and configuration-before-write safety still need separate
 increments before enabling payments; production dependency gates remain open.
+
+## 2026-10-07 — shop checkout: validate before persistence
+
+Continue backend only from 16d9d29. Both shop entry points persisted a pending
+order before building its URL. Two expected TDD failures show a captured SQL
+write despite invalid PUBLIC_APP_URL and a failed checkout. Moved URL construction
+and its null/error handling before persistence; return/redirect still waits for
+the write. Five-axis review: minimal order-of-effects correction, existing UUIDs,
+actors, prices and responses retained, no extra queries, abstractions or grants.
+
+774 non-MySQL pass / 4 skip; types, backend build, unchanged 72-procedure API and
+472-file boundaries pass. SQL persistence is controlled in these cases, no actual
+SQL/provider acceptance claimed. No frontend, schema, dependencies, launch-policy,
+remote push or deployment change. Strict payform/signing configuration checks and
+legacy error-log redaction are subsequent independent increments. Shared optional
+skill checklist files are absent; repository gates and built-in review used.

@@ -188,3 +188,23 @@ it("rejects a missing buyer email without persisting a pending order", async () 
   ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   expect(persistence.orders).toEqual([]);
 });
+
+it("does not persist authenticated checkout when its payment link cannot be built", async () => {
+  vi.stubEnv("PUBLIC_APP_URL", "");
+  await expect(
+    caller().createCheckout({ productId: "digital-1" }),
+  ).rejects.toThrow("Invalid public access URL");
+  expect(persistence.orders).toEqual([]);
+});
+
+it("does not persist legacy checkout when its payment link cannot be built", async () => {
+  vi.stubEnv("PUBLIC_APP_URL", "");
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const response = await fetch(`${base}/api/pay/digital-1`, {
+    redirect: "manual",
+  });
+  expect(response.status).toBe(500);
+  expect(response.headers.get("location")).toBeNull();
+  expect(await response.text()).toBe("error");
+  expect(persistence.orders).toEqual([]);
+});

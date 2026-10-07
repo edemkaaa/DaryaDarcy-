@@ -31,12 +31,6 @@ export const shopRouter = router({
         });
       }
       const orderId = `shop-${input.productId}-${randomUUID()}`;
-      await db.createShopPurchase({
-        userId: ctx.user.id,
-        productId: input.productId,
-        orderId,
-        email,
-      });
       const url = buildShopCheckoutUrl({
         productId: input.productId,
         orderId,
@@ -49,6 +43,12 @@ export const shopRouter = router({
           message: "Не удалось создать оплату",
         });
       }
+      await db.createShopPurchase({
+        userId: ctx.user.id,
+        productId: input.productId,
+        orderId,
+        email,
+      });
       return { url };
     }),
 });
