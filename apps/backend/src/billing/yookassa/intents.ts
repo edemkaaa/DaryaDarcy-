@@ -22,6 +22,54 @@ export type IntentInput = {
 };
 export class YookassaIntentRepository {
   constructor(private readonly database: MySql2Database) {}
+  async findPayment(id: string, shopId: string) {
+    const [bound] = await this.database
+      .select({ intent: billingCheckoutIntents, order: clubPayments })
+      .from(billingCheckoutIntents)
+      .innerJoin(
+        clubPayments,
+        and(
+          eq(clubPayments.orderId, billingCheckoutIntents.orderId),
+          eq(clubPayments.userId, billingCheckoutIntents.userId),
+        ),
+      )
+      .where(
+        and(
+          eq(billingCheckoutIntents.shopId, shopId),
+          eq(billingCheckoutIntents.providerPaymentId, id),
+        ),
+      )
+      .limit(1);
+    return bound;
+  }
+
+  async recordOutcome(
+    hash: string,
+    state: "succeeded" | "canceled",
+  ): Promise<void> {
+    await this.database.transaction(async (tx) => {
+      const [intent] = await tx
+        .select()
+        .from(billingCheckoutIntents)
+        .where(eq(billingCheckoutIntents.intentKeyHash, hash))
+        .for("update");
+      if (!intent) throw new Error("Payment intent unavailable");
+      if (state === "canceled")
+        await tx
+          .update(clubPayments)
+          .set({ status: "failed" })
+          .where(
+            and(
+              eq(clubPayments.orderId, intent.orderId),
+              eq(clubPayments.status, "pending"),
+            ),
+          );
+      await tx
+        .update(billingCheckoutIntents)
+        .set({ state })
+        .where(eq(billingCheckoutIntents.intentKeyHash, hash));
+    });
+  }
   async claim(
     input: IntentInput,
   ): Promise<{ intent: BillingCheckoutIntent; leaseId: string | null }> {
@@ -82,15 +130,13 @@ export class YookassaIntentRepository {
         .from(clubPayments)
         .where(eq(clubPayments.orderId, intent.orderId));
       if (!order && !intent.firstSentAt)
-        await tx
-          .insert(clubPayments)
-          .values({
-            userId: input.userId,
-            orderId: intent.orderId,
-            email: input.email,
-            sum: String(intent.amountMinor / 100),
-            status: "pending",
-          });
+        await tx.insert(clubPayments).values({
+          userId: input.userId,
+          orderId: intent.orderId,
+          email: input.email,
+          sum: String(intent.amountMinor / 100),
+          status: "pending",
+        });
       else if (!order)
         throw new TRPCError({
           code: "CONFLICT",

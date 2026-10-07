@@ -12,12 +12,19 @@ import {
 } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import {
+  billingCheckoutIntents,
   billingProfiles,
+  billingReceipts,
   clubPayments,
   users,
 } from "../../../../packages/database/src/schema";
 import type { Transaction } from "../identity/access";
-import { profileKey, type PaymentProof } from "./protocol";
+import {
+  billingKey,
+  moneyMinor,
+  profileKey,
+  type PaymentProof,
+} from "./protocol";
 export type Profile = typeof billingProfiles.$inferSelect & {
   manager?: boolean;
 };
@@ -85,6 +92,43 @@ export async function requestClubCancellation(
       .where(eq(billingProfiles.userId, userId))
       .for("update");
     if (!profiles.length) {
+      let verifiedOneOff = false;
+      if (paid.orderId.startsWith("yk-club-")) {
+        const [intent] = await tx
+          .select()
+          .from(billingCheckoutIntents)
+          .where(
+            and(
+              eq(billingCheckoutIntents.userId, userId),
+              eq(billingCheckoutIntents.orderId, paid.orderId),
+            ),
+          )
+          .limit(1);
+        if (intent?.providerPaymentId) {
+          const [receipt] = await tx
+            .select()
+            .from(billingReceipts)
+            .where(
+              and(
+                eq(
+                  billingReceipts.paymentKey,
+                  billingKey([
+                    `yookassa:test:${intent.shopId}`,
+                    intent.providerPaymentId,
+                  ]),
+                ),
+                eq(billingReceipts.userId, userId),
+                eq(billingReceipts.orderId, paid.orderId),
+              ),
+            )
+            .limit(1);
+          verifiedOneOff = Boolean(
+            receipt &&
+            receipt.amountMinor === intent.amountMinor &&
+            moneyMinor(paid.sum) === intent.amountMinor,
+          );
+        }
+      }
       const [unboundMonthly] = await tx
         .select({ id: clubPayments.id })
         .from(clubPayments)
@@ -96,11 +140,13 @@ export async function requestClubCancellation(
           ),
         )
         .limit(1);
-      // A one-off six-month payment has no future automatic charges to stop.
+      // Verified one-off payments have no future charges; an order prefix alone
+      // is not evidence. Never hide an older unbound monthly subscription.
       if (
         unboundMonthly ||
         (!paid.orderId.startsWith("club6m-") &&
-          !paid.orderId.startsWith("admin-grant-"))
+          !paid.orderId.startsWith("admin-grant-") &&
+          !verifiedOneOff)
       )
         throw new Error("Verified billing profile required; contact support");
       await markConfirmed(tx, userId);

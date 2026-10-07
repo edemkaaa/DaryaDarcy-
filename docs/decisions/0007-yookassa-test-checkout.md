@@ -21,6 +21,10 @@ provider payment and preserve that evidence through retries/restarts. Reject
 payload changes. Never resend an unresolved create outside the provider's
 24-hour idempotence window. A known payment is reconciled with authenticated GET.
 
+The caller sends a UUID in `Idempotency-Key`; tRPC input/output schemas and
+generated frontend types remain unchanged. The same key must survive retries
+and reloads; a missing key fails before dispatch in test mode only.
+
 Webhook bodies and browser returns cannot grant access. Verify the fetched test
 payment against its persisted intent, then reuse the existing atomic receipt,
 entitlement and access-email outbox transaction with a distinct provider namespace.

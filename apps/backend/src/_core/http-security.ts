@@ -14,7 +14,8 @@ export function registerHttpSecurity(app: Express): void {
   app.disable("x-powered-by");
   app.use((req, res, next) => {
     res.vary("Origin");
-    if (/^\/api\/auth(?:\/|$)/.test(req.path) || req.headers.cookie || req.headers.authorization) {
+    // Mutation responses can contain guest checkout URLs, even without cookies.
+    if ((req.method === "POST" && req.path.startsWith("/api/")) || /^\/api\/auth(?:\/|$)/.test(req.path) || req.headers.cookie || req.headers.authorization) {
       res.setHeader("Cache-Control", "no-store");
     }
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -44,7 +45,7 @@ export function registerHttpSecurity(app: Express): void {
     if (trusted) {
       res.header("Access-Control-Allow-Origin", origin!);
       res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-      res.header("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization");
+      res.header("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization, Idempotency-Key");
       res.header("Access-Control-Allow-Credentials", "true");
     }
     if (req.method === "OPTIONS") { res.sendStatus(200); return; }

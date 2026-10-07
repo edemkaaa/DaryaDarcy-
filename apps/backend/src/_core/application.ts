@@ -22,6 +22,12 @@ export async function createBackendApplication(): Promise<INestApplication> {
     "/api/prodamus/webhook",
     express.raw({ type: () => true, limit: "2mb" }),
   );
+  http.post("/api/yookassa/webhook", (req, res, next) => {
+    express.json({ limit: "64kb" })(req, res, error => {
+      if (error) { res.status(error.status === 413 ? 413 : 400).json({ error: "Некорректное уведомление" }); return; }
+      next();
+    });
+  });
   registerRequestBodies(http);
 
   // Transitional adapters: replace one domain at a time behind the same API.

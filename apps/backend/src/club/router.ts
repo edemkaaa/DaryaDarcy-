@@ -46,7 +46,7 @@ export const createClubRouter = (
           .optional(),
       )
       .mutation(({ ctx, input }) =>
-        billing.checkout.createCheckout(ctx.user, input),
+        billing.checkout.createCheckout(ctx.user, input, ctx.req.headers?.["idempotency-key"]),
       ),
     claimPending: protectedProcedure.mutation(({ ctx }) =>
       billing.subscriptions.claimPending(ctx.user.id),

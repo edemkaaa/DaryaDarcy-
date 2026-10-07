@@ -22,6 +22,7 @@ describe("HTTP policy preserves supported browser/native access", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("access-control-allow-origin")).toBe("https://club.example.test");
     expect(response.headers.get("access-control-allow-credentials")).toBe("true");
+    expect(response.headers.get("access-control-allow-headers")).toContain("Idempotency-Key");
   });
   it("accepts native JSON requests without an Origin header", async () => {
     const response = await fetch(`${base}/api/write`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });

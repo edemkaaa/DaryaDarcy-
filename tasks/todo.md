@@ -986,13 +986,30 @@
       использован только CLI testTimeout 20 с: серия десяти сериализованных
       транзакций занимает около 14 с через туннель. Assertions и TTL неизменны.
       Preflight сохраняет три прежних orphan 0017–0019; выкладка блокирована.
-- [ ] Y3, после Y2: Nest checkout/webhook + settlement. Приёмка: только проверенный
+- [x] Y3, после Y2: Nest checkout/webhook + settlement. Приёмка: только проверенный
       и связанный test/succeeded/paid выдаёт доступ; подделка/return не выдаёт;
       дубль не продлевает срок/не дублирует outbox. Проверка: HTTP, MySQL,
       Prodamus-регрессии и статические проверки; срезы по 3–5 файлов.
+      24 native HTTP/MySQL сценария и 15 прежних SQL-регрессий проходят;
+      provider HTTP подменён, настоящие sandbox-платежи не создавались.
+      Проверены rollback receipt/access/outbox и разовая отмена без Prodamus.
+      Типы, build, API (72 / 25461), boundaries и docs проходят; полный прогон
+      без MySQL: 1023 passed / 596 skipped (SQL и внешние ресурсы не проверяет).
 - [ ] Y4, после Y3: Передать клиентский контракт, проверить сохранение ключа
       и обозначение разовой тестовой покупки. Фронт — отдельный scope.
+      Контракт HTTP Idempotency-Key описан в backend-handoff-2026-10-05.md;
+      caller и UI ещё не реализованы. Типы фронта не изменены.
 - [ ] Контрольная точка: review безопасности и native audit перед rollout.
+      `pnpm audit --prod --audit-level high`: 51 advisory (1 critical, 20 high).
+      Добавленных зависимостей нет; это не 51 доказанная эксплуатация.
+      proxy-addr 2.0.7: advisory требует неверного IPv4-mapped IPv6 trust subnet;
+      текущий trust proxy = loopback без этого short-prefix subnet. Перед rollout
+      обновить/проверить фактическую proxy chain, а не объявлять bypass подтверждённым.
+      tRPC experimental_nextAppDirCaller в сервере не найден. Sharp SVG: загрузка
+      проверяет JPEG/PNG/WebP до декодера; требуется оценить все runtime пути.
+      Axios остаётся в legacy OAuth, новый YooKassa transport его не использует.
+      Остальные high/build-path advisories не закрыты; отдельный dependency review
+      и повтор audit обязательны. Рефакторинг зависимостей/force upgrades не делались.
 - [ ] Y5, после отдельного подтверждения: резервирование, изолированный egress,
       миграция, cabinet webhook и sandbox-платёж; дубль не меняет срок/число
       заданий письма. Проверить возврат и точный откат.

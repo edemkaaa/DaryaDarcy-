@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import type { User } from "../../../../packages/database/src/schema";
 import { isValidEmail, normalizeEmail } from "../_core/password";
 import * as db from "../db";
+import { YookassaClubService } from "./yookassa/club.service";
 import {
   assertClubCheckoutConfigured,
   buildCheckoutUrl,
@@ -16,12 +17,14 @@ export type ClubCheckoutInput = {
   plan?: "monthly" | "semiannual";
 };
 
-/** Creates a billing intent, never a session or a paid entitlement. */
+/** Starts/reconciles billing without issuing a session; access requires provider proof. */
 @Injectable()
 export class ClubCheckoutService {
+  constructor(private readonly yookassa = new YookassaClubService()) {}
   async createCheckout(
     actor: User | null,
     input?: ClubCheckoutInput,
+    intentKey?: unknown,
   ): Promise<{ url: string; user: null }> {
     const email = normalizeEmail(input?.email || actor?.email || "");
     if (!isValidEmail(email)) {
@@ -44,6 +47,19 @@ export class ClubCheckoutService {
       });
     }
     const plan = input?.plan ?? "monthly";
+    const selected = process.env.YOOKASSA_TEST_ENABLED;
+    if (selected && selected !== "false" && selected !== "true")
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "Оплата не настроена",
+      });
+    if (selected === "true")
+      return this.yookassa.createCheckout(
+        actor || existing || null,
+        email,
+        plan,
+        intentKey,
+      );
     assertClubCheckoutConfigured(plan);
     // An email names the billing recipient, not a proven authenticated identity.
     const user = actor || existing || (await db.ensureUserByEmail(email));

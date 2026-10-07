@@ -114,12 +114,14 @@ export class YookassaTestClient {
   }
 
   async createPayment(
-    request: YookassaCreateRequest,
+    rawRequest: unknown,
     key: string,
   ): Promise<YookassaPayment> {
+    const parsed = requestSchema.safeParse(rawRequest);
+    if (!parsed.success) throw failure();
+    const request = parsed.data;
     if (
       !z.uuid().safeParse(key).success ||
-      !requestSchema.safeParse(request).success ||
       request.confirmation.return_url !==
         `${this.config.returnUrl}?payment=returned&order=${request.metadata.order_id}` ||
       moneyMinor(request.amount.value) === null

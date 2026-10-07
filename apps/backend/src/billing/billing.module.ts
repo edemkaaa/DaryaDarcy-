@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
 import { ClubCheckoutService } from "./club-checkout.service";
 import { ClubSubscriptionService } from "./club-subscription.service";
+import { YookassaClubService } from "./yookassa/club.service";
+import { YookassaWebhookController } from "./yookassa/webhook.controller";
 import { handleProdamusWebhook } from "../prodamus";
 import {
   PRODAMUS_WEBHOOK_HANDLER,
@@ -9,14 +11,20 @@ import {
 } from "./prodamus-webhook.controller";
 
 export type ClubBillingServices = {
-  readonly checkout: ClubCheckoutService;
+  readonly checkout: Pick<ClubCheckoutService, "createCheckout">;
   readonly subscriptions: ClubSubscriptionService;
 };
 
 @Module({
-  controllers: [ProdamusWebhookController],
+  controllers: [ProdamusWebhookController, YookassaWebhookController],
   providers: [
-    ClubCheckoutService,
+    YookassaClubService,
+    {
+      provide: ClubCheckoutService,
+      useFactory: (yookassa: YookassaClubService) =>
+        new ClubCheckoutService(yookassa),
+      inject: [YookassaClubService],
+    },
     ClubSubscriptionService,
     {
       provide: PRODAMUS_WEBHOOK_HANDLER,

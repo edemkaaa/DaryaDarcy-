@@ -2440,7 +2440,8 @@ remains a separate checkpoint. Existing incomplete project tasks are retained.
 ### Contract and architecture
 
 - Keep Prodamus unchanged while the test adapter is disabled. No fallback to a
-  live provider on error. Add a client-generated UUID intent key to checkout,
+  live provider on error. Add a client-generated UUID intent key in the HTTP
+  `Idempotency-Key` header (not the tRPC input),
   required only in YooKassa test mode. Preserve `{url, user: null}` and existing
   actor-email/blacklist checks; checkout never authenticates or verifies email.
 - Claim the key atomically in a proposed `billing_checkout_intents` table with
@@ -2496,7 +2497,7 @@ remains a separate checkpoint. Existing incomplete project tasks are retained.
    eventual access email and duplicate replay without extra receipt/outbox/period.
 
 Use Node 22, committed pnpm 9.12.0 lockfile, existing Nest/Drizzle boundaries,
-strict TypeScript and Zod. Example: `{ email, plan, intentKey }` enters checkout;
+strict TypeScript and Zod. Example: `{ email, plan }` plus `Idempotency-Key: <UUID>` enters checkout;
 `{ url, user: null }` leaves it. Recipient/price remain server-owned.
 
 Run `pnpm exec vitest run tests/yookassa-*.test.ts` per slice, then `pnpm check`,
@@ -2510,3 +2511,8 @@ readiness. Migration-history discrepancies remain a deployment gate.
 References checked 2026-10-07: [request format and 24-hour idempotence](https://yookassa.ru/developers/using-api/interaction-format),
 [payment lifecycle](https://yookassa.ru/developers/payment-acceptance/getting-started/payment-process),
 [webhook verification and cabinet setup](https://yookassa.ru/developers/using-api/webhooks).
+
+Implementation refinement: use the standard HTTP header so generated frontend
+types and the existing procedure schema stay unchanged. Test mode still requires
+a stable caller key; the current UI cannot enable this flow without its separate
+caller work. Unconfirmed terminal notifications return 503 for provider retry.
