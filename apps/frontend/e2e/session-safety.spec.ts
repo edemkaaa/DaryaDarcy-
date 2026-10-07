@@ -608,7 +608,9 @@ test("a guest's club scroll survives a failed background check and retry", async
     offline ? route.abort("failed") : route.fulfill({ json: { user: null } }),
   );
   await returnToWindow(page, "focus");
-  await expect(page.getByRole("status")).toContainText(
+  await expect(page.getByRole("status").filter({
+    hasText: "Не удалось обновить сессию",
+  })).toContainText(
     "Не удалось обновить сессию",
   );
   await screen.expectPreserved();
