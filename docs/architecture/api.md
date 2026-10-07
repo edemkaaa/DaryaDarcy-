@@ -42,6 +42,17 @@ GET/POST `/api/prodamus/webhook` регистрирует только [Prodamus
 
 Middleware сессии и ролей tRPC остаются в [\_core/trpc.ts](../../apps/backend/src/_core/trpc.ts), общая доменная проверка подписки — в [identity/club-access.ts](../../apps/backend/src/identity/club-access.ts), с прежним реэкспортом для остальных модулей. Материалы и обсуждения клуба не являются публичными. Блокировка аккаунта и актуальная роль проверяются сервером.
 
+В [moderation/router.ts](../../apps/backend/src/moderation/router.ts) reportId
+для dismissCommentReport, commentId/необязательный reportId для
+deleteReportedComment и userId для blockUser/unblockUser должны быть
+положительными безопасными целыми числами. Ноль, отрицательные, дробные и
+небезопасные целые значения дают BAD_REQUEST / HTTP 400 до любых мутаций и
+аудита. Приведения строк к числу нет. reportId при удалении комментария остаётся
+необязательным и не используется для выбора цели; роль/actor из сессии,
+trim причины, ответы {ok:true} и поведение отсутствующего положительного ID
+не менялись. Валидация не подтверждает существование записи и не делает
+действие и аудит одной транзакцией.
+
 notifications.registerToken, notifications.setMarketingConsent и
 admin.purgeUserPushData используют [NotificationsService](../../apps/backend/src/notifications/notifications.service.ts).
 Без БД helpers записи выбрасывают ошибку: HTTP возвращает INTERNAL_SERVER_ERROR /

@@ -2380,3 +2380,49 @@ Fresh Node 22 gates: types, 355.4 KiB backend build, unchanged
 72-procedure/25461-byte API, 479-file dependency boundaries, existing
 frontend-only lint and links in 49 current documents pass. No backend ESLint
 or dependency-audit/release claim.
+
+## 2026-10-07 — moderation IDs validated before mutations
+
+Inspection: moderation schemas accept any finite number for reportId,
+commentId and userId, although schema primary keys are integer auto-increment
+IDs. Fractions, zero, negatives and unsafe integers reach deletion/blocking
+helpers and audit logging instead of being refused at the request boundary.
+Keep this input bug fix separate from M08 service migration and audit atomicity.
+
+Require positive safe integer numbers on dismissCommentReport.reportId,
+deleteReportedComment.commentId/optional reportId and blockUser/unblockUser.userId.
+Invalid values yield BAD_REQUEST / HTTP 400 before any mutation/audit helper.
+Keep optional reportId optional and its existing ignored behavior, successful
+{ok:true} responses, reason trimming, actor from session, moderator/admin rights,
+SQL/transactions and missing-positive-ID semantics unchanged. No coercion or new
+role/authorization rule; no claim that a well-formed ID exists in the database.
+
+Use native HTTP tests with synthetic complete users and persistence-boundary
+doubles: 20 invalid-number cases must fail RED against the existing router;
+valid moderator/admin calls preserve exact target/actor/audit order, optional
+omission and role refusal. Then implement only the schemas, run focused/full
+non-MySQL and static/API/docs checks, review all five axes and commit locally.
+No frontend/generated types, payments/provider, real destructive operations,
+schema/dependencies, remote push or deployment. Real JWT/MySQL audit consistency
+and moderation service migration remain separate tasks.
+
+Execution: 20 invalid-number HTTP regressions initially resolve {ok:true}; the
+25 valid/role characterization checks pass before the fix. Tighten only the
+five ID schemas with int/positive constraints; do not coerce values or alter
+handlers. Slice 45 pass, four focused suites 85 pass; fresh full non-MySQL
+975 pass / 4 skip. No assertions or timeouts weakened. Docker server read EOF.
+
+Five-axis review: boundary schemas reject impossible/unsafe IDs before helper
+side effects, while native HTTP checks retain role gates, target/actor and audit
+order. Small explicit constraints belong in the current router, not a generic
+ID framework or duplicate SQL guard; no new runtime abstraction or unused code.
+No auth policy, elevated rights, PII logging, external request or destructive
+operation is added. Invalid calls avoid SQL/audit work; valid calls perform the
+same work. Type shapes remain numeric and unchanged, but invalid-value acceptance
+intentionally changes. Well-formed IDs do not prove existence, transaction/audit
+atomicity, real JWT/MySQL acceptance or production readiness.
+
+Fresh Node 22 gates: types, 355.5 KiB backend build, unchanged generated
+72-procedure/25461-byte API, 479-file dependency boundaries, existing
+frontend-only lint and links in 49 current documents pass. No backend ESLint
+or dependency-audit/release claim. No frontend/generated edits or deploy.

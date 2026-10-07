@@ -725,6 +725,15 @@
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
 - [ ] M08: Specify/migrate remaining API services, remove superseded adapters and
   decompose db.ts without changing contracts. Review every module separately.
+  - [x] Fix moderation mutation ID validation as a separate behavior change:
+    report/comment/user IDs must be positive safe integers, including optional
+    reportId when supplied. Twenty native HTTP invalid-ID regressions fail for
+    false success before schema changes; final slice 45 pass, focused 85 pass,
+    whole non-MySQL 975 pass / 4 skip. Valid moderator/admin targets, actor,
+    audit order, reason trim, optional omission and role refusals preserved.
+    Identity/persistence are doubled; no real JWT/SQL mutation/audit claim.
+  - [ ] Migrate moderation service composition and verify actual mutation/audit
+    consistency separately; ID validation does not close either requirement.
   - [x] Notification token lifecycle slice (scope approved): preserve
     registration, consent reads/writes and admin purge contracts while wiring
     an explicit Nest-managed notification provider. First characterize HTTP,

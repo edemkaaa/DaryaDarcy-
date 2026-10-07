@@ -8,7 +8,7 @@ export const moderationRouter = router({
     return commentDb.listCommentReports(100);
   }),
   dismissCommentReport: moderatorProcedure
-    .input(z.object({ reportId: z.number() }))
+    .input(z.object({ reportId: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
       await commentDb.dismissCommentReport(input.reportId);
       await platformDb.logAdminAction({
@@ -20,7 +20,12 @@ export const moderationRouter = router({
       return { ok: true as const };
     }),
   deleteReportedComment: moderatorProcedure
-    .input(z.object({ commentId: z.number(), reportId: z.number().optional() }))
+    .input(
+      z.object({
+        commentId: z.number().int().positive(),
+        reportId: z.number().int().positive().optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       await commentDb.deleteCommentAndReports(input.commentId);
       await platformDb.logAdminAction({
@@ -34,7 +39,7 @@ export const moderationRouter = router({
   blockUser: moderatorProcedure
     .input(
       z.object({
-        userId: z.number(),
+        userId: z.number().int().positive(),
         reason: z.string().trim().min(3).max(512),
       }),
     )
@@ -43,7 +48,7 @@ export const moderationRouter = router({
       return { ok: true as const };
     }),
   unblockUser: moderatorProcedure
-    .input(z.object({ userId: z.number() }))
+    .input(z.object({ userId: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
       await platformDb.unblockUser(ctx.user.id, input.userId);
       return { ok: true as const };
