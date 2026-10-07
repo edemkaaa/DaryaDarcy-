@@ -60,6 +60,13 @@ export class ClubCheckoutService {
         plan,
         intentKey,
       );
+    // A durable test caller must not silently switch provider (or recurrence)
+    // when its deployment flag is missing/disabled.
+    if (intentKey !== undefined)
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "Тестовая оплата временно недоступна. Попробуйте позже.",
+      });
     assertClubCheckoutConfigured(plan);
     // An email names the billing recipient, not a proven authenticated identity.
     const user = actor || existing || (await db.ensureUserByEmail(email));

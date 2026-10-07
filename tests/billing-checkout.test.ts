@@ -64,10 +64,13 @@ vi.mock("../apps/backend/src/_core/sdk", () => ({
 }));
 import { appRouter } from "../apps/backend/src/routers";
 import * as prodamus from "../apps/backend/src/prodamus";
-function caller(user: User | null = null) {
-  return appRouter.createCaller({ user, req: {}, res: {} } as TrpcContext);
+function caller(user: User | null = null, intentKey?: string) {
+  const context = { user, req: {}, res: {} } as TrpcContext;
+  context.req.headers = { "idempotency-key": intentKey };
+  return appRouter.createCaller(context);
 }
 beforeEach(() => {
+  vi.stubEnv("YOOKASSA_TEST_ENABLED", "");
   vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
   vi.stubEnv("PRODAMUS_PAYFORM_URL", "https://fixture.payform.ru");
   vi.stubEnv("PRODAMUS_SECRET", "synthetic-signing-key");
@@ -86,6 +89,27 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 describe("checkout cannot establish identity or payment", () => {
+  it.each(["", "false"])(
+    "a keyed test intent cannot fall back to Prodamus when YooKassa mode is %j",
+    async (enabled) => {
+      vi.stubEnv("YOOKASSA_TEST_ENABLED", enabled);
+      for (const existing of [false, true]) {
+        state.existing = existing;
+        for (const plan of ["monthly", "semiannual"] as const) {
+          await expect(
+            caller(
+              null,
+              "8d427a00-4a92-4508-874c-b265d7e92d1c",
+            ).club.createCheckout({ email: member.email!, plan }),
+          ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+        }
+      }
+      expect(state.orders).toEqual([]);
+      expect(state.created).toBe(0);
+      expect(state.issued).toBe(false);
+    },
+  );
+
   it("does not persist an order if building its payment link fails", async () => {
     vi.spyOn(prodamus, "buildCheckoutUrl").mockImplementation(() => {
       throw new Error("synthetic checkout failure");

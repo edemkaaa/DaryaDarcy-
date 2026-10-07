@@ -64,10 +64,23 @@ The backend remains authoritative for expiry, identity and payment settlement.
 
 No automatic rotation or reset API is provided. An explicit next purchase needs
 server-verified terminal state first; implementing that lifecycle and connecting
-the helper to the transport/UI remain separate gates. Storage cleared externally,
+the caller to the UI remain separate gates. Storage cleared externally,
 another browser profile/device and XSS are outside this origin-local guarantee.
 Native browser tests exercise the real production helper and Web Locks across
 two tabs and reload; they do not prove provider or payment acceptance.
+
+The typed test orchestrator reserves the intent, fences session changes during
+preparation, then sends canonical input through the existing client with
+`context.idempotencyKey`. The shared transport puts explicitly keyed mutations
+on a single `httpLink` request, validates a UUID before sending its header and
+rejects keys on reads. Unkeyed calls retain batching, credentials, cancellation,
+body deadlines and error normalization. Keys never enter URLs or request bodies.
+
+A club checkout carrying a key must refuse a missing/disabled YooKassa test
+mode instead of falling back to Prodamus. Otherwise a deployment flag loss could
+change provider and enable the legacy monthly recurring flow. Regression tests
+prove refusal before recipient/order creation with Prodamus configured; the
+unkeyed legacy contract remains unchanged. This is not a checkout-enable flag.
 
 ### Payment network boundary
 

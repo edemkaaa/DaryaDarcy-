@@ -2629,3 +2629,31 @@ replacing exclusive with shared locking makes the native suite fail; restore the
 rerun before commit. Full suite: 1100 pass / 596 SQL/external skip. Types, frontend
 production build, unchanged API contract and dependency boundaries pass. This is
 browser identity acceptance only, not successful checkout or payment settlement.
+
+Y4b transport contract: an explicitly supplied operation-context `idempotencyKey`
+opts a mutation into single-request HTTP transport. Validate UUID before dispatch;
+do not put it in URL/body, share it with a batch, or attach it to a query. Calls
+without this context keep the existing batch transport. The club-owned test
+orchestrator obtains the durable intent and passes its canonical input/key through
+the existing typed client, preserving the session cancellation fence. Test actual
+tRPC serialization and HTTP headers, timeout/cancellation/retry and concurrent
+independent keys using only an external fetch boundary double. No new client,
+UI/provider enablement or server API schema change in this transport slice.
+
+Routing investigation found a fail-open provider fallback: a keyed test request
+with `YOOKASSA_TEST_ENABLED` absent/false still entered configured Prodamus and
+created a legacy monthly recurring order. Reproduce through the real router and
+service with only the DB boundary doubled; RED must show an actual Prodamus URL,
+not a test-loader error. Refuse any explicitly keyed club request on that disabled
+branch before recipient/order creation. Preserve unkeyed legacy behavior and the
+enabled YooKassa branch. This guard is required before wiring the caller to UI.
+
+Transport verification: 13 real-client wire/lifecycle checks pass, including
+independent keys, no key leakage into concurrent queries, malformed-key refusal,
+timeout with explicit same-key retry, session cancellation and storage denial.
+The fallback regression covers both disabled flag representations, both plans,
+and existing/new recipients. Full suite: 1115 pass / 596 SQL/external skip; backend
+and frontend builds, types, API, boundaries and docs pass. No provider request,
+dependency/config migration, frontend staging merge, runtime deploy or payment
+enablement in this slice. UI mode labeling, terminal return/reconciliation and
+fresh real sandbox acceptance remain open; no claim of successful payment.
