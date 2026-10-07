@@ -4,6 +4,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createVideoServer } from "../server.mjs";
+import { createThumbnailReader } from "../upstream.mjs";
 
 const cleanups = [];
 afterEach(async () => {
@@ -188,6 +189,24 @@ test("serves the existing published thumbnail route with JPEG bytes", async () =
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("content-type"), "image/jpeg");
   assert.deepEqual(Buffer.from(await response.arrayBuffer()), jpeg);
+});
+
+test("a cached thumbnail is denied immediately after unpublishing", async () => {
+  let published = true;
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+  const base = await start({
+    readCatalog: async () => [{ youtubeId: id, published }],
+    readThumbnail: createThumbnailReader({ load: async () => jpeg }),
+  });
+  const url = `${base}/media/yt-thumb/${id}/hqdefault.jpg`;
+  for (let i = 0; i < 2; i++) {
+    const response = await fetch(url);
+    assert.equal(response.status, 200);
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), jpeg);
+    assert.equal(response.headers.get("cache-control"), "no-store");
+  }
+  published = false;
+  assert.equal((await fetch(url)).status, 404);
 });
 
 test("bounds concurrent HTTP work and still serves health while busy", async () => {

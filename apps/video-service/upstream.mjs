@@ -62,3 +62,38 @@ export async function readThumbnail(id, signal, request = fetch) {
     throw new Error("invalid thumbnail");
   return image;
 }
+
+/** Cache validated public thumbnail bytes only. Publication is still checked
+ * by the HTTP handler before AND after every read, including cache hits. */
+export function createThumbnailReader({
+  load = readThumbnail,
+  now = Date.now,
+  ttlMs = 60_000,
+  maxBytes = 2 * 1024 ** 2,
+  maxEntries = 64,
+} = {}) {
+  const entries = new Map();
+  let bytes = 0;
+  const remove = id => {
+    const entry = entries.get(id);
+    if (entry) bytes -= entry.image.length;
+    entries.delete(id);
+  };
+  return async (id, signal) => {
+    signal?.throwIfAborted();
+    if (!/^[\w-]{11}$/.test(id)) throw new Error("invalid video id");
+    const cached = entries.get(id);
+    if (cached && cached.expiresAt > now()) return cached.image;
+    remove(id);
+    const image = await load(id, signal);
+    signal?.throwIfAborted();
+    if (image.length > maxBytes) return image;
+    // A concurrent request may have populated this key while we fetched.
+    remove(id);
+    while (entries.size && (entries.size >= maxEntries || bytes + image.length > maxBytes))
+      remove(entries.keys().next().value);
+    entries.set(id, { image, expiresAt: now() + ttlMs });
+    bytes += image.length;
+    return image;
+  };
+}
