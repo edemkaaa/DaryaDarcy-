@@ -1896,3 +1896,29 @@ SQL/provider acceptance claimed. No frontend, schema, dependencies, launch-polic
 remote push or deployment change. Strict payform/signing configuration checks and
 legacy error-log redaction are subsequent independent increments. Shared optional
 skill checklist files are absent; repository gates and built-in review used.
+
+## 2026-10-07 — shop checkout: fail-closed payment configuration
+
+Validate the selected existing shop/club merchant before constructing a shop URL:
+explicit HTTPS payform root, signing key, positive moneyMinor-compatible price
+and configured safe callback origin. Dedicated shop key never falls back to a
+different form when its configuration is incomplete. Existing explicit club-key
+fallback and demo suffix remain compatible; neither enables shop payment.
+
+23 expected RED cases reproduced unsigned/unsafe links, implicit merchant
+defaults, invalid money, unclassified public-origin failures and whitespace URL
+output. 24 builder cases plus two real-router/HTTP no-write cases now pass.
+Three literal HMAC fixtures derived from an independent canonical payload prove
+normal/demo/shop-to-club signing compatibility. Earlier invalid-origin test now
+expects PRECONDITION_FAILED instead of an internal generic exception; legacy
+HTTP keeps its existing generic 500 error/no redirect contract.
+
+Five-axis review: one shop-owned policy point, no new service locator or reusable
+framework; club subscription rules untouched. Domain-specific merchant/price
+checks stay separate from club policy; shared URL-policy extraction, if needed,
+must be a separate refactor. No extra SQL/provider calls, secret-bearing causes,
+schema, API shape, frontend/generated files, dependencies or launch-policy change.
+800 non-MySQL pass / 4 skip; types/backend build, unchanged 72-procedure API,
+472-file boundaries pass. Shop settlement/outbox, owned catalog lookup and legacy
+error-log privacy remain independent tasks; no production/provider acceptance,
+remote push or deployment.

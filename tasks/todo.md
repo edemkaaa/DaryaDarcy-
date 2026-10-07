@@ -686,7 +686,10 @@
     Shop stays hard-disabled; SQL/provider settlement acceptance is still open.
   - [x] Build both shop checkout links before the pending-order write; two
     expected persistence-order failures repaired, 774 non-MySQL pass / 4 skip.
-    Strict shop configuration checks remain the next increment.
+  - [x] Shop links reject incomplete/unsafe selected merchant, unsigned URLs,
+    invalid price and callback origin before persistence. 23 expected RED cases;
+    800 non-MySQL pass / 4 skip, independent HMAC compatibility fixtures pass.
+    Shop remains hard-disabled; settlement/outbox/provider acceptance stay open.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
 - [ ] M08: Specify/migrate remaining API services, remove superseded adapters and
   decompose db.ts without changing contracts. Review every module separately.

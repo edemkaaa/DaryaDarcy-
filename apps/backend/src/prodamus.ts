@@ -239,10 +239,47 @@ export function buildCheckoutUrl(input: {
   return signedPayUrl(getPayformUrl(), payload);
 }
 
+function shopCheckoutConfiguration(price: string) {
+  try {
+    const dedicatedSecret = getShopSecret();
+    const secret = dedicatedSecret || getSecret();
+    const explicitForm = dedicatedSecret
+      ? process.env.PRODAMUS_SHOP_PAYFORM_URL
+      : process.env.PRODAMUS_PAYFORM_URL;
+    const form = new URL(dedicatedSecret ? getShopPayformUrl() : getPayformUrl());
+    // Preserve the existing merchant selection, but never its implicit live defaults.
+    if (
+      !explicitForm?.trim() ||
+      !secret ||
+      form.protocol !== "https:" ||
+      !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.payform\.ru$/.test(form.hostname) ||
+      form.username ||
+      form.password ||
+      form.port ||
+      form.pathname !== "/" ||
+      form.search ||
+      form.hash ||
+      moneyMinor(price) === null
+    ) {
+      throw new Error();
+    }
+    return {
+      payform: form.origin,
+      signKey: shopUsesDemoSign() ? `${secret}demo` : secret,
+      appUrl: publicSiteUrl(),
+    };
+  } catch {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Оплата временно недоступна. Попробуйте позже.",
+    });
+  }
+}
+
 export function buildShopCheckoutUrl(input: { productId: string; orderId: string; email?: string; userId?: number }): string | null {
   const product = SHOP_PRODUCTS[input.productId];
   if (!product) return null;
-  const appUrl = publicSiteUrl();
+  const { appUrl, payform, signKey } = shopCheckoutConfiguration(product.price);
   const payload: Record<string, unknown> = {
     do: "pay",
     order_id: input.orderId,
@@ -269,10 +306,6 @@ export function buildShopCheckoutUrl(input: { productId: string; orderId: string
   };
   if (input.email) payload.customer_email = input.email;
   if (input.userId) payload._param_userId = String(input.userId);
-  // Shop form is often left in Prodamus demo; the club form already takes live payments.
-  const shopSecret = getShopSecret() || getSecret();
-  const payform = getShopSecret() ? getShopPayformUrl() : getPayformUrl();
-  const signKey = shopSecret ? (shopUsesDemoSign() ? `${shopSecret}demo` : shopSecret) : "";
   return signedPayUrl(payform, payload, signKey);
 }
 
