@@ -12,12 +12,14 @@ import type { AddressInfo } from "node:net";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
-import { getDb } from "../apps/backend/src/db";
+import { getDb, getUserById } from "../apps/backend/src/db";
 import { requestClubCancellation } from "../apps/backend/src/billing/cancellation";
+import { YookassaClubService } from "../apps/backend/src/billing/yookassa/club.service";
 
 const realFetch = globalThis.fetch;
 const key = "23456789-1234-4123-8123-123456789abc";
-const id = "2419a771-000f-5000-9000-1edaf29243f2";
+// Distinct payment ID avoids the unique(shop, payment) collision with parallel fixtures.
+const id = "2419a772-000f-5000-9000-1edaf29243f2";
 describe.skipIf(!testDatabaseUrl)(
   "YooKassa native checkout and settlement",
   () => {
@@ -25,11 +27,16 @@ describe.skipIf(!testDatabaseUrl)(
     let base: string;
     let conn: Connection;
     let creates = 0;
+    let lookups = 0;
     let sent: {
       metadata: { order_id: string };
       amount: { value: string; currency: string };
     };
-    let providerStatus: "pending" | "succeeded" | "canceled";
+    let providerStatus:
+      | "pending"
+      | "waiting_for_capture"
+      | "succeeded"
+      | "canceled";
     let override: Record<string, unknown>;
     let uncertain: boolean;
     let lookupUnavailable: boolean;
@@ -66,6 +73,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query(`DELETE FROM ${table} WHERE userId=780`);
       await conn.query("UPDATE users SET blockedAt=NULL WHERE id=780");
       creates = 0;
+      lookups = 0;
       providerStatus = "pending";
       override = {};
       uncertain = false;
@@ -87,6 +95,7 @@ describe.skipIf(!testDatabaseUrl)(
               test: true,
               payment_methods: ["bank_card"],
             });
+          if (init?.method !== "POST") lookups++;
           if (init?.method !== "POST" && lookupUnavailable)
             return Response.json({ error: "unknown" }, { status: 500 });
           if (init?.method === "POST") {
@@ -160,11 +169,177 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return { payments, emails: outbox[0].n, receipts: receipts[0].n };
     }
+    const reconcile = (intentKey: unknown = key) =>
+      app.get(YookassaClubService).reconcileCheckout(null, intentKey);
+
+    it("return checking a missing intent cannot create an order or provider payment", async () => {
+      expect(await reconcile()).toEqual({ state: "unknown" });
+      expect({ creates, lookups }).toEqual({ creates: 0, lookups: 0 });
+      expect((await state()).payments).toHaveLength(0);
+    });
+    it("return checking an uncertain create never retries provider POST", async () => {
+      uncertain = true;
+      expect((await checkout()).status).toBe(503);
+      const [before] = await conn.query<RowDataPacket[]>(
+        "SELECT * FROM billing_checkout_intents WHERE userId=780",
+      );
+      expect(await reconcile()).toEqual({ state: "unknown" });
+      const [after] = await conn.query<RowDataPacket[]>(
+        "SELECT * FROM billing_checkout_intents WHERE userId=780",
+      );
+      expect(after).toEqual(before);
+      expect({ creates, lookups }).toEqual({ creates: 1, lookups: 0 });
+      expect((await state()).payments[0].status).toBe("pending");
+    });
+    it("return checking a known pending payment uses GET without granting access", async () => {
+      expect((await checkout()).status).toBe(200);
+      expect(await reconcile(key.toUpperCase())).toEqual({ state: "pending" });
+      expect({ creates, lookups }).toEqual({ creates: 1, lookups: 1 });
+      expect((await state()).receipts).toBe(0);
+      expect((await state()).emails).toBe(0);
+    });
+    it("an uncaptured payment stays pending; return checking cannot capture it", async () => {
+      expect((await checkout()).status).toBe(200);
+      providerStatus = "waiting_for_capture";
+      override = { paid: true };
+      expect(await reconcile()).toEqual({ state: "pending" });
+      expect({ creates, lookups }).toEqual({ creates: 1, lookups: 1 });
+      expect((await state()).receipts).toBe(0);
+    });
+    it("another configured shop cannot discover or settle the saved intent", async () => {
+      expect((await checkout()).status).toBe(200);
+      vi.stubEnv("YOOKASSA_SHOP_ID", "654321");
+      try {
+        expect(await reconcile()).toEqual({ state: "unknown" });
+        expect(lookups).toBe(0);
+      } finally {
+        vi.stubEnv("YOOKASSA_SHOP_ID", "123456");
+      }
+    });
+    it("a verified return and parallel webhook commit one grant before reporting success", async () => {
+      expect((await checkout()).status).toBe(200);
+      providerStatus = "succeeded";
+      const [result, notification] = await Promise.all([
+        reconcile(),
+        webhook(),
+      ]);
+      expect(result).toEqual({ state: "succeeded" });
+      expect(notification.status).toBe(200);
+      const first = await state();
+      expect(first.receipts).toBe(1);
+      expect(first.emails).toBe(1);
+      expect(first.payments[0].expiresAt.toISOString()).toBe(
+        "2026-11-06T00:00:00.000Z",
+      );
+      expect(await reconcile()).toEqual({ state: "succeeded" });
+      expect(await state()).toEqual(first);
+      expect(creates).toBe(1);
+    });
+    it("a canceled return reports only a verified state without a new purchase", async () => {
+      expect((await checkout()).status).toBe(200);
+      providerStatus = "canceled";
+      expect(await reconcile()).toEqual({ state: "canceled" });
+      expect((await state()).payments[0].status).toBe("failed");
+      expect((await state()).receipts).toBe(0);
+      expect(creates).toBe(1);
+    });
+    it("a provider outage cannot turn an existing intent into unknown or terminal", async () => {
+      expect((await checkout()).status).toBe(200);
+      lookupUnavailable = true;
+      await expect(reconcile()).rejects.toMatchObject({
+        code: "SERVICE_UNAVAILABLE",
+      });
+      expect((await state()).receipts).toBe(0);
+      lookupUnavailable = false;
+      expect(await reconcile()).toEqual({ state: "pending" });
+      expect(creates).toBe(1);
+    });
+    it("a blocked recipient cannot reconcile or receive access", async () => {
+      expect((await checkout()).status).toBe(200);
+      providerStatus = "succeeded";
+      await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=780");
+      await expect(reconcile()).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(lookups).toBe(0);
+      expect((await state()).receipts).toBe(0);
+    });
+    it("another signed-in actor cannot use the saved return capability", async () => {
+      expect((await checkout()).status).toBe(200);
+      const owner = (await getUserById(780))!;
+      await expect(
+        app
+          .get(YookassaClubService)
+          .reconcileCheckout({ ...owner, id: 781 }, key),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(lookups).toBe(0);
+      expect(
+        await app.get(YookassaClubService).reconcileCheckout(owner, key),
+      ).toEqual({ state: "pending" });
+    });
+    it("a changed persisted email cannot turn a return into access", async () => {
+      expect((await checkout()).status).toBe(200);
+      await conn.query(
+        "UPDATE users SET email='changed@example.test' WHERE id=780",
+      );
+      try {
+        await expect(reconcile()).rejects.toMatchObject({
+          code: "SERVICE_UNAVAILABLE",
+        });
+        expect(lookups).toBe(0);
+      } finally {
+        await conn.query(
+          "UPDATE users SET email='yoo-checkout@example.test' WHERE id=780",
+        );
+      }
+    });
+    it.each([
+      ["requestHash", "0".repeat(64)],
+      ["accessDays", 180],
+    ] as const)(
+      "a mismatched persisted %s refuses return checking",
+      async (field, value) => {
+        expect((await checkout()).status).toBe(200);
+        await conn.query(
+          `UPDATE billing_checkout_intents SET ${field}=? WHERE userId=780`,
+          [value],
+        );
+        await expect(reconcile()).rejects.toMatchObject({
+          code: "SERVICE_UNAVAILABLE",
+        });
+        expect(lookups).toBe(0);
+        expect((await state()).receipts).toBe(0);
+      },
+    );
+    it("a return cannot report success when atomic email/access settlement fails", async () => {
+      expect((await checkout()).status).toBe(200);
+      providerStatus = "succeeded";
+      vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", "");
+      await expect(reconcile()).rejects.toMatchObject({
+        code: "SERVICE_UNAVAILABLE",
+      });
+      expect(await state()).toMatchObject({ receipts: 0, emails: 0 });
+      expect((await state()).payments[0].status).toBe("pending");
+      vi.stubEnv(
+        "AUTH_LINK_ENCRYPTION_KEY",
+        Buffer.alloc(32, 7).toString("base64"),
+      );
+      expect(await reconcile()).toEqual({ state: "succeeded" });
+      expect(await state()).toMatchObject({ receipts: 1, emails: 1 });
+    });
+    it("return checking refuses a missing key or disabled test mode", async () => {
+      await expect(reconcile(null)).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+      });
+      vi.stubEnv("YOOKASSA_TEST_ENABLED", "false");
+      await expect(reconcile()).rejects.toMatchObject({
+        code: "PRECONDITION_FAILED",
+      });
+      expect({ creates, lookups }).toEqual({ creates: 0, lookups: 0 });
+    });
     it("creates a pending test payment, never a login or access grant", async () => {
       const response = await checkout();
       expect(response.status).toBe(200);
-    expect(response.headers.get("set-cookie")).toBeNull();
-    expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(response.headers.get("set-cookie")).toBeNull();
+      expect(response.headers.get("cache-control")).toBe("no-store");
       const body = await response.json();
       expect(body.result.data.json).toEqual({
         url: `https://yoomoney.ru/checkout/payments/v2/contract?orderId=${id}`,
@@ -234,6 +409,9 @@ describe.skipIf(!testDatabaseUrl)(
         expect((await checkout()).status).toBe(200);
         providerStatus = "succeeded";
         override = invalid;
+        await expect(reconcile()).rejects.toMatchObject({
+          code: "SERVICE_UNAVAILABLE",
+        });
         expect((await webhook()).status).toBe(503);
         const result = await state();
         expect(result).toMatchObject({ receipts: 0, emails: 0 });

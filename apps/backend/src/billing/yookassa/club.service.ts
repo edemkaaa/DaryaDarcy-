@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { User } from "../../../../../packages/database/src/schema";
 import * as db from "../../db";
 import { CLUB_PRICE, CLUB_SEMIANNUAL_PRICE } from "../../prodamus";
-import { moneyMinor } from "../protocol";
+import { billingKey, moneyMinor } from "../protocol";
 import { settleClubOrder } from "../settlement";
 import {
   YookassaTestClient,
@@ -140,6 +140,62 @@ export class YookassaClubService {
     if (payment.status !== "succeeded" && payment.status !== "canceled")
       throw new Error("Payment outcome not confirmed");
     await this.reconcile(repo, payment, config.shopId);
+  }
+
+  async reconcileCheckout(
+    actor: User | null,
+    rawKey: unknown,
+  ): Promise<{ state: "unknown" | "pending" | "succeeded" | "canceled" }> {
+    if (!z.uuid().safeParse(rawKey).success)
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Нужен ключ платёжной заявки",
+      });
+    const { config, client } = this.context();
+    if (actor?.blockedAt)
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Не удалось проверить платёж",
+      });
+    const database = await db.getDb();
+    if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    const repo = new YookassaIntentRepository(database);
+    const bound = await repo.findIntent(
+      String(rawKey).toLowerCase(),
+      config.shopId,
+    );
+    // Absence is not cancellation: preserve the browser intent, never POST here.
+    if (!bound) return { state: "unknown" };
+    if (bound.user.blockedAt || (actor && actor.id !== bound.user.id))
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Не удалось проверить платёж",
+      });
+    try {
+      const email = (bound.order.email || "").trim().toLowerCase();
+      if (
+        !email ||
+        bound.user.email?.trim().toLowerCase() !== email ||
+        bound.intent.requestHash !==
+          billingKey([String(bound.user.id), email, bound.intent.plan]) ||
+        bound.intent.accessDays !==
+          (bound.intent.plan === "semiannual" ? 180 : 30)
+      )
+        throw new Error("Payment recipient binding mismatch");
+      if (!bound.intent.providerPaymentId) return { state: "unknown" };
+      const payment = await client.getPayment(bound.intent.providerPaymentId);
+      await this.reconcile(repo, payment, config.shopId);
+      return {
+        state:
+          payment.status === "waiting_for_capture" ? "pending" : payment.status,
+      };
+    } catch {
+      throw new TRPCError({
+        code: "SERVICE_UNAVAILABLE",
+        message:
+          "Результат оплаты пока не подтверждён. Повторите тот же запрос позже",
+      });
+    }
   }
 
   private async reconcile(

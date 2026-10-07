@@ -22,6 +22,35 @@ export type IntentInput = {
 };
 export class YookassaIntentRepository {
   constructor(private readonly database: MySql2Database) {}
+  async findIntent(intentKey: string, shopId: string) {
+    const [bound] = await this.database
+      .select({
+        intent: billingCheckoutIntents,
+        order: clubPayments,
+        user: { id: users.id, email: users.email, blockedAt: users.blockedAt },
+      })
+      .from(billingCheckoutIntents)
+      .innerJoin(
+        clubPayments,
+        and(
+          eq(clubPayments.orderId, billingCheckoutIntents.orderId),
+          eq(clubPayments.userId, billingCheckoutIntents.userId),
+        ),
+      )
+      .innerJoin(users, eq(users.id, billingCheckoutIntents.userId))
+      .where(
+        and(
+          eq(
+            billingCheckoutIntents.intentKeyHash,
+            billingKey(["yookassa-test", intentKey]),
+          ),
+          eq(billingCheckoutIntents.shopId, shopId),
+        ),
+      )
+      .limit(1);
+    return bound;
+  }
+
   async findPayment(id: string, shopId: string) {
     const [bound] = await this.database
       .select({ intent: billingCheckoutIntents, order: clubPayments })

@@ -2657,3 +2657,39 @@ and frontend builds, types, API, boundaries and docs pass. No provider request,
 dependency/config migration, frontend staging merge, runtime deploy or payment
 enablement in this slice. UI mode labeling, terminal return/reconciliation and
 fresh real sandbox acceptance remain open; no claim of successful payment.
+
+### Y4c1: server-verified return foundation — 2026-10-08
+
+Add a separate reconciliation operation, not a retry of payment creation. Its
+UUID is a narrowly scoped capability for a minimal purchase state, never account
+authorization. Lookup the hashed key in the configured test shop, join its
+persisted order and recipient, reject blocked recipients or a different signed-in
+actor. Missing/unbound intents return `unknown` without creating accounts, orders,
+leases or provider payments. Unknown never permits browser intent rotation.
+
+For a bound intent use only authenticated provider GET and existing complete
+payment-proof verification/atomic settlement. Return only `state` (unknown,
+pending, succeeded, canceled), without personal data, URLs or sessions. Terminal
+success is reported only after receipt/access/outbox commit; outages or mismatches
+remain generic retriable errors. Tests first on disposable MySQL with only the
+external provider HTTP doubled. This foundation stays unwired to public API/UI;
+the next slice adds a POST mutation/contract and then explicit terminal-safe UI
+lifecycle. No working database, payment enablement or deployment changes here.
+
+Verification: 48 disposable-MySQL checks pass, then four focused checks against
+the final minimal recipient projection (two new binding checks plus pending and
+parallel settlement rechecks): 50 distinct SQL scenarios. Removing the immutable
+selection/period guards makes both new cases fail on an actual pending response;
+restore makes them pass. Full local suite 1115 pass / 611 SQL/external skip;
+types, backend build, unchanged API (72 procedures), boundaries and docs pass.
+
+The remote SQL runner uses a 30-second per-test execution budget because SSH
+round trips caused unchanged baseline scenarios to exceed Vitest's five-second
+default; provider deadlines (15 seconds), assertions, leases and safety windows
+are unchanged. A concurrent fixture collision in unique(shop, payment) was
+reproduced and isolated by assigning distinct synthetic provider IDs, not by
+removing uniqueness or weakening production code. Review: indexed bounded lookup,
+minimal recipient columns, literal response allowlist, canonical settlement reuse
+and no new runtime/API/network exposure. Existing dependency/production history
+gates remain open. Temporary MySQL/network/tunnel are removed after acceptance;
+no real provider request, account login, external email or working DB mutation.

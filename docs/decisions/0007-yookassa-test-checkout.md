@@ -82,6 +82,26 @@ change provider and enable the legacy monthly recurring flow. Regression tests
 prove refusal before recipient/order creation with Prodamus configured; the
 unkeyed legacy contract remains unchanged. This is not a checkout-enable flag.
 
+### Server return reconciliation foundation
+
+A separate service operation looks up the UUID's hashed intent in the configured
+test shop, with its persisted order and recipient. It performs no account/order
+creation, lease acquisition, provider POST or capture. Missing/unbound records
+return `unknown`: absence is not cancellation and cannot authorize a new browser
+intent. The UUID can convey only minimal purchase state, not account access;
+do not log it or put it in URLs. A different signed-in actor or blocked recipient
+is refused before provider lookup, and the stored email/selection binding is
+checked again. Guest checking does not authorize by email or create a session.
+
+Bound payments use authenticated GET and the existing complete proof/atomic
+settlement boundary. Only `state` is returned; no email, user/order IDs, amount,
+checkout URL or credentials. `waiting_for_capture` stays pending, without capture.
+Success is reported after the receipt/access/outbox commit, not merely after the
+provider response. Outages, mismatches and settlement failures are retriable errors,
+never a terminal result. This foundation is not exposed through tRPC or the UI
+yet: a separately reviewed POST mutation, bounded polling and terminal-safe browser
+lifecycle remain required before enablement. No schema or dependency changes.
+
 ### Payment network boundary
 
 The opt-in [overlay](../../infrastructure/deploy/teamassist/compose.yookassa.yaml)
