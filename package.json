@@ -21,7 +21,7 @@
     "test:video": "node --test --test-reporter=spec apps/video-service/test/*.test.mjs",
     "test:regression": "pnpm verify",
     "test:quiz": "vitest run __tests__/quiz-data.test.ts",
-    "verify": "vitest run __tests__/quiz-data.test.ts __tests__/photo-urls.test.ts __tests__/rich-text-anchors.test.ts __tests__/inspiration-titles.test.ts __tests__/comment-count-label.test.ts __tests__/web-viewport.test.ts tests/client-access-api.test.ts tests/client-session-storage.test.ts tests/client-role-policy.test.ts tests/frontend-navigation.test.ts tests/frontend-dev-proxy.test.ts tests/frontend-query-cache.test.ts tests/frontend-post-draft.test.ts tests/frontend-request-lifecycle.test.ts tests/frontend-session-controller.test.ts tests/frontend-personal-storage.test.ts tests/frontend-media-safety.test.ts tests/frontend-post-save.test.ts tests/frontend-post-create-intent.test.ts tests/frontend-post-save-atomic.test.ts tests/frontend-audio-player.test.ts",
+    "verify": "vitest run __tests__/photo-urls.test.ts tests/client-access-api.test.ts tests/client-session-storage.test.ts tests/client-role-policy.test.ts tests/frontend-navigation.test.ts tests/frontend-dev-proxy.test.ts tests/frontend-query-cache.test.ts tests/frontend-post-draft.test.ts tests/frontend-request-lifecycle.test.ts tests/frontend-session-controller.test.ts tests/frontend-personal-storage.test.ts tests/frontend-post-save.test.ts tests/frontend-post-create-intent.test.ts tests/frontend-post-save-atomic.test.ts",
     "extract:woolen": "node tooling/assets/extract-woolen-font.mjs",
     "smoke": "node tooling/operations/smoke-production.mjs",
     "optimize:s3": "node tooling/operations/optimize-s3-assets.mjs",

@@ -15,6 +15,23 @@
     background: transparent;
     color: var(--brown);
     pointer-events: none;
+    transform: translate3d(0, 0, 0);
+    transition: transform 200ms ease;
+    will-change: transform;
+  }
+  .header[data-hidden="true"] {
+    // Include the safe area and icon shadows, without changing the page layout.
+    transform: translate3d(0, calc(-100% - 4px), 0);
+    transition-duration: 250ms;
+  }
+  .header[data-hidden="true"] .group > * {
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .header,
+    .header[data-hidden="true"] {
+      transition: none;
+    }
   }
   .overlay {
     color: #ffffff;

@@ -12,16 +12,14 @@ import {
 import { useCallback, useState } from "react";
 import { Picture } from "@/shared/media/image";
 import { useRouter } from "@/shared/navigation/router";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { useSafeAreaInsets } from "@/shared/ui/safe-area";
-import Animated, { FadeIn } from "@/shared/browser/motion";
 import { displayVideoTitle } from "@/shared/media/video-title";
-import {
-  VIDEO_FILM_DECOR_URL,
-  VIDEO_ROSE_DECOR_URL,
-} from "@/shared/styles/tab-assets";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 
+import { VideosBannerHeader } from "./videos-banner";
+import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { trpc } from "@/shared/api/trpc";
 import { PAPER_TEXTURE_URI } from "./videos-screen.content";
@@ -39,35 +37,8 @@ type Video = {
   createdAt: string;
   updatedAt: string;
 };
-function VideosBannerHeader() {
-  return (
-    <Animated.div
-      entering={FadeIn.duration(600)}
-      className={classes.headerSection}
-    >
-      <Picture
-        source={{ uri: VIDEO_FILM_DECOR_URL }}
-        contentFit="contain"
-        className={classes.filmDecor}
-      />
-      <Typography className={classes.headerTitle}>ВИДЕО</Typography>
-      <Typography className={classes.headerSubtitle}>
-        мини-фильмы об уютной жизни
-      </Typography>
-      <Picture
-        source={{ uri: VIDEO_ROSE_DECOR_URL }}
-        contentFit="contain"
-        className={classes.roseLeft}
-      />
-      <Picture
-        source={{ uri: VIDEO_ROSE_DECOR_URL }}
-        contentFit="contain"
-        className={classes.roseRight}
-      />
-    </Animated.div>
-  );
-}
 function VideosScreenInner() {
+  const active = useScreenActive();
   const viewport = useViewport();
   const { stylesLayout } = getVideosScreenLayout(viewport);
 
@@ -79,7 +50,10 @@ function VideosScreenInner() {
     isLoading,
     isError,
     refetch,
-  } = trpc.videos.list.useQuery(undefined, { staleTime: 30_000 });
+  } = trpc.videos.list.useQuery(undefined, {
+    staleTime: 30_000,
+    enabled: active,
+  });
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refetch();
@@ -162,26 +136,6 @@ function VideosScreenInner() {
     },
     [handleVideoPress, stylesLayout.thumbnailContainer.height],
   );
-  if ((isLoading || isError) && !videos) {
-    return (
-      <ScreenContainer>
-        <Background
-          source={{ uri: PAPER_TEXTURE_URI }}
-          fit="cover"
-          className={classes.background}
-        >
-          <VideosBannerHeader />
-          <QueryRetryState
-            isLoading={isLoading}
-            isError={isError}
-            onRetry={() => void refetch()}
-            message="Не удалось загрузить видео"
-            className={classes.loadingContainer}
-          />
-        </Background>
-      </ScreenContainer>
-    );
-  }
   return (
     <ScreenContainer>
       <Background
@@ -190,11 +144,24 @@ function VideosScreenInner() {
         className={classes.background}
       >
         <Collection
+          revealItems
           data={videos as Video[] | undefined}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderVideoCard}
           header={<VideosBannerHeader />}
-          contentStyle={{ paddingBottom: insets.bottom + 80 }}
+          empty={
+            <QueryRetryState
+              isLoading={isLoading}
+              loadingContent={<ContentPlaceholder kind="video" />}
+              isError={isError}
+              onRetry={() => void refetch()}
+              message="Не удалось загрузить видео"
+              className={classes.loadingContainer}
+            />
+          }
+          contentStyle={{
+            paddingBottom: videos?.length ? insets.bottom + 80 : 0,
+          }}
           hideScrollbar
           refreshing={refreshing}
           onRefresh={onRefresh}
@@ -205,7 +172,6 @@ function VideosScreenInner() {
                 .join(" ")}
             />
           )}
-          className={classes.list}
           contentClassName={classes.collectioncontent}
         />
       </Background>

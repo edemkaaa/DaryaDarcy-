@@ -17,6 +17,8 @@ import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { LoadingIndicator } from "@/shared/ui/loading-indicator";
+import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { trpc } from "@/shared/api/trpc";
 import type { AdminPost } from "@/shared/api/types";
 import { useRouter } from "@/shared/navigation/router";
@@ -1288,8 +1290,7 @@ export default function AdminScreen() {
             .filter(Boolean)
             .join(" ")}
         >
-          <Spinner size="large" color={GREEN_ACCENT} />
-          <Typography className={classes.loadingText}>Загрузка...</Typography>
+          <LoadingIndicator label="Проверяем доступ…" />
         </div>
       </ScreenContainer>
     );
@@ -1324,10 +1325,7 @@ export default function AdminScreen() {
             .filter(Boolean)
             .join(" ")}
         >
-          <Spinner size="large" color={GREEN_ACCENT} />
-          <Typography className={classes.loadingText}>
-            Загрузка постов...
-          </Typography>
+          <ContentPlaceholder kind="feed" />
         </div>
       </ScreenContainer>
     );

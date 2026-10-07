@@ -12,6 +12,7 @@ import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { useRouter } from "@/shared/navigation/router";
 import { useAuth } from "@/domain/session/session-context";
+import { LoadingIndicator } from "@/shared/ui/loading-indicator";
 import { trpc } from "@/shared/api/trpc";
 import {
   PEN_PAL_INTERESTS,
@@ -173,7 +174,7 @@ export function PenPals({ onClose }: PenPalsProps) {
         <div
           className={["ui-stack ", classes.centered].filter(Boolean).join(" ")}
         >
-          <Spinner color={OLIVE} />
+          <LoadingIndicator label="Проверяем доступ…" />
         </div>
       ) : !isAuthenticated ? (
         <div

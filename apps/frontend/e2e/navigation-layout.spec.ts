@@ -36,7 +36,7 @@ async function checkChrome(page: Page) {
 }
 
 for (const subscribed of [false, true]) {
-  test(`all main screens keep both navigation bars while scrolling (${subscribed ? "member" : "guest"})`, async ({
+  test(`all main screens hide and restore the header while keeping bottom navigation (${subscribed ? "member" : "guest"})`, async ({
     page,
   }) => {
     await layoutApi(page, subscribed);
@@ -71,9 +71,29 @@ for (const subscribed of [false, true]) {
           );
         }),
       ).toBeLessThanOrEqual(1);
-      expect(await page.locator(headerSelector).boundingBox()).toEqual(
-        before.top,
+      const position = await scroll.evaluate((node) => node.scrollTop);
+      if (position > 20) {
+        await expect(page.locator(headerSelector)).toHaveAttribute(
+          "data-hidden",
+          "true",
+        );
+        await expect
+          .poll(async () => {
+            const box = (await page.locator(headerSelector).boundingBox())!;
+            return box.y + box.height;
+          })
+          .toBeLessThanOrEqual(0);
+      }
+      await scroll.evaluate((node) => {
+        node.scrollTop = 0;
+      });
+      await expect(page.locator(headerSelector)).toHaveAttribute(
+        "data-hidden",
+        "false",
       );
+      await expect
+        .poll(() => page.locator(headerSelector).boundingBox())
+        .toEqual(before.top);
       expect(await page.locator(tabsSelector).boundingBox()).toEqual(
         before.bottom,
       );

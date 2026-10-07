@@ -1,0 +1,83 @@
+@use "../styles/layers";
+
+@layer elements {
+  .content {
+    width: 100%;
+    padding: 0 20px 24px;
+  }
+  .frames {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .card {
+    min-width: 0;
+    overflow: hidden;
+    border-radius: 16px;
+  }
+  .cover,
+  .line {
+    background: rgba(139, 115, 85, 0.09);
+  }
+  .cover {
+    aspect-ratio: 16 / 9;
+  }
+  .lines {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+  .line {
+    height: 12px;
+    border-radius: 3px;
+    width: 78%;
+  }
+  .line:last-child {
+    width: 48%;
+  }
+  .feed .cover {
+    aspect-ratio: 4 / 3;
+  }
+  // Match the video's title/meta line boxes and spacing, not just its cover.
+  .video .lines {
+    gap: 6px;
+  }
+  .video .line {
+    height: 21px;
+  }
+  .video .line:last-child {
+    height: 18px;
+  }
+  .feed .card,
+  .video .card {
+    background: rgba(253, 248, 240, 0.65);
+  }
+  .library .frames {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .library .cover {
+    aspect-ratio: 3 / 4;
+  }
+  .library .card {
+    border-radius: 4px;
+  }
+  .library .lines {
+    padding: 10px 0;
+  }
+  .article {
+    padding-top: 24px;
+  }
+  .article .lines {
+    padding: 0;
+    gap: 14px;
+  }
+  .article .line {
+    width: 100%;
+  }
+  .article .line:last-child {
+    width: 65%;
+  }
+}

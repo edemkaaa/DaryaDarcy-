@@ -1,0 +1,43 @@
+// Retained tabs render outside the changing route subtree. Their CSS must be
+// available before the first frame; keep JS/components lazy in tab-screens.
+// Include the static stylesheet dependencies of the six tab entry points here.
+import "@/domain/content/rich-text-renderer.module.scss";
+import "@/features/admin/admin-fab.module.scss";
+import "@/features/admin/post-management.module.scss";
+import "@/features/club/club-comments.module.scss";
+import "@/features/club/club-post-card.module.scss";
+import "@/features/club/club-screen.module.scss";
+import "@/features/club/club-subscribed.module.scss";
+import "@/features/club/club-testimonials.module.scss";
+import "@/features/club/pen-pals.module.scss";
+import "@/features/club/profile-setup.module.scss";
+import "@/features/club/tag-board-drawer.module.scss";
+import "@/features/feed/feed-grid-item.module.scss";
+import "@/features/feed/feed-screen.module.scss";
+import "@/features/feed/post-card.module.scss";
+import "@/features/legal/contact-email-footer.module.scss";
+import "@/features/legal/legal-documents-footer.module.scss";
+import "@/features/library/library-screen.module.scss";
+import "@/features/quiz/interactive-screen.module.scss";
+import "@/features/shop/shelf-item.module.scss";
+import "@/features/shop/shelf-label.module.scss";
+import "@/features/shop/shop-screen.module.scss";
+import "@/features/videos/videos-screen.module.scss";
+import "@/shared/browser/gestures.module.scss";
+import "@/shared/media/audio-player.module.scss";
+import "@/shared/media/avatar-cropper.module.scss";
+import "@/shared/media/document-attachment.module.scss";
+import "@/shared/media/image.module.scss";
+import "@/shared/media/natural-photo-stack.module.scss";
+import "@/shared/media/photo-dots.module.scss";
+import "@/shared/media/photo-viewer.module.scss";
+import "@/shared/media/post-photo-carousel.module.scss";
+import "@/shared/media/video-grid-cell.module.scss";
+import "@/shared/media/video-preview.module.scss";
+import "@/shared/ui/collection.module.scss";
+import "@/shared/ui/content-placeholder.module.scss";
+import "@/shared/ui/icons.module.scss";
+import "@/shared/ui/post-menu-button.module.scss";
+import "@/shared/ui/query-retry-state.module.scss";
+import "@/shared/ui/screen-container.module.scss";
+import "@/shared/ui/scroll-to-top-button.module.scss";

@@ -141,15 +141,18 @@
     flex: 1;
     justify-content: center;
     align-items: center;
-  }
-
-  .list {
-    overflow: visible;
+    padding: clamp(8px, 3dvh, 24px) 24px;
   }
 
   .collectioncontent {
     padding-top: 4px;
     margin-top: -16px;
+    // The header owns the same slot while loading, on failure and with data.
+    // Fill the remaining viewport so retry stays centered and reachable.
+    min-height: calc(100% + 16px);
+  }
+  .collectioncontent > [aria-hidden] {
+    height: 0;
   }
 
   .separator {

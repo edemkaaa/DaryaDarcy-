@@ -1,6 +1,7 @@
 "use client";
 import classes from "./calendar-tracker.module.scss";
-import { Spinner, Action, Typography } from "@/shared/ui/elements";
+import { Action, Typography } from "@/shared/ui/elements";
+import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { useState, useMemo } from "react";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
@@ -104,7 +105,7 @@ export function CalendarTracker({
           .filter(Boolean)
           .join(" ")}
       >
-        <Spinner size="large" color={ACCENT} />
+        <ContentPlaceholder />
       </div>
     );
   }

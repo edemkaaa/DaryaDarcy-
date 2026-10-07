@@ -4,7 +4,6 @@ import {
   Action,
   Typography,
   Background,
-  Spinner,
   ScrollArea,
   Field,
 } from "@/shared/ui/elements";
@@ -26,6 +25,8 @@ import { AESTHETIC_NAMES, type AestheticKey } from "@/domain/quiz/quiz-data";
 import { useRouter } from "@/shared/navigation/router";
 import { useFocusEffect } from "@/shared/navigation/router";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { LoadingIndicator } from "@/shared/ui/loading-indicator";
+import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { trpc } from "@/shared/api/trpc";
 import type { ApiOutputs } from "@/shared/api/types";
 import { useCapabilities } from "@/shared/api/capabilities";
@@ -292,7 +293,7 @@ export default function ProfileScreen() {
           fit="cover"
           className={classes.background}
         >
-          <Spinner color={BROWN_MUTED} />
+          <LoadingIndicator label="Проверяем доступ…" />
         </Background>
       </ScreenContainer>
     );
@@ -608,7 +609,7 @@ export default function ProfileScreen() {
                   .filter(Boolean)
                   .join(" ")}
               >
-                <Spinner color={BROWN_MUTED} />
+                <ContentPlaceholder kind="feed" />
               </div>
             ) : savedFromApi.isError ? (
               <QueryRetryState

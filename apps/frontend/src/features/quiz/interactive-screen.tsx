@@ -1,4 +1,5 @@
 "use client";
+import { InteractiveBanner } from "./interactive-banner";
 import classes from "./interactive-screen.module.scss";
 import {
   Background,
@@ -11,12 +12,9 @@ import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 
 import { useRouter } from "@/shared/navigation/router";
-import Animated, { FadeInDown, FadeIn } from "@/shared/browser/motion";
+import Animated, { FadeInDown } from "@/shared/browser/motion";
 import { PAPER_TEXTURE_URI } from "./interactive-screen.content";
 const quizCover = { uri: "/assets/interactive/quiz-cover.jpg" };
-const ivyLeft = { uri: "/assets/interactive/ivy-left.png" };
-const ivyRight = { uri: "/assets/interactive/ivy-right.png" };
-const keyDecor = { uri: "/assets/interactive/key-decor.png" };
 export default function InteractiveScreen() {
   const router = useRouter();
   return (
@@ -28,35 +26,7 @@ export default function InteractiveScreen() {
       >
         <ScrollArea hideScrollbar contentClassName={classes.scrollContent}>
           {/* Header: key + title + subtitle + ivy */}
-          <Animated.div
-            entering={FadeIn.duration(600)}
-            className={classes.headerSection}
-          >
-            {/* Key centered on top */}
-            <Picture
-              source={keyDecor}
-              contentFit="contain"
-              className={classes.keyDecor}
-            />
-            {/* Title */}
-            <Typography className={classes.headerTitle}>ИНТЕРАКТИВ</Typography>
-            {/* Subtitle */}
-            <Typography className={classes.headerSubtitle}>
-              тесты, игры, творческие задания
-            </Typography>
-
-            {/* Ivy branches - absolute, visible here, tails extend below */}
-            <Picture
-              source={ivyRight}
-              contentFit="contain"
-              className={classes.ivyLeft}
-            />
-            <Picture
-              source={ivyLeft}
-              contentFit="contain"
-              className={classes.ivyRight}
-            />
-          </Animated.div>
+          <InteractiveBanner />
 
           {/* Cards - elevated zIndex so they cover ivy tails */}
           <div

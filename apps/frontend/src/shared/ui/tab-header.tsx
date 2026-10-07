@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import type { Ref } from "react";
 import classes from "./tab-header.module.scss";
 import { useRouter } from "@/shared/navigation/router";
 import { TabMusicToggle } from "@/shared/ui/tab-music-toggle";
@@ -10,15 +11,18 @@ export function TabHeader({
   variant = "default",
   showBack = false,
   musicUrl,
+  headerRef,
 }: {
   overlay?: boolean;
   variant?: "default" | "home" | "shop";
   showBack?: boolean;
   musicUrl?: string;
+  headerRef?: Ref<HTMLElement>;
 }) {
   const router = useRouter();
   return (
     <header
+      ref={headerRef}
       aria-label="Навигация профиля"
       className={[
         classes.header,

@@ -145,7 +145,9 @@ test("a delayed tab transition gives feedback without shifting the menu or waiti
     await target.click();
     await expect(page).toHaveURL(/\/videos$/);
     await expect(target).toHaveAttribute("aria-current", "page");
-    await expect(page.locator("main .ui-spinner")).toBeVisible();
+    await expect(
+      page.locator('[data-content-placeholder="video"]'),
+    ).toBeVisible();
     await expect(target.locator('[aria-busy="true"]')).toHaveCount(0);
     expect(await page.locator(menu).boundingBox()).toEqual(before);
     expect(await nav.evaluate((node) => node.isConnected)).toBe(true);

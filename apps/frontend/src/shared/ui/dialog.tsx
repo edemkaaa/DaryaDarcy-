@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 const dialogStack: HTMLElement[] = [];
 const originalInert = new Map<HTMLElement, boolean>();
 function syncDialogBackground() {
@@ -30,17 +31,22 @@ export function Dialog({
   motion = "none",
   children,
 }: DialogProps) {
+  const active = useScreenActive();
+  const visible = open && active;
   const node = useRef<HTMLDivElement | null>(null),
     close = useRef(onClose);
   const trigger = useRef<HTMLElement | null>(null);
   // Capture before a newly mounted input can autofocus inside the portal.
-  if (!open) trigger.current = null;
+  if (!visible) trigger.current = null;
   else if (!trigger.current && typeof document !== "undefined")
     trigger.current = document.activeElement as HTMLElement | null;
   close.current = onClose;
   useEffect(() => {
+    if (!active && open) close.current?.();
+  }, [active, open]);
+  useEffect(() => {
     const current = node.current;
-    if (!open || !current) return;
+    if (!visible || !current) return;
     const previous = trigger.current;
     dialogStack.push(current);
     syncDialogBackground();
@@ -110,8 +116,8 @@ export function Dialog({
       if (wasTop && previous?.isConnected && !previous.closest("[inert]"))
         previous.focus();
     };
-  }, [open]);
-  if (!open || typeof document === "undefined") return null;
+  }, [visible]);
+  if (!visible || typeof document === "undefined") return null;
   return createPortal(
     <div
       className={`ui-dialog ui-dialog-${motion}`}

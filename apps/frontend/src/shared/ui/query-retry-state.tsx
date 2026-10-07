@@ -1,7 +1,8 @@
 "use client";
 import classes from "./query-retry-state.module.scss";
 import { type CSSProperties, mergeStyles } from "@/shared/ui/css";
-import { Spinner, Typography, Action } from "@/shared/ui/elements";
+import { Typography, Action } from "@/shared/ui/elements";
+import { LoadingIndicator } from "./loading-indicator";
 type Props = {
   isLoading: boolean;
   isError: boolean;
@@ -11,8 +12,9 @@ type Props = {
   style?: CSSProperties;
   className?: string;
   children?: React.ReactNode;
+  loadingContent?: React.ReactNode;
+  loadingSize?: "small" | "large";
 };
-const OLIVE = "#6B7B5E";
 export function QueryRetryState({
   isLoading,
   isError,
@@ -22,8 +24,11 @@ export function QueryRetryState({
   style,
   className = "",
   children,
+  loadingContent,
+  loadingSize = "large",
 }: Props) {
   if (isLoading && !hasData) {
+    if (loadingContent !== undefined) return <>{loadingContent}</>;
     return (
       <div
         style={mergeStyles(style)}
@@ -31,8 +36,7 @@ export function QueryRetryState({
           .filter(Boolean)
           .join(" ")}
       >
-        <Spinner size="large" color={OLIVE} />
-        <Typography className={classes.hint}>Загрузка…</Typography>
+        <LoadingIndicator size={loadingSize} />
       </div>
     );
   }

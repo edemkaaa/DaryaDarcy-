@@ -129,9 +129,12 @@
     font-family: var(--font-italic);
   }
 
-  .requestContent {
+  .requestList {
     flex: 1 0 auto;
     min-height: 100%;
+  }
+  .requestList > [aria-hidden] {
+    height: 0;
   }
 
   .requestState {

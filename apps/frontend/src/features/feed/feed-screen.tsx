@@ -6,7 +6,6 @@ import {
   Action,
   Typography,
   ScrollArea,
-  Spinner,
   Collection,
 } from "@/shared/ui/elements";
 import { PostCard } from "./post-card";
@@ -16,10 +15,13 @@ import { postDisplayDate } from "@/domain/post/post-date";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
+import { LoadingIndicator } from "@/shared/ui/loading-indicator";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 
 import { trpc } from "@/shared/api/trpc";
 import { useRouter } from "@/shared/navigation/router";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { usePostInteractions } from "@/domain/post/use-post-interactions";
 import { PostInteractionStatus } from "@/domain/post/post-interaction-status";
 
@@ -36,7 +38,6 @@ import {
   GRID_COLUMNS,
   CREAM_BG,
   BROWN_LIGHT,
-  GREEN_ACCENT,
   DEFAULT_TAGS,
   FEED_BANNER_URI,
 } from "./feed-screen.content";
@@ -98,6 +99,7 @@ function normalizeFeedPost(
   };
 }
 export default function FeedScreen() {
+  const active = useScreenActive();
   const browserCalendar = useBrowserReady();
   const router = useRouter();
   const { user, isOwner } = useAuth();
@@ -135,11 +137,13 @@ export default function FeedScreen() {
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       staleTime: 30_000,
+      enabled: active,
     },
   );
   // Fetch tags from API
   const { data: apiTags } = trpc.feed.tags.useQuery(undefined, {
     staleTime: 30_000,
+    enabled: active,
   });
   // Use API data or fallback to mock
   const TAGS: Tag[] = useMemo(() => {
@@ -425,16 +429,7 @@ export default function FeedScreen() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
   const renderFooter = () => {
     if (isFetchingNextPage) {
-      return (
-        <div
-          className={["ui-stack ", classes.footerLoader]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <Spinner size="small" color={GREEN_ACCENT} />
-          <Typography className={classes.footerText}>Загрузка...</Typography>
-        </div>
-      );
+      return <LoadingIndicator size="small" />;
     }
     if (!hasNextPage && posts.length > 0) {
       return (
@@ -451,27 +446,24 @@ export default function FeedScreen() {
     }
     return null;
   };
-  // Keep the header above the request state, in the same position as the list.
-  if ((isLoading || isError) && !paginatedData) {
-    return (
-      <ScreenContainer>
-        {renderHeader()}
-        <ScrollArea hideScrollbar contentClassName={classes.requestContent}>
-          <QueryRetryState
-            isLoading={isLoading}
-            isError={isError}
-            message="Не удалось загрузить ленту"
-            onRetry={() => void refetch()}
-            className={classes.requestState}
-          />
-        </ScrollArea>
-      </ScreenContainer>
-    );
-  }
+  const requestPending = (isLoading || isError) && !paginatedData;
+  const empty = requestPending ? (
+    <QueryRetryState
+      isLoading={isLoading}
+      loadingContent={<ContentPlaceholder kind="feed" />}
+      isError={isError}
+      message="Не удалось загрузить ленту"
+      onRetry={() => void refetch()}
+      className={classes.requestState}
+    />
+  ) : isError ? null : (
+    <Typography className={classes.typography}>Публикаций пока нет</Typography>
+  );
   return (
     <ScreenContainer>
       {viewMode === "feed" ? (
         <Collection
+          revealItems
           ref={listRef}
           key="feed"
           data={posts}
@@ -479,22 +471,19 @@ export default function FeedScreen() {
           keyExtractor={(item) => item.id.toString()}
           header={renderHeader()}
           footer={renderFooter()}
-          empty={
-            isError ? null : (
-              <Typography className={classes.typography}>
-                Публикаций пока нет
-              </Typography>
-            )
-          }
+          empty={empty}
           hideScrollbar
           onLoadMore={handleLoadMore}
           loadMoreThreshold={0.5}
           refreshing={refreshing}
           onRefresh={onRefresh}
-          contentClassName={classes.listContent}
+          contentClassName={
+            requestPending ? classes.requestList : classes.listContent
+          }
         />
       ) : (
         <Collection
+          revealItems
           ref={listRef}
           key="grid"
           data={posts}
@@ -503,19 +492,15 @@ export default function FeedScreen() {
           columns={GRID_COLUMNS}
           header={renderHeader()}
           footer={renderFooter()}
-          empty={
-            isError ? null : (
-              <Typography className={classes.typography}>
-                Публикаций пока нет
-              </Typography>
-            )
-          }
+          empty={empty}
           hideScrollbar
           onLoadMore={handleLoadMore}
           loadMoreThreshold={0.5}
           refreshing={refreshing}
           onRefresh={onRefresh}
-          contentClassName={classes.listContent}
+          contentClassName={
+            requestPending ? classes.requestList : classes.listContent
+          }
           rowClassName={classes.gridRow}
         />
       )}

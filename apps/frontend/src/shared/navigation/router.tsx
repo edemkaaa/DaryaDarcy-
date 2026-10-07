@@ -4,6 +4,7 @@ import { useEffect, useMemo, type ReactNode } from "react";
 import NextLink from "next/link";
 import { hasAppHistory } from "./history";
 import { parentRoute } from "./parent-route";
+import { useScreenActive } from "./screen-activity";
 type Destination =
   | string
   | {
@@ -43,10 +44,11 @@ export function useRouter() {
 export type Router = ReturnType<typeof useRouter>;
 export function useFocusEffect(effect: () => void | (() => void)) {
   const path = usePathname();
-  useEffect(effect, [effect, path]);
+  const active = useScreenActive();
+  useEffect(() => (active ? effect() : undefined), [effect, path, active]);
 }
 export function useIsFocused() {
-  return true;
+  return useScreenActive();
 }
 export const Link = ({
   href,

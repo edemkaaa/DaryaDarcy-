@@ -1,9 +1,15 @@
-import { Spinner } from "@/shared/ui/elements";
-export default function RouteLoading() {
+import { ScreenContainer } from "./screen-container";
+export default function RouteLoading({ path }: { path?: string } = {}) {
   return (
-    <div className="route-loading" role="status" aria-live="polite">
-      <Spinner />
-      <span>Загрузка страницы…</span>
-    </div>
+    <ScreenContainer>
+      <div
+        className="ui-route-loading"
+        data-loading-screen={path}
+        role="status"
+        aria-label="Открываем раздел"
+      >
+        <span aria-hidden="true">Открываем раздел…</span>
+      </div>
+    </ScreenContainer>
   );
 }

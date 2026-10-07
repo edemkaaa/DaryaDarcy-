@@ -161,6 +161,7 @@ export function TagBoardDrawer({
         id={drawerId}
         role="region"
         aria-label="Фильтры клуба"
+        data-scroll-header="ignore"
         aria-hidden={!isOpen}
         inert={!isOpen}
         onKeyDown={(event) => {
