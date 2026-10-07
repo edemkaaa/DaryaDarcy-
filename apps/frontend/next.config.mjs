@@ -28,6 +28,9 @@ export default {
   },
   experimental: {
     imgOptConcurrency: 1,
+    // Keep decoded source images out of the native operation cache.
+    // Compressed previews still use the bounded persistent disk cache.
+    imgOptOperationCache: false,
     imgOptMaxInputPixels: 20_000_000,
     imgOptTimeoutInSeconds: 10,
   },

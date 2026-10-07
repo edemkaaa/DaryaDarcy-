@@ -5,6 +5,8 @@ services:
     networks: [isolated, image-egress]
     environment:
       MALLOC_ARENA_MAX: "2"
+      # Sharp concurrency limits threads per image, not simultaneous images.
+      UV_THREADPOOL_SIZE: "1"
     volumes:
       - image-cache:/app/apps/frontend/.next/cache/images
 networks:
