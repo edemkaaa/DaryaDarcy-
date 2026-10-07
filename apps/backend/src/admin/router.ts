@@ -7,6 +7,7 @@ import { createPostInput, updatePostInput } from "../content/post-write-input";
 import type { ContentUploadService } from "../content/content-upload.service";
 import { mediaUploadInput } from "../content/media-upload-input";
 import type { ContentReadService } from "../content/content-read.service";
+import { importVideosInput } from "../content/video-import-input";
 
 export const createAdminRouter = (
   content: ContentReadService,
@@ -158,35 +159,8 @@ export const createAdminRouter = (
 
   // Import YouTube videos (admin only)
   importVideos: adminProcedure
-    .input(
-      z.object({
-        videos: z.array(
-          z.object({
-            youtubeId: z.string(),
-            title: z.string(),
-            duration: z.string().optional(),
-            thumbnailUrl: z.string().optional(),
-            views: z.string().optional(),
-            publishedText: z.string().optional(),
-          }),
-        ),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const items = input.videos.map((v, i) => ({
-        youtubeId: v.youtubeId,
-        title: v.title,
-        duration: v.duration ?? null,
-        thumbnailUrl: v.thumbnailUrl ?? null,
-        videoUrl: null,
-        views: v.views ?? null,
-        publishedText: v.publishedText ?? null,
-        sortOrder: i,
-        published: true,
-      }));
-      const count = await db.bulkImportVideos(items);
-      return { imported: count };
-    }),
+    .input(importVideosInput)
+    .mutation(({ input }) => posts.importVideos(input)),
 
   /** Remove push tokens when deleting/deactivating a user account (manual deletion workflow). */
   purgeUserPushData: adminProcedure

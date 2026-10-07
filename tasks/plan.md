@@ -2026,3 +2026,33 @@ schedule/retention/locking/lastBackupAt behavior unchanged. No frontend, schema,
 dependency, authentication, payment, shared-server, remote push or deployment
 changes. Native MySQL option parsing/restore and real S3 acceptance not run;
 off-site retry/durability, worker lifecycle and production restore stay open.
+
+## 2026-10-07 — admin video import: injected content service
+
+Continue non-payment backend work from b272823. Move admin.importVideos metadata
+mapping and persistence orchestration out of the tRPC router into the existing
+Nest-managed ContentWriteService. Extract the existing Zod schema unchanged;
+derive the service input from its validated output instead of duplicating a
+wire type. This is service wiring, not new import functionality or a SQL repair.
+
+Characterization baseline: 67 focused checks pass before production changes.
+Two additional native HTTP cases first fail because the old router bypasses
+the supplied provider; all 69 focused checks pass after wiring (35 in the admin
+maintenance file). Twelve new cases cover injected outcome/refusal, ordered
+metadata, missing values as null, preserved empty strings/title whitespace,
+helper count rather than input length, empty input, malformed metadata,
+guest/member/moderator/blocked-admin refusal and safe persistence errors.
+Unknown client fields remain stripped; existing published/videoUrl values and
+authorization are unchanged. Session lookup and selected provider or SQL helper
+are doubled; real HTTP/composition/validation/error formatting run locally.
+
+Fresh Node 22 gates: 851 non-MySQL pass / 4 skip; types, 351.7 KiB backend build,
+unchanged 72-procedure/25461-byte API, 473-file boundaries and existing
+frontend-only lint pass. No backend ESLint claim. Five-axis self-review:
+reuse the existing injected service, no service locator, schema tightening,
+extra query, dependency or authentication/CORS/quota policy change; await the
+existing helper and propagate failures without inventing successful imports.
+Remaining admin wiring stays open. Docker returns EOF, so actual MySQL writes,
+check-then-insert deduplication, concurrent imports and rollback are not verified
+or fixed here. No frontend/generated-file edits, payment configuration,
+shared-server mutation, remote push or deployment.

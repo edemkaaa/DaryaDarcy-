@@ -8,6 +8,7 @@ import * as db from "../db";
 import { sendMarketingPostNotification } from "../push";
 import { postCreationIntent } from "./post-creation-request";
 import type { CreatePostInput, UpdatePostInput } from "./post-write-input";
+import type { ImportVideosInput } from "./video-import-input";
 
 /** The adapter authorizes/validates inputs; existing helpers own transactions. */
 @Injectable()
@@ -50,6 +51,22 @@ export class ContentWriteService {
   async cleanupMediaNames(): Promise<{ ok: true }> {
     await db.clearRawCameraFilenames();
     return { ok: true };
+  }
+
+  async importVideos(input: ImportVideosInput): Promise<{ imported: number }> {
+    const items = input.videos.map((video, index) => ({
+      youtubeId: video.youtubeId,
+      title: video.title,
+      duration: video.duration ?? null,
+      thumbnailUrl: video.thumbnailUrl ?? null,
+      videoUrl: null,
+      views: video.views ?? null,
+      publishedText: video.publishedText ?? null,
+      sortOrder: index,
+      published: true,
+    }));
+    const count = await db.bulkImportVideos(items);
+    return { imported: count };
   }
 
   async createPost(

@@ -18,9 +18,10 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import { ContentWriteService } from "../apps/backend/src/content/content-write.service";
 import { SessionService } from "../apps/backend/src/identity/session.service";
 import type { AppRouter } from "../apps/backend/src/routers";
+import * as db from "../apps/backend/src/db";
 
-// Native HTTP/composition/auth middleware; only session lookup and the selected
-// content provider are doubled. This does not claim JWT or MySQL acceptance.
+// Native HTTP/composition/auth middleware; session lookup and the selected
+// provider or persistence boundary are doubled. No JWT or MySQL acceptance claim.
 describe("native admin content maintenance service boundary", () => {
   let application: INestApplication;
   let writes: ContentWriteService;
@@ -206,6 +207,180 @@ describe("native admin content maintenance service boundary", () => {
   it("keeps cleanup's existing no-database no-op response", async () => {
     expect(await client().admin.cleanupMediaNames.mutate()).toEqual({
       ok: true,
+    });
+  });
+
+  describe("video metadata import", () => {
+    it("returns the injected import service outcome with validated input", async () => {
+      let received: unknown;
+      Object.defineProperty(writes, "importVideos", {
+        configurable: true,
+        value: async (input: unknown) => {
+          received = input;
+          return { imported: 7 };
+        },
+      });
+      try {
+        const input = {
+          videos: [{ youtubeId: "first", title: "Title", published: false }],
+          bypass: "ignored",
+        };
+        expect(await client().admin.importVideos.mutate(input)).toEqual({
+          imported: 7,
+        });
+        expect(received).toEqual({
+          videos: [{ youtubeId: "first", title: "Title" }],
+        });
+      } finally {
+        Reflect.deleteProperty(writes, "importVideos");
+      }
+    });
+
+    it("keeps a domain refusal from the injected import service", async () => {
+      Object.defineProperty(writes, "importVideos", {
+        configurable: true,
+        value: async () => {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "synthetic import refusal",
+          });
+        },
+      });
+      try {
+        await expect(
+          client().admin.importVideos.mutate({
+            videos: [{ youtubeId: "first", title: "Title" }],
+          }),
+        ).rejects.toMatchObject({
+          message: "synthetic import refusal",
+          data: { code: "CONFLICT", httpStatus: 409 },
+        });
+      } finally {
+        Reflect.deleteProperty(writes, "importVideos");
+      }
+    });
+
+    it("keeps ordered metadata, null defaults and the persistence count", async () => {
+      let persisted: Parameters<typeof db.bulkImportVideos>[0] | undefined;
+      vi.spyOn(db, "bulkImportVideos").mockImplementation(async (items) => {
+        persisted = items;
+        return 1;
+      });
+      expect(
+        await client().admin.importVideos.mutate({
+          videos: [
+            { youtubeId: "first", title: "  Original title  " },
+            {
+              youtubeId: "second",
+              title: "Second",
+              duration: "",
+              thumbnailUrl: "https://assets.example.test/cover.jpg",
+              views: "300",
+              publishedText: "yesterday",
+            },
+          ],
+        }),
+      ).toEqual({ imported: 1 });
+      expect(persisted).toEqual([
+        {
+          youtubeId: "first",
+          title: "  Original title  ",
+          duration: null,
+          thumbnailUrl: null,
+          videoUrl: null,
+          views: null,
+          publishedText: null,
+          sortOrder: 0,
+          published: true,
+        },
+        {
+          youtubeId: "second",
+          title: "Second",
+          duration: "",
+          thumbnailUrl: "https://assets.example.test/cover.jpg",
+          videoUrl: null,
+          views: "300",
+          publishedText: "yesterday",
+          sortOrder: 1,
+          published: true,
+        },
+      ]);
+    });
+
+    it("preserves the empty import response without inventing records", async () => {
+      let persisted: Parameters<typeof db.bulkImportVideos>[0] | undefined;
+      vi.spyOn(db, "bulkImportVideos").mockImplementation(async (items) => {
+        persisted = items;
+        return 0;
+      });
+      expect(await client().admin.importVideos.mutate({ videos: [] })).toEqual({
+        imported: 0,
+      });
+      expect(persisted).toEqual([]);
+    });
+
+    it.each([
+      { videos: [{ youtubeId: "missing-title" }] },
+      {
+        videos: [
+          { youtubeId: "null-metadata", title: "Title", duration: null },
+        ],
+      },
+      { videos: "not-an-array" },
+    ])("rejects malformed metadata before persistence (%#)", async (input) => {
+      vi.spyOn(db, "bulkImportVideos").mockImplementation(async () => {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "validation bypassed",
+        });
+      });
+      await expect(
+        client().admin.importVideos.mutate(
+          input as unknown as Parameters<
+            ReturnType<typeof client>["admin"]["importVideos"]["mutate"]
+          >[0],
+        ),
+      ).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST", httpStatus: 400 },
+      });
+    });
+
+    it.each(["guest", "user", "moderator", "blocked-admin"] as const)(
+      "denies video import for %s",
+      async (access) => {
+        actor =
+          access === "guest"
+            ? null
+            : {
+                ...administrator,
+                role: access === "blocked-admin" ? "admin" : access,
+                blockedAt: access === "blocked-admin" ? new Date() : null,
+              };
+        await expect(
+          client().admin.importVideos.mutate({
+            videos: [{ youtubeId: "first", title: "Title" }],
+          }),
+        ).rejects.toMatchObject({
+          data: {
+            code: access === "guest" ? "UNAUTHORIZED" : "FORBIDDEN",
+            httpStatus: access === "guest" ? 401 : 403,
+          },
+        });
+      },
+    );
+
+    it("does not expose a failed persistence operation as a successful import", async () => {
+      vi.spyOn(db, "bulkImportVideos").mockRejectedValue(
+        new Error("synthetic private SQL error"),
+      );
+      await expect(
+        client().admin.importVideos.mutate({
+          videos: [{ youtubeId: "first", title: "Title" }],
+        }),
+      ).rejects.toMatchObject({
+        message: "Внутренняя ошибка сервера",
+        data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+      });
     });
   });
 });
