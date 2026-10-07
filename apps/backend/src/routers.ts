@@ -1,7 +1,8 @@
 import { router } from "./_core/trpc";
 import { systemRouter } from "./_core/systemRouter";
 import { authRouter } from "./identity/router";
-import { profileRouter, profileExtrasRouter } from "./profile/router";
+import { createProfileRouter, createProfileExtrasRouter } from "./profile/router";
+import { ProfileService } from "./profile/profile.service";
 import { createVideosRouter } from "./content/videos-router";
 import { createAdminRouter } from "./admin/router";
 import { penPalsRouter } from "./pen-pals/router";
@@ -28,11 +29,12 @@ export const createAppRouter = (
   uploads: ContentUploadService,
   billing: ClubBillingServices,
   notifications: NotificationsService,
+  profiles: ProfileService,
 ) =>
   router({
     system: systemRouter,
     auth: authRouter,
-    profile: profileRouter,
+    profile: createProfileRouter(profiles),
     feed: createFeedRouter(content, posts),
     notifications: createNotificationsRouter(notifications, content),
     videos: createVideosRouter(content),
@@ -41,7 +43,7 @@ export const createAppRouter = (
     penPals: penPalsRouter,
     shop: shopRouter,
     moderation: moderationRouter,
-    profileExtras: profileExtrasRouter,
+    profileExtras: createProfileExtrasRouter(profiles),
     articles: createArticlesRouter(content),
   });
 
@@ -57,6 +59,7 @@ export const appRouter = createAppRouter(
     subscriptions: new ClubSubscriptionService(),
   },
   new NotificationsService(),
+  new ProfileService(),
 );
 
 export type AppRouter = typeof appRouter;

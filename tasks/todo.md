@@ -750,6 +750,18 @@
     administrator purge with real HTTP/JWT/disposable MySQL. Reconsider existing
     no-DB write/no-op policy separately; migrate other
     remaining domains in their own slices. Local Docker still reports EOF.
+  - [x] Migrate profile update/avatar/deletion-request orchestration into an
+    explicit Nest-managed profile service; preserve schemas, session ownership,
+    protected access, canonical photo validation and upload-before-update order.
+    18 characterization checks pass before production changes; three expected
+    RED composition failures repaired. Final profile 24 pass, focused 128 pass;
+    a hidden-instance mutation fails three native HTTP assertions and is removed.
+    Full non-MySQL 925 pass / 4 skip; types/build/unchanged API/479-file boundaries/
+    frontend-only lint/docs pass. SQL/storage and both identity lookups are doubled;
+    the real photo decoder runs. No frontend/payment/provider/push/deployment work.
+  - [ ] Verify profile writes/avatar/deletion requests with real JWT/MySQL/S3;
+    address legacy no-DB profile success and orphaned uploads after SQL failure
+    separately. This slice does not implement immediate erasure/retention policy.
 - [ ] Final checkpoint: whole Nest runtime/MySQL/frontend flow, release rehearsal,
   audit triage/migration history/provider/SMTP/private-file gates and approved rollout.
 

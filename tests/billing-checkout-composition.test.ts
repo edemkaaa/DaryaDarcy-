@@ -8,6 +8,7 @@ import { ContentUploadService } from "../apps/backend/src/content/content-upload
 import { ClubSubscriptionService } from "../apps/backend/src/billing/club-subscription.service";
 import type { TrpcContext } from "../apps/backend/src/_core/context";
 import { NotificationsService } from "../apps/backend/src/notifications/notifications.service";
+import { ProfileService } from "../apps/backend/src/profile/profile.service";
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -24,6 +25,7 @@ function caller(checkout: {
     new ContentUploadService(),
     { checkout, subscriptions: new ClubSubscriptionService() },
     new NotificationsService(),
+    new ProfileService(),
   ).createCaller({ user: null, req: {}, res: {} } as TrpcContext);
 }
 

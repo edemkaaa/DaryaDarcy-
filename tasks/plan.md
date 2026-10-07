@@ -2175,3 +2175,69 @@ and real JWT sessions remain separate acceptance gates, not proven by these
 fixtures or missing-DB responses. Docker server read still returns EOF. No
 frontend/generated-file, payment configuration, shared-server, remote push or
 deployment changes; save the reviewed slice as a local atomic commit.
+
+## 2026-10-07 — profile use cases: M08 service slice
+
+Keep profile.update, profile.uploadAvatar and
+profileExtras.requestAccountDeletion on the same protected procedures and exact
+wire schemas. A small ProfileModule exports ProfileService to TrpcModule;
+explicit router factories receive that required service. The service owns
+profile mutation orchestration, not sessions, SQL internals, photo decoding or
+retention policy. Extract the existing update schema for its inferred input
+type; keep photoInput/uploadPhoto as the canonical photo boundary.
+
+Contract: always use the session user ID, strip unknown client ownership/role
+fields and preserve partial/empty updates and name whitespace. Avatar decoding
+and storage complete before writing the resulting URL to that user's profile;
+client filename/MIME never select the key or persisted URL. Await existing
+helpers before returning unchanged success/url/ok responses; propagate errors
+through the safe HTTP formatter. Request deletion only records a request, not
+immediate erasure. Retain current missing-DB differences: update no-op versus
+deletion failure; do not present no-ops as persistence acceptance.
+
+First characterize native HTTP ownership/validation/ordering/access/errors with
+synthetic sessions and SQL/storage boundaries, retaining the real photo decoder.
+Then reproduce supplied-service bypass before implementation, wire the domain
+and update explicit composition fixtures. Full non-MySQL/static/API/docs gates
+and five-axis review precede a local atomic commit. No new upload endpoint,
+provider, dependency, sensitive-data category, authorization/schema/retention
+policy, frontend/generated-file edit, payment work, remote push or deployment.
+Real JWT/MySQL/S3 acceptance remains separate from local fixture evidence.
+
+Execution: initial characterization had seven upload-path failures because
+the fixture doubled only the tRPC session lookup, not the earlier SDK identity
+lookup. Tracing request-bodies admission established its separate raw HTTP
+401/403 contract before parsing. Supply both synthetic identity lookups and
+assert that raw contract without changing production admission/authorization.
+All 18 characterization checks then pass before production changes.
+
+Three expected RED composition cases reproduce all profile operations ignoring
+the explicitly supplied profile dependency. After wiring the service/module,
+24 profile checks and 128 focused checks pass. Replacing the supplied dependency
+with a hidden new ProfileService instance deliberately fails all three native
+HTTP refusal tests; restore the supplied instance before final verification.
+Three existing composition fixtures now supply the required profile dependency;
+billing/notification expectations and runtime business logic are untouched.
+
+Five-axis self-review: profile-specific writes share one explicit domain owner,
+not the content/session service; transport retains schemas and protected access,
+while canonical photo decoding retains its limits, server-owned UUID/WebP key,
+EXIF stripping and upload-before-update sequence. No new external service,
+upload endpoint, extra SQL, schema, auth/quota/retention policy or repository
+layer. Preserve success's boolean type and deletion's literal true type.
+The first type gate catches an excess-property test literal; use a variable for
+the same ownership-spoofing HTTP input, without casts or weakened assertions.
+
+Known limitations remain explicit: missing-DB profile writes still report a
+legacy no-op success, failed avatar SQL writes leave the previously uploaded
+object, and deletion only records a request. Do not call those policies fixed,
+durable erasure verified or this migration production-ready. Actual JWT/MySQL
+and S3 acceptance need isolated dependencies; Docker server read returns EOF.
+No frontend/generated-file, payment/provider, shared-server, push or deployment
+changes. Final verification counts are recorded after the last test edit.
+
+Final fresh Node 22 verification: 925 non-MySQL pass / 4 skip; types,
+355.2 KiB backend build, unchanged 72-procedure/25461-byte API, 479-file
+dependency boundaries, existing frontend-only lint and documentation links pass.
+No backend ESLint or real persistence claim. Update the backend navigation and
+record remaining profile acceptance/policy tasks without closing M08 or rollout.
