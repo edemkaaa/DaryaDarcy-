@@ -1035,3 +1035,15 @@
       healthy, прежние образы/сети сохранены, 8 гостевых smoke проверок проходят.
       Общий локальный прогон: 1070 pass / 596 SQL/external skip; types/build/API/
       boundaries/docs проходят. Legacy preflight всё ещё блокирует 0017–0019.
+- [x] Кабинет тестового магазина 1489524: в Safari подтверждены сохранённые
+      уведомления `payment.succeeded` / `payment.canceled` на staging webhook.
+      Прежний `/library` заменён; обработчик ещё не выложен, это не приёмка оплаты.
+- [x] Подготовить и проверить opt-in payment-only gateway до изменения API-сетей.
+      На настоящем Docker: проверенный TLS к `/v3/me` → 401 без ключа;
+      неверный/пустой SNI и plaintext отвергаются; прямой TCP egress запрещён.
+      Два native-теста проходят, RED и mutation-проверка подтверждены.
+      Compose сохраняет существующие SMTP/video/image overlays. Временные
+      контейнеры/сети удалены; конфигурация не применена к рабочим сервисам.
+- [ ] Развернуть gateway вместе с готовым caller/backend и повторить review
+      зависимостей/доступов, затем настоящую sandbox-приёмку Y5. API пока isolated,
+      checkout закрыт; ключ/реальные деньги/новый frontend staging не подключены.

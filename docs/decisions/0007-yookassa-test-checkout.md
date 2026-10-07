@@ -47,6 +47,23 @@ purchase. Stage enablement needs a separately reviewed payment-only egress path,
 backup, migration preflight, cabinet webhook setup and real sandbox acceptance.
 Rollback preserves intent/receipt evidence; do not delete tables to roll back code.
 
+### Payment network boundary
+
+The opt-in [overlay](../../infrastructure/deploy/teamassist/compose.yookassa.yaml)
+places API on an additional **internal** `payment-control` network, never the
+external network. A separate, bounded, secret-free nginx stream gateway owns
+outbound access and the internal `api.yookassa.ru` DNS alias. It forwards only TLS
+with that SNI to fixed `api.yookassa.ru:443`; explicit external resolvers avoid
+resolving the alias back to itself. Node retains certificate verification; the
+gateway neither decrypts traffic nor retries upstream connections. DNS and the
+provider certificate remain trust dependencies, not arbitrary caller input.
+
+The [native checks](../../tests/yookassa-egress.native.test.mjs) exercise the pinned
+nginx image against the real unauthenticated provider and prove rejected
+wrong/missing SNI, plaintext and direct caller Internet access. This validates
+the egress boundary, not credentials, checkout, settlement or delivery. Keep the
+overlay opt-in until the caller and staging release gates pass.
+
 ### Existing staging baseline, 7 October
 
 The test stand was created directly from the canonical 28-table schema and has

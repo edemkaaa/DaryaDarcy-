@@ -1,0 +1,36 @@
+# Opt-in TEST-only payment egress, not permission to enable checkout.
+# Append to ALL existing SMTP/video/image overlays; do not replace them.
+services:
+  api:
+    networks: [isolated, payment-control]
+    depends_on:
+      payment-egress: { condition: service_healthy }
+  payment-egress:
+    image: nginx:stable-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
+    platform: linux/amd64
+    user: "101:101"
+    entrypoint: ["nginx", "-g", "daemon off;"]
+    networks:
+      payment-control:
+        aliases: [api.yookassa.ru]
+      payment-egress: {}
+    volumes: ["./yookassa-egress.conf:/etc/nginx/nginx.conf:ro"]
+    tmpfs: ["/tmp:size=16m,mode=1777,noexec,nosuid,nodev"]
+    read_only: true
+    mem_limit: 32m
+    cpus: 0.1
+    pids_limit: 32
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "2" }
+networks:
+  payment-control: { internal: true }
+  payment-egress: {}

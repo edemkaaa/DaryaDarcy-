@@ -2581,3 +2581,28 @@ history block and existing dependency findings (51: 1 critical / 20 high /
 step. Y4 caller, payment-scoped egress, merchant notifications and actual sandbox
 payment/email acceptance remain open. Cabinet was opened at its login page;
 authentication is a user action, not something the API key can replace.
+
+### Payment-only egress slice — 2026-10-07
+
+Cabinet inspection in Safari confirms test shop 1489524 now sends only
+`payment.succeeded` and `payment.canceled` to the approved staging webhook URL.
+The handler/caller are not deployed and this is not payment acceptance.
+
+Before changing any working service, exercise an opt-in nginx stream gateway
+and isolated Node probe on disposable Docker networks. The internal DNS alias
+`api.yookassa.ru` points at the gateway; its fixed upstream resolves using explicit
+external DNS, not Docker's self-referential alias. Require exactly that TLS SNI,
+reject plaintext/other SNI, retain end-to-end Node certificate verification and
+disable upstream retry. No TLS termination, secrets, generic CONNECT proxy,
+published port, or API attachment to an external network. Bound resources/time.
+
+Native acceptance must prove unauthenticated `/v3/me` reaches the real API with
+valid TLS (401, no payment creation), wrong/missing SNI and plaintext fail, and
+the probe cannot connect directly to the Internet. Exercise the actual pinned
+nginx configuration, not source-text assertions. Test RED before implementation,
+then GREEN; save aggregate evidence only. Preserve all working services/networks.
+
+This slice produces an opt-in Compose overlay, config, native acceptance and
+rollback notes. It does not enable checkout, deploy an unfinished caller, merge
+the new frontend staging commit, or alter the database. Caller/return lifecycle,
+fresh dependency reachability review and actual sandbox settlement remain gates.
