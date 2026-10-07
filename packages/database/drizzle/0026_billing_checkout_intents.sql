@@ -1,0 +1,21 @@
+CREATE TABLE `billing_checkout_intents` (
+  `intentKeyHash` varchar(64) NOT NULL,
+  `userId` int NOT NULL,
+  `shopId` varchar(20) NOT NULL,
+  `plan` enum('monthly','semiannual') NOT NULL,
+  `requestHash` varchar(64) NOT NULL,
+  `orderId` varchar(64) NOT NULL,
+  `requestBody` json NOT NULL,
+  `amountMinor` int NOT NULL,
+  `accessDays` int NOT NULL,
+  `firstSentAt` timestamp NULL,
+  `providerPaymentId` varchar(36),
+  `state` enum('creating','unknown','ready','succeeded','canceled') NOT NULL,
+  `leaseId` varchar(36),
+  `leaseUntil` timestamp NULL,
+  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`intentKeyHash`),
+  CONSTRAINT `billing_checkout_order` UNIQUE (`orderId`),
+  CONSTRAINT `billing_checkout_provider` UNIQUE (`shopId`,`providerPaymentId`),
+  INDEX `billing_checkout_user` (`userId`)
+) ENGINE=InnoDB;

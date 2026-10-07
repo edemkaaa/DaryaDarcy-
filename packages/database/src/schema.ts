@@ -274,6 +274,29 @@ export const clubPayments = mysqlTable("club_payments", {
 export type ClubPayment = typeof clubPayments.$inferSelect;
 export type InsertClubPayment = typeof clubPayments.$inferInsert;
 
+export const billingCheckoutIntents = mysqlTable("billing_checkout_intents", {
+  intentKeyHash: varchar("intentKeyHash", { length: 64 }).primaryKey(),
+  userId: int("userId").notNull(),
+  shopId: varchar("shopId", { length: 20 }).notNull(),
+  plan: mysqlEnum("plan", ["monthly", "semiannual"]).notNull(),
+  requestHash: varchar("requestHash", { length: 64 }).notNull(),
+  orderId: varchar("orderId", { length: 64 }).notNull().unique("billing_checkout_order"),
+  requestBody: json("requestBody").$type<Record<string, unknown>>().notNull(),
+  amountMinor: int("amountMinor").notNull(),
+  accessDays: int("accessDays").notNull(),
+  firstSentAt: timestamp("firstSentAt"),
+  providerPaymentId: varchar("providerPaymentId", { length: 36 }),
+  state: mysqlEnum("state", ["creating", "unknown", "ready", "succeeded", "canceled"]).notNull(),
+  leaseId: varchar("leaseId", { length: 36 }),
+  leaseUntil: timestamp("leaseUntil"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  unique("billing_checkout_provider").on(table.shopId, table.providerPaymentId),
+  index("billing_checkout_user").on(table.userId),
+]);
+
+export type BillingCheckoutIntent = typeof billingCheckoutIntents.$inferSelect;
+
 export const billingReceipts = mysqlTable("billing_receipts", {
   paymentKey: varchar("paymentKey", { length: 64 }).primaryKey(),
   userId: int("userId").notNull(),
