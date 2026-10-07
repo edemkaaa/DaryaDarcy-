@@ -2,9 +2,8 @@ import {
   router,
   publicProcedure,
   protectedProcedure,
-  userHasClubAccess,
 } from "../_core/trpc";
-import * as db from "../db";
+import type { ContentReadService } from "../content/content-read.service";
 import type { NotificationsService } from "./notifications.service";
 import {
   registerTokenInput,
@@ -13,6 +12,7 @@ import {
 
 export const createNotificationsRouter = (
   notifications: NotificationsService,
+  content: ContentReadService,
 ) =>
   router({
     // Register device push token (public - any device can register)
@@ -29,17 +29,7 @@ export const createNotificationsRouter = (
       .mutation(({ input, ctx }) =>
         notifications.setMarketingConsent(ctx.user.id, input),
       ),
-    latest: publicProcedure.query(async ({ ctx }) => {
-      const feed = await db.getLatestPublishedPost("feed");
-      let club: { id: number; text: string } | undefined;
-      if (ctx.user && (await userHasClubAccess(ctx.user))) {
-        club = await db.getLatestPublishedPost("club");
-      }
-      return {
-        feedId: feed?.id ?? null,
-        feedText: feed?.text ?? "",
-        clubId: club?.id ?? null,
-        clubText: club?.text ?? "",
-      };
-    }),
+    latest: publicProcedure.query(({ ctx }) =>
+      content.latestNotification(ctx.user),
+    ),
   });

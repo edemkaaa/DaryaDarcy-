@@ -2126,3 +2126,52 @@ persistence acceptance remain open. Docker server read returns EOF; no real
 JWT/MySQL replay, Expo/device delivery or production readiness is claimed.
 No frontend/generated-file, payment configuration, shared-server, remote push
 or deployment changes. Save this coherent slice as a local atomic commit.
+
+## 2026-10-07 — notifications.latest: M08 content-read slice
+
+Continue the existing backend migration with one unchanged public read. Move
+notifications.latest orchestration into the existing ContentReadService, passed
+explicitly to the notification router by the existing composition root. This
+removes storage/access orchestration from the HTTP adapter without another
+provider, repository, service locator or standalone fallback.
+
+Contract: read the latest published feed first; only then check the optional
+session user through the canonical userHasClubAccess policy and read club
+content if permitted. Guests, unpaid members and blocked users receive no club
+ID/text; staff retain current access. Return exactly feedId/feedText/clubId/
+clubText, preserving null IDs, empty text and nullish (not truthy) defaults.
+Keep helper ordering, missing-DB defaults and safe error formatting; no SQL,
+auth, schema, payment, quota, dependency or frontend/type changes.
+
+Verify current behavior over native HTTP before implementation, then reproduce
+provider bypass with injected outcome/refusal tests before wiring. Run focused
+and whole non-MySQL suites serially, types/build/API/boundary/lint/docs gates and
+five-axis self-review before a local atomic commit. Session lookup and selected
+SQL helpers may be doubled; these checks are not real JWT/MySQL acceptance.
+Docker server read currently returns EOF. No shared-server mutation, deployment
+or remote push in this slice; real persistence and worker tasks stay open.
+
+Execution: 16 added characterization cases pass before production changes
+(48 notification checks total). Two native HTTP RED tests then reproduce the
+old adapter ignoring the actual injected content provider's outcome/refusal.
+After wiring, all 50 notification checks and 123 focused checks pass. Coverage
+includes guest/unpaid/paid/staff/blocked access, query order and session user ID,
+independent absent feed/club defaults, zero IDs/empty text, no-DB defaults and
+safe failures at feed, membership and club reads without partial content.
+
+Fresh Node 22 gates: 901 non-MySQL pass / 4 skip; types, 353.7 KiB backend build,
+unchanged 72-procedure/25461-byte API, 476-file dependency boundaries, existing
+frontend-only lint and documentation links pass. No backend ESLint claim.
+Five-axis self-review: reuse the existing content owner and canonical club
+policy, keep the adapter declarative and require its supplied dependency; no
+hidden instance, extra query, parallelization/error-priority change, new layer,
+dependency or schema/auth/quota change. Only superseded router imports are
+removed; previously deferred db.ts dead-code cleanup stays untouched.
+
+Native HTTP uses the real Nest composition, tRPC transport and error formatter;
+session lookup and SQL helper boundaries are substituted for synthetic tests.
+MySQL publication filters/ordering, expiry calculations, durable persistence
+and real JWT sessions remain separate acceptance gates, not proven by these
+fixtures or missing-DB responses. Docker server read still returns EOF. No
+frontend/generated-file, payment configuration, shared-server, remote push or
+deployment changes; save the reviewed slice as a local atomic commit.

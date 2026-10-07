@@ -12,7 +12,7 @@ import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
 import { createTRPCProxyClient, httpLink } from "@trpc/client";
 import superjson from "superjson";
-import type { User } from "../packages/database/src/schema";
+import type { ClubPayment, User } from "../packages/database/src/schema";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { SessionService } from "../apps/backend/src/identity/session.service";
 import type { AppRouter } from "../apps/backend/src/routers";
@@ -31,10 +31,11 @@ import { TRPCError } from "@trpc/server";
 // Native HTTP/authorization plus explicit composition callers; session lookup
 // and the selected provider or persistence boundary are doubled. No JWT/SQL or
 // real device/provider-delivery acceptance.
-describe("notification token lifecycle over native HTTP", () => {
+describe("notifications over native HTTP", () => {
   let application: INestApplication;
   let sessions: SessionService;
   let notificationsService: NotificationsService;
+  let content: ContentReadService;
   let base: string;
   let actor: User | null;
   const member: User = {
@@ -104,6 +105,7 @@ describe("notification token lifecycle over native HTTP", () => {
     application = await createBackendApplication();
     sessions = application.get(SessionService);
     notificationsService = application.get(NotificationsService);
+    content = application.get(ContentReadService);
     await application.listen(0, "127.0.0.1");
     base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
   });
@@ -115,6 +117,258 @@ describe("notification token lifecycle over native HTTP", () => {
   afterAll(async () => {
     await application?.close();
     vi.unstubAllEnvs();
+  });
+
+  describe("latest publication visibility", () => {
+    const feed = { id: 9701, text: "synthetic public announcement" };
+    const club = { id: 9702, text: "synthetic private announcement" };
+    const active: ClubPayment = {
+      id: 9703,
+      userId: member.id,
+      orderId: "synthetic-latest-subscription",
+      email: null,
+      sum: null,
+      status: "paid",
+      paidAt: new Date(0),
+      expiresAt: new Date("2099-01-01T00:00:00Z"),
+      cancelAtPeriodEnd: false,
+      cancelledAt: null,
+      createdAt: new Date(0),
+      updatedAt: new Date(0),
+    };
+
+    it("uses the actual injected content provider's latest outcome", async () => {
+      let received: unknown;
+      const want = {
+        feedId: 9801,
+        feedText: "synthetic supplied feed",
+        clubId: null,
+        clubText: "",
+      };
+      const descriptor = Object.getOwnPropertyDescriptor(
+        content,
+        "latestNotification",
+      );
+      // The pre-migration adapter ignores this method, so RED is a response
+      // mismatch through native HTTP, not a missing-method/import failure.
+      Object.defineProperty(content, "latestNotification", {
+        configurable: true,
+        value: async (user: User | null) => {
+          received = user;
+          return want;
+        },
+      });
+      try {
+        expect(await client().notifications.latest.query()).toEqual(want);
+        expect(received).toEqual(member);
+      } finally {
+        if (descriptor)
+          Object.defineProperty(content, "latestNotification", descriptor);
+        else Reflect.deleteProperty(content, "latestNotification");
+      }
+    });
+
+    it("preserves the actual injected content provider's latest refusal", async () => {
+      const descriptor = Object.getOwnPropertyDescriptor(
+        content,
+        "latestNotification",
+      );
+      Object.defineProperty(content, "latestNotification", {
+        configurable: true,
+        value: async () => {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "synthetic latest refusal",
+          });
+        },
+      });
+      try {
+        await expect(
+          client().notifications.latest.query(),
+        ).rejects.toMatchObject({
+          message: "synthetic latest refusal",
+          data: { code: "CONFLICT", httpStatus: 409 },
+        });
+      } finally {
+        if (descriptor)
+          Object.defineProperty(content, "latestNotification", descriptor);
+        else Reflect.deleteProperty(content, "latestNotification");
+      }
+    });
+
+    it.each([
+      {
+        name: "guest",
+        user: null,
+        subscribed: true,
+        order: ["feed"],
+        allowed: false,
+      },
+      {
+        name: "unpaid member",
+        user: member,
+        subscribed: false,
+        order: ["feed", "subscription:9600"],
+        allowed: false,
+      },
+      {
+        name: "paid member",
+        user: member,
+        subscribed: true,
+        order: ["feed", "subscription:9600", "club"],
+        allowed: true,
+      },
+      {
+        name: "admin",
+        user: { ...member, role: "admin" as const },
+        subscribed: false,
+        order: ["feed", "club"],
+        allowed: true,
+      },
+      {
+        name: "moderator",
+        user: { ...member, role: "moderator" as const },
+        subscribed: false,
+        order: ["feed", "club"],
+        allowed: true,
+      },
+      {
+        name: "blocked paid member",
+        user: { ...member, blockedAt: new Date(0) },
+        subscribed: true,
+        order: ["feed"],
+        allowed: false,
+      },
+      {
+        name: "blocked admin",
+        user: { ...member, role: "admin" as const, blockedAt: new Date(0) },
+        subscribed: true,
+        order: ["feed"],
+        allowed: false,
+      },
+      {
+        name: "blocked moderator",
+        user: { ...member, role: "moderator" as const, blockedAt: new Date(0) },
+        subscribed: true,
+        order: ["feed"],
+        allowed: false,
+      },
+    ])(
+      "keeps public/club boundaries and read ordering for $name",
+      async (fixture) => {
+        actor = fixture.user;
+        const reads: string[] = [];
+        vi.spyOn(db, "getLatestPublishedPost").mockImplementation(
+          async (target) => {
+            reads.push(target);
+            return target === "feed" ? feed : club;
+          },
+        );
+        vi.spyOn(db, "getActiveClubSubscription").mockImplementation(
+          async (id) => {
+            reads.push(`subscription:${id}`);
+            return fixture.subscribed ? active : undefined;
+          },
+        );
+        expect(await client().notifications.latest.query()).toEqual({
+          feedId: feed.id,
+          feedText: feed.text,
+          clubId: fixture.allowed ? club.id : null,
+          clubText: fixture.allowed ? club.text : "",
+        });
+        expect(reads).toEqual(fixture.order);
+      },
+    );
+
+    it.each([
+      {
+        name: "both missing",
+        feed: undefined,
+        club: undefined,
+        want: { feedId: null, feedText: "", clubId: null, clubText: "" },
+      },
+      {
+        name: "feed missing",
+        feed: undefined,
+        club,
+        want: {
+          feedId: null,
+          feedText: "",
+          clubId: club.id,
+          clubText: club.text,
+        },
+      },
+      {
+        name: "club missing",
+        feed,
+        club: undefined,
+        want: {
+          feedId: feed.id,
+          feedText: feed.text,
+          clubId: null,
+          clubText: "",
+        },
+      },
+      {
+        name: "zero IDs and empty text",
+        feed: { id: 0, text: "" },
+        club: { id: 0, text: "" },
+        want: { feedId: 0, feedText: "", clubId: 0, clubText: "" },
+      },
+    ])("preserves nullish defaults: $name", async (fixture) => {
+      actor = { ...member, role: "admin" };
+      vi.spyOn(db, "getLatestPublishedPost").mockImplementation(
+        async (target) => (target === "feed" ? fixture.feed : fixture.club),
+      );
+      expect(await client().notifications.latest.query()).toEqual(fixture.want);
+    });
+
+    it("keeps empty content defaults without a database", async () => {
+      expect(await client().notifications.latest.query()).toEqual({
+        feedId: null,
+        feedText: "",
+        clubId: null,
+        clubText: "",
+      });
+    });
+
+    it.each(["feed", "subscription", "club"] as const)(
+      "fails safely on a %s read without partial content",
+      async (failure) => {
+        const reads: string[] = [];
+        vi.spyOn(db, "getLatestPublishedPost").mockImplementation(
+          async (target) => {
+            reads.push(target);
+            if (target === failure)
+              throw new Error("synthetic private database detail");
+            return target === "feed" ? feed : club;
+          },
+        );
+        vi.spyOn(db, "getActiveClubSubscription").mockImplementation(
+          async () => {
+            reads.push("subscription");
+            if (failure === "subscription")
+              throw new Error("synthetic private database detail");
+            return active;
+          },
+        );
+        const response = await fetch(base + "/api/trpc/notifications.latest");
+        expect(response.status).toBe(500);
+        const body = await response.text();
+        expect(body).toContain("Внутренняя ошибка сервера");
+        expect(body).not.toContain("synthetic private database detail");
+        expect(body).not.toContain(feed.text);
+        expect(body).not.toContain(club.text);
+        expect(body).not.toContain('"stack"');
+        expect(reads).toEqual(
+          failure === "feed"
+            ? ["feed"]
+            : failure === "subscription"
+              ? ["feed", "subscription"]
+              : ["feed", "subscription", "club"],
+        );
+      },
+    );
   });
 
   it.each([

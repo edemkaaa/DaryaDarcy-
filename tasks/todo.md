@@ -738,9 +738,17 @@
     compiled ESM native HTTP probe passes all four paths plus injected refusal.
     Session lookup and provider or persistence boundary are doubled; no real
     JWT/MySQL/device delivery, durable no-DB writes or production-readiness claim.
+  - [x] Move notifications.latest into the existing injected ContentReadService;
+    preserve public/club access, response fields, ordering and safe errors.
+    Characterize HTTP first and prove supplied-provider wiring before full gates.
+    16 characterization cases pass before production changes; two native HTTP
+    provider-bypass RED cases repaired. Notification suite 50 pass, focused 123
+    pass, whole non-MySQL 901 pass / 4 skip; types/build/unchanged API/boundaries/
+    frontend-only lint/docs pass. SQL helpers and session lookup are doubled;
+    actual JWT/MySQL publication visibility/ordering/expiry acceptance stays open.
   - [ ] Run token registration/upsert, consent event ordering/legal metadata and
     administrator purge with real HTTP/JWT/disposable MySQL. Reconsider existing
-    no-DB write/no-op policy separately; migrate notifications.latest and other
+    no-DB write/no-op policy separately; migrate other
     remaining domains in their own slices. Local Docker still reports EOF.
 - [ ] Final checkpoint: whole Nest runtime/MySQL/frontend flow, release rehearsal,
   audit triage/migration history/provider/SMTP/private-file gates and approved rollout.

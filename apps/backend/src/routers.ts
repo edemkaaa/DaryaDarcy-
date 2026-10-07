@@ -34,7 +34,7 @@ export const createAppRouter = (
     auth: authRouter,
     profile: profileRouter,
     feed: createFeedRouter(content, posts),
-    notifications: createNotificationsRouter(notifications),
+    notifications: createNotificationsRouter(notifications, content),
     videos: createVideosRouter(content),
     admin: createAdminRouter(content, posts, uploads, notifications),
     club: createClubRouter(comments, billing),

@@ -38,6 +38,20 @@ export class ContentReadService {
     return db.getPosts(tag);
   }
 
+  async latestNotification(user: User | null) {
+    const feed = await db.getLatestPublishedPost("feed");
+    let club: { id: number; text: string } | undefined;
+    if (user && (await userHasClubAccess(user))) {
+      club = await db.getLatestPublishedPost("club");
+    }
+    return {
+      feedId: feed?.id ?? null,
+      feedText: feed?.text ?? "",
+      clubId: club?.id ?? null,
+      clubText: club?.text ?? "",
+    };
+  }
+
   listFeedPage(input: {
     tag?: string;
     search?: string;
