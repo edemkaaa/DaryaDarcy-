@@ -47,6 +47,28 @@ purchase. Stage enablement needs a separately reviewed payment-only egress path,
 backup, migration preflight, cabinet webhook setup and real sandbox acceptance.
 Rollback preserves intent/receipt evidence; do not delete tables to roll back code.
 
+### Browser intent boundary
+
+The test caller reserves one unresolved club purchase per browser origin using
+versioned `localStorage`, under an exclusive [Web Lock](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API).
+The record contains only its UUID and a SHA-256 selection fingerprint; email,
+confirmation URLs and payment credentials are not stored. The fingerprint is
+derived personal data, not anonymization or authorization. Normalize email and
+the default plan before hashing. Bound lock waiting to five seconds.
+
+Unlike optional UI preferences, unreadable/unwritable storage, missing secure
+browser capabilities and corrupt/unknown schemas must fail closed before dispatch.
+Validate the saved record and read back a new write. Do not replace evidence on
+selection changes, elapsed time, retries, browser return parameters or sign-out.
+The backend remains authoritative for expiry, identity and payment settlement.
+
+No automatic rotation or reset API is provided. An explicit next purchase needs
+server-verified terminal state first; implementing that lifecycle and connecting
+the helper to the transport/UI remain separate gates. Storage cleared externally,
+another browser profile/device and XSS are outside this origin-local guarantee.
+Native browser tests exercise the real production helper and Web Locks across
+two tabs and reload; they do not prove provider or payment acceptance.
+
 ### Payment network boundary
 
 The opt-in [overlay](../../infrastructure/deploy/teamassist/compose.yookassa.yaml)

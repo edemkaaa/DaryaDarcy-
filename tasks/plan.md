@@ -2606,3 +2606,26 @@ This slice produces an opt-in Compose overlay, config, native acceptance and
 rollback notes. It does not enable checkout, deploy an unfinished caller, merge
 the new frontend staging commit, or alter the database. Caller/return lifecycle,
 fresh dependency reachability review and actual sandbox settlement remain gates.
+
+### Durable browser intent slice — 2026-10-08
+
+Y4 is split before UI/transport enablement. Reserve one unresolved test club
+purchase in versioned localStorage under a browser-native exclusive Web Lock.
+Store UUID + selection fingerprint only, normalize email/plan, cap/validate records
+and verify writes. Fail closed without storage, Web Crypto, secure context or Web
+Locks; no RAM fallback, automatic expiry, corrupted-record overwrite or blind
+rotation after URL return. Changed selection must retain the previous evidence.
+
+Tests first: persistence/retry, normalization, conflict, malformed data, missing
+capabilities, storage failures and bounded lock waiting. Native acceptance bundles
+the actual helper into a disposable loopback-only server and checks two tabs,
+reload and real lock timeout. No production test route, provider request, card,
+new dependency, deployment or unrelated frontend merge. The helper is deliberately
+not yet wired to checkout: next slices must send its key on a dedicated non-batched
+tRPC request and implement server-verified terminal return/new-purchase lifecycle.
+
+Verification: 30 unit checks plus three Chromium native checks pass. Deliberately
+replacing exclusive with shared locking makes the native suite fail; restore then
+rerun before commit. Full suite: 1100 pass / 596 SQL/external skip. Types, frontend
+production build, unchanged API contract and dependency boundaries pass. This is
+browser identity acceptance only, not successful checkout or payment settlement.
