@@ -5,7 +5,7 @@ import { ExpressAdapter } from "@nestjs/platform-express";
 import type { INestApplication } from "@nestjs/common";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { AppModule } from "../app.module";
-import { registerProdamusRoutes, handleProdamusWebhook } from "../prodamus";
+import { registerProdamusRoutes } from "../prodamus";
 import { registerYoutubeStream } from "../youtube-stream";
 import { TrpcService } from "./trpc.service";
 import { registerHttpSecurity } from "./http-security";
@@ -21,13 +21,7 @@ export async function createBackendApplication(): Promise<INestApplication> {
   http.post(
     "/api/prodamus/webhook",
     express.raw({ type: () => true, limit: "2mb" }),
-    (req, res) => {
-      void handleProdamusWebhook(req, res);
-    },
   );
-  http.get("/api/prodamus/webhook", (req, res) => {
-    void handleProdamusWebhook(req, res);
-  });
   registerRequestBodies(http);
 
   // Transitional adapters: replace one domain at a time behind the same API.

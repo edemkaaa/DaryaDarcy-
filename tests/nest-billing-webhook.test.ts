@@ -1,0 +1,262 @@
+import { afterAll, afterEach, beforeAll, expect, it, vi } from "vitest";
+import type { INestApplication } from "@nestjs/common";
+import type { AddressInfo } from "node:net";
+import { createHmac } from "node:crypto";
+import { request as httpRequest } from "node:http";
+import { createBackendApplication } from "../apps/backend/src/_core/application";
+import * as prodamus from "../apps/backend/src/prodamus";
+import * as db from "../apps/backend/src/db";
+import {
+  PRODAMUS_WEBHOOK_HANDLER,
+  type ProdamusWebhookHandler,
+} from "../apps/backend/src/billing/prodamus-webhook.controller";
+
+let application: INestApplication;
+let base: string;
+const body =
+  "payment_status=pending&subscription[id]=7&subscription[profile_id]=23";
+// Independent, hand-derived canonical payload: no production signing helper.
+const sign = createHmac("sha256", "nest-webhook-fixture-secret")
+  .update(
+    '{"payment_status":"pending","subscription":{"id":"7","profile_id":"23"}}',
+  )
+  .digest("hex");
+beforeAll(async () => {
+  vi.stubEnv("DATABASE_URL", "");
+  vi.stubEnv("PRODAMUS_SECRET", "nest-webhook-fixture-secret");
+  vi.stubEnv("PRODAMUS_SHOP_SECRET", "");
+  vi.stubEnv("PRODAMUS_SUBSCRIPTION_SECRET", "");
+  vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "");
+  vi.stubEnv("PRODAMUS_PAYFORM_URL", "https://fixture.payform.ru");
+  application = await createBackendApplication();
+  await application.listen(0, "127.0.0.1");
+  base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
+});
+afterEach(() => vi.restoreAllMocks());
+afterAll(async () => {
+  await application?.close();
+  vi.unstubAllEnvs();
+});
+it.each(["POST", "GET"])(
+  "%s webhook uses its application-bound handler, not the legacy runtime global",
+  async (method) => {
+    // A late runtime-global replacement must not hijack an initialized app.
+    vi.spyOn(prodamus, "handleProdamusWebhook").mockImplementation(
+      async (_req, res) => {
+        res.status(418).send("wrong global handler");
+      },
+    );
+    const response = await fetch(
+      base + "/api/prodamus/webhook" + (method === "GET" ? "?" + body : ""),
+      {
+        method,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Sign: sign,
+        },
+        ...(method === "POST" ? { body } : {}),
+      },
+    );
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("ignored");
+  },
+);
+
+it("native webhook forwards original bytes beyond the ordinary JSON body limit", async () => {
+  const raw = JSON.stringify({ note: "Привет", padding: "x".repeat(300_000) });
+  const handler = application.get<ProdamusWebhookHandler>(
+    PRODAMUS_WEBHOOK_HANDLER,
+  );
+  vi.spyOn(handler, "handle").mockImplementation(async (request, response) => {
+    expect(request.method).toBe("POST");
+    expect(Buffer.isBuffer(request.body)).toBe(true);
+    expect(request.body.equals(Buffer.from(raw, "utf8"))).toBe(true);
+    expect(request.headers.sign).toBe("synthetic-signature");
+    response.status(202).send("injected raw ingress");
+  });
+  const response = await fetch(base + "/api/prodamus/webhook", {
+    method: "POST",
+    body: raw,
+    headers: {
+      "Content-Type": "application/json",
+      Sign: "synthetic-signature",
+    },
+  });
+  expect(response.status).toBe(202);
+  expect(await response.text()).toBe("injected raw ingress");
+  expect(response.headers.get("set-cookie")).toBeNull();
+});
+it("oversized webhook is rejected before its handler without leaking bytes", async () => {
+  const handler = application.get<ProdamusWebhookHandler>(
+    PRODAMUS_WEBHOOK_HANDLER,
+  );
+  const operation = vi.spyOn(handler, "handle");
+  const response = await fetch(base + "/api/prodamus/webhook", {
+    method: "POST",
+    body: "PRIVATE_OVERSIZE_BODY" + "x".repeat(2 * 1024 * 1024),
+    headers: { "Content-Type": "application/json" },
+  });
+  expect(response.status).toBe(413);
+  expect(await response.text()).not.toContain("PRIVATE_OVERSIZE_BODY");
+  expect(operation).not.toHaveBeenCalled();
+});
+it("handler bindings are isolated between application instances", async () => {
+  const other = await createBackendApplication();
+  try {
+    await other.listen(0, "127.0.0.1");
+    const otherBase = `http://127.0.0.1:${(other.getHttpServer().address() as AddressInfo).port}`;
+    const handler = application.get<ProdamusWebhookHandler>(
+      PRODAMUS_WEBHOOK_HANDLER,
+    );
+    vi.spyOn(handler, "handle").mockImplementation(
+      async (_request, response) => {
+        response.status(202).send("first application only");
+      },
+    );
+    const headers = {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Sign: sign,
+    };
+    const first = await fetch(base + "/api/prodamus/webhook", {
+      method: "POST",
+      headers,
+      body,
+    });
+    expect(first.status).toBe(202);
+    const second = await fetch(otherBase + "/api/prodamus/webhook", {
+      method: "POST",
+      headers,
+      body,
+    });
+    expect(second.status).toBe(200);
+    expect(await second.text()).toBe("ignored");
+  } finally {
+    await other.close();
+  }
+});
+
+// Sorted scalar fields mirror a real semiannual callback. Canonical JSON is
+// hand-derived here, independent of the production normalizer/signing helper.
+const payment = {
+  currency: "rub",
+  customer_email: "member@example.test",
+  domain: "fixture.payform.ru",
+  order_id: "300155",
+  order_num: "club6m-7-confirmed",
+  payment_status: "success",
+  sum: "4740.00",
+};
+function notify(payload = payment, key = "nest-webhook-fixture-secret") {
+  const raw = JSON.stringify(payload);
+  return fetch(base + "/api/prodamus/webhook", {
+    method: "POST",
+    body: raw,
+    headers: {
+      "Content-Type": "application/json",
+      Sign: createHmac("sha256", key).update(raw).digest("hex"),
+    },
+  });
+}
+it.each([true, false])(
+  "signed callback preserves the settlement outcome %s",
+  async (granted) => {
+    // The real protocol/HTTP handler remains; only the durable SQL boundary is
+    // controlled. This does not claim transaction or replay acceptance on MySQL.
+    vi.spyOn(db, "settleClubPayment").mockImplementation(async (input) => {
+      expect(input).toEqual({
+        orderId: "club6m-7-confirmed",
+        periodMs: 15_552_000_000,
+        sum: "4740.00",
+        recurring: undefined,
+        proof: {
+          domain: "fixture.payform.ru",
+          paymentId: "300155",
+          email: "member@example.test",
+          currency: "rub",
+          subscriptionId: "",
+          profileId: "",
+        },
+      });
+      return granted;
+    });
+    const response = await notify();
+    expect(response.status).toBe(granted ? 200 : 422);
+    expect(await response.text()).toBe(
+      granted ? "success" : "payment binding invalid",
+    );
+    expect(response.headers.get("set-cookie")).toBeNull();
+  },
+);
+it("a valid signature from another merchant cannot reach settlement", async () => {
+  const settle = vi.spyOn(db, "settleClubPayment");
+  const response = await notify({ ...payment, domain: "another.payform.ru" });
+  expect(response.status).toBe(422);
+  expect(await response.text()).toBe("payment binding invalid");
+  expect(settle).not.toHaveBeenCalled();
+});
+it("invalid signatures cannot reach settlement", async () => {
+  const settle = vi.spyOn(db, "settleClubPayment");
+  const response = await notify(payment, "wrong-merchant-key");
+  expect(response.status).toBe(400);
+  expect(await response.text()).toBe("signature incorrect");
+  expect(settle).not.toHaveBeenCalled();
+});
+it("database failure remains a safe 500 instead of acknowledging payment", async () => {
+  vi.spyOn(db, "settleClubPayment").mockRejectedValue(
+    new Error("PRIVATE_SQL_DETAIL"),
+  );
+  const error = vi.spyOn(console, "error").mockImplementation(() => {});
+  const response = await notify();
+  expect(response.status).toBe(500);
+  expect(await response.text()).toBe("error");
+  expect(error.mock.calls.flat().join(" ")).not.toContain("PRIVATE_SQL_DETAIL");
+});
+
+it.each([
+  ["GET", "application/json", "{PRIVATE_INVALID_GET_BODY"],
+  ["GET", "application/x-www-form-urlencoded", "payment_status=success"],
+  ["HEAD", "application/json", "{PRIVATE_INVALID_GET_BODY"],
+  ["HEAD", "application/x-www-form-urlencoded", "payment_status=success"],
+])(
+  "%s webhook retains query-only parsing with a %s body",
+  async (method, contentType, raw) => {
+    // fetch forbids GET bodies, but provider clients can send one. The legacy
+    // ingress ignores it; generic body parsing must not change signed query data.
+    const result = await new Promise<{
+      status: number | undefined;
+      body: string;
+    }>((resolve, reject) => {
+      const request = httpRequest(
+        base + "/api/prodamus/webhook?" + body,
+        {
+          method,
+          headers: {
+            "Content-Type": contentType,
+            "Content-Length": Buffer.byteLength(raw),
+            Sign: sign,
+          },
+        },
+        (response) => {
+          let text = "";
+          response.setEncoding("utf8");
+          response.on("data", (chunk) => {
+            text += chunk;
+          });
+          response.on("end", () =>
+            resolve({ status: response.statusCode, body: text }),
+          );
+          response.on("error", reject);
+        },
+      );
+      request.on("error", reject);
+      request.setTimeout(3_000, () =>
+        request.destroy(new Error("Loopback request timed out")),
+      );
+      request.end(raw);
+    });
+    expect(result).toEqual({
+      status: 200,
+      body: method === "GET" ? "ignored" : "",
+    });
+  },
+);

@@ -672,7 +672,13 @@
     fails three assertions. 31 slice-focused checks and 753 non-MySQL pass / 4 skip;
     types/build, unchanged API, boundaries and docs pass. Compiled ESM preserves
     verified session ID, paid expiry and guest rejection. No real SQL/provider test.
-  - [ ] Webhook/settlement and shop service composition; preserve signature,
+  - [x] Native webhook ingress: one BillingModule controller, application-scoped
+    typed handler binding; raw POST and query-only GET/implicit HEAD preserved.
+    2 ingress RED cases, 4 parser-compatibility RED cases repaired before commit;
+    DI-bypass mutation fails the raw forwarding test. 72 focused cases pass,
+    including real HTTP and compiled ESM; 767 non-MySQL pass / 4 skip,
+    types/build/API/boundaries/docs pass; no live SQL/provider replay claim.
+  - [ ] Webhook/settlement business-logic decomposition and shop service composition; preserve signature,
     payment replay protection and transaction boundaries with their own tests.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
 - [ ] M08: Specify/migrate remaining API services, remove superseded adapters and

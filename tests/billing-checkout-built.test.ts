@@ -19,6 +19,8 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
           import { ClubCheckoutService } from "./apps/backend/src/billing/club-checkout.service";
           import { ClubSubscriptionService } from "./apps/backend/src/billing/club-subscription.service";
           import { SessionService } from "./apps/backend/src/identity/session.service";
+          import { PRODAMUS_WEBHOOK_HANDLER } from "./apps/backend/src/billing/prodamus-webhook.controller";
+          import { createHmac } from "node:crypto";
           import { createTRPCProxyClient, httpLink } from "@trpc/client";
           import superjson from "superjson";
           const application = await createBackendApplication();
@@ -65,7 +67,20 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
             const claimed = await client.club.claimPending.mutate();
             const cancelled = await client.club.cancel.mutate();
             if (!(cancelled.expiresAt instanceof Date)) throw Error("Date serialization lost");
-            console.log("BILLING_RESULTS:" + JSON.stringify({realError, injected, status, anonymousError, claimed, cancelled}));
+            const unsigned = await fetch(base + "/api/prodamus/webhook", {method: "POST", body: "payment_status=pending"});
+            const unsignedWebhook = { status: unsigned.status, body: await unsigned.text() };
+            process.env.PRODAMUS_SECRET = "compiled-webhook-fixture-key";
+            const signature = createHmac("sha256", "compiled-webhook-fixture-key").update('{"payment_status":"pending"}').digest("hex");
+            const signed = await fetch(base + "/api/prodamus/webhook?payment_status=pending", {headers: {Sign: signature}});
+            const signedWebhook = { status: signed.status, body: await signed.text() };
+            const webhook = application.get(PRODAMUS_WEBHOOK_HANDLER);
+            webhook.handle = async (request, response) => {
+              if (!Buffer.isBuffer(request.body) || request.body.toString("utf8") !== "raw-compiled-fixture") throw Error("Original webhook bytes lost");
+              response.status(202).send("compiled native ingress");
+            };
+            const forwarded = await fetch(base + "/api/prodamus/webhook", {method: "POST", body: "raw-compiled-fixture"});
+            const injectedWebhook = { status: forwarded.status, body: await forwarded.text() };
+            console.log("BILLING_RESULTS:" + JSON.stringify({realError, injected, status, anonymousError, claimed, cancelled, unsignedWebhook, signedWebhook, injectedWebhook}));
           } finally { await application.close(); }
         `,
       },
@@ -107,6 +122,9 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
       anonymousError: { code: "UNAUTHORIZED", status: 401 },
       claimed: { granted: true, orderId: "club-7-confirmed" },
       cancelled: { ok: true, expiresAt: "2026-11-01T00:00:00.000Z" },
+      unsignedWebhook: { status: 400, body: "signature incorrect" },
+      signedWebhook: { status: 200, body: "ignored" },
+      injectedWebhook: { status: 202, body: "compiled native ingress" },
     });
   } finally {
     rmSync(entry, { force: true });

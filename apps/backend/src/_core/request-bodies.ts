@@ -22,6 +22,11 @@ function bodyError(res: Response, error: unknown) {
   res.status(safeStatus).json({ error: safeStatus === 413 ? "Запрос слишком большой" : "Некорректный запрос" });
 }
 
+function isProviderWebhook(req: Request): boolean {
+  return /^\/api\/prodamus\/webhook\/?$/.test(req.path) &&
+    (req.method === "GET" || req.method === "HEAD" || req.method === "POST");
+}
+
 export function registerRequestBodies(app: Express) {
   app.post("/api/admin/upload-video", async (req, res, next) => {
     if (!(await requireUploadIdentity(req, res, true))) return;
@@ -31,6 +36,9 @@ export function registerRequestBodies(app: Express) {
     });
   });
   app.use(async (req, res, next) => {
+    // POST has its bounded raw parser; GET/its implicit HEAD use query only.
+    // Ordinary JSON/form parsers must not change what the provider signature binds.
+    if (isProviderWebhook(req)) { next(); return; }
     let path: string;
     try { path = decodeURIComponent(req.path); } catch { res.sendStatus(400); return; }
     const names = path.startsWith("/api/trpc/") ? path.slice("/api/trpc/".length).split(",") : [];
@@ -43,6 +51,7 @@ export function registerRequestBodies(app: Express) {
   const formParser = express.urlencoded({ limit: "16kb", extended: false, parameterLimit: 100 });
   const providerReturn = express.urlencoded({ limit: "2mb", extended: false, parameterLimit: 100 });
   app.use((req, res, next) => {
+    if (isProviderWebhook(req)) { next(); return; }
     const parser = /^\/api\/prodamus\/return\/?$/.test(req.path) ? providerReturn : formParser;
     parser(req, res, error => { if (error) bodyError(res, error); else next(); });
   });

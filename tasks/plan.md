@@ -1794,3 +1794,55 @@ query count and transaction/provider ordering stay unchanged. No new dependency,
 external send, state migration, frontend/generated-type edit, remote push or
 deployment. Webhook/settlement/shop composition and worker lifecycle remain open;
 this is not completion of M06 or production payment approval.
+
+## 2026-10-07 — M06: native webhook ingress
+
+Move only GET/POST `/api/prodamus/webhook` ownership to a BillingModule
+controller, binding the existing verified handler through an application-scoped
+factory provider. Keep raw 2 MiB parsing ahead of ordinary parsers, byte contents,
+PHP-shaped payloads, signature/key isolation, existing status/text/security
+headers and settlement/cancellation helpers. No new pass-through domain service:
+the provider is a typed boundary to the current handler. Decomposition of its
+business logic and shop migration remain subsequent increments.
+
+Threat boundaries: untrusted provider body/signature versus entitlement and
+durable receipts; browser return must remain non-authoritative. Do not replace
+SQL receipt uniqueness with process-memory deduplication, relax configuration,
+send external requests, edit frontend/types or deploy. Acceptance: HTTP uses the
+application-bound handler rather than the legacy global closure, injected
+handler sees original bytes (including >256 KiB), oversize requests fail before
+handler work, compiled ESM preserves DI and existing signed-notification behavior.
+Run existing webhook/billing tests and full non-MySQL gates; real SQL replay
+acceptance requires a separately owned disposable database, not the test server.
+
+Verified: two HTTP ingress tests fail on the old runtime-global closures and
+pass with the application-bound provider. Four GET/implicit-HEAD compatibility
+tests exposed a regression in the initial uncommitted migration: generic JSON
+and form parsers interpreted bodies which legacy GET ignored, producing 400
+instead of the signed query's 200/ignored. Root cause is the parser/handler ordering;
+the narrow parser exclusion now preserves raw POST and query-only GET/HEAD.
+These were local refactor regressions, not deployed production defects.
+
+Fourteen new real HTTP cases cover handler binding, app isolation, original
+bytes >256 KiB, 2 MiB rejection, query-only behavior, payment proof at the durable
+SQL boundary, invalid signatures/merchant binding and safe failed settlement.
+Compiled ESM checks unsigned rejection, a hand-signed pending event and injected
+raw forwarding. Temporarily bypassing the provider in the controller makes the
+raw-forwarding assertion fail; restored wiring passes. 72 focused cases pass.
+SQL/helper boundaries are controlled in these tests: no real payment/SMTP request
+or database replay/transaction acceptance. Local Docker reports remote-info EOF,
+so disposable-MySQL tests remain unrun; test/production databases are untouched.
+
+Five-axis review: one native route owner, no new pass-through service, fallback,
+duplicate signature/settlement logic or process-memory replay cache. Typed
+provider uses an app-scoped factory; parser exclusion is exact path/method only,
+and existing security middleware remains first. Existing body limits, provider
+verification, transaction/receipt helpers, result shapes and query count retained.
+No dependency, new data collection, role/CORS/throttle/schema change, frontend
+edit, provider send, remote push or deployment. M06 business decomposition/shop,
+M07 lifecycle and production/provider/dependency gates remain open.
+
+Final gates: 767 non-MySQL pass / 4 skip; root/frontend type checks, existing
+frontend-only lint, 350.2 KiB backend build, unchanged 72-procedure/25461-byte
+API, 472-file dependency boundaries and 49-document link checks pass.
+No backend ESLint coverage or full MySQL/provider acceptance is claimed.
