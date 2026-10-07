@@ -13,6 +13,7 @@ import type { AddressInfo } from "node:net";
 import { createTRPCProxyClient, httpLink } from "@trpc/client";
 import superjson from "superjson";
 import sharp from "sharp";
+import { drizzle } from "drizzle-orm/mysql2";
 import type { User } from "../packages/database/src/schema";
 import type { AppRouter } from "../apps/backend/src/routers";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
@@ -234,6 +235,7 @@ describe("profile use cases over native HTTP", () => {
   );
 
   it("stores a sanitized avatar in the actor's folder before updating its URL", async () => {
+    vi.spyOn(db, "getDb").mockResolvedValue(drizzle.mock());
     const effects: string[] = [];
     let stored:
       | { key: string; bytes: Buffer; mime: string | undefined }
@@ -357,6 +359,7 @@ describe("profile use cases over native HTTP", () => {
         }),
     },
   ])("rejects $name before persistence/storage", async ({ run }) => {
+    vi.spyOn(db, "getDb").mockResolvedValue(drizzle.mock());
     const effects: string[] = [];
     vi.spyOn(db, "updateUserProfile").mockImplementation(async () => {
       effects.push("update");
@@ -374,6 +377,7 @@ describe("profile use cases over native HTTP", () => {
   it.each(["update", "avatar storage", "avatar profile", "deletion"] as const)(
     "does not return success or leak internal details after a %s failure",
     async (failure) => {
+      vi.spyOn(db, "getDb").mockResolvedValue(drizzle.mock());
       const effects: string[] = [];
       vi.spyOn(storage, "storagePut").mockImplementation(async (key) => {
         effects.push("storage");
@@ -427,7 +431,7 @@ describe("profile use cases over native HTTP", () => {
     },
   );
 
-  it("does not return an avatar URL when its profile cannot be persisted", async () => {
+  it("does not upload an avatar when no database client is available", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const uploaded: string[] = [];
     vi.spyOn(storage, "storagePut").mockImplementation(async (key) => {
@@ -438,9 +442,23 @@ describe("profile use cases over native HTTP", () => {
       message: "Внутренняя ошибка сервера",
       data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
     });
-    // Upload-before-write is unchanged; compensation remains a separate task.
-    expect(uploaded).toHaveLength(1);
-    expect(uploaded[0]).toMatch(/^avatars\/9900\/[0-9a-f-]{36}\.webp$/);
+    expect(uploaded).toEqual([]);
+  });
+
+  it("does not upload an avatar when database client acquisition rejects", async () => {
+    vi.spyOn(db, "getDb").mockRejectedValue(
+      new Error("synthetic private database configuration detail"),
+    );
+    const effects: string[] = [];
+    vi.spyOn(storage, "storagePut").mockImplementation(async (key) => {
+      effects.push("storage");
+      return { key, url: "https://assets.example.test/unpersisted.webp" };
+    });
+    await expect(operations[1].run()).rejects.toMatchObject({
+      message: "Внутренняя ошибка сервера",
+      data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+    });
+    expect(effects).toEqual([]);
   });
   it("keeps deletion-request failure when no database is available", async () => {
     await expect(operations[2].run()).rejects.toMatchObject({

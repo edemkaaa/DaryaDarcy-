@@ -2287,3 +2287,50 @@ warning stays static, with no secrets or user data. There are no extra queries
 or runtime dependencies. Empty patches with an available DB and the existing
 upload order are unchanged. Orphan cleanup and zero-row detection remain open;
 do not close M08 or the rollout gate on this local regression fix.
+
+## 2026-10-07 — avatar preflight before external storage
+
+Tracing uploadAvatar confirms the photo helper writes an object before the
+profile helper discovers getDb is null. Storage has no canonical delete API;
+more importantly, a SQL error/timeout can leave the write outcome unknown.
+Do not delete an object blindly on any SQL exception: it might be referenced by
+a committed profile. Reliable compensation/reconciliation needs a separate
+durable ownership/outcome design and supported provider deletion semantics.
+
+Small safe slice: the profile use case checks the existing DB client before
+starting photo decoding/storage. Null or rejected client acquisition must yield
+the existing safe HTTP 500 with no storage side effect. This only establishes
+client availability/configuration, not a live connection or successful future
+write. The actual write still performs its own check. A configured DB retains
+the canonical photo validation, UUID/WebP storage and upload-before-write order.
+With no DB, byte-level photo validation now follows the preflight and therefore
+returns 500; transport schema/admission/ownership remain unchanged.
+
+Tests first: strengthen the real no-DB HTTP avatar case to assert zero uploads,
+add a rejected-acquisition case, and retain configured-path tests using the
+installed Drizzle mock builder (no network) plus existing SQL/storage doubles.
+Observe expected RED failures, implement the minimal guard, run focused/full
+non-MySQL tests and static gates, then review and commit locally. No frontend,
+generated types, storage deletion, old-avatar cleanup, provider integration,
+schema/dependency changes, push, deployment or shared-server writes.
+
+Execution: both preflight HTTP regressions initially report one uploaded object
+instead of no side effects (38 other checks pass). Add an awaited client guard
+in the profile use case before calling the canonical photo helper. All 27
+profile checks and 71 focused checks pass. The configured path keeps byte
+validation, sanitization, actor-owned keys, upload-before-write ordering and
+safe storage/SQL failures. Fresh full non-MySQL run: 928 pass / 4 skip.
+
+Five-axis review: the guard prevents the known absent-client failure before
+external effects, but makes no connectivity/commit claim; explicit comments
+record that boundary. The existing domain owner orchestrates the guard, with
+no new abstraction or changes to shared photo/storage/SQL helpers. No deletion
+target, auth/admission/quota change, PII logging or provider response trust is
+added. Cached acquisition adds no probe/query; unavailable-client requests avoid
+decoder/storage work. Ambiguous SQL outcomes and zero-row writes remain open.
+No newly unused code or unrelated cleanup.
+
+Fresh Node 22 gates: types, 355.3 KiB backend build, unchanged
+72-procedure/25461-byte API, 479-file dependency boundaries and existing
+frontend-only lint pass. Recheck documentation links after the final notes.
+No backend ESLint, live MySQL/S3 test or dependency-audit/release claim.

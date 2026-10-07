@@ -765,6 +765,14 @@
     the actual no-DB helper runs, only identity/storage are doubled. Profile 26
     pass, focused 70 pass; whole non-MySQL 927 pass / 4 skip. Successful responses,
     schemas and access rules remain unchanged; failure now returns safe HTTP 500.
+  - [x] Preflight avatar persistence before photo/storage work: no DB client or
+    rejected acquisition yields safe HTTP 500 with no uploaded object. Both new
+    HTTP regression expectations fail before the fix for the expected side
+    effect; final profile 27 pass, focused 71 pass, whole non-MySQL 928 pass /
+    4 skip. Configured-client fixtures use the installed Drizzle mock builder,
+    not a real connection; photo sanitization and SQL/storage failure checks pass.
+    Types/build/unchanged API/479-file boundaries/frontend-only lint pass.
+    This is client availability only, not a live connection/write guarantee.
   - [ ] Verify profile writes/avatar/deletion requests with real JWT/MySQL/S3;
     address orphaned uploads after SQL failure separately. This slice does not
     implement immediate erasure/retention policy or verify zero-row updates.

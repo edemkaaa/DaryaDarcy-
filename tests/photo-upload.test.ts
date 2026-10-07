@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
+import { drizzle } from "drizzle-orm/mysql2";
 import type { TrpcContext } from "../apps/backend/src/_core/context";
 import type { User } from "../packages/database/src/schema";
 
@@ -13,6 +14,7 @@ vi.mock("../apps/backend/src/storage", () => ({
 vi.mock("../apps/backend/src/db", () => ({
   isOwnerAccount: (user: User) => user.role === "admin",
   updateUserProfile: async () => undefined,
+  getDb: async () => drizzle.mock(),
 }));
 import { appRouter } from "../apps/backend/src/routers";
 const user = { id: 7, role: "admin", blockedAt: null } as User;
