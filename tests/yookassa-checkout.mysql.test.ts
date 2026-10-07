@@ -171,6 +171,92 @@ describe.skipIf(!testDatabaseUrl)(
     }
     const reconcile = (intentKey: unknown = key) =>
       app.get(YookassaClubService).reconcileCheckout(null, intentKey);
+    const returnCheck = (suffix = "", method = "POST") =>
+      realFetch(`${base}/api/trpc/club.reconcileCheckout${suffix}`, {
+        method,
+        headers: { "Content-Type": "application/json", "Idempotency-Key": key },
+        ...(method === "POST"
+          ? { body: '{"json":null,"meta":{"values":["undefined"]}}' }
+          : {}),
+      });
+
+    it("HTTP return checking a missing intent reports unknown without creating anything", async () => {
+      const response = await returnCheck();
+      expect(response.status).toBe(200);
+      expect((await response.json()).result.data.json).toEqual({
+        state: "unknown",
+      });
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(response.headers.get("set-cookie")).toBeNull();
+      expect({ creates, lookups }).toEqual({ creates: 0, lookups: 0 });
+      expect((await state()).payments).toHaveLength(0);
+    });
+    it("HTTP return ignores forged query success while the provider is pending", async () => {
+      expect((await checkout()).status).toBe(200);
+      const response = await returnCheck(
+        "?paid=1&state=succeeded&order=forged",
+      );
+      expect(response.status).toBe(200);
+      expect((await response.json()).result.data.json).toEqual({
+        state: "pending",
+      });
+      expect(await state()).toMatchObject({ receipts: 0, emails: 0 });
+      expect({ creates, lookups }).toEqual({ creates: 1, lookups: 1 });
+    });
+    it("HTTP verified return settles once with a concurrent webhook and reveals only state", async () => {
+      expect((await checkout()).status).toBe(200);
+      providerStatus = "succeeded";
+      const [response, notification] = await Promise.all([
+        returnCheck(),
+        webhook(),
+      ]);
+      expect(response.status).toBe(200);
+      expect(notification.status).toBe(200);
+      expect((await response.json()).result.data.json).toEqual({
+        state: "succeeded",
+      });
+      expect(response.headers.get("set-cookie")).toBeNull();
+      const first = await state();
+      expect(first).toMatchObject({ receipts: 1, emails: 1 });
+      expect(first.payments[0].expiresAt.toISOString()).toBe(
+        "2026-11-06T00:00:00.000Z",
+      );
+      expect((await returnCheck()).status).toBe(200);
+      expect(await state()).toEqual(first);
+      expect(creates).toBe(1);
+    });
+    it("HTTP canceled return never starts the next purchase", async () => {
+      expect((await checkout()).status).toBe(200);
+      providerStatus = "canceled";
+      const response = await returnCheck();
+      expect(response.status).toBe(200);
+      expect((await response.json()).result.data.json).toEqual({
+        state: "canceled",
+      });
+      expect(await state()).toMatchObject({ receipts: 0, emails: 0 });
+      expect(creates).toBe(1);
+    });
+    it("HTTP GET cannot settle a known succeeded payment", async () => {
+      expect((await checkout()).status).toBe(200);
+      providerStatus = "succeeded";
+      expect((await returnCheck("?paid=1", "GET")).status).toBe(405);
+      expect(await state()).toMatchObject({ receipts: 0, emails: 0 });
+      expect(lookups).toBe(0);
+    });
+    it("HTTP return outage is retriable and does not leak the key or grant access", async () => {
+      expect((await checkout()).status).toBe(200);
+      lookupUnavailable = true;
+      const response = await returnCheck();
+      expect(response.status).toBe(503);
+      const body = await response.json();
+      expect(body.error.json.data.code).toBe("SERVICE_UNAVAILABLE");
+      expect(body.error.json.data.stack).toBeUndefined();
+      expect(JSON.stringify(body)).not.toContain(key);
+      expect(await state()).toMatchObject({ receipts: 0, emails: 0 });
+      lookupUnavailable = false;
+      expect((await returnCheck()).status).toBe(200);
+      expect(creates).toBe(1);
+    });
 
     it("return checking a missing intent cannot create an order or provider payment", async () => {
       expect(await reconcile()).toEqual({ state: "unknown" });

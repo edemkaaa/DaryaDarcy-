@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import {
   router,
   publicProcedure,
@@ -36,6 +37,26 @@ export const createClubRouter = (
     subscription: publicProcedure.query(({ ctx }) =>
       billing.subscriptions.subscription(ctx.user),
     ),
+    reconcileCheckout: publicProcedure
+      .input(z.undefined())
+      .output(
+        z
+          .object({
+            state: z.enum(["unknown", "pending", "succeeded", "canceled"]),
+          })
+          .strict(),
+      )
+      .mutation(({ ctx }) => {
+        if (ctx.req.query?.batch !== undefined)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Проверяйте одну платёжную заявку за запрос",
+          });
+        return billing.checkout.reconcileCheckout(
+          ctx.user,
+          ctx.req.headers?.["idempotency-key"],
+        );
+      }),
     createCheckout: publicProcedure
       .input(
         z
@@ -46,7 +67,11 @@ export const createClubRouter = (
           .optional(),
       )
       .mutation(({ ctx, input }) =>
-        billing.checkout.createCheckout(ctx.user, input, ctx.req.headers?.["idempotency-key"]),
+        billing.checkout.createCheckout(
+          ctx.user,
+          input,
+          ctx.req.headers?.["idempotency-key"],
+        ),
       ),
     claimPending: protectedProcedure.mutation(({ ctx }) =>
       billing.subscriptions.claimPending(ctx.user.id),

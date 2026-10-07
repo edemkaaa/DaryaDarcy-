@@ -37,6 +37,7 @@ const expectedProcedures = {
     "createCheckout",
     "deleteComment",
     "list",
+    "reconcileCheckout",
     "reportComment",
     "subscription",
     "toggleCommentLike",

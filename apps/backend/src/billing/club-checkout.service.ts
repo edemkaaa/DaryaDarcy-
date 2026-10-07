@@ -21,6 +21,10 @@ export type ClubCheckoutInput = {
 @Injectable()
 export class ClubCheckoutService {
   constructor(private readonly yookassa = new YookassaClubService()) {}
+  reconcileCheckout(actor: User | null, intentKey: unknown) {
+    // Return checking is test-only and can never fall back to payment creation.
+    return this.yookassa.reconcileCheckout(actor, intentKey);
+  }
   async createCheckout(
     actor: User | null,
     input?: ClubCheckoutInput,

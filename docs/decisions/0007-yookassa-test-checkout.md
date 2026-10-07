@@ -98,9 +98,14 @@ settlement boundary. Only `state` is returned; no email, user/order IDs, amount,
 checkout URL or credentials. `waiting_for_capture` stays pending, without capture.
 Success is reported after the receipt/access/outbox commit, not merely after the
 provider response. Outages, mismatches and settlement failures are retriable errors,
-never a terminal result. This foundation is not exposed through tRPC or the UI
-yet: a separately reviewed POST mutation, bounded polling and terminal-safe browser
-lifecycle remain required before enablement. No schema or dependency changes.
+never a terminal result. The initial foundation was internal; the subsequent
+HTTP slice adds `club.reconcileCheckout` as a mutation with undefined input and
+strict state-only output. Its key stays in the header. Reject batching so one
+header cannot ambiguously cover multiple operations. Existing cross-site/body
+bounds, no-store and generic errors apply; GET cannot invoke this mutation.
+This is not connected to the UI or deployed. Bounded polling, approved per-key/IP
+quota and terminal-safe browser lifecycle remain required before enablement.
+No schema or dependency changes.
 
 ### Payment network boundary
 

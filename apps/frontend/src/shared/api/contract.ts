@@ -709,6 +709,11 @@ export type AppRouter = BuiltRouter<
         };
         meta: unknown;
       }>;
+      reconcileCheckout: MutationProcedure<{
+        input: undefined;
+        output: { state: "unknown" | "pending" | "succeeded" | "canceled" };
+        meta: unknown;
+      }>;
       createCheckout: MutationProcedure<{
         input:
           | {

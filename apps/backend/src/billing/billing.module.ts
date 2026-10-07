@@ -11,7 +11,10 @@ import {
 } from "./prodamus-webhook.controller";
 
 export type ClubBillingServices = {
-  readonly checkout: Pick<ClubCheckoutService, "createCheckout">;
+  readonly checkout: Pick<
+    ClubCheckoutService,
+    "createCheckout" | "reconcileCheckout"
+  >;
   readonly subscriptions: ClubSubscriptionService;
 };
 

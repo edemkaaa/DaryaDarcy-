@@ -2693,3 +2693,54 @@ minimal recipient columns, literal response allowlist, canonical settlement reus
 and no new runtime/API/network exposure. Existing dependency/production history
 gates remain open. Temporary MySQL/network/tunnel are removed after acceptance;
 no real provider request, account login, external email or working DB mutation.
+
+### Y4c2: HTTP return-check contract — 2026-10-08
+
+Expose `club.reconcileCheckout` as a POST mutation with strictly undefined input,
+mandatory UUID `Idempotency-Key` header and strict `{ state }` output. Reject
+batches for this operation, so one header cannot represent multiple intents.
+Delegate only to the test YooKassa service: no Prodamus fallback, account creation,
+session or client-supplied payment/identity data. GET, forged body/query state and
+untrusted cross-site requests cannot settle. Preserve no-store and existing HTTP
+security; add the generated frontend contract only, without UI changes.
+
+Tests first: real Nest/tRPC HTTP with no DB for early validation/disabled-mode
+refusal; disposable MySQL and external-provider double for pending/verified
+terminal settlement, privacy and replay. Document consumer polling/unknown-state
+semantics and release gates. New per-intent/IP throttling awaits the user's
+separate policy confirmation; do not enable/deploy checkout while that gate,
+browser terminal-safe lifecycle and real sandbox acceptance remain incomplete.
+
+Verification: 12 early HTTP checks reach RED (404 missing operation) then GREEN;
+56 native disposable-MySQL scenarios pass, including six complete HTTP return
+flows. Removing the single-operation/batch guard makes the valid serialized
+batch reach the service (412 instead of expected 400); restoration passes.
+Full local suite 1127 pass / 617 SQL/external skip. Types, both production builds,
+generated API (73 / 25642 bytes), boundaries and docs pass. No new packages or
+schema changes. Fresh native audit remains 51 (1 critical / 20 high / 26 moderate /
+4 low): this is not a clean dependency verdict or production release approval.
+
+One subsequent full run failed the existing native video-service wrapper while
+all payment tests passed. Its child output is not exposed by that wrapper, so
+the cause is not confirmed. The isolated native video suite then passed 40/40,
+and the unchanged standard full suite passed again (1127 / 617 skip). Record
+the transient failure rather than treating a retry as a diagnosed video fix;
+video runtime/tests were not modified in this payment slice.
+
+Five-axis review: explicit additive wire contract; canonical service/provider
+proof and atomic settlement, no duplicate checkout branch; UUID/header validation,
+strict minimal output, retained CSRF/body bounds and denied batch/GET; indexed
+bounded lookup and existing four-in-flight/15-second provider cap. Auth context
+does not invoke the legacy Axios OAuth methods; Express HTTP adapter still does
+not use experimental Next caller, trust-proxy remains loopback, and no new route
+parameters or upload/build inputs are introduced. Previously documented dependency
+conditions still need release review; quota approval is pending, not silently
+implemented. Working stage runtime/config and frontend UI remain unchanged.
+
+Acceptance used only the external-provider HTTP double and a bounded internal
+temporary MySQL; no real payment, login/session, external mail or working DB
+changes. Remove its owned container/anonymous volume/network and local tunnel
+after acceptance: cleanup completed, and all six working-stage services remain
+healthy. Before rollout explicitly review the new operation's edge
+gate alongside checkout; do not deploy/enable while quotas, browser lifecycle
+or sandbox acceptance are incomplete.
