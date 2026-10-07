@@ -725,6 +725,23 @@
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
 - [ ] M08: Specify/migrate remaining API services, remove superseded adapters and
   decompose db.ts without changing contracts. Review every module separately.
+  - [x] Notification token lifecycle slice (scope approved): preserve
+    registration, consent reads/writes and admin purge contracts while wiring
+    an explicit Nest-managed notification provider. First characterize HTTP,
+    then prove provider-bypass failures and wire the service; finish with full
+    non-MySQL/static/API/review gates and a local commit. Exclude latest content
+    reads, real delivery, worker lifecycle and any auth/consent-policy change.
+    24 characterization checks; four expected RED composition failures repaired.
+    Final slice 32 pass, focused 128 pass; a hidden-instance mutation fails four
+    native HTTP assertions and is removed. Full non-MySQL: 883 pass / 4 skip;
+    types/build/unchanged API/476-file boundaries/frontend lint pass. Separate
+    compiled ESM native HTTP probe passes all four paths plus injected refusal.
+    Session lookup and provider or persistence boundary are doubled; no real
+    JWT/MySQL/device delivery, durable no-DB writes or production-readiness claim.
+  - [ ] Run token registration/upsert, consent event ordering/legal metadata and
+    administrator purge with real HTTP/JWT/disposable MySQL. Reconsider existing
+    no-DB write/no-op policy separately; migrate notifications.latest and other
+    remaining domains in their own slices. Local Docker still reports EOF.
 - [ ] Final checkpoint: whole Nest runtime/MySQL/frontend flow, release rehearsal,
   audit triage/migration history/provider/SMTP/private-file gates and approved rollout.
 

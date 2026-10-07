@@ -7,6 +7,7 @@ import { ContentUploadService } from "../apps/backend/src/content/content-upload
 import { ClubCheckoutService } from "../apps/backend/src/billing/club-checkout.service";
 import type { TrpcContext } from "../apps/backend/src/_core/context";
 import type { User } from "../packages/database/src/schema";
+import { NotificationsService } from "../apps/backend/src/notifications/notifications.service";
 
 const member: User = {
   id: 7,
@@ -54,6 +55,7 @@ function caller(user: User | null = member) {
     new ContentCommentService(),
     new ContentUploadService(),
     { checkout: new ClubCheckoutService(), subscriptions },
+    new NotificationsService(),
   ).createCaller({ user, req: {}, res: {} } as TrpcContext);
 }
 afterEach(() => vi.unstubAllEnvs());

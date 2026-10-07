@@ -10,7 +10,8 @@ import { createFeedRouter } from "./content/feed-router";
 import { ContentReadService } from "./content/content-read.service";
 import { ContentWriteService } from "./content/content-write.service";
 import { createArticlesRouter } from "./content/articles-router";
-import { notificationsRouter } from "./notifications/router";
+import { createNotificationsRouter } from "./notifications/router";
+import { NotificationsService } from "./notifications/notifications.service";
 import { createClubRouter } from "./club/router";
 import { ContentCommentService } from "./content/content-comment.service";
 import { ContentUploadService } from "./content/content-upload.service";
@@ -26,15 +27,16 @@ export const createAppRouter = (
   comments: ContentCommentService,
   uploads: ContentUploadService,
   billing: ClubBillingServices,
+  notifications: NotificationsService,
 ) =>
   router({
     system: systemRouter,
     auth: authRouter,
     profile: profileRouter,
     feed: createFeedRouter(content, posts),
-    notifications: notificationsRouter,
+    notifications: createNotificationsRouter(notifications),
     videos: createVideosRouter(content),
-    admin: createAdminRouter(content, posts, uploads),
+    admin: createAdminRouter(content, posts, uploads, notifications),
     club: createClubRouter(comments, billing),
     penPals: penPalsRouter,
     shop: shopRouter,
@@ -54,6 +56,7 @@ export const appRouter = createAppRouter(
     checkout: new ClubCheckoutService(),
     subscriptions: new ClubSubscriptionService(),
   },
+  new NotificationsService(),
 );
 
 export type AppRouter = typeof appRouter;

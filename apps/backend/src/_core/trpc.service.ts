@@ -9,6 +9,7 @@ import { ClubCheckoutService } from "../billing/club-checkout.service";
 import { ClubSubscriptionService } from "../billing/club-subscription.service";
 import { createAppRouter, type AppRouter } from "../routers";
 import type { TrpcContext } from "./context";
+import { NotificationsService } from "../notifications/notifications.service";
 
 /** Application-scoped composition; domain services never look up Nest globally. */
 @Injectable()
@@ -23,11 +24,16 @@ export class TrpcService {
     @Inject(ClubCheckoutService) checkout: ClubCheckoutService,
     @Inject(ClubSubscriptionService) subscriptions: ClubSubscriptionService,
     @Inject(SessionService) private readonly sessions: SessionService,
+    @Inject(NotificationsService) notifications: NotificationsService,
   ) {
-    this.router = createAppRouter(content, posts, comments, uploads, {
-      checkout,
-      subscriptions,
-    });
+    this.router = createAppRouter(
+      content,
+      posts,
+      comments,
+      uploads,
+      { checkout, subscriptions },
+      notifications,
+    );
   }
 
   readonly createContext = async (

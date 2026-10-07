@@ -2056,3 +2056,73 @@ Remaining admin wiring stays open. Docker returns EOF, so actual MySQL writes,
 check-then-insert deduplication, concurrent imports and rollback are not verified
 or fixed here. No frontend/generated-file edits, payment configuration,
 shared-server mutation, remote push or deployment.
+
+## 2026-10-07 — notification token lifecycle: approved M08 slice
+
+Objective: continue the Nest service migration with one coherent notification
+boundary, without changing device registration or marketing-consent policy.
+Scope approved by the user's "Да, делаем" before implementation: registerToken,
+marketingConsent, setMarketingConsent and admin.purgeUserPushData. Real push
+delivery, notifications.latest content reads and worker lifecycle are excluded.
+Assumptions: retain the current public registration endpoint, protected consent
+endpoints, admin-only purge, blocked-session policy and all existing Zod schemas.
+Do not broaden access or represent missing-DB no-ops as verified persistence.
+
+Contract: registerToken passes the validated token/platform and optional session
+user ID; the client cannot set the owner. Consent reads use the session ID and
+return enabled plus the current shared label/version. Consent writes append the
+existing marketing granted/revoked event with that same label/version/platform,
+then return success/enabled. Purge awaits deletion for its validated target ID
+before returning success. Helper failures propagate through the existing safe
+HTTP formatter. Keep SQL queries, token upsert semantics and no-DB behavior.
+
+Structure: NotificationsModule exports NotificationsService; TrpcModule injects
+it explicitly and router factories receive it as a mandatory dependency. Keep
+standalone tools on the same factories. The service owns these use cases and
+their responses; adapters retain input validation and authorization. Example
+style: `@Inject(NotificationsService) notifications: NotificationsService`;
+no hidden singleton, optional fallback or new generic repository abstraction.
+
+Ordered tasks: (1) characterize current HTTP behavior with synthetic data;
+(2) prove service-bypass failures, wire the provider and update composition
+fixtures; (3) full/static gates, five-axis review, recorded limits and local
+atomic commit. Existing Vitest/Nest/tRPC/Drizzle/esbuild stack, no dependencies.
+Verification commands (Node 22 PATH; database envs empty for local-only tests):
+`pnpm exec vitest run tests/nest-notifications.test.ts tests/nest-admin-content-maintenance.test.ts tests/nest-application.test.ts tests/push-transport.test.ts`;
+`pnpm exec vitest run --exclude "**/*.mysql.test.ts"`;
+`pnpm check && pnpm build && pnpm check:api && pnpm check:boundaries && pnpm lint && pnpm check:docs`.
+Always preserve contracts, run tests before commits and review exact staged files.
+Ask first for auth/quota/consent/schema/dependency/provider changes. Never edit
+frontend/generated types, commit secrets, send real push, mutate shared data or
+deploy in this increment. SQL transport and session lookup may be doubled;
+actual JWT/MySQL persistence/provider acceptance remains a separate gate.
+This approved slice preserves behavior; it does not approve new consent/auth
+policy, external delivery or deployment.
+
+Execution: 24 new characterization checks pass before production changes;
+four expected RED composition cases reproduce all four routes bypassing the
+supplied notification dependency. After explicit wiring, 32 slice checks and
+128 combined focused checks pass. Replacing the supplied provider with a hidden
+new instance deliberately fails all four native HTTP refusal assertions; the
+mutation is removed before final verification. Three existing caller fixtures
+now supply the required notification dependency; their expectations are intact.
+
+Fresh Node 22 gates: 883 non-MySQL pass / 4 skip, types, 353.6 KiB backend build,
+unchanged 72-procedure/25461-byte API, 476-file dependency boundaries and existing
+frontend-only lint pass. No backend ESLint claim. A separately compiled ESM
+probe starts the native application, exercises all four operations without a
+database and receives HTTP 409 from the actual injected notification provider.
+Only synthetic session lookup/provider refusal is substituted there; these
+success/no-op responses do not prove durable writes. Generated probe artifacts
+are removed; no listeners or workers are left running.
+
+Five-axis self-review: four router-to-storage use cases now share one explicit
+notification owner, with no new repository layer, locator, dependency, query,
+token upsert change, legal-copy change or authorization/CORS/quota policy.
+Service responses retain boolean wire types; writes await their existing helper
+and safe HTTP errors are preserved. notifications.latest remains unchanged in
+the adapter; SQL ownership, no-database write policy and real token/consent
+persistence acceptance remain open. Docker server read returns EOF; no real
+JWT/MySQL replay, Expo/device delivery or production readiness is claimed.
+No frontend/generated-file, payment configuration, shared-server, remote push
+or deployment changes. Save this coherent slice as a local atomic commit.

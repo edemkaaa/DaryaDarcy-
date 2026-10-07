@@ -8,11 +8,13 @@ import type { ContentUploadService } from "../content/content-upload.service";
 import { mediaUploadInput } from "../content/media-upload-input";
 import type { ContentReadService } from "../content/content-read.service";
 import { importVideosInput } from "../content/video-import-input";
+import type { NotificationsService } from "../notifications/notifications.service";
 
 export const createAdminRouter = (
   content: ContentReadService,
   posts: ContentWriteService,
   uploads: ContentUploadService,
+  notifications: NotificationsService,
 ) => router({
   // Get all posts including unpublished (admin only)
   posts: adminProcedure.query(() => content.listAllAdminPosts()),
@@ -165,8 +167,5 @@ export const createAdminRouter = (
   /** Remove push tokens when deleting/deactivating a user account (manual deletion workflow). */
   purgeUserPushData: adminProcedure
     .input(z.object({ userId: z.number() }))
-    .mutation(async ({ input }) => {
-      await db.deletePushTokensForUser(input.userId);
-      return { success: true };
-    }),
+    .mutation(({ input }) => notifications.purgeUserPushData(input.userId)),
 });

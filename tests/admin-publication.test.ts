@@ -18,12 +18,14 @@ import { createAdminRouter } from "../apps/backend/src/admin/router";
 import { ContentWriteService } from "../apps/backend/src/content/content-write.service";
 import { ContentUploadService } from "../apps/backend/src/content/content-upload.service";
 import { ContentReadService } from "../apps/backend/src/content/content-read.service";
+import { NotificationsService } from "../apps/backend/src/notifications/notifications.service";
 
 const caller = () =>
   createAdminRouter(
     new ContentReadService(),
     new ContentWriteService(),
     new ContentUploadService(),
+    new NotificationsService(),
   ).createCaller({
     user: { id: 1, role: "admin", blockedAt: null },
     req: {},
