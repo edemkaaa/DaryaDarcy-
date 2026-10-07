@@ -2426,3 +2426,87 @@ Fresh Node 22 gates: types, 355.5 KiB backend build, unchanged generated
 72-procedure/25461-byte API, 479-file dependency boundaries, existing
 frontend-only lint and links in 49 current documents pass. No backend ESLint
 or dependency-audit/release claim. No frontend/generated edits or deploy.
+
+## 2026-10-07 — approved YooKassa test checkout for club access
+
+### Objective and approval boundary
+
+The user approved one-off test club payment followed by access, without saving
+cards or automatic renewals. Shop payments, real-money payments, refunds and
+recurring YooKassa subscriptions are outside this stage. The user approved this
+plan and the additive checkout-intent table on 2026-10-07. Enabling the test stand
+remains a separate checkpoint. Existing incomplete project tasks are retained.
+
+### Contract and architecture
+
+- Keep Prodamus unchanged while the test adapter is disabled. No fallback to a
+  live provider on error. Add a client-generated UUID intent key to checkout,
+  required only in YooKassa test mode. Preserve `{url, user: null}` and existing
+  actor-email/blacklist checks; checkout never authenticates or verifies email.
+- Claim the key atomically in a proposed `billing_checkout_intents` table with
+  unique intent/order/provider-payment bindings. Persist recipient, test shop,
+  price, access period, immutable request hash/payload, first dispatch time and
+  processing state before calling out. Same key + changed body is a conflict.
+  Concurrent requests cannot dispatch independent payments. No card data, raw
+  provider dump or secrets in logs/Git; confirmation links are sensitive.
+- Use fixed YooKassa HTTPS origin and validated IDs, no redirects, bounded time,
+  response bytes and concurrency. Validate the account and each payment, requiring
+  the configured shop and `test: true`; reject live keys. Create a one-stage
+  redirect payment with `capture: true`, without a saved payment method. Persist
+  provider ID before returning the validated URL. Metadata contains an opaque
+  order ID, not email or authority to grant access.
+- Network errors/HTTP 500 mean unknown outcome. Recover with the exact stored
+  request/key only within a conservative window shorter than YooKassa's 24-hour
+  idempotence guarantee. Never re-dispatch an unresolved older intent; reconcile.
+  If provider ID is known, recover by GET, not by creating another payment.
+- A webhook is a hint for an authenticated GET, not proof. Check ID, shop, test,
+  amount, RUB, persisted order binding, `succeeded` and `paid`. Do not acknowledge
+  transient verification/DB failures as successful processing. Handle webhook
+  arrival before the create response is persisted, without issuing unbound access.
+- Reuse atomic receipt + entitlement + outbox settlement with a test-specific
+  provider namespace/order prefix. Browser return never grants access. A duplicate
+  webhook never extends it again. Persist 30-day/180-day duration with the intent;
+  do not derive it from mutable configuration. Old Prodamus cancellation/profile
+  logic must not process YooKassa one-off orders. UI must label a one-off test
+  purchase, not promise automatic renewals.
+- Preserve API isolation: separately design bounded payment-only egress before
+  rollout. Retain DB/SMTP/video/image services and old live-payment blocks.
+  Configure HTTP notifications in the test shop's cabinet, not via Basic-auth API.
+
+### Ordered slices, acceptance and commands
+
+1. Y1 — HTTP/configuration boundary under `apps/backend/src/billing/yookassa/`
+   and focused Vitest tests (2–4 files). Reject wrong shop/live responses and
+   unsafe URLs; bound reads/time, redact errors. Test first with boundary-only
+   transport doubles; no network in unit tests. No new SDK/dependencies.
+2. Y2 — additive SQL/repository and disposable-MySQL tests (3–5 files), after Y1.
+   Prove conflicts, concurrent retries, restart recovery and refusal of expired
+   unknown outcomes. Schema approval precedes edits; migration rehearsal and
+   preflight precede target DB changes. Never rewrite historical migrations.
+3. Y3 — Nest checkout/webhook wiring and settlement (split into 3–5-file slices),
+   after Y2. Test forgery, mismatched shop/amount/currency/test flag, blocked
+   recipients, early webhook, transaction rollback and replay. Characterize
+   existing Prodamus behavior. Checkpoint: review before caller/rollout work.
+4. Y4 — caller contract handoff, after Y3. Retain the same intent through retry
+   and reload, including timeout; do not create a key per attempt. Frontend edits
+   require their own agreed scope, generated contract and browser checks.
+5. Y5 — separately approved staging rollout, after Y4: protected backup,
+   rehearsed migration, scoped egress/edge changes, cabinet notifications and
+   exact image rollback. Real sandbox acceptance must prove payment → access,
+   eventual access email and duplicate replay without extra receipt/outbox/period.
+
+Use Node 22, committed pnpm 9.12.0 lockfile, existing Nest/Drizzle boundaries,
+strict TypeScript and Zod. Example: `{ email, plan, intentKey }` enters checkout;
+`{ url, user: null }` leaves it. Recipient/price remain server-owned.
+
+Run `pnpm exec vitest run tests/yookassa-*.test.ts` per slice, then `pnpm check`,
+`pnpm build`, `pnpm check:api`, `pnpm check:boundaries` and `pnpm check:docs`.
+Run SQL tests only under the repository's disposable `backend_test` policy.
+Mocked tests are not SQL/provider acceptance. Run native `pnpm audit`, triage
+reachable critical/high issues before release; never force dependency upgrades.
+Build/test frontend only if changed. Do not reset staging data or claim production
+readiness. Migration-history discrepancies remain a deployment gate.
+
+References checked 2026-10-07: [request format and 24-hour idempotence](https://yookassa.ru/developers/using-api/interaction-format),
+[payment lifecycle](https://yookassa.ru/developers/payment-acceptance/getting-started/payment-process),
+[webhook verification and cabinet setup](https://yookassa.ru/developers/using-api/webhooks).
