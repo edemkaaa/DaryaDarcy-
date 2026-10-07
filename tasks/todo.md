@@ -759,9 +759,15 @@
     Full non-MySQL 925 pass / 4 skip; types/build/unchanged API/479-file boundaries/
     frontend-only lint/docs pass. SQL/storage and both identity lookups are doubled;
     the real photo decoder runs. No frontend/payment/provider/push/deployment work.
+  - [x] Reject false-success profile/avatar responses when no database is
+    available; reproduce through native HTTP and fix the common write boundary.
+    Three expected RED cases (nonempty/empty patch and avatar URL) repaired;
+    the actual no-DB helper runs, only identity/storage are doubled. Profile 26
+    pass, focused 70 pass; whole non-MySQL 927 pass / 4 skip. Successful responses,
+    schemas and access rules remain unchanged; failure now returns safe HTTP 500.
   - [ ] Verify profile writes/avatar/deletion requests with real JWT/MySQL/S3;
-    address legacy no-DB profile success and orphaned uploads after SQL failure
-    separately. This slice does not implement immediate erasure/retention policy.
+    address orphaned uploads after SQL failure separately. This slice does not
+    implement immediate erasure/retention policy or verify zero-row updates.
 - [ ] Final checkpoint: whole Nest runtime/MySQL/frontend flow, release rehearsal,
   audit triage/migration history/provider/SMTP/private-file gates and approved rollout.
 

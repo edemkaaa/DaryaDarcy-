@@ -197,7 +197,7 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot update profile: database not available");
-    return;
+    throw new Error("Database not available");
   }
 
   const updateSet: Record<string, unknown> = {};

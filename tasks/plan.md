@@ -2241,3 +2241,49 @@ Final fresh Node 22 verification: 925 non-MySQL pass / 4 skip; types,
 dependency boundaries, existing frontend-only lint and documentation links pass.
 No backend ESLint or real persistence claim. Update the backend navigation and
 record remaining profile acceptance/policy tasks without closing M08 or rollout.
+
+## 2026-10-07 — profile persistence: reject missing-database success
+
+Fix the separately recorded false-success bug, not another refactor. Inspection
+of both ProfileService callers shows updateUserProfile returning normally when
+getDb is null; both await it and then return success/a new avatar URL. Make the
+existing persistence boundary throw in that case, like deletion requests and
+other required writes. Keep the safe HTTP 500 formatter and all successful
+response types, schemas, session ownership, upload admission and SQL unchanged.
+An empty profile patch still requires an available database; with a database
+its existing no-op behavior remains unchanged.
+
+Replace the legacy no-DB success characterization with native HTTP regression
+checks for a nonempty patch, empty patch and avatar upload. Exercise the actual
+missing-DB helper, not a mocked helper failure. Only identity lookups and avatar
+storage are doubled; retain the real photo decoder. Observe false-success RED
+results before the smallest persistence-boundary fix, then run focused/full
+non-MySQL and static/API/docs gates and five-axis review before a local commit.
+
+This intentional failure-path change prevents misleading success; it does not
+prove durable writes, detect zero affected rows or introduce storage rollback.
+Avatar storage still precedes the DB write and can leave an orphan on failure;
+that needs its own ownership/cleanup design. Docker server read returns EOF.
+No frontend/generated-file, payment, auth/quota policy, dependency/schema,
+shared-server, remote push or deployment changes in this slice.
+
+Execution: all three new regression cases fail for the expected false-success
+reason before the production change, while the other 23 profile cases pass.
+Replace only the missing-DB return with an error at the shared write boundary.
+All 26 profile checks and 70 focused checks then pass; fresh full non-MySQL
+verification passes 927 checks with 4 skipped. No timeout or assertion changes.
+
+Fresh Node 22 gates: types, 355.2 KiB backend build, unchanged
+72-procedure/25461-byte API, 479-file dependency boundaries and the existing
+frontend-only lint pass. Documentation links are checked after these notes.
+No backend ESLint, real JWT/MySQL/S3 acceptance or release-readiness claim.
+
+Five-axis self-review: correctness is exercised through native HTTP with the
+actual absent-DB helper; the service already awaits writes. The one-line failure
+is explicit and readable, and belongs to the existing persistence boundary,
+without duplicate transport/service guards or a new abstraction. Session
+ownership, upload admission and safe error formatting remain unchanged; the
+warning stays static, with no secrets or user data. There are no extra queries
+or runtime dependencies. Empty patches with an available DB and the existing
+upload order are unchanged. Orphan cleanup and zero-row detection remain open;
+do not close M08 or the rollout gate on this local regression fix.

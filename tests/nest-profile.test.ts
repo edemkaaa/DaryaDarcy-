@@ -411,14 +411,36 @@ describe("profile use cases over native HTTP", () => {
     },
   );
 
-  it("retains the legacy missing-DB profile no-op (not verified persistence)", async () => {
-    const warning = vi
-      .spyOn(console, "warn")
-      .mockImplementation(() => undefined);
-    expect(await operations[0].run()).toEqual({ success: true });
-    expect(warning).toHaveBeenCalledWith(
-      "[Database] Cannot update profile: database not available",
-    );
+  it.each([
+    { name: "nonempty profile", input: { name: "synthetic name" } },
+    { name: "empty profile", input: {} },
+  ])(
+    "refuses a $name update when no database is available",
+    async ({ input }) => {
+      vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      await expect(client().profile.update.mutate(input)).rejects.toMatchObject(
+        {
+          message: "Внутренняя ошибка сервера",
+          data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+        },
+      );
+    },
+  );
+
+  it("does not return an avatar URL when its profile cannot be persisted", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const uploaded: string[] = [];
+    vi.spyOn(storage, "storagePut").mockImplementation(async (key) => {
+      uploaded.push(key);
+      return { key, url: "https://assets.example.test/unpersisted.webp" };
+    });
+    await expect(operations[1].run()).rejects.toMatchObject({
+      message: "Внутренняя ошибка сервера",
+      data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+    });
+    // Upload-before-write is unchanged; compensation remains a separate task.
+    expect(uploaded).toHaveLength(1);
+    expect(uploaded[0]).toMatch(/^avatars\/9900\/[0-9a-f-]{36}\.webp$/);
   });
   it("keeps deletion-request failure when no database is available", async () => {
     await expect(operations[2].run()).rejects.toMatchObject({
