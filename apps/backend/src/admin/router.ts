@@ -29,9 +29,7 @@ export const createAdminRouter = (
   // Delete a post (admin only)
   deletePost: adminProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(({ input }) => {
-      return db.deletePost(input.id);
-    }),
+    .mutation(({ input }) => posts.deletePost(input.id)),
 
   importVideoUrl: adminProcedure
     .input(
@@ -57,9 +55,7 @@ export const createAdminRouter = (
   // Delete a media attachment (admin only)
   deleteMedia: adminProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(({ input }) => {
-      return db.deletePostMediaById(input.id);
-    }),
+    .mutation(({ input }) => posts.deleteMedia(input.id)),
 
   // Get scheduled posts for calendar (admin only)
   scheduledPosts: adminProcedure.query(() => content.listScheduledPosts()),
@@ -141,10 +137,7 @@ export const createAdminRouter = (
   deleteArticle: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(({ input }) => posts.deleteArticle(input.id)),
-  cleanupMediaNames: adminProcedure.mutation(async () => {
-    await db.clearRawCameraFilenames();
-    return { ok: true as const };
-  }),
+  cleanupMediaNames: adminProcedure.mutation(() => posts.cleanupMediaNames()),
 
   // Confirm a scheduled post (publish it) (admin only)
   confirmPost: adminProcedure

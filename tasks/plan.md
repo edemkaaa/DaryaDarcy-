@@ -1968,3 +1968,32 @@ This is not a ready subscription checkout; provider sandbox configuration and
 full acceptance are still required. Shop additionally remains hard-disabled
 until atomic settlement/outbox is validated. Local Docker still returns EOF;
 no real SQL/provider acceptance, live payment, server mutation, push or deployment.
+
+## 2026-10-07 — admin content maintenance: injected service ownership
+
+User requested non-payment backend work while Prodamus demo access is pending.
+Continue the existing M05 service migration, not a new endpoint or deletion
+policy: admin.deletePost, admin.deleteMedia and admin.cleanupMediaNames now use
+the existing application-scoped ContentWriteService. SQL remains in its current
+helpers; do not duplicate the post cascade, introduce physical storage deletion,
+change input validation or broaden administrator access.
+
+Characterization baseline: 34 existing publication/native application checks
+pass. New native HTTP tests first reproduce five expected RED failures when
+routes bypass the supplied provider, then 23 pass after wiring; combined focused
+run: 57 pass. Coverage includes resource IDs, unchanged void/ok responses, domain
+refusal, guest/member/moderator/blocked-admin policy, malformed IDs and real
+provider behavior without a database. Only session lookup and selected content
+provider behavior are doubled for wiring; JWT, successful SQL deletion, SQL
+rollback/concurrency and physical storage effects are not claimed as verified.
+Existing cleanup behavior with no database is deliberately preserved as a no-op,
+not reclassified as a new successful database maintenance operation.
+
+Fresh Node 22 whole non-MySQL suite: 836 pass / 4 skip. Types, backend build
+(351.4 KiB), unchanged 72-procedure/25461-byte API, 472-file boundaries and
+existing frontend-only lint pass. No backend ESLint claim. Five-axis review:
+three removed router-to-storage dependencies, existing injected service and
+transaction helpers reused, no new lookup/global locator, dependency, query,
+schema, authentication/CORS/quota policy or frontend/generated-file edits.
+Remaining admin service wiring and real SQL acceptance stay open. No remote
+push, shared-server mutation, deployment or payment configuration change.

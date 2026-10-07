@@ -39,6 +39,19 @@ export class ContentWriteService {
     return { ok: true };
   }
 
+  deletePost(id: number): Promise<void> {
+    return db.deletePost(id);
+  }
+
+  deleteMedia(id: number): Promise<void> {
+    return db.deletePostMediaById(id);
+  }
+
+  async cleanupMediaNames(): Promise<{ ok: true }> {
+    await db.clearRawCameraFilenames();
+    return { ok: true };
+  }
+
   async createPost(
     actorUserId: number,
     input: CreatePostInput,

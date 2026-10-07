@@ -631,6 +631,16 @@
     Do not call this fixed or conceal it with automatic retries/skip flags.
   - [ ] Remaining M05: Remaining admin service wiring; no
     claim that all content, storage or SQL ownership has been migrated.
+    - [x] Route admin post/media deletion and raw-camera filename cleanup through
+      the existing Nest-managed ContentWriteService. Preserve ID schemas, admin
+      policy, SQL helpers, void deletion responses and cleanup's no-DB no-op.
+      Five expected RED HTTP cases before wiring; 23 new checks pass afterwards,
+      including guest/member/moderator/blocked-admin refusal, malformed IDs,
+      provider errors and missing-database outcomes. Full non-MySQL suite:
+      836 pass / 4 skip; types/build/API/boundaries pass. Session lookup and the
+      selected provider are doubled in HTTP wiring cases; real JWT/MySQL deletion
+      acceptance still needs a disposable database. No frontend/schema/payment,
+      shared-server data mutation, push or deployment.
   - [x] Admin article slice: four operations use existing injected read/write
     services; schemas, private/draft order, block normalization and teaser lifecycle
     are unchanged. Twenty real HTTP/JWT/MySQL cases include compiled ESM; a
