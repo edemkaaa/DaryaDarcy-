@@ -103,9 +103,33 @@ HTTP slice adds `club.reconcileCheckout` as a mutation with undefined input and
 strict state-only output. Its key stays in the header. Reject batching so one
 header cannot ambiguously cover multiple operations. Existing cross-site/body
 bounds, no-store and generic errors apply; GET cannot invoke this mutation.
-This is not connected to the UI or deployed. Bounded polling, approved per-key/IP
-quota and terminal-safe browser lifecycle remain required before enablement.
+This is not connected to the UI or deployed. Bounded polling and terminal-safe
+browser lifecycle remain required before enablement.
 No schema or dependency changes.
+
+### Return-check quotas
+
+The user approved 12 attempts per intent and 60 per resolved client IP in a
+60-second window. Apply the HTTP policy before input/service execution, after
+rejecting batching. The IP bucket counts malformed/missing UUIDs and disallowed
+input in parsed JSON (not parser failures); an IP refusal cannot consume another
+intent's allowance. Valid UUIDs
+use a lowercase hash bucket shared across IPs. No raw capability key is retained
+in the counter or returned in the generic tRPC 429 response. `Retry-After` gives
+the remaining positive number of seconds, while no-store and no-session remain.
+Refusals do not extend the window or start/rotate/cancel a purchase.
+
+Reuse the existing bounded fixed-window limiter rather than add Redis for a
+single test API process. Its windows start with the first counted attempt, not
+calendar minutes; counters expire after 60 seconds, with lazy cleanup and
+fail-closed capacity at 10000 live entries shared with existing limiter callers.
+This is neither a persistent nor a multi-process quota: restarting resets
+counters. Before scaling require a shared atomic store. Before rollout verify
+the real proxy chain: use Express-resolved IP only, never raw forwarded headers,
+and do not broaden trust-proxy here. The current Docker edge is not loopback,
+so the existing API configuration conservatively groups requests by that peer
+until a separately reviewed proxy policy is in place. Webhook settlement,
+checkout creation, authentication and CORS are unchanged.
 
 ### Payment network boundary
 

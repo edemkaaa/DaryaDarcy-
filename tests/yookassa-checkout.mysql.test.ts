@@ -171,10 +171,13 @@ describe.skipIf(!testDatabaseUrl)(
     }
     const reconcile = (intentKey: unknown = key) =>
       app.get(YookassaClubService).reconcileCheckout(null, intentKey);
-    const returnCheck = (suffix = "", method = "POST") =>
+    const returnCheck = (suffix = "", method = "POST", intentKey = key) =>
       realFetch(`${base}/api/trpc/club.reconcileCheckout${suffix}`, {
         method,
-        headers: { "Content-Type": "application/json", "Idempotency-Key": key },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": intentKey,
+        },
         ...(method === "POST"
           ? { body: '{"json":null,"meta":{"values":["undefined"]}}' }
           : {}),
@@ -256,6 +259,28 @@ describe.skipIf(!testDatabaseUrl)(
       lookupUnavailable = false;
       expect((await returnCheck()).status).toBe(200);
       expect(creates).toBe(1);
+    });
+
+    it("HTTP quota refuses before provider lookup and preserves committed access on retry", async () => {
+      const intentKey = "6789abcd-1234-4123-8123-abcdefabcdef";
+      expect((await checkout(intentKey)).status).toBe(200);
+      providerStatus = "succeeded";
+      expect((await returnCheck("", "POST", intentKey)).status).toBe(200);
+      const committed = await state();
+      expect(committed).toMatchObject({ receipts: 1, emails: 1 });
+      for (let attempt = 0; attempt < 11; attempt++)
+        expect((await returnCheck("", "POST", intentKey)).status).toBe(200);
+      expect(lookups).toBe(12);
+      const blocked = await returnCheck("", "POST", intentKey);
+      expect(blocked.status).toBe(429);
+      expect(blocked.headers.get("retry-after")).toBe("60");
+      expect(lookups).toBe(12);
+      expect(await state()).toEqual(committed);
+      vi.advanceTimersByTime(60_000);
+      expect((await returnCheck("", "POST", intentKey)).status).toBe(200);
+      expect(lookups).toBe(13);
+      expect(creates).toBe(1);
+      expect(await state()).toEqual(committed);
     });
 
     it("return checking a missing intent cannot create an order or provider payment", async () => {

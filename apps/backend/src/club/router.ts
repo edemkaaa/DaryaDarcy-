@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import {
   router,
   publicProcedure,
@@ -11,6 +10,7 @@ import type { ContentCommentService } from "../content/content-comment.service";
 import { addCommentInput } from "../content/comment-input";
 import { photoInput, uploadPhoto } from "../media/photos";
 import type { ClubBillingServices } from "../billing/billing.module";
+import { enforceReturnCheckLimit } from "../billing/yookassa/return-check-limit";
 
 export const createClubRouter = (
   comments: ContentCommentService,
@@ -38,6 +38,10 @@ export const createClubRouter = (
       billing.subscriptions.subscription(ctx.user),
     ),
     reconcileCheckout: publicProcedure
+      .use(({ ctx, next }) => {
+        enforceReturnCheckLimit(ctx.req, ctx.res);
+        return next();
+      })
       .input(z.undefined())
       .output(
         z
@@ -46,17 +50,12 @@ export const createClubRouter = (
           })
           .strict(),
       )
-      .mutation(({ ctx }) => {
-        if (ctx.req.query?.batch !== undefined)
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Проверяйте одну платёжную заявку за запрос",
-          });
-        return billing.checkout.reconcileCheckout(
+      .mutation(({ ctx }) =>
+        billing.checkout.reconcileCheckout(
           ctx.user,
           ctx.req.headers?.["idempotency-key"],
-        );
-      }),
+        ),
+      ),
     createCheckout: publicProcedure
       .input(
         z

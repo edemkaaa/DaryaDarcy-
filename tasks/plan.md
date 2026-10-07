@@ -2744,3 +2744,50 @@ after acceptance: cleanup completed, and all six working-stage services remain
 healthy. Before rollout explicitly review the new operation's edge
 gate alongside checkout; do not deploy/enable while quotas, browser lifecycle
 or sandbox acceptance are incomplete.
+
+### Y4c3: approved return-check quotas — 2026-10-08
+
+The user confirmed continuation after the explicit 12/minute per-intent and
+60/minute per-IP question. Implement this policy on the return-check operation
+only, before payment storage/provider work, without touching authentication,
+CORS, checkout creation, callbacks or runtime deployment. Reuse the bounded
+canonical rate limiter and Express-resolved client IP, never raw forwarded
+headers. Charge the IP budget first; validate the UUID before allocating its
+normalized hash bucket. Deny batches and preserve state/no-store privacy.
+Respond with generic tRPC 429 and a positive Retry-After; no request retries,
+key deletion/rotation or purchase side effects. Verify exact boundaries, expiry,
+concurrency, casing, malformed input and forwarded-header abuse through real HTTP.
+The existing process-memory store is suitable only for the single API process;
+shared counters and explicit proxy-chain verification remain scaling/rollout
+gates. Do not enable payments or claim real sandbox acceptance here.
+
+Verification: initial real HTTP tests reach RED (412 instead of required 429),
+then all 10 quota HTTP scenarios and the existing 12 HTTP/4 limiter cases pass.
+Removing lowercase normalization reproduces the uppercase quota bypass; restoring
+it restores GREEN. Fresh full suite after restoration: 1137 pass / 618 SQL/external
+skip; types, backend build, unchanged API (73 / 25642 bytes), boundaries (502
+files), formatting and docs pass. All 57 native MySQL scenarios pass, including
+12 authenticated provider GETs, refused 13th attempt with no provider lookup and
+unchanged access/receipt/outbox, and same-key post-expiry retry without extension
+or a second checkout. Only provider HTTP is doubled; SQL/Nest/tRPC remain real.
+
+Review: policy lives in billing, with a small router middleware; no parallel
+settlement/checkout flow. IP is resolved by the canonical helper, then UUID is
+validated/hashed before its bucket allocation. Counter updates are synchronous;
+IP refusal short-circuits intent charging, and expiry does not slide on refusals.
+Malformed input consumes IP attempts but parser errors and batches are denied
+before this policy. No credentials, PII output, schema, dependencies, auth/CORS,
+webhook or deployment changes. The bounded canonical store retains existing
+single-process/restart/shared-capacity limitations, documented instead of hidden.
+Fresh production dependency audit remains 51 (1 critical / 20 high / 26 moderate /
+4 low); earlier reachability/release conditions remain open, not a clean audit.
+
+Before rollout the exact proxy-chain policy needs review: current loopback trust
+does not trust the Docker peer, so its callers conservatively share one IP quota.
+Do not broaden proxy trust here or claim per-browser enforcement on the working
+stand. Shared atomic counters are required before multiple API processes. Browser
+polling/terminal-safe purchase lifecycle and actual sandbox acceptance remain open.
+
+Removed the owned synthetic MySQL container/anonymous volume/internal network
+and its SSH tunnel after acceptance. All six working-stage services remain
+healthy; the deleted database contained only regeneratable test fixtures.
