@@ -42,6 +42,16 @@ GET/POST `/api/prodamus/webhook` регистрирует только [Prodamus
 
 Middleware сессии и ролей tRPC остаются в [\_core/trpc.ts](../../apps/backend/src/_core/trpc.ts), общая доменная проверка подписки — в [identity/club-access.ts](../../apps/backend/src/identity/club-access.ts), с прежним реэкспортом для остальных модулей. Материалы и обсуждения клуба не являются публичными. Блокировка аккаунта и актуальная роль проверяются сервером.
 
+notifications.registerToken, notifications.setMarketingConsent и
+admin.purgeUserPushData используют [NotificationsService](../../apps/backend/src/notifications/notifications.service.ts).
+Без БД helpers записи выбрасывают ошибку: HTTP возвращает INTERNAL_SERVER_ERROR /
+500 с общим сообщением «Внутренняя ошибка сервера», а не {success:true} или
+подтверждение несохранённого состояния согласия. Успешные ответы, схемы,
+гостевая регистрация устройств, владелец из сессии и права администратора прежние.
+Чтение marketingConsent без БД по-прежнему даёт enabled=false; выбор получателей
+без БД не разрешает рассылку. Это не проверка реальной доставки, SQL-порядка
+событий согласия или конкурентного владения push-токеном.
+
 Административные admin.posts/postsFiltered/scheduledPosts/getPostMedia/stats
 вызывают внедрённый ContentReadService через ту же композицию. Их adminProcedure
 сохраняет свежую авторизацию: модератор не получает права администратора.

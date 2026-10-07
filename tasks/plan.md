@@ -2334,3 +2334,49 @@ Fresh Node 22 gates: types, 355.3 KiB backend build, unchanged
 72-procedure/25461-byte API, 479-file dependency boundaries and existing
 frontend-only lint pass. Recheck documentation links after the final notes.
 No backend ESLint, live MySQL/S3 test or dependency-audit/release claim.
+
+## 2026-10-07 — notification writes reject absent-database success
+
+Inspection traces three awaited NotificationsService writes to db.ts helpers
+that return normally when getDb is null: registerPushToken, logPushConsentEvent
+and deletePushTokensForUser. The API then reports success without registering a
+device, recording a grant/revocation or purging any tokens. Fix this separately
+recorded M08 no-DB write policy at those existing persistence boundaries only.
+
+Contract: absent DB yields the existing safe INTERNAL_SERVER_ERROR / HTTP 500,
+not {success:true} or a claimed new consent state. Preserve successful response
+types, validation, public guest registration, session ownership, admin-only
+purge, legal metadata and all configured SQL/upsert/delete behavior. Read-side
+false/empty no-DB defaults and recipient selection remain unchanged (fail-closed
+delivery); do not add retries, actual sending or a consent/authorization policy.
+
+First replace legacy no-DB write characterization with native HTTP regressions
+covering guest/member registration, grant, revocation and admin purge. Run the
+actual missing-DB helpers with blank DATABASE_URL; only session identity is
+doubled. Keep the no-DB read default check. Observe expected false-success RED
+before the three minimal guards; run focused/full non-MySQL, static/API/docs
+gates and five-axis review, then commit locally. This does not establish real
+SQL writes, atomic consent ordering, token ownership under races or device
+delivery. No frontend/generated types, payments, worker/provider, dependencies,
+schema, shared-server, push or deployment changes.
+
+Execution: five expected RED cases resolve success/claimed enabled state
+instead of rejecting; the other 47 notification checks pass. Replace only the
+three null-DB early returns with errors. Final notification suite 52 pass,
+three focused suites 100 pass and full non-MySQL 930 pass / 4 skip. Existing
+ownership, input, role, legal-copy and generic SQL-error checks also pass;
+no timeouts/assertions weakened. Docker server read still returns EOF.
+
+Five-axis review: the helpers now reject instead of hiding an absent write,
+and all three service callers already await them. Explicit failures use the
+existing persistence boundary, without new service guards, abstraction, dead
+code or materially growing db.ts. No new PII logging, provider request, auth,
+consent/retention policy or elevated access. Configured SQL and read-side
+fail-closed selection are unchanged; no additional query or runtime dependency.
+Real SQL upsert/event ordering/delete acceptance remains open, as do delivery
+and N12 worker lifecycle. This is not a production-readiness/erasure claim.
+
+Fresh Node 22 gates: types, 355.4 KiB backend build, unchanged
+72-procedure/25461-byte API, 479-file dependency boundaries, existing
+frontend-only lint and links in 49 current documents pass. No backend ESLint
+or dependency-audit/release claim.

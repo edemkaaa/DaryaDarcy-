@@ -746,9 +746,15 @@
     pass, whole non-MySQL 901 pass / 4 skip; types/build/unchanged API/boundaries/
     frontend-only lint/docs pass. SQL helpers and session lookup are doubled;
     actual JWT/MySQL publication visibility/ordering/expiry acceptance stays open.
+  - [x] Reject no-DB false success for token registration, consent grant/revocation
+    and administrator token purge at the existing persistence boundaries. Five
+    native HTTP regressions fail for false success before the three guard fixes;
+    actual missing-DB helpers run with only session lookup doubled. Notification
+    suite 52 pass, focused 100 pass, whole non-MySQL 930 pass / 4 skip; types/
+    build/unchanged API/479-file boundaries pass. Success shapes, access and legal
+    metadata unchanged; no-DB read defaults/recipient selection stay fail-closed.
   - [ ] Run token registration/upsert, consent event ordering/legal metadata and
-    administrator purge with real HTTP/JWT/disposable MySQL. Reconsider existing
-    no-DB write/no-op policy separately; migrate other
+    administrator purge with real HTTP/JWT/disposable MySQL; migrate other
     remaining domains in their own slices. Local Docker still reports EOF.
   - [x] Migrate profile update/avatar/deletion-request orchestration into an
     explicit Nest-managed profile service; preserve schemas, session ownership,

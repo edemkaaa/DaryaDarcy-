@@ -581,7 +581,7 @@ export async function getPostBySource(source: string): Promise<Post | undefined>
 
 export async function registerPushToken(token: string, userId?: number, platform?: string) {
   const db = await getDb();
-  if (!db) return;
+  if (!db) throw new Error("Database not available");
 
   // Upsert: if token exists, update userId/platform
   await db.insert(pushTokens).values({
@@ -658,7 +658,7 @@ export async function logPushConsentEvent(
   consentText?: string,
 ): Promise<void> {
   const db = await getDb();
-  if (!db) return;
+  if (!db) throw new Error("Database not available");
 
   await db.insert(pushConsentEvents).values({
     userId,
@@ -789,7 +789,7 @@ export async function getServicePushTokens(
 
 export async function deletePushTokensForUser(userId: number): Promise<void> {
   const db = await getDb();
-  if (!db) return;
+  if (!db) throw new Error("Database not available");
   await db.delete(pushTokens).where(eq(pushTokens.userId, userId));
 }
 

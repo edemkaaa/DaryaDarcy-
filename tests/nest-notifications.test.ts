@@ -565,11 +565,33 @@ describe("notifications over native HTTP", () => {
     expect(received).toBe(9601);
   });
 
-  it.each(operations)(
-    "keeps the existing $name no-database outcome (not persistence)",
-    async ({ run, want }) => {
-      actor = { ...member, role: "admin" };
-      expect(await run()).toEqual(want);
+  it("keeps marketing disabled by default when no database is available", async () => {
+    expect(await operations[1].run()).toEqual(operations[1].want);
+  });
+
+  it.each([
+    { name: "guest token registration", user: null, run: operations[0].run },
+    { name: "member token registration", user: member, run: operations[0].run },
+    {
+      name: "consent grant",
+      user: member,
+      run: () =>
+        client().notifications.setMarketingConsent.mutate({ enabled: true }),
+    },
+    { name: "consent revocation", user: member, run: operations[2].run },
+    {
+      name: "administrator token purge",
+      user: { ...member, role: "admin" as const },
+      run: operations[3].run,
+    },
+  ])(
+    "rejects $name instead of reporting success when no database is available",
+    async ({ user, run }) => {
+      actor = user;
+      await expect(run()).rejects.toMatchObject({
+        message: "Внутренняя ошибка сервера",
+        data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+      });
     },
   );
 
