@@ -83,7 +83,7 @@ export function PostPhotoCarousel({
               }
             >
               <Picture
-                source={{ uri }}
+                source={Math.abs(photoIndex - index) <= 1 ? { uri } : undefined}
                 contentFit={POST_PHOTO_FIT}
                 className={classes.picture}
               />

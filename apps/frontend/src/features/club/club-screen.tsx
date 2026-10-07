@@ -323,6 +323,7 @@ export default function ClubScreen() {
                           >
                             <Picture
                               source={{ uri: item }}
+                              optimizeLocal
                               contentFit="contain"
                               sizes="(max-width: 480px) 70vw, 336px"
                               transition={300}
@@ -360,6 +361,7 @@ export default function ClubScreen() {
                           >
                             <Picture
                               source={{ uri: item }}
+                              optimizeLocal
                               contentFit="contain"
                               sizes="(max-width: 480px) 75vw, 360px"
                               transition={300}
@@ -409,6 +411,7 @@ export default function ClubScreen() {
                           >
                             <Picture
                               source={{ uri: item }}
+                              optimizeLocal
                               contentFit="cover"
                               sizes="(max-width: 480px) 40vw, 192px"
                               transition={300}
@@ -447,6 +450,7 @@ export default function ClubScreen() {
                           >
                             <Picture
                               source={{ uri: item }}
+                              optimizeLocal
                               contentFit="cover"
                               sizes="(max-width: 480px) 40vw, 192px"
                               transition={300}

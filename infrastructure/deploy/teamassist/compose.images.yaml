@@ -1,0 +1,13 @@
+# Opt-in: public S3 previews require outbound HTTPS from web, never from api.
+# Use together with the SMTP/video overlays, not instead of them.
+services:
+  web:
+    networks: [isolated, image-egress]
+    environment:
+      MALLOC_ARENA_MAX: "2"
+    volumes:
+      - image-cache:/app/apps/frontend/.next/cache/images
+networks:
+  image-egress: {}
+volumes:
+  image-cache:

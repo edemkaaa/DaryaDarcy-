@@ -23,6 +23,7 @@ import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { trpc } from "@/shared/api/trpc";
 import { PAPER_TEXTURE_URI } from "./videos-screen.content";
+import { apiUrl } from "@/shared/config/api";
 type Video = {
   id: number;
   youtubeId: string;
@@ -69,9 +70,9 @@ function VideosScreenInner() {
     ({ item }: { item: Video }) => {
       const stored = item.thumbnailUrl?.trim() ?? "";
       const thumbnailUrl =
-        stored && !/ytimg\.com|img\.youtube\.com/i.test(stored)
+        stored && !/ytimg\.com|img\.youtube\.com|\/media\/yt-thumb\//i.test(stored)
           ? stored
-          : `https://daryadarcy.com/media/yt-thumb/${item.youtubeId}/hqdefault.jpg`;
+          : apiUrl(`/media/yt-thumb/${encodeURIComponent(item.youtubeId)}/hqdefault.jpg`);
       return (
         <Action
           onClick={() => handleVideoPress(item)}

@@ -4,11 +4,45 @@ export default {
   reactStrictMode: true,
   devIndicators: false,
   allowedDevOrigins: ["127.0.0.1"],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "s3.twcstorage.ru",
+        port: "",
+        pathname: "/daryadarcy-s3/feed/**",
+        search: "",
+      },
+    ],
+    localPatterns: [{ pathname: "/assets/responsive/**", search: "" }],
+    deviceSizes: [320, 480, 640, 960, 1440],
+    imageSizes: [160],
+    qualities: [75],
+    formats: ["image/webp"],
+    maximumRedirects: 0,
+    maximumResponseBody: 8 * 1024 * 1024,
+    maximumDiskCacheSize: 128 * 1024 * 1024,
+    minimumCacheTTL: 3600,
+    dangerouslyAllowLocalIP: false,
+    dangerouslyAllowSVG: false,
+  },
+  experimental: {
+    imgOptConcurrency: 1,
+    imgOptMaxInputPixels: 20_000_000,
+    imgOptTimeoutInSeconds: 10,
+  },
   async headers() {
-    return [{
-      source: "/assets/responsive/:path*",
-      headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
-    }];
+    return [
+      {
+        source: "/assets/responsive/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ];
   },
   async rewrites() {
     if (!target) return [];

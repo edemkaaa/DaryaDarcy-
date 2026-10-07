@@ -31,6 +31,6 @@ COPY --from=build /app/apps/frontend/.next ./apps/frontend/.next
 COPY --from=build /app/apps/frontend/public ./apps/frontend/public
 COPY --from=build /app/apps/frontend/next.config.mjs ./apps/frontend/next.config.mjs
 COPY --from=build /app/apps/frontend/package.json ./apps/frontend/package.json
-RUN rm -r /app/apps/frontend/.next/cache && mkdir /app/backups && chown node:node /app/backups
+RUN rm -r /app/apps/frontend/.next/cache && mkdir -p /app/backups /app/apps/frontend/.next/cache/images && chown -R node:node /app/backups /app/apps/frontend/.next/cache
 USER node
 CMD ["node", "dist/index.mjs"]

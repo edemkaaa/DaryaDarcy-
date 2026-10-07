@@ -169,7 +169,7 @@ function PhotoViewerInner({
                   .join(" ")}
               >
                 <Picture
-                  source={{ uri }}
+                  source={Math.abs(index - currentIndex) <= 1 ? { uri } : undefined}
                   fullSize
                   loading={index === currentIndex ? "eager" : "lazy"}
                   style={{ width: screenWidth, height: imageHeight }}

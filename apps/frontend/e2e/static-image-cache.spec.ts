@@ -75,9 +75,10 @@ for (const width of [390, 1440]) {
     );
     await gotoWithSession(page, "/club");
     // Decode actual previews, including alpha artwork and a resized screenshot.
-    for (const [name, naturalWidth] of [
-      ["0479fc01d16a-MSbIPSMMSqmZweYd", width === 390 ? 320 : 640],
-      ["250423a7ec62-uyAaCmBzfqhlMwpt", 320],
+    for (const [name, previewWidth] of [
+      ["0479fc01d16a-MSbIPSMMSqmZweYd", width === 390 ? 320 : 480],
+      // The narrower selections carousel occupies 40vw (capped at 192px).
+      ["250423a7ec62-uyAaCmBzfqhlMwpt", width === 390 ? 160 : 320],
     ] as const) {
       const illustration = page.locator(`img[src*="${name}"]`);
       await expect(illustration).toHaveCount(1);
@@ -86,17 +87,21 @@ for (const width of [390, 1440]) {
       await expect
         .poll(() => illustration.evaluate((img) => {
           const image = img as HTMLImageElement;
-          return image.complete && image.naturalWidth > 0 ? image.currentSrc : "";
+          return image.complete && image.naturalWidth > 0
+            ? Number(new URL(image.currentSrc).searchParams.get("w")) : 0;
         }))
-        .toContain(`.w${naturalWidth}.`);
+        .toBe(previewWidth);
       await illustration.evaluate((img) => (img as HTMLImageElement).decode());
       await expect(illustration).toHaveAttribute("loading", "lazy");
       const source = await illustration.getAttribute("src");
-      expect(source).toMatch(/^\/assets\/responsive\//);
+      expect(source).toMatch(/^\/_next\/image\?/);
       await expect(illustration).toHaveAttribute("srcset", /320w/);
       const currentSrc = await illustration.evaluate((img) => (img as HTMLImageElement).currentSrc);
-      const response = await page.request.get(currentSrc);
-      expect(response.headers()["cache-control"]).toBe("public, max-age=31536000, immutable");
+      const response = await page.request.get(currentSrc, { headers: { Accept: "image/webp" } });
+      expect(response.status()).toBe(200);
+      expect(response.headers()["content-type"]).toBe("image/webp");
+      expect(response.headers()["vary"]).toContain("Accept");
+      expect(Number(response.headers()["cache-control"].match(/max-age=(\d+)/)?.[1])).toBeGreaterThanOrEqual(3600);
       expect(requested.some((uri) => uri.startsWith("https://s3.twcstorage.ru/") && uri.includes(name))).toBe(false);
       await illustration.screenshot({ path: test.info().outputPath(`${name}-${width}.png`) });
     }
@@ -159,8 +164,9 @@ test.describe("dense displays", () => {
       await image.scrollIntoViewIfNeeded();
       await expect.poll(() => image.evaluate((img) => {
         const image = img as HTMLImageElement;
-        return image.complete ? image.currentSrc : "";
-      })).toContain(width === 390 ? ".w960." : ".w1440.");
+        return image.complete && image.naturalWidth > 0
+          ? Number(new URL(image.currentSrc).searchParams.get("w")) : 0;
+      })).toBe(width === 390 ? 960 : 1440);
       await image.evaluate((img) => (img as HTMLImageElement).decode());
       await image.screenshot({ path: test.info().outputPath("artwork-3x.png") });
     });

@@ -347,9 +347,9 @@ for (const width of [390, 1440]) {
         });
         try {
           await gotoWithSession(page, path);
-          const photos = page.locator(
-            'img[src^="https://images.example.test/"]',
-          );
+          const photos = count === 10
+            ? page.getByRole("region", { name: "Фотографии поста" }).locator("img")
+            : page.locator('img[src^="https://images.example.test/"]');
           await expect(photos).toHaveCount(count);
           const text = page.getByText("IMAGE_POST_1", { exact: true });
           await expect(text).toHaveCount(1);

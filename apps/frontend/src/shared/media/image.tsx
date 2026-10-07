@@ -17,6 +17,7 @@ export type ImageProps = Omit<BoxProps, "onLoad" | "onError"> & {
   srcSet?: string;
   sizes?: string;
   fullSize?: boolean;
+  optimizeLocal?: boolean;
   contentFit?: "cover" | "contain" | "fill" | "none" | "scale-down";
   contentPosition?: string;
   transition?: number;
@@ -39,6 +40,7 @@ export const Picture = Object.assign(
       srcSet,
       sizes,
       fullSize = false,
+      optimizeLocal = false,
       contentFit = "cover",
       contentPosition = "center",
       transition = 0,
@@ -58,8 +60,8 @@ export const Picture = Object.assign(
           ? source
           : null;
     const [failedSource, setFailedSource] = useState<string | null>(null);
-    const resolved = resolveImageAttributes(asset?.uri, fullSize);
-    const sourceKey = JSON.stringify([asset?.uri, srcSet ?? resolved.srcSet, fullSize]);
+    const resolved = resolveImageAttributes(asset?.uri, fullSize, optimizeLocal, sizes);
+    const sourceKey = JSON.stringify([asset?.uri, srcSet ?? resolved.srcSet, fullSize, optimizeLocal]);
     const failed = failedSource === sourceKey;
     return (
       <div
