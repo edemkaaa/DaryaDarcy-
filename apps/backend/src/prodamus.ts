@@ -596,8 +596,9 @@ export function registerProdamusRoutes(app: Express) {
       }
       await db.createShopPurchase({ productId, orderId });
       res.redirect(302, url);
-    })().catch((error) => {
-      console.error("[prodamus] shop pay redirect failed", error);
+    })().catch(() => {
+      // Database errors can include recipient data and payment parameters.
+      console.error("[prodamus] shop pay redirect failed");
       res.status(500).send("error");
     });
   });

@@ -690,6 +690,9 @@
     invalid price and callback origin before persistence. 23 expected RED cases;
     800 non-MySQL pass / 4 skip, independent HMAC compatibility fixtures pass.
     Shop remains hard-disabled; settlement/outbox/provider acceptance stay open.
+  - [x] Legacy shop checkout errors no longer log raw database exceptions;
+    one expected private-marker leakage failure repaired. 801 non-MySQL pass /
+    4 skip, Node 22 gates pass; Docker EOF blocks disposable-MySQL acceptance.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
 - [ ] M08: Specify/migrate remaining API services, remove superseded adapters and
   decompose db.ts without changing contracts. Review every module separately.

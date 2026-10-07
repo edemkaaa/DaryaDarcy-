@@ -1922,3 +1922,23 @@ schema, API shape, frontend/generated files, dependencies or launch-policy chang
 472-file boundaries pass. Shop settlement/outbox, owned catalog lookup and legacy
 error-log privacy remain independent tasks; no production/provider acceptance,
 remote push or deployment.
+
+## 2026-10-07 — shop redirect: safe failure logging
+
+Independent privacy increment: legacy checkout logged the original database
+exception, which can contain recipient/SQL/payment parameters. One expected RED
+HTTP case captures a synthetic private marker in console output. Log only the
+stable failure message; retain generic 500/no redirect and do not suppress the
+failure event entirely. The restored test passes without the private marker.
+
+Final fresh Node 22 gates: 801 non-MySQL pass / 4 skip; types, 351.3 KiB backend
+build, unchanged 72-procedure/25461-byte API, 472-file boundaries and existing
+frontend-only lint pass. No backend ESLint claim. A preliminary run also passed
+on the host's Node 23; repeated on the intended Node 22 before acceptance.
+Native audit unchanged: 1 critical / 35 high / 36 moderate / 4 low. Local Docker
+server query fails with EOF, so no disposable MySQL or live Prodamus acceptance
+is claimed; no production readiness. Five-axis review: one sanitized error path,
+no new abstraction, dependency, query, sensitive data collection, auth/CORS/quota
+policy, frontend/schema edit, remote push or deployment. Continue with owned
+catalog lookup, native shop service composition and validated atomic settlement
+in separate increments. Online shop stays hard-disabled.

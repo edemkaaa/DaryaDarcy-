@@ -33,6 +33,7 @@ import {
   registerProdamusRoutes,
 } from "../apps/backend/src/prodamus";
 import * as capabilities from "../apps/backend/src/launch/capabilities";
+import * as database from "../apps/backend/src/db";
 
 let server: Server;
 let base: string;
@@ -229,4 +230,22 @@ it("rejects legacy unsigned checkout before persistence or redirect", async () =
   expect(response.headers.get("location")).toBeNull();
   expect(await response.text()).toBe("error");
   expect(persistence.orders).toEqual([]);
+});
+
+it("does not log private database error details when a legacy order write fails", async () => {
+  const privateMarker = "SYNTHETIC_PRIVATE_BUYER_AND_SIGNED_URL";
+  vi.spyOn(database, "createShopPurchase").mockRejectedValueOnce(
+    new Error(`SQL parameters: ${privateMarker}`),
+  );
+  const logs = vi.spyOn(console, "error").mockImplementation(() => {});
+  const response = await fetch(`${base}/api/pay/digital-1`, {
+    redirect: "manual",
+  });
+  expect(response.status).toBe(500);
+  expect(response.headers.get("location")).toBeNull();
+  expect(await response.text()).toBe("error");
+  expect(logs).toHaveBeenCalled();
+  expect(logs.mock.calls.flat().map(String).join(" ")).not.toContain(
+    privateMarker,
+  );
 });
