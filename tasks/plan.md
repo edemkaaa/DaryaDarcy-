@@ -1756,3 +1756,41 @@ helpers and webhook/cancellation remain unchanged, so this does not claim real
 MySQL or provider sandbox acceptance. No new dependency, frontend/type-generation
 edit, scheduled job, remote push, deployment or migration. Next slice is the
 existing subscription read/claim/cancel use case, not new subscription behavior.
+
+### M06 next slice: subscription service
+
+Extract subscription status, the read-only claim compatibility endpoint and
+provider-confirmed cancellation into `ClubSubscriptionService` in BillingModule.
+Keep the existing helpers/transaction/worker/provider function, all protected
+middleware and exact success/error shapes. Authorization still precedes protected
+calls; blocked/anonymous public status stays unsubscribed. Group the two actual
+billing dependencies by name at router composition, rather than expanding its
+positional argument list. Verify injected reads/claims/cancel via real callers,
+real Nest HTTP and compiled ESM; characterize service policy at the SQL/provider
+boundary with controlled fixtures. No real cancellation, SQL/schema or workers.
+
+Verified: three supplied-service composition cases failed before extraction;
+all seven composition cases pass afterwards. Fifteen service characterization
+cases retain explicit admin ownership, guest/blocked status, paid expiry,
+read-only claim and confirmed-only cancellation. Eight real HTTP cases retain
+session-derived ID, guest/blocked rejection and safe 500 errors. Deliberately
+replacing the Nest provider with a hidden new instance fails three HTTP tests;
+restoration passes. The compiled ESM smoke now checks both billing providers,
+guest cancellation rejection and Date serialization. 31 slice-focused cases pass.
+The first characterization run had two test-setup failures from referencing an
+already-removed legacy activation export; replaced that invalid spy with a trap
+on actual DB access. Those are not counted as production defects or TDD RED.
+
+Full fresh non-MySQL suite: 753 pass / 4 skip. Root/frontend type checks, existing
+frontend lint, backend build, unchanged 72-procedure/25461-byte API, 471-file
+boundaries and 49-document checks pass. No backend ESLint coverage is claimed.
+Service tests replace the SQL/helper boundary; HTTP/compiled tests replace session
+and billing boundaries. They are not JWT/MySQL/provider sandbox acceptance.
+
+Five-axis review: the router now owns validation/authorization only, and billing
+owns its existing use cases. No hidden runtime fallback, service locator or
+duplicated cancellation policy. Price remains a string; response/error shapes,
+query count and transaction/provider ordering stay unchanged. No new dependency,
+external send, state migration, frontend/generated-type edit, remote push or
+deployment. Webhook/settlement/shop composition and worker lifecycle remain open;
+this is not completion of M06 or production payment approval.

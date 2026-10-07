@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync, rmdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-it("compiled ESM wires the Nest checkout service and fails closed without provider configuration", async () => {
+it("compiled ESM wires Nest billing providers and retains fail-closed configuration and authorization", async () => {
   const directory = mkdtempSync(resolve(".tmp-nest-billing-"));
   const entry = join(directory, "application.mjs");
   try {
@@ -17,6 +17,8 @@ it("compiled ESM wires the Nest checkout service and fails closed without provid
         contents: `
           import { createBackendApplication } from "./apps/backend/src/_core/application";
           import { ClubCheckoutService } from "./apps/backend/src/billing/club-checkout.service";
+          import { ClubSubscriptionService } from "./apps/backend/src/billing/club-subscription.service";
+          import { SessionService } from "./apps/backend/src/identity/session.service";
           import { createTRPCProxyClient, httpLink } from "@trpc/client";
           import superjson from "superjson";
           const application = await createBackendApplication();
@@ -33,7 +35,37 @@ it("compiled ESM wires the Nest checkout service and fails closed without provid
               return { url: "https://fixture.payform.ru/?order_id=built-provider", user: null };
             };
             const injected = await client.club.createCheckout.mutate({ email: "guest@example.test", plan: "semiannual" });
-            console.log("CHECKOUT_RESULTS:" + JSON.stringify({realError, injected}));
+            const subscriptions = application.get(ClubSubscriptionService);
+            const sessions = application.get(SessionService);
+            sessions.optionalUser = async () => null;
+            subscriptions.subscription = async (actor) => {
+              if (actor !== null) throw Error("Wrong subscription actor");
+              return { subscribed: false, expiresAt: null, cancelAtPeriodEnd: false, isOwner: false, monthlyPrice: "1250" };
+            };
+            const status = await client.club.subscription.query();
+            subscriptions.cancel = async () => { throw Error("Guest must not reach cancellation"); };
+            let anonymousError;
+            try { await client.club.cancel.mutate(); }
+            catch(error) { anonymousError = { code: error.data.code, status: error.data.httpStatus }; }
+            const member = {
+              id: 7, openId: "built-fixture", email: "member@example.test", name: null,
+              phone: null, passwordHash: null, sessionVersion: 0, loginMethod: "email", gender: null,
+              avatarUrl: null, role: "user", blockedAt: null, blockedReason: null,
+              accountDeletionRequestedAt: null, createdAt: new Date(0), updatedAt: new Date(0), lastSignedIn: new Date(0)
+            };
+            sessions.optionalUser = async () => member;
+            subscriptions.claimPending = async (id) => {
+              if (id !== 7) throw Error("Wrong claim actor");
+              return { granted: true, orderId: "club-7-confirmed" };
+            };
+            subscriptions.cancel = async (id) => {
+              if (id !== 7) throw Error("Wrong cancellation actor");
+              return { ok: true, expiresAt: new Date("2026-11-01T00:00:00Z") };
+            };
+            const claimed = await client.club.claimPending.mutate();
+            const cancelled = await client.club.cancel.mutate();
+            if (!(cancelled.expiresAt instanceof Date)) throw Error("Date serialization lost");
+            console.log("BILLING_RESULTS:" + JSON.stringify({realError, injected, status, anonymousError, claimed, cancelled}));
           } finally { await application.close(); }
         `,
       },
@@ -57,14 +89,24 @@ it("compiled ESM wires the Nest checkout service and fails closed without provid
     });
     const result = output
       .split("\n")
-      .find((line) => line.startsWith("CHECKOUT_RESULTS:"));
+      .find((line) => line.startsWith("BILLING_RESULTS:"));
     expect(result).toBeDefined();
-    expect(JSON.parse(result!.slice("CHECKOUT_RESULTS:".length))).toEqual({
+    expect(JSON.parse(result!.slice("BILLING_RESULTS:".length))).toEqual({
       realError: { code: "PRECONDITION_FAILED", status: 412 },
       injected: {
         url: "https://fixture.payform.ru/?order_id=built-provider",
         user: null,
       },
+      status: {
+        subscribed: false,
+        expiresAt: null,
+        cancelAtPeriodEnd: false,
+        isOwner: false,
+        monthlyPrice: "1250",
+      },
+      anonymousError: { code: "UNAUTHORIZED", status: 401 },
+      claimed: { granted: true, orderId: "club-7-confirmed" },
+      cancelled: { ok: true, expiresAt: "2026-11-01T00:00:00.000Z" },
     });
   } finally {
     rmSync(entry, { force: true });

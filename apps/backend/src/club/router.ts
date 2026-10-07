@@ -1,4 +1,3 @@
-import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
   router,
@@ -10,16 +9,11 @@ import * as db from "../db";
 import type { ContentCommentService } from "../content/content-comment.service";
 import { addCommentInput } from "../content/comment-input";
 import { photoInput, uploadPhoto } from "../media/photos";
-import {
-  cancelProdamusSubscription,
-  CLUB_PRICE,
-} from "../prodamus";
-import { requestClubCancellation } from "../billing/cancellation";
-import type { ClubCheckoutService } from "../billing/club-checkout.service";
+import type { ClubBillingServices } from "../billing/billing.module";
 
 export const createClubRouter = (
   comments: ContentCommentService,
-  checkout: ClubCheckoutService,
+  billing: ClubBillingServices,
 ) =>
   router({
     list: clubMemberProcedure
@@ -39,26 +33,9 @@ export const createClubRouter = (
           cursor: input?.cursor ?? undefined,
         });
       }),
-    subscription: publicProcedure.query(async ({ ctx }) => {
-      if (!ctx.user || ctx.user.blockedAt) {
-        return {
-          subscribed: false,
-          expiresAt: null as Date | null,
-          cancelAtPeriodEnd: false,
-          isOwner: false,
-          monthlyPrice: CLUB_PRICE,
-        };
-      }
-      const owner = db.isOwnerAccount(ctx.user);
-      const paid = await db.getActiveClubSubscription(ctx.user.id);
-      return {
-        subscribed: owner || Boolean(paid),
-        expiresAt: paid?.expiresAt ?? null,
-        cancelAtPeriodEnd: Boolean(paid?.cancelAtPeriodEnd),
-        isOwner: owner,
-        monthlyPrice: CLUB_PRICE,
-      };
-    }),
+    subscription: publicProcedure.query(({ ctx }) =>
+      billing.subscriptions.subscription(ctx.user),
+    ),
     createCheckout: publicProcedure
       .input(
         z
@@ -68,40 +45,15 @@ export const createClubRouter = (
           })
           .optional(),
       )
-      .mutation(({ ctx, input }) => checkout.createCheckout(ctx.user, input)),
-    claimPending: protectedProcedure.mutation(async ({ ctx }) => {
-      const already = await db.getActiveClubSubscription(ctx.user.id);
-      if (already) {
-        return { granted: true as const, orderId: already.orderId };
-      }
-      // Compatibility endpoint for the current client: report verified access,
-      // never turn a checkout into a paid subscription.
-      return { granted: false as const, orderId: null };
-    }),
-    cancel: protectedProcedure.mutation(async ({ ctx }) => {
-      const database = await db.getDb();
-      if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      let result;
-      try {
-        result = await requestClubCancellation(
-          database,
-          ctx.user.id,
-          cancelProdamusSubscription,
-        );
-      } catch {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Не удалось определить подписку. Обратитесь в поддержку.",
-        });
-      }
-      if (!result.confirmed)
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "Запрос отмены сохранён, но платёжная система пока не подтвердила отмену. Мы повторим попытку. До подтверждения автосписание может оставаться активным.",
-        });
-      return { ok: true as const, expiresAt: result.expiresAt };
-    }),
+      .mutation(({ ctx, input }) =>
+        billing.checkout.createCheckout(ctx.user, input),
+      ),
+    claimPending: protectedProcedure.mutation(({ ctx }) =>
+      billing.subscriptions.claimPending(ctx.user.id),
+    ),
+    cancel: protectedProcedure.mutation(({ ctx }) =>
+      billing.subscriptions.cancel(ctx.user.id),
+    ),
     comments: clubMemberProcedure
       .input(z.object({ postId: z.number() }))
       .query(({ ctx, input }) => comments.list(input.postId, ctx.user.id)),

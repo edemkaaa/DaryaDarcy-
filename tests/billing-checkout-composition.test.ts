@@ -5,6 +5,7 @@ import { ContentReadService } from "../apps/backend/src/content/content-read.ser
 import { ContentWriteService } from "../apps/backend/src/content/content-write.service";
 import { ContentCommentService } from "../apps/backend/src/content/content-comment.service";
 import { ContentUploadService } from "../apps/backend/src/content/content-upload.service";
+import { ClubSubscriptionService } from "../apps/backend/src/billing/club-subscription.service";
 import type { TrpcContext } from "../apps/backend/src/_core/context";
 
 afterEach(() => vi.unstubAllEnvs());
@@ -20,7 +21,7 @@ function caller(checkout: {
     new ContentWriteService(),
     new ContentCommentService(),
     new ContentUploadService(),
-    checkout,
+    { checkout, subscriptions: new ClubSubscriptionService() },
   ).createCaller({ user: null, req: {}, res: {} } as TrpcContext);
 }
 

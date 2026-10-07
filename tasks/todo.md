@@ -666,7 +666,14 @@
     Real HTTP and compiled ESM verified; deliberate hidden-instance wiring
     mutation fails the HTTP assertion. Types/build/lint/API/boundaries pass;
     no frontend, dependencies, SQL/schema, provider, push or deploy changes.
-  - [ ] Subscription reads, read-only claimPending and cancellation use case.
+  - [x] Subscription reads, read-only claimPending and cancellation use case:
+    explicit ClubSubscriptionService, unchanged authorization/SQL/provider policy.
+    Three expected composition RED failures; real HTTP hidden-instance mutation
+    fails three assertions. 31 slice-focused checks and 753 non-MySQL pass / 4 skip;
+    types/build, unchanged API, boundaries and docs pass. Compiled ESM preserves
+    verified session ID, paid expiry and guest rejection. No real SQL/provider test.
+  - [ ] Webhook/settlement and shop service composition; preserve signature,
+    payment replay protection and transaction boundaries with their own tests.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
 - [ ] M08: Specify/migrate remaining API services, remove superseded adapters and
   decompose db.ts without changing contracts. Review every module separately.
