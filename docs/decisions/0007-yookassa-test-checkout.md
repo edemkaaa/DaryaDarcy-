@@ -1,6 +1,7 @@
 # ADR-007: Durable one-off YooKassa test checkout
 
-- **Status:** Accepted for the user-approved backend implementation, not rollout
+- **Status:** Accepted for backend and the approved staging baseline update;
+  payment enablement/acceptance not completed
 - **Date:** 2026-10-07
 
 ## Context
@@ -45,6 +46,22 @@ must preserve an intent key through retries and clearly label a one-off test
 purchase. Stage enablement needs a separately reviewed payment-only egress path,
 backup, migration preflight, cabinet webhook setup and real sandbox acceptance.
 Rollback preserves intent/receipt evidence; do not delete tables to roll back code.
+
+### Existing staging baseline, 7 October
+
+The test stand was created directly from the canonical 28-table schema and has
+no historical Drizzle journal. Do not replay historical ALTER statements or
+pretend those files ran. The approved transition uses a narrowly named operator
+[upgrader](../../tooling/scripts/staging-baseline-upgrade.ts): pinned full baseline
+fingerprint, exact 0026 SQL hash, MySQL/server/DB identity and an owner-only,
+hash-bound backup restoration/rehearsal attestation. It permits only the additive
+checkout table; repeats inspect its exact shape instead of dropping it.
+
+An actual-time receipt is kept in the protected server release directory, not
+backdated in Drizzle. The generic migration preflight and historical SQL remain
+unchanged and blocked for production. This is intentionally not a general-purpose
+baseline adoption or migration-repair flag. Evidence and rollback limitations
+are in the [staging guide](../operations/teamassist-staging.md#юkassa-переход-тестовой-базы-7-октября).
 
 References: [approved plan](../../tasks/plan.md),
 [existing settlement decision](0003-billing-identity-durability.md),

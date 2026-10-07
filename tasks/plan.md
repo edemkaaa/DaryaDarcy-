@@ -2516,3 +2516,68 @@ Implementation refinement: use the standard HTTP header so generated frontend
 types and the existing procedure schema stay unchanged. Test mode still requires
 a stable caller key; the current UI cannot enable this flow without its separate
 caller work. Unconfirmed terminal notifications return 503 for provider retry.
+
+### Approved staging baseline transition — 2026-10-07
+
+The user approved a protected backup and restore rehearsal before updating the
+existing test stand. The observed database is `daryadarcy_staging`, 28 InnoDB
+tables, without `__drizzle_migrations`; the initial canonical-schema baseline
+already includes the changes in historical migrations 0017–0025. Replaying those
+files or inserting fictional historical execution records is forbidden.
+
+This is a narrow operator workflow for this one baseline, not a replacement for
+production migration history. Keep the generic Drizzle preflight and historical
+SQL bytes unchanged. A separately named stage-only upgrader will validate the
+database name, full normalized SHOW CREATE TABLE fingerprint, exact 0026 SQL
+SHA-256, and absence of views/triggers/routines/events. It permits only creation
+of `billing_checkout_intents`; any unrelated schema drift fails closed. Serialize
+operators with a MySQL advisory lock. MySQL DDL autocommits: on a lost response,
+inspect the exact resulting schema on retry, never DROP/recreate an existing table.
+The operator saves an actual-time release receipt outside the DB; no invented
+Drizzle rows and no acceptance of arbitrary SQL, schema hashes or bypass flags.
+
+Order and acceptance:
+
+1. B1: owner-only config copies and consistent SQL dump, then restore into a
+   separate memory/CPU-bounded MySQL container with no published ports/application
+   workers. Compare every table's normalized DDL, counts and row digests inside
+   the private server boundary; publish only aggregate verification. Preserve the
+   protected backup, working volumes/services and rollback image IDs.
+2. B2: tooling/operations stage-only policy + CLI and tests (at most four files).
+   Test wrong DB/schema/SQL, unexpected executable objects, existing exact table,
+   lock contention and DDL failure. Rehearse against the restored copy, proving
+   original-table data unchanged. Use real MySQL, not a mocked SQL execution claim.
+   Commands: `pnpm exec vitest run tests/staging-baseline.test.ts`,
+   `node tooling/operations/staging-baseline-upgrade.mjs` (read-only default).
+3. Checkpoint: only after backup restoration and B2 checks pass, apply the same
+   allowlisted additive DDL to the test stand, keep payments disabled and verify
+   guest smoke. Record source/target fingerprints and actual execution time.
+4. Continue Y4 caller and Y5 scoped payment egress/notification/real-sandbox
+   acceptance afterwards. No production, live payment, old migration replay,
+   destructive DB reset, new dependencies or unrelated frontend-branch merge.
+
+Code style: portable ESM operational scripts, fixed SQL and generic redacted
+failures; e.g. `{ mode: "read-only", state: "pending", releaseApproval: false }`.
+Tests belong in `tests/`; execution/rollback evidence belongs in the existing
+operations guide. A successful baseline update is not successful payment rollout.
+
+Execution: protected fresh dump restored twice into a separate MySQL 8.4, with
+28 original-table definitions, 833 row digests and 24 auto-increment counters
+verified against the dump. Native rehearsal proves CREATE and unchanged old
+data, then repeat without DDL. Advisory-lock contention refuses execution;
+SELECT-only fault account causes CREATE refusal, and the normal-privilege retry
+succeeds. Only the empty new table on the disposable copy was reset for that
+fault fixture; no working table was dropped. Unit/CLI RED→GREEN reaches 47
+checks, four migration suites 78 pass; full local suite 1070 pass / 596 SQL or
+external-resource skip. No assertion/TTL/timeout weakening or new dependencies.
+
+The exact allowlisted SQL was applied to staging at 2026-10-07T17:17:59Z.
+Post-verification: 29 tables, 833 old rows and old definitions unchanged,
+zero intents, no invented historical ledger. All six existing services remain
+healthy on their original images; eight guest smoke checks pass, including
+payment routes still returning 503. Five-axis review retains the production
+history block and existing dependency findings (51: 1 critical / 20 high /
+26 moderate / 4 low); no network/routing or runtime exposure changed by this DB
+step. Y4 caller, payment-scoped egress, merchant notifications and actual sandbox
+payment/email acceptance remain open. Cabinet was opened at its login page;
+authentication is a user action, not something the API key can replace.

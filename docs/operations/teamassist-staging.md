@@ -541,3 +541,93 @@ docker compose --env-file .env --env-file video-image.env \
 обновить только `web video` с `--no-deps --wait`, перечитать nginx и повторить
 guest smoke. Не восстанавливать старый env целиком, не откатывать БД/API
 и не удалять volumes. Git push и merge в staging этим выпуском не выполнялись.
+
+## ЮKassa: переход тестовой базы 7 октября
+
+Пользователь согласовал защищённую копию, проверку восстановления и безопасное
+обновление существующей базы перед тестовой оплатой. Этот этап **не включает
+оплаты** и не является production-выпуском. Код checkout, клиентский ключ,
+отдельный платёжный egress, кабинетные уведомления и настоящий sandbox flow
+имеют собственные контрольные точки; они не объявляются готовыми этим SQL.
+
+Причина отдельного перехода: исходная рабочая схема создана непосредственно
+из canonical schema (28 таблиц), без `__drizzle_migrations`. Нужные изменения
+0017–0025 уже есть в таблицах. Повторять их ALTER или записывать выдуманное
+исполнение в журнал нельзя. Общий `pnpm db:preflight` остаётся заблокированным
+на трёх прежних orphan 0017–0019; этот production-блокер не скрыт и не исправлен.
+
+Для **этого единственного baseline/0026** создан отдельный
+[stage-only operator](../../tooling/scripts/staging-baseline-upgrade.ts).
+Он не принимает произвольные SQL/хеши или флаг обхода. Проверяет MySQL 8.4,
+`daryadarcy_staging`, полный SHOW CREATE fingerprint старых таблиц (без
+изменяющегося счётчика AUTO_INCREMENT), отсутствие views/triggers/routines/events
+и точный SHA-256 0026. В режиме apply дополнительно связывает сервер UUID с
+реально восстановленной копией, проверяет права/владельца закрытых файлов,
+SHA-256 дампа, совпадение исходной/восстановленной схемы и строк, счётчики ID,
+возраст подтверждения до 6 часов и успешную квитанцию rehearsal. При нескольких
+операторах используется GET_LOCK. CREATE в MySQL autocommit: при потере ответа
+сначала повторить read-only inspection, не удалять и не пересоздавать таблицу.
+
+Защищённые материалы:
+`/home/edem/apps/daryadarcy-staging/yookassa-baseline-20261007.tGFBuT`.
+Каталог 700, дамп/конфигурации/квитанции 600; не копировать их в Git или образ.
+Внутри: свежий `database.sql.gz`, прежние env/Compose/edge, inventory сервисов,
+закрытые snapshots, `restore-proof.json`, настоящие `rehearsal-receipt.json` и
+`applied-receipt.json`, итоговый `verification.json`. Подтверждение восстановления
+создано после сравнения данных, не заполнено вручную для снятия блокировки.
+
+Проверки перед применением:
+
+- Две свежие восстановления в отдельный MySQL без портов, API и mail workers:
+  совпали 28 определений, digest всех 833 строк и 24 AUTO_INCREMENT-счётчика.
+  Память/CPU ограничены; первая пустая попытка tmpfs была слишком мала и
+  остановилась до восстановления. Пересоздан только собственный пустой контейнер
+  с redo capacity 32M; работающие данные и сервисы не затронуты.
+- На реальной копии: CREATE, неизменность старых строк, повтор без CREATE,
+  отказ при занятом advisory lock, отказ SELECT-only аккаунта при CREATE и
+  последующее восстановление обычными правами. Для этого fault fixture сброшена
+  только новая **пустая** таблица на проверенной disposable-копии, не на стенде.
+- 47 unit/CLI тестов RED→GREEN; четыре migration-набора — 78 pass. Полный
+  локальный прогон 1070 pass / 596 skip; SQL/external skip не является native
+  provider приёмкой. Types, backend build, API 72/25461, boundaries/docs — pass.
+  Зависимости не менялись; audit остаётся 51 (1 critical, 20 high, 26 moderate,
+  4 low). Существующее ограниченное исключение не разрешает production или
+  расширение сети: перед payment egress требуется новый reachability review.
+
+Применено 2026-10-07T17:17:59Z (20:17 МСК), проверено 17:24:52Z:
+28 → 29 таблиц, добавлена только `billing_checkout_intents` (0 строк).
+Все 833 прежние строки и определения сохранены; исторический журнал не создан.
+Исходный schema SHA-256:
+`ab07104f1ea2fa3377588df1cca7db22a3fdb7f1466e66f547143f3b5e9fc3ac`;
+итоговый полный schema SHA-256:
+`53fc2f906e768d59d7834d1b6e945c06e91dce4f2a7e9d5f6068ce16542cb55c`.
+SHA-256 SQL 0026:
+`96196ec383cd2ce7a33882fc338d77512f5c32d6081646dd2fb1f9a191ba232b`;
+отдельной новой таблицы:
+`da894d0b5fd978061571f63803f676cc3ba6424480db588dda501e96633de914`.
+
+Образы API `300c8d3`, web `62c4001`, video `51a5385`, все четыре Compose-файла,
+SMTP и сети сохранены. Шесть сервисов healthy; 8 guest smoke проверок проходят,
+включая 503 для оплат. Runtime приложения, frontend и платёжные env этим этапом
+не обновлялись; sandbox-платёж или новое письмо доступа не создавались.
+
+Оператор собирается отдельно существующим esbuild, без новых зависимостей:
+
+```sh
+pnpm exec esbuild tooling/scripts/staging-baseline-upgrade.ts --bundle \
+  --platform=node --format=esm --packages=external --outfile=/absolute/private/release/tooling/scripts/staging-baseline-upgrade.mjs
+```
+
+Сохранять относительный путь `packages/database/drizzle/0026_billing_checkout_intents.sql`
+под тем же release root. В Linux runtime с теми же mysql2/Zod передать DATABASE_URL
+через закрытый env-файл, не аргументом. Без флагов — только read-only inspection.
+`--rehearse` требует `STAGING_BASELINE_RESTORE_HOST=daryadarcy-yookassa-restore-<id>`;
+`--apply` — только исходный сервер UUID. Обоим требуется
+`STAGING_BASELINE_BACKUP_DIR=<absolute protected release directory>`.
+Квитанцию stdout сохранять закрытым файлом; `releaseApproval:false` не превращать
+в разрешение включить платёж. За пределами этого baseline применять нельзя.
+
+Откат: предыдущий runtime уже работает, добавочная таблица ему не мешает.
+Не выполнять DROP/DOWN и не восстанавливать дамп поверх изменённой рабочей базы
+ради отката кода. Если понадобится аварийное восстановление данных, сначала
+отдельное решение/копия актуального состояния; проверенный дамп сохранён.
