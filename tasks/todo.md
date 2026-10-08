@@ -1020,8 +1020,8 @@
   - [x] Verify profile field writes and deletion requests with real HTTP/JWT/MySQL;
     eight new SQL cases and 45 focused checks pass (checkpoint below).
   - [ ] Verify avatar upload with real isolated S3; address orphaned uploads after
-    SQL failure separately. Immediate erasure/retention policy and zero-row
-    updates remain unverified, not implemented by profile characterization.
+    SQL failure separately. Immediate erasure/retention policy remains open;
+    zero-row profile/deletion-request writes guarded in the checkpoint below.
 - [ ] Final checkpoint: whole Nest runtime/MySQL/frontend flow, release rehearsal,
   audit triage/migration history/provider/SMTP/private-file gates and approved rollout.
 
@@ -1544,7 +1544,8 @@
       651 SQL-external skip; types/build/API/boundaries/lint/docs проходят.
       Новый тест не подменяет identity/SQL и не отправляет внешних запросов.
 - [ ] Avatar upload/S3/orphan cleanup, zero-row writes и erasure/retention остаются
-      открыты. Runtime/frontend/server не менялись; own tmpfs база удалена.
+      открыты на этом checkpoint; zero-row writes исправлены отдельно ниже.
+      Runtime/frontend/server не менялись; own tmpfs база удалена.
 
 ### M08 latest announcement SQL acceptance — 8 October, evening
 
@@ -1559,3 +1560,16 @@
       Новая глобальная latest SQL suite требует отдельную свежую одноразовую БД
       и BACKEND_LATEST_ACCEPTANCE=1; не запускать параллельно с SQL publishers.
       Own tmpfs база удалена; frontend/server/политики не менялись.
+
+### M08 absent profile row — 8 October, evening
+
+- [x] Три SQL RED воспроизвели ложный успех при отсутствующей записи пользователя:
+      profile field, avatar URL persistence и deletion request. Канонические
+      UPDATE теперь проверяют matched affectedRows и не возвращают успех при нуле.
+- [x] Повторные одинаковые изменения существующего профиля успешны (FOUND_ROWS
+      штатного mysql2); empty patch остаётся прежним no-op. 49 focused pass,
+      full 1804 pass / 669 SQL-external skip, types/build/API/boundaries/lint/docs.
+- [ ] Missing-row проверки вызывают настоящий Nest service + SQL напрямую,
+      не доказывают HTTP deletion race или загрузку/очистку avatar в S3.
+      Erasure/retention и provider/rollout gates открыты; own tmpfs база удалена.
+      Без frontend/server/auth-policy/push/deploy изменений.

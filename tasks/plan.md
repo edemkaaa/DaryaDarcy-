@@ -4655,3 +4655,40 @@ inventory empty, tmpfs data gone. No working DB or unrelated resource removed.
 No frontend, server, secret/cabinet access, external payment/mail/push, policy
 change, merge/push/deploy. Provider/device/publication delivery, M07c decision
 and dependency/rollout gates remain open.
+
+### M08 absent-profile-row false success — 8 October, evening
+
+Continued from clean fe999fd; selected the explicitly remaining zero-row profile
+write gap. Three real SQL tests fail before implementation: the actual Nest
+ProfileService returns success/ok when profile-field write, avatar URL persistence
+or deletion request targets an account removed from the fixture. Tests invoke the
+service directly at the post-authentication persistence boundary: not a simulated
+native HTTP deletion race, not external upload/storage acceptance.
+
+Both canonical UPDATE writers now inspect their MySQL affectedRows and throw an
+internal error when no account matched. Existing error adapters keep safe error
+responses; success shapes, schemas, authorization, selected actor and erasure
+policy are untouched. No extra SELECT/TOCTOU window or transaction introduced.
+mysql2's installed default flags include FOUND_ROWS; the real pool acceptance
+confirms repeated identical profile writes still succeed, as do existing repeated
+deletion requests. Empty patch remains the prior no-op after DB availability
+check, not a new account-existence guarantee. A successful UPDATE is not a promise
+the account cannot be deleted by a later concurrent operation.
+
+Final 49 focused pass (12 profile SQL, 27 native profile, 10 identity SQL),
+full default 1804 pass / 669 SQL-external skip across 132 passing / 36 skipped
+files, 18.32 seconds. Types, 410.8 kB backend build, unchanged 73-procedure API,
+560-file boundaries, lint/docs pass. Four new SQL checks ran explicitly.
+Review covers actual persisted non-target state, matching/no-op semantics,
+generic internal failure propagation, tiny changes at canonical boundaries and
+no new dependency/schema. TDD RED/GREEN, incremental delivery, review, Git,
+verification/documentation skills guided the slice; optional shared DoD absent,
+repository gates used. No adjacent cleanup or auth-policy change.
+
+Only dd-profile-row-check-20261008-1922 created: existing MySQL 8.4, fresh
+backend_test, synthetic credentials/data, ephemeral loopback port, tmpfs,
+512 MiB/one CPU, no mounts/OOM. Verified full ID/owner before exact removal;
+label inventory empty, tmpfs gone. No working DB or unrelated resources touched.
+No frontend, server, secrets/cabinets, mail/push/payment, activation, merge/push/
+deploy. Avatar upload/orphan cleanup, erasure/retention, HTTP race acceptance,
+M07c human decision and provider/dependency/rollout gates remain open.

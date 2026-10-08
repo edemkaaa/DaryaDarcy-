@@ -207,7 +207,8 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
 
   if (Object.keys(updateSet).length === 0) return;
 
-  await db.update(users).set(updateSet).where(eq(users.id, userId));
+  const [result] = await db.update(users).set(updateSet).where(eq(users.id, userId));
+  if (result.affectedRows === 0) throw new Error("Profile account not found");
 }
 
 // ── Feed queries ──

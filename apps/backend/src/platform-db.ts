@@ -166,7 +166,8 @@ export async function unblockUser(actorId: number, targetUserId: number): Promis
 export async function requestAccountDeletion(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(users).set({ accountDeletionRequestedAt: new Date() }).where(eq(users.id, userId));
+  const [result] = await db.update(users).set({ accountDeletionRequestedAt: new Date() }).where(eq(users.id, userId));
+  if (result.affectedRows === 0) throw new Error("Profile account not found");
 }
 
 export async function upsertPenPalProfileV2(

@@ -18,6 +18,7 @@ import { getDb } from "../apps/backend/src/db";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import type { AppRouter } from "../apps/backend/src/routers";
+import { ProfileService } from "../apps/backend/src/profile/profile.service";
 
 describe.skipIf(!testDatabaseUrl)(
   "profile persistence through real HTTP, JWT and disposable SQL",
@@ -118,6 +119,43 @@ describe.skipIf(!testDatabaseUrl)(
         avatarUrl: null,
       });
     });
+    it("accepts repeated identical profile writes for an existing account", async () => {
+      expect(
+        await client().profile.update.mutate({ name: "Original" }),
+      ).toEqual({ success: true });
+      expect(
+        await client().profile.update.mutate({ name: "Original" }),
+      ).toEqual({ success: true });
+      expect((await users())[0].name).toBe("Original");
+    });
+    it.each([
+      {
+        name: "profile field",
+        run: (service: ProfileService) =>
+          service.update(8441, { name: "Gone" }),
+      },
+      {
+        name: "avatar URL persistence",
+        run: (service: ProfileService) =>
+          service.update(8441, {
+            avatarUrl: "https://example.invalid/gone.webp",
+          }),
+      },
+      {
+        name: "deletion request",
+        run: (service: ProfileService) => service.requestAccountDeletion(8441),
+      },
+    ])(
+      "refuses false success for a missing account's $name",
+      async ({ run }) => {
+        // Exercise the post-authentication persistence boundary directly, without
+        // claiming a native HTTP race or uploading an object to external storage.
+        await conn.query("DELETE FROM users WHERE id=8441");
+        const before = await users();
+        await expect(run(app.get(ProfileService))).rejects.toThrow();
+        expect(await users()).toEqual(before);
+      },
+    );
     it("preserves the existing no-op success for an empty patch", async () => {
       const before = await users();
       expect(await client().profile.update.mutate({})).toEqual({
