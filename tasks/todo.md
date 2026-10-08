@@ -687,7 +687,7 @@
       836 pass / 4 skip; types/build/API/boundaries pass. Session lookup and the
       selected provider are doubled in HTTP wiring cases; real JWT/MySQL deletion
       acceptance is verified at the evening checkpoint below. Raw-camera filename
-      cleanup SQL acceptance remains open. No frontend/schema/payment,
+      cleanup SQL is verified in its separate isolated checkpoint. No frontend/schema/payment,
       shared-server data mutation, push or deployment.
     - [x] Route admin.importVideos through the existing ContentWriteService;
       extract its unchanged wire schema as the service's input type. Preserve
@@ -1610,6 +1610,18 @@
 - [x] Omitting media cascade deliberately breaks the persisted-state assertion;
       original runtime restored byte-identical. 44 focused pass; full default
       1804 pass / 685 SQL-external skip. Types/build/API/boundaries/lint/docs pass.
-- [ ] Raw-camera filename cleanup SQL, actual external asset deletion/storage,
+- [ ] Actual external asset deletion/storage,
       concurrency and rollout/provider gates remain separate. No runtime or
       frontend/server/policy changes; own disposable tmpfs DB removed.
+
+### M05 raw-camera filename cleanup SQL acceptance — 8 October, evening
+
+- [x] Seven native HTTP/JWT/MySQL checks, 15 literal filename fixtures: recognized
+      camera names cleared across posts, document names/null/empty and all other
+      metadata retained, repeat no-op, statement rollback and unauthorized refusal.
+- [x] Broadening the SQL predicate to all non-null names breaks retention test;
+      canonical source restored unchanged. 42 focused pass; full 1804 pass /
+      692 SQL-external skip, types/build/API/boundaries/lint/docs pass.
+- [ ] Global maintenance suite requires BACKEND_MEDIA_NAMES_ACCEPTANCE=1 and a
+      fresh disposable DB without other SQL publishers. External storage/rollout
+      remains unaccepted; own tmpfs DB removed, runtime/frontend/server unchanged.

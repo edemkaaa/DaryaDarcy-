@@ -4465,6 +4465,52 @@ frontend, auth/CORS/proxy/quotas, activation, merge, push or server change.
 Comment-deletion audit atomicity is next; M08 overall, M07c drain decision and
 provider/dependency/rollout gates remain open.
 
+### M05 raw-camera filename SQL checkpoint — 8 October, late evening
+
+Continued from clean f2d7346. Existing global cleanupMediaNames acceptance now
+has seven real native HTTP/JWT/MySQL tests, not another runtime rewrite. Fifteen
+literal filename pairs independently specify recognition and retention: all
+eight existing camera prefixes, optional separator/no separator, anchored
+non-matches, document names, empty string and null. Both posts' attachment
+URLs, MIME, size, duration, type, order, IDs and creation timestamps retained.
+Repeat cleanup is stable; a synthetic second-row BEFORE UPDATE trigger proves
+statement rollback and generic HTTP 500. Guests/members/moderators/blocked admin
+cannot mutate filenames. No service/session/persistence doubles or outbound
+transport; stored example.invalid URLs are never fetched, workers inactive.
+
+First run: six pass/one failed due to incorrect new test expectation of blocked
+admin HTTP 403. Traced real session path: blocked account becomes unavailable
+before admin middleware, returning 401; existing native SQL read suite asserts
+the same. Corrected only the test to preserve existing auth policy. Baseline
+seven pass, 1.23 seconds. Deliberately broadened canonical SQL predicate to all
+non-null names: retention assertion fails (one failure/six pass), 940 ms. Restored
+runtime byte-identical. Final focused 42 pass (seven SQL + native maintenance),
+1.11 seconds. Full default 1804 pass / 692 SQL-external skip, 132 passing /
+39 skipped files, 17.63 seconds. Types, 410.9 kB backend build, unchanged
+73-procedure API (25642 bytes), 560-file boundaries, lint/docs/diff checks pass.
+
+Global operation requires BACKEND_MEDIA_NAMES_ACCEPTANCE=1 plus the existing
+safe test DB URL; initial post_media count must be zero. Run separately on a
+new owned DB, never with SQL publishers/attachment suites. Normal SQL parallel
+runs leave this suite skipped. Review covers bounded reserved fixtures, literal
+expectations, full non-filename SQL state, owned cleanup, no added abstraction
+or production test seam. Incremental/TDD test principles, systematic debugging,
+review, Git and verification/documentation skills guided this test-only slice.
+No new architecture/ADR, recognition/authorization/quota change or dependency.
+Logs: /tmp/daryadarcy-media-names-2022.log (initial expectation failure),
+/tmp/daryadarcy-media-names-2022-baseline.log,
+/tmp/daryadarcy-media-names-2022-mutation.log,
+/tmp/daryadarcy-media-names-2022-green.log and
+/tmp/daryadarcy-media-names-2022-full.log.
+
+Only dd-media-names-check-20261008-2022 created: existing MySQL 8.4, fresh
+backend_test, synthetic data/credentials, ephemeral loopback port, tmpfs,
+512 MiB/one CPU, no mounts/OOM. Full ID/owner verified before exact removal;
+owner inventory empty. No working DB/unrelated resources, frontend/server,
+secrets/cabinets, external mail/push/payment, activation, merge/push/deploy.
+External storage deletion, concurrency, M07c decision, manager scenario,
+provider/dependency/rollout gates remain open.
+
 ### M05 atomic bulk video import checkpoint — 8 October, late evening
 
 Continued from clean f797c7c on the same feature branch. Existing M05 gate for
