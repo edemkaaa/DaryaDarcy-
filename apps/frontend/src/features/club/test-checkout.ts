@@ -25,25 +25,40 @@ export async function createNextClubTestCheckout(
   signal.throwIfAborted();
   if (readSavedClubCheckoutIntent()?.idempotencyKey !== intent.idempotencyKey)
     throw new Error("Сохранённая заявка изменилась. Повторите проверку.");
-  return client.club.createCheckout.mutate(intent.input, {
+  const result = await client.club.createCheckout.mutate(intent.input, {
     context: { idempotencyKey: intent.idempotencyKey },
     signal,
   });
+  signal.throwIfAborted();
+  if (readSavedClubCheckoutIntent()?.idempotencyKey !== intent.idempotencyKey)
+    throw new Error("Сохранённая заявка изменилась. Повторите проверку.");
+  return result;
 }
 
 /** Test-only caller; enablement and terminal purchase lifecycle are separate gates. */
 export async function createClubTestCheckout(
   client: TRPCClient<AppRouter>,
   selection: ClubCheckoutSelection,
+  callerSignal?: AbortSignal,
 ) {
-  const signal = getSessionRequestSignal();
-  const intent = await getClubCheckoutIntent(selection);
+  const sessionSignal = getSessionRequestSignal();
+  const signal = callerSignal
+    ? AbortSignal.any([sessionSignal, callerSignal])
+    : sessionSignal;
+  signal.throwIfAborted();
+  const intent = await getClubCheckoutIntent(selection, signal);
   // Preparation may await another tab. Do not dispatch under a new identity.
   signal.throwIfAborted();
-  return client.club.createCheckout.mutate(intent.input, {
+  if (readSavedClubCheckoutIntent()?.idempotencyKey !== intent.idempotencyKey)
+    throw new Error("Сохранённая заявка изменилась. Повторите проверку.");
+  const result = await client.club.createCheckout.mutate(intent.input, {
     context: { idempotencyKey: intent.idempotencyKey },
     signal,
   });
+  signal.throwIfAborted();
+  if (readSavedClubCheckoutIntent()?.idempotencyKey !== intent.idempotencyKey)
+    throw new Error("Сохранённая заявка изменилась. Повторите проверку.");
+  return result;
 }
 
 /** Check the exact saved test purchase; absence is not permission to create one. */

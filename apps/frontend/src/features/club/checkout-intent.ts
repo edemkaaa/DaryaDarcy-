@@ -128,21 +128,30 @@ export function readSavedClubCheckoutIntent(): {
  */
 export async function getClubCheckoutIntent(
   selection: ClubCheckoutSelection,
+  callerSignal?: AbortSignal,
 ): Promise<ClubCheckoutIntent> {
+  callerSignal?.throwIfAborted();
   const parsed = selectionSchema.safeParse(selection);
   if (!parsed.success) throw new CheckoutIntentError("invalid-selection");
   const input = parsed.data;
   try {
     const selectionHash = await fingerprintSelection(input);
+    callerSignal?.throwIfAborted();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), lockWaitMs);
     try {
       // Web Locks coordinate tabs; an in-process mutex cannot protect this write.
       return await navigator.locks.request(
         storageKey,
-        { mode: "exclusive", signal: controller.signal },
+        {
+          mode: "exclusive",
+          signal: callerSignal
+            ? AbortSignal.any([callerSignal, controller.signal])
+            : controller.signal,
+        },
         () => {
           clearTimeout(timer);
+          callerSignal?.throwIfAborted();
           const storage = window.localStorage;
           const prior = storage.getItem(storageKey);
           if (prior !== null) {
@@ -159,6 +168,7 @@ export async function getClubCheckoutIntent(
       clearTimeout(timer);
     }
   } catch (error) {
+    if (callerSignal?.aborted) throw callerSignal.reason;
     if (error instanceof CheckoutIntentError) throw error;
     // Storage/crypto errors may contain private browser details. Do not expose
     // them, silently overwrite evidence, or continue with a temporary UUID.

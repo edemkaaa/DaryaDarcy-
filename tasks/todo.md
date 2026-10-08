@@ -1117,6 +1117,10 @@
       actual provider/context сохраняет cooldown. Стенд не менялся.
 - [ ] Y4d8: TEST purchase form, явное восстановление той же заявки и next purchase
       с fresh terminal proof; abort скрытого экрана/сессии до dispatch/navigation.
+- [x] Y4d8a: caller abort проходит через подготовку/ожидание Web Lock и HTTP
+      первой/повторной покупки; отмена до reservation не пишет key. Оба create
+      caller проверяют saved key после ответа, поздняя URL не принимается.
+      5 regression RED → GREEN; форма и привязка к экрану ещё впереди.
 - [ ] Отдельно диагностировать повторный сбой native video-wrapper в полном
       прогоне: сохранить безопасную диагностику имени упавшего дочернего теста,
       воспроизвести причину под нагрузкой; не считать успешный повтор исправлением.

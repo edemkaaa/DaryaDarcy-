@@ -288,6 +288,16 @@ unchanged and blocked for production. This is intentionally not a general-purpos
 baseline adoption or migration-repair flag. Evidence and rollback limitations
 are in the [staging guide](../operations/teamassist-staging.md#юkassa-переход-тестовой-базы-7-октября).
 
+### Purchase caller lifecycle, 8 October
+
+First/restore and next-purchase callers accept a screen-owned abort signal in
+addition to the captured session signal. Preparation and Web Lock waiting must
+be canceled before reservation; HTTP cancellation after dispatch preserves the
+durable key because the provider outcome may be unknown. Both callers compare
+the saved key after the reply before handing a URL to navigation. No late reply
+may be applied to a replaced browser intent. The view must still fence its own
+visibility/activity and never automatically resume a canceled purchase.
+
 References: [approved plan](../../tasks/plan.md),
 [existing settlement decision](0003-billing-identity-durability.md),
 [YooKassa idempotence](https://yookassa.ru/developers/using-api/interaction-format),

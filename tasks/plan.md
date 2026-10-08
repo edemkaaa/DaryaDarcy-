@@ -3027,3 +3027,21 @@ provider dependency, no fallback/access grant or unbounded new work. The fronten
 build is left off. Form/restore/next-purchase UI, provider/Safari and existing
 rollout/dependency/proxy gates remain. No DB, dependencies, auth, quotas, server,
 payment enablement, push or merge changes.
+
+### Y4d8a — cancel purchase preparation and fence late URLs, 8 October
+
+Five new transport regressions reach RED before implementation: pre-canceled
+purchase, abort during writer-lock waiting, in-flight caller cancellation and
+late URL after storage replacement in both first/next purchase callers. GREEN:
+caller/session signal is captured before preparation, writer lock receives it
+and checks before touching storage; canceled preparation cannot reserve a key.
+Canonical create transport checks abort and the exact saved key before returning
+its URL. A dispatched request may have applied remotely; cancellation retains
+durable evidence, never rotates/deletes it or implicitly retries the mutation.
+
+Verification: 107 focused cases; full suite 1242 pass / 618 SQL/external skip;
+types including frontend/e2e, lint and default-off frontend build pass. Existing
+native intent/polling checks remain green. Review keeps the optional caller
+signal backward compatible and payment logic in its feature; no auth/quota,
+API, dependencies, DB, provider calls, stage, push or merge changes. UI lifecycle
+binding, purchase form and explicit restore/next-purchase controls remain Y4d8.

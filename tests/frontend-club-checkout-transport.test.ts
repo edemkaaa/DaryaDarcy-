@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createTRPCClient } from "../apps/frontend/src/shared/api/trpc";
 import {
   createClubTestCheckout,
+  createNextClubTestCheckout,
   reconcileClubTestCheckout,
 } from "../apps/frontend/src/features/club/test-checkout";
 import { getClubCheckoutIntent } from "../apps/frontend/src/features/club/checkout-intent";
@@ -193,6 +194,107 @@ it("storage refusal prevents the orchestrator from making any request", async ()
   ).rejects.toMatchObject({ reason: "unavailable" });
   expect(fetcher).not.toHaveBeenCalled();
 });
+
+it("an already canceled purchase cannot reserve evidence or dispatch", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const fetcher = vi.fn(async (url: RequestInfo | URL) => response(url));
+  vi.stubGlobal("fetch", fetcher);
+  await expect(
+    createClubTestCheckout(createTRPCClient(), input, controller.signal),
+  ).rejects.toMatchObject({ name: "AbortError" });
+  expect(values.size).toBe(0);
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
+it("caller cancellation while waiting for a writer lock prevents late reservation and dispatch", async () => {
+  const controller = new AbortController();
+  let release: (() => void) | undefined;
+  vi.stubGlobal("navigator", {
+    locks: {
+      request: async (
+        _name: string,
+        _options: unknown,
+        callback: () => unknown,
+      ) => {
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return callback();
+      },
+    },
+  });
+  const fetcher = vi.fn(async (url: RequestInfo | URL) => response(url));
+  vi.stubGlobal("fetch", fetcher);
+  const pending = createClubTestCheckout(
+    createTRPCClient(),
+    input,
+    controller.signal,
+  ).catch((error: unknown) => error);
+  await vi.waitFor(() => expect(release).toBeTypeOf("function"));
+  controller.abort();
+  release!();
+  expect(await pending).toMatchObject({ name: "AbortError" });
+  expect(values.size).toBe(0);
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
+it("caller cancellation aborts purchase transport but retains the same key for explicit retry", async () => {
+  const controller = new AbortController();
+  const fetcher = vi.fn(
+    async (url: RequestInfo | URL, _options?: RequestInit) => response(url),
+  );
+  fetcher.mockImplementationOnce(() => new Promise(() => {}));
+  vi.stubGlobal("fetch", fetcher);
+  const client = createTRPCClient();
+  const pending = createClubTestCheckout(
+    client,
+    input,
+    controller.signal,
+  ).catch((error: unknown) => error);
+  await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+  controller.abort();
+  expect(await pending).toMatchObject({ cause: { kind: "cancelled" } });
+  expect(fetcher.mock.calls[0][1]?.signal?.aborted).toBe(true);
+  expect(await createClubTestCheckout(client, input)).toEqual(output);
+  expect(
+    new Headers(fetcher.mock.calls[1][1]?.headers).get("Idempotency-Key"),
+  ).toBe(new Headers(fetcher.mock.calls[0][1]?.headers).get("Idempotency-Key"));
+});
+
+it.each(["first", "next"] as const)(
+  "%s purchase refuses a late URL after browser evidence was replaced",
+  async (kind) => {
+    const prior = await getClubCheckoutIntent(input);
+    const fetcher = vi.fn(async (url: RequestInfo | URL) => {
+      if (requestUrl(url).pathname.endsWith("club.reconcileCheckout"))
+        return new Response(
+          JSON.stringify({ result: { data: { json: { state: "canceled" } } } }),
+        );
+      const storageKey = "daryadarcy:club-checkout:yookassa-test:v1";
+      values.set(
+        storageKey,
+        JSON.stringify({
+          ...JSON.parse(values.get(storageKey)!),
+          idempotencyKey: secondKey,
+        }),
+      );
+      return response(url);
+    });
+    vi.stubGlobal("fetch", fetcher);
+    const client = createTRPCClient();
+    const pending =
+      kind === "next"
+        ? createNextClubTestCheckout(client, {
+            previousIdempotencyKey: prior.idempotencyKey,
+            selection: input,
+          })
+        : createClubTestCheckout(client, input);
+    await expect(pending).rejects.toThrow("Сохранённая заявка изменилась");
+    expect(JSON.parse([...values.values()][0]).idempotencyKey).toBe(secondKey);
+    expect(fetcher).toHaveBeenCalledTimes(kind === "next" ? 2 : 1);
+  },
+);
 
 it("a real request-lifecycle timeout retains the durable identity for an explicit retry", async () => {
   vi.useFakeTimers();
