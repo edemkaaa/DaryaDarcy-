@@ -141,6 +141,25 @@ result; never invent success/cancellation or release an intent. A first-request
 timeout remains an error. Browser fixture acceptance exercises the actual caller
 and HTTP transport against local synthetic replies, not a real payment provider.
 
+### Result check ownership
+
+The feature-owned result controller starts nothing at construction. An explicit
+`check` runs one existing finite polling campaign, and concurrent checks are
+ignored. Report absence distinctly; bind observed states to the saved UUID,
+show pending as still checking during the campaign and release checking on its
+finite end without inventing a terminal result. A caller cancellation or
+identity change yields paused, not a payment error; disposal aborts and prevents
+later callbacks. Neither operation erases or replaces browser evidence.
+
+A 429 stores the canonical validated delay as an absolute retry deadline in
+the controller. Refuse explicit checks before that deadline and do not schedule
+a retry on expiry. Missing/invalid delay falls back to the approved 60-second
+window; this is client presentation/control, not a new server quota. The future
+screen owns visibility/retained-tab cancellation and disposal, and must keep this
+controller while temporarily hidden so cooldown is not lost. This foundation
+does not mount a screen, grant access or enable checkout. Server and provider
+proof remain mandatory, as do Safari/full-flow and existing rollout gates.
+
 ### Explicit next-intent reservation
 
 Replacing browser evidence is an explicit operation, not a consequence of a

@@ -20,6 +20,7 @@ before(async () => {
         'export { pollClubTestCheckout } from "./src/features/club/checkout-polling";',
         'export { createTRPCClient } from "./src/shared/api/trpc";',
         'export { createNextClubTestCheckout } from "./src/features/club/test-checkout";',
+        'export { createClubCheckoutResultController } from "./src/features/club/checkout-result-controller";',
       ].join("\n"),
       resolveDir: frontend,
     },
@@ -68,9 +69,15 @@ before(async () => {
             },
           }),
         );
-      } else if (mode === "quota" && calls.length > 1) {
+      } else if (
+        (mode === "quota" && calls.length > 1) ||
+        (mode === "controller-quota" && calls.length === 1)
+      ) {
         response.statusCode = 429;
-        response.setHeader("Retry-After", "60");
+        response.setHeader(
+          "Retry-After",
+          mode === "controller-quota" ? "45" : "60",
+        );
         response.end(
           JSON.stringify({
             error: {
@@ -301,6 +308,62 @@ test("real next-purchase caller checks the old key and dispatches only the new d
       url: "https://yoomoney.ru/checkout/payments/test",
       user: null,
     });
+  } finally {
+    await context.close();
+  }
+});
+
+test("real result controller honors quota cooldown without automatic or duplicate checks", async () => {
+  mode = "controller-quota";
+  calls = [];
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    await page.clock.install({ time: new Date("2026-10-08T00:59:00Z") });
+    await page.clock.pauseAt(new Date("2026-10-08T01:00:00Z"));
+    await page.goto(`${origin}/club?paid=1`);
+    const saved = await page.evaluate(async (storageKey) => {
+      const api = await import("/checkout.js");
+      const saved = await api.getClubCheckoutIntent({
+        email: "buyer@example.test",
+      });
+      window.changes = [];
+      window.resultController = api.createClubCheckoutResultController(
+        api.createTRPCClient(),
+        (state) => window.changes.push(state),
+      );
+      await window.resultController.check();
+      return {
+        key: saved.idempotencyKey,
+        record: localStorage.getItem(storageKey),
+      };
+    }, storageKey);
+    assert.equal(calls.length, 1);
+    assert.equal(
+      await page.evaluate(() => window.changes.at(-1).retryAt - Date.now()),
+      45_000,
+    );
+    await page.clock.fastForward(44_999);
+    await page.evaluate(() => window.resultController.check());
+    assert.equal(calls.length, 1);
+    await page.clock.fastForward(1);
+    assert.equal(calls.length, 1);
+    await page.evaluate(() => window.resultController.check());
+    assert.equal(calls.length, 2);
+    assert.deepEqual(await page.evaluate(() => window.changes.at(-1)), {
+      phase: "result",
+      result: { idempotencyKey: saved.key, state: "canceled" },
+      checking: false,
+    });
+    for (const call of calls) {
+      assert.equal(call.url, "/api/trpc/club.reconcileCheckout");
+      assert.equal(call.key, saved.key);
+    }
+    assert.equal(
+      await page.evaluate((key) => localStorage.getItem(key), storageKey),
+      saved.record,
+    );
+    await page.evaluate(() => window.resultController.dispose());
   } finally {
     await context.close();
   }

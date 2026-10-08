@@ -2938,3 +2938,33 @@ controller slice): 1227 pass / 618 SQL/external skip; root/frontend/e2e types,
 lint, build, unchanged API and boundaries pass. Separate this transport repair
 from the controller feature commit. No dependency, DB, auth, deployment, merge
 or push changes; dependency/release and actual provider gates remain open.
+
+### Y4d5: result-check controller foundation — 2026-10-08
+
+Keep feature-owned result orchestration separate from React rendering. Creation
+does not start a request. One explicit check owns one existing finite campaign;
+duplicate checks cannot overlap. Publish validated key-bound states, distinct
+absence and pending/checking progress. Cancellation/session changes pause;
+disposal prevents late callbacks. On 429, preserve an absolute retry deadline
+and refuse explicit checks before it; expiry starts no request. Unreadable/
+malformed/error states grant no terminal proof and browser evidence is untouched.
+The screen must own hidden-tab cancellation, retain cooldown while hidden and
+dispose on unmount; this module does not yet mount or start itself.
+
+Initial stub: all 11 cases reach RED. Add finite-pending completion coverage:
+12 result-controller cases pass; existing club/transport/lifecycle checks pass.
+Removing the cooldown guard fails the exact-before-deadline test; restoration
+passes. Chromium uses the real canonical caller/storage/HTTP replies to prove
+45-second cooldown and no automatic retry. Its first run had a 1ms fixture
+drift because installed browser time still advanced; pause the fixture clock
+before mounting, preserve the exact boundary, and the scenario passes. This is
+not a relaxation of production timing. Other eight native club scenarios pass.
+
+Full standalone: 1227 pass / 618 SQL/external skip. Root/frontend/e2e types,
+lint, fresh frontend build (28 pages), unchanged API (73 / 25642 bytes),
+boundaries (505 files), docs/formatting pass. Review: explicit discriminated
+view state, owning controller instead of generic event bus, canonical finite
+polling/error/abort boundaries, no unbounded retry, storage writes or access
+grant. Screen/result presentation, visibility binding, real provider/Safari
+acceptance and existing rollout/dependency/proxy gates remain open. Local only;
+no DB, schema, dependencies, auth, quota, TEST enablement, merge/push/deployment.

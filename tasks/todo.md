@@ -1101,6 +1101,10 @@
 - [x] Prerequisite result UI: исправлена потеря Retry-After при нормализации
       tRPC ошибки; сохраняется только безопасный числовой delay без private
       response metadata. 19 request-lifecycle checks, RED/GREEN; квоты неизменны.
+- [x] Y4d5: controller экрана результата: только одна конечная campaign,
+      явные повторные проверки соблюдают Retry-After, cancel/session → paused,
+      dispose запрещает поздние callbacks. 12 новых unit/wire + Chromium
+      cooldown; storage не меняется. Сам экран и visibility binding ещё не готовы.
 - [ ] Отдельно диагностировать повторный сбой native video-wrapper в полном
       прогоне: сохранить безопасную диагностику имени упавшего дочернего теста,
       воспроизвести причину под нагрузкой; не считать успешный повтор исправлением.
