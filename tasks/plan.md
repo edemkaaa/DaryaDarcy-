@@ -4564,3 +4564,51 @@ removing it; label inventory empty, data gone. No unrelated resource/working DB
 removed. No secret/cabinet access, external message/payment, frontend, auth/CORS/
 proxy/quotas, activation, merge/push/deploy. M07c decision and all existing
 provider/dependency/rollout gates stay open.
+
+### M08 native profile persistence verification — 8 October, evening
+
+Continued from clean a03f8ba, narrowed the pending profile acceptance task to
+native HTTP/JWT/SQL field writes and deletion requests. Avatar upload/S3 is
+excluded: storing a synthetic avatarUrl string is not upload acceptance. This is
+characterization of current behavior, not a runtime repair or auth-policy change.
+
+Eight new checks use a real Nest listener, synthetic signed JWT with the stored
+sessionVersion and actual disposable MySQL, without identity/persistence/storage
+mocks. Assert updates use the session actor despite forged userId/role/email,
+preserve role/email/hash/sessionVersion and the other account, retain omitted
+profile fields and preserve the existing empty-patch no-op. Repeated deletion
+requests set only the current account's request flag, without erasing its row.
+Anonymous requests fail without a mutation. Actor-limited SQL trigger failures
+for update/deletion request yield safe HTTP 500, never success, while selected
+profile fields/deletion flags remain unchanged.
+
+Initial fault injection incorrectly rejected EVERY actor update, including the
+real authentication upsert of lastSignedIn, so both requests stopped at HTTP 401
+before profile entry. Systematic tracing confirmed sdk.authenticateRequest →
+upsertUser → lastSignedIn update. Restricted the trigger to a changed name or
+deletion-request flag; now it tests the intended persistence boundary without
+mocking or modifying authentication. Authentication's activity timestamp is not
+claimed rolled back by a later profile failure or unchanged by an empty patch.
+
+Wrong-target UPDATE mutation (userId+1) produces three expected failures: wrong
+persisted profile, incorrect partial patch and false success bypassing the target
+SQL refusal. Restored db.ts is byte-identical to HEAD. Focused: 45 pass in 978 ms
+across new native SQL, existing profile and identity SQL suites. Full default:
+1804 pass / 651 SQL-external skip, 132 passing / 35 skipped files, 20.70 seconds.
+Eight new SQL checks ran explicitly. Root/frontend/E2E types, 410.6 kB build,
+unchanged 73-procedure/25642-byte API, 560-file boundaries, lint/docs pass.
+
+Review confirms independent persisted-state expectations, synthetic reserved IDs,
+actor-limited faults removed after each case, original protected schemas and
+canonical writers, and no external storage call. No production/schema/dependency
+change retained. Used TDD test principles, incremental delivery, systematic
+debugging/root-cause tracing, security, review, Git, verification/documentation;
+the optional shared DoD reference remains absent, so repository gates apply.
+
+Only dd-profile-check-20261008-1852 was created: existing MySQL 8.4, fresh
+backend_test, synthetic credentials/data, loopback ephemeral port, tmpfs/no mounts,
+512 MiB/one CPU. Verified full ID/owner/no OOM/no mounts before removal; label
+inventory empty, tmpfs gone. No working DB, user volume/container, frontend,
+server, secrets, mail/push/payment, auth/CORS/proxy/quotas, activation, merge/push/
+deploy. Real avatar upload/orphan cleanup, absent-row writes, erasure/retention,
+M07c drain decision and provider/dependency/rollout gates remain open.

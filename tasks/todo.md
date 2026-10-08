@@ -1015,9 +1015,11 @@
     not a real connection; photo sanitization and SQL/storage failure checks pass.
     Types/build/unchanged API/479-file boundaries/frontend-only lint pass.
     This is client availability only, not a live connection/write guarantee.
-  - [ ] Verify profile writes/avatar/deletion requests with real JWT/MySQL/S3;
-    address orphaned uploads after SQL failure separately. This slice does not
-    implement immediate erasure/retention policy or verify zero-row updates.
+  - [x] Verify profile field writes and deletion requests with real HTTP/JWT/MySQL;
+    eight new SQL cases and 45 focused checks pass (checkpoint below).
+  - [ ] Verify avatar upload with real isolated S3; address orphaned uploads after
+    SQL failure separately. Immediate erasure/retention policy and zero-row
+    updates remain unverified, not implemented by profile characterization.
 - [ ] Final checkpoint: whole Nest runtime/MySQL/frontend flow, release rehearsal,
   audit triage/migration history/provider/SMTP/private-file gates and approved rollout.
 
@@ -1530,3 +1532,14 @@
       Full 1804 pass / 643 SQL-external skip; types/build/API/boundaries/lint/docs.
 - [ ] Реальная доставка/устройства и общая приёмка остаются открыты. Runtime,
       схема, фронт, сервер и настройки уведомлений не менялись; own test DB удалена.
+
+### M08 profile persistence SQL acceptance — 8 October, evening
+
+- [x] Восемь native HTTP/JWT/SQL случаев: session actor, запрет записи чужих
+      role/email, partial/empty patch, повторный запрос удаления без стирания
+      профиля, unauthenticated refusals и два отказа SQL без ложного успеха.
+- [x] 45 focused pass; подмена адресата UPDATE ломает три теста. Full 1804 pass /
+      651 SQL-external skip; types/build/API/boundaries/lint/docs проходят.
+      Новый тест не подменяет identity/SQL и не отправляет внешних запросов.
+- [ ] Avatar upload/S3/orphan cleanup, zero-row writes и erasure/retention остаются
+      открыты. Runtime/frontend/server не менялись; own tmpfs база удалена.
