@@ -884,3 +884,59 @@ docker compose --env-file .env --env-file video-image.env \
 Повторить guest smoke. Не возвращать старые `api.env`/SMTP/ключи целиком,
 не откатывать video или MySQL и не восстанавливать дамп поверх рабочей базы
 ради отката приложения. Новых миграций этим выпуском не было.
+
+## Обновление объединённой версии — 8 октября, 20:32 МСК
+
+По отдельному запросу пользователя API и web обновлены до
+`daryadarcy-staging:1f67d5b`, исходный коммит
+`1f67d5bb4c59ff9cd45f35cc42362cd8d0a76c3e`. Образ Linux/amd64:
+`sha256:4b4a7e2c26d33c72b11952846b43c112aed4b7bb7345ce2e9fc51492dc1680d6`.
+Revision label совпадает. Это объединение frontend staging `7524987` и двух
+локальных backend-подшагов M06; Git этим выпуском не пушился.
+
+- Контекст — git archive исходного коммита плюс свежие API/Next сборки без
+  `.next/cache`/`.next/dev`; Mac node_modules и секреты не переносились.
+  SHA-256 архива: `e195ed8bb48c4c6f0b8309fc08532627a6fa6da73e110459ff2e20251c42c229`.
+  Node base закреплён прежним digest; production install использует pnpm 9.12.0,
+  frozen lockfile и выключенные scripts. Манифесты/lockfile не изменились.
+- Первый bounded builder (768 МиБ / 0,5 CPU) получил OOM: BuildKit параллельно
+  выполнял pnpm install и apt install. В операторском Dockerfile.release COPY
+  production dependencies перенесён перед apt, создавая последовательную
+  зависимость этапов. Повтор на том же лимите завершился успешно; это изменение
+  порядка сборки, не увеличение runtime ресурсов/изменение зависимостей.
+  Временный builder и его собственный кеш удалены после экспорта.
+- Отдельный runtime probe без сети/SQL/SMTP прошёл: UID 1000, Nest/Next/native
+  PNG → WebP, writable image cache, отсутствие env/dev-пакетов, compiled API,
+  гостевая сессия 200, admin 401 и fail-closed config 503 без базы.
+- Перед переключением сохранены свежий SQL-дамп, конфигурации и снимок всех
+  контейнеров: `/home/edem/apps/daryadarcy-staging/release-1f67d5b.V772V2`.
+  Каталог 700, копии/дамп 600. Gzip, 29 CREATE TABLE и completion marker
+  проверены; восстановление именно этого дампа не репетировалось.
+  Операторские scripts, окончательный Dockerfile и verification.json сохранены
+  там же, без публикации секретов.
+- Переключение завершилось 2026-10-08T17:32:17Z. Изменились только image tags
+  API/web; использованы прежние четыре Compose-файла и `--no-deps`.
+  Edge проверен и перечитал DNS. Все шесть сервисов healthy, API/web restart=0,
+  OOM=false. Остальные контейнеры, их ID/start time, API isolation и provider
+  configs сохранены. Миграций не было; счётчики до/после: 29 таблиц,
+  2 пользователя, 742 поста, 0 club payments, 0 checkout intents.
+- После выкладки прошли 8 гостевых HTTPS smoke-проверок и HTML для club/feed/
+  videos/video/1/library/shop/quiz. В браузере клуб, лента и каталог/магазин
+  отображаются; три видимых клубных и одиннадцать видимых изображений ленты
+  загрузились. Видео /video/1 получило metadata, readyState=4, error=null;
+  настоящее воспроизведение продвинулось с 0,22 до 25,07 секунды и остановлено.
+  Это выборочная проверка, не полный каталог/Safari/admin/provider acceptance.
+- Свежая локальная проверка: 1804 pass / 618 SQL-external skip; root/frontend/E2E
+  types, обе сборки, lint, API 73/25642 и 560-file boundaries проходят.
+  Native audit по-прежнему 51 advisory (1 critical / 20 high / 26 moderate /
+  4 low): ограниченное тестовое исключение сохраняется, production не разрешён.
+  Prodamus/ЮKassa TEST-флаги, блокировки оплаты, SMTP и сети не изменены;
+  платежи и внешние письма не запускались. M07c и прежние release gates открыты.
+
+Откат этого обновления: вернуть только web `STAGING_IMAGE=daryadarcy-staging:829133e`
+в `.env` и API `daryadarcy-staging:829133e` в существующем override; прежний образ
+сохранён. Затем использовать те же четыре Compose-файла и команды `up --no-deps`
+и edge reload из предыдущего раздела, повторить guest smoke. Не возвращать весь
+api.env, не менять SQL/тома, не восстанавливать дамп поверх рабочей базы ради
+отката кода. Ночные автоматические продолжения не получают нового разрешения
+на push/deploy: этот выпуск выполнен по отдельному прямому запросу пользователя.
