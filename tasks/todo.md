@@ -843,6 +843,14 @@
       six native checks; restore full 1656 pass / 618 SQL/external skip, types/
       409.0 kB build/API/531-file boundaries/frontend lint/docs/format pass.
       No actual provider/SQL effect or rollout; M06/release gates remain open.
+    - [x] Signature comparison/key-list verification now belongs beside canonical
+      signing; explicit readonly keys, no env/default/demo-key/cache in the helper.
+      Legacy dynamic key trimming and per-operation key selection unchanged.
+      Nineteen new checks / five empty-contract RED failures; broad-key cancellation
+      mutation fails native HTTP (200 instead of 422). Restored full 1675 pass /
+      618 SQL/external skip; types/409.1 kB build/API/531-file boundaries/lint pass.
+      No SQL/provider acceptance, frontend, policy, activation or server changes;
+      M06 orchestration and all existing release gates remain open.
   - [x] Shop owned/checkout use cases now use explicit ShopModule/ShopService
     composition in Nest and standalone callers. Router schemas/protected access
     and hard-disabled capability gate remain before checkout service entry;

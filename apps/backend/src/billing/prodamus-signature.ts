@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 function stringifyValues(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stringifyValues);
@@ -37,4 +37,19 @@ export function createProdamusSign(data: unknown, secret: string): string {
   return createHmac("sha256", secret)
     .update(toProdamusJson(prepared), "utf8")
     .digest("hex");
+}
+
+export function verifyProdamusSignature(
+  data: unknown,
+  signature: string,
+  secrets: readonly string[],
+): boolean {
+  if (!signature) return false;
+  const keys = [...new Set(secrets.filter(Boolean))];
+  return keys.some((key) => {
+    const expected = Buffer.from(createProdamusSign(data, key).toLowerCase());
+    const received = Buffer.from(signature.toLowerCase());
+    if (expected.length !== received.length) return false;
+    return timingSafeEqual(expected, received);
+  });
 }

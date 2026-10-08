@@ -3913,6 +3913,36 @@ and original URL-rejection behavior unchanged. No schema/dependency/frontend/aut
 CORS/proxy/quota, real SQL/provider/mail, TEST activation, push or deployment.
 Remaining M06 orchestration/provider/durable/release gates stay open.
 
+### M06 — explicit signature verification boundary, 8 October, evening
+
+Move constant-time comparison and key-list verification beside the canonical
+HMAC implementation. Require explicit trusted keys; no environment reads inside
+the billing helper. Preserve case-insensitive digest comparison, byte-length
+rejection, empty-key exclusion, duplicate key handling and no implicit demo key.
+Legacy facade retains dynamic trimmed merchant keys; HTTP retains exact initial
+versus recurring/cancellation key selection, original body and validation order.
+Use independent canonical fixtures for RED/GREEN and existing native wrong-key
+rejections to protect the per-operation boundary. No new signature policy,
+parser, transaction, replay, auth, public API, configuration or provider effect.
+
+Checkpoint: verification now lives beside canonical signing with required,
+readonly explicit keys; the legacy facade still reads current trimmed keys.
+Nineteen independent fixture cases cover uppercase/length/non-hex/Unicode,
+missing/foreign/empty keys, no implicit demo suffix, changed payload and key
+changes between calls. Five expected empty-contract RED failures preceded the
+implementation. Existing native wrong-recurring-key acceptance catches a
+deliberate broad-key bypass (200 instead of 422); restored full suite passes.
+
+Fresh Node 22 suite: 1675 pass / 618 SQL/external skip, 125 files pass / 30 skip,
+17.04 seconds. Root/frontend/e2e types, 409.1 kB backend build, unchanged
+73-procedure / 25642-byte API, 531-file boundaries and existing frontend lint
+pass. Review: one canonical verifier, unchanged constant-time UTF-8 comparison,
+no environment/default keys in the helper and no mutable key cache. Key selection
+and all original-body/demo/domain/transaction/replay checks remain where they
+were. No new SQL/provider/mail effects, dependencies, schema, frontend edits,
+auth/CORS/proxy/quota changes, activation, merge/push or server changes. SQL and
+provider acceptance, M07c reviewed drain bound and all rollout gates remain open.
+
 ## Prodamus sandbox connection — 8 October, proposed rollout contract
 
 User supplied a time-limited testpage1.payform.ru cabinet and requested test

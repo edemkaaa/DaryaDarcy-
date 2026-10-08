@@ -1,4 +1,4 @@
-import { randomUUID, timingSafeEqual } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import type { Express, Request, Response } from "express";
 import { publicAccessUrl } from "./identity/urls";
@@ -6,7 +6,7 @@ import { getCapabilities } from "./launch/capabilities";
 import * as db from "./db";
 import { moneyMinor, type PaymentProof } from "./billing/protocol";
 import { confirmProviderCancellation, type Profile } from "./billing/cancellation";
-import { createProdamusSign } from "./billing/prodamus-signature";
+import { createProdamusSign, verifyProdamusSignature } from "./billing/prodamus-signature";
 import { buildProdamusQuery as buildQuery } from "./billing/prodamus-query";
 import { asProdamusRecord as asRecord, parseProdamusPayload } from "./billing/prodamus-payload";
 import { hasProdamusDemoMarker, isPaidStatus, pickOrderId, pickString, subscriptionAction } from "./billing/prodamus-fields";
@@ -112,23 +112,13 @@ export function assertClubCheckoutConfigured(
   }
 }
 
-function signsMatch(expected: string, received: string): boolean {
-  const a = Buffer.from(expected.toLowerCase());
-  const b = Buffer.from(received.toLowerCase());
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
-
 function getSubscriptionSecret(): string {
   return (process.env.PRODAMUS_SUBSCRIPTION_SECRET || "").trim();
 }
 
 export function verifyProdamusSign(data: unknown, signature: string): boolean {
-  if (!signature) return false;
-  const secrets = [getSecret(), getShopSecret(), getSubscriptionSecret()].filter(Boolean);
   // Demo notifications must never create production entitlements.
-  const keys = [...new Set(secrets)];
-  return keys.some((key) => signsMatch(createProdamusSign(data, key), signature));
+  return verifyProdamusSignature(data, signature, [getSecret(), getShopSecret(), getSubscriptionSecret()]);
 }
 
 function paidContent(text: string): string {
@@ -383,7 +373,7 @@ async function processProdamusWebhook(
 
     if (action === "deactivation" || action === "finish") {
       const key=getSubscriptionSecret()||getSecret();
-      if (!key || !signsMatch(createProdamusSign(body, key), signature)) {
+      if (!key || !verifyProdamusSignature(body, signature, [key])) {
         res.status(422).send("profile binding invalid");
         return;
       }
@@ -416,7 +406,7 @@ async function processProdamusWebhook(
           subscriptionId: subscriptionId(),
         }) ||
         !key ||
-        !signsMatch(createProdamusSign(body, key), signature)
+        !verifyProdamusSignature(body, signature, [key])
       ) {
         res.status(422).send("payment binding invalid");return;
       }
