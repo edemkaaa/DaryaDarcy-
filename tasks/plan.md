@@ -4401,3 +4401,17 @@ and provider, dependency and rollout gates remain open. No secret/cabinet access
 external email/payment, activation, auth/CORS/proxy/quota change, merge, push or
 deployment. The skill's optional shared Definition of Done reference was absent;
 repository test/static/API gates and the explicit heartbeat constraints were used.
+
+### Native comments SQL fixture repair — 8 October, 21:13 Moscow
+
+Enabling deferred SQL verification exposed a pre-existing fixture failure:
+nest-comments.mysql replaced the push module with only its service-send export,
+but the inert WorkersModule now also binds sendMarketingPostNotification during
+application construction. All 24 cases failed to start before making assertions;
+this is a missing test export, not evidence of a production discussion failure.
+Added only a synthetic marketing-send export to that mock; no worker activation,
+production behavior, assertion, timeout or skip change. The complete focused run
+now passes 113 checks, including all 24 native comments cases, real JWT/MySQL and
+comment mutation checks. Default/static evidence and container cleanup are
+recorded in the following report-dismissal checkpoint. Keep this test-only repair
+separate from the moderation transaction change; no real push or provider call.

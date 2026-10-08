@@ -23,6 +23,7 @@ import { getDb } from "../apps/backend/src/db";
 const push = vi.hoisted(() => vi.fn(async () => undefined));
 vi.mock("../apps/backend/src/push", () => ({
   sendServicePushNotification: push,
+  sendMarketingPostNotification: vi.fn(async () => undefined),
 }));
 
 describe.skipIf(!testDatabaseUrl)(
