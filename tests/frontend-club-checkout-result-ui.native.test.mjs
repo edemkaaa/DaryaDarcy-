@@ -5,7 +5,7 @@ import { build } from "esbuild";
 import { chromium } from "@playwright/test";
 
 const storageKey = "daryadarcy:club-checkout:yookassa-test:v1";
-let browser, server, origin, mode, calls;
+let browser, server, origin, mode, calls, releaseCreate, paymentUrl;
 
 before(async () => {
   const frontend = new URL("../apps/frontend/", import.meta.url).pathname;
@@ -19,7 +19,9 @@ before(async () => {
         import { createTRPCClient, trpc } from "./src/shared/api/trpc";
         import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
         import { ScreenActivity } from "./src/shared/navigation/screen-activity";
+        import { AuthProvider } from "./src/domain/session/session-context";
         export { getClubCheckoutIntent } from "./src/features/club/checkout-intent";
+        export { cancelSessionRequests } from "./src/shared/api/request-lifecycle";
         const client = createTRPCClient();
         const queryClient = new QueryClient();
         let root;
@@ -28,12 +30,20 @@ before(async () => {
           const screen = createElement(ClubTestCheckoutResult, {client, active});
           root.render(strict ? createElement(StrictMode, null, screen) : screen);
         }
+        export function mountPurchase(active = true, sessionReady = true, accountEmail = null) {
+          root ??= createRoot(document.getElementById("root"));
+          root.render(createElement(ClubTestCheckoutResult, {
+            client, active, purchase: {sessionReady, accountEmail},
+          }));
+        }
         export function mountMode(active = true) {
           root ??= createRoot(document.getElementById("root"));
           root.render(createElement(QueryClientProvider, {client:queryClient},
             createElement(trpc.Provider, {client,queryClient},
               createElement(ScreenActivity.Provider, {value:active},
-                createElement(ClubCheckoutMode, null, createElement("button",null,"Legacy purchase")),
+                createElement(AuthProvider, null,
+                  createElement(ClubCheckoutMode, null, createElement("button",null,"Legacy purchase")),
+                ),
               ),
             ),
           ));
@@ -79,17 +89,62 @@ before(async () => {
     if (request.url === "/screen.js") {
       response.setHeader("Content-Type", "text/javascript");
       response.end(bundle.outputFiles[0].text);
+    } else if (request.url === "/api/auth/me") {
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({ user: null }));
     } else if (request.url?.startsWith("/api/trpc/")) {
-      for await (const _chunk of request) {
-        /* drain only synthetic input */
-      }
+      let body = "";
+      for await (const chunk of request) body += chunk;
       calls.push({
         url: request.url,
         method: request.method,
         key: request.headers["idempotency-key"],
+        body,
       });
       response.setHeader("Content-Type", "application/json");
-      if (mode === "quota") {
+      if (request.url === "/api/trpc/club.createCheckout") {
+        if (mode === "create-held") {
+          releaseCreate = () =>
+            response.end(
+              JSON.stringify({
+                result: {
+                  data: {
+                    json: {
+                      url: paymentUrl,
+                      user: null,
+                    },
+                  },
+                },
+              }),
+            );
+        } else if (mode === "create-failure") {
+          response.statusCode = 500;
+          response.end(
+            JSON.stringify({
+              error: {
+                json: {
+                  message: "PRIVATE payment URL",
+                  code: -32603,
+                  data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+                },
+              },
+            }),
+          );
+        } else {
+          response.end(
+            JSON.stringify({
+              result: {
+                data: {
+                  json: {
+                    url: paymentUrl,
+                    user: null,
+                  },
+                },
+              },
+            }),
+          );
+        }
+      } else if (mode === "quota") {
         response.statusCode = 429;
         response.setHeader("Retry-After", "45");
         response.end(
@@ -105,7 +160,13 @@ before(async () => {
         );
       } else {
         response.end(
-          JSON.stringify({ result: { data: { json: { state: mode } } } }),
+          JSON.stringify({
+            result: {
+              data: {
+                json: { state: mode.startsWith("create-") ? "unknown" : mode },
+              },
+            },
+          }),
         );
       }
     } else {
@@ -124,6 +185,397 @@ before(async () => {
       : {}),
   });
 });
+
+test("a real held writer lock is canceled before reservation when the purchase screen hides", async (t) => {
+  const page = await purchaseScreen(t);
+  await page.evaluate((key) => {
+    window.held = navigator.locks.request(
+      key,
+      () =>
+        new Promise((resolve) => {
+          window.releaseLock = resolve;
+        }),
+    );
+  }, storageKey);
+  await page.waitForFunction(() => typeof window.releaseLock === "function");
+  await page.getByLabel("Почта получателя доступа").fill("buyer@example.test");
+  await page
+    .getByRole("button", { name: "Создать тестовую заявку", exact: true })
+    .click();
+  await page.waitForFunction(
+    async () => (await navigator.locks.query()).pending.length === 1,
+  );
+  await page.evaluate(() => {
+    fixture.visibility(true);
+    window.releaseLock();
+  });
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "Покупка приостановлена" })
+    .waitFor();
+  assert.equal(calls.length, 0);
+  assert.equal(
+    await page.evaluate((key) => localStorage.getItem(key), storageKey),
+    null,
+  );
+  await page.evaluate(() => fixture.visibility(false));
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Создать тестовую заявку", exact: true })
+      .isDisabled(),
+    true,
+  );
+  assert.equal(calls.length, 0);
+});
+
+test("hidden/inactive/session/unmount cancellation fences late creation navigation and never retries", async (t) => {
+  for (const kind of [
+    "visibility",
+    "activity",
+    "session",
+    "session-not-ready",
+    "unmount",
+    "account-email",
+  ]) {
+    releaseCreate = null;
+    const page = await purchaseScreen(t, { state: "create-held" });
+    await page
+      .getByLabel("Почта получателя доступа")
+      .fill("buyer@example.test");
+    await page
+      .getByRole("button", { name: "Создать тестовую заявку", exact: true })
+      .click();
+    await page.waitForFunction(() =>
+      document
+        .querySelector('button[type="submit"]')
+        ?.textContent.includes("Готовим"),
+    );
+    // Wait for the local HTTP boundary, not an arbitrary delay.
+    const deadline = Date.now() + 5000;
+    while (!releaseCreate) {
+      assert.ok(Date.now() < deadline);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    const raw = await page.evaluate(
+      (key) => localStorage.getItem(key),
+      storageKey,
+    );
+    await page.evaluate((kind) => {
+      if (kind === "visibility") fixture.visibility(true);
+      else if (kind === "activity") fixture.mountPurchase(false);
+      else if (kind === "session") fixture.cancelSessionRequests();
+      else if (kind === "session-not-ready") fixture.mountPurchase(true, false);
+      else if (kind === "account-email")
+        fixture.mountPurchase(true, true, "other@example.test");
+      else fixture.unmount();
+    }, kind);
+    if (kind !== "unmount")
+      await page
+        .getByRole("alert")
+        .filter({ hasText: "Покупка приостановлена" })
+        .waitFor();
+    releaseCreate();
+    if (kind === "visibility")
+      await page.evaluate(() => fixture.visibility(false));
+    if (kind === "activity" || kind === "session-not-ready")
+      await page.evaluate(() => fixture.mountPurchase());
+    assert.equal(calls.length, 1);
+    assert.equal(new URL(page.url()).origin, origin);
+    assert.equal(
+      await page.evaluate((key) => localStorage.getItem(key), storageKey),
+      raw,
+    );
+    if (kind !== "unmount")
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Создать тестовую заявку", exact: true })
+          .isDisabled(),
+        true,
+      );
+  }
+});
+
+test("purchase cannot start while session is unresolved; an account email remains read-only", async (t) => {
+  const page = await purchaseScreen(t);
+  await page.evaluate(() => fixture.mountPurchase(true, false));
+  const form = page.getByRole("form", { name: "Тестовая покупка клуба" });
+  await form.evaluate((form) =>
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    ),
+  );
+  assert.equal(calls.length, 0);
+  await page.evaluate(() =>
+    fixture.mountPurchase(true, true, "account@example.test"),
+  );
+  await page.waitForFunction(
+    () =>
+      document.querySelector('input[type="email"]')?.value ===
+      "account@example.test",
+  );
+  assert.equal(
+    await page.getByLabel("Почта получателя доступа").getAttribute("readonly"),
+    "",
+  );
+});
+
+test("fresh next-purchase proof honors quota across hiding; expiry alone cannot create or retry", async (t) => {
+  const page = await purchaseScreen(t, { saved: true });
+  mode = "canceled";
+  await page.getByRole("button", { name: "Проверить статус" }).click();
+  const next = page.getByRole("button", {
+    name: "Новая тестовая покупка",
+    exact: true,
+  });
+  await next.waitFor();
+  await page.getByLabel("Почта получателя доступа").fill("next@example.test");
+  await page.clock.install({ time: new Date("2026-10-08T00:59:00Z") });
+  await page.clock.pauseAt(new Date("2026-10-08T01:00:00Z"));
+  mode = "quota";
+  await next.click();
+  await page
+    .getByRole("status")
+    .filter({ hasText: "Повторная проверка" })
+    .waitFor();
+  const check = page.getByRole("button", { name: "Проверить статус" });
+  assert.equal(await check.isDisabled(), true);
+  await page.evaluate(() => fixture.mountPurchase(false));
+  await page.evaluate(() => fixture.mountPurchase());
+  await page.clock.runFor(44_999);
+  assert.equal(await check.isDisabled(), true);
+  await page.clock.runFor(1);
+  assert.equal(await check.isEnabled(), true);
+  assert.equal(calls.length, 3);
+  await unchanged(page);
+  assert.equal(
+    (await page.locator("body").innerText()).includes("PRIVATE"),
+    false,
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Создать тестовую заявку", exact: true })
+      .isDisabled(),
+    true,
+  );
+});
+
+test("a real create timeout leaves one durable key and blocks purchase until an explicit check", async (t) => {
+  releaseCreate = null;
+  const page = await purchaseScreen(t, { state: "create-held" });
+  await page.clock.install({ time: new Date("2026-10-08T00:59:00Z") });
+  await page.clock.pauseAt(new Date("2026-10-08T01:00:00Z"));
+  await page.getByLabel("Почта получателя доступа").fill("buyer@example.test");
+  await page
+    .getByRole("button", { name: "Создать тестовую заявку", exact: true })
+    .click();
+  const deadline = Date.now() + 5000;
+  while (!releaseCreate) {
+    assert.ok(Date.now() < deadline);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  const raw = await page.evaluate(
+    (key) => localStorage.getItem(key),
+    storageKey,
+  );
+  await page.clock.runFor(15_000);
+  await page.getByRole("alert").waitFor();
+  assert.equal(calls.length, 1);
+  assert.equal(
+    await page.evaluate((key) => localStorage.getItem(key), storageKey),
+    raw,
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Создать тестовую заявку", exact: true })
+      .isDisabled(),
+    true,
+  );
+  releaseCreate();
+  mode = "create-success";
+  await page.getByRole("button", { name: "Проверить статус" }).click();
+  const restore = page.getByRole("button", {
+    name: "Восстановить прежнюю заявку",
+    exact: true,
+  });
+  await restore.waitFor();
+  await restore.click();
+  await page.waitForURL("https://yoomoney.ru/checkout/payments/fixture");
+  assert.equal(calls.length, 3);
+  assert.equal(calls[2].key, calls[0].key);
+});
+
+async function purchaseScreen(
+  t,
+  {
+    saved = false,
+    state = "create-success",
+    destination = "https://yoomoney.ru/checkout/payments/fixture",
+  } = {},
+) {
+  paymentUrl = destination;
+  const page = await screen(t, state, { saved });
+  await page.context().route("https://yoomoney.ru/**", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: "<title>Synthetic provider destination</title>",
+    }),
+  );
+  await page.evaluate(() => fixture.mountPurchase());
+  await page
+    .getByRole("status")
+    .filter({
+      hasText: saved ? "Результат пока неизвестен" : "нет сохранённой заявки",
+    })
+    .waitFor();
+  return page;
+}
+
+test("TEST form creates only on explicit valid submit, persists before HTTP, and opens a synthetic destination", async (t) => {
+  const page = await purchaseScreen(t);
+  const submit = page.getByRole("button", {
+    name: "Создать тестовую заявку",
+    exact: true,
+  });
+  await submit.waitFor();
+  assert.equal(calls.length, 0);
+  await submit.click(); // Native validation rejects the blank email.
+  assert.equal(calls.length, 0);
+  await page
+    .getByLabel("Почта получателя доступа")
+    .fill(" BUYER@EXAMPLE.TEST ");
+  // HTML email input trims surrounding spaces; the intent also canonicalizes.
+  await submit.evaluate((button) => {
+    button.click();
+    button.click();
+  });
+  await page.waitForURL("https://yoomoney.ru/checkout/payments/fixture");
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, "/api/trpc/club.createCheckout");
+  assert.equal(calls[0].method, "POST");
+  assert.deepEqual(JSON.parse(calls[0].body), {
+    json: { email: "buyer@example.test", plan: "monthly" },
+  });
+  await page.goto(origin);
+  const raw = await page.evaluate(
+    (key) => localStorage.getItem(key),
+    storageKey,
+  );
+  assert.equal(JSON.parse(raw).idempotencyKey, calls[0].key);
+  assert.equal(raw.includes("buyer@"), false);
+});
+
+test("TEST form refuses unexpected provider URLs without navigation, retry or erasing evidence", async (t) => {
+  for (const destination of [
+    "https://elsewhere.example.test/checkout/private",
+    "https://yoomoney.ru.evil.example.test/checkout/private",
+    "https://yoomoney.ru:444/checkout/private",
+    "https://yoomoney.ru/checkout/private#private",
+    "https://yoomoney.ru/unexpected/private",
+    "javascript:alert('private')",
+  ]) {
+    const page = await purchaseScreen(t, { destination });
+    await page
+      .getByLabel("Почта получателя доступа")
+      .fill("buyer@example.test");
+    await page
+      .getByRole("button", { name: "Создать тестовую заявку", exact: true })
+      .click();
+    await page.getByRole("alert").waitFor();
+    assert.equal(calls.length, 1);
+    assert.equal(new URL(page.url()).origin, origin);
+    assert.equal(
+      (await page.locator("body").innerText()).includes("private"),
+      false,
+    );
+    assert.equal(
+      JSON.parse(
+        await page.evaluate((key) => localStorage.getItem(key), storageKey),
+      ).idempotencyKey,
+      calls[0].key,
+    );
+  }
+});
+
+test("failed creation preserves its key, requires a status check, and restores only the same selection explicitly", async (t) => {
+  const page = await purchaseScreen(t, { state: "create-failure" });
+  await page.getByLabel("Почта получателя доступа").fill("buyer@example.test");
+  await page
+    .getByRole("button", { name: "Создать тестовую заявку", exact: true })
+    .click();
+  await page.getByRole("alert").waitFor();
+  const key = calls[0].key;
+  const raw = await page.evaluate(
+    (key) => localStorage.getItem(key),
+    storageKey,
+  );
+  assert.equal(JSON.parse(raw).idempotencyKey, key);
+  assert.equal(
+    (await page.locator("body").innerText()).includes("PRIVATE"),
+    false,
+  );
+  assert.equal(
+    await page
+      .getByRole("button", {
+        name: /Создать тестовую заявку|Восстановить прежнюю заявку|Новая тестовая покупка/,
+      })
+      .isDisabled(),
+    true,
+  );
+  assert.equal(calls.length, 1);
+  mode = "create-success";
+  await page.getByRole("button", { name: "Проверить статус" }).click();
+  const restore = page.getByRole("button", {
+    name: "Восстановить прежнюю заявку",
+    exact: true,
+  });
+  await restore.waitFor();
+  await page.getByLabel("Почта получателя доступа").fill("other@example.test");
+  await restore.click();
+  await page.getByRole("alert").waitFor();
+  assert.equal(calls.length, 2); // Only the manual status check, no new create.
+  assert.equal(
+    await page.evaluate((key) => localStorage.getItem(key), storageKey),
+    raw,
+  );
+  await page.getByRole("button", { name: "Проверить статус" }).click();
+  await restore.waitFor();
+  await page.getByLabel("Почта получателя доступа").fill("buyer@example.test");
+  await restore.click();
+  await page.waitForURL("https://yoomoney.ru/checkout/payments/fixture");
+  const creates = calls.filter((call) =>
+    call.url.endsWith("club.createCheckout"),
+  );
+  assert.equal(creates.length, 2);
+  assert.equal(creates[1].key, key);
+  assert.equal(creates[1].body, creates[0].body);
+});
+
+test("new purchase rechecks terminal proof under the old key; pending cannot rotate or create", async (t) => {
+  const page = await purchaseScreen(t, { saved: true });
+  mode = "canceled";
+  await page.getByRole("button", { name: "Проверить статус" }).click();
+  const next = page.getByRole("button", {
+    name: "Новая тестовая покупка",
+    exact: true,
+  });
+  await next.waitFor();
+  await page.getByLabel("Почта получателя доступа").fill("next@example.test");
+  mode = "pending";
+  await next.click();
+  await page.getByRole("alert").waitFor();
+  assert.equal(calls.length, 3); // initial, manual and fresh locked checks
+  await unchanged(page);
+  mode = "canceled";
+  await page.getByRole("button", { name: "Проверить статус" }).click();
+  await next.waitFor();
+  await next.click();
+  await page.waitForURL("https://yoomoney.ru/checkout/payments/fixture");
+  assert.equal(calls.length, 6);
+  assert.equal(calls[4].key, calls[0].key);
+  assert.equal(calls[4].url, "/api/trpc/club.reconcileCheckout");
+  assert.equal(calls[5].url, "/api/trpc/club.createCheckout");
+  assert.notEqual(calls[5].key, calls[0].key);
+});
 after(async () => {
   await browser?.close();
   if (server) await new Promise((resolve) => server.close(resolve));
@@ -138,6 +590,11 @@ async function screen(
   calls = [];
   const context = await browser.newContext();
   context.setDefaultTimeout(5000);
+  await context.route("**/*", (route) =>
+    new URL(route.request().url()).origin === origin
+      ? route.continue()
+      : route.abort(),
+  );
   t.after(() => context.close());
   const page = await context.newPage();
   await page.goto(`${origin}/club?paid=1&payment=returned&order=untrusted`);
@@ -290,7 +747,8 @@ test("real mode/provider retains quota cooldown across tab hides; expiry only en
     .getByRole("status")
     .filter({ hasText: "Повторная проверка" })
     .waitFor();
-  assert.equal(await page.getByRole("button").isDisabled(), true);
+  const check = page.getByRole("button", { name: "Проверить статус" });
+  assert.equal(await check.isDisabled(), true);
   assert.equal(
     (await page.locator("body").innerText()).includes("PRIVATE"),
     false,
@@ -298,15 +756,15 @@ test("real mode/provider retains quota cooldown across tab hides; expiry only en
   await page.evaluate(() => fixture.mountMode(false));
   await page.evaluate(() => fixture.mountMode(true));
   await page.clock.runFor(44_999);
-  assert.equal(await page.getByRole("button").isDisabled(), true);
+  assert.equal(await check.isDisabled(), true);
   await page.clock.runFor(1);
-  assert.equal(await page.getByRole("button").isEnabled(), true);
+  assert.equal(await check.isEnabled(), true);
   assert.equal(calls.length, 1);
   mode = "canceled";
   // This lifecycle bundle omits CSS; use the actual accessible keyboard action.
   // Pointer/layout acceptance is covered by the built Next route fixture.
-  await page.getByRole("button").focus();
-  await page.getByRole("button").press("Enter");
+  await check.focus();
+  await check.press("Enter");
   await page
     .getByRole("status")
     .filter({ hasText: "Тестовая оплата отменена" })

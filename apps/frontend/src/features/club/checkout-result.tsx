@@ -3,8 +3,11 @@ import type { TRPCClient } from "@trpc/client";
 import type { AppRouter } from "@/shared/api/contract";
 import { useEffect, useRef, useState } from "react";
 import { Action } from "@/shared/ui/action";
+import { getRequestErrorMessage } from "@/shared/api/errors";
+import { ClubTestCheckoutForm } from "./checkout-form";
 import {
   createClubCheckoutResultController,
+  clubCheckoutRetryAt,
   type ClubCheckoutResultState,
 } from "./checkout-result-controller";
 import styles from "./club-screen.module.scss";
@@ -36,20 +39,23 @@ function statusText(state: ClubCheckoutResultState): string {
   }
 }
 
-// This TEST-only view does not create payments or grant access. Keep one
+// Read-only unless the opt-in caller supplies a purchase configuration. Keep one
 // controller across retained-tab hides so its quota deadline cannot be reset.
 export function ClubTestCheckoutResult({
   client,
   active = true,
+  purchase,
 }: {
   client: TRPCClient<AppRouter>;
   active?: boolean;
+  purchase?: { sessionReady: boolean; accountEmail: string | null };
 }) {
   const [state, setState] = useState<ClubCheckoutResultState>({
     phase: "idle",
   });
   const [hidden, setHidden] = useState(false);
   const [now, setNow] = useState(0);
+  const [purchasing, setPurchasing] = useState(false);
   const activeRef = useRef(active);
   activeRef.current = active;
   const controllerRef = useRef<ReturnType<
@@ -108,14 +114,44 @@ export function ClubTestCheckoutResult({
       </div>
       <Action
         className={styles.action}
-        disabled={!active || hidden || checking || coolingDown}
+        disabled={!active || hidden || checking || coolingDown || purchasing}
         onClick={() => {
-          if (activeRef.current && !document.hidden)
+          if (
+            activeRef.current &&
+            !document.hidden &&
+            !purchasing &&
+            !coolingDown
+          )
             void controllerRef.current?.check();
         }}
       >
         <span className={styles.subscribeButtonText}>Проверить статус</span>
       </Action>
+      {purchase && (
+        <ClubTestCheckoutForm
+          client={client}
+          active={active && !hidden}
+          disabled={checking || coolingDown}
+          {...purchase}
+          result={state.phase === "result" ? state.result : undefined}
+          beginAction={() => {
+            setPurchasing(true);
+            setState({ phase: "idle" });
+          }}
+          finishAction={(attempt) => {
+            setPurchasing(false);
+            setState(
+              attempt.kind === "error"
+                ? {
+                    phase: "error",
+                    message: getRequestErrorMessage(attempt.error),
+                    retryAt: clubCheckoutRetryAt(attempt.error),
+                  }
+                : { phase: attempt.kind === "canceled" ? "paused" : "idle" },
+            );
+          }}
+        />
+      )}
       <p className={styles.priceNote}>
         Только тестовый режим. Автопродления нет.
       </p>

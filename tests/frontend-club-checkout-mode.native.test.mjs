@@ -87,8 +87,14 @@ test("real /club build respects its explicit mode and never trusts return flags"
   });
   const storageKey = "daryadarcy:club-checkout:yookassa-test:v1";
   await context.addInitScript(
-    ({ storageKey, record }) => localStorage.setItem(storageKey, record),
-    { storageKey, record },
+    ({ storageKey, record, origin }) => {
+      if (
+        location.origin === origin &&
+        localStorage.getItem(storageKey) === null
+      )
+        localStorage.setItem(storageKey, record);
+    },
+    { storageKey, record, origin },
   );
   let result = "unknown";
   const calls = [],
@@ -98,18 +104,37 @@ test("real /club build respects its explicit mode and never trusts return flags"
   await page.route("**/*", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    if (url.href === "https://yoomoney.ru/checkout/payments/fixture")
+      return route.fulfill({
+        contentType: "text/html",
+        body: "<title>Synthetic checkout destination</title>",
+      });
     if (url.origin !== origin) return route.abort();
     if (url.pathname.startsWith("/api/")) {
       calls.push({
         path: url.pathname,
         method: request.method(),
         key: request.headers()["idempotency-key"],
+        body: request.postData(),
       });
       if (url.pathname === "/api/auth/me")
         return route.fulfill({ json: { user: null } });
       if (url.pathname === "/api/trpc/club.reconcileCheckout")
         return route.fulfill({
           json: { result: { data: { json: { state: result } } } },
+        });
+      if (url.pathname === "/api/trpc/club.createCheckout")
+        return route.fulfill({
+          json: {
+            result: {
+              data: {
+                json: {
+                  url: "https://yoomoney.ru/checkout/payments/fixture",
+                  user: null,
+                },
+              },
+            },
+          },
         });
       return route.fulfill({
         status: 401,
@@ -188,4 +213,30 @@ test("real /club build respects its explicit mode and never trusts return flags"
     await page.evaluate((key) => localStorage.getItem(key), storageKey),
     record,
   );
+  const next = page.getByRole("button", {
+    name: "Новая тестовая покупка",
+    exact: true,
+  });
+  await next.waitFor();
+  await page.getByLabel("Почта получателя доступа").fill("buyer@example.test");
+  await next.click(); // Actual built route/CSS and provider session, no force click.
+  await page.waitForURL("https://yoomoney.ru/checkout/payments/fixture");
+  const purchases = calls.filter((call) => call.path.includes("club."));
+  assert.equal(purchases.length, 4);
+  assert.equal(purchases[2].path, "/api/trpc/club.reconcileCheckout");
+  assert.equal(purchases[2].key, key);
+  assert.equal(purchases[3].path, "/api/trpc/club.createCheckout");
+  assert.equal(purchases[3].method, "POST");
+  assert.notEqual(purchases[3].key, key);
+  assert.deepEqual(JSON.parse(purchases[3].body), {
+    json: { email: "buyer@example.test", plan: "monthly" },
+  });
+  await page.goto(origin);
+  const nextRecord = await page.evaluate(
+    (key) => localStorage.getItem(key),
+    storageKey,
+  );
+  assert.equal(JSON.parse(nextRecord).idempotencyKey, purchases[3].key);
+  assert.equal(nextRecord.includes("buyer@"), false);
+  assert.equal(errors.length, 0);
 });

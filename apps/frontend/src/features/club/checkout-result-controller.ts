@@ -15,6 +15,22 @@ export type ClubCheckoutResultState =
     }
   | { phase: "error"; message: string; retryAt: number };
 
+export function clubCheckoutRetryAt(error: unknown): number {
+  if (getHttpStatus(error) !== 429) return 0;
+  const seconds =
+    error instanceof TRPCClientError ? error.meta?.retryAfterSec : undefined;
+  return (
+    Date.now() +
+    (typeof seconds === "number" &&
+    Number.isInteger(seconds) &&
+    seconds > 0 &&
+    seconds <= 60
+      ? seconds
+      : 60) *
+      1000
+  );
+}
+
 export function createClubCheckoutResultController(
   client: TRPCClient<AppRouter>,
   onChange: (state: ClubCheckoutResultState) => void,
@@ -48,21 +64,7 @@ export function createClubCheckoutResultController(
       } catch (error) {
         if (signal.aborted) publish({ phase: "paused" });
         else {
-          const seconds =
-            error instanceof TRPCClientError
-              ? error.meta?.retryAfterSec
-              : undefined;
-          retryAt =
-            getHttpStatus(error) === 429
-              ? Date.now() +
-                (typeof seconds === "number" &&
-                Number.isInteger(seconds) &&
-                seconds > 0 &&
-                seconds <= 60
-                  ? seconds
-                  : 60) *
-                  1000
-              : 0;
+          retryAt = clubCheckoutRetryAt(error);
           publish({
             phase: "error",
             message: getRequestErrorMessage(error),

@@ -995,10 +995,11 @@
       Проверены rollback receipt/access/outbox и разовая отмена без Prodamus.
       Типы, build, API (72 / 25461), boundaries и docs проходят; полный прогон
       без MySQL: 1023 passed / 596 skipped (SQL и внешние ресурсы не проверяет).
-- [ ] Y4, после Y3: Передать клиентский контракт, проверить сохранение ключа
+- [x] Y4, после Y3: Передать клиентский контракт, проверить сохранение ключа
       и обозначение разовой тестовой покупки. Фронт — отдельный scope.
       Контракт HTTP Idempotency-Key описан в backend-handoff-2026-10-05.md;
-      caller и UI ещё не реализованы. Типы фронта не изменены.
+      caller и TEST-only UI реализованы локально в Y4a–Y4d8; frontend gate off.
+      Типы API не изменены этим UI; provider/Safari и rollout остаются Y5.
 - [ ] Контрольная точка: review безопасности и native audit перед rollout.
       `pnpm audit --prod --audit-level high`: 51 advisory (1 critical, 20 high).
       Добавленных зависимостей нет; это не 51 доказанная эксплуатация.
@@ -1057,9 +1058,10 @@
       сессии, изоляция ключей, storage denial, неизменный unkeyed batch.
       Исправлен подтверждённый RED fallback: выключенный test mode больше
       не создаёт keyed-заявку в Prodamus. Full suite 1115 pass / 596 skip.
-- [ ] Y4c: подключение к UI с явным test/one-off режимом, возврат, терминальный
+- [x] Y4c: подключение к UI с явным test/one-off режимом, возврат, терминальный
       статус, новая покупка только после проверки сервером. До полной приёмки
-      не включать оплату; caller пока не используется экраном клуба.
+      не включать оплату; /club использует caller только в явно opt-in build.
+      Локальная UI-приёмка завершена в Y4d8, стенд не менялся.
 - [x] Y4c1: серверная проверка сохранённой заявки без создания нового платежа;
       минимальный статус, проверка получателя, реальная SQL-приёмка.
       48 native SQL + 4 focused checks (50 уникальных): pending/canceled,
@@ -1079,7 +1081,7 @@
 - [ ] Перед выкладкой Y4 проверить реальную цепочку proxy/IP; текущий
       loopback trust не доверяет Docker edge и группирует его клиентов.
       Перед несколькими API-процессами нужен общий атомарный quota store.
-- [ ] Y4d: UI и безопасная явная следующая покупка после подтверждённого
+- [x] Y4d: UI и безопасная явная следующая покупка после подтверждённого
       терминального результата; ограниченный опрос, без доверия URL/unknown.
 - [x] Y4d1: read-only browser return caller: отсутствие заявки — без HTTP,
       строгий POST/state-only, сохранение evidence, отмена сессии/экрана,
@@ -1115,12 +1117,20 @@
       Старый checkout/paid-claim не монтируется в TEST; URL не переключает режим.
       9 SSR checks + настоящие Next route checks в обоих build modes;
       actual provider/context сохраняет cooldown. Стенд не менялся.
-- [ ] Y4d8: TEST purchase form, явное восстановление той же заявки и next purchase
+- [x] Y4d8: TEST purchase form, явное восстановление той же заявки и next purchase
       с fresh terminal proof; abort скрытого экрана/сессии до dispatch/navigation.
 - [x] Y4d8a: caller abort проходит через подготовку/ожидание Web Lock и HTTP
       первой/повторной покупки; отмена до reservation не пишет key. Оба create
       caller проверяют saved key после ответа, поздняя URL не принимается.
       5 regression RED → GREEN; форма и привязка к экрану ещё впереди.
+- [x] Y4d8b: /club TEST form: email/plan, проверенная сессия без её изменения,
+      явное create/restore/next; terminal proof перепроверяется под Web Lock.
+      После попытки нужен новый check; timeout/abort/ошибки сохраняют key.
+      Только ожидаемые HTTPS URL ЮKassa, неизвестный результат не даёт новый key.
+      14 native UI cases (9 новых), SSR + actual Next route в true/false builds;
+      mutation caller signal → лишний HTTP (RED), restore → GREEN.
+      Full 1243 pass / 618 SQL/external skip, types/lint/build/API/boundaries pass.
+      Provider/Safari, dependency/proxy/release gates остаются; stage не менялся.
 - [ ] Отдельно диагностировать повторный сбой native video-wrapper в полном
       прогоне: сохранить безопасную диагностику имени упавшего дочернего теста,
       воспроизвести причину под нагрузкой; не считать успешный повтор исправлением.

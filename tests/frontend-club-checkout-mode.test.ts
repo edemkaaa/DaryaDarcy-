@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ClubCheckoutMode } from "../apps/frontend/src/features/club/checkout-mode";
 import { createTRPCClient, trpc } from "../apps/frontend/src/shared/api/trpc";
+import { AuthProvider } from "../apps/frontend/src/domain/session/session-context";
 
 afterEach(() => vi.unstubAllEnvs());
 function render() {
@@ -16,11 +17,13 @@ function render() {
         createElement(trpc.Provider, {
           client: createTRPCClient(),
           queryClient,
-          children: createElement(
-            ClubCheckoutMode,
-            null,
-            createElement("button", null, "Legacy purchase"),
-          ),
+          children: createElement(AuthProvider, {
+            children: createElement(
+              ClubCheckoutMode,
+              null,
+              createElement("button", null, "Legacy purchase"),
+            ),
+          }),
         }),
       ),
     );
@@ -47,7 +50,7 @@ it.each(["TRUE", "true ", "1", "yookassa", "null"])(
     expect(markup).not.toContain("Проверить статус");
   },
 );
-it("explicit TEST build flag selects only the read-only result screen without browser access or requests", () => {
+it("explicit TEST build flag selects result and session-gated purchase form without browser access or requests", () => {
   vi.stubEnv("NEXT_PUBLIC_CLUB_TEST_CHECKOUT", "true");
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);
@@ -55,6 +58,9 @@ it("explicit TEST build flag selects only the read-only result screen without br
     const markup = render();
     expect(markup).toContain("Тестовая оплата");
     expect(markup).toContain("Проверить статус");
+    expect(markup).toContain('aria-label="Тестовая покупка клуба"');
+    expect(markup).toContain("Почта получателя доступа");
+    expect(markup).toContain("Для покупки дождитесь успешной проверки сессии");
     expect(markup).not.toContain("Legacy purchase");
     expect(fetcher).not.toHaveBeenCalled();
   } finally {

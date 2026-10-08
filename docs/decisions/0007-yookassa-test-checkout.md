@@ -163,15 +163,15 @@ active, visible mount starts a campaign; becoming active/visible later requires
 an explicit check. One presentation timer enables the check button after quota
 expiry without sending HTTP. Accessible status copy distinguishes absence,
 unknown, pending, canceled and server-confirmed success; UUIDs and private errors
-are not displayed. The component cannot create payments or grant access. It is
-mounted by the club route only in an explicitly opted-in frontend build; purchase
-form/next-purchase integration remains open. Server/provider proof, Safari/full-flow
+are not displayed. Without a purchase configuration the component is read-only.
+It cannot grant access. The opt-in club route now supplies the explicit form
+described below. Server/provider proof, Safari/full-flow
 and rollout gates still apply.
 
 ### Frontend mode isolation
 
 `NEXT_PUBLIC_CLUB_TEST_CHECKOUT=true` at **frontend build time** selects the
-read-only TEST result screen instead of mounting the legacy club screen. Unset,
+TEST result screen and explicit form instead of mounting the legacy screen. Unset,
 empty or `false` preserves legacy behavior; any other value refuses both modes
 with a generic unavailable message. URL flags/storage/runtime env changes cannot
 opt in or switch a built artifact. The stable existing tRPC provider client is
@@ -180,12 +180,13 @@ reused, preserving cancellation and cooldown across retained-tab changes.
 This is a UI rollout flag, not payment authorization: the API independently
 requires its TEST-only configuration and binding checks. No frontend secret,
 session, capability endpoint or provider fallback is added. The TEST screen
-currently has no purchase button. Do not enable it on staging before form/next
-purchase, provider/Safari and other release gates pass.
+has locally tested create/restore/next-purchase controls. Do not enable it on
+staging before provider/Safari and other release gates pass.
 
 The [route fixture](../../tests/frontend-club-checkout-mode.native.test.mjs)
 starts and stops only an owned loopback Next process. All browser API replies
-are synthetic and external browser requests are blocked. After a local `true`
+are synthetic and external browser requests are blocked; the expected confirmation
+destination is fulfilled locally, never contacted. After a local `true`
 build, run it with the default TEST expectation; after a `false` build, use
 `CHECKOUT_UI_EXPECTED_MODE=legacy`. Each intentionally starts with the opposite
 runtime flag to prove build-time isolation. No API, DB or payment provider runs.
@@ -287,6 +288,25 @@ backdated in Drizzle. The generic migration preflight and historical SQL remain
 unchanged and blocked for production. This is intentionally not a general-purpose
 baseline adoption or migration-repair flag. Evidence and rollback limitations
 are in the [staging guide](../operations/teamassist-staging.md#юkassa-переход-тестовой-базы-7-октября).
+
+### Explicit TEST purchase form, 8 October
+
+The [form](../../apps/frontend/src/features/club/checkout-form.tsx) consumes the
+existing session state without changing auth. It is disabled until browser
+evidence and the session are checked. Account email is read-only; guest email/plan
+must match the saved selection to restore a purchase. A terminal observation only
+selects the explicit next action; fresh server proof and reservation still happen
+under the canonical writer lock. URL flags never initiate or choose an action.
+
+Every attempt discards the displayed observation before dispatch; error, timeout
+or cancellation requires an explicit status check before another purchase action.
+Never retry a next-purchase action with the old UUID after a new reservation.
+Hidden/inactive/session/recipient changes and unmount cancel the screen-owned
+request, without auto-resume or evidence deletion. Quota deadlines survive hiding;
+expiry only enables the check control. Navigation accepts expected HTTPS
+yoomoney.ru confirmation paths without credentials/port/hash; a reply URL/user
+is not payment proof and cannot apply a session or grant access. Local native
+form/transport/lock tests are not real provider/Safari or rollout acceptance.
 
 ### Purchase caller lifecycle, 8 October
 

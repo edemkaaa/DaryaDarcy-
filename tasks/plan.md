@@ -3045,3 +3045,36 @@ native intent/polling checks remain green. Review keeps the optional caller
 signal backward compatible and payment logic in its feature; no auth/quota,
 API, dependencies, DB, provider calls, stage, push or merge changes. UI lifecycle
 binding, purchase form and explicit restore/next-purchase controls remain Y4d8.
+
+### Y4d8b — explicit TEST form, restore and next purchase, 8 October
+
+Opt-in /club now has a feature-owned form, disabled until browser evidence and
+the existing session are checked. Account email is read-only; guest selection
+must match the saved intent to restore it. Explicit next purchase always uses
+fresh terminal proof under the canonical Web Lock. Every attempt discards the
+displayed observation; error/timeout/abort requires an explicit check before
+another action. No implicit retry, key reset/deletion or access/session grant.
+Capture screen/session cancellation before preparation; fence visibility,
+activity, recipient and saved key before navigation. Only expected HTTPS
+yoomoney.ru paths without credentials/port/hash may open. Quota errors reuse
+the existing bounded Retry-After policy; hiding preserves its deadline and
+expiry never starts HTTP. No external provider, API, DB or mail is used in tests.
+
+TDD: three core native cases and SSR mode binding reach RED before implementation.
+Recipient-change regression reaches RED, then GREEN. Removing caller-signal
+forwarding produces one forbidden request after hiding behind a real held lock;
+restoration passes. Fourteen native UI cases (nine new) cover first double-submit,
+same-key restore/selection conflict, fresh terminal/pending/quota proof, actual
+create timeout, cancellation before reservation/after dispatch, session/recipient
+changes, unmount, unsafe URL refusal and prior result lifecycle. The first fixture
+reused an inactive mount and correctly got no auto-check: fix the fixture to start
+active, not production auto-resume. Actual Next provider/CSS routes pass in both
+build modes with opposite runtime flags; true proves terminal→new UUID→canonical
+create→synthetic navigation, false remains legacy. Final artifact is built off.
+
+Full suite 1243 pass / 618 SQL/external skip; root/frontend/e2e types, lint,
+28-page true/false builds, unchanged API (73 / 25642), 508 boundaries and formatting
+pass. Review: feature-owned orchestration, canonical helpers, bounded work and
+evidence preserved through unknown outcomes. Local Y4 UI scope is complete, not
+provider/Safari or release acceptance. Dependency/proxy/migration gates remain;
+no dependencies, DB, auth/CORS/proxy/quota, stage, mail, push, merge or deploy changes.

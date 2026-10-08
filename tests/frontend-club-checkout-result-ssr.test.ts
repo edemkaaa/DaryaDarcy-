@@ -27,3 +27,30 @@ it("server rendering is deterministic without document, storage, timers or HTTP"
     vi.unstubAllGlobals();
   }
 });
+
+it("TEST purchase form starts disabled until a browser check, with no storage, timer or HTTP on SSR", () => {
+  const fetcher = vi.fn();
+  const timer = vi.spyOn(globalThis, "setTimeout");
+  vi.stubGlobal("fetch", fetcher);
+  try {
+    const props = {
+      client: createTRPCClient(),
+      purchase: { sessionReady: true, accountEmail: null },
+    };
+    const markup = renderToStaticMarkup(
+      createElement(ClubTestCheckoutResult, props),
+    );
+    expect(markup).toContain('aria-label="Тестовая покупка клуба"');
+    expect(markup).toContain('<fieldset disabled="">');
+    expect(markup).toContain('value=""');
+    expect(markup).toContain("Создать тестовую заявку");
+    expect(
+      renderToStaticMarkup(createElement(ClubTestCheckoutResult, props)),
+    ).toBe(markup);
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(timer).not.toHaveBeenCalled();
+  } finally {
+    timer.mockRestore();
+    vi.unstubAllGlobals();
+  }
+});
