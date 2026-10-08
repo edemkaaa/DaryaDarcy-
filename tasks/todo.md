@@ -1776,3 +1776,19 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] Actual other provider methods, logged-in paid browser access, incorrect
       frontend autopay wording, HTML CSP, dependency/rollout and M07c human
       drain-bound gates remain open. No new order, payment, push or deployment.
+
+### M06 native renewal-to-SQL acceptance — 9 October, 02:08 Moscow
+
+- [x] Four new native HTTP/disposable SQL checks: concurrent/later signed replays
+      add one paid period, unknown profile/initial-payment key refuse, access-link
+      failure fully rolls back and a clean retry succeeds.
+- [x] Three mutation RED checks catch disabled recurring dispatch, lost remaining
+      paid expiry and skipped renewal outbox. Runtime restored byte-identical.
+      Eight focused files / 128 checks pass, including 32 actual SQL checks.
+- [x] Full default 1831 pass / 764 reported SQL-external skips; types/backend
+      build/API/boundaries/lint pass. Exact owned tmpfs MySQL removed; no mounts/
+      OOM and matching owner inventory empty. No frontend/runtime/server change.
+- [ ] Real provider recurring charge/cancellation and TEST autopay are not
+      accepted by these local fixtures. M07c human drain bound and prior provider,
+      frontend wording/CSP, dependency and rollout gates remain open. No real
+      payment, SMTP, worker activation, merge, push or deployment.

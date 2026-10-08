@@ -5298,3 +5298,46 @@ child environment. Logs: /tmp/daryadarcy-smoke-final-{cases,dev,types,full,build
 api,boundaries,lint}.log. Existing provider-method/logged-in access, dependency,
 HTML CSP, frontend autopay wording, rollout and M07c human drain-bound gates
 remain open. No runtime or server change and no new payment acceptance claim.
+
+### M06 native renewal SQL acceptance — 9 October, 02:06 Moscow
+
+Continue the remaining native renewal acceptance gap, not completed wrappers or
+PD4 TEST rollout. Add independently signed loopback auto_payment notifications
+after a real initial SQL settlement. Check exactly one additional 30-day period
+and receipt/outbox across concurrent/later replays, refusal of unknown durable
+profile and the initial-payment key, and full rollback/recovery if queuing the
+access link fails. Mutate the recurring dispatch and expiry-extension branch to
+prove the cases detect the break, then restore production byte-identical. Only
+owned tmpfs MySQL/backend_test on an ephemeral loopback port; no working DB,
+provider, SMTP, worker activation or actual recurring charge. Keep signature,
+transaction, replay and paid-period policy unchanged. Run focused SQL/native
+and full/types/build/API/boundaries/lint/docs, review and commit tests/evidence
+only. Real provider renewal/cancellation, M07c human drain bound and prior gates
+remain open; no frontend, merge, push or deployment under heartbeat authority.
+
+M06 native renewal evidence: four new SQL opt-in cases exercise real initial
+settlement then independently signed auto_payment ingress. Six concurrent replays
+plus a replay one day later grant one extra 30-day period, exactly two total
+receipts/outbox links/tokens and one profile; original period remains intact.
+Unknown durable profile and initial-payment key leave the full profile/access
+snapshot unchanged. Missing link encryption rolls back the created renewal
+order/receipt, then a clean HTTP retry succeeds once. Mutation RED: recurring
+dispatch disabled (one failure), expiry anchored at now instead of saved paid
+expiry (two), renewal outbox skipped (one). Runtime restored byte-identical:
+prodamus-payment-notification.ts SHA-256 f776bed5d630b80c352b9d25b424bbdff65fa2fe687f633d8d52aa368e06a7ad;
+settlement.ts SHA-256 8d6788ee1db3d9918095dec2dcd907695eb0f7272b091a622f85e72533caceba.
+Final five native/SQL files: 104 pass (32 actual SQL checks); three composition/
+compiled files: 24 pass. Full default suite: 1831 pass / 764 reported SQL-external
+skips, not a claim all SQL ran. Types, backend build, unchanged 73-procedure API,
+563-file boundaries and lint pass. Five-axis review: no production change,
+independent synthetic HMAC, literal period expectations, bounded replay fanout,
+real durable state/rollback and existing fixture cleanup; no new dependencies.
+Owned fresh MySQL 8.4 5a540472... inspected by full ID/owner, tmpfs only, no
+mounts/OOM; removed, matching owner inventory empty. Synthetic credentials and
+trigger permission existed only in this owned container. Logs:
+/tmp/daryadarcy-renewal-{dispatch-red,period-red,link-red,final-focused,
+final-composition,final-full,final-types,final-build,final-api,final-boundaries,
+final-lint}.log. This accepts native SQL renewal handling, not real recurring
+charges/provider cancellation or TEST autopay. M07c human drain bound and prior
+frontend/provider/dependency/rollout gates remain open. No mail sent, worker
+activation, working SQL writes, server changes, merge or push.

@@ -225,6 +225,108 @@ describe.skipIf(!testDatabaseUrl)(
         effects: [{ receipts: 1, profiles: 1, mails: 1, tokens: 1 }],
       });
     });
+    function renewalNotification(
+      profileId = "144",
+      key = "native-billing-synthetic-renewal-key",
+    ) {
+      // Literal ordered strings, independent of production signing and parsing.
+      const bytes = JSON.stringify({
+        currency: "rub",
+        customer_email: "native-billing@example.invalid",
+        domain: "native-billing.payform.ru",
+        order_id: "94301002",
+        payment_status: "success",
+        subscription: {
+          action_code: "auto_payment",
+          id: "99",
+          profile_id: profileId,
+        },
+        sum: "790.00",
+      });
+      return fetch(`${base}/api/prodamus/webhook`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Sign: createHmac("sha256", key).update(bytes).digest("hex"),
+        },
+        body: bytes,
+      });
+    }
+    it("grants one renewal period across concurrent and later signed HTTP replays", async () => {
+      expect((await notify()).status).toBe(200);
+      const replies = await Promise.all(
+        Array.from({ length: 6 }, () => renewalNotification()),
+      );
+      for (const reply of replies) {
+        expect(reply.status).toBe(200);
+        expect(await reply.text()).toBe("success");
+        expect(reply.headers.get("set-cookie")).toBeNull();
+      }
+      const renewed = await state();
+      expect(renewed.orders).toHaveLength(2);
+      expect(renewed.orders[0]).toEqual({
+        orderId: "club-94301-native-fixture",
+        status: "paid",
+        expiresAt: new Date("2026-11-08T00:00:00Z"),
+      });
+      expect(renewed.orders[1]).toMatchObject({
+        status: "paid",
+        expiresAt: new Date("2026-12-08T00:00:00Z"),
+      });
+      expect(renewed.orders[1].orderId).toMatch(/^club-renew-/);
+      expect(renewed.effects).toEqual([
+        { receipts: 2, profiles: 1, mails: 2, tokens: 2 },
+      ]);
+      vi.setSystemTime(new Date("2026-10-10T00:00:00Z"));
+      try {
+        const replay = await renewalNotification();
+        expect(replay.status).toBe(200);
+        expect(await replay.text()).toBe("success");
+        expect(await state()).toEqual(renewed);
+      } finally {
+        vi.setSystemTime(new Date("2026-10-09T00:00:00Z"));
+      }
+    });
+    it.each([
+      {
+        name: "unknown durable profile",
+        profileId: "145",
+        key: "native-billing-synthetic-renewal-key",
+      },
+      { name: "initial-payment key", profileId: "144", key: secret },
+    ])(
+      "refuses renewal with $name without extending access",
+      async ({ profileId, key }) => {
+        expect((await notify()).status).toBe(200);
+        const before = await cancellationState();
+        const reply = await renewalNotification(profileId, key);
+        expect(reply.status).toBe(422);
+        expect(await reply.text()).toBe("payment binding invalid");
+        expect(await cancellationState()).toEqual(before);
+      },
+    );
+    it("rolls back a renewal when its access-link write fails and accepts a clean HTTP retry", async () => {
+      expect((await notify()).status).toBe(200);
+      const before = await cancellationState();
+      vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", "");
+      const failed = await renewalNotification();
+      expect(failed.status).toBe(500);
+      expect(await failed.text()).toBe("error");
+      expect(await cancellationState()).toEqual(before);
+      vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", encryptionKey);
+      const recovered = await renewalNotification();
+      expect(recovered.status).toBe(200);
+      expect(await recovered.text()).toBe("success");
+      const renewed = await state();
+      expect(renewed.orders).toHaveLength(2);
+      expect(renewed.orders[1]).toMatchObject({
+        status: "paid",
+        expiresAt: new Date("2026-12-08T00:00:00Z"),
+      });
+      expect(renewed.effects).toEqual([
+        { receipts: 2, profiles: 1, mails: 2, tokens: 2 },
+      ]);
+    });
     async function cancellationState() {
       const [profiles] = await conn.query<RowDataPacket[]>(
         "SELECT domain,subscriptionId,profileId,cancelRequestedAt,cancelledAt,leaseId,leaseUntil FROM billing_profiles WHERE userId=94301 ORDER BY profileKey",
