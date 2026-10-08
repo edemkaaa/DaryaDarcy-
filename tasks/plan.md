@@ -5023,3 +5023,48 @@ fresh backend_test, synthetic fixtures/credentials, ephemeral loopback port,
 tmpfs, 512 MiB/one CPU, no volume mounts/OOM. Full ID/owner verified before exact
 removal; label inventory empty. No working DB/unrelated resources, frontend,
 server, cabinets/secrets, external delivery/payment, activation, merge/push/deploy.
+
+### M06 signed native webhook-to-SQL acceptance — 9 October, 00:51 Moscow
+
+Continued from clean fe6f57c. Nine new checks combine the canonical Nest HTTP
+ingress, independently signed synthetic Prodamus notification and real SQL
+settlement. This closes a specific gap left by separately tested HTTP doubles
+and SQL services; it does not complete provider or deployed payment acceptance.
+No production code, schema, dependencies, API or policy changed.
+
+The saved club order becomes paid with exactly one 30-day period, receipt,
+billing profile, access-mail outbox entry and password token. A sequential replay
+and six concurrent HTTP replays acknowledge success without duplicate effects.
+Wrong merchant, saved amount, recipient, order or selected club key reject with
+unchanged durable state; unsigned ingress also refuses. Ordinary-key signed demo
+notifications cannot grant live SQL access. Missing mail-link encryption setup
+rolls the entire settlement back; restoring synthetic configuration allows the
+same HTTP notification to succeed. No login cookie is issued by the webhook.
+
+Mutation RED: temporarily bypassing the live demo guard makes the fixture paid
+and creates all four durable effects, failing the pre-response snapshot assertion.
+Rejecting an otherwise valid receipt replay returns 422 instead of 200 and fails
+the replay test. Both production files restored byte-identical. Final 69 focused
+pass across five suites, including 24 SQL checks (nine new ingress, ten existing
+settlement, five existing cancellation). No SMTP/provider calls, workers or actual
+checkout/payment run: only Date is fake-timed; HTTP, SQL and timers remain real.
+
+Fresh full default suite: 1804 pass / 704 reported SQL-external skips, 132 passing
+and 40 skipped files, 20.50 seconds. The selected SQL checks ran explicitly on
+the disposable database. Types, backend build 410.9 kB, unchanged 73-procedure /
+25642-byte API, boundaries 560 files and lint pass. Local focused/full evidence:
+/tmp/daryadarcy-native-billing-2145-final.log and
+/tmp/daryadarcy-native-billing-2145-full.log.
+Five-axis review confirms bounded synthetic fixtures, independent signature oracle,
+observable persisted outcomes, no runtime abstractions/dependencies and no retained
+production mutations. TDD/mutation, incremental, security, review, verification,
+Git and documentation disciplines guided this test-only slice; no ADR is needed.
+
+Only dd-native-billing-20261008-2145 created: existing MySQL 8.4 image, fresh
+backend_test, synthetic credentials/fixtures, ephemeral loopback port, tmpfs,
+512 MiB/one CPU. Full ID/owner/no OOM/no volume mounts verified before exact
+removal; label inventory empty. No working DB or unrelated resources touched.
+No frontend/server/cabinet/secret reading, external mail/payment, activation,
+auth/CORS/proxy/quota, merge/push/deploy changes. Actual provider delivery, demo
+access rollout (pending human scope choice), renewal/cancellation HTTP-to-SQL,
+dependency/rollout gates and M07c human drain-bound decision remain open.

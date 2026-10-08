@@ -1689,3 +1689,17 @@ path. No key disclosed, callback changed, payment made or service deployed here.
 - [ ] Sequential fresh-DB opt-in only; external erasure/legal signoff, M07c human
       drain bound and provider/dependency/rollout gates remain open. No runtime,
       frontend/server/payment/policy/activation/merge/push/deploy changes.
+
+### M06 signed native webhook-to-SQL acceptance — 9 October, early morning
+
+- [x] Nine new native HTTP/real SQL checks: one club period and access mail across
+      sequential/concurrent replays, five binding refusals, unsigned refusal,
+      live demo refusal and mail-link failure rollback/clean retry.
+- [x] Bypassed demo guard fails actual persisted-access assertion; rejected valid
+      replay fails HTTP acknowledgment. Production restored byte-identical.
+      Final 69 focused pass, including 24 SQL checks; own tmpfs DB removed.
+- [x] Full default 1804 pass / 704 reported SQL-external skips; types, backend
+      build, unchanged API, boundaries and lint pass. No runtime/API/policy change.
+- [ ] Real provider delivery, deployed test-access scope, renewal/cancellation
+      native HTTP-to-SQL, dependency/rollout gates and M07c human drain bound
+      remain open. No frontend/server/payment/activation/merge/push/deploy changes.
