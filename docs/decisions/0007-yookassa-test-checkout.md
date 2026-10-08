@@ -154,11 +154,18 @@ later callbacks. Neither operation erases or replaces browser evidence.
 A 429 stores the canonical validated delay as an absolute retry deadline in
 the controller. Refuse explicit checks before that deadline and do not schedule
 a retry on expiry. Missing/invalid delay falls back to the approved 60-second
-window; this is client presentation/control, not a new server quota. The future
-screen owns visibility/retained-tab cancellation and disposal, and must keep this
-controller while temporarily hidden so cooldown is not lost. This foundation
-does not mount a screen, grant access or enable checkout. Server and provider
-proof remain mandatory, as do Safari/full-flow and existing rollout gates.
+window; this is client presentation/control, not a new server quota.
+
+The standalone TEST result view owns visibility/retained-tab cancellation and
+unmount disposal, keeping its controller while temporarily hidden so cooldown
+is not lost. SSR is deterministic and reads no browser state. Only an initially
+active, visible mount starts a campaign; becoming active/visible later requires
+an explicit check. One presentation timer enables the check button after quota
+expiry without sending HTTP. Accessible status copy distinguishes absence,
+unknown, pending, canceled and server-confirmed success; UUIDs and private errors
+are not displayed. The component cannot create payments or grant access. It is
+not yet mounted by the club route: TEST-mode gating and next-purchase integration
+remain open. Server/provider proof, Safari/full-flow and rollout gates still apply.
 
 ### Explicit next-intent reservation
 

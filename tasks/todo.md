@@ -1105,6 +1105,11 @@
       явные повторные проверки соблюдают Retry-After, cancel/session → paused,
       dispose запрещает поздние callbacks. 12 новых unit/wire + Chromium
       cooldown; storage не меняется. Сам экран и visibility binding ещё не готовы.
+- [x] Y4d6: отдельный TEST result view: SSR без browser reads/HTTP, доступные
+      состояния, скрытие document/retained tab отменяет campaign; возврат не
+      возобновляет её. Cooldown сохраняется, expiry только включает кнопку.
+      1 SSR + 5 Chromium UI cases; mutation active-cancel → RED, restore → GREEN.
+      Экран ещё не подключён к /club; TEST-mode gate/next-purchase UI остаются.
 - [ ] Отдельно диагностировать повторный сбой native video-wrapper в полном
       прогоне: сохранить безопасную диагностику имени упавшего дочернего теста,
       воспроизвести причину под нагрузкой; не считать успешный повтор исправлением.

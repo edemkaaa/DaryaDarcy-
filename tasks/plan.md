@@ -2968,3 +2968,30 @@ polling/error/abort boundaries, no unbounded retry, storage writes or access
 grant. Screen/result presentation, visibility binding, real provider/Safari
 acceptance and existing rollout/dependency/proxy gates remain open. Local only;
 no DB, schema, dependencies, auth, quota, TEST enablement, merge/push/deployment.
+
+### Y4d6: standalone result view and screen lifecycle — 2026-10-08
+
+Add the actual React TEST result view, using the existing controller/transport
+and club styles. SSR reads no document/storage and starts no timers or HTTP.
+An initially active visible mount checks once; hidden document or retained
+inactive tab cancels, return requires an explicit check. Keep the controller
+and its absolute quota deadline across hides. A single presentation timer
+enables the button on expiry without dispatch. Disposal prevents late updates.
+Status copy distinguishes absence/unknown/pending/canceled/server-confirmed
+success without rendering UUIDs, trusting return flags or granting access.
+
+SSR + all five Chromium UI cases first fail against the stub, then pass using
+actual React/controller/storage/keyed HTTP against synthetic loopback replies.
+Removing inactive-tab cancellation fails the browser regression; restore passes.
+The browser fixture synthesizes only document visibility, not Safari lifecycle.
+All 14 native club cases pass; full suite 1228 pass / 618 SQL/external skip.
+Root/frontend/e2e types, lint, frontend production build (28 pages), unchanged
+API (73 / 25642 bytes), boundaries (506 files), docs and selected formatting pass.
+Root SSR tests use narrowly scoped SCSS module declarations: importing all Next
+globals would incorrectly require NODE_ENV in backend process-env fixtures.
+
+Review: feature-owned typed view, canonical cancellation/error boundaries,
+bounded timers, no storage writes/payment dispatch/access grant/new dependencies.
+The component is not yet mounted by /club. TEST-mode gate, checkout/next-purchase
+UI integration, real provider/Safari and rollout/dependency/proxy gates remain.
+Local only: no DB, auth, quota, enablement, merge, push or server changes.
