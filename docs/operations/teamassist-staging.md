@@ -803,3 +803,84 @@ API-контракт, границы проходят. Это не sandbox-оп�
 закрывает checkout/отключает test flag, возвращает прежние API/web/edge образы,
 затем убирает только новые payment-сети/сервис. Никогда не удалять MySQL volume,
 таблицы намерений или квитанции ради отката кода. Сейчас откат приложения не нужен.
+
+## Совместная версия staging — выпуск 8 октября, 15:14 МСК
+
+По запросу пользователя объединённая feature-ветка отправлена в `origin/staging`
+без force push. Исходный коммит приложения:
+`829133e2358cd43b321fcafec788e7584d9a7c47`. Включает 43 прежних локальных коммита
+и frontend `78ab497` Сергея: WebP/адаптивные картинки, одинаковые фотоблоки,
+ограничение тяжёлого DOM длинных списков и неактивного кеша, защита пагинации.
+История обеих сторон сохранена; последующая запись этого отчёта не меняет код
+развёрнутого приложения.
+
+- API и web теперь используют **`daryadarcy-staging:829133e`**, Linux/amd64,
+  image ID `sha256:780177e8e857cc13a6ae273e4ab7bff20d451edc7141bea58f6342ce1ab37fe4`.
+  Revision label совпадает с исходным коммитом. Video остаётся `51a5385`.
+- Контекст взят из `git archive` этого коммита, дополнен проверенными локальными
+  сборками API/Next без `.next/cache` и `.next/dev`. Mac `node_modules` не
+  переносились. Новый Linux runtime заново установил production-зависимости
+  через pnpm 9.12.0 с frozen lockfile и выключенными scripts; версии/lockfile
+  не менялись. Проверенный Node base закреплён тем же digest. Архив-контекст:
+  SHA-256 `0e626cc4f6b79b63615e89715a1b0a55b97c7cd226541ad53e22d8268e2276cb`;
+  окончательный операторский `Dockerfile.release` сохранён рядом отдельно.
+- Сборка выполнялась отдельным builder с лимитом 768 МиБ / 0,5 CPU; frontend
+  собран локально, чтобы не запускать тяжёлую Next-компиляцию на общем хосте.
+  Builder и его кеш после экспорта удалены; образ и материалы выпуска сохранены.
+- Runtime проверен контейнером без сети/БД/SMTP: UID 1000, Next 16.3.8,
+  Nest 12.1.2, reflect-metadata, mysql2, nodemailer и настоящий PNG → WebP;
+  кеш доступен node, env-файлов/vitest/tsx нет. Compiled API запускается,
+  гостевая сессия отвечает 200, admin — 401. Настройка сайта без SQL штатно
+  даёт 503; это не подходящий readiness для изолированного прогона без БД.
+- Перед переключением сохранены свежий SQL-дамп и конфигурации в
+  `/home/edem/apps/daryadarcy-staging/release-829133e.lmcvyg` (каталог 700,
+  секретные копии/дамп 600). Проверены gzip, 29 CREATE TABLE и завершение dump.
+  Восстановление именно новой копии этим выпуском не репетировалось.
+- Изменены только `STAGING_IMAGE` в `.env` и API image в существующем override.
+  Сохранены все четыре Compose-файла, API isolation и прежний image egress.
+  Только API/web пересозданы с `--no-deps`; edge проверен и перечитал DNS.
+  SQL/миграции, `api.env`, SMTP, ключи и платежные настройки не менялись.
+- После переключения все шесть сервисов healthy; API/web имеют 0 рестартов,
+  OOM не отмечен. ID/образы/start time остальных контейнеров, включая другие
+  проекты, совпали с предварительным снимком. Счётчики до/после: 29 таблиц,
+  2 тестовых пользователя, 742 поста, 0 клубных оплат, 0 checkout intents.
+  Квитанция проверки сохранена в `verification.json` закрытого каталога выпуска.
+- Восемь guest HTTPS smoke-проверок прошли: сайт, сессия, конфигурация с SQL,
+  публичная лента, отказ гостю на admin и 503 на прежних payment-ручках.
+  Клуб открыт в браузере: текст/отзывы отображаются, три видимых WebP-иллюстрации
+  загрузились. Это не приёмка всей ленты, видео, администрирования или Safari.
+- Свежая локальная проверка: **1602 pass / 618 SQL/external skip**, типы,
+  backend/frontend build, lint, API 73 / 25642, boundaries и docs проходят.
+  При проверке объединения выбранный Chromium-набор дал **60 pass / 1 fail**:
+  `long-lists.spec.ts:550` ожидает 2 запроса, получает 3; отдельно воспроизведено
+  дважды. Trace показывает две загрузки первой страницы и одну с cursor=12,
+  что согласуется со сбросом кеша при восстановлении сессии, а не циклом курсора.
+  Авторизация и assertion не менялись; полная браузерная приёмка не объявляется.
+- Native production audit по прежнему lockfile: **51 advisory: 1 critical /
+  20 high / 26 moderate / 4 low**. Существующее ограниченное тестовое исключение
+  и review до 13 октября сохраняются: loopback trust, без experimental tRPC
+  callers/нового OAuth egress, проверка raster-сигнатур и SVG block API; Next
+  обрабатывает только прежний публичный allowlist и доверенные статичные файлы.
+  Это не успешный security gate или production-допуск. Платёжные TEST-флаги
+  остаются выключены, payment overlay не добавлен, sandbox-платёж/письмо не
+  инициировались. Prodamus diagnostic deployment и Y5 по-прежнему отдельные gates.
+
+### Откат этого выпуска
+
+Вернуть **только** web `STAGING_IMAGE=daryadarcy-frontend:62c4001` в `.env` и
+API `daryadarcy-staging:300c8d3` в `compose.override.yaml`. Прежние образы
+сохранены. Затем выполнить с четырьмя действующими Compose-файлами:
+
+```sh
+cd /home/edem/apps/daryadarcy-staging
+docker compose --env-file .env --env-file video-image.env \
+  -f compose.yaml -f compose.override.yaml -f compose.video.yaml \
+  -f compose.images.yaml up -d --no-deps --wait --wait-timeout 60 api web
+docker compose --env-file .env --env-file video-image.env \
+  -f compose.yaml -f compose.override.yaml -f compose.video.yaml \
+  -f compose.images.yaml exec -T edge nginx -s reload
+```
+
+Повторить guest smoke. Не возвращать старые `api.env`/SMTP/ключи целиком,
+не откатывать video или MySQL и не восстанавливать дамп поверх рабочей базы
+ради отката приложения. Новых миграций этим выпуском не было.
