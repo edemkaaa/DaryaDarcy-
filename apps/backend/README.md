@@ -20,7 +20,7 @@ src/
   admin/          административные процедуры
   launch/         Nest-модуль, контроллер и сервис настроек запуска; capabilities
   pen-pals/       анкеты и совпадения
-  shop/           старые процедуры магазина, запуск отключён
+  shop/           ShopModule/ShopService: покупки и checkout; запуск оплаты отключён
 ```
 
 [API](../../docs/architecture/api.md) · [База](../../docs/architecture/database.md) · [Интеграции](../../docs/architecture/integrations.md) · [Полный запуск](../../docs/development/getting-started.md).

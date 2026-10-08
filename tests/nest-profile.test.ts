@@ -34,6 +34,7 @@ import { ClubSubscriptionService } from "../apps/backend/src/billing/club-subscr
 import { NotificationsService } from "../apps/backend/src/notifications/notifications.service";
 import { ProfileService } from "../apps/backend/src/profile/profile.service";
 import { ModerationService } from "../apps/backend/src/moderation/moderation.service";
+import { ShopService } from "../apps/backend/src/shop/shop.service";
 
 // Real HTTP, validation, authorization and photo decoder; only session lookup,
 // SQL and external storage are substituted. No real JWT/MySQL/S3 acceptance.
@@ -146,6 +147,7 @@ describe("profile use cases over native HTTP", () => {
         app.get(NotificationsService),
         profiles,
         app.get(ModerationService),
+        app.get(ShopService),
       ]);
       vi.spyOn(db, "updateUserProfile").mockResolvedValue(undefined);
       vi.spyOn(storage, "storagePut").mockImplementation(async (key) => ({

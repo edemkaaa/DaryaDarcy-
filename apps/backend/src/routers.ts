@@ -9,7 +9,8 @@ import { ProfileService } from "./profile/profile.service";
 import { createVideosRouter } from "./content/videos-router";
 import { createAdminRouter } from "./admin/router";
 import { penPalsRouter } from "./pen-pals/router";
-import { shopRouter } from "./shop/router";
+import { createShopRouter } from "./shop/router";
+import { ShopService } from "./shop/shop.service";
 import { createFeedRouter } from "./content/feed-router";
 import { ContentReadService } from "./content/content-read.service";
 import { ContentWriteService } from "./content/content-write.service";
@@ -23,7 +24,7 @@ import { createModerationRouter } from "./moderation/router";
 import { ModerationService } from "./moderation/moderation.service";
 import { ClubCheckoutService } from "./billing/club-checkout.service";
 import { ClubSubscriptionService } from "./billing/club-subscription.service";
-import type { ClubBillingServices } from "./billing/billing.module";
+import type { BillingServices } from "./billing/billing.module";
 
 /** Composition only: input validation, authorization and behavior live in domains. */
 export const createAppRouter = (
@@ -31,7 +32,7 @@ export const createAppRouter = (
   posts: ContentWriteService,
   comments: ContentCommentService,
   uploads: ContentUploadService,
-  billing: ClubBillingServices,
+  billing: BillingServices,
   notifications: NotificationsService,
   profiles: ProfileService,
   moderation: ModerationService,
@@ -46,7 +47,7 @@ export const createAppRouter = (
     admin: createAdminRouter(content, posts, uploads, notifications),
     club: createClubRouter(comments, billing),
     penPals: penPalsRouter,
-    shop: shopRouter,
+    shop: createShopRouter(billing.shop),
     moderation: createModerationRouter(moderation),
     profileExtras: createProfileExtrasRouter(profiles),
     articles: createArticlesRouter(content),
@@ -62,6 +63,7 @@ export const appRouter = createAppRouter(
   {
     checkout: new ClubCheckoutService(),
     subscriptions: new ClubSubscriptionService(),
+    shop: new ShopService(),
   },
   new NotificationsService(),
   new ProfileService(),

@@ -18,6 +18,7 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
           import { createBackendApplication } from "./apps/backend/src/_core/application";
           import { ClubCheckoutService } from "./apps/backend/src/billing/club-checkout.service";
           import { ClubSubscriptionService } from "./apps/backend/src/billing/club-subscription.service";
+          import { ShopService } from "./apps/backend/src/shop/shop.service";
           import { SessionService } from "./apps/backend/src/identity/session.service";
           import { PRODAMUS_WEBHOOK_HANDLER } from "./apps/backend/src/billing/prodamus-webhook.controller";
           import { createHmac } from "node:crypto";
@@ -56,6 +57,16 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
               accountDeletionRequestedAt: null, createdAt: new Date(0), updatedAt: new Date(0), lastSignedIn: new Date(0)
             };
             sessions.optionalUser = async () => member;
+            const shop = application.get(ShopService);
+            shop.owned = async (actor, productId) => {
+              if (actor.id !== 7 || productId !== "digital-1") throw Error("Wrong shop ownership arguments");
+              return { owned: true };
+            };
+            const shopOwned = await client.shop.owned.query({ productId: "digital-1" });
+            shop.createCheckout = async () => { throw Error("Disabled shop must not reach checkout"); };
+            let shopDisabled;
+            try { await client.shop.createCheckout.mutate({ productId: "digital-1" }); }
+            catch(error) { shopDisabled = { code: error.data.code, status: error.data.httpStatus }; }
             subscriptions.claimPending = async (id) => {
               if (id !== 7) throw Error("Wrong claim actor");
               return { granted: true, orderId: "club-7-confirmed" };
@@ -80,7 +91,7 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
             };
             const forwarded = await fetch(base + "/api/prodamus/webhook", {method: "POST", body: "raw-compiled-fixture"});
             const injectedWebhook = { status: forwarded.status, body: await forwarded.text() };
-            console.log("BILLING_RESULTS:" + JSON.stringify({realError, injected, status, anonymousError, claimed, cancelled, unsignedWebhook, signedWebhook, injectedWebhook}));
+            console.log("BILLING_RESULTS:" + JSON.stringify({realError, injected, status, anonymousError, claimed, cancelled, unsignedWebhook, signedWebhook, injectedWebhook, shopOwned, shopDisabled}));
           } finally { await application.close(); }
         `,
       },
@@ -125,6 +136,8 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
       unsignedWebhook: { status: 400, body: "signature incorrect" },
       signedWebhook: { status: 200, body: "ignored" },
       injectedWebhook: { status: 202, body: "compiled native ingress" },
+      shopOwned: { owned: true },
+      shopDisabled: { code: "FORBIDDEN", status: 403 },
     });
   } finally {
     rmSync(entry, { force: true });

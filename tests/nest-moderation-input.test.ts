@@ -30,6 +30,7 @@ import { ClubSubscriptionService } from "../apps/backend/src/billing/club-subscr
 import { NotificationsService } from "../apps/backend/src/notifications/notifications.service";
 import { ProfileService } from "../apps/backend/src/profile/profile.service";
 import { ModerationService } from "../apps/backend/src/moderation/moderation.service";
+import { ShopService } from "../apps/backend/src/shop/shop.service";
 
 // Real HTTP/router schemas and authorization; identity and persistence doubled.
 // No real JWT, SQL mutations or durable audit acceptance.
@@ -215,6 +216,7 @@ describe("moderation ID inputs over native HTTP", () => {
         app.get(NotificationsService),
         app.get(ProfileService),
         moderation,
+        app.get(ShopService),
       ]);
       const caller = composed.router.createCaller({
         user: moderator,

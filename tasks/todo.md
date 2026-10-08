@@ -703,8 +703,17 @@
     DI-bypass mutation fails the raw forwarding test. 72 focused cases pass,
     including real HTTP and compiled ESM; 767 non-MySQL pass / 4 skip,
     types/build/API/boundaries/docs pass; no live SQL/provider replay claim.
-  - [ ] Webhook/settlement business-logic decomposition and shop service composition; preserve signature,
+  - [ ] Webhook/settlement business-logic decomposition; preserve signature,
     payment replay protection and transaction boundaries with their own tests.
+  - [x] Shop owned/checkout use cases now use explicit ShopModule/ShopService
+    composition in Nest and standalone callers. Router schemas/protected access
+    and hard-disabled capability gate remain before checkout service entry;
+    actor/email, UUID, signed-link-before-write and dormant order tests preserved.
+    Two expected supplied-service RED failures repaired. Fifteen new composition
+    and native HTTP checks; deliberate hidden-instance mutation fails five
+    composition/HTTP/compiled assertions. Restore: 200 focused checks pass,
+    full 1300 pass / 618 skip, types/build/API/512-file boundaries/docs pass.
+    No real JWT, SQL, provider, frontend, capability enablement, push or rollout.
   - [x] Preserve own JSON fields throughout Prodamus signature normalization,
     including root/nested/array-element __proto__. Two null-prototype dictionaries
     prevent this property from being lost before HMAC; the PHP form parser's

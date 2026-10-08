@@ -10,6 +10,7 @@ import type { User } from "../packages/database/src/schema";
 import { NotificationsService } from "../apps/backend/src/notifications/notifications.service";
 import { ProfileService } from "../apps/backend/src/profile/profile.service";
 import { ModerationService } from "../apps/backend/src/moderation/moderation.service";
+import { ShopService } from "../apps/backend/src/shop/shop.service";
 
 const member: User = {
   id: 7,
@@ -56,7 +57,11 @@ function caller(user: User | null = member) {
     new ContentWriteService(),
     new ContentCommentService(),
     new ContentUploadService(),
-    { checkout: new ClubCheckoutService(), subscriptions },
+    {
+      checkout: new ClubCheckoutService(),
+      subscriptions,
+      shop: new ShopService(),
+    },
     new NotificationsService(),
     new ProfileService(),
     new ModerationService(),

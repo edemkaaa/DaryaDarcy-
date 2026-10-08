@@ -3312,3 +3312,50 @@ No dependency, schema, frontend, auth/CORS/proxy/quota, provider/SMTP request,
 secret read, merge, push, TEST activation or deployment occurs in this slice.
 M06 decomposition, durable SQL replay/provider acceptance, M07 shutdown decision
 gate, N12 outbox and all previous rollout/dependency blockers remain open.
+
+### M06 next slice — explicit shop service composition
+
+Move the existing owned-product read and authenticated checkout orchestration
+from shop/router.ts into ShopService, provided/exported by ShopModule. Compose
+it explicitly with the named billing dependencies at the root and inject Nest's
+application-scoped instance. Preserve the standalone shopRouter export for its
+existing consumers, using the same factory/implementation, not duplicate logic.
+Keep Zod/protected middleware and the hard-disabled shop capability gate in the
+router before checkout enters the service. Do not enable shop payments, alter
+guest ownership behavior, introduce checkout retries or modify settlement.
+
+Acceptance: supplied-service refusals are observable through root composition
+(two expected RED assertions on the old inline router); native HTTP uses Nest's
+instance with session actor/product arguments, disabled checkout never enters
+it, guest/blocked checkout remains protected and malformed input fails first.
+Retain dormant checkout signing/order-before-write tests with controlled SQL;
+no real SQL, JWT or provider acceptance is claimed. Verify compiled ESM wiring,
+types/build/full suite and unchanged public API before the local commit.
+
+Verified: both expected composition failures are repaired. Fifteen new checks
+cover supplied-service refusals, native HTTP service identity, actor/product
+arguments, guest/blocked/disabled checkout, input rejection, guest no-SQL reads,
+ownership SQL-boundary arguments and safe lookup failure. Session and SQL doubles
+are explicit: none of this is real JWT/MySQL acceptance. Existing dormant order,
+catalog, configuration and signature tests remain green. Checkout still cannot
+be reached under the real server-owned capability policy. The service is an
+internal use case; trusted checkout callers must retain that policy guard.
+
+Compiled ESM uses the same shop provider for ownership and returns 403 for shop
+checkout before provider work. A deliberate root-composition change to a hidden
+new ShopService fails five assertions across supplied-service/native HTTP/built
+acceptance; restoration passes. Fresh focused run: nine files / 200 checks;
+whole suite: 1300 pass / 618 skip, 103 files pass / 30 skip. Root/frontend/e2e
+types, 391.9 kB backend build, existing frontend-only lint, unchanged 73-procedure
+/ 25642-byte API and 512-file boundaries pass. Documentation/selected formatting
+and diff checks are verified before commit; backend lint coverage is not claimed.
+
+Review: one implementation for old standalone and injected HTTP callers; no
+service locator, fallback, duplicated payment policy, new query or provider send.
+Root keeps named billing dependencies instead of a new positional parameter;
+existing ClubBillingServices remains the narrower club contract. Imports removed
+from the router are relocated with their use case, not unrelated dead-code
+cleanup. No dependency, schema, auth/CORS/proxy/quota, frontend/generated types,
+real database, provider/SMTP, TEST/shop activation, merge, push or deployment.
+Webhook/settlement decomposition, shop durable settlement/outbox/provider
+acceptance and all existing worker/rollout/dependency gates remain open.

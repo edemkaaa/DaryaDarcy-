@@ -6,6 +6,7 @@ import { TrpcService } from "./trpc.service";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { ProfileModule } from "../profile/profile.module";
 import { ModerationModule } from "../moderation/moderation.module";
+import { ShopModule } from "../shop/shop.module";
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ModerationModule } from "../moderation/moderation.module";
     NotificationsModule,
     ProfileModule,
     ModerationModule,
+    ShopModule,
   ],
   providers: [TrpcService],
   exports: [TrpcService],

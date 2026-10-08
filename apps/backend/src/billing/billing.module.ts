@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ClubCheckoutService } from "./club-checkout.service";
 import { ClubSubscriptionService } from "./club-subscription.service";
+import type { ShopService } from "../shop/shop.service";
 import { YookassaClubService } from "./yookassa/club.service";
 import { YookassaWebhookController } from "./yookassa/webhook.controller";
 import { handleProdamusWebhook } from "../prodamus";
@@ -16,6 +17,10 @@ export type ClubBillingServices = {
     "createCheckout" | "reconcileCheckout"
   >;
   readonly subscriptions: ClubSubscriptionService;
+};
+
+export type BillingServices = ClubBillingServices & {
+  readonly shop: Pick<ShopService, "owned" | "createCheckout">;
 };
 
 @Module({

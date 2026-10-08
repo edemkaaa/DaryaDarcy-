@@ -11,6 +11,7 @@ import { NotificationsService } from "../apps/backend/src/notifications/notifica
 import { ProfileService } from "../apps/backend/src/profile/profile.service";
 import { ModerationService } from "../apps/backend/src/moderation/moderation.service";
 import { ClubCheckoutService } from "../apps/backend/src/billing/club-checkout.service";
+import { ShopService } from "../apps/backend/src/shop/shop.service";
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -32,6 +33,7 @@ function caller(checkout: {
           new ClubCheckoutService().reconcileCheckout(actor, key),
       },
       subscriptions: new ClubSubscriptionService(),
+      shop: new ShopService(),
     },
     new NotificationsService(),
     new ProfileService(),

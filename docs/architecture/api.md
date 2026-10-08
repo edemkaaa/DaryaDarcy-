@@ -42,6 +42,15 @@ GET/POST `/api/prodamus/webhook` регистрирует только [Prodamus
 
 Middleware сессии и ролей tRPC остаются в [\_core/trpc.ts](../../apps/backend/src/_core/trpc.ts), общая доменная проверка подписки — в [identity/club-access.ts](../../apps/backend/src/identity/club-access.ts), с прежним реэкспортом для остальных модулей. Материалы и обсуждения клуба не являются публичными. Блокировка аккаунта и актуальная роль проверяются сервером.
 
+`shop.owned` и `shop.createCheckout` используют [ShopService](../../apps/backend/src/shop/shop.service.ts)
+из [ShopModule](../../apps/backend/src/shop/shop.module.ts). Nest передаёт
+привязанный к приложению экземпляр через именованную композицию billing;
+standalone shopRouter использует ту же реализацию. Роутер сохраняет схемы,
+protectedProcedure и запрет shopOnlinePayment до входа в checkout-сервис.
+Гостевое owned=false, ID/почта из сессии, UUID заказа, сборка подписанной ссылки
+до записи и ответы прежние. Оплата магазина не включена; миграция сервиса
+не подтверждает SQL-транзакции, доставку товара или реальный платёж.
+
 В [moderation/router.ts](../../apps/backend/src/moderation/router.ts) reportId
 для dismissCommentReport, commentId/необязательный reportId для
 deleteReportedComment и userId для blockUser/unblockUser должны быть

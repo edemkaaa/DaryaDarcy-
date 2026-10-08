@@ -12,6 +12,7 @@ import type { TrpcContext } from "./context";
 import { NotificationsService } from "../notifications/notifications.service";
 import { ProfileService } from "../profile/profile.service";
 import { ModerationService } from "../moderation/moderation.service";
+import { ShopService } from "../shop/shop.service";
 
 /** Application-scoped composition; domain services never look up Nest globally. */
 @Injectable()
@@ -29,13 +30,14 @@ export class TrpcService {
     @Inject(NotificationsService) notifications: NotificationsService,
     @Inject(ProfileService) profiles: ProfileService,
     @Inject(ModerationService) moderation: ModerationService,
+    @Inject(ShopService) shop: ShopService,
   ) {
     this.router = createAppRouter(
       content,
       posts,
       comments,
       uploads,
-      { checkout, subscriptions },
+      { checkout, subscriptions, shop },
       notifications,
       profiles,
       moderation,
