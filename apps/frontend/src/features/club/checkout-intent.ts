@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { TRPCClientError, type TRPCClient } from "@trpc/client";
+import type { AppRouter } from "@/shared/api/contract";
+import { getSessionRequestSignal } from "@/shared/api/request-lifecycle";
+import { parseClubCheckoutState } from "./checkout-state";
 
 const storageKey = "daryadarcy:club-checkout:yookassa-test:v1";
 const lockWaitMs = 5000;
@@ -24,6 +28,9 @@ const messages = {
     "Сохранённую заявку не удалось проверить. Новая оплата не начата. Обратитесь в поддержку.",
   "selection-conflict":
     "Сначала завершите предыдущую покупку. Не меняйте почту или срок доступа до проверки её результата.",
+  "stale-intent": "Сохранённая заявка изменилась. Повторите проверку.",
+  "not-terminal":
+    "Предыдущая покупка ещё не завершена. Проверьте её результат перед новой оплатой.",
 };
 
 class CheckoutIntentError extends Error {
@@ -66,8 +73,14 @@ async function fingerprintSelection(input: ClubCheckoutIntent["input"]) {
   ).join("");
 }
 
-function persistIntent(storage: Storage, selectionHash: string) {
+function persistIntent(
+  storage: Storage,
+  selectionHash: string,
+  previousIdempotencyKey?: string,
+) {
   const idempotencyKey = z.uuidv4().parse(crypto.randomUUID());
+  if (idempotencyKey.toLowerCase() === previousIdempotencyKey?.toLowerCase())
+    throw new CheckoutIntentError("unavailable");
   const encoded = JSON.stringify({ version: 1, idempotencyKey, selectionHash });
   storage.setItem(storageKey, encoded);
   if (storage.getItem(storageKey) !== encoded)
@@ -106,7 +119,7 @@ export function readSavedClubCheckoutIntent(): {
 /**
  * Reserve one browser-wide test purchase before dispatch. This record is not
  * proof of payment. Never rotate it after a timeout, elapsed time or URL return;
- * a future explicit new-purchase flow must first verify the terminal server state.
+ * only the explicit next-purchase flow may replace verified terminal evidence.
  */
 export async function getClubCheckoutIntent(
   selection: ClubCheckoutSelection,
@@ -144,6 +157,77 @@ export async function getClubCheckoutIntent(
     if (error instanceof CheckoutIntentError) throw error;
     // Storage/crypto errors may contain private browser details. Do not expose
     // them, silently overwrite evidence, or continue with a temporary UUID.
+    throw new CheckoutIntentError("unavailable");
+  }
+}
+
+/** Explicit next purchase: fresh server proof and replacement share one tab lock. */
+export async function reserveNextClubCheckoutIntent(
+  client: TRPCClient<AppRouter>,
+  request: { previousIdempotencyKey: string; selection: ClubCheckoutSelection },
+  callerSignal?: AbortSignal,
+): Promise<ClubCheckoutIntent> {
+  const sessionSignal = getSessionRequestSignal();
+  const signal = callerSignal
+    ? AbortSignal.any([sessionSignal, callerSignal])
+    : sessionSignal;
+  signal.throwIfAborted();
+  if (!z.uuidv4().safeParse(request.previousIdempotencyKey).success)
+    throw new CheckoutIntentError("stale-intent");
+  const parsed = selectionSchema.safeParse(request.selection);
+  if (!parsed.success) throw new CheckoutIntentError("invalid-selection");
+  const input = parsed.data;
+  try {
+    const selectionHash = await fingerprintSelection(input);
+    signal.throwIfAborted();
+    const waiting = new AbortController();
+    const timer = setTimeout(() => waiting.abort(), lockWaitMs);
+    try {
+      return await navigator.locks.request(
+        storageKey,
+        {
+          mode: "exclusive",
+          signal: AbortSignal.any([signal, waiting.signal]),
+        },
+        async () => {
+          clearTimeout(timer);
+          signal.throwIfAborted();
+          const storage = window.localStorage;
+          const prior = storage.getItem(storageKey);
+          if (prior === null) throw new CheckoutIntentError("stale-intent");
+          const saved = parseSavedIntent(prior);
+          if (saved.idempotencyKey !== request.previousIdempotencyKey)
+            throw new CheckoutIntentError("stale-intent");
+          const result = await client.club.reconcileCheckout.mutate(undefined, {
+            context: { idempotencyKey: saved.idempotencyKey },
+            signal,
+          });
+          signal.throwIfAborted();
+          const { state } = parseClubCheckoutState(result);
+          if (state !== "succeeded" && state !== "canceled")
+            throw new CheckoutIntentError("not-terminal");
+          // Also fence writers that do not cooperate with the browser lock.
+          if (storage.getItem(storageKey) !== prior)
+            throw new CheckoutIntentError("stale-intent");
+          signal.throwIfAborted();
+          const idempotencyKey = persistIntent(
+            storage,
+            selectionHash,
+            saved.idempotencyKey,
+          );
+          return { idempotencyKey, input };
+        },
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch (error) {
+    if (signal.aborted) throw signal.reason;
+    if (
+      error instanceof CheckoutIntentError ||
+      error instanceof TRPCClientError
+    )
+      throw error;
     throw new CheckoutIntentError("unavailable");
   }
 }

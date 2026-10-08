@@ -2871,3 +2871,30 @@ feature-owned parser for the two intended terminal-check consumers, no duplicate
 schema/unsafe generic reset callback, storage primitives remain private. Fresh
 full suite after both extractions: 1176 pass / 618 SQL/external skip. No
 authentication, schema, dependency, payment enablement, push or deployment change.
+
+### Y4d3: terminal-safe explicit next-intent reservation — 2026-10-08
+
+Before replacing saved browser evidence, validate the expected old UUID and new
+selection, capture session/caller cancellation and acquire the exclusive Web
+Lock (five-second acquisition budget). Check that exact old intent through the
+canonical single POST while holding the lock; require fresh strict succeeded or
+canceled proof. Recompare the entire raw record before replacement, refuse UUID
+collision, persist/read back the next UUID/hash before returning. No payment
+dispatch, account/order creation, automatic reset, expiry or URL proof here.
+
+The new stub reached RED on all 22 initial cases. GREEN adds three storage/lock
+failure scenarios: 25 new cases, 107 total club unit/wire checks. Disabling the
+terminal guard makes pending/unknown tests fail; restoration passes the full
+suite: 1201 pass / 618 SQL/external skip. Seven real Chromium cases pass,
+including two concurrent tabs: one next UUID, one stale refusal and exactly one
+old-intent server check. Readback failure keeps durable new evidence recoverable,
+never rolls back or dispatches. Transport refusal retains HTTP status for the
+future quota-aware UI; private browser errors stay generic.
+
+Root/frontend/e2e types, lint, fresh production build (28 pages), unchanged API
+(73 / 25642 bytes), boundaries (504 files), docs and selected formatting pass.
+Five-axis review: feature-owned lifecycle, shared strict parser/private storage
+helpers, captured abort and raw-record fences, bounded lock/request, no generic
+reset or provider create. Next dispatch/result UI, Safari/provider acceptance and
+existing rollout/dependency/proxy gates remain open. No DB, schema, auth, quota,
+dependencies, merge, push, TEST enablement or deployment changes.

@@ -141,6 +141,31 @@ result; never invent success/cancellation or release an intent. A first-request
 timeout remains an error. Browser fixture acceptance exercises the actual caller
 and HTTP transport against local synthetic replies, not a real payment provider.
 
+### Explicit next-intent reservation
+
+Replacing browser evidence is an explicit operation, not a consequence of a
+return URL, old UI observation, timeout or elapsed time. The caller supplies the
+previously observed UUID and a validated new selection. Under the same exclusive
+origin-wide Web Lock, require that exact saved UUID, issue a fresh canonical
+`club.reconcileCheckout` POST, validate strict state-only proof and permit only
+`succeeded` or `canceled`. Compare the whole stored record again before writing,
+so non-cooperating writes cannot silently replace evidence during verification.
+
+Capture session/caller cancellation before hashing and fence it before dispatch
+and storage replacement. Lock acquisition is bounded to five seconds; the
+canonical transport bounds the server request. Missing/corrupt/stale evidence,
+pending/unknown, malformed replies, API errors (including quota refusal), abort,
+storage/crypto failures and UUID collision refuse replacement. Preserve safe
+transport status for the later quota-aware UI; never expose private browser errors.
+
+Reserve and read back the new UUID/hash before any future payment dispatch. A
+readback failure must not roll the durable record back to the prior key: a retry
+recovers the newly saved intent through the ordinary selection-bound caller.
+Two real Chromium tabs prove one winner and one stale refusal with only one
+server check. This operation itself creates no payment/order/account and remains
+unwired; the explicit next-purchase dispatch and result UI are still separate
+gates. Actual provider and Safari acceptance are not established by local fixtures.
+
 ### Return-check quotas
 
 The user approved 12 attempts per intent and 60 per resolved client IP in a

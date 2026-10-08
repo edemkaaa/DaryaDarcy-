@@ -7,6 +7,7 @@ import { chromium } from "@playwright/test";
 const storageKey = "daryadarcy:club-checkout:yookassa-test:v1";
 let browser, server, origin;
 let mode, calls;
+let firstCall, releaseProof, proofGate;
 
 before(async () => {
   const frontend = new URL("../apps/frontend/", import.meta.url).pathname;
@@ -15,7 +16,7 @@ before(async () => {
   const bundle = await build({
     stdin: {
       contents: [
-        'export { getClubCheckoutIntent } from "./src/features/club/checkout-intent";',
+        'export { getClubCheckoutIntent, reserveNextClubCheckoutIntent } from "./src/features/club/checkout-intent";',
         'export { pollClubTestCheckout } from "./src/features/club/checkout-polling";',
         'export { createTRPCClient } from "./src/shared/api/trpc";',
       ].join("\n"),
@@ -47,6 +48,10 @@ before(async () => {
         at: Date.now(),
       });
       response.setHeader("Content-Type", "application/json");
+      if (mode === "next-terminal") {
+        firstCall();
+        await proofGate;
+      }
       if (mode === "quota" && calls.length > 1) {
         response.statusCode = 429;
         response.setHeader("Retry-After", "60");
@@ -67,7 +72,10 @@ before(async () => {
             result: {
               data: {
                 json: {
-                  state: calls.length === 1 ? "pending" : "canceled",
+                  state:
+                    mode !== "next-terminal" && calls.length === 1
+                      ? "pending"
+                      : "canceled",
                 },
               },
             },
@@ -165,3 +173,74 @@ for (const responseMode of ["canceled", "quota"]) {
     },
   );
 }
+
+test(
+  "two real tabs reserve at most one next intent after locked terminal proof",
+  { timeout: 10_000 },
+  async () => {
+    mode = "next-terminal";
+    calls = [];
+    const requestReceived = new Promise((resolve) => {
+      firstCall = resolve;
+    });
+    proofGate = new Promise((resolve) => {
+      releaseProof = resolve;
+    });
+    const context = await browser.newContext();
+    try {
+      const first = await context.newPage();
+      const second = await context.newPage();
+      await first.goto(`${origin}/club`);
+      await second.goto(`${origin}/club`);
+      const previousIdempotencyKey = await first.evaluate(async () => {
+        const api = await import("/checkout.js");
+        return (
+          await api.getClubCheckoutIntent({ email: "prior@example.test" })
+        ).idempotencyKey;
+      });
+      const start = (page) =>
+        page.evaluate(async (previousIdempotencyKey) => {
+          const api = await import("/checkout.js");
+          window.next = api
+            .reserveNextClubCheckoutIntent(api.createTRPCClient(), {
+              previousIdempotencyKey,
+              selection: { email: "next@example.test", plan: "semiannual" },
+            })
+            .then(
+              (result) => ({ result }),
+              (error) => ({ reason: error.reason }),
+            );
+        }, previousIdempotencyKey);
+      await start(first);
+      await requestReceived;
+      await start(second);
+      await second.waitForFunction(
+        async () => (await navigator.locks.query()).pending.length === 1,
+      );
+      releaseProof();
+      const winner = await first.evaluate(() => window.next);
+      assert.ok(winner.result);
+      assert.notEqual(winner.result.idempotencyKey, previousIdempotencyKey);
+      assert.deepEqual(await second.evaluate(() => window.next), {
+        reason: "stale-intent",
+      });
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].key, previousIdempotencyKey);
+      assert.equal(calls[0].url, "/api/trpc/club.reconcileCheckout");
+      assert.equal(calls[0].method, "POST");
+      assert.ok(!calls[0].body.includes(previousIdempotencyKey));
+      assert.ok(!calls[0].body.includes("example.test"));
+      const recovered = await second.evaluate(async () => {
+        const api = await import("/checkout.js");
+        return api.getClubCheckoutIntent({
+          email: "next@example.test",
+          plan: "semiannual",
+        });
+      });
+      assert.deepEqual(recovered, winner.result);
+    } finally {
+      releaseProof();
+      await context.close();
+    }
+  },
+);
