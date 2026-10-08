@@ -1875,3 +1875,23 @@ drafts remain local after interruption; disposable container already removed.
   scenario. Reload recovery of legacy checkout/cancellation/resend, actual provider,
   SMTP/devices and previous rollout/dependency/M07c gates stay open. No frontend,
   auth/CORS/proxy/quota/schema/dependency, push/merge/deployment changes.
+
+### M06 blocked-recipient / saved-profile acceptance — 9 October, early morning
+
+- [x] Extend existing native signed webhook SQL coverage with six cases:
+  blocked initial/renewal/existing-receipt rejection, unblock/retry without double
+  access, and initial saved-profile owner/recipient/amount conflict. Full durable
+  rows of both synthetic members stay unchanged on refusal; no session cookie.
+- [x] Prove sensitivity with temporary guard removals: three blocked-case RED
+  failures and one profile-owner native 200-instead-of-422 failure. Restore runtime
+  exactly; new tests characterize existing policy, do not change it. Outbox still
+  refuses blocked recipients independently; do not claim first/renewal access bypass.
+- [x] Five SQL/native files / 98 pass; full 1877 pass / 777 opt-in SQL-external
+  skips. Types/build/API/boundaries/lint/format pass. Review and existing handoff
+  updated; precise evidence/limitations in plan.md. Exact owned loopback/tmpfs
+  MySQL removed, label inventory empty; only synthetic data removed.
+- [ ] First-email identity scenario and M07c drain bound still require the user;
+  real provider/recurring/SMTP/devices and previous rollout/dependency gates stay
+  open. Inspect remaining safe M08 domain/repository scopes next, not another
+  completed payment/cancellation wrapper. No runtime/frontend/shared-server,
+  policy/schema/dependency, actual payment, merge/push or deployment changes.

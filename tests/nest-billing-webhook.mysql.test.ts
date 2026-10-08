@@ -64,15 +64,15 @@ describe.skipIf(!testDatabaseUrl)(
         "access_email_outbox",
         "club_payments",
       ])
-        await conn.query(`DELETE FROM ${table} WHERE userId=94301`);
-      await conn.query("DELETE FROM users WHERE id=94301");
+        await conn.query(`DELETE FROM ${table} WHERE userId IN (94301,94302)`);
+      await conn.query("DELETE FROM users WHERE id IN (94301,94302)");
     }
     beforeEach(async () => {
       await conn.query(`DROP TRIGGER IF EXISTS ${cancellationTrigger}`);
       vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", encryptionKey);
       await clearFixture();
       await conn.query(
-        "INSERT INTO users (id,openId,email) VALUES (94301,'native-billing-fixture','native-billing@example.invalid')",
+        "INSERT INTO users (id,openId,email) VALUES (94301,'native-billing-fixture','native-billing@example.invalid'),(94302,'native-billing-other-fixture','other-owner@example.invalid')",
       );
       await conn.query(
         "INSERT INTO club_payments (userId,orderId,email,sum) VALUES (94301,'club-94301-native-fixture','native-billing@example.invalid','790')",
@@ -102,6 +102,25 @@ describe.skipIf(!testDatabaseUrl)(
       (SELECT COUNT(*) FROM access_email_outbox WHERE userId=94301) mails,
       (SELECT COUNT(*) FROM password_tokens WHERE userId=94301) tokens`);
       return { orders, effects };
+    }
+    async function guardedState() {
+      // Complete durable rows catch silent edits as well as extra entitlements.
+      const tables = [
+        ["users", "id", "id"],
+        ["club_payments", "userId", "id"],
+        ["billing_receipts", "userId", "paymentKey"],
+        ["billing_profiles", "userId", "profileKey"],
+        ["access_email_outbox", "userId", "id"],
+        ["password_tokens", "userId", "id"],
+      ] as const;
+      const result: Record<string, RowDataPacket[]> = {};
+      for (const [table, owner, order] of tables) {
+        const [rows] = await conn.query<RowDataPacket[]>(
+          `SELECT * FROM ${table} WHERE ${owner} IN (94301,94302) ORDER BY ${order}`,
+        );
+        result[table] = rows;
+      }
+      return result;
     }
     function notify(
       changes: Record<string, unknown> = {},
@@ -225,6 +244,115 @@ describe.skipIf(!testDatabaseUrl)(
         effects: [{ receipts: 1, profiles: 1, mails: 1, tokens: 1 }],
       });
     });
+    it("refuses a blocked initial recipient without durable changes and accepts retry after unblock", async () => {
+      await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=94301");
+      const before = await guardedState();
+      const refused = await notify();
+      expect(refused.status).toBe(422);
+      expect(await refused.text()).toBe("payment binding invalid");
+      expect(refused.headers.get("set-cookie")).toBeNull();
+      expect(await guardedState()).toEqual(before);
+
+      await conn.query("UPDATE users SET blockedAt=NULL WHERE id=94301");
+      expect((await notify()).status).toBe(200);
+      const accepted = await state();
+      expect(accepted.orders).toEqual([
+        {
+          orderId: "club-94301-native-fixture",
+          status: "paid",
+          expiresAt: new Date("2026-11-08T00:00:00Z"),
+        },
+      ]);
+      expect(accepted.effects).toEqual([
+        { receipts: 1, profiles: 1, mails: 1, tokens: 1 },
+      ]);
+      const settled = await guardedState();
+      expect((await notify()).status).toBe(200);
+      expect(await guardedState()).toEqual(settled);
+    });
+    it("refuses a blocked renewal without changing paid history and accepts retry after unblock", async () => {
+      expect((await notify()).status).toBe(200);
+      await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=94301");
+      const before = await guardedState();
+      const refused = await renewalNotification();
+      expect(refused.status).toBe(422);
+      expect(await refused.text()).toBe("payment binding invalid");
+      expect(refused.headers.get("set-cookie")).toBeNull();
+      expect(await guardedState()).toEqual(before);
+
+      await conn.query("UPDATE users SET blockedAt=NULL WHERE id=94301");
+      expect((await renewalNotification()).status).toBe(200);
+      const accepted = await state();
+      expect(accepted.orders.map((order) => order.expiresAt)).toEqual([
+        new Date("2026-11-08T00:00:00Z"),
+        new Date("2026-12-08T00:00:00Z"),
+      ]);
+      expect(accepted.effects).toEqual([
+        { receipts: 2, profiles: 1, mails: 2, tokens: 2 },
+      ]);
+      const settled = await guardedState();
+      expect((await renewalNotification()).status).toBe(200);
+      expect(await guardedState()).toEqual(settled);
+    });
+    it("refuses a blocked recipient before acknowledging an existing receipt replay", async () => {
+      expect((await notify()).status).toBe(200);
+      await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=94301");
+      const before = await guardedState();
+      const refused = await notify();
+      expect(refused.status).toBe(422);
+      expect(await refused.text()).toBe("payment binding invalid");
+      expect(refused.headers.get("set-cookie")).toBeNull();
+      expect(await guardedState()).toEqual(before);
+
+      await conn.query("UPDATE users SET blockedAt=NULL WHERE id=94301");
+      const unblocked = await guardedState();
+      expect((await notify()).status).toBe(200);
+      expect(await guardedState()).toEqual(unblocked);
+    });
+    it.each([
+      {
+        name: "owner",
+        userId: 94302,
+        email: "native-billing@example.invalid",
+        amount: 79000,
+      },
+      {
+        name: "recipient",
+        userId: 94301,
+        email: "other@example.invalid",
+        amount: 79000,
+      },
+      {
+        name: "amount",
+        userId: 94301,
+        email: "native-billing@example.invalid",
+        amount: 1,
+      },
+    ])(
+      "refuses an initial charge claiming a saved profile with another $name",
+      async ({ userId, email, amount }) => {
+        // Literal SHA-256 of ["native-billing.payform.ru","99","144"],
+        // independent of the production profileKey helper.
+        await conn.query(
+          "INSERT INTO billing_profiles (profileKey,userId,domain,subscriptionId,profileId,email,amountMinor) VALUES (?,?,?,?,?,?,?)",
+          [
+            "3934882d7a96dfa90eb8b17065cef8371c98a90ff58a670d06d5d6e9833ae79d",
+            userId,
+            "native-billing.payform.ru",
+            "99",
+            "144",
+            email,
+            amount,
+          ],
+        );
+        const before = await guardedState();
+        const refused = await notify();
+        expect(refused.status).toBe(422);
+        expect(await refused.text()).toBe("payment binding invalid");
+        expect(refused.headers.get("set-cookie")).toBeNull();
+        expect(await guardedState()).toEqual(before);
+      },
+    );
     function renewalNotification(
       profileId = "144",
       key = "native-billing-synthetic-renewal-key",

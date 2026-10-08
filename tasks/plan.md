@@ -5580,3 +5580,67 @@ types,build}.log and fresh API/boundary/lint output. First-email binding awaits
 explicit identity scenario approval; exact checkout/cancellation/email-send
 recovery after reload, real provider/SMTP/device acceptance and existing rollout/
 dependency/M07c gates remain open. No frontend edit, merge/push or deployment.
+
+### M06 blocked-recipient and saved-profile SQL acceptance — 9 October, early morning
+
+Resume from clean 056f86b on feature/yookassa-test-checkout. Existing payment and
+cancellation orchestration is already decomposed; another wrapper is not justified
+by this inspection. Close a concrete durable acceptance gap instead: independently
+signed native HTTP notifications must preserve the current blocked-recipient and
+initial saved-profile binding refusals. Do not change authorization, replay policy,
+transactions, provider acceptance rules or frontend. First-email binding still
+awaits the explicit identity scenario answer; M07c still awaits a drain bound.
+
+Six new cases in the existing native webhook SQL suite:
+
+- Blocked initial recipient: 422 and complete durable state unchanged. After
+  unblock, the same notification grants one 30-day period with one receipt,
+  profile, queued access email and token; later replay changes no durable rows.
+- Blocked renewal after accepted initial payment: 422 preserves all prior paid
+  history and rows. Unblock/retry grants exactly one additional 30-day period;
+  subsequent replay changes nothing.
+- Blocked existing-receipt replay: 422 before the receipt acknowledgement, not
+  unconditional success. Unblock/replay acknowledges without new durable writes.
+- Initial profile conflicts independently cover another owner, recipient and
+  amount. Both fixture members' full rows stay unchanged; no login cookie.
+
+Characterization: original suite 17 pass, expanded suite 23 pass. Deliberately
+removing the blocked-recipient guard produces three RED failures: first/renewal
+reach the separately guarded mail outbox and return 500; existing-receipt replay
+incorrectly returns 200. This is not evidence of a bypassed access grant in the
+blocked first/renewal flows. Removing only initial profile ownership checking
+produces a separate native HTTP 200-instead-of-422 failure. Restore both guards
+exactly before final verification; runtime diff is empty. No mutation is retained.
+
+Fresh expanded native HTTP/SQL verification: five files / 98 checks pass, including
+settlement, TEST club, cancellation and moderator/admin user audit. Full default
+1877 pass / 777 SQL-external skip, 137 files pass / 43 skip; six extra skips are
+the new opt-in SQL tests. Root/frontend/E2E types, 421.8 kB backend build, unchanged
+73-procedure/25642-byte API, 565-file boundaries, lint and selected formatting pass.
+One attempted SQL command was rejected by pnpm option parsing before tests ran;
+use `pnpm exec vitest run ... --no-file-parallelism` for the verified runner command.
+No application change or waived test failure for this CLI invocation issue.
+
+Review: tests-only acceptance extension; literal independent profile-key/HMAC
+fixtures, actual app/SQL, complete before/after durable snapshots and bounded
+fixture-owned rows. Two fixed member IDs are exclusive to this suite; cleanup
+includes only those IDs. The stored blocked flag is set in SQL here; the actual
+admin block/unblock request/audit behavior remains separately tested. No new
+production abstraction, API/schema/dependency, PII, runtime query or policy.
+Primary skill review criteria used; previously missing auxiliary checklists remain
+unavailable. Existing frontend handoff updated with the acceptance and limitation.
+
+Disposable MySQL used existing local image, loopback port 64506, tmpfs, 512 MiB,
+one CPU, no mounts/OOM. Owner dd-billing-admin-guards-20261009-0301 verified before
+removing exact container
+32e738e535bd13415bfc47c0bb75a33bffa03f42e19ebf8bd1d4855ea03ee986; owner inventory
+empty. All removed data is synthetic for this run; no recovery needed. No working
+database, SMTP/provider/cabinet/secret, workers or actual payment touched.
+
+Evidence: /tmp/daryadarcy-billing-admin-{baseline,characterization,
+characterization-final,blocked-red,blocked-final-red,owner-red,final-sql,final-full,
+final-types,final-build}.log plus fresh API/boundary/lint output. This checkpoint
+does not close M06, real provider/recurring/device/mail acceptance or existing
+dependency/rollout gates. Safe remaining M08 domain/repository scopes can be
+inspected next; do not repeat these completed notification guard tests. No
+frontend, merge/push/deployment or shared-server configuration changes.
