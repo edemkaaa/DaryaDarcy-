@@ -3359,3 +3359,37 @@ cleanup. No dependency, schema, auth/CORS/proxy/quota, frontend/generated types,
 real database, provider/SMTP, TEST/shop activation, merge, push or deployment.
 Webhook/settlement decomposition, shop durable settlement/outbox/provider
 acceptance and all existing worker/rollout/dependency gates remain open.
+
+### M06 safety slice — cancellation transport stays at the configured endpoint
+
+Local native HTTP reproduction on two owned loopback servers confirms that
+cancelProdamusSubscription followed 301/302/303/307/308 responses to another
+origin and returned true for that destination's `success` body. An unconfigured
+same-origin path could also replace the configured cancellation endpoint. All
+six expected RED assertions failed on this behavior, not on fixture setup.
+This does not demonstrate a compromised merchant or a production incident.
+
+The existing cancellation fetch now uses redirect: error. A redirect is an
+unconfirmed attempt, with the existing static warning and false return; it is
+not proof of remote cancellation or proof that no remote action happened.
+The 10-second timeout, signing, profile/domain/subscription binding, manager/user
+field selection, exact trimmed success response and durable retry flow remain
+unchanged. Rejecting even same-origin redirects is intentional: only the
+configured endpoint may confirm this request. Actual provider compatibility
+must still be checked separately; no redirect destination is silently trusted.
+
+Sixteen new native transport checks pass, including five redirect statuses,
+same-origin redirect rejection, independently hand-derived HMAC fixtures for
+both actor modes, direct success, rejected status/body responses, profile binding
+and the existing production HTTP prohibition. Only synthetic credentials and
+owned ephemeral loopback listeners are used; listeners/connections are closed.
+No fetch mock, external provider, SQL, mail, account or secret read is needed.
+
+Fresh Node 22 verification: eight focused files / 87 checks; full suite 1316 pass
+/ 618 skip, 104 files pass / 30 skip. Root/frontend/e2e types, backend build
+(392.0 kB), unchanged 73-procedure / 25642-byte API and 512-file boundaries pass.
+Existing frontend lint, documentation links, selected formatting and whitespace
+are checked before commit; backend lint coverage is not claimed. Skipped SQL
+and external suites are not provider or durable retry acceptance evidence.
+No schema, frontend, dependency, auth/CORS/proxy/quota, TEST/shop activation,
+merge, push or deployment. M06 decomposition and previous rollout gates remain.

@@ -470,6 +470,8 @@ export async function cancelProdamusSubscription(profile:Profile): Promise<boole
   try {
     const response = await fetch(url, {
       method: "POST",
+      // Only the configured endpoint may receive or confirm this signed request.
+      redirect: "error",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: buildQuery(data),
       signal: AbortSignal.timeout(10000),

@@ -724,6 +724,15 @@
     This is payload-integrity hardening, not a demonstrated paid-access bypass,
     provider compatibility acceptance or completion of M06. No SQL/provider,
     frontend, secret, authorization, push, merge or deployment changes.
+  - [x] Cancellation transport rejects all redirects instead of accepting an
+    unconfigured endpoint's success. Six native loopback RED failures reproduced;
+    redirect: error repairs them. Sixteen transport checks preserve independent
+    user/manager signatures, direct success, binding and production HTTPS policy.
+    Eight focused files / 87 pass; full 1316 pass / 618 skip, types/build/API/
+    512-file boundaries pass. Timeout and durable retries unchanged; false means
+    unconfirmed, not proof of no remote effect. Real provider/SQL acceptance
+    remains open; only owned local listeners and synthetic configuration used.
+    No frontend, auth/CORS/proxy/quota, secrets, activation, push or deployment.
   - [x] Remove millisecond-based shop checkout order collisions from both tRPC
     and legacy redirects. Three concurrent same-clock failures reproduced;
     UUID suffixes retain product parsing and fit the existing 80-character column.
