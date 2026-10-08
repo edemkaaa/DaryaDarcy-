@@ -4909,3 +4909,48 @@ no volume mounts/OOM. Full ID/owner verified before exact removal; label invento
 empty. Fixture leftovers existed only in owned tmpfs and disappeared with that
 container. No working DB/unrelated resources, frontend/server, secrets/cabinets,
 external mail/push/payment, activation, merge/push/deploy or auth/CORS/proxy/quota.
+
+### M08 HTTP-to-worker retention acceptance — 9 October, 00:03 Moscow
+
+Continued from clean 597831e; selected the remaining native HTTP/worker/SQL
+acceptance gap, not another completed M06/M07 implementation. Four new opt-in
+cases request deletion through real tRPC HTTP/JWT, then explicitly activate the
+Nest-bound WorkerJobs maintenance callback against real disposable MySQL.
+Fresh requests, active club and 29-day club grace retain their fixture snapshots;
+an aged request with no paid club scrubs profile/comment/activity data. A separate
+neighbor account remains byte-for-field unchanged in all four cases.
+
+Unrelated publication, billing acquisition, shop mail and backup operations are
+doubled per application before activation; maintenance retains its canonical SQL
+implementation. A completion barrier is not the primary assertion: real persisted
+state distinguishes cleanup from a successful no-op. Native factory/listener does
+not activate workers itself. Finally fences timers, awaits the test's pending jobs
+and closes the app; this is test cleanup, not a new production shutdown deadline.
+BACKEND_RETENTION_WORKER_ACCEPTANCE=1 requires a fresh isolated database, with no
+other SQL publishers/retention fixtures running concurrently.
+
+Mutation RED: omitting account processing from real maintenance fails the eligible
+case; bypassing the age/club check fails the other three. Both production edits
+restored byte-identical. Final 50 focused pass, including 12 retention SQL cases
+and four new native HTTP/JWT/worker cases. No production/schema/dependency/policy
+change or claim of full external/backup erasure, deployed signal lifecycle or M07c.
+TDD/mutation evidence, incremental implementation, security, review, Git,
+verification and documentation skills guided the slice; optional shared DoD is
+absent, so repository gates apply. Provider/dependency/rollout gates remain open.
+
+Only dd-retention-worker-20261008-2105 created: existing MySQL 8.4 image,
+new backend_test, synthetic fixtures/credentials, ephemeral loopback port, tmpfs,
+512 MiB/one CPU. Full ID/owner/no OOM/no mounts verified before exact removal;
+label inventory empty and owned tmpfs gone. No working database or unrelated
+resource, frontend/server, cabinets/secrets, external mail/push/payment, auth/CORS/
+proxy/quotas, activation, merge/push/deploy changed.
+
+Fresh checkpoint: default full suite 1804 pass / 692 reported SQL-external skips
+(132 passing / 39 skipped files, 17.01 seconds); the 12 SQL cases above ran explicitly. Root,
+frontend and e2e types pass; backend build 410.9 kB, unchanged 73-procedure /
+25642-byte API, 560-file boundaries, frontend lint and 51-document links pass.
+After hardening test cleanup for provider-resolution failure, the check exposed
+Nest get()'s default any result failing optional-worker narrowing; explicit
+get<WorkerJobs> fixes the test type without a cast or runtime change. No deployed
+shutdown-bound behavior is inferred. Full log is local ephemeral evidence at
+/tmp/daryadarcy-retention-worker-2105-full.log.

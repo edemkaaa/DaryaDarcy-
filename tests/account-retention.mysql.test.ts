@@ -1,15 +1,24 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Connection, RowDataPacket } from "mysql2/promise";
+import type { AddressInfo } from "node:net";
+import { createTRPCProxyClient, httpLink } from "@trpc/client";
+import superjson from "superjson";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openContentTestDatabase } from "./helpers/content-mysql";
 import { getDb } from "../apps/backend/src/db";
 import { processScheduledAccountDeletions } from "../apps/backend/src/platform-db";
+import { createBackendApplication } from "../apps/backend/src/_core/application";
+import { sdk } from "../apps/backend/src/_core/sdk";
+import type { AppRouter } from "../apps/backend/src/routers";
+import { WorkerJobs } from "../apps/backend/src/workers/worker-jobs.service";
+import { WORKER_OPERATIONS, type WorkerOperations } from "../apps/backend/src/workers/worker-operations";
 
 describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () => {
   let conn: Connection;
   beforeAll(async () => {
     conn = await openContentTestDatabase();
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
+    vi.stubEnv("JWT_SECRET", "retention-http-synthetic-secret-32");
     await conn.query(`CREATE TABLE IF NOT EXISTS pen_pal_profiles (
       id INT AUTO_INCREMENT PRIMARY KEY,userId INT NOT NULL UNIQUE,fullName VARCHAR(128),
       city VARCHAR(128) NOT NULL,interests JSON NOT NULL,address TEXT NOT NULL,
@@ -40,7 +49,8 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     await conn.query("DELETE FROM comment_reports WHERE reporterUserId=92101");
     await conn.query("DELETE FROM users WHERE id BETWEEN 92101 AND 92104");
     await conn.query(`INSERT INTO users (id,openId,name,email,passwordHash,accountDeletionRequestedAt) VALUES
-      (92101,'retention-fixture','Fixture name','retention@example.test','fixture-hash',DATE_SUB(NOW(),INTERVAL 31 DAY))`);
+      (92101,'retention-fixture','Fixture name','retention@example.test','fixture-hash',DATE_SUB(NOW(),INTERVAL 31 DAY)),
+      (92102,'retention-neighbor','Neighbor name','neighbor@example.test','neighbor-hash',NULL)`);
     await conn.query(`INSERT INTO pen_pal_profiles (userId,fullName,city,interests,address,active)
       VALUES (92101,'Fixture name','Fixture city',JSON_ARRAY('fixture interest'),'Fixture address',TRUE)`);
     await conn.query(`INSERT INTO pen_pal_matches (userLowId,userHighId,initiatedBy,confirmDeadline)
@@ -54,6 +64,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     await conn.query("INSERT INTO push_tokens (token,userId,enabled) VALUES ('retention-fixture-token',92101,FALSE)");
     await conn.query("INSERT INTO comment_reports (commentId,reporterUserId,reason) VALUES (92100,92101,'Fixture report')");
   });
+  afterEach(() => vi.restoreAllMocks());
   afterAll(async () => {
     await conn?.query("DELETE FROM push_tokens WHERE token='retention-fixture-token'");
     await conn?.query("UPDATE users SET accountDeletionRequestedAt=NULL WHERE id BETWEEN 92101 AND 92104");
@@ -138,4 +149,67 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
       await guard.end();
     }
   });
+
+  // Global maintenance is opt-in and must run alone on a fresh disposable DB.
+  describe.skipIf(process.env.BACKEND_RETENTION_WORKER_ACCEPTANCE !== "1")(
+    "HTTP deletion request through the real maintenance worker",
+    () => {
+      it.each(["recent-request", "eligible", "active-club", "club-grace"])(
+        "preserves existing retention rules for %s",
+        async condition => {
+          await conn.query("UPDATE users SET accountDeletionRequestedAt=NULL WHERE id=92101");
+          const [neighbors] = await conn.query<RowDataPacket[]>("SELECT * FROM users WHERE id=92102");
+          const app = await createBackendApplication();
+          let jobs: WorkerJobs | undefined;
+          try {
+            jobs = app.get<WorkerJobs>(WorkerJobs);
+            await app.listen(0, "127.0.0.1");
+            const port = (app.getHttpServer().address() as AddressInfo).port;
+            const client = createTRPCProxyClient<AppRouter>({ links: [httpLink({
+              url: `http://127.0.0.1:${port}/api/trpc`, transformer: superjson,
+              headers: async () => ({ Authorization: `Bearer ${await sdk.createSessionToken("retention-fixture", { sessionVersion: 0 })}` }),
+            })] });
+            expect(await client.profileExtras.requestAccountDeletion.mutate()).toEqual({ ok: true });
+            const requested = await snapshot();
+            expect(requested.user[0]).toMatchObject({ email: "retention@example.test", accountDeletionRequestedAt: expect.any(Date) });
+            if (condition !== "recent-request")
+              await conn.query("UPDATE users SET accountDeletionRequestedAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE id=92101");
+            if (condition === "active-club" || condition === "club-grace")
+              await conn.query(`INSERT INTO club_payments (userId,orderId,status,expiresAt) VALUES
+                (92101,'retention-worker-paid','paid',${condition === "active-club" ? "DATE_ADD(NOW(),INTERVAL 1 DAY)" : "DATE_SUB(NOW(),INTERVAL 29 DAY)"})`);
+            const before = await snapshot();
+            const operations = app.get<WorkerOperations>(WORKER_OPERATIONS);
+            // Only unrelated effects are doubled. The maintenance callback keeps
+            // the canonical real SQL implementation; no mail/provider/backup runs.
+            vi.spyOn(operations, "publishDueScheduledPosts").mockResolvedValue([]);
+            vi.spyOn(operations, "getDb").mockResolvedValue(null);
+            vi.spyOn(operations, "processPendingShopDeliveryEmails").mockResolvedValue(undefined);
+            vi.spyOn(operations, "runMysqlBackupIfDue").mockResolvedValue(undefined);
+            const maintain = operations.runDataRetentionMaintenance;
+            let completed = false;
+            vi.spyOn(operations, "runDataRetentionMaintenance").mockImplementation(async () => {
+              await maintain();
+              completed = true;
+            });
+            jobs.start();
+            // Completion barrier, not evidence of scrubbing; persisted rows below
+            // must independently distinguish real cleanup from a successful no-op.
+            await vi.waitFor(() => expect(completed).toBe(true), { timeout: 3000 });
+            if (condition === "eligible") {
+              const state = await snapshot();
+              expect(state.user[0]).toMatchObject({ name: "Удалённый аккаунт", email: null, passwordHash: null, accountDeletionRequestedAt: null });
+              expect(state.profile[0]).toMatchObject({ active: 0, address: "Удалённый аккаунт" });
+              expect(state.comments).toEqual([{ text: "Комментарий удалён", photos: null }]);
+              expect(state.activity).toEqual([{ likes: 0, saves: 0, pushes: 0, reports: 0 }]);
+            } else expect(await snapshot()).toEqual(before);
+            const [afterNeighbors] = await conn.query<RowDataPacket[]>("SELECT * FROM users WHERE id=92102");
+            expect(afterNeighbors).toEqual(neighbors);
+          } finally {
+            await Promise.all((jobs?.stop() ?? []).map(job => job.settled));
+            await app.close();
+          }
+        },
+      );
+    },
+  );
 });

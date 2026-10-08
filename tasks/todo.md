@@ -1647,3 +1647,19 @@ path. No key disclosed, callback changed, payment made or service deployed here.
 - [ ] Only existing SQL semantics verified: full HTTP/worker lifecycle erasure,
       external files/backups and legal retention acceptance remain open. No policy,
       frontend/server/provider/activation/deployment changes.
+
+### M08 HTTP-to-worker retention acceptance — 9 October, early morning
+
+- [x] Four new real HTTP/JWT/SQL cases: fresh deletion request, eligible aged
+      request, active club and club grace through the Nest maintenance worker.
+      Persisted target and neighboring-account state checked; no external effects.
+- [x] Omitted maintenance cleanup fails one case; bypassed age/club protection
+      fails three. Production source restored byte-identical; 50 focused pass
+      (12 retention SQL cases). Own isolated tmpfs database/container removed.
+- [x] Full default 1804 pass / 692 reported SQL-external skips; types, backend
+      build/API/boundaries/lint/docs pass. Safe test cleanup's optional-worker type
+      error diagnosed and repaired with explicit Nest get<WorkerJobs>, not a cast.
+- [ ] BACKEND_RETENTION_WORKER_ACCEPTANCE=1 is a sequential fresh-DB-only opt-in.
+      External files/backups, legal erasure and deployed shutdown remain open;
+      M07c still requires a human drain-bound decision. No runtime/frontend/server,
+      policy/payment/merge/push/deploy changes.
