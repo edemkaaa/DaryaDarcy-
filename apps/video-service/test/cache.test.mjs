@@ -237,29 +237,64 @@ test("the last disconnected viewer cancels preparation and cleans partial output
   assert.equal(failure.name, "AbortError");
 });
 
-test("preparation timeout cancels work and removes partial output", async () => {
-  const { cache, root } = await cacheWith({
-    prepareTimeoutMs: 25,
-    prepare: async (_id, directory, signal) => {
-      await writeFile(join(directory, "source.part"), "partial");
-      await new Promise((_resolve, reject) =>
-        signal.addEventListener("abort", () => reject(signal.reason), {
-          once: true,
-        }),
-      );
-    },
-  });
-  const failure = await rejectionWithin(cache.acquire(id));
-  await cache.close();
-  assert.deepEqual(await readdir(root), []);
-  assert.equal(failure.name, "TimeoutError");
-});
+test(
+  "preparation timeout cancels work and removes partial output",
+  { timeout: 5000 },
+  async (context) => {
+    context.mock.timers.enable({ apis: ["setTimeout"] });
+    let begin;
+    const started = new Promise((resolve) => {
+      begin = resolve;
+    });
+    let preparationSignal;
+    const { cache, root } = await cacheWith({
+      prepareTimeoutMs: 25,
+      prepare: async (_id, directory, signal) => {
+        await writeFile(join(directory, "source.part"), "partial");
+        signal.throwIfAborted();
+        preparationSignal = signal;
+        begin();
+        await new Promise((_resolve, reject) =>
+          signal.addEventListener("abort", () => reject(signal.reason), {
+            once: true,
+          }),
+        );
+      },
+    });
+    const result = cache.acquire(id).catch((error) => error);
+    await started;
+    context.mock.timers.tick(24);
+    assert.equal(preparationSignal.aborted, false);
+    assert.equal((await readdir(root)).length, 1);
+    context.mock.timers.tick(1);
+    assert.equal(preparationSignal.aborted, true);
+    assert.equal(preparationSignal.reason.name, "TimeoutError");
+    const failure = await result;
+    await cache.close();
+    assert.deepEqual(await readdir(root), []);
+    assert.equal(failure.name, "TimeoutError");
+  },
+);
 
-test("idle TTL cleanup removes expired files without a new playback request", async () => {
-  const { cache } = await cacheWith({ ttlMs: 20 });
-  const lease = await cache.acquire(id);
-  assert.ok(lease);
-  lease.release();
-  await new Promise((resolve) => setTimeout(resolve, 65));
-  assert.equal(await exists(lease.path), false);
-});
+test(
+  "idle TTL cleanup removes expired files without a new playback request",
+  { timeout: 5000 },
+  async (context) => {
+    context.mock.timers.enable({ apis: ["setInterval", "Date"], now: 1000 });
+    const { cache } = await cacheWith({ ttlMs: 20 });
+    const lease = await cache.acquire(id);
+    assert.ok(lease);
+    lease.release();
+    context.mock.timers.tick(19);
+    assert.equal(await exists(lease.path), true);
+    context.mock.timers.tick(1);
+    // The clock fires the sweeper, but filesystem removal is genuinely async.
+    // Wait for its observable completion, not an assumed machine speed.
+    const deadline = performance.now() + 4000;
+    while (await exists(lease.path)) {
+      assert.ok(performance.now() < deadline, "idle file was not removed");
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    assert.equal(await exists(lease.path), false);
+  },
+);

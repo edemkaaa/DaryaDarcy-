@@ -1,3 +1,16 @@
+/** Sources belong to our local fixtures, never to a child process or payload. */
+export function nativeTestNames(
+  sources: readonly string[],
+): ReadonlySet<string> {
+  return new Set(
+    sources.flatMap((source) =>
+      [...source.matchAll(/\btest\(\s*"([^"\r\n]{1,240})"/g)].map(
+        (match) => match[1],
+      ),
+    ),
+  );
+}
+
 /** Child output may contain signed URLs or credentials. Never attach its cause. */
 export function nativeTestFailure(
   failure: unknown,

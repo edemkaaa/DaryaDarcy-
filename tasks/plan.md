@@ -3100,3 +3100,34 @@ Verification: full suite 1249 pass / 618 SQL/external skip; root/frontend/e2e
 types, lint, backend build, 50-document check and selected formatting pass.
 Review: test-only helper, bounded allowlist output, failure still propagates;
 no raw child error is attached, no dependency or application behavior changes.
+
+### V1b — deterministic native cache deadlines, 8 October
+
+Replace only the two reproduced scheduling-sensitive assertions: native Node
+test clocks advance to just before/exactly the preparation deadline or idle TTL.
+Real filesystem preparation/removal remains real; wait for its completion with
+a bounded guard instead of assuming that a 65/100 ms sleep is sufficient.
+No worker runtime, preparation budget, cache policy or service quotas changed.
+The preparation fixture observes startup and honors already-aborted signals.
+
+Original RED is captured under load above. Stronger boundary tests also reach
+RED with deliberate mutations: delay preparation cancellation by 1 ms, or omit
+expiry at the exact TTL boundary. Restore both runtime mutations immediately;
+40 native cases pass. With eight concurrent runners all 64 suites (2560 cases)
+pass while the full application suite also runs. This is not just a green retry.
+
+Review found that wrapping test calls over multiple lines would hide their names
+from the first diagnostic allowlist. A seventh RED/GREEN diagnostic case handles
+multiline literal names without accepting dynamic names. A real mutated worker
+failure through Vitest now shows the exact trusted timeout-test name and no raw
+child error details. Node 22 emits its known experimental MockTimers warning in
+the direct native command; this is test tooling, not a runtime worker warning.
+Reference: https://nodejs.org/download/release/v22.14.0/docs/api/test.html.
+
+All temp files and loopback servers are owned and cleaned by the existing tests.
+No SQL, actual video downloads, external provider/SMTP, secrets, auth/CORS/proxy,
+dependencies, merge, push, deployment or TEST stand enablement. Existing provider,
+Safari, dependency and rollout gates remain; this only closes local diagnostics.
+Final verification: full suite 1250 pass / 618 SQL/external skip; root/frontend/
+e2e types, 50-document check and selected formatting pass. Backend/frontend
+application code remains unchanged from the preceding passing build/lint checks.

@@ -1131,6 +1131,10 @@
       mutation caller signal → лишний HTTP (RED), restore → GREEN.
       Full 1243 pass / 618 SQL/external skip, types/lint/build/API/boundaries pass.
       Provider/Safari, dependency/proxy/release gates остаются; stage не менялся.
-- [ ] Отдельно диагностировать повторный сбой native video-wrapper в полном
+- [x] Отдельно диагностировать повторный сбой native video-wrapper в полном
       прогоне: сохранить безопасную диагностику имени упавшего дочернего теста,
       воспроизвести причину под нагрузкой; не считать успешный повтор исправлением.
+      V1: воспроизведены timeout/TTL проверки под нагрузкой; виртуальные часы
+      и ожидание реального удаления вместо фиксированного sleep. 64/64 suites
+      при 8 исполнителях; обе граничные mutation-проверки дают RED.
+      Runtime/лимиты не менялись; диагностика не раскрывает child output.

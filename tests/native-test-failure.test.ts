@@ -3,6 +3,18 @@ import { promisify } from "node:util";
 import { expect, test } from "vitest";
 import * as diagnostics from "./helpers/native-test-failure";
 
+test("recognizes multiline literal names but never dynamic diagnostic names", () => {
+  expect(diagnostics).toHaveProperty("nativeTestNames");
+  const names = diagnostics.nativeTestNames([
+    'test("one line", async () => {}); test(\n  "multiline", { timeout: 5000 }, async () => {}); test(titleFromPayload, () => {});',
+  ]);
+  expect([...names]).toEqual(["one line", "multiline"]);
+  expect(
+    diagnostics.nativeTestFailure({ stdout: "not ok 1 - multiline" }, names)
+      .message,
+  ).toContain("multiline");
+});
+
 test("reports only trusted failed native test names, never child error details", async () => {
   expect(diagnostics).toHaveProperty("nativeTestFailure");
   const failure = await promisify(execFile)(process.execPath, [
