@@ -98,7 +98,7 @@ describe.skipIf(!testDatabaseUrl)(
       return { payments, effects };
     }
     function notification(
-      changes: Record<string, string> = {},
+      changes: Record<string, unknown> = {},
       secret = key,
       path = "/api/prodamus/test/webhook",
     ) {
@@ -113,13 +113,18 @@ describe.skipIf(!testDatabaseUrl)(
         sum: "790.00",
         ...changes,
       };
-      // Hand-ordered scalar fixture, independently encoded rather than using the
-      // production signature/payload helpers.
-      const bytes = JSON.stringify(
-        Object.fromEntries(
-          Object.entries(body).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
-        ),
-      );
+      // Independent provider encoder; never uses production signing helpers.
+      function ordered(value: unknown): unknown {
+        if (Array.isArray(value)) return value.map(ordered);
+        if (value && typeof value === "object")
+          return Object.fromEntries(
+            Object.entries(value)
+              .sort()
+              .map(([k, v]) => [k, ordered(v)]),
+          );
+        return value == null ? "" : String(value);
+      }
+      const bytes = JSON.stringify(ordered(body)).replace(/\//g, "\\/");
       return fetch(base + path, {
         method: "POST",
         body: JSON.stringify(body),
@@ -148,6 +153,9 @@ describe.skipIf(!testDatabaseUrl)(
         "sys",
         "urlNotification",
         "save_payment_method",
+        "payment_method",
+        "available_payment_methods",
+        "installments_disabled",
       ])
         expect(url.searchParams.has(name)).toBe(false);
       const id = url.searchParams.get("order_id");
@@ -160,6 +168,133 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ).toBe(true);
       expect(rows.effects).toEqual([{ receipts: 0, profiles: 0, mails: 0 }]);
+    });
+    const products = [
+      {
+        name: "Клуб Darcy — ТЕСТ, 30 дней без автосписаний",
+        price: "790.00",
+        quantity: "1",
+        sum: "790.00",
+      },
+    ];
+    const foreign = {
+      currency: "eur",
+      currency_sum: "10.01",
+      products,
+      payment_type: "Open banking EU (Revolute, Monzo и другие банки EU)",
+      payment_init: "manual",
+      callbackType: "json",
+      attempt: "1",
+      currency_commission_sum: "1.00",
+      commission: "10",
+      commission_sum: "79.00",
+    };
+    it.each([
+      ["eur", "10.01", "Open banking EU"],
+      ["usd", "11.20", "International card"],
+      ["kzt", "4500.00", "Kazakhstan card"],
+      ["byn", "32.50", "Belarus card"],
+    ])(
+      "settles the signed RUB order using %s payment without inventing an exchange rate",
+      async (currency, currency_sum, payment_type) => {
+        expect(
+          (
+            await notification({
+              ...foreign,
+              currency,
+              currency_sum,
+              payment_type,
+            })
+          ).status,
+        ).toBe(200);
+        const paid = await state();
+        expect(paid.payments).toEqual([
+          {
+            orderId: order,
+            status: "paid",
+            expiresAt: new Date("2026-11-08T00:00:00Z"),
+          },
+        ]);
+        expect(paid.effects).toEqual([{ receipts: 1, profiles: 0, mails: 1 }]);
+        expect(
+          (
+            await notification({
+              ...foreign,
+              currency,
+              currency_sum,
+              payment_type,
+              attempt: "2",
+            })
+          ).status,
+        ).toBe(200);
+        expect(await state()).toEqual(paid);
+      },
+    );
+    it.each(["Карта РФ", "СБП", "Т-Банк", "Оплата по счёту", "Рассрочка"])(
+      "accepts a full signed RUB order regardless of method %s",
+      async (payment_type) => {
+        expect((await notification({ payment_type })).status).toBe(200);
+        expect((await state()).effects).toEqual([
+          { receipts: 1, profiles: 0, mails: 1 },
+        ]);
+      },
+    );
+    it.each<Record<string, unknown>>([
+      { currency: "btc" },
+      { currency_sum: undefined },
+      { currency_sum: "0" },
+      { currency_sum: "-10.01" },
+      { currency_sum: "1e3" },
+      { currency_sum: "10.001" },
+      { currency_sum: { value: "10.01" } },
+      { products: undefined },
+      { products: [{ ...products[0], price: "1.00" }] },
+      { products: [{ ...products[0], price: { value: "790.00" } }] },
+      { products: [{ ...products[0], quantity: "2" }] },
+      { products: [{ ...products[0], sum: "1.00" }] },
+      { products: [{ ...products[0], name: "Another product" }] },
+      { products: [products[0], products[0]] },
+      { sum: "10.01" },
+      { subscription: "99" },
+      { demo_mode: "0" },
+      { customer_email: "other@example.invalid" },
+      { domain: "live.payform.ru" },
+    ])(
+      "refuses malformed or mismatched foreign payment %j without effects",
+      async (changes) => {
+        const before = await state();
+        expect((await notification({ ...foreign, ...changes })).status).toBe(
+          400,
+        );
+        expect(await state()).toEqual(before);
+      },
+    );
+    it("rejects reuse of a foreign receipt with another currency or foreign amount", async () => {
+      expect((await notification(foreign)).status).toBe(200);
+      const paid = await state();
+      for (const changes of [
+        { currency: "usd" },
+        { currency_sum: "10.02" },
+        { currency: "rub" },
+      ])
+        expect((await notification({ ...foreign, ...changes })).status).toBe(
+          400,
+        );
+      expect(await state()).toEqual(paid);
+    });
+    it("accepts signed JSON numeric monetary fields without accepting structured or imprecise amounts", async () => {
+      expect(
+        (
+          await notification({
+            ...foreign,
+            currency_sum: 10.01,
+            products: [{ ...products[0], price: 790, sum: 790, quantity: 1 }],
+          })
+        ).status,
+      ).toBe(200);
+      expect((await state()).effects).toEqual([
+        { receipts: 1, profiles: 0, mails: 1 },
+      ]);
     });
     it("grants exactly 30 days through the saved order, with durable access mail and idempotent HTTP replay", async () => {
       const first = await notification();

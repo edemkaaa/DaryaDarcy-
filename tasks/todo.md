@@ -1722,3 +1722,20 @@ callback saved with action-time human confirmation; demo notification prohibitio
 unchecked. Owned disposable DB and temporary encrypted-transfer key files removed.
 See operations/teamassist-staging for bundle hash and precise rollback. No actual
 provider payment, receipt or access observed yet; PD4d remains open.
+
+PD4d update: human completed a demo provider flow. Matching provider payment
+reports success, but Open banking EU sends currency=eur; callback receives 400
+and dev order stays pending with no receipt/access. Do not manually grant or
+replay. Resolve RUB-only method restriction versus separately specified FX
+acceptance before asking for another test. Four unverified cancellation SQL test
+drafts remain local after interruption; disposable container already removed.
+
+- [x] PD4e local: remove selected method/installment hiding for new TEST links;
+      accept signed RUB-order payments in RUB/EUR/USD/KZT/BYN, retaining foreign
+      evidence in receipt replay identity. No guessed FX or live currency change.
+- [x] Six initial RED, numeric-scalar RED and altered-FX replay mutation; 79
+      focused checks pass on disposable SQL/native/compiled paths. Full 1816
+      pass / 760 reported skips; types/build/API/boundaries/lint/docs pass.
+      Exact owned tmpfs DB removed, no mounts/OOM and owner inventory empty.
+- [ ] Deploy only new TEST bundle; user approves one notification retry for the
+      already completed demo payment, not a new charge. Verify receipt/access.

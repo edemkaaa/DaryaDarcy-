@@ -25,6 +25,7 @@ export async function settleClubOrder(
   },
 ): Promise<boolean> {
   const proof = input.proof;
+  const foreign = proof?.testForeignPayment;
   const amount = moneyMinor(input.sum);
   if (
     !proof ||
@@ -34,7 +35,16 @@ export async function settleClubOrder(
     proof.currency.toLowerCase() !== "rub" ||
     amount === null ||
     !Number.isSafeInteger(input.periodMs) ||
-    input.periodMs <= 0
+    input.periodMs <= 0 ||
+    (foreign &&
+      (proof.domain !== "testpage1.payform.ru" ||
+        !input.orderId.startsWith("club-test-") ||
+        input.recurring ||
+        proof.subscriptionId ||
+        proof.profileId ||
+        !["eur", "usd", "kzt", "byn"].includes(foreign.currency) ||
+        !Number.isSafeInteger(foreign.amountMinor) ||
+        foreign.amountMinor <= 0))
   )
     return false;
   const paymentKey = billingKey([proof.domain, proof.paymentId]);
@@ -48,6 +58,10 @@ export async function settleClubOrder(
     proof.currency.toLowerCase(),
     proof.subscriptionId || "",
     proof.profileId || "",
+    // Conditional extension preserves every existing live/RUB receipt hash.
+    ...(foreign
+      ? ["test-fx-v1", foreign.currency, String(foreign.amountMinor)]
+      : []),
   ]);
   const [recipient] = input.recurring
     ? await database

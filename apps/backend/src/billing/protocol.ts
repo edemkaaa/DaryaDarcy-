@@ -6,6 +6,11 @@ export type PaymentProof = {
   currency: string;
   subscriptionId?: string;
   profileId?: string;
+  /** TEST-only original settlement evidence; accounting currency remains RUB. */
+  testForeignPayment?: {
+    currency: "eur" | "usd" | "kzt" | "byn";
+    amountMinor: number;
+  };
 };
 export const billingKey = (parts: string[]) =>
   createHash("sha256").update(JSON.stringify(parts)).digest("hex");

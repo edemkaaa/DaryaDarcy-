@@ -5153,3 +5153,57 @@ no provider transaction performed. Temporary key transfer files deleted, protect
 600 env retained. Full owned tmpfs database ID/label/no OOM/no mounts verified
 before removal; owner inventory empty. Provider delivery/access acceptance PD4d
 and general dependency gates remain open. No merge/push/frontend migration.
+
+PD4d human payment observation (22:25 UTC): exact new club-test order exists
+pending, no paidAt/expiry or billing receipt. Cabinet's matching demo payment
+49647121 reports success, 790.00 sum, but currency=eur and currency_sum=10.01
+via Open banking EU. Saved callback attempted at 22:23:11 UTC, receiver replied
+400 invalid test notification. RUB-only receiver therefore refuses this payload;
+this is not completed entitlement acceptance. No manual grant or replay issued.
+Official integration docs distinguish selected payment_method from restricting
+available_payment_methods (AC is Russian card); no automatic currency conversion
+or weakening binding is authorized. Next choice: constrain new TEST links to
+RUB card method and human repeat, or separately specify verified FX acceptance.
+Do not silently accept this EUR event or ask the human to pay again immediately.
+
+Heartbeat cancellation acceptance interrupted by the human payment report:
+four draft cases added to tests/nest-billing-webhook.mysql.test.ts but not run,
+mutated, reviewed or committed. Production source unchanged. Owned fresh local
+tmpfs dd-native-cancellation-20261008-2225 removed by verified full ID/label;
+no OOM/volume mounts, owner inventory empty. Continue these drafts later using
+a new isolated database; do not claim RED/GREEN or acceptance yet.
+
+PD4e human requests all available TEST payment methods, including foreign ones.
+Keep fixed saved 790 RUB order and 30-day one-off access; no live currency-policy
+change, new real payment, recurring profile or own FX conversion. Remove checkout
+method selection and installment hiding: availability remains provider-controlled.
+Accept RUB independently of display payment_type. For EUR/USD/KZT/BYN, authenticate
+the original notification first, require positive two-decimal currency_sum and
+one signed matching TEST product (790 price/sum, quantity 1). The observed provider
+EUR callback separately carries sum=790 and currency_sum=10.01; treating sum as
+RUB order accounting is this TEST binding's explicit inference, not a general
+undocumented provider guarantee. Official integration docs list currency/methods
+but do not define that callback FX relationship. Unknown currencies fail closed.
+Normalize only this verified test order's accounting proof to RUB; preserve
+foreign currency/amount in receipt replay hashing with a conditional extension,
+leaving all existing RUB/live hashes byte-compatible. Retry counters, dates,
+commission and display labels are not purchase identity. Native HTTP + disposable
+SQL must reproduce EUR refusal, verify all supported currencies, malformed/binding
+refusals and altered-FX replay. Deploy only the dedicated no-worker test bundle;
+observe a real provider retry, never forge a notification or manually grant SQL.
+
+PD4e verification: six initial RED failures reproduce forced method restriction
+and foreign callback 400. Numeric JSON representation RED reproduced safe 400;
+scalar normalization supports string/number, rejects structures/nonpositive/
+overprecise amounts. A removed foreign receipt fingerprint makes altered-FX
+replay test fail; restored code passes. 52 test-club native SQL checks plus 22
+settlement/runtime/compiled checks pass; five existing cancellation SQL checks
+also pass. Full default 1816 pass / 760 reported SQL-external skips, including
+the still-unverified cancellation drafts. Types, both builds, unchanged API,
+563-file boundaries, lint and 51 docs pass. No new deps/schema/frontend/routes/
+quota changes; existing narrowly scoped dependency exception remains unchanged.
+Five-axis self-review: original signature checked before projection, no own FX
+rate, generic rejection, fixed saved order/recipient and atomic receipt/outbox;
+foreign fingerprint is TEST-bound and conditional to preserve old RUB hashes.
+Owned tmpfs MySQL c7e9213a... validated by exact ID/owner/no OOM/no mounts and
+removed; matching owner inventory empty. Deployment/provider retry still pending.

@@ -9,7 +9,7 @@ import {
 import { parseProdamusPayload } from "./prodamus-payload";
 import { buildProdamusQuery } from "./prodamus-query";
 import { readProdamusPayment } from "./prodamus-payment";
-import { moneyMinor } from "./protocol";
+import { moneyMinor, type PaymentProof } from "./protocol";
 import { clubAccessMs } from "./club-settlement.service";
 
 const merchant = "https://testpage1.payform.ru";
@@ -17,6 +17,48 @@ const application = "https://daryadarcy.dev.reeskeen.ru";
 const orderPattern =
   /^club-test-[1-9]\d*-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const unavailable = "Тестовая оплата Prodamus не настроена";
+const productName = "Клуб Darcy — ТЕСТ, 30 дней без автосписаний";
+
+const notificationMinor = (value: unknown) =>
+  typeof value === "string" || typeof value === "number"
+    ? moneyMinor(String(value))
+    : null;
+
+/** Original signed sum/products bind the RUB order; no guessed FX conversion. */
+function testAccountingProof(
+  body: Record<string, unknown>,
+  proof: PaymentProof,
+): PaymentProof | null {
+  const currency = proof.currency.toLowerCase();
+  if (currency === "rub") return proof;
+  if (
+    currency !== "eur" &&
+    currency !== "usd" &&
+    currency !== "kzt" &&
+    currency !== "byn"
+  )
+    return null;
+  const amount = notificationMinor(body.currency_sum);
+  const products = body.products;
+  if (amount === null || !Array.isArray(products) || products.length !== 1)
+    return null;
+  const product = products[0];
+  if (
+    !product ||
+    typeof product !== "object" ||
+    Array.isArray(product) ||
+    product.name !== productName ||
+    notificationMinor(product.price) !== 79000 ||
+    notificationMinor(product.sum) !== 79000 ||
+    (product.quantity !== "1" && product.quantity !== 1)
+  )
+    return null;
+  return {
+    ...proof,
+    currency: "rub",
+    testForeignPayment: { currency, amountMinor: amount },
+  };
+}
 
 /** Exclusive dev binding; never falls back to a live key/merchant or YooKassa. */
 export function requireProdamusTestConfiguration() {
@@ -59,14 +101,12 @@ export class ProdamusTestClubService {
       sum: "790.00",
       products: [
         {
-          name: "Клуб Darcy — ТЕСТ, 30 дней без автосписаний",
+          name: productName,
           price: "790.00",
           quantity: "1",
           type: "service",
         },
       ],
-      payment_method: "AC",
-      installments_disabled: "1",
       payments_limit: "1",
       callbackType: "json",
       urlReturn: `${application}/club`,
@@ -113,6 +153,7 @@ export class ProdamusTestClubService {
       return invalid;
     }
     const payment = readProdamusPayment(body);
+    const proof = testAccountingProof(body, payment.proof);
     if (
       (body.demo_mode !== "1" && body.demo_mode !== 1) ||
       Object.keys(body).some(
@@ -122,7 +163,7 @@ export class ProdamusTestClubService {
       payment.proof.domain !== "testpage1.payform.ru" ||
       !orderPattern.test(payment.orderId) ||
       !/^[1-9]\d{0,31}$/.test(payment.proof.paymentId) ||
-      payment.proof.currency.toLowerCase() !== "rub" ||
+      !proof ||
       moneyMinor(payment.sum) !== 79000 ||
       (body.payment_init !== undefined && body.payment_init !== "manual") ||
       (body.subscription_action !== undefined &&
@@ -139,7 +180,7 @@ export class ProdamusTestClubService {
         orderId: payment.orderId,
         periodMs: clubAccessMs(),
         sum: payment.sum,
-        proof: payment.proof,
+        proof,
       });
       return granted ? { status: 200, body: "success" } : invalid;
     } catch {
