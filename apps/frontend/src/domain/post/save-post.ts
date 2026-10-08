@@ -6,11 +6,12 @@ import { validateFileSize } from "@/shared/browser/file-operations";
 import { requireUploadedMedia } from "@/shared/media/upload-result";
 import type { ApiInputs } from "@/shared/api/types";
 
-type Payload = ReturnType<typeof serializePostDraft>;
+export type PostPayload = ReturnType<typeof serializePostDraft>;
+type Payload = PostPayload;
 type UploadedAttachment = NonNullable<
   ApiInputs["admin"]["createPost"]["attachments"]
 >[number];
-type SavePayload = Payload & {
+export type SavePayload = Payload & {
   attachments?: UploadedAttachment[];
   removedMediaIds?: number[];
 };
@@ -41,6 +42,13 @@ export type PostSaveApi = {
     signal: AbortSignal,
   ) => Promise<unknown>;
 };
+export type PostSaveSnapshot = {
+  savedId: number | null;
+  original?: Payload;
+  phase: "idle" | "upload" | "create" | "update" | "complete";
+  creationIntent?: { key: string; payloadJson: string };
+  uploaded: [PostAttachment, UploadedAttachment][];
+};
 export class PostSaveError extends Error {
   public data?: { httpStatus: number };
   constructor(
@@ -63,9 +71,69 @@ export class PostSaveCoordinator {
   private postWritePending = false;
   private creationIntent?: { key: string; payloadJson: string };
   private original?: Payload;
+  private phase: PostSaveSnapshot["phase"] = "idle";
+  private checkpoint?: (state: PostSaveSnapshot) => Promise<void>;
   constructor(editingId: number | null = null, original?: Payload) {
     this.savedId = editingId;
     this.original = original ? structuredClone(original) : undefined;
+  }
+  snapshot(): PostSaveSnapshot {
+    return {
+      savedId: this.savedId,
+      original: this.original,
+      phase: this.phase,
+      creationIntent: this.creationIntent,
+      uploaded: [...this.uploaded],
+    };
+  }
+  restore(state: PostSaveSnapshot): void {
+    this.savedId = state.savedId;
+    this.original = state.original;
+    this.creationIntent = state.creationIntent;
+    this.uploaded = new Map(state.uploaded);
+    this.phase = state.phase;
+    this.completed = state.phase === "complete";
+    this.uncertain = state.phase !== "idle" && !this.completed;
+    this.postWritePending =
+      state.phase === "create" || state.phase === "update";
+  }
+  setCheckpoint(checkpoint: (state: PostSaveSnapshot) => Promise<void>): void {
+    this.checkpoint = checkpoint;
+  }
+  private async remember(phase: PostSaveSnapshot["phase"]): Promise<void> {
+    this.phase = phase;
+    await this.checkpoint?.(this.snapshot());
+  }
+  /** Explicit user action only: replay the exact durable create, never uploads or edits. */
+  async recoverCreation(
+    api: PostSaveApi,
+    operation: ScopedOperation,
+  ): Promise<number> {
+    if (
+      this.phase !== "create" ||
+      !this.creationIntent ||
+      this.savedId !== null
+    )
+      throw new Error(
+        "Для этой операции нужна ручная проверка списка публикаций",
+      );
+    const payload = JSON.parse(this.creationIntent.payloadJson) as SavePayload;
+    operation.assertCurrent();
+    await this.remember("create");
+    operation.assertCurrent();
+    const id = await api.create(
+      { ...payload, idempotencyKey: this.creationIntent.key },
+      operation.signal,
+    );
+    if (typeof id !== "number" || !Number.isSafeInteger(id) || id <= 0)
+      throw new PostSaveError("Сервер не подтвердил номер публикации", true);
+    this.savedId = id;
+    this.completed = true;
+    this.uncertain = false;
+    this.postWritePending = false;
+    await this.remember("complete");
+    operation.assertCurrent();
+    return id;
   }
   assertCanClose(): void {
     if (this.postWritePending)
@@ -94,6 +162,8 @@ export class PostSaveCoordinator {
           operation.signal,
         );
         operation.assertCurrent();
+        await this.remember("upload");
+        operation.assertCurrent();
         writing = true;
         const result = await api.upload(
           {
@@ -110,6 +180,8 @@ export class PostSaveCoordinator {
           type: attachment.type,
         });
         writing = false;
+        if (!this.completed && !this.postWritePending && !this.uncertain)
+          await this.remember("idle");
         operation.assertCurrent();
       }
       const uploads = attachments.flatMap((attachment) => {
@@ -127,6 +199,10 @@ export class PostSaveCoordinator {
       this.assertCanSave();
       if (this.savedId === null) {
         const createPayload = this.withCreationKey(savePayload);
+        this.postWritePending = true;
+        if (this.checkpoint) await this.remember("create");
+        else this.phase = "create";
+        operation.assertCurrent();
         writing = true;
         this.postWritePending = true;
         const id = await api.create(createPayload, operation.signal);
@@ -151,6 +227,10 @@ export class PostSaveCoordinator {
         if (uploads.length) changes.attachments = uploads;
         if (removedIds.length)
           changes.removedMediaIds = [...new Set(removedIds)];
+        this.postWritePending = true;
+        if (this.checkpoint) await this.remember("update");
+        else this.phase = "update";
+        operation.assertCurrent();
         writing = true;
         this.postWritePending = true;
         this.assertUpdate(
@@ -162,6 +242,7 @@ export class PostSaveCoordinator {
       this.completed = true;
       this.postWritePending = false;
       writing = false;
+      await this.remember("complete");
       operation.assertCurrent();
       return this.savedId;
     } catch (error) {
@@ -170,6 +251,16 @@ export class PostSaveCoordinator {
         this.postWritePending = false;
       this.uncertain =
         this.uncertain || (writing && (!status || status >= 500));
+      if (!this.completed && !this.uncertain) {
+        this.postWritePending = false;
+        this.phase = "idle";
+        // Failure to journal must not turn an undispatched request into success.
+        try {
+          await this.remember("idle");
+        } catch {
+          /* The editor reports the storage failure. */
+        }
+      }
       const message = this.completed
         ? "Публикация сохранена. Обновите список перед новой правкой."
         : this.uncertain

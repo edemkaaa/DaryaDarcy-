@@ -12,7 +12,7 @@ import {
   Field,
   Collection,
 } from "@/shared/ui/elements";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
@@ -27,6 +27,13 @@ import { CalendarTracker } from "@/features/admin/calendar-tracker";
 import { StatsDashboard } from "@/features/admin/stats-dashboard";
 import { ScheduleDatetime } from "@/features/admin/schedule-datetime";
 import { ArticlesAdmin } from "@/features/admin/articles-admin";
+import { SeasonSettings } from "@/features/admin/season-settings";
+import { MemberEmailBinding } from "./member-email-binding";
+import { MemberAccessEmail } from "./member-access-email";
+import {
+  canResendAccessEmail,
+  useAccessEmailResend,
+} from "./use-access-email-resend";
 import { useAuth } from "@/domain/session/session-context";
 import { SessionStatus } from "@/domain/session/session-status";
 import { uploadAdminVideoBlob } from "@/features/admin/media/video-upload";
@@ -52,6 +59,16 @@ import { PostSaveCoordinator } from "@/domain/post/save-post";
 import { usePostAttachments } from "./use-post-attachments";
 import { usePostUploadSelection } from "./use-post-upload-selection";
 import { PostUploadStatus } from "./post-upload-status";
+import { PostRecoveryNotice } from "./post-recovery-notice";
+import { usePostRecovery } from "./use-post-recovery";
+import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
+import {
+  requireOk,
+  requireGrant,
+  requireAbsentId,
+  requireIdList,
+} from "@/shared/api/action-result";
+import { invalidResponse } from "@/shared/api/errors";
 import {
   PostAttachmentsField,
   PostAttachmentsList,
@@ -75,6 +92,7 @@ export default function AdminScreen() {
 
   const router = useRouter();
   const {
+    user,
     isOwner,
     isAuthenticated,
     loading: authLoading,
@@ -96,7 +114,7 @@ export default function AdminScreen() {
   >(null);
   const [draftKey, setDraftKey] = useState(0);
   const richTextFieldRef = useRef<RichTextFieldHandle>(null);
-  const [viewTab, setViewTab] = useState<
+  const [ownerViewTab, setViewTab] = useState<
     | "posts"
     | "calendar"
     | "stats"
@@ -104,7 +122,26 @@ export default function AdminScreen() {
     | "payments"
     | "articles"
     | "reports"
+    | "seasons"
   >("posts");
+  const staff = isOwner || user?.role === "moderator";
+  const viewTab = isOwner ? ownerViewTab : "reports";
+  const adminActions = useConfirmedAction(staff && !showForm);
+  const accessEmail = useAccessEmailResend(
+    isOwner && viewTab === "members" && !showForm,
+  );
+  const readQuery = async (query: {
+    refetch: () => Promise<{
+      isSuccess: boolean;
+      error: unknown;
+      data: unknown;
+    }>;
+  }) => {
+    const result = await query.refetch();
+    if (!result.isSuccess || !Array.isArray(result.data))
+      throw result.error ?? invalidResponse();
+    requireIdList(result.data);
+  };
   // Fetch all posts (admin)
   const postsQuery = trpc.admin.posts.useQuery(undefined, { enabled: isOwner });
   const { data: posts, isLoading, refetch } = postsQuery;
@@ -122,50 +159,159 @@ export default function AdminScreen() {
     }
   };
   const attachments = usePostAttachments(operation, notifyAdminError);
-  // Mutations
-  const deleteMutation = trpc.admin.deletePost.useMutation({
-    onSuccess: () => invalidatePublicFeeds(),
-    onError: (err) =>
-      notifyAdminError(err.message || "Не удалось удалить пост"),
+  const editorSnapshot = useMemo(
+    () => ({
+      draft: { ...form, richText: richText ?? null },
+      attachments: attachments.attachments,
+      removedIds: attachments.removedIds,
+      pending: uploadSelection.pending,
+    }),
+    [
+      form,
+      richText,
+      attachments.attachments,
+      attachments.removedIds,
+      uploadSelection.pending,
+    ],
+  );
+  const recovery = usePostRecovery({
+    active: showForm,
+    slot: `full:${editingId ?? "new"}`,
+    editor: editorSnapshot,
+    coordinator: saveCoordinator,
+    onRestore: (snapshot) => {
+      setForm({
+        ...snapshot.draft,
+        published: snapshot.draft.status === "published",
+      });
+      setRichText(snapshot.draft.richText ?? undefined);
+      setRichTextSeed(snapshot.draft.richText ?? null);
+      setDraftKey((key) => key + 1);
+      attachments.restore(snapshot.attachments, snapshot.removedIds);
+      uploadSelection.restore(snapshot.pending);
+    },
   });
+  const postApi = {
+    create: (
+      input: Parameters<typeof utils.client.admin.createPost.mutate>[0],
+      signal: AbortSignal,
+    ) => utils.client.admin.createPost.mutate(input, { signal }),
+    update: (
+      id: number,
+      input: Omit<
+        Parameters<typeof utils.client.admin.updatePost.mutate>[0],
+        "id"
+      >,
+      signal: AbortSignal,
+    ) => utils.client.admin.updatePost.mutate({ id, ...input }, { signal }),
+    upload: (
+      input: Parameters<typeof utils.client.admin.uploadMedia.mutate>[0],
+      signal: AbortSignal,
+    ) => utils.client.admin.uploadMedia.mutate(input, { signal }),
+  };
   const membersQuery = trpc.admin.members.useQuery(undefined, {
     enabled: isOwner && (viewTab === "members" || viewTab === "payments"),
   });
   const paymentsQuery = trpc.admin.payments.useQuery(undefined, {
     enabled: isOwner && viewTab === "payments",
   });
-  const grantClub = trpc.admin.grantClub.useMutation({
-    onSuccess: (result) => {
+  const reportsQuery = trpc.moderation.listCommentReports.useQuery(undefined, {
+    enabled: staff && viewTab === "reports",
+  });
+  const mutation = <T,>(
+    kind: string,
+    label: string,
+    perform: (input: T, signal: AbortSignal) => Promise<unknown>,
+    read: () => Promise<void>,
+    commit: (result: unknown) => void,
+    validate = requireOk,
+  ) => ({
+    isPending: adminActions.blocked,
+    mutate: (input: T) =>
+      void adminActions.run({
+        kind,
+        label,
+        perform: (signal) => perform(input, signal),
+        read,
+        commit,
+        validate,
+      }),
+  });
+  const readMembers = () => readQuery(membersQuery);
+  const readReports = () => readQuery(reportsQuery);
+  const deleteMutation = mutation(
+    "delete-post",
+    "Удалить пост",
+    async (input: { id: number }, signal) => {
+      await utils.client.admin.deletePost.mutate(input, { signal });
+      const result = await postsQuery.refetch();
+      if (!result.isSuccess || !Array.isArray(result.data))
+        throw result.error ?? invalidResponse();
+      requireAbsentId(result.data, input.id);
+      return { ok: true };
+    },
+    () => readQuery(postsQuery),
+    () => invalidatePublicFeeds(),
+  );
+  const grantClub = mutation(
+    "grant",
+    "Продлить клуб",
+    (input: { userId: number }, signal) =>
+      utils.client.admin.grantClub.mutate(input, { signal }),
+    readMembers,
+    (result) => {
       void membersQuery.refetch();
       void paymentsQuery.refetch();
-      const until = result?.expiresAt
-        ? new Date(result.expiresAt).toLocaleDateString("ru-RU", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })
-        : "";
-      {
-        window.alert(until ? `Клуб продлён до ${until}` : "Клуб продлён");
-        return;
-      }
+      const until = new Date(
+        (result as { expiresAt: string }).expiresAt,
+      ).toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+      window.alert(`Клуб продлён до ${until}`);
     },
-    onError: (err) =>
-      notifyAdminError(err.message || "Не удалось продлить клуб"),
-  });
-  const blockUser = trpc.moderation.blockUser.useMutation({
-    onSuccess: () => void membersQuery.refetch(),
-    onError: (err) =>
-      notifyAdminError(err.message || "Не удалось заблокировать"),
-  });
-  const unblockUser = trpc.moderation.unblockUser.useMutation({
-    onSuccess: () => void membersQuery.refetch(),
-    onError: (err) =>
-      notifyAdminError(err.message || "Не удалось разблокировать"),
-  });
-  const reportsQuery = trpc.moderation.listCommentReports.useQuery(undefined, {
-    enabled: isOwner && viewTab === "reports",
-  });
+    requireGrant,
+  );
+  const blockUser = mutation(
+    "block",
+    "Заблокировать пользователя",
+    (input: { userId: number; reason: string }, signal) =>
+      utils.client.moderation.blockUser.mutate(input, { signal }),
+    isOwner && viewTab === "members" ? readMembers : readReports,
+    () => {
+      if (isOwner) void membersQuery.refetch();
+      void reportsQuery.refetch();
+    },
+  );
+  const unblockUser = mutation(
+    "unblock",
+    "Разблокировать пользователя",
+    (input: { userId: number }, signal) =>
+      utils.client.moderation.unblockUser.mutate(input, { signal }),
+    readMembers,
+    () => void membersQuery.refetch(),
+  );
+  const dismissReport = mutation(
+    "dismiss",
+    "Закрыть жалобу",
+    (input: { reportId: number }, signal) =>
+      utils.client.moderation.dismissCommentReport.mutate(input, { signal }),
+    readReports,
+    () => void reportsQuery.refetch(),
+  );
+  const deleteReportedComment = mutation(
+    "delete-comment",
+    "Удалить комментарий",
+    (input: { commentId: number; reportId: number }, signal) =>
+      utils.client.moderation.deleteReportedComment.mutate(input, { signal }),
+    readReports,
+    () => {
+      void reportsQuery.refetch();
+      void utils.club.comments.invalidate();
+      void utils.club.list.invalidate();
+    },
+  );
   const selectedListQuery =
     viewTab === "posts"
       ? postsQuery
@@ -176,17 +322,6 @@ export default function AdminScreen() {
           : viewTab === "reports"
             ? reportsQuery
             : null;
-  const dismissReport = trpc.moderation.dismissCommentReport.useMutation({
-    onSuccess: () => void reportsQuery.refetch(),
-    onError: (err) =>
-      notifyAdminError(err.message || "Не удалось закрыть жалобу"),
-  });
-  const deleteReportedComment =
-    trpc.moderation.deleteReportedComment.useMutation({
-      onSuccess: () => void reportsQuery.refetch(),
-      onError: (err) =>
-        notifyAdminError(err.message || "Не удалось удалить комментарий"),
-    });
   const resetForm = () => {
     operation.cancel();
     uploadSelection.reset();
@@ -275,6 +410,7 @@ export default function AdminScreen() {
     });
   };
   const handleSubmit = async () => {
+    if (recovery.blocked) return;
     if (
       !form.text.trim() &&
       !form.photos.length &&
@@ -302,6 +438,8 @@ export default function AdminScreen() {
     if (!task) return;
     try {
       uploadSelection.assertReady();
+      await recovery.checkpoint();
+      task.assertCurrent();
       const payload = serializePostDraft({
         ...form,
         richText:
@@ -314,16 +452,11 @@ export default function AdminScreen() {
         payload,
         attachments.attachments,
         attachments.removedIds,
-        {
-          create: (input, signal) =>
-            utils.client.admin.createPost.mutate(input, { signal }),
-          update: (id, input, signal) =>
-            utils.client.admin.updatePost.mutate({ id, ...input }, { signal }),
-          upload: (input, signal) =>
-            utils.client.admin.uploadMedia.mutate(input, { signal }),
-        },
+        postApi,
         task,
       );
+      task.assertCurrent();
+      await recovery.clear();
       task.assertCurrent();
       invalidatePublicFeeds();
       resetForm();
@@ -379,6 +512,8 @@ export default function AdminScreen() {
       task.assertCurrent();
       [selected] = uploadSelection.select(files);
       uploadSelection.sending(selected);
+      await recovery.checkpoint(undefined, uploadSelection.snapshot());
+      task.assertCurrent();
       const file = files[0];
       const url = await uploadAdminVideoBlob(
         file,
@@ -422,11 +557,15 @@ export default function AdminScreen() {
       });
       task.assertCurrent();
       const selections = uploadSelection.select(files);
+      await recovery.checkpoint(undefined, uploadSelection.snapshot());
+      task.assertCurrent();
       for (const [index, file] of files.entries()) {
         selected = selections[index];
         const payload = await fileToUpload(file, { signal: task.signal });
         task.assertCurrent();
         uploadSelection.sending(selected);
+        await recovery.checkpoint(undefined, uploadSelection.snapshot());
+        task.assertCurrent();
         const url = requireUploadedUrl(
           await utils.client.admin.uploadPhoto.mutate(payload, {
             signal: task.signal,
@@ -599,6 +738,7 @@ export default function AdminScreen() {
       >
         <Action
           aria-label="Редактировать пост"
+          disabled={adminActions.blocked}
           onClick={() => handleEdit(item)}
           className={({ pressed }) =>
             [
@@ -613,6 +753,7 @@ export default function AdminScreen() {
         </Action>
         <Action
           aria-label="Удалить пост"
+          disabled={deleteMutation.isPending}
           onClick={() => handleDelete(item.id)}
           className={({ pressed }) =>
             [
@@ -628,7 +769,51 @@ export default function AdminScreen() {
       </div>
     </div>
   );
-  const closeForm = () => {
+  const discardRecovery = async () => {
+    if (
+      !window.confirm(
+        "Удалить локальную копию? Если сохранение или загрузка не подтверждены, сначала проверьте список публикаций в другой вкладке. Файлы на сервере не удаляются.",
+      )
+    )
+      return;
+    try {
+      await recovery.clear();
+      resetForm();
+    } catch (error) {
+      notifyAdminError((error as Error).message);
+    }
+  };
+  const finishRecovery = async () => {
+    try {
+      await recovery.clear();
+      invalidatePublicFeeds();
+      resetForm();
+    } catch (error) {
+      notifyAdminError((error as Error).message);
+    }
+  };
+  const recoverCreation = async () => {
+    const task = operation.begin("save");
+    if (!task) return;
+    try {
+      await saveCoordinator.current.recoverCreation(postApi, task);
+      task.assertCurrent();
+      await recovery.clear();
+      task.assertCurrent();
+      invalidatePublicFeeds();
+      resetForm();
+    } catch (error) {
+      checkOperationAccessError(error);
+      if (task.isCurrent()) notifyAdminError((error as Error).message);
+    } finally {
+      task.finish();
+    }
+  };
+  const closeForm = async () => {
+    if (recovery.status === "loading" || recovery.status === "offered") {
+      resetForm();
+      return;
+    }
     try {
       saveCoordinator.current.assertCanClose();
     } catch (error) {
@@ -648,7 +833,12 @@ export default function AdminScreen() {
       )
     )
       return;
-    resetForm();
+    try {
+      await recovery.clear();
+      resetForm();
+    } catch (error) {
+      notifyAdminError((error as Error).message);
+    }
   };
   // ── Form Modal ──
   const renderForm = () => {
@@ -684,7 +874,7 @@ export default function AdminScreen() {
             </Typography>
             <Action
               onClick={handleSubmit}
-              disabled={operation.busy}
+              disabled={operation.busy || recovery.blocked}
               className={({ pressed }) =>
                 [
                   classes.action2,
@@ -702,6 +892,13 @@ export default function AdminScreen() {
             </Action>
           </div>
 
+          <PostRecoveryNotice
+            recovery={recovery}
+            busy={operation.busy}
+            onRecover={() => void recoverCreation()}
+            onFinish={() => void finishRecovery()}
+            onDiscard={() => void discardRecovery()}
+          />
           {/* Preview/Edit toggle */}
           <PostUploadStatus selection={uploadSelection} busy={operation.busy} />
           <div
@@ -894,7 +1091,7 @@ export default function AdminScreen() {
             </ScrollArea>
           ) : null}
           <ScrollArea
-            inert={operation.busy || showPreview}
+            inert={operation.busy || recovery.blocked || showPreview}
             key="editor"
             contentClassName={classes.formContent}
             className={[
@@ -1295,7 +1492,7 @@ export default function AdminScreen() {
       </ScreenContainer>
     );
   }
-  if (!isAuthenticated || !isOwner) {
+  if (!isAuthenticated || !staff) {
     return (
       <ScreenContainer edges={["top", "bottom", "left", "right"]}>
         <div
@@ -1305,7 +1502,7 @@ export default function AdminScreen() {
         >
           <MaterialIcons name="lock-outline" size={40} color={BROWN_LIGHT} />
           <Typography className={classes.loadingText}>
-            Админка доступна только Дарье
+            Нет доступа к управлению приложением
           </Typography>
           <Action
             onClick={() => router.push("/login?next=/admin")}
@@ -1348,10 +1545,13 @@ export default function AdminScreen() {
         >
           <MaterialIcons name="arrow-back" size={22} color={BROWN_DARK} />
         </Action>
-        <Typography className={classes.headerTitle}>Админка</Typography>
-        {viewTab === "posts" || viewTab === "calendar" ? (
+        <Typography className={classes.headerTitle}>
+          {isOwner ? "Админка" : "Модерация"}
+        </Typography>
+        {isOwner && (viewTab === "posts" || viewTab === "calendar") ? (
           <Action
             onClick={handleCreate}
+            disabled={adminActions.blocked}
             className={({ pressed }) =>
               [
                 classes.newPostBtn,
@@ -1371,251 +1571,303 @@ export default function AdminScreen() {
         )}
       </div>
 
-      <div
-        className={["ui-stack ", classes.statsRow].filter(Boolean).join(" ")}
-      >
+      {adminActions.error ? (
+        <Typography role="alert" className={classes.loadingText}>
+          {adminActions.error}
+        </Typography>
+      ) : null}
+      {adminActions.unknown && !adminActions.operation.busy ? (
+        <Action
+          onClick={() => void adminActions.check()}
+          className={classes.newPostBtn}
+        >
+          Обновить список
+        </Action>
+      ) : null}
+      {isOwner ? (
         <div
-          className={["ui-stack ", classes.statItem].filter(Boolean).join(" ")}
+          className={["ui-stack ", classes.statsRow].filter(Boolean).join(" ")}
         >
-          <Typography className={classes.statNumber}>
-            {posts?.length || 0}
-          </Typography>
-          <Typography className={classes.formHint}>Всего</Typography>
+          <div
+            className={["ui-stack ", classes.statItem]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            <Typography className={classes.statNumber}>
+              {posts?.length || 0}
+            </Typography>
+            <Typography className={classes.formHint}>Всего</Typography>
+          </div>
+          <div
+            className={["ui-stack ", classes.statItem]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            <Typography className={classes.statNumber}>
+              {posts?.filter((p) => p.published).length || 0}
+            </Typography>
+            <Typography className={classes.formHint}>Опубликовано</Typography>
+          </div>
+          <div
+            className={["ui-stack ", classes.statItem]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            <Typography className={classes.statNumber}>
+              {posts?.filter((p) => p.status === "scheduled").length || 0}
+            </Typography>
+            <Typography className={classes.formHint}>Отложено</Typography>
+          </div>
+          <div
+            className={["ui-stack ", classes.statItem]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            <Typography className={classes.statNumber}>
+              {posts?.filter(
+                (p) =>
+                  p.status === "draft" ||
+                  (!p.published && p.status !== "scheduled"),
+              ).length || 0}
+            </Typography>
+            <Typography className={classes.formHint}>Черновики</Typography>
+          </div>
         </div>
-        <div
-          className={["ui-stack ", classes.statItem].filter(Boolean).join(" ")}
-        >
-          <Typography className={classes.statNumber}>
-            {posts?.filter((p) => p.published).length || 0}
-          </Typography>
-          <Typography className={classes.formHint}>Опубликовано</Typography>
-        </div>
-        <div
-          className={["ui-stack ", classes.statItem].filter(Boolean).join(" ")}
-        >
-          <Typography className={classes.statNumber}>
-            {posts?.filter((p) => p.status === "scheduled").length || 0}
-          </Typography>
-          <Typography className={classes.formHint}>Отложено</Typography>
-        </div>
-        <div
-          className={["ui-stack ", classes.statItem].filter(Boolean).join(" ")}
-        >
-          <Typography className={classes.statNumber}>
-            {posts?.filter(
-              (p) =>
-                p.status === "draft" ||
-                (!p.published && p.status !== "scheduled"),
-            ).length || 0}
-          </Typography>
-          <Typography className={classes.formHint}>Черновики</Typography>
-        </div>
-      </div>
-
-      {/* View tabs */}
-      <div
-        className={["ui-stack ", classes.viewTabs].filter(Boolean).join(" ")}
-      >
-        <Action
-          onClick={() => setViewTab("posts")}
-          className={[
-            classes.viewTabActive,
-            viewTab === "posts"
-              ? classes.backgroundColorState9
-              : classes.backgroundColorState10,
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <MaterialIcons
-            name="list"
-            size={16}
-            color={viewTab === "posts" ? CREAM_BG : BROWN_LIGHT}
-          />
-          <Typography
-            className={[
-              classes.targetChipTextActive,
-              viewTab === "posts" ? classes.colorState13 : classes.colorState14,
-            ]
+      ) : null}
+      {isOwner ? (
+        <>
+          {/* View tabs */}
+          <div
+            className={["ui-stack ", classes.viewTabs]
               .filter(Boolean)
               .join(" ")}
           >
-            Посты
-          </Typography>
-        </Action>
-        <Action
-          onClick={() => setViewTab("articles")}
-          className={[
-            classes.viewTabActive,
-            viewTab === "articles"
-              ? classes.backgroundColorState11
-              : classes.backgroundColorState12,
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <MaterialIcons
-            name="menu-book"
-            size={16}
-            color={viewTab === "articles" ? CREAM_BG : BROWN_LIGHT}
-          />
-          <Typography
-            className={[
-              classes.targetChipTextActive,
-              viewTab === "articles"
-                ? classes.colorState15
-                : classes.colorState16,
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            Статьи
-          </Typography>
-        </Action>
-        <Action
-          onClick={() => setViewTab("calendar")}
-          className={[
-            classes.viewTabActive,
-            viewTab === "calendar"
-              ? classes.backgroundColorState13
-              : classes.backgroundColorState14,
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <MaterialIcons
-            name="calendar-month"
-            size={16}
-            color={viewTab === "calendar" ? CREAM_BG : BROWN_LIGHT}
-          />
-          <Typography
-            className={[
-              classes.targetChipTextActive,
-              viewTab === "calendar"
-                ? classes.colorState17
-                : classes.colorState18,
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            Календарь
-          </Typography>
-        </Action>
-        <Action
-          onClick={() => setViewTab("stats")}
-          className={[
-            classes.viewTabActive,
-            viewTab === "stats"
-              ? classes.backgroundColorState15
-              : classes.backgroundColorState16,
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <MaterialIcons
-            name="bar-chart"
-            size={16}
-            color={viewTab === "stats" ? CREAM_BG : BROWN_LIGHT}
-          />
-          <Typography
-            className={[
-              classes.targetChipTextActive,
-              viewTab === "stats" ? classes.colorState19 : classes.colorState20,
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            Статистика
-          </Typography>
-        </Action>
-        <Action
-          onClick={() => setViewTab("members")}
-          className={[
-            classes.viewTabActive,
-            viewTab === "members"
-              ? classes.backgroundColorState17
-              : classes.backgroundColorState18,
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <MaterialIcons
-            name="groups"
-            size={16}
-            color={viewTab === "members" ? CREAM_BG : BROWN_LIGHT}
-          />
-          <Typography
-            className={[
-              classes.targetChipTextActive,
-              viewTab === "members"
-                ? classes.colorState21
-                : classes.colorState22,
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            Участницы
-          </Typography>
-        </Action>
-        <Action
-          onClick={() => setViewTab("payments")}
-          className={[
-            classes.viewTabActive,
-            viewTab === "payments"
-              ? classes.backgroundColorState19
-              : classes.backgroundColorState20,
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <MaterialIcons
-            name="payments"
-            size={16}
-            color={viewTab === "payments" ? CREAM_BG : BROWN_LIGHT}
-          />
-          <Typography
-            className={[
-              classes.targetChipTextActive,
-              viewTab === "payments"
-                ? classes.colorState23
-                : classes.colorState24,
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            Оплаты
-          </Typography>
-        </Action>
-        <Action
-          onClick={() => setViewTab("reports")}
-          className={[
-            classes.viewTabActive,
-            viewTab === "reports"
-              ? classes.backgroundColorState21
-              : classes.backgroundColorState22,
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <MaterialIcons
-            name="flag"
-            size={16}
-            color={viewTab === "reports" ? CREAM_BG : BROWN_LIGHT}
-          />
-          <Typography
-            className={[
-              classes.targetChipTextActive,
-              viewTab === "reports"
-                ? classes.colorState25
-                : classes.colorState26,
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            Жалобы
-          </Typography>
-        </Action>
-      </div>
+            <Action
+              onClick={() => setViewTab("posts")}
+              className={[
+                classes.viewTabActive,
+                viewTab === "posts"
+                  ? classes.backgroundColorState9
+                  : classes.backgroundColorState10,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <MaterialIcons
+                name="list"
+                size={16}
+                color={viewTab === "posts" ? CREAM_BG : BROWN_LIGHT}
+              />
+              <Typography
+                className={[
+                  classes.targetChipTextActive,
+                  viewTab === "posts"
+                    ? classes.colorState13
+                    : classes.colorState14,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                Посты
+              </Typography>
+            </Action>
+            <Action
+              onClick={() => setViewTab("articles")}
+              className={[
+                classes.viewTabActive,
+                viewTab === "articles"
+                  ? classes.backgroundColorState11
+                  : classes.backgroundColorState12,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <MaterialIcons
+                name="menu-book"
+                size={16}
+                color={viewTab === "articles" ? CREAM_BG : BROWN_LIGHT}
+              />
+              <Typography
+                className={[
+                  classes.targetChipTextActive,
+                  viewTab === "articles"
+                    ? classes.colorState15
+                    : classes.colorState16,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                Статьи
+              </Typography>
+            </Action>
+            <Action
+              onClick={() => setViewTab("calendar")}
+              className={[
+                classes.viewTabActive,
+                viewTab === "calendar"
+                  ? classes.backgroundColorState13
+                  : classes.backgroundColorState14,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <MaterialIcons
+                name="calendar-month"
+                size={16}
+                color={viewTab === "calendar" ? CREAM_BG : BROWN_LIGHT}
+              />
+              <Typography
+                className={[
+                  classes.targetChipTextActive,
+                  viewTab === "calendar"
+                    ? classes.colorState17
+                    : classes.colorState18,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                Календарь
+              </Typography>
+            </Action>
+            <Action
+              onClick={() => setViewTab("stats")}
+              className={[
+                classes.viewTabActive,
+                viewTab === "stats"
+                  ? classes.backgroundColorState15
+                  : classes.backgroundColorState16,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <MaterialIcons
+                name="bar-chart"
+                size={16}
+                color={viewTab === "stats" ? CREAM_BG : BROWN_LIGHT}
+              />
+              <Typography
+                className={[
+                  classes.targetChipTextActive,
+                  viewTab === "stats"
+                    ? classes.colorState19
+                    : classes.colorState20,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                Статистика
+              </Typography>
+            </Action>
+            <Action
+              onClick={() => setViewTab("members")}
+              className={[
+                classes.viewTabActive,
+                viewTab === "members"
+                  ? classes.backgroundColorState17
+                  : classes.backgroundColorState18,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <MaterialIcons
+                name="groups"
+                size={16}
+                color={viewTab === "members" ? CREAM_BG : BROWN_LIGHT}
+              />
+              <Typography
+                className={[
+                  classes.targetChipTextActive,
+                  viewTab === "members"
+                    ? classes.colorState21
+                    : classes.colorState22,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                Участницы
+              </Typography>
+            </Action>
+            <Action
+              onClick={() => setViewTab("payments")}
+              className={[
+                classes.viewTabActive,
+                viewTab === "payments"
+                  ? classes.backgroundColorState19
+                  : classes.backgroundColorState20,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <MaterialIcons
+                name="payments"
+                size={16}
+                color={viewTab === "payments" ? CREAM_BG : BROWN_LIGHT}
+              />
+              <Typography
+                className={[
+                  classes.targetChipTextActive,
+                  viewTab === "payments"
+                    ? classes.colorState23
+                    : classes.colorState24,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                Оплаты
+              </Typography>
+            </Action>
+            <Action
+              onClick={() => setViewTab("reports")}
+              className={[
+                classes.viewTabActive,
+                viewTab === "reports"
+                  ? classes.backgroundColorState21
+                  : classes.backgroundColorState22,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <MaterialIcons
+                name="flag"
+                size={16}
+                color={viewTab === "reports" ? CREAM_BG : BROWN_LIGHT}
+              />
+              <Typography
+                className={[
+                  classes.targetChipTextActive,
+                  viewTab === "reports"
+                    ? classes.colorState25
+                    : classes.colorState26,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                Жалобы
+              </Typography>
+            </Action>
+            <Action
+              onClick={() => setViewTab("seasons")}
+              className={[
+                classes.viewTabActive,
+                viewTab === "seasons"
+                  ? classes.backgroundColorState21
+                  : classes.backgroundColorState22,
+              ].join(" ")}
+            >
+              <Typography
+                className={[
+                  classes.targetChipTextActive,
+                  viewTab === "seasons"
+                    ? classes.colorState25
+                    : classes.colorState26,
+                ].join(" ")}
+              >
+                Сезоны
+              </Typography>
+            </Action>
+          </div>
+        </>
+      ) : null}
 
       {selectedListQuery?.isError ? (
         <QueryRetryState
@@ -1624,6 +1876,8 @@ export default function AdminScreen() {
           onRetry={() => void selectedListQuery.refetch()}
           message="Не удалось загрузить список"
         />
+      ) : viewTab === "seasons" ? (
+        <SeasonSettings />
       ) : viewTab === "articles" ? (
         <ArticlesAdmin />
       ) : viewTab === "calendar" ? (
@@ -1750,7 +2004,7 @@ export default function AdminScreen() {
                       item.email || item.name || String(item.id),
                     )
                   }
-                  disabled={grantClub.isPending}
+                  disabled={grantClub.isPending || accessEmail.busy}
                   className={classes.action}
                 >
                   <Typography className={classes.grantBtnText}>
@@ -1760,7 +2014,7 @@ export default function AdminScreen() {
                 {item.blockedAt ? (
                   <Action
                     onClick={() => unblockUser.mutate({ userId: item.id })}
-                    disabled={unblockUser.isPending}
+                    disabled={unblockUser.isPending || accessEmail.busy}
                     className={classes.action}
                   >
                     <Typography className={classes.grantBtnText}>
@@ -1782,13 +2036,34 @@ export default function AdminScreen() {
                         });
                       }
                     }}
-                    disabled={blockUser.isPending}
+                    disabled={blockUser.isPending || accessEmail.busy}
                     className={classes.action}
                   >
                     <Typography className={classes.typography}>
                       Заблокировать
                     </Typography>
                   </Action>
+                ) : null}
+                {(item.email === null || item.email === "") &&
+                item.role === "user" &&
+                !item.blockedAt ? (
+                  <MemberEmailBinding
+                    key={`${user?.id}:${item.id}`}
+                    memberId={item.id}
+                    memberName={item.name}
+                    disabled={adminActions.blocked || accessEmail.busy}
+                  />
+                ) : null}
+                {canResendAccessEmail(item) ? (
+                  <MemberAccessEmail
+                    member={item}
+                    result={accessEmail.results[item.id]}
+                    pending={
+                      accessEmail.pendingId === `access-email-${item.id}`
+                    }
+                    disabled={adminActions.blocked || accessEmail.busy}
+                    onSend={accessEmail.send}
+                  />
                 ) : null}
               </div>
             </div>

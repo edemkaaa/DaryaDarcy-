@@ -19,7 +19,13 @@ import {
   checkOperationAccessError,
 } from "@/domain/session/use-session-operation";
 import { requireUploadedUrl } from "@/shared/media/upload-result";
-import { getHttpStatus } from "@/shared/api/errors";
+import { getHttpStatus, invalidResponse } from "@/shared/api/errors";
+import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
+import {
+  requireOk,
+  requireAbsentId,
+  requireIdList,
+} from "@/shared/api/action-result";
 import { fileToUpload, pickWebFiles } from "@/shared/media/image-upload";
 import {
   emptyBlock,
@@ -38,14 +44,6 @@ type Access = "public" | "club";
 export function ArticlesAdmin() {
   const utils = trpc.useUtils();
   const list = trpc.admin.articles.useQuery();
-  const remove = trpc.admin.deleteArticle.useMutation({
-    onSuccess: () => {
-      void utils.admin.articles.invalidate();
-      void utils.articles.list.invalidate();
-      void utils.club.list.invalidate();
-    },
-    onError: (err) => notify(err.message),
-  });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
@@ -53,6 +51,38 @@ export function ArticlesAdmin() {
   const [access, setAccess] = useState<Access>("club");
   const [previewing, setPreviewing] = useState(false);
   const [blocks, setBlocks] = useState<ArticleBlock[]>([emptyBlock("text")]);
+  const deletion = useConfirmedAction(!showForm);
+  const readArticles = async () => {
+    const result = await list.refetch();
+    if (!result.isSuccess || !Array.isArray(result.data))
+      throw result.error ?? invalidResponse();
+    requireIdList(result.data);
+  };
+  const remove = {
+    isPending: deletion.blocked,
+    mutate: (input: { id: number }) =>
+      void deletion.run({
+        kind: "delete-article",
+        label: "Удалить статью",
+        read: readArticles,
+        validate: requireOk,
+        perform: async (signal) => {
+          const result = await utils.client.admin.deleteArticle.mutate(input, {
+            signal,
+          });
+          requireOk(result);
+          const refreshed = await list.refetch();
+          if (!refreshed.isSuccess || !Array.isArray(refreshed.data))
+            throw refreshed.error ?? invalidResponse();
+          requireAbsentId(refreshed.data, input.id);
+          return result;
+        },
+        commit: () => {
+          void utils.articles.list.invalidate();
+          void utils.club.list.invalidate();
+        },
+      }),
+  };
   const operation = useSessionOperation(showForm, editingId);
   const uploading = operation.kind === "photos";
   const [published, setPublished] = useState(true);
@@ -702,7 +732,11 @@ export function ArticlesAdmin() {
             .filter(Boolean)
             .join(" ")}
         >
-          <Action onClick={reset} className={classes.btnGhost}>
+          <Action
+            disabled={remove.isPending}
+            onClick={reset}
+            className={classes.btnGhost}
+          >
             <Typography className={classes.btnGhostText}>Отмена</Typography>
           </Action>
           <Action
@@ -736,7 +770,17 @@ export function ArticlesAdmin() {
   }
   return (
     <ScrollArea contentClassName={classes.list}>
-      <Action onClick={() => setShowForm(true)} className={classes.btn}>
+      {deletion.error ? (
+        <Typography role="alert">{deletion.error}</Typography>
+      ) : null}
+      {deletion.unknown && !deletion.operation.busy ? (
+        <Action onClick={() => void deletion.check()}>Обновить список</Action>
+      ) : null}
+      <Action
+        disabled={remove.isPending}
+        onClick={() => setShowForm(true)}
+        className={classes.btn}
+      >
         <MaterialIcons name="menu-book" size={16} color={CREAM} />
         <Typography className={classes.btnText}>Написать статью</Typography>
       </Action>
@@ -773,6 +817,7 @@ export function ArticlesAdmin() {
               className={["ui-stack ", classes.row].filter(Boolean).join(" ")}
             >
               <Action
+                disabled={remove.isPending}
                 onClick={() => startEdit(item)}
                 className={classes.linkBtn}
               >
@@ -781,6 +826,7 @@ export function ArticlesAdmin() {
                 </Typography>
               </Action>
               <Action
+                disabled={remove.isPending}
                 onClick={() => confirmDelete(item.id)}
                 className={classes.linkBtn}
               >

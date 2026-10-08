@@ -1,13 +1,9 @@
 "use client";
 import { useCallback, useRef, useState } from "react";
 import { getHttpStatus } from "@/shared/api/errors";
+import type { PendingPostUpload } from "@/domain/post/recovery-store";
 
-type PendingUpload = {
-  id: number;
-  name: string;
-  sending: boolean;
-  uncertain: boolean;
-};
+type PendingUpload = PendingPostUpload;
 const unresolved =
   "Выбранные файлы ещё не добавлены. Проверьте результат загрузки или явно откажитесь от выбранных файлов перед сохранением.";
 
@@ -24,6 +20,17 @@ export function usePostUploadSelection() {
   return {
     pending,
     reset,
+    snapshot: () => current.current,
+    restore: (items: PendingUpload[]) => {
+      nextId.current = Math.max(0, ...items.map((item) => item.id));
+      commit(
+        items.map((item) => ({
+          ...item,
+          sending: false,
+          uncertain: item.uncertain || item.sending,
+        })),
+      );
+    },
     assertReady: () => {
       if (current.current.length) throw new Error(unresolved);
     },

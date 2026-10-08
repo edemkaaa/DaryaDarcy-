@@ -6,9 +6,11 @@ import classes from "./post-upload-status.module.scss";
 export function PostUploadStatus({
   selection,
   busy,
+  subject = "поста",
 }: {
   selection: ReturnType<typeof usePostUploadSelection>;
   busy: boolean;
+  subject?: "поста" | "комментария";
 }) {
   if (!selection.pending.length) return null;
   return (
@@ -19,15 +21,15 @@ export function PostUploadStatus({
       </Typography>
       <Typography>
         {selection.pending.some((item) => item.uncertain)
-          ? "Результат загрузки не подтверждён. Повторная загрузка автоматически не выполняется; сохранение поста пока заблокировано."
-          : "Дождитесь загрузки или откажитесь от этих файлов перед сохранением поста."}
+          ? `Результат загрузки не подтверждён. Повторная загрузка автоматически не выполняется; сохранение ${subject} пока заблокировано.`
+          : `Дождитесь загрузки или откажитесь от этих файлов перед сохранением ${subject}.`}
       </Typography>
       <Action
         disabled={busy}
         onClick={() => {
           if (
             window.confirm(
-              "Отказаться от выбранных неподтверждённых файлов? Они не будут включены в пост. Ранее подтверждённые файлы останутся; неподтверждённая загрузка могла сохраниться на сервере.",
+              "Отказаться от выбранных неподтверждённых файлов? Ранее подтверждённые файлы останутся; неподтверждённая загрузка могла сохраниться на сервере.",
             )
           )
             selection.reset();

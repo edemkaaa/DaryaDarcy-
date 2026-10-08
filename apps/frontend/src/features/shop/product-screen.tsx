@@ -13,17 +13,15 @@ import {
   Dialog,
 } from "@/shared/ui/elements";
 import { openExternalUrl } from "@/shared/browser/actions";
-import { requirePaymentUrl } from "@/shared/navigation/external-url";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Picture } from "@/shared/media/image";
 import { useRouter } from "@/shared/navigation/router";
 import { useSafeAreaInsets } from "@/shared/ui/safe-area";
 import { MaterialIcons } from "@/shared/ui/icons";
-import { useAuth } from "@/domain/session/session-context";
-import { ContactEmailLine } from "@/features/legal/contact-email-line";
 import { LegalDocumentsFooter } from "@/features/legal/legal-documents-footer";
-import { trpc } from "@/shared/api/trpc";
-import { useCapabilities } from "@/shared/api/capabilities";
+import { useManagerOrderSettings } from "@/domain/launch/use-manager-order-settings";
+import { managerOrderEmail } from "@/domain/product/manager-order-email";
+import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import {
   PAPER_TEXTURE_URI,
   BROWN,
@@ -38,41 +36,18 @@ function isPublicShopAsset(url: string): boolean {
   const file = url.split("/").pop() || "";
   return !SHOP_MISSING_FILES.has(file);
 }
-export default function ProductDetailScreen({
-  id,
-  paid,
-}: {
-  id: string;
-  paid?: string;
-}) {
+export default function ProductDetailScreen({ id }: { id: string }) {
+  const product = PRODUCTS.find((p) => p.id === id);
   const viewport = useViewport();
   const { stylesLayout } = getProductScreenLayout(viewport);
 
   const router = useRouter();
-  const capabilities = useCapabilities();
+  const managerOrderEnabled = product?.type === "digital";
+  const manager = useManagerOrderSettings(managerOrderEnabled);
   const insets = useSafeAreaInsets();
-  const { isAuthenticated, loading: authLoading } = useAuth();
-  const checkout = trpc.shop.createCheckout.useMutation();
-  const ownedQuery = trpc.shop.owned.useQuery(
-    { productId: String(id || "") },
-    { enabled: Boolean(id) },
-  );
-  const refetchOwned = ownedQuery.refetch;
-  useEffect(() => {
-    if (paid !== "1" || !id) return;
-    void refetchOwned();
-    const timer = setInterval(() => void refetchOwned(), 2500);
-    const stop = setTimeout(() => clearInterval(timer), 20000);
-    return () => {
-      clearInterval(timer);
-      clearTimeout(stop);
-    };
-  }, [paid, id, refetchOwned]);
   const [zoomVisible, setZoomVisible] = useState(false);
   const [zoomImageUri, setZoomImageUri] = useState("");
   const [zoomIndex, setZoomIndex] = useState(0);
-  const [payError, setPayError] = useState<string | null>(null);
-  const product = PRODUCTS.find((p) => p.id === id);
   if (!product) {
     return (
       <div
@@ -88,36 +63,14 @@ export default function ProductDetailScreen({
     : product.imageUrl;
   const gallery = (product.gallery || []).filter(isPublicShopAsset);
   const reviewImages = (product.reviewImages || []).filter(isPublicShopAsset);
-  const owned = Boolean(ownedQuery.data?.owned);
-  const handleBuyPress = (url: string) => {
-    if (url.startsWith("prodamus:")) {
-      if (!capabilities.shopOnlinePayment) return;
-      void (async () => {
-        setPayError(null);
-        if (!isAuthenticated) {
-          router.push(`/login?next=/shop/${product.id}`);
-          return;
-        }
-        try {
-          const result = await checkout.mutateAsync({ productId: product.id });
-          const paymentUrl = requirePaymentUrl(result.url);
-          if (typeof window !== "undefined") {
-            window.location.assign(paymentUrl);
-            return;
-          }
-          await openExternalUrl(paymentUrl);
-        } catch (error) {
-          setPayError(
-            error instanceof Error
-              ? error.message
-              : "Не удалось открыть оплату",
-          );
-        }
-      })();
-      return;
-    }
-    openExternalUrl(url);
-  };
+  const orderHref =
+    managerOrderEnabled &&
+    manager.settings &&
+    !manager.isFetching &&
+    !manager.isPaused &&
+    typeof window !== "undefined"
+      ? managerOrderEmail(manager.settings, product, window.location.origin)
+      : null;
   const openZoom = (uri: string, index: number) => {
     setZoomImageUri(uri);
     setZoomIndex(index);
@@ -250,7 +203,55 @@ export default function ProductDetailScreen({
         )}
 
         {/* Buy Buttons */}
-        {product.links.length > 0 && (
+        {managerOrderEnabled ? (
+          <div className={`ui-stack ${classes.buySection}`}>
+            {orderHref ? (
+              <a
+                href={orderHref}
+                className={`ui-action ${classes.action3} ${classes.managerOrderLink}`}
+              >
+                <MaterialIcons name="shopping-cart" size={16} color={CREAM} />
+                <Typography className={classes.buyButtonText}>
+                  Заказать через менеджера →
+                </Typography>
+              </a>
+            ) : (
+              <Action disabled className={classes.action3}>
+                <MaterialIcons name="shopping-cart" size={16} color={CREAM} />
+                <Typography className={classes.buyButtonText}>
+                  {manager.isLoading || manager.isFetching
+                    ? "Загружаем контакт менеджера…"
+                    : manager.isPaused
+                      ? "Нет соединения"
+                      : "Заказать через менеджера →"}
+                </Typography>
+              </Action>
+            )}
+            <Typography className={classes.typography}>
+              Откроется почтовое приложение. Отправьте письмо менеджеру
+              самостоятельно.
+            </Typography>
+            {orderHref && manager.settings ? (
+              <Typography className={classes.typography}>
+                Если приложение не открылось, напишите:{" "}
+                {manager.settings.managerEmail}
+              </Typography>
+            ) : null}
+            {manager.isPaused ? (
+              <Typography className={classes.typography}>
+                Подключитесь к интернету, чтобы загрузить контакт менеджера.
+              </Typography>
+            ) : null}
+            <QueryRetryState
+              isLoading={false}
+              isError={Boolean(manager.error)}
+              onRetry={() => {
+                void manager.retry();
+              }}
+              message="Не удалось загрузить контакт менеджера. Попробуйте ещё раз."
+            />
+          </div>
+        ) : product.links.length > 0 ? (
           <div
             className={["ui-stack ", classes.buySection]
               .filter(Boolean)
@@ -261,18 +262,10 @@ export default function ProductDetailScreen({
               .map((link, index) => (
                 <Action
                   key={`primary-${index}`}
-                  disabled={
-                    checkout.isPending ||
-                    (link.url.startsWith("prodamus:") &&
-                      !capabilities.shopOnlinePayment)
-                  }
                   style={({ pressed }) => ({
                     transform: cssTransform([{ scale: pressed ? 0.97 : 1 }]),
                   })}
-                  onClick={() => {
-                    if (product.type === "digital" && owned) return;
-                    handleBuyPress(link.url);
-                  }}
+                  onClick={() => void openExternalUrl(link.url)}
                   className={({ pressed }) =>
                     [
                       classes.action3,
@@ -284,13 +277,7 @@ export default function ProductDetailScreen({
                 >
                   <MaterialIcons name="shopping-cart" size={16} color={CREAM} />
                   <Typography className={classes.buyButtonText}>
-                    {product.type === "digital"
-                      ? owned
-                        ? "Оплачено"
-                        : checkout.isPending
-                          ? "Открываем…"
-                          : `${link.name} →`
-                      : `Купить на ${link.name} →`}
+                    Купить на {link.name} →
                   </Typography>
                 </Action>
               ))}
@@ -305,7 +292,7 @@ export default function ProductDetailScreen({
                   .map((link, index) => (
                     <Action
                       key={`secondary-${index}`}
-                      onClick={() => handleBuyPress(link.url)}
+                      onClick={() => void openExternalUrl(link.url)}
                       className={({ pressed }) =>
                         [
                           classes.action4,
@@ -324,35 +311,10 @@ export default function ProductDetailScreen({
                   ))}
               </div>
             )}
-            {product.type === "digital" ? (
-              owned ? (
-                <Typography className={classes.typography}>
-                  Оплата получена. Файл отправим на почту, указанную при оплате.
-                </Typography>
-              ) : (
-                <Typography className={classes.typography}>
-                  {payError ||
-                    (checkout.isPending || authLoading
-                      ? "Открываем оплату…"
-                      : !capabilities.shopOnlinePayment
-                        ? "Покупка этого материала пока недоступна."
-                        : "Оплата через Prodamus. После оплаты файл придёт на почту.")}
-                </Typography>
-              )
-            ) : null}
-            {product.type === "digital" ? (
-              <div
-                className={["ui-stack ", classes.div4]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                <ContactEmailLine prefix="Если письмо не пришло в течение 15 минут:" />
-              </div>
-            ) : null}
           </div>
-        )}
+        ) : null}
 
-        {product.links.length === 0 && (
+        {!managerOrderEnabled && product.links.length === 0 && (
           <div
             className={["ui-stack ", classes.buySection]
               .filter(Boolean)

@@ -7,7 +7,7 @@ import {
   Spinner,
   ScrollArea,
 } from "@/shared/ui/elements";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { trpc } from "@/shared/api/trpc";
 
@@ -21,6 +21,8 @@ import { PostSaveCoordinator } from "@/domain/post/save-post";
 import { usePostAttachments } from "./use-post-attachments";
 import { usePostUploadSelection } from "./use-post-upload-selection";
 import { PostUploadStatus } from "./post-upload-status";
+import { PostRecoveryNotice } from "./post-recovery-notice";
+import { usePostRecovery } from "./use-post-recovery";
 import { PostAttachmentsField } from "./post-attachments-field";
 import { uploadAdminVideoBlob } from "@/features/admin/media/video-upload";
 import { fileToUpload, pickWebFiles } from "@/shared/media/image-upload";
@@ -96,6 +98,7 @@ export function CreatePostModal({
     reset: resetAttachments,
     pick: pickAttachment,
     remove: removeMedia,
+    restore: restoreAttachments,
   } = usePostAttachments(operation, notifyError);
   const [richText, setRichText] = useState<RichTextBlock[] | undefined>();
   const [richTextSeed, setRichTextSeed] = useState<
@@ -169,6 +172,79 @@ export function CreatePostModal({
     resetAttachments,
     resetUploads,
   ]);
+  const editorSnapshot = useMemo(
+    () => ({
+      draft: {
+        text,
+        photos,
+        videos,
+        tags,
+        target,
+        status,
+        scheduledAt,
+        publishedAt,
+        sortOrder: 0,
+        richText: richText ?? null,
+      },
+      attachments: mediaAttachments,
+      removedIds: removedMediaIds,
+      pending: uploadSelection.pending,
+    }),
+    [
+      text,
+      photos,
+      videos,
+      tags,
+      target,
+      status,
+      scheduledAt,
+      publishedAt,
+      richText,
+      mediaAttachments,
+      removedMediaIds,
+      uploadSelection.pending,
+    ],
+  );
+  const recovery = usePostRecovery({
+    active: visible,
+    slot: `quick:${editingPost?.id ?? `new:${defaultTarget}`}`,
+    editor: editorSnapshot,
+    coordinator: saveCoordinator,
+    onRestore: (snapshot) => {
+      const draft = snapshot.draft;
+      setText(draft.text);
+      setPhotos(draft.photos);
+      setVideos(draft.videos);
+      setTags(draft.tags);
+      setTarget(draft.target);
+      setStatus(draft.status);
+      setScheduledAt(draft.scheduledAt);
+      setPublishedAt(draft.publishedAt);
+      setRichText(draft.richText ?? undefined);
+      setRichTextSeed(draft.richText ?? null);
+      setDraftKey((key) => key + 1);
+      restoreAttachments(snapshot.attachments, snapshot.removedIds);
+      uploadSelection.restore(snapshot.pending);
+    },
+  });
+  const postApi = {
+    create: (
+      input: Parameters<typeof utils.client.admin.createPost.mutate>[0],
+      signal: AbortSignal,
+    ) => utils.client.admin.createPost.mutate(input, { signal }),
+    update: (
+      id: number,
+      input: Omit<
+        Parameters<typeof utils.client.admin.updatePost.mutate>[0],
+        "id"
+      >,
+      signal: AbortSignal,
+    ) => utils.client.admin.updatePost.mutate({ id, ...input }, { signal }),
+    upload: (
+      input: Parameters<typeof utils.client.admin.uploadMedia.mutate>[0],
+      signal: AbortSignal,
+    ) => utils.client.admin.uploadMedia.mutate(input, { signal }),
+  };
   const closeEditor = () => {
     operation.cancel();
     resetUploads();
@@ -185,7 +261,55 @@ export function CreatePostModal({
     if (!editingPost) setDraftKey((key) => key + 1);
     onClose();
   };
-  const handleClose = () => {
+  const discardRecovery = async () => {
+    if (
+      !window.confirm(
+        "Удалить локальную копию? Если сохранение или загрузка не подтверждены, сначала проверьте список публикаций в другой вкладке. Файлы на сервере не удаляются.",
+      )
+    )
+      return;
+    try {
+      await recovery.clear();
+      closeEditor();
+    } catch (error) {
+      notifyError((error as Error).message);
+    }
+  };
+  const finishRecovery = async () => {
+    try {
+      await recovery.clear();
+      void utils.admin.posts.invalidate();
+      void utils.feed.listPaginated.invalidate();
+      void utils.club.list.invalidate();
+      closeEditor();
+    } catch (error) {
+      notifyError((error as Error).message);
+    }
+  };
+  const recoverCreation = async () => {
+    const task = operation.begin("save");
+    if (!task) return;
+    try {
+      await saveCoordinator.current.recoverCreation(postApi, task);
+      task.assertCurrent();
+      await recovery.clear();
+      task.assertCurrent();
+      void utils.admin.posts.invalidate();
+      void utils.feed.listPaginated.invalidate();
+      void utils.club.list.invalidate();
+      closeEditor();
+    } catch (error) {
+      checkOperationAccessError(error);
+      if (task.isCurrent()) notifyError((error as Error).message);
+    } finally {
+      task.finish();
+    }
+  };
+  const handleClose = async () => {
+    if (recovery.status === "loading" || recovery.status === "offered") {
+      closeEditor();
+      return;
+    }
     try {
       saveCoordinator.current.assertCanClose();
     } catch (error) {
@@ -215,7 +339,12 @@ export function CreatePostModal({
       )
     )
       return;
-    closeEditor();
+    try {
+      await recovery.clear();
+      closeEditor();
+    } catch (error) {
+      notifyError((error as Error).message);
+    }
   };
   const addVideoUrl = (url: string) => {
     setVideos((prev) => (prev.includes(url) ? prev : [...prev, url]));
@@ -235,6 +364,8 @@ export function CreatePostModal({
       task.assertCurrent();
       [selected] = uploadSelection.select(files);
       uploadSelection.sending(selected);
+      await recovery.checkpoint(undefined, uploadSelection.snapshot());
+      task.assertCurrent();
       const url = await uploadAdminVideoBlob(
         files[0],
         files[0].name || "video.mp4",
@@ -270,6 +401,8 @@ export function CreatePostModal({
       const payload = await fileToUpload(files[0], { signal: task.signal });
       task.assertCurrent();
       uploadSelection.sending(selected);
+      await recovery.checkpoint(undefined, uploadSelection.snapshot());
+      task.assertCurrent();
       const url = requireUploadedUrl(
         await utils.client.admin.uploadPhoto.mutate(payload, {
           signal: task.signal,
@@ -294,6 +427,7 @@ export function CreatePostModal({
     }
   };
   const handleSubmit = async () => {
+    if (recovery.blocked) return;
     if (
       !text.trim() &&
       photos.length === 0 &&
@@ -318,6 +452,8 @@ export function CreatePostModal({
     if (!task) return;
     try {
       uploadSelection.assertReady();
+      await recovery.checkpoint();
+      task.assertCurrent();
       const payload = serializePostDraft({
         text,
         photos,
@@ -338,16 +474,11 @@ export function CreatePostModal({
         payload,
         mediaAttachments,
         removedMediaIds,
-        {
-          create: (input, signal) =>
-            utils.client.admin.createPost.mutate(input, { signal }),
-          update: (id, input, signal) =>
-            utils.client.admin.updatePost.mutate({ id, ...input }, { signal }),
-          upload: (input, signal) =>
-            utils.client.admin.uploadMedia.mutate(input, { signal }),
-        },
+        postApi,
         task,
       );
+      task.assertCurrent();
+      await recovery.clear();
       task.assertCurrent();
       // Cache refresh is independent of a confirmed write and must not delay closing the editor.
       void utils.admin.posts.invalidate();
@@ -381,11 +512,15 @@ export function CreatePostModal({
       });
       task.assertCurrent();
       const selections = uploadSelection.select(files);
+      await recovery.checkpoint(undefined, uploadSelection.snapshot());
+      task.assertCurrent();
       for (const [index, file] of files.entries()) {
         selected = selections[index];
         const payload = await fileToUpload(file, { signal: task.signal });
         task.assertCurrent();
         uploadSelection.sending(selected);
+        await recovery.checkpoint(undefined, uploadSelection.snapshot());
+        task.assertCurrent();
         const url = requireUploadedUrl(
           await utils.client.admin.uploadPhoto.mutate(payload, {
             signal: task.signal,
@@ -450,6 +585,13 @@ export function CreatePostModal({
       <div
         className={["ui-stack ", classes.container].filter(Boolean).join(" ")}
       >
+        <PostRecoveryNotice
+          recovery={recovery}
+          busy={operation.busy}
+          onRecover={() => void recoverCreation()}
+          onFinish={() => void finishRecovery()}
+          onDiscard={() => void discardRecovery()}
+        />
         {/* Header */}
         <PostUploadStatus selection={uploadSelection} busy={operation.busy} />
         <div
@@ -469,7 +611,7 @@ export function CreatePostModal({
           </Typography>
           <Action
             onClick={handleSubmit}
-            disabled={isPending}
+            disabled={isPending || recovery.blocked}
             aria-busy={isPending}
             aria-label={
               editingPost
@@ -508,7 +650,7 @@ export function CreatePostModal({
         </div>
 
         <ScrollArea
-          inert={operation.busy}
+          inert={operation.busy || recovery.blocked}
           className={classes.scroll}
           contentClassName={classes.scrollContent}
         >

@@ -1,5 +1,6 @@
 "use client";
 import classes from "./profile-screen.module.scss";
+import { useSubscriptionCancellation } from "./use-subscription-cancellation";
 import {
   Action,
   Typography,
@@ -94,10 +95,9 @@ export default function ProfileScreen() {
     cancelAtPeriodEnd,
     isOwner,
     monthlyPrice,
-    refreshSubscription,
     status: subscriptionStatus,
   } = useClub();
-  const cancelSub = trpc.club.cancel.useMutation();
+  const cancellation = useSubscriptionCancellation();
   const updateProfile = trpc.profile.update.useMutation();
   const uploadAvatar = trpc.profile.uploadAvatar.useMutation();
   const savedFromApi = trpc.feed.savedPosts.useQuery(undefined, {
@@ -847,30 +847,15 @@ export default function ProfileScreen() {
                   </Typography>
                   {!isOwner && !cancelAtPeriodEnd ? (
                     <Action
-                      onClick={() => {
-                        const ok =
-                          typeof window !== "undefined"
-                            ? window.confirm(
-                                "Отменить автосписание? Клуб останется открытым до конца оплаченного периода.",
-                              )
-                            : true;
-                        if (!ok) return;
-                        void cancelSub
-                          .mutateAsync()
-                          .then(() => {
-                            refreshSubscription();
-                          })
-                          .catch((error) => {
-                            const message =
-                              error instanceof Error
-                                ? error.message
-                                : "Не удалось отменить";
-                            if (typeof window !== "undefined")
-                              window.alert(message);
-                          });
-                      }}
+                      onClick={() => void cancellation.cancel()}
+                      disabled={cancellation.blocked}
                       className={({ pressed }) =>
-                        [classes.action6, pressed ? classes.opacityState11 : ""]
+                        [
+                          classes.action6,
+                          pressed || cancellation.blocked
+                            ? classes.opacityState11
+                            : "",
+                        ]
                           .filter(Boolean)
                           .join(" ")
                       }
@@ -878,11 +863,45 @@ export default function ProfileScreen() {
                       <Typography
                         className={classes.subscriptionButtonDangerText}
                       >
-                        {cancelSub.isPending
+                        {cancellation.pending === "cancel-subscription"
                           ? "Отменяем…"
                           : "Отменить подписку"}
                       </Typography>
                     </Action>
+                  ) : null}
+                  {cancellation.notice ? (
+                    <>
+                      <Typography
+                        role="status"
+                        className={classes.subscriptionInfo}
+                      >
+                        {cancellation.notice.message}
+                      </Typography>
+                      {cancellation.notice.status === "unknown" ? (
+                        <Action
+                          onClick={() => void cancellation.check()}
+                          disabled={cancellation.busy}
+                          className={({ pressed }) =>
+                            [
+                              classes.action6,
+                              pressed || cancellation.busy
+                                ? classes.opacityState11
+                                : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")
+                          }
+                        >
+                          <Typography
+                            className={classes.subscriptionButtonDangerText}
+                          >
+                            {cancellation.pending === "check-cancellation"
+                              ? "Проверяем…"
+                              : "Проверить отмену"}
+                          </Typography>
+                        </Action>
+                      ) : null}
+                    </>
                   ) : null}
                   {!isOwner ? (
                     <Action
@@ -1003,7 +1022,7 @@ export default function ProfileScreen() {
           </div>
 
           {/* ─── Admin ─── */}
-          {(isOwner || isAuthOwner) && (
+          {(isOwner || isAuthOwner || user?.role === "moderator") && (
             <div
               className={["ui-stack ", classes.section]
                 .filter(Boolean)
@@ -1020,7 +1039,7 @@ export default function ProfileScreen() {
                   color={BROWN_MUTED}
                 />
                 <Typography className={classes.sectionTitle}>
-                  Админка
+                  {user?.role === "moderator" ? "Модерация" : "Админка"}
                 </Typography>
               </div>
               <Action
@@ -1032,10 +1051,14 @@ export default function ProfileScreen() {
                 }
               >
                 <Typography className={classes.cardText}>
-                  Посты, календарь, участницы и оплаты клуба
+                  {user?.role === "moderator"
+                    ? "Жалобы и модерация комментариев"
+                    : "Посты, календарь, участницы и оплаты клуба"}
                 </Typography>
                 <Typography className={classes.aestheticViewMore}>
-                  Открыть админку →
+                  {user?.role === "moderator"
+                    ? "Открыть модерацию →"
+                    : "Открыть админку →"}
                 </Typography>
               </Action>
             </div>

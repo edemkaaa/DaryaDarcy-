@@ -10,18 +10,14 @@ export function formatToolbarProps(
   onAction: () => void,
   beforeAction?: () => void,
 ) {
-  let last = 0;
   const run = () => {
-    const now = Date.now();
-    if (now - last < 400) return;
-    last = now;
     beforeAction?.();
     onAction();
   };
   return {
     onPointerDown: (event: { preventDefault: () => void }) => {
       event.preventDefault();
-      run();
+      beforeAction?.();
     },
     onClick: run,
   };

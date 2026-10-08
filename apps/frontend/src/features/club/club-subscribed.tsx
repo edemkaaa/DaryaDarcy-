@@ -1,4 +1,5 @@
 "use client";
+import { useClubAppearance } from "@/domain/launch/use-club-appearance";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { useViewport } from "@/shared/browser/viewport";
 
@@ -52,6 +53,7 @@ import {
   syncClubProfileToServer,
 } from "@/domain/profile/sync-profile";
 import {
+  CREAM,
   PAPER_TEXTURE_URI,
   SEASONAL_TARTANS,
   SEASONAL_BANNERS,
@@ -61,24 +63,10 @@ import {
   PROFILE_COMPLETED_KEY,
 } from "./club-subscribed.content";
 import type { ClubTab, ClubPost } from "./club-subscribed.content";
-function getClubSeason(): "autumn" | "winter" {
-  const now = new Date();
-  const month = now.getMonth(); // 0-indexed
-  const day = now.getDate();
-  // Winter: Nov 20 onwards through Feb
-  if (
-    (month === 10 && day >= 20) ||
-    month === 11 ||
-    month === 0 ||
-    month === 1 ||
-    (month === 2 && day <= 19)
-  ) {
-    return "winter";
-  }
-  return "autumn";
-}
 export function ClubSubscribed() {
   const active = useScreenActive();
+  const appearanceQuery = useClubAppearance();
+  const [failedImages, setFailedImages] = useState<string[]>([]);
   const capabilities = useCapabilities();
   const penPalsAvailable = PEN_PALS_ENABLED && capabilities.penPals;
   const viewport = useViewport();
@@ -249,9 +237,36 @@ export function ClubSubscribed() {
   useEffect(() => {
     if (posts.length === 0) loadMore();
   }, [posts.length, loadMore]);
-  const season = getClubSeason();
-  const tartanUri = SEASONAL_TARTANS[season];
-  const bannerUri = SEASONAL_BANNERS[season];
+  const season = appearanceQuery.data?.season ?? "winter";
+  const builtInSeason = season === "autumn" ? "autumn" : "winter";
+  const backgroundCandidates = [
+    appearanceQuery.data?.appearance.backgroundUrl,
+    SEASONAL_TARTANS[builtInSeason],
+    PAPER_TEXTURE_URI,
+  ];
+  const bannerCandidates = [
+    appearanceQuery.data?.appearance.bannerUrl,
+    SEASONAL_BANNERS[builtInSeason],
+  ];
+  const tartanUri =
+    backgroundCandidates.find((url) => url && !failedImages.includes(url)) ??
+    null;
+  const bannerUri =
+    bannerCandidates.find((url) => url && !failedImages.includes(url)) ?? null;
+  const imageError = [
+    backgroundCandidates.find(Boolean),
+    bannerCandidates.find(Boolean),
+  ].some((url) => url && failedImages.includes(url));
+  const failImage = (url: string | null) => {
+    if (url)
+      setFailedImages((previous) =>
+        previous.includes(url) ? previous : [...previous, url],
+      );
+  };
+  const retryAppearance = () => {
+    setFailedImages([]);
+    void appearanceQuery.refetch({ cancelRefetch: false });
+  };
   const renderPost = ({ item }: { item: ClubPost }) => (
     <ClubPostCard
       item={item}
@@ -296,23 +311,41 @@ export function ClubSubscribed() {
         error={interactions.error}
         retry={interactions.retry}
       />
-      {bannerUri ? (
-        <div
-          style={{
-            width: stylesLayout.bannerContainer.width,
-            height: stylesLayout.bannerContainer.height,
-          }}
-          className={["ui-stack ", classes.bannerContainer]
-            .filter(Boolean)
-            .join(" ")}
-        >
+      <div
+        data-testid="club-season-banner"
+        style={{
+          width: stylesLayout.bannerContainer.width,
+          height: stylesLayout.bannerContainer.height,
+        }}
+        className={["ui-stack ", classes.bannerContainer]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {bannerUri ? (
           <Picture
             source={{ uri: bannerUri }}
+            onError={() => failImage(bannerUri)}
             contentFit="cover"
             contentPosition="top"
             className={classes.bannerImage}
             loading="eager"
             fetchPriority="high"
+          />
+        ) : null}
+      </div>
+      {appearanceQuery.isError || imageError ? (
+        <div
+          style={{
+            backgroundColor: CREAM,
+            borderRadius: 12,
+            margin: "12px 20px",
+          }}
+        >
+          <QueryRetryState
+            isLoading={false}
+            isError={appearanceQuery.isError || imageError}
+            onRetry={retryAppearance}
+            message="Не удалось обновить оформление Клуба. Используется доступное оформление."
           />
         </div>
       ) : null}
@@ -402,7 +435,10 @@ export function ClubSubscribed() {
   );
   return (
     <Background
-      source={{ uri: tartanUri }}
+      source={tartanUri}
+      onImageError={() => failImage(tartanUri)}
+      data-club-season={season}
+      style={{ backgroundColor: CREAM }}
       fit="cover"
       className={classes.tartanBackground}
     >
@@ -587,7 +623,7 @@ export function ClubSubscribed() {
           </Dialog>
         ) : null}
       </SafeArea>
-      {isOwner && <ManagementModals />}
+      {isOwner && ManagementModals}
       <PhotoViewer
         visible={viewerVisible}
         photos={viewerPhotos}

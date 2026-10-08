@@ -120,6 +120,11 @@
     color: var(--paper);
   }
 
+  .managerOrderLink:active {
+    transform: scale(0.97);
+    opacity: 0.68;
+  }
+
   .secondaryRow {
     flex-direction: row;
     gap: 8px;

@@ -140,11 +140,12 @@ test("an unconfirmed save is never automatically repeated", async ({
     .first()
     .click();
   await expect.poll(() => messages.length).toBe(1);
-  await page
-    .getByRole("button", { name: "Опубликовать", exact: true })
-    .first()
-    .click();
-  await expect.poll(() => messages.length).toBe(2);
+  await expect(
+    page.getByRole("button", { name: "Опубликовать", exact: true }).first(),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Проверить сохранение", exact: true }),
+  ).toBeVisible();
   expect(calls).toBe(1);
   expect(messages.join(" ")).not.toContain("PRIVATE_INTERNAL_DETAILS");
 });

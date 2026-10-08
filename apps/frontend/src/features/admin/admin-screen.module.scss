@@ -93,6 +93,7 @@
 
   .postItemActions {
     flex-direction: row;
+    flex-wrap: wrap;
     justify-content: flex-end;
     gap: 12px;
     margin-top: 8px;
@@ -404,6 +405,24 @@
     font-size: 14px;
     color: var(--ink);
     width: 80px;
+  }
+
+  .memberEmailDraft {
+    flex-basis: 100%;
+    gap: 8px;
+  }
+
+  .memberEmailInput {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .memberEmailNotice {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--brown);
   }
 
   .loadingContainer {

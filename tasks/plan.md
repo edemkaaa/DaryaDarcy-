@@ -1610,6 +1610,40 @@ authentication change, browser persistence, telemetry of content or new storage
 category. UUID plus payload comparison is the first F5.1 increment, not reload
 recovery; the existing unknown-result prohibition is intentionally retained.
 
+## 2026-10-08 — F5.1 durable editor recovery, frontend only
+
+Continue the creation-intent slice against the existing API. This is part of
+delivery checklist 4.6 and frontend audit 25–26, not acceptance of the entire
+contractual first phase. The October 7 RAM-only limitation above is superseded
+by this client implementation; backend and database changes remain outside scope.
+
+1. Persist owner-scoped full/quick editor drafts and File objects in IndexedDB.
+   Offer explicit restoration before replacing an existing draft. Serialize
+   local writes and compare revisions to reject stale writes from another tab.
+2. Await a durable checkpoint before upload/final dispatch. Preserve exact create
+   payload, idempotency key, confirmed upload metadata and terminal confirmation.
+   Explicit recovery can replay only that create, without uploads or edits.
+   Unknown uploads/updates remain blocked pending manual inspection; unfinished
+   photo/video selection retains names/guards rather than those local Files.
+3. Reproduce and fix pointerdown/click double formatting; verify bold, italic,
+   two independent links and attachments through reload in both editors.
+4. Check browser IndexedDB/File behavior, lost responses, definite rejection,
+   attachment removals, account isolation, multi-tab conflicts, storage failure,
+   corrupt records and terminal commits; build/types/lint/API/boundaries/docs.
+
+Client implementation, 15 new browser checks and 66 existing regressions pass
+on a fresh Next production build with API fixtures in two separate runs. Curated verify: 212 cases. API remains 72 procedures /
+25461 bytes; dependency boundaries: 499 files. No backend/DB execution, API/schema
+change, push or rollout. Local autosave is asynchronous; the saved indicator
+marks completed persistence. Pre-dispatch journals are awaited. Site-data removal
+and OS crashes before autosave completion can remove recent local changes.
+
+Remaining acceptance: real API/SQL migration and same-key idempotency in the target
+environment, true media storage, physical devices/PWA and the complete 4.6
+checklist. Server-side concurrent edit protection/video metadata are separate
+dependencies. Next frontend slice: comments with photos, moderation and admin
+action results; launch integrations and the general 4.1–4.16 acceptance follow.
+
 ## 2026-10-07 — isolated public-video playback (approved scope)
 
 User approved investigating and setting up a separate internet-enabled video
@@ -4114,3 +4148,104 @@ unit tests, relax binding or overwrite foreign callback settings to unblock PD3.
 Support must confirm SYS and per-link callback isolation (one-off and recurring),
 plus an owned test subscription and test-contact requirements. This blocks actual
 provider delivery/entitlement acceptance, not the verified standalone source.
+
+## 2026-10-08 — comments, moderation and administrative results, frontend only
+
+Continue delivery 4.4/4.6 and frontend audit 21/23 after editor recovery.
+Read the existing backend contracts without changing/running API or SQL.
+Reuse existing appearance, uploads and session cancellation boundaries.
+
+The client retains comment text/confirmed photos after partial failure and
+blocks incomplete photo selection. Confirmed likes use the returned boolean
+and count. Serialize writes and require a successful read after an unknown
+result; unknown comment creation requires explicit draft abandonment instead
+of replay. Text editing preserves existing photos according to the API.
+Expose the report inbox to moderators without owner-only admin reads.
+Validate grants, moderation replies and tag updates; require fresh-list absence
+before confirming post/article deletion. Preserve quick tag selection and
+prevent editor remounts caused by action-state renders. Wrap report actions on
+small screens, and reject late successful UI after session revocation.
+
+Validation: 212 curated unit tests and 114 distinct browser scenarios pass
+(25 new, 89 existing). Main run: 100; final production build: 21 comment/report
+rechecks, four administrative-result scenarios and ten long-list regressions.
+Correct new article-test alert selectors to exclude Next's route announcer.
+Count pagination cursors rather than an initial guest request canceled during
+session confirmation; the clarified repeated-cursor regression passes three times.
+Root/frontend/E2E types, warning-free lint, production build, unchanged
+72-procedure/25461-byte API, boundaries (503 files), docs (50) and diff checks
+pass. Moderator actions fit 320/390/414px; screenshots inspected at 390/1440px.
+Backend false-success behavior for missing positive IDs and lack of idempotency
+for comment/upload/like writes remain dependencies. These guards are component
+state, not a durable cross-reload journal. Real API/SQL/media, device/PWA checks,
+and full 4.1–4.16 acceptance remain open. No push, commit or deployment.
+Next: VK, four seasons, manager ordering/actions according to API/materials.
+
+## 2026-10-08 — four Club seasons, frontend only
+
+Implement delivery 4.10 against existing launch endpoints, without running or
+changing backend/DB. Remove the local autumn/winter calendar; the server-selected
+public appearance owns dates and season. Recheck at Moscow midnight and after
+returning/resuming/reconnecting. Validate public responses and retain confirmed
+appearance after a failed refresh. Prefer supplied HTTPS images, then existing
+season assets (winter fallback for spring/summer), then paper/background color;
+keep banner dimensions and a readable retry notice beneath the banner.
+
+Owner-only Admin → Seasons edits mode, four annual dates and image URLs using
+GET/PUT /api/admin/launch-settings with expectedRevision. Preserve managerEmail.
+Reject invalid/duplicate dates and unsafe images before dispatch. Serialize
+writes; unknown outcomes retain input and require inspection. Matching reads
+resolve a lost reply; foreign revisions require explicit replacement. Malformed
+confirmation and session revocation cannot show success. Component-local input
+is not a durable draft journal; backend revision checks remain authoritative.
+
+Validation: 202 unchanged verify cases plus 50 standalone cases (40 new season,
+10 editor recovery). Root package.json remains unchanged. 56 distinct browser
+cases pass: 22 new season and 34 accessibility/cache/comment regressions. Final
+visual recheck results are in the frontend work plan. Root/frontend/E2E types,
+lint, production build, unchanged 72-procedure/25461-byte API, 507-file boundaries
+and diff checks pass. Moscow midnight tested in a Los Angeles browser; mobile
+and desktop screenshots reviewed. Existing winter assets are fallback materials,
+not a claim that missing spring/summer artwork has been supplied.
+
+Real configured API/SQL/CAS, customer dates/images and physical devices/PWA remain
+acceptance dependencies. No real settings write, backend/DB run, commit/push or
+rollout. Next: manager ordering (4.12), manager tools and VK data/player (4.11),
+then full 4.1–4.16 acceptance. User instruction: run new tests separately rather
+than appending to root package.json, and remove any recreated .aws at completion.
+
+## 2026-10-08 — requested staging integration checkpoint
+
+Integrate SergeyM's staging `0b77270` (19:08:27 Moscow) with the five local
+backend commits `5db6c91`, `1af06af`, `9e6f064`, `fc00be2`, `be425ab`.
+The merge has no conflicts; keep both histories and push staging without force.
+This request updates Git staging only, not the test server or payment settings.
+
+Reviewed checkout/cancellation confirmations, seasonal settings, manager order
+contact, access-email queue response and editor recovery against existing API
+contracts. Email binding remains an explicitly disabled preparation form; no
+new identity binding policy is implemented. Backend payment signature/replay
+policy and TEST-only gates remain unchanged.
+
+Merged-tree checks: 1779 tests pass / 618 SQL-external cases skipped; root,
+frontend and E2E types, ESLint, backend/frontend builds, API contract (73
+procedures), boundaries (558 files), docs (51 documents) and diff checks pass.
+Browser acceptance uses the local production build with intercepted API and
+provider destinations, not real payments, mail, SQL or server acceptance.
+Playwright's expected Chromium revision was absent; use the installed browser
+through the existing PLAYWRIGHT_EXECUTABLE_PATH option, without dependency edits.
+
+Reproduced test synchronization errors before changing only their expectations:
+wait for checkout/cancellation dispatch before account changes; wait for completed
+status reads and confirmed edit UI rather than a still-visible prior state;
+verify the removed attachment is actually durable in IndexedDB before reload.
+The affected scenarios each pass three consecutive runs. Runtime code is unchanged
+by these test corrections. The combined nine-spec browser rerun passes all
+168 scenarios (1.7 minutes), with root/frontend/E2E types and lint rechecked
+after the final test edits. The reviewed merge is ready for the requested
+non-force staging push; no deployment is included.
+
+Known follow-up: the draft saved notice can describe an older checkpoint while
+the latest attachment removal is still being persisted. Do not treat this merge
+or a passing recovery test as a fix for that UI indication. Real API/SQL/CAS,
+provider/Safari/device acceptance and existing dependency/rollout gates stay open.
