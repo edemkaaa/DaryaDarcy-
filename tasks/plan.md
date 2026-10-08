@@ -4985,3 +4985,41 @@ backend_test, synthetic credentials/fixtures, ephemeral loopback port, tmpfs,
 Exact owned container removed and label inventory empty. No working database,
 unrelated resources, frontend/server, cabinets/secrets, external delivery/payment,
 auth/CORS/proxy/quotas, activation, merge/push/deploy changed.
+
+### M08 native maintenance SQL failure recovery — 9 October, 00:33 Moscow
+
+Continued from clean 6acf89a; payment scope awaits the human test-flow choice,
+so this heartbeat does not connect or deploy Prodamus. One new fresh-DB-only
+BACKEND_RETENTION_WORKER_ACCEPTANCE case starts the native Nest maintenance
+worker against real SQL. A final scrub UPDATE trigger fails the first attempt:
+every selected profile/comment/match/activity row remains unchanged. After the
+owned fault is removed, the next scheduled tick completes canonical scrubbing;
+a third tick leaves the scrubbed snapshot stable and the neighbor unchanged.
+The only warning is the existing generic maintenance error, not private SQL.
+
+Only interval registration/cancellation are fake-timed; SQL, Date, timeouts and
+waiting remain real. Unrelated publication, billing acquisition, shop email and
+backup ports are doubled before explicit activation, as in the previous suite.
+Outcome markers are completion barriers; real persisted snapshots are the
+primary success/rollback/no-op evidence. Finally stops owned jobs, awaits pending
+callbacks, restores real scheduling, closes the app and removes its trigger.
+This preserves the five-minute interval and existing retry-on-next-tick policy;
+it does not choose a production shutdown drain bound or distributed retry policy.
+
+Mutation RED: removing the interval runner's pending-promise release prevents
+the second attempt and fails the new case. Production restored byte-identical.
+Final 51 focused pass, including 13 retention SQL cases. Full default 1804 pass /
+695 reported SQL-external skips, 19.39 seconds; the SQL cases ran explicitly.
+Types, 410.9 kB backend build, unchanged 73-procedure/25642-byte API, 560-file
+boundaries, lint and 51-document link checks pass.
+No production/schema/dependency/auth/CORS/proxy/quota changes. TDD/mutation,
+incremental, security, review, Git, verification and documentation disciplines
+guide this test-only slice; M07c, external erasure/legal signoff and existing
+provider/dependency/rollout gates remain open. No comprehensive erasure claim.
+Full local ephemeral log: /tmp/daryadarcy-retention-recovery-2130-full.log.
+
+Only dd-retention-recovery-20261008-2130 created: existing MySQL 8.4 image,
+fresh backend_test, synthetic fixtures/credentials, ephemeral loopback port,
+tmpfs, 512 MiB/one CPU, no volume mounts/OOM. Full ID/owner verified before exact
+removal; label inventory empty. No working DB/unrelated resources, frontend,
+server, cabinets/secrets, external delivery/payment, activation, merge/push/deploy.

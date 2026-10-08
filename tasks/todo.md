@@ -1677,3 +1677,15 @@ path. No key disclosed, callback changed, payment made or service deployed here.
       accepted by this interleaving test. M07c needs a human drain-bound decision;
       provider/dependency/rollout gates remain open. No runtime/frontend/server,
       payment/policy/activation/merge/push/deploy changes.
+
+### M08 native maintenance SQL failure recovery — 9 October, early morning
+
+- [x] One new worker/SQL test: final scrub failure rolls back all account data,
+      the next scheduled tick recovers, and the third is a stable no-op. Neighbor
+      untouched; error log generic. Only interval scheduling is fake-timed.
+- [x] Removing pending-promise release prevents recovery and fails the test;
+      production restored byte-identical. 51 focused pass, 13 SQL cases; full
+      1804 pass / 695 reported skips. Owned fresh tmpfs database removed.
+- [ ] Sequential fresh-DB opt-in only; external erasure/legal signoff, M07c human
+      drain bound and provider/dependency/rollout gates remain open. No runtime,
+      frontend/server/payment/policy/activation/merge/push/deploy changes.

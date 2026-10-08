@@ -152,7 +152,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
 
   // Global maintenance is opt-in and must run alone on a fresh disposable DB.
   describe.skipIf(process.env.BACKEND_RETENTION_WORKER_ACCEPTANCE !== "1")(
-    "HTTP deletion request through the real maintenance worker",
+    "native maintenance lifecycle and HTTP deletion requests",
     () => {
       it.each(["recent-request", "eligible", "active-club", "club-grace"])(
         "preserves existing retention rules for %s",
@@ -210,6 +210,66 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
           }
         },
       );
+      it("recovers atomic account cleanup on the next maintenance tick after a SQL failure", async () => {
+        const before = await snapshot();
+        const [neighbors] = await conn.query<RowDataPacket[]>("SELECT * FROM users WHERE id=92102");
+        const app = await createBackendApplication();
+        let jobs: WorkerJobs | undefined;
+        try {
+          jobs = app.get<WorkerJobs>(WorkerJobs);
+          await app.listen(0, "127.0.0.1");
+          const operations = app.get<WorkerOperations>(WORKER_OPERATIONS);
+          vi.spyOn(operations, "publishDueScheduledPosts").mockResolvedValue([]);
+          vi.spyOn(operations, "getDb").mockResolvedValue(null);
+          vi.spyOn(operations, "processPendingShopDeliveryEmails").mockResolvedValue(undefined);
+          vi.spyOn(operations, "runMysqlBackupIfDue").mockResolvedValue(undefined);
+          const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+          const maintain = operations.runDataRetentionMaintenance;
+          const outcomes: string[] = [];
+          vi.spyOn(operations, "runDataRetentionMaintenance").mockImplementation(async () => {
+            try {
+              await maintain();
+              outcomes.push("success");
+            } catch (error) {
+              outcomes.push("failure");
+              throw error;
+            }
+          });
+          await conn.query(`CREATE TRIGGER backend_test_retention_failure BEFORE UPDATE ON users FOR EACH ROW
+            BEGIN IF OLD.id=92101 AND NEW.email IS NULL THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Synthetic retention private SQL detail'; END IF; END`);
+          // Advance scheduler intervals only; real SQL, clocks and waiting
+          // remain untouched. No five-minute wall-clock delay or new retry policy.
+          vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+          jobs.start();
+          await vi.waitFor(() => expect(outcomes).toEqual(["failure"]), { timeout: 3000 });
+          expect(await snapshot()).toEqual(before);
+          expect(warnings.mock.calls).toEqual([["[workers] maintenance failed"]]);
+
+          await conn.query("DROP TRIGGER backend_test_retention_failure");
+          await vi.advanceTimersByTimeAsync(300_000);
+          await vi.waitFor(() => expect(outcomes).toEqual(["failure", "success"]), { timeout: 3000 });
+          const scrubbed = await snapshot();
+          expect(scrubbed.user[0]).toMatchObject({ email: null, passwordHash: null, accountDeletionRequestedAt: null });
+          expect(scrubbed.profile[0]).toMatchObject({ active: 0, address: "Удалённый аккаунт" });
+          expect(scrubbed.comments).toEqual([{ text: "Комментарий удалён", photos: null }]);
+          expect(scrubbed.matches).toEqual([{ n: 0 }]);
+          expect(scrubbed.shown).toEqual([{ n: 0 }]);
+          expect(scrubbed.activity).toEqual([{ likes: 0, saves: 0, pushes: 0, reports: 0 }]);
+
+          await vi.advanceTimersByTimeAsync(300_000);
+          await vi.waitFor(() => expect(outcomes).toEqual(["failure", "success", "success"]), { timeout: 3000 });
+          expect(await snapshot()).toEqual(scrubbed);
+          const [afterNeighbors] = await conn.query<RowDataPacket[]>("SELECT * FROM users WHERE id=92102");
+          expect(afterNeighbors).toEqual(neighbors);
+          expect(warnings.mock.calls).toEqual([["[workers] maintenance failed"]]);
+        } finally {
+          await Promise.all((jobs?.stop() ?? []).map(job => job.settled));
+          vi.useRealTimers();
+          await app.close();
+          await conn.query("DROP TRIGGER IF EXISTS backend_test_retention_failure");
+        }
+      });
     },
   );
 });
