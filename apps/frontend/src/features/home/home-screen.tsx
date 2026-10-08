@@ -38,7 +38,7 @@ import {
   SECTION_BANNERS,
 } from "./home-screen.content";
 import { getHomeScreenContent } from "./home-screen.content";
-const heroImage = { src: "/assets/images/home/hero_header.jpg", width: 1400, height: 875 };
+const heroImage = { src: "/assets/images/home/hero_header.webp", width: 1400, height: 875 };
 type SeasonData = {
   name: string;
   nameRu: string;
@@ -52,10 +52,10 @@ function getCurrentSeason(month: number): SeasonData {
       nameRu: "Весна",
       emoji: "🌿",
       heroImages: [
-        "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.48ccacfbc42d176d.jpg",
-        "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.04d76ddab61b0616.jpg",
-        "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.196506a4ab1c9214.jpg",
-        "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.ae25ba32d6e3dbcf.jpg",
+        "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.38fad6143a4d8e13.webp",
+        "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.576d748fc40373ea.webp",
+        "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.f238e531e0aa98e8.webp",
+        "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.40c131c8c9f723a9.webp",
       ],
     };
   if (month >= 5 && month <= 7)
@@ -64,10 +64,10 @@ function getCurrentSeason(month: number): SeasonData {
       nameRu: "Лето",
       emoji: "☀️",
       heroImages: [
-        "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.48ccacfbc42d176d.jpg",
-        "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.04d76ddab61b0616.jpg",
-        "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.196506a4ab1c9214.jpg",
-        "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.ae25ba32d6e3dbcf.jpg",
+        "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.38fad6143a4d8e13.webp",
+        "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.576d748fc40373ea.webp",
+        "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.f238e531e0aa98e8.webp",
+        "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.40c131c8c9f723a9.webp",
       ],
     };
   if (month >= 8 && month <= 10)
@@ -76,10 +76,10 @@ function getCurrentSeason(month: number): SeasonData {
       nameRu: "Осень",
       emoji: "🍂",
       heroImages: [
-        "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.48ccacfbc42d176d.jpg",
-        "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.04d76ddab61b0616.jpg",
-        "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.196506a4ab1c9214.jpg",
-        "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.ae25ba32d6e3dbcf.jpg",
+        "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.38fad6143a4d8e13.webp",
+        "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.576d748fc40373ea.webp",
+        "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.f238e531e0aa98e8.webp",
+        "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.40c131c8c9f723a9.webp",
       ],
     };
   return {
@@ -87,10 +87,10 @@ function getCurrentSeason(month: number): SeasonData {
     nameRu: "Зима",
     emoji: "❄️",
     heroImages: [
-      "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.48ccacfbc42d176d.jpg",
-      "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.04d76ddab61b0616.jpg",
-      "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.196506a4ab1c9214.jpg",
-      "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.ae25ba32d6e3dbcf.jpg",
+      "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.38fad6143a4d8e13.webp",
+      "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.576d748fc40373ea.webp",
+      "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.f238e531e0aa98e8.webp",
+      "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.40c131c8c9f723a9.webp",
     ],
   };
 }
@@ -359,7 +359,7 @@ export default function HomeScreen({ initialDate }: { initialDate: string }) {
   }));
   // ── Render ──
   const paperTextureUri =
-    "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg";
+    "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.fe3ce71852fa6634.webp";
   return (
     <div className="ui-stack ">
       <Background
@@ -569,7 +569,7 @@ Medallion overlaps from above onto this section
                 .join(" ")}
             >
               <Picture
-                source={{ uri: "/assets/images/home/about_author_bg.jpg" }}
+                source={{ uri: "/assets/images/home/about_author_bg.webp" }}
                 contentFit="cover"
                 className={classes.aboutBgImage}
               />

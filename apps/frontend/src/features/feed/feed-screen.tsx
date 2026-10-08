@@ -103,7 +103,6 @@ export default function FeedScreen() {
   const browserCalendar = useBrowserReady();
   const router = useRouter();
   const { user, isOwner } = useAuth();
-  const utils = trpc.useUtils();
   const interactions = usePostInteractions();
   const [selectedTag, setSelectedTag] = useState<TagSlug>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("feed");
@@ -128,6 +127,9 @@ export default function FeedScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isFetching,
+    isFetchNextPageError,
+    isRefetchError,
   } = trpc.feed.listPaginated.useInfiniteQuery(
     {
       tag: selectedTag === "all" ? undefined : selectedTag,
@@ -135,11 +137,19 @@ export default function FeedScreen() {
       limit: 12,
     },
     {
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      getNextPageParam: (lastPage, _pages, _lastParam, pageParams) =>
+        pageParams.includes(lastPage.nextCursor)
+          ? undefined
+          : lastPage.nextCursor,
       staleTime: 30_000,
+      gcTime: 60_000,
       enabled: active,
     },
   );
+  const lastPage = paginatedData?.pages.at(-1);
+  const stalledCursor =
+    lastPage?.nextCursor != null &&
+    Boolean(paginatedData?.pageParams.includes(lastPage.nextCursor));
   // Fetch tags from API
   const { data: apiTags } = trpc.feed.tags.useQuery(undefined, {
     staleTime: 30_000,
@@ -157,9 +167,14 @@ export default function FeedScreen() {
   }, [apiTags]);
   const posts: FeedPost[] = useMemo(() => {
     if (paginatedData?.pages) {
-      const allPosts = paginatedData.pages
-        .flatMap((page) => page.posts)
-        .filter((p) => p.target !== "club");
+      const allPosts = [
+        ...new Map(
+          paginatedData.pages
+            .flatMap((page) => page.posts)
+            .filter((p) => p.target !== "club")
+            .map((post) => [post.id, post] as const),
+        ).values(),
+      ];
       if (allPosts.length > 0) {
         return allPosts.map((p) =>
           normalizeFeedPost(p as Record<string, unknown>, browserCalendar),
@@ -171,10 +186,8 @@ export default function FeedScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    void utils.feed.listPaginated.invalidate().finally(() => {
-      refetch().finally(() => setRefreshing(false));
-    });
-  }, [refetch, utils.feed.listPaginated]);
+    void refetch().finally(() => setRefreshing(false));
+  }, [refetch]);
   const handleTagPress = (slug: TagSlug) => {
     setSelectedTag(slug);
   };
@@ -363,7 +376,7 @@ export default function FeedScreen() {
         error={interactions.error}
         retry={interactions.retry}
       />
-      {isError && paginatedData && (
+      {isRefetchError && paginatedData && (
         <QueryRetryState
           isLoading={false}
           isError
@@ -423,11 +436,27 @@ export default function FeedScreen() {
     />
   );
   const handleLoadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+    if (hasNextPage && !isFetching && !isError && !stalledCursor) {
+      void fetchNextPage({ cancelRefetch: false });
     }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetching, isError, stalledCursor, fetchNextPage]);
   const renderFooter = () => {
+    if (posts.length > 0 && (isFetchNextPageError || stalledCursor)) {
+      return (
+        <QueryRetryState
+          isLoading={isFetchingNextPage}
+          isError
+          loadingSize="small"
+          message="Не удалось загрузить следующие публикации ленты"
+          onRetry={() => {
+            if (isFetching) return;
+            if (isFetchNextPageError)
+              void fetchNextPage({ cancelRefetch: false });
+            else void refetch({ cancelRefetch: false });
+          }}
+        />
+      );
+    }
     if (isFetchingNextPage) {
       return <LoadingIndicator size="small" />;
     }
@@ -463,6 +492,7 @@ export default function FeedScreen() {
     <ScreenContainer>
       {viewMode === "feed" ? (
         <Collection
+          windowItems
           revealItems
           ref={listRef}
           key="feed"
@@ -483,6 +513,7 @@ export default function FeedScreen() {
         />
       ) : (
         <Collection
+          windowItems
           revealItems
           ref={listRef}
           key="grid"

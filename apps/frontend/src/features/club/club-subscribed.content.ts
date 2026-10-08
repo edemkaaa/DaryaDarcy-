@@ -1,18 +1,18 @@
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 export const PAPER_TEXTURE_URI =
-  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg";
+  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.fe3ce71852fa6634.webp";
 export const SEASONAL_TARTANS = {
   autumn:
-    "/assets/responsive/ff49f6ba1a27-NdnEHWCbQbNuKmyB.w1199.6b6d4fd137d2ac51.jpg",
+    "/assets/responsive/ff49f6ba1a27-NdnEHWCbQbNuKmyB.w1199.6b2a60f6e3359cff.webp",
   winter:
-    "/assets/responsive/ea0b60bea0fe-EhNRvSBlhxWjRXfT.w1200.f59445d07c02988e.jpg",
+    "/assets/responsive/ea0b60bea0fe-EhNRvSBlhxWjRXfT.w1200.4cceecb893c4381e.webp",
 };
 export const SEASONAL_BANNERS = {
   autumn:
     "/assets/responsive/e8e5386d449f-xGuqHGnxPOYPLwJz.w900.c32035de391abc36.webp",
   winter:
-    "/assets/responsive/ea0b60bea0fe-EhNRvSBlhxWjRXfT.w1200.f59445d07c02988e.jpg",
+    "/assets/responsive/ea0b60bea0fe-EhNRvSBlhxWjRXfT.w1200.4cceecb893c4381e.webp",
 };
 export const BROWN = "#5C4033";
 export const BROWN_MUTED = "#8B7355";

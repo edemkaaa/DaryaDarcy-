@@ -42,14 +42,14 @@ test("all imported originals and public derivatives have intact bytes and immuta
     expect(sha256(await response.body()), name).toBe(hash);
   }
   const manifest = JSON.parse(await readFile(resolve(frontend, "image-variants.json"), "utf8")) as {
-    images: { full: string; zoomable: boolean; originalSha256: string; variants: { uri: string; sha256: string }[] }[];
+    images: { full: string; zoomable: boolean; fullSha256: string; variants: { uri: string; sha256: string }[] }[];
   };
   const publicFiles = new Map<string, string>();
   for (const entry of manifest.images) {
     for (const variant of entry.variants) {
       if (variant.uri.startsWith("/assets/responsive/")) publicFiles.set(variant.uri, variant.sha256);
     }
-    if (entry.zoomable && entry.full.startsWith("/assets/responsive/")) publicFiles.set(entry.full, entry.originalSha256);
+    if (entry.zoomable && entry.full.startsWith("/assets/responsive/")) publicFiles.set(entry.full, entry.fullSha256);
   }
   for (const [uri, hash] of publicFiles) {
     const response = await request.get(uri);
@@ -114,10 +114,12 @@ for (const [path, button, dialog] of [
   ["/library/about-me", "Открыть фото 1", "Просмотр фотографий"],
   ["/library/patterns", "Открыть выкройку: Остролист", "Остролист"],
 ] as const) {
-  test(`static detail images retain their originals on ${path}`, async ({ page }) => {
+  test(`static detail images open full resolution WebP on ${path}`, async ({ page }) => {
     await layoutApi(page, true);
     const externalRequests: string[] = [];
+    const fullRequests: string[] = [];
     page.on("request", (request) => {
+      if (new URL(request.url()).pathname.includes(".full.")) fullRequests.push(request.url());
       if (request.url().startsWith("https://s3.twcstorage.ru/") && /\.(?:jpe?g|png|webp)(?:\?|$)/i.test(request.url())) {
         externalRequests.push(request.url());
       }
@@ -130,6 +132,8 @@ for (const [path, button, dialog] of [
     await expect(preview).toHaveAttribute("srcset", / \d+w/);
     await expect.poll(() => preview.evaluate((img) => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0)).toBe(true);
     const previewSrc = await preview.evaluate((img) => (img as HTMLImageElement).currentSrc);
+    expect(new URL(previewSrc).pathname).not.toContain(".full.");
+    expect(fullRequests).toEqual([]);
     await action.click();
     const viewer = page.getByRole("dialog", { name: dialog, exact: true });
     const original = viewer.locator("img").first();
@@ -138,14 +142,16 @@ for (const [path, button, dialog] of [
     await expect.poll(() => original.evaluate((img) => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0)).toBe(true);
     await original.evaluate((img) => (img as HTMLImageElement).decode());
     const originalSrc = await original.evaluate((img) => (img as HTMLImageElement).currentSrc);
+    expect(fullRequests).toContain(originalSrc);
     const manifest = JSON.parse(await readFile(resolve(process.cwd(), "image-variants.json"), "utf8")) as {
-      images: { full: string; originalSha256: string; variants: { uri: string }[] }[];
+      images: { full: string; fullSha256: string; variants: { uri: string }[] }[];
     };
     const entry = manifest.images.find((entry) => entry.variants.some((variant) => variant.uri === new URL(previewSrc).pathname));
     expect(entry).toBeDefined();
     const response = await page.request.get(originalSrc);
     expect(response.status()).toBe(200);
-    expect(sha256(await response.body())).toBe(entry!.originalSha256);
+    expect(sha256(await response.body())).toBe(entry!.fullSha256);
+    expect(new URL(originalSrc).pathname).toMatch(/\.webp$/);
     expect(response.headers()["cache-control"]).toBe("public, max-age=31536000, immutable");
     expect(await original.evaluate((img) => (img as HTMLImageElement).naturalWidth)).toBeGreaterThanOrEqual(await preview.evaluate((img) => (img as HTMLImageElement).naturalWidth));
     expect(externalRequests).toEqual([]);

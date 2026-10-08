@@ -1,4 +1,5 @@
 "use client";
+import { useCollectionItemRetention } from "@/shared/ui/collection-item-window";
 import classes from "./photo-viewer.module.scss";
 import { cssTransform } from "@/shared/ui/css";
 import {
@@ -34,6 +35,7 @@ export function PhotoViewer({
   initialIndex = 0,
   onClose,
 }: PhotoViewerProps) {
+  useCollectionItemRetention(visible);
   if (!visible || photos.length === 0) return null;
   return (
     <PhotoViewerInner

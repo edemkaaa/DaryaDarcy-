@@ -115,7 +115,7 @@ export default function AestheticsGuideScreen() {
           >
             <Picture
               source={{
-                uri: "/assets/responsive/47ae04f69998-VjKNaGyYogjUkMPQ.w1200.63560d2abc9d2c51.jpg",
+                uri: "/assets/responsive/47ae04f69998-VjKNaGyYogjUkMPQ.w1200.f931112dad472e7c.webp",
               }}
               contentFit="cover"
               className={classes.bannerImage}

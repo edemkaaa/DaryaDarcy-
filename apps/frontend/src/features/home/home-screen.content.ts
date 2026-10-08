@@ -24,7 +24,7 @@ export const SECTION_BANNERS = [
     route: "/feed" as const,
     icon: "article" as const,
     image:
-      "/assets/responsive/cc53a49e1416-qxGDcExHmMNZuoWc.w640.184c30d80055f4f0.jpg",
+      "/assets/responsive/cc53a49e1416-qxGDcExHmMNZuoWc.w640.dd2303032369b98d.webp",
     hasNew: true,
     lastUpdated: SECTION_LAST_UPDATED.feed,
     newCount: SECTION_CONTENT_COUNTS.feed,
@@ -36,7 +36,7 @@ export const SECTION_BANNERS = [
     route: "/club" as const,
     icon: "star" as const,
     image:
-      "/assets/responsive/597ab82580a0-GDVbsOSXBYgogKWH.w640.ba28fbfe01bdb50b.jpg",
+      "/assets/responsive/597ab82580a0-GDVbsOSXBYgogKWH.w640.5a564377e880042f.webp",
     hasNew: true,
     lastUpdated: SECTION_LAST_UPDATED.club,
     newCount: SECTION_CONTENT_COUNTS.club,
@@ -48,7 +48,7 @@ export const SECTION_BANNERS = [
     route: "/interactive" as const,
     icon: "auto-awesome" as const,
     image:
-      "/assets/responsive/6ac128a122fc-aEjJLmnJbZuksHiz.w640.2f118048a4e6da6d.jpg",
+      "/assets/responsive/6ac128a122fc-aEjJLmnJbZuksHiz.w640.086d338cbe04e5ba.webp",
     hasNew: true,
     lastUpdated: SECTION_LAST_UPDATED.interactive,
     newCount: SECTION_CONTENT_COUNTS.interactive,
@@ -60,7 +60,7 @@ export const SECTION_BANNERS = [
     route: "/library" as const,
     icon: "menu-book" as const,
     image:
-      "/assets/responsive/7e8f673737d1-bGwFUQjrxWpTxAMM.w640.4f639bc18607fcbd.jpg",
+      "/assets/responsive/7e8f673737d1-bGwFUQjrxWpTxAMM.w640.40a8ee56f571d4bc.webp",
     hasNew: true,
     lastUpdated: SECTION_LAST_UPDATED.library,
     newCount: SECTION_CONTENT_COUNTS.library,
@@ -72,7 +72,7 @@ export const SECTION_BANNERS = [
     route: "/shop" as const,
     icon: "shopping-bag" as const,
     image:
-      "/assets/responsive/8283ecb861ab-BSgzKdVEmubRcHjZ.w640.e2cbbb1eec9a9ba6.jpg",
+      "/assets/responsive/8283ecb861ab-BSgzKdVEmubRcHjZ.w640.ccebdc3a9c89651f.webp",
     hasNew: true,
     lastUpdated: SECTION_LAST_UPDATED.shop,
     newCount: SECTION_CONTENT_COUNTS.shop,

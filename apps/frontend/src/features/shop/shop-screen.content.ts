@@ -3,12 +3,12 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 export { SHELF_PRODUCTS as PRODUCTS } from "@/domain/product/catalog";
 export type { ShelfProduct as Product } from "@/domain/product/catalog";
 export const PAPER_TEXTURE_URI =
-  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg";
+  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.fe3ce71852fa6634.webp";
 export const SHOP_BROWN = "#5C4033";
 export const ASSETS = {
   // User's Photoshop shelf background (1021x3118)
   shelfBg:
-    "/assets/responsive/ed5c0d6e67b1-XTxEeqUQaizDpkGL.w1021.d60d451a3b4a004d.jpg",
+    "/assets/responsive/ed5c0d6e67b1-XTxEeqUQaizDpkGL.w1021.41295f07fcd8f1aa.webp",
   // Decorative Tudor house figurine (transparent bg)
   house:
     "/assets/responsive/b010b81b5866-rvMvDhDknWfcKisy.w900.85be0a511d9e1c58.webp",

@@ -325,7 +325,7 @@ export function ArticlesAdmin() {
           {previewing ? (
             <Background
               source={{
-                uri: "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg",
+                uri: "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.fe3ce71852fa6634.webp",
               }}
               className={classes.previewPaper}
               imageClassName={classes.backgroundimage}

@@ -1,28 +1,28 @@
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 export const PAPER_TEXTURE_URI =
-  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.7be3fc15eb2bb84f.jpg";
+  "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.fe3ce71852fa6634.webp";
 export const DEFAULT_COVER_ASPECT = 0.75;
 export const BANNER_URL =
-  "/assets/responsive/549a6bdf3cb0-aeHHNBoBXpIdgjhp.w1200.30bbc5ec57345cca.jpg";
+  "/assets/responsive/549a6bdf3cb0-aeHHNBoBXpIdgjhp.w1200.07e7096446573650.webp";
 export const GUIDE_BANNER_URL =
-  "/assets/responsive/47ae04f69998-VjKNaGyYogjUkMPQ.w1200.63560d2abc9d2c51.jpg";
+  "/assets/responsive/47ae04f69998-VjKNaGyYogjUkMPQ.w1200.f931112dad472e7c.webp";
 export const STILIZACII_COVER_URL =
-  "/assets/responsive/3b8642166933-rdRVzYWvuGEmSUdF.w1081.ffe775e1b13881ae.jpg";
+  "/assets/responsive/3b8642166933-rdRVzYWvuGEmSUdF.w1081.6380b324c6741251.webp";
 export const STILIZACII_YANDEX_URL = "https://disk.yandex.ru/i/Y-XvbPF-NwOiLg";
 export const RECIPES_COVER_URL =
-  "/assets/responsive/877a6c2a49ef-JZjLEpuxmhqHszUD.w1200.cdc7c547845e8eda.jpg";
+  "/assets/responsive/877a6c2a49ef-JZjLEpuxmhqHszUD.w1200.44a1ac31d1637bd8.webp";
 export const RECIPES_YANDEX_URL = "https://disk.yandex.ru/i/nUoIS8gQ5VkClA";
 export const PETERBURG_COVER_URL =
-  "/assets/responsive/925076516046-CkdCchNXtpJkPNVd.w1200.cecc8825fbd458b1.jpg";
+  "/assets/responsive/925076516046-CkdCchNXtpJkPNVd.w1200.c85757962e32576f.webp";
 export const PETERBURG_YANDEX_URL = "https://disk.yandex.ru/d/BM0uzv2cWZeM0Q";
 export const PATTERNS_COVER_URL =
-  "/assets/responsive/4327bffa91b1-TRkGduziKBAAVhso.w1200.7942f7a28be49f80.jpg";
+  "/assets/responsive/4327bffa91b1-TRkGduziKBAAVhso.w1200.f8dbe5d9ca763eb2.webp";
 export const LOSHADKA_COVER_URL =
-  "/assets/responsive/loshadka-cover.w1176.457f881cc9263dc1.jpg";
+  "/assets/responsive/loshadka-cover.w1176.272be882ac7b774e.webp";
 export const LOSHADKA_YANDEX_URL = "https://disk.yandex.ru/i/nDfsd5ptLO1xRA";
 export const ABOUT_ME_COVER_URL =
-  "/assets/responsive/1fbca647058b-LvxZFiaBWuJSsIgj.full.2f55ac51fddc10db.jpg";
+  "/assets/responsive/1fbca647058b-LvxZFiaBWuJSsIgj.full.1f4bca1ed4720a16.webp";
 export const BROWN = "#5C4033";
 export const BROWN_MUTED = "#8B7355";
 export const OLIVE_BG = "#e4e0cd";

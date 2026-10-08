@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-07",
+  "baseHead": "29eae3ce420e91e1a2f8326d82868bc1cb0a635f",
+  "environment": {
+    "browser": "Chromium (local chromium-1232 executable)",
+    "playwright": "1.58.2",
+    "next": "16.3.8",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "postCount": 360,
+    "api": "fixture responses; no backend or database",
+    "heap": "Runtime.getHeapUsage.usedSize after HeapProfiler.collectGarbage"
+  },
+  "comparison": {
+    "reference": "same current source and long-lists fixtures with windowItems removed from FeedScreen and ClubSubscribed",
+    "withoutWindowing": [
+      {
+        "path": "/feed",
+        "dom": 9178,
+        "listDom": 9072,
+        "comments": 0,
+        "heapBytes": 24130336
+      },
+      {
+        "path": "/club",
+        "dom": 22159,
+        "listDom": 21962,
+        "comments": 360,
+        "heapBytes": 53993832
+      }
+    ],
+    "withWindowing": [
+      {
+        "path": "/feed",
+        "dom": 632,
+        "listDom": 528,
+        "mounted": 4,
+        "comments": 0,
+        "heapBytes": 10294688,
+        "height": 256465,
+        "top": 255697
+      },
+      {
+        "path": "/club",
+        "dom": 740,
+        "listDom": 542,
+        "mounted": 3,
+        "comments": 134,
+        "heapBytes": 13912048,
+        "height": 394270,
+        "top": 393392
+      }
+    ]
+  },
+  "cachePolicy": {
+    "inactiveCompletedCommentResponses": 48,
+    "inactiveFeedFilterQueries": 2,
+    "observedAndInFlightQueries": "preserved",
+    "currentListPages": "preserved for access to earlier posts"
+  },
+  "checks": {
+    "browserSuite": {
+      "passed": 83,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0
+    },
+    "verifyPassed": 202,
+    "productionBuild": true,
+    "frontendTypes": true,
+    "e2eTypes": true,
+    "finalBuildRetentionRepeat": {
+      "passed": 7,
+      "failed": 0
+    },
+    "eslintWarnings": 0,
+    "dependencyBoundaries": 494,
+    "documentationLinks": true
+  },
+  "limits": [
+    "one synthetic local comparison, not a production memory budget",
+    "loaded post data and measured row wrappers still scale with list size",
+    "intentional drafts, focus, expanded text and unfinished media may retain offscreen rows",
+    "physical devices, WebKit, live API and long production sessions not checked"
+  ]
+}

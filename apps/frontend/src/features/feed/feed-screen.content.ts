@@ -52,7 +52,7 @@ export const DEFAULT_TAGS: Tag[] = [
   ...FEED_TAGS,
 ];
 export const FEED_BANNER_URI =
-  "/assets/responsive/banner-shelf-v2.w1024.e6fad4d6b7c29e48.jpg";
+  "/assets/responsive/banner-shelf-v2.w1024.b898ab6e8d2babca.webp";
 
 export function getFeedScreenContent(viewport: ViewportSize) {
   const { width: SCREEN_WIDTH } = viewport;

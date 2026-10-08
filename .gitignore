@@ -109,6 +109,7 @@ docs/VPS-INFRA-PROBE.txt
 
 # Next.js output and browser-test reports
 .next/
+/apps/frontend/next-env.d.ts
 out/
 playwright-report/
 test-results/

@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import sharp from "sharp";
+import { normalizeFrontendImages } from "./normalize-frontend-images.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const frontend = path.join(root, "apps/frontend");
@@ -60,6 +61,20 @@ if (write) await fs.mkdir(outputDir, { recursive: true });
 const existingNames = reuse ? await fs.readdir(outputDir).catch(() => []) : [];
 for (const ref of [...refs].sort()) {
   const old = previousByFull.get(ref);
+  // Normalized sources are already local. Do not recreate removed JPEG/PNG
+  // files or recompress a WebP from the historical S3 source cache.
+  if (previous.format === "webp" && old) {
+    if (sha(await fs.readFile(path.join(publicDir, old.full))) !== old.fullSha256) {
+      throw new Error(`Full image checksum mismatch: ${old.full}`);
+    }
+    for (const variant of old.variants) {
+      if (sha(await fs.readFile(path.join(publicDir, variant.uri))) !== variant.sha256) {
+        throw new Error(`Derivative checksum mismatch: ${variant.uri}`);
+      }
+    }
+    images.push(old);
+    continue;
+  }
   const origin = old?.origin ?? previousOutputs.get(ref)?.url ?? ref;
   const item = external.get(origin);
   const original = await fs.readFile(item
@@ -148,12 +163,15 @@ if (write) {
     for (const [from, to] of replacements) text = text.replaceAll(from, to);
     if (text !== original) await fs.writeFile(file, text);
   }
-  await fs.writeFile(manifestPath, JSON.stringify({ version: 1, images }, null, 2) + "\n");
+  await fs.writeFile(manifestPath, JSON.stringify({ ...previous, version: 1, images }, null, 2) + "\n");
   // Remove only obsolete derivatives owned by this tool; keep source originals.
   const used = new Set(images.flatMap((item) => [item.full, ...item.variants.map((v) => v.uri)]));
   for (const file of await walk(outputDir)) {
     const uri = "/" + path.relative(publicDir, file);
     if (/\.(?:w\d+|full)\.[a-f0-9]{16}\.(?:jpg|png|webp|avif)$/.test(uri) && !used.has(uri)) await fs.unlink(file);
+  }
+  if (previous.format === "webp") {
+    await normalizeFrontendImages({ write: true, quality: previous.photoQuality });
   }
 }
 console.log(JSON.stringify({ mode: write ? "applied" : "preview", images: images.length,

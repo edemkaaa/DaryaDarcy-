@@ -1,0 +1,13 @@
+@use "../styles/layers";
+
+@layer elements {
+  .frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    // svh keeps browser toolbar visibility from resizing posts while scrolling.
+    max-height: 60svh;
+    overflow: hidden;
+    background-color: #ede6da;
+  }
+}

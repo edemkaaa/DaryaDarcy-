@@ -3,6 +3,7 @@ import classes from "./post-card.module.scss";
 import { cssTransform } from "@/shared/ui/css";
 import { Action, Typography } from "@/shared/ui/elements";
 import { useState } from "react";
+import { useCollectionItemRetention } from "@/shared/ui/collection-item-window";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -46,6 +47,7 @@ export function PostCard({
   onMenuPress?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  useCollectionItemRetention(expanded);
   const saveScale = useSharedValue(1);
   const likeScale = useSharedValue(1);
   const saveAnimStyle = useAnimatedStyle(() => ({
