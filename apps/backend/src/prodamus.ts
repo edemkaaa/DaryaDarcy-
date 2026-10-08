@@ -12,6 +12,7 @@ import { asProdamusRecord as asRecord, parseProdamusPayload } from "./billing/pr
 import { hasProdamusDemoMarker, isPaidStatus, pickOrderId, pickString, subscriptionAction } from "./billing/prodamus-fields";
 import { readProdamusPayment } from "./billing/prodamus-payment";
 import { hasClubPaymentBinding } from "./billing/prodamus-binding";
+import { readProdamusCancellationProfile } from "./billing/prodamus-cancellation";
 import { ClubSettlementService } from "./billing/club-settlement.service";
 
 export { createProdamusSign } from "./billing/prodamus-signature";
@@ -394,12 +395,21 @@ async function processProdamusWebhook(
     });
 
     if (action === "deactivation" || action === "finish") {
-      const subscription=asRecord(body.subscription);
-      const domain=pickString(body,["domain"]).toLowerCase();
       const key=getSubscriptionSecret()||getSecret();
-      if(!key || !signsMatch(createProdamusSign(body,key),signature) || domain!==new URL(getPayformUrl()).hostname || pickString(subscription,["id"])!==subscriptionId() || !pickString(subscription,["profile_id"])) {res.status(422).send("profile binding invalid");return;}
+      if (!key || !signsMatch(createProdamusSign(body, key), signature)) {
+        res.status(422).send("profile binding invalid");
+        return;
+      }
+      const profile = readProdamusCancellationProfile(body, {
+        domain: new URL(getPayformUrl()).hostname,
+        subscriptionId: subscriptionId(),
+      });
+      if (!profile) {
+        res.status(422).send("profile binding invalid");
+        return;
+      }
       const database=await db.getDb();if(!database) throw new Error("Database unavailable");
-      const confirmed=await confirmProviderCancellation(database,{domain,subscriptionId:pickString(subscription,["id"]),profileId:pickString(subscription,["profile_id"])});
+      const confirmed=await confirmProviderCancellation(database,profile);
       res.status(confirmed?200:422).send(confirmed?"cancelled":"profile binding invalid");
       return;
     }

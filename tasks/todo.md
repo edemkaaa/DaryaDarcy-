@@ -814,6 +814,16 @@
       restore full 1486 pass / 618 skip, types/build/API/523-file boundaries,
       frontend lint/docs/format/whitespace pass. SQL/provider acceptance and
       remaining orchestration stay open; no activation or rollout change.
+    - [x] Pure cancellation profile field binding extracted to
+      billing/prodamus-cancellation; original-body HMAC, recurring key selection,
+      demo guard and durable confirmation stay in the HTTP handler. Eighteen
+      literal/frozen fixtures, eight native HTTP cases; eight scaffold RED
+      assertions. Merchant-guard removal fails three pure checks and one native
+      rejection. Restore: 145 focused pass, full 1629 pass / 618 SQL/external
+      skip, types/407.2 kB build/unchanged API/529-file boundaries/lint pass.
+      Numeric native fixture canonicalization corrected without production change.
+      Existing nonempty profile semantics preserved, not stricter payment regex;
+      no actual SQL/provider effects, frontend, secrets, activation or rollout.
   - [x] Shop owned/checkout use cases now use explicit ShopModule/ShopService
     composition in Nest and standalone callers. Router schemas/protected access
     and hard-disabled capability gate remain before checkout service entry;

@@ -3784,6 +3784,53 @@ secrets/mailbox/cabinet access, external mail, TEST/shop activation, merge/push/
 or automation changes. Remaining webhook orchestration, SQL/provider and release
 gates stay open; this completes only the service-composition substep of M06.
 
+### M06 — cancellation profile field binding, 8 October, afternoon
+
+Extract only the inline cancellation field matching into a pure billing helper.
+Input is decoded payload plus explicit trusted merchant hostname/subscription ID;
+return a typed domain/subscription/profile triple or null. Preserve pickString
+trim/case/alias/coercion behavior, exact subscription matching and the existing
+nonempty profile rule; do not silently impose the stricter payment profile regex.
+The HTTP handler still verifies the original payload with the selected recurring
+key before parsing configured URL, acquiring SQL or confirming cancellation.
+Demo rejection, response codes, durable transaction and failure logging stay put.
+
+RED/GREEN: literal direct fixtures against the empty typed contract; native
+signed deactivation/finish, mismatched fields, key mismatch and durable refusal.
+Only SQL confirmation/acquisition are doubled; real parser, HMAC, Nest ingress
+and domain guard run. Mutation removing merchant match must fail both pure and
+native cases. Follow full Node 22 tests/types/build/API/boundaries/docs and local
+commit review. No frontend, schema/dependencies, auth/CORS/proxy/quotas, real
+SQL/provider effects, secret access, payment activation, push or deployment.
+
+Checkpoint: pure readProdamusCancellationProfile now owns the matched triple;
+the handler retains original-body HMAC, selected recurring key, demo rejection
+and database confirmation. Eighteen literal/frozen fixtures and eight native
+HTTP cases added. Eight expected empty-contract RED assertions, then GREEN.
+Characterization on the old handler caught a numeric fixture signing mistake:
+hand-written canonical JSON now correctly uses string scalar values; no
+production workaround or relaxed signature assertion. Deactivation/finish,
+foreign domain/subscription, missing profile, demo, unrelated-but-globally-valid
+shop key and durable refusal preserve status/body/cookie and SQL dispatch rules.
+
+Removing merchant matching deliberately fails three pure checks and the native
+foreign-merchant case (200 instead of 422); restore: eight focused files / 145
+checks pass, including compiled ESM billing acceptance. Final complete Node 22
+suite after restoration: 1629 pass / 618 SQL/external skip, 122 files pass / 30
+skip, 13.94 seconds. Root/frontend/e2e types, 407.2 kB backend build, unchanged
+73-procedure / 25642-byte API, 529-file boundaries and existing frontend lint
+pass. Selected code formatting/whitespace pass; docs checked before commit.
+
+Review: billing-owned pure helper reuses canonical decoding rather than copying
+it; no environment/effect imports, mutable state or additional logging. Strong
+output fields avoid optional-profile fallbacks downstream. Exact subscription
+and original nonempty profile semantics remain; this is not profile schema
+hardening, signature authorization or actual SQL/provider cancellation evidence.
+No new dependencies/schema/frontend/auth/CORS/proxy/quota, secret access, external
+effects, payment activation, merge/push/deployment. M06 orchestration, durable
+acceptance and earlier rollout/dependency gates remain open; M07c still needs the
+separate human-reviewed drain bound.
+
 ## Prodamus sandbox connection — 8 October, proposed rollout contract
 
 User supplied a time-limited testpage1.payform.ru cabinet and requested test

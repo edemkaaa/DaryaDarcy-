@@ -6,6 +6,7 @@ import { request as httpRequest } from "node:http";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import * as prodamus from "../apps/backend/src/prodamus";
 import * as db from "../apps/backend/src/db";
+import * as cancellation from "../apps/backend/src/billing/cancellation";
 import { ClubSettlementService } from "../apps/backend/src/billing/club-settlement.service";
 import {
   PRODAMUS_WEBHOOK_HANDLER,
@@ -37,6 +38,112 @@ afterEach(() => vi.restoreAllMocks());
 afterAll(async () => {
   await application?.close();
   vi.unstubAllEnvs();
+});
+it.each([
+  {
+    name: "deactivation",
+    raw: '{"domain":" FIXTURE.PAYFORM.RU ","subscription":{"action_code":"deactivation","id":"7","profile_id":"23"}}',
+    status: 200,
+    text: "cancelled",
+    dispatch: true,
+  },
+  {
+    name: "finish",
+    raw: '{"domain":"fixture.payform.ru","subscription":{"action_code":"finish","id":7,"profile_id":23}}',
+    canonical:
+      '{"domain":"fixture.payform.ru","subscription":{"action_code":"finish","id":"7","profile_id":"23"}}',
+    status: 200,
+    text: "cancelled",
+    dispatch: true,
+  },
+  {
+    name: "foreign merchant",
+    raw: '{"domain":"foreign.payform.ru","subscription":{"action_code":"deactivation","id":"7","profile_id":"23"}}',
+    status: 422,
+    text: "profile binding invalid",
+    dispatch: false,
+  },
+  {
+    name: "foreign subscription",
+    raw: '{"domain":"fixture.payform.ru","subscription":{"action_code":"deactivation","id":"8","profile_id":"23"}}',
+    status: 422,
+    text: "profile binding invalid",
+    dispatch: false,
+  },
+  {
+    name: "missing profile",
+    raw: '{"domain":"fixture.payform.ru","subscription":{"action_code":"deactivation","id":"7"}}',
+    status: 422,
+    text: "profile binding invalid",
+    dispatch: false,
+  },
+  {
+    name: "demo cancellation",
+    raw: '{"demo_mode":"1","domain":"fixture.payform.ru","subscription":{"action_code":"deactivation","id":"7","profile_id":"23"}}',
+    status: 400,
+    text: "demo payment not accepted",
+    dispatch: false,
+  },
+  {
+    name: "wrong recurring key",
+    raw: '{"domain":"fixture.payform.ru","subscription":{"action_code":"deactivation","id":"7","profile_id":"23"}}',
+    status: 422,
+    text: "profile binding invalid",
+    dispatch: false,
+    wrongKey: true,
+  },
+  {
+    name: "durable refusal",
+    raw: '{"domain":"fixture.payform.ru","subscription":{"action_code":"deactivation","id":"7","profile_id":"23"}}',
+    status: 422,
+    text: "profile binding invalid",
+    dispatch: true,
+    refused: true,
+  },
+])("cancellation native HTTP preserves $name", async (fixture) => {
+  vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "7");
+  vi.stubEnv("PRODAMUS_SUBSCRIPTION_SECRET", "cancellation-fixture-key");
+  vi.stubEnv("PRODAMUS_SHOP_SECRET", "unrelated-shop-fixture-key");
+  // Only SQL boundaries are replaced. This opaque handle is never queried.
+  const database = {} as NonNullable<Awaited<ReturnType<typeof db.getDb>>>;
+  const acquire = vi.spyOn(db, "getDb").mockResolvedValue(database);
+  const confirm = vi
+    .spyOn(cancellation, "confirmProviderCancellation")
+    .mockResolvedValue(!fixture.refused);
+  try {
+    // Hand-ordered canonical literals include the provider's scalar-to-string rule.
+    const signature = createHmac(
+      "sha256",
+      fixture.wrongKey
+        ? "unrelated-shop-fixture-key"
+        : "cancellation-fixture-key",
+    )
+      .update(fixture.canonical ?? fixture.raw)
+      .digest("hex");
+    const response = await fetch(base + "/api/prodamus/webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Sign: signature },
+      body: fixture.raw,
+    });
+    expect(response.status).toBe(fixture.status);
+    expect(await response.text()).toBe(fixture.text);
+    expect(response.headers.get("set-cookie")).toBeNull();
+    if (fixture.dispatch) {
+      expect(acquire).toHaveBeenCalledTimes(1);
+      expect(confirm).toHaveBeenCalledExactlyOnceWith(database, {
+        domain: "fixture.payform.ru",
+        subscriptionId: "7",
+        profileId: "23",
+      });
+    } else {
+      expect(acquire).not.toHaveBeenCalled();
+      expect(confirm).not.toHaveBeenCalled();
+    }
+  } finally {
+    vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "");
+    vi.stubEnv("PRODAMUS_SUBSCRIPTION_SECRET", "");
+    vi.stubEnv("PRODAMUS_SHOP_SECRET", "");
+  }
 });
 it("rejects a normally signed demo over native HTTP without entering settlement", async () => {
   const settlement = vi
