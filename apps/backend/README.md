@@ -21,6 +21,7 @@ src/
   launch/         Nest-модуль, контроллер и сервис настроек запуска; capabilities
   pen-pals/       анкеты и совпадения
   shop/           ShopModule/ShopService: покупки и checkout; запуск оплаты отключён
+  workers/        WorkersModule/WorkerJobs: сборка задач без автозапуска (M07b1)
 ```
 
 [API](../../docs/architecture/api.md) · [База](../../docs/architecture/database.md) · [Интеграции](../../docs/architecture/integrations.md) · [Полный запуск](../../docs/development/getting-started.md).

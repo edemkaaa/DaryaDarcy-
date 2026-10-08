@@ -3434,3 +3434,49 @@ leases, detached pushes and pool ownership are untouched. M07b composition is
 next; M07c still requires shutdown-bound review. N12 outbox remains independent.
 No frontend, schema, dependencies, auth/CORS/proxy/quota, provider/mail/secret
 access, TEST/shop activation, merge, push, server update or shutdown wiring.
+
+### M07b1 verified — inert Nest worker composition, 8 October
+
+WorkersModule now supplies an application-owned WorkerJobs provider and a typed
+WORKER_OPERATIONS binding containing references to the existing domain helpers.
+Its factory performs no work. WorkerJobs constructs the M07a runner without
+activation; importing, factory/init and native listen are still worker-free.
+Explicit start is available for the eventual executable caller, but index.ts
+still uses its previous timers. No startup or shutdown integration is made in
+this slice; do not activate both sets of timers. Executable replacement and
+failed-listen acceptance remain M07b2, with shutdown-bound review still pending.
+
+The four original immediate/fixed cadences are composed: publication 60 seconds,
+billing 30 seconds, maintenance 5 minutes, backup due check 6 hours. Preserve
+returned publication rows/targets and detached announcement semantics, shared
+database and exact cancellation/mail sender bindings, independent settled
+billing workers, shop helper before retention and the backup helper's own guard.
+Database acquisition rejection is caught by the runner's static failure label
+and releases busy state. Business helpers, leases and disabled-shop policy are
+unchanged. Pending callbacks still do not account for detached push delivery.
+
+Eight expected orchestration RED assertions and two expected missing-provider
+native RED assertions were observed before implementation/wiring. Nine unit
+checks, two actual native Nest-app checks and one compiled ESM child check pass.
+The native pair proves separately supplied per-app publication behavior and
+activation state; the compiled child guards construction/listen against interval
+activation, injects synthetic effect boundaries before explicit start, stops
+owned timers and exits. Bypassing the injected publication helper fails both
+native and compiled assertions; restoring it passes again. No real SQL, provider,
+SMTP, push or backup work occurs. Owned child/listeners/temp bundle are cleaned.
+
+Diagnostics caught two fixture gaps: Vitest reused the already-shared import spy
+when spying on both app bindings (confirmed by identity and installed spy code),
+so the test now replaces two owned binding properties with separately typed
+functions. No production workaround was needed. The old capability test's whole
+database stub lacked publishDueScheduledPosts; it now counts that effect too.
+The first whole run failed at that fixture setup; the fresh corrected run is
+1341 pass / 618 skip, 108 files pass / 30 skip. Eight focused files / 63 pass.
+Skipped SQL/external suites are not durable or provider acceptance evidence.
+
+Node 22 root/frontend/e2e types, 397.5 kB backend build, unchanged 73-procedure /
+25642-byte API, 516-file boundaries and existing frontend lint pass. Selected
+formatting, documentation links and whitespace are checked before commit; no
+backend lint claim. No schema/dependency/frontend/auth/CORS/proxy/quota change,
+secret access, activation on a working stand, merge, push or server update.
+M07b2/M07c/N12 and previous rollout/dependency gates stay open.

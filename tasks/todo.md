@@ -769,6 +769,17 @@
   - [ ] M07b after M07a: Nest job composition; activate only after listen and
     preserve four cadences/helper semantics. Native factory remains worker-free;
     controlled run failures and isolated built startup/listen failure accepted.
+    - [x] M07b1: inert WorkersModule/WorkerJobs and typed per-app helper binding.
+      Nine orchestration checks, two native apps and one compiled ESM child;
+      eight use-case/two missing-provider RED failures, injected-helper bypass
+      mutation fails native and built assertions. Restore: 63 focused pass,
+      full 1341 pass / 618 skip; types/build/API/516-file boundaries/docs pass.
+      Old whole-DB stub completed; per-app test spies isolated after diagnosis.
+      index.ts remains unchanged: no new executable timers or shutdown hooks,
+      real SQL/provider/mail/push/backup, frontend, secrets, push or deployment.
+    - [ ] M07b2: replace old executable timers with one explicit activation only
+      after successful listen; prove failed-listen behavior in an isolated child.
+      Never activate both runners; shutdown-bound review remains unresolved.
   - [ ] M07c after shutdown-bound review: stop timers before drain, app.close and
     signal acceptance, honest pending-at-bound handling. No remote-success claim,
     forced lease reset or real provider activity; inventory detached tasks first.

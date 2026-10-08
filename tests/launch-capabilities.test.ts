@@ -24,6 +24,10 @@ vi.mock("../apps/backend/src/db", () => ({
     effects.database++;
     return null;
   },
+  publishDueScheduledPosts: async () => {
+    effects.database++;
+    return [];
+  },
   createShopPurchase: async () => {
     effects.orders++;
   },
