@@ -3191,3 +3191,88 @@ unchanged API (73 / 25642) and 510 dependency boundaries pass; full suite
 1275 pass / 618 SQL/external skip. Frontend-only lint, selected code formatting,
 50-document local-link check and whitespace checks pass. This is not production
 approval; keep the existing dependency/provider/rollout gates open.
+
+### M07 specification draft — background-job lifecycle, 8 October
+
+Status: inspected and specified, not implemented or shutdown-policy approved.
+This extends the existing workers capability in ADR-005/M07; it is not N12,
+another scheduler deployment, a queue service or an ORM rewrite. Review the
+shutdown bound before wiring lifecycle changes into the executable.
+
+Objective: give each executable instance explicit ownership of its background
+timers and awaited runs, prevent overlapping runs of the same job, and stop
+accepting timer work before shutdown. Preserve publication, cancellation/mail,
+retention and backup business helpers and the existing cadence. Assumptions:
+single executable per application, fixed-interval cadence (not completion-based),
+skip an interval while its same job is busy rather than accumulating a backlog.
+Different jobs remain independent; local single-flight is not a distributed lock.
+
+Inspection baseline in `_core/index.ts`:
+
+| Job | Initial run | Interval | Existing semantics to preserve |
+| --- | --- | --- | --- |
+| Scheduled publication | after listener succeeds | 60 seconds | publish SQL first, then announce |
+| Billing | after listener succeeds | 30 seconds | cancellation and access-email workers use independent settled promises |
+| Maintenance | after listener succeeds | 5 minutes | disabled-shop helper first, then retention |
+| Backup due check | after listener succeeds | 6 hours | helper's 24-hour due check and existing activeBackup guard |
+
+All four interval handles are currently discarded. There is no executable
+shutdown-hook registration or application-owned stop/drain path. A slow run can
+overlap its next scheduled invocation; leases and the backup guard are separate
+controls, not proof every job is serial. Publication notifications are detached
+with `void`: draining the publication SQL promise alone would not drain those
+sends. The database facade does not expose ownership/closing of its mysql2 pool.
+These are source inspection findings, not reproduced data loss or paid duplicates.
+Local Docker still returns `Error reading remote info: EOF` on 8 October 03:21 UTC;
+no disposable database was created and no existing database was accessed.
+
+Implementation order and acceptance (separate local save points):
+
+1. M07a, local scheduling primitive. Keep callbacks/timers explicit and typed;
+   constructors have no scheduled effects. Start is idempotent, one immediate
+   run per job; interval skips while that job is busy. Sync throw and rejected
+   promise release busy state and report only a static job label. Stop fences
+   already queued timer callbacks, clears owned handles, is idempotent and
+   forbids restarts; it exposes the pending work without pretending it finished.
+   Files: `src/workers/interval-jobs.ts`, `tests/worker-lifecycle.test.ts`.
+   RED/GREEN: deferred promises and fake timers prove no overlap/backlog, other
+   jobs continue, recovery after errors, repeated start/stop and callback fencing.
+2. M07b, explicit application-scoped job composition. Nest owns a provider with
+   explicit @Inject and no constructor/init autostart. The executable activates
+   it only after listen; importing/creating/initializing a factory remains inert.
+   Keep the above cadence, helper arguments, disabled-shop gate and transaction
+   boundaries. Observe and safely handle database acquisition/run rejection.
+   Files: workers module/service, app.module, index and native runtime tests.
+   RED/GREEN: controlled dependency boundaries, real Nest factory/listener and
+   an isolated built child with synthetic config; failed listen starts no work.
+3. M07c, shutdown integration, after the bound is reviewed. Stop/fence timers
+   before awaiting owned tasks on app.close and SIGTERM/SIGINT. Never pretend a
+   timed-out provider operation failed remotely or mark it sent/cancelled. Keep
+   SQL leases recoverable; no forced delete/requeue or automatic payment retry.
+   Test graceful completion, unfinished work at the bound, repeated signals,
+   no post-stop effects, no unhandled rejection, and actual child exit. Inventory
+   detached push work before claiming complete drain; pool ownership/close needs
+   its own data-lifecycle slice after in-flight work, not a blind global close.
+
+Use the existing Node 22 / Nest / Vitest / esbuild stack, no new dependency.
+Style: small typed services, explicit injection as in TrpcService; examples:
+`constructor(@Inject(WorkerJobs) private readonly jobs: WorkerJobs) {}` and
+`await jobs.stop()` only when that method's tested drain contract is established.
+Paths above are relative to apps/backend except tests in the repository root.
+Commands from the root: `pnpm exec vitest run tests/worker-lifecycle.test.ts`
+(after the test exists), `pnpm exec vitest run tests/nest-application.test.ts tests/backend-entrypoint.test.ts`, then `pnpm test`, `pnpm check`, `pnpm build`,
+`pnpm lint`, `pnpm check:api`, `pnpm check:boundaries`, `pnpm check:docs`.
+
+Always: RED/GREEN each slice, static safe logs, factory-without-jobs invariant,
+isolated synthetic transports/config, explicit limits of single-process guards.
+Ask first: maximum shutdown wait and handling of tasks still pending at that
+bound, any shared-pool ownership change, schema/new dependency or working rollout.
+Never: real provider/SMTP/push/S3/SQL work during acceptance, secrets in fixtures,
+changing auth/CORS/proxy/HTTP quotas, enabling TEST/shop, or claiming exactly-once.
+N12's transactional publication outbox remains separate and open: scheduling
+ownership cannot remove the post-commit crash window or provider uncertainty.
+
+This turn is documentation-only. No new runtime behavior or RED/GREEN result is
+claimed. Preserve the previously verified M08a commit and all release blockers.
+Verification: 50-document local-link check and diff whitespace checks pass;
+runtime code is unchanged, so no new application test/build result is claimed.

@@ -723,6 +723,25 @@
     12 expected RED cases repaired; 813 non-MySQL pass / 4 skip on Node 22.
     Shop remains disabled; no real SQL/provider acceptance or deployment.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
+  - [x] Inspect and draft lifecycle specification in the existing plan, 8 October.
+    Four immediate/fixed-interval jobs; timer handles not owned, no executable
+    stop/drain, possible slow-run overlap. Existing backup guard and SQL leases
+    preserved; detached announcement sends and pool ownership recorded. These
+    are source findings, not observed data loss or duplicate payments. Docker
+    still returns EOF; no database or external transport touched.
+  - [ ] M07a: deferred/fake-timer RED/GREEN for an inert, explicit single-flight
+    job runner: immediate/fixed cadence, no backlog, independent jobs, recovery,
+    idempotent start/stop and late callback fence. No domain/provider changes.
+  - [ ] M07b after M07a: Nest job composition; activate only after listen and
+    preserve four cadences/helper semantics. Native factory remains worker-free;
+    controlled run failures and isolated built startup/listen failure accepted.
+  - [ ] M07c after shutdown-bound review: stop timers before drain, app.close and
+    signal acceptance, honest pending-at-bound handling. No remote-success claim,
+    forced lease reset or real provider activity; inventory detached tasks first.
+    Ask for the maximum drain wait before implementing this runtime policy.
+  - [ ] Keep mysql2 pool ownership/close and N12 durable publication outbox as
+    separate data-lifecycle/features; local single-flight is not a distributed
+    lock or exactly-once delivery. Do not close M07 on the specification alone.
 - [ ] M08: Specify/migrate remaining API services, remove superseded adapters and
   decompose db.ts without changing contracts. Review every module separately.
   - [x] Fix moderation mutation ID validation as a separate behavior change:
