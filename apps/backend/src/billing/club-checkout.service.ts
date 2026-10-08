@@ -5,6 +5,7 @@ import type { User } from "../../../../packages/database/src/schema";
 import { isValidEmail, normalizeEmail } from "../_core/password";
 import * as db from "../db";
 import { YookassaClubService } from "./yookassa/club.service";
+import { ProdamusTestClubService } from "./prodamus-test-club.service";
 import {
   assertClubCheckoutConfigured,
   buildCheckoutUrl,
@@ -51,6 +52,11 @@ export class ClubCheckoutService {
       });
     }
     const plan = input?.plan ?? "monthly";
+    const prodamusTest = process.env.PRODAMUS_TEST_ENABLED;
+    if (prodamusTest && prodamusTest !== "false")
+      return new ProdamusTestClubService().createCheckout(
+        email, actor || existing, plan, intentKey,
+      );
     const selected = process.env.YOOKASSA_TEST_ENABLED;
     if (selected && selected !== "false" && selected !== "true")
       throw new TRPCError({

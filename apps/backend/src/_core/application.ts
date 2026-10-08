@@ -13,11 +13,23 @@ import { registerRequestBodies } from "./request-bodies";
 import { registerProdamusSandboxBody } from "../billing/prodamus-sandbox.ingress";
 
 /** Composition only: no environment files, listener or scheduled side effects. */
-export async function createBackendApplication(): Promise<INestApplication> {
+export async function createBackendApplication(
+  options: { allowedPostPaths?: readonly string[] } = {},
+): Promise<INestApplication> {
   const adapter = new ExpressAdapter();
   const http = adapter.getInstance<Express>();
   http.set("trust proxy", "loopback");
   registerHttpSecurity(http);
+  if (options.allowedPostPaths) {
+    const allowed = new Set(options.allowedPostPaths);
+    http.use((req, res, next) => {
+      if (req.method !== "POST" || !allowed.has(req.path)) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+      next();
+    });
+  }
   // Nest's defaults must not parse a webhook or allocate an upload before auth.
   http.post(
     "/api/prodamus/webhook",
@@ -30,6 +42,12 @@ export async function createBackendApplication(): Promise<INestApplication> {
     });
   });
   registerProdamusSandboxBody(http);
+  http.post("/api/prodamus/test/webhook", (req, res, next) => {
+    express.raw({ type: () => true, limit: "64kb" })(req, res, error => {
+      if (error) { res.status(error.status === 413 ? 413 : 400).send("invalid test notification"); return; }
+      next();
+    });
+  });
   registerRequestBodies(http);
 
   // Transitional adapters: replace one domain at a time behind the same API.

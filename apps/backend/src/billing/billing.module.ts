@@ -11,6 +11,7 @@ import { YookassaWebhookController } from "./yookassa/webhook.controller";
 import { createProdamusWebhookHandler } from "../prodamus";
 import { ProdamusSandboxService } from "./prodamus-sandbox.service";
 import { ProdamusSandboxController } from "./prodamus-sandbox.controller";
+import { ProdamusTestClubController } from "./prodamus-test-club.controller";
 import {
   PRODAMUS_WEBHOOK_HANDLER,
   ProdamusWebhookController,
@@ -34,6 +35,7 @@ export type BillingServices = ClubBillingServices & {
     ProdamusWebhookController,
     YookassaWebhookController,
     ProdamusSandboxController,
+    ProdamusTestClubController,
   ],
   providers: [
     {

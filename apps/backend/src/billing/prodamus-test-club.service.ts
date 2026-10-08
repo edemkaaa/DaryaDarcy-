@@ -1,0 +1,150 @@
+import { TRPCError } from "@trpc/server";
+import { randomUUID } from "node:crypto";
+import type { User } from "../../../../packages/database/src/schema";
+import * as db from "../db";
+import {
+  createProdamusSign,
+  verifyProdamusSignature,
+} from "./prodamus-signature";
+import { parseProdamusPayload } from "./prodamus-payload";
+import { buildProdamusQuery } from "./prodamus-query";
+import { readProdamusPayment } from "./prodamus-payment";
+import { moneyMinor } from "./protocol";
+import { clubAccessMs } from "./club-settlement.service";
+
+const merchant = "https://testpage1.payform.ru";
+const application = "https://daryadarcy.dev.reeskeen.ru";
+const orderPattern =
+  /^club-test-[1-9]\d*-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
+const unavailable = "Тестовая оплата Prodamus не настроена";
+
+/** Exclusive dev binding; never falls back to a live key/merchant or YooKassa. */
+export function requireProdamusTestConfiguration() {
+  const key = process.env.PRODAMUS_TEST_SECRET || "";
+  const demoSign = process.env.PRODAMUS_TEST_DEMO_SIGN;
+  if (
+    process.env.PRODAMUS_TEST_ENABLED !== "true" ||
+    process.env.PRODAMUS_TEST_PAYFORM_URL !== merchant ||
+    process.env.PUBLIC_APP_URL !== application ||
+    ![undefined, "", "false"].includes(process.env.YOOKASSA_TEST_ENABLED) ||
+    !/^[a-f0-9]{64}$/i.test(key) ||
+    (demoSign !== undefined && demoSign !== "false" && demoSign !== "true")
+  )
+    throw new TRPCError({ code: "PRECONDITION_FAILED", message: unavailable });
+  return { key, signingKey: demoSign === "true" ? `${key}demo` : key };
+}
+
+/** Dev-only one-off access; diagnostic and live receivers remain unchanged. */
+export class ProdamusTestClubService {
+  async createCheckout(
+    email: string,
+    existing: User | null | undefined,
+    plan: "monthly" | "semiannual",
+    intentKey?: unknown,
+  ) {
+    const configured = requireProdamusTestConfiguration();
+    if (plan !== "monthly" || intentKey !== undefined)
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: unavailable,
+      });
+    const user = existing || (await db.ensureUserByEmail(email));
+    const orderId = `club-test-${user.id}-${randomUUID()}`;
+    const payload = {
+      do: "pay",
+      demo_mode: "1",
+      order_id: orderId,
+      customer_email: email,
+      currency: "rub",
+      sum: "790.00",
+      products: [
+        {
+          name: "Клуб Darcy — ТЕСТ, 30 дней без автосписаний",
+          price: "790.00",
+          quantity: "1",
+          type: "service",
+        },
+      ],
+      payment_method: "AC",
+      installments_disabled: "1",
+      payments_limit: "1",
+      callbackType: "json",
+      urlReturn: `${application}/club`,
+      urlSuccess: `${application}/club`,
+      // Cabinet-level notification URL: no invented SYS/per-link routing.
+    };
+    const url = `${merchant}/?${buildProdamusQuery({ ...payload, signature: createProdamusSign(payload, configured.signingKey) })}`;
+    await db.createClubPayment({
+      userId: user.id,
+      orderId,
+      email,
+      sum: "790.00",
+    });
+    return { url, user: null } as const;
+  }
+
+  async notification(
+    raw: unknown,
+    signature: unknown,
+  ): Promise<{ status: number; body: string }> {
+    let configured: ReturnType<typeof requireProdamusTestConfiguration>;
+    try {
+      configured = requireProdamusTestConfiguration();
+    } catch {
+      return { status: 503, body: "test payment unavailable" };
+    }
+    const invalid = { status: 400, body: "invalid test notification" };
+    if (
+      (!Buffer.isBuffer(raw) && typeof raw !== "string") ||
+      typeof signature !== "string"
+    )
+      return invalid;
+    let body: Record<string, unknown>;
+    try {
+      body = parseProdamusPayload({}, raw);
+      if (
+        !verifyProdamusSignature(body, signature, [
+          configured.key,
+          `${configured.key}demo`,
+        ])
+      )
+        return invalid;
+    } catch {
+      return invalid;
+    }
+    const payment = readProdamusPayment(body);
+    if (
+      (body.demo_mode !== "1" && body.demo_mode !== 1) ||
+      Object.keys(body).some(
+        (name) =>
+          /^(demo_?mode|subscription)$/i.test(name) && name !== "demo_mode",
+      ) ||
+      payment.proof.domain !== "testpage1.payform.ru" ||
+      !orderPattern.test(payment.orderId) ||
+      !/^[1-9]\d{0,31}$/.test(payment.proof.paymentId) ||
+      payment.proof.currency.toLowerCase() !== "rub" ||
+      moneyMinor(payment.sum) !== 79000 ||
+      (body.payment_init !== undefined && body.payment_init !== "manual") ||
+      (body.subscription_action !== undefined &&
+        body.subscription_action !== "") ||
+      !["success", "pending", "order_canceled", "order_denied"].includes(
+        String(body.payment_status),
+      )
+    )
+      return invalid;
+    if (body.payment_status !== "success")
+      return { status: 200, body: "ignored" };
+    try {
+      const granted = await db.settleClubPayment({
+        orderId: payment.orderId,
+        periodMs: clubAccessMs(),
+        sum: payment.sum,
+        proof: payment.proof,
+      });
+      return granted ? { status: 200, body: "success" } : invalid;
+    } catch {
+      console.warn("[ProdamusTest] Settlement failed");
+      return { status: 500, body: "test settlement failed" };
+    }
+  }
+}
