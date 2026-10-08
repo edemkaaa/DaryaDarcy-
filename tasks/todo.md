@@ -695,8 +695,9 @@
       12 added native HTTP checks, 69 focused pass. Full non-MySQL suite:
       851 pass / 4 skip; types/build/API/473-file boundaries/frontend lint pass.
       Session lookup and provider or persistence boundary are doubled; real
-      MySQL writes, deduplication, concurrency and rollback acceptance remain
-      open. No frontend/schema/payment/provider/push/deployment changes.
+      MySQL writes, deduplication and batch rollback are verified at the evening
+      atomic-import checkpoint below; concurrency acceptance remains open.
+      No frontend/schema/payment/provider/push/deployment changes.
   - [x] Admin article slice: four operations use existing injected read/write
     services; schemas, private/draft order, block normalization and teaser lifecycle
     are unchanged. Twenty real HTTP/JWT/MySQL cases include compiled ESM; a
@@ -1587,3 +1588,15 @@
       lint/docs pass. Logs and exact scopes recorded in plan; own tmpfs DB removed.
 - [ ] Frontend initial-model refusal/draft retention, trusted video metadata,
       external storage/push delivery, migration/provider/rollout gates stay open.
+
+### M05 atomic bulk video import — 8 October, evening
+
+- [x] Real HTTP/JWT/MySQL RED reproduced a partial batch after the second insert
+      failed. Canonical bulkImportVideos now checks duplicates and writes using
+      one transaction; failure rolls back earlier rows and a clean retry works.
+- [x] Seven SQL cases verify metadata/null/empty defaults, order, existing and
+      within-batch duplicates, empty batch, rollback/retry and guest/member refusal.
+      63 focused pass; full default 1804 pass / 676 SQL-external skip. Types,
+      build/API/boundaries/lint/docs pass; own disposable tmpfs DB removed.
+- [ ] Concurrent competing imports/retry policy remain unaccepted. No quotas,
+      schema, auth, frontend, server, provider, activation or deployment changes.

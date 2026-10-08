@@ -4465,6 +4465,45 @@ frontend, auth/CORS/proxy/quotas, activation, merge, push or server change.
 Comment-deletion audit atomicity is next; M08 overall, M07c drain decision and
 provider/dependency/rollout gates remain open.
 
+### M05 atomic bulk video import checkpoint — 8 October, late evening
+
+Continued from clean f797c7c on the same feature branch. Existing M05 gate for
+admin.importVideos real persistence/rollback exposed a concrete bug: the helper
+committed each item independently. A native HTTP/JWT/MySQL fault injection on
+the second insert returned safe HTTP 500 but left the first video committed.
+Initial RED: one failing / six passing cases, 1.35 seconds. Canonical helper
+now uses one transaction for duplicate lookups and inserts. Transaction-local
+lookup also sees preceding batch writes, preserving first-occurrence semantics.
+No new abstraction, schema, dependency, input constraints or access policy.
+
+Seven new real HTTP/JWT/MySQL checks cover metadata and null/empty defaults,
+input order, existing IDs/no overwrite, repeated imports, in-batch duplicates,
+empty batch, full rollback followed by retry, guest/member refusal. Identity,
+SQL and service are not mocked. Trigger failure is synthetic; URLs are stored
+strings only, never fetched. Focused suite with existing admin-content and
+video-import SQL: 63 pass / three files, 1.27 seconds. Full default 1804 pass /
+676 SQL-external skip across 132 passing / 37 skipped files, 17.54 seconds.
+Types, 410.9 kB backend build, unchanged 73-procedure API (25642 bytes),
+560-file boundaries, lint/docs and diff checks pass. Local logs:
+/tmp/daryadarcy-bulk-1952-red.log and /tmp/daryadarcy-bulk-1952-full.log.
+
+Review: bounded synthetic fixtures, real admin JWT, transaction-local reads,
+unique youtubeId retained, rollback verified by persisted rows, generic error
+does not expose SQL trigger details. Existing successful count/default/order
+semantics preserved. Competing imports may still fail under unique constraint
+or deadlock: no automatic retry/concurrency guarantee claimed. Large-batch
+transaction duration and existing quotas remain unchanged policy and require
+separate acceptance; no unapproved cap added. TDD, incremental implementation,
+review/security, Git, verification/documentation skills guided this slice.
+
+Only dd-bulk-video-check-20261008-1952 created: existing MySQL 8.4, fresh
+backend_test, synthetic credentials/data, loopback ephemeral port, 512 MiB/one
+CPU, tmpfs with no volume mounts/OOM. Full ID and owner verified before exact
+removal; owner label inventory empty. No working database or unrelated resource
+touched. No frontend, server, secrets/cabinets, external mail/push/payment,
+auth/CORS/proxy/quota, activation, merge/push/deploy changes. M07c decision,
+manager scenario and provider/dependency/rollout gates remain open.
+
 ### M08 reported-comment deletion audit atomicity — 8 October, 21:30 Moscow
 
 Continued from clean 5c49aa4; no repeat of completed M06/M07 work. Two real SQL

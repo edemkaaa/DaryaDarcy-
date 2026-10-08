@@ -862,14 +862,17 @@ export async function bulkImportVideos(items: InsertVideo[]): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  let imported = 0;
-  for (const item of items) {
-    const existing = await getVideoByYoutubeId(item.youtubeId);
-    if (existing) continue;
-    await db.insert(videos).values(item);
-    imported++;
-  }
-  return imported;
+  return db.transaction(async (tx) => {
+    let imported = 0;
+    for (const item of items) {
+      const [existing] = await tx.select({ id: videos.id }).from(videos)
+        .where(eq(videos.youtubeId, item.youtubeId)).limit(1);
+      if (existing) continue;
+      await tx.insert(videos).values(item);
+      imported++;
+    }
+    return imported;
+  });
 }
 
 // Update video
