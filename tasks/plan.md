@@ -3874,6 +3874,45 @@ quota, SQL/provider effect, secrets/mailbox/cabinet, mail/payment activation,
 merge/push/deployment. This completes only the cancellation composition slice;
 remaining M06 orchestration, durable acceptance and release gates stay open.
 
+### M06 — outbound Prodamus cancellation client, 8 October, evening
+
+Extract only setActivity protocol/transport into a billing-owned function with
+explicit trusted URL/subscription/key/production configuration and required fetch
+port. Retain the existing legacy facade and its dynamic environment binding so
+subscription/worker callers keep the same function identity. Preserve exact
+merchant/subscription/nonempty-profile matching, HTTPS/local-development guard,
+manager/user action, canonical HMAC/PHP encoding, redirect:error, 10-second bound,
+HTTP/body success test and static warning on transport failure. Invalid configured
+URL still rejects before transport; no new normalization, retry or SQL effects.
+
+RED/GREEN against an empty typed contract with independent signed-request and
+error/rejection cases. Existing native loopback transport fixtures must pass
+through the legacy facade; weakening redirects must fail their no-forwarding
+assertions. Full safe tests/static/build/docs gates and local-only commit follow.
+Provider account/configuration, callback isolation and actual cancellation remain
+separate acceptance gates; no public TEST enablement, mail or payment is permitted.
+
+Checkpoint: the billing client now owns the same signed setActivity command and
+transport; the legacy facade supplies explicit trusted configuration and dynamic
+fetch without changing function identity for subscription/worker callers. Fifteen
+direct cases protect exact independently derived manager/user HMAC requests,
+binding/config guards, local-development HTTP compatibility, malformed URL and
+sanitized transport error. Four empty-contract RED failures preceded extraction.
+Existing sixteen native loopback cases preserve original request and HTTP/body
+decisions. Deliberately following redirects produces six failures, including real
+forwarding to the other owned loopback server; restored implementation passes.
+
+Fresh full Node 22 suite: 1656 pass / 618 SQL/external skip, 124 files pass / 30
+skip, 19.95 seconds. Root/frontend/e2e types, 409.0 kB backend build, unchanged
+73-procedure / 25642-byte API, 531-file boundaries and existing frontend lint pass.
+Selected formatting/whitespace and docs checked before commit. Review: one small
+protocol client rather than a generic transport abstraction; canonical helpers
+reused, SQL types only, required effect port, no env reads or mutable global config
+inside client. HTTPS/local guard, redirect policy, existing timeout, static warning
+and original URL-rejection behavior unchanged. No schema/dependency/frontend/auth/
+CORS/proxy/quota, real SQL/provider/mail, TEST activation, push or deployment.
+Remaining M06 orchestration/provider/durable/release gates stay open.
+
 ## Prodamus sandbox connection — 8 October, proposed rollout contract
 
 User supplied a time-limited testpage1.payform.ru cabinet and requested test

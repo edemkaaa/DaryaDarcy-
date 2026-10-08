@@ -15,6 +15,7 @@ import { hasClubPaymentBinding } from "./billing/prodamus-binding";
 import { readProdamusCancellationProfile } from "./billing/prodamus-cancellation";
 import { ClubSettlementService } from "./billing/club-settlement.service";
 import { ClubCancellationService } from "./billing/club-cancellation.service";
+import { cancelProdamusProfile } from "./billing/prodamus-cancellation-client";
 
 export { createProdamusSign } from "./billing/prodamus-signature";
 export { clubAccessMs, clubAccessMsForOrder } from "./billing/club-settlement.service";
@@ -316,33 +317,12 @@ export async function fulfillPaidOrder(
 }
 
 export async function cancelProdamusSubscription(profile:Profile): Promise<boolean> {
-  const subId = profile.subscriptionId;
-  const secret = getSecret();
-  const configured=new URL(getPayformUrl());
-  if (!subId || subId!==subscriptionId() || !secret || !profile.profileId || profile.domain!==configured.hostname) return false;
-  if(configured.protocol!=="https:" && !(process.env.NODE_ENV!=="production" && ["127.0.0.1","localhost"].includes(configured.hostname))) return false;
-  const data: Record<string, unknown> = {
-    subscription: subId,
-    profile: profile.profileId,
-    [profile.manager?"active_manager":"active_user"]: "0",
-  };
-  data.signature = createProdamusSign(data, secret);
-  const url = `${getPayformUrl()}/rest/setActivity/`;
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      // Only the configured endpoint may receive or confirm this signed request.
-      redirect: "error",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: buildQuery(data),
-      signal: AbortSignal.timeout(10000),
-    });
-    const text = await response.text();
-    return response.ok && text.trim()==="success";
-  } catch (error) {
-    console.warn("[prodamus] setActivity failed");
-    return false;
-  }
+  return cancelProdamusProfile(profile, {
+    payformUrl: getPayformUrl(),
+    subscriptionId: subscriptionId(),
+    secret: getSecret(),
+    production: process.env.NODE_ENV === "production",
+  }, (...args) => fetch(...args));
 }
 
 export async function handleProdamusReturn(req: Request, res: Response) {

@@ -835,6 +835,14 @@
       530-file boundaries/frontend lint/docs/format/whitespace pass. No new
       effects, frontend, dependencies, schema, activation, push or deployment;
       remaining M06 orchestration and durable/provider/release gates stay open.
+    - [x] Outbound setActivity now belongs to billing/prodamus-cancellation-client
+      with explicit trusted config/fetch; legacy facade/worker sender identity and
+      merchant/key/profile/HTTPS/redirect/timeout/response rules remain unchanged.
+      Fifteen direct cases / four intended empty-contract RED failures; sixteen
+      existing native loopback cases preserved. Redirect-follow mutation fails
+      six native checks; restore full 1656 pass / 618 SQL/external skip, types/
+      409.0 kB build/API/531-file boundaries/frontend lint/docs/format pass.
+      No actual provider/SQL effect or rollout; M06/release gates remain open.
   - [x] Shop owned/checkout use cases now use explicit ShopModule/ShopService
     composition in Nest and standalone callers. Router schemas/protected access
     and hard-disabled capability gate remain before checkout service entry;
