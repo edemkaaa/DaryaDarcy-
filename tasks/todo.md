@@ -1737,5 +1737,10 @@ drafts remain local after interruption; disposable container already removed.
       focused checks pass on disposable SQL/native/compiled paths. Full 1816
       pass / 760 reported skips; types/build/API/boundaries/lint/docs pass.
       Exact owned tmpfs DB removed, no mounts/OOM and owner inventory empty.
-- [ ] Deploy only new TEST bundle; user approves one notification retry for the
-      already completed demo payment, not a new charge. Verify receipt/access.
+- [x] Deploy only 6987883 TEST bundle on pinned image, six existing containers
+      unchanged, seven healthy. User-approved provider retry receives 200/success.
+      Exact-order read-only SQL: one receipt, paid 790 RUB order, 30-day expiry
+      8 Nov 01:35 MSK. Outbox marked sent, one attempt/no error. No new charge.
+- [ ] Other actual provider methods and logged-in browser access not accepted
+      by the one EUR flow; recurring/shop remain out of scope. Frontend TEST
+      autopay wording remains incorrect. Existing rollout/dependency gates open.

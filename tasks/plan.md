@@ -5207,3 +5207,18 @@ rate, generic rejection, fixed saved order/recipient and atomic receipt/outbox;
 foreign fingerprint is TEST-bound and conditional to preserve old RUB hashes.
 Owned tmpfs MySQL c7e9213a... validated by exact ID/owner/no OOM/no mounts and
 removed; matching owner inventory empty. Deployment/provider retry still pending.
+
+PD4e deployed 6987883 test bundle only; pinned image unchanged, all six existing
+container IDs unchanged and seven services healthy. SHA-256 e6109672aed71a33cb83
+bcb51eb53ad9d5af36d8b5b2633e30d186bc19b85187. Prior image env retained as owned
+image-env.before-6987883. No routes/keys/cabinet settings/working SQL modified by
+operator. HTTPS unsigned 400, health 200, live webhook 503. User specifically
+approved one provider notification retry for the already completed demo payment.
+Cabinet attempt 3 at 22:35:50 UTC returns HTTP 200/success; read-only exact-order
+SQL confirms paid, one 79000-minor receipt, expiry 2026-11-07 22:35:50 UTC (8 Nov
+01:35:50 MSK), no billing profile. Existing outbox reports sentAt 22:36:15 UTC,
+one attempt/no error. This accepts actual EUR Open banking delivery and durable
+30-day entitlement, not every external method, real money, subscription auto
+renewal, shop payments or logged-in browser access. Other supported methods are
+local-contract checks only. Existing frontend autopay wording remains incorrect
+for this TEST mode. No new charge, forged callback, manual SQL grant or Git push.
