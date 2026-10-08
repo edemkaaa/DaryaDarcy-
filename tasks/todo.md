@@ -1761,3 +1761,18 @@ drafts remain local after interruption; disposable container already removed.
       fixed-Date replay does not prove timestamps stable across later deliveries.
       M07c human drain bound, rollout/dependency and frontend wording gates persist.
       No frontend/server/payment/worker/activation/merge/push/deploy change.
+
+### PD4f explicit read-only staging smoke — 9 October, 02:03 Moscow
+
+- [x] Keep closed-payment default; add explicit Prodamus TEST mode. Probe only
+      GET refusals and invalid {} POSTs, no valid purchase/signature/credentials.
+- [x] Fifteen real-CLI loopback tests cover mode mismatch, open live callback,
+      guest access, unsigned/empty acceptance, response/session/cache and redirect
+      failures. Default/TEST RED and corrected shop-auth RED precede GREEN.
+- [x] Dev passes all 13 probes. Guest shop returns 401 before the disabled
+      capability guard; this is not authenticated shop-payment acceptance.
+      Full 1831 pass / 760 reported SQL-external skips; types/build/API/boundaries/
+      lint/docs pass. No SQL resources created, frontend or server changed.
+- [ ] Actual other provider methods, logged-in paid browser access, incorrect
+      frontend autopay wording, HTML CSP, dependency/rollout and M07c human
+      drain-bound gates remain open. No new order, payment, push or deployment.

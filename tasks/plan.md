@@ -5264,3 +5264,37 @@ request, mail or worker activation. Native renewal acceptance, actual provider
 cancellation, M07c human shutdown bound and prior rollout/dependency gates remain
 open. This slice verifies the existing cancellation orchestration, not a new
 provider capability or production rollout.
+
+### PD4f explicit read-only staging smoke — 9 October
+
+The previous guest smoke fails after the approved TEST rollout because it still
+expects GET club.createCheckout to return 503. Keep the closed-payment baseline
+as the default. Add an explicit STAGING_SMOKE_PAYMENTS=prodamus-test mode checking
+GET refusal, unsigned webhook refusal and empty checkout validation, never a
+valid checkout or signed notification. Both modes retain live/return blocks,
+guest shop authorization and the disabled shop capability,
+guest identity and capability checks. Exercise the real CLI against a controlled
+loopback HTTP fixture: mode mismatch, unexpectedly open live payment, bypassed
+signature check, checkout accepting empty input, unknown mode and HTTP redirects
+must fail. Record requests to ensure only harmless {} POST probes/no credentials.
+Then run the explicit mode against dev, normal suite/types/build/API/boundaries/
+docs and save one local commit. No frontend/CSP/dependency/auth/proxy/quota changes,
+deployment, payment, provider/cabinet/SMTP or working SQL writes in this slice.
+
+PD4f result: default/explicit CLI RED first fails the new TEST fixture; after
+implementation all 15 loopback checks pass. The first dev probe exposed the
+fixture's incorrect shop expectation: guest auth precedes the capability guard
+and returns 401, not 503. Correcting the fixture first produced 2 RED failures;
+the script now requires guest 401 and configuration shopOnlinePayment=false.
+This does not accept an authenticated shop purchase. Final explicit dev smoke
+passes all 13 probes without credentials, valid orders or signed notifications.
+Full default suite: 1831 pass / 760 reported SQL-external skips; root/frontend
+types, backend build, unchanged API (73 procedures / 25642 bytes), 563-file
+boundaries, lint and 51-document check pass. No SQL tests or disposable database were needed for
+this operation-only change. Five-axis review: target allowlist/HTTPS/redirect
+refusal unchanged, mode remains explicit/default-closed, only invalid {} POSTs,
+callback body/no-store/no-cookie guards, owned loopback cleanup and isolated
+child environment. Logs: /tmp/daryadarcy-smoke-final-{cases,dev,types,full,build,
+api,boundaries,lint}.log. Existing provider-method/logged-in access, dependency,
+HTML CSP, frontend autopay wording, rollout and M07c human drain-bound gates
+remain open. No runtime or server change and no new payment acceptance claim.

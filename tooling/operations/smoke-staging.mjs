@@ -16,15 +16,31 @@ assert.ok(
       base.hostname !== "daryadarcy.dev.reeskeen.ru"),
   "Remote smoke requires HTTPS",
 );
+// Closed remains the baseline. Never infer TEST readiness from an open route.
+const payments = process.env.STAGING_SMOKE_PAYMENTS || "closed";
+assert.ok(
+  ["closed", "prodamus-test"].includes(payments),
+  "Smoke payment mode must be closed or prodamus-test",
+);
 
-async function read(path, status = 200) {
+async function read(path, status = 200, options = {}) {
   const response = await fetch(new URL(path, base), {
+    ...options,
     redirect: "error",
     signal: AbortSignal.timeout(15_000),
   });
   assert.equal(response.status, status, `${path}: unexpected HTTP status`);
   console.log(`PASS ${status} ${path}`);
   return response;
+}
+
+function emptyPost(path, status) {
+  // Invalid input only: never provide an email, sign, cookies or valid order.
+  return read(path, status, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: base.origin },
+    body: "{}",
+  });
 }
 
 try {
@@ -50,9 +66,25 @@ try {
   await read("/api/admin/launch-settings", 401);
   await read("/api/trpc/admin.stats", 401);
   await read("/api/prodamus/return", 503);
-  await read("/api/trpc/club.createCheckout", 503);
+  await emptyPost("/api/prodamus/webhook", 503);
+  // Guest auth runs before the disabled shop capability. No product is sent.
+  await emptyPost("/api/trpc/shop.createCheckout", 401);
+  if (payments === "closed") {
+    await read("/api/trpc/club.createCheckout", 503);
+    await read("/api/prodamus/test/webhook", 503);
+  } else {
+    await read("/api/trpc/club.createCheckout", 405);
+    await read("/api/prodamus/test/webhook", 405);
+    const unsigned = await emptyPost("/api/prodamus/test/webhook", 400);
+    assert.equal(await unsigned.text(), "invalid test notification");
+    assert.equal(unsigned.headers.get("set-cookie"), null);
+    assert.match(unsigned.headers.get("cache-control") || "", /no-store/);
+    const invalid = await emptyPost("/api/trpc/club.createCheckout", 400);
+    assert.equal(invalid.headers.get("set-cookie"), null);
+    assert.match(invalid.headers.get("cache-control") || "", /no-store/);
+  }
   console.log(
-    "Staging guest/SQL/access smoke passed; no mutations or provider calls.",
+    `Staging ${payments} guest/SQL/access smoke passed; no purchases or provider calls.`,
   );
 } catch {
   console.error(
