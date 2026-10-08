@@ -951,3 +951,68 @@ Revision label совпадает. Это объединение frontend stagin
 api.env, не менять SQL/тома, не восстанавливать дамп поверх рабочей базы ради
 отката кода. Ночные автоматические продолжения не получают нового разрешения
 на push/deploy: этот выпуск выполнен по отдельному прямому запросу пользователя.
+
+## Первый Prodamus TEST checkout — 9 октября, 01:16 МСК
+
+Прямое подтверждение пользователя: тестовый клуб → подписанное уведомление →
+30 дней dev-доступа, без реальных денег и автосписаний. Дополнительно подтверждена
+замена глобального callback тестового магазина. **Сквозная оплата ещё не принята:**
+на этом шаге транзакция провайдера и фактическая выдача доступа не проверялись.
+
+- Отдельный `prodamus-test` healthy, без фоновых workers и исходящей сети.
+  API/web остаются `daryadarcy-staging:1f67d5b`; остальные сервисы не заменялись.
+  Runtime image закреплён за прежним SHA из предыдущего раздела.
+  Источник: `1d9fce31a982f638bfec86a0a061652b0b3bcbb9`.
+  Bundle: `prodamus-test-release.pTkWSw/prodamus-test-1d9fce3.mjs`, SHA-256
+  `b1f456eb08c18fb63ce34b0865b2b69b292bd1aaafcaf3d3061b69fb72cb3db4`.
+- Добавлен `compose.prodamus-test.yaml`, `prodamus-test-image.env` и защищённый
+  `prodamus-test.env` (600). Ключ не находится в Git, CLI или логе. Временные
+  `transfer.pem`/`key.value` удалены после настройки; рабочий ключ хранится только
+  в защищённом конфиге. Не выводить полный Compose config/container Env.
+- Реально используемый container edge — **edge.video.conf**, а не edge.conf.
+  В нём и `/etc/nginx/sites-available/daryadarcy.dev.reeskeen.ru.conf` открыты
+  только точные POST `/api/trpc/club.createCheckout` и
+  `/api/prodamus/test/webhook`. Прежняя per-IP квота сохранена; live webhook,
+  `/api/pay/` и объединённый tRPC checkout batch остаются 503.
+  Конфиги проверены `nginx -t`, перечитаны без перезапуска рабочих контейнеров.
+- 14 HTTPS проверок проходят: неподписанный callback 400, GET 405, чужой Origin
+  403, cookie/query 400, тип 415, размер 413; старые платежные блоки 503,
+  пустой checkout 400, обычные health/launch-config 200. Семь сервисов healthy.
+  В новом runtime отдельно выполнен read-only SELECT 1: соединение с dev SQL
+  доступно. После выкладки ещё 12 локальных runtime/compiled проверок проходят.
+- В `testpage1.payform.ru/settings/` сохранён callback
+  `https://daryadarcy.dev.reeskeen.ru/api/prodamus/test/webhook`; прежний адрес
+  заменён. Запрет URL-уведомлений для demo выключен, режим demo не менялся.
+  Это настройка доставки, не доказательство состоявшейся оплаты.
+- Страница `/club` открывается, кнопка подготовки оплаты доступна. Неизменённый
+  старый frontend всё ещё пишет «автосписание каждый месяц»: для этого TEST
+  варианта текст неверен — подписочный ID/сохранение карты не отправляются.
+  Пользователю явно сообщить об отсутствии автосписаний; UI-подпись — отдельная
+  незавершённая правка, не менять frontend в этом backend rollout.
+- 58 локальных целевых проверок, включая 46 SQL и compiled entry, прошли;
+  full 1816 pass / 726 reported skips. Одноразовый tmpfs MySQL этого запуска
+  удалён; рабочая база не использовалась как acceptance fixture. Зависимости
+  по-прежнему имеют известные advisory; узкое TEST исключение, не production.
+
+### Откат только этого TEST подключения
+
+В `/home/edem/apps/daryadarcy-staging` вернуть
+`prodamus-test-release.pTkWSw/host-nginx.before` в указанный host virtual host,
+проверить `sudo nginx -t` и перечитать host nginx. Вернуть
+`prodamus-test-release.pTkWSw/edge.video.conf.before` **копированием в существующий
+edge.video.conf** (сохранить inode bind mount), проверить и перечитать edge nginx.
+Затем остановить только новый сервис:
+
+```sh
+docker compose --env-file .env --env-file video-image.env \
+  --env-file prodamus-test-image.env -f compose.yaml -f compose.override.yaml \
+  -f compose.video.yaml -f compose.images.yaml -f compose.prodamus-test.yaml \
+  stop prodamus-test
+```
+
+Проверить, что оба открытых пути снова 503, а API/web healthy. При необходимости
+вернуть прежний глобальный callback только отдельным подтверждённым действием
+в кабинете: `https://auth.dev.spro-dev.sprodev.ru/api/users_payments/callbacks/prodamus`.
+Не откатывать API/web, SQL, SMTP, подписки или весь api.env. Нет новых миграций;
+будущие оплаченные TEST заказы нельзя копировать в production или выдавать за
+подтверждение реальных денег. Ночным продолжениям это не даёт разрешения deploy.

@@ -1710,7 +1710,15 @@ path. No key disclosed, callback changed, payment made or service deployed here.
       signed 30-day settlement, replay/refusal and rollback. No live guard change.
 - [x] PD4b: bounded separate receiver + no-worker compiled entry, same checkout
       response and strict dev/test configuration; verify build/native boundaries.
-- [ ] PD4c: review/audit, versioned bundle and exact two-route server rollout
+- [x] PD4c: review/audit, versioned bundle and exact two-route server rollout
       with recoverable edge/config backup; configure global test-store callback.
 - [ ] PD4d: confirm actual provider delivery after human test payment, read access
       through existing dev account. Until then payment is not end-to-end accepted.
+
+PD4c evidence: source 1d9fce3, dedicated healthy prodamus-test process alongside
+unchanged 1f67d5b API/web. Fourteen external refusal/health checks pass; host and
+container exact routes only, original quotas/live/shop blocks retained. Cabinet
+callback saved with action-time human confirmation; demo notification prohibition
+unchecked. Owned disposable DB and temporary encrypted-transfer key files removed.
+See operations/teamassist-staging for bundle hash and precise rollback. No actual
+provider payment, receipt or access observed yet; PD4d remains open.

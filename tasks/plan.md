@@ -5138,3 +5138,18 @@ Existing trust/CORS/quota policy is unchanged. This is a narrowly scoped test
 rollout reachability assessment, not blanket approval to open other routes or
 release the full application; existing dependency upgrade gates remain open.
 Lockfile is byte-identical to deployed 1f67d5b; no dependency install or upgrade.
+
+PD4c deployed by direct human request, not heartbeat authority: 1d9fce3 test
+bundle mounted into the pinned existing image, dedicated no-worker IPv4/internal
+service healthy. Both actual container edge.video.conf and host virtual host
+now expose exactly the two approved POST paths. Initial external 503 diagnosed:
+inactive edge.conf was restored; active video overlay preserved, then the outer
+host's independent payment blocks narrowed with equal quotas. Both configurations
+syntax-checked and reloaded without restarting API/web/edge. Final fourteen HTTPS
+checks pass including unsigned/cookie/query/origin/type/size refusals, live/shop/
+batch blocks and ordinary API health/config. All seven project services healthy.
+Prodamus global callback saved after specific human confirmation, demo mode kept;
+no provider transaction performed. Temporary key transfer files deleted, protected
+600 env retained. Full owned tmpfs database ID/label/no OOM/no mounts verified
+before removal; owner inventory empty. Provider delivery/access acceptance PD4d
+and general dependency gates remain open. No merge/push/frontend migration.
