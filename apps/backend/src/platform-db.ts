@@ -1,4 +1,5 @@
 import { deletePostCommentInTransaction, purgeOldPostComments } from "./content/comments";
+import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { queueCancellationForUser } from "./billing/cancellation";
 import {
@@ -136,7 +137,8 @@ export async function blockUser(actorId: number, targetUserId: number, reason: s
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async tx=>{
-    await tx.select().from(users).where(eq(users.id,targetUserId)).for("update");
+    const [target] = await tx.select({ id: users.id }).from(users).where(eq(users.id,targetUserId)).for("update");
+    if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "Аккаунт не найден" });
     await tx.update(users).set({ blockedAt: new Date(), blockedReason: reason.slice(0, 512),sessionVersion:sql`${users.sessionVersion}+1` }).where(eq(users.id, targetUserId));
     await queueCancellationForUser(tx,targetUserId);
     await writeAdminAction(tx, {
@@ -153,6 +155,8 @@ export async function unblockUser(actorId: number, targetUserId: number): Promis
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async tx => {
+    const [target] = await tx.select({ id: users.id }).from(users).where(eq(users.id,targetUserId)).for("update");
+    if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "Аккаунт не найден" });
     await tx.update(users).set({ blockedAt: null, blockedReason: null }).where(eq(users.id, targetUserId));
     await writeAdminAction(tx, {
       actorUserId: actorId,

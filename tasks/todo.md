@@ -1857,3 +1857,21 @@ drafts remain local after interruption; disposable container already removed.
   as do M07c human drain-bound and dependency/rollout/frontend wording/CSP gates.
   No frontend, shared-server, actual payment, auth/CORS/proxy/quota, schema,
   dependency, merge/push or deployment changes.
+
+### Frontend/admin backend alignment — 9 October, 02:49 Moscow
+
+- [x] Fetch staging and inspect frontend 0b77270: already included via 7524987,
+  no remote-only changes. Check editor, action confirmations, moderation, seasons,
+  manager contact, access resend and subscription request/response boundaries.
+- [x] Reproduce missing-user block/unblock 200 and missing-post publication false
+  success (three RED cases); return transaction-checked NOT_FOUND/404 without
+  changes, cancellation/audit or announcement. Preserve successful response shapes,
+  already-published retry and role/session policies. Green: 60 focused checks.
+- [x] Expanded disposable HTTP/JWT/SQL: 231 pass / 12 files. Full 1877 pass /
+  771 reported SQL/external skips; types/build/API/boundaries/lint pass. Review and
+  frontend handoff/API docs updated. Owned loopback/tmpfs MySQL removed, inventory
+  empty; fixture diagnostic permissions never changed a shared server.
+- [ ] First-email binding remains disabled awaiting a concrete approved identity
+  scenario. Reload recovery of legacy checkout/cancellation/resend, actual provider,
+  SMTP/devices and previous rollout/dependency/M07c gates stay open. No frontend,
+  auth/CORS/proxy/quota/schema/dependency, push/merge/deployment changes.

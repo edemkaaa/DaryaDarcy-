@@ -73,6 +73,43 @@ describe.skipIf(!testDatabaseUrl)(
       BEGIN IF NEW.actorUserId=8400 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='synthetic audit failure'; END IF; END`);
     }
     for (const operation of ["blockUser", "unblockUser"] as const) {
+      it(`does not confirm ${operation} for a deleted member or write a misleading audit`, async () => {
+        await conn.query("DELETE FROM users WHERE id=8401");
+        const before = await state();
+        const token = await sdk.createSessionToken("moderation-audit-actor", {
+          sessionVersion: 0,
+        });
+        const response = await fetch(
+          `${base}/api/trpc/moderation.${operation}`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              json: {
+                userId: 8401,
+                ...(operation === "blockUser"
+                  ? { reason: "native reason" }
+                  : {}),
+              },
+            }),
+          },
+        );
+        expect(response.status).toBe(404);
+        expect(await response.json()).toMatchObject({
+          error: {
+            json: {
+              message: "Аккаунт не найден",
+              data: { code: "NOT_FOUND", httpStatus: 404 },
+            },
+          },
+        });
+        expect(await state()).toEqual(before);
+      });
+    }
+    for (const operation of ["blockUser", "unblockUser"] as const) {
       it(`returns a safe HTTP failure with no persisted ${operation} when the audit fails`, async () => {
         if (operation === "unblockUser")
           await conn.query(

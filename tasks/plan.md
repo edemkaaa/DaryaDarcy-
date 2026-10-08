@@ -5525,3 +5525,58 @@ focused-green,fx-red,final-focused,final-full,final-types,final-build,final-api,
 final-boundaries,final-lint,final-docs}.log. Local backend refactor only; real provider
 method/recurring/browser acceptance, M07c human drain-bound, frontend wording/CSP,
 dependency and rollout gates remain open. No server/payment activation or deployment.
+
+### Frontend/admin contract alignment — 9 October, 02:46 Moscow
+
+Human requests review of frontend changes and matching backend/admin behavior.
+Fetched staging: 7524987 includes frontend 0b77270 and is already an ancestor of
+the clean feature branch; no new remote-only commits, merge/push not needed.
+Inspected new editors/action validators, moderation, seasons/manager configuration,
+club access/cancellation and access-email resend. Existing request/success shapes
+match those consumers; live provider/mail/browser acceptance is still separate.
+First fix: do not confirm publication of a missing post or blocking/unblocking a
+missing member. Native HTTP/JWT/disposable-SQL RED must reproduce false success;
+return NOT_FOUND with no changes/audit/announcement. Keep already-published retry
+success and existing role/session/cancellation policies, transaction boundaries
+and successful response shapes. Test originals/rollback and frontend regressions.
+No frontend/server/schema/dependency/push/deploy or payment changes. Initial email
+binding is disabled in the frontend and involves identity/session rules; a concrete
+owner-only first-binding + email-confirmation scenario has been asked separately.
+
+Verified first increment:
+
+- Native HTTP/JWT/MySQL RED proves three false acknowledgements: two missing-user
+  operations return 200 and missing-post confirmation resolves {success:true}.
+  After fixture-only diagnostic permissions were corrected, exactly these three
+  failures remain; the other 57 checks pass. No application fix for setup errors.
+- Publication now distinguishes missing from already-published under the existing
+  row lock. Block reads the existing locked account before any update; unblock
+  additionally locks/reads that one indexed account before update. A missing
+  account throws NOT_FOUND before cancellation/audit; role/session behavior and
+  committed success shapes stay unchanged. Green: all 60 checks pass.
+- Expanded real HTTP/JWT/SQL acceptance: 12 files / 231 checks pass, covering
+  manual/timed publication, editor creation idempotency and attachments, video row
+  preservation, admin reads/articles, user/report/comment moderation, settings
+  revision, grants and current session/role checks. External push transport is
+  doubled in publication tests; no real push/mail/payment or physical browser
+  acceptance is claimed. Suites run sequentially on this owned fixture.
+- Full default: 1877 pass / 771 reported SQL-external skips. Types of both clients
+  and server, backend build, unchanged API shapes (73 procedures / 25642 bytes),
+  565-file boundaries and lint pass. Updated API documentation and existing
+  frontend handoff explain the intentional 200-to-404 error behavior change.
+- Review: same protected routes, parameterized indexed lookup, no new PII/rights,
+  failed operation cannot generate misleading success/audit, existing success and
+  rollback assertions retained. Unblock adds one bounded row-lock lookup, no N+1
+  or new effects; block narrows existing lookup to id. No new schema/dependencies.
+  Auxiliary skill checklist files remain unavailable; primary criteria used.
+- Disposable MySQL had only a loopback port, tmpfs and no mounts/OOM. Owner verified
+  before deleting exact container
+  9e09f896fd0213d8c514404356d9b0f7424262fc641b50d1d15b7e9bfb2aa23a; owner inventory
+  empty. SELECT on performance_schema and trigger-creator option were granted
+  only in this disposable instance, not shared infrastructure. No recovery needed.
+
+Evidence: /tmp/daryadarcy-front-admin-{red,red-verified,green,sql-contracts,full,
+types,build}.log and fresh API/boundary/lint output. First-email binding awaits
+explicit identity scenario approval; exact checkout/cancellation/email-send
+recovery after reload, real provider/SMTP/device acceptance and existing rollout/
+dependency/M07c gates remain open. No frontend edit, merge/push or deployment.

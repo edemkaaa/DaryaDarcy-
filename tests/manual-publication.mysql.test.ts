@@ -189,9 +189,12 @@ describe.skipIf(!testDatabaseUrl)(
         { text: "Early manual", id: 11404, target: "feed" },
       ]);
     });
-    it("a missing ID remains a silent successful no-op without an announcement", async () => {
-      expect(await admin.admin.confirmPost.mutate({ id: 11405 })).toEqual({
-        success: true,
+    it("a missing ID cannot confirm publication to the admin UI", async () => {
+      await expect(
+        admin.admin.confirmPost.mutate({ id: 11405 }),
+      ).rejects.toMatchObject({
+        message: "Публикация не найдена",
+        data: { code: "NOT_FOUND", httpStatus: 404 },
       });
       expect(transport.announcements).toEqual([]);
       expect(await state(11405)).toBeUndefined();

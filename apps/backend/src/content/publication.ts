@@ -1,4 +1,5 @@
 import { eq, sql } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { posts, type Post } from "../../../../packages/database/src/schema";
 
@@ -21,8 +22,12 @@ export async function confirmPostPublication(
       .from(posts)
       .where(eq(posts.id, postId))
       .for("update");
-    if (!post || (post.status === "published" && post.published))
-      return undefined;
+    if (!post)
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Публикация не найдена",
+      });
+    if (post.status === "published" && post.published) return undefined;
 
     await tx
       .update(posts)
