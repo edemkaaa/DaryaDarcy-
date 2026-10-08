@@ -2817,3 +2817,41 @@ downloads, dependency updates or test weakening. Five-axis review: owning featur
 helpers, shared strict record parser/transport, no key/PII in URL/body, abort and
 stale-key fences, bounded one-request caller. Safari/provider/full UI acceptance
 and existing dependency/rollout gates remain open. No push, merge or server update.
+
+### Y4d2: finite browser return polling — 2026-10-08
+
+Build one finite campaign around the saved-return caller: immediate check, at
+most six sequential requests, five seconds after each completion and a total
+30-second deadline. Only pending continues. Missing/unknown/terminal results
+stop, all API errors including 429 stop without retry. Capture the original
+session and UUID across waits; abort on caller/session cancellation, and refuse
+a different tab's intent before dispatch or callback. Clean timers/listeners.
+Budget expiry retains the last observed pending state, never creates terminal
+proof; first-request timeout still fails. Keep the helper unwired to the club UI.
+
+The explicit interface/stub reaches RED on three known-state cases before
+implementation; all 13 unit/wire scenarios then pass. Changing the interval to
+4999ms makes the exact boundary fail; restoring 5000ms passes. A test-clock issue
+was diagnosed: Vitest waitFor itself advances fake time. The boundary check now
+drains work with a zero-time advance rather than measuring 4999ms from an already
+advanced clock; no production policy was weakened. Two native Chromium cases
+use the actual bundled caller/transport/storage against a loopback HTTP fixture:
+pending-to-canceled and pending-to-429, forged URL flags ignored, header-only
+identity, preserved record and no request after the next real interval.
+
+One full run alongside build/browser checks again failed the pre-existing video
+native wrapper without child diagnostics (1175 pass / 1 fail / 618 skip). Its
+isolated native suite passes 40/40; a subsequent standalone full run passes
+1176 / 618 skip. This is a recurrent undiagnosed verification issue, not a video
+fix; capture its failing child case in a separate diagnostic slice. Payment
+polling checks pass throughout. No DB, schema, dependency, quota, auth, API,
+working-stage UI/config or deployment changes; existing release gates remain.
+
+Final checks after restoring the interval/tightening deadline-abort recognition:
+root/frontend/e2e types, lint, fresh frontend production build (28 pages),
+unchanged API (73 / 25642 bytes), boundaries (503 files), docs and selected-file
+formatting pass. Native browser cases pass again (2/2). Review: feature-owned
+orchestration, canonical return caller/errors, captured session and UUID, bounded
+sequential work, no query-parameter proof or mutation retry. A total-budget abort
+may retain pending only for its own recognized abort, not swallow an unrelated
+error. Quota cooldown and hidden-screen cleanup still belong to the unwired UI.

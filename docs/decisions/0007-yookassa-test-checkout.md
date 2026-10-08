@@ -125,6 +125,22 @@ success/cancellation. A polling UI and an explicit server-verified next purchase
 remain separate, unwired gates. Browser tests here cover Chromium only; Safari
 and actual provider acceptance still require the later full-flow checks.
 
+### Bounded browser return polling
+
+A check campaign is bound to one saved UUID and one captured session. It checks
+immediately, waits five seconds **after completion**, and performs at most six
+requests within a 30-second total budget. Only `pending` continues; `unknown`,
+terminal states and missing evidence stop. Errors, including 429, stop without
+automatic retry. The later UI must respect the quota cooldown for explicit
+checks and abort when hidden/unmounted; this helper does not start itself.
+
+Caller/session cancellation and a changed saved UUID cannot switch the campaign
+to another purchase. Timers and abort listeners are cleaned up. If the total
+budget expires after a pending observation, keep only that last known pending
+result; never invent success/cancellation or release an intent. A first-request
+timeout remains an error. Browser fixture acceptance exercises the actual caller
+and HTTP transport against local synthetic replies, not a real payment provider.
+
 ### Return-check quotas
 
 The user approved 12 attempts per intent and 60 per resolved client IP in a
