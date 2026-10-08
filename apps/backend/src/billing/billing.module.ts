@@ -7,6 +7,8 @@ import type { ShopService } from "../shop/shop.service";
 import { YookassaClubService } from "./yookassa/club.service";
 import { YookassaWebhookController } from "./yookassa/webhook.controller";
 import { createProdamusWebhookHandler } from "../prodamus";
+import { ProdamusSandboxService } from "./prodamus-sandbox.service";
+import { ProdamusSandboxController } from "./prodamus-sandbox.controller";
 import {
   PRODAMUS_WEBHOOK_HANDLER,
   ProdamusWebhookController,
@@ -26,8 +28,16 @@ export type BillingServices = ClubBillingServices & {
 };
 
 @Module({
-  controllers: [ProdamusWebhookController, YookassaWebhookController],
+  controllers: [
+    ProdamusWebhookController,
+    YookassaWebhookController,
+    ProdamusSandboxController,
+  ],
   providers: [
+    {
+      provide: ProdamusSandboxService,
+      useFactory: () => new ProdamusSandboxService(process.env),
+    },
     YookassaClubService,
     {
       provide: ClubCheckoutService,

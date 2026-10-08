@@ -28,6 +28,16 @@ export async function createBackendApplication(): Promise<INestApplication> {
       next();
     });
   });
+  // Keep diagnostic HMAC input untouched by ordinary JSON/form parsers.
+  http.post("/api/prodamus/sandbox/webhook", (req, res, next) => {
+    express.raw({ type: () => true, limit: "64kb" })(req, res, error => {
+      if (error) {
+        res.status(error.status === 413 ? 413 : 400).json({ error: "Invalid sandbox notification" });
+        return;
+      }
+      next();
+    });
+  });
   registerRequestBodies(http);
 
   // Transitional adapters: replace one domain at a time behind the same API.

@@ -12,12 +12,23 @@
   missing guard. 13 new cases; full Node 22 suite 1499 pass / 618 SQL/external
   skip. Types/API/build/boundaries pass. Source-only; no provider payment or
   database acceptance, no server flags/callback/key/deployment changes.
-- [ ] Review proposed contract in plan.md before PD2–PD4 implementation.
-- [ ] PD2: default-off separate synthetic-only diagnostic link/receiver, no
+- [x] User approved diagnostic-before-entitlement contract on 8 October.
+  PD4 still requires its own isolated entitlement design; no live access enabled.
+- [x] PD2: default-off separate synthetic-only diagnostic link/receiver, no
   persistence/access/mail. Verify host/merchant/key/amount/demo rejection and
   browser-return non-authority. No live webhook demo-key fallback.
+  Operator CLI and bounded native Nest ingress verified: 81 new service/native/
+  CLI/compiled cases, 1580 full pass / 618 SQL/external skip. Production ESM
+  native probe succeeds; disabling controller registration makes it fail.
+  Dedicated configuration per instance, numeric provider IDs, deep input errors,
+  replay, wrong bindings/signatures, live-key fallback and cookies are covered.
+  No actual provider key loaded, payment made, callback delivered or server changed.
 - [ ] PD3 after PD2: scoped test deployment/rollback and actual notification
   delivery; retain working data/overlays, audit/reachability and live blocks.
+  Read-only server check: API 300c8d3, web 62c4001, six healthy services; local
+  branch remains ahead 40 / behind 1 before this increment. No automatic merge
+  or full branch rollout. Proposed dedicated diagnostic service (no DB/mail,
+  one exact ingress path) awaits user selection; cannot enable by env alone.
 - [ ] PD4 after PD3: separately approved isolated test-entitlement contract and
   disposable SQL replay/rollback acceptance before demo access activation.
 - [ ] Recurring provider test: support confirms isolation and an owned test

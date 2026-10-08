@@ -3802,9 +3802,23 @@ then `pnpm test`, `pnpm check`, `pnpm build`, `pnpm check:api`,
 `pnpm check:boundaries`, `pnpm check:docs`, diff review and local atomic commit.
 SQL/external suites remain opt-in; skips are not acceptance. No secrets in Git,
 logs or generated build artifacts. Public URL/merchant/key mismatch fails closed.
-The spec-driven-development review gate for PD2–PD4 is pending; user was asked
-to confirm the staged diagnostic-before-entitlement approach. No server change
-or paid/test transaction is claimed from the current source-only guard.
+User confirmed the staged diagnostic-before-entitlement approach on 8 October.
+PD2 can proceed; PD3 requires exact rollout review and PD4 its isolated access
+contract. No server change or transaction is claimed from the source-only guard.
+
+PD2 implementation contract: operator-only local CLI produces a signed link for
+one configured `dd-demo-<UUID>` order (not a public link-creation endpoint). Use
+dedicated PRODAMUS_SANDBOX_* configuration, explicit true flag, exact testpage1
+merchant and dev application origin. Fixed 790 RUB, reserved example.test email,
+no phone or subscription. POST /api/prodamus/sandbox/webhook accepts bounded raw
+JSON/form bodies only, rejects query additions and requires a valid dedicated
+ordinary or demo-suffixed signature plus exact demo/merchant/order/amount/contact
+binding. Replays acknowledge diagnostics only, never settlement/SQL/mail. Both
+return URLs navigate to /club with no paid=1 flag; no result or access proof is
+derived from navigation. Existing browser-origin security is not relaxed; real
+server-to-server callbacks must arrive without browser Origin/cookies. Receiver
+acknowledgement is stateless and not a durable receipt. A provider-issued SYS and
+actual callback routing remain acceptance checks, not assumptions from the URL.
 
 PD1 checkpoint: eight fixture RED failures (demo success was acknowledged and
 forwarded; demo cancellation reached profile validation) and native HTTP RED
@@ -3819,3 +3833,37 @@ receipt/outbox replay, account, frontend or deployed runtime change is claimed.
 Review: check every own marker rather than allowing a disabled alias to shadow
 an enabled alias; unknown marker shapes fail closed; no secret/body logging,
 side effects, new dependencies, auth/CORS/proxy/quota or schema changes.
+
+PD2 checkpoint: reviewed diagnostic contract implemented with operator-only CLI
+and dedicated Nest ingress. No public checkout builder, SQL/identity/settlement/
+mail port or mutable cross-application configuration. Fixed one-off 790 RUB, test
+merchant/dev origin and synthetic contact. A configured order is reused; no
+durable intent or exactly-once provider guarantee is implied. Requests are capped
+at 64 KiB before the generic body parsers; cookies/query additions and unsupported
+content types are rejected, with no new browser-origin exemptions. Signature and
+every required binding precede acknowledgement; ordinary and demo-suffixed keys
+are accepted only here. No production-key fallback. Numeric provider IDs match
+the official JSON contract; malformed nested signature input becomes a generic
+400, not an uncaught parser error. Autopay/API initiation is outside this probe.
+
+Evidence: initial service RED 38 failures, native RED 8 failures, CLI RED 2;
+additional numeric-ID/deep-input/auto-init RED 4 failures. Fresh 81 new cases
+include independent hand-canonicalized HMAC and compiled ESM HTTP acceptance.
+Removing diagnostic controller registration deliberately fails that compiled
+probe (404 instead of 200); restoration passes. Full suite 1580 pass / 618 SQL/
+external skip, 118 files pass / 30 skip. Types, 408.0 kB backend build, unchanged
+73-procedure/25642-byte API and 525-file boundaries pass. No real provider/SQL
+acceptance, frontend or schema change. Reviewed five axes: explicit billing-only
+ownership and types, constant navigation targets, bounded allocation, strict
+dedicated configuration, no new dependencies or secret/body output.
+
+Fresh native pnpm production audit retains 51 findings (1 critical, 20 high,
+26 moderate, 4 low), not a passing security gate. This diagnostic uses existing
+crypto/parser/query/money helpers, never Axios, Sharp or source maps; no new
+parameterized route, trust-proxy change or tRPC caller path. Existing conditional
+test exceptions are not a blanket rollout approval. Live server read-only check
+confirms older API 300c8d3/web 62c4001 and six healthy services. Prodamus remains
+closed there. Before PD3, user was asked to select a dedicated no-DB/mail service
+with one exact diagnostic ingress rather than automatically deploying the entire
+40-commit divergent feature branch. No remote configuration, keys, Git merge/
+push, server deployment, provider cabinet settings or payment changed.
