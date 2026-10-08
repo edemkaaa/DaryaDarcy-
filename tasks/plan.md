@@ -4285,3 +4285,36 @@ effect, and app-scoped service forwarding remains explicit. No frontend, schema,
 dependencies, auth/CORS/proxy/quota, secret/cabinet/mailbox access, external mail,
 payment activation, merge, push or deployment. Real SQL/provider acceptance,
 M07c reviewed shutdown bound and previous dependency/rollout gates remain open.
+
+### M06 — request-neutral cancellation notification orchestration, 8 October, evening
+
+Continued from 4aafa5f on feature/yookassa-test-checkout. Cancellation branch now
+delegates to billing/prodamus-cancellation-notification with required lazy
+secret/binding and durable confirm ports. HTTP ingress still owns global signature,
+demo rejection, action selection, logging and generic failure responses. Existing
+canonical signature/profile helpers remain authoritative; no new acceptance rules.
+The selected subscription/general key is checked before evaluating merchant URL
+configuration. A cancellation acknowledgement waits for the same app-owned durable
+confirmation; false remains 422 and exceptions propagate to the unchanged 500 handler.
+
+RED/GREEN: ten direct cases failed against the unimplemented contract, then passed
+with the extracted behavior. Independent hand-sorted HMAC fixtures protect exact
+profile forwarding, empty/wrong keys, lazy binding, foreign merchant/subscription,
+missing profile, durable refusal/failure and pending confirmation. Removing selected
+key verification fails both the direct ordering case and existing native HTTP case
+(200 instead of 422). Restored code passes; mutation uses synthetic configuration
+and doubled SQL boundaries, never a database/provider request.
+
+Verification: 55 focused checks including native HTTP and compiled ESM acceptance;
+full Node 22 suite 1804 pass / 618 SQL-external skip, 132 passing files / 30 skipped,
+17.62 seconds. Root/frontend/E2E types, 410.2 kB backend build, unchanged
+73-procedure/25642-byte API and 560-file dependency boundaries pass.
+
+Review: scoped typed boundary removes merchant/profile/confirmation decisions from
+the HTTP branch without default ports, runtime environment/SQL reads, logging,
+retry, cache or new dependencies in the extracted module. Shared helpers, key
+precedence, failure order, transaction/replay policy and disabled shop capability
+remain unchanged. No frontend, auth/CORS/proxy/quotas, secrets/mailbox/cabinet,
+external mail, payment activation, merge/push/deployment. This completes only the
+cancellation orchestration slice: SQL/provider acceptance, M07c shutdown decision
+and existing dependency/rollout gates remain open.

@@ -11,7 +11,7 @@ import { buildProdamusQuery as buildQuery } from "./billing/prodamus-query";
 import { asProdamusRecord as asRecord, parseProdamusPayload } from "./billing/prodamus-payload";
 import { hasProdamusDemoMarker, pickOrderId, pickString, subscriptionAction } from "./billing/prodamus-fields";
 import { processProdamusPaymentNotification } from "./billing/prodamus-payment-notification";
-import { readProdamusCancellationProfile } from "./billing/prodamus-cancellation";
+import { processProdamusCancellationNotification } from "./billing/prodamus-cancellation-notification";
 import { ClubSettlementService } from "./billing/club-settlement.service";
 import { ClubCancellationService } from "./billing/club-cancellation.service";
 import { cancelProdamusProfile } from "./billing/prodamus-cancellation-client";
@@ -371,21 +371,15 @@ async function processProdamusWebhook(
     });
 
     if (action === "deactivation" || action === "finish") {
-      const key=getSubscriptionSecret()||getSecret();
-      if (!key || !verifyProdamusSignature(body, signature, [key])) {
-        res.status(422).send("profile binding invalid");
-        return;
-      }
-      const profile = readProdamusCancellationProfile(body, {
-        domain: new URL(getPayformUrl()).hostname,
-        subscriptionId: subscriptionId(),
+      const acknowledgement = await processProdamusCancellationNotification(body, signature, {
+        secret: () => getSubscriptionSecret() || getSecret(),
+        binding: () => ({
+          domain: new URL(getPayformUrl()).hostname,
+          subscriptionId: subscriptionId(),
+        }),
+        confirm: (profile) => clubCancellation.confirm(profile),
       });
-      if (!profile) {
-        res.status(422).send("profile binding invalid");
-        return;
-      }
-      const confirmed=await clubCancellation.confirm(profile);
-      res.status(confirmed?200:422).send(confirmed?"cancelled":"profile binding invalid");
+      res.status(acknowledgement.status).send(acknowledgement.body);
       return;
     }
 

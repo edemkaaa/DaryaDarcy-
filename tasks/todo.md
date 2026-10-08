@@ -1457,3 +1457,16 @@
       Только локальный коммит; frontend/staging/server в этом запуске не меняются.
 - [ ] M06 real SQL/provider acceptance и release gates остаются открыты;
       M07c не реализовывать до решения о максимальном ожидании shutdown.
+
+### M06 cancellation orchestration — 8 October, evening
+
+- [x] Отделить cancellation acknowledgement от HTTP: обязательные ленивые
+      secret/binding ports, проверка выбранного ключа до merchant configuration,
+      ответ только после app-owned durable confirmation. Политики не изменены.
+- [x] 10 прямых RED/GREEN случаев и 55 focused checks с native HTTP/compiled ESM.
+      Mutation без проверки ключа ломает прямой тест и HTTP (200 вместо 422).
+- [x] Full 1804 pass / 618 SQL-external skip; типы, 410.2 kB build,
+      неизменный API и 560-file boundaries проходят. Только локальное сохранение;
+      frontend, staging и сервер не меняются.
+- [ ] Real SQL/provider acceptance, M07c shutdown bound и прежние release gates
+      остаются открыты; fixture verification не разрешает включение оплаты.
