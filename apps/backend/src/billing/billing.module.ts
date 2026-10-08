@@ -2,6 +2,8 @@ import { Module } from "@nestjs/common";
 import { ClubCheckoutService } from "./club-checkout.service";
 import { ClubSubscriptionService } from "./club-subscription.service";
 import { ClubSettlementService } from "./club-settlement.service";
+import { ClubCancellationService } from "./club-cancellation.service";
+import { confirmProviderCancellation } from "./cancellation";
 import * as db from "../db";
 import type { ShopService } from "../shop/shop.service";
 import { YookassaClubService } from "./yookassa/club.service";
@@ -47,6 +49,15 @@ export type BillingServices = ClubBillingServices & {
     },
     ClubSubscriptionService,
     {
+      provide: ClubCancellationService,
+      useFactory: () =>
+        new ClubCancellationService({
+          getDb: () => db.getDb(),
+          confirm: (database, profile) =>
+            confirmProviderCancellation(database, profile),
+        }),
+    },
+    {
       provide: ClubSettlementService,
       useFactory: () =>
         new ClubSettlementService((input) => db.settleClubPayment(input)),
@@ -56,10 +67,11 @@ export type BillingServices = ClubBillingServices & {
       // Allocate the binding per application, not as mutable process-global state.
       useFactory: (
         settlement: ClubSettlementService,
+        cancellation: ClubCancellationService,
       ): ProdamusWebhookHandler => ({
-        handle: createProdamusWebhookHandler(settlement),
+        handle: createProdamusWebhookHandler(settlement, cancellation),
       }),
-      inject: [ClubSettlementService],
+      inject: [ClubSettlementService, ClubCancellationService],
     },
   ],
   exports: [ClubCheckoutService, ClubSubscriptionService],

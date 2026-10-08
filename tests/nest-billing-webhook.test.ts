@@ -8,6 +8,7 @@ import * as prodamus from "../apps/backend/src/prodamus";
 import * as db from "../apps/backend/src/db";
 import * as cancellation from "../apps/backend/src/billing/cancellation";
 import { ClubSettlementService } from "../apps/backend/src/billing/club-settlement.service";
+import { ClubCancellationService } from "../apps/backend/src/billing/club-cancellation.service";
 import {
   PRODAMUS_WEBHOOK_HANDLER,
   type ProdamusWebhookHandler,
@@ -39,6 +40,106 @@ afterAll(async () => {
   await application?.close();
   vi.unstubAllEnvs();
 });
+it.each([
+  { decision: "confirmed", status: 200, text: "cancelled" },
+  { decision: "refused", status: 422, text: "profile binding invalid" },
+  { decision: "failed", status: 500, text: "error" },
+])(
+  "native cancellation honors the application-owned $decision decision",
+  async (fixture) => {
+    vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "7");
+    const owned = vi
+      .spyOn(application.get(ClubCancellationService), "confirm")
+      .mockImplementation(async () => {
+        if (fixture.decision === "failed")
+          throw new Error("synthetic private confirmation failure");
+        return fixture.decision === "confirmed";
+      });
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const database = {} as NonNullable<Awaited<ReturnType<typeof db.getDb>>>;
+    const acquire = vi.spyOn(db, "getDb").mockResolvedValue(database);
+    const legacy = vi
+      .spyOn(cancellation, "confirmProviderCancellation")
+      .mockResolvedValue(true);
+    const raw =
+      '{"domain":"fixture.payform.ru","subscription":{"action_code":"finish","id":"7","profile_id":"23"}}';
+    try {
+      const response = await fetch(base + "/api/prodamus/webhook", {
+        method: "POST",
+        body: raw,
+        headers: {
+          "Content-Type": "application/json",
+          Sign: createHmac("sha256", "nest-webhook-fixture-secret")
+            .update(raw)
+            .digest("hex"),
+        },
+      });
+      expect(response.status).toBe(fixture.status);
+      expect(await response.text()).toBe(fixture.text);
+      expect(response.headers.get("set-cookie")).toBeNull();
+      expect(owned).toHaveBeenCalledExactlyOnceWith({
+        domain: "fixture.payform.ru",
+        subscriptionId: "7",
+        profileId: "23",
+      });
+      expect(acquire).not.toHaveBeenCalled();
+      expect(legacy).not.toHaveBeenCalled();
+      if (fixture.decision === "failed")
+        expect(errors).toHaveBeenCalledExactlyOnceWith(
+          "[prodamus] webhook failed",
+        );
+      else expect(errors).not.toHaveBeenCalled();
+    } finally {
+      vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "");
+    }
+  },
+);
+it.each(["missing", "acquisition failure", "durable failure"])(
+  "native cancellation keeps %s as a generic failure",
+  async (failure) => {
+    vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "7");
+    const database = {} as NonNullable<Awaited<ReturnType<typeof db.getDb>>>;
+    const acquire = vi.spyOn(db, "getDb").mockImplementation(async () => {
+      if (failure === "acquisition failure")
+        throw new Error("synthetic private acquisition error");
+      return failure === "missing" ? null : database;
+    });
+    const confirm = vi
+      .spyOn(cancellation, "confirmProviderCancellation")
+      .mockRejectedValue(new Error("synthetic private durable error"));
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const raw =
+      '{"domain":"fixture.payform.ru","subscription":{"action_code":"finish","id":"7","profile_id":"23"}}';
+    try {
+      const response = await fetch(base + "/api/prodamus/webhook", {
+        method: "POST",
+        body: raw,
+        headers: {
+          "Content-Type": "application/json",
+          Sign: createHmac("sha256", "nest-webhook-fixture-secret")
+            .update(raw)
+            .digest("hex"),
+        },
+      });
+      expect(response.status).toBe(500);
+      expect(await response.text()).toBe("error");
+      expect(response.headers.get("set-cookie")).toBeNull();
+      expect(acquire).toHaveBeenCalledTimes(1);
+      if (failure === "durable failure")
+        expect(confirm).toHaveBeenCalledExactlyOnceWith(database, {
+          domain: "fixture.payform.ru",
+          subscriptionId: "7",
+          profileId: "23",
+        });
+      else expect(confirm).not.toHaveBeenCalled();
+      expect(errors).toHaveBeenCalledExactlyOnceWith(
+        "[prodamus] webhook failed",
+      );
+    } finally {
+      vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "");
+    }
+  },
+);
 it.each([
   {
     name: "deactivation",
@@ -107,6 +208,7 @@ it.each([
   // Only SQL boundaries are replaced. This opaque handle is never queried.
   const database = {} as NonNullable<Awaited<ReturnType<typeof db.getDb>>>;
   const acquire = vi.spyOn(db, "getDb").mockResolvedValue(database);
+  const owned = vi.spyOn(application.get(ClubCancellationService), "confirm");
   const confirm = vi
     .spyOn(cancellation, "confirmProviderCancellation")
     .mockResolvedValue(!fixture.refused);
@@ -129,6 +231,11 @@ it.each([
     expect(await response.text()).toBe(fixture.text);
     expect(response.headers.get("set-cookie")).toBeNull();
     if (fixture.dispatch) {
+      expect(owned).toHaveBeenCalledExactlyOnceWith({
+        domain: "fixture.payform.ru",
+        subscriptionId: "7",
+        profileId: "23",
+      });
       expect(acquire).toHaveBeenCalledTimes(1);
       expect(confirm).toHaveBeenCalledExactlyOnceWith(database, {
         domain: "fixture.payform.ru",
@@ -136,6 +243,7 @@ it.each([
         profileId: "23",
       });
     } else {
+      expect(owned).not.toHaveBeenCalled();
       expect(acquire).not.toHaveBeenCalled();
       expect(confirm).not.toHaveBeenCalled();
     }

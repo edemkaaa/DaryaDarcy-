@@ -3831,6 +3831,49 @@ effects, payment activation, merge/push/deployment. M06 orchestration, durable
 acceptance and earlier rollout/dependency gates remain open; M07c still needs the
 separate human-reviewed drain bound.
 
+### M06 — application-owned cancellation confirmation, 8 October, afternoon
+
+Move only post-verification database acquisition/confirmation out of the HTTP
+handler into ClubCancellationService, composed per Nest application. Required
+typed ports acquire the existing database and call the unchanged durable
+confirmProviderCancellation. Missing database still throws; false remains false;
+errors propagate and acknowledgement waits for durable completion. No retries,
+transaction splitting, profile defaults or new policy. Original-body signature,
+demo guard, selected recurring key and exact profile binding remain in ingress.
+Standalone two-argument legacy webhook retains its existing effect binding.
+
+RED/GREEN: typed empty service contract, acquisition/confirmation outcome and
+pending/error cases; native HTTP must honor the application-owned service and
+retain refusal/error/no-cookie behavior. Extend compiled ESM acceptance; a
+deliberate hidden legacy-service bypass must fail the native/compiled checks.
+Run full safe Node 22 tests and static/build/documentation gates, review the
+small diff and save locally. SQL/provider acceptance, M07c drain bound and all
+earlier rollout/dependency gates remain open. No frontend or external effects.
+
+Checkpoint: required typed ports and per-application ClubCancellationService
+now own acquisition and durable confirmation; ingress delegates only after its
+unchanged original-body HMAC/demo/recurring-key/profile checks. Six empty-service
+RED failures and native supplied-service refusal RED (200 instead of 422) were
+reproduced before wiring. Six direct cases, six new native cases, existing eight
+native binding/guard cases and compiled ESM acceptance protect decisions, exact
+profile forwarding, unavailable database/errors and generic failure logging.
+The pending test yields one event-loop turn rather than depending on the new
+acquisition microtask count. Deliberate hidden legacy-service bypass fails six
+native assertions and one compiled assertion; restored full suite passes.
+
+Fresh Node 22 full suite: 1641 pass / 618 SQL/external skip, 123 files pass / 30
+skip, 20.44 seconds. Root/frontend/e2e types, 408.5 kB backend build, unchanged
+73-procedure / 25642-byte API, 530-file boundaries and existing frontend lint
+pass. Selected formatting/whitespace and documentation links checked before
+local commit. Review: one explicit billing effect owner, no runtime SQL imports
+in the service, no default persistence port or cross-application mutable state;
+no extra queries, retries, transaction/replay changes, schema/dependencies or
+private error output. Legacy facade preserves its effect, factory consumers
+explicitly supply both services. No frontend implementation, auth/CORS/proxy/
+quota, SQL/provider effect, secrets/mailbox/cabinet, mail/payment activation,
+merge/push/deployment. This completes only the cancellation composition slice;
+remaining M06 orchestration, durable acceptance and release gates stay open.
+
 ## Prodamus sandbox connection — 8 October, proposed rollout contract
 
 User supplied a time-limited testpage1.payform.ru cabinet and requested test

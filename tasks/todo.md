@@ -824,6 +824,17 @@
       Numeric native fixture canonicalization corrected without production change.
       Existing nonempty profile semantics preserved, not stricter payment regex;
       no actual SQL/provider effects, frontend, secrets, activation or rollout.
+    - [x] Post-verification cancellation confirmation now uses application-owned
+      ClubCancellationService and required typed acquisition/confirmation ports.
+      Missing DB, errors, durable false and pending completion preserve policy;
+      HMAC/demo/recurring-key/profile guards and SQL transaction stay unchanged.
+      Six empty-service RED failures and supplied-service native refusal RED;
+      six direct and six new native cases plus compiled ESM acceptance. Hidden
+      legacy bypass fails six native checks and one compiled assertion. Restore
+      full 1641 pass / 618 SQL/external skip, types/408.5 kB build/unchanged API/
+      530-file boundaries/frontend lint/docs/format/whitespace pass. No new
+      effects, frontend, dependencies, schema, activation, push or deployment;
+      remaining M06 orchestration and durable/provider/release gates stay open.
   - [x] Shop owned/checkout use cases now use explicit ShopModule/ShopService
     composition in Nest and standalone callers. Router schemas/protected access
     and hard-disabled capability gate remain before checkout service entry;

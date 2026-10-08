@@ -19,6 +19,7 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
           import { ClubCheckoutService } from "./apps/backend/src/billing/club-checkout.service";
           import { ClubSubscriptionService } from "./apps/backend/src/billing/club-subscription.service";
           import { ClubSettlementService } from "./apps/backend/src/billing/club-settlement.service";
+          import { ClubCancellationService } from "./apps/backend/src/billing/club-cancellation.service";
           import { ShopService } from "./apps/backend/src/shop/shop.service";
           import { SessionService } from "./apps/backend/src/identity/session.service";
           import { PRODAMUS_WEBHOOK_HANDLER } from "./apps/backend/src/billing/prodamus-webhook.controller";
@@ -96,6 +97,17 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
             const paidRaw = '{"currency":"rub","customer_email":"member@example.test","domain":"fixture.payform.ru","order_id":"300155","order_num":"club6m-7-built","payment_status":"success","sum":"4740.00"}';
             const paidResponse = await fetch(base + "/api/prodamus/webhook", {method: "POST", body: paidRaw, headers: {"Content-Type": "application/json", Sign: createHmac("sha256", "compiled-webhook-fixture-key").update(paidRaw).digest("hex")}});
             const settlementWebhook = { status: paidResponse.status, body: await paidResponse.text(), cookie: paidResponse.headers.get("set-cookie"), calls: settlementCalls };
+            process.env.PRODAMUS_SUBSCRIPTION_ID = "7";
+            const cancellation = application.get(ClubCancellationService);
+            let cancellationCalls = 0;
+            cancellation.confirm = async (profile) => {
+              if (profile.domain !== "fixture.payform.ru" || profile.subscriptionId !== "7" || profile.profileId !== "23") throw Error("Wrong cancellation binding");
+              cancellationCalls++;
+              return false;
+            };
+            const cancelRaw = '{"domain":"fixture.payform.ru","subscription":{"action_code":"deactivation","id":"7","profile_id":"23"}}';
+            const cancelResponse = await fetch(base + "/api/prodamus/webhook", {method: "POST", body: cancelRaw, headers: {"Content-Type": "application/json", Sign: createHmac("sha256", "compiled-webhook-fixture-key").update(cancelRaw).digest("hex")}});
+            const cancellationWebhook = { status: cancelResponse.status, body: await cancelResponse.text(), cookie: cancelResponse.headers.get("set-cookie"), calls: cancellationCalls };
             const webhook = application.get(PRODAMUS_WEBHOOK_HANDLER);
             webhook.handle = async (request, response) => {
               if (!Buffer.isBuffer(request.body) || request.body.toString("utf8") !== "raw-compiled-fixture") throw Error("Original webhook bytes lost");
@@ -103,7 +115,7 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
             };
             const forwarded = await fetch(base + "/api/prodamus/webhook", {method: "POST", body: "raw-compiled-fixture"});
             const injectedWebhook = { status: forwarded.status, body: await forwarded.text() };
-            console.log("BILLING_RESULTS:" + JSON.stringify({realError, injected, status, anonymousError, claimed, cancelled, unsignedWebhook, signedWebhook, settlementWebhook, injectedWebhook, shopOwned, shopDisabled}));
+            console.log("BILLING_RESULTS:" + JSON.stringify({realError, injected, status, anonymousError, claimed, cancelled, unsignedWebhook, signedWebhook, settlementWebhook, cancellationWebhook, injectedWebhook, shopOwned, shopDisabled}));
           } finally { await application.close(); }
         `,
       },
@@ -154,6 +166,12 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
         calls: 1,
       },
       injectedWebhook: { status: 202, body: "compiled native ingress" },
+      cancellationWebhook: {
+        status: 422,
+        body: "profile binding invalid",
+        cookie: null,
+        calls: 1,
+      },
       shopOwned: { owned: true },
       shopDisabled: { code: "FORBIDDEN", status: 403 },
     });

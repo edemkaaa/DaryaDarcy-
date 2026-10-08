@@ -14,6 +14,7 @@ import { readProdamusPayment } from "./billing/prodamus-payment";
 import { hasClubPaymentBinding } from "./billing/prodamus-binding";
 import { readProdamusCancellationProfile } from "./billing/prodamus-cancellation";
 import { ClubSettlementService } from "./billing/club-settlement.service";
+import { ClubCancellationService } from "./billing/club-cancellation.service";
 
 export { createProdamusSign } from "./billing/prodamus-signature";
 export { clubAccessMs, clubAccessMsForOrder } from "./billing/club-settlement.service";
@@ -22,6 +23,10 @@ export { clubAccessMs, clubAccessMsForOrder } from "./billing/club-settlement.se
 const legacyClubSettlement = new ClubSettlementService((input) =>
   db.settleClubPayment(input),
 );
+const legacyClubCancellation = new ClubCancellationService({
+  getDb: () => db.getDb(),
+  confirm: (database, profile) => confirmProviderCancellation(database, profile),
+});
 
 const PRODUCT_NAME = "Подписка Клуб Darcy";
 export const CLUB_PRICE = (process.env.CLUB_PRICE || "790").trim() || "790";
@@ -358,18 +363,20 @@ export async function handleProdamusReturn(req: Request, res: Response) {
 
 export function createProdamusWebhookHandler(
   clubSettlement: Pick<ClubSettlementService, "settle">,
+  clubCancellation: Pick<ClubCancellationService, "confirm">,
 ): (req: Request, res: Response) => Promise<void> {
-  return (req, res) => processProdamusWebhook(req, res, clubSettlement);
+  return (req, res) => processProdamusWebhook(req, res, clubSettlement, clubCancellation);
 }
 
 export async function handleProdamusWebhook(req: Request, res: Response) {
-  return processProdamusWebhook(req, res, legacyClubSettlement);
+  return processProdamusWebhook(req, res, legacyClubSettlement, legacyClubCancellation);
 }
 
 async function processProdamusWebhook(
   req: Request,
   res: Response,
   clubSettlement: Pick<ClubSettlementService, "settle">,
+  clubCancellation: Pick<ClubCancellationService, "confirm">,
 ) {
   try {
     const body = parseProdamusPayload(req.query, req.body);
@@ -408,8 +415,7 @@ async function processProdamusWebhook(
         res.status(422).send("profile binding invalid");
         return;
       }
-      const database=await db.getDb();if(!database) throw new Error("Database unavailable");
-      const confirmed=await confirmProviderCancellation(database,profile);
+      const confirmed=await clubCancellation.confirm(profile);
       res.status(confirmed?200:422).send(confirmed?"cancelled":"profile binding invalid");
       return;
     }
