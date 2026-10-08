@@ -357,8 +357,9 @@ test("an unconfirmed full editor write is not repeated and keeps the attachment"
   await form.getByRole("button", { name: "Сохранить", exact: true }).click();
   await expect.poll(() => messages.length).toBe(1);
   expect(messages[0]).toContain("не подтверждён");
-  await form.getByRole("button", { name: "Сохранить", exact: true }).click();
-  await expect.poll(() => messages.length).toBe(2);
+  await expect(
+    form.getByRole("button", { name: "Сохранить", exact: true }),
+  ).toBeDisabled();
   await expect(form.getByText("new.mp3", { exact: true })).toBeVisible();
   expect(writes.map((write) => write.name)).toEqual([
     "admin.uploadMedia",
@@ -646,8 +647,7 @@ for (const mode of ["full", "quick"] as const) {
       .first();
     await save.click();
     await expect.poll(() => messages.length).toBe(1);
-    await save.click();
-    await expect.poll(() => messages.length).toBe(2);
+    await expect(save).toBeDisabled();
     expect(uploads).toBe(1);
     expect(saves).toBe(0);
     await expect(form).toBeVisible();

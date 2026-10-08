@@ -45,8 +45,10 @@ for (const mode of ["full", "quick"] as const) {
     await expect(
       form.getByPlaceholder("Текст поста… Enter — новый абзац"),
     ).toHaveValue("UNCONFIRMED_DRAFT");
-    await submit.click();
-    await expect.poll(() => messages.length).toBe(3);
+    await expect(submit).toBeDisabled();
+    await expect(
+      form.getByRole("button", { name: "Проверить сохранение", exact: true }),
+    ).toBeVisible();
     expect(creates).toHaveLength(1);
   });
   for (const kind of ["photo", "video"] as const) {
@@ -123,6 +125,27 @@ for (const mode of ["full", "quick"] as const) {
       await expect(form.getByRole("alert")).toContainText(
         kind === "photo" ? "chosen.png" : "chosen.webm",
       );
+      await expect(
+        form.getByText("Черновик сохранён на этом устройстве", { exact: true }),
+      ).toBeVisible();
+      await gotoWithSession(page, mode === "full" ? "/admin" : "/feed");
+      await page
+        .getByRole("button", {
+          name: mode === "full" ? "Новый" : "Новый пост",
+          exact: true,
+        })
+        .click();
+      await form
+        .getByRole("button", { name: "Восстановить черновик", exact: true })
+        .click();
+      await expect(
+        form.getByPlaceholder("Текст поста… Enter — новый абзац"),
+      ).toHaveValue("KEEP_SELECTED_MEDIA");
+      await expect(form.getByRole("alert")).toContainText(
+        kind === "photo" ? "chosen.png" : "chosen.webm",
+      );
+      expect(uploads).toBe(1);
+      expect(creates).toEqual([]);
       await form
         .getByRole("button", {
           name: "Отказаться от выбранных файлов",

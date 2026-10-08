@@ -124,5 +124,16 @@ export function usePostAttachments(
     if (attachment.id) removedIds.current.push(attachment.id);
     setAttachments((previous) => previous.filter((_, i) => i !== index));
   };
-  return { attachments, removedIds: removedIds.current, reset, pick, remove };
+  const restore = useCallback((items: PostAttachment[], removed: number[]) => {
+    removedIds.current = removed;
+    setAttachments(items);
+  }, []);
+  return {
+    attachments,
+    removedIds: removedIds.current,
+    reset,
+    restore,
+    pick,
+    remove,
+  };
 }

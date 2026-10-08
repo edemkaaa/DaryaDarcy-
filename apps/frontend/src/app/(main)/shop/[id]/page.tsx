@@ -4,7 +4,6 @@ import Screen from "@/features/shop/product-screen";
 import { PRODUCT_DETAILS as PRODUCTS } from "@/domain/product/catalog";
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ paid?: string | string[] }>;
 };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
@@ -14,9 +13,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: product?.description,
   };
 }
-export default async function Page({ params, searchParams }: Props) {
+export default async function Page({ params }: Props) {
   const { id } = await params;
   if (!PRODUCTS.some((item) => item.id === id)) notFound();
-  const { paid } = await searchParams;
-  return <Screen id={id} paid={Array.isArray(paid) ? paid[0] : paid} />;
+  return <Screen id={id} />;
 }

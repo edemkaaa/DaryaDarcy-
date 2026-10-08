@@ -543,7 +543,7 @@ export default function FeedScreen() {
           onClose={closeViewer}
         />
       ) : null}
-      {isOwner ? <ManagementModals /> : null}
+      {isOwner ? ManagementModals : null}
       <ScrollToTopButton key={`scroll-top-${viewMode}`} scrollRef={listRef} />
       <AdminFAB target="feed" />
     </ScreenContainer>

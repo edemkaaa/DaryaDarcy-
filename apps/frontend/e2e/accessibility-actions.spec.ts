@@ -169,7 +169,7 @@ test("comment links and actions work with the keyboard and menu focus is restore
       ]);
     if (name === "club.toggleCommentLike") {
       liked = !liked;
-      return ok({ liked });
+      return ok({ liked, likeCount: liked ? 1 : 0 });
     }
   });
   await decoration(page);

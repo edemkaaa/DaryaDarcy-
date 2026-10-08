@@ -38,6 +38,7 @@ async function mockContent(
           monthlyPrice: "790",
           expiresAt: null,
           cancelAtPeriodEnd: false,
+          isOwner: admin,
         });
       if (name === "feed.listPaginated" || name === "club.list")
         return ok({ posts: [], nextCursor: null });
@@ -187,7 +188,9 @@ test("a valid HTTPS checkout still opens its payment destination", async ({
 }) => {
   const destination = "https://payments.example.test/checkout/123";
   await mockContent(page, (name) =>
-    name === "club.createCheckout" ? ok({ url: destination }) : undefined,
+    name === "club.createCheckout"
+      ? ok({ url: destination, user: null })
+      : undefined,
   );
   await page.route(destination, (route) =>
     route.fulfill({
@@ -219,7 +222,7 @@ test("club payment return flags update on the client without granting guest acce
     }
   });
   const notice = page.getByText(
-    "Проверяем оплату… Доступ откроется после подтверждения.",
+    "После оплаты проверьте почту: в письме будет инструкция для входа. Войдите, чтобы проверить доступ к клубу.",
     { exact: true },
   );
   await gotoWithSession(page, "/club?paid=0&paid=1");
@@ -270,6 +273,7 @@ test("an authenticated payment return still asks the API before opening club acc
           monthlyPrice: "790",
           expiresAt: null,
           cancelAtPeriodEnd: false,
+          isOwner: false,
         });
       if (name === "club.claimPending") {
         claims++;

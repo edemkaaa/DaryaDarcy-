@@ -503,14 +503,13 @@ test("feed stops a repeated cursor, deduplicates posts and retries explicitly", 
 }) => {
   await longListApi(page, "/feed");
   let fixed = false;
-  let calls = 0;
+  const cursors: number[] = [];
   await page.route("**/api/trpc/**", async (route) => {
     const url = new URL(route.request().url());
     const names = decodeURIComponent(url.pathname.split("/api/trpc/")[1]).split(
       ",",
     );
     if (!names.includes("feed.listPaginated")) return route.fallback();
-    calls++;
     const inputs = JSON.parse(url.searchParams.get("input") ?? "{}");
     const results = names.map((name, index) => {
       let data: unknown = [];
@@ -519,6 +518,7 @@ test("feed stops a repeated cursor, deduplicates posts and retries explicitly", 
       if (name === "club.subscription") data = { subscribed: true };
       if (name === "feed.listPaginated") {
         const cursor = inputs[index]?.json?.cursor ?? 0;
+        if (cursor) cursors.push(cursor);
         data = {
           posts: [
             {
@@ -547,11 +547,15 @@ test("feed stops a repeated cursor, deduplicates posts and retries explicitly", 
     page.getByText("Не удалось загрузить следующие публикации ленты"),
   ).toBeVisible();
   await expect(list(page).locator(".ui-collection-item")).toHaveCount(1);
-  expect(calls).toBe(2);
+  // Session confirmation may cancel and restart the initial public read.
+  // The repeated pagination cursor must still be requested only once.
+  expect(cursors).toEqual([12]);
   await expect(page.getByText("Все посты загружены")).toHaveCount(0);
   fixed = true;
   await page.getByRole("button", { name: "Повторить", exact: true }).click();
   await expect(page.getByText("RETRY_OK", { exact: true })).toBeVisible();
+  // A successful full refresh ends at the new first page, without the stale cursor.
+  expect(cursors).toEqual([12]);
   await expect(
     page.getByText("Не удалось загрузить следующие публикации ленты"),
   ).toHaveCount(0);

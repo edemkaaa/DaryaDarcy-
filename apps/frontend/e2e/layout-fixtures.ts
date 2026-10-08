@@ -54,6 +54,27 @@ export async function layoutApi(page: Page, subscribed = false) {
         },
       });
     }
+    if (url.pathname === "/api/launch-config") {
+      return route.fulfill({
+        json: {
+          revision: 0,
+          season: "autumn",
+          appearance: {
+            startsOn: "09-01",
+            backgroundUrl: null,
+            bannerUrl: null,
+          },
+          managerEmail: "manager@example.test",
+          orderMethod: "email-client",
+          capabilities: {
+            smsLogin: false,
+            penPals: false,
+            shopOnlinePayment: false,
+            webPush: false,
+          },
+        },
+      });
+    }
     if (url.pathname === "/api/capabilities") {
       return route.fulfill({
         json: {
@@ -78,6 +99,8 @@ export async function layoutApi(page: Page, subscribed = false) {
               isOwner: false,
               monthlyPrice: "790",
             };
+          case "club.claimPending":
+            return { granted: false, orderId: null };
           case "feed.listPaginated":
             return { posts, nextCursor: null };
           case "club.list":

@@ -15,15 +15,13 @@ import {
   Spinner,
   Collection,
 } from "@/shared/ui/elements";
-import { openExternalUrl } from "@/shared/browser/actions";
-import { requirePaymentUrl } from "@/shared/navigation/external-url";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { ClubSubscribed } from "@/features/club/club-subscribed";
 import { useClub } from "@/domain/subscription/subscription-context";
 import { useAuth } from "@/domain/session/session-context";
 import { SessionStatus } from "@/domain/session/session-status";
 import { SubscriptionStatus } from "@/domain/subscription/subscription-status";
-import { trpc } from "@/shared/api/trpc";
+import { useClubPayment } from "./use-club-payment";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
@@ -68,80 +66,21 @@ function LegacyClubScreen() {
   const viewport = useViewport();
   const { stylesLayout } = getClubScreenLayout(viewport);
   const { SCREEN_WIDTH } = getClubScreenContent(viewport);
-  const {
-    isSubscribed,
-    refreshSubscription,
-    monthlyPrice,
-    status: subscriptionStatus,
-  } = useClub();
+  const { isSubscribed, monthlyPrice, status: subscriptionStatus } = useClub();
   const {
     isAuthenticated,
     loading: authLoading,
-    user,
     error: sessionError,
   } = useAuth();
-  const checkout = trpc.club.createCheckout.useMutation();
-  const claimPending = trpc.club.claimPending.useMutation();
-  const [payError, setPayError] = useState<string | null>(null);
   const [guestEmail, setGuestEmail] = useState("");
   const forceCheckout = searchParams.get("checkout") === "1";
   const justPaid = searchParams.get("paid") === "1";
-  const openPayUrl = useCallback((url: string) => {
-    const safe = requirePaymentUrl(url);
-    if (typeof window !== "undefined") {
-      window.location.assign(safe);
-      return;
-    }
-    void openExternalUrl(safe);
-  }, []);
-  const handlePay = useCallback(async () => {
-    setPayError(null);
-    const email = (user?.email || guestEmail).trim();
-    if (!isAuthenticated && !email) {
-      setPayError("Укажите почту — на неё придёт чек, затем откроется оплата.");
-      return;
-    }
-    try {
-      const result = await checkout.mutateAsync(email ? { email } : undefined);
-      openPayUrl(result.url);
-    } catch (error) {
-      setPayError(
-        error instanceof Error ? error.message : "Не удалось открыть оплату",
-      );
-    }
-  }, [
-    checkout,
-    guestEmail,
-    isAuthenticated,
-    openPayUrl,
-    user?.email,
-    setPayError,
-  ]);
-  const claimPendingPayment = claimPending.mutateAsync;
-  useEffect(() => {
-    if (!active || !justPaid || authLoading || !isAuthenticated) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        await claimPendingPayment();
-      } catch {}
-      if (!cancelled) refreshSubscription();
-    })();
-    const timer = setInterval(() => refreshSubscription(), 2500);
-    const stop = setTimeout(() => clearInterval(timer), 20000);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-      clearTimeout(stop);
-    };
-  }, [
+  const payment = useClubPayment({
     active,
-    justPaid,
-    authLoading,
-    isAuthenticated,
-    refreshSubscription,
-    claimPendingPayment,
-  ]);
+    returnKey: justPaid ? searchParams.toString() : null,
+    guestEmail,
+  });
+  const payError = payment.payError;
   const [, setActiveLetterIndex] = useState(0);
   const onLetterScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
@@ -227,6 +166,11 @@ function LegacyClubScreen() {
                   placeholderColor={BROWN_MUTED}
                   autoCapitalize="off"
                   inputMode="email"
+                  type="email"
+                  aria-label="Почта для чека и входа"
+                  autoComplete="email"
+                  maxLength={320}
+                  disabled={payment.busy}
                   value={guestEmail}
                   onValueChange={setGuestEmail}
                   className={classes.guestEmail}
@@ -236,12 +180,12 @@ function LegacyClubScreen() {
                 style={({ pressed }) => ({
                   transform: cssTransform([{ scale: pressed ? 0.97 : 1 }]),
                 })}
-                disabled={checkout.isPending || authLoading}
-                onClick={() => void handlePay()}
+                disabled={payment.disabled}
+                onClick={() => void payment.prepare()}
                 className={({ pressed }) =>
                   [
                     classes.action,
-                    pressed || checkout.isPending
+                    pressed || payment.preparing
                       ? classes.opacityState
                       : classes.opacityState2,
                   ]
@@ -249,7 +193,7 @@ function LegacyClubScreen() {
                     .join(" ")
                 }
               >
-                {checkout.isPending ? (
+                {payment.preparing ? (
                   <Spinner color={CREAM} />
                 ) : (
                   <MaterialIcons name="star" size={18} color={CREAM} />
@@ -259,7 +203,7 @@ function LegacyClubScreen() {
                 </Typography>
               </Action>
               {payError ? (
-                <Typography className={classes.typography}>
+                <Typography role="alert" className={classes.typography}>
                   {payError}
                 </Typography>
               ) : null}
@@ -533,6 +477,11 @@ function LegacyClubScreen() {
                     placeholderColor={BROWN_MUTED}
                     autoCapitalize="off"
                     inputMode="email"
+                    type="email"
+                    aria-label="Почта для чека и входа"
+                    autoComplete="email"
+                    maxLength={320}
+                    disabled={payment.busy}
                     value={guestEmail}
                     onValueChange={setGuestEmail}
                     className={classes.guestEmail}
@@ -542,12 +491,12 @@ function LegacyClubScreen() {
                   style={({ pressed }) => ({
                     transform: cssTransform([{ scale: pressed ? 0.97 : 1 }]),
                   })}
-                  disabled={checkout.isPending || authLoading}
-                  onClick={() => void handlePay()}
+                  disabled={payment.disabled}
+                  onClick={() => void payment.prepare()}
                   className={({ pressed }) =>
                     [
                       classes.action,
-                      pressed || checkout.isPending
+                      pressed || payment.preparing
                         ? classes.opacityState3
                         : classes.opacityState4,
                     ]
@@ -555,7 +504,7 @@ function LegacyClubScreen() {
                       .join(" ")
                   }
                 >
-                  {checkout.isPending ? (
+                  {payment.preparing ? (
                     <Spinner color={CREAM} />
                   ) : (
                     <MaterialIcons name="star" size={18} color={CREAM} />
@@ -566,38 +515,32 @@ function LegacyClubScreen() {
                 </Action>
                 {isAuthenticated ? (
                   <Action
-                    onClick={async () => {
-                      setPayError(null);
-                      try {
-                        const result = await claimPendingPayment();
-                        refreshSubscription();
-                        if (!result.granted) {
-                          setPayError(
-                            "Оплата ещё не найдена. Если вы только что заплатили, подождите минуту и нажмите ещё раз.",
-                          );
-                        }
-                      } catch (error) {
-                        setPayError(
-                          error instanceof Error
-                            ? error.message
-                            : "Не удалось подтвердить оплату",
-                        );
-                      }
-                    }}
+                    onClick={() => void payment.check()}
+                    disabled={payment.disabled}
                     className={classes.action2}
                   >
                     <Typography className={classes.privacyLink}>
-                      Я уже оплатила
+                      {payment.checking ? "Проверяем…" : "Я уже оплатила"}
                     </Typography>
                   </Action>
                 ) : null}
-                {justPaid ? (
-                  <Typography className={classes.priceNote}>
-                    Проверяем оплату… Доступ откроется после подтверждения.
+                {payment.accessNotice ? (
+                  <Typography role="status" className={classes.priceNote}>
+                    {payment.accessNotice}
                   </Typography>
                 ) : null}
+                {justPaid && !isAuthenticated ? (
+                  <Action
+                    onClick={() => router.push("/login?next=/club%3Fpaid%3D1")}
+                    className={classes.action2}
+                  >
+                    <Typography className={classes.privacyLink}>
+                      Войти для проверки доступа
+                    </Typography>
+                  </Action>
+                ) : null}
                 {payError ? (
-                  <Typography className={classes.priceNote}>
+                  <Typography role="alert" className={classes.priceNote}>
                     {payError}
                   </Typography>
                 ) : null}

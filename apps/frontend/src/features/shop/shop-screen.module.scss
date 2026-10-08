@@ -202,11 +202,11 @@
   }
 
   .typography {
-    font-family: var(--font-display);
+    font-family: var(--font-body);
     font-size: 28px;
     font-style: normal;
     color: var(--paper);
-    letter-spacing: 4px;
+    letter-spacing: 8px;
     text-transform: uppercase;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
   }

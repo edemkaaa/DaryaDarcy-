@@ -8,7 +8,7 @@ import {
   Spinner,
 } from "@/shared/ui/elements";
 import { safeExternalUrl } from "@/shared/navigation/external-url";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { useAuth } from "@/domain/session/session-context";
@@ -20,11 +20,12 @@ import {
   isCommunityPost,
 } from "@/domain/post/club-tags";
 import { normalizeLinkUrl } from "@/shared/media/photo-aspect-ratios";
-import {
-  useSessionOperation,
-  checkOperationAccessError,
-} from "@/domain/session/use-session-operation";
-import { getHttpStatus } from "@/shared/api/errors";
+import { checkOperationAccessError } from "@/domain/session/use-session-operation";
+import { getRequestErrorMessage, invalidResponse } from "@/shared/api/errors";
+import { requireOk, requireCommentLike } from "@/shared/api/action-result";
+import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
+import { usePostUploadSelection } from "@/features/admin/use-post-upload-selection";
+import { PostUploadStatus } from "@/features/admin/post-upload-status";
 import { requireUploadedUrl } from "@/shared/media/upload-result";
 import { fileToUpload, pickWebFiles } from "@/shared/media/image-upload";
 import { PhotoViewer } from "@/shared/media/photo-viewer";
@@ -193,10 +194,13 @@ export function ClubComments({
   const { isAuthenticated, user } = useAuth();
   const [text, setText] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
-  const operation = useSessionOperation(true, postId);
+  const active = useScreenActive();
+  const action = useConfirmedAction(active, postId);
+  const operation = action.operation;
+  const selection = usePostUploadSelection();
   const uploading = operation.kind === "photos";
-  const [actionError, setActionError] = useState<string | null>(null);
-  const uncertainSend = useRef(false);
+  const actionError = action.error;
+  const setActionError = action.setError;
   const [replyTo, setReplyTo] = useState<number | null>(null);
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerPhotos, setViewerPhotos] = useState<string[]>([]);
@@ -214,10 +218,11 @@ export function ClubComments({
       menuCommentId ||
       viewerVisible ||
       operation.busy ||
-      actionError,
+      actionError ||
+      selection.pending.length ||
+      action.unknown,
     ),
   );
-  const active = useScreenActive();
   const utils = trpc.useUtils();
   const community = isCommunityPost(tags);
   const open = areCommentsOpen(tags, createdAt);
@@ -234,77 +239,63 @@ export function ClubComments({
     "comments",
     !comments.data,
   );
-  const runAction = async (
-    kind: string,
-    perform: (signal: AbortSignal) => Promise<unknown>,
-    commit: () => void,
-  ) => {
-    const task = operation.begin(kind);
-    if (!task) return;
-    setActionError(null);
-    try {
-      const result = await perform(task.signal);
-      if (
-        ["edit", "delete", "report"].includes(kind) &&
-        (!result ||
-          typeof result !== "object" ||
-          (result as { ok?: unknown }).ok !== true)
-      )
-        throw new Error("Сервер не подтвердил действие");
-      if (
-        kind === "like" &&
-        (!result ||
-          typeof result !== "object" ||
-          typeof (result as { liked?: unknown }).liked !== "boolean")
-      )
-        throw new Error("Сервер не подтвердил отметку");
-      task.assertCurrent();
-      commit();
-      void utils.club.comments.invalidate({ postId });
-    } catch (error) {
-      checkOperationAccessError(error);
-      const status = getHttpStatus(error);
-      if (task.isCurrent() && kind === "send" && (!status || status >= 500))
-        uncertainSend.current = true;
-      if (task.isCurrent())
-        setActionError(
-          uncertainSend.current && kind === "send"
-            ? "Отправка не подтверждена. Проверьте список комментариев перед новой попыткой."
-            : error instanceof Error
-              ? error.message
-              : "Не удалось выполнить действие",
-        );
-    } finally {
-      task.finish();
-    }
+  const readComments = async () => {
+    const result = await comments.refetch();
+    if (!result.isSuccess || !Array.isArray(result.data))
+      throw result.error ?? invalidResponse();
   };
+  const refreshCounts = () => {
+    void utils.club.list.invalidate();
+    void utils.feed.getById.invalidate({ id: postId });
+  };
+  const runAction = (
+    kind: string,
+    label: string,
+    perform: (signal: AbortSignal) => Promise<unknown>,
+    commit: (result: unknown) => void,
+    validate = requireOk,
+    keepBlocked = false,
+  ) =>
+    void action.run({
+      kind,
+      label,
+      perform,
+      validate,
+      commit: (result) => {
+        commit(result);
+        void utils.club.comments.invalidate({ postId });
+      },
+      read: readComments,
+      keepBlocked,
+    });
   const add = {
     isPending: operation.kind === "send",
     error: actionError ? { message: actionError } : null,
     mutate: (
       input: Parameters<typeof utils.client.club.addComment.mutate>[0],
     ) => {
-      if (uncertainSend.current) {
-        setActionError(
-          "Отправка не подтверждена. Проверьте список комментариев перед новой попыткой.",
-        );
-        void comments.refetch();
+      try {
+        selection.assertReady();
+      } catch (cause) {
+        setActionError((cause as Error).message);
         return;
       }
-      void runAction(
+      runAction(
         "send",
-        async (signal) => {
-          const result = await utils.client.club.addComment.mutate(input, {
-            signal,
-          });
-          if (!result || !Number.isSafeInteger(result.id) || result.id <= 0)
-            throw new Error("Сервер не подтвердил отправку комментария");
-        },
+        "Отправить комментарий",
+        (signal) => utils.client.club.addComment.mutate(input, { signal }),
         () => {
           setText("");
           setPhotos([]);
           setReplyTo(null);
+          refreshCounts();
         },
+        (result) => {
+          const id = (result as { id?: unknown } | null)?.id;
+          if (!Number.isSafeInteger(id) || (id as number) <= 0)
+            throw invalidResponse();
+        },
+        true,
       );
     },
   };
@@ -313,8 +304,9 @@ export function ClubComments({
     mutate: (
       input: Parameters<typeof utils.client.club.updateComment.mutate>[0],
     ) =>
-      void runAction(
+      runAction(
         "edit",
+        "Сохранить комментарий",
         (signal) => utils.client.club.updateComment.mutate(input, { signal }),
         () => {
           setEditingId(null);
@@ -324,16 +316,21 @@ export function ClubComments({
   };
   const remove = {
     mutate: (input: { id: number }) =>
-      void runAction(
+      runAction(
         "delete",
+        "Удалить комментарий",
         (signal) => utils.client.club.deleteComment.mutate(input, { signal }),
-        () => {},
+        () => {
+          if (replyTo === input.id) setReplyTo(null);
+          refreshCounts();
+        },
       ),
   };
   const report = {
     mutate: (input: { id: number; reason: string }) =>
-      void runAction(
+      runAction(
         "report",
+        "Отправить жалобу",
         (signal) => utils.client.club.reportComment.mutate(input, { signal }),
         () => window.alert("Жалоба отправлена. Спасибо!"),
       ),
@@ -341,11 +338,34 @@ export function ClubComments({
   const toggleLike = {
     isPending: operation.kind === "like",
     mutate: (input: { commentId: number }) =>
-      void runAction(
+      runAction(
         "like",
-        (signal) =>
-          utils.client.club.toggleCommentLike.mutate(input, { signal }),
-        () => {},
+        "Изменить лайк комментария",
+        async (signal) => {
+          await utils.club.comments.cancel({ postId });
+          if (signal.aborted) throw signal.reason;
+          const result = await utils.client.club.toggleCommentLike.mutate(
+            input,
+            { signal },
+          );
+          await utils.club.comments.cancel({ postId });
+          return result;
+        },
+        (result) => {
+          const confirmed = result as { liked: boolean; likeCount: number };
+          utils.club.comments.setData({ postId }, (rows) =>
+            rows?.map((row) =>
+              row.id === input.commentId
+                ? {
+                    ...row,
+                    likedByMe: confirmed.liked,
+                    likeCount: confirmed.likeCount,
+                  }
+                : row,
+            ),
+          );
+        },
+        requireCommentLike,
       ),
   };
   const tree = useMemo(() => {
@@ -362,7 +382,7 @@ export function ClubComments({
   }, [comments.data]);
   if (!community) return null;
   const loadedCount = comments.data?.length ?? 0;
-  const commentCount = commentCountProp ?? loadedCount;
+  const commentCount = comments.data ? loadedCount : (commentCountProp ?? 0);
   const untilLabel = until
     ? until.toLocaleString("ru-RU", {
         day: "numeric",
@@ -403,33 +423,40 @@ export function ClubComments({
     }
   };
   const pickPhotos = async () => {
-    if (photos.length >= 2) return;
+    if (photos.length >= 2 || action.blocked) return;
     const task = operation.begin("photos");
     if (!task) return;
     setActionError(null);
+    let selected: number | undefined;
     try {
+      selection.assertReady();
       const slots = 2 - photos.length;
       const files = await pickWebFiles("image/*", slots > 1, {
         signal: task.signal,
         maxFiles: slots,
       });
-      for (const file of files) {
+      task.assertCurrent();
+      const selections = selection.select(files);
+      for (const [index, file] of files.entries()) {
+        selected = selections[index];
         const payload = await fileToUpload(file, { signal: task.signal });
         task.assertCurrent();
+        selection.sending(selected);
         const url = requireUploadedUrl(
           await utils.client.club.uploadCommentPhoto.mutate(payload, {
             signal: task.signal,
           }),
         );
         task.assertCurrent();
+        selection.confirmed(selected);
         setPhotos((prev) => [...prev, url].slice(0, 2));
       }
     } catch (error) {
       checkOperationAccessError(error);
-      if (task.isCurrent())
-        setActionError(
-          error instanceof Error ? error.message : "Не удалось загрузить фото",
-        );
+      if (task.isCurrent()) {
+        selection.failed(selected, error);
+        setActionError(getRequestErrorMessage(error));
+      }
     } finally {
       task.finish();
     }
@@ -475,6 +502,7 @@ export function ClubComments({
             {canOpenMenu ? (
               <Action
                 aria-label="Действия с комментарием"
+                disabled={action.blocked}
                 onClick={() => setMenuCommentId(item.id)}
                 hitArea={8}
                 className={classes.menuBtn}
@@ -497,7 +525,7 @@ export function ClubComments({
                 .join(" ")}
             >
               <Field
-                disabled={operation.busy}
+                disabled={action.blocked}
                 value={editText}
                 onValueChange={setEditText}
                 multiline
@@ -522,6 +550,7 @@ export function ClubComments({
                   .join(" ")}
               >
                 <Action
+                  disabled={action.blocked}
                   onClick={() => {
                     setEditingId(null);
                     setEditText("");
@@ -535,7 +564,7 @@ export function ClubComments({
                     if (!value || update.isPending) return;
                     update.mutate({ id: item.id, text: value });
                   }}
-                  disabled={operation.busy || !editText.trim()}
+                  disabled={action.blocked || !editText.trim()}
                   aria-label="Сохранить"
                   aria-busy={update.isPending}
                   className={classes.editSave}
@@ -596,7 +625,7 @@ export function ClubComments({
                 if (!isAuthenticated) return;
                 toggleLike.mutate({ commentId: item.id });
               }}
-              disabled={!isAuthenticated || operation.busy}
+              disabled={!isAuthenticated || action.blocked}
               className={classes.likeBtn}
             >
               <MaterialIcons
@@ -611,7 +640,10 @@ export function ClubComments({
               ) : null}
             </Action>
             {open && isAuthenticated ? (
-              <Action onClick={() => setReplyTo(item.id)}>
+              <Action
+                disabled={action.blocked}
+                onClick={() => setReplyTo(item.id)}
+              >
                 <Typography className={classes.replyBtn}>Ответить</Typography>
               </Action>
             ) : null}
@@ -655,14 +687,14 @@ export function ClubComments({
             .join(" ")}
         >
           {replyTo ? (
-            <Action onClick={() => setReplyTo(null)}>
+            <Action disabled={action.blocked} onClick={() => setReplyTo(null)}>
               <Typography className={classes.cancelReply}>
                 Отмена ответа
               </Typography>
             </Action>
           ) : null}
           <Field
-            disabled={operation.busy}
+            disabled={action.blocked}
             value={text}
             onValueChange={setText}
             placeholder={replyTo ? "Ваш ответ..." : "Написать комментарий..."}
@@ -702,6 +734,8 @@ export function ClubComments({
                     className={classes.photo}
                   />
                   <Action
+                    disabled={action.blocked}
+                    aria-label="Удалить фото из комментария"
                     onClick={() =>
                       setPhotos((prev) => prev.filter((p) => p !== uri))
                     }
@@ -724,7 +758,11 @@ export function ClubComments({
               onClick={() => void pickPhotos()}
               aria-label={`Фото (${photos.length}/2)`}
               aria-busy={uploading}
-              disabled={operation.busy || photos.length >= 2}
+              disabled={
+                action.blocked ||
+                photos.length >= 2 ||
+                selection.pending.length > 0
+              }
               className={classes.attachBtn}
             >
               {uploading ? (
@@ -746,7 +784,9 @@ export function ClubComments({
                   photos: photos.length ? photos : undefined,
                 });
               }}
-              disabled={operation.busy || !text.trim()}
+              disabled={
+                action.blocked || !text.trim() || selection.pending.length > 0
+              }
               aria-label="Отправить"
               aria-busy={add.isPending}
               className={classes.send}
@@ -766,6 +806,40 @@ export function ClubComments({
         <Typography className={classes.meta}>
           Войдите, чтобы оставить комментарий
         </Typography>
+      ) : null}
+      <PostUploadStatus
+        selection={selection}
+        busy={operation.busy || Boolean(action.unknown)}
+        subject="комментария"
+      />
+      {action.unknown && !operation.busy ? (
+        <div className="ui-stack">
+          <Typography role="alert" className={classes.error}>
+            Результат действия «{action.unknown.label}» не подтверждён.
+          </Typography>
+          <Action disabled={operation.busy} onClick={() => void action.check()}>
+            Обновить комментарии
+          </Action>
+          {action.unknown.keepBlocked ? (
+            <Action
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    "Вы проверили список? Отказаться от неподтверждённой отправки и очистить этот текст и фото? Уже отправленный комментарий останется в списке.",
+                  )
+                )
+                  return;
+                setText("");
+                setPhotos([]);
+                setReplyTo(null);
+                selection.reset();
+                action.discard();
+              }}
+            >
+              Отказаться от неподтверждённой отправки
+            </Action>
+          ) : null}
+        </div>
       ) : null}
       {add.error ? (
         <Typography role="alert" className={classes.error}>

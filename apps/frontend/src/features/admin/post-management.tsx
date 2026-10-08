@@ -1,9 +1,14 @@
 "use client";
 import classes from "./post-management.module.scss";
 import { Dialog, Action, Typography, ScrollArea } from "@/shared/ui/elements";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, type ReactNode } from "react";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { trpc } from "@/shared/api/trpc";
+import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
+import { useAuth } from "@/domain/session/session-context";
+import { invalidResponse } from "@/shared/api/errors";
+import { requireAbsentId, requireIdList } from "@/shared/api/action-result";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 import dynamic from "next/dynamic";
 const CreatePostModal = dynamic(
   () => import("./create-post-modal").then((m) => m.CreatePostModal),
@@ -150,11 +155,15 @@ function TagSelectionModal({
   post,
   onClose,
   onSave,
+  blocked,
+  status,
 }: {
   visible: boolean;
   post: PostData | null;
   onClose: () => void;
   onSave: (tags: string[]) => void;
+  blocked: boolean;
+  status: ReactNode;
 }) {
   const [selectedTags, setSelectedTags] = useState<string[]>(post?.tags || []);
   // Reset when post changes
@@ -169,7 +178,7 @@ function TagSelectionModal({
     );
   };
   const handleSave = () => {
-    onSave(selectedTags);
+    if (!blocked) onSave(selectedTags);
   };
   if (!visible || !post) return null;
   return (
@@ -185,6 +194,7 @@ function TagSelectionModal({
             .join(" ")}
         >
           <Action
+            disabled={blocked}
             aria-label="Закрыть редактор тегов"
             onClick={onClose}
             className={({ pressed }) =>
@@ -195,6 +205,7 @@ function TagSelectionModal({
           </Action>
           <Typography className={classes.modalTitle}>Хештеги</Typography>
           <Action
+            disabled={blocked}
             onClick={handleSave}
             className={({ pressed }) =>
               [
@@ -209,7 +220,9 @@ function TagSelectionModal({
           </Action>
         </div>
 
+        {status}
         <ScrollArea
+          inert={blocked}
           className={classes.formScroll}
           contentClassName={classes.formContent}
         >
@@ -277,120 +290,181 @@ export function usePostManagement(onRefresh: () => void) {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [tagModalVisible, setTagModalVisible] = useState(false);
   const [activePost, setActivePost] = useState<PostData | null>(null);
-  const updateMutation = trpc.admin.updatePost.useMutation({
-    onSuccess: () => {
-      onRefresh();
-      setEditModalVisible(false);
-      setTagModalVisible(false);
+  const { isOwner } = useAuth();
+  const active = useScreenActive();
+  const actions = useConfirmedAction(isOwner && active && !editModalVisible);
+  const readPosts = async (signal: AbortSignal) => {
+    const rows = await utils.client.admin.posts.query(undefined, { signal });
+    requireIdList(rows);
+    return rows;
+  };
+  const inspect = async (signal: AbortSignal) => {
+    await readPosts(signal);
+    if (signal.aborted) throw signal.reason;
+    void utils.feed.listPaginated.invalidate();
+    void utils.club.list.invalidate();
+    onRefresh();
+  };
+  const updateMutation = {
+    isPending: actions.blocked,
+    mutate: (input: { id: number; tags: string[] }) =>
+      void actions.run({
+        kind: "tags",
+        label: "Сохранить теги",
+        read: inspect,
+        perform: (signal) =>
+          utils.client.admin.updatePost.mutate(input, { signal }),
+        validate: (result) => {
+          if (result?.success !== true) throw invalidResponse();
+        },
+        commit: () => {
+          onRefresh();
+          void utils.club.list.invalidate();
+          setTagModalVisible(false);
+        },
+      }),
+  };
+  const deleteMutation = {
+    isPending: actions.blocked,
+    mutate: (input: { id: number }) =>
+      void actions.run({
+        kind: "delete",
+        label: "Удалить пост",
+        read: inspect,
+        perform: async (signal) => {
+          await utils.client.admin.deletePost.mutate(input, { signal });
+          const rows = await readPosts(signal);
+          requireAbsentId(rows, input.id);
+        },
+        validate: () => {},
+        commit: () => {
+          setActivePost(null);
+          setEditModalVisible(false);
+          setTagModalVisible(false);
+          setActionSheetVisible(false);
+          void utils.feed.listPaginated.invalidate();
+          void utils.club.list.invalidate();
+          onRefresh();
+        },
+      }),
+  };
+  const openMenu = useCallback(
+    (post: PostData) => {
+      if (actions.blocked) return;
+      setActivePost(post);
+      setActionSheetVisible(true);
     },
-    onError: (err) => {
-      const message = err.message || "Не удалось сохранить изменения";
-      window.alert(message);
-    },
-  });
-  const deleteMutation = trpc.admin.deletePost.useMutation({
-    onSuccess: async () => {
-      setActivePost(null);
-      setEditModalVisible(false);
-      setTagModalVisible(false);
-      setActionSheetVisible(false);
-      await utils.feed.listPaginated.invalidate();
-      onRefresh();
-    },
-    onError: (err) => {
-      const message = err.message || "Не удалось удалить пост";
-      window.alert(message);
-    },
-  });
-  const openMenu = useCallback((post: PostData) => {
-    setActivePost(post);
-    setActionSheetVisible(true);
-  }, []);
+    [actions.blocked],
+  );
   const closeMenu = useCallback(() => {
     setActionSheetVisible(false);
   }, []);
-  const handleAction = useCallback(
-    (action: MenuAction) => {
-      setActionSheetVisible(false);
-      if (action === "edit") {
-        setEditModalVisible(true);
-      } else if (action === "tags") {
-        setTagModalVisible(true);
-      } else if (action === "delete") {
-        {
-          if (confirm("Удалить этот пост? Это действие нельзя отменить.")) {
-            if (activePost) {
-              deleteMutation.mutate({ id: activePost.id });
-            }
+  const handleAction = (action: MenuAction) => {
+    if (actions.blocked) return;
+    setActionSheetVisible(false);
+    if (action === "edit") {
+      setEditModalVisible(true);
+    } else if (action === "tags") {
+      setTagModalVisible(true);
+    } else if (action === "delete") {
+      {
+        if (confirm("Удалить этот пост? Это действие нельзя отменить.")) {
+          if (activePost) {
+            deleteMutation.mutate({ id: activePost.id });
           }
         }
       }
-    },
-    [activePost, deleteMutation],
+    }
+  };
+  const handleTagsSave = (tags: string[]) => {
+    if (activePost) {
+      updateMutation.mutate({ id: activePost.id, tags });
+    }
+  };
+  const status = (
+    <>
+      {actions.operation.busy ? (
+        <Typography role="status">
+          {actions.operation.kind === "check"
+            ? "Проверяем публикации…"
+            : "Сохраняем изменения…"}
+        </Typography>
+      ) : null}
+      {actions.error ? (
+        <Typography role="alert">{actions.error}</Typography>
+      ) : null}
+      {actions.unknown && !actions.operation.busy ? (
+        <Action onClick={() => void actions.check()}>
+          Обновить публикации
+        </Action>
+      ) : null}
+    </>
   );
-  const handleTagsSave = useCallback(
-    (tags: string[]) => {
-      if (activePost) {
-        updateMutation.mutate({ id: activePost.id, tags });
-      }
-    },
-    [activePost, updateMutation],
-  );
-  const ManagementModals = useCallback(
-    () => (
-      <>
-        <ActionSheet
-          visible={actionSheetVisible}
-          onClose={closeMenu}
-          onSelect={handleAction}
-        />
-        {editModalVisible ? (
-          <CreatePostModal
-            visible
-            onClose={() => setEditModalVisible(false)}
-            defaultTarget={activePost?.target || "feed"}
-            editingPost={
-              activePost
-                ? {
-                    id: activePost.id,
-                    text: activePost.text,
-                    photos: activePost.photos,
-                    tags: activePost.tags,
-                    status: "published",
-                    target: activePost.target || "feed",
-                    scheduledAt: null,
-                    publishedAt: activePost.publishedAt
-                      ? new Date(activePost.publishedAt).toISOString()
-                      : activePost.createdAt
-                        ? new Date(activePost.createdAt).toISOString()
-                        : null,
-                    createdAt: activePost.createdAt
+  // Render stable component types: action-state changes must not remount the editor.
+  const ManagementModals = (
+    <>
+      {!tagModalVisible && (actions.error || actions.unknown) ? (
+        <Dialog
+          label="Результат действия с публикацией"
+          open
+          onClose={() => {
+            if (!actions.unknown) actions.setError(null);
+          }}
+        >
+          <div className={classes.modalContainer}>
+            {status}
+            {!actions.unknown ? (
+              <Action onClick={() => actions.setError(null)}>Закрыть</Action>
+            ) : null}
+          </div>
+        </Dialog>
+      ) : null}
+      <ActionSheet
+        visible={actionSheetVisible}
+        onClose={closeMenu}
+        onSelect={handleAction}
+      />
+      {editModalVisible ? (
+        <CreatePostModal
+          visible
+          onClose={() => setEditModalVisible(false)}
+          defaultTarget={activePost?.target || "feed"}
+          editingPost={
+            activePost
+              ? {
+                  id: activePost.id,
+                  text: activePost.text,
+                  photos: activePost.photos,
+                  tags: activePost.tags,
+                  status: "published",
+                  target: activePost.target || "feed",
+                  scheduledAt: null,
+                  publishedAt: activePost.publishedAt
+                    ? new Date(activePost.publishedAt).toISOString()
+                    : activePost.createdAt
                       ? new Date(activePost.createdAt).toISOString()
                       : null,
-                    richText: activePost.richText ?? null,
-                    media: activePost.media ?? [],
-                  }
-                : null
-            }
-          />
-        ) : null}
-        <TagSelectionModal
-          visible={tagModalVisible}
-          post={activePost}
-          onClose={() => setTagModalVisible(false)}
-          onSave={handleTagsSave}
+                  createdAt: activePost.createdAt
+                    ? new Date(activePost.createdAt).toISOString()
+                    : null,
+                  richText: activePost.richText ?? null,
+                  media: activePost.media ?? [],
+                }
+              : null
+          }
         />
-      </>
-    ),
-    [
-      actionSheetVisible,
-      editModalVisible,
-      tagModalVisible,
-      activePost,
-      closeMenu,
-      handleAction,
-      handleTagsSave,
-    ],
+      ) : null}
+      <TagSelectionModal
+        visible={tagModalVisible}
+        post={activePost}
+        onClose={() => {
+          if (!actions.blocked) setTagModalVisible(false);
+        }}
+        onSave={handleTagsSave}
+        blocked={actions.blocked}
+        status={status}
+      />
+    </>
   );
   return {
     openMenu,
