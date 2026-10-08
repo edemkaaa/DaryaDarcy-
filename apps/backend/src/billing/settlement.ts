@@ -7,62 +7,19 @@ import {
   users,
 } from "../../../../packages/database/src/schema";
 import { queueAccessEmail } from "../identity/access";
+import { moneyMinor, profileKey } from "./protocol";
 import {
-  billingKey,
-  moneyMinor,
-  profileKey,
-  type PaymentProof,
-} from "./protocol";
+  prepareClubSettlement,
+  type ClubSettlementInput,
+} from "./settlement-request";
 
 export async function settleClubOrder(
   database: MySql2Database,
-  input: {
-    orderId: string;
-    periodMs: number;
-    sum?: string | null;
-    proof?: PaymentProof;
-    recurring?: boolean;
-  },
+  input: ClubSettlementInput,
 ): Promise<boolean> {
-  const proof = input.proof;
-  const foreign = proof?.testForeignPayment;
-  const amount = moneyMinor(input.sum);
-  if (
-    !proof ||
-    !proof.paymentId ||
-    proof.paymentId.length > 64 ||
-    !proof.domain ||
-    proof.currency.toLowerCase() !== "rub" ||
-    amount === null ||
-    !Number.isSafeInteger(input.periodMs) ||
-    input.periodMs <= 0 ||
-    (foreign &&
-      (proof.domain !== "testpage1.payform.ru" ||
-        !input.orderId.startsWith("club-test-") ||
-        input.recurring ||
-        proof.subscriptionId ||
-        proof.profileId ||
-        !["eur", "usd", "kzt", "byn"].includes(foreign.currency) ||
-        !Number.isSafeInteger(foreign.amountMinor) ||
-        foreign.amountMinor <= 0))
-  )
-    return false;
-  const paymentKey = billingKey([proof.domain, proof.paymentId]);
-  const orderId = input.recurring
-    ? `club-renew-${paymentKey.slice(0, 40)}`
-    : input.orderId;
-  const payloadHash = billingKey([
-    orderId,
-    String(amount),
-    proof.email,
-    proof.currency.toLowerCase(),
-    proof.subscriptionId || "",
-    proof.profileId || "",
-    // Conditional extension preserves every existing live/RUB receipt hash.
-    ...(foreign
-      ? ["test-fx-v1", foreign.currency, String(foreign.amountMinor)]
-      : []),
-  ]);
+  const prepared = prepareClubSettlement(input);
+  if (!prepared) return false;
+  const { proof, amount, paymentKey, orderId, payloadHash } = prepared;
   const [recipient] = input.recurring
     ? await database
         .select({ userId: billingProfiles.userId })

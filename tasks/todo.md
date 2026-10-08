@@ -1838,3 +1838,22 @@ drafts remain local after interruption; disposable container already removed.
   the preceding video fixture serial-only limitation, not all SQL isolation or the
   unrelated saved-post lock observation. No runtime/frontend/shared-server change,
   migration, payment/provider, policy, merge/push/deploy; existing gates stay open.
+
+### M06 settlement request preparation — 9 October, 02:42 Moscow
+
+- [x] Extract existing proof/amount/period checks and receipt/order preparation into
+  a pure typed billing module. Original predicates, hashes and all recipient/SQL
+  transaction statements match structurally; no changed signature/replay policy.
+- [x] Thirty-nine literal-hash/refusal/immutable-input cases pass after scaffold
+  RED. Removing FX binding produces four RED failures, including real HTTP/SQL
+  changed-currency replay acceptance; restored before final checks. Original and
+  extracted SQL baselines each pass 79 checks; final focused 172 pass, full default
+  1877 pass / 769 SQL-external skips. Types/build/API/boundaries/lint/docs pass.
+- [x] Review completed; exact owned loopback/tmpfs MySQL removed after ownership
+  verification, inventory empty. Trigger creator setting changed only in that
+  disposable fixture. Missing auxiliary review files disclosed; primary review
+  instructions and project gates used. Details and evidence in plan.md.
+- [ ] Remaining M06 work and real provider/browser/recurring acceptance stay open,
+  as do M07c human drain-bound and dependency/rollout/frontend wording/CSP gates.
+  No frontend, shared-server, actual payment, auth/CORS/proxy/quota, schema,
+  dependency, merge/push or deployment changes.

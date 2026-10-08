@@ -5472,3 +5472,56 @@ Logs: /tmp/daryadarcy-video-fixtures-{red,green,parallel,full,types,build,api,
 boundaries,lint,docs}.log. Runtime/frontend/server/payment/auth/CORS/proxy/quota,
 schema migrations/dependencies, merge/push/deploy unchanged. M05/M08, M07c human
 drain-bound and prior rollout/provider/dependency gates stay open.
+
+### M06 settlement request preparation — 9 October, early morning
+
+Extract only the existing pre-SQL proof/amount/period/TEST-FX checks and stable
+payment/order/payload keys into one pure typed settlement-request module. Preserve
+all current validation semantics, exact RUB/FX receipt hashes and recurring order
+derivation; do not reinterpret this preparation as signature or account authorization.
+Trusted HTTP binding remains upstream; recipient/profile/payment checks, locking,
+expiry, receipt and durable access outbox remain in the same settlement transaction.
+Characterize literal rejection and replay-key fixtures (including immutable input),
+observe scaffold RED and security mutation RED, run original and extracted native
+HTTP/real SQL acceptance on owned disposable MySQL plus compiled/default/type/build/
+API/boundary/docs gates. Review/commit locally. No schema, frontend, dependency,
+secret/cabinet/provider access, real payment, SMTP, worker/server activation,
+auth/CORS/proxy/quota/M07c policy, merge/push or deployment changes.
+
+Verified result (9 October, 02:42 Moscow):
+
+- Moved that preparation into billing/settlement-request.ts; settleClubOrder keeps
+  its public input shape and false refusal behavior. Executable AST comparison
+  confirms identical original proof/amount declarations, guard predicate, key/hash
+  statements and every recipient/transaction statement after preparation.
+- Thirty-nine pure cases characterize literal independently calculated hashes,
+  amount representations, immutable input, recurring order derivation, profile
+  binding and existing TEST-FX restrictions. Typed scaffold RED: 10 failures /
+  29 passes; implementation GREEN: all 39 pass. No mock-derived expectations.
+- Original real-SQL/native HTTP baseline and extracted version each pass all 79
+  checks. The disposable MySQL initially refused one cancellation trigger because
+  of binary-log creator permissions; enabled log_bin_trust_function_creators only
+  inside this owned disposable instance and reran the original baseline green.
+  No application or shared-server configuration was changed for that fixture.
+- Security mutation removing only FX currency/amount from the payload hash fails
+  three literal-hash cases and the real native HTTP/SQL altered-receipt replay
+  refusal (200 instead of 400). Restored the extension before final verification:
+  seven focused files / 172 checks pass, including 79 actual SQL checks. Full
+  default: 1877 pass / 769 reported SQL-external skips. Types, backend build,
+  unchanged 73-procedure API, 565-file boundaries, lint and docs all pass.
+- Five-axis review: no SQL/lock/transaction/query changes, connection/env ownership
+  or new effects; signature and demo binding remain upstream and account/payment
+  authorization remains durable SQL. Receipt hashes preserve tamper/replay binding;
+  no new logs/PII exposure, resource loops or access shortcut. Missing auxiliary
+  skill security/performance checklist files were reported; review used the full
+  primary skill criteria and project verification gates instead.
+- Exact owned loopback/tmpfs MySQL container
+  9420e3462b245612e6508b27ac7e9deddf0e8dcad8d7d8e69bdc8ca9c719b3f0 removed after
+  owner/no-mount/tmpfs/no-OOM verification; matching owner inventory empty. Its
+  synthetic database was disposable and intentionally destroyed, no recovery needed.
+
+Evidence: /tmp/daryadarcy-settlement-request-{scaffold-red,pure-green,sql-baseline,
+focused-green,fx-red,final-focused,final-full,final-types,final-build,final-api,
+final-boundaries,final-lint,final-docs}.log. Local backend refactor only; real provider
+method/recurring/browser acceptance, M07c human drain-bound, frontend wording/CSP,
+dependency and rollout gates remain open. No server/payment activation or deployment.
