@@ -1084,11 +1084,12 @@
   650 pass / 4 skip excluding MySQL suites; verify 239 pass. Types, lint, API,
   backend build, 452-file boundaries and documentation checks pass.
   No frontend/generated types, migration, push, staging update or deployment.
-- [ ] Run manual-publication.mysql.test.ts against disposable MySQL and accept
+- [x] Run manual-publication.mysql.test.ts against disposable MySQL and verify
   deleted-post HTTP 404/media invariants plus existing successful writes.
-  Local Docker info reports EOF; no native MySQL available. Added SQL tests are
-  skipped, not verified. Frontend draft retention/notification still needs its
-  owner's acceptance; existing browser photo-viewer failure is not addressed.
+  Docker recovered; 52 SQL cases (including real HTTP/JWT) pass in the 8 October evening
+  checkpoint below. No source/test assertions changed for this verification.
+- [ ] Frontend draft retention/notification still needs its owner's acceptance;
+  existing browser photo-viewer failure is not addressed by this SQL checkpoint.
 
 ## Frontend/backend handoff: complete media reads (B1) — 2026-10-07
 
@@ -1100,10 +1101,11 @@
 - [x] Verify compiled runtime without DB, static/build/API gates and handoff.
   Non-MySQL suite 683 pass / 4 skip; verify 239 pass. Types, lint, API, backend
   build and 452-file boundaries pass. No frontend, schema, push or deployment.
-- [ ] Run existing content.mysql/nest-content.mysql/nest-admin-content.mysql
-  suites on disposable MySQL (51 cases currently skipped; Docker reports EOF)
-  and accept editor refusal to change videos without a complete initial model.
-  Client UI acceptance and version conflicts are not fixed by read errors alone.
+- [x] Run existing content.mysql/nest-content.mysql/nest-admin-content.mysql
+  suites on disposable MySQL: 51 cases pass, including compiled ESM, in the
+  8 October evening checkpoint below; source/tests/assertions unchanged.
+- [ ] Accept editor refusal to change videos without a complete initial model.
+  Client UI acceptance and version conflicts are not fixed by SQL reads alone.
 
 ## Frontend/backend handoff: preserve video identity (B2) — 2026-10-07
 
@@ -1118,11 +1120,11 @@
   699 pass / 4 skip; verify 239 pass. Types, lint, compiled runtime, backend
   build, unchanged 72-procedure API, 452-file boundaries and 47-document checks
   pass. No frontend/generated types, schema, push, staging update or deployment.
-- [ ] Verify disposable MySQL acceptance: unchanged/add/remove/reorder, omitted/
+- [x] Verify disposable MySQL acceptance: unchanged/add/remove/reorder, omitted/
   empty lists, duplicate occurrences and rollback of the post plus all media.
-  Added 10 focused SQL tests; currently skipped because Docker reports EOF and
-  BACKEND_TEST_DATABASE_URL is absent. Existing manual-publication SQL gates
-  remain pending too. Non-MySQL suite: 699 pass / 4 skip.
+  Ten focused SQL tests pass in the 8 October evening checkpoint below; Docker
+  recovered and only a new isolated fixture database was used. Manual-publication
+  SQL checks also pass separately; frontend/provider acceptance remains open.
 - [ ] Agree and implement a trusted metadata source for newly uploaded videos;
   URL-derived filename is only a compatibility label, MIME/size/duration stay
   null. No client metadata guessing or server fetch of arbitrary URLs. B2 is not
@@ -1573,3 +1575,15 @@
       не доказывают HTTP deletion race или загрузку/очистку avatar в S3.
       Erasure/retention и provider/rollout gates открыты; own tmpfs база удалена.
       Без frontend/server/auth-policy/push/deploy изменений.
+
+### M05 handoff SQL verification — 8 October, evening
+
+- [x] 62 pass: manual-publication SQL (52, включая native HTTP/JWT) + post-video
+      reconciliation SQL (10). Removed-post refusal/media invariants, transaction
+      rollback and existing success paths verified without external delivery.
+- [x] 51 content/native-content/native-admin-content SQL checks pass in a separate
+      sequential run, including compiled ESM. No production/test changes needed.
+- [x] Full default 1804 pass / 669 SQL-external skip; types/build/API/boundaries/
+      lint/docs pass. Logs and exact scopes recorded in plan; own tmpfs DB removed.
+- [ ] Frontend initial-model refusal/draft retention, trusted video metadata,
+      external storage/push delivery, migration/provider/rollout gates stay open.

@@ -4692,3 +4692,50 @@ label inventory empty, tmpfs gone. No working DB or unrelated resources touched.
 No frontend, server, secrets/cabinets, mail/push/payment, activation, merge/push/
 deploy. Avatar upload/orphan cleanup, erasure/retention, HTTP race acceptance,
 M07c human decision and provider/dependency/rollout gates remain open.
+
+### M05 handoff publication/media SQL checkpoint — 8 October, evening
+
+Continued from clean 2ccc1d2. Rather than repeat completed M06/M07 wrappers,
+ran the explicitly pending handoff SQL acceptance after Docker recovery.
+Verification-only: no production or test file changed, no new RED/GREEN claim.
+Existing assertions and timeouts remain intact.
+
+First focused run: manual-publication.mysql.test.ts 52 +
+post-video-reconciliation.mysql.test.ts 10 = 62 pass in 1.79 seconds.
+Manual suite uses real HTTP/JWT/MySQL with external announcement transport
+doubled: validates removed-post HTTP 404/no orphan media, atomic editing/creation,
+rollback and existing publication/concurrency ownership. This does not prove
+actual push delivery or durable N12 crash recovery. Direct real SQL video suite
+verifies unchanged/add/remove/reorder, omitted/empty lists, duplicate URL
+occurrences, preservation of retained IDs/all metadata, rollback of post/media
+and unknown MIME for new videos, without fetching any URL.
+
+Separate sequential run of content.mysql, nest-content.mysql and
+nest-admin-content.mysql: 51 pass in 7.80 seconds, including native HTTP/JWT and
+compiled ESM with an explicit synthetic child environment. Read/visibility and
+admin metadata acceptance are now recorded as executed, not skipped for Docker
+EOF. Client initial-model refusal, version-conflict behavior and draft retention
+remain separate and unaccepted; this run is not a frontend change or UI test.
+
+Full default 1804 pass / 669 SQL-external skip, 132 passing / 36 skipped files,
+17.89 seconds. The 113 SQL checks above ran explicitly, despite default skips.
+Fresh types, 410.8 kB backend build, unchanged 73-procedure API/560-file boundaries,
+lint/docs pass. Focused logs: /tmp/daryadarcy-publication-1937-focused.log and
+/tmp/daryadarcy-content-1937-focused.log; full log:
+/tmp/daryadarcy-publication-1937-full.log. Logs are local ephemeral evidence.
+
+Review: existing bounded synthetic fixtures, canonical real SQL/JWT paths,
+loopback listeners, inactive application workers and doubled external push in
+publication suite; video URLs are SQL strings only. TDD test principles,
+incremental verification, review, Git, verification/documentation skills guided
+the checkpoint; no new architecture/ADR or runtime policy. Optional shared DoD
+absent; repository gates applied. No source or assertions edited to get green.
+
+Only dd-publication-check-20261008-1937 created: existing MySQL 8.4, new
+backend_test, synthetic credentials/data, ephemeral loopback port, tmpfs,
+512 MiB/one CPU. Full ID/owner/no OOM/no mounts verified before exact removal;
+label inventory empty, tmpfs data gone. No working DB or unrelated resources,
+frontend, server, secrets/cabinets, external mail/push/payment, auth/CORS/proxy/
+quota, activation, merge/push/deploy changes. Trusted video metadata, real
+storage/delivery, UI, migration rehearsal, M07c decision and all existing
+provider/dependency/rollout gates remain open.
