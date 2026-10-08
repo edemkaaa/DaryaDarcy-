@@ -4,6 +4,10 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { storagePut } from "../storage";
 
+// Defense in depth for GHSA-wq5f-xc86-pv6w: no API feature needs SVG decoding.
+// Block the native loader family even if a future caller misses the byte gate.
+sharp.block({ operation: ["VipsForeignLoadSvg"] });
+
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 const MAX_PIXELS = 20_000_000;
 let decoding = 0;

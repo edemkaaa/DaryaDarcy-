@@ -26,6 +26,21 @@ const uploaders = [
 ];
 beforeEach(() => { storage.writes.length = 0; });
 describe("photo upload validates bytes rather than the client MIME or filename", () => {
+  it("disables SVG at the native decoder even if a future caller bypasses the signature gate", async () => {
+    const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="2" height="3"><rect width="2" height="3" fill="red"/></svg>');
+    await expect(sharp(svg).metadata()).rejects.toThrow();
+  });
+  it.each(["jpeg", "png", "webp"] as const)("still uploads genuine %s after decoder hardening", async (format) => {
+    const bytes = await sharp({ create: { width: 2, height: 3, channels: 3, background: "red" } }).toFormat(format).toBuffer();
+    for (const upload of uploaders) {
+      await upload({ base64: bytes.toString("base64"), filename: "untrusted.svg", mimeType: "image/svg+xml" });
+    }
+    expect(storage.writes).toHaveLength(3);
+    for (const stored of storage.writes) {
+      expect(await sharp(stored.data).metadata()).toMatchObject({ format: "webp", width: 2, height: 3 });
+      expect(stored.mime).toBe("image/webp");
+    }
+  });
   it.each(uploaders)("rejects HTML masquerading as JPEG without storing it", async (upload) => {
     await expect(upload({ base64: Buffer.from("<html><script>alert(1)</script></html>").toString("base64"), filename: "photo.jpg", mimeType: "image/jpeg" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(storage.writes).toHaveLength(0);

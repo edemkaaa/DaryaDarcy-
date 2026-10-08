@@ -955,6 +955,12 @@
 - [ ] Отдельно разобрать свежие advisories основного приложения до 2026-10-08:
       audit 1 critical / 35 high / 36 moderate / 4 low. Новый worker без npm
       зависимостей; это не снимает ограничения production для API/web.
+      8 октября: native prod audit 51 (1 critical / 20 high / 26 moderate / 4 low).
+      Общий dependency gate остаётся открыт; не путать mitigation с обновлением.
+- [x] S1: дополнительный запрет нативного SVG-loader Sharp в API по официальному
+      workaround; signature gate и JPEG/PNG/WebP остаются. RED → GREEN с
+      настоящим декодером; raster-проверки всех avatar/admin/comment upload.
+      Только локально: Next/asset tools и обновление Linux-образа не закрыты.
 
 ### 2026-10-07 — оформление отзывов клуба
 

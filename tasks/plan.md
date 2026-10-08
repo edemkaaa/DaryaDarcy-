@@ -3131,3 +3131,32 @@ Safari, dependency and rollout gates remain; this only closes local diagnostics.
 Final verification: full suite 1250 pass / 618 SQL/external skip; root/frontend/
 e2e types, 50-document check and selected formatting pass. Backend/frontend
 application code remains unchanged from the preceding passing build/lint checks.
+
+### S1 — defense-in-depth SVG decoder block in API, 8 October
+
+Resume the existing dependency-review task without changing versions or trust
+policies. Fresh native pnpm 9.12.0 production audit on the committed graph reports
+51 advisories (1 critical / 20 high / 26 moderate / 4 low; 322 dependencies).
+Root manager, sole workspace lockfile, CI and Docker frozen/ignore-scripts install
+agree; use the repository's concrete install boundary and native audit evidence.
+
+Sharp's maintainer provides a narrow mitigation for GHSA-wq5f-xc86-pv6w: block
+VipsForeignLoadSvg. Existing API photo signatures already reject SVG, but the
+native loader remained available; no API exploit is claimed. A harmless actual
+SVG metadata request reaches RED (resolved format=svg), then GREEN after the
+module-initialization block. JPEG/PNG/WebP each still succeed through avatar,
+admin and comment upload, re-encoding to WebP with unchanged dimensions/MIME.
+Only storage is substituted, not the actual decoder or router/service boundary.
+
+Review: one native loader policy in the only API module importing Sharp; no new
+upload handler, interface, auth/CORS/proxy/quota change or per-request overhead.
+This process-level mitigation does not affect the independent Next process or
+asset tooling, does not patch the installed library and does not clear the audit.
+Source and Linux runtime upgrade/rehearsal remain separate release gates, with
+review due 2026-10-13 or before rollout. No package scripts/install/update, SQL,
+external payments/mail, cabinet/secrets, live server, merge, push or deployment.
+Evidence and scope recorded in the existing TeamAssist operations guide.
+Final verification: 17 focused photo cases, 41 photo/runtime cases and full suite
+1254 pass / 618 SQL/external skip. Root/frontend/e2e types, backend build, lint,
+unchanged API (73 / 25642), 508 dependency boundaries, 50 current documents and
+diff whitespace checks pass. No production/security-clean acceptance is claimed.
