@@ -4504,6 +4504,48 @@ touched. No frontend, server, secrets/cabinets, external mail/push/payment,
 auth/CORS/proxy/quota, activation, merge/push/deploy changes. M07c decision,
 manager scenario and provider/dependency/rollout gates remain open.
 
+### M05 admin content deletion SQL checkpoint — 8 October, late evening
+
+Continued from clean c39f282; completed an existing M05 native deletion acceptance
+gate, not another M06/M07 refactor. New test uses real native app, loopback HTTP,
+JWT/session SQL and canonical helpers, with application workers inactive and
+no identity/service/persistence doubles. Nine cases verify post cascade across
+media/comments/comment reactions/reports/post likes/saves, detach a surviving
+cross-post legacy reply, retain unrelated post and attachment metadata, and
+roll back all changes if a synthetic BEFORE DELETE trigger refuses the final
+post delete. Single attachment deletion retains sibling media/posts/reactions;
+missing IDs remain void no-ops; guests/members cannot mutate either route.
+URLs are stored inert fixture strings; no external storage or transport.
+
+Initial characterization: nine pass, 1.41 seconds; no production bug observed.
+Mutation proof: temporarily omit post_media deletion in canonical post cascade;
+the real persisted-state test fails (one failure/eight pass), 1.62 seconds.
+Restored source byte-identical before final verification. Final focused 44 pass
+over new SQL suite and existing native admin-content maintenance, 1.07 seconds.
+Full default 1804 pass / 685 SQL-external skip across 132 passing / 38 skipped
+files, 15.19 seconds. All nine new SQL checks ran explicitly despite default
+skip. Types, fresh restored-source 410.9 kB backend build, unchanged 73-procedure
+API (25642 bytes), 560-file boundaries, lint/docs and diff checks pass.
+Local logs: /tmp/daryadarcy-content-delete-2007.log,
+/tmp/daryadarcy-content-delete-2007-mutation.log,
+/tmp/daryadarcy-content-delete-2007-green.log and
+/tmp/daryadarcy-content-delete-2007-full.log.
+
+Review: independent fixture expectations, reserved IDs and owned cleanup only,
+no generated production-shaped credentials, immutable neighbor state compared
+from actual SQL, generic error excludes trigger detail, no production test seams.
+Incremental implementation, TDD test/mutation principles, review, Git and
+verification/documentation skills guided this test-only slice. Existing auth,
+deletion transaction/lock order, no-op semantics and policies unchanged.
+Raw-camera filename cleanup, external asset storage/deletion, concurrency,
+M07c human decision, manager scenario and rollout/dependency/provider gates open.
+
+Only dd-content-delete-check-20261008-2007 created: existing MySQL 8.4, fresh
+backend_test, synthetic fixture credentials, ephemeral loopback port, tmpfs,
+512 MiB/one CPU, no volume mounts/OOM. Full ID/owner verified before exact
+removal; label inventory empty. No working database/unrelated resource,
+frontend/server, secrets/cabinets, mail/push/payment, activation, merge/push/deploy.
+
 ### M08 reported-comment deletion audit atomicity — 8 October, 21:30 Moscow
 
 Continued from clean 5c49aa4; no repeat of completed M06/M07 work. Two real SQL

@@ -686,7 +686,8 @@
       provider errors and missing-database outcomes. Full non-MySQL suite:
       836 pass / 4 skip; types/build/API/boundaries pass. Session lookup and the
       selected provider are doubled in HTTP wiring cases; real JWT/MySQL deletion
-      acceptance still needs a disposable database. No frontend/schema/payment,
+      acceptance is verified at the evening checkpoint below. Raw-camera filename
+      cleanup SQL acceptance remains open. No frontend/schema/payment,
       shared-server data mutation, push or deployment.
     - [x] Route admin.importVideos through the existing ContentWriteService;
       extract its unchanged wire schema as the service's input type. Preserve
@@ -1600,3 +1601,15 @@
       build/API/boundaries/lint/docs pass; own disposable tmpfs DB removed.
 - [ ] Concurrent competing imports/retry policy remain unaccepted. No quotas,
       schema, auth, frontend, server, provider, activation or deployment changes.
+
+### M05 admin content deletion SQL acceptance — 8 October, evening
+
+- [x] Nine real native HTTP/JWT/MySQL cases: post/dependent cascade, surviving
+      legacy reply detachment, final-delete fault rolls back every earlier change,
+      single-media scope, missing-ID no-op and guest/member refusal for both routes.
+- [x] Omitting media cascade deliberately breaks the persisted-state assertion;
+      original runtime restored byte-identical. 44 focused pass; full default
+      1804 pass / 685 SQL-external skip. Types/build/API/boundaries/lint/docs pass.
+- [ ] Raw-camera filename cleanup SQL, actual external asset deletion/storage,
+      concurrency and rollout/provider gates remain separate. No runtime or
+      frontend/server/policy changes; own disposable tmpfs DB removed.
