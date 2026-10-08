@@ -7,6 +7,7 @@ import * as db from "./db";
 import { moneyMinor, type PaymentProof } from "./billing/protocol";
 import { confirmProviderCancellation, type Profile } from "./billing/cancellation";
 import { createProdamusSign } from "./billing/prodamus-signature";
+import { asProdamusRecord as asRecord, parseProdamusPayload } from "./billing/prodamus-payload";
 
 export { createProdamusSign } from "./billing/prodamus-signature";
 
@@ -292,61 +293,6 @@ function headerSign(req: Request): string {
   return String(raw || "");
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  return {};
-}
-
-function nestPhpParams(flat: Record<string, string>): Record<string, unknown> {
-  const root: Record<string, unknown> = Object.create(null);
-  for (const [rawKey, value] of Object.entries(flat)) {
-    const keys = rawKey.replace(/\]/g, "").split("[");
-    // Parsing happens before authentication; never traverse inherited objects.
-    if (keys.some((key) => ["__proto__", "constructor", "prototype"].includes(key))) continue;
-    let current: Record<string, unknown> = root;
-    for (let i = 0; i < keys.length; i++) {
-      const key = keys[i];
-      if (i === keys.length - 1) {
-        current[key] = value;
-        break;
-      }
-      const next = current[key];
-      if (!next || typeof next !== "object" || Array.isArray(next)) {
-        current[key] = Object.create(null);
-      }
-      current = current[key] as Record<string, unknown>;
-    }
-  }
-  return root;
-}
-
-function flattenQuery(query: Request["query"]): Record<string, string> {
-  const flat: Record<string, string> = Object.create(null);
-  for (const [key, value] of Object.entries(query)) {
-    if (typeof value === "string") flat[key] = value;
-    else if (Array.isArray(value) && typeof value[0] === "string") flat[key] = value[0];
-  }
-  return flat;
-}
-
-function parseWebhookPayload(req: Request): Record<string, unknown> {
-  const fromQuery = nestPhpParams(flattenQuery(req.query));
-  let raw = "";
-  if (Buffer.isBuffer(req.body)) raw = req.body.toString("utf8");
-  else if (typeof req.body === "string") raw = req.body;
-  else if (req.body && typeof req.body === "object" && !Array.isArray(req.body)) {
-    return { ...fromQuery, ...asRecord(req.body) };
-  }
-  if (!raw.trim()) return fromQuery;
-  try {
-    return { ...fromQuery, ...asRecord(JSON.parse(raw)) };
-  } catch {
-    return { ...fromQuery, ...nestPhpParams(Object.fromEntries(new URLSearchParams(raw))) };
-  }
-}
-
 function pickString(body: Record<string, unknown>, keys: string[]): string {
   for (const key of keys) {
     const value = body[key];
@@ -453,7 +399,7 @@ export async function cancelProdamusSubscription(profile:Profile): Promise<boole
 }
 
 export async function handleProdamusReturn(req: Request, res: Response) {
-  const body = parseWebhookPayload(req);
+  const body = parseProdamusPayload(req.query, req.body);
   const orderId = pickOrderId({ ...asRecord(req.query), ...body }) || pickString(asRecord(req.query), ["order"]);
   // Browser navigation is not proof of payment. paid=1 only triggers UI polling.
   let appUrl: string;
@@ -470,7 +416,7 @@ export async function handleProdamusReturn(req: Request, res: Response) {
 
 export async function handleProdamusWebhook(req: Request, res: Response) {
   try {
-    const body = parseWebhookPayload(req);
+    const body = parseProdamusPayload(req.query, req.body);
     const signature = headerSign(req) || pickString(body, ["signature", "sign"]);
     const signed = signature ? verifyProdamusSign(body, signature) : false;
     if (!signed) {

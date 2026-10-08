@@ -3510,3 +3510,40 @@ demo rejection, PHP parsing, transport, settlement/replay and transaction policy
 are untouched, as are auth/CORS/proxy/quotas, dependencies, frontend and schema.
 No secrets/mail/cabinets accessed, TEST/shop activation, merge, push or deploy.
 The rest of M06, M07b2/M07c/N12 and existing rollout/dependency gates remain open.
+
+### M06 decomposition slice — request-neutral Prodamus payload parser, 8 October
+
+billing/prodamus-payload.ts now owns query flattening, PHP bracket nesting,
+JSON/form decoding and the existing object-record coercion. It imports no HTTP,
+database, configuration or transport layer. Webhook and browser-return handlers
+pass query and body explicitly, sharing one implementation without a forwarding
+wrapper or duplicate parser. This is decoding, not authentication: returned data
+remains untrusted until the existing signature and merchant-binding checks.
+The record coercion is not a schema validator and keeps its previous behavior.
+
+Twenty-four expected assertion failures were observed against the contract-only
+scaffold, then repaired by the extraction. Literal fixtures preserve first scalar
+query values, whole-field body precedence, UTF-8/form decoding, indexed PHP
+objects (not arrays), last duplicate form values and insertion-order collisions.
+They also preserve valid non-object JSON exclusion, missing/blank/array bodies,
+blocked __proto__/constructor/prototype path segments at both depths and own JSON
+__proto__ fields for subsequent HMAC verification. Frozen inputs remain untouched.
+An empty-array table fixture initially spread to zero test arguments; named
+fixture objects corrected it before the second RED run and implementation.
+
+Two new native POST fixtures use independently hand-derived canonical HMACs to
+exercise query/body collisions through JSON and form ingress. Removing query
+forwarding deliberately fails seven native HTTP assertions and one existing
+compiled ESM assertion; restoring it passes again. The native listeners and
+compiled child/temp bundle are owned and cleaned by the existing harnesses.
+No actual SQL or provider calls, account/secret/mailbox access or mail delivery.
+
+Fresh Node 22 verification: four initially focused files / 69 checks; final full
+1370 pass / 618 skip, 109 files pass / 30 skip. Root/frontend/e2e types, backend
+build (398.0 kB), unchanged 73-procedure / 25642-byte API and 518-file boundaries
+pass. Existing frontend lint, docs, selected formatting and whitespace checked
+before commit; no backend lint claim. HTTP body limits, GET/HEAD query-only
+ingress, signing/merchant-key policy, settlement/replay/transaction boundaries,
+auth/CORS/proxy/quotas, schema, dependencies and frontend are unchanged.
+No TEST/shop activation, merge, push or deployment. M06 orchestration/SQL/provider
+acceptance and M07b2/M07c/N12, rollout and dependency gates remain open.

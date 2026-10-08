@@ -37,6 +37,38 @@ afterAll(async () => {
   await application?.close();
   vi.unstubAllEnvs();
 });
+it.each([
+  {
+    contentType: "application/json",
+    raw: '{"payment_status":"pending","subscription":{"profile_id":"23"}}',
+  },
+  {
+    contentType: "application/x-www-form-urlencoded",
+    raw: "payment_status=pending&subscription[profile_id]=23",
+  },
+])(
+  "POST $contentType keeps body precedence in the signed payload",
+  async ({ contentType, raw }) => {
+    const signature = createHmac("sha256", "nest-webhook-fixture-secret")
+      .update(
+        '{"note":"query","payment_status":"pending","subscription":{"profile_id":"23"}}',
+      )
+      .digest("hex");
+    const settlement = vi.spyOn(db, "settleClubPayment");
+    const response = await fetch(
+      base +
+        "/api/prodamus/webhook?note=query&payment_status=success&subscription[id]=99",
+      {
+        method: "POST",
+        headers: { "Content-Type": contentType, Sign: signature },
+        body: raw,
+      },
+    );
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("ignored");
+    expect(settlement).not.toHaveBeenCalled();
+  },
+);
 it("rejects an added own JSON __proto__ field before settlement", async () => {
   const settlement = vi.spyOn(db, "settleClubPayment");
   const signature = createHmac("sha256", "nest-webhook-fixture-secret")

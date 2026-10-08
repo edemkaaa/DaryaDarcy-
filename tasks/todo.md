@@ -713,6 +713,15 @@
       Removing slash escaping fails two checks; restore full 1344 pass / 618 skip,
       types/build/API/517-file boundaries pass. No SQL/provider acceptance,
       secret access, frontend, activation, merge, push or deployment.
+    - [x] Request-neutral Prodamus payload parsing extracted to billing/prodamus-payload;
+      webhook and browser return use the same parser and record coercion helper.
+      Twenty-four expected scaffold RED assertions preserve query/body precedence,
+      PHP indexed objects, duplicate/collision behavior, JSON/empty-body handling,
+      blocked PHP path names and signed own JSON fields. Two native mixed-input
+      cases added; dropping query forwarding fails seven HTTP and one compiled
+      assertion. Restore full 1370 pass / 618 skip, types/build/API/boundaries pass.
+      Decoding is not authentication or settlement acceptance. No schema, SQL,
+      external service, frontend, auth/CORS/proxy/quota, activation or rollout.
   - [x] Shop owned/checkout use cases now use explicit ShopModule/ShopService
     composition in Nest and standalone callers. Router schemas/protected access
     and hard-disabled capability gate remain before checkout service entry;
