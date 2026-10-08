@@ -268,6 +268,48 @@ it("signed legacy field aliases preserve the exact club settlement proof", async
   expect(await response.text()).toBe("success");
   expect(response.headers.get("set-cookie")).toBeNull();
 });
+it("signed monthly payment preserves the nested subscription binding in settlement", async () => {
+  const raw =
+    '{"currency":"RUB","customer_email":" MEMBER+CLUB@EXAMPLE.TEST ","domain":"FIXTURE.PAYFORM.RU","order_id":"300156","order_num":"club-7-monthly","payment_status":"success","subscription":{"id":"7","profile_id":"23"},"sum":"790.00"}';
+  vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "7");
+  const settle = vi
+    .spyOn(db, "settleClubPayment")
+    .mockImplementation(async (input) => {
+      expect(input).toEqual({
+        orderId: "club-7-monthly",
+        periodMs: 2_592_000_000,
+        sum: "790.00",
+        recurring: undefined,
+        proof: {
+          domain: "fixture.payform.ru",
+          paymentId: "300156",
+          email: "member+club@example.test",
+          currency: "RUB",
+          subscriptionId: "7",
+          profileId: "23",
+        },
+      });
+      return true;
+    });
+  try {
+    const response = await fetch(base + "/api/prodamus/webhook", {
+      method: "POST",
+      body: raw,
+      headers: {
+        "Content-Type": "application/json",
+        Sign: createHmac("sha256", "nest-webhook-fixture-secret")
+          .update(raw)
+          .digest("hex"),
+      },
+    });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("success");
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(settle).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "");
+  }
+});
 it("a valid signature from another merchant cannot reach settlement", async () => {
   const settle = vi.spyOn(db, "settleClubPayment");
   const response = await notify({ ...payment, domain: "another.payform.ru" });

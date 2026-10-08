@@ -3647,3 +3647,37 @@ schema/dependencies, auth/CORS/proxy/quotas and provider settings untouched.
 Night automation remains disabled; this is a direct user-requested local turn.
 No fetch/merge/push/deployment, external mail or payment/TEST/shop activation.
 M06 settlement orchestration and existing acceptance/rollout gates remain open.
+
+### M06 decomposition slice — typed payment field projection, 8 October
+
+billing/prodamus-payment.ts now owns the previously inline payment field mapping.
+It depends only on existing pure selectors/coercion and the PaymentProof type;
+no environment/config, HTTP, transport, SQL or side effects. readProdamusPayment
+returns a typed order/email/user hint/amount/proof structure. The webhook consumes
+it directly only after signature and paid-status checks, then applies the unchanged
+merchant-key, domain, currency, subscription/profile and settlement gates.
+It deliberately does not assert that reading a PaymentProof authenticates it.
+
+Ten literal cases protect complete nested bindings, aliases/precedence, distinct
+provider/internal IDs, exact amount precision, currency casing, missing values,
+malformed values retained for later validation, existing fractional user hint
+coercion and frozen input. Nine expected assertions failed against the empty
+contract scaffold. New native monthly fixture, independently hand-sorted canonical
+JSON/HMAC, passes before and after extraction. It asserts the complete durable
+settlement input, exactly one dispatch and no login cookie; only SQL effect replaced.
+Temporarily dropping profileId fails four pure cases and this native HTTP case
+(422 instead of 200); restore succeeds. Seven focused files / 122 checks pass.
+
+Fresh final Node 22 full suite: 1433 pass / 618 skip, 112 files pass / 30 skip.
+Root/frontend/e2e types, backend build (398.8 kB), unchanged 73-procedure /
+25642-byte API, 521-file boundaries, existing frontend lint, documentation links,
+selected formatting and whitespace pass. No backend lint coverage claim.
+Review: one owning projection, no duplicate normalization, no new defaults,
+authorization/validation rules, price inference or additional logging/PII storage.
+Signatures are still verified against the original decoded body, not this subset.
+HTTP limits, cancellation, replay/transaction rules and disabled-shop gate remain
+unchanged. Owned native/compiled test resources cleaned by existing harnesses;
+no actual MySQL/provider effects, secrets/mailbox/cabinet access or external mail.
+Frontend implementation, schema/dependencies, auth/CORS/proxy/quotas and provider
+settings untouched. No TEST/shop activation, merge/push/deploy or resumed automation.
+M06 orchestration and existing database/sandbox/lifecycle/rollout gates remain open.

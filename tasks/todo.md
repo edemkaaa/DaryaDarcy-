@@ -741,6 +741,16 @@
       30 skip; types/build/API/boundaries/frontend lint/docs/format gates pass.
       No failures waived; SQL/external acceptance remains outside this checkpoint.
       No unrelated cache/user-file removal, SQL/provider call, activation or rollout.
+    - [x] Payment field projection extracted to billing/prodamus-payment with a
+      typed return contract; handler retains signature/merchant binding gates.
+      Ten literal fixtures / nine intended scaffold RED failures preserve distinct
+      order/payment IDs, raw amount/currency, normalized recipient/domain, nested
+      subscription/profile and existing unvalidated user hints. Native monthly
+      fixture preserves the full settlement input, one dispatch and no login cookie.
+      Dropping profile ID fails four pure checks and native acceptance; restore:
+      full 1433 pass / 618 skip, types/build/API/521-file boundaries/lint/docs pass.
+      Decoding is not authentication or SQL/provider acceptance. No activation,
+      frontend implementation, schema/dependency, auth policy or rollout change.
   - [x] Shop owned/checkout use cases now use explicit ShopModule/ShopService
     composition in Nest and standalone callers. Router schemas/protected access
     and hard-disabled capability gate remain before checkout service entry;

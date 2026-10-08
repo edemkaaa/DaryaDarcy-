@@ -9,7 +9,8 @@ import { confirmProviderCancellation, type Profile } from "./billing/cancellatio
 import { createProdamusSign } from "./billing/prodamus-signature";
 import { buildProdamusQuery as buildQuery } from "./billing/prodamus-query";
 import { asProdamusRecord as asRecord, parseProdamusPayload } from "./billing/prodamus-payload";
-import { isPaidStatus, pickOrderId, pickString, pickUserId, subscriptionAction } from "./billing/prodamus-fields";
+import { isPaidStatus, pickOrderId, pickString, subscriptionAction } from "./billing/prodamus-fields";
+import { readProdamusPayment } from "./billing/prodamus-payment";
 
 export { createProdamusSign } from "./billing/prodamus-signature";
 
@@ -388,13 +389,8 @@ export async function handleProdamusWebhook(req: Request, res: Response) {
       return;
     }
 
-    const email = pickString(body, ["customer_email", "customerEmail"]).toLowerCase();
-    const userId = pickUserId(body);
-    const sum = pickString(body, ["sum"]) || null;
-    let orderId = pickOrderId(body);
-    const subscription=asRecord(body.subscription);
-    const domain=pickString(body,["domain"]).toLowerCase();
-    const proof:PaymentProof={domain,paymentId:pickString(body,["order_id"]),email,currency:pickString(body,["currency"]),subscriptionId:pickString(subscription,["id"]),profileId:pickString(subscription,["profile_id"])};
+    const { email, userId, sum, orderId, proof } = readProdamusPayment(body);
+    const { domain } = proof;
     const isClub=action==="auto_payment" || orderId.startsWith("club-") || orderId.startsWith("club6m-");
     if(isClub) {
       const allowedDomain=new URL(getPayformUrl()).hostname;
