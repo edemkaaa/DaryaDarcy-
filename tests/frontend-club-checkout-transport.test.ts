@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createTRPCClient } from "../apps/frontend/src/shared/api/trpc";
-import { createClubTestCheckout } from "../apps/frontend/src/features/club/test-checkout";
+import {
+  createClubTestCheckout,
+  reconcileClubTestCheckout,
+} from "../apps/frontend/src/features/club/test-checkout";
+import { getClubCheckoutIntent } from "../apps/frontend/src/features/club/checkout-intent";
 import { cancelSessionRequests } from "../apps/frontend/src/shared/api/request-lifecycle";
 
 const firstKey = "8d427a00-4a92-4508-874c-b265d7e92d1c";
@@ -243,4 +247,171 @@ it("a session change during intent preparation prevents late dispatch under the 
   cancelSessionRequests();
   expect(await pending).toMatchObject({ name: "AbortError" });
   expect(fetcher).not.toHaveBeenCalled();
+});
+
+it("a return with no saved intent cannot dispatch any check or create request", async () => {
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  expect(await reconcileClubTestCheckout(createTRPCClient())).toBeNull();
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(values.size).toBe(0);
+});
+
+it.each(["unknown", "pending", "succeeded", "canceled"] as const)(
+  "checks only saved evidence by POST/header and retains it after %s",
+  async (state) => {
+    const saved = await getClubCheckoutIntent(input);
+    const prior = [...values.values()][0];
+    const fetcher = vi.fn(
+      async (_url: RequestInfo | URL, _options?: RequestInit) =>
+        new Response(JSON.stringify({ result: { data: { json: { state } } } })),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    expect(await reconcileClubTestCheckout(createTRPCClient())).toEqual({
+      idempotencyKey: saved.idempotencyKey,
+      state,
+    });
+    const [url, options] = fetcher.mock.calls[0];
+    expect(requestUrl(url).pathname).toBe("/api/trpc/club.reconcileCheckout");
+    expect(requestUrl(url).search).toBe("");
+    expect(options?.method).toBe("POST");
+    expect(new Headers(options?.headers).get("Idempotency-Key")).toBe(
+      saved.idempotencyKey,
+    );
+    expect(JSON.parse(String(options?.body))).toEqual({
+      json: null,
+      meta: { values: ["undefined"] },
+    });
+    expect(String(url)).not.toContain(saved.idempotencyKey);
+    expect(options?.body).not.toContain(input.email);
+    expect(options?.body).not.toContain(saved.idempotencyKey);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect([...values.values()][0]).toBe(prior);
+  },
+);
+
+it.each([null, {}, { state: "paid" }, { state: "succeeded", email: "SECRET" }])(
+  "rejects malformed return replies without accepting payment proof (%#)",
+  async (reply) => {
+    await getClubCheckoutIntent(input);
+    const prior = [...values.values()][0];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              result: { data: { json: reply } },
+            }),
+          ),
+      ),
+    );
+    await expect(reconcileClubTestCheckout(createTRPCClient())).rejects.toThrow(
+      "Не удалось проверить результат оплаты",
+    );
+    expect([...values.values()][0]).toBe(prior);
+  },
+);
+
+it("corrupt return evidence prevents HTTP and is never replaced", async () => {
+  values.set("daryadarcy:club-checkout:yookassa-test:v1", "corrupt");
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  await expect(reconcileClubTestCheckout(createTRPCClient())).rejects.toThrow(
+    "Сохранённую заявку",
+  );
+  expect(fetcher).not.toHaveBeenCalled();
+  expect([...values.values()][0]).toBe("corrupt");
+});
+
+it.each(["session", "caller"])(
+  "cancels an outstanding return on %s abort without rotating or retrying",
+  async (source) => {
+    await getClubCheckoutIntent(input);
+    const prior = [...values.values()][0];
+    const fetcher = vi.fn(
+      async (_url: RequestInfo | URL, _options?: RequestInit) =>
+        new Promise<Response>(() => {}),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    const controller = new AbortController();
+    const pending = reconcileClubTestCheckout(
+      createTRPCClient(),
+      controller.signal,
+    ).catch((error: unknown) => error);
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+    if (source === "session") cancelSessionRequests();
+    else controller.abort();
+    expect(await pending).toMatchObject({ cause: { kind: "cancelled" } });
+    expect(fetcher.mock.calls[0][1]?.signal?.aborted).toBe(true);
+    expect([...values.values()][0]).toBe(prior);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  },
+);
+
+it("an already canceled return cannot read storage or dispatch", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  vi.stubGlobal("window", {
+    isSecureContext: true,
+    get localStorage() {
+      throw new Error("SECRET");
+    },
+  });
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  await expect(
+    reconcileClubTestCheckout(createTRPCClient(), controller.signal),
+  ).rejects.toMatchObject({ name: "AbortError" });
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
+it.each(["replaced", "removed", "corrupt"])(
+  "does not apply a late success to %s browser evidence",
+  async (change) => {
+    await getClubCheckoutIntent(input);
+    const fetcher = vi.fn(async () => {
+      const storageKey = "daryadarcy:club-checkout:yookassa-test:v1";
+      if (change === "removed") values.delete(storageKey);
+      if (change === "corrupt") values.set(storageKey, "corrupt");
+      if (change === "replaced")
+        values.set(
+          storageKey,
+          JSON.stringify({
+            ...JSON.parse(values.get(storageKey)!),
+            idempotencyKey: secondKey,
+          }),
+        );
+      return new Response(
+        JSON.stringify({ result: { data: { json: { state: "succeeded" } } } }),
+      );
+    });
+    vi.stubGlobal("fetch", fetcher);
+    await expect(
+      reconcileClubTestCheckout(createTRPCClient()),
+    ).rejects.toThrow();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    if (change === "removed") expect(values.size).toBe(0);
+    if (change === "corrupt") expect([...values.values()][0]).toBe("corrupt");
+    if (change === "replaced")
+      expect(JSON.parse([...values.values()][0]).idempotencyKey).toBe(
+        secondKey,
+      );
+  },
+);
+
+it("a timed-out return leaves the same evidence for an explicit check, never a create/retry", async () => {
+  await getClubCheckoutIntent(input);
+  const prior = [...values.values()][0];
+  vi.useFakeTimers();
+  const fetcher = vi.fn(async () => new Promise<Response>(() => {}));
+  vi.stubGlobal("fetch", fetcher);
+  const pending = reconcileClubTestCheckout(createTRPCClient()).catch(
+    (error: unknown) => error,
+  );
+  await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+  await vi.advanceTimersByTimeAsync(15_000);
+  expect(await pending).toMatchObject({ cause: { kind: "timeout" } });
+  expect([...values.values()][0]).toBe(prior);
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });

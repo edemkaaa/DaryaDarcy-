@@ -107,6 +107,24 @@ This is not connected to the UI or deployed. Bounded polling and terminal-safe
 browser lifecycle remain required before enablement.
 No schema or dependency changes.
 
+### Read-only browser return caller
+
+The return caller reads the existing validated browser record without email,
+writer locks, key generation or any storage write. One atomic read is sufficient
+for this snapshot; all new reservations still require the exclusive Web Lock.
+Absent evidence returns `null` without HTTP. Corrupt or inaccessible evidence
+fails closed and is preserved, never treated as a canceled purchase.
+
+`reconcileClubTestCheckout` sends only a POST with undefined input and the saved
+UUID header through the canonical tRPC transport. It strictly validates the
+state-only reply and fences both the captured session and optional caller abort.
+After the response it rechecks that the saved key still matches: another tab's
+replacement, removal or corruption cannot apply an old result to a new purchase.
+It never retries, rotates, creates, logs in or clears evidence, including after
+success/cancellation. A polling UI and an explicit server-verified next purchase
+remain separate, unwired gates. Browser tests here cover Chromium only; Safari
+and actual provider acceptance still require the later full-flow checks.
+
 ### Return-check quotas
 
 The user approved 12 attempts per intent and 60 per resolved client IP in a

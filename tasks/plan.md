@@ -2791,3 +2791,29 @@ polling/terminal-safe purchase lifecycle and actual sandbox acceptance remain op
 Removed the owned synthetic MySQL container/anonymous volume/internal network
 and its SSH tunnel after acceptance. All six working-stage services remain
 healthy; the deleted database contained only regeneratable test fixtures.
+
+### Y4d1: read-only browser return caller — 2026-10-08
+
+Read validated existing evidence without selection input or a writer reservation.
+Absent evidence causes no HTTP; malformed/inaccessible evidence fails closed.
+Send the saved UUID only in the canonical single POST header with undefined
+input. Validate strict state-only replies, fence captured session/caller abort,
+and reject late replies when another tab replaces/removes/corrupts the saved key.
+Never retry, create, rotate or erase on any state, timeout or error. Keep this
+caller unwired while bounded polling and terminal-safe next purchase are built.
+
+Tests reached RED before each boundary: nine missing read-helper cases, thirteen
+missing caller cases, then three late-success races. GREEN: 69 unit/wire and four
+native Chromium scenarios (real storage, tabs, reload and Web Locks). Removing
+strict output validation accepts the forbidden extra-field reply; the regression
+test fails, and restoration passes. Full suite: 1163 pass / 618 SQL/external skip;
+root/frontend/e2e types and frontend production build (28 pages) pass. No database,
+dependency, API contract, authentication, quota, deployment or UI changes.
+
+The initial native runner could not find its expected browser revision 1208;
+the installed revision 1234 was discovered read-only and explicitly supplied via
+the runner's existing executable-path option. All four checks then pass without
+downloads, dependency updates or test weakening. Five-axis review: owning feature
+helpers, shared strict record parser/transport, no key/PII in URL/body, abort and
+stale-key fences, bounded one-request caller. Safari/provider/full UI acceptance
+and existing dependency/rollout gates remain open. No push, merge or server update.

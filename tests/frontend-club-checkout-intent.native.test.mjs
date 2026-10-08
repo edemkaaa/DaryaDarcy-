@@ -61,6 +61,42 @@ const intent = (page, input = selection) =>
     return getClubCheckoutIntent(input);
   }, input);
 
+test("read-only return recovers a reloaded tab without creating or replacing evidence", async () => {
+  const { context, first, second } = await pages();
+  const read = (page) =>
+    page.evaluate(async () => {
+      const { readSavedClubCheckoutIntent } = await import("/intent.js");
+      return readSavedClubCheckoutIntent();
+    });
+  try {
+    assert.equal(await read(second), null);
+    const saved = await intent(first);
+    const prior = await first.evaluate(
+      (key) => localStorage.getItem(key),
+      storageKey,
+    );
+    await second.reload();
+    assert.deepEqual(await read(second), {
+      idempotencyKey: saved.idempotencyKey,
+    });
+    assert.equal(
+      await second.evaluate((key) => localStorage.getItem(key), storageKey),
+      prior,
+    );
+    await first.evaluate(
+      (key) => localStorage.setItem(key, "corrupt"),
+      storageKey,
+    );
+    await assert.rejects(read(second), /Сохранённую заявку/);
+    assert.equal(
+      await second.evaluate((key) => localStorage.getItem(key), storageKey),
+      "corrupt",
+    );
+  } finally {
+    await context.close();
+  }
+});
+
 test(
   "two tabs queue behind a real Web Lock and recover one durable UUID after reload",
   { timeout: 15_000 },

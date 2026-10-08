@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { getClubCheckoutIntent } from "../apps/frontend/src/features/club/checkout-intent";
+import {
+  getClubCheckoutIntent,
+  readSavedClubCheckoutIntent,
+} from "../apps/frontend/src/features/club/checkout-intent";
 
 const storageKey = "daryadarcy:club-checkout:yookassa-test:v1";
 const selection = { email: "buyer@example.test" };
@@ -34,6 +37,65 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
+
+it("a return without saved evidence cannot reserve or write a purchase", () => {
+  expect(readSavedClubCheckoutIntent()).toBeNull();
+  expect(values.size).toBe(0);
+});
+
+it("reads only the saved key after reload without needing the buyer's email, locks or key generation", async () => {
+  const intent = await getClubCheckoutIntent(selection);
+  const before = values.get(storageKey);
+  vi.stubGlobal("navigator", {});
+  vi.stubGlobal("crypto", undefined);
+  expect(readSavedClubCheckoutIntent()).toEqual({
+    idempotencyKey: intent.idempotencyKey,
+  });
+  expect(values.get(storageKey)).toBe(before);
+});
+
+it.each(["", "null", "{", "x".repeat(1025)])(
+  "read-only return preserves malformed evidence (%#)",
+  (prior) => {
+    values.set(storageKey, prior);
+    expect(() => readSavedClubCheckoutIntent()).toThrow("Сохранённую заявку");
+    expect(values.get(storageKey)).toBe(prior);
+  },
+);
+
+it("read-only return refuses extra fields without exposing browser details", () => {
+  const prior = JSON.stringify({
+    version: 1,
+    idempotencyKey: "00000000-0000-4000-8000-000000000000",
+    selectionHash: "a".repeat(64),
+    state: "succeeded",
+  });
+  values.set(storageKey, prior);
+  expect(() => readSavedClubCheckoutIntent()).toThrow("Сохранённую заявку");
+  expect(values.get(storageKey)).toBe(prior);
+  storage.getItem = () => {
+    throw new Error("SECRET storage failure");
+  };
+  expect(() => readSavedClubCheckoutIntent()).toThrow("Браузер не может");
+  expect(() => readSavedClubCheckoutIntent()).not.toThrow("SECRET");
+});
+
+it.each(["server", "insecure"])(
+  "read-only return refuses an unavailable browser (%s)",
+  (mode) => {
+    vi.stubGlobal(
+      "window",
+      mode === "server"
+        ? undefined
+        : {
+            isSecureContext: false,
+            localStorage: storage,
+          },
+    );
+    expect(() => readSavedClubCheckoutIntent()).toThrow("Браузер не может");
+    expect(values.size).toBe(0);
+  },
+);
 
 it("persists before returning a UUID and canonical input, never the email or payment URL", async () => {
   const intent = await getClubCheckoutIntent({ email: " Buyer@Example.Test " });
@@ -150,6 +212,7 @@ it.each([
     await expect(getClubCheckoutIntent(selection)).rejects.toMatchObject({
       reason: "unreadable",
     });
+    expect(() => readSavedClubCheckoutIntent()).toThrow("Сохранённую заявку");
     expect(values.get(storageKey)).toBe(prior);
   },
 );

@@ -43,6 +43,34 @@ export type ClubCheckoutIntent = {
   input: { email: string; plan: "monthly" | "semiannual" };
 };
 
+function parseSavedIntent(prior: string) {
+  if (prior.length > 1024) throw new CheckoutIntentError("unreadable");
+  try {
+    return recordSchema.parse(JSON.parse(prior));
+  } catch {
+    throw new CheckoutIntentError("unreadable");
+  }
+}
+
+/** Read a return's evidence without reserving, rotating or erasing a purchase. */
+export function readSavedClubCheckoutIntent(): {
+  idempotencyKey: string;
+} | null {
+  try {
+    if (typeof window === "undefined" || !window.isSecureContext)
+      throw new CheckoutIntentError("unavailable");
+    // One atomic storage read needs no writer lock. Its validated snapshot is
+    // not payment proof; subsequent checks belong to this exact saved key.
+    const prior = window.localStorage.getItem(storageKey);
+    if (prior === null) return null;
+    const saved = parseSavedIntent(prior);
+    return { idempotencyKey: saved.idempotencyKey };
+  } catch (error) {
+    if (error instanceof CheckoutIntentError) throw error;
+    throw new CheckoutIntentError("unavailable");
+  }
+}
+
 /**
  * Reserve one browser-wide test purchase before dispatch. This record is not
  * proof of payment. Never rotate it after a timeout, elapsed time or URL return;
@@ -88,14 +116,7 @@ export async function getClubCheckoutIntent(
           const storage = window.localStorage;
           const prior = storage.getItem(storageKey);
           if (prior !== null) {
-            if (prior.length > 1024)
-              throw new CheckoutIntentError("unreadable");
-            let saved;
-            try {
-              saved = recordSchema.parse(JSON.parse(prior));
-            } catch {
-              throw new CheckoutIntentError("unreadable");
-            }
+            const saved = parseSavedIntent(prior);
             if (saved.selectionHash !== selectionHash)
               throw new CheckoutIntentError("selection-conflict");
             return { idempotencyKey: saved.idempotencyKey, input };
