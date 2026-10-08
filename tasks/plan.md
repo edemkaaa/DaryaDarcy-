@@ -4249,3 +4249,39 @@ Known follow-up: the draft saved notice can describe an older checkpoint while
 the latest attachment removal is still being persisted. Do not treat this merge
 or a passing recovery test as a fix for that UI indication. Real API/SQL/CAS,
 provider/Safari/device acceptance and existing dependency/rollout gates stay open.
+
+### M06 — request-neutral payment notification orchestration, 8 October, evening
+
+Extract the paid-notification branch from the legacy HTTP module into billing.
+Required typed ports supply lazy trusted club configuration and the existing
+fulfillPaidOrder effect. Return a typed acknowledgement only after fulfilment;
+propagate configuration/settlement exceptions to the unchanged generic HTTP
+failure boundary. Initial/recurring flows share one acknowledgement branch.
+Original-body global authentication, demo refusal, cancellation and logging
+remain in ingress; selected club-key verification and canonical field/merchant
+binding stay unchanged inside the billing-owned payment branch. No retries,
+new persistence, transaction/replay changes or non-club capability changes.
+
+RED/GREEN: seven expected empty-contract failures followed by fourteen direct
+cases, using hand-derived canonical HMAC fixtures and frozen input. Protect
+unpaid/no-order lazy configuration, exact initial/recurring proof forwarding,
+empty recipients/keys, non-club dispatch, durable refusal/failure and pending
+acknowledgement. One native HTTP case proves a globally valid shop key cannot
+authorize club settlement. Deliberately omitting the selected-key verification
+fails both direct and native cases (HTTP 200 instead of 422); restored code passes.
+No SQL/provider effect is used in this mutation: the native supplied settlement
+service is doubled, configuration is synthetic and DATABASE_URL is empty.
+
+Verification: 141 focused checks including compiled ESM acceptance; full Node 22
+suite 1794 pass / 618 SQL-external skip, 131 passing files / 30 skipped files,
+16.19 seconds. Root/frontend/E2E types, existing lint, 409.6 kB backend build, unchanged
+73-procedure/25642-byte API and 559-file boundaries pass. Selected formatting,
+whitespace and existing documentation links checked before local commit.
+
+Review: no Express, runtime SQL, environment reads, default ports, mutable cache
+or logging in the new module; reuses existing canonical helpers. Lazy configuration
+preserves unpaid/non-club behavior, required fulfilment awaits the existing durable
+effect, and app-scoped service forwarding remains explicit. No frontend, schema,
+dependencies, auth/CORS/proxy/quota, secret/cabinet/mailbox access, external mail,
+payment activation, merge, push or deployment. Real SQL/provider acceptance,
+M07c reviewed shutdown bound and previous dependency/rollout gates remain open.

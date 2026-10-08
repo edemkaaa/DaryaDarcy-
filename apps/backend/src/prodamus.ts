@@ -9,9 +9,8 @@ import { confirmProviderCancellation, type Profile } from "./billing/cancellatio
 import { createProdamusSign, verifyProdamusSignature } from "./billing/prodamus-signature";
 import { buildProdamusQuery as buildQuery } from "./billing/prodamus-query";
 import { asProdamusRecord as asRecord, parseProdamusPayload } from "./billing/prodamus-payload";
-import { hasProdamusDemoMarker, isPaidStatus, pickOrderId, pickString, subscriptionAction } from "./billing/prodamus-fields";
-import { readProdamusPayment } from "./billing/prodamus-payment";
-import { hasClubPaymentBinding } from "./billing/prodamus-binding";
+import { hasProdamusDemoMarker, pickOrderId, pickString, subscriptionAction } from "./billing/prodamus-fields";
+import { processProdamusPaymentNotification } from "./billing/prodamus-payment-notification";
 import { readProdamusCancellationProfile } from "./billing/prodamus-cancellation";
 import { ClubSettlementService } from "./billing/club-settlement.service";
 import { ClubCancellationService } from "./billing/club-cancellation.service";
@@ -390,46 +389,19 @@ async function processProdamusWebhook(
       return;
     }
 
-    if (!isPaidStatus(body)) {
-      res.status(200).send("ignored");
-      return;
-    }
-
-    const { email, userId, sum, orderId, proof } = readProdamusPayment(body);
-    const isClub=action==="auto_payment" || orderId.startsWith("club-") || orderId.startsWith("club6m-");
-    if(isClub) {
-      const allowedDomain=new URL(getPayformUrl()).hostname;
-      const key=action==="auto_payment"?(getSubscriptionSecret()||getSecret()):getSecret();
-      if (
-        !hasClubPaymentBinding(proof, orderId, {
-          domain: allowedDomain,
-          subscriptionId: subscriptionId(),
-        }) ||
-        !key ||
-        !verifyProdamusSignature(body, signature, [key])
-      ) {
-        res.status(422).send("payment binding invalid");return;
-      }
-    }
-
-    if (action === "auto_payment") {
-      const granted=await fulfillPaidOrder("club-renew",{email,sum,proof,recurring:true},clubSettlement);
-      res.status(granted?200:422).send(granted?"success":"payment binding invalid");
-      return;
-    }
-
-    if (!orderId) {
-      res.status(200).send("ignored");
-      return;
-    }
-
-    const granted = await fulfillPaidOrder(orderId, {
-      email: email || null,
-      sum,
-      userId,
-      proof,
-    }, clubSettlement);
-    res.status(granted?200:422).send(granted ? "success" : "payment binding invalid");
+    const acknowledgement = await processProdamusPaymentNotification(
+      body, signature, action, {
+        clubConfiguration: (recurring) => {
+          const domain = new URL(getPayformUrl()).hostname;
+          const secret = recurring
+            ? (getSubscriptionSecret() || getSecret())
+            : getSecret();
+          return { domain, secret, subscriptionId: subscriptionId() };
+        },
+        fulfil: (orderId, details) => fulfillPaidOrder(orderId, details, clubSettlement),
+      },
+    );
+    res.status(acknowledgement.status).send(acknowledgement.body);
   } catch (error) {
     // Drizzle errors can embed parameterized mail payloads and recipient data.
     console.error("[prodamus] webhook failed");

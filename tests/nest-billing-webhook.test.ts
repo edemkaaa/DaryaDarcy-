@@ -723,6 +723,23 @@ it("invalid signatures cannot reach settlement", async () => {
   expect(settle).not.toHaveBeenCalled();
   expect(operation).not.toHaveBeenCalled();
 });
+it("a globally valid shop key cannot authorize a club payment", async () => {
+  vi.stubEnv("PRODAMUS_SHOP_SECRET", "foreign-shop-fixture-key");
+  const settle = vi.spyOn(db, "settleClubPayment");
+  const operation = vi
+    .spyOn(application.get(ClubSettlementService), "settle")
+    .mockResolvedValue(true);
+  try {
+    const response = await notify(payment, "foreign-shop-fixture-key");
+    expect(response.status).toBe(422);
+    expect(await response.text()).toBe("payment binding invalid");
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(settle).not.toHaveBeenCalled();
+    expect(operation).not.toHaveBeenCalled();
+  } finally {
+    vi.stubEnv("PRODAMUS_SHOP_SECRET", "");
+  }
+});
 it("database failure remains a safe 500 instead of acknowledging payment", async () => {
   vi.spyOn(db, "settleClubPayment").mockRejectedValue(
     new Error("PRIVATE_SQL_DETAIL"),

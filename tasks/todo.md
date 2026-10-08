@@ -1443,3 +1443,17 @@
 - [ ] Уточнить индикатор сохранения черновика: прежний checkpoint может показать
       «сохранён» до записи последней правки. Проверка восстановления не исправляет
       этот UI-нюанс. Настоящие API/SQL/provider/device gates остаются открыты.
+
+### 2026-10-08 — M06 обработка платежного уведомления
+
+- [x] Выделить request-neutral payment orchestration в billing: явные ленивые
+      configuration/fulfilment ports и ответ только после durable settlement.
+      Ключи, canonical parser, merchant binding, транзакции и replay не изменены.
+- [x] 14 прямых случаев / 7 ожидаемых scaffold RED; новый native HTTP тест
+      отклоняет ключ другого магазина. Удаление проверки выбранного ключа ломает
+      прямой тест и HTTP (200 вместо 422); восстановленная версия проходит.
+- [x] 141 focused checks с compiled ESM; full 1794 pass / 618 SQL-external skip,
+      типы, 409.6 kB build, неизменный API и 559-file boundaries проходят.
+      Только локальный коммит; frontend/staging/server в этом запуске не меняются.
+- [ ] M06 real SQL/provider acceptance и release gates остаются открыты;
+      M07c не реализовывать до решения о максимальном ожидании shutdown.
