@@ -3,8 +3,10 @@
 ## Prodamus sandbox connection — 2026-10-08
 
 - [x] Inspect supplied test cabinet and generate/open a synthetic demo invoice.
-  Shared subscription definitions and global callback targets found; no global
-  settings changed. Invoice creation is not payment/access acceptance.
+  Existing subscription definitions and global callback targets found; no global
+  settings changed. Their presence does not establish another project's ownership.
+  User explicitly confirms this test cabinet was issued for DaryaDarcy.
+  Invoice creation is not payment/access acceptance.
 - [x] PD1: real webhook refuses ordinary-key demo markers before granting or
   cancelling; fixture + native HTTP RED/GREEN, existing live regressions,
   full/types/build/API/boundaries/docs review and local commit.
@@ -38,8 +40,17 @@
   a real demo callback probe; arbitrary fixture SYS is not provider approval.
 - [ ] PD4 after PD3: separately approved isolated test-entitlement contract and
   disposable SQL replay/rollback acceptance before demo access activation.
-- [ ] Recurring provider test: support confirms isolation and an owned test
-  subscription exists. Do not repurpose another project's catalog or callbacks.
+- [ ] Recurring provider test: verify the selected test subscription's price,
+  interval and notification routing. Do not infer foreign ownership from existing
+  definitions. No changes to existing subscribers or real charges are authorized.
+
+Ownership correction, 8 October: read-only cabinet settings show demo mode, an
+integration-key field and demo URL notifications not disabled. The configured
+notification target is not DaryaDarcy; it must be reviewed/reconfigured for this
+test flow, not treated as proof of a foreign cabinet. The documentation's per-link
+SYS requirement is separate from cabinet-level notification settings; inspect the
+documented global route before claiming support is the only possible connection
+path. No key disclosed, callback changed, payment made or service deployed here.
 
 ## Phase 0 — Safety net
 

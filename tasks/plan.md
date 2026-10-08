@@ -3980,10 +3980,12 @@ provider acceptance, M07c reviewed drain bound and all rollout gates remain open
 ## Prodamus sandbox connection — 8 October, proposed rollout contract
 
 User supplied a time-limited testpage1.payform.ru cabinet and requested test
-connection. Inspection found other projects' subscription definitions and global
-ordinary/recurring callback targets. Demo URL creation and opening are verified,
-not payment completion or application access. Do not replace those targets, use
-other projects' subscriptions, or send real recipients during an automated probe.
+connection. Inspection found existing subscription definitions and global
+ordinary/recurring callback targets, not evidence of another project's ownership.
+The user explicitly confirms this test cabinet was issued for DaryaDarcy.
+Demo URL creation and opening are verified, not payment completion or application
+access. Review the exact notification changes and selected subscription settings;
+do not alter existing subscribers or send real recipients during an automated probe.
 
 Official [webhook documentation](https://help.prodamus.ru/payform/tekhnicheskaya-dokumentaciya/webhook-ob-oplate)
 distinguishes user-selected demo mode (ordinary signature) from system-disabled
@@ -4005,7 +4007,7 @@ Prodamus parser/HMAC/formatter; no SDK or dependency/schema changes in the probe
    synthetic contact fixtures. Explicit demo_mode=1 and one-off payment; no card
    saving, subscription, settlement, account creation, mail or SQL writes.
    A signature-valid diagnostic event is not authenticated real-money proof in
-   a shared-key cabinet. Browser return is never proof. Do not present receipt
+   a test cabinet. Browser return is never proof. Do not present receipt
    acknowledgement as access activation or durable payment reconciliation.
 3. PD3, after PD2: separately review the exact rollout/rollback and open only the
    required sandbox routes on the test host. Preserve all existing containers,
@@ -4016,10 +4018,10 @@ Prodamus parser/HMAC/formatter; no SDK or dependency/schema changes in the probe
    persistence and user-visible contract before any demo can grant club access.
    Test database replay/rollback only on a disposable, owned database, not the
    working stage DB. Production webhook must still reject demo notifications.
-5. Recurring testing remains blocked on support confirmation of notification
-   isolation and creation of an owned test subscription. An invoice/form alone
-   does not resolve it. No global key rotation, callback replacement or reuse of
-   existing subscription IDs is authorized by a generic connection request.
+5. Recurring testing requires a verified test subscription with the intended
+   price/interval and working notification routing. Existing definitions do not
+   imply foreign ownership. An invoice/form alone does not prove renewal delivery.
+   Do not rotate keys or modify existing subscribers during connection testing.
 
 Production code belongs in apps/backend/src/billing, behavioral/native tests in
 tests, configuration placeholders in .env.example, operational evidence in the
@@ -4144,10 +4146,17 @@ schema changes or frontend edits in this increment.
 Official current integration documentation requires support-agreed SYS for the
 per-link notification address. No provider-assigned value or assurance about
 global callbacks was supplied. Do not substitute the synthetic test SYS used by
-unit tests, relax binding or overwrite foreign callback settings to unblock PD3.
-Support must confirm SYS and per-link callback isolation (one-off and recurring),
-plus an owned test subscription and test-contact requirements. This blocks actual
-provider delivery/entitlement acceptance, not the verified standalone source.
+unit tests or relax binding to unblock PD3. This is a per-link routing requirement,
+not proof that cabinet-level notification configuration is unusable. Inspect the
+documented global route before requiring a support response for all test paths.
+Actual provider delivery/entitlement acceptance remains unverified; the standalone
+source alone is not acceptance.
+
+Ownership correction, 8 October: the user confirms the issued test store is for
+DaryaDarcy. Read-only settings show demo mode, an integration-key field and URL
+demo notifications not disabled. The current callback points outside DaryaDarcy;
+that is an integration setting, not ownership evidence. No credential value is
+recorded and no provider setting/server/payment changed in this correction.
 
 ## 2026-10-08 — comments, moderation and administrative results, frontend only
 
