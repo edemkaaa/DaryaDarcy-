@@ -1625,3 +1625,14 @@
 - [ ] Global maintenance suite requires BACKEND_MEDIA_NAMES_ACCEPTANCE=1 and a
       fresh disposable DB without other SQL publishers. External storage/rollout
       remains unaccepted; own tmpfs DB removed, runtime/frontend/server unchanged.
+
+### M08 existing account-retention SQL regression — 8 October, evening
+
+- [x] Eight existing checks rerun alone on fresh disposable MySQL: all-or-nothing
+      scrub rollback, eligible repeat no-op, preservation of active/grace/recent/
+      no-request accounts, concurrent single processing and renewal after lock wait.
+- [x] No production/test changes or new RED/GREEN claim. Full default 1804 pass /
+      692 SQL-external skip; types/build/API/boundaries/lint/docs pass. Own DB removed.
+- [ ] Only existing SQL semantics verified: full HTTP/worker lifecycle erasure,
+      external files/backups and legal retention acceptance remain open. No policy,
+      frontend/server/provider/activation/deployment changes.

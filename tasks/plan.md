@@ -4866,3 +4866,37 @@ frontend, server, secrets/cabinets, external mail/push/payment, auth/CORS/proxy/
 quota, activation, merge/push/deploy changes. Trusted video metadata, real
 storage/delivery, UI, migration rehearsal, M07c decision and all existing
 provider/dependency/rollout gates remain open.
+
+### M08 existing account-retention SQL rerun — 8 October, late evening
+
+Continued from clean cffacff; verification-only existing account-retention suite,
+not a new policy implementation or completed M07b2 rerun. Eight real SQL tests
+pass in 1.31 seconds on a fresh owned database: final account-update failure
+rolls back all scrub operations; eligible scrubbing happens once; active club,
+recent expiry in grace, recent request and absent request preserve fixture state;
+two callers count one account; renewal committed while waiting on the billing
+owner row lock is reread and prevents cleanup. Existing timeouts/assertions and
+test source unchanged. No new RED/GREEN or comprehensive erasure claim.
+
+Review: canonical transaction owns all existing scrub writes, actual lock wait
+observed through performance_schema rather than arbitrary sleep; no HTTP/native
+worker integration claimed. Only eight existing scenarios verified, not complete
+retention-clock/business-policy coverage. External media and backup erasure,
+legal retention signoff, actual worker/deployment, M07c decision and existing
+provider/dependency/rollout gates remain open. Stored URLs and disabled synthetic
+push token never cause transport; no app workers started or external activity.
+Incremental verification, review, Git and verification/documentation skills
+guided this checkpoint; no source/test/policy/schema/dependency change or ADR.
+
+Full default 1804 pass / 692 SQL-external skip across 132 passing / 39 skipped
+files, 17.89 seconds. The eight SQL cases ran separately despite default skips.
+Types, 410.9 kB backend build, unchanged 73-procedure API (25642 bytes), 560-file
+boundaries, lint/docs and diff checks pass. Local logs:
+/tmp/daryadarcy-retention-2037.log and /tmp/daryadarcy-retention-2037-full.log.
+
+Only dd-retention-check-20261008-2037 created: existing MySQL 8.4, new backend_test,
+synthetic data/credentials, ephemeral loopback port, tmpfs, 512 MiB/one CPU,
+no volume mounts/OOM. Full ID/owner verified before exact removal; label inventory
+empty. Fixture leftovers existed only in owned tmpfs and disappeared with that
+container. No working DB/unrelated resources, frontend/server, secrets/cabinets,
+external mail/push/payment, activation, merge/push/deploy or auth/CORS/proxy/quota.
