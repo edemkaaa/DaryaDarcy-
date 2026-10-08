@@ -5341,3 +5341,41 @@ final-lint}.log. This accepts native SQL renewal handling, not real recurring
 charges/provider cancellation or TEST autopay. M07c human drain bound and prior
 frontend/provider/dependency/rollout gates remain open. No mail sent, worker
 activation, working SQL writes, server changes, merge or push.
+
+### M05 competing bulk imports — 9 October, 02:18 Moscow
+
+Close only the remaining SQL atomicity/explicit-retry acceptance gap. Hold one
+synthetic shared video ID uncommitted in the fixture connection; start two real
+HTTP/JWT batches with different first rows and that same second ID. Observe both
+SQL inserts waiting before releasing the fixture row, rather than relying on
+request timing. Existing conflict policy remains: one whole batch commits, the
+other fails generically without partial writes. A later explicit retry imports
+the loser's distinct row but never overwrites the winner/shared or existing video.
+No automatic retry, new conflict response or ordering policy. Prove rollback
+assertions fail if the bulk transaction is bypassed, restore runtime byte-identical,
+run focused/full/types/build/API/boundaries/lint/docs and review/local commit.
+Only owned fresh tmpfs MySQL/backend_test, no actual video fetching, storage,
+working database, frontend, provider, worker activation, merge/push/deployment.
+
+M05 competing-import evidence: real HTTP/JWT/SQL case observes both conflicting
+INSERTs waiting behind the fixture's uncommitted shared ID before rollback releases
+the barrier. One complete two-row batch succeeds, the other returns generic 500;
+its distinct earlier row is absent. Explicit retry imports that row once and
+preserves all winner/existing metadata. No test service hook or database mock.
+Bypassing bulkImportVideos' transaction produces the expected RED: four persisted
+rows instead of three, exposing the loser's partial write. Restored db.ts
+byte-identical SHA-256 99479727d22af95b6de8f91a70221c80fe3651ad0c68f77d61b62cde559fcefd.
+Three focused SQL files: 37 pass; full default 1831 pass / 765 reported SQL-external
+skips. Types, backend build, unchanged API (73 procedures / 25642 bytes), 563-file
+boundaries and lint pass. Five-axis review: two bounded native requests, 3-second
+condition polling rather than timing guess, finally barrier rollback and pending
+request drain, only reserved fixture IDs, hand-defined batch payloads, immutable
+non-target snapshots and no runtime/dependency change. This accepts one forced
+collision/explicit-retry contract, not all interleavings, automatic retry or a
+new product conflict policy. Owned MySQL 8.4 61a1a4cc... inspected by full ID/owner:
+tmpfs only, no mounts/OOM; removed, matching inventory empty. Trigger permission
+was enabled only in this disposable container for the existing rollback case.
+Logs: /tmp/daryadarcy-bulk-race-{baseline,atomicity-red,final-focused,final-full,
+final-types,final-build,final-api,final-boundaries,final-lint}.log. No real media
+fetching/storage, production database, worker, frontend/server, provider/payment,
+merge/push/deploy. Existing M07c and rollout/dependency/provider gates stay open.

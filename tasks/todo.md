@@ -1792,3 +1792,16 @@ drafts remain local after interruption; disposable container already removed.
       accepted by these local fixtures. M07c human drain bound and prior provider,
       frontend wording/CSP, dependency and rollout gates remain open. No real
       payment, SMTP, worker activation, merge, push or deployment.
+
+### M05 competing bulk-import SQL acceptance — 9 October, 02:19 Moscow
+
+- [x] Force two real HTTP/JWT imports to wait on the same synthetic video ID.
+      One whole batch commits; the loser returns generic 500 with no partial row.
+      Its explicit retry adds only the missing row and preserves existing metadata.
+- [x] Transaction-bypass mutation fails the persisted-row assertion; db.ts
+      restored byte-identical. Three focused SQL files / 37 checks pass. Full
+      default 1831 pass / 765 reported SQL-external skips; types/build/API/
+      boundaries/lint pass. Owned tmpfs MySQL removed, no mounts/OOM, inventory empty.
+- [ ] All interleavings and automatic retry/conflict UX are not accepted by this
+      forced collision. No runtime/frontend/server/policy/provider change; prior
+      video metadata/storage, M07c human drain bound and release gates remain open.

@@ -190,6 +190,94 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(await rows()).toEqual(before);
     });
+    it("rolls back the losing competing batch and permits a non-overwriting explicit retry", async () => {
+      const existing = (await rows())[0];
+      const batches = [
+        {
+          videos: [
+            { youtubeId: "bulk-http-first", title: "Batch A first" },
+            { youtubeId: "bulk-http-failure", title: "Batch A shared" },
+          ],
+        },
+        {
+          videos: [
+            { youtubeId: "bulk-http-second", title: "Batch B first" },
+            { youtubeId: "bulk-http-failure", title: "Batch B shared" },
+          ],
+        },
+      ];
+      await conn.beginTransaction();
+      await conn.query(
+        "INSERT INTO videos (youtubeId,title) VALUES ('bulk-http-failure','Uncommitted barrier')",
+      );
+      const pending = Promise.allSettled(
+        batches.map((batch) => client().admin.importVideos.mutate(batch)),
+      );
+      try {
+        // Both transactions must reach the shared insert before the conflict
+        // is released. No production hooks, database mocks or guessed sleep.
+        const deadline = Date.now() + 3000;
+        let blocked = 0;
+        do {
+          const [processes] = await conn.query<RowDataPacket[]>(
+            "SHOW FULL PROCESSLIST",
+          );
+          blocked = processes.filter(
+            (p) =>
+              /insert into .videos./i.test(p.Info || "") &&
+              String(p.Info).includes("bulk-http-failure"),
+          ).length;
+          if (blocked === 2) break;
+          await new Promise((done) => setTimeout(done, 10));
+        } while (Date.now() < deadline);
+        expect(blocked).toBe(2);
+      } finally {
+        await conn.rollback();
+        await pending;
+      }
+      const results = await pending;
+      const winner = results.findIndex((r) => r.status === "fulfilled");
+      const loser = results.findIndex((r) => r.status === "rejected");
+      expect(winner).not.toBe(-1);
+      expect(loser).not.toBe(-1);
+      expect(results[winner]).toEqual({
+        status: "fulfilled",
+        value: { imported: 2 },
+      });
+      expect(results[loser]).toMatchObject({
+        status: "rejected",
+        reason: {
+          message: "Внутренняя ошибка сервера",
+          data: { httpStatus: 500 },
+        },
+      });
+      const committed = await rows();
+      expect(committed).toHaveLength(3);
+      expect(
+        committed.find((r) => r.youtubeId === "bulk-http-existing"),
+      ).toEqual(existing);
+      for (const video of batches[winner].videos)
+        expect(
+          committed.find((r) => r.youtubeId === video.youtubeId),
+        ).toMatchObject(video);
+      expect(
+        committed.some(
+          (r) => r.youtubeId === batches[loser].videos[0].youtubeId,
+        ),
+      ).toBe(false);
+      expect(await client().admin.importVideos.mutate(batches[loser])).toEqual({
+        imported: 1,
+      });
+      const retried = await rows();
+      expect(retried).toHaveLength(4);
+      for (const video of committed)
+        expect(retried.find((r) => r.youtubeId === video.youtubeId)).toEqual(
+          video,
+        );
+      expect(
+        retried.find((r) => r.youtubeId === batches[loser].videos[0].youtubeId),
+      ).toMatchObject(batches[loser].videos[0]);
+    });
     it("rolls back earlier imported rows when a later insert fails, then permits a clean retry", async () => {
       const before = await rows();
       await conn.query(`CREATE TRIGGER bulk_video_import_refusal BEFORE INSERT ON videos FOR EACH ROW
