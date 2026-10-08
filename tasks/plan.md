@@ -3480,3 +3480,33 @@ formatting, documentation links and whitespace are checked before commit; no
 backend lint claim. No schema/dependency/frontend/auth/CORS/proxy/quota change,
 secret access, activation on a working stand, merge, push or server update.
 M07b2/M07c/N12 and previous rollout/dependency gates stay open.
+
+### M06 decomposition slice — pure Prodamus signer, 8 October
+
+The recursive value normalization, deep key ordering, slash-escaped JSON and
+SHA-256 HMAC now live in billing/prodamus-signature.ts with only node:crypto as
+an import. Callers supply the key; this module does not read environment values,
+query SQL or initiate effects. The legacy prodamus.ts export and internal callers
+use the same implementation. This separates wire-format math from merchant and
+webhook orchestration without adding a service, wrapper or alternate algorithm.
+Both null-prototype dictionaries from the previous integrity fix are preserved.
+
+Nine expected assertions failed against the contract-only scaffold, then passed
+with the extraction. Existing hand-derived canonical fixtures now exercise both
+direct and legacy entry points; three additional cases preserve null/undefined
+roots and own enumerable fields of frozen nested input with an inherited field.
+Temporarily removing slash escaping produces two expected HMAC failures; restore
+passes again. Seven focused files / 101 checks also cover cancellation transport,
+native webhook ingress, checkout URL/configuration and compiled checkout wiring.
+No expectations are generated with the production normalizer.
+
+Fresh Node 22 full verification: 1344 pass / 618 skip, 108 files pass / 30 skip.
+Root/frontend/e2e types, backend build (397.7 kB), unchanged 73-procedure /
+25642-byte API and 517-file boundaries pass. Existing frontend lint, documentation
+links, selected formatting and whitespace are checked before commit; backend
+lint coverage is not claimed. These are synthetic compatibility fixtures, not
+actual provider or SQL acceptance. Merchant-key selection, timing-safe comparison,
+demo rejection, PHP parsing, transport, settlement/replay and transaction policy
+are untouched, as are auth/CORS/proxy/quotas, dependencies, frontend and schema.
+No secrets/mail/cabinets accessed, TEST/shop activation, merge, push or deploy.
+The rest of M06, M07b2/M07c/N12 and existing rollout/dependency gates remain open.

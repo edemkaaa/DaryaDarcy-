@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createProdamusSign as signPayload } from "../apps/backend/src/billing/prodamus-signature";
 import {
   createProdamusSign,
   verifyProdamusSign,
@@ -56,6 +57,7 @@ describe("Prodamus signature canonicalization", () => {
     "signs $name without dropping any own JSON fields",
     ({ raw, canonical }) => {
       const payload = JSON.parse(raw);
+      expect(signPayload(payload, secret)).toBe(independentSign(canonical));
       expect(createProdamusSign(payload, secret)).toBe(
         independentSign(canonical),
       );
@@ -65,6 +67,29 @@ describe("Prodamus signature canonicalization", () => {
       expect(JSON.stringify(payload)).toBe(raw);
     },
   );
+
+  it.each([null, undefined])(
+    "signs a nullish root as an empty string: %s",
+    (input) => {
+      expect(signPayload(input, secret)).toBe(independentSign('""'));
+      expect(createProdamusSign(input, secret)).toBe(independentSign('""'));
+    },
+  );
+
+  it("signs only own enumerable fields without mutating frozen nested input", () => {
+    const input = Object.freeze(
+      Object.assign(Object.create({ inherited: "not-signed" }), {
+        z: undefined,
+        a: Object.freeze([true, Object.freeze({ url: "/club", n: 7 })]),
+      }),
+    );
+    const canonical = '{"a":["true",{"n":"7","url":"\\/club"}],"z":""}';
+    expect(signPayload(input, secret)).toBe(independentSign(canonical));
+    expect(createProdamusSign(input, secret)).toBe(independentSign(canonical));
+    expect(input.inherited).toBe("not-signed");
+    expect(input.a[1]).toEqual({ url: "/club", n: 7 });
+    expect(input.z).toBeUndefined();
+  });
 
   it.each([
     {

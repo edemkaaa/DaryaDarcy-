@@ -705,6 +705,14 @@
     types/build/API/boundaries/docs pass; no live SQL/provider replay claim.
   - [ ] Webhook/settlement business-logic decomposition; preserve signature,
     payment replay protection and transaction boundaries with their own tests.
+    - [x] Pure Prodamus canonicalization/HMAC extracted to billing/prodamus-signature.
+      One implementation and the existing legacy export; merchant-key selection,
+      timing-safe verification, parser, transport and settlement are unchanged.
+      Nine expected scaffold RED assertions; direct/legacy fixtures preserve own
+      __proto__, Unicode, slashes, arrays, nullish values and frozen input.
+      Removing slash escaping fails two checks; restore full 1344 pass / 618 skip,
+      types/build/API/517-file boundaries pass. No SQL/provider acceptance,
+      secret access, frontend, activation, merge, push or deployment.
   - [x] Shop owned/checkout use cases now use explicit ShopModule/ShopService
     composition in Nest and standalone callers. Router schemas/protected access
     and hard-disabled capability gate remain before checkout service entry;
