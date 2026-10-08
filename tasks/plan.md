@@ -4318,3 +4318,40 @@ remain unchanged. No frontend, auth/CORS/proxy/quotas, secrets/mailbox/cabinet,
 external mail, payment activation, merge/push/deployment. This completes only the
 cancellation orchestration slice: SQL/provider acceptance, M07c shutdown decision
 and existing dependency/rollout gates remain open.
+
+### M06 disposable billing SQL checkpoint — 8 October, 20:42 Moscow
+
+Continued from clean `ffd92af` on the existing feature branch. Inspection found
+no justified additional payment/cancellation orchestration wrapper: those slices
+are already extracted. Instead, resumed the deferred durable SQL checks. Local
+Docker was initially unavailable; starting the installed Docker application made
+the existing MySQL 8.4 image available without downloading dependencies.
+
+Created only `dd-billing-check-20261008-1737`, labelled
+`codex.owner=daryadarcy-20261008-1737`, with a fresh `backend_test` database,
+loopback-only ephemeral port, synthetic credential, 512 MiB/one CPU limit and
+tmpfs data directory (no bind mount or volume). The existing test safety guard
+and readiness check passed. No working database URL or secret was consulted.
+
+Fresh Node 22 run: `billing-settlement.mysql` and `cancellation.mysql` **15 pass**
+in 762 ms, no skips. Real InnoDB checks cover sequential/concurrent replay,
+distinct payment serialization, recurring profile binding, one durable access
+email record, rollback on missing link-encryption configuration, provider-payment
+ID reuse refusal, pending cancellation versus renewal, preserved paid expiry and
+parallel cancellation-worker claiming. Cancellation provider responses are local
+functions; the access email stays in the disposable outbox, not SMTP.
+Separately, cancellation orchestration/native webhook/compiled ESM tests **55
+pass** in 1.18 s; these use doubled persistence and are not a combined native
+HTTP-to-real-SQL acceptance test.
+
+Reviewed unchanged production code and test boundaries; no implementation/test
+edits or RED/GREEN claim in this verification-only slice. Owned container had
+no mounts and no OOM; removed by its verified full ID, destroying its tmpfs test
+data. Label-filtered inventory is empty afterwards; no user volume/container or
+server resource was removed. Docker itself remains running.
+
+This closes only the selected durable regression rerun, not the 618-test SQL/
+external backlog, production migration rehearsal, signed HTTP-to-SQL/provider
+acceptance or M06 overall. M07c still needs the shutdown-bound decision. No
+frontend, provider calls, real payment, activation, external mail, secret access,
+auth/CORS/proxy/quota change, merge, push or rollout.

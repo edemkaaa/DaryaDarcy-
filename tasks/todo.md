@@ -1470,3 +1470,13 @@
       frontend, staging и сервер не меняются.
 - [ ] Real SQL/provider acceptance, M07c shutdown bound и прежние release gates
       остаются открыты; fixture verification не разрешает включение оплаты.
+
+### M06 durable regression rerun — 8 October, 20:42 Moscow
+
+- [x] На новой локальной одноразовой MySQL 8.4: settlement/cancellation —
+      15 настоящих SQL-проверок проходят без пропусков. Изолированная tmpfs,
+      loopback-only порт, синтетические данные; собственный контейнер удалён.
+- [x] Отдельно 55 cancellation/native HTTP/compiled ESM проверок проходят.
+      Это не объединённая проверка HTTP → настоящая SQL → Prodamus.
+- [ ] Остальные SQL/external проверки, миграционная/provider приёмка и M07c
+      остаются открыты. Код, фронт, сервер и настройки оплаты не менялись.
