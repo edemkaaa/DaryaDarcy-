@@ -4954,3 +4954,34 @@ Nest get()'s default any result failing optional-worker narrowing; explicit
 get<WorkerJobs> fixes the test type without a cast or runtime change. No deployed
 shutdown-bound behavior is inferred. Full log is local ephemeral evidence at
 /tmp/daryadarcy-retention-worker-2105-full.log.
+
+### M08 native profile disappearance acceptance — 9 October, 00:17 Moscow
+
+Continued from clean e63405e. Three new HTTP/JWT/MySQL checks cover a profile
+field, persisted avatar URL and deletion request when the authenticated account
+disappears before its write. A test-only wrapper at the Nest service boundary
+deletes the fixture row in real SQL, then invokes the original bound method;
+authentication, canonical persistence and error formatting remain real. The
+client must receive the existing generic 500 error, not success or SQL details;
+the other account's entire selected snapshot remains unchanged. Spies restored
+after each case. This deterministic post-authentication interleaving does not
+claim real competing HTTP requests, external avatar upload/cleanup or S3 erasure.
+
+Mutation RED: temporarily removing both canonical affectedRows guards makes all
+three new cases return false success. Both production files restored byte-identical.
+Final 42 focused pass across nest-profile and nest-profile.mysql (15 SQL cases).
+Default full suite 1804 pass / 695 reported SQL-external skips, 19.99 seconds;
+SQL cases above ran explicitly. Types, backend build 410.9 kB, unchanged API
+73 procedures / 25642 bytes, boundaries 560 files and lint pass. Full log:
+/tmp/daryadarcy-profile-race-2117-full.log. No runtime/API/policy change or ADR.
+TDD/mutation, incremental, security, review, Git, verification and documentation
+skills guided the slice; review checks observable refusal and persisted neighbor
+state rather than spy call counts. Existing provider/dependency/rollout gates,
+external erasure and M07c human drain-bound decision remain open.
+
+Only dd-profile-race-20261008-2117 created: existing MySQL 8.4 image, fresh
+backend_test, synthetic credentials/fixtures, ephemeral loopback port, tmpfs,
+512 MiB/one CPU. Full ID and ownership verified; no OOM or volume mounts.
+Exact owned container removed and label inventory empty. No working database,
+unrelated resources, frontend/server, cabinets/secrets, external delivery/payment,
+auth/CORS/proxy/quotas, activation, merge/push/deploy changed.

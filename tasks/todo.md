@@ -1663,3 +1663,17 @@ path. No key disclosed, callback changed, payment made or service deployed here.
       External files/backups, legal erasure and deployed shutdown remain open;
       M07c still requires a human drain-bound decision. No runtime/frontend/server,
       policy/payment/merge/push/deploy changes.
+
+### M08 native profile disappearance acceptance — 9 October, early morning
+
+- [x] Three HTTP/JWT/SQL cases reject false success when the account disappears
+      after authentication but before profile field, avatar URL or deletion write.
+      Canonical methods execute after a deterministic SQL deletion at the test-only
+      service boundary; generic HTTP errors and neighboring-account snapshot checked.
+- [x] Removing affectedRows guards fails all three cases; production restored
+      byte-identical. 42 focused pass (15 SQL), full 1804 pass / 695 reported skips;
+      types/build/API/boundaries/lint pass. Owned disposable tmpfs database removed.
+- [ ] Real competing requests, external avatar upload/cleanup and erasure are not
+      accepted by this interleaving test. M07c needs a human drain-bound decision;
+      provider/dependency/rollout gates remain open. No runtime/frontend/server,
+      payment/policy/activation/merge/push/deploy changes.

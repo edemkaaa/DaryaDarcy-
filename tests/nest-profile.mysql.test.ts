@@ -42,6 +42,7 @@ describe.skipIf(!testDatabaseUrl)(
       (8442,'profile-http-8442','Other','profile-two@example.invalid','user','male',NULL,0,NULL)`);
     });
     afterEach(async () => {
+      vi.restoreAllMocks();
       await conn.query("DROP TRIGGER IF EXISTS profile_http_write_refusal");
     });
     afterAll(async () => {
@@ -163,6 +164,48 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(await users()).toEqual(before);
     });
+    it.each([
+      {
+        name: "profile field",
+        input: { name: "Gone after authentication" },
+      },
+      {
+        name: "avatar URL",
+        input: { avatarUrl: "https://example.invalid/gone.webp" },
+      },
+      { name: "deletion request", input: null },
+    ])(
+      "returns a safe HTTP error when the account disappears before persisting $name",
+      async ({ input }) => {
+        const before = await users();
+        const service = app.get(ProfileService);
+        // Deterministically place a real SQL deletion after JWT authentication
+        // but before the canonical write. No authorization or SQL write is mocked.
+        if (input) {
+          const update = service.update.bind(service);
+          vi.spyOn(service, "update").mockImplementation(async (id, patch) => {
+            await conn.query("DELETE FROM users WHERE id=?", [id]);
+            return update(id, patch);
+          });
+        } else {
+          const request = service.requestAccountDeletion.bind(service);
+          vi.spyOn(service, "requestAccountDeletion").mockImplementation(
+            async (id) => {
+              await conn.query("DELETE FROM users WHERE id=?", [id]);
+              return request(id);
+            },
+          );
+        }
+        const result = input
+          ? client().profile.update.mutate(input)
+          : client().profileExtras.requestAccountDeletion.mutate();
+        await expect(result).rejects.toMatchObject({
+          message: "Внутренняя ошибка сервера",
+          data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+        });
+        expect(await users()).toEqual([before[1]]);
+      },
+    );
     it("records a repeatable deletion request only for the session account without erasing it", async () => {
       const before = await users();
       expect(
