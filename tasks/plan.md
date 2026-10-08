@@ -3078,3 +3078,25 @@ pass. Review: feature-owned orchestration, canonical helpers, bounded work and
 evidence preserved through unknown outcomes. Local Y4 UI scope is complete, not
 provider/Safari or release acceptance. Dependency/proxy/migration gates remain;
 no dependencies, DB, auth/CORS/proxy/quota, stage, mail, push, merge or deploy changes.
+
+### V1a — safe native video failure diagnostics, 8 October
+
+Reproduced the previously opaque wrapper failure: 2/24 native suites failed with
+four parallel runners. Eight-runner reproduction captured two cache tests:
+`preparation timeout cancels work and removes partial output` observed
+`StillPending` instead of `TimeoutError`; `idle TTL cleanup removes expired files
+without a new playback request` checked the file before asynchronous removal.
+Both use fixed wall-clock observation windows (100 ms / 65 ms). This is evidence
+of scheduling-sensitive assertions, not yet a verified worker runtime defect.
+
+The wrapper now explicitly requests TAP and reports only bounded, exact literal
+test names read from trusted local fixtures; unknown names, arbitrary stdout,
+stderr, child errors and causes are not forwarded. Generic deadline/output-limit
+classifications survive. Six diagnostic cases reach RED then GREEN, including a
+real failing child with synthetic private output. No runtime budget or worker
+behavior changed. Stabilization remains a separate next slice; provider/Safari
+and existing release gates remain. No server, DB, secrets, mail, merge or push.
+Verification: full suite 1249 pass / 618 SQL/external skip; root/frontend/e2e
+types, lint, backend build, 50-document check and selected formatting pass.
+Review: test-only helper, bounded allowlist output, failure still propagates;
+no raw child error is attached, no dependency or application behavior changes.
