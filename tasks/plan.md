@@ -4513,3 +4513,54 @@ reference is absent; repository gates and heartbeat constraints used instead.
 No secret/cabinet access, external mail/push/payment, TEST activation, auth/CORS/
 proxy/quotas, merge/push/deploy. M07c still needs a maximum drain wait decision;
 provider, dependency and rollout gates remain open.
+
+### M08 native notification persistence verification — 8 October, 21:45 Moscow
+
+Continued from clean 58cf173. Selected the still-open native HTTP/JWT/SQL
+notification acceptance task, rather than another completed M06 wrapper. This
+is characterization/verification of existing behavior, not a new feature or a
+claimed production repair. No implementation change was needed or retained.
+
+Ten new checks run a real Nest listener, real synthetic JWT and actual MySQL:
+device upsert/re-enable and session actor despite a forged userId; new anonymous
+device without invented user/consent; legal version/text/platform retention and
+last same-second grant/revocation; unauthenticated consent refusal; admin-only
+selected-user token deletion retaining other/anonymous devices and consent
+history; three actor-limited trigger failures for registration/consent/purge.
+SQL failures return safe HTTP 500 and never success. Device/provider transport
+is not invoked. Application construction/listen does not activate WorkerJobs.
+
+First combined verification exposed three audience assertions contaminated by
+the new registration fixture: the old audience suite intentionally queries ALL
+enabled devices. Root cause was shared test data, not a production audience bug.
+Both suites now acquire the same checked advisory lock for their lifetime and
+remove only their reserved synthetic fixtures before releasing it. Assertions,
+skip conditions, timeout and production queries are unchanged. The first retry
+still saw an old token left by the earlier fixture without cleanup; SQL inspection
+confirmed the new cleanup removed it, and the subsequent combined run passed.
+The restored mutation run also passes together, not merely in separate invocations.
+
+Deliberately shifting the purge target user by one makes two new assertions fail
+(wrong persisted devices and false success instead of the expected write refusal).
+Restored db.ts is byte-identical to HEAD. Final focused: 77 pass in 1.04 seconds
+across new native SQL, existing native notification and 15 real audience cases.
+Full default: 1804 pass / 643 SQL-external skip, 132 passing / 34 skipped files,
+20.56 seconds. New SQL cases ran explicitly; default skips do not prove SQL.
+Root/frontend/E2E types, unchanged 410.6 kB build and 73-procedure/25642-byte API,
+560-file boundaries, lint and documentation check pass.
+
+Review: no identity/provider/persistence mock in the new acceptance suite;
+expected rows are independent literals; fixture actor/ID/token scopes and locks
+are bounded; legal history is characterized, not redefined. This closes only
+the listed notification persistence acceptance task, not full SQL/runtime/device
+acceptance. No new dependency, schema or runtime policy. Used skills: TDD test
+principles, incremental delivery, systematic debugging, security, review, Git,
+verification and documentation; missing optional shared DoD uses repository gates.
+
+Only dd-notification-check-20261008-1837 was created: fresh backend_test on
+existing MySQL 8.4, synthetic credentials/data, loopback ephemeral port, tmpfs,
+512 MiB/one CPU and no mounts. Verified full ID/owner/no-OOM/no-mounts before
+removing it; label inventory empty, data gone. No unrelated resource/working DB
+removed. No secret/cabinet access, external message/payment, frontend, auth/CORS/
+proxy/quotas, activation, merge/push/deploy. M07c decision and all existing
+provider/dependency/rollout gates stay open.

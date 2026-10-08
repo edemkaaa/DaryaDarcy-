@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Connection } from "mysql2/promise";
+import type { Connection, RowDataPacket } from "mysql2/promise";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import * as db from "../apps/backend/src/db";
 
@@ -7,6 +7,11 @@ describe.skipIf(!testDatabaseUrl)("push recipient access on disposable MySQL", (
   let connection: Connection;
   beforeAll(async () => {
     connection = await openTestDatabase();
+    // Native registration checks use the same global device audience.
+    const [lock] = await connection.query<RowDataPacket[]>(
+      "SELECT GET_LOCK('backend_test_push_audience',30) AS acquired",
+    );
+    expect(lock[0]?.acquired).toBe(1);
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
     await connection.query(`CREATE TABLE IF NOT EXISTS push_tokens (
       id INT AUTO_INCREMENT PRIMARY KEY, token VARCHAR(256) NOT NULL UNIQUE,
@@ -54,6 +59,11 @@ describe.skipIf(!testDatabaseUrl)("push recipient access on disposable MySQL", (
       (897,'marketing','revoked','test-v1','2026-10-02 10:00:00')`);
   });
   afterAll(async () => {
+    await connection?.query("DELETE FROM push_tokens WHERE token LIKE 'fixture-push-%'");
+    await connection?.query("DELETE FROM push_consent_events WHERE userId BETWEEN 891 AND 897");
+    await connection?.query("DELETE FROM club_payments WHERE userId BETWEEN 891 AND 897");
+    await connection?.query("DELETE FROM users WHERE id BETWEEN 891 AND 897");
+    await connection?.query("SELECT RELEASE_LOCK('backend_test_push_audience')");
     await connection?.end();
     await (await db.getDb() as unknown as { $client: { end(): Promise<void> } })?.$client.end();
     vi.unstubAllEnvs();

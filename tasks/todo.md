@@ -987,9 +987,11 @@
     suite 52 pass, focused 100 pass, whole non-MySQL 930 pass / 4 skip; types/
     build/unchanged API/479-file boundaries pass. Success shapes, access and legal
     metadata unchanged; no-DB read defaults/recipient selection stay fail-closed.
-  - [ ] Run token registration/upsert, consent event ordering/legal metadata and
-    administrator purge with real HTTP/JWT/disposable MySQL; migrate other
-    remaining domains in their own slices. Local Docker still reports EOF.
+  - [x] Run token registration/upsert, consent event ordering/legal metadata and
+    administrator purge with real HTTP/JWT/disposable MySQL; 10 native SQL cases
+    and 77 focused checks pass (checkpoint below). Docker is available locally.
+  - [ ] Migrate other remaining domains in their own slices. Real notification
+    provider/device delivery and publication acceptance remain separate gates.
   - [x] Migrate profile update/avatar/deletion-request orchestration into an
     explicit Nest-managed profile service; preserve schemas, session ownership,
     protected access, canonical photo validation and upload-before-update order.
@@ -1517,3 +1519,14 @@
       не имеют runtime callers; оставлены до отдельного разрешения на уборку.
       M08 в целом, M07c и provider/dependency/rollout gates остаются открыты.
       Никаких frontend/push/deploy/payment effects.
+
+### M08 notifications SQL acceptance — 8 October, 21:45 Moscow
+
+- [x] 10 новых native HTTP/JWT/SQL случаев: upsert устройства, actor из сессии,
+      anonymous registration, legal metadata/последнее same-second согласие,
+      admin-only точечная очистка и три безопасных отказа SQL без ложного успеха.
+- [x] 77 focused pass; подмена target user при очистке ломает два теста.
+      Изолированы две SQL-фикстуры общей аудитории, исходные assertions сохранены.
+      Full 1804 pass / 643 SQL-external skip; types/build/API/boundaries/lint/docs.
+- [ ] Реальная доставка/устройства и общая приёмка остаются открыты. Runtime,
+      схема, фронт, сервер и настройки уведомлений не менялись; own test DB удалена.
