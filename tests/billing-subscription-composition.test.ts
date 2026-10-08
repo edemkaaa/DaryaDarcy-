@@ -9,6 +9,7 @@ import type { TrpcContext } from "../apps/backend/src/_core/context";
 import type { User } from "../packages/database/src/schema";
 import { NotificationsService } from "../apps/backend/src/notifications/notifications.service";
 import { ProfileService } from "../apps/backend/src/profile/profile.service";
+import { ModerationService } from "../apps/backend/src/moderation/moderation.service";
 
 const member: User = {
   id: 7,
@@ -58,6 +59,7 @@ function caller(user: User | null = member) {
     { checkout: new ClubCheckoutService(), subscriptions },
     new NotificationsService(),
     new ProfileService(),
+    new ModerationService(),
   ).createCaller({ user, req: {}, res: {} } as TrpcContext);
 }
 afterEach(() => vi.unstubAllEnvs());

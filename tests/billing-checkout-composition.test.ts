@@ -9,6 +9,7 @@ import { ClubSubscriptionService } from "../apps/backend/src/billing/club-subscr
 import type { TrpcContext } from "../apps/backend/src/_core/context";
 import { NotificationsService } from "../apps/backend/src/notifications/notifications.service";
 import { ProfileService } from "../apps/backend/src/profile/profile.service";
+import { ModerationService } from "../apps/backend/src/moderation/moderation.service";
 import { ClubCheckoutService } from "../apps/backend/src/billing/club-checkout.service";
 
 afterEach(() => vi.unstubAllEnvs());
@@ -34,6 +35,7 @@ function caller(checkout: {
     },
     new NotificationsService(),
     new ProfileService(),
+    new ModerationService(),
   ).createCaller({ user: null, req: {}, res: {} } as TrpcContext);
 }
 

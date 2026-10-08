@@ -5,6 +5,7 @@ import { BillingModule } from "../billing/billing.module";
 import { TrpcService } from "./trpc.service";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { ProfileModule } from "../profile/profile.module";
+import { ModerationModule } from "../moderation/moderation.module";
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { ProfileModule } from "../profile/profile.module";
     BillingModule,
     NotificationsModule,
     ProfileModule,
+    ModerationModule,
   ],
   providers: [TrpcService],
   exports: [TrpcService],

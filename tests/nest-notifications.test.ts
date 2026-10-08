@@ -28,6 +28,7 @@ import type { TrpcContext } from "../apps/backend/src/_core/context";
 import { NotificationsService } from "../apps/backend/src/notifications/notifications.service";
 import { TRPCError } from "@trpc/server";
 import { ProfileService } from "../apps/backend/src/profile/profile.service";
+import { ModerationService } from "../apps/backend/src/moderation/moderation.service";
 
 // Native HTTP/authorization plus explicit composition callers; session lookup
 // and the selected provider or persistence boundary are doubled. No JWT/SQL or
@@ -422,6 +423,7 @@ describe("notifications over native HTTP", () => {
         sessions,
         notifications,
         application.get(ProfileService),
+        application.get(ModerationService),
       ]);
       const caller = composed.router.createCaller({
         user: { ...member, role: "admin" },

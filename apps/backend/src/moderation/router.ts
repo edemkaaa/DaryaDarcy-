@@ -1,56 +1,40 @@
 import { z } from "zod";
 import { router, moderatorProcedure } from "../_core/trpc";
-import * as commentDb from "../content/comments";
-import * as platformDb from "../platform-db";
+import type { ModerationService } from "./moderation.service";
 
-export const moderationRouter = router({
-  listCommentReports: moderatorProcedure.query(async () => {
-    return commentDb.listCommentReports(100);
-  }),
-  dismissCommentReport: moderatorProcedure
-    .input(z.object({ reportId: z.number().int().positive() }))
-    .mutation(async ({ ctx, input }) => {
-      await commentDb.dismissCommentReport(input.reportId);
-      await platformDb.logAdminAction({
-        actorUserId: ctx.user.id,
-        action: "dismiss_comment_report",
-        targetType: "comment_report",
-        targetId: input.reportId,
-      });
-      return { ok: true as const };
+export const createModerationRouter = (moderation: ModerationService) =>
+  router({
+    listCommentReports: moderatorProcedure.query(async () => {
+      return moderation.listCommentReports();
     }),
-  deleteReportedComment: moderatorProcedure
-    .input(
-      z.object({
-        commentId: z.number().int().positive(),
-        reportId: z.number().int().positive().optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      await commentDb.deleteCommentAndReports(input.commentId);
-      await platformDb.logAdminAction({
-        actorUserId: ctx.user.id,
-        action: "delete_reported_comment",
-        targetType: "comment",
-        targetId: input.commentId,
-      });
-      return { ok: true as const };
-    }),
-  blockUser: moderatorProcedure
-    .input(
-      z.object({
-        userId: z.number().int().positive(),
-        reason: z.string().trim().min(3).max(512),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      await platformDb.blockUser(ctx.user.id, input.userId, input.reason);
-      return { ok: true as const };
-    }),
-  unblockUser: moderatorProcedure
-    .input(z.object({ userId: z.number().int().positive() }))
-    .mutation(async ({ ctx, input }) => {
-      await platformDb.unblockUser(ctx.user.id, input.userId);
-      return { ok: true as const };
-    }),
-});
+    dismissCommentReport: moderatorProcedure
+      .input(z.object({ reportId: z.number().int().positive() }))
+      .mutation(({ ctx, input }) =>
+        moderation.dismissCommentReport(ctx.user.id, input.reportId),
+      ),
+    deleteReportedComment: moderatorProcedure
+      .input(
+        z.object({
+          commentId: z.number().int().positive(),
+          reportId: z.number().int().positive().optional(),
+        }),
+      )
+      .mutation(({ ctx, input }) =>
+        moderation.deleteReportedComment(ctx.user.id, input.commentId),
+      ),
+    blockUser: moderatorProcedure
+      .input(
+        z.object({
+          userId: z.number().int().positive(),
+          reason: z.string().trim().min(3).max(512),
+        }),
+      )
+      .mutation(({ ctx, input }) =>
+        moderation.blockUser(ctx.user.id, input.userId, input.reason),
+      ),
+    unblockUser: moderatorProcedure
+      .input(z.object({ userId: z.number().int().positive() }))
+      .mutation(({ ctx, input }) =>
+        moderation.unblockUser(ctx.user.id, input.userId),
+      ),
+  });

@@ -732,8 +732,18 @@
     whole non-MySQL 975 pass / 4 skip. Valid moderator/admin targets, actor,
     audit order, reason trim, optional omission and role refusals preserved.
     Identity/persistence are doubled; no real JWT/SQL mutation/audit claim.
-  - [ ] Migrate moderation service composition and verify actual mutation/audit
-    consistency separately; ID validation does not close either requirement.
+  - [x] M08a: migrate all five moderation operations into explicit Nest-managed
+    ModerationService/ModerationModule, shared factory for standalone callers.
+    Five expected RED supplied-service refusals repaired; 66 moderation checks,
+    bounded inbox, role/ID guards, session actor, failure and audit-order checks.
+    Hidden-instance mutation fails ten composition/native-HTTP assertions;
+    restore and full suite 1275 pass / 618 SQL/external skip. Types/backend build,
+    unchanged API and 510 dependency boundaries pass. Identity/persistence
+    doubled; no authorization change, real SQL/JWT or durable audit acceptance.
+  - [ ] Verify/fix actual moderation mutation/audit transactional consistency
+    separately. The existing audit-after-mutation window remains: HTTP 500
+    after an audit failure does not roll back an already completed mutation.
+    Service composition and ID validation do not close this requirement.
   - [x] Notification token lifecycle slice (scope approved): preserve
     registration, consent reads/writes and admin purge contracts while wiring
     an explicit Nest-managed notification provider. First characterize HTTP,

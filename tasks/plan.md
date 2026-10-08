@@ -3160,3 +3160,34 @@ Final verification: 17 focused photo cases, 41 photo/runtime cases and full suit
 1254 pass / 618 SQL/external skip. Root/frontend/e2e types, backend build, lint,
 unchanged API (73 / 25642), 508 dependency boundaries, 50 current documents and
 diff whitespace checks pass. No production/security-clean acceptance is claimed.
+
+### M08a — explicit moderation service composition, 8 October
+
+Continue the unfinished M08 domain migration, not payment/provider rollout.
+Contract: all five moderation procedures use an application-scoped Nest provider;
+standalone callers use the same factory. Keep moderatorProcedure, schemas,
+session-derived actor, the 100-report inbox bound, helper arguments, mutation then
+audit order and existing success/error shapes. No SQL or authorization redesign.
+
+Five RED consumer cases resolve through the old helpers instead of preserving
+the supplied service's refusal. Extract ModerationService/ModerationModule,
+require the dependency in createAppRouter/TrpcService and update explicit test
+compositions. GREEN: 66 moderation cases, including the actual Nest provider via
+loopback HTTP, bounded inbox, blocked/member/guest denial, mutation failures and
+audit failure after mutation. Replacing the injected provider with a hidden new
+instance makes ten composition/native-HTTP assertions fail; restore and rerun.
+
+Identity lookup and persistence are substituted; router, Nest wiring, middleware
+and HTTP transport are real. No JWT/MySQL transaction/durable audit acceptance:
+the existing separate mutation/audit writes retain their inconsistency window.
+Do not retry automatically after an unknown or audit-failed result. Record the
+atomicity task separately instead of closing the whole M08/release gate.
+
+Review: orchestration now belongs to one domain; adapters only authorize/validate
+and supply session IDs. No optional fallback/global locator, new dependency,
+schema, frontend, auth/CORS/proxy/quota, provider/SMTP, SQL, secret, merge, push,
+deployment or live TEST flag changes. Root/frontend/e2e types, backend build,
+unchanged API (73 / 25642) and 510 dependency boundaries pass; full suite
+1275 pass / 618 SQL/external skip. Frontend-only lint, selected code formatting,
+50-document local-link check and whitespace checks pass. This is not production
+approval; keep the existing dependency/provider/rollout gates open.

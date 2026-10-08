@@ -18,6 +18,18 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import { SessionService } from "../apps/backend/src/identity/session.service";
 import * as comments from "../apps/backend/src/content/comments";
 import * as platformDb from "../apps/backend/src/platform-db";
+import { TRPCError } from "@trpc/server";
+import { TrpcService } from "../apps/backend/src/_core/trpc.service";
+import type { TrpcContext } from "../apps/backend/src/_core/context";
+import { ContentReadService } from "../apps/backend/src/content/content-read.service";
+import { ContentWriteService } from "../apps/backend/src/content/content-write.service";
+import { ContentCommentService } from "../apps/backend/src/content/content-comment.service";
+import { ContentUploadService } from "../apps/backend/src/content/content-upload.service";
+import { ClubCheckoutService } from "../apps/backend/src/billing/club-checkout.service";
+import { ClubSubscriptionService } from "../apps/backend/src/billing/club-subscription.service";
+import { NotificationsService } from "../apps/backend/src/notifications/notifications.service";
+import { ProfileService } from "../apps/backend/src/profile/profile.service";
+import { ModerationService } from "../apps/backend/src/moderation/moderation.service";
 
 // Real HTTP/router schemas and authorization; identity and persistence doubled.
 // No real JWT, SQL mutations or durable audit acceptance.
@@ -162,6 +174,268 @@ describe("moderation ID inputs over native HTTP", () => {
     await app?.close();
     vi.unstubAllEnvs();
   });
+
+  it.each([
+    { method: "listCommentReports", want: [] },
+    { method: "dismissCommentReport", want: [9810, 9811] },
+    { method: "deleteReportedComment", want: [9810, 9811] },
+    { method: "blockUser", want: [9810, 9811, "synthetic reason"] },
+    { method: "unblockUser", want: [9810, 9811] },
+  ])(
+    "$method preserves the explicitly supplied service's refusal",
+    async ({ method, want }) => {
+      let received: unknown;
+      const unexpected = async () => {
+        throw new Error("unexpected moderation operation");
+      };
+      const moderation = {
+        listCommentReports: unexpected,
+        dismissCommentReport: unexpected,
+        deleteReportedComment: unexpected,
+        blockUser: unexpected,
+        unblockUser: unexpected,
+        [method]: async (...args: unknown[]) => {
+          received = args;
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "synthetic supplied moderation refusal",
+          });
+        },
+      };
+      // Before migration the final dependency is ignored. The mismatch in the
+      // consumer result proves bypass, rather than a missing class/import error.
+      const composed: TrpcService = Reflect.construct(TrpcService, [
+        app.get(ContentReadService),
+        app.get(ContentWriteService),
+        app.get(ContentCommentService),
+        app.get(ContentUploadService),
+        app.get(ClubCheckoutService),
+        app.get(ClubSubscriptionService),
+        sessions,
+        app.get(NotificationsService),
+        app.get(ProfileService),
+        moderation,
+      ]);
+      const caller = composed.router.createCaller({
+        user: moderator,
+        req: {},
+        res: {},
+      } as TrpcContext);
+      const calls: Record<string, () => Promise<unknown>> = {
+        listCommentReports: () => caller.moderation.listCommentReports(),
+        dismissCommentReport: () =>
+          caller.moderation.dismissCommentReport({ reportId: 9811 }),
+        deleteReportedComment: () =>
+          caller.moderation.deleteReportedComment({
+            commentId: 9811,
+            reportId: 9812,
+          }),
+        blockUser: () =>
+          caller.moderation.blockUser({
+            userId: 9811,
+            reason: "  synthetic reason  ",
+          }),
+        unblockUser: () => caller.moderation.unblockUser({ userId: 9811 }),
+      };
+      await expect(calls[method]()).rejects.toMatchObject({
+        code: "CONFLICT",
+        message: "synthetic supplied moderation refusal",
+      });
+      expect(received).toEqual(want);
+      expect(effects).toEqual([]);
+    },
+  );
+
+  it.each([
+    {
+      method: "listCommentReports" as const,
+      run: () => client().moderation.listCommentReports.query(),
+    },
+    {
+      method: "dismissCommentReport" as const,
+      run: () =>
+        client().moderation.dismissCommentReport.mutate({ reportId: 9811 }),
+    },
+    {
+      method: "deleteReportedComment" as const,
+      run: () =>
+        client().moderation.deleteReportedComment.mutate({ commentId: 9811 }),
+    },
+    {
+      method: "blockUser" as const,
+      run: () =>
+        client().moderation.blockUser.mutate({
+          userId: 9811,
+          reason: "synthetic reason",
+        }),
+    },
+    {
+      method: "unblockUser" as const,
+      run: () => client().moderation.unblockUser.mutate({ userId: 9811 }),
+    },
+  ])(
+    "$method uses the actual Nest-managed provider",
+    async ({ method, run }) => {
+      vi.spyOn(app.get(ModerationService), method).mockRejectedValue(
+        new TRPCError({
+          code: "CONFLICT",
+          message: "synthetic native moderation refusal",
+        }),
+      );
+      await expect(run()).rejects.toMatchObject({
+        message: "synthetic native moderation refusal",
+        data: { code: "CONFLICT", httpStatus: 409 },
+      });
+      expect(effects).toEqual([]);
+    },
+  );
+
+  it.each(["moderator", "admin"] as const)(
+    "returns the bounded inbox for %s",
+    async (role) => {
+      actor = { ...moderator, role };
+      let received: unknown;
+      const rows: comments.CommentReportInboxRow[] = [
+        {
+          id: 9812,
+          commentId: 9811,
+          reason: "synthetic report",
+          createdAt: new Date(0),
+          commentText: "synthetic comment",
+          commentPhotos: null,
+          postId: 9813,
+          authorUserId: 9814,
+          authorName: null,
+          reporterUserId: 9815,
+          reporterName: null,
+        },
+      ];
+      vi.spyOn(comments, "listCommentReports").mockImplementation(
+        async (...args) => {
+          received = args;
+          return rows;
+        },
+      );
+      expect(await client().moderation.listCommentReports.query()).toEqual(
+        rows,
+      );
+      expect(received).toEqual([100]);
+    },
+  );
+
+  it.each([
+    { name: "guest", user: null, code: "UNAUTHORIZED", status: 401 },
+    {
+      name: "member",
+      user: { ...moderator, role: "user" as const },
+      code: "FORBIDDEN",
+      status: 403,
+    },
+    {
+      name: "blocked moderator",
+      user: { ...moderator, blockedAt: new Date(0) },
+      code: "FORBIDDEN",
+      status: 403,
+    },
+  ])(
+    "refuses the inbox to a $name before reading reports",
+    async ({ user, code, status }) => {
+      actor = user;
+      let entered = false;
+      vi.spyOn(comments, "listCommentReports").mockImplementation(async () => {
+        entered = true;
+        return [];
+      });
+      await expect(
+        client().moderation.listCommentReports.query(),
+      ).rejects.toMatchObject({ data: { code, httpStatus: status } });
+      expect(entered).toBe(false);
+    },
+  );
+
+  it.each([
+    {
+      helper: "dismissCommentReport" as const,
+      run: () =>
+        client().moderation.dismissCommentReport.mutate({ reportId: 9811 }),
+    },
+    {
+      helper: "deleteCommentAndReports" as const,
+      run: () =>
+        client().moderation.deleteReportedComment.mutate({ commentId: 9811 }),
+    },
+  ])(
+    "does not audit or return success when $helper fails",
+    async ({ helper, run }) => {
+      vi.spyOn(comments, helper).mockRejectedValue(
+        new Error("synthetic private SQL detail"),
+      );
+      await expect(run()).rejects.toMatchObject({
+        message: "Внутренняя ошибка сервера",
+        data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+      });
+      expect(effects).toEqual([]);
+    },
+  );
+
+  it.each([
+    {
+      helper: "blockUser" as const,
+      run: () =>
+        client().moderation.blockUser.mutate({
+          userId: 9811,
+          reason: "synthetic reason",
+        }),
+    },
+    {
+      helper: "unblockUser" as const,
+      run: () => client().moderation.unblockUser.mutate({ userId: 9811 }),
+    },
+  ])("does not return success when $helper fails", async ({ helper, run }) => {
+    vi.spyOn(platformDb, helper).mockRejectedValue(
+      new Error("synthetic private SQL detail"),
+    );
+    await expect(run()).rejects.toMatchObject({
+      message: "Внутренняя ошибка сервера",
+      data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+    });
+  });
+
+  it.each([
+    {
+      run: () =>
+        client().moderation.dismissCommentReport.mutate({
+          reportId: 9811,
+          actorUserId: 9999,
+        } as { reportId: number }),
+      want: [["dismiss", 9811]],
+    },
+    {
+      run: () =>
+        client().moderation.deleteReportedComment.mutate({
+          commentId: 9811,
+          actorUserId: 9999,
+        } as { commentId: number }),
+      want: [["delete", 9811]],
+    },
+  ])(
+    "propagates audit failure after the mutation without reporting success",
+    async ({ run, want }) => {
+      let audit: unknown;
+      vi.spyOn(platformDb, "logAdminAction").mockImplementation(
+        async (input) => {
+          audit = input;
+          throw new Error("synthetic private audit detail");
+        },
+      );
+      await expect(run()).rejects.toMatchObject({
+        message: "Внутренняя ошибка сервера",
+        data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+      });
+      expect(effects).toEqual(want);
+      expect(audit).toMatchObject({ actorUserId: 9810, targetId: 9811 });
+    },
+  );
 
   describe.each(operations)("$name", ({ run, validId, want }) => {
     it.each([
