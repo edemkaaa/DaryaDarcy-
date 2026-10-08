@@ -5222,3 +5222,45 @@ one attempt/no error. This accepts actual EUR Open banking delivery and durable
 renewal, shop payments or logged-in browser access. Other supported methods are
 local-contract checks only. Existing frontend autopay wording remains incorrect
 for this TEST mode. No new charge, forged callback, manual SQL grant or Git push.
+
+### M06 native cancellation SQL acceptance resumed — 9 October, 01:42 Moscow
+
+Resume the four saved native cancellation test drafts, not completed M06 wrappers
+or PD4 rollout. Combine real loopback HTTP, synthetic independently signed proof
+and disposable SQL after a real fixture initial settlement. Verify preserved paid
+expiry, profile confirmation/lease release, refusal of unknown profile/initial
+key and rollback when a trigger rejects the paid-order confirmation write. No
+provider, worker activation or SMTP. Mutations must show skipped durable confirm
+and skipped paid-order marking are observable; restore runtime byte-identical.
+Only selected fixture/trigger cleanup belongs to tests. Existing cancellation
+timestamp/replay policy remains unchanged, and these fake-Date checks do not
+prove timestamp stability across differently timed deliveries. Run focused SQL/
+native/compiled suites then root types/build/API/boundaries/lint/docs; commit only
+the test slice and evidence. Leave M07c, real renewal/cancellation and deployment
+gates open; no further server/cabinet/payment changes under heartbeat authority.
+
+M06 cancellation acceptance evidence: corrected a draft-only top-level
+subscription_action to the established nested subscription.action_code; the
+first four failures were malformed test input / isolated MySQL trigger permission,
+not a production regression. Enabled log_bin_trust_function_creators only inside
+this run's owned tmpfs database, never on any working database. Thirteen native
+HTTP/SQL cases pass, including the four resumed cancellation cases. Seed a
+nonempty synthetic lease before confirmation so lease release is observable.
+Mutation RED: acknowledge without durable confirmation (two failures), omit
+paid-order marking (two), retain outstanding lease (one). Restore cancellation.ts
+byte-identical SHA-256 5c0de9a7455fb691f72093abbd616879837cf016006327349109e45b4239c467.
+Final eight focused files: 115 pass, including 28 actual SQL cases across native
+ingress / settlement / cancellation and compiled ESM composition coverage.
+Fresh full default suite: 1816 pass / 760 reported SQL-external skips; focused
+SQL is separate evidence, not a claim that those skips executed. Types, normal
+419.8kb and TEST 416.9kb builds, unchanged 73-procedure API, 563-file boundaries
+and lint pass. Five-axis review: fixture-only constant trigger, bound synthetic
+lease writes, independent canonical HMAC, actual persisted state/rollback and
+bounded HTTP replays; no new dependency, schema or runtime behavior. Frozen Date
+does not prove cancellation timestamps remain identical across later real retries.
+Exact owned container 7cd03d1b... inspected: matching owner, no mounts/OOM, tmpfs
+only; removed and owner inventory empty. No frontend, deployment, provider
+request, mail or worker activation. Native renewal acceptance, actual provider
+cancellation, M07c human shutdown bound and prior rollout/dependency gates remain
+open. This slice verifies the existing cancellation orchestration, not a new
+provider capability or production rollout.

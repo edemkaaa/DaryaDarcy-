@@ -36,6 +36,7 @@ describe.skipIf(!testDatabaseUrl)(
     let conn: Connection;
     let app: INestApplication;
     let base: string;
+    const cancellationTrigger = "native_billing_cancel_failure";
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -67,6 +68,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DELETE FROM users WHERE id=94301");
     }
     beforeEach(async () => {
+      await conn.query(`DROP TRIGGER IF EXISTS ${cancellationTrigger}`);
       vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", encryptionKey);
       await clearFixture();
       await conn.query(
@@ -78,7 +80,10 @@ describe.skipIf(!testDatabaseUrl)(
     });
     afterAll(async () => {
       await app?.close();
-      if (conn) await clearFixture();
+      if (conn) {
+        await conn.query(`DROP TRIGGER IF EXISTS ${cancellationTrigger}`);
+        await clearFixture();
+      }
       await conn?.end();
       const database = await getDb();
       await (
@@ -219,6 +224,129 @@ describe.skipIf(!testDatabaseUrl)(
         ],
         effects: [{ receipts: 1, profiles: 1, mails: 1, tokens: 1 }],
       });
+    });
+    async function cancellationState() {
+      const [profiles] = await conn.query<RowDataPacket[]>(
+        "SELECT domain,subscriptionId,profileId,cancelRequestedAt,cancelledAt,leaseId,leaseUntil FROM billing_profiles WHERE userId=94301 ORDER BY profileKey",
+      );
+      const [orders] = await conn.query<RowDataPacket[]>(
+        "SELECT orderId,status,expiresAt,cancelAtPeriodEnd,cancelledAt FROM club_payments WHERE userId=94301 ORDER BY orderId",
+      );
+      return { profiles, orders, effects: (await state()).effects };
+    }
+    function cancelNotification(
+      profileId = "144",
+      key = "native-billing-synthetic-renewal-key",
+    ) {
+      // Literal ordered strings are independent of the production signer/parser.
+      const bytes = JSON.stringify({
+        domain: "native-billing.payform.ru",
+        subscription: {
+          action_code: "deactivation",
+          id: "99",
+          profile_id: profileId,
+        },
+      });
+      return fetch(`${base}/api/prodamus/webhook`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Sign: createHmac("sha256", key).update(bytes).digest("hex"),
+        },
+        body: bytes,
+      });
+    }
+    it("acknowledges cancellation only after SQL confirmation, preserves expiry and safely acknowledges replays", async () => {
+      expect((await notify()).status).toBe(200);
+      // A synthetic outstanding worker lease must not survive confirmation.
+      await conn.query(
+        "UPDATE billing_profiles SET leaseId=?,leaseUntil=? WHERE userId=?",
+        [
+          "native-cancel-fixture-lease",
+          new Date("2026-10-09T00:01:00Z"),
+          94301,
+        ],
+      );
+      expect((await cancellationState()).profiles[0]).toMatchObject({
+        leaseId: "native-cancel-fixture-lease",
+        leaseUntil: new Date("2026-10-09T00:01:00Z"),
+      });
+      const reply = await cancelNotification();
+      expect(reply.status).toBe(200);
+      expect(await reply.text()).toBe("cancelled");
+      expect(reply.headers.get("set-cookie")).toBeNull();
+      const confirmed = await cancellationState();
+      expect(confirmed).toEqual({
+        profiles: [
+          {
+            domain: "native-billing.payform.ru",
+            subscriptionId: "99",
+            profileId: "144",
+            cancelRequestedAt: new Date("2026-10-09T00:00:00Z"),
+            cancelledAt: new Date("2026-10-09T00:00:00Z"),
+            leaseId: null,
+            leaseUntil: null,
+          },
+        ],
+        orders: [
+          {
+            orderId: "club-94301-native-fixture",
+            status: "paid",
+            expiresAt: new Date("2026-11-08T00:00:00Z"),
+            cancelAtPeriodEnd: 1,
+            cancelledAt: new Date("2026-10-09T00:00:00Z"),
+          },
+        ],
+        effects: [{ receipts: 1, profiles: 1, mails: 1, tokens: 1 }],
+      });
+      expect((await cancelNotification()).status).toBe(200);
+      expect(await cancellationState()).toEqual(confirmed);
+    });
+    it.each([
+      {
+        name: "unrecognized durable profile",
+        profileId: "145",
+        key: "native-billing-synthetic-renewal-key",
+      },
+      {
+        name: "initial-payment key instead of recurring key",
+        profileId: "144",
+        key: secret,
+      },
+    ])(
+      "refuses cancellation with $name without changing paid access",
+      async ({ profileId, key }) => {
+        expect((await notify()).status).toBe(200);
+        const before = await cancellationState();
+        const reply = await cancelNotification(profileId, key);
+        expect(reply.status).toBe(422);
+        expect(await reply.text()).toBe("profile binding invalid");
+        expect(await cancellationState()).toEqual(before);
+      },
+    );
+    it("rolls back profile confirmation when paid-order cancellation fails, then accepts a clean HTTP retry", async () => {
+      expect((await notify()).status).toBe(200);
+      const before = await cancellationState();
+      await conn.query(`CREATE TRIGGER ${cancellationTrigger} BEFORE UPDATE ON club_payments FOR EACH ROW
+        BEGIN IF NEW.userId=94301 AND NEW.cancelAtPeriodEnd=1 THEN
+          SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='synthetic cancellation write failure';
+        END IF; END`);
+      const failed = await cancelNotification();
+      expect(failed.status).toBe(500);
+      expect(await failed.text()).toBe("error");
+      expect(await cancellationState()).toEqual(before);
+      await conn.query(`DROP TRIGGER ${cancellationTrigger}`);
+      expect((await cancelNotification()).status).toBe(200);
+      const recovered = await cancellationState();
+      expect(recovered.profiles[0].cancelledAt).toEqual(
+        new Date("2026-10-09T00:00:00Z"),
+      );
+      expect(recovered.orders[0]).toMatchObject({
+        status: "paid",
+        expiresAt: new Date("2026-11-08T00:00:00Z"),
+        cancelAtPeriodEnd: 1,
+      });
+      expect(recovered.effects).toEqual(before.effects);
     });
   },
 );

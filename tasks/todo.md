@@ -1744,3 +1744,20 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] Other actual provider methods and logged-in browser access not accepted
       by the one EUR flow; recurring/shop remain out of scope. Frontend TEST
       autopay wording remains incorrect. Existing rollout/dependency gates open.
+
+### M06 native cancellation-to-SQL acceptance — 9 October, 01:48 Moscow
+
+- [x] Finish four saved cancellation drafts: independently signed native HTTP
+      confirms the real SQL profile/order, preserves paid expiry, rejects unknown
+      profile/wrong key and fully rolls back on a paid-order write failure.
+- [x] Correct only malformed fixture action and disposable MySQL trigger setup;
+      seed an outstanding lease to test release. Three mutation RED checks catch
+      skipped durable confirmation, skipped order marking and retained lease.
+      Production restored byte-identical; no signature/transaction/replay change.
+- [x] Eight focused files / 115 checks pass (28 actual SQL checks); full default
+      1816 pass / 760 reported skips. Types, both backend builds, unchanged API,
+      boundaries and lint pass. Exact owned tmpfs DB removed, owner inventory empty.
+- [ ] Native renewal SQL / actual provider cancellation acceptance remain open;
+      fixed-Date replay does not prove timestamps stable across later deliveries.
+      M07c human drain bound, rollout/dependency and frontend wording gates persist.
+      No frontend/server/payment/worker/activation/merge/push/deploy change.
