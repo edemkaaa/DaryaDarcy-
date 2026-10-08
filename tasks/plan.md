@@ -4612,3 +4612,46 @@ inventory empty, tmpfs gone. No working DB, user volume/container, frontend,
 server, secrets, mail/push/payment, auth/CORS/proxy/quotas, activation, merge/push/
 deploy. Real avatar upload/orphan cleanup, absent-row writes, erasure/retention,
 M07c drain decision and provider/dependency/rollout gates remain open.
+
+### M08 native latest-announcement verification — 8 October, evening
+
+Continued from clean 656ea48; completed the explicit pending notifications.latest
+HTTP/JWT/SQL acceptance slice, not another M06 wrapper. Fourteen checks use the
+real Nest listener, real synthetic signed session and actual disposable MySQL,
+without identity, persistence or content-service mocks. Cover published flag plus
+status, feed/club/both targets, publication-date ordering with creation fallback
+(not sortOrder/ID), empty response, guest/non-subscriber/staff, paid/unexpired,
+expired, pending, failed and null-expiry entitlement. Cancellation at period end
+preserves access until expiry. Two requests sharing one JWT observe an expiry
+changed in SQL, rather than caching entitlement. Exact millisecond cutoff and
+owner/blocked-account policies are not new acceptance claims.
+
+This is verification of existing behavior, not a runtime fix. Temporary draft
+selection mutation fails all 14 tests; bypassing club access fails six. Both
+production files restored byte-identical to HEAD. Final focused 66 pass in 968 ms;
+full default 1804 pass / 665 SQL-external skip, 132 passing / 36 skipped files,
+17.54 seconds. New SQL checks ran explicitly. Types, unchanged 410.6 kB backend
+build/73-procedure API/560-file boundaries, lint and documentation gates pass.
+
+Global latest queries cannot share arbitrary concurrent publisher fixtures.
+The suite therefore requires BACKEND_LATEST_ACCEPTANCE=1 as well as the guarded
+BACKEND_TEST_DATABASE_URL and asserts an empty initial posts dataset. Run on a
+fresh exclusively owned disposable database, separately from other SQL suites:
+`BACKEND_LATEST_ACCEPTANCE=1 pnpm exec vitest run tests/nest-notification-latest.mysql.test.ts tests/nest-notifications.test.ts`
+with BACKEND_TEST_DATABASE_URL pointing only to that new database. Default and
+ordinary parallel SQL runs skip this suite; the separate run is required.
+Cleanup deletes only reserved fixture IDs/order, never unrelated posts.
+
+Review: independent literal response expectations, no external sending/worker
+activation, test-only opt-in, bounded fixture rows, no dependency/schema/runtime
+change. TDD test principles and mutation checks, incremental delivery, review,
+Git, verification and documentation skills guided this slice. Optional shared
+DoD remains absent; repository gates apply. No ADR needed for unchanged runtime.
+
+Only dd-latest-check-20261008-1907 was created: existing MySQL 8.4, fresh
+backend_test, synthetic credentials, loopback ephemeral port, tmpfs, 512 MiB/
+one CPU. Verified full ID/owner/no OOM/no mounts before exact removal; label
+inventory empty, tmpfs data gone. No working DB or unrelated resource removed.
+No frontend, server, secret/cabinet access, external payment/mail/push, policy
+change, merge/push/deploy. Provider/device/publication delivery, M07c decision
+and dependency/rollout gates remain open.

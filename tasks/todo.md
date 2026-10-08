@@ -979,7 +979,8 @@
     provider-bypass RED cases repaired. Notification suite 50 pass, focused 123
     pass, whole non-MySQL 901 pass / 4 skip; types/build/unchanged API/boundaries/
     frontend-only lint/docs pass. SQL helpers and session lookup are doubled;
-    actual JWT/MySQL publication visibility/ordering/expiry acceptance stays open.
+    actual JWT/MySQL publication visibility/ordering/expiry acceptance completed
+    in the separate native SQL checkpoint below; provider delivery remains open.
   - [x] Reject no-DB false success for token registration, consent grant/revocation
     and administrator token purge at the existing persistence boundaries. Five
     native HTTP regressions fail for false success before the three guard fixes;
@@ -991,7 +992,8 @@
     administrator purge with real HTTP/JWT/disposable MySQL; 10 native SQL cases
     and 77 focused checks pass (checkpoint below). Docker is available locally.
   - [ ] Migrate other remaining domains in their own slices. Real notification
-    provider/device delivery and publication acceptance remain separate gates.
+    provider/device delivery remains a separate gate; latest-publication SQL
+    acceptance completed below, not full publication/delivery acceptance.
   - [x] Migrate profile update/avatar/deletion-request orchestration into an
     explicit Nest-managed profile service; preserve schemas, session ownership,
     protected access, canonical photo validation and upload-before-update order.
@@ -1543,3 +1545,17 @@
       Новый тест не подменяет identity/SQL и не отправляет внешних запросов.
 - [ ] Avatar upload/S3/orphan cleanup, zero-row writes и erasure/retention остаются
       открыты. Runtime/frontend/server не менялись; own tmpfs база удалена.
+
+### M08 latest announcement SQL acceptance — 8 October, evening
+
+- [x] 14 native HTTP/JWT/SQL случаев: публикация/status/target, порядок по
+      publishedAt с fallback createdAt, пустой ответ, guest/member/staff,
+      paid/pending/failed/expired/null expiry и доступ до конца отменённого периода.
+      Повторный запрос с тем же JWT перечитывает изменённый срок из SQL.
+- [x] 66 focused pass. Выбор draft вместо published ломает 14 тестов;
+      обход проверки club entitlement — 6. Runtime восстановлен byte-identical.
+      Full 1804 pass / 665 SQL-external skip; types/build/API/boundaries/lint/docs.
+- [ ] Доставка/provider/device и полная публикационная приёмка остаются открыты.
+      Новая глобальная latest SQL suite требует отдельную свежую одноразовую БД
+      и BACKEND_LATEST_ACCEPTANCE=1; не запускать параллельно с SQL publishers.
+      Own tmpfs база удалена; frontend/server/политики не менялись.
