@@ -955,11 +955,10 @@
     restore and full suite 1275 pass / 618 SQL/external skip. Types/backend build,
     unchanged API and 510 dependency boundaries pass. Identity/persistence
     doubled; no authorization change, real SQL/JWT or durable audit acceptance.
-  - [ ] Verify/fix actual moderation mutation/audit transactional consistency
-    separately. User block/unblock atomicity is verified below; the existing
-    audit-after-mutation window remains for comment deletion only; report
-    dismissal is verified below.
-    Service composition and ID validation do not close the remaining requirement.
+  - [x] Verify/fix actual moderation mutation/audit transactional consistency
+    separately. User block/unblock, report dismissal and reported-comment deletion
+    now have real SQL rollback and native HTTP/JWT coverage (checkpoints below).
+    This closes these four mutation/audit windows, not M08 or release acceptance.
   - [x] Notification token lifecycle slice (scope approved): preserve
     registration, consent reads/writes and admin purge contracts while wiring
     an explicit Nest-managed notification provider. First characterize HTTP,
@@ -1503,6 +1502,18 @@
 - [x] 113 focused pass после отдельного ремонта старой SQL-заглушки уведомлений;
       full 1804 pass / 628 SQL-external skip, types/build/API/boundaries/lint/docs.
       Одноразовая tmpfs база удалена; без frontend/push/deploy/provider effects.
-- [ ] Delete comment/audit — следующий независимый срез. Старый неиспользуемый
+- [x] Delete comment/audit — выполнен в следующем checkpoint. Старый неиспользуемый
       content/comments.dismissCommentReport оставлен до отдельной уборки.
       M07c и прежние provider/dependency/rollout gates остаются открыты.
+
+### M08 reported-comment deletion — 8 October, 21:30 Moscow
+
+- [x] Удаление комментария, его лайков/жалоб, отвязка ответов и audit теперь
+      фиксируются вместе. Два исходных SQL RED (один native HTTP/JWT); пять
+      новых SQL случаев. Возврат audit после commit снова ломает оба отката.
+- [x] 118 focused pass; full 1804 pass / 633 SQL-external skip; types/backend
+      build/API/boundaries/lint/docs проходят. Собственная одноразовая база удалена.
+- [ ] Старые content/comments.dismissCommentReport и deleteCommentAndReports
+      не имеют runtime callers; оставлены до отдельного разрешения на уборку.
+      M08 в целом, M07c и provider/dependency/rollout gates остаются открыты.
+      Никаких frontend/push/deploy/payment effects.

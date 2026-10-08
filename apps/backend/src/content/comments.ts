@@ -159,21 +159,31 @@ export async function deletePostCommentV2(
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.transaction(async (tx) => {
-    const comment = await lockComment(tx, id);
-    if (!asStaff && comment.userId !== userId)
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Можно удалить только свой комментарий",
-      });
-    await tx
-      .update(postComments)
-      .set({ parentId: null })
-      .where(eq(postComments.parentId, id));
-    await tx.delete(commentLikes).where(eq(commentLikes.commentId, id));
-    await tx.delete(commentReports).where(eq(commentReports.commentId, id));
-    await tx.delete(postComments).where(eq(postComments.id, id));
-  });
+  await db.transaction((tx) =>
+    deletePostCommentInTransaction(tx, id, userId, asStaff),
+  );
+}
+
+/** Reuse the locked cascade when a caller must commit additional effects atomically. */
+export async function deletePostCommentInTransaction(
+  tx: CommentTransaction,
+  id: number,
+  userId: number,
+  asStaff = false,
+): Promise<void> {
+  const comment = await lockComment(tx, id);
+  if (!asStaff && comment.userId !== userId)
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Можно удалить только свой комментарий",
+    });
+  await tx
+    .update(postComments)
+    .set({ parentId: null })
+    .where(eq(postComments.parentId, id));
+  await tx.delete(commentLikes).where(eq(commentLikes.commentId, id));
+  await tx.delete(commentReports).where(eq(commentReports.commentId, id));
+  await tx.delete(postComments).where(eq(postComments.id, id));
 }
 
 export async function updatePostCommentV2(

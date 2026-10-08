@@ -4464,3 +4464,52 @@ No working database, user volume/container, secrets, external mail/push/payment,
 frontend, auth/CORS/proxy/quotas, activation, merge, push or server change.
 Comment-deletion audit atomicity is next; M08 overall, M07c drain decision and
 provider/dependency/rollout gates remain open.
+
+### M08 reported-comment deletion audit atomicity — 8 October, 21:30 Moscow
+
+Continued from clean 5c49aa4; no repeat of completed M06/M07 work. Two real SQL
+RED failures reproduced lost comments/reactions/reports and detached replies
+after an audit insert failed, including native Nest HTTP with a real synthetic
+JWT. The HTTP error was already private; persisted effects were not atomic.
+
+ModerationService now delegates to one platform persistence transaction using
+the canonical typed audit writer and the existing comment deletion cascade.
+The cascade is exposed as a typed in-transaction helper, also used by the
+original user/staff deletion entry point: no duplicate SQL or nested transaction,
+no content-to-platform dependency, changed row-lock order or authorization rule.
+Missing comment remains NOT_FOUND with no audit; deletion without a report stays
+supported. Replies survive with parentId=null, while only target likes/reports
+are removed. Extra audit cost is one insert under the same existing row lock.
+
+Five new SQL cases verify direct rollback, real HTTP/JWT safe rollback,
+successful cascade/audit mapping, absent target and report-free deletion.
+Moving the audit after commit again breaks both rollback cases; restore passes.
+Existing native moderation fixtures now double the atomic operation and retain
+all role/ID/error and forged client actor checks; the fixture intentionally
+expecting partial deletion is replaced by real SQL rollback evidence.
+
+Fresh verification: 118 focused pass across six files (7.85 s under concurrent
+checks), including all 24 native discussion cases and 13 comment mutations.
+Full default: 1804 pass / 633 SQL-external skip, 132 passing / 33 skipped files,
+22.11 s. The five new SQL cases ran explicitly, not accepted on default skips.
+Root/frontend/E2E types, 410.6 kB backend build, unchanged 73-procedure/25642-byte
+API, 560-file boundaries, lint and documentation checks pass.
+
+Review covers persisted rollback, canonical cascade/audit reuse, lock and error
+semantics, parameterized targets, actor from session, no added retry/provider
+effect and limited extra transaction cost. No schema/dependency/frontend change.
+The now-unused content/comments.deleteCommentAndReports facade is retained,
+like dismissCommentReport, pending separate cleanup approval. M08 overall remains
+open; these four moderation mutation/audit windows are now repaired locally.
+
+Used only owned dd-comment-check-20261008-1822: existing MySQL 8.4, fresh
+backend_test, loopback ephemeral port, 512 MiB/one CPU, tmpfs/no mounts and
+synthetic data. Actor-limited failure trigger is dropped after each case.
+Verified full container ID, owner label, no OOM and no mounts before removal;
+label inventory is empty and tmpfs data is gone. No user/working database or
+volume touched. Skills: TDD plus writing-good-tests, incremental implementation,
+security, review, Git, verification and documentation. Optional shared DoD
+reference is absent; repository gates and heartbeat constraints used instead.
+No secret/cabinet access, external mail/push/payment, TEST activation, auth/CORS/
+proxy/quotas, merge/push/deploy. M07c still needs a maximum drain wait decision;
+provider, dependency and rollout gates remain open.

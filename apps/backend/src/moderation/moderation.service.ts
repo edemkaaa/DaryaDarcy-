@@ -15,13 +15,7 @@ export class ModerationService {
   }
 
   async deleteReportedComment(actorUserId: number, commentId: number) {
-    await commentDb.deleteCommentAndReports(commentId);
-    await platformDb.logAdminAction({
-      actorUserId,
-      action: "delete_reported_comment",
-      targetType: "comment",
-      targetId: commentId,
-    });
+    await platformDb.deleteReportedComment(actorUserId, commentId);
     return { ok: true as const };
   }
 

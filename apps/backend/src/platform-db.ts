@@ -1,4 +1,4 @@
-import { purgeOldPostComments } from "./content/comments";
+import { deletePostCommentInTransaction, purgeOldPostComments } from "./content/comments";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { queueCancellationForUser } from "./billing/cancellation";
 import {
@@ -114,6 +114,20 @@ export async function dismissCommentReport(actorUserId: number, reportId: number
       action: "dismiss_comment_report",
       targetType: "comment_report",
       targetId: reportId,
+    });
+  });
+}
+
+export async function deleteReportedComment(actorUserId: number, commentId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.transaction(async tx => {
+    await deletePostCommentInTransaction(tx, commentId, 0, true);
+    await writeAdminAction(tx, {
+      actorUserId,
+      action: "delete_reported_comment",
+      targetType: "comment",
+      targetId: commentId,
     });
   });
 }
