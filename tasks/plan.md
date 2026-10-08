@@ -5428,3 +5428,47 @@ crud-green,final-focused,final-full,final-types,final-build,final-api,
 final-boundaries,final-lint,final-docs}.log. This closes only catalogue persistence
 extraction, not all M05/M08 repository/admin work, M07c or rollout/provider/dependency
 gates. No frontend, shared server/database, payment/provider, merge/push/deployment.
+
+### M05 parallel video fixture isolation — 9 October, 02:30 Moscow
+
+Repair the SQL-only fixture collision discovered during catalogue extraction.
+Fixed publication IDs and auto-increment imports share the videos table; cleanup
+can delete another suite's imported row. Reproduce this consumer-visible loss on
+a fresh owned disposable database, then centralize only video fixture schema
+initialization and reserve generated IDs above the existing fixed fixture range.
+Use a checked named lock for initialization and live MySQL counter metadata to
+avoid repeated ALTER while another file holds row locks. Preserve every runtime
+file, query, assertion, transaction and provider double. Run the affected native
+SQL suites in parallel on a fresh fixture, plus full/type/build/API/docs checks,
+review and one local test-only commit. No working DB, schema migration, quotas,
+frontend, server, payment/provider, merge/push/deploy or M07c policy changes.
+
+Verified: deterministic fresh-DB RED observes an imported row with ID 999999
+disappear after another connection cleans its fixed-ID range; assertion sees
+undefined instead of the persisted row. The new tests/helpers/video-mysql.ts
+owns only fixture schema initialization. It reuses the existing test database
+policy/migrations and the users fixture's high-ID convention; checked named-lock
+acquisition, finally release, close on initialization failure, live counter read
+and ALTER only below the reserved boundary. Publication, bulk import and catalogue
+CRUD suites share it, removing their three duplicate DDL definitions. All original
+API/SQL behavior assertions and provider doubles remain intact. The regression
+checks actual row survival, not an exact counter or helper invocation.
+
+GREEN followed resetting only this owned empty video's fixture counter (verified
+zero rows). Reset again before final default-parallel SQL acceptance: five files,
+41 real SQL checks pass, including publication and forced competing-batch rollback.
+This supersedes the earlier catalogue checkpoint's serial-only limitation for
+these affected video fixtures; it does not prove isolation of every SQL suite or
+fix the older unrelated saved-post actor-lock observation. Full default 1838 pass /
+769 SQL-external skips; types/backend build/unchanged API (73 / 25642 bytes),
+564-file boundaries, lint and docs pass. Five-axis self-review: test-only helper,
+same schema columns, no runtime changes/imports, scoped synthetic cleanup, no
+business quota/ID rules changed, no repeated ALTER during active imports. No
+external SQL mocks, retries, sleeps or relaxed assertions. Owned MySQL 8.4
+062463cc... validated by full ID/owner: loopback, tmpfs only, no mounts/OOM; removed,
+matching inventory empty. Deletion affected only this run's synthetic fixture.
+Trigger permission enabled only there for the existing bulk rollback test.
+Logs: /tmp/daryadarcy-video-fixtures-{red,green,parallel,full,types,build,api,
+boundaries,lint,docs}.log. Runtime/frontend/server/payment/auth/CORS/proxy/quota,
+schema migrations/dependencies, merge/push/deploy unchanged. M05/M08, M07c human
+drain-bound and prior rollout/provider/dependency gates stay open.

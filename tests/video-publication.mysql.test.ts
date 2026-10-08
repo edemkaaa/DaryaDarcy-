@@ -12,7 +12,8 @@ import type { AddressInfo } from "node:net";
 import type { Connection } from "mysql2/promise";
 import { createTRPCProxyClient, httpLink } from "@trpc/client";
 import superjson from "superjson";
-import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
+import { testDatabaseUrl } from "./helpers/backend-mysql";
+import { openVideoTestDatabase } from "./helpers/video-mysql";
 
 const external = vi.hoisted(() => ({
   commands: [] as string[][],
@@ -49,15 +50,8 @@ describe.skipIf(!testDatabaseUrl)(
     let conn: Connection, application: INestApplication, base: string;
     let client: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
     beforeAll(async () => {
-      conn = await openTestDatabase();
+      conn = await openVideoTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
-      await conn.query(`CREATE TABLE IF NOT EXISTS videos (
-      id INT AUTO_INCREMENT PRIMARY KEY,youtubeId VARCHAR(32) NOT NULL UNIQUE,
-      title VARCHAR(512) NOT NULL,duration VARCHAR(16),thumbnailUrl TEXT,videoUrl TEXT,
-      views VARCHAR(32),publishedText VARCHAR(64),sortOrder INT NOT NULL DEFAULT 0,
-      published BOOLEAN NOT NULL DEFAULT TRUE,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB`);
       application = await createBackendApplication();
       await application.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;

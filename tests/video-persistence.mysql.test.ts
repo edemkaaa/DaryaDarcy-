@@ -9,7 +9,8 @@ import {
 } from "vitest";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import * as db from "../apps/backend/src/db";
-import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
+import { testDatabaseUrl } from "./helpers/backend-mysql";
+import { openVideoTestDatabase } from "./helpers/video-mysql";
 
 describe.skipIf(!testDatabaseUrl)(
   "video catalogue persistence on disposable MySQL",
@@ -41,15 +42,8 @@ describe.skipIf(!testDatabaseUrl)(
       return rows;
     }
     beforeAll(async () => {
-      conn = await openTestDatabase();
+      conn = await openVideoTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
-      await conn.query(`CREATE TABLE IF NOT EXISTS videos (
-      id INT AUTO_INCREMENT PRIMARY KEY,youtubeId VARCHAR(32) NOT NULL UNIQUE,
-      title VARCHAR(512) NOT NULL,duration VARCHAR(16),thumbnailUrl TEXT,videoUrl TEXT,
-      views VARCHAR(32),publishedText VARCHAR(64),sortOrder INT NOT NULL DEFAULT 0,
-      published BOOLEAN NOT NULL DEFAULT TRUE,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB`);
     });
     beforeEach(async () => {
       await cleanup();

@@ -1822,3 +1822,19 @@ drafts remain local after interruption; disposable container already removed.
   video SQL fixtures require sequential files because fixed cleanup IDs overlap
   auto-increment imports; this harness limitation is not claimed fixed. M05/M08,
   M07c and rollout/dependency/provider gates remain open. Details in plan.md.
+
+### M05 parallel video fixture isolation — 9 October, 02:32 Moscow
+
+- [x] Reproduce one fixture connection deleting another connection's imported
+  video through overlapping fixed/auto-generated IDs (fresh real-SQL RED).
+  Share test-only video schema initialization with checked named-lock ownership
+  and generated IDs outside existing fixed cleanup ranges; preserve every runtime
+  file, schema definition and original behavior assertion. Regression now proves
+  the created row survives independent cleanup, not an exact ID constant.
+- [x] Fresh-counter parallel acceptance: five SQL files / 41 checks pass, including
+  published video policy and competing bulk-import rollback/retry. Full default
+  1838 pass / 769 SQL-external skips; types/build/API/564-file boundaries/lint/docs
+  pass. Owned loopback/tmpfs-only MySQL removed; owner inventory empty. This closes
+  the preceding video fixture serial-only limitation, not all SQL isolation or the
+  unrelated saved-post lock observation. No runtime/frontend/shared-server change,
+  migration, payment/provider, policy, merge/push/deploy; existing gates stay open.
