@@ -3547,3 +3547,42 @@ ingress, signing/merchant-key policy, settlement/replay/transaction boundaries,
 auth/CORS/proxy/quotas, schema, dependencies and frontend are unchanged.
 No TEST/shop activation, merge, push or deployment. M06 orchestration/SQL/provider
 acceptance and M07b2/M07c/N12, rollout and dependency gates remain open.
+
+### M06 decomposition slice — pure notification field selection, 8 October
+
+billing/prodamus-fields.ts owns the existing scalar/alias selection, user-ID hint,
+paid-status, order-ID and subscription-action helpers. It depends only on the
+existing record coercion in the payload module; no environment, HTTP, SQL or
+transport. The handler imports the same named functions without duplicate
+algorithms or wrappers. After initial GREEN, the single-element order-selection
+loop is simplified to one value check, preserving all prefixes and precedence.
+
+Forty literal pure cases protect exact keys before case-insensitive fallback,
+case-collision ordering, trimming/scalar coercion, nullish user-ID precedence,
+only success as the paid status, first selected order alias and nested subscription
+action precedence. Twenty-three expected assertions fail against the contract-only
+scaffold. A new native HTTP fixture uses hand-sorted literal canonical JSON and
+checks the complete club settlement proof, period/order and response without
+cookies, with only the SQL effect boundary replaced. It passes before and after
+extraction. Dropping case-insensitive lookup fails five pure cases and this native
+case; replacing success with paid fails four status checks, including rejection
+of the misleading paid status. Restore passes all checks again.
+
+Preserve, do not endorse or silently tighten, existing coercion: pickUserId accepts
+finite positive numeric hints including fractional values; it is not an ID/schema
+validator or recipient authorization. Likewise order selection returns no order
+if a higher-priority nonempty alias is foreign, rather than scanning lower ones.
+A stricter contract needs its own behavior-change/caller review, not this refactor.
+Club settlement remains bound through existing immutable-order/proof checks;
+shop remains hard-disabled. These synthetic cases are not shop-enable evidence.
+
+Fresh Node 22 verification: six initially focused files / 111 checks; final full
+1411 pass / 618 skip, 110 files pass / 30 skip. Root/frontend/e2e types, backend
+build (398.2 kB), unchanged 73-procedure / 25642-byte API and 519-file boundaries
+pass. Existing frontend lint, documentation links, selected formatting and whitespace
+checked before commit; no backend lint claim. No real SQL/provider/SMTP, mailbox,
+cabinet or secret access. Native listener/compiled child resources stay owned and
+are cleaned by their harnesses. Signing and merchant-key selection, HTTP parser
+limits, settlement/replay/transaction boundaries, auth/CORS/proxy/quotas, schema,
+dependencies and frontend are unchanged. No TEST/shop activation, merge, push or
+deploy. M06 orchestration/acceptance and M07b2/M07c/N12/rollout gates remain open.

@@ -233,6 +233,41 @@ it.each([true, false])(
     expect(response.headers.get("set-cookie")).toBeNull();
   },
 );
+it("signed legacy field aliases preserve the exact club settlement proof", async () => {
+  const raw =
+    '{"Currency":"RUB","CustomerEmail":" MEMBER@EXAMPLE.TEST ","Domain":"FIXTURE.PAYFORM.RU","Order_ID":"300155","Order_Num":"club6m-7-alias","PaymentStatus":"SUCCESS","Sum":"4740.00"}';
+  vi.spyOn(db, "settleClubPayment").mockImplementation(async (input) => {
+    expect(input).toEqual({
+      orderId: "club6m-7-alias",
+      periodMs: 15_552_000_000,
+      sum: "4740.00",
+      recurring: undefined,
+      proof: {
+        domain: "fixture.payform.ru",
+        paymentId: "300155",
+        email: "member@example.test",
+        currency: "RUB",
+        subscriptionId: "",
+        profileId: "",
+      },
+    });
+    return true;
+  });
+  // This literal is hand-sorted canonical JSON with only string values/no slashes.
+  const response = await fetch(base + "/api/prodamus/webhook", {
+    method: "POST",
+    body: raw,
+    headers: {
+      "Content-Type": "application/json",
+      Sign: createHmac("sha256", "nest-webhook-fixture-secret")
+        .update(raw)
+        .digest("hex"),
+    },
+  });
+  expect(response.status).toBe(200);
+  expect(await response.text()).toBe("success");
+  expect(response.headers.get("set-cookie")).toBeNull();
+});
 it("a valid signature from another merchant cannot reach settlement", async () => {
   const settle = vi.spyOn(db, "settleClubPayment");
   const response = await notify({ ...payment, domain: "another.payform.ru" });

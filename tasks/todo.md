@@ -722,6 +722,15 @@
       assertion. Restore full 1370 pass / 618 skip, types/build/API/boundaries pass.
       Decoding is not authentication or settlement acceptance. No schema, SQL,
       external service, frontend, auth/CORS/proxy/quota, activation or rollout.
+    - [x] Pure notification field selectors extracted to billing/prodamus-fields;
+      preserve exact-key/alias precedence, scalar coercion, selected order prefixes,
+      success status, nullish user-ID hints and nested subscription actions.
+      Forty literal cases / 23 expected scaffold RED failures; native alias fixture
+      preserves complete settlement proof. Alias-removal mutation fails six checks,
+      status mutation four; restore full 1411 pass / 618 skip, static/build gates pass.
+      Existing selectors are not ID/schema validators or payment authorization.
+      Binding/signature/replay/transaction policy and disabled-shop gate unchanged;
+      no SQL/provider, secret access, activation, frontend, push or deployment.
   - [x] Shop owned/checkout use cases now use explicit ShopModule/ShopService
     composition in Nest and standalone callers. Router schemas/protected access
     and hard-disabled capability gate remain before checkout service entry;
