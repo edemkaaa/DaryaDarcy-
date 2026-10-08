@@ -4355,3 +4355,49 @@ external backlog, production migration rehearsal, signed HTTP-to-SQL/provider
 acceptance or M06 overall. M07c still needs the shutdown-bound decision. No
 frontend, provider calls, real payment, activation, external mail, secret access,
 auth/CORS/proxy/quota change, merge, push or rollout.
+
+### M08 block/unblock audit atomicity — 8 October, 20:59 Moscow
+
+Continued from clean `ff92677`; M06 orchestration did not need another wrapper.
+Selected the explicitly open M08 durable moderation/audit consistency task,
+limited to user block/unblock. Threat boundary: an authorized moderator action
+must not persist an unaudited state transition when the audit insert fails.
+Successful authorization, target selection, session invalidation, reason handling
+and cancellation policy remain unchanged; no new privilege or account flow.
+
+Two real SQL RED failures reproduced the existing issue: block committed the
+account/sessionVersion/cancellation intent before a failing audit insert;
+unblock cleared the saved block before the same failure. A private typed audit
+writer now accepts the existing database-or-transaction writer. Legacy standalone
+logAdminAction retains its no-DB behavior and field mapping; block uses its
+existing transaction, while unblock wraps its existing update and audit in one
+transaction. There is no extra database acquisition inside either transaction,
+new lock ordering, provider call, retry or swallowed exception.
+
+Added six disposable SQL checks: two native Nest HTTP/real JWT/SQL rollback and
+safe-error cases, two direct rollback cases and two successful mutation/audit
+cases preserving cancellation intent and session semantics. Restoring the old
+post-commit audit ordering makes four assertions fail for persisted state, not
+just error codes; restored fix passes. Focused moderation/billing/cancellation/
+identity run: **97 pass**, five files. Full default suite: **1804 pass / 624
+SQL-external skip**, 132 passing files / 31 skipped, 18.08 seconds. The six new
+SQL checks are executed in the focused run, not waived by the default skip.
+Root/frontend/E2E types, 410.4 kB backend build, unchanged 73-procedure/25642-byte
+API, 560-file dependency boundaries and frontend lint pass.
+
+Review covered real persisted effects, actor/target/details mapping, rollback
+failure propagation, canonical audit writer reuse, bounded extra transaction
+cost and unchanged policy. No schema/dependency/frontend change. Testing used
+only labelled `dd-moderation-check-20261008-1752`, existing MySQL 8.4, fresh
+backend_test, synthetic data/keys, loopback ephemeral port and tmpfs (512 MiB,
+one CPU, no mounts). Trigger rejects only fixture actor 8400 and is removed
+after each case. Verified container identity/label/no-OOM/no-mounts before
+removing its full ID; label-filtered inventory is empty and tmpfs data is gone.
+No user container/volume or server database was removed.
+
+Report-dismissal/comment-deletion audit atomicity remains a separate next slice;
+this is not completion of M08. M07c still requires the drain-bound decision,
+and provider, dependency and rollout gates remain open. No secret/cabinet access,
+external email/payment, activation, auth/CORS/proxy/quota change, merge, push or
+deployment. The skill's optional shared Definition of Done reference was absent;
+repository test/static/API gates and the explicit heartbeat constraints were used.

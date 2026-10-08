@@ -80,15 +80,15 @@ export async function logUserConsent(
   });
 }
 
-export async function logAdminAction(input: {
+type AdminActionInput = {
   actorUserId: number;
   action: string;
   targetType: string;
   targetId?: number | null;
   details?: string | null;
-}): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
+};
+
+async function writeAdminAction(db: DataWriter, input: AdminActionInput): Promise<void> {
   await db.insert(adminAuditLog).values({
     actorUserId: input.actorUserId,
     action: input.action,
@@ -98,6 +98,12 @@ export async function logAdminAction(input: {
   });
 }
 
+export async function logAdminAction(input: AdminActionInput): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await writeAdminAction(db, input);
+}
+
 export async function blockUser(actorId: number, targetUserId: number, reason: string): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -105,25 +111,27 @@ export async function blockUser(actorId: number, targetUserId: number, reason: s
     await tx.select().from(users).where(eq(users.id,targetUserId)).for("update");
     await tx.update(users).set({ blockedAt: new Date(), blockedReason: reason.slice(0, 512),sessionVersion:sql`${users.sessionVersion}+1` }).where(eq(users.id, targetUserId));
     await queueCancellationForUser(tx,targetUserId);
-  });
-  await logAdminAction({
-    actorUserId: actorId,
-    action: "block_user",
-    targetType: "user",
-    targetId: targetUserId,
-    details: reason,
+    await writeAdminAction(tx, {
+      actorUserId: actorId,
+      action: "block_user",
+      targetType: "user",
+      targetId: targetUserId,
+      details: reason,
+    });
   });
 }
 
 export async function unblockUser(actorId: number, targetUserId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(users).set({ blockedAt: null, blockedReason: null }).where(eq(users.id, targetUserId));
-  await logAdminAction({
-    actorUserId: actorId,
-    action: "unblock_user",
-    targetType: "user",
-    targetId: targetUserId,
+  await db.transaction(async tx => {
+    await tx.update(users).set({ blockedAt: null, blockedReason: null }).where(eq(users.id, targetUserId));
+    await writeAdminAction(tx, {
+      actorUserId: actorId,
+      action: "unblock_user",
+      targetType: "user",
+      targetId: targetUserId,
+    });
   });
 }
 

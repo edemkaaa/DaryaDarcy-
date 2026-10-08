@@ -956,9 +956,9 @@
     unchanged API and 510 dependency boundaries pass. Identity/persistence
     doubled; no authorization change, real SQL/JWT or durable audit acceptance.
   - [ ] Verify/fix actual moderation mutation/audit transactional consistency
-    separately. The existing audit-after-mutation window remains: HTTP 500
-    after an audit failure does not roll back an already completed mutation.
-    Service composition and ID validation do not close this requirement.
+    separately. User block/unblock atomicity is verified below; the existing
+    audit-after-mutation window remains for report dismissal/comment deletion.
+    Service composition and ID validation do not close the remaining requirement.
   - [x] Notification token lifecycle slice (scope approved): preserve
     registration, consent reads/writes and admin purge contracts while wiring
     an explicit Nest-managed notification provider. First characterize HTTP,
@@ -1480,3 +1480,15 @@
       Это не объединённая проверка HTTP → настоящая SQL → Prodamus.
 - [ ] Остальные SQL/external проверки, миграционная/provider приёмка и M07c
       остаются открыты. Код, фронт, сервер и настройки оплаты не менялись.
+
+### M08 user moderation audit atomicity — 8 October, 20:59 Moscow
+
+- [x] Block/unblock и audit теперь фиксируются в одной транзакции; при отказе
+      audit блокировка, sessionVersion и cancellation intent откатываются вместе.
+      Успешные правила доступа/блокировки/отмены не изменены.
+- [x] Два исходных SQL RED, шесть новых SQL-проверок (две с native HTTP/JWT);
+      возврат audit после commit ломает четыре теста. После восстановления:
+      97 focused pass, full 1804 pass / 624 SQL-external skip; типы/build/API/
+      boundaries/lint проходят. Собственная одноразовая база удалена.
+- [ ] Атомарность dismiss report/delete comment — отдельный следующий срез.
+      M07c и provider/dependency/rollout gates не закрыты; без push/deploy.
