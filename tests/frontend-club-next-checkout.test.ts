@@ -5,6 +5,10 @@ import {
 } from "../apps/frontend/src/features/club/checkout-intent";
 import { createTRPCClient } from "../apps/frontend/src/shared/api/trpc";
 import { cancelSessionRequests } from "../apps/frontend/src/shared/api/request-lifecycle";
+import {
+  createClubTestCheckout,
+  createNextClubTestCheckout,
+} from "../apps/frontend/src/features/club/test-checkout";
 
 const storageKey = "daryadarcy:club-checkout:yookassa-test:v1";
 const selection = { email: " NEW@EXAMPLE.TEST ", plan: "semiannual" as const };
@@ -59,6 +63,13 @@ afterEach(() => {
 
 const reserve = (signal?: AbortSignal) =>
   reserveNextClubCheckoutIntent(
+    createTRPCClient(),
+    { previousIdempotencyKey, selection },
+    signal,
+  );
+
+const purchaseNext = (signal?: AbortSignal) =>
+  createNextClubTestCheckout(
     createTRPCClient(),
     { previousIdempotencyKey, selection },
     signal,
@@ -299,4 +310,112 @@ it("failed readback never rolls back or dispatches the new durable intent", asyn
     saved.idempotencyKey,
   );
   expect(fetcher).toHaveBeenCalledTimes(1);
+});
+
+it.each(["succeeded", "canceled"])(
+  "explicit next purchase dispatches only its newly durable key after fresh %s proof",
+  async (state) => {
+    const output = {
+      url: "https://yoomoney.ru/checkout/payments/test",
+      user: null,
+    };
+    const fetcher = vi.fn(
+      async (url: RequestInfo | URL, _options?: RequestInit) => {
+        if (String(url).endsWith("club.reconcileCheckout"))
+          return reply({ state });
+        return reply(output);
+      },
+    );
+    vi.stubGlobal("fetch", fetcher);
+    expect(await purchaseNext()).toEqual(output);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    const [check, creation] = fetcher.mock.calls;
+    const saved = JSON.parse(values.get(storageKey)!);
+    expect(new Headers(check[1]?.headers).get("Idempotency-Key")).toBe(
+      previousIdempotencyKey,
+    );
+    expect(String(creation[0])).toBe("/api/trpc/club.createCheckout");
+    expect(creation[1]?.method).toBe("POST");
+    expect(new Headers(creation[1]?.headers).get("Idempotency-Key")).toBe(
+      saved.idempotencyKey,
+    );
+    expect(saved.idempotencyKey).not.toBe(previousIdempotencyKey);
+    expect(JSON.parse(String(creation[1]?.body))).toEqual({
+      json: { email: "new@example.test", plan: "semiannual" },
+    });
+    expect(String(creation[1]?.body)).not.toContain(saved.idempotencyKey);
+  },
+);
+
+it.each(["pending", "unknown"])(
+  "next purchase never dispatches on %s proof",
+  async (state) => {
+    const fetcher = vi.fn(async () => reply({ state }));
+    vi.stubGlobal("fetch", fetcher);
+    await expect(purchaseNext()).rejects.toMatchObject({
+      reason: "not-terminal",
+    });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(values.get(storageKey)).toBe(prior);
+  },
+);
+
+it.each(["session", "caller", "storage"])(
+  "a %s change after reservation prevents next checkout dispatch",
+  async (change) => {
+    const fetcher = vi.fn(async (_url: RequestInfo | URL) =>
+      reply({ state: "canceled" }),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    const controller = new AbortController();
+    const set = storage.setItem;
+    vi.spyOn(storage, "setItem").mockImplementation((key, value) => {
+      set(key, value);
+      queueMicrotask(() => {
+        if (change === "session") cancelSessionRequests();
+        else if (change === "caller") controller.abort();
+        else values.clear();
+      });
+    });
+    await expect(purchaseNext(controller.signal)).rejects.toThrow();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(String(fetcher.mock.calls[0][0])).toBe(
+      "/api/trpc/club.reconcileCheckout",
+    );
+  },
+);
+
+it("next checkout timeout does not retry or roll back and ordinary explicit retry uses the saved new key", async () => {
+  vi.useFakeTimers();
+  const output = {
+    url: "https://yoomoney.ru/checkout/payments/test",
+    user: null,
+  };
+  const fetcher = vi.fn(
+    async (url: RequestInfo | URL, _options?: RequestInit) => {
+      if (String(url).endsWith("club.reconcileCheckout"))
+        return reply({ state: "canceled" });
+      return new Promise<Response>(() => {});
+    },
+  );
+  vi.stubGlobal("fetch", fetcher);
+  const outcome = purchaseNext().catch((error: unknown) => error);
+  await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+  const saved = values.get(storageKey)!;
+  await vi.advanceTimersByTimeAsync(15_000);
+  expect(await outcome).toMatchObject({ cause: { kind: "timeout" } });
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(values.get(storageKey)).toBe(saved);
+  vi.useRealTimers();
+  fetcher.mockImplementation(async () => reply(output));
+  expect(await createClubTestCheckout(createTRPCClient(), selection)).toEqual(
+    output,
+  );
+  const [original, retry] = fetcher.mock.calls.slice(1);
+  expect(new Headers(original[1]?.headers).get("Idempotency-Key")).toBe(
+    JSON.parse(saved).idempotencyKey,
+  );
+  expect(new Headers(retry[1]?.headers).get("Idempotency-Key")).toBe(
+    JSON.parse(saved).idempotencyKey,
+  );
 });

@@ -2898,3 +2898,26 @@ helpers, captured abort and raw-record fences, bounded lock/request, no generic
 reset or provider create. Next dispatch/result UI, Safari/provider acceptance and
 existing rollout/dependency/proxy gates remain open. No DB, schema, auth, quota,
 dependencies, merge, push, TEST enablement or deployment changes.
+
+### Y4d4: explicit next-purchase test caller — 2026-10-08
+
+Compose the verified next-intent reservation with one canonical keyed creation
+POST. Capture session/caller cancellation before any preparation and fence it
+and the new saved UUID after reservation, before dispatch. Never roll back to
+the terminal UUID, clear evidence, retry a mutation or fall back to legacy
+checkout. After a creation timeout, ordinary explicit retry recovers the new
+durable intent; an obsolete next-purchase request is not rerun automatically.
+Share the typed next-request contract rather than duplicate its shape.
+
+All eight new wire/lifecycle cases reached RED against the missing caller.
+GREEN: 115 club unit/wire cases and eight real Chromium cases, including actual
+old-key check followed by new-key creation against loopback synthetic replies.
+Deleting the post-reservation storage fence fails the corresponding race test;
+restoration passes. Full standalone suite: 1209 pass / 618 SQL/external skip.
+Root/frontend/e2e types, lint, fresh frontend production build (28 pages),
+unchanged API (73 / 25642 bytes), boundaries (504 files), docs and formatting pass.
+Review: canonical lifecycle/transport, no duplicated terminal proof or private
+error surface, bounded single dispatch, key preserved after timeout and fenced
+before creation. This caller is still unwired; result UI/visibility cleanup/
+quota cooldown, actual provider and Safari acceptance remain open. No DB,
+auth/quota/dependency changes, payment enablement, push, merge or deployment.

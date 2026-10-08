@@ -166,6 +166,15 @@ server check. This operation itself creates no payment/order/account and remains
 unwired; the explicit next-purchase dispatch and result UI are still separate
 gates. Actual provider and Safari acceptance are not established by local fixtures.
 
+The subsequent `createNextClubTestCheckout` caller composes this reservation
+with the canonical keyed `club.createCheckout` POST. It captures cancellation
+before the old check and fences that signal and the newly saved UUID again
+before dispatch. It never retries, clears evidence or rolls back to the terminal
+key on failure/timeout. An ordinary explicit retry uses the new saved intent and
+the same canonical selection; it does not run the next-purchase operation again
+with the obsolete old UUID. These callers remain unwired to the club screen and
+do not enable TEST checkout or change legacy checkout behavior.
+
 ### Return-check quotas
 
 The user approved 12 attempts per intent and 60 per resolved client IP in a

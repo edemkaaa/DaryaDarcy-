@@ -50,6 +50,11 @@ export type ClubCheckoutIntent = {
   input: { email: string; plan: "monthly" | "semiannual" };
 };
 
+export type NextClubCheckoutRequest = {
+  previousIdempotencyKey: string;
+  selection: ClubCheckoutSelection;
+};
+
 async function fingerprintSelection(input: ClubCheckoutIntent["input"]) {
   // Read browser globals only on invocation, never during server rendering.
   if (
@@ -164,7 +169,7 @@ export async function getClubCheckoutIntent(
 /** Explicit next purchase: fresh server proof and replacement share one tab lock. */
 export async function reserveNextClubCheckoutIntent(
   client: TRPCClient<AppRouter>,
-  request: { previousIdempotencyKey: string; selection: ClubCheckoutSelection },
+  request: NextClubCheckoutRequest,
   callerSignal?: AbortSignal,
 ): Promise<ClubCheckoutIntent> {
   const sessionSignal = getSessionRequestSignal();

@@ -19,6 +19,7 @@ before(async () => {
         'export { getClubCheckoutIntent, reserveNextClubCheckoutIntent } from "./src/features/club/checkout-intent";',
         'export { pollClubTestCheckout } from "./src/features/club/checkout-polling";',
         'export { createTRPCClient } from "./src/shared/api/trpc";',
+        'export { createNextClubTestCheckout } from "./src/features/club/test-checkout";',
       ].join("\n"),
       resolveDir: frontend,
     },
@@ -52,7 +53,22 @@ before(async () => {
         firstCall();
         await proofGate;
       }
-      if (mode === "quota" && calls.length > 1) {
+      if (mode === "next-dispatch") {
+        response.end(
+          JSON.stringify({
+            result: {
+              data: {
+                json: request.url.endsWith("club.createCheckout")
+                  ? {
+                      url: "https://yoomoney.ru/checkout/payments/test",
+                      user: null,
+                    }
+                  : { state: "canceled" },
+              },
+            },
+          }),
+        );
+      } else if (mode === "quota" && calls.length > 1) {
         response.statusCode = 429;
         response.setHeader("Retry-After", "60");
         response.end(
@@ -244,3 +260,48 @@ test(
     }
   },
 );
+
+test("real next-purchase caller checks the old key and dispatches only the new durable key", async () => {
+  mode = "next-dispatch";
+  calls = [];
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    await page.goto(`${origin}/club?paid=1&payment=returned`);
+    const outcome = await page.evaluate(async (storageKey) => {
+      const api = await import("/checkout.js");
+      const old = await api.getClubCheckoutIntent({
+        email: "prior@example.test",
+      });
+      const result = await api.createNextClubTestCheckout(
+        api.createTRPCClient(),
+        {
+          previousIdempotencyKey: old.idempotencyKey,
+          selection: { email: "next@example.test", plan: "semiannual" },
+        },
+      );
+      return {
+        old: old.idempotencyKey,
+        saved: JSON.parse(localStorage.getItem(storageKey)),
+        result,
+      };
+    }, storageKey);
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].url, "/api/trpc/club.reconcileCheckout");
+    assert.equal(calls[0].key, outcome.old);
+    assert.equal(calls[1].url, "/api/trpc/club.createCheckout");
+    assert.equal(calls[1].method, "POST");
+    assert.equal(calls[1].key, outcome.saved.idempotencyKey);
+    assert.notEqual(calls[1].key, outcome.old);
+    assert.deepEqual(JSON.parse(calls[1].body), {
+      json: { email: "next@example.test", plan: "semiannual" },
+    });
+    assert.ok(!calls[1].body.includes(calls[1].key));
+    assert.deepEqual(outcome.result, {
+      url: "https://yoomoney.ru/checkout/payments/test",
+      user: null,
+    });
+  } finally {
+    await context.close();
+  }
+});

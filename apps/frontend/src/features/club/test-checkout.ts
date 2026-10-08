@@ -5,8 +5,31 @@ import { parseClubCheckoutState } from "./checkout-state";
 import {
   getClubCheckoutIntent,
   readSavedClubCheckoutIntent,
+  reserveNextClubCheckoutIntent,
   type ClubCheckoutSelection,
+  type NextClubCheckoutRequest,
 } from "./checkout-intent";
+
+/** Explicit TEST-only next purchase; never retry or restore the terminal key. */
+export async function createNextClubTestCheckout(
+  client: TRPCClient<AppRouter>,
+  request: NextClubCheckoutRequest,
+  callerSignal?: AbortSignal,
+) {
+  const sessionSignal = getSessionRequestSignal();
+  const signal = callerSignal
+    ? AbortSignal.any([sessionSignal, callerSignal])
+    : sessionSignal;
+  signal.throwIfAborted();
+  const intent = await reserveNextClubCheckoutIntent(client, request, signal);
+  signal.throwIfAborted();
+  if (readSavedClubCheckoutIntent()?.idempotencyKey !== intent.idempotencyKey)
+    throw new Error("Сохранённая заявка изменилась. Повторите проверку.");
+  return client.club.createCheckout.mutate(intent.input, {
+    context: { idempotencyKey: intent.idempotencyKey },
+    signal,
+  });
+}
 
 /** Test-only caller; enablement and terminal purchase lifecycle are separate gates. */
 export async function createClubTestCheckout(
