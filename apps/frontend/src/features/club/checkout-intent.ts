@@ -43,6 +43,38 @@ export type ClubCheckoutIntent = {
   input: { email: string; plan: "monthly" | "semiannual" };
 };
 
+async function fingerprintSelection(input: ClubCheckoutIntent["input"]) {
+  // Read browser globals only on invocation, never during server rendering.
+  if (
+    typeof window === "undefined" ||
+    !window.isSecureContext ||
+    typeof navigator === "undefined" ||
+    !navigator.locks?.request ||
+    typeof crypto === "undefined" ||
+    !crypto.randomUUID ||
+    !crypto.subtle?.digest
+  )
+    throw new CheckoutIntentError("unavailable");
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(
+      JSON.stringify(["yookassa-test-club", input.email, input.plan]),
+    ),
+  );
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
+function persistIntent(storage: Storage, selectionHash: string) {
+  const idempotencyKey = z.uuidv4().parse(crypto.randomUUID());
+  const encoded = JSON.stringify({ version: 1, idempotencyKey, selectionHash });
+  storage.setItem(storageKey, encoded);
+  if (storage.getItem(storageKey) !== encoded)
+    throw new CheckoutIntentError("unavailable");
+  return idempotencyKey;
+}
+
 function parseSavedIntent(prior: string) {
   if (prior.length > 1024) throw new CheckoutIntentError("unreadable");
   try {
@@ -83,27 +115,7 @@ export async function getClubCheckoutIntent(
   if (!parsed.success) throw new CheckoutIntentError("invalid-selection");
   const input = parsed.data;
   try {
-    // Read browser globals only on invocation, never during server rendering.
-    if (
-      typeof window === "undefined" ||
-      !window.isSecureContext ||
-      typeof navigator === "undefined" ||
-      !navigator.locks?.request ||
-      typeof crypto === "undefined" ||
-      !crypto.randomUUID ||
-      !crypto.subtle?.digest
-    )
-      throw new CheckoutIntentError("unavailable");
-
-    const digest = await crypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(
-        JSON.stringify(["yookassa-test-club", input.email, input.plan]),
-      ),
-    );
-    const selectionHash = Array.from(new Uint8Array(digest), (byte) =>
-      byte.toString(16).padStart(2, "0"),
-    ).join("");
+    const selectionHash = await fingerprintSelection(input);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), lockWaitMs);
     try {
@@ -121,15 +133,7 @@ export async function getClubCheckoutIntent(
               throw new CheckoutIntentError("selection-conflict");
             return { idempotencyKey: saved.idempotencyKey, input };
           }
-          const idempotencyKey = z.uuidv4().parse(crypto.randomUUID());
-          const encoded = JSON.stringify({
-            version: 1,
-            idempotencyKey,
-            selectionHash,
-          });
-          storage.setItem(storageKey, encoded);
-          if (storage.getItem(storageKey) !== encoded)
-            throw new CheckoutIntentError("unavailable");
+          const idempotencyKey = persistIntent(storage, selectionHash);
           return { idempotencyKey, input };
         },
       );

@@ -2855,3 +2855,19 @@ orchestration, canonical return caller/errors, captured session and UUID, bounde
 sequential work, no query-parameter proof or mutation retry. A total-budget abort
 may retain pending only for its own recognized abort, not swallow an unrelated
 error. Quota cooldown and hidden-screen cleanup still belong to the unwired UI.
+
+### Y4d3 preparation: reuse intent primitives — 2026-10-08
+
+Separate the upcoming terminal-safe next-purchase feature from its preparatory
+refactor. Extract the strict state-only reply parser in the club feature and
+name the existing fingerprint/persist operations privately. Preserve input
+normalization, capability refusal, storage shape/readback, lock and error order;
+do not introduce a reset API, new purchase behavior or UI consumer here.
+
+Existing 82 unit/wire checks and six native Chromium scenarios pass unchanged.
+Root/frontend/e2e types, lint, fresh frontend build (28 pages), unchanged API
+(73 / 25642 bytes), boundaries (504 files) and formatting pass. Review: one
+feature-owned parser for the two intended terminal-check consumers, no duplicate
+schema/unsafe generic reset callback, storage primitives remain private. Fresh
+full suite after both extractions: 1176 pass / 618 SQL/external skip. No
+authentication, schema, dependency, payment enablement, push or deployment change.
