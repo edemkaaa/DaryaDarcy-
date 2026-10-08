@@ -69,18 +69,7 @@ describe("moderation ID inputs over native HTTP", () => {
       validId: 9811,
       run: (id: number) =>
         client().moderation.dismissCommentReport.mutate({ reportId: id }),
-      want: [
-        ["dismiss", 9811],
-        [
-          "audit",
-          {
-            actorUserId: 9810,
-            action: "dismiss_comment_report",
-            targetType: "comment_report",
-            targetId: 9811,
-          },
-        ],
-      ],
+      want: [["dismiss", 9810, 9811]],
     },
     {
       name: "delete comment without report",
@@ -150,9 +139,9 @@ describe("moderation ID inputs over native HTTP", () => {
     actor = { ...moderator };
     effects = [];
     vi.spyOn(sessions, "optionalUser").mockImplementation(async () => actor);
-    vi.spyOn(comments, "dismissCommentReport").mockImplementation(
-      async (id) => {
-        effects.push(["dismiss", id]);
+    vi.spyOn(platformDb, "dismissCommentReport").mockImplementation(
+      async (actorId, id) => {
+        effects.push(["dismiss", actorId, id]);
       },
     );
     vi.spyOn(comments, "deleteCommentAndReports").mockImplementation(
@@ -358,20 +347,26 @@ describe("moderation ID inputs over native HTTP", () => {
   it.each([
     {
       helper: "dismissCommentReport" as const,
+      reject: () =>
+        vi
+          .spyOn(platformDb, "dismissCommentReport")
+          .mockRejectedValue(new Error("synthetic private SQL detail")),
       run: () =>
         client().moderation.dismissCommentReport.mutate({ reportId: 9811 }),
     },
     {
       helper: "deleteCommentAndReports" as const,
+      reject: () =>
+        vi
+          .spyOn(comments, "deleteCommentAndReports")
+          .mockRejectedValue(new Error("synthetic private SQL detail")),
       run: () =>
         client().moderation.deleteReportedComment.mutate({ commentId: 9811 }),
     },
   ])(
     "does not audit or return success when $helper fails",
-    async ({ helper, run }) => {
-      vi.spyOn(comments, helper).mockRejectedValue(
-        new Error("synthetic private SQL detail"),
-      );
+    async ({ reject, run }) => {
+      reject();
       await expect(run()).rejects.toMatchObject({
         message: "Внутренняя ошибка сервера",
         data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
@@ -406,14 +401,6 @@ describe("moderation ID inputs over native HTTP", () => {
   it.each([
     {
       run: () =>
-        client().moderation.dismissCommentReport.mutate({
-          reportId: 9811,
-          actorUserId: 9999,
-        } as { reportId: number }),
-      want: [["dismiss", 9811]],
-    },
-    {
-      run: () =>
         client().moderation.deleteReportedComment.mutate({
           commentId: 9811,
           actorUserId: 9999,
@@ -438,6 +425,16 @@ describe("moderation ID inputs over native HTTP", () => {
       expect(audit).toMatchObject({ actorUserId: 9810, targetId: 9811 });
     },
   );
+
+  it("uses the session actor, not a client-supplied dismissal actor", async () => {
+    expect(
+      await client().moderation.dismissCommentReport.mutate({
+        reportId: 9811,
+        actorUserId: 9999,
+      } as { reportId: number }),
+    ).toEqual({ ok: true });
+    expect(effects).toEqual([["dismiss", 9810, 9811]]);
+  });
 
   describe.each(operations)("$name", ({ run, validId, want }) => {
     it.each([

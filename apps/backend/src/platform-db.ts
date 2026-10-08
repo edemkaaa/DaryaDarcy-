@@ -104,6 +104,20 @@ export async function logAdminAction(input: AdminActionInput): Promise<void> {
   await writeAdminAction(db, input);
 }
 
+export async function dismissCommentReport(actorUserId: number, reportId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.transaction(async tx => {
+    await tx.delete(commentReports).where(eq(commentReports.id, reportId));
+    await writeAdminAction(tx, {
+      actorUserId,
+      action: "dismiss_comment_report",
+      targetType: "comment_report",
+      targetId: reportId,
+    });
+  });
+}
+
 export async function blockUser(actorId: number, targetUserId: number, reason: string): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

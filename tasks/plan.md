@@ -4415,3 +4415,52 @@ now passes 113 checks, including all 24 native comments cases, real JWT/MySQL an
 comment mutation checks. Default/static evidence and container cleanup are
 recorded in the following report-dismissal checkpoint. Keep this test-only repair
 separate from the moderation transaction change; no real push or provider call.
+
+### M08 report-dismissal audit atomicity — 8 October, 21:15 Moscow
+
+Started from clean `46d48d0`; narrowed the remaining moderation consistency task
+to report dismissal only. Threat: an authorized dismissal must not erase a
+report if its security audit cannot be recorded. Two real SQL RED failures
+reproduced the old post-delete audit window, one through native Nest HTTP and a
+real synthetic JWT. Original HTTP 500 already hid SQL details, but the report
+was gone. Success and absent-report behavior were characterized separately.
+
+The application-owned ModerationService now calls one atomic platform persistence
+operation: acquire DB once, delete only the selected report and use the existing
+typed audit writer in that same transaction. Actor/action/target/details mapping,
+positive-ID schemas, role checks, safe error mapping, missing-DB refusal and
+audited success for an absent target are unchanged. No new generic dispatcher,
+schema, lock ordering, retry, provider or user policy.
+
+Four new disposable SQL checks cover rollback, native HTTP/JWT safe failure,
+selected-row success retaining the comment/other report, and absent-target
+compatibility. Moving the audit back after commit again fails both rollback
+cases; restored fix passes. Existing 66 native moderation checks now double the
+atomic operation, preserving input/role/actor/error assertions. The old fixture
+that deliberately expected a partially committed dismissal is replaced by real
+SQL rollback coverage; its forged-actor protection is retained explicitly.
+The comment-deletion partial-audit fixture stays until that separate repair.
+
+After the separate comments mock repair: **113 focused pass** in 1.84 s, including
+real SQL/JWT/HTTP and all 24 native discussion cases. Fresh final default suite:
+**1804 pass / 628 SQL-external skip**, 132 passing files / 32 skipped, 14.49 s.
+The four new SQL cases were run explicitly, not accepted based on default skips.
+Root/frontend/E2E types, 410.4 kB backend build, unchanged 73-procedure/25642-byte
+API, 560-file boundaries, frontend lint and 51-document check pass.
+
+Review: atomicity and actor/target mapping are verified against persisted rows;
+canonical audit writer reuse avoids a second acquisition or duplicate field
+normalizer. Only a bounded selected-row transaction is added. The old unaudited
+content/comments.dismissCommentReport export has no remaining runtime callers;
+retained pending separate cleanup approval, not silently deleted. No dead path
+is used by the current API.
+
+Only owned `dd-report-check-20261008-1807` was used: fresh backend_test, existing
+MySQL 8.4, loopback ephemeral port, synthetic keys/data, 512 MiB/one CPU and
+tmpfs without mounts. Failure trigger is limited to fixture actor 8410 and
+removed after every case. Verified full ID/owner label/no-OOM/no-mounts, then
+removed this container; label-filtered inventory is empty and its tmpfs is gone.
+No working database, user volume/container, secrets, external mail/push/payment,
+frontend, auth/CORS/proxy/quotas, activation, merge, push or server change.
+Comment-deletion audit atomicity is next; M08 overall, M07c drain decision and
+provider/dependency/rollout gates remain open.

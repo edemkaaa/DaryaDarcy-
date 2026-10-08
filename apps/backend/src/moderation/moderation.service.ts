@@ -10,13 +10,7 @@ export class ModerationService {
   }
 
   async dismissCommentReport(actorUserId: number, reportId: number) {
-    await commentDb.dismissCommentReport(reportId);
-    await platformDb.logAdminAction({
-      actorUserId,
-      action: "dismiss_comment_report",
-      targetType: "comment_report",
-      targetId: reportId,
-    });
+    await platformDb.dismissCommentReport(actorUserId, reportId);
     return { ok: true as const };
   }
 

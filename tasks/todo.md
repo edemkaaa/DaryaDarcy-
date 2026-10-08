@@ -957,7 +957,8 @@
     doubled; no authorization change, real SQL/JWT or durable audit acceptance.
   - [ ] Verify/fix actual moderation mutation/audit transactional consistency
     separately. User block/unblock atomicity is verified below; the existing
-    audit-after-mutation window remains for report dismissal/comment deletion.
+    audit-after-mutation window remains for comment deletion only; report
+    dismissal is verified below.
     Service composition and ID validation do not close the remaining requirement.
   - [x] Notification token lifecycle slice (scope approved): preserve
     registration, consent reads/writes and admin purge contracts while wiring
@@ -1490,5 +1491,18 @@
       возврат audit после commit ломает четыре теста. После восстановления:
       97 focused pass, full 1804 pass / 624 SQL-external skip; типы/build/API/
       boundaries/lint проходят. Собственная одноразовая база удалена.
-- [ ] Атомарность dismiss report/delete comment — отдельный следующий срез.
+- [x] Атомарность dismiss report — следующий checkpoint ниже.
+- [ ] Атомарность delete comment — отдельный следующий срез.
       M07c и provider/dependency/rollout gates не закрыты; без push/deploy.
+
+### M08 report dismissal — 8 October, 21:15 Moscow
+
+- [x] Отклонение жалобы и audit фиксируются вместе. Два SQL RED (один native
+      HTTP/JWT), четыре новых SQL случая, повторный разрыв транзакции снова
+      ломает обе rollback-проверки. Сохраняются остальные жалобы и комментарий.
+- [x] 113 focused pass после отдельного ремонта старой SQL-заглушки уведомлений;
+      full 1804 pass / 628 SQL-external skip, types/build/API/boundaries/lint/docs.
+      Одноразовая tmpfs база удалена; без frontend/push/deploy/provider effects.
+- [ ] Delete comment/audit — следующий независимый срез. Старый неиспользуемый
+      content/comments.dismissCommentReport оставлен до отдельной уборки.
+      M07c и прежние provider/dependency/rollout gates остаются открыты.
