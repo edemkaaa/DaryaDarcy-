@@ -21,6 +21,12 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("checkout links stay on the configured application", () => {
+  it("preserves a plus-addressed recipient through the signed checkout query", () => {
+    const params = new URL(
+      buildCheckoutUrl({ ...input, email: "member+club@example.test" }),
+    ).searchParams;
+    expect(params.get("customer_email")).toBe("member+club@example.test");
+  });
   it("uses Prodamus's documented SBP identifier for the monthly subscription", () => {
     const params = new URL(buildCheckoutUrl(input)).searchParams;
     expect(params.get("payment_method")).toBe("SBP");

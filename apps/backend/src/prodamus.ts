@@ -7,6 +7,7 @@ import * as db from "./db";
 import { moneyMinor, type PaymentProof } from "./billing/protocol";
 import { confirmProviderCancellation, type Profile } from "./billing/cancellation";
 import { createProdamusSign } from "./billing/prodamus-signature";
+import { buildProdamusQuery as buildQuery } from "./billing/prodamus-query";
 import { asProdamusRecord as asRecord, parseProdamusPayload } from "./billing/prodamus-payload";
 import { isPaidStatus, pickOrderId, pickString, pickUserId, subscriptionAction } from "./billing/prodamus-fields";
 
@@ -123,30 +124,6 @@ export function verifyProdamusSign(data: unknown, signature: string): boolean {
   // Demo notifications must never create production entitlements.
   const keys = [...new Set(secrets)];
   return keys.some((key) => signsMatch(createProdamusSign(data, key), signature));
-}
-
-function encodeKey(key: string): string {
-  return encodeURIComponent(key).replace(/%5B/gi, "[").replace(/%5D/gi, "]");
-}
-
-function buildQuery(data: Record<string, unknown>): string {
-  const parts: string[] = [];
-  const append = (key: string, value: unknown) => {
-    if (value === undefined || value === null || value === "") return;
-    if (Array.isArray(value)) {
-      value.forEach((item, index) => append(`${key}[${index}]`, item));
-      return;
-    }
-    if (typeof value === "object") {
-      for (const [nestedKey, nestedValue] of Object.entries(value as Record<string, unknown>)) {
-        append(`${key}[${nestedKey}]`, nestedValue);
-      }
-      return;
-    }
-    parts.push(`${encodeKey(key)}=${encodeURIComponent(String(value))}`);
-  };
-  for (const [key, value] of Object.entries(data)) append(key, value);
-  return parts.join("&");
 }
 
 function paidContent(text: string): string {

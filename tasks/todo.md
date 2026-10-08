@@ -731,6 +731,16 @@
       Existing selectors are not ID/schema validators or payment authorization.
       Binding/signature/replay/transaction policy and disabled-shop gate unchanged;
       no SQL/provider, secret access, activation, frontend, push or deployment.
+    - [x] Outbound PHP query encoder extracted to billing/prodamus-query;
+      signed links and cancellation share one implementation. Ten intended
+      scaffold RED failures; missing value escaping fails four literal fixtures
+      and a new signed-checkout plus-address assertion. Restore: 91 focused checks
+      pass, types/backend build/API/520-file boundaries/frontend lint pass.
+      Overnight ENOSPC blocked full verification; resumed with 14 GiB free,
+      without deleting user files. Fresh full 1422 pass / 618 skip, 111 files pass /
+      30 skip; types/build/API/boundaries/frontend lint/docs/format gates pass.
+      No failures waived; SQL/external acceptance remains outside this checkpoint.
+      No unrelated cache/user-file removal, SQL/provider call, activation or rollout.
   - [x] Shop owned/checkout use cases now use explicit ShopModule/ShopService
     composition in Nest and standalone callers. Router schemas/protected access
     and hard-disabled capability gate remain before checkout service entry;

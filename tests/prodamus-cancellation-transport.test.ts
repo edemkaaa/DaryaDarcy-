@@ -154,6 +154,9 @@ describe("native Prodamus cancellation transport", () => {
       const signature = createHmac("sha256", secret)
         .update(canonical, "utf8")
         .digest("hex");
+      expect(request.body).toBe(
+        `subscription=7&profile=23&${activeField}=0&signature=${signature}`,
+      );
       expect(request.method).toBe("POST");
       expect(request.path).toBe("/rest/setActivity/");
       expect(Object.fromEntries(new URLSearchParams(request.body))).toEqual({

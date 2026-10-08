@@ -3586,3 +3586,64 @@ are cleaned by their harnesses. Signing and merchant-key selection, HTTP parser
 limits, settlement/replay/transaction boundaries, auth/CORS/proxy/quotas, schema,
 dependencies and frontend are unchanged. No TEST/shop activation, merge, push or
 deploy. M06 orchestration/acceptance and M07b2/M07c/N12/rollout gates remain open.
+
+### M06 outbound query extraction WIP / disk blocker, 8 October, 05:44 UTC
+
+Uncommitted local slice: billing/prodamus-query.ts owns the unchanged recursive
+PHP-style query serializer used by signed checkout links and cancellation bodies.
+The parent imports it directly, with no duplicate algorithm or forwarding wrapper.
+Ten literal fixtures protect empty/nullish filtering while retaining zero/false,
+field order, Unicode/space/plus/URL escaping, nested brackets, sparse indices,
+own enumerable fields and frozen input. Ten expected assertions failed against
+the contract-only scaffold. Temporarily removing value escaping fails four pure
+fixtures; a new consumer test also fails because member+club becomes member club
+in the actual signed checkout URL. Escaping is restored. Native user/manager
+cancellation tests now check the full raw body against independent literal
+canonical HMAC fixtures. No provider traffic; owned listener/child cleanup only.
+
+Fresh focused verification after restoring the mutation: seven files / 91 pass.
+Root/frontend/e2e types, backend build (398.4 kB), unchanged 73-procedure /
+25642-byte API, 520-file boundaries, existing frontend lint and selected formatting
+pass. These are local compatibility checks, not actual provider/SQL acceptance.
+
+Full verification is not GREEN: ENOSPC while Vitest writes its owned temporary
+module files. The regular run has 95 failed setup suites, 46 passed files and
+738 passed / 2 skipped checks, not a completed suite. df reports about 120 MiB
+available on the Data volume. The reported Vitest temporary directory is already
+gone after process cleanup. A no-config-change bounded-batch attempt passes its
+first 30 files (150 pass / 27 skip); the second still fails frontend checkout-mode
+import with ENOSPC (297 pass / 44 skip, one failed suite). Do not aggregate these
+partial runs or claim full correctness. No unrelated files/caches were deleted.
+
+Per verification-before-completion, preserve this slice uncommitted rather than
+assert overall success or waive failures. Need user-approved disk cleanup, then
+fresh complete tests/static gates/review before committing it. All further code
+work shares this verification blocker; night continuation is stopped early rather
+than accumulating unverifiable changes. Previous verified HEAD is a4ef6bc.
+No secret/mailbox/cabinet access, SQL/provider effects, auth/CORS/proxy/quota,
+frontend implementation/schema/dependency change, TEST activation, merge, push
+or deployment. Existing release, migration, worker lifecycle and sandbox gates
+remain open; this partial slice does not complete M06 or approve payment rollout.
+
+### M06 outbound query checkpoint resumed, 8 October
+
+User requested continuation after the night run. Read-only disk check now reports
+14 GiB available; no user files or unrelated caches deleted by this task. Existing
+uncommitted query extraction is reviewed, not restarted. Fresh complete Node 22
+suite passes: 1422 pass / 618 skip, 111 files pass / 30 skip (141 total). Root,
+frontend and e2e types pass; backend build 398.4 kB, unchanged 73-procedure /
+25642-byte API, 520-file boundaries and existing frontend lint pass. Docs, selected
+formatting and whitespace checked before the local save point. No backend lint,
+SQL, provider or device acceptance claim. The previous ENOSPC record is retained
+as historical evidence, not an active blocker or a waived test failure.
+
+Review: one pure owning serializer, no database/environment dependencies; callers
+share it directly. PHP bracket keys, value escaping, field omission/order and
+recursive array/object behavior unchanged. Ten independent literal fixtures and
+actual checkout/cancellation consumer assertions protect the extraction. No new
+validation/authorization semantics or side effects. Synthetic HMAC keys only in
+existing controlled fixtures; no secrets read or embedded. Frontend implementation,
+schema/dependencies, auth/CORS/proxy/quotas and provider settings untouched.
+Night automation remains disabled; this is a direct user-requested local turn.
+No fetch/merge/push/deployment, external mail or payment/TEST/shop activation.
+M06 settlement orchestration and existing acceptance/rollout gates remain open.
