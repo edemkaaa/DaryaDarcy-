@@ -311,12 +311,63 @@ it("signed monthly payment preserves the nested subscription binding in settleme
   }
 });
 it("a valid signature from another merchant cannot reach settlement", async () => {
-  const settle = vi.spyOn(db, "settleClubPayment");
+  const settle = vi.spyOn(db, "settleClubPayment").mockResolvedValue(true);
   const response = await notify({ ...payment, domain: "another.payform.ru" });
   expect(response.status).toBe(422);
   expect(await response.text()).toBe("payment binding invalid");
   expect(settle).not.toHaveBeenCalled();
 });
+it.each([
+  [
+    "wrong currency",
+    '{"currency":"USD","customer_email":"member@example.test","domain":"fixture.payform.ru","order_id":"300156","order_num":"club-7-monthly","payment_status":"success","subscription":{"id":"7","profile_id":"23"},"sum":"790.00"}',
+  ],
+  [
+    "missing provider payment ID",
+    '{"currency":"rub","customer_email":"member@example.test","domain":"fixture.payform.ru","order_num":"club-7-monthly","payment_status":"success","subscription":{"id":"7","profile_id":"23"},"sum":"790.00"}',
+  ],
+  [
+    "another subscription",
+    '{"currency":"rub","customer_email":"member@example.test","domain":"fixture.payform.ru","order_id":"300156","order_num":"club-7-monthly","payment_status":"success","subscription":{"id":"8","profile_id":"23"},"sum":"790.00"}',
+  ],
+  [
+    "missing monthly subscription",
+    '{"currency":"rub","customer_email":"member@example.test","domain":"fixture.payform.ru","order_id":"300156","order_num":"club-7-monthly","payment_status":"success","sum":"790.00"}',
+  ],
+  [
+    "missing subscription profile",
+    '{"currency":"rub","customer_email":"member@example.test","domain":"fixture.payform.ru","order_id":"300156","order_num":"club-7-monthly","payment_status":"success","subscription":{"id":"7"},"sum":"790.00"}',
+  ],
+  [
+    "non-numeric subscription profile",
+    '{"currency":"rub","customer_email":"member@example.test","domain":"fixture.payform.ru","order_id":"300156","order_num":"club-7-monthly","payment_status":"success","subscription":{"id":"7","profile_id":"wrong"},"sum":"790.00"}',
+  ],
+])(
+  "signed club payment with %s cannot reach settlement",
+  async (_name, raw) => {
+    // Hand-sorted string-only canonical JSON: independent of production signing.
+    vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "7");
+    const settle = vi.spyOn(db, "settleClubPayment").mockResolvedValue(true);
+    try {
+      const response = await fetch(base + "/api/prodamus/webhook", {
+        method: "POST",
+        body: raw,
+        headers: {
+          "Content-Type": "application/json",
+          Sign: createHmac("sha256", "nest-webhook-fixture-secret")
+            .update(raw)
+            .digest("hex"),
+        },
+      });
+      expect(response.status).toBe(422);
+      expect(await response.text()).toBe("payment binding invalid");
+      expect(response.headers.get("set-cookie")).toBeNull();
+      expect(settle).not.toHaveBeenCalled();
+    } finally {
+      vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "");
+    }
+  },
+);
 it("invalid signatures cannot reach settlement", async () => {
   const settle = vi.spyOn(db, "settleClubPayment");
   const response = await notify(payment, "wrong-merchant-key");

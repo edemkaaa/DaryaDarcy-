@@ -751,6 +751,17 @@
       full 1433 pass / 618 skip, types/build/API/521-file boundaries/lint/docs pass.
       Decoding is not authentication or SQL/provider acceptance. No activation,
       frontend implementation, schema/dependency, auth policy or rollout change.
+    - [x] Club payment field binding extracted to billing/prodamus-binding with
+      explicit trusted configuration and guard clauses; original-body HMAC,
+      merchant-key selection and durable settlement checks remain in the handler.
+      35 independent expected-value fixtures / 12 intended scaffold RED failures
+      preserve monthly/semiannual rules and legacy profile boundaries. Six new
+      signed native rejection cases cannot dispatch settlement or create a cookie.
+      Dropping domain matching fails three pure cases and native HTTP; restored:
+      162 focused checks, full 1474 pass / 618 skip, types/build/API/522-file
+      boundaries/frontend lint/docs/format/whitespace pass. Field matching is not
+      authentication or SQL/provider acceptance; M06 orchestration remains open.
+      No frontend, schema/dependency, policy, external effects, activation or rollout.
   - [x] Shop owned/checkout use cases now use explicit ShopModule/ShopService
     composition in Nest and standalone callers. Router schemas/protected access
     and hard-disabled capability gate remain before checkout service entry;

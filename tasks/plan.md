@@ -3681,3 +3681,34 @@ no actual MySQL/provider effects, secrets/mailbox/cabinet access or external mai
 Frontend implementation, schema/dependencies, auth/CORS/proxy/quotas and provider
 settings untouched. No TEST/shop activation, merge/push/deploy or resumed automation.
 M06 orchestration and existing database/sandbox/lifecycle/rollout gates remain open.
+
+### M06 decomposition slice — explicit club field binding, 8 October
+
+billing/prodamus-binding.ts replaces the dense inline merchant/currency/subscription
+predicate with a typed, pure hasClubPaymentBinding contract and guard clauses.
+Only decoded payment fields and explicit trusted domain/subscription configuration
+enter it; no environment, HTTP, key selection, HMAC, SQL or side effects. Field
+matching is not signature authentication or settlement authorization. The handler
+still verifies the original decoded payload with the selected merchant key and
+requires durable settlement success. Cancellation and shop flows are untouched.
+
+35 independent expected-value cases preserve exact domain/ID equality, case-insensitive
+RUB, optional recurring fields, legacy zero/leading-zero profiles and the 64-digit
+boundary, configured-subscription requirements and the semiannual exception. Twelve
+expected scaffold RED failures preceded implementation. Six new independently signed
+native malformed-payment cases pass before/after extraction and assert 422, no cookie
+and no settlement dispatch. Dropping domain matching fails three pure cases and the
+native foreign-merchant case (200 instead of 422); restored focused suite: seven files,
+162 checks pass. No claim that legacy field matching replaces immutable SQL binding.
+
+Fresh full Node 22 suite: 1474 pass / 618 skip, 113 files pass / 30 skip (143 total).
+Root/frontend/e2e types, backend build (399.2 kB), unchanged 73-procedure / 25642-byte
+API, 522-file boundaries, existing frontend lint, selected formatting and whitespace
+pass. Review: one owner for binding rules, smaller handler, no new policy or data
+normalization, logging, dependencies, persistence or external effects. Documentation
+links checked before the local commit. No backend lint, live SQL or provider acceptance
+claim. Existing controlled native/compiled harnesses clean their owned resources.
+Frontend implementation, schema/dependencies, auth/CORS/proxy/quotas and provider
+configuration untouched. No secret/mailbox/cabinet access, external mail, TEST/shop
+activation, fetch/merge/push/deploy or resumed automation. M06 orchestration and
+existing database/sandbox/lifecycle/release gates remain open.

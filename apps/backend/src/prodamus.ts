@@ -11,6 +11,7 @@ import { buildProdamusQuery as buildQuery } from "./billing/prodamus-query";
 import { asProdamusRecord as asRecord, parseProdamusPayload } from "./billing/prodamus-payload";
 import { isPaidStatus, pickOrderId, pickString, subscriptionAction } from "./billing/prodamus-fields";
 import { readProdamusPayment } from "./billing/prodamus-payment";
+import { hasClubPaymentBinding } from "./billing/prodamus-binding";
 
 export { createProdamusSign } from "./billing/prodamus-signature";
 
@@ -390,12 +391,18 @@ export async function handleProdamusWebhook(req: Request, res: Response) {
     }
 
     const { email, userId, sum, orderId, proof } = readProdamusPayment(body);
-    const { domain } = proof;
     const isClub=action==="auto_payment" || orderId.startsWith("club-") || orderId.startsWith("club6m-");
     if(isClub) {
       const allowedDomain=new URL(getPayformUrl()).hostname;
       const key=action==="auto_payment"?(getSubscriptionSecret()||getSecret()):getSecret();
-      if(domain!==allowedDomain || !key || !signsMatch(createProdamusSign(body,key),signature) || !proof.paymentId || proof.currency.toLowerCase()!=="rub" || (proof.subscriptionId && proof.subscriptionId!==subscriptionId()) || (proof.subscriptionId && !/^\d{1,64}$/.test(proof.profileId||"")) || (subscriptionId() && !orderId.startsWith("club6m-") && !proof.subscriptionId)) {
+      if (
+        !hasClubPaymentBinding(proof, orderId, {
+          domain: allowedDomain,
+          subscriptionId: subscriptionId(),
+        }) ||
+        !key ||
+        !signsMatch(createProdamusSign(body, key), signature)
+      ) {
         res.status(422).send("payment binding invalid");return;
       }
     }
