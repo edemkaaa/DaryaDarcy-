@@ -705,6 +705,16 @@
     types/build/API/boundaries/docs pass; no live SQL/provider replay claim.
   - [ ] Webhook/settlement business-logic decomposition and shop service composition; preserve signature,
     payment replay protection and transaction boundaries with their own tests.
+  - [x] Preserve own JSON fields throughout Prodamus signature normalization,
+    including root/nested/array-element __proto__. Two null-prototype dictionaries
+    prevent this property from being lost before HMAC; the PHP form parser's
+    existing blocked-key policy remains unchanged. Nine expected RED failures
+    (including native HTTP 200 instead of 400), then 90 focused checks pass;
+    reverting only the sorting dictionary produces eight failures again.
+    Full 1285 pass / 618 skip, types/build/lint/API/510-file boundaries pass.
+    This is payload-integrity hardening, not a demonstrated paid-access bypass,
+    provider compatibility acceptance or completion of M06. No SQL/provider,
+    frontend, secret, authorization, push, merge or deployment changes.
   - [x] Remove millisecond-based shop checkout order collisions from both tRPC
     and legacy redirects. Three concurrent same-clock failures reproduced;
     UUID suffixes retain product parsing and fit the existing 80-character column.

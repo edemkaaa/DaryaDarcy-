@@ -3276,3 +3276,39 @@ This turn is documentation-only. No new runtime behavior or RED/GREEN result is
 claimed. Preserve the previously verified M08a commit and all release blockers.
 Verification: 50-document local-link check and diff whitespace checks pass;
 runtime code is unchanged, so no new application test/build result is claimed.
+
+### M06 signature integrity — own JSON keys, 8 October
+
+Local investigation reproduced a narrow canonicalization defect in
+apps/backend/src/prodamus.ts. JSON parsing/spread preserve an own __proto__ key,
+but assigning that key into ordinary objects in stringifyValues and sortDeep
+does not preserve it as an own property. Consequently an otherwise unchanged
+signed JSON callback can acquire that field without invalidating its signature.
+The native loopback HTTP reproduction returns 200/ignored before the fix where
+400/signature incorrect is expected. No paid-access, settlement or global
+Object.prototype pollution exploit is demonstrated by this pending-event test.
+
+Both normalization dictionaries now have a null prototype, retaining every own
+JSON key as signature data. Recursive scalar conversion, key sorting, array
+order, Unicode, slash escaping, signature keys and comparison are unchanged.
+The existing PHP form/query parser intentionally blocks prototype-related path
+components; that separate ingress policy is unchanged. This is not a protocol
+rewrite, a parser refactor or a claim that Prodamus sends these unusual fields.
+
+Acceptance uses only synthetic keys and independent, hand-derived canonical
+strings: ordinary nested data plus root scalar/object/null, nested and array
+__proto__ fields; adding an unsigned field must fail verification. The real Nest
+HTTP case rejects the tampered callback before settlement. Nine expected RED
+assertions were observed; GREEN passes all 90 focused checks across six billing
+test files. A deliberate regression of the sorting dictionary alone fails eight
+assertions, then restoring it passes again. Input JSON remains unmodified.
+
+Fresh verification on Node 22: full suite 1285 pass / 618 skip, 102 test files
+pass / 30 skip; root/frontend/e2e types, backend build (390.8 kB), frontend lint,
+unchanged API (73 procedures / 25642 bytes) and 510-file dependency boundaries
+pass. Skipped SQL/external suites are not acceptance evidence. Documentation
+links, selected-test formatting and diff whitespace are checked before commit.
+No dependency, schema, frontend, auth/CORS/proxy/quota, provider/SMTP request,
+secret read, merge, push, TEST activation or deployment occurs in this slice.
+M06 decomposition, durable SQL replay/provider acceptance, M07 shutdown decision
+gate, N12 outbox and all previous rollout/dependency blockers remain open.

@@ -37,6 +37,20 @@ afterAll(async () => {
   await application?.close();
   vi.unstubAllEnvs();
 });
+it("rejects an added own JSON __proto__ field before settlement", async () => {
+  const settlement = vi.spyOn(db, "settleClubPayment");
+  const signature = createHmac("sha256", "nest-webhook-fixture-secret")
+    .update('{"payment_status":"pending"}')
+    .digest("hex");
+  const response = await fetch(base + "/api/prodamus/webhook", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Sign: signature },
+    body: '{"payment_status":"pending","__proto__":{"note":"unsigned"}}',
+  });
+  expect(response.status).toBe(400);
+  expect(await response.text()).toBe("signature incorrect");
+  expect(settlement).not.toHaveBeenCalled();
+});
 it.each(["POST", "GET"])(
   "%s webhook uses its application-bound handler, not the legacy runtime global",
   async (method) => {
