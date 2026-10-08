@@ -8,6 +8,15 @@ import { confirmPostPublication, type PostPublication } from "./content/publicat
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
 import { deletePost as persistPostDeletion } from "./content/post-deletion";
 import {
+  getVideos as readVideos,
+  getVideoById as readVideoById,
+  getVideoByYoutubeId as readVideoByYoutubeId,
+  createVideo as persistVideoCreation,
+  bulkImportVideos as persistVideoImport,
+  updateVideo as persistVideoUpdate,
+  deleteVideo as persistVideoDeletion,
+} from "./content/video-repository";
+import {
   createArticle as persistArticleCreation,
   updateArticle as persistArticleUpdate,
   deleteArticle as persistArticleDeletion,
@@ -213,7 +222,7 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
 
 // ── Feed queries ──
 
-import { posts, tags, likes, savedPosts, videos, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, articles, Article } from "../../../packages/database/src/schema";
+import { posts, tags, likes, savedPosts, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, articles, Article } from "../../../packages/database/src/schema";
 import { normalizeArticleBlocks } from "../../../packages/shared/src/article-blocks";
 import { desc, asc, and, sql, or, ne, gte, lte, isNotNull, isNull } from "drizzle-orm";
 
@@ -816,79 +825,37 @@ export async function getLatestPublishedPost(
 
 // Get all published videos ordered by sortOrder
 export async function getVideos(): Promise<Video[]> {
-  const db = await getDb();
-  if (!db) return [];
-
-  const rows = await db
-    .select()
-    .from(videos)
-    .where(eq(videos.published, true))
-    .orderBy(asc(videos.sortOrder), desc(videos.createdAt));
-  return rows.map((row) => ({ ...row, title: (row.title || "").normalize("NFC") }));
+  return readVideos(await getDb());
 }
 
 // Public details must obey the same publication gate as the list.
 export async function getVideoById(id: number): Promise<Video | undefined> {
-  const db = await getDb();
-  if (!db) return undefined;
-
-  const result = await db.select().from(videos)
-    .where(and(eq(videos.id, id), eq(videos.published, true))).limit(1);
-  const row = result[0];
-  if (!row) return undefined;
-  return { ...row, title: (row.title || "").normalize("NFC") };
+  return readVideoById(await getDb(), id);
 }
 
 // Get video by YouTube ID (for dedup)
 export async function getVideoByYoutubeId(youtubeId: string): Promise<Video | undefined> {
-  const db = await getDb();
-  if (!db) return undefined;
-
-  const result = await db.select().from(videos).where(eq(videos.youtubeId, youtubeId)).limit(1);
-  return result[0];
+  return readVideoByYoutubeId(await getDb(), youtubeId);
 }
 
 // Create a video entry
 export async function createVideo(data: InsertVideo): Promise<number> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const result = await db.insert(videos).values(data);
-  return Number(result[0].insertId);
+  return persistVideoCreation(await getDb(), data);
 }
 
 // Bulk import videos (skip duplicates)
 export async function bulkImportVideos(items: InsertVideo[]): Promise<number> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  return db.transaction(async (tx) => {
-    let imported = 0;
-    for (const item of items) {
-      const [existing] = await tx.select({ id: videos.id }).from(videos)
-        .where(eq(videos.youtubeId, item.youtubeId)).limit(1);
-      if (existing) continue;
-      await tx.insert(videos).values(item);
-      imported++;
-    }
-    return imported;
-  });
+  return persistVideoImport(await getDb(), items);
 }
 
 // Update video
 export async function updateVideo(id: number, data: Partial<InsertVideo>): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  await db.update(videos).set(data).where(eq(videos.id, id));
+  return persistVideoUpdate(await getDb(), id, data);
 }
 
 // Delete video
 export async function deleteVideo(id: number): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  await db.delete(videos).where(eq(videos.id, id));
+  return persistVideoDeletion(await getDb(), id);
 }
 
 // ── Enhanced Admin: Post queries with target/status ──

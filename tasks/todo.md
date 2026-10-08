@@ -78,6 +78,9 @@ path. No key disclosed, callback changed, payment made or service deployed here.
   legacy unused comment accessors removed; all tRPC namespaces now have domain
   modules, the root composes only. Remaining work: split db.ts/platform-db.ts
   repositories and large admin internals.
+  Video catalogue's seven persistence operations are now separated with an
+  unchanged caller facade; see the 9 October checkpoint below. Other domains
+  and removal of compatibility facades remain open.
 - [ ] Green checkpoint: API contract, tests, check, backend build.
 
 ## Phase 3 — Frontend
@@ -1805,3 +1808,17 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] All interleavings and automatic retry/conflict UX are not accepted by this
       forced collision. No runtime/frontend/server/policy/provider change; prior
       video metadata/storage, M07c human drain bound and release gates remain open.
+### M05 video catalogue persistence extraction — 9 October, 02:28 Moscow
+
+- [x] Move the seven video catalogue SQL operations into a typed connection-free
+  content/video-repository.ts; preserve db.ts API/getDb ownership, publication
+  predicates, ordering/NFC, internal raw dedup, write refusals and bulk transaction.
+  Executable ASTs match the pre-extraction statements. Seven no-DB cases and three
+  SQL CRUD/publication cases supplement native import/publication coverage; false
+  success and wrong-row deletion mutations both fail before restoration. Final
+  focused 50 pass (40 SQL + seven no-DB + three built-runtime); full 1838 pass /
+  768 SQL-external skips. Types/build/API/564-file boundaries/lint/docs pass.
+  Owned tmpfs-only MySQL removed, no working DB/provider/remote changes. Existing
+  video SQL fixtures require sequential files because fixed cleanup IDs overlap
+  auto-increment imports; this harness limitation is not claimed fixed. M05/M08,
+  M07c and rollout/dependency/provider gates remain open. Details in plan.md.

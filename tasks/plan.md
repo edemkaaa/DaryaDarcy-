@@ -5379,3 +5379,52 @@ Logs: /tmp/daryadarcy-bulk-race-{baseline,atomicity-red,final-focused,final-full
 final-types,final-build,final-api,final-boundaries,final-lint}.log. No real media
 fetching/storage, production database, worker, frontend/server, provider/payment,
 merge/push/deploy. Existing M07c and rollout/dependency/provider gates stay open.
+
+### M05 video catalogue persistence extraction — 9 October, 02:24 Moscow
+
+Continue the explicit Phase 2/M08 repository split, not another payment wrapper.
+Extract only the seven catalogue operations (published list/detail, internal
+YouTube dedup, create/update/delete, atomic bulk import) from db.ts. Preserve all
+public function signatures in the compatibility facade, one lazy getDb per call,
+no-DB read defaults/write refusals, query predicates/order/NFC behavior and the
+exact bulk transaction/conflict policy. New repository accepts a typed nullable
+database handle, imports no connection owner and creates no pool/listener/worker;
+this avoids a new db-to-repository-to-db cycle. First characterize no-DB behavior
+and run existing native SQL publication/import coverage. Prove the no-DB refusal
+test catches false success, then restore and move the already tested statements.
+Run real SQL/native/compiled, full/types/build/API/boundaries/lint/docs and review
+one local commit. No schema/auth/CORS/proxy/quota, frontend, external media/storage,
+provider/payment, working database, merge/push or server rollout changes.
+
+Verified: seven operations now live in content/video-repository.ts; db.ts keeps
+the existing caller-facing facade and acquires the same connection once. A
+structural TypeScript AST comparison against HEAD confirms every executable
+statement after connection acquisition is unchanged (printer-text comparison
+initially differed only because of formatting). No new connection owner, dependency,
+cycle, input policy or query. New seven-case no-DB test detects false bulk success
+(mutation RED: one failure/six passes); restored original source before extraction.
+Three real SQL cases additionally accept raw stored/public NFC titles, hidden-row
+dedup, ID-scoped update with untouched-column/non-target snapshots, and repeated
+delete of a missing row. Deliberately targeting id+1 fails the delete case; restored
+ID predicate before final GREEN. Existing native SQL suites accept ordered import,
+dedup, rollback and forced competing-batch recovery. Final focused six files:
+50 pass (40 real SQL cases, seven no-DB, three compiled executable cases). Full
+default: 1838 pass / 768 SQL-external skips. Types, backend build, unchanged API
+(73 procedures / 25642 bytes), 564-file boundaries, lint and docs pass.
+
+Harness limitations are explicit: first baseline used the wrong disposable port
+and failed before SQL; corrected URL. The three existing SQL video suites also
+overlap auto-increment IDs and publication cleanup when run concurrently. Serial
+file execution passes before/after the move; no retries, skipped assertions or
+runtime fixes hide that fixture isolation limitation. Five-axis self-review found
+no query/auth/performance drift: same predicates/order/normalization, internal
+dedup remains raw, same one bulk transaction, parameterized Drizzle operations,
+same unavailable-DB contract and bounded fixtures. Review skill's linked auxiliary
+checklists are absent locally; primary criteria and repository gates were used.
+Owned MySQL fc4b2789... validated by full ID/owner: tmpfs only, no mounts/OOM;
+removed after verification, matching inventory empty. Only this run's disposable
+fixture was deleted. Logs: /tmp/daryadarcy-video-repo-{baseline,no-db-red,crud-red,
+crud-green,final-focused,final-full,final-types,final-build,final-api,
+final-boundaries,final-lint,final-docs}.log. This closes only catalogue persistence
+extraction, not all M05/M08 repository/admin work, M07c or rollout/provider/dependency
+gates. No frontend, shared server/database, payment/provider, merge/push/deployment.
