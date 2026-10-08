@@ -13,9 +13,21 @@ export const userFacingErrorsLink: TRPCLink<AppRouter> =
         complete: () => observer.complete(),
         error: (error) => {
           const message = getRequestErrorMessage(error);
+          const response = error.meta?.response;
+          const retryAfter =
+            response instanceof Response
+              ? response.headers.get("Retry-After")
+              : null;
+          const seconds =
+            retryAfter && /^\d+$/.test(retryAfter) ? Number(retryAfter) : 0;
           observer.error(
             new TRPCClientError<AppRouter>(message, {
               cause: error.cause,
+              // Keep only the validated delay, not private response/body metadata.
+              meta:
+                Number.isSafeInteger(seconds) && seconds > 0
+                  ? { retryAfterSec: seconds }
+                  : undefined,
               result: error.shape
                 ? { error: { ...error.shape, message } }
                 : undefined,

@@ -177,6 +177,13 @@ do not enable TEST checkout or change legacy checkout behavior.
 
 ### Return-check quotas
 
+The canonical user-facing tRPC error link preserves a positive safe-integer
+delta-seconds `Retry-After` as allowlisted scalar `meta.retryAfterSec`. It does
+not forward provider response/header/body metadata, accept malformed/negative/
+fractional values or schedule retries. The quota endpoint emits delta seconds,
+not HTTP dates. This repairs lost cooldown information without changing any
+server quota, authentication, batching or transport deadline.
+
 The user approved 12 attempts per intent and 60 per resolved client IP in a
 60-second window. Apply the HTTP policy before input/service execution, after
 rejecting batching. The IP bucket counts malformed/missing UUIDs and disallowed

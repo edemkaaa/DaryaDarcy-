@@ -140,6 +140,48 @@ it("normalizes real tRPC transport errors without discarding their status", asyn
   });
 });
 
+it.each(["45", "0", "-1", "1.5", "invalid", "99999999999999999999"])(
+  "tRPC preserves only valid Retry-After delay, without provider response metadata (%s)",
+  async (header) => {
+    const { createTRPCClient } =
+      await import("../apps/frontend/src/shared/api/trpc");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                json: {
+                  message: "PRIVATE_INTERNAL_DETAILS",
+                  code: -32029,
+                  data: { code: "TOO_MANY_REQUESTS", httpStatus: 429 },
+                },
+              },
+            }),
+            {
+              status: 429,
+              headers: { "Retry-After": header, "X-Private": "PRIVATE_HEADER" },
+            },
+          ),
+      ),
+    );
+    const error = await createTRPCClient()
+      .club.reconcileCheckout.mutate(undefined, {
+        context: { idempotencyKey: "8d427a00-4a92-4508-874c-b265d7e92d1c" },
+      })
+      .catch((error: unknown) => error);
+    expect(error).toMatchObject({
+      message: "Слишком много запросов. Попробуйте позже.",
+      data: { httpStatus: 429 },
+    });
+    expect((error as { meta?: unknown }).meta).toEqual(
+      header === "45" ? { retryAfterSec: 45 } : undefined,
+    );
+    expect(JSON.stringify(error)).not.toContain("PRIVATE");
+  },
+);
+
 it("preserves cancellation from an already-aborted caller", async () => {
   const controller = new AbortController();
   controller.abort();

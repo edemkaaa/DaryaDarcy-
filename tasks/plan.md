@@ -2921,3 +2921,20 @@ error surface, bounded single dispatch, key preserved after timeout and fenced
 before creation. This caller is still unwired; result UI/visibility cleanup/
 quota cooldown, actual provider and Safari acceptance remain open. No DB,
 auth/quota/dependency changes, payment enablement, push, merge or deployment.
+
+### Return cooldown transport prerequisite — 2026-10-08
+
+The result-controller RED run exposed a separate canonical transport bug:
+HTTP Retry-After 45 was discarded when userFacingErrorsLink reconstructed the
+tRPC error, making the caller fall back to 60. Trace: upstream tRPC error.meta
+has the buffered Response; the reconstructed error retained shape/cause but no
+metadata. A dedicated real keyed-wire test reaches RED on the missing 45-second
+scalar, while invalid/negative/fractional/unsafe-number cases already pass.
+Preserve only validated positive safe-integer delta seconds, not the private
+response/body/header metadata. No quotas or retries change.
+
+All 19 request-lifecycle cases pass. Combined working tree (including the next
+controller slice): 1227 pass / 618 SQL/external skip; root/frontend/e2e types,
+lint, build, unchanged API and boundaries pass. Separate this transport repair
+from the controller feature commit. No dependency, DB, auth, deployment, merge
+or push changes; dependency/release and actual provider gates remain open.
