@@ -9,7 +9,7 @@ import { confirmProviderCancellation, type Profile } from "./billing/cancellatio
 import { createProdamusSign } from "./billing/prodamus-signature";
 import { buildProdamusQuery as buildQuery } from "./billing/prodamus-query";
 import { asProdamusRecord as asRecord, parseProdamusPayload } from "./billing/prodamus-payload";
-import { isPaidStatus, pickOrderId, pickString, subscriptionAction } from "./billing/prodamus-fields";
+import { hasProdamusDemoMarker, isPaidStatus, pickOrderId, pickString, subscriptionAction } from "./billing/prodamus-fields";
 import { readProdamusPayment } from "./billing/prodamus-payment";
 import { hasClubPaymentBinding } from "./billing/prodamus-binding";
 import { ClubSettlementService } from "./billing/club-settlement.service";
@@ -376,6 +376,12 @@ async function processProdamusWebhook(
     const signed = signature ? verifyProdamusSign(body, signature) : false;
     if (!signed) {
       res.status(400).send("signature incorrect");
+      return;
+    }
+    // Prodamus documents demo flows that retain the ordinary signing key.
+    // Keep this entitlement/cancellation ingress real-payment-only.
+    if (hasProdamusDemoMarker(body)) {
+      res.status(400).send("demo payment not accepted");
       return;
     }
     const action = subscriptionAction(body);

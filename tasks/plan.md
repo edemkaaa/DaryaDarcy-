@@ -3746,3 +3746,76 @@ No frontend implementation, dependencies, auth/CORS/proxy/quotas, provider setti
 secrets/mailbox/cabinet access, external mail, TEST/shop activation, merge/push/deploy
 or automation changes. Remaining webhook orchestration, SQL/provider and release
 gates stay open; this completes only the service-composition substep of M06.
+
+## Prodamus sandbox connection — 8 October, proposed rollout contract
+
+User supplied a time-limited testpage1.payform.ru cabinet and requested test
+connection. Inspection found other projects' subscription definitions and global
+ordinary/recurring callback targets. Demo URL creation and opening are verified,
+not payment completion or application access. Do not replace those targets, use
+other projects' subscriptions, or send real recipients during an automated probe.
+
+Official [webhook documentation](https://help.prodamus.ru/payform/tekhnicheskaya-dokumentaciya/webhook-ob-oplate)
+distinguishes user-selected demo mode (ordinary signature) from system-disabled
+live mode (key with demo suffix). A valid ordinary signature alone is therefore
+not a sufficient real-payment boundary. Extend the existing B01 guard first:
+top-level demo_mode/demoMode and subscription.demo must prevent entitlement and
+cancellation processing, including ambiguous/non-zero markers. Absent, empty,
+false and numeric/string zero retain existing live behavior. This guard does not
+prove the absence of demo mode when a provider omits the field.
+
+Proposed implementation remains within billing (Nest/TypeScript, existing
+Prodamus parser/HMAC/formatter; no SDK or dependency/schema changes in the probe):
+
+1. PD1: repair the existing real-payment demo boundary with failing fixture and
+   native HTTP tests. No new test-mode acceptance on the real webhook.
+2. PD2, after human review of this contract: add a separate, default-off sandbox
+   diagnostic link/receiver. Pin the test merchant and approved application host;
+   require dedicated secret configuration. Send only an opaque demo order and
+   synthetic contact fixtures. Explicit demo_mode=1 and one-off payment; no card
+   saving, subscription, settlement, account creation, mail or SQL writes.
+   A signature-valid diagnostic event is not authenticated real-money proof in
+   a shared-key cabinet. Browser return is never proof. Do not present receipt
+   acknowledgement as access activation or durable payment reconciliation.
+3. PD3, after PD2: separately review the exact rollout/rollback and open only the
+   required sandbox routes on the test host. Preserve all existing containers,
+   overlays, databases and live-payment/shop blocks; no broad outbound access.
+   Verify dependency reachability before rollout, receiver delivery with fake
+   data, incorrect signature/domain/amount/demo rejection and unchanged access.
+4. PD4, after diagnostic/provider evidence: agree isolated test-entitlement
+   persistence and user-visible contract before any demo can grant club access.
+   Test database replay/rollback only on a disposable, owned database, not the
+   working stage DB. Production webhook must still reject demo notifications.
+5. Recurring testing remains blocked on support confirmation of notification
+   isolation and creation of an owned test subscription. An invoice/form alone
+   does not resolve it. No global key rotation, callback replacement or reuse of
+   existing subscription IDs is authorized by a generic connection request.
+
+Production code belongs in apps/backend/src/billing, behavioral/native tests in
+tests, configuration placeholders in .env.example, operational evidence in the
+existing staging guide. Match explicit typed boundaries and current formatting;
+for example a diagnostic reply is `{ mode: "demo", accessGranted: false }`, never
+a successful club checkout reply. Preserve frontend and tRPC contracts initially.
+
+Per slice: Node 22 + pnpm 9.12.0; focused `pnpm exec vitest run <test files>`,
+then `pnpm test`, `pnpm check`, `pnpm build`, `pnpm check:api`,
+`pnpm check:boundaries`, `pnpm check:docs`, diff review and local atomic commit.
+SQL/external suites remain opt-in; skips are not acceptance. No secrets in Git,
+logs or generated build artifacts. Public URL/merchant/key mismatch fails closed.
+The spec-driven-development review gate for PD2–PD4 is pending; user was asked
+to confirm the staged diagnostic-before-entitlement approach. No server change
+or paid/test transaction is claimed from the current source-only guard.
+
+PD1 checkpoint: eight fixture RED failures (demo success was acknowledged and
+forwarded; demo cancellation reached profile validation) and native HTTP RED
+(200 instead of 400) establish the regression. Seven positive/ambiguous marker
+fixtures, four explicit disabled-marker compatibility fixtures, cancellation
+and independent hand-canonicalized native HMAC cover the new guard. Only the
+durable persistence boundary is doubled; production parsing/signature/dispatch
+run. Fresh full suite: 1499 pass / 618 SQL/external skip, 114 files pass / 30 skip.
+Root/frontend/e2e types, 401.1 kB backend build, unchanged 73-procedure/25642-byte
+API and 523-file boundaries pass. No actual provider sample/payment, SQL,
+receipt/outbox replay, account, frontend or deployed runtime change is claimed.
+Review: check every own marker rather than allowing a disabled alias to shadow
+an enabled alias; unknown marker shapes fail closed; no secret/body logging,
+side effects, new dependencies, auth/CORS/proxy/quota or schema changes.

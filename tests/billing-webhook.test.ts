@@ -160,6 +160,49 @@ describe("billing notification trust boundary", () => {
     expect(result.body).toBe("success");
     expect(state.paid).toBe(true);
   });
+  it.each([
+    { demo_mode: "1" },
+    { demo_mode: 1 },
+    { demoMode: true },
+    { DEMO_MODE: "1" },
+    { demo_mode: ["0", "1"] },
+    { subscription: { demo: "1" } },
+    { subscription: { Demo: 1 } },
+  ])(
+    "rejects a demo marker even with the ordinary valid key: %j",
+    async (marker) => {
+      const result = await notify(
+        { ...payment, ...marker },
+        "test-only-secret",
+      );
+      expect(result.status).toBe(400);
+      expect(state.paid).toBe(false);
+      expect(state.cancelled).toBe(false);
+    },
+  );
+  it.each(["0", 0, false, ""])(
+    "preserves live processing for a disabled demo flag %j",
+    async (demo) => {
+      const result = await notify(
+        { ...payment, demo_mode: demo, subscription: { demo } },
+        "test-only-secret",
+      );
+      expect(result.status).toBe(200);
+      expect(state.paid).toBe(true);
+    },
+  );
+  it("rejects a demo cancellation before profile binding or persistence", async () => {
+    const result = await notify(
+      {
+        ...payment,
+        subscription: { demo: "1", action_code: "deactivation" },
+      },
+      "test-only-secret",
+    );
+    expect(result.status).toBe(400);
+    expect(state.cancelled).toBe(false);
+    expect(state.paid).toBe(false);
+  });
   it("rejects signed cancellation without a bound subscription profile", async () => {
     const result = await notify(
       { ...payment, subscription: { action_code: "deactivation" } },

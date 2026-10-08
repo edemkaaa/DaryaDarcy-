@@ -1,5 +1,28 @@
 # Daryadarcy Modular Monorepo
 
+## Prodamus sandbox connection — 2026-10-08
+
+- [x] Inspect supplied test cabinet and generate/open a synthetic demo invoice.
+  Shared subscription definitions and global callback targets found; no global
+  settings changed. Invoice creation is not payment/access acceptance.
+- [x] PD1: real webhook refuses ordinary-key demo markers before granting or
+  cancelling; fixture + native HTTP RED/GREEN, existing live regressions,
+  full/types/build/API/boundaries/docs review and local commit.
+  Eight fixture failures and native HTTP 200-before/400-after reproduced the
+  missing guard. 13 new cases; full Node 22 suite 1499 pass / 618 SQL/external
+  skip. Types/API/build/boundaries pass. Source-only; no provider payment or
+  database acceptance, no server flags/callback/key/deployment changes.
+- [ ] Review proposed contract in plan.md before PD2–PD4 implementation.
+- [ ] PD2: default-off separate synthetic-only diagnostic link/receiver, no
+  persistence/access/mail. Verify host/merchant/key/amount/demo rejection and
+  browser-return non-authority. No live webhook demo-key fallback.
+- [ ] PD3 after PD2: scoped test deployment/rollback and actual notification
+  delivery; retain working data/overlays, audit/reachability and live blocks.
+- [ ] PD4 after PD3: separately approved isolated test-entitlement contract and
+  disposable SQL replay/rollback acceptance before demo access activation.
+- [ ] Recurring provider test: support confirms isolation and an owned test
+  subscription exists. Do not repurpose another project's catalog or callbacks.
+
 ## Phase 0 — Safety net
 
 - [x] Make S3 integration tests credential-aware.

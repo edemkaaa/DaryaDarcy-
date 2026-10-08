@@ -36,6 +36,25 @@ export function isPaidStatus(body: Record<string, unknown>): boolean {
   return status === "success";
 }
 
+/** A valid ordinary-key signature does not turn a demo payment into real money. */
+export function hasProdamusDemoMarker(body: Record<string, unknown>): boolean {
+  const enabled = (record: Record<string, unknown>, names: string[]) =>
+    Object.entries(record).some(
+      ([name, value]) =>
+        names.includes(name.toLowerCase()) &&
+        value !== undefined &&
+        value !== null &&
+        value !== "" &&
+        value !== 0 &&
+        value !== "0" &&
+        value !== false,
+    );
+  return (
+    enabled(body, ["demo_mode", "demomode"]) ||
+    enabled(asRecord(body.subscription), ["demo"])
+  );
+}
+
 export function pickOrderId(body: Record<string, unknown>): string {
   const value = pickString(body, [
     "order",

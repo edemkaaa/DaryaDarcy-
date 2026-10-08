@@ -38,6 +38,26 @@ afterAll(async () => {
   await application?.close();
   vi.unstubAllEnvs();
 });
+it("rejects a normally signed demo over native HTTP without entering settlement", async () => {
+  const settlement = vi
+    .spyOn(application.get(ClubSettlementService), "settle")
+    .mockResolvedValue(true);
+  const raw =
+    '{"demo_mode":"1","domain":"fixture.payform.ru","order_id":"300155","order_num":"club-7-demo","payment_status":"success","sum":"790.00","currency":"rub","customer_email":"member@example.test"}';
+  const signature = createHmac("sha256", "nest-webhook-fixture-secret")
+    .update(
+      '{"currency":"rub","customer_email":"member@example.test","demo_mode":"1","domain":"fixture.payform.ru","order_id":"300155","order_num":"club-7-demo","payment_status":"success","sum":"790.00"}',
+    )
+    .digest("hex");
+  const response = await fetch(base + "/api/prodamus/webhook", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Sign: signature },
+    body: raw,
+  });
+  expect(response.status).toBe(400);
+  expect(response.headers.get("set-cookie")).toBeNull();
+  expect(settlement).not.toHaveBeenCalled();
+});
 it.each([
   {
     contentType: "application/json",
