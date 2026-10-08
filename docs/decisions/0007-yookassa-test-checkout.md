@@ -164,8 +164,31 @@ an explicit check. One presentation timer enables the check button after quota
 expiry without sending HTTP. Accessible status copy distinguishes absence,
 unknown, pending, canceled and server-confirmed success; UUIDs and private errors
 are not displayed. The component cannot create payments or grant access. It is
-not yet mounted by the club route: TEST-mode gating and next-purchase integration
-remain open. Server/provider proof, Safari/full-flow and rollout gates still apply.
+mounted by the club route only in an explicitly opted-in frontend build; purchase
+form/next-purchase integration remains open. Server/provider proof, Safari/full-flow
+and rollout gates still apply.
+
+### Frontend mode isolation
+
+`NEXT_PUBLIC_CLUB_TEST_CHECKOUT=true` at **frontend build time** selects the
+read-only TEST result screen instead of mounting the legacy club screen. Unset,
+empty or `false` preserves legacy behavior; any other value refuses both modes
+with a generic unavailable message. URL flags/storage/runtime env changes cannot
+opt in or switch a built artifact. The stable existing tRPC provider client is
+reused, preserving cancellation and cooldown across retained-tab changes.
+
+This is a UI rollout flag, not payment authorization: the API independently
+requires its TEST-only configuration and binding checks. No frontend secret,
+session, capability endpoint or provider fallback is added. The TEST screen
+currently has no purchase button. Do not enable it on staging before form/next
+purchase, provider/Safari and other release gates pass.
+
+The [route fixture](../../tests/frontend-club-checkout-mode.native.test.mjs)
+starts and stops only an owned loopback Next process. All browser API replies
+are synthetic and external browser requests are blocked. After a local `true`
+build, run it with the default TEST expectation; after a `false` build, use
+`CHECKOUT_UI_EXPECTED_MODE=legacy`. Each intentionally starts with the opposite
+runtime flag to prove build-time isolation. No API, DB or payment provider runs.
 
 ### Explicit next-intent reservation
 

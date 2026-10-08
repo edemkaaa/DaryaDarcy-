@@ -15,14 +15,28 @@ before(async () => {
         import { createElement, StrictMode } from "react";
         import { createRoot } from "react-dom/client";
         import { ClubTestCheckoutResult } from "./src/features/club/checkout-result";
-        import { createTRPCClient } from "./src/shared/api/trpc";
+        import { ClubCheckoutMode } from "./src/features/club/checkout-mode";
+        import { createTRPCClient, trpc } from "./src/shared/api/trpc";
+        import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+        import { ScreenActivity } from "./src/shared/navigation/screen-activity";
         export { getClubCheckoutIntent } from "./src/features/club/checkout-intent";
         const client = createTRPCClient();
+        const queryClient = new QueryClient();
         let root;
         export function mount(active = true, strict = false) {
           root ??= createRoot(document.getElementById("root"));
           const screen = createElement(ClubTestCheckoutResult, {client, active});
           root.render(strict ? createElement(StrictMode, null, screen) : screen);
+        }
+        export function mountMode(active = true) {
+          root ??= createRoot(document.getElementById("root"));
+          root.render(createElement(QueryClientProvider, {client:queryClient},
+            createElement(trpc.Provider, {client,queryClient},
+              createElement(ScreenActivity.Provider, {value:active},
+                createElement(ClubCheckoutMode, null, createElement("button",null,"Legacy purchase")),
+              ),
+            ),
+          ));
         }
         export function unmount() { root.unmount(); }
         // Visibility is the sole synthetic platform boundary. React, storage,
@@ -40,8 +54,23 @@ before(async () => {
     platform: "browser",
     write: false,
     loader: { ".scss": "empty" },
+    // Decoration assets use a fixed local fixture; no image bytes are bundled
+    // and the actual checkout/mode/provider code remains unchanged.
+    plugins: [
+      {
+        name: "local-decoration-assets",
+        setup(build) {
+          build.onLoad({ filter: /\.(png|jpe?g|webp)$/ }, () => ({
+            contents: 'export default {src:"/fixture-image"};',
+            loader: "js",
+          }));
+        },
+      },
+    ],
     define: {
+      "process.env": "{}",
       "process.env.NEXT_PUBLIC_API_BASE_URL": '""',
+      "process.env.NEXT_PUBLIC_CLUB_TEST_CHECKOUT": '"true"',
       "process.env.NODE_ENV": '"development"',
     },
   });
@@ -97,7 +126,7 @@ before(async () => {
 });
 after(async () => {
   await browser?.close();
-  await new Promise((resolve) => server.close(resolve));
+  if (server) await new Promise((resolve) => server.close(resolve));
 });
 
 async function screen(
@@ -239,7 +268,7 @@ test("unmount and StrictMode cleanup prevent extra polls and late rendering", as
   assert.equal(await page.getByRole("status").count(), 0);
   await unchanged(page);
 });
-test("quota cooldown survives retained-tab hide and expiry only enables explicit check", async (t) => {
+test("real mode/provider retains quota cooldown across tab hides; expiry only enables explicit check", async (t) => {
   const context = await browser.newContext();
   context.setDefaultTimeout(5000);
   t.after(() => context.close());
@@ -255,7 +284,7 @@ test("quota cooldown survives retained-tab hide and expiry only enables explicit
     window.prior = localStorage.getItem(
       "daryadarcy:club-checkout:yookassa-test:v1",
     );
-    fixture.mount();
+    fixture.mountMode();
   });
   await page
     .getByRole("status")
@@ -266,15 +295,18 @@ test("quota cooldown survives retained-tab hide and expiry only enables explicit
     (await page.locator("body").innerText()).includes("PRIVATE"),
     false,
   );
-  await page.evaluate(() => fixture.mount(false));
-  await page.evaluate(() => fixture.mount(true));
+  await page.evaluate(() => fixture.mountMode(false));
+  await page.evaluate(() => fixture.mountMode(true));
   await page.clock.runFor(44_999);
   assert.equal(await page.getByRole("button").isDisabled(), true);
   await page.clock.runFor(1);
   assert.equal(await page.getByRole("button").isEnabled(), true);
   assert.equal(calls.length, 1);
   mode = "canceled";
-  await page.getByRole("button").click();
+  // This lifecycle bundle omits CSS; use the actual accessible keyboard action.
+  // Pointer/layout acceptance is covered by the built Next route fixture.
+  await page.getByRole("button").focus();
+  await page.getByRole("button").press("Enter");
   await page
     .getByRole("status")
     .filter({ hasText: "Тестовая оплата отменена" })

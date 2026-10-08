@@ -47,7 +47,16 @@ import {
   BENEFITS,
 } from "./club-screen.content";
 import { getClubScreenContent } from "./club-screen.content";
+import { ClubCheckoutMode } from "./checkout-mode";
 export default function ClubScreen() {
+  return (
+    <ClubCheckoutMode>
+      <LegacyClubScreen />
+    </ClubCheckoutMode>
+  );
+}
+
+function LegacyClubScreen() {
   const active = useScreenActive();
   const currentParams = useSearchParams().toString();
   const [tabParams, setTabParams] = useState(currentParams);

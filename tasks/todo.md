@@ -1110,6 +1110,13 @@
       возобновляет её. Cooldown сохраняется, expiry только включает кнопку.
       1 SSR + 5 Chromium UI cases; mutation active-cancel → RED, restore → GREEN.
       Экран ещё не подключён к /club; TEST-mode gate/next-purchase UI остаются.
+- [x] Y4d7: /club result route за build-time NEXT_PUBLIC_CLUB_TEST_CHECKOUT;
+      по умолчанию legacy, строго true — только TEST result, invalid — unavailable.
+      Старый checkout/paid-claim не монтируется в TEST; URL не переключает режим.
+      9 SSR checks + настоящие Next route checks в обоих build modes;
+      actual provider/context сохраняет cooldown. Стенд не менялся.
+- [ ] Y4d8: TEST purchase form, явное восстановление той же заявки и next purchase
+      с fresh terminal proof; abort скрытого экрана/сессии до dispatch/navigation.
 - [ ] Отдельно диагностировать повторный сбой native video-wrapper в полном
       прогоне: сохранить безопасную диагностику имени упавшего дочернего теста,
       воспроизвести причину под нагрузкой; не считать успешный повтор исправлением.

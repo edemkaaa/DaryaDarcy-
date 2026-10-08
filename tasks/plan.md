@@ -2995,3 +2995,35 @@ bounded timers, no storage writes/payment dispatch/access grant/new dependencies
 The component is not yet mounted by /club. TEST-mode gate, checkout/next-purchase
 UI integration, real provider/Safari and rollout/dependency/proxy gates remain.
 Local only: no DB, auth, quota, enablement, merge, push or server changes.
+
+### Y4d7: opt-in club route without legacy payment fallback — 2026-10-08
+
+Connect the read-only TEST result screen through a feature-owned mode boundary.
+Direct NEXT_PUBLIC_CLUB_TEST_CHECKOUT lookup is inlined at frontend build time:
+unset/empty/false preserves legacy, exact true selects TEST, invalid refuses both.
+Do not mount the legacy screen, its checkout or paid-claim effect in TEST mode.
+Use the stable existing tRPC provider client and retained-tab activity context;
+no URL/storage overrides, new clients per render or authentication changes.
+
+The stub reaches RED for TEST and all five invalid values, existing default-off
+cases stay green. Nine SSR cases pass; an invalid-to-legacy mutation fails five
+cases and restoration passes. Native acceptance starts an owned loopback Next
+frontend only, blocks external browser requests and supplies synthetic HTTP.
+True and false builds are checked with opposite runtime flags to prove isolation.
+Forged paid/payment/order flags cannot grant access, switch modes, create payment
+or start legacy claim. Actual provider/context also retains the quota deadline.
+
+Fixture findings: the actual route's install guide must be dismissed with its
+normal Escape action; its backdrop click target's center is covered by the card.
+The lightweight lifecycle bundle omits CSS/assets, so its provider case uses a
+normal keyboard button action and local decoration asset stubs. Pointer/layout
+acceptance uses the real Next build/CSS, not these stubs. No production payment
+fix was inferred from either fixture problem.
+
+Full local suite: 1237 pass / 618 SQL/external skip. Types, lint, true/false frontend
+builds (28 pages), unchanged API (73 / 25642 bytes), boundaries/docs/formatting pass.
+Review: one explicit mode boundary, unchanged legacy implementation, typed stable
+provider dependency, no fallback/access grant or unbounded new work. The frontend
+build is left off. Form/restore/next-purchase UI, provider/Safari and existing
+rollout/dependency/proxy gates remain. No DB, dependencies, auth, quotas, server,
+payment enablement, push or merge changes.
