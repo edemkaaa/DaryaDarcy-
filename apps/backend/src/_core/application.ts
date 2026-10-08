@@ -10,6 +10,7 @@ import { registerYoutubeStream } from "../youtube-stream";
 import { TrpcService } from "./trpc.service";
 import { registerHttpSecurity } from "./http-security";
 import { registerRequestBodies } from "./request-bodies";
+import { registerProdamusSandboxBody } from "../billing/prodamus-sandbox.ingress";
 
 /** Composition only: no environment files, listener or scheduled side effects. */
 export async function createBackendApplication(): Promise<INestApplication> {
@@ -28,16 +29,7 @@ export async function createBackendApplication(): Promise<INestApplication> {
       next();
     });
   });
-  // Keep diagnostic HMAC input untouched by ordinary JSON/form parsers.
-  http.post("/api/prodamus/sandbox/webhook", (req, res, next) => {
-    express.raw({ type: () => true, limit: "64kb" })(req, res, error => {
-      if (error) {
-        res.status(error.status === 413 ? 413 : 400).json({ error: "Invalid sandbox notification" });
-        return;
-      }
-      next();
-    });
-  });
+  registerProdamusSandboxBody(http);
   registerRequestBodies(http);
 
   // Transitional adapters: replace one domain at a time behind the same API.

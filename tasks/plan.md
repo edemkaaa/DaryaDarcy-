@@ -3867,3 +3867,54 @@ closed there. Before PD3, user was asked to select a dedicated no-DB/mail servic
 with one exact diagnostic ingress rather than automatically deploying the entire
 40-commit divergent feature branch. No remote configuration, keys, Git merge/
 push, server deployment, provider cabinet settings or payment changed.
+
+PD3 selection confirmed on 8 October: deploy the diagnostic as a dedicated
+no-DB/mail service, not the full divergent API branch. First implement a minimal
+Nest composition with only the existing diagnostic controller/service. Share the
+bounded raw ingress with the full application rather than copying it. Expose
+only exact POST /api/prodamus/sandbox/webhook; no health/auth/tRPC/live/return
+routes, environment-file loader, worker or external client. Preserve existing
+HTTP origin/security policy and leave trust-proxy settings unchanged. Startup
+must reject disabled/incomplete configuration without logging it. Native and
+compiled probes must exercise JSON/form HMAC, default-off, bad signatures,
+oversize, alternate paths, browser-origin rejection and absence of access/mail
+effects. Deployment still needs exact image/dependency review, private network,
+edge validation/rollback and actual provider delivery. This source increment
+does not activate entitlement, recurring, TEST on the working API, or migrations.
+User also requested eventual club/subscription integration; that remains PD4
+after provider delivery, with a separate isolated persistence contract rather
+than enabling settlement in the diagnostic service.
+
+PD3 standalone composition checkpoint (source-only): minimal Nest module with
+the existing diagnostic controller/service, shared 64 KiB raw parser and unchanged
+HTTP origin/security/trust-proxy policy. No AppModule, SQL, identity, mail, worker
+or live routes. Shared OPTIONS handling is retained; only the diagnostic POST
+has a controller, and a future edge exception must allow only that exact POST.
+Disabled/incomplete configuration exits before listening, with a generic error.
+New separate build emits dist/prodamus-sandbox.mjs (17.3 kB); no automatic env
+file loading or public link builder. JSON/form, disabled-instance isolation,
+bad signature, size cap, cookie/query, alternate path and external-origin cases
+run against real listeners. Removing the exact route gate deliberately produces
+two 200-instead-of-404 failures; restoring it passes. Compiled ESM acceptance
+checks no bundled effect modules or SQL/mail/provider-client imports and retains
+a runtime tripwire for lazy effect dependencies. Test-harness template escaping
+was repaired after esbuild identified the malformed regex; not a production fix.
+
+Fresh Node 22 suite: 1599 pass / 618 SQL/external skip, 120 files pass / 30 skip.
+Types, regular 408.4 kB API build, 17.3 kB diagnostic build and 528-file boundaries
+pass. Production entry with an empty environment exits 1 with only the generic
+startup error. Native production audit remains 51 findings (1 critical, 20 high,
+26 moderate, 4 low); no dependency updates or passing security gate claimed.
+Read-only server check again confirms the six existing healthy services. A package
+resolution probe in the API container reports Nest and reflect-metadata unavailable:
+do not mount this external-package bundle into the current image without building
+and accepting a separate exact runtime. No remote mutations, keys, payments,
+schema changes or frontend edits in this increment.
+
+Official current integration documentation requires support-agreed SYS for the
+per-link notification address. No provider-assigned value or assurance about
+global callbacks was supplied. Do not substitute the synthetic test SYS used by
+unit tests, relax binding or overwrite foreign callback settings to unblock PD3.
+Support must confirm SYS and per-link callback isolation (one-off and recurring),
+plus an owned test subscription and test-contact requirements. This blocks actual
+provider delivery/entitlement acceptance, not the verified standalone source.

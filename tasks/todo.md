@@ -27,8 +27,15 @@
   delivery; retain working data/overlays, audit/reachability and live blocks.
   Read-only server check: API 300c8d3, web 62c4001, six healthy services; local
   branch remains ahead 40 / behind 1 before this increment. No automatic merge
-  or full branch rollout. Proposed dedicated diagnostic service (no DB/mail,
-  one exact ingress path) awaits user selection; cannot enable by env alone.
+  or full branch rollout. User selected the dedicated diagnostic service on
+  8 October (no DB/mail, one exact ingress path); cannot enable by env alone.
+  Standalone Nest composition and compiled isolation acceptance complete locally:
+  19 additional cases, full 1599 pass / 618 SQL/external skip. Source-only,
+  no secrets loaded or containers/edge changed. Exact runtime/dependency and
+  edge rollout review remain; the current API image cannot be assumed to supply
+  Nest/reflect-metadata (package-resolution probe reports unavailable).
+  Provider-assigned SYS and callback isolation need support confirmation before
+  a real demo callback probe; arbitrary fixture SYS is not provider approval.
 - [ ] PD4 after PD3: separately approved isolated test-entitlement contract and
   disposable SQL replay/rollback acceptance before demo access activation.
 - [ ] Recurring provider test: support confirms isolation and an owned test
