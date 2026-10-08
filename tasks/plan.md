@@ -3712,3 +3712,37 @@ Frontend implementation, schema/dependencies, auth/CORS/proxy/quotas and provide
 configuration untouched. No secret/mailbox/cabinet access, external mail, TEST/shop
 activation, fetch/merge/push/deploy or resumed automation. M06 orchestration and
 existing database/sandbox/lifecycle/release gates remain open.
+
+### M06 decomposition slice — application-owned club settlement, 8 October
+
+ClubSettlementService now owns the unchanged order-to-period mapping and forwards
+amount/proof/recurrence to one required typed durable-settlement port. BillingModule
+supplies the existing db.settleClubPayment effect and creates a webhook binding with
+its application-owned service. Both initial payments and renewals use that binding;
+standalone legacy fulfillment keeps the same default effect. The two-argument
+handleProdamusWebhook facade and duration exports remain compatible. Request parsing,
+signature/key selection, field binding, cancellation and hard-disabled shop remain
+unchanged; the service is not proof authentication or a replacement for SQL validation.
+
+Six intended empty-service RED failures protect forwarding, 30/180-day duration,
+missing-data preservation, error propagation and waiting for completion. Native DI
+RED reproduced success (200) where the supplied service rejected (422). An interim
+late-global-handler regression was caught by two existing ingress tests; explicit
+handler factory binding repairs it without changing those tests. Nine service/legacy
+cases, three new native cases and extended compiled ESM acceptance cover normal and
+recurring decisions, app isolation, one dispatch and no cookie. Invalid signatures
+and malformed bindings still cannot enter the service. Deliberate legacy-bypass
+mutation fails three native cases and the compiled assertion; restoration passes.
+
+Fresh full Node 22 suite: 1486 pass / 618 skip, 114 files pass / 30 skip (144 total).
+Root/frontend/e2e types, backend build (400.6 kB), unchanged 73-procedure / 25642-byte
+API, 523-file boundaries, existing frontend lint, selected formatting and whitespace
+pass; docs checked before local commit. Review: explicit application composition,
+one period mapper, no runtime SQL imports in the service, extra retries, swallowed
+errors, new data normalization or effects. Native/compiled resources are owned and
+closed by the existing harnesses. SQL replay/transaction acceptance is not claimed:
+durable settlement and schema/history are untouched, SQL/external tests stay opt-in.
+No frontend implementation, dependencies, auth/CORS/proxy/quotas, provider settings,
+secrets/mailbox/cabinet access, external mail, TEST/shop activation, merge/push/deploy
+or automation changes. Remaining webhook orchestration, SQL/provider and release
+gates stay open; this completes only the service-composition substep of M06.

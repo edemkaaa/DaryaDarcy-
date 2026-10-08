@@ -6,6 +6,7 @@ import { request as httpRequest } from "node:http";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import * as prodamus from "../apps/backend/src/prodamus";
 import * as db from "../apps/backend/src/db";
+import { ClubSettlementService } from "../apps/backend/src/billing/club-settlement.service";
 import {
   PRODAMUS_WEBHOOK_HANDLER,
   type ProdamusWebhookHandler,
@@ -317,6 +318,111 @@ it("a valid signature from another merchant cannot reach settlement", async () =
   expect(await response.text()).toBe("payment binding invalid");
   expect(settle).not.toHaveBeenCalled();
 });
+it("club acknowledgement follows the application-bound settlement decision", async () => {
+  // A hidden/global settlement path would return success instead of this rejection.
+  const database = vi.spyOn(db, "settleClubPayment").mockResolvedValue(true);
+  const service = application.get(ClubSettlementService);
+  const operation = vi
+    .spyOn(service, "settle")
+    .mockImplementation(async (orderId, details) => {
+      expect(orderId).toBe("club6m-7-confirmed");
+      expect(details?.sum).toBe("4740.00");
+      expect(details?.proof).toEqual({
+        domain: "fixture.payform.ru",
+        paymentId: "300155",
+        email: "member@example.test",
+        currency: "rub",
+        subscriptionId: "",
+        profileId: "",
+      });
+      return false;
+    });
+  const response = await notify();
+  expect(response.status).toBe(422);
+  expect(await response.text()).toBe("payment binding invalid");
+  expect(response.headers.get("set-cookie")).toBeNull();
+  expect(operation).toHaveBeenCalledTimes(1);
+  expect(database).not.toHaveBeenCalled();
+});
+it("recurring acknowledgement uses the same application-bound settlement service", async () => {
+  const raw =
+    '{"currency":"rub","customer_email":"member@example.test","domain":"fixture.payform.ru","order_id":"300157","payment_status":"success","subscription":{"action_code":"auto_payment","id":"7","profile_id":"23"},"sum":"790.00"}';
+  vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "7");
+  const database = vi.spyOn(db, "settleClubPayment").mockResolvedValue(true);
+  const operation = vi
+    .spyOn(application.get(ClubSettlementService), "settle")
+    .mockImplementation(async (orderId, details) => {
+      expect(orderId).toBe("club-renew");
+      expect(details).toEqual({
+        email: "member@example.test",
+        sum: "790.00",
+        recurring: true,
+        proof: {
+          domain: "fixture.payform.ru",
+          paymentId: "300157",
+          email: "member@example.test",
+          currency: "rub",
+          subscriptionId: "7",
+          profileId: "23",
+        },
+      });
+      return false;
+    });
+  try {
+    const response = await fetch(base + "/api/prodamus/webhook", {
+      method: "POST",
+      body: raw,
+      headers: {
+        "Content-Type": "application/json",
+        Sign: createHmac("sha256", "nest-webhook-fixture-secret")
+          .update(raw)
+          .digest("hex"),
+      },
+    });
+    expect(response.status).toBe(422);
+    expect(await response.text()).toBe("payment binding invalid");
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(operation).toHaveBeenCalledTimes(1);
+    expect(database).not.toHaveBeenCalled();
+  } finally {
+    vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "");
+  }
+});
+it("settlement decisions remain isolated between native application instances", async () => {
+  const other = await createBackendApplication();
+  const database = vi.spyOn(db, "settleClubPayment").mockResolvedValue(true);
+  const firstOperation = vi
+    .spyOn(application.get(ClubSettlementService), "settle")
+    .mockResolvedValue(false);
+  const secondOperation = vi
+    .spyOn(other.get(ClubSettlementService), "settle")
+    .mockResolvedValue(true);
+  try {
+    await other.listen(0, "127.0.0.1");
+    const otherBase = `http://127.0.0.1:${(other.getHttpServer().address() as AddressInfo).port}`;
+    const first = await notify();
+    const raw = JSON.stringify(payment);
+    const second = await fetch(otherBase + "/api/prodamus/webhook", {
+      method: "POST",
+      body: raw,
+      headers: {
+        "Content-Type": "application/json",
+        Sign: createHmac("sha256", "nest-webhook-fixture-secret")
+          .update(raw)
+          .digest("hex"),
+      },
+    });
+    expect(first.status).toBe(422);
+    expect(await first.text()).toBe("payment binding invalid");
+    expect(second.status).toBe(200);
+    expect(await second.text()).toBe("success");
+    expect(firstOperation).toHaveBeenCalledTimes(1);
+    expect(secondOperation).toHaveBeenCalledTimes(1);
+    expect(database).not.toHaveBeenCalled();
+  } finally {
+    await other.close();
+  }
+});
 it.each([
   [
     "wrong currency",
@@ -348,6 +454,10 @@ it.each([
     // Hand-sorted string-only canonical JSON: independent of production signing.
     vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "7");
     const settle = vi.spyOn(db, "settleClubPayment").mockResolvedValue(true);
+    const operation = vi.spyOn(
+      application.get(ClubSettlementService),
+      "settle",
+    );
     try {
       const response = await fetch(base + "/api/prodamus/webhook", {
         method: "POST",
@@ -363,6 +473,7 @@ it.each([
       expect(await response.text()).toBe("payment binding invalid");
       expect(response.headers.get("set-cookie")).toBeNull();
       expect(settle).not.toHaveBeenCalled();
+      expect(operation).not.toHaveBeenCalled();
     } finally {
       vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "");
     }
@@ -370,10 +481,12 @@ it.each([
 );
 it("invalid signatures cannot reach settlement", async () => {
   const settle = vi.spyOn(db, "settleClubPayment");
+  const operation = vi.spyOn(application.get(ClubSettlementService), "settle");
   const response = await notify(payment, "wrong-merchant-key");
   expect(response.status).toBe(400);
   expect(await response.text()).toBe("signature incorrect");
   expect(settle).not.toHaveBeenCalled();
+  expect(operation).not.toHaveBeenCalled();
 });
 it("database failure remains a safe 500 instead of acknowledging payment", async () => {
   vi.spyOn(db, "settleClubPayment").mockRejectedValue(

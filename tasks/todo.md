@@ -762,6 +762,17 @@
       boundaries/frontend lint/docs/format/whitespace pass. Field matching is not
       authentication or SQL/provider acceptance; M06 orchestration remains open.
       No frontend, schema/dependency, policy, external effects, activation or rollout.
+    - [x] Club settlement now uses an application-owned ClubSettlementService and
+      required typed durable port; initial and recurring native webhooks consume
+      the supplied instance. Legacy facade/default effect and 30/180-day exports
+      stay compatible; no SQL/replay/transaction or validation policy rewrite.
+      Six service RED failures and native DI 200-instead-of-422 failure reproduced.
+      Nine service/legacy cases, three native cases and extended compiled ESM
+      protect forwarding, rejected/error/pending decisions and app isolation.
+      Legacy-bypass mutation fails three native and one compiled assertion;
+      restore full 1486 pass / 618 skip, types/build/API/523-file boundaries,
+      frontend lint/docs/format/whitespace pass. SQL/provider acceptance and
+      remaining orchestration stay open; no activation or rollout change.
   - [x] Shop owned/checkout use cases now use explicit ShopModule/ShopService
     composition in Nest and standalone callers. Router schemas/protected access
     and hard-disabled capability gate remain before checkout service entry;

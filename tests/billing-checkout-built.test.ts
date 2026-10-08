@@ -18,6 +18,7 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
           import { createBackendApplication } from "./apps/backend/src/_core/application";
           import { ClubCheckoutService } from "./apps/backend/src/billing/club-checkout.service";
           import { ClubSubscriptionService } from "./apps/backend/src/billing/club-subscription.service";
+          import { ClubSettlementService } from "./apps/backend/src/billing/club-settlement.service";
           import { ShopService } from "./apps/backend/src/shop/shop.service";
           import { SessionService } from "./apps/backend/src/identity/session.service";
           import { PRODAMUS_WEBHOOK_HANDLER } from "./apps/backend/src/billing/prodamus-webhook.controller";
@@ -84,6 +85,17 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
             const signature = createHmac("sha256", "compiled-webhook-fixture-key").update('{"payment_status":"pending"}').digest("hex");
             const signed = await fetch(base + "/api/prodamus/webhook?payment_status=pending", {headers: {Sign: signature}});
             const signedWebhook = { status: signed.status, body: await signed.text() };
+            process.env.PRODAMUS_PAYFORM_URL = "https://fixture.payform.ru";
+            const settlement = application.get(ClubSettlementService);
+            let settlementCalls = 0;
+            settlement.settle = async (orderId, details) => {
+              if (orderId !== "club6m-7-built" || details.sum !== "4740.00" || details.proof.paymentId !== "300155" || details.proof.domain !== "fixture.payform.ru") throw Error("Wrong settlement binding");
+              settlementCalls++;
+              return false;
+            };
+            const paidRaw = '{"currency":"rub","customer_email":"member@example.test","domain":"fixture.payform.ru","order_id":"300155","order_num":"club6m-7-built","payment_status":"success","sum":"4740.00"}';
+            const paidResponse = await fetch(base + "/api/prodamus/webhook", {method: "POST", body: paidRaw, headers: {"Content-Type": "application/json", Sign: createHmac("sha256", "compiled-webhook-fixture-key").update(paidRaw).digest("hex")}});
+            const settlementWebhook = { status: paidResponse.status, body: await paidResponse.text(), cookie: paidResponse.headers.get("set-cookie"), calls: settlementCalls };
             const webhook = application.get(PRODAMUS_WEBHOOK_HANDLER);
             webhook.handle = async (request, response) => {
               if (!Buffer.isBuffer(request.body) || request.body.toString("utf8") !== "raw-compiled-fixture") throw Error("Original webhook bytes lost");
@@ -91,7 +103,7 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
             };
             const forwarded = await fetch(base + "/api/prodamus/webhook", {method: "POST", body: "raw-compiled-fixture"});
             const injectedWebhook = { status: forwarded.status, body: await forwarded.text() };
-            console.log("BILLING_RESULTS:" + JSON.stringify({realError, injected, status, anonymousError, claimed, cancelled, unsignedWebhook, signedWebhook, injectedWebhook, shopOwned, shopDisabled}));
+            console.log("BILLING_RESULTS:" + JSON.stringify({realError, injected, status, anonymousError, claimed, cancelled, unsignedWebhook, signedWebhook, settlementWebhook, injectedWebhook, shopOwned, shopDisabled}));
           } finally { await application.close(); }
         `,
       },
@@ -135,6 +147,12 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
       cancelled: { ok: true, expiresAt: "2026-11-01T00:00:00.000Z" },
       unsignedWebhook: { status: 400, body: "signature incorrect" },
       signedWebhook: { status: 200, body: "ignored" },
+      settlementWebhook: {
+        status: 422,
+        body: "payment binding invalid",
+        cookie: null,
+        calls: 1,
+      },
       injectedWebhook: { status: 202, body: "compiled native ingress" },
       shopOwned: { owned: true },
       shopDisabled: { code: "FORBIDDEN", status: 403 },

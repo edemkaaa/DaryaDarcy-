@@ -12,28 +12,24 @@ import { asProdamusRecord as asRecord, parseProdamusPayload } from "./billing/pr
 import { isPaidStatus, pickOrderId, pickString, subscriptionAction } from "./billing/prodamus-fields";
 import { readProdamusPayment } from "./billing/prodamus-payment";
 import { hasClubPaymentBinding } from "./billing/prodamus-binding";
+import { ClubSettlementService } from "./billing/club-settlement.service";
 
 export { createProdamusSign } from "./billing/prodamus-signature";
+export { clubAccessMs, clubAccessMsForOrder } from "./billing/club-settlement.service";
+
+// Standalone legacy callers keep the same durable effect; Nest supplies its own service.
+const legacyClubSettlement = new ClubSettlementService((input) =>
+  db.settleClubPayment(input),
+);
 
 const PRODUCT_NAME = "Подписка Клуб Darcy";
 export const CLUB_PRICE = (process.env.CLUB_PRICE || "790").trim() || "790";
 export const CLUB_SEMIANNUAL_PRICE = (process.env.CLUB_SEMIANNUAL_PRICE || "4740").trim() || "4740";
-const ACCESS_PERIOD_MS = 30 * 24 * 60 * 60 * 1000;
-const SEMIANNUAL_ACCESS_MS = 180 * 24 * 60 * 60 * 1000;
-
-export function clubAccessMsForOrder(orderId: string): number {
-  if (orderId.startsWith("club6m-")) return SEMIANNUAL_ACCESS_MS;
-  return ACCESS_PERIOD_MS;
-}
 
 const SHOP_PRODUCTS: Record<string, { name: string; price: string }> = {
   "digital-1": { name: "Пособие по атмосферной фотографии", price: (process.env.SHOP_DIGITAL_1_PRICE || "50").trim() || "50" },
   "digital-2": { name: "Винтажные книги и открытки", price: (process.env.SHOP_DIGITAL_2_PRICE || "50").trim() || "50" },
 };
-
-export function clubAccessMs(): number {
-  return ACCESS_PERIOD_MS;
-}
 
 export function getShopProduct(productId: string) {
   return Object.hasOwn(SHOP_PRODUCTS, productId) ? SHOP_PRODUCTS[productId] : null;
@@ -273,10 +269,13 @@ function headerSign(req: Request): string {
   return String(raw || "");
 }
 
-export async function fulfillPaidOrder(orderId: string, extra?: { email?: string | null; sum?: string | null; userId?: number | null; proof?:PaymentProof;recurring?:boolean }): Promise<"club" | "shop" | null> {
+export async function fulfillPaidOrder(
+  orderId: string,
+  extra?: { email?: string | null; sum?: string | null; userId?: number | null; proof?: PaymentProof; recurring?: boolean },
+  clubSettlement: Pick<ClubSettlementService, "settle"> = legacyClubSettlement,
+): Promise<"club" | "shop" | null> {
   if (orderId.startsWith("club-") || orderId.startsWith("club6m-")) {
-    const granted = await db.settleClubPayment({ orderId,
-      periodMs: clubAccessMsForOrder(orderId), sum: extra?.sum,proof:extra?.proof,recurring:extra?.recurring });
+    const granted = await clubSettlement.settle(orderId, extra);
     return granted ? "club" : null;
   }
 
@@ -356,7 +355,21 @@ export async function handleProdamusReturn(req: Request, res: Response) {
   res.redirect(302, dest);
 }
 
+export function createProdamusWebhookHandler(
+  clubSettlement: Pick<ClubSettlementService, "settle">,
+): (req: Request, res: Response) => Promise<void> {
+  return (req, res) => processProdamusWebhook(req, res, clubSettlement);
+}
+
 export async function handleProdamusWebhook(req: Request, res: Response) {
+  return processProdamusWebhook(req, res, legacyClubSettlement);
+}
+
+async function processProdamusWebhook(
+  req: Request,
+  res: Response,
+  clubSettlement: Pick<ClubSettlementService, "settle">,
+) {
   try {
     const body = parseProdamusPayload(req.query, req.body);
     const signature = headerSign(req) || pickString(body, ["signature", "sign"]);
@@ -408,7 +421,7 @@ export async function handleProdamusWebhook(req: Request, res: Response) {
     }
 
     if (action === "auto_payment") {
-      const granted=await fulfillPaidOrder("club-renew",{email,sum,proof,recurring:true});
+      const granted=await fulfillPaidOrder("club-renew",{email,sum,proof,recurring:true},clubSettlement);
       res.status(granted?200:422).send(granted?"success":"payment binding invalid");
       return;
     }
@@ -423,7 +436,7 @@ export async function handleProdamusWebhook(req: Request, res: Response) {
       sum,
       userId,
       proof,
-    });
+    }, clubSettlement);
     res.status(granted?200:422).send(granted ? "success" : "payment binding invalid");
   } catch (error) {
     // Drizzle errors can embed parameterized mail payloads and recipient data.
