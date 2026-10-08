@@ -757,9 +757,15 @@
     preserved; detached announcement sends and pool ownership recorded. These
     are source findings, not observed data loss or duplicate payments. Docker
     still returns EOF; no database or external transport touched.
-  - [ ] M07a: deferred/fake-timer RED/GREEN for an inert, explicit single-flight
-    job runner: immediate/fixed cadence, no backlog, independent jobs, recovery,
-    idempotent start/stop and late callback fence. No domain/provider changes.
+  - [x] M07a: inert IntervalJobs primitive, not activated by the executable.
+    Thirteen deferred/fake-timer checks: immediate/fixed cadence, busy skip/no
+    backlog, independent jobs, safe error recovery, idempotent start/stop,
+    unfinished/rejected work, queued callback fences and owned timers only.
+    Ten expected scaffold RED assertions; busy/fence mutations each fail two
+    checks, restore passes 37 focused and full 1329 / 618 SQL/external skip.
+    Types/build/API/513-file boundaries/docs pass. stop exposes pending promises,
+    not a timeout/cancellation/provider-success claim. No domain/provider changes
+    or runtime activation; M07b/M07c/N12 remain separate and open.
   - [ ] M07b after M07a: Nest job composition; activate only after listen and
     preserve four cadences/helper semantics. Native factory remains worker-free;
     controlled run failures and isolated built startup/listen failure accepted.

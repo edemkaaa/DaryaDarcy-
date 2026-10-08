@@ -3194,7 +3194,8 @@ approval; keep the existing dependency/provider/rollout gates open.
 
 ### M07 specification draft — background-job lifecycle, 8 October
 
-Status: inspected and specified, not implemented or shutdown-policy approved.
+Status: inspected and specified; M07a local primitive verified below. Executable
+integration and shutdown-policy approval are still pending.
 This extends the existing workers capability in ADR-005/M07; it is not N12,
 another scheduler deployment, a queue service or an ORM rewrite. Review the
 shutdown bound before wiring lifecycle changes into the executable.
@@ -3393,3 +3394,43 @@ are checked before commit; backend lint coverage is not claimed. Skipped SQL
 and external suites are not provider or durable retry acceptance evidence.
 No schema, frontend, dependency, auth/CORS/proxy/quota, TEST/shop activation,
 merge, push or deployment. M06 decomposition and previous rollout gates remain.
+
+### M07a verified — inert local scheduling primitive, 8 October
+
+IntervalJobs owns one fixed-interval timer and at most one pending callback per
+job descriptor. Construction is inert; start schedules one initial microtask
+and one interval per job, and repeated start does nothing. A busy interval is
+skipped, never queued for catch-up. Jobs remain independent. Internal typed job
+names select static failure labels; sync throws and rejected callback promises
+are caught without logging exception bodies and release the busy state.
+Descriptors are trusted internal configuration: one per job, with positive
+Node-supported interval constants, not user input or an environment-driven API.
+
+stop permanently fences future dispatch, clears only owned interval handles,
+and returns named promises for pending owned callbacks. It does not await them,
+abort work, force completion, restart, impose a shutdown deadline or change any
+remote-effect status. Repeated stop exposes whatever is still pending. Callback
+settlement includes caught failures; it is not provider-success evidence. A stop
+before a queued initial callback enters prevents that callback from running.
+Already-entered work stays visible until it settles, including reentrant stop.
+
+Thirteen deferred/fake-timer cases cover inert construction, immediate/fixed
+cadence, repeated start/stop, busy skipping/no backlog, independent jobs, both
+error forms, unfinished/rejected work, stop-before-start, queued initial/timer
+fences, reentrant stop and unrelated timer ownership. Ten expected assertion
+failures were observed against the contract-only scaffold. Removing the busy
+guard then fails two overlap checks; removing the pre-callback phase fence fails
+two stop checks. Restoring both passes 37 focused checks across runner, native
+application factory and executable acceptance. Virtual timer cleanup is local;
+callbacks only update synthetic counters or controlled deferred promises.
+
+Fresh Node 22 full suite: 1329 pass / 618 skip, 105 files pass / 30 skip.
+Root/frontend/e2e types, backend build (unchanged 392.0 kB), unchanged API,
+513-file boundaries, existing frontend lint, selected formatting, documentation
+and whitespace checks pass before commit. No SQL/external acceptance is claimed.
+The new runner is intentionally not imported or activated by the executable,
+Nest factories or existing job helpers yet. Existing cadences/business helpers,
+leases, detached pushes and pool ownership are untouched. M07b composition is
+next; M07c still requires shutdown-bound review. N12 outbox remains independent.
+No frontend, schema, dependencies, auth/CORS/proxy/quota, provider/mail/secret
+access, TEST/shop activation, merge, push, server update or shutdown wiring.
