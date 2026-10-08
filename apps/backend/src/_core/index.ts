@@ -2,15 +2,7 @@
 import type { Server } from "node:http";
 import net from "net";
 import { createBackendApplication } from "./application";
-import { cancelProdamusSubscription } from "../prodamus";
-import { processCancellations } from "../billing/cancellation";
-import { sendMarketingPostNotification as sendNewPostNotification } from "../push";
-import { processPendingShopDeliveryEmails } from "../shop-delivery";
-import * as platformDb from "../platform-db";
-import * as db from "../db";
-import { runMysqlBackupIfDue } from "./backup";
-import { processAccessEmails } from "../identity/access";
-import { sendTransactionalEmail } from "./email";
+import { WorkerJobs } from "../workers/worker-jobs.service";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -59,63 +51,7 @@ async function startServer() {
 
   await application.listen(port, host);
   console.log(`[api] server listening on ${host}:${port}`);
-  const tick = async () => {
-    try {
-      const published = await db.publishDueScheduledPosts();
-      for (const post of published) {
-        console.log(`[schedule] published post #${post.id}`);
-        void sendNewPostNotification(post.text, post.id, post.target);
-      }
-    } catch (error) {
-      console.warn("[schedule] publish tick failed:", error);
-    }
-  };
-  void tick();
-  setInterval(() => {
-    void tick();
-  }, 60_000);
-
-  const billingTick = async () => {
-    const database = await db.getDb();
-    if (!database) return;
-    await Promise.allSettled([
-      processCancellations(database, cancelProdamusSubscription).catch(() =>
-        console.warn("[billing] cancellation worker failed"),
-      ),
-      processAccessEmails(database, sendTransactionalEmail).catch(() =>
-        console.warn("[billing] email worker failed"),
-      ),
-    ]);
-  };
-  void billingTick();
-  setInterval(() => {
-    void billingTick();
-  }, 30000);
-
-  const maintenance = async () => {
-    try {
-      await processPendingShopDeliveryEmails();
-      await platformDb.runDataRetentionMaintenance();
-    } catch (error) {
-      console.warn("[maintenance] tick failed:", error);
-    }
-  };
-  void maintenance();
-  setInterval(() => {
-    void maintenance();
-  }, 5 * 60_000);
-
-  void runMysqlBackupIfDue().catch((error) =>
-    console.warn("[backup] initial run failed:", error),
-  );
-  setInterval(
-    () => {
-      void runMysqlBackupIfDue().catch((error) =>
-        console.warn("[backup] scheduled run failed:", error),
-      );
-    },
-    6 * 60 * 60_000,
-  );
+  application.get(WorkerJobs).start();
 }
 
 startServer().catch((error) => {

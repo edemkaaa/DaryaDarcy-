@@ -3481,6 +3481,43 @@ backend lint claim. No schema/dependency/frontend/auth/CORS/proxy/quota change,
 secret access, activation on a working stand, merge, push or server update.
 M07b2/M07c/N12 and previous rollout/dependency gates stay open.
 
+### M07b2 — executable activation after listen, 8 October, afternoon
+
+Replace the four discarded executable timer loops with one explicit
+`application.get(WorkerJobs).start()` after successful listen. The existing
+application-owned runner preserves four immediate/fixed cadences and helper
+semantics, skips busy same-job ticks and reports only static failure labels.
+No second scheduler remains. Factory/init/listen alone are still inert; only
+the executable opts in. This is startup integration, not shutdown/drain policy.
+
+The compiled actual entrypoint test runs in an isolated child with synthetic
+configuration and local effects. Its build plugin removes only deployment env
+loading so credentials cannot be read. Observe the real HTTP listening event,
+one owned start, four timer delays and immediate helper effects. A genuinely
+occupied local port exits 1 with no activation/timers/effects. Child-only forced
+exit/watchdog is test cleanup, not a proposed production shutdown deadline;
+successful acceptance uses setImmediate settlement rather than a timed sleep.
+
+RED against the old executable: owned starts 0, helper effects empty, despite
+four legacy timers. Moving activation ahead of listen deliberately fails with
+Activation before listen; restoring it passes. Seven focused files / 50 checks
+pass. Fresh full Node 22 suite: 1603 pass / 618 SQL/external skip, 121 files pass /
+30 skip. Root/frontend/e2e types, 406.6 kB backend build, unchanged 73-procedure /
+25642-byte API, 528-file boundaries and existing frontend lint pass. Final
+whole-suite verification after the event-based test refinement and restored
+mutation: 1603 pass / 618 skip, 14.26 seconds. Documentation links and selected
+code formatting pass; no backend lint or external integration claim.
+
+Five-axis review: removes duplicate orchestration instead of adding a wrapper;
+uses the existing per-app provider, retains independent domain operations,
+keeps secrets out of new diagnostics, and activates only after listen succeeds.
+No new dependencies/schema/frontend/auth/CORS/proxy/quota or transport settings.
+No actual SQL/provider/mail/push/S3 acceptance, server mutation, merge or push.
+M07c remains blocked on the separately reviewed maximum drain wait; detached
+push, mysql2 pool ownership and N12 publication outbox remain separate work.
+Existing dependency/rollout gates are unchanged. Continue independent approved
+backend work rather than choosing a shutdown bound or enabling test payments.
+
 ### M06 decomposition slice — pure Prodamus signer, 8 October
 
 The recursive value normalization, deep key ordering, slash-escaped JSON and

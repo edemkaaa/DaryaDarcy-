@@ -875,7 +875,7 @@
     Types/build/API/513-file boundaries/docs pass. stop exposes pending promises,
     not a timeout/cancellation/provider-success claim. No domain/provider changes
     or runtime activation; M07b/M07c/N12 remain separate and open.
-  - [ ] M07b after M07a: Nest job composition; activate only after listen and
+  - [x] M07b after M07a: Nest job composition; activate only after listen and
     preserve four cadences/helper semantics. Native factory remains worker-free;
     controlled run failures and isolated built startup/listen failure accepted.
     - [x] M07b1: inert WorkersModule/WorkerJobs and typed per-app helper binding.
@@ -886,9 +886,14 @@
       Old whole-DB stub completed; per-app test spies isolated after diagnosis.
       index.ts remains unchanged: no new executable timers or shutdown hooks,
       real SQL/provider/mail/push/backup, frontend, secrets, push or deployment.
-    - [ ] M07b2: replace old executable timers with one explicit activation only
+    - [x] M07b2: replace old executable timers with one explicit activation only
       after successful listen; prove failed-listen behavior in an isolated child.
       Never activate both runners; shutdown-bound review remains unresolved.
+      Actual compiled entrypoint: one start, four original cadences and synthetic
+      helper effects; occupied port exits 1 with no starts/timers/effects. Env
+      loading is removed only by the test build plugin, never in production.
+      Original executable RED: zero owned starts/effects. Early-start mutation
+      fails against the real HTTP listening event; restored code passes.
   - [ ] M07c after shutdown-bound review: stop timers before drain, app.close and
     signal acceptance, honest pending-at-bound handling. No remote-success claim,
     forced lease reset or real provider activity; inventory detached tasks first.
