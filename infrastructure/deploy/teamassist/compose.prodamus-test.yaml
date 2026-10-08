@@ -1,0 +1,33 @@
+# Append to existing dev overlays; never enable this service on a live-money host.
+services:
+  prodamus-test:
+    image: ${PRODAMUS_TEST_RUNTIME_IMAGE:?Pin the accepted runtime image ID}
+    pull_policy: never
+    platform: linux/amd64
+    command: ["node", "dist/prodamus-test.mjs"]
+    env_file: [./api.env, ./prodamus-test.env]
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      PUBLIC_APP_URL: https://daryadarcy.dev.reeskeen.ru
+      YOOKASSA_TEST_ENABLED: "false"
+      OAUTH_SERVER_URL: ""
+    volumes: ["${PRODAMUS_TEST_BUNDLE:?Pin the versioned test bundle}:/app/dist/prodamus-test.mjs:ro"]
+    networks: [isolated]
+    mem_limit: 256m
+    cpus: 0.3
+    init: true
+    read_only: true
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/prodamus/test/webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(r=>{if(r.status!==400)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options: {max-size: "1m", max-file: "2"}

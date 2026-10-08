@@ -1703,3 +1703,14 @@ path. No key disclosed, callback changed, payment made or service deployed here.
 - [ ] Real provider delivery, deployed test-access scope, renewal/cancellation
       native HTTP-to-SQL, dependency/rollout gates and M07c human drain bound
       remain open. No frontend/server/payment/activation/merge/push/deploy changes.
+
+### PD4 first dev Prodamus entitlement — approved user scope
+
+- [x] PD4a: native HTTP/disposable SQL RED/GREEN for monthly demo checkout,
+      signed 30-day settlement, replay/refusal and rollback. No live guard change.
+- [x] PD4b: bounded separate receiver + no-worker compiled entry, same checkout
+      response and strict dev/test configuration; verify build/native boundaries.
+- [ ] PD4c: review/audit, versioned bundle and exact two-route server rollout
+      with recoverable edge/config backup; configure global test-store callback.
+- [ ] PD4d: confirm actual provider delivery after human test payment, read access
+      through existing dev account. Until then payment is not end-to-end accepted.

@@ -5068,3 +5068,73 @@ No frontend/server/cabinet/secret reading, external mail/payment, activation,
 auth/CORS/proxy/quota, merge/push/deploy changes. Actual provider delivery, demo
 access rollout (pending human scope choice), renewal/cancellation HTTP-to-SQL,
 dependency/rollout gates and M07c human drain-bound decision remain open.
+
+### PD4 first dev entitlement — user scope approved 9 October
+
+The human explicitly approved test Prodamus checkout -> verified notification ->
+30 days of dev club access, without real money or recurring charges. This extends
+PD3, not live payment acceptance. One billing capability; no new schema/provider.
+Keep production webhook/demo guard, existing API/web images, auth/CORS/proxy trust,
+quotas, shop blocks and subscription settings unchanged.
+
+Implementation contract: dedicated default-off PRODAMUS_TEST_* configuration,
+exact testpage1.payform.ru and dev public origin. Existing club.createCheckout
+response stays {url,user:null}; monthly only, fixed 790 RUB, explicit demo_mode=1,
+one-off products, no subscription/card-saving/SYS/per-link callback. Use the
+documented cabinet global notification address. Prefix saved orders club-test-;
+test records are persisted only in this dev deployment's existing billing tables,
+never reported as real-money proof. Current subscription readers consume the
+canonical 30-day entitlement. Canonical transaction/receipt/outbox owns replay
+and rollback; webhook returns success only after it completes, never a session.
+No new authentication/identity policy. Browser return to /club proves nothing.
+Checkout without an idempotency key retains the documented explicit-new-request
+behavior; a YooKassa intent cannot silently change provider. No auto charge.
+
+Deploy a dedicated no-worker process using the verified existing runtime image
+and a separately versioned compiled backend bundle; route only exact POST
+club.createCheckout and /api/prodamus/test/webhook to it. Do not replace the
+working API/web or enable the live webhook. Inherit needed dev SQL/identity/mail
+configuration without printing it; supply the test key in a protected env file.
+No outbound gateway is required to generate a signed redirect or receive a
+provider callback. Keep the diagnostic service accessGranted:false unchanged.
+
+Order: (1) native HTTP/real disposable SQL RED/GREEN for checkout, signed callback,
+replays, binding/demo/key/refusal and rollback; (2) receiver integration and
+compiled no-worker entry gates; (3) fresh tests/types/build/API/boundaries/docs/
+audit reachability review; (4) exact owned rollout backup/edge syntax/rollback,
+cabinet global callback, server health/refusal checks; (5) human test payment and
+provider-delivery/access confirmation. Never claim (5) from local signatures.
+Source in apps/backend/src/billing, tests in tests, rollout infrastructure under
+infrastructure/deploy/teamassist. Node 22/pnpm 9.12, existing typed/service styles.
+Run pnpm exec vitest run <focused suites>, pnpm test/check/build/check:api/
+check:boundaries/check:docs, then selected SQL only on owned disposable MySQL.
+No working database is a test fixture. New test checkout is a user-requested
+dev application operation; automated acceptance fixtures stay isolated.
+
+PD4 source checkpoint: initial native/SQL RED 16 failures (missing test route and
+checkout binding); restricted-ingress RED six failures. Final 58 focused pass:
+22 new test-club SQL, 24 existing billing SQL, 11 restricted native HTTP and one
+compiled ESM listener/startup check. Config table temporarily left YooKassa=yes
+for following cases: isolated rerun passed, per-case reset repaired the harness.
+An explicit table generic repairs its optional-key TypeScript inference, not
+runtime validation. Demo-suffixed PHP forms, ordinary-key JSON, ambiguous flags,
+foreign merchant/public origin, selected-provider conflict, invalid transport,
+oversize, durable YooKassa intent refusal and rollback/retry are covered.
+Full default 1816 pass / 726 reported SQL-external skips (17.89 seconds); selected
+SQL ran explicitly on owned fresh backend_test. Types, regular build 418.4 kB,
+test entry 415.5 kB, unchanged 73-procedure/25642-byte API, 563-file boundaries,
+lint and 51-document checks pass. No schema/lockfile/frontend/live guard change.
+
+Fresh native production audit remains 51 advisories: 1 critical, 20 high,
+26 moderate, 4 low; it is not a clean dependency gate. For the dedicated two-route
+IPv4/internal/no-egress/no-worker deployment: tRPC experimental_nextAppDirCaller
+is unused; multiple-parameter path-to-regexp routes are denied before routing;
+Axios OAuth/external paths are not invoked (legacy OAuth URL explicitly empty);
+Sharp/upload, source-map and browserslist inputs have no allowed route/build path.
+proxy-addr critical spoofing cannot traverse this IPv4-only internal first hop
+with loopback-only trust: edge's 172.26 address is untrusted, not a traversable
+forwarded chain. No identity/access decision uses request IP at these boundaries.
+Existing trust/CORS/quota policy is unchanged. This is a narrowly scoped test
+rollout reachability assessment, not blanket approval to open other routes or
+release the full application; existing dependency upgrade gates remain open.
+Lockfile is byte-identical to deployed 1f67d5b; no dependency install or upgrade.

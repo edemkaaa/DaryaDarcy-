@@ -8,6 +8,7 @@
     "dev:metro": "pnpm dev:frontend",
     "build": "pnpm --filter @daryadarcy/backend build",
     "build:prodamus-sandbox": "pnpm --filter @daryadarcy/backend build:sandbox",
+    "build:prodamus-test": "pnpm --filter @daryadarcy/backend build:prodamus-test",
     "dev:web": "pnpm dev:frontend",
     "build:web": "pnpm --filter @daryadarcy/frontend build",
     "build:web:vite": "node tooling/scripts/copy-web-public.mjs && pnpm --filter @daryadarcy/legacy-web build && node tooling/scripts/compress-web-dist.mjs",
