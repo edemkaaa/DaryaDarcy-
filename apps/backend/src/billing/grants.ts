@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { clubPayments, users } from "../../../../packages/database/src/schema";
@@ -16,8 +17,10 @@ export async function grantClubAccess(
   return database.transaction(async tx => {
     // Use the settlement/retention owner lock before computing the new expiry.
     const [user] = await tx.select().from(users).where(eq(users.id, userId)).for("update");
-    if (!user || user.blockedAt || user.openId.startsWith(`deleted-${user.id}-`))
-      throw new Error("Аккаунт недоступен для выдачи доступа");
+    if (!user)
+      throw new TRPCError({ code: "NOT_FOUND", message: "Аккаунт не найден" });
+    if (user.blockedAt || user.openId.startsWith(`deleted-${user.id}-`))
+      throw new TRPCError({ code: "CONFLICT", message: "Аккаунт недоступен для выдачи доступа" });
     const [latest] = await tx.select({ expiresAt: clubPayments.expiresAt })
       .from(clubPayments)
       .where(and(eq(clubPayments.userId, userId), eq(clubPayments.status, "paid")))

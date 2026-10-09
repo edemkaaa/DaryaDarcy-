@@ -5743,3 +5743,48 @@ not recoverable or needed; working DB untouched. Evidence:
 /tmp/daryadarcy-admin-read-{red,green,sql,full,types,build,lint}.log and fresh
 API/boundary/docs output. All prior identity/M07c/provider/SMTP/device and
 dependency/rollout gates remain open; this is one completed safe alignment slice.
+
+### Frontend/admin alignment: explicit club-grant refusals — 9 October
+
+Next safe slice follows the existing admin grant consumer: useConfirmedAction
+shows explicit 4xx refusals but keeps an unconfirmed 500/network result blocked
+pending fresh reads. grantClubAccess previously threw a plain Error for absent,
+blocked or deleted recipients, although it had not written a grant. Preserve
+the same locked predicates and transaction: missing recipient now NOT_FOUND/404
+with "Аккаунт не найден", blocked/deleted CONFLICT/409 with
+"Аккаунт недоступен для выдачи доступа". Conflict concerns the recipient, not
+actor permission. Existing admin middleware, owner lock, duration validation,
+31-day default, unique per-call grant, zero-sum record and success shape unchanged.
+No automatic retry or idempotency introduced; SQL/no-client/network ambiguity
+still needs history/expiry reconciliation. No provider/identity feature inferred.
+
+RED six failures: three direct helper contracts and three real native HTTP
+recipient refusals. Initial harness expectation for blocked actor corrected
+from 403 to existing real-session 401 after checking sdk.authenticateRequest;
+runtime authorization untouched. Recipient row/history snapshots exclude actor
+lastSignedIn, which the existing real login legitimately refreshes. GREEN 23
+grant tests. Three-file real SQL 50 pass, including ten concurrent grants,
+member/payment projections, moderation audit and content. Real SDK JWT + native
+loopback Nest HTTP, no session double for this increment. Native app stays inert,
+no workers/providers/SMTP. Full default 1889 pass / 793 opt-in SQL/external skips,
+137 files pass / 43 skip. Root/frontend/E2E types, 422.3 kB backend build,
+73-procedure/25642-byte API, 565-file boundaries and lint pass.
+
+Review: only one pre-write guard is split into explicit tRPC errors. Existing
+dependency/pattern, no new query or abstraction, unchanged rollback/locking;
+admin-only safe errors contain no private SQL/provider data. Missing account
+disclosure is behind the existing admin guard. Tests cover target rows/history,
+known successful committed expiry and guest/user/moderator/blocked-actor refusals.
+Existing API/handoff updated. Primary review instructions used; previously missing
+auxiliary checklists remain a limitation. No frontend/auth/CORS/proxy/quota/schema,
+dependency, mail/cabinet/secret/payment, remote merge/push or deployment changes.
+
+Disposable database: owned local mysql:8.4, loopback 53229, tmpfs/no mounts,
+512 MiB/one CPU, owner dd-admin-grant-refusals-20261009-0316. Exact container
+8b8c619f58f49bcfb33685bbd24a3ac3dbd6fa7748a486c33c32def29d165b1c inspected
+again for ID/owner/no mounts/tmpfs/no OOM before exact removal; owner inventory
+then empty. Only synthetic run resources removed, not recoverable or needed;
+working DB untouched. Evidence /tmp/daryadarcy-admin-grant-{red,green,sql,full,
+types,e2e-types,build,lint}.log plus fresh API/boundary/docs checks. First-email
+contract, M07c human drain bound, real provider/SMTP/recurring/device and existing
+rollout/dependency gates remain open; this does not claim all alignment finished.

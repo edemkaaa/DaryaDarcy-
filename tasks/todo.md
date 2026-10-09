@@ -1927,3 +1927,18 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] First-email identity contract remains unapproved/disabled as in frontend;
   previous M07c/provider/SMTP/device/rollout/dependency gates remain open.
   No frontend or shared-server changes, merge/push/deploy.
+
+### Frontend/admin club-grant refusals — 9 October, early morning
+
+- [x] Current admin confirmation flow now receives explicit 404 for absent and
+  409 for blocked/deleted grant recipients, under unchanged pre-write owner lock.
+  31-day default, separate per-call grant, permissions and success shape unchanged.
+  No blind retry made safe; unconfirmed SQL/network result still needs checking.
+- [x] Six RED regressions; 23 focused GREEN with real HTTP/JWT/SQL. Expanded
+  three-file SQL 50 pass; full default 1889 pass / 793 opt-in skips. Types/build/
+  API/boundaries/lint pass, review/API/handoff updated; evidence in plan.md.
+  Exact owned tmpfs MySQL removed after owner/no-mount/no-OOM checks; matching
+  owner inventory empty, only synthetic resources removed, working DB untouched.
+- [ ] Initial email identity contract, M07c drain bound, provider/SMTP/device and
+  previous rollout/dependency gates remain open. No frontend edit or server
+  acceptance, merge/push/deploy; do not present this as all scenarios completed.

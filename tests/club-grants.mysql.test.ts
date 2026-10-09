@@ -1,22 +1,43 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Connection, RowDataPacket } from "mysql2/promise";
+import type { INestApplication } from "@nestjs/common";
+import type { AddressInfo } from "node:net";
+import { createTRPCProxyClient, httpLink } from "@trpc/client";
+import superjson from "superjson";
+import { createBackendApplication } from "../apps/backend/src/_core/application";
+import { sdk } from "../apps/backend/src/_core/sdk";
+import type { AppRouter } from "../apps/backend/src/routers";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { getDb, grantClubDays, listAdminMembers, listAdminPayments } from "../apps/backend/src/db";
 
 describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () => {
   let conn: Connection;
+  let app: INestApplication, base: string, token: string;
+  const admin = (bearer = token) => createTRPCProxyClient<AppRouter>({ links: [httpLink({ url: base + "/api/trpc", transformer: superjson, headers: bearer ? { Authorization: `Bearer ${bearer}` } : {} })] }).admin;
   beforeAll(async () => {
     conn = await openTestDatabase();
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
+    vi.stubEnv("JWT_SECRET", "synthetic-native-grants-jwt-secret-32");
+    await conn.query("INSERT INTO users (id,openId,role,sessionVersion) VALUES (92400,'grant-admin-fixture','admin',0)");
     await conn.query("INSERT IGNORE INTO users (id,openId,email) VALUES (92401,'grant-fixture','grant@example.test')");
+    app = await createBackendApplication();
+    await app.listen(0, "127.0.0.1");
+    base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
+    token = await sdk.createSessionToken("grant-admin-fixture", { sessionVersion: 0 });
   });
   beforeEach(async () => {
+    await conn.query("UPDATE users SET role='admin',blockedAt=NULL WHERE id=92400");
     await conn.query("DELETE FROM club_payments WHERE userId=92401");
     await conn.query("UPDATE users SET blockedAt=NULL,openId='grant-fixture',email='grant@example.test' WHERE id=92401");
     await conn.query(`INSERT INTO club_payments (userId,orderId,email,status,expiresAt)
       VALUES (92401,'grant-fixture-initial','grant@example.test','paid',DATE_ADD(NOW(),INTERVAL 60 DAY))`);
   });
   afterAll(async () => {
+    await app?.close();
+    if (conn) {
+      await conn.query("DELETE FROM club_payments WHERE userId IN (92400,92401)");
+      await conn.query("DELETE FROM users WHERE id IN (92400,92401)");
+    }
     await conn?.end();
     const database = await getDb();
     await (database as unknown as { $client: { end(): Promise<void> } })?.$client.end();
@@ -75,12 +96,39 @@ describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () =
     if (state === "blocked") await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=92401");
     else await conn.query("UPDATE users SET openId='deleted-92401-fixture',email=NULL,passwordHash=NULL WHERE id=92401");
     const before = await payments();
-    await expect(grantClubDays(92401)).rejects.toThrow();
+    await expect(grantClubDays(92401)).rejects.toMatchObject({ code: "CONFLICT", message: "Аккаунт недоступен для выдачи доступа" });
     expect(await payments()).toEqual(before);
   });
   it("refuses a missing recipient", async () => {
-    await expect(grantClubDays(92409)).rejects.toThrow();
+    await expect(grantClubDays(92409)).rejects.toMatchObject({ code: "NOT_FOUND", message: "Аккаунт не найден" });
     const [rows] = await conn.query<RowDataPacket[]>("SELECT id FROM club_payments WHERE userId=92409");
     expect(rows).toEqual([]);
+  });
+  it.each(["missing", "blocked", "deleted"] as const)("returns an explicit native refusal for a %s recipient without changing rows", async state => {
+    if (state === "blocked") await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=92401");
+    if (state === "deleted") await conn.query("UPDATE users SET openId='deleted-92401-fixture',email=NULL,passwordHash=NULL WHERE id=92401");
+    const [accounts] = await conn.query("SELECT * FROM users WHERE id=92401");
+    const before = await payments();
+    await expect(admin().grantClub.mutate({ userId: state === "missing" ? 92409 : 92401 })).rejects.toMatchObject({
+      message: state === "missing" ? "Аккаунт не найден" : "Аккаунт недоступен для выдачи доступа",
+      data: { code: state === "missing" ? "NOT_FOUND" : "CONFLICT", httpStatus: state === "missing" ? 404 : 409 },
+    });
+    expect(await payments()).toEqual(before);
+    expect((await conn.query("SELECT * FROM users WHERE id=92401"))[0]).toEqual(accounts);
+    expect((await conn.query("SELECT id FROM club_payments WHERE userId IN (92400,92409)"))[0]).toEqual([]);
+  });
+  it("acknowledges a real admin grant only with its committed 31-day expiry", async () => {
+    const initial = (await payments())[0].expiresAt as Date;
+    const result = await admin().grantClub.mutate({ userId: 92401 });
+    expect(result).toEqual({ ok: true, expiresAt: new Date(initial.getTime() + 31 * 86400000).toISOString() });
+    expect(await payments()).toHaveLength(2);
+    expect((await payments()).at(-1)).toMatchObject({ status: "paid", sum: "0", expiresAt: new Date(result.expiresAt) });
+  });
+  it.each(["guest", "user", "moderator", "blocked-admin"] as const)("does not grant or change history for %s", async access => {
+    if (access !== "guest") await conn.query("UPDATE users SET role=?,blockedAt=? WHERE id=92400", [access === "blocked-admin" ? "admin" : access, access === "blocked-admin" ? new Date() : null]);
+    const before = await payments();
+    const unauthenticated = access === "guest" || access === "blocked-admin";
+    await expect(admin(access === "guest" ? "" : token).grantClub.mutate({ userId: 92401 })).rejects.toMatchObject({ data: { code: unauthenticated ? "UNAUTHORIZED" : "FORBIDDEN", httpStatus: unauthenticated ? 401 : 403 } });
+    expect(await payments()).toEqual(before);
   });
 });
