@@ -2170,8 +2170,10 @@ drafts remain local after interruption; disposable container already removed.
   lint/API/boundaries/docs, standard+TEST backend and frontend builds pass;
   serial Vitest 1911 pass / 840 opt-in skips, selected browser suites 168 pass.
   Missing expected browser recovered with installed executable override only.
-- [ ] Publish reviewed current feature plus this evidence to staging by normal
-  fast-forward push; confirm exact remote SHA. Server deployment not requested.
+- [x] Publish reviewed current feature plus this evidence to staging by normal
+  fast-forward push. Remote SHA b52381e995590a51cbef1759c8e9b69bf765ebc7
+  matches local HEAD; this checklist confirmation follows as docs only.
+  Server deployment not requested or performed.
 - [ ] Real SQL/provider/SMTP/device/dependency/rollout acceptance remains open.
   Docker inventory currently unresponsive; no working DB or container changes.
   Frontend return dialog and concrete email-binding scenario still pending.
