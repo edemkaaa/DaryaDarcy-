@@ -1,10 +1,37 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
   likes,
   savedPosts,
   users,
 } from "../../../../packages/database/src/schema";
+
+export async function getUserLikedPostIds(
+  db: MySql2Database | null,
+  userId: number,
+): Promise<number[]> {
+  if (!db) return [];
+
+  const result = await db
+    .select({ postId: likes.postId })
+    .from(likes)
+    .where(eq(likes.userId, userId));
+  return result.map((r) => r.postId);
+}
+
+export async function getUserSavedPostIds(
+  db: MySql2Database | null,
+  userId: number,
+): Promise<number[]> {
+  if (!db) return [];
+
+  const result = await db
+    .select({ postId: savedPosts.postId })
+    .from(savedPosts)
+    .where(eq(savedPosts.userId, userId))
+    .orderBy(desc(savedPosts.createdAt));
+  return result.map((r) => r.postId);
+}
 
 /** Toggle once per committed request; a network retry is still a new toggle. */
 export async function togglePostReaction(

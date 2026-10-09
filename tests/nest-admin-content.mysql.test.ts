@@ -202,6 +202,33 @@ describe.skipIf(!testDatabaseUrl)(
         "admin hidden club",
       );
     });
+    it("orders equal-position admin posts by publication date with creation fallback", async () => {
+      try {
+        await conn.query(`INSERT INTO posts (id,text,photos,tags,sortOrder,createdAt,publishedAt) VALUES
+          (9046,'published earlier',JSON_ARRAY(),JSON_ARRAY(),-5,'2025-01-01','2025-01-06'),
+          (9047,'creation fallback',JSON_ARRAY(),JSON_ARRAY(),-5,'2025-01-07',NULL),
+          (9048,'created later but published earlier',JSON_ARRAY(),JSON_ARRAY(),-5,'2025-01-08','2025-01-05'),
+          (9049,'earlier position wins',JSON_ARRAY(),JSON_ARRAY(),-6,'2025-01-01',NULL)`);
+        const rows = await client(bearer).admin.posts.query();
+        expect(
+          rows
+            .filter((row) => row.id >= 9046 && row.id <= 9049)
+            .map((row) => row.id),
+        ).toEqual([9049, 9047, 9046, 9048]);
+      } finally {
+        await conn.query("DELETE FROM posts WHERE id BETWEEN 9046 AND 9049");
+      }
+    });
+    it("does not attach a private draft's files to admin posts without media", async () => {
+      const rows = await client(bearer).admin.posts.query();
+      expect(rows.find((row) => row.id === 9041)?.media).toHaveLength(2);
+      for (const id of [9042, 9043, 9044]) {
+        expect(rows.find((row) => row.id === id)).toMatchObject({
+          id,
+          media: [],
+        });
+      }
+    });
     it.each([
       [undefined, [9040, 9044, 9041, 9042, 9043]],
       [{}, [9040, 9044, 9041, 9042, 9043]],
@@ -263,6 +290,27 @@ describe.skipIf(!testDatabaseUrl)(
         text: "admin private draft",
         likeCount: 20,
       });
+    });
+    it("limits dashboard leaders to five and truncates private draft previews to 80 characters", async () => {
+      const text = "Тестовая публикация ".repeat(8);
+      await conn.query("UPDATE posts SET text=? WHERE id=9041", [text]);
+      try {
+        await conn.query(
+          "INSERT INTO posts (id,text,photos,tags) VALUES (9045,'sixth dashboard candidate',JSON_ARRAY(),JSON_ARRAY())",
+        );
+        const result = await client(bearer).admin.stats.query();
+        expect(result.topLikedPosts).toHaveLength(5);
+        expect(result.topLikedPosts).toContainEqual({
+          id: 9041,
+          text: text.slice(0, 80),
+          likeCount: 20,
+        });
+      } finally {
+        await conn.query("DELETE FROM posts WHERE id=9045");
+        await conn.query(
+          "UPDATE posts SET text='admin private draft' WHERE id=9041",
+        );
+      }
     });
     it.each([
       [null, "UNAUTHORIZED", 401],

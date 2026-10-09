@@ -17,7 +17,7 @@ import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import type { AppRouter } from "../apps/backend/src/routers";
 import { sdk } from "../apps/backend/src/_core/sdk";
-import { getDb } from "../apps/backend/src/db";
+import { getDb, getPostById, getPostsForTarget } from "../apps/backend/src/db";
 
 describe.skipIf(!testDatabaseUrl)(
   "native content reads over real HTTP/JWT/MySQL",
@@ -136,6 +136,78 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(await client().feed.getById.query({ id: 8971 })).toBeUndefined();
     });
+    it("keeps private row lookup separate from public visibility", async () => {
+      for (const fixture of [
+        { id: 8972, text: "draft body", status: "draft", published: true },
+        {
+          id: 8974,
+          text: "hidden body",
+          status: "published",
+          published: false,
+        },
+      ]) {
+        expect(await getPostById(fixture.id)).toMatchObject(fixture);
+        expect(
+          await client(bearer).feed.getById.query({ id: fixture.id }),
+        ).toBeUndefined();
+      }
+    });
+    it("does not return a neighboring post for a missing ID", async () => {
+      expect(await getPostById(999999)).toBeUndefined();
+      expect(
+        await client(bearer).feed.getById.query({ id: 999999 }),
+      ).toBeUndefined();
+    });
+    it("returns ordered audio, document and video metadata on public post detail", async () => {
+      await conn.query(
+        "INSERT INTO post_media (id,postId,type,url,filename,mimeType,fileSize,duration,sortOrder) VALUES (8977,8975,'video','https://assets.example.test/detail.mp4','detail.mp4','video/mp4',1234,17,2)",
+      );
+      try {
+        expect(await client().feed.getById.query({ id: 8975 })).toMatchObject({
+          id: 8975,
+          media: [
+            {
+              id: 8976,
+              postId: 8975,
+              type: "audio",
+              url: "https://assets.example.test/catalog.mp3",
+            },
+            {
+              id: 8975,
+              postId: 8975,
+              type: "document",
+              url: "https://assets.example.test/catalog.pdf",
+            },
+            {
+              id: 8977,
+              postId: 8975,
+              type: "video",
+              url: "https://assets.example.test/detail.mp4",
+              filename: "detail.mp4",
+              mimeType: "video/mp4",
+              fileSize: 1234,
+              duration: 17,
+              sortOrder: 2,
+            },
+          ],
+        });
+      } finally {
+        await conn.query(
+          "DELETE FROM post_media WHERE id=8977 AND postId=8975",
+        );
+      }
+    });
+    it("does not attach another post's files to an empty post in detail or batch reads", async () => {
+      expect(await client().feed.getById.query({ id: 8976 })).toMatchObject({
+        id: 8976,
+        media: [],
+      });
+      const page = await client().feed.list.query({ tag: "native-catalog" });
+      expect(page.find((row) => row.id === 8976)).toMatchObject({
+        id: 8976,
+        media: [],
+      });
+    });
     it.each([
       { limit: 1.5 },
       { limit: 12, cursor: -1 },
@@ -170,6 +242,50 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await client().feed.list.query({ tag: "native-missing" })).toEqual(
         [],
       );
+    });
+    it("counts each post's own likes in the legacy feed without adding comment counts", async () => {
+      await conn.query(
+        "INSERT INTO likes (userId,postId) VALUES (8970,8970),(8970,8975)",
+      );
+      const rows = await client().feed.list.query();
+      for (const id of [8970, 8975]) {
+        const post = rows.find((row) => row.id === id);
+        expect(post).toMatchObject({ id, likeCount: 1 });
+        expect(post).not.toHaveProperty("commentCount");
+      }
+      expect(rows.find((row) => row.id === 8976)).toMatchObject({
+        id: 8976,
+        likeCount: 0,
+        media: [],
+      });
+    });
+    it("matches whole tags in the legacy feed and retains only the matching post's media", async () => {
+      await conn.query(
+        "UPDATE posts SET tags=JSON_ARRAY('native-catalog','native-season') WHERE id=8975",
+      );
+      await conn.query(
+        "UPDATE posts SET tags=JSON_ARRAY('native-seasonal') WHERE id=8976",
+      );
+      try {
+        const rows = await client().feed.list.query({ tag: "native-season" });
+        expect(rows.map((row) => row.id)).toEqual([8975]);
+        expect(rows[0].media.map((media) => media.url)).toEqual([
+          "https://assets.example.test/catalog.mp3",
+          "https://assets.example.test/catalog.pdf",
+        ]);
+        for (const tag of [
+          "native-sea",
+          "NATIVE-SEASON",
+          " native-season ",
+          "' OR 1=1 --",
+        ]) {
+          expect(await client().feed.list.query({ tag })).toEqual([]);
+        }
+      } finally {
+        await conn.query(
+          "UPDATE posts SET tags=JSON_ARRAY('native-catalog') WHERE id IN (8975,8976)",
+        );
+      }
     });
     it.each([
       { limit: 1.5 },
@@ -214,6 +330,25 @@ describe.skipIf(!testDatabaseUrl)(
       await expect(client().club.list.query()).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED", httpStatus: 401 },
       });
+    });
+    it("intersects club visibility with tags and trimmed search before pagination", async () => {
+      // Search is an existing repository option, not a club.list HTTP field.
+      const body = await getPostsForTarget("club", {
+        tagFilter: "native-catalog",
+        search: "  CLUB BODY  ",
+        limit: 1,
+      });
+      expect(body.posts.map((post) => post.id)).toEqual([8971]);
+      expect(body.nextCursor).toBeNull();
+      for (const input of [
+        { tagFilter: "native-missing", search: "club body" },
+        { tagFilter: "native-catalog", search: "' OR 1=1 --" },
+      ]) {
+        expect(await getPostsForTarget("club", input)).toEqual({
+          posts: [],
+          nextCursor: null,
+        });
+      }
     });
     it("paginates filtered rows with default 12 and treats null cursor as the first page", async () => {
       const first = await client().feed.listPaginated.query({
@@ -309,6 +444,41 @@ describe.skipIf(!testDatabaseUrl)(
         },
       ]);
     });
+    it("keeps an unused season in the full public tag catalog with its original label", async () => {
+      await conn.query(
+        "INSERT INTO tags (id,slug,label,category,sortOrder) VALUES (8977,'native-unused','  Неиспользованный сезон  ','season',-3)",
+      );
+      try {
+        const tags = (await client().feed.tags.query()).filter(
+          (tag) => tag.id >= 8975 && tag.id <= 8977,
+        );
+        expect(tags).toEqual([
+          {
+            id: 8977,
+            slug: "native-unused",
+            label: "  Неиспользованный сезон  ",
+            category: "season",
+            sortOrder: -3,
+          },
+          {
+            id: 8976,
+            slug: "native-season",
+            label: "Season",
+            category: "season",
+            sortOrder: 1,
+          },
+          {
+            id: 8975,
+            slug: "native-catalog",
+            label: "Catalog",
+            category: "topic",
+            sortOrder: 2,
+          },
+        ]);
+      } finally {
+        await conn.query("DELETE FROM tags WHERE id=8977");
+      }
+    });
     it.each([8972, 8973, 8974])(
       "hides non-published detail %s even from a subscribed administrator",
       async (id) => {
@@ -353,6 +523,23 @@ describe.skipIf(!testDatabaseUrl)(
         (await client(bearer).feed.savedPosts.query()).map((post) => post.id),
       ).toEqual([8970]);
     });
+    it("preserves duplicate bookmark positions while omitting missing and unpublished rows", async () => {
+      await conn.query(
+        "INSERT INTO saved_posts (userId,postId,createdAt) VALUES (8970,8970,'2036-01-01'),(8970,8975,'2036-01-02'),(8970,8971,'2036-01-03'),(8970,8975,'2036-01-04'),(8970,8972,'2036-01-05'),(8970,8974,'2036-01-06'),(8970,999999,'2036-01-07')",
+      );
+      const saved = await client(bearer).feed.savedPosts.query();
+      expect(saved.map((post) => post.id)).toEqual([8975, 8971, 8975, 8970]);
+      for (const index of [0, 2]) {
+        expect(saved[index].media.map((media) => media.url)).toEqual([
+          "https://assets.example.test/catalog.mp3",
+          "https://assets.example.test/catalog.pdf",
+        ]);
+      }
+      expect(saved[1].media).toMatchObject([
+        { url: "https://assets.example.test/club-fixture.pdf" },
+      ]);
+      expect(saved[3].media).toEqual([]);
+    });
     it.each(["blockedAt=NOW()", "sessionVersion=1"])(
       "denies club and protected reads after %s",
       async (patch) => {
@@ -381,6 +568,65 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED", httpStatus: 401 },
       });
+    });
+    it("keeps two authenticated readers' interactions and saved bodies separate", async () => {
+      await conn.query(
+        "INSERT INTO users (id,openId,role) VALUES (8988,'native-content-other','user')",
+      );
+      try {
+        await conn.query(
+          "INSERT INTO likes (userId,postId) VALUES (8970,8975),(8988,8971)",
+        );
+        await conn.query(
+          "INSERT INTO saved_posts (userId,postId) VALUES (8970,8970),(8988,8976)",
+        );
+        const otherBearer = await sdk.createSessionToken(
+          "native-content-other",
+          {
+            sessionVersion: 0,
+          },
+        );
+        expect(await client(bearer).feed.userInteractions.query()).toEqual({
+          likedIds: [8975],
+          savedIds: [8970],
+        });
+        expect(await client(otherBearer).feed.userInteractions.query()).toEqual(
+          {
+            likedIds: [8971],
+            savedIds: [8976],
+          },
+        );
+        expect(
+          (await client(bearer).feed.savedPosts.query()).map((post) => post.id),
+        ).toEqual([8970]);
+        expect(
+          (await client(otherBearer).feed.savedPosts.query()).map(
+            (post) => post.id,
+          ),
+        ).toEqual([8976]);
+      } finally {
+        await conn.query("DELETE FROM saved_posts WHERE userId=8988");
+        await conn.query("DELETE FROM likes WHERE userId=8988");
+        await conn.query("DELETE FROM users WHERE id=8988");
+      }
+    });
+    it("preserves raw repeated reaction IDs and newest-first bookmark positions", async () => {
+      await conn.query(
+        "INSERT INTO likes (userId,postId) VALUES (8970,8975),(8970,8972),(8970,8975)",
+      );
+      await conn.query(
+        "INSERT INTO saved_posts (userId,postId,createdAt) VALUES (8970,8970,'2036-01-01'),(8970,8971,'2036-01-02'),(8970,8970,'2036-01-03'),(8970,8972,'2036-01-04')",
+      );
+      const interactions = await client(bearer).feed.userInteractions.query();
+      // Likes have no ordering contract; bookmark positions do. Private IDs are
+      // marks, not content: savedPosts still removes the draft body separately.
+      expect([...interactions.likedIds].sort((a, b) => a - b)).toEqual([
+        8972, 8975, 8975,
+      ]);
+      expect(interactions.savedIds).toEqual([8972, 8970, 8971, 8970]);
+      expect(
+        (await client(bearer).feed.savedPosts.query()).map((post) => post.id),
+      ).toEqual([8970, 8971, 8970]);
     });
     it("lists only public article summaries, never paid sections", async () => {
       const rows = (await client().articles.list.query()).filter(

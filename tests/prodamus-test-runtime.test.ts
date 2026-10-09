@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
+import { createHmac, randomUUID } from "node:crypto";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 
 let app: INestApplication;
@@ -16,6 +17,7 @@ beforeAll(async () => {
     allowedPostPaths: [
       "/api/trpc/club.createCheckout",
       "/api/prodamus/test/webhook",
+      "/api/prodamus/test/result",
     ],
   });
   await app.listen(0, "127.0.0.1");
@@ -32,6 +34,7 @@ it.each([
   ["POST", "/api/trpc/club.createCheckout,profile.update"],
   ["POST", "/api/auth/register"],
   ["GET", "/api/trpc/club.createCheckout"],
+  ["GET", "/api/prodamus/test/result"],
 ])(
   "restricted runtime refuses %s %s before unrelated application handlers",
   async (method, path) => {
@@ -40,6 +43,96 @@ it.each([
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
   },
 );
+it("exposes only a read-only unknown result for invalid proof, never session or identity data", async () => {
+  const response = await fetch(base + "/api/prodamus/test/result", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Idempotency-Key": randomUUID(),
+    },
+    body: JSON.stringify({ token: "not-a-receipt-or-session" }),
+  });
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({
+    state: "unknown",
+    nextAction: null,
+    emailStatus: null,
+  });
+  expect(response.headers.get("set-cookie")).toBeNull();
+  expect(response.headers.get("cache-control")).toContain("no-store");
+  expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+});
+it("returns a sanitized unavailable response, not paid or pending, when receipt storage is absent", async () => {
+  const payload = `club-test-94321-83be933e-a277-41f3-801d-45771c12b051.${Math.floor(Date.now() / 1000) + 3600}`;
+  const token = `${payload}.${createHmac("sha256", "a".repeat(64)).update(`prodamus-test-return:v1:${payload}`).digest("hex")}`;
+  const response = await fetch(base + "/api/prodamus/test/result", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Idempotency-Key": randomUUID(),
+    },
+    body: JSON.stringify({ token }),
+  });
+  expect(response.status).toBe(503);
+  expect(await response.json()).toEqual({ error: "test result unavailable" });
+  expect(response.headers.get("set-cookie")).toBeNull();
+});
+it.each([
+  ["?paid=1", {}, "application/json", { token: "fixture" }, 400],
+  [
+    "",
+    { Cookie: "session=PRIVATE_FIXTURE" },
+    "application/json",
+    { token: "fixture" },
+    400,
+  ],
+  ["", {}, "text/plain", { token: "fixture" }, 415],
+  [
+    "",
+    {},
+    "application/json",
+    { token: "fixture", email: "PRIVATE_FIXTURE" },
+    400,
+  ],
+  ["", {}, "application/json", { token: "x".repeat(193) }, 400],
+  [
+    "",
+    { "Idempotency-Key": "invalid" },
+    "application/json",
+    { token: "fixture" },
+    400,
+  ],
+])(
+  "refuses malformed result transport without echoing data (%s)",
+  async (query, headers, type, body, status) => {
+    const response = await fetch(base + "/api/prodamus/test/result" + query, {
+      method: "POST",
+      headers: {
+        "Content-Type": type,
+        "Idempotency-Key": randomUUID(),
+        ...headers,
+      },
+      body: JSON.stringify(body),
+    });
+    expect(response.status).toBe(status);
+    expect(await response.text()).not.toContain("PRIVATE_FIXTURE");
+  },
+);
+it("stops at the existing twelve-check intent budget rather than adding a new quota", async () => {
+  const intent = randomUUID();
+  const options = {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Idempotency-Key": intent },
+    body: JSON.stringify({ token: "fixture" }),
+  };
+  for (let attempt = 0; attempt < 12; attempt++)
+    expect(
+      (await fetch(base + "/api/prodamus/test/result", options)).status,
+    ).toBe(200);
+  const refused = await fetch(base + "/api/prodamus/test/result", options);
+  expect(refused.status).toBe(429);
+  expect(Number(refused.headers.get("retry-after"))).toBeGreaterThan(0);
+});
 it("retains browser-origin protection on the selected test receiver", async () => {
   const response = await fetch(base + "/api/prodamus/test/webhook", {
     method: "POST",

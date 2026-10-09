@@ -1987,3 +1987,223 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] Remaining safe domain/repository scopes and existing first-email/M07c/
   provider/SMTP/device/dependency/rollout gates stay open. No frontend edit,
   pagination/optimization, actual payment, merge/push/deploy or shared-server work.
+
+### M08 article read repository — 9 October, early morning
+
+- [x] Continue locally after user-requested staging update to ae70522. Extract
+  three article reads behind unchanged facade/connection/queries/normalization;
+  public hidden/body rules and admin rights remain in their existing owners.
+- [x] Four new native SQL characterizations, three mutation RED failures;
+  original restored before extraction, executable AST unchanged. Final selected
+  105 pass (40 real SQL); default 1889 pass / 801 opt-in skips. Types/build/API/
+  boundaries/lint/format pass. Existing docs/review/evidence recorded in plan.md.
+  Exact owned tmpfs database removed after owner/no-mount/no-OOM checks; matching
+  owner inventory empty, working database untouched.
+- [ ] Remaining safe repository scopes and prior identity/M07c/provider/SMTP/
+  device/dependency/rollout gates stay open. This new slice is local only, without
+  frontend, actual payment, automatic merge/push/deploy or server acceptance.
+
+### M05/M08 ordinary-reader article acceptance — 9 October, before deadline
+
+- [x] Four new real HTTP/JWT/SQL cases protect paid ordinary-reader access,
+  next-request expiry revocation, pending/failed refusal and immediate block.
+  Reuse one exact synthetic order/owned account; no session or SQL double.
+- [x] Baseline 32 pass, three mutation RED failures, runtime restored exactly.
+  Final 85 selected pass (67 real SQL), full 1889 pass / 805 opt-in skips;
+  types/build/API/boundaries/lint/format checked. Existing handoff/review/evidence
+  saved in plan.md. Owned tmpfs container removed after exact ownership/no-mount/
+  no-OOM checks; matching inventory empty, working DB untouched.
+- [ ] Previous first-email/M07c/provider/SMTP/device/dependency/rollout gates and
+  remaining repository work remain open. Test-only local increment, no runtime
+  authorization/payment policy, frontend, remote merge/push/deploy or server claim.
+
+### M08 admin post-read repository — 9 October, daytime continuation
+
+- [x] Resume from clean 9a0c0bd under the new human request; expired overnight
+  heartbeat confirmed PAUSED, no replacement schedule or new deploy authority.
+- [x] Extract filters/calendar/statistics behind unchanged db.ts facade and
+  canonical shared post ordering. Existing SQL, signatures, counts, access and
+  no-DB projections retained; executable AST/initializer comparison unchanged.
+- [x] RED/GREEN and review: baseline 21 / five expected mutation failures; sixth
+  candidate proves top-5 limit independently, nullable projections checked with
+  existing session double. Exploratory month-delta probe removed because shared
+  global statistics are not transactional snapshots; no month acceptance claim.
+- [x] Final 100 selected pass (52 real SQL), full 1890 pass / 806 opt-in skips;
+  types/build/API/boundaries/lint/format/docs checked. Owned tmpfs database removed
+  after exact ownership/no-mount/no-OOM checks; matching inventory empty, working
+  DB untouched. Handoff/review/evidence recorded in plan.md.
+- [ ] Remaining M08/M06, first-email/M07c/provider/SMTP/device/dependency/rollout
+  gates remain open. Local backend-only slice, no frontend/payment-policy change,
+  remote merge/push/deploy, server acceptance or automatic continuation.
+
+### M08 post-media read repository — 9 October, daytime continuation
+
+- [x] Continue clean f8694a6 on the current feature branch. Move canonical batched
+  hydration and single-post media read out of db.ts; connection/visibility owners,
+  SQL/order/grouping/metadata/empty/error behavior and API remain unchanged.
+- [x] Two new native detail/batch media cases; baseline 51 pass, six expected
+  order/selector RED failures, one grouping-fallback RED failure. Runtime restored;
+  both executable AST bodies unchanged. No injected SQL-error acceptance claim.
+- [x] Final 102 selected pass (54 real SQL), full 1890 pass / 808 opt-in skips;
+  types/build/API/boundaries/lint/format/docs checked. Exact owned tmpfs database
+  removed after owner/no-mount/no-OOM checks; matching inventory empty, working DB
+  untouched. Existing handoff/review/evidence saved in plan.md.
+- [ ] Remaining M08/M06/first-email/M07c/provider/SMTP/device/dependency/rollout gates
+  open. No frontend/payment-policy/upload/storage change, push/deploy, server
+  acceptance or recurring continuation.
+
+### Prodamus TEST successful return — 9 October, 13:33 MSK
+
+- [x] User-approved single-line fix: successful TEST return /club?paid=1 starts
+  existing bounded server-access checking; non-success return stays /club.
+  URL hint never grants access. Frontend/signatures/settlement remain unchanged.
+- [x] Native HTTP/SQL RED then GREEN; 100 focused pass (52 SQL), full 1890 pass /
+  808 opt-in skips, types/build/API/boundaries/lint/docs checks pass. Exact owned
+  disposable database/network removed; working DB not used as a test fixture.
+- [x] Deploy only prior 6987883 runtime source plus this one line, not unrelated
+  local refactors. Old bundle reproduces byte-for-byte; new artifact differs in
+  one line. Only TEST container replaced, seven healthy, 15 HTTPS checks pass;
+  fresh provider link observed with corrected return. Rollback/evidence in plan
+  and operations docs. No payment, resend, cabinet change, branch merge or push.
+- [ ] Card/GPB and SBP failures remain unconfirmed upstream issues; no new paid
+  end-to-end acceptance, real money/autocharges or production approval. Old links
+  retain their old return URL; do not repeat a payment merely to test the return.
+  Existing dependency/rollout and unrelated backend gates remain open.
+
+### M08 post-catalog read repository — 9 October, daytime continuation
+
+- [x] Continue clean bd31aa0 on the current feature branch. Extract paginated
+  feed/club and saved-ID reads behind unchanged db.ts signatures. Preserve SQL,
+  filters/cursors/order/duplicate IDs/media/errors; services keep access decisions.
+- [x] Two characterization cases, baseline 33; independent filter/ID-order
+  mutations each produce the expected RED failure and are restored. Executable
+  AST/helpers/columns and facade signatures unchanged except passing the client.
+- [x] Final 137 selected pass (56 real SQL, 81 maintenance/transport doubles),
+  full 1890 pass / 810 opt-in skips; types/build/API/boundaries/lint/format/docs
+  checked. Exact owned tmpfs DB removed after ownership/no-mount/no-OOM checks,
+  matching inventory empty, working DB untouched. Evidence/review in plan.md.
+- [x] Prodamus diagnostic request sent by the user through the website chat;
+  supplied screenshot shows Sent. Agent sent nothing/read no mailbox. No need
+  to duplicate the request or require MAX login; provider diagnosis still open.
+- [ ] Remaining M08/M06/identity/M07c/SMTP/device/dependency/rollout gates stay
+  open. Local backend-only slice; no frontend, payment policy, new public search,
+  remote merge/push/deploy, server acceptance or automatic continuation.
+
+### M08 post detail / latest read repository — 9 October, continuation
+
+- [x] Continue clean 3048108. Move single-post and latest-announcement reads to
+  content/post-detail-repository.ts; preserve facade signatures/executable AST,
+  fields/media/date ordering/absence/errors and existing service-owned access.
+- [x] Two new native detail cases; baseline 35 content / 14 latest. Selector
+  mutation fails two checks; wrong date ordering fails one. Both restored before
+  extraction. Global latest run isolated on a fresh empty publication dataset.
+- [x] Final 153 selected pass (72 real SQL, 81 doubles); full 1890 pass / 812
+  opt-in skips. Types/build/API/boundaries/lint/format/docs/diff checked. Exact
+  owned tmpfs DB removed after ownership/no-mount/no-OOM checks; inventory empty,
+  working DB untouched. Evidence/review saved in plan.md and existing handoff.
+- [ ] Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout gates
+  remain open. No frontend, auth/payment policy, remote merge/push/deploy, new
+  payment or server acceptance. Await provider reply to the user's sent request.
+
+### M08 legacy feed read repository — 9 October, continuation
+
+- [x] Continue clean b708ff1. Move getPosts to the existing content catalog
+  repository, preserving facade signature, executable AST, single client
+  acquisition, projection/visibility/order/tag membership/media/errors.
+- [x] Two native HTTP/MySQL characterizations; baseline 37 pass. Uncorrelated
+  likes and substring-tag mutations each give one expected RED failure and are
+  restored before extraction. No normalization or commentCount field added.
+- [x] Final 141 selected pass (60 real SQL, 81 doubles); full 1890 pass / 814
+  opt-in skips. Types, backend/web builds, unchanged API, boundaries, frontend
+  lint, selected formatting/docs/diff checked; client regression 208 pass.
+  Exact owned tmpfs DB removed after owner/no-mount/no-OOM checks; matching
+  inventory empty, working DB untouched. Evidence and review in plan.md.
+- [ ] Legacy list remains unpaginated; no query/performance/SQL-error acceptance
+  change. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout
+  gates stay open. No frontend edits, payment-policy changes, merge/push/deploy
+  or new payment; no recurring continuation enabled.
+
+### M08 full admin post catalog — 9 October, continuation
+
+- [x] Continue clean 4b3a9ac. Move getAllPostsAdmin to the existing admin content
+  repository; preserve executable AST/facade signature, one client, private rows,
+  canonical sort/media/errors. Access stays at the unchanged native boundary.
+- [x] Two new native HTTP/MySQL cases, baseline 22 pass; wrong date and neighbor
+  media mutations each fail one check, restored before extraction.
+- [x] Final 143 selected pass (62 real SQL, 81 doubles); full 1890 pass / 816
+  opt-in skips. Types, both builds, API/boundaries, frontend lint, selected
+  formatting/docs/diff checked; client regression 208 pass. Exact owned tmpfs
+  DB removed after ownership/no-mount/no-OOM check; working DB untouched.
+- [ ] No pagination/performance/auth/payment-policy change or new SQL-fault
+  acceptance. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/
+  rollout gates open; no frontend edit, merge/push/deploy or new continuation.
+
+### M08 personal post-reaction reads — 9 October, continuation
+
+- [x] Continue clean c205581; group liked/saved-ID reads in existing
+  content/post-reactions.ts with unchanged toggle transaction. Executable AST,
+  facade signatures/client acquisition, actor predicates, duplicates, bookmark
+  order and historical no-DB/error behavior preserved; body access stays separate.
+- [x] Two new real HTTP/JWT/MySQL cases; two missing actor predicates and reverse
+  bookmark order each fail one check, restored before extraction. Eight added
+  transport-only cases cover empty/error/recovery without claiming real faults.
+- [x] Selected 153 pass (64 real SQL, 89 doubles), full 1898 pass / 818 opt-in
+  skips. Types, both builds, unchanged API/boundaries, frontend lint, selected
+  formatting, docs/diff checks and client regression 208 pass. Self-review and
+  exact owned tmpfs DB cleanup recorded in plan; working DB untouched.
+- [ ] Existing unpaginated reads and historical no-DB empty results deliberately
+  unchanged. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/
+  rollout gates open; no frontend edits, merge/push/deploy or new schedule.
+
+### M08 full tag catalog — 9 October, continuation
+
+- [x] Continue clean 9082ae1; move getAllTags to the existing catalog repository.
+  Executable body/signature and one lazy client preserved; all categories and
+  unused tags, original labels, ascending sortOrder, no-DB empty and SQL error
+  behavior unchanged. No new layer/query/filter/normalization.
+- [x] One native HTTP/MySQL characterization plus three transport cases;
+  wrong order, missing seasons and swallowed error each fail one RED check.
+  All temporary mutations restored; 157 selected pass (65 SQL, 92 doubles),
+  full 1901 pass / 819 opt-in skips. Types, both builds, API/boundaries, lint,
+  formatting, docs/diff and 208 client regressions checked. Exact owned tmpfs
+  database removed, owner inventory empty, working DB untouched.
+- [ ] Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout
+  gates open. Local-only; no frontend/auth/payment-policy/server changes,
+  merge/push/deploy or new continuation. Provider card/SBP acceptance still open.
+
+### Prodamus TEST return dialog — human-approved behavior, 9 October
+
+- [x] Human-approved exact webpack cache cleared (618 MiB, rebuildable), Docker
+  engine recovered after approved restart; disposable SQL tests possible.
+  Host disk pressure returned during full transform run, not fully resolved.
+- [x] Backend-only one-order TEST result implementation and self-review:
+  95 selected pass, including 73 SQL; pending versus
+  durable receipt, mail/setup/login status, tamper/expiry/refusal/no writes or
+  session proven through RED/GREEN; existing quota preserved. Exact owned DB
+  removed, working DB untouched. Full parallel run blocked by ENOSPC; unchanged
+  serial retry 1911 pass / 840 skips. Types/backend+TEST builds/API/boundaries,
+  lint/client regressions/docs/format/diff checked; local-only backend slice.
+- [ ] Add accessible return dialog and bounded cancellable check. Success only
+  after server proof; guest goes to email setup/login, signed-in member gets
+  verified access; pending/error/old links never imply payment or sent mail.
+- [ ] Full verification/self-review/local commits. No automatic deployment,
+  edge/auth/schema/quotas change, external mail, resend or payment. New user's
+  actual order/notification/mail/browser acceptance still unverified. Frontend
+  build/dialog pending; only 331 MiB available, more cleanup not authorized.
+
+### Staging publication review — human request, 9 October
+
+- [x] Fetch staging; ae70522 is already an ancestor of 09868ff, 13 feature
+  commits ahead and no incoming commits. Frontend 0b77270 already integrated
+  by 7524987; preserve frontend source, no redundant merge or force push.
+- [x] Review key frontend/backend contracts and regressions. Fresh types,
+  lint/API/boundaries/docs, standard+TEST backend and frontend builds pass;
+  serial Vitest 1911 pass / 840 opt-in skips, selected browser suites 168 pass.
+  Missing expected browser recovered with installed executable override only.
+- [x] Publish reviewed current feature plus this evidence to staging by normal
+  fast-forward push. Remote SHA b52381e995590a51cbef1759c8e9b69bf765ebc7
+  matches local HEAD; this checklist confirmation follows as docs only.
+  Server deployment not requested or performed.
+- [ ] Real SQL/provider/SMTP/device/dependency/rollout acceptance remains open.
+  Docker inventory currently unresponsive; no working DB or container changes.
+  Frontend return dialog and concrete email-binding scenario still pending.

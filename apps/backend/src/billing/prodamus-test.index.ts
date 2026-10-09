@@ -11,6 +11,7 @@ async function start(): Promise<void> {
     allowedPostPaths: [
       "/api/trpc/club.createCheckout",
       "/api/prodamus/test/webhook",
+      "/api/prodamus/test/result",
     ],
   });
   try {

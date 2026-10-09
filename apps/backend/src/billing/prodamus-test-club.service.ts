@@ -11,11 +11,14 @@ import { buildProdamusQuery } from "./prodamus-query";
 import { readProdamusPayment } from "./prodamus-payment";
 import { moneyMinor, type PaymentProof } from "./protocol";
 import { clubAccessMs } from "./club-settlement.service";
+import {
+  createProdamusTestReturnProof,
+  prodamusTestOrderPattern,
+  readProdamusTestResult,
+} from "./prodamus-test-result";
 
 const merchant = "https://testpage1.payform.ru";
 const application = "https://daryadarcy.dev.reeskeen.ru";
-const orderPattern =
-  /^club-test-[1-9]\d*-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const unavailable = "Тестовая оплата Prodamus не настроена";
 const productName = "Клуб Darcy — ТЕСТ, 30 дней без автосписаний";
 
@@ -78,6 +81,10 @@ export function requireProdamusTestConfiguration() {
 
 /** Dev-only one-off access; diagnostic and live receivers remain unchanged. */
 export class ProdamusTestClubService {
+  async result(token: string) {
+    const configured = requireProdamusTestConfiguration();
+    return readProdamusTestResult(token, configured.key);
+  }
   async createCheckout(
     email: string,
     existing: User | null | undefined,
@@ -110,7 +117,7 @@ export class ProdamusTestClubService {
       payments_limit: "1",
       callbackType: "json",
       urlReturn: `${application}/club`,
-      urlSuccess: `${application}/club`,
+      urlSuccess: `${application}/club?paid=1#paymentReturn=${createProdamusTestReturnProof(orderId, configured.key)}`,
       // Cabinet-level notification URL: no invented SYS/per-link routing.
     };
     const url = `${merchant}/?${buildProdamusQuery({ ...payload, signature: createProdamusSign(payload, configured.signingKey) })}`;
@@ -161,7 +168,7 @@ export class ProdamusTestClubService {
           /^(demo_?mode|subscription)$/i.test(name) && name !== "demo_mode",
       ) ||
       payment.proof.domain !== "testpage1.payform.ru" ||
-      !orderPattern.test(payment.orderId) ||
+      !prodamusTestOrderPattern.test(payment.orderId) ||
       !/^[1-9]\d{0,31}$/.test(payment.proof.paymentId) ||
       !proof ||
       moneyMinor(payment.sum) !== 79000 ||

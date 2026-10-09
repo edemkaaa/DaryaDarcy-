@@ -5878,3 +5878,660 @@ inventory empty. Only synthetic owned data removed, not recoverable or needed;
 working DB untouched. Evidence /tmp/daryadarcy-admin-repository-{baseline,red,
 green,sql,full,types,build,lint,contract-preview}.log plus fresh AST/API/boundary/
 docs output. Night continuation deadline remains 01:06 UTC, not extended.
+
+### M08 article read repository — 9 October, early morning
+
+Continue from clean ae70522 on feature/yookassa-test-checkout. Previous 40 commits
+were fast-forwarded to staging only on the explicit preceding user request;
+current heartbeat does not authorize another push, merge or deployment. Select
+the remaining Phase 2/M08 article read scope, not completed M06/M07b2 or admin
+membership reads. Three existing operations move to content/article-repository.ts
+behind unchanged db.ts signatures and one lazy supplied handle. Query order,
+published filter, hidden internal/admin rows, null-client empty results and
+canonical shared block normalization remain exact. ContentReadService owns
+public visibility/body policy; adminProcedure owns administrative rights. Writes,
+transactions, schema, connection ownership and frontend stay unchanged.
+
+Four native HTTP/JWT/MySQL characterizations reuse existing owned article fixtures:
+published sort order versus public-only summary projection; hidden normalized
+internal detail versus unavailable public detail even for admins; guest club-body
+lock versus authorized detail; legacy published blocks normalized in list/detail.
+Original baseline 28 pass. Temporary removal of published filter, reversed order
+and raw block returns produce three expected assertion failures / 25 pass.
+Original runtime restored byte-for-byte before extraction. Structural AST
+comparison against HEAD confirms every executable statement after getDb remains
+identical in all three moved queries. No source-text assertion added to tests.
+
+Expanded initial run revealed only missing SELECT on disposable performance_schema
+lock tables in existing concurrency fixtures (five failures, 53 pass), not a
+runtime regression. Read stack/fixture queries, grant only metadata_locks,
+data_locks and data_lock_waits SELECT to this synthetic DB user inside this owned
+container, rerun unchanged application/tests. Final four-file GREEN 105 pass:
+40 real SQL checks, plus disclosed existing policy/maintenance doubles. Full
+default 1889 pass / 801 opt-in SQL/external skips, 137 files pass / 44 skip.
+Root/frontend/E2E types, 423.3 kB build, unchanged 73-procedure/25642-byte API,
+567-file boundaries, lint and selected formatting pass; existing docs updated.
+
+Five-axis review: domain query ownership leaves the compatibility facade required
+by existing callers; no db import cycle, new dependency, extra query, N+1, retry
+or private response field. Parameterized predicates and service policies exact.
+Legacy unpaginated scans, timestamp tie ordering and no-DB defaults intentionally
+remain; no performance or policy-fix claim. No auth/CORS/proxy/quota/frontend,
+payment/provider/cabinet/secret/mail, shared-server or remote mutation this turn.
+Primary skill/project criteria used; linked auxiliary review/security checklists
+remain absent. Identity/M07c/provider/SMTP/device/dependency/rollout gates open;
+remaining safe repository scopes may be inspected without repeating this slice.
+
+Owned existing local mysql:8.4, loopback 58569, tmpfs/no mounts, 512 MiB/one CPU;
+owner dd-article-read-repository-20261009-0346. Exact container
+c2d73d54a685a971bdac30ea212c694a48a6a584fd652ddc7828b598108330f6 checked for
+ID/owner/tmpfs/no mounts/no OOM before exact removal; matching owner inventory
+empty. Only synthetic run data removed, unrecoverable and not needed; working
+DB untouched. Logs /tmp/daryadarcy-article-repository-{baseline,red,green,sql,
+full,types,build,lint}.log plus AST/API/boundary/docs output. Deadline 01:06 UTC
+unchanged; no new authorization inferred from the earlier staging update.
+
+### M05/M08 native ordinary-reader article acceptance — 9 October, before deadline
+
+Continue from clean 6999b2f, feature ahead one of staging. Inspect current plan,
+remaining db facade and M06 settlement: pure preparation/request-neutral branches
+already separated, no reason to rush transaction/replay changes near deadline.
+Choose a small remaining content acceptance gap after article repository split:
+previous native cases exercised guest/admin, while ordinary subscriber checks
+used policy doubles. No new runtime behavior or authorization decision.
+
+Four native HTTP/JWT/MySQL cases reuse owned account 9060 with role reset to user
+and one exact synthetic payment order. Paid future expiry opens the club body;
+changing expiry to past closes the next request with the same JWT, while public
+body remains available. Future pending/failed payments do not unlock. Blocking
+an already authenticated paid reader closes the next request, hidden detail still
+absent. Existing real SDK discards the blocked session, public read returns guest
+locked projection; no auth workaround or new 401/403 expectation. Payment cleanup
+matches exact fixture order and recipient, before each/after all, never real data.
+
+Baseline 32 pass. Temporary status/expiry bypass in getActiveClubSubscription
+produces three expected assertion failures / 29 pass. Original runtime restored
+byte-for-byte, final diff contains no apps/backend change. GREEN four-file 85 pass:
+67 real SQL cases (32 articles, 12 article consistency, 23 grants) plus 18 existing
+policy-double cases. Full default 1889 pass / 805 opt-in skips, 137 files pass /
+44 skip. Root/frontend/E2E types, 423.3 kB build, unchanged 73 procedures/25642-byte
+API, 567-file boundaries, lint and selected formatting pass. Existing handoff
+updated; human docs checked with repository gate, no prose/source-text tests.
+
+Review: independent literal body/expiry/status fixtures exercise actual session,
+role lookup, subscription SQL and public response, not mock behavior. Threat is
+club-body disclosure from stale session or unconfirmed payment; no new PII,
+provider request, dependency, connection owner or production complexity. No
+auth/CORS/proxy/quota/schema/frontend/payment-policy change, remote operation or
+deployment. M07c drain bound, first-email binding scenario, provider/SMTP/device/
+dependency/rollout acceptance remain human/external gates. Remaining repository
+and transactional scopes stay open, not claimed finished by these tests.
+
+Owned existing local mysql:8.4, loopback 61016, tmpfs/no mounts, 512 MiB/one CPU,
+owner dd-article-reader-acceptance-20261009-0355. Concurrency diagnostics SELECT
+granted only inside this synthetic container to its fixture user. Exact ID
+4ebabdd3b6f7970be6bbd67a35baa9572d90a8fae31bb8f7875d9bdb0171e192 inspected
+again for exact owner/tmpfs/no mounts/no OOM then removed; matching owner inventory
+empty. Only synthetic data removed, not recoverable or needed; working DB untouched.
+Evidence /tmp/daryadarcy-article-reader-{baseline,red,green,full,types,build,lint}.log.
+Night deadline remains 01:06 UTC. Do not begin another substantial unverified slice
+at the cutoff; report current checkpoint and disable continuation after deadline.
+
+### M08 admin post-read repository — 9 October, new daytime request
+
+New human continuation resumes local backend work after the expired 01:06 UTC
+deadline; the stale daryadarcy heartbeat was confirmed PAUSED via the native
+automation tool, preserving its prompt/rrule/target. No new schedule or automatic
+push/deploy authority inferred. Clean feature/yookassa-test-checkout at 9a0c0bd,
+two local commits above origin/staging ae70522; unrelated work absent.
+
+Slice: move getAdminPostsFiltered/getScheduledPosts/getPostStatistics behind
+db.ts into content/post-admin-repository.ts. getDb remains acquired once in each
+facade, public signatures/PostStatistics stay unchanged; repository accepts the
+existing nullable client and has no connection owner/back-reference. Extract
+postDateOrder/postListOrder once into content/post-order.ts, shared by public
+catalog and admin date reads. Preserve AND filters, scheduled-time ascending,
+COALESCE publication/creation date, hidden rows, duplicate reaction row counts,
+top 5 / 80-character previews, host-local month logic, nontransactional statistics
+and legacy no-DB empty/zero replies. No new query/policy/transaction or speed claim.
+
+RED/GREEN: baseline 21 real native admin cases, including an exploratory month
+boundary probe. Temporary AND->OR, scheduled order reversal, 81-character preview
+and strict month lower bound produced five expected assertion failures (16 pass),
+then db.ts restored byte-for-byte before extraction. Review removed the exploratory
+global month-delta probe: independent suites can legitimately change aggregate
+counts between requests, and these reads are not a snapshot. No month acceptance
+claim from the final test set. Strengthen leader regression with a sixth exact
+owned post 9045, restoring draft text and deleting only that row in finally;
+temporary limit 6 then fails on six versus five rows. Restore limit 5. Add native
+no-DB projection regression with the existing session double, explicitly not JWT/
+SQL acceptance. Read-only TypeScript AST comparison confirms all three executable
+bodies (except connection acquisition) and both canonical sort initializers match
+HEAD exactly, including the preserved month calculations and nullable guard.
+
+Final four-file serial run: 100 pass, 52 real SQL (20 native admin, 29 native
+public content, 3 content persistence) and 48 existing maintenance/double cases.
+Full 1890 pass / 806 opt-in skips; 137 files pass / 44 skip. Root/frontend/E2E
+types, 424.1 kB build, byte-identical 73 procedures/25642-byte API, 569-file
+boundaries, lint, selected formatting and diff whitespace pass. Existing handoff
+updated; docs checked with repository gate, no source-text/prose tests.
+
+Review: domain-specific projections leave the general facade without adding
+duplicated sort definitions or dependency cycles. Parameterized filters and
+native admin session/role gate unchanged; no new PII/external flow/dependency.
+Tests use literal response expectations, exact fixture cleanup and no production
+secrets. Existing unbounded reads/global stats/tie ordering remain limitations,
+not optimized here. No frontend/auth/CORS/proxy/quota/schema/payment-policy,
+remote operation or server acceptance. Remaining M08/M06 transactional scopes,
+M07c drain bound, first-email scenario and provider/SMTP/device/dependency/rollout
+gates stay open; no human decision invented.
+
+Owned local mysql:8.4 container dd-admin-post-reads-20261009-1205, synthetic
+backend_test database, loopback 55377, tmpfs/no mounts, 512 MiB/one CPU. Exact ID
+8288b5a7e19d6f14fe6e8b4a5d4e9d309ccdbca3d7c688ddcce813828220957c inspected
+again for owner/tmpfs/no mounts/no OOM and removed; matching owner inventory empty.
+Only synthetic data removed, not recoverable or needed; working DB untouched.
+Evidence: /tmp/daryadarcy-admin-post-reads-{baseline,red,extra-baseline,limit-red,
+green,full,types,build,lint}.log. No new recurring continuation started.
+
+### M08 post-media read repository — 9 October, daytime continuation
+
+Continue new human request from clean f8694a6, current feature branch, no remote
+operation. Select the remaining domain split: attachPostMedia (six existing
+consumers) and getPostMediaByPostId into content/post-media-repository.ts. Retain
+one canonical batched query/grouping instead of cloning hydration per consumer;
+db.ts owns the client and single-post facade signature, callers own visibility.
+The former helper-only Db alias travels to the repository as MySql2Database.
+Preserve empty-page short circuit, ascending media order, every metadata field,
+empty arrays for unattached rows, generic warning and exception propagation,
+single-post filter and no-DB throw. Writes/deletion/upload/storage/photo JSON and
+publication transactions are outside this slice. No speed improvement claimed.
+
+Two new literal-response native HTTP/MySQL cases protect mixed detail attachments
+and prevent cross-post files on empty detail/batch rows. Extra video is one exact
+synthetic media row 8977/post8975, deleted in finally; no external media request.
+Baseline two native files 51 pass. Temporary reversed batched order and wrong
+single-post selector produce six expected failures / 45 pass; restore db.ts
+byte-for-byte before extraction. Review strengthens empty-row assertion in a
+multi-post list: temporarily using the whole mediaRows array as fallback produces
+one expected RED failure; restore empty-array fallback. Read-only TypeScript AST
+comparison confirms both executable bodies match HEAD (single-post connection
+acquisition excluded), including SQL errors/no-DB guard. No new injected SQL-
+failure acceptance claim; those paths preserved structurally, not tested by a
+new destructive table failure. Existing compiled ESM/admin/live roles also pass.
+
+Final four-file serial run 102 pass: 54 real SQL (31 native public content,
+20 native admin content, 3 content persistence), 48 maintenance/double cases.
+Corrected prior slice's per-file 29/3 breakdown; its 52/100 totals were accurate.
+Full 1890 pass / 808 opt-in skips, 137 files pass / 44 skip; root/frontend/E2E
+types, 424.5 kB build, unchanged 73 procedures/25642-byte API, 570-file boundaries,
+lint/selected formatting/diff whitespace pass. Existing handoff/docs updated.
+
+Review: content-owned hydration/query seam reduces general-facade responsibilities
+without duplication, cycles, new dependencies/PII/external flows or new queries.
+Existing parameterization and access gates unchanged; generic errors retain no
+private SQL details. No frontend/auth/CORS/proxy/quota/schema/payment-policy,
+push/deploy or server acceptance. Remaining M08/M06 transactional scopes,
+first-email/M07c/provider/SMTP/device/dependency/rollout gates stay open.
+
+Owned local mysql:8.4 container dd-post-media-reads-20261009-1225, loopback 58384,
+synthetic backend_test, tmpfs/no mounts, 512 MiB/one CPU. Exact ID
+43e70e182cf2a610ff0a0a8b6adc9763a3635ddd7f33978810d2227b1b98dc6f inspected
+again for owner/tmpfs/no mounts/no OOM then removed; matching inventory empty.
+Only this run's synthetic data removed, not needed/recoverable; working DB untouched.
+Evidence /tmp/daryadarcy-post-media-reads-{baseline,red,group-red,green,full,types,
+build,lint}.log. Expired overnight automation remains PAUSED, no new schedule.
+
+### Prodamus TEST successful return — 9 October, 13:33 MSK
+
+User explicitly approved correcting the successful return and updating only the
+dedicated dev TEST service. The observed bank errors remain separate: SBP reports
+an invalid recipient MNT_ID, GPB/card reports no server response; neither is fixed
+or fully attributed by this increment. Read-only provider order history and SQL
+show the two reported attempts still pending with no receipt/access. The earlier
+EUR Open banking order has a verified receipt; that is not card/SBP acceptance.
+
+Root cause in our return integration: TEST urlSuccess was bare /club, while the
+deployed frontend starts its bounded authenticated return check only for paid=1.
+Change only urlSuccess to /club?paid=1; cancellation/urlReturn remains /club.
+This query is navigation intent, never proof: signed webhook/SQL settlement still
+owns access. Existing frontend checks at most six times within its 30-second
+budget; guests must sign in. No frontend or browser-return handler added.
+
+RED: native checkout test expects the successful return hint plus unchanged
+non-success return; one assertion fails against the real old HTTP/SQL flow.
+GREEN: 100 selected cases, including 52 native HTTP/SQL checks, cover pending
+checkout/no session/no receipt/no access, signatures, settlement and restricted
+runtime/compiled entry. Full 1890 pass / 808 opt-in skips; types/TEST build/API
+(73 procedures, 25642 bytes)/570-file boundaries/lint/docs/diff checks pass.
+
+Deployment deliberately excludes other local refactors: git archive of deployed
+6987883ecd895c3aaa1e14b0ef762d56404e97ce plus this single service-line patch.
+Rebuilding the unmodified archive reproduces the exact old server bundle hash
+e6109672aed71a33cb83bcb51eb53ad9d5af36d8b5b2633e30d186bc19b85187.
+Generated bundle diff is exactly one urlSuccess line. Patched archive also passes
+the same 100 selected cases and a final 52-case native SQL run. New bundle hash
+b62ea8d0d79c77d58b5b6f84a903950a4712eada3fb2ca5718ddf318bd7e0e0d.
+No dependency/manifest/lockfile change: native pnpm production audit remains
+1 critical / 20 high / 26 moderate / 4 low. Existing narrow TEST exception and
+production dependency gates remain open, not waived by these tests.
+
+Only prodamus-test replaced at 2026-10-09T10:33:20Z, same pinned runtime image;
+all six other container IDs unchanged, seven healthy, no restart/OOM. Fifteen
+HTTPS boundary checks pass, including /club?paid=1 200, invalid notification 400,
+transport refusals and live/return/batch routes still blocked. The existing open
+provider tab now contains a newly generated URL with the corrected urlSuccess;
+no new checkout, payment, resend or cabinet mutation was performed by this agent.
+This is not a fresh paid end-to-end acceptance or bank-error repair. Existing
+provider links retain their original return URLs; never pay again merely to test
+the hint. Rollback and exact artifact pins are in operations documentation.
+
+Review: literal emitted-link expectations exercise the native boundary and still
+assert pending/no effects; no query hint grants access. Fixed approved origin,
+HMAC signing, callback, transactions, replay policy, quotas/auth/CORS/proxy trust,
+working SQL, email workers and all provider settings unchanged. No branch merge
+or push. Temp mysql:8.4 dd-paid-return-a31f9c8e, backend_test on loopback 57373,
+synthetic credentials, tmpfs/no mounts, owned label paid-return-20261009-a31f9c8e,
+was inspected by exact ID dd3f8efa022784dfce811ff1e0b993fd9677324c1c312cbcc7a97ac9dd18a910
+and removed with its empty owned network. Both owner inventories empty; only
+disposable synthetic data removed. Archive/evidence retained under
+/tmp/daryadarcy-paid-return.BRz4DT and /tmp/daryadarcy-paid-return-{full.log,audit.json}.
+
+### M08 post-catalog read repository — 9 October, daytime continuation
+
+Continue clean bd31aa0 on feature/yookassa-test-checkout under the human request
+to write Prodamus support and continue. No repeat of M07b2 or previous slices.
+Move getPostsPaginated/getPostsByIds/getPostsForTarget and private list columns /
+feed filters to content/post-catalog-repository.ts. db.ts owns the lazy client;
+services retain authorization/visibility. Empty IDs still return before connection.
+Canonical post order, published/target/tag/search conditions, parameterization,
+limit+1/offset/nextCursor, duplicate caller IDs and batched media remain exact.
+No new pool/cycle/dependency/schema/public input; no performance claim. Internal
+target search is not a club.list HTTP field; do not expand the API in a refactor.
+
+TDD: two new characterization cases first pass against old implementation
+(33 native content cases). An exploratory HTTP search case was corrected to the
+existing internal DB option, not treated as a product bug. Independent temporary
+AND-to-OR target-filter and unordered/deduplicated selection mutations each give
+one expected RED failure. Both restored, db.ts clean before extraction. Read-only
+TypeScript AST comparison confirms executable bodies/private helpers/columns and
+facade signatures unchanged except connection acquisition passed as an argument.
+Existing error/no-DB/empty-page and compiled ESM/role cases remain green.
+
+Final five-file serial run 137 pass: 56 real SQL (33 native public content,
+20 native admin, 3 content persistence), 81 doubles/maintenance (33 media transport,
+48 admin maintenance). Full 1890 pass / 810 opt-in skips, 137 files pass / 44 skip.
+Root/frontend/E2E types, 425.3 kB build, unchanged 73 procedures/25642-byte API,
+571-file boundaries, lint/selected formatting/docs/diff whitespace pass.
+Review: no new query, access path, transaction/replay/payment behavior, PII logging,
+frontend/admin contract change, auth/CORS/proxy/quota or dependency mutation.
+General facade delegates unchanged reads; existing correlated counts and offset
+limitations retained. Remaining M08/M06/identity/M07c/provider/SMTP/device/
+dependency/rollout gates stay open. Local commit only, no merge/push/deploy.
+
+Owned mysql:8.4 dd-post-catalog-20261009-1430, loopback 59684, synthetic backend_test,
+tmpfs/no mounts, 512 MiB/one CPU. Exact ID
+a5e9e4095a1db8f26a7d0b70ef6b23713aa17708e5384119650b836bb9f0dff2 checked for
+owner/tmpfs/no mounts/no OOM and removed; matching owner inventory empty. Only
+this run's disposable synthetic data removed; working DB untouched. Evidence:
+/tmp/daryadarcy-post-catalog-{baseline.log,filter-red.log,order-red.log,green.json}
+and fresh full/type/build/API/boundary/lint outputs in this task. No new schedule.
+
+Support blocker: user authorized a Prodamus diagnostic request. Official MAX bot
+https://web.max.ru/id1215156909_2_bot currently requires user login. Connected
+mail profile is not the user's account; no mailbox read or message sent. Async
+question requests own MAX login or confirmed own sender. Request is NOT sent;
+do not imply contact, repair, or receipt. Approved diagnostic scope: testpage1,
+order 49661405 / 09.10.2026 13:39 MSK / 790 RUB, SBP invalid recipient MNT_ID and
+card/GPB no server response; ask provider to inspect TEST acquiring logs. Never
+send cabinet password, signing key, raw signed link, or initiate a new payment.
+
+### M08 post detail / latest read repository — 9 October, continuation
+
+Resume clean 3048108 on the current feature branch under the human continuation
+request. Extract getPostById/getLatestPublishedPost to content/post-detail-repository.ts;
+db.ts acquires the same lazy client once. Private row lookup retains hidden/draft
+rows; ContentReadService retains public visibility/club entitlement gates. Keep
+all selected fields, correlated like count, one-row limit, canonical media helper,
+undefined missing-row/no-DB latest result and throwing no-DB detail behavior.
+Latest uses canonical postDateOrder / COALESCE publication/creation date, not
+the catalog sort position. No new API, connection/pool, query, schema or dependency.
+
+TDD: add two real detail characterizations for private-vs-public visibility and
+missing ID, using existing owned synthetic fixtures. Baseline 35 content checks
+and separate 14 native latest checks. Replacing the requested ID with another
+published ID gives two expected RED failures; changing latest ordering to list
+position gives one expected RED failure. Both mutations restored, db.ts diff empty
+before extraction. Read-only TypeScript AST comparison confirms both executable
+bodies and facade signatures unchanged except connection acquisition/parameter.
+
+Final separate latest invocation 14 pass, serial five-file content invocation
+139 pass: total 153, including 72 real SQL (35 public content, 20 admin content,
+3 persistence, 14 latest) and 81 maintenance/transport doubles. Global latest
+runs on an explicitly verified empty publication dataset, never concurrently
+with SQL publishers. Full 1890 pass / 812 opt-in skips, 137 files pass / 44 skip.
+Root/frontend/E2E types, 425.8 kB build, unchanged 73 procedures/25642-byte API,
+572-file boundaries, lint/selected formatting/docs/diff whitespace pass.
+
+Five-axis review: focused content-owned reads reduce general facade duties;
+existing contracts/field projections remain distinct, no count/media additions.
+Canonical ordering/hydration reused, no cycles/hidden connection/query-count
+change. Validated ID/target and access decisions remain with unchanged adapters /
+services. Parameterization and generic errors retained; no new PII or external
+flows. No optimization, injected SQL-error acceptance, frontend/admin completion,
+auth/CORS/proxy/quota/payment-policy, push/deploy or server claim. Existing
+M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout gates stay open.
+
+Owned mysql:8.4 dd-post-detail-20261009-1450, loopback 64830, synthetic backend_test,
+tmpfs/no mounts, 512 MiB/one CPU; full ID
+f3cf6760a99338aa0b28ac4a1f783f79cc59d20c4c8f54d3a0575f7927fce721 checked again
+for ownership/tmpfs/no mounts/no OOM and removed. Matching inventory empty;
+only this run's synthetic data removed, working DB untouched. Evidence JSON:
+/tmp/daryadarcy-post-detail-{latest-baseline,content-baseline,selector-red,date-red,
+latest-green,green}.json, plus fresh full/type/build/API/boundary/lint task outputs.
+
+Support status supersedes the earlier MAX-login blocker: user reports sending the
+approved diagnostic text through prodamus.ru website chat, screenshot shows Sent.
+Agent sent no message/read no mailbox; do not duplicate or request MAX login for
+this completed send. Await provider diagnosis of TEST SBP/card failures; no repair
+or paid acceptance follows from the send. Previous fresh dev smoke confirms only
+guest/SQL/protected refusals, not acquiring. No recurring continuation enabled.
+
+### M08 legacy feed read repository — 9 October, continuation
+
+Resume clean b708ff1 on the same feature branch under the human continuation
+request. Move getPosts from the general db.ts facade into the existing
+content/post-catalog-repository.ts. Keep one existing lazy client acquisition,
+facade signature, published/status/feed-or-both predicate, canonical list order,
+correlated like count and shared media hydration. Keep a distinct legacy column
+projection (no commentCount), exact JS tag-array membership after SQL and all /
+absent / empty tag behavior. No new API, pool, query, schema or dependency.
+
+TDD: two native HTTP/MySQL characterizations using only existing owned synthetic
+fixtures. Baseline 37 pass. Removing the correlated likes predicate gives one
+expected count failure; replacing whole-tag membership with substring matching
+gives one expected neighbor-row failure. Both mutations restored; db.ts diff
+empty before extraction. Read-only canonical TypeScript AST comparison proves
+the executable body and facade parameters/return type unchanged except passing
+the existing client. Tags restored in finally, fixture likes removed by existing
+owned user cleanup; no arbitrary working data or remote resources touched.
+
+Final serial five-file content invocation 141 pass: 60 real SQL (37 native content,
+20 admin content, 3 persistence) and 81 maintenance/transport doubles. Full 1890
+pass / 814 opt-in skips, 137 files with successful checks / 44 all-skipped files.
+Root/frontend/E2E types, 425.9 kB backend build, Next web build (28 static pages),
+unchanged 73 procedures/25642-byte API, 572-file boundaries, frontend lint and
+selected formatting pass. Client regression 208 pass (already in full suite,
+not an additional unique test count). Documentation/local-link and diff checks
+recorded with the local commit. No new browser/device or successful acquiring
+acceptance follows from these checks.
+
+Five-axis self-review: content-specific read ownership reduces facade duties,
+no extra abstraction or import cycle. Distinct field projections are intentional,
+not merged into a broader response. Existing tag validation/services/access
+remain unchanged; no dynamic SQL, new PII logging or external request. Same
+query count and unpaginated legacy behavior preserved, not a speed improvement.
+Missing-DB/media transport errors retain existing double coverage; no new real
+SQL-fault injection claim. No new auth/CORS/proxy/quota/payment-policy change,
+frontend edit, branch merge, push or deployment. Remaining M08/M06/identity/M07c/
+provider/SMTP/device/dependency/rollout gates stay open; await provider response
+to the user's already-sent website chat request, do not duplicate the send.
+
+Owned mysql:8.4 dd-legacy-feed-20261009-1530, loopback 63140, synthetic backend_test,
+tmpfs/no mounts, 512 MiB/one CPU. Exact ID
+1b22ee17d0c1b85d7388aef1437b7091e48723df05acb50f054838780fbcb407 rechecked for
+ownership/tmpfs/no mounts/no OOM and removed; matching owner inventory empty.
+Only this run's disposable synthetic data removed, working DB untouched. JSON
+evidence: /tmp/daryadarcy-legacy-feed-{baseline,count-red,tag-red,green,full}.json,
+plus fresh static/type/build/regression task outputs. Local commit only; no new
+schedule or automatic continuation enabled.
+
+### M08 full admin post catalog — 9 October, continuation
+
+Resume clean 4b3a9ac on the same feature branch. Move getAllPostsAdmin to the
+existing content/post-admin-repository.ts, completing ownership of this read
+alongside admin filters/calendar/statistics without changing their semantics.
+Keep full Post projection, private rows, canonical list order/date fallback,
+shared batch media and throwing no-DB behavior. Same db.ts facade signature and
+one lazy acquisition; no new query/pool/schema/API/dependency. Only now-unused
+facade imports of the same shared helpers removed; their implementations remain.
+
+Two native HTTP/JWT/MySQL characterizations: equal sort positions ordered by
+publication date with creation fallback, and empty posts never receiving the
+private draft's files. Four additional owned synthetic posts are removed in
+finally. Baseline 22 pass; creation-only date sorting and neighbor-media fallback
+each produce one expected RED failure. Both restored; db.ts diff empty before
+extraction. Canonical executable AST and facade signature match the original
+except passing the existing client. No test assertions derived from the ordering
+helper; literal expected IDs checked against fixed dates via real admin HTTP.
+
+Final serial five-file content run 143 pass: 62 real SQL (37 native content,
+22 native admin content, 3 persistence), 81 maintenance/transport doubles.
+Existing compiled ESM, hidden/draft/media and live guest/role/block/session
+refusals pass. Full 1890 pass / 816 opt-in skips; 137 files pass / 44 skip.
+Root/frontend/E2E types, 425.9 kB backend and Next web builds, unchanged 73
+procedures/25642-byte API, 572-file boundaries, frontend lint/selected formatting
+pass; client regression 208 pass, already counted in the full suite. Docs/link
+and whitespace checks recorded with this local commit.
+
+Five-axis self-review: no new abstraction/cycle, access path or sensitive-data
+flow; canonical helpers reused. Same queries and unpaginated admin catalog;
+filtered/date-only reads deliberately remain different. No auth/CORS/proxy/quota,
+transaction/replay/payment policy or frontend change. Existing transport doubles
+cover absent DB/media failure; no new real SQL fault injection or server/payment
+acceptance claim. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/
+rollout gates remain open; user already sent Prodamus diagnostic request, do not
+duplicate it. Local commit only, no remote merge/push/deploy or new schedule.
+
+Owned mysql:8.4 dd-admin-catalog-20261009-1600, synthetic backend_test on loopback
+55536, tmpfs/no mounts, 512 MiB/one CPU. Exact ID
+f2d4406360ada2cff1ea74bf20a46835934f810d6f1d85fe0dc5764c91647eb9 rechecked for
+owner/tmpfs/no mounts/no OOM and removed; matching owner inventory empty. Only
+this run's synthetic data removed, working DB untouched. JSON evidence:
+/tmp/daryadarcy-admin-catalog-{baseline,date-red,media-red,green,full}.json,
+plus fresh static/type/build/regression task outputs.
+
+### M08 personal post-reaction reads — 9 October, continuation
+
+Resume clean c205581 on feature/yookassa-test-checkout. Give getUserLikedPostIds
+and getUserSavedPostIds the existing content/post-reactions.ts owner, alongside
+the unchanged toggle transaction; no new repository layer or pool. The db.ts
+facades keep signatures and one lazy acquisition each. Canonical executable AST
+matches the original reads, and togglePostReaction is unchanged. Actor predicates,
+raw duplicate IDs, newest-first bookmarks and historical empty no-DB results
+remain; SQL failures still reject. Do not add a like ordering, pagination or
+content filter to these marks: saved-post body visibility remains in the service.
+
+Two new native HTTP/JWT/MySQL characterizations: two readers' IDs and saved bodies
+are isolated; raw duplicate/draft marks and bookmark positions remain while the
+draft body is hidden. Literal expectations, fixed distinct dates, owned second
+user cleanup in finally. Baseline 47 pass including eight transport-only cases.
+Removing each actor predicate separately and reversing bookmark order each give
+one expected RED failure; restored with empty db.ts diff before extraction.
+Transport cases keep real Drizzle/facades, verify empty/error/recovery semantics;
+they are not real SQL fault injection or authentication acceptance.
+
+Final serial six-file run 153 pass: 64 real SQL (39 native content, 22 native admin
+content, 3 persistence), 89 maintenance/transport doubles. Full 1898 pass / 818
+opt-in skips, 138 files pass / 44 skip. Root/frontend/E2E types, backend 426.1 kB
+and Next web build (28 pages), unchanged 73 procedures/25642-byte API, 572-file
+boundaries, frontend lint and selected formatting pass. Client regression 208
+pass is already included in full; docs/whitespace checks recorded with commit.
+
+Five-axis self-review: consolidate read/write ownership without a new abstraction,
+query, cycle, dependency or schema. Authenticated actor still comes from ctx.user;
+no new personal-data/logging flow. Same SQL/performance, nullable-DB behavior and
+transaction/retry semantics. Only now-unused likes/savedPosts facade imports
+removed; schema/toggle implementations retained. No auth/CORS/proxy/quota change,
+frontend edit, server/payment acceptance, merge/push/deploy or new schedule.
+Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout gates stay
+open. The user already sent the Prodamus diagnostic request; do not duplicate it.
+
+Owned mysql:8.4 dd-interaction-reads-20261009-1700; loopback 54419/backend_test,
+tmpfs/no mounts, 512 MiB/one CPU. Exact ID
+bcb55ffdabccd2eb3671e3725fb14673c41869088597adbc42690642b90b0911 rechecked for
+owner/tmpfs/no mounts/no OOM before removal; matching owner inventory empty.
+Only this run's disposable synthetic data removed, working DB untouched. JSON
+evidence: /tmp/daryadarcy-interaction-reads-{baseline,actor-red,bookmark-actor-red,
+order-red,green,full}.json and fresh static/type/build/regression outputs.
+
+### M08 full tag catalog — 9 October, continuation
+
+Resume clean 9082ae1 on feature/yookassa-test-checkout. Move getAllTags into the
+existing content/post-catalog-repository.ts; db.ts retains its public signature
+and one lazy client acquisition. Executable AST matches the original body after
+removing only that acquisition. Full reference rows include unused season/topic
+tags, untrimmed labels and ascending sortOrder; no tie-breaker/filter/new pool.
+Historical no-DB empty result and constant error log/rethrow unchanged.
+
+One new native HTTP/MySQL case verifies the unused season and original fields.
+Three transport additions cover no DB, genuinely empty table and sanitized HTTP
+failure/recovery using real Drizzle/facade/router with mocked SQL transport.
+Baseline 76 pass. Wrong ordering, omitted seasons and swallowed errors each
+produce one expected RED failure; all mutations restored before extraction.
+The first error selector matched zero cases; corrected selector proves the real
+HTTP 200-versus-500 failure. Doubles do not claim actual SQL fault acceptance.
+
+Final serial six-file run 157 pass: 65 real SQL (40 native content, 22 native
+admin content, 3 persistence), 92 maintenance/transport doubles. Full 1901 pass /
+819 opt-in skips, 138 passing files. Root/frontend/E2E types, backend 426.2 kB,
+Next build 28 pages, unchanged API 73 procedures/25642 bytes, boundaries 572
+files, frontend lint and selected formatting pass. Client 208 pass is already
+included in full. Fresh docs/whitespace checks run before the local commit.
+
+Five-axis self-review: existing repository ownership, no new abstraction/cycle,
+query/performance/transaction/signature or personal-data flow. Constant log is
+unchanged; frontend/public service access unchanged. No auth/CORS/proxy/quota,
+payment policy, frontend/server/cabinet edit, merge/push/deploy or new schedule.
+Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout gates open.
+User's already-sent provider request is not duplicated; card/SBP not accepted.
+
+Owned mysql:8.4 dd-catalog-tags-20261009-1730 on loopback 62288/backend_test,
+512 MiB/one CPU, tmpfs/no mounts. Exact ID
+d3f3230a776effb13fd31ab477affb7496fdc53c2ca7451b36bd932eb00e82cd rechecked for
+owner/tmpfs/no mounts/no OOM then removed; matching owner inventory empty.
+Only this run's synthetic data removed, working DB untouched. Evidence:
+/tmp/daryadarcy-catalog-tags-{baseline,order-red,category-red,error-red,green,full}.json
+and fresh verification outputs. Shared external DoD reference still absent;
+repository workflow and explicit verification requirements used instead.
+
+### Prodamus TEST guest return confirmation — 9 October, requested
+
+Human approved the business flow: an authenticated paid member sees a success
+dialog and club access; a guest sees email setup/login instructions after a
+verified payment; unconfirmed results stay pending. Existing email account
+creation and transactional access-email queue are reused, not reimplemented.
+Entering an email or returning with paid=1 must never authenticate or grant.
+
+Backend contract implemented locally (dialog/exposure pending): a short-lived, purpose-separated HMAC
+reference for one saved TEST order in the successful-return URL fragment.
+A JSON POST result boundary reads that order's durable receipt and corresponding
+mail status, returning only state/nextAction/emailStatus. No email, IDs, password
+hash, password token or session returned; no writes, resend or provider calls.
+Invalid/expired/missing proof is unknown, not succeeded. Reuse the existing
+return-check budget rather than choosing new quotas. No schema change.
+The exact restricted-runtime/edge route and capability handling need review
+before exposure; existing auth/CORS/proxy/live settlement remain unchanged.
+
+Build order: payment-result -> return-dialog; existing identity and email queue
+are providers. First prove native HTTP/disposable SQL pending/verified/replay,
+recipient/mail binding, no-session/no-effects and tamper/expiry/refusal. Then
+add a bounded cancellable client check and existing accessible Dialog, including
+guest setup/login, authenticated access refresh, failure and old-link fallback.
+Next/React/SCSS conventions and existing tokens/components are retained.
+
+Commands: Node 22/pnpm 9.12; focused vitest tests/prodamus-test-club.mysql.test.ts
+against owned loopback backend_test only, full vitest without DB, pnpm check,
+build, build:web, lint, verify, check:api, check:boundaries and check:docs.
+Always RED/GREEN, validate proof and response, keep changes local. Ask before
+deployment/edge exposure, auth/schema/quotas or real SMTP/provider actions.
+Never trust paid=1, send plaintext passwords, issue guest sessions or test on
+working SQL. Real delivery/new payment/user browser acceptance remains open.
+
+Initial blocker: test patch could not be written at 112 MiB available and Docker
+inventory failed. Human subsequently approved deletion of only the 618 MiB
+webpack cache and Docker Desktop restart. Exact realpath/no-symlink cache target
+validated before deletion; cache rebuildable, user data untouched. Free space
+recovered to 1.3 GiB. Restart command reported stop timeout, but fresh process
+inventory and engine requests proved recovery; no unrelated container deleted.
+
+Backend slice implemented locally: purpose-separated 24-hour return proof in
+the signed success URL fragment; native JSON POST result with strict input,
+unchanged shared return-check budgets and no-session/no-store responses.
+Only an exact paid TEST order, bound active recipient, durable receipt and its
+transactional outbox event confirm success. Pending, unknown, setup/login and
+pending/sent/unavailable mail are explicit. No provider/SMTP call or write from
+result reads. Queries select no password hash or encrypted mail token; payment
+and receipt use unique keys, mail query uses existing user index and LIMIT 1.
+No schema/auth/CORS/proxy/quota/worker/live-settlement policy change.
+
+Native SQL initial RED: pending/paid result route 404 instead of 200; checkout
+RED: success fragment missing; compiled runtime RED: new exact route 404.
+GREEN 95 selected tests (73 real SQL, 21 native HTTP-only, one compiled entry).
+Removing signature verification and expiry refusal each produces one expected
+RED failure, then both restored. Newline proof cases already rejected by the
+original regex: acceptance checks, not a newly discovered/fixed parser bug.
+Types, backend/TEST builds, unchanged 73-procedure API, 573-file boundaries,
+frontend lint and 208 client regressions pass. Frontend source not changed.
+
+Owned mysql:8.4 dd-payment-return-20261009-guest, loopback 56632/backend_test,
+512 MiB/one CPU, tmpfs/no mounts. Exact ID
+277e92c3c6cb54c5f5c6d943b8f80717e78089f2408e29a03383f0794b77d7d8 revalidated
+for owner/no mounts/tmpfs/no OOM before removal; matching inventory empty.
+Only this run's synthetic data removed, working DB untouched. First readiness
+command used a wrong local port and was cancelled; only inspected port 56632
+was used for all SQL tests. No environment files/provider secrets inspected.
+
+Full parallel run did not pass: 1911 assertions passed/zero failed, but 15
+suites could not transform due to host ENOSPC; 584 reported skips in this
+incomplete run are not the total skip count. Free space fell back to 336 MiB;
+no claim this cleanup fixes disk pressure permanently. Serial retry passes:
+1911 pass / 840 opt-in skips, 138 files with passing assertions / 44 skip.
+No test or quota changes made to obtain that retry. Web rebuild withheld at
+331 MiB available; frontend not modified. Deployment/dialog/new-order/mail/
+browser acceptance remains open.
+JSON evidence /tmp/daryadarcy-payment-return-{red,creation-red,built-red,
+signature-red,expiry-red,selected-green,full,full-serial}.json. Further cache or
+user-data cleanup is not authorized. Five-axis self-review complete: exact
+receipt/recipient binding and fail-closed errors, small domain-owned module,
+no duplicate pools/DI cycle/dependency, minimal nonsecret projections, bounded
+queries and unchanged shared limits. Docs (51), selected formatting and
+whitespace checks pass before local backend-only commit. Fresh frontend build
+and complete return-dialog acceptance remain blocked/pending, not waived.
+Actual SSH alias remains unavailable;
+do not guess server targets, resend notification or make another payment.
+
+## Staging publication review — human request, 9 October 2026
+
+The human requested frontend review before publishing all current DaryaDarcy
+work to staging, not deployment. Fresh fetch and remote-head read both identify
+staging ae70522710da56ac8d9b5985038d94579b37249a. It is an ancestor of feature
+HEAD 09868ff (13 additional commits, zero incoming commits). Frontend change
+0b77270 is already included through merge 7524987; no second merge is needed.
+The feature range has no frontend source changes. Preserve that history and
+publish by normal fast-forward push only; refetch before push and never force.
+
+Targeted frontend review covers checkout/return/access validation, cancellation,
+admin confirmations and mail enqueueing, locally disabled email binding,
+season/manager configuration, editor recovery and their regressions. Existing
+backend contracts remain compatible; no blocker found in the inspected paths.
+This is not a new exhaustive audit or payment-provider acceptance. The return
+dialog still awaits frontend implementation, email binding remains intentionally
+disabled, and provider/SMTP/device/SQL/dependency/rollout gates remain open.
+
+Fresh verification on Node 22: full serial Vitest 1911 pass / 840 opt-in skips
+(138 passing files, 44 skipped); types, lint, unchanged 73-procedure API,
+573-file boundaries, docs and whitespace checks pass. Standard backend,
+restricted Prodamus TEST and production frontend builds all pass. Nine selected
+browser suites pass all 168 tests (payment, cancellation, admin results, mail,
+email-binding refusal, seasons, drafts, moderation, manager orders). The first
+browser run could not launch missing Chromium revision 1208 and was interrupted;
+retry used the existing configured executable override for revision 1234,
+without dependency or source changes. These browser tests use API fixtures,
+not real payment, delivery or SQL evidence. Local Docker inventory did not
+respond; its read-only command was stopped, no restart or container mutation
+performed, and no fresh SQL run claimed. Working databases untouched.
+
+Only this evidence is added locally before publication. GitLab staging CI is
+verify-only (including isolated SQL and browser checks), not a deploy job.
+No server update, credentials inspection, provider action, email or payment.

@@ -1075,3 +1075,49 @@ docker compose --env-file .env --env-file video-image.env \
 для `prodamus-test` с `--no-deps --wait`. Старый versioned bundle сохранён.
 Не откатывать SQL/выданный тестовый доступ, ключи или рабочие API/web ради отката
 кода. Для полного отключения подключения использовать раздел отката выше.
+
+## Успешный возврат Prodamus TEST — 9 октября, 13:33 МСК
+
+По отдельному подтверждению пользователя исправлен только `urlSuccess`:
+`/club?paid=1` вместо `/club`. Существующий frontend использует этот признак для
+ограниченной повторной проверки серверного доступа, не для выдачи подписки.
+Обычный/неуспешный `urlReturn` остаётся `/club`; подписанный webhook по-прежнему
+единственный источник подтверждения оплаты. Frontend/API/web не обновлялись.
+
+- Bundle собран из **прежнего deployed 6987883** плюс одна исправленная строка,
+  без более поздних локальных refactors. Сборка неизменённого источника точно
+  воспроизводит прежний SHA-256 `e6109672aed71a33cb83bcb51eb53ad9d5af36d8b5b2633e30d186bc19b85187`;
+  diff двух bundle содержит только `urlSuccess`.
+- Новый файл `prodamus-test-release.pTkWSw/prodamus-test-6987883-paid-return-b62ea8d.mjs`,
+  SHA-256 `b62ea8d0d79c77d58b5b6f84a903950a4712eada3fb2ca5718ddf318bd7e0e0d`.
+  `PRODAMUS_TEST_RUNTIME_IMAGE` не изменён:
+  `sha256:4b4a7e2c26d33c72b11952846b43c112aed4b7bb7345ce2e9fc51492dc1680d6`.
+  В `prodamus-test-image.env` изменён только bundle path. Прежний файл сохранён
+  как `prodamus-test-release.pTkWSw/image-env.before-paid-return-b62ea8d`, права 600.
+  Ключи, кабинетный callback, конфиги nginx, квоты и сети не менялись.
+- Только `prodamus-test` пересоздан с `--no-deps --wait`, старт
+  `2026-10-09T10:33:20.233931496Z`, container ID `c101b153fb6b`, restart=0/OOM=false.
+  Все шесть остальных container ID сохранены; семь сервисов healthy.
+- 15 HTTPS проверок прошли: страница `/club?paid=1` и launch-config 200,
+  unsigned webhook 400, GET 405, чужой Origin 403, cookie/query 400, тип 415,
+  размер 413; live webhook, browser return, `/api/pay/`, checkout batch остаются
+  503; GET checkout 405/пустой checkout 400. Новая ссылка в уже открытом provider
+  tab содержит исправленный success URL. Оплата/уведомление не инициировались.
+- 100 целевых локальных проверок, включая 52 native SQL, проходят и на текущем
+  исходнике, и на узком архивном источнике выкладки. Дополнительно повторены 52
+  SQL на финальном архиве. Full 1890 pass / 808 opt-in skips, types/TEST build/
+  API/boundaries/lint/docs проходят. Одноразовый owned tmpfs MySQL и его сеть
+  удалены; рабочая база не была fixture. Native audit остаётся 51 advisory
+  (1 critical / 20 high / 26 moderate / 4 low); прежнее TEST исключение не является
+  разрешением production и не снимает dependency gates.
+
+Для отката **только этой строки** вернуть `image-env.before-paid-return-b62ea8d`
+в `prodamus-test-image.env` с правами 600 и повторить прежний Compose `up`
+только для `prodamus-test` с `--no-deps --wait`. Старый bundle сохранён. Не
+откатывать SQL/доступ, другие контейнеры, ключи или кабинетные настройки.
+
+Ошибки СБП `MNT_ID` и карточного GPB «Не удалось получить ответ от сервера»
+не считаются исправленными: свежая успешная оплата после этой выкладки не
+проверялась. Уже созданные provider links не переписываются; не советовать новую
+оплату только ради адреса возврата. Старый sandbox diagnostic `/club` без paid=1
+по-прежнему отличается от этого отдельно разрешённого TEST-entitlement flow.

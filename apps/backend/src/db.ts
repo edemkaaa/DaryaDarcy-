@@ -12,6 +12,26 @@ import { confirmPostPublication, type PostPublication } from "./content/publicat
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
 import { deletePost as persistPostDeletion } from "./content/post-deletion";
 import {
+  getPostMediaByPostId as readPostMediaByPostId,
+} from "./content/post-media-repository";
+import {
+  getPostById as readPostDetail,
+  getLatestPublishedPost as readLatestPublishedPost,
+} from "./content/post-detail-repository";
+import {
+  getAllTags as readAllTags,
+  getPosts as readPosts,
+  getPostsPaginated as readPostPage,
+  getPostsByIds as readPostsByIds,
+  getPostsForTarget as readTargetPosts,
+} from "./content/post-catalog-repository";
+import {
+  getAllPostsAdmin as readAllAdminPosts,
+  getAdminPostsFiltered as readAdminPostsFiltered,
+  getScheduledPosts as readScheduledPosts,
+  getPostStatistics as readPostStatistics,
+} from "./content/post-admin-repository";
+import {
   getVideos as readVideos,
   getVideoById as readVideoById,
   getVideoByYoutubeId as readVideoByYoutubeId,
@@ -20,6 +40,11 @@ import {
   updateVideo as persistVideoUpdate,
   deleteVideo as persistVideoDeletion,
 } from "./content/video-repository";
+import {
+  listPublishedArticles as readPublishedArticles,
+  listAllArticles as readAllArticles,
+  getArticleById as readArticleById,
+} from "./content/article-repository";
 import {
   createArticle as persistArticleCreation,
   updateArticle as persistArticleUpdate,
@@ -33,7 +58,11 @@ import {
 } from "./content/post-creator";
 import type { PostCreationIntent } from "./content/post-creation-request";
 import type { PostAttachmentChanges } from "./content/post-attachments";
-import { togglePostReaction } from "./content/post-reactions";
+import {
+  togglePostReaction,
+  getUserLikedPostIds as readUserLikedPostIds,
+  getUserSavedPostIds as readUserSavedPostIds,
+} from "./content/post-reactions";
 import {
   MARKETING_PUSH_CONSENT_VERSION,
   type PushConsentStatus,
@@ -67,7 +96,6 @@ export function isOwnerAccount(user: { email?: string | null; openId?: string | 
 }
 
 let _db: MySql2Database | null = null;
-type Db = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -226,112 +254,12 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
 
 // ── Feed queries ──
 
-import { posts, tags, likes, savedPosts, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, articles, Article } from "../../../packages/database/src/schema";
-import { normalizeArticleBlocks } from "../../../packages/shared/src/article-blocks";
+import { posts, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, Article } from "../../../packages/database/src/schema";
 import { desc, asc, and, sql, or, ne, gte, lte, isNotNull, isNull } from "drizzle-orm";
-
-const postDateOrder = desc(sql`COALESCE(${posts.publishedAt}, ${posts.createdAt})`);
-const postListOrder = [asc(posts.sortOrder), postDateOrder] as const;
 
 // Get all published posts, optionally filtered by tag
 export async function getPosts(tagFilter?: string): Promise<(Post & { likeCount: number; media: PostMedia[] })[]> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  let query = db
-    .select({
-      id: posts.id,
-      text: posts.text,
-      photos: posts.photos,
-      tags: posts.tags,
-      source: posts.source,
-      instagramId: posts.instagramId,
-      sortOrder: posts.sortOrder,
-      published: posts.published,
-      status: posts.status,
-      target: posts.target,
-      scheduledAt: posts.scheduledAt,
-      publishedAt: posts.publishedAt,
-      richText: posts.richText,
-      createdAt: posts.createdAt,
-      updatedAt: posts.updatedAt,
-      likeCount: sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.postId = posts.id)`.as("likeCount"),
-    })
-    .from(posts)
-    .where(and(eq(posts.published, true), eq(posts.status, "published"), or(eq(posts.target, "feed"), eq(posts.target, "both"))))
-    .orderBy(...postListOrder);
-
-  const results = await query;
-
-  let filtered = results;
-  if (tagFilter && tagFilter !== "all") {
-    filtered = results.filter((p) => {
-      const postTags = p.tags as string[];
-      return postTags.includes(tagFilter);
-    });
-  }
-
-  return attachPostMedia(db, filtered);
-}
-
-const postListColumns = {
-  id: posts.id,
-  text: posts.text,
-  photos: posts.photos,
-  tags: posts.tags,
-  source: posts.source,
-  instagramId: posts.instagramId,
-  sortOrder: posts.sortOrder,
-  published: posts.published,
-  status: posts.status,
-  target: posts.target,
-  scheduledAt: posts.scheduledAt,
-  publishedAt: posts.publishedAt,
-  richText: posts.richText,
-  createdAt: posts.createdAt,
-  updatedAt: posts.updatedAt,
-  likeCount: sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.postId = posts.id)`.as("likeCount"),
-  commentCount: sql<number>`(SELECT COUNT(*) FROM post_comments WHERE post_comments.postId = posts.id)`.as("commentCount"),
-};
-
-async function attachPostMedia<T extends { id: number }>(
-  db: Db,
-  page: T[],
-): Promise<(T & { media: PostMedia[] })[]> {
-  if (page.length === 0) return [];
-  try {
-    const mediaRows = await db
-      .select()
-      .from(postMedia)
-      .where(inArray(postMedia.postId, page.map((p) => p.id)))
-      .orderBy(asc(postMedia.sortOrder));
-    const byPost = new Map<number, PostMedia[]>();
-    for (const row of mediaRows) {
-      const list = byPost.get(row.postId) ?? [];
-      list.push(row);
-      byPost.set(row.postId, list);
-    }
-    return page.map((p) => ({ ...p, media: byPost.get(p.id) ?? [] }));
-  } catch (error) {
-    console.warn("[Feed] post_media query failed");
-    throw error;
-  }
-}
-
-function feedFilterConditions(options: { tagFilter?: string; search?: string }) {
-  const conditions = [
-    eq(posts.published, true),
-    eq(posts.status, "published"),
-    or(eq(posts.target, "feed"), eq(posts.target, "both")),
-  ];
-  if (options.tagFilter && options.tagFilter !== "all") {
-    conditions.push(sql`JSON_CONTAINS(${posts.tags}, JSON_QUOTE(${options.tagFilter}))`);
-  }
-  if (options.search && options.search.trim().length > 0) {
-    const query = `%${options.search.trim().toLowerCase()}%`;
-    conditions.push(sql`LOWER(${posts.text}) LIKE ${query}`);
-  }
-  return conditions;
+  return readPosts(await getDb(), tagFilter);
 }
 
 // Get paginated published posts (offset-based with SQL limit)
@@ -341,71 +269,17 @@ export async function getPostsPaginated(options: {
   limit: number;
   cursor?: number; // offset (page number * limit)
 }): Promise<{ posts: (Post & { likeCount: number; media: PostMedia[] })[]; nextCursor: number | null }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const offset = options.cursor ?? 0;
-  const rows = await db
-    .select(postListColumns)
-    .from(posts)
-    .where(and(...feedFilterConditions(options)))
-    .orderBy(...postListOrder)
-    .limit(options.limit + 1)
-    .offset(offset);
-
-  const hasMore = rows.length > options.limit;
-  const page = hasMore ? rows.slice(0, options.limit) : rows;
-  return {
-    posts: await attachPostMedia(db, page),
-    nextCursor: hasMore ? offset + options.limit : null,
-  };
+  return readPostPage(await getDb(), options);
 }
 
 // Get a single post by ID
 export async function getPostById(id: number): Promise<(Post & { likeCount: number }) | undefined> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const result = await db
-    .select({
-      id: posts.id,
-      text: posts.text,
-      photos: posts.photos,
-      tags: posts.tags,
-      source: posts.source,
-      instagramId: posts.instagramId,
-      sortOrder: posts.sortOrder,
-      published: posts.published,
-      status: posts.status,
-      target: posts.target,
-      scheduledAt: posts.scheduledAt,
-      publishedAt: posts.publishedAt,
-      richText: posts.richText,
-      createdAt: posts.createdAt,
-      updatedAt: posts.updatedAt,
-      likeCount: sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.postId = posts.id)`.as("likeCount"),
-    })
-    .from(posts)
-    .where(eq(posts.id, id))
-    .limit(1);
-
-  const row = result[0];
-  if (!row) return undefined;
-  const [withMedia] = await attachPostMedia(db, [row]);
-  return withMedia;
+  return readPostDetail(await getDb(), id);
 }
 
 // Get all tags ordered by sortOrder
 export async function getAllTags(): Promise<Tag[]> {
-  const db = await getDb();
-  if (!db) return [];
-
-  try {
-    return await db.select().from(tags).orderBy(asc(tags.sortOrder));
-  } catch (error) {
-    console.error("[Feed] getAllTags failed");
-    throw error;
-  }
+  return readAllTags(await getDb());
 }
 
 // Toggle like on a post
@@ -426,34 +300,17 @@ export async function toggleSave(userId: number, postId: number): Promise<boolea
 
 // Get user's liked post IDs
 export async function getUserLikedPostIds(userId: number): Promise<number[]> {
-  const db = await getDb();
-  if (!db) return [];
-
-  const result = await db.select({ postId: likes.postId }).from(likes).where(eq(likes.userId, userId));
-  return result.map((r) => r.postId);
+  return readUserLikedPostIds(await getDb(), userId);
 }
 
 // Get user's saved post IDs
 export async function getUserSavedPostIds(userId: number): Promise<number[]> {
-  const db = await getDb();
-  if (!db) return [];
-
-  const result = await db
-    .select({ postId: savedPosts.postId })
-    .from(savedPosts)
-    .where(eq(savedPosts.userId, userId))
-    .orderBy(desc(savedPosts.createdAt));
-  return result.map((r) => r.postId);
+  return readUserSavedPostIds(await getDb(), userId);
 }
 
 export async function getPostsByIds(ids: number[]): Promise<(Post & { likeCount: number; media: PostMedia[] })[]> {
   if (ids.length === 0) return [];
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const rows = await db.select(postListColumns).from(posts).where(and(inArray(posts.id, ids), eq(posts.published, true), eq(posts.status, "published")));
-  const withMedia = await attachPostMedia(db, rows);
-  const byId = new Map(withMedia.map((row) => [row.id, row]));
-  return ids.map((id) => byId.get(id)).filter((row): row is NonNullable<typeof row> => Boolean(row));
+  return readPostsByIds(await getDb(), ids);
 }
 
 export async function listAdminMembers(): Promise<{
@@ -532,11 +389,7 @@ export async function deletePost(id: number): Promise<void> {
 
 // Get all posts for admin (including unpublished)
 export async function getAllPostsAdmin(): Promise<(Post & { media: PostMedia[] })[]> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const rows = await db.select().from(posts).orderBy(...postListOrder);
-  return attachPostMedia(db, rows);
+  return readAllAdminPosts(await getDb());
 }
 
 // Get post by Instagram ID (for dedup during import)
@@ -779,19 +632,7 @@ export async function deletePushTokensForUser(userId: number): Promise<void> {
 export async function getLatestPublishedPost(
   target: "feed" | "club",
 ): Promise<{ id: number; text: string } | undefined> {
-  const db = await getDb();
-  if (!db) return undefined;
-  const rows = await db
-    .select({ id: posts.id, text: posts.text })
-    .from(posts)
-    .where(and(
-      eq(posts.published, true),
-      eq(posts.status, "published"),
-      or(eq(posts.target, target), eq(posts.target, "both")),
-    ))
-    .orderBy(postDateOrder)
-    .limit(1);
-  return rows[0];
+  return readLatestPublishedPost(await getDb(), target);
 }
 
 // ── Videos ──
@@ -840,38 +681,7 @@ export async function getPostsForTarget(target: "feed" | "club", options?: {
   limit?: number;
   cursor?: number;
 }): Promise<{ posts: (Post & { likeCount: number })[]; nextCursor: number | null }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const offset = options?.cursor ?? 0;
-  const limit = options?.limit ?? 20;
-  const conditions = [
-    eq(posts.published, true),
-    eq(posts.status, "published"),
-    or(eq(posts.target, target), eq(posts.target, "both")),
-  ];
-  if (options?.tagFilter && options.tagFilter !== "all") {
-    conditions.push(sql`JSON_CONTAINS(${posts.tags}, JSON_QUOTE(${options.tagFilter}))`);
-  }
-  if (options?.search && options.search.trim().length > 0) {
-    const query = `%${options.search.trim().toLowerCase()}%`;
-    conditions.push(sql`LOWER(${posts.text}) LIKE ${query}`);
-  }
-
-  const rows = await db
-    .select(postListColumns)
-    .from(posts)
-    .where(and(...conditions))
-    .orderBy(...postListOrder)
-    .limit(limit + 1)
-    .offset(offset);
-
-  const hasMore = rows.length > limit;
-  const page = hasMore ? rows.slice(0, limit) : rows;
-  return {
-    posts: await attachPostMedia(db, page),
-    nextCursor: hasMore ? offset + limit : null,
-  };
+  return readTargetPosts(await getDb(), target, options);
 }
 
 // Get admin posts with filters (all statuses)
@@ -880,29 +690,13 @@ export async function getAdminPostsFiltered(options?: {
   target?: "feed" | "club" | "both";
 }): Promise<Post[]> {
   const db = await getDb();
-  if (!db) return [];
-
-  let conditions = [];
-  if (options?.status) conditions.push(eq(posts.status, options.status));
-  if (options?.target) conditions.push(eq(posts.target, options.target));
-
-  const query = conditions.length > 0
-    ? db.select().from(posts).where(and(...conditions)).orderBy(postDateOrder)
-    : db.select().from(posts).orderBy(postDateOrder);
-
-  return query;
+  return readAdminPostsFiltered(db, options);
 }
 
 // Get scheduled posts (for calendar tracker)
 export async function getScheduledPosts(): Promise<Post[]> {
   const db = await getDb();
-  if (!db) return [];
-
-  return db
-    .select()
-    .from(posts)
-    .where(eq(posts.status, "scheduled"))
-    .orderBy(asc(posts.scheduledAt));
+  return readScheduledPosts(db);
 }
 
 // ── Post Media CRUD ──
@@ -917,13 +711,7 @@ export async function createPostMedia(data: InsertPostMedia): Promise<number> {
 
 export async function getPostMediaByPostId(postId: number): Promise<PostMedia[]> {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  return db
-    .select()
-    .from(postMedia)
-    .where(eq(postMedia.postId, postId))
-    .orderBy(asc(postMedia.sortOrder));
+  return readPostMediaByPostId(db, postId);
 }
 
 export async function deletePostMediaById(id: number): Promise<void> {
@@ -1014,76 +802,7 @@ export interface PostStatistics {
 
 export async function getPostStatistics(): Promise<PostStatistics> {
   const db = await getDb();
-  if (!db) {
-    return {
-      totalPosts: 0, publishedPosts: 0, scheduledPosts: 0, draftPosts: 0,
-      feedPosts: 0, clubPosts: 0, bothPosts: 0,
-      totalLikes: 0, totalSaves: 0,
-      postsThisMonth: 0, postsLastMonth: 0,
-      topLikedPosts: [],
-    };
-  }
-
-  // Get all posts
-  const allPosts = await db.select().from(posts);
-
-  const totalPosts = allPosts.length;
-  const publishedPosts = allPosts.filter(p => p.status === "published").length;
-  const scheduledPostsCount = allPosts.filter(p => p.status === "scheduled").length;
-  const draftPosts = allPosts.filter(p => p.status === "draft").length;
-  const feedPosts = allPosts.filter(p => p.target === "feed").length;
-  const clubPosts = allPosts.filter(p => p.target === "club").length;
-  const bothPosts = allPosts.filter(p => p.target === "both").length;
-
-  // Count total likes
-  const likesResult = await db.select({ count: sql<number>`COUNT(*)` }).from(likes);
-  const totalLikes = Number(likesResult[0]?.count ?? 0);
-
-  // Count total saves
-  const savesResult = await db.select({ count: sql<number>`COUNT(*)` }).from(savedPosts);
-  const totalSaves = Number(savesResult[0]?.count ?? 0);
-
-  // Posts this month
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const postsThisMonth = allPosts.filter(p => new Date(p.createdAt) >= startOfMonth).length;
-  const postsLastMonth = allPosts.filter(p => {
-    const d = new Date(p.createdAt);
-    return d >= startOfLastMonth && d < startOfMonth;
-  }).length;
-
-  // Top liked posts (top 5)
-  const postsWithLikes = await db
-    .select({
-      id: posts.id,
-      text: posts.text,
-      likeCount: sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.postId = posts.id)`.as("likeCount"),
-    })
-    .from(posts)
-    .orderBy(desc(sql`likeCount`))
-    .limit(5);
-
-  const topLikedPosts = postsWithLikes.map(p => ({
-    id: p.id,
-    text: p.text.slice(0, 80),
-    likeCount: Number(p.likeCount),
-  }));
-
-  return {
-    totalPosts,
-    publishedPosts,
-    scheduledPosts: scheduledPostsCount,
-    draftPosts,
-    feedPosts,
-    clubPosts,
-    bothPosts,
-    totalLikes,
-    totalSaves,
-    postsThisMonth,
-    postsLastMonth,
-    topLikedPosts,
-  };
+  return readPostStatistics(db);
 }
 
 // ── Pen pals ──
@@ -1382,29 +1101,17 @@ export async function userOwnsShopProduct(userId: number, productId: string): Pr
 
 export async function listPublishedArticles(): Promise<Article[]> {
   const db = await getDb();
-  if (!db) return [];
-  const rows = await db
-    .select()
-    .from(articles)
-    .where(eq(articles.published, true))
-    .orderBy(asc(articles.sortOrder), desc(articles.createdAt));
-  return rows.map((row) => ({ ...row, sections: normalizeArticleBlocks(row.sections) }));
+  return readPublishedArticles(db);
 }
 
 export async function listAllArticles(): Promise<Article[]> {
   const db = await getDb();
-  if (!db) return [];
-  const rows = await db.select().from(articles).orderBy(asc(articles.sortOrder), desc(articles.createdAt));
-  return rows.map((row) => ({ ...row, sections: normalizeArticleBlocks(row.sections) }));
+  return readAllArticles(db);
 }
 
 export async function getArticleById(id: number): Promise<Article | undefined> {
   const db = await getDb();
-  if (!db) return undefined;
-  const rows = await db.select().from(articles).where(eq(articles.id, id)).limit(1);
-  const row = rows[0];
-  if (!row) return undefined;
-  return { ...row, sections: normalizeArticleBlocks(row.sections) };
+  return readArticleById(db, id);
 }
 
 export async function createArticle(data: CreateArticleInput): Promise<number> {

@@ -7,7 +7,7 @@ import {
   it,
   vi,
 } from "vitest";
-import { createHmac } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
 import type { Connection, RowDataPacket } from "mysql2/promise";
@@ -27,6 +27,7 @@ describe.skipIf(!testDatabaseUrl)(
     let conn: Connection;
     let app: INestApplication;
     let base: string;
+    let returnIntent: string;
     const client = () =>
       createTRPCProxyClient<AppRouter>({
         links: [httpLink({ url: base + "/api/trpc", transformer: superjson })],
@@ -60,6 +61,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DELETE FROM users WHERE id=94321");
     }
     beforeEach(async () => {
+      returnIntent = randomUUID();
       vi.stubEnv("YOOKASSA_TEST_ENABLED", "false");
       vi.stubEnv("PRODAMUS_TEST_ENABLED", "true");
       vi.stubEnv("PRODAMUS_TEST_PAYFORM_URL", "https://testpage1.payform.ru");
@@ -134,6 +136,143 @@ describe.skipIf(!testDatabaseUrl)(
         },
       });
     }
+    function returnProof(id = order, expires = "1791590400", secret = key) {
+      const payload = `${id}.${expires}`;
+      return `${payload}.${createHmac("sha256", secret).update(`prodamus-test-return:v1:${payload}`).digest("hex")}`;
+    }
+    function checkReturn(token = returnProof()) {
+      return fetch(base + "/api/prodamus/test/result", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": returnIntent,
+        },
+        body: JSON.stringify({ token }),
+      });
+    }
+    it("keeps an unpaid guest order pending without creating a session or mail", async () => {
+      const before = await state();
+      const response = await checkReturn();
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        state: "pending",
+        nextAction: null,
+        emailStatus: null,
+      });
+      expect(response.headers.get("set-cookie")).toBeNull();
+      expect(response.headers.get("cache-control")).toContain("no-store");
+      expect(await state()).toEqual(before);
+    });
+    it("confirms the exact durable guest receipt and queued setup mail without replaying settlement", async () => {
+      expect((await notification()).status).toBe(200);
+      const before = await state();
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const response = await checkReturn();
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({
+          state: "succeeded",
+          nextAction: "setup",
+          emailStatus: "pending",
+        });
+        expect(response.headers.get("set-cookie")).toBeNull();
+      }
+      expect(await state()).toEqual(before);
+    });
+    it("offers login, not another account or password reset, for a confirmed existing account", async () => {
+      await conn.query(
+        "UPDATE users SET passwordHash='synthetic-existing-hash' WHERE id=94321",
+      );
+      expect((await notification()).status).toBe(200);
+      await conn.query(
+        "UPDATE access_email_outbox SET sentAt=CURRENT_TIMESTAMP,payload=JSON_OBJECT('orderId',?) WHERE userId=94321",
+        [order],
+      );
+      const before = await state();
+      const response = await checkReturn();
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        state: "succeeded",
+        nextAction: "login",
+        emailStatus: "sent",
+      });
+      const [tokens] = await conn.query<RowDataPacket[]>(
+        "SELECT COUNT(*) total FROM password_tokens WHERE userId=94321",
+      );
+      expect(tokens).toEqual([{ total: 0 }]);
+      expect(await state()).toEqual(before);
+    });
+    it("reports a discarded mail without pretending it reached the inbox or resending it", async () => {
+      expect((await notification()).status).toBe(200);
+      await conn.query(
+        "UPDATE access_email_outbox SET discardedAt=CURRENT_TIMESTAMP WHERE userId=94321",
+      );
+      const before = await state();
+      const response = await checkReturn();
+      expect(await response.json()).toEqual({
+        state: "succeeded",
+        nextAction: "setup",
+        emailStatus: "unavailable",
+      });
+      expect(await state()).toEqual(before);
+    });
+    it.each([
+      [
+        "wrong signature",
+        () => returnProof(order, "1791590400", "d".repeat(64)),
+      ],
+      ["expired", () => returnProof(order, "1791504000")],
+      ["excessive lifetime", () => returnProof(order, "1791590401")],
+      [
+        "unknown order",
+        () =>
+          returnProof("club-test-94321-93be933e-a277-41f3-801d-45771c12b051"),
+      ],
+      ["unbound owner", () => returnProof(order.replace("94321", "94322"))],
+      ["missing signature", () => order],
+      ["ambiguous expiry", () => returnProof(order, "01791590400")],
+      ["newline expiry", () => returnProof(order, "1791590400\n")],
+      ["newline signature", () => returnProof() + "\n"],
+    ])(
+      "refuses %s proof without any account, mail or payment effects",
+      async (_, token) => {
+        expect((await notification()).status).toBe(200);
+        const before = await state();
+        const response = await checkReturn(token());
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({
+          state: "unknown",
+          nextAction: null,
+          emailStatus: null,
+        });
+        expect(response.headers.get("set-cookie")).toBeNull();
+        expect(await state()).toEqual(before);
+      },
+    );
+    it.each([
+      "DELETE FROM billing_receipts WHERE userId=94321",
+      "UPDATE billing_receipts SET amountMinor=1 WHERE userId=94321",
+      "UPDATE billing_receipts SET userId=94322 WHERE userId=94321",
+      "UPDATE billing_receipts SET orderId='different-order' WHERE userId=94321",
+      "UPDATE users SET blockedAt=CURRENT_TIMESTAMP WHERE id=94321",
+      "UPDATE users SET email='other@example.invalid' WHERE id=94321",
+      "UPDATE access_email_outbox SET email='other@example.invalid' WHERE userId=94321",
+      "UPDATE access_email_outbox SET payload=JSON_OBJECT('orderId','different-order') WHERE userId=94321",
+    ])(
+      "does not confirm a paid row with broken receipt/recipient binding (%s)",
+      async (mutation) => {
+        expect((await notification()).status).toBe(200);
+        await conn.query(mutation);
+        const response = await checkReturn();
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({
+          state: "unknown",
+          nextAction: null,
+          emailStatus: null,
+        });
+        // This mutation moved a synthetic receipt outside this suite's fixture ID.
+        await conn.query("DELETE FROM billing_receipts WHERE userId=94322");
+      },
+    );
     it("creates only a saved monthly demo order and a signed one-off redirect, never a session or access", async () => {
       const response = await client().club.createCheckout.mutate({ email });
       expect(response.user).toBeNull();
@@ -146,7 +285,7 @@ describe.skipIf(!testDatabaseUrl)(
         customer_email: email,
         payments_limit: "1",
         "products[0][price]": "790.00",
-        urlSuccess: "https://daryadarcy.dev.reeskeen.ru/club",
+        urlReturn: "https://daryadarcy.dev.reeskeen.ru/club",
       });
       for (const name of [
         "subscription",
@@ -160,6 +299,11 @@ describe.skipIf(!testDatabaseUrl)(
         expect(url.searchParams.has(name)).toBe(false);
       const id = url.searchParams.get("order_id");
       expect(id).toMatch(/^club-test-94321-[a-f0-9-]{36}$/);
+      const returned = new URL(url.searchParams.get("urlSuccess")!);
+      expect(returned.origin + returned.pathname + returned.search).toBe(
+        "https://daryadarcy.dev.reeskeen.ru/club?paid=1",
+      );
+      expect(returned.hash).toBe(`#paymentReturn=${returnProof(id!)}`);
       const rows = await state();
       expect(rows.payments).toHaveLength(2);
       expect(

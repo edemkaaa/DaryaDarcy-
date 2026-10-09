@@ -22,7 +22,11 @@ import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import type { AppRouter } from "../apps/backend/src/routers";
 import { sdk } from "../apps/backend/src/_core/sdk";
-import { getDb } from "../apps/backend/src/db";
+import {
+  getArticleById,
+  getDb,
+  listPublishedArticles,
+} from "../apps/backend/src/db";
 
 // No mocks: native composition, schemas, sessions, article/teaser SQL are real.
 describe.skipIf(!testDatabaseUrl)(
@@ -48,6 +52,9 @@ describe.skipIf(!testDatabaseUrl)(
         .filter((row) => row.id >= 9060 && row.id <= 9062)
         .map((row) => row.id);
     async function clearOwnedRows() {
+      await conn.query(
+        "DELETE FROM club_payments WHERE orderId='native-article-reader-access' AND userId=9060",
+      );
       await conn.query("DELETE FROM comment_likes WHERE commentId=9060");
       await conn.query("DELETE FROM comment_reports WHERE commentId=9060");
       await conn.query("DELETE FROM post_comments WHERE id=9060");
@@ -147,6 +154,134 @@ describe.skipIf(!testDatabaseUrl)(
       expect(rows.find((row) => row.id === 9062)?.sections).toEqual([
         { type: "text", text: "private body" },
       ]);
+    });
+    it("keeps the published repository order but exposes only public article summaries", async () => {
+      expect(ownIds(await listPublishedArticles())).toEqual([9060, 9062]);
+      const rows = await client().articles.list.query();
+      expect(ownIds(rows)).toEqual([9060]);
+      expect(rows.find((row) => row.id === 9060)).toEqual({
+        id: 9060,
+        title: "native public article",
+        coverUrl: null,
+        access: "public",
+      });
+    });
+    it("keeps unpublished internal lookup available without publishing it to guests or admins", async () => {
+      expect(await getArticleById(9061)).toMatchObject({
+        id: 9061,
+        published: false,
+        sections: [
+          { type: "heading", text: "Legacy heading" },
+          { type: "photo", url: "https://assets.example.test/a.png" },
+          { type: "text", text: "Draft body" },
+        ],
+      });
+      for (const token of [undefined, bearer]) {
+        expect(
+          await client(token).articles.getById.query({ id: 9061 }),
+        ).toBeUndefined();
+        expect(
+          await client(token).articles.getById.query({ id: -1 }),
+        ).toBeUndefined();
+      }
+    });
+    it("locks club article bodies for guests while authorized admins receive the body", async () => {
+      expect(await client().articles.getById.query({ id: 9062 })).toEqual({
+        id: 9062,
+        title: "native private article",
+        coverUrl: null,
+        access: "club",
+        locked: true,
+        sections: [],
+      });
+      expect(await client(bearer).articles.getById.query({ id: 9062 })).toEqual(
+        {
+          id: 9062,
+          title: "native private article",
+          coverUrl: null,
+          access: "club",
+          locked: false,
+          sections: [{ type: "text", text: "private body" }],
+        },
+      );
+    });
+    it("normalizes legacy published sections in both repository lists and public detail", async () => {
+      await conn.query("UPDATE articles SET sections=? WHERE id=9060", [
+        JSON.stringify([
+          { heading: "Public heading", body: "Public legacy body" },
+        ]),
+      ]);
+      const expected = [
+        { type: "heading", text: "Public heading" },
+        { type: "text", text: "Public legacy body" },
+      ];
+      expect(
+        (await listPublishedArticles()).find((row) => row.id === 9060)
+          ?.sections,
+      ).toEqual(expected);
+      expect(await client().articles.getById.query({ id: 9060 })).toEqual({
+        id: 9060,
+        title: "native public article",
+        coverUrl: null,
+        access: "public",
+        locked: false,
+        sections: expected,
+      });
+    });
+    async function ordinaryReader(status: "paid" | "pending" | "failed") {
+      await conn.query("UPDATE users SET role='user' WHERE id=9060");
+      await conn.query(
+        "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (9060,'native-article-reader-access',?,'990.00','2037-01-01')",
+        [status],
+      );
+      return client(bearer).articles;
+    }
+    const lockedClubArticle = {
+      id: 9062,
+      title: "native private article",
+      coverUrl: null,
+      access: "club",
+      locked: true,
+      sections: [],
+    };
+    it("rechecks a paid ordinary reader's expiry on the next request with the same session", async () => {
+      const reader = await ordinaryReader("paid");
+      expect(await reader.getById.query({ id: 9062 })).toEqual({
+        ...lockedClubArticle,
+        locked: false,
+        sections: [{ type: "text", text: "private body" }],
+      });
+      await conn.query(
+        "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-article-reader-access'",
+      );
+      expect(await reader.getById.query({ id: 9062 })).toEqual(
+        lockedClubArticle,
+      );
+      expect(await reader.getById.query({ id: 9060 })).toMatchObject({
+        locked: false,
+        sections: [{ type: "text", text: "public body" }],
+      });
+    });
+    it.each(["pending", "failed"] as const)(
+      "does not unlock an ordinary reader's article from a future %s payment",
+      async (status) => {
+        const reader = await ordinaryReader(status);
+        expect(await reader.getById.query({ id: 9062 })).toEqual(
+          lockedClubArticle,
+        );
+      },
+    );
+    it("locks a paid reader's article immediately after blocking the account with an existing session", async () => {
+      const reader = await ordinaryReader("paid");
+      expect(await reader.getById.query({ id: 9062 })).toMatchObject({
+        locked: false,
+        sections: [{ type: "text", text: "private body" }],
+      });
+      await conn.query("UPDATE users SET blockedAt='2026-01-01' WHERE id=9060");
+      expect(await reader.getById.query({ id: 9062 })).toEqual(
+        lockedClubArticle,
+      );
+      expect(await reader.getById.query({ id: 9061 })).toBeUndefined();
     });
     it("creates a trimmed club article with existing defaults and one teaser", async () => {
       const id = await create({
