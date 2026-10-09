@@ -2160,3 +2160,18 @@ drafts remain local after interruption; disposable container already removed.
   edge/auth/schema/quotas change, external mail, resend or payment. New user's
   actual order/notification/mail/browser acceptance still unverified. Frontend
   build/dialog pending; only 331 MiB available, more cleanup not authorized.
+
+### Staging publication review — human request, 9 October
+
+- [x] Fetch staging; ae70522 is already an ancestor of 09868ff, 13 feature
+  commits ahead and no incoming commits. Frontend 0b77270 already integrated
+  by 7524987; preserve frontend source, no redundant merge or force push.
+- [x] Review key frontend/backend contracts and regressions. Fresh types,
+  lint/API/boundaries/docs, standard+TEST backend and frontend builds pass;
+  serial Vitest 1911 pass / 840 opt-in skips, selected browser suites 168 pass.
+  Missing expected browser recovered with installed executable override only.
+- [ ] Publish reviewed current feature plus this evidence to staging by normal
+  fast-forward push; confirm exact remote SHA. Server deployment not requested.
+- [ ] Real SQL/provider/SMTP/device/dependency/rollout acceptance remains open.
+  Docker inventory currently unresponsive; no working DB or container changes.
+  Frontend return dialog and concrete email-binding scenario still pending.

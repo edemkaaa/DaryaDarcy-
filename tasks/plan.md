@@ -6470,3 +6470,38 @@ whitespace checks pass before local backend-only commit. Fresh frontend build
 and complete return-dialog acceptance remain blocked/pending, not waived.
 Actual SSH alias remains unavailable;
 do not guess server targets, resend notification or make another payment.
+
+## Staging publication review — human request, 9 October 2026
+
+The human requested frontend review before publishing all current DaryaDarcy
+work to staging, not deployment. Fresh fetch and remote-head read both identify
+staging ae70522710da56ac8d9b5985038d94579b37249a. It is an ancestor of feature
+HEAD 09868ff (13 additional commits, zero incoming commits). Frontend change
+0b77270 is already included through merge 7524987; no second merge is needed.
+The feature range has no frontend source changes. Preserve that history and
+publish by normal fast-forward push only; refetch before push and never force.
+
+Targeted frontend review covers checkout/return/access validation, cancellation,
+admin confirmations and mail enqueueing, locally disabled email binding,
+season/manager configuration, editor recovery and their regressions. Existing
+backend contracts remain compatible; no blocker found in the inspected paths.
+This is not a new exhaustive audit or payment-provider acceptance. The return
+dialog still awaits frontend implementation, email binding remains intentionally
+disabled, and provider/SMTP/device/SQL/dependency/rollout gates remain open.
+
+Fresh verification on Node 22: full serial Vitest 1911 pass / 840 opt-in skips
+(138 passing files, 44 skipped); types, lint, unchanged 73-procedure API,
+573-file boundaries, docs and whitespace checks pass. Standard backend,
+restricted Prodamus TEST and production frontend builds all pass. Nine selected
+browser suites pass all 168 tests (payment, cancellation, admin results, mail,
+email-binding refusal, seasons, drafts, moderation, manager orders). The first
+browser run could not launch missing Chromium revision 1208 and was interrupted;
+retry used the existing configured executable override for revision 1234,
+without dependency or source changes. These browser tests use API fixtures,
+not real payment, delivery or SQL evidence. Local Docker inventory did not
+respond; its read-only command was stopped, no restart or container mutation
+performed, and no fresh SQL run claimed. Working databases untouched.
+
+Only this evidence is added locally before publication. GitLab staging CI is
+verify-only (including isolated SQL and browser checks), not a deploy job.
+No server update, credentials inspection, provider action, email or payment.
