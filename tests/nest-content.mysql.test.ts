@@ -17,7 +17,7 @@ import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import type { AppRouter } from "../apps/backend/src/routers";
 import { sdk } from "../apps/backend/src/_core/sdk";
-import { getDb, getPostsForTarget } from "../apps/backend/src/db";
+import { getDb, getPostById, getPostsForTarget } from "../apps/backend/src/db";
 
 describe.skipIf(!testDatabaseUrl)(
   "native content reads over real HTTP/JWT/MySQL",
@@ -135,6 +135,28 @@ describe.skipIf(!testDatabaseUrl)(
         text: "public body",
       });
       expect(await client().feed.getById.query({ id: 8971 })).toBeUndefined();
+    });
+    it("keeps private row lookup separate from public visibility", async () => {
+      for (const fixture of [
+        { id: 8972, text: "draft body", status: "draft", published: true },
+        {
+          id: 8974,
+          text: "hidden body",
+          status: "published",
+          published: false,
+        },
+      ]) {
+        expect(await getPostById(fixture.id)).toMatchObject(fixture);
+        expect(
+          await client(bearer).feed.getById.query({ id: fixture.id }),
+        ).toBeUndefined();
+      }
+    });
+    it("does not return a neighboring post for a missing ID", async () => {
+      expect(await getPostById(999999)).toBeUndefined();
+      expect(
+        await client(bearer).feed.getById.query({ id: 999999 }),
+      ).toBeUndefined();
     });
     it("returns ordered audio, document and video metadata on public post detail", async () => {
       await conn.query(

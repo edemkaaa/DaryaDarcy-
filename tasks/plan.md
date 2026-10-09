@@ -6155,3 +6155,54 @@ do not imply contact, repair, or receipt. Approved diagnostic scope: testpage1,
 order 49661405 / 09.10.2026 13:39 MSK / 790 RUB, SBP invalid recipient MNT_ID and
 card/GPB no server response; ask provider to inspect TEST acquiring logs. Never
 send cabinet password, signing key, raw signed link, or initiate a new payment.
+
+### M08 post detail / latest read repository — 9 October, continuation
+
+Resume clean 3048108 on the current feature branch under the human continuation
+request. Extract getPostById/getLatestPublishedPost to content/post-detail-repository.ts;
+db.ts acquires the same lazy client once. Private row lookup retains hidden/draft
+rows; ContentReadService retains public visibility/club entitlement gates. Keep
+all selected fields, correlated like count, one-row limit, canonical media helper,
+undefined missing-row/no-DB latest result and throwing no-DB detail behavior.
+Latest uses canonical postDateOrder / COALESCE publication/creation date, not
+the catalog sort position. No new API, connection/pool, query, schema or dependency.
+
+TDD: add two real detail characterizations for private-vs-public visibility and
+missing ID, using existing owned synthetic fixtures. Baseline 35 content checks
+and separate 14 native latest checks. Replacing the requested ID with another
+published ID gives two expected RED failures; changing latest ordering to list
+position gives one expected RED failure. Both mutations restored, db.ts diff empty
+before extraction. Read-only TypeScript AST comparison confirms both executable
+bodies and facade signatures unchanged except connection acquisition/parameter.
+
+Final separate latest invocation 14 pass, serial five-file content invocation
+139 pass: total 153, including 72 real SQL (35 public content, 20 admin content,
+3 persistence, 14 latest) and 81 maintenance/transport doubles. Global latest
+runs on an explicitly verified empty publication dataset, never concurrently
+with SQL publishers. Full 1890 pass / 812 opt-in skips, 137 files pass / 44 skip.
+Root/frontend/E2E types, 425.8 kB build, unchanged 73 procedures/25642-byte API,
+572-file boundaries, lint/selected formatting/docs/diff whitespace pass.
+
+Five-axis review: focused content-owned reads reduce general facade duties;
+existing contracts/field projections remain distinct, no count/media additions.
+Canonical ordering/hydration reused, no cycles/hidden connection/query-count
+change. Validated ID/target and access decisions remain with unchanged adapters /
+services. Parameterization and generic errors retained; no new PII or external
+flows. No optimization, injected SQL-error acceptance, frontend/admin completion,
+auth/CORS/proxy/quota/payment-policy, push/deploy or server claim. Existing
+M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout gates stay open.
+
+Owned mysql:8.4 dd-post-detail-20261009-1450, loopback 64830, synthetic backend_test,
+tmpfs/no mounts, 512 MiB/one CPU; full ID
+f3cf6760a99338aa0b28ac4a1f783f79cc59d20c4c8f54d3a0575f7927fce721 checked again
+for ownership/tmpfs/no mounts/no OOM and removed. Matching inventory empty;
+only this run's synthetic data removed, working DB untouched. Evidence JSON:
+/tmp/daryadarcy-post-detail-{latest-baseline,content-baseline,selector-red,date-red,
+latest-green,green}.json, plus fresh full/type/build/API/boundary/lint task outputs.
+
+Support status supersedes the earlier MAX-login blocker: user reports sending the
+approved diagnostic text through prodamus.ru website chat, screenshot shows Sent.
+Agent sent no message/read no mailbox; do not duplicate or request MAX login for
+this completed send. Await provider diagnosis of TEST SBP/card failures; no repair
+or paid acceptance follows from the send. Previous fresh dev smoke confirms only
+guest/SQL/protected refusals, not acquiring. No recurring continuation enabled.

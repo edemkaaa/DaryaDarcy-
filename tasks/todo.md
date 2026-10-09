@@ -2052,9 +2052,25 @@ drafts remain local after interruption; disposable container already removed.
   full 1890 pass / 810 opt-in skips; types/build/API/boundaries/lint/format/docs
   checked. Exact owned tmpfs DB removed after ownership/no-mount/no-OOM checks,
   matching inventory empty, working DB untouched. Evidence/review in plan.md.
-- [ ] Prodamus support request authorized but NOT sent: official MAX chat needs
-  user login or a confirmed own mail sender. Unrelated mail profile not used;
-  no mailbox read. TEST SBP/card acceptance and provider diagnosis remain open.
+- [x] Prodamus diagnostic request sent by the user through the website chat;
+  supplied screenshot shows Sent. Agent sent nothing/read no mailbox. No need
+  to duplicate the request or require MAX login; provider diagnosis still open.
 - [ ] Remaining M08/M06/identity/M07c/SMTP/device/dependency/rollout gates stay
   open. Local backend-only slice; no frontend, payment policy, new public search,
   remote merge/push/deploy, server acceptance or automatic continuation.
+
+### M08 post detail / latest read repository — 9 October, continuation
+
+- [x] Continue clean 3048108. Move single-post and latest-announcement reads to
+  content/post-detail-repository.ts; preserve facade signatures/executable AST,
+  fields/media/date ordering/absence/errors and existing service-owned access.
+- [x] Two new native detail cases; baseline 35 content / 14 latest. Selector
+  mutation fails two checks; wrong date ordering fails one. Both restored before
+  extraction. Global latest run isolated on a fresh empty publication dataset.
+- [x] Final 153 selected pass (72 real SQL, 81 doubles); full 1890 pass / 812
+  opt-in skips. Types/build/API/boundaries/lint/format/docs/diff checked. Exact
+  owned tmpfs DB removed after ownership/no-mount/no-OOM checks; inventory empty,
+  working DB untouched. Evidence/review saved in plan.md and existing handoff.
+- [ ] Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout gates
+  remain open. No frontend, auth/payment policy, remote merge/push/deploy, new
+  payment or server acceptance. Await provider reply to the user's sent request.

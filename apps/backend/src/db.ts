@@ -15,7 +15,11 @@ import {
   attachPostMedia,
   getPostMediaByPostId as readPostMediaByPostId,
 } from "./content/post-media-repository";
-import { postDateOrder, postListOrder } from "./content/post-order";
+import { postListOrder } from "./content/post-order";
+import {
+  getPostById as readPostDetail,
+  getLatestPublishedPost as readLatestPublishedPost,
+} from "./content/post-detail-repository";
 import {
   getPostsPaginated as readPostPage,
   getPostsByIds as readPostsByIds,
@@ -301,36 +305,7 @@ export async function getPostsPaginated(options: {
 
 // Get a single post by ID
 export async function getPostById(id: number): Promise<(Post & { likeCount: number }) | undefined> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const result = await db
-    .select({
-      id: posts.id,
-      text: posts.text,
-      photos: posts.photos,
-      tags: posts.tags,
-      source: posts.source,
-      instagramId: posts.instagramId,
-      sortOrder: posts.sortOrder,
-      published: posts.published,
-      status: posts.status,
-      target: posts.target,
-      scheduledAt: posts.scheduledAt,
-      publishedAt: posts.publishedAt,
-      richText: posts.richText,
-      createdAt: posts.createdAt,
-      updatedAt: posts.updatedAt,
-      likeCount: sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.postId = posts.id)`.as("likeCount"),
-    })
-    .from(posts)
-    .where(eq(posts.id, id))
-    .limit(1);
-
-  const row = result[0];
-  if (!row) return undefined;
-  const [withMedia] = await attachPostMedia(db, [row]);
-  return withMedia;
+  return readPostDetail(await getDb(), id);
 }
 
 // Get all tags ordered by sortOrder
@@ -712,19 +687,7 @@ export async function deletePushTokensForUser(userId: number): Promise<void> {
 export async function getLatestPublishedPost(
   target: "feed" | "club",
 ): Promise<{ id: number; text: string } | undefined> {
-  const db = await getDb();
-  if (!db) return undefined;
-  const rows = await db
-    .select({ id: posts.id, text: posts.text })
-    .from(posts)
-    .where(and(
-      eq(posts.published, true),
-      eq(posts.status, "published"),
-      or(eq(posts.target, target), eq(posts.target, "both")),
-    ))
-    .orderBy(postDateOrder)
-    .limit(1);
-  return rows[0];
+  return readLatestPublishedPost(await getDb(), target);
 }
 
 // ── Videos ──
