@@ -11,6 +11,12 @@ import {
 import { confirmPostPublication, type PostPublication } from "./content/publication";
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
 import { deletePost as persistPostDeletion } from "./content/post-deletion";
+import { postDateOrder, postListOrder } from "./content/post-order";
+import {
+  getAdminPostsFiltered as readAdminPostsFiltered,
+  getScheduledPosts as readScheduledPosts,
+  getPostStatistics as readPostStatistics,
+} from "./content/post-admin-repository";
 import {
   getVideos as readVideos,
   getVideoById as readVideoById,
@@ -233,9 +239,6 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
 
 import { posts, tags, likes, savedPosts, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, Article } from "../../../packages/database/src/schema";
 import { desc, asc, and, sql, or, ne, gte, lte, isNotNull, isNull } from "drizzle-orm";
-
-const postDateOrder = desc(sql`COALESCE(${posts.publishedAt}, ${posts.createdAt})`);
-const postListOrder = [asc(posts.sortOrder), postDateOrder] as const;
 
 // Get all published posts, optionally filtered by tag
 export async function getPosts(tagFilter?: string): Promise<(Post & { likeCount: number; media: PostMedia[] })[]> {
@@ -884,29 +887,13 @@ export async function getAdminPostsFiltered(options?: {
   target?: "feed" | "club" | "both";
 }): Promise<Post[]> {
   const db = await getDb();
-  if (!db) return [];
-
-  let conditions = [];
-  if (options?.status) conditions.push(eq(posts.status, options.status));
-  if (options?.target) conditions.push(eq(posts.target, options.target));
-
-  const query = conditions.length > 0
-    ? db.select().from(posts).where(and(...conditions)).orderBy(postDateOrder)
-    : db.select().from(posts).orderBy(postDateOrder);
-
-  return query;
+  return readAdminPostsFiltered(db, options);
 }
 
 // Get scheduled posts (for calendar tracker)
 export async function getScheduledPosts(): Promise<Post[]> {
   const db = await getDb();
-  if (!db) return [];
-
-  return db
-    .select()
-    .from(posts)
-    .where(eq(posts.status, "scheduled"))
-    .orderBy(asc(posts.scheduledAt));
+  return readScheduledPosts(db);
 }
 
 // ── Post Media CRUD ──
@@ -1018,76 +1005,7 @@ export interface PostStatistics {
 
 export async function getPostStatistics(): Promise<PostStatistics> {
   const db = await getDb();
-  if (!db) {
-    return {
-      totalPosts: 0, publishedPosts: 0, scheduledPosts: 0, draftPosts: 0,
-      feedPosts: 0, clubPosts: 0, bothPosts: 0,
-      totalLikes: 0, totalSaves: 0,
-      postsThisMonth: 0, postsLastMonth: 0,
-      topLikedPosts: [],
-    };
-  }
-
-  // Get all posts
-  const allPosts = await db.select().from(posts);
-
-  const totalPosts = allPosts.length;
-  const publishedPosts = allPosts.filter(p => p.status === "published").length;
-  const scheduledPostsCount = allPosts.filter(p => p.status === "scheduled").length;
-  const draftPosts = allPosts.filter(p => p.status === "draft").length;
-  const feedPosts = allPosts.filter(p => p.target === "feed").length;
-  const clubPosts = allPosts.filter(p => p.target === "club").length;
-  const bothPosts = allPosts.filter(p => p.target === "both").length;
-
-  // Count total likes
-  const likesResult = await db.select({ count: sql<number>`COUNT(*)` }).from(likes);
-  const totalLikes = Number(likesResult[0]?.count ?? 0);
-
-  // Count total saves
-  const savesResult = await db.select({ count: sql<number>`COUNT(*)` }).from(savedPosts);
-  const totalSaves = Number(savesResult[0]?.count ?? 0);
-
-  // Posts this month
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const postsThisMonth = allPosts.filter(p => new Date(p.createdAt) >= startOfMonth).length;
-  const postsLastMonth = allPosts.filter(p => {
-    const d = new Date(p.createdAt);
-    return d >= startOfLastMonth && d < startOfMonth;
-  }).length;
-
-  // Top liked posts (top 5)
-  const postsWithLikes = await db
-    .select({
-      id: posts.id,
-      text: posts.text,
-      likeCount: sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.postId = posts.id)`.as("likeCount"),
-    })
-    .from(posts)
-    .orderBy(desc(sql`likeCount`))
-    .limit(5);
-
-  const topLikedPosts = postsWithLikes.map(p => ({
-    id: p.id,
-    text: p.text.slice(0, 80),
-    likeCount: Number(p.likeCount),
-  }));
-
-  return {
-    totalPosts,
-    publishedPosts,
-    scheduledPosts: scheduledPostsCount,
-    draftPosts,
-    feedPosts,
-    clubPosts,
-    bothPosts,
-    totalLikes,
-    totalSaves,
-    postsThisMonth,
-    postsLastMonth,
-    topLikedPosts,
-  };
+  return readPostStatistics(db);
 }
 
 // ── Pen pals ──

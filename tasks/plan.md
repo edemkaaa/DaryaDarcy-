@@ -5946,3 +5946,60 @@ empty. Only synthetic data removed, not recoverable or needed; working DB untouc
 Evidence /tmp/daryadarcy-article-reader-{baseline,red,green,full,types,build,lint}.log.
 Night deadline remains 01:06 UTC. Do not begin another substantial unverified slice
 at the cutoff; report current checkpoint and disable continuation after deadline.
+
+### M08 admin post-read repository — 9 October, new daytime request
+
+New human continuation resumes local backend work after the expired 01:06 UTC
+deadline; the stale daryadarcy heartbeat was confirmed PAUSED via the native
+automation tool, preserving its prompt/rrule/target. No new schedule or automatic
+push/deploy authority inferred. Clean feature/yookassa-test-checkout at 9a0c0bd,
+two local commits above origin/staging ae70522; unrelated work absent.
+
+Slice: move getAdminPostsFiltered/getScheduledPosts/getPostStatistics behind
+db.ts into content/post-admin-repository.ts. getDb remains acquired once in each
+facade, public signatures/PostStatistics stay unchanged; repository accepts the
+existing nullable client and has no connection owner/back-reference. Extract
+postDateOrder/postListOrder once into content/post-order.ts, shared by public
+catalog and admin date reads. Preserve AND filters, scheduled-time ascending,
+COALESCE publication/creation date, hidden rows, duplicate reaction row counts,
+top 5 / 80-character previews, host-local month logic, nontransactional statistics
+and legacy no-DB empty/zero replies. No new query/policy/transaction or speed claim.
+
+RED/GREEN: baseline 21 real native admin cases, including an exploratory month
+boundary probe. Temporary AND->OR, scheduled order reversal, 81-character preview
+and strict month lower bound produced five expected assertion failures (16 pass),
+then db.ts restored byte-for-byte before extraction. Review removed the exploratory
+global month-delta probe: independent suites can legitimately change aggregate
+counts between requests, and these reads are not a snapshot. No month acceptance
+claim from the final test set. Strengthen leader regression with a sixth exact
+owned post 9045, restoring draft text and deleting only that row in finally;
+temporary limit 6 then fails on six versus five rows. Restore limit 5. Add native
+no-DB projection regression with the existing session double, explicitly not JWT/
+SQL acceptance. Read-only TypeScript AST comparison confirms all three executable
+bodies (except connection acquisition) and both canonical sort initializers match
+HEAD exactly, including the preserved month calculations and nullable guard.
+
+Final four-file serial run: 100 pass, 52 real SQL (20 native admin, 23 native
+public content, 9 content persistence) and 48 existing maintenance/double cases.
+Full 1890 pass / 806 opt-in skips; 137 files pass / 44 skip. Root/frontend/E2E
+types, 424.1 kB build, byte-identical 73 procedures/25642-byte API, 569-file
+boundaries, lint, selected formatting and diff whitespace pass. Existing handoff
+updated; docs checked with repository gate, no source-text/prose tests.
+
+Review: domain-specific projections leave the general facade without adding
+duplicated sort definitions or dependency cycles. Parameterized filters and
+native admin session/role gate unchanged; no new PII/external flow/dependency.
+Tests use literal response expectations, exact fixture cleanup and no production
+secrets. Existing unbounded reads/global stats/tie ordering remain limitations,
+not optimized here. No frontend/auth/CORS/proxy/quota/schema/payment-policy,
+remote operation or server acceptance. Remaining M08/M06 transactional scopes,
+M07c drain bound, first-email scenario and provider/SMTP/device/dependency/rollout
+gates stay open; no human decision invented.
+
+Owned local mysql:8.4 container dd-admin-post-reads-20261009-1205, synthetic
+backend_test database, loopback 55377, tmpfs/no mounts, 512 MiB/one CPU. Exact ID
+8288b5a7e19d6f14fe6e8b4a5d4e9d309ccdbca3d7c688ddcce813828220957c inspected
+again for owner/tmpfs/no mounts/no OOM and removed; matching owner inventory empty.
+Only synthetic data removed, not recoverable or needed; working DB untouched.
+Evidence: /tmp/daryadarcy-admin-post-reads-{baseline,red,extra-baseline,limit-red,
+green,full,types,build,lint}.log. No new recurring continuation started.

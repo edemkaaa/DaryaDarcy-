@@ -209,6 +209,24 @@ describe("native admin content maintenance service boundary", () => {
       ok: true,
     });
   });
+  it("keeps content admin reads' legacy empty no-database projections", async () => {
+    expect(await client().admin.postsFiltered.query()).toEqual([]);
+    expect(await client().admin.scheduledPosts.query()).toEqual([]);
+    expect(await client().admin.stats.query()).toEqual({
+      totalPosts: 0,
+      publishedPosts: 0,
+      scheduledPosts: 0,
+      draftPosts: 0,
+      feedPosts: 0,
+      clubPosts: 0,
+      bothPosts: 0,
+      totalLikes: 0,
+      totalSaves: 0,
+      postsThisMonth: 0,
+      postsLastMonth: 0,
+      topLikedPosts: [],
+    });
+  });
 
   describe.each(["members", "payments"] as const)(
     "admin %s read availability",

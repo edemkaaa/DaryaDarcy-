@@ -264,6 +264,27 @@ describe.skipIf(!testDatabaseUrl)(
         likeCount: 20,
       });
     });
+    it("limits dashboard leaders to five and truncates private draft previews to 80 characters", async () => {
+      const text = "Тестовая публикация ".repeat(8);
+      await conn.query("UPDATE posts SET text=? WHERE id=9041", [text]);
+      try {
+        await conn.query(
+          "INSERT INTO posts (id,text,photos,tags) VALUES (9045,'sixth dashboard candidate',JSON_ARRAY(),JSON_ARRAY())",
+        );
+        const result = await client(bearer).admin.stats.query();
+        expect(result.topLikedPosts).toHaveLength(5);
+        expect(result.topLikedPosts).toContainEqual({
+          id: 9041,
+          text: text.slice(0, 80),
+          likeCount: 20,
+        });
+      } finally {
+        await conn.query("DELETE FROM posts WHERE id=9045");
+        await conn.query(
+          "UPDATE posts SET text='admin private draft' WHERE id=9041",
+        );
+      }
+    });
     it.each([
       [null, "UNAUTHORIZED", 401],
       ["role='user'", "FORBIDDEN", 403],

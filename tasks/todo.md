@@ -1986,3 +1986,22 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] Previous first-email/M07c/provider/SMTP/device/dependency/rollout gates and
   remaining repository work remain open. Test-only local increment, no runtime
   authorization/payment policy, frontend, remote merge/push/deploy or server claim.
+
+### M08 admin post-read repository — 9 October, daytime continuation
+
+- [x] Resume from clean 9a0c0bd under the new human request; expired overnight
+  heartbeat confirmed PAUSED, no replacement schedule or new deploy authority.
+- [x] Extract filters/calendar/statistics behind unchanged db.ts facade and
+  canonical shared post ordering. Existing SQL, signatures, counts, access and
+  no-DB projections retained; executable AST/initializer comparison unchanged.
+- [x] RED/GREEN and review: baseline 21 / five expected mutation failures; sixth
+  candidate proves top-5 limit independently, nullable projections checked with
+  existing session double. Exploratory month-delta probe removed because shared
+  global statistics are not transactional snapshots; no month acceptance claim.
+- [x] Final 100 selected pass (52 real SQL), full 1890 pass / 806 opt-in skips;
+  types/build/API/boundaries/lint/format/docs checked. Owned tmpfs database removed
+  after exact ownership/no-mount/no-OOM checks; matching inventory empty, working
+  DB untouched. Handoff/review/evidence recorded in plan.md.
+- [ ] Remaining M08/M06, first-email/M07c/provider/SMTP/device/dependency/rollout
+  gates remain open. Local backend-only slice, no frontend/payment-policy change,
+  remote merge/push/deploy, server acceptance or automatic continuation.
