@@ -2207,3 +2207,18 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] Real SQL/provider/SMTP/device/dependency/rollout acceptance remains open.
   Docker inventory currently unresponsive; no working DB or container changes.
   Frontend return dialog and concrete email-binding scenario still pending.
+
+### Frontend UI/navigation integration — explicit human request, 9 October
+
+- [x] Review source eb0e01f / frontend fix 67c9002; fast-forward staging from
+  160be04 without conflicts or loss of backend changes.
+- [x] Trace and correct browser-test readiness/scroll/layout preconditions and
+  obsolete paid URL expectation; production code and acceptance assertions
+  preserved. Repeated affected suites pass; see plan for exact run accounting.
+- [x] Fresh serial unit tests 1963 pass / 840 opt-in skips, types/lint/API/
+  boundaries/builds/docs/format/whitespace pass. All 547 browser cases accounted
+  for across runs: 544 successful, three real-API skips; no single-green-full-run
+  claim. Provider/SQL/SMTP/physical-device acceptance not inferred from fixtures.
+- [x] Refetch and publish integrated staging by normal push, verify remote SHA
+  9662f6c (integrated code; publication evidence follows as docs only).
+  No server deployment or payment configuration change authorized by this merge.

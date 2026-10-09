@@ -6535,3 +6535,57 @@ performed, and no fresh SQL run claimed. Working databases untouched.
 Only this evidence is added locally before publication. GitLab staging CI is
 verify-only (including isolated SQL and browser checks), not a deploy job.
 No server update, credentials inspection, provider action, email or payment.
+
+## Frontend UI/navigation staging integration — 9 October 2026
+
+Human explicitly requested merging fix/frontend-ui-and-navigation into staging
+and publishing the completed corrections. Fresh fetch identifies source eb0e01f
+(frontend fix 67c9002 plus merge of staging 160be04); staging is an ancestor.
+Integrated by fast-forward without conflicts, preserving all backend history.
+Review covers navigation intent sanitization/tab isolation, role-gated entry,
+touch versus keyboard/mouse behavior, draft checkpoint identity, layout spacing
+and explicit build-time payment modes. No backend/API/dependency changes.
+
+Browser verification exposed test preconditions, not production fixes: fill()
+ran inside an inert editor during asynchronous draft recovery (attachment close,
+final-write close, expired session and creation intent traces). Wait for the real
+form to lose inert, preserving all content/write/replay assertions. History Back
+measured a transient header position; asynchronous wheel dispatch was not settled
+before clicking. Observe actual bottom/top scroll and hidden/revealed header
+states, then require the whole Back control in the viewport before normal click.
+Native wheel/touch behavior remains covered independently. The manager-order
+test incorrectly required obsolete paid=1 to remain in the URL; it now verifies
+sanitization while retaining no-checkout/no-entitlement/no-success assertions.
+The returned video heading now waits for its exact original geometry rather than
+measuring a temporarily unmounted retained screen. No sleeps, forced clicks,
+retries, skips or production workarounds added.
+
+Fresh Node 22 verification: serial Vitest 1963 pass / 840 opt-in skips; types
+(including E2E), lint, unchanged 73-procedure API, 582-file boundaries, docs,
+formatting, whitespace and standard backend/frontend builds pass. Browser
+coverage reconciled across runs: 547 unique cases, 544 successful / 3 real-API
+skips. Initial long runs stopped on failures and are not claimed green. Before
+post-create-intent, 367 successful non-navigation cases and three API skips;
+navigation/create-intent 22 unique cases pass three times (66); remaining 155
+cases pass across the continuation and tail runs, including corrected shop/tab
+cases repeated three times (99). Attachment suite also passed three times (78),
+and editor close/revocation checks passed three times each. This is aggregate
+coverage, not a claim of one uninterrupted passing full run. API fixtures and
+Chromium emulation are not real SQL, provider, mail, device or PWA acceptance.
+
+Native built-mode acceptance also exposed an ambiguous alert locator: Next's
+route announcer satisfied it before the first synthetic checkout response. The
+test changed its response too early; diagnostic showed only one create and a
+demo navigation, not a failed refusal in production. Wait for the exact payment
+refusal before replacing the fixture. Prodamus TEST passes three times, and
+the separate YooKassa TEST build/native acceptance passes. Both explicit TEST
+builds and the restored ordinary build pass; ordinary native acceptance was
+also verified. Runtime flags cannot override the compiled mode. All API/provider
+traffic is intercepted locally; no actual payments or provider connections.
+
+Publication is a normal staging push after refetch; no force or server update.
+Remote staging 9662f6cfba479d83a230eeb466f5a227dc6b1b37 is verified to match
+the reviewed integrated code; the publication evidence follows as docs only.
+Existing rollout/dependency/provider/SMTP/device gates and pending frontend
+durable-return dialog remain open. No credentials, cabinet, mail or payment
+operations and no working database accessed.
