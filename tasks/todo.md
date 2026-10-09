@@ -2021,3 +2021,21 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] Remaining M08/M06/first-email/M07c/provider/SMTP/device/dependency/rollout gates
   open. No frontend/payment-policy/upload/storage change, push/deploy, server
   acceptance or recurring continuation.
+
+### Prodamus TEST successful return — 9 October, 13:33 MSK
+
+- [x] User-approved single-line fix: successful TEST return /club?paid=1 starts
+  existing bounded server-access checking; non-success return stays /club.
+  URL hint never grants access. Frontend/signatures/settlement remain unchanged.
+- [x] Native HTTP/SQL RED then GREEN; 100 focused pass (52 SQL), full 1890 pass /
+  808 opt-in skips, types/build/API/boundaries/lint/docs checks pass. Exact owned
+  disposable database/network removed; working DB not used as a test fixture.
+- [x] Deploy only prior 6987883 runtime source plus this one line, not unrelated
+  local refactors. Old bundle reproduces byte-for-byte; new artifact differs in
+  one line. Only TEST container replaced, seven healthy, 15 HTTPS checks pass;
+  fresh provider link observed with corrected return. Rollback/evidence in plan
+  and operations docs. No payment, resend, cabinet change, branch merge or push.
+- [ ] Card/GPB and SBP failures remain unconfirmed upstream issues; no new paid
+  end-to-end acceptance, real money/autocharges or production approval. Old links
+  retain their old return URL; do not repeat a payment merely to test the return.
+  Existing dependency/rollout and unrelated backend gates remain open.

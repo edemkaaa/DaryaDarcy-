@@ -110,7 +110,7 @@ export class ProdamusTestClubService {
       payments_limit: "1",
       callbackType: "json",
       urlReturn: `${application}/club`,
-      urlSuccess: `${application}/club`,
+      urlSuccess: `${application}/club?paid=1`,
       // Cabinet-level notification URL: no invented SYS/per-link routing.
     };
     const url = `${merchant}/?${buildProdamusQuery({ ...payload, signature: createProdamusSign(payload, configured.signingKey) })}`;

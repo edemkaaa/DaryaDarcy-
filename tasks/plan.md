@@ -6051,3 +6051,58 @@ again for owner/tmpfs/no mounts/no OOM then removed; matching inventory empty.
 Only this run's synthetic data removed, not needed/recoverable; working DB untouched.
 Evidence /tmp/daryadarcy-post-media-reads-{baseline,red,group-red,green,full,types,
 build,lint}.log. Expired overnight automation remains PAUSED, no new schedule.
+
+### Prodamus TEST successful return — 9 October, 13:33 MSK
+
+User explicitly approved correcting the successful return and updating only the
+dedicated dev TEST service. The observed bank errors remain separate: SBP reports
+an invalid recipient MNT_ID, GPB/card reports no server response; neither is fixed
+or fully attributed by this increment. Read-only provider order history and SQL
+show the two reported attempts still pending with no receipt/access. The earlier
+EUR Open banking order has a verified receipt; that is not card/SBP acceptance.
+
+Root cause in our return integration: TEST urlSuccess was bare /club, while the
+deployed frontend starts its bounded authenticated return check only for paid=1.
+Change only urlSuccess to /club?paid=1; cancellation/urlReturn remains /club.
+This query is navigation intent, never proof: signed webhook/SQL settlement still
+owns access. Existing frontend checks at most six times within its 30-second
+budget; guests must sign in. No frontend or browser-return handler added.
+
+RED: native checkout test expects the successful return hint plus unchanged
+non-success return; one assertion fails against the real old HTTP/SQL flow.
+GREEN: 100 selected cases, including 52 native HTTP/SQL checks, cover pending
+checkout/no session/no receipt/no access, signatures, settlement and restricted
+runtime/compiled entry. Full 1890 pass / 808 opt-in skips; types/TEST build/API
+(73 procedures, 25642 bytes)/570-file boundaries/lint/docs/diff checks pass.
+
+Deployment deliberately excludes other local refactors: git archive of deployed
+6987883ecd895c3aaa1e14b0ef762d56404e97ce plus this single service-line patch.
+Rebuilding the unmodified archive reproduces the exact old server bundle hash
+e6109672aed71a33cb83bcb51eb53ad9d5af36d8b5b2633e30d186bc19b85187.
+Generated bundle diff is exactly one urlSuccess line. Patched archive also passes
+the same 100 selected cases and a final 52-case native SQL run. New bundle hash
+b62ea8d0d79c77d58b5b6f84a903950a4712eada3fb2ca5718ddf318bd7e0e0d.
+No dependency/manifest/lockfile change: native pnpm production audit remains
+1 critical / 20 high / 26 moderate / 4 low. Existing narrow TEST exception and
+production dependency gates remain open, not waived by these tests.
+
+Only prodamus-test replaced at 2026-10-09T10:33:20Z, same pinned runtime image;
+all six other container IDs unchanged, seven healthy, no restart/OOM. Fifteen
+HTTPS boundary checks pass, including /club?paid=1 200, invalid notification 400,
+transport refusals and live/return/batch routes still blocked. The existing open
+provider tab now contains a newly generated URL with the corrected urlSuccess;
+no new checkout, payment, resend or cabinet mutation was performed by this agent.
+This is not a fresh paid end-to-end acceptance or bank-error repair. Existing
+provider links retain their original return URLs; never pay again merely to test
+the hint. Rollback and exact artifact pins are in operations documentation.
+
+Review: literal emitted-link expectations exercise the native boundary and still
+assert pending/no effects; no query hint grants access. Fixed approved origin,
+HMAC signing, callback, transactions, replay policy, quotas/auth/CORS/proxy trust,
+working SQL, email workers and all provider settings unchanged. No branch merge
+or push. Temp mysql:8.4 dd-paid-return-a31f9c8e, backend_test on loopback 57373,
+synthetic credentials, tmpfs/no mounts, owned label paid-return-20261009-a31f9c8e,
+was inspected by exact ID dd3f8efa022784dfce811ff1e0b993fd9677324c1c312cbcc7a97ac9dd18a910
+and removed with its empty owned network. Both owner inventories empty; only
+disposable synthetic data removed. Archive/evidence retained under
+/tmp/daryadarcy-paid-return.BRz4DT and /tmp/daryadarcy-paid-return-{full.log,audit.json}.

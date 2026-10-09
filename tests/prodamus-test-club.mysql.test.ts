@@ -146,7 +146,8 @@ describe.skipIf(!testDatabaseUrl)(
         customer_email: email,
         payments_limit: "1",
         "products[0][price]": "790.00",
-        urlSuccess: "https://daryadarcy.dev.reeskeen.ru/club",
+        urlSuccess: "https://daryadarcy.dev.reeskeen.ru/club?paid=1",
+        urlReturn: "https://daryadarcy.dev.reeskeen.ru/club",
       });
       for (const name of [
         "subscription",
