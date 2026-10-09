@@ -82,7 +82,11 @@ export async function readProdamusReturnResult(
       redirect: "error",
       cache: "no-store",
       referrerPolicy: "no-referrer",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        // The validated order UUID keeps every retry in the existing quota.
+        "Idempotency-Key": token.split(".")[0].slice(-36),
+      },
       body: JSON.stringify({ token }),
       signal,
     },

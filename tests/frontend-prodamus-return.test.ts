@@ -54,7 +54,10 @@ it("reads the exact result endpoint without cookies, redirects or caching", asyn
       redirect: "error",
       cache: "no-store",
       referrerPolicy: "no-referrer",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": "00000000-0000-4000-8000-000000000001",
+      },
       body: JSON.stringify({ token }),
     }),
   );

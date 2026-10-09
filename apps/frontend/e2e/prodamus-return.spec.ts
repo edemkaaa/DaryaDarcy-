@@ -67,6 +67,9 @@ async function fixture(page: Page, member = false) {
     const request = route.request();
     expect(request.method()).toBe("POST");
     expect(request.headers().cookie).toBeUndefined();
+    expect(request.headers()["idempotency-key"]).toBe(
+      "00000000-0000-4000-8000-000000000001",
+    );
     expect(request.postDataJSON()).toEqual({ token });
     state.reads++;
     await route.fulfill({ json: state.result });

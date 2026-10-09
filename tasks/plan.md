@@ -6641,3 +6641,25 @@ cabinet/payment/mail action, database or Docker operation. Existing provider/SMT
 physical-device/dependency/rollout gates remain; deployment still requires the
 exact verified dev target and route exposure review. Old completed automation
 was not resumed. New account email/setup acceptance stays open.
+
+### Deployment gate caught a real return-request mismatch — 10 October
+
+During the explicitly authorized staging/dev rollout, isolated Linux probes
+passed after correcting probe-only expectations (restricted direct GET is 404,
+not edge 405; POST requires the existing UUID header). Tracing that requirement
+then exposed a real frontend defect: its result reader omitted Idempotency-Key.
+The briefly switched dev version was rolled back to the previous healthy
+API/web/TEST bundle and exact nginx routes before continuing; no payment, email,
+schema, database restore, provider settings or other project was changed.
+
+RED: the actual frontend reader through a real local Nest HTTP controller returns
+400, and the request-boundary test catches the missing header. GREEN: derive the
+stable UUID from the already shape-validated order reference, so repeated reads
+retain the existing quota bucket rather than allocating random keys. No backend
+auth, quota, signature or settlement change. Real HTTP test accepts twelve invalid
+proof reads without SQL/session/mail and refuses the thirteenth with 429. Browser
+fixture now asserts the required header instead of accepting every request.
+74 focused checks and 11 return-dialog browser cases, types/E2E/lint/TEST build,
+unchanged API and boundaries pass. Fresh serial full-suite: 1997 pass / 840 opt-in
+skips, 142 passing files; docs/format/diff checks pass. Final rollout evidence
+follows separately; local/fixture checks are not provider/SMTP acceptance.
