@@ -226,7 +226,7 @@ test("video heading and static library cards stay in place while API requests fi
   ).toHaveCount(0);
   expect(await card.boundingBox()).toEqual(beforeCard);
   await tab(page, "/videos").click();
-  expect(await title.boundingBox()).toEqual(beforeVideo);
+  await expect.poll(() => title.boundingBox()).toEqual(beforeVideo);
 });
 
 test("returning to a stale tab refreshes the API without clearing its search or cached cards", async ({
