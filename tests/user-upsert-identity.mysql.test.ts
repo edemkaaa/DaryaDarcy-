@@ -17,7 +17,17 @@ describe.skipIf(!testDatabaseUrl)("identity upsert on disposable MySQL", () => {
     conn = await openTestDatabase();
     // Connection-local shadow: unique-email experiments cannot change the
     // shared fixture's indexes, rows or other suites' account data.
-    await conn.query("CREATE TEMPORARY TABLE users LIKE users");
+    // LIKE cannot read and shadow the same table name on MySQL. Reuse its
+    // actual DDL instead; this source is owned disposable fixture metadata.
+    const [ddl] = await conn.query<mysql.RowDataPacket[]>(
+      "SHOW CREATE TABLE users",
+    );
+    await conn.query(
+      String(ddl[0]["Create Table"]).replace(
+        "CREATE TABLE",
+        "CREATE TEMPORARY TABLE",
+      ),
+    );
     await conn.query(
       "ALTER TABLE users ADD UNIQUE INDEX upsert_fixture_email (email)",
     );
