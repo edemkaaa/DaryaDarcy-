@@ -1957,3 +1957,18 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] Remaining safe domain/repository scopes and existing first-email/M07c/
   provider/SMTP/device/dependency/rollout gates stay open. No frontend edit,
   pagination/optimization, actual payment, merge/push/deploy or shared-server work.
+
+### M08 article read repository — 9 October, early morning
+
+- [x] Continue locally after user-requested staging update to ae70522. Extract
+  three article reads behind unchanged facade/connection/queries/normalization;
+  public hidden/body rules and admin rights remain in their existing owners.
+- [x] Four new native SQL characterizations, three mutation RED failures;
+  original restored before extraction, executable AST unchanged. Final selected
+  105 pass (40 real SQL); default 1889 pass / 801 opt-in skips. Types/build/API/
+  boundaries/lint/format pass. Existing docs/review/evidence recorded in plan.md.
+  Exact owned tmpfs database removed after owner/no-mount/no-OOM checks; matching
+  owner inventory empty, working database untouched.
+- [ ] Remaining safe repository scopes and prior identity/M07c/provider/SMTP/
+  device/dependency/rollout gates stay open. This new slice is local only, without
+  frontend, actual payment, automatic merge/push/deploy or server acceptance.

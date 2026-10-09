@@ -21,6 +21,11 @@ import {
   deleteVideo as persistVideoDeletion,
 } from "./content/video-repository";
 import {
+  listPublishedArticles as readPublishedArticles,
+  listAllArticles as readAllArticles,
+  getArticleById as readArticleById,
+} from "./content/article-repository";
+import {
   createArticle as persistArticleCreation,
   updateArticle as persistArticleUpdate,
   deleteArticle as persistArticleDeletion,
@@ -226,8 +231,7 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
 
 // ── Feed queries ──
 
-import { posts, tags, likes, savedPosts, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, articles, Article } from "../../../packages/database/src/schema";
-import { normalizeArticleBlocks } from "../../../packages/shared/src/article-blocks";
+import { posts, tags, likes, savedPosts, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, Article } from "../../../packages/database/src/schema";
 import { desc, asc, and, sql, or, ne, gte, lte, isNotNull, isNull } from "drizzle-orm";
 
 const postDateOrder = desc(sql`COALESCE(${posts.publishedAt}, ${posts.createdAt})`);
@@ -1382,29 +1386,17 @@ export async function userOwnsShopProduct(userId: number, productId: string): Pr
 
 export async function listPublishedArticles(): Promise<Article[]> {
   const db = await getDb();
-  if (!db) return [];
-  const rows = await db
-    .select()
-    .from(articles)
-    .where(eq(articles.published, true))
-    .orderBy(asc(articles.sortOrder), desc(articles.createdAt));
-  return rows.map((row) => ({ ...row, sections: normalizeArticleBlocks(row.sections) }));
+  return readPublishedArticles(db);
 }
 
 export async function listAllArticles(): Promise<Article[]> {
   const db = await getDb();
-  if (!db) return [];
-  const rows = await db.select().from(articles).orderBy(asc(articles.sortOrder), desc(articles.createdAt));
-  return rows.map((row) => ({ ...row, sections: normalizeArticleBlocks(row.sections) }));
+  return readAllArticles(db);
 }
 
 export async function getArticleById(id: number): Promise<Article | undefined> {
   const db = await getDb();
-  if (!db) return undefined;
-  const rows = await db.select().from(articles).where(eq(articles.id, id)).limit(1);
-  const row = rows[0];
-  if (!row) return undefined;
-  return { ...row, sections: normalizeArticleBlocks(row.sections) };
+  return readArticleById(db, id);
 }
 
 export async function createArticle(data: CreateArticleInput): Promise<number> {

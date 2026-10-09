@@ -5848,3 +5848,55 @@ inventory empty. Only synthetic owned data removed, not recoverable or needed;
 working DB untouched. Evidence /tmp/daryadarcy-admin-repository-{baseline,red,
 green,sql,full,types,build,lint,contract-preview}.log plus fresh AST/API/boundary/
 docs output. Night continuation deadline remains 01:06 UTC, not extended.
+
+### M08 article read repository — 9 October, early morning
+
+Continue from clean ae70522 on feature/yookassa-test-checkout. Previous 40 commits
+were fast-forwarded to staging only on the explicit preceding user request;
+current heartbeat does not authorize another push, merge or deployment. Select
+the remaining Phase 2/M08 article read scope, not completed M06/M07b2 or admin
+membership reads. Three existing operations move to content/article-repository.ts
+behind unchanged db.ts signatures and one lazy supplied handle. Query order,
+published filter, hidden internal/admin rows, null-client empty results and
+canonical shared block normalization remain exact. ContentReadService owns
+public visibility/body policy; adminProcedure owns administrative rights. Writes,
+transactions, schema, connection ownership and frontend stay unchanged.
+
+Four native HTTP/JWT/MySQL characterizations reuse existing owned article fixtures:
+published sort order versus public-only summary projection; hidden normalized
+internal detail versus unavailable public detail even for admins; guest club-body
+lock versus authorized detail; legacy published blocks normalized in list/detail.
+Original baseline 28 pass. Temporary removal of published filter, reversed order
+and raw block returns produce three expected assertion failures / 25 pass.
+Original runtime restored byte-for-byte before extraction. Structural AST
+comparison against HEAD confirms every executable statement after getDb remains
+identical in all three moved queries. No source-text assertion added to tests.
+
+Expanded initial run revealed only missing SELECT on disposable performance_schema
+lock tables in existing concurrency fixtures (five failures, 53 pass), not a
+runtime regression. Read stack/fixture queries, grant only metadata_locks,
+data_locks and data_lock_waits SELECT to this synthetic DB user inside this owned
+container, rerun unchanged application/tests. Final four-file GREEN 105 pass:
+40 real SQL checks, plus disclosed existing policy/maintenance doubles. Full
+default 1889 pass / 801 opt-in SQL/external skips, 137 files pass / 44 skip.
+Root/frontend/E2E types, 423.3 kB build, unchanged 73-procedure/25642-byte API,
+567-file boundaries, lint and selected formatting pass; existing docs updated.
+
+Five-axis review: domain query ownership leaves the compatibility facade required
+by existing callers; no db import cycle, new dependency, extra query, N+1, retry
+or private response field. Parameterized predicates and service policies exact.
+Legacy unpaginated scans, timestamp tie ordering and no-DB defaults intentionally
+remain; no performance or policy-fix claim. No auth/CORS/proxy/quota/frontend,
+payment/provider/cabinet/secret/mail, shared-server or remote mutation this turn.
+Primary skill/project criteria used; linked auxiliary review/security checklists
+remain absent. Identity/M07c/provider/SMTP/device/dependency/rollout gates open;
+remaining safe repository scopes may be inspected without repeating this slice.
+
+Owned existing local mysql:8.4, loopback 58569, tmpfs/no mounts, 512 MiB/one CPU;
+owner dd-article-read-repository-20261009-0346. Exact container
+c2d73d54a685a971bdac30ea212c694a48a6a584fd652ddc7828b598108330f6 checked for
+ID/owner/tmpfs/no mounts/no OOM before exact removal; matching owner inventory
+empty. Only synthetic run data removed, unrecoverable and not needed; working
+DB untouched. Logs /tmp/daryadarcy-article-repository-{baseline,red,green,sql,
+full,types,build,lint}.log plus AST/API/boundary/docs output. Deadline 01:06 UTC
+unchanged; no new authorization inferred from the earlier staging update.
