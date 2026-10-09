@@ -71,6 +71,6 @@
   }
 
   .scroll {
-    padding-bottom: 72px;
+    padding-bottom: var(--page-end-gap);
   }
 }

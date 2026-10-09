@@ -58,7 +58,7 @@
   }
 
   .scrollContent {
-    padding-bottom: 100px;
+    padding-bottom: var(--page-end-gap);
   }
 
   .heroBanner {

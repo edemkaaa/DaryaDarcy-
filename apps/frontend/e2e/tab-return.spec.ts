@@ -300,7 +300,7 @@ test("a hidden club never processes another page's paid flag and retained state 
   await tab(page, "/library").click();
   await page.getByPlaceholder("Поиск материалов...").fill("Сборник");
   await page.evaluate(() => history.pushState(null, "", "/library?paid=1"));
-  await expect(page).toHaveURL(/\/library\?paid=1$/);
+  await expect(page).toHaveURL(/\/library$/);
   expect(claims).toBe(0);
   await page.route("**/api/auth/me", (route) =>
     route.fulfill({ json: { user: null } }),

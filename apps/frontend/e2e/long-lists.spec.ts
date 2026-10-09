@@ -335,6 +335,27 @@ for (const path of ["/feed", "/club"]) {
       .toBeLessThan(2);
     expect(requests.length - requestCount).toBeLessThan(12);
     await page.setViewportSize({ width: 1440, height: 640 });
+    // A shorter viewport may not fit both the beginning and the end of a tall
+    // post. Check the reserved ending first, then scroll its text into view.
+    await expect
+      .poll(async () => {
+        await list(page).evaluate((node) => {
+          node.scrollTop = node.scrollHeight;
+        });
+        const card = await list(page)
+          .locator(".ui-collection-item")
+          .last()
+          .boundingBox();
+        const arrow = await page
+          .getByRole("button", { name: "Наверх", exact: true })
+          .boundingBox();
+        return card && arrow ? card.y + card.height - arrow.y : Infinity;
+      })
+      .toBeLessThanOrEqual(-16);
+    await list(page)
+      .getByText(/LONG_POST_360 /)
+      .last()
+      .scrollIntoViewIfNeeded();
     await expect(
       list(page)
         .getByText(/LONG_POST_360 /)

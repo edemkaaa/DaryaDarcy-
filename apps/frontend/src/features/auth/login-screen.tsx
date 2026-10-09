@@ -20,7 +20,7 @@ import {
   EMAIL_REGISTER_CONSENT_LABEL,
   EMAIL_REGISTER_CONSENT_VERSION,
 } from "@shared/consent-texts";
-import { safeNextPath } from "@/shared/navigation/paths";
+import { prepareLoginPage } from "@/shared/navigation/navigation-intent";
 import { getRequestErrorMessage } from "@/shared/api/errors";
 import { SessionStatus } from "@/domain/session/session-status";
 
@@ -56,12 +56,13 @@ export default function LoginScreen({
   const [retrySeconds, setRetrySeconds] = useState(0);
   useEffect(() => {
     mounted.current = true;
+    prepareLoginPage(next);
     setReady(true);
     return () => {
       mounted.current = false;
       request.current?.abort();
     };
-  }, []);
+  }, [next]);
   useEffect(() => {
     if (!retryAt) return;
     const update = () => {
@@ -77,7 +78,7 @@ export default function LoginScreen({
   const goNext = async (user: Api.AuthUser | null) => {
     if (!user) throw new Error("Не удалось получить профиль. Повторите вход.");
     await applySession(user);
-    router.replace(safeNextPath(next) ?? "/profile");
+    router.finishLogin();
   };
   const changeMode = (value: Mode) => {
     setMode(value);
@@ -117,7 +118,7 @@ export default function LoginScreen({
             signal.removeEventListener("abort", cancel);
           }
         });
-        if (accepted) router.replace(safeNextPath(next) ?? "/profile");
+        if (accepted) router.finishLogin();
       } else {
         const result =
           mode === "register"

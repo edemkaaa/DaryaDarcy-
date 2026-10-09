@@ -6,6 +6,36 @@ Reorganize the current Expo + Express/tRPC repository into a pnpm monorepo that 
 
 ## Current Baseline
 
+### Requested frontend corrections — 2026-10-09
+
+User requested draft-indicator correctness, Prodamus demo interface and browser
+test stabilization. Editor notice now acknowledges the captured editor snapshot,
+owner and slot; new controlled IndexedDB regressions cover both editor surfaces.
+Prodamus TEST is explicitly build-selected and separate from YooKassa TEST/live:
+one-off 790 RUB / 30 days, plain `/club` guest return/login, server-based access
+check and profile expiry without an invented recurring charge. Demo URL binding
+and mutually exclusive flags are checked; API/backend/database unchanged.
+
+Known browser failures are addressed with paused Moscow-midnight clock,
+subscription-status-scoped retry, scroll-revealed Back button and waiting for
+the actual unconfirmed-create request. Attachment pickers await the durable
+checkpoint to avoid a status-wrap layout shift during the click; four MIME/size
+retry scenarios pass three times each. Types/lint/API, 541 checks and 568-file
+boundaries pass. Normal and Prodamus TEST production builds pass with the normal
+TypeScript checker. User-authorized loopback/browser execution is now available.
+Both editor regressions RED on the old hook and each GREEN three times; other
+affected scenarios pass three times, midnight five times. Prodamus TEST guest,
+URL rejection, server-confirmed access, profile and 320/390/1440 px checks pass;
+normal and YooKassa TEST UI regressions pass. Full browser acceptance completed
+in six batches: 456 pass / 3 real-API skips, no unexpected/flaky in final reports.
+Manifest IDs match all 459 cases exactly once. The attachment chooser failure
+in batch 4 was fixed and the whole 77-case batch passed on rerun; the interrupted
+partial 90-case run is not used in the final result.
+Dockerfile restored on user request; no image-build mode selection added.
+Final results are recorded in `apps/frontend/WORK_PLAN.md`.
+Shop manager form is discussion only; legacy Expo online checkout is not that
+form. No real payment/callback, server deployment or device acceptance claimed.
+
 - `pnpm check`: passes.
 - `pnpm build`: passes.
 - `pnpm test`: 174 pass, 10 fail, 1 skipped.

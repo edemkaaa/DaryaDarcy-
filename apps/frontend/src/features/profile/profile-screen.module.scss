@@ -458,7 +458,7 @@
   }
 
   .div2 {
-    height: 100px;
+    height: var(--page-end-gap);
   }
   .opacityState {
     opacity: 0.8;

@@ -12,7 +12,7 @@ import {
   Field,
   Collection,
 } from "@/shared/ui/elements";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
@@ -97,6 +97,7 @@ export default function AdminScreen() {
     isAuthenticated,
     loading: authLoading,
     error: sessionError,
+    status: sessionStatus,
   } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -125,6 +126,9 @@ export default function AdminScreen() {
     | "seasons"
   >("posts");
   const staff = isOwner || user?.role === "moderator";
+  useEffect(() => {
+    if (sessionStatus === "guest") router.login("/admin", true);
+  }, [router, sessionStatus]);
   const viewTab = isOwner ? ownerViewTab : "reports";
   const adminActions = useConfirmedAction(staff && !showForm);
   const accessEmail = useAccessEmailResend(
@@ -1478,8 +1482,9 @@ export default function AdminScreen() {
       </Dialog>
     );
   };
-  if (sessionError) return <SessionStatus />;
-  if (authLoading) {
+  if (sessionError || sessionStatus === "logout-error")
+    return <SessionStatus />;
+  if (authLoading || sessionStatus === "guest") {
     return (
       <ScreenContainer edges={["top", "bottom", "left", "right"]}>
         <div
@@ -1502,13 +1507,15 @@ export default function AdminScreen() {
         >
           <MaterialIcons name="lock-outline" size={40} color={BROWN_LIGHT} />
           <Typography className={classes.loadingText}>
-            Нет доступа к управлению приложением
+            Недостаточно прав для управления приложением
           </Typography>
           <Action
-            onClick={() => router.push("/login?next=/admin")}
+            onClick={() => router.replace("/profile")}
             className={classes.newPostBtn}
           >
-            <Typography className={classes.submitBtnText}>Войти</Typography>
+            <Typography className={classes.submitBtnText}>
+              Вернуться в профиль
+            </Typography>
           </Action>
         </div>
       </ScreenContainer>

@@ -1,5 +1,11 @@
 :root {
   --app-max-width: 480px;
+  // Bottom tabs reserve their own height; ordinary pages need only this gap.
+  --page-end-gap: 24px;
+  --floating-controls-gap: 16px;
+  --floating-menu-height: 0px;
+  --floating-stack-height: 44px;
+  --admin-floating-stack-height: 110px;
   --paper: #fdf8f0;
   --ink: #4a3728;
   --brown: #5c4033;
@@ -11,4 +17,10 @@
   --font-italic: EBGaramond-Italic;
   --font-display: Gogol-Regular;
   --font-wordmark: Woolen-Regular;
+}
+
+@media (max-height: 480px) {
+  :root {
+    --admin-floating-stack-height: 56px;
+  }
 }

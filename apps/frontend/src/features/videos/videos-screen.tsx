@@ -14,7 +14,6 @@ import { Picture } from "@/shared/media/image";
 import { useRouter } from "@/shared/navigation/router";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { MaterialIcons } from "@/shared/ui/icons";
-import { useSafeAreaInsets } from "@/shared/ui/safe-area";
 import { displayVideoTitle } from "@/shared/media/video-title";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 
@@ -44,7 +43,6 @@ function VideosScreenInner() {
   const { stylesLayout } = getVideosScreenLayout(viewport);
 
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const {
     data: videos,
@@ -161,7 +159,7 @@ function VideosScreenInner() {
             />
           }
           contentStyle={{
-            paddingBottom: videos?.length ? insets.bottom + 80 : 0,
+            paddingBottom: videos?.length ? "var(--page-end-gap)" : 0,
           }}
           hideScrollbar
           refreshing={refreshing}

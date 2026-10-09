@@ -1,5 +1,34 @@
 # Daryadarcy Modular Monorepo
 
+## Requested frontend corrections — 2026-10-09
+
+- [x] Bind the durable draft notice to the captured editor/owner/slot; add
+  controlled IndexedDB race regressions for both editors.
+- [x] Separate Prodamus demo UI from live/YooKassa TEST: 790 RUB / 30 days,
+  one-off, guest login after plain `/club` return, server-confirmed access and
+  profile expiry; reject mismatched demo links and conflicting build flags.
+- [x] Stabilize the known browser-test causes: clock drift, ambiguous retry
+  selector, scroll-hidden Back button and premature unconfirmed-create assertion.
+  Attachment pickers await the checkpoint before clicking; four server-MIME/size
+  retry scenarios pass three times each (12/12).
+- [x] Types/lint/API (73 procedures), 541 frontend/client/contract/quiz checks,
+  and 568-file dependency boundary check.
+- [x] Normal and Prodamus TEST production builds; both editor race regressions
+  RED on the old hook, each GREEN three times. Other affected scenarios pass
+  three times, Moscow-midnight five times. Prodamus TEST browser flow and
+  320/390/1440 px layout pass; normal UI remains unchanged.
+- [x] Separate YooKassa TEST build and browser regression preserve the existing
+  result-check, canceled intent and explicit next-purchase flow.
+- [x] Full browser acceptance: 456 pass / 3 real-API skips in six checked batches;
+  all 459 manifest IDs accounted for exactly once, no unexpected/flaky in final
+  reports. Batch 4 passed 77/77 after the chooser fix; interrupted partial
+  90-case run is not used in the final result.
+  Loopback/mock-API execution authorized by user; no API/database/payment/deploy.
+  Dockerfile reverted as requested; no image-build mode selection added.
+- [ ] Shop 4.12: agree manager request form and server acceptance/outbox contract.
+  Legacy Expo had online Prodamus checkout, no manager request form. No shop edit.
+  Details and remaining acceptance: `apps/frontend/WORK_PLAN.md`.
+
 ## Prodamus sandbox connection — 2026-10-08
 
 - [x] Inspect supplied test cabinet and generate/open a synthetic demo invoice.
@@ -1464,9 +1493,10 @@ path. No key disclosed, callback changed, payment made or service deployed here.
 - [x] Завершить общий прогон девяти browser-spec: 168/168 pass, типы и lint
       перепроверены после последних правок тестов. Объединённая версия проверена
       для запрошенного обычного push в Git staging; выкладка на сервер не входит.
-- [ ] Уточнить индикатор сохранения черновика: прежний checkpoint может показать
-      «сохранён» до записи последней правки. Проверка восстановления не исправляет
-      этот UI-нюанс. Настоящие API/SQL/provider/device gates остаются открыты.
+- [x] Уточнить индикатор сохранения черновика: исправлено 9 октября, checkpoint
+      подтверждает только записанный снимок. Оба управляемых browser-теста
+      воспроизводят ошибку до исправления и проходят после него. Настоящие
+      API/SQL/provider/device gates остаются открыты.
 
 ### 2026-10-08 — M06 обработка платежного уведомления
 

@@ -1,5 +1,5 @@
 "use client";
-import { useState, type ReactNode } from "react";
+import { Suspense, useState, type ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createAppQueryClient } from "@/shared/api/query-client";
 import { trpc, createTRPCClient } from "@/shared/api/trpc";
@@ -12,6 +12,7 @@ import { ViewportSync } from "@/shared/browser/viewport";
 import { BackgroundCheckNotice } from "@/domain/session/background-check-notice";
 import TabShell from "./tab-shell";
 import { NavigationHistory } from "@/shared/navigation/history";
+import { TouchPressGuard } from "@/shared/browser/touch-press-guard";
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createAppQueryClient);
   const [client] = useState(createTRPCClient);
@@ -19,7 +20,10 @@ export default function Providers({ children }: { children: ReactNode }) {
     <ThemeProvider>
       <trpc.Provider client={client} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          <NavigationHistory />
+          <Suspense fallback={null}>
+            <NavigationHistory />
+          </Suspense>
+          <TouchPressGuard />
           <AuthProvider>
             <ClubProvider>
               <ViewportSync />

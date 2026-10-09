@@ -227,27 +227,31 @@ test("back preserves actual app history across reload and forward, with a fallba
   await page.locator(tabsSelector).getByRole("link", { name: "Видео" }).click();
   await expect(page).toHaveURL(/\/videos$/);
   await gotoWithSession(page, "/videos"); // Reload the current entry, preserving its history state.
-  await page
-    .locator(headerSelector)
-    .getByRole("button", { name: "Вернуться назад" })
-    .click();
+  // Restored scroll positions can hide the auto-hiding header. Reveal it with
+  // the same scroll gesture a user needs before pressing its Back button.
+  const back = async () => {
+    const button = page
+      .locator(headerSelector)
+      .getByRole("button", { name: "Вернуться назад" });
+    const box = await button.boundingBox();
+    if (box && box.y < 0) {
+      const scroll = page.locator(scrollSelector).first();
+      await scroll.hover();
+      await page.mouse.wheel(0, 120);
+      await page.mouse.wheel(0, -1200);
+    }
+    await expect(button).toBeInViewport();
+    await button.click();
+  };
+  await back();
   await expect(page).toHaveURL(/\/feed$/);
   await page.goForward({ waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/videos$/);
-  await page
-    .locator(headerSelector)
-    .getByRole("button", { name: "Вернуться назад" })
-    .click();
+  await back();
   await expect(page).toHaveURL(/\/feed$/);
-  await page
-    .locator(headerSelector)
-    .getByRole("button", { name: "Вернуться назад" })
-    .click();
+  await back();
   await expect(page).toHaveURL(/\/library$/);
-  await page
-    .locator(headerSelector)
-    .getByRole("button", { name: "Вернуться назад" })
-    .click();
+  await back();
   await expect(page).toHaveURL(/\/$/);
 });
 

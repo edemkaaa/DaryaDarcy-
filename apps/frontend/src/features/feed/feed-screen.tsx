@@ -10,7 +10,14 @@ import {
 } from "@/shared/ui/elements";
 import { PostCard } from "./post-card";
 import { GridItem } from "./feed-grid-item";
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  type CSSProperties,
+} from "react";
 import { postDisplayDate } from "@/domain/post/post-date";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
@@ -193,14 +200,14 @@ export default function FeedScreen() {
   };
   const handleLike = (postId: number) => {
     if (!user) {
-      router.push("/login?next=/feed");
+      router.login("/feed");
       return;
     }
     interactions.like(postId);
   };
   const handleSave = (postId: number) => {
     if (!user) {
-      router.push("/login?next=/feed");
+      router.login("/feed");
       return;
     }
     interactions.save(postId);
@@ -489,7 +496,15 @@ export default function FeedScreen() {
     <Typography className={classes.typography}>Публикаций пока нет</Typography>
   );
   return (
-    <ScreenContainer>
+    <ScreenContainer
+      style={
+        {
+          "--floating-stack-height": isOwner
+            ? "var(--admin-floating-stack-height)"
+            : "44px",
+        } as CSSProperties
+      }
+    >
       {viewMode === "feed" ? (
         <Collection
           windowItems

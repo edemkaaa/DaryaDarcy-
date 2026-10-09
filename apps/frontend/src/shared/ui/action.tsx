@@ -44,6 +44,7 @@ export const Action = forwardRef<HTMLButtonElement, ActionProps>(
       onClick,
       onPointerDown,
       onPointerUp,
+      onPointerMove,
       onPointerCancel,
       onMouseEnter,
       onMouseLeave,
@@ -56,6 +57,7 @@ export const Action = forwardRef<HTMLButtonElement, ActionProps>(
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null),
       held = useRef(false);
     const baseOpacity = useRef(1);
+    const touchStart = useRef<{ x: number; y: number } | null>(null);
     const cancel = () => {
       setPressed(false);
       if (timer.current) clearTimeout(timer.current);
@@ -97,14 +99,18 @@ export const Action = forwardRef<HTMLButtonElement, ActionProps>(
         }}
         onClick={(e) => {
           if (onClick) e.stopPropagation();
-          if (!held.current) onClick?.(e);
+          if (!held.current || !e.detail) onClick?.(e);
           held.current = false;
         }}
         onPointerDown={(e) => {
           baseOpacity.current = Number(
             getComputedStyle(e.currentTarget).opacity,
           );
-          setPressed(true);
+          // Touch taps retain the action, but never dim/scale a card while the
+          // browser is still deciding whether this is a scrolling gesture.
+          setPressed(e.pointerType !== "touch");
+          touchStart.current =
+            e.pointerType === "touch" ? { x: e.clientX, y: e.clientY } : null;
           held.current = false;
           if (onHold)
             timer.current = setTimeout(() => {
@@ -113,12 +119,26 @@ export const Action = forwardRef<HTMLButtonElement, ActionProps>(
             }, holdDelay);
           onPointerDown?.(e);
         }}
+        onPointerMove={(e) => {
+          const start = touchStart.current;
+          if (
+            start &&
+            Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10
+          ) {
+            cancel();
+            held.current = true;
+          }
+          onPointerMove?.(e);
+        }}
         onPointerUp={(e) => {
           cancel();
+          touchStart.current = null;
           onPointerUp?.(e);
         }}
         onPointerCancel={(e) => {
           cancel();
+          touchStart.current = null;
+          held.current = true;
           onPointerCancel?.(e);
         }}
         onMouseEnter={(e) => {

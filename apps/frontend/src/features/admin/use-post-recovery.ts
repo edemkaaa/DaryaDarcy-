@@ -37,7 +37,12 @@ export function usePostRecovery({
     "loading" | "offered" | "ready" | "error"
   >("loading");
   const [error, setError] = useState<string | null>(null);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [savedCheckpoint, setSavedCheckpoint] = useState<{
+    editor: PostEditorSnapshot;
+    ownerId: number;
+    slot: string;
+    savedAt: number;
+  } | null>(null);
   const [record, setRecord] = useState<PostRecoveryRecord | null>(null);
   const [saveState, setSaveState] = useState<PostSaveSnapshot | null>(null);
   const loaded = useRef(false);
@@ -61,7 +66,7 @@ export function usePostRecovery({
     setError(null);
     setRecord(null);
     setSaveState(null);
-    setSavedAt(null);
+    setSavedCheckpoint(null);
     void current.journal
       .load()
       .then((stored) => {
@@ -100,7 +105,14 @@ export function usePostRecovery({
           snapshot,
         );
         if (current.alive) {
-          setSavedAt(Date.now());
+          // A completed write acknowledges its captured editor, not a newer
+          // version typed while IndexedDB was still committing that write.
+          setSavedCheckpoint({
+            editor: draft,
+            ownerId,
+            slot,
+            savedAt: Date.now(),
+          });
           setSaveState(snapshot);
           setError(null);
         }
@@ -116,13 +128,12 @@ export function usePostRecovery({
         throw cause;
       }
     },
-    [coordinator, ownerId],
+    [coordinator, ownerId, slot],
   );
 
   useEffect(() => {
     if (!active || status !== "ready") return;
     coordinator.current.setCheckpoint(checkpoint);
-    setSavedAt(null);
     const timer = setTimeout(() => {
       void checkpoint().catch(() => {});
     }, 250);
@@ -144,7 +155,12 @@ export function usePostRecovery({
     coordinator.current.restore(record.save);
     latest.current.onRestore(record.editor);
     setSaveState(record.save);
-    setSavedAt(record.updatedAt);
+    setSavedCheckpoint({
+      editor: record.editor,
+      ownerId,
+      slot,
+      savedAt: record.updatedAt,
+    });
     setRecord(null);
     setStatus("ready");
   };
@@ -162,7 +178,13 @@ export function usePostRecovery({
   return {
     status,
     error,
-    savedAt,
+    savedAt:
+      active &&
+      savedCheckpoint?.editor === editor &&
+      savedCheckpoint.ownerId === ownerId &&
+      savedCheckpoint.slot === slot
+        ? savedCheckpoint.savedAt
+        : null,
     record,
     saveState,
     blocked:

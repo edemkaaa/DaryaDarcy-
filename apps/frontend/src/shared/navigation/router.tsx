@@ -5,6 +5,12 @@ import NextLink from "next/link";
 import { hasAppHistory } from "./history";
 import { parentRoute } from "./parent-route";
 import { useScreenActive } from "./screen-activity";
+import {
+  consumeLoginReturn,
+  rememberClubNavigation,
+  rememberLoginReturn,
+  type LoginDestination,
+} from "./navigation-intent";
 type Destination =
   | string
   | {
@@ -34,6 +40,20 @@ export function useRouter() {
     () => ({
       push: (to: Destination) => next.push(publicPath(to)),
       replace: (to: Destination) => next.replace(publicPath(to)),
+      login: (returnTo: string | LoginDestination = path, replace = false) => {
+        rememberLoginReturn(returnTo);
+        if (replace) next.replace("/login");
+        else next.push("/login");
+      },
+      finishLogin: () => {
+        const destination = consumeLoginReturn();
+        if (destination.club) rememberClubNavigation(destination.club);
+        next.replace(destination.pathname);
+      },
+      clubCheckout: () => {
+        rememberClubNavigation({ checkout: true, paymentReturn: false });
+        next.push("/club");
+      },
       back: () =>
         hasAppHistory() ? next.back() : next.replace(parentRoute(path)),
       canGoBack: hasAppHistory,

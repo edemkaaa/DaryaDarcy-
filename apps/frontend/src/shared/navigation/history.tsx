@@ -1,5 +1,10 @@
 "use client";
 import { useEffect } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import {
+  clearOtherPageIntents,
+  navigationIntentEvent,
+} from "./navigation-intent";
 
 const entryIndex = "__darcyEntryIndex";
 
@@ -13,6 +18,9 @@ export function hasAppHistory() {
  * history.length also counts external pages and the initial blank tab.
  */
 export function NavigationHistory() {
+  const path = usePathname();
+  const params = useSearchParams().toString();
+  useEffect(clearOtherPageIntents, [path, params]);
   useEffect(() => {
     const history = window.history;
     const pushState = history.pushState;
@@ -26,6 +34,8 @@ export function NavigationHistory() {
         title,
         url,
       );
+      clearOtherPageIntents();
+      window.dispatchEvent(new Event(navigationIntentEvent));
     };
     const replace: History["replaceState"] = function (state, title, url) {
       replaceState.call(

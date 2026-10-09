@@ -67,3 +67,21 @@ it("explicit TEST build flag selects result and session-gated purchase form with
     vi.unstubAllGlobals();
   }
 });
+
+it("Prodamus demo uses the existing club screen rather than YooKassa reconciliation", () => {
+  vi.stubEnv("NEXT_PUBLIC_CLUB_TEST_CHECKOUT", "false");
+  vi.stubEnv("NEXT_PUBLIC_PRODAMUS_TEST_ENABLED", "true");
+  expect(render()).toBe("<button>Legacy purchase</button>");
+});
+
+it.each(["true", "TRUE", "1"])(
+  "conflicting or invalid Prodamus flag %s blocks purchase",
+  (flag) => {
+    vi.stubEnv("NEXT_PUBLIC_CLUB_TEST_CHECKOUT", "true");
+    vi.stubEnv("NEXT_PUBLIC_PRODAMUS_TEST_ENABLED", flag);
+    const markup = render();
+    expect(markup).toContain("Оплата временно недоступна");
+    expect(markup).not.toContain("Legacy purchase");
+    expect(markup).not.toContain("Новая тестовая покупка");
+  },
+);

@@ -608,11 +608,11 @@ test("a guest's club scroll survives a failed background check and retry", async
     offline ? route.abort("failed") : route.fulfill({ json: { user: null } }),
   );
   await returnToWindow(page, "focus");
-  await expect(page.getByRole("status").filter({
-    hasText: "Не удалось обновить сессию",
-  })).toContainText(
-    "Не удалось обновить сессию",
-  );
+  await expect(
+    page.getByRole("status").filter({
+      hasText: "Не удалось обновить сессию",
+    }),
+  ).toContainText("Не удалось обновить сессию");
   await screen.expectPreserved();
   offline = false;
   await page.getByRole("button", { name: "Повторить", exact: true }).click();
@@ -693,7 +693,11 @@ for (const problem of ["network", "503"]) {
     await expect(tab).toHaveAttribute("aria-pressed", "true");
     await screen.expectPreserved();
     fail = false;
-    await page.getByRole("button", { name: "Повторить", exact: true }).click();
+    await page
+      .getByRole("status")
+      .filter({ hasText: "Не удалось обновить подписку" })
+      .getByRole("button", { name: "Повторить", exact: true })
+      .click();
     await expect(
       page.getByText("Не удалось обновить подписку", { exact: false }),
     ).toHaveCount(0);

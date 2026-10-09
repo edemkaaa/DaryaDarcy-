@@ -15,7 +15,7 @@
   }
 
   .scrollAreacontent {
-    padding-bottom: 80px;
+    padding-bottom: var(--page-end-gap);
   }
 
   .div2 {
@@ -120,7 +120,7 @@
     color: var(--paper);
   }
 
-  .managerOrderLink:active {
+  :global(:root:not([data-touch-press])) .managerOrderLink:active {
     transform: scale(0.97);
     opacity: 0.68;
   }

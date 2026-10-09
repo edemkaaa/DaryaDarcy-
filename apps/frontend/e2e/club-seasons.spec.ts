@@ -95,7 +95,9 @@ for (const season of ["winter", "spring", "summer", "autumn"] as const) {
 test("Moscow midnight refreshes the server season even in a Los Angeles browser", async ({
   page,
 }) => {
-  await page.clock.install({ time: new Date("2026-11-19T20:59:58Z") });
+  // Load with running timers: pausing before hydration also freezes tRPC's
+  // batch dispatch. Install earlier so pauseAt cannot target the past.
+  await page.clock.install({ time: new Date("2026-11-19T12:00:00Z") });
   await clubApi(page);
   let season: Season = "autumn";
   let reads = 0;
@@ -105,9 +107,17 @@ test("Moscow midnight refreshes the server season even in a Los Angeles browser"
   });
   await gotoWithSession(page, "/club");
   await expect(theme(page)).toHaveAttribute("data-club-season", "autumn");
+  await page.clock.pauseAt(new Date("2026-11-19T20:59:58Z"));
   const before = reads;
   season = "winter";
+  const refreshed = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === "/api/launch-config",
+  );
   await page.clock.fastForward(2100);
+  await refreshed;
+  // Let the response's React Query notifications render after the controlled
+  // midnight crossing; the fixture has already switched to winter.
+  await page.clock.resume();
   await expect(theme(page)).toHaveAttribute("data-club-season", "winter");
   expect(reads).toBeGreaterThan(before);
 });
@@ -548,7 +558,7 @@ for (const role of ["user", "moderator"]) {
       page.getByText(
         role === "moderator"
           ? "Модерация"
-          : "Нет доступа к управлению приложением",
+          : "Недостаточно прав для управления приложением",
         { exact: true },
       ),
     ).toBeVisible();
@@ -590,9 +600,7 @@ test("revoking a session during settings save prevents a late success and closes
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
   await expect(form(page)).toHaveCount(0);
   release();
-  await expect(
-    page.getByText("Нет доступа к управлению приложением", { exact: true }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/login$/);
   await expect(
     page.getByText("Настройки сезонов сохранены.", { exact: true }),
   ).toHaveCount(0);

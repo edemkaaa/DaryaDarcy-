@@ -12,6 +12,12 @@
       sans-serif;
     color: #000;
   }
+  a,
+  button,
+  [role="button"],
+  .ui-clickable-card {
+    -webkit-tap-highlight-color: transparent;
+  }
   .ui-stack,
   .ui-action {
     position: relative;
@@ -50,7 +56,6 @@
     text-decoration: none;
     cursor: pointer;
     touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
   }
   .ui-action:disabled {
     cursor: default;
@@ -220,10 +225,10 @@
   .ui-navigation-card > * {
     transition: transform 120ms ease-out;
   }
-  .ui-navigation-card:active > * {
+  :root:not([data-touch-press]) .ui-navigation-card:active > * {
     transform: scale(0.98);
   }
-  .ui-navigation-card:active {
+  :root:not([data-touch-press]) .ui-navigation-card:active {
     opacity: 0.85;
   }
   @media (prefers-reduced-motion: reduce) {

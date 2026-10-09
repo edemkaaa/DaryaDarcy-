@@ -32,7 +32,7 @@
   .tab[aria-current] {
     color: var(--brown);
   }
-  .tab:active,
+  :global(:root:not([data-touch-press])) .tab:active,
   .tab:has([aria-busy="true"]) {
     color: var(--brown);
   }

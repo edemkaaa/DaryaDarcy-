@@ -1,6 +1,7 @@
 "use client";
 import classes from "./profile-screen.module.scss";
 import { useSubscriptionCancellation } from "./use-subscription-cancellation";
+import { getClubPaymentMode } from "@/features/club/payment-mode";
 import {
   Action,
   Typography,
@@ -77,6 +78,7 @@ interface CropperImage {
   height: number;
 }
 export default function ProfileScreen() {
+  const prodamusTest = getClubPaymentMode() === "prodamus-test";
   const capabilities = useCapabilities();
   const router = useRouter();
   const {
@@ -326,7 +328,7 @@ export default function ProfileScreen() {
                 подписка и профиль.
               </Typography>
               <Action
-                onClick={() => router.push("/login?next=/profile")}
+                onClick={() => router.login("/profile")}
                 className={({ pressed }) =>
                   [
                     classes.action2,
@@ -839,13 +841,15 @@ export default function ProfileScreen() {
                       ? expiresAt
                         ? `Профиль владелицы клуба. Доступ открыт до ${formatRuDate(expiresAt)}`
                         : "Профиль владелицы клуба, доступ без оплаты"
-                      : cancelAtPeriodEnd && expiresAt
-                        ? `Автосписание отключено. Доступ до ${formatRuDate(expiresAt)}`
-                        : expiresAt
-                          ? `Следующее списание: ${formatRuDate(expiresAt)} · ${monthlyPrice} ₽ / месяц`
-                          : `Ежемесячная подписка ${monthlyPrice} ₽`}
+                      : prodamusTest
+                        ? `Тестовый доступ${expiresAt ? ` до ${formatRuDate(expiresAt)}` : ""}. Без автопродления.`
+                        : cancelAtPeriodEnd && expiresAt
+                          ? `Автосписание отключено. Доступ до ${formatRuDate(expiresAt)}`
+                          : expiresAt
+                            ? `Следующее списание: ${formatRuDate(expiresAt)} · ${monthlyPrice} ₽ / месяц`
+                            : `Ежемесячная подписка ${monthlyPrice} ₽`}
                   </Typography>
-                  {!isOwner && !cancelAtPeriodEnd ? (
+                  {!isOwner && !cancelAtPeriodEnd && !prodamusTest ? (
                     <Action
                       onClick={() => void cancellation.cancel()}
                       disabled={cancellation.blocked}
@@ -905,12 +909,7 @@ export default function ProfileScreen() {
                   ) : null}
                   {!isOwner ? (
                     <Action
-                      onClick={() =>
-                        router.push({
-                          pathname: "/club",
-                          params: { checkout: "1" },
-                        })
-                      }
+                      onClick={() => router.clubCheckout()}
                       className={({ pressed }) =>
                         [
                           classes.action7,
@@ -1139,7 +1138,7 @@ export default function ProfileScreen() {
                   Войдите, чтобы сохранять посты и открыть админку
                 </Typography>
                 <Action
-                  onClick={() => router.push("/login?next=/profile")}
+                  onClick={() => router.login("/profile")}
                   className={({ pressed }) =>
                     [classes.action2, pressed ? classes.opacityState18 : ""]
                       .filter(Boolean)

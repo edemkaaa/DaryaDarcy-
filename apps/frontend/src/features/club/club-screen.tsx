@@ -1,6 +1,6 @@
 "use client";
 import { useViewport } from "@/shared/browser/viewport";
-import { useSearchParams } from "next/navigation";
+import { useClubNavigation } from "@/shared/navigation/use-club-navigation";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 
 import { getClubScreenLayout } from "./club-screen.layout";
@@ -46,6 +46,7 @@ import {
 } from "./club-screen.content";
 import { getClubScreenContent } from "./club-screen.content";
 import { ClubCheckoutMode } from "./checkout-mode";
+import { getClubPaymentMode } from "./payment-mode";
 export default function ClubScreen() {
   return (
     <ClubCheckoutMode>
@@ -55,30 +56,31 @@ export default function ClubScreen() {
 }
 
 function LegacyClubScreen() {
+  const prodamusTest = getClubPaymentMode() === "prodamus-test";
   const active = useScreenActive();
-  const currentParams = useSearchParams().toString();
-  const [tabParams, setTabParams] = useState(currentParams);
-  // Other routes may also have paid/checkout flags. Keep the hidden club's
-  // view intact and only accept URL changes when this tab is active.
-  if (active && tabParams !== currentParams) setTabParams(currentParams);
-  const searchParams = new URLSearchParams(active ? currentParams : tabParams);
+  const navigation = useClubNavigation(active);
   const router = useRouter();
   const viewport = useViewport();
   const { stylesLayout } = getClubScreenLayout(viewport);
   const { SCREEN_WIDTH } = getClubScreenContent(viewport);
   const { isSubscribed, monthlyPrice, status: subscriptionStatus } = useClub();
+  const price = prodamusTest ? 790 : monthlyPrice;
+  const payLabel = prodamusTest
+    ? "Открыть тестовую оплату"
+    : `Оплатить ${price} ₽`;
   const {
     isAuthenticated,
     loading: authLoading,
     error: sessionError,
   } = useAuth();
   const [guestEmail, setGuestEmail] = useState("");
-  const forceCheckout = searchParams.get("checkout") === "1";
-  const justPaid = searchParams.get("paid") === "1";
+  const forceCheckout = navigation?.checkout === true;
+  const justPaid = navigation?.paymentReturn === true;
   const payment = useClubPayment({
     active,
-    returnKey: justPaid ? searchParams.toString() : null,
+    returnKey: justPaid ? navigation.key : null,
     guestEmail,
+    prodamusTest,
   });
   const payError = payment.payError;
   const [, setActiveLetterIndex] = useState(0);
@@ -112,6 +114,26 @@ function LegacyClubScreen() {
           className={classes.background}
         >
           <ScrollArea hideScrollbar>
+            {prodamusTest ? (
+              <section
+                aria-label="Тестовая оплата Prodamus"
+                className={classes.testNotice}
+              >
+                <Typography className={classes.testTitle}>
+                  Тестовая оплата Prodamus
+                </Typography>
+                <Typography className={classes.testDescription}>
+                  Демо-платёж 790 ₽ за 30 дней доступа, без автопродления.
+                  Возвращение на эту страницу не подтверждает оплату.
+                </Typography>
+                <Typography className={classes.testDescription}>
+                  После тестовой оплаты{" "}
+                  {isAuthenticated
+                    ? "нажмите «Проверить доступ»."
+                    : "войдите с указанной почтой и проверьте доступ."}
+                </Typography>
+              </section>
+            ) : null}
             {/* Banner with overlaid header */}
             <div
               className={["ui-stack ", classes.div].filter(Boolean).join(" ")}
@@ -199,7 +221,7 @@ function LegacyClubScreen() {
                   <MaterialIcons name="star" size={18} color={CREAM} />
                 )}
                 <Typography className={classes.subscribeButtonText}>
-                  Оплатить {monthlyPrice} ₽
+                  {payLabel}
                 </Typography>
               </Action>
               {payError ? (
@@ -451,25 +473,28 @@ function LegacyClubScreen() {
                   .join(" ")}
               >
                 <Typography className={classes.priceLabel}>
-                  Варианты подписки
+                  {prodamusTest ? "Тестовый доступ" : "Варианты подписки"}
                 </Typography>
-                <Typography className={classes.planName}>Ежемесячно</Typography>
+                <Typography className={classes.planName}>
+                  {prodamusTest ? "На 30 дней" : "Ежемесячно"}
+                </Typography>
                 <div
                   className={["ui-stack ", classes.priceRow]
                     .filter(Boolean)
                     .join(" ")}
                 >
                   <Typography className={classes.priceAmount}>
-                    {monthlyPrice} ₽
+                    {price} ₽
                   </Typography>
                   <Typography className={classes.pricePeriod}>
                     {" "}
-                    / месяц
+                    {prodamusTest ? "/ 30 дней" : "/ месяц"}
                   </Typography>
                 </div>
                 <Typography className={classes.priceNote}>
-                  Автосписание каждый месяц. Отменить можно в профиле в любой
-                  момент — доступ сохранится до конца оплаченного периода.
+                  {prodamusTest
+                    ? "Однократная тестовая оплата. Доступ появится после подтверждения сервером; повторно платить для проверки не нужно."
+                    : "Автосписание каждый месяц. Отменить можно в профиле в любой момент — доступ сохранится до конца оплаченного периода."}
                 </Typography>
                 {!isAuthenticated ? (
                   <Field
@@ -510,7 +535,7 @@ function LegacyClubScreen() {
                     <MaterialIcons name="star" size={18} color={CREAM} />
                   )}
                   <Typography className={classes.subscribeButtonText}>
-                    Оплатить {monthlyPrice} ₽
+                    {payLabel}
                   </Typography>
                 </Action>
                 {isAuthenticated ? (
@@ -520,7 +545,11 @@ function LegacyClubScreen() {
                     className={classes.action2}
                   >
                     <Typography className={classes.privacyLink}>
-                      {payment.checking ? "Проверяем…" : "Я уже оплатила"}
+                      {payment.checking
+                        ? "Проверяем…"
+                        : prodamusTest
+                          ? "Проверить доступ"
+                          : "Я уже оплатила"}
                     </Typography>
                   </Action>
                 ) : null}
@@ -529,9 +558,14 @@ function LegacyClubScreen() {
                     {payment.accessNotice}
                   </Typography>
                 ) : null}
-                {justPaid && !isAuthenticated ? (
+                {(justPaid || prodamusTest) && !isAuthenticated ? (
                   <Action
-                    onClick={() => router.push("/login?next=/club%3Fpaid%3D1")}
+                    onClick={() =>
+                      router.login({
+                        pathname: "/club",
+                        club: { checkout: false, paymentReturn: !prodamusTest },
+                      })
+                    }
                     className={classes.action2}
                   >
                     <Typography className={classes.privacyLink}>

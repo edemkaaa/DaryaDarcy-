@@ -27,6 +27,9 @@ for (const mode of ["full", "quick"] as const) {
       })
       .click();
     const form = page.getByRole("dialog", { name: "Редактор публикации" });
+    await expect(
+      form.getByText("Черновик сохранён на этом устройстве", { exact: true }),
+    ).toBeVisible();
     await form
       .getByPlaceholder("Текст поста… Enter — новый абзац")
       .fill("UNCONFIRMED_DRAFT");
@@ -37,7 +40,14 @@ for (const mode of ["full", "quick"] as const) {
       })
       .first();
     await submit.click();
-    await expect.poll(() => messages.length).toBe(1);
+    await expect.poll(() => creates.length).toBe(1);
+    await expect
+      .poll(() =>
+        messages.some((message) =>
+          message.includes("Результат сохранения не подтверждён"),
+        ),
+      )
+      .toBe(true);
     await form
       .getByRole("button", { name: "Закрыть редактор", exact: true })
       .click();
@@ -81,9 +91,19 @@ for (const mode of ["full", "quick"] as const) {
         })
         .click();
       const form = page.getByRole("dialog", { name: "Редактор публикации" });
+      // The visible editor remains inert until its local draft is read.
+      await expect(
+        form.getByText("Черновик сохранён на этом устройстве", { exact: true }),
+      ).toBeVisible();
       await form
         .getByPlaceholder("Текст поста… Enter — новый абзац")
         .fill("KEEP_SELECTED_MEDIA");
+      await expect(
+        form.getByPlaceholder("Текст поста… Enter — новый абзац"),
+      ).toHaveValue("KEEP_SELECTED_MEDIA");
+      await expect(
+        form.getByText("Черновик сохранён на этом устройстве", { exact: true }),
+      ).toBeVisible();
       const chooser = page.waitForEvent("filechooser");
       await form
         .getByRole("button", {

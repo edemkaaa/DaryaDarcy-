@@ -1,7 +1,7 @@
 "use client";
 import { useViewport } from "@/shared/browser/viewport";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, PointerEvent } from "react";
 import classes from "./shelf-item.module.scss";
 import { cssTransform, mergeStyles } from "@/shared/ui/css";
 import { Action } from "@/shared/ui/elements";
@@ -35,7 +35,8 @@ export function ShelfItem({
   const animatedStyle = useAnimatedStyle(() => ({
     transform: cssTransform([{ scale: scale.value }]),
   }));
-  const handlePressIn = () => {
+  const handlePressIn = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === "touch") return;
     scale.value = withTiming(0.93, { duration: 100 });
   };
   const handlePressOut = () => {
@@ -47,6 +48,8 @@ export function ShelfItem({
       {...pressableProps(onClick)}
       onPointerDown={handlePressIn}
       onPointerUp={handlePressOut}
+      onPointerCancel={handlePressOut}
+      onPointerLeave={handlePressOut}
       style={mergeStyles(style)}
       className={classes.item}
     >

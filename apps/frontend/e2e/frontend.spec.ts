@@ -251,7 +251,7 @@ test.describe("local development API", () => {
     await page.getByRole("button", { name: "Войти", exact: true }).click();
     await expect(page).toHaveURL(/\/admin$/);
     await expect(
-      page.getByRole("button", { name: "Войти", exact: true }),
+      page.getByRole("button", { name: "Вернуться в профиль", exact: true }),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: /Новый/ })).toHaveCount(0);
   });

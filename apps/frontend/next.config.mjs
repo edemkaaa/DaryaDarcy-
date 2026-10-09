@@ -2,6 +2,14 @@ const target = process.env.API_PROXY_TARGET?.replace(/\/$/, "");
 
 export default {
   reactStrictMode: true,
+  // Freeze even absent flags so server rendering and browser code agree, and
+  // changing runtime env cannot opt a previously built app into TEST.
+  env: {
+    NEXT_PUBLIC_CLUB_TEST_CHECKOUT:
+      process.env.NEXT_PUBLIC_CLUB_TEST_CHECKOUT ?? "false",
+    NEXT_PUBLIC_PRODAMUS_TEST_ENABLED:
+      process.env.NEXT_PUBLIC_PRODAMUS_TEST_ENABLED ?? "false",
+  },
   devIndicators: false,
   allowedDevOrigins: ["127.0.0.1"],
   images: {

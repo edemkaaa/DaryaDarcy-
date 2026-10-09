@@ -15,6 +15,7 @@ import { trpc } from "@/shared/api/trpc";
 import { OperationScope } from "@/shared/browser/operation-scope";
 import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { requirePaymentUrl } from "@/shared/navigation/external-url";
+import { requireProdamusTestUrl } from "./payment-mode";
 
 const uncertainCheckout =
   "Создание ссылки не подтверждено. Если вы уже оплатили, не платите повторно: проверьте доступ или обратитесь в поддержку.";
@@ -43,11 +44,17 @@ export function useClubPayment({
   active,
   returnKey,
   guestEmail,
+  prodamusTest = false,
 }: {
   active: boolean;
   returnKey: string | null;
   guestEmail: string;
+  prodamusTest?: boolean;
 }) {
+  const retryLabel = prodamusTest ? "Проверить доступ" : "Я уже оплатила";
+  const pendingNotice = prodamusTest
+    ? "Тестовая оплата пока не подтверждена. Подождите немного и нажмите «Проверить доступ». Повторно платить не нужно."
+    : pendingAccess;
   const { user, isAuthenticated, loading, error, refreshError } = useAuth();
   const { status: subscriptionStatus } = useClub();
   const utils = trpc.useUtils();
@@ -73,10 +80,10 @@ export function useClubPayment({
       if (unknownCheckout.current) setPayError(uncertainCheckout);
       if (checking.current)
         setAccessNotice(
-          "Проверка приостановлена. Нажмите «Я уже оплатила», чтобы проверить доступ.",
+          `Проверка приостановлена. Нажмите «${retryLabel}», чтобы проверить доступ.`,
         );
     }
-  }, [active]);
+  }, [active, retryLabel]);
   const ready = active && !loading && !error && !refreshError;
   const begin = (name: string) => {
     if (!ready) return null;
@@ -128,6 +135,7 @@ export function useClubPayment({
       let url: string;
       try {
         url = requirePaymentUrl(result?.url);
+        if (prodamusTest) url = requireProdamusTestUrl(url);
       } catch {
         throw new ApiError(
           "Не удалось открыть оплату: получен некорректный адрес.",
@@ -161,7 +169,11 @@ export function useClubPayment({
     if (!task) return;
     checking.current = true;
     setPayError(null);
-    setAccessNotice(checkingAccess);
+    setAccessNotice(
+      prodamusTest
+        ? "Проверяем доступ… Он откроется после подтверждения тестовой оплаты сервером."
+        : checkingAccess,
+    );
     const budget = new AbortController();
     const timer = setTimeout(
       () =>
@@ -200,13 +212,13 @@ export function useClubPayment({
         }
         if (poll && attempt < 5) await wait(signal);
       }
-      setAccessNotice(pendingAccess);
+      setAccessNotice(pendingNotice);
     } catch (cause) {
       checkOperationAccessError(cause);
       if (task.isCurrent())
         setAccessNotice(
           budget.signal.aborted
-            ? pendingAccess
+            ? pendingNotice
             : `Не удалось проверить доступ. ${getRequestErrorMessage(cause)} Если вы уже оплатили, не платите повторно.`,
         );
     } finally {
@@ -243,7 +255,9 @@ export function useClubPayment({
     payError,
     accessNotice:
       returnKey && !isAuthenticated
-        ? "После оплаты проверьте почту: в письме будет инструкция для входа. Войдите, чтобы проверить доступ к клубу."
+        ? prodamusTest
+          ? "После тестовой оплаты войдите с указанной почтой и проверьте доступ. Возврат на страницу не подтверждает оплату."
+          : "После оплаты проверьте почту: в письме будет инструкция для входа. Войдите, чтобы проверить доступ к клубу."
         : accessNotice,
   };
 }

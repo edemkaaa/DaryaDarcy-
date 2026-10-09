@@ -5,12 +5,13 @@ import { trpc } from "@/shared/api/trpc";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 import { ClubTestCheckoutResult } from "./checkout-result";
 import { useAuth } from "@/domain/session/session-context";
+import { getClubPaymentMode } from "./payment-mode";
 
 export function ClubCheckoutMode({ children }: { children: ReactNode }) {
   // Direct lookup is inlined by Next at build time. URL/storage cannot opt in.
-  const flag = process.env.NEXT_PUBLIC_CLUB_TEST_CHECKOUT;
-  if (flag === undefined || flag === "" || flag === "false") return children;
-  if (flag !== "true")
+  const mode = getClubPaymentMode();
+  if (mode === "live" || mode === "prodamus-test") return children;
+  if (mode === "unavailable")
     return (
       <ScreenContainer>
         <p role="alert">Оплата временно недоступна.</p>

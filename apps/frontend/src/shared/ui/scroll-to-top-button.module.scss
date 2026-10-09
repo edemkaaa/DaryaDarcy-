@@ -3,6 +3,7 @@
 @layer elements {
   .div {
     position: absolute;
+    bottom: calc(var(--floating-menu-height) + var(--floating-controls-gap));
     left: 20px;
     z-index: 99;
   }

@@ -304,8 +304,18 @@ test("a rejected attachment upload cannot unpublish an existing post; retry save
   await page
     .getByRole("button", { name: "Редактировать пост", exact: true })
     .click();
+  const form = page.getByRole("dialog", { name: "Редактор публикации" });
+  // fill() can target a visible textarea before its inert recovery wrapper is
+  // ready. Wait for the initial checkpoint before starting this edit.
+  await expect(
+    form.getByText("Черновик сохранён на этом устройстве", { exact: true }),
+  ).toBeVisible();
   const field = page.getByPlaceholder("Текст поста… Enter — новый абзац");
   await field.fill("EDITED_PUBLISHED_POST");
+  await expect(field).toHaveValue("EDITED_PUBLISHED_POST");
+  await expect(
+    form.getByText("Черновик сохранён на этом устройстве", { exact: true }),
+  ).toBeVisible();
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Аудио", exact: true }).click();
   await (

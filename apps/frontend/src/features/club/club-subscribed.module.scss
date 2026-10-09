@@ -110,7 +110,13 @@
     padding-left: 0;
     padding-right: 0;
     padding-top: 0;
-    padding-bottom: 110px;
+    padding-bottom: max(
+      110px,
+      calc(
+        var(--floating-menu-height) + var(--floating-controls-gap) +
+          var(--floating-stack-height) + var(--page-end-gap)
+      )
+    );
     gap: 14px;
   }
 

@@ -15,7 +15,14 @@ import {
 import { ClubPostCard } from "./club-post-card";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  type CSSProperties,
+} from "react";
 import { useAuth } from "@/domain/session/session-context";
 import AsyncStorage from "@/shared/browser/storage";
 import { Picture } from "@/shared/media/image";
@@ -109,6 +116,21 @@ export function ClubSubscribed() {
   const [viewerPhotos, setViewerPhotos] = useState<string[]>([]);
   const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
+  const clubTabsRef = useRef<HTMLDivElement>(null);
+  const [clubMenuHeight, setClubMenuHeight] = useState(86);
+  useEffect(() => {
+    const tabs = clubTabsRef.current;
+    if (!tabs) return;
+    const measure = () => {
+      const height = tabs.getBoundingClientRect().height;
+      // Retained tabs are hidden between visits; keep their measured clearance.
+      if (height > 0) setClubMenuHeight(height);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(tabs, { box: "border-box" });
+    return () => observer.disconnect();
+  }, []);
   const openPhotoViewer = (photos: string[], index: number) => {
     setViewerPhotos(photos);
     setViewerInitialIndex(index);
@@ -438,7 +460,15 @@ export function ClubSubscribed() {
       source={tartanUri}
       onImageError={() => failImage(tartanUri)}
       data-club-season={season}
-      style={{ backgroundColor: CREAM }}
+      style={
+        {
+          backgroundColor: CREAM,
+          "--floating-menu-height": `${clubMenuHeight}px`,
+          "--floating-stack-height": isOwner
+            ? "var(--admin-floating-stack-height)"
+            : "44px",
+        } as CSSProperties
+      }
       fit="cover"
       className={classes.tartanBackground}
     >
@@ -510,6 +540,7 @@ export function ClubSubscribed() {
           source={{ uri: PAPER_TEXTURE_URI }}
           fit="cover"
           className={classes.clubTabBar}
+          ref={clubTabsRef}
         >
           {CLUB_TABS.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -630,7 +661,7 @@ export function ClubSubscribed() {
         initialIndex={viewerInitialIndex}
         onClose={() => setViewerVisible(false)}
       />
-      <ScrollToTopButton scrollRef={listRef} bottom={120} />
+      <ScrollToTopButton scrollRef={listRef} />
       <AdminFAB target="club" />
     </Background>
   );

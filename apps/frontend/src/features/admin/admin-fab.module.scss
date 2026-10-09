@@ -3,11 +3,17 @@
 @layer components {
   .stack {
     position: absolute;
-    bottom: 90px;
+    bottom: calc(var(--floating-menu-height) + var(--floating-controls-gap));
     right: 20px;
     align-items: center;
     gap: 10px;
     z-index: 100;
+  }
+
+  @media (max-height: 480px) {
+    .stack {
+      flex-direction: row;
+    }
   }
 
   .fabPressed {

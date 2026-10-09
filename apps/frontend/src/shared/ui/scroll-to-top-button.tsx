@@ -7,13 +7,8 @@ import { useEffect, useState, type RefObject } from "react";
 const CREAM_BG = "#FDF8F0";
 interface ScrollToTopButtonProps {
   scrollRef: RefObject<HTMLDivElement | null>;
-  /** Distance from bottom edge (above tab bars / FAB stacks). */
-  bottom?: number;
 }
-export function ScrollToTopButton({
-  scrollRef,
-  bottom = 90,
-}: ScrollToTopButtonProps) {
+export function ScrollToTopButton({ scrollRef }: ScrollToTopButtonProps) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const scroll = scrollRef.current;
@@ -28,7 +23,6 @@ export function ScrollToTopButton({
     <Animated.div
       entering={FadeIn.duration(180)}
       exiting={FadeOut.duration(120)}
-      style={{ bottom: bottom }}
       className={classes.div}
     >
       <Action

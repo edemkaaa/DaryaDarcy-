@@ -80,7 +80,7 @@
     text-decoration: underline;
     text-decoration-color: rgb(92 64 51 / 35%);
     text-underline-offset: 4px;
-    &:hover {
+    :global(:root:not([data-touch-press])) &:hover {
       text-decoration-color: currentColor;
     }
   }
@@ -110,10 +110,10 @@
     background: transparent;
     color: var(--brown);
     cursor: pointer;
-    &:hover:not(:disabled) {
+    :global(:root:not([data-touch-press])) &:hover:not(:disabled) {
       background: rgb(139 101 75 / 10%);
     }
-    &:active:not(:disabled) {
+    :global(:root:not([data-touch-press])) &:active:not(:disabled) {
       background: rgb(139 101 75 / 18%);
     }
     &:disabled {

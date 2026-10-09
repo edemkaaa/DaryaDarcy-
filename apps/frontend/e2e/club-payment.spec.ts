@@ -185,7 +185,7 @@ for (const result of [
     await expect(page.getByRole("alert").first()).toContainText(
       "Создание ссылки не подтверждено",
     );
-    await expect(page).toHaveURL(/\/club\?checkout=1$/);
+    await expect(page).toHaveURL(/\/club$/);
     expect(state.creates).toHaveLength(1);
     expect(
       await page.evaluate(() => Reflect.get(window, "__unsafePayment")),
@@ -266,7 +266,7 @@ test("a timed-out checkout remains uncertain and enables a controlled manual ret
   );
   await expect(pay(page).first()).toBeEnabled();
   held.resolve();
-  await expect(page).toHaveURL(/\/club\?checkout=1$/);
+  await expect(page).toHaveURL(/\/club$/);
   expect(state.creates).toHaveLength(1);
 });
 
@@ -372,7 +372,7 @@ test("a guest return opens the email login path without granting access", async 
     return route.fulfill({ json: { user: state.user } });
   });
   await page.getByRole("button", { name: "Войти", exact: true }).click();
-  await expect(page).toHaveURL(/\/club\?paid=1$/);
+  await expect(page).toHaveURL(/\/club$/);
   await expect(
     page.getByRole("button", { name: "Открыть фильтры клуба" }),
   ).toBeVisible();

@@ -269,7 +269,7 @@
   .footerPaper {
     background-color: var(--paper);
     padding-top: 20px;
-    padding-bottom: 100px;
+    padding-bottom: var(--page-end-gap);
   }
 
   .footerNote {

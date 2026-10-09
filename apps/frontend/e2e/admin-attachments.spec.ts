@@ -77,6 +77,11 @@ async function open(
     .first()
     .click();
   await expect(editor(page)).toBeVisible();
+  await expect(
+    editor(page).getByText("Черновик сохранён на этом устройстве", {
+      exact: true,
+    }),
+  ).toBeVisible();
   return editor(page);
 }
 async function choose(
@@ -87,6 +92,11 @@ async function choose(
   mimeType: string,
   buffer = Buffer.from("fixture attachment"),
 ) {
+  // The checkpoint notice can wrap onto another line and move the picker
+  // between pointerdown and pointerup. Wait for this edit to be durable.
+  await expect(
+    form.getByText("Черновик сохранён на этом устройстве", { exact: true }),
+  ).toBeVisible();
   const chooser = page.waitForEvent("filechooser");
   await form.getByRole("button", { name: kind, exact: true }).click();
   await (await chooser).setFiles({ name, mimeType, buffer });

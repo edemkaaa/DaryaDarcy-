@@ -148,7 +148,13 @@
   }
 
   .listContent {
-    padding-bottom: 100px;
+    padding-bottom: max(
+      100px,
+      calc(
+        var(--floating-menu-height) + var(--floating-controls-gap) +
+          var(--floating-stack-height) + var(--page-end-gap)
+      )
+    );
   }
 
   .typography {

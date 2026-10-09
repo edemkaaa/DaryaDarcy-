@@ -649,9 +649,7 @@ test("a revoked session cannot show a late successful grant or retain admin UI",
     page.getByRole("button", { name: "Выдать клуб", exact: true }),
   ).toHaveCount(0);
   release();
-  await expect(
-    page.getByText("Нет доступа к управлению приложением", { exact: true }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/login$/);
   expect(
     messages.filter((message) => message.startsWith("Клуб продлён")),
   ).toEqual([]);

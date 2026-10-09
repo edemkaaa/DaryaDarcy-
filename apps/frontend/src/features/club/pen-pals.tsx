@@ -191,7 +191,7 @@ export function PenPals({ onClose }: PenPalsProps) {
           <Action
             onClick={() => {
               onClose();
-              router.push("/login?next=/club");
+              router.login("/club");
             }}
             className={classes.submitButton}
           >

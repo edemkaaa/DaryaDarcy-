@@ -79,14 +79,14 @@ function PostDetailScreenInner({ id }: { id: string }) {
   );
   const handleLike = () => {
     if (!user) {
-      router.push("/login?next=/feed");
+      router.login(`/post/${postId}`);
       return;
     }
     interactions.like(postId);
   };
   const handleSave = () => {
     if (!user) {
-      router.push("/login?next=/feed");
+      router.login(`/post/${postId}`);
       return;
     }
     interactions.save(postId);

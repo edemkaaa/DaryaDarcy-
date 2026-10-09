@@ -6,9 +6,10 @@ import { chromium } from "@playwright/test";
 
 // Run after an explicit local build; CHECKOUT_UI_EXPECTED_MODE=legacy checks
 // an off build. The default expectation is an explicit TEST build.
+// CHECKOUT_UI_EXPECTED_MODE=prodamus checks an explicit Prodamus TEST build.
 // Only the owned loopback Next process is started, never an API/DB/provider.
 const expectedMode = process.env.CHECKOUT_UI_EXPECTED_MODE ?? "test";
-assert.ok(["test", "legacy"].includes(expectedMode));
+assert.ok(["test", "legacy", "prodamus"].includes(expectedMode));
 let child,
   browser,
   origin,
@@ -37,6 +38,8 @@ before(async () => {
         // Runtime changes cannot switch the build's mode in either direction.
         NEXT_PUBLIC_CLUB_TEST_CHECKOUT:
           expectedMode === "test" ? "false" : "true",
+        NEXT_PUBLIC_PRODAMUS_TEST_ENABLED:
+          expectedMode === "prodamus" ? "false" : "true",
         API_PROXY_TARGET: "http://127.0.0.1:1",
       },
       stdio: ["ignore", "pipe", "pipe"],
@@ -87,16 +90,26 @@ test("real /club build respects its explicit mode and never trusts return flags"
   });
   const storageKey = "daryadarcy:club-checkout:yookassa-test:v1";
   await context.addInitScript(
-    ({ storageKey, record, origin }) => {
+    ({ storageKey, record, origin, expectedMode }) => {
       if (
         location.origin === origin &&
         localStorage.getItem(storageKey) === null
       )
         localStorage.setItem(storageKey, record);
+      if (location.origin === origin && expectedMode === "prodamus")
+        localStorage.setItem(
+          "darcy:user:101:@darcy_club_profile_completed",
+          "true",
+        );
     },
-    { storageKey, record, origin },
+    { storageKey, record, origin, expectedMode },
   );
   let result = "unknown";
+  let user = null;
+  let subscribed = false;
+  const demoUrl =
+    "https://testpage1.payform.ru/?demo_mode=1&payments_limit=1&sum=790.00&currency=rub&order_id=club-test-101-00000000-0000-4000-8000-000000000001";
+  let checkoutUrl = "https://yoomoney.ru/checkout/payments/fixture";
   const calls = [],
     errors = [];
   const page = await context.newPage();
@@ -104,7 +117,10 @@ test("real /club build respects its explicit mode and never trusts return flags"
   await page.route("**/*", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
-    if (url.href === "https://yoomoney.ru/checkout/payments/fixture")
+    if (
+      url.href === "https://yoomoney.ru/checkout/payments/fixture" ||
+      url.href === demoUrl
+    )
       return route.fulfill({
         contentType: "text/html",
         body: "<title>Synthetic checkout destination</title>",
@@ -118,7 +134,53 @@ test("real /club build respects its explicit mode and never trusts return flags"
         body: request.postData(),
       });
       if (url.pathname === "/api/auth/me")
-        return route.fulfill({ json: { user: null } });
+        return route.fulfill({ json: { user } });
+      if (expectedMode === "prodamus" && url.pathname === "/api/capabilities")
+        return route.fulfill({
+          json: {
+            smsLogin: false,
+            penPals: false,
+            shopOnlinePayment: false,
+            webPush: false,
+          },
+        });
+      if (
+        expectedMode === "prodamus" &&
+        url.pathname.startsWith("/api/trpc/") &&
+        !url.pathname.includes("club.createCheckout")
+      ) {
+        const names = url.pathname.split("/api/trpc/")[1].split(",");
+        const results = names.map((name) => ({
+          result: {
+            data: {
+              json:
+                name === "club.subscription"
+                  ? {
+                      subscribed,
+                      expiresAt: subscribed ? "2040-11-01T10:00:00Z" : null,
+                      cancelAtPeriodEnd: false,
+                      isOwner: false,
+                      monthlyPrice: "990",
+                    }
+                  : name === "club.claimPending"
+                    ? {
+                        granted: subscribed,
+                        orderId: subscribed ? "club-test-fixture" : null,
+                      }
+                    : name === "club.list" || name === "feed.listPaginated"
+                      ? { posts: [], nextCursor: null }
+                      : name === "feed.userInteractions"
+                        ? { likedIds: [], savedIds: [] }
+                        : name === "clubProfile.get" || name === "quiz.myResult"
+                          ? null
+                          : [],
+            },
+          },
+        }));
+        return route.fulfill({
+          json: url.searchParams.get("batch") === "1" ? results : results[0],
+        });
+      }
       if (url.pathname === "/api/trpc/club.reconcileCheckout")
         return route.fulfill({
           json: { result: { data: { json: { state: result } } } },
@@ -129,7 +191,7 @@ test("real /club build respects its explicit mode and never trusts return flags"
             result: {
               data: {
                 json: {
-                  url: "https://yoomoney.ru/checkout/payments/fixture",
+                  url: checkoutUrl,
                   user: null,
                 },
               },
@@ -146,6 +208,150 @@ test("real /club build respects its explicit mode and never trusts return flags"
   await page.goto(
     `${origin}/club?paid=1&payment=returned&checkout=1&order=forged`,
   );
+  if (expectedMode === "prodamus") {
+    const purchase = page.getByRole("button", {
+      name: "Открыть тестовую оплату",
+      exact: true,
+    });
+    await purchase.first().waitFor();
+    const installGuide = page.getByRole("dialog", {
+      name: "Установка приложения",
+    });
+    await installGuide.waitFor();
+    await page.keyboard.press("Escape");
+    await installGuide.waitFor({ state: "hidden" });
+    assert.equal(await purchase.count(), 2);
+    assert.equal(
+      await page
+        .getByText("в письме будет инструкция", { exact: false })
+        .count(),
+      0,
+    );
+    assert.equal(
+      await page
+        .getByText("Автосписание каждый месяц.", { exact: false })
+        .count(),
+      0,
+    );
+    assert.equal(
+      await page
+        .getByRole("button", {
+          name: "Войти для проверки доступа",
+          exact: true,
+        })
+        .count(),
+      1,
+    );
+    assert.equal(calls.filter((call) => call.path.includes("club.")).length, 0);
+    for (const width of [320, 390, 1440]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page
+        .getByRole("region", { name: "Тестовая оплата Prodamus" })
+        .waitFor();
+      const notice = await page
+        .getByRole("region", { name: "Тестовая оплата Prodamus" })
+        .boundingBox();
+      const header = await page
+        .locator('header[aria-label="Навигация профиля"]:visible')
+        .boundingBox();
+      assert.ok(notice.y >= header.y + header.height);
+      assert.equal(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        ),
+        false,
+      );
+      await page.screenshot({
+        path: `prodamus-test-${width}.png`,
+        fullPage: true,
+      });
+      const card = page
+        .getByText("Тестовый доступ", { exact: true })
+        .locator("..");
+      await card.scrollIntoViewIfNeeded();
+      assert.equal(await card.getByText("790 ₽", { exact: true }).count(), 1);
+      assert.equal(
+        await card.getByText("/ 30 дней", { exact: true }).count(),
+        1,
+      );
+      await card.screenshot({ path: `prodamus-test-card-${width}.png` });
+      await page
+        .locator("main .ui-scroll:not(.ui-scroll-horizontal):visible")
+        .first()
+        .evaluate((node) => {
+          node.scrollTop = 0;
+        });
+    }
+    await page
+      .getByLabel("Почта для чека и входа")
+      .first()
+      .fill("buyer@example.test");
+    await purchase.first().click();
+    await page.getByRole("alert").first().waitFor();
+    assert.ok(page.url().startsWith(origin)); // TEST refuses a live/provider mismatch.
+    checkoutUrl = demoUrl;
+    page.on("dialog", (dialog) => dialog.accept());
+    await purchase.first().click();
+    await page.waitForURL(demoUrl);
+    const creates = calls.filter((call) =>
+      call.path.includes("club.createCheckout"),
+    );
+    assert.equal(creates.length, 2);
+    assert.ok(creates.every((call) => call.key === undefined));
+    const input = JSON.parse(creates[1].body);
+    assert.deepEqual(input["0"] ?? input, {
+      json: { email: "buyer@example.test" },
+    });
+    await page.goto(`${origin}/club`);
+    await page
+      .getByRole("button", { name: "Войти для проверки доступа", exact: true })
+      .click();
+    await page.waitForURL(
+      (url) => url.pathname === "/login" && url.search === "",
+    );
+    user = {
+      id: 101,
+      openId: "prodamus-test-member",
+      name: "Участница",
+      email: "buyer@example.test",
+      role: "user",
+      lastSignedIn: "2026-10-01T10:00:00Z",
+    };
+    await page.goto(`${origin}/club`); // The new backend returns here without paid=1.
+    const check = page.getByRole("button", {
+      name: "Проверить доступ",
+      exact: true,
+    });
+    await check.waitFor();
+    await check.click();
+    await page
+      .getByRole("status")
+      .filter({ hasText: "Тестовая оплата пока не подтверждена" })
+      .waitFor();
+    assert.equal(
+      calls.filter((call) => call.path.includes("club.createCheckout")).length,
+      2,
+    );
+    subscribed = true;
+    await check.click();
+    await page
+      .getByRole("button", { name: "Комьюнити", exact: true })
+      .waitFor();
+    await page.goto(`${origin}/profile`);
+    await page.getByText("Тестовый доступ до", { exact: false }).waitFor();
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Отменить подписку", exact: true })
+        .count(),
+      0,
+    );
+    assert.equal(
+      await page.getByText("Следующее списание:", { exact: false }).count(),
+      0,
+    );
+    assert.equal(errors.length, 0);
+    return;
+  }
   if (expectedMode === "legacy") {
     const purchaseButtons = page.getByRole("button", { name: /^Оплатить/ });
     await purchaseButtons.first().waitFor();

@@ -191,9 +191,12 @@ for (const role of ["moderator", "user", "guest"]) {
     await gotoWithSession(page, "/admin");
     if (role === "moderator")
       await expect(page.getByText("Модерация", { exact: true })).toBeVisible();
+    else if (role === "guest") await expect(page).toHaveURL(/\/login$/);
     else
       await expect(
-        page.getByText("Нет доступа к управлению приложением", { exact: true }),
+        page.getByText("Недостаточно прав для управления приложением", {
+          exact: true,
+        }),
       ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Привязать почту", exact: true }),
