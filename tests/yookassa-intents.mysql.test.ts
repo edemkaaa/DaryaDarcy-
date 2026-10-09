@@ -33,7 +33,7 @@ describe.skipIf(!testDatabaseUrl)(
     let repo: YookassaIntentRepository;
     const input = (): IntentInput => ({
       intentKey: key,
-      userId: 779,
+      userId: 90779,
       email: "yoo@example.test",
       shopId: "123456",
       plan: "monthly",
@@ -43,6 +43,7 @@ describe.skipIf(!testDatabaseUrl)(
     });
     beforeAll(async () => {
       conn = await openTestDatabase();
+      // Dedicated fixture identity; 779 belongs to cancellation tests.
       pool = mysql.createPool({
         uri: testDatabaseUrl!,
         timezone: "Z",
@@ -51,24 +52,35 @@ describe.skipIf(!testDatabaseUrl)(
       database = drizzle({ client: pool });
       repo = new YookassaIntentRepository(database);
       await conn.query(
-        "INSERT IGNORE INTO users (id,openId,email) VALUES (779,'yookassa-test','yoo@example.test')",
+        "INSERT IGNORE INTO users (id,openId,email) VALUES (90779,'yookassa-test','yoo@example.test')",
       );
     });
     beforeEach(async () => {
       vi.useFakeTimers({ toFake: ["Date"] });
       vi.setSystemTime(new Date("2026-10-07T00:00:00Z"));
-      await conn.query("DELETE FROM billing_checkout_intents WHERE userId=779");
-      await conn.query("DELETE FROM club_payments WHERE userId=779");
-      await conn.query("UPDATE users SET blockedAt=NULL WHERE id=779");
+      await conn.query(
+        "DELETE FROM billing_checkout_intents WHERE userId=90779",
+      );
+      await conn.query("DELETE FROM club_payments WHERE userId=90779");
+      await conn.query("UPDATE users SET blockedAt=NULL WHERE id=90779");
     });
     afterAll(async () => {
       vi.useRealTimers();
+      if (conn) {
+        await conn.query(
+          "DELETE FROM billing_checkout_intents WHERE userId=90779",
+        );
+        await conn.query("DELETE FROM club_payments WHERE userId=90779");
+        await conn.query(
+          "DELETE FROM users WHERE id=90779 AND openId='yookassa-test'",
+        );
+      }
       await conn?.end();
       await pool?.end();
     });
     async function count(table: "billing_checkout_intents" | "club_payments") {
       const [rows] = await conn.query<RowDataPacket[]>(
-        `SELECT COUNT(*) AS n FROM ${table} WHERE userId=779`,
+        `SELECT COUNT(*) AS n FROM ${table} WHERE userId=90779`,
       );
       return rows[0].n;
     }
@@ -126,7 +138,7 @@ describe.skipIf(!testDatabaseUrl)(
     });
     it("blacklist rejection leaves no intent or order", async () => {
       await conn.query(
-        "UPDATE users SET blockedAt=CURRENT_TIMESTAMP WHERE id=779",
+        "UPDATE users SET blockedAt=CURRENT_TIMESTAMP WHERE id=90779",
       );
       await expect(repo.claim(input())).rejects.toMatchObject({
         code: "FORBIDDEN",
@@ -169,7 +181,7 @@ describe.skipIf(!testDatabaseUrl)(
           }),
         ).rejects.toMatchObject({ code: "CONFLICT" });
         const [rows] = await conn.query<RowDataPacket[]>(
-          "SELECT providerPaymentId FROM billing_checkout_intents WHERE userId=779",
+          "SELECT providerPaymentId FROM billing_checkout_intents WHERE userId=90779",
         );
         expect(rows[0].providerPaymentId).toBeNull();
       },
@@ -180,7 +192,7 @@ describe.skipIf(!testDatabaseUrl)(
       const recovered = await repo.claim(input());
       await repo.markUnknown(first.intent.intentKeyHash, first.leaseId!);
       const [rows] = await conn.query<RowDataPacket[]>(
-        "SELECT leaseId,state FROM billing_checkout_intents WHERE userId=779",
+        "SELECT leaseId,state FROM billing_checkout_intents WHERE userId=90779",
       );
       expect(rows[0].leaseId).toBe(recovered.leaseId);
       expect(rows[0].state).toBe("creating");

@@ -40,8 +40,20 @@ describe.skipIf(!testDatabaseUrl)(
     let override: Record<string, unknown>;
     let uncertain: boolean;
     let lookupUnavailable: boolean;
+    async function clearOrders() {
+      for (const table of [
+        "billing_checkout_intents",
+        "billing_receipts",
+        "billing_profiles",
+        "password_tokens",
+        "access_email_outbox",
+        "club_payments",
+      ])
+        await conn.query(`DELETE FROM ${table} WHERE userId=90780`);
+    }
     beforeAll(async () => {
       conn = await openTestDatabase();
+      // Dedicated fixture identity; 780 belongs to native boundary tests.
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
       vi.stubEnv("YOOKASSA_TEST_ENABLED", "true");
       vi.stubEnv("YOOKASSA_SHOP_ID", "123456");
@@ -53,7 +65,7 @@ describe.skipIf(!testDatabaseUrl)(
         Buffer.alloc(32, 7).toString("base64"),
       );
       await conn.query(
-        "INSERT IGNORE INTO users (id,openId,email) VALUES (780,'yoo-checkout','yoo-checkout@example.test')",
+        "INSERT IGNORE INTO users (id,openId,email) VALUES (90780,'yoo-checkout','yookassa-checkout-isolated@example.test')",
       );
       app = await createBackendApplication();
       await app.listen(0, "127.0.0.1");
@@ -62,16 +74,8 @@ describe.skipIf(!testDatabaseUrl)(
     beforeEach(async () => {
       vi.useFakeTimers({ toFake: ["Date"] });
       vi.setSystemTime(new Date("2026-10-07T00:00:00Z"));
-      for (const table of [
-        "billing_checkout_intents",
-        "billing_receipts",
-        "billing_profiles",
-        "password_tokens",
-        "access_email_outbox",
-        "club_payments",
-      ])
-        await conn.query(`DELETE FROM ${table} WHERE userId=780`);
-      await conn.query("UPDATE users SET blockedAt=NULL WHERE id=780");
+      await clearOrders();
+      await conn.query("UPDATE users SET blockedAt=NULL WHERE id=90780");
       creates = 0;
       lookups = 0;
       providerStatus = "pending";
@@ -129,6 +133,12 @@ describe.skipIf(!testDatabaseUrl)(
       vi.useRealTimers();
       vi.unstubAllGlobals();
       await app?.close();
+      if (conn) {
+        await clearOrders();
+        await conn.query(
+          "DELETE FROM users WHERE id=90780 AND openId='yoo-checkout'",
+        );
+      }
       await conn?.end();
       const database = await getDb();
       await (
@@ -144,7 +154,7 @@ describe.skipIf(!testDatabaseUrl)(
           ...(intentKey ? { "Idempotency-Key": intentKey } : {}),
         },
         body: JSON.stringify({
-          json: { email: "yoo-checkout@example.test", plan },
+          json: { email: "yookassa-checkout-isolated@example.test", plan },
         }),
       });
     const webhook = (objectId = id) =>
@@ -159,13 +169,13 @@ describe.skipIf(!testDatabaseUrl)(
       });
     async function state() {
       const [payments] = await conn.query<RowDataPacket[]>(
-        "SELECT status,expiresAt FROM club_payments WHERE userId=780",
+        "SELECT status,expiresAt FROM club_payments WHERE userId=90780",
       );
       const [outbox] = await conn.query<RowDataPacket[]>(
-        "SELECT COUNT(*) AS n FROM access_email_outbox WHERE userId=780",
+        "SELECT COUNT(*) AS n FROM access_email_outbox WHERE userId=90780",
       );
       const [receipts] = await conn.query<RowDataPacket[]>(
-        "SELECT COUNT(*) AS n FROM billing_receipts WHERE userId=780",
+        "SELECT COUNT(*) AS n FROM billing_receipts WHERE userId=90780",
       );
       return { payments, emails: outbox[0].n, receipts: receipts[0].n };
     }
@@ -292,11 +302,11 @@ describe.skipIf(!testDatabaseUrl)(
       uncertain = true;
       expect((await checkout()).status).toBe(503);
       const [before] = await conn.query<RowDataPacket[]>(
-        "SELECT * FROM billing_checkout_intents WHERE userId=780",
+        "SELECT * FROM billing_checkout_intents WHERE userId=90780",
       );
       expect(await reconcile()).toEqual({ state: "unknown" });
       const [after] = await conn.query<RowDataPacket[]>(
-        "SELECT * FROM billing_checkout_intents WHERE userId=780",
+        "SELECT * FROM billing_checkout_intents WHERE userId=90780",
       );
       expect(after).toEqual(before);
       expect({ creates, lookups }).toEqual({ creates: 1, lookups: 0 });
@@ -368,14 +378,14 @@ describe.skipIf(!testDatabaseUrl)(
     it("a blocked recipient cannot reconcile or receive access", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "succeeded";
-      await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=780");
+      await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=90780");
       await expect(reconcile()).rejects.toMatchObject({ code: "FORBIDDEN" });
       expect(lookups).toBe(0);
       expect((await state()).receipts).toBe(0);
     });
     it("another signed-in actor cannot use the saved return capability", async () => {
       expect((await checkout()).status).toBe(200);
-      const owner = (await getUserById(780))!;
+      const owner = (await getUserById(90780))!;
       await expect(
         app
           .get(YookassaClubService)
@@ -389,7 +399,7 @@ describe.skipIf(!testDatabaseUrl)(
     it("a changed persisted email cannot turn a return into access", async () => {
       expect((await checkout()).status).toBe(200);
       await conn.query(
-        "UPDATE users SET email='changed@example.test' WHERE id=780",
+        "UPDATE users SET email='changed@example.test' WHERE id=90780",
       );
       try {
         await expect(reconcile()).rejects.toMatchObject({
@@ -398,7 +408,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(lookups).toBe(0);
       } finally {
         await conn.query(
-          "UPDATE users SET email='yoo-checkout@example.test' WHERE id=780",
+          "UPDATE users SET email='yookassa-checkout-isolated@example.test' WHERE id=90780",
         );
       }
     });
@@ -410,7 +420,7 @@ describe.skipIf(!testDatabaseUrl)(
       async (field, value) => {
         expect((await checkout()).status).toBe(200);
         await conn.query(
-          `UPDATE billing_checkout_intents SET ${field}=? WHERE userId=780`,
+          `UPDATE billing_checkout_intents SET ${field}=? WHERE userId=90780`,
           [value],
         );
         await expect(reconcile()).rejects.toMatchObject({
@@ -542,7 +552,7 @@ describe.skipIf(!testDatabaseUrl)(
     it("a blocked recipient cannot receive access after checkout", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "succeeded";
-      await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=780");
+      await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=90780");
       expect((await webhook()).status).toBe(503);
       expect(await state()).toMatchObject({ receipts: 0, emails: 0 });
     });
@@ -611,7 +621,7 @@ describe.skipIf(!testDatabaseUrl)(
         "2027-04-05T00:00:00.000Z",
       );
       const [profiles] = await conn.query<RowDataPacket[]>(
-        "SELECT COUNT(*) n FROM billing_profiles WHERE userId=780",
+        "SELECT COUNT(*) n FROM billing_profiles WHERE userId=90780",
       );
       expect(profiles[0].n).toBe(0);
     });
@@ -620,7 +630,11 @@ describe.skipIf(!testDatabaseUrl)(
       providerStatus = "succeeded";
       expect((await webhook()).status).toBe(200);
       const send = vi.fn(async () => true);
-      const result = await requestClubCancellation((await getDb())!, 780, send);
+      const result = await requestClubCancellation(
+        (await getDb())!,
+        90780,
+        send,
+      );
       expect(result).toEqual({
         confirmed: true,
         expiresAt: new Date("2026-11-06T00:00:00Z"),
@@ -632,10 +646,10 @@ describe.skipIf(!testDatabaseUrl)(
     });
     it("a yookassa-looking order without persisted receipt and binding cannot claim renewal cancellation", async () => {
       await conn.query(
-        "INSERT INTO club_payments (userId,orderId,status,expiresAt) VALUES (780,'yk-club-fake','paid','2026-11-06 00:00:00')",
+        "INSERT INTO club_payments (userId,orderId,status,expiresAt) VALUES (90780,'yk-club-fake','paid','2026-11-06 00:00:00')",
       );
       await expect(
-        requestClubCancellation((await getDb())!, 780, async () => true),
+        requestClubCancellation((await getDb())!, 90780, async () => true),
       ).rejects.toThrow("profile");
     });
   },

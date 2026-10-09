@@ -36,7 +36,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.stubEnv("JWT_SECRET", "synthetic-admin-read-jwt-secret-32");
       await connection.query(`INSERT INTO users (id,openId,email,name,role,createdAt,passwordHash) VALUES
       (92520,'admin-read-owner',NULL,NULL,'admin','2025-01-01','synthetic-not-a-password'),
-      (92521,'admin-read-member','member@example.test','Member','user','2025-02-01','synthetic-not-a-password'),
+      (92521,'admin-read-member','admin-read-member@example.test','Member','user','2025-02-01','synthetic-not-a-password'),
       (92522,'admin-read-empty',NULL,NULL,'moderator','2025-03-01','synthetic-not-a-password')`);
       application = await createBackendApplication();
       await application.listen(0, "127.0.0.1");
@@ -101,7 +101,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(members[1]).toEqual({
         id: 92521,
-        email: "member@example.test",
+        email: "admin-read-member@example.test",
         name: "Member",
         role: "user",
         createdAt: new Date("2025-02-01T00:00:00Z"),
@@ -155,7 +155,7 @@ describe.skipIf(!testDatabaseUrl)(
         await connection.query(
           `INSERT INTO club_payments
         (userId,orderId,email,sum,status,createdAt,paidAt,expiresAt,cancelAtPeriodEnd,cancelledAt)
-        VALUES (92521,?,'member@example.test','123.45',?,?,NULL,NULL,TRUE,'2025-06-01')`,
+        VALUES (92521,?,'admin-read-member@example.test','123.45',?,?,NULL,NULL,TRUE,'2025-06-01')`,
           [
             `admin-read-history-${index}`,
             ["pending", "paid", "failed"][index % 3],
@@ -178,7 +178,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       expect(history[0]).toMatchObject({
         userId: 92521,
-        email: "member@example.test",
+        email: "admin-read-member@example.test",
         sum: "123.45",
         paidAt: null,
         expiresAt: null,
