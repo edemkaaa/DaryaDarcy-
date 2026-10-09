@@ -119,9 +119,16 @@ describe("actual read-only preflight CLI", () => {
       "migration-preflight.ts",
       "migration-policy.ts",
       "migration-history.ts",
+      "email-identity-preflight.ts",
     ]) {
       await copyFile(join(root, "tooling/scripts", name), join(scripts, name));
     }
+    const core = join(scratch, "apps/backend/src/_core");
+    await mkdir(core, { recursive: true });
+    await copyFile(
+      join(root, "apps/backend/src/_core/password.ts"),
+      join(core, "password.ts"),
+    );
     await writeFile(
       join(folder, "meta/_journal.json"),
       JSON.stringify({

@@ -5,6 +5,7 @@ import {
   inspectMigrationManifest,
 } from "./migration-policy";
 import { readMigrationHistory } from "./migration-history";
+import { readEmailIdentityIssues } from "./email-identity-preflight";
 
 async function main() {
   const args = process.argv.slice(2);
@@ -53,6 +54,8 @@ async function main() {
     databaseChecked = true;
     issues.push(...history.issues);
     pending = history.pending;
+    if (!issues.length && pending.includes("0027_user_email_identity"))
+      issues.push(...(await readEmailIdentityIssues(uri)));
   }
   console.log(
     JSON.stringify(

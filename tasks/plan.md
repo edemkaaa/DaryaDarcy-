@@ -6815,3 +6815,54 @@ adds two identity queries, no unbounded retries/new dependencies or endpoints.
 No schema/UI/subscription/password-policy/session-version modification. The new
 writer and its SQL-boundary checks are locally verified; actual constraint/race
 acceptance remains a blocker before enabling the approved binding rollout.
+
+### First email binding — native SQL and normalized uniqueness
+
+Docker recovered before an approved restart was necessary; other containers were
+not interrupted. Created only owned loopback MySQL 8.4 containers with tmpfs data
+and --rm, no persistent volumes/image pulls. Original five writer SQL cases pass;
+fixed their temporary self-shadowing DDL setup, not application data. Selected
+registration/session/settlement/Prodamus/privacy native regression: 138 pass.
+
+Two native RED failures reproduced case/space duplicate identities and a double
+winner under concurrent inserts. Migration 0027/schema now enforce normalized
+non-empty uniqueness; four native checks pass, including one concurrent winner
+and six same-identity retries. NULL/empty legacy addresses remain independent.
+No visible user column, auth/session/subscription policy or existing collation
+change. Migration was applied only in these owned fixtures, never on dev/live.
+
+Read-only preflight scans bounded pages, reuses canonical normalization/validation,
+detects duplicates under the exact index expression and emits issue codes only.
+Ten initial RED unit checks, a native negative-ID RED and malformed-email RED
+preceded GREEN. Seven native legacy/migration cases verify unchanged rows, paging
+and atomic refusal of duplicate DDL. CLI checks pending 0027 only after valid
+manifest/history; unavailable queries fail closed and hide sensitive details.
+Existing 0017/0018/0019 orphan/history gate stays open; no journal repair or bypass.
+Rollout additionally requires a write-maintenance window because the read-only
+preflight snapshot is not held until DDL, and actual server-version verification.
+
+Broad native acceptance exposed old fixed user-ID overlaps (779 cancellation vs
+YooKassa intents; 780 boundaries vs YooKassa checkout) and an admin-read address
+shared with billing fixtures. Assigned distinct test IDs/email and scoped teardown
+without relaxing any production guard. Failed iterations also left a synthetic
+checkout guest in the first disposable run; discarded only that owned tmpfs
+container and verified from a new empty fixture. Seven selected files/83 native
+checks now pass with no skips. Final full serial regression on the disposable
+MySQL: 2878 pass, zero failures, 30 opt-in skips across 192 files. Root/frontend
+types, backend/frontend builds, frontend lint, unchanged API (73 procedures/25642 bytes),
+boundaries (586 files), docs (52) and whitespace checks pass.
+
+Five-axis self-review: constraint arbitrates races without account overwrite;
+same-ID credentials/session behavior stays covered; existing index/collation and
+canonical helpers retained; inspection never repairs or returns PII; 500-row
+keyset pages, per-query timeout and bounded scan protect memory/runtime. No new
+dependencies/endpoints or frontend edits. SQL fixture corrections are separate
+test-only saves, not production payment/authorization changes. Native SQL does
+not certify external provider delivery, SMTP infrastructure or mobile acceptance.
+The final focused SQL selection was repeated after the full run: 72/72 pass.
+Stopped and removed both exact run-labelled tmpfs containers; only disposable
+test data was erased (not recoverable), no working data or other containers.
+
+First binding is still not implemented/enabled: durable purpose-specific request,
+proof/outbox, POST confirmation, retention/deletion and frontend integration remain.
+No push, deployment, real mail, provider payment or working database mutation.

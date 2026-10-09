@@ -61,6 +61,7 @@ export async function openTestDatabase() {
       "0024_identity_query_indexes",
       "0025_post_creation_requests",
       "0026_billing_checkout_intents",
+      "0027_user_email_identity",
     ]) {
       const [rows] = await conn.query<mysql.RowDataPacket[]>(
         "SELECT name FROM backend_test_migrations WHERE name=?",

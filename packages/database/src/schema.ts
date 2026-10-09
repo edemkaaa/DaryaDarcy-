@@ -1,4 +1,5 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean, unique, index } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean, unique, index, uniqueIndex } from "drizzle-orm/mysql-core";
+import { sql } from "drizzle-orm";
 import type { RichTextBlock, RichTextInline } from "../../shared/src/rich-text-types";
 import type { LaunchConfiguration } from "../../shared/src/launch-settings";
 
@@ -33,7 +34,11 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
-}, (table) => [index("users_email_lookup").on(table.email)]);
+}, (table) => [
+  index("users_email_lookup").on(table.email),
+  // NULL and empty legacy addresses do not claim an identity.
+  uniqueIndex("users_email_identity_unique").on(sql`(NULLIF(LOWER(TRIM(${table.email})), ''))`),
+]);
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;

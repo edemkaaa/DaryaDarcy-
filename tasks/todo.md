@@ -2274,9 +2274,14 @@ drafts remain local after interruption; disposable container already removed.
       separate proofs, normalized uniqueness, existing-upsert collision guard.
 - [x] Implement the identity-scoped writer prerequisite after four expected
       SQL-boundary RED failures, retaining the same-openId update contract.
-- [ ] Accept the writer on a newly owned disposable MySQL database, including
+- [x] Accept the writer on a newly owned disposable MySQL database, including
       cross-identity constraint rejection, rollback and multi-connection races.
-      Five real SQL cases prepared but unavailable; Docker restart requested.
+      Five original SQL cases pass; four normalized-identity cases now protect
+      different-connection races. Docker recovered without a restart.
+- [x] Add normalized non-empty email uniqueness with a read-only data preflight;
+      legacy duplicates/noncanonical/invalid email block rollout, never a repair.
+      Verify on owned MySQL 8.4; working DB and existing migration-history gates
+      unchanged. First binding and actual rollout remain disabled.
 - [ ] Implement verified slices and connect the existing frontend form after
       this approval; real SQL/SMTP/rollout acceptance must not be inferred.
 - [ ] Joint provider/SMTP/device/admin acceptance and deployment remain separate;

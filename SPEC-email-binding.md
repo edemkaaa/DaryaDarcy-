@@ -9,8 +9,9 @@ password, session version and subscription. Never merge accounts or replace an
 existing address. An occupied address is a conflict, not a merge instruction.
 
 The human also approved the detailed schema/migration plan below. Implementation
-has started with the identity-writer prerequisite; no migration applied, real
-mail dispatched or deployment performed. Binding remains disabled and unfinished.
+has started with the identity-writer and normalized-uniqueness prerequisites;
+migration 0027 has been exercised only in owned disposable MySQL fixtures. No
+working database migration, real mail or deployment. Binding is still unfinished.
 
 ## Scope and assumptions
 
@@ -115,7 +116,9 @@ Run from repository root with its Node 22 runtime: `pnpm check`, `pnpm build`,
 `pnpm check:docs`, `pnpm exec vitest run --no-file-parallelism` and focused tests.
 Browser: `pnpm --filter @daryadarcy/frontend test:e2e -- e2e/member-email-binding.spec.ts`.
 SQL only with a newly owned isolated disposable database and validated fixture
-URL. Docker ping currently times out; never substitute the working database.
+URL. Docker recovered before its approved restart was needed. MySQL 8.4 tests
+use a new loopback container, tmpfs storage and no persistent volume. Never
+substitute the working database. Remove only the run's validated container.
 
 Always: tests before implementation, small verified commits, validate authority
 again at writes, preserve foreign changes and existing account/payment behavior.
@@ -133,5 +136,39 @@ Four SQL-boundary RED failures preceded five GREEN checks. These tests double on
 the mysql2 transport; they do not prove MySQL constraint or concurrency behavior.
 The opt-in SQL suite shadows users in a connection-local temporary table so the
 candidate email/phone uniqueness cannot alter shared fixture indexes or rows.
-Real SQL acceptance is still open: Docker loopback ping timed out after three
-seconds. Restart permission requested separately; no restart or working DB use.
+The five native writer cases now pass on an owned disposable MySQL 8.4 database;
+the temporary-table setup needed SHOW CREATE TABLE rather than self-shadowing
+CREATE TEMPORARY TABLE users LIKE users. No Docker restart was necessary.
+
+Migration 0027 adds a functional unique key on NULLIF(LOWER(TRIM(email)), '')
+without changing the visible email field, lookup index or existing collation.
+Multiple NULL/empty addresses remain allowed. Two native RED failures first
+proved duplicate identities under case/space variants and concurrent requests;
+the constraint gives exactly one concurrent winner without changing another
+account's credentials. Six same-identity retries keep one account.
+
+Read-only migration preflight now checks email data only when 0027 is pending,
+after manifest/history validation. It reuses canonical email normalization and
+validation, scans 500 rows per page (including nonpositive legacy IDs), and fails
+closed beyond 10,000 pages or on a query error. Incompatible/duplicate data returns
+only issue codes; no raw emails or IDs are emitted and no repair is attempted.
+Native legacy tests prove rejection leaves rows unchanged and failed unique DDL
+does not silently remove duplicates. The CLI keeps the existing history gates.
+
+Rollout still requires separately reviewed real history and data inspection,
+backup, MySQL version compatibility and an identity-write maintenance window:
+preflight is a point-in-time read, not a lock held through DDL. The DDL independently
+refuses duplicates. The existing untracked 0017/0018/0019 manifest gate is unchanged;
+do not repair/rewrite those historical files to bypass it. MySQL 8.4 is verified;
+other deployment versions are not certified by these fixtures.
+
+Next slice is the separate durable binding request/proof/outbox, explicit POST
+confirmation and retention/deletion cleanup, followed by frontend integration.
+No binding route, email delivery kind or enabled frontend form exists yet.
+
+Verification checkpoint: full serial suite with disposable MySQL gives 2878
+passed, zero failed, 30 opt-in skipped across 192 files. Types, backend/frontend builds,
+lint, unchanged API/boundaries/docs checks pass. Working-server release and
+external delivery acceptance remain separate; local SQL evidence is not rollout.
+The 72-check native selection also passed again after the full run. Both owned
+tmpfs containers have been removed; no shared containers/data were changed.
