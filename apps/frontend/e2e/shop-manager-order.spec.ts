@@ -86,7 +86,10 @@ for (const product of digitalProducts) {
           /paid=1|50|1000|2000|₽/,
         );
         expect(new URL(page.url()).pathname).toBe(path);
-        expect(new URL(page.url()).searchParams.get("paid")).toBe("1");
+        // Navigation now removes untrusted legacy payment flags from app URLs.
+        await expect
+          .poll(() => new URL(page.url()).searchParams.get("paid"))
+          .toBeNull();
         await expect(
           page.getByText(
             /Заказ отправлен|Оплата получена|Файл отправим|Оплата через Prodamus|15 минут/,
