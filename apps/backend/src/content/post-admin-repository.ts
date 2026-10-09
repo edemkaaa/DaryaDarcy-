@@ -33,7 +33,7 @@ export async function getAdminPostsFiltered(
     target?: "feed" | "club" | "both";
   },
 ): Promise<Post[]> {
-  if (!db) return [];
+  if (!db) throw new Error("Database not available");
 
   let conditions = [];
   if (options?.status) conditions.push(eq(posts.status, options.status));
@@ -52,7 +52,7 @@ export async function getAdminPostsFiltered(
 }
 
 export async function getScheduledPosts(db: Database): Promise<Post[]> {
-  if (!db) return [];
+  if (!db) throw new Error("Database not available");
 
   return db
     .select()
@@ -62,22 +62,7 @@ export async function getScheduledPosts(db: Database): Promise<Post[]> {
 }
 
 export async function getPostStatistics(db: Database) {
-  if (!db) {
-    return {
-      totalPosts: 0,
-      publishedPosts: 0,
-      scheduledPosts: 0,
-      draftPosts: 0,
-      feedPosts: 0,
-      clubPosts: 0,
-      bothPosts: 0,
-      totalLikes: 0,
-      totalSaves: 0,
-      postsThisMonth: 0,
-      postsLastMonth: 0,
-      topLikedPosts: [],
-    };
-  }
+  if (!db) throw new Error("Database not available");
 
   // Get all posts
   const allPosts = await db.select().from(posts);

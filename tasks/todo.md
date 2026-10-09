@@ -2251,3 +2251,20 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] Actual new guest order, provider notification, SMTP delivery and user
       browser acceptance. Public browser check used an invalid proof only;
       no payment, email resend, cabinet change or working SQL test fixture.
+
+### Admin completion — 10 October, human request
+
+- [x] Fetch and inspect current frontend/admin changes and saved contract scope;
+      0b77270/67c9002 already integrated, no incoming remote-only commits.
+- [x] Distinguish unavailable DB from genuinely empty admin article/filtered/
+      scheduled/statistics results through native HTTP RED/GREEN and role checks.
+- [x] Types/backend build/lint/API/boundaries and self-review; 111 focused tests,
+      full serial regression 2024 pass / 840 opt-in skips. No query/auth changes.
+- [ ] Successful native SQL acceptance on an owned disposable DB: Docker server
+      diagnostic did not respond and was stopped; no working DB fixtures used.
+- [ ] Browser RED/GREEN for statistics refetch failure with cached data: show
+      an explicit error and allow recovery instead of presenting old numbers.
+- [ ] Confirm the first-email-binding identity scenario, then implement the
+      confirmed scope and connect the existing frontend form with acceptance.
+- [ ] Joint provider/SMTP/device/admin acceptance and deployment remain separate;
+      no staging push or server change in this local continuation.

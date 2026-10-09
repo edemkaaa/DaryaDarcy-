@@ -42,6 +42,20 @@ const media = {
   sortOrder: 0,
   createdAt: new Date("2026-01-01T00:00:00Z"),
 };
+const emptyStatistics = {
+  totalPosts: 0,
+  publishedPosts: 0,
+  scheduledPosts: 0,
+  draftPosts: 0,
+  feedPosts: 0,
+  clubPosts: 0,
+  bothPosts: 0,
+  totalLikes: 0,
+  totalSaves: 0,
+  postsThisMonth: 0,
+  postsLastMonth: 0,
+  topLikedPosts: [],
+};
 function postMedia(result: unknown): unknown {
   if (Array.isArray(result) && result.length === 0) return [];
   const first = Array.isArray(result)
@@ -231,6 +245,39 @@ describe("post media read integrity", () => {
           server.close((error) => (error ? reject(error) : resolve())),
         );
       }
+    },
+  );
+});
+
+describe("admin content read availability", () => {
+  it.each([
+    {
+      name: "filtered posts",
+      run: () => database.getAdminPostsFiltered(),
+      want: [],
+    },
+    {
+      name: "scheduled posts",
+      run: () => database.getScheduledPosts(),
+      want: [],
+    },
+    { name: "articles", run: () => database.listAllArticles(), want: [] },
+    {
+      name: "statistics",
+      run: () => database.getPostStatistics(),
+      want: emptyStatistics,
+    },
+  ])(
+    "$name propagates SQL failure and permits genuinely empty data after recovery",
+    async ({ run, want }) => {
+      // Only the SQL transport fails. The real facade, repositories and Drizzle
+      // must distinguish an unavailable read from a connected empty catalog.
+      transport.query.mockRejectedValue(
+        new Error("PRIVATE_ADMIN_SQL_SENTINEL"),
+      );
+      await expect(run()).rejects.toThrow();
+      transport.query.mockResolvedValue([[], []]);
+      expect(await run()).toEqual(want);
     },
   );
 });

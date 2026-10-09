@@ -209,62 +209,45 @@ describe("native admin content maintenance service boundary", () => {
       ok: true,
     });
   });
-  it("keeps content admin reads' legacy empty no-database projections", async () => {
-    expect(await client().admin.postsFiltered.query()).toEqual([]);
-    expect(await client().admin.scheduledPosts.query()).toEqual([]);
-    expect(await client().admin.stats.query()).toEqual({
-      totalPosts: 0,
-      publishedPosts: 0,
-      scheduledPosts: 0,
-      draftPosts: 0,
-      feedPosts: 0,
-      clubPosts: 0,
-      bothPosts: 0,
-      totalLikes: 0,
-      totalSaves: 0,
-      postsThisMonth: 0,
-      postsLastMonth: 0,
-      topLikedPosts: [],
+  describe.each([
+    { name: "members", read: db.listAdminMembers },
+    { name: "payments", read: db.listAdminPayments },
+    { name: "postsFiltered", read: db.getAdminPostsFiltered },
+    { name: "scheduledPosts", read: db.getScheduledPosts },
+    { name: "stats", read: db.getPostStatistics },
+    { name: "articles", read: db.listAllArticles },
+  ] as const)("admin $name read availability", ({ name, read }) => {
+    it("refuses a missing database rather than returning an empty list", async () => {
+      await expect(read()).rejects.toThrow("Database not available");
     });
-  });
 
-  describe.each(["members", "payments"] as const)(
-    "admin %s read availability",
-    (name) => {
-      it("refuses a missing database rather than returning an empty list", async () => {
-        const read =
-          name === "members" ? db.listAdminMembers : db.listAdminPayments;
-        await expect(read()).rejects.toThrow("Database not available");
+    it("returns a safe native HTTP error rather than known empty data", async () => {
+      await expect(client().admin[name].query()).rejects.toMatchObject({
+        message: "Внутренняя ошибка сервера",
+        data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
       });
+    });
 
-      it("returns a safe native HTTP error rather than known empty data", async () => {
+    it.each(["guest", "user", "moderator", "blocked-admin"] as const)(
+      "preserves the access refusal for %s before the database error",
+      async (access) => {
+        actor =
+          access === "guest"
+            ? null
+            : {
+                ...administrator,
+                role: access === "blocked-admin" ? "admin" : access,
+                blockedAt: access === "blocked-admin" ? new Date() : null,
+              };
         await expect(client().admin[name].query()).rejects.toMatchObject({
-          message: "Внутренняя ошибка сервера",
-          data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+          data: {
+            code: access === "guest" ? "UNAUTHORIZED" : "FORBIDDEN",
+            httpStatus: access === "guest" ? 401 : 403,
+          },
         });
-      });
-
-      it.each(["guest", "user", "moderator", "blocked-admin"] as const)(
-        "preserves the access refusal for %s before the database error",
-        async (access) => {
-          actor =
-            access === "guest"
-              ? null
-              : {
-                  ...administrator,
-                  role: access === "blocked-admin" ? "admin" : access,
-                  blockedAt: access === "blocked-admin" ? new Date() : null,
-                };
-          await expect(client().admin[name].query()).rejects.toMatchObject({
-            data: {
-              code: access === "guest" ? "UNAUTHORIZED" : "FORBIDDEN",
-              httpStatus: access === "guest" ? 401 : 403,
-            },
-          });
-        },
-      );
-    },
-  );
+      },
+    );
+  });
 
   describe("video metadata import", () => {
     it("returns the injected import service outcome with validated input", async () => {

@@ -24,7 +24,7 @@ export async function listPublishedArticles(db: Database): Promise<Article[]> {
 }
 
 export async function listAllArticles(db: Database): Promise<Article[]> {
-  if (!db) return [];
+  if (!db) throw new Error("Database not available");
   const rows = await db
     .select()
     .from(articles)

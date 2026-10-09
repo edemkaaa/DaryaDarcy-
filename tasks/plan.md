@@ -6698,3 +6698,48 @@ the deployed read/UI transport, not a fresh successful provider transaction or
 SMTP delivery. Existing old links lack the new proof and are not rewritten;
 do not ask for another payment solely to obtain a return link. New guest/provider/
 mail/device acceptance and prior SBP/GPB provider errors remain open.
+
+### Admin completion against stage-one scope — 10 October, human request
+
+Continue from clean staging ac7c471 on a separate local fix branch. Fresh fetch
+finds no incoming staging/frontend UI commits: SergeyM's 0b77270 and 67c9002 are
+already integrated. Use the saved contract analysis in
+docs/audits/frontend-stage-one-scope-2026-10-03.md (Appendix 1, 2.1 and 4.4/4.6/
+4.8/4.10); the original contract PDF is not in the repository. Compare current
+frontend code and WORK_PLAN, not historical audit findings treated as current.
+
+1. Read availability: filtered/scheduled posts, article list and statistics
+   currently report successful empty data without a configured database.
+   Align them with the existing admin posts/members/payments refusal. Native
+   HTTP RED/GREEN must show safe 500, unchanged 401/403 role refusals, and no
+   private diagnostic disclosure. A genuinely empty connected database must
+   remain successful; public reads, writes, schema and permissions unchanged.
+   Files: two content repositories, existing native maintenance tests, API docs.
+2. First email binding: frontend form exists but cannot save; no backend method.
+   Ask for the precise admin-only/first-binding/email-confirmation identity
+   scenario before implementing. Never merge accounts, replace an existing
+   email, grant a subscription, or change passwords/sessions implicitly.
+3. Recheck editor/media/moderation/seasons/member/payment contracts; record
+   actual evidence separately from provider, SMTP, device and rollout gates.
+
+Verification: focused native HTTP tests, unchanged API extraction, boundaries,
+types/backend build, unit regression and review. SQL only on a newly owned
+isolated disposable database; absent Docker means a recorded SQL gate, not use
+of the dev/working database. No remote push, merge, deploy, provider action or
+external email authorized by this local admin-completion request.
+
+First slice evidence: eight expected RED failures (four absent-client helpers
+and their native HTTP reads); GREEN 111 focused checks. Native auth is injected
+in these tests, not a real session/SQL acceptance claim. SQL transport tests use
+real facade/repositories/Drizzle and distinguish a failed query from a genuinely
+empty result. Full serial unit run: 142 files pass / 44 skipped, 2024 tests pass /
+840 opt-in skipped. Types, backend build, frontend lint, API (73 procedures),
+boundaries (585 files) pass. Self-review confirms only four missing-client guards
+changed: no successful query, public read, mutation, schema or permission change.
+Docker server diagnostic remained unresponsive and was stopped; no SQL fixture,
+container restart or working database access. Real SQL acceptance remains open.
+
+Next independent slice: StatsDashboard ignores query isError when cached data
+exists. Reproduce a successful initial read followed by failed stale refetch in
+the browser, then verify explicit failure and successful retry. Keep existing
+layout and permissions; do not invent zero statistics or claim provider delivery.
