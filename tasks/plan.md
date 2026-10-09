@@ -6384,3 +6384,45 @@ Only this run's synthetic data removed, working DB untouched. Evidence:
 /tmp/daryadarcy-catalog-tags-{baseline,order-red,category-red,error-red,green,full}.json
 and fresh verification outputs. Shared external DoD reference still absent;
 repository workflow and explicit verification requirements used instead.
+
+### Prodamus TEST guest return confirmation — 9 October, requested
+
+Human approved the business flow: an authenticated paid member sees a success
+dialog and club access; a guest sees email setup/login instructions after a
+verified payment; unconfirmed results stay pending. Existing email account
+creation and transactional access-email queue are reused, not reimplemented.
+Entering an email or returning with paid=1 must never authenticate or grant.
+
+Contract proposal (not implemented): a short-lived, purpose-separated HMAC
+reference for one saved TEST order in the successful-return URL fragment.
+A JSON POST result boundary reads that order's durable receipt and corresponding
+mail status, returning only state/nextAction/emailStatus. No email, IDs, password
+hash, password token or session returned; no writes, resend or provider calls.
+Invalid/expired/missing proof is unknown, not succeeded. Reuse the existing
+return-check budget rather than choosing new quotas. No schema change.
+The exact restricted-runtime/edge route and capability handling need review
+before exposure; existing auth/CORS/proxy/live settlement remain unchanged.
+
+Build order: payment-result -> return-dialog; existing identity and email queue
+are providers. First prove native HTTP/disposable SQL pending/verified/replay,
+recipient/mail binding, no-session/no-effects and tamper/expiry/refusal. Then
+add a bounded cancellable client check and existing accessible Dialog, including
+guest setup/login, authenticated access refresh, failure and old-link fallback.
+Next/React/SCSS conventions and existing tokens/components are retained.
+
+Commands: Node 22/pnpm 9.12; focused vitest tests/prodamus-test-club.mysql.test.ts
+against owned loopback backend_test only, full vitest without DB, pnpm check,
+build, build:web, lint, verify, check:api, check:boundaries and check:docs.
+Always RED/GREEN, validate proof and response, keep changes local. Ask before
+deployment/edge exposure, auth/schema/quotas or real SMTP/provider actions.
+Never trust paid=1, send plaintext passwords, issue guest sessions or test on
+working SQL. Real delivery/new payment/user browser acceptance remains open.
+
+Current blocker: first test patch failed to write (no test/source diff retained).
+Host initially reported 112 MiB available/100% capacity; later 498 MiB. Docker
+read-only inventory returned HTTP 500. No disposable container was created:
+the attempted run was never reached after the patch failure. Temporary owned
+write-check file was created and removed. Source/tests remain unchanged.
+Asked permission to clear only the rebuildable 618 MiB frontend webpack cache;
+no user data or database resources deleted. Do not start SQL/build work until
+usable disk capacity and isolated database service are available.

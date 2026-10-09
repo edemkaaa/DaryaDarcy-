@@ -2140,3 +2140,17 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout
   gates open. Local-only; no frontend/auth/payment-policy/server changes,
   merge/push/deploy or new continuation. Provider card/SBP acceptance still open.
+
+### Prodamus TEST return dialog — human-approved behavior, 9 October
+
+- [ ] Recover usable disk capacity/Docker. Test patch failed with no retained
+  source changes; cache-only cleanup permission requested, not performed.
+- [ ] Review and implement private one-order TEST result proof: pending versus
+  durable receipt, mail/setup/login status, tamper/expiry/refusal/no writes or
+  session. Native HTTP/disposable SQL RED/GREEN, existing quota preserved.
+- [ ] Add accessible return dialog and bounded cancellable check. Success only
+  after server proof; guest goes to email setup/login, signed-in member gets
+  verified access; pending/error/old links never imply payment or sent mail.
+- [ ] Full verification/self-review/local commits. No automatic deployment,
+  edge/auth/schema/quotas change, external mail, resend or payment. New user's
+  actual order/notification/mail/browser acceptance still unverified.
