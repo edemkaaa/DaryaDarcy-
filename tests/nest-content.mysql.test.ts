@@ -534,6 +534,65 @@ describe.skipIf(!testDatabaseUrl)(
         data: { code: "UNAUTHORIZED", httpStatus: 401 },
       });
     });
+    it("keeps two authenticated readers' interactions and saved bodies separate", async () => {
+      await conn.query(
+        "INSERT INTO users (id,openId,role) VALUES (8988,'native-content-other','user')",
+      );
+      try {
+        await conn.query(
+          "INSERT INTO likes (userId,postId) VALUES (8970,8975),(8988,8971)",
+        );
+        await conn.query(
+          "INSERT INTO saved_posts (userId,postId) VALUES (8970,8970),(8988,8976)",
+        );
+        const otherBearer = await sdk.createSessionToken(
+          "native-content-other",
+          {
+            sessionVersion: 0,
+          },
+        );
+        expect(await client(bearer).feed.userInteractions.query()).toEqual({
+          likedIds: [8975],
+          savedIds: [8970],
+        });
+        expect(await client(otherBearer).feed.userInteractions.query()).toEqual(
+          {
+            likedIds: [8971],
+            savedIds: [8976],
+          },
+        );
+        expect(
+          (await client(bearer).feed.savedPosts.query()).map((post) => post.id),
+        ).toEqual([8970]);
+        expect(
+          (await client(otherBearer).feed.savedPosts.query()).map(
+            (post) => post.id,
+          ),
+        ).toEqual([8976]);
+      } finally {
+        await conn.query("DELETE FROM saved_posts WHERE userId=8988");
+        await conn.query("DELETE FROM likes WHERE userId=8988");
+        await conn.query("DELETE FROM users WHERE id=8988");
+      }
+    });
+    it("preserves raw repeated reaction IDs and newest-first bookmark positions", async () => {
+      await conn.query(
+        "INSERT INTO likes (userId,postId) VALUES (8970,8975),(8970,8972),(8970,8975)",
+      );
+      await conn.query(
+        "INSERT INTO saved_posts (userId,postId,createdAt) VALUES (8970,8970,'2036-01-01'),(8970,8971,'2036-01-02'),(8970,8970,'2036-01-03'),(8970,8972,'2036-01-04')",
+      );
+      const interactions = await client(bearer).feed.userInteractions.query();
+      // Likes have no ordering contract; bookmark positions do. Private IDs are
+      // marks, not content: savedPosts still removes the draft body separately.
+      expect([...interactions.likedIds].sort((a, b) => a - b)).toEqual([
+        8972, 8975, 8975,
+      ]);
+      expect(interactions.savedIds).toEqual([8972, 8970, 8971, 8970]);
+      expect(
+        (await client(bearer).feed.savedPosts.query()).map((post) => post.id),
+      ).toEqual([8970, 8971, 8970]);
+    });
     it("lists only public article summaries, never paid sections", async () => {
       const rows = (await client().articles.list.query()).filter(
         (article) => article.id >= 8970 && article.id <= 8972,

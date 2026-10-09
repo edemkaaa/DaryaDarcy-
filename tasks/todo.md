@@ -2107,3 +2107,20 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] No pagination/performance/auth/payment-policy change or new SQL-fault
   acceptance. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/
   rollout gates open; no frontend edit, merge/push/deploy or new continuation.
+
+### M08 personal post-reaction reads — 9 October, continuation
+
+- [x] Continue clean c205581; group liked/saved-ID reads in existing
+  content/post-reactions.ts with unchanged toggle transaction. Executable AST,
+  facade signatures/client acquisition, actor predicates, duplicates, bookmark
+  order and historical no-DB/error behavior preserved; body access stays separate.
+- [x] Two new real HTTP/JWT/MySQL cases; two missing actor predicates and reverse
+  bookmark order each fail one check, restored before extraction. Eight added
+  transport-only cases cover empty/error/recovery without claiming real faults.
+- [x] Selected 153 pass (64 real SQL, 89 doubles), full 1898 pass / 818 opt-in
+  skips. Types, both builds, unchanged API/boundaries, frontend lint, selected
+  formatting, docs/diff checks and client regression 208 pass. Self-review and
+  exact owned tmpfs DB cleanup recorded in plan; working DB untouched.
+- [ ] Existing unpaginated reads and historical no-DB empty results deliberately
+  unchanged. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/
+  rollout gates open; no frontend edits, merge/push/deploy or new schedule.

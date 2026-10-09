@@ -57,7 +57,11 @@ import {
 } from "./content/post-creator";
 import type { PostCreationIntent } from "./content/post-creation-request";
 import type { PostAttachmentChanges } from "./content/post-attachments";
-import { togglePostReaction } from "./content/post-reactions";
+import {
+  togglePostReaction,
+  getUserLikedPostIds as readUserLikedPostIds,
+  getUserSavedPostIds as readUserSavedPostIds,
+} from "./content/post-reactions";
 import {
   MARKETING_PUSH_CONSENT_VERSION,
   type PushConsentStatus,
@@ -249,7 +253,7 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
 
 // ── Feed queries ──
 
-import { posts, tags, likes, savedPosts, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, Article } from "../../../packages/database/src/schema";
+import { posts, tags, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, Article } from "../../../packages/database/src/schema";
 import { desc, asc, and, sql, or, ne, gte, lte, isNotNull, isNull } from "drizzle-orm";
 
 // Get all published posts, optionally filtered by tag
@@ -303,24 +307,12 @@ export async function toggleSave(userId: number, postId: number): Promise<boolea
 
 // Get user's liked post IDs
 export async function getUserLikedPostIds(userId: number): Promise<number[]> {
-  const db = await getDb();
-  if (!db) return [];
-
-  const result = await db.select({ postId: likes.postId }).from(likes).where(eq(likes.userId, userId));
-  return result.map((r) => r.postId);
+  return readUserLikedPostIds(await getDb(), userId);
 }
 
 // Get user's saved post IDs
 export async function getUserSavedPostIds(userId: number): Promise<number[]> {
-  const db = await getDb();
-  if (!db) return [];
-
-  const result = await db
-    .select({ postId: savedPosts.postId })
-    .from(savedPosts)
-    .where(eq(savedPosts.userId, userId))
-    .orderBy(desc(savedPosts.createdAt));
-  return result.map((r) => r.postId);
+  return readUserSavedPostIds(await getDb(), userId);
 }
 
 export async function getPostsByIds(ids: number[]): Promise<(Post & { likeCount: number; media: PostMedia[] })[]> {

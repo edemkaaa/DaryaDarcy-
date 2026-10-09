@@ -6300,3 +6300,47 @@ owner/tmpfs/no mounts/no OOM and removed; matching owner inventory empty. Only
 this run's synthetic data removed, working DB untouched. JSON evidence:
 /tmp/daryadarcy-admin-catalog-{baseline,date-red,media-red,green,full}.json,
 plus fresh static/type/build/regression task outputs.
+
+### M08 personal post-reaction reads — 9 October, continuation
+
+Resume clean c205581 on feature/yookassa-test-checkout. Give getUserLikedPostIds
+and getUserSavedPostIds the existing content/post-reactions.ts owner, alongside
+the unchanged toggle transaction; no new repository layer or pool. The db.ts
+facades keep signatures and one lazy acquisition each. Canonical executable AST
+matches the original reads, and togglePostReaction is unchanged. Actor predicates,
+raw duplicate IDs, newest-first bookmarks and historical empty no-DB results
+remain; SQL failures still reject. Do not add a like ordering, pagination or
+content filter to these marks: saved-post body visibility remains in the service.
+
+Two new native HTTP/JWT/MySQL characterizations: two readers' IDs and saved bodies
+are isolated; raw duplicate/draft marks and bookmark positions remain while the
+draft body is hidden. Literal expectations, fixed distinct dates, owned second
+user cleanup in finally. Baseline 47 pass including eight transport-only cases.
+Removing each actor predicate separately and reversing bookmark order each give
+one expected RED failure; restored with empty db.ts diff before extraction.
+Transport cases keep real Drizzle/facades, verify empty/error/recovery semantics;
+they are not real SQL fault injection or authentication acceptance.
+
+Final serial six-file run 153 pass: 64 real SQL (39 native content, 22 native admin
+content, 3 persistence), 89 maintenance/transport doubles. Full 1898 pass / 818
+opt-in skips, 138 files pass / 44 skip. Root/frontend/E2E types, backend 426.1 kB
+and Next web build (28 pages), unchanged 73 procedures/25642-byte API, 572-file
+boundaries, frontend lint and selected formatting pass. Client regression 208
+pass is already included in full; docs/whitespace checks recorded with commit.
+
+Five-axis self-review: consolidate read/write ownership without a new abstraction,
+query, cycle, dependency or schema. Authenticated actor still comes from ctx.user;
+no new personal-data/logging flow. Same SQL/performance, nullable-DB behavior and
+transaction/retry semantics. Only now-unused likes/savedPosts facade imports
+removed; schema/toggle implementations retained. No auth/CORS/proxy/quota change,
+frontend edit, server/payment acceptance, merge/push/deploy or new schedule.
+Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout gates stay
+open. The user already sent the Prodamus diagnostic request; do not duplicate it.
+
+Owned mysql:8.4 dd-interaction-reads-20261009-1700; loopback 54419/backend_test,
+tmpfs/no mounts, 512 MiB/one CPU. Exact ID
+bcb55ffdabccd2eb3671e3725fb14673c41869088597adbc42690642b90b0911 rechecked for
+owner/tmpfs/no mounts/no OOM before removal; matching owner inventory empty.
+Only this run's disposable synthetic data removed, working DB untouched. JSON
+evidence: /tmp/daryadarcy-interaction-reads-{baseline,actor-red,bookmark-actor-red,
+order-red,green,full}.json and fresh static/type/build/regression outputs.
