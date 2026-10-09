@@ -136,6 +136,56 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(await client().feed.getById.query({ id: 8971 })).toBeUndefined();
     });
+    it("returns ordered audio, document and video metadata on public post detail", async () => {
+      await conn.query(
+        "INSERT INTO post_media (id,postId,type,url,filename,mimeType,fileSize,duration,sortOrder) VALUES (8977,8975,'video','https://assets.example.test/detail.mp4','detail.mp4','video/mp4',1234,17,2)",
+      );
+      try {
+        expect(await client().feed.getById.query({ id: 8975 })).toMatchObject({
+          id: 8975,
+          media: [
+            {
+              id: 8976,
+              postId: 8975,
+              type: "audio",
+              url: "https://assets.example.test/catalog.mp3",
+            },
+            {
+              id: 8975,
+              postId: 8975,
+              type: "document",
+              url: "https://assets.example.test/catalog.pdf",
+            },
+            {
+              id: 8977,
+              postId: 8975,
+              type: "video",
+              url: "https://assets.example.test/detail.mp4",
+              filename: "detail.mp4",
+              mimeType: "video/mp4",
+              fileSize: 1234,
+              duration: 17,
+              sortOrder: 2,
+            },
+          ],
+        });
+      } finally {
+        await conn.query(
+          "DELETE FROM post_media WHERE id=8977 AND postId=8975",
+        );
+      }
+    });
+    it("does not attach another post's files to an empty post in detail or batch reads", async () => {
+      expect(await client().feed.getById.query({ id: 8976 })).toMatchObject({
+        id: 8976,
+        media: [],
+      });
+      const page = await client().feed.list.query({ tag: "native-catalog" });
+      expect(page.find((row) => row.id === 8976)).toMatchObject({
+        id: 8976,
+        media: [],
+      });
+    });
     it.each([
       { limit: 1.5 },
       { limit: 12, cursor: -1 },

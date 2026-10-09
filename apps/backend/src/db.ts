@@ -11,6 +11,10 @@ import {
 import { confirmPostPublication, type PostPublication } from "./content/publication";
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
 import { deletePost as persistPostDeletion } from "./content/post-deletion";
+import {
+  attachPostMedia,
+  getPostMediaByPostId as readPostMediaByPostId,
+} from "./content/post-media-repository";
 import { postDateOrder, postListOrder } from "./content/post-order";
 import {
   getAdminPostsFiltered as readAdminPostsFiltered,
@@ -78,7 +82,6 @@ export function isOwnerAccount(user: { email?: string | null; openId?: string | 
 }
 
 let _db: MySql2Database | null = null;
-type Db = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -300,30 +303,6 @@ const postListColumns = {
   likeCount: sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.postId = posts.id)`.as("likeCount"),
   commentCount: sql<number>`(SELECT COUNT(*) FROM post_comments WHERE post_comments.postId = posts.id)`.as("commentCount"),
 };
-
-async function attachPostMedia<T extends { id: number }>(
-  db: Db,
-  page: T[],
-): Promise<(T & { media: PostMedia[] })[]> {
-  if (page.length === 0) return [];
-  try {
-    const mediaRows = await db
-      .select()
-      .from(postMedia)
-      .where(inArray(postMedia.postId, page.map((p) => p.id)))
-      .orderBy(asc(postMedia.sortOrder));
-    const byPost = new Map<number, PostMedia[]>();
-    for (const row of mediaRows) {
-      const list = byPost.get(row.postId) ?? [];
-      list.push(row);
-      byPost.set(row.postId, list);
-    }
-    return page.map((p) => ({ ...p, media: byPost.get(p.id) ?? [] }));
-  } catch (error) {
-    console.warn("[Feed] post_media query failed");
-    throw error;
-  }
-}
 
 function feedFilterConditions(options: { tagFilter?: string; search?: string }) {
   const conditions = [
@@ -908,13 +887,7 @@ export async function createPostMedia(data: InsertPostMedia): Promise<number> {
 
 export async function getPostMediaByPostId(postId: number): Promise<PostMedia[]> {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  return db
-    .select()
-    .from(postMedia)
-    .where(eq(postMedia.postId, postId))
-    .orderBy(asc(postMedia.sortOrder));
+  return readPostMediaByPostId(db, postId);
 }
 
 export async function deletePostMediaById(id: number): Promise<void> {

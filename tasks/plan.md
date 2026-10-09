@@ -5979,8 +5979,8 @@ SQL acceptance. Read-only TypeScript AST comparison confirms all three executabl
 bodies (except connection acquisition) and both canonical sort initializers match
 HEAD exactly, including the preserved month calculations and nullable guard.
 
-Final four-file serial run: 100 pass, 52 real SQL (20 native admin, 23 native
-public content, 9 content persistence) and 48 existing maintenance/double cases.
+Final four-file serial run: 100 pass, 52 real SQL (20 native admin, 29 native
+public content, 3 content persistence) and 48 existing maintenance/double cases.
 Full 1890 pass / 806 opt-in skips; 137 files pass / 44 skip. Root/frontend/E2E
 types, 424.1 kB build, byte-identical 73 procedures/25642-byte API, 569-file
 boundaries, lint, selected formatting and diff whitespace pass. Existing handoff
@@ -6003,3 +6003,51 @@ again for owner/tmpfs/no mounts/no OOM and removed; matching owner inventory emp
 Only synthetic data removed, not recoverable or needed; working DB untouched.
 Evidence: /tmp/daryadarcy-admin-post-reads-{baseline,red,extra-baseline,limit-red,
 green,full,types,build,lint}.log. No new recurring continuation started.
+
+### M08 post-media read repository — 9 October, daytime continuation
+
+Continue new human request from clean f8694a6, current feature branch, no remote
+operation. Select the remaining domain split: attachPostMedia (six existing
+consumers) and getPostMediaByPostId into content/post-media-repository.ts. Retain
+one canonical batched query/grouping instead of cloning hydration per consumer;
+db.ts owns the client and single-post facade signature, callers own visibility.
+The former helper-only Db alias travels to the repository as MySql2Database.
+Preserve empty-page short circuit, ascending media order, every metadata field,
+empty arrays for unattached rows, generic warning and exception propagation,
+single-post filter and no-DB throw. Writes/deletion/upload/storage/photo JSON and
+publication transactions are outside this slice. No speed improvement claimed.
+
+Two new literal-response native HTTP/MySQL cases protect mixed detail attachments
+and prevent cross-post files on empty detail/batch rows. Extra video is one exact
+synthetic media row 8977/post8975, deleted in finally; no external media request.
+Baseline two native files 51 pass. Temporary reversed batched order and wrong
+single-post selector produce six expected failures / 45 pass; restore db.ts
+byte-for-byte before extraction. Review strengthens empty-row assertion in a
+multi-post list: temporarily using the whole mediaRows array as fallback produces
+one expected RED failure; restore empty-array fallback. Read-only TypeScript AST
+comparison confirms both executable bodies match HEAD (single-post connection
+acquisition excluded), including SQL errors/no-DB guard. No new injected SQL-
+failure acceptance claim; those paths preserved structurally, not tested by a
+new destructive table failure. Existing compiled ESM/admin/live roles also pass.
+
+Final four-file serial run 102 pass: 54 real SQL (31 native public content,
+20 native admin content, 3 content persistence), 48 maintenance/double cases.
+Corrected prior slice's per-file 29/3 breakdown; its 52/100 totals were accurate.
+Full 1890 pass / 808 opt-in skips, 137 files pass / 44 skip; root/frontend/E2E
+types, 424.5 kB build, unchanged 73 procedures/25642-byte API, 570-file boundaries,
+lint/selected formatting/diff whitespace pass. Existing handoff/docs updated.
+
+Review: content-owned hydration/query seam reduces general-facade responsibilities
+without duplication, cycles, new dependencies/PII/external flows or new queries.
+Existing parameterization and access gates unchanged; generic errors retain no
+private SQL details. No frontend/auth/CORS/proxy/quota/schema/payment-policy,
+push/deploy or server acceptance. Remaining M08/M06 transactional scopes,
+first-email/M07c/provider/SMTP/device/dependency/rollout gates stay open.
+
+Owned local mysql:8.4 container dd-post-media-reads-20261009-1225, loopback 58384,
+synthetic backend_test, tmpfs/no mounts, 512 MiB/one CPU. Exact ID
+43e70e182cf2a610ff0a0a8b6adc9763a3635ddd7f33978810d2227b1b98dc6f inspected
+again for owner/tmpfs/no mounts/no OOM then removed; matching inventory empty.
+Only this run's synthetic data removed, not needed/recoverable; working DB untouched.
+Evidence /tmp/daryadarcy-post-media-reads-{baseline,red,group-red,green,full,types,
+build,lint}.log. Expired overnight automation remains PAUSED, no new schedule.

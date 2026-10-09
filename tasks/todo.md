@@ -2005,3 +2005,19 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] Remaining M08/M06, first-email/M07c/provider/SMTP/device/dependency/rollout
   gates remain open. Local backend-only slice, no frontend/payment-policy change,
   remote merge/push/deploy, server acceptance or automatic continuation.
+
+### M08 post-media read repository — 9 October, daytime continuation
+
+- [x] Continue clean f8694a6 on the current feature branch. Move canonical batched
+  hydration and single-post media read out of db.ts; connection/visibility owners,
+  SQL/order/grouping/metadata/empty/error behavior and API remain unchanged.
+- [x] Two new native detail/batch media cases; baseline 51 pass, six expected
+  order/selector RED failures, one grouping-fallback RED failure. Runtime restored;
+  both executable AST bodies unchanged. No injected SQL-error acceptance claim.
+- [x] Final 102 selected pass (54 real SQL), full 1890 pass / 808 opt-in skips;
+  types/build/API/boundaries/lint/format/docs checked. Exact owned tmpfs database
+  removed after owner/no-mount/no-OOM checks; matching inventory empty, working DB
+  untouched. Existing handoff/review/evidence saved in plan.md.
+- [ ] Remaining M08/M06/first-email/M07c/provider/SMTP/device/dependency/rollout gates
+  open. No frontend/payment-policy/upload/storage change, push/deploy, server
+  acceptance or recurring continuation.
