@@ -1,15 +1,29 @@
-import { and, eq, inArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
   posts,
+  tags,
   type Post,
   type PostMedia,
+  type Tag,
 } from "../../../../packages/database/src/schema";
 import { attachPostMedia } from "./post-media-repository";
 import { postListOrder } from "./post-order";
 
 // db.ts owns the connection; services and adapters retain access decisions.
 type Database = MySql2Database | null;
+
+// The full reference catalog includes tags not yet used by published posts.
+export async function getAllTags(db: Database): Promise<Tag[]> {
+  if (!db) return [];
+
+  try {
+    return await db.select().from(tags).orderBy(asc(tags.sortOrder));
+  } catch (error) {
+    console.error("[Feed] getAllTags failed");
+    throw error;
+  }
+}
 
 // Legacy list keeps its own fields and exact JavaScript tag membership.
 export async function getPosts(

@@ -6344,3 +6344,43 @@ owner/tmpfs/no mounts/no OOM before removal; matching owner inventory empty.
 Only this run's disposable synthetic data removed, working DB untouched. JSON
 evidence: /tmp/daryadarcy-interaction-reads-{baseline,actor-red,bookmark-actor-red,
 order-red,green,full}.json and fresh static/type/build/regression outputs.
+
+### M08 full tag catalog — 9 October, continuation
+
+Resume clean 9082ae1 on feature/yookassa-test-checkout. Move getAllTags into the
+existing content/post-catalog-repository.ts; db.ts retains its public signature
+and one lazy client acquisition. Executable AST matches the original body after
+removing only that acquisition. Full reference rows include unused season/topic
+tags, untrimmed labels and ascending sortOrder; no tie-breaker/filter/new pool.
+Historical no-DB empty result and constant error log/rethrow unchanged.
+
+One new native HTTP/MySQL case verifies the unused season and original fields.
+Three transport additions cover no DB, genuinely empty table and sanitized HTTP
+failure/recovery using real Drizzle/facade/router with mocked SQL transport.
+Baseline 76 pass. Wrong ordering, omitted seasons and swallowed errors each
+produce one expected RED failure; all mutations restored before extraction.
+The first error selector matched zero cases; corrected selector proves the real
+HTTP 200-versus-500 failure. Doubles do not claim actual SQL fault acceptance.
+
+Final serial six-file run 157 pass: 65 real SQL (40 native content, 22 native
+admin content, 3 persistence), 92 maintenance/transport doubles. Full 1901 pass /
+819 opt-in skips, 138 passing files. Root/frontend/E2E types, backend 426.2 kB,
+Next build 28 pages, unchanged API 73 procedures/25642 bytes, boundaries 572
+files, frontend lint and selected formatting pass. Client 208 pass is already
+included in full. Fresh docs/whitespace checks run before the local commit.
+
+Five-axis self-review: existing repository ownership, no new abstraction/cycle,
+query/performance/transaction/signature or personal-data flow. Constant log is
+unchanged; frontend/public service access unchanged. No auth/CORS/proxy/quota,
+payment policy, frontend/server/cabinet edit, merge/push/deploy or new schedule.
+Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout gates open.
+User's already-sent provider request is not duplicated; card/SBP not accepted.
+
+Owned mysql:8.4 dd-catalog-tags-20261009-1730 on loopback 62288/backend_test,
+512 MiB/one CPU, tmpfs/no mounts. Exact ID
+d3f3230a776effb13fd31ab477affb7496fdc53c2ca7451b36bd932eb00e82cd rechecked for
+owner/tmpfs/no mounts/no OOM then removed; matching owner inventory empty.
+Only this run's synthetic data removed, working DB untouched. Evidence:
+/tmp/daryadarcy-catalog-tags-{baseline,order-red,category-red,error-red,green,full}.json
+and fresh verification outputs. Shared external DoD reference still absent;
+repository workflow and explicit verification requirements used instead.

@@ -2124,3 +2124,19 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] Existing unpaginated reads and historical no-DB empty results deliberately
   unchanged. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/
   rollout gates open; no frontend edits, merge/push/deploy or new schedule.
+
+### M08 full tag catalog — 9 October, continuation
+
+- [x] Continue clean 9082ae1; move getAllTags to the existing catalog repository.
+  Executable body/signature and one lazy client preserved; all categories and
+  unused tags, original labels, ascending sortOrder, no-DB empty and SQL error
+  behavior unchanged. No new layer/query/filter/normalization.
+- [x] One native HTTP/MySQL characterization plus three transport cases;
+  wrong order, missing seasons and swallowed error each fail one RED check.
+  All temporary mutations restored; 157 selected pass (65 SQL, 92 doubles),
+  full 1901 pass / 819 opt-in skips. Types, both builds, API/boundaries, lint,
+  formatting, docs/diff and 208 client regressions checked. Exact owned tmpfs
+  database removed, owner inventory empty, working DB untouched.
+- [ ] Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout
+  gates open. Local-only; no frontend/auth/payment-policy/server changes,
+  merge/push/deploy or new continuation. Provider card/SBP acceptance still open.

@@ -9,6 +9,7 @@ const transport = vi.hoisted(() => ({
   query: vi.fn(),
   mediaError: null as Error | null,
   mediaRows: [] as unknown[][],
+  tagError: null as Error | null,
 }));
 vi.mock("mysql2/promise", () => ({
   default: { createPool: () => ({ on() {}, query: transport.query }) },
@@ -63,9 +64,14 @@ beforeEach(async () => {
   vi.stubEnv("DATABASE_URL", "mysql://fixture@127.0.0.1:33317/backend_test");
   transport.mediaError = null;
   transport.mediaRows = [];
+  transport.tagError = null;
   transport.query
     .mockReset()
     .mockImplementation(async ({ sql }: { sql: string }) => {
+      if (sql.includes("from `tags`")) {
+        if (transport.tagError) throw transport.tagError;
+        return [[[71, "winter", "Зима", "season", 3]], []];
+      }
       if (sql.includes("from `post_media`")) {
         if (transport.mediaError) throw transport.mediaError;
         return [transport.mediaRows, []];
@@ -156,10 +162,19 @@ describe("post media read integrity", () => {
     vi.stubEnv("DATABASE_URL", "");
     expect(await database.getPostsByIds([])).toEqual([]);
   });
+  it("keeps the historical empty tag catalog when no database is configured", async () => {
+    vi.stubEnv("DATABASE_URL", "");
+    expect(await database.getAllTags()).toEqual([]);
+  });
+  it("keeps a genuinely empty reference tag table successful", async () => {
+    transport.query.mockResolvedValue([[], []]);
+    expect(await database.getAllTags()).toEqual([]);
+  });
   it.each([
     { path: "admin.posts" },
     { path: "admin.getPostMedia", input: { postId: 41 } },
     { path: "feed.listPaginated", input: { limit: 1 } },
+    { path: "feed.tags" },
   ])(
     "returns a sanitized HTTP failure for $path, then recovers",
     async ({ path, input }) => {
@@ -185,7 +200,9 @@ describe("post media read integrity", () => {
       transport.mediaError = new Error(
         "PRIVATE_SQL_SENTINEL params private@example.test",
       );
+      transport.tagError = transport.mediaError;
       vi.spyOn(console, "warn").mockImplementation(() => {});
+      vi.spyOn(console, "error").mockImplementation(() => {});
       const url =
         `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/trpc/${path}` +
         (input
@@ -200,8 +217,15 @@ describe("post media read integrity", () => {
           /PRIVATE_SQL_SENTINEL|private@example|stack|select /,
         );
         transport.mediaError = null;
+        transport.tagError = null;
         const recovered = await fetch(url);
         expect(recovered.status).toBe(200);
+        if (path === "feed.tags") {
+          const recoveredBody = await recovered.text();
+          expect(recoveredBody).toContain('"slug":"winter"');
+          expect(recoveredBody).toContain('"label":"Зима"');
+          expect(recoveredBody).toContain('"category":"season"');
+        }
       } finally {
         await new Promise<void>((resolve, reject) =>
           server.close((error) => (error ? reject(error) : resolve())),

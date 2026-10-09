@@ -444,6 +444,41 @@ describe.skipIf(!testDatabaseUrl)(
         },
       ]);
     });
+    it("keeps an unused season in the full public tag catalog with its original label", async () => {
+      await conn.query(
+        "INSERT INTO tags (id,slug,label,category,sortOrder) VALUES (8977,'native-unused','  Неиспользованный сезон  ','season',-3)",
+      );
+      try {
+        const tags = (await client().feed.tags.query()).filter(
+          (tag) => tag.id >= 8975 && tag.id <= 8977,
+        );
+        expect(tags).toEqual([
+          {
+            id: 8977,
+            slug: "native-unused",
+            label: "  Неиспользованный сезон  ",
+            category: "season",
+            sortOrder: -3,
+          },
+          {
+            id: 8976,
+            slug: "native-season",
+            label: "Season",
+            category: "season",
+            sortOrder: 1,
+          },
+          {
+            id: 8975,
+            slug: "native-catalog",
+            label: "Catalog",
+            category: "topic",
+            sortOrder: 2,
+          },
+        ]);
+      } finally {
+        await conn.query("DELETE FROM tags WHERE id=8977");
+      }
+    });
     it.each([8972, 8973, 8974])(
       "hides non-published detail %s even from a subscribed administrator",
       async (id) => {

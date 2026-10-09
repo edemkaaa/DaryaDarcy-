@@ -19,6 +19,7 @@ import {
   getLatestPublishedPost as readLatestPublishedPost,
 } from "./content/post-detail-repository";
 import {
+  getAllTags as readAllTags,
   getPosts as readPosts,
   getPostsPaginated as readPostPage,
   getPostsByIds as readPostsByIds,
@@ -253,7 +254,7 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
 
 // ── Feed queries ──
 
-import { posts, tags, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, Article } from "../../../packages/database/src/schema";
+import { posts, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, Article } from "../../../packages/database/src/schema";
 import { desc, asc, and, sql, or, ne, gte, lte, isNotNull, isNull } from "drizzle-orm";
 
 // Get all published posts, optionally filtered by tag
@@ -278,15 +279,7 @@ export async function getPostById(id: number): Promise<(Post & { likeCount: numb
 
 // Get all tags ordered by sortOrder
 export async function getAllTags(): Promise<Tag[]> {
-  const db = await getDb();
-  if (!db) return [];
-
-  try {
-    return await db.select().from(tags).orderBy(asc(tags.sortOrder));
-  } catch (error) {
-    console.error("[Feed] getAllTags failed");
-    throw error;
-  }
+  return readAllTags(await getDb());
 }
 
 // Toggle like on a post
