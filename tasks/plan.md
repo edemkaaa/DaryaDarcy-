@@ -6786,3 +6786,32 @@ No production code changed in this planning increment. Fresh loopback Docker
 socket ping timed out at three seconds; no Docker restart, container/database
 changes, secret/config reads, mail dispatch or server access. Original working
 branch and the two reviewed admin fixes retained.
+
+### First email binding — schema approved, writer prerequisite
+
+The human explicitly approved the schema/concurrency plan. No further scenario
+approval is pending; continue the approved spec without asking it again.
+The first increment replaces unconditional duplicate updates with a transactional
+no-op claim, locked openId lookup and an update scoped to that user ID. Reject a
+cross-identity collision and roll back instead of writing its credentials/role.
+Same-openId explicit fields, nullable inputs and default login timestamp remain.
+An unavailable DB keeps the existing upsert contract; no global auth/quota change.
+
+Four expected SQL-boundary RED failures preceded five GREEN cases. The facade
+and Drizzle remain real; only mysql2 transport is doubled. Five opt-in real SQL
+cases use a connection-local temporary users table cloned on a policy-validated
+disposable DB; experimental unique indexes cannot change shared fixture accounts.
+The SQL suite has not run and single-connection retries do not prove concurrent
+different-connection races. Do not apply email uniqueness or enable binding based
+on transport tests alone. The current Docker ping again timed out at three seconds;
+restart permission requested separately, no restart or working DB fixture used.
+
+Fresh verification of this increment: 2029 unit checks pass, 845 SQL/external
+opt-in cases skipped (including five new real-constraint cases). Root/frontend
+types, backend build, frontend lint, unchanged API extraction (73 procedures),
+boundaries (586 files), docs (52 documents) and whitespace checks pass. Five-axis
+self-review: only the canonical user writer changed; fixed bounded transaction
+adds two identity queries, no unbounded retries/new dependencies or endpoints.
+No schema/UI/subscription/password-policy/session-version modification. The new
+writer and its SQL-boundary checks are locally verified; actual constraint/race
+acceptance remains a blocker before enabling the approved binding rollout.

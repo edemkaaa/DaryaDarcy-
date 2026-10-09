@@ -8,8 +8,9 @@ address through a single-use email link. Keep the same user ID, openId, phone,
 password, session version and subscription. Never merge accounts or replace an
 existing address. An occupied address is a conflict, not a merge instruction.
 
-The detailed schema/migration plan below awaits human approval. No production
-implementation, database migration, real mail dispatch or deployment yet.
+The human also approved the detailed schema/migration plan below. Implementation
+has started with the identity-writer prerequisite; no migration applied, real
+mail dispatched or deployment performed. Binding remains disabled and unfinished.
 
 ## Scope and assumptions
 
@@ -49,7 +50,7 @@ Response schemas must be finalized before implementing handlers. Admin errors:
 address/account/intent conflict, 429 throttled, 503 unavailable. Public proof
 errors reveal neither account details nor email ownership.
 
-## Data and concurrency design requiring approval
+## Approved data and concurrency design
 
 - Separate binding requests from password tokens: request key/payload hash,
   actor/recipient IDs, normalized email, proof hash, expiry and completion state.
@@ -121,3 +122,16 @@ again at writes, preserve foreign changes and existing account/payment behavior.
 Ask first: schema/migration plan, new auth/roles/quotas, real external delivery,
 restart of shared Docker, rollout/push/deployment. Never: commit secrets, log proofs,
 silently repair old users, run fixture cleanup on a working database.
+
+## Current implementation checkpoint
+
+The approved writer prerequisite now claims/inserts inside a transaction without
+changing a duplicate row's fields, locks the requested openId and updates only its
+user ID. Missing identity rejects and rolls back; other uniqueness errors propagate
+without a partial credential update. Existing input/default/null behavior remains.
+Four SQL-boundary RED failures preceded five GREEN checks. These tests double only
+the mysql2 transport; they do not prove MySQL constraint or concurrency behavior.
+The opt-in SQL suite shadows users in a connection-local temporary table so the
+candidate email/phone uniqueness cannot alter shared fixture indexes or rows.
+Real SQL acceptance is still open: Docker loopback ping timed out after three
+seconds. Restart permission requested separately; no restart or working DB use.

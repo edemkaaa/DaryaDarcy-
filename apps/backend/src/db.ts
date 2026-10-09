@@ -168,8 +168,16 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
+    await db.transaction(async (tx) => {
+      // A duplicate may belong to any unique key, not just openId. Never
+      // apply credentials to that row until the requested identity is locked.
+      await tx.insert(users).values(values).onDuplicateKeyUpdate({
+        set: { openId: sql`${users.openId}` },
+      });
+      const [identity] = await tx.select({ id: users.id }).from(users)
+        .where(eq(users.openId, user.openId)).limit(1).for("update");
+      if (!identity) throw new Error("User identity conflict");
+      await tx.update(users).set(updateSet).where(eq(users.id, identity.id));
     });
   } catch (error) {
     console.error("[Database] Failed to upsert user");

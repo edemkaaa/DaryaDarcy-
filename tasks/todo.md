@@ -2270,8 +2270,13 @@ drafts remain local after interruption; disposable container already removed.
       screenshots confirm existing layout. See the current admin audit report.
 - [x] Human confirmed first binding admin-only, for an account without email,
       with email confirmation, no account merge and rejection of occupied email.
-- [ ] Approve the detailed schema/concurrency plan in SPEC-email-binding.md:
+- [x] Approve the detailed schema/concurrency plan in SPEC-email-binding.md:
       separate proofs, normalized uniqueness, existing-upsert collision guard.
+- [x] Implement the identity-scoped writer prerequisite after four expected
+      SQL-boundary RED failures, retaining the same-openId update contract.
+- [ ] Accept the writer on a newly owned disposable MySQL database, including
+      cross-identity constraint rejection, rollback and multi-connection races.
+      Five real SQL cases prepared but unavailable; Docker restart requested.
 - [ ] Implement verified slices and connect the existing frontend form after
       this approval; real SQL/SMTP/rollout acceptance must not be inferred.
 - [ ] Joint provider/SMTP/device/admin acceptance and deployment remain separate;
