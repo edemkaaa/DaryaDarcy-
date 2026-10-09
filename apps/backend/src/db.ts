@@ -463,7 +463,7 @@ export async function listAdminMembers(): Promise<{
   blockedReason: string | null;
 }[]> {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) throw new Error("Database not available");
   const allUsers = await db
     .select({
       id: users.id,
@@ -498,7 +498,7 @@ export async function listAdminMembers(): Promise<{
 
 export async function listAdminPayments(limit = 50) {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) throw new Error("Database not available");
   return db.select().from(clubPayments).orderBy(desc(clubPayments.createdAt)).limit(limit);
 }
 

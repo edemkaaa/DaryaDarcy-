@@ -5699,3 +5699,47 @@ __tests__/documentation-cli.test.ts then passed all 14 checks. Docs command
 itself passed 51 documents.
 Formatting of old Markdown produced unrelated changes; restored those exact
 original hunks and kept only new sections before commit. No waived test failure.
+
+### Frontend/admin alignment: unavailable member/payment reads — 9 October
+
+Human requests "do everything as in the frontend". Fresh fetch leaves staging
+7524987 unchanged/already included. Inspect actual MemberEmailBinding: local
+draft only, submit always disabled, no request/confirmed identity contract.
+Follow that current frontend state; do not infer permission for an email/login
+change from this instruction. No new email question duplicated. Grant action and
+display fields already match, but members/payments silently returned [] without
+a DB client while the frontend interprets [] as a known-empty list.
+
+Small error-contract fix in two existing helpers: throw on null getDb rather than
+return []. Native boundary sends generic safe 500; selectedListQuery already
+renders an error/retry action. This is no live connection health check and no
+authority to infer an earlier write outcome. Successful SQL projections/order/
+payment limit/expiry and admin middleware untouched, no extra query or dependency.
+
+RED: four failures (two helpers and two native HTTP reads resolve [] instead of
+refusing), eight access-denial cases stay green. GREEN all 47 maintenance cases;
+only session lookup doubled, actual getDb/no-URL/persistence path and HTTP/error
+policy real. This is not real JWT/MySQL unavailability acceptance. Three added
+SQL characterizations verify member fields/expiry after real grant, payment
+fields/limit and successful known-empty zero-limit read. All three selected SQL
+files 42 pass including concurrent grants, refusals, content and moderation audit.
+Full default 1889 pass / 785 opt-in SQL/external skips, 137 files pass / 43 skip.
+Types root/frontend/E2E, 422.1 kB backend build, 73-procedure/25642-byte API,
+565-file boundaries and lint pass. Existing API/handoff updated.
+
+Review: two guarded returns changed, same query/rights and no data mutation or
+new abstraction. Known-empty SQL remains successful; no private errors in HTTP.
+Session-only double is disclosed; SQL characterizations use synthetic rows owned
+by the existing grant suite. No frontend/auth/CORS/proxy/quota/schema/dependency,
+SMTP/provider/cabinet/secret, payment, remote merge/push or server deployment.
+Primary review instructions used; unavailable auxiliary checklists remain a limit.
+
+Disposable resource: local mysql:8.4, loopback 52263, tmpfs/no mounts, 512 MiB,
+one CPU; owner dd-admin-reads-20261009-0312. Exact container:
+f9d53723fd0b3577d6105bb0247866fac97d3b6c56c9b9139f031ed6f0803b80.
+Before removal, exact ID/owner/tmpfs/no mounts/no OOM verified. Exact container
+removed and matching owner inventory empty. Only synthetic run data removed,
+not recoverable or needed; working DB untouched. Evidence:
+/tmp/daryadarcy-admin-read-{red,green,sql,full,types,build,lint}.log and fresh
+API/boundary/docs output. All prior identity/M07c/provider/SMTP/device and
+dependency/rollout gates remain open; this is one completed safe alignment slice.

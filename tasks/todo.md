@@ -1911,3 +1911,19 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] First-email scenario still needs explicit user approval; M07c human drain
   bound, optimistic article revisions, actual provider/SMTP/devices and previous
   rollout/dependency gates remain open. No push, merge or server deployment.
+
+### Frontend/admin member/payment availability — 9 October, early morning
+
+- [x] Follow actual current frontend: email-binding draft remains disabled,
+  no identity change inferred. Existing members/payments reject a missing DB
+  client instead of returning false known-empty lists. Successful SQL unchanged.
+- [x] Four RED helper/native HTTP refusals; 47 focused GREEN including access
+  policy. Session lookup alone is doubled, not JWT unavailability acceptance.
+  Real SQL 42 pass / three files; three added member/payment/grant projection
+  checks. Full 1889 pass / 785 opt-in skips; types/build/API/boundaries/lint pass.
+  Review/API/handoff updated; evidence and limits in plan.md.
+  Owned loopback/tmpfs MySQL removed after exact owner/no-mount/no-OOM checks;
+  owner inventory empty, only synthetic resources removed.
+- [ ] First-email identity contract remains unapproved/disabled as in frontend;
+  previous M07c/provider/SMTP/device/rollout/dependency gates remain open.
+  No frontend or shared-server changes, merge/push/deploy.

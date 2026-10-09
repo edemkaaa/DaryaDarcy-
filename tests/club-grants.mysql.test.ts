@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
-import { getDb, grantClubDays } from "../apps/backend/src/db";
+import { getDb, grantClubDays, listAdminMembers, listAdminPayments } from "../apps/backend/src/db";
 
 describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () => {
   let conn: Connection;
@@ -40,6 +40,24 @@ describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () =
     const expiresAt = await grantClubDays(92401);
     expect(expiresAt.getTime()).toBe(initial.getTime() + 31 * 86400000);
     expect((await payments()).at(-1)).toMatchObject({ status: "paid", email: "grant@example.test", sum: "0" });
+  });
+  it("keeps the admin member projection and refreshed expiry after a grant", async () => {
+    const expiresAt = await grantClubDays(92401);
+    const member = (await listAdminMembers()).find(row => row.id === 92401);
+    expect(member).toMatchObject({ id: 92401, email: "grant@example.test", clubExpiresAt: expiresAt, blockedAt: null, blockedReason: null });
+    expect(Object.keys(member!).sort()).toEqual(["blockedAt", "blockedReason", "clubExpiresAt", "createdAt", "email", "id", "name", "role"]);
+  });
+  it("keeps the admin payment limit and confirmed grant fields", async () => {
+    const expiresAt = await grantClubDays(92401);
+    const rows = await listAdminPayments();
+    const grants = rows.filter(row => row.userId === 92401 && row.orderId.startsWith("admin-grant-"));
+    expect(grants).toHaveLength(1);
+    expect(grants[0]).toMatchObject({ email: "grant@example.test", status: "paid", sum: "0", expiresAt, cancelAtPeriodEnd: false });
+    expect(grants[0].paidAt).toBeInstanceOf(Date);
+    expect(await listAdminPayments(1)).toHaveLength(1);
+  });
+  it("keeps a successful known-empty payment read distinct from unavailable storage", async () => {
+    expect(await listAdminPayments(0)).toEqual([]);
   });
   it("starts an expired membership from now rather than its old expiry", async () => {
     await conn.query("UPDATE club_payments SET expiresAt=DATE_SUB(NOW(),INTERVAL 10 DAY) WHERE userId=92401");

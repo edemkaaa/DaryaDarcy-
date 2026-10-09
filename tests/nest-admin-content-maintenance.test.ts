@@ -210,6 +210,44 @@ describe("native admin content maintenance service boundary", () => {
     });
   });
 
+  describe.each(["members", "payments"] as const)(
+    "admin %s read availability",
+    (name) => {
+      it("refuses a missing database rather than returning an empty list", async () => {
+        const read =
+          name === "members" ? db.listAdminMembers : db.listAdminPayments;
+        await expect(read()).rejects.toThrow("Database not available");
+      });
+
+      it("returns a safe native HTTP error rather than known empty data", async () => {
+        await expect(client().admin[name].query()).rejects.toMatchObject({
+          message: "Внутренняя ошибка сервера",
+          data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+        });
+      });
+
+      it.each(["guest", "user", "moderator", "blocked-admin"] as const)(
+        "preserves the access refusal for %s before the database error",
+        async (access) => {
+          actor =
+            access === "guest"
+              ? null
+              : {
+                  ...administrator,
+                  role: access === "blocked-admin" ? "admin" : access,
+                  blockedAt: access === "blocked-admin" ? new Date() : null,
+                };
+          await expect(client().admin[name].query()).rejects.toMatchObject({
+            data: {
+              code: access === "guest" ? "UNAUTHORIZED" : "FORBIDDEN",
+              httpStatus: access === "guest" ? 401 : 403,
+            },
+          });
+        },
+      );
+    },
+  );
+
   describe("video metadata import", () => {
     it("returns the injected import service outcome with validated input", async () => {
       let received: unknown;
