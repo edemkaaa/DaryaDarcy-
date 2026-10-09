@@ -17,7 +17,7 @@ import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import type { AppRouter } from "../apps/backend/src/routers";
 import { sdk } from "../apps/backend/src/_core/sdk";
-import { getDb } from "../apps/backend/src/db";
+import { getDb, getPostsForTarget } from "../apps/backend/src/db";
 
 describe.skipIf(!testDatabaseUrl)(
   "native content reads over real HTTP/JWT/MySQL",
@@ -265,6 +265,25 @@ describe.skipIf(!testDatabaseUrl)(
         data: { code: "UNAUTHORIZED", httpStatus: 401 },
       });
     });
+    it("intersects club visibility with tags and trimmed search before pagination", async () => {
+      // Search is an existing repository option, not a club.list HTTP field.
+      const body = await getPostsForTarget("club", {
+        tagFilter: "native-catalog",
+        search: "  CLUB BODY  ",
+        limit: 1,
+      });
+      expect(body.posts.map((post) => post.id)).toEqual([8971]);
+      expect(body.nextCursor).toBeNull();
+      for (const input of [
+        { tagFilter: "native-missing", search: "club body" },
+        { tagFilter: "native-catalog", search: "' OR 1=1 --" },
+      ]) {
+        expect(await getPostsForTarget("club", input)).toEqual({
+          posts: [],
+          nextCursor: null,
+        });
+      }
+    });
     it("paginates filtered rows with default 12 and treats null cursor as the first page", async () => {
       const first = await client().feed.listPaginated.query({
         tag: "native-catalog",
@@ -402,6 +421,23 @@ describe.skipIf(!testDatabaseUrl)(
       expect(
         (await client(bearer).feed.savedPosts.query()).map((post) => post.id),
       ).toEqual([8970]);
+    });
+    it("preserves duplicate bookmark positions while omitting missing and unpublished rows", async () => {
+      await conn.query(
+        "INSERT INTO saved_posts (userId,postId,createdAt) VALUES (8970,8970,'2036-01-01'),(8970,8975,'2036-01-02'),(8970,8971,'2036-01-03'),(8970,8975,'2036-01-04'),(8970,8972,'2036-01-05'),(8970,8974,'2036-01-06'),(8970,999999,'2036-01-07')",
+      );
+      const saved = await client(bearer).feed.savedPosts.query();
+      expect(saved.map((post) => post.id)).toEqual([8975, 8971, 8975, 8970]);
+      for (const index of [0, 2]) {
+        expect(saved[index].media.map((media) => media.url)).toEqual([
+          "https://assets.example.test/catalog.mp3",
+          "https://assets.example.test/catalog.pdf",
+        ]);
+      }
+      expect(saved[1].media).toMatchObject([
+        { url: "https://assets.example.test/club-fixture.pdf" },
+      ]);
+      expect(saved[3].media).toEqual([]);
     });
     it.each(["blockedAt=NOW()", "sessionVersion=1"])(
       "denies club and protected reads after %s",

@@ -2039,3 +2039,22 @@ drafts remain local after interruption; disposable container already removed.
   end-to-end acceptance, real money/autocharges or production approval. Old links
   retain their old return URL; do not repeat a payment merely to test the return.
   Existing dependency/rollout and unrelated backend gates remain open.
+
+### M08 post-catalog read repository — 9 October, daytime continuation
+
+- [x] Continue clean bd31aa0 on the current feature branch. Extract paginated
+  feed/club and saved-ID reads behind unchanged db.ts signatures. Preserve SQL,
+  filters/cursors/order/duplicate IDs/media/errors; services keep access decisions.
+- [x] Two characterization cases, baseline 33; independent filter/ID-order
+  mutations each produce the expected RED failure and are restored. Executable
+  AST/helpers/columns and facade signatures unchanged except passing the client.
+- [x] Final 137 selected pass (56 real SQL, 81 maintenance/transport doubles),
+  full 1890 pass / 810 opt-in skips; types/build/API/boundaries/lint/format/docs
+  checked. Exact owned tmpfs DB removed after ownership/no-mount/no-OOM checks,
+  matching inventory empty, working DB untouched. Evidence/review in plan.md.
+- [ ] Prodamus support request authorized but NOT sent: official MAX chat needs
+  user login or a confirmed own mail sender. Unrelated mail profile not used;
+  no mailbox read. TEST SBP/card acceptance and provider diagnosis remain open.
+- [ ] Remaining M08/M06/identity/M07c/SMTP/device/dependency/rollout gates stay
+  open. Local backend-only slice; no frontend, payment policy, new public search,
+  remote merge/push/deploy, server acceptance or automatic continuation.

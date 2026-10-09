@@ -6106,3 +6106,52 @@ was inspected by exact ID dd3f8efa022784dfce811ff1e0b993fd9677324c1c312cbcc7a97a
 and removed with its empty owned network. Both owner inventories empty; only
 disposable synthetic data removed. Archive/evidence retained under
 /tmp/daryadarcy-paid-return.BRz4DT and /tmp/daryadarcy-paid-return-{full.log,audit.json}.
+
+### M08 post-catalog read repository — 9 October, daytime continuation
+
+Continue clean bd31aa0 on feature/yookassa-test-checkout under the human request
+to write Prodamus support and continue. No repeat of M07b2 or previous slices.
+Move getPostsPaginated/getPostsByIds/getPostsForTarget and private list columns /
+feed filters to content/post-catalog-repository.ts. db.ts owns the lazy client;
+services retain authorization/visibility. Empty IDs still return before connection.
+Canonical post order, published/target/tag/search conditions, parameterization,
+limit+1/offset/nextCursor, duplicate caller IDs and batched media remain exact.
+No new pool/cycle/dependency/schema/public input; no performance claim. Internal
+target search is not a club.list HTTP field; do not expand the API in a refactor.
+
+TDD: two new characterization cases first pass against old implementation
+(33 native content cases). An exploratory HTTP search case was corrected to the
+existing internal DB option, not treated as a product bug. Independent temporary
+AND-to-OR target-filter and unordered/deduplicated selection mutations each give
+one expected RED failure. Both restored, db.ts clean before extraction. Read-only
+TypeScript AST comparison confirms executable bodies/private helpers/columns and
+facade signatures unchanged except connection acquisition passed as an argument.
+Existing error/no-DB/empty-page and compiled ESM/role cases remain green.
+
+Final five-file serial run 137 pass: 56 real SQL (33 native public content,
+20 native admin, 3 content persistence), 81 doubles/maintenance (33 media transport,
+48 admin maintenance). Full 1890 pass / 810 opt-in skips, 137 files pass / 44 skip.
+Root/frontend/E2E types, 425.3 kB build, unchanged 73 procedures/25642-byte API,
+571-file boundaries, lint/selected formatting/docs/diff whitespace pass.
+Review: no new query, access path, transaction/replay/payment behavior, PII logging,
+frontend/admin contract change, auth/CORS/proxy/quota or dependency mutation.
+General facade delegates unchanged reads; existing correlated counts and offset
+limitations retained. Remaining M08/M06/identity/M07c/provider/SMTP/device/
+dependency/rollout gates stay open. Local commit only, no merge/push/deploy.
+
+Owned mysql:8.4 dd-post-catalog-20261009-1430, loopback 59684, synthetic backend_test,
+tmpfs/no mounts, 512 MiB/one CPU. Exact ID
+a5e9e4095a1db8f26a7d0b70ef6b23713aa17708e5384119650b836bb9f0dff2 checked for
+owner/tmpfs/no mounts/no OOM and removed; matching owner inventory empty. Only
+this run's disposable synthetic data removed; working DB untouched. Evidence:
+/tmp/daryadarcy-post-catalog-{baseline.log,filter-red.log,order-red.log,green.json}
+and fresh full/type/build/API/boundary/lint outputs in this task. No new schedule.
+
+Support blocker: user authorized a Prodamus diagnostic request. Official MAX bot
+https://web.max.ru/id1215156909_2_bot currently requires user login. Connected
+mail profile is not the user's account; no mailbox read or message sent. Async
+question requests own MAX login or confirmed own sender. Request is NOT sent;
+do not imply contact, repair, or receipt. Approved diagnostic scope: testpage1,
+order 49661405 / 09.10.2026 13:39 MSK / 790 RUB, SBP invalid recipient MNT_ID and
+card/GPB no server response; ask provider to inspect TEST acquiring logs. Never
+send cabinet password, signing key, raw signed link, or initiate a new payment.
