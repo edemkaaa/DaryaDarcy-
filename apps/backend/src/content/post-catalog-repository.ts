@@ -10,6 +10,59 @@ import { postListOrder } from "./post-order";
 
 // db.ts owns the connection; services and adapters retain access decisions.
 type Database = MySql2Database | null;
+
+// Legacy list keeps its own fields and exact JavaScript tag membership.
+export async function getPosts(
+  db: Database,
+  tagFilter?: string,
+): Promise<(Post & { likeCount: number; media: PostMedia[] })[]> {
+  if (!db) throw new Error("Database not available");
+
+  let query = db
+    .select({
+      id: posts.id,
+      text: posts.text,
+      photos: posts.photos,
+      tags: posts.tags,
+      source: posts.source,
+      instagramId: posts.instagramId,
+      sortOrder: posts.sortOrder,
+      published: posts.published,
+      status: posts.status,
+      target: posts.target,
+      scheduledAt: posts.scheduledAt,
+      publishedAt: posts.publishedAt,
+      richText: posts.richText,
+      createdAt: posts.createdAt,
+      updatedAt: posts.updatedAt,
+      likeCount:
+        sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.postId = posts.id)`.as(
+          "likeCount",
+        ),
+    })
+    .from(posts)
+    .where(
+      and(
+        eq(posts.published, true),
+        eq(posts.status, "published"),
+        or(eq(posts.target, "feed"), eq(posts.target, "both")),
+      ),
+    )
+    .orderBy(...postListOrder);
+
+  const results = await query;
+
+  let filtered = results;
+  if (tagFilter && tagFilter !== "all") {
+    filtered = results.filter((p) => {
+      const postTags = p.tags as string[];
+      return postTags.includes(tagFilter);
+    });
+  }
+
+  return attachPostMedia(db, filtered);
+}
+
 const postListColumns = {
   id: posts.id,
   text: posts.text,

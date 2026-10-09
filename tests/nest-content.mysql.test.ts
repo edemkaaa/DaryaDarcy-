@@ -243,6 +243,50 @@ describe.skipIf(!testDatabaseUrl)(
         [],
       );
     });
+    it("counts each post's own likes in the legacy feed without adding comment counts", async () => {
+      await conn.query(
+        "INSERT INTO likes (userId,postId) VALUES (8970,8970),(8970,8975)",
+      );
+      const rows = await client().feed.list.query();
+      for (const id of [8970, 8975]) {
+        const post = rows.find((row) => row.id === id);
+        expect(post).toMatchObject({ id, likeCount: 1 });
+        expect(post).not.toHaveProperty("commentCount");
+      }
+      expect(rows.find((row) => row.id === 8976)).toMatchObject({
+        id: 8976,
+        likeCount: 0,
+        media: [],
+      });
+    });
+    it("matches whole tags in the legacy feed and retains only the matching post's media", async () => {
+      await conn.query(
+        "UPDATE posts SET tags=JSON_ARRAY('native-catalog','native-season') WHERE id=8975",
+      );
+      await conn.query(
+        "UPDATE posts SET tags=JSON_ARRAY('native-seasonal') WHERE id=8976",
+      );
+      try {
+        const rows = await client().feed.list.query({ tag: "native-season" });
+        expect(rows.map((row) => row.id)).toEqual([8975]);
+        expect(rows[0].media.map((media) => media.url)).toEqual([
+          "https://assets.example.test/catalog.mp3",
+          "https://assets.example.test/catalog.pdf",
+        ]);
+        for (const tag of [
+          "native-sea",
+          "NATIVE-SEASON",
+          " native-season ",
+          "' OR 1=1 --",
+        ]) {
+          expect(await client().feed.list.query({ tag })).toEqual([]);
+        }
+      } finally {
+        await conn.query(
+          "UPDATE posts SET tags=JSON_ARRAY('native-catalog') WHERE id IN (8975,8976)",
+        );
+      }
+    });
     it.each([
       { limit: 1.5 },
       { limit: 20, cursor: -1 },

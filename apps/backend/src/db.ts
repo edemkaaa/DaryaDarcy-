@@ -21,6 +21,7 @@ import {
   getLatestPublishedPost as readLatestPublishedPost,
 } from "./content/post-detail-repository";
 import {
+  getPosts as readPosts,
   getPostsPaginated as readPostPage,
   getPostsByIds as readPostsByIds,
   getPostsForTarget as readTargetPosts,
@@ -254,43 +255,7 @@ import { desc, asc, and, sql, or, ne, gte, lte, isNotNull, isNull } from "drizzl
 
 // Get all published posts, optionally filtered by tag
 export async function getPosts(tagFilter?: string): Promise<(Post & { likeCount: number; media: PostMedia[] })[]> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  let query = db
-    .select({
-      id: posts.id,
-      text: posts.text,
-      photos: posts.photos,
-      tags: posts.tags,
-      source: posts.source,
-      instagramId: posts.instagramId,
-      sortOrder: posts.sortOrder,
-      published: posts.published,
-      status: posts.status,
-      target: posts.target,
-      scheduledAt: posts.scheduledAt,
-      publishedAt: posts.publishedAt,
-      richText: posts.richText,
-      createdAt: posts.createdAt,
-      updatedAt: posts.updatedAt,
-      likeCount: sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.postId = posts.id)`.as("likeCount"),
-    })
-    .from(posts)
-    .where(and(eq(posts.published, true), eq(posts.status, "published"), or(eq(posts.target, "feed"), eq(posts.target, "both"))))
-    .orderBy(...postListOrder);
-
-  const results = await query;
-
-  let filtered = results;
-  if (tagFilter && tagFilter !== "all") {
-    filtered = results.filter((p) => {
-      const postTags = p.tags as string[];
-      return postTags.includes(tagFilter);
-    });
-  }
-
-  return attachPostMedia(db, filtered);
+  return readPosts(await getDb(), tagFilter);
 }
 
 // Get paginated published posts (offset-based with SQL limit)

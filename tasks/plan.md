@@ -6206,3 +6206,52 @@ Agent sent no message/read no mailbox; do not duplicate or request MAX login for
 this completed send. Await provider diagnosis of TEST SBP/card failures; no repair
 or paid acceptance follows from the send. Previous fresh dev smoke confirms only
 guest/SQL/protected refusals, not acquiring. No recurring continuation enabled.
+
+### M08 legacy feed read repository — 9 October, continuation
+
+Resume clean b708ff1 on the same feature branch under the human continuation
+request. Move getPosts from the general db.ts facade into the existing
+content/post-catalog-repository.ts. Keep one existing lazy client acquisition,
+facade signature, published/status/feed-or-both predicate, canonical list order,
+correlated like count and shared media hydration. Keep a distinct legacy column
+projection (no commentCount), exact JS tag-array membership after SQL and all /
+absent / empty tag behavior. No new API, pool, query, schema or dependency.
+
+TDD: two native HTTP/MySQL characterizations using only existing owned synthetic
+fixtures. Baseline 37 pass. Removing the correlated likes predicate gives one
+expected count failure; replacing whole-tag membership with substring matching
+gives one expected neighbor-row failure. Both mutations restored; db.ts diff
+empty before extraction. Read-only canonical TypeScript AST comparison proves
+the executable body and facade parameters/return type unchanged except passing
+the existing client. Tags restored in finally, fixture likes removed by existing
+owned user cleanup; no arbitrary working data or remote resources touched.
+
+Final serial five-file content invocation 141 pass: 60 real SQL (37 native content,
+20 admin content, 3 persistence) and 81 maintenance/transport doubles. Full 1890
+pass / 814 opt-in skips, 137 files with successful checks / 44 all-skipped files.
+Root/frontend/E2E types, 425.9 kB backend build, Next web build (28 static pages),
+unchanged 73 procedures/25642-byte API, 572-file boundaries, frontend lint and
+selected formatting pass. Client regression 208 pass (already in full suite,
+not an additional unique test count). Documentation/local-link and diff checks
+recorded with the local commit. No new browser/device or successful acquiring
+acceptance follows from these checks.
+
+Five-axis self-review: content-specific read ownership reduces facade duties,
+no extra abstraction or import cycle. Distinct field projections are intentional,
+not merged into a broader response. Existing tag validation/services/access
+remain unchanged; no dynamic SQL, new PII logging or external request. Same
+query count and unpaginated legacy behavior preserved, not a speed improvement.
+Missing-DB/media transport errors retain existing double coverage; no new real
+SQL-fault injection claim. No new auth/CORS/proxy/quota/payment-policy change,
+frontend edit, branch merge, push or deployment. Remaining M08/M06/identity/M07c/
+provider/SMTP/device/dependency/rollout gates stay open; await provider response
+to the user's already-sent website chat request, do not duplicate the send.
+
+Owned mysql:8.4 dd-legacy-feed-20261009-1530, loopback 63140, synthetic backend_test,
+tmpfs/no mounts, 512 MiB/one CPU. Exact ID
+1b22ee17d0c1b85d7388aef1437b7091e48723df05acb50f054838780fbcb407 rechecked for
+ownership/tmpfs/no mounts/no OOM and removed; matching owner inventory empty.
+Only this run's disposable synthetic data removed, working DB untouched. JSON
+evidence: /tmp/daryadarcy-legacy-feed-{baseline,count-red,tag-red,green,full}.json,
+plus fresh static/type/build/regression task outputs. Local commit only; no new
+schedule or automatic continuation enabled.

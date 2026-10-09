@@ -2074,3 +2074,21 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout gates
   remain open. No frontend, auth/payment policy, remote merge/push/deploy, new
   payment or server acceptance. Await provider reply to the user's sent request.
+
+### M08 legacy feed read repository — 9 October, continuation
+
+- [x] Continue clean b708ff1. Move getPosts to the existing content catalog
+  repository, preserving facade signature, executable AST, single client
+  acquisition, projection/visibility/order/tag membership/media/errors.
+- [x] Two native HTTP/MySQL characterizations; baseline 37 pass. Uncorrelated
+  likes and substring-tag mutations each give one expected RED failure and are
+  restored before extraction. No normalization or commentCount field added.
+- [x] Final 141 selected pass (60 real SQL, 81 doubles); full 1890 pass / 814
+  opt-in skips. Types, backend/web builds, unchanged API, boundaries, frontend
+  lint, selected formatting/docs/diff checked; client regression 208 pass.
+  Exact owned tmpfs DB removed after owner/no-mount/no-OOM checks; matching
+  inventory empty, working DB untouched. Evidence and review in plan.md.
+- [ ] Legacy list remains unpaginated; no query/performance/SQL-error acceptance
+  change. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout
+  gates stay open. No frontend edits, payment-policy changes, merge/push/deploy
+  or new payment; no recurring continuation enabled.
