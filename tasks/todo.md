@@ -1895,3 +1895,19 @@ drafts remain local after interruption; disposable container already removed.
   open. Inspect remaining safe M08 domain/repository scopes next, not another
   completed payment/cancellation wrapper. No runtime/frontend/shared-server,
   policy/schema/dependency, actual payment, merge/push or deployment changes.
+
+### Frontend/admin stale article save — 9 October, early morning
+
+- [x] Fresh staging fetch confirms current frontend already included. Fix
+  updateArticle acknowledgement of missing/deleted article: NOT_FOUND/404 under
+  existing row lock, before article/teaser writes. Preserve same-data successful
+  save and idempotent delete/orphan cleanup, schemas/roles and lock/transaction.
+- [x] RED four native missing/stale/orphan/concurrent cases; GREEN 36 focused,
+  final eight-file SQL 156 pass; full 1877 pass / 782 opt-in SQL/external skips.
+  Types/build/API/boundaries/lint pass, review and existing API/handoff updated.
+  No frontend edit or browser/server acceptance claimed. Evidence in plan.md.
+  Owned tmpfs MySQL removed after identity/owner/no-mount/no-OOM verification;
+  owner inventory empty. Only synthetic resources from this run removed.
+- [ ] First-email scenario still needs explicit user approval; M07c human drain
+  bound, optimistic article revisions, actual provider/SMTP/devices and previous
+  rollout/dependency gates remain open. No push, merge or server deployment.

@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
@@ -94,14 +95,16 @@ export async function updateArticle(
 ): Promise<void> {
   await database.transaction(async (tx) => {
     // A current read before any snapshot/teaser read serializes article writers.
-    await tx
+    const [existing] = await tx
       .select({ id: articles.id })
       .from(articles)
       .where(eq(articles.id, id))
       .for("update");
+    if (!existing)
+      throw new TRPCError({ code: "NOT_FOUND", message: "Статья не найдена" });
     const patch = { ...data };
     if (data.sections) patch.sections = sectionsForStorage(data.sections);
-    // Preserve the existing empty-patch error and nonempty missing-ID success.
+    // Preserve the existing empty-patch error for an existing article.
     await tx.update(articles).set(patch).where(eq(articles.id, id));
     const [article] = await tx
       .select()

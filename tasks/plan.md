@@ -5644,3 +5644,58 @@ does not close M06, real provider/recurring/device/mail acceptance or existing
 dependency/rollout gates. Safe remaining M08 domain/repository scopes can be
 inspected next; do not repeat these completed notification guard tests. No
 frontend, merge/push/deployment or shared-server configuration changes.
+
+### Frontend/admin alignment: stale article save — 9 October, early morning
+
+Human again requests matching backend/admin to the current frontend. Fresh fetch:
+origin/staging 7524987 is already an ancestor, frontend 0b77270 present; no remote
+commits to merge. Preserve current feature branch and unrelated work. The article
+editor treats {ok:true} as durable acknowledgement and retains draft on explicit
+4xx, but updateArticle historically acknowledged a missing/deleted article.
+
+Intentional public error-contract correction: consume the existing SELECT FOR
+UPDATE result and refuse absent article with NOT_FOUND/404 before mutation. Same
+lock order, transaction, schemas/roles/session, storage normalization, successful
+{ok:true} and compiled/native composition. Do not infer absence from affectedRows:
+identical nonempty saves stay successful. Delete of missing article remains
+idempotent and still cleans a legacy orphan teaser; refused update leaves it alone.
+Existing-article empty patch still returns the previous generic 500. This does not
+implement optimistic revision conflict handling or first-email identity binding.
+
+RED before runtime change: four native HTTP/JWT/SQL failures, all {ok:true} instead
+of 404 (missing ID, stale positive ID after actual admin deletion, legacy orphan,
+edit queued behind deletion). Concurrent test observes actual PK data-lock wait,
+gates the owned teaser DELETE trigger, commits deletion before the edit resumes.
+GREEN: 36 focused article checks, then final eight-file expanded SQL 156 pass,
+including unchanged-data save, compiled ESM, rights, rollback, publication,
+discussion/media cleanup and moderator audit. Full 1877 pass / 782 opt-in skips,
+137 files pass / 43 skip. Types root/frontend/E2E, backend build 422.0 kB,
+API 73 procedures/25642 bytes, boundaries 565 and lint pass. No actual browser,
+device, SMTP/provider or shared-server acceptance is claimed.
+
+Review: seven-line runtime diff in existing writer; no extra query/dependency or
+wrapper, parameterized existing PK lock, error before writes, rollback and
+serialization covered. Tests exercise real public admin middleware/session;
+negative/orphan fixtures and all cleanup belong only to this run. Auxiliary skill
+checklists previously unavailable; primary five-axis review and project gates used.
+API and existing handoff record the intentional 200-to-404 change and limits.
+
+Owned disposable MySQL: existing local mysql:8.4, loopback 50160, tmpfs/no mounts,
+512 MiB/one CPU. Owner dd-article-editor-contract-20261009-0303; diagnostic grant
+and trigger-creator setting only on this owned instance. Exact container ID:
+3e7db1e6d776efa3ec91c65660763091b116b79f958cab6dc9b5e8d0de471479.
+Before removal, exact ID/owner/tmpfs/no mounts/no OOM verified; exact container
+removed and matching owner inventory empty. Only synthetic run data removed,
+not recoverable or needed. No working database touched.
+Evidence: /tmp/daryadarcy-article-editor-{red,green,sql,sql-final,full,types,build,
+lint}.log plus API/boundary output. No frontend, auth/CORS/proxy/quota,
+schema/dependency, payment/provider, merge/push/deploy or working DB changes.
+First-email identity scenario, M07c drain bound, provider/SMTP/recurring/device and
+previous dependency/rollout gates remain open.
+
+Verification notes: the attempted tests/docs-links.test.ts filter does not exist
+and ran no tests; the correct __tests__/documentation-links.test.ts and
+__tests__/documentation-cli.test.ts then passed all 14 checks. Docs command
+itself passed 51 documents.
+Formatting of old Markdown produced unrelated changes; restored those exact
+original hunks and kept only new sections before commit. No waived test failure.

@@ -257,7 +257,7 @@ describe.skipIf(!testDatabaseUrl)("atomic article/teaser writes", () => {
   });
 
   async function withGate(
-    event: "INSERT" | "UPDATE",
+    event: "INSERT" | "UPDATE" | "DELETE",
     predicate: string,
     check: (requests: Promise<unknown>[]) => Promise<void>,
   ) {
@@ -415,5 +415,28 @@ describe.skipIf(!testDatabaseUrl)("atomic article/teaser writes", () => {
       ok: true,
     });
     expect(await teasers()).toEqual([]);
+  });
+  it("refuses a stale edit waiting behind a committed article deletion", async () => {
+    await admin.updateArticle.mutate({ id: 9071, published: true });
+    await withGate("DELETE", "OLD.source='article:9071'", async (requests) => {
+      const deletion = admin.deleteArticle.mutate({ id: 9071 });
+      start(requests, deletion);
+      await waitForGate();
+      const edit = admin.updateArticle.mutate({
+        id: 9071,
+        title: "Unsaved concurrent edit",
+        published: true,
+      });
+      start(requests, edit);
+      await waitForArticleWriter();
+      await conn.query("SELECT RELEASE_LOCK(?)", [gate]);
+      expect(await deletion).toEqual({ ok: true });
+      await expect(edit).rejects.toMatchObject({
+        message: "Статья не найдена",
+        data: { code: "NOT_FOUND", httpStatus: 404 },
+      });
+      expect(await article(9071)).toBeUndefined();
+      expect(await teasers(9071)).toEqual([]);
+    });
   });
 });

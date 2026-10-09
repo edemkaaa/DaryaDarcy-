@@ -245,6 +245,18 @@ describe.skipIf(!testDatabaseUrl)(
           target: "club",
         },
       ]);
+      const savedArticle = await article(id);
+      const savedTeaser = await teaser(id);
+      expect(
+        await admin.updateArticle.mutate({
+          id,
+          title: "Renamed",
+          published: true,
+          coverUrl: "https://assets.example.test/cover.jpg",
+        }),
+      ).toEqual({ ok: true });
+      expect(await article(id)).toEqual(savedArticle);
+      expect(await teaser(id)).toEqual(savedTeaser);
       expect(await admin.updateArticle.mutate({ id, coverUrl: null })).toEqual({
         ok: true,
       });
@@ -318,15 +330,66 @@ describe.skipIf(!testDatabaseUrl)(
         expect(rows).toEqual([]);
       }
     });
-    it("retains success for update/delete of a missing article without creating a teaser", async () => {
+    it("refuses update of a missing article without creating a teaser", async () => {
       const admin = client(bearer).admin;
-      expect(
-        await admin.updateArticle.mutate({ id: -1, title: "Missing" }),
-      ).toEqual({ ok: true });
+      await expect(
+        admin.updateArticle.mutate({ id: -1, title: "Missing" }),
+      ).rejects.toMatchObject({
+        message: "Статья не найдена",
+        data: { code: "NOT_FOUND", httpStatus: 404 },
+      });
+      expect(await teaser(-1)).toEqual([]);
+    });
+    it("keeps deletion of a missing article idempotent", async () => {
+      const admin = client(bearer).admin;
       expect(await admin.deleteArticle.mutate({ id: -1 })).toEqual({
         ok: true,
       });
       expect(await teaser(-1)).toEqual([]);
+    });
+    it("refuses a stale editor save after the article was deleted", async () => {
+      const id = await create({ title: "native stale editor", sections: [] });
+      const admin = client(bearer).admin;
+      expect(await admin.deleteArticle.mutate({ id })).toEqual({ ok: true });
+      await expect(
+        admin.updateArticle.mutate({
+          id,
+          title: "Unsaved stale edit",
+          published: true,
+          sections: [{ type: "text", text: "Retain this editor draft" }],
+        }),
+      ).rejects.toMatchObject({
+        message: "Статья не найдена",
+        data: { code: "NOT_FOUND", httpStatus: 404 },
+      });
+      expect(await article(id)).toBeUndefined();
+      expect(await teaser(id)).toEqual([]);
+    });
+    it("leaves an orphan teaser unchanged on a refused edit until explicit deletion", async () => {
+      const id = await create({ title: "native orphan article", sections: [] });
+      const before = await teaser(id);
+      expect(before).toHaveLength(1);
+      await conn.query("DELETE FROM articles WHERE id=?", [id]);
+      const admin = client(bearer).admin;
+      await expect(
+        admin.updateArticle.mutate({ id, title: "Unsaved orphan edit" }),
+      ).rejects.toMatchObject({
+        data: { code: "NOT_FOUND", httpStatus: 404 },
+      });
+      expect(await article(id)).toBeUndefined();
+      expect(await teaser(id)).toEqual(before);
+      expect(await admin.deleteArticle.mutate({ id })).toEqual({ ok: true });
+      expect(await teaser(id)).toEqual([]);
+    });
+    it("preserves refusal of an empty patch for an existing article", async () => {
+      const before = await article(9061);
+      await expect(
+        client(bearer).admin.updateArticle.mutate({ id: 9061 }),
+      ).rejects.toMatchObject({
+        data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+      });
+      expect(await article(9061)).toEqual(before);
+      expect(await teaser(9061)).toEqual([]);
     });
     it.each([
       { title: " ", sections: [] },
