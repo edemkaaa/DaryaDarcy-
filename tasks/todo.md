@@ -1972,3 +1972,17 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] Remaining safe repository scopes and prior identity/M07c/provider/SMTP/
   device/dependency/rollout gates stay open. This new slice is local only, without
   frontend, actual payment, automatic merge/push/deploy or server acceptance.
+
+### M05/M08 ordinary-reader article acceptance — 9 October, before deadline
+
+- [x] Four new real HTTP/JWT/SQL cases protect paid ordinary-reader access,
+  next-request expiry revocation, pending/failed refusal and immediate block.
+  Reuse one exact synthetic order/owned account; no session or SQL double.
+- [x] Baseline 32 pass, three mutation RED failures, runtime restored exactly.
+  Final 85 selected pass (67 real SQL), full 1889 pass / 805 opt-in skips;
+  types/build/API/boundaries/lint/format checked. Existing handoff/review/evidence
+  saved in plan.md. Owned tmpfs container removed after exact ownership/no-mount/
+  no-OOM checks; matching inventory empty, working DB untouched.
+- [ ] Previous first-email/M07c/provider/SMTP/device/dependency/rollout gates and
+  remaining repository work remain open. Test-only local increment, no runtime
+  authorization/payment policy, frontend, remote merge/push/deploy or server claim.

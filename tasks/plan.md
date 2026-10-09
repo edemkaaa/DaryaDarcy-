@@ -5900,3 +5900,49 @@ empty. Only synthetic run data removed, unrecoverable and not needed; working
 DB untouched. Logs /tmp/daryadarcy-article-repository-{baseline,red,green,sql,
 full,types,build,lint}.log plus AST/API/boundary/docs output. Deadline 01:06 UTC
 unchanged; no new authorization inferred from the earlier staging update.
+
+### M05/M08 native ordinary-reader article acceptance — 9 October, before deadline
+
+Continue from clean 6999b2f, feature ahead one of staging. Inspect current plan,
+remaining db facade and M06 settlement: pure preparation/request-neutral branches
+already separated, no reason to rush transaction/replay changes near deadline.
+Choose a small remaining content acceptance gap after article repository split:
+previous native cases exercised guest/admin, while ordinary subscriber checks
+used policy doubles. No new runtime behavior or authorization decision.
+
+Four native HTTP/JWT/MySQL cases reuse owned account 9060 with role reset to user
+and one exact synthetic payment order. Paid future expiry opens the club body;
+changing expiry to past closes the next request with the same JWT, while public
+body remains available. Future pending/failed payments do not unlock. Blocking
+an already authenticated paid reader closes the next request, hidden detail still
+absent. Existing real SDK discards the blocked session, public read returns guest
+locked projection; no auth workaround or new 401/403 expectation. Payment cleanup
+matches exact fixture order and recipient, before each/after all, never real data.
+
+Baseline 32 pass. Temporary status/expiry bypass in getActiveClubSubscription
+produces three expected assertion failures / 29 pass. Original runtime restored
+byte-for-byte, final diff contains no apps/backend change. GREEN four-file 85 pass:
+67 real SQL cases (32 articles, 12 article consistency, 23 grants) plus 18 existing
+policy-double cases. Full default 1889 pass / 805 opt-in skips, 137 files pass /
+44 skip. Root/frontend/E2E types, 423.3 kB build, unchanged 73 procedures/25642-byte
+API, 567-file boundaries, lint and selected formatting pass. Existing handoff
+updated; human docs checked with repository gate, no prose/source-text tests.
+
+Review: independent literal body/expiry/status fixtures exercise actual session,
+role lookup, subscription SQL and public response, not mock behavior. Threat is
+club-body disclosure from stale session or unconfirmed payment; no new PII,
+provider request, dependency, connection owner or production complexity. No
+auth/CORS/proxy/quota/schema/frontend/payment-policy change, remote operation or
+deployment. M07c drain bound, first-email binding scenario, provider/SMTP/device/
+dependency/rollout acceptance remain human/external gates. Remaining repository
+and transactional scopes stay open, not claimed finished by these tests.
+
+Owned existing local mysql:8.4, loopback 61016, tmpfs/no mounts, 512 MiB/one CPU,
+owner dd-article-reader-acceptance-20261009-0355. Concurrency diagnostics SELECT
+granted only inside this synthetic container to its fixture user. Exact ID
+4ebabdd3b6f7970be6bbd67a35baa9572d90a8fae31bb8f7875d9bdb0171e192 inspected
+again for exact owner/tmpfs/no mounts/no OOM then removed; matching owner inventory
+empty. Only synthetic data removed, not recoverable or needed; working DB untouched.
+Evidence /tmp/daryadarcy-article-reader-{baseline,red,green,full,types,build,lint}.log.
+Night deadline remains 01:06 UTC. Do not begin another substantial unverified slice
+at the cutoff; report current checkpoint and disable continuation after deadline.

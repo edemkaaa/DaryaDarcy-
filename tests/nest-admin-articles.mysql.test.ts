@@ -52,6 +52,9 @@ describe.skipIf(!testDatabaseUrl)(
         .filter((row) => row.id >= 9060 && row.id <= 9062)
         .map((row) => row.id);
     async function clearOwnedRows() {
+      await conn.query(
+        "DELETE FROM club_payments WHERE orderId='native-article-reader-access' AND userId=9060",
+      );
       await conn.query("DELETE FROM comment_likes WHERE commentId=9060");
       await conn.query("DELETE FROM comment_reports WHERE commentId=9060");
       await conn.query("DELETE FROM post_comments WHERE id=9060");
@@ -224,6 +227,61 @@ describe.skipIf(!testDatabaseUrl)(
         locked: false,
         sections: expected,
       });
+    });
+    async function ordinaryReader(status: "paid" | "pending" | "failed") {
+      await conn.query("UPDATE users SET role='user' WHERE id=9060");
+      await conn.query(
+        "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (9060,'native-article-reader-access',?,'990.00','2037-01-01')",
+        [status],
+      );
+      return client(bearer).articles;
+    }
+    const lockedClubArticle = {
+      id: 9062,
+      title: "native private article",
+      coverUrl: null,
+      access: "club",
+      locked: true,
+      sections: [],
+    };
+    it("rechecks a paid ordinary reader's expiry on the next request with the same session", async () => {
+      const reader = await ordinaryReader("paid");
+      expect(await reader.getById.query({ id: 9062 })).toEqual({
+        ...lockedClubArticle,
+        locked: false,
+        sections: [{ type: "text", text: "private body" }],
+      });
+      await conn.query(
+        "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-article-reader-access'",
+      );
+      expect(await reader.getById.query({ id: 9062 })).toEqual(
+        lockedClubArticle,
+      );
+      expect(await reader.getById.query({ id: 9060 })).toMatchObject({
+        locked: false,
+        sections: [{ type: "text", text: "public body" }],
+      });
+    });
+    it.each(["pending", "failed"] as const)(
+      "does not unlock an ordinary reader's article from a future %s payment",
+      async (status) => {
+        const reader = await ordinaryReader(status);
+        expect(await reader.getById.query({ id: 9062 })).toEqual(
+          lockedClubArticle,
+        );
+      },
+    );
+    it("locks a paid reader's article immediately after blocking the account with an existing session", async () => {
+      const reader = await ordinaryReader("paid");
+      expect(await reader.getById.query({ id: 9062 })).toMatchObject({
+        locked: false,
+        sections: [{ type: "text", text: "private body" }],
+      });
+      await conn.query("UPDATE users SET blockedAt='2026-01-01' WHERE id=9060");
+      expect(await reader.getById.query({ id: 9062 })).toEqual(
+        lockedClubArticle,
+      );
+      expect(await reader.getById.query({ id: 9061 })).toBeUndefined();
     });
     it("creates a trimmed club article with existing defaults and one teaser", async () => {
       const id = await create({
