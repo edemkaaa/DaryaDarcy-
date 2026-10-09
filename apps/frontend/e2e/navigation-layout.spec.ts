@@ -233,14 +233,26 @@ test("back preserves actual app history across reload and forward, with a fallba
     const button = page
       .locator(headerSelector)
       .getByRole("button", { name: "Вернуться назад" });
-    const box = await button.boundingBox();
-    if (box && box.y < 0) {
-      const scroll = page.locator(scrollSelector).first();
-      await scroll.hover();
-      await page.mouse.wheel(0, 120);
-      await page.mouse.wheel(0, -1200);
-    }
-    await expect(button).toBeInViewport();
+    // Wheel dispatch does not wait for the compositor's scroll. Observe both
+    // positions before clicking; native wheel behavior has its own header suite.
+    const scroll = page.locator(scrollSelector).first();
+    const position = await scroll.evaluate((node) => {
+      node.scrollTop = node.scrollHeight;
+      return node.scrollTop;
+    });
+    if (position > 20)
+      await expect(page.locator(headerSelector)).toHaveAttribute(
+        "data-hidden",
+        "true",
+      );
+    await scroll.evaluate((node) => {
+      node.scrollTop = 0;
+    });
+    await expect(page.locator(headerSelector)).toHaveAttribute(
+      "data-hidden",
+      "false",
+    );
+    await expect(button).toBeInViewport({ ratio: 1 });
     await button.click();
   };
   await back();
