@@ -2268,7 +2268,11 @@ drafts remain local after interruption; disposable container already removed.
       frontend scenarios: 145 selected browser cases pass. Repeated full unit run
       2024 pass / 840 opt-in skips; frontend build/types/lint pass. Review and
       screenshots confirm existing layout. See the current admin audit report.
-- [ ] Confirm the first-email-binding identity scenario, then implement the
-      confirmed scope and connect the existing frontend form with acceptance.
+- [x] Human confirmed first binding admin-only, for an account without email,
+      with email confirmation, no account merge and rejection of occupied email.
+- [ ] Approve the detailed schema/concurrency plan in SPEC-email-binding.md:
+      separate proofs, normalized uniqueness, existing-upsert collision guard.
+- [ ] Implement verified slices and connect the existing frontend form after
+      this approval; real SQL/SMTP/rollout acceptance must not be inferred.
 - [ ] Joint provider/SMTP/device/admin acceptance and deployment remain separate;
       no staging push or server change in this local continuation.

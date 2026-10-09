@@ -6762,3 +6762,27 @@ Current [admin scope report](../docs/audits/admin-completion-2026-10-10.md) reco
 the saved contract source, frontend integration and outstanding real acceptance.
 First binding still awaits the human identity/email-confirmation decision. No
 remote push, deployment, provider request, email dispatch or working SQL fixture.
+
+### First email binding — 10 October, approved feature continuation
+
+The human approved admin-only first binding with recipient confirmation, no
+merge/replacement and rejection of occupied email. The prior feature-scenario
+question is resolved. [Detailed spec](../SPEC-email-binding.md) now records the
+API, threat boundaries, ordered slices and acceptance before production code.
+
+New prerequisite found by source inspection: users.email has only a non-unique
+lookup index. A read-before-write check cannot prevent concurrent binding and
+registration/checkout. Unique normalized identity is required, but existing
+upsertUser uses unconditional ON DUPLICATE KEY UPDATE; adding an email unique
+key without guarding cross-identity conflicts can overwrite a different account.
+Protect this writer and verify existing callers before enabling the constraint.
+This is a proposed schema/concurrency plan, not a tested production defect or
+permission to repair old users. Old duplicates must stop rollout, not be merged.
+
+An async human approval question now covers the schema plan, 24-hour confirmation
+expiry and separate rollout/mail acceptance. Await that approval before schema
+or auth implementation, as required by spec-driven-development/security rules.
+No production code changed in this planning increment. Fresh loopback Docker
+socket ping timed out at three seconds; no Docker restart, container/database
+changes, secret/config reads, mail dispatch or server access. Original working
+branch and the two reviewed admin fixes retained.
