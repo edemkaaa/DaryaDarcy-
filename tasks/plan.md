@@ -6663,3 +6663,38 @@ fixture now asserts the required header instead of accepting every request.
 unchanged API and boundaries pass. Fresh serial full-suite: 1997 pass / 840 opt-in
 skips, 142 passing files; docs/format/diff checks pass. Final rollout evidence
 follows separately; local/fixture checks are not provider/SMTP acceptance.
+
+### Authorized staging/dev rollout completed — 10 October, 01:20 MSK
+
+Human supplied the dev guide/access and approved push plus update. Existing SSH
+key matched the provided public key; known-host checking retained. Normal pushes
+published 149f701 then the verified header fix 595d4a0. Frontend incoming history
+was already integrated; refetch found no incoming staging commits, no force or
+redundant merge. CI is verification-only, not a deployment trigger.
+
+Code 595d4a0 is now deployed on the exact DaryaDarcy dev host. Mac artifacts
+built with explicit Prodamus TEST mode; Linux target dependencies reused without
+installing packages or compiling on the small shared server. Isolated no-network
+Linux runtime/native WebP/API/TEST probes pass. Protected configuration, container
+identity/count snapshots and a completed 29-table compressed SQL backup precede
+the switch; no schema migration or SQL restore/test fixture. Rollback of the first
+attempt was exercised for code/config only, not database restore.
+
+Only API/web and the no-worker TEST bundle were switched. Host/edge nginx gained
+one exact POST /api/prodamus/test/result route (64 KiB/30 seconds, same host quota).
+Existing auth, origin protection, proxy trust, quotas, networks, provider/SMTP
+keys and all other project containers retained; seven DaryaDarcy services healthy,
+restart=0/OOM=false for the three replaced services. SQL counts preserved.
+13 public guest/catalog/access smoke checks and 8 strict result transport checks
+pass. Real deployed Chromium at 390 px sends the stable UUID with no cookies,
+receives unknown for a deliberately invalid proof, removes the fragment and
+shows no success/access. No provider requests, purchase, replay or email resend.
+Fresh compiled TEST native regression and restored ordinary build/native also
+pass. Native dependency audit remains 51 (1 critical/20 high/26 moderate/4 low);
+existing narrow TEST exception only, production/dependency gates still open.
+
+Runbook records artifact hashes and protected rollback location. This establishes
+the deployed read/UI transport, not a fresh successful provider transaction or
+SMTP delivery. Existing old links lack the new proof and are not rewritten;
+do not ask for another payment solely to obtain a return link. New guest/provider/
+mail/device acceptance and prior SBP/GPB provider errors remain open.

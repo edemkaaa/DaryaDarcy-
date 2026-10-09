@@ -2243,6 +2243,11 @@ drafts remain local after interruption; disposable container already removed.
       backend+TEST frontend builds. Ordinary frontend build/native and 24 existing
       club-payment browser regressions pass. Screenshots at 320/390/1440; wait
       for the real fade completion before measuring appearance. No style workaround.
-- [ ] Publish/deploy/edge-route exposure and actual new guest order, provider
-      notification, SMTP delivery and user browser acceptance. Local-only feature
-      branch; no push, server/cabinet change, real payment/mail or working SQL.
+- [x] Publish and deploy reviewed TEST return UI/result exposure on explicit
+      human approval, 10 October. Remote code 595d4a0; seven dev services healthy.
+      Initial 149f701 rollout rolled back when a real HTTP contract mismatch was
+      found; stable return quota header fixed through RED/GREEN before redeploy.
+      See plan and staging runbook for backups, exact route and rollback evidence.
+- [ ] Actual new guest order, provider notification, SMTP delivery and user
+      browser acceptance. Public browser check used an invalid proof only;
+      no payment, email resend, cabinet change or working SQL test fixture.

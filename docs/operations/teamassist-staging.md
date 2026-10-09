@@ -1121,3 +1121,76 @@ docker compose --env-file .env --env-file video-image.env \
 проверялась. Уже созданные provider links не переписываются; не советовать новую
 оплату только ради адреса возврата. Старый sandbox diagnostic `/club` без paid=1
 по-прежнему отличается от этого отдельно разрешённого TEST-entitlement flow.
+
+## Возврат гостя после TEST оплаты — 10 октября, 01:20 МСК
+
+Пользователь явно подтвердил push в staging и обновление dev, предоставив
+руководство и доступ. Exact dev target проверен: `edem@155.212.216.16`, hostname
+`teamassist-dev`; существующий ключ совпадает с предоставленным public key,
+StrictHostKeyChecking сохранён. Production не затронут. Прежняя ошибка alias
+не была недоступностью сервера; используется проверенный адрес из руководства.
+CI выполняет проверки, но сам по себе push сервер не обновляет.
+
+- В staging обычным push опубликован `149f701`, затем исправление
+  `595d4a0ad0066c369c6147bc4b4d0cf2cd03282e`; remote SHA проверен. Входящих
+  frontend commits после refetch не было; force push/повторный merge не нужен.
+- Проверка выявила реальную ошибку frontend: result reader не передавал
+  обязательный UUID `Idempotency-Key`. Первая выкладка откатилась на здоровую
+  предыдущую версию, затем RED воспроизвёл 400 настоящим frontend request через
+  локальный Nest HTTP. Минимальная правка передаёт UUID уже проверенного order
+  reference; повторы остаются в одном прежнем quota bucket. Двенадцать чтений
+  принимаются, тринадцатое получает 429. Серверные квоты/подписи не изменены.
+- Итоговый code release `595d4a0`, image `daryadarcy-staging:595d4a0`, amd64 ID
+  `sha256:662bdc85b32d49fcd5c2cb6feb9651b067eea7165ba1271b25e79956a3810cd9`.
+  Frontend собран локально с явным Prodamus TEST и выключенным YooKassa TEST.
+  Linux зависимости сохранены из проверенного предыдущего image; npm install,
+  обновление lockfile и тяжёлая компиляция на shared dev не выполнялись.
+  Штатная локальная сборка после упаковки восстановлена и проходит.
+- Backend bundle SHA-256
+  `2140f0f8825442b3f9e346766e4fbc497c83e9da283b46b153788c9105550080`;
+  TEST bundle `46a3c85e8f0c665ef1f6b174b7768b664e754fe6b5efe25d5b1f805f391b1c4e`.
+  Исправленный frontend archive SHA-256
+  `d4d39a8a1e6f75940c76f72c67a896aa8509afe28c4cef0c9f7460233ab5b757`.
+  Перед запуском проверены digest/path bounds, no-network Linux/native WebP/
+  dependency/API и compiled TEST runtime probes без БД/SMTP/worker jobs.
+- Защищённый release directory:
+  `/home/edem/apps/daryadarcy-staging/release-595d4a0.4nmLwU`.
+  До переключения сохранены конфиги/host nginx/container identities/counts и
+  `before.sql.gz` (600): проверены gzip completion и 29 CREATE TABLE. SQL dump
+  не выводился/не скачивался/не восстанавливался; restore SQL не тестировался.
+  Схема и зависимости относительно прежней версии неизменны; миграций нет.
+- Пересозданы только `api`, `web`, `prodamus-test` с `--no-deps --wait`. TEST
+  dependency image остаётся прежним pinned SHA; заменён versioned no-worker
+  bundle. Семь сервисов healthy; три новых restart=0/OOM=false. Все прочие
+  container ID/start times и SQL counts сохранены. Provider/SMTP/mysql/video
+  secrets/configs, auth, сети, CORS/proxy trust и quotas не изменены.
+- Открыт только exact **POST `/api/prodamus/test/result`** в host и edge nginx:
+  64 KiB, 30 секунд, прежний host rate limit. GET 405, неверная форма/query/cookie
+  400, чужой Origin 403, тип 415, размер 413. Live webhook/return и прочие
+  payment routes остаются закрыты. Внутри restricted runtime запрещённые
+  методы/пути дают 404; это намеренно отличается от внешнего nginx 405/503.
+- Свежие проверки: 1997 unit pass / 840 opt-in skips, 74 focused, 11 browser,
+  types/E2E/lint/API/boundaries/docs и TEST/обычная сборки, native TEST/обычный
+  режим проходят. 13 HTTPS guest/catalog/access smoke и 8 result transport
+  checks проходят. Настоящий deployed Chromium 390 px без interception получает
+  `200/unknown` для заведомо неверного proof, отправляет UUID без cookies,
+  очищает fragment и не показывает ложный успех/доступ. SQL только read-only
+  catalog/counts/backup, не acceptance fixture; новая оплата не инициировалась.
+
+Откат к прежней API/web/TEST версии и прежним exact routes:
+запустить `python3 /home/edem/apps/daryadarcy-staging/release-595d4a0.4nmLwU/rollout.py rollback`
+на проверенном dev. Скрипт восстанавливает только `.env` image tag,
+`compose.override.yaml`, `prodamus-test-image.env` и два nginx config из защищённых
+копий, сохраняет inode bind-mounted edge file, проверяет/reloads nginx и запускает
+те же три сервиса. Не восстанавливать SQL, не менять ключи или чужие проекты.
+Первый code/config rollback фактически прошёл; новая SQL restore не проверялась.
+
+Ограничения: checkout уже создаёт passwordless email row; только подписанное
+settlement выдаёт TEST доступ и ставит письмо в outbox. Возврат не создаёт сессию
+и не является доказательством оплаты. Новая фактическая guest/provider оплата,
+доставка письма и вход пользователя ещё не подтверждены этим rollout. Старые
+links без proof не переписываются; не просить платить снова только ради ссылки.
+СБП MNT_ID и GPB ошибки провайдера остаются открыты. Native audit по неизменному
+lockfile: **51 advisory (1 critical/20 high/26 moderate/4 low)**; прежнее узкое
+TEST исключение/review до 13 октября сохраняется, не production-разрешение.
+Кабинет Prodamus, повтор уведомления, отправка/повтор письма и платёж не выполнялись.
