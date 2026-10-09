@@ -6743,3 +6743,22 @@ Next independent slice: StatsDashboard ignores query isError when cached data
 exists. Reproduce a successful initial read followed by failed stale refetch in
 the browser, then verify explicit failure and successful retry. Keep existing
 layout and permissions; do not invent zero statistics or claim provider delivery.
+
+Second slice completed: one expected browser RED failure retained cached 17
+posts after the real query cache became stale and received a failed refetch.
+The component now uses isError and an accessible alert, retaining its existing
+retry/layout. Recovery displays fresh 18 posts; initial failure can also recover
+to genuine zero statistics. Two new browser tests use controlled API replies,
+not backend/SQL/SMTP. First regression plus four neighboring action scenarios
+passed twice (10 runs); expanded admin/editor/drafts/moderation/seasons/member/
+email selection passed 145 cases. Fresh full serial unit regression again gives
+2024 pass / 840 opt-in skipped. Frontend production build, types, lint, API (73),
+boundaries (586 files), docs and diff checks pass. Screenshots inspected at 390px;
+no CSS/design/auth/API/cache-policy/dependency changes. Five-axis self-review:
+error precedence/recovery correct; minimal local guard; existing client boundary;
+no private error disclosure; no added requests or heavy processing.
+
+Current [admin scope report](../docs/audits/admin-completion-2026-10-10.md) records
+the saved contract source, frontend integration and outstanding real acceptance.
+First binding still awaits the human identity/email-confirmation decision. No
+remote push, deployment, provider request, email dispatch or working SQL fixture.

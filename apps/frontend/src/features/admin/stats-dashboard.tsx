@@ -10,6 +10,7 @@ export function StatsDashboard() {
   const {
     data: stats,
     isLoading,
+    isError,
     refetch,
   } = trpc.admin.stats.useQuery(undefined, {});
   const [refreshing, setRefreshing] = useState(false);
@@ -29,9 +30,10 @@ export function StatsDashboard() {
       </div>
     );
   }
-  if (!stats) {
+  if (isError || !stats) {
     return (
       <div
+        role="alert"
         className={["ui-stack ", classes.loadingContainer]
           .filter(Boolean)
           .join(" ")}

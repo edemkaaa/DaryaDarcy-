@@ -2262,8 +2262,12 @@ drafts remain local after interruption; disposable container already removed.
       full serial regression 2024 pass / 840 opt-in skips. No query/auth changes.
 - [ ] Successful native SQL acceptance on an owned disposable DB: Docker server
       diagnostic did not respond and was stopped; no working DB fixtures used.
-- [ ] Browser RED/GREEN for statistics refetch failure with cached data: show
+- [x] Browser RED/GREEN for statistics refetch failure with cached data: show
       an explicit error and allow recovery instead of presenting old numbers.
+- [x] Recheck current editor/attachment/draft/moderation/season/member/email
+      frontend scenarios: 145 selected browser cases pass. Repeated full unit run
+      2024 pass / 840 opt-in skips; frontend build/types/lint pass. Review and
+      screenshots confirm existing layout. See the current admin audit report.
 - [ ] Confirm the first-email-binding identity scenario, then implement the
       confirmed scope and connect the existing frontend form with acceptance.
 - [ ] Joint provider/SMTP/device/admin acceptance and deployment remain separate;
