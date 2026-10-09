@@ -413,6 +413,8 @@ test("closing during upload ignores a late result and resets attachments and pre
     form.getByText("Аудио и документы (0)", { exact: true }),
   ).toBeVisible();
   await expect(form.getByText("late.mp3", { exact: true })).toHaveCount(0);
+  // Reopening starts draft recovery again; fill must not run inside the inert form.
+  await expect(form.locator(".ui-scroll")).not.toHaveAttribute("inert", "");
   await form
     .getByPlaceholder("Текст поста… Enter — новый абзац")
     .fill("NEW_DRAFT");

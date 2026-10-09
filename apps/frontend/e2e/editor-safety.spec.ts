@@ -169,6 +169,11 @@ test("a pending final write cannot be abandoned; confirmed completion allows a f
   });
   await page.goto("/admin");
   await page.getByRole("button", { name: /Новый$/ }).click();
+  await expect(
+    page
+      .getByRole("dialog", { name: "Редактор публикации" })
+      .locator(".ui-scroll"),
+  ).not.toHaveAttribute("inert", "");
   await page
     .getByPlaceholder("Текст поста… Enter — новый абзац")
     .fill("OLD_TEXT");
@@ -188,6 +193,12 @@ test("a pending final write cannot be abandoned; confirmed completion allows a f
   ).toHaveCount(0);
   await page.getByRole("button", { name: /Новый$/ }).click();
   const field = page.getByPlaceholder("Текст поста… Enter — новый абзац");
+  // A fresh editor is visible before its asynchronous draft recovery completes.
+  await expect(
+    page
+      .getByRole("dialog", { name: "Редактор публикации" })
+      .locator(".ui-scroll"),
+  ).not.toHaveAttribute("inert", "");
   await field.fill("NEW_TEXT");
   await expect(field).toHaveValue("NEW_TEXT");
   await expect(
@@ -850,9 +861,17 @@ test("an expired session during an editor write closes private UI before any err
   });
   await page.goto("/admin");
   await page.getByRole("button", { name: /Новый$/ }).click();
+  await expect(
+    page
+      .getByRole("dialog", { name: "Редактор публикации" })
+      .locator(".ui-scroll"),
+  ).not.toHaveAttribute("inert", "");
   await page
     .getByPlaceholder("Текст поста… Enter — новый абзац")
     .fill("PRIVATE_TEST_DRAFT");
+  await expect(
+    page.getByPlaceholder("Текст поста… Enter — новый абзац"),
+  ).toHaveValue("PRIVATE_TEST_DRAFT");
   await page.getByRole("button", { name: "Сохранить", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Войти", exact: true }),

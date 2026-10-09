@@ -29,6 +29,7 @@ for (const mode of ["full", "quick"] as const) {
       });
       await open.click();
       const form = page.getByRole("dialog", { name: "Редактор публикации" });
+      await expect(form.locator(".ui-scroll")).not.toHaveAttribute("inert", "");
       const text = form.getByPlaceholder("Текст поста… Enter — новый абзац");
       const submit = form
         .getByRole("button", {
@@ -54,6 +55,7 @@ for (const mode of ["full", "quick"] as const) {
       }
       // A confirmed creation terminates its intent even for identical text.
       await open.click();
+      await expect(form.locator(".ui-scroll")).not.toHaveAttribute("inert", "");
       await text.fill(changed ? "CORRECTED_INTENT" : "FIRST_INTENT");
       await submit.click();
       await expect(form).toHaveCount(0);
