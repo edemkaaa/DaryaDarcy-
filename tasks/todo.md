@@ -2092,3 +2092,18 @@ drafts remain local after interruption; disposable container already removed.
   change. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout
   gates stay open. No frontend edits, payment-policy changes, merge/push/deploy
   or new payment; no recurring continuation enabled.
+
+### M08 full admin post catalog — 9 October, continuation
+
+- [x] Continue clean 4b3a9ac. Move getAllPostsAdmin to the existing admin content
+  repository; preserve executable AST/facade signature, one client, private rows,
+  canonical sort/media/errors. Access stays at the unchanged native boundary.
+- [x] Two new native HTTP/MySQL cases, baseline 22 pass; wrong date and neighbor
+  media mutations each fail one check, restored before extraction.
+- [x] Final 143 selected pass (62 real SQL, 81 doubles); full 1890 pass / 816
+  opt-in skips. Types, both builds, API/boundaries, frontend lint, selected
+  formatting/docs/diff checked; client regression 208 pass. Exact owned tmpfs
+  DB removed after ownership/no-mount/no-OOM check; working DB untouched.
+- [ ] No pagination/performance/auth/payment-policy change or new SQL-fault
+  acceptance. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/
+  rollout gates open; no frontend edit, merge/push/deploy or new continuation.

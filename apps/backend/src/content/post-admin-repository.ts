@@ -5,12 +5,26 @@ import {
   likes,
   savedPosts,
   type Post,
+  type PostMedia,
 } from "../../../../packages/database/src/schema";
-import { postDateOrder } from "./post-order";
+import { attachPostMedia } from "./post-media-repository";
+import { postDateOrder, postListOrder } from "./post-order";
 
 // db.ts owns the connection; the native admin boundary owns access checks.
 // These projections deliberately retain hidden posts and legacy row counts.
 type Database = MySql2Database | null;
+
+export async function getAllPostsAdmin(
+  db: Database,
+): Promise<(Post & { media: PostMedia[] })[]> {
+  if (!db) throw new Error("Database not available");
+
+  const rows = await db
+    .select()
+    .from(posts)
+    .orderBy(...postListOrder);
+  return attachPostMedia(db, rows);
+}
 
 export async function getAdminPostsFiltered(
   db: Database,

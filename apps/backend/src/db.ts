@@ -12,10 +12,8 @@ import { confirmPostPublication, type PostPublication } from "./content/publicat
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
 import { deletePost as persistPostDeletion } from "./content/post-deletion";
 import {
-  attachPostMedia,
   getPostMediaByPostId as readPostMediaByPostId,
 } from "./content/post-media-repository";
-import { postListOrder } from "./content/post-order";
 import {
   getPostById as readPostDetail,
   getLatestPublishedPost as readLatestPublishedPost,
@@ -27,6 +25,7 @@ import {
   getPostsForTarget as readTargetPosts,
 } from "./content/post-catalog-repository";
 import {
+  getAllPostsAdmin as readAllAdminPosts,
   getAdminPostsFiltered as readAdminPostsFiltered,
   getScheduledPosts as readScheduledPosts,
   getPostStatistics as readPostStatistics,
@@ -405,11 +404,7 @@ export async function deletePost(id: number): Promise<void> {
 
 // Get all posts for admin (including unpublished)
 export async function getAllPostsAdmin(): Promise<(Post & { media: PostMedia[] })[]> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const rows = await db.select().from(posts).orderBy(...postListOrder);
-  return attachPostMedia(db, rows);
+  return readAllAdminPosts(await getDb());
 }
 
 // Get post by Instagram ID (for dedup during import)

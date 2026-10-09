@@ -6255,3 +6255,48 @@ Only this run's disposable synthetic data removed, working DB untouched. JSON
 evidence: /tmp/daryadarcy-legacy-feed-{baseline,count-red,tag-red,green,full}.json,
 plus fresh static/type/build/regression task outputs. Local commit only; no new
 schedule or automatic continuation enabled.
+
+### M08 full admin post catalog — 9 October, continuation
+
+Resume clean 4b3a9ac on the same feature branch. Move getAllPostsAdmin to the
+existing content/post-admin-repository.ts, completing ownership of this read
+alongside admin filters/calendar/statistics without changing their semantics.
+Keep full Post projection, private rows, canonical list order/date fallback,
+shared batch media and throwing no-DB behavior. Same db.ts facade signature and
+one lazy acquisition; no new query/pool/schema/API/dependency. Only now-unused
+facade imports of the same shared helpers removed; their implementations remain.
+
+Two native HTTP/JWT/MySQL characterizations: equal sort positions ordered by
+publication date with creation fallback, and empty posts never receiving the
+private draft's files. Four additional owned synthetic posts are removed in
+finally. Baseline 22 pass; creation-only date sorting and neighbor-media fallback
+each produce one expected RED failure. Both restored; db.ts diff empty before
+extraction. Canonical executable AST and facade signature match the original
+except passing the existing client. No test assertions derived from the ordering
+helper; literal expected IDs checked against fixed dates via real admin HTTP.
+
+Final serial five-file content run 143 pass: 62 real SQL (37 native content,
+22 native admin content, 3 persistence), 81 maintenance/transport doubles.
+Existing compiled ESM, hidden/draft/media and live guest/role/block/session
+refusals pass. Full 1890 pass / 816 opt-in skips; 137 files pass / 44 skip.
+Root/frontend/E2E types, 425.9 kB backend and Next web builds, unchanged 73
+procedures/25642-byte API, 572-file boundaries, frontend lint/selected formatting
+pass; client regression 208 pass, already counted in the full suite. Docs/link
+and whitespace checks recorded with this local commit.
+
+Five-axis self-review: no new abstraction/cycle, access path or sensitive-data
+flow; canonical helpers reused. Same queries and unpaginated admin catalog;
+filtered/date-only reads deliberately remain different. No auth/CORS/proxy/quota,
+transaction/replay/payment policy or frontend change. Existing transport doubles
+cover absent DB/media failure; no new real SQL fault injection or server/payment
+acceptance claim. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/
+rollout gates remain open; user already sent Prodamus diagnostic request, do not
+duplicate it. Local commit only, no remote merge/push/deploy or new schedule.
+
+Owned mysql:8.4 dd-admin-catalog-20261009-1600, synthetic backend_test on loopback
+55536, tmpfs/no mounts, 512 MiB/one CPU. Exact ID
+f2d4406360ada2cff1ea74bf20a46835934f810d6f1d85fe0dc5764c91647eb9 rechecked for
+owner/tmpfs/no mounts/no OOM and removed; matching owner inventory empty. Only
+this run's synthetic data removed, working DB untouched. JSON evidence:
+/tmp/daryadarcy-admin-catalog-{baseline,date-red,media-red,green,full}.json,
+plus fresh static/type/build/regression task outputs.
