@@ -6393,7 +6393,7 @@ verified payment; unconfirmed results stay pending. Existing email account
 creation and transactional access-email queue are reused, not reimplemented.
 Entering an email or returning with paid=1 must never authenticate or grant.
 
-Contract proposal (not implemented): a short-lived, purpose-separated HMAC
+Backend contract implemented locally (dialog/exposure pending): a short-lived, purpose-separated HMAC
 reference for one saved TEST order in the successful-return URL fragment.
 A JSON POST result boundary reads that order's durable receipt and corresponding
 mail status, returning only state/nextAction/emailStatus. No email, IDs, password
@@ -6418,11 +6418,55 @@ deployment/edge exposure, auth/schema/quotas or real SMTP/provider actions.
 Never trust paid=1, send plaintext passwords, issue guest sessions or test on
 working SQL. Real delivery/new payment/user browser acceptance remains open.
 
-Current blocker: first test patch failed to write (no test/source diff retained).
-Host initially reported 112 MiB available/100% capacity; later 498 MiB. Docker
-read-only inventory returned HTTP 500. No disposable container was created:
-the attempted run was never reached after the patch failure. Temporary owned
-write-check file was created and removed. Source/tests remain unchanged.
-Asked permission to clear only the rebuildable 618 MiB frontend webpack cache;
-no user data or database resources deleted. Do not start SQL/build work until
-usable disk capacity and isolated database service are available.
+Initial blocker: test patch could not be written at 112 MiB available and Docker
+inventory failed. Human subsequently approved deletion of only the 618 MiB
+webpack cache and Docker Desktop restart. Exact realpath/no-symlink cache target
+validated before deletion; cache rebuildable, user data untouched. Free space
+recovered to 1.3 GiB. Restart command reported stop timeout, but fresh process
+inventory and engine requests proved recovery; no unrelated container deleted.
+
+Backend slice implemented locally: purpose-separated 24-hour return proof in
+the signed success URL fragment; native JSON POST result with strict input,
+unchanged shared return-check budgets and no-session/no-store responses.
+Only an exact paid TEST order, bound active recipient, durable receipt and its
+transactional outbox event confirm success. Pending, unknown, setup/login and
+pending/sent/unavailable mail are explicit. No provider/SMTP call or write from
+result reads. Queries select no password hash or encrypted mail token; payment
+and receipt use unique keys, mail query uses existing user index and LIMIT 1.
+No schema/auth/CORS/proxy/quota/worker/live-settlement policy change.
+
+Native SQL initial RED: pending/paid result route 404 instead of 200; checkout
+RED: success fragment missing; compiled runtime RED: new exact route 404.
+GREEN 95 selected tests (73 real SQL, 21 native HTTP-only, one compiled entry).
+Removing signature verification and expiry refusal each produces one expected
+RED failure, then both restored. Newline proof cases already rejected by the
+original regex: acceptance checks, not a newly discovered/fixed parser bug.
+Types, backend/TEST builds, unchanged 73-procedure API, 573-file boundaries,
+frontend lint and 208 client regressions pass. Frontend source not changed.
+
+Owned mysql:8.4 dd-payment-return-20261009-guest, loopback 56632/backend_test,
+512 MiB/one CPU, tmpfs/no mounts. Exact ID
+277e92c3c6cb54c5f5c6d943b8f80717e78089f2408e29a03383f0794b77d7d8 revalidated
+for owner/no mounts/tmpfs/no OOM before removal; matching inventory empty.
+Only this run's synthetic data removed, working DB untouched. First readiness
+command used a wrong local port and was cancelled; only inspected port 56632
+was used for all SQL tests. No environment files/provider secrets inspected.
+
+Full parallel run did not pass: 1911 assertions passed/zero failed, but 15
+suites could not transform due to host ENOSPC; 584 reported skips in this
+incomplete run are not the total skip count. Free space fell back to 336 MiB;
+no claim this cleanup fixes disk pressure permanently. Serial retry passes:
+1911 pass / 840 opt-in skips, 138 files with passing assertions / 44 skip.
+No test or quota changes made to obtain that retry. Web rebuild withheld at
+331 MiB available; frontend not modified. Deployment/dialog/new-order/mail/
+browser acceptance remains open.
+JSON evidence /tmp/daryadarcy-payment-return-{red,creation-red,built-red,
+signature-red,expiry-red,selected-green,full,full-serial}.json. Further cache or
+user-data cleanup is not authorized. Five-axis self-review complete: exact
+receipt/recipient binding and fail-closed errors, small domain-owned module,
+no duplicate pools/DI cycle/dependency, minimal nonsecret projections, bounded
+queries and unchanged shared limits. Docs (51), selected formatting and
+whitespace checks pass before local backend-only commit. Fresh frontend build
+and complete return-dialog acceptance remain blocked/pending, not waived.
+Actual SSH alias remains unavailable;
+do not guess server targets, resend notification or make another payment.

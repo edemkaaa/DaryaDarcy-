@@ -2143,14 +2143,20 @@ drafts remain local after interruption; disposable container already removed.
 
 ### Prodamus TEST return dialog — human-approved behavior, 9 October
 
-- [ ] Recover usable disk capacity/Docker. Test patch failed with no retained
-  source changes; cache-only cleanup permission requested, not performed.
-- [ ] Review and implement private one-order TEST result proof: pending versus
+- [x] Human-approved exact webpack cache cleared (618 MiB, rebuildable), Docker
+  engine recovered after approved restart; disposable SQL tests possible.
+  Host disk pressure returned during full transform run, not fully resolved.
+- [x] Backend-only one-order TEST result implementation and self-review:
+  95 selected pass, including 73 SQL; pending versus
   durable receipt, mail/setup/login status, tamper/expiry/refusal/no writes or
-  session. Native HTTP/disposable SQL RED/GREEN, existing quota preserved.
+  session proven through RED/GREEN; existing quota preserved. Exact owned DB
+  removed, working DB untouched. Full parallel run blocked by ENOSPC; unchanged
+  serial retry 1911 pass / 840 skips. Types/backend+TEST builds/API/boundaries,
+  lint/client regressions/docs/format/diff checked; local-only backend slice.
 - [ ] Add accessible return dialog and bounded cancellable check. Success only
   after server proof; guest goes to email setup/login, signed-in member gets
   verified access; pending/error/old links never imply payment or sent mail.
 - [ ] Full verification/self-review/local commits. No automatic deployment,
   edge/auth/schema/quotas change, external mail, resend or payment. New user's
-  actual order/notification/mail/browser acceptance still unverified.
+  actual order/notification/mail/browser acceptance still unverified. Frontend
+  build/dialog pending; only 331 MiB available, more cleanup not authorized.

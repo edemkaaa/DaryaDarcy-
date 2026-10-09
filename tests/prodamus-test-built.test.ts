@@ -70,6 +70,22 @@ it("compiled test process fails closed without configuration and exposes only th
     });
     expect(unsigned.status).toBe(400);
     expect(unsigned.headers.get("set-cookie")).toBeNull();
+    const result = await fetch(base + "/api/prodamus/test/result", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": "83be933e-a277-41f3-801d-45771c12b051",
+      },
+      body: JSON.stringify({ token: "unknown" }),
+    });
+    expect(result.status).toBe(200);
+    expect(await result.json()).toEqual({
+      state: "unknown",
+      nextAction: null,
+      emailStatus: null,
+    });
+    expect(result.headers.get("set-cookie")).toBeNull();
+    expect((await fetch(base + "/api/prodamus/test/result")).status).toBe(404);
   } finally {
     if (child && child.exitCode === null) {
       const stopped = new Promise<void>((done) =>
