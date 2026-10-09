@@ -287,7 +287,15 @@ test("real /club build respects its explicit mode and never trusts return flags"
       .first()
       .fill("buyer@example.test");
     await purchase.first().click();
-    await page.getByRole("alert").first().waitFor();
+    // Next's route announcer is also an alert; wait for the payment refusal,
+    // not that unrelated live region, before changing the synthetic response.
+    await page
+      .getByRole("alert")
+      .filter({
+        hasText: "Не удалось открыть оплату: получен некорректный адрес.",
+      })
+      .first()
+      .waitFor();
     assert.ok(page.url().startsWith(origin)); // TEST refuses a live/provider mismatch.
     checkoutUrl = demoUrl;
     page.on("dialog", (dialog) => dialog.accept());
