@@ -6589,3 +6589,55 @@ the reviewed integrated code; the publication evidence follows as docs only.
 Existing rollout/dependency/provider/SMTP/device gates and pending frontend
 durable-return dialog remain open. No credentials, cabinet, mail or payment
 operations and no working database accessed.
+
+## Prodamus TEST account/access return UI — 10 October 2026
+
+Human requested continued work and account-after-payment status. Current clean
+staging c416b34 includes the existing backend: checkout ensures a passwordless
+email account row (not a login or entitlement), signed atomic settlement grants
+club access and queues its setup/access email. This policy is reused unchanged,
+not relabeled as creating the row only after payment. Real SMTP/new-order and
+provider acceptance are not inferred from that code or from screenshots.
+
+Local feature/prodamus-return-dialog consumes the existing exact JSON result
+contract. Only the dedicated return fragment identifies the order; it is kept
+in memory and removed from the navigable URL. No proof/session stored in browser
+storage. Shape checks do not verify signatures: the backend remains authoritative.
+Strict result validation rejects missing fields, unknown action/mail states and
+identity-bearing replies. Cookies are omitted on this sessionless route; the
+canonical deadline-aware request helper now honors an explicit credential mode,
+with unchanged include default and existing callers verified to use that default.
+No new endpoint, schema, auth, quota, CORS, proxy, worker or settlement change.
+
+Accessible existing Dialog presents checking/unknown/pending and verified receipt
+states; pending/sent/unavailable mail never promise delivery prematurely. Guests
+get setup/login instructions, never a session. Only a logged-in account matching
+the server-verified order recipient performs a fresh canonical subscription read
+and updates access; another account is not refreshed/granted. Six serial checks
+within the existing 30-second return budget, cancellation on close/hide/unmount,
+and 429 retry pause. No automatic error retries, checkout, email resend or payment.
+The old paid=1 automatic TEST claim was removed from the return effect after a
+browser RED proved it still issued a parallel mutation. Live/manual paths remain.
+
+RED: explicit omit was overwritten with include; valid reference/result lacked
+implementation; guest browser had no dialog; signed-in return issued one legacy
+claim rather than zero. GREEN: 52 focused assertions, fresh serial full unit
+1996 pass / 840 opt-in skips, 11 browser cases twice (22 pass), existing compiled
+Prodamus TEST native acceptance pass. Browser/API/provider data are controlled
+fixtures, not SQL/provider/SMTP acceptance. Types including E2E, frontend lint,
+unchanged 73-procedure API, 585-file boundaries, backend and explicit TEST frontend
+builds pass. Visual check at 320/390/1440: initial screenshot captured ui-fade
+opacity 0.488236 over an opaque rgb(253,248,240) card; wait for actual opacity 1
+before screenshots, no production animation/style change. Five-axis self-review:
+fail-closed results and ownership, existing dialog/request/query conventions,
+domain-owned implementation, no dependencies/secrets, bounded reads and timers.
+
+Ordinary frontend build restored and passed; ordinary native built-mode acceptance
+and all 24 existing club-payment browser regressions pass. Final lint passes.
+Preserve the historical plan/checklist formatting; no unrelated formatter changes.
+
+Local commit only. No staging publication, server update, edge exposure, provider
+cabinet/payment/mail action, database or Docker operation. Existing provider/SMTP/
+physical-device/dependency/rollout gates remain; deployment still requires the
+exact verified dev target and route exposure review. Old completed automation
+was not resumed. New account email/setup acceptance stays open.

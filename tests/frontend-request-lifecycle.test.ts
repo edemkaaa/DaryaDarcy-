@@ -15,6 +15,32 @@ afterEach(() => {
   cancelSessionRequests();
 });
 
+it("omits credentials for a sessionless payment-result request", async () => {
+  const fetcher = vi.fn(async () => new Response("pending"));
+  vi.stubGlobal("fetch", fetcher);
+  await expect(
+    runApiRequest(
+      "/api/prodamus/test/result",
+      { credentials: "omit" },
+      (response) => response.text(),
+    ),
+  ).resolves.toBe("pending");
+  expect(fetcher).toHaveBeenCalledWith(
+    "/api/prodamus/test/result",
+    expect.objectContaining({ credentials: "omit" }),
+  );
+});
+
+it("still includes session cookies by default", async () => {
+  const fetcher = vi.fn(async () => new Response("member"));
+  vi.stubGlobal("fetch", fetcher);
+  await runApiRequest("/api/auth/me", {}, (response) => response.text());
+  expect(fetcher).toHaveBeenCalledWith(
+    "/api/auth/me",
+    expect.objectContaining({ credentials: "include" }),
+  );
+});
+
 it("times out even when the caller supplies a cancellation signal", async () => {
   vi.useFakeTimers();
   vi.stubGlobal(

@@ -6,11 +6,19 @@ import { ScreenContainer } from "@/shared/ui/screen-container";
 import { ClubTestCheckoutResult } from "./checkout-result";
 import { useAuth } from "@/domain/session/session-context";
 import { getClubPaymentMode } from "./payment-mode";
+import { ProdamusReturnDialog } from "./prodamus-return-dialog";
 
 export function ClubCheckoutMode({ children }: { children: ReactNode }) {
   // Direct lookup is inlined by Next at build time. URL/storage cannot opt in.
   const mode = getClubPaymentMode();
-  if (mode === "live" || mode === "prodamus-test") return children;
+  if (mode === "live") return children;
+  if (mode === "prodamus-test")
+    return (
+      <>
+        {children}
+        <ProdamusReturnDialog />
+      </>
+    );
   if (mode === "unavailable")
     return (
       <ScreenContainer>

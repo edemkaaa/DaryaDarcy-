@@ -235,6 +235,7 @@ export function useClubPayment({
       return;
     }
     if (
+      prodamusTest ||
       !ready ||
       !isAuthenticated ||
       !["active", "inactive"].includes(subscriptionStatus) ||
@@ -243,7 +244,7 @@ export function useClubPayment({
       return;
     automaticReturn.current = returnKey;
     void checkRef.current(true);
-  }, [returnKey, ready, isAuthenticated, subscriptionStatus]);
+  }, [returnKey, ready, isAuthenticated, subscriptionStatus, prodamusTest]);
 
   return {
     prepare,

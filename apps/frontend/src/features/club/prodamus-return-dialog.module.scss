@@ -1,0 +1,38 @@
+@layer components {
+  .backdrop {
+    display: grid;
+    place-items: center;
+    min-height: 0;
+    height: 100%;
+    padding: 20px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.45);
+  }
+  .card {
+    width: min(100%, 440px);
+    padding: 24px;
+    border-radius: 12px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    overflow-wrap: anywhere;
+    h2 {
+      font-family: var(--font-display);
+      font-size: 24px;
+    }
+    p {
+      font-size: 18px;
+      line-height: 1.5;
+    }
+  }
+  .close {
+    margin-left: auto;
+    padding: 8px;
+  }
+  .retry {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+  }
+}

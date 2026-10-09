@@ -62,7 +62,7 @@ export async function runApiRequest<T>(
         controller.signal.throwIfAborted();
         const response = await fetch(url, {
           ...options,
-          credentials: "include",
+          credentials: options.credentials ?? "include",
           signal: controller.signal,
         });
         const result = await consume(response);

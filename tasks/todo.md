@@ -2183,13 +2183,15 @@ drafts remain local after interruption; disposable container already removed.
   removed, working DB untouched. Full parallel run blocked by ENOSPC; unchanged
   serial retry 1911 pass / 840 skips. Types/backend+TEST builds/API/boundaries,
   lint/client regressions/docs/format/diff checked; local-only backend slice.
-- [ ] Add accessible return dialog and bounded cancellable check. Success only
+- [x] Add accessible return dialog and bounded cancellable check locally
+  (10 October; see current evidence below). Success only
   after server proof; guest goes to email setup/login, signed-in member gets
   verified access; pending/error/old links never imply payment or sent mail.
-- [ ] Full verification/self-review/local commits. No automatic deployment,
-  edge/auth/schema/quotas change, external mail, resend or payment. New user's
-  actual order/notification/mail/browser acceptance still unverified. Frontend
-  build/dialog pending; only 331 MiB available, more cleanup not authorized.
+- [x] Local frontend verification/self-review/commit completed 10 October;
+  see fresh evidence below. The 9 October disk/build blocker is historical.
+- [ ] New user's actual order/notification/mail/browser acceptance still unverified.
+  No automatic deployment, edge/auth/schema/quotas change, external mail,
+  resend or payment. Rollout and SMTP acceptance remain open.
 
 ### Staging publication review — human request, 9 October
 
@@ -2222,3 +2224,25 @@ drafts remain local after interruption; disposable container already removed.
 - [x] Refetch and publish integrated staging by normal push, verify remote SHA
   9662f6c (integrated code; publication evidence follows as docs only).
   No server deployment or payment configuration change authorized by this merge.
+
+### Prodamus TEST account/access return UI — 10 October, human continuation
+
+- [x] Inspect current staging c416b34 and the existing account, settlement and
+      transactional email/result implementation. No duplicate backend registration:
+      passwordless account row is created at checkout; only verified settlement
+      grants access and queues the setup/access email. Account/session policy intact.
+- [x] RED/GREEN sessionless result reader with strict response validation,
+      omitted cookies, bounded cancellation/body reads, safe errors and rate-limit
+      metadata. Existing session requests still include cookies by default.
+- [x] Accessible TEST-only return dialog, six serial/30-second checks, guest
+      setup/login and accurate pending/sent/unavailable mail states. Same-account
+      members refresh canonical subscription; another account cannot claim access.
+      No automatic legacy paid=1 claim in TEST; manual check/live behavior retained.
+- [x] Self-review; 1996 unit pass / 840 opt-in skips, 11 browser cases repeated
+      twice (22 pass), compiled TEST native regression, types/lint/API/boundaries,
+      backend+TEST frontend builds. Ordinary frontend build/native and 24 existing
+      club-payment browser regressions pass. Screenshots at 320/390/1440; wait
+      for the real fade completion before measuring appearance. No style workaround.
+- [ ] Publish/deploy/edge-route exposure and actual new guest order, provider
+      notification, SMTP delivery and user browser acceptance. Local-only feature
+      branch; no push, server/cabinet change, real payment/mail or working SQL.
