@@ -4,6 +4,10 @@ import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { settleClubOrder } from "./billing/settlement";
 import { grantClubAccess } from "./billing/grants";
+import {
+  listAdminMembers as readAdminMembers,
+  listAdminPayments as readAdminPayments,
+} from "./admin/membership-repository";
 import { confirmPostPublication, type PostPublication } from "./content/publication";
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
 import { deletePost as persistPostDeletion } from "./content/post-deletion";
@@ -463,43 +467,12 @@ export async function listAdminMembers(): Promise<{
   blockedReason: string | null;
 }[]> {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const allUsers = await db
-    .select({
-      id: users.id,
-      email: users.email,
-      name: users.name,
-      role: users.role,
-      createdAt: users.createdAt,
-      blockedAt: users.blockedAt,
-      blockedReason: users.blockedReason,
-    })
-    .from(users)
-    .orderBy(desc(users.createdAt));
-  const payments = await db
-    .select()
-    .from(clubPayments)
-    .where(eq(clubPayments.status, "paid"));
-  const now = Date.now();
-  const expiresByUser = new Map<number, Date>();
-  for (const row of payments) {
-    if (!row.expiresAt) continue;
-    if (new Date(row.expiresAt).getTime() <= now) continue;
-    const current = expiresByUser.get(row.userId);
-    if (!current || new Date(row.expiresAt) > current) {
-      expiresByUser.set(row.userId, new Date(row.expiresAt));
-    }
-  }
-  return allUsers.map((user) => ({
-    ...user,
-    clubExpiresAt: expiresByUser.get(user.id) ?? null,
-  }));
+  return readAdminMembers(db);
 }
 
 export async function listAdminPayments(limit = 50) {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  return db.select().from(clubPayments).orderBy(desc(clubPayments.createdAt)).limit(limit);
+  return readAdminPayments(db, limit);
 }
 
 // ── Admin: Post CRUD ──

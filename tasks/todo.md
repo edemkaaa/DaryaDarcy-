@@ -1942,3 +1942,18 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] Initial email identity contract, M07c drain bound, provider/SMTP/device and
   previous rollout/dependency gates remain open. No frontend edit or server
   acceptance, merge/push/deploy; do not present this as all scenarios completed.
+
+### M08 admin membership read repository — 9 October, early morning
+
+- [x] Continue from 46654dd; inspected M06 checkpoints without repeating completed
+  payment modules. Extract only admin member/payment reads into domain-owned
+  repository with supplied DB handle, same public facade/queries/error/rights.
+- [x] Four new SQL characterizations; two expiry/order mutation RED failures,
+  original behavior restored before extraction; executable AST unchanged. Final
+  five-file 101 pass (54 real SQL), full 1889 pass / 797 opt-in skips. Types/build/
+  unchanged API/boundaries/lint/format pass. Review and existing docs updated.
+  Owned tmpfs MySQL removed after exact owner/no-mount/no-OOM checks; owner
+  inventory empty. Evidence and type-generator diagnosis saved in plan.md.
+- [ ] Remaining safe domain/repository scopes and existing first-email/M07c/
+  provider/SMTP/device/dependency/rollout gates stay open. No frontend edit,
+  pagination/optimization, actual payment, merge/push/deploy or shared-server work.

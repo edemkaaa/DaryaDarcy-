@@ -5788,3 +5788,63 @@ working DB untouched. Evidence /tmp/daryadarcy-admin-grant-{red,green,sql,full,
 types,e2e-types,build,lint}.log plus fresh API/boundary/docs checks. First-email
 contract, M07c human drain bound, real provider/SMTP/recurring/device and existing
 rollout/dependency gates remain open; this does not claim all alignment finished.
+
+### M08 admin membership read repository — 9 October, early morning
+
+Heartbeat continues from clean 46654dd, ahead 39 on current feature branch.
+Inspected remaining M06 settlement/orchestration and saved checkpoints: pure
+settlement preparation and request-neutral notification branches already moved.
+Do not repeat those modules or add another payment wrapper. Select the explicitly
+open Phase 2/M08 repository split: only listAdminMembers/listAdminPayments move
+from db.ts to admin/membership-repository.ts. Preserve public facade signatures,
+one lazy connection per call, no-client refusal, projections, ordering, future
+paid-expiry reduction and history default/explicit limit. Repository takes a typed
+nullable existing handle; no connection owner import, circular dependency, SQL
+mutation, worker or application activation. Authorization stays in adminProcedure.
+
+Four new real SQL characterizations: native safe member projection/newest-account
+order (including nullable and blocked fields, no password/openId); max future paid
+expiry excludes pending/failed/expired/null rows; exact expiry-at-now is not active;
+native 52-row history retains statuses/fields/order and default 50 cap, explicit
+limit two and known-empty limit zero. Read-time clock alone fixed for two expiry
+cases; native cases use real SDK JWT/Nest/SQL. Independent dates and literal
+recipient/history fixtures, no session or SQL double. Before extraction original
+two-file baseline 27 pass. Temporary <= to < and newest to oldest mutations make
+the expiry-boundary/history tests fail (two RED/two pass). Restored original
+runtime exactly before extraction. Existing no-DB/error/permission characterizations
+also protect the facade; no repeated fixes to the completed previous increment.
+
+Initial type-alias annotations changed only generated API naming/field order,
+detected by check:api. Diagnostic generation intercepted output in memory/stdout
+to /tmp (no frontend file write). Kept original facade inline member type and
+inferred Drizzle repository outputs rather than change the published contract.
+Final API artifact unchanged: 73 procedures / 25642 bytes. Structural AST
+comparison against pre-change HEAD confirms every executable statement after
+getDb is unchanged in both extracted operations. Focused GREEN 74 checks;
+expanded five-file 101 pass, including 54 real SQL checks and 47 native maintenance
+checks with disclosed session doubles. Full default 1889 pass / 797 SQL/external
+skips, 137 files pass / 44 skip. Root/frontend/E2E types, 422.8 kB backend build,
+566-file boundaries, selected formatting, lint and existing docs checks pass.
+
+Review: same allowlisted user fields, protected public routes, parameterized
+queries, no new PII/secret logging, dependencies, environment reads or abstractions
+beyond the existing compatibility-facade pattern. Domain-owned query module
+removes admin read/reduction responsibility from the general connection facade.
+No extra query, N+1 or retry. Existing unpaginated member/paid-row scans and
+timestamp tie ordering are intentionally unchanged, not an optimization claim.
+No dead code/caller migration inferred; facade remains required by existing
+routers/tests. Primary review/project gates used; linked auxiliary checklists
+still unavailable. No frontend, auth/CORS/proxy/quota/schema, provider/cabinet/
+secret/mail/payment, remote fetch/merge/push or deployment changes. Existing
+database architecture/handoff updated. All identity/M07c/provider/recurring/SMTP/
+device/dependency/rollout gates remain open; safe remaining repository scopes
+may be inspected next, not another completed M06 or admin-read move.
+
+Disposable resource: existing local mysql:8.4, loopback 55100, tmpfs/no mounts,
+512 MiB/one CPU, owner dd-admin-read-repository-20261009-0327. Exact container
+f020b2c5968dbe18b4d06676ae62ef3c3f94fb1f30dda4c6f61a0f54599b37e6 inspected
+again for exact ID/owner/tmpfs/no mounts/no OOM, then removed by exact ID; owner
+inventory empty. Only synthetic owned data removed, not recoverable or needed;
+working DB untouched. Evidence /tmp/daryadarcy-admin-repository-{baseline,red,
+green,sql,full,types,build,lint,contract-preview}.log plus fresh AST/API/boundary/
+docs output. Night continuation deadline remains 01:06 UTC, not extended.
