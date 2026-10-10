@@ -105,21 +105,26 @@ async function readReply(
   }
 }
 
+/** The form validates before capturing an intent; transport repeats the same check. */
+export function normalizeMemberEmailBindingEmail(value: string): string {
+  const email = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (
+    typeof value !== "string" ||
+    value.length > 1024 ||
+    email.length > 320 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  )
+    throw new ApiError("Укажите корректный email.", 400);
+  return email;
+}
+
 /** Caller owns the stable intent. No automatic retry or new key on a lost reply. */
 export function requestMemberEmailBinding(
   input: MemberEmailBindingIntent & { email: string },
   signal: AbortSignal,
 ): Promise<MemberEmailBindingReceipt> {
   const { userId, requestKey } = captureIntent(input);
-  const email =
-    typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
-  if (
-    typeof input.email !== "string" ||
-    input.email.length > 1024 ||
-    email.length > 320 ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  )
-    throw new ApiError("Укажите корректный email.", 400);
+  const email = normalizeMemberEmailBindingEmail(input.email);
   return runApiRequest(
     apiUrl("/api/admin/member-email-bindings"),
     {

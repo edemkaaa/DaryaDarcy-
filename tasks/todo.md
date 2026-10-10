@@ -26,8 +26,11 @@
 - [ ] A5: подключить существующую форму администратора и восстановление результата.
       A5a: строгий request/status клиент, captured intent и session cancellation;
       60 client tests, включая loopback HTTP fixture; 649 связанных проверок pass.
-      Типы/lint/frontend build/API/boundaries проходят. UI ещё не подключён:
-      далее A5b — состояние формы, unknown/retry/inspect и browser приёмка.
+      A5b: UI подключён под default-off build flag; stable intent при закрытии/
+      смене вкладки, explicit inspect/retry, confirmed canonical refresh.
+      11 active + 10 default-disabled + 23 соседних browser pass (mock API), 649 unit pass.
+      Типы/lint/active+default build/API/boundaries проходят. Далее A5c — recovery
+      после reload/новой вкладки без PII, terminal/refusal и native SQL/browser.
 - [ ] A6: страница подтверждения из fragment, явное действие, существующий вход.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
 - [ ] Checkpoint A: весь сценарий через настоящее API/SQL/loopback письмо;
@@ -50,7 +53,7 @@
 - [ ] Q2: критерии нагрузки/baseline, Safari/Android/desktop/PWA приёмка.
 - [ ] Q3: матрица сдачи, backup/rollback, инструкция, пилот 5–7 дней/30–50 участниц.
 
-Следующий независимый срез: A5b. Форма/worker остаются выключены до целостного
+Следующий независимый срез: A5c. Форма/worker остаются выключены до целостного
 сценария и схемы. Внешние блокеры не препятствуют локальным A/C/M/V задачам.
 
 ## Requested frontend corrections — 2026-10-09

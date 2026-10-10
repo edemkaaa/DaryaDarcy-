@@ -158,6 +158,17 @@ silently repair old users, run fixture cleanup on a working database.
 
 ## Current implementation checkpoint
 
+A5b frontend checkpoint: the existing form now has a default-disabled build
+opt-in `NEXT_PUBLIC_MEMBER_EMAIL_BINDING_ENABLED=true`, separate from the server
+gate. Enabling only the UI cannot enable the backend. Use the same explicit flag
+for the local production build and `member-email-binding-active.spec.ts`; run
+the original preparation tests against a default-disabled build. The intent is
+currently memory-only above the members tab, so closing/reopening the form or
+changing admin tabs preserves it, but page reload does not. A5c must complete
+PII-free reload/cross-tab recovery, terminal/refusal handling and native browser
+acceptance before rollout. Eleven active mock-API browser scenarios are not an
+end-to-end email binding certification. No deployed flags were changed.
+
 The approved writer prerequisite now claims/inserts inside a transaction without
 changing a duplicate row's fields, locks the requested openId and updates only its
 user ID. Missing identity rejects and rolls back; other uniqueness errors propagate

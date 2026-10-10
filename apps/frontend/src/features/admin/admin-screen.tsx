@@ -29,6 +29,7 @@ import { ScheduleDatetime } from "@/features/admin/schedule-datetime";
 import { ArticlesAdmin } from "@/features/admin/articles-admin";
 import { SeasonSettings } from "@/features/admin/season-settings";
 import { MemberEmailBinding } from "./member-email-binding";
+import { useMemberEmailBindings } from "./use-member-email-bindings";
 import { MemberAccessEmail } from "./member-access-email";
 import {
   canResendAccessEmail,
@@ -242,6 +243,10 @@ export default function AdminScreen() {
       }),
   });
   const readMembers = () => readQuery(membersQuery);
+  const emailBindings = useMemberEmailBindings(
+    isOwner && viewTab === "members" && !showForm,
+    readMembers,
+  );
   const readReports = () => readQuery(reportsQuery);
   const deleteMutation = mutation(
     "delete-post",
@@ -2011,7 +2016,11 @@ export default function AdminScreen() {
                       item.email || item.name || String(item.id),
                     )
                   }
-                  disabled={grantClub.isPending || accessEmail.busy}
+                  disabled={
+                    grantClub.isPending ||
+                    accessEmail.busy ||
+                    emailBindings.busy
+                  }
                   className={classes.action}
                 >
                   <Typography className={classes.grantBtnText}>
@@ -2021,7 +2030,11 @@ export default function AdminScreen() {
                 {item.blockedAt ? (
                   <Action
                     onClick={() => unblockUser.mutate({ userId: item.id })}
-                    disabled={unblockUser.isPending || accessEmail.busy}
+                    disabled={
+                      unblockUser.isPending ||
+                      accessEmail.busy ||
+                      emailBindings.busy
+                    }
                     className={classes.action}
                   >
                     <Typography className={classes.grantBtnText}>
@@ -2043,7 +2056,11 @@ export default function AdminScreen() {
                         });
                       }
                     }}
-                    disabled={blockUser.isPending || accessEmail.busy}
+                    disabled={
+                      blockUser.isPending ||
+                      accessEmail.busy ||
+                      emailBindings.busy
+                    }
                     className={classes.action}
                   >
                     <Typography className={classes.typography}>
@@ -2058,7 +2075,14 @@ export default function AdminScreen() {
                     key={`${user?.id}:${item.id}`}
                     memberId={item.id}
                     memberName={item.name}
-                    disabled={adminActions.blocked || accessEmail.busy}
+                    result={emailBindings.results[item.id]}
+                    onSend={emailBindings.send}
+                    onInspect={emailBindings.inspect}
+                    disabled={
+                      adminActions.blocked ||
+                      accessEmail.busy ||
+                      emailBindings.busy
+                    }
                   />
                 ) : null}
                 {canResendAccessEmail(item) ? (
@@ -2068,7 +2092,11 @@ export default function AdminScreen() {
                     pending={
                       accessEmail.pendingId === `access-email-${item.id}`
                     }
-                    disabled={adminActions.blocked || accessEmail.busy}
+                    disabled={
+                      adminActions.blocked ||
+                      accessEmail.busy ||
+                      emailBindings.busy
+                    }
                     onSend={accessEmail.send}
                   />
                 ) : null}
