@@ -41,6 +41,26 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3b, категории сохранённого и границы доступа — 10 октября:** test-only
+native browser/API/SQL. Собственные feed/club/both/draft/scheduled fixtures,
+настоящая member SDK cookie (password login уже проверен C3a). Native
+feed.savedPosts отдаёт только три published записи. Profile default feed
+показывает feed+both, вкладка «Из клуба» — club+both; reload возвращает feed.
+Draft/scheduled с историческим published=1 исключены. После SQL expiry только
+собственного paid fixture native saved HTTP исключает club, но сохраняет
+feed/both и все исходные saved SQL строки; identity неизменна. Это не ожидание
+wall-clock и не provider renewal. **Mutation RED:** обход hasClub в saved-read
+ловится лишним club ID после expiry; подмена снята. Снятие одного service
+status filter само по себе не даёт RED: repository независимо фильтрует
+publication; обе защиты восстановлены. **16 C1/C2/C3 native browser GREEN**,
+типы проходят; 14 binding cases намеренно исключены в неизменённом default-off
+build. Review: literal ID/category ожидания, настоящий HTTP/SQL, marker cleanup,
+никаких новых ролей/прав или изменений subscription semantics. Frontend
+остановлен; собственный loopback/tmpfs backend_test удалён через --rm после
+exact ID/label/port/no mounts/no OOM проверки. Production diff пуст, сервер/
+рабочая БД/внешние сервисы не затронуты. C3 comments/media/полная навигация,
+физические устройства и A7/deployment остаются открыты.
+
 **C3a, лайки/сохранения и смена аккаунта — 10 октября:** test-only native
 browser/API/SQL, отдельный helper с общим fixture lifecycle. Обычный password
 login участницы → like/save → SQL по её ID → reload → явный logout → обычный

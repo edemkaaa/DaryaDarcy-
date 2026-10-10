@@ -159,6 +159,12 @@
       saved-read mutation RED снята. 15 C1/C2/C3 browser GREEN, типы.
       Unpaid profile gate потребовал paid fixture, production не менялся.
       Категории/profile listing, comments/media, вся навигация/устройства открыты.
+      C3b: native saved API и profile feed/club categories: feed+both / club+both,
+      reload, unpublished legacy rows скрыты. Expiry собственной SQL подписки
+      исключает club из HTTP без удаления saved rows; identity неизменна.
+      hasClub bypass mutation RED снята; 16 C1/C2/C3 browser GREEN, типы.
+      SDK cookie/local transport proxy — не deployment; comments/media,
+      полная навигация/физические устройства и A7 остаются открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.
