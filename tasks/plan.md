@@ -41,6 +41,29 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A6d, обычный вход после привязки — 10 октября:** новый test-only native browser
+сценарий использует настоящий scrypt hash прежнего пароля и loopback SMTP MIME.
+После read-only entry и явного confirm guest не получает session cookie; аккаунт
+изменяет только email, старый member JWT продолжает читать обновлённый профиль.
+Ссылка «Перейти ко входу» открывает существующую production email-форму: прежний
+пароль даёт native 200, host-only HttpOnly/Lax cookie и тот же user/openId/phone.
+Browser auth/me и club.list успешны; role/sessionVersion/passwordHash/оплаченная
+строка сохранены. Нет нового аккаунта, password token или повторного письма.
+**Mutation RED:** временный отказ password login для phone account даёт 401,
+новый тест ловит отказ именно login; подмена полностью снята. **39 GREEN**:
+20 browser/API/SQL/SMTP + 19 native session cases. Production auth/UI не менялись.
+Transport proxy остаётся локальным тестовым транспортом, не deployment acceptance;
+A6/Checkpoint A/A7/rollout открыты для оставшейся приёмки и reviewed включения.
+Review: реальные hash/JWT/cookie/SQL/SMTP, независимые identity/access ожидания,
+recipient без cookie до обычного входа, cleanup только собственных ресурсов.
+Скиллы TDD/verification помогли проверить mutation и отличить тестовую приёмку
+от нового исправления: production change здесь не потребовался.
+Типы, active/default frontend builds и 54 docs проходят. Default-off build
+восстановлен, локальный frontend остановлен. Собственный backend_test tmpfs
+контейнер удалён через `--rm` после exact ID/label/port/mount/OOM проверки;
+чужие ресурсы не затронуты. Перед расширением 945-line browser fixture дальше
+выделить recipient acceptance в отдельный test-only модуль.
+
 **A6c3, согласованный вход из веб-почты — 10 октября:** пользователь явно
 разрешил только read-only GET document navigation на `/api/auth/email-binding`.
 Existing email-page predicate расширен ровно этим путём (optional trailing `/`):

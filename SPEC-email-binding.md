@@ -167,6 +167,17 @@ silently repair old users, run fixture cleanup on a working database.
 
 ## Current implementation checkpoint
 
+A6d verifies ordinary login after binding using the actual loopback-delivered
+link and an existing real scrypt password. Confirmation creates no recipient
+session; the pre-existing member JWT remains valid. The existing frontend login
+form then issues a real host-only HttpOnly/Lax cookie for the same account and
+native browser club access succeeds, with password/phone/openId/role/sessionVersion
+and paid expiry preserved. No new account, reset token or extra mail is created.
+A deliberate temporary rejection of bound-phone password login yields 401 and
+fails this test; the mutation is removed. Twenty native browser cases plus 19
+native session cases pass. This is test-only local transport-proxy acceptance;
+production code, deployment, flags and working data remain unchanged.
+
 A6c3 implements the explicitly approved read-only webmail entry. Two raw HTTP
 RED checks (403) preceded GREEN; removing the exception also makes the native
 Chromium boundary probe fail. All 60 focused tests pass: 12 navigation policy,

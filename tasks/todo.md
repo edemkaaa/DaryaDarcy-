@@ -70,6 +70,12 @@
       GET сохраняет SQL, POST/CORS/iframe/fetch границы не ослаблены; default-off.
       Старый Node fetch probe подменял mode=cors; диагностика исправлена.
       A6/Checkpoint A/A7/deployment остаются открыты.
+      A6d: actual loopback SMTP link → explicit native confirm → обычная email
+      форма с прежним настоящим scrypt-паролем → тот же user/cookie/club access.
+      Старый member JWT действителен, GET/confirm не создаёт recipient session,
+      identity/paid expiry сохранены, нет дубля аккаунта/reset token/нового письма.
+      Mutation RED (bound-phone login 401) → 20 browser + 19 native sessions GREEN.
+      Test-only приёмка через local transport proxy; A7/deployment ещё открыты.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
 - [ ] Checkpoint A: весь сценарий через настоящее API/SQL/loopback письмо;
       первый email меняется один раз, пароль/сессии/подписка сохранены.
@@ -114,8 +120,9 @@
 - [ ] Q2: критерии нагрузки/baseline, Safari/Android/desktop/PWA приёмка.
 - [ ] Q3: матрица сдачи, backup/rollback, инструкция, пилот 5–7 дней/30–50 участниц.
 
-Следующий срез A6c3: решение о точном read-only document navigation exception без
-CORS expansion; local actual-link SMTP/browser проверен, webmail entry/Checkpoint A открыты.
+Следующий срез: оставшаяся локальная A6/Checkpoint A приёмка и подготовка A7;
+webmail exception согласован/проверен, обычный вход после привязки проверен.
+Рабочая история миграций/rollout/deployment остаются отдельными gates.
 Форма/worker остаются выключены до целостного
 сценария и схемы. Внешние блокеры не препятствуют локальным A/C/M/V задачам.
 

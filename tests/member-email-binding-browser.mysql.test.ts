@@ -30,6 +30,7 @@ import { openLoopbackSmtp } from "./helpers/loopback-smtp";
 import { processMemberEmailBindingEmails } from "../apps/backend/src/identity/email-binding-delivery";
 import { sendTransactionalEmail } from "../apps/backend/src/_core/email";
 import { registerAdminMembershipBrowserCases } from "./helpers/admin-membership-browser-cases";
+import { hashPassword } from "../apps/backend/src/_core/password";
 
 // Opt in with a separately started, enabled production frontend build. API
 // forwarding below is a transport proxy, never a mock response or fake session.
@@ -365,6 +366,120 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         (await getDb())!,
         sendTransactionalEmail,
       );
+      expect(smtp.messages).toHaveLength(1);
+    }, 30_000);
+    it("logs in through the existing email form after binding with the old password and paid account", async () => {
+      const password = "synthetic-binding-existing-password-123";
+      const passwordHash = await hashPassword(password);
+      await connection.query("UPDATE users SET passwordHash=? WHERE id=?", [
+        passwordHash,
+        memberId,
+      ]);
+      await connection.query(
+        "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'binding-browser-existing-access','paid','0','2030-01-01')",
+        [memberId],
+      );
+      const identity = (
+        await rows("SELECT * FROM users WHERE id=?", [memberId])
+      )[0];
+      const access = await rows("SELECT * FROM club_payments WHERE userId=?", [
+        memberId,
+      ]);
+      const oldMemberToken = await sdk.createSessionToken(
+        "binding-browser-member",
+        { sessionVersion: 0 },
+      );
+      await send(await context.newPage());
+      const link = await deliveredLink();
+      await context.clearCookies();
+      const recipient = await context.newPage();
+      await recipient.goto(link.toString());
+      await recipient
+        .getByRole("button", { name: "Подтвердить почту", exact: true })
+        .click();
+      await browserExpect(recipient.getByRole("status")).toContainText(
+        "Почта подтверждена",
+      );
+      expect(await context.cookies()).toEqual([]);
+      expect(
+        (await rows("SELECT * FROM users WHERE id=?", [memberId]))[0],
+      ).toEqual({
+        ...identity,
+        email: "browser.member@example.test",
+      });
+      const oldSession = await fetch(base + "/api/auth/me", {
+        headers: { Authorization: `Bearer ${oldMemberToken}` },
+      });
+      expect(oldSession.status).toBe(200);
+      expect((await oldSession.json()).user).toMatchObject({
+        id: memberId,
+        email: "browser.member@example.test",
+      });
+      await recipient
+        .getByRole("link", { name: "Перейти ко входу", exact: true })
+        .click();
+      await recipient
+        .getByPlaceholder("Email", { exact: true })
+        .fill("browser.member@example.test");
+      await recipient
+        .getByPlaceholder("Пароль", { exact: true })
+        .fill(password);
+      const [login] = await Promise.all([
+        recipient.waitForResponse(
+          (response) => new URL(response.url()).pathname === "/api/auth/login",
+        ),
+        recipient.getByRole("button", { name: "Войти", exact: true }).click(),
+      ]);
+      expect(login.status()).toBe(200);
+      expect((await login.json()).user).toMatchObject({
+        id: memberId,
+        openId: "binding-browser-member",
+        role: "user",
+      });
+      const [cookie] = (await context.cookies()).filter(
+        (cookie) => cookie.name === COOKIE_NAME,
+      );
+      expect(cookie).toMatchObject({ httpOnly: true, sameSite: "Lax" });
+      const session = await recipient.evaluate(async () => {
+        const me = await fetch("/api/auth/me");
+        const club = await fetch("/api/trpc/club.list");
+        return {
+          status: me.status,
+          profile: await me.json(),
+          clubStatus: club.status,
+        };
+      });
+      expect(session.status).toBe(200);
+      expect(session.profile.user).toMatchObject({
+        id: memberId,
+        email: "browser.member@example.test",
+      });
+      expect(session.clubStatus).toBe(200);
+      expect(
+        (
+          await rows(
+            "SELECT passwordHash,sessionVersion,openId,phone,role FROM users WHERE id=?",
+            [memberId],
+          )
+        )[0],
+      ).toEqual({
+        passwordHash,
+        sessionVersion: 0,
+        openId: "binding-browser-member",
+        phone: "+70000091402",
+        role: "user",
+      });
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(access);
+      expect(
+        await rows(
+          "SELECT id FROM users WHERE email='browser.member@example.test'",
+        ),
+      ).toEqual([{ id: memberId }]);
+      expect(
+        await rows("SELECT id FROM password_tokens WHERE userId=?", [memberId]),
+      ).toEqual([]);
       expect(smtp.messages).toHaveLength(1);
     }, 30_000);
     it("commits one queued intent without changing the member identity and recovers it after reload", async () => {
