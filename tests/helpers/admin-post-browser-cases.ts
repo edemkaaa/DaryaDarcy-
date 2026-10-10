@@ -8,12 +8,107 @@ interface AdminPostBrowserFixture {
   context: BrowserContext;
   frontend: string;
   actorId: number;
+  base: string;
 }
 
 // Reuse the caller's native API/SQL lifecycle, not an API response double.
 export function registerAdminPostBrowserCases(
   fixture: () => AdminPostBrowserFixture,
 ) {
+  it("C2 retries a committed draft after a lost HTTP reply without creating another post", async () => {
+    const { rows, connection, context, frontend, actorId, base } = fixture();
+    const text = "C2 lost reply draft fixture";
+    const keys: string[] = [];
+    let loseReply = true;
+    try {
+      const page = await context.newPage();
+      // Fault only the return transport after the real API has committed.
+      await page.route("**/api/trpc/admin.createPost*", async (route) => {
+        const url = new URL(route.request().url());
+        keys.push(route.request().postDataJSON()["0"].json.idempotencyKey);
+        const response = await route.fetch({
+          url: base + url.pathname + url.search,
+          maxRedirects: 0,
+        });
+        expect(response.status()).toBe(200);
+        if (loseReply) {
+          loseReply = false;
+          return route.abort("failed");
+        }
+        return route.fulfill({ response });
+      });
+      await page.goto(frontend + "admin");
+      await page.getByRole("button", { name: /Новый/ }).click();
+      const editor = page.getByRole("dialog", { name: "Редактор публикации" });
+      await browserExpect(editor.locator(".ui-scroll")).not.toHaveAttribute(
+        "inert",
+        "",
+      );
+      const field = page.getByPlaceholder("Текст поста… Enter — новый абзац");
+      await field.fill(text);
+      await editor
+        .getByRole("button", { name: "Черновик", exact: true })
+        .click();
+      const dialogs: string[] = [];
+      page.on("dialog", async (dialog) => {
+        dialogs.push(dialog.type());
+        await dialog.accept();
+      });
+      const save = page.getByRole("button", { name: "Сохранить", exact: true });
+      await save.click();
+      await browserExpect.poll(() => dialogs).toEqual(["alert"]);
+      await browserExpect(field).toHaveValue(text);
+      expect(keys).toHaveLength(1);
+      expect(keys[0]).toEqual(expect.any(String));
+      expect(keys[0].length).toBeGreaterThan(0);
+      const committed = await rows(
+        "SELECT id,text,status,published FROM posts WHERE text=?",
+        [text],
+      );
+      expect(committed).toEqual([
+        { id: expect.any(Number), text, status: "draft", published: 0 },
+      ]);
+      const requests = await rows(
+        "SELECT requestKey,postId FROM post_creation_requests WHERE actorUserId=? AND postId=?",
+        [actorId, committed[0].id],
+      );
+      expect(requests).toHaveLength(1);
+      await browserExpect(save).toBeDisabled();
+      const inspect = page.getByRole("button", {
+        name: "Проверить сохранение",
+        exact: true,
+      });
+      await browserExpect(inspect).toBeEnabled();
+      await inspect.click();
+      await browserExpect(field).toHaveCount(0);
+      expect(keys).toEqual([keys[0], keys[0]]);
+      expect(
+        await rows("SELECT id,text,status,published FROM posts WHERE text=?", [
+          text,
+        ]),
+      ).toEqual(committed);
+      expect(
+        await rows(
+          "SELECT requestKey,postId FROM post_creation_requests WHERE actorUserId=? AND postId=?",
+          [actorId, committed[0].id],
+        ),
+      ).toEqual(requests);
+      await page.reload();
+      await browserExpect(
+        page.getByTestId(`admin-post-${committed[0].id}`),
+      ).toContainText(text);
+      expect(dialogs).toEqual(["alert"]);
+    } finally {
+      await connection.query(
+        "DELETE FROM post_creation_requests WHERE actorUserId=? AND postId IN (SELECT id FROM posts WHERE text=? AND source='manual')",
+        [actorId, text],
+      );
+      await connection.query(
+        "DELETE FROM posts WHERE text=? AND source='manual'",
+        [text],
+      );
+    }
+  }, 30_000);
   it("C2 persists a draft through browser create, edit, reload and confirmed deletion", async () => {
     const { rows, connection, context, frontend, actorId } = fixture();
     const text = "C2 native browser draft fixture";

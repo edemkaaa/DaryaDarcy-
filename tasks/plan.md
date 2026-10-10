@@ -41,6 +41,26 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C2b, потеря ответа после создания — 10 октября:** test-only browser/native API/
+SQL. Route fetch выполняет настоящий create до commit/200, только затем ответ
+теряется (abort). UI сохраняет текст и показывает ошибку; обычный Save закрыт,
+автоматического второго write нет. Явная «Проверить сохранение» повторяет точный
+create с прежним ключом, возвращает тот же post ID; SQL содержит одну draft
+запись и один durable creation intent. Редактор закрывается, reload читает пост.
+Первое ожидание доступного Save было неверным: coordinator/recovery намеренно
+требуют отдельную проверку результата. Оснастка приведена к этому существующему
+контракту, production исправления не было. **Mutation RED:** удалённый временно
+return existing postId создаёт второй пост; SQL assertion ловит дубль. Подмена
+полностью снята. **11 C1/C2 native browser GREEN**, типы проходят; неизменные
+36 SQL creation cases прошлого среза не повторялись без причины.
+Review: fault только после реального commit, без mock ответа, capture двух
+одинаковых ключей, независимое число SQL записей, явное действие пользователя,
+cleanup собственных marker/actor и intents. Local transport proxy не означает
+deployment acceptance; обычный admin login/media/scheduled и C2 остаются открыты.
+Default-off build не менялся. Frontend остановлен, собственный loopback/tmpfs
+backend_test удалён через --rm после exact ID/label/port/no mounts/no OOM проверки.
+Рабочая БД, сервер, внешние медиа/письма/платежи не затронуты.
+
 **C2a, черновик публикации — 10 октября:** первый test-only native editor срез,
 использует общий браузер/Nest/SQL lifecycle в отдельном admin-post helper.
 Создание через UI сохраняет одну manual feed запись со status=draft/published=0;

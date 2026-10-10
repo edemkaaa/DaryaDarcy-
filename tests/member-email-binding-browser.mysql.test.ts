@@ -213,6 +213,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       connection,
       context,
       actorId,
+      base,
       frontend: frontend!,
     }));
     async function proof(requestKey: string) {

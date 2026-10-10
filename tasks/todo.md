@@ -128,6 +128,10 @@
       Published=true mutation RED снята; readiness ждёт снятия inert после
       draft recovery. 10 C1/C2 browser + 36 creation SQL/HTTP GREEN, типы.
       SDK cookie fixture — не обычный admin login; остальные C2 сценарии открыты.
+      C2b: committed create/200 → потеря ответа; текст сохранён, Save закрыт,
+      явная «Проверить сохранение» повторяет прежний ключ и возвращает тот же ID.
+      Одна SQL draft запись/creation intent, reload успешен. Replay-return removal
+      mutation RED снята; 11 C1/C2 browser GREEN, типы. Production не менялся.
 - [ ] C3: реальные взаимодействия, поиск, Библиотека, тест, профиль и поддержка.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
