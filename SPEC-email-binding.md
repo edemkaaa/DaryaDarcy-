@@ -60,8 +60,10 @@ not a caller-supplied user ID or authenticated browser identity.
   The browser retains the fragment through the redirect; the server never sees it.
   Queries are rejected with generic 400, invalid configuration/default-disabled
   gate returns generic 503. No cookie, DB lookup/write or mail operation occurs.
-  Existing cross-site Fetch Metadata policy still rejects webmail navigation;
-  a narrowly reviewed document-navigation exception is a separate open gate.
+  User-approved cross-site entry permits only GET document navigation without
+  Origin (`Sec-Fetch-Mode: navigate`, `Sec-Fetch-Dest: document`) to this exact
+  path, optionally ending in `/`. Fetches, embedded documents, untrusted Origin
+  and confirmation mutations retain the existing policy; CORS is unchanged.
 - `POST /api/auth/email-bindings/confirm`: `{token}`. Reject malformed, expired,
   consumed or superseded proofs, unavailable recipient and occupied address.
   Successful confirmation changes only email, consumes the proof and audits it
@@ -164,6 +166,19 @@ restart of shared Docker, rollout/push/deployment. Never: commit secrets, log pr
 silently repair old users, run fixture cleanup on a working database.
 
 ## Current implementation checkpoint
+
+A6c3 implements the explicitly approved read-only webmail entry. Two raw HTTP
+RED checks (403) preceded GREEN; removing the exception also makes the native
+Chromium boundary probe fail. All 60 focused tests pass: 12 navigation policy,
+10 existing HTTP policy, 19 native HTTP/SQL and 19 browser/API/SQL/SMTP cases.
+The actual SMTP link still opens through the local transport proxy; a separate
+synthetic webmail document targets the native backend directly (test-only origin
+replacement) and verifies real cross-site/navigate/document headers on its HTTP
+wire. GET preserves SQL and fragment stays out of HTTP; only explicit POST
+changes email. No external webmail or network service is contacted. The earlier
+Node fetch diagnostic overwrote Sec-Fetch-Mode with cors; it was not an accurate
+document-navigation probe and is now replaced. A6/Checkpoint A/A7 remain open
+for remaining acceptance and reviewed rollout/deployment. Flags stay default-off.
 
 A6c2 adds the default-disabled read-only GET bridge to the existing public
 frontend page. Four native HTTP RED failures (404) preceded 19 HTTP/SQL GREEN:

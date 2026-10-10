@@ -41,6 +41,31 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A6c3, согласованный вход из веб-почты — 10 октября:** пользователь явно
+разрешил только read-only GET document navigation на `/api/auth/email-binding`.
+Existing email-page predicate расширен ровно этим путём (optional trailing `/`):
+без Origin, `navigate` + `document`. Untrusted Origin, POST/HEAD, fetch/iframe,
+соседние пути и CORS сохраняют прежние запреты. Default-off flag не включён.
+**2 raw HTTP RED → 12 policy GREEN**; removal mutation вызывает browser RED.
+**60 focused pass**: 22 security + 19 native HTTP/SQL + 19 browser/SQL/SMTP.
+SMTP link открывается без смены пути через local transport proxy; отдельный
+synthetic webmail document открывает native backend напрямую с test-only сменой
+origin, реальные Chromium cross-site/navigate/document headers проверены на wire.
+Оба GET не меняют аккаунт/SQL, proof остаётся fragment/memory; явный POST меняет
+только email, credentials/expiry/cookie сохранены. Внешней почты/network нет.
+Исправлена диагностика: Node fetch подменял Sec-Fetch-Mode на cors; его прежний
+403 не доказывал actual webmail navigation. Новый probe не использует fetch.
+Начальные browser failures были тестовыми (HTML charset, metadata visibility
+до intercepted network); исправлены без расширения production policy.
+Review: минимальное расширение существующей границы, без новых зависимостей,
+SQL/auth/session mutations и CORS. TDD/security/verification определили узкий
+allowlist, negative coverage и отдельную wire проверку. A6/Checkpoint A/A7 и
+deployment acceptance остаются открыты; сервер/рабочая БД не менялись.
+Типы, backend build, active/default frontend builds, API contract, 604 boundaries
+и 54 docs проходят. Default-off build восстановлен, локальный frontend остановлен.
+Собственный tmpfs backend_test удалён через `--rm` после проверки exact ID/label,
+loopback port, отсутствия mounts/OOM. Чужие контейнеры/данные не затронуты.
+
 **A6c2, read-only GET bridge — 10 октября:** зарегистрирован default-disabled
 GET `/api/auth/email-binding` → пустой 302 на configured PUBLIC_APP_URL
 `/email-binding`; Host/query/PUBLIC_AUTH_URL не выбирают destination. Query

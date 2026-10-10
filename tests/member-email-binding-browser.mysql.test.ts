@@ -259,7 +259,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       expect(link.origin).toBe(new URL(frontend!).origin);
       return link;
     }
-    it("opens the delivered GET without changing SQL or leaking proof, while retaining the cross-site policy gate", async () => {
+    it("opens the delivered GET from a webmail document without changing SQL or leaking proof", async () => {
       await send(await context.newPage());
       const link = await deliveredLink();
       const before = await rows("SELECT * FROM users WHERE id=?", [memberId]);
@@ -269,15 +269,35 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       });
       const response = await recipient.goto(link.toString());
       expect(response?.status()).toBe(200);
-      // A webmail document navigation hits a separate existing policy gate.
-      const webmailEntry = await fetch(base + link.pathname, {
-        headers: {
-          "Sec-Fetch-Site": "cross-site",
-          "Sec-Fetch-Mode": "navigate",
-          "Sec-Fetch-Dest": "document",
-        },
-      });
-      expect(webmailEntry.status).toBe(403);
+      // Synthetic webmail document is fulfilled locally: no external mail or
+      // network access. This separate boundary probe goes directly to native
+      // Nest (test-only origin replacement); unlike the transport proxy it
+      // observes Chromium's Fetch Metadata on the actual HTTP wire.
+      const boundaryLink = new URL(link.pathname + link.hash, base);
+      await recipient.route(base + link.pathname, (route) => route.continue());
+      await recipient.route("https://webmail.example.test/inbox", (route) =>
+        route.fulfill({
+          contentType: "text/html; charset=utf-8",
+          body: `<a href="${boundaryLink.toString()}">Открыть письмо</a>`,
+        }),
+      );
+      await recipient.goto("https://webmail.example.test/inbox");
+      let entryHeaders: import("node:http").IncomingHttpHeaders = {};
+      const observe = (request: import("node:http").IncomingMessage) => {
+        if (request.url === link.pathname) entryHeaders = request.headers;
+      };
+      const server = application.getHttpServer();
+      server.on("request", observe);
+      try {
+        await recipient.getByRole("link", { name: "Открыть письмо" }).click();
+        await recipient.waitForURL((url) => url.pathname === "/email-binding");
+      } finally {
+        server.off("request", observe);
+      }
+      expect(entryHeaders["sec-fetch-site"]).toBe("cross-site");
+      expect(entryHeaders["sec-fetch-mode"]).toBe("navigate");
+      expect(entryHeaders["sec-fetch-dest"]).toBe("document");
+      expect(entryHeaders.origin).toBeUndefined();
       await browserExpect(
         recipient.getByRole("button", {
           name: "Подтвердить почту",

@@ -63,6 +63,13 @@
       A6c2: actual email GET → read-only configured redirect → frontend → explicit POST;
       4 native RED → 19 HTTP/SQL GREEN; 13 browser/SQL/SMTP pass без смены пути.
       Cross-site webmail 403 сохраняется, узкий navigation exception требует решения.
+      A6c3: пользователь разрешил узкий GET document navigation; 2 raw HTTP RED
+      → 12 policy GREEN, удаление exception даёт browser RED. Всего 60 focused
+      security/native HTTP/SQL/browser/SMTP pass. Реальные Chromium Fetch Metadata
+      проверены прямым wire probe; actual SMTP link отдельно через transport proxy.
+      GET сохраняет SQL, POST/CORS/iframe/fetch границы не ослаблены; default-off.
+      Старый Node fetch probe подменял mode=cors; диагностика исправлена.
+      A6/Checkpoint A/A7/deployment остаются открыты.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
 - [ ] Checkpoint A: весь сценарий через настоящее API/SQL/loopback письмо;
       первый email меняется один раз, пароль/сессии/подписка сохранены.
