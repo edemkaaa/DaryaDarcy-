@@ -335,12 +335,51 @@ export function registerClubCommentsBrowserCases(
         await browserExpect(
           page.getByText(editedText, { exact: true }),
         ).toBeVisible();
+        let deletes = 0;
+        if (loseReply) {
+          await page.route("**/api/trpc/club.deleteComment*", async (route) => {
+            deletes++;
+            const url = new URL(route.request().url());
+            const response = await route.fetch({
+              url: base + url.pathname + url.search,
+              maxRedirects: 0,
+            });
+            expect(response.status()).toBe(200);
+            return route.abort("failed");
+          });
+        }
         page.once("dialog", (dialog) => dialog.accept());
         await deleteFromMenu();
+        await browserExpect.poll(() => rows(commentSql, [postId])).toEqual([]);
+        if (loseReply) {
+          await browserExpect(
+            page.getByText(editedText, { exact: true }),
+          ).toBeVisible();
+          const refresh = page.getByRole("button", {
+            name: "Обновить комментарии",
+            exact: true,
+          });
+          await refresh.click();
+          await browserExpect(refresh).toHaveCount(0);
+          expect(deletes).toBe(1);
+        }
         await browserExpect(
           page.getByText(editedText, { exact: true }),
         ).toHaveCount(0);
         expect(await rows(commentSql, [postId])).toEqual([]);
+        if (loseReply) {
+          await page.reload();
+          await page
+            .getByRole("button", { name: "Комьюнити", exact: true })
+            .click();
+          await browserExpect(input).toBeEnabled();
+          await browserExpect(
+            page.getByText(editedText, { exact: true }),
+          ).toHaveCount(0);
+          expect(writes).toBe(1);
+          expect(edits).toBe(1);
+          expect(deletes).toBe(1);
+        }
         expect(
           await rows(
             "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id=?",

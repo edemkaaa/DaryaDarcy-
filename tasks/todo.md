@@ -197,6 +197,11 @@
       Первый общий run имел unhandled C1 transport race и не считался GREEN;
       focused 2 pass + повтор общий 21 pass/exit 0, типы. Редкая fixture race
       остаётся ограничением; reply/photos/lost delete/навигация/A7 открыты.
+      C3i: delete commit → потеря ответа → explicit refresh пустого списка →
+      reload без записи; ровно по одному add/update/delete, identity/expiry прежние.
+      Wrong-delete-predicate RED снят; 21 C1/C2/C3 browser GREEN/exit 0, типы.
+      Редкая C1 transport race не повторилась, её устранение не заявлено.
+      Reply/photos/остальная навигация/устройства/A7/deployment ещё открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

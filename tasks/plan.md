@@ -41,6 +41,24 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3i, потерянный ответ удаления комментария — 10 октября:** тот же native
+own-comment кейс проверяет confirm delete → настоящий HTTP 200/SQL commit →
+transport abort. До явного refresh UI сохраняет прежний comment, после него
+канонический список пуст, unknown guard снят. Reload не возвращает запись;
+форма снова доступна. В сценарии ровно по одному add/update/delete POST,
+без автоматического повторного удаления. Cancel удаления по-прежнему сохраняет
+строку. **Mutation RED:** неверный delete predicate оставляет SQL comment и
+ловится lost-reply проверкой; predicate восстановлен. **21 C1/C2/C3 native
+browser GREEN, exit 0**, типы проходят; 14 binding cases намеренно исключены
+в default-off build. Ранее отмеченная редкая C1 transport race в этом прогоне
+не повторилась, но её общий fixture limitation не объявлен устранённым.
+Review: fault после commit, настоящий canonical read, SQL отсутствие + UI/reload,
+сохранённые credentials/role/sessionVersion/expiry, scoped cleanup; production
+и дизайн не менялись. Frontend остановлен; свой loopback/tmpfs backend_test
+удалён через --rm после exact ID/label/port/no mounts/no OOM проверки.
+Сервер/рабочая БД/внешние сервисы не затронуты. Reply/photos, остальные C3
+экраны/навигация, физические устройства и A7/deployment остаются открыты.
+
 **C3h, потерянный ответ изменения комментария — 10 октября:** тот же native
 own-comment сценарий теперь теряет и update ответ строго после HTTP 200/SQL
 commit. Editor сохраняет draft и блокирует save; explicit refresh получает
