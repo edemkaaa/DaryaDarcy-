@@ -16,6 +16,7 @@ export interface QuizState {
   currentQuestion: number; // 0-indexed
   answers: (string | null)[]; // answer id per question
   result: QuizResult | null;
+  restored?: boolean;
 }
 const initialState: QuizState = {
   phase: "welcome",
@@ -25,6 +26,7 @@ const initialState: QuizState = {
 };
 // ─── Actions ─────────────────────────────────────────────────────────────────
 type QuizAction =
+  | { type: "RESTORE_RESULT"; result: QuizResult }
   | {
       type: "START_QUIZ";
     }
@@ -47,6 +49,13 @@ type QuizAction =
     };
 function quizReducer(state: QuizState, action: QuizAction): QuizState {
   switch (action.type) {
+    case "RESTORE_RESULT":
+      return {
+        ...initialState,
+        phase: "result",
+        result: action.result,
+        restored: true,
+      };
     case "START_QUIZ":
       return { ...initialState, phase: "question" };
     case "ANSWER":

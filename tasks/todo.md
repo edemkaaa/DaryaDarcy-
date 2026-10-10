@@ -252,6 +252,14 @@
       типы/default build, own tmpfs DB удалён. Client storage, не server persistence.
       Далее воспроизвести SPA/full result reopen; blend/другие эстетики/media/
       устройства/transport race/A7/deployment открыты.
+      C3s: native RED поймал profile result CTA → новый welcome. Отдельный
+      static /quiz/result восстанавливает scoped validated/canonical result,
+      не меняя completedAt; обычный /quiz и restart остаются fresh welcome.
+      28 C1/C2/C3 GREEN/exit 0, 15 parser unit (score mutation RED → GREEN),
+      типы/lint/default build/API/boundaries. Absent/malformed result → welcome.
+      Дизайн/session/club policy сохранены; own tmpfs DB удалён, сервер не обновлён.
+      Browser blend/прочие эстетики/result focus-session races/media/устройства/
+      server persistence/transport race/A7/deployment открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

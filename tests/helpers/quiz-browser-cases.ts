@@ -57,6 +57,26 @@ async function completeCottagecoreQuiz(page: Page) {
 }
 
 export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
+  it("C3 opens the quiz welcome instead of crashing when the saved result is absent or invalid", async () => {
+    const { context, frontend } = fixture();
+    await context.clearCookies();
+    const page = await context.newPage();
+    await page.goto(frontend + "quiz");
+    for (const raw of [null, "{", '{"primaryKey":"unknown"}']) {
+      await page.evaluate((value) => {
+        const key = "darcy:user:guest:@darcy_quiz_result";
+        if (value === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+      }, raw);
+      await page.goto(frontend + "quiz/result");
+      await browserExpect(
+        page.getByRole("button", { name: "Начать путешествие", exact: true }),
+      ).toBeVisible();
+      await browserExpect(
+        page.getByRole("button", { name: "Пройти ещё раз", exact: true }),
+      ).toHaveCount(0);
+    }
+  }, 30_000);
   it("C3 completes the guest quiz with a persisted result and restarts without reusing answers", async () => {
     const { rows, context, frontend } = fixture();
     const identitySql =
@@ -177,6 +197,23 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       await page.reload();
       await browserExpect(result).toBeVisible();
       expect(await stored()).toEqual(completed);
+      await page
+        .getByRole("button", { name: /Посмотреть результат →/ })
+        .click();
+      await browserExpect(page).toHaveURL(/\/quiz\/result$/);
+      await browserExpect(result).toBeVisible();
+      await browserExpect(
+        page.getByRole("button", { name: "Пройти ещё раз", exact: true }),
+      ).toBeVisible();
+      await page.reload();
+      await browserExpect(result).toBeVisible();
+      expect(await stored()).toEqual(completed);
+      await page
+        .getByRole("button", { name: "Пройти ещё раз", exact: true })
+        .click();
+      await browserExpect(
+        page.getByRole("button", { name: "Начать путешествие", exact: true }),
+      ).toBeVisible();
       expect(await rows(identitySql, [memberId])).toEqual(identity);
       expect(
         await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),

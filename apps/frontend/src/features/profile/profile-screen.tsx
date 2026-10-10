@@ -675,7 +675,7 @@ export default function ProfileScreen() {
             </div>
             {quizResult ? (
               <Action
-                onClick={() => router.push("/quiz")}
+                onClick={() => router.push("/quiz/result")}
                 className={({ pressed }) =>
                   [classes.action4, pressed ? classes.opacityState7 : ""]
                     .filter(Boolean)

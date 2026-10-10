@@ -41,6 +41,32 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3s, исправлено повторное открытие результата — 11 октября МСК:** native RED
+воспроизвёл профиль → «Посмотреть результат» → welcome вместо полного итога:
+карточка вела в /quiz, reducer всегда создавал новый welcome. Теперь карточка
+открывает отдельный статический /quiz/result; обычный /quiz по-прежнему начинает
+новый тест. После разрешения session owner экран один раз читает scoped storage,
+валидирует ключи/blend/числовые scores/размер и восстанавливает canonical content,
+а не сохранённые browser titles. Cancel guard не позволяет старому чтению примениться
+после unmount; inspection ref не возвращает старый итог после restart/resume.
+Restored result не записывается повторно: completedAt и исходный storage сохранены.
+Первый query-flag вариант делал /quiz динамическим; заменён отдельной статической
+страницей без нового API/схемы хранения/смены session или club policy.
+**28 C1/C2/C3 native browser pass/exit 0:** настоящая member форма → quiz →
+профиль → click/полный result → reload → restart welcome; прежний итог и SQL
+identity/entitlement сохранены. Новый browser case проверяет absent/malformed/
+invalid saved result → welcome без crash. **15 parser unit pass**; max-score
+mutation 21→22 даёт RED на некорректном score, затем восстановлен GREEN.
+Root/frontend типы, frontend lint/default build, API 73 procedures и boundaries
+606 files проходят. Installed Next/React/security skills сохранили client boundary,
+scoped data и canonical allowlisted content; старый формат записи не мигрировали.
+Review: отдельный result route, короткий parser, cancellation/one-time read,
+явное restore действие, неизменный дизайн и корректный restart; без внешних вызовов.
+Frontend остановлен, own loopback/tmpfs backend_test удалён после exact ID/label/
+port/no mounts/no OOM проверки. Сервер/рабочая БД не обновлялись.
+Cross-device/server persistence, browser blend/другие эстетики, focus/session
+гонки на result route, media/устройства, прежняя transport race и A7 открыты.
+
 **C3r, гостевой результат → вход — 11 октября МСК:** отдельный native case
 проходит весь тест без cookie, подтверждает guest-scoped результат и входит через
 настоящую email/password форму как synthetic paid member. HTTP 200 содержит того
