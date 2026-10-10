@@ -170,6 +170,11 @@
       missing tags schema исправлена только в test fixture, tags HTTP 200.
       17 C1/C2/C3 browser GREEN, типы; comments/media, Библиотека/тест,
       полная навигация/физические устройства и A7/deployment открыты.
+      C3d: native community comment create/reload/cancel-delete/confirm-delete;
+      одна root SQL запись с тем же текстом/автором, credentials/expiry сохранены.
+      Insert-text corruption RED снята; 18 C1/C2/C3 browser GREEN, типы.
+      Completed onboarding задан scoped marker только в fixture; внешних
+      reply push/media нет. Edit/reply/photos/lost-response и A7 ещё открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

@@ -41,6 +41,25 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3d, комментарий участницы — 10 октября:** test-only native browser/API/SQL,
+отдельный comment helper с общим fixture lifecycle. Member SDK cookie +
+собственная paid запись; UI «Комьюнити» → add HTTP 200 → один SQL root comment
+с тем же текстом/автором, без фото → reload. Cancel удаления сохраняет строку,
+confirm удаляет её; credentials/role/sessionVersion/paid expiry не меняются.
+Onboarding не входит в срез: собственный user-scoped completed marker задаётся
+в browser fixture. Первые отказы выявили profile-setup overlay и неверный
+unscoped marker, который storage намеренно удаляет; fixture использует текущий
+scoped key, без production изменения. **Mutation RED:** потеря текста на insert
+поймана независимым SQL assertion; подмена снята. **18 C1/C2/C3 native browser
+GREEN**, типы проходят; 14 binding cases намеренно исключены в неизменённом
+default-off build. Review: настоящие UI/Nest/SQL, подтверждение destructive
+действия, один автор/ID, точечный comment/post cleanup. Root comment не запускает
+reply push; внешние media/push/mail/платежи не использовались. Frontend остановлен,
+свой loopback/tmpfs backend_test удалён через --rm после exact ID/label/port/
+no mounts/no OOM проверки. Сервер/рабочая БД не затронуты. Edit/reply/photos/
+lost-response комментариев, Библиотека/тест/полная навигация, устройства и
+A7/deployment остаются открыты; local transport proxy — не выкладка.
+
 **C3c, публичный поиск ленты — 10 октября:** test-only native browser/API/SQL,
 гостевой контекст без cookie. Matching feed/both появляются после настоящего
 paginated HTTP 200; unrelated пост исчезает, matching club и legacy draft с

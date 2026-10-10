@@ -30,6 +30,7 @@ import { openLoopbackSmtp } from "./helpers/loopback-smtp";
 import { registerAdminMembershipBrowserCases } from "./helpers/admin-membership-browser-cases";
 import { registerAdminPostBrowserCases } from "./helpers/admin-post-browser-cases";
 import { registerPostInteractionsBrowserCases } from "./helpers/post-interactions-browser-cases";
+import { registerClubCommentsBrowserCases } from "./helpers/club-comments-browser-cases";
 import { registerEmailBindingRecipientBrowserCases } from "./helpers/email-binding-recipient-browser-cases";
 
 // Opt in with a separately started, enabled production frontend build. API
@@ -200,6 +201,13 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       ).toBeEnabled();
       return form;
     }
+    registerClubCommentsBrowserCases(() => ({
+      rows,
+      connection,
+      context,
+      memberId,
+      frontend: frontend!,
+    }));
     registerPostInteractionsBrowserCases(() => ({
       rows,
       connection,
