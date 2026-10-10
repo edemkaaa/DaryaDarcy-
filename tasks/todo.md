@@ -185,6 +185,12 @@
       Author-check bypass RED снят; 20 C1/C2/C3 browser GREEN, типы.
       Штатный SDK lastSignedIn не включён в identity invariants; production
       не менялся. Reply/photos/lost-response/навигация/устройства/A7 открыты.
+      C3g: add commit → потеря HTTP ответа → сохранённый draft/blocked send →
+      explicit refresh видит одну строку без повторного POST; cancel/confirm
+      отказа сохраняет/очищает draft, не удаляя comment. Далее edit/reload/delete.
+      Insert-text corruption RED в lost case снята; 21 C1/C2/C3 browser GREEN,
+      типы. Это fail-closed list recovery, не idempotent add API; reply/photos/
+      lost edit-delete/навигация/устройства/A7/deployment остаются открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

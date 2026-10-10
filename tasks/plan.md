@@ -41,6 +41,24 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3g, потерянный ответ отправки комментария — 10 октября:** предыдущий own
+comment browser case параметризован для обычного ответа и transport abort
+строго после настоящего native add HTTP 200/SQL commit. При lost reply текст
+сохранён в форме, повторная отправка заблокирована; явное «Обновить комментарии»
+читает уже существующую запись, но не снимает send guard. Cancel отказа сохраняет
+draft; confirm отказа очищает draft, не удаляя отправленную строку. Всего один
+add POST и один SQL comment; затем прежние reload/edit/delete проверки проходят.
+Это fail-closed восстановление через список, не новый idempotent add/replay API.
+**Mutation RED:** повреждение текста insert ловится SQL assertion именно в
+lost-reply case; подмена снята. **21 C1/C2/C3 native browser GREEN**, типы
+проходят; 14 binding cases намеренно исключены в неизменённом default-off build.
+Review: fault только transport после commit, реальные Nest/SQL и отдельный
+write count, literal текст/автор/ID, scoped cleanup. Production/дизайн не менялись.
+Frontend остановлен; свой loopback/tmpfs backend_test удалён через --rm после
+exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД/внешние сервисы
+не затронуты. Reply/photos, потерянный ответ edit/delete, полная навигация,
+физические устройства и A7/deployment остаются открыты; local proxy не выкладка.
+
 **C3f, запрет чужого редактирования — 10 октября:** два test-only native
 browser/API/SQL кейса для обычного участника и администратора. Собственный
 синтетический paid fixture обеспечивает читаемость club поста, чтобы запрет

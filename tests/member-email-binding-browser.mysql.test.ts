@@ -207,6 +207,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       context,
       memberId,
       actorId,
+      base,
       frontend: frontend!,
     }));
     registerPostInteractionsBrowserCases(() => ({
