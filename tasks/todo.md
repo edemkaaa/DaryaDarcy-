@@ -32,8 +32,11 @@
       Типы/lint/active+default build/API/boundaries проходят.
       A5c1: key-only IndexedDB journal, атомарная резервация между вкладками,
       CAS cleanup, owner/abort guards и fail-closed storage; 6 RED → 9 browser GREEN.
-      Типы/lint/default build/boundaries проходят. Journal пока не подключён к UI.
-      Далее A5c2 — hook/reload recovery без PII, terminal/refusal и native SQL/browser.
+      Типы/lint/default build/boundaries проходят.
+      A5c2a: journal подключён; durable-before-POST, explicit reload GET,
+      cross-tab reservation, отказ storage без POST, GET 404 сохраняет unknown.
+      3 RED → 16 active + 10 disabled browser pass; 649 unit; типы/lint/обе сборки.
+      Далее A5c2b — terminal/refusal, unknown без исходного email и native SQL/browser.
 - [ ] A6: страница подтверждения из fragment, явное действие, существующий вход.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
 - [ ] Checkpoint A: весь сценарий через настоящее API/SQL/loopback письмо;

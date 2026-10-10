@@ -2076,6 +2076,7 @@ export default function AdminScreen() {
                     memberId={item.id}
                     memberName={item.name}
                     result={emailBindings.results[item.id]}
+                    error={emailBindings.errors[item.id]}
                     onSend={emailBindings.send}
                     onInspect={emailBindings.inspect}
                     disabled={

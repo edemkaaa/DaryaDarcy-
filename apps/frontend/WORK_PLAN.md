@@ -182,6 +182,15 @@ tests/frontend-club-checkout-mode.native.test.mjs` (одна команда в �
 
 ## Инструменты менеджера: первая привязка почты
 
+**Обновление 10 октября, A5c2a:** journal подключён под прежним default-off флагом.
+«Восстановить заявку» проверяет сохранённый ключ после reload без email в storage;
+другая вкладка проверяет уже зарезервированную заявку вместо нового POST.
+Отказ storage блокирует отправку; unknown/404 не сбрасывает ключ. 3 RED →
+16 active + 10 disabled browser pass (настоящий IndexedDB, mock HTTP),
+649 unit, типы/lint/две сборки/boundaries проходят. Оформление сохранено.
+Остаток A5c2b: terminal/refusal, unknown без исходного email и native API/SQL.
+Ни сервер, ни роли, ни доставка писем не менялись; rollout пока запрещён.
+
 **Обновление 10 октября, A5c1:** подготовлен отдельный key-only IndexedDB journal
 для восстановления intent, без email/proof/ответов. Атомарная резервация между
 вкладками и compare-and-delete, owner/abort/storage guards проверены в настоящем

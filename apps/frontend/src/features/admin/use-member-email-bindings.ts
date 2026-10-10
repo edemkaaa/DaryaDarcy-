@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { useAuth } from "@/domain/session/session-context";
 import {
   useSessionOperation,
   checkOperationAccessError,
@@ -9,7 +10,8 @@ import {
   getMemberEmailBinding,
   type MemberEmailBindingStatus,
 } from "@/shared/api/member-email-binding";
-import { getRequestErrorMessage } from "@/shared/api/errors";
+import { ApiError, getRequestErrorMessage } from "@/shared/api/errors";
+import { MemberEmailBindingJournal } from "./member-email-binding-journal";
 
 export const memberEmailBindingEnabled =
   process.env.NEXT_PUBLIC_MEMBER_EMAIL_BINDING_ENABLED === "true";
@@ -40,8 +42,10 @@ export function useMemberEmailBindings(
   active: boolean,
   refreshMembers: () => Promise<void>,
 ) {
+  const { user } = useAuth();
   const operation = useSessionOperation(active && memberEmailBindingEnabled);
   const [results, setResults] = useState<Record<number, BindingResult>>({});
+  const [errors, setErrors] = useState<Record<number, string>>({});
   const current = useRef(results);
   const remember = (id: number, result: BindingResult) => {
     current.current = { ...current.current, [id]: result };
@@ -49,24 +53,45 @@ export function useMemberEmailBindings(
   };
   const run = async (userId: number, email?: string) => {
     const previous = current.current[userId];
-    const sending = email !== undefined;
+    let sending = email !== undefined;
     if (
-      (!sending && !previous) ||
-      (sending && previous && previous.phase !== "unknown")
+      !user ||
+      (sending && previous && (previous.phase !== "unknown" || !previous.email))
     )
       return;
     const task = operation.begin(`email-binding-${userId}`);
     if (!task) return;
     let intent = previous;
+    setErrors((values) => ({ ...values, [userId]: "" }));
     try {
-      intent ??= {
-        requestKey: crypto.randomUUID(),
-        email: email!.trim().toLowerCase(),
-        phase: "unknown",
-        message:
-          "Результат запроса неизвестен. Проверьте заявку; повтор использует тот же ключ.",
-      };
-      // Capture synchronously before HTTP; never mint another key on timeout or cancellation.
+      const journal = new MemberEmailBindingJournal(user.id, userId);
+      if (!intent) {
+        const reservation = sending
+          ? await journal.reserve(task.signal)
+          : { requestKey: await journal.load(task.signal), created: false };
+        task.assertCurrent();
+        if (!reservation.requestKey)
+          throw new ApiError(
+            "На этом устройстве сохранённая заявка не найдена.",
+          );
+        // A key recovered from another tab/reload has no email payload: inspect only.
+        sending = sending && reservation.created;
+        intent = {
+          requestKey: reservation.requestKey,
+          email: sending ? email!.trim().toLowerCase() : "",
+          phase: "unknown",
+          message:
+            "Результат запроса неизвестен. Проверьте заявку; повтор использует тот же ключ.",
+        };
+      } else if (sending) {
+        const stored = await journal.load(task.signal);
+        task.assertCurrent();
+        if (stored !== intent.requestKey)
+          throw new ApiError(
+            "Сохранённый ключ изменился или недоступен. Проверьте заявку; повтор не отправлен.",
+          );
+      }
+      // Durable reservation completes before HTTP; never mint a key on a retry.
       remember(userId, intent);
       if (sending) {
         const receipt = await requestMemberEmailBinding(
@@ -98,7 +123,17 @@ export function useMemberEmailBindings(
       }
     } catch (error) {
       checkOperationAccessError(error);
-      if (!task.isCurrent() || !intent) return;
+      if (!task.isCurrent()) return;
+      if (!intent) {
+        setErrors((values) => ({
+          ...values,
+          [userId]:
+            error instanceof ApiError
+              ? getRequestErrorMessage(error)
+              : "Не удалось прочитать или сохранить ключ заявки. Проверьте доступность хранилища сайта и повторите проверку.",
+        }));
+        return;
+      }
       const saved = current.current[userId];
       remember(userId, {
         ...saved,
@@ -110,6 +145,7 @@ export function useMemberEmailBindings(
   };
   return {
     results,
+    errors,
     busy: operation.busy,
     send: (id: number, email: string) => run(id, email),
     inspect: (id: number) => run(id),

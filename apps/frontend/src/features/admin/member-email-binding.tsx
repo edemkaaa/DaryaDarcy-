@@ -14,6 +14,7 @@ export function MemberEmailBinding({
   memberName,
   disabled,
   result,
+  error,
   onSend,
   onInspect,
 }: {
@@ -21,6 +22,7 @@ export function MemberEmailBinding({
   memberName: string | null;
   disabled: boolean;
   result?: BindingResult;
+  error?: string;
   onSend: (id: number, email: string) => Promise<void>;
   onInspect: (id: number) => Promise<void>;
 }) {
@@ -115,13 +117,31 @@ export function MemberEmailBinding({
                 ? "Отправим ссылку подтверждения. Только после её подтверждения почта появится в аккаунте; пароль и доступ не изменятся."
                 : "Привязка пока недоступна. Данные не отправляются и будут удалены при закрытии формы.")}
           </Typography>
+          {error ? (
+            <Typography role="alert" className={classes.memberEmailNotice}>
+              {error}
+            </Typography>
+          ) : null}
           {result ? (
             <Typography className={classes.memberEmailNotice}>
-              Закрытие формы не отменяет заявку. До проверки не перезагружайте
-              страницу: ключ проверки хранится только в этом экране.
+              Закрытие формы не отменяет заявку. На этом устройстве сохранён
+              только ключ проверки; почта не сохраняется. После перезагрузки
+              используйте «Восстановить заявку».
             </Typography>
           ) : null}
           <div className={`ui-stack ${classes.postItemActions}`}>
+            {!result && memberEmailBindingEnabled ? (
+              <Action
+                type="button"
+                disabled={disabled}
+                onClick={() => void onInspect(memberId)}
+                className={classes.action}
+              >
+                <Typography className={classes.grantBtnText}>
+                  Восстановить заявку
+                </Typography>
+              </Action>
+            ) : null}
             {result ? (
               <>
                 <Action
@@ -134,7 +154,7 @@ export function MemberEmailBinding({
                     Проверить заявку
                   </Typography>
                 </Action>
-                {result.phase === "unknown" ? (
+                {result.phase === "unknown" && result.email ? (
                   <Action
                     type="button"
                     disabled={disabled}

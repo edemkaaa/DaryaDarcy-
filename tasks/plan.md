@@ -41,6 +41,25 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A5c2a, проверено 10 октября:** journal подключён к opt-in форме. Перед первым
+POST ключ атомарно сохраняется; повтор из памяти сверяет сохранённый ключ.
+Кнопка «Восстановить заявку» после reload читает только ключ и делает GET.
+Если другая вкладка уже зарезервировала intent, новая отправка превращается
+в проверку исходного intent, а введённый другой email не отправляется.
+Без сохранённого исходного email повтор POST не предлагается; GET 404 после
+неизвестного результата не удаляет ключ. Недоступное storage блокирует POST
+с безопасным сообщением; синхронный lock и session cancellation сохранены.
+3 browser RED (reload/cross-tab/storage denial) → GREEN; **16 active browser
+cases + 10 default-disabled проходят**, native IndexedDB и mock API.
+649 client/frontend unit pass; типы/lint/boundaries (600), active/default
+production builds проходят. Ревью: durable-before-HTTP, прежняя роль/права,
+нет PII в journal и повторов с новым payload, нет автоматической отправки.
+**A5 открыт:** следующий A5c2b — явная новая заявка после доказанного terminal/
+refusal, recovery неизвестного intent без email и native API/SQL acceptance.
+Резервация до POST с последующим закрытием браузера пока может остаться unknown;
+такой ключ нельзя молча сбрасывать по GET 404. Весь сценарий ещё не принят,
+флаги сервера/worker/rollout выключены; рабочая БД и внешние письма не затронуты.
+
 **A5c1, проверено 10 октября:** добавлен изолированный browser IndexedDB journal
 для следующего подключения recovery. Он хранит только version/requestKey,
 разделяет intent по actor/member и атомарно резервирует один ключ между вкладками.

@@ -107,6 +107,131 @@ async function fixture(page: Page) {
   };
 }
 
+test("reload restores the original intent without retaining email or sending again", async ({
+  page,
+}) => {
+  const f = await fixture(page);
+  await open(page);
+  await form(page)
+    .getByRole("button", { name: "Отправить подтверждение", exact: true })
+    .click();
+  await expect(form(page)).toContainText("Заявка принята");
+  const key = f.writes[0].requestKey;
+  await page.reload();
+  await page.getByRole("button", { name: "Участницы", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Привязать почту", exact: true })
+    .click();
+  await form(page)
+    .getByRole("button", { name: "Восстановить заявку", exact: true })
+    .click();
+  await expect(form(page)).toContainText("Письмо в очереди");
+  await expect(form(page).getByLabel("Почта участницы")).toHaveValue("");
+  await expect(
+    form(page).getByRole("button", { name: "Повторить эту заявку" }),
+  ).toHaveCount(0);
+  expect(f.writes).toHaveLength(1);
+  expect(f.writes[0].requestKey).toBe(key);
+});
+
+test("another tab discovers a reserved intent instead of submitting another email", async ({
+  page,
+  context,
+}) => {
+  const f = await fixture(page);
+  await open(page);
+  await form(page)
+    .getByRole("button", { name: "Отправить подтверждение", exact: true })
+    .click();
+  await expect(form(page)).toContainText("Заявка принята");
+  const other = await context.newPage();
+  const second = await fixture(other);
+  // The second tab's status endpoint sees the already-recorded server intent.
+  second.writes.push(f.writes[0]);
+  await open(other);
+  await form(other)
+    .getByLabel("Почта участницы")
+    .fill("different@example.test");
+  await form(other)
+    .getByRole("button", { name: "Отправить подтверждение", exact: true })
+    .click();
+  await expect(form(other)).toContainText("Письмо в очереди");
+  expect(second.writes).toHaveLength(1);
+  await expect(form(other).getByLabel("Почта участницы")).toHaveValue("");
+});
+
+test("unavailable durable storage prevents sending and leaves an actionable error", async ({
+  page,
+}) => {
+  const f = await fixture(page);
+  await open(page);
+  await page.evaluate(() => {
+    indexedDB.open = () => {
+      throw new Error("PRIVATE_DETAILS");
+    };
+  });
+  await form(page)
+    .getByRole("button", { name: "Отправить подтверждение", exact: true })
+    .click();
+  await expect(form(page).getByRole("alert")).toContainText("хранилищ");
+  expect(f.writes).toHaveLength(0);
+  await expect(form(page)).not.toContainText("PRIVATE_DETAILS");
+});
+
+test("missing recovery on a fresh device does not create an intent or send mail", async ({
+  page,
+}) => {
+  const f = await fixture(page);
+  await open(page);
+  await form(page)
+    .getByRole("button", { name: "Восстановить заявку", exact: true })
+    .click();
+  await expect(form(page).getByRole("alert")).toContainText(
+    "заявка не найдена",
+  );
+  await expect(form(page).getByLabel("Почта участницы")).toBeEditable();
+  expect(f.writes).toHaveLength(0);
+});
+
+test("a missing server result after reload does not discard an uncertain intent", async ({
+  page,
+}) => {
+  const f = await fixture(page);
+  f.lose();
+  await open(page);
+  await form(page)
+    .getByRole("button", { name: "Отправить подтверждение", exact: true })
+    .click();
+  await expect.poll(() => f.writes.length).toBe(1);
+  await expect(
+    form(page).getByRole("button", { name: "Проверить заявку", exact: true }),
+  ).toBeEnabled();
+  await page.route("**/api/admin/member-email-bindings/**", (route) =>
+    route.fulfill({ status: 404, json: { error: "Запрос недоступен." } }),
+  );
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await page.reload();
+    await page.getByRole("button", { name: "Участницы", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Привязать почту", exact: true })
+      .click();
+    await form(page)
+      .getByRole("button", { name: "Восстановить заявку", exact: true })
+      .click();
+    await expect(form(page)).toContainText("Результат запроса неизвестен");
+    await expect(
+      form(page).getByRole("button", { name: "Проверить заявку", exact: true }),
+    ).toBeEnabled();
+    await expect(
+      form(page).getByRole("button", { name: "Отправить подтверждение" }),
+    ).toHaveCount(0);
+    await expect(
+      form(page).getByRole("button", { name: "Повторить эту заявку" }),
+    ).toHaveCount(0);
+  }
+  expect(f.writes).toHaveLength(1);
+});
+
 for (const width of [320, 390, 1440])
   test(`binding reports queue, SMTP and confirmed identity separately at ${width}px`, async ({
     page,

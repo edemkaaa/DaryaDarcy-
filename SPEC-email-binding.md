@@ -158,6 +158,17 @@ silently repair old users, run fixture cleanup on a working database.
 
 ## Current implementation checkpoint
 
+A5c2a supersedes the memory-only limitation below: the opt-in form now reserves
+its journal key before POST, checks it before an in-memory retry, and explicitly
+restores a saved key via GET after reload. An existing cross-tab reservation
+causes inspection, not a POST with the second tab's email. Recovered intents
+without their original in-memory email cannot be resent. Storage failure blocks
+submission; unknown/404 does not discard the key. Sixteen active browser cases
+(three new initial RED) and ten default-disabled cases pass with native IndexedDB
+and mock HTTP. A5c2b still owes explicit terminal/refusal reset and safe handling
+of a reserved-but-unsent/unknown intent without its email, followed by native
+API/SQL acceptance. The rollout gate remains closed; no external mail was sent.
+
 A5c1 prerequisite: a standalone browser IndexedDB journal now durably reserves
 one versioned requestKey per actor/member in a readwrite transaction, including
 cross-tab races. It stores no email, proof or server outcome, refuses malformed
