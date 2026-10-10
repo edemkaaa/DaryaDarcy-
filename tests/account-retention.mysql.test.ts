@@ -12,6 +12,8 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import type { AppRouter } from "../apps/backend/src/routers";
 import { WorkerJobs } from "../apps/backend/src/workers/worker-jobs.service";
 import { WORKER_OPERATIONS, type WorkerOperations } from "../apps/backend/src/workers/worker-operations";
+import { randomUUID } from "node:crypto";
+import { requestMemberEmailBinding } from "../apps/backend/src/identity/email-binding";
 
 describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () => {
   let conn: Connection;
@@ -42,6 +44,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     ) ENGINE=InnoDB`);
   });
   beforeEach(async () => {
+    await cleanupBindings();
     await conn.query("DELETE FROM pen_pal_matches WHERE userLowId=92101");
     await conn.query("DELETE FROM pen_pal_shown WHERE userId=92101 OR matchUserId=92101");
     for (const table of ["club_payments", "pen_pal_profiles", "post_comments", "likes", "saved_posts", "push_tokens"])
@@ -66,12 +69,84 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
   });
   afterEach(() => vi.restoreAllMocks());
   afterAll(async () => {
+    if (conn) await cleanupBindings();
     await conn?.query("DELETE FROM push_tokens WHERE token='retention-fixture-token'");
     await conn?.query("UPDATE users SET accountDeletionRequestedAt=NULL WHERE id BETWEEN 92101 AND 92104");
     await conn?.end();
     const database = await getDb();
     await (database as unknown as { $client: { end(): Promise<void> } })?.$client.end();
     vi.unstubAllEnvs();
+  });
+  async function cleanupBindings() {
+    await conn.query("DELETE o FROM member_email_binding_outbox o JOIN member_email_bindings b ON b.requestKey=o.requestKey WHERE b.actorUserId=92103");
+    await conn.query("DELETE FROM member_email_bindings WHERE actorUserId=92103");
+    await conn.query("DELETE FROM admin_audit_log WHERE actorUserId=92103");
+  }
+  async function queueBinding() {
+    vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", Buffer.alloc(32, 33).toString("base64"));
+    await conn.query("INSERT INTO users (id,openId,role,sessionVersion) VALUES (92103,'retention-binding-admin','admin',0)");
+    await conn.query("UPDATE users SET email=NULL,phone='+70000092101',accountDeletionRequestedAt=NULL WHERE id=92101");
+    const requestKey = randomUUID();
+    await requestMemberEmailBinding((await getDb())!, { userId: 92103, sessionVersion: 0 }, {
+      userId: 92101, email: 'retention-binding@example.test', requestKey,
+    });
+    await conn.query("UPDATE users SET accountDeletionRequestedAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE id=92101");
+    return requestKey;
+  }
+  async function bindingRows(requestKey: string) {
+    return (await conn.query<RowDataPacket[]>("SELECT b.*,o.tokenCipher,o.leaseId,o.leaseUntil,o.discardedAt FROM member_email_bindings b JOIN member_email_binding_outbox o ON o.requestKey=b.requestKey WHERE b.requestKey=?", [requestKey]))[0];
+  }
+  it("cancels and scrubs pending email proofs in the account deletion transaction", async () => {
+    const key = await queueBinding();
+    expect(await processScheduledAccountDeletions()).toBe(1);
+    expect(await bindingRows(key)).toEqual([expect.objectContaining({
+      state: 'cancelled', email: null, proofHash: null, tokenCipher: null,
+      leaseId: null, leaseUntil: null, completedAt: expect.any(Date), discardedAt: expect.any(Date),
+    })]);
+    const [audit] = await conn.query<RowDataPacket[]>("SELECT targetId,details FROM admin_audit_log WHERE actorUserId=92103 AND action='cancel_member_email_binding'");
+    expect(audit).toEqual([{ targetId: 92101, details: null }]);
+  });
+  it("rolls back proof scrubbing together with a failed account deletion", async () => {
+    const key = await queueBinding();
+    const before = await bindingRows(key);
+    await conn.query(`CREATE TRIGGER backend_test_retention_failure BEFORE UPDATE ON users FOR EACH ROW
+      BEGIN IF OLD.id=92101 AND NEW.openId LIKE 'deleted-%' THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Fixture final cleanup failure'; END IF; END`);
+    try { await expect(processScheduledAccountDeletions()).rejects.toThrow(); }
+    finally { await conn.query("DROP TRIGGER backend_test_retention_failure"); }
+    expect(await bindingRows(key)).toEqual(before);
+  });
+  it("preserves legacy deletion before both binding tables are installed", async () => {
+    await conn.query("RENAME TABLE member_email_bindings TO retention_fixture_bindings, member_email_binding_outbox TO retention_fixture_binding_outbox");
+    try {
+      expect(await processScheduledAccountDeletions()).toBe(1);
+      expect((await snapshot()).user[0]).toMatchObject({ email: null, passwordHash: null });
+    } finally {
+      await conn.query("RENAME TABLE retention_fixture_bindings TO member_email_bindings, retention_fixture_binding_outbox TO member_email_binding_outbox");
+    }
+  });
+  it("refuses partial binding schemas without partially deleting an account", async () => {
+    const before = await snapshot();
+    await conn.query("RENAME TABLE member_email_binding_outbox TO retention_fixture_binding_outbox");
+    try {
+      await expect(processScheduledAccountDeletions()).rejects.toMatchObject({ code: 'unavailable' });
+      expect(await snapshot()).toEqual(before);
+    } finally {
+      await conn.query("RENAME TABLE retention_fixture_binding_outbox TO member_email_binding_outbox");
+    }
+  });
+  it("rolls back the account and proof when cancellation audit fails", async () => {
+    const key = await queueBinding();
+    const before = await snapshot();
+    const proof = await bindingRows(key);
+    await conn.query(`CREATE TRIGGER backend_test_binding_retention_failure BEFORE INSERT ON admin_audit_log FOR EACH ROW
+      BEGIN IF NEW.actorUserId=92103 AND NEW.action='cancel_member_email_binding' THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Fixture audit cleanup failure'; END IF; END`);
+    try {
+      await expect(processScheduledAccountDeletions()).rejects.toMatchObject({ code: 'unavailable' });
+      expect(await bindingRows(key)).toEqual(proof);
+      expect(await snapshot()).toEqual(before);
+    } finally { await conn.query("DROP TRIGGER backend_test_binding_retention_failure"); }
   });
   async function snapshot() {
     const [[user], [profile], [comments], [matches], [shown], [activity]] = await Promise.all([

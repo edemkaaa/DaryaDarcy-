@@ -11,7 +11,9 @@
 - [x] A1: expiry/cancel scrub и 30-дневное удаление минимальной истории привязки.
       6 native RED → 14 lifecycle GREEN; вместе с request/confirmation 85 pass.
       Внутренний core, worker пока не включён до A3/A7.
-- [ ] A2: очистка привязки в транзакции удаления аккаунта.
+- [x] A2: очистка привязки в транзакции удаления аккаунта.
+      Native RED/GREEN; 18 retention/worker/HTTP pass, legacy schema и partial
+      schema проверены. Внешние доставки не запускались.
 - [ ] A3: leased/retrying доставка подтверждения, native MySQL + loopback SMTP.
 - [ ] A4: admin request/status и явный confirm POST с проверенным HTTP-контрактом.
 - [ ] A5: подключить существующую форму администратора и восстановление результата.
@@ -37,7 +39,7 @@
 - [ ] Q2: критерии нагрузки/baseline, Safari/Android/desktop/PWA приёмка.
 - [ ] Q3: матрица сдачи, backup/rollback, инструкция, пилот 5–7 дней/30–50 участниц.
 
-Следующий независимый срез: A2. Форма/worker остаются выключены до целостного
+Следующий независимый срез: A3. Форма/worker остаются выключены до целостного
 сценария и схемы. Внешние блокеры не препятствуют локальным A/C/M/V задачам.
 
 ## Requested frontend corrections — 2026-10-09
