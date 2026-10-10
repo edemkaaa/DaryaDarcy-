@@ -41,6 +41,23 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3k, лайк комментария — 11 октября МСК:** normal/lost-write native own-comment
+кейсы дополнены UI like HTTP 200 → одна SQL like строка с memberId/commentId →
+pressed=true и literal счётчик 1 → reload → unlike HTTP 200 → pressed=false и
+SQL likes пусто. Сам comment неизменен; последующие CRUD/identity/expiry проверки
+сохранены. **Mutation RED:** запись лайка на чужой actorId поймана независимым
+SQL assertion, подмена снята. Первый counter selector ошибочно включал icon
+glyph; после чтения renderer проверяется отдельный видимый текст 1, не внутренний
+код иконки. **21 C1/C2/C3 native browser GREEN/exit 0**, затем после добавления
+scoped likes cleanup ещё **2 own-comment cases GREEN**, типы проходят. 14 binding
+cases исключены в default-off build. Review: реальный toggle/read/SQL, явный
+автор лайка, cleanup только likes собственных comments до удаления fixtures;
+production/дизайн/контракты не менялись. Frontend остановлен; свой loopback/tmpfs
+backend_test удалён через --rm после exact ID/label/port/no mounts/no OOM проверки.
+Сервер/рабочая БД/внешние сервисы не затронуты. Comment-like account switching,
+чужой reply/push, фото/прочие экраны/устройства, прежняя редкая transport race
+и A7/deployment ограничения остаются открыты.
+
 **C3j, ответ на собственный комментарий — 11 октября МСК:** обычный native
 own-comment case дополнен reply/cancel. Cancel ответа сохраняет текст draft,
 не добавляя строк; повторный выбор «Ответить» и send HTTP 200 создают ровно одну

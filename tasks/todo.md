@@ -207,6 +207,11 @@
       не удаляет root; далее прежний CRUD. Missing-parentId RED снят;
       21 C1/C2/C3 browser GREEN/exit 0, типы. Reply другому автору/push не
       проверен; photos/экраны/навигация/устройства/A7/deployment открыты.
+      C3k: comment like HTTP/SQL → pressed и counter 1 → reload → unlike,
+      comment/identity/expiry прежние. Wrong-like-author RED снят;
+      21 C1/C2/C3 GREEN + 2 focused после scoped likes cleanup, типы.
+      Account switching likes/чужой reply-push/photos/прочие экраны/устройства,
+      прежняя редкая transport race и A7/deployment ещё открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

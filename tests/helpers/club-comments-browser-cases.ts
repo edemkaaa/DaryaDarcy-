@@ -308,6 +308,45 @@ export function registerClubCommentsBrowserCases(
           ).toBeVisible();
           expect(writes).toBe(2);
         }
+        const likeSql =
+          "SELECT userId,commentId FROM comment_likes WHERE commentId=?";
+        const like = page.getByRole("button", {
+          name: "Поставить лайк комментарию",
+          exact: true,
+        });
+        await browserExpect(like).toHaveAttribute("aria-pressed", "false");
+        const liked = page.waitForResponse((response) =>
+          response.url().includes("club.toggleCommentLike"),
+        );
+        await like.click();
+        expect((await liked).status()).toBe(200);
+        expect(await rows(likeSql, [created.id])).toEqual([
+          { userId: memberId, commentId: created.id },
+        ]);
+        const unlike = page.getByRole("button", {
+          name: "Убрать лайк комментария",
+          exact: true,
+        });
+        await browserExpect(unlike).toHaveAttribute("aria-pressed", "true");
+        await browserExpect(
+          unlike.getByText("1", { exact: true }),
+        ).toBeVisible();
+        await page.reload();
+        await page
+          .getByRole("button", { name: "Комьюнити", exact: true })
+          .click();
+        await browserExpect(unlike).toHaveAttribute("aria-pressed", "true");
+        await browserExpect(
+          unlike.getByText("1", { exact: true }),
+        ).toBeVisible();
+        const unliked = page.waitForResponse((response) =>
+          response.url().includes("club.toggleCommentLike"),
+        );
+        await unlike.click();
+        expect((await unliked).status()).toBe(200);
+        await browserExpect(like).toHaveAttribute("aria-pressed", "false");
+        expect(await rows(likeSql, [created.id])).toEqual([]);
+        expect(await rows(commentSql, [postId])).toEqual([created]);
         const editFromMenu = async () => {
           await page
             .getByRole("button", {
@@ -459,6 +498,10 @@ export function registerClubCommentsBrowserCases(
           await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
         ).toEqual(access);
       } finally {
+        await connection.query(
+          "DELETE FROM comment_likes WHERE commentId IN (SELECT id FROM post_comments WHERE postId=?)",
+          [postId],
+        );
         await connection.query("DELETE FROM post_comments WHERE postId=?", [
           postId,
         ]);
