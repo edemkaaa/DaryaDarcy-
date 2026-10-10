@@ -60,6 +60,9 @@
       A6c1: proof из настоящего loopback SMTP MIME → direct frontend → native POST/SQL;
       13 pass, включая диагностический routing blocker: actual email GET 404,
       cross-site document 403. Test-only перевод пути — не целостная приёмка.
+      A6c2: actual email GET → read-only configured redirect → frontend → explicit POST;
+      4 native RED → 19 HTTP/SQL GREEN; 13 browser/SQL/SMTP pass без смены пути.
+      Cross-site webmail 403 сохраняется, узкий navigation exception требует решения.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
 - [ ] Checkpoint A: весь сценарий через настоящее API/SQL/loopback письмо;
       первый email меняется один раз, пароль/сессии/подписка сохранены.
@@ -81,8 +84,8 @@
 - [ ] Q2: критерии нагрузки/baseline, Safari/Android/desktop/PWA приёмка.
 - [ ] Q3: матрица сдачи, backup/rollback, инструкция, пилот 5–7 дней/30–50 участниц.
 
-Следующий срез A6c2: reviewed GET routing/document navigation policy без CORS expansion;
-loopback SMTP/direct recipient проверен, настоящий email entry и Checkpoint A открыты.
+Следующий срез A6c3: решение о точном read-only document navigation exception без
+CORS expansion; local actual-link SMTP/browser проверен, webmail entry/Checkpoint A открыты.
 Форма/worker остаются выключены до целостного
 сценария и схемы. Внешние блокеры не препятствуют локальным A/C/M/V задачам.
 

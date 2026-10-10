@@ -41,6 +41,29 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A6c2, read-only GET bridge — 10 октября:** зарегистрирован default-disabled
+GET `/api/auth/email-binding` → пустой 302 на configured PUBLIC_APP_URL
+`/email-binding`; Host/query/PUBLIC_AUTH_URL не выбирают destination. Query
+отклоняется generic 400, неверная конфигурация/выключенный флаг — 503.
+Открытие не читает/не меняет SQL, не создаёт cookie/письмо и не подтверждает proof.
+**4 native RED (404) → 19 HTTP/SQL GREEN**. **13 browser/API/SQL/loopback SMTP pass**
+теперь используют настоящий URL письма без test-only смены пути: redirect
+сохраняет browser fragment, GET ничего не меняет, явный POST меняет только email.
+Пароль/identity/sessionVersion/paid expiry/browser cookie сохранены.
+Остаётся cross-site webmail document **403**: policy/CORS не менялись, узкий
+navigation exception вынесен на отдельное решение пользователя. A6/Checkpoint A/
+A7/rollout открыты; deployment proxy не сертифицирован локальным transport proxy.
+Docker был выключен после прерывания; запущен с отдельного разрешения пользователя.
+Чужой контейнер не затронут; проверки используют новый собственный tmpfs backend_test.
+100 смежных security/client и 21 application test pass; типы/backend build,
+active/default frontend builds, 604 boundaries и 53 docs проходят. Default-off
+build восстановлен; local frontend остановлен. Собственный контейнер exact
+ID/label/tmpfs/no mounts/no OOM проверен перед stop; `--rm` удалил только fixture.
+Ревью: redirect не отражает ввод, не обращается к DB/session и не ослабляет
+security headers; fragment сохраняется самим browser и не попадает в HTTP.
+Скиллы API/security использованы для configured destination, generic refusals
+и сохранения прежней browser-origin границы; rollout не включён.
+
 **A6c1, loopback SMTP → recipient — 10 октября:** production admin UI/Nest/SQL
 создаёт заявку, настоящий nodemailer доставляет в собственный loopback SMTP.
 Proof берётся из MIME письма, не из расшифрованного SQL outbox; после доставки

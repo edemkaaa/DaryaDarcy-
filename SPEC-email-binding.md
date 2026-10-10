@@ -55,6 +55,13 @@ not a caller-supplied user ID or authenticated browser identity.
   changes an account, queues mail, renews a proof or performs maintenance.
 - `GET /api/auth/email-binding#token=...`: confirmation page. No identity write.
   Proof only in fragment/memory, removed from the address bar; no referrer.
+  The backend returns an empty 302 to the configured PUBLIC_APP_URL origin at
+  `/email-binding`. It never derives a target from Host, query or PUBLIC_AUTH_URL.
+  The browser retains the fragment through the redirect; the server never sees it.
+  Queries are rejected with generic 400, invalid configuration/default-disabled
+  gate returns generic 503. No cookie, DB lookup/write or mail operation occurs.
+  Existing cross-site Fetch Metadata policy still rejects webmail navigation;
+  a narrowly reviewed document-navigation exception is a separate open gate.
 - `POST /api/auth/email-bindings/confirm`: `{token}`. Reject malformed, expired,
   consumed or superseded proofs, unavailable recipient and occupied address.
   Successful confirmation changes only email, consumes the proof and audits it
@@ -157,6 +164,17 @@ restart of shared Docker, rollout/push/deployment. Never: commit secrets, log pr
 silently repair old users, run fixture cleanup on a working database.
 
 ## Current implementation checkpoint
+
+A6c2 adds the default-disabled read-only GET bridge to the existing public
+frontend page. Four native HTTP RED failures (404) preceded 19 HTTP/SQL GREEN:
+flag, configured target/Host independence, query rejection and invalid config.
+Thirteen production browser/native API/MySQL/loopback SMTP cases now pass using
+the actual delivered link, without test-only path translation: the redirect
+preserves the proof in browser memory, no GET mutates SQL, and only explicit POST
+binds email while preserving other identity/access/cookie state. This remains
+local transport-proxy acceptance, not deployment acceptance. Cross-site webmail
+navigation still returns 403; no CORS or Fetch Metadata relaxation is applied.
+A6/Checkpoint A/rollout remain open until that entry boundary is reviewed.
 
 A6c1 verifies a production admin request through native Nest/MySQL and actual
 nodemailer delivery to an owned loopback SMTP wire. The recipient uses the proof

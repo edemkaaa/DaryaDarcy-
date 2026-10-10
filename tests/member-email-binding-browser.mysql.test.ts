@@ -243,9 +243,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       expect(link.origin).toBe(new URL(frontend!).origin);
       return link;
     }
-    // Temporary diagnostic, not acceptance: replace this with real entry
-    // acceptance when GET routing is implemented. Never hide it with a proxy.
-    it("exposes the missing delivered GET while preserving pending SQL and excluding the proof from HTTP", async () => {
+    it("opens the delivered GET without changing SQL or leaking proof, while retaining the cross-site policy gate", async () => {
       await send(await context.newPage());
       const link = await deliveredLink();
       const before = await rows("SELECT * FROM users WHERE id=?", [memberId]);
@@ -254,7 +252,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         expect(request.url()).not.toContain("token=");
       });
       const response = await recipient.goto(link.toString());
-      expect(response?.status()).toBe(404);
+      expect(response?.status()).toBe(200);
       // A webmail document navigation hits a separate existing policy gate.
       const webmailEntry = await fetch(base + link.pathname, {
         headers: {
@@ -269,7 +267,9 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
           name: "Подтвердить почту",
           exact: true,
         }),
-      ).toHaveCount(0);
+      ).toBeEnabled();
+      expect(new URL(recipient.url()).pathname).toBe("/email-binding");
+      expect(new URL(recipient.url()).hash).toBe("");
       expect(await rows("SELECT * FROM users WHERE id=?", [memberId])).toEqual(
         before,
       );
@@ -280,7 +280,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         ),
       ).toEqual([{ state: "pending" }]);
     }, 30_000);
-    it("confirms an SMTP-delivered proof on the direct frontend page (partial acceptance, not email GET routing)", async () => {
+    it("confirms the actual SMTP-delivered link through the read-only redirect and explicit native POST", async () => {
       await connection.query(
         "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'binding-browser-existing-access','paid','0','2030-01-01')",
         [memberId],
@@ -301,8 +301,6 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
           [actorId],
         ),
       ).toEqual([{ sentAt: expect.any(Date), tokenCipher: null, attempts: 1 }]);
-      // Explicit test-only translation isolates the remaining entrypoint blocker.
-      link.pathname = "/email-binding";
       const recipient = await context.newPage();
       await recipient.goto(link.toString());
       const submit = recipient.getByRole("button", {

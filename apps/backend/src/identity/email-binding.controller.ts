@@ -10,6 +10,7 @@ import {
 } from "./email-binding-http-contract";
 import { checkRateLimit } from "../_core/rate-limit";
 import { clientIp } from "../sms-auth";
+import { publicAccessUrl } from "./urls";
 
 function reject(res: Response, status: number) {
   res.status(status).json({ error: "Запрос недоступен." });
@@ -64,6 +65,26 @@ export class EmailBindingController {
     @Inject(SessionService) private readonly sessions: SessionService,
     @Inject(EmailBindingService) private readonly bindings: EmailBindingService,
   ) {}
+
+  @Get("auth/email-binding")
+  page(@Req() req: Request, @Res() res: Response) {
+    if (!ready(req, res)) return;
+    // Proof belongs in the browser fragment, never in a forwarded query.
+    if (req.originalUrl.includes("?")) {
+      reject(res, 400);
+      return;
+    }
+    try {
+      const target = publicAccessUrl();
+      target.pathname = "/email-binding";
+      // The browser retains its fragment across this empty-fragment redirect.
+      // No session or database operation is performed by opening the email.
+      res.status(302).setHeader("Location", target.toString());
+      res.end();
+    } catch {
+      reject(res, 503);
+    }
+  }
 
   private async administrator(req: Request, res: Response) {
     const user = await this.sessions.optionalUser(req);

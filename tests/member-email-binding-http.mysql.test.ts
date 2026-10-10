@@ -60,6 +60,8 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
   });
   beforeEach(async () => {
     fixture++;
+    vi.stubEnv("PUBLIC_APP_URL", "http://127.0.0.1");
+    vi.stubEnv("PUBLIC_AUTH_URL", "");
     vi.stubEnv("MEMBER_EMAIL_BINDING_ENABLED", "true");
     vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", encryptionKey.toString("base64"));
     await cleanup();
@@ -135,9 +137,73 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       503,
     );
     await safe(await call(confirmPath, { token: "a".repeat(43) }, false), 503);
+    await safe(await call("/api/auth/email-binding", undefined, false), 503);
     expect(
       await rows("SELECT * FROM member_email_bindings WHERE actorUserId=91301"),
     ).toEqual([]);
+  });
+  it("redirects the public read-only entry to the configured frontend without consuming a proof or changing identity", async () => {
+    const request = input();
+    expect((await call(adminPath, request)).status).toBe(202);
+    const before = await rows("SELECT * FROM users WHERE id=91302");
+    const bindings = await rows(
+      "SELECT * FROM member_email_bindings WHERE actorUserId=91301",
+    );
+    const outbox = await rows(
+      "SELECT o.* FROM member_email_binding_outbox o JOIN member_email_bindings b USING(requestKey) WHERE b.actorUserId=91301",
+    );
+    const audit = await rows(
+      "SELECT * FROM admin_audit_log WHERE actorUserId=91301",
+    );
+    vi.stubEnv("PUBLIC_AUTH_URL", "https://unrelated.example.test");
+    const response = await fetch(base + "/api/auth/email-binding", {
+      redirect: "manual",
+      headers: { Host: "untrusted.example.test" },
+    });
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe(
+      "http://127.0.0.1/email-binding",
+    );
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(await response.text()).toBe("");
+    expect(await rows("SELECT * FROM users WHERE id=91302")).toEqual(before);
+    expect(
+      await rows("SELECT * FROM member_email_bindings WHERE actorUserId=91301"),
+    ).toEqual(bindings);
+    expect(
+      await rows(
+        "SELECT o.* FROM member_email_binding_outbox o JOIN member_email_bindings b USING(requestKey) WHERE b.actorUserId=91301",
+      ),
+    ).toEqual(outbox);
+    expect(
+      await rows("SELECT * FROM admin_audit_log WHERE actorUserId=91301"),
+    ).toEqual(audit);
+  });
+  it("refuses query-bearing entry without reflecting proof or redirect input", async () => {
+    for (const query of [
+      "token=" + "a".repeat(43),
+      "next=https://untrusted.example.test",
+      "anything=1",
+    ]) {
+      const response = await fetch(base + "/api/auth/email-binding?" + query, {
+        redirect: "manual",
+      });
+      await safe(response, 400);
+      expect(response.headers.get("location")).toBeNull();
+    }
+  });
+  it("fails closed on invalid configured frontend navigation", async () => {
+    vi.stubEnv(
+      "PUBLIC_APP_URL",
+      "https://user:fixture-only@untrusted.example.test",
+    );
+    await safe(
+      await fetch(base + "/api/auth/email-binding", { redirect: "manual" }),
+      503,
+    );
+    vi.stubEnv("PUBLIC_APP_URL", "http://127.0.0.1");
   });
   it("creates once, recovers safe status and rejects key reuse with a different payload", async () => {
     const request = input();

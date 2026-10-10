@@ -182,6 +182,13 @@ tests/frontend-club-checkout-mode.native.test.mjs` (одна команда в �
 
 ## Инструменты менеджера: первая привязка почты
 
+**Обновление 10 октября, A6c2:** backend GET теперь направляет на public
+frontend страницу без записи/сессии/письма. 4 native RED → 19 HTTP/SQL GREEN;
+13 browser/API/SQL/loopback SMTP pass используют настоящий URL письма без смены
+пути; browser fragment сохраняется при redirect и очищается страницей.
+Cross-site webmail document 403 остаётся отдельным gate; CORS/защита не изменены.
+Дизайн фронтендера сохранён, сервер/рабочая БД не обновлялись.
+
 **Обновление 10 октября, A6c1:** production UI/native API/SQL → настоящий
 loopback SMTP → proof из MIME → direct recipient page → явный POST проверен;
 13 native cases pass, без изменения пароля/сессий/оплаченного срока/cookie.
