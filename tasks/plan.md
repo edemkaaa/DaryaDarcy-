@@ -41,6 +41,29 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3n, статья для оплаченной участницы — 11 октября МСК:** новый focused
+library case с настоящей member cookie/SQL entitlement проверяет direct article
+HTTP 200/unlocked/literal sections → body в UI → reload с тем же body и прежней
+оплатой. Затем expiresAt меняется только у synthetic own entitlement: reload
+получает locked=true/sections=[] и приглашение в клуб, прежний body отсутствует.
+Статья/credentials/role/sessionVersion неизменны, HTTP чтения не меняют оплату.
+**Два mutation RED:** отказ всем paid users и обход проверки срока при наличии
+user пойманы противоположными wire assertions; обе подмены сняты. Первоначальный
+selector ожидал одноэлементный tRPC batch; реальный subscription read добавляет
+второй result, поэтому detail выбирается по independent literal article ID.
+Test-only DDL переиспользован двумя library cases, production не менялся.
+Первый общий прогон: 23 assertions pass, но exit 1 из-за прежней unhandled
+`route.fulfill: Route is already handled!` на C1 moderator dismiss fixture —
+он **не считается GREEN**. Focused library + moderator **3 pass/exit 0**, затем
+общий **23 C1/C2/C3 pass/exit 0**, типы проходят. Причина редкой transport race
+по-прежнему не установлена; её не подавляли и не объявляли исправленной.
+Review: настоящий paid read и expiry denial, минимальный wire selector, literal
+текст, scoped cleanup статьи и synthetic order; без worker/payment/email calls.
+Frontend остановлен; собственный loopback/tmpfs backend_test удалён после exact
+ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД не затронуты.
+Live expiry без reload, article account switching, реальные media/устройства,
+другие C3 экраны, A7/deployment и transport race ещё открыты.
+
 **C3m, корректное отсутствие статьи — 11 октября МСК:** C3l native browser
 проверка сначала воспроизвела RED: unpublished detail HTTP 200 с undefined
 показывает query error вместо «Статья не найдена». Причина — React Query не

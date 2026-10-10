@@ -223,6 +223,12 @@
       Unpublished/missing not-found + network retry/recovery; 22 C1/C2/C3 GREEN,
       root/frontend типы/lint/default build/API/boundaries. Далее paid article
       reload/expiry; прочие C3 экраны/media/устройства/A7/deployment открыты.
+      C3n: paid direct article HTTP/unlocked/body/reload; synthetic expiry →
+      locked/no body после reload, article/identity/payment reads неизменны.
+      Denied-paid/expiry-bypass RED сняты. Первый общий run exit 1 из-за прежней
+      C1 transport race (не GREEN); 3 focused pass → 23 общих pass/exit 0, типы.
+      Live expiry без reload/account switching/media/экраны/устройства/A7 открыты;
+      причина transport race не установлена и ошибка не подавлялась.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

@@ -206,6 +206,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       rows,
       connection,
       context,
+      memberId,
       frontend: frontend!,
     }));
     registerClubCommentsBrowserCases(() => ({
