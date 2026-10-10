@@ -212,6 +212,12 @@
       21 C1/C2/C3 GREEN + 2 focused после scoped likes cleanup, типы.
       Account switching likes/чужой reply-push/photos/прочие экраны/устройства,
       прежняя редкая transport race и A7/deployment ещё открыты.
+      C3l: гостевая библиотека list/search → public body → back; прямой club
+      detail locked/sections=[] без body, draft скрыт в list/HTTP/UI, SQL прежняя.
+      Club-access bypass mutation RED снята; 22 C1/C2/C3 GREEN/exit 0, типы.
+      Следующий C3m: undefined unpublished detail даёт query error/
+      «Повторить», а не «Статья не найдена» — UX дефект воспроизведён и не закрыт.
+      Paid article/reload/expiry/media/остальные экраны/устройства/A7 открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

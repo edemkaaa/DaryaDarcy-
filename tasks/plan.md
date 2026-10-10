@@ -41,6 +41,29 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3l, гостевая библиотека — 11 октября МСК:** отдельный focused helper проверяет
+native articles list HTTP 200, поиск опубликованной public карточки, открытие
+body и возврат в библиотеку. Club/draft карточки отсутствуют; прямой club URL
+возвращает locked=true/sections=[] и UI приглашения, без private body.
+Прямой draft URL не раскрывает body ни по HTTP, ни в UI; все три SQL статьи
+неизменны. **Mutation RED:** обход club access возвращает private sections и
+ловится независимым wire assertion; подмена снята. Первые fixture ошибки
+(два responsive search input и batched tRPC envelope) исправлены по actual
+DOM/wire, без изменения production. **22 C1/C2/C3 native browser GREEN/exit 0**,
+типы проходят; 14 binding cases исключены в default-off build. Review: отдельный
+library helper вместо разрастания comments fixture, реальный API/SQL, literal
+bodies, scoped cleanup; production/дизайн/контракты не менялись.
+**Следующий C3m:** при unpublished detail API возвращает undefined
+(wire json:null + superjson meta undefined), а React Query показывает «Повторить»
+вместо предусмотренного «Статья не найдена». Это воспроизведённый UX дефект,
+не принятая готовность not-found: C3l проверяет только отсутствие раскрытия и
+явное error состояние. Нужен отдельный RED/GREEN с проверенным detail контрактом;
+не маскировать ошибку snapshot/mock ответом. Paid article/reload/expiry, реальные
+media/устройства и остальные экраны остаются открыты. Frontend остановлен;
+свой loopback/tmpfs backend_test удалён через --rm после exact ID/label/port/
+no mounts/no OOM проверки; сервер/рабочая БД/внешние сервисы не затронуты.
+Прежняя редкая transport race и A7/deployment ограничения сохраняются.
+
 **C3k, лайк комментария — 11 октября МСК:** normal/lost-write native own-comment
 кейсы дополнены UI like HTTP 200 → одна SQL like строка с memberId/commentId →
 pressed=true и literal счётчик 1 → reload → unlike HTTP 200 → pressed=false и
