@@ -282,4 +282,75 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       );
     }
   }, 30_000);
+
+  it("C3 does not assign an anonymous quiz result to the member who signs in next", async () => {
+    const { rows, connection, context, frontend, memberId } = fixture();
+    const email = "c3.quiz.guest-transition@example.test";
+    const password = "Synthetic-C3-guest-transition-only-2026!";
+    await connection.query(
+      "UPDATE users SET email=?,passwordHash=? WHERE id=?",
+      [email, await hashPassword(password), memberId],
+    );
+    const identitySql =
+      "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id=?";
+    const identity = await rows(identitySql, [memberId]);
+    try {
+      await connection.query(
+        "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-quiz-guest-transition','paid','0','2030-01-01')",
+        [memberId],
+      );
+      const payment = await rows("SELECT * FROM club_payments WHERE userId=?", [
+        memberId,
+      ]);
+      await context.clearCookies();
+      const page = await context.newPage();
+      await page.goto(frontend + "quiz");
+      await completeCottagecoreQuiz(page);
+      const guestResult = () =>
+        page.evaluate(() =>
+          localStorage.getItem("darcy:user:guest:@darcy_quiz_result"),
+        );
+      await browserExpect.poll(guestResult).not.toBeNull();
+      // Catches assigning unowned guest data to a newly authenticated person.
+      await page.goto(frontend + "login?next=/profile");
+      await page.getByPlaceholder("Email", { exact: true }).fill(email);
+      await page.getByPlaceholder("Пароль", { exact: true }).fill(password);
+      const [login] = await Promise.all([
+        page.waitForResponse(
+          (response) => new URL(response.url()).pathname === "/api/auth/login",
+        ),
+        page.getByRole("button", { name: "Войти", exact: true }).click(),
+      ]);
+      expect(login.status()).toBe(200);
+      expect((await login.json()).user).toMatchObject({ id: memberId, email });
+      await browserExpect(page).toHaveURL(/\/profile$/);
+      const empty = page.getByText("Пройди тест, чтобы узнать свою эстетику", {
+        exact: true,
+      });
+      await browserExpect(empty).toBeVisible();
+      await browserExpect(
+        page.getByText("Девушка, вернувшая жизнь заброшенному саду", {
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      expect(await guestResult()).toBeNull();
+      expect(
+        await page.evaluate(
+          (id) => localStorage.getItem(`darcy:user:${id}:@darcy_quiz_result`),
+          memberId,
+        ),
+      ).toBeNull();
+      await page.reload();
+      await browserExpect(empty).toBeVisible();
+      expect(await rows(identitySql, [memberId])).toEqual(identity);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(payment);
+    } finally {
+      await connection.query(
+        "DELETE FROM club_payments WHERE userId=? AND orderId='c3-quiz-guest-transition'",
+        [memberId],
+      );
+    }
+  }, 30_000);
 }

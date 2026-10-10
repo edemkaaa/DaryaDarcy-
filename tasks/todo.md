@@ -246,6 +246,12 @@
       снята. 26 C1/C2/C3 GREEN/exit 0, типы/default build; own tmpfs DB удалён.
       Не server/cross-device persistence; SPA/full result reopen/guest → login,
       blend/другие эстетики/media/устройства/transport race/A7 открыты.
+      C3r: guest проходит quiz → native member login → профиль без чужого title,
+      guest result очищен/member result отсутствует; reload/SQL identity/payment
+      прежние. Null-owner cleanup mutation RED снята; 27 C1/C2/C3 GREEN/exit 0,
+      типы/default build, own tmpfs DB удалён. Client storage, не server persistence.
+      Далее воспроизвести SPA/full result reopen; blend/другие эстетики/media/
+      устройства/transport race/A7/deployment открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

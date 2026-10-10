@@ -41,6 +41,25 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3r, гостевой результат → вход — 11 октября МСК:** отдельный native case
+проходит весь тест без cookie, подтверждает guest-scoped результат и входит через
+настоящую email/password форму как synthetic paid member. HTTP 200 содержит того
+же member ID; профиль предлагает пройти свой тест, не показывает гостевой title,
+guest key удалён и member key отсутствует. Reload сохраняет пустое состояние;
+SQL identity/credentials/role/sessionVersion и synthetic entitlement прежние.
+**Mutation RED:** сохранение previous-owner данных при owner=null оставляет
+guest key после login; case ловит именно retained result при корректной пустой UI.
+Подмена снята, production diff пуст и default build восстановлен.
+**27 C1/C2/C3 native browser pass/exit 0**, 14 binding skips намеренны;
+типы/default frontend build проходят. Review: отдельный case с настоящей формой,
+независимые UI/storage/SQL assertions, scoped cleanup; политика не изменялась.
+Frontend остановлен, собственный loopback/tmpfs backend_test удалён после exact
+ID/label/port/no mounts/no OOM проверки; внешние доставки/сервер/рабочая БД не тронуты.
+Это client storage/identity проверка, не server persistence. Далее C3: SPA-переходы
+и повторное открытие полного результата из профиля (нынешняя карточка ведёт в
+/quiz, где reducer стартует welcome; нужна отдельная воспроизводимая проверка),
+blend/другие эстетики/media/устройства. Transport race/A7/deployment открыты.
+
 **C3q, очистка результата при выходе и смене аккаунта — 11 октября МСК:**
 отдельный native case входит как synthetic member через настоящую password форму,
 проходит 10 UI вопросов, видит итог в профиле и выходит штатной кнопкой. Cookie
