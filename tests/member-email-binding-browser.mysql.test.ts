@@ -45,10 +45,9 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       return (await connection.query<RowDataPacket[]>(sql, args))[0];
     }
     async function cleanup() {
-      await connection.query(
-        "DELETE FROM club_payments WHERE userId=? AND orderId='binding-browser-existing-access'",
-        [memberId],
-      );
+      await connection.query("DELETE FROM club_payments WHERE userId=?", [
+        memberId,
+      ]);
       await connection.query(
         "DELETE o FROM member_email_binding_outbox o JOIN member_email_bindings b USING(requestKey) WHERE b.actorUserId=?",
         [actorId],
@@ -283,6 +282,66 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         },
         { action: "unblock_user", targetId: memberId, details: null },
       ]);
+      expect(smtp.messages).toHaveLength(0);
+    }, 30_000);
+    it("C1 grants 31 days through the browser from the existing expiry and preserves the account", async () => {
+      await connection.query(
+        "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'binding-browser-existing-access','paid','0','2030-01-01')",
+        [memberId],
+      );
+      const identity = await rows("SELECT * FROM users WHERE id=?", [memberId]);
+      const before = await rows("SELECT * FROM club_payments WHERE userId=?", [
+        memberId,
+      ]);
+      const page = await context.newPage();
+      const dialogs: string[] = [];
+      await page.goto(frontend! + "admin");
+      await page
+        .getByRole("button", { name: "Участницы", exact: true })
+        .click();
+      const member = page
+        .getByText("Browser phone member", { exact: true })
+        .locator("..");
+      page.once("dialog", (dialog) => dialog.dismiss());
+      await member
+        .getByRole("button", { name: "Продлить клуб", exact: true })
+        .click();
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(before);
+      page.on("dialog", async (dialog) => {
+        dialogs.push(dialog.type());
+        await dialog.accept();
+      });
+      await member
+        .getByRole("button", { name: "Продлить клуб", exact: true })
+        .click();
+      await browserExpect.poll(() => dialogs).toEqual(["confirm", "alert"]);
+      const payments = await rows(
+        "SELECT * FROM club_payments WHERE userId=? ORDER BY expiresAt",
+        [memberId],
+      );
+      expect(payments).toHaveLength(2);
+      expect(payments[0]).toEqual(before[0]);
+      expect(payments[1]).toMatchObject({
+        orderId: expect.stringMatching(/^admin-grant-/),
+        status: "paid",
+        sum: "0",
+        expiresAt: new Date("2030-02-01T00:00:00.000Z"),
+      });
+      await page.reload();
+      await page
+        .getByRole("button", { name: "Участницы", exact: true })
+        .click();
+      await browserExpect(member.getByText(/Клуб до/)).toContainText(
+        /1\s+февр\..*2030/,
+      );
+      expect(await rows("SELECT * FROM users WHERE id=?", [memberId])).toEqual(
+        identity,
+      );
+      expect(
+        await rows("SELECT id FROM club_payments WHERE userId=?", [actorId]),
+      ).toEqual([]);
       expect(smtp.messages).toHaveLength(0);
     }, 30_000);
     async function proof(requestKey: string) {

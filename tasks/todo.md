@@ -75,6 +75,10 @@
       старый member token остаётся отозван, identity/paid expiry сохранены,
       две audit записи, письмо не отправляется. 1 browser + 12 смежных SQL pass.
       Только локальный transport proxy; роли/выдача/повтор письма ещё открыты.
+      C1b: native browser cancel/confirm ручного продления; отказ не пишет SQL,
+      confirm добавляет ровно 31 день к прежнему expiry, reload показывает новую
+      дату, identity сохранена. 2 C1 browser + 23 grant SQL/HTTP pass.
+      Роли/первая выдача/письма и deployment acceptance остаются открыты.
 - [ ] C2: real-API редактор/статьи/вложения/черновики/scheduled без дублей.
 - [ ] C3: реальные взаимодействия, поиск, Библиотека, тест, профиль и поддержка.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
