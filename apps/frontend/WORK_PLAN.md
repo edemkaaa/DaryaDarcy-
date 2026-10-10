@@ -182,6 +182,13 @@ tests/frontend-club-checkout-mode.native.test.mjs` (одна команда в �
 
 ## Инструменты менеджера: первая привязка почты
 
+**Обновление 10 октября, A6c1:** production UI/native API/SQL → настоящий
+loopback SMTP → proof из MIME → direct recipient page → явный POST проверен;
+13 native cases pass, без изменения пароля/сессий/оплаченного срока/cookie.
+Один кейс диагностический: настоящий URL письма даёт 404, cross-site document
+403. В recipient тесте путь явно переведён на frontend; это не полная email-entry
+приёмка. A6/Checkpoint A/A7 открыты, production routing и CORS не менялись.
+
 **Обновление 10 октября, A6b2:** native production UI/Nest/SQL выявил remount при
 загрузке identity и повтор письма без remount. Public proof страница отделена от
 session providers; остальные identity fences сохранены. Hashchange захватывает

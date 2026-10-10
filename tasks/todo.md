@@ -57,6 +57,9 @@
       A6b2: исправлены session remount и fragment-only reopen; 3 native RED →
       10 pass/1 reopen RED → 11 native UI/SQL GREEN, 43 browser regressions.
       Credentials/paid expiry/browser cookie сохранены; SMTP и backend GET ещё открыты.
+      A6c1: proof из настоящего loopback SMTP MIME → direct frontend → native POST/SQL;
+      13 pass, включая диагностический routing blocker: actual email GET 404,
+      cross-site document 403. Test-only перевод пути — не целостная приёмка.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
 - [ ] Checkpoint A: весь сценарий через настоящее API/SQL/loopback письмо;
       первый email меняется один раз, пароль/сессии/подписка сохранены.
@@ -78,8 +81,8 @@
 - [ ] Q2: критерии нагрузки/baseline, Safari/Android/desktop/PWA приёмка.
 - [ ] Q3: матрица сдачи, backup/rollback, инструкция, пилот 5–7 дней/30–50 участниц.
 
-Следующий независимый срез: A6c — loopback SMTP + recipient browser checkpoint;
-GET routing/document navigation policy требует отдельной сверки без CORS expansion.
+Следующий срез A6c2: reviewed GET routing/document navigation policy без CORS expansion;
+loopback SMTP/direct recipient проверен, настоящий email entry и Checkpoint A открыты.
 Форма/worker остаются выключены до целостного
 сценария и схемы. Внешние блокеры не препятствуют локальным A/C/M/V задачам.
 

@@ -26,6 +26,9 @@ import { getDb } from "../apps/backend/src/db";
 import { COOKIE_NAME } from "../packages/shared/src/const";
 import { openContentTestDatabase } from "./helpers/content-mysql";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
+import { openLoopbackSmtp } from "./helpers/loopback-smtp";
+import { processMemberEmailBindingEmails } from "../apps/backend/src/identity/email-binding-delivery";
+import { sendTransactionalEmail } from "../apps/backend/src/_core/email";
 
 // Opt in with a separately started, enabled production frontend build. API
 // forwarding below is a transport proxy, never a mock response or fake session.
@@ -35,6 +38,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
   () => {
     let connection: Connection, application: INestApplication, browser: Browser;
     let base: string, token: string, context: BrowserContext;
+    let smtp: Awaited<ReturnType<typeof openLoopbackSmtp>>;
     const actorId = 91401,
       memberId = 91402;
     async function rows(sql: string, args: unknown[] = []) {
@@ -79,6 +83,15 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
       vi.stubEnv("JWT_SECRET", "synthetic-binding-browser-session-secret-32");
       vi.stubEnv("PUBLIC_APP_URL", url.origin);
+      vi.stubEnv("PUBLIC_AUTH_URL", "");
+      smtp = await openLoopbackSmtp();
+      vi.stubEnv("NODE_ENV", "test");
+      vi.stubEnv("SMTP_HOST", "127.0.0.1");
+      vi.stubEnv("SMTP_PORT", String(smtp.port));
+      vi.stubEnv("SMTP_SECURE", "false");
+      vi.stubEnv("SMTP_USER", "sender@example.test");
+      vi.stubEnv("SMTP_PASS", "fixture-only-browser-smtp-password");
+      vi.stubEnv("SMTP_FROM", "sender@example.test");
       vi.stubEnv("MEMBER_EMAIL_BINDING_ENABLED", "true");
       vi.stubEnv(
         "AUTH_LINK_ENCRYPTION_KEY",
@@ -96,6 +109,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
     }, 30_000);
     beforeEach(async () => {
       await cleanup();
+      smtp.reset();
       await connection.query(
         `INSERT INTO users (id,openId,name,role,phone,passwordHash) VALUES
       (?,'binding-browser-admin','Browser administrator','admin',NULL,'SYNTHETIC_ADMIN_HASH'),
@@ -142,6 +156,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
     afterAll(async () => {
       await browser?.close();
       await application?.close();
+      await smtp?.close();
       if (connection) {
         await cleanup();
         await connection.end();
@@ -197,6 +212,127 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         decipher.final(),
       ]).toString("utf8");
     }
+    async function deliveredLink() {
+      const database = await getDb();
+      if (!database) throw new Error("Disposable database unavailable");
+      await processMemberEmailBindingEmails(database, sendTransactionalEmail);
+      expect(smtp.recipients).toEqual([
+        "RCPT TO:<browser.member@example.test>",
+      ]);
+      expect(smtp.messages).toHaveLength(1);
+      const decoded = smtp.messages[0]
+        .split(/\r\n--/)
+        .map((part) => {
+          const separator = part.indexOf("\r\n\r\n");
+          const header = part.slice(0, separator);
+          const body = part.slice(separator + 4);
+          return /Content-Transfer-Encoding: base64/i.test(header)
+            ? Buffer.from(body.replace(/\r\n/g, ""), "base64").toString("utf8")
+            : body
+                .replace(/=\r\n/g, "")
+                .replace(/=([0-9A-F]{2})/g, (_, hex) =>
+                  String.fromCharCode(parseInt(hex, 16)),
+                );
+        })
+        .join("\n");
+      const match = decoded.match(
+        /http:\/\/127\.0\.0\.1:\d+\/api\/auth\/email-binding#token=[A-Za-z0-9_-]{43}/,
+      );
+      expect(match).not.toBeNull();
+      const link = new URL(match![0]);
+      expect(link.origin).toBe(new URL(frontend!).origin);
+      return link;
+    }
+    // Temporary diagnostic, not acceptance: replace this with real entry
+    // acceptance when GET routing is implemented. Never hide it with a proxy.
+    it("exposes the missing delivered GET while preserving pending SQL and excluding the proof from HTTP", async () => {
+      await send(await context.newPage());
+      const link = await deliveredLink();
+      const before = await rows("SELECT * FROM users WHERE id=?", [memberId]);
+      const recipient = await context.newPage();
+      recipient.on("request", (request) => {
+        expect(request.url()).not.toContain("token=");
+      });
+      const response = await recipient.goto(link.toString());
+      expect(response?.status()).toBe(404);
+      // A webmail document navigation hits a separate existing policy gate.
+      const webmailEntry = await fetch(base + link.pathname, {
+        headers: {
+          "Sec-Fetch-Site": "cross-site",
+          "Sec-Fetch-Mode": "navigate",
+          "Sec-Fetch-Dest": "document",
+        },
+      });
+      expect(webmailEntry.status).toBe(403);
+      await browserExpect(
+        recipient.getByRole("button", {
+          name: "Подтвердить почту",
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      expect(await rows("SELECT * FROM users WHERE id=?", [memberId])).toEqual(
+        before,
+      );
+      expect(
+        await rows(
+          "SELECT state FROM member_email_bindings WHERE actorUserId=?",
+          [actorId],
+        ),
+      ).toEqual([{ state: "pending" }]);
+    }, 30_000);
+    it("confirms an SMTP-delivered proof on the direct frontend page (partial acceptance, not email GET routing)", async () => {
+      await connection.query(
+        "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'binding-browser-existing-access','paid','0','2030-01-01')",
+        [memberId],
+      );
+      const access = await rows("SELECT * FROM club_payments WHERE userId=?", [
+        memberId,
+      ]);
+      await send(await context.newPage());
+      const beforeCookies = await context.cookies();
+      const before = await rows("SELECT * FROM users WHERE id=?", [memberId]);
+      const link = await deliveredLink();
+      expect(await rows("SELECT * FROM users WHERE id=?", [memberId])).toEqual(
+        before,
+      );
+      expect(
+        await rows(
+          "SELECT o.sentAt,o.tokenCipher,o.attempts FROM member_email_binding_outbox o JOIN member_email_bindings b USING(requestKey) WHERE b.actorUserId=?",
+          [actorId],
+        ),
+      ).toEqual([{ sentAt: expect.any(Date), tokenCipher: null, attempts: 1 }]);
+      // Explicit test-only translation isolates the remaining entrypoint blocker.
+      link.pathname = "/email-binding";
+      const recipient = await context.newPage();
+      await recipient.goto(link.toString());
+      const submit = recipient.getByRole("button", {
+        name: "Подтвердить почту",
+        exact: true,
+      });
+      await browserExpect(submit).toBeEnabled();
+      expect(new URL(recipient.url()).hash).toBe("");
+      expect(await rows("SELECT * FROM users WHERE id=?", [memberId])).toEqual(
+        before,
+      );
+      await submit.click();
+      await browserExpect(recipient.getByRole("status")).toContainText(
+        "Почта подтверждена",
+      );
+      const after = await rows("SELECT * FROM users WHERE id=?", [memberId]);
+      expect(after[0]).toMatchObject({
+        ...before[0],
+        email: "browser.member@example.test",
+      });
+      expect(await context.cookies()).toEqual(beforeCookies);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(access);
+      await processMemberEmailBindingEmails(
+        (await getDb())!,
+        sendTransactionalEmail,
+      );
+      expect(smtp.messages).toHaveLength(1);
+    }, 30_000);
     it("commits one queued intent without changing the member identity and recovers it after reload", async () => {
       const page = await context.newPage();
       let form = await open(page);

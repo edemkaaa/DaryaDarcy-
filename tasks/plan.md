@@ -41,6 +41,26 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A6c1, loopback SMTP → recipient — 10 октября:** production admin UI/Nest/SQL
+создаёт заявку, настоящий nodemailer доставляет в собственный loopback SMTP.
+Proof берётся из MIME письма, не из расшифрованного SQL outbox; после доставки
+cipher очищен, попытка одна, аккаунт ещё не изменён. Через явно обозначенный
+test-only перевод пути на `/email-binding` recipient подтверждает почту явным
+кликом; все остальные поля пользователя, оплаченный срок и browser cookie
+сохранены, повтор worker не отправляет второе письмо. **13 native cases pass**:
+12 сценариев и отдельный диагностический кейс открытого routing blocker.
+Сам настоящий URL письма `/api/auth/email-binding` даёт **404**, webmail-style
+cross-site document headers — **403**; proof не уходит в HTTP, SQL остаётся pending.
+Это **частичная SMTP/browser проверка, не Checkpoint A**. Ни API proxy, ни смена
+пути в тесте не считаются deployment/email-entry приёмкой. Production код,
+CORS/navigation policy, рабочая БД/сервер и внешняя почта не изменены. Следующий
+срез — reviewed GET/navigation routing; до него A6/A7 и rollout открыты.
+Типы, active/default production builds, docs и boundaries проходят. Default-off
+build восстановлен; локальные серверы остановлены. Контейнер удалён через `--rm`
+после сверки exact ID/label/tmpfs/no mounts/no OOM — только данные этого запуска.
+Ревью: тесты явно отделяют диагностический 404/403 от частичного подтверждения;
+SMTP строго loopback, синтетические env/аккаунты, proof не выводится в журнал.
+
 **A6b2, native confirmation UI — 10 октября:** три новых production browser/Nest/
 одноразовый SQL кейса обнаружили потерю memory proof при session-scope remount:
 страница успевала очистить fragment, после загрузки admin identity пересоздавалась

@@ -158,6 +158,18 @@ silently repair old users, run fixture cleanup on a working database.
 
 ## Current implementation checkpoint
 
+A6c1 verifies a production admin request through native Nest/MySQL and actual
+nodemailer delivery to an owned loopback SMTP wire. The recipient uses the proof
+parsed from delivered MIME, not a decrypted outbox. Delivery scrubs the cipher
+but does not bind email; explicit confirmation on the direct frontend page
+preserves every other user field, paid access and unrelated browser cookie.
+Repeated delivery does not send again. Thirteen native cases pass, including
+one diagnostic that exposes the actual entrypoint blocker: the delivered GET
+returns 404, and cross-site document headers return 403. The partial recipient
+case explicitly translates the path to `/email-binding` in test code only.
+It is not full email-entry/deployment acceptance; A6 and Checkpoint A remain
+open pending reviewed GET/navigation routing. No production policy is changed.
+
 A6b2 native acceptance exposed two bugs: session identity initialization remounted
 the proof screen after its fragment was removed, and fragment-only reopening did
 not remount it. The public route now bypasses session providers (other screens
