@@ -229,6 +229,11 @@
       C1 transport race (не GREEN); 3 focused pass → 23 общих pass/exit 0, типы.
       Live expiry без reload/account switching/media/экраны/устройства/A7 открыты;
       причина transport race не установлена и ошибка не подавлялась.
+      C3o: guest quiz 10 UI выборов → literal cottagecore/21 и scoped local result;
+      restart сбрасывает ответы, reload сохраняет последний итог, SQL identity прежняя.
+      Dropped-persistence mutation RED снята; 24 C1/C2/C3 GREEN/exit 0, типы,
+      default build восстановлен. Это клиентский результат, не server persistence;
+      member/profile/switching/blend/прочие эстетики/экраны/устройства/A7 открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

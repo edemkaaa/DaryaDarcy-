@@ -41,6 +41,25 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3o, гостевой тест эстетики — 11 октября МСК:** отдельный quiz helper проходит
+10 настоящих UI вопросов с вручную выбранными cottagecore ответами. На каждом
+шаге next заблокирован до выбора, выбранный answer отмечен aria-pressed; результат
+показывает literal title и club CTA. Guest-scoped browser storage содержит
+primary cottagecore/21 балл (9×2 + 3), остальные нули, без blend/secondary и с
+валидной датой. Restart сбрасывает выбранные ответы, сохраняя последний итог;
+reload возвращает welcome и сохраняет этот итог. SQL identity fixtures прежние.
+**Mutation RED:** удаление записи результата поймано poll отсутствующего storage;
+production восстановлен, default-off frontend build восстановлен и проходит.
+**24 C1/C2/C3 browser pass/exit 0**, типы проходят, 14 binding skips намеренны.
+Quiz расчёт/результат сейчас клиентские: это UI/local-storage доказательство
+в настоящем native fixture, **не серверное хранение результата** и не приёмка
+всех семи эстетик/blend. Review: literal выборы/ожидания не вычисляются production
+scoring helper, отдельный короткий helper, без production изменений и mock API.
+Frontend остановлен; собственный loopback/tmpfs backend_test удалён после exact
+ID/label/port/no mounts/no OOM проверки; внешние сервисы/сервер/рабочая БД не
+затронуты. Member quiz/profile отображение, identity switching, другие C3 экраны,
+реальные устройства/media, прежняя transport race и A7/deployment открыты.
+
 **C3n, статья для оплаченной участницы — 11 октября МСК:** новый focused
 library case с настоящей member cookie/SQL entitlement проверяет direct article
 HTTP 200/unlocked/literal sections → body в UI → reload с тем же body и прежней

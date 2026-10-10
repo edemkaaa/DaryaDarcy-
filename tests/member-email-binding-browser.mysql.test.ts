@@ -32,6 +32,7 @@ import { registerAdminPostBrowserCases } from "./helpers/admin-post-browser-case
 import { registerPostInteractionsBrowserCases } from "./helpers/post-interactions-browser-cases";
 import { registerClubCommentsBrowserCases } from "./helpers/club-comments-browser-cases";
 import { registerLibraryBrowserCases } from "./helpers/library-browser-cases";
+import { registerQuizBrowserCases } from "./helpers/quiz-browser-cases";
 import { registerEmailBindingRecipientBrowserCases } from "./helpers/email-binding-recipient-browser-cases";
 
 // Opt in with a separately started, enabled production frontend build. API
@@ -202,6 +203,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       ).toBeEnabled();
       return form;
     }
+    registerQuizBrowserCases(() => ({ rows, context, frontend: frontend! }));
     registerLibraryBrowserCases(() => ({
       rows,
       connection,
