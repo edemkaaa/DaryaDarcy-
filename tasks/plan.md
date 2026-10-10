@@ -41,6 +41,24 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C1h, блокировка автора из жалобы — 10 октября:** test-only native browser/API/
+SQL срез moderator. Отмена prompt не меняет blocked/session/audit/cancellation;
+старый member JWT продолжает читать клуб. Confirm блокирует именно автора,
+сохраняет trim reason, увеличивает sessionVersion и отзывает старый JWT (401).
+Account identity/пароль/phone/role и paid expiry не меняются; report/comment
+сохранены, reload не снимает блокировку, actor не блокируется. Одна block_user
+audit и pending cancelRequestedAt, но cancelledAt остаётся NULL: provider
+не подтверждал отмену, worker не запускался, SMTP пуст.
+**Mutation RED:** временное удаление queueCancellationForUser ловится отсутствием
+cancelRequestedAt; production подмена полностью снята. **9 C1 browser + 8
+moderation audit SQL/HTTP GREEN**, типы проходят. Review: scoped target/card,
+ожидание настоящего HTTP ответа до SQL assertions, независимые literal ожидания,
+общий fixture lifecycle и cleanup только собственных ресурсов. Default-off build
+не менялся; transport proxy не является deployment acceptance. C1/A7/deployment
+остаются открыты; далее сверить остаток C1 и перейти к независимым C2 сценариям.
+Frontend остановлен; собственный loopback/tmpfs backend_test удалён через --rm
+после exact ID/label/port/no mounts/no OOM проверки. Рабочая БД/сервер не затронуты.
+
 **C1g, удаление комментария модератором — 10 октября:** test-only browser
 срез через настоящий Nest/SQL. Отмена confirmation оставляет комментарии,
 жалобы, likes и audit неизменными. Подтверждение удаляет только parent и его

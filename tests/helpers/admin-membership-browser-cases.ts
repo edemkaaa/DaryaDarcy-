@@ -22,6 +22,171 @@ interface AdminMembershipBrowserFixture {
 export function registerAdminMembershipBrowserCases(
   fixture: () => AdminMembershipBrowserFixture,
 ) {
+  it("C1 lets a moderator block a reported author without deleting content or paid access", async () => {
+    const {
+      rows,
+      connection,
+      context,
+      actorId,
+      memberId,
+      base,
+      frontend,
+      smtp,
+    } = fixture();
+    await connection.query("UPDATE users SET role='moderator' WHERE id=?", [
+      actorId,
+    ]);
+    // Catches wrong-target blocking, writes on cancel, and missing cancellation intent.
+    try {
+      await connection.query(
+        "INSERT INTO posts (id,text,photos,tags) VALUES (94531,'C1 blocking fixture','[]','[]')",
+      );
+      await connection.query(
+        "INSERT INTO post_comments (id,postId,userId,text) VALUES (94532,94531,?,'C1 preserved author comment')",
+        [memberId],
+      );
+      await connection.query(
+        "INSERT INTO comment_reports (id,commentId,reporterUserId,reason) VALUES (94533,94532,?,'C1 original report')",
+        [actorId],
+      );
+      await connection.query(
+        "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'binding-browser-moderator-access','paid','0','2030-01-01')",
+        [memberId],
+      );
+      await connection.query(
+        "INSERT INTO billing_profiles (profileKey,userId,domain,subscriptionId,profileId,email,amountMinor) VALUES ('binding-browser-moderator-profile',?,'fixture.payform.ru','123','456','moderation@example.test',79000)",
+        [memberId],
+      );
+      const identityQuery =
+        "SELECT id,openId,name,email,phone,passwordHash,role,accountDeletionRequestedAt FROM users WHERE id=?";
+      const identity = await rows(identityQuery, [memberId]);
+      const access = await rows("SELECT * FROM club_payments WHERE userId=?", [
+        memberId,
+      ]);
+      const comments = await rows("SELECT * FROM post_comments WHERE id=94532");
+      const reports = await rows(
+        "SELECT * FROM comment_reports WHERE id=94533",
+      );
+      const memberToken = await sdk.createSessionToken(
+        "binding-browser-member",
+        { sessionVersion: 0 },
+      );
+      const clubStatus = async () =>
+        (
+          await fetch(base + "/api/trpc/club.list", {
+            headers: { Authorization: `Bearer ${memberToken}` },
+          })
+        ).status;
+      expect(await clubStatus()).toBe(200);
+      const page = await context.newPage();
+      await page.goto(frontend + "admin");
+      const report = page
+        .getByText("Жалоба #94533", { exact: true })
+        .locator("..");
+      await browserExpect(
+        report.getByText("C1 preserved author comment", { exact: true }),
+      ).toBeVisible();
+      page.once("dialog", (dialog) => dialog.dismiss());
+      await report
+        .getByRole("button", { name: "Заблокировать автора", exact: true })
+        .click();
+      expect(
+        await rows(
+          "SELECT blockedAt,blockedReason,sessionVersion FROM users WHERE id=?",
+          [memberId],
+        ),
+      ).toEqual([{ blockedAt: null, blockedReason: null, sessionVersion: 0 }]);
+      expect(
+        await rows(
+          "SELECT cancelRequestedAt,cancelledAt FROM billing_profiles WHERE userId=?",
+          [memberId],
+        ),
+      ).toEqual([{ cancelRequestedAt: null, cancelledAt: null }]);
+      expect(
+        await rows("SELECT id FROM admin_audit_log WHERE actorUserId=?", [
+          actorId,
+        ]),
+      ).toEqual([]);
+      expect(await clubStatus()).toBe(200);
+      page.once("dialog", (dialog) => dialog.accept("  C1 moderator reason  "));
+      const response = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/trpc/moderation.blockUser") &&
+          response.request().method() === "POST",
+      );
+      await report
+        .getByRole("button", { name: "Заблокировать автора", exact: true })
+        .click();
+      expect((await response).status()).toBe(200);
+      expect(
+        await rows(
+          "SELECT blockedAt,blockedReason,sessionVersion FROM users WHERE id=?",
+          [memberId],
+        ),
+      ).toEqual([
+        {
+          blockedAt: expect.any(Date),
+          blockedReason: "C1 moderator reason",
+          sessionVersion: 1,
+        },
+      ]);
+      expect(await clubStatus()).toBe(401);
+      expect(
+        await rows(
+          "SELECT cancelRequestedAt,cancelledAt FROM billing_profiles WHERE userId=?",
+          [memberId],
+        ),
+      ).toEqual([{ cancelRequestedAt: expect.any(Date), cancelledAt: null }]);
+      expect(await rows(identityQuery, [memberId])).toEqual(identity);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(access);
+      expect(await rows("SELECT * FROM post_comments WHERE id=94532")).toEqual(
+        comments,
+      );
+      expect(
+        await rows("SELECT * FROM comment_reports WHERE id=94533"),
+      ).toEqual(reports);
+      expect(
+        await rows(
+          "SELECT action,targetType,targetId,details FROM admin_audit_log WHERE actorUserId=?",
+          [actorId],
+        ),
+      ).toEqual([
+        {
+          action: "block_user",
+          targetType: "user",
+          targetId: memberId,
+          details: "C1 moderator reason",
+        },
+      ]);
+      await page.reload();
+      await browserExpect(
+        report.getByText("C1 preserved author comment", { exact: true }),
+      ).toBeVisible();
+      expect(await clubStatus()).toBe(401);
+      expect(
+        await rows("SELECT blockedAt FROM users WHERE id=?", [actorId]),
+      ).toEqual([{ blockedAt: null }]);
+      expect(smtp.messages).toHaveLength(0);
+    } finally {
+      await connection.query(
+        "DELETE FROM billing_profiles WHERE profileKey='binding-browser-moderator-profile' AND userId=?",
+        [memberId],
+      );
+      await connection.query(
+        "DELETE FROM comment_reports WHERE id=94533 AND reporterUserId=?",
+        [actorId],
+      );
+      await connection.query(
+        "DELETE FROM post_comments WHERE id=94532 AND userId=?",
+        [memberId],
+      );
+      await connection.query(
+        "DELETE FROM posts WHERE id=94531 AND text='C1 blocking fixture'",
+      );
+    }
+  }, 30_000);
   it("C1 lets a moderator delete a reported parent while preserving its reply and author", async () => {
     const { rows, connection, context, actorId, memberId, frontend, smtp } =
       fixture();

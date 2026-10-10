@@ -117,6 +117,11 @@
       Reload подтверждает SQL результат, автор/SMTP неизменны; parentId mutation
       RED снята. 8 C1 browser + 5 moderation SQL/HTTP GREEN, типы проходят.
       Test-only локальная приёмка; C1/deployment и A7 остаются открыты.
+      C1h: moderator блокирует автора из жалобы; cancel без write, confirm
+      отзывает JWT, сохраняет identity/paid expiry/comment/report, audit одна.
+      Cancellation intent записан без provider confirmation; worker не запущен.
+      Queue-removal mutation RED снята; 9 C1 browser + 8 moderation SQL/HTTP
+      GREEN, типы проходят. C1/deployment/A7 остаются открыты; далее остаток C1/C2.
 - [ ] C2: real-API редактор/статьи/вложения/черновики/scheduled без дублей.
 - [ ] C3: реальные взаимодействия, поиск, Библиотека, тест, профиль и поддержка.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
