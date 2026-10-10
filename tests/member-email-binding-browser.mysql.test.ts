@@ -28,6 +28,7 @@ import { openContentTestDatabase } from "./helpers/content-mysql";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openLoopbackSmtp } from "./helpers/loopback-smtp";
 import { registerAdminMembershipBrowserCases } from "./helpers/admin-membership-browser-cases";
+import { registerAdminPostBrowserCases } from "./helpers/admin-post-browser-cases";
 import { registerEmailBindingRecipientBrowserCases } from "./helpers/email-binding-recipient-browser-cases";
 
 // Opt in with a separately started, enabled production frontend build. API
@@ -206,6 +207,13 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       base,
       frontend: frontend!,
       smtp,
+    }));
+    registerAdminPostBrowserCases(() => ({
+      rows,
+      connection,
+      context,
+      actorId,
+      frontend: frontend!,
     }));
     async function proof(requestKey: string) {
       const [binding] = await rows(

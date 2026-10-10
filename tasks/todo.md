@@ -123,6 +123,11 @@
       Queue-removal mutation RED снята; 9 C1 browser + 8 moderation SQL/HTTP
       GREEN, типы проходят. C1/deployment/A7 остаются открыты; далее остаток C1/C2.
 - [ ] C2: real-API редактор/статьи/вложения/черновики/scheduled без дублей.
+      C2a: native browser create/edit/reload/delete draft; одна manual feed
+      запись, draft/published=0, тот же ID после edit, cancel без SQL write.
+      Published=true mutation RED снята; readiness ждёт снятия inert после
+      draft recovery. 10 C1/C2 browser + 36 creation SQL/HTTP GREEN, типы.
+      SDK cookie fixture — не обычный admin login; остальные C2 сценарии открыты.
 - [ ] C3: реальные взаимодействия, поиск, Библиотека, тест, профиль и поддержка.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;

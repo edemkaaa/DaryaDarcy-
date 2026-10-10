@@ -41,6 +41,27 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C2a, черновик публикации — 10 октября:** первый test-only native editor срез,
+использует общий браузер/Nest/SQL lifecycle в отдельном admin-post helper.
+Создание через UI сохраняет одну manual feed запись со status=draft/published=0;
+reload читает её, редактирование сохраняет тот же ID и новый текст без дубля.
+Отмена удаления не пишет SQL, confirm удаляет запись, повторный reload её не
+возвращает. Cleanup ограничен синтетическим marker и actor/post ID, включая
+creation intent. Первый отказ был ошибкой оснастки: видимость редактора предшествует
+асинхронному восстановлению draft; как в существующих editor tests, теперь ждём
+снятия inert, а не произвольную задержку. Production исправление не потребовалось.
+**Mutation RED:** принудительный published=true при создании ловится независимым
+SQL ожиданием; подмена полностью снята. **10 C1/C2 browser + 36 creation SQL/HTTP
+GREEN**, типы проходят. Review/TDD: literal draft contract, SQL после реального
+UI, один existing lifecycle, без mock ответов/медиа/внешних запросов. Скилл
+systematic-debugging отделил readiness оснастки от production bug. Неизменный
+default-off frontend build использован повторно. Cookie предварительно создана
+native SDK: обычный admin password login этим кейсом не проверен; три прежних
+frontend real-API кейса не объявлены полностью закрытыми. C2 media/scheduled/
+loss-of-response и физические устройства, C1/A7/deployment остаются открыты.
+Frontend остановлен, собственный loopback/tmpfs backend_test удалён через --rm
+после exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД не затронуты.
+
 **C1h, блокировка автора из жалобы — 10 октября:** test-only native browser/API/
 SQL срез moderator. Отмена prompt не меняет blocked/session/audit/cancellation;
 старый member JWT продолжает читать клуб. Confirm блокирует именно автора,
