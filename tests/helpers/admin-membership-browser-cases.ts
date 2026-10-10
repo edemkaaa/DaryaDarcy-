@@ -22,6 +22,115 @@ interface AdminMembershipBrowserFixture {
 export function registerAdminMembershipBrowserCases(
   fixture: () => AdminMembershipBrowserFixture,
 ) {
+  it("C1 lets a moderator delete a reported parent while preserving its reply and author", async () => {
+    const { rows, connection, context, actorId, memberId, frontend, smtp } =
+      fixture();
+    await connection.query("UPDATE users SET role='moderator' WHERE id=?", [
+      actorId,
+    ]);
+    // Catches accidental recursive deletion, missing audit, and writes on cancel.
+    const state = async () => ({
+      comments: await rows(
+        "SELECT id,parentId,text FROM post_comments WHERE postId=94521 ORDER BY id",
+      ),
+      reports: await rows(
+        "SELECT id,commentId,reason FROM comment_reports WHERE id IN (94524,94525) ORDER BY id",
+      ),
+      likes: await rows(
+        "SELECT commentId,userId FROM comment_likes WHERE commentId IN (94522,94523) ORDER BY commentId",
+      ),
+      audit: await rows(
+        "SELECT action,targetType,targetId,details FROM admin_audit_log WHERE actorUserId=? ORDER BY id",
+        [actorId],
+      ),
+    });
+    try {
+      await connection.query(
+        "INSERT INTO posts (id,text,photos,tags) VALUES (94521,'C1 deletion fixture','[]','[]')",
+      );
+      await connection.query(
+        "INSERT INTO post_comments (id,postId,userId,parentId,text) VALUES (94522,94521,?,NULL,'C1 removed parent'),(94523,94521,?,94522,'C1 retained reply')",
+        [memberId, memberId],
+      );
+      await connection.query(
+        "INSERT INTO comment_reports (id,commentId,reporterUserId,reason) VALUES (94524,94522,?,'parent reason'),(94525,94523,?,'reply reason')",
+        [actorId, actorId],
+      );
+      await connection.query(
+        "INSERT INTO comment_likes (commentId,userId) VALUES (94522,?),(94523,?)",
+        [actorId, actorId],
+      );
+      const author = await rows("SELECT * FROM users WHERE id=?", [memberId]);
+      const before = await state();
+      const page = await context.newPage();
+      await page.goto(frontend + "admin");
+      const report = page
+        .getByText("Жалоба #94524", { exact: true })
+        .locator("..");
+      await browserExpect(
+        report.getByText("C1 removed parent", { exact: true }),
+      ).toBeVisible();
+      page.once("dialog", (dialog) => dialog.dismiss());
+      await report
+        .getByRole("button", { name: "Удалить комментарий", exact: true })
+        .click();
+      expect(await state()).toEqual(before);
+      await browserExpect(report).toBeVisible();
+      page.once("dialog", (dialog) => dialog.accept());
+      await report
+        .getByRole("button", { name: "Удалить комментарий", exact: true })
+        .click();
+      await browserExpect(
+        page.getByText("Жалоба #94524", { exact: true }),
+      ).toHaveCount(0);
+      expect(await state()).toEqual({
+        comments: [{ id: 94523, parentId: null, text: "C1 retained reply" }],
+        reports: [{ id: 94525, commentId: 94523, reason: "reply reason" }],
+        likes: [{ commentId: 94523, userId: actorId }],
+        audit: [
+          {
+            action: "delete_reported_comment",
+            targetType: "comment",
+            targetId: 94522,
+            details: null,
+          },
+        ],
+      });
+      await page.reload();
+      await browserExpect(
+        page.getByText("Модерация", { exact: true }),
+      ).toBeVisible();
+      await browserExpect(
+        page.getByText("Жалоба #94524", { exact: true }),
+      ).toHaveCount(0);
+      await browserExpect(
+        page
+          .getByText("Жалоба #94525", { exact: true })
+          .locator("..")
+          .getByText("C1 retained reply", { exact: true }),
+      ).toBeVisible();
+      expect(await rows("SELECT * FROM users WHERE id=?", [memberId])).toEqual(
+        author,
+      );
+      expect(smtp.messages).toHaveLength(0);
+    } finally {
+      await connection.query(
+        "DELETE FROM comment_likes WHERE commentId IN (94522,94523) AND userId=?",
+        [actorId],
+      );
+      await connection.query(
+        "DELETE FROM comment_reports WHERE id IN (94524,94525) AND reporterUserId=?",
+        [actorId],
+      );
+      await connection.query(
+        "DELETE FROM post_comments WHERE id IN (94522,94523) AND userId=?",
+        [memberId],
+      );
+      await connection.query(
+        "DELETE FROM posts WHERE id=94521 AND text='C1 deletion fixture'",
+      );
+    }
+  }, 30_000);
   it("C1 issues first club access from now without counting an unpaid future order", async () => {
     const {
       rows,

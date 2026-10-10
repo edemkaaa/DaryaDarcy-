@@ -112,6 +112,11 @@
       member JWT 403 → 200, reload показывает продление; identity/no mail сохранены.
       Paid-filter removal mutation RED; 7 C1 browser + 23 grants GREEN, типы.
       Первая выдача локально проверена; прочие moderation/deployment открыты.
+      C1g: moderator UI cancel/confirm удаления parent; reply становится root,
+      его report/like сохранены, parent report/like удалены, audit ровно одна.
+      Reload подтверждает SQL результат, автор/SMTP неизменны; parentId mutation
+      RED снята. 8 C1 browser + 5 moderation SQL/HTTP GREEN, типы проходят.
+      Test-only локальная приёмка; C1/deployment и A7 остаются открыты.
 - [ ] C2: real-API редактор/статьи/вложения/черновики/scheduled без дублей.
 - [ ] C3: реальные взаимодействия, поиск, Библиотека, тест, профиль и поддержка.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.

@@ -41,6 +41,22 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C1g, удаление комментария модератором — 10 октября:** test-only browser
+срез через настоящий Nest/SQL. Отмена confirmation оставляет комментарии,
+жалобы, likes и audit неизменными. Подтверждение удаляет только parent и его
+жалобу/like, сохраняет reply как root вместе с его жалобой и like. Записывается
+ровно один delete_reported_comment audit; reload сохраняет результат, аккаунт
+автора неизменен, SMTP пуст. **Mutation RED:** временно оставленный parentId
+удалённого parent ловится SQL assertion; production подмена полностью снята.
+**8 C1 browser + 5 moderation transaction SQL/HTTP GREEN**, типы проходят.
+Review: scoped report selectors, независимые literal ожидания, cleanup только
+собственных IDs, общий native fixture lifecycle без новых mock ответов.
+Неизменившаяся default-off production frontend сборка использована повторно;
+local transport proxy не подтверждает серверную выкладку. C1/deployment и A7
+по-прежнему открыты. Frontend остановлен; собственный loopback/tmpfs backend_test
+удалён через --rm после exact ID/label/port/no mounts/no OOM проверки. Рабочая
+БД, сервер и чужие ресурсы не затронуты.
+
 **C1f, первая ручная выдача — 10 октября:** независимый test-only срез админки
 пока A7 ждёт reviewed миграции/rollout. Browser cancel оставляет SQL неизменным
 и member club.list = 403. Confirm создаёт одну zero-sum paid запись на 31 день
