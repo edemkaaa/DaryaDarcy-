@@ -23,7 +23,7 @@
       A4b: 16 native HTTP/SQL cases, включая compiled ESM; 8 исходных RED,
       отдельные RED для origin/cache. Полная регрессия: 3028 pass / 30 skips.
       Маршруты закрыты флагом; включение/форма/страница/worker ещё впереди.
-- [ ] A5: подключить существующую форму администратора и восстановление результата.
+- [x] A5: подключить существующую форму администратора и восстановление результата.
       A5a: строгий request/status клиент, captured intent и session cancellation;
       60 client tests, включая loopback HTTP fixture; 649 связанных проверок pass.
       A5b: UI подключён под default-off build flag; stable intent при закрытии/
@@ -44,7 +44,10 @@
       A5c3a: 2 native browser/API/SQL cases — request/reload и lost reply/replay;
       одна outbox/audit запись, identity сохранена. Browser transport proxy,
       настоящая cookie/Nest/SQL; SMTP и deployment proxy ещё не проверены.
-      Далее A5c3b — terminal/confirmation/roles; затем A6 и loopback SMTP.
+      A5c3b: 8 native browser cases — expiry/fresh draft, proof confirmation/
+      canonical refresh и request/status после отзыва admin; SQL/credentials/
+      оплаченный срок сохранены. Teardown handlers ожидаются без suppression.
+      UI/request/recovery проверен локально; далее A6 и loopback SMTP.
       Неизвестный адрес/неоднозначный HTTP refusal не разрешают автоматический reset.
 - [ ] A6: страница подтверждения из fragment, явное действие, существующий вход.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.

@@ -18,7 +18,9 @@ import {
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
 import type { Connection, RowDataPacket } from "mysql2/promise";
+import { createDecipheriv } from "node:crypto";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
+import { maintainMemberEmailBindings } from "../apps/backend/src/identity/email-binding-lifecycle";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
 import { COOKIE_NAME } from "../packages/shared/src/const";
@@ -39,6 +41,10 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       return (await connection.query<RowDataPacket[]>(sql, args))[0];
     }
     async function cleanup() {
+      await connection.query(
+        "DELETE FROM club_payments WHERE userId=? AND orderId='binding-browser-existing-access'",
+        [memberId],
+      );
       await connection.query(
         "DELETE o FROM member_email_binding_outbox o JOIN member_email_bindings b USING(requestKey) WHERE b.actorUserId=?",
         [actorId],
@@ -126,6 +132,11 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       });
     });
     afterEach(async () => {
+      if (context) {
+        for (const page of context.pages())
+          await page.unrouteAll({ behavior: "wait" });
+        await context.unrouteAll({ behavior: "wait" });
+      }
       await context?.close();
     });
     afterAll(async () => {
@@ -152,6 +163,39 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         .getByRole("button", { name: "Привязать почту", exact: true })
         .click();
       return page.getByRole("form", { name: "Первая привязка почты" });
+    }
+    async function send(page: Page) {
+      const form = await open(page);
+      await form
+        .getByLabel("Почта участницы")
+        .fill("browser.member@example.test");
+      await form
+        .getByRole("button", { name: "Отправить подтверждение", exact: true })
+        .click();
+      await browserExpect(
+        form.getByRole("button", { name: "Проверить заявку", exact: true }),
+      ).toBeEnabled();
+      return form;
+    }
+    async function proof(requestKey: string) {
+      const [binding] = await rows(
+        "SELECT b.payloadHash,o.tokenCipher FROM member_email_bindings b JOIN member_email_binding_outbox o USING(requestKey) WHERE b.requestKey=?",
+        [requestKey],
+      );
+      const encrypted = Buffer.from(binding.tokenCipher, "base64");
+      const decipher = createDecipheriv(
+        "aes-256-gcm",
+        Buffer.alloc(32, 41),
+        encrypted.subarray(0, 12),
+      );
+      decipher.setAAD(
+        Buffer.from(`email-binding:v1:${requestKey}:${binding.payloadHash}`),
+      );
+      decipher.setAuthTag(encrypted.subarray(-16));
+      return Buffer.concat([
+        decipher.update(encrypted.subarray(12, -16)),
+        decipher.final(),
+      ]).toString("utf8");
     }
     it("commits one queued intent without changing the member identity and recovers it after reload", async () => {
       const page = await context.newPage();
@@ -259,5 +303,185 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         ]),
       ).toHaveLength(1);
     }, 30_000);
+    it("prepares a fresh draft only after native expiry and sends a new intent only on explicit submit", async () => {
+      const page = await context.newPage();
+      const form = await send(page);
+      const [original] = await rows(
+        "SELECT requestKey FROM member_email_bindings WHERE actorUserId=?",
+        [actorId],
+      );
+      await connection.query(
+        "UPDATE member_email_bindings SET expiresAt=DATE_SUB(NOW(),INTERVAL 1 SECOND) WHERE requestKey=?",
+        [original.requestKey],
+      );
+      expect(await maintainMemberEmailBindings((await getDb())!)).toEqual({
+        expired: 1,
+        purged: 0,
+      });
+      await form
+        .getByRole("button", { name: "Проверить заявку", exact: true })
+        .click();
+      await browserExpect(
+        form.getByRole("button", {
+          name: "Подготовить новую заявку",
+          exact: true,
+        }),
+      ).toBeEnabled();
+      await form
+        .getByRole("button", { name: "Подготовить новую заявку", exact: true })
+        .click();
+      await browserExpect(
+        form.getByRole("button", {
+          name: "Отправить подтверждение",
+          exact: true,
+        }),
+      ).toBeEnabled();
+      await browserExpect(form.getByLabel("Почта участницы")).toHaveValue("");
+      expect(
+        await rows(
+          "SELECT requestKey,state,email,proofHash FROM member_email_bindings WHERE actorUserId=?",
+          [actorId],
+        ),
+      ).toEqual([
+        {
+          requestKey: original.requestKey,
+          state: "expired",
+          email: null,
+          proofHash: null,
+        },
+      ]);
+      await form
+        .getByLabel("Почта участницы")
+        .fill("fresh.browser@example.test");
+      await form
+        .getByRole("button", { name: "Отправить подтверждение", exact: true })
+        .click();
+      await browserExpect(
+        form.getByRole("button", { name: "Проверить заявку", exact: true }),
+      ).toBeEnabled();
+      const [fresh] = await rows(
+        "SELECT requestKey,email FROM member_email_bindings WHERE actorUserId=? AND state='pending'",
+        [actorId],
+      );
+      expect(fresh.email).toBe("fresh.browser@example.test");
+      expect(fresh.requestKey).not.toBe(original.requestKey);
+      expect(
+        await rows("SELECT email FROM users WHERE id=?", [memberId]),
+      ).toEqual([{ email: null }]);
+    }, 30_000);
+    it("refreshes canonical member data after native proof confirmation while preserving existing access and credentials", async () => {
+      await connection.query(
+        "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'binding-browser-existing-access','paid','0','2030-01-01')",
+        [memberId],
+      );
+      const before = await rows("SELECT * FROM club_payments WHERE userId=?", [
+        memberId,
+      ]);
+      const page = await context.newPage();
+      const form = await send(page);
+      const [intent] = await rows(
+        "SELECT requestKey FROM member_email_bindings WHERE actorUserId=?",
+        [actorId],
+      );
+      const response = await fetch(base + "/api/auth/email-bindings/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: await proof(intent.requestKey) }),
+      });
+      expect(response.status).toBe(200);
+      expect(response.headers.get("set-cookie")).toBeNull();
+      expect(await response.json()).toEqual({ ok: true });
+      await form
+        .getByRole("button", { name: "Проверить заявку", exact: true })
+        .click();
+      await browserExpect(
+        page.getByText("browser.member@example.test", { exact: true }),
+      ).toBeVisible();
+      await browserExpect(
+        page.getByRole("button", { name: "Привязать почту", exact: true }),
+      ).toHaveCount(0);
+      expect(
+        await rows(
+          "SELECT email,passwordHash,sessionVersion FROM users WHERE id=?",
+          [memberId],
+        ),
+      ).toEqual([
+        {
+          email: "browser.member@example.test",
+          passwordHash: "SYNTHETIC_MEMBER_HASH",
+          sessionVersion: 0,
+        },
+      ]);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(before);
+      expect(
+        await rows(
+          "SELECT state,email,proofHash FROM member_email_bindings WHERE requestKey=?",
+          [intent.requestKey],
+        ),
+      ).toEqual([{ state: "confirmed", email: null, proofHash: null }]);
+    }, 30_000);
+    it.each(
+      ["moderator", "user"].flatMap((role) =>
+        ["request", "status"].map((operation) => ({ role, operation })),
+      ),
+    )(
+      "refuses $operation from a stale admin form after the actor becomes $role without changing SQL",
+      async ({ role, operation }) => {
+        const page = await context.newPage();
+        const form =
+          operation === "status" ? await send(page) : await open(page);
+        const before = await rows(
+          "SELECT * FROM member_email_bindings WHERE actorUserId=?",
+          [actorId],
+        );
+        const auditBefore = await rows(
+          "SELECT id FROM admin_audit_log WHERE actorUserId=?",
+          [actorId],
+        );
+        await connection.query("UPDATE users SET role=? WHERE id=?", [
+          role,
+          actorId,
+        ]);
+        if (operation === "request")
+          await form
+            .getByLabel("Почта участницы")
+            .fill("browser.member@example.test");
+        const rejected = page.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname.startsWith(
+              "/api/admin/member-email-bindings",
+            ) &&
+            response.request().method() ===
+              (operation === "request" ? "POST" : "GET"),
+        );
+        await form
+          .getByRole("button", {
+            name:
+              operation === "request"
+                ? "Отправить подтверждение"
+                : "Проверить заявку",
+            exact: true,
+          })
+          .click();
+        expect((await rejected).status()).toBe(403);
+        expect(
+          await rows(
+            "SELECT * FROM member_email_bindings WHERE actorUserId=?",
+            [actorId],
+          ),
+        ).toEqual(before);
+        expect(
+          await rows("SELECT id FROM admin_audit_log WHERE actorUserId=?", [
+            actorId,
+          ]),
+        ).toEqual(auditBefore);
+        expect(
+          await rows("SELECT email FROM users WHERE id=?", [memberId]),
+        ).toEqual([{ email: null }]);
+      },
+      30_000,
+    );
   },
 );

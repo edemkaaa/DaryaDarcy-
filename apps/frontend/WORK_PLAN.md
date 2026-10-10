@@ -182,6 +182,16 @@ tests/frontend-club-checkout-mode.native.test.mjs` (одна команда в �
 
 ## Инструменты менеджера: первая привязка почты
 
+**Обновление 10 октября, A5c3a/b:** UI/request/recovery проверен локально через
+production build, настоящие cookie/Nest/одноразовый MySQL: **8 browser cases**.
+Создание/reload, потеря ответа/replay, expiry/fresh draft, обновление canonical
+списка после proof POST, request/status после отзыва admin до user/moderator.
+Ни пароль/sessionVersion, ни существующий оплаченный срок не меняются; отказ
+ролей не пишет intent/audit. API response не подменён, используется browser
+transport proxy. SMTP и confirmation страница не проверены этим набором;
+**далее A6**, затем общий checkpoint и A7 rollout. Дизайн и производственные
+роли не изменялись. Default-off build восстановлен, внешние письма не отправлялись.
+
 **Обновление 10 октября, A5c2c:** unknown после reload допускает явный ввод
 только исходной почты и повтор с тем же durable key. Адрес не сохраняется;
 черновик привязан к intent, поэтому адрес из другой вкладки не подставляется

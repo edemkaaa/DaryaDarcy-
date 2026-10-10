@@ -41,6 +41,22 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A5c3b, native terminal/authority — 10 октября:** production форма с настоящими
+cookie/Nest/SQL проверяет expiry через штатный lifecycle, fresh draft после
+повторного GET и новую заявку только после отдельного submit. Подтверждение
+настоящим proof POST обновляет canonical список; прежние пароль/sessionVersion/
+оплаченный срок не меняются, секретные поля завершённой заявки очищены.
+Четыре browser кейса проверяют request/status после отзыва admin до moderator
+или user: настоящий 403, SQL intent/audit не меняется. Общий набор — **8 native
+browser cases pass**, без mock ответов и unhandled errors. Первоначальный прогон
+выявил teardown race с auth refresh; route handlers теперь завершаются перед
+закрытием context, ошибка не подавляется. Типы и active/default builds проходят.
+**A5 локальный UI/request/recovery завершён; далее A6**. Proof в этой проверке
+получен из собственного fixture outbox: SMTP/письмо и публичная confirmation
+страница ещё не приняты. API транспортно проксируется браузерным fixture;
+deployment proxy/реальная история миграций/rollout остаются A7. Worker и внешние
+интеграции не включались; роли менялись только у синтетических fixture акторов.
+
 **A5c3a, native browser/API/SQL — 10 октября:** добавлены два opt-in сценария
 реальной формы production build: первая заявка и восстановление после reload;
 потеря ответа после SQL commit и повтор с прежним ключом. Browser получает
