@@ -58,7 +58,9 @@ Recheck expiry after the potentially blocking user update and undo any expired
 uncommitted write before recording expiry. Original admin ID is audit provenance,
 not an authenticated confirmation principal. No session/password/payment mutation.
 
-The operations remain internal-only and unregistered. Automatic expiry/30-day
+HTTP request/status/explicit confirmation are registered but default-disabled
+behind `MEMBER_EMAIL_BINDING_ENABLED=true`; worker registration is pending.
+Automatic expiry/30-day
 retention, transactional account-deletion cleanup and leased/retrying delivery
 are implemented. Delivery follows existing access-mail bounds and performs SMTP
 outside transactions; late acknowledgements are fenced by lease and terminal
@@ -67,9 +69,14 @@ an exactly-once claim. Account deletion supports the pre-0028 schema only when
 both tables are absent; a partial schema fails the whole transaction. Cleanup
 does not depend on enabling requests in the UI.
 
-Explicit POST transport, no-referrer fragment page, status HTTP inspection,
-frontend integration and worker registration are still required before enabling
-the flow. Local SQL/SMTP acceptance does not stand in for browser, external
+Native HTTP/SQL and compiled ESM now verify transport, strict replies, current
+authority, same-origin, safe errors/no-store, replay and explicit confirmation.
+Status recovery never returns an address or proof; sent means SMTP acceptance,
+not inbox delivery. Existing CORS/proxy/quota settings are unchanged; new binding
+buckets reuse existing mail/completion bounds with the same single-process limit.
+No-referrer fragment page, frontend integration and worker registration are still
+required before enabling the flow. Local SQL/SMTP/HTTP acceptance does not stand
+in for browser, external
 delivery or working-server acceptance.
 
 Migration 0028 is exercised only in owned disposable MySQL fixtures. Existing

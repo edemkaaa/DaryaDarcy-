@@ -17,10 +17,12 @@
 - [x] A3: leased/retrying доставка подтверждения, native MySQL + loopback SMTP.
       18 SQL/SMTP cases; полная регрессия 2986 pass / 30 opt-in skips.
       Core внутренний, регистрация в worker/внешний SMTP ещё не включены.
-- [ ] A4: admin request/status и явный confirm POST с проверенным HTTP-контрактом.
+- [x] A4: admin request/status и явный confirm POST с проверенным HTTP-контрактом.
       A4a: формат receipt/status определён; внутреннее read-only восстановление
       результата — 26 SQL pass (21 RED + lock-removal mutation RED).
-      A4b следующий: строгие transport schemas, Nest routes, native HTTP/SQL.
+      A4b: 16 native HTTP/SQL cases, включая compiled ESM; 8 исходных RED,
+      отдельные RED для origin/cache. Полная регрессия: 3028 pass / 30 skips.
+      Маршруты закрыты флагом; включение/форма/страница/worker ещё впереди.
 - [ ] A5: подключить существующую форму администратора и восстановление результата.
 - [ ] A6: страница подтверждения из fragment, явное действие, существующий вход.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
@@ -44,7 +46,7 @@
 - [ ] Q2: критерии нагрузки/baseline, Safari/Android/desktop/PWA приёмка.
 - [ ] Q3: матрица сдачи, backup/rollback, инструкция, пилот 5–7 дней/30–50 участниц.
 
-Следующий независимый срез: A4. Форма/worker остаются выключены до целостного
+Следующий независимый срез: A5. Форма/worker остаются выключены до целостного
 сценария и схемы. Внешние блокеры не препятствуют локальным A/C/M/V задачам.
 
 ## Requested frontend corrections — 2026-10-09

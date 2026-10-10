@@ -41,6 +41,28 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A4b, проверено 10 октября:** Nest request/status/explicit confirm зарегистрированы
+с default-closed `MEMBER_EMAIL_BINDING_ENABLED=true` opt-in. Зафиксированы строгие
+receipt/status/proof schemas и безопасные ошибки; actor берётся только из текущей
+сессии и повторно проверяется SQL-core. Дополнительный same-origin контроль не
+принимает даже другой CORS-allowed origin. Сам CORS/proxy/старые квоты не менялись;
+ранний no-store добавлен только для новой status-группы (включая perimeter 403).
+Новые purpose-specific buckets повторяют существующие bounds mail/completion;
+GET не расходует лимит писем. Их in-memory/single-process ограничение записано.
+8 ожидаемых HTTP RED и отдельные origin/cache RED → 16 native HTTP/SQL GREEN.
+Проверены replay/conflict, revocation/roles, строгий JSON/размер, 400/401/403/404/
+409/415/429/503, SQL rollback, GET без подтверждения, сохранение пароля/сессии/
+подписки. Compiled production ESM реально проходит request → status → confirm →
+replay и request quota; proof quota проверена native Nest HTTP. Реальные деньги
+и внешние письма не использовались.
+Полная serial suite на своей tmpfs MySQL: **3028 pass / 30 opt-in skips**, 195 files
+pass / 3 skip. TypeScript/backend build/API (73)/boundaries (595)/docs проходят.
+Ревью: auth/PII/ошибки/транзакции, ограниченные запросы, DI и сохранение старых
+HTTP-политик. Следующий срез — A5, существующая форма фронтендера. A6/A7 и
+полный browser+mail checkpoint не закрыты; на сервере ничего не включено.
+Контейнер этого запуска `codex.task=daryadarcy-binding-routes-20261010`
+проверяется по ID/метке/tmpfs перед удалением; persistent volumes не создавались.
+
 **A4a, проверено 10 октября:** определён точный HTTP receipt/status контракт в
 SPEC. Внутренняя read-only проекция позволяет администратору восстановить результат
 по стабильному ключу без адреса/proof/cipher. Текущие роль, версия сессии,

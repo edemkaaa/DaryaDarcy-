@@ -15,7 +15,7 @@ export function registerHttpSecurity(app: Express): void {
   app.use((req, res, next) => {
     res.vary("Origin");
     // Mutation responses can contain guest checkout URLs, even without cookies.
-    if ((req.method === "POST" && req.path.startsWith("/api/")) || /^\/api\/auth(?:\/|$)/.test(req.path) || req.headers.cookie || req.headers.authorization) {
+    if ((req.method === "POST" && req.path.startsWith("/api/")) || /^\/api\/auth(?:\/|$)/.test(req.path) || /^\/api\/admin\/member-email-bindings(?:\/|$)/i.test(req.path) || req.headers.cookie || req.headers.authorization) {
       res.setHeader("Cache-Control", "no-store");
     }
     res.setHeader("X-Content-Type-Options", "nosniff");

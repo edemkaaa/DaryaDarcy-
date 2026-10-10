@@ -9,8 +9,8 @@ password, session version and subscription. Never merge accounts or replace an
 existing address. An occupied address is a conflict, not a merge instruction.
 
 The human also approved the detailed schema/migration plan below. Implementation
-includes the identity prerequisites, internal request/proof and confirmation
-stages; migrations
+includes the identity prerequisites, request/proof, confirmation, delivery,
+retention and default-disabled HTTP transport; migrations
 0027/0028 have been exercised only in owned disposable MySQL fixtures. No working
 database migration, real mail or deployment. Binding is still unfinished.
 
@@ -58,12 +58,28 @@ not a caller-supplied user ID or authenticated browser identity.
 - `POST /api/auth/email-bindings/confirm`: `{token}`. Reject malformed, expired,
   consumed or superseded proofs, unavailable recipient and occupied address.
   Successful confirmation changes only email, consumes the proof and audits it
-  in one transaction. A retry never moves an address to another account.
+  in one transaction. 200 returns exactly `{ok:true}`; 400 is generic for invalid,
+  expired, occupied or already-used proof. A retry never moves an address to
+  another account and must not imply that a lost successful reply did not commit.
 
 Strict response schemas reject additional fields. Admin errors:
 400 invalid input, 401/403 no authority, 404 unavailable request/account, 409
 address/account/intent conflict, 429 throttled, 503 unavailable. Public proof
 errors reveal neither account details nor email ownership.
+
+The new routes remain closed unless `MEMBER_EMAIL_BINDING_ENABLED=true` explicitly
+enables them after rollout review; disabled routes return 503 without opening the
+database or authenticating. Route-controlled errors use `{error:"Запрос недоступен."}`;
+the existing global browser-origin rejection retains its legacy 403 format and
+does not gain a CORS exemption. JSON is required (415 otherwise); existing bounded
+parsers retain 16 KiB for auth / 256 KiB for admin and safe 400/413 errors. All
+responses are no-store, including unauthorized status reads. Request creation
+uses the existing mail-action limit pattern (20/actor/hour in a separate binding
+bucket); proof submission uses the existing completion pattern (20/IP/15 minutes,
+separate binding bucket). Existing endpoint quotas/proxy trust are unchanged.
+429 includes Retry-After; authenticated status inspection does not spend a
+mail-action attempt. These in-memory limits have the same single-process scope
+as existing auth limits; multi-instance rollout remains a separate review gate.
 
 ## Approved data and concurrency design
 
@@ -183,7 +199,7 @@ strict: a positive signed-INT user ID, normalized valid email up to 320 characte
 actor supplies user ID and session version, never frontend-controlled authority.
 The internal receipt contains only `{requestKey, state}`; it is not a mail
 delivery receipt. A4 now specifies its transport projection above; strict
-transport validators and route handlers remain the next slice.
+transport validators and default-disabled route handlers are now implemented.
 
 Migration 0028 adds dedicated binding and delivery tables, leaving password and
 access-mail tables untouched. The request atomically stores a purpose-bound proof
@@ -195,12 +211,12 @@ A cancelled, scrubbed intent remains cancelled when replayed.
 24 expected native RED failures preceded 26 GREEN cases; expanded acceptance now
 has 36 real-MySQL cases, including authority revocation, bounded input, rollback,
 missing encryption, six concurrent retries and competing administrators. Opening
-an address remains unimplemented, not an implicit confirmation mechanism.
+an address is never an implicit confirmation mechanism; the explicit page is A6.
 
-After the request stage, delivery, explicit POST and retention/deletion cleanup
-remain required; the internal confirmation core is recorded below. Frontend
-integration follows those gates. No binding route, worker registration or enabled
-frontend form exists yet. Requests are not callable from the deployed application.
+The request-stage checkpoint required delivery, explicit POST and retention;
+those backend slices are now implemented, with HTTP routes default-disabled.
+Frontend integration follows. Worker registration and an enabled frontend form
+remain outstanding. Requests are not callable from the deployed application.
 Pending requests (even expired ones) conservatively prevent another intent until
 the cleanup slice handles them. A queued request does not reserve the email:
 confirmation rechecks the current recipient and arbitrates ownership through 0027.
@@ -212,9 +228,15 @@ No address, hash, cipher, delivery error, attempt or lease metadata is returned;
 no lifecycle/identity/mail write occurs. Missing delivery fails closed. 21 initial
 native RED cases precede 26 GREEN checks; removing the authorization lock fails
 the concurrent-revocation test. Combined request/status/confirmation/lifecycle/
-delivery regression: 129 pass on owned MySQL and loopback SMTP. Transport routes,
-their strict validation/no-store/error policies and native HTTP acceptance are
-not implemented by this internal slice. Rollout remains disabled.
+delivery regression: 129 pass on owned MySQL and loopback SMTP. The subsequent
+A4b transport adds 16 native HTTP/SQL cases, including a compiled production ESM
+request/status/confirm/replay scenario. Eight initial route RED failures and
+separate same-origin/no-store RED checks preceded GREEN. Both new quota patterns,
+current session/role/lifecycle, bounded JSON, safe errors, SQL rollback/retry and
+no credential/session/subscription writes are covered. Full serial regression:
+3028 pass / 30 opt-in skips; types, backend build, API/boundaries/docs pass. No
+working deployment, external mail or browser confirmation-page acceptance is
+claimed. Rollout remains disabled; A5/A6/A7 and Checkpoint A are still required.
 
 Previous prerequisite checkpoint: full serial suite with disposable MySQL gives 2878
 passed, zero failed, 30 opt-in skipped across 192 files. Types, backend/frontend builds,
