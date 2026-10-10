@@ -191,6 +191,12 @@
       Insert-text corruption RED в lost case снята; 21 C1/C2/C3 browser GREEN,
       типы. Это fail-closed list recovery, не idempotent add API; reply/photos/
       lost edit-delete/навигация/устройства/A7/deployment остаются открыты.
+      C3h: update commit → потеря ответа → blocked save/сохранённый draft →
+      explicit refresh canonical строки; cancel editor не откатывает commit.
+      Один update POST, reload с прежним ID. Update-text mutation RED снята.
+      Первый общий run имел unhandled C1 transport race и не считался GREEN;
+      focused 2 pass + повтор общий 21 pass/exit 0, типы. Редкая fixture race
+      остаётся ограничением; reply/photos/lost delete/навигация/A7 открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

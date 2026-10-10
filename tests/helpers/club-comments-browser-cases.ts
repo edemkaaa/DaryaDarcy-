@@ -112,7 +112,7 @@ export function registerClubCommentsBrowserCases(
     30_000,
   );
   it.each([false, true])(
-    "C3 persists member comment edits and confirmed deletion (lost add reply: %s)",
+    "C3 persists member comment edits and confirmed deletion (lost write replies: %s)",
     async (loseReply) => {
       const { rows, connection, context, frontend, memberId, base } = fixture();
       const postId = 94631;
@@ -263,17 +263,50 @@ export function registerClubCommentsBrowserCases(
         ).toBeVisible();
         await editFromMenu();
         await editInput.fill(editedText);
-        const updated = page.waitForResponse((response) =>
-          response.url().includes("club.updateComment"),
-        );
+        let edits = 0;
+        if (loseReply) {
+          await page.route("**/api/trpc/club.updateComment*", async (route) => {
+            edits++;
+            const url = new URL(route.request().url());
+            const response = await route.fetch({
+              url: base + url.pathname + url.search,
+              maxRedirects: 0,
+            });
+            expect(response.status()).toBe(200);
+            return route.abort("failed");
+          });
+        }
+        const updated = !loseReply
+          ? page.waitForResponse((response) =>
+              response.url().includes("club.updateComment"),
+            )
+          : null;
         await page
           .getByRole("button", { name: "Сохранить", exact: true })
           .click();
-        expect((await updated).status()).toBe(200);
+        if (updated) expect((await updated).status()).toBe(200);
         const edited = { ...created, text: editedText };
         await browserExpect
           .poll(() => rows(commentSql, [postId]))
           .toEqual([edited]);
+        if (loseReply) {
+          const save = page.getByRole("button", {
+            name: "Сохранить",
+            exact: true,
+          });
+          await browserExpect(save).toBeDisabled();
+          await browserExpect(editInput).toHaveValue(editedText);
+          await page
+            .getByRole("button", { name: "Обновить комментарии", exact: true })
+            .click();
+          await browserExpect(save).toBeEnabled();
+          expect(edits).toBe(1);
+          expect(await rows(commentSql, [postId])).toEqual([edited]);
+          await page
+            .getByRole("button", { name: "Отмена", exact: true })
+            .click();
+          await browserExpect(editInput).toHaveCount(0);
+        }
         await browserExpect(
           page.getByText(editedText, { exact: true }),
         ).toBeVisible();

@@ -41,6 +41,26 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3h, потерянный ответ изменения комментария — 10 октября:** тот же native
+own-comment сценарий теперь теряет и update ответ строго после HTTP 200/SQL
+commit. Editor сохраняет draft и блокирует save; explicit refresh получает
+canonical edited строку и снимает guard. Закрытие editor через cancel не
+откатывает уже сохранённый текст; UI/reload показывают его с прежним ID/автором.
+Всего один update POST, без автоматического retry; identity/expiry сохранены.
+**Mutation RED:** повреждённый update текст пойман SQL в lost-reply case;
+подмена снята. Первый общий прогон: 21 assertion pass, но exit 1 из-за одного
+необработанного «Route is already handled» в существующем C1 moderator transport.
+Это не принято за GREEN и не подавлено. Focused moderator + lost-write — 2 pass;
+повтор всей C1/C2/C3 группы — **21 pass, exit 0, без unhandled errors**; типы
+проходят, 14 binding cases намеренно исключены в default-off build. Причина
+редкой transport race не установлена, она остаётся fixture limitation для
+общей приёмки; production/teardown не менялись. Review: реальный commit/read,
+literal edited text, отдельный update count, сохранение cancelled edit semantics.
+Frontend остановлен; свой loopback/tmpfs backend_test удалён через --rm после
+exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД/внешние сервисы
+не затронуты. Reply/photos/lost delete, остальная навигация/устройства и
+A7/deployment открыты; local transport proxy не является выкладкой.
+
 **C3g, потерянный ответ отправки комментария — 10 октября:** предыдущий own
 comment browser case параметризован для обычного ответа и transport abort
 строго после настоящего native add HTTP 200/SQL commit. При lost reply текст
