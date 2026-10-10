@@ -41,6 +41,22 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3t, повторное прохождение сохранённого результата — 11 октября МСК:**
+member native browser сценарий дополнен: /quiz/result → restart → все десять
+ответов → новый completedAt → reload нового результата. Read-only восстановление
+старого итога не мешает записи нового прохождения. Временная path-only mutation
+записи только на /quiz дала focused RED: completedAt остался прежним на /quiz/result.
+Mutation полностью снята, production diff пустой; восстановленный default build
+и **28 C1/C2/C3 native browser pass/exit 0**, root types проходят.
+Review: проверяется наблюдаемое сохранение/reload, literal cottagecore/21,
+неизменность SQL identity/paid entitlement; используется прежний helper ответов,
+без нового API, схемы, зависимости или изменения дизайна. TDD/verification skills
+ограничили срез regression proof, а не ненужной правкой уже работающего поведения.
+Own frontend остановлен; own loopback/tmpfs backend_test удалён после exact
+ID/label/tmpfs/127.0.0.1/no-volume/no-OOM проверки. Это local transport proxy,
+не server/cross-device persistence или deployment acceptance. Blend/остальные
+эстетики, result focus/session races, media/устройства/transport race/A7 открыты.
+
 **C3s, исправлено повторное открытие результата — 11 октября МСК:** native RED
 воспроизвёл профиль → «Посмотреть результат» → welcome вместо полного итога:
 карточка вела в /quiz, reducer всегда создавал новый welcome. Теперь карточка

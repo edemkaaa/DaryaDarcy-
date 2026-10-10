@@ -214,6 +214,20 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       await browserExpect(
         page.getByRole("button", { name: "Начать путешествие", exact: true }),
       ).toBeVisible();
+      // Retaking on the saved-result route must write a new completion, not retain read-only restore mode.
+      await completeCottagecoreQuiz(page);
+      await browserExpect
+        .poll(async () => (await stored())?.completedAt)
+        .not.toBe(completed.completedAt);
+      const retaken = await stored();
+      expect(retaken).toMatchObject({
+        primaryKey: "cottagecore",
+        scores: { cottagecore: 21 },
+      });
+      expect(Number.isNaN(Date.parse(retaken.completedAt))).toBe(false);
+      await page.reload();
+      await browserExpect(result).toBeVisible();
+      expect(await stored()).toEqual(retaken);
       expect(await rows(identitySql, [memberId])).toEqual(identity);
       expect(
         await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),

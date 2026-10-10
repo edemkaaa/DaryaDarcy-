@@ -260,6 +260,13 @@
       Дизайн/session/club policy сохранены; own tmpfs DB удалён, сервер не обновлён.
       Browser blend/прочие эстетики/result focus-session races/media/устройства/
       server persistence/transport race/A7/deployment открыты.
+      C3t: /quiz/result → restart → полное новое прохождение → новый completedAt
+      → reload нового итога. Path-only persistence mutation даёт RED на старой
+      дате; снята полностью, production diff пустой. 28 C1/C2/C3 GREEN/exit 0,
+      root types/default build; SQL identity/paid entitlement прежние.
+      Own frontend остановлен/tmpfs DB удалён после проверки принадлежности.
+      Остальные эстетики/blend/focus-session/media/устройства/A7 ещё открыты;
+      не server/cross-device persistence, сервер не обновлялся.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.
