@@ -34,7 +34,7 @@ outbox and an audit without email/token/cipher together. Return only request key
 and state. No user/credential/payment/session mutation is part of requesting.
 
 Serialize pending bindings through the recipient lock. An occupied email conflicts,
-but queuing is not a reservation: the future confirmation must recheck and use the
+but queuing is not a reservation: internal confirmation rechecks and uses the
 normalized user-email unique constraint from migration 0027 to arbitrate races with
 registration and checkout. This stage refuses any other pending intent, including
 an expired pending row, until the lifecycle slice performs cleanup.
@@ -49,10 +49,20 @@ restart. A separate recipient email in the outbox would unnecessarily duplicate 
 
 ## Consequences
 
-The operation remains internal-only and unregistered. Delivery leasing/retries,
-single-use explicit POST confirmation, no-referrer fragment page, expiry/cancel
-scrubbing, 30-day retention, transactional account-deletion cleanup, status HTTP
-inspection and frontend integration are still required before enabling it.
+Internal confirmation now locks user → request → outbox, revalidates the purpose
+hash and current recipient, and uses the normalized unique index to decide email
+ownership. It changes only email, consumes/scrubs the proof and records PII-free
+audit atomically. An expired/invalidated recipient or duplicate-entry loser is
+terminally scrubbed without an identity change. Other SQL failures roll back.
+Recheck expiry after the potentially blocking user update and undo any expired
+uncommitted write before recording expiry. Original admin ID is audit provenance,
+not an authenticated confirmation principal. No session/password/payment mutation.
+
+The operations remain internal-only and unregistered. Delivery leasing/retries,
+explicit POST transport, no-referrer fragment page, automatic expiry cleanup,
+30-day retention, transactional account-deletion cleanup, status HTTP inspection
+and frontend integration are still required before enabling them. Native SQL
+acceptance does not stand in for delivery, browser or working-server acceptance.
 
 Migration 0028 is exercised only in owned disposable MySQL fixtures. Existing
 0017–0019 migration-history gates stay open. Do not apply to the working database,

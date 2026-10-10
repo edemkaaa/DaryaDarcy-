@@ -2289,8 +2289,11 @@ drafts remain local after interruption; disposable container already removed.
       without account writes. Native RED/GREEN, replay, rollback and concurrency.
       No HTTP route, worker registration or enabled form; migration 0028 only on
       a newly owned disposable MySQL fixture.
-- [ ] Binding delivery/confirmation/lifecycle: lease/retry, explicit single-use
-      POST, expiry/cancel PII scrub, 30-day retention and account-deletion cleanup.
+- [x] Internal single-use confirmation: current locked recipient and proof checks,
+      normalized-unique arbitration, expiry after SQL wait, atomic email-only
+      write/audit and terminal PII scrub. 35 native tests; no session or HTTP route.
+- [ ] Binding delivery/transport/lifecycle: lease/retry, explicit confirmation
+      POST, automatic expiry scrub, 30-day retention and account-deletion cleanup.
       Then finalize HTTP schemas/inspection and connect the existing admin form.
 - [ ] Joint provider/SMTP/device/admin acceptance and deployment remain separate;
       no staging push or server change in this local continuation.

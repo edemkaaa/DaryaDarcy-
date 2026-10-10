@@ -9,7 +9,8 @@ password, session version and subscription. Never merge accounts or replace an
 existing address. An occupied address is a conflict, not a merge instruction.
 
 The human also approved the detailed schema/migration plan below. Implementation
-includes the identity prerequisites and internal request/proof stage; migrations
+includes the identity prerequisites, internal request/proof and confirmation
+stages; migrations
 0027/0028 have been exercised only in owned disposable MySQL fixtures. No working
 database migration, real mail or deployment. Binding is still unfinished.
 
@@ -182,12 +183,13 @@ has 36 real-MySQL cases, including authority revocation, bounded input, rollback
 missing encryption, six concurrent retries and competing administrators. Opening
 an address remains unimplemented, not an implicit confirmation mechanism.
 
-Next slice is delivery, explicit POST confirmation and retention/deletion cleanup,
-followed by frontend integration. No binding route, worker registration or enabled
+After the request stage, delivery, explicit POST and retention/deletion cleanup
+remain required; the internal confirmation core is recorded below. Frontend
+integration follows those gates. No binding route, worker registration or enabled
 frontend form exists yet. Requests are not callable from the deployed application.
 Pending requests (even expired ones) conservatively prevent another intent until
 the cleanup slice handles them. A queued request does not reserve the email:
-confirmation must recheck current recipient and arbitrate ownership through 0027.
+confirmation rechecks the current recipient and arbitrates ownership through 0027.
 
 Previous prerequisite checkpoint: full serial suite with disposable MySQL gives 2878
 passed, zero failed, 30 opt-in skipped across 192 files. Types, backend/frontend builds,
@@ -204,3 +206,51 @@ atomicity/replay, purpose separation, privacy, stable locks and bounded queries.
 The run-03 tmpfs container was removed; its disposable data is not recoverable.
 Working data and other containers were untouched. Confirmation/delivery/cleanup
 are not accepted by these request tests and remain required before rollout.
+
+### Internal confirmation checkpoint — 10 October
+
+`confirmMemberEmailBinding(database, token)` returns true only for a newly committed
+first binding. False is generic for malformed/unknown/consumed/terminal proofs,
+expiry, unavailable recipient or occupied email; it does not disclose which case
+occurred. Database failures throw only sanitized `EmailBindingError("unavailable")`
+without a SQL cause. This is an internal contract, not an exposed HTTP response.
+
+The candidate lookup routes only to a user ID. Current user and request are locked
+in user → binding → outbox order and the purpose hash, pending state, expiry and
+recipient eligibility are rechecked. Confirmation changes only `users.email`,
+including preserving `updatedAt`, password, session version and paid access.
+The requesting actor in the confirmation audit is intent provenance, not an
+authenticated confirmation caller. No new admin-demotion cancellation policy is
+introduced; email-control proof and current recipient eligibility authorize this
+operation. No session or password link is issued.
+
+The normalized unique index independently arbitrates ownership. A duplicate-entry
+loser cancels/scrubs in the same transaction, while other database errors roll back
+everything. Expiry is checked again after a potentially blocking email UPDATE;
+an expired uncommitted write is undone before the intent is marked expired.
+Confirmed, expired and cancelled results scrub pending email/hash/cipher and
+delivery leases atomically; intent fingerprint/IDs/outcome remain for inspection.
+Existing sentAt is preserved. Terminal outbox entries cannot be sent by the future
+worker, which must distinguish historical delivery from terminal disposal.
+
+24 behavioral RED failures preceded GREEN. Expanded acceptance has 35 real-MySQL
+cases; a further isolated RED showed expiry during a unique-index wait, now GREEN.
+Native contention checks wait for the blocking transaction's connection, not its
+secondary-index thread attribution; slower bounded sampling avoids the observed
+stale transaction metadata. No production assertion was weakened for the fixture.
+Five selected files/90 checks pass, including both directions of password-proof
+separation, six-use single winner, different-member address contention, current
+recipient revocation while waiting, audit-trigger rollback and privacy cleanup.
+
+Still required before exposure: leased/retrying delivery, automatic expiry and
+30-day purge, deletion-transaction scrub, HTTP schemas/status/explicit POST,
+fragment-only page and admin form integration. GET remains unregistered rather
+than an implicit write. No external mail, working DB migration, push or deployment.
+
+Confirmation checkpoint: full serial suite on owned MySQL gives 2949 passed,
+zero failed, 30 opt-in skipped across 194 files. Both request/confirmation suites
+were repeated afterward: 71 passed. Types, backend/frontend builds, lint,
+unchanged API, boundaries and docs pass. Five-axis self-review checks atomicity,
+purpose/privacy boundaries, current locks, bounded queries and no session/access
+mutation. Run-04 was removed after ownership inspection; its volatile test data
+is not recoverable. Shared containers and working data were untouched.

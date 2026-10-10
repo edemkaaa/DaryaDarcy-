@@ -6909,3 +6909,51 @@ validation, two user locks and indexed limited queries add no unbounded work.
 No dependencies or frontend files changed. Verified exact run-03 container name,
 label and tmpfs/no-volume ownership, stopped only its ID, and confirmed no such
 container remains. Only disposable test data was erased, not recoverable.
+
+### Member email binding — internal confirmation, 10 October
+
+Continued clean feature branch from 7deb20a without replaying the request stage.
+No frontend edits, push/merge/deployment, external mail, payment or cabinet access.
+Run-04 is a newly owned MySQL 8.4 tmpfs fixture on loopback; working SQL untouched.
+
+24 native behavioral RED failures preceded confirmation implementation. Purpose-
+bound token lookup routes only to a user; user/request locks revalidate current
+eligibility, proof and expiry. Only email changes (even updatedAt is preserved),
+with atomic proof/email/cipher/lease scrub and audit; no password/session/access
+changes. Generic false for refused proof, sanitized unavailable for SQL failures.
+The original admin is recorded as request provenance, not the public caller.
+
+Expanded cases exposed a native unique-index wait that can outlive the proof;
+isolated RED returned true after expiry. A post-UPDATE expiry recheck now undoes
+that uncommitted email write and expires/scrubs atomically. Duplicate constraint
+failure cancels the losing intent in the same transaction. Audit-trigger failure
+rolls all writes back and retrying the same proof succeeds after recovery.
+
+Contention fixture diagnostics found secondary-index thread attribution did not
+map to the actual blocking connection; use blocking engine transaction ID instead.
+Fast metadata polling retained a previous transaction; bounded 200ms sampling
+reproduces the actual waits. This corrects fixture coordination, not assertions.
+35 new native cases and five selected files/90 checks pass. Automatic lifecycle,
+deletion scrub, delivery, HTTP/status/fragment page and existing admin form remain
+unconnected; no form enablement until those acceptance gates pass.
+
+Final confirmation acceptance: full serial regression 2949 pass / zero failures /
+30 opt-in skips across 194 files. The skips remain S3 (2), retention (5), backup
+(2), media names (7), notification latest (14); no external acceptance inferred.
+Repeated request/confirmation native suites after the full run: 71 pass. Fresh
+types, backend build (433.7kb), frontend build (28 pages), lint, unchanged API
+(73 procedures/25642 bytes), boundaries (588 files), docs (53) and diff checks pass.
+
+Five-axis self-review: test behavior/rollback/expiry under real contention matches
+the spec; a focused confirmation module and one reused binding duplicate detector
+keep existing registration/password paths unchanged; hashed purpose proofs,
+safe errors/audit and terminal PII scrub preserve privacy; stable locks and indexed
+limited reads are bounded. No dependency changes or new timers. The internal
+function is deliberately unregistered, not a live admin capability. Restored
+unrelated formatter-only edits before recording this slice. No historical
+migration/dependency/rollout gate was bypassed.
+
+Inspected exact run-04 container name/label/tmpfs/no-volume ownership; stopped
+only dbaf5679fb207b0fed61fa50ca0d4ed482027ae1b51f2e65060e5fc7758197e5 and
+confirmed its task-label inventory empty. The discarded temporary SQL data cannot
+be recovered; working data and other containers were untouched.

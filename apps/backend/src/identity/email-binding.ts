@@ -59,7 +59,7 @@ export class EmailBindingError extends Error {
   }
 }
 
-function isDuplicateClaim(error: unknown): boolean {
+export function isEmailBindingDuplicate(error: unknown): boolean {
   let current = error;
   for (
     let depth = 0;
@@ -151,7 +151,7 @@ export async function requestMemberEmailBinding(
           expiresAt: new Date(Date.now() + 86400000),
         });
       } catch (error) {
-        if (!isDuplicateClaim(error)) throw error;
+        if (!isEmailBindingDuplicate(error)) throw error;
         claimed = false;
       }
       const [binding] = await tx
