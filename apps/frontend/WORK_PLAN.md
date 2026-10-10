@@ -182,6 +182,14 @@ tests/frontend-club-checkout-mode.native.test.mjs` (одна команда в �
 
 ## Инструменты менеджера: первая привязка почты
 
+**Обновление 10 октября, A6b1:** default-off `/email-binding` использует стиль
+входа, memory-only proof и явный single-flight POST. После успешного receipt —
+обычный вход; при неопределённом ответе нет утверждения об успехе/отсутствии записи
+и автоматического повтора. 2 RED → 6 active + 1 disabled browser GREEN (mock API),
+обе сборки/типы/lint/boundaries, 30 proof tests; 320px disabled экран без overflow.
+Письмо пока ведёт на другой, незарегистрированный backend GET: A6/native SQL/SMTP
+и routing/navigation policy остаются открыты. CORS/роли/сервер не менялись.
+
 **Обновление 10 октября, A6a:** strict proof client принимает только точный
 HTTP 200 `{ok:true}`, отправляет proof без cookie/referrer/account ID/redirect
 и автоматических повторов. Fragment capture сначала очищает history, хранит

@@ -158,6 +158,19 @@ silently repair old users, run fixture cleanup on a working database.
 
 ## Current implementation checkpoint
 
+A6b1 adds a default-disabled Next confirmation screen at `/email-binding` using
+the existing login styling. Opening clears the fragment without submitting;
+explicit action is single-flight, success requires the strict receipt, and every
+uncertain response clears the memory proof and offers ordinary login/admin
+inspection rather than automatic replay. No session/password/access is issued.
+Two browser RED checks preceded six active + one disabled GREEN browser cases
+with mock API; a synthetic unrelated cookie is omitted. Types/lint/boundaries,
+active/default builds and 30 proof-client tests pass. Default-off build restored;
+320px disabled layout inspected without overflow. This is not native SQL/SMTP
+acceptance. The approved email GET remains unregistered in backend, and existing
+Fetch Metadata rejects cross-site navigation there. No CORS/origin relaxation
+has been made; route/navigation acceptance is required before rollout.
+
 A5c3 is now locally verified through eight production-browser/native Nest/MySQL
 cases: request/recovery, expiry, canonical confirmation refresh and revoked admin
 authority. The browser transport proxy is not deployment-proxy acceptance, and

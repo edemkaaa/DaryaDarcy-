@@ -52,7 +52,9 @@
 - [ ] A6: страница подтверждения из fragment, явное действие, существующий вход.
       A6a: strict proof client и memory-only fragment capture; 2 focused RED →
       30 GREEN (включая loopback HTTP), 679 related unit; типы/lint/default build.
-      Страница и GET routing через backend ещё не реализованы; A6 открыт.
+      A6b1: default-disabled /email-binding с явным POST/unknown result/обычным входом;
+      2 browser RED → 6 active + 1 disabled GREEN (mock API), обе сборки и типы.
+      Backend GET из письма и native UI/SQL/SMTP acceptance ещё открыты; A6 открыт.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
 - [ ] Checkpoint A: весь сценарий через настоящее API/SQL/loopback письмо;
       первый email меняется один раз, пароль/сессии/подписка сохранены.
@@ -74,7 +76,9 @@
 - [ ] Q2: критерии нагрузки/baseline, Safari/Android/desktop/PWA приёмка.
 - [ ] Q3: матрица сдачи, backup/rollback, инструкция, пилот 5–7 дней/30–50 участниц.
 
-Следующий независимый срез: A6b — страница и read-only GET routing. Форма/worker остаются выключены до целостного
+Следующий независимый срез: A6b2 — native confirmation UI/SQL/SMTP acceptance;
+GET routing/document navigation policy требует отдельной сверки без CORS expansion.
+Форма/worker остаются выключены до целостного
 сценария и схемы. Внешние блокеры не препятствуют локальным A/C/M/V задачам.
 
 ## Requested frontend corrections — 2026-10-09

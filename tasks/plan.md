@@ -41,6 +41,27 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A6b1, confirmation UI — 10 октября:** добавлена default-disabled Next страница
+`/email-binding`, использующая проверенный proof client и оформление существующего
+входа. Fragment очищается после открытия; GET не отправляет proof. Только явный
+клик делает POST, синхронный in-flight guard и disabled button не допускают дубль.
+После любого неопределённого ответа UI не обещает успех/отсутствие изменения и
+не повторяет POST; proof очищается, повтор требует заново открыть письмо.
+Успех не создаёт сессию/пароль/доступ, ссылка ведёт в обычный `/login`.
+**2 browser RED → 6 active + 1 disabled browser GREEN**, настоящая production
+страница и mock API: cookie другого аккаунта не отправляется, referrer отсутствует,
+reload теряет proof, malformed/consumed/lost reply и pending защищены. Это не
+SQL/SMTP приёмка. Типы/lint/boundaries/обе production builds и 30 proof tests
+проходят; default-off build восстановлен. На 320px визуально проверен disabled
+экран, overflow отсутствует. Ревью проверило explicit action, cleanup/abort,
+strict receipt и отсутствие storage proof. Первоначальная browser-проверка была
+перекрыта install-guide из-за неверного fixture marker; исправлен только fixture.
+**A6 остаётся открыт:** письмо пока ведёт на незарегистрированный backend GET
+`/api/auth/email-binding`; existing Fetch Metadata блокирует cross-site navigation
+этого пути. Политика CORS/origin не менялась. До rollout нужен проверенный маршрут
+без расширения прав и рассмотрение document-navigation policy, затем native
+browser/SQL/loopback SMTP checkpoint. Рабочий сервер и БД не затронуты.
+
 **A6a, proof client — 10 октября:** отдельный клиент принимает только 43-символьный
 base64url proof и точный HTTP 200 `{ok:true}`. Явный POST не передаёт cookie,
 referrer или account ID, не следует redirect и не повторяется автоматически;
