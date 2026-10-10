@@ -2260,8 +2260,9 @@ drafts remain local after interruption; disposable container already removed.
       scheduled/statistics results through native HTTP RED/GREEN and role checks.
 - [x] Types/backend build/lint/API/boundaries and self-review; 111 focused tests,
       full serial regression 2024 pass / 840 opt-in skips. No query/auth changes.
-- [ ] Successful native SQL acceptance on an owned disposable DB: Docker server
-      diagnostic did not respond and was stopped; no working DB fixtures used.
+- [x] Native SQL regression on a newly owned disposable MySQL after Docker
+      recovered: fresh publication suite 2949 pass / 0 fail / 30 external opt-in
+      skips, 194 files. Working database never used as an acceptance fixture.
 - [x] Browser RED/GREEN for statistics refetch failure with cached data: show
       an explicit error and allow recovery instead of presenting old numbers.
 - [x] Recheck current editor/attachment/draft/moderation/season/member/email
@@ -2297,3 +2298,21 @@ drafts remain local after interruption; disposable container already removed.
       Then finalize HTTP schemas/inspection and connect the existing admin form.
 - [ ] Joint provider/SMTP/device/admin acceptance and deployment remain separate;
       no staging push or server change in this local continuation.
+
+### Explicit staging/dev update — 10 October 2026
+
+- [x] Fresh remote/frontend review, clean fast-forward from ac7c471; normal
+      staging push and exact code remote 2e3339c verified, no force/lost changes.
+- [x] Fresh owned SQL/full checks + 13 browser cases; archived HEAD TEST build,
+      offline amd64 release and isolated native runtime probes. Dependency gates
+      remain open; no package upgrade or false payment/email acceptance claim.
+- [x] Protected backup then code-only API/web/TEST deployment. Resolve stale
+      edge DNS with config-preserving reload; include reload in saved rollback.
+      Seven healthy services; counts/other containers/integration configs kept.
+- [x] 13 public smoke, 8 result transport and real deployed guest Chromium pass.
+      Invalid proof only, no purchase, provider notification replay or email.
+- [x] Stop exact owned disposable SQL fixture; erased test data unrecoverable,
+      working data untouched. Record runbook hashes/rollback/open gates.
+- [ ] Binding exposure/schema/delivery/lifecycle and joint provider/SMTP/user
+      acceptance remain pending. This publication does not enable that feature
+      or fix unconfirmed Russian payment gateway errors.

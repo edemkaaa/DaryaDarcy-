@@ -1194,3 +1194,69 @@ links без proof не переписываются; не просить пла
 lockfile: **51 advisory (1 critical/20 high/26 moderate/4 low)**; прежнее узкое
 TEST исключение/review до 13 октября сохраняется, не production-разрешение.
 Кабинет Prodamus, повтор уведомления, отправка/повтор письма и платёж не выполнялись.
+
+## Code-only обновление staging/dev — 10 октября 2026
+
+На явный запрос «обнови стейдж и серв» проверены чистая feature-ветка и свежий
+remote. Входящих remote-only staging commits нет; девять локальных commits
+сохранены обычным fast-forward `ac7c471..2e3339c`. Normal push принят, exact remote
+SHA `2e3339c16efa1a45fb4de85c2ecf1c7d9ab5dc24` проверен. Evidence commit после
+этой выкладки меняет только документацию; code image остаётся `2e3339c`.
+
+- Свежий полный serial regression на **новом собственном** MySQL 8.4 tmpfs:
+  **2949 pass / 0 fail / 30 external opt-in skips**, 194 файла. Types/E2E types,
+  lint, API (73 procedures/25642 bytes), boundaries (588 files), docs (53) и
+  whitespace проходят. Archived HEAD: backend и restricted TEST bundles,
+  frontend 28 pages с явным Prodamus TEST=true/YooKassa TEST=false. Browser:
+  2 statistics recovery и 11 TEST-return scenarios прошли без skips на явном
+  TEST build. Использован существующий Chromium, без установки браузера.
+- Exact dev `edem@155.212.216.16`/`teamassist-dev`, штатный SSH ключ из
+  предоставленного руководства; проверка host key не отключалась. Release
+  `/home/edem/apps/daryadarcy-staging/release-2e3339c`, image
+  `daryadarcy-staging:2e3339c`, amd64 ID
+  `sha256:cb5c7404fa279ed369ef35829a8fa542d08677be07ed8609360cadfa0c4af166`.
+  Native Linux dependencies сохранены из `595d4a0`; lockfile не менялся,
+  пакеты/Next не обновлялись. Новый небольшой image собран offline на прежнем
+  pinned base, предыдущая версия сохранена для отката.
+- Verified archive SHA-256
+  `5d94b5b0a1fc64f50fa87efa656732d448395682f6865be8ca3ec99260afb5f1`;
+  backend `c2c493ffda293ff914deb6592d11a2d02c6cbccb5baabfee98c67f4a4bea45b9`;
+  TEST `b16a080c0a5679a7ddc3a63a08135a312a62456dc3e53b7709f086903aa14227`.
+  Archive содержит только build artifacts/Dockerfile: path bounds/types/digests
+  проверены. Изолированный Linux container без сети/БД/SMTP/настоящих ключей
+  подтвердил native WebP, Next pages, TEST mode/result и закрытые transport paths.
+- До переключения: защищённые snapshots конфигов/nginx/container identities/
+  SQL counts и `before.sql.gz` (600); gzip completion/29 CREATE TABLE проверены.
+  Dump не выводился, не скачивался и не восстанавливался. Миграции **0027/0028
+  не применялись**, migration-history gates не обходились. Внутренний binding
+  request/confirmation не зарегистрирован в HTTP/worker, admin form не включена.
+- Пересозданы только `api`, `web`, `prodamus-test` с `--no-deps --wait`. После
+  смены IP первая внешняя проверка обнаружила 502: edge nginx ещё обращался к
+  старым Docker addresses. Actual DNS и refused upstream подтвердили причину;
+  штатный `nginx -t`/reload обновил workers, **без изменения конфигурации**.
+  Тот же reload включён в сохранённый code rollback после recreation.
+- Повторная внешняя проверка: **13 HTTPS guest/catalog/access smoke**, **8 TEST
+  result transport cases** и настоящий deployed Chromium 390 px без interception
+  проходят. Invalid proof даёт 200/unknown, UUID quota header без cookies,
+  очищенный fragment и отсутствие ложного успеха. Это не успешная оплата.
+  Семь сервисов healthy; три новых restart=0/OOM=false. SQL counts, все прочие
+  container IDs/start times, host/edge nginx и неизменённые env/config bytes
+  сохранены. После сборки на диске 3,6 ГБ; shared images/чужие ресурсы не удалялись.
+
+Code-only откат:
+`python3 /home/edem/apps/daryadarcy-staging/release-2e3339c/rollout.py rollback`.
+Он возвращает только три image/bundle config файла, прежние API/web/TEST и
+перезагружает edge workers. Не восстанавливает SQL, ключи, nginx config или
+чужие проекты. Этот новый rollback подготовлен/проверен по исходникам, но не
+выполнялся: после DNS reload выкладка здорова. SQL restore не тестировался.
+
+Собственный local fixture `daryadarcy-staging-release-20261010` проверен по exact
+ID/label/tmpfs/no mounts и остановлен; `--rm` удалил только данные тестового
+запуска, восстановление их невозможно. Task-label inventory пуст. Рабочая БД
+не использовалась как fixture и не очищалась.
+
+Открыты прежние gates: binding delivery/lifecycle/deletion/HTTP/админка и его
+schema rollout, новая реальная provider/SMTP/user acceptance, СБП MNT_ID и GPB
+ошибки. Native audit на неизменном lockfile: **51 advisory (1 critical/20 high/
+26 moderate/4 low)**; прежнее узкое dev TEST исключение не production-разрешение.
+Ни платёж, ни повтор уведомления/письма, ни provider cabinet change не выполнялись.

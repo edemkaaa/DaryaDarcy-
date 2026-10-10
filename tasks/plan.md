@@ -6957,3 +6957,34 @@ Inspected exact run-04 container name/label/tmpfs/no-volume ownership; stopped
 only dbaf5679fb207b0fed61fa50ca0d4ed482027ae1b51f2e65060e5fc7758197e5 and
 confirmed its task-label inventory empty. The discarded temporary SQL data cannot
 be recovered; working data and other containers were untouched.
+
+### Explicit staging/dev publication — 10 October 2026
+
+Human requested staging and server update. Fresh fetch: no incoming remote-only
+commits; clean feature branch descended from ac7c471. Reviewed code was published
+by fast-forward/normal push, exact remote 2e3339c verified; frontend changes kept.
+Code-only dev rollout from archived HEAD, with existing native Linux dependencies
+and explicit Prodamus TEST frontend build. No new binding form/HTTP/worker enabled,
+no 0027/0028 migration or migration-history bypass. Internal code can be present
+without claiming binding exposure/acceptance. No payment/cabinet/mail mutations.
+
+Fresh owned tmpfs MySQL full serial run: 2949 pass / 0 fail / 30 external opt-in
+skips, 194 files. Types/E2E/lint/API/boundaries/docs/whitespace and both bundles/
+28-page frontend build pass. Existing Chromium: 2 admin statistics and 11 explicit
+TEST-return browser scenarios pass. Isolated new amd64 image without network,
+database, SMTP or real keys passes native WebP, Next and TEST/result boundaries.
+Existing lockfile audit unchanged: 51 findings; production/dependency gates open.
+
+Protected 29-table backup/config/container/count snapshots before recreation.
+Only API/web/TEST recreated; initial HTTPS 502 traced to stale edge nginx Docker
+DNS after IP changes. Syntax-checked worker reload restores routing without config
+change; same step added to code rollback. After reload: 13 HTTPS smoke + 8 result
+transport cases + actual deployed Chromium (no interception) pass. Seven services
+healthy, new restart=0/OOM=false; working SQL counts, other containers and unchanged
+config/secret bytes preserved. No SQL restore tested or performed. Runbook records
+exact artifact hashes/release path/code-only rollback and open acceptance gates.
+
+Validated and stopped only owned fixture ID
+454a3b492721e9af7c4567c25724f61f8a761da0ac623f3a18e75645a86b6c26;
+tmpfs data erased by --rm, task-label inventory empty. No working data cleanup.
+Evidence is a separate docs-only commit after code publication, not a new runtime.
