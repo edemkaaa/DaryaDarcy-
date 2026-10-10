@@ -165,6 +165,11 @@
       hasClub bypass mutation RED снята; 16 C1/C2/C3 browser GREEN, типы.
       SDK cookie/local transport proxy — не deployment; comments/media,
       полная навигация/физические устройства и A7 остаются открыты.
+      C3c: guest native feed search/empty/clear; feed+both разрешены,
+      club/legacy draft скрыты, SQL read-only. Search-predicate removal RED снят;
+      missing tags schema исправлена только в test fixture, tags HTTP 200.
+      17 C1/C2/C3 browser GREEN, типы; comments/media, Библиотека/тест,
+      полная навигация/физические устройства и A7/deployment открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

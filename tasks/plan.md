@@ -41,6 +41,24 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3c, публичный поиск ленты — 10 октября:** test-only native browser/API/SQL,
+гостевой контекст без cookie. Matching feed/both появляются после настоящего
+paginated HTTP 200; unrelated пост исчезает, matching club и legacy draft с
+published=1 не показываются. Несуществующий query возвращает пустую ленту;
+«Очистить поиск» восстанавливает публичные записи. SQL всех собственных posts
+не меняется. **Mutation RED:** удалённый search predicate оставляет unrelated
+card, независимый UI assertion ловит ошибку; подмена полностью снята. Во время
+RED обнаружена отдельная неполнота schema fixture: feed.tags читает tags,
+которой не было в content helper. Добавлена таблица только в этом test fixture,
+и теперь native tags HTTP 200 проверяется явно; production не менялся.
+**17 C1/C2/C3 native browser GREEN**, типы проходят; 14 binding cases намеренно
+исключены в неизменённом default-off build. Review: реальный debounce/query/API/
+SQL без mock ответов, отдельные literal markers, scoped cleanup, публичные
+publication/target gates сохранены. Frontend остановлен; собственный loopback/
+tmpfs backend_test удалён через --rm после exact ID/label/port/no mounts/no OOM.
+Сервер/рабочая БД/внешние сервисы не затронуты. C3 comments/media, Библиотека/
+тест/полная навигация и физические устройства/A7/deployment остаются открыты.
+
 **C3b, категории сохранённого и границы доступа — 10 октября:** test-only
 native browser/API/SQL. Собственные feed/club/both/draft/scheduled fixtures,
 настоящая member SDK cookie (password login уже проверен C3a). Native

@@ -17,6 +17,81 @@ interface PostInteractionsBrowserFixture {
 export function registerPostInteractionsBrowserCases(
   fixture: () => PostInteractionsBrowserFixture,
 ) {
+  it("C3 searches the public feed without exposing club or unpublished posts and clears the query", async () => {
+    const { rows, connection, context, frontend } = fixture();
+    const ids = [94621, 94622, 94623, 94624, 94625];
+    // Catches ignored search predicates and search bypassing public-feed gates.
+    try {
+      await connection.query(`CREATE TABLE IF NOT EXISTS tags (
+        id INT AUTO_INCREMENT PRIMARY KEY,slug VARCHAR(64) NOT NULL UNIQUE,
+        label VARCHAR(128) NOT NULL,category ENUM('season','topic') NOT NULL DEFAULT 'topic',
+        sortOrder INT NOT NULL DEFAULT 0
+      ) ENGINE=InnoDB`);
+      await connection.query(
+        `INSERT INTO posts (id,text,photos,tags,status,published,target) VALUES
+        (94621,'C3 needle feed fixture','[]','[]','published',1,'feed'),
+        (94622,'C3 needle both fixture','[]','[]','published',1,'both'),
+        (94623,'C3 unrelated feed fixture','[]','[]','published',1,'feed'),
+        (94624,'C3 needle club fixture','[]','[]','published',1,'club'),
+        (94625,'C3 needle draft fixture','[]','[]','draft',1,'feed')`,
+      );
+      const before = await rows(
+        "SELECT id,text,status,published,target FROM posts WHERE id IN (94621,94622,94623,94624,94625) ORDER BY id",
+      );
+      await context.clearCookies();
+      const page = await context.newPage();
+      const tagsResponse = page.waitForResponse((response) =>
+        response.url().includes("feed.tags"),
+      );
+      await page.goto(frontend + "feed");
+      expect((await tagsResponse).status()).toBe(200);
+      const card = (text: string) =>
+        page.locator("article").filter({ hasText: text });
+      await browserExpect(card("C3 unrelated feed fixture")).toHaveCount(1);
+      const search = page.getByPlaceholder("Поиск...", { exact: true });
+      const searched = page.waitForResponse(
+        (response) =>
+          response.url().includes("feed.listPaginated") &&
+          response.url().includes("needle"),
+      );
+      await search.fill("needle");
+      expect((await searched).status()).toBe(200);
+      await browserExpect(card("C3 needle feed fixture")).toHaveCount(1);
+      await browserExpect(card("C3 needle both fixture")).toHaveCount(1);
+      await browserExpect(card("C3 unrelated feed fixture")).toHaveCount(0);
+      await browserExpect(card("C3 needle club fixture")).toHaveCount(0);
+      await browserExpect(card("C3 needle draft fixture")).toHaveCount(0);
+      const absent = page.waitForResponse(
+        (response) =>
+          response.url().includes("feed.listPaginated") &&
+          response.url().includes("nonexistent-c3-query"),
+      );
+      await search.fill("nonexistent-c3-query");
+      expect((await absent).status()).toBe(200);
+      await browserExpect(page.locator("article")).toHaveCount(0);
+      await page
+        .getByRole("button", { name: "Очистить поиск", exact: true })
+        .click();
+      await browserExpect(search).toHaveValue("");
+      await browserExpect(card("C3 unrelated feed fixture")).toHaveCount(1);
+      await browserExpect(card("C3 needle feed fixture")).toHaveCount(1);
+      await browserExpect(card("C3 needle both fixture")).toHaveCount(1);
+      await browserExpect(card("C3 needle club fixture")).toHaveCount(0);
+      await browserExpect(card("C3 needle draft fixture")).toHaveCount(0);
+      expect(
+        await rows(
+          "SELECT id,text,status,published,target FROM posts WHERE id IN (94621,94622,94623,94624,94625) ORDER BY id",
+        ),
+      ).toEqual(before);
+    } finally {
+      for (const postId of ids) {
+        await connection.query(
+          "DELETE FROM posts WHERE id=? AND text LIKE 'C3 % fixture'",
+          [postId],
+        );
+      }
+    }
+  }, 30_000);
   it("C3 separates saved feed and club categories and excludes unpublished or expired club content", async () => {
     const { rows, connection, context, frontend, memberId } = fixture();
     const ids = [94611, 94612, 94613, 94614, 94615];
