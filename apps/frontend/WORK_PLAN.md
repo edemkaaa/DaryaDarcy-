@@ -182,6 +182,14 @@ tests/frontend-club-checkout-mode.native.test.mjs` (одна команда в �
 
 ## Инструменты менеджера: первая привязка почты
 
+**Обновление 10 октября, A5c1:** подготовлен отдельный key-only IndexedDB journal
+для восстановления intent, без email/proof/ответов. Атомарная резервация между
+вкладками и compare-and-delete, owner/abort/storage guards проверены в настоящем
+браузерном IndexedDB: 6 RED → 9 GREEN. Типы/lint/build/boundaries проходят.
+Это ещё не UI recovery: journal пока не подключён, форма остаётся memory-only.
+Далее A5c2 — hook/reload/terminal-refusal и native API/SQL acceptance; дизайн,
+серверные флаги, worker и внешний rollout не менялись.
+
 **Обновление 10 октября, A5b:** форма подключена локально, но по умолчанию
 по-прежнему выключена. Только opt-in сборка `NEXT_PUBLIC_MEMBER_EMAIL_BINDING_ENABLED=true`
 даёт отправку/проверку: один ключ на intent, без автоматического повтора, разные

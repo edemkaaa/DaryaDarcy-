@@ -158,6 +158,16 @@ silently repair old users, run fixture cleanup on a working database.
 
 ## Current implementation checkpoint
 
+A5c1 prerequisite: a standalone browser IndexedDB journal now durably reserves
+one versioned requestKey per actor/member in a readwrite transaction, including
+cross-tab races. It stores no email, proof or server outcome, refuses malformed
+metadata/storage failures, and uses compare-and-delete for terminal cleanup.
+Nine real IndexedDB browser cases pass (six initial RED cases). This journal is
+not yet consumed by the form: A5c2 must wire session-bound recovery and explicitly
+verified terminal/refusal handling before native API/SQL acceptance. A GET 404
+after an unknown POST is not by itself permission to discard the key. Local
+metadata is never authorization. No deployment or external mail was performed.
+
 A5b frontend checkpoint: the existing form now has a default-disabled build
 opt-in `NEXT_PUBLIC_MEMBER_EMAIL_BINDING_ENABLED=true`, separate from the server
 gate. Enabling only the UI cannot enable the backend. Use the same explicit flag

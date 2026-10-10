@@ -29,8 +29,11 @@
       A5b: UI подключён под default-off build flag; stable intent при закрытии/
       смене вкладки, explicit inspect/retry, confirmed canonical refresh.
       11 active + 10 default-disabled + 23 соседних browser pass (mock API), 649 unit pass.
-      Типы/lint/active+default build/API/boundaries проходят. Далее A5c — recovery
-      после reload/новой вкладки без PII, terminal/refusal и native SQL/browser.
+      Типы/lint/active+default build/API/boundaries проходят.
+      A5c1: key-only IndexedDB journal, атомарная резервация между вкладками,
+      CAS cleanup, owner/abort guards и fail-closed storage; 6 RED → 9 browser GREEN.
+      Типы/lint/default build/boundaries проходят. Journal пока не подключён к UI.
+      Далее A5c2 — hook/reload recovery без PII, terminal/refusal и native SQL/browser.
 - [ ] A6: страница подтверждения из fragment, явное действие, существующий вход.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
 - [ ] Checkpoint A: весь сценарий через настоящее API/SQL/loopback письмо;
