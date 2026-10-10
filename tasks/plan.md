@@ -41,6 +41,30 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A3, проверено 10 октября:** внутренний mail processor использует bounded batch,
+user → binding → outbox claim, текущего получателя/expiry/занятость адреса,
+purpose/intent-authenticated cipher и lease-fenced acknowledgement. Сохранены
+операционные bounds существующего access-mail processor: 20 кандидатов, lease
+5 минут, максимум 12 попыток и exponential backoff. SMTP вне транзакции;
+после принятия очищается cipher, после terminal — также email/proof/lease.
+7 ожидаемых RED и отдельный RED для crash на последней попытке → 18 SQL/SMTP
+GREEN. Настоящий loopback SMTP + SQL-trigger failure доказывают at-least-once
+повтор с тем же proof/Message-ID после потерянного acknowledgement, не exactly-once.
+Проверены stale lease, crash recovery, confirmation во время отправки,
+невалидная конфигурация/шифр/intent, backoff, занятый/недоступный получатель.
+Полная serial MySQL регрессия: 2986 pass, 30 opt-in skips, 193 files pass/3 skip;
+отдельно 18 retention/HTTP/worker pass. TypeScript/backend build/API (73)/
+boundaries (591)/docs проходят. Ревью проверило атомарность, порядок locks,
+санитизацию ошибок, отсутствие новых зависимостей и изменения credential/access.
+Пропущенные 30 opt-in проверки не считаются выполненными. Форма/маршруты/worker
+не включены, рабочий сервер не изменён. Следующий срез A4 — сначала HTTP schema.
+
+Фоновое продолжение `daryadarcy` обновлено на этот план (каждые 15 минут,
+без обычных уведомлений). Старый дедлайн/план 8–9 октября больше не используется;
+при внешнем блокере берётся независимый пункт, при исчерпании таких пунктов
+продолжение отключается. Push/deploy/реальные платежи и внешние письма не разрешены
+автоматически этим продолжением.
+
 **A2, проверено 10 октября:** удаление аккаунта вызывает identity-owned cleanup
 в той же транзакции после блокировки пользователя: pending proof отменяется,
 email/hash/cipher/lease очищаются вместе с PII-free аудитом. Сбой аудита или

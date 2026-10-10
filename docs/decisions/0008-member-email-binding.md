@@ -58,11 +58,19 @@ Recheck expiry after the potentially blocking user update and undo any expired
 uncommitted write before recording expiry. Original admin ID is audit provenance,
 not an authenticated confirmation principal. No session/password/payment mutation.
 
-The operations remain internal-only and unregistered. Delivery leasing/retries,
-explicit POST transport, no-referrer fragment page, automatic expiry cleanup,
-30-day retention, transactional account-deletion cleanup, status HTTP inspection
-and frontend integration are still required before enabling them. Native SQL
-acceptance does not stand in for delivery, browser or working-server acceptance.
+The operations remain internal-only and unregistered. Automatic expiry/30-day
+retention, transactional account-deletion cleanup and leased/retrying delivery
+are implemented. Delivery follows existing access-mail bounds and performs SMTP
+outside transactions; late acknowledgements are fenced by lease and terminal
+state. Retries after an unknown acceptance reuse the same proof/Message-ID, not
+an exactly-once claim. Account deletion supports the pre-0028 schema only when
+both tables are absent; a partial schema fails the whole transaction. Cleanup
+does not depend on enabling requests in the UI.
+
+Explicit POST transport, no-referrer fragment page, status HTTP inspection,
+frontend integration and worker registration are still required before enabling
+the flow. Local SQL/SMTP acceptance does not stand in for browser, external
+delivery or working-server acceptance.
 
 Migration 0028 is exercised only in owned disposable MySQL fixtures. Existing
 0017–0019 migration-history gates stay open. Do not apply to the working database,

@@ -254,3 +254,37 @@ unchanged API, boundaries and docs pass. Five-axis self-review checks atomicity,
 purpose/privacy boundaries, current locks, bounded queries and no session/access
 mutation. Run-04 was removed after ownership inspection; its volatile test data
 is not recoverable. Shared containers and working data were untouched.
+
+## Lifecycle and delivery checkpoint — 10 October 2026
+
+Automatic expiry and 30-day terminal retention are implemented as an internal,
+bounded maintenance operation, not yet registered with a worker. Account deletion
+now cancels pending proofs in its existing transaction, including the encrypted
+delivery material and PII-free audit. A failed scrub/audit/final account update
+rolls back. Before 0028, absence of both binding tables preserves legacy deletion;
+a partial schema refuses the deletion. Cleanup is independent of any UI flag.
+
+The internal mail processor claims candidates in user → binding → outbox lock
+order and revalidates current recipient, expiry, ownership and delivery lease.
+It follows the existing access-mail operational bounds: twenty candidates per
+pass, five-minute lease, twelve attempts, exponential minute-based backoff capped
+at one day. Expiry still limits the proof to 24 hours from the original request.
+Cipher decryption authenticates the immutable intent and verifies the proof hash.
+Only the configured public origin can receive the fragment-only confirmation URL.
+
+SMTP runs outside database transactions. A blocked/deleted account after claim
+can receive an already-in-flight email, but confirmation independently rechecks
+eligibility and cannot grant a session or access. Only the current lease can
+record an acknowledgement; terminal proofs are never resurrected. SMTP acceptance
+clears the cipher, not the unconsumed confirmation hash. Failed delivery retains
+the same encrypted proof until retry or terminal cleanup.
+
+Delivery is at-least-once: a lost acknowledgement can produce another copy with
+the same proof and Message-ID. A stable Message-ID is not a provider deduplication
+guarantee. A real loopback SMTP fixture plus MySQL fault injection exercises this
+case; an unknown result must not create a new proof or change account credentials.
+
+Remaining before exposure: finalized HTTP schemas/status/explicit POST, fragment
+page and existing admin form integration, worker registration, reviewed migration
+history/data rollout and actual external delivery acceptance. These local changes
+do not enable email binding on the working server or certify payment providers.
