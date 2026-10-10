@@ -9,9 +9,9 @@ password, session version and subscription. Never merge accounts or replace an
 existing address. An occupied address is a conflict, not a merge instruction.
 
 The human also approved the detailed schema/migration plan below. Implementation
-has started with the identity-writer and normalized-uniqueness prerequisites;
-migration 0027 has been exercised only in owned disposable MySQL fixtures. No
-working database migration, real mail or deployment. Binding is still unfinished.
+includes the identity prerequisites and internal request/proof stage; migrations
+0027/0028 have been exercised only in owned disposable MySQL fixtures. No working
+database migration, real mail or deployment. Binding is still unfinished.
 
 ## Scope and assumptions
 
@@ -162,13 +162,45 @@ refuses duplicates. The existing untracked 0017/0018/0019 manifest gate is uncha
 do not repair/rewrite those historical files to bypass it. MySQL 8.4 is verified;
 other deployment versions are not certified by these fixtures.
 
-Next slice is the separate durable binding request/proof/outbox, explicit POST
-confirmation and retention/deletion cleanup, followed by frontend integration.
-No binding route, email delivery kind or enabled frontend form exists yet.
+The separate durable request/proof/outbox is now implemented as an internal-only
+operation; see [ADR-008](docs/decisions/0008-member-email-binding.md). Its input is
+strict: a positive signed-INT user ID, normalized valid email up to 320 characters
+(raw input bounded to 1024), and a lowercase UUIDv4 request key. The authenticated
+actor supplies user ID and session version, never frontend-controlled authority.
+The internal receipt contains only `{requestKey, state}`; it is not an HTTP/mail
+delivery contract. Public route response schemas still need finalization.
 
-Verification checkpoint: full serial suite with disposable MySQL gives 2878
+Migration 0028 adds dedicated binding and delivery tables, leaving password and
+access-mail tables untouched. The request atomically stores a purpose-bound proof
+hash, AES-GCM cipher and PII-free audit while leaving every user field unchanged.
+Current actor/recipient locks serialize competing first bindings; replay uses
+the original payload hash and never recreates proof/mail/audit or requires a key.
+A cancelled, scrubbed intent remains cancelled when replayed.
+
+24 expected native RED failures preceded 26 GREEN cases; expanded acceptance now
+has 36 real-MySQL cases, including authority revocation, bounded input, rollback,
+missing encryption, six concurrent retries and competing administrators. Opening
+an address remains unimplemented, not an implicit confirmation mechanism.
+
+Next slice is delivery, explicit POST confirmation and retention/deletion cleanup,
+followed by frontend integration. No binding route, worker registration or enabled
+frontend form exists yet. Requests are not callable from the deployed application.
+Pending requests (even expired ones) conservatively prevent another intent until
+the cleanup slice handles them. A queued request does not reserve the email:
+confirmation must recheck current recipient and arbitrate ownership through 0027.
+
+Previous prerequisite checkpoint: full serial suite with disposable MySQL gives 2878
 passed, zero failed, 30 opt-in skipped across 192 files. Types, backend/frontend builds,
 lint, unchanged API/boundaries/docs checks pass. Working-server release and
 external delivery acceptance remain separate; local SQL evidence is not rollout.
 The 72-check native selection also passed again after the full run. Both owned
 tmpfs containers have been removed; no shared containers/data were changed.
+
+Request/proof checkpoint: full serial regression on a new owned MySQL fixture gives
+2914 passed, zero failed, 30 opt-in skipped across 193 files. All 36 new native cases
+passed again after the full run. Fresh types, backend/frontend builds, lint,
+unchanged API, boundaries and docs checks pass. Five-axis self-review covers
+atomicity/replay, purpose separation, privacy, stable locks and bounded queries.
+The run-03 tmpfs container was removed; its disposable data is not recoverable.
+Working data and other containers were untouched. Confirmation/delivery/cleanup
+are not accepted by these request tests and remain required before rollout.

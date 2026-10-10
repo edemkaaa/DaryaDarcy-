@@ -6866,3 +6866,46 @@ test data was erased (not recoverable), no working data or other containers.
 First binding is still not implemented/enabled: durable purpose-specific request,
 proof/outbox, POST confirmation, retention/deletion and frontend integration remain.
 No push, deployment, real mail, provider payment or working database mutation.
+
+### First email binding — internal request and purpose-specific proof
+
+Continued the next human-approved stage from the clean feature branch. Migration
+0028 adds separate request and delivery tables; password/access-mail persistence
+and existing workers are untouched. ADR-008 records the purpose boundary. This is
+an internal operation, not a registered route or enabled frontend action.
+
+24 expected native RED failures preceded the first 26 GREEN cases. Expanded native
+acceptance now covers 36 cases: no user-field mutation, normalized stable replay,
+same-key different payload/actor refusal, current authority/session revocation,
+first-binding eligibility, occupied email, bounded invalid inputs, encryption
+failure, audit-trigger rollback, six concurrent retries and competing intent keys.
+Cipher uses AES-GCM AAD for purpose/key/fingerprint; proof digest is purpose-bound,
+never stored in password tokens. Audit and error messages do not contain PII or
+proofs. Replaying scrubbed terminal state cannot issue another mail/proof.
+
+Eight selected files/101 tests passed with owned loopback MySQL 8.4. Existing
+0017–0019 preflight blockers remain unchanged and prevent working-db rollout.
+The request does not reserve an address; the next confirmation must revalidate
+and rely on the normalized unique user-email index. Any pending request currently
+blocks another intent until the lifecycle slice expires/cancels it safely.
+
+Still required before exposure: leased delivery, explicit single-use POST,
+expiry/cancel/30-day retention, deletion-transaction scrub, HTTP inspection/schema,
+fragment-only confirmation page and admin form integration. No external mail,
+provider call, push, merge, working database mutation or server update.
+
+Final request-slice acceptance: full serial suite with the new disposable MySQL
+gives 2914 pass / zero failures / 30 opt-in skips across 193 files. Repeated all
+36 native request tests afterward: pass. Fresh root/frontend types, backend
+build (433.7kb), frontend build (28 pages), lint, API (73 procedures/25642 bytes),
+boundaries (587 files), docs (53) and diff checks pass. Existing dependency and
+release gates remain open; these checks do not prove confirmation/delivery.
+
+Five-axis self-review: current authority precedes replay; a unique atomic claim
+and locked recipient prevent duplicate proofs, while any failed write rolls back;
+private binding tables retain existing module boundaries without password-mail
+branches; AES-GCM binds purpose and intent, safe errors/audit omit PII; bounded
+validation, two user locks and indexed limited queries add no unbounded work.
+No dependencies or frontend files changed. Verified exact run-03 container name,
+label and tmpfs/no-volume ownership, stopped only its ID, and confirmed no such
+container remains. Only disposable test data was erased, not recoverable.

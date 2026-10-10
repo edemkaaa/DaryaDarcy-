@@ -2284,5 +2284,13 @@ drafts remain local after interruption; disposable container already removed.
       unchanged. First binding and actual rollout remain disabled.
 - [ ] Implement verified slices and connect the existing frontend form after
       this approval; real SQL/SMTP/rollout acceptance must not be inferred.
+- [x] Internal request/proof slice: strict stable intent, current locked admin/
+      legacy recipient eligibility, separate encrypted durable outbox and audit
+      without account writes. Native RED/GREEN, replay, rollback and concurrency.
+      No HTTP route, worker registration or enabled form; migration 0028 only on
+      a newly owned disposable MySQL fixture.
+- [ ] Binding delivery/confirmation/lifecycle: lease/retry, explicit single-use
+      POST, expiry/cancel PII scrub, 30-day retention and account-deletion cleanup.
+      Then finalize HTTP schemas/inspection and connect the existing admin form.
 - [ ] Joint provider/SMTP/device/admin acceptance and deployment remain separate;
       no staging push or server change in this local continuation.

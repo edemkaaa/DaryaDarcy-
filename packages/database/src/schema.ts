@@ -338,6 +338,38 @@ export const passwordTokens = mysqlTable("password_tokens", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [index("password_tokens_user").on(table.userId)]);
 
+// First email binding has a separate proof namespace and cannot reset credentials.
+export const memberEmailBindings = mysqlTable("member_email_bindings", {
+  requestKey: varchar("requestKey", { length: 36 }).primaryKey(),
+  payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
+  actorUserId: int("actorUserId").notNull(),
+  userId: int("userId").notNull(),
+  email: varchar("email", { length: 320 }),
+  proofHash: varchar("proofHash", { length: 64 }).unique(),
+  state: mysqlEnum("state", ["pending", "confirmed", "expired", "cancelled"]).default("pending").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  completedAt: timestamp("completedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  index("member_email_bindings_user_state").on(table.userId, table.state),
+  index("member_email_bindings_retention").on(table.state, table.expiresAt, table.completedAt),
+]);
+
+// Dedicated outbox: its recipient must be checked against the pending binding,
+// not the user's still-absent email. Existing password-mail checks stay intact.
+export const memberEmailBindingOutbox = mysqlTable("member_email_binding_outbox", {
+  requestKey: varchar("requestKey", { length: 36 }).primaryKey(),
+  tokenCipher: text("tokenCipher"),
+  sentAt: timestamp("sentAt"),
+  discardedAt: timestamp("discardedAt"),
+  lastError: varchar("lastError", { length: 64 }),
+  nextAttemptAt: timestamp("nextAttemptAt").defaultNow().notNull(),
+  attempts: int("attempts").default(0).notNull(),
+  leaseId: varchar("leaseId", { length: 36 }),
+  leaseUntil: timestamp("leaseUntil"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [index("member_email_binding_outbox_due").on(table.sentAt, table.nextAttemptAt)]);
+
 export const accessEmailOutbox = mysqlTable("access_email_outbox", {
   id: int("id").autoincrement().primaryKey(),
   eventKey: varchar("eventKey", { length: 128 }).notNull().unique(),
