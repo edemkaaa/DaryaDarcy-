@@ -46,6 +46,12 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       return (await connection.query<RowDataPacket[]>(sql, args))[0];
     }
     async function cleanup() {
+      await connection.query("DELETE FROM access_email_outbox WHERE userId=?", [
+        memberId,
+      ]);
+      await connection.query("DELETE FROM password_tokens WHERE userId=?", [
+        memberId,
+      ]);
       await connection.query("DELETE FROM club_payments WHERE userId=?", [
         memberId,
       ]);

@@ -84,6 +84,10 @@
       C1c: member/moderator не видят owner-вкладку; реальные browser GET members
       и POST grant дают 403 без SQL/SMTP side effects. 4 C1 browser pass.
       Действия moderator, первая выдача/письма и deployment ещё открыты.
+      C1d: explicit resend из admin UI → одна outbox/audit → настоящий loopback
+      SMTP; UI подтверждает очередь, не доставку. Existing account получает login
+      без reset token, identity/expiry сохранены; повтор delivery без дубля.
+      5 C1 browser pass; первая выдача/moderator actions/deployment ещё открыты.
 - [ ] C2: real-API редактор/статьи/вложения/черновики/scheduled без дублей.
 - [ ] C3: реальные взаимодействия, поиск, Библиотека, тест, профиль и поддержка.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.

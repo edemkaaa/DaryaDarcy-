@@ -2,6 +2,9 @@ import { expect, it } from "vitest";
 import { expect as browserExpect, type BrowserContext } from "@playwright/test";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { sdk } from "../../apps/backend/src/_core/sdk";
+import { getDb } from "../../apps/backend/src/db";
+import { processAccessEmails } from "../../apps/backend/src/identity/access";
+import { sendTransactionalEmail } from "../../apps/backend/src/_core/email";
 
 interface AdminMembershipBrowserFixture {
   rows(sql: string, args?: unknown[]): Promise<RowDataPacket[]>;
@@ -11,7 +14,7 @@ interface AdminMembershipBrowserFixture {
   memberId: number;
   base: string;
   frontend: string;
-  smtp: { messages: string[] };
+  smtp: { messages: string[]; recipients: string[] };
 }
 
 // Register under the caller's native API/SQL/SMTP lifecycle; read its
@@ -19,6 +22,99 @@ interface AdminMembershipBrowserFixture {
 export function registerAdminMembershipBrowserCases(
   fixture: () => AdminMembershipBrowserFixture,
 ) {
+  it("C1 queues a browser resend and delivers it once over loopback SMTP without changing access or credentials", async () => {
+    const { rows, connection, context, actorId, memberId, frontend, smtp } =
+      fixture();
+    await connection.query(
+      "UPDATE users SET email='browser.member@example.test' WHERE id=?",
+      [memberId],
+    );
+    await connection.query(
+      "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'binding-browser-existing-access','paid','0','2030-01-01')",
+      [memberId],
+    );
+    const identity = await rows("SELECT * FROM users WHERE id=?", [memberId]);
+    const access = await rows("SELECT * FROM club_payments WHERE userId=?", [
+      memberId,
+    ]);
+    const page = await context.newPage();
+    await page.goto(frontend + "admin");
+    await page.getByRole("button", { name: "Участницы", exact: true }).click();
+    const member = page
+      .getByText("Browser phone member", { exact: true })
+      .locator("..");
+    page.once("dialog", (dialog) => dialog.accept());
+    await member
+      .getByRole("button", { name: "Повторить письмо", exact: true })
+      .click();
+    await browserExpect(
+      member.getByRole("button", { name: "Письмо в очереди", exact: true }),
+    ).toBeDisabled();
+    await browserExpect(member.getByRole("status")).toContainText(
+      "Доставка ещё не подтверждена",
+    );
+    expect(smtp.messages).toHaveLength(0);
+    const queued = await rows(
+      "SELECT kind,email,sentAt,discardedAt FROM access_email_outbox WHERE userId=?",
+      [memberId],
+    );
+    expect(queued).toEqual([
+      {
+        kind: "club-access",
+        email: "browser.member@example.test",
+        sentAt: null,
+        discardedAt: null,
+      },
+    ]);
+    const database = await getDb();
+    if (!database) throw new Error("Disposable database unavailable");
+    await processAccessEmails(database, sendTransactionalEmail, memberId);
+    expect(smtp.recipients).toEqual(["RCPT TO:<browser.member@example.test>"]);
+    expect(smtp.messages).toHaveLength(1);
+    const text = smtp.messages[0]
+      .split(/\r\n--/)
+      .map((part) => {
+        const separator = part.indexOf("\r\n\r\n");
+        const header = part.slice(0, separator);
+        const body = part.slice(separator + 4);
+        return /Content-Transfer-Encoding: base64/i.test(header)
+          ? Buffer.from(body.replace(/\r\n/g, ""), "base64").toString("utf8")
+          : body
+              .replace(/=\r\n/g, "")
+              .replace(/=([0-9A-F]{2})/g, (_, hex) =>
+                String.fromCharCode(parseInt(hex, 16)),
+              );
+      })
+      .join("\n");
+    expect(text).toContain(frontend + "login");
+    expect(text).not.toContain("token=");
+    expect(
+      await rows("SELECT id FROM password_tokens WHERE userId=?", [memberId]),
+    ).toEqual([]);
+    const [delivered] = await rows(
+      "SELECT sentAt,discardedAt,attempts FROM access_email_outbox WHERE userId=?",
+      [memberId],
+    );
+    expect(delivered).toEqual({
+      sentAt: expect.any(Date),
+      discardedAt: null,
+      attempts: 1,
+    });
+    await processAccessEmails(database, sendTransactionalEmail, memberId);
+    expect(smtp.messages).toHaveLength(1);
+    expect(await rows("SELECT * FROM users WHERE id=?", [memberId])).toEqual(
+      identity,
+    );
+    expect(
+      await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+    ).toEqual(access);
+    expect(
+      await rows(
+        "SELECT action,targetId FROM admin_audit_log WHERE actorUserId=?",
+        [actorId],
+      ),
+    ).toEqual([{ action: "resend_club_access", targetId: memberId }]);
+  }, 30_000);
   it.each(["user", "moderator"] as const)(
     "C1 denies owner membership actions to a %s in the browser and native API",
     async (role) => {
@@ -114,8 +210,11 @@ export function registerAdminMembershipBrowserCases(
         .click();
     }
     await members();
+    const member = page
+      .getByText("Browser phone member", { exact: true })
+      .locator("..");
     page.once("dialog", (dialog) => dialog.accept("Native browser reason"));
-    await page
+    await member
       .getByRole("button", { name: "Заблокировать", exact: true })
       .click();
     await browserExpect(
@@ -135,11 +234,11 @@ export function registerAdminMembershipBrowserCases(
     await browserExpect(
       page.getByText("Причина: Native browser reason", { exact: true }),
     ).toBeVisible();
-    await page
+    await member
       .getByRole("button", { name: "Разблокировать", exact: true })
       .click();
     await browserExpect(
-      page.getByRole("button", { name: "Заблокировать", exact: true }),
+      member.getByRole("button", { name: "Заблокировать", exact: true }),
     ).toBeVisible();
     const [unblocked] = await rows(
       "SELECT blockedAt,blockedReason,sessionVersion FROM users WHERE id=?",

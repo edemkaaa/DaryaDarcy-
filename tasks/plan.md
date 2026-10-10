@@ -446,6 +446,30 @@ legacy поведение; частичная схема отклоняет вс
 
 ### 3. Совместная приёмка уже готового фронта и админки (C/S)
 
+**C1d, повтор письма через UI/API/SQL/SMTP — 10 октября:** явное подтверждение
+admin кнопки создаёт ровно одну club-access outbox/audit запись на сохранённую
+почту оплаченной участницы. Кнопка disabled, текст честно говорит «Доставка ещё
+не подтверждена»; до отдельного processing SMTP пустой. Настоящий
+processAccessEmails/nodemailer отправляет в собственный loopback SMTP; MIME
+письма содержит configured `/login`, не token/reset, password_tokens пустой для
+существующего password-bearing аккаунта. SQL sentAt/attempts=1, повтор processing
+не отправляет второе письмо, users row и оплаченный срок сохранены.
+**5 C1 browser pass + 1 связанный native resend SQL test**; после review усилена
+проверка полной queued rows cardinality.
+После соседнего SQL suite выявлен selector RED из-за второй paid карточки:
+resend/block selectors теперь scoped к конкретной fixture участнице, не к первой
+кнопке списка; все 5 C1 cases повторно pass с сохранёнными соседними fixtures.
+Root TypeScript/docs проходят. Первое чтение MIME как single-part дало диагностический
+test RED: настоящий sender multipart; decoder учитывает MIME parts/encoding,
+production код не менялся. Это acceptance существующего resend, не новый fix.
+Cleanup удаляет outbox/password rows исключительно собственного fixture user;
+письма наружу/worker/оплаты не запускались. Ревью: 202 не выдан за доставку,
+реальная SMTP wire отделена от browser proxy, credential/expiry не пересозданы.
+Default-off build сохранён, 13 неизменённых proof cases здесь не запускались.
+Собственный exact ID/label/tmpfs/no mounts/no OOM проверен перед stop/--rm,
+frontend остановлен. Первая выдача, moderator actions и deployment C1 открыты;
+A6c3/миграции/rollout по-прежнему требуют прежних решений/процедуры.
+
 **C1c, границы member/moderator — 10 октября:** два native browser cases
 подтверждают отсутствие owner-вкладки «Участницы». Member видит отказ управления,
 moderator — существующий экран «Модерация». Прямые browser fetch с настоящей
