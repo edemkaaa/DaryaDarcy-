@@ -41,6 +41,26 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C1f, первая ручная выдача — 10 октября:** независимый test-only срез админки
+пока A7 ждёт reviewed миграции/rollout. Browser cancel оставляет SQL неизменным
+и member club.list = 403. Confirm создаёт одну zero-sum paid запись на 31 день
+от текущего момента, игнорируя pending заказ с expiry 2035; исходный заказ не
+переписывается. Тот же member JWT получает 200, reload показывает оплаченный срок
+и кнопку продления. Пароль/роль/phone/openId/sessionVersion/блокировка сохранены;
+администратору доступ не выдаётся, outbox/password tokens/SMTP не создаются.
+**Mutation RED:** снятие paid filter в grant core ошибочно учитывает pending
+2035; новый тест ловит неверный срок. Подмена полностью снята, production код
+не изменён. **7 C1 browser + 23 grants SQL/HTTP GREEN**, типы проходят.
+Два начальных fixture диагностических отказа уточнили ожидания: auth probes
+могут обновлять lastSignedIn, MySQL DATETIME округляет до секунды. Проверяются
+credential/authority invariants и независимый 31-day clock interval ±1 секунда.
+Review/TDD: только собственные users/orders, scoped member selectors, cancel
+без write, реальный API/SQL вместо mock; local transport proxy не означает
+deployment acceptance. C1 и полный этап пока не закрыты.
+54 docs проходят, default-off build не менялся. Локальный frontend остановлен;
+собственный loopback/tmpfs backend_test удалён через `--rm` после exact ID/label/
+port/no mounts/no OOM проверки. Сервер/рабочая БД/чужие ресурсы не затронуты.
+
 **A6 fixture decomposition — 10 октября:** перед следующим acceptance срезом
 три recipient сценария и MIME reader вынесены из 945-line browser fixture в
 отдельный test-only модуль. Основной lifecycle остаётся единственным; callback

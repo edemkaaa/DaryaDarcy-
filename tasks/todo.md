@@ -107,6 +107,11 @@
       C1e: moderator закрывает конкретную жалобу через UI/Nest/SQL; комментарий
       и автор сохранены, audit одна, reload не возвращает жалобу. 6 C1 browser
       + 4 report SQL/HTTP pass. Первая выдача/остальные moderation/deployment открыты.
+      C1f: первая выдача через UI/native API/SQL; cancel без write, confirm =
+      31 день от now, pending future order игнорируется и сохраняется. Тот же
+      member JWT 403 → 200, reload показывает продление; identity/no mail сохранены.
+      Paid-filter removal mutation RED; 7 C1 browser + 23 grants GREEN, типы.
+      Первая выдача локально проверена; прочие moderation/deployment открыты.
 - [ ] C2: real-API редактор/статьи/вложения/черновики/scheduled без дублей.
 - [ ] C3: реальные взаимодействия, поиск, Библиотека, тест, профиль и поддержка.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.

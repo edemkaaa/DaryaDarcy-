@@ -22,6 +22,103 @@ interface AdminMembershipBrowserFixture {
 export function registerAdminMembershipBrowserCases(
   fixture: () => AdminMembershipBrowserFixture,
 ) {
+  it("C1 issues first club access from now without counting an unpaid future order", async () => {
+    const {
+      rows,
+      connection,
+      context,
+      actorId,
+      memberId,
+      base,
+      frontend,
+      smtp,
+    } = fixture();
+    await connection.query(
+      "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'binding-browser-unpaid-future','pending','790','2035-01-01')",
+      [memberId],
+    );
+    // Authenticated content probes may update lastSignedIn; credentials and
+    // account authority must remain unchanged by the grant.
+    const identityQuery =
+      "SELECT id,openId,name,email,phone,passwordHash,role,sessionVersion,blockedAt,blockedReason,accountDeletionRequestedAt FROM users WHERE id=?";
+    const identity = await rows(identityQuery, [memberId]);
+    const before = await rows("SELECT * FROM club_payments WHERE userId=?", [
+      memberId,
+    ]);
+    const memberToken = await sdk.createSessionToken("binding-browser-member", {
+      sessionVersion: 0,
+    });
+    const clubStatus = async () =>
+      (
+        await fetch(base + "/api/trpc/club.list", {
+          headers: { Authorization: `Bearer ${memberToken}` },
+        })
+      ).status;
+    expect(await clubStatus()).toBe(403);
+    const page = await context.newPage();
+    await page.goto(frontend + "admin");
+    await page.getByRole("button", { name: "Участницы", exact: true }).click();
+    const member = page
+      .getByText("Browser phone member", { exact: true })
+      .locator("..");
+    page.once("dialog", (dialog) => dialog.dismiss());
+    await member
+      .getByRole("button", { name: "Выдать клуб", exact: true })
+      .click();
+    expect(
+      await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+    ).toEqual(before);
+    expect(await clubStatus()).toBe(403);
+    const startedAt = Date.now();
+    const dialogs: string[] = [];
+    page.on("dialog", async (dialog) => {
+      dialogs.push(dialog.type());
+      await dialog.accept();
+    });
+    await member
+      .getByRole("button", { name: "Выдать клуб", exact: true })
+      .click();
+    await browserExpect.poll(() => dialogs).toEqual(["confirm", "alert"]);
+    const completedAt = Date.now();
+    const payments = await rows(
+      "SELECT * FROM club_payments WHERE userId=? ORDER BY id",
+      [memberId],
+    );
+    expect(payments).toHaveLength(2);
+    expect(payments[0]).toEqual(before[0]);
+    expect(payments[1]).toMatchObject({
+      userId: memberId,
+      orderId: expect.stringMatching(/^admin-grant-/),
+      status: "paid",
+      sum: "0",
+      email: null,
+      cancelAtPeriodEnd: 0,
+    });
+    // Independent real-clock bounds permit MySQL's whole-second rounding.
+    const expiry = payments[1].expiresAt.getTime();
+    expect(expiry).toBeGreaterThanOrEqual(startedAt + 31 * 86_400_000 - 1_000);
+    expect(expiry).toBeLessThanOrEqual(completedAt + 31 * 86_400_000 + 1_000);
+    expect(await clubStatus()).toBe(200);
+    await page.reload();
+    await page.getByRole("button", { name: "Участницы", exact: true }).click();
+    await browserExpect(
+      member.getByRole("button", { name: "Продлить клуб", exact: true }),
+    ).toBeEnabled();
+    await browserExpect(member.getByText(/Клуб до/)).toBeVisible();
+    expect(await rows(identityQuery, [memberId])).toEqual(identity);
+    expect(
+      await rows("SELECT id FROM club_payments WHERE userId=?", [actorId]),
+    ).toEqual([]);
+    expect(
+      await rows("SELECT id FROM access_email_outbox WHERE userId=?", [
+        memberId,
+      ]),
+    ).toEqual([]);
+    expect(
+      await rows("SELECT id FROM password_tokens WHERE userId=?", [memberId]),
+    ).toEqual([]);
+    expect(smtp.messages).toHaveLength(0);
+  }, 30_000);
   it("C1 lets a moderator dismiss a report without deleting its comment or changing the author", async () => {
     const { rows, connection, context, actorId, memberId, frontend, smtp } =
       fixture();
