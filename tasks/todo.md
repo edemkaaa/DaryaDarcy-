@@ -137,6 +137,11 @@
       Native admin read/create = 403, identity сохранена, SQL без forbidden поста.
       Admin-login denial mutation RED снята; 12 C1/C2 browser GREEN, типы.
       Local transport proxy; prepared-dev skipped suite/deployment не закрыты.
+      C2d: UI create/edit/reload будущего schedule, Moscow → literal UTC;
+      один ID, scheduled/published=0/publishedAt=NULL. До срока core ticks пусты,
+      public feed не содержит пост; +3h mutation RED снята. 13 C1/C2 browser
+      + 3 content SQL GREEN, типы. Full due/publication delivery ещё открыта;
+      A6 active-build регрессия после explicit timezone fixture ещё отдельно.
 - [ ] C3: реальные взаимодействия, поиск, Библиотека, тест, профиль и поддержка.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;

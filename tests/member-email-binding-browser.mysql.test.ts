@@ -124,6 +124,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       );
       context = await browser.newContext({
         viewport: { width: 390, height: 844 },
+        timezoneId: "Europe/Moscow",
       });
       context.setDefaultTimeout(5_000);
       await context.addInitScript(() => {

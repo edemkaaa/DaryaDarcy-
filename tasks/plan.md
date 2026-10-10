@@ -41,6 +41,24 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C2d, будущая дата публикации — 10 октября:** test-only native browser/API/SQL.
+Browser context явно Europe/Moscow, UTC ожидания заданы независимо: UI
+2037-01-02 10:15 → SQL 07:15; после edit 2037-01-03 11:30 → SQL 08:30.
+Create/edit/reload сохраняют один ID, status=scheduled, published=0 и NULL
+publishedAt. Два настоящих scheduler core ticks до срока возвращают пустой batch
+и не меняют строку; native public feed.list = 200 без будущего поста. Worker и
+внешние announcements не запускались: доставка/публикация в момент срока этим
+срезом не объявлены проверенными. **Mutation RED:** дополнительный +3h в create
+пойман SQL assertion; подмена полностью снята. **13 C1/C2 browser + 3 content
+SQL GREEN**, типы проходят. 14 binding cases осознанно не запускаются в этом
+default-off frontend срезе; общая A6 регрессия после явного timezone fixture
+остаётся отдельной active-build проверкой. Review: фиксированный browser timezone,
+literal UTC timestamps, SQL и public HTTP, no clock mock/no external writes,
+cleanup собственных marker/actor и intents. Production/UI/build не менялись.
+Frontend остановлен, собственный loopback/tmpfs backend_test удалён через --rm
+после exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД не затронуты.
+C2 media/полный scheduled lifecycle/устройства и A7/deployment остаются открыты.
+
 **C2c, парольный вход администратора и смена аккаунта — 10 октября:** test-only
 native browser/API/SQL; начальная SDK cookie удалена, оба аккаунта используют
 реальный scrypt hash синтетического пароля. Обычная login форма даёт native 200,
