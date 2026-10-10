@@ -182,6 +182,15 @@ tests/frontend-club-checkout-mode.native.test.mjs` (одна команда в �
 
 ## Инструменты менеджера: первая привязка почты
 
+**Обновление 10 октября, A6a:** strict proof client принимает только точный
+HTTP 200 `{ok:true}`, отправляет proof без cookie/referrer/account ID/redirect
+и автоматических повторов. Fragment capture сначала очищает history, хранит
+proof только в памяти и не делает запрос при открытии. 2 focused RED → 30 GREEN
+(включая настоящий loopback HTTP); 679 related unit, типы/lint/default build.
+Страница ещё не подключена: далее A6b и read-only GET routing через backend,
+поскольку deployment `/api/**` не обслуживается Next. A6/SMTP/rollout открыты,
+дизайн и рабочий сервер этим срезом не менялись.
+
 **Обновление 10 октября, A5c3a/b:** UI/request/recovery проверен локально через
 production build, настоящие cookie/Nest/одноразовый MySQL: **8 browser cases**.
 Создание/reload, потеря ответа/replay, expiry/fresh draft, обновление canonical

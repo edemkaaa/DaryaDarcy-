@@ -158,6 +158,23 @@ silently repair old users, run fixture cleanup on a working database.
 
 ## Current implementation checkpoint
 
+A5c3 is now locally verified through eight production-browser/native Nest/MySQL
+cases: request/recovery, expiry, canonical confirmation refresh and revoked admin
+authority. The browser transport proxy is not deployment-proxy acceptance, and
+the proof comes from a synthetic fixture outbox, not delivered SMTP.
+
+A6a adds a strict explicit proof client and memory-only fragment capture. Two
+focused RED tests preceded 30 GREEN tests (one real loopback HTTP), with 679
+related client/frontend tests, types/lint/boundaries/default build passing.
+No cookie, referrer, account ID, redirects or automatic retries accompany the
+proof POST. Only exact HTTP 200 `{ok:true}` confirms; consumed-proof refusal is
+ambiguous after a lost reply. Clear history before returning a valid fragment;
+failure to clear, malformed, duplicate or oversized fragments fail closed.
+This helper is not yet connected to a page. A6b must implement and verify the
+read-only GET entry: `/api/**` is routed to backend in deployment, and the
+approved confirmation GET is currently unregistered. A6, the full SMTP flow and
+A7 remain open; no working database, mail, deployment or rollout change.
+
 A5c2c supersedes the no-resend recovery limitation below: an unknown recovered
 intent accepts an explicit re-entry of the original email, validates it and
 reuses the same durable key. It never guesses the address or creates a new key;

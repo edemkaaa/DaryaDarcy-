@@ -50,6 +50,9 @@
       UI/request/recovery проверен локально; далее A6 и loopback SMTP.
       Неизвестный адрес/неоднозначный HTTP refusal не разрешают автоматический reset.
 - [ ] A6: страница подтверждения из fragment, явное действие, существующий вход.
+      A6a: strict proof client и memory-only fragment capture; 2 focused RED →
+      30 GREEN (включая loopback HTTP), 679 related unit; типы/lint/default build.
+      Страница и GET routing через backend ещё не реализованы; A6 открыт.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
 - [ ] Checkpoint A: весь сценарий через настоящее API/SQL/loopback письмо;
       первый email меняется один раз, пароль/сессии/подписка сохранены.
@@ -71,7 +74,7 @@
 - [ ] Q2: критерии нагрузки/baseline, Safari/Android/desktop/PWA приёмка.
 - [ ] Q3: матрица сдачи, backup/rollback, инструкция, пилот 5–7 дней/30–50 участниц.
 
-Следующий независимый срез: A5c. Форма/worker остаются выключены до целостного
+Следующий независимый срез: A6b — страница и read-only GET routing. Форма/worker остаются выключены до целостного
 сценария и схемы. Внешние блокеры не препятствуют локальным A/C/M/V задачам.
 
 ## Requested frontend corrections — 2026-10-09

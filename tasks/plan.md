@@ -41,6 +41,22 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A6a, proof client — 10 октября:** отдельный клиент принимает только 43-символьный
+base64url proof и точный HTTP 200 `{ok:true}`. Явный POST не передаёт cookie,
+referrer или account ID, не следует redirect и не повторяется автоматически;
+15-секундный deadline включает чтение ответа, отмена страницы сохранена.
+Fragment capture очищает адрес до возврата proof в память, malformed/duplicate/
+oversized fragment и отказ history не дают usable token. HTTP 400 после потери
+ответа не объявляется доказательством отсутствия изменения. **2 focused RED →
+30 GREEN**, включая реальный loopback HTTP; 679 связанных unit pass,
+типы/lint/boundaries/default build проходят. Ревью: bounded parsing, строгий
+receipt, отсутствие секретов в ошибках/storage и независимость от чужой browser
+session. Это только клиент/helper, **A6 не закрыт**: далее публичная страница,
+явное действие и browser-приёмка. Согласованный GET `/api/auth/email-binding`
+пока не зарегистрирован; deployment направляет `/api/**` в backend, поэтому
+нужна проверенная read-only маршрутизация страницы, а не только новый Next route.
+SMTP checkpoint, миграции и rollout остаются открыты; сервер не затронут.
+
 **A5c3b, native terminal/authority — 10 октября:** production форма с настоящими
 cookie/Nest/SQL проверяет expiry через штатный lifecycle, fresh draft после
 повторного GET и новую заявку только после отдельного submit. Подтверждение
