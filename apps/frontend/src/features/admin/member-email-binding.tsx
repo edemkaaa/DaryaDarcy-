@@ -17,6 +17,7 @@ export function MemberEmailBinding({
   error,
   onSend,
   onInspect,
+  onNewDraft,
 }: {
   memberId: number;
   memberName: string | null;
@@ -25,6 +26,7 @@ export function MemberEmailBinding({
   error?: string;
   onSend: (id: number, email: string) => Promise<void>;
   onInspect: (id: number) => Promise<void>;
+  onNewDraft: (id: number) => Promise<void>;
 }) {
   const formId = useId();
   const [open, setOpen] = useState(false);
@@ -163,6 +165,22 @@ export function MemberEmailBinding({
                   >
                     <Typography className={classes.grantBtnText}>
                       Повторить эту заявку
+                    </Typography>
+                  </Action>
+                ) : null}
+                {result.state === "expired" || result.state === "cancelled" ? (
+                  <Action
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => {
+                      setEmail("");
+                      setInvalid(false);
+                      void onNewDraft(memberId);
+                    }}
+                    className={classes.action}
+                  >
+                    <Typography className={classes.grantBtnText}>
+                      Подготовить новую заявку
                     </Typography>
                   </Action>
                 ) : null}

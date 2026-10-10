@@ -2079,6 +2079,7 @@ export default function AdminScreen() {
                     error={emailBindings.errors[item.id]}
                     onSend={emailBindings.send}
                     onInspect={emailBindings.inspect}
+                    onNewDraft={emailBindings.newDraft}
                     disabled={
                       adminActions.blocked ||
                       accessEmail.busy ||

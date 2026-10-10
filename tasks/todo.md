@@ -36,7 +36,9 @@
       A5c2a: journal подключён; durable-before-POST, explicit reload GET,
       cross-tab reservation, отказ storage без POST, GET 404 сохраняет unknown.
       3 RED → 16 active + 10 disabled browser pass; 649 unit; типы/lint/обе сборки.
-      Далее A5c2b — terminal/refusal, unknown без исходного email и native SQL/browser.
+      A5c2b: explicit terminal reset с повторным GET и CAS; без автоматического
+      POST, 3 RED → 21 active browser pass, 649 unit. Rollout всё ещё выключен.
+      Далее A5c2c — HTTP refusal/unknown без исходного email и native SQL/browser.
 - [ ] A6: страница подтверждения из fragment, явное действие, существующий вход.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
 - [ ] Checkpoint A: весь сценарий через настоящее API/SQL/loopback письмо;

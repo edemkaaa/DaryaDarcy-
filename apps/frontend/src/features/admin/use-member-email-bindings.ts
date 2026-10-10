@@ -19,6 +19,7 @@ export type BindingResult = {
   requestKey: string;
   email: string;
   phase: "unknown" | "accepted" | "checked";
+  state?: MemberEmailBindingStatus["state"];
   message: string;
 };
 function statusMessage(value: MemberEmailBindingStatus): string {
@@ -117,6 +118,7 @@ export function useMemberEmailBindings(
         remember(userId, {
           ...intent,
           phase: "checked",
+          state: status.state,
           message: statusMessage(status),
         });
         if (status.state === "confirmed") await refreshMembers();
@@ -143,11 +145,65 @@ export function useMemberEmailBindings(
       task.finish();
     }
   };
+  const newDraft = async (userId: number) => {
+    const intent = current.current[userId];
+    if (
+      !user ||
+      !intent ||
+      !["expired", "cancelled"].includes(intent.state ?? "")
+    )
+      return;
+    const task = operation.begin(`email-binding-reset-${userId}`);
+    if (!task) return;
+    setErrors((values) => ({ ...values, [userId]: "" }));
+    try {
+      // Revalidate this exact intent before removing only its local recovery key.
+      const status = await getMemberEmailBinding(
+        { userId, requestKey: intent.requestKey },
+        task.signal,
+      );
+      task.assertCurrent();
+      remember(userId, {
+        ...intent,
+        phase: "checked",
+        state: status.state,
+        message: statusMessage(status),
+      });
+      if (status.state === "confirmed") {
+        await refreshMembers();
+        return;
+      }
+      if (status.state !== "expired" && status.state !== "cancelled") return;
+      const removed = await new MemberEmailBindingJournal(
+        user.id,
+        userId,
+      ).release(intent.requestKey, task.signal);
+      task.assertCurrent();
+      if (!removed)
+        throw new ApiError(
+          "Сохранённая заявка изменилась. Откройте форму заново после перезагрузки и восстановите её.",
+        );
+      const next = { ...current.current };
+      delete next[userId];
+      current.current = next;
+      setResults(next);
+    } catch (error) {
+      checkOperationAccessError(error);
+      if (task.isCurrent())
+        setErrors((values) => ({
+          ...values,
+          [userId]: getRequestErrorMessage(error),
+        }));
+    } finally {
+      task.finish();
+    }
+  };
   return {
     results,
     errors,
     busy: operation.busy,
     send: (id: number, email: string) => run(id, email),
     inspect: (id: number) => run(id),
+    newDraft,
   };
 }

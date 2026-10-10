@@ -158,6 +158,16 @@ silently repair old users, run fixture cleanup on a working database.
 
 ## Current implementation checkpoint
 
+A5c2b: an explicitly prepared fresh draft is now allowed after an inspected
+expired/cancelled intent. The action revalidates the exact intent via GET, then
+compare-and-deletes only its local recovery key; it does not send mail. A changed
+cross-tab key, failed read or nonterminal state cannot unlock a fresh draft.
+Confirmed status refreshes canonical members instead. Twenty-one active browser
+cases pass with real IndexedDB and mock HTTP (three new initial RED); native
+API/SQL acceptance remains open. A5c2c must address unknown intents without the
+original email and HTTP refusals without treating a generic 409 as proof that
+an intent never existed. No server flags, worker or deployment changed.
+
 A5c2a supersedes the memory-only limitation below: the opt-in form now reserves
 its journal key before POST, checks it before an in-memory retry, and explicitly
 restores a saved key via GET after reload. An existing cross-tab reservation

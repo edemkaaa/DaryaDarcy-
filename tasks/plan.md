@@ -41,6 +41,21 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A5c2b, локальный terminal reset — 10 октября:** после проверенного GET
+`expired/cancelled` форма предлагает «Подготовить новую заявку». Нажатие повторно
+проверяет именно этот key/member, затем CAS удаляет только прежний локальный ключ
+и очищает черновик; само действие не отправляет письмо и не меняет сервер.
+Confirmed обновляет canonical список, pending/ошибка GET не разрешают reset;
+новая cross-tab резервация не стирается. Общий lock/session cancellation сохранены.
+3 browser RED → 21 active cases GREEN (включая CAS race, revalidation failure
+и nonterminal refusal); 10 default-disabled, 649 client/frontend unit,
+типы/lint/boundaries, active/default production builds проходят.
+Ревью проверило повторное чтение, CAS и отсутствие автоматического POST; дизайн
+не менялся, mobile 320px проверен визуально. Это native IndexedDB + mock HTTP,
+не API/SQL/SMTP сквозная приёмка. **Остаток A5c2c:** recovery unknown без email,
+точная политика HTTP refusal (409 не равен доказанному отсутствию intent), затем
+native API/SQL acceptance. Rollout/worker и рабочая БД не менялись.
+
 **A5c2a, проверено 10 октября:** journal подключён к opt-in форме. Перед первым
 POST ключ атомарно сохраняется; повтор из памяти сверяет сохранённый ключ.
 Кнопка «Восстановить заявку» после reload читает только ключ и делает GET.

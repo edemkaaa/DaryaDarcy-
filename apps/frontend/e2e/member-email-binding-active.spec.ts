@@ -232,6 +232,156 @@ test("a missing server result after reload does not discard an uncertain intent"
   expect(f.writes).toHaveLength(1);
 });
 
+for (const terminal of ["expired", "cancelled"])
+  test(`${terminal} allows an explicit fresh draft only after a new status check`, async ({
+    page,
+  }) => {
+    const f = await fixture(page);
+    await open(page);
+    await form(page)
+      .getByRole("button", { name: "Отправить подтверждение", exact: true })
+      .click();
+    await expect(form(page)).toContainText("Заявка принята");
+    f.state(terminal);
+    await form(page)
+      .getByRole("button", { name: "Проверить заявку", exact: true })
+      .click();
+    await form(page)
+      .getByRole("button", { name: "Подготовить новую заявку", exact: true })
+      .click();
+    await expect(form(page).getByLabel("Почта участницы")).toBeEditable();
+    await expect(form(page).getByLabel("Почта участницы")).toHaveValue("");
+    expect(f.writes).toHaveLength(1);
+    f.state("pending");
+    await form(page).getByLabel("Почта участницы").fill("next@example.test");
+    await form(page)
+      .getByRole("button", { name: "Отправить подтверждение", exact: true })
+      .click();
+    await expect(form(page)).toContainText("Заявка принята");
+    expect(f.writes).toHaveLength(2);
+    expect(f.writes[1].email).toBe("next@example.test");
+    expect(f.writes[1].requestKey).not.toBe(f.writes[0].requestKey);
+  });
+
+test("fresh-draft preparation fails closed if terminal status cannot be revalidated", async ({
+  page,
+}) => {
+  const f = await fixture(page);
+  await open(page);
+  await form(page)
+    .getByRole("button", { name: "Отправить подтверждение", exact: true })
+    .click();
+  await expect(form(page)).toContainText("Заявка принята");
+  f.state("expired");
+  await form(page)
+    .getByRole("button", { name: "Проверить заявку", exact: true })
+    .click();
+  await page.route("**/api/admin/member-email-bindings/**", (route) =>
+    route.fulfill({ status: 503, json: { error: "Запрос недоступен." } }),
+  );
+  await form(page)
+    .getByRole("button", { name: "Подготовить новую заявку", exact: true })
+    .click();
+  await expect(form(page).getByRole("alert")).toBeVisible();
+  await expect(form(page).getByLabel("Почта участницы")).toBeDisabled();
+  expect(f.writes).toHaveLength(1);
+});
+
+test("fresh-draft preparation cannot erase a newer cross-tab reservation", async ({
+  page,
+}) => {
+  const f = await fixture(page);
+  await open(page);
+  await form(page)
+    .getByRole("button", { name: "Отправить подтверждение", exact: true })
+    .click();
+  await expect(form(page)).toContainText("Заявка принята");
+  f.state("cancelled");
+  await form(page)
+    .getByRole("button", { name: "Проверить заявку", exact: true })
+    .click();
+  const nextKey = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+  await page.evaluate(
+    (requestKey) =>
+      new Promise<void>((resolve, reject) => {
+        const opening = indexedDB.open("darcy-member-email-intents", 1);
+        opening.onerror = () => reject(new Error("fixture open failed"));
+        opening.onsuccess = () => {
+          const db = opening.result;
+          const tx = db.transaction("intents", "readwrite");
+          tx.objectStore("intents").put({ version: 1, requestKey }, "101:201");
+          tx.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          tx.onabort = () => {
+            db.close();
+            reject(new Error("fixture write failed"));
+          };
+        };
+      }),
+    nextKey,
+  );
+  await form(page)
+    .getByRole("button", { name: "Подготовить новую заявку", exact: true })
+    .click();
+  await expect(form(page).getByRole("alert")).toContainText(
+    "заявка изменилась",
+  );
+  await expect(form(page).getByLabel("Почта участницы")).toBeDisabled();
+  // Recovery must still find the newer key; this also catches unconditional deletion.
+  await page.reload();
+  await page.route("**/api/admin/member-email-bindings/**", (route) =>
+    route.fulfill({
+      json: {
+        requestKey: nextKey,
+        userId: 201,
+        state: "pending",
+        delivery: "queued",
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+        completedAt: null,
+      },
+    }),
+  );
+  await page.getByRole("button", { name: "Участницы", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Привязать почту", exact: true })
+    .click();
+  await form(page)
+    .getByRole("button", { name: "Восстановить заявку", exact: true })
+    .click();
+  await expect(form(page)).toContainText("Письмо в очереди");
+  expect(f.writes).toHaveLength(1);
+});
+
+test("a nonterminal revalidation retains the intent instead of opening a new draft", async ({
+  page,
+}) => {
+  const f = await fixture(page);
+  await open(page);
+  await form(page)
+    .getByRole("button", { name: "Отправить подтверждение", exact: true })
+    .click();
+  await expect(form(page)).toContainText("Заявка принята");
+  f.state("expired");
+  await form(page)
+    .getByRole("button", { name: "Проверить заявку", exact: true })
+    .click();
+  await expect(
+    form(page).getByRole("button", { name: "Подготовить новую заявку" }),
+  ).toBeVisible();
+  f.state("pending");
+  await form(page)
+    .getByRole("button", { name: "Подготовить новую заявку", exact: true })
+    .click();
+  await expect(form(page)).toContainText("Письмо в очереди");
+  await expect(form(page).getByLabel("Почта участницы")).toBeDisabled();
+  await expect(
+    form(page).getByRole("button", { name: "Подготовить новую заявку" }),
+  ).toHaveCount(0);
+  expect(f.writes).toHaveLength(1);
+});
+
 for (const width of [320, 390, 1440])
   test(`binding reports queue, SMTP and confirmed identity separately at ${width}px`, async ({
     page,
