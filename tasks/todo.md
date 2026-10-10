@@ -38,7 +38,11 @@
       3 RED → 16 active + 10 disabled browser pass; 649 unit; типы/lint/обе сборки.
       A5c2b: explicit terminal reset с повторным GET и CAS; без автоматического
       POST, 3 RED → 21 active browser pass, 649 unit. Rollout всё ещё выключен.
-      Далее A5c2c — HTTP refusal/unknown без исходного email и native SQL/browser.
+      A5c2c: явный ввод исходной почты для unknown replay с тем же durable key,
+      conflict не сбрасывает intent; draft scoped по ключу. 2 RED + review RED →
+      24 active browser, 649 unit; native HTTP/SQL ещё не проверен этим UI.
+      Далее A5c3 — native browser/API/SQL; затем A6 и checkpoint с loopback SMTP.
+      Неизвестный адрес/неоднозначный HTTP refusal не разрешают автоматический reset.
 - [ ] A6: страница подтверждения из fragment, явное действие, существующий вход.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
 - [ ] Checkpoint A: весь сценарий через настоящее API/SQL/loopback письмо;

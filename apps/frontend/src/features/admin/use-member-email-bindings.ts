@@ -8,9 +8,14 @@ import {
 import {
   requestMemberEmailBinding,
   getMemberEmailBinding,
+  normalizeMemberEmailBindingEmail,
   type MemberEmailBindingStatus,
 } from "@/shared/api/member-email-binding";
-import { ApiError, getRequestErrorMessage } from "@/shared/api/errors";
+import {
+  ApiError,
+  getHttpStatus,
+  getRequestErrorMessage,
+} from "@/shared/api/errors";
 import { MemberEmailBindingJournal } from "./member-email-binding-journal";
 
 export const memberEmailBindingEnabled =
@@ -55,11 +60,7 @@ export function useMemberEmailBindings(
   const run = async (userId: number, email?: string) => {
     const previous = current.current[userId];
     let sending = email !== undefined;
-    if (
-      !user ||
-      (sending && previous && (previous.phase !== "unknown" || !previous.email))
-    )
-      return;
+    if (!user || (sending && previous && previous.phase !== "unknown")) return;
     const task = operation.begin(`email-binding-${userId}`);
     if (!task) return;
     let intent = previous;
@@ -91,6 +92,11 @@ export function useMemberEmailBindings(
           throw new ApiError(
             "Сохранённый ключ изменился или недоступен. Проверьте заявку; повтор не отправлен.",
           );
+        if (!intent.email)
+          intent = {
+            ...intent,
+            email: normalizeMemberEmailBindingEmail(email!),
+          };
       }
       // Durable reservation completes before HTTP; never mint a key on a retry.
       remember(userId, intent);
@@ -137,9 +143,13 @@ export function useMemberEmailBindings(
         return;
       }
       const saved = current.current[userId];
+      const detail =
+        getHttpStatus(error) === 409
+          ? "Конфликт заявки: адрес, аккаунт или исходные данные не совпадают. Это не доказывает отсутствие прежней заявки; ключ сохранён."
+          : getRequestErrorMessage(error);
       remember(userId, {
         ...saved,
-        message: `${saved.phase === "unknown" ? "Результат запроса неизвестен. " : ""}${getRequestErrorMessage(error)} Проверьте заявку перед дальнейшими действиями.`,
+        message: `${saved.phase === "unknown" ? "Результат запроса неизвестен. " : ""}${detail} Проверьте заявку перед дальнейшими действиями.`,
       });
     } finally {
       task.finish();

@@ -158,6 +158,18 @@ silently repair old users, run fixture cleanup on a working database.
 
 ## Current implementation checkpoint
 
+A5c2c supersedes the no-resend recovery limitation below: an unknown recovered
+intent accepts an explicit re-entry of the original email, validates it and
+reuses the same durable key. It never guesses the address or creates a new key;
+the existing backend fingerprint rejects a different payload for a recorded
+intent. Draft input is keyed to its intent so a new tab's unrelated address is
+not prefilled as the original. Email remains memory-only. Generic HTTP refusals,
+including 409, cannot prove absence and do not unlock a new intent. An unknown
+original address requires manual investigation, not a guessed retry or reset.
+Twenty-four active browser cases pass (two initial RED plus one review RED),
+with real IndexedDB but mock HTTP. A5c3 native browser/API/SQL acceptance, A6
+confirmation and the full loopback-SMTP checkpoint remain open. No rollout.
+
 A5c2b: an explicitly prepared fresh draft is now allowed after an inspected
 expired/cancelled intent. The action revalidates the exact intent via GET, then
 compare-and-deletes only its local recovery key; it does not send mail. A changed

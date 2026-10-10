@@ -232,6 +232,113 @@ test("a missing server result after reload does not discard an uncertain intent"
   expect(f.writes).toHaveLength(1);
 });
 
+test("unknown recovery explicitly re-enters the original email and reuses its durable key", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  const f = await fixture(page);
+  f.lose();
+  await open(page);
+  await form(page)
+    .getByRole("button", { name: "Отправить подтверждение", exact: true })
+    .click();
+  await expect.poll(() => f.writes.length).toBe(1);
+  await expect(
+    form(page).getByRole("button", { name: "Проверить заявку", exact: true }),
+  ).toBeEnabled();
+  await page.reload();
+  await page.route("**/api/admin/member-email-bindings/**", (route) =>
+    route.fulfill({ status: 404, json: { error: "Запрос недоступен." } }),
+  );
+  await page.getByRole("button", { name: "Участницы", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Привязать почту", exact: true })
+    .click();
+  await form(page)
+    .getByRole("button", { name: "Восстановить заявку", exact: true })
+    .click();
+  await expect(form(page)).toContainText("Результат запроса неизвестен");
+  await expect(form(page).getByLabel("Почта участницы")).toBeEditable();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await form(page).scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: test.info().outputPath("recovered-intent-320.png"),
+  });
+  await form(page).getByLabel("Почта участницы").fill(" MEMBER@example.test ");
+  f.receive();
+  await form(page)
+    .getByRole("button", { name: "Повторить с исходной почтой", exact: true })
+    .click();
+  await expect(form(page)).toContainText("Заявка принята");
+  expect(f.writes).toHaveLength(2);
+  expect(f.writes[1]).toEqual(f.writes[0]);
+});
+
+test("a refused request keeps its key and does not offer a new intent", async ({
+  page,
+}) => {
+  const f = await fixture(page);
+  await open(page);
+  const attempts: unknown[] = [];
+  await page.route("**/api/admin/member-email-bindings", (route) => {
+    attempts.push(route.request().postDataJSON());
+    return route.fulfill({
+      status: 409,
+      json: { error: "Запрос недоступен." },
+    });
+  });
+  await form(page)
+    .getByRole("button", { name: "Отправить подтверждение", exact: true })
+    .click();
+  await expect(form(page)).toContainText("Конфликт заявки");
+  await expect(
+    form(page).getByRole("button", { name: "Подготовить новую заявку" }),
+  ).toHaveCount(0);
+  await form(page)
+    .getByRole("button", { name: "Повторить эту заявку", exact: true })
+    .click();
+  await expect.poll(() => attempts.length).toBe(2);
+  expect(attempts[1]).toEqual(attempts[0]);
+  expect(f.writes).toHaveLength(0);
+});
+
+test("cross-tab unknown recovery never prefills a different draft as the original email", async ({
+  page,
+  context,
+}) => {
+  const f = await fixture(page);
+  f.lose();
+  await open(page);
+  await form(page)
+    .getByRole("button", { name: "Отправить подтверждение", exact: true })
+    .click();
+  await expect.poll(() => f.writes.length).toBe(1);
+  const other = await context.newPage();
+  const second = await fixture(other);
+  await other.route("**/api/admin/member-email-bindings/**", (route) =>
+    route.fulfill({ status: 404, json: { error: "Запрос недоступен." } }),
+  );
+  await open(other);
+  await form(other)
+    .getByLabel("Почта участницы")
+    .fill("different@example.test");
+  await form(other)
+    .getByRole("button", { name: "Отправить подтверждение", exact: true })
+    .click();
+  await expect(
+    form(other).getByRole("button", {
+      name: "Повторить с исходной почтой",
+      exact: true,
+    }),
+  ).toBeEnabled();
+  await expect(form(other).getByLabel("Почта участницы")).toHaveValue("");
+  expect(second.writes).toHaveLength(0);
+});
+
 for (const terminal of ["expired", "cancelled"])
   test(`${terminal} allows an explicit fresh draft only after a new status check`, async ({
     page,

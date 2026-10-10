@@ -30,8 +30,15 @@ export function MemberEmailBinding({
 }) {
   const formId = useId();
   const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
+  const [draft, setDraft] = useState<{ key?: string; email: string }>({
+    email: "",
+  });
+  // A fresh draft cannot become the original payload of a recovered intent.
+  const email = draft.key === result?.requestKey ? draft.email : "";
+  const setEmail = (value: string) =>
+    setDraft({ key: result?.requestKey, email: value });
   const [invalid, setInvalid] = useState(false);
+  const needsOriginalEmail = result?.phase === "unknown" && !result.email;
   const close = () => {
     setOpen(false);
     setEmail("");
@@ -59,7 +66,12 @@ export function MemberEmailBinding({
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
-            if (!memberEmailBindingEnabled || disabled || result) return;
+            if (
+              !memberEmailBindingEnabled ||
+              disabled ||
+              (result && !needsOriginalEmail)
+            )
+              return;
             if (!event.currentTarget.checkValidity()) {
               setInvalid(true);
               return;
@@ -89,8 +101,8 @@ export function MemberEmailBinding({
             spellCheck={false}
             maxLength={320}
             required
-            disabled={disabled || Boolean(result)}
-            value={result?.email ?? email}
+            disabled={disabled || (Boolean(result) && !needsOriginalEmail)}
+            value={needsOriginalEmail ? email : (result?.email ?? email)}
             onValueChange={(value) => {
               setEmail(value);
               setInvalid(false);
@@ -131,6 +143,13 @@ export function MemberEmailBinding({
               используйте «Восстановить заявку».
             </Typography>
           ) : null}
+          {needsOriginalEmail ? (
+            <Typography className={classes.memberEmailNotice}>
+              Для повтора введите ту же почту, что в исходной заявке. Если не
+              помните адрес, не повторяйте отправку — сначала проверьте заявку.
+              Ключ останется прежним; это не новая заявка.
+            </Typography>
+          ) : null}
           <div className={`ui-stack ${classes.postItemActions}`}>
             {!result && memberEmailBindingEnabled ? (
               <Action
@@ -146,6 +165,17 @@ export function MemberEmailBinding({
             ) : null}
             {result ? (
               <>
+                {needsOriginalEmail ? (
+                  <Action
+                    type="submit"
+                    disabled={disabled}
+                    className={classes.action}
+                  >
+                    <Typography className={classes.grantBtnText}>
+                      Повторить с исходной почтой
+                    </Typography>
+                  </Action>
+                ) : null}
                 <Action
                   type="button"
                   disabled={disabled}
