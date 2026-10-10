@@ -22,6 +22,83 @@ interface AdminMembershipBrowserFixture {
 export function registerAdminMembershipBrowserCases(
   fixture: () => AdminMembershipBrowserFixture,
 ) {
+  it("C1 lets a moderator dismiss a report without deleting its comment or changing the author", async () => {
+    const { rows, connection, context, actorId, memberId, frontend, smtp } =
+      fixture();
+    await connection.query("UPDATE users SET role='moderator' WHERE id=?", [
+      actorId,
+    ]);
+    try {
+      await connection.query(
+        "INSERT INTO posts (id,text,photos,tags) VALUES (94511,'C1 native moderation fixture','[]','[]')",
+      );
+      await connection.query(
+        "INSERT INTO post_comments (id,postId,userId,text) VALUES (94512,94511,?,'C1 retained comment')",
+        [memberId],
+      );
+      await connection.query(
+        "INSERT INTO comment_reports (id,commentId,reporterUserId,reason) VALUES (94513,94512,?,'C1 report reason')",
+        [actorId],
+      );
+      const author = await rows("SELECT * FROM users WHERE id=?", [memberId]);
+      const comment = await rows("SELECT * FROM post_comments WHERE id=94512");
+      const page = await context.newPage();
+      await page.goto(frontend + "admin");
+      const report = page
+        .getByText("Жалоба #94513", { exact: true })
+        .locator("..");
+      await browserExpect(
+        report.getByText("C1 retained comment", { exact: true }),
+      ).toBeVisible();
+      await report
+        .getByRole("button", { name: "Закрыть", exact: true })
+        .click();
+      await browserExpect(
+        page.getByText("Жалоба #94513", { exact: true }),
+      ).toHaveCount(0);
+      expect(
+        await rows("SELECT id FROM comment_reports WHERE id=94513"),
+      ).toEqual([]);
+      expect(await rows("SELECT * FROM post_comments WHERE id=94512")).toEqual(
+        comment,
+      );
+      expect(await rows("SELECT * FROM users WHERE id=?", [memberId])).toEqual(
+        author,
+      );
+      expect(
+        await rows(
+          "SELECT action,targetType,targetId FROM admin_audit_log WHERE actorUserId=?",
+          [actorId],
+        ),
+      ).toEqual([
+        {
+          action: "dismiss_comment_report",
+          targetType: "comment_report",
+          targetId: 94513,
+        },
+      ]);
+      await page.reload();
+      await browserExpect(
+        page.getByText("Модерация", { exact: true }),
+      ).toBeVisible();
+      await browserExpect(
+        page.getByText("Жалоба #94513", { exact: true }),
+      ).toHaveCount(0);
+      expect(smtp.messages).toHaveLength(0);
+    } finally {
+      await connection.query(
+        "DELETE FROM comment_reports WHERE id=94513 AND reporterUserId=?",
+        [actorId],
+      );
+      await connection.query(
+        "DELETE FROM post_comments WHERE id=94512 AND userId=?",
+        [memberId],
+      );
+      await connection.query(
+        "DELETE FROM posts WHERE id=94511 AND text='C1 native moderation fixture'",
+      );
+    }
+  }, 30_000);
   it("C1 queues a browser resend and delivers it once over loopback SMTP without changing access or credentials", async () => {
     const { rows, connection, context, actorId, memberId, frontend, smtp } =
       fixture();

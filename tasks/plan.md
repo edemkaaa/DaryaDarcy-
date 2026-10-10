@@ -446,6 +446,21 @@ legacy поведение; частичная схема отклоняет вс
 
 ### 3. Совместная приёмка уже готового фронта и админки (C/S)
 
+**C1e, действие moderator — 10 октября:** native production browser открывает
+существующий reports экран и закрывает конкретную синтетическую жалобу. Native
+Nest/SQL удаляет только report, сохраняет весь comment и author users row,
+записывает одну dismiss_comment_report audit запись. Reload не возвращает жалобу;
+loopback SMTP пустой. **6 C1 browser + 4 report audit SQL/HTTP tests pass**,
+root TypeScript/docs pass. Test-only fixture содержит собственные post/comment/
+report ID и удаляет их в finally с ownership predicates; чужие fixtures не
+трогаются. Ревью: locator scoped по report ID, отсутствие UI подтверждено SQL,
+закрытие не выдано за удаление комментария/блокировку автора. Production код/
+дизайн/роли не менялись: это acceptance существующего действия, не новая функция.
+Default-off build сохранён; 13 email-binding cases здесь не запускались.
+Собственный контейнер exact ID/label/tmpfs/no mounts/no OOM проверен перед stop/
+--rm; frontend остановлен. C1 не закрыт: первая выдача и остальные moderation
+действия/deployment acceptance остаются; A6c3/миграции/rollout без изменений.
+
 **C1d, повтор письма через UI/API/SQL/SMTP — 10 октября:** явное подтверждение
 admin кнопки создаёт ровно одну club-access outbox/audit запись на сохранённую
 почту оплаченной участницы. Кнопка disabled, текст честно говорит «Доставка ещё
