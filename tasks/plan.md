@@ -41,6 +41,25 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A5a, проверено 10 октября:** отдельный клиент request/status реализует строгий
+контракт A4 без импорта backend в браузер и без новых зависимостей. Захватывает
+ID/стабильный requestKey до ожидания ответа, проверяет полный receipt/status,
+связь с исходной участницей/заявкой, даты и terminal completion. Pending/SMTP
+sent/confirmed не смешиваются. Валидация email совпадает с сервером; лишняя
+caller authority не отправляется. Ошибки сохраняют HTTP status/Retry-After,
+но не отражают сырой ответ. Общий session-bound request lifecycle сохраняет
+таймаут тела/отмену при смене сессии; скрытых повторов и генерации нового ключа нет.
+RED на отсутствующем клиенте, затем 13 RED на validation/captured-intent и 2 RED
+на nullish email → **60 client GREEN**. Один тест использует настоящий loopback
+HTTP с контрактной fixture, остальные подменяют fetch; это не browser/SQL/SMTP
+сквозная приёмка. Связанная client/frontend регрессия: **649 pass, 35 files**.
+Frontend production build, типы, lint, API (73), boundaries (596) проходят.
+Ревью: PII не попадает в GET/error, нет optimistic binding/повтора/новой авторизации,
+строгая проекция отделена от UI, общий lifecycle не дублируется. Форма и worker
+по-прежнему выключены; backend/SQL/сервер не менялись. A5 не закрыт: следующий
+срез A5b — состояние формы, стабильный intent при неизвестном результате,
+явная проверка GET, canonical refresh и browser гонки/две вкладки/смена сессии.
+
 **A4b, проверено 10 октября:** Nest request/status/explicit confirm зарегистрированы
 с default-closed `MEMBER_EMAIL_BINDING_ENABLED=true` opt-in. Зафиксированы строгие
 receipt/status/proof schemas и безопасные ошибки; actor берётся только из текущей
