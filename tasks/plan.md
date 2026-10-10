@@ -41,6 +41,21 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A6 fixture decomposition — 10 октября:** перед следующим acceptance срезом
+три recipient сценария и MIME reader вынесены из 945-line browser fixture в
+отдельный test-only модуль. Основной lifecycle остаётся единственным; callback
+читает новый context каждого beforeEach, SQL/SMTP/server cleanup не дублируется.
+Главный файл 702 строки, recipient модуль 290. Три сценария GREEN до переноса,
+все 20 native browser/API/SQL/SMTP GREEN после. Assertion bodies сохранены;
+автоматическая AST-сверка исключает только начальный fixture destructuring.
+Начальная проверка типов выявила Promise<Locator> у send; интерфейс исправлен
+без изменения поведения. Production/UI/flags не менялись. Скилл simplification
+определил отдельный механический коммит и проверку до/после, не новый функционал.
+Типы, 604 boundaries, active/default frontend builds проходят. Default-off build
+восстановлен, frontend остановлен. Собственный loopback/tmpfs backend_test удалён
+через `--rm` после exact ID/label/port/no mounts/no OOM проверки. Внешней почты,
+рабочего SQL, серверных изменений и чужих ресурсов этот срез не касается.
+
 **A6d, обычный вход после привязки — 10 октября:** новый test-only native browser
 сценарий использует настоящий scrypt hash прежнего пароля и loopback SMTP MIME.
 После read-only entry и явного confirm guest не получает session cookie; аккаунт

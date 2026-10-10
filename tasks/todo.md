@@ -76,6 +76,9 @@
       identity/paid expiry сохранены, нет дубля аккаунта/reset token/нового письма.
       Mutation RED (bound-phone login 401) → 20 browser + 19 native sessions GREEN.
       Test-only приёмка через local transport proxy; A7/deployment ещё открыты.
+      A6 fixture: recipient/MIME acceptance в отдельном test-only модуле;
+      lifecycle/SQL cleanup общий, assertion AST сохранён. 3 до/20 после GREEN;
+      основной файл 702 строки. Без production изменений и включения флага.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
 - [ ] Checkpoint A: весь сценарий через настоящее API/SQL/loopback письмо;
       первый email меняется один раз, пароль/сессии/подписка сохранены.
