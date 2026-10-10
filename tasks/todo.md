@@ -180,6 +180,11 @@
       Edit-text corruption RED снята; 18 C1/C2/C3 browser GREEN, типы.
       Production не менялся; чужой edit/negative authorization, reply/photos/
       lost-response, полная навигация/устройства и A7/deployment ещё открыты.
+      C3f: ordinary paid member/admin не видят чужой edit; прямой native POST
+      возвращает 403, без cookie 401; comment/security identity/expiry сохранены.
+      Author-check bypass RED снят; 20 C1/C2/C3 browser GREEN, типы.
+      Штатный SDK lastSignedIn не включён в identity invariants; production
+      не менялся. Reply/photos/lost-response/навигация/устройства/A7 открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

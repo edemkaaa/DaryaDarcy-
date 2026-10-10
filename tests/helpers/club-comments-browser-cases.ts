@@ -10,11 +10,106 @@ interface ClubCommentsBrowserFixture {
   context: BrowserContext;
   frontend: string;
   memberId: number;
+  actorId: number;
 }
 
 export function registerClubCommentsBrowserCases(
   fixture: () => ClubCommentsBrowserFixture,
 ) {
+  it.each(["user", "admin"] as const)(
+    "C3 denies changing another author's comment as %s through the native API",
+    async (role) => {
+      const { rows, connection, context, frontend, memberId, actorId } =
+        fixture();
+      const postId = 94632;
+      const text = "C3 protected author comment fixture";
+      const commentSql = "SELECT * FROM post_comments WHERE postId=?";
+      const identitySql =
+        "SELECT id,email,phone,passwordHash,role,sessionVersion,blockedAt FROM users WHERE id IN (?,?) ORDER BY id";
+      // Catches author-check removal even when the caller has paid/staff access.
+      try {
+        await connection.query("UPDATE users SET role=? WHERE id=?", [
+          role,
+          actorId,
+        ]);
+        await connection.query(
+          "INSERT INTO posts (id,text,photos,tags,status,published,target,createdAt,publishedAt) VALUES (?,'C3 protected community fixture','[]',JSON_ARRAY('community','autumn'),'published',1,'club',UTC_TIMESTAMP(),UTC_TIMESTAMP())",
+          [postId],
+        );
+        await connection.query(
+          "INSERT INTO post_comments (postId,userId,text) VALUES (?,?,?)",
+          [postId, memberId, text],
+        );
+        await connection.query(
+          "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-foreign-comment-access','paid','0','2030-01-01')",
+          [actorId],
+        );
+        const before = await rows(commentSql, [postId]);
+        const identities = await rows(identitySql, [actorId, memberId]);
+        const access = await rows(
+          "SELECT * FROM club_payments WHERE userId=?",
+          [actorId],
+        );
+        await context.addInitScript((id) => {
+          localStorage.setItem(
+            `darcy:user:${id}:@darcy_club_profile_completed`,
+            "true",
+          );
+        }, actorId);
+        const page = await context.newPage();
+        await page.goto(frontend + "club");
+        await page
+          .getByRole("button", { name: "Комьюнити", exact: true })
+          .click();
+        await browserExpect(
+          page.getByText(text, { exact: true }),
+        ).toBeVisible();
+        await page
+          .getByRole("button", { name: "Действия с комментарием", exact: true })
+          .click();
+        await browserExpect(
+          page
+            .getByRole("dialog", { name: "Действия с комментарием" })
+            .getByRole("button", { name: "Редактировать", exact: true }),
+        ).toHaveCount(0);
+        const update = () =>
+          page.evaluate(async (id) => {
+            const response = await fetch("/api/trpc/club.updateComment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                json: { id, text: "unauthorized replacement" },
+              }),
+            });
+            return response.status;
+          }, before[0].id);
+        expect(await update()).toBe(403);
+        expect(await rows(commentSql, [postId])).toEqual(before);
+        await context.clearCookies();
+        expect(await update()).toBe(401);
+        expect(await rows(commentSql, [postId])).toEqual(before);
+        expect(await rows(identitySql, [actorId, memberId])).toEqual(
+          identities,
+        );
+        expect(
+          await rows("SELECT * FROM club_payments WHERE userId=?", [actorId]),
+        ).toEqual(access);
+      } finally {
+        await connection.query("DELETE FROM post_comments WHERE postId=?", [
+          postId,
+        ]);
+        await connection.query(
+          "DELETE FROM posts WHERE id=? AND text='C3 protected community fixture'",
+          [postId],
+        );
+        await connection.query(
+          "DELETE FROM club_payments WHERE userId=? AND orderId='c3-foreign-comment-access'",
+          [actorId],
+        );
+      }
+    },
+    30_000,
+  );
   it("C3 persists member comment edits and requires confirmation before deleting it", async () => {
     const { rows, connection, context, frontend, memberId } = fixture();
     const postId = 94631;

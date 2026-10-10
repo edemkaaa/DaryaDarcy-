@@ -41,6 +41,25 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3f, запрет чужого редактирования — 10 октября:** два test-only native
+browser/API/SQL кейса для обычного участника и администратора. Собственный
+синтетический paid fixture обеспечивает читаемость club поста, чтобы запрет
+не маскировался отсутствием подписки. Чужой текст виден, UI не предлагает edit;
+прямой browser POST с настоящей cookie получает 403, без cookie — 401. Полная
+строка комментария, credentials/role/sessionVersion/blockedAt и paid expiry
+сохраняются. **Mutation RED:** снятие проверки автора даёт HTTP 200 для обеих
+ролей и ловится тестами; проверка восстановлена. Первый GREEN выявил неверное
+test ожидание полного users snapshot: SDK штатно обновляет lastSignedIn на
+authenticated request. Проверяется неизменность identity/security полей, а не
+запрет этой активности; production не менялся. **20 C1/C2/C3 browser GREEN**,
+типы проходят, 14 binding cases намеренно исключены в default-off build.
+Review: реальные HTTP/SQL, parameterized scoped fixtures/cleanup, member/admin
+авторство без расширения ролей; секреты и внешние сервисы не использовались.
+Frontend остановлен; свой loopback/tmpfs backend_test удалён через --rm после
+exact ID/label/port/no mounts/no OOM проверки. Reply/photos/lost-response,
+остальная навигация/устройства и A7/deployment остаются открыты; local transport
+proxy не является проверкой серверной выкладки.
+
 **C3e, редактирование своего комментария — 10 октября:** расширен предыдущий
 native browser/API/SQL case без production изменений. UI edit показывает
 исходный текст; cancel сохраняет SQL/UI. Save получает настоящий update HTTP
