@@ -475,6 +475,16 @@ legacy поведение; частичная схема отклоняет вс
 
 ### 4. Материалы и VK (M/V)
 
+**M1a — локальная карта, 10 октября:** пока webmail exception A6c3 ожидает
+решения, выполнен независимый read-only аудит storage/потребителей. Составлена
+[карта медиа](../docs/audits/media-access-map-2026-10-10.md): фото/вложения/raw
+video/comment photos/avatar/article teaser/public catalog/external URL.
+Настоящий AWS SDK → собственный loopback wire: **4 pass** подтверждают исходящий
+public-read ACL и прямые неподписанные URL. Fixture не моделирует ACL/policy:
+это не доказательство anonymous GET рабочего bucket и не закрытие M1.
+Production/storage/SQL/ACL/сервер не менялись. Перед M2 нужны object-to-content
+references и public/private API/direct-URL acceptance; смена ACL вслепую запрещена.
+
 - **M1 — инвентаризация закрытых файлов (S/M).** Проверить guest/expired/blocked
   через API и прямой URL, различить публичные оформления и платные вложения.
   `storage.ts` public-read — конкретный риск, доступ к существующим объектам
