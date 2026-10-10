@@ -147,6 +147,11 @@
       + 3 content SQL GREEN, типы. Full due/publication delivery ещё открыта;
       A6 active-build регрессия после explicit timezone fixture: 27 cases GREEN;
       default-off build восстановлен, rollout/deployment всё ещё открыты.
+      C2e: собственный editor schedule переведён SQL fixture на прошедший срок;
+      native core публикует один batch, public HTTP отдаёт тот же ID/текст,
+      publishedAt равен scheduledAt, повтор пуст, admin reload «Опубликован».
+      Scheduler status=draft mutation RED снята; 14 C1/C2 browser GREEN, типы.
+      Это не wall-clock/worker/announcements acceptance; media/devices открыты.
 - [ ] C3: реальные взаимодействия, поиск, Библиотека, тест, профиль и поддержка.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;

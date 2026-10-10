@@ -19,6 +19,93 @@ interface AdminPostBrowserFixture {
 export function registerAdminPostBrowserCases(
   fixture: () => AdminPostBrowserFixture,
 ) {
+  it("C2 publishes a due editor schedule once and exposes the committed post in the public feed", async () => {
+    const { rows, connection, context, frontend, actorId, base } = fixture();
+    const text = "C2 due schedule fixture";
+    const stateSql =
+      "SELECT id,status,published,DATE_FORMAT(scheduledAt,'%Y-%m-%d %H:%i:%s') scheduledAt,DATE_FORMAT(publishedAt,'%Y-%m-%d %H:%i:%s') publishedAt FROM posts WHERE text=?";
+    // Catches missing publication, lost scheduled timestamp and duplicate claims.
+    try {
+      const page = await context.newPage();
+      await page.goto(frontend + "admin");
+      await page.getByRole("button", { name: /Новый/ }).click();
+      const editor = page.getByRole("dialog", { name: "Редактор публикации" });
+      await browserExpect(editor.locator(".ui-scroll")).not.toHaveAttribute(
+        "inert",
+        "",
+      );
+      await page
+        .getByPlaceholder("Текст поста… Enter — новый абзац")
+        .fill(text);
+      await editor
+        .getByRole("button", { name: "Отложить", exact: true })
+        .click();
+      await editor
+        .locator('input[type="datetime-local"]')
+        .fill("2037-01-02T10:15");
+      await page
+        .getByRole("button", { name: "Сохранить", exact: true })
+        .click();
+      await browserExpect
+        .poll(async () => (await rows(stateSql, [text])).length)
+        .toBe(1);
+      const [created] = await rows(stateSql, [text]);
+      expect(created).toEqual({
+        id: expect.any(Number),
+        status: "scheduled",
+        published: 0,
+        scheduledAt: "2037-01-02 07:15:00",
+        publishedAt: null,
+      });
+      const card = page.getByTestId(`admin-post-${created.id}`);
+      await browserExpect(card).toContainText("Отложен");
+      const publicFeed = async () => {
+        const response = await fetch(base + "/api/trpc/feed.list");
+        expect(response.status).toBe(200);
+        const body = await response.json();
+        expect(body.result.data.json).toEqual(expect.any(Array));
+        return body.result.data.json as { id: number; text: string }[];
+      };
+      expect(
+        (await publicFeed()).filter((post) => post.id === created.id),
+      ).toEqual([]);
+      // Only our synthetic row is made due; no wall-clock or worker/provider mock.
+      await connection.query(
+        "UPDATE posts SET scheduledAt='2026-01-02 07:15:00' WHERE id=? AND text=? AND source='manual'",
+        [created.id, text],
+      );
+      expect(await publishDueScheduledPosts()).toEqual([
+        { id: created.id, text, target: "feed" },
+      ]);
+      const published = {
+        id: created.id,
+        status: "published",
+        published: 1,
+        scheduledAt: "2026-01-02 07:15:00",
+        publishedAt: "2026-01-02 07:15:00",
+      };
+      expect(await rows(stateSql, [text])).toEqual([published]);
+      const visible = (await publicFeed()).filter(
+        (post) => post.id === created.id,
+      );
+      expect(visible).toHaveLength(1);
+      expect(visible[0]).toMatchObject({ id: created.id, text });
+      expect(await publishDueScheduledPosts()).toEqual([]);
+      expect(await rows(stateSql, [text])).toEqual([published]);
+      await page.reload();
+      await browserExpect(card).toContainText("Опубликован");
+      await browserExpect(card).toContainText(text);
+    } finally {
+      await connection.query(
+        "DELETE FROM post_creation_requests WHERE actorUserId=? AND postId IN (SELECT id FROM posts WHERE text=? AND source='manual')",
+        [actorId, text],
+      );
+      await connection.query(
+        "DELETE FROM posts WHERE text=? AND source='manual'",
+        [text],
+      );
+    }
+  }, 30_000);
   it("C2 preserves a future Moscow schedule through create, edit and reload without early publication", async () => {
     const { rows, connection, context, frontend, actorId, base } = fixture();
     const text = "C2 future schedule fixture";

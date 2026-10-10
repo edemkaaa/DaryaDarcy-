@@ -41,6 +41,24 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C2e, due schedule → публичная лента — 10 октября:** test-only native browser/
+API/SQL. Пост создаётся в редакторе как scheduled и скрыт от public feed.list;
+только собственная синтетическая строка SQL переводится на прошедший срок.
+Настоящий scheduler core возвращает один committed batch, SQL сохраняет
+scheduledAt и ставит publishedAt равным исходному сроку; public HTTP возвращает
+один пост с тем же ID/текстом. Повторный tick пуст и не меняет строку;
+admin reload показывает «Опубликован». Это проверка core handoff, не ожидание
+реального времени и не worker/внешние announcements. **Mutation RED:** временный
+status=draft в scheduler ловится независимым SQL assertion; подмена снята,
+production diff пуст. **14 C1/C2 browser GREEN**, типы проходят; 14 binding
+cases намеренно исключены в default-off build (их неизменённая active регрессия
+сохранена предыдущим срезом). Review: literal даты, настоящее публичное HTTP,
+серийный повтор без дубля, точечный marker/actor cleanup; concurrency не
+объявлена новой проверкой. Default-off build не менялся, frontend остановлен;
+собственный loopback/tmpfs backend_test удалён через --rm после проверки exact
+ID/label/port/no mounts/no OOM. Сервер/рабочая БД/внешние доставки не затронуты.
+C2 media/devices/worker delivery и A7/deployment остаются открыты.
+
 **A6/C1/C2, общая регрессия после Moscow fixture — 10 октября:** active
 frontend build с NEXT_PUBLIC_MEMBER_EMAIL_BINDING_ENABLED=true; все **27 native
 browser/API/SQL cases GREEN**, включая 14 binding и 13 C1/C2, без skipped cases.
