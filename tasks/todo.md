@@ -240,6 +240,12 @@
       25 C1/C2/C3 GREEN/exit 0, типы/default build. Own tmpfs DB удалён.
       Клиентское хранение; switching/SPA/full result reopen/blend/другие эстетики,
       устройства/media/transport race/A7/deployment ещё открыты.
+      C3q: native member login/quiz/profile → logout удаляет cookie и scoped result;
+      следующий native account login/profile/reload не получает чужую эстетику.
+      SQL обеих identity fixtures/paid entitlement прежние; omitted-cleanup RED
+      снята. 26 C1/C2/C3 GREEN/exit 0, типы/default build; own tmpfs DB удалён.
+      Не server/cross-device persistence; SPA/full result reopen/guest → login,
+      blend/другие эстетики/media/устройства/transport race/A7 открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

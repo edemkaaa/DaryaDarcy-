@@ -41,6 +41,25 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3q, очистка результата при выходе и смене аккаунта — 11 октября МСК:**
+отдельный native case входит как synthetic member через настоящую password форму,
+проходит 10 UI вопросов, видит итог в профиле и выходит штатной кнопкой. Cookie
+исчезает, прежний member-scoped quiz result удалён. Вход второго synthetic account
+(существующая admin fixture, без изменения роли) получает пустую эстетику в профиле
+и после reload; чужого title и любых scoped quiz keys нет. SQL credentials/roles/
+sessionVersion обеих fixtures и synthetic paid entitlement неизменны.
+**Mutation RED:** исключение quiz key из previous-owner cleanup сохраняет чужой
+результат после logout; case падает на retained localStorage, не на подменённом API.
+Подмена снята, production diff пуст, default build восстановлен. **26 C1/C2/C3
+native browser pass/exit 0**, 14 binding skips намеренны; типы/default build проходят.
+Review: отдельный короткий case, настоящий login/logout, независимые literal UI
+и storage assertions, parameterized/scoped SQL, без смены политики хранения.
+Frontend остановлен, собственный loopback/tmpfs backend_test удалён после exact
+ID/label/port/no mounts/no OOM проверки; внешние сервисы/сервер/рабочая БД не тронуты.
+Это проверка локальной очистки, не cross-device/server persistence. SPA переходы,
+full result reopen, guest → login, blend/другие эстетики, media/устройства,
+transport race и A7/deployment остаются открыты.
+
 **C3p, тест участницы → профиль — 11 октября МСК:** synthetic member входит
 через настоящую email/password форму (native HTTP 200 и тот же user ID), проходит
 10 UI вопросов и получает cottagecore/21 в member-scoped browser storage.

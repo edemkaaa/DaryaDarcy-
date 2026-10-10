@@ -6,6 +6,7 @@ import {
 } from "@playwright/test";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { hashPassword } from "../../apps/backend/src/_core/password";
+import { COOKIE_NAME } from "../../packages/shared/src/const";
 
 interface QuizBrowserFixture {
   rows(sql: string, args?: unknown[]): Promise<RowDataPacket[]>;
@@ -183,6 +184,100 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
     } finally {
       await connection.query(
         "DELETE FROM club_payments WHERE userId=? AND orderId='c3-quiz-access'",
+        [memberId],
+      );
+    }
+  }, 30_000);
+
+  it("C3 clears the completed quiz on logout and does not transfer it to the next account", async () => {
+    const { rows, connection, context, frontend, memberId } = fixture();
+    const actorId = 91401;
+    const password = "Synthetic-C3-quiz-switch-only-2026!";
+    const passwordHash = await hashPassword(password);
+    await connection.query(
+      "UPDATE users SET email=?,passwordHash=? WHERE id=?",
+      ["c3.quiz.member@example.test", passwordHash, memberId],
+    );
+    await connection.query(
+      "UPDATE users SET email=?,passwordHash=? WHERE id=?",
+      ["c3.quiz.admin@example.test", passwordHash, actorId],
+    );
+    const identitySql =
+      "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id IN (?,?) ORDER BY id";
+    const identity = await rows(identitySql, [actorId, memberId]);
+    try {
+      await connection.query(
+        "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-quiz-switch-access','paid','0','2030-01-01')",
+        [memberId],
+      );
+      const payment = await rows("SELECT * FROM club_payments WHERE userId=?", [
+        memberId,
+      ]);
+      await context.clearCookies();
+      const page = await context.newPage();
+      const signIn = async (email: string, id: number, next: string) => {
+        await page.goto(frontend + `login?next=${next}`);
+        await page.getByPlaceholder("Email", { exact: true }).fill(email);
+        await page.getByPlaceholder("Пароль", { exact: true }).fill(password);
+        const [response] = await Promise.all([
+          page.waitForResponse(
+            (response) =>
+              new URL(response.url()).pathname === "/api/auth/login",
+          ),
+          page.getByRole("button", { name: "Войти", exact: true }).click(),
+        ]);
+        expect(response.status()).toBe(200);
+        expect((await response.json()).user).toMatchObject({ id, email });
+        await browserExpect(page).toHaveURL(frontend.slice(0, -1) + next);
+      };
+      await signIn("c3.quiz.member@example.test", memberId, "/quiz");
+      await completeCottagecoreQuiz(page);
+      const memberResult = () =>
+        page.evaluate(
+          (id) => localStorage.getItem(`darcy:user:${id}:@darcy_quiz_result`),
+          memberId,
+        );
+      await browserExpect.poll(memberResult).not.toBeNull();
+      await page.goto(frontend + "profile");
+      const title = page.getByText(
+        "Девушка, вернувшая жизнь заброшенному саду",
+        { exact: true },
+      );
+      await browserExpect(title).toBeVisible();
+      // Catches omitted previous-owner cleanup, even when separate keys hide the leak in UI.
+      await page.getByRole("button", { name: "Выйти", exact: true }).click();
+      await browserExpect
+        .poll(
+          async () =>
+            (await context.cookies()).filter(
+              (cookie) => cookie.name === COOKIE_NAME,
+            ).length,
+        )
+        .toBe(0);
+      await browserExpect.poll(memberResult).toBeNull();
+      await signIn("c3.quiz.admin@example.test", actorId, "/profile");
+      const empty = page.getByText("Пройди тест, чтобы узнать свою эстетику", {
+        exact: true,
+      });
+      await browserExpect(empty).toBeVisible();
+      await browserExpect(title).toHaveCount(0);
+      expect(
+        await page.evaluate(() =>
+          Object.keys(localStorage).filter((key) =>
+            key.endsWith(":@darcy_quiz_result"),
+          ),
+        ),
+      ).toEqual([]);
+      await page.reload();
+      await browserExpect(empty).toBeVisible();
+      await browserExpect(title).toHaveCount(0);
+      expect(await rows(identitySql, [actorId, memberId])).toEqual(identity);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(payment);
+    } finally {
+      await connection.query(
+        "DELETE FROM club_payments WHERE userId=? AND orderId='c3-quiz-switch-access'",
         [memberId],
       );
     }
