@@ -446,6 +446,22 @@ legacy поведение; частичная схема отклоняет вс
 
 ### 3. Совместная приёмка уже готового фронта и админки (C/S)
 
+**C1, разделение test-only сценариев — 10 октября:** перед дальнейшим ростом
+946-строчного email-binding fixture два membership acceptance вынесены в
+`tests/helpers/admin-membership-browser-cases.ts`; главный файл теперь 804 строки.
+Сценарии регистрируются внутри прежнего describe и читают per-test fixture только
+после beforeEach. Cookie/Nest/SQL/SMTP lifecycle, opt-in gates, cleanup и сами
+assertions сохранены; новая копия инфраструктуры/production abstraction не создана.
+**2 C1 browser GREEN до/после**, всего 15 зарегистрированных cases; 13 неизменённых
+email-binding cases не запускались в default-off build. Первое извлечение
+обнаружило недостающий connection capture (runtime/TypeScript RED); явная типовая
+зависимость на query исправила его, последующие browser/types/docs GREEN.
+Ревью сверило assertions, порядок регистрации и свежесть BrowserContext: нет
+захвата ещё не созданного контекста при collection. Только test-only refactor,
+без нового функционального обещания. Собственный tmpfs контейнер проверен по
+exact ID/label/no mounts/no OOM и удалён штатным stop/--rm; frontend остановлен.
+C1 и прежние внешние gates остаются открыты.
+
 **C1b, ручное продление через UI/API/SQL — 10 октября:** подтверждена существующая
 production кнопка на карточке конкретной участницы. Dismiss native confirm не
 создаёт запись; отдельный confirm добавляет одну zero-sum admin-grant запись
