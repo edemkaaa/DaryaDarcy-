@@ -153,6 +153,12 @@
       Scheduler status=draft mutation RED снята; 14 C1/C2 browser GREEN, типы.
       Это не wall-clock/worker/announcements acceptance; media/devices открыты.
 - [ ] C3: реальные взаимодействия, поиск, Библиотека, тест, профиль и поддержка.
+      C3a: native member password login → like/save → reload/logout → другой
+      account без чужих состояний → первый account со своими состояниями.
+      SQL/credentials/roles/sessionVersion/paid expiry сохранены; missing userId
+      saved-read mutation RED снята. 15 C1/C2/C3 browser GREEN, типы.
+      Unpaid profile gate потребовал paid fixture, production не менялся.
+      Категории/profile listing, comments/media, вся навигация/устройства открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

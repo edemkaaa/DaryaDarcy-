@@ -29,6 +29,7 @@ import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openLoopbackSmtp } from "./helpers/loopback-smtp";
 import { registerAdminMembershipBrowserCases } from "./helpers/admin-membership-browser-cases";
 import { registerAdminPostBrowserCases } from "./helpers/admin-post-browser-cases";
+import { registerPostInteractionsBrowserCases } from "./helpers/post-interactions-browser-cases";
 import { registerEmailBindingRecipientBrowserCases } from "./helpers/email-binding-recipient-browser-cases";
 
 // Opt in with a separately started, enabled production frontend build. API
@@ -199,6 +200,14 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       ).toBeEnabled();
       return form;
     }
+    registerPostInteractionsBrowserCases(() => ({
+      rows,
+      connection,
+      context,
+      actorId,
+      memberId,
+      frontend: frontend!,
+    }));
     registerAdminMembershipBrowserCases(() => ({
       rows,
       connection,

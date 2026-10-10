@@ -41,6 +41,26 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3a, лайки/сохранения и смена аккаунта — 10 октября:** test-only native
+browser/API/SQL, отдельный helper с общим fixture lifecycle. Обычный password
+login участницы → like/save → SQL по её ID → reload → явный logout → обычный
+login другого аккаунта. У второго аккаунта оба действия не выбраны даже после
+reload, строки первого сохранены; повторный login первой участницы восстанавливает
+оба состояния. Credentials/roles/sessionVersion и оплаченный срок неизменны.
+Первый отказ был ошибкой оснастки: неоплаченный profile закрыт и не содержит
+logout UI. Для сценария участницы добавлена собственная синтетическая paid
+запись; production gate не менялся. **Mutation RED:** снятый userId filter
+saved-post read показывает другому аккаунту выбранное сохранение; browser
+assertion ловит утечку. Подмена снята, production diff пуст. **15 C1/C2/C3
+native browser GREEN**, типы проходят; 14 binding cases намеренно исключены
+в неизменённом default-off build. Review: настоящие scrypt/login/cookie/SQL,
+изолированный user read, scoped post cleanup и общий cleanup paid fixture;
+без mock состояния, изменения auth/ролей/подписок и внешних сервисов.
+Frontend остановлен; свой loopback/tmpfs backend_test удалён через --rm после
+exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД не затронуты.
+C3 saved-category/profile listing, comments/media, навигация/устройства и
+A7/deployment остаются открыты; local transport proxy — не серверная приёмка.
+
 **C2e, due schedule → публичная лента — 10 октября:** test-only native browser/
 API/SQL. Пост создаётся в редакторе как scheduled и скрыт от public feed.list;
 только собственная синтетическая строка SQL переводится на прошедший срок.
