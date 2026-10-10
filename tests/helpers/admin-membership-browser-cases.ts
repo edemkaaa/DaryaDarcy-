@@ -19,6 +19,60 @@ interface AdminMembershipBrowserFixture {
 export function registerAdminMembershipBrowserCases(
   fixture: () => AdminMembershipBrowserFixture,
 ) {
+  it.each(["user", "moderator"] as const)(
+    "C1 denies owner membership actions to a %s in the browser and native API",
+    async (role) => {
+      const { rows, connection, context, actorId, memberId, frontend, smtp } =
+        fixture();
+      await connection.query("UPDATE users SET role=? WHERE id=?", [
+        role,
+        actorId,
+      ]);
+      const before = await rows("SELECT * FROM users WHERE id=?", [memberId]);
+      const page = await context.newPage();
+      await page.goto(frontend + "admin");
+      if (role === "user") {
+        await browserExpect(
+          page.getByText("Недостаточно прав для управления приложением", {
+            exact: true,
+          }),
+        ).toBeVisible();
+      } else {
+        await browserExpect(
+          page.getByText("Модерация", { exact: true }),
+        ).toBeVisible();
+      }
+      await browserExpect(
+        page.getByRole("button", { name: "Участницы", exact: true }),
+      ).toHaveCount(0);
+      const statuses = await page.evaluate(async (target) => {
+        const read = await fetch("/api/trpc/admin.members");
+        const write = await fetch("/api/trpc/admin.grantClub", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ json: { userId: target } }),
+        });
+        return [read.status, write.status];
+      }, memberId);
+      expect(statuses).toEqual([403, 403]);
+      expect(await rows("SELECT * FROM users WHERE id=?", [memberId])).toEqual(
+        before,
+      );
+      expect(
+        await rows("SELECT id FROM club_payments WHERE userId IN (?,?)", [
+          actorId,
+          memberId,
+        ]),
+      ).toEqual([]);
+      expect(
+        await rows("SELECT id FROM admin_audit_log WHERE actorUserId=?", [
+          actorId,
+        ]),
+      ).toEqual([]);
+      expect(smtp.messages).toHaveLength(0);
+    },
+    30_000,
+  );
   it("C1 persists browser blocking and unblocking without restoring revoked sessions or changing paid access", async () => {
     const {
       rows,

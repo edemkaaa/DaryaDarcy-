@@ -81,6 +81,9 @@
       Роли/первая выдача/письма и deployment acceptance остаются открыты.
       C1 fixture: сценарии вынесены в отдельный test-only модуль; общий lifecycle
       не дублирован. 2 C1 browser pass до/после, 15 cases зарегистрированы.
+      C1c: member/moderator не видят owner-вкладку; реальные browser GET members
+      и POST grant дают 403 без SQL/SMTP side effects. 4 C1 browser pass.
+      Действия moderator, первая выдача/письма и deployment ещё открыты.
 - [ ] C2: real-API редактор/статьи/вложения/черновики/scheduled без дублей.
 - [ ] C3: реальные взаимодействия, поиск, Библиотека, тест, профиль и поддержка.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.

@@ -446,6 +446,23 @@ legacy поведение; частичная схема отклоняет вс
 
 ### 3. Совместная приёмка уже готового фронта и админки (C/S)
 
+**C1c, границы member/moderator — 10 октября:** два native browser cases
+подтверждают отсутствие owner-вкладки «Участницы». Member видит отказ управления,
+moderator — существующий экран «Модерация». Прямые browser fetch с настоящей
+cookie на GET admin.members и POST admin.grantClub дают **403/403** для обеих
+ролей; участница/оплаты/audit остаются неизменны, loopback SMTP пустой.
+Изменение роли касается только синтетического actor в собственной tmpfs базе,
+не рабочих аккаунтов/политики. **4 C1 browser pass**, root TypeScript/docs pass.
+Начальный selector «Жалобы» был ошибочным: moderator открывает reports напрямую
+без owner tab bar; проверка исправлена на настоящий заголовок, production не
+изменён. Ревью: hidden UI не считается авторизацией — отдельные реальные HTTP
+попытки проверяют server refusal и отсутствие side effects. Это acceptance
+существующих границ, не новый функциональный RED/GREEN. Default-off build
+сохранён; 13 неизменённых email-binding cases здесь не запускались.
+Собственный контейнер exact ID/label/tmpfs/no mounts/no OOM проверен и удалён
+штатным stop/--rm, frontend остановлен. C1/действия moderator/первая выдача/письма/
+deployment acceptance открыты; A6c3 по-прежнему требует прежнего решения.
+
 **C1, разделение test-only сценариев — 10 октября:** перед дальнейшим ростом
 946-строчного email-binding fixture два membership acceptance вынесены в
 `tests/helpers/admin-membership-browser-cases.ts`; главный файл теперь 804 строки.
