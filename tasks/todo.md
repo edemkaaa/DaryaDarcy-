@@ -234,6 +234,12 @@
       Dropped-persistence mutation RED снята; 24 C1/C2/C3 GREEN/exit 0, типы,
       default build восстановлен. Это клиентский результат, не server persistence;
       member/profile/switching/blend/прочие эстетики/экраны/устройства/A7 открыты.
+      C3p: native email/password вход member → 10 UI выборов → member-scoped
+      cottagecore/21 → результат в профиле после открытия/reload; SQL identity
+      и synthetic paid entitlement прежние. Profile-read mutation RED снята;
+      25 C1/C2/C3 GREEN/exit 0, типы/default build. Own tmpfs DB удалён.
+      Клиентское хранение; switching/SPA/full result reopen/blend/другие эстетики,
+      устройства/media/transport race/A7/deployment ещё открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

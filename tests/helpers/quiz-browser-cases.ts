@@ -1,11 +1,58 @@
 import { expect, it } from "vitest";
-import { expect as browserExpect, type BrowserContext } from "@playwright/test";
-import type { RowDataPacket } from "mysql2/promise";
+import {
+  expect as browserExpect,
+  type BrowserContext,
+  type Page,
+} from "@playwright/test";
+import type { Connection, RowDataPacket } from "mysql2/promise";
+import { hashPassword } from "../../apps/backend/src/_core/password";
 
 interface QuizBrowserFixture {
   rows(sql: string, args?: unknown[]): Promise<RowDataPacket[]>;
   context: BrowserContext;
   frontend: string;
+  connection: Pick<Connection, "query">;
+  memberId: number;
+}
+
+async function completeCottagecoreQuiz(page: Page) {
+  await page
+    .getByRole("button", { name: "Начать путешествие", exact: true })
+    .click();
+  // Hand-selected cottagecore answers: nine 2-point answers and a 3-point home.
+  // Catches lost selections, wrong score/result persistence and stale restart state.
+  const choices = [
+    /Тёплое спокойствие/,
+    "Выбрать изображение 1",
+    "Выбрать изображение 1",
+    "Выбрать изображение 1",
+    "Выбрать изображение 1",
+    "Испеку хлеб, соберу букет полевых цветов, повешу сушиться травы у окна",
+    "Выбрать изображение 1",
+    /Одну слезу/,
+    "Приготовлю ужин из того, что выросло в саду, зажгу свечу и буду слушать камин",
+    "Выбрать изображение 1",
+  ];
+  for (const [index, name] of choices.entries()) {
+    const next = page.getByRole("button", {
+      name: index === 9 ? "Узнать результат" : "Далее →",
+      exact: true,
+    });
+    await browserExpect(next).toBeDisabled();
+    const choice = page.getByRole("button", {
+      name,
+      exact: typeof name === "string",
+    });
+    await choice.click();
+    await browserExpect(choice).toHaveAttribute("aria-pressed", "true");
+    await browserExpect(next).toBeEnabled();
+    await next.click();
+  }
+  await browserExpect(
+    page.getByText("Девушка, вернувшая жизнь заброшенному саду", {
+      exact: true,
+    }),
+  ).toBeVisible();
 }
 
 export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
@@ -17,43 +64,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
     await context.clearCookies();
     const page = await context.newPage();
     await page.goto(frontend + "quiz");
-    await page
-      .getByRole("button", { name: "Начать путешествие", exact: true })
-      .click();
-    // Hand-selected cottagecore answers: nine 2-point answers and a 3-point home.
-    // Catches lost selections, wrong score/result persistence and stale restart state.
-    const choices = [
-      /Тёплое спокойствие/,
-      "Выбрать изображение 1",
-      "Выбрать изображение 1",
-      "Выбрать изображение 1",
-      "Выбрать изображение 1",
-      "Испеку хлеб, соберу букет полевых цветов, повешу сушиться травы у окна",
-      "Выбрать изображение 1",
-      /Одну слезу/,
-      "Приготовлю ужин из того, что выросло в саду, зажгу свечу и буду слушать камин",
-      "Выбрать изображение 1",
-    ];
-    for (const [index, name] of choices.entries()) {
-      const next = page.getByRole("button", {
-        name: index === 9 ? "Узнать результат" : "Далее →",
-        exact: true,
-      });
-      await browserExpect(next).toBeDisabled();
-      const choice = page.getByRole("button", {
-        name,
-        exact: typeof name === "string",
-      });
-      await choice.click();
-      await browserExpect(choice).toHaveAttribute("aria-pressed", "true");
-      await browserExpect(next).toBeEnabled();
-      await next.click();
-    }
-    await browserExpect(
-      page.getByText("Девушка, вернувшая жизнь заброшенному саду", {
-        exact: true,
-      }),
-    ).toBeVisible();
+    await completeCottagecoreQuiz(page);
     await browserExpect(
       page.getByRole("button", { name: "Вступить в клуб", exact: true }),
     ).toBeVisible();
@@ -100,5 +111,80 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
     ).toBeVisible();
     expect(await stored()).toEqual(completed);
     expect(await rows(identitySql)).toEqual(before);
+  }, 30_000);
+
+  it("C3 shows the member quiz result in the profile after navigation and reload", async () => {
+    const { rows, connection, context, frontend, memberId } = fixture();
+    const password = "Synthetic-C3-quiz-only-2026!";
+    const email = "c3.quiz@example.test";
+    await connection.query(
+      "UPDATE users SET email=?,passwordHash=? WHERE id=?",
+      [email, await hashPassword(password), memberId],
+    );
+    const identitySql =
+      "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id=?";
+    const identity = await rows(identitySql, [memberId]);
+    try {
+      await connection.query(
+        "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-quiz-access','paid','0','2030-01-01')",
+        [memberId],
+      );
+      const payment = await rows("SELECT * FROM club_payments WHERE userId=?", [
+        memberId,
+      ]);
+      await context.clearCookies();
+      const page = await context.newPage();
+      await page.goto(frontend + "login?next=/quiz");
+      await page.getByPlaceholder("Email", { exact: true }).fill(email);
+      await page.getByPlaceholder("Пароль", { exact: true }).fill(password);
+      const [login] = await Promise.all([
+        page.waitForResponse(
+          (response) => new URL(response.url()).pathname === "/api/auth/login",
+        ),
+        page.getByRole("button", { name: "Войти", exact: true }).click(),
+      ]);
+      expect(login.status()).toBe(200);
+      expect((await login.json()).user).toMatchObject({ id: memberId, email });
+      await browserExpect(page).toHaveURL(/\/quiz$/);
+      await completeCottagecoreQuiz(page);
+      // Catches a wrong owner key or a profile reader that drops the completed result.
+      const stored = () =>
+        page.evaluate((id) => {
+          const raw = localStorage.getItem(
+            `darcy:user:${id}:@darcy_quiz_result`,
+          );
+          return raw ? JSON.parse(raw) : null;
+        }, memberId);
+      await browserExpect
+        .poll(stored)
+        .toMatchObject({
+          primaryKey: "cottagecore",
+          scores: { cottagecore: 21 },
+        });
+      const completed = await stored();
+      await page.goto(frontend + "profile");
+      const result = page.getByText(
+        "Девушка, вернувшая жизнь заброшенному саду",
+        { exact: true },
+      );
+      await browserExpect(result).toBeVisible();
+      await browserExpect(
+        page.getByText("Пройди тест, чтобы узнать свою эстетику", {
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      await page.reload();
+      await browserExpect(result).toBeVisible();
+      expect(await stored()).toEqual(completed);
+      expect(await rows(identitySql, [memberId])).toEqual(identity);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(payment);
+    } finally {
+      await connection.query(
+        "DELETE FROM club_payments WHERE userId=? AND orderId='c3-quiz-access'",
+        [memberId],
+      );
+    }
   }, 30_000);
 }

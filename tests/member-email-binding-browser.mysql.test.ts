@@ -203,7 +203,13 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       ).toBeEnabled();
       return form;
     }
-    registerQuizBrowserCases(() => ({ rows, context, frontend: frontend! }));
+    registerQuizBrowserCases(() => ({
+      rows,
+      connection,
+      memberId,
+      context,
+      frontend: frontend!,
+    }));
     registerLibraryBrowserCases(() => ({
       rows,
       connection,

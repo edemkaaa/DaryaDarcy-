@@ -41,6 +41,24 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3p, тест участницы → профиль — 11 октября МСК:** synthetic member входит
+через настоящую email/password форму (native HTTP 200 и тот же user ID), проходит
+10 UI вопросов и получает cottagecore/21 в member-scoped browser storage.
+Открытие профиля и reload показывают сохранённый literal результат, без предложения
+пройти тест; сохранённый итог, SQL credentials/role/sessionVersion и synthetic
+paid entitlement неизменны. Общий короткий UI helper переиспользует независимые
+ручные ответы из C3o, не production scoring. **Mutation RED:** отключение чтения
+quizRaw в профиле оставляет storage, но новый case падает на отсутствующем
+результате профиля; подмена снята, production diff пуст и default build восстановлен.
+**25 C1/C2/C3 native browser pass/exit 0**, 14 binding skips намеренны; типы и
+default frontend build проходят. Review: отдельный member case без mode branches
+в guest case, literal expected score/title, parameterized SQL и scoped cleanup.
+Frontend остановлен, собственный loopback/tmpfs backend_test удалён после exact
+ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД/внешние доставки не
+затронуты. Это локальный клиентский результат, не server persistence/приёмка
+deployment. Смена аккаунта, SPA-переходы/повторное открытие полного результата,
+blend/другие эстетики, устройства/media, прежняя transport race и A7 ещё открыты.
+
 **C3o, гостевой тест эстетики — 11 октября МСК:** отдельный quiz helper проходит
 10 настоящих UI вопросов с вручную выбранными cottagecore ответами. На каждом
 шаге next заблокирован до выбора, выбранный answer отмечен aria-pressed; результат
