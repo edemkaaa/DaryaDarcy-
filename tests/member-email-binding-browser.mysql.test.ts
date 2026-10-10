@@ -192,6 +192,99 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       ).toBeEnabled();
       return form;
     }
+    it("C1 persists browser blocking and unblocking without restoring revoked sessions or changing paid access", async () => {
+      const identity = await rows(
+        "SELECT id,openId,email,phone,passwordHash,role FROM users WHERE id=?",
+        [memberId],
+      );
+      await connection.query(
+        "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'binding-browser-existing-access','paid','0','2030-01-01')",
+        [memberId],
+      );
+      const access = await rows("SELECT * FROM club_payments WHERE userId=?", [
+        memberId,
+      ]);
+      const memberToken = await sdk.createSessionToken(
+        "binding-browser-member",
+        { sessionVersion: 0 },
+      );
+      async function memberSessionStatus() {
+        return (
+          await fetch(base + "/api/trpc/club.list", {
+            headers: { Authorization: `Bearer ${memberToken}` },
+          })
+        ).status;
+      }
+      expect(await memberSessionStatus()).toBe(200);
+      const page = await context.newPage();
+      async function members() {
+        await page.goto(frontend! + "admin");
+        await page
+          .getByRole("button", { name: "Участницы", exact: true })
+          .click();
+      }
+      await members();
+      page.once("dialog", (dialog) => dialog.accept("Native browser reason"));
+      await page
+        .getByRole("button", { name: "Заблокировать", exact: true })
+        .click();
+      await browserExpect(
+        page.getByText("Причина: Native browser reason", { exact: true }),
+      ).toBeVisible();
+      const [blocked] = await rows(
+        "SELECT blockedAt,blockedReason,sessionVersion FROM users WHERE id=?",
+        [memberId],
+      );
+      expect(blocked).toEqual({
+        blockedAt: expect.any(Date),
+        blockedReason: "Native browser reason",
+        sessionVersion: 1,
+      });
+      expect(await memberSessionStatus()).toBe(401);
+      await members();
+      await browserExpect(
+        page.getByText("Причина: Native browser reason", { exact: true }),
+      ).toBeVisible();
+      await page
+        .getByRole("button", { name: "Разблокировать", exact: true })
+        .click();
+      await browserExpect(
+        page.getByRole("button", { name: "Заблокировать", exact: true }),
+      ).toBeVisible();
+      const [unblocked] = await rows(
+        "SELECT blockedAt,blockedReason,sessionVersion FROM users WHERE id=?",
+        [memberId],
+      );
+      expect(unblocked).toEqual({
+        blockedAt: null,
+        blockedReason: null,
+        sessionVersion: 1,
+      });
+      expect(await memberSessionStatus()).toBe(401);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(access);
+      expect(
+        await rows(
+          "SELECT id,openId,email,phone,passwordHash,role FROM users WHERE id=?",
+          [memberId],
+        ),
+      ).toEqual(identity);
+      expect(
+        await rows(
+          "SELECT action,targetId,details FROM admin_audit_log WHERE actorUserId=? ORDER BY id",
+          [actorId],
+        ),
+      ).toEqual([
+        {
+          action: "block_user",
+          targetId: memberId,
+          details: "Native browser reason",
+        },
+        { action: "unblock_user", targetId: memberId, details: null },
+      ]);
+      expect(smtp.messages).toHaveLength(0);
+    }, 30_000);
     async function proof(requestKey: string) {
       const [binding] = await rows(
         "SELECT b.payloadHash,o.tokenCipher FROM member_email_bindings b JOIN member_email_binding_outbox o USING(requestKey) WHERE b.requestKey=?",
