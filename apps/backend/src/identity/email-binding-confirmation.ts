@@ -4,40 +4,11 @@ import { createHash } from "node:crypto";
 import {
   adminAuditLog,
   memberEmailBindings,
-  memberEmailBindingOutbox,
   users,
 } from "../../../../packages/database/src/schema";
 import { isValidEmail, normalizeEmail } from "../_core/password";
 import { EmailBindingError, isEmailBindingDuplicate } from "./email-binding";
-
-type Transaction = Parameters<Parameters<MySql2Database["transaction"]>[0]>[0];
-
-async function completeIntent(
-  tx: Transaction,
-  requestKey: string,
-  state: "confirmed" | "expired" | "cancelled",
-) {
-  const completedAt = new Date();
-  await tx
-    .update(memberEmailBindings)
-    .set({
-      state,
-      completedAt,
-      email: null,
-      proofHash: null,
-    })
-    .where(eq(memberEmailBindings.requestKey, requestKey));
-  await tx
-    .update(memberEmailBindingOutbox)
-    .set({
-      tokenCipher: null,
-      discardedAt: completedAt,
-      lastError: `binding_${state}`,
-      leaseId: null,
-      leaseUntil: null,
-    })
-    .where(eq(memberEmailBindingOutbox.requestKey, requestKey));
-}
+import { completeMemberEmailBinding as completeIntent } from "./email-binding-lifecycle";
 
 /** Internal-only; confirmation does not authenticate or issue a session. */
 export async function confirmMemberEmailBinding(
