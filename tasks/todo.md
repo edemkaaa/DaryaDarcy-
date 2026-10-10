@@ -41,7 +41,10 @@
       A5c2c: явный ввод исходной почты для unknown replay с тем же durable key,
       conflict не сбрасывает intent; draft scoped по ключу. 2 RED + review RED →
       24 active browser, 649 unit; native HTTP/SQL ещё не проверен этим UI.
-      Далее A5c3 — native browser/API/SQL; затем A6 и checkpoint с loopback SMTP.
+      A5c3a: 2 native browser/API/SQL cases — request/reload и lost reply/replay;
+      одна outbox/audit запись, identity сохранена. Browser transport proxy,
+      настоящая cookie/Nest/SQL; SMTP и deployment proxy ещё не проверены.
+      Далее A5c3b — terminal/confirmation/roles; затем A6 и loopback SMTP.
       Неизвестный адрес/неоднозначный HTTP refusal не разрешают автоматический reset.
 - [ ] A6: страница подтверждения из fragment, явное действие, существующий вход.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.

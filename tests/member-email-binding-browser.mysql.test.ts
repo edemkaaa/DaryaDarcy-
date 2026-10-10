@@ -1,0 +1,263 @@
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import {
+  chromium,
+  expect as browserExpect,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from "@playwright/test";
+import type { INestApplication } from "@nestjs/common";
+import type { AddressInfo } from "node:net";
+import type { Connection, RowDataPacket } from "mysql2/promise";
+import { createBackendApplication } from "../apps/backend/src/_core/application";
+import { sdk } from "../apps/backend/src/_core/sdk";
+import { getDb } from "../apps/backend/src/db";
+import { COOKIE_NAME } from "../packages/shared/src/const";
+import { openContentTestDatabase } from "./helpers/content-mysql";
+import { testDatabaseUrl } from "./helpers/backend-mysql";
+
+// Opt in with a separately started, enabled production frontend build. API
+// forwarding below is a transport proxy, never a mock response or fake session.
+const frontend = process.env.BINDING_BROWSER_FRONTEND_URL;
+describe.skipIf(!testDatabaseUrl || !frontend)(
+  "member email form with native API and disposable SQL",
+  () => {
+    let connection: Connection, application: INestApplication, browser: Browser;
+    let base: string, token: string, context: BrowserContext;
+    const actorId = 91401,
+      memberId = 91402;
+    async function rows(sql: string, args: unknown[] = []) {
+      return (await connection.query<RowDataPacket[]>(sql, args))[0];
+    }
+    async function cleanup() {
+      await connection.query(
+        "DELETE o FROM member_email_binding_outbox o JOIN member_email_bindings b USING(requestKey) WHERE b.actorUserId=?",
+        [actorId],
+      );
+      await connection.query(
+        "DELETE FROM member_email_bindings WHERE actorUserId=?",
+        [actorId],
+      );
+      await connection.query(
+        "DELETE FROM admin_audit_log WHERE actorUserId=?",
+        [actorId],
+      );
+      await connection.query(
+        "DELETE FROM users WHERE id IN (?,?) AND openId LIKE 'binding-browser-%'",
+        [actorId, memberId],
+      );
+    }
+    beforeAll(async () => {
+      const url = new URL(frontend!);
+      if (
+        url.protocol !== "http:" ||
+        !["127.0.0.1", "localhost"].includes(url.hostname) ||
+        url.username ||
+        url.password ||
+        url.pathname !== "/" ||
+        url.search ||
+        url.hash
+      ) {
+        throw new Error("Browser fixture requires a loopback frontend origin");
+      }
+      connection = await openContentTestDatabase();
+      vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
+      vi.stubEnv("JWT_SECRET", "synthetic-binding-browser-session-secret-32");
+      vi.stubEnv("PUBLIC_APP_URL", url.origin);
+      vi.stubEnv("MEMBER_EMAIL_BINDING_ENABLED", "true");
+      vi.stubEnv(
+        "AUTH_LINK_ENCRYPTION_KEY",
+        Buffer.alloc(32, 41).toString("base64"),
+      );
+      application = await createBackendApplication();
+      await application.listen(0, "127.0.0.1");
+      base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
+      token = await sdk.createSessionToken("binding-browser-admin", {
+        sessionVersion: 0,
+      });
+      browser = await chromium.launch({
+        executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH,
+      });
+    }, 30_000);
+    beforeEach(async () => {
+      await cleanup();
+      await connection.query(
+        `INSERT INTO users (id,openId,name,role,phone,passwordHash) VALUES
+      (?,'binding-browser-admin','Browser administrator','admin',NULL,'SYNTHETIC_ADMIN_HASH'),
+      (?,'binding-browser-member','Browser phone member','user','+70000091402','SYNTHETIC_MEMBER_HASH')`,
+        [actorId, memberId],
+      );
+      context = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+      });
+      context.setDefaultTimeout(5_000);
+      await context.addInitScript(() => {
+        localStorage.setItem("@darcy_install_guide_seen", "1");
+      });
+      await context.addCookies([
+        {
+          name: COOKIE_NAME,
+          value: token,
+          url: frontend!,
+          httpOnly: true,
+          sameSite: "Lax",
+        },
+      ]);
+      // Neither production workers nor external mail/payment providers are started.
+      await context.route("**/*", async (route) => {
+        const url = new URL(route.request().url());
+        if (url.origin !== new URL(frontend!).origin)
+          return route.abort("blockedbyclient");
+        if (!url.pathname.startsWith("/api/")) return route.continue();
+        const response = await route.fetch({
+          url: base + url.pathname + url.search,
+          maxRedirects: 0,
+        });
+        return route.fulfill({ response });
+      });
+    });
+    afterEach(async () => {
+      await context?.close();
+    });
+    afterAll(async () => {
+      await browser?.close();
+      await application?.close();
+      if (connection) {
+        await cleanup();
+        await connection.end();
+        await (
+          (await getDb()) as unknown as { $client: { end(): Promise<void> } }
+        )?.$client.end();
+      }
+      vi.unstubAllEnvs();
+    });
+    async function open(page: Page) {
+      await page.goto(frontend! + "admin");
+      await browserExpect(
+        page.getByRole("button", { name: "Участницы", exact: true }),
+      ).toBeVisible();
+      await page
+        .getByRole("button", { name: "Участницы", exact: true })
+        .click();
+      await page
+        .getByRole("button", { name: "Привязать почту", exact: true })
+        .click();
+      return page.getByRole("form", { name: "Первая привязка почты" });
+    }
+    it("commits one queued intent without changing the member identity and recovers it after reload", async () => {
+      const page = await context.newPage();
+      let form = await open(page);
+      await form
+        .getByLabel("Почта участницы")
+        .fill(" Browser.Member@Example.Test ");
+      await form
+        .getByRole("button", { name: "Отправить подтверждение", exact: true })
+        .click();
+      await browserExpect(
+        form.getByRole("button", { name: "Проверить заявку", exact: true }),
+      ).toBeVisible();
+      const [intent] = await rows(
+        "SELECT requestKey,state,email FROM member_email_bindings WHERE actorUserId=?",
+        [actorId],
+      );
+      expect(intent).toMatchObject({
+        state: "pending",
+        email: "browser.member@example.test",
+      });
+      expect(
+        await rows(
+          "SELECT sentAt,discardedAt,attempts FROM member_email_binding_outbox WHERE requestKey=?",
+          [intent.requestKey],
+        ),
+      ).toEqual([{ sentAt: null, discardedAt: null, attempts: 0 }]);
+      expect(
+        await rows(
+          "SELECT email,passwordHash,sessionVersion FROM users WHERE id=?",
+          [memberId],
+        ),
+      ).toEqual([
+        {
+          email: null,
+          passwordHash: "SYNTHETIC_MEMBER_HASH",
+          sessionVersion: 0,
+        },
+      ]);
+      await page.reload();
+      form = await open(page);
+      await form
+        .getByRole("button", { name: "Восстановить заявку", exact: true })
+        .click();
+      await browserExpect(
+        form.getByRole("button", { name: "Проверить заявку", exact: true }),
+      ).toBeVisible();
+      expect(
+        await rows(
+          "SELECT requestKey FROM member_email_bindings WHERE actorUserId=?",
+          [actorId],
+        ),
+      ).toEqual([{ requestKey: intent.requestKey }]);
+    }, 30_000);
+    it("replays a committed request after a lost HTTP reply without another outbox or audit row", async () => {
+      const page = await context.newPage();
+      let loseReply = true;
+      const keys: string[] = [];
+      await page.route("**/api/admin/member-email-bindings", async (route) => {
+        keys.push(route.request().postDataJSON().requestKey);
+        const response = await route.fetch({
+          url: base + "/api/admin/member-email-bindings",
+          maxRedirects: 0,
+        });
+        expect(response.status()).toBe(202);
+        if (loseReply) {
+          loseReply = false;
+          return route.abort("failed");
+        }
+        return route.fulfill({ response });
+      });
+      const form = await open(page);
+      await form
+        .getByLabel("Почта участницы")
+        .fill("browser.member@example.test");
+      await form
+        .getByRole("button", { name: "Отправить подтверждение", exact: true })
+        .click();
+      await browserExpect(
+        form.getByRole("button", { name: "Повторить эту заявку", exact: true }),
+      ).toBeVisible();
+      await form
+        .getByRole("button", { name: "Повторить эту заявку", exact: true })
+        .click();
+      await browserExpect(
+        form.getByRole("button", { name: "Повторить эту заявку", exact: true }),
+      ).toHaveCount(0);
+      expect(keys).toHaveLength(2);
+      expect(keys[1]).toBe(keys[0]);
+      expect(
+        await rows(
+          "SELECT requestKey FROM member_email_bindings WHERE actorUserId=?",
+          [actorId],
+        ),
+      ).toEqual([{ requestKey: keys[0] }]);
+      expect(
+        await rows(
+          "SELECT requestKey FROM member_email_binding_outbox WHERE requestKey=?",
+          [keys[0]],
+        ),
+      ).toHaveLength(1);
+      expect(
+        await rows("SELECT id FROM admin_audit_log WHERE actorUserId=?", [
+          actorId,
+        ]),
+      ).toHaveLength(1);
+    }, 30_000);
+  },
+);

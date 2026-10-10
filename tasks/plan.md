@@ -41,6 +41,24 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A5c3a, native browser/API/SQL — 10 октября:** добавлены два opt-in сценария
+реальной формы production build: первая заявка и восстановление после reload;
+потеря ответа после SQL commit и повтор с прежним ключом. Browser получает
+настоящую cookie-сессию; все API-запросы транспортно проксируются в штатную Nest
+композицию без mock ответов. Проверены нормализованный email, одна заявка/outbox/
+audit запись и сохранение прежних email/passwordHash/sessionVersion участницы.
+Default-disabled build дал ожидаемый RED на отсутствующей отправке; явный
+active build — **2 native browser cases GREEN**. Типы проходят.
+Ревью проверило границы transport proxy, отсутствие mock receipt и cleanup;
+default production build восстановлен, docs/whitespace проходят. Собственный
+контейнер остановлен после сверки exact ID/label/tmpfs/no mounts; его одноразовые
+данные удалены штатным `--rm`, другие ресурсы не трогались.
+Изолированный собственный MySQL 8.4 использует loopback порт и tmpfs backend_test;
+worker, SMTP и провайдеры не запускались. Это проверка API через browser transport
+proxy, а не приёмка deployment nginx/Next rewrite. **A5 остаётся открыт:** далее
+A5c3b — terminal reset/confirmation и отзыв ролей с настоящим API/SQL, затем A6
+и checkpoint с loopback письмом. Рабочая БД/сервер/rollout не затронуты этим срезом.
+
 **A5c2c, recovery неизвестного результата — 10 октября:** после reload ключ
 без исходного email можно повторить только явным вводом прежнего адреса и с тем
 же ключом. UI предупреждает не угадывать и не менять email; серверный payload
