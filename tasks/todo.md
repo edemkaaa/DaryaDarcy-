@@ -175,6 +175,11 @@
       Insert-text corruption RED снята; 18 C1/C2/C3 browser GREEN, типы.
       Completed onboarding задан scoped marker только в fixture; внешних
       reply push/media нет. Edit/reply/photos/lost-response и A7 ещё открыты.
+      C3e: native own-comment edit cancel сохраняет исходную строку; save HTTP
+      200 меняет только текст прежнего ID/автора, reload сохраняет правку.
+      Edit-text corruption RED снята; 18 C1/C2/C3 browser GREEN, типы.
+      Production не менялся; чужой edit/negative authorization, reply/photos/
+      lost-response, полная навигация/устройства и A7/deployment ещё открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

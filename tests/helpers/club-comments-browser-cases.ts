@@ -15,10 +15,11 @@ interface ClubCommentsBrowserFixture {
 export function registerClubCommentsBrowserCases(
   fixture: () => ClubCommentsBrowserFixture,
 ) {
-  it("C3 persists a member comment and requires confirmation before deleting it", async () => {
+  it("C3 persists member comment edits and requires confirmation before deleting it", async () => {
     const { rows, connection, context, frontend, memberId } = fixture();
     const postId = 94631;
     const text = "C3 native member comment fixture";
+    const editedText = "C3 native member comment edited fixture";
     const commentSql =
       "SELECT id,postId,userId,parentId,text,photos FROM post_comments WHERE postId=?";
     // Catches lost comment writes, wrong authors and deletion despite cancellation.
@@ -93,6 +94,46 @@ export function registerClubCommentsBrowserCases(
         .getByRole("button", { name: "Комьюнити", exact: true })
         .click();
       await browserExpect(page.getByText(text, { exact: true })).toBeVisible();
+      const editFromMenu = async () => {
+        await page
+          .getByRole("button", { name: "Действия с комментарием", exact: true })
+          .click();
+        await page
+          .getByRole("dialog", { name: "Действия с комментарием" })
+          .getByRole("button", { name: "Редактировать", exact: true })
+          .click();
+      };
+      await editFromMenu();
+      const editInput = page.locator("textarea:not([placeholder])");
+      await browserExpect(editInput).toHaveValue(text);
+      await editInput.fill(editedText);
+      await page.getByRole("button", { name: "Отмена", exact: true }).click();
+      await browserExpect(editInput).toHaveCount(0);
+      expect(await rows(commentSql, [postId])).toEqual([created]);
+      await browserExpect(page.getByText(text, { exact: true })).toBeVisible();
+      await editFromMenu();
+      await editInput.fill(editedText);
+      const updated = page.waitForResponse((response) =>
+        response.url().includes("club.updateComment"),
+      );
+      await page
+        .getByRole("button", { name: "Сохранить", exact: true })
+        .click();
+      expect((await updated).status()).toBe(200);
+      const edited = { ...created, text: editedText };
+      await browserExpect
+        .poll(() => rows(commentSql, [postId]))
+        .toEqual([edited]);
+      await browserExpect(
+        page.getByText(editedText, { exact: true }),
+      ).toBeVisible();
+      await page.reload();
+      await page
+        .getByRole("button", { name: "Комьюнити", exact: true })
+        .click();
+      await browserExpect(
+        page.getByText(editedText, { exact: true }),
+      ).toBeVisible();
       const deleteFromMenu = async () => {
         await page
           .getByRole("button", { name: "Действия с комментарием", exact: true })
@@ -104,11 +145,15 @@ export function registerClubCommentsBrowserCases(
       };
       page.once("dialog", (dialog) => dialog.dismiss());
       await deleteFromMenu();
-      expect(await rows(commentSql, [postId])).toEqual([created]);
-      await browserExpect(page.getByText(text, { exact: true })).toBeVisible();
+      expect(await rows(commentSql, [postId])).toEqual([edited]);
+      await browserExpect(
+        page.getByText(editedText, { exact: true }),
+      ).toBeVisible();
       page.once("dialog", (dialog) => dialog.accept());
       await deleteFromMenu();
-      await browserExpect(page.getByText(text, { exact: true })).toHaveCount(0);
+      await browserExpect(
+        page.getByText(editedText, { exact: true }),
+      ).toHaveCount(0);
       expect(await rows(commentSql, [postId])).toEqual([]);
       expect(
         await rows(

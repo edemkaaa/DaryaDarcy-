@@ -41,6 +41,23 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3e, редактирование своего комментария — 10 октября:** расширен предыдущий
+native browser/API/SQL case без production изменений. UI edit показывает
+исходный текст; cancel сохраняет SQL/UI. Save получает настоящий update HTTP
+200, меняет только текст той же строки с прежними ID/автором/parent/photos;
+reload сохраняет правку. Дальнейшее cancel/confirm удаления и неизменность
+credentials/role/sessionVersion/paid expiry проверяются уже на edited записи.
+**Mutation RED:** подмена сохранённого edit текста поймана независимым SQL
+assertion; подмена полностью снята. **18 C1/C2/C3 native browser GREEN**, типы
+проходят; 14 binding cases намеренно исключены в неизменённом default-off build.
+Review: literal edited text, настоящий UI/Nest/SQL, существующий scoped fixture
+и точечный cleanup, без новых зависимостей или изменений дизайна/контрактов.
+Frontend остановлен, свой loopback/tmpfs backend_test удалён через --rm после
+exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД/внешние сервисы
+не затронуты. Чужой edit/negative authorization, reply/photos/lost-response,
+остальная C3 навигация, физические устройства и A7/deployment остаются открыты.
+Local transport proxy не означает приёмку на сервере.
+
 **C3d, комментарий участницы — 10 октября:** test-only native browser/API/SQL,
 отдельный comment helper с общим fixture lifecycle. Member SDK cookie +
 собственная paid запись; UI «Комьюнити» → add HTTP 200 → один SQL root comment
