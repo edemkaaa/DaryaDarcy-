@@ -41,6 +41,29 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A6b2, native confirmation UI — 10 октября:** три новых production browser/Nest/
+одноразовый SQL кейса обнаружили потерю memory proof при session-scope remount:
+страница успевала очистить fragment, после загрузки admin identity пересоздавалась
+и теряла подтверждение. Публичная `/email-binding` теперь вне session providers;
+остальные экраны сохраняют прежний identity fence. Затем native lost-reply/reopen
+выявил отдельный RED: повтор письма в той же вкладке — fragment-only navigation,
+а не remount. Hashchange заново захватывает/очищает proof, отменяет старый запрос
+и не делает POST. **3 native RED → 10 pass/1 reopen RED → 11 native GREEN**.
+Проверены явный клик (до него SQL pending), expired proof, успешный commit с
+потерей ответа и consumed reopen без лишнего audit. Почта меняется у адресата,
+не у вошедшего admin; openId/phone/password/sessionVersion/оплаченный срок и
+browser cookie сохранены. Внешние интеграции не включались, proof взят из
+синтетического outbox. Browser API transport proxy — не deployment acceptance.
+**43 active browser regressions pass** (proof/login/session), типы/lint/active
+и default builds/boundaries проходят. Default-off build восстановлен, disabled
+browser case pass. 320px active экран осмотрен, overflow нет. Ревью: публичная proof
+граница не читает browser identity, обычные session fences не ослаблены;
+новый fragment отменяет прежний task и старый ответ не применяет результат.
+Собственный контейнер exact ID/label/tmpfs/no mounts/no OOM проверен и остановлен;
+`--rm` удалил только его одноразовые данные. **A6/SMTP/GET routing/A7 открыты**:
+письмо пока ведёт на незарегистрированный GET, document-navigation policy/CORS
+не менялись. Реальная БД/сервер/оплата/внешняя почта не затронуты.
+
 **A6b1, confirmation UI — 10 октября:** добавлена default-disabled Next страница
 `/email-binding`, использующая проверенный proof client и оформление существующего
 входа. Fragment очищается после открытия; GET не отправляет proof. Только явный

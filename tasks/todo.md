@@ -54,7 +54,9 @@
       30 GREEN (включая loopback HTTP), 679 related unit; типы/lint/default build.
       A6b1: default-disabled /email-binding с явным POST/unknown result/обычным входом;
       2 browser RED → 6 active + 1 disabled GREEN (mock API), обе сборки и типы.
-      Backend GET из письма и native UI/SQL/SMTP acceptance ещё открыты; A6 открыт.
+      A6b2: исправлены session remount и fragment-only reopen; 3 native RED →
+      10 pass/1 reopen RED → 11 native UI/SQL GREEN, 43 browser regressions.
+      Credentials/paid expiry/browser cookie сохранены; SMTP и backend GET ещё открыты.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
 - [ ] Checkpoint A: весь сценарий через настоящее API/SQL/loopback письмо;
       первый email меняется один раз, пароль/сессии/подписка сохранены.
@@ -76,7 +78,7 @@
 - [ ] Q2: критерии нагрузки/baseline, Safari/Android/desktop/PWA приёмка.
 - [ ] Q3: матрица сдачи, backup/rollback, инструкция, пилот 5–7 дней/30–50 участниц.
 
-Следующий независимый срез: A6b2 — native confirmation UI/SQL/SMTP acceptance;
+Следующий независимый срез: A6c — loopback SMTP + recipient browser checkpoint;
 GET routing/document navigation policy требует отдельной сверки без CORS expansion.
 Форма/worker остаются выключены до целостного
 сценария и схемы. Внешние блокеры не препятствуют локальным A/C/M/V задачам.

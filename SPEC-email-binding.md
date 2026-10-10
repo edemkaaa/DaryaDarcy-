@@ -158,6 +158,21 @@ silently repair old users, run fixture cleanup on a working database.
 
 ## Current implementation checkpoint
 
+A6b2 native acceptance exposed two bugs: session identity initialization remounted
+the proof screen after its fragment was removed, and fragment-only reopening did
+not remount it. The public route now bypasses session providers (other screens
+retain their identity fences), and hashchange explicitly recaptures/clears proof
+while aborting prior work without submitting automatically. Three native RED
+cases progressed to ten passes plus one reopen RED, then eleven native GREEN.
+Native production UI/Nest/MySQL verifies no write on opening, explicit confirmation,
+expiry, lost committed reply and consumed reopen without duplicate audit. Recipient
+credentials/access and the unrelated administrator browser cookie remain intact.
+43 proof/login/session browser regressions and types/lint/active build pass.
+The 320px active layout has no overflow. Owned tmpfs database removed only after
+full ID/label/mount checks. No external SMTP/provider/deployment/working SQL.
+Proof still comes from the fixture outbox; email GET routing, loopback-SMTP
+recipient acceptance and A7 remain open. No CORS/origin-policy relaxation.
+
 A6b1 adds a default-disabled Next confirmation screen at `/email-binding` using
 the existing login styling. Opening clears the fragment without submitting;
 explicit action is single-flight, success requires the strict receipt, and every

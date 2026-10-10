@@ -182,6 +182,14 @@ tests/frontend-club-checkout-mode.native.test.mjs` (одна команда в �
 
 ## Инструменты менеджера: первая привязка почты
 
+**Обновление 10 октября, A6b2:** native production UI/Nest/SQL выявил remount при
+загрузке identity и повтор письма без remount. Public proof страница отделена от
+session providers; остальные identity fences сохранены. Hashchange захватывает
+новый fragment без POST и отменяет прежний task. 3 native RED → 10 pass/1 reopen
+RED → **11 native GREEN**, **43 proof/login/session browser regressions**; типы/
+lint/active build. Identity/пароль/paid expiry/browser cookie сохранены; 320px
+active экран без overflow. SMTP/GET routing/A7 открыты, сервер не изменён.
+
 **Обновление 10 октября, A6b1:** default-off `/email-binding` использует стиль
 входа, memory-only proof и явный single-flight POST. После успешного receipt —
 обычный вход; при неопределённом ответе нет утверждения об успехе/отсутствии записи

@@ -27,15 +27,23 @@ export default function EmailBindingScreen() {
   const [error, setError] = useState("");
   useEffect(() => {
     mounted.current = true;
-    if (!captured.current) {
+    const capture = () => {
+      request.current?.abort();
+      request.current = null;
       captured.current = true;
       const proof = takeEmailBindingProof(location.hash, () => {
         history.replaceState(history.state, "", location.pathname);
       });
       token.current = enabled ? proof : null;
+      setError("");
       setState(!enabled ? "disabled" : proof ? "ready" : "invalid");
-    }
+    };
+    if (!captured.current) capture();
+    // Reopening the email in this same tab can be fragment-only navigation;
+    // React does not remount the page. Capture again, but never auto-submit.
+    window.addEventListener("hashchange", capture);
     return () => {
+      window.removeEventListener("hashchange", capture);
       mounted.current = false;
       request.current?.abort();
     };

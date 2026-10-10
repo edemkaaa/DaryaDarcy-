@@ -422,6 +422,179 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         ),
       ).toEqual([{ state: "confirmed", email: null, proofHash: null }]);
     }, 30_000);
+    it("confirms from the recipient page only after explicit action without changing credentials, access or browser identity", async () => {
+      await connection.query(
+        "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'binding-browser-existing-access','paid','0','2030-01-01')",
+        [memberId],
+      );
+      const access = await rows("SELECT * FROM club_payments WHERE userId=?", [
+        memberId,
+      ]);
+      const administrator = await context.newPage();
+      await send(administrator);
+      const [intent] = await rows(
+        "SELECT requestKey FROM member_email_bindings WHERE actorUserId=?",
+        [actorId],
+      );
+      const recipient = await context.newPage();
+      const beforeCookies = await context.cookies();
+      let writes = 0;
+      recipient.on("request", (request) => {
+        if (request.url().endsWith("/api/auth/email-bindings/confirm")) {
+          writes++;
+          expect(request.headers().cookie).toBeUndefined();
+          expect(request.headers().referer).toBeUndefined();
+        }
+      });
+      await recipient.goto(
+        frontend! + "email-binding#token=" + (await proof(intent.requestKey)),
+      );
+      const submit = recipient.getByRole("button", {
+        name: "Подтвердить почту",
+        exact: true,
+      });
+      await browserExpect(submit).toBeEnabled();
+      expect(new URL(recipient.url()).hash).toBe("");
+      expect(writes).toBe(0);
+      expect(
+        await rows("SELECT email FROM users WHERE id=?", [memberId]),
+      ).toEqual([{ email: null }]);
+      await submit.click();
+      await browserExpect(recipient.getByRole("status")).toContainText(
+        "Почта подтверждена",
+      );
+      expect(writes).toBe(1);
+      expect(await context.cookies()).toEqual(beforeCookies);
+      expect(
+        await rows(
+          "SELECT openId,phone,email,passwordHash,sessionVersion FROM users WHERE id=?",
+          [memberId],
+        ),
+      ).toEqual([
+        {
+          openId: "binding-browser-member",
+          phone: "+70000091402",
+          email: "browser.member@example.test",
+          passwordHash: "SYNTHETIC_MEMBER_HASH",
+          sessionVersion: 0,
+        },
+      ]);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(access);
+      expect(
+        await rows(
+          "SELECT state,email,proofHash FROM member_email_bindings WHERE requestKey=?",
+          [intent.requestKey],
+        ),
+      ).toEqual([{ state: "confirmed", email: null, proofHash: null }]);
+    }, 30_000);
+    it("does not show confirmation or change SQL when the recipient submits an expired proof", async () => {
+      const administrator = await context.newPage();
+      await send(administrator);
+      const [intent] = await rows(
+        "SELECT requestKey FROM member_email_bindings WHERE actorUserId=?",
+        [actorId],
+      );
+      const savedProof = await proof(intent.requestKey);
+      await connection.query(
+        "UPDATE member_email_bindings SET expiresAt=DATE_SUB(NOW(),INTERVAL 1 SECOND) WHERE requestKey=?",
+        [intent.requestKey],
+      );
+      const before = await rows("SELECT * FROM users WHERE id=?", [memberId]);
+      const recipient = await context.newPage();
+      await recipient.goto(frontend! + "email-binding#token=" + savedProof);
+      await recipient
+        .getByRole("button", { name: "Подтвердить почту", exact: true })
+        .click();
+      await browserExpect(recipient.getByRole("status")).toContainText(
+        "уже использована",
+      );
+      await browserExpect(recipient.getByRole("status")).not.toContainText(
+        "Почта подтверждена",
+      );
+      expect(await rows("SELECT * FROM users WHERE id=?", [memberId])).toEqual(
+        before,
+      );
+      expect(
+        await rows("SELECT action FROM admin_audit_log WHERE targetId=?", [
+          memberId,
+        ]),
+      ).toEqual([{ action: "request_member_email_binding" }]);
+    }, 30_000);
+    it("keeps the committed result ambiguous after a lost confirmation reply and a consumed-proof reopen without duplicating audit", async () => {
+      const administrator = await context.newPage();
+      await send(administrator);
+      const [intent] = await rows(
+        "SELECT requestKey FROM member_email_bindings WHERE actorUserId=?",
+        [actorId],
+      );
+      const savedProof = await proof(intent.requestKey);
+      const recipient = await context.newPage();
+      let writes = 0;
+      await recipient.route(
+        "**/api/auth/email-bindings/confirm",
+        async (route) => {
+          writes++;
+          const request = route.request();
+          // Native Node transport has no browser cookie jar and preserves omitted credentials.
+          const response = await fetch(
+            base + "/api/auth/email-bindings/confirm",
+            {
+              method: "POST",
+              headers: request.headers(),
+              body: request.postData(),
+              redirect: "error",
+            },
+          );
+          expect(response.headers.get("set-cookie")).toBeNull();
+          if (writes === 1) {
+            expect(response.status).toBe(200);
+            await response.text();
+            return route.abort("failed");
+          }
+          expect(response.status).toBe(400);
+          return route.fulfill({
+            status: response.status,
+            headers: { "Content-Type": "application/json" },
+            body: await response.text(),
+          });
+        },
+      );
+      await recipient.goto(frontend! + "email-binding#token=" + savedProof);
+      await recipient
+        .getByRole("button", { name: "Подтвердить почту", exact: true })
+        .click();
+      await browserExpect(
+        recipient.getByText("Ответ не подтверждён.", { exact: false }),
+      ).toBeVisible();
+      expect(writes).toBe(1);
+      const before = await rows("SELECT * FROM users WHERE id=?", [memberId]);
+      expect(before[0].email).toBe("browser.member@example.test");
+      await recipient.goto(frontend! + "email-binding#token=" + savedProof);
+      await recipient
+        .getByRole("button", { name: "Подтвердить почту", exact: true })
+        .click();
+      await browserExpect(recipient.getByRole("status")).toContainText(
+        "уже использована",
+      );
+      await browserExpect(recipient.getByRole("status")).not.toContainText(
+        "Почта подтверждена",
+      );
+      expect(writes).toBe(2);
+      expect(await rows("SELECT * FROM users WHERE id=?", [memberId])).toEqual(
+        before,
+      );
+      expect(
+        await rows(
+          "SELECT action FROM admin_audit_log WHERE targetId=? ORDER BY id",
+          [memberId],
+        ),
+      ).toEqual([
+        { action: "request_member_email_binding" },
+        { action: "confirm_member_email_binding" },
+      ]);
+    }, 30_000);
     it.each(
       ["moderator", "user"].flatMap((role) =>
         ["request", "status"].map((operation) => ({ role, operation })),
