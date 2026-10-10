@@ -202,6 +202,11 @@
       Wrong-delete-predicate RED снят; 21 C1/C2/C3 browser GREEN/exit 0, типы.
       Редкая C1 transport race не повторилась, её устранение не заявлено.
       Reply/photos/остальная навигация/устройства/A7/deployment ещё открыты.
+      C3j: self-reply cancel сохраняет draft без SQL записи; send создаёт child
+      с исходным parentId, reload сохраняет ответ. Native own-child delete
+      не удаляет root; далее прежний CRUD. Missing-parentId RED снят;
+      21 C1/C2/C3 browser GREEN/exit 0, типы. Reply другому автору/push не
+      проверен; photos/экраны/навигация/устройства/A7/deployment открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

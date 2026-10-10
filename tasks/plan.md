@@ -41,6 +41,23 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3j, ответ на собственный комментарий — 11 октября МСК:** обычный native
+own-comment case дополнен reply/cancel. Cancel ответа сохраняет текст draft,
+не добавляя строк; повторный выбор «Ответить» и send HTTP 200 создают ровно одну
+child запись с parentId исходного root, тем же post/автором и literal текстом.
+Root неизменен, форма очищена, reload показывает ответ. Собственный child
+удаляется через настоящий member API; SQL и следующий reload сохраняют только
+root перед уже проверенными edit/delete шагами. **Mutation RED:** потеря
+parentId поймана SQL assertion; подмена снята. **21 C1/C2/C3 native browser
+GREEN/exit 0**, типы проходят; 14 binding cases намеренно исключены в default-off
+build. Review: независимый parent ID/текст, реальные UI/Nest/SQL, две ожидаемые
+add записи и точечное удаление своего child; production/дизайн не менялись.
+Ответ самому себе выбран намеренно: ветка внешнего reply push не вызывается.
+Ответ другому автору/его уведомление, фото и другие C3 экраны пока не приняты.
+Frontend остановлен; свой loopback/tmpfs backend_test удалён через --rm после
+exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД/внешние сервисы
+не затронуты; прежняя редкая transport race и A7/deployment ограничения остаются.
+
 **C3i, потерянный ответ удаления комментария — 10 октября:** тот же native
 own-comment кейс проверяет confirm delete → настоящий HTTP 200/SQL commit →
 transport abort. До явного refresh UI сохраняет прежний comment, после него

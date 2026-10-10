@@ -239,6 +239,75 @@ export function registerClubCommentsBrowserCases(
         await browserExpect(
           page.getByText(text, { exact: true }),
         ).toBeVisible();
+        if (!loseReply) {
+          const replyText = "C3 native self reply fixture";
+          const answer = page.getByRole("button", {
+            name: "Ответить",
+            exact: true,
+          });
+          await answer.click();
+          const replyInput = page.getByPlaceholder("Ваш ответ...", {
+            exact: true,
+          });
+          await replyInput.fill(replyText);
+          await page
+            .getByRole("button", { name: "Отмена ответа", exact: true })
+            .click();
+          await browserExpect(input).toHaveValue(replyText);
+          expect(await rows(commentSql, [postId])).toEqual([created]);
+          await answer.click();
+          const replied = page.waitForResponse((response) =>
+            response.url().includes("club.addComment"),
+          );
+          await page
+            .getByRole("button", { name: "Отправить", exact: true })
+            .click();
+          expect((await replied).status()).toBe(200);
+          const replyRows = await rows(commentSql, [postId]);
+          expect(replyRows).toHaveLength(2);
+          const child = replyRows.find((row) => row.id !== created.id)!;
+          expect(child).toEqual({
+            id: expect.any(Number),
+            postId,
+            userId: memberId,
+            parentId: created.id,
+            text: replyText,
+            photos: null,
+          });
+          expect(replyRows.find((row) => row.id === created.id)).toEqual(
+            created,
+          );
+          await browserExpect(input).toHaveValue("");
+          await page.reload();
+          await page
+            .getByRole("button", { name: "Комьюнити", exact: true })
+            .click();
+          await browserExpect(
+            page.getByText(replyText, { exact: true }),
+          ).toBeVisible();
+          // Remove only this fixture's own reply via real API before the root CRUD steps.
+          const deletedReply = await page.evaluate(async (id) => {
+            const response = await fetch("/api/trpc/club.deleteComment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ json: { id } }),
+            });
+            return response.status;
+          }, child.id);
+          expect(deletedReply).toBe(200);
+          expect(await rows(commentSql, [postId])).toEqual([created]);
+          await page.reload();
+          await page
+            .getByRole("button", { name: "Комьюнити", exact: true })
+            .click();
+          await browserExpect(
+            page.getByText(replyText, { exact: true }),
+          ).toHaveCount(0);
+          await browserExpect(
+            page.getByText(text, { exact: true }),
+          ).toBeVisible();
+          expect(writes).toBe(2);
+        }
         const editFromMenu = async () => {
           await page
             .getByRole("button", {
