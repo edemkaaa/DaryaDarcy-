@@ -79,6 +79,10 @@
       A6 fixture: recipient/MIME acceptance в отдельном test-only модуле;
       lifecycle/SQL cleanup общий, assertion AST сохранён. 3 до/20 после GREEN;
       основной файл 702 строки. Без production изменений и включения флага.
+      Общая active-build регрессия после Moscow timezone fixture: все 27 native
+      browser/API/SQL cases GREEN (14 binding + 13 C1/C2), настоящий loopback SMTP.
+      Default-off build восстановлен; local proxy — не deployment acceptance.
+      A6/Checkpoint A/A7 остаются открыты, сервер/рабочая БД не менялись.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
 - [ ] Checkpoint A: весь сценарий через настоящее API/SQL/loopback письмо;
       первый email меняется один раз, пароль/сессии/подписка сохранены.
@@ -141,7 +145,8 @@
       один ID, scheduled/published=0/publishedAt=NULL. До срока core ticks пусты,
       public feed не содержит пост; +3h mutation RED снята. 13 C1/C2 browser
       + 3 content SQL GREEN, типы. Full due/publication delivery ещё открыта;
-      A6 active-build регрессия после explicit timezone fixture ещё отдельно.
+      A6 active-build регрессия после explicit timezone fixture: 27 cases GREEN;
+      default-off build восстановлен, rollout/deployment всё ещё открыты.
 - [ ] C3: реальные взаимодействия, поиск, Библиотека, тест, профиль и поддержка.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;

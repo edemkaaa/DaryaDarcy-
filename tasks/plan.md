@@ -41,6 +41,22 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A6/C1/C2, общая регрессия после Moscow fixture — 10 октября:** active
+frontend build с NEXT_PUBLIC_MEMBER_EMAIL_BINDING_ENABLED=true; все **27 native
+browser/API/SQL cases GREEN**, включая 14 binding и 13 C1/C2, без skipped cases.
+Настоящий loopback SMTP, read-only переход по ссылке, явное подтверждение и
+существующий парольный вход повторно проверены вместе с admin/moderator/member
+и editor сценариями после изменения browser timezone. Это закрывает локальную
+active-build регрессию, оставленную C2d; не означает включение на сервере.
+Тесты и production код не менялись, дополнительная mutation не нужна для
+неизменённых assertions. Local transport proxy не подтверждает deployment
+proxy; A6/Checkpoint A/A7, due publication delivery/media/devices остаются
+открыты. Default-off frontend build восстановлен, frontend остановлен;
+собственный loopback/tmpfs backend_test удалён через --rm после exact
+ID/label/port/no mounts/no OOM проверки. Рабочая БД, сервер, внешние платежи
+и письма не затронуты. Review: только доказательства в существующих планах,
+без расширения критериев готовности и без смены флагов в исходниках.
+
 **C2d, будущая дата публикации — 10 октября:** test-only native browser/API/SQL.
 Browser context явно Europe/Moscow, UTC ожидания заданы независимо: UI
 2037-01-02 10:15 → SQL 07:15; после edit 2037-01-03 11:30 → SQL 08:30.
