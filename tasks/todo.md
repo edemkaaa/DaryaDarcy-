@@ -218,6 +218,11 @@
       Следующий C3m: undefined unpublished detail даёт query error/
       «Повторить», а не «Статья не найдена» — UX дефект воспроизведён и не закрыт.
       Paid article/reload/expiry/media/остальные экраны/устройства/A7 открыты.
+      C3m: native not-found RED → screen-only undefined-to-null success adapter;
+      wire/backend контракт прежний, errors не перехватываются, key/signal сохранены.
+      Unpublished/missing not-found + network retry/recovery; 22 C1/C2/C3 GREEN,
+      root/frontend типы/lint/default build/API/boundaries. Далее paid article
+      reload/expiry; прочие C3 экраны/media/устройства/A7/deployment открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

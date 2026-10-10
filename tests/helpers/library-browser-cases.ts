@@ -89,15 +89,50 @@ export function registerLibraryBrowserCases(
       expect(await hiddenResponse.text()).not.toContain(
         "C3 draft article body fixture",
       );
-      // Existing undefined detail becomes a query error, not the intended not-found
-      // state. Record that UI limitation separately; only the disclosure gate is
-      // accepted here, and the failure must still be explicit rather than blank.
       await browserExpect(
-        page.getByRole("button", { name: "Повторить", exact: true }),
+        page.getByText("Статья не найдена", { exact: true }),
       ).toBeVisible();
       await browserExpect(
         page.getByText("C3 draft article body fixture", { exact: true }),
       ).toHaveCount(0);
+      await browserExpect(
+        page.getByRole("button", { name: "Повторить", exact: true }),
+      ).toHaveCount(0);
+      const missing = page.waitForResponse((response) =>
+        response.url().includes("articles.getById"),
+      );
+      await page.goto(frontend + "library/article/94644");
+      expect((await missing).status()).toBe(200);
+      await browserExpect(
+        page.getByText("Статья не найдена", { exact: true }),
+      ).toBeVisible();
+      await browserExpect(
+        page.getByRole("button", { name: "Повторить", exact: true }),
+      ).toHaveCount(0);
+      // A network failure must not be normalized to a successful missing result.
+      await page.route("**/api/trpc/*", async (route) => {
+        if (route.request().url().includes("articles.getById"))
+          await route.abort("failed");
+        else await route.fallback();
+      });
+      await page.goto(frontend + "library/article/94641");
+      await browserExpect(
+        page.getByRole("button", { name: "Повторить", exact: true }),
+      ).toBeVisible();
+      await browserExpect(
+        page.getByText("Статья не найдена", { exact: true }),
+      ).toHaveCount(0);
+      await page.unrouteAll({ behavior: "wait" });
+      const recovered = page.waitForResponse((response) =>
+        response.url().includes("articles.getById"),
+      );
+      await page
+        .getByRole("button", { name: "Повторить", exact: true })
+        .click();
+      expect((await recovered).status()).toBe(200);
+      await browserExpect(
+        page.getByText("C3 public article body fixture", { exact: true }),
+      ).toBeVisible();
       expect(
         await rows(
           "SELECT * FROM articles WHERE id IN (94641,94642,94643) ORDER BY id",

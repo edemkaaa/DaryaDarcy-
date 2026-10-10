@@ -41,6 +41,28 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3m, корректное отсутствие статьи — 11 октября МСК:** C3l native browser
+проверка сначала воспроизвела RED: unpublished detail HTTP 200 с undefined
+показывает query error вместо «Статья не найдена». Причина — React Query не
+принимает undefined как успешные data. Страница теперь нормализует только
+успешное отсутствие в null до попадания в Query cache, через настоящий typed
+tRPC client; backend/wire/генерированный контракт не менялись. Сохранены
+канонический getQueryKey, query defaults, AbortSignal и прежний invalid-ID guard;
+ошибки не перехватываются. Выбран локальный consumer adapter вместо изменения
+legacy API/null/404 или глобального error suppression. Installed Next guides
+и API/React skills использованы для сохранения client boundary и контракта.
+**22 C1/C2/C3 native browser GREEN/exit 0:** unpublished и отсутствующий ID
+показывают not-found без retry кнопки; транспортный сбой опубликованной статьи
+показывает retry, не not-found, и явный повтор возвращает настоящий HTTP 200/body.
+Public/back и club gate, отсутствие утечек и неизменность SQL сохранены.
+Root/frontend типы, frontend lint/default-off build, API contract и boundaries
+проходят. Review: узкий screen adapter, отсутствие catch, прежняя очистка cache
+при смене identity, реальные браузер/Nest/SQL; дизайн и access policy не менялись.
+Frontend остановлен; собственный loopback/tmpfs backend_test удалён после exact
+ID/label/port/no mounts/no OOM проверки. Не было выкладки/рабочей БД/внешних
+сервисов. Далее paid article/reload/expiry и остальные C3 экраны; media/устройства,
+редкая transport race, A7 и deployment ограничения остаются открыты.
+
 **C3l, гостевая библиотека — 11 октября МСК:** отдельный focused helper проверяет
 native articles list HTTP 200, поиск опубликованной public карточки, открытие
 body и возврат в библиотеку. Club/draft карточки отсутствуют; прямой club URL
@@ -53,7 +75,7 @@ DOM/wire, без изменения production. **22 C1/C2/C3 native browser GRE
 типы проходят; 14 binding cases исключены в default-off build. Review: отдельный
 library helper вместо разрастания comments fixture, реальный API/SQL, literal
 bodies, scoped cleanup; production/дизайн/контракты не менялись.
-**Следующий C3m:** при unpublished detail API возвращает undefined
+**Диагностика перед C3m (исправление выше):** при unpublished detail API возвращает undefined
 (wire json:null + superjson meta undefined), а React Query показывает «Повторить»
 вместо предусмотренного «Статья не найдена». Это воспроизведённый UX дефект,
 не принятая готовность not-found: C3l проверяет только отсутствие раскрытия и
