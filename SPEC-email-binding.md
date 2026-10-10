@@ -28,18 +28,31 @@ database migration, real mail or deployment. Binding is still unfinished.
 - Default-disabled rollout until real SQL/concurrency/worker verification. Do not
   expose an active frontend form on a server lacking the agreed contract.
 
-## Proposed contract
+## HTTP contract (A4, receipt/status finalized before handlers)
 
 All routes use no-store, bounded JSON validation and safe errors. Admin requests
 use the existing session and same-origin checks; confirmation uses the proof,
 not a caller-supplied user ID or authenticated browser identity.
 
 - `POST /api/admin/member-email-bindings`: `{userId, email, requestKey}`.
-  Stable key for one intent. 202 means recorded and mail queued, not delivered
-  or bound. Replay the same intent; reject key reuse with another payload.
+  Stable key for one intent. 202 returns `{requestKey, state}`. A new pending
+  request means recorded and mail queued, not delivered or bound. A replay
+  returns its stored state (including terminal outcomes), never queues again;
+  reject key reuse with another payload. Inspect GET for delivery details.
 - `GET /api/admin/member-email-bindings/:requestKey`: admin-only inspection
   after an uncertain response. Return pending/confirmed/expired/cancelled and
   queued/sent/unavailable delivery state; never a proof or encrypted token.
+  Exact response: `{requestKey, userId, state, delivery, expiresAt, completedAt}`.
+  Dates are UTC ISO strings; completedAt is null while pending. State is the
+  persisted lifecycle state, not a GET-triggered expiry mutation. Past expiresAt
+  makes a pending proof unusable even before maintenance marks it expired.
+  Sent means SMTP acceptance, not inbox receipt, and remains true after terminal
+  cleanup. Otherwise only a pending, unexpired, undiscarded outbox with cipher
+  is queued (including retry/lease); missing or unusable delivery is unavailable.
+  Any currently active administrator can inspect; request creation remains
+  actor-bound for replay. Check current role/session/lifecycle before lookup,
+  including a missing key. Missing/purged request returns 404. Read never
+  changes an account, queues mail, renews a proof or performs maintenance.
 - `GET /api/auth/email-binding#token=...`: confirmation page. No identity write.
   Proof only in fragment/memory, removed from the address bar; no referrer.
 - `POST /api/auth/email-bindings/confirm`: `{token}`. Reject malformed, expired,
@@ -47,7 +60,7 @@ not a caller-supplied user ID or authenticated browser identity.
   Successful confirmation changes only email, consumes the proof and audits it
   in one transaction. A retry never moves an address to another account.
 
-Response schemas must be finalized before implementing handlers. Admin errors:
+Strict response schemas reject additional fields. Admin errors:
 400 invalid input, 401/403 no authority, 404 unavailable request/account, 409
 address/account/intent conflict, 429 throttled, 503 unavailable. Public proof
 errors reveal neither account details nor email ownership.
@@ -168,8 +181,9 @@ operation; see [ADR-008](docs/decisions/0008-member-email-binding.md). Its input
 strict: a positive signed-INT user ID, normalized valid email up to 320 characters
 (raw input bounded to 1024), and a lowercase UUIDv4 request key. The authenticated
 actor supplies user ID and session version, never frontend-controlled authority.
-The internal receipt contains only `{requestKey, state}`; it is not an HTTP/mail
-delivery contract. Public route response schemas still need finalization.
+The internal receipt contains only `{requestKey, state}`; it is not a mail
+delivery receipt. A4 now specifies its transport projection above; strict
+transport validators and route handlers remain the next slice.
 
 Migration 0028 adds dedicated binding and delivery tables, leaving password and
 access-mail tables untouched. The request atomically stores a purpose-bound proof
@@ -190,6 +204,17 @@ frontend form exists yet. Requests are not callable from the deployed applicatio
 Pending requests (even expired ones) conservatively prevent another intent until
 the cleanup slice handles them. A queued request does not reserve the email:
 confirmation rechecks the current recipient and arbitrates ownership through 0027.
+
+A4a recovery checkpoint: the internal status operation returns the exact safe
+projection specified above, reads binding/outbox in one snapshot, and checks the
+current administrator under a shared user lock before revealing existence.
+No address, hash, cipher, delivery error, attempt or lease metadata is returned;
+no lifecycle/identity/mail write occurs. Missing delivery fails closed. 21 initial
+native RED cases precede 26 GREEN checks; removing the authorization lock fails
+the concurrent-revocation test. Combined request/status/confirmation/lifecycle/
+delivery regression: 129 pass on owned MySQL and loopback SMTP. Transport routes,
+their strict validation/no-store/error policies and native HTTP acceptance are
+not implemented by this internal slice. Rollout remains disabled.
 
 Previous prerequisite checkpoint: full serial suite with disposable MySQL gives 2878
 passed, zero failed, 30 opt-in skipped across 192 files. Types, backend/frontend builds,

@@ -41,6 +41,23 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**A4a, проверено 10 октября:** определён точный HTTP receipt/status контракт в
+SPEC. Внутренняя read-only проекция позволяет администратору восстановить результат
+по стабильному ключу без адреса/proof/cipher. Текущие роль, версия сессии,
+блокировка и удаление проверяются до lookup, включая отсутствующий ключ; share
+lock дожидается конкурентного отзыва полномочий. Lifecycle/outbox читаются одним
+снимком, GET-core не истекает заявки и не отправляет письма. `sent` означает
+принятие SMTP, а не доставку в inbox; прошедший expiresAt не изменяет stored state.
+21 ожидаемый RED → 26 SQL GREEN; удаление actor lock отдельно ломает race-тест.
+Вместе с request/confirmation/lifecycle/delivery: 129 native MySQL/SMTP pass.
+Типы/backend build/API (73)/boundaries (592)/docs проходят. Ревью проверило
+current-authority race, отсутствие PII в проекции, bounded primary-key join,
+неизменность lifecycle/mail и сохранность прежнего request/replay. A4 не закрыт:
+далее transport schemas и Nest
+request/status/confirm с native HTTP+SQL; frontend/worker/сервер не включены.
+Одноразовый MySQL `codex.task=daryadarcy-binding-http-20261010` — loopback/tmpfs,
+без persistent mounts; после проверки удалён только контейнер этого запуска.
+
 **A3, проверено 10 октября:** внутренний mail processor использует bounded batch,
 user → binding → outbox claim, текущего получателя/expiry/занятость адреса,
 purpose/intent-authenticated cipher и lease-fenced acknowledgement. Сохранены

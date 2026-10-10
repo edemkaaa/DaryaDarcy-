@@ -18,6 +18,9 @@
       18 SQL/SMTP cases; полная регрессия 2986 pass / 30 opt-in skips.
       Core внутренний, регистрация в worker/внешний SMTP ещё не включены.
 - [ ] A4: admin request/status и явный confirm POST с проверенным HTTP-контрактом.
+      A4a: формат receipt/status определён; внутреннее read-only восстановление
+      результата — 26 SQL pass (21 RED + lock-removal mutation RED).
+      A4b следующий: строгие transport schemas, Nest routes, native HTTP/SQL.
 - [ ] A5: подключить существующую форму администратора и восстановление результата.
 - [ ] A6: страница подтверждения из fragment, явное действие, существующий вход.
 - [ ] A7: фактическая история миграций, репетиция, reviewed включение схемы/формы.
