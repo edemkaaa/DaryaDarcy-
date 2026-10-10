@@ -1,6 +1,8 @@
 import { expect, it } from "vitest";
 import { expect as browserExpect, type BrowserContext } from "@playwright/test";
 import type { Connection, RowDataPacket } from "mysql2/promise";
+import { hashPassword } from "../../apps/backend/src/_core/password";
+import { COOKIE_NAME } from "../../packages/shared/src/const";
 
 interface AdminPostBrowserFixture {
   rows(sql: string, args?: unknown[]): Promise<RowDataPacket[]>;
@@ -9,12 +11,117 @@ interface AdminPostBrowserFixture {
   frontend: string;
   actorId: number;
   base: string;
+  memberId: number;
 }
 
 // Reuse the caller's native API/SQL lifecycle, not an API response double.
 export function registerAdminPostBrowserCases(
   fixture: () => AdminPostBrowserFixture,
 ) {
+  it("C2 opens the editor after password login and removes admin controls after logout and member login", async () => {
+    const { rows, connection, context, frontend, actorId, memberId } =
+      fixture();
+    const password = "Synthetic-C2-login-only-2026!";
+    const passwordHash = await hashPassword(password);
+    await connection.query(
+      "UPDATE users SET email=?,passwordHash=? WHERE id=?",
+      ["c2.admin@example.test", passwordHash, actorId],
+    );
+    await connection.query(
+      "UPDATE users SET email=?,passwordHash=? WHERE id=?",
+      ["c2.member@example.test", passwordHash, memberId],
+    );
+    const identitySql =
+      "SELECT id,openId,email,phone,passwordHash,role,sessionVersion FROM users WHERE id IN (?,?) ORDER BY id";
+    const identity = await rows(identitySql, [actorId, memberId]);
+    await context.clearCookies();
+    const page = await context.newPage();
+    const signIn = async (email: string, id: number, role: string) => {
+      await page.goto(frontend + "login?next=/admin");
+      await page.getByPlaceholder("Email", { exact: true }).fill(email);
+      await page.getByPlaceholder("Пароль", { exact: true }).fill(password);
+      const [response] = await Promise.all([
+        page.waitForResponse(
+          (response) => new URL(response.url()).pathname === "/api/auth/login",
+        ),
+        page.getByRole("button", { name: "Войти", exact: true }).click(),
+      ]);
+      expect(response.status()).toBe(200);
+      expect((await response.json()).user).toMatchObject({ id, role, email });
+      await browserExpect(page).toHaveURL(/\/admin$/);
+      const [cookie] = (await context.cookies()).filter(
+        (cookie) => cookie.name === COOKIE_NAME,
+      );
+      expect(cookie).toMatchObject({
+        httpOnly: true,
+        sameSite: "Lax",
+        path: "/",
+      });
+      expect(
+        await page.evaluate(() => localStorage.getItem("app_session_token")),
+      ).toBeNull();
+    };
+    await signIn("c2.admin@example.test", actorId, "admin");
+    await page.reload();
+    await page.getByRole("button", { name: /Новый/ }).click();
+    const editor = page.getByRole("dialog", { name: "Редактор публикации" });
+    await browserExpect(editor.locator(".ui-scroll")).not.toHaveAttribute(
+      "inert",
+      "",
+    );
+    const field = page.getByPlaceholder("Текст поста… Enter — новый абзац");
+    await field.fill("C2 unsent administrator draft");
+    await browserExpect(field).toHaveValue("C2 unsent administrator draft");
+    page.once("dialog", (dialog) => dialog.accept());
+    await page
+      .getByRole("button", { name: "Закрыть редактор", exact: true })
+      .click();
+    await browserExpect(editor).toHaveCount(0);
+    await page.goto(frontend + "profile");
+    await page.getByRole("button", { name: "Выйти", exact: true }).click();
+    await browserExpect
+      .poll(
+        async () =>
+          (await context.cookies()).filter(
+            (cookie) => cookie.name === COOKIE_NAME,
+          ).length,
+      )
+      .toBe(0);
+    await page.goto(frontend + "admin");
+    await browserExpect(
+      page.getByRole("button", { name: "Войти", exact: true }),
+    ).toBeVisible();
+    await signIn("c2.member@example.test", memberId, "user");
+    await browserExpect(
+      page.getByRole("button", { name: "Вернуться в профиль", exact: true }),
+    ).toBeVisible();
+    await browserExpect(
+      page.getByRole("button", { name: /Новый/ }),
+    ).toHaveCount(0);
+    await page.reload();
+    await browserExpect(
+      page.getByRole("button", { name: /Новый/ }),
+    ).toHaveCount(0);
+    const denied = await page.evaluate(async () => ({
+      read: (await fetch("/api/trpc/admin.posts")).status,
+      write: (
+        await fetch("/api/trpc/admin.createPost", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            json: { text: "C2 forbidden member draft", photos: [], tags: [] },
+          }),
+        })
+      ).status,
+    }));
+    expect(denied).toEqual({ read: 403, write: 403 });
+    expect(
+      await rows(
+        "SELECT id FROM posts WHERE text IN ('C2 unsent administrator draft','C2 forbidden member draft')",
+      ),
+    ).toEqual([]);
+    expect(await rows(identitySql, [actorId, memberId])).toEqual(identity);
+  }, 30_000);
   it("C2 retries a committed draft after a lost HTTP reply without creating another post", async () => {
     const { rows, connection, context, frontend, actorId, base } = fixture();
     const text = "C2 lost reply draft fixture";

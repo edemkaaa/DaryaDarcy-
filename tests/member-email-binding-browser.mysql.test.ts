@@ -213,6 +213,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       connection,
       context,
       actorId,
+      memberId,
       base,
       frontend: frontend!,
     }));

@@ -41,6 +41,25 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C2c, парольный вход администратора и смена аккаунта — 10 октября:** test-only
+native browser/API/SQL; начальная SDK cookie удалена, оба аккаунта используют
+реальный scrypt hash синтетического пароля. Обычная login форма даёт native 200,
+того же admin и HttpOnly/Lax cookie; localStorage session token отсутствует.
+Reload сохраняет доступ к редактору, текст вводится без публикации. После выхода
+cookie исчезает и admin route требует вход; обычный member login не возвращает
+owner controls даже после reload. Прямые native admin.posts/createPost дают 403;
+SQL не содержит непубликовавшийся/запрещённый текст, credentials/roles/sessionVersion
+обоих аккаунтов сохранены. **Mutation RED:** временный отказ passwordUser для admin
+ловится HTTP 401 вместо 200; подмена полностью снята. **12 C1/C2 browser GREEN**,
+типы проходят. Review: реальные password/session/SQL, identity snapshot исключает
+ожидаемое lastSignedIn, без обхода ролей, no client token. Вместе с C2a локально
+проверены основные login/role/draft CRUD сценарии трёх старых skipped кейсов;
+исходный prepared-dev набор не запускался и не объявлен выполненным. Local
+transport proxy не подтверждает deployment, физические устройства/media/scheduled
+и C2 в целом остаются открыты. Production auth/UI/build/flags не менялись.
+Frontend остановлен; собственный loopback/tmpfs backend_test удалён через --rm
+после exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД не затронуты.
+
 **C2b, потеря ответа после создания — 10 октября:** test-only browser/native API/
 SQL. Route fetch выполняет настоящий create до commit/200, только затем ответ
 теряется (abort). UI сохраняет текст и показывает ошибку; обычный Save закрыт,

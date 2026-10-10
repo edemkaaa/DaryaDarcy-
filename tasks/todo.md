@@ -132,6 +132,11 @@
       явная «Проверить сохранение» повторяет прежний ключ и возвращает тот же ID.
       Одна SQL draft запись/creation intent, reload успешен. Replay-return removal
       mutation RED снята; 11 C1/C2 browser GREEN, типы. Production не менялся.
+      C2c: обычный password login admin с настоящим scrypt → cookie → редактор;
+      logout очищает cookie, member login/reload не возвращает owner controls.
+      Native admin read/create = 403, identity сохранена, SQL без forbidden поста.
+      Admin-login denial mutation RED снята; 12 C1/C2 browser GREEN, типы.
+      Local transport proxy; prepared-dev skipped suite/deployment не закрыты.
 - [ ] C3: реальные взаимодействия, поиск, Библиотека, тест, профиль и поддержка.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
