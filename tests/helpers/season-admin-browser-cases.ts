@@ -222,6 +222,112 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
       ).toEqual([{ action: "update_launch_settings", details: "revision:32" }]);
     });
   }, 30_000);
+  it("S1 keeps an uncommitted draft blocked through failed inspection until native unchanged settings allow a manual save", async () => {
+    await withSettings(async ({ rows, context, frontend, actorId }) => {
+      const before = await rows("SELECT * FROM launch_settings WHERE id=1");
+      const page = await context.newPage();
+      const form = await open(page, frontend);
+      const field = form.getByLabel("Весна: дата начала", { exact: true });
+      const save = form.getByRole("button", {
+        name: "Сохранить сезоны",
+        exact: true,
+      });
+      const inspect = form.getByRole("button", {
+        name: "Проверить настройки",
+        exact: true,
+      });
+      await field.fill("03-21");
+      let writes = 0,
+        reads = 0;
+      await page.route("**/api/admin/launch-settings", async (route) => {
+        // Fault before forwarding: neither failed request reaches native API.
+        if (route.request().method() === "PUT" && ++writes === 1)
+          return route.abort("failed");
+        if (route.request().method() === "GET" && ++reads === 1)
+          return route.abort("failed");
+        return route.fallback();
+      });
+      await save.click();
+      await browserExpect(form.getByRole("alert")).toContainText(
+        "Сохранение не подтверждено",
+      );
+      await browserExpect(save).toBeDisabled();
+      await browserExpect(field).toHaveValue("03-21");
+      await inspect.click();
+      await browserExpect(inspect).toBeEnabled();
+      await browserExpect(form.getByRole("alert")).toBeVisible();
+      await browserExpect(save).toBeDisabled();
+      await browserExpect(field).toHaveValue("03-21");
+      expect(writes).toBe(1);
+      expect(reads).toBe(1);
+      expect(await rows("SELECT * FROM launch_settings WHERE id=1")).toEqual(
+        before,
+      );
+      expect(
+        await rows("SELECT action FROM admin_audit_log WHERE actorUserId=?", [
+          actorId,
+        ]),
+      ).toEqual([]);
+      const [checked] = await Promise.all([
+        page.waitForResponse(
+          (reply) =>
+            new URL(reply.url()).pathname === "/api/admin/launch-settings" &&
+            reply.request().method() === "GET",
+        ),
+        inspect.click(),
+      ]);
+      expect(checked.status()).toBe(200);
+      expect(await checked.json()).toEqual({ revision: 31, config: initial });
+      await browserExpect(form.getByRole("status")).toHaveText(
+        "Настройки проверены. Ваш ввод сохранён; можно сохранить его отдельно.",
+      );
+      await browserExpect(field).toHaveValue("03-21");
+      await browserExpect(field).toBeEnabled();
+      await browserExpect(save).toBeEnabled();
+      expect(writes).toBe(1);
+      expect(await rows("SELECT * FROM launch_settings WHERE id=1")).toEqual(
+        before,
+      );
+      const [saved] = await Promise.all([
+        page.waitForResponse(
+          (reply) =>
+            new URL(reply.url()).pathname === "/api/admin/launch-settings" &&
+            reply.request().method() === "PUT",
+        ),
+        save.click(),
+      ]);
+      expect(saved.status()).toBe(200);
+      expect(await saved.json()).toEqual({
+        revision: 32,
+        config: {
+          ...initial,
+          seasons: {
+            ...initial.seasons,
+            spring: { ...initial.seasons.spring, startsOn: "03-21" },
+          },
+        },
+      });
+      await browserExpect(form.getByRole("status")).toHaveText(
+        "Настройки сезонов сохранены.",
+      );
+      expect(writes).toBe(2);
+      const committed = await rows(
+        "SELECT revision,updatedBy,CAST(config AS CHAR) AS config FROM launch_settings WHERE id=1",
+      );
+      expect(committed).toHaveLength(1);
+      expect(committed[0].revision).toBe(32);
+      expect(committed[0].updatedBy).toBe(actorId);
+      expect(JSON.parse(committed[0].config).seasons.spring.startsOn).toBe(
+        "03-21",
+      );
+      expect(
+        await rows(
+          "SELECT action,details FROM admin_audit_log WHERE actorUserId=?",
+          [actorId],
+        ),
+      ).toEqual([{ action: "update_launch_settings", details: "revision:32" }]);
+    });
+  }, 30_000);
   it("S1 preserves a stale admin draft until an explicit confirmed load of the winning native revision", async () => {
     await withSettings(async ({ rows, context, frontend, actorId }) => {
       const stalePage = await context.newPage();

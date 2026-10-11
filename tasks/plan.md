@@ -41,6 +41,28 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**S1c, uncommitted save and failed inspection — 12 октября МСК:**
+Native season admin browser теперь проверяет потерю первого PUT ДО forwarding
+и первого GET inspection: только transport abort, без mock API response.
+SQL остаётся revision 31, audit пуст; черновик 03-21 сохранён, Save блокирован.
+Следующий явный GET получает реальные неизменившиеся настройки HTTP/SQL,
+сохраняет черновик и разрешает только отдельный ручной Save. До этого второго
+PUT нет; последующий настоящий PUT 200 сохраняет revision 32/updatedBy/config
+с ровно одним audit. Test catches unsafe auto-retry, потерю черновика или
+разблокировку до подтверждённого inspection. Production-код не менялся,
+нового дефекта/production RED/fix в этом сценарии нет.
+Focused **1 pass / 74 filtered skips, exit 0 (3.20 s)**; совместный S1
+**16 pass / 59 filtered skips (75), exit 0 (7.63 s)**. Root types, targeted
+format, 606 boundaries, 54-document links и whitespace проходят; five-axis review: scoped
+transport faults, native literal snapshot/CAS/audit assertions, qualified
+singleton cleanup, без новых abstractions/dependencies или внешнего трафика.
+Own MySQL 13c5029ba833 проверен exact ID/label season-s1c-20261012/tmpfs/no
+mounts/127.0.0.1 перед stop/--rm; label inventory затем пуст. Удалены только
+невосстановимые synthetic fixture данные; Next остановлен. Working DB, дизайн, роли,
+подписки, сервер, платежи и внешняя почта не затронуты. Не повторены успешные
+неизменившиеся default/build/SQL S1a проверки. Customer media/dates, physical
+sleep/device/A7/Q1/provider acceptance остаются открыты.
+
 **S1b, native seasonal image fallback — 12 октября МСК:**
 После 94f4d1a добавлены три native subscribed browser сценария: spring с
 отсутствующими URL использует winter assets; summer с недоступными synthetic

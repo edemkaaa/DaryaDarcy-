@@ -6,6 +6,15 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+S1c (12 октября МСК): uncommitted PUT + failed GET inspection transport aborts
+retain draft and block Save, SQL revision/audit unchanged. Actual explicit GET
+confirms unchanged revision31, preserves draft and permits only manual native
+PUT; revision32/author/config/one audit checked. No automatic retry/mock API or
+production fix. 1 focused pass / 74 filtered skips, exit0 (3.20 s); integrated
+S1 16 pass / 59 filtered skips (75), exit0 (7.63 s), types/format/606 boundaries/
+diff pass. Own validated tmpfs DB --rm/Next stopped; working data/design/roles/
+subscriptions/provider/mail untouched. Customer/device/A7/Q1 gates remain.
+
 S1b (12 октября МСК): native SQL-configured Club fallback for missing spring,
 unavailable summer background/banner and missing autumn assets. Real local WebP
 decode + correct src + positive banner dimensions; actual API 200/revision/season,
