@@ -93,6 +93,7 @@
       "babel-plugin-react-compiler@1.0.0>@babel/types": "7.28.5",
       "body-parser@1.20.4": "1.20.6",
       "body-parser@1.20.6>qs": "6.16.0",
+      "brace-expansion@1.1.12": "1.1.21",
       "browserslist@4.28.1": "4.28.7",
       "flatted@3.3.3": "3.4.4",
       "minimatch@3.1.2": "3.1.5",

@@ -6,6 +6,18 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1q: brace-expansion 1.1.21 только в ESLint/minimatch 3 graph.
+Count/product/character cap: 3 native RED → 4 GREEN, вместе с соседними
+minimatch checks 7 pass. Ordinary patterns сохранены; pathological patterns
+truncate или сохраняют literal remainder, не universal resource sandbox.
+Registry integrity/hooks/runtime diff reviewed, deps unchanged; 5.x untouched.
+2244 full default pass / 1053 skips, exit 0 (20.88s); types/lint/format/frozen
+install GREEN. Prod audit 0/exit 0 (325 dependencies); full audit 8 (4 high /
+4 moderate), exit 1 (828 dependencies). Это не отдельное воспроизведение всех
+семи прежних parser advisories и не browser/deployment/clean Linux acceptance.
+Manual Q1m/Q1p blockers остаются сверх registry count; A7/внешние gates открыты.
+Неизменившиеся builds/SQL/browser не повторялись; не пушили и не выложено.
+
 Свежий Q1p: scoped AJV 6.14.0 в ESLint graph; invalid dynamic-pattern
 exceptions: 2 native RED → 3 GREEN, ordinary validation сохранена.
 2240 full default pass / 1053 skips, exit 0; types/lint/format/frozen install

@@ -1342,6 +1342,38 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1q — ограничение brace expansion в ESLint tooling, 11 октября МСК:**
+scoped brace-expansion 1.1.12 → 1.1.21 в minimatch 3.1.5 по
+[релизу](https://github.com/juliangruber/brace-expansion/releases/tag/v1.1.21)
+и [upstream range](https://github.com/juliangruber/brace-expansion/compare/v1.1.12...v1.1.21).
+Reviewed published runtime: iterative comma/tail parsing, bounded output/intermediate
+arrays, zero-step normalization и depth/rewrite fallback. Defaults: 100000
+results, 4000000 total characters, depth/rewrite 1000. При превышении output
+лимита результат обрезается, при depth/rewrite — остаток literal; это сознательная
+upstream семантика для патологических patterns, не полная эквивалентность unlimited
+expansion и не универсальная CPU/memory sandbox. Legacy `${` semantics сохранена.
+Actual ESLint → minimatch resolved parser: finite sequence 100005 → 100000,
+Cartesian count cap и accumulated character cap дают **3 native RED → 4 focused
+GREEN**; ordinary lint braces, padding, ranges, escaping/nesting/empty/dollar
+fixtures проходят до и после. Sequence запускается в own disposable child
+(2s timeout, 64 MB heap, 4 KB output), без намеренного OOM или внешних файлов.
+Соседний minimatch suite тоже GREEN: **7 focused pass / exit 0**.
+Registry integrity совпал, dependencies unchanged, install/prepare hooks нет.
+Generated lock меняет только override/package/integrity/snapshot/единственный
+minimatch edge; brace-expansion 5.0.12 и production graph не менялись.
+Frozen ignore-scripts install, root types, frontend lint, formatting GREEN.
+**2244 full default pass / 1053 opt-in skips, exit 0 (20.88s)**.
+Prod audit **0 findings / exit 0 / 325 dependencies**; full audit
+**8 findings (4 high / 4 moderate), exit 1 / 828 dependencies** — семь
+brace-expansion advisories больше не присутствуют. Это registry result плюс
+bounded parser characterization, не отдельное воспроизведение всех семи атак,
+не app exploit и не SQL/browser/deployment acceptance. Неизменившиеся builds
+и SQL/HTTP/browser не повторялись. Manual Q1m nested-extglob и Q1p AJV default
+engine blockers остаются сверх registry count; Q1/A7/внешние gates не закрыты.
+TDD/security/review skills потребовали observable native RED, supply-chain review
+и явной записи truncation/fallback, без major update/новой app policy.
+Не пушили, сервер/рабочая БД/roles/CORS/trust/quotas не менялись.
+
 **Q1p — ESLint AJV runtime-pattern errors, 11 октября МСК:** scoped
 ajv 6.12.6 → 6.14.0 по [релизу](https://github.com/ajv-validator/ajv/releases/tag/v6.14.0)
 и [advisory](https://github.com/advisories/GHSA-2g4f-4pwh-qvx6).

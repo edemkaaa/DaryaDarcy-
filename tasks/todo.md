@@ -311,6 +311,16 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1q: scoped brace-expansion 1.1.21 только ESLint/minimatch 3 edge;
+      output count/product/character bounds: 3 native RED → 4 focused GREEN,
+      соседний minimatch вместе 7 pass. Ordinary brace/range/escape/dollar
+      semantics сохранены; pathological patterns truncate/fallback to literal.
+      Integrity/hooks/runtime diff reviewed, deps unchanged, 5.x untouched.
+      Full default 2244 pass / 1053 skips, exit 0 (20.88s); types/lint/format/
+      frozen install GREEN. Prod audit 0/exit 0; full audit 8 (4 high /
+      4 moderate), exit 1 / 828 deps. Не все семь атак воспроизведены отдельно,
+      не universal sandbox/app exploit/browser proof. Q1m/Q1p manual blockers
+      остаются сверх registry count, Q1/A7/внешние gates открыты; не выложено.
       Q1p: scoped AJV 6.14.0, invalid $data regex SyntaxError: 2 RED → 3 GREEN;
       ordinary/defaults/static/dynamic validation сохранены. Runtime deps
       unchanged, integrity/hooks/upstream diff reviewed; re2 не добавлен.
