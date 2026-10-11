@@ -6,6 +6,18 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+S2d: S2c race reproduced in C1, traced to server interception removal while
+two callbacks are active (not duplicate client fulfill). Native two-request
+loopback Chromium characterization RED; track handler promises and drain BEFORE
+unrouteAll. Mutation removing drain repeats exact failure; restored GREEN.
+Errors rethrow, no ignoreErrors/private API/dependency/production changes.
+Integrated 46 pass / 14 binding filtered skips, exit 0 (55.53 s); five C1
+runs each 9 pass / 50 skips, loop exit 0. Default 2264 pass / 1074 opt-in skips,
+173 files pass / 57 skip, exit 0 (24.10 s). Types/TS-format/606 boundaries/diff
+pass; prior broad Markdown formatting warning remains, no whole-journal rewrite.
+Own DB/Next stopped/--rm; working data/provider/mail untouched. Next S1 native
+season-admin browser; customer media/device/provider/A7/Q1 gates remain open.
+
 S2c: integrated C1/C2/C3/S2 at f37a8b0: 45 cases pass / 14 filtered skips,
 but unhandled context route.fulfill «Route is already handled!», exit 1
 (54.81 s); NOT green. Runner last-active attribution: C1 moderator dismiss,

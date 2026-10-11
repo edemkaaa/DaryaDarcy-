@@ -35,6 +35,7 @@ import { registerClubCommentsBrowserCases } from "./helpers/club-comments-browse
 import { registerLibraryBrowserCases } from "./helpers/library-browser-cases";
 import { registerQuizBrowserCases } from "./helpers/quiz-browser-cases";
 import { registerEmailBindingRecipientBrowserCases } from "./helpers/email-binding-recipient-browser-cases";
+import { trackRouteHandler } from "./helpers/route-drain";
 
 // Opt in with a separately started, enabled production frontend build. API
 // forwarding below is a transport proxy, never a mock response or fake session.
@@ -47,6 +48,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
     let smtp: Awaited<ReturnType<typeof openLoopbackSmtp>>;
     const actorId = 91401,
       memberId = 91402;
+    let proxy: ReturnType<typeof trackRouteHandler>;
     async function rows(sql: string, args: unknown[] = []) {
       return (await connection.query<RowDataPacket[]>(sql, args))[0];
     }
@@ -145,7 +147,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         },
       ]);
       // Neither production workers nor external mail/payment providers are started.
-      await context.route("**/*", async (route) => {
+      proxy = trackRouteHandler(async (route) => {
         const url = new URL(route.request().url());
         if (url.origin !== new URL(frontend!).origin)
           return route.abort("blockedbyclient");
@@ -156,11 +158,13 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         });
         return route.fulfill({ response });
       });
+      await context.route("**/*", proxy.handler);
     });
     afterEach(async () => {
       if (context) {
         for (const page of context.pages())
           await page.unrouteAll({ behavior: "wait" });
+        await proxy.drain();
         await context.unrouteAll({ behavior: "wait" });
       }
       await context?.close();

@@ -41,6 +41,54 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**S2d, reproduce and fix native proxy teardown race — 11 октября МСК:**
+По прямому поручению «Исследуй и все исправляй» продолжена S2c диагностика.
+Первый C1 trace-run снова дал **9 case pass / 50 filtered skips, 1 unhandled
+rejection, exit 1 (7.30 s)**. Trace конкретного GET moderation.listCommentReports,
+club.subscription: handler enter → fetch returned → fulfill error; клиентский
+`_reportHandled` ни разу не вызван. Ошибка приходит с server-side Route,
+а не из повторного завершения нашим callback. Installed Playwright source:
+unrouteAll(wait) сразу очищает client routes, затем ждёт callbacks; завершение
+первого callback запускает internal interception-pattern update, снимающий
+server handler и продолжающий другой ещё активный browser request. Медленный
+route.fetch возвращается после этого и fulfill попадает в уже handled Route.
+Предыдущие probes с единственным held request не охватывали эту пару.
+
+Новый tests/route-drain.browser.test.ts воспроизводит race на настоящих двух
+HTTP requests/Chromium, собственном ephemeral loopback server и явных promise
+barriers, без Next/SQL/mocks/sleeps. Первый вариант diagnostic catch без rethrow
+завис на handling promise (15 s); corrected callback rethrows, и точный RED:
+errors содержит «Route is already handled!», **1 failed + 1 unhandled, exit 1**
+(1.01 s). Test utility tests/helpers/route-drain.ts сохраняет active handler
+promises и ждёт их ДО unrouteAll, пока interception ещё зарегистрирован.
+Ошибки не подавляются; оригинальный bridge fetch/fulfill и запрет внешнего
+трафика не менялись. Native suite использует tracker только для context proxy;
+page cleanup сохраняет прежний wait. Production/dependencies/design не менялись.
+GREEN characterization 1 pass; после усиления literal response assertions
+mutation удаления drain снова даёт тот же **1 failure + 1 unhandled, exit 1**
+(0.66 s). Drain восстановлен: **1 pass / exit 0 (1.16 s)**.
+
+Integrated C1/C2/C3/S2 + characterization: **46 pass / 14 binding filtered
+skips (60), 2 files, exit 0 (55.53 s)**. Пять последовательных bounded C1
+stability runs: каждый **9 pass / 50 skips / exit 0**, loop exit 0; не retry,
+первый failure остановил бы loop. Default regression: **2264 pass / 1074
+opt-in skips (3343), 173 files pass / 57 skipped, exit 0 (24.10 s)**.
+Default skips не native/provider-приёмка. Root types, targeted TS formatting,
+606-file boundaries и whitespace проходят. Production builds не повторялись:
+изменены только test utility/fixture/characterization, API/ролей/квот нетронуты.
+Five-axis review: воспроизводимый контрпример с two-flight ordering; короткий
+test-only tracker без private API/новых зависимостей; bounded two-request
+fixture, literal bodies/zero unintended fallback; ошибки остаются видимыми.
+Temporary private lifecycle tracing полностью снята.
+
+Own MySQL 117ddc0f054d проверен exact ID/label route-c1-20261011/tmpfs/no mounts/
+127.0.0.1 перед use и stop, удалён --rm; label inventory пуст. Next остановлен,
+characterization servers/browser закрыты. Удалена только невосстановимая
+одноразовая synthetic DB, рабочие данные не затронуты. Push/deploy/payments/
+внешние письма/секреты отсутствуют. S2c lifecycle blocker устранён для этого
+подтверждённого сценария; полная feature/device/provider/A7/Q1 приёмка не
+заявляется. Следующий независимый срез: S1 native season-admin browser.
+
 **S2c, integrated native regression exposes unresolved route lifecycle error — 11 октября МСК:**
 После S2b и guest-feed recovery выполнена их совместная native C1/C2/C3/S2
 проверка на HEAD f37a8b0: **45 cases pass / 14 binding filtered skips (59),
