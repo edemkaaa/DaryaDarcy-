@@ -311,6 +311,12 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1d: source-map-js override 1.2.1 → 1.2.2, четыре unsafe-offset
+      construction RED → 5 focused GREEN, valid indexed mapping сохранён.
+      Full default 2196 pass / 1053 opt-in skips, exit 0 (23.08s), root types/
+      frontend build/formatting/frozen-ignore-scripts install проходят.
+      Prod audit 11 (0 critical / 4 high / 4 moderate / 3 low), exit 1.
+      Build graph risk, не подтверждённый app exploit; rollout ещё открыт.
       Q1c: Axios root/backend 1.20.0 и reviewed related transport graph;
       bounded fetch limit RED → GREEN, real SDK/loopback HTTP сохраняет три
       JSON POST и отказ 502; cookie/session вместе = 13 focused pass.

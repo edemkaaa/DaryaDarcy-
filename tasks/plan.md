@@ -1342,6 +1342,30 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1d — source-map-js, 11 октября МСК:** scoped override 1.2.1 → 1.2.2 по
+[релизу](https://github.com/7rulnik/source-map-js/releases/tag/v1.2.2) и
+[исправлению владельца](https://github.com/7rulnik/source-map-js/commit/cf76580).
+Actual PostCSS dependency раньше принимала negative/fraction/Infinity/100M
+indexed section line offsets (четыре RED); теперь отвергает при construction,
+без опасного flatten/serialization в test worker. Пятая проверка сохраняет
+literal generated/original positions через eachMapping для обычного indexed map.
+Первоначальное ожидание originalPositionFor на первой column дало unrelated
+старый upstream null-result: воспроизведено отдельно, positive compatibility
+проверка перенесена на mapping traversal; не выдаём это за security RED/fix.
+Upstream declarations не описывают indexed maps: один объяснённый type-only cast
+в synthetic fixture, не production. **5 focused GREEN; 2196 full default pass /
+1053 opt-in skips, exit 0 (23.08s)** под scoped caffeinate; root types, frontend
+production build, formatting проходят. Backend source/graph не менялся — его
+неизменную сборку не повторяли. Generated lockfile содержит только override,
+version/integrity, две PostCSS/Sass references и snapshot; новых dependencies
+и install lifecycle hooks нет. Frozen/ignore-scripts install на текущем macOS
+tree, не Linux rehearsal. Native prod audit **11 findings: 0 critical / 4 high /
+4 moderate / 3 low**, exit 1; source-map advisory исчез. Reachability установлена
+в PostCSS/Sass build graph, не доказана на user-controlled API input; никакого
+утверждения об app exploit или полной DoS-защите. Skills TDD/security/review
+удержали один dependency slice с безопасной construction characterization.
+Q1/rollout/migrations и внешняя приёмка остаются открыты, push/deploy не было.
+
 **Q1c — Axios и связанный transport graph, 11 октября МСК:** root/backend
 фиксируют 1.20.0 вместо 1.13.2; excluded legacy-expo не менялся.
 Проверены [релиз 1.20.0](https://github.com/axios/axios/releases/tag/v1.20.0),

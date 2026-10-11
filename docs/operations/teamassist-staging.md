@@ -6,6 +6,14 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1d: source-map-js 1.2.1 → 1.2.2 по
+[релизу владельца](https://github.com/7rulnik/source-map-js/releases/tag/v1.2.2).
+Четыре unsafe indexed-map offsets отвергаются до serialization, ordinary mapping
+сохранён: 5 focused pass. Full default 2196 pass / 1053 opt-in skips, exit 0;
+root types/frontend build/frozen-ignore-scripts install проходят. Prod audit
+теперь 11 (0 critical / 4 high / 4 moderate / 3 low), exit 1, не clean.
+Это build graph hardening, не app exploit proof или rollout; не выложено.
+
 Свежий Q1c: Axios root/backend закреплён на 1.20.0 с reviewed transport graph
 по [релизу владельца](https://github.com/axios/axios/releases/tag/v1.20.0).
 Bounded fetch-limit RED → GREEN; настоящий legacy SDK → loopback HTTP
