@@ -222,6 +222,101 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
       ).toEqual([{ action: "update_launch_settings", details: "revision:32" }]);
     });
   }, 30_000);
+  it("S1 discards a committed native season reply released after server session revocation", async () => {
+    await withSettings(
+      async ({ rows, connection, context, frontend, base, actorId }) => {
+        const page = await context.newPage();
+        const form = await open(page, frontend);
+        await form
+          .getByLabel("Весна: дата начала", { exact: true })
+          .fill("03-21");
+        let release!: () => void, finish!: () => void;
+        const held = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        const finished = new Promise<void>((resolve) => {
+          finish = resolve;
+        });
+        let writes = 0,
+          captured = false;
+        await page.route("**/api/admin/launch-settings", async (route) => {
+          if (route.request().method() !== "PUT") return route.fallback();
+          writes++;
+          try {
+            const response = await route.fetch({
+              url: base + "/api/admin/launch-settings",
+              maxRedirects: 0,
+            });
+            expect(response.status()).toBe(200);
+            expect(await response.json()).toMatchObject({
+              revision: 32,
+              config: {
+                managerEmail: initial.managerEmail,
+                seasons: { spring: { startsOn: "03-21" } },
+              },
+            });
+            captured = true;
+            // Native commit is complete; only the return transport is held.
+            await held;
+            await route.fulfill({ response });
+          } finally {
+            finish();
+          }
+        });
+        try {
+          await form
+            .getByRole("button", { name: "Сохранить сезоны", exact: true })
+            .click();
+          await browserExpect.poll(() => captured).toBe(true);
+          const committed = await rows(
+            "SELECT * FROM launch_settings WHERE id=1",
+          );
+          expect(committed[0].revision).toBe(32);
+          await connection.query(
+            "UPDATE users SET sessionVersion=1 WHERE id=? AND openId='binding-browser-admin' AND sessionVersion=0",
+            [actorId],
+          );
+          const [identity] = await Promise.all([
+            page.waitForResponse(
+              (reply) => new URL(reply.url()).pathname === "/api/auth/me",
+            ),
+            page.evaluate(() => window.dispatchEvent(new Event("online"))),
+          ]);
+          expect(identity.status()).toBe(200);
+          expect(await identity.json()).toMatchObject({ user: null });
+          await browserExpect(form).toHaveCount(0);
+          await browserExpect(page).toHaveURL(/\/login(?:\?|$)/);
+          release();
+          await finished;
+          await browserExpect(form).toHaveCount(0);
+          await browserExpect(
+            page.getByText("Настройки сезонов сохранены.", { exact: true }),
+          ).toHaveCount(0);
+          expect(writes).toBe(1);
+          expect(
+            await rows("SELECT * FROM launch_settings WHERE id=1"),
+          ).toEqual(committed);
+          expect(
+            await rows(
+              "SELECT action,details FROM admin_audit_log WHERE actorUserId=?",
+              [actorId],
+            ),
+          ).toEqual([
+            { action: "update_launch_settings", details: "revision:32" },
+          ]);
+          expect(
+            await rows(
+              "SELECT role,sessionVersion,blockedAt FROM users WHERE id=?",
+              [actorId],
+            ),
+          ).toEqual([{ role: "admin", sessionVersion: 1, blockedAt: null }]);
+        } finally {
+          release();
+          if (writes) await finished;
+        }
+      },
+    );
+  }, 30_000);
   it.each(["save", "inspect"] as const)(
     "S1 closes the private season form when a revoked native session attempts %s",
     async (action) => {

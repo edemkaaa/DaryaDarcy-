@@ -41,6 +41,30 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**S1e, late native success after session revocation — 12 октября МСК:**
+Сезонный PUT действительно проходит Nest/SQL и возвращает 200/revision32,
+03-21 и сохранённый managerEmail. Browser transport удерживает этот настоящий
+response после commit, затем synthetic admin sessionVersion 0→1; online event
+вызывает настоящий auth/me 200/user:null. Форма исчезает, URL /login ДО release.
+После release оригинальный route.fulfill завершён без подавления ошибок,
+форма остаётся закрытой, success notice отсутствует, PUT ровно один,
+committed SQL snapshot неизменён и audit ровно один. Роль admin и blockedAt
+не менялись; сохранение до revocation законно и не откатывается.
+Promise barrier гарантирует порядок, finally освобождает held callback и ждёт
+его завершения; никаких sleeps/mock response/ignoreErrors/private API.
+Focused **1 pass / 77 filtered skips, exit0 (3.34 s)**; совместный S1
+**19 pass / 59 filtered skips (78), exit0 (9.15 s)**. Root types, targeted
+format, 606 boundaries, 54-document links и whitespace проходят. Review: observable native
+commit → auth revocation → private UI closure → late response, bounded
+barriers/cleanup, test-only change; production-дефекта/RED/fix не найдено.
+S1d late-success coverage gap теперь закрыт для этого synthetic native ordering,
+не для всех возможных network/device timings. Customer dates/media, physical
+sleep/device/A7/Q1/provider gates остаются открыты. Own MySQL 0fb0fc280d30
+exact ID/label season-s1e-20261012/tmpfs/no mounts/127.0.0.1 проверен перед
+stop/--rm; label inventory затем пуст. Удалены только невосстановимые synthetic
+fixture данные; Next остановлен. Working DB/design/roles/subscriptions/CORS/trust/
+quotas/сервер/mail/provider не менялись, unchanged broad checks не повторены.
+
 **S1d, revoked native season-admin session — 12 октября МСК:**
 Два реальных Chromium/API/SQL сценария: после открытия формы invalidated
 sessionVersion только synthetic admin account 0→1, роль admin/blockedAt не

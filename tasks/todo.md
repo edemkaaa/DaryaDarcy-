@@ -6,6 +6,16 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+S1e (12 октября МСК): actual PUT200/SQL revision32 held after commit; synthetic
+session revoked, native auth/me200/user:null closes form → /login before release.
+Original native response fulfill completes without suppression; private form
+stays absent/no late success, exactly one PUT/audit and unchanged committed SQL.
+Barrier/finally drain, no sleeps/mock API/auth/production changes. 1 focused pass /
+77 skips, exit0 (3.34 s); integrated S1 19 pass / 59 filtered skips (78), exit0
+(9.15 s), types/format/606 boundaries/diff pass. Own validated tmpfs DB --rm/Next
+stopped. S1d late-native gap closed for this ordering only; customer/device/A7/
+Q1/provider gates remain, no changes to working data/design/roles/subscriptions.
+
 S1d (12 октября МСК): actual server-revoked synthetic admin JWT: Save PUT and
 Inspect GET return native 401/no-store, close private form → /login, no success,
 unchanged SQL config/audit/role/version/block state after requests. Version0→1
