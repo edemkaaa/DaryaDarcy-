@@ -6,6 +6,14 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3an: native guest feed pagination 12+3/cursor 12→null, unique public IDs,
+club/draft excluded, terminal footer/card + unchanged SQL snapshot.
+1 browser pass / 52 filtered skips, exit 0 (2.27 s), types/format/docs/diff.
+Deterministic sortOrder fixture replaces wrong initial DESC-id assumption;
+ties/concurrent offsets/physical gesture not proved, no production change/RED.
+Own tmpfs DB/Next stopped/--rm, no payment rows/external mail/working DB/deploy;
+A7/provider/media/device/Q1 gates unchanged.
+
 C3am: native profile→Club link/active tab→close setup→Комьюнити/pressed→postal
 «скоро» without matching CTA→history Back/profile/result; scoped quiz и прежние
 SQL identity/payment assertions сохранены. Hidden moodboards/support buttons

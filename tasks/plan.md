@@ -41,6 +41,28 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3an, native public-feed pagination — 11 октября МСК:**
+Новый guest browser case использует 15 synthetic public posts + club/draft
+neighbors в собственном backend_test, с явным distinct sortOrder. Actual
+Next → Nest → SQL возвращает первые 12 IDs/cursor=12; прокрутка настоящей
+windowed collection запускает следующую HTTP страницу из трёх IDs/cursor=null.
+Объединённые IDs уникальны и ровно равны public fixtures; private/unpublished
+neighbors исключены. Terminal footer/последняя карточка видны, SQL snapshot
+не меняется. Нет direct synthetic fetch/page-response mocks или payment rows.
+**1 focused native browser pass / 52 filtered skips, exit 0 (2.27 s)**;
+root types/format/diff/docs checks проходят. Initial expectation ошибочно
+предполагал DESC id при равных датах: source order = sortOrder ASC/date DESC,
+без ID tie-break. Исправлен deterministic fixture order, не production bug;
+tie/concurrent-offset pagination и physical scroll gestures этим не доказаны
+(использована programmatic scrollTop + настоящий collection observer).
+Review: DB writes ограничены owned fixtures, cleanup qualified по ID/text,
+данные/ответы реального сервиса не подменены. Production/design/roles/quotas/
+pagination semantics не менялись; no new defect/security RED. Own loopback/
+tmpfs DB повторно проверена по label/mounts/port и остановлена --rm; Next
+остановлен. A7/provider/media/device/Q1 blockers прежние; рабочая БД/секреты/
+внешние письма/payments/push/deploy не затронуты. Default/build и неизменённые
+browser cases не повторены без причины.
+
 **C3am, native profile → club → history-back and staged scope — 11 октября МСК:**
 Existing paid-member quiz/profile journey расширен: после profile reload
 «Мои мудборды» отсутствуют, две support buttons видимы (не нажимаются).
