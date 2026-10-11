@@ -6,6 +6,15 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3ao: real HTTP/MySQL RED: 35 tied rows → 35 received but 32 unique IDs.
+Minimal postListOrder id ASC tie-break → 41 native SQL/HTTP GREEN (1.72 s),
+fresh default 2264 pass/1066 skips, 173 passed/56 skipped files (18.96 s),
+types/format/docs/diff. C3an browser 1 pass/52 filtered skips (1.82 s);
+fixture visible-collection barrier + joined waiter fixes streamed hidden
+selector failure, not old C1 transport. Sort/date/cursor/roles/subscriptions
+unchanged; concurrent offset writes/devices/media/A7/Q1/provider gates open.
+Own tmpfs DB/Next stopped/--rm; local fix only, no working DB/push/deploy.
+
 C3an: native guest feed pagination 12+3/cursor 12→null, unique public IDs,
 club/draft excluded, terminal footer/card + unchanged SQL snapshot.
 1 browser pass / 52 filtered skips, exit 0 (2.27 s), types/format/docs/diff.

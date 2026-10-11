@@ -66,17 +66,19 @@ export function registerPostInteractionsBrowserCases(
       await browserExpect(
         page.locator("article").filter({ hasText: "C3 pager 1 fixture" }),
       ).toBeVisible();
-      const nextResponse = page.waitForResponse(
-        (response) =>
-          isPage(response.url()) &&
-          decodeURIComponent(response.url()).includes('"cursor":12'),
-      );
       // Scroll the actual windowed collection to its tail; no synthetic API reads.
-      const collection = page.locator("[data-windowed-collection]");
-      await collection.evaluate((element) => {
-        element.scrollTop = element.scrollHeight;
-      });
-      const next = await nextResponse;
+      const collection = page.locator("[data-windowed-collection]:visible");
+      await browserExpect(collection).toHaveCount(1);
+      const [next] = await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            isPage(response.url()) &&
+            decodeURIComponent(response.url()).includes('"cursor":12'),
+        ),
+        collection.evaluate((element) => {
+          element.scrollTop = element.scrollHeight;
+        }),
+      ]);
       expect(next.status()).toBe(200);
       const terminal = await payload(next);
       expect(terminal.posts.map((post) => post.id)).toEqual(ids.slice(12, 15));

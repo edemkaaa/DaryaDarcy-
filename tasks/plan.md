@@ -41,6 +41,31 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3ao, исправлена потеря/дублирование постов при равных датах — 11 октября МСК:**
+Гипотеза после C3an проверена настоящим Nest HTTP → MySQL: 35 unchanged
+public rows с одинаковыми sortOrder/createdAt/publishedAt, страницы 12/12/11.
+**Native RED: 35 полученных IDs, лишь 32 уникальных**, без concurrent writes.
+Причина: ORDER BY sortOrder ASC/date DESC не задавал порядок равных строк;
+MySQL LIMIT/OFFSET сортировки возвращали пересекающиеся страницы.
+Minimal fix: общий postListOrder дополнен **id ASC** только как последним
+tie-break, исходный приоритет sortOrder/date и offset/cursor contract сохранены.
+Date-only admin order не менялся; schema/migrations/roles/quota/subscriptions
+не менялись. **41 native content HTTP/SQL tests GREEN, exit 0 (1.72 s)**,
+включая новый regression; **fresh default: 2264 pass / 1066 skips,
+173 passed / 56 skipped files, exit 0 (18.96 s)**; root types/format/docs/diff.
+Affected C3an native browser тоже GREEN: **1 pass / 52 filtered skips,
+exit 0 (1.82 s)**. Его первый rerun поймал fixture strict-selector failure:
+Next streamed hidden collection совпала с live collection; теперь выбирается
+одна visible collection с count barrier, waitForResponse и scroll объединены
+Promise.all, чтобы ранний failure не оставлял unhandled waiter. Нет force-click,
+route error suppression или изменения production UI; это не старый C1 transport
+fix. Review: tie regression проверяет completeness/uniqueness без навязанного
+порядка ID; SQL RED не является mock. Concurrent inserts могут сдвигать offsets
+и этим fix не решаются; devices/media/A7/Q1/provider acceptance остаются gates.
+Own loopback/tmpfs backend_test проверен до use/stop по exact label/mounts/port,
+остановлен --rm, synthetic DB удалена; Next остановлен. Working DB/secrets/
+external mail/provider payments/push/deploy не затронуты, исправление локальное.
+
 **C3an, native public-feed pagination — 11 октября МСК:**
 Новый guest browser case использует 15 synthetic public posts + club/draft
 neighbors в собственном backend_test, с явным distinct sortOrder. Actual
