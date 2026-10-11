@@ -1342,6 +1342,33 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1e — qs, 11 октября МСК:** scoped override только 6.14.0 → existing
+6.16.0; отдельная уже исправленная ветка body-parser 2 остаётся прежней.
+По [changelog владельца](https://raw.githubusercontent.com/ljharb/qs/v6.16.0/CHANGELOG.md)
+проверены изменение обработки arrays/duplicates, opt-in strictMerge/stringify
+depth и [isBuffer fix](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g).
+Actual Express dependency: два bounded comma-array inputs игнорировали explicit
+arrayLimit=2/throwOnLimitExceeded (RED); parse→stringify для non-callable
+constructor.isBuffer бросал TypeError (RED). После обновления оба массива
+отвергаются, round-trip даёт literal encoded string; повторные значения и UTF-8
+сохранены. **79 focused dependency/request-body/native Nest/webhook HTTP GREEN**,
+включая прежние подписи и безопасные отказы. Business/SQL doubles в существующих
+suites не превращают эти HTTP проверки в сквозную SQL/provider приёмку.
+Это upstream characterization, не доказательство exploitable app route:
+приложение не включает comma/plainObjects/stringify round-trip; form parsers
+остаются extended:false с прежними quotas, webhook raw path не менялся.
+Generated lock содержит override, удаление старого qs и три Express/body-parser
+references; dependencies side-channel/es-define-property уже были в patched
+branch, новых versions/packages/hooks не добавлено. Integrity сверена, frozen
+install --ignore-scripts проходит на текущем macOS tree, не clean Linux.
+**2200 full default pass / 1053 opt-in skips, exit 0 (19.30s)** под scoped
+caffeinate; root types/backend build/formatting проходят. Native prod audit
+теперь **7 findings: 0 critical / 4 high / 1 moderate / 2 low**, exit 1;
+четыре qs advisories отсутствуют, audit не clean. Frontend source/graph,
+auth/CORS/trust/quota policy и DB не менялись; неизменную frontend build не
+повторяли. TDD/security/review skills удержали один related dependency срез;
+остальные findings, migrations/rollout и внешняя приёмка открыты. Не выложено.
+
 **Q1d — source-map-js, 11 октября МСК:** scoped override 1.2.1 → 1.2.2 по
 [релизу](https://github.com/7rulnik/source-map-js/releases/tag/v1.2.2) и
 [исправлению владельца](https://github.com/7rulnik/source-map-js/commit/cf76580).

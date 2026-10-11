@@ -311,6 +311,12 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1e: qs override 6.14.0 → existing 6.16.0; три bounded upstream RED →
+      79 dependency/request-body/native Nest/webhook HTTP GREEN (не SQL/provider).
+      Full default 2200 pass / 1053 opt-in skips, exit 0 (19.30s), root types/
+      backend build/formatting/frozen-ignore-scripts install проходят.
+      Prod audit 7 (0 critical / 4 high / 1 moderate / 2 low), exit 1, не clean.
+      Parser/auth/trust/CORS/quotas неизменны; rollout и прочие findings открыты.
       Q1d: source-map-js override 1.2.1 → 1.2.2, четыре unsafe-offset
       construction RED → 5 focused GREEN, valid indexed mapping сохранён.
       Full default 2196 pass / 1053 opt-in skips, exit 0 (23.08s), root types/

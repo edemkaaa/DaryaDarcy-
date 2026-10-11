@@ -6,6 +6,15 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1e: qs 6.14.0 → existing 6.16.0 по
+[changelog владельца](https://raw.githubusercontent.com/ljharb/qs/v6.16.0/CHANGELOG.md).
+Три bounded upstream RED → 79 dependency/request-body/native Nest/webhook HTTP
+GREEN; подписи/отказы сохранены, SQL/provider приёмка не подменяется.
+Full default 2200 pass / 1053 opt-in skips, exit 0; types/backend build/frozen
+ignore-scripts install проходят. Prod audit теперь 7 (0 critical / 4 high /
+1 moderate / 2 low), exit 1, не clean. Parser/auth/trust/CORS/quota policy
+не менялась. Остальные findings, migrations и rollout ещё открыты; не выложено.
+
 Свежий Q1d: source-map-js 1.2.1 → 1.2.2 по
 [релизу владельца](https://github.com/7rulnik/source-map-js/releases/tag/v1.2.2).
 Четыре unsafe indexed-map offsets отвергаются до serialization, ordinary mapping
