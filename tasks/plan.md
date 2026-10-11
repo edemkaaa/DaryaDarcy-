@@ -41,6 +41,27 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3ac, controlled component read/owner cancellation — 11 октября МСК:**
+Добавлен opt-in native Chromium/React effect probe для настоящего QuizScreen,
+reducer и saved-result parser. Bundle in-memory/write:false; auth/storage и
+leaf views явно заменены controlled adapters. Один и тот же mounted component
+начинает deferred restore account 1, получает auth owner 2 и новый read;
+completion старого cottagecore не меняет welcome, новый goblincore восстанавливается.
+Две browser animation frames дают React rendering opportunity вместо sleep;
+page errors проверяются, все network requests заблокированы, browser закрыт
+в finally. `PLAYWRIGHT_EXECUTABLE_PATH` — явный opt-in, без браузера suite skipped.
+Удаление cancelled guard из production effect дало **1 mutation RED**:
+после старого read виден cottagecore вместо welcome. Mutation полностью снята,
+production diff пуст. **51 focused browser/controller/storage/quiz GREEN**,
+после добавления pageerror assertion browser case отдельно GREEN; root types/
+format/docs проходят. Initial fixture cast typing error исправлен через
+explicit unknown boundary и не считается дополнительным behavior RED.
+Это controlled async component boundary, не полный Next/AuthProvider/Nest/SQL
+сценарий и не реальная remote storage: production localStorage read остаётся
+синхронным до Promise. Поэтому широкую concurrent owner/read acceptance этим
+не закрываем; C1 transport/media/devices/A7 ограничения также сохранены.
+Unchanged app build/SQL не повторены, push/сервер/рабочая БД не затронуты.
+
 **C3ab, overlapping refresh/finally ordering — 11 октября МСК:**
 Следующий малый срез дополняет C3aa: два настоящих own loopback HTTP ответа
 удерживаются отдельными explicit barriers. Первый refresh заменён forced

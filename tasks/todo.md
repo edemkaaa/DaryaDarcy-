@@ -6,6 +6,13 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3ac: opt-in native React/Chromium QuizScreen probe с controlled auth/storage/
+leaf adapters: смена owner между deferred reads не восстанавливает старый итог.
+Cancelled guard removal → 1 mutation RED, снято полностью; 51 focused GREEN,
+pageerror check/browser GREEN, types/format/docs. In-memory bundle/no network.
+Не Next/AuthProvider/Nest/SQL или реальная remote storage acceptance; широкие
+owner/read/transport/media/devices/A7 gates сохранены.
+
 C3ab: overlapping native loopback refresh responses — old completion не снимает
 marker нового forced refresh; resume не создаёт третий HTTP/getMe. Удаление
 refresh finally guard: 1 mutation RED (3 calls вместо 2), снято полностью.
