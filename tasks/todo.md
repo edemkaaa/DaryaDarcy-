@@ -6,6 +6,16 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+Q1x: integrated default после новых Q1v/w suites: 2264 pass / 1064 skips,
+173 passed/56 skipped files, exit 0 (18.49 s). Review/docs/diff; production/
+graph/build unchanged, native browser/types не повторены без изменений.
+Fresh public registry: stable Drizzle 0.31.11 всё ещё зависит от deprecated
+esm-loader ^2.5.5; latest loader 2.6.5/core-utils 3.3.2 требуют legacy esbuild
+~0.18.20. Stable bump alone не снимает finding; no install/override/patch или
+security-fix claim. Exact upstream-chain blocker записан в плане; следующий
+независимый C3 diagnostic/navigation срез, не ещё одни повторные transforms.
+A7/P/V/media/device/manual gates прежние; no working DB/secrets/payments/deploy.
+
 Q1w: actual offline Drizzle export --sql, typed synthetic MySQL config/schema,
 exact DDL/header/stderr/exit + unchanged fixture-directory. Baseline CLI compiler
 0.25.12 vs child-only root 0.28.2 candidate; 2 new pass, Q1u/v/w 6 focused pass

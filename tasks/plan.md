@@ -41,6 +41,31 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**Q1x, integrated tooling checkpoint and supported-release blocker — 11 октября МСК:**
+После двух новых ordinary suites Q1v/w выполнена свежая default regression:
+**2264 pass / 1064 skips, 173 passed / 56 skipped files, exit 0 (18.49 s)**.
+Это не повтор неизменённого набора Q1u: native loader/CLI suites добавлены после
+него. Default skips не выданы за SQL/browser/provider acceptance; production,
+dependency graph/lockfile/build не менялись, успешные types/native browser
+не повторены без причины. Review/diff/docs checks проходят.
+Public registry latest metadata заново прочитана без npm credentials/config:
+[drizzle-kit](https://registry.npmjs.org/drizzle-kit/latest) = 0.31.11, но всё ещё
+содержит @esbuild-kit/esm-loader ^2.5.5 (и tsx ^4.21.0/esbuild ^0.25.4);
+[esm-loader](https://registry.npmjs.org/%40esbuild-kit%2Fesm-loader/latest) =
+2.6.5, deprecated «Merged into tsx»;
+[core-utils](https://registry.npmjs.org/%40esbuild-kit%2Fcore-utils/latest) =
+3.3.2, deprecated, по-прежнему требует esbuild ~0.18.20.
+Следовательно, простое обновление Drizzle до текущего stable не удаляет
+deprecated dependency edge; installation/override/patch не выполнены и
+security fix не заявлен. Это точный upstream-chain blocker, а не доказательство
+reachable app exploit; Q1u/v/w compatibility adapters не стали production.
+Перед снятием Q1 требуется supported upstream replacement либо отдельно
+reviewed replacement/patch с воспроизводимой графовой и CLI проверкой;
+остальные A7/P/V/media/device/Braces/manual gates остаются открыты. При следующем
+продолжении брать независимый согласованный C3 diagnostic/navigation срез,
+не наращивать повторную transformer coverage без новой гипотезы.
+Рабочая БД/секреты/внешние письма/payments/push/deploy не затронуты.
+
 **Q1w, actual offline Drizzle config/schema export — 11 октября МСК:**
 Настоящий installed drizzle-kit CLI выполняет export --sql через typed
 synthetic MySQL config (enum) и schema (actual drizzle-orm mysqlTable/int/
