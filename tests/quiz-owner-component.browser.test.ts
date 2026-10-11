@@ -112,7 +112,9 @@ it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
       );
       await browserExpect(page.locator("#root")).toHaveText("goblincore");
       expect(
-        await page.evaluate(() => (window as unknown as QuizHarness).reads.length),
+        await page.evaluate(
+          () => (window as unknown as QuizHarness).reads.length,
+        ),
       ).toBe(2);
       expect(errors).toEqual([]);
     } finally {
