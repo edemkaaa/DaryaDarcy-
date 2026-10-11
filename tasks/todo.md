@@ -311,6 +311,14 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1k: flatted 3.3.3 → 3.4.4, только ESLint cache graph; compiler types
+      сохранены 7.28.5 scoped pin после preview drift. Registry integrity/hooks
+      проверены; 4 bounded child RED → 5 focused GREEN, без prototype mutation.
+      Full default 2223 pass / 1053 skips, exit 0 (22.19s); root types/formatting/
+      frozen install и actual ESLint cold/warm cache GREEN (390 entries,
+      одинаковый hash). Own cache удалён после ownership/hash проверки.
+      Prod audit 0/exit 0; полный audit 23 (13 high / 10 moderate), exit 1.
+      Это tooling, не app exploit/browser/SQL или полная Q1 готовность.
       Q1j: Babel core 7.28.5 → 7.29.6 + reviewed related Babel graph;
       16 registry integrities совпали, install/prepare hooks отсутствуют.
       Два outside-package map disclosure RED → 12 focused GREEN; actual

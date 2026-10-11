@@ -1342,6 +1342,38 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1k — ESLint cache parser, 11 октября МСК:** scoped flatted 3.3.3 → 3.4.4
+закрывает два high tooling findings по
+[recursion advisory](https://github.com/WebReflection/flatted/security/advisories/GHSA-25h7-pfq9-p65f) и
+[prototype-reference advisory](https://github.com/WebReflection/flatted/security/advisories/GHSA-rf6f-7fwh-wjgh).
+Reviewed [upstream range](https://github.com/WebReflection/flatted/compare/v3.3.3...v3.4.4):
+iterative resolver, numeric input index, null replacer fix; Python/PHP/Go и
+upstream dev changes не выполнялись. Нет новых runtime dependencies/hooks;
+registry integrity совпал. Generated lock 10 lines: один package/snapshot и
+flat-cache edge плюс overrides. Первый preview пытался дополнительно сменить
+React compiler types 7.28.5 → existing 7.29.8; scoped compiler override удержал
+прежний 7.28.5. Итоговый production graph не менялся, Next/backend сборки не
+повторялись без причины; это не новая compiler policy/обновление React.
+Actual flat-cache-resolved parser: три inherited string references раньше
+возвращали prototype/function вместо unresolved; bounded 2000-node chain
+давал RangeError. **4 настоящих RED → 5 focused GREEN**, ordinary shared/cyclic
+fixture сохранён. Disposable children с timeout/output cap, для chain также
+128 KB stack / 64 MB heap; ни один global prototype не мутировался.
+**2223 full default pass / 1053 opt-in skips, exit 0 (22.19s)**; root types и
+formatting GREEN. Actual full frontend ESLint cold/warm cache runs exit 0:
+390 entries, 180485 bytes, одинаковый SHA-256 до/после warm read. Собственный
+mktemp cache удалён non-recursively после owner/mode/plain-file/one-entry/hash
+проверки; пользовательские caches не читались и не менялись.
+Frozen --ignore-scripts install GREEN на текущем macOS tree, не clean Linux.
+Prod audit по-прежнему **0 findings / exit 0 / 325 dependencies**; полный audit
+**23 findings (13 high / 10 moderate), exit 1 / 827 dependencies**. Flatted
+findings отсутствуют, остальные tooling findings требуют отдельных срезов.
+Это parser/cache regression, не SQL/HTTP/browser/device приёмка и не доказательство
+внешней атаки: app не вызывает flatted, риск относится к tampered local cache.
+TDD/security/review skills удержали child RED, cache roundtrip и остановили
+несвязанный compiler graph drift. Q1/A7/migrations/provider/media/rollout открыты.
+Не пушили и не выложено; roles/CORS/trust/quotas/working DB не менялись.
+
 **Q1j — Babel source-map boundary, 11 октября МСК:** scoped override
 @babel/core 7.28.5 → 7.29.6 по
 [advisory владельца](https://github.com/babel/babel/security/advisories/GHSA-4x5r-pxfx-6jf8) и

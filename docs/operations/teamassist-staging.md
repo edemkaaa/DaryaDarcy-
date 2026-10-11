@@ -6,6 +6,18 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1k: scoped flatted 3.3.3 → 3.4.4 в ESLint/flat-cache; два high
+tooling findings сняты. Четыре bounded child RED → 5 focused GREEN без mutation
+global prototypes. Full default 2223 pass / 1053 opt-in skips, exit 0;
+root types/formatting/frozen-ignore-scripts install GREEN. Actual frontend
+ESLint cold/warm cache: 390 entries, одинаковый hash, обе проверки exit 0;
+own disposable cache удалён после owner/mode/file/contents/hash проверки.
+Production graph сохранён, включая React compiler types 7.28.5 (scoped pin
+после generated preview drift); Next/backend build не повторялись.
+Prod audit 0 findings/exit 0 (325 dependencies); full audit 23 findings,
+13 high / 10 moderate, exit 1 (827 dependencies). Остальные tooling/A7/
+migrations/provider/media/device/rollout открыты. Не пушили и не выложено.
+
 Свежий Q1j: Babel core → 7.29.6 и reviewed related Babel graph по
 [advisory владельца](https://github.com/babel/babel/security/advisories/GHSA-4x5r-pxfx-6jf8).
 Два synthetic outside-package map disclosure RED → 12 focused GREEN; actual
