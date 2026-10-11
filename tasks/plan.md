@@ -41,6 +41,29 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3y, quiz reducer navigation/immutable snapshots — 11 октября МСК:**
+после dependency slices продолжена независимая локальная регрессия теста.
+Новый standalone suite проверяет immutable предыдущий answer snapshot,
+десять literal selections → back → edit девятого ответа → next → итог,
+нижнюю границу навигации и restored result → restart/fresh journey.
+Итог hand-derived: cottagecore 19/goblincore 2, остальные 0; выбор десятого
+ответа сохраняется после возврата назад. Restart/start снимают restored marker,
+result и прежние answers. Это direct production reducer, не mock reducer.
+Mutation answers copy → alias и PREV floor removal дают два независимых RED:
+write в frozen previous snapshot и -1 вместо 0. Initial mutation probe имел
+fixture contamination через exported initial-state singleton: fixtures
+изолированы до повторного mutation run, его лишние failures не считаются
+дополнительным покрытием. Обе mutation полностью сняты, production diff пустой.
+**4 reducer + scoring/saved-result suites: 29 focused pass / exit 0**;
+root types/formatting GREEN. Main прочитал применимый AGENTS и установленный
+Next server/client boundary guide; directives/UI/design/бизнес-правила не менялись.
+TDD/review/debugging skills потребовали наблюдаемые transition assertions и
+изолированный mutation RED вместо проверки implementation strings.
+Неизменившиеся default suite/build/SQL/native browser не повторялись без причины.
+Это reducer coverage, НЕ asynchronous storage/owner race или browser acceptance;
+C3 transport/read-owner/media/device/A7/deployment gates остаются открыты.
+Не пушили, сервер/рабочая БД/roles/CORS/trust/quotas не менялись.
+
 **C3x, все семь эстетик и граница blend — 11 октября МСК:** новый standalone
 unit suite проходит calculateResult с десятью literal answer IDs для каждой
 эстетики, включая переставленные shelter IDs. Проверены primary, отсутствие

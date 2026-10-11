@@ -293,6 +293,12 @@
       Production diff пустой; unchanged browser/SQL/build не повторялись.
       Остальные эстетики покрыты на unit уровне, их browser/media/device
       приёмка и concurrent read/owner races/transport/A7/deployment открыты.
+      C3y: direct reducer immutable snapshot/back/edit/next scoring, first-question
+      floor и restored restart/fresh start. Две изолированные mutations RED
+      сняты полностью; initial shared-fixture contamination устранена, не counted
+      as extra failures. 4 reducer + scoring/parser: 29 focused GREEN/exit 0,
+      root types/format GREEN, production diff пустой. Не async-owner/browser
+      acceptance; concurrent read/owner/transport/media/device/A7 gates открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.
