@@ -41,6 +41,26 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3aa, late HTTP completion на границе смены owner — 11 октября МСК:**
+Добавлены два regression cases в существующий SessionController suite:
+own ephemeral loopback HTTP удерживает ответ старой сессии explicit barrier;
+после подтверждения account 2 отпускает старый 200/account 1 либо 401.
+Проверяются abort старого signal, очистка account-1 query, неизменность точного
+нового SessionState/scope, сохранность account-2 query и отсутствие повторного
+resetIdentity. Здесь настоящее HTTP/JSON и production parser/controller/cache,
+но endpoint синтетический, а getMe adapter намеренно не передаёт signal в
+fetch, чтобы тестировать operation guard при уже неотменяемом completion.
+Это не browser/Nest/SQL acceptance и не доказательство remote storage race.
+Удаление двух version guards только в refresh дало **2 mutation RED**:
+late 200 вернул account 1, late 401 сделал новую сессию guest. Mutation полностью
+снята, production diff пуст. **49 focused controller/storage/quiz tests GREEN**,
+root types/format/docs проходят. Review: без sleeps/retries/external calls,
+barrier освобождается и собственный server/connections/cache/controller
+закрываются в finally. Изменены только tests/журнал; unchanged build/SQL/browser
+не повторялись. Concurrent component read/owner и редкая C1 transport race,
+media/devices/A7 остаются открытыми. Сервер/рабочая БД/роли/CORS/trust/квоты
+не менялись, push не выполнялся.
+
 **C3z3, трассировка точного C1 browser/API/SQL fixture — 11 октября МСК:**
 После двух isolated probes проверен сам native scenario: moderator dismiss
 report, затем весь C1 lifecycle. Own MySQL 8.4 контейнер с уникальным owner

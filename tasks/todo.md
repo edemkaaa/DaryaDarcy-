@@ -6,6 +6,13 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3aa: два late loopback HTTP response cases (old 200/account-1 и 401 после
+account-2) сохраняют новый state/scope/private cache; signal aborted. Удаление
+refresh version guards дало 2 mutation RED, снято полностью. 49 focused GREEN,
+types/format/docs проходят. Synthetic endpoint/adapter намеренно не отменяет
+fetch — это controller ordering, не browser/Nest/SQL или remote storage race.
+Concurrent component read/owner и transport/media/devices/A7 gates открыты.
+
 C3z3: точный native moderator dismiss 1 pass, весь C1 9 pass/exit 0 с временной
 route/lifecycle instrumentation. Старое исключение не воспроизведено; output
 усечён, полный подсчёт трассы не заявляется. Instrumentation снята; собственные

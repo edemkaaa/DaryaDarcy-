@@ -1,7 +1,13 @@
 import { expect, it, vi } from "vitest";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { QueryClient } from "@tanstack/react-query";
 import { SessionController } from "../apps/frontend/src/domain/session/session-controller";
-import { ApiError, type AuthUser } from "../apps/frontend/src/shared/api/auth";
+import {
+  ApiError,
+  parseAuthUser,
+  type AuthUser,
+} from "../apps/frontend/src/shared/api/auth";
 
 const member = (id: number): AuthUser => ({
   id,
@@ -62,6 +68,70 @@ it("a late guest response cannot overwrite a successful sign-in", async () => {
     user: { id: 2 },
   });
 });
+
+it.each([200, 401])(
+  "a late loopback session response (%s) cannot replace the new account or its private cache",
+  async (status) => {
+    const entered = deferred<void>();
+    const release = deferred<void>();
+    const server = createServer(async (_request, response) => {
+      entered.resolve();
+      await release.promise;
+      response.writeHead(status, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ user: member(1) }));
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    let oldSignal: AbortSignal | undefined;
+    const getMe = vi.fn(async (signal?: AbortSignal) => {
+      oldSignal = signal;
+      // Deliberately let the native HTTP response complete despite cancellation.
+      // This tests the operation guard, not the browser fetch abort implementation.
+      const response = await fetch(origin + "/api/auth/me");
+      if (!response.ok)
+        throw new ApiError("old session denied", response.status);
+      return parseAuthUser((await response.json()).user);
+    });
+    const f = fixture(getMe);
+    let pending: Promise<void> | undefined;
+    try {
+      await f.controller.applySession(member(1));
+      f.cache.setQueryData(["savedPosts"], ["PRIVATE_MEMBER_1"]);
+      pending = f.controller.refresh();
+      await entered.promise;
+      await f.controller.applySession(member(2));
+      expect(oldSignal?.aborted).toBe(true);
+      expect(f.cache.getQueryData(["savedPosts"])).toBeUndefined();
+      f.cache.setQueryData(["savedPosts"], ["PRIVATE_MEMBER_2"]);
+      const newSession = f.controller.getSnapshot();
+      f.resetIdentity.mockClear();
+      release.resolve();
+      await pending;
+      expect(f.controller.getSnapshot()).toBe(newSession);
+      expect(newSession).toMatchObject({
+        status: "authenticated",
+        user: { id: 2 },
+        error: null,
+        refreshError: null,
+      });
+      expect(f.cache.getQueryData(["savedPosts"])).toEqual([
+        "PRIVATE_MEMBER_2",
+      ]);
+      expect(f.resetIdentity).not.toHaveBeenCalled();
+    } finally {
+      release.resolve();
+      await pending;
+      f.controller.dispose();
+      f.cache.clear();
+      server.closeAllConnections();
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  },
+);
 
 it("switching accounts removes private queries and resets the screen scope", async () => {
   const f = fixture();
