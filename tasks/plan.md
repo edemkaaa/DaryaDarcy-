@@ -41,6 +41,24 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3ah, rejected native login preserves the confirmed owner — 11 октября МСК:**
+C3ag transport-barrier case параметризован успешным и неверным synthetic
+паролем. Native login 401 возвращает и показывает «Неверный email или пароль»,
+форма остаётся на /login и снова доступна. Уже подтверждённая admin cookie
+identity 91401 сохраняется после отмены старого browser auth/me и освобождения
+его настоящего Nest/SQL ответа; scoped Cottagecore не удалён и восстановлен
+после открытия результата, чужой Goblincore не показан. Обе scoped raw записи
+сохранены при отказе (новая identity не подтверждена); SQL email/hash/role/
+sessionVersion и payments прежние. Успешный вариант по-прежнему очищает old key.
+**2 focused native browser pass / 44 filtered skips, exit 0 (3.21 s)**,
+root types/format/docs/diff checks проходят. Production не менялся, нового
+mutation RED нет; широкая C3 regression не повторена после уже прошедших
+17 cases C3ag. Review: native cookie/HTTP/login/Next/storage, не внешняя
+доставка/устройства или принудительная stale delivery в отменённый request.
+Собственный tmpfs backend_test проверен по label/mounts/loopback port и
+остановлен через --rm; Next остановлен. Payment fixture/внешние письма и сеть/
+рабочая БД/push/deploy отсутствуют; прежние transport/A7/external gates открыты.
+
 **C3ag, native login during a held previous-session read — 11 октября МСК:**
 Новый Chromium/production Next → native Nest → disposable MySQL кейс начинает
 с подтверждённого admin 91401; online refresh получает настоящий старый auth/me

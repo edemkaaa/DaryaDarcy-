@@ -6,6 +6,13 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3ah: native login 401 во время held старого auth/me сохраняет подтверждённого
+admin/scoped Cottagecore; error виден, форма retry-ready, чужой Goblincore
+не восстановлен. Успешный switch также проходит; 2 native focused pass /
+44 filtered skips, types/format/docs/diff. SQL identity/payments прежние,
+production неизменён; нет нового mutation RED или payment fixture.
+Собственные Next/tmpfs DB остановлены/--rm, внешние/A7/transport gates прежние.
+
 C3ag: native Next/Nest/SQL login member 91402 во время held admin auth/me;
 старый browser HTTP read реально abort, после barrier старая scoped quiz data
 удалена/new сохранена, native cookie identity и reopened Goblincore подтверждены.
