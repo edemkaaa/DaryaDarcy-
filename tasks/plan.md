@@ -41,6 +41,31 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3as, native club next-page reply loss and recovery — 11 октября МСК:**
+Добавлена ветка существующего pagination fixture. Scoped page transport
+читает cursor=12 через настоящий Nest/SQL, проверяет HTTP 200/terminal cursor
+и три expected IDs, затем теряет только ответ через abort. После исчерпания
+обычных client retries UI показывает «Не удалось загрузить следующие публикации
+клуба», не выдаёт ложный terminal success и не рисует неполученную карточку.
+Первая страница остаётся доступна после scroll-top; SQL posts/tags snapshot
+не меняется. Восстановленный транспорт + настоящая «Повторить» снова читает
+cursor=12, убирает error, возвращает последние три posts/cursor=null; суммарные
+15 IDs уникальны/точны, SQL posts/access неизменны. Нет synthetic success/error
+response или прямого browser fetch; fault наступает после actual read.
+**1 focused pass / 55 filtered skips (56), exit 0 (5.45 s)**; после C3aq/ar/as
+свежая integrated native C1/C2/C3 regression: **42 pass / 14 binding filtered
+skips, exit 0 (53.64 s)**. Root types/format/docs/diff проходят; formatting
+warning исправлен штатным formatter, без behavioral change. Review: API base
+передан только fixture, fault scoped path/cursor, прочие reads идут через
+existing native proxy; same owned access row/qualified cleanup, no provider
+operations. Historical C1 route error не повторился, suppression/fix claim
+нет. Production/design/API/roles/quota не менялись, это acceptance existing
+retry behavior, не новый defect RED/GREEN. Default/build не повторены без
+изменения production. Own container 7ba160bc8c6b проверен до use/stop по label,
+tmpfs/no mounts/loopback port, остановлен --rm; Next остановлен, synthetic DB
+удалена. Working DB/secrets/external messages/provider payments/push/deploy
+не затронуты; devices/media/concurrent offsets/A7/Q1/provider gates прежние.
+
 **C3ar, native club rubric crossing page boundary — 11 октября МСК:**
 Новая ветка существующего pagination browser fixture: первые 12 posts — life,
 следующие три — letter/podcast/эксклюзив. После начального native HTTP read

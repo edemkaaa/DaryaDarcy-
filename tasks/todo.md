@@ -6,6 +6,15 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3as: club next-page lost reply after actual Nest/SQL read: scoped transport
+fault reads terminal 3 real IDs, then aborts; UI shows honest next-page error,
+retains first 12, manual «Повторить» restores cursor 12→null without duplicates.
+SQL posts/tags/access unchanged; no API response mocks/new production fix.
+1 focused pass / 55 filtered skips (5.45 s); fresh integrated C1/C2/C3:
+42 pass / 14 binding filtered skips (56), exit 0 (53.64 s), types/format/docs/diff.
+Historical C1 transport error not reproduced/not claimed fixed. Own tmpfs DB/
+Next stopped/--rm; external/provider/device/A7/Q1 gates unchanged.
+
 C3ar: native club rubric with zero matches on first page automatically reads
 cursor 12 after actual «Эксклюзив» click; letter/podcast/эксклюзив all rendered,
 opposite-target/draft excluded. Exhausted «Подборки» shows honest empty state;

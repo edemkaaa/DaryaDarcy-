@@ -231,6 +231,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       rows,
       connection,
       context,
+      base,
       actorId,
       memberId,
       frontend: frontend!,

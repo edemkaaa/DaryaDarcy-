@@ -10,6 +10,7 @@ interface PostInteractionsBrowserFixture {
   connection: Pick<Connection, "query">;
   context: BrowserContext;
   frontend: string;
+  base: string;
   actorId: number;
   memberId: number;
 }
@@ -17,12 +18,13 @@ interface PostInteractionsBrowserFixture {
 export function registerPostInteractionsBrowserCases(
   fixture: () => PostInteractionsBrowserFixture,
 ) {
-  it.each(["feed", "club", "club section"] as const)(
+  it.each(["feed", "club", "club section", "club retry"] as const)(
     "C3 paginates the native %s without duplicates or ineligible rows",
     async (target) => {
       const section = target === "club section";
+      const retry = target === "club retry";
       const route = target === "feed" ? "feed" : "club";
-      const { rows, connection, context, frontend, memberId } = fixture();
+      const { rows, connection, context, frontend, memberId, base } = fixture();
       const ids = Array.from({ length: 17 }, (_, index) => 94701 + index);
       try {
         await connection.query(`CREATE TABLE IF NOT EXISTS tags (
@@ -119,22 +121,81 @@ export function registerPostInteractionsBrowserCases(
         // Scroll the actual windowed collection to its tail; no synthetic API reads.
         const collection = page.locator("[data-windowed-collection]:visible");
         await browserExpect(collection).toHaveCount(1);
+        const isNext = (url: string) =>
+          isPage(url) && decodeURIComponent(url).includes('"cursor":12');
+        if (retry) {
+          let loseReply = true;
+          const lostPages: number[][] = [];
+          // Read the actual API/SQL, then lose only its return transport.
+          await page.route("**/api/trpc/*", async (faultRoute) => {
+            const url = new URL(faultRoute.request().url());
+            if (!isNext(url.href)) return faultRoute.fallback();
+            const response = await faultRoute.fetch({
+              url: base + url.pathname + url.search,
+              maxRedirects: 0,
+            });
+            expect(response.status()).toBe(200);
+            if (loseReply) {
+              const body = await response.json();
+              const entries = Array.isArray(body) ? body : [body];
+              const data = entries
+                .map((entry) => entry.result?.data?.json)
+                .find((data) => Array.isArray(data?.posts));
+              expect(data.nextCursor).toBeNull();
+              lostPages.push(data.posts.map((post: { id: number }) => post.id));
+              return faultRoute.abort("failed");
+            }
+            return faultRoute.fulfill({ response });
+          });
+          await collection.evaluate((element) => {
+            element.scrollTop = element.scrollHeight;
+          });
+          const error = page.getByRole("alert").filter({
+            hasText: "Не удалось загрузить следующие публикации клуба",
+          });
+          await browserExpect(error).toBeVisible({ timeout: 15_000 });
+          expect(lostPages.length).toBeGreaterThan(0);
+          for (const idsOnPage of lostPages)
+            expect(idsOnPage).toEqual(ids.slice(12, 15));
+          await browserExpect(
+            page.getByText("C3 pager 15 fixture", { exact: true }),
+          ).toHaveCount(0);
+          await collection.evaluate((element) => {
+            element.scrollTop = 0;
+          });
+          await browserExpect(
+            page.getByText("C3 pager 1 fixture", { exact: true }),
+          ).toBeVisible();
+          expect(await rows(snapshotSql)).toEqual(before);
+          loseReply = false;
+        }
         const [next] = await Promise.all([
-          page.waitForResponse(
-            (response) =>
-              isPage(response.url()) &&
-              decodeURIComponent(response.url()).includes('"cursor":12'),
-          ),
-          section
+          page.waitForResponse((response) => isNext(response.url())),
+          retry
             ? page
-                .getByRole("button", { name: "Эксклюзив", exact: true })
+                .getByRole("alert")
+                .filter({
+                  hasText: "Не удалось загрузить следующие публикации клуба",
+                })
+                .getByRole("button", { name: "Повторить", exact: true })
                 .click()
-            : collection.evaluate((element) => {
-                element.scrollTop = element.scrollHeight;
-              }),
+            : section
+              ? page
+                  .getByRole("button", { name: "Эксклюзив", exact: true })
+                  .click()
+              : collection.evaluate((element) => {
+                  element.scrollTop = element.scrollHeight;
+                }),
         ]);
         expect(next.status()).toBe(200);
         const terminal = await payload(next);
+        if (retry) {
+          await browserExpect(
+            page.getByRole("alert").filter({
+              hasText: "Не удалось загрузить следующие публикации клуба",
+            }),
+          ).toHaveCount(0);
+        }
         expect(terminal.posts.map((post) => post.id)).toEqual(
           ids.slice(12, 15),
         );
