@@ -6,6 +6,17 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1p: scoped AJV 6.14.0 в ESLint graph; invalid dynamic-pattern
+exceptions: 2 native RED → 3 GREEN, ordinary validation сохранена.
+2240 full default pass / 1053 skips, exit 0; types/lint/format/frozen install
+GREEN, production graph unchanged. Registry integrity/hooks/runtime diff reviewed.
+Prod audit 0/exit 0 (325 dependencies); full audit 15 (9 high / 6 moderate),
+exit 1 (828 dependencies). Это НЕ устранение default-engine ReDoS: $data:true
+synthetic probe на actual 6.14.0 всё ещё 2s timeout в owned bounded child.
+Новый regExp engine opt-in, RE2 не добавлен, ESLint $data default false.
+Manual AJV blocker + Q1m остаются сверх registry findings; A7/внешние gates
+открыты. Не app exploit/SQL/browser/clean Linux proof, не пушили и не выложено.
+
 Свежий Q1o: YAML 2.8.3 для Vite tooling, root exact dev peer сохраняет
 существующий optional peer после scoped-only preview removal. Registry
 integrity/hooks/runtime diff проверены. Три bounded-child RangeError RED →

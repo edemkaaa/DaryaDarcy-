@@ -1342,6 +1342,37 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1p — ESLint AJV runtime-pattern errors, 11 октября МСК:** scoped
+ajv 6.12.6 → 6.14.0 по [релизу](https://github.com/ajv-validator/ajv/releases/tag/v6.14.0)
+и [advisory](https://github.com/advisories/GHSA-2g4f-4pwh-qvx6).
+Reviewed [upstream range](https://github.com/ajv-validator/ajv/compare/v6.12.6...v6.14.0):
+новый opt-in regExp engine, generated pattern uses supplied engine;
+dynamic-pattern exception теперь validation false. Dependencies unchanged,
+upstream re2 только devDependency и НЕ устанавливается/подключается в app.
+Registry integrity совпал; install/prepare hooks нет, prepublish не выполнялся.
+Generated lock только override, AJV package/snapshot и два ESLint edges;
+production graph unchanged. Frozen ignore-scripts install GREEN на macOS tree.
+Actual ESLint-resolved AJV: invalid dynamic patterns `[`/`(` давали SyntaxError,
+теперь validation false с keyword pattern: **2 native RED → 3 focused GREEN**;
+ordinary lint-style schema/defaults/additionalProperties/static и valid dynamic
+patterns сохранены. **2240 full default pass / 1053 opt-in skips, exit 0
+(22.58s)**; root types/frontend lint/formatting GREEN. Unchanged builds,
+SQL/HTTP/browser не повторялись без причины.
+Prod audit **0 findings / exit 0 / 325 dependencies**; full audit
+**15 findings (9 high / 6 moderate), exit 1 / 828 dependencies**.
+**Residual blocker:** версия не меняет default RegExp engine. Owned child
+на actual 6.14.0 с $data:true, pattern `^(a|a)*$`, value 40 `a` + `!` всё ещё
+достигает 2s timeout / SIGTERM (64 MB heap, 4 KB output). Поэтому отсутствие
+AJV advisory в registry не равно исправлению ReDoS default engine. Opt-in
+engine API доступен, но новый native RE2/изменение validation policy не добавлены.
+ESLint factory не включает $data по умолчанию; app/tooling imports/$data:true
+не обнаружены. Это synthetic tooling characterization, не app exploit.
+Manual AJV blocker вместе с Q1m nested-extglob остаётся в Q1 сверх 15 registry
+findings; при независимой работе ни один не считается закрытым. TDD/security/
+review skills отделили invalid-pattern repair от opt-in mitigation и audit
+false assurance. A7/внешние gates открыты; не пушили и не выложено,
+roles/CORS/trust/quotas/working DB не менялись.
+
 **Q1o — Vite YAML error handling, 11 октября МСК:** yaml 2.8.2 → 2.8.3
 по [advisory владельца](https://github.com/eemeli/yaml/security/advisories/GHSA-48c2-rrv3-qjmp)
 и [релизу](https://github.com/eemeli/yaml/releases/tag/v2.8.3).

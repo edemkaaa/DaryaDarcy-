@@ -311,6 +311,14 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1p: scoped AJV 6.14.0, invalid $data regex SyntaxError: 2 RED → 3 GREEN;
+      ordinary/defaults/static/dynamic validation сохранены. Runtime deps
+      unchanged, integrity/hooks/upstream diff reviewed; re2 не добавлен.
+      Full default 2240 pass / 1053 skips, exit 0 (22.58s); types/lint/format/
+      frozen install GREEN. Prod audit 0/exit 0; full audit 15 (9 high /
+      6 moderate), exit 1. ВАЖНО: default-engine $data ReDoS на actual 6.14.0
+      всё ещё timeout 2s в owned child, новый engine только opt-in. Manual AJV
+      blocker + Q1m остаются сверх registry count; не app exploit/Q1 completion.
       Q1o: yaml 2.8.3, exact dev peer + scoped override; generated optional-peer
       removal остановлен до install. Integrity/hooks/runtime diff reviewed.
       parse/parseDocument/parseAllDocuments RangeError: 3 native child RED →
