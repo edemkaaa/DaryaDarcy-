@@ -6,6 +6,20 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+S1a (12 октября МСК): native season-admin invalid dates/save/reload, committed
+PUT reply loss + explicit confirmation/no second write, two-admin 409 + preserved
+draft and explicit confirmed replacement. Eight real HTTP/SQL reads around four
+Moscow midnight boundaries, Date-only control with real timers/finally restore.
+Subscribed native pageshow updates winter→summer from changed SQL revision,
+access/config unchanged by read. Synthetic access/event/dates/form URLs only,
+not provider transaction, physical sleep or customer-media acceptance.
+12 focused pass / 59 filtered skips (71), exit 0 (6.16 s); launch-settings SQL +
+frontend-seasons 62 pass, exit 0 (1.52 s). Types/TS format/606 boundaries/54 docs/
+diff pass.
+No production defect/fix in these cases; no design/role/subscription changes.
+Own loopback tmpfs DB validated before --rm; Next stopped, working data untouched.
+Customer date/media/fallback/device and A7/Q1/provider gates remain open.
+
 S2d: S2c race reproduced in C1, traced to server interception removal while
 two callbacks are active (not duplicate client fulfill). Native two-request
 loopback Chromium characterization RED; track handler promises and drain BEFORE
@@ -548,6 +562,10 @@ wait teardown не воспроизвёл старую race. C1 transport gate �
       Далее exact C1 lifecycle instrumentation/native reproduction; transport/
       owner acceptance still open. Docs-only, no external/SQL/user files.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
+      S1a: native admin save/reload, 409 draft/confirmation, committed reply loss,
+      eight Moscow boundary HTTP/SQL reads + native subscribed pageshow pass.
+      Synthetic media/dates/event/access only; customer images/fallback and
+      physical sleep/device acceptance remain open. See current journal above.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.
 - [ ] M1: проверить карту закрытых файлов и прямые public-read URL.

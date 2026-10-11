@@ -41,6 +41,44 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**S1a, native season administration and Moscow boundaries — 12 октября МСК:**
+По прямому поручению проверить управление сезонами добавлены opt-in сценарии
+в tests/helpers/season-admin-browser-cases.ts и существующий native fixture.
+Настоящие Chromium → HTTP → Nest → одноразовый MySQL: invalid 02-29 и
+повторяющаяся дата не меняют singleton; fixed/calendar, выбранный сезон,
+дата/фон/баннер сохраняются, revision 31→32 и audit автора подтверждены SQL,
+reload восстанавливает поля. Существующий managerEmail не теряется, платежей нет.
+Потеря реального PUT-ответа ПОСЛЕ commit оставляет честное unknown состояние;
+явный GET подтверждает запись без второго PUT/audit. Две открытые админки:
+проигравший PUT получает 409, черновик сохраняется; отмена загрузки не стирает
+его, подтверждённая загрузка принимает winning revision без новой записи.
+
+Восемь настоящих public launch-config HTTP/SQL reads проверяют миллисекунду
+до/после четырёх московских полуночей на synthetic annual dates 03-01/06-01/
+09-01/12-01. Контролируется только Date процесса API; HTTP/SQL timers реальные,
+clock восстанавливается finally; cache-control no-store, config неизменна.
+Отдельный subscribed browser pageshow читает изменённую SQL revision и переводит
+Клуб winter→summer без reload; native response, UI season и неизменный access
+проверены. Это synthetic lifecycle event, НЕ сон физического устройства.
+Access — локальная synthetic строка, НЕ checkout/payment/provider тест.
+Новые URL — только значения формы example.test, НЕ материалы заказчика.
+
+Итог: **12 focused pass / 59 filtered skips (71), exit 0 (6.16 s)**;
+launch-settings MySQL + frontend-seasons: **62 pass, exit 0 (1.52 s)**.
+Root types, targeted TS format, 606-file boundaries, 54-document links и
+whitespace проходят.
+Review: literal response/SQL expectations, CAS/audit/no duplicate write,
+qualified singleton/access cleanup, внешний трафик закрыт исходным fixture.
+Новых production-дефектов в этих сценариях не найдено: это расширение
+проверок, без production RED/fix, изменения дизайна/контракта/ролей/подписок.
+Не повторена неизменившаяся полная регрессия 41d224d; production build не менялся.
+Own container 3bd50bb4994a проверен exact ID/label season-s1-20261012/tmpfs/
+no mounts/127.0.0.1 перед остановкой; --rm удалил только synthetic DB,
+последующий label inventory пуст. Эти одноразовые данные невосстановимы.
+Next остановлен; working DB/сервер/секреты/mail/provider не затронуты.
+S1 остаётся открытым для согласованных customer dates/media, изображения/
+fallback и физического sleep/device acceptance; A7/Q1/provider gates прежние.
+
 **S2d, reproduce and fix native proxy teardown race — 11 октября МСК:**
 По прямому поручению «Исследуй и все исправляй» продолжена S2c диагностика.
 Первый C1 trace-run снова дал **9 case pass / 50 filtered skips, 1 unhandled
