@@ -41,6 +41,26 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3aq, native member club pagination browser — 11 октября МСК:**
+После общей C3ap regression расширен существующий pagination case двумя
+targets: guest feed и paid-member club. Настоящий Next → Nest → SQL отдаёт
+12+3 eligible posts, cursor 12→null; programmatic scroll настоящей windowed
+collection запускает следующий HTTP read. Opposite-target и draft neighbors
+исключены, объединённые IDs уникальны/точны; последний post виден, у club
+исчезает «Загрузить ещё», у feed виден terminal footer. Club setup dialog
+закрыт настоящей кнопкой, без force-click. SQL posts и synthetic subscription
+snapshot неизменны. Access row существует только в owned backend_test, не
+provider TEST/payment/checkout. Cleanup qualified exact ID/text/user/orderId.
+**2 focused native browser pass / 52 filtered skips (54), exit 0 (3.62 s)**;
+root types/format/docs/diff проходят. Review: cases последовательны, native
+HTTP responses не подменяются; production/design/roles/quota не менялись.
+Это дополнительная coverage, не новый defect RED/fix; полный integrated
+run C3ap и default/build не повторены без причины. Own container 11668e64c280
+проверен до use/stop по label/tmpfs/no mounts/loopback и остановлен --rm,
+Next остановлен; synthetic DB удалена. Physical gesture/device/media,
+concurrent offsets, A7/Q1/provider gates прежние; no working DB/secrets/
+external messages/provider payments/push/deploy.
+
 **C3ap, закрытый клуб и интегрированная browser regression — 11 октября МСК:**
 Расширен tied-date regression: guest feed и authenticated club.list читают
 35 owned synthetic posts через настоящий Nest HTTP/JWT/MySQL, с tag filter,

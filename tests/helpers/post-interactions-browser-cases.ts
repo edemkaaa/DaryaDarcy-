@@ -17,93 +17,152 @@ interface PostInteractionsBrowserFixture {
 export function registerPostInteractionsBrowserCases(
   fixture: () => PostInteractionsBrowserFixture,
 ) {
-  it("C3 paginates the native public feed without duplicates or private rows", async () => {
-    const { rows, connection, context, frontend } = fixture();
-    const ids = Array.from({ length: 17 }, (_, index) => 94701 + index);
-    try {
-      await connection.query(`CREATE TABLE IF NOT EXISTS tags (
+  it.each(["feed", "club"] as const)(
+    "C3 paginates the native %s without duplicates or ineligible rows",
+    async (target) => {
+      const { rows, connection, context, frontend, memberId } = fixture();
+      const ids = Array.from({ length: 17 }, (_, index) => 94701 + index);
+      try {
+        await connection.query(`CREATE TABLE IF NOT EXISTS tags (
         id INT AUTO_INCREMENT PRIMARY KEY,slug VARCHAR(64) NOT NULL UNIQUE,
         label VARCHAR(128) NOT NULL,category ENUM('season','topic') NOT NULL DEFAULT 'topic',
         sortOrder INT NOT NULL DEFAULT 0
       ) ENGINE=InnoDB`);
-      for (const [index, id] of ids.entries()) {
+        for (const [index, id] of ids.entries()) {
+          await connection.query(
+            "INSERT INTO posts (id,text,photos,tags,status,published,target,sortOrder,createdAt,publishedAt) VALUES (?,?,'[]','[]',?,1,?,?,'2026-01-01','2026-01-01')",
+            [
+              id,
+              `C3 pager ${index + 1} fixture`,
+              index === 16 ? "draft" : "published",
+              index === 15 ? (target === "feed" ? "club" : "feed") : target,
+              index,
+            ],
+          );
+        }
+        const snapshotSql =
+          "SELECT id,text,status,published,target FROM posts WHERE id BETWEEN 94701 AND 94717 ORDER BY id";
+        const before = await rows(snapshotSql);
+        await context.clearCookies();
+        if (target === "club") {
+          // Local access fixture only; no checkout or provider payment is invoked.
+          await connection.query(
+            "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-pager-access','paid','0','2030-01-01')",
+            [memberId],
+          );
+          await context.addCookies([
+            {
+              name: COOKIE_NAME,
+              value: await sdk.createSessionToken("binding-browser-member", {
+                sessionVersion: 0,
+              }),
+              url: frontend,
+              httpOnly: true,
+              sameSite: "Lax",
+            },
+          ]);
+        }
+        const access = await rows(
+          "SELECT * FROM club_payments WHERE userId=? ORDER BY id",
+          [memberId],
+        );
+        const page = await context.newPage();
+        const isPage = (url: string) =>
+          url.includes(target === "feed" ? "feed.listPaginated" : "club.list");
+        const firstResponse = page.waitForResponse((response) =>
+          isPage(response.url()),
+        );
+        await page.goto(frontend + target);
+        const first = await firstResponse;
+        expect(first.status()).toBe(200);
+        const payload = async (response: typeof first) => {
+          const body = await response.json();
+          const entries = Array.isArray(body) ? body : [body];
+          return entries
+            .map((entry) => entry.result?.data?.json)
+            .find((data) => Array.isArray(data?.posts)) as {
+            posts: { id: number }[];
+            nextCursor: number | null;
+          };
+        };
+        const initial = await payload(first);
+        expect(initial.posts.map((post) => post.id)).toEqual(ids.slice(0, 12));
+        expect(initial.nextCursor).toBe(12);
+        if (target === "club") {
+          const setup = page.getByRole("dialog", {
+            name: "Настройка профиля клуба",
+          });
+          await browserExpect(setup).toBeVisible();
+          await setup
+            .getByRole("button", {
+              name: "Закрыть настройку профиля",
+              exact: true,
+            })
+            .click();
+          await browserExpect(setup).toHaveCount(0);
+        }
+        await browserExpect(
+          page.getByText("C3 pager 1 fixture", { exact: true }),
+        ).toBeVisible();
+        // Scroll the actual windowed collection to its tail; no synthetic API reads.
+        const collection = page.locator("[data-windowed-collection]:visible");
+        await browserExpect(collection).toHaveCount(1);
+        const [next] = await Promise.all([
+          page.waitForResponse(
+            (response) =>
+              isPage(response.url()) &&
+              decodeURIComponent(response.url()).includes('"cursor":12'),
+          ),
+          collection.evaluate((element) => {
+            element.scrollTop = element.scrollHeight;
+          }),
+        ]);
+        expect(next.status()).toBe(200);
+        const terminal = await payload(next);
+        expect(terminal.posts.map((post) => post.id)).toEqual(
+          ids.slice(12, 15),
+        );
+        expect(terminal.nextCursor).toBeNull();
+        const all = [...initial.posts, ...terminal.posts].map(
+          (post) => post.id,
+        );
+        expect(new Set(all).size).toBe(15);
+        expect([...all].sort((a, b) => a - b)).toEqual(ids.slice(0, 15));
+        await collection.evaluate((element) => {
+          element.scrollTop = element.scrollHeight;
+        });
+        if (target === "feed") {
+          await browserExpect(
+            page.getByText("Все посты загружены", { exact: true }),
+          ).toBeVisible();
+        } else {
+          await browserExpect(
+            page.getByRole("button", { name: "Загрузить ещё", exact: true }),
+          ).toHaveCount(0);
+        }
+        await browserExpect(
+          page.getByText("C3 pager 15 fixture", { exact: true }),
+        ).toBeVisible();
+        expect(await rows(snapshotSql)).toEqual(before);
+        expect(
+          await rows("SELECT * FROM club_payments WHERE userId=? ORDER BY id", [
+            memberId,
+          ]),
+        ).toEqual(access);
+      } finally {
+        for (const id of ids)
+          await connection.query(
+            "DELETE FROM posts WHERE id=? AND text LIKE 'C3 pager % fixture'",
+            [id],
+          );
         await connection.query(
-          "INSERT INTO posts (id,text,photos,tags,status,published,target,sortOrder,createdAt,publishedAt) VALUES (?,?,'[]','[]',?,1,?,?,'2026-01-01','2026-01-01')",
-          [
-            id,
-            `C3 pager ${index + 1} fixture`,
-            index === 16 ? "draft" : "published",
-            index === 15 ? "club" : "feed",
-            index,
-          ],
+          "DELETE FROM club_payments WHERE userId=? AND orderId='c3-pager-access'",
+          [memberId],
         );
       }
-      const snapshotSql =
-        "SELECT id,text,status,published,target FROM posts WHERE id BETWEEN 94701 AND 94717 ORDER BY id";
-      const before = await rows(snapshotSql);
-      await context.clearCookies();
-      const page = await context.newPage();
-      const isPage = (url: string) => url.includes("feed.listPaginated");
-      const firstResponse = page.waitForResponse((response) =>
-        isPage(response.url()),
-      );
-      await page.goto(frontend + "feed");
-      const first = await firstResponse;
-      expect(first.status()).toBe(200);
-      const payload = async (response: typeof first) => {
-        const body = await response.json();
-        const entries = Array.isArray(body) ? body : [body];
-        return entries
-          .map((entry) => entry.result?.data?.json)
-          .find((data) => Array.isArray(data?.posts)) as {
-          posts: { id: number }[];
-          nextCursor: number | null;
-        };
-      };
-      const initial = await payload(first);
-      expect(initial.posts.map((post) => post.id)).toEqual(ids.slice(0, 12));
-      expect(initial.nextCursor).toBe(12);
-      await browserExpect(
-        page.locator("article").filter({ hasText: "C3 pager 1 fixture" }),
-      ).toBeVisible();
-      // Scroll the actual windowed collection to its tail; no synthetic API reads.
-      const collection = page.locator("[data-windowed-collection]:visible");
-      await browserExpect(collection).toHaveCount(1);
-      const [next] = await Promise.all([
-        page.waitForResponse(
-          (response) =>
-            isPage(response.url()) &&
-            decodeURIComponent(response.url()).includes('"cursor":12'),
-        ),
-        collection.evaluate((element) => {
-          element.scrollTop = element.scrollHeight;
-        }),
-      ]);
-      expect(next.status()).toBe(200);
-      const terminal = await payload(next);
-      expect(terminal.posts.map((post) => post.id)).toEqual(ids.slice(12, 15));
-      expect(terminal.nextCursor).toBeNull();
-      const all = [...initial.posts, ...terminal.posts].map((post) => post.id);
-      expect(new Set(all).size).toBe(15);
-      expect([...all].sort((a, b) => a - b)).toEqual(ids.slice(0, 15));
-      await collection.evaluate((element) => {
-        element.scrollTop = element.scrollHeight;
-      });
-      await browserExpect(
-        page.getByText("Все посты загружены", { exact: true }),
-      ).toBeVisible();
-      await browserExpect(
-        page.locator("article").filter({ hasText: "C3 pager 15 fixture" }),
-      ).toBeVisible();
-      expect(await rows(snapshotSql)).toEqual(before);
-    } finally {
-      for (const id of ids)
-        await connection.query(
-          "DELETE FROM posts WHERE id=? AND text LIKE 'C3 pager % fixture'",
-          [id],
-        );
-    }
-  }, 30_000);
+    },
+    30_000,
+  );
 
   it("C3 searches the public feed without exposing club or unpublished posts and clears the query", async () => {
     const { rows, connection, context, frontend } = fixture();

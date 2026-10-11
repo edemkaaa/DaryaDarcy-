@@ -6,6 +6,14 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3aq: existing native pagination browser case covers guest feed + paid-member
+club, 12+3/cursor 12→null, unique exact eligible IDs, excluded opposite-target/
+draft neighbors, terminal UI + unchanged SQL posts/access. Actual club setup
+dialog closed through UI; local access row only, no provider checkout/payment.
+2 focused pass / 52 filtered skips (54), exit 0 (3.62 s), types/format/docs/diff.
+Test-only coverage, no new RED/fix/whole-suite claim; C3ap checkpoint retained.
+Own tmpfs DB/Next stopped/--rm; working DB/external/device/A7/Q1 gates unchanged.
+
 C3ap: tied pagination regression covers guest feed and authenticated club,
 exact stable ID order/cursors/completeness. Club with tie-break temporarily
 removed: native HTTP/SQL RED 35 received / 32 unique; restored fix → 42 native
