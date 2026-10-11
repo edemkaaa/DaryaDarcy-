@@ -6,6 +6,16 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1h: Browserslist 4.28.1 → 4.28.7 по
+[релизу владельца](https://github.com/browserslist/browserslist/releases/tag/4.28.7),
+с related datasets и заменой baseline 2.9.8 на existing 2.11.27.
+Три bounded custom-stats crash RED → 4 focused GREEN; full default 2212 pass /
+1053 opt-in skips, exit 0; root types/frontend production build/formatting и
+frozen-ignore-scripts install проходят. Prod audit 2 (0 critical / 1 high /
+0 moderate / 1 low), exit 1, не clean: tRPC/Babel ещё открыты. Cache OOM/CLI/
+filesystem autodiscovery не тестировались; build policy не менялась.
+SQL/provider/device/migrations/rollout ещё открыты. Не выложено.
+
 Свежий Q1g: body-parser 1.20.4 → 1.20.6 по
 [changelog владельца](https://raw.githubusercontent.com/expressjs/body-parser/1.20.6/HISTORY.md),
 parent qs override сохраняет 6.16.0. Восемь invalid-limit construction RED →

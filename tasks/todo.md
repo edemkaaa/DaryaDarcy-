@@ -311,6 +311,13 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1h: Browserslist 4.28.1 → 4.28.7 + related datasets; baseline 2.9.8
+      удалена в пользу existing 2.11.27. Три custom-stats TypeError RED →
+      4 focused GREEN; cache eviction/CLI не выдаются за stress/сквозную приёмку.
+      Full default 2212 pass / 1053 opt-in skips, exit 0 (21.96s), root types/
+      frontend build/formatting/frozen-ignore-scripts install проходят.
+      Prod audit 2 (0 critical / 1 high / 0 moderate / 1 low), exit 1, не clean;
+      остались tRPC/Babel, migrations/rollout и внешняя приёмка открыты.
       Q1g: body-parser override 1.20.4 → 1.20.6; parent qs override сохраняет
       patched 6.16.0. Восемь malformed-config startup RED → 87 dependency/
       request-body/native Nest/webhook HTTP GREEN; valid app quotas неизменны.

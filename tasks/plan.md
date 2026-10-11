@@ -1342,6 +1342,34 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1h — Browserslist/build graph, 11 октября МСК:** scoped override 4.28.1 →
+4.28.7 по [релизу](https://github.com/browserslist/browserslist/releases/tag/4.28.7),
+[changelog](https://raw.githubusercontent.com/browserslist/browserslist/4.28.7/CHANGELOG.md)
+и [stats advisory](https://github.com/advisories/GHSA-73wf-gq98-2v4g).
+Actual Babel helper dependency на bounded JSON stats с __proto__/constructor/
+toString раньше бросала TypeError при unrelated explicit query: **3 RED**;
+теперь возвращает literal chrome 100. Обычный custom usage query сохранён:
+**4 focused GREEN**. В тесте нет poisoned files/global prototype mutations.
+Это build-dependency characterization, не app runtime exploit proof; malicious
+stats autodiscovery через filesystem отдельно не проверяли. Cache eviction fix
+проверен чтением upstream/runtime source, не OOM stress или отдельным RED.
+Review учёл промежуточные изменения Electron/> queries и baseline case handling.
+Generated lock меняет только related graph: Browserslist, datasets caniuse-lite
+1.0.30001815 / electron-to-chromium 1.5.452 / node-releases 2.0.58, helper/peer
+references; baseline 2.9.8 удалена в пользу already existing 2.11.27.
+Все пять registry integrity совпали, install/prepare hooks отсутствуют.
+Node releases требует Node >=18; local/CI используют Node 22. Current macOS
+frozen --ignore-scripts install GREEN, не clean Linux rehearsal. CLI baseline
+advisory исчезла за счёт patched existing branch; сам CLI не проверяли.
+**2212 full default pass / 1053 opt-in skips, exit 0 (21.96s)** под scoped
+caffeinate; root types/frontend production build/formatting проходят. Backend
+source/graph прежние — его build не повторяли. Native prod audit теперь
+**2 findings: 0 critical / 1 high / 0 moderate / 1 low**, exit 1, не clean;
+остались tRPC experimental caller и Babel sourceMappingURL. TDD/security/review
+skills удержали related upgrade и независимые literal fixtures. Browser target
+policy, auth/CORS/trust/quotas не менялись; read installed Next browser guide.
+Devices/SQL/provider/media/migrations/rollout этим не закрываются. Не выложено.
+
 **Q1g — body-parser, 11 октября МСК:** scoped override 1.20.4 → 1.20.6
 по [changelog владельца](https://raw.githubusercontent.com/expressjs/body-parser/1.20.6/HISTORY.md)
 и [advisory](https://github.com/advisories/GHSA-v422-hmwv-36x6).
