@@ -6,6 +6,16 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+S2a: both digital product pages use actual launch-config HTTP/SQL recipient,
+revision 17/email-client/online-payment false. Literal product title/link and
+mailto subject/body + honest manual-send/fallback contact verified; mailto never
+clicked, no email/payment sent. SQL config/payment IDs unchanged; owned singleton
+guard and qualified cleanup. 2 native pass / 57 filtered skips (59), exit 0
+(2.74 s), types/format/docs/diff. Initial rerun strict-selector failure diagnosed:
+live root + hidden Next S:0 copy; scoped unique #root, no force-click/suppression.
+No production RED/fix or physical mail-client/customer-contact acceptance.
+Own tmpfs DB/Next stopped/--rm; S2/device/A7/Q1/provider gates remain.
+
 C3at: native next-page lost-reply/retry extends to guest feed, retaining first
 12 cards, honest error instead of terminal footer, actual manual retry returns
 3 remaining IDs/cursor=null, no duplicates/private rows/SQL changes. Shared

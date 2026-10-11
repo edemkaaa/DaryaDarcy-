@@ -41,6 +41,31 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**S2a, native digital-product manager link preparation — 11 октября МСК:**
+После C3 paging/retry взят независимый S2 срез. Две digital карточки читают
+настоящий /api/launch-config через Nest → owned backend_test. Synthetic manager
+и revision=17 заданы только в собственной SQL singleton fixture; HTTP ответ
+подтверждает этот recipient, email-client и shopOnlinePayment=false. Каждая
+видимая ссылка содержит literal правильный product title, subject/body и точный
+локальный /shop/digital-N URL. Видны честный текст самостоятельной отправки
+и fallback contact. **Mailto не нажимается**, OS client/external mail не запускается;
+config row и payment IDs не меняются, checkout/provider operations отсутствуют.
+**2 native browser pass / 57 filtered skips (59), exit 0 (2.74 s)**;
+root types/format/docs/diff проходят. Первый run pass (4.59 s), rerun после
+усиления snapshot выявил fixture strict-selector failure: DOM diagnostic
+подтвердил mounted #root (rects=1) и hidden Next S:0 (rects=0). Diagnostic удалён,
+тексты scoped к unique mounted #root; no first/force-click/error suppression.
+Review: expected letters literal, не вызов production mail builder для expected;
+singleton must be absent before insert, cleanup qualified по ID/revision/recipient,
+existing synthetic payment IDs сохраняются. Production/design/roles/контакты
+заказчика не менялись, это native acceptance existing path, не defect RED/fix.
+Broad C3/default/build не повторены без изменений. **S2 остаётся открыт:**
+согласование настоящего manager contact и физическое открытие почтового клиента
+на телефоне; этот synthetic HTTP/SQL результат их не заменяет. Own container
+bc94d9574318 проверен до use/stop по label/tmpfs/no mounts/loopback и остановлен
+--rm; Next остановлен, synthetic DB удалена. Working DB/secrets/external
+messages/provider payments/push/deploy не затронуты; A7/Q1/device/media gates прежние.
+
 **C3at, guest feed next-page reply loss and recovery — 11 октября МСК:**
 C3as fault/retry branch расширена на guest feed; route/error message выбираются
 по target, остальные native response/SQL assertions сохранены. Actual HTTP

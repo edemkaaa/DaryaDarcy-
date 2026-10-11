@@ -25,6 +25,7 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
 import { COOKIE_NAME } from "../packages/shared/src/const";
 import { openContentTestDatabase } from "./helpers/content-mysql";
+import { registerShopManagerBrowserCases } from "./helpers/shop-manager-browser-cases";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openLoopbackSmtp } from "./helpers/loopback-smtp";
 import { registerAdminMembershipBrowserCases } from "./helpers/admin-membership-browser-cases";
@@ -234,6 +235,12 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       base,
       actorId,
       memberId,
+      frontend: frontend!,
+    }));
+    registerShopManagerBrowserCases(() => ({
+      rows,
+      connection,
+      context,
       frontend: frontend!,
     }));
     registerAdminMembershipBrowserCases(() => ({
