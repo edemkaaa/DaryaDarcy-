@@ -311,6 +311,13 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1g: body-parser override 1.20.4 → 1.20.6; parent qs override сохраняет
+      patched 6.16.0. Восемь malformed-config startup RED → 87 dependency/
+      request-body/native Nest/webhook HTTP GREEN; valid app quotas неизменны.
+      Full default 2208 pass / 1053 opt-in skips, exit 0 (20.02s), root types/
+      backend build/formatting/frozen-ignore-scripts install проходят.
+      Prod audit 5 (0 critical / 3 high / 1 moderate / 1 low), exit 1, не clean.
+      Не app exploit/SQL/provider proof; остальные findings и rollout открыты.
       Q1f: sharp root/backend + Next scoped override → 0.35.5; actual macOS
       librsvg 2.63.2/libvips 8.18.7. 27 integrity/hooks metadata проверены;
       81 native decoder/profile HTTP/media pass до и после, без RCE RED claim.

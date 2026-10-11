@@ -6,6 +6,15 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1g: body-parser 1.20.4 → 1.20.6 по
+[changelog владельца](https://raw.githubusercontent.com/expressjs/body-parser/1.20.6/HISTORY.md),
+parent qs override сохраняет 6.16.0. Восемь invalid-limit construction RED →
+87 focused native HTTP/dependency pass; текущие valid app limits не менялись.
+Full default 2208 pass / 1053 opt-in skips, exit 0; root types/backend build/
+formatting/frozen-ignore-scripts install проходят. Prod audit 5 (0 critical /
+3 high / 1 moderate / 1 low), exit 1, не clean. Это не подтверждение app exploit
+или SQL/provider приёмки; migrations/rollout ещё открыты. Не выложено.
+
 Свежий Q1f: sharp root/backend/Next → 0.35.5 по
 [advisory владельца](https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w).
 Actual macOS librsvg 2.63.2, libvips 8.18.7; прежний API SVG block сохранён.

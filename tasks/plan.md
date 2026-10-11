@@ -1342,6 +1342,31 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1g — body-parser, 11 октября МСК:** scoped override 1.20.4 → 1.20.6
+по [changelog владельца](https://raw.githubusercontent.com/expressjs/body-parser/1.20.6/HISTORY.md)
+и [advisory](https://github.com/advisories/GHSA-v422-hmwv-36x6).
+Четыре actual Express parsers (JSON/raw/text/form) раньше принимали invalid
+string и NaN limit при construction: **8 RED**. После обновления все восемь
+отвергаются синхронно; **87 focused dependency/request-body/native Nest/webhook
+HTTP GREEN**, включая сохранённые valid quotas, generic errors и подписи.
+Это upstream malformed-config characterization, не доказательство app exploit:
+application.ts/request-bodies.ts/sandbox ingress используют valid literal limits.
+App form parsers по-прежнему extended:false; промежуточный 1.20.5 также меняет
+strict JSON error construction и extended arrays >100, учтено при review.
+Пакет требует qs ~6.15.1: отдельный parent-scoped override сохраняет already
+patched 6.16.0 вместо возврата к старой advisory branch. Actual Express body-parser
+1.20.6 resolves qs 6.16.0; Nest/Express 5 branch 2.3.0 неизменна. Generated lock
+меняет два overrides, один package/integrity/snapshot и Express reference; все
+остальные transitive versions прежние, новых packages/hooks нет. Registry integrity
+совпала; frozen --ignore-scripts install на текущем macOS tree GREEN, не clean Linux.
+**2208 full default pass / 1053 opt-in skips, exit 0 (20.02s)** под scoped
+caffeinate; root types/backend build/formatting проходят. Native prod audit
+**5 findings: 0 critical / 3 high / 1 moderate / 1 low**, exit 1, не clean.
+TDD/security/review skills: bounded startup failures и native HTTP compatibility,
+без новых parser quotas/auth/CORS/trust policies. SQL/provider/storage/browser
+приёмка этим не закрывается; frontend graph/build не менялись и не повторялись.
+Остальные findings, migrations/rollout и внешняя приёмка открыты. Не выложено.
+
 **Q1f — sharp/native decoder, 11 октября МСК:** root/backend закреплены на
 0.35.5 по [релизу владельца](https://github.com/lovell/sharp/releases/tag/v0.35.5)
 и [librsvg advisory](https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w).
