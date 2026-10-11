@@ -311,6 +311,15 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1s: Vitest + seven internal packages exact 4.1.11; real own loopback
+      Vite/WebSocket register → HTTP disclosed synthetic outside/denied files:
+      2 native RED → 3 GREEN, allowed redirect сохранён. No secrets/user files.
+      Initial macOS root-alias 403 исправлен realpath, не security RED.
+      Eight integrities/hooks/selected runtime reviewed, rest graph unchanged.
+      Full default 2251 pass / 1053 skips, exit 0 (19.09s); types/format/frozen
+      install GREEN. Prod audit 0/exit 0; full audit 2 (1 high / 1 moderate),
+      exit 1 / 828 deps: braces + legacy esbuild. Manual Q1m/Q1p blockers и
+      Q1/A7/external gates остаются, не app-browser/remote-app exploit, не выложено.
       Q1r: scoped js-yaml 4.3.2 в ESLint/eslintrc; empty merge budget,
       hard sequence limit и default depth: 3 native no-throw RED → 4 GREEN.
       Ordinary YAML/merge/omap/multi-doc/dump preserved; numeric underscores

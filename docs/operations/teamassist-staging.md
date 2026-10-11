@@ -6,6 +6,16 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1s: Vitest/internal graph 4.1.11; real own Vite/WebSocket → HTTP
+не возвращает synthetic outside/denied source через mock redirect. Два native
+disclosure RED → 3 GREEN, allowed redirect сохранён; no secrets/user files.
+Eight registry integrities/hooks/selected runtime reviewed, rest graph unchanged.
+2251 full default pass / 1053 skips, exit 0 (19.09s); types/format/frozen install
+GREEN. Prod audit 0/exit 0 (325 deps); full audit 2 (1 high / 1 moderate),
+exit 1 (828 deps): braces + legacy esbuild. Manual Q1m/Q1p blockers сверх count;
+Q1/A7/внешние gates открыты. Это native tooling acceptance, не remote-app exploit
+или app-browser/clean Linux/deployment proof; не пушили и не выложено.
+
 Свежий Q1r: scoped js-yaml 4.3.2 для ESLint/eslintrc. Empty merge work,
 hard sequence size и depth limits: 3 native RED → 4 GREEN, ordinary YAML/
 merge/omap/multi-doc/dump preserved. Underscore numbers теперь strings;

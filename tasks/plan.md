@@ -1342,6 +1342,39 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1s — Vitest mock redirect file boundary, 11 октября МСК:** exact root
+Vitest 4.1.9 → 4.1.11 и семь связанных @vitest packages по
+[advisory](https://github.com/advisories/GHSA-82fw-gwwq-j7x9) и
+[upstream range](https://github.com/vitest-dev/vitest/compare/v4.1.9...v4.1.11).
+Reviewed public interceptor registration guard через Vite isFileLoadingAllowed,
+authenticated browser RPC check/registration switch, runner concurrency limiter
+и import postfix preservation. Public plugin всё ещё имеет raw HMR registration;
+обновление проверяет file policy, не добавляет authentication или root-only sandbox.
+Vitest browser RPC token scope отличается; remote exploit приложения не заявляется.
+Own disposable synthetic root: настоящий Vite на 127.0.0.1/ephemeral port,
+реальный WebSocket register/ack → HTTP module request. Старый mocker возвращал
+OUTSIDE из созданного test-only файла вне configured root и DENIED из in-root
+файла, запрещённого synthetic fs.deny. **2 native disclosure RED → 3 GREEN**:
+оба registration теперь не подменяют ORIGINAL; разрешённый ALLOWED redirect
+сохранён. Никакие пользовательские файлы, .env/секреты не читались.
+Initial 403 у всех fixtures оказался /var vs /private/var canonical-root
+расхождением на macOS: test root исправлен realpath до native RED; это harness
+repair, не security RED. Socket/server закрываются, fixture cleanup проверяет
+exact owned directory, uid/mode/no-symlink; app/Vite config не менялась.
+Все восемь registry integrities совпали, install/prepare hooks отсутствуют,
+non-Vitest graph unchanged; generated lock только eight package/snapshot graph
+и root importer/peer version references, frozen ignore-scripts install GREEN.
+**2251 full default pass / 1053 opt-in skips, exit 0 (19.09s)**;
+root types/formatting GREEN. Lint/build/SQL/app-browser неизменившихся consumers
+не повторялись; loopback test — native tooling HTTP, не user-app acceptance.
+Prod audit **0 findings / exit 0 / 325 dependencies**; full audit
+**2 findings (1 high / 1 moderate), exit 1 / 828 dependencies**:
+braces (нет patched version в advisory) и legacy esbuild в drizzle-kit loader.
+Manual Q1m/Q1p blockers остаются сверх count, Q1/A7/внешние gates открыты.
+TDD/security/review skills потребовали настоящий socket → read sink RED и
+allowed-path positive control, а не mocks или version assertion. Не пушили,
+сервер/рабочая БД/roles/CORS/trust/quotas не менялись.
+
 **Q1r — ограничение YAML merge work в ESLint, 11 октября МСК:** scoped
 js-yaml 4.1.1 → 4.3.2 по [advisory](https://github.com/advisories/GHSA-2883-xcg3-v3hh)
 и [upstream range](https://github.com/nodeca/js-yaml/compare/4.1.1...4.3.2).
