@@ -41,6 +41,30 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**S2b, native manager refresh failure must not offer cached recipient — 11 октября МСК:**
+Обе S2a карточки дополнены native freshness/recovery. После подтверждённой
+mailto ссылки owned SQL config меняется qualified UPDATE с revision 17→18
+и вторым synthetic recipient. Browser pageshow lifecycle trigger читает actual
+Nest/SQL config; scoped transport подтверждает HTTP 200/new revision/contact,
+затем теряет return reply. Старый mailto и fallback contact исчезают, order
+button disabled, виден честный manager error. После восстановления транспорта
+настоящая «Повторить» возвращает новый recipient; полный href совпадает с прежним
+subject/body/product URL, заменён только recipient. SQL config и payment IDs
+не меняются от read/retry. Cleanup допускает только две owned revision/email
+пары; рабочие настройки/админка не менялись. **2 native pass / 57 filtered skips
+(59), exit 0 (3.02 s)**; root types/format/docs/diff проходят. Первые fixture
+failures ожидали исчезновение всех role=alert: diagnostic показал пустой
+__next-route-announcer__, не manager error. Теперь error scoped по точному
+тексту менеджера; diagnostic удалён, no suppression/force-click. Review:
+native response не подменён, abort только после настоящего чтения; SQL UPDATE
+только synthetic test setup, не admin write acceptance. Production/design/roles/
+контакты заказчика не менялись, no new defect RED/fix claim. Pageshow dispatch
+синтетический: физический wake/focus/mail-client этим не доказан; mailto никогда
+не нажимается, внешние письма/payment operations отсутствуют. Broad C3/default/
+build не повторены без изменения production. Own container 9bbe924e8829 проверен
+до use/stop по label/tmpfs/no mounts/loopback, остановлен --rm; Next остановлен,
+synthetic DB удалена. Real manager/device/S2/A7/Q1/provider gates остаются.
+
 **S2a, native digital-product manager link preparation — 11 октября МСК:**
 После C3 paging/retry взят независимый S2 срез. Две digital карточки читают
 настоящий /api/launch-config через Nest → owned backend_test. Synthetic manager

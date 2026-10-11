@@ -6,6 +6,15 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+S2b: both native digital pages drop cached manager mailto/fallback after real
+revision 18 config read loses reply; order button disabled + honest scoped error.
+Actual «Повторить» restores replacement recipient, preserving subject/body,
+config/payment IDs unchanged. 2 pass / 57 filtered skips (59), exit 0 (3.02 s),
+types/format/docs/diff. Initial broad alert count failure traced to Next route
+announcer, not stale contact; exact manager-error selector, diagnostic removed.
+Test-only, no production RED/fix; lifecycle pageshow synthetic, no OS mail.
+Own tmpfs DB/Next stopped/--rm; real contact/device/A7/Q1/provider gates unchanged.
+
 S2a: both digital product pages use actual launch-config HTTP/SQL recipient,
 revision 17/email-client/online-payment false. Literal product title/link and
 mailto subject/body + honest manual-send/fallback contact verified; mailto never

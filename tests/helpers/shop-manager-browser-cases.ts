@@ -8,6 +8,7 @@ interface ShopManagerBrowserFixture {
   rows(sql: string, args?: unknown[]): Promise<RowDataPacket[]>;
   context: BrowserContext;
   frontend: string;
+  base: string;
 }
 
 export function registerShopManagerBrowserCases(
@@ -19,8 +20,9 @@ export function registerShopManagerBrowserCases(
   ])(
     "S2 prepares $id mail from the native launch configuration without sending it",
     async (product) => {
-      const { connection, rows, context, frontend } = fixture();
+      const { connection, rows, context, frontend, base } = fixture();
       const recipient = "synthetic-manager@example.test";
+      const replacement = "synthetic-new-manager@example.test";
       // A fresh owned DB must not contain another suite's singleton fixture.
       expect(await rows("SELECT id FROM launch_settings WHERE id=1")).toEqual(
         [],
@@ -90,13 +92,79 @@ export function registerShopManagerBrowserCases(
         expect(await rows("SELECT * FROM launch_settings WHERE id=1")).toEqual(
           before,
         );
+        // Simulate a changed native configuration while the old link is cached.
+        await connection.query(
+          "UPDATE launch_settings SET config=JSON_SET(config,'$.managerEmail',?),revision=18 WHERE id=1 AND revision=17 AND JSON_UNQUOTE(JSON_EXTRACT(config,'$.managerEmail'))=?",
+          [replacement, recipient],
+        );
+        const updated = await rows("SELECT * FROM launch_settings WHERE id=1");
+        expect(updated[0].revision).toBe(18);
+        let loseReply = true;
+        let lostReads = 0;
+        await page.route("**/api/launch-config*", async (route) => {
+          const url = new URL(route.request().url());
+          const response = await route.fetch({
+            url: base + url.pathname + url.search,
+            maxRedirects: 0,
+          });
+          expect(response.status()).toBe(200);
+          expect(await response.json()).toMatchObject({
+            revision: 18,
+            managerEmail: replacement,
+          });
+          if (loseReply) {
+            lostReads++;
+            return route.abort("failed");
+          }
+          return route.fulfill({ response });
+        });
+        // Browser lifecycle event, not a physical-device focus acceptance claim.
+        await page.evaluate(() => window.dispatchEvent(new Event("pageshow")));
+        const error = page.getByRole("alert").filter({
+          hasText:
+            "Не удалось загрузить контакт менеджера. Попробуйте ещё раз.",
+        });
+        await browserExpect(
+          error.getByRole("button", { name: "Повторить", exact: true }),
+        ).toBeVisible();
+        expect(lostReads).toBeGreaterThan(0);
+        await browserExpect(order).toHaveCount(0);
+        await browserExpect(
+          page.getByRole("button", {
+            name: "Заказать через менеджера →",
+            exact: true,
+          }),
+        ).toBeDisabled();
+        await browserExpect(
+          content.getByText(
+            `Если приложение не открылось, напишите: ${recipient}`,
+            { exact: true },
+          ),
+        ).toHaveCount(0);
+        loseReply = false;
+        const [recovered] = await Promise.all([
+          page.waitForResponse(
+            (response) =>
+              new URL(response.url()).pathname === "/api/launch-config",
+          ),
+          error.getByRole("button", { name: "Повторить", exact: true }).click(),
+        ]);
+        expect(recovered.status()).toBe(200);
+        await browserExpect(order).toHaveAttribute(
+          "href",
+          href!.replace(recipient, replacement),
+        );
+        await browserExpect(error).toHaveCount(0);
+        expect(await rows("SELECT * FROM launch_settings WHERE id=1")).toEqual(
+          updated,
+        );
         expect(await rows("SELECT id FROM club_payments ORDER BY id")).toEqual(
           paymentIds,
         );
       } finally {
         await connection.query(
-          "DELETE FROM launch_settings WHERE id=1 AND revision=17 AND JSON_UNQUOTE(JSON_EXTRACT(config,'$.managerEmail'))=?",
-          [recipient],
+          "DELETE FROM launch_settings WHERE id=1 AND revision IN (17,18) AND JSON_UNQUOTE(JSON_EXTRACT(config,'$.managerEmail')) IN (?,?)",
+          [recipient, replacement],
         );
       }
     },

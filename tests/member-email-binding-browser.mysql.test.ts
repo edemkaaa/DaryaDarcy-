@@ -241,6 +241,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       rows,
       connection,
       context,
+      base,
       frontend: frontend!,
     }));
     registerAdminMembershipBrowserCases(() => ({
