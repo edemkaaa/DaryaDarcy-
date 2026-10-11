@@ -41,6 +41,22 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3u, смешанный результат теста — 11 октября МСК:** guest проходит настоящие
+десять вопросов: первые пять cottagecore = 10, последние пять goblincore = 11
+(дом весит 3). Browser проверяет literal primary/secondary, blend и все семь
+scores; обе вкладки меняют canonical title, не перезаписывая итог. /quiz/result
+восстанавливает обе эстетики; reload возвращает primary с прежним storage/
+completedAt. SQL identity fixtures не меняются. Mutation переключателя на
+primary вместо выбранной key даёт focused RED: secondary title отсутствует.
+Mutation снята полностью, production diff пустой; **29 C1/C2/C3 native browser
+pass/exit 0**, root types/default build проходят. Review/TDD: независимые
+hand-selected ответы и literal scores, не вызов calculateResult для ожиданий;
+настоящий browser/Nest/SQL через локальный transport proxy, без внешних медиа,
+платежей, новой схемы/зависимости/правок дизайна. Own frontend остановлен,
+own tmpfs backend_test удалён после exact ID/label/tmpfs/loopback/no-volume/
+no-OOM проверки. Ещё открыты остальные эстетики, границы blend, focus/session
+races, медиа/устройства/transport race/A7 и server/cross-device persistence.
+
 **C3t, повторное прохождение сохранённого результата — 11 октября МСК:**
 member native browser сценарий дополнен: /quiz/result → restart → все десять
 ответов → новый completedAt → reload нового результата. Read-only восстановление

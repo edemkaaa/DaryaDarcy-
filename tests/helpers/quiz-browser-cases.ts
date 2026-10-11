@@ -57,6 +57,89 @@ async function completeCottagecoreQuiz(page: Page) {
 }
 
 export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
+  it("C3 preserves both blend aesthetics when switching tabs and reopening the saved result", async () => {
+    const { rows, context, frontend } = fixture();
+    const identitySql =
+      "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id IN (91401,91402) ORDER BY id";
+    const before = await rows(identitySql);
+    await context.clearCookies();
+    const page = await context.newPage();
+    await page.goto(frontend + "quiz");
+    await page
+      .getByRole("button", { name: "Начать путешествие", exact: true })
+      .click();
+    // Five cottagecore answers (10) followed by five goblincore answers (11 with home).
+    const choices = [
+      /Тёплое спокойствие/,
+      "Выбрать изображение 1",
+      "Выбрать изображение 1",
+      "Выбрать изображение 1",
+      "Выбрать изображение 1",
+      "Пойду исследовать ручей, собирать камни и наблюдать за жабой",
+      "Выбрать изображение 3",
+      /Свой голос на один день/,
+      "Разложу все находки дня на мху и буду рисовать их в блокноте при свете светлячков",
+      "Выбрать изображение 2",
+    ];
+    for (const [index, name] of choices.entries()) {
+      await page
+        .getByRole("button", { name, exact: typeof name === "string" })
+        .click();
+      await page
+        .getByRole("button", {
+          name: index === 9 ? "Узнать результат" : "Далее →",
+          exact: true,
+        })
+        .click();
+    }
+    const primary = page.getByText(
+      "Девушка, чьи карманы полны лесных сокровищ",
+      { exact: true },
+    );
+    const secondary = page.getByText(
+      "Девушка, вернувшая жизнь заброшенному саду",
+      { exact: true },
+    );
+    await browserExpect(primary).toBeVisible();
+    const stored = () =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("darcy:user:guest:@darcy_quiz_result");
+        return raw ? JSON.parse(raw) : null;
+      });
+    await browserExpect.poll(stored).toMatchObject({
+      primaryKey: "goblincore",
+      secondaryKey: "cottagecore",
+      isBlend: true,
+      scores: {
+        cottagecore: 10,
+        goblincore: 11,
+        witchcore: 0,
+        castlecore: 0,
+        fairycore: 0,
+        darkAcademia: 0,
+        lightAcademia: 0,
+      },
+    });
+    const completed = await stored();
+    await page
+      .getByRole("button", { name: "Cottagecore", exact: true })
+      .click();
+    await browserExpect(secondary).toBeVisible();
+    await browserExpect(primary).toHaveCount(0);
+    expect(await stored()).toEqual(completed);
+    await page.getByRole("button", { name: "Goblincore", exact: true }).click();
+    await browserExpect(primary).toBeVisible();
+    await page.goto(frontend + "quiz/result");
+    await browserExpect(primary).toBeVisible();
+    await page
+      .getByRole("button", { name: "Cottagecore", exact: true })
+      .click();
+    await browserExpect(secondary).toBeVisible();
+    await page.reload();
+    await browserExpect(primary).toBeVisible();
+    expect(await stored()).toEqual(completed);
+    expect(await rows(identitySql)).toEqual(before);
+  }, 30_000);
   it("C3 opens the quiz welcome instead of crashing when the saved result is absent or invalid", async () => {
     const { context, frontend } = fixture();
     await context.clearCookies();

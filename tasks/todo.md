@@ -267,6 +267,12 @@
       Own frontend остановлен/tmpfs DB удалён после проверки принадлежности.
       Остальные эстетики/blend/focus-session/media/устройства/A7 ещё открыты;
       не server/cross-device persistence, сервер не обновлялся.
+      C3u: native guest quiz даёт goblincore 11/cottagecore 10, blend с обеими
+      вкладками; /quiz/result/reload сохраняют оба ключа/scores/completedAt.
+      Wrong-tab mutation RED снята; 29 C1/C2/C3 GREEN/exit 0, root types/default
+      build; SQL identity прежние, own frontend/tmpfs DB очищены. Production
+      diff пустой. Остальные эстетики/blend boundaries/focus-session/media/
+      устройства/transport race/A7/server persistence ещё открыты; без выкладки.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.
