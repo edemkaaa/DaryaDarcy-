@@ -41,6 +41,38 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**S2c, integrated native regression exposes unresolved route lifecycle error — 11 октября МСК:**
+После S2b и guest-feed recovery выполнена их совместная native C1/C2/C3/S2
+проверка на HEAD f37a8b0: **45 cases pass / 14 binding filtered skips (59),
+но 1 unhandled rejection и exit 1 (54.81 s)**. Это НЕ зелёная приёмка.
+`route.fulfill: Route is already handled!` повторилась в context API bridge
+tests/member-email-binding-browser.mysql.test.ts:157; Vitest связал последнее
+активное имя с C1 moderator dismiss report. Это атрибуция runner, не доказанная
+причина конкретного сценария. Исторический C1 race снова подтверждён, но
+производственный дефект или исправление из этого не выводятся.
+По systematic-debugging выполнен один bounded diagnostic repeat той же группы:
+временный per-route in-memory trace фиксировал enter, fetch-return и исходные
+`_reportHandled` вызовы со stack; method/path без query/body/credentials,
+вывод только при fulfill failure, исходный метод сохранялся, ошибка
+перевыбрасывалась. **45 pass / 14 filtered skips, exit 0 (54.46 s)**;
+ошибка не повторилась, failure trace отсутствует. Этот повтор не отменяет
+первый exit 1 и не устанавливает root cause. Instrumentation полностью снята,
+diff test suite пуст, production/dependencies/design не менялись.
+Следующий диагностический срез — ограниченная повторяемая C1 lifecycle
+трассировка с явной принадлежностью route/test; не suppress/ignoreErrors и не
+спекулятивная замена teardown. Независимый S1 native season-admin browser
+остаётся возможен; реальные настройки/материалы/устройства — отдельный gate.
+Настоящие Nest/SQL/Chromium и существующая default-off Next сборка были только
+loopback; dotenv/секреты не читались, workers/provider/mail не запускались.
+Own container 1fd6aece0369 проверен перед use/stop по exact ID, owner
+`s2c-20261011`, tmpfs/no mounts/127.0.0.1; остановлен --rm, label inventory
+пуст. Next остановлен. Удалена только одноразовая synthetic DB (невосстановима),
+рабочие данные/чужие контейнеры не затронуты. A7/Q1/provider/device gates открыты.
+Docs-only review: оба результата разделены, причина не выдумана; docs links
+(54 documents) и diff whitespace проходят. Prettier check двух журналов
+возвращает exit 1; тот же check HEAD stdin для обоих также exit 1. Широкая
+переформатировка исторического журнала не выполнялась; format pass не заявлен.
+
 **S2b, native manager refresh failure must not offer cached recipient — 11 октября МСК:**
 Обе S2a карточки дополнены native freshness/recovery. После подтверждённой
 mailto ссылки owned SQL config меняется qualified UPDATE с revision 17→18

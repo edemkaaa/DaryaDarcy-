@@ -6,6 +6,17 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+S2c: integrated C1/C2/C3/S2 at f37a8b0: 45 cases pass / 14 filtered skips,
+but unhandled context route.fulfill «Route is already handled!», exit 1
+(54.81 s); NOT green. Runner last-active attribution: C1 moderator dismiss,
+root cause unproven. One failure-only in-memory lifecycle trace repeat:
+45 pass / 14 skips, exit 0 (54.46 s), no recurrence/trace; not a fix.
+Temporary instrumentation removed, suite diff empty; no production changes.
+Next: bounded attributable C1 route lifecycle diagnosis, no suppression or
+speculative teardown fix; independent S1 native season-admin browser remains.
+Own tmpfs DB/Next stopped, --rm label inventory empty; working data untouched.
+Full acceptance and A7/Q1/provider/device gates remain open.
+
 S2b: both native digital pages drop cached manager mailto/fallback after real
 revision 18 config read loses reply; order button disabled + honest scoped error.
 Actual «Повторить» restores replacement recipient, preserving subject/body,
