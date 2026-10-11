@@ -24,6 +24,7 @@ import { useClub } from "@/domain/subscription/subscription-context";
 import { AvatarCropper } from "@/shared/media/avatar-cropper";
 import { SafeArea } from "@/shared/ui/safe-area";
 import { AESTHETIC_NAMES, type AestheticKey } from "@/domain/quiz/quiz-data";
+import { parseSavedQuizResult } from "@/domain/quiz/saved-result";
 import { useRouter } from "@/shared/navigation/router";
 import { useFocusEffect } from "@/shared/navigation/router";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
@@ -131,12 +132,17 @@ export default function ProfileScreen() {
     ]).then(([name, avatar, quizRaw, feedRaw, clubRaw]) => {
       if (name) setProfileName(name);
       if (avatar && avatar.startsWith("http")) setAvatarUri(avatar);
-      if (quizRaw) {
-        try {
-          const parsed = JSON.parse(quizRaw);
-          setQuizResult(parsed);
-        } catch {}
-      }
+      const quiz = parseSavedQuizResult(quizRaw);
+      setQuizResult(
+        quiz
+          ? {
+              primaryKey: quiz.primary.key,
+              primaryTitle: quiz.primary.title,
+              secondaryKey: quiz.secondary?.key ?? null,
+              isBlend: quiz.isBlend,
+            }
+          : null,
+      );
       if (feedRaw) {
         try {
           setSavedFeedIds(JSON.parse(feedRaw));

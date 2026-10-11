@@ -273,6 +273,13 @@
       build; SQL identity прежние, own frontend/tmpfs DB очищены. Production
       diff пустой. Остальные эстетики/blend boundaries/focus-session/media/
       устройства/transport race/A7/server persistence ещё открыты; без выкладки.
+      C3v: native RED подтвердил raw browser title в профиле вместо canonical
+      result. Профиль переиспользует parser страницы результата, invalid/null
+      → приглашение пройти тест, валидный → canonical card/CTA/full result.
+      Storage/SQL identity неизменны. 30 C1/C2/C3 GREEN/exit 0, 17 parser/storage
+      unit, root/frontend types/lint/default build/API/boundaries проходят.
+      Own frontend/tmpfs DB очищены; дизайн/формат записи/авторизация прежние.
+      Focus/session/media/устройства/A7/deployment остаются открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

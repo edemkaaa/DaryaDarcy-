@@ -41,6 +41,24 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3v, согласованная карточка результата в профиле — 11 октября МСК:** native
+RED воспроизвёл отличие от /quiz/result: профиль доверял JSON.parse browser
+storage и показывал сохранённый произвольный title вместо canonical content.
+Теперь профиль использует тот же parseSavedQuizResult: валидные ключи/scores/
+blend преобразуются в прежнюю модель карточки; отсутствующие или некорректные
+данные сбрасывают карточку в приглашение пройти тест. Storage не переписывается.
+Новый native browser case проверяет canonical title → CTA → тот же полный итог,
+неизменную исходную запись и null/malformed/unknown-key/invalid-blend → empty card;
+SQL identity fixtures прежние. **30 C1/C2/C3 pass/exit 0**, 17 parser/storage unit
+pass; root/frontend types, lint/default build, API 73 и boundaries 606 проходят.
+Security/React/debugging skills привели к переиспользованию существующего parser,
+без нового формата/миграции/зависимости и без переделки дизайна. Review: small
+client-only boundary, canonical allowlisted metadata, null reset, bounded parse;
+не защита assessment от подделки scores и не изменение авторизации/club policy.
+Own frontend остановлен, own loopback/tmpfs backend_test удалён после exact
+ID/label/tmpfs/127.0.0.1/no-volume/no-OOM проверки. Сценарий локальный через
+transport proxy; focus/session races/media/устройства/A7/deployment открыты.
+
 **C3u, смешанный результат теста — 11 октября МСК:** guest проходит настоящие
 десять вопросов: первые пять cottagecore = 10, последние пять goblincore = 11
 (дом весит 3). Browser проверяет literal primary/secondary, blend и все семь

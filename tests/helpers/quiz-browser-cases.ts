@@ -57,6 +57,78 @@ async function completeCottagecoreQuiz(page: Page) {
 }
 
 export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
+  it("C3 validates the profile quiz card with the same canonical result as the saved-result page", async () => {
+    const { rows, context, frontend } = fixture();
+    const identitySql =
+      "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id IN (91401,91402) ORDER BY id";
+    const before = await rows(identitySql);
+    const page = await context.newPage();
+    await page.goto(frontend + "profile");
+    const saved = {
+      primaryKey: "cottagecore",
+      primaryTitle: "Untrusted browser title",
+      secondaryKey: null,
+      isBlend: false,
+      scores: {
+        cottagecore: 21,
+        goblincore: 0,
+        witchcore: 0,
+        castlecore: 0,
+        fairycore: 0,
+        darkAcademia: 0,
+        lightAcademia: 0,
+      },
+      completedAt: "2026-10-10T00:00:00.000Z",
+    };
+    const setStored = (raw: string | null) =>
+      page.evaluate((value) => {
+        const key = "darcy:user:91401:@darcy_quiz_result";
+        if (value === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+      }, raw);
+    const raw = JSON.stringify(saved);
+    await setStored(raw);
+    await page.reload();
+    await browserExpect(
+      page.getByText("Девушка, вернувшая жизнь заброшенному саду", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await browserExpect(
+      page.getByText(saved.primaryTitle, { exact: true }),
+    ).toHaveCount(0);
+    await page.getByRole("button", { name: /Посмотреть результат →/ }).click();
+    await browserExpect(page).toHaveURL(/\/quiz\/result$/);
+    await browserExpect(
+      page.getByText("Девушка, вернувшая жизнь заброшенному саду", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(() =>
+        localStorage.getItem("darcy:user:91401:@darcy_quiz_result"),
+      ),
+    ).toBe(raw);
+    for (const invalid of [
+      null,
+      "{",
+      JSON.stringify({ ...saved, primaryKey: "unknown" }),
+      JSON.stringify({ ...saved, isBlend: true }),
+    ]) {
+      await setStored(invalid);
+      await page.goto(frontend + "profile");
+      await page.reload();
+      await browserExpect(
+        page.getByText("Пройди тест, чтобы узнать свою эстетику", {
+          exact: true,
+        }),
+      ).toBeVisible();
+      await browserExpect(
+        page.getByRole("button", { name: /Посмотреть результат →/ }),
+      ).toHaveCount(0);
+    }
+    expect(await rows(identitySql)).toEqual(before);
+  }, 30_000);
   it("C3 preserves both blend aesthetics when switching tabs and reopening the saved result", async () => {
     const { rows, context, frontend } = fixture();
     const identitySql =
