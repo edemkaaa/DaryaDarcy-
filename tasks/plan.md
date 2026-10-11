@@ -41,6 +41,26 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3aj, remaining pure aesthetic browser journeys — 11 октября МСК:**
+C3ai расширен literal таблицей Goblincore/Witchcore/Castlecore/Fairycore/
+Dark Academia вместе с Light Academia. Для каждого — десять настоящих UI
+ответов, pressed и CTA, ожидаемые 21 points только выбранной эстетики,
+secondary=null/no blend, canonical title; guest storage с completedAt и
+тот же итог после /quiz/result/reload. Shuffled landscape/shelter/companion
+позиции явно заданы fixture, production QUESTIONS/scoring не используются
+для генерации ожидаемого результата. SQL security identities неизменны.
+**6 native browser pass / 46 filtered skips, exit 0 (8.52 s)**,
+root types/format/docs/diff checks проходят. Вместе с ранее проверенным
+Cottagecore полные pure journeys всех семи эстетик покрыты локальным Chromium
+на 390×844; физические устройства/gesture/rotation/реальные media этим не
+закрыты. Production не менялся, нового mutation RED нет; предыдущие unit
+scoring/reducer mutations не повторялись без изменения production.
+Review: один общий browser workflow, literal score/title/order fixtures,
+без семи копий теста; actual Next/Nest/guest cookie boundary/disposable SQL,
+не cross-device/server quiz persistence. Собственный loopback/tmpfs backend_test
+проверен по owner label/mounts/port и удалён через --rm, Next остановлен.
+Нет внешних писем/payments/рабочей БД/push/deploy; широкие gates сохранены.
+
 **C3ai, full native Light Academia journey — 11 октября МСК:**
 Новый native Chromium/production Next/Nest/disposable SQL сценарий проходит
 все десять вопросов гостем на viewport 390×844: последний пункт каруселей,

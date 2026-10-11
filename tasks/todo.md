@@ -6,6 +6,14 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3aj: literal pure Goblincore/Witchcore/Castlecore/Fairycore/Dark Academia/
+Light Academia — 6 native browser journeys pass / 46 filtered skips;
+21/0 scores/no blend/canonical title/scoped completedAt/reopen/reload и
+SQL identity сохранены. Вместе с прежним Cottagecore покрыты все 7 pure
+journeys локально. Types/format/docs/diff; production неизменён/no new RED.
+Own Next/tmpfs DB остановлены/--rm; media/gesture/devices/A7/external gates
+сохраняются, без payment fixture/рабочей БД/push/deploy.
+
 C3ai: full native guest Light Academia journey/last carousel choices:
 21/0 scores, no blend, pressed/CTA, scoped completedAt и result reopen/reload
 сохранены; SQL identity прежние. 1 browser pass / 46 filtered skips,

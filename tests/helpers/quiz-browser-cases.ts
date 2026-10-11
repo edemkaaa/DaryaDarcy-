@@ -58,78 +58,159 @@ async function completeCottagecoreQuiz(page: Page) {
 }
 
 export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
-  it("C3 completes the light academia quiz using the last carousel choices and restores its result", async () => {
-    const { rows, context, frontend } = fixture();
-    const identitySql =
-      "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id IN (91401,91402) ORDER BY id";
-    const identity = await rows(identitySql);
-    await context.clearCookies();
-    const page = await context.newPage();
-    await page.goto(frontend + "quiz");
-    await page
-      .getByRole("button", { name: "Начать путешествие", exact: true })
-      .click();
-    // Literal visible choices; shelter is #2 and companion #6, not #7.
-    // The last item exercises horizontal scrolling at the 390px fixture width.
-    const choices = [
-      /Радость и вдохновение/,
-      "Выбрать изображение 7",
-      "Выбрать изображение 7",
-      "Выбрать изображение 2",
-      "Выбрать изображение 7",
-      "Сяду на террасе кафе, буду рисовать прохожих и писать стихи на салфетке",
-      "Выбрать изображение 6",
-      /Ничего — найду другой путь/,
-      "Послушаю уличных музыкантов и усну с книгой стихов",
-      "Выбрать изображение 7",
-    ];
-    for (const [index, name] of choices.entries()) {
-      const next = page.getByRole("button", {
-        name: index === 9 ? "Узнать результат" : "Далее →",
+  it.each([
+    {
+      key: "lightAcademia",
+      title: "Девушка, для которой красота – родной язык",
+      first: /Радость и вдохновение/,
+      images: [7, 7, 2, 7, 6, 7],
+      morning:
+        "Сяду на террасе кафе, буду рисовать прохожих и писать стихи на салфетке",
+      sacrifice: /Ничего — найду другой путь/,
+      evening: "Послушаю уличных музыкантов и усну с книгой стихов",
+    },
+    {
+      key: "goblincore",
+      title: "Девушка, чьи карманы полны лесных сокровищ",
+      first: /Жгучее любопытство/,
+      images: [3, 2, 3, 2, 3, 2],
+      morning: "Пойду исследовать ручей, собирать камни и наблюдать за жабой",
+      sacrifice: /Свой голос на один день/,
+      evening:
+        "Разложу все находки дня на мху и буду рисовать их в блокноте при свете светлячков",
+    },
+    {
+      key: "witchcore",
+      title: "Та, чьи руки пахнут травами и дождем",
+      first: /Настороженную внимательность/,
+      images: [2, 3, 5, 3, 5, 3],
+      morning:
+        "Пойду собирать травы на опушке, определяя каждую по запаху и форме листа",
+      sacrifice: /Воспоминание о безмятежном дне/,
+      evening:
+        "Буду варить отвар из собранных трав при свете луны и гадать на пламени свечи",
+    },
+    {
+      key: "castlecore",
+      title: "Девушка, пишущая свою легенду от руки",
+      first: /Торжественную тишину/,
+      images: [6, 4, 4, 4, 2, 4],
+      morning:
+        "Поднимусь на самую высокую башню, чтобы увидеть всё королевство",
+      sacrifice: /Свой страх — и почувствую/,
+      evening:
+        "Поднимусь на башню, зажгу свечи в канделябре и напишу письмо тому, кого ещё не встретила",
+    },
+    {
+      key: "fairycore",
+      title: "Танцующая босиком на рассвете",
+      first: /Восторг и лёгкость/,
+      images: [5, 5, 6, 5, 7, 5],
+      morning:
+        "Буду плести венок из росистых цветов и танцевать со светлячками",
+      sacrifice: /Своё имя — и стану частью/,
+      evening:
+        "Заберусь на удобную ветку старого дуба и буду смотреть на звёзды. Буду подпевать кузнечикам и сверчкам",
+    },
+    {
+      key: "darkAcademia",
+      title: "Девушка, влюблённая в тишину старых библиотек",
+      first: /Острое желание понять/,
+      images: [4, 6, 7, 6, 4, 6],
+      morning:
+        "Сяду с книгой у окна, делая заметки на полях, потом буду бродить по городу",
+      sacrifice: /Любимую книгу — в обмен/,
+      evening:
+        "Зажгу свечи и буду писать до рассвета — мысли текут, как никогда раньше",
+    },
+  ])(
+    "C3 completes a pure $key quiz through literal choices and restores its result",
+    async ({
+      key,
+      title: expectedTitle,
+      first,
+      images,
+      morning,
+      sacrifice,
+      evening,
+    }) => {
+      const { rows, context, frontend } = fixture();
+      const identitySql =
+        "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id IN (91401,91402) ORDER BY id";
+      const identity = await rows(identitySql);
+      await context.clearCookies();
+      const page = await context.newPage();
+      await page.goto(frontend + "quiz");
+      await page
+        .getByRole("button", { name: "Начать путешествие", exact: true })
+        .click();
+      // Literal expected fixtures, independent of production QUESTIONS/scoring.
+      // Landscape/companion/shelter order differs from the aesthetic order.
+      const image = (index: number) => `Выбрать изображение ${index}`;
+      const choices = [
+        first,
+        image(images[0]),
+        image(images[1]),
+        image(images[2]),
+        image(images[3]),
+        morning,
+        image(images[4]),
+        sacrifice,
+        evening,
+        image(images[5]),
+      ];
+      for (const [index, name] of choices.entries()) {
+        const next = page.getByRole("button", {
+          name: index === 9 ? "Узнать результат" : "Далее →",
+          exact: true,
+        });
+        await browserExpect(next).toBeDisabled();
+        const choice = page.getByRole("button", {
+          name,
+          exact: typeof name === "string",
+        });
+        await choice.click();
+        await browserExpect(choice).toHaveAttribute("aria-pressed", "true");
+        await browserExpect(next).toBeEnabled();
+        await next.click();
+      }
+      const title = page.getByText(expectedTitle, {
         exact: true,
       });
-      await browserExpect(next).toBeDisabled();
-      const choice = page.getByRole("button", {
-        name,
-        exact: typeof name === "string",
+      await browserExpect(title).toBeVisible();
+      const stored = () =>
+        page.evaluate(() => {
+          const raw = localStorage.getItem(
+            "darcy:user:guest:@darcy_quiz_result",
+          );
+          return raw ? JSON.parse(raw) : null;
+        });
+      await browserExpect.poll(stored).toMatchObject({
+        primaryKey: key,
+        secondaryKey: null,
+        isBlend: false,
+        scores: {
+          cottagecore: 0,
+          goblincore: 0,
+          witchcore: 0,
+          castlecore: 0,
+          fairycore: 0,
+          darkAcademia: 0,
+          lightAcademia: 0,
+          [key]: 21,
+        },
       });
-      await choice.click();
-      await browserExpect(choice).toHaveAttribute("aria-pressed", "true");
-      await browserExpect(next).toBeEnabled();
-      await next.click();
-    }
-    const title = page.getByText("Девушка, для которой красота – родной язык", {
-      exact: true,
-    });
-    await browserExpect(title).toBeVisible();
-    const stored = () =>
-      page.evaluate(() => {
-        const raw = localStorage.getItem("darcy:user:guest:@darcy_quiz_result");
-        return raw ? JSON.parse(raw) : null;
-      });
-    await browserExpect.poll(stored).toMatchObject({
-      primaryKey: "lightAcademia",
-      secondaryKey: null,
-      isBlend: false,
-      scores: {
-        cottagecore: 0,
-        goblincore: 0,
-        witchcore: 0,
-        castlecore: 0,
-        fairycore: 0,
-        darkAcademia: 0,
-        lightAcademia: 21,
-      },
-    });
-    const saved = await stored();
-    expect(Number.isNaN(Date.parse(saved.completedAt))).toBe(false);
-    await page.goto(frontend + "quiz/result");
-    await browserExpect(title).toBeVisible();
-    await page.reload();
-    await browserExpect(title).toBeVisible();
-    expect(await stored()).toEqual(saved);
-    expect(await rows(identitySql)).toEqual(identity);
-  }, 30_000);
+      const saved = await stored();
+      expect(Number.isNaN(Date.parse(saved.completedAt))).toBe(false);
+      await page.goto(frontend + "quiz/result");
+      await browserExpect(title).toBeVisible();
+      await page.reload();
+      await browserExpect(title).toBeVisible();
+      expect(await stored()).toEqual(saved);
+      expect(await rows(identitySql)).toEqual(identity);
+    },
+    30_000,
+  );
   it.each([true, false])(
     "C3 isolates quiz ownership after a delayed native previous-session response (accepted login: %s)",
     async (accepted) => {
