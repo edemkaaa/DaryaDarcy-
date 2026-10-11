@@ -41,6 +41,26 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3ad, native localStorage read/microtask owner boundary — 11 октября МСК:**
+C3ac probe дополнен вариантом без подмены storage: production browser storage
+adapter и настоящий Chromium localStorage читают account-1 cottagecore
+синхронно, затем в том же JS task auth adapter переключает owner на account 2
+с loading=true до Promise continuation. Cleanup effect блокирует старое
+восстановление; account-1 key очищен настоящим setPersonalDataOwner,
+account-2 goblincore key сохранён. После loading=false новый read восстанавливает
+goblincore. Own context origin document fulfilled из synthetic HTML локальным
+Playwright route; прочая сеть заблокирована. Это native storage/component
+microtask boundary, не mock storage и не remote read. Auth/leaf views остаются
+controlled; Next/AuthProvider/API/SQL и deployment этим не проверяются.
+Cancelled-guard removal снова дал **1 native storage mutation RED** (cottagecore
+вместо welcome); mutation полностью снята, production diff пуст. Оба browser
+варианта и соседние suites: **52 focused GREEN/exit 0**, root types/format/docs
+проходят. Browser закрывается finally, bundle in-memory/write:false, без
+секретов/SQL/external calls. Review не изменил app policy/дизайн/публичные API.
+Таким образом конкретная read→Promise-continuation граница проверена без
+искусственной задержки storage; широкая concurrent AuthProvider/owner acceptance,
+C1 transport/media/devices/A7 ещё открыты. Push/сервер/рабочая БД не затронуты.
+
 **C3ac, controlled component read/owner cancellation — 11 октября МСК:**
 Добавлен opt-in native Chromium/React effect probe для настоящего QuizScreen,
 reducer и saved-result parser. Bundle in-memory/write:false; auth/storage и

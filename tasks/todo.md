@@ -6,6 +6,13 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3ad: второй component probe использует production storage и native localStorage:
+owner сменён в том же JS task до Promise continuation; old key очищен/new key
+сохранён, старый итог не показан, новый восстановлен после loading=false.
+1 native storage mutation RED снята; 52 focused GREEN/types/format/docs.
+Auth/leaf views controlled, origin HTML route-fulfilled — не Next/API/SQL
+acceptance. Конкретная microtask граница проверена, широкие gates сохранены.
+
 C3ac: opt-in native React/Chromium QuizScreen probe с controlled auth/storage/
 leaf adapters: смена owner между deferred reads не восстанавливает старый итог.
 Cancelled guard removal → 1 mutation RED, снято полностью; 51 focused GREEN,
