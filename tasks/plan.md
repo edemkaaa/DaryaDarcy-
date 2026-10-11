@@ -41,6 +41,29 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**Q1v, native legacy ESM module/config compatibility — 11 октября МСК:**
+Добавлен bounded Node loader characterization с отдельными synthetic .mts
+fixtures и явным fixture tsconfig: настоящий esm-loader 2.6.5 загружает typed
+config/enum, tsconfig path alias, .mjs→.mts resolution и dynamic import;
+полученный config/double результат проверен как sqlite/synthetic-schema/12.
+Baseline использует installed nested transformer; candidate запускает те же
+реальные hooks с root esbuild 0.28.2, подставленным только внутри isolated
+loader worker. Факт injection/version проверен; parent cache/dependency graph/
+lockfile не менялись, ESBK_DISABLE_CACHE исключает shared disk cache.
+**2 new native-loader pass; together Q1u/Q1v: 4 focused pass, exit 0
+(357 ms)**; root types/format/diff/docs checks проходят. Production/API/SQL/
+providers/build не менялись, полный неизменённый default после Q1u не повторён.
+Review: installed drizzle-kit bin config path отдельно прочитан: safeRegister
+использует bundled esbuild-register, затем require(config), а не esm-loader
+(bin.cjs 16977/17555). Поэтому native ESM characterization не выдан за реальную
+Drizzle command acceptance или доказательство достижимости serve advisory.
+No new security RED/fix, JSON/CJS/actual Drizzle commands ещё не покрыты этим
+срезом; следующий независимый шаг — synthetic config/schema offline export
+через настоящий CLI без DB/providers, затем reviewed chain upgrade decision.
+Устаревшая цепочка остаётся установленной; out-of-range override не добавлен.
+A7/Braces/manual Q1/external gates прежние; рабочая БД/секреты/внешние письма/
+payments/push/deploy не затронуты, весь этап не объявлен готовым.
+
 **Q1u, first bounded legacy transformer compatibility slice — 11 октября МСК:**
 После native C3 coverage взят независимый Q1t остаток: installed core-utils
 3.3.2 требует esbuild ~0.18.20. Новый characterization suite запускает actual

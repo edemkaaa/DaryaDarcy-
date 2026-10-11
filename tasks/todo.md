@@ -6,6 +6,15 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+Q1v: native esm-loader typed config/enum + tsconfig alias/.mjs→.mts + dynamic
+import: baseline/candidate isolated worker, actual hooks, 2 new pass;
+Q1u+Q1v 4 focused pass/exit 0 (357 ms), types/format/docs/diff.
+Installed graph unchanged/no security fix/RED. Source review: actual Drizzle
+config uses bundled esbuild-register + require, not this ESM loader path.
+Next: synthetic offline CLI config/schema export without DB/providers;
+JSON/CJS/Drizzle acceptance and reviewed upgrade remain, as do Q1/A7 gates.
+No disk cache/working DB/secrets/external mail/payments/push/deploy.
+
 Q1u: core-utils 3.3.2 real sync/async TS/CJS/map characterization:
 nested esbuild 0.18.20 vs actual root 0.28.2 в отдельных child adapters —
 2 focused pass, types/format/docs/diff. New ordinary suite → fresh default
