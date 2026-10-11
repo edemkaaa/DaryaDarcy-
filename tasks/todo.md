@@ -311,6 +311,15 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1r: scoped js-yaml 4.3.2 в ESLint/eslintrc; empty merge budget,
+      hard sequence limit и default depth: 3 native no-throw RED → 4 GREEN.
+      Ordinary YAML/merge/omap/multi-doc/dump preserved; numeric underscores
+      теперь strings, aliases materialization не защищено этим обновлением.
+      Integrity/hooks/selected runtime review, deps unchanged; no major 5.x.
+      Full default 2248 pass / 1053 skips, exit 0 (20.97s); types/lint/format/
+      frozen install GREEN. Prod audit 0/exit 0; full audit 4 (1 high /
+      3 moderate), exit 1 / 828 deps. Registry esbuild/Vitest/mocker/braces
+      + manual Q1m/Q1p остаются; Q1/A7/внешняя приёмка открыты, не выложено.
       Q1q: scoped brace-expansion 1.1.21 только ESLint/minimatch 3 edge;
       output count/product/character bounds: 3 native RED → 4 focused GREEN,
       соседний minimatch вместе 7 pass. Ordinary brace/range/escape/dollar

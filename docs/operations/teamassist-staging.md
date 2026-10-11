@@ -6,6 +6,17 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1r: scoped js-yaml 4.3.2 для ESLint/eslintrc. Empty merge work,
+hard sequence size и depth limits: 3 native RED → 4 GREEN, ordinary YAML/
+merge/omap/multi-doc/dump preserved. Underscore numbers теперь strings;
+alias materialization требует отдельного bounded traversal, не universal sandbox.
+Integrity/hooks/selected runtime reviewed, runtime deps unchanged, no 5.x.
+2248 full default pass / 1053 skips, exit 0 (20.97s); types/lint/format/frozen
+install GREEN, production graph unchanged. Prod audit 0/exit 0 (325 deps);
+full audit 4 (1 high / 3 moderate), exit 1 (828 deps): esbuild/Vitest/mocker/
+braces плюс manual Q1m/Q1p blockers. Q1/A7/внешние gates открыты; unchanged
+builds/SQL/browser не повторялись, не пушили и не выложено.
+
 Свежий Q1q: brace-expansion 1.1.21 только в ESLint/minimatch 3 graph.
 Count/product/character cap: 3 native RED → 4 GREEN, вместе с соседними
 minimatch checks 7 pass. Ordinary patterns сохранены; pathological patterns

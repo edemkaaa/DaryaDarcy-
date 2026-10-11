@@ -1342,6 +1342,42 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1r — ограничение YAML merge work в ESLint, 11 октября МСК:** scoped
+js-yaml 4.1.1 → 4.3.2 по [advisory](https://github.com/advisories/GHSA-2883-xcg3-v3hh)
+и [upstream range](https://github.com/nodeca/js-yaml/compare/4.1.1...4.3.2).
+Reviewed changelog и runtime chargeMergeWork/mergeMappings/storeMappingPair,
+depth guard, omap duplicate-key detection и numeric scalar resolvers;
+[safety notes](https://github.com/nodeca/js-yaml/blob/4.3.2/docs/safety.md)
+сохраняют отдельную необходимость bounded traversal перед materialization aliases.
+Default maxTotalMergeKeys 10000 считает источник и его keys, включая пустой
+mapping; hard merge-sequence limit 100 действует даже при budget -1,
+default maxDepth 100. Omap keys используют own-property table вместо quadratic
+duplicate scan. Это не универсальный input/CPU/heap/alias-materialization sandbox.
+Совместимость: numbers с underscores теперь strings (actual `1_000` → string),
+новый exports map оставляет top-level/package.json; app/tooling imports и deep
+js-yaml imports в repo не обнаружены. Major 5.x не добавлен, app policy не менялась.
+Actual ESLint → eslintrc resolved parser: empty-source budget, 101 merge sources
+при budget -1 и 105-deep flow sequence давали no-throw, теперь YAML errors:
+**3 native RED → 4 focused GREEN**. Inputs маленькие, без таймерных timing
+assertions/намеренного exhaustion. Ordinary ESLint-style YAML/dump-load, merge
+override, omap constructor/toString и multi-document fixtures сохранены.
+Initial TS inference error в heterogeneous expected omap fixture исправлен
+явным Record<string, number>[]; это test typing repair, не production RED.
+Registry integrity совпал, runtime deps argparse unchanged; install/prepare
+hooks нет, upstream prepack не запускался. Generated lock только override,
+package/integrity/snapshot/один eslintrc edge; production graph unchanged.
+Frozen ignore-scripts install/root types/frontend lint/formatting GREEN;
+**2248 full default pass / 1053 opt-in skips, exit 0 (20.97s)**.
+Prod audit **0 findings / exit 0 / 325 dependencies**; full audit
+**4 findings (1 high / 3 moderate), exit 1 / 828 dependencies** — четыре
+js-yaml advisories сняты в registry. Это bounded behavior checks, не отдельное
+нагрузочное доказательство всех четырёх advisories или app exploit.
+Неизменившиеся builds/SQL/HTTP/browser не повторялись. Остались registry
+esbuild/Vitest/mocker/braces плюс manual Q1m/Q1p blockers; Q1/A7/внешние gates
+открыты. TDD/security/review skills потребовали native RED и review semantic
+limits вместо одного audit-count. Не пушили, сервер/рабочая БД/roles/CORS/
+trust/quotas не менялись.
+
 **Q1q — ограничение brace expansion в ESLint tooling, 11 октября МСК:**
 scoped brace-expansion 1.1.12 → 1.1.21 в minimatch 3.1.5 по
 [релизу](https://github.com/juliangruber/brace-expansion/releases/tag/v1.1.21)
