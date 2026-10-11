@@ -299,6 +299,13 @@
       as extra failures. 4 reducer + scoring/parser: 29 focused GREEN/exit 0,
       root types/format GREEN, production diff пустой. Не async-owner/browser
       acceptance; concurrent read/owner/transport/media/device/A7 gates открыты.
+      C3z: read/owner boundaries inspected; getItem reads synchronously before
+      Promise, effect cancelled guard preserved. Own native Chromium/loopback
+      probe fetch → delayed upstream → navigation → release → fulfill succeeds;
+      simple navigation-cancellation hypothesis does not reproduce old C1
+      already-handled error. No speculative suppression/retry/teardown fix.
+      Далее exact C1 lifecycle instrumentation/native reproduction; transport/
+      owner acceptance still open. Docs-only, no external/SQL/user files.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

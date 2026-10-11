@@ -41,6 +41,29 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3z, фаза диагностики read/owner и прежней transport race — 11 октября МСК:**
+read-only сверка текущего кода: personal storage getItem читает scoped key
+синхронно до возврата Promise; QuizScreen effect имеет cancelled guard, а
+session scope ранее проверялся remount mutation. Поэтому задержку обычного
+storage нельзя выдавать за реальную remote-read race без отдельной управляемой
+границы. Concurrent storage/owner acceptance остаётся открытой.
+Для прежнего `route.fulfill: Route is already handled!` проверена одна точная
+гипотеза — переход страницы отменяет исходный browser request, пока native
+forward response ещё не готов. Own ephemeral loopback HTTP server + actual
+Chromium: script fetch → context route.fetch → upstream barrier → page.goto
+другой страницы → barrier release → route.fulfill. Получен **fulfilled/exit 0**,
+а не исходная ошибка. Wait был по explicit request/barrier signals, не sleep;
+сервер/context/browser закрыты, synthetic module только в памяти, внешних
+соединений/SQL/секретов не было. Этот isolated native transport probe не
+воспроизводит C1 moderator dialog/полный fixture lifecycle и не доказывает,
+что там гонки нет. Гипотеза простого navigation cancellation недостаточна;
+с suppression/retry/изменением C1 route teardown не экспериментировали.
+Systematic-debugging skill остановил speculative fix до воспроизведения
+точной причины. Далее нужен instrumentation по фазам существующего C1
+handler/lifecycle и управляемый native scenario; transport/read-owner gates
+не закрыты. Docs-only, неизменившиеся default tests/build не повторялись.
+Не пушили, сервер/рабочая БД/roles/CORS/trust/quotas не менялись.
+
 **C3y, quiz reducer navigation/immutable snapshots — 11 октября МСК:**
 после dependency slices продолжена независимая локальная регрессия теста.
 Новый standalone suite проверяет immutable предыдущий answer snapshot,
