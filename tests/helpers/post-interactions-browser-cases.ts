@@ -18,12 +18,23 @@ interface PostInteractionsBrowserFixture {
 export function registerPostInteractionsBrowserCases(
   fixture: () => PostInteractionsBrowserFixture,
 ) {
-  it.each(["feed", "club", "club section", "club retry"] as const)(
+  it.each([
+    "feed",
+    "club",
+    "club section",
+    "club retry",
+    "feed retry",
+  ] as const)(
     "C3 paginates the native %s without duplicates or ineligible rows",
     async (target) => {
       const section = target === "club section";
-      const retry = target === "club retry";
-      const route = target === "feed" ? "feed" : "club";
+      const retry = target === "club retry" || target === "feed retry";
+      const route =
+        target === "feed" || target === "feed retry" ? "feed" : "club";
+      const errorMessage =
+        route === "feed"
+          ? "Не удалось загрузить следующие публикации ленты"
+          : "Не удалось загрузить следующие публикации клуба";
       const { rows, connection, context, frontend, memberId, base } = fixture();
       const ids = Array.from({ length: 17 }, (_, index) => 94701 + index);
       try {
@@ -151,7 +162,7 @@ export function registerPostInteractionsBrowserCases(
             element.scrollTop = element.scrollHeight;
           });
           const error = page.getByRole("alert").filter({
-            hasText: "Не удалось загрузить следующие публикации клуба",
+            hasText: errorMessage,
           });
           await browserExpect(error).toBeVisible({ timeout: 15_000 });
           expect(lostPages.length).toBeGreaterThan(0);
@@ -175,7 +186,7 @@ export function registerPostInteractionsBrowserCases(
             ? page
                 .getByRole("alert")
                 .filter({
-                  hasText: "Не удалось загрузить следующие публикации клуба",
+                  hasText: errorMessage,
                 })
                 .getByRole("button", { name: "Повторить", exact: true })
                 .click()
@@ -192,7 +203,7 @@ export function registerPostInteractionsBrowserCases(
         if (retry) {
           await browserExpect(
             page.getByRole("alert").filter({
-              hasText: "Не удалось загрузить следующие публикации клуба",
+              hasText: errorMessage,
             }),
           ).toHaveCount(0);
         }

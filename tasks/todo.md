@@ -6,6 +6,13 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3at: native next-page lost-reply/retry extends to guest feed, retaining first
+12 cards, honest error instead of terminal footer, actual manual retry returns
+3 remaining IDs/cursor=null, no duplicates/private rows/SQL changes. Shared
+feed+club retry: 2 pass / 55 filtered skips (57), exit 0 (7.74 s), types/format/
+docs/diff. No new RED/production fix; broad C3as/default/build not repeated.
+Own tmpfs DB/Next stopped/--rm, working DB/provider/device/A7/Q1 gates unchanged.
+
 C3as: club next-page lost reply after actual Nest/SQL read: scoped transport
 fault reads terminal 3 real IDs, then aborts; UI shows honest next-page error,
 retains first 12, manual «Повторить» restores cursor 12→null without duplicates.

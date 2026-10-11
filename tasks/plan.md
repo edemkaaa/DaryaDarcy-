@@ -41,6 +41,24 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3at, guest feed next-page reply loss and recovery — 11 октября МСК:**
+C3as fault/retry branch расширена на guest feed; route/error message выбираются
+по target, остальные native response/SQL assertions сохранены. Actual HTTP
+terminal read выполняется до abort; UI не показывает неполученный last post,
+показывает точный next-page error, сохраняет доступную первую страницу. Настоящий
+«Повторить» возвращает cursor=12 страницу из трёх IDs/cursor=null, очищает error,
+показывает terminal footer/last post; union=15 уникальных exact eligible IDs,
+SQL posts/tags/access snapshot неизменен. **2 affected feed+club retry browser
+pass / 55 filtered skips (57), exit 0 (7.74 s)**; root types/format/docs/diff
+проходят. Review: shared branch меняет только fixture; guest не получает
+synthetic subscription, native replies не подменены, fault scoped next cursor,
+cleanup ownership сохранён. Production/design/roles/API semantics не менялись,
+no new defect RED/fix claim. Broad C3as regression/default/build не повторены
+без причины. Own container 6ce55652841e проверен до use/stop по label/tmpfs/
+no mounts/loopback port, остановлен --rm; Next остановлен, synthetic DB удалена.
+Working DB/secrets/external messages/provider payments/push/deploy не затронуты;
+devices/media/concurrent offsets/A7/Q1/provider gates прежние.
+
 **C3as, native club next-page reply loss and recovery — 11 октября МСК:**
 Добавлена ветка существующего pagination fixture. Scoped page transport
 читает cursor=12 через настоящий Nest/SQL, проверяет HTTP 200/terminal cursor
