@@ -6,6 +6,12 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3z2: native loopback/Chromium probe pending route.fetch + confirm/dismiss +
+page/context unrouteAll(wait) прошёл: context teardown дождался fulfill
+(explicit barriers, exit 0). Installed routing source изучен; простой dialog/
+wait teardown не воспроизвёл старую race. C1 transport gate не закрыт; следующий
+шаг — трассировка request/route identity и lifecycle в точном C1 fixture.
+
 - [x] Сверить актуальный staging, разбор ТЗ, frontend WORK_PLAN и исходники;
       записать матрицу 2.1/4.1–4.16, зависимости и границы приёмки.
 - [x] A1: expiry/cancel scrub и 30-дневное удаление минимальной истории привязки.

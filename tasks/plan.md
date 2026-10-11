@@ -41,6 +41,27 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3z2, native dialog + teardown boundary — 11 октября МСК:**
+Продолжена диагностика, без изменения обработчиков приложения/fixture.
+Installed Playwright source: `Route._handlingPromise` обнуляется только в
+`_reportHandled`, после fallback либо завершения abort/continue/fulfill;
+`route.fetch` сам его не обнуляет. `unrouteAll({behavior: "wait"})` ожидает
+active handler invocation, а не вызывает второй fulfill. Это сужает область
+поиска до фактической последовательности обработки одного Route, но не
+устанавливает причину старого исключения.
+Own ephemeral loopback HTTP + actual Chromium проверили pending native
+route.fetch → confirm/dismiss → page.unrouteAll(wait) → context.unrouteAll(wait).
+Upstream удерживался explicit barrier. Context teardown остался ожидающим
+на event-loop checkpoint; после release порядок был fetch-return → fulfilled →
+context-unroute-done, **exit 0**. Ни sleep, ни ignoreErrors/retry/suppression,
+ни external connections/SQL/secrets не использовались. Context/browser/server
+закрыты. Это отдельный transport probe с synthetic document, не C1 API/SQL
+acceptance: сочетание dialog и корректного wait teardown само по себе прежнюю
+ошибку не воспроизвело. Далее нужна фазовая трассировка именно C1 native
+fixture (один request/route identity, вход/выход handler и teardown), а не
+спекулятивное изменение teardown. Gate остаётся открытым. Неизменившиеся
+default tests/build не повторялись; рабочая БД/сервер не затронуты.
+
 **C3z, фаза диагностики read/owner и прежней transport race — 11 октября МСК:**
 read-only сверка текущего кода: personal storage getItem читает scoped key
 синхронно до возврата Promise; QuizScreen effect имеет cancelled guard, а
