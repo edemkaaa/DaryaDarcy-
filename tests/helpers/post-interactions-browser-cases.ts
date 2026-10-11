@@ -17,9 +17,11 @@ interface PostInteractionsBrowserFixture {
 export function registerPostInteractionsBrowserCases(
   fixture: () => PostInteractionsBrowserFixture,
 ) {
-  it.each(["feed", "club"] as const)(
+  it.each(["feed", "club", "club section"] as const)(
     "C3 paginates the native %s without duplicates or ineligible rows",
     async (target) => {
+      const section = target === "club section";
+      const route = target === "feed" ? "feed" : "club";
       const { rows, connection, context, frontend, memberId } = fixture();
       const ids = Array.from({ length: 17 }, (_, index) => 94701 + index);
       try {
@@ -30,21 +32,31 @@ export function registerPostInteractionsBrowserCases(
       ) ENGINE=InnoDB`);
         for (const [index, id] of ids.entries()) {
           await connection.query(
-            "INSERT INTO posts (id,text,photos,tags,status,published,target,sortOrder,createdAt,publishedAt) VALUES (?,?,'[]','[]',?,1,?,?,'2026-01-01','2026-01-01')",
+            "INSERT INTO posts (id,text,photos,tags,status,published,target,sortOrder,createdAt,publishedAt) VALUES (?,?,'[]',?, ?,1,?,?,'2026-01-01','2026-01-01')",
             [
               id,
               `C3 pager ${index + 1} fixture`,
+              JSON.stringify(
+                section
+                  ? [
+                      index < 12
+                        ? "life"
+                        : (["letter", "podcast", "эксклюзив"][index - 12] ??
+                          "exclusive"),
+                    ]
+                  : [],
+              ),
               index === 16 ? "draft" : "published",
-              index === 15 ? (target === "feed" ? "club" : "feed") : target,
+              index === 15 ? (route === "feed" ? "club" : "feed") : route,
               index,
             ],
           );
         }
         const snapshotSql =
-          "SELECT id,text,status,published,target FROM posts WHERE id BETWEEN 94701 AND 94717 ORDER BY id";
+          "SELECT id,text,tags,status,published,target FROM posts WHERE id BETWEEN 94701 AND 94717 ORDER BY id";
         const before = await rows(snapshotSql);
         await context.clearCookies();
-        if (target === "club") {
+        if (route === "club") {
           // Local access fixture only; no checkout or provider payment is invoked.
           await connection.query(
             "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-pager-access','paid','0','2030-01-01')",
@@ -68,11 +80,11 @@ export function registerPostInteractionsBrowserCases(
         );
         const page = await context.newPage();
         const isPage = (url: string) =>
-          url.includes(target === "feed" ? "feed.listPaginated" : "club.list");
+          url.includes(route === "feed" ? "feed.listPaginated" : "club.list");
         const firstResponse = page.waitForResponse((response) =>
           isPage(response.url()),
         );
-        await page.goto(frontend + target);
+        await page.goto(frontend + route);
         const first = await firstResponse;
         expect(first.status()).toBe(200);
         const payload = async (response: typeof first) => {
@@ -88,7 +100,7 @@ export function registerPostInteractionsBrowserCases(
         const initial = await payload(first);
         expect(initial.posts.map((post) => post.id)).toEqual(ids.slice(0, 12));
         expect(initial.nextCursor).toBe(12);
-        if (target === "club") {
+        if (route === "club") {
           const setup = page.getByRole("dialog", {
             name: "Настройка профиля клуба",
           });
@@ -113,9 +125,13 @@ export function registerPostInteractionsBrowserCases(
               isPage(response.url()) &&
               decodeURIComponent(response.url()).includes('"cursor":12'),
           ),
-          collection.evaluate((element) => {
-            element.scrollTop = element.scrollHeight;
-          }),
+          section
+            ? page
+                .getByRole("button", { name: "Эксклюзив", exact: true })
+                .click()
+            : collection.evaluate((element) => {
+                element.scrollTop = element.scrollHeight;
+              }),
         ]);
         expect(next.status()).toBe(200);
         const terminal = await payload(next);
@@ -131,7 +147,7 @@ export function registerPostInteractionsBrowserCases(
         await collection.evaluate((element) => {
           element.scrollTop = element.scrollHeight;
         });
-        if (target === "feed") {
+        if (route === "feed") {
           await browserExpect(
             page.getByText("Все посты загружены", { exact: true }),
           ).toBeVisible();
@@ -143,6 +159,51 @@ export function registerPostInteractionsBrowserCases(
         await browserExpect(
           page.getByText("C3 pager 15 fixture", { exact: true }),
         ).toBeVisible();
+        if (section) {
+          const exclusive = page.getByRole("button", {
+            name: "Эксклюзив",
+            exact: true,
+          });
+          await browserExpect(exclusive).toHaveAttribute(
+            "aria-pressed",
+            "true",
+          );
+          for (const number of [13, 14, 15]) {
+            await browserExpect(
+              page.getByText(`C3 pager ${number} fixture`, { exact: true }),
+            ).toHaveCount(1);
+          }
+          for (const number of [16, 17]) {
+            await browserExpect(
+              page.getByText(`C3 pager ${number} fixture`, { exact: true }),
+            ).toHaveCount(0);
+          }
+          await browserExpect(
+            page.getByText("C3 pager 1 fixture", { exact: true }),
+          ).toHaveCount(0);
+          // An exhausted empty rubric is distinct from an unchecked first page.
+          const empty = page.getByRole("button", {
+            name: "Подборки",
+            exact: true,
+          });
+          await empty.click();
+          await browserExpect(
+            page.getByText("Пока нет публикаций в этом разделе", {
+              exact: true,
+            }),
+          ).toBeVisible();
+          await browserExpect(
+            page.getByText("C3 pager 15 fixture", { exact: true }),
+          ).toHaveCount(0);
+          await empty.click();
+          await browserExpect(empty).toHaveAttribute("aria-pressed", "false");
+          await collection.evaluate((element) => {
+            element.scrollTop = element.scrollHeight;
+          });
+          await browserExpect(
+            page.getByText("C3 pager 15 fixture", { exact: true }),
+          ).toBeVisible();
+        }
         expect(await rows(snapshotSql)).toEqual(before);
         expect(
           await rows("SELECT * FROM club_payments WHERE userId=? ORDER BY id", [

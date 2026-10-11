@@ -6,6 +6,15 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3ar: native club rubric with zero matches on first page automatically reads
+cursor 12 after actual «Эксклюзив» click; letter/podcast/эксклюзив all rendered,
+opposite-target/draft excluded. Exhausted «Подборки» shows honest empty state;
+toggle back restores content. SQL posts/tags/access snapshots unchanged.
+3 focused pagination pass / 52 filtered skips (55), exit 0 (4.46 s);
+stronger alias assertions: 1 pass / 54 filtered skips, exit 0 (2.60 s).
+Types/format/docs/diff; coverage only, no production RED/fix claim.
+Own tmpfs DB/Next stopped/--rm; working DB/provider/device/A7/Q1 gates unchanged.
+
 C3aq: existing native pagination browser case covers guest feed + paid-member
 club, 12+3/cursor 12→null, unique exact eligible IDs, excluded opposite-target/
 draft neighbors, terminal UI + unchanged SQL posts/access. Actual club setup

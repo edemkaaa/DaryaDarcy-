@@ -41,6 +41,27 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3ar, native club rubric crossing page boundary — 11 октября МСК:**
+Новая ветка существующего pagination browser fixture: первые 12 posts — life,
+следующие три — letter/podcast/эксклюзив. После начального native HTTP read
+и закрытия setup dialog настоящая кнопка «Эксклюзив» сама вызывает cursor=12
+без прокрутки и synthetic API fetch: пустая первая filtered page не объявляется
+пустым разделом. Все три aliases отрисованы, initial life row и opposite-target/
+draft neighbors отсутствуют. Исчерпанная «Подборки» показывает «Пока нет
+публикаций в этом разделе», повтор кнопки снимает filter и возвращает контент.
+SQL posts/tags и local subscription snapshot неизменны. **3 focused pagination
+pass / 52 filtered skips (55), exit 0 (4.46 s)**; после усиления проверок всех
+aliases/excluded neighbors **1 affected pass / 54 filtered skips, exit 0
+(2.60 s)**. Root types/format/docs/diff проходят; review: native Next/Nest/SQL,
+actual UI click, qualified fixture cleanup, no response mocks/force-click.
+Production/design/roles/quotas/API semantics не менялись; это acceptance
+существующего поведения, не новая RED/GREEN исправленная функция. Default/build
+и неизменённая broad regression не повторены без причины. Own container
+e4c96df3bc6a повторно проверен по owner label/tmpfs/no mounts/loopback port,
+остановлен --rm; Next остановлен, synthetic DB удалена. Devices/media/concurrent
+offsets/A7/Q1/provider gates прежние; working DB/secrets/external messages/
+provider payments/push/deploy не затронуты.
+
 **C3aq, native member club pagination browser — 11 октября МСК:**
 После общей C3ap regression расширен существующий pagination case двумя
 targets: guest feed и paid-member club. Настоящий Next → Nest → SQL отдаёт
