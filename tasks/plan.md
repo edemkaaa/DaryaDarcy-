@@ -41,6 +41,23 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3al, native back/edit/forward answer preservation — 11 октября МСК:**
+Pure Light Academia journey теперь проверяет disabled Back на первом вопросе;
+после Q3 → Q4 возвращается через Q3 в Q2, подтверждает прежние selected ответы,
+меняет landscape на Cottagecore, возвращается вперёд (Q3 selection сохранён),
+снова назад и восстанавливает Light Academia. Старый selection снят, новый
+pressed; последующее прохождение даёт прежние 21/0/no-blend, canonical title,
+storage/completedAt/reopen/reload и неизменные SQL security identities.
+**1 focused native Next/Nest/MySQL browser pass / 51 filtered skips, exit 0
+(3.58 s)**; root types/format/docs/diff checks проходят. Production не менялся,
+нового mutation RED нет; direct reducer mutations из C3y уже проверены ранее.
+Не повторены неизменённые другие pure journeys/C1/C2/default/build после
+прошлой integrated 38-pass проверки. Review: проверен реальный browser
+Back/change/restore/forward путь, не только reducer; no payment fixture,
+no external mail/network/working DB/push/deploy. Свой loopback/tmpfs backend_test
+проверен по owner label/mounts/port, остановлен через --rm; Next остановлен.
+Devices/gesture/media/transport/A7/external acceptance остаются открыты.
+
 **C3ak, integrated native regression after the new journeys — 11 октября МСК:**
 После C3ag–aj выполнена свежая общая C1/C2/C3 browser regression с настоящим
 production Next → Nest → собственным MySQL backend_test и loopback SMTP:

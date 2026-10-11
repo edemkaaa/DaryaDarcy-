@@ -144,6 +144,8 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       await page
         .getByRole("button", { name: "Начать путешествие", exact: true })
         .click();
+      const back = page.getByRole("button", { name: "← Назад", exact: true });
+      await browserExpect(back).toBeDisabled();
       // Literal expected fixtures, independent of production QUESTIONS/scoring.
       // Landscape/companion/shelter order differs from the aesthetic order.
       const image = (index: number) => `Выбрать изображение ${index}`;
@@ -173,6 +175,59 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
         await browserExpect(choice).toHaveAttribute("aria-pressed", "true");
         await browserExpect(next).toBeEnabled();
         await next.click();
+        if (key === "lightAcademia" && index === 2) {
+          // Revisit Q3 and Q2, replace the landscape, then restore it. Later
+          // selections must survive navigation; the final score stays 21/0.
+          const landscape = page.getByRole("button", {
+            name: "Выбрать изображение 7",
+            exact: true,
+          });
+          const alternate = page.getByRole("button", {
+            name: "Выбрать изображение 1",
+            exact: true,
+          });
+          await back.click();
+          await browserExpect(landscape).toHaveAttribute(
+            "aria-pressed",
+            "true",
+          );
+          await back.click();
+          await browserExpect(landscape).toHaveAttribute(
+            "aria-pressed",
+            "true",
+          );
+          await alternate.click();
+          await browserExpect(landscape).toHaveAttribute(
+            "aria-pressed",
+            "false",
+          );
+          await browserExpect(alternate).toHaveAttribute(
+            "aria-pressed",
+            "true",
+          );
+          await next.click();
+          await browserExpect(landscape).toHaveAttribute(
+            "aria-pressed",
+            "true",
+          );
+          await browserExpect(next).toBeEnabled();
+          await back.click();
+          await browserExpect(alternate).toHaveAttribute(
+            "aria-pressed",
+            "true",
+          );
+          await landscape.click();
+          await browserExpect(alternate).toHaveAttribute(
+            "aria-pressed",
+            "false",
+          );
+          await next.click();
+          await browserExpect(landscape).toHaveAttribute(
+            "aria-pressed",
+            "true",
+          );
+          await next.click();
+        }
       }
       const title = page.getByText(expectedTitle, {
         exact: true,

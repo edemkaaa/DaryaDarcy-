@@ -6,6 +6,12 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3al: native quiz Back floor/Q3→Q2/edit/forward/restore preserves selections
+и final 21/0/no-blend/result/date/reload; SQL identity прежние. 1 browser pass /
+51 filtered skips, types/format/docs/diff. Production unchanged/no new RED,
+предыдущий reducer RED не повторён. Own Next/tmpfs DB остановлены/--rm;
+devices/media/transport/A7/external gates прежние, без payments/push/deploy.
+
 C3ak: свежая integrated C1/C2/C3 Next/Nest/SQL/loopback SMTP regression
 после восьми новых cases — 38 pass / 14 filtered binding skips, exit 0
 (46.05 s). Rare transport exception не повторился, fix не заявлен.
