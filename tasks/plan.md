@@ -41,6 +41,24 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3w, восстановленный результат при проверке сессии — 11 октября МСК:**
+native browser case дополнен двумя настоящими /api/auth/me проверками на
+/quiz/result. Focus при прежнем userId сохраняет canonical result и исходную
+запись/completedAt; удаление cookie только собственного browser context и online
+recheck дают user:null, welcome вместо прежнего результата и очистку прежнего user key.
+Существующий me-контракт — 200 с user:null, не 401: исходное неверное ожидание
+теста исправлено после чтения controller; это не production RED.
+Отдельная mutation scope-remount → постоянный key даёт настоящий RED: после
+user:null welcome не появляется. Mutation полностью снята, production diff
+пустой; **30 C1/C2/C3 native browser GREEN/exit 0**, root types/default build.
+SQL identity fixtures неизменны. Review/TDD/verification: наблюдаемый native
+ответ и состояние экрана/storage, без mocks ответа, таймерных sleeps, изменения
+авторизации/ролей/дизайна. Own frontend остановлен и own loopback/tmpfs backend_test
+удалён после exact ID/label/tmpfs/127.0.0.1/no-volume/no-OOM проверки.
+Это последовательный resume/expiry сценарий, не доказательство всех races
+между незавершённым чтением и сменой пользователя. Остальные race/media/device/
+transport/A7/deployment и server/cross-device persistence остаются открыты.
+
 **C3v, согласованная карточка результата в профиле — 11 октября МСК:** native
 RED воспроизвёл отличие от /quiz/result: профиль доверял JSON.parse browser
 storage и показывал сохранённый произвольный title вместо canonical content.

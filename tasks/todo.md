@@ -280,6 +280,13 @@
       unit, root/frontend types/lint/default build/API/boundaries проходят.
       Own frontend/tmpfs DB очищены; дизайн/формат записи/авторизация прежние.
       Focus/session/media/устройства/A7/deployment остаются открыты.
+      C3w: saved result → focus/native me сохраняет итог/completedAt; cookie
+      удалена только в собственном browser context → online/native me user:null
+      → welcome/прежний user storage очищен, SQL identity прежние. Constant-scope
+      mutation RED снята полностью; 30 C1/C2/C3 GREEN/exit 0, root types/default
+      build, production diff пустой. Me возвращает 200/user:null — исправлено
+      неверное ожидание теста, не production bug. Own frontend/tmpfs DB очищены.
+      Не закрывает concurrent read/owner races/media/device/A7/deployment.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

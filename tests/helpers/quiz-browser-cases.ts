@@ -127,6 +127,46 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
         page.getByRole("button", { name: /Посмотреть результат →/ }),
       ).toHaveCount(0);
     }
+    // A resume refresh of the same session must not re-write the restored completion.
+    await setStored(raw);
+    await page.goto(frontend + "quiz/result");
+    const title = page.getByText("Девушка, вернувшая жизнь заброшенному саду", {
+      exact: true,
+    });
+    await browserExpect(title).toBeVisible();
+    const [current] = await Promise.all([
+      page.waitForResponse(
+        (response) => new URL(response.url()).pathname === "/api/auth/me",
+      ),
+      page.evaluate(() => window.dispatchEvent(new Event("focus"))),
+    ]);
+    expect(current.status()).toBe(200);
+    expect((await current.json()).user).toMatchObject({ id: 91401 });
+    await browserExpect(title).toBeVisible();
+    expect(
+      await page.evaluate(() =>
+        localStorage.getItem("darcy:user:91401:@darcy_quiz_result"),
+      ),
+    ).toBe(raw);
+    await context.clearCookies();
+    // Online uses the same native session check without the resume-event cooldown.
+    const [expired] = await Promise.all([
+      page.waitForResponse(
+        (response) => new URL(response.url()).pathname === "/api/auth/me",
+      ),
+      page.evaluate(() => window.dispatchEvent(new Event("online"))),
+    ]);
+    expect(expired.status()).toBe(200);
+    expect(await expired.json()).toEqual({ user: null });
+    await browserExpect(
+      page.getByRole("button", { name: "Начать путешествие", exact: true }),
+    ).toBeVisible();
+    await browserExpect(title).toHaveCount(0);
+    expect(
+      await page.evaluate(() =>
+        localStorage.getItem("darcy:user:91401:@darcy_quiz_result"),
+      ),
+    ).toBeNull();
     expect(await rows(identitySql)).toEqual(before);
   }, 30_000);
   it("C3 preserves both blend aesthetics when switching tabs and reopening the saved result", async () => {
