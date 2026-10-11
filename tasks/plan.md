@@ -1342,6 +1342,33 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1f — sharp/native decoder, 11 октября МСК:** root/backend закреплены на
+0.35.5 по [релизу владельца](https://github.com/lovell/sharp/releases/tag/v0.35.5)
+и [librsvg advisory](https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w).
+Первый generated lock оставлял optional sharp 0.35.4 у Next; review обнаружил
+это до установки. Scoped override sharp@0.35.4 → 0.35.5 устранил старую ветку,
+не меняя Next. Финальный lock меняет только related sharp/@img binaries и
+libvips 1.3.3 → 1.3.4; semver/detect-libc/colour/emnapi остаются прежними.
+Все 27 registry integrity совпали; install/prepare lifecycle hooks отсутствуют.
+Одноразовый metadata checker сначала ошибочно ожидал object для single-field
+pnpm view, которое возвращает string; shape исправлен, настоящий mismatch не найден.
+Frozen --ignore-scripts install проходит на текущем macOS tree; actual backend
+и Next resolve дают sharp 0.35.5 / librsvg 2.63.2 / libvips 8.18.7.
+**81 focused pass до и после обновления:** настоящие JPEG/PNG/WebP → WebP,
+EXIF orientation/strip, SVG block, пиксельные/byte ограничения и profile HTTP;
+storage/SQL doubles не заменяют object-storage или SQL приёмку. API byte gate и
+native SVG block сохранены. Exploit/RCE RED не воспроизводился: advisory
+зависит от glibc Linux/runtime, Mac compatibility и audit не доказывают серверную
+безопасность. Нового production/test code нет; не добавлен version-only test
+ради формального RED. Review/security skills удержали один binary dependency
+срез и явный Linux gate: clean frozen install, actual runtime library versions
+и native upload/Next image smoke перед rollout, включая global libvips, если он есть.
+**2200 full default pass / 1053 opt-in skips, exit 0 (24.12s)** под scoped
+caffeinate; root types/backend и frontend production build/formatting проходят.
+Prod audit **6 findings: 0 critical / 3 high / 1 moderate / 2 low**, exit 1;
+sharp advisory отсутствует, audit не clean. Остальные findings, A7/migrations,
+real media/device/provider/storage acceptance открыты. Не пушили и не выложено.
+
 **Q1e — qs, 11 октября МСК:** scoped override только 6.14.0 → existing
 6.16.0; отдельная уже исправленная ветка body-parser 2 остаётся прежней.
 По [changelog владельца](https://raw.githubusercontent.com/ljharb/qs/v6.16.0/CHANGELOG.md)

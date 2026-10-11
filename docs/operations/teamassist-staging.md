@@ -6,6 +6,16 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1f: sharp root/backend/Next → 0.35.5 по
+[advisory владельца](https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w).
+Actual macOS librsvg 2.63.2, libvips 8.18.7; прежний API SVG block сохранён.
+81 focused pass до/после, full default 2200 pass / 1053 opt-in skips, exit 0;
+types/backend + frontend production build/frozen-ignore-scripts install проходят.
+Prod audit 6 (0 critical / 3 high / 1 moderate / 2 low), exit 1, не clean.
+Не воспроизводили glibc Linux RCE: Mac проверки не заменяют clean Linux install,
+actual runtime versions (включая global libvips) и native upload/Next image smoke
+при rollout. Migrations/внешняя приёмка открыты; не пушили и не выложено.
+
 Свежий Q1e: qs 6.14.0 → existing 6.16.0 по
 [changelog владельца](https://raw.githubusercontent.com/ljharb/qs/v6.16.0/CHANGELOG.md).
 Три bounded upstream RED → 79 dependency/request-body/native Nest/webhook HTTP
