@@ -311,6 +311,13 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1l: scoped picomatch 2.3.1 → 2.3.2, только micromatch tooling graph;
+      4 actual RED → 5 focused GREEN (inherited classes + bounded extglob child).
+      Ordinary glob/exclusions сохранены; integrity/hooks/upstream review GREEN.
+      Full default 2228 pass / 1053 skips, exit 0 (24.11s); root types/frontend
+      lint/Next build/frozen ignore-scripts install GREEN. Prod audit 0/exit 0;
+      полный audit 21 (12 high / 9 moderate), exit 1. Production graph unchanged;
+      не SQL/browser/device/clean Linux proof, rollout и остальные Q1 gates открыты.
       Q1k: flatted 3.3.3 → 3.4.4, только ESLint cache graph; compiler types
       сохранены 7.28.5 scoped pin после preview drift. Registry integrity/hooks
       проверены; 4 bounded child RED → 5 focused GREEN, без prototype mutation.

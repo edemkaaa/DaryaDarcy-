@@ -6,6 +6,17 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1l: scoped picomatch 2.3.1 → 2.3.2 в micromatch tooling graph.
+Inherit-class и repeated-extglob findings сняты: 4 actual RED → 5 focused GREEN,
+bounded child timeout/heap/output cap, ordinary globs/exclusions сохранены.
+Reviewed upstream semantics/integrity/hooks; production graph unchanged.
+Full default 2228 pass / 1053 opt-in skips, exit 0; root types/frontend lint/
+Next webpack build/frozen-ignore-scripts install GREEN на текущем macOS tree.
+Prod audit 0/exit 0 (325 dependencies); full audit 21 findings, 12 high /
+9 moderate, exit 1 (827 dependencies). Не app exploit или SQL/browser/device/
+clean Linux proof; A7/migrations/provider/media/rollout и tooling triage открыты.
+Не пушили, не выложено, рабочая БД и access policy не менялись.
+
 Свежий Q1k: scoped flatted 3.3.3 → 3.4.4 в ESLint/flat-cache; два high
 tooling findings сняты. Четыре bounded child RED → 5 focused GREEN без mutation
 global prototypes. Full default 2223 pass / 1053 opt-in skips, exit 0;

@@ -1342,6 +1342,33 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1l — tooling glob parser, 11 октября МСК:** scoped picomatch 2.3.1 → 2.3.2
+только через micromatch/fast-glob frontend lint graph; picomatch 4.0.5 сохранён.
+Основание: [inherited classes advisory](https://github.com/micromatch/picomatch/security/advisories/GHSA-c2c7-rcm5-vvqj)
+и [repeated extglob advisory](https://github.com/advisories/GHSA-3v7f-55p6-f55p).
+Reviewed [upstream range](https://github.com/micromatch/picomatch/compare/2.3.1...2.3.2):
+null-prototype class/replacement dictionaries, bounded repeated extglob parsing;
+overlapping/nested repeated patterns могут стать literals/safe reduced regex.
+Нет новых runtime dependencies/install hooks; registry integrity совпал.
+Generated lock меняет только scoped override, package/integrity/snapshot и
+micromatch edge; production graph неизменен. Frozen ignore-scripts install
+GREEN на текущем macOS tree, не clean Linux или provenance verification.
+Actual micromatch-resolved matcher: constructor/toString/valueOf class ошибочно
+совпадали с synthetic filename `f }]`; bounded child с overlapping `+(a|aa)`
+зависал до 2s timeout (64 MB heap/output cap). **4 native RED → 5 focused GREEN**,
+обычные glob exclusions, POSIX digit и non-overlapping extglob сохранены.
+Изначальный probe `f` не различал версии, заменён после просмотра actual regex;
+не выдаётся за RED. Prototypes не мутировались, пользовательские файлы не читались.
+**2228 full default pass / 1053 opt-in skips, exit 0 (24.11s)**; root types,
+frontend ESLint и Next 16.3.8 webpack build GREEN. Backend/legacy builds и
+SQL/HTTP/browser не повторялись: production graph и app code не менялись.
+Prod audit **0 findings / exit 0 / 325 dependencies**; полный audit
+**21 findings (12 high / 9 moderate), exit 1 / 827 dependencies**, picomatch
+findings отсутствуют. Это tooling regression, не доказательство app exploit
+или device/rollout приёмки. TDD/debugging/security/review skills удержали
+различающий RED, bounded child и узкий reviewed lock; Q1/A7/внешние gates открыты.
+Не пушили, не выложено; roles/CORS/trust/quotas/working DB не менялись.
+
 **Q1k — ESLint cache parser, 11 октября МСК:** scoped flatted 3.3.3 → 3.4.4
 закрывает два high tooling findings по
 [recursion advisory](https://github.com/WebReflection/flatted/security/advisories/GHSA-25h7-pfq9-p65f) и
