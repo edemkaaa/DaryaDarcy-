@@ -1342,6 +1342,39 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1j — Babel source-map boundary, 11 октября МСК:** scoped override
+@babel/core 7.28.5 → 7.29.6 по
+[advisory владельца](https://github.com/babel/babel/security/advisories/GHSA-4x5r-pxfx-6jf8) и
+[релизу](https://github.com/babel/babel/releases/tag/v7.29.6).
+Reviewed related Babel graph 7.29.7–7.29.10: provenance re-release, parser/
+generator fixes, toPrimitive guard и conservative binding evaluation; новых
+package names вне Babel нет. Все 16 новых Babel package integrities совпали с
+registry, install/prepare hooks отсутствуют. Generated lock 179 lines меняет
+только Babel packages и Next/styled-jsx/ESLint references; Browserslist 4.28.7
+и remapping 2.3.5 сохранены. Excluded Expo не менялся.
+Actual styled-jsx-resolved Babel раньше включал чужой synthetic map через
+relative ../ и absolute sourceMappingURL: **2 RED** с literal marker в output.
+Теперь обе ссылки вне fixture package root не раскрывают marker; adjacent map
+сохранён. Только три committed synthetic fixture files, без чтения секретов,
+внешних файлов или mocks. Это upstream characterization, не доказательство
+атаки приложения: application code не компилирует пользовательский JS.
+**12 focused GREEN**, отдельный actual styled-jsx transform сохраняет scoped
+classes/CSS; первоначальный probe ожидал string attribute вместо JSX expression,
+его ожидание исправлено по фактическому output, production не менялся.
+Отсутствующие Babel declarations описаны узким test-only interface, без нового
+пакета или global any. **2218 full default pass / 1053 opt-in skips, exit 0
+(20.10s)**; root types, Next production build, frontend lint, legacy Vite build
+и formatting проходят. Legacy font warning остаётся; backend production code/
+graph не менялись, его успешная предыдущая сборка не повторялась.
+Frozen --ignore-scripts install GREEN на текущем macOS tree, не clean Linux.
+Native **prod audit 0 findings, exit 0, 325 dependencies** — только известные
+advisories этой группы, не полная security/сквозная готовность. Отдельный полный
+audit с tooling: **25 findings (15 high / 10 moderate), exit 1, 827 dependencies**;
+следующий независимый Q1 срез — triage tooling graph, без bulk forced fixes.
+TDD/security/review/debugging skills удержали bounded literal RED и изолированный
+related graph. A7/migrations/provider/media/device/rollout ещё открыты;
+SQL/browser/physical devices здесь не проверялись. Не пушили и не выложено.
+
 **Q1i — tRPC related packages, 11 октября МСК:** server/client/react-query
 в root/backend/frontend/legacy-web синхронно закреплены на 11.8.0 по
 [релизу](https://github.com/trpc/trpc/releases/tag/v11.8.0) и

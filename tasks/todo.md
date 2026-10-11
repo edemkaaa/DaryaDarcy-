@@ -311,6 +311,15 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1j: Babel core 7.28.5 → 7.29.6 + reviewed related Babel graph;
+      16 registry integrities совпали, install/prepare hooks отсутствуют.
+      Два outside-package map disclosure RED → 12 focused GREEN; actual
+      styled-jsx transform сохраняет scoped CSS. Full default 2218 pass /
+      1053 opt-in skips, exit 0 (20.10s); types/Next/lint/legacy build/formatting/
+      frozen install GREEN. Legacy font warning сохранён; не SQL/browser E2E.
+      Prod audit 0 findings, exit 0 (325 dependencies). Полный tooling audit:
+      25 findings, 15 high / 10 moderate, exit 1 (827 dependencies); triage далее.
+      Q1/A7/rollout и внешняя приёмка не закрыты; не пушили и не выложено.
       Q1i: related tRPC server/client/react-query 11.7.2 → 11.8.0 с aligned
       exact peers; excluded Expo прежний. Два bounded child pollution RED →
       27 focused dependency/compiled entrypoint/native Nest HTTP GREEN.

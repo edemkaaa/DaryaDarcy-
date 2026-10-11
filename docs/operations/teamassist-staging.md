@@ -6,6 +6,20 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1j: Babel core → 7.29.6 и reviewed related Babel graph по
+[advisory владельца](https://github.com/babel/babel/security/advisories/GHSA-4x5r-pxfx-6jf8).
+Два synthetic outside-package map disclosure RED → 12 focused GREEN; actual
+styled-jsx transform сохраняет scoped classes/CSS. Full default 2218 pass /
+1053 opt-in skips, exit 0; root types/Next build/frontend lint/legacy Vite build/
+formatting/frozen-ignore-scripts install GREEN на текущем macOS tree. Legacy
+font warning сохранён; clean Linux/SQL/browser не проверялись этим срезом.
+Все 16 новых Babel registry integrities совпали, install/prepare hooks нет.
+Prod audit 0 findings, exit 0 (325 dependencies), но полный tooling audit
+25 findings, 15 high / 10 moderate, exit 1 (827 dependencies). Это не полная
+security готовность: tooling triage/A7/migrations/provider/media/device/rollout
+открыты. App не компилирует пользовательский JS; exploit не заявляется.
+Не пушили и не выложено; working DB/roles/CORS/proxy trust не менялись.
+
 Свежий Q1i: workspace tRPC server/client/react-query → aligned 11.8.0 по
 [релизу владельца](https://github.com/trpc/trpc/releases/tag/v11.8.0).
 Два disposable child pollution RED → 27 focused upstream/compiled/native HTTP
