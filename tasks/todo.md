@@ -6,6 +6,15 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+Q1w: actual offline Drizzle export --sql, typed synthetic MySQL config/schema,
+exact DDL/header/stderr/exit + unchanged fixture-directory. Baseline CLI compiler
+0.25.12 vs child-only root 0.28.2 candidate; 2 new pass, Q1u/v/w 6 focused pass
+(564 ms), types/format/docs/diff. Minimal env/explicit disabled dotenv/network
+connect guard; SQL only generated, never executed, no working DB.
+Initial expectation missing standard header corrected, not production RED.
+No graph/lockfile/security fix or full migration compatibility claim;
+JSON/other legacy modes/reviewed upgrade/Q1/A7/external gates remain.
+
 Q1v: native esm-loader typed config/enum + tsconfig alias/.mjs→.mts + dynamic
 import: baseline/candidate isolated worker, actual hooks, 2 new pass;
 Q1u+Q1v 4 focused pass/exit 0 (357 ms), types/format/docs/diff.

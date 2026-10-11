@@ -41,6 +41,28 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**Q1w, actual offline Drizzle config/schema export — 11 октября МСК:**
+Настоящий installed drizzle-kit CLI выполняет export --sql через typed
+synthetic MySQL config (enum) и schema (actual drizzle-orm mysqlTable/int/
+varchar). Проверяется точный stdout: schema-file header и CREATE TABLE с
+AUTO_INCREMENT/NOT NULL/PRIMARY KEY; stderr пуст, exit 0, fixture-directory
+не изменился. Это генерация DDL, не выполнение SQL и не миграция какой-либо БД.
+Child получает только PATH/explicit nonexistent dotenv path/cache flag;
+сетевая Socket.connect запрещена fail-fast. Реальные .env не читаются.
+Baseline compiler normal CLI register path = actual scoped esbuild 0.25.12;
+candidate = root 0.28.2 через child-only exact-parent adapter с assertion факта
+injection/version. Это другая цепочка, не nested legacy 0.18.20 из Q1u/v.
+**2 new CLI pass; Q1u/v/w together: 6 focused pass, exit 0 (564 ms)**;
+root types/format/diff/docs checks проходят. Первые два characterization failures
+были неверным ожиданием stdout без штатного schema header; fixture expectation
+исправлен, production defect/security RED не заявлен. Review: реальный CLI,
+register, config/schema loading и сериализатор не подменены; adapter не выдан
+за installed upgrade. Один synthetic table не доказывает migration/rollout/
+полную repo schema compatibility. Dependency graph/lockfile/production/build
+не менялись; JSON/прочие legacy modes и reviewed chain upgrade ещё впереди.
+Q1 residuals/A7/external gates сохраняются. Рабочая БД/секреты/внешние письма/
+payments/push/deploy не затронуты, весь этап не объявлен готовым.
+
 **Q1v, native legacy ESM module/config compatibility — 11 октября МСК:**
 Добавлен bounded Node loader characterization с отдельными synthetic .mts
 fixtures и явным fixture tsconfig: настоящий esm-loader 2.6.5 загружает typed
