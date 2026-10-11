@@ -1342,6 +1342,36 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1m — ESLint minimatch, 11 октября МСК:** scoped 3.1.2 → 3.1.5,
+без major upgrade или изменений lint/access policy. Reviewed
+[upstream range](https://github.com/isaacs/minimatch/compare/v3.1.2...v3.1.5):
+coalesced stars, head/tail globstar traversal, recursion limit 200 и partial
+matching fix. Допустимы false negatives при превышении глубины; ordinary
+lint globs/dot/brace/extglob/partial fixtures сохранены. Registry integrity
+совпал, install/prepare hooks нет; brace-expansion 1.1.12 не менялся.
+Lock меняет только override, minimatch package/snapshot и шесть lint edges;
+production graph unchanged, frozen ignore-scripts install GREEN на macOS tree.
+Actual ESLint-resolved matcher: consecutive stars и 50 non-adjacent globstars
+раньше зависали в bounded children (2s / 64 MB / 4 KB output cap):
+**2 native RED → 3 focused GREEN**. Полная default регрессия **2231 pass /
+1053 opt-in skips, exit 0 (23.04s)**; root types/frontend lint/formatting GREEN.
+Unchanged Next/backend/legacy build и SQL/browser не повторялись без причины.
+Prod audit **0 findings / exit 0 / 325 dependencies**; full audit
+**18 findings (9 high / 9 moderate), exit 1 / 827 dependencies**.
+**Существенное ограничение:** отсутствие minimatch findings в registry НЕ
+подтверждает устранение всех трёх рисков. Отдельный synthetic nested-extglob
+probe на actual 3.1.5 (`match('a'.repeat(25)+'z', '*(*(*(a|b)))')`) всё ещё
+достигает 2s timeout, child завершён SIGTERM; heap 64 MB/output cap 4 KB.
+[Nested-extglob advisory](https://github.com/isaacs/minimatch/security/advisories/GHSA-23c5-xmqv-rm74)
+помечает 3.1.4 patched, однако reviewed runtime diff такого исправления не
+содержит; upstream README теперь предупреждает о residual ReDoS untrusted globs.
+Это отдельный открытый tooling blocker, не GREEN или доказанный app exploit:
+app не импортирует minimatch, внешние user patterns не обнаружены.
+Нельзя включать noext/global filter, повышать major или объявлять Q1 закрытым
+без отдельной совместимости и доказательств. Далее независимый dependency срез.
+TDD/security/review skills отделили две реальные починки от audit false assurance.
+Не пушили, не выложено; рабочая БД, roles/CORS/trust/quotas не менялись.
+
 **Q1l — tooling glob parser, 11 октября МСК:** scoped picomatch 2.3.1 → 2.3.2
 только через micromatch/fast-glob frontend lint graph; picomatch 4.0.5 сохранён.
 Основание: [inherited classes advisory](https://github.com/micromatch/picomatch/security/advisories/GHSA-c2c7-rcm5-vvqj)

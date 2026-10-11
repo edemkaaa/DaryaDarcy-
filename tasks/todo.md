@@ -311,6 +311,14 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1m: scoped minimatch 3.1.2 → 3.1.5; stars/globstar bounded children
+      2 RED → 3 focused GREEN, ordinary lint/partial semantics сохранены.
+      Full default 2231 pass / 1053 skips, exit 0 (23.04s); root types/lint/
+      frozen-ignore-scripts install/formatting GREEN. Production graph unchanged.
+      Prod audit 0/exit 0; полный audit 18 (9 high / 9 moderate), exit 1.
+      ВАЖНО: nested-extglob на actual 3.1.5 всё ещё timeout 2s в owned bounded
+      child, несмотря на patched metadata; manual tooling blocker остаётся
+      открытым. Не app exploit, не полная Q1 готовность; далее независимый срез.
       Q1l: scoped picomatch 2.3.1 → 2.3.2, только micromatch tooling graph;
       4 actual RED → 5 focused GREEN (inherited classes + bounded extglob child).
       Ordinary glob/exclusions сохранены; integrity/hooks/upstream review GREEN.

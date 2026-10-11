@@ -6,6 +6,17 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1m: scoped ESLint minimatch 3.1.2 → 3.1.5; consecutive stars и
+non-adjacent globstars: 2 bounded child RED → 3 focused GREEN. Full default
+2231 pass / 1053 skips, exit 0; root types/frontend lint/frozen-ignore-scripts
+install/formatting GREEN. Production graph unchanged, build не повторялся.
+Prod audit 0/exit 0 (325 dependencies); full audit 18 findings (9 high /
+9 moderate), exit 1 (827 dependencies). Но nested-extglob probe на actual
+3.1.5 всё ещё даёт 2s timeout в owned 64 MB child: registry patched metadata
+не является подтверждением исправления. Manual tooling blocker записан в плане;
+не app exploit/полная security готовность. Brace-expansion и остальные
+tooling/A7/внешние gates открыты. Не пушили и не выложено, рабочая БД не менялась.
+
 Свежий Q1l: scoped picomatch 2.3.1 → 2.3.2 в micromatch tooling graph.
 Inherit-class и repeated-extglob findings сняты: 4 actual RED → 5 focused GREEN,
 bounded child timeout/heap/output cap, ordinary globs/exclusions сохранены.
