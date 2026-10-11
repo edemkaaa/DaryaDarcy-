@@ -222,6 +222,52 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
       ).toEqual([{ action: "update_launch_settings", details: "revision:32" }]);
     });
   }, 30_000);
+  it.each([
+    ["http://assets.example.test/summer.webp", "Лето: фон"],
+    ["javascript:alert(1)", "Лето: баннер"],
+    [
+      "https://synthetic:synthetic@assets.example.test/summer.webp",
+      "Лето: фон",
+    ],
+  ])(
+    "S1 rejects unsafe seasonal image URL %s before any native write",
+    async (url, label) => {
+      await withSettings(async ({ rows, context, frontend, actorId }) => {
+        const before = await rows("SELECT * FROM launch_settings WHERE id=1");
+        const page = await context.newPage();
+        const form = await open(page, frontend);
+        let writes = 0;
+        page.on("request", (request) => {
+          if (
+            new URL(request.url()).pathname === "/api/admin/launch-settings" &&
+            request.method() === "PUT"
+          )
+            writes++;
+        });
+        await form.getByLabel(label, { exact: true }).fill(url);
+        await form
+          .getByRole("button", { name: "Сохранить сезоны", exact: true })
+          .click();
+        await browserExpect(form.getByRole("alert")).toContainText(
+          "HTTPS-ссылки без логина и пароля",
+        );
+        await browserExpect(
+          form.getByLabel(label, { exact: true }),
+        ).toHaveValue(url);
+        await browserExpect(form.getByRole("status")).toHaveCount(0);
+        expect(await rows("SELECT * FROM launch_settings WHERE id=1")).toEqual(
+          before,
+        );
+        expect(
+          await rows("SELECT action FROM admin_audit_log WHERE actorUserId=?", [
+            actorId,
+          ]),
+        ).toEqual([]);
+        expect(writes).toBe(0);
+      });
+    },
+    30_000,
+  );
   it("S1 discards a committed native season reply released after server session revocation", async () => {
     await withSettings(
       async ({ rows, connection, context, frontend, base, actorId }) => {

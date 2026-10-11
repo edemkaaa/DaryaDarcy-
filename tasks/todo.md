@@ -6,6 +6,16 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+S1f (12 октября МСК): HTTP/javascript/HTTPS synthetic-credentials image URLs
+rejected by real admin form, retained draft/no success, zero PUT requests and
+unchanged native SQL config/audit. No mock API/external request/production fix;
+client guard not substitute for server validation/SSRF audit. 3 focused pass /
+78 skips, exit0 (3.75 s); integrated S1 22 pass / 59 filtered skips (81), exit0
+(10.27 s), types/format/606 boundaries/diff pass. Helper907 lines: split before
+further growth. Own validated tmpfs DB --rm/Next stopped; S1a–f local cases
+verified, customer dates/media/physical sleep/device/target rollout/A7/Q1/provider
+acceptance still open; working data/design/roles/subscriptions unchanged.
+
 S1e (12 октября МСК): actual PUT200/SQL revision32 held after commit; synthetic
 session revoked, native auth/me200/user:null closes form → /login before release.
 Original native response fulfill completes without suppression; private form

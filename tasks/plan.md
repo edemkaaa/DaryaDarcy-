@@ -41,6 +41,30 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**S1f, unsafe image URL client refusal — 12 октября МСК:**
+Три browser сценария в настоящем native fixture: HTTP URL, javascript URL,
+HTTPS со synthetic credentials. Форма показывает scoped validation error,
+сохраняет ввод, success notice нет. Request observer подтверждает ноль PUT;
+native SQL singleton/audit не меняются. Реальный initial admin GET/сессия,
+никаких mock API или внешних запросов. Это client UX guard, НЕ замена серверной
+валидации (ранее проверенной launch-settings MySQL suite), не SSRF-аудит всех
+изображений. Break: отправить invalid URL, потерять draft или показать success.
+Focused **3 pass / 78 filtered skips, exit0 (3.75 s)**; совместный S1
+**22 pass / 59 filtered skips (81), exit0 (10.27 s)**. Root types, targeted
+format, 606 boundaries, 54-document links и whitespace проходят. Review: literal unsafe fixtures,
+real UI/SQL + observable absence of write, no mocks/production changes/new
+dependencies, helper 907 lines; дальнейший рост требует разделения по concerns.
+Нового production-дефекта/RED/fix не найдено. По S1a–f подтверждены local
+admin save/reload/CAS, оба unknown outcomes, inspection/manual retry, четыре
+Moscow boundary reads, lifecycle refresh, decoded local fallback, revoked
+session и late-success ordering. Это не полная S1 приёмка: остаются customer
+dates/media и физические устройства/sleep, target rollout/A7/Q1/provider gates.
+Own MySQL 1851481a6b4b exact ID/label season-s1f-20261012/tmpfs/no mounts/
+127.0.0.1 проверен перед stop/--rm; после stop label inventory пуст. Удалены
+только невосстановимые synthetic fixture данные; Next остановлен. Working DB/design/roles/
+subscriptions/CORS/trust/quotas/сервер/mail/provider не менялись; неизменившиеся
+broad default/build/SQL проверки не повторены.
+
 **S1e, late native success after session revocation — 12 октября МСК:**
 Сезонный PUT действительно проходит Nest/SQL и возвращает 200/revision32,
 03-21 и сохранённый managerEmail. Browser transport удерживает этот настоящий
