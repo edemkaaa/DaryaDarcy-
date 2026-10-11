@@ -6,7 +6,18 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
-Следующий локальный срез: path-to-regexp 0.1.12 → 0.1.13, без смены Express
+Свежий Q1c: Axios root/backend закреплён на 1.20.0 с reviewed transport graph
+по [релизу владельца](https://github.com/axios/axios/releases/tag/v1.20.0).
+Bounded fetch-limit RED → GREEN; настоящий legacy SDK → loopback HTTP
+сохраняет три POST контракта и отказ 502; cookie/session вместе 13 pass.
+Full default: 2191 pass / 1053 opt-in skips, exit 0 (17.88s); types/build/
+formatting/frozen-ignore-scripts install проходят. Prod audit теперь 12 findings
+(0 critical / 5 high / 4 moderate / 3 low), exit 1, не clean. Нет изменений
+inbound trust/CORS/auth/квот. Outbound proxy parser изменён upstream; реальная
+proxy конфигурация, external OAuth и clean Linux install требуют отдельной
+приёмки при rollout. SQL/provider/browser приёмка этим не заменяется; не выложено.
+
+Предыдущий локальный срез: path-to-regexp 0.1.12 → 0.1.13, без смены Express
 или маршрутов. [Advisory владельца](https://github.com/pillarjs/path-to-regexp/security/advisories/GHSA-37ch-88jc-xwx2)
 проверен на bounded child fixture: timeout RED → false GREEN; 32 focused
 dependency/native HTTP/security pass. Root types/backend build/frozen install

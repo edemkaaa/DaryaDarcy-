@@ -311,6 +311,14 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1c: Axios root/backend 1.20.0 и reviewed related transport graph;
+      bounded fetch limit RED → GREEN, real SDK/loopback HTTP сохраняет три
+      JSON POST и отказ 502; cookie/session вместе = 13 focused pass.
+      Full default 2191 pass / 1053 opt-in skips, exit 0 (17.88s), types/build/
+      formatting/frozen-ignore-scripts install проходят. Prod audit теперь
+      12 (0 critical / 5 high / 4 moderate / 3 low), exit 1, не clean.
+      Inbound trust/auth/CORS/квоты неизменны; external OAuth/outbound proxy,
+      clean Linux install и rollout не подтверждены. Legacy-expo вне workspace.
       Q1b: path-to-regexp 0.1.12 → 0.1.13, bounded child timeout RED →
       32 dependency/native HTTP/security GREEN; generated lock diff только matcher.
       Frozen/ignore-scripts install/root types/backend build проходят;

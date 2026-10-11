@@ -1342,6 +1342,40 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1c — Axios и связанный transport graph, 11 октября МСК:** root/backend
+фиксируют 1.20.0 вместо 1.13.2; excluded legacy-expo не менялся.
+Проверены [релиз 1.20.0](https://github.com/axios/axios/releases/tag/v1.20.0),
+[промежуточный changelog](https://raw.githubusercontent.com/axios/axios/v1.20.0/CHANGELOG.md)
+и [advisory fetch limit](https://github.com/axios/axios/security/advisories/GHSA-777c-7fjr-54vf).
+Bounded 64-byte data URI при maxContentLength=16: старый fetch adapter
+возвращал 64 bytes (RED), новый отвергает ERR_BAD_RESPONSE (GREEN).
+Это characterization upstream, не app exploit: единственный текущий call site
+— legacy Manus SDK с Node HTTP adapter, fixed paths и JSON POST; finite fetch
+limits/HTTP2/interceptors/multipart приложение здесь не использует.
+Две дополнительные real SDK → owned loopback HTTP проверки сохраняют все три
+payload/path контракта, loginMethod=email и отказ при 502 без выдачи user.
+Ни DB, ни внешний OAuth не вызываются; synthetic credentials, proxy env только
+в собственном test worker. Вместе с cookie/session cases **13 focused GREEN**.
+Сгенерированный lock diff ограничен Axios graph: follow-redirects 1.16.1,
+form-data 4.0.6 → hasown 2.0.4, proxy-from-env 2.1.0 и новый
+https-proxy-agent 5.0.1 → agent-base 6.0.2 (existing debug/function-bind).
+Review: [redirect source diff](https://github.com/follow-redirects/follow-redirects/compare/v1.15.11...v1.16.1),
+[multipart fix](https://raw.githubusercontent.com/form-data/form-data/v4.0.6/CHANGELOG.md)
+и [outbound proxy parser change](https://github.com/Rob--W/proxy-from-env/releases/tag/v2.1.0)
+проверены; последний переходит на standard URL API и требует отдельной приёмки
+реальной outbound proxy конфигурации при rollout. Inbound Express trust/CORS,
+auth policy, квоты и production source не менялись. Registry integrities
+сверены, scripts metadata рассмотрены; все установки --ignore-scripts,
+prepare/prepublish не разрешались. Frozen install на текущем macOS tree,
+не clean Linux rehearsal. **2191 full default pass / 1053 opt-in skips**, exit 0,
+17.88s под scoped caffeinate; root types/backend build/formatting проходят.
+Fresh native prod audit: **12 findings, 0 critical / 5 high / 4 moderate / 3 low**,
+exit 1; advisory для Axios graph отсутствуют. Это 37 снятых findings, не 37
+подтверждённых app exploits. Security/TDD/incremental/review skills удержали
+обновление в одном связанном graph с RED/GREEN и честной границей приёмки.
+Q1, реальные SQL/browser/provider проверки, migration gates и rollout открыты;
+не было push/deploy или изменения рабочей БД.
+
 **Q1b — legacy Express route matcher, 11 октября МСК:** один точечный override
 path-to-regexp 0.1.12 → 0.1.13 по
 [advisory владельца](https://github.com/pillarjs/path-to-regexp/security/advisories/GHSA-37ch-88jc-xwx2)
