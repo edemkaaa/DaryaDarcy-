@@ -302,6 +302,13 @@
       API/direct URL private/public acceptance и рабочая карта ссылок ещё открыты.
 - [ ] M2: закрытая выдача/перенос только по проверенной карте, storage/API acceptance.
 - [ ] V1: контракт/валидация VK source и public/club, совместимость прежних видео.
+      V1a: read-only аудит + проект границ в плане: required UNIQUE youtubeId,
+      public catalog без club gate и строгий anonymous worker требуют совместимого
+      решения до смешанного каталога. Вложения наследуют access родителя;
+      iframe нельзя класть в file videoUrl или выдавать гостю закрытый source.
+      Официальные docs недоступны (web error / direct HEAD 418); host/path/query
+      не подтверждены. Схема/API пока не утверждены и не менялись; нужны проверка
+      контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
 - [ ] Q2: критерии нагрузки/baseline, Safari/Android/desktop/PWA приёмка.
