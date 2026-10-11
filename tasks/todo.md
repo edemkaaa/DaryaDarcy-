@@ -6,6 +6,14 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3am: native profile→Club link/active tab→close setup→Комьюнити/pressed→postal
+«скоро» without matching CTA→history Back/profile/result; scoped quiz и прежние
+SQL identity/payment assertions сохранены. Hidden moodboards/support buttons
+visibility проверены без отправки mail. 1 pass / 51 filtered skips, exit 0
+(5.37 s), types/format/docs/diff. Initial wrong tab/modal preconditions
+исправлены через UI, no force-click/production fix/new RED. Own tmpfs DB/Next
+остановлены, synthetic DB --rm; devices/mailto/media/A7/provider gates прежние.
+
 Q1x: integrated default после новых Q1v/w suites: 2264 pass / 1064 skips,
 173 passed/56 skipped files, exit 0 (18.49 s). Review/docs/diff; production/
 graph/build unchanged, native browser/types не повторены без изменений.

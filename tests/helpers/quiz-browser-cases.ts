@@ -793,6 +793,46 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       await page.reload();
       await browserExpect(result).toBeVisible();
       expect(await stored()).toEqual(completed);
+      // Preserve staged scope while navigating with a real paid-member session.
+      await browserExpect(
+        page.getByText("Мои мудборды", { exact: true }),
+      ).toHaveCount(0);
+      await browserExpect(
+        page.getByRole("button", { name: /По подписке/ }),
+      ).toBeVisible();
+      await browserExpect(
+        page.getByRole("button", { name: /По приложению/ }),
+      ).toBeVisible();
+      const clubTab = page
+        .getByRole("navigation", { name: "Разделы" })
+        .getByRole("link", { name: "Клуб", exact: true });
+      await clubTab.click();
+      await browserExpect(page).toHaveURL(/\/club$/);
+      await browserExpect(clubTab).toHaveAttribute("aria-current", "page");
+      const setup = page.getByRole("dialog", {
+        name: "Настройка профиля клуба",
+      });
+      await browserExpect(setup).toBeVisible();
+      await setup
+        .getByRole("button", { name: "Закрыть настройку профиля", exact: true })
+        .click();
+      await browserExpect(setup).toHaveCount(0);
+      const community = page.getByRole("button", {
+        name: "Комьюнити",
+        exact: true,
+      });
+      await community.click();
+      await browserExpect(community).toHaveAttribute("aria-pressed", "true");
+      await browserExpect(
+        page.getByText("Почтовое отделение — скоро", { exact: true }),
+      ).toBeVisible();
+      await browserExpect(
+        page.getByRole("button", { name: /найти друга по переписке/ }),
+      ).toHaveCount(0);
+      await page.goBack();
+      await browserExpect(page).toHaveURL(/\/profile$/);
+      await browserExpect(result).toBeVisible();
+      expect(await stored()).toEqual(completed);
       await page
         .getByRole("button", { name: /Посмотреть результат →/ })
         .click();

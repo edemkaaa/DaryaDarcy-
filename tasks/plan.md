@@ -41,6 +41,27 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3am, native profile → club → history-back and staged scope — 11 октября МСК:**
+Existing paid-member quiz/profile journey расширен: после profile reload
+«Мои мудборды» отсутствуют, две support buttons видимы (не нажимаются).
+Настоящая bottom-tab ссылка открывает Club, aria-current подтверждён; штатная
+настройка профиля закрыта через UI, затем выбран Комьюнити (aria-pressed).
+«Почтовое отделение — скоро» видно, CTA поиска друга отсутствует. Native
+history Back возвращает profile/result без потери scoped quiz result, после
+чего прежние reopen/reload/retake и SQL identity/payment assertions проходят.
+**1 focused native Next/Nest/own MySQL browser pass / 51 filtered skips,
+exit 0 (5.37 s)**; root types/format/diff/docs checks проходят.
+Два первых failures были неверными fixture preconditions: postal placeholder
+доступен только на Комьюнити, а new-member profile setup перекрывает tab click.
+Уточнён настоящий UI-путь, не force-click/DOM suppression/production fix;
+нового defect/security RED нет. Production/design/roles/capabilities не
+менялись; existing synthetic paid DB row не является новым provider payment.
+Support delivery/mailto OS/devices/media/A7/provider gates не закрыты.
+Own loopback/tmpfs backend_test проверен по exact owner label/mounts/port
+до теста и stop --rm; synthetic DB удалена, Next остановлен. Working DB,
+secrets/external mail/payments/push/deploy не затронуты; default/build/прочие
+неизменённые native cases не повторены после предыдущих checkpoints.
+
 **Q1x, integrated tooling checkpoint and supported-release blocker — 11 октября МСК:**
 После двух новых ordinary suites Q1v/w выполнена свежая default regression:
 **2264 pass / 1064 skips, 173 passed / 56 skipped files, exit 0 (18.49 s)**.
