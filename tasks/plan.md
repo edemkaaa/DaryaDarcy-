@@ -1342,6 +1342,31 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1a — proxy-addr, 11 октября МСК:** свежий native pnpm 9.12.0 production audit
+подтвердил прежние 51 findings (1 critical / 20 high / 26 moderate / 4 low).
+Один точечный override 2.0.7 → 2.0.8 снимает GHSA-jqcg-44mw-7w3h по
+[advisory владельца](https://github.com/jshttp/proxy-addr/security/advisories/GHSA-jqcg-44mw-7w3h)
+и [release notes](https://github.com/jshttp/proxy-addr/releases/tag/v2.0.8).
+До обновления regression через настоящий Express dependency даёт два RED:
+публичный IPv4 ошибочно trusted для двух неоднозначных IPv6 префиксов.
+Это characterization upstream defect, не воспроизведение взлома приложения:
+обычный API и sandbox сохраняют свою прежнюю loopback policy без изменений.
+После обновления **20 focused dependency/native HTTP/client-IP GREEN**;
+правильный mapped subnet и loopback IPv4/IPv6/mapped остаются совместимыми,
+реальные HTTP quota checks сохраняют поведение при forged forwarded headers.
+Оба Express потребителя (прямой и Nest adapter) разрешают proxy-addr 2.0.8.
+Lockfile сгенерирован pnpm: одна версия/integrity и обе Express ссылки изменены;
+пять peer snapshot ссылок/ключей ESLint пересериализованы без смены версий.
+Install --frozen-lockfile --ignore-scripts проходит на текущем дереве; это не
+clean Linux image rehearsal. Пакет не добавляет transitives/install hooks.
+Полный default suite **2187 pass / 1053 opt-in skips**, root/frontend/E2E types,
+backend build и lint проходят; SQL skips не считаются сквозной приёмкой.
+Audit после обновления: **50 findings, 0 critical / 20 high / 26 moderate / 4 low**,
+proxy-addr advisory отсутствует, audit exit 1 остаётся ожидаемым из-за остальных.
+Security/TDD/review: без forced remediation, vendor patches, новых проверок в
+package scripts, изменения trust/quota/ролей/CORS, реальных платежей/писем/БД.
+Q1 в целом и rollout открыты; далее точечная reachability/fix triage других пакетов.
+
 - **Q1 — зависимости и миграции (M на исправление).** Разобрать 51 сохранённый
   advisory по достижимости и исправлениям; точечные обновления с changelog и
   регрессией. Рабочие history/data migration blockers требуют репетиции/backup.

@@ -311,6 +311,12 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1a: proxy-addr override 2.0.7 → 2.0.8; два upstream defect RED →
+      20 dependency/native HTTP/client-IP GREEN, прежний loopback trust сохранён.
+      Full default 2187 pass / 1053 skips; types/backend build/lint проходят.
+      Fresh prod audit 50 (0 critical / 20 high / 26 moderate / 4 low), не clean.
+      Frozen/ignore-scripts install и reviewed generated lockfile; Linux rollout,
+      SQL acceptance и остальные dependency findings остаются открыты.
 - [ ] Q2: критерии нагрузки/baseline, Safari/Android/desktop/PWA приёмка.
 - [ ] Q3: матрица сдачи, backup/rollback, инструкция, пилот 5–7 дней/30–50 участниц.
 

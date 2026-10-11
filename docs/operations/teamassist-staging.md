@@ -4,6 +4,21 @@
 согласовал новую пустую БД без переноса реальных аккаунтов, оплат и ключей
 интеграций. Последующее наполнение публичным контентом описано ниже отдельно.
 
+## Локальное обновление зависимости — 11 октября 2026 (не выложено)
+
+На feature/stage-one-completion-2026-10-10 точечно обновлён proxy-addr 2.0.7 →
+2.0.8 через override и сгенерированный pnpm lockfile. Проверены
+[исправление владельца](https://github.com/jshttp/proxy-addr/security/advisories/GHSA-jqcg-44mw-7w3h)
+и [релиз](https://github.com/jshttp/proxy-addr/releases/tag/v2.0.8).
+Приложение продолжает доверять только loopback; proxy trust, роли и квоты
+не менялись. Два dependency RED до обновления, 20 focused GREEN после, включая
+настоящие HTTP проверки квот/forged forwarded headers. Default suite: 2187 pass,
+1053 opt-in skips; types/backend build/lint проходят. Native production audit
+теперь 50 findings: 0 critical, 20 high, 26 moderate, 4 low (не чистый audit).
+Прежние снимки ниже описывают прошлые выпуски, не обновлённый сервер.
+Frozen/ignore-scripts install проверен локально; перед отдельным rollout нужны
+Linux image rehearsal и release gates. Здесь нет push/deploy/миграций/смены БД.
+
 ## Устройство и ограничения
 
 - Приложение: staging `12cfc8dd76e801809828e2ef8af4bdcc8577019f`.
