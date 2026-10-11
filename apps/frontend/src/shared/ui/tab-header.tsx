@@ -12,12 +12,16 @@ export function TabHeader({
   showBack = false,
   musicUrl,
   headerRef,
+  title,
+  backHref,
 }: {
   overlay?: boolean;
   variant?: "default" | "home" | "shop";
   showBack?: boolean;
   musicUrl?: string;
   headerRef?: Ref<HTMLElement>;
+  title?: string;
+  backHref?: string;
 }) {
   const router = useRouter();
   return (
@@ -28,6 +32,7 @@ export function TabHeader({
         classes.header,
         overlay ? classes.overlay : "",
         classes[variant],
+        title ? classes.withTitle : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -41,7 +46,9 @@ export function TabHeader({
         {showBack ? (
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() =>
+              backHref ? router.replace(backHref) : router.back()
+            }
             aria-label="Вернуться назад"
             className={classes.action}
           >
@@ -55,6 +62,7 @@ export function TabHeader({
           </button>
         ) : null}
       </div>
+      {title ? <h1 className={classes.title}>{title}</h1> : null}
       <div className={classes.group}>
         {musicUrl ? <TabMusicToggle url={musicUrl} /> : null}
         <Link

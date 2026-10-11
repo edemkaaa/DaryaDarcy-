@@ -12,6 +12,7 @@ import type { BoxProps } from "./types";
 export type ScrollAreaProps = BoxProps & {
   contentStyle?: CSSProperties;
   contentClassName?: string;
+  contentInert?: boolean;
   horizontal?: boolean;
   hideScrollbar?: boolean;
   paging?: boolean;
@@ -26,6 +27,7 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(
     {
       contentStyle,
       contentClassName = "",
+      contentInert,
       style,
       horizontal,
       hideScrollbar,
@@ -103,6 +105,7 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(
           </div>
         )}
         <div
+          inert={contentInert}
           className={`ui-stack ui-scroll-content ${horizontal ? "ui-scroll-content-horizontal" : ""} ${paging || snapInterval ? "ui-scroll-snap" : ""} ${contentClassName}`}
           style={mergeStyles(contentStyle)}
         >

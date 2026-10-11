@@ -145,11 +145,11 @@ for (const mode of ["full", "quick"] as const) {
     form = await open(page, mode);
     expect(
       await field(form).evaluate((node) => Boolean(node.closest("[inert]"))),
-    ).toBe(true); // The offered copy cannot be overwritten.
+    ).toBe(false); // Ordinary drafts restore without blocking the editor.
     expect(writes).toEqual([]);
-    await form
-      .getByRole("button", { name: "Восстановить черновик", exact: true })
-      .click();
+    await expect(
+      form.getByRole("button", { name: "Восстановить черновик", exact: true }),
+    ).toHaveCount(0);
     await expect(field(form)).toHaveValue("RELOAD_DRAFT");
     await expect(form.getByText("kept.wav", { exact: true })).toBeVisible();
     await expect(form.getByText("kept.txt", { exact: true })).toBeVisible();
@@ -307,9 +307,9 @@ for (const mode of ["full", "quick"] as const) {
     await saved(form);
     await page.reload({ waitUntil: "domcontentloaded" });
     form = await open(page, mode);
-    await form
-      .getByRole("button", { name: "Восстановить черновик", exact: true })
-      .click();
+    await expect(
+      form.getByRole("button", { name: "Восстановить черновик", exact: true }),
+    ).toHaveCount(0);
     await submit(form, mode).click();
     await expect(form).toHaveCount(0);
     expect(creates[1]).toEqual(creates[0]);
@@ -394,9 +394,9 @@ for (const mode of ["full", "quick"] as const) {
       .toEqual([9]);
     await page.reload({ waitUntil: "domcontentloaded" });
     form = await open(page, mode, true);
-    await form
-      .getByRole("button", { name: "Восстановить черновик", exact: true })
-      .click();
+    await expect(
+      form.getByRole("button", { name: "Восстановить черновик", exact: true }),
+    ).toHaveCount(0);
     await expect(field(form)).toHaveValue("EDIT_AFTER_RELOAD");
     await expect(form.getByText("old.pdf", { exact: true })).toHaveCount(0);
     await submit(form, mode, true).click();
@@ -449,9 +449,6 @@ test("drafts belong to the authenticated account and return only to their origin
     route.fulfill({ json: { user: user(101) } }),
   );
   form = await open(page, "full");
-  await form
-    .getByRole("button", { name: "Восстановить черновик", exact: true })
-    .click();
   await expect(field(form)).toHaveValue("OWNER_101_PRIVATE_DRAFT");
 });
 
@@ -471,9 +468,7 @@ test("another tab cannot overwrite the newer draft or send a stale creation", as
   await editorApi(secondPage);
   dialogs(secondPage);
   const second = await open(secondPage, "full");
-  await second
-    .getByRole("button", { name: "Восстановить черновик", exact: true })
-    .click();
+  await expect(field(second)).toHaveValue("FIRST_TAB");
   await field(second).fill("NEWER_SECOND_TAB");
   await saved(second);
   await field(first).fill("STALE_FIRST_TAB");

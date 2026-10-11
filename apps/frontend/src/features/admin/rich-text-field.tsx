@@ -7,10 +7,8 @@ import { MaterialIcons } from "@/shared/ui/icons";
 import { RichTextRenderer } from "@/domain/content/rich-text-renderer";
 import type { RichTextBlock } from "@/domain/content/types";
 import { formatToolbarProps } from "@/shared/browser/press";
-import {
-  runAfterSelectionReady,
-  useRichTextFormatting,
-} from "@/features/admin/use-rich-text-formatting";
+import { useRichTextFormatting } from "@/features/admin/use-rich-text-formatting";
+import { HighlightedTextInput } from "./highlighted-text-input";
 import { RICH_TEXT_INPUT_ID } from "@/shared/browser/selection";
 import { BROWN_DARK, BROWN_LIGHT, ACCENT } from "./rich-text-field.content";
 export type RichTextFieldHandle = {
@@ -39,22 +37,28 @@ export const RichTextField = forwardRef<
   },
   ref,
 ) {
-  const fmt = useRichTextFormatting(value, richTextSeed, onRichTextChange);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const fmt = useRichTextFormatting(
+    value,
+    richTextSeed,
+    onRichTextChange,
+    previewOpen,
+  );
   useImperativeHandle(ref, () => ({
     getRichTextBlocks: fmt.getRichTextBlocks,
     getRichTextBlocksForSubmit: fmt.getRichTextBlocksForSubmit,
   }));
-  const formatActionProps = (action: () => void) =>
-    formatToolbarProps(
-      () => runAfterSelectionReady(action),
-      () => fmt.syncLiveSelection(),
-    );
+  const formatActionProps = (action: () => void) => ({
+    ...formatToolbarProps(action, fmt.prepareToolbarSelection),
+    onPointerCancel: fmt.cancelToolbarSelection,
+    onKeyDown: fmt.cancelToolbarSelection,
+  });
   const webInputProps = {
     id: RICH_TEXT_INPUT_ID,
     onMouseUp: () => fmt.syncLiveSelection(),
     onKeyUp: () => fmt.syncLiveSelection(),
     onTouchEnd: () => fmt.syncLiveSelection(),
+    onClick: () => fmt.syncLiveSelection(),
   } as const;
   return (
     <>
@@ -63,21 +67,21 @@ export const RichTextField = forwardRef<
           .filter(Boolean)
           .join(" ")}
       >
-        <Field
+        <HighlightedTextInput
           {...webInputProps}
           value={value}
+          links={fmt.linkRanges}
+          onBeforeTextChange={fmt.prepareTextEdit}
           onValueChange={(next) => {
             onValueChange(next);
             fmt.handleTextChange(next);
           }}
           onSelection={(e) => fmt.handleSelectionChange(e)}
-          onTouchEnd={fmt.flushSelectionUi}
           onBlur={fmt.flushSelectionUi}
           placeholder={placeholder}
           placeholderColor={BROWN_LIGHT}
           multiline
           selectOnFocus={false}
-          className={classes.editorInputWithBar}
         />
 
         <div
@@ -130,12 +134,20 @@ export const RichTextField = forwardRef<
           <Action
             {...formatActionProps(fmt.addLink)}
             aria-label="Добавить ссылку"
-            className={classes.formatBtn}
+            aria-pressed={Boolean(fmt.currentLink)}
+            className={[
+              classes.formatBtn,
+              fmt.currentLink ? classes.linkButtonActive : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
           >
             <MaterialIcons
               name="link"
               size={17}
-              color={fmt.hasSelection ? BROWN_DARK : BROWN_LIGHT}
+              color={
+                fmt.hasSelection || fmt.currentLink ? BROWN_DARK : BROWN_LIGHT
+              }
             />
           </Action>
           <Typography className={classes.formatHint}>
@@ -235,7 +247,7 @@ export const RichTextField = forwardRef<
                   className={classes.linkModalApply}
                 >
                   <Typography className={classes.linkModalApplyText}>
-                    Добавить
+                    {fmt.linkModalMode === "edit" ? "Сохранить" : "Добавить"}
                   </Typography>
                 </Action>
               </div>

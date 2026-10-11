@@ -44,6 +44,7 @@ export function usePostRecovery({
     savedAt: number;
   } | null>(null);
   const [record, setRecord] = useState<PostRecoveryRecord | null>(null);
+  const [autoRestored, setAutoRestored] = useState(false);
   const [saveState, setSaveState] = useState<PostSaveSnapshot | null>(null);
   const loaded = useRef(false);
   const context = useRef<{
@@ -54,6 +55,24 @@ export function usePostRecovery({
   useEffect(() => {
     latest.current = { editor, onRestore };
   }, [editor, onRestore]);
+  const acceptStoredRecord = useCallback(
+    (stored: PostRecoveryRecord | null) => {
+      // Ordinary edits can resume immediately. Unconfirmed server writes need
+      // the recovery flow so editing cannot change their original payload.
+      if (stored?.save.phase === "idle") {
+        coordinator.current.restore(stored.save);
+        latest.current.onRestore(stored.editor);
+        setSaveState(stored.save);
+        setRecord(null);
+        setAutoRestored(true);
+        setStatus("ready");
+        return;
+      }
+      setRecord(stored);
+      setStatus(stored ? "offered" : "ready");
+    },
+    [coordinator],
+  );
   useEffect(() => {
     if (!active || !ownerId) return;
     const current = {
@@ -65,6 +84,7 @@ export function usePostRecovery({
     setStatus("loading");
     setError(null);
     setRecord(null);
+    setAutoRestored(false);
     setSaveState(null);
     setSavedCheckpoint(null);
     void current.journal
@@ -72,8 +92,7 @@ export function usePostRecovery({
       .then((stored) => {
         if (!current.alive) return;
         loaded.current = true;
-        setRecord(stored);
-        setStatus(stored ? "offered" : "ready");
+        acceptStoredRecord(stored);
       })
       .catch((cause: unknown) => {
         if (!current.alive) return;
@@ -87,7 +106,7 @@ export function usePostRecovery({
     return () => {
       current.alive = false;
     };
-  }, [active, ownerId, slot]);
+  }, [active, ownerId, slot, acceptStoredRecord]);
 
   const checkpoint = useCallback(
     async (
@@ -186,6 +205,7 @@ export function usePostRecovery({
         ? savedCheckpoint.savedAt
         : null,
     record,
+    autoRestored,
     saveState,
     blocked:
       status !== "ready" || (saveState !== null && saveState.phase !== "idle"),
@@ -200,9 +220,8 @@ export function usePostRecovery({
           const stored = await current.journal.load();
           if (!current.alive) return;
           loaded.current = true;
-          setRecord(stored);
           setError(null);
-          setStatus(stored ? "offered" : "ready");
+          acceptStoredRecord(stored);
         } catch (cause) {
           setError((cause as Error).message);
         }

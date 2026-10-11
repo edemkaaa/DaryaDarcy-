@@ -43,6 +43,10 @@
     flex: 1;
   }
 
+  .formLoading {
+    visibility: hidden;
+  }
+
   .scrollContent {
     padding: 16px;
     gap: 20px;

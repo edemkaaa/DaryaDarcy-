@@ -10,15 +10,11 @@ export function formatToolbarProps(
   onAction: () => void,
   beforeAction?: () => void,
 ) {
-  const run = () => {
-    beforeAction?.();
-    onAction();
-  };
   return {
     onPointerDown: (event: { preventDefault: () => void }) => {
       event.preventDefault();
       beforeAction?.();
     },
-    onClick: run,
+    onClick: onAction,
   };
 }

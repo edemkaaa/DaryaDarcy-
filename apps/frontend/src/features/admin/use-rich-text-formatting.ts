@@ -1,8 +1,7 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RichTextBlock } from "@/domain/content/types";
 import {
-  adjustRangesOnTextChange,
   clampRanges,
   toggleRangeFormat,
   truncateSelectionPreview,
@@ -16,6 +15,10 @@ import {
   rangesToRichText,
   richTextToRanges,
 } from "@/domain/content/rich-text-ranges";
+import {
+  createEditorRangeAdjuster,
+  type TextEditHint,
+} from "./editor-range-change";
 import { normalizeLinkUrl } from "@/shared/media/photo-aspect-ratios";
 function countLinks(blocks: RichTextBlock[] | undefined) {
   if (!blocks?.length) return 0;
@@ -26,14 +29,9 @@ function countLinks(blocks: RichTextBlock[] | undefined) {
     0,
   );
 }
-export function runAfterSelectionReady(run: () => void) {
-  {
-    requestAnimationFrame(() => requestAnimationFrame(run));
-    return;
-  }
-}
 import {
   anchorSelection,
+  findRichTextInput,
   normalizeFormatRange,
   normalizeSelection,
   readLiveSelection,
@@ -48,6 +46,7 @@ export function useRichTextFormatting(
   value: string,
   richTextSeed?: RichTextBlock[] | null,
   onRichTextChange?: (blocks: RichTextBlock[] | undefined) => void,
+  previewOpen = false,
 ) {
   const [boldRanges, setBoldRanges] = useState<[number, number][]>([]);
   const [italicRanges, setItalicRanges] = useState<[number, number][]>([]);
@@ -60,12 +59,27 @@ export function useRichTextFormatting(
   >([]);
   const [linkModalVisible, setLinkModalVisible] = useState(false);
   const [linkUrlInput, setLinkUrlInput] = useState("");
+  const [linkModalMode, setLinkModalMode] = useState<"add" | "edit">("add");
+  const [inputSelection, setInputSelection] = useState<Selection | null>(null);
   const [activeSelection, setActiveSelection] = useState<Selection | null>(
     null,
   );
+  const syncInputSelection = useCallback((next: Selection) => {
+    setInputSelection((previous) =>
+      previous?.start === next.start && previous.end === next.end
+        ? previous
+        : next,
+    );
+  }, []);
   const selectionRef = useRef<Selection>({ start: 0, end: 0 });
   const selectionSnapshotRef = useRef<string>("");
   const activeSelectionRef = useRef<Selection | null>(null);
+  // undefined means keyboard activation, with no preceding pointer press.
+  const toolbarSelectionRef = useRef<Selection | null | undefined>(undefined);
+  const pendingTextEditRef = useRef<TextEditHint | null>(null);
+  const prepareTextEdit = useCallback((hint: TextEditHint) => {
+    pendingTextEditRef.current = hint;
+  }, []);
   const pendingLinkSelectionRef = useRef<Selection>({ start: 0, end: 0 });
   const pendingLinkSnapshotRef = useRef<string>("");
   const pendingLinkOccurrenceRef = useRef(0);
@@ -95,6 +109,35 @@ export function useRichTextFormatting(
     },
     [],
   );
+  const blocksCache = useRef<{
+    text: string;
+    bold: typeof boldRanges;
+    italic: typeof italicRanges;
+    links: typeof linkRanges;
+    blocks: RichTextBlock[] | undefined;
+  } | null>(null);
+  const buildRichText = useCallback(
+    (
+      text: string,
+      bold: typeof boldRanges,
+      italic: typeof italicRanges,
+      links: typeof linkRanges,
+    ) => {
+      const cached = blocksCache.current;
+      if (
+        cached &&
+        cached.text === text &&
+        cached.bold === bold &&
+        cached.italic === italic &&
+        cached.links === links
+      )
+        return cached.blocks;
+      const blocks = rangesToRichText(text, bold, italic, links);
+      blocksCache.current = { text, bold, italic, links, blocks };
+      return blocks;
+    },
+    [],
+  );
   const publishRichText = useCallback(
     (
       bold = boldRef.current,
@@ -102,11 +145,11 @@ export function useRichTextFormatting(
       links = linkRef.current,
       text = value,
     ) => {
-      const blocks = rangesToRichText(text, bold, italic, links);
+      const blocks = buildRichText(text, bold, italic, links);
       onRichTextChange?.(blocks);
       return blocks;
     },
-    [onRichTextChange, value],
+    [buildRichText, onRichTextChange, value],
   );
   useEffect(() => {
     activeSelectionRef.current = activeSelection;
@@ -129,13 +172,19 @@ export function useRichTextFormatting(
       linkRef.current = [];
     }
     setActiveSelection(null);
+    setInputSelection(null);
     selectionSnapshotRef.current = "";
     selectionRef.current = { start: 0, end: 0 };
+    toolbarSelectionRef.current = undefined;
     prevTextRef.current = currentTextRef.current;
   }, [richTextSeed]);
   const syncActiveSelection = useCallback((next: Selection | null) => {
     activeSelectionRef.current = next;
-    setActiveSelection(next);
+    setActiveSelection((previous) =>
+      previous?.start === next?.start && previous?.end === next?.end
+        ? previous
+        : next,
+    );
   }, []);
   const scheduleSelectionUi = useCallback(
     (next: Selection | null) => {
@@ -160,6 +209,7 @@ export function useRichTextFormatting(
   const handleSelectionChange = useCallback(
     (next: Selection) => {
       if (applyingFormatRef.current) return;
+      syncInputSelection(next);
       selectionRef.current = next;
       const normalized = normalizeSelection(value, next);
       if (normalized) {
@@ -182,19 +232,31 @@ export function useRichTextFormatting(
         scheduleSelectionUi(null);
       }
     },
-    [scheduleSelectionUi, value],
+    [scheduleSelectionUi, syncInputSelection, value],
   );
   const clearFormatTarget = useCallback(() => {
     syncActiveSelection(null);
     selectionRef.current = { start: 0, end: 0 };
+    toolbarSelectionRef.current = undefined;
   }, [syncActiveSelection]);
   const syncLiveSelection = useCallback(() => {
+    const node = findRichTextInput();
+    if (node) {
+      const next = { start: node.selectionStart, end: node.selectionEnd };
+      syncInputSelection(next);
+      if (next.start === next.end) {
+        selectionRef.current = next;
+        selectionSnapshotRef.current = "";
+        syncActiveSelection(null);
+        return;
+      }
+    }
     const live = readLiveSelection(value, selectionRef.current);
     if (!live) return;
     selectionRef.current = live;
     selectionSnapshotRef.current = value.slice(live.start, live.end);
     syncActiveSelection(live);
-  }, [syncActiveSelection, value]);
+  }, [syncActiveSelection, syncInputSelection, value]);
   const captureSelectionForFormat = useCallback((): Selection | null => {
     const live = readLiveSelection(value, selectionRef.current);
     const fallback = activeSelectionRef.current ?? selectionRef.current;
@@ -210,6 +272,17 @@ export function useRichTextFormatting(
     }
     return resolved;
   }, [syncActiveSelection, value]);
+  const prepareToolbarSelection = useCallback(() => {
+    toolbarSelectionRef.current = captureSelectionForFormat();
+  }, [captureSelectionForFormat]);
+  const cancelToolbarSelection = useCallback(() => {
+    toolbarSelectionRef.current = undefined;
+  }, []);
+  const takeToolbarSelection = useCallback(() => {
+    const prepared = toolbarSelectionRef.current;
+    toolbarSelectionRef.current = undefined;
+    return prepared === undefined ? captureSelectionForFormat() : prepared;
+  }, [captureSelectionForFormat]);
   const notifySelectText = useCallback(() => {
     const message = "Сначала выделите нужный фрагмент текста";
     {
@@ -219,58 +292,51 @@ export function useRichTextFormatting(
   }, []);
   const handleTextChange = useCallback(
     (nextText: string) => {
+      toolbarSelectionRef.current = undefined;
+      const node = findRichTextInput();
+      if (node) {
+        syncInputSelection({
+          start: node.selectionStart,
+          end: node.selectionEnd,
+        });
+      }
+      const edit = pendingTextEditRef.current;
+      pendingTextEditRef.current = null;
       const oldText = prevTextRef.current;
       prevTextRef.current = nextText;
-      const nextBold = clampRanges(
-        nextText,
-        adjustRangesOnTextChange(oldText, nextText, boldRef.current),
-      );
-      const nextItalic = clampRanges(
-        nextText,
-        adjustRangesOnTextChange(oldText, nextText, italicRef.current),
-      );
-      const nextLinks = linkRef.current
+      const adjust = createEditorRangeAdjuster(oldText, nextText, edit);
+      const adjustedBold = adjust(boldRef.current);
+      const adjustedItalic = adjust(italicRef.current);
+      const nextBold =
+        adjustedBold === boldRef.current
+          ? adjustedBold
+          : clampRanges(nextText, adjustedBold);
+      const nextItalic =
+        adjustedItalic === italicRef.current
+          ? adjustedItalic
+          : clampRanges(nextText, adjustedItalic);
+      const adjustedLinks = linkRef.current
         .map((lr) => {
-          const adjusted = adjustRangesOnTextChange(oldText, nextText, [
-            [lr.start, lr.end],
-          ]);
+          const adjusted = adjust([[lr.start, lr.end]]);
           if (adjusted.length === 0) return null;
           const [start, end] = adjusted[0];
-          return { ...lr, start, end };
+          return start === lr.start && end === lr.end
+            ? lr
+            : { ...lr, start, end };
         })
         .filter((lr): lr is (typeof linkRef.current)[number] => lr !== null);
-      const recoveredLinks = [...nextLinks];
-      const seenLinks = new Set(
-        nextLinks.map((link) => `${link.start}:${link.end}:${link.url}`),
-      );
-      for (const old of linkRef.current) {
-        const kept = nextLinks.some(
-          (link) =>
-            link.start === old.start &&
-            link.end === old.end &&
-            link.url === old.url,
-        );
-        if (kept) continue;
-        const anchor = oldText.slice(old.start, old.end);
-        if (!anchor) continue;
-        const occurrence = selectionOccurrence(oldText, old.start, old.end);
-        const relocated = rangeForOccurrence(nextText, anchor, occurrence);
-        if (!relocated) continue;
-        const key = `${relocated.start}:${relocated.end}:${old.url}`;
-        if (seenLinks.has(key)) continue;
-        if (recoveredLinks.some((link) => rangesOverlap(link, relocated)))
-          continue;
-        recoveredLinks.push({ ...relocated, url: old.url });
-        seenLinks.add(key);
-      }
-      recoveredLinks.sort((a, b) => a.start - b.start || a.end - b.end);
+      const nextLinks =
+        adjustedLinks.length === linkRef.current.length &&
+        adjustedLinks.every((link, i) => link === linkRef.current[i])
+          ? linkRef.current
+          : adjustedLinks;
       boldRef.current = nextBold;
       italicRef.current = nextItalic;
-      linkRef.current = recoveredLinks;
+      linkRef.current = nextLinks;
       setBoldRanges(nextBold);
       setItalicRanges(nextItalic);
-      setLinkRanges(recoveredLinks);
-      publishRichText(nextBold, nextItalic, recoveredLinks, nextText);
+      setLinkRanges(nextLinks);
+      publishRichText(nextBold, nextItalic, nextLinks, nextText);
       if (activeSelectionRef.current && selectionSnapshotRef.current) {
         const relocated = resolveFormatRange(
           nextText,
@@ -280,76 +346,62 @@ export function useRichTextFormatting(
         syncActiveSelection(relocated);
       }
     },
-    [publishRichText, syncActiveSelection],
+    [publishRichText, syncActiveSelection, syncInputSelection],
   );
   const beginToggleBold = useCallback(() => {
     flushSelectionUi();
-    syncLiveSelection();
-    const sel = captureSelectionForFormat();
+    const sel = takeToolbarSelection();
     if (!sel) {
       notifySelectText();
       return;
     }
     applyingFormatRef.current = true;
-    setBoldRanges((prev) => {
-      const next = clampRanges(
-        value,
-        toggleRangeFormat(prev, sel.start, sel.end),
-      );
-      boldRef.current = next;
-      publishRichText(next, italicRef.current, linkRef.current);
-      return next;
-    });
+    const next = clampRanges(
+      value,
+      toggleRangeFormat(boldRef.current, sel.start, sel.end),
+    );
+    boldRef.current = next;
+    setBoldRanges(next);
+    publishRichText(next, italicRef.current, linkRef.current);
     selectionSnapshotRef.current = value.slice(sel.start, sel.end);
     syncActiveSelection(sel);
     restoreDomSelection(sel.start, sel.end);
     applyingFormatRef.current = false;
   }, [
-    captureSelectionForFormat,
+    takeToolbarSelection,
     flushSelectionUi,
     notifySelectText,
     publishRichText,
     syncActiveSelection,
-    syncLiveSelection,
     value,
   ]);
-  const toggleBold = useCallback(() => {
-    runAfterSelectionReady(beginToggleBold);
-  }, [beginToggleBold]);
   const beginToggleItalic = useCallback(() => {
     flushSelectionUi();
-    syncLiveSelection();
-    const sel = captureSelectionForFormat();
+    const sel = takeToolbarSelection();
     if (!sel) {
       notifySelectText();
       return;
     }
     applyingFormatRef.current = true;
-    setItalicRanges((prev) => {
-      const next = clampRanges(
-        value,
-        toggleRangeFormat(prev, sel.start, sel.end),
-      );
-      italicRef.current = next;
-      publishRichText(boldRef.current, next, linkRef.current);
-      return next;
-    });
+    const next = clampRanges(
+      value,
+      toggleRangeFormat(italicRef.current, sel.start, sel.end),
+    );
+    italicRef.current = next;
+    setItalicRanges(next);
+    publishRichText(boldRef.current, next, linkRef.current);
     selectionSnapshotRef.current = value.slice(sel.start, sel.end);
     syncActiveSelection(sel);
     restoreDomSelection(sel.start, sel.end);
     applyingFormatRef.current = false;
   }, [
-    captureSelectionForFormat,
+    takeToolbarSelection,
     flushSelectionUi,
     notifySelectText,
     publishRichText,
     syncActiveSelection,
-    syncLiveSelection,
     value,
   ]);
-  const toggleItalic = useCallback(() => {
-    runAfterSelectionReady(beginToggleItalic);
-  }, [beginToggleItalic]);
   const resolvePendingLinkRange = useCallback((): Selection | null => {
     const snapshot = pendingLinkSnapshotRef.current;
     if (!snapshot) return null;
@@ -383,21 +435,22 @@ export function useRichTextFormatting(
         notifyLinkOverlap();
         return;
       }
-      setLinkRanges((prev) => {
-        const next = [
-          ...prev.filter((link) => link.end <= start || link.start >= end),
-          { start, end, url: normalized },
-        ];
-        linkRef.current = next;
-        publishRichText(boldRef.current, italicRef.current, next, value);
-        return next;
-      });
+      const next = [
+        ...linkRef.current.filter(
+          (link) => link.end <= start || link.start >= end,
+        ),
+        { start, end, url: normalized },
+      ].sort((a, b) => a.start - b.start || a.end - b.end);
+      linkRef.current = next;
+      setLinkRanges(next);
+      publishRichText(boldRef.current, italicRef.current, next, value);
       setLinkModalVisible(false);
       setLinkUrlInput("");
       pendingLinkSnapshotRef.current = "";
       pendingLinkOccurrenceRef.current = 0;
       selectionSnapshotRef.current = value.slice(start, end);
       syncActiveSelection({ start, end });
+      setInputSelection({ start, end });
       restoreDomSelection(start, end);
     },
     [
@@ -408,35 +461,56 @@ export function useRichTextFormatting(
       value,
     ],
   );
+  const currentLink = inputSelection
+    ? (linkRanges.find((link) =>
+        inputSelection.start === inputSelection.end
+          ? link.start <= inputSelection.start &&
+            inputSelection.start < link.end
+          : link.start <= inputSelection.start &&
+            inputSelection.end <= link.end,
+      ) ??
+      linkRanges.find(
+        (link) =>
+          inputSelection.start === inputSelection.end &&
+          link.end === inputSelection.start,
+      ))
+    : undefined;
+  const openLinkDialog = useCallback(
+    (sel: Selection, url?: string) => {
+      const snapshot = value.slice(sel.start, sel.end);
+      pendingLinkSelectionRef.current = sel;
+      pendingLinkSnapshotRef.current = snapshot;
+      pendingLinkOccurrenceRef.current = selectionOccurrence(
+        value,
+        sel.start,
+        sel.end,
+      );
+      selectionSnapshotRef.current = snapshot;
+      setLinkModalMode(url ? "edit" : "add");
+      setLinkUrlInput(url ?? "");
+      setLinkModalVisible(true);
+    },
+    [value],
+  );
   const beginAddLink = useCallback(() => {
     flushSelectionUi();
-    syncLiveSelection();
-    const sel = captureSelectionForFormat();
+    const sel = takeToolbarSelection();
     if (!sel) {
-      notifySelectText();
+      if (currentLink) openLinkDialog(currentLink, currentLink.url);
+      else notifySelectText();
       return;
     }
-    const snapshot = value.slice(sel.start, sel.end);
-    pendingLinkSelectionRef.current = sel;
-    pendingLinkSnapshotRef.current = snapshot;
-    pendingLinkOccurrenceRef.current = selectionOccurrence(
-      value,
-      sel.start,
-      sel.end,
+    const existing = linkRef.current.find(
+      (link) => link.start <= sel.start && sel.end <= link.end,
     );
-    selectionSnapshotRef.current = snapshot;
-    setLinkUrlInput("");
-    setLinkModalVisible(true);
+    openLinkDialog(existing ?? sel, existing?.url);
   }, [
-    captureSelectionForFormat,
+    takeToolbarSelection,
     flushSelectionUi,
     notifySelectText,
-    syncLiveSelection,
-    value,
+    currentLink,
+    openLinkDialog,
   ]);
-  const addLink = useCallback(() => {
-    runAfterSelectionReady(beginAddLink);
-  }, [beginAddLink]);
   const resetFormatting = useCallback(() => {
     setBoldRanges([]);
     setItalicRanges([]);
@@ -446,9 +520,11 @@ export function useRichTextFormatting(
     linkRef.current = [];
     publishRichText([], [], []);
     setActiveSelection(null);
+    setInputSelection(null);
     setLinkModalVisible(false);
     setLinkUrlInput("");
     selectionRef.current = { start: 0, end: 0 };
+    toolbarSelectionRef.current = undefined;
     prevTextRef.current = value;
   }, [publishRichText, value]);
   const selectedText =
@@ -469,30 +545,34 @@ export function useRichTextFormatting(
         (r) => r[0] <= activeSelection!.start && r[1] >= activeSelection!.end,
       )
     : false;
-  const formatPreview = rangesToRichText(
-    value,
-    boldRanges,
-    italicRanges,
-    linkRanges,
+  const formatPreview = useMemo(
+    () =>
+      previewOpen
+        ? buildRichText(value, boldRanges, italicRanges, linkRanges)
+        : undefined,
+    [previewOpen, buildRichText, value, boldRanges, italicRanges, linkRanges],
   );
-  const hasFormatting = Boolean(formatPreview);
+  const hasFormatting = Boolean(
+    boldRanges.length || italicRanges.length || linkRanges.length,
+  );
   const syncRangesToValue = useCallback(() => {
     const sourceText = value;
     const oldText = prevTextRef.current;
     if (oldText === sourceText) return;
-    const nextBold = clampRanges(
-      sourceText,
-      adjustRangesOnTextChange(oldText, sourceText, boldRef.current),
-    );
-    const nextItalic = clampRanges(
-      sourceText,
-      adjustRangesOnTextChange(oldText, sourceText, italicRef.current),
-    );
+    const adjust = createEditorRangeAdjuster(oldText, sourceText);
+    const adjustedBold = adjust(boldRef.current);
+    const adjustedItalic = adjust(italicRef.current);
+    const nextBold =
+      adjustedBold === boldRef.current
+        ? adjustedBold
+        : clampRanges(sourceText, adjustedBold);
+    const nextItalic =
+      adjustedItalic === italicRef.current
+        ? adjustedItalic
+        : clampRanges(sourceText, adjustedItalic);
     const nextLinks = linkRef.current
       .map((link) => {
-        const adjusted = adjustRangesOnTextChange(oldText, sourceText, [
-          [link.start, link.end],
-        ]);
+        const adjusted = adjust([[link.start, link.end]]);
         if (!adjusted.length) return null;
         const [start, end] = adjusted[0];
         return { ...link, start, end };
@@ -507,22 +587,22 @@ export function useRichTextFormatting(
   }, [value]);
   const getRichTextBlocks = useCallback(() => {
     syncRangesToValue();
-    return rangesToRichText(
+    return buildRichText(
       value,
       boldRef.current,
       italicRef.current,
       linkRef.current,
     );
-  }, [syncRangesToValue, value]);
+  }, [buildRichText, syncRangesToValue, value]);
   const getRichTextBlocksForSubmit = useCallback(() => {
     syncRangesToValue();
-    const fromRefs = rangesToRichText(
+    const fromRefs = buildRichText(
       value,
       boldRef.current,
       italicRef.current,
       linkRef.current,
     );
-    const fromState = rangesToRichText(
+    const fromState = buildRichText(
       value,
       boldRanges,
       italicRanges,
@@ -535,6 +615,7 @@ export function useRichTextFormatting(
     return fromRefs ?? fromState ?? formatPreview;
   }, [
     boldRanges,
+    buildRichText,
     formatPreview,
     italicRanges,
     linkRanges,
@@ -553,16 +634,22 @@ export function useRichTextFormatting(
     getRichTextBlocksForSubmit,
     hasFormatting,
     linkModalVisible,
+    linkModalMode,
+    linkRanges,
+    currentLink,
     linkUrlInput,
     setLinkUrlInput,
     setLinkModalVisible,
     handleSelectionChange,
     handleTextChange,
+    prepareTextEdit,
     syncLiveSelection,
+    prepareToolbarSelection,
+    cancelToolbarSelection,
     flushSelectionUi,
-    toggleBold,
-    toggleItalic,
-    addLink,
+    toggleBold: beginToggleBold,
+    toggleItalic: beginToggleItalic,
+    addLink: beginAddLink,
     applyLink,
     resetFormatting,
     clearFormatTarget,

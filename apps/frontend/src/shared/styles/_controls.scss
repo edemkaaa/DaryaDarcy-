@@ -60,8 +60,7 @@
   .ui-action:disabled {
     cursor: default;
   }
-  .ui-action:focus-visible,
-  .ui-field:focus-visible {
+  .ui-action:focus-visible {
     outline: 2px solid var(--muted);
     outline-offset: 3px;
   }
@@ -246,5 +245,12 @@
     content: "";
     position: absolute;
     inset: calc(-1 * var(--hit-area));
+  }
+}
+
+@layer components {
+  .ui-field:focus {
+    outline: none;
+    border: 1px solid var(--muted);
   }
 }

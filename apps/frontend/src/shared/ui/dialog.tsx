@@ -22,6 +22,7 @@ type DialogProps = {
   open?: boolean;
   onClose?: () => void;
   motion?: "fade" | "slide" | "none";
+  className?: string;
   children: ReactNode;
 };
 export function Dialog({
@@ -29,6 +30,7 @@ export function Dialog({
   open,
   onClose,
   motion = "none",
+  className = "",
   children,
 }: DialogProps) {
   const active = useScreenActive();
@@ -120,7 +122,7 @@ export function Dialog({
   if (!visible || typeof document === "undefined") return null;
   return createPortal(
     <div
-      className={`ui-dialog ui-dialog-${motion}`}
+      className={`ui-dialog ui-dialog-${motion} ${className}`}
       role="dialog"
       aria-label={label}
       aria-modal="true"

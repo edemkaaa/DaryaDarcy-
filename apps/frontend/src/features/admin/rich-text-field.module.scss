@@ -10,9 +10,21 @@
     min-height: var(--editor-min-height, 200px);
   }
 
-  .editorInputWithBar {
+  .div:focus-within {
+    border-color: var(--muted);
+  }
+
+  .div .editorInputWithBar:focus {
+    border-width: 0;
+  }
+
+  .editorTextArea {
     flex: 1;
     min-height: 168px;
+  }
+
+  .editorInputWithBar,
+  .highlightContent {
     padding-bottom: 8px;
     padding-left: var(--editor-padding, 14px);
     padding-right: var(--editor-padding, 14px);
@@ -21,6 +33,45 @@
     color: var(--editor-color, var(--ink));
     line-height: var(--editor-line-height, 22px);
     font-family: var(--editor-font-family, inherit);
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+
+  .editorInputWithBar {
+    flex: 1;
+    min-height: 168px;
+    width: 100%;
+    caret-color: var(--editor-color, var(--ink));
+  }
+
+  .editorInputWithBar[data-highlighted="true"] {
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .editorInputWithBar::selection {
+    color: var(--editor-color, var(--ink));
+    -webkit-text-fill-color: var(--editor-color, var(--ink));
+    background-color: #ded2c2;
+  }
+
+  .highlightViewport {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .highlightLink {
+    color: #5b4033;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+
+  .formatBtn.linkButtonActive {
+    border-color: var(--muted);
+    background-color: #eee5d7;
   }
 
   .inlineToolbar {

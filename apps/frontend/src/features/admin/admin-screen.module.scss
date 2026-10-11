@@ -106,8 +106,20 @@
     padding: 6px;
   }
 
+  .editorDialog {
+    bottom: auto;
+    width: 100%;
+    max-width: var(--app-max-width);
+    height: var(--app-height, 100dvh);
+    margin-inline: auto;
+    overflow: hidden;
+    background-color: var(--paper);
+  }
+
   .modalContainer {
     flex: 1;
+    width: 100%;
+    overflow: hidden;
     background-color: var(--paper);
   }
 
@@ -117,7 +129,7 @@
     justify-content: space-between;
     padding-left: 16px;
     padding-right: 16px;
-    padding-top: 14px;
+    padding-top: calc(14px + env(safe-area-inset-top, 0px));
     padding-bottom: 14px;
     border-bottom-width: 1px;
     border-bottom-color: var(--border);
@@ -172,6 +184,7 @@
 
   .previewContent {
     padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   }
 
   .previewCard {
@@ -270,10 +283,14 @@
     font-style: italic;
   }
 
+  .formLoading {
+    visibility: hidden;
+  }
+
   .formContent {
     padding: 16px;
     gap: 20px;
-    padding-bottom: 40px;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
   }
 
   .formGroup {
@@ -449,29 +466,6 @@
     border-radius: 16px;
   }
 
-  .header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding-left: 16px;
-    padding-right: 16px;
-    padding-top: 12px;
-    padding-bottom: 12px;
-    border-bottom-width: 1px;
-    border-bottom-color: var(--border);
-    background-color: var(--paper);
-  }
-
-  .headerTitle {
-    font-size: 18px;
-    font-family: EBGaramond-SemiBold;
-    color: var(--ink);
-  }
-
-  .div2 {
-    width: 72px;
-  }
-
   .statsRow {
     flex-direction: row;
     justify-content: space-around;
@@ -507,6 +501,10 @@
     border-bottom-color: var(--border);
     align-items: center;
     min-height: 44px;
+  }
+
+  .createPost {
+    margin-right: 4px;
   }
 
   .viewTabActive {

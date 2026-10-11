@@ -7,7 +7,7 @@ import {
   Spinner,
   ScrollArea,
 } from "@/shared/ui/elements";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { trpc } from "@/shared/api/trpc";
 
@@ -21,6 +21,7 @@ import { PostSaveCoordinator } from "@/domain/post/save-post";
 import { usePostAttachments } from "./use-post-attachments";
 import { usePostUploadSelection } from "./use-post-upload-selection";
 import { PostUploadStatus } from "./post-upload-status";
+import { PostEditorTags } from "./post-editor-tags";
 import { PostRecoveryNotice } from "./post-recovery-notice";
 import { usePostRecovery } from "./use-post-recovery";
 import { PostAttachmentsField } from "./post-attachments-field";
@@ -567,11 +568,11 @@ export function CreatePostModal({
       return arr;
     });
   };
-  const toggleTag = (slug: string) => {
+  const toggleTag = useCallback((slug: string) => {
     setTags((prev) =>
       prev.includes(slug) ? prev.filter((t) => t !== slug) : [...prev, slug],
     );
-  };
+  }, []);
   const availableTags = tagsForTarget(target);
   const isPending = operation.busy;
   if (!visible) return null;
@@ -650,8 +651,13 @@ export function CreatePostModal({
         </div>
 
         <ScrollArea
-          inert={operation.busy || recovery.blocked}
-          className={classes.scroll}
+          contentInert={operation.busy || recovery.blocked}
+          className={[
+            classes.scroll,
+            recovery.status === "loading" ? classes.formLoading : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
           contentClassName={classes.scrollContent}
         >
           {/* Target selector */}
@@ -944,55 +950,12 @@ export function CreatePostModal({
             onRemove={removeMedia}
           />
 
-          {/* Tags */}
-          <div
-            className={["ui-stack ", classes.section].filter(Boolean).join(" ")}
-          >
-            <Typography className={classes.sectionLabel}>Метки</Typography>
-            <div
-              className={["ui-stack ", classes.tagsGrid]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              {availableTags.map((tag) => {
-                const isSelected = tags.includes(tag.slug);
-                return (
-                  <Action
-                    key={tag.slug}
-                    onClick={() => toggleTag(tag.slug)}
-                    className={[
-                      classes.tagChipRubricSelected,
-                      tag.rubric && isSelected
-                        ? classes.appearanceState5
-                        : isSelected
-                          ? classes.appearanceState6
-                          : tag.rubric
-                            ? classes.appearanceState7
-                            : classes.appearanceState8,
-                      tag.rubric
-                        ? classes.borderWidthState
-                        : classes.borderWidthState2,
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                  >
-                    <Typography
-                      className={[
-                        tag.rubric
-                          ? classes.appearanceState9
-                          : classes.appearanceState10,
-                        isSelected ? classes.colorState5 : classes.colorState6,
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                    >
-                      {tag.label}
-                    </Typography>
-                  </Action>
-                );
-              })}
-            </div>
-          </div>
+          <PostEditorTags
+            variant="quick"
+            availableTags={availableTags}
+            selectedTags={tags}
+            onToggle={toggleTag}
+          />
         </ScrollArea>
       </div>
     </Dialog>

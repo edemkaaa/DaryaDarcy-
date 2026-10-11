@@ -246,13 +246,7 @@ export default function ProfileScreen() {
   }
   // Render saved post card
   const handlePostPress = (post: SavedPost) => {
-    if (savedTab === "feed" && post.id) {
-      // Navigate to feed post detail
-      router.push(`/post/${post.id}`);
-    } else if (savedTab === "club") {
-      // Navigate to club tab
-      router.push("/club");
-    }
+    if (post.id) router.push(`/post/${post.id}`);
   };
   const renderSavedPost = ({ item }: { item: SavedPost }) => (
     <Action

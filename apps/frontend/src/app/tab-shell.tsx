@@ -8,9 +8,14 @@ import { useScrollHeader } from "@/shared/browser/use-scroll-header";
 import styles from "./tab-shell.module.scss";
 import TabScreens from "./tab-screens";
 import { SubscriptionCancellationProvider } from "@/features/profile/use-subscription-cancellation";
+import { useAuth } from "@/domain/session/session-context";
 export default function TabShell({ children }: { children: ReactNode }) {
   const path = usePathname();
-  const { headerRef, contentRef } = useScrollHeader(path, path !== "/videos");
+  const { isOwner, user } = useAuth();
+  const { headerRef, contentRef } = useScrollHeader(
+    path,
+    !["/videos", "/admin", "/profile"].includes(path),
+  );
   const overlayHeader = ["/", "/feed", "/club", "/library", "/shop"].includes(
     path,
   );
@@ -24,6 +29,14 @@ export default function TabShell({ children }: { children: ReactNode }) {
             path === "/" ? "home" : path === "/shop" ? "shop" : "default"
           }
           showBack={path !== "/"}
+          title={
+            path === "/admin"
+              ? user?.role === "moderator" && !isOwner
+                ? "Модерация"
+                : "Админка"
+              : undefined
+          }
+          backHref={path === "/admin" ? "/profile" : undefined}
           musicUrl={path === "/club" ? CLUB_MUSIC_URL : undefined}
         />
         <main

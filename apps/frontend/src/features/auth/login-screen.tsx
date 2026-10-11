@@ -1,5 +1,11 @@
 "use client";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { useRouter } from "@/shared/navigation/router";
 import classes from "./login-screen.module.scss";
 import {
@@ -11,11 +17,18 @@ import {
   Spinner,
 } from "@/shared/ui/elements";
 import { ScreenContainer } from "@/shared/ui/screen-container";
+import { MaterialIcons } from "@/shared/ui/icons";
+import { useViewport } from "@/shared/browser/viewport";
 import { SmsCodeForm } from "./sms-code-form";
 import * as Api from "@/shared/api/auth";
 import { useCapabilities } from "@/shared/api/capabilities";
 import { useAuth } from "@/domain/session/session-context";
-import { PAPER_TEXTURE_URI, BROWN_MUTED, CREAM } from "./login-screen.content";
+import {
+  PAPER_TEXTURE_URI,
+  BROWN_MUTED,
+  CREAM,
+  OLIVE,
+} from "./login-screen.content";
 import {
   EMAIL_REGISTER_CONSENT_LABEL,
   EMAIL_REGISTER_CONSENT_VERSION,
@@ -35,10 +48,19 @@ export default function LoginScreen({
   const router = useRouter();
   const { applySession, authenticate, status: sessionStatus } = useAuth();
   const { smsLogin } = useCapabilities();
+  const { height } = useViewport();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [method, setMethod] = useState<"sms" | "email">("email");
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const passwordRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  const passwordSelection = useRef<{
+    start: number;
+    end: number;
+    direction: "forward" | "backward" | "none";
+  } | null>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(
     formUnavailable ? "Форма ещё не была готова. Повторите вход." : null,
@@ -54,6 +76,22 @@ export default function LoginScreen({
   const [ready, setReady] = useState(false);
   const [retryAt, setRetryAt] = useState(0);
   const [retrySeconds, setRetrySeconds] = useState(0);
+  useLayoutEffect(() => {
+    const field = passwordRef.current;
+    const selection = passwordSelection.current;
+    passwordSelection.current = null;
+    // Restore after the input type and browser selection have both updated.
+    if (!field || !selection) return;
+    const frame = requestAnimationFrame(() => {
+      if (document.activeElement === field)
+        field.setSelectionRange(
+          selection.start,
+          selection.end,
+          selection.direction,
+        );
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [passwordVisible]);
   useEffect(() => {
     mounted.current = true;
     prepareLoginPage(next);
@@ -63,6 +101,32 @@ export default function LoginScreen({
       request.current?.abort();
     };
   }, [next]);
+  useEffect(() => {
+    // Keyboard resize can leave the focused input below this screen's scroll area.
+    // Measure after the viewport height and the form layout have updated.
+    const frame = requestAnimationFrame(() => {
+      const scroll = scrollRef.current;
+      const field = document.activeElement;
+      if (
+        !scroll ||
+        !(field instanceof HTMLInputElement) ||
+        !field.matches(".ui-field") ||
+        !scroll.contains(field)
+      )
+        return;
+      const area = scroll.getBoundingClientRect();
+      const viewport = window.visualViewport;
+      const viewportTop = viewport?.offsetTop ?? 0;
+      const top = Math.max(area.top, viewportTop) + 12;
+      const bottom =
+        Math.min(area.bottom, viewportTop + (viewport?.height ?? innerHeight)) -
+        12;
+      const box = field.getBoundingClientRect();
+      if (box.bottom > bottom) scroll.scrollTop += box.bottom - bottom;
+      else if (box.top < top) scroll.scrollTop += box.top - top;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [height]);
   useEffect(() => {
     if (!retryAt) return;
     const update = () => {
@@ -87,6 +151,7 @@ export default function LoginScreen({
     setNeedsTotp(false);
     setTotp("");
     setPassword("");
+    setPasswordVisible(false);
   };
   const submitEmail = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -158,7 +223,7 @@ export default function LoginScreen({
         className={classes.background}
       >
         <div className={`ui-stack ${classes.background}`}>
-          <ScrollArea contentClassName={classes.scroll}>
+          <ScrollArea ref={scrollRef} contentClassName={classes.scroll}>
             <Typography className={classes.kicker}>DARYADARCY</Typography>
             <h1 className={classes.title}>
               {sms
@@ -227,19 +292,54 @@ export default function LoginScreen({
                   disabled={!ready || busy}
                 />
                 {mode === "login" && (
-                  <Field
-                    aria-label="Пароль"
-                    name="password"
-                    type="password"
-                    required
-                    autoComplete="current-password"
-                    placeholder="Пароль"
-                    placeholderColor={BROWN_MUTED}
-                    value={password}
-                    onValueChange={setPassword}
-                    className={classes.input}
-                    disabled={!ready || busy}
-                  />
+                  <div className={classes.passwordField}>
+                    <Field
+                      ref={passwordRef}
+                      aria-label="Пароль"
+                      name="password"
+                      type={passwordVisible ? "text" : "password"}
+                      required
+                      autoComplete="current-password"
+                      placeholder="Пароль"
+                      placeholderColor={BROWN_MUTED}
+                      value={password}
+                      onValueChange={setPassword}
+                      className={`${classes.input} ${classes.passwordInput}`}
+                      disabled={!ready || busy}
+                    />
+                    <Action
+                      type="button"
+                      aria-label={
+                        passwordVisible ? "Скрыть пароль" : "Показать пароль"
+                      }
+                      aria-pressed={passwordVisible}
+                      className={classes.passwordToggle}
+                      disabled={!ready || busy}
+                      onPointerDown={(event) => {
+                        // Keep input focus and the phone keyboard when tapping the eye.
+                        if (event.isPrimary && event.button === 0)
+                          event.preventDefault();
+                      }}
+                      onClick={() => {
+                        const field = passwordRef.current;
+                        passwordSelection.current =
+                          field && document.activeElement === field
+                            ? {
+                                start: field.selectionStart ?? 0,
+                                end: field.selectionEnd ?? 0,
+                                direction: field.selectionDirection ?? "none",
+                              }
+                            : null;
+                        setPasswordVisible((visible) => !visible);
+                      }}
+                    >
+                      <MaterialIcons
+                        name={passwordVisible ? "visibility-off" : "visibility"}
+                        size={22}
+                        color={BROWN_MUTED}
+                      />
+                    </Action>
+                  </div>
                 )}
                 {mode === "login" && needsTotp && (
                   <Field
@@ -262,13 +362,27 @@ export default function LoginScreen({
                   <label className={classes.consent}>
                     <input
                       type="checkbox"
+                      className={classes.consentInput}
                       required
                       checked={consentChecked}
                       onChange={(event) =>
                         setConsentChecked(event.target.checked)
                       }
                     />
-                    {EMAIL_REGISTER_CONSENT_LABEL}
+                    <span aria-hidden="true" className={classes.consentMark}>
+                      <MaterialIcons
+                        name={
+                          consentChecked
+                            ? "check-box"
+                            : "check-box-outline-blank"
+                        }
+                        size={22}
+                        color={consentChecked ? OLIVE : BROWN_MUTED}
+                      />
+                    </span>
+                    <span className={classes.consentText}>
+                      {EMAIL_REGISTER_CONSENT_LABEL}
+                    </span>
                   </label>
                 )}
                 {error && (

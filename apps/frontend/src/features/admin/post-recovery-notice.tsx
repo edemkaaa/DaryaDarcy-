@@ -89,9 +89,16 @@ export function PostRecoveryNotice({
     );
   return (
     <div role="status" className={classes.notice}>
-      {recovery.savedAt
-        ? "Черновик сохранён на этом устройстве"
-        : "Сохраняем черновик…"}
+      {recovery.autoRestored ? (
+        <Typography>
+          Незавершённый черновик восстановлен автоматически.
+        </Typography>
+      ) : null}
+      <Typography>
+        {recovery.savedAt
+          ? "Черновик сохранён на этом устройстве"
+          : "Сохраняем черновик…"}
+      </Typography>
     </div>
   );
 }
