@@ -6,6 +6,12 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3af: unmocked AuthProvider/auth client/cache/native HTTP probe: account 1 →
+applySession account 2 очищает seed private query/remount state и abort старого
+held HTTP read. Scope-freeze mutation → 1 RED (2|1), снято; 53 focused GREEN,
+types/format/docs. Default opt-in skip проверен. Synthetic HTTP endpoint/Probe,
+не Nest/SQL/login acceptance; app/transport/media/devices/A7 gates сохранены.
+
 C3ae: свежая полная default регрессия после добавленных cases — 2258 pass /
 1055 skips, 170 passed/55 skipped files, exit 0 (17.94 s). Browser opt-in
 проверен отдельно в C3ac/ad; skipped SQL/provider/device не выданы за готовность.

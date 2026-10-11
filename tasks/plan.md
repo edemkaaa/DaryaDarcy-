@@ -41,6 +41,28 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3af, real AuthProvider/native HTTP owner boundary — 11 октября МСК:**
+Новый opt-in Chromium probe использует production AuthProvider, SessionController,
+auth client/parser/request lifecycle и QueryClient без подмены этих модулей.
+Собственный ephemeral loopback HTTP endpoint возвращает synthetic account 1;
+online refresh удерживает второй ответ explicit barrier. Через публичный
+applySession подтверждается synthetic account 2: private query account 1
+очищен (seed проверен до switch), настоящий subtree remount сбрасывает local
+React state с 1 на 2, старый browser HTTP request прерван (server response close
+до writableEnded). Первый этап и смена проверены как 1|1 → 2|2.
+Scope-key mutation, сохраняющая первый remount, но замораживающая следующий,
+дала **1 native RED**: 2|1 вместо 2|2; mutation полностью снята, production
+diff пуст. **53 focused browser/controller/storage/quiz GREEN/exit 0**, root
+types/format/docs проходят. Без PLAYWRIGHT_EXECUTABLE_PATH новый suite реально
+skipped. Broad default regression не повторена ради одного нового opt-in skip.
+Review: leaf Probe synthetic, сервер не Nest/SQL и не настоящий login;
+applySession не выдан за новое серверное подтверждение личности. Это срез
+provider/remount/cache/HTTP cancellation, не вся app concurrency acceptance.
+Внешняя сеть блокирована, synthetic values only, bundle write:false, browser/
+server закрыты в finally; рабочая БД/сервер/роли/CORS/trust/квоты не затронуты.
+C1 transport/media/devices/A7/provider acceptance ограничения сохраняются;
+push не выполнялся.
+
 **C3ae, regression checkpoint после C3y/C3aa–ad — 11 октября МСК:**
 После добавления reducer, HTTP ordering и opt-in component/browser cases
 выполнена новая полная default регрессия, а не повтор прежней неизменившейся:
