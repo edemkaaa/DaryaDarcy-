@@ -1342,6 +1342,36 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1b — legacy Express route matcher, 11 октября МСК:** один точечный override
+path-to-regexp 0.1.12 → 0.1.13 по
+[advisory владельца](https://github.com/pillarjs/path-to-regexp/security/advisories/GHSA-37ch-88jc-xwx2)
+и [релизу](https://github.com/pillarjs/path-to-regexp/releases/tag/v.0.1.13).
+Characterization actual Express dependency: bounded ~4 KiB nonmatching path
+для четырёх параметров в одном сегменте блокировал собственный child до
+2-second deadline (RED); child принудительно завершён SIGKILL, не зависает
+test worker. После обновления тот же запрос возвращает false: **32 focused
+dependency/native Nest HTTP/security GREEN**. Это upstream defect fixture, не
+утверждение об эксплуатируемом маршруте приложения или p95 рабочего сервера.
+Lockfile сгенерирован pnpm: только override, version/integrity, ссылка Express 4
+и snapshot; новая ветка Express 5 matcher 8.4.2 сохранена. Нет новых transitives
+или install hooks; frozen/ignore-scripts install, root types/backend build и
+formatting проходят. Production audit теперь **49 findings: 0 critical / 19 high /
+26 moderate / 4 low**, path-to-regexp advisory отсутствует, exit 1 сохраняется.
+Первый full default run дал 8 subprocess/CLI timeouts (2180 pass / 1053 skips),
+не semantic HTTP failures. Все 8 suites отдельно serial проходят **85 cases**,
+но full serial run снова дал один CLI timeout (2187 pass / 1053 skips).
+Первичная гипотеза нагрузки/параллелизма недостаточна: `pmset -g log` показывает
+Maintenance Sleep 04:30:07–04:35:07 сразу после начала первого run и
+04:41:58–04:46:58 внутри serial run. Wall-clock deadlines пересекли настоящий
+300-second сон macOS. Чужой WebKit и постоянные настройки питания не трогались.
+Проверка гипотезы сна: scoped `caffeinate -is` только на время test process,
+с автоматическим снятием assertion при его завершении; исходники/timeout/CI
+не меняются. Protected serial run: **2188 pass / 1053 skips, exit 0, 77.73s**.
+Восстановленный default parallelism под тем же scoped assertion: **2188 pass /
+1053 skips, exit 0, 17.34s**; предыдущие timeouts не повторяются без сна.
+Systematic-debugging skill не позволил скрыть failures или поднять
+timeouts. Trust/CORS/quota/схемы не менялись; rollout/Q1 открыты.
+
 **Q1a — proxy-addr, 11 октября МСК:** свежий native pnpm 9.12.0 production audit
 подтвердил прежние 51 findings (1 critical / 20 high / 26 moderate / 4 low).
 Один точечный override 2.0.7 → 2.0.8 снимает GHSA-jqcg-44mw-7w3h по

@@ -311,6 +311,17 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1b: path-to-regexp 0.1.12 → 0.1.13, bounded child timeout RED →
+      32 dependency/native HTTP/security GREEN; generated lock diff только matcher.
+      Frozen/ignore-scripts install/root types/backend build проходят;
+      prod audit 49 (0 critical / 19 high / 26 moderate / 4 low), не clean.
+      First full run: 8 subprocess timeouts; focused serial = 85 pass, full
+      serial повторил один timeout. pmset log подтвердил 300-second Maintenance
+      Sleep внутри обоих full runs; проверка под scoped caffeinate, без смены
+      timeout/CI или постоянных настроек питания.
+      Protected serial full run = 2188 pass / 1053 skips, exit 0 (77.73s).
+      Default parallelism с тем же scoped sleep assertion: 2188 pass / 1053
+      skips, exit 0 (17.34s). Assertion снят вместе с завершением own процесса.
       Q1a: proxy-addr override 2.0.7 → 2.0.8; два upstream defect RED →
       20 dependency/native HTTP/client-IP GREEN, прежний loopback trust сохранён.
       Full default 2187 pass / 1053 skips; types/backend build/lint проходят.

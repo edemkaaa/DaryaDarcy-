@@ -6,6 +6,21 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Следующий локальный срез: path-to-regexp 0.1.12 → 0.1.13, без смены Express
+или маршрутов. [Advisory владельца](https://github.com/pillarjs/path-to-regexp/security/advisories/GHSA-37ch-88jc-xwx2)
+проверен на bounded child fixture: timeout RED → false GREEN; 32 focused
+dependency/native HTTP/security pass. Root types/backend build/frozen install
+проходят. Audit теперь 49 findings (0 critical / 19 high / 26 moderate / 4 low),
+не чистый. Первый full run дал 8 subprocess timeouts, focused serial = 85 pass,
+но full serial повторил один timeout. pmset log подтверждает 300-second
+Maintenance Sleep внутри обоих full runs: гипотеза одного лишь параллелизма
+недостаточна. Для проверки используется scoped caffeinate только на время теста,
+без повышения timeout, изменения CI или постоянных настроек питания.
+Protected serial full run: 2188 pass / 1053 skips, exit 0 за 77.73s.
+Default parallelism под тем же scoped assertion: 2188 pass / 1053 skips,
+exit 0 за 17.34s. Own test process завершён, временное sleep assertion снято.
+Готовность Linux rollout этим не подтверждается.
+
 На feature/stage-one-completion-2026-10-10 точечно обновлён proxy-addr 2.0.7 →
 2.0.8 через override и сгенерированный pnpm lockfile. Проверены
 [исправление владельца](https://github.com/jshttp/proxy-addr/security/advisories/GHSA-jqcg-44mw-7w3h)
