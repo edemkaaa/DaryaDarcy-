@@ -222,6 +222,74 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
       ).toEqual([{ action: "update_launch_settings", details: "revision:32" }]);
     });
   }, 30_000);
+  it.each(["save", "inspect"] as const)(
+    "S1 closes the private season form when a revoked native session attempts %s",
+    async (action) => {
+      await withSettings(
+        async ({ rows, connection, context, frontend, actorId }) => {
+          const before = await rows("SELECT * FROM launch_settings WHERE id=1");
+          const page = await context.newPage();
+          const form = await open(page, frontend);
+          await form
+            .getByLabel("Весна: дата начала", { exact: true })
+            .fill("03-21");
+          // Invalidate only this synthetic account's existing JWT, not its role.
+          await connection.query(
+            "UPDATE users SET sessionVersion=1 WHERE id=? AND openId='binding-browser-admin' AND sessionVersion=0",
+            [actorId],
+          );
+          const identity = await rows(
+            "SELECT id,role,sessionVersion,blockedAt FROM users WHERE id=?",
+            [actorId],
+          );
+          expect(identity).toEqual([
+            { id: actorId, role: "admin", sessionVersion: 1, blockedAt: null },
+          ]);
+          const method = action === "save" ? "PUT" : "GET";
+          const [response] = await Promise.all([
+            page.waitForResponse(
+              (reply) =>
+                new URL(reply.url()).pathname ===
+                  "/api/admin/launch-settings" &&
+                reply.request().method() === method,
+            ),
+            form
+              .getByRole("button", {
+                name:
+                  action === "save"
+                    ? "Сохранить сезоны"
+                    : "Проверить настройки",
+                exact: true,
+              })
+              .click(),
+          ]);
+          expect(response.status()).toBe(401);
+          expect(response.headers()["cache-control"]).toBe("no-store");
+          await browserExpect(form).toHaveCount(0);
+          await browserExpect(page).toHaveURL(/\/login(?:\?|$)/);
+          await browserExpect(
+            page.getByText("Настройки сезонов сохранены.", { exact: true }),
+          ).toHaveCount(0);
+          expect(
+            await rows("SELECT * FROM launch_settings WHERE id=1"),
+          ).toEqual(before);
+          expect(
+            await rows(
+              "SELECT action FROM admin_audit_log WHERE actorUserId=?",
+              [actorId],
+            ),
+          ).toEqual([]);
+          expect(
+            await rows(
+              "SELECT id,role,sessionVersion,blockedAt FROM users WHERE id=?",
+              [actorId],
+            ),
+          ).toEqual(identity);
+        },
+      );
+    },
+    30_000,
+  );
   it("S1 keeps an uncommitted draft blocked through failed inspection until native unchanged settings allow a manual save", async () => {
     await withSettings(async ({ rows, context, frontend, actorId }) => {
       const before = await rows("SELECT * FROM launch_settings WHERE id=1");

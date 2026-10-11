@@ -6,6 +6,15 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+S1d (12 октября МСК): actual server-revoked synthetic admin JWT: Save PUT and
+Inspect GET return native 401/no-store, close private form → /login, no success,
+unchanged SQL config/audit/role/version/block state after requests. Version0→1
+only in disposable fixture, no production auth/role changes or mock API.
+2 focused pass / 75 filtered skips, exit0 (3.53 s); integrated S1 18 pass /
+59 filtered skips (77), exit0 (8.84 s), types/format/606 boundaries/diff pass.
+Own validated tmpfs DB --rm/Next stopped; late-success native race not claimed,
+customer media/device/A7/Q1/provider gates remain open.
+
 S1c (12 октября МСК): uncommitted PUT + failed GET inspection transport aborts
 retain draft and block Save, SQL revision/audit unchanged. Actual explicit GET
 confirms unchanged revision31, preserves draft and permits only manual native

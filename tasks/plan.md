@@ -41,6 +41,27 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**S1d, revoked native season-admin session — 12 октября МСК:**
+Два реальных Chromium/API/SQL сценария: после открытия формы invalidated
+sessionVersion только synthetic admin account 0→1, роль admin/blockedAt не
+меняются. Actual Save PUT и Inspect GET получают native 401/no-store,
+private form исчезает, URL /login, success notice отсутствует. Config revision
+31 и audit остаются неизменны; read/write не меняют role/version/block state.
+Без mock API/auth responses и без изменения production auth logic.
+Focused **2 pass / 75 filtered skips, exit 0 (3.53 s)**; совместный S1
+**18 pass / 59 filtered skips (77), exit 0 (8.84 s)**. Root types, targeted
+format, 606 boundaries, 54-document links и whitespace проходят. Security threat boundary —
+прежний JWT после server revocation; test catches skipped current-version
+check, unauthorized write или private UI retained after 401. Review confirms
+qualified synthetic mutation/cleanup, test-only scope/no new dependencies.
+Production-дефекта/RED/fix в этих сценариях нет. Late successful response
+после revocation остаётся только прежней mock browser проверкой, не native
+race acceptance; physical sleep/device/customer media/A7/Q1/provider gates открыты.
+Own MySQL 4bae28a9d7a7 exact ID/label season-s1d-20261012/tmpfs/no mounts/
+127.0.0.1 проверен перед stop/--rm; затем label inventory пуст, удалены только
+невосстановимые synthetic fixture данные. Next остановлен. Рабочие данные/роли/
+согласованные подписки/CORS/proxy/квоты/сервер/mail/provider не затронуты.
+
 **S1c, uncommitted save and failed inspection — 12 октября МСК:**
 Native season admin browser теперь проверяет потерю первого PUT ДО forwarding
 и первого GET inspection: только transport abort, без mock API response.
