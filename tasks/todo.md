@@ -6,6 +6,12 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3z3: точный native moderator dismiss 1 pass, весь C1 9 pass/exit 0 с временной
+route/lifecycle instrumentation. Старое исключение не воспроизведено; output
+усечён, полный подсчёт трассы не заявляется. Instrumentation снята; собственные
+Next/loopback tmpfs MySQL остановлены, одноразовая SQL fixture удалена через
+`--rm`, рабочие данные не затронуты. Transport gate открыт, suppression нет.
+
 C3z2: native loopback/Chromium probe pending route.fetch + confirm/dismiss +
 page/context unrouteAll(wait) прошёл: context teardown дождался fulfill
 (explicit barriers, exit 0). Installed routing source изучен; простой dialog/

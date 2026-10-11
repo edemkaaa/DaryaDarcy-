@@ -41,6 +41,33 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3z3, трассировка точного C1 browser/API/SQL fixture — 11 октября МСК:**
+После двух isolated probes проверен сам native scenario: moderator dismiss
+report, затем весь C1 lifecycle. Own MySQL 8.4 контейнер с уникальным owner
+label, loopback 33367, tmpfs `/var/lib/mysql`, без volumes, только backend_test;
+настоящий Nest API, Chromium и существующая production Next сборка на loopback
+33368. Next env loader предварительно кеширован на собственном пустом temp
+directory: dotenv/секреты не читались. Внешние браузерные запросы блокировал
+существующий fixture. Production workers/provider calls не запускались.
+Временная instrumentation отмечала method/path (без query, credentials/body),
+identity Route через WeakMap, handler enter/fetch-return, native
+`_reportHandled`, fulfill и teardown; native метод сохранял исходный вызов,
+ошибки перевыбрасывались, ignoreErrors/retry не добавлены.
+Focused dismiss **1 pass / 43 filtered skips / exit 0**; после расширения
+instrumentation/lifecycle scope весь C1 **9 pass / 35 filtered skips / exit 0**
+(6.77 s). Это не повтор всей неизменившейся регрессии: цель — сбор фазовой
+информации. Сохранённый tool output второго прогона усечён, поэтому полный
+подсчёт routes/teardown по нему не заявляется. В доступных фазах нет duplicate
+handler entry или fulfill-error; старый unhandled error не воспроизведён.
+Instrumentation полностью снята, diff исходного suite пуст; Next остановлен,
+контейнер остановлен после проверки exact ID/owner/tmpfs/no mounts и удалён
+его `--rm` lifecycle. Это удалило только одноразовую synthetic SQL fixture,
+рабочие данные не затронуты. Причина прежней race всё ещё не установлена и
+gate открыт: следующий диагностический прогон при необходимости должен
+сохранять ограниченный полный trace в памяти и печатать compact summary на
+границе teardown, чтобы избежать усечения. Default tests/build не повторены;
+не пушили, роли/CORS/trust/квоты приложения не менялись.
+
 **C3z2, native dialog + teardown boundary — 11 октября МСК:**
 Продолжена диагностика, без изменения обработчиков приложения/fixture.
 Installed Playwright source: `Route._handlingPromise` обнуляется только в
