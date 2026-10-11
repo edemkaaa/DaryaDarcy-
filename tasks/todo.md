@@ -311,6 +311,15 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1n: scoped humanfs/node 0.16.8 + related core 0.19.2/types 0.15.0;
+      три integrities совпали, reviewed prepare hooks не выполнялись.
+      Actual ESM copy/copyAll на owned temporary fixtures: 2 RED → 2 GREEN;
+      symlinks сохранены, обычный copy работает, cleanup без dereference.
+      Full default 2233 pass / 1053 skips, exit 0 (22.05s); types/lint/format/
+      frozen-ignore-scripts install GREEN. Production graph unchanged.
+      Prod audit 0/exit 0; полный audit 17 (9 high / 8 moderate), exit 1,
+      828 dependencies. Не sandbox/app exploit/SQL/browser/device proof;
+      Q1m manual blocker и все внешние gates остаются открыты.
       Q1m: scoped minimatch 3.1.2 → 3.1.5; stars/globstar bounded children
       2 RED → 3 focused GREEN, ordinary lint/partial semantics сохранены.
       Full default 2231 pass / 1053 skips, exit 0 (23.04s); root types/lint/

@@ -6,6 +6,18 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1n: scoped humanfs/node 0.16.8 с related core/types; три registry
+integrities проверены, prepare hooks просмотрены и не выполнялись.
+Actual temporary-file copy/copyAll: 2 RED → 2 GREEN, symlinks не превращаются
+в plain outside-source copies, ordinary copy сохранён. Это НЕ sandbox:
+ссылки остаются разрешимыми наружу при последующем dereference.
+Owned fixtures удалены после owner/mode проверки без follow symlinks.
+Full default 2233 pass / 1053 skips, exit 0; root types/frontend lint/format/
+frozen-ignore-scripts install GREEN, production graph unchanged.
+Prod audit 0/exit 0 (325 dependencies); full audit 17 (9 high / 8 moderate),
+exit 1 (828 dependencies). Q1m manual blocker, tooling/A7/внешние gates открыты.
+Не app exploit/SQL/browser/clean Linux proof; не пушили и не выложено.
+
 Свежий Q1m: scoped ESLint minimatch 3.1.2 → 3.1.5; consecutive stars и
 non-adjacent globstars: 2 bounded child RED → 3 focused GREEN. Full default
 2231 pass / 1053 skips, exit 0; root types/frontend lint/frozen-ignore-scripts

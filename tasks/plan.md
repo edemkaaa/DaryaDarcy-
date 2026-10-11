@@ -1342,6 +1342,37 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1n — ESLint filesystem copy semantics, 11 октября МСК:** scoped
+@humanfs/node 0.16.7 → 0.16.8 по
+[advisory](https://github.com/advisories/GHSA-p498-v437-472g) и
+[релизу владельца](https://github.com/humanwhocodes/humanfs/releases/tag/node-v0.16.8).
+Reviewed runtime diff: copy lstat/readlink/symlink, copyAll отдельная symlink
+ветка; related core 0.19.1 → 0.19.2 только добавляет types dependency,
+новый types 0.15.0 содержит declaration-only exports. Все три registry
+integrities совпали; prepare hooks (tsc) просмотрены, install --ignore-scripts
+не выполнял их. Generated lock только humanfs package/snapshot/ESLint edge
+и scoped override; production graph unchanged. Frozen install GREEN на текущем
+macOS tree, не clean Linux/provenance проверка.
+Actual ESM NodeHfs, собственные mkdtemp fixtures: copy/copyAll раньше превращали
+ссылку на synthetic файл вне source в plain copied file: **2 native RED →
+2 GREEN**, lstat/readlink и обычный file copy сохранены. Initial CJS resolve
+ошибка из-за import-only exports исправлена в test harness до meaningful RED.
+Ни секреты, ни пользовательские файлы не читались; cleanup проверяет owner,
+mode 0700/plain directory и удаляет children без follow symlinks и recursive rm.
+**2233 full default pass / 1053 opt-in skips, exit 0 (22.05s)**; root types,
+frontend lint/formatting GREEN. Backend/Next/legacy build, SQL/browser не
+повторялись без причины: app/production graph неизменны. ESLint использует
+directory walk/isDirectory; вызов copy/copyAll в app/tooling не обнаружен
+(одноимённый legacy DB helper не относится к humanfs).
+Prod audit **0 findings / exit 0 / 325 dependencies**; full audit
+**17 findings (9 high / 8 moderate), exit 1 / 828 dependencies**.
+Это copy regression, не app exploit или filesystem sandbox: сохранённая
+symlink всё ещё может вести за source при последующем dereference, TOCTOU и
+недоверенные exports этим срезом не решены. Q1m nested-extglob manual blocker
+и остальные Q1/A7/внешние gates остаются открыты. TDD/security/review skills
+удержали настоящие temporary-file RED, safe cleanup и границу утверждений.
+Не пушили, не выложено; roles/CORS/trust/quotas/working DB не менялись.
+
 **Q1m — ESLint minimatch, 11 октября МСК:** scoped 3.1.2 → 3.1.5,
 без major upgrade или изменений lint/access policy. Reviewed
 [upstream range](https://github.com/isaacs/minimatch/compare/v3.1.2...v3.1.5):
