@@ -6,6 +6,16 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3ap: tied pagination regression covers guest feed and authenticated club,
+exact stable ID order/cursors/completeness. Club with tie-break temporarily
+removed: native HTTP/SQL RED 35 received / 32 unique; restored fix → 42 native
+content tests pass, exit 0 (2.13 s). Integrated native browser C1/C2/C3:
+39 pass / 14 binding filtered skips (53), exit 0 (51.97 s), types/format/docs/diff.
+Production unchanged relative to C3ao; no default/build rerun without changes.
+Own tmpfs DB/Next stopped/--rm; no working DB/provider payments/external mail/
+push/deploy. Concurrent offsets/device/media/A7/Q1/provider gates remain;
+historical C1 transport failure not reproduced, not claimed fixed.
+
 C3ao: real HTTP/MySQL RED: 35 tied rows → 35 received but 32 unique IDs.
 Minimal postListOrder id ASC tie-break → 41 native SQL/HTTP GREEN (1.72 s),
 fresh default 2264 pass/1066 skips, 173 passed/56 skipped files (18.96 s),

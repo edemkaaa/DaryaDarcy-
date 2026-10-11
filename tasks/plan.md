@@ -41,6 +41,27 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3ap, закрытый клуб и интегрированная browser regression — 11 октября МСК:**
+Расширен tied-date regression: guest feed и authenticated club.list читают
+35 owned synthetic posts через настоящий Nest HTTP/JWT/MySQL, с tag filter,
+страницами 12/12/11 и cursor 12/24/null. Теперь проверяется точный id ASC order,
+не только uniqueness/completeness. При временном удалении последнего tie-break
+club case даёт **native RED: 35 received / 32 unique IDs**; после восстановления
+production fix C3ao **42 content SQL/HTTP tests pass, exit 0 (2.13 s)**.
+Свежий integrated Next → Nest → disposable SQL browser run после C3am/an/ao:
+**39 C1/C2/C3 pass / 14 binding filtered skips (53), exit 0 (51.97 s)**.
+Проверены quiz/profile/library/feed pagination/search/interactions, club navigation,
+admin/moderator/member boundaries, блокировка и editor schedules/auth lifecycle.
+Исторический C1 route transport failure не воспроизвёлся; suppression/fix claim
+не добавлен. Root types/format/docs/diff проходят; review: parameterized cases
+идут последовательно, exact synthetic ID/text cleanup, existing fixture member
+subscription only, без provider operations. Production итогово не изменён:
+default/build C3ao не повторены без причины. Own backend_test container
+e574b0382064 проверен до use/stop по owner label, tmpfs/no mounts/loopback port,
+остановлен --rm; Next остановлен, synthetic DB удалена. Concurrent offset writes,
+physical devices/media, A7/Q1/provider acceptance gates остаются открытыми;
+working DB/secrets/external mail/new payments/push/deploy не затронуты.
+
 **C3ao, исправлена потеря/дублирование постов при равных датах — 11 октября МСК:**
 Гипотеза после C3an проверена настоящим Nest HTTP → MySQL: 35 unchanged
 public rows с одинаковыми sortOrder/createdAt/publishedAt, страницы 12/12/11.

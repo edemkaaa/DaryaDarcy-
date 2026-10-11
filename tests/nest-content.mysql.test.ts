@@ -350,45 +350,48 @@ describe.skipIf(!testDatabaseUrl)(
         });
       }
     });
-    it("returns every tied-date feed row exactly once across unchanged pages", async () => {
-      const ids = Array.from({ length: 35 }, (_, index) => 94901 + index);
-      try {
-        await conn.query(
-          "INSERT INTO posts (id,text,photos,tags,target,status,published,sortOrder,createdAt,publishedAt) VALUES ?",
-          [
-            ids.map((id) => [
-              id,
-              "C3 tied pagination fixture",
-              "[]",
-              "[]",
-              "feed",
-              "published",
-              1,
-              0,
-              "2026-01-01",
-              "2026-01-01",
-            ]),
-          ],
-        );
-        const received: number[] = [];
-        for (const cursor of [0, 12, 24]) {
-          const page = await client().feed.listPaginated.query({
-            search: "C3 tied pagination fixture",
-            limit: 12,
-            cursor,
-          });
-          expect(page.nextCursor).toBe(cursor === 24 ? null : cursor + 12);
-          received.push(...page.posts.map((post) => post.id));
+    it.each(["feed", "club"] as const)(
+      "returns every tied-date %s row exactly once across unchanged pages",
+      async (target) => {
+        const ids = Array.from({ length: 35 }, (_, index) => 94901 + index);
+        try {
+          await conn.query(
+            "INSERT INTO posts (id,text,photos,tags,target,status,published,sortOrder,createdAt,publishedAt) VALUES ?",
+            [
+              ids.map((id) => [
+                id,
+                "C3 tied pagination fixture",
+                "[]",
+                '["c3-tied-pagination"]',
+                target,
+                "published",
+                1,
+                0,
+                "2026-01-01",
+                "2026-01-01",
+              ]),
+            ],
+          );
+          const received: number[] = [];
+          for (const cursor of [0, 12, 24]) {
+            const input = { tag: "c3-tied-pagination", limit: 12, cursor };
+            const page =
+              target === "feed"
+                ? await client().feed.listPaginated.query(input)
+                : await client(bearer).club.list.query(input);
+            expect(page.nextCursor).toBe(cursor === 24 ? null : cursor + 12);
+            received.push(...page.posts.map((post) => post.id));
+          }
+          expect(received).toHaveLength(35);
+          expect(new Set(received).size).toBe(35);
+          expect(received).toEqual(ids);
+        } finally {
+          await conn.query(
+            "DELETE FROM posts WHERE id BETWEEN 94901 AND 94935 AND text='C3 tied pagination fixture'",
+          );
         }
-        expect(received).toHaveLength(35);
-        expect(new Set(received).size).toBe(35);
-        expect([...received].sort((a, b) => a - b)).toEqual(ids);
-      } finally {
-        await conn.query(
-          "DELETE FROM posts WHERE id BETWEEN 94901 AND 94935 AND text='C3 tied pagination fixture'",
-        );
-      }
-    });
+      },
+    );
 
     it("paginates filtered rows with default 12 and treats null cursor as the first page", async () => {
       const first = await client().feed.listPaginated.query({
