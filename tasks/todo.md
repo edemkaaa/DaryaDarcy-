@@ -6,6 +6,12 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3ae: свежая полная default регрессия после добавленных cases — 2258 pass /
+1055 skips, 170 passed/55 skipped files, exit 0 (17.94 s). Browser opt-in
+проверен отдельно в C3ac/ad; skipped SQL/provider/device не выданы за готовность.
+Production fix по profile read без воспроизведённой причины не добавлен;
+широкие AuthProvider/transport/A7/external/Q1 residual gates остаются открыты.
+
 C3ad: второй component probe использует production storage и native localStorage:
 owner сменён в том же JS task до Promise continuation; old key очищен/new key
 сохранён, старый итог не показан, новый восстановлен после loading=false.

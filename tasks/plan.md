@@ -41,6 +41,20 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3ae, regression checkpoint после C3y/C3aa–ad — 11 октября МСК:**
+После добавления reducer, HTTP ordering и opt-in component/browser cases
+выполнена новая полная default регрессия, а не повтор прежней неизменившейся:
+**2258 pass / 1055 skips / exit 0**, 170 passed + 55 skipped files, 3318 cases,
+17.94 s на Node 22. Browser opt-in cases здесь skipped, их отдельный native
+результат приведён в C3ac/ad; SQL/provider acceptance этим не заменяется.
+Review текущего profile loader не выявил подтверждённой новой причины для
+изменения production code: remount/scope и synchronous storage отличаются от
+controlled read probe; спекулятивный fix не добавлен. Broad AuthProvider race,
+редкая C1 transport race, внешний rollout/миграции/A7, provider/media/device
+приёмка и Q1 residual findings остаются открытыми. App build и прежние SQL
+проверки без изменений production code повторно не запускались. Push/сервер/
+рабочая БД не затронуты.
+
 **C3ad, native localStorage read/microtask owner boundary — 11 октября МСК:**
 C3ac probe дополнен вариантом без подмены storage: production browser storage
 adapter и настоящий Chromium localStorage читают account-1 cottagecore
