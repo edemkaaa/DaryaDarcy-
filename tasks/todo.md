@@ -311,6 +311,14 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1o: yaml 2.8.3, exact dev peer + scoped override; generated optional-peer
+      removal остановлен до install. Integrity/hooks/runtime diff reviewed.
+      parse/parseDocument/parseAllDocuments RangeError: 3 native child RED →
+      4 GREEN, ordinary config/docs/flow unchanged. Не depth/CPU/memory limit.
+      Full default 2237 pass / 1053 skips, exit 0 (19.81s); root types/format/
+      frozen-ignore-scripts install/legacy Vite build GREEN; old font warning.
+      Prod audit 0/exit 0; полный audit 16 (9 high / 7 moderate), exit 1.
+      js-yaml/Q1m manual blocker/A7/внешние gates остаются открыты.
       Q1n: scoped humanfs/node 0.16.8 + related core 0.19.2/types 0.15.0;
       три integrities совпали, reviewed prepare hooks не выполнялись.
       Actual ESM copy/copyAll на owned temporary fixtures: 2 RED → 2 GREEN;

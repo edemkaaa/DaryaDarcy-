@@ -6,6 +6,18 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1o: YAML 2.8.3 для Vite tooling, root exact dev peer сохраняет
+существующий optional peer после scoped-only preview removal. Registry
+integrity/hooks/runtime diff проверены. Три bounded-child RangeError RED →
+4 focused GREEN: все parse API дают YAMLParseError/RESOURCE_EXHAUSTION,
+обычные конфигурации и форматирование сохранены. Не depth/CPU/memory limit.
+Full default 2237 pass / 1053 skips, exit 0; types/format/frozen install/
+legacy Vite build GREEN, существующий Woolen font warning сохранён.
+Production graph unchanged; prod audit 0/exit 0 (325 dependencies), full audit
+16 (9 high / 7 moderate), exit 1 (828 dependencies). js-yaml/Q1m manual
+blocker/A7/внешние gates открыты; не SQL/browser/device/clean Linux proof.
+Не пушили и не выложено, рабочая БД и access policy не менялись.
+
 Свежий Q1n: scoped humanfs/node 0.16.8 с related core/types; три registry
 integrities проверены, prepare hooks просмотрены и не выполнялись.
 Actual temporary-file copy/copyAll: 2 RED → 2 GREEN, symlinks не превращаются

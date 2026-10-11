@@ -1342,6 +1342,34 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1o — Vite YAML error handling, 11 октября МСК:** yaml 2.8.2 → 2.8.3
+по [advisory владельца](https://github.com/eemeli/yaml/security/advisories/GHSA-48c2-rrv3-qjmp)
+и [релизу](https://github.com/eemeli/yaml/releases/tag/v2.8.3).
+Reviewed runtime diff: composeCollection catches exhaustion as YAMLParseError
+с RESOURCE_EXHAUSTION, empty-node fallback; новый trailingComma default false.
+Это нормализация ошибки, НЕ depth/CPU/memory limit или защита всех YAML inputs.
+Нет runtime dependencies/install/prepare hooks; registry integrity совпал.
+Первый scoped-only generated preview удалял optional Vite YAML peer вместо
+замены. До install добавлен exact root devDependency 2.8.3: peer сохранён и
+проверяем явно; lock только YAML package/snapshot/override/dev importer и
+Vite/plugin/Vitest peer suffixes, production graph unchanged. Frozen
+ignore-scripts install GREEN на текущем macOS tree, не clean Linux.
+Actual Vite-resolved parser, owned bounded children (2s/64 MB/4 KB output):
+5000 nested flow sequences у parse/parseDocument/parseAllDocuments давали
+RangeError; **3 native RED → 4 focused GREEN**, теперь YAMLParseError /
+RESOURCE_EXHAUSTION. Ordinary config, multi-document parse и default flow
+format literal expectations сохранены; секретные/пользовательские YAML не читались.
+**2237 full default pass / 1053 opt-in skips, exit 0 (19.81s)**; root types,
+formatting и legacy Vite 8.2.1 build GREEN. Existing Woolen font warning
+сохранён, не asset/device приёмка. Next/backend/ESLint и SQL/browser не
+повторялись: app code и их graph unchanged. Prod audit **0 findings / exit 0 /
+325 dependencies**; full audit **16 findings (9 high / 7 moderate), exit 1 /
+828 dependencies**, yaml finding отсутствует. js-yaml не менялся и остаётся
+отдельным пунктом; Q1m manual blocker/A7/внешние gates открыты.
+TDD/security/review skills удержали все три actual error RED и обнаружили
+optional-peer removal до install, без новой бизнес-политики. Не пушили и
+не выложено; roles/CORS/trust/quotas/working DB не менялись.
+
 **Q1n — ESLint filesystem copy semantics, 11 октября МСК:** scoped
 @humanfs/node 0.16.7 → 0.16.8 по
 [advisory](https://github.com/advisories/GHSA-p498-v437-472g) и
