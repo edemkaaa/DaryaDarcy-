@@ -41,6 +41,27 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**Q1u, first bounded legacy transformer compatibility slice — 11 октября МСК:**
+После native C3 coverage взят независимый Q1t остаток: installed core-utils
+3.3.2 требует esbuild ~0.18.20. Новый characterization suite запускает actual
+core-utils sync/async TypeScript transforms в отдельных Node children с
+memory-only cache (ESBK_DISABLE_CACHE), enum/interface/typed callbacks и CJS
+export. Результат исполняется в bounded VM: role=1/total=12, sourcemap v3 с
+synthetic source/sourceContent и отсутствие warnings подтверждены.
+Baseline использует настоящий nested 0.18.20; candidate использует настоящий
+root 0.28.2 через child-only module-resolution adapter, факт injection проверен.
+**2 focused pass/exit 0**, root types/format/diff/docs checks проходят;
+**fresh full default: 2260 pass / 1064 skips, 171 passed / 56 skipped files,
+exit 0 (18.56 s)** после нового обычного suite. Parent module cache/installed
+dependencies/lockfile не менялись; disk cache/SQL/HTTP providers не запускались.
+Review: это узкая совместимость реального transformer, не полная esm-loader/
+Drizzle migration command compatibility, не новый security RED или устранение
+legacy esbuild advisory. Candidate adapter не выдан за установленный upgrade;
+out-of-range override не добавлен. Следующий Q1 compatibility срез должен
+проверить реальные module/config loading и поддерживаемые режимы перед решением
+об обновлении цепочки. Braces/manual Q1 residuals и A7/external gates остаются.
+Рабочая БД/секреты/внешняя почта/payments/push/deploy не затронуты.
+
 **C3al, native back/edit/forward answer preservation — 11 октября МСК:**
 Pure Light Academia journey теперь проверяет disabled Back на первом вопросе;
 после Q3 → Q4 возвращается через Q3 в Q2, подтверждает прежние selected ответы,

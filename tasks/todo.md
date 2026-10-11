@@ -6,6 +6,14 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+Q1u: core-utils 3.3.2 real sync/async TS/CJS/map characterization:
+nested esbuild 0.18.20 vs actual root 0.28.2 в отдельных child adapters —
+2 focused pass, types/format/docs/diff. New ordinary suite → fresh default
+2260 pass / 1064 skips, 171 passed/56 skipped files, exit 0 (18.56 s).
+No dependency/lockfile change, disk cache/SQL/providers; не security fix/RED
+или full esm-loader/Drizzle acceptance. Далее module/config loading compatibility
+до reviewed chain upgrade; Q1 residual/A7/external gates прежние.
+
 C3al: native quiz Back floor/Q3→Q2/edit/forward/restore preserves selections
 и final 21/0/no-blend/result/date/reload; SQL identity прежние. 1 browser pass /
 51 filtered skips, types/format/docs/diff. Production unchanged/no new RED,
