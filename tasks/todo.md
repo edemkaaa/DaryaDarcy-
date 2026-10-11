@@ -287,6 +287,12 @@
       build, production diff пустой. Me возвращает 200/user:null — исправлено
       неверное ожидание теста, не production bug. Own frontend/tmpfs DB очищены.
       Не закрывает concurrent read/owner races/media/device/A7/deployment.
+      C3x: standalone scoring suite — семь полных эстетик, literal answer IDs/
+      scores, вес дома и blend с разницей 1/3/5. Boundary/home mutations RED
+      сняты полностью; 27 scoring/parser/storage unit GREEN/exit 0, root types.
+      Production diff пустой; unchanged browser/SQL/build не повторялись.
+      Остальные эстетики покрыты на unit уровне, их browser/media/device
+      приёмка и concurrent read/owner races/transport/A7/deployment открыты.
 - [ ] S1: сезонный read/write/CAS и четыре даты; материалы заказчика.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.

@@ -41,6 +41,22 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3x, все семь эстетик и граница blend — 11 октября МСК:** новый standalone
+unit suite проходит calculateResult с десятью literal answer IDs для каждой
+эстетики, включая переставленные shelter IDs. Проверены primary, отсутствие
+secondary и все семь scores (21 только у выбранной эстетики); отдельные полные
+journeys дают goblincore 11/cottagecore 10, cottagecore 12/goblincore 9 на
+включённой границе 3 и cottagecore 13/goblincore 8 вне blend. Ожидания hand-derived,
+не пересчитаны через QUESTIONS/calculateResult/helper из production.
+Mutation <=3 → <3 даёт RED на secondary для границы 3; home cottagecore 3→2
+даёт два RED (20 вместо 21 и 12 вместо 13). Обе mutation сняты полностью,
+production diff пустой: **27 scoring/parser/storage unit GREEN/exit 0**, root
+types проходят. Review/TDD: table fixtures проверяют mappings/ranking/вес дома,
+а не существование константы; без новой бизнес-политики или изменений пакетов.
+Browser/SQL/default build не повторялись: production и готовая сборка не менялись.
+Это unit coverage остальных эстетик, не их сквозная browser/media/device приёмка.
+Concurrent read/owner races, transport race, A7 и внешняя выкладка ещё открыты.
+
 **C3w, восстановленный результат при проверке сессии — 11 октября МСК:**
 native browser case дополнен двумя настоящими /api/auth/me проверками на
 /quiz/result. Focus при прежнем userId сохраняет canonical result и исходную
