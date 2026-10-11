@@ -133,6 +133,59 @@ it.each([200, 401])(
   },
 );
 
+it("an older HTTP refresh cannot clear the in-flight marker of a newer forced refresh", async () => {
+  const entered = [deferred<void>(), deferred<void>()];
+  const release = [deferred<void>(), deferred<void>()];
+  let requests = 0;
+  const server = createServer(async (_request, response) => {
+    const index = requests++;
+    entered[index]?.resolve();
+    if (release[index]) await release[index].promise;
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ user: member(index + 1) }));
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  // Allow both wire responses to complete; operation ordering must stand on its own.
+  const getMe = vi.fn(async () =>
+    parseAuthUser((await (await fetch(origin + "/api/auth/me")).json()).user),
+  );
+  const f = fixture(getMe);
+  const pending: Promise<void>[] = [];
+  try {
+    await f.controller.applySession(member(1));
+    const original = f.controller.getSnapshot();
+    pending.push(f.controller.refresh());
+    await entered[0].promise;
+    pending.push(f.controller.refresh(true));
+    await entered[1].promise;
+    release[0].resolve();
+    await pending[0];
+    expect(f.controller.getSnapshot()).toBe(original);
+    // A resume event while the newer response is held must not create a third request.
+    pending.push(f.controller.refresh());
+    await pending[2];
+    expect(getMe).toHaveBeenCalledTimes(2);
+    expect(requests).toBe(2);
+    release[1].resolve();
+    await pending[1];
+    expect(f.controller.getSnapshot()).toMatchObject({
+      status: "authenticated",
+      user: { id: 2 },
+      scope: original.scope + 1,
+    });
+  } finally {
+    for (const barrier of release) barrier.resolve();
+    await Promise.all(pending);
+    f.controller.dispose();
+    f.cache.clear();
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});
+
 it("switching accounts removes private queries and resets the screen scope", async () => {
   const f = fixture();
   await f.controller.applySession(member(1));

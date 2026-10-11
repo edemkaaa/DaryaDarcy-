@@ -6,6 +6,12 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3ab: overlapping native loopback refresh responses — old completion не снимает
+marker нового forced refresh; resume не создаёт третий HTTP/getMe. Удаление
+refresh finally guard: 1 mutation RED (3 calls вместо 2), снято полностью.
+50 focused GREEN/types/format/docs. Controller ordering, не component/browser/
+Nest/SQL acceptance; owner/read/transport/media/devices/A7 gates открыты.
+
 C3aa: два late loopback HTTP response cases (old 200/account-1 и 401 после
 account-2) сохраняют новый state/scope/private cache; signal aborted. Удаление
 refresh version guards дало 2 mutation RED, снято полностью. 49 focused GREEN,

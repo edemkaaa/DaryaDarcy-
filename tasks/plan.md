@@ -41,6 +41,22 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3ab, overlapping refresh/finally ordering — 11 октября МСК:**
+Следующий малый срез дополняет C3aa: два настоящих own loopback HTTP ответа
+удерживаются отдельными explicit barriers. Первый refresh заменён forced
+refresh; завершение старого ответа не должно снять pending/refreshing marker
+нового. Ещё один resume-style refresh, пока второй ответ удерживается, не
+создаёт третьего getMe/HTTP запроса. После release нового ответа подтверждён
+account 2 и ровно один scope increment. Adapter намеренно не отменяет fetch:
+проверяется production controller ordering, не browser cancellation, Nest/SQL
+или component storage acceptance. Удаление version guard только в refresh
+finally дало **1 mutation RED** (getMe 3 вместо 2); mutation полностью снята,
+production diff пуст. **50 focused controller/storage/quiz GREEN**, root types,
+format/docs проходят. Review: no elapsed sleeps, sequential barrier signals,
+finally освобождает обе границы и закрывает own server/connections/cache.
+Unchanged build/browser/SQL не повторены. Component owner/read, C1 transport,
+media/devices/A7 gates остаются открыты. Push/сервер/рабочая БД не затронуты.
+
 **C3aa, late HTTP completion на границе смены owner — 11 октября МСК:**
 Добавлены два regression cases в существующий SessionController suite:
 own ephemeral loopback HTTP удерживает ответ старой сессии explicit barrier;
