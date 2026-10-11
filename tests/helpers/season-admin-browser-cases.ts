@@ -402,6 +402,158 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
     );
   }, 30_000);
   it.each([
+    ["spring", false, "winter"],
+    ["summer", true, "winter"],
+    ["autumn", false, "autumn"],
+  ] as const)(
+    "S1 renders decoded local fallback images for %s (unavailable configured assets: %s)",
+    async (season, unavailable, fallback) => {
+      await withSettings(
+        async ({ rows, connection, context, frontend, memberId }) => {
+          const customBackground =
+            "https://assets.example.test/s1-unavailable-background.webp";
+          const customBanner =
+            "https://assets.example.test/s1-unavailable-banner.webp";
+          const config = {
+            ...initial,
+            seasonMode: "fixed",
+            fixedSeason: season,
+            seasons: {
+              ...initial.seasons,
+              [season]: {
+                ...initial.seasons[season],
+                backgroundUrl: unavailable ? customBackground : null,
+                bannerUrl: unavailable ? customBanner : null,
+              },
+            },
+          };
+          await connection.query(
+            "UPDATE launch_settings SET config=? WHERE id=1 AND revision=31",
+            [JSON.stringify(config)],
+          );
+          await connection.query(
+            "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'s1-fallback-access','paid','0','2030-01-01')",
+            [memberId],
+          );
+          try {
+            const before = await rows(
+              "SELECT * FROM launch_settings WHERE id=1",
+            );
+            const access = await rows(
+              "SELECT * FROM club_payments WHERE userId=? ORDER BY id",
+              [memberId],
+            );
+            await context.clearCookies();
+            await context.addCookies([
+              {
+                name: COOKIE_NAME,
+                value: await sdk.createSessionToken("binding-browser-member", {
+                  sessionVersion: 0,
+                }),
+                url: frontend,
+                httpOnly: true,
+                sameSite: "Lax",
+              },
+            ]);
+            const page = await context.newPage();
+            const failed = new Set<string>();
+            // The existing external-traffic guard aborts these synthetic URLs.
+            page.on("requestfailed", (request) => failed.add(request.url()));
+            const reply = page.waitForResponse(
+              (response) =>
+                new URL(response.url()).pathname === "/api/launch-config",
+            );
+            await page.goto(frontend + "club");
+            const response = await reply;
+            expect(response.status()).toBe(200);
+            expect(await response.json()).toMatchObject({
+              revision: 31,
+              season,
+              appearance: {
+                backgroundUrl: unavailable ? customBackground : null,
+                bannerUrl: unavailable ? customBanner : null,
+              },
+            });
+            const setup = page.getByRole("dialog", {
+              name: "Настройка профиля клуба",
+            });
+            await browserExpect(setup).toBeVisible();
+            await setup
+              .getByRole("button", {
+                name: "Закрыть настройку профиля",
+                exact: true,
+              })
+              .click();
+            const club = page.locator("#root [data-club-season]:visible");
+            await browserExpect(club).toHaveAttribute(
+              "data-club-season",
+              season,
+            );
+            const background = club.locator(":scope > img");
+            const banner = club
+              .getByTestId("club-season-banner")
+              .locator("img");
+            const winter =
+              "/assets/responsive/ea0b60bea0fe-EhNRvSBlhxWjRXfT.w1200.4cceecb893c4381e.webp";
+            await browserExpect(background).toHaveAttribute(
+              "src",
+              fallback === "winter"
+                ? winter
+                : "/assets/responsive/ff49f6ba1a27-NdnEHWCbQbNuKmyB.w1199.6b2a60f6e3359cff.webp",
+            );
+            await browserExpect(banner).toHaveAttribute(
+              "src",
+              fallback === "winter"
+                ? winter
+                : "/assets/responsive/e8e5386d449f-xGuqHGnxPOYPLwJz.w900.c32035de391abc36.webp",
+            );
+            // Actual local WebP bytes must decode, not merely occupy an img tag.
+            for (const picture of [background, banner]) {
+              await browserExpect
+                .poll(() =>
+                  picture.evaluate(
+                    (image: HTMLImageElement) =>
+                      image.complete &&
+                      image.naturalWidth > 0 &&
+                      image.naturalHeight > 0,
+                  ),
+                )
+                .toBe(true);
+            }
+            const bounds = await club
+              .getByTestId("club-season-banner")
+              .boundingBox();
+            expect(bounds!.width).toBeGreaterThan(0);
+            expect(bounds!.height).toBeGreaterThan(0);
+            if (unavailable)
+              expect(
+                [...failed]
+                  .filter(
+                    (url) => url === customBackground || url === customBanner,
+                  )
+                  .sort(),
+              ).toEqual([customBackground, customBanner].sort());
+            expect(
+              await rows("SELECT * FROM launch_settings WHERE id=1"),
+            ).toEqual(before);
+            expect(
+              await rows(
+                "SELECT * FROM club_payments WHERE userId=? ORDER BY id",
+                [memberId],
+              ),
+            ).toEqual(access);
+          } finally {
+            await connection.query(
+              "DELETE FROM club_payments WHERE userId=? AND orderId='s1-fallback-access'",
+              [memberId],
+            );
+          }
+        },
+      );
+    },
+    30_000,
+  );
+  it.each([
     ["2026-02-28T20:59:59.999Z", "winter", "12-01"],
     ["2026-02-28T21:00:00.000Z", "spring", "03-01"],
     ["2026-05-31T20:59:59.999Z", "spring", "03-01"],

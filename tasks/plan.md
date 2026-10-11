@@ -41,6 +41,34 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**S1b, native seasonal image fallback — 12 октября МСК:**
+После 94f4d1a добавлены три native subscribed browser сценария: spring с
+отсутствующими URL использует winter assets; summer с недоступными synthetic
+background/banner URL использует winter assets; autumn без URL использует
+свои штатные assets. Launch-config действительно читается HTTP/SQL (200,
+revision 31 и выбранный сезон), без mock API/media bytes. Существующий guard
+останавливает synthetic example.test запросы до выхода наружу; обе ошибки
+загрузки наблюдаются. Local Next отдаёт настоящие WebP: src fallback,
+complete/naturalWidth/naturalHeight и положительные размеры banner проверены
+в Chromium. Чтение/рендер не меняет SQL config/access; доступ — исключительно
+локальная synthetic строка, без provider checkout/payment. Cleanup ограничен
+own singleton manager/revision и own user/orderId. Реалистичные breaks:
+не выбрать fallback после image error или отдать недекодируемый local asset.
+
+Focused **3 pass / 71 filtered skips, exit 0 (4.35 s)**; после добавления
+совместный S1 **15 pass / 59 filtered skips (74), exit 0 (6.46 s)**.
+Root types, targeted format, 606 boundaries, 54-document links и whitespace
+проходят; ревью
+подтверждает test-only scope, literal независимые ожидаемые asset paths,
+реальные decoded bytes и закрытый внешний трафик. Production-дефекта не
+обнаружено: нет production RED/fix, изменения дизайна или согласованных правил.
+Не повторены неизменившиеся широкие SQL/default/build проверки S1a/41d224d.
+Own MySQL a7e7c8b2d72a exact ID/label season-s1b-20261012/tmpfs/no mounts/
+127.0.0.1 проверен перед stop; --rm удалил только одноразовые synthetic данные,
+невосстановимые по замыслу fixture; последующий label inventory пуст.
+Next остановлен. Customer dates/media, physical sleep/device, A7/Q1/provider
+приёмка остаются открыты; эти три сценария их не заменяют.
+
 **S1a, native season administration and Moscow boundaries — 12 октября МСК:**
 По прямому поручению проверить управление сезонами добавлены opt-in сценарии
 в tests/helpers/season-admin-browser-cases.ts и существующий native fixture.

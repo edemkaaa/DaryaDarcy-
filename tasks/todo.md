@@ -6,6 +6,16 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+S1b (12 октября МСК): native SQL-configured Club fallback for missing spring,
+unavailable summer background/banner and missing autumn assets. Real local WebP
+decode + correct src + positive banner dimensions; actual API 200/revision/season,
+unchanged SQL config/access. Synthetic external URLs blocked before network,
+both failures observed; no mock API/image bytes/provider transaction.
+3 focused pass / 71 filtered skips, exit 0 (4.35 s); integrated S1 15 pass /
+59 filtered skips (74), exit 0 (6.46 s). Types/format/606 boundaries/diff pass.
+No production defect/fix/design changes. Own tmpfs DB validated before --rm,
+Next stopped; customer media/dates/physical sleep/device/A7/Q1/provider gates open.
+
 S1a (12 октября МСК): native season-admin invalid dates/save/reload, committed
 PUT reply loss + explicit confirmation/no second write, two-admin 409 + preserved
 draft and explicit confirmed replacement. Eight real HTTP/SQL reads around four
@@ -566,6 +576,8 @@ wait teardown не воспроизвёл старую race. C1 transport gate �
       eight Moscow boundary HTTP/SQL reads + native subscribed pageshow pass.
       Synthetic media/dates/event/access only; customer images/fallback and
       physical sleep/device acceptance remain open. See current journal above.
+      S1b: real local fallback WebP decode passes for missing spring/autumn and
+      unavailable summer images; no customer-media/device acceptance implied.
 - [ ] S2: mailto-заказ обоих материалов с реальной конфигурацией и устройствами;
       серверную форму не считать согласованной заменой этого пути.
 - [ ] M1: проверить карту закрытых файлов и прямые public-read URL.
