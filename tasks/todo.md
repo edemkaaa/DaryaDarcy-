@@ -311,6 +311,14 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1i: related tRPC server/client/react-query 11.7.2 → 11.8.0 с aligned
+      exact peers; excluded Expo прежний. Два bounded child pollution RED →
+      27 focused dependency/compiled entrypoint/native Nest HTTP GREEN.
+      Full default 2215 pass / 1053 opt-in skips, exit 0 (18.32s), root types/
+      backend/Next/legacy Vite build/API/boundaries/formatting/frozen install.
+      Legacy font warning сохранён; browser/SQL/clean Linux не подменяются.
+      Prod audit 1 low, 0 moderate/high/critical, exit 1: Babel ещё открыт;
+      migrations/rollout и внешняя приёмка не завершены.
       Q1h: Browserslist 4.28.1 → 4.28.7 + related datasets; baseline 2.9.8
       удалена в пользу existing 2.11.27. Три custom-stats TypeError RED →
       4 focused GREEN; cache eviction/CLI не выдаются за stress/сквозную приёмку.

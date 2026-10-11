@@ -1342,6 +1342,35 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1i — tRPC related packages, 11 октября МСК:** server/client/react-query
+в root/backend/frontend/legacy-web синхронно закреплены на 11.8.0 по
+[релизу](https://github.com/trpc/trpc/releases/tag/v11.8.0) и
+[advisory владельца](https://github.com/trpc/trpc/security/advisories/GHSA-43p4-m455-4f4j).
+Exact client/server peers требуют совместного minor upgrade; React/TanStack/
+TypeScript не обновлялись. Excluded legacy-expo не менялся. Generated lock
+меняет только три tRPC packages/integrities/peers и их workspace references;
+новых dependencies/install/prepare hooks нет, registry integrity совпали.
+Reviewed minor добавляет API Gateway REST streaming (не используем) и form
+converter hardening. Experimental caller/Next App Dir adapter в application
+code не найден; это не подтверждённая доступная атака приложения.
+Два synthetic FormData paths раньше записывали marker в Object.prototype:
+**2 RED** в собственных bounded child processes, без pollution test worker.
+Теперь marker не создаётся; literal nested fields/arrays сохранены.
+**27 focused upstream/compiled entrypoint/native Nest HTTP GREEN**, реальные
+HTTP handlers с существующими business/SQL doubles — не SQL/browser E2E.
+**2215 full default pass / 1053 opt-in skips, exit 0 (18.32s)** под scoped
+caffeinate; root types/backend build/Next production build/legacy Vite build,
+formatting/API contract/boundaries проходят. Legacy build сохраняет warning
+о Woolen font runtime resolution: standalone build не копирует public assets,
+не выдаётся за визуальную/asset приёмку legacy. Frozen --ignore-scripts install
+проходит на текущем macOS tree; clean Linux/browser integration gate остаётся.
+Native prod audit **1 low / 0 moderate / 0 high / 0 critical**, exit 1:
+Babel sourceMappingURL ещё открыт. Это отсутствие известных high в текущем
+workspace audit, не полная security готовность. TDD/security/review skills
+удержали безопасный child RED и aligned peers; app routes/auth/CORS/trust/
+quotas не менялись. A7/migrations/provider/media/device/rollout ещё открыты.
+Не пушили и не выложено.
+
 **Q1h — Browserslist/build graph, 11 октября МСК:** scoped override 4.28.1 →
 4.28.7 по [релизу](https://github.com/browserslist/browserslist/releases/tag/4.28.7),
 [changelog](https://raw.githubusercontent.com/browserslist/browserslist/4.28.7/CHANGELOG.md)

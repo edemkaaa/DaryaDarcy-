@@ -6,6 +6,17 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1i: workspace tRPC server/client/react-query → aligned 11.8.0 по
+[релизу владельца](https://github.com/trpc/trpc/releases/tag/v11.8.0).
+Два disposable child pollution RED → 27 focused upstream/compiled/native HTTP
+GREEN; experimental caller в app не используется. Full default 2215 pass /
+1053 opt-in skips, exit 0; root types/backend/Next/legacy Vite builds/API/
+boundaries/formatting/frozen-ignore-scripts install проходят. Legacy standalone
+build предупреждает о runtime font resolution — это не проверка asset deployment.
+Prod audit 1 low, 0 moderate/high/critical, exit 1: Babel ещё открыт; не полная
+security готовность. Clean Linux/browser/SQL/provider/migrations/rollout ещё
+открыты. Excluded Expo не менялся. Не пушили и не выложено.
+
 Свежий Q1h: Browserslist 4.28.1 → 4.28.7 по
 [релизу владельца](https://github.com/browserslist/browserslist/releases/tag/4.28.7),
 с related datasets и заменой baseline 2.9.8 на existing 2.11.27.

@@ -15,7 +15,7 @@
     "@nestjs/common": "12.1.2",
     "@nestjs/core": "12.1.2",
     "@nestjs/platform-express": "12.1.2",
-    "@trpc/server": "11.7.2",
+    "@trpc/server": "11.8.0",
     "axios": "1.20.0",
     "cookie": "^1.1.1",
     "dotenv": "^16.6.1",
