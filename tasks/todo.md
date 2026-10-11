@@ -6,6 +6,13 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3ai: full native guest Light Academia journey/last carousel choices:
+21/0 scores, no blend, pressed/CTA, scoped completedAt и result reopen/reload
+сохранены; SQL identity прежние. 1 browser pass / 46 filtered skips,
+types/format/docs/diff. Initial companion fixture #7 исправлен на #6,
+не production RED. Touch/поворот/прочие эстетики/devices/media gates открыты;
+собственные Next/tmpfs DB остановлены/--rm, без payments/push/deploy.
+
 C3ah: native login 401 во время held старого auth/me сохраняет подтверждённого
 admin/scoped Cottagecore; error виден, форма retry-ready, чужой Goblincore
 не восстановлен. Успешный switch также проходит; 2 native focused pass /

@@ -58,6 +58,78 @@ async function completeCottagecoreQuiz(page: Page) {
 }
 
 export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
+  it("C3 completes the light academia quiz using the last carousel choices and restores its result", async () => {
+    const { rows, context, frontend } = fixture();
+    const identitySql =
+      "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id IN (91401,91402) ORDER BY id";
+    const identity = await rows(identitySql);
+    await context.clearCookies();
+    const page = await context.newPage();
+    await page.goto(frontend + "quiz");
+    await page
+      .getByRole("button", { name: "Начать путешествие", exact: true })
+      .click();
+    // Literal visible choices; shelter is #2 and companion #6, not #7.
+    // The last item exercises horizontal scrolling at the 390px fixture width.
+    const choices = [
+      /Радость и вдохновение/,
+      "Выбрать изображение 7",
+      "Выбрать изображение 7",
+      "Выбрать изображение 2",
+      "Выбрать изображение 7",
+      "Сяду на террасе кафе, буду рисовать прохожих и писать стихи на салфетке",
+      "Выбрать изображение 6",
+      /Ничего — найду другой путь/,
+      "Послушаю уличных музыкантов и усну с книгой стихов",
+      "Выбрать изображение 7",
+    ];
+    for (const [index, name] of choices.entries()) {
+      const next = page.getByRole("button", {
+        name: index === 9 ? "Узнать результат" : "Далее →",
+        exact: true,
+      });
+      await browserExpect(next).toBeDisabled();
+      const choice = page.getByRole("button", {
+        name,
+        exact: typeof name === "string",
+      });
+      await choice.click();
+      await browserExpect(choice).toHaveAttribute("aria-pressed", "true");
+      await browserExpect(next).toBeEnabled();
+      await next.click();
+    }
+    const title = page.getByText("Девушка, для которой красота – родной язык", {
+      exact: true,
+    });
+    await browserExpect(title).toBeVisible();
+    const stored = () =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("darcy:user:guest:@darcy_quiz_result");
+        return raw ? JSON.parse(raw) : null;
+      });
+    await browserExpect.poll(stored).toMatchObject({
+      primaryKey: "lightAcademia",
+      secondaryKey: null,
+      isBlend: false,
+      scores: {
+        cottagecore: 0,
+        goblincore: 0,
+        witchcore: 0,
+        castlecore: 0,
+        fairycore: 0,
+        darkAcademia: 0,
+        lightAcademia: 21,
+      },
+    });
+    const saved = await stored();
+    expect(Number.isNaN(Date.parse(saved.completedAt))).toBe(false);
+    await page.goto(frontend + "quiz/result");
+    await browserExpect(title).toBeVisible();
+    await page.reload();
+    await browserExpect(title).toBeVisible();
+    expect(await stored()).toEqual(saved);
+    expect(await rows(identitySql)).toEqual(identity);
+  }, 30_000);
   it.each([true, false])(
     "C3 isolates quiz ownership after a delayed native previous-session response (accepted login: %s)",
     async (accepted) => {

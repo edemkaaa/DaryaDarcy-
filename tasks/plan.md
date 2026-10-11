@@ -41,6 +41,24 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3ai, full native Light Academia journey — 11 октября МСК:**
+Новый native Chromium/production Next/Nest/disposable SQL сценарий проходит
+все десять вопросов гостем на viewport 390×844: последний пункт каруселей,
+отдельно shelter #2/companion #6, pressed и disabled/enabled CTA на каждом
+шаге. Literal expected scores: Light Academia 21, все прочие 0, без blend;
+canonical title показан, scoped guest запись имеет валидный completedAt.
+Открытие /quiz/result и reload сохраняют тот же результат/дату; SQL security
+identity обеих fixture accounts неизменна. **1 focused native browser pass /
+46 filtered skips, exit 0 (3.00 s)**, root types/format/docs/diff checks проходят.
+Initial 19/2 failure был неверным companion #7 в новой fixture (это Fairycore),
+исправлен на #6; не production bug или mutation RED. Production неизменён;
+остальные browser-эстетики, touch swipe/поворот/физические устройства и
+реальные материалы не объявлены принятыми. Это browser click/auto-scroll,
+не физический жест. Broad unchanged C3/default/build не повторялись.
+Собственный loopback/tmpfs backend_test проверен по label/mounts/port до SQL
+и удаления, остановлен через --rm; Next остановлен. Нет payment fixture,
+внешних писем/сети, рабочей БД или push/deploy; прежние gates сохраняются.
+
 **C3ah, rejected native login preserves the confirmed owner — 11 октября МСК:**
 C3ag transport-barrier case параметризован успешным и неверным synthetic
 паролем. Native login 401 возвращает и показывает «Неверный email или пароль»,
