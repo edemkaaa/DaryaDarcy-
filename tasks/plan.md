@@ -41,6 +41,26 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3ak, integrated native regression after the new journeys — 11 октября МСК:**
+После C3ag–aj выполнена свежая общая C1/C2/C3 browser regression с настоящим
+production Next → Nest → собственным MySQL backend_test и loopback SMTP:
+**38 pass / 14 filtered skips, exit 0 (46.05 s)**. Она объединяет admin/
+moderator/member guards, editor/scheduled publication, feed/library/comment/
+save/like, quiz scoring/reopen и новый concurrent accepted/rejected login.
+Это не повтор неизменённой проверки: последний общий native набор имел 30
+cases, после него добавлены восемь cases; focused C3aj не покрывал C1/C2.
+Rare C1 transport exception не воспроизведён, устранение/причина не заявляются;
+не добавлялись instrumentation, error suppression или production изменения.
+14 skips — исключённая фильтром email-binding группа, не завершённая A6/A7.
+Default-off build использован без dotenv/secrets; active-binding build,
+реальные миграции/rollout/media/physical devices/provider acceptance остаются
+отдельными gates. Existing synthetic paid SQL fixtures не являются платежами
+провайдеру; внешние платежи/письма/сообщения не выполнялись.
+После owner label/tmpfs/no-volume/loopback-port проверки собственный container
+остановлен через --rm и synthetic DB удалена; Next остановлен. Production
+code diff пуст, build/default/unit не повторены без изменений; docs check
+проходит. Push/deploy/рабочая БД не затронуты, весь этап не объявлен готовым.
+
 **C3aj, remaining pure aesthetic browser journeys — 11 октября МСК:**
 C3ai расширен literal таблицей Goblincore/Witchcore/Castlecore/Fairycore/
 Dark Academia вместе с Light Academia. Для каждого — десять настоящих UI

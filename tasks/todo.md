@@ -6,6 +6,13 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3ak: свежая integrated C1/C2/C3 Next/Nest/SQL/loopback SMTP regression
+после восьми новых cases — 38 pass / 14 filtered binding skips, exit 0
+(46.05 s). Rare transport exception не повторился, fix не заявлен.
+Default-off build, no production diff/suppression; A6/A7/media/devices/provider
+gates остаются открыты. Own Next/tmpfs DB остановлены/--rm; docs check,
+без внешних payments/mail/push/deploy или рабочей БД.
+
 C3aj: literal pure Goblincore/Witchcore/Castlecore/Fairycore/Dark Academia/
 Light Academia — 6 native browser journeys pass / 46 filtered skips;
 21/0 scores/no blend/canonical title/scoped completedAt/reopen/reload и
