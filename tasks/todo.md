@@ -311,6 +311,16 @@
       контракта и реальные public/club embeds, далее независимый пункт.
 - [ ] V2: единый VK renderer для Видео/вложений, реальные ссылки и устройства.
 - [ ] Q1: актуальные dependency findings и migration blockers; точечные исправления.
+      Q1t: unchanged graph residuals проверены: actual Next tooling braces
+      compile/expand на 9003-char/4500-deep pattern дают caught RangeError
+      в bounded child; latest 3.0.3, patched release отсутствует. Actual nested
+      esbuild 0.18.20 own stdin-only loopback server возвращает synthetic module
+      с ACAO * для untrusted Origin; closed/disposed, no user files. Core-utils
+      использует transform, не serve; reachable app exploit не доказан.
+      No blind out-of-range esbuild override/patch/audit suppression; нужен
+      отдельный reviewed compatibility slice. Registry 2 + manual Q1m/Q1p
+      остаются; далее independent compatibility/C3 race/transport work.
+      Docs-only: unchanged 2251-pass evidence не повторялось, не выложено.
       Q1s: Vitest + seven internal packages exact 4.1.11; real own loopback
       Vite/WebSocket register → HTTP disclosed synthetic outside/denied files:
       2 native RED → 3 GREEN, allowed redirect сохранён. No secrets/user files.

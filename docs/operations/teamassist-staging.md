@@ -6,6 +6,16 @@
 
 ## Локальное обновление зависимости — 11 октября 2026 (не выложено)
 
+Свежий Q1t: остаточные риски подтверждены без изменения зависимостей.
+Next tooling braces 3.0.3 compile/expand: 9003-char nested pattern даёт caught
+RangeError в bounded owned child; patched release отсутствует. Legacy nested
+esbuild 0.18.20 own loopback stdin-only server отдаёт synthetic source с ACAO *
+при untrusted Origin; context disposed. No user files/секреты, не browser proof.
+Core-utils использует transform, не serve: reachable app exploit не заявляется.
+Out-of-range override/patch/suppression не добавлены; registry 2 + manual Q1m/Q1p
+остаются. Далее reviewed compatibility или independent C3 checks, gates открыты.
+Docs-only, прежние 2251 pass не повторялись без изменений; не пушили/не выложено.
+
 Свежий Q1s: Vitest/internal graph 4.1.11; real own Vite/WebSocket → HTTP
 не возвращает synthetic outside/denied source через mock redirect. Два native
 disclosure RED → 3 GREEN, allowed redirect сохранён; no secrets/user files.

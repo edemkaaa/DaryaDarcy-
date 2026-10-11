@@ -1342,6 +1342,41 @@ references и public/private API/direct-URL acceptance; смена ACL всле�
 
 ### 5. Подготовка выпуска и пилот (Q)
 
+**Q1t — проверенные остаточные tooling blockers, 11 октября МСК:** без
+изменения manifests/lock/runtime. [Braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)
+и registry подтверждают latest 3.0.3, patched version отсутствует. Actual
+Next ESLint plugin → fast-glob → micromatch resolved braces в owned child
+(Node 22, 64 MB heap, 2s timeout, 4 KB output): pattern 4500 вложенных braces
+с `a,b`, длина 9003 (<10000), даёт **RangeError / Maximum call stack size
+exceeded** отдельно в compile и expand. Исключение caught, child exit 0,
+не падение приложения. Первый probe 10003 был корректно отвергнут length
+guard и не считается воспроизведением stack failure. Лимит символов не
+защищает от глубины; не добавлены fork/package patch или новые ограничения
+произвольных app patterns без отдельного reviewed решения.
+[Legacy esbuild advisory](https://github.com/advisories/GHSA-67mh-4wv8-2f99):
+@esbuild-kit/core-utils 3.3.2 требует ~0.18.20 через deprecated esm-loader
+2.6.5/drizzle-kit 0.31.8. Actual nested esbuild 0.18.20 в own ephemeral
+127.0.0.1 server, stdin-only synthetic module/write:false/no servedir:
+HTTP GET с Origin https://untrusted.invalid даёт 200, ACAO `*`, synthetic
+source. Context disposed, сервер закрыт; пользовательские файлы не читались.
+Это native HTTP header/read probe, не браузерная cross-origin приёмка.
+Published core-utils runtime использует только esbuild version/transformSync/
+transform; serve/context calls и direct loader imports в app/tooling repo
+не найдены. Поэтому reachable app/server exploit НЕ заявляется, advisory
+не закрыт и не ignored. Root/актуальный Vite esbuild 0.28.2 уже иной edge.
+Blind override 0.18 → 0.25+ вне declared range не выполнен: требуется
+reviewed replacement/compatibility slice для старого migration tooling, без
+DB/migration execution и без изменения CORS/trust приложения.
+Остаются **2 registry findings (1 high / 1 moderate)** на неизменившемся
+lock плюс manual Q1m nested-extglob/Q1p AJV engine blockers. Q1 не complete.
+Root types/full suite/build/SQL/browser не повторялись: production/test/lock
+не менялись, последняя default регрессия 2251 pass/1053 skips на d36b20c.
+Security/review/verification skills отделили native reproductions от reachability
+и не позволили выдать audit suppress/major override за безопасное исправление.
+При продолжении брать отдельный thin compatibility slice либо независимые
+оставшиеся C3 race/transport checks; внешние A7/P/V/media/device gates не обходить.
+Не пушили, сервер/рабочая БД/roles/CORS/trust/quotas не менялись.
+
 **Q1s — Vitest mock redirect file boundary, 11 октября МСК:** exact root
 Vitest 4.1.9 → 4.1.11 и семь связанных @vitest packages по
 [advisory](https://github.com/advisories/GHSA-82fw-gwwq-j7x9) и
