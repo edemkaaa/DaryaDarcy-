@@ -205,6 +205,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
     }
     registerQuizBrowserCases(() => ({
       rows,
+      base,
       connection,
       memberId,
       context,

@@ -12,6 +12,7 @@ interface QuizBrowserFixture {
   rows(sql: string, args?: unknown[]): Promise<RowDataPacket[]>;
   context: BrowserContext;
   frontend: string;
+  base: string;
   connection: Pick<Connection, "query">;
   memberId: number;
 }
@@ -57,6 +58,167 @@ async function completeCottagecoreQuiz(page: Page) {
 }
 
 export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
+  it("C3 keeps the new login quiz owner after a delayed native previous-session response", async () => {
+    const { rows, connection, context, frontend, base, memberId } = fixture();
+    const password = "Synthetic-C3-concurrent-login-only-2026!";
+    const email = "c3.concurrent-login@example.test";
+    await connection.query(
+      "UPDATE users SET email=?,passwordHash=? WHERE id=?",
+      [email, await hashPassword(password), memberId],
+    );
+    const identitySql =
+      "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id IN (91401,91402) ORDER BY id";
+    const before = await rows(identitySql);
+    const paidBefore = await rows(
+      "SELECT * FROM club_payments WHERE userId=?",
+      [memberId],
+    );
+    const page = await context.newPage();
+    // This guest key is cleared by the confirmed initial admin identity, not
+    // by the initial owner=null setup. It avoids racing initial hydration.
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        "darcy:user:guest:@darcy_quiz_result",
+        "initial-owner-marker",
+      );
+    });
+    await page.goto(frontend + "login?next=/quiz");
+    await browserExpect
+      .poll(() =>
+        page.evaluate(() =>
+          localStorage.getItem("darcy:user:guest:@darcy_quiz_result"),
+        ),
+      )
+      .toBeNull();
+    await browserExpect(
+      page.getByPlaceholder("Email", { exact: true }),
+    ).toBeEnabled();
+    const raw = (primaryKey: string) =>
+      JSON.stringify({
+        primaryKey,
+        secondaryKey: null,
+        isBlend: false,
+        scores: {
+          cottagecore: 0,
+          goblincore: 0,
+          witchcore: 0,
+          castlecore: 0,
+          fairycore: 0,
+          darkAcademia: 0,
+          lightAcademia: 0,
+          [primaryKey]: 21,
+        },
+        completedAt: "2026-10-11T00:00:00.000Z",
+      });
+    const newRaw = raw("goblincore");
+    await page.evaluate(
+      ({ oldRaw, newRaw }) => {
+        localStorage.setItem("darcy:user:91401:@darcy_quiz_result", oldRaw);
+        localStorage.setItem("darcy:user:91402:@darcy_quiz_result", newRaw);
+      },
+      { oldRaw: raw("cottagecore"), newRaw },
+    );
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let started = false,
+      ready = false,
+      finished = false;
+    let transportError: unknown;
+    await page.route(
+      "**/api/auth/me",
+      async (route) => {
+        started = true;
+        try {
+          const response = await route.fetch({
+            url: base + "/api/auth/me",
+            maxRedirects: 0,
+            timeout: 5000,
+          });
+          expect((await response.json()).user.id).toBe(91401);
+          ready = true;
+          await held;
+          await route.fulfill({ response });
+        } catch (error) {
+          // Assert both sides of the held response; transport errors fail the
+          // test instead of disappearing in an asynchronous route callback.
+          transportError = error;
+          ready = true;
+        } finally {
+          finished = true;
+        }
+      },
+      { times: 1 },
+    );
+    try {
+      await page.evaluate(() => window.dispatchEvent(new Event("online")));
+      await browserExpect.poll(() => ready).toBe(true);
+      expect(transportError).toBeUndefined();
+      await page.getByPlaceholder("Email", { exact: true }).fill(email);
+      await page.getByPlaceholder("Пароль", { exact: true }).fill(password);
+      const [login] = await Promise.all([
+        page.waitForResponse(
+          (response) => new URL(response.url()).pathname === "/api/auth/login",
+        ),
+        page.getByRole("button", { name: "Войти", exact: true }).click(),
+        page.waitForEvent("requestfailed", {
+          predicate: (request) =>
+            new URL(request.url()).pathname === "/api/auth/me" &&
+            request.failure()?.errorText === "net::ERR_ABORTED",
+        }),
+      ]);
+      expect(login.status()).toBe(200);
+      expect((await login.json()).user.id).toBe(memberId);
+      await browserExpect(page).toHaveURL(/\/quiz$/);
+      expect(
+        await page.evaluate(() =>
+          localStorage.getItem("darcy:user:91402:@darcy_quiz_result"),
+        ),
+      ).toBe(newRaw);
+      release();
+      await browserExpect.poll(() => finished).toBe(true);
+      expect(transportError).toBeUndefined();
+      await page.evaluate(
+        () =>
+          new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          ),
+      );
+      expect(
+        await page.evaluate(() =>
+          localStorage.getItem("darcy:user:91401:@darcy_quiz_result"),
+        ),
+      ).toBeNull();
+      expect(
+        await page.evaluate(() =>
+          localStorage.getItem("darcy:user:91402:@darcy_quiz_result"),
+        ),
+      ).toBe(newRaw);
+      const current = await page.evaluate(async () =>
+        (await fetch("/api/auth/me")).json(),
+      );
+      expect(current.user.id).toBe(memberId);
+      await page.goto(frontend + "quiz/result");
+      await browserExpect(
+        page.getByText("Девушка, чьи карманы полны лесных сокровищ", {
+          exact: true,
+        }),
+      ).toBeVisible();
+      await browserExpect(
+        page.getByText("Девушка, вернувшая жизнь заброшенному саду", {
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      expect(await rows(identitySql)).toEqual(before);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(paidBefore);
+    } finally {
+      release();
+      if (started) await browserExpect.poll(() => finished).toBe(true);
+    }
+  }, 30_000);
   it("C3 validates the profile quiz card with the same canonical result as the saved-result page", async () => {
     const { rows, context, frontend } = fixture();
     const identitySql =
@@ -371,12 +533,10 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
           );
           return raw ? JSON.parse(raw) : null;
         }, memberId);
-      await browserExpect
-        .poll(stored)
-        .toMatchObject({
-          primaryKey: "cottagecore",
-          scores: { cottagecore: 21 },
-        });
+      await browserExpect.poll(stored).toMatchObject({
+        primaryKey: "cottagecore",
+        scores: { cottagecore: 21 },
+      });
       const completed = await stored();
       await page.goto(frontend + "profile");
       const result = page.getByText(

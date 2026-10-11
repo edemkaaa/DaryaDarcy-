@@ -41,6 +41,31 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3ag, native login during a held previous-session read — 11 октября МСК:**
+Новый Chromium/production Next → native Nest → disposable MySQL кейс начинает
+с подтверждённого admin 91401; online refresh получает настоящий старый auth/me
+ответ и удерживает его explicit barrier в transport proxy. Настоящий email login
+подтверждает member 91402 (200), browser отменяет старый HTTP read с ERR_ABORTED.
+После освобождения старого ответа сохраняются новая cookie identity и scoped
+quiz data; старый scoped результат удалён, новый Goblincore восстановлен на
+странице результата, старый Cottagecore отсутствует. SQL email/hash/role/
+sessionVersion обеих fixture identities и club_payments не изменились.
+**17 native C3 pass / 28 filtered skips, exit 0 (25.43 s)**; root types,
+format/diff checks проходят. Нового production изменения/mutation RED нет:
+начальные failures были ошибками fixture (initial hydration, unsupported
+login-return /quiz/result и закрытый profile без подписки), а не доказанной
+ошибкой приложения. Финальный сценарий использует разрешённый /quiz return,
+не создаёт payment fixture и открывает saved-result после завершения barrier.
+Review: это реальный login/cookie/storage/HTTP cancellation и последующее
+восстановление, не доставка stale response в отменённый browser request и
+не concurrent component read acceptance. Ошибки transport callback проверяются
+assertions, suppression нет; guest marker явно ждёт initial owner commit.
+Собственный loopback/tmpfs backend_test container проверен по label/mounts/
+port до SQL и остановки; Next остановлен, --rm удалил только synthetic DB.
+Production/default broad regression не повторены без изменения production.
+Существующий C1 transport gate, media/devices/A7/provider/Q1 residual gates
+сохраняются; внешняя сеть/почта/payments/рабочая БД/push не использовались.
+
 **C3af, real AuthProvider/native HTTP owner boundary — 11 октября МСК:**
 Новый opt-in Chromium probe использует production AuthProvider, SessionController,
 auth client/parser/request lifecycle и QueryClient без подмены этих модулей.

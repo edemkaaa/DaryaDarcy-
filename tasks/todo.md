@@ -6,6 +6,15 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3ag: native Next/Nest/SQL login member 91402 во время held admin auth/me;
+старый browser HTTP read реально abort, после barrier старая scoped quiz data
+удалена/new сохранена, native cookie identity и reopened Goblincore подтверждены.
+17 native C3 pass / 28 filtered skips, types/format/diff checks. Начальные fixture
+failures не объявлены production RED; production не менялся. Без новой payment
+fixture. Собственные Next/tmpfs backend_test остановлены/--rm; transport callback
+errors assertion-visible. Stale delivery/component/media/devices/A7/external
+gates остаются открыты; push/deploy/рабочая БД не затронуты.
+
 C3af: unmocked AuthProvider/auth client/cache/native HTTP probe: account 1 →
 applySession account 2 очищает seed private query/remount state и abort старого
 held HTTP read. Scope-freeze mutation → 1 RED (2|1), снято; 53 focused GREEN,
