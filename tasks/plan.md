@@ -41,6 +41,34 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3aw, canonical profile name and existing-cache reconciliation — 12 октября МСК:**
+После прямого разрешения пользователя primary feature branch fast-forward
+71daa65 → verified origin/staging48f2f7d, без switch/rebase/overwrite; работа
+фронтендера и обе истории сохранены. Native RED: auth/me возвращает Browser
+phone member, но профиль показывает C3 stale local name из scoped localStorage.
+Профиль теперь выводит server identity; локальный ACK override живёт в малом
+редакторе только до нового server name, не стирая unsaved draft. Existing nonempty
+cache сверяется с server name через current-owner fence/cancelled effect;
+отсутствующий/пустой cache не создаётся при просмотре. Это важно: клуб использует
+наличие имени как legacy completion marker. Первый полный run85 pass/1 fail
+выявил скрытие setup dialog; исправлена именно побочная cache-запись, не ослаблен
+тест и не изменён смысл настройки клуба. Final native **86 pass, exit0, 75.39 s**
+на own labelled loopback/tmpfs backend_test, настоящие Next/Nest HTTP/SQL и
+loopback SMTP, без API/auth mocks/external sending. Проверены stale cache,
+same-owner server refresh, draft retained/no implicit POST, ACK/lost reply/manual
+retry/reload/late reply account isolation; identity/paid access неизменны.
+Focused5 pass (6.53 s) до выявления setup regression; final full run важнее.
+Fresh default **2274 pass/1101 opt-in skips (3380), exit0, 27.72 s**;
+final webpack build/types/ESLint/format/API73/617 boundaries/diff pass.
+390/1280 before/after inspected: incumbent layout/classes unchanged. Skills:
+TDD/debugging/incremental implementation, React derived-state/owner hardening,
+bounded Impeccable review, code review and evidence-first verification; missing
+optional review-reference files не заменены выдуманными инструкциями.
+Следующий независимый C3 срез: проверить direct club-entry legacy profile sync
+на stale cache отдельно; он не объявлен исправленным этим изменением. A7/Q1,
+внешние providers/media/devices всё ещё открыты. Только local commit, без нового
+push/deploy/working DB/secrets; own Next/tmpfs fixture очищаются после проверки.
+
 **I1, integration with frontend staging — 12 октября МСК:**
 Пользователь явно попросил отправить свои изменения в staging, сохранив работу
 фронтендера. Candidate построен в отдельном detached worktree от staging

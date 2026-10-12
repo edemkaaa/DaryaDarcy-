@@ -14,6 +14,147 @@ interface ProfileFixture {
 }
 
 export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
+  it("C3 profile name reconciles native identity instead of replaying stale browser cache", async () => {
+    const { rows, connection, context, frontend, memberId } = fixture();
+    await connection.query(
+      "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-profile-access','paid','0','2030-01-01')",
+      [memberId],
+    );
+    const identitySql =
+      "SELECT id,email,phone,passwordHash,role,sessionVersion FROM users WHERE id=?";
+    const identity = await rows(identitySql, [memberId]);
+    const access = await rows("SELECT * FROM club_payments WHERE userId=?", [
+      memberId,
+    ]);
+    try {
+      await context.clearCookies();
+      await context.addCookies([
+        {
+          name: COOKIE_NAME,
+          value: await sdk.createSessionToken("binding-browser-member", {
+            sessionVersion: 0,
+          }),
+          url: frontend,
+          httpOnly: true,
+          sameSite: "Lax",
+        },
+      ]);
+      await context.addInitScript(
+        (id) =>
+          localStorage.setItem(
+            `darcy:user:${id}:@darcy_club_profile_name`,
+            "C3 stale local name",
+          ),
+        memberId,
+      );
+      const page = await context.newPage();
+      let writes = 0;
+      page.on("request", (request) => {
+        if (
+          request.method() === "POST" &&
+          request.url().includes("profile.update")
+        )
+          writes++;
+      });
+      const loaded = page.waitForResponse(
+        (reply) => new URL(reply.url()).pathname === "/api/auth/me",
+      );
+      await page.goto(frontend + "profile");
+      expect(await (await loaded).json()).toMatchObject({
+        user: { name: "Browser phone member" },
+      });
+      if (process.env.PROFILE_SCREENSHOT_PREFIX) {
+        await browserExpect(
+          page.getByRole("button", {
+            name: /Browser phone member|C3 stale local name/,
+          }),
+        ).toBeVisible();
+        for (const width of [390, 1280]) {
+          await page.setViewportSize({ width, height: 900 });
+          await page.screenshot({
+            path: `${process.env.PROFILE_SCREENSHOT_PREFIX}-${width}.png`,
+          });
+        }
+      }
+      await browserExpect(
+        page.getByRole("button", { name: "Browser phone member", exact: true }),
+      ).toBeVisible();
+      await browserExpect(
+        page.getByRole("button", { name: "C3 stale local name", exact: true }),
+      ).toHaveCount(0);
+      expect(
+        await page.evaluate(
+          (id) =>
+            localStorage.getItem(`darcy:user:${id}:@darcy_club_profile_name`),
+          memberId,
+        ),
+      ).toBe("Browser phone member");
+      await connection.query(
+        "UPDATE users SET name='C3 Fresh server name' WHERE id=? AND openId='binding-browser-member'",
+        [memberId],
+      );
+      const [refreshed] = await Promise.all([
+        page.waitForResponse(
+          (reply) => new URL(reply.url()).pathname === "/api/auth/me",
+        ),
+        page.evaluate(() => window.dispatchEvent(new Event("online"))),
+      ]);
+      expect(await refreshed.json()).toMatchObject({
+        user: { name: "C3 Fresh server name" },
+      });
+      await browserExpect(
+        page.getByRole("button", { name: "C3 Fresh server name", exact: true }),
+      ).toBeVisible();
+      expect(
+        await page.evaluate(
+          (id) =>
+            localStorage.getItem(`darcy:user:${id}:@darcy_club_profile_name`),
+          memberId,
+        ),
+      ).toBe("C3 Fresh server name");
+      await page
+        .getByRole("button", { name: "C3 Fresh server name", exact: true })
+        .click();
+      const draft = page.getByRole("textbox", { name: "Имя профиля" });
+      await draft.fill("C3 unsaved draft");
+      await connection.query(
+        "UPDATE users SET name='C3 Updated during editing' WHERE id=? AND openId='binding-browser-member'",
+        [memberId],
+      );
+      const [updatedDuringEditing] = await Promise.all([
+        page.waitForResponse(
+          (reply) => new URL(reply.url()).pathname === "/api/auth/me",
+        ),
+        page.evaluate(() => window.dispatchEvent(new Event("online"))),
+      ]);
+      expect(await updatedDuringEditing.json()).toMatchObject({
+        user: { name: "C3 Updated during editing" },
+      });
+      await browserExpect(draft).toHaveValue("C3 unsaved draft");
+      await browserExpect
+        .poll(() =>
+          page.evaluate(
+            (id) =>
+              localStorage.getItem(`darcy:user:${id}:@darcy_club_profile_name`),
+            memberId,
+          ),
+        )
+        .toBe("C3 Updated during editing");
+      expect(writes).toBe(0);
+      expect(
+        await rows("SELECT name FROM users WHERE id=?", [memberId]),
+      ).toEqual([{ name: "C3 Updated during editing" }]);
+      expect(await rows(identitySql, [memberId])).toEqual(identity);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(access);
+    } finally {
+      await connection.query(
+        "DELETE FROM club_payments WHERE userId=? AND orderId='c3-profile-access'",
+        [memberId],
+      );
+    }
+  }, 30_000);
   it("C3 profile name discards native committed success after switching the current account", async () => {
     const { rows, connection, context, frontend, base, memberId } = fixture();
     await connection.query(

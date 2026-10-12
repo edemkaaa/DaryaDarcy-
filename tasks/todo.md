@@ -6,6 +6,20 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3aw (12 октября МСК): user-authorized primary feature fast-forward71daa65 →
+verified staging48f2f7d, no switch/rebase/overwrite. Native RED stale scoped name
+overrode auth/me identity. Profile now uses server name with temporary native ACK
+override; existing nonempty cache reconciled under owner/cancellation fence,
+no cache/completion marker created merely by viewing. Draft retained on native
+server refresh, zero implicit writes; prior lost reply/retry/account isolation
+preserved. First full85 pass/1 setup-dialog fail caught completion-marker coupling;
+fixed cache side effect, unchanged assertion. Final **86 native browser/API/SQL/
+loopback SMTP pass, exit0 (75.39 s)**, own tmpfs/no external sending; default2274
+pass/1101 opt-in skips, exit0 (27.72 s). Final webpack/types/ESLint/format/API73/
+617 boundaries/diff pass; 390/1280 incumbent screenshots inspected/no redesign.
+Local commit only/no new push/deploy/working data. Next: direct club-entry legacy
+profile sync with stale cache (not claimed fixed), A7/Q1/external gates remain.
+
 I1 (12 октября МСК): user-authorized staging integration from a4b6bbc + feature
 71daa65 in separate detached worktree; both histories/125 source commits retained,
 frontend design/editor/saved-club navigation preserved. No primary branch switch.

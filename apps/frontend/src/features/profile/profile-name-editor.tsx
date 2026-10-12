@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import {
   checkOperationAccessError,
@@ -7,25 +7,44 @@ import {
 } from "@/domain/session/use-session-operation";
 import { trpc } from "@/shared/api/trpc";
 import { invalidResponse } from "@/shared/api/errors";
-import AsyncStorage from "@/shared/browser/storage";
+import AsyncStorage, { isPersonalDataOwner } from "@/shared/browser/storage";
 import { Action, Field, Typography } from "@/shared/ui/elements";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { BROWN_MUTED, PROFILE_NAME_KEY } from "./profile-screen.content";
 import classes from "./profile-screen.module.scss";
 
-export function ProfileNameEditor({
-  displayName,
-  onSaved,
-}: {
-  displayName: string;
-  onSaved: (name: string) => void;
-}) {
-  const { refresh } = useAuth();
+export function ProfileNameEditor({ displayName }: { displayName: string }) {
+  const { user, refresh } = useAuth();
   const utils = trpc.useUtils();
   const operation = useSessionOperation();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState(false);
+  // Keep an acknowledged save visible while auth refresh is pending. A new
+  // server name supersedes it without discarding an unsaved editing draft.
+  const [confirmation, setConfirmation] = useState({
+    source: displayName,
+    name: displayName,
+  });
+  if (confirmation.source !== displayName) {
+    setConfirmation({ source: displayName, name: displayName });
+  }
+  const shownName =
+    confirmation.source === displayName ? confirmation.name : displayName;
+  useEffect(() => {
+    if (!user?.id || !isPersonalDataOwner(user.id)) return;
+    let cancelled = false;
+    // Absence also means club setup has not been completed. Reconcile an
+    // existing cache, but do not create that marker merely by viewing a profile.
+    void AsyncStorage.getItem(PROFILE_NAME_KEY).then((cached) => {
+      if (cancelled || !cached || !isPersonalDataOwner(user.id)) return;
+      if (user.name) void AsyncStorage.setItem(PROFILE_NAME_KEY, user.name);
+      else void AsyncStorage.removeItem(PROFILE_NAME_KEY);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, user?.name]);
   // Enter, disabling the input and removing it can also trigger blur.
   const editingRef = useRef(false);
   const errorRef = useRef(false);
@@ -45,7 +64,7 @@ export function ProfileNameEditor({
       if (result?.success !== true) throw invalidResponse();
       task.assertCurrent();
       // Publish and cache only a server-confirmed name for the current owner.
-      onSaved(name);
+      setConfirmation({ source: displayName, name });
       await AsyncStorage.setItem(PROFILE_NAME_KEY, name);
       task.assertCurrent();
       editingRef.current = false;
@@ -103,7 +122,7 @@ export function ProfileNameEditor({
   return (
     <Action
       onClick={() => {
-        setDraft(displayName);
+        setDraft(shownName);
         editingRef.current = true;
         setEditing(true);
       }}
@@ -112,7 +131,7 @@ export function ProfileNameEditor({
       }
     >
       <div className={["ui-stack", classes.nameRow].join(" ")}>
-        <Typography className={classes.profileName}>{displayName}</Typography>
+        <Typography className={classes.profileName}>{shownName}</Typography>
         <MaterialIcons
           name="edit"
           size={14}

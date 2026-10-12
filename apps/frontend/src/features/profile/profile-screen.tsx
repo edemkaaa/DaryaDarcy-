@@ -40,7 +40,6 @@ import {
   PAPER_TEXTURE_URI,
   BROWN_MUTED,
   OLIVE,
-  PROFILE_NAME_KEY,
   PROFILE_AVATAR_KEY,
   SUPPORT_EMAIL,
   PERSONAL_MOODBOARDS_ENABLED,
@@ -106,7 +105,6 @@ export default function ProfileScreen() {
     enabled: isAuthenticated,
     refetchOnMount: "always",
   });
-  const [profileName, setProfileName] = useState<string | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [savedTab, setSavedTab] = useState<SavedTab>("feed");
   const [cropperImage, setCropperImage] = useState<CropperImage | null>(null);
@@ -121,13 +119,11 @@ export default function ProfileScreen() {
   // Reload profile data every time this tab gains focus
   const loadProfileData = useCallback(() => {
     Promise.all([
-      AsyncStorage.getItem(PROFILE_NAME_KEY),
       AsyncStorage.getItem(PROFILE_AVATAR_KEY),
       AsyncStorage.getItem("@darcy_quiz_result"),
       AsyncStorage.getItem("@darcy_saved_feed"),
       AsyncStorage.getItem("@darcy_saved_club"),
-    ]).then(([name, avatar, quizRaw, feedRaw, clubRaw]) => {
-      if (name) setProfileName(name);
+    ]).then(([avatar, quizRaw, feedRaw, clubRaw]) => {
       if (avatar && avatar.startsWith("http")) setAvatarUri(avatar);
       const quiz = parseSavedQuizResult(quizRaw);
       setQuizResult(
@@ -161,7 +157,7 @@ export default function ProfileScreen() {
       }
     }, [isAuthenticated, loadProfileData, refetchSavedPosts]),
   );
-  const displayName = profileName || user?.name || "Участница";
+  const displayName = user?.name || "Участница";
   const serverAvatar =
     user?.avatarUrl && /^https?:\/\//.test(user.avatarUrl)
       ? user.avatarUrl
@@ -449,10 +445,7 @@ export default function ProfileScreen() {
               </div>
             </Action>
 
-            <ProfileNameEditor
-              displayName={displayName}
-              onSaved={setProfileName}
-            />
+            <ProfileNameEditor displayName={displayName} />
 
             {isSubscribed && (
               <div
