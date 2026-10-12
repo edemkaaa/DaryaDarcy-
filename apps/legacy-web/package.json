@@ -9,8 +9,8 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.12",
-    "@trpc/client": "11.7.2",
-    "@trpc/react-query": "11.7.2",
+    "@trpc/client": "11.8.0",
+    "@trpc/react-query": "11.8.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-router-dom": "^7.18.2",

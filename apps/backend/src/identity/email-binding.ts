@@ -12,12 +12,15 @@ import {
 import { isValidEmail, normalizeEmail } from "../_core/password";
 
 const userIdSchema = z.number().int().min(1).max(2147483647);
-const actorSchema = z
+export const emailBindingActorSchema = z
   .object({
     userId: userIdSchema,
     sessionVersion: z.number().int().min(0).max(2147483647),
   })
   .strict();
+export const emailBindingRequestKeySchema = z.string().regex(
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+);
 const requestSchema = z
   .object({
     userId: userIdSchema,
@@ -26,11 +29,7 @@ const requestSchema = z
       .max(1024)
       .transform(normalizeEmail)
       .refine((email) => email.length <= 320 && isValidEmail(email)),
-    requestKey: z
-      .string()
-      .regex(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-      ),
+    requestKey: emailBindingRequestKeySchema,
   })
   .strict();
 const digest = (value: string) =>
@@ -99,7 +98,7 @@ export async function requestMemberEmailBinding(
   actor: EmailBindingActor,
   input: EmailBindingRequest,
 ): Promise<EmailBindingReceipt> {
-  const parsedActor = actorSchema.safeParse(actor);
+  const parsedActor = emailBindingActorSchema.safeParse(actor);
   const parsedRequest = requestSchema.safeParse(input);
   if (!parsedActor.success || !parsedRequest.success)
     throw new EmailBindingError("invalid_input");

@@ -2,22 +2,43 @@
 
 import { useId, useState } from "react";
 import { Action, Field, Typography } from "@/shared/ui/elements";
+import { normalizeMemberEmailBindingEmail } from "@/shared/api/member-email-binding";
 import classes from "./admin-screen.module.scss";
+import {
+  memberEmailBindingEnabled,
+  type BindingResult,
+} from "./use-member-email-bindings";
 
-/** Local preparation only. Connect a confirmed server operation once its contract exists. */
 export function MemberEmailBinding({
   memberId,
   memberName,
   disabled,
+  result,
+  error,
+  onSend,
+  onInspect,
+  onNewDraft,
 }: {
   memberId: number;
   memberName: string | null;
   disabled: boolean;
+  result?: BindingResult;
+  error?: string;
+  onSend: (id: number, email: string) => Promise<void>;
+  onInspect: (id: number) => Promise<void>;
+  onNewDraft: (id: number) => Promise<void>;
 }) {
   const formId = useId();
   const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
+  const [draft, setDraft] = useState<{ key?: string; email: string }>({
+    email: "",
+  });
+  // A fresh draft cannot become the original payload of a recovered intent.
+  const email = draft.key === result?.requestKey ? draft.email : "";
+  const setEmail = (value: string) =>
+    setDraft({ key: result?.requestKey, email: value });
   const [invalid, setInvalid] = useState(false);
+  const needsOriginalEmail = result?.phase === "unknown" && !result.email;
   const close = () => {
     setOpen(false);
     setEmail("");
@@ -43,7 +64,24 @@ export function MemberEmailBinding({
           aria-label="Первая привязка почты"
           className={`ui-stack ${classes.memberEmailDraft}`}
           noValidate
-          onSubmit={(event) => event.preventDefault()}
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (
+              !memberEmailBindingEnabled ||
+              disabled ||
+              (result && !needsOriginalEmail)
+            )
+              return;
+            if (!event.currentTarget.checkValidity()) {
+              setInvalid(true);
+              return;
+            }
+            try {
+              void onSend(memberId, normalizeMemberEmailBindingEmail(email));
+            } catch {
+              setInvalid(true);
+            }
+          }}
         >
           <Typography className={classes.postItemDate}>
             Аккаунт: {memberName || "Без имени"} · ID {memberId}
@@ -63,8 +101,8 @@ export function MemberEmailBinding({
             spellCheck={false}
             maxLength={320}
             required
-            disabled={disabled}
-            value={email}
+            disabled={disabled || (Boolean(result) && !needsOriginalEmail)}
+            value={needsOriginalEmail ? email : (result?.email ?? email)}
             onValueChange={(value) => {
               setEmail(value);
               setInvalid(false);
@@ -85,23 +123,115 @@ export function MemberEmailBinding({
           ) : null}
           <Typography
             id={`${formId}-notice`}
+            role="status"
             className={classes.memberEmailNotice}
           >
-            Привязка пока недоступна. Данные не отправляются и будут удалены при
-            закрытии формы.
+            {result?.message ??
+              (memberEmailBindingEnabled
+                ? "Отправим ссылку подтверждения. Только после её подтверждения почта появится в аккаунте; пароль и доступ не изменятся."
+                : "Привязка пока недоступна. Данные не отправляются и будут удалены при закрытии формы.")}
           </Typography>
+          {error ? (
+            <Typography role="alert" className={classes.memberEmailNotice}>
+              {error}
+            </Typography>
+          ) : null}
+          {result ? (
+            <Typography className={classes.memberEmailNotice}>
+              Закрытие формы не отменяет заявку. На этом устройстве сохранён
+              только ключ проверки; почта не сохраняется. После перезагрузки
+              используйте «Восстановить заявку».
+            </Typography>
+          ) : null}
+          {needsOriginalEmail ? (
+            <Typography className={classes.memberEmailNotice}>
+              Для повтора введите ту же почту, что в исходной заявке. Если не
+              помните адрес, не повторяйте отправку — сначала проверьте заявку.
+              Ключ останется прежним; это не новая заявка.
+            </Typography>
+          ) : null}
           <div className={`ui-stack ${classes.postItemActions}`}>
-            <Action
-              type="submit"
-              disabled
-              className={`${classes.action} ${classes.opacityState}`}
-            >
-              <Typography className={classes.grantBtnText}>
-                Привязать
-              </Typography>
-            </Action>
+            {!result && memberEmailBindingEnabled ? (
+              <Action
+                type="button"
+                disabled={disabled}
+                onClick={() => void onInspect(memberId)}
+                className={classes.action}
+              >
+                <Typography className={classes.grantBtnText}>
+                  Восстановить заявку
+                </Typography>
+              </Action>
+            ) : null}
+            {result ? (
+              <>
+                {needsOriginalEmail ? (
+                  <Action
+                    type="submit"
+                    disabled={disabled}
+                    className={classes.action}
+                  >
+                    <Typography className={classes.grantBtnText}>
+                      Повторить с исходной почтой
+                    </Typography>
+                  </Action>
+                ) : null}
+                <Action
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => void onInspect(memberId)}
+                  className={classes.action}
+                >
+                  <Typography className={classes.grantBtnText}>
+                    Проверить заявку
+                  </Typography>
+                </Action>
+                {result.phase === "unknown" && result.email ? (
+                  <Action
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => void onSend(memberId, result.email)}
+                    className={classes.action}
+                  >
+                    <Typography className={classes.grantBtnText}>
+                      Повторить эту заявку
+                    </Typography>
+                  </Action>
+                ) : null}
+                {result.state === "expired" || result.state === "cancelled" ? (
+                  <Action
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => {
+                      setEmail("");
+                      setInvalid(false);
+                      void onNewDraft(memberId);
+                    }}
+                    className={classes.action}
+                  >
+                    <Typography className={classes.grantBtnText}>
+                      Подготовить новую заявку
+                    </Typography>
+                  </Action>
+                ) : null}
+              </>
+            ) : (
+              <Action
+                type="submit"
+                disabled={disabled || !memberEmailBindingEnabled}
+                className={`${classes.action} ${!memberEmailBindingEnabled ? classes.opacityState : ""}`}
+              >
+                <Typography className={classes.grantBtnText}>
+                  {memberEmailBindingEnabled
+                    ? "Отправить подтверждение"
+                    : "Привязать"}
+                </Typography>
+              </Action>
+            )}
             <Action type="button" onClick={close} className={classes.action}>
-              <Typography className={classes.grantBtnText}>Отмена</Typography>
+              <Typography className={classes.grantBtnText}>
+                {result ? "Закрыть" : "Отмена"}
+              </Typography>
             </Action>
           </div>
         </form>

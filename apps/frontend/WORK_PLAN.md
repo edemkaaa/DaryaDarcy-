@@ -229,6 +229,111 @@ tests/frontend-club-checkout-mode.native.test.mjs` (одна команда в �
 
 ## Инструменты менеджера: первая привязка почты
 
+**Обновление 10 октября, A6c2:** backend GET теперь направляет на public
+frontend страницу без записи/сессии/письма. 4 native RED → 19 HTTP/SQL GREEN;
+13 browser/API/SQL/loopback SMTP pass используют настоящий URL письма без смены
+пути; browser fragment сохраняется при redirect и очищается страницей.
+Cross-site webmail document 403 остаётся отдельным gate; CORS/защита не изменены.
+Дизайн фронтендера сохранён, сервер/рабочая БД не обновлялись.
+
+**Обновление 10 октября, A6c1:** production UI/native API/SQL → настоящий
+loopback SMTP → proof из MIME → direct recipient page → явный POST проверен;
+13 native cases pass, без изменения пароля/сессий/оплаченного срока/cookie.
+Один кейс диагностический: настоящий URL письма даёт 404, cross-site document
+403. В recipient тесте путь явно переведён на frontend; это не полная email-entry
+приёмка. A6/Checkpoint A/A7 открыты, production routing и CORS не менялись.
+
+**Обновление 10 октября, A6b2:** native production UI/Nest/SQL выявил remount при
+загрузке identity и повтор письма без remount. Public proof страница отделена от
+session providers; остальные identity fences сохранены. Hashchange захватывает
+новый fragment без POST и отменяет прежний task. 3 native RED → 10 pass/1 reopen
+RED → **11 native GREEN**, **43 proof/login/session browser regressions**; типы/
+lint/active build. Identity/пароль/paid expiry/browser cookie сохранены; 320px
+active экран без overflow. SMTP/GET routing/A7 открыты, сервер не изменён.
+
+**Обновление 10 октября, A6b1:** default-off `/email-binding` использует стиль
+входа, memory-only proof и явный single-flight POST. После успешного receipt —
+обычный вход; при неопределённом ответе нет утверждения об успехе/отсутствии записи
+и автоматического повтора. 2 RED → 6 active + 1 disabled browser GREEN (mock API),
+обе сборки/типы/lint/boundaries, 30 proof tests; 320px disabled экран без overflow.
+Письмо пока ведёт на другой, незарегистрированный backend GET: A6/native SQL/SMTP
+и routing/navigation policy остаются открыты. CORS/роли/сервер не менялись.
+
+**Обновление 10 октября, A6a:** strict proof client принимает только точный
+HTTP 200 `{ok:true}`, отправляет proof без cookie/referrer/account ID/redirect
+и автоматических повторов. Fragment capture сначала очищает history, хранит
+proof только в памяти и не делает запрос при открытии. 2 focused RED → 30 GREEN
+(включая настоящий loopback HTTP); 679 related unit, типы/lint/default build.
+Страница ещё не подключена: далее A6b и read-only GET routing через backend,
+поскольку deployment `/api/**` не обслуживается Next. A6/SMTP/rollout открыты,
+дизайн и рабочий сервер этим срезом не менялись.
+
+**Обновление 10 октября, A5c3a/b:** UI/request/recovery проверен локально через
+production build, настоящие cookie/Nest/одноразовый MySQL: **8 browser cases**.
+Создание/reload, потеря ответа/replay, expiry/fresh draft, обновление canonical
+списка после proof POST, request/status после отзыва admin до user/moderator.
+Ни пароль/sessionVersion, ни существующий оплаченный срок не меняются; отказ
+ролей не пишет intent/audit. API response не подменён, используется browser
+transport proxy. SMTP и confirmation страница не проверены этим набором;
+**далее A6**, затем общий checkpoint и A7 rollout. Дизайн и производственные
+роли не изменялись. Default-off build восстановлен, внешние письма не отправлялись.
+
+**Обновление 10 октября, A5c2c:** unknown после reload допускает явный ввод
+только исходной почты и повтор с тем же durable key. Адрес не сохраняется;
+черновик привязан к intent, поэтому адрес из другой вкладки не подставляется
+как исходный. 409 описан как конфликт и не сбрасывает ключ. Если адрес забыт,
+нужен разбор, а не угадывание. 2 RED + review RED → 24 active browser pass,
+649 unit, типы/lint/build/boundaries; recovery 320px просмотрен, overflow нет.
+Это mock HTTP + native IndexedDB; далее A5c3 native API/SQL и A6/checkpoint.
+Дизайн, роли, worker и внешний rollout не менялись.
+
+**Обновление 10 октября, A5c2b:** после GET expired/cancelled доступна явная
+подготовка новой заявки: повторный GET → CAS старого локального ключа → пустой
+черновик. Письмо автоматически не отправляется; ошибка, pending и изменившийся
+ключ не сбрасывают заявку. 3 RED → 21 active browser pass, 649 unit;
+настоящий IndexedDB с mock HTTP не закрывает native API/SQL acceptance.
+Далее A5c2c: unknown без исходного email и точная обработка HTTP refusal.
+Дизайн сохранён, 320px просмотрен; внешний rollout/доставка не включались.
+
+**Обновление 10 октября, A5c2a:** journal подключён под прежним default-off флагом.
+«Восстановить заявку» проверяет сохранённый ключ после reload без email в storage;
+другая вкладка проверяет уже зарезервированную заявку вместо нового POST.
+Отказ storage блокирует отправку; unknown/404 не сбрасывает ключ. 3 RED →
+16 active + 10 disabled browser pass (настоящий IndexedDB, mock HTTP),
+649 unit, типы/lint/две сборки/boundaries проходят. Оформление сохранено.
+Остаток A5c2b: terminal/refusal, unknown без исходного email и native API/SQL.
+Ни сервер, ни роли, ни доставка писем не менялись; rollout пока запрещён.
+
+**Обновление 10 октября, A5c1:** подготовлен отдельный key-only IndexedDB journal
+для восстановления intent, без email/proof/ответов. Атомарная резервация между
+вкладками и compare-and-delete, owner/abort/storage guards проверены в настоящем
+браузерном IndexedDB: 6 RED → 9 GREEN. Типы/lint/build/boundaries проходят.
+Это ещё не UI recovery: journal пока не подключён, форма остаётся memory-only.
+Далее A5c2 — hook/reload/terminal-refusal и native API/SQL acceptance; дизайн,
+серверные флаги, worker и внешний rollout не менялись.
+
+**Обновление 10 октября, A5b:** форма подключена локально, но по умолчанию
+по-прежнему выключена. Только opt-in сборка `NEXT_PUBLIC_MEMBER_EMAIL_BINDING_ENABLED=true`
+даёт отправку/проверку: один ключ на intent, без автоматического повтора, разные
+сообщения для receipt/очереди/SMTP/подтверждения. Карточка обновляется из canonical
+списка, email не подставляется оптимистично. Поздний ответ прежней сессии скрыт.
+11 активных, 10 default-disabled и 23 соседних admin/access-email проходят с mock API;
+649 unit, типы/lint и обе production-сборки проходят. Скриншоты 320/1440 просмотрены.
+Остаток A5c: reload/две вкладки, безопасная новая заявка после terminal/refusal,
+настоящий API/SQL. Сейчас ключ и email только в памяти экрана; предупреждение
+об этом не заменяет recovery. До A5c/A6/A7 rollout запрещён, worker не включён.
+
+**Обновление 10 октября, A5a:** требования и backend A1–A4 теперь определены в
+[SPEC](../../SPEC-email-binding.md); старые пункты «не найден/не согласован» ниже
+сохранены как история подготовки. Добавлен строгий клиент request/status для
+существующей формы: исходный ID/requestKey, все поля/даты, безопасные ошибки,
+общая отмена при смене сессии и отсутствие автоматических повторов. 60 client
+проверок (включая настоящий loopback HTTP с fixture ответа), 649 связанных
+регрессий, типы/lint/production build проходят. Это ещё не browser → SQL → письмо.
+Форма не подключена и остаётся недоступной; следующий A5b — UI-состояния,
+восстановление неизвестного результата и canonical refresh. Внешний rollout
+закрыт до A6/A7; оформление и права фронтендера не менялись.
+
 **Этап:** требования сверены, интерфейс подготовлен; серверная запись ожидает бэкенд.
 
 **Назначение:** по договору (приложение № 1, пункт 2.1) и маршруту запуска участница со старым телефонным аккаунтом обращается в поддержку; менеджер сверяет оплату в Prodamus и привязывает почту к существующему аккаунту. В объёме только первая привязка аккаунту без email. Замена уже указанного адреса не входит.

@@ -1,5 +1,2938 @@
 # Implementation Plan: Daryadarcy Modular Monorepo
 
+## Актуальный план завершения первого этапа — 10 октября 2026
+
+Это рабочий приоритет поверх исторического журнала ниже. Основание:
+[разбор приложения № 1, пп. 2.1 и 4.1–4.16](../docs/audits/frontend-stage-one-scope-2026-10-03.md),
+[план фронтендера](../apps/frontend/WORK_PLAN.md),
+[аудит админки](../docs/audits/admin-completion-2026-10-10.md),
+[согласованная привязка почты](../SPEC-email-binding.md) и текущий код.
+Исходный PDF договора сейчас не найден: это сверка сохранённого разбора с кодом,
+а не повторная экспертиза оригинала. Старые записи «не выложено» и «Docker не
+работает» не описывают нынешнее состояние. Свежий fetch: staging = origin/staging
+на 2210be5, dev code = 2e3339c; 2949 SQL/unit pass, 30 внешних skips. Последнее
+обновление и ограничения описаны в [runbook](../docs/operations/teamassist-staging.md).
+
+Пользователь поручил составить план, затем выполнять его самостоятельно, пока
+он спит. Разработка идёт небольшими проверенными коммитами, с сохранением дизайна
+фронтендера. При внешней зависимости берём независимый пункт. Готовность функции
+означает полный пользовательский сценарий, включая API/SQL и необходимые внешние
+проверки; наличие кнопки или зелёный mock-тест само по себе её не закрывает.
+
+### Сверка ТЗ и фактического состояния
+
+| Пункт ТЗ | Что уже есть | Остаток / этап ниже |
+| --- | --- | --- |
+| 2.1, админка/участницы | Списки, оплаты, выдача доступа, блокировка, повтор письма; заявка и подтверждение почты внутри backend | A1–A7: доставка/очистка/HTTP/форма; новая привязка пока недоступна |
+| 4.1–4.2, оплата → письмо → вход | Отдельный Prodamus TEST, подпись, транзакции, защита повторов, диалог результата, setup/reset | P1–P2: свежая сквозная проверка и точный результат обычного checkout; ошибки СБП/GPB не подтверждены как устранённые |
+| 4.3, продление/отмена | Backend и UI продления/отмены; TEST даёт разовые 30 дней | P3: согласованность конкретной операции после потери ответа и настоящая provider-приёмка автопродления |
+| 4.4, блокировка | Проверки ролей/блокировки, отзыв сессий, интерфейс ошибок | C1: полный браузер → настоящее API → SQL для admin/moderator/member |
+| 4.5, закрытый контент | Серверные проверки постов/статей, гостевые состояния | M1–M2: проверить прямые файлы; storage.ts сейчас использует public-read |
+| 4.6, редакторы | Форматирование, вложения, preview, черновики, ключ create, атомарная запись | C2: три оставшихся real-API browser кейса, настоящие медиа и устройства |
+| 4.7, фото | Общая карусель, точки, восстановление выбора | C3/Q2: реальные материалы, поворот и телефон |
+| 4.8, комментарии | Фото, жалобы, модерация, ограничения и очистка метаданных | C3: совместная SQL/storage-проверка и повтор после потери ответа |
+| 4.9, лайки/сохранения | Подтверждённые счётчики, категории, защита гонок и смешения аккаунтов | C3: сохранность после выхода/входа и повторного открытия |
+| 4.10, сезоны | Четыре сезона, Москва, revision/CAS, форма администратора | S1: реальные настройки, граничные даты и изображения заказчика |
+| 4.11, VK | HTML video/YouTube и отдельный публичный video service | V1–V2: VK-формат данных, единый embed, реальные ссылки и public/club; отдельного VK renderer в текущем коде нет |
+| 4.12, магазин | Обе цифровые карточки готовят mailto менеджеру, книги ведут наружу, заголовок исправлен | S2: проверить реальные контакты/телефоны; серверная форма заявки — вариант на решение, не молчаливый новый объём |
+| 4.13–4.14 | Мудборды профиля выключены флагом, «Почтовое отделение — скоро», закрытые серверные возможности | C3: сохранить эти ограничения при финальной регрессии |
+| 4.15–4.16 | Оптимизированные изображения/списки, браузерные проверки, PWA-инструкция | Q1–Q3: зависимости, нагрузка по измеримому сценарию, физические устройства и пилот |
+| 2.1, остальные разделы | Главная, Лента/поиск, Библиотека, тест/результат, профиль/поддержка | C3: контроль всей навигации и сохранённых данных с настоящим API |
+
+### 1. Завершить первую привязку почты (A)
+
+**C3av, native late profile-name reply after account switch — 12 октября МСК:**
+Продолжение C3au без production/UI изменений: настоящее profile.update HTTP200
+с success:true и SQL commit имени участницы удержано Promise-barrier в return
+transport. До release в том же открытом документе synthetic cookie заменена на
+существующего admin; native auth/me200 подтверждает Browser administrator,
+прежний editor исчезает. Original native response затем fulfill без catch/ignore:
+профиль остаётся admin, late member name отсутствует, owner-scoped name cache
+пуст, ровно один POST, committed member name сохранено, admin name/identity/access
+SQL неизменны. Это один ordering с online event, не реальный password login/logout
+и не утверждение об остальных session races. Regression сохраняется в helper398.
+Первый и diagnostic run упали не на ownership assertions, а на fixture fulfill
+/api/trpc/feed.savedPosts,club.subscription: дополнительный page.reload отменял
+новые background reads. Diagnostic catch только логировал pathname и rethrow;
+полностью удалён. Убран лишний reload из нового late-reply case, не подавлены
+исключения и не изменён общий proxy/teardown. Его произвольный reload посреди
+forwarding не объявлен проверенным; C3au обычный save/reload остаётся отдельным.
+Focused 1 pass / 84 skips (85), exit0 (2.66 s); integrated profile **4 pass /
+81 filtered skips (85), exit0, 5.43 s**; stability rerun после fixture race
+**1 pass / 84 skips, exit0, 2.98 s**, без unhandled errors. Types/format/607
+boundaries/diff/docs pass. Прежние default suite/build не повторены: нет
+production/dependency изменений. Skills incremental/TDD/security/review применены
+к native isolation; дополнительный definition-of-done reference отсутствует,
+вместо него действуют проверенные gates актуального плана, без stage-one claim.
+Own labelled loopback/tmpfs backend_test и Next остановлены после ownership
+check; synthetic data невосстановимо удалены, working data/secrets/providers
+не тронуты. Legacy cache reconciliation, password-login и external/A7/Q1 gates open.
+
+**C3au, profile-name confirmation and manual recovery — 12 октября МСК:**
+Native browser RED: при потере POST до исполнения SQL оставался Browser phone
+member, но UI показывал новое имя как сохранённое; код заранее записывал его
+в localStorage (1 failed /
+1 passed / 81 filtered skips, exit1, 8.51 s). Удалены два одинаковых optimistic
+обработчика Enter/blur; небольшой ProfileNameEditor принадлежит profile feature.
+Настоящий profile.update success:true предшествует публикации имени и owner-scoped
+cache. Canonical useSessionOperation даёт синхронный lock, cancellation signal и
+проверку текущего владельца; blur не повторяет неудавшуюся запись. При потере
+ответа ввод остаётся, явное уведомление не утверждает, что SQL не записался;
+ручной повтор присваивания имени идемпотентен. API/auth/SQL schema не изменены.
+Три native Next → Nest → MySQL случая: обычное подтверждение; потеря запроса до
+SQL; потеря HTTP200 после настоящего SQL commit. Две ошибки не публикуют имя и
+не записывают provisional cache; manual retry + reload восстанавливают имя,
+один initial POST/один разрешённый повтор, identity/access SQL неизменны.
+Confirmed case переключает synthetic authenticated member → admin → member в
+одном browser context с reload: чужое имя не появляется, дополнительных writes
+нет. Это не проверка реального password login/logout или late-reply owner race.
+Fresh final focused **3 pass / 81 filtered skips (84), exit0, 4.12 s**.
+Default suite **2264 pass / 1099 opt-in skips (3368), 173 files pass / 57 skipped,
+exit0, 25.19 s**. Configured webpack production build/types/ESLint/format/607
+boundaries/diff pass. Impeccable launcher permission denied: прочитаны incumbent
+code/context и harden/craft-floor; normal design сохранён, error использует прежние
+body/цвет/button tokens. Один batched mobile390/desktop1280 review + confirmation.
+Diagnostic all-84 browser run остановлен без final summary: A email cases требуют
+NEXT_PUBLIC_MEMBER_EMAIL_BINDING_ENABLED=true, а этот build default-off; весь
+набор НЕ объявлен зелёным. Случайный default Turbopack probe и node-e worker launch
+не прошли; configured --webpack с очищенным execArgv и empty env cache прошёл.
+Секреты/.env, рабочая БД, внешние платежи/письма, зависимости и rollout не тронуты.
+Own labelled loopback/tmpfs backend_test и Next завершены после ownership check;
+удалена только невосстановимая synthetic fixture. Legacy cache reconciliation,
+native late-response account switch и остальные external/A7/Q1 gates остаются.
+
+**Q1y, correct the offline JSON-export assumption — 12 октября МСК:**
+При переходе от S1 к независимому Q1w остаток «JSON export» проверен на
+установленной CLI, а не реализован по предположению. Два native child
+запуска над tests/fixtures/drizzle-export: export без --sql и с --sql=false
+оба выдают прежний synthetic CREATE TABLE, exit0, без stderr/JSON.
+Minimal env с nonexistent DOTENV_CONFIG_PATH и ESBK_DISABLE_CACHE, connect
+guard запрещает сетевые соединения; SQL только stdout, никогда не исполняется.
+Installed bin.cjs exportRaw объявляет только sql/config/dialect/schema и
+desc «formats: sql»; prepareAndExportMysql безусловно печатает sqlStatements,
+config.sql не выбирает JSON-ветку. Это ограничение installed tooling и
+ошибочное ожидание следующего среза, не production-дефект приложения.
+Сравнение candidate compiler в JSON-режиме НЕ выполнено: этого CLI режима нет.
+Для JSON нужен отдельный проверенный public serializer/API path, если такой
+формат действительно требуется; не придумывать flag, mock или новую миграцию.
+Q1u/v/w evidence и Q1x upstream-chain blocker остаются прежними: stable bump
+сам по себе не снимает legacy esbuild finding. Никаких dependency/lock/code
+изменений, секретов, working DB/container/server/external calls. Fixture
+inventory по-прежнему два tracked TS файла, git clean до journal edit.
+54-document link check и whitespace проходят. Docs-only correction;
+unchanged tests/types/build/native browser не повторены.
+Продолжать независимый согласованный пункт, не циклические compiler probes;
+Q1/A7/provider/customer media/device acceptance не закрыта.
+
+**S1f, unsafe image URL client refusal — 12 октября МСК:**
+Три browser сценария в настоящем native fixture: HTTP URL, javascript URL,
+HTTPS со synthetic credentials. Форма показывает scoped validation error,
+сохраняет ввод, success notice нет. Request observer подтверждает ноль PUT;
+native SQL singleton/audit не меняются. Реальный initial admin GET/сессия,
+никаких mock API или внешних запросов. Это client UX guard, НЕ замена серверной
+валидации (ранее проверенной launch-settings MySQL suite), не SSRF-аудит всех
+изображений. Break: отправить invalid URL, потерять draft или показать success.
+Focused **3 pass / 78 filtered skips, exit0 (3.75 s)**; совместный S1
+**22 pass / 59 filtered skips (81), exit0 (10.27 s)**. Root types, targeted
+format, 606 boundaries, 54-document links и whitespace проходят. Review: literal unsafe fixtures,
+real UI/SQL + observable absence of write, no mocks/production changes/new
+dependencies, helper 907 lines; дальнейший рост требует разделения по concerns.
+Нового production-дефекта/RED/fix не найдено. По S1a–f подтверждены local
+admin save/reload/CAS, оба unknown outcomes, inspection/manual retry, четыре
+Moscow boundary reads, lifecycle refresh, decoded local fallback, revoked
+session и late-success ordering. Это не полная S1 приёмка: остаются customer
+dates/media и физические устройства/sleep, target rollout/A7/Q1/provider gates.
+Own MySQL 1851481a6b4b exact ID/label season-s1f-20261012/tmpfs/no mounts/
+127.0.0.1 проверен перед stop/--rm; после stop label inventory пуст. Удалены
+только невосстановимые synthetic fixture данные; Next остановлен. Working DB/design/roles/
+subscriptions/CORS/trust/quotas/сервер/mail/provider не менялись; неизменившиеся
+broad default/build/SQL проверки не повторены.
+
+**S1e, late native success after session revocation — 12 октября МСК:**
+Сезонный PUT действительно проходит Nest/SQL и возвращает 200/revision32,
+03-21 и сохранённый managerEmail. Browser transport удерживает этот настоящий
+response после commit, затем synthetic admin sessionVersion 0→1; online event
+вызывает настоящий auth/me 200/user:null. Форма исчезает, URL /login ДО release.
+После release оригинальный route.fulfill завершён без подавления ошибок,
+форма остаётся закрытой, success notice отсутствует, PUT ровно один,
+committed SQL snapshot неизменён и audit ровно один. Роль admin и blockedAt
+не менялись; сохранение до revocation законно и не откатывается.
+Promise barrier гарантирует порядок, finally освобождает held callback и ждёт
+его завершения; никаких sleeps/mock response/ignoreErrors/private API.
+Focused **1 pass / 77 filtered skips, exit0 (3.34 s)**; совместный S1
+**19 pass / 59 filtered skips (78), exit0 (9.15 s)**. Root types, targeted
+format, 606 boundaries, 54-document links и whitespace проходят. Review: observable native
+commit → auth revocation → private UI closure → late response, bounded
+barriers/cleanup, test-only change; production-дефекта/RED/fix не найдено.
+S1d late-success coverage gap теперь закрыт для этого synthetic native ordering,
+не для всех возможных network/device timings. Customer dates/media, physical
+sleep/device/A7/Q1/provider gates остаются открыты. Own MySQL 0fb0fc280d30
+exact ID/label season-s1e-20261012/tmpfs/no mounts/127.0.0.1 проверен перед
+stop/--rm; label inventory затем пуст. Удалены только невосстановимые synthetic
+fixture данные; Next остановлен. Working DB/design/roles/subscriptions/CORS/trust/
+quotas/сервер/mail/provider не менялись, unchanged broad checks не повторены.
+
+**S1d, revoked native season-admin session — 12 октября МСК:**
+Два реальных Chromium/API/SQL сценария: после открытия формы invalidated
+sessionVersion только synthetic admin account 0→1, роль admin/blockedAt не
+меняются. Actual Save PUT и Inspect GET получают native 401/no-store,
+private form исчезает, URL /login, success notice отсутствует. Config revision
+31 и audit остаются неизменны; read/write не меняют role/version/block state.
+Без mock API/auth responses и без изменения production auth logic.
+Focused **2 pass / 75 filtered skips, exit 0 (3.53 s)**; совместный S1
+**18 pass / 59 filtered skips (77), exit 0 (8.84 s)**. Root types, targeted
+format, 606 boundaries, 54-document links и whitespace проходят. Security threat boundary —
+прежний JWT после server revocation; test catches skipped current-version
+check, unauthorized write или private UI retained after 401. Review confirms
+qualified synthetic mutation/cleanup, test-only scope/no new dependencies.
+Production-дефекта/RED/fix в этих сценариях нет. Late successful response
+после revocation остаётся только прежней mock browser проверкой, не native
+race acceptance; physical sleep/device/customer media/A7/Q1/provider gates открыты.
+Own MySQL 4bae28a9d7a7 exact ID/label season-s1d-20261012/tmpfs/no mounts/
+127.0.0.1 проверен перед stop/--rm; затем label inventory пуст, удалены только
+невосстановимые synthetic fixture данные. Next остановлен. Рабочие данные/роли/
+согласованные подписки/CORS/proxy/квоты/сервер/mail/provider не затронуты.
+
+**S1c, uncommitted save and failed inspection — 12 октября МСК:**
+Native season admin browser теперь проверяет потерю первого PUT ДО forwarding
+и первого GET inspection: только transport abort, без mock API response.
+SQL остаётся revision 31, audit пуст; черновик 03-21 сохранён, Save блокирован.
+Следующий явный GET получает реальные неизменившиеся настройки HTTP/SQL,
+сохраняет черновик и разрешает только отдельный ручной Save. До этого второго
+PUT нет; последующий настоящий PUT 200 сохраняет revision 32/updatedBy/config
+с ровно одним audit. Test catches unsafe auto-retry, потерю черновика или
+разблокировку до подтверждённого inspection. Production-код не менялся,
+нового дефекта/production RED/fix в этом сценарии нет.
+Focused **1 pass / 74 filtered skips, exit 0 (3.20 s)**; совместный S1
+**16 pass / 59 filtered skips (75), exit 0 (7.63 s)**. Root types, targeted
+format, 606 boundaries, 54-document links и whitespace проходят; five-axis review: scoped
+transport faults, native literal snapshot/CAS/audit assertions, qualified
+singleton cleanup, без новых abstractions/dependencies или внешнего трафика.
+Own MySQL 13c5029ba833 проверен exact ID/label season-s1c-20261012/tmpfs/no
+mounts/127.0.0.1 перед stop/--rm; label inventory затем пуст. Удалены только
+невосстановимые synthetic fixture данные; Next остановлен. Working DB, дизайн, роли,
+подписки, сервер, платежи и внешняя почта не затронуты. Не повторены успешные
+неизменившиеся default/build/SQL S1a проверки. Customer media/dates, physical
+sleep/device/A7/Q1/provider acceptance остаются открыты.
+
+**S1b, native seasonal image fallback — 12 октября МСК:**
+После 94f4d1a добавлены три native subscribed browser сценария: spring с
+отсутствующими URL использует winter assets; summer с недоступными synthetic
+background/banner URL использует winter assets; autumn без URL использует
+свои штатные assets. Launch-config действительно читается HTTP/SQL (200,
+revision 31 и выбранный сезон), без mock API/media bytes. Существующий guard
+останавливает synthetic example.test запросы до выхода наружу; обе ошибки
+загрузки наблюдаются. Local Next отдаёт настоящие WebP: src fallback,
+complete/naturalWidth/naturalHeight и положительные размеры banner проверены
+в Chromium. Чтение/рендер не меняет SQL config/access; доступ — исключительно
+локальная synthetic строка, без provider checkout/payment. Cleanup ограничен
+own singleton manager/revision и own user/orderId. Реалистичные breaks:
+не выбрать fallback после image error или отдать недекодируемый local asset.
+
+Focused **3 pass / 71 filtered skips, exit 0 (4.35 s)**; после добавления
+совместный S1 **15 pass / 59 filtered skips (74), exit 0 (6.46 s)**.
+Root types, targeted format, 606 boundaries, 54-document links и whitespace
+проходят; ревью
+подтверждает test-only scope, literal независимые ожидаемые asset paths,
+реальные decoded bytes и закрытый внешний трафик. Production-дефекта не
+обнаружено: нет production RED/fix, изменения дизайна или согласованных правил.
+Не повторены неизменившиеся широкие SQL/default/build проверки S1a/41d224d.
+Own MySQL a7e7c8b2d72a exact ID/label season-s1b-20261012/tmpfs/no mounts/
+127.0.0.1 проверен перед stop; --rm удалил только одноразовые synthetic данные,
+невосстановимые по замыслу fixture; последующий label inventory пуст.
+Next остановлен. Customer dates/media, physical sleep/device, A7/Q1/provider
+приёмка остаются открыты; эти три сценария их не заменяют.
+
+**S1a, native season administration and Moscow boundaries — 12 октября МСК:**
+По прямому поручению проверить управление сезонами добавлены opt-in сценарии
+в tests/helpers/season-admin-browser-cases.ts и существующий native fixture.
+Настоящие Chromium → HTTP → Nest → одноразовый MySQL: invalid 02-29 и
+повторяющаяся дата не меняют singleton; fixed/calendar, выбранный сезон,
+дата/фон/баннер сохраняются, revision 31→32 и audit автора подтверждены SQL,
+reload восстанавливает поля. Существующий managerEmail не теряется, платежей нет.
+Потеря реального PUT-ответа ПОСЛЕ commit оставляет честное unknown состояние;
+явный GET подтверждает запись без второго PUT/audit. Две открытые админки:
+проигравший PUT получает 409, черновик сохраняется; отмена загрузки не стирает
+его, подтверждённая загрузка принимает winning revision без новой записи.
+
+Восемь настоящих public launch-config HTTP/SQL reads проверяют миллисекунду
+до/после четырёх московских полуночей на synthetic annual dates 03-01/06-01/
+09-01/12-01. Контролируется только Date процесса API; HTTP/SQL timers реальные,
+clock восстанавливается finally; cache-control no-store, config неизменна.
+Отдельный subscribed browser pageshow читает изменённую SQL revision и переводит
+Клуб winter→summer без reload; native response, UI season и неизменный access
+проверены. Это synthetic lifecycle event, НЕ сон физического устройства.
+Access — локальная synthetic строка, НЕ checkout/payment/provider тест.
+Новые URL — только значения формы example.test, НЕ материалы заказчика.
+
+Итог: **12 focused pass / 59 filtered skips (71), exit 0 (6.16 s)**;
+launch-settings MySQL + frontend-seasons: **62 pass, exit 0 (1.52 s)**.
+Root types, targeted TS format, 606-file boundaries, 54-document links и
+whitespace проходят.
+Review: literal response/SQL expectations, CAS/audit/no duplicate write,
+qualified singleton/access cleanup, внешний трафик закрыт исходным fixture.
+Новых production-дефектов в этих сценариях не найдено: это расширение
+проверок, без production RED/fix, изменения дизайна/контракта/ролей/подписок.
+Не повторена неизменившаяся полная регрессия 41d224d; production build не менялся.
+Own container 3bd50bb4994a проверен exact ID/label season-s1-20261012/tmpfs/
+no mounts/127.0.0.1 перед остановкой; --rm удалил только synthetic DB,
+последующий label inventory пуст. Эти одноразовые данные невосстановимы.
+Next остановлен; working DB/сервер/секреты/mail/provider не затронуты.
+S1 остаётся открытым для согласованных customer dates/media, изображения/
+fallback и физического sleep/device acceptance; A7/Q1/provider gates прежние.
+
+**S2d, reproduce and fix native proxy teardown race — 11 октября МСК:**
+По прямому поручению «Исследуй и все исправляй» продолжена S2c диагностика.
+Первый C1 trace-run снова дал **9 case pass / 50 filtered skips, 1 unhandled
+rejection, exit 1 (7.30 s)**. Trace конкретного GET moderation.listCommentReports,
+club.subscription: handler enter → fetch returned → fulfill error; клиентский
+`_reportHandled` ни разу не вызван. Ошибка приходит с server-side Route,
+а не из повторного завершения нашим callback. Installed Playwright source:
+unrouteAll(wait) сразу очищает client routes, затем ждёт callbacks; завершение
+первого callback запускает internal interception-pattern update, снимающий
+server handler и продолжающий другой ещё активный browser request. Медленный
+route.fetch возвращается после этого и fulfill попадает в уже handled Route.
+Предыдущие probes с единственным held request не охватывали эту пару.
+
+Новый tests/route-drain.browser.test.ts воспроизводит race на настоящих двух
+HTTP requests/Chromium, собственном ephemeral loopback server и явных promise
+barriers, без Next/SQL/mocks/sleeps. Первый вариант diagnostic catch без rethrow
+завис на handling promise (15 s); corrected callback rethrows, и точный RED:
+errors содержит «Route is already handled!», **1 failed + 1 unhandled, exit 1**
+(1.01 s). Test utility tests/helpers/route-drain.ts сохраняет active handler
+promises и ждёт их ДО unrouteAll, пока interception ещё зарегистрирован.
+Ошибки не подавляются; оригинальный bridge fetch/fulfill и запрет внешнего
+трафика не менялись. Native suite использует tracker только для context proxy;
+page cleanup сохраняет прежний wait. Production/dependencies/design не менялись.
+GREEN characterization 1 pass; после усиления literal response assertions
+mutation удаления drain снова даёт тот же **1 failure + 1 unhandled, exit 1**
+(0.66 s). Drain восстановлен: **1 pass / exit 0 (1.16 s)**.
+
+Integrated C1/C2/C3/S2 + characterization: **46 pass / 14 binding filtered
+skips (60), 2 files, exit 0 (55.53 s)**. Пять последовательных bounded C1
+stability runs: каждый **9 pass / 50 skips / exit 0**, loop exit 0; не retry,
+первый failure остановил бы loop. Default regression: **2264 pass / 1074
+opt-in skips (3343), 173 files pass / 57 skipped, exit 0 (24.10 s)**.
+Default skips не native/provider-приёмка. Root types, targeted TS formatting,
+606-file boundaries и whitespace проходят. Production builds не повторялись:
+изменены только test utility/fixture/characterization, API/ролей/квот нетронуты.
+Five-axis review: воспроизводимый контрпример с two-flight ordering; короткий
+test-only tracker без private API/новых зависимостей; bounded two-request
+fixture, literal bodies/zero unintended fallback; ошибки остаются видимыми.
+Temporary private lifecycle tracing полностью снята.
+
+Own MySQL 117ddc0f054d проверен exact ID/label route-c1-20261011/tmpfs/no mounts/
+127.0.0.1 перед use и stop, удалён --rm; label inventory пуст. Next остановлен,
+characterization servers/browser закрыты. Удалена только невосстановимая
+одноразовая synthetic DB, рабочие данные не затронуты. Push/deploy/payments/
+внешние письма/секреты отсутствуют. S2c lifecycle blocker устранён для этого
+подтверждённого сценария; полная feature/device/provider/A7/Q1 приёмка не
+заявляется. Следующий независимый срез: S1 native season-admin browser.
+
+**S2c, integrated native regression exposes unresolved route lifecycle error — 11 октября МСК:**
+После S2b и guest-feed recovery выполнена их совместная native C1/C2/C3/S2
+проверка на HEAD f37a8b0: **45 cases pass / 14 binding filtered skips (59),
+но 1 unhandled rejection и exit 1 (54.81 s)**. Это НЕ зелёная приёмка.
+`route.fulfill: Route is already handled!` повторилась в context API bridge
+tests/member-email-binding-browser.mysql.test.ts:157; Vitest связал последнее
+активное имя с C1 moderator dismiss report. Это атрибуция runner, не доказанная
+причина конкретного сценария. Исторический C1 race снова подтверждён, но
+производственный дефект или исправление из этого не выводятся.
+По systematic-debugging выполнен один bounded diagnostic repeat той же группы:
+временный per-route in-memory trace фиксировал enter, fetch-return и исходные
+`_reportHandled` вызовы со stack; method/path без query/body/credentials,
+вывод только при fulfill failure, исходный метод сохранялся, ошибка
+перевыбрасывалась. **45 pass / 14 filtered skips, exit 0 (54.46 s)**;
+ошибка не повторилась, failure trace отсутствует. Этот повтор не отменяет
+первый exit 1 и не устанавливает root cause. Instrumentation полностью снята,
+diff test suite пуст, production/dependencies/design не менялись.
+Следующий диагностический срез — ограниченная повторяемая C1 lifecycle
+трассировка с явной принадлежностью route/test; не suppress/ignoreErrors и не
+спекулятивная замена teardown. Независимый S1 native season-admin browser
+остаётся возможен; реальные настройки/материалы/устройства — отдельный gate.
+Настоящие Nest/SQL/Chromium и существующая default-off Next сборка были только
+loopback; dotenv/секреты не читались, workers/provider/mail не запускались.
+Own container 1fd6aece0369 проверен перед use/stop по exact ID, owner
+`s2c-20261011`, tmpfs/no mounts/127.0.0.1; остановлен --rm, label inventory
+пуст. Next остановлен. Удалена только одноразовая synthetic DB (невосстановима),
+рабочие данные/чужие контейнеры не затронуты. A7/Q1/provider/device gates открыты.
+Docs-only review: оба результата разделены, причина не выдумана; docs links
+(54 documents) и diff whitespace проходят. Prettier check двух журналов
+возвращает exit 1; тот же check HEAD stdin для обоих также exit 1. Широкая
+переформатировка исторического журнала не выполнялась; format pass не заявлен.
+
+**S2b, native manager refresh failure must not offer cached recipient — 11 октября МСК:**
+Обе S2a карточки дополнены native freshness/recovery. После подтверждённой
+mailto ссылки owned SQL config меняется qualified UPDATE с revision 17→18
+и вторым synthetic recipient. Browser pageshow lifecycle trigger читает actual
+Nest/SQL config; scoped transport подтверждает HTTP 200/new revision/contact,
+затем теряет return reply. Старый mailto и fallback contact исчезают, order
+button disabled, виден честный manager error. После восстановления транспорта
+настоящая «Повторить» возвращает новый recipient; полный href совпадает с прежним
+subject/body/product URL, заменён только recipient. SQL config и payment IDs
+не меняются от read/retry. Cleanup допускает только две owned revision/email
+пары; рабочие настройки/админка не менялись. **2 native pass / 57 filtered skips
+(59), exit 0 (3.02 s)**; root types/format/docs/diff проходят. Первые fixture
+failures ожидали исчезновение всех role=alert: diagnostic показал пустой
+__next-route-announcer__, не manager error. Теперь error scoped по точному
+тексту менеджера; diagnostic удалён, no suppression/force-click. Review:
+native response не подменён, abort только после настоящего чтения; SQL UPDATE
+только synthetic test setup, не admin write acceptance. Production/design/roles/
+контакты заказчика не менялись, no new defect RED/fix claim. Pageshow dispatch
+синтетический: физический wake/focus/mail-client этим не доказан; mailto никогда
+не нажимается, внешние письма/payment operations отсутствуют. Broad C3/default/
+build не повторены без изменения production. Own container 9bbe924e8829 проверен
+до use/stop по label/tmpfs/no mounts/loopback, остановлен --rm; Next остановлен,
+synthetic DB удалена. Real manager/device/S2/A7/Q1/provider gates остаются.
+
+**S2a, native digital-product manager link preparation — 11 октября МСК:**
+После C3 paging/retry взят независимый S2 срез. Две digital карточки читают
+настоящий /api/launch-config через Nest → owned backend_test. Synthetic manager
+и revision=17 заданы только в собственной SQL singleton fixture; HTTP ответ
+подтверждает этот recipient, email-client и shopOnlinePayment=false. Каждая
+видимая ссылка содержит literal правильный product title, subject/body и точный
+локальный /shop/digital-N URL. Видны честный текст самостоятельной отправки
+и fallback contact. **Mailto не нажимается**, OS client/external mail не запускается;
+config row и payment IDs не меняются, checkout/provider operations отсутствуют.
+**2 native browser pass / 57 filtered skips (59), exit 0 (2.74 s)**;
+root types/format/docs/diff проходят. Первый run pass (4.59 s), rerun после
+усиления snapshot выявил fixture strict-selector failure: DOM diagnostic
+подтвердил mounted #root (rects=1) и hidden Next S:0 (rects=0). Diagnostic удалён,
+тексты scoped к unique mounted #root; no first/force-click/error suppression.
+Review: expected letters literal, не вызов production mail builder для expected;
+singleton must be absent before insert, cleanup qualified по ID/revision/recipient,
+existing synthetic payment IDs сохраняются. Production/design/roles/контакты
+заказчика не менялись, это native acceptance existing path, не defect RED/fix.
+Broad C3/default/build не повторены без изменений. **S2 остаётся открыт:**
+согласование настоящего manager contact и физическое открытие почтового клиента
+на телефоне; этот synthetic HTTP/SQL результат их не заменяет. Own container
+bc94d9574318 проверен до use/stop по label/tmpfs/no mounts/loopback и остановлен
+--rm; Next остановлен, synthetic DB удалена. Working DB/secrets/external
+messages/provider payments/push/deploy не затронуты; A7/Q1/device/media gates прежние.
+
+**C3at, guest feed next-page reply loss and recovery — 11 октября МСК:**
+C3as fault/retry branch расширена на guest feed; route/error message выбираются
+по target, остальные native response/SQL assertions сохранены. Actual HTTP
+terminal read выполняется до abort; UI не показывает неполученный last post,
+показывает точный next-page error, сохраняет доступную первую страницу. Настоящий
+«Повторить» возвращает cursor=12 страницу из трёх IDs/cursor=null, очищает error,
+показывает terminal footer/last post; union=15 уникальных exact eligible IDs,
+SQL posts/tags/access snapshot неизменен. **2 affected feed+club retry browser
+pass / 55 filtered skips (57), exit 0 (7.74 s)**; root types/format/docs/diff
+проходят. Review: shared branch меняет только fixture; guest не получает
+synthetic subscription, native replies не подменены, fault scoped next cursor,
+cleanup ownership сохранён. Production/design/roles/API semantics не менялись,
+no new defect RED/fix claim. Broad C3as regression/default/build не повторены
+без причины. Own container 6ce55652841e проверен до use/stop по label/tmpfs/
+no mounts/loopback port, остановлен --rm; Next остановлен, synthetic DB удалена.
+Working DB/secrets/external messages/provider payments/push/deploy не затронуты;
+devices/media/concurrent offsets/A7/Q1/provider gates прежние.
+
+**C3as, native club next-page reply loss and recovery — 11 октября МСК:**
+Добавлена ветка существующего pagination fixture. Scoped page transport
+читает cursor=12 через настоящий Nest/SQL, проверяет HTTP 200/terminal cursor
+и три expected IDs, затем теряет только ответ через abort. После исчерпания
+обычных client retries UI показывает «Не удалось загрузить следующие публикации
+клуба», не выдаёт ложный terminal success и не рисует неполученную карточку.
+Первая страница остаётся доступна после scroll-top; SQL posts/tags snapshot
+не меняется. Восстановленный транспорт + настоящая «Повторить» снова читает
+cursor=12, убирает error, возвращает последние три posts/cursor=null; суммарные
+15 IDs уникальны/точны, SQL posts/access неизменны. Нет synthetic success/error
+response или прямого browser fetch; fault наступает после actual read.
+**1 focused pass / 55 filtered skips (56), exit 0 (5.45 s)**; после C3aq/ar/as
+свежая integrated native C1/C2/C3 regression: **42 pass / 14 binding filtered
+skips, exit 0 (53.64 s)**. Root types/format/docs/diff проходят; formatting
+warning исправлен штатным formatter, без behavioral change. Review: API base
+передан только fixture, fault scoped path/cursor, прочие reads идут через
+existing native proxy; same owned access row/qualified cleanup, no provider
+operations. Historical C1 route error не повторился, suppression/fix claim
+нет. Production/design/API/roles/quota не менялись, это acceptance existing
+retry behavior, не новый defect RED/GREEN. Default/build не повторены без
+изменения production. Own container 7ba160bc8c6b проверен до use/stop по label,
+tmpfs/no mounts/loopback port, остановлен --rm; Next остановлен, synthetic DB
+удалена. Working DB/secrets/external messages/provider payments/push/deploy
+не затронуты; devices/media/concurrent offsets/A7/Q1/provider gates прежние.
+
+**C3ar, native club rubric crossing page boundary — 11 октября МСК:**
+Новая ветка существующего pagination browser fixture: первые 12 posts — life,
+следующие три — letter/podcast/эксклюзив. После начального native HTTP read
+и закрытия setup dialog настоящая кнопка «Эксклюзив» сама вызывает cursor=12
+без прокрутки и synthetic API fetch: пустая первая filtered page не объявляется
+пустым разделом. Все три aliases отрисованы, initial life row и opposite-target/
+draft neighbors отсутствуют. Исчерпанная «Подборки» показывает «Пока нет
+публикаций в этом разделе», повтор кнопки снимает filter и возвращает контент.
+SQL posts/tags и local subscription snapshot неизменны. **3 focused pagination
+pass / 52 filtered skips (55), exit 0 (4.46 s)**; после усиления проверок всех
+aliases/excluded neighbors **1 affected pass / 54 filtered skips, exit 0
+(2.60 s)**. Root types/format/docs/diff проходят; review: native Next/Nest/SQL,
+actual UI click, qualified fixture cleanup, no response mocks/force-click.
+Production/design/roles/quotas/API semantics не менялись; это acceptance
+существующего поведения, не новая RED/GREEN исправленная функция. Default/build
+и неизменённая broad regression не повторены без причины. Own container
+e4c96df3bc6a повторно проверен по owner label/tmpfs/no mounts/loopback port,
+остановлен --rm; Next остановлен, synthetic DB удалена. Devices/media/concurrent
+offsets/A7/Q1/provider gates прежние; working DB/secrets/external messages/
+provider payments/push/deploy не затронуты.
+
+**C3aq, native member club pagination browser — 11 октября МСК:**
+После общей C3ap regression расширен существующий pagination case двумя
+targets: guest feed и paid-member club. Настоящий Next → Nest → SQL отдаёт
+12+3 eligible posts, cursor 12→null; programmatic scroll настоящей windowed
+collection запускает следующий HTTP read. Opposite-target и draft neighbors
+исключены, объединённые IDs уникальны/точны; последний post виден, у club
+исчезает «Загрузить ещё», у feed виден terminal footer. Club setup dialog
+закрыт настоящей кнопкой, без force-click. SQL posts и synthetic subscription
+snapshot неизменны. Access row существует только в owned backend_test, не
+provider TEST/payment/checkout. Cleanup qualified exact ID/text/user/orderId.
+**2 focused native browser pass / 52 filtered skips (54), exit 0 (3.62 s)**;
+root types/format/docs/diff проходят. Review: cases последовательны, native
+HTTP responses не подменяются; production/design/roles/quota не менялись.
+Это дополнительная coverage, не новый defect RED/fix; полный integrated
+run C3ap и default/build не повторены без причины. Own container 11668e64c280
+проверен до use/stop по label/tmpfs/no mounts/loopback и остановлен --rm,
+Next остановлен; synthetic DB удалена. Physical gesture/device/media,
+concurrent offsets, A7/Q1/provider gates прежние; no working DB/secrets/
+external messages/provider payments/push/deploy.
+
+**C3ap, закрытый клуб и интегрированная browser regression — 11 октября МСК:**
+Расширен tied-date regression: guest feed и authenticated club.list читают
+35 owned synthetic posts через настоящий Nest HTTP/JWT/MySQL, с tag filter,
+страницами 12/12/11 и cursor 12/24/null. Теперь проверяется точный id ASC order,
+не только uniqueness/completeness. При временном удалении последнего tie-break
+club case даёт **native RED: 35 received / 32 unique IDs**; после восстановления
+production fix C3ao **42 content SQL/HTTP tests pass, exit 0 (2.13 s)**.
+Свежий integrated Next → Nest → disposable SQL browser run после C3am/an/ao:
+**39 C1/C2/C3 pass / 14 binding filtered skips (53), exit 0 (51.97 s)**.
+Проверены quiz/profile/library/feed pagination/search/interactions, club navigation,
+admin/moderator/member boundaries, блокировка и editor schedules/auth lifecycle.
+Исторический C1 route transport failure не воспроизвёлся; suppression/fix claim
+не добавлен. Root types/format/docs/diff проходят; review: parameterized cases
+идут последовательно, exact synthetic ID/text cleanup, existing fixture member
+subscription only, без provider operations. Production итогово не изменён:
+default/build C3ao не повторены без причины. Own backend_test container
+e574b0382064 проверен до use/stop по owner label, tmpfs/no mounts/loopback port,
+остановлен --rm; Next остановлен, synthetic DB удалена. Concurrent offset writes,
+physical devices/media, A7/Q1/provider acceptance gates остаются открытыми;
+working DB/secrets/external mail/new payments/push/deploy не затронуты.
+
+**C3ao, исправлена потеря/дублирование постов при равных датах — 11 октября МСК:**
+Гипотеза после C3an проверена настоящим Nest HTTP → MySQL: 35 unchanged
+public rows с одинаковыми sortOrder/createdAt/publishedAt, страницы 12/12/11.
+**Native RED: 35 полученных IDs, лишь 32 уникальных**, без concurrent writes.
+Причина: ORDER BY sortOrder ASC/date DESC не задавал порядок равных строк;
+MySQL LIMIT/OFFSET сортировки возвращали пересекающиеся страницы.
+Minimal fix: общий postListOrder дополнен **id ASC** только как последним
+tie-break, исходный приоритет sortOrder/date и offset/cursor contract сохранены.
+Date-only admin order не менялся; schema/migrations/roles/quota/subscriptions
+не менялись. **41 native content HTTP/SQL tests GREEN, exit 0 (1.72 s)**,
+включая новый regression; **fresh default: 2264 pass / 1066 skips,
+173 passed / 56 skipped files, exit 0 (18.96 s)**; root types/format/docs/diff.
+Affected C3an native browser тоже GREEN: **1 pass / 52 filtered skips,
+exit 0 (1.82 s)**. Его первый rerun поймал fixture strict-selector failure:
+Next streamed hidden collection совпала с live collection; теперь выбирается
+одна visible collection с count barrier, waitForResponse и scroll объединены
+Promise.all, чтобы ранний failure не оставлял unhandled waiter. Нет force-click,
+route error suppression или изменения production UI; это не старый C1 transport
+fix. Review: tie regression проверяет completeness/uniqueness без навязанного
+порядка ID; SQL RED не является mock. Concurrent inserts могут сдвигать offsets
+и этим fix не решаются; devices/media/A7/Q1/provider acceptance остаются gates.
+Own loopback/tmpfs backend_test проверен до use/stop по exact label/mounts/port,
+остановлен --rm, synthetic DB удалена; Next остановлен. Working DB/secrets/
+external mail/provider payments/push/deploy не затронуты, исправление локальное.
+
+**C3an, native public-feed pagination — 11 октября МСК:**
+Новый guest browser case использует 15 synthetic public posts + club/draft
+neighbors в собственном backend_test, с явным distinct sortOrder. Actual
+Next → Nest → SQL возвращает первые 12 IDs/cursor=12; прокрутка настоящей
+windowed collection запускает следующую HTTP страницу из трёх IDs/cursor=null.
+Объединённые IDs уникальны и ровно равны public fixtures; private/unpublished
+neighbors исключены. Terminal footer/последняя карточка видны, SQL snapshot
+не меняется. Нет direct synthetic fetch/page-response mocks или payment rows.
+**1 focused native browser pass / 52 filtered skips, exit 0 (2.27 s)**;
+root types/format/diff/docs checks проходят. Initial expectation ошибочно
+предполагал DESC id при равных датах: source order = sortOrder ASC/date DESC,
+без ID tie-break. Исправлен deterministic fixture order, не production bug;
+tie/concurrent-offset pagination и physical scroll gestures этим не доказаны
+(использована programmatic scrollTop + настоящий collection observer).
+Review: DB writes ограничены owned fixtures, cleanup qualified по ID/text,
+данные/ответы реального сервиса не подменены. Production/design/roles/quotas/
+pagination semantics не менялись; no new defect/security RED. Own loopback/
+tmpfs DB повторно проверена по label/mounts/port и остановлена --rm; Next
+остановлен. A7/provider/media/device/Q1 blockers прежние; рабочая БД/секреты/
+внешние письма/payments/push/deploy не затронуты. Default/build и неизменённые
+browser cases не повторены без причины.
+
+**C3am, native profile → club → history-back and staged scope — 11 октября МСК:**
+Existing paid-member quiz/profile journey расширен: после profile reload
+«Мои мудборды» отсутствуют, две support buttons видимы (не нажимаются).
+Настоящая bottom-tab ссылка открывает Club, aria-current подтверждён; штатная
+настройка профиля закрыта через UI, затем выбран Комьюнити (aria-pressed).
+«Почтовое отделение — скоро» видно, CTA поиска друга отсутствует. Native
+history Back возвращает profile/result без потери scoped quiz result, после
+чего прежние reopen/reload/retake и SQL identity/payment assertions проходят.
+**1 focused native Next/Nest/own MySQL browser pass / 51 filtered skips,
+exit 0 (5.37 s)**; root types/format/diff/docs checks проходят.
+Два первых failures были неверными fixture preconditions: postal placeholder
+доступен только на Комьюнити, а new-member profile setup перекрывает tab click.
+Уточнён настоящий UI-путь, не force-click/DOM suppression/production fix;
+нового defect/security RED нет. Production/design/roles/capabilities не
+менялись; existing synthetic paid DB row не является новым provider payment.
+Support delivery/mailto OS/devices/media/A7/provider gates не закрыты.
+Own loopback/tmpfs backend_test проверен по exact owner label/mounts/port
+до теста и stop --rm; synthetic DB удалена, Next остановлен. Working DB,
+secrets/external mail/payments/push/deploy не затронуты; default/build/прочие
+неизменённые native cases не повторены после предыдущих checkpoints.
+
+**Q1x, integrated tooling checkpoint and supported-release blocker — 11 октября МСК:**
+После двух новых ordinary suites Q1v/w выполнена свежая default regression:
+**2264 pass / 1064 skips, 173 passed / 56 skipped files, exit 0 (18.49 s)**.
+Это не повтор неизменённого набора Q1u: native loader/CLI suites добавлены после
+него. Default skips не выданы за SQL/browser/provider acceptance; production,
+dependency graph/lockfile/build не менялись, успешные types/native browser
+не повторены без причины. Review/diff/docs checks проходят.
+Public registry latest metadata заново прочитана без npm credentials/config:
+[drizzle-kit](https://registry.npmjs.org/drizzle-kit/latest) = 0.31.11, но всё ещё
+содержит @esbuild-kit/esm-loader ^2.5.5 (и tsx ^4.21.0/esbuild ^0.25.4);
+[esm-loader](https://registry.npmjs.org/%40esbuild-kit%2Fesm-loader/latest) =
+2.6.5, deprecated «Merged into tsx»;
+[core-utils](https://registry.npmjs.org/%40esbuild-kit%2Fcore-utils/latest) =
+3.3.2, deprecated, по-прежнему требует esbuild ~0.18.20.
+Следовательно, простое обновление Drizzle до текущего stable не удаляет
+deprecated dependency edge; installation/override/patch не выполнены и
+security fix не заявлен. Это точный upstream-chain blocker, а не доказательство
+reachable app exploit; Q1u/v/w compatibility adapters не стали production.
+Перед снятием Q1 требуется supported upstream replacement либо отдельно
+reviewed replacement/patch с воспроизводимой графовой и CLI проверкой;
+остальные A7/P/V/media/device/Braces/manual gates остаются открыты. При следующем
+продолжении брать независимый согласованный C3 diagnostic/navigation срез,
+не наращивать повторную transformer coverage без новой гипотезы.
+Рабочая БД/секреты/внешние письма/payments/push/deploy не затронуты.
+
+**Q1w, actual offline Drizzle config/schema export — 11 октября МСК:**
+Настоящий installed drizzle-kit CLI выполняет export --sql через typed
+synthetic MySQL config (enum) и schema (actual drizzle-orm mysqlTable/int/
+varchar). Проверяется точный stdout: schema-file header и CREATE TABLE с
+AUTO_INCREMENT/NOT NULL/PRIMARY KEY; stderr пуст, exit 0, fixture-directory
+не изменился. Это генерация DDL, не выполнение SQL и не миграция какой-либо БД.
+Child получает только PATH/explicit nonexistent dotenv path/cache flag;
+сетевая Socket.connect запрещена fail-fast. Реальные .env не читаются.
+Baseline compiler normal CLI register path = actual scoped esbuild 0.25.12;
+candidate = root 0.28.2 через child-only exact-parent adapter с assertion факта
+injection/version. Это другая цепочка, не nested legacy 0.18.20 из Q1u/v.
+**2 new CLI pass; Q1u/v/w together: 6 focused pass, exit 0 (564 ms)**;
+root types/format/diff/docs checks проходят. Первые два characterization failures
+были неверным ожиданием stdout без штатного schema header; fixture expectation
+исправлен, production defect/security RED не заявлен. Review: реальный CLI,
+register, config/schema loading и сериализатор не подменены; adapter не выдан
+за installed upgrade. Один synthetic table не доказывает migration/rollout/
+полную repo schema compatibility. Dependency graph/lockfile/production/build
+не менялись; JSON/прочие legacy modes и reviewed chain upgrade ещё впереди.
+Q1 residuals/A7/external gates сохраняются. Рабочая БД/секреты/внешние письма/
+payments/push/deploy не затронуты, весь этап не объявлен готовым.
+
+**Q1v, native legacy ESM module/config compatibility — 11 октября МСК:**
+Добавлен bounded Node loader characterization с отдельными synthetic .mts
+fixtures и явным fixture tsconfig: настоящий esm-loader 2.6.5 загружает typed
+config/enum, tsconfig path alias, .mjs→.mts resolution и dynamic import;
+полученный config/double результат проверен как sqlite/synthetic-schema/12.
+Baseline использует installed nested transformer; candidate запускает те же
+реальные hooks с root esbuild 0.28.2, подставленным только внутри isolated
+loader worker. Факт injection/version проверен; parent cache/dependency graph/
+lockfile не менялись, ESBK_DISABLE_CACHE исключает shared disk cache.
+**2 new native-loader pass; together Q1u/Q1v: 4 focused pass, exit 0
+(357 ms)**; root types/format/diff/docs checks проходят. Production/API/SQL/
+providers/build не менялись, полный неизменённый default после Q1u не повторён.
+Review: installed drizzle-kit bin config path отдельно прочитан: safeRegister
+использует bundled esbuild-register, затем require(config), а не esm-loader
+(bin.cjs 16977/17555). Поэтому native ESM characterization не выдан за реальную
+Drizzle command acceptance или доказательство достижимости serve advisory.
+No new security RED/fix, JSON/CJS/actual Drizzle commands ещё не покрыты этим
+срезом; следующий независимый шаг — synthetic config/schema offline export
+через настоящий CLI без DB/providers, затем reviewed chain upgrade decision.
+Устаревшая цепочка остаётся установленной; out-of-range override не добавлен.
+A7/Braces/manual Q1/external gates прежние; рабочая БД/секреты/внешние письма/
+payments/push/deploy не затронуты, весь этап не объявлен готовым.
+
+**Q1u, first bounded legacy transformer compatibility slice — 11 октября МСК:**
+После native C3 coverage взят независимый Q1t остаток: installed core-utils
+3.3.2 требует esbuild ~0.18.20. Новый characterization suite запускает actual
+core-utils sync/async TypeScript transforms в отдельных Node children с
+memory-only cache (ESBK_DISABLE_CACHE), enum/interface/typed callbacks и CJS
+export. Результат исполняется в bounded VM: role=1/total=12, sourcemap v3 с
+synthetic source/sourceContent и отсутствие warnings подтверждены.
+Baseline использует настоящий nested 0.18.20; candidate использует настоящий
+root 0.28.2 через child-only module-resolution adapter, факт injection проверен.
+**2 focused pass/exit 0**, root types/format/diff/docs checks проходят;
+**fresh full default: 2260 pass / 1064 skips, 171 passed / 56 skipped files,
+exit 0 (18.56 s)** после нового обычного suite. Parent module cache/installed
+dependencies/lockfile не менялись; disk cache/SQL/HTTP providers не запускались.
+Review: это узкая совместимость реального transformer, не полная esm-loader/
+Drizzle migration command compatibility, не новый security RED или устранение
+legacy esbuild advisory. Candidate adapter не выдан за установленный upgrade;
+out-of-range override не добавлен. Следующий Q1 compatibility срез должен
+проверить реальные module/config loading и поддерживаемые режимы перед решением
+об обновлении цепочки. Braces/manual Q1 residuals и A7/external gates остаются.
+Рабочая БД/секреты/внешняя почта/payments/push/deploy не затронуты.
+
+**C3al, native back/edit/forward answer preservation — 11 октября МСК:**
+Pure Light Academia journey теперь проверяет disabled Back на первом вопросе;
+после Q3 → Q4 возвращается через Q3 в Q2, подтверждает прежние selected ответы,
+меняет landscape на Cottagecore, возвращается вперёд (Q3 selection сохранён),
+снова назад и восстанавливает Light Academia. Старый selection снят, новый
+pressed; последующее прохождение даёт прежние 21/0/no-blend, canonical title,
+storage/completedAt/reopen/reload и неизменные SQL security identities.
+**1 focused native Next/Nest/MySQL browser pass / 51 filtered skips, exit 0
+(3.58 s)**; root types/format/docs/diff checks проходят. Production не менялся,
+нового mutation RED нет; direct reducer mutations из C3y уже проверены ранее.
+Не повторены неизменённые другие pure journeys/C1/C2/default/build после
+прошлой integrated 38-pass проверки. Review: проверен реальный browser
+Back/change/restore/forward путь, не только reducer; no payment fixture,
+no external mail/network/working DB/push/deploy. Свой loopback/tmpfs backend_test
+проверен по owner label/mounts/port, остановлен через --rm; Next остановлен.
+Devices/gesture/media/transport/A7/external acceptance остаются открыты.
+
+**C3ak, integrated native regression after the new journeys — 11 октября МСК:**
+После C3ag–aj выполнена свежая общая C1/C2/C3 browser regression с настоящим
+production Next → Nest → собственным MySQL backend_test и loopback SMTP:
+**38 pass / 14 filtered skips, exit 0 (46.05 s)**. Она объединяет admin/
+moderator/member guards, editor/scheduled publication, feed/library/comment/
+save/like, quiz scoring/reopen и новый concurrent accepted/rejected login.
+Это не повтор неизменённой проверки: последний общий native набор имел 30
+cases, после него добавлены восемь cases; focused C3aj не покрывал C1/C2.
+Rare C1 transport exception не воспроизведён, устранение/причина не заявляются;
+не добавлялись instrumentation, error suppression или production изменения.
+14 skips — исключённая фильтром email-binding группа, не завершённая A6/A7.
+Default-off build использован без dotenv/secrets; active-binding build,
+реальные миграции/rollout/media/physical devices/provider acceptance остаются
+отдельными gates. Existing synthetic paid SQL fixtures не являются платежами
+провайдеру; внешние платежи/письма/сообщения не выполнялись.
+После owner label/tmpfs/no-volume/loopback-port проверки собственный container
+остановлен через --rm и synthetic DB удалена; Next остановлен. Production
+code diff пуст, build/default/unit не повторены без изменений; docs check
+проходит. Push/deploy/рабочая БД не затронуты, весь этап не объявлен готовым.
+
+**C3aj, remaining pure aesthetic browser journeys — 11 октября МСК:**
+C3ai расширен literal таблицей Goblincore/Witchcore/Castlecore/Fairycore/
+Dark Academia вместе с Light Academia. Для каждого — десять настоящих UI
+ответов, pressed и CTA, ожидаемые 21 points только выбранной эстетики,
+secondary=null/no blend, canonical title; guest storage с completedAt и
+тот же итог после /quiz/result/reload. Shuffled landscape/shelter/companion
+позиции явно заданы fixture, production QUESTIONS/scoring не используются
+для генерации ожидаемого результата. SQL security identities неизменны.
+**6 native browser pass / 46 filtered skips, exit 0 (8.52 s)**,
+root types/format/docs/diff checks проходят. Вместе с ранее проверенным
+Cottagecore полные pure journeys всех семи эстетик покрыты локальным Chromium
+на 390×844; физические устройства/gesture/rotation/реальные media этим не
+закрыты. Production не менялся, нового mutation RED нет; предыдущие unit
+scoring/reducer mutations не повторялись без изменения production.
+Review: один общий browser workflow, literal score/title/order fixtures,
+без семи копий теста; actual Next/Nest/guest cookie boundary/disposable SQL,
+не cross-device/server quiz persistence. Собственный loopback/tmpfs backend_test
+проверен по owner label/mounts/port и удалён через --rm, Next остановлен.
+Нет внешних писем/payments/рабочей БД/push/deploy; широкие gates сохранены.
+
+**C3ai, full native Light Academia journey — 11 октября МСК:**
+Новый native Chromium/production Next/Nest/disposable SQL сценарий проходит
+все десять вопросов гостем на viewport 390×844: последний пункт каруселей,
+отдельно shelter #2/companion #6, pressed и disabled/enabled CTA на каждом
+шаге. Literal expected scores: Light Academia 21, все прочие 0, без blend;
+canonical title показан, scoped guest запись имеет валидный completedAt.
+Открытие /quiz/result и reload сохраняют тот же результат/дату; SQL security
+identity обеих fixture accounts неизменна. **1 focused native browser pass /
+46 filtered skips, exit 0 (3.00 s)**, root types/format/docs/diff checks проходят.
+Initial 19/2 failure был неверным companion #7 в новой fixture (это Fairycore),
+исправлен на #6; не production bug или mutation RED. Production неизменён;
+остальные browser-эстетики, touch swipe/поворот/физические устройства и
+реальные материалы не объявлены принятыми. Это browser click/auto-scroll,
+не физический жест. Broad unchanged C3/default/build не повторялись.
+Собственный loopback/tmpfs backend_test проверен по label/mounts/port до SQL
+и удаления, остановлен через --rm; Next остановлен. Нет payment fixture,
+внешних писем/сети, рабочей БД или push/deploy; прежние gates сохраняются.
+
+**C3ah, rejected native login preserves the confirmed owner — 11 октября МСК:**
+C3ag transport-barrier case параметризован успешным и неверным synthetic
+паролем. Native login 401 возвращает и показывает «Неверный email или пароль»,
+форма остаётся на /login и снова доступна. Уже подтверждённая admin cookie
+identity 91401 сохраняется после отмены старого browser auth/me и освобождения
+его настоящего Nest/SQL ответа; scoped Cottagecore не удалён и восстановлен
+после открытия результата, чужой Goblincore не показан. Обе scoped raw записи
+сохранены при отказе (новая identity не подтверждена); SQL email/hash/role/
+sessionVersion и payments прежние. Успешный вариант по-прежнему очищает old key.
+**2 focused native browser pass / 44 filtered skips, exit 0 (3.21 s)**,
+root types/format/docs/diff checks проходят. Production не менялся, нового
+mutation RED нет; широкая C3 regression не повторена после уже прошедших
+17 cases C3ag. Review: native cookie/HTTP/login/Next/storage, не внешняя
+доставка/устройства или принудительная stale delivery в отменённый request.
+Собственный tmpfs backend_test проверен по label/mounts/loopback port и
+остановлен через --rm; Next остановлен. Payment fixture/внешние письма и сеть/
+рабочая БД/push/deploy отсутствуют; прежние transport/A7/external gates открыты.
+
+**C3ag, native login during a held previous-session read — 11 октября МСК:**
+Новый Chromium/production Next → native Nest → disposable MySQL кейс начинает
+с подтверждённого admin 91401; online refresh получает настоящий старый auth/me
+ответ и удерживает его explicit barrier в transport proxy. Настоящий email login
+подтверждает member 91402 (200), browser отменяет старый HTTP read с ERR_ABORTED.
+После освобождения старого ответа сохраняются новая cookie identity и scoped
+quiz data; старый scoped результат удалён, новый Goblincore восстановлен на
+странице результата, старый Cottagecore отсутствует. SQL email/hash/role/
+sessionVersion обеих fixture identities и club_payments не изменились.
+**17 native C3 pass / 28 filtered skips, exit 0 (25.43 s)**; root types,
+format/diff checks проходят. Нового production изменения/mutation RED нет:
+начальные failures были ошибками fixture (initial hydration, unsupported
+login-return /quiz/result и закрытый profile без подписки), а не доказанной
+ошибкой приложения. Финальный сценарий использует разрешённый /quiz return,
+не создаёт payment fixture и открывает saved-result после завершения barrier.
+Review: это реальный login/cookie/storage/HTTP cancellation и последующее
+восстановление, не доставка stale response в отменённый browser request и
+не concurrent component read acceptance. Ошибки transport callback проверяются
+assertions, suppression нет; guest marker явно ждёт initial owner commit.
+Собственный loopback/tmpfs backend_test container проверен по label/mounts/
+port до SQL и остановки; Next остановлен, --rm удалил только synthetic DB.
+Production/default broad regression не повторены без изменения production.
+Существующий C1 transport gate, media/devices/A7/provider/Q1 residual gates
+сохраняются; внешняя сеть/почта/payments/рабочая БД/push не использовались.
+
+**C3af, real AuthProvider/native HTTP owner boundary — 11 октября МСК:**
+Новый opt-in Chromium probe использует production AuthProvider, SessionController,
+auth client/parser/request lifecycle и QueryClient без подмены этих модулей.
+Собственный ephemeral loopback HTTP endpoint возвращает synthetic account 1;
+online refresh удерживает второй ответ explicit barrier. Через публичный
+applySession подтверждается synthetic account 2: private query account 1
+очищен (seed проверен до switch), настоящий subtree remount сбрасывает local
+React state с 1 на 2, старый browser HTTP request прерван (server response close
+до writableEnded). Первый этап и смена проверены как 1|1 → 2|2.
+Scope-key mutation, сохраняющая первый remount, но замораживающая следующий,
+дала **1 native RED**: 2|1 вместо 2|2; mutation полностью снята, production
+diff пуст. **53 focused browser/controller/storage/quiz GREEN/exit 0**, root
+types/format/docs проходят. Без PLAYWRIGHT_EXECUTABLE_PATH новый suite реально
+skipped. Broad default regression не повторена ради одного нового opt-in skip.
+Review: leaf Probe synthetic, сервер не Nest/SQL и не настоящий login;
+applySession не выдан за новое серверное подтверждение личности. Это срез
+provider/remount/cache/HTTP cancellation, не вся app concurrency acceptance.
+Внешняя сеть блокирована, synthetic values only, bundle write:false, browser/
+server закрыты в finally; рабочая БД/сервер/роли/CORS/trust/квоты не затронуты.
+C1 transport/media/devices/A7/provider acceptance ограничения сохраняются;
+push не выполнялся.
+
+**C3ae, regression checkpoint после C3y/C3aa–ad — 11 октября МСК:**
+После добавления reducer, HTTP ordering и opt-in component/browser cases
+выполнена новая полная default регрессия, а не повтор прежней неизменившейся:
+**2258 pass / 1055 skips / exit 0**, 170 passed + 55 skipped files, 3318 cases,
+17.94 s на Node 22. Browser opt-in cases здесь skipped, их отдельный native
+результат приведён в C3ac/ad; SQL/provider acceptance этим не заменяется.
+Review текущего profile loader не выявил подтверждённой новой причины для
+изменения production code: remount/scope и synchronous storage отличаются от
+controlled read probe; спекулятивный fix не добавлен. Broad AuthProvider race,
+редкая C1 transport race, внешний rollout/миграции/A7, provider/media/device
+приёмка и Q1 residual findings остаются открытыми. App build и прежние SQL
+проверки без изменений production code повторно не запускались. Push/сервер/
+рабочая БД не затронуты.
+
+**C3ad, native localStorage read/microtask owner boundary — 11 октября МСК:**
+C3ac probe дополнен вариантом без подмены storage: production browser storage
+adapter и настоящий Chromium localStorage читают account-1 cottagecore
+синхронно, затем в том же JS task auth adapter переключает owner на account 2
+с loading=true до Promise continuation. Cleanup effect блокирует старое
+восстановление; account-1 key очищен настоящим setPersonalDataOwner,
+account-2 goblincore key сохранён. После loading=false новый read восстанавливает
+goblincore. Own context origin document fulfilled из synthetic HTML локальным
+Playwright route; прочая сеть заблокирована. Это native storage/component
+microtask boundary, не mock storage и не remote read. Auth/leaf views остаются
+controlled; Next/AuthProvider/API/SQL и deployment этим не проверяются.
+Cancelled-guard removal снова дал **1 native storage mutation RED** (cottagecore
+вместо welcome); mutation полностью снята, production diff пуст. Оба browser
+варианта и соседние suites: **52 focused GREEN/exit 0**, root types/format/docs
+проходят. Browser закрывается finally, bundle in-memory/write:false, без
+секретов/SQL/external calls. Review не изменил app policy/дизайн/публичные API.
+Таким образом конкретная read→Promise-continuation граница проверена без
+искусственной задержки storage; широкая concurrent AuthProvider/owner acceptance,
+C1 transport/media/devices/A7 ещё открыты. Push/сервер/рабочая БД не затронуты.
+
+**C3ac, controlled component read/owner cancellation — 11 октября МСК:**
+Добавлен opt-in native Chromium/React effect probe для настоящего QuizScreen,
+reducer и saved-result parser. Bundle in-memory/write:false; auth/storage и
+leaf views явно заменены controlled adapters. Один и тот же mounted component
+начинает deferred restore account 1, получает auth owner 2 и новый read;
+completion старого cottagecore не меняет welcome, новый goblincore восстанавливается.
+Две browser animation frames дают React rendering opportunity вместо sleep;
+page errors проверяются, все network requests заблокированы, browser закрыт
+в finally. `PLAYWRIGHT_EXECUTABLE_PATH` — явный opt-in, без браузера suite skipped.
+Удаление cancelled guard из production effect дало **1 mutation RED**:
+после старого read виден cottagecore вместо welcome. Mutation полностью снята,
+production diff пуст. **51 focused browser/controller/storage/quiz GREEN**,
+после добавления pageerror assertion browser case отдельно GREEN; root types/
+format/docs проходят. Initial fixture cast typing error исправлен через
+explicit unknown boundary и не считается дополнительным behavior RED.
+Это controlled async component boundary, не полный Next/AuthProvider/Nest/SQL
+сценарий и не реальная remote storage: production localStorage read остаётся
+синхронным до Promise. Поэтому широкую concurrent owner/read acceptance этим
+не закрываем; C1 transport/media/devices/A7 ограничения также сохранены.
+Unchanged app build/SQL не повторены, push/сервер/рабочая БД не затронуты.
+
+**C3ab, overlapping refresh/finally ordering — 11 октября МСК:**
+Следующий малый срез дополняет C3aa: два настоящих own loopback HTTP ответа
+удерживаются отдельными explicit barriers. Первый refresh заменён forced
+refresh; завершение старого ответа не должно снять pending/refreshing marker
+нового. Ещё один resume-style refresh, пока второй ответ удерживается, не
+создаёт третьего getMe/HTTP запроса. После release нового ответа подтверждён
+account 2 и ровно один scope increment. Adapter намеренно не отменяет fetch:
+проверяется production controller ordering, не browser cancellation, Nest/SQL
+или component storage acceptance. Удаление version guard только в refresh
+finally дало **1 mutation RED** (getMe 3 вместо 2); mutation полностью снята,
+production diff пуст. **50 focused controller/storage/quiz GREEN**, root types,
+format/docs проходят. Review: no elapsed sleeps, sequential barrier signals,
+finally освобождает обе границы и закрывает own server/connections/cache.
+Unchanged build/browser/SQL не повторены. Component owner/read, C1 transport,
+media/devices/A7 gates остаются открыты. Push/сервер/рабочая БД не затронуты.
+
+**C3aa, late HTTP completion на границе смены owner — 11 октября МСК:**
+Добавлены два regression cases в существующий SessionController suite:
+own ephemeral loopback HTTP удерживает ответ старой сессии explicit barrier;
+после подтверждения account 2 отпускает старый 200/account 1 либо 401.
+Проверяются abort старого signal, очистка account-1 query, неизменность точного
+нового SessionState/scope, сохранность account-2 query и отсутствие повторного
+resetIdentity. Здесь настоящее HTTP/JSON и production parser/controller/cache,
+но endpoint синтетический, а getMe adapter намеренно не передаёт signal в
+fetch, чтобы тестировать operation guard при уже неотменяемом completion.
+Это не browser/Nest/SQL acceptance и не доказательство remote storage race.
+Удаление двух version guards только в refresh дало **2 mutation RED**:
+late 200 вернул account 1, late 401 сделал новую сессию guest. Mutation полностью
+снята, production diff пуст. **49 focused controller/storage/quiz tests GREEN**,
+root types/format/docs проходят. Review: без sleeps/retries/external calls,
+barrier освобождается и собственный server/connections/cache/controller
+закрываются в finally. Изменены только tests/журнал; unchanged build/SQL/browser
+не повторялись. Concurrent component read/owner и редкая C1 transport race,
+media/devices/A7 остаются открытыми. Сервер/рабочая БД/роли/CORS/trust/квоты
+не менялись, push не выполнялся.
+
+**C3z3, трассировка точного C1 browser/API/SQL fixture — 11 октября МСК:**
+После двух isolated probes проверен сам native scenario: moderator dismiss
+report, затем весь C1 lifecycle. Own MySQL 8.4 контейнер с уникальным owner
+label, loopback 33367, tmpfs `/var/lib/mysql`, без volumes, только backend_test;
+настоящий Nest API, Chromium и существующая production Next сборка на loopback
+33368. Next env loader предварительно кеширован на собственном пустом temp
+directory: dotenv/секреты не читались. Внешние браузерные запросы блокировал
+существующий fixture. Production workers/provider calls не запускались.
+Временная instrumentation отмечала method/path (без query, credentials/body),
+identity Route через WeakMap, handler enter/fetch-return, native
+`_reportHandled`, fulfill и teardown; native метод сохранял исходный вызов,
+ошибки перевыбрасывались, ignoreErrors/retry не добавлены.
+Focused dismiss **1 pass / 43 filtered skips / exit 0**; после расширения
+instrumentation/lifecycle scope весь C1 **9 pass / 35 filtered skips / exit 0**
+(6.77 s). Это не повтор всей неизменившейся регрессии: цель — сбор фазовой
+информации. Сохранённый tool output второго прогона усечён, поэтому полный
+подсчёт routes/teardown по нему не заявляется. В доступных фазах нет duplicate
+handler entry или fulfill-error; старый unhandled error не воспроизведён.
+Instrumentation полностью снята, diff исходного suite пуст; Next остановлен,
+контейнер остановлен после проверки exact ID/owner/tmpfs/no mounts и удалён
+его `--rm` lifecycle. Это удалило только одноразовую synthetic SQL fixture,
+рабочие данные не затронуты. Причина прежней race всё ещё не установлена и
+gate открыт: следующий диагностический прогон при необходимости должен
+сохранять ограниченный полный trace в памяти и печатать compact summary на
+границе teardown, чтобы избежать усечения. Default tests/build не повторены;
+не пушили, роли/CORS/trust/квоты приложения не менялись.
+
+**C3z2, native dialog + teardown boundary — 11 октября МСК:**
+Продолжена диагностика, без изменения обработчиков приложения/fixture.
+Installed Playwright source: `Route._handlingPromise` обнуляется только в
+`_reportHandled`, после fallback либо завершения abort/continue/fulfill;
+`route.fetch` сам его не обнуляет. `unrouteAll({behavior: "wait"})` ожидает
+active handler invocation, а не вызывает второй fulfill. Это сужает область
+поиска до фактической последовательности обработки одного Route, но не
+устанавливает причину старого исключения.
+Own ephemeral loopback HTTP + actual Chromium проверили pending native
+route.fetch → confirm/dismiss → page.unrouteAll(wait) → context.unrouteAll(wait).
+Upstream удерживался explicit barrier. Context teardown остался ожидающим
+на event-loop checkpoint; после release порядок был fetch-return → fulfilled →
+context-unroute-done, **exit 0**. Ни sleep, ни ignoreErrors/retry/suppression,
+ни external connections/SQL/secrets не использовались. Context/browser/server
+закрыты. Это отдельный transport probe с synthetic document, не C1 API/SQL
+acceptance: сочетание dialog и корректного wait teardown само по себе прежнюю
+ошибку не воспроизвело. Далее нужна фазовая трассировка именно C1 native
+fixture (один request/route identity, вход/выход handler и teardown), а не
+спекулятивное изменение teardown. Gate остаётся открытым. Неизменившиеся
+default tests/build не повторялись; рабочая БД/сервер не затронуты.
+
+**C3z, фаза диагностики read/owner и прежней transport race — 11 октября МСК:**
+read-only сверка текущего кода: personal storage getItem читает scoped key
+синхронно до возврата Promise; QuizScreen effect имеет cancelled guard, а
+session scope ранее проверялся remount mutation. Поэтому задержку обычного
+storage нельзя выдавать за реальную remote-read race без отдельной управляемой
+границы. Concurrent storage/owner acceptance остаётся открытой.
+Для прежнего `route.fulfill: Route is already handled!` проверена одна точная
+гипотеза — переход страницы отменяет исходный browser request, пока native
+forward response ещё не готов. Own ephemeral loopback HTTP server + actual
+Chromium: script fetch → context route.fetch → upstream barrier → page.goto
+другой страницы → barrier release → route.fulfill. Получен **fulfilled/exit 0**,
+а не исходная ошибка. Wait был по explicit request/barrier signals, не sleep;
+сервер/context/browser закрыты, synthetic module только в памяти, внешних
+соединений/SQL/секретов не было. Этот isolated native transport probe не
+воспроизводит C1 moderator dialog/полный fixture lifecycle и не доказывает,
+что там гонки нет. Гипотеза простого navigation cancellation недостаточна;
+с suppression/retry/изменением C1 route teardown не экспериментировали.
+Systematic-debugging skill остановил speculative fix до воспроизведения
+точной причины. Далее нужен instrumentation по фазам существующего C1
+handler/lifecycle и управляемый native scenario; transport/read-owner gates
+не закрыты. Docs-only, неизменившиеся default tests/build не повторялись.
+Не пушили, сервер/рабочая БД/roles/CORS/trust/quotas не менялись.
+
+**C3y, quiz reducer navigation/immutable snapshots — 11 октября МСК:**
+после dependency slices продолжена независимая локальная регрессия теста.
+Новый standalone suite проверяет immutable предыдущий answer snapshot,
+десять literal selections → back → edit девятого ответа → next → итог,
+нижнюю границу навигации и restored result → restart/fresh journey.
+Итог hand-derived: cottagecore 19/goblincore 2, остальные 0; выбор десятого
+ответа сохраняется после возврата назад. Restart/start снимают restored marker,
+result и прежние answers. Это direct production reducer, не mock reducer.
+Mutation answers copy → alias и PREV floor removal дают два независимых RED:
+write в frozen previous snapshot и -1 вместо 0. Initial mutation probe имел
+fixture contamination через exported initial-state singleton: fixtures
+изолированы до повторного mutation run, его лишние failures не считаются
+дополнительным покрытием. Обе mutation полностью сняты, production diff пустой.
+**4 reducer + scoring/saved-result suites: 29 focused pass / exit 0**;
+root types/formatting GREEN. Main прочитал применимый AGENTS и установленный
+Next server/client boundary guide; directives/UI/design/бизнес-правила не менялись.
+TDD/review/debugging skills потребовали наблюдаемые transition assertions и
+изолированный mutation RED вместо проверки implementation strings.
+Неизменившиеся default suite/build/SQL/native browser не повторялись без причины.
+Это reducer coverage, НЕ asynchronous storage/owner race или browser acceptance;
+C3 transport/read-owner/media/device/A7/deployment gates остаются открыты.
+Не пушили, сервер/рабочая БД/roles/CORS/trust/quotas не менялись.
+
+**C3x, все семь эстетик и граница blend — 11 октября МСК:** новый standalone
+unit suite проходит calculateResult с десятью literal answer IDs для каждой
+эстетики, включая переставленные shelter IDs. Проверены primary, отсутствие
+secondary и все семь scores (21 только у выбранной эстетики); отдельные полные
+journeys дают goblincore 11/cottagecore 10, cottagecore 12/goblincore 9 на
+включённой границе 3 и cottagecore 13/goblincore 8 вне blend. Ожидания hand-derived,
+не пересчитаны через QUESTIONS/calculateResult/helper из production.
+Mutation <=3 → <3 даёт RED на secondary для границы 3; home cottagecore 3→2
+даёт два RED (20 вместо 21 и 12 вместо 13). Обе mutation сняты полностью,
+production diff пустой: **27 scoring/parser/storage unit GREEN/exit 0**, root
+types проходят. Review/TDD: table fixtures проверяют mappings/ranking/вес дома,
+а не существование константы; без новой бизнес-политики или изменений пакетов.
+Browser/SQL/default build не повторялись: production и готовая сборка не менялись.
+Это unit coverage остальных эстетик, не их сквозная browser/media/device приёмка.
+Concurrent read/owner races, transport race, A7 и внешняя выкладка ещё открыты.
+
+**C3w, восстановленный результат при проверке сессии — 11 октября МСК:**
+native browser case дополнен двумя настоящими /api/auth/me проверками на
+/quiz/result. Focus при прежнем userId сохраняет canonical result и исходную
+запись/completedAt; удаление cookie только собственного browser context и online
+recheck дают user:null, welcome вместо прежнего результата и очистку прежнего user key.
+Существующий me-контракт — 200 с user:null, не 401: исходное неверное ожидание
+теста исправлено после чтения controller; это не production RED.
+Отдельная mutation scope-remount → постоянный key даёт настоящий RED: после
+user:null welcome не появляется. Mutation полностью снята, production diff
+пустой; **30 C1/C2/C3 native browser GREEN/exit 0**, root types/default build.
+SQL identity fixtures неизменны. Review/TDD/verification: наблюдаемый native
+ответ и состояние экрана/storage, без mocks ответа, таймерных sleeps, изменения
+авторизации/ролей/дизайна. Own frontend остановлен и own loopback/tmpfs backend_test
+удалён после exact ID/label/tmpfs/127.0.0.1/no-volume/no-OOM проверки.
+Это последовательный resume/expiry сценарий, не доказательство всех races
+между незавершённым чтением и сменой пользователя. Остальные race/media/device/
+transport/A7/deployment и server/cross-device persistence остаются открыты.
+
+**C3v, согласованная карточка результата в профиле — 11 октября МСК:** native
+RED воспроизвёл отличие от /quiz/result: профиль доверял JSON.parse browser
+storage и показывал сохранённый произвольный title вместо canonical content.
+Теперь профиль использует тот же parseSavedQuizResult: валидные ключи/scores/
+blend преобразуются в прежнюю модель карточки; отсутствующие или некорректные
+данные сбрасывают карточку в приглашение пройти тест. Storage не переписывается.
+Новый native browser case проверяет canonical title → CTA → тот же полный итог,
+неизменную исходную запись и null/malformed/unknown-key/invalid-blend → empty card;
+SQL identity fixtures прежние. **30 C1/C2/C3 pass/exit 0**, 17 parser/storage unit
+pass; root/frontend types, lint/default build, API 73 и boundaries 606 проходят.
+Security/React/debugging skills привели к переиспользованию существующего parser,
+без нового формата/миграции/зависимости и без переделки дизайна. Review: small
+client-only boundary, canonical allowlisted metadata, null reset, bounded parse;
+не защита assessment от подделки scores и не изменение авторизации/club policy.
+Own frontend остановлен, own loopback/tmpfs backend_test удалён после exact
+ID/label/tmpfs/127.0.0.1/no-volume/no-OOM проверки. Сценарий локальный через
+transport proxy; focus/session races/media/устройства/A7/deployment открыты.
+
+**C3u, смешанный результат теста — 11 октября МСК:** guest проходит настоящие
+десять вопросов: первые пять cottagecore = 10, последние пять goblincore = 11
+(дом весит 3). Browser проверяет literal primary/secondary, blend и все семь
+scores; обе вкладки меняют canonical title, не перезаписывая итог. /quiz/result
+восстанавливает обе эстетики; reload возвращает primary с прежним storage/
+completedAt. SQL identity fixtures не меняются. Mutation переключателя на
+primary вместо выбранной key даёт focused RED: secondary title отсутствует.
+Mutation снята полностью, production diff пустой; **29 C1/C2/C3 native browser
+pass/exit 0**, root types/default build проходят. Review/TDD: независимые
+hand-selected ответы и literal scores, не вызов calculateResult для ожиданий;
+настоящий browser/Nest/SQL через локальный transport proxy, без внешних медиа,
+платежей, новой схемы/зависимости/правок дизайна. Own frontend остановлен,
+own tmpfs backend_test удалён после exact ID/label/tmpfs/loopback/no-volume/
+no-OOM проверки. Ещё открыты остальные эстетики, границы blend, focus/session
+races, медиа/устройства/transport race/A7 и server/cross-device persistence.
+
+**C3t, повторное прохождение сохранённого результата — 11 октября МСК:**
+member native browser сценарий дополнен: /quiz/result → restart → все десять
+ответов → новый completedAt → reload нового результата. Read-only восстановление
+старого итога не мешает записи нового прохождения. Временная path-only mutation
+записи только на /quiz дала focused RED: completedAt остался прежним на /quiz/result.
+Mutation полностью снята, production diff пустой; восстановленный default build
+и **28 C1/C2/C3 native browser pass/exit 0**, root types проходят.
+Review: проверяется наблюдаемое сохранение/reload, literal cottagecore/21,
+неизменность SQL identity/paid entitlement; используется прежний helper ответов,
+без нового API, схемы, зависимости или изменения дизайна. TDD/verification skills
+ограничили срез regression proof, а не ненужной правкой уже работающего поведения.
+Own frontend остановлен; own loopback/tmpfs backend_test удалён после exact
+ID/label/tmpfs/127.0.0.1/no-volume/no-OOM проверки. Это local transport proxy,
+не server/cross-device persistence или deployment acceptance. Blend/остальные
+эстетики, result focus/session races, media/устройства/transport race/A7 открыты.
+
+**C3s, исправлено повторное открытие результата — 11 октября МСК:** native RED
+воспроизвёл профиль → «Посмотреть результат» → welcome вместо полного итога:
+карточка вела в /quiz, reducer всегда создавал новый welcome. Теперь карточка
+открывает отдельный статический /quiz/result; обычный /quiz по-прежнему начинает
+новый тест. После разрешения session owner экран один раз читает scoped storage,
+валидирует ключи/blend/числовые scores/размер и восстанавливает canonical content,
+а не сохранённые browser titles. Cancel guard не позволяет старому чтению примениться
+после unmount; inspection ref не возвращает старый итог после restart/resume.
+Restored result не записывается повторно: completedAt и исходный storage сохранены.
+Первый query-flag вариант делал /quiz динамическим; заменён отдельной статической
+страницей без нового API/схемы хранения/смены session или club policy.
+**28 C1/C2/C3 native browser pass/exit 0:** настоящая member форма → quiz →
+профиль → click/полный result → reload → restart welcome; прежний итог и SQL
+identity/entitlement сохранены. Новый browser case проверяет absent/malformed/
+invalid saved result → welcome без crash. **15 parser unit pass**; max-score
+mutation 21→22 даёт RED на некорректном score, затем восстановлен GREEN.
+Root/frontend типы, frontend lint/default build, API 73 procedures и boundaries
+606 files проходят. Installed Next/React/security skills сохранили client boundary,
+scoped data и canonical allowlisted content; старый формат записи не мигрировали.
+Review: отдельный result route, короткий parser, cancellation/one-time read,
+явное restore действие, неизменный дизайн и корректный restart; без внешних вызовов.
+Frontend остановлен, own loopback/tmpfs backend_test удалён после exact ID/label/
+port/no mounts/no OOM проверки. Сервер/рабочая БД не обновлялись.
+Cross-device/server persistence, browser blend/другие эстетики, focus/session
+гонки на result route, media/устройства, прежняя transport race и A7 открыты.
+
+**C3r, гостевой результат → вход — 11 октября МСК:** отдельный native case
+проходит весь тест без cookie, подтверждает guest-scoped результат и входит через
+настоящую email/password форму как synthetic paid member. HTTP 200 содержит того
+же member ID; профиль предлагает пройти свой тест, не показывает гостевой title,
+guest key удалён и member key отсутствует. Reload сохраняет пустое состояние;
+SQL identity/credentials/role/sessionVersion и synthetic entitlement прежние.
+**Mutation RED:** сохранение previous-owner данных при owner=null оставляет
+guest key после login; case ловит именно retained result при корректной пустой UI.
+Подмена снята, production diff пуст и default build восстановлен.
+**27 C1/C2/C3 native browser pass/exit 0**, 14 binding skips намеренны;
+типы/default frontend build проходят. Review: отдельный case с настоящей формой,
+независимые UI/storage/SQL assertions, scoped cleanup; политика не изменялась.
+Frontend остановлен, собственный loopback/tmpfs backend_test удалён после exact
+ID/label/port/no mounts/no OOM проверки; внешние доставки/сервер/рабочая БД не тронуты.
+Это client storage/identity проверка, не server persistence. Далее C3: SPA-переходы
+и повторное открытие полного результата из профиля (нынешняя карточка ведёт в
+/quiz, где reducer стартует welcome; нужна отдельная воспроизводимая проверка),
+blend/другие эстетики/media/устройства. Transport race/A7/deployment открыты.
+
+**C3q, очистка результата при выходе и смене аккаунта — 11 октября МСК:**
+отдельный native case входит как synthetic member через настоящую password форму,
+проходит 10 UI вопросов, видит итог в профиле и выходит штатной кнопкой. Cookie
+исчезает, прежний member-scoped quiz result удалён. Вход второго synthetic account
+(существующая admin fixture, без изменения роли) получает пустую эстетику в профиле
+и после reload; чужого title и любых scoped quiz keys нет. SQL credentials/roles/
+sessionVersion обеих fixtures и synthetic paid entitlement неизменны.
+**Mutation RED:** исключение quiz key из previous-owner cleanup сохраняет чужой
+результат после logout; case падает на retained localStorage, не на подменённом API.
+Подмена снята, production diff пуст, default build восстановлен. **26 C1/C2/C3
+native browser pass/exit 0**, 14 binding skips намеренны; типы/default build проходят.
+Review: отдельный короткий case, настоящий login/logout, независимые literal UI
+и storage assertions, parameterized/scoped SQL, без смены политики хранения.
+Frontend остановлен, собственный loopback/tmpfs backend_test удалён после exact
+ID/label/port/no mounts/no OOM проверки; внешние сервисы/сервер/рабочая БД не тронуты.
+Это проверка локальной очистки, не cross-device/server persistence. SPA переходы,
+full result reopen, guest → login, blend/другие эстетики, media/устройства,
+transport race и A7/deployment остаются открыты.
+
+**C3p, тест участницы → профиль — 11 октября МСК:** synthetic member входит
+через настоящую email/password форму (native HTTP 200 и тот же user ID), проходит
+10 UI вопросов и получает cottagecore/21 в member-scoped browser storage.
+Открытие профиля и reload показывают сохранённый literal результат, без предложения
+пройти тест; сохранённый итог, SQL credentials/role/sessionVersion и synthetic
+paid entitlement неизменны. Общий короткий UI helper переиспользует независимые
+ручные ответы из C3o, не production scoring. **Mutation RED:** отключение чтения
+quizRaw в профиле оставляет storage, но новый case падает на отсутствующем
+результате профиля; подмена снята, production diff пуст и default build восстановлен.
+**25 C1/C2/C3 native browser pass/exit 0**, 14 binding skips намеренны; типы и
+default frontend build проходят. Review: отдельный member case без mode branches
+в guest case, literal expected score/title, parameterized SQL и scoped cleanup.
+Frontend остановлен, собственный loopback/tmpfs backend_test удалён после exact
+ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД/внешние доставки не
+затронуты. Это локальный клиентский результат, не server persistence/приёмка
+deployment. Смена аккаунта, SPA-переходы/повторное открытие полного результата,
+blend/другие эстетики, устройства/media, прежняя transport race и A7 ещё открыты.
+
+**C3o, гостевой тест эстетики — 11 октября МСК:** отдельный quiz helper проходит
+10 настоящих UI вопросов с вручную выбранными cottagecore ответами. На каждом
+шаге next заблокирован до выбора, выбранный answer отмечен aria-pressed; результат
+показывает literal title и club CTA. Guest-scoped browser storage содержит
+primary cottagecore/21 балл (9×2 + 3), остальные нули, без blend/secondary и с
+валидной датой. Restart сбрасывает выбранные ответы, сохраняя последний итог;
+reload возвращает welcome и сохраняет этот итог. SQL identity fixtures прежние.
+**Mutation RED:** удаление записи результата поймано poll отсутствующего storage;
+production восстановлен, default-off frontend build восстановлен и проходит.
+**24 C1/C2/C3 browser pass/exit 0**, типы проходят, 14 binding skips намеренны.
+Quiz расчёт/результат сейчас клиентские: это UI/local-storage доказательство
+в настоящем native fixture, **не серверное хранение результата** и не приёмка
+всех семи эстетик/blend. Review: literal выборы/ожидания не вычисляются production
+scoring helper, отдельный короткий helper, без production изменений и mock API.
+Frontend остановлен; собственный loopback/tmpfs backend_test удалён после exact
+ID/label/port/no mounts/no OOM проверки; внешние сервисы/сервер/рабочая БД не
+затронуты. Member quiz/profile отображение, identity switching, другие C3 экраны,
+реальные устройства/media, прежняя transport race и A7/deployment открыты.
+
+**C3n, статья для оплаченной участницы — 11 октября МСК:** новый focused
+library case с настоящей member cookie/SQL entitlement проверяет direct article
+HTTP 200/unlocked/literal sections → body в UI → reload с тем же body и прежней
+оплатой. Затем expiresAt меняется только у synthetic own entitlement: reload
+получает locked=true/sections=[] и приглашение в клуб, прежний body отсутствует.
+Статья/credentials/role/sessionVersion неизменны, HTTP чтения не меняют оплату.
+**Два mutation RED:** отказ всем paid users и обход проверки срока при наличии
+user пойманы противоположными wire assertions; обе подмены сняты. Первоначальный
+selector ожидал одноэлементный tRPC batch; реальный subscription read добавляет
+второй result, поэтому detail выбирается по independent literal article ID.
+Test-only DDL переиспользован двумя library cases, production не менялся.
+Первый общий прогон: 23 assertions pass, но exit 1 из-за прежней unhandled
+`route.fulfill: Route is already handled!` на C1 moderator dismiss fixture —
+он **не считается GREEN**. Focused library + moderator **3 pass/exit 0**, затем
+общий **23 C1/C2/C3 pass/exit 0**, типы проходят. Причина редкой transport race
+по-прежнему не установлена; её не подавляли и не объявляли исправленной.
+Review: настоящий paid read и expiry denial, минимальный wire selector, literal
+текст, scoped cleanup статьи и synthetic order; без worker/payment/email calls.
+Frontend остановлен; собственный loopback/tmpfs backend_test удалён после exact
+ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД не затронуты.
+Live expiry без reload, article account switching, реальные media/устройства,
+другие C3 экраны, A7/deployment и transport race ещё открыты.
+
+**C3m, корректное отсутствие статьи — 11 октября МСК:** C3l native browser
+проверка сначала воспроизвела RED: unpublished detail HTTP 200 с undefined
+показывает query error вместо «Статья не найдена». Причина — React Query не
+принимает undefined как успешные data. Страница теперь нормализует только
+успешное отсутствие в null до попадания в Query cache, через настоящий typed
+tRPC client; backend/wire/генерированный контракт не менялись. Сохранены
+канонический getQueryKey, query defaults, AbortSignal и прежний invalid-ID guard;
+ошибки не перехватываются. Выбран локальный consumer adapter вместо изменения
+legacy API/null/404 или глобального error suppression. Installed Next guides
+и API/React skills использованы для сохранения client boundary и контракта.
+**22 C1/C2/C3 native browser GREEN/exit 0:** unpublished и отсутствующий ID
+показывают not-found без retry кнопки; транспортный сбой опубликованной статьи
+показывает retry, не not-found, и явный повтор возвращает настоящий HTTP 200/body.
+Public/back и club gate, отсутствие утечек и неизменность SQL сохранены.
+Root/frontend типы, frontend lint/default-off build, API contract и boundaries
+проходят. Review: узкий screen adapter, отсутствие catch, прежняя очистка cache
+при смене identity, реальные браузер/Nest/SQL; дизайн и access policy не менялись.
+Frontend остановлен; собственный loopback/tmpfs backend_test удалён после exact
+ID/label/port/no mounts/no OOM проверки. Не было выкладки/рабочей БД/внешних
+сервисов. Далее paid article/reload/expiry и остальные C3 экраны; media/устройства,
+редкая transport race, A7 и deployment ограничения остаются открыты.
+
+**C3l, гостевая библиотека — 11 октября МСК:** отдельный focused helper проверяет
+native articles list HTTP 200, поиск опубликованной public карточки, открытие
+body и возврат в библиотеку. Club/draft карточки отсутствуют; прямой club URL
+возвращает locked=true/sections=[] и UI приглашения, без private body.
+Прямой draft URL не раскрывает body ни по HTTP, ни в UI; все три SQL статьи
+неизменны. **Mutation RED:** обход club access возвращает private sections и
+ловится независимым wire assertion; подмена снята. Первые fixture ошибки
+(два responsive search input и batched tRPC envelope) исправлены по actual
+DOM/wire, без изменения production. **22 C1/C2/C3 native browser GREEN/exit 0**,
+типы проходят; 14 binding cases исключены в default-off build. Review: отдельный
+library helper вместо разрастания comments fixture, реальный API/SQL, literal
+bodies, scoped cleanup; production/дизайн/контракты не менялись.
+**Диагностика перед C3m (исправление выше):** при unpublished detail API возвращает undefined
+(wire json:null + superjson meta undefined), а React Query показывает «Повторить»
+вместо предусмотренного «Статья не найдена». Это воспроизведённый UX дефект,
+не принятая готовность not-found: C3l проверяет только отсутствие раскрытия и
+явное error состояние. Нужен отдельный RED/GREEN с проверенным detail контрактом;
+не маскировать ошибку snapshot/mock ответом. Paid article/reload/expiry, реальные
+media/устройства и остальные экраны остаются открыты. Frontend остановлен;
+свой loopback/tmpfs backend_test удалён через --rm после exact ID/label/port/
+no mounts/no OOM проверки; сервер/рабочая БД/внешние сервисы не затронуты.
+Прежняя редкая transport race и A7/deployment ограничения сохраняются.
+
+**C3k, лайк комментария — 11 октября МСК:** normal/lost-write native own-comment
+кейсы дополнены UI like HTTP 200 → одна SQL like строка с memberId/commentId →
+pressed=true и literal счётчик 1 → reload → unlike HTTP 200 → pressed=false и
+SQL likes пусто. Сам comment неизменен; последующие CRUD/identity/expiry проверки
+сохранены. **Mutation RED:** запись лайка на чужой actorId поймана независимым
+SQL assertion, подмена снята. Первый counter selector ошибочно включал icon
+glyph; после чтения renderer проверяется отдельный видимый текст 1, не внутренний
+код иконки. **21 C1/C2/C3 native browser GREEN/exit 0**, затем после добавления
+scoped likes cleanup ещё **2 own-comment cases GREEN**, типы проходят. 14 binding
+cases исключены в default-off build. Review: реальный toggle/read/SQL, явный
+автор лайка, cleanup только likes собственных comments до удаления fixtures;
+production/дизайн/контракты не менялись. Frontend остановлен; свой loopback/tmpfs
+backend_test удалён через --rm после exact ID/label/port/no mounts/no OOM проверки.
+Сервер/рабочая БД/внешние сервисы не затронуты. Comment-like account switching,
+чужой reply/push, фото/прочие экраны/устройства, прежняя редкая transport race
+и A7/deployment ограничения остаются открыты.
+
+**C3j, ответ на собственный комментарий — 11 октября МСК:** обычный native
+own-comment case дополнен reply/cancel. Cancel ответа сохраняет текст draft,
+не добавляя строк; повторный выбор «Ответить» и send HTTP 200 создают ровно одну
+child запись с parentId исходного root, тем же post/автором и literal текстом.
+Root неизменен, форма очищена, reload показывает ответ. Собственный child
+удаляется через настоящий member API; SQL и следующий reload сохраняют только
+root перед уже проверенными edit/delete шагами. **Mutation RED:** потеря
+parentId поймана SQL assertion; подмена снята. **21 C1/C2/C3 native browser
+GREEN/exit 0**, типы проходят; 14 binding cases намеренно исключены в default-off
+build. Review: независимый parent ID/текст, реальные UI/Nest/SQL, две ожидаемые
+add записи и точечное удаление своего child; production/дизайн не менялись.
+Ответ самому себе выбран намеренно: ветка внешнего reply push не вызывается.
+Ответ другому автору/его уведомление, фото и другие C3 экраны пока не приняты.
+Frontend остановлен; свой loopback/tmpfs backend_test удалён через --rm после
+exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД/внешние сервисы
+не затронуты; прежняя редкая transport race и A7/deployment ограничения остаются.
+
+**C3i, потерянный ответ удаления комментария — 10 октября:** тот же native
+own-comment кейс проверяет confirm delete → настоящий HTTP 200/SQL commit →
+transport abort. До явного refresh UI сохраняет прежний comment, после него
+канонический список пуст, unknown guard снят. Reload не возвращает запись;
+форма снова доступна. В сценарии ровно по одному add/update/delete POST,
+без автоматического повторного удаления. Cancel удаления по-прежнему сохраняет
+строку. **Mutation RED:** неверный delete predicate оставляет SQL comment и
+ловится lost-reply проверкой; predicate восстановлен. **21 C1/C2/C3 native
+browser GREEN, exit 0**, типы проходят; 14 binding cases намеренно исключены
+в default-off build. Ранее отмеченная редкая C1 transport race в этом прогоне
+не повторилась, но её общий fixture limitation не объявлен устранённым.
+Review: fault после commit, настоящий canonical read, SQL отсутствие + UI/reload,
+сохранённые credentials/role/sessionVersion/expiry, scoped cleanup; production
+и дизайн не менялись. Frontend остановлен; свой loopback/tmpfs backend_test
+удалён через --rm после exact ID/label/port/no mounts/no OOM проверки.
+Сервер/рабочая БД/внешние сервисы не затронуты. Reply/photos, остальные C3
+экраны/навигация, физические устройства и A7/deployment остаются открыты.
+
+**C3h, потерянный ответ изменения комментария — 10 октября:** тот же native
+own-comment сценарий теперь теряет и update ответ строго после HTTP 200/SQL
+commit. Editor сохраняет draft и блокирует save; explicit refresh получает
+canonical edited строку и снимает guard. Закрытие editor через cancel не
+откатывает уже сохранённый текст; UI/reload показывают его с прежним ID/автором.
+Всего один update POST, без автоматического retry; identity/expiry сохранены.
+**Mutation RED:** повреждённый update текст пойман SQL в lost-reply case;
+подмена снята. Первый общий прогон: 21 assertion pass, но exit 1 из-за одного
+необработанного «Route is already handled» в существующем C1 moderator transport.
+Это не принято за GREEN и не подавлено. Focused moderator + lost-write — 2 pass;
+повтор всей C1/C2/C3 группы — **21 pass, exit 0, без unhandled errors**; типы
+проходят, 14 binding cases намеренно исключены в default-off build. Причина
+редкой transport race не установлена, она остаётся fixture limitation для
+общей приёмки; production/teardown не менялись. Review: реальный commit/read,
+literal edited text, отдельный update count, сохранение cancelled edit semantics.
+Frontend остановлен; свой loopback/tmpfs backend_test удалён через --rm после
+exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД/внешние сервисы
+не затронуты. Reply/photos/lost delete, остальная навигация/устройства и
+A7/deployment открыты; local transport proxy не является выкладкой.
+
+**C3g, потерянный ответ отправки комментария — 10 октября:** предыдущий own
+comment browser case параметризован для обычного ответа и transport abort
+строго после настоящего native add HTTP 200/SQL commit. При lost reply текст
+сохранён в форме, повторная отправка заблокирована; явное «Обновить комментарии»
+читает уже существующую запись, но не снимает send guard. Cancel отказа сохраняет
+draft; confirm отказа очищает draft, не удаляя отправленную строку. Всего один
+add POST и один SQL comment; затем прежние reload/edit/delete проверки проходят.
+Это fail-closed восстановление через список, не новый idempotent add/replay API.
+**Mutation RED:** повреждение текста insert ловится SQL assertion именно в
+lost-reply case; подмена снята. **21 C1/C2/C3 native browser GREEN**, типы
+проходят; 14 binding cases намеренно исключены в неизменённом default-off build.
+Review: fault только transport после commit, реальные Nest/SQL и отдельный
+write count, literal текст/автор/ID, scoped cleanup. Production/дизайн не менялись.
+Frontend остановлен; свой loopback/tmpfs backend_test удалён через --rm после
+exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД/внешние сервисы
+не затронуты. Reply/photos, потерянный ответ edit/delete, полная навигация,
+физические устройства и A7/deployment остаются открыты; local proxy не выкладка.
+
+**C3f, запрет чужого редактирования — 10 октября:** два test-only native
+browser/API/SQL кейса для обычного участника и администратора. Собственный
+синтетический paid fixture обеспечивает читаемость club поста, чтобы запрет
+не маскировался отсутствием подписки. Чужой текст виден, UI не предлагает edit;
+прямой browser POST с настоящей cookie получает 403, без cookie — 401. Полная
+строка комментария, credentials/role/sessionVersion/blockedAt и paid expiry
+сохраняются. **Mutation RED:** снятие проверки автора даёт HTTP 200 для обеих
+ролей и ловится тестами; проверка восстановлена. Первый GREEN выявил неверное
+test ожидание полного users snapshot: SDK штатно обновляет lastSignedIn на
+authenticated request. Проверяется неизменность identity/security полей, а не
+запрет этой активности; production не менялся. **20 C1/C2/C3 browser GREEN**,
+типы проходят, 14 binding cases намеренно исключены в default-off build.
+Review: реальные HTTP/SQL, parameterized scoped fixtures/cleanup, member/admin
+авторство без расширения ролей; секреты и внешние сервисы не использовались.
+Frontend остановлен; свой loopback/tmpfs backend_test удалён через --rm после
+exact ID/label/port/no mounts/no OOM проверки. Reply/photos/lost-response,
+остальная навигация/устройства и A7/deployment остаются открыты; local transport
+proxy не является проверкой серверной выкладки.
+
+**C3e, редактирование своего комментария — 10 октября:** расширен предыдущий
+native browser/API/SQL case без production изменений. UI edit показывает
+исходный текст; cancel сохраняет SQL/UI. Save получает настоящий update HTTP
+200, меняет только текст той же строки с прежними ID/автором/parent/photos;
+reload сохраняет правку. Дальнейшее cancel/confirm удаления и неизменность
+credentials/role/sessionVersion/paid expiry проверяются уже на edited записи.
+**Mutation RED:** подмена сохранённого edit текста поймана независимым SQL
+assertion; подмена полностью снята. **18 C1/C2/C3 native browser GREEN**, типы
+проходят; 14 binding cases намеренно исключены в неизменённом default-off build.
+Review: literal edited text, настоящий UI/Nest/SQL, существующий scoped fixture
+и точечный cleanup, без новых зависимостей или изменений дизайна/контрактов.
+Frontend остановлен, свой loopback/tmpfs backend_test удалён через --rm после
+exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД/внешние сервисы
+не затронуты. Чужой edit/negative authorization, reply/photos/lost-response,
+остальная C3 навигация, физические устройства и A7/deployment остаются открыты.
+Local transport proxy не означает приёмку на сервере.
+
+**C3d, комментарий участницы — 10 октября:** test-only native browser/API/SQL,
+отдельный comment helper с общим fixture lifecycle. Member SDK cookie +
+собственная paid запись; UI «Комьюнити» → add HTTP 200 → один SQL root comment
+с тем же текстом/автором, без фото → reload. Cancel удаления сохраняет строку,
+confirm удаляет её; credentials/role/sessionVersion/paid expiry не меняются.
+Onboarding не входит в срез: собственный user-scoped completed marker задаётся
+в browser fixture. Первые отказы выявили profile-setup overlay и неверный
+unscoped marker, который storage намеренно удаляет; fixture использует текущий
+scoped key, без production изменения. **Mutation RED:** потеря текста на insert
+поймана независимым SQL assertion; подмена снята. **18 C1/C2/C3 native browser
+GREEN**, типы проходят; 14 binding cases намеренно исключены в неизменённом
+default-off build. Review: настоящие UI/Nest/SQL, подтверждение destructive
+действия, один автор/ID, точечный comment/post cleanup. Root comment не запускает
+reply push; внешние media/push/mail/платежи не использовались. Frontend остановлен,
+свой loopback/tmpfs backend_test удалён через --rm после exact ID/label/port/
+no mounts/no OOM проверки. Сервер/рабочая БД не затронуты. Edit/reply/photos/
+lost-response комментариев, Библиотека/тест/полная навигация, устройства и
+A7/deployment остаются открыты; local transport proxy — не выкладка.
+
+**C3c, публичный поиск ленты — 10 октября:** test-only native browser/API/SQL,
+гостевой контекст без cookie. Matching feed/both появляются после настоящего
+paginated HTTP 200; unrelated пост исчезает, matching club и legacy draft с
+published=1 не показываются. Несуществующий query возвращает пустую ленту;
+«Очистить поиск» восстанавливает публичные записи. SQL всех собственных posts
+не меняется. **Mutation RED:** удалённый search predicate оставляет unrelated
+card, независимый UI assertion ловит ошибку; подмена полностью снята. Во время
+RED обнаружена отдельная неполнота schema fixture: feed.tags читает tags,
+которой не было в content helper. Добавлена таблица только в этом test fixture,
+и теперь native tags HTTP 200 проверяется явно; production не менялся.
+**17 C1/C2/C3 native browser GREEN**, типы проходят; 14 binding cases намеренно
+исключены в неизменённом default-off build. Review: реальный debounce/query/API/
+SQL без mock ответов, отдельные literal markers, scoped cleanup, публичные
+publication/target gates сохранены. Frontend остановлен; собственный loopback/
+tmpfs backend_test удалён через --rm после exact ID/label/port/no mounts/no OOM.
+Сервер/рабочая БД/внешние сервисы не затронуты. C3 comments/media, Библиотека/
+тест/полная навигация и физические устройства/A7/deployment остаются открыты.
+
+**C3b, категории сохранённого и границы доступа — 10 октября:** test-only
+native browser/API/SQL. Собственные feed/club/both/draft/scheduled fixtures,
+настоящая member SDK cookie (password login уже проверен C3a). Native
+feed.savedPosts отдаёт только три published записи. Profile default feed
+показывает feed+both, вкладка «Из клуба» — club+both; reload возвращает feed.
+Draft/scheduled с историческим published=1 исключены. После SQL expiry только
+собственного paid fixture native saved HTTP исключает club, но сохраняет
+feed/both и все исходные saved SQL строки; identity неизменна. Это не ожидание
+wall-clock и не provider renewal. **Mutation RED:** обход hasClub в saved-read
+ловится лишним club ID после expiry; подмена снята. Снятие одного service
+status filter само по себе не даёт RED: repository независимо фильтрует
+publication; обе защиты восстановлены. **16 C1/C2/C3 native browser GREEN**,
+типы проходят; 14 binding cases намеренно исключены в неизменённом default-off
+build. Review: literal ID/category ожидания, настоящий HTTP/SQL, marker cleanup,
+никаких новых ролей/прав или изменений subscription semantics. Frontend
+остановлен; собственный loopback/tmpfs backend_test удалён через --rm после
+exact ID/label/port/no mounts/no OOM проверки. Production diff пуст, сервер/
+рабочая БД/внешние сервисы не затронуты. C3 comments/media/полная навигация,
+физические устройства и A7/deployment остаются открыты.
+
+**C3a, лайки/сохранения и смена аккаунта — 10 октября:** test-only native
+browser/API/SQL, отдельный helper с общим fixture lifecycle. Обычный password
+login участницы → like/save → SQL по её ID → reload → явный logout → обычный
+login другого аккаунта. У второго аккаунта оба действия не выбраны даже после
+reload, строки первого сохранены; повторный login первой участницы восстанавливает
+оба состояния. Credentials/roles/sessionVersion и оплаченный срок неизменны.
+Первый отказ был ошибкой оснастки: неоплаченный profile закрыт и не содержит
+logout UI. Для сценария участницы добавлена собственная синтетическая paid
+запись; production gate не менялся. **Mutation RED:** снятый userId filter
+saved-post read показывает другому аккаунту выбранное сохранение; browser
+assertion ловит утечку. Подмена снята, production diff пуст. **15 C1/C2/C3
+native browser GREEN**, типы проходят; 14 binding cases намеренно исключены
+в неизменённом default-off build. Review: настоящие scrypt/login/cookie/SQL,
+изолированный user read, scoped post cleanup и общий cleanup paid fixture;
+без mock состояния, изменения auth/ролей/подписок и внешних сервисов.
+Frontend остановлен; свой loopback/tmpfs backend_test удалён через --rm после
+exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД не затронуты.
+C3 saved-category/profile listing, comments/media, навигация/устройства и
+A7/deployment остаются открыты; local transport proxy — не серверная приёмка.
+
+**C2e, due schedule → публичная лента — 10 октября:** test-only native browser/
+API/SQL. Пост создаётся в редакторе как scheduled и скрыт от public feed.list;
+только собственная синтетическая строка SQL переводится на прошедший срок.
+Настоящий scheduler core возвращает один committed batch, SQL сохраняет
+scheduledAt и ставит publishedAt равным исходному сроку; public HTTP возвращает
+один пост с тем же ID/текстом. Повторный tick пуст и не меняет строку;
+admin reload показывает «Опубликован». Это проверка core handoff, не ожидание
+реального времени и не worker/внешние announcements. **Mutation RED:** временный
+status=draft в scheduler ловится независимым SQL assertion; подмена снята,
+production diff пуст. **14 C1/C2 browser GREEN**, типы проходят; 14 binding
+cases намеренно исключены в default-off build (их неизменённая active регрессия
+сохранена предыдущим срезом). Review: literal даты, настоящее публичное HTTP,
+серийный повтор без дубля, точечный marker/actor cleanup; concurrency не
+объявлена новой проверкой. Default-off build не менялся, frontend остановлен;
+собственный loopback/tmpfs backend_test удалён через --rm после проверки exact
+ID/label/port/no mounts/no OOM. Сервер/рабочая БД/внешние доставки не затронуты.
+C2 media/devices/worker delivery и A7/deployment остаются открыты.
+
+**A6/C1/C2, общая регрессия после Moscow fixture — 10 октября:** active
+frontend build с NEXT_PUBLIC_MEMBER_EMAIL_BINDING_ENABLED=true; все **27 native
+browser/API/SQL cases GREEN**, включая 14 binding и 13 C1/C2, без skipped cases.
+Настоящий loopback SMTP, read-only переход по ссылке, явное подтверждение и
+существующий парольный вход повторно проверены вместе с admin/moderator/member
+и editor сценариями после изменения browser timezone. Это закрывает локальную
+active-build регрессию, оставленную C2d; не означает включение на сервере.
+Тесты и production код не менялись, дополнительная mutation не нужна для
+неизменённых assertions. Local transport proxy не подтверждает deployment
+proxy; A6/Checkpoint A/A7, due publication delivery/media/devices остаются
+открыты. Default-off frontend build восстановлен, frontend остановлен;
+собственный loopback/tmpfs backend_test удалён через --rm после exact
+ID/label/port/no mounts/no OOM проверки. Рабочая БД, сервер, внешние платежи
+и письма не затронуты. Review: только доказательства в существующих планах,
+без расширения критериев готовности и без смены флагов в исходниках.
+
+**C2d, будущая дата публикации — 10 октября:** test-only native browser/API/SQL.
+Browser context явно Europe/Moscow, UTC ожидания заданы независимо: UI
+2037-01-02 10:15 → SQL 07:15; после edit 2037-01-03 11:30 → SQL 08:30.
+Create/edit/reload сохраняют один ID, status=scheduled, published=0 и NULL
+publishedAt. Два настоящих scheduler core ticks до срока возвращают пустой batch
+и не меняют строку; native public feed.list = 200 без будущего поста. Worker и
+внешние announcements не запускались: доставка/публикация в момент срока этим
+срезом не объявлены проверенными. **Mutation RED:** дополнительный +3h в create
+пойман SQL assertion; подмена полностью снята. **13 C1/C2 browser + 3 content
+SQL GREEN**, типы проходят. 14 binding cases осознанно не запускаются в этом
+default-off frontend срезе; общая A6 регрессия после явного timezone fixture
+остаётся отдельной active-build проверкой. Review: фиксированный browser timezone,
+literal UTC timestamps, SQL и public HTTP, no clock mock/no external writes,
+cleanup собственных marker/actor и intents. Production/UI/build не менялись.
+Frontend остановлен, собственный loopback/tmpfs backend_test удалён через --rm
+после exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД не затронуты.
+C2 media/полный scheduled lifecycle/устройства и A7/deployment остаются открыты.
+
+**C2c, парольный вход администратора и смена аккаунта — 10 октября:** test-only
+native browser/API/SQL; начальная SDK cookie удалена, оба аккаунта используют
+реальный scrypt hash синтетического пароля. Обычная login форма даёт native 200,
+того же admin и HttpOnly/Lax cookie; localStorage session token отсутствует.
+Reload сохраняет доступ к редактору, текст вводится без публикации. После выхода
+cookie исчезает и admin route требует вход; обычный member login не возвращает
+owner controls даже после reload. Прямые native admin.posts/createPost дают 403;
+SQL не содержит непубликовавшийся/запрещённый текст, credentials/roles/sessionVersion
+обоих аккаунтов сохранены. **Mutation RED:** временный отказ passwordUser для admin
+ловится HTTP 401 вместо 200; подмена полностью снята. **12 C1/C2 browser GREEN**,
+типы проходят. Review: реальные password/session/SQL, identity snapshot исключает
+ожидаемое lastSignedIn, без обхода ролей, no client token. Вместе с C2a локально
+проверены основные login/role/draft CRUD сценарии трёх старых skipped кейсов;
+исходный prepared-dev набор не запускался и не объявлен выполненным. Local
+transport proxy не подтверждает deployment, физические устройства/media/scheduled
+и C2 в целом остаются открыты. Production auth/UI/build/flags не менялись.
+Frontend остановлен; собственный loopback/tmpfs backend_test удалён через --rm
+после exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД не затронуты.
+
+**C2b, потеря ответа после создания — 10 октября:** test-only browser/native API/
+SQL. Route fetch выполняет настоящий create до commit/200, только затем ответ
+теряется (abort). UI сохраняет текст и показывает ошибку; обычный Save закрыт,
+автоматического второго write нет. Явная «Проверить сохранение» повторяет точный
+create с прежним ключом, возвращает тот же post ID; SQL содержит одну draft
+запись и один durable creation intent. Редактор закрывается, reload читает пост.
+Первое ожидание доступного Save было неверным: coordinator/recovery намеренно
+требуют отдельную проверку результата. Оснастка приведена к этому существующему
+контракту, production исправления не было. **Mutation RED:** удалённый временно
+return existing postId создаёт второй пост; SQL assertion ловит дубль. Подмена
+полностью снята. **11 C1/C2 native browser GREEN**, типы проходят; неизменные
+36 SQL creation cases прошлого среза не повторялись без причины.
+Review: fault только после реального commit, без mock ответа, capture двух
+одинаковых ключей, независимое число SQL записей, явное действие пользователя,
+cleanup собственных marker/actor и intents. Local transport proxy не означает
+deployment acceptance; обычный admin login/media/scheduled и C2 остаются открыты.
+Default-off build не менялся. Frontend остановлен, собственный loopback/tmpfs
+backend_test удалён через --rm после exact ID/label/port/no mounts/no OOM проверки.
+Рабочая БД, сервер, внешние медиа/письма/платежи не затронуты.
+
+**C2a, черновик публикации — 10 октября:** первый test-only native editor срез,
+использует общий браузер/Nest/SQL lifecycle в отдельном admin-post helper.
+Создание через UI сохраняет одну manual feed запись со status=draft/published=0;
+reload читает её, редактирование сохраняет тот же ID и новый текст без дубля.
+Отмена удаления не пишет SQL, confirm удаляет запись, повторный reload её не
+возвращает. Cleanup ограничен синтетическим marker и actor/post ID, включая
+creation intent. Первый отказ был ошибкой оснастки: видимость редактора предшествует
+асинхронному восстановлению draft; как в существующих editor tests, теперь ждём
+снятия inert, а не произвольную задержку. Production исправление не потребовалось.
+**Mutation RED:** принудительный published=true при создании ловится независимым
+SQL ожиданием; подмена полностью снята. **10 C1/C2 browser + 36 creation SQL/HTTP
+GREEN**, типы проходят. Review/TDD: literal draft contract, SQL после реального
+UI, один existing lifecycle, без mock ответов/медиа/внешних запросов. Скилл
+systematic-debugging отделил readiness оснастки от production bug. Неизменный
+default-off frontend build использован повторно. Cookie предварительно создана
+native SDK: обычный admin password login этим кейсом не проверен; три прежних
+frontend real-API кейса не объявлены полностью закрытыми. C2 media/scheduled/
+loss-of-response и физические устройства, C1/A7/deployment остаются открыты.
+Frontend остановлен, собственный loopback/tmpfs backend_test удалён через --rm
+после exact ID/label/port/no mounts/no OOM проверки. Сервер/рабочая БД не затронуты.
+
+**C1h, блокировка автора из жалобы — 10 октября:** test-only native browser/API/
+SQL срез moderator. Отмена prompt не меняет blocked/session/audit/cancellation;
+старый member JWT продолжает читать клуб. Confirm блокирует именно автора,
+сохраняет trim reason, увеличивает sessionVersion и отзывает старый JWT (401).
+Account identity/пароль/phone/role и paid expiry не меняются; report/comment
+сохранены, reload не снимает блокировку, actor не блокируется. Одна block_user
+audit и pending cancelRequestedAt, но cancelledAt остаётся NULL: provider
+не подтверждал отмену, worker не запускался, SMTP пуст.
+**Mutation RED:** временное удаление queueCancellationForUser ловится отсутствием
+cancelRequestedAt; production подмена полностью снята. **9 C1 browser + 8
+moderation audit SQL/HTTP GREEN**, типы проходят. Review: scoped target/card,
+ожидание настоящего HTTP ответа до SQL assertions, независимые literal ожидания,
+общий fixture lifecycle и cleanup только собственных ресурсов. Default-off build
+не менялся; transport proxy не является deployment acceptance. C1/A7/deployment
+остаются открыты; далее сверить остаток C1 и перейти к независимым C2 сценариям.
+Frontend остановлен; собственный loopback/tmpfs backend_test удалён через --rm
+после exact ID/label/port/no mounts/no OOM проверки. Рабочая БД/сервер не затронуты.
+
+**C1g, удаление комментария модератором — 10 октября:** test-only browser
+срез через настоящий Nest/SQL. Отмена confirmation оставляет комментарии,
+жалобы, likes и audit неизменными. Подтверждение удаляет только parent и его
+жалобу/like, сохраняет reply как root вместе с его жалобой и like. Записывается
+ровно один delete_reported_comment audit; reload сохраняет результат, аккаунт
+автора неизменен, SMTP пуст. **Mutation RED:** временно оставленный parentId
+удалённого parent ловится SQL assertion; production подмена полностью снята.
+**8 C1 browser + 5 moderation transaction SQL/HTTP GREEN**, типы проходят.
+Review: scoped report selectors, независимые literal ожидания, cleanup только
+собственных IDs, общий native fixture lifecycle без новых mock ответов.
+Неизменившаяся default-off production frontend сборка использована повторно;
+local transport proxy не подтверждает серверную выкладку. C1/deployment и A7
+по-прежнему открыты. Frontend остановлен; собственный loopback/tmpfs backend_test
+удалён через --rm после exact ID/label/port/no mounts/no OOM проверки. Рабочая
+БД, сервер и чужие ресурсы не затронуты.
+
+**C1f, первая ручная выдача — 10 октября:** независимый test-only срез админки
+пока A7 ждёт reviewed миграции/rollout. Browser cancel оставляет SQL неизменным
+и member club.list = 403. Confirm создаёт одну zero-sum paid запись на 31 день
+от текущего момента, игнорируя pending заказ с expiry 2035; исходный заказ не
+переписывается. Тот же member JWT получает 200, reload показывает оплаченный срок
+и кнопку продления. Пароль/роль/phone/openId/sessionVersion/блокировка сохранены;
+администратору доступ не выдаётся, outbox/password tokens/SMTP не создаются.
+**Mutation RED:** снятие paid filter в grant core ошибочно учитывает pending
+2035; новый тест ловит неверный срок. Подмена полностью снята, production код
+не изменён. **7 C1 browser + 23 grants SQL/HTTP GREEN**, типы проходят.
+Два начальных fixture диагностических отказа уточнили ожидания: auth probes
+могут обновлять lastSignedIn, MySQL DATETIME округляет до секунды. Проверяются
+credential/authority invariants и независимый 31-day clock interval ±1 секунда.
+Review/TDD: только собственные users/orders, scoped member selectors, cancel
+без write, реальный API/SQL вместо mock; local transport proxy не означает
+deployment acceptance. C1 и полный этап пока не закрыты.
+54 docs проходят, default-off build не менялся. Локальный frontend остановлен;
+собственный loopback/tmpfs backend_test удалён через `--rm` после exact ID/label/
+port/no mounts/no OOM проверки. Сервер/рабочая БД/чужие ресурсы не затронуты.
+
+**A6 fixture decomposition — 10 октября:** перед следующим acceptance срезом
+три recipient сценария и MIME reader вынесены из 945-line browser fixture в
+отдельный test-only модуль. Основной lifecycle остаётся единственным; callback
+читает новый context каждого beforeEach, SQL/SMTP/server cleanup не дублируется.
+Главный файл 702 строки, recipient модуль 290. Три сценария GREEN до переноса,
+все 20 native browser/API/SQL/SMTP GREEN после. Assertion bodies сохранены;
+автоматическая AST-сверка исключает только начальный fixture destructuring.
+Начальная проверка типов выявила Promise<Locator> у send; интерфейс исправлен
+без изменения поведения. Production/UI/flags не менялись. Скилл simplification
+определил отдельный механический коммит и проверку до/после, не новый функционал.
+Типы, 604 boundaries, active/default frontend builds проходят. Default-off build
+восстановлен, frontend остановлен. Собственный loopback/tmpfs backend_test удалён
+через `--rm` после exact ID/label/port/no mounts/no OOM проверки. Внешней почты,
+рабочего SQL, серверных изменений и чужих ресурсов этот срез не касается.
+
+**A6d, обычный вход после привязки — 10 октября:** новый test-only native browser
+сценарий использует настоящий scrypt hash прежнего пароля и loopback SMTP MIME.
+После read-only entry и явного confirm guest не получает session cookie; аккаунт
+изменяет только email, старый member JWT продолжает читать обновлённый профиль.
+Ссылка «Перейти ко входу» открывает существующую production email-форму: прежний
+пароль даёт native 200, host-only HttpOnly/Lax cookie и тот же user/openId/phone.
+Browser auth/me и club.list успешны; role/sessionVersion/passwordHash/оплаченная
+строка сохранены. Нет нового аккаунта, password token или повторного письма.
+**Mutation RED:** временный отказ password login для phone account даёт 401,
+новый тест ловит отказ именно login; подмена полностью снята. **39 GREEN**:
+20 browser/API/SQL/SMTP + 19 native session cases. Production auth/UI не менялись.
+Transport proxy остаётся локальным тестовым транспортом, не deployment acceptance;
+A6/Checkpoint A/A7/rollout открыты для оставшейся приёмки и reviewed включения.
+Review: реальные hash/JWT/cookie/SQL/SMTP, независимые identity/access ожидания,
+recipient без cookie до обычного входа, cleanup только собственных ресурсов.
+Скиллы TDD/verification помогли проверить mutation и отличить тестовую приёмку
+от нового исправления: production change здесь не потребовался.
+Типы, active/default frontend builds и 54 docs проходят. Default-off build
+восстановлен, локальный frontend остановлен. Собственный backend_test tmpfs
+контейнер удалён через `--rm` после exact ID/label/port/mount/OOM проверки;
+чужие ресурсы не затронуты. Перед расширением 945-line browser fixture дальше
+выделить recipient acceptance в отдельный test-only модуль.
+
+**A6c3, согласованный вход из веб-почты — 10 октября:** пользователь явно
+разрешил только read-only GET document navigation на `/api/auth/email-binding`.
+Existing email-page predicate расширен ровно этим путём (optional trailing `/`):
+без Origin, `navigate` + `document`. Untrusted Origin, POST/HEAD, fetch/iframe,
+соседние пути и CORS сохраняют прежние запреты. Default-off flag не включён.
+**2 raw HTTP RED → 12 policy GREEN**; removal mutation вызывает browser RED.
+**60 focused pass**: 22 security + 19 native HTTP/SQL + 19 browser/SQL/SMTP.
+SMTP link открывается без смены пути через local transport proxy; отдельный
+synthetic webmail document открывает native backend напрямую с test-only сменой
+origin, реальные Chromium cross-site/navigate/document headers проверены на wire.
+Оба GET не меняют аккаунт/SQL, proof остаётся fragment/memory; явный POST меняет
+только email, credentials/expiry/cookie сохранены. Внешней почты/network нет.
+Исправлена диагностика: Node fetch подменял Sec-Fetch-Mode на cors; его прежний
+403 не доказывал actual webmail navigation. Новый probe не использует fetch.
+Начальные browser failures были тестовыми (HTML charset, metadata visibility
+до intercepted network); исправлены без расширения production policy.
+Review: минимальное расширение существующей границы, без новых зависимостей,
+SQL/auth/session mutations и CORS. TDD/security/verification определили узкий
+allowlist, negative coverage и отдельную wire проверку. A6/Checkpoint A/A7 и
+deployment acceptance остаются открыты; сервер/рабочая БД не менялись.
+Типы, backend build, active/default frontend builds, API contract, 604 boundaries
+и 54 docs проходят. Default-off build восстановлен, локальный frontend остановлен.
+Собственный tmpfs backend_test удалён через `--rm` после проверки exact ID/label,
+loopback port, отсутствия mounts/OOM. Чужие контейнеры/данные не затронуты.
+
+**A6c2, read-only GET bridge — 10 октября:** зарегистрирован default-disabled
+GET `/api/auth/email-binding` → пустой 302 на configured PUBLIC_APP_URL
+`/email-binding`; Host/query/PUBLIC_AUTH_URL не выбирают destination. Query
+отклоняется generic 400, неверная конфигурация/выключенный флаг — 503.
+Открытие не читает/не меняет SQL, не создаёт cookie/письмо и не подтверждает proof.
+**4 native RED (404) → 19 HTTP/SQL GREEN**. **13 browser/API/SQL/loopback SMTP pass**
+теперь используют настоящий URL письма без test-only смены пути: redirect
+сохраняет browser fragment, GET ничего не меняет, явный POST меняет только email.
+Пароль/identity/sessionVersion/paid expiry/browser cookie сохранены.
+Остаётся cross-site webmail document **403**: policy/CORS не менялись, узкий
+navigation exception вынесен на отдельное решение пользователя. A6/Checkpoint A/
+A7/rollout открыты; deployment proxy не сертифицирован локальным transport proxy.
+Docker был выключен после прерывания; запущен с отдельного разрешения пользователя.
+Чужой контейнер не затронут; проверки используют новый собственный tmpfs backend_test.
+100 смежных security/client и 21 application test pass; типы/backend build,
+active/default frontend builds, 604 boundaries и 53 docs проходят. Default-off
+build восстановлен; local frontend остановлен. Собственный контейнер exact
+ID/label/tmpfs/no mounts/no OOM проверен перед stop; `--rm` удалил только fixture.
+Ревью: redirect не отражает ввод, не обращается к DB/session и не ослабляет
+security headers; fragment сохраняется самим browser и не попадает в HTTP.
+Скиллы API/security использованы для configured destination, generic refusals
+и сохранения прежней browser-origin границы; rollout не включён.
+
+**A6c1, loopback SMTP → recipient — 10 октября:** production admin UI/Nest/SQL
+создаёт заявку, настоящий nodemailer доставляет в собственный loopback SMTP.
+Proof берётся из MIME письма, не из расшифрованного SQL outbox; после доставки
+cipher очищен, попытка одна, аккаунт ещё не изменён. Через явно обозначенный
+test-only перевод пути на `/email-binding` recipient подтверждает почту явным
+кликом; все остальные поля пользователя, оплаченный срок и browser cookie
+сохранены, повтор worker не отправляет второе письмо. **13 native cases pass**:
+12 сценариев и отдельный диагностический кейс открытого routing blocker.
+Сам настоящий URL письма `/api/auth/email-binding` даёт **404**, webmail-style
+cross-site document headers — **403**; proof не уходит в HTTP, SQL остаётся pending.
+Это **частичная SMTP/browser проверка, не Checkpoint A**. Ни API proxy, ни смена
+пути в тесте не считаются deployment/email-entry приёмкой. Production код,
+CORS/navigation policy, рабочая БД/сервер и внешняя почта не изменены. Следующий
+срез — reviewed GET/navigation routing; до него A6/A7 и rollout открыты.
+Типы, active/default production builds, docs и boundaries проходят. Default-off
+build восстановлен; локальные серверы остановлены. Контейнер удалён через `--rm`
+после сверки exact ID/label/tmpfs/no mounts/no OOM — только данные этого запуска.
+Ревью: тесты явно отделяют диагностический 404/403 от частичного подтверждения;
+SMTP строго loopback, синтетические env/аккаунты, proof не выводится в журнал.
+
+**A6b2, native confirmation UI — 10 октября:** три новых production browser/Nest/
+одноразовый SQL кейса обнаружили потерю memory proof при session-scope remount:
+страница успевала очистить fragment, после загрузки admin identity пересоздавалась
+и теряла подтверждение. Публичная `/email-binding` теперь вне session providers;
+остальные экраны сохраняют прежний identity fence. Затем native lost-reply/reopen
+выявил отдельный RED: повтор письма в той же вкладке — fragment-only navigation,
+а не remount. Hashchange заново захватывает/очищает proof, отменяет старый запрос
+и не делает POST. **3 native RED → 10 pass/1 reopen RED → 11 native GREEN**.
+Проверены явный клик (до него SQL pending), expired proof, успешный commit с
+потерей ответа и consumed reopen без лишнего audit. Почта меняется у адресата,
+не у вошедшего admin; openId/phone/password/sessionVersion/оплаченный срок и
+browser cookie сохранены. Внешние интеграции не включались, proof взят из
+синтетического outbox. Browser API transport proxy — не deployment acceptance.
+**43 active browser regressions pass** (proof/login/session), типы/lint/active
+и default builds/boundaries проходят. Default-off build восстановлен, disabled
+browser case pass. 320px active экран осмотрен, overflow нет. Ревью: публичная proof
+граница не читает browser identity, обычные session fences не ослаблены;
+новый fragment отменяет прежний task и старый ответ не применяет результат.
+Собственный контейнер exact ID/label/tmpfs/no mounts/no OOM проверен и остановлен;
+`--rm` удалил только его одноразовые данные. **A6/SMTP/GET routing/A7 открыты**:
+письмо пока ведёт на незарегистрированный GET, document-navigation policy/CORS
+не менялись. Реальная БД/сервер/оплата/внешняя почта не затронуты.
+
+**A6b1, confirmation UI — 10 октября:** добавлена default-disabled Next страница
+`/email-binding`, использующая проверенный proof client и оформление существующего
+входа. Fragment очищается после открытия; GET не отправляет proof. Только явный
+клик делает POST, синхронный in-flight guard и disabled button не допускают дубль.
+После любого неопределённого ответа UI не обещает успех/отсутствие изменения и
+не повторяет POST; proof очищается, повтор требует заново открыть письмо.
+Успех не создаёт сессию/пароль/доступ, ссылка ведёт в обычный `/login`.
+**2 browser RED → 6 active + 1 disabled browser GREEN**, настоящая production
+страница и mock API: cookie другого аккаунта не отправляется, referrer отсутствует,
+reload теряет proof, malformed/consumed/lost reply и pending защищены. Это не
+SQL/SMTP приёмка. Типы/lint/boundaries/обе production builds и 30 proof tests
+проходят; default-off build восстановлен. На 320px визуально проверен disabled
+экран, overflow отсутствует. Ревью проверило explicit action, cleanup/abort,
+strict receipt и отсутствие storage proof. Первоначальная browser-проверка была
+перекрыта install-guide из-за неверного fixture marker; исправлен только fixture.
+**A6 остаётся открыт:** письмо пока ведёт на незарегистрированный backend GET
+`/api/auth/email-binding`; existing Fetch Metadata блокирует cross-site navigation
+этого пути. Политика CORS/origin не менялась. До rollout нужен проверенный маршрут
+без расширения прав и рассмотрение document-navigation policy, затем native
+browser/SQL/loopback SMTP checkpoint. Рабочий сервер и БД не затронуты.
+
+**A6a, proof client — 10 октября:** отдельный клиент принимает только 43-символьный
+base64url proof и точный HTTP 200 `{ok:true}`. Явный POST не передаёт cookie,
+referrer или account ID, не следует redirect и не повторяется автоматически;
+15-секундный deadline включает чтение ответа, отмена страницы сохранена.
+Fragment capture очищает адрес до возврата proof в память, malformed/duplicate/
+oversized fragment и отказ history не дают usable token. HTTP 400 после потери
+ответа не объявляется доказательством отсутствия изменения. **2 focused RED →
+30 GREEN**, включая реальный loopback HTTP; 679 связанных unit pass,
+типы/lint/boundaries/default build проходят. Ревью: bounded parsing, строгий
+receipt, отсутствие секретов в ошибках/storage и независимость от чужой browser
+session. Это только клиент/helper, **A6 не закрыт**: далее публичная страница,
+явное действие и browser-приёмка. Согласованный GET `/api/auth/email-binding`
+пока не зарегистрирован; deployment направляет `/api/**` в backend, поэтому
+нужна проверенная read-only маршрутизация страницы, а не только новый Next route.
+SMTP checkpoint, миграции и rollout остаются открыты; сервер не затронут.
+
+**A5c3b, native terminal/authority — 10 октября:** production форма с настоящими
+cookie/Nest/SQL проверяет expiry через штатный lifecycle, fresh draft после
+повторного GET и новую заявку только после отдельного submit. Подтверждение
+настоящим proof POST обновляет canonical список; прежние пароль/sessionVersion/
+оплаченный срок не меняются, секретные поля завершённой заявки очищены.
+Четыре browser кейса проверяют request/status после отзыва admin до moderator
+или user: настоящий 403, SQL intent/audit не меняется. Общий набор — **8 native
+browser cases pass**, без mock ответов и unhandled errors. Первоначальный прогон
+выявил teardown race с auth refresh; route handlers теперь завершаются перед
+закрытием context, ошибка не подавляется. Типы и active/default builds проходят.
+**A5 локальный UI/request/recovery завершён; далее A6**. Proof в этой проверке
+получен из собственного fixture outbox: SMTP/письмо и публичная confirmation
+страница ещё не приняты. API транспортно проксируется браузерным fixture;
+deployment proxy/реальная история миграций/rollout остаются A7. Worker и внешние
+интеграции не включались; роли менялись только у синтетических fixture акторов.
+
+**A5c3a, native browser/API/SQL — 10 октября:** добавлены два opt-in сценария
+реальной формы production build: первая заявка и восстановление после reload;
+потеря ответа после SQL commit и повтор с прежним ключом. Browser получает
+настоящую cookie-сессию; все API-запросы транспортно проксируются в штатную Nest
+композицию без mock ответов. Проверены нормализованный email, одна заявка/outbox/
+audit запись и сохранение прежних email/passwordHash/sessionVersion участницы.
+Default-disabled build дал ожидаемый RED на отсутствующей отправке; явный
+active build — **2 native browser cases GREEN**. Типы проходят.
+Ревью проверило границы transport proxy, отсутствие mock receipt и cleanup;
+default production build восстановлен, docs/whitespace проходят. Собственный
+контейнер остановлен после сверки exact ID/label/tmpfs/no mounts; его одноразовые
+данные удалены штатным `--rm`, другие ресурсы не трогались.
+Изолированный собственный MySQL 8.4 использует loopback порт и tmpfs backend_test;
+worker, SMTP и провайдеры не запускались. Это проверка API через browser transport
+proxy, а не приёмка deployment nginx/Next rewrite. **A5 остаётся открыт:** далее
+A5c3b — terminal reset/confirmation и отзыв ролей с настоящим API/SQL, затем A6
+и checkpoint с loopback письмом. Рабочая БД/сервер/rollout не затронуты этим срезом.
+
+**A5c2c, recovery неизвестного результата — 10 октября:** после reload ключ
+без исходного email можно повторить только явным вводом прежнего адреса и с тем
+же ключом. UI предупреждает не угадывать и не менять email; серверный payload
+fingerprint по-прежнему запрещает изменить уже записанную заявку. POST сверяет
+durable key, захватывает введённую почту только в памяти и не генерирует новый.
+HTTP 409 теперь описан как конфликт, а не доказательство отсутствия заявки;
+generic refusal/GET 404 никогда автоматически не освобождают ключ.
+Ревью выявило подстановку чужого черновика при cross-tab unknown: отдельный RED
+подтвердил её; draft теперь связан с ключом intent, восстановление показывает
+пустое поле. **2 исходных RED + 1 review RED → 24 active browser pass**;
+10 default-disabled browser, 649 unit, типы/lint/boundaries и обе
+active/default production builds проходят.
+Recovery на 320px проверен визуально и на overflow. Browser использует настоящий
+IndexedDB, но mock HTTP: native API/SQL/SMTP ещё не принят, A5 не закрыт.
+**Далее A5c3:** настоящая browser/API/SQL проверка request/replay/terminal/roles,
+затем A6 и общий checkpoint с письмом. Отдельное ограничение: забытый исходный
+адрес или неоднозначный 409 требуют разбора; автоматический reset здесь опасен
+и не реализован. Worker/сервер/внешние письма и схема БД не затронуты.
+
+**A5c2b, локальный terminal reset — 10 октября:** после проверенного GET
+`expired/cancelled` форма предлагает «Подготовить новую заявку». Нажатие повторно
+проверяет именно этот key/member, затем CAS удаляет только прежний локальный ключ
+и очищает черновик; само действие не отправляет письмо и не меняет сервер.
+Confirmed обновляет canonical список, pending/ошибка GET не разрешают reset;
+новая cross-tab резервация не стирается. Общий lock/session cancellation сохранены.
+3 browser RED → 21 active cases GREEN (включая CAS race, revalidation failure
+и nonterminal refusal); 10 default-disabled, 649 client/frontend unit,
+типы/lint/boundaries, active/default production builds проходят.
+Ревью проверило повторное чтение, CAS и отсутствие автоматического POST; дизайн
+не менялся, mobile 320px проверен визуально. Это native IndexedDB + mock HTTP,
+не API/SQL/SMTP сквозная приёмка. **Остаток A5c2c:** recovery unknown без email,
+точная политика HTTP refusal (409 не равен доказанному отсутствию intent), затем
+native API/SQL acceptance. Rollout/worker и рабочая БД не менялись.
+
+**A5c2a, проверено 10 октября:** journal подключён к opt-in форме. Перед первым
+POST ключ атомарно сохраняется; повтор из памяти сверяет сохранённый ключ.
+Кнопка «Восстановить заявку» после reload читает только ключ и делает GET.
+Если другая вкладка уже зарезервировала intent, новая отправка превращается
+в проверку исходного intent, а введённый другой email не отправляется.
+Без сохранённого исходного email повтор POST не предлагается; GET 404 после
+неизвестного результата не удаляет ключ. Недоступное storage блокирует POST
+с безопасным сообщением; синхронный lock и session cancellation сохранены.
+3 browser RED (reload/cross-tab/storage denial) → GREEN; **16 active browser
+cases + 10 default-disabled проходят**, native IndexedDB и mock API.
+649 client/frontend unit pass; типы/lint/boundaries (600), active/default
+production builds проходят. Ревью: durable-before-HTTP, прежняя роль/права,
+нет PII в journal и повторов с новым payload, нет автоматической отправки.
+**A5 открыт:** следующий A5c2b — явная новая заявка после доказанного terminal/
+refusal, recovery неизвестного intent без email и native API/SQL acceptance.
+Резервация до POST с последующим закрытием браузера пока может остаться unknown;
+такой ключ нельзя молча сбрасывать по GET 404. Весь сценарий ещё не принят,
+флаги сервера/worker/rollout выключены; рабочая БД и внешние письма не затронуты.
+
+**A5c1, проверено 10 октября:** добавлен изолированный browser IndexedDB journal
+для следующего подключения recovery. Он хранит только version/requestKey,
+разделяет intent по actor/member и атомарно резервирует один ключ между вкладками.
+Успех возвращается после commit транзакции; CAS-удаление не стирает новый ключ.
+Отмена/смена владельца, повреждённая запись и отказ storage не дают fallback
+на новый несохранённый ключ. Email/proof/ответ сервера не сохраняются.
+6 исходных browser RED → GREEN, затем **9 native IndexedDB browser pass**,
+включая reload, две вкладки, stale cleanup, повреждение и rollback ошибки записи.
+Типы, lint, boundaries (600 файлов), production build проходят. Ревью убрало
+ложное утверждение из storage-ошибки о том, что серверной отправки не было;
+проверены границы, атомарность, закрытие соединений и отсутствие новых зависимостей.
+**Journal ещё не подключён к форме:** это небольшой prerequisite A5c, не готовый
+UI recovery и не browser → API → SQL → SMTP. Следующий A5c2 — интеграция с hook,
+явная новая заявка только после известного terminal/refusal, затем native acceptance.
+Текущая форма всё ещё memory-only; feature/worker/rollout не включались.
+
+**A5b, проверено 10 октября:** существующая форма подключена локально под
+default-off build-флагом `NEXT_PUBLIC_MEMBER_EMAIL_BINDING_ENABLED=true`.
+Состояние intent хранится выше вкладки участниц: закрытие формы/переход по вкладкам
+не создают новый ключ, unknown повторяет только исходные ID/email/key; отдельный
+GET проверяет доставку/подтверждение. Есть синхронная блокировка дублей и соседних
+действий, session cancellation, canonical refresh только после confirmed.
+При replay receipt не обещает «в очереди»: её можно установить только по GET.
+Оформление фронтендера сохранено, screenshots 320/1440 просмотрены, overflow нет.
+Исходный browser RED → GREEN; дополнительные RED выявили локальную блокировку
+невалидного email и ложную queue-формулировку при replay, оба исправлены.
+11 active browser cases, 10 default-disabled и 23 соседних сценария
+admin/access-email проходят; API в этих browser тестах подставной, не настоящий SQL/SMTP.
+649 client/frontend unit pass; типы/lint, active/default production builds,
+API (73)/boundaries (598) проходят. Ревью проверило auth scope, поздние ответы,
+разделение receipt/delivery/identity, отсутствие PII в storage и неизменность дизайна.
+**A5 ещё открыт:** в A5c добавить восстановление ключа после перезагрузки/новой
+вкладки без сохранения email/proof, явную новую заявку после terminal/refusal,
+две вкладки и native API/SQL browser acceptance. Сейчас форма честно предупреждает
+о хранении intent только в текущем экране; это ограничение запрещает rollout.
+Worker/сервер не включались; backend, рабочая БД и внешние письма не затронуты.
+
+**A5a, проверено 10 октября:** отдельный клиент request/status реализует строгий
+контракт A4 без импорта backend в браузер и без новых зависимостей. Захватывает
+ID/стабильный requestKey до ожидания ответа, проверяет полный receipt/status,
+связь с исходной участницей/заявкой, даты и terminal completion. Pending/SMTP
+sent/confirmed не смешиваются. Валидация email совпадает с сервером; лишняя
+caller authority не отправляется. Ошибки сохраняют HTTP status/Retry-After,
+но не отражают сырой ответ. Общий session-bound request lifecycle сохраняет
+таймаут тела/отмену при смене сессии; скрытых повторов и генерации нового ключа нет.
+RED на отсутствующем клиенте, затем 13 RED на validation/captured-intent и 2 RED
+на nullish email → **60 client GREEN**. Один тест использует настоящий loopback
+HTTP с контрактной fixture, остальные подменяют fetch; это не browser/SQL/SMTP
+сквозная приёмка. Связанная client/frontend регрессия: **649 pass, 35 files**.
+Frontend production build, типы, lint, API (73), boundaries (596) проходят.
+Ревью: PII не попадает в GET/error, нет optimistic binding/повтора/новой авторизации,
+строгая проекция отделена от UI, общий lifecycle не дублируется. Форма и worker
+по-прежнему выключены; backend/SQL/сервер не менялись. A5 не закрыт: следующий
+срез A5b — состояние формы, стабильный intent при неизвестном результате,
+явная проверка GET, canonical refresh и browser гонки/две вкладки/смена сессии.
+
+**A4b, проверено 10 октября:** Nest request/status/explicit confirm зарегистрированы
+с default-closed `MEMBER_EMAIL_BINDING_ENABLED=true` opt-in. Зафиксированы строгие
+receipt/status/proof schemas и безопасные ошибки; actor берётся только из текущей
+сессии и повторно проверяется SQL-core. Дополнительный same-origin контроль не
+принимает даже другой CORS-allowed origin. Сам CORS/proxy/старые квоты не менялись;
+ранний no-store добавлен только для новой status-группы (включая perimeter 403).
+Новые purpose-specific buckets повторяют существующие bounds mail/completion;
+GET не расходует лимит писем. Их in-memory/single-process ограничение записано.
+8 ожидаемых HTTP RED и отдельные origin/cache RED → 16 native HTTP/SQL GREEN.
+Проверены replay/conflict, revocation/roles, строгий JSON/размер, 400/401/403/404/
+409/415/429/503, SQL rollback, GET без подтверждения, сохранение пароля/сессии/
+подписки. Compiled production ESM реально проходит request → status → confirm →
+replay и request quota; proof quota проверена native Nest HTTP. Реальные деньги
+и внешние письма не использовались.
+Полная serial suite на своей tmpfs MySQL: **3028 pass / 30 opt-in skips**, 195 files
+pass / 3 skip. TypeScript/backend build/API (73)/boundaries (595)/docs проходят.
+Ревью: auth/PII/ошибки/транзакции, ограниченные запросы, DI и сохранение старых
+HTTP-политик. Следующий срез — A5, существующая форма фронтендера. A6/A7 и
+полный browser+mail checkpoint не закрыты; на сервере ничего не включено.
+Контейнер этого запуска `codex.task=daryadarcy-binding-routes-20261010`
+проверяется по ID/метке/tmpfs перед удалением; persistent volumes не создавались.
+
+**A4a, проверено 10 октября:** определён точный HTTP receipt/status контракт в
+SPEC. Внутренняя read-only проекция позволяет администратору восстановить результат
+по стабильному ключу без адреса/proof/cipher. Текущие роль, версия сессии,
+блокировка и удаление проверяются до lookup, включая отсутствующий ключ; share
+lock дожидается конкурентного отзыва полномочий. Lifecycle/outbox читаются одним
+снимком, GET-core не истекает заявки и не отправляет письма. `sent` означает
+принятие SMTP, а не доставку в inbox; прошедший expiresAt не изменяет stored state.
+21 ожидаемый RED → 26 SQL GREEN; удаление actor lock отдельно ломает race-тест.
+Вместе с request/confirmation/lifecycle/delivery: 129 native MySQL/SMTP pass.
+Типы/backend build/API (73)/boundaries (592)/docs проходят. Ревью проверило
+current-authority race, отсутствие PII в проекции, bounded primary-key join,
+неизменность lifecycle/mail и сохранность прежнего request/replay. A4 не закрыт:
+далее transport schemas и Nest
+request/status/confirm с native HTTP+SQL; frontend/worker/сервер не включены.
+Одноразовый MySQL `codex.task=daryadarcy-binding-http-20261010` — loopback/tmpfs,
+без persistent mounts; после проверки удалён только контейнер этого запуска.
+
+**A3, проверено 10 октября:** внутренний mail processor использует bounded batch,
+user → binding → outbox claim, текущего получателя/expiry/занятость адреса,
+purpose/intent-authenticated cipher и lease-fenced acknowledgement. Сохранены
+операционные bounds существующего access-mail processor: 20 кандидатов, lease
+5 минут, максимум 12 попыток и exponential backoff. SMTP вне транзакции;
+после принятия очищается cipher, после terminal — также email/proof/lease.
+7 ожидаемых RED и отдельный RED для crash на последней попытке → 18 SQL/SMTP
+GREEN. Настоящий loopback SMTP + SQL-trigger failure доказывают at-least-once
+повтор с тем же proof/Message-ID после потерянного acknowledgement, не exactly-once.
+Проверены stale lease, crash recovery, confirmation во время отправки,
+невалидная конфигурация/шифр/intent, backoff, занятый/недоступный получатель.
+Полная serial MySQL регрессия: 2986 pass, 30 opt-in skips, 193 files pass/3 skip;
+отдельно 18 retention/HTTP/worker pass. TypeScript/backend build/API (73)/
+boundaries (591)/docs проходят. Ревью проверило атомарность, порядок locks,
+санитизацию ошибок, отсутствие новых зависимостей и изменения credential/access.
+Пропущенные 30 opt-in проверки не считаются выполненными. Форма/маршруты/worker
+не включены, рабочий сервер не изменён. Следующий срез A4 — сначала HTTP schema.
+
+Фоновое продолжение `daryadarcy` обновлено на этот план (каждые 15 минут,
+без обычных уведомлений). Старый дедлайн/план 8–9 октября больше не используется;
+при внешнем блокере берётся независимый пункт, при исчерпании таких пунктов
+продолжение отключается. Push/deploy/реальные платежи и внешние письма не разрешены
+автоматически этим продолжением.
+
+**A2, проверено 10 октября:** удаление аккаунта вызывает identity-owned cleanup
+в той же транзакции после блокировки пользователя: pending proof отменяется,
+email/hash/cipher/lease очищаются вместе с PII-free аудитом. Сбой аудита или
+финальной анонимизации откатывает всё. До 0028 отсутствие обеих таблиц сохраняет
+legacy поведение; частичная схема отклоняет всю транзакцию. Проверка схемы не
+зависит от будущего UI-флага: отключение новых заявок не прекращает очистку PII.
+18 native retention/HTTP/worker pass, включая recovery следующего tick;
+98 request/confirmation/lifecycle/retention pass в объединённом core прогоне
+(5 worker acceptance отдельно запущены, не считаются пропущенной проверкой).
+
+**A1, проверено 10 октября:** общий terminal scrub используется подтверждением
+и bounded maintenance (1–100 заявок за проход). Истёкшая pending-заявка очищается
+атомарно с PII-free аудитом; терминальная история и outbox удаляются спустя
+30 дней. Сохранены user → binding → outbox locks и повторное чтение после
+ожидания. 6 ожидаемых RED → 14 lifecycle GREEN; request/confirmation/lifecycle
+вместе 85 native MySQL pass. Проверены точные временные границы, конкурентные
+обработчики, свежий intent, rollback аудита, неизменность соседней заявки и
+аккаунтов. Функция внутренняя, в worker не зарегистрирована; рабочая схема
+не изменялась. Изолированный MySQL 8.4 — loopback/tmpfs, метка
+`codex.task=daryadarcy-stage-one-20261010`; никаких внешних писем/оплат.
+
+Сценарий уже согласован: только администратор, существующий телефонный аккаунт
+без email, подтверждение адреса участницей. ID/пароль/сессия/подписка сохраняются;
+занятые адреса не приводят к объединению аккаунтов. 24 часа на proof и 30 дней
+на минимальную историю определены в SPEC; повторно выбирать эти правила не надо.
+
+- **A1 — жизненный цикл заявки (M, 3–5 файлов).** Автоматически истекшие заявки
+  очищают email/proof/cipher/lease, освобождают возможность новой заявки; минимальная
+  терминальная история удаляется через 30 дней. Бounded batch, тот же порядок
+  блокировок, атомарность аудита. Проверка: native MySQL границы времени,
+  конкуренция с подтверждением/новой заявкой, rollback. Зависимость: текущий core.
+  Область: `identity/email-binding*`, `tests/member-email-binding-*.mysql.test.ts`.
+- **A2 — удаление аккаунта (S/M).** В существующей транзакции удаления отменять и
+  очищать связанные заявки/доставку; сбой откатывает оба действия. Проверка:
+  account-retention + binding MySQL, отсутствие PII и действующих proof.
+  Зависимость: A1. Область: identity retention, binding lifecycle, их тесты.
+- **A3 — доставка подтверждения (M).** Очередь с lease, retry и восстановлением
+  после остановки; проверять срок/получателя перед отправкой, очищать cipher после
+  завершения. Статусы «в очереди»/«принято SMTP»/«недоступно» различимы; SMTP не
+  обещает exactly-once доставку при потере ответа. Проверка: MySQL + loopback SMTP,
+  гонки двух workers и сбои. Зависимости: A1–A2. Область: identity delivery,
+  worker operations и выбранные тесты; включение worker только после A7.
+- **A4 — HTTP и чтение результата (M).** Зафиксировать схемы из SPEC: admin
+  request/status со стабильным ключом, явный POST подтверждения, no-store, текущие
+  права, безопасные ошибки. Статус позволяет восстановиться после потери ответа,
+  GET не меняет почту. Проверка: native HTTP + SQL, отказ guest/moderator,
+  просроченные/повторные proof. Зависимости: A1–A3. Область: identity controllers/
+  module/service и transport-тесты; при необходимости два отдельных коммита.
+- **A5 — форма администратора (M).** Подключить существующий дизайн, отображать
+  конкретный аккаунт и состояния заявки/доставки, сохранять requestKey для повтора,
+  обновлять карточку только по каноническому ответу. Проверка: browser
+  member-email-binding, потерянный ответ, две вкладки и смена сессии.
+  Зависимость: A4. Область: existing admin form/hook/client + E2E.
+- **A6 — страница подтверждения (M).** Proof из fragment в память с очисткой URL,
+  явное действие участницы, понятный итог и переход к существующему входу/
+  восстановлению. Проверка: native/browser через настоящий API/SQL и loopback
+  письмо, включая открытие сканером без изменения данных. Зависимость: A4.
+  Область: новый auth route/component/client + E2E.
+- **A7 — подготовить включение (M, операционный).** Разобрать фактическую историю
+  0017–0019, репетировать 0027/0028 и проверить старые email на отдельной копии;
+  конфликты перечислить без автоматического исправления аккаунтов. Готовый
+  reviewed rollout/backup/rollback — условие включения. Проверка: preflight,
+  полная auth/billing/admin регрессия. Зависимости: A2–A6 и доступные данные истории.
+  Пока gate открыт, схема и форма работающего dev остаются прежними.
+
+Контрольная точка A: реальный local UI → API → MySQL → loopback письмо → явное
+подтверждение меняет только email выбранной участницы, повторы не меняют результат.
+
+### 2. Закрыть путь оплаты, письма и доступа (P)
+
+- **P1 — свежая TEST-приёмка (M).** Проследить конкретный разрешённый заказ:
+  checkout → подписанное уведомление → запись доступа → письмо → вход. Проверить
+  нового гостя, вошедшую участницу и гостя с существующим аккаунтом; пароль
+  последней не меняется. Сначала local SQL/SMTP/native browser, затем согласованный
+  test provider flow. Нужны доступный способ Prodamus и результат поддержки по
+  СБП MNT_ID/GPB. Учесть указанный в письме срок тестового кабинета до 12 октября;
+  при необходимости получить продление. Проверка: order/receipt/mail/user, не paid=1.
+- **P2 — точная операция обычной оплаты (M, по срезам).** Проверить обычный
+  checkout на стабильный intent, восстановление неизвестного результата и
+  подтверждение именно нового продления, а не прежнего доступа. Согласовать
+  контракт с существующим frontend; добавить только доказанные пробелы. Проверка:
+  lost-response/replay native HTTP+SQL и browser, неизменность пароля/аккаунта.
+  Зависимость: P1, live/provider configuration для внешней приёмки. Область: billing
+  checkout/result и club client; контракт, backend, frontend отдельными срезами.
+- **P3 — продление и отмена (M, по срезам).** Подтверждённая отмена отключает
+  следующие списания, сохраняя оплаченный срок; pending после перезагрузки
+  восстанавливается из сервера. Проверить очереди provider retry и повторное
+  событие продления. Native fixtures уже есть — расширять по найденным пробелам.
+  Зависимость: P2; настоящая recurring-приёмка требует выделенного test profile.
+  Область: cancellation/subscription service, profile API/UI и тесты.
+
+Контрольная точка P: письмо получено на согласованный адрес, по ссылке можно
+войти, срок совпадает с проверенной оплатой; демо-клуб не выдаётся за автоподписку.
+
+### 3. Совместная приёмка уже готового фронта и админки (C/S)
+
+**C1e, действие moderator — 10 октября:** native production browser открывает
+существующий reports экран и закрывает конкретную синтетическую жалобу. Native
+Nest/SQL удаляет только report, сохраняет весь comment и author users row,
+записывает одну dismiss_comment_report audit запись. Reload не возвращает жалобу;
+loopback SMTP пустой. **6 C1 browser + 4 report audit SQL/HTTP tests pass**,
+root TypeScript/docs pass. Test-only fixture содержит собственные post/comment/
+report ID и удаляет их в finally с ownership predicates; чужие fixtures не
+трогаются. Ревью: locator scoped по report ID, отсутствие UI подтверждено SQL,
+закрытие не выдано за удаление комментария/блокировку автора. Production код/
+дизайн/роли не менялись: это acceptance существующего действия, не новая функция.
+Default-off build сохранён; 13 email-binding cases здесь не запускались.
+Собственный контейнер exact ID/label/tmpfs/no mounts/no OOM проверен перед stop/
+--rm; frontend остановлен. C1 не закрыт: первая выдача и остальные moderation
+действия/deployment acceptance остаются; A6c3/миграции/rollout без изменений.
+
+**C1d, повтор письма через UI/API/SQL/SMTP — 10 октября:** явное подтверждение
+admin кнопки создаёт ровно одну club-access outbox/audit запись на сохранённую
+почту оплаченной участницы. Кнопка disabled, текст честно говорит «Доставка ещё
+не подтверждена»; до отдельного processing SMTP пустой. Настоящий
+processAccessEmails/nodemailer отправляет в собственный loopback SMTP; MIME
+письма содержит configured `/login`, не token/reset, password_tokens пустой для
+существующего password-bearing аккаунта. SQL sentAt/attempts=1, повтор processing
+не отправляет второе письмо, users row и оплаченный срок сохранены.
+**5 C1 browser pass + 1 связанный native resend SQL test**; после review усилена
+проверка полной queued rows cardinality.
+После соседнего SQL suite выявлен selector RED из-за второй paid карточки:
+resend/block selectors теперь scoped к конкретной fixture участнице, не к первой
+кнопке списка; все 5 C1 cases повторно pass с сохранёнными соседними fixtures.
+Root TypeScript/docs проходят. Первое чтение MIME как single-part дало диагностический
+test RED: настоящий sender multipart; decoder учитывает MIME parts/encoding,
+production код не менялся. Это acceptance существующего resend, не новый fix.
+Cleanup удаляет outbox/password rows исключительно собственного fixture user;
+письма наружу/worker/оплаты не запускались. Ревью: 202 не выдан за доставку,
+реальная SMTP wire отделена от browser proxy, credential/expiry не пересозданы.
+Default-off build сохранён, 13 неизменённых proof cases здесь не запускались.
+Собственный exact ID/label/tmpfs/no mounts/no OOM проверен перед stop/--rm,
+frontend остановлен. Первая выдача, moderator actions и deployment C1 открыты;
+A6c3/миграции/rollout по-прежнему требуют прежних решений/процедуры.
+
+**C1c, границы member/moderator — 10 октября:** два native browser cases
+подтверждают отсутствие owner-вкладки «Участницы». Member видит отказ управления,
+moderator — существующий экран «Модерация». Прямые browser fetch с настоящей
+cookie на GET admin.members и POST admin.grantClub дают **403/403** для обеих
+ролей; участница/оплаты/audit остаются неизменны, loopback SMTP пустой.
+Изменение роли касается только синтетического actor в собственной tmpfs базе,
+не рабочих аккаунтов/политики. **4 C1 browser pass**, root TypeScript/docs pass.
+Начальный selector «Жалобы» был ошибочным: moderator открывает reports напрямую
+без owner tab bar; проверка исправлена на настоящий заголовок, production не
+изменён. Ревью: hidden UI не считается авторизацией — отдельные реальные HTTP
+попытки проверяют server refusal и отсутствие side effects. Это acceptance
+существующих границ, не новый функциональный RED/GREEN. Default-off build
+сохранён; 13 неизменённых email-binding cases здесь не запускались.
+Собственный контейнер exact ID/label/tmpfs/no mounts/no OOM проверен и удалён
+штатным stop/--rm, frontend остановлен. C1/действия moderator/первая выдача/письма/
+deployment acceptance открыты; A6c3 по-прежнему требует прежнего решения.
+
+**C1, разделение test-only сценариев — 10 октября:** перед дальнейшим ростом
+946-строчного email-binding fixture два membership acceptance вынесены в
+`tests/helpers/admin-membership-browser-cases.ts`; главный файл теперь 804 строки.
+Сценарии регистрируются внутри прежнего describe и читают per-test fixture только
+после beforeEach. Cookie/Nest/SQL/SMTP lifecycle, opt-in gates, cleanup и сами
+assertions сохранены; новая копия инфраструктуры/production abstraction не создана.
+**2 C1 browser GREEN до/после**, всего 15 зарегистрированных cases; 13 неизменённых
+email-binding cases не запускались в default-off build. Первое извлечение
+обнаружило недостающий connection capture (runtime/TypeScript RED); явная типовая
+зависимость на query исправила его, последующие browser/types/docs GREEN.
+Ревью сверило assertions, порядок регистрации и свежесть BrowserContext: нет
+захвата ещё не созданного контекста при collection. Только test-only refactor,
+без нового функционального обещания. Собственный tmpfs контейнер проверен по
+exact ID/label/no mounts/no OOM и удалён штатным stop/--rm; frontend остановлен.
+C1 и прежние внешние gates остаются открыты.
+
+**C1b, ручное продление через UI/API/SQL — 10 октября:** подтверждена существующая
+production кнопка на карточке конкретной участницы. Dismiss native confirm не
+создаёт запись; отдельный confirm добавляет одну zero-sum admin-grant запись
+на 31 день к будущему сроку, не заменяет прежнюю оплату. Для fixture 1 января
+2030 результат — 1 февраля 2030; reload показывает новую дату, весь users row
+сохранён, администратору доступ ошибочно не выдан. Писем/внешних запросов нет.
+**2 C1 browser + 23 native grant SQL/HTTP tests pass**, root TypeScript/docs
+проходят. Production код не менялся, это расширение acceptance, не исправление
+новой функции/не заявленный RED/GREEN. Cleanup удаляет только оплаты собственного
+fixture member, включая созданный grant. Ревью усилило UI assertion до новой
+даты (проверка лишь года не ловила бы stale projection) и добавило cancel path.
+Default-off production build не менялся. Собственный tmpfs backend_test exact
+ID/label/no mounts/no OOM проверен перед stop/автоматическим удалением;
+локальный frontend остановлен. C1 ещё открыт: роли, первая выдача, письма и
+deployment proxy; A6c3 по-прежнему ждёт решения о webmail entry. Перед дальнейшим
+ростом native browser fixture следует отделить C1 suite/setup от email-binding
+сценариев: файл приблизился к 1000 строкам, новый большой сценарий не добавлять.
+
+**C1a, блокировка через настоящий UI/API/SQL — 10 октября:** добавлен один
+acceptance сценарий на существующем native browser fixture, без изменения
+production кода/дизайна. Администратор блокирует участницу, причина и состояние
+сохраняются после reload; отдельный клик разблокирует. Native club API принимал
+исходный member token до блокировки, затем возвращает 401 и после разблокировки:
+отозванная сессия не восстанавливается. SQL показывает sessionVersion +1 и ровно
+две audit записи; identity/роль/пароль/почта/телефон и оплаченный срок неизменны.
+Loopback SMTP не получил письма. **1 browser acceptance + 12 смежных native
+SQL/HTTP tests pass**, root TypeScript и docs проходят. Это проверка существующей
+реализации, не новая RED/GREEN исправленная функция. Browser transport proxy
+не подтверждает deployment proxy; C1 остаётся открыт для moderator/member UI,
+выдачи/продления доступа и повторного письма. Production build не менялся;
+другие email-binding browser cases в default-off build намеренно не запускались.
+Ревью: проверяется SQL и реальный protected API, не mock-response; fixture
+синтетический, без внешних запросов/worker. Переиспользована инфраструктура
+текущего admin fixture вместо второго большого setup. Собственный tmpfs
+backend_test контейнер проверен по exact ID/label/no mounts/no OOM, затем
+остановлен с автоматическим удалением; локальный frontend остановлен.
+Рабочая БД/сервер/роли не менялись. A6c3 ждёт прежнего решения о webmail navigation.
+
+- **C1 — участницы, роли и действия (M).** Пройти admin/moderator/member на
+  настоящем локальном API+SQL: чтение, выдача срока, блокировка/отзыв, повтор письма
+  с корректным queued результатом. Поиск старого аккаунта должен позволять
+  оператору однозначно сверить ID/принадлежность в рамках существующих admin прав.
+  Ошибки и потеря ответа не дают ложный успех. Проверка: native admin suites и
+  real-API browser, loopback SMTP. A5 нужен только для ветки привязки.
+- **C2 — публикации/статьи (M на сценарий).** Закрыть пропущенные реальные browser
+  кейсы login/role/create-edit-delete. Затем текст/несколько ссылок/жирный/курсив,
+  фото/аудио/видео/документ, preview, scheduled, черновик после сбоя и недопущение
+  дублей. Проверка: реальный API+SQL, изолированное медиа-хранилище, чтение после
+  сохранения и остановки. Область: существующие editor/post-save и native tests.
+- **C3 — пользовательские разделы (S/M на группу).** Комментарии/фото/жалобы,
+  лайки/сохранённое, поиск/пагинация, свободная/закрытая Библиотека, тест/результат,
+  Главная/профиль/поддержка. Проверить после нового входа и смены аккаунта; готовые
+  операции исправлять только при воспроизводимом расхождении. SMS/мудборды/
+  почтовое отделение сохраняют согласованные состояния. Проверка: API+SQL browser
+  по 2–3 связанным сценариям за срез; источники `features/*`, content/profile tests.
+- **S1 — сезонные настройки (S/M).** Запись/повторное чтение, конфликт revision,
+  четыре московские границы и возврат из сна. Применить согласованные даты и
+  предоставленные фон/баннер, для отсутствующих материалов оставить fallback.
+  Проверка: launch-settings MySQL + season browser; нужны материалы заказчика.
+- **S2 — заказ менеджеру (S).** Сверить обе цифровые карточки с настоящим
+  launch-config, правильный товар/контакт и открытие почтового клиента на телефоне.
+  Mailto означает подготовку письма. Серверную форму/очередь заявок планировать
+  отдельно, если выбран именно приём заказа внутри сайта. Проверка: shop-manager
+  browser + устройства, без автоматической отправки внешнего письма.
+
+### 4. Материалы и VK (M/V)
+
+**V1a — проверка границ и проект контракта, 11 октября МСК:** read-only сверка
+выявила две разные модели: каталог `videos` требует UNIQUE/NOT NULL youtubeId,
+а вложения хранят URL в `postMedia` и наследуют доступ родительского поста.
+`videos.list/getById` сейчас publicProcedure без проверки клубного доступа;
+опубликованные строки по текущему коду доступны анонимно (рабочая БД не читалась).
+Worker из ADR-006 проверяет **каждую**
+строку anonymous catalog на 11-символьный youtubeId и при чужом формате отклоняет
+весь ответ (`apps/video-service/upstream.mjs`). Поэтому фиктивный youtubeId для
+VK, nullable youtubeId без адаптации потребителей или VK iframe в videoUrl
+не являются совместимым внедрением; последнее попадёт в нативный HTML video.
+
+Проект следующего среза (ещё не утверждённая новая схема/API): явный playback
+union `file | youtube | vk`, отдельно access `public | club`; старым строкам
+сохраняется public и прежний приоритет videoUrl перед youtubeId. Для вложений
+access берётся только из родителя, не из вводимого клиентом значения. Клубный
+embed source выдаётся только после существующей server-side проверки доступа;
+гостю/expired/blocked нельзя отдавать его в list/detail/вложениях даже при скрытом
+плеере. Формат карточки без source и её метки сверяются с ТЗ перед изменением API.
+Anonymous worker должен получать только прежние публичные YouTube записи, включая
+повторную проверку публикации: смешанный каталог нельзя подключать до теста
+совместимости. Новое поле не должно менять прежние URL, IDs, порядок или dedup.
+
+Порядок RED/GREEN после подтверждения контракта: shared boundary validator
+(не HTML, только однозначный разрешённый embed source) → native backend/SQL
+public/club/draft/expiry/blocked → worker mixed-catalog regression → один renderer
+на двух поверхностях. Схема потребует отдельного решения: текущая обязательная
+YouTube identity не выражает VK; выбрать хранение без фиктивных IDs и проверить
+миграцию/откат прежде, чем создавать migration. Никакая схема/роль/CORS/данные
+в этом аудите не менялись. API/design/spec skills удержали работу на проверке
+границ, а не на неподтверждённом iframe-контракте.
+
+Официальные [VK widget docs](https://dev.vk.com/ru/widgets/video) и
+[video.get](https://dev.vk.com/ru/method/video.get) не открылись через web reader;
+прямой HTTPS HEAD widget docs вернул **418**. Это ограничение доступа к документу,
+не доказательство неисправности VK-плеера. Текущие допустимые host/path/query и
+настройки владельца не подтверждены: сторонние snippets не используются как
+нормативный контракт. Нужны доступная официальная документация и реальные public/
+club embed-ссылки заказчика для внешней приёмки; внутренний проект сохранён,
+V1/V2 не закрыты. Пока этот контракт ожидает проверки, брать независимый пункт.
+
+**M1a — локальная карта, 10 октября:** пока webmail exception A6c3 ожидает
+решения, выполнен независимый read-only аудит storage/потребителей. Составлена
+[карта медиа](../docs/audits/media-access-map-2026-10-10.md): фото/вложения/raw
+video/comment photos/avatar/article teaser/public catalog/external URL.
+Настоящий AWS SDK → собственный loopback wire: **4 pass** подтверждают исходящий
+public-read ACL и прямые неподписанные URL. Fixture не моделирует ACL/policy:
+это не доказательство anonymous GET рабочего bucket и не закрытие M1.
+Production/storage/SQL/ACL/сервер не менялись. Перед M2 нужны object-to-content
+references и public/private API/direct-URL acceptance; смена ACL вслепую запрещена.
+
+- **M1 — инвентаризация закрытых файлов (S/M).** Проверить guest/expired/blocked
+  через API и прямой URL, различить публичные оформления и платные вложения.
+  `storage.ts` public-read — конкретный риск, доступ к существующим объектам
+  проверяется отдельно. Результат: список воспроизводимых утечек и карта переноса.
+  Проверка: синтетические private/public объекты в отдельном хранилище.
+- **M2 — закрытая выдача (M на срез).** По результату M1 обеспечить выдачу платных
+  файлов после проверки доступа с ограниченным сроком ссылки либо через сервер;
+  подготовить перенос существующих объектов и откат, сохранив публичный дизайн.
+  Проверка: новые/старые ссылки, guest/blocked/expiry и удаление, storage+API.
+  Зависимость: M1 и проверенная карта объектов; массовый перенос не выполнять вслепую.
+- **V1 — контракт VK (M).** Добавить однозначный вид видео/проверяемый embed source
+  и public/club признак, сохранив существующие video URL. Валидация запрещает
+  произвольный HTML/iframe URL. Проверка: backend/shared fixtures и контракт;
+  действительные ссылки и настройки VK нужны от заказчика. Область: video model/
+  router/shared validator/test; схему менять только при доказанной необходимости.
+- **V2 — VK в интерфейсе (M на поверхность).** Один renderer для раздела Видео и
+  вложений, загрузка/ошибка/мобильная геометрия и подписи из ТЗ. Проверка:
+  browser fixtures затем реальные VK на iPhone/Android. Зависимость: V1.
+  Защита полученной прямой VK-ссылки от пересылки исключена договором.
+
+### 5. Подготовка выпуска и пилот (Q)
+
+**Q1t — проверенные остаточные tooling blockers, 11 октября МСК:** без
+изменения manifests/lock/runtime. [Braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)
+и registry подтверждают latest 3.0.3, patched version отсутствует. Actual
+Next ESLint plugin → fast-glob → micromatch resolved braces в owned child
+(Node 22, 64 MB heap, 2s timeout, 4 KB output): pattern 4500 вложенных braces
+с `a,b`, длина 9003 (<10000), даёт **RangeError / Maximum call stack size
+exceeded** отдельно в compile и expand. Исключение caught, child exit 0,
+не падение приложения. Первый probe 10003 был корректно отвергнут length
+guard и не считается воспроизведением stack failure. Лимит символов не
+защищает от глубины; не добавлены fork/package patch или новые ограничения
+произвольных app patterns без отдельного reviewed решения.
+[Legacy esbuild advisory](https://github.com/advisories/GHSA-67mh-4wv8-2f99):
+@esbuild-kit/core-utils 3.3.2 требует ~0.18.20 через deprecated esm-loader
+2.6.5/drizzle-kit 0.31.8. Actual nested esbuild 0.18.20 в own ephemeral
+127.0.0.1 server, stdin-only synthetic module/write:false/no servedir:
+HTTP GET с Origin https://untrusted.invalid даёт 200, ACAO `*`, synthetic
+source. Context disposed, сервер закрыт; пользовательские файлы не читались.
+Это native HTTP header/read probe, не браузерная cross-origin приёмка.
+Published core-utils runtime использует только esbuild version/transformSync/
+transform; serve/context calls и direct loader imports в app/tooling repo
+не найдены. Поэтому reachable app/server exploit НЕ заявляется, advisory
+не закрыт и не ignored. Root/актуальный Vite esbuild 0.28.2 уже иной edge.
+Blind override 0.18 → 0.25+ вне declared range не выполнен: требуется
+reviewed replacement/compatibility slice для старого migration tooling, без
+DB/migration execution и без изменения CORS/trust приложения.
+Остаются **2 registry findings (1 high / 1 moderate)** на неизменившемся
+lock плюс manual Q1m nested-extglob/Q1p AJV engine blockers. Q1 не complete.
+Root types/full suite/build/SQL/browser не повторялись: production/test/lock
+не менялись, последняя default регрессия 2251 pass/1053 skips на d36b20c.
+Security/review/verification skills отделили native reproductions от reachability
+и не позволили выдать audit suppress/major override за безопасное исправление.
+При продолжении брать отдельный thin compatibility slice либо независимые
+оставшиеся C3 race/transport checks; внешние A7/P/V/media/device gates не обходить.
+Не пушили, сервер/рабочая БД/roles/CORS/trust/quotas не менялись.
+
+**Q1s — Vitest mock redirect file boundary, 11 октября МСК:** exact root
+Vitest 4.1.9 → 4.1.11 и семь связанных @vitest packages по
+[advisory](https://github.com/advisories/GHSA-82fw-gwwq-j7x9) и
+[upstream range](https://github.com/vitest-dev/vitest/compare/v4.1.9...v4.1.11).
+Reviewed public interceptor registration guard через Vite isFileLoadingAllowed,
+authenticated browser RPC check/registration switch, runner concurrency limiter
+и import postfix preservation. Public plugin всё ещё имеет raw HMR registration;
+обновление проверяет file policy, не добавляет authentication или root-only sandbox.
+Vitest browser RPC token scope отличается; remote exploit приложения не заявляется.
+Own disposable synthetic root: настоящий Vite на 127.0.0.1/ephemeral port,
+реальный WebSocket register/ack → HTTP module request. Старый mocker возвращал
+OUTSIDE из созданного test-only файла вне configured root и DENIED из in-root
+файла, запрещённого synthetic fs.deny. **2 native disclosure RED → 3 GREEN**:
+оба registration теперь не подменяют ORIGINAL; разрешённый ALLOWED redirect
+сохранён. Никакие пользовательские файлы, .env/секреты не читались.
+Initial 403 у всех fixtures оказался /var vs /private/var canonical-root
+расхождением на macOS: test root исправлен realpath до native RED; это harness
+repair, не security RED. Socket/server закрываются, fixture cleanup проверяет
+exact owned directory, uid/mode/no-symlink; app/Vite config не менялась.
+Все восемь registry integrities совпали, install/prepare hooks отсутствуют,
+non-Vitest graph unchanged; generated lock только eight package/snapshot graph
+и root importer/peer version references, frozen ignore-scripts install GREEN.
+**2251 full default pass / 1053 opt-in skips, exit 0 (19.09s)**;
+root types/formatting GREEN. Lint/build/SQL/app-browser неизменившихся consumers
+не повторялись; loopback test — native tooling HTTP, не user-app acceptance.
+Prod audit **0 findings / exit 0 / 325 dependencies**; full audit
+**2 findings (1 high / 1 moderate), exit 1 / 828 dependencies**:
+braces (нет patched version в advisory) и legacy esbuild в drizzle-kit loader.
+Manual Q1m/Q1p blockers остаются сверх count, Q1/A7/внешние gates открыты.
+TDD/security/review skills потребовали настоящий socket → read sink RED и
+allowed-path positive control, а не mocks или version assertion. Не пушили,
+сервер/рабочая БД/roles/CORS/trust/quotas не менялись.
+
+**Q1r — ограничение YAML merge work в ESLint, 11 октября МСК:** scoped
+js-yaml 4.1.1 → 4.3.2 по [advisory](https://github.com/advisories/GHSA-2883-xcg3-v3hh)
+и [upstream range](https://github.com/nodeca/js-yaml/compare/4.1.1...4.3.2).
+Reviewed changelog и runtime chargeMergeWork/mergeMappings/storeMappingPair,
+depth guard, omap duplicate-key detection и numeric scalar resolvers;
+[safety notes](https://github.com/nodeca/js-yaml/blob/4.3.2/docs/safety.md)
+сохраняют отдельную необходимость bounded traversal перед materialization aliases.
+Default maxTotalMergeKeys 10000 считает источник и его keys, включая пустой
+mapping; hard merge-sequence limit 100 действует даже при budget -1,
+default maxDepth 100. Omap keys используют own-property table вместо quadratic
+duplicate scan. Это не универсальный input/CPU/heap/alias-materialization sandbox.
+Совместимость: numbers с underscores теперь strings (actual `1_000` → string),
+новый exports map оставляет top-level/package.json; app/tooling imports и deep
+js-yaml imports в repo не обнаружены. Major 5.x не добавлен, app policy не менялась.
+Actual ESLint → eslintrc resolved parser: empty-source budget, 101 merge sources
+при budget -1 и 105-deep flow sequence давали no-throw, теперь YAML errors:
+**3 native RED → 4 focused GREEN**. Inputs маленькие, без таймерных timing
+assertions/намеренного exhaustion. Ordinary ESLint-style YAML/dump-load, merge
+override, omap constructor/toString и multi-document fixtures сохранены.
+Initial TS inference error в heterogeneous expected omap fixture исправлен
+явным Record<string, number>[]; это test typing repair, не production RED.
+Registry integrity совпал, runtime deps argparse unchanged; install/prepare
+hooks нет, upstream prepack не запускался. Generated lock только override,
+package/integrity/snapshot/один eslintrc edge; production graph unchanged.
+Frozen ignore-scripts install/root types/frontend lint/formatting GREEN;
+**2248 full default pass / 1053 opt-in skips, exit 0 (20.97s)**.
+Prod audit **0 findings / exit 0 / 325 dependencies**; full audit
+**4 findings (1 high / 3 moderate), exit 1 / 828 dependencies** — четыре
+js-yaml advisories сняты в registry. Это bounded behavior checks, не отдельное
+нагрузочное доказательство всех четырёх advisories или app exploit.
+Неизменившиеся builds/SQL/HTTP/browser не повторялись. Остались registry
+esbuild/Vitest/mocker/braces плюс manual Q1m/Q1p blockers; Q1/A7/внешние gates
+открыты. TDD/security/review skills потребовали native RED и review semantic
+limits вместо одного audit-count. Не пушили, сервер/рабочая БД/roles/CORS/
+trust/quotas не менялись.
+
+**Q1q — ограничение brace expansion в ESLint tooling, 11 октября МСК:**
+scoped brace-expansion 1.1.12 → 1.1.21 в minimatch 3.1.5 по
+[релизу](https://github.com/juliangruber/brace-expansion/releases/tag/v1.1.21)
+и [upstream range](https://github.com/juliangruber/brace-expansion/compare/v1.1.12...v1.1.21).
+Reviewed published runtime: iterative comma/tail parsing, bounded output/intermediate
+arrays, zero-step normalization и depth/rewrite fallback. Defaults: 100000
+results, 4000000 total characters, depth/rewrite 1000. При превышении output
+лимита результат обрезается, при depth/rewrite — остаток literal; это сознательная
+upstream семантика для патологических patterns, не полная эквивалентность unlimited
+expansion и не универсальная CPU/memory sandbox. Legacy `${` semantics сохранена.
+Actual ESLint → minimatch resolved parser: finite sequence 100005 → 100000,
+Cartesian count cap и accumulated character cap дают **3 native RED → 4 focused
+GREEN**; ordinary lint braces, padding, ranges, escaping/nesting/empty/dollar
+fixtures проходят до и после. Sequence запускается в own disposable child
+(2s timeout, 64 MB heap, 4 KB output), без намеренного OOM или внешних файлов.
+Соседний minimatch suite тоже GREEN: **7 focused pass / exit 0**.
+Registry integrity совпал, dependencies unchanged, install/prepare hooks нет.
+Generated lock меняет только override/package/integrity/snapshot/единственный
+minimatch edge; brace-expansion 5.0.12 и production graph не менялись.
+Frozen ignore-scripts install, root types, frontend lint, formatting GREEN.
+**2244 full default pass / 1053 opt-in skips, exit 0 (20.88s)**.
+Prod audit **0 findings / exit 0 / 325 dependencies**; full audit
+**8 findings (4 high / 4 moderate), exit 1 / 828 dependencies** — семь
+brace-expansion advisories больше не присутствуют. Это registry result плюс
+bounded parser characterization, не отдельное воспроизведение всех семи атак,
+не app exploit и не SQL/browser/deployment acceptance. Неизменившиеся builds
+и SQL/HTTP/browser не повторялись. Manual Q1m nested-extglob и Q1p AJV default
+engine blockers остаются сверх registry count; Q1/A7/внешние gates не закрыты.
+TDD/security/review skills потребовали observable native RED, supply-chain review
+и явной записи truncation/fallback, без major update/новой app policy.
+Не пушили, сервер/рабочая БД/roles/CORS/trust/quotas не менялись.
+
+**Q1p — ESLint AJV runtime-pattern errors, 11 октября МСК:** scoped
+ajv 6.12.6 → 6.14.0 по [релизу](https://github.com/ajv-validator/ajv/releases/tag/v6.14.0)
+и [advisory](https://github.com/advisories/GHSA-2g4f-4pwh-qvx6).
+Reviewed [upstream range](https://github.com/ajv-validator/ajv/compare/v6.12.6...v6.14.0):
+новый opt-in regExp engine, generated pattern uses supplied engine;
+dynamic-pattern exception теперь validation false. Dependencies unchanged,
+upstream re2 только devDependency и НЕ устанавливается/подключается в app.
+Registry integrity совпал; install/prepare hooks нет, prepublish не выполнялся.
+Generated lock только override, AJV package/snapshot и два ESLint edges;
+production graph unchanged. Frozen ignore-scripts install GREEN на macOS tree.
+Actual ESLint-resolved AJV: invalid dynamic patterns `[`/`(` давали SyntaxError,
+теперь validation false с keyword pattern: **2 native RED → 3 focused GREEN**;
+ordinary lint-style schema/defaults/additionalProperties/static и valid dynamic
+patterns сохранены. **2240 full default pass / 1053 opt-in skips, exit 0
+(22.58s)**; root types/frontend lint/formatting GREEN. Unchanged builds,
+SQL/HTTP/browser не повторялись без причины.
+Prod audit **0 findings / exit 0 / 325 dependencies**; full audit
+**15 findings (9 high / 6 moderate), exit 1 / 828 dependencies**.
+**Residual blocker:** версия не меняет default RegExp engine. Owned child
+на actual 6.14.0 с $data:true, pattern `^(a|a)*$`, value 40 `a` + `!` всё ещё
+достигает 2s timeout / SIGTERM (64 MB heap, 4 KB output). Поэтому отсутствие
+AJV advisory в registry не равно исправлению ReDoS default engine. Opt-in
+engine API доступен, но новый native RE2/изменение validation policy не добавлены.
+ESLint factory не включает $data по умолчанию; app/tooling imports/$data:true
+не обнаружены. Это synthetic tooling characterization, не app exploit.
+Manual AJV blocker вместе с Q1m nested-extglob остаётся в Q1 сверх 15 registry
+findings; при независимой работе ни один не считается закрытым. TDD/security/
+review skills отделили invalid-pattern repair от opt-in mitigation и audit
+false assurance. A7/внешние gates открыты; не пушили и не выложено,
+roles/CORS/trust/quotas/working DB не менялись.
+
+**Q1o — Vite YAML error handling, 11 октября МСК:** yaml 2.8.2 → 2.8.3
+по [advisory владельца](https://github.com/eemeli/yaml/security/advisories/GHSA-48c2-rrv3-qjmp)
+и [релизу](https://github.com/eemeli/yaml/releases/tag/v2.8.3).
+Reviewed runtime diff: composeCollection catches exhaustion as YAMLParseError
+с RESOURCE_EXHAUSTION, empty-node fallback; новый trailingComma default false.
+Это нормализация ошибки, НЕ depth/CPU/memory limit или защита всех YAML inputs.
+Нет runtime dependencies/install/prepare hooks; registry integrity совпал.
+Первый scoped-only generated preview удалял optional Vite YAML peer вместо
+замены. До install добавлен exact root devDependency 2.8.3: peer сохранён и
+проверяем явно; lock только YAML package/snapshot/override/dev importer и
+Vite/plugin/Vitest peer suffixes, production graph unchanged. Frozen
+ignore-scripts install GREEN на текущем macOS tree, не clean Linux.
+Actual Vite-resolved parser, owned bounded children (2s/64 MB/4 KB output):
+5000 nested flow sequences у parse/parseDocument/parseAllDocuments давали
+RangeError; **3 native RED → 4 focused GREEN**, теперь YAMLParseError /
+RESOURCE_EXHAUSTION. Ordinary config, multi-document parse и default flow
+format literal expectations сохранены; секретные/пользовательские YAML не читались.
+**2237 full default pass / 1053 opt-in skips, exit 0 (19.81s)**; root types,
+formatting и legacy Vite 8.2.1 build GREEN. Existing Woolen font warning
+сохранён, не asset/device приёмка. Next/backend/ESLint и SQL/browser не
+повторялись: app code и их graph unchanged. Prod audit **0 findings / exit 0 /
+325 dependencies**; full audit **16 findings (9 high / 7 moderate), exit 1 /
+828 dependencies**, yaml finding отсутствует. js-yaml не менялся и остаётся
+отдельным пунктом; Q1m manual blocker/A7/внешние gates открыты.
+TDD/security/review skills удержали все три actual error RED и обнаружили
+optional-peer removal до install, без новой бизнес-политики. Не пушили и
+не выложено; roles/CORS/trust/quotas/working DB не менялись.
+
+**Q1n — ESLint filesystem copy semantics, 11 октября МСК:** scoped
+@humanfs/node 0.16.7 → 0.16.8 по
+[advisory](https://github.com/advisories/GHSA-p498-v437-472g) и
+[релизу владельца](https://github.com/humanwhocodes/humanfs/releases/tag/node-v0.16.8).
+Reviewed runtime diff: copy lstat/readlink/symlink, copyAll отдельная symlink
+ветка; related core 0.19.1 → 0.19.2 только добавляет types dependency,
+новый types 0.15.0 содержит declaration-only exports. Все три registry
+integrities совпали; prepare hooks (tsc) просмотрены, install --ignore-scripts
+не выполнял их. Generated lock только humanfs package/snapshot/ESLint edge
+и scoped override; production graph unchanged. Frozen install GREEN на текущем
+macOS tree, не clean Linux/provenance проверка.
+Actual ESM NodeHfs, собственные mkdtemp fixtures: copy/copyAll раньше превращали
+ссылку на synthetic файл вне source в plain copied file: **2 native RED →
+2 GREEN**, lstat/readlink и обычный file copy сохранены. Initial CJS resolve
+ошибка из-за import-only exports исправлена в test harness до meaningful RED.
+Ни секреты, ни пользовательские файлы не читались; cleanup проверяет owner,
+mode 0700/plain directory и удаляет children без follow symlinks и recursive rm.
+**2233 full default pass / 1053 opt-in skips, exit 0 (22.05s)**; root types,
+frontend lint/formatting GREEN. Backend/Next/legacy build, SQL/browser не
+повторялись без причины: app/production graph неизменны. ESLint использует
+directory walk/isDirectory; вызов copy/copyAll в app/tooling не обнаружен
+(одноимённый legacy DB helper не относится к humanfs).
+Prod audit **0 findings / exit 0 / 325 dependencies**; full audit
+**17 findings (9 high / 8 moderate), exit 1 / 828 dependencies**.
+Это copy regression, не app exploit или filesystem sandbox: сохранённая
+symlink всё ещё может вести за source при последующем dereference, TOCTOU и
+недоверенные exports этим срезом не решены. Q1m nested-extglob manual blocker
+и остальные Q1/A7/внешние gates остаются открыты. TDD/security/review skills
+удержали настоящие temporary-file RED, safe cleanup и границу утверждений.
+Не пушили, не выложено; roles/CORS/trust/quotas/working DB не менялись.
+
+**Q1m — ESLint minimatch, 11 октября МСК:** scoped 3.1.2 → 3.1.5,
+без major upgrade или изменений lint/access policy. Reviewed
+[upstream range](https://github.com/isaacs/minimatch/compare/v3.1.2...v3.1.5):
+coalesced stars, head/tail globstar traversal, recursion limit 200 и partial
+matching fix. Допустимы false negatives при превышении глубины; ordinary
+lint globs/dot/brace/extglob/partial fixtures сохранены. Registry integrity
+совпал, install/prepare hooks нет; brace-expansion 1.1.12 не менялся.
+Lock меняет только override, minimatch package/snapshot и шесть lint edges;
+production graph unchanged, frozen ignore-scripts install GREEN на macOS tree.
+Actual ESLint-resolved matcher: consecutive stars и 50 non-adjacent globstars
+раньше зависали в bounded children (2s / 64 MB / 4 KB output cap):
+**2 native RED → 3 focused GREEN**. Полная default регрессия **2231 pass /
+1053 opt-in skips, exit 0 (23.04s)**; root types/frontend lint/formatting GREEN.
+Unchanged Next/backend/legacy build и SQL/browser не повторялись без причины.
+Prod audit **0 findings / exit 0 / 325 dependencies**; full audit
+**18 findings (9 high / 9 moderate), exit 1 / 827 dependencies**.
+**Существенное ограничение:** отсутствие minimatch findings в registry НЕ
+подтверждает устранение всех трёх рисков. Отдельный synthetic nested-extglob
+probe на actual 3.1.5 (`match('a'.repeat(25)+'z', '*(*(*(a|b)))')`) всё ещё
+достигает 2s timeout, child завершён SIGTERM; heap 64 MB/output cap 4 KB.
+[Nested-extglob advisory](https://github.com/isaacs/minimatch/security/advisories/GHSA-23c5-xmqv-rm74)
+помечает 3.1.4 patched, однако reviewed runtime diff такого исправления не
+содержит; upstream README теперь предупреждает о residual ReDoS untrusted globs.
+Это отдельный открытый tooling blocker, не GREEN или доказанный app exploit:
+app не импортирует minimatch, внешние user patterns не обнаружены.
+Нельзя включать noext/global filter, повышать major или объявлять Q1 закрытым
+без отдельной совместимости и доказательств. Далее независимый dependency срез.
+TDD/security/review skills отделили две реальные починки от audit false assurance.
+Не пушили, не выложено; рабочая БД, roles/CORS/trust/quotas не менялись.
+
+**Q1l — tooling glob parser, 11 октября МСК:** scoped picomatch 2.3.1 → 2.3.2
+только через micromatch/fast-glob frontend lint graph; picomatch 4.0.5 сохранён.
+Основание: [inherited classes advisory](https://github.com/micromatch/picomatch/security/advisories/GHSA-c2c7-rcm5-vvqj)
+и [repeated extglob advisory](https://github.com/advisories/GHSA-3v7f-55p6-f55p).
+Reviewed [upstream range](https://github.com/micromatch/picomatch/compare/2.3.1...2.3.2):
+null-prototype class/replacement dictionaries, bounded repeated extglob parsing;
+overlapping/nested repeated patterns могут стать literals/safe reduced regex.
+Нет новых runtime dependencies/install hooks; registry integrity совпал.
+Generated lock меняет только scoped override, package/integrity/snapshot и
+micromatch edge; production graph неизменен. Frozen ignore-scripts install
+GREEN на текущем macOS tree, не clean Linux или provenance verification.
+Actual micromatch-resolved matcher: constructor/toString/valueOf class ошибочно
+совпадали с synthetic filename `f }]`; bounded child с overlapping `+(a|aa)`
+зависал до 2s timeout (64 MB heap/output cap). **4 native RED → 5 focused GREEN**,
+обычные glob exclusions, POSIX digit и non-overlapping extglob сохранены.
+Изначальный probe `f` не различал версии, заменён после просмотра actual regex;
+не выдаётся за RED. Prototypes не мутировались, пользовательские файлы не читались.
+**2228 full default pass / 1053 opt-in skips, exit 0 (24.11s)**; root types,
+frontend ESLint и Next 16.3.8 webpack build GREEN. Backend/legacy builds и
+SQL/HTTP/browser не повторялись: production graph и app code не менялись.
+Prod audit **0 findings / exit 0 / 325 dependencies**; полный audit
+**21 findings (12 high / 9 moderate), exit 1 / 827 dependencies**, picomatch
+findings отсутствуют. Это tooling regression, не доказательство app exploit
+или device/rollout приёмки. TDD/debugging/security/review skills удержали
+различающий RED, bounded child и узкий reviewed lock; Q1/A7/внешние gates открыты.
+Не пушили, не выложено; roles/CORS/trust/quotas/working DB не менялись.
+
+**Q1k — ESLint cache parser, 11 октября МСК:** scoped flatted 3.3.3 → 3.4.4
+закрывает два high tooling findings по
+[recursion advisory](https://github.com/WebReflection/flatted/security/advisories/GHSA-25h7-pfq9-p65f) и
+[prototype-reference advisory](https://github.com/WebReflection/flatted/security/advisories/GHSA-rf6f-7fwh-wjgh).
+Reviewed [upstream range](https://github.com/WebReflection/flatted/compare/v3.3.3...v3.4.4):
+iterative resolver, numeric input index, null replacer fix; Python/PHP/Go и
+upstream dev changes не выполнялись. Нет новых runtime dependencies/hooks;
+registry integrity совпал. Generated lock 10 lines: один package/snapshot и
+flat-cache edge плюс overrides. Первый preview пытался дополнительно сменить
+React compiler types 7.28.5 → existing 7.29.8; scoped compiler override удержал
+прежний 7.28.5. Итоговый production graph не менялся, Next/backend сборки не
+повторялись без причины; это не новая compiler policy/обновление React.
+Actual flat-cache-resolved parser: три inherited string references раньше
+возвращали prototype/function вместо unresolved; bounded 2000-node chain
+давал RangeError. **4 настоящих RED → 5 focused GREEN**, ordinary shared/cyclic
+fixture сохранён. Disposable children с timeout/output cap, для chain также
+128 KB stack / 64 MB heap; ни один global prototype не мутировался.
+**2223 full default pass / 1053 opt-in skips, exit 0 (22.19s)**; root types и
+formatting GREEN. Actual full frontend ESLint cold/warm cache runs exit 0:
+390 entries, 180485 bytes, одинаковый SHA-256 до/после warm read. Собственный
+mktemp cache удалён non-recursively после owner/mode/plain-file/one-entry/hash
+проверки; пользовательские caches не читались и не менялись.
+Frozen --ignore-scripts install GREEN на текущем macOS tree, не clean Linux.
+Prod audit по-прежнему **0 findings / exit 0 / 325 dependencies**; полный audit
+**23 findings (13 high / 10 moderate), exit 1 / 827 dependencies**. Flatted
+findings отсутствуют, остальные tooling findings требуют отдельных срезов.
+Это parser/cache regression, не SQL/HTTP/browser/device приёмка и не доказательство
+внешней атаки: app не вызывает flatted, риск относится к tampered local cache.
+TDD/security/review skills удержали child RED, cache roundtrip и остановили
+несвязанный compiler graph drift. Q1/A7/migrations/provider/media/rollout открыты.
+Не пушили и не выложено; roles/CORS/trust/quotas/working DB не менялись.
+
+**Q1j — Babel source-map boundary, 11 октября МСК:** scoped override
+@babel/core 7.28.5 → 7.29.6 по
+[advisory владельца](https://github.com/babel/babel/security/advisories/GHSA-4x5r-pxfx-6jf8) и
+[релизу](https://github.com/babel/babel/releases/tag/v7.29.6).
+Reviewed related Babel graph 7.29.7–7.29.10: provenance re-release, parser/
+generator fixes, toPrimitive guard и conservative binding evaluation; новых
+package names вне Babel нет. Все 16 новых Babel package integrities совпали с
+registry, install/prepare hooks отсутствуют. Generated lock 179 lines меняет
+только Babel packages и Next/styled-jsx/ESLint references; Browserslist 4.28.7
+и remapping 2.3.5 сохранены. Excluded Expo не менялся.
+Actual styled-jsx-resolved Babel раньше включал чужой synthetic map через
+relative ../ и absolute sourceMappingURL: **2 RED** с literal marker в output.
+Теперь обе ссылки вне fixture package root не раскрывают marker; adjacent map
+сохранён. Только три committed synthetic fixture files, без чтения секретов,
+внешних файлов или mocks. Это upstream characterization, не доказательство
+атаки приложения: application code не компилирует пользовательский JS.
+**12 focused GREEN**, отдельный actual styled-jsx transform сохраняет scoped
+classes/CSS; первоначальный probe ожидал string attribute вместо JSX expression,
+его ожидание исправлено по фактическому output, production не менялся.
+Отсутствующие Babel declarations описаны узким test-only interface, без нового
+пакета или global any. **2218 full default pass / 1053 opt-in skips, exit 0
+(20.10s)**; root types, Next production build, frontend lint, legacy Vite build
+и formatting проходят. Legacy font warning остаётся; backend production code/
+graph не менялись, его успешная предыдущая сборка не повторялась.
+Frozen --ignore-scripts install GREEN на текущем macOS tree, не clean Linux.
+Native **prod audit 0 findings, exit 0, 325 dependencies** — только известные
+advisories этой группы, не полная security/сквозная готовность. Отдельный полный
+audit с tooling: **25 findings (15 high / 10 moderate), exit 1, 827 dependencies**;
+следующий независимый Q1 срез — triage tooling graph, без bulk forced fixes.
+TDD/security/review/debugging skills удержали bounded literal RED и изолированный
+related graph. A7/migrations/provider/media/device/rollout ещё открыты;
+SQL/browser/physical devices здесь не проверялись. Не пушили и не выложено.
+
+**Q1i — tRPC related packages, 11 октября МСК:** server/client/react-query
+в root/backend/frontend/legacy-web синхронно закреплены на 11.8.0 по
+[релизу](https://github.com/trpc/trpc/releases/tag/v11.8.0) и
+[advisory владельца](https://github.com/trpc/trpc/security/advisories/GHSA-43p4-m455-4f4j).
+Exact client/server peers требуют совместного minor upgrade; React/TanStack/
+TypeScript не обновлялись. Excluded legacy-expo не менялся. Generated lock
+меняет только три tRPC packages/integrities/peers и их workspace references;
+новых dependencies/install/prepare hooks нет, registry integrity совпали.
+Reviewed minor добавляет API Gateway REST streaming (не используем) и form
+converter hardening. Experimental caller/Next App Dir adapter в application
+code не найден; это не подтверждённая доступная атака приложения.
+Два synthetic FormData paths раньше записывали marker в Object.prototype:
+**2 RED** в собственных bounded child processes, без pollution test worker.
+Теперь marker не создаётся; literal nested fields/arrays сохранены.
+**27 focused upstream/compiled entrypoint/native Nest HTTP GREEN**, реальные
+HTTP handlers с существующими business/SQL doubles — не SQL/browser E2E.
+**2215 full default pass / 1053 opt-in skips, exit 0 (18.32s)** под scoped
+caffeinate; root types/backend build/Next production build/legacy Vite build,
+formatting/API contract/boundaries проходят. Legacy build сохраняет warning
+о Woolen font runtime resolution: standalone build не копирует public assets,
+не выдаётся за визуальную/asset приёмку legacy. Frozen --ignore-scripts install
+проходит на текущем macOS tree; clean Linux/browser integration gate остаётся.
+Native prod audit **1 low / 0 moderate / 0 high / 0 critical**, exit 1:
+Babel sourceMappingURL ещё открыт. Это отсутствие известных high в текущем
+workspace audit, не полная security готовность. TDD/security/review skills
+удержали безопасный child RED и aligned peers; app routes/auth/CORS/trust/
+quotas не менялись. A7/migrations/provider/media/device/rollout ещё открыты.
+Не пушили и не выложено.
+
+**Q1h — Browserslist/build graph, 11 октября МСК:** scoped override 4.28.1 →
+4.28.7 по [релизу](https://github.com/browserslist/browserslist/releases/tag/4.28.7),
+[changelog](https://raw.githubusercontent.com/browserslist/browserslist/4.28.7/CHANGELOG.md)
+и [stats advisory](https://github.com/advisories/GHSA-73wf-gq98-2v4g).
+Actual Babel helper dependency на bounded JSON stats с __proto__/constructor/
+toString раньше бросала TypeError при unrelated explicit query: **3 RED**;
+теперь возвращает literal chrome 100. Обычный custom usage query сохранён:
+**4 focused GREEN**. В тесте нет poisoned files/global prototype mutations.
+Это build-dependency characterization, не app runtime exploit proof; malicious
+stats autodiscovery через filesystem отдельно не проверяли. Cache eviction fix
+проверен чтением upstream/runtime source, не OOM stress или отдельным RED.
+Review учёл промежуточные изменения Electron/> queries и baseline case handling.
+Generated lock меняет только related graph: Browserslist, datasets caniuse-lite
+1.0.30001815 / electron-to-chromium 1.5.452 / node-releases 2.0.58, helper/peer
+references; baseline 2.9.8 удалена в пользу already existing 2.11.27.
+Все пять registry integrity совпали, install/prepare hooks отсутствуют.
+Node releases требует Node >=18; local/CI используют Node 22. Current macOS
+frozen --ignore-scripts install GREEN, не clean Linux rehearsal. CLI baseline
+advisory исчезла за счёт patched existing branch; сам CLI не проверяли.
+**2212 full default pass / 1053 opt-in skips, exit 0 (21.96s)** под scoped
+caffeinate; root types/frontend production build/formatting проходят. Backend
+source/graph прежние — его build не повторяли. Native prod audit теперь
+**2 findings: 0 critical / 1 high / 0 moderate / 1 low**, exit 1, не clean;
+остались tRPC experimental caller и Babel sourceMappingURL. TDD/security/review
+skills удержали related upgrade и независимые literal fixtures. Browser target
+policy, auth/CORS/trust/quotas не менялись; read installed Next browser guide.
+Devices/SQL/provider/media/migrations/rollout этим не закрываются. Не выложено.
+
+**Q1g — body-parser, 11 октября МСК:** scoped override 1.20.4 → 1.20.6
+по [changelog владельца](https://raw.githubusercontent.com/expressjs/body-parser/1.20.6/HISTORY.md)
+и [advisory](https://github.com/advisories/GHSA-v422-hmwv-36x6).
+Четыре actual Express parsers (JSON/raw/text/form) раньше принимали invalid
+string и NaN limit при construction: **8 RED**. После обновления все восемь
+отвергаются синхронно; **87 focused dependency/request-body/native Nest/webhook
+HTTP GREEN**, включая сохранённые valid quotas, generic errors и подписи.
+Это upstream malformed-config characterization, не доказательство app exploit:
+application.ts/request-bodies.ts/sandbox ingress используют valid literal limits.
+App form parsers по-прежнему extended:false; промежуточный 1.20.5 также меняет
+strict JSON error construction и extended arrays >100, учтено при review.
+Пакет требует qs ~6.15.1: отдельный parent-scoped override сохраняет already
+patched 6.16.0 вместо возврата к старой advisory branch. Actual Express body-parser
+1.20.6 resolves qs 6.16.0; Nest/Express 5 branch 2.3.0 неизменна. Generated lock
+меняет два overrides, один package/integrity/snapshot и Express reference; все
+остальные transitive versions прежние, новых packages/hooks нет. Registry integrity
+совпала; frozen --ignore-scripts install на текущем macOS tree GREEN, не clean Linux.
+**2208 full default pass / 1053 opt-in skips, exit 0 (20.02s)** под scoped
+caffeinate; root types/backend build/formatting проходят. Native prod audit
+**5 findings: 0 critical / 3 high / 1 moderate / 1 low**, exit 1, не clean.
+TDD/security/review skills: bounded startup failures и native HTTP compatibility,
+без новых parser quotas/auth/CORS/trust policies. SQL/provider/storage/browser
+приёмка этим не закрывается; frontend graph/build не менялись и не повторялись.
+Остальные findings, migrations/rollout и внешняя приёмка открыты. Не выложено.
+
+**Q1f — sharp/native decoder, 11 октября МСК:** root/backend закреплены на
+0.35.5 по [релизу владельца](https://github.com/lovell/sharp/releases/tag/v0.35.5)
+и [librsvg advisory](https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w).
+Первый generated lock оставлял optional sharp 0.35.4 у Next; review обнаружил
+это до установки. Scoped override sharp@0.35.4 → 0.35.5 устранил старую ветку,
+не меняя Next. Финальный lock меняет только related sharp/@img binaries и
+libvips 1.3.3 → 1.3.4; semver/detect-libc/colour/emnapi остаются прежними.
+Все 27 registry integrity совпали; install/prepare lifecycle hooks отсутствуют.
+Одноразовый metadata checker сначала ошибочно ожидал object для single-field
+pnpm view, которое возвращает string; shape исправлен, настоящий mismatch не найден.
+Frozen --ignore-scripts install проходит на текущем macOS tree; actual backend
+и Next resolve дают sharp 0.35.5 / librsvg 2.63.2 / libvips 8.18.7.
+**81 focused pass до и после обновления:** настоящие JPEG/PNG/WebP → WebP,
+EXIF orientation/strip, SVG block, пиксельные/byte ограничения и profile HTTP;
+storage/SQL doubles не заменяют object-storage или SQL приёмку. API byte gate и
+native SVG block сохранены. Exploit/RCE RED не воспроизводился: advisory
+зависит от glibc Linux/runtime, Mac compatibility и audit не доказывают серверную
+безопасность. Нового production/test code нет; не добавлен version-only test
+ради формального RED. Review/security skills удержали один binary dependency
+срез и явный Linux gate: clean frozen install, actual runtime library versions
+и native upload/Next image smoke перед rollout, включая global libvips, если он есть.
+**2200 full default pass / 1053 opt-in skips, exit 0 (24.12s)** под scoped
+caffeinate; root types/backend и frontend production build/formatting проходят.
+Prod audit **6 findings: 0 critical / 3 high / 1 moderate / 2 low**, exit 1;
+sharp advisory отсутствует, audit не clean. Остальные findings, A7/migrations,
+real media/device/provider/storage acceptance открыты. Не пушили и не выложено.
+
+**Q1e — qs, 11 октября МСК:** scoped override только 6.14.0 → existing
+6.16.0; отдельная уже исправленная ветка body-parser 2 остаётся прежней.
+По [changelog владельца](https://raw.githubusercontent.com/ljharb/qs/v6.16.0/CHANGELOG.md)
+проверены изменение обработки arrays/duplicates, opt-in strictMerge/stringify
+depth и [isBuffer fix](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g).
+Actual Express dependency: два bounded comma-array inputs игнорировали explicit
+arrayLimit=2/throwOnLimitExceeded (RED); parse→stringify для non-callable
+constructor.isBuffer бросал TypeError (RED). После обновления оба массива
+отвергаются, round-trip даёт literal encoded string; повторные значения и UTF-8
+сохранены. **79 focused dependency/request-body/native Nest/webhook HTTP GREEN**,
+включая прежние подписи и безопасные отказы. Business/SQL doubles в существующих
+suites не превращают эти HTTP проверки в сквозную SQL/provider приёмку.
+Это upstream characterization, не доказательство exploitable app route:
+приложение не включает comma/plainObjects/stringify round-trip; form parsers
+остаются extended:false с прежними quotas, webhook raw path не менялся.
+Generated lock содержит override, удаление старого qs и три Express/body-parser
+references; dependencies side-channel/es-define-property уже были в patched
+branch, новых versions/packages/hooks не добавлено. Integrity сверена, frozen
+install --ignore-scripts проходит на текущем macOS tree, не clean Linux.
+**2200 full default pass / 1053 opt-in skips, exit 0 (19.30s)** под scoped
+caffeinate; root types/backend build/formatting проходят. Native prod audit
+теперь **7 findings: 0 critical / 4 high / 1 moderate / 2 low**, exit 1;
+четыре qs advisories отсутствуют, audit не clean. Frontend source/graph,
+auth/CORS/trust/quota policy и DB не менялись; неизменную frontend build не
+повторяли. TDD/security/review skills удержали один related dependency срез;
+остальные findings, migrations/rollout и внешняя приёмка открыты. Не выложено.
+
+**Q1d — source-map-js, 11 октября МСК:** scoped override 1.2.1 → 1.2.2 по
+[релизу](https://github.com/7rulnik/source-map-js/releases/tag/v1.2.2) и
+[исправлению владельца](https://github.com/7rulnik/source-map-js/commit/cf76580).
+Actual PostCSS dependency раньше принимала negative/fraction/Infinity/100M
+indexed section line offsets (четыре RED); теперь отвергает при construction,
+без опасного flatten/serialization в test worker. Пятая проверка сохраняет
+literal generated/original positions через eachMapping для обычного indexed map.
+Первоначальное ожидание originalPositionFor на первой column дало unrelated
+старый upstream null-result: воспроизведено отдельно, positive compatibility
+проверка перенесена на mapping traversal; не выдаём это за security RED/fix.
+Upstream declarations не описывают indexed maps: один объяснённый type-only cast
+в synthetic fixture, не production. **5 focused GREEN; 2196 full default pass /
+1053 opt-in skips, exit 0 (23.08s)** под scoped caffeinate; root types, frontend
+production build, formatting проходят. Backend source/graph не менялся — его
+неизменную сборку не повторяли. Generated lockfile содержит только override,
+version/integrity, две PostCSS/Sass references и snapshot; новых dependencies
+и install lifecycle hooks нет. Frozen/ignore-scripts install на текущем macOS
+tree, не Linux rehearsal. Native prod audit **11 findings: 0 critical / 4 high /
+4 moderate / 3 low**, exit 1; source-map advisory исчез. Reachability установлена
+в PostCSS/Sass build graph, не доказана на user-controlled API input; никакого
+утверждения об app exploit или полной DoS-защите. Skills TDD/security/review
+удержали один dependency slice с безопасной construction characterization.
+Q1/rollout/migrations и внешняя приёмка остаются открыты, push/deploy не было.
+
+**Q1c — Axios и связанный transport graph, 11 октября МСК:** root/backend
+фиксируют 1.20.0 вместо 1.13.2; excluded legacy-expo не менялся.
+Проверены [релиз 1.20.0](https://github.com/axios/axios/releases/tag/v1.20.0),
+[промежуточный changelog](https://raw.githubusercontent.com/axios/axios/v1.20.0/CHANGELOG.md)
+и [advisory fetch limit](https://github.com/axios/axios/security/advisories/GHSA-777c-7fjr-54vf).
+Bounded 64-byte data URI при maxContentLength=16: старый fetch adapter
+возвращал 64 bytes (RED), новый отвергает ERR_BAD_RESPONSE (GREEN).
+Это characterization upstream, не app exploit: единственный текущий call site
+— legacy Manus SDK с Node HTTP adapter, fixed paths и JSON POST; finite fetch
+limits/HTTP2/interceptors/multipart приложение здесь не использует.
+Две дополнительные real SDK → owned loopback HTTP проверки сохраняют все три
+payload/path контракта, loginMethod=email и отказ при 502 без выдачи user.
+Ни DB, ни внешний OAuth не вызываются; synthetic credentials, proxy env только
+в собственном test worker. Вместе с cookie/session cases **13 focused GREEN**.
+Сгенерированный lock diff ограничен Axios graph: follow-redirects 1.16.1,
+form-data 4.0.6 → hasown 2.0.4, proxy-from-env 2.1.0 и новый
+https-proxy-agent 5.0.1 → agent-base 6.0.2 (existing debug/function-bind).
+Review: [redirect source diff](https://github.com/follow-redirects/follow-redirects/compare/v1.15.11...v1.16.1),
+[multipart fix](https://raw.githubusercontent.com/form-data/form-data/v4.0.6/CHANGELOG.md)
+и [outbound proxy parser change](https://github.com/Rob--W/proxy-from-env/releases/tag/v2.1.0)
+проверены; последний переходит на standard URL API и требует отдельной приёмки
+реальной outbound proxy конфигурации при rollout. Inbound Express trust/CORS,
+auth policy, квоты и production source не менялись. Registry integrities
+сверены, scripts metadata рассмотрены; все установки --ignore-scripts,
+prepare/prepublish не разрешались. Frozen install на текущем macOS tree,
+не clean Linux rehearsal. **2191 full default pass / 1053 opt-in skips**, exit 0,
+17.88s под scoped caffeinate; root types/backend build/formatting проходят.
+Fresh native prod audit: **12 findings, 0 critical / 5 high / 4 moderate / 3 low**,
+exit 1; advisory для Axios graph отсутствуют. Это 37 снятых findings, не 37
+подтверждённых app exploits. Security/TDD/incremental/review skills удержали
+обновление в одном связанном graph с RED/GREEN и честной границей приёмки.
+Q1, реальные SQL/browser/provider проверки, migration gates и rollout открыты;
+не было push/deploy или изменения рабочей БД.
+
+**Q1b — legacy Express route matcher, 11 октября МСК:** один точечный override
+path-to-regexp 0.1.12 → 0.1.13 по
+[advisory владельца](https://github.com/pillarjs/path-to-regexp/security/advisories/GHSA-37ch-88jc-xwx2)
+и [релизу](https://github.com/pillarjs/path-to-regexp/releases/tag/v.0.1.13).
+Characterization actual Express dependency: bounded ~4 KiB nonmatching path
+для четырёх параметров в одном сегменте блокировал собственный child до
+2-second deadline (RED); child принудительно завершён SIGKILL, не зависает
+test worker. После обновления тот же запрос возвращает false: **32 focused
+dependency/native Nest HTTP/security GREEN**. Это upstream defect fixture, не
+утверждение об эксплуатируемом маршруте приложения или p95 рабочего сервера.
+Lockfile сгенерирован pnpm: только override, version/integrity, ссылка Express 4
+и snapshot; новая ветка Express 5 matcher 8.4.2 сохранена. Нет новых transitives
+или install hooks; frozen/ignore-scripts install, root types/backend build и
+formatting проходят. Production audit теперь **49 findings: 0 critical / 19 high /
+26 moderate / 4 low**, path-to-regexp advisory отсутствует, exit 1 сохраняется.
+Первый full default run дал 8 subprocess/CLI timeouts (2180 pass / 1053 skips),
+не semantic HTTP failures. Все 8 suites отдельно serial проходят **85 cases**,
+но full serial run снова дал один CLI timeout (2187 pass / 1053 skips).
+Первичная гипотеза нагрузки/параллелизма недостаточна: `pmset -g log` показывает
+Maintenance Sleep 04:30:07–04:35:07 сразу после начала первого run и
+04:41:58–04:46:58 внутри serial run. Wall-clock deadlines пересекли настоящий
+300-second сон macOS. Чужой WebKit и постоянные настройки питания не трогались.
+Проверка гипотезы сна: scoped `caffeinate -is` только на время test process,
+с автоматическим снятием assertion при его завершении; исходники/timeout/CI
+не меняются. Protected serial run: **2188 pass / 1053 skips, exit 0, 77.73s**.
+Восстановленный default parallelism под тем же scoped assertion: **2188 pass /
+1053 skips, exit 0, 17.34s**; предыдущие timeouts не повторяются без сна.
+Systematic-debugging skill не позволил скрыть failures или поднять
+timeouts. Trust/CORS/quota/схемы не менялись; rollout/Q1 открыты.
+
+**Q1a — proxy-addr, 11 октября МСК:** свежий native pnpm 9.12.0 production audit
+подтвердил прежние 51 findings (1 critical / 20 high / 26 moderate / 4 low).
+Один точечный override 2.0.7 → 2.0.8 снимает GHSA-jqcg-44mw-7w3h по
+[advisory владельца](https://github.com/jshttp/proxy-addr/security/advisories/GHSA-jqcg-44mw-7w3h)
+и [release notes](https://github.com/jshttp/proxy-addr/releases/tag/v2.0.8).
+До обновления regression через настоящий Express dependency даёт два RED:
+публичный IPv4 ошибочно trusted для двух неоднозначных IPv6 префиксов.
+Это characterization upstream defect, не воспроизведение взлома приложения:
+обычный API и sandbox сохраняют свою прежнюю loopback policy без изменений.
+После обновления **20 focused dependency/native HTTP/client-IP GREEN**;
+правильный mapped subnet и loopback IPv4/IPv6/mapped остаются совместимыми,
+реальные HTTP quota checks сохраняют поведение при forged forwarded headers.
+Оба Express потребителя (прямой и Nest adapter) разрешают proxy-addr 2.0.8.
+Lockfile сгенерирован pnpm: одна версия/integrity и обе Express ссылки изменены;
+пять peer snapshot ссылок/ключей ESLint пересериализованы без смены версий.
+Install --frozen-lockfile --ignore-scripts проходит на текущем дереве; это не
+clean Linux image rehearsal. Пакет не добавляет transitives/install hooks.
+Полный default suite **2187 pass / 1053 opt-in skips**, root/frontend/E2E types,
+backend build и lint проходят; SQL skips не считаются сквозной приёмкой.
+Audit после обновления: **50 findings, 0 critical / 20 high / 26 moderate / 4 low**,
+proxy-addr advisory отсутствует, audit exit 1 остаётся ожидаемым из-за остальных.
+Security/TDD/review: без forced remediation, vendor patches, новых проверок в
+package scripts, изменения trust/quota/ролей/CORS, реальных платежей/писем/БД.
+Q1 в целом и rollout открыты; далее точечная reachability/fix triage других пакетов.
+
+- **Q1 — зависимости и миграции (M на исправление).** Разобрать 51 сохранённый
+  advisory по достижимости и исправлениям; точечные обновления с changelog и
+  регрессией. Рабочие history/data migration blockers требуют репетиции/backup.
+  Проверка: native audit + affected suites/build, отдельный reviewed release.
+- **Q2 — нагрузка и устройства (M на сценарий).** Сначала измерить baseline,
+  определить ожидаемую одновременную аудиторию, p95/ошибки и ограничения shared dev;
+  затем нагрузка на выделенном окружении. Safari iPhone, Android, desktop и PWA:
+  вход/оплата/контент, клавиатура/редактор, медиа, карусель/скролл. 30–50 участниц
+  пилота не подставлять вместо неизвестного числа одновременных запросов.
+- **Q3 — выпуск и пилот (операционный).** По пройденной матрице 2.1/4.1–4.16:
+  backup/rollback, reviewed build, инструкция администратору, диагностика ошибок,
+  5–7 дней пилота на 30–50 участницах и устранение подтверждённых дефектов.
+  Зависимости: обязательные функции/материалы/интеграции и критерии Q2; дата выпуска
+  не обещается до закрытия этих зависимостей.
+
+### Очередность и правила продолжения
+
+Начать A1 → A2 → A3 → A4 → A5/A6, затем A7 по доступности истории. Параллельно
+ожидаются ответ Prodamus и ссылки/материалы VK; если A7/P1 внешне недоступны,
+переходить C1/C2/C3, M1, V1/V2 с безопасными fixtures, S1/S2 и Q1. Каждый M/L
+срез разбивать до 3–5 исходных файлов плюс его тесты/документация. В этом плане
+«параллельно» означает независимые направления, не запуск дополнительных агентов.
+
+Для каждого изменения: meaningful RED/GREEN, нужные native SQL/HTTP/browser
+проверки, типы/сборка затронутого приложения, API/boundaries/docs, ревью и отдельный
+коммит. Полный регресс — на контрольных точках, без повторов на неизменном коде.
+Тестовые БД/SMTP/storage отдельные; реальные платежи и письма не служат fixtures.
+Техническая декомпозиция M06/M08, shutdown M07c и N12 push не заменяют функции ТЗ:
+выполнять лишь по зависимости; максимальный drain timeout по-прежнему не выбран.
+
+За пределами первого этапа остаются online-магазин/автовыдача файлов, подбор
+почтовых друзей, web push/новый загрузчик, offline/native store release, редактор
+имени/аватара и защита расширенных советов теста от получения вне экрана.
+Состояние внешних зависимостей и факты проверки фиксируются здесь и в todo,
+не объявляя весь раздел готовым по одной удачной проверке.
+
 ## Goal
 
 Reorganize the current Expo + Express/tRPC repository into a pnpm monorepo that is easy to navigate and safe to develop in. Frontend, backend, database/shared code, deployment assets, and repository tooling receive explicit owners and folders. Runtime behavior, URLs, tRPC procedure names, database schema, and deployment behavior remain unchanged during the move.

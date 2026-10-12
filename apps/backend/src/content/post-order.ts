@@ -5,4 +5,9 @@ import { posts } from "../../../../packages/database/src/schema";
 export const postDateOrder = desc(
   sql`COALESCE(${posts.publishedAt}, ${posts.createdAt})`,
 );
-export const postListOrder = [asc(posts.sortOrder), postDateOrder] as const;
+// LIMIT/OFFSET pages need a total order even when imported posts share dates.
+export const postListOrder = [
+  asc(posts.sortOrder),
+  postDateOrder,
+  asc(posts.id),
+] as const;

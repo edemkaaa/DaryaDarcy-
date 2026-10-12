@@ -15,7 +15,7 @@ export function registerHttpSecurity(app: Express): void {
   app.use((req, res, next) => {
     res.vary("Origin");
     // Mutation responses can contain guest checkout URLs, even without cookies.
-    if ((req.method === "POST" && req.path.startsWith("/api/")) || /^\/api\/auth(?:\/|$)/.test(req.path) || req.headers.cookie || req.headers.authorization) {
+    if ((req.method === "POST" && req.path.startsWith("/api/")) || /^\/api\/auth(?:\/|$)/.test(req.path) || /^\/api\/admin\/member-email-bindings(?:\/|$)/i.test(req.path) || req.headers.cookie || req.headers.authorization) {
       res.setHeader("Cache-Control", "no-store");
     }
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -30,14 +30,14 @@ export function registerHttpSecurity(app: Express): void {
     const providerBoundary = /^\/api\/prodamus\/(webhook|return)\/?$/.test(req.path) && ["GET", "POST"].includes(req.method);
     if (origin && !trusted && !providerBoundary) { res.sendStatus(403); return; }
     if (!origin && !providerBoundary) {
-      // Email links may open this public, read-only form. Do not exempt its
-      // password mutations, cross-site fetches or embedded documents.
-      const passwordPageNavigation = req.method === "GET" &&
-        /^\/api\/auth\/password\/?$/.test(req.path) &&
+      // Email links may open these public, read-only entry pages. Do not exempt
+      // their mutations, cross-site fetches or embedded documents.
+      const emailPageNavigation = req.method === "GET" &&
+        /^\/api\/auth\/(password|email-binding)\/?$/.test(req.path) &&
         req.headers["sec-fetch-mode"] === "navigate" &&
         req.headers["sec-fetch-dest"] === "document";
       const simpleContent = /^(application\/x-www-form-urlencoded|multipart\/form-data|text\/plain)(;|$)/i.test(req.headers["content-type"] || "");
-      if ((req.headers["sec-fetch-site"] === "cross-site" && !passwordPageNavigation) ||
+      if ((req.headers["sec-fetch-site"] === "cross-site" && !emailPageNavigation) ||
           (req.headers.cookie && !["GET", "HEAD", "OPTIONS"].includes(req.method) && simpleContent)) {
         res.sendStatus(403); return;
       }

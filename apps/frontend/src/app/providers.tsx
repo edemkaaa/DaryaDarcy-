@@ -13,7 +13,21 @@ import { BackgroundCheckNotice } from "@/domain/session/background-check-notice"
 import TabShell from "./tab-shell";
 import { NavigationHistory } from "@/shared/navigation/history";
 import { TouchPressGuard } from "@/shared/browser/touch-press-guard";
+import { usePathname } from "next/navigation";
 export default function Providers({ children }: { children: ReactNode }) {
+  const path = usePathname();
+  // A purpose-specific public proof must not be destroyed when session identity
+  // resolves or changes. Other screens retain their existing identity fence.
+  if (path === "/email-binding")
+    return (
+      <ThemeProvider>
+        <ViewportSync />
+        {children}
+      </ThemeProvider>
+    );
+  return <SessionProviders>{children}</SessionProviders>;
+}
+function SessionProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createAppQueryClient);
   const [client] = useState(createTRPCClient);
   return (

@@ -4,6 +4,230 @@
 согласовал новую пустую БД без переноса реальных аккаунтов, оплат и ключей
 интеграций. Последующее наполнение публичным контентом описано ниже отдельно.
 
+## Локальное обновление зависимости — 11 октября 2026 (не выложено)
+
+Свежий Q1t: остаточные риски подтверждены без изменения зависимостей.
+Next tooling braces 3.0.3 compile/expand: 9003-char nested pattern даёт caught
+RangeError в bounded owned child; patched release отсутствует. Legacy nested
+esbuild 0.18.20 own loopback stdin-only server отдаёт synthetic source с ACAO *
+при untrusted Origin; context disposed. No user files/секреты, не browser proof.
+Core-utils использует transform, не serve: reachable app exploit не заявляется.
+Out-of-range override/patch/suppression не добавлены; registry 2 + manual Q1m/Q1p
+остаются. Далее reviewed compatibility или independent C3 checks, gates открыты.
+Docs-only, прежние 2251 pass не повторялись без изменений; не пушили/не выложено.
+
+Свежий Q1s: Vitest/internal graph 4.1.11; real own Vite/WebSocket → HTTP
+не возвращает synthetic outside/denied source через mock redirect. Два native
+disclosure RED → 3 GREEN, allowed redirect сохранён; no secrets/user files.
+Eight registry integrities/hooks/selected runtime reviewed, rest graph unchanged.
+2251 full default pass / 1053 skips, exit 0 (19.09s); types/format/frozen install
+GREEN. Prod audit 0/exit 0 (325 deps); full audit 2 (1 high / 1 moderate),
+exit 1 (828 deps): braces + legacy esbuild. Manual Q1m/Q1p blockers сверх count;
+Q1/A7/внешние gates открыты. Это native tooling acceptance, не remote-app exploit
+или app-browser/clean Linux/deployment proof; не пушили и не выложено.
+
+Свежий Q1r: scoped js-yaml 4.3.2 для ESLint/eslintrc. Empty merge work,
+hard sequence size и depth limits: 3 native RED → 4 GREEN, ordinary YAML/
+merge/omap/multi-doc/dump preserved. Underscore numbers теперь strings;
+alias materialization требует отдельного bounded traversal, не universal sandbox.
+Integrity/hooks/selected runtime reviewed, runtime deps unchanged, no 5.x.
+2248 full default pass / 1053 skips, exit 0 (20.97s); types/lint/format/frozen
+install GREEN, production graph unchanged. Prod audit 0/exit 0 (325 deps);
+full audit 4 (1 high / 3 moderate), exit 1 (828 deps): esbuild/Vitest/mocker/
+braces плюс manual Q1m/Q1p blockers. Q1/A7/внешние gates открыты; unchanged
+builds/SQL/browser не повторялись, не пушили и не выложено.
+
+Свежий Q1q: brace-expansion 1.1.21 только в ESLint/minimatch 3 graph.
+Count/product/character cap: 3 native RED → 4 GREEN, вместе с соседними
+minimatch checks 7 pass. Ordinary patterns сохранены; pathological patterns
+truncate или сохраняют literal remainder, не universal resource sandbox.
+Registry integrity/hooks/runtime diff reviewed, deps unchanged; 5.x untouched.
+2244 full default pass / 1053 skips, exit 0 (20.88s); types/lint/format/frozen
+install GREEN. Prod audit 0/exit 0 (325 dependencies); full audit 8 (4 high /
+4 moderate), exit 1 (828 dependencies). Это не отдельное воспроизведение всех
+семи прежних parser advisories и не browser/deployment/clean Linux acceptance.
+Manual Q1m/Q1p blockers остаются сверх registry count; A7/внешние gates открыты.
+Неизменившиеся builds/SQL/browser не повторялись; не пушили и не выложено.
+
+Свежий Q1p: scoped AJV 6.14.0 в ESLint graph; invalid dynamic-pattern
+exceptions: 2 native RED → 3 GREEN, ordinary validation сохранена.
+2240 full default pass / 1053 skips, exit 0; types/lint/format/frozen install
+GREEN, production graph unchanged. Registry integrity/hooks/runtime diff reviewed.
+Prod audit 0/exit 0 (325 dependencies); full audit 15 (9 high / 6 moderate),
+exit 1 (828 dependencies). Это НЕ устранение default-engine ReDoS: $data:true
+synthetic probe на actual 6.14.0 всё ещё 2s timeout в owned bounded child.
+Новый regExp engine opt-in, RE2 не добавлен, ESLint $data default false.
+Manual AJV blocker + Q1m остаются сверх registry findings; A7/внешние gates
+открыты. Не app exploit/SQL/browser/clean Linux proof, не пушили и не выложено.
+
+Свежий Q1o: YAML 2.8.3 для Vite tooling, root exact dev peer сохраняет
+существующий optional peer после scoped-only preview removal. Registry
+integrity/hooks/runtime diff проверены. Три bounded-child RangeError RED →
+4 focused GREEN: все parse API дают YAMLParseError/RESOURCE_EXHAUSTION,
+обычные конфигурации и форматирование сохранены. Не depth/CPU/memory limit.
+Full default 2237 pass / 1053 skips, exit 0; types/format/frozen install/
+legacy Vite build GREEN, существующий Woolen font warning сохранён.
+Production graph unchanged; prod audit 0/exit 0 (325 dependencies), full audit
+16 (9 high / 7 moderate), exit 1 (828 dependencies). js-yaml/Q1m manual
+blocker/A7/внешние gates открыты; не SQL/browser/device/clean Linux proof.
+Не пушили и не выложено, рабочая БД и access policy не менялись.
+
+Свежий Q1n: scoped humanfs/node 0.16.8 с related core/types; три registry
+integrities проверены, prepare hooks просмотрены и не выполнялись.
+Actual temporary-file copy/copyAll: 2 RED → 2 GREEN, symlinks не превращаются
+в plain outside-source copies, ordinary copy сохранён. Это НЕ sandbox:
+ссылки остаются разрешимыми наружу при последующем dereference.
+Owned fixtures удалены после owner/mode проверки без follow symlinks.
+Full default 2233 pass / 1053 skips, exit 0; root types/frontend lint/format/
+frozen-ignore-scripts install GREEN, production graph unchanged.
+Prod audit 0/exit 0 (325 dependencies); full audit 17 (9 high / 8 moderate),
+exit 1 (828 dependencies). Q1m manual blocker, tooling/A7/внешние gates открыты.
+Не app exploit/SQL/browser/clean Linux proof; не пушили и не выложено.
+
+Свежий Q1m: scoped ESLint minimatch 3.1.2 → 3.1.5; consecutive stars и
+non-adjacent globstars: 2 bounded child RED → 3 focused GREEN. Full default
+2231 pass / 1053 skips, exit 0; root types/frontend lint/frozen-ignore-scripts
+install/formatting GREEN. Production graph unchanged, build не повторялся.
+Prod audit 0/exit 0 (325 dependencies); full audit 18 findings (9 high /
+9 moderate), exit 1 (827 dependencies). Но nested-extglob probe на actual
+3.1.5 всё ещё даёт 2s timeout в owned 64 MB child: registry patched metadata
+не является подтверждением исправления. Manual tooling blocker записан в плане;
+не app exploit/полная security готовность. Brace-expansion и остальные
+tooling/A7/внешние gates открыты. Не пушили и не выложено, рабочая БД не менялась.
+
+Свежий Q1l: scoped picomatch 2.3.1 → 2.3.2 в micromatch tooling graph.
+Inherit-class и repeated-extglob findings сняты: 4 actual RED → 5 focused GREEN,
+bounded child timeout/heap/output cap, ordinary globs/exclusions сохранены.
+Reviewed upstream semantics/integrity/hooks; production graph unchanged.
+Full default 2228 pass / 1053 opt-in skips, exit 0; root types/frontend lint/
+Next webpack build/frozen-ignore-scripts install GREEN на текущем macOS tree.
+Prod audit 0/exit 0 (325 dependencies); full audit 21 findings, 12 high /
+9 moderate, exit 1 (827 dependencies). Не app exploit или SQL/browser/device/
+clean Linux proof; A7/migrations/provider/media/rollout и tooling triage открыты.
+Не пушили, не выложено, рабочая БД и access policy не менялись.
+
+Свежий Q1k: scoped flatted 3.3.3 → 3.4.4 в ESLint/flat-cache; два high
+tooling findings сняты. Четыре bounded child RED → 5 focused GREEN без mutation
+global prototypes. Full default 2223 pass / 1053 opt-in skips, exit 0;
+root types/formatting/frozen-ignore-scripts install GREEN. Actual frontend
+ESLint cold/warm cache: 390 entries, одинаковый hash, обе проверки exit 0;
+own disposable cache удалён после owner/mode/file/contents/hash проверки.
+Production graph сохранён, включая React compiler types 7.28.5 (scoped pin
+после generated preview drift); Next/backend build не повторялись.
+Prod audit 0 findings/exit 0 (325 dependencies); full audit 23 findings,
+13 high / 10 moderate, exit 1 (827 dependencies). Остальные tooling/A7/
+migrations/provider/media/device/rollout открыты. Не пушили и не выложено.
+
+Свежий Q1j: Babel core → 7.29.6 и reviewed related Babel graph по
+[advisory владельца](https://github.com/babel/babel/security/advisories/GHSA-4x5r-pxfx-6jf8).
+Два synthetic outside-package map disclosure RED → 12 focused GREEN; actual
+styled-jsx transform сохраняет scoped classes/CSS. Full default 2218 pass /
+1053 opt-in skips, exit 0; root types/Next build/frontend lint/legacy Vite build/
+formatting/frozen-ignore-scripts install GREEN на текущем macOS tree. Legacy
+font warning сохранён; clean Linux/SQL/browser не проверялись этим срезом.
+Все 16 новых Babel registry integrities совпали, install/prepare hooks нет.
+Prod audit 0 findings, exit 0 (325 dependencies), но полный tooling audit
+25 findings, 15 high / 10 moderate, exit 1 (827 dependencies). Это не полная
+security готовность: tooling triage/A7/migrations/provider/media/device/rollout
+открыты. App не компилирует пользовательский JS; exploit не заявляется.
+Не пушили и не выложено; working DB/roles/CORS/proxy trust не менялись.
+
+Свежий Q1i: workspace tRPC server/client/react-query → aligned 11.8.0 по
+[релизу владельца](https://github.com/trpc/trpc/releases/tag/v11.8.0).
+Два disposable child pollution RED → 27 focused upstream/compiled/native HTTP
+GREEN; experimental caller в app не используется. Full default 2215 pass /
+1053 opt-in skips, exit 0; root types/backend/Next/legacy Vite builds/API/
+boundaries/formatting/frozen-ignore-scripts install проходят. Legacy standalone
+build предупреждает о runtime font resolution — это не проверка asset deployment.
+Prod audit 1 low, 0 moderate/high/critical, exit 1: Babel ещё открыт; не полная
+security готовность. Clean Linux/browser/SQL/provider/migrations/rollout ещё
+открыты. Excluded Expo не менялся. Не пушили и не выложено.
+
+Свежий Q1h: Browserslist 4.28.1 → 4.28.7 по
+[релизу владельца](https://github.com/browserslist/browserslist/releases/tag/4.28.7),
+с related datasets и заменой baseline 2.9.8 на existing 2.11.27.
+Три bounded custom-stats crash RED → 4 focused GREEN; full default 2212 pass /
+1053 opt-in skips, exit 0; root types/frontend production build/formatting и
+frozen-ignore-scripts install проходят. Prod audit 2 (0 critical / 1 high /
+0 moderate / 1 low), exit 1, не clean: tRPC/Babel ещё открыты. Cache OOM/CLI/
+filesystem autodiscovery не тестировались; build policy не менялась.
+SQL/provider/device/migrations/rollout ещё открыты. Не выложено.
+
+Свежий Q1g: body-parser 1.20.4 → 1.20.6 по
+[changelog владельца](https://raw.githubusercontent.com/expressjs/body-parser/1.20.6/HISTORY.md),
+parent qs override сохраняет 6.16.0. Восемь invalid-limit construction RED →
+87 focused native HTTP/dependency pass; текущие valid app limits не менялись.
+Full default 2208 pass / 1053 opt-in skips, exit 0; root types/backend build/
+formatting/frozen-ignore-scripts install проходят. Prod audit 5 (0 critical /
+3 high / 1 moderate / 1 low), exit 1, не clean. Это не подтверждение app exploit
+или SQL/provider приёмки; migrations/rollout ещё открыты. Не выложено.
+
+Свежий Q1f: sharp root/backend/Next → 0.35.5 по
+[advisory владельца](https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w).
+Actual macOS librsvg 2.63.2, libvips 8.18.7; прежний API SVG block сохранён.
+81 focused pass до/после, full default 2200 pass / 1053 opt-in skips, exit 0;
+types/backend + frontend production build/frozen-ignore-scripts install проходят.
+Prod audit 6 (0 critical / 3 high / 1 moderate / 2 low), exit 1, не clean.
+Не воспроизводили glibc Linux RCE: Mac проверки не заменяют clean Linux install,
+actual runtime versions (включая global libvips) и native upload/Next image smoke
+при rollout. Migrations/внешняя приёмка открыты; не пушили и не выложено.
+
+Свежий Q1e: qs 6.14.0 → existing 6.16.0 по
+[changelog владельца](https://raw.githubusercontent.com/ljharb/qs/v6.16.0/CHANGELOG.md).
+Три bounded upstream RED → 79 dependency/request-body/native Nest/webhook HTTP
+GREEN; подписи/отказы сохранены, SQL/provider приёмка не подменяется.
+Full default 2200 pass / 1053 opt-in skips, exit 0; types/backend build/frozen
+ignore-scripts install проходят. Prod audit теперь 7 (0 critical / 4 high /
+1 moderate / 2 low), exit 1, не clean. Parser/auth/trust/CORS/quota policy
+не менялась. Остальные findings, migrations и rollout ещё открыты; не выложено.
+
+Свежий Q1d: source-map-js 1.2.1 → 1.2.2 по
+[релизу владельца](https://github.com/7rulnik/source-map-js/releases/tag/v1.2.2).
+Четыре unsafe indexed-map offsets отвергаются до serialization, ordinary mapping
+сохранён: 5 focused pass. Full default 2196 pass / 1053 opt-in skips, exit 0;
+root types/frontend build/frozen-ignore-scripts install проходят. Prod audit
+теперь 11 (0 critical / 4 high / 4 moderate / 3 low), exit 1, не clean.
+Это build graph hardening, не app exploit proof или rollout; не выложено.
+
+Свежий Q1c: Axios root/backend закреплён на 1.20.0 с reviewed transport graph
+по [релизу владельца](https://github.com/axios/axios/releases/tag/v1.20.0).
+Bounded fetch-limit RED → GREEN; настоящий legacy SDK → loopback HTTP
+сохраняет три POST контракта и отказ 502; cookie/session вместе 13 pass.
+Full default: 2191 pass / 1053 opt-in skips, exit 0 (17.88s); types/build/
+formatting/frozen-ignore-scripts install проходят. Prod audit теперь 12 findings
+(0 critical / 5 high / 4 moderate / 3 low), exit 1, не clean. Нет изменений
+inbound trust/CORS/auth/квот. Outbound proxy parser изменён upstream; реальная
+proxy конфигурация, external OAuth и clean Linux install требуют отдельной
+приёмки при rollout. SQL/provider/browser приёмка этим не заменяется; не выложено.
+
+Предыдущий локальный срез: path-to-regexp 0.1.12 → 0.1.13, без смены Express
+или маршрутов. [Advisory владельца](https://github.com/pillarjs/path-to-regexp/security/advisories/GHSA-37ch-88jc-xwx2)
+проверен на bounded child fixture: timeout RED → false GREEN; 32 focused
+dependency/native HTTP/security pass. Root types/backend build/frozen install
+проходят. Audit теперь 49 findings (0 critical / 19 high / 26 moderate / 4 low),
+не чистый. Первый full run дал 8 subprocess timeouts, focused serial = 85 pass,
+но full serial повторил один timeout. pmset log подтверждает 300-second
+Maintenance Sleep внутри обоих full runs: гипотеза одного лишь параллелизма
+недостаточна. Для проверки используется scoped caffeinate только на время теста,
+без повышения timeout, изменения CI или постоянных настроек питания.
+Protected serial full run: 2188 pass / 1053 skips, exit 0 за 77.73s.
+Default parallelism под тем же scoped assertion: 2188 pass / 1053 skips,
+exit 0 за 17.34s. Own test process завершён, временное sleep assertion снято.
+Готовность Linux rollout этим не подтверждается.
+
+На feature/stage-one-completion-2026-10-10 точечно обновлён proxy-addr 2.0.7 →
+2.0.8 через override и сгенерированный pnpm lockfile. Проверены
+[исправление владельца](https://github.com/jshttp/proxy-addr/security/advisories/GHSA-jqcg-44mw-7w3h)
+и [релиз](https://github.com/jshttp/proxy-addr/releases/tag/v2.0.8).
+Приложение продолжает доверять только loopback; proxy trust, роли и квоты
+не менялись. Два dependency RED до обновления, 20 focused GREEN после, включая
+настоящие HTTP проверки квот/forged forwarded headers. Default suite: 2187 pass,
+1053 opt-in skips; types/backend build/lint проходят. Native production audit
+теперь 50 findings: 0 critical, 20 high, 26 moderate, 4 low (не чистый audit).
+Прежние снимки ниже описывают прошлые выпуски, не обновлённый сервер.
+Frozen/ignore-scripts install проверен локально; перед отдельным rollout нужны
+Linux image rehearsal и release gates. Здесь нет push/deploy/миграций/смены БД.
+
 ## Устройство и ограничения
 
 - Приложение: staging `12cfc8dd76e801809828e2ef8af4bdcc8577019f`.

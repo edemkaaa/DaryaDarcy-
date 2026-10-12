@@ -8,6 +8,8 @@ import {
   ScrollArea,
 } from "@/shared/ui/elements";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getQueryKey } from "@trpc/react-query";
 import { Picture } from "@/shared/media/image";
 import { useRouter } from "@/shared/navigation/router";
 import { ScreenContainer } from "@/shared/ui/screen-container";
@@ -25,10 +27,16 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
   const router = useRouter();
   const { isSubscribed } = useClub();
   const articleId = parseContentId(id);
-  const { data, isLoading, error, refetch } = trpc.articles.getById.useQuery(
-    { id: articleId ?? 0 },
-    { enabled: articleId !== null },
-  );
+  const utils = trpc.useUtils();
+  const input = { id: articleId ?? 0 };
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: getQueryKey(trpc.articles.getById, input, "query"),
+    // The legacy API uses undefined for missing/unpublished articles. React
+    // Query requires a defined success value; normalize absence, not failures.
+    queryFn: async ({ signal }) =>
+      (await utils.client.articles.getById.query(input, { signal })) ?? null,
+    enabled: articleId !== null,
+  });
   useClubContentProtection(Boolean(data && !data.locked));
   const [viewer, setViewer] = useState<{
     photos: string[];

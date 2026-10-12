@@ -62,7 +62,7 @@ export function QuizResultScreen() {
   }, [isSubscribed]);
   // Persist result to AsyncStorage when it becomes available
   useEffect(() => {
-    if (result) {
+    if (result && !state.restored) {
       const resultData = {
         primaryKey: result.primary.key,
         primaryTitle: result.primary.title,
@@ -73,7 +73,7 @@ export function QuizResultScreen() {
       };
       AsyncStorage.setItem("@darcy_quiz_result", JSON.stringify(resultData));
     }
-  }, [result]);
+  }, [result, state.restored]);
   if (!result) return null;
   const { primary, secondary, isBlend, scores } = result;
   // Determine the active aesthetic (for blend tab switching)
