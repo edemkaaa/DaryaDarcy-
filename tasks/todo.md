@@ -29,6 +29,14 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+M1b9 (12 октября МСК): RED1 lost known URL fields of unsupported article blocks,
+same cover made object public-only. Keeps url/urls/photos as unknown candidates
+and unknown-shape issue; valid no-cover candidates retained/malformed diagnostic/
+source values redacted. Final focused30 pass, exit0, 1.80 s; types pass. Offline
+collector-only, not renderer/SQL/S3/full inventory. Default workers2 2307 pass/
+1133 opt-in skips (3445), exit0, 53.42 s; types/docs54/format/diff pass.
+S3 details/C2n review/rollout dependencies unchanged.
+
 M1b8 (12 октября МСК): RED1 reproduced lost attachment/comment references when
 parent missing from snapshot, incorrectly unassociated declared object. Keeps
 paths/parent issues as unknown; unknown dominates public/shared aliases without

@@ -56,6 +56,20 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**M1b9 — unknown article shape must retain explicit URL candidates, 12 октября
+МСК:** direct continue request. **RED1 fail/15 filtered skips (16), exit1,
+202 ms**: future-video raw url/urls/photos lost, same-URL public cover made
+declared object public-only. Minimal fix retains these known raw URL fields as
+unknown alongside existing unknown-shape issue; doesn't invent renderer/access.
+No-cover malformed scalar/array test retains valid member and redacts values.
+Initial29 pass (3.13 s), final stronger **30 focused library/CLI regression pass,
+exit0, 1.80 s**, types pass. Review: known-field-only extraction/no recursion,
+existing strict URL validation/hashes/unknown dominance/issues/scopes retained.
+No deps/.env/SQL/storage/browser/ACL/schema/endpoints changes; incomplete unknown
+fields still require review, not full map/rollout. Default workers2 **2307 pass/
+1133 opt-in skips (3445), exit0, 53.42 s**; types/docs54/format/diff pass.
+user-selected S3 details/C2n schema review remain pending. Existing plans intact.
+
 **M1b8 — missing parent must not erase known associations, 12 октября МСК:**
 independent media-map review found post_media/comments parent absence emitted
 an issue but skipped the saved URL. Declared inventory therefore reported the

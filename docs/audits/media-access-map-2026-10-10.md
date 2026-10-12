@@ -215,6 +215,23 @@ Default workers2 2305 pass/1133 opt-in skips (3443), exit0, 49.51 s;
 types/docs54/format/diff pass. SQL/browser/build с неизменённым приложением
 не повторялись; отсутствующие S3 details и reviewed rollout всё ещё gated.
 
+### M1b9: URL-кандидаты неизвестных article blocks — 12 октября 2026
+
+RED1 воспроизвёл потерю `url/urls/photos` неизвестного блока при наличии
+публичной обложки с тем же URL: объект ошибочно выглядел только public.
+Collector теперь сохраняет эти известные поля как `unknown` candidates с
+неизменным unknown-shape issue. Это сырая сохранённая связь, не утверждение,
+что renderer поддерживает этот блок или что URL является собственным объектом.
+При отсутствии cover связь тоже не теряется. Некорректные URL/элементы/массивы
+отдельно диагностируются, исходные значения не попадают в отчёт.
+
+Не выполняется рекурсивный поиск произвольных полей неизвестных объектов:
+unknown-fields/shape и прочие issues по-прежнему запрещают считать карту полной.
+Никаких ACL/delete/publication changes. Final focused library/CLI regression30
+pass (1.80 s), types pass; actual SQL/storage/browser этим срезом не проверялись.
+Default workers2 2307 pass/1133 opt-in skips (3445), exit0, 53.42 s;
+types/docs54/format/diff pass. Рабочие файлы/данные/ACL не затронуты.
+
 ### M1c runtime preflight — 12 октября 2026
 
 Официальный MinIO pinned RELEASE.2025-06-13T11-33-47Z недоступен: quay registry

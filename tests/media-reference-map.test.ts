@@ -232,6 +232,76 @@ it("retains unresolved parent associations instead of labelling their objects un
   expect(report.objectMap?.unresolvedUrlHashes).toEqual([]);
 });
 
+it("retains known URL fields in unknown article blocks without guessing their visibility", () => {
+  const report = collectMediaSnapshot(
+    {
+      articles: [
+        article([
+          {
+            type: "future-video",
+            url: shared,
+            urls: [shared],
+            photos: [shared],
+          },
+        ]),
+      ],
+      posts: [],
+      media: [],
+      comments: [],
+      decoration: { avatars: [], videos: [], seasons: [] },
+    },
+    {
+      objects: [{ objectId: "unknown-block", urlHashes: [hash(shared)] }],
+      externalUrlHashes: [],
+    },
+  );
+  expect(report.objectMap?.objects).toEqual([
+    {
+      objectId: "unknown-block",
+      visibility: "unknown",
+      references: [
+        "articles:1.coverUrl",
+        "articles:1.sections:0.url",
+        "articles:1.sections:0.urls:0",
+        "articles:1.sections:0.photos:0",
+      ],
+    },
+  ]);
+  expect(report.issues).toEqual(["articles:1.sections:0.unknown-shape"]);
+  expect(JSON.stringify(report)).not.toContain(shared);
+});
+
+it("reports malformed unknown-block URL fields but retains valid candidates without a cover", () => {
+  const report = collectArticleReferences([
+    article(
+      [
+        {
+          type: "future-video",
+          url: "NOT_A_URL_PRIVATE_VALUE",
+          urls: [null, shared],
+          photos: "NOT_AN_ARRAY_PRIVATE_VALUE",
+        },
+      ],
+      { coverUrl: null },
+    ),
+  ]);
+  expect(report.groups).toEqual([
+    {
+      urlHash: hash(shared),
+      visibility: "unknown",
+      references: ["articles:1.sections:0.urls:1"],
+    },
+  ]);
+  expect(report.issues).toEqual([
+    "articles:1.sections:0.unknown-shape",
+    "articles:1.sections:0.url.invalid-url",
+    "articles:1.sections:0.urls:0.invalid-url",
+    "articles:1.sections:0.photos.invalid-array",
+  ]);
+  expect(JSON.stringify(report)).not.toContain("PRIVATE_VALUE");
+  expect(JSON.stringify(report)).not.toContain(shared);
+});
+
 it.each([shared, shared + "/public-alias"])(
   "keeps unknown parent evidence unresolved when a public reference uses %s",
   (publicUrl) => {

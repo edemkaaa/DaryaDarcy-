@@ -182,7 +182,14 @@ export function collectArticleReferences(input: unknown) {
         if ("photos" in block) list(block.photos, location + ".photos", access);
         for (const key of ["heading", "subheading", "body"])
           text(block[key], `${location}.${key}`, access);
-      } else issues.push(location + ".unknown-shape");
+      } else {
+        issues.push(location + ".unknown-shape");
+        // Preserve explicit saved URL candidates without inventing how an
+        // unsupported block renders or who can read its underlying object.
+        add(block.url, location + ".url", "unknown");
+        for (const key of ["urls", "photos"])
+          if (key in block) list(block[key], `${location}.${key}`, "unknown");
+      }
     });
   }
   return finish("articles-only-no-object-inventory");
