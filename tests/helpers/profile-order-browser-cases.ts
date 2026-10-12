@@ -198,7 +198,7 @@ export function registerProfileOrderBrowserCases(
         releaseRead();
         releaseWrite();
         await Promise.all([readFinished, writeFinished]);
-        await page.unrouteAll({ behavior: "wait" });
+        await fixture().removePageRoutes(page);
       }
     },
     30_000,

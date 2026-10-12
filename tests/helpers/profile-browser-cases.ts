@@ -1,10 +1,15 @@
 import { expect, it } from "vitest";
-import { expect as browserExpect, type BrowserContext } from "@playwright/test";
+import {
+  expect as browserExpect,
+  type BrowserContext,
+  type Page,
+} from "@playwright/test";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { COOKIE_NAME } from "../../packages/shared/src/const";
 import { sdk } from "../../apps/backend/src/_core/sdk";
 
 export interface ProfileFixture {
+  removePageRoutes(page: Page): Promise<void>;
   rows(sql: string, args?: unknown[]): Promise<RowDataPacket[]>;
   connection: Pick<Connection, "query">;
   context: BrowserContext;
@@ -134,7 +139,7 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
     } finally {
       release();
       await finished;
-      await page.unrouteAll({ behavior: "wait" });
+      await fixture().removePageRoutes(page);
     }
   }, 30_000);
   it("C3 profile name accepts an equal-value native snapshot after acknowledged save and lost refresh", async () => {
@@ -222,7 +227,7 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
         memberId,
       );
     expect(await cached()).toBe("C3 Profile acknowledged name");
-    await page.unrouteAll({ behavior: "wait" });
+    await fixture().removePageRoutes(page);
     await connection.query(
       "UPDATE users SET name='Browser phone member' WHERE id=? AND openId='binding-browser-member'",
       [memberId],
@@ -799,7 +804,7 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
               });
             }
           }
-          await page.unrouteAll({ behavior: "wait" });
+          await fixture().removePageRoutes(page);
           await page
             .getByRole("button", {
               name: "Повторить сохранение имени",

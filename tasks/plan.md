@@ -41,6 +41,34 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3bi, deterministic page/context proxy teardown — 12 октября МСК:**
+Продолжение от clean feature341e0c2. Prior intermittent native suite error
+воспроизведён на собственном loopback server без SQL/frontend/providers:
+два forwarded slow/fast ответа удерживаются, page fallback установлен поверх
+context proxy; снятие page routes до proxy.drain приводит к прежнему
+route.fulfill already handled. RED **1 fail/1 pass (2), exit1, 1.50 s**, три
+unhandled rejections; context-only control проходит. Общий pending proxy
+должен завершиться до снятия любого слоя, не только context interception.
+Добавлены test-only canonical removePageRoutes и drainBrowserRoutes; afterEach
+native suite и все промежуточные clear в club/profile helpers используют их.
+Ошибки продолжают propagating, ничего не swallowed, timeout не увеличен.
+Native loopback **2 pass, exit0, 1.89 s**, slow/fast bodies подтверждены,
+completed оба, errors пустой, fallback GET cardinality0. Types/format/diff pass;
+full **102 native browser→Nest HTTP→SQL/loopback SMTP pass, exit0, 97.73 s**,
+no unhandled errors; docs54/format/diff pass. First default **2275 pass/2 fails/
+1118 opt-in skips (3400), exit1, 60.79 s**: unchanged Prodamus sandbox/test
+compiled loopback process cases exceeded5 s. No new provider/payment actions
+or timeout changes; repeat all default tests with bounded workers2 **2277 pass/
+1118 opt-in skips (3400), exit0, 90.14 s**, including both unchanged compiled
+process cases. Parallel startup sensitivity remains a tooling limitation, not a
+production/provider defect claim; no tests newly disabled. Local commit/no push. Own labelled
+tmpfs/Next cleaned after exact ownership/mounts/port verification. No unchanged
+app build/lint/API repeat. App/backend/API/roles/CORS/proxy trust/quota/design/
+subscription/migration/deployment untouched; unchanged app build not repeated.
+Next: вернуться к актуальной C3 coverage map по WORK_PLAN/code/native tests и
+выбрать следующий независимый comments/saved/search сценарий. A7/Q1/storage/
+atomicity/provider/device gates remain open.
+
 **C3bh, profile editor ACK versus a snapshot delivered during the write — 12 октября МСК:**
 Продолжение от clean featuree0b460c. Новый focused profile-order-browser helper
 использует только exported fixture type старого helper (runtime cycle отсутствует);

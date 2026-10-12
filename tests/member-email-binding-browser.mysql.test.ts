@@ -35,7 +35,11 @@ import { registerClubCommentsBrowserCases } from "./helpers/club-comments-browse
 import { registerLibraryBrowserCases } from "./helpers/library-browser-cases";
 import { registerQuizBrowserCases } from "./helpers/quiz-browser-cases";
 import { registerEmailBindingRecipientBrowserCases } from "./helpers/email-binding-recipient-browser-cases";
-import { trackRouteHandler } from "./helpers/route-drain";
+import {
+  drainBrowserRoutes,
+  removePageRoutes,
+  trackRouteHandler,
+} from "./helpers/route-drain";
 import { registerSeasonAdminBrowserCases } from "./helpers/season-admin-browser-cases";
 import { registerProfileBrowserCases } from "./helpers/profile-browser-cases";
 import { registerProfileOrderBrowserCases } from "./helpers/profile-order-browser-cases";
@@ -165,12 +169,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       await context.route("**/*", proxy.handler);
     });
     afterEach(async () => {
-      if (context) {
-        for (const page of context.pages())
-          await page.unrouteAll({ behavior: "wait" });
-        await proxy.drain();
-        await context.unrouteAll({ behavior: "wait" });
-      }
+      if (context) await drainBrowserRoutes(context, proxy);
       await context?.close();
     });
     afterAll(async () => {
@@ -246,6 +245,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       frontend: frontend!,
     }));
     registerClubSetupBrowserCases(() => ({
+      removePageRoutes: (page) => removePageRoutes(page, proxy),
       rows,
       connection,
       context,
@@ -254,6 +254,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       frontend: frontend!,
     }));
     registerProfileBrowserCases(() => ({
+      removePageRoutes: (page) => removePageRoutes(page, proxy),
       rows,
       connection,
       context,
@@ -262,6 +263,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       frontend: frontend!,
     }));
     registerProfileOrderBrowserCases(() => ({
+      removePageRoutes: (page) => removePageRoutes(page, proxy),
       rows,
       connection,
       context,

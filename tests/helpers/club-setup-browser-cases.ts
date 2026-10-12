@@ -1,10 +1,15 @@
 import { expect, it } from "vitest";
-import { expect as browserExpect, type BrowserContext } from "@playwright/test";
+import {
+  expect as browserExpect,
+  type BrowserContext,
+  type Page,
+} from "@playwright/test";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { COOKIE_NAME } from "../../packages/shared/src/const";
 import { sdk } from "../../apps/backend/src/_core/sdk";
 
 interface ClubSetupFixture {
+  removePageRoutes(page: Page): Promise<void>;
   rows(sql: string, args?: unknown[]): Promise<RowDataPacket[]>;
   connection: Pick<Connection, "query">;
   context: BrowserContext;
@@ -221,7 +226,7 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
         releaseRead();
         releaseWrite();
         await Promise.all([readFinished, writeFinished]);
-        await page.unrouteAll({ behavior: "wait" });
+        await fixture().removePageRoutes(page);
       }
     },
     30_000,
@@ -317,7 +322,7 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
     } finally {
       release();
       await finished;
-      await page.unrouteAll({ behavior: "wait" });
+      await fixture().removePageRoutes(page);
     }
   }, 30_000);
   it("C3 club setup shows native acknowledged identity when refresh reply is lost, then accepts a newer server identity", async () => {
@@ -387,7 +392,7 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
       ),
     ).toEqual(["C3 Recovery club name", "female", "true"]);
     expect(writes).toBe(1);
-    await page.unrouteAll({ behavior: "wait" });
+    await fixture().removePageRoutes(page);
     // A new confirmed snapshot can legitimately restore the original values.
     // Compare snapshot identity, not just strings, and honour a cleared gender.
     await connection.query(
@@ -644,7 +649,7 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
           });
         }
       }
-      await page.unrouteAll({ behavior: "wait" });
+      await fixture().removePageRoutes(page);
       const [retried] = await Promise.all([
         page.waitForResponse(
           (response) =>
@@ -796,7 +801,7 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
     } finally {
       release();
       await finished;
-      await page.unrouteAll({ behavior: "wait" });
+      await fixture().removePageRoutes(page);
     }
   }, 30_000);
 }

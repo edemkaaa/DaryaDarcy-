@@ -6,6 +6,26 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3bi (12 октября МСК): native loopback slow/fast responses with page fallback
+reproduced prior proxy route.fulfill already handled deterministically: RED1
+fail/1 pass plus3 unhandled rejections (1.50 s), context-only control passed.
+Page unroute before context proxy drain continued outstanding forwarded routes.
+Canonical removePageRoutes drains proxy first; drainBrowserRoutes applies both
+layers and a final drain. Native suite teardown and club/profile intermediate
+route removal use it; no swallowed errors/timeout bumps/application changes.
+Final loopback2 pass, exit0 (1.89 s), both actual response bodies/cardinality and
+zero fallback GETs asserted. Full102 native browser/API/SQL/loopback SMTP pass,
+exit0 (97.73 s), no unhandled errors; types/format/docs54/diff pass. First default:
+2275 pass/2 timeout failures/1118 opt-in skips (3400), exit1 (60.79 s), both
+unchanged compiled local Prodamus process tests exceeded5 s. No timeout bump;
+Full default with bounded workers2:2277 pass/1118 opt-in skips (3400), exit0
+(90.14 s), both unchanged process tests included, no timeout changes/skips added.
+Own labelled tmpfs/Next cleaned, local commit/no push.
+No unchanged app rebuild/lint/API repeat.
+Next: current C3 coverage map against frontend WORK_PLAN/code/native tests,
+then next independent comments/saved/search scenario. A7/Q1/storage/atomicity/
+provider/device gates remain open.
+
 C3bh (12 октября МСК): equivalent profile editor native held POST commits ACK
 name while pre-write same-owner GET renders intermediate identity (existing-cache
 reconcile proves React receipt; draft remains unchanged), then ACK delivered and
