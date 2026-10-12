@@ -6,6 +6,24 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3be (12 октября МСК): native auth/me read held after reading original SQL,
+then profile.update200/native commit; save incorrectly deduplicated against that
+pre-write read (RED1 fail/96 filtered skips, 7.53 s). Initial missing paid fixture
+prevented profile entry and was corrected, not production RED. Additive canonical
+refreshAfterMutation(ownerId) supersedes reads only for the still authenticated
+owner, never a pending login/closed session. Profile editor uses it after ACK;
+no force-refresh escape exposed to screens or full-user optimistic replacement.
+Controller32 pass (0.334 s), profile7 native pass/90 filtered skips (7.65 s),
+full97 native browser/API/SQL/loopback SMTP pass (90.85 s), one POST, current UI/
+cache, identity/paid rows preserved. Webpack/types/lint/format/API73/boundaries618
+pass. First concurrent default run: 2276 pass, one compiled local harness timeout
+at5 s (35.25 s); isolated unchanged harness1 pass (1.53 s), standalone final
+default2277 pass/1112 opt-in skips (3394), exit0 (36.32 s); docs54/diff pass.
+Own labelled tmpfs/Next cleaned, local-only/no providers/working data/secrets.
+Next: club setup with a pre-write pending auth read (not yet declared fixed);
+move further ordering cases to a focused helper before growing profile helper917.
+A7/Q1/storage/atomicity/provider/device gates remain open.
+
 C3bd (12 октября МСК): native profile ACK/lost auth refresh→server restores
 original name/equal-value native snapshot left ACK name/cache stale, RED1 fail
 (7.79 s). Initial executable-path typo repaired/not production RED. Confirmation

@@ -41,6 +41,36 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3be, profile write versus a pending native auth read — 12 октября МСК:**
+Продолжение от clean featurefb0d2bd. Native auth/me читает исходное SQL имя,
+его ответ удерживается; profile.update200 сохраняет новое имя одной записью.
+Прежний refresh() дедуплицировался против старого GET, поэтому post-write snapshot
+не запрашивался: RED **1 fail/96 filtered skips (97), exit1, 7.53 s**. Первый
+fixture не выдавал оплаченный доступ к profile editor (locator timeout7.75 s);
+fixture исправлен, это не production RED. Добавлен canonical
+refreshAfterMutation(ownerId): supersede older reads только для актуального
+authenticated owner, не прерывая authenticate и не возобновляя закрытый доступ.
+Editor вызывает его только после native ACK/cache owner fence. Обычные resume/
+auth/logout правила и серверный контракт не изменены, screens не получают
+безусловный force-refresh. Unit RED3 отсутствующий метод → controller **32 pass,
+exit0, 0.334 s**: old response игнорируется даже без fetch abort, private query/
+scope сохранены, pending login не отменён, previous owner не обновляет новый.
+Native profile **7 pass/90 filtered skips (97), exit0, 7.65 s**; full **97 native
+browser→Nest HTTP→SQL/loopback SMTP pass, exit0, 90.85 s**, включая login ordering,
+profile→quiz→club и lost replies/account switch. UI/cache и SQL новое имя,
+one POST, credentials/role/sessionVersion/paid rows unchanged. Webpack/types/
+ESLint/format/diff/API73/boundaries618 pass. First concurrent default run **2276
+pass/1 fail/1112 opt-in skips (3394), exit1, 35.25 s**: unchanged compiled local
+harness exceeded5 s while native suite ran. Isolated harness **1 pass, exit0,
+1.53 s**; standalone final default **2277 pass/1112 opt-in skips (3394), exit0,
+36.32 s**, docs54/diff pass. No CSS/markup/new screenshot claim.
+Own labelled loopback tmpfs container and Next stopped/removed, no foreign
+resources/providers/working data/secrets touched. Local commit only/no push.
+Next: verify club setup's equivalent pending pre-write GET; existing refresh()
+there is not declared fixed. Further ordering cases should use a focused helper
+before growing profile helper917 lines. A7/Q1/storage/atomicity/provider/device
+gates remain open.
+
 **C3bd, profile name equal-value snapshot and cache — 12 октября МСК:**
 Продолжение от clean featurec89149f. Первоначальный CLI executable path имел
 повтор directory segment (browser не стартовал, 96 skips, suite exit1/2.00 s);

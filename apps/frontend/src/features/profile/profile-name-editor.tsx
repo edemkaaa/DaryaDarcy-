@@ -14,7 +14,7 @@ import { BROWN_MUTED, PROFILE_NAME_KEY } from "./profile-screen.content";
 import classes from "./profile-screen.module.scss";
 
 export function ProfileNameEditor({ displayName }: { displayName: string }) {
-  const { user, refresh } = useAuth();
+  const { user, refreshAfterMutation } = useAuth();
   const utils = trpc.useUtils();
   const operation = useSessionOperation();
   const [editing, setEditing] = useState(false);
@@ -52,7 +52,7 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
   const save = async () => {
     if (!editingRef.current) return;
     const name = draft.trim();
-    if (!name) return;
+    if (!name || !user) return;
     const task = operation.begin("save-profile-name");
     if (!task) return;
     errorRef.current = false;
@@ -70,7 +70,7 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
       task.assertCurrent();
       editingRef.current = false;
       setEditing(false);
-      await refresh();
+      await refreshAfterMutation(user.id);
     } catch (cause) {
       checkOperationAccessError(cause);
       if (task.isCurrent()) {

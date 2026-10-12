@@ -14,6 +14,129 @@ interface ProfileFixture {
 }
 
 export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
+  it("C3 profile save supersedes a native auth read started before the write", async () => {
+    const { connection, rows, context, frontend, base, memberId } = fixture();
+    await connection.query(
+      "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-profile-ordered-read','paid','0','2030-01-01')",
+      [memberId],
+    );
+    const access = await rows("SELECT * FROM club_payments WHERE userId=?", [
+      memberId,
+    ]);
+    const identitySql =
+      "SELECT id,email,phone,passwordHash,role,sessionVersion FROM users WHERE id=?";
+    const identity = await rows(identitySql, [memberId]);
+    await context.addCookies([
+      {
+        name: COOKIE_NAME,
+        value: await sdk.createSessionToken("binding-browser-member", {
+          sessionVersion: 0,
+        }),
+        url: frontend,
+        httpOnly: true,
+        sameSite: "Lax",
+      },
+    ]);
+    const page = await context.newPage();
+    await page.goto(frontend + "profile");
+    await page
+      .getByRole("button", { name: "Browser phone member", exact: true })
+      .click();
+    const field = page.getByRole("textbox", {
+      name: "Имя профиля",
+      exact: true,
+    });
+    await field.fill("C3 Profile ordered name");
+    let enter!: () => void, release!: () => void, finish!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      enter = resolve;
+    });
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const finished = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    let reads = 0,
+      writes = 0;
+    page.on("request", (request) => {
+      if (
+        request.method() === "POST" &&
+        request.url().includes("profile.update")
+      )
+        writes++;
+    });
+    await page.route("**/api/auth/me", async (route) => {
+      const first = ++reads === 1;
+      const response = await route.fetch({
+        url: base + "/api/auth/me",
+        maxRedirects: 0,
+      });
+      expect(response.status()).toBe(200);
+      if (!first) return route.fulfill({ response });
+      expect(await response.json()).toMatchObject({
+        user: { name: "Browser phone member" },
+      });
+      enter();
+      try {
+        await held;
+        await route.fulfill({ response });
+      } finally {
+        finish();
+      }
+    });
+    try {
+      await page.evaluate(() => window.dispatchEvent(new Event("online")));
+      await entered;
+      const [saved] = await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.request().method() === "POST" &&
+            response.url().includes("profile.update"),
+        ),
+        field.press("Enter"),
+      ]);
+      expect(saved.status()).toBe(200);
+      await browserExpect(
+        page.getByRole("button", {
+          name: "C3 Profile ordered name",
+          exact: true,
+        }),
+      ).toBeVisible();
+      expect(
+        await rows("SELECT name FROM users WHERE id=?", [memberId]),
+      ).toEqual([{ name: "C3 Profile ordered name" }]);
+      release();
+      await finished;
+      // A save must obtain a post-write snapshot rather than deduplicate against
+      // the held read of the old SQL value. No second profile POST is allowed.
+      await browserExpect.poll(() => reads).toBe(2);
+      await browserExpect(
+        page.getByRole("button", {
+          name: "C3 Profile ordered name",
+          exact: true,
+        }),
+      ).toBeVisible();
+      await browserExpect
+        .poll(() =>
+          page.evaluate(
+            (id) =>
+              localStorage.getItem(`darcy:user:${id}:@darcy_club_profile_name`),
+            memberId,
+          ),
+        )
+        .toBe("C3 Profile ordered name");
+      expect(writes).toBe(1);
+      expect(await rows(identitySql, [memberId])).toEqual(identity);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(access);
+    } finally {
+      release();
+      await finished;
+      await page.unrouteAll({ behavior: "wait" });
+    }
+  }, 30_000);
   it("C3 profile name accepts an equal-value native snapshot after acknowledged save and lost refresh", async () => {
     const { connection, rows, context, frontend, base, memberId } = fixture();
     await connection.query(
