@@ -6,6 +6,20 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3au (12 октября МСК): fixed real optimistic profile-name save defect, native RED
+then final 3 pass / 81 filtered skips (84), exit0 (4.12 s). Server success:true
+before UI/scoped cache; canonical current-owner lock/signal; retained draft,
+honest unconfirmed error/manual retry, no automatic blur retries. Lost-before-SQL
+and lost-after-actual-commit verified with native API/SQL; retry/reload and
+member→admin→member reload isolation, identity/access unchanged. Configured
+webpack build/types/ESLint/format/607 boundaries/diff pass; default2264 pass /
+1099 opt-in skips, exit0 (25.19 s). Preserved incumbent mobile/desktop design;
+Impeccable launcher unavailable, direct context/hardening fallback. All84 browser
+attempt interrupted because default-off build cannot run enabled-only A email
+cases; no whole-suite claim. Own labelled tmpfs DB/Next stopped, synthetic data
+discarded; working DB/secrets/providers untouched. Legacy cached-name reconcile,
+native late-reply account-switch/password-login and external/A7/Q1 gates open.
+
 Q1y (12 октября МСК): Q1w JSON assumption corrected. Native installed CLI export
 without --sql and with --sql=false both output synthetic SQL, exit0/no stderr.
 Source: exportRaw supports sql/config/dialect/schema only; MySQL handler prints

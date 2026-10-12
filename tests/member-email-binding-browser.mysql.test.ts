@@ -37,6 +37,7 @@ import { registerQuizBrowserCases } from "./helpers/quiz-browser-cases";
 import { registerEmailBindingRecipientBrowserCases } from "./helpers/email-binding-recipient-browser-cases";
 import { trackRouteHandler } from "./helpers/route-drain";
 import { registerSeasonAdminBrowserCases } from "./helpers/season-admin-browser-cases";
+import { registerProfileBrowserCases } from "./helpers/profile-browser-cases";
 
 // Opt in with a separately started, enabled production frontend build. API
 // forwarding below is a transport proxy, never a mock response or fake session.
@@ -240,6 +241,14 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       base,
       actorId,
       memberId,
+      frontend: frontend!,
+    }));
+    registerProfileBrowserCases(() => ({
+      rows,
+      connection,
+      context,
+      memberId,
+      base,
       frontend: frontend!,
     }));
     registerSeasonAdminBrowserCases(() => ({

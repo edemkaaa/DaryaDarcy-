@@ -1,13 +1,13 @@
 "use client";
 import classes from "./profile-screen.module.scss";
 import { useSubscriptionCancellation } from "./use-subscription-cancellation";
+import { ProfileNameEditor } from "./profile-name-editor";
 import { getClubPaymentMode } from "@/features/club/payment-mode";
 import {
   Action,
   Typography,
   Background,
   ScrollArea,
-  Field,
 } from "@/shared/ui/elements";
 import { openExternalUrl } from "@/shared/browser/actions";
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -101,7 +101,6 @@ export default function ProfileScreen() {
     status: subscriptionStatus,
   } = useClub();
   const cancellation = useSubscriptionCancellation();
-  const updateProfile = trpc.profile.update.useMutation();
   const uploadAvatar = trpc.profile.uploadAvatar.useMutation();
   const savedFromApi = trpc.feed.savedPosts.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -117,8 +116,6 @@ export default function ProfileScreen() {
     secondaryKey: AestheticKey | null;
     isBlend: boolean;
   } | null>(null);
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editNameValue, setEditNameValue] = useState("");
   const [, setSavedFeedIds] = useState<number[]>([]);
   const [, setSavedClubIds] = useState<string[]>([]);
   // Reload profile data every time this tab gains focus
@@ -458,70 +455,10 @@ export default function ProfileScreen() {
               </div>
             </Action>
 
-            {isEditingName ? (
-              <div
-                className={["ui-stack ", classes.nameEditRow]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                <Field
-                  value={editNameValue}
-                  onValueChange={setEditNameValue}
-                  autoFocus
-                  onSubmit={async () => {
-                    const trimmed = editNameValue.trim();
-                    if (trimmed) {
-                      setProfileName(trimmed);
-                      await AsyncStorage.setItem(PROFILE_NAME_KEY, trimmed);
-                      try {
-                        await updateProfile.mutateAsync({ name: trimmed });
-                        await refresh();
-                      } catch {}
-                    }
-                    setIsEditingName(false);
-                  }}
-                  onBlur={async () => {
-                    const trimmed = editNameValue.trim();
-                    if (trimmed) {
-                      setProfileName(trimmed);
-                      await AsyncStorage.setItem(PROFILE_NAME_KEY, trimmed);
-                      try {
-                        await updateProfile.mutateAsync({ name: trimmed });
-                        await refresh();
-                      } catch {}
-                    }
-                    setIsEditingName(false);
-                  }}
-                  className={classes.nameInput}
-                />
-              </div>
-            ) : (
-              <Action
-                onClick={() => {
-                  setEditNameValue(displayName);
-                  setIsEditingName(true);
-                }}
-                className={({ pressed }) =>
-                  pressed ? classes.opacityState5 : classes.opacityState6
-                }
-              >
-                <div
-                  className={["ui-stack ", classes.nameRow]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  <Typography className={classes.profileName}>
-                    {displayName}
-                  </Typography>
-                  <MaterialIcons
-                    name="edit"
-                    size={14}
-                    color={BROWN_MUTED}
-                    className={classes.materialIcons}
-                  />
-                </div>
-              </Action>
-            )}
+            <ProfileNameEditor
+              displayName={displayName}
+              onSaved={setProfileName}
+            />
 
             {isSubscribed && (
               <div

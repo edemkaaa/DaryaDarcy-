@@ -41,6 +41,39 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3au, profile-name confirmation and manual recovery — 12 октября МСК:**
+Native browser RED: при потере POST до исполнения SQL оставался Browser phone
+member, но UI показывал новое имя как сохранённое; код заранее записывал его
+в localStorage (1 failed /
+1 passed / 81 filtered skips, exit1, 8.51 s). Удалены два одинаковых optimistic
+обработчика Enter/blur; небольшой ProfileNameEditor принадлежит profile feature.
+Настоящий profile.update success:true предшествует публикации имени и owner-scoped
+cache. Canonical useSessionOperation даёт синхронный lock, cancellation signal и
+проверку текущего владельца; blur не повторяет неудавшуюся запись. При потере
+ответа ввод остаётся, явное уведомление не утверждает, что SQL не записался;
+ручной повтор присваивания имени идемпотентен. API/auth/SQL schema не изменены.
+Три native Next → Nest → MySQL случая: обычное подтверждение; потеря запроса до
+SQL; потеря HTTP200 после настоящего SQL commit. Две ошибки не публикуют имя и
+не записывают provisional cache; manual retry + reload восстанавливают имя,
+один initial POST/один разрешённый повтор, identity/access SQL неизменны.
+Confirmed case переключает synthetic authenticated member → admin → member в
+одном browser context с reload: чужое имя не появляется, дополнительных writes
+нет. Это не проверка реального password login/logout или late-reply owner race.
+Fresh final focused **3 pass / 81 filtered skips (84), exit0, 4.12 s**.
+Default suite **2264 pass / 1099 opt-in skips (3368), 173 files pass / 57 skipped,
+exit0, 25.19 s**. Configured webpack production build/types/ESLint/format/607
+boundaries/diff pass. Impeccable launcher permission denied: прочитаны incumbent
+code/context и harden/craft-floor; normal design сохранён, error использует прежние
+body/цвет/button tokens. Один batched mobile390/desktop1280 review + confirmation.
+Diagnostic all-84 browser run остановлен без final summary: A email cases требуют
+NEXT_PUBLIC_MEMBER_EMAIL_BINDING_ENABLED=true, а этот build default-off; весь
+набор НЕ объявлен зелёным. Случайный default Turbopack probe и node-e worker launch
+не прошли; configured --webpack с очищенным execArgv и empty env cache прошёл.
+Секреты/.env, рабочая БД, внешние платежи/письма, зависимости и rollout не тронуты.
+Own labelled loopback/tmpfs backend_test и Next завершены после ownership check;
+удалена только невосстановимая synthetic fixture. Legacy cache reconciliation,
+native late-response account switch и остальные external/A7/Q1 gates остаются.
+
 **Q1y, correct the offline JSON-export assumption — 12 октября МСК:**
 При переходе от S1 к независимому Q1w остаток «JSON export» проверен на
 установленной CLI, а не реализован по предположению. Два native child
