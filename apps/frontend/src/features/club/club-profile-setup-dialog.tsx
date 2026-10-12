@@ -1,5 +1,6 @@
 "use client";
 
+import { useLayoutEffect, useRef } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import {
   checkOperationAccessError,
@@ -32,6 +33,12 @@ export function ClubProfileSetupDialog({
   const { user, refreshAfterMutation } = useAuth();
   const utils = trpc.useUtils();
   const operation = useSessionOperation(active);
+  const onSavedRef = useRef(onSaved);
+  // A same-owner snapshot can commit while the write is pending. Use the latest
+  // committed callback at ACK, not the save-start closure or a later refresh.
+  useLayoutEffect(() => {
+    onSavedRef.current = onSaved;
+  }, [onSaved]);
   const save = async (draft: ClubProfileDraft) => {
     const task = operation.begin("save-club-profile");
     if (!task || !user)
@@ -60,6 +67,7 @@ export function ClubProfileSetupDialog({
       );
       if (result?.success !== true) throw invalidResponse();
       task.assertCurrent();
+      const publishAcknowledgement = onSavedRef.current;
       // These optional scoped preferences are published only after native ACK.
       // The storage adapter writes synchronously before returning its promise.
       await Promise.all([
@@ -74,7 +82,7 @@ export function ClubProfileSetupDialog({
       await refreshAfterMutation(user.id);
       task.assertCurrent();
       void utils.club.comments.invalidate();
-      onSaved({ ...draft, avatarUrl });
+      publishAcknowledgement({ ...draft, avatarUrl });
     } catch (cause) {
       checkOperationAccessError(cause);
       throw cause;

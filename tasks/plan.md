@@ -41,6 +41,38 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3bg, club ACK versus a snapshot delivered during the write — 12 октября МСК:**
+Продолжение от clean feature93f492c. Собственный SQL/HTTP barrier: pre-write
+auth/me читает fixture intermediate name/null, profile.update200 действительно
+commits chosen name/female, POST ACK удерживается; старый GET доставляется и
+рендерится, затем ACK возвращается, post-write GET native body читается, но
+его ответ теряется. Save-start onSaved callback связывал ACK с прежним user
+reference, из-за чего подтверждённая анкета не отображалась: native RED **1 fail/
+98 filtered skips (99), exit1, 7.73 s**. Начальный locator оставался прежним
+fixture именем (8.31 s), исправлен/not production RED. Layout-effect callback
+ref отражает latest committed parent handler без render-phase ref write;
+первый вариант вызова latest handler после refresh прошёл lost variant/club18,
+но новая native newer-name/male variant доказала overwrite более нового server
+snapshot: **1 fail/1 pass/98 filtered skips (100), exit1, 8.39 s**. Теперь
+callback фиксируется сразу после native ACK/owner fence, до cache/refresh;
+потерянный GET оставляет ACK confirmation, успешный более новый GET его
+supersedes. CLI path typo launch failure100 skips/1.80 s repaired/not RED.
+Final integrated club **19 native pass/81 filtered skips (100), exit0, 19.32 s**,
+один POST, реальный SQL/body/read order, ACK scoped preferences и completed,
+UI lost=name/female ACK; UI newer=confirmed server name/male; identity/paid rows
+unchanged. Scoped optional preferences remain ACK values in the newer variant,
+not authoritative identity and not replayed automatically. Webpack/types/ESLint/
+format/boundaries618/diff pass; full **100 native browser→Nest HTTP→SQL/loopback
+SMTP pass, exit0, 81.77 s**; fresh default **2277 pass/1115 opt-in skips (3397),
+exit0, 22.87 s**, docs54/diff pass. Local commit/no push. Own labelled loopback tmpfs
+container/Next cleaned after verified exact ownership/mounts/port inspection.
+No CSS/markup/API/
+auth-controller changes or new screenshot/provider/working-data claims.
+Next: analogous ProfileNameEditor save-start source when a same-owner snapshot
+arrives during held POST and post-write GET fails; test first in focused helper
+instead of growing profile917/club802 files. A7/Q1/avatar storage/atomicity/
+provider/device gates remain open.
+
 **C3bf, club setup versus a pending pre-write auth read — 12 октября МСК:**
 Продолжение от clean featured02a396. Native SQL/HTTP barrier удерживает auth/me
 после чтения Browser phone member/genderNULL, затем выбранная анкета сохраняется

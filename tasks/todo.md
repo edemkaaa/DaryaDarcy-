@@ -6,6 +6,25 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3bg (12 октября МСК): held native profile POST commits while a pre-write
+auth read renders an intermediate same-owner name, then ACK delivered and next
+native refresh reply lost. Save-start callback discarded ACK display (RED1 fail,
+7.73 s). Initial fixture locator typo repaired/not production RED. Latest handler
+ref fixed loss but replaced a genuinely newer post-write server snapshot (second
+native variant RED1 fail/1 pass, 8.39 s); handler is now pinned at native ACK, not
+save start or refresh completion, via latest committed layout-effect callback ref.
+CLI executable-path typo repaired/not production RED. Integrated club19 native
+pass/81 filtered skips (100), exit0 (19.32 s); lost refresh shows ACK name/female,
+newer refresh shows native newer name/male, one POST, scoped ACK preferences,
+identity/access unchanged. Webpack/types/lint/format/boundaries618/diff pass;
+full100 native browser/API/SQL/loopback SMTP pass, exit0 (81.77 s), fresh default
+2277 pass/1115 opt-in skips (3397), exit0 (22.87 s), docs54/diff pass. Owned
+labelled loopback tmpfs/Next cleaned, local commit/no push. No CSS/markup/API/auth-controller/roles/quota/
+subscription/provider changes. Next: equivalent profile-name editor mid-write
+same-owner snapshot plus lost post-write refresh; use focused ordering helper,
+do not grow profile917 or club802 helper without decomposition. A7/Q1/storage/
+atomicity/provider/device gates remain open.
+
 C3bf (12 октября МСК): club setup pre-write native auth/me held after reading
 old name/null gender; profile.update200 commits chosen identity, but ordinary
 refresh deduplicated against old GET (RED1 fail/97 filtered skips, 8.03 s).

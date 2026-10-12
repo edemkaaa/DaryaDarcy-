@@ -48,6 +48,184 @@ async function openSetup(fixture: ClubSetupFixture) {
 }
 
 export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
+  it.each(["lost", "newer"])(
+    "C3 club setup reconciles its ACK after a pre-write read arrives during saving (%s refresh)",
+    async (refresh) => {
+      const current = fixture();
+      const { connection, rows, base, memberId } = current;
+      const { page, setup, field, identitySql, identity, access } =
+        await openSetup(current);
+      await connection.query(
+        "UPDATE users SET name='C3 Intermediate club name' WHERE id=? AND openId='binding-browser-member'",
+        [memberId],
+      );
+      let releaseRead!: () => void,
+        enterRead!: () => void,
+        finishRead!: () => void;
+      let releaseWrite!: () => void,
+        enterWrite!: () => void,
+        finishWrite!: () => void;
+      const heldRead = new Promise<void>((r) => {
+        releaseRead = r;
+      });
+      const readEntered = new Promise<void>((r) => {
+        enterRead = r;
+      });
+      const readFinished = new Promise<void>((r) => {
+        finishRead = r;
+      });
+      const heldWrite = new Promise<void>((r) => {
+        releaseWrite = r;
+      });
+      const writeEntered = new Promise<void>((r) => {
+        enterWrite = r;
+      });
+      const writeFinished = new Promise<void>((r) => {
+        finishWrite = r;
+      });
+      let reads = 0,
+        writes = 0;
+      await page.route("**/api/auth/me", async (route) => {
+        const first = ++reads === 1;
+        const response = await route.fetch({
+          url: base + "/api/auth/me",
+          maxRedirects: 0,
+        });
+        expect(response.status()).toBe(200);
+        if (!first) {
+          expect(await response.json()).toMatchObject({
+            user:
+              refresh === "lost"
+                ? { name: "C3 Recovery club name", gender: "female" }
+                : { name: "C3 Newer server name", gender: "male" },
+          });
+          return refresh === "lost"
+            ? route.abort("failed")
+            : route.fulfill({ response });
+        }
+        expect(await response.json()).toMatchObject({
+          user: { name: "C3 Intermediate club name", gender: null },
+        });
+        enterRead();
+        try {
+          await heldRead;
+          await route.fulfill({ response });
+        } finally {
+          finishRead();
+        }
+      });
+      await page.route("**/api/trpc/*", async (route) => {
+        if (!route.request().url().includes("profile.update"))
+          return route.fallback();
+        writes++;
+        const url = new URL(route.request().url());
+        const response = await route.fetch({
+          url: base + url.pathname + url.search,
+          maxRedirects: 0,
+        });
+        expect(response.status()).toBe(200);
+        const body = await response.json();
+        expect((Array.isArray(body) ? body[0] : body).result.data.json).toEqual(
+          {
+            success: true,
+          },
+        );
+        enterWrite();
+        try {
+          await heldWrite;
+          await route.fulfill({ response });
+        } finally {
+          finishWrite();
+        }
+      });
+      try {
+        await page.evaluate(() => window.dispatchEvent(new Event("online")));
+        await readEntered;
+        await setup
+          .getByRole("button", { name: "Продолжить", exact: true })
+          .click();
+        await writeEntered;
+        await browserExpect(field).toBeDisabled();
+        expect(
+          await rows("SELECT name,gender FROM users WHERE id=?", [memberId]),
+        ).toEqual([{ name: "C3 Recovery club name", gender: "female" }]);
+        const oldResponse = page.waitForResponse(
+          (response) => new URL(response.url()).pathname === "/api/auth/me",
+        );
+        releaseRead();
+        expect(await (await oldResponse).json()).toMatchObject({
+          user: { name: "C3 Intermediate club name", gender: null },
+        });
+        await readFinished;
+        // Wait for the confirmed old snapshot to render while the actual write ACK
+        // is still held. This is a read of the fixture, not a fabricated response.
+        await browserExpect(
+          page.getByText("Очень рада тебе, C3 Intermediate club name", {
+            exact: true,
+          }),
+        ).toBeVisible();
+        if (refresh === "newer")
+          await connection.query(
+            "UPDATE users SET name='C3 Newer server name',gender='male' WHERE id=? AND openId='binding-browser-member'",
+            [memberId],
+          );
+        const refreshed =
+          refresh === "lost"
+            ? page.waitForEvent(
+                "requestfailed",
+                (request) => new URL(request.url()).pathname === "/api/auth/me",
+              )
+            : page.waitForResponse(
+                (response) =>
+                  new URL(response.url()).pathname === "/api/auth/me",
+              );
+        releaseWrite();
+        await writeFinished;
+        await refreshed;
+        await browserExpect(setup).toHaveCount(0);
+        await browserExpect(
+          page.getByText(
+            refresh === "lost"
+              ? "Очень рада тебе, дорогая C3 Recovery club name"
+              : "Очень рада тебе, дорогой C3 Newer server name",
+            {
+              exact: true,
+            },
+          ),
+        ).toBeVisible();
+        expect(
+          await rows("SELECT name,gender FROM users WHERE id=?", [memberId]),
+        ).toEqual([
+          refresh === "lost"
+            ? { name: "C3 Recovery club name", gender: "female" }
+            : { name: "C3 Newer server name", gender: "male" },
+        ]);
+        expect(
+          await page.evaluate(
+            (id) =>
+              ["name", "gender", "completed"].map((key) =>
+                localStorage.getItem(
+                  `darcy:user:${id}:@darcy_club_profile_${key}`,
+                ),
+              ),
+            memberId,
+          ),
+        ).toEqual(["C3 Recovery club name", "female", "true"]);
+        expect(reads).toBe(2);
+        expect(writes).toBe(1);
+        expect(await rows(identitySql, [memberId])).toEqual(identity);
+        expect(
+          await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+        ).toEqual(access);
+      } finally {
+        releaseRead();
+        releaseWrite();
+        await Promise.all([readFinished, writeFinished]);
+        await page.unrouteAll({ behavior: "wait" });
+      }
+    },
+    30_000,
+  );
   it("C3 club setup supersedes a native auth read started before saving its identity", async () => {
     const current = fixture();
     const { rows, base, memberId } = current;
