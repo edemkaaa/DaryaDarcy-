@@ -204,6 +204,87 @@ it("runs all selected sources through stdin and reports omitted source coverage"
   });
 });
 
+it("retains unresolved parent associations instead of labelling their objects unassociated", () => {
+  const report = collectMediaSnapshot(
+    {
+      articles: [],
+      posts: [],
+      media: [{ id: 7, postId: 99, url: shared }],
+      comments: [{ id: 8, postId: 99, photos: [shared] }],
+      decoration: { avatars: [], videos: [], seasons: [] },
+    },
+    {
+      objects: [{ objectId: "referenced-unknown", urlHashes: [hash(shared)] }],
+      externalUrlHashes: [],
+    },
+  );
+  expect(report.objectMap?.objects).toEqual([
+    {
+      objectId: "referenced-unknown",
+      visibility: "unknown",
+      references: ["post_media:7.url", "post_comments:8.photos:0"],
+    },
+  ]);
+  expect(report.issues).toEqual([
+    "post_media:7.parent-not-in-snapshot",
+    "post_comments:8.parent-not-in-snapshot",
+  ]);
+  expect(report.objectMap?.unresolvedUrlHashes).toEqual([]);
+});
+
+it.each([shared, shared + "/public-alias"])(
+  "keeps unknown parent evidence unresolved when a public reference uses %s",
+  (publicUrl) => {
+    const content = {
+      articles: [article([], { coverUrl: publicUrl })],
+      posts: [],
+      media: [{ id: 7, postId: 99, url: shared }],
+      comments: [],
+      decoration: { avatars: [], videos: [], seasons: [] },
+    };
+    const inventory = {
+      objects: [
+        {
+          objectId: "mixed-evidence",
+          urlHashes: [...new Set([hash(shared), hash(publicUrl)])],
+        },
+      ],
+      externalUrlHashes: [],
+    };
+    const result = spawnSync(
+      process.execPath,
+      [
+        "node_modules/tsx/dist/cli.mjs",
+        "tooling/scripts/media-reference-map.ts",
+      ],
+      {
+        input: JSON.stringify({ content, inventory }),
+        encoding: "utf8",
+      },
+    );
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    const report = JSON.parse(result.stdout);
+    expect(report.objectMap.objects).toEqual([
+      {
+        objectId: "mixed-evidence",
+        visibility: "unknown",
+        references:
+          publicUrl === shared
+            ? ["articles:1.coverUrl", "post_media:7.url"]
+            : ["post_media:7.url", "articles:1.coverUrl"],
+      },
+    ]);
+    expect(
+      report.groups.find(
+        (group: { urlHash: string }) => group.urlHash === hash(shared),
+      ).visibility,
+    ).toBe("unknown");
+    expect(report.issues).toEqual(["post_media:7.parent-not-in-snapshot"]);
+    expect(result.stdout).not.toContain(shared);
+  },
+);
+
 it("maps explicit object identities and external hashes without guessing from URL prefixes", () => {
   const external = "https://external.example.test/file.webp";
   const input = {

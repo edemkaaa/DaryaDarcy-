@@ -29,6 +29,14 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+M1b8 (12 октября МСК): RED1 reproduced lost attachment/comment references when
+parent missing from snapshot, incorrectly unassociated declared object. Keeps
+paths/parent issues as unknown; unknown dominates public/shared aliases without
+ACL/deletion decision. Final library/native CLI28 pass, exit0, 2.36 s; types pass,
+offline JSON enum change documented. No SQL/S3/working data/providers/resources.
+Default workers2 2305 pass/1133 opt-in skips (3443), exit0, 49.51 s;
+types/docs54/format/diff pass. C2n review and S3/rollout dependencies unchanged.
+
 C2o (12 октября МСК): native HTTP article create + UI cancelled/committed title
 edit/reload keeps cover and six literal block kinds/order/URLs/captions/label/
 body; club/published unchanged, same ID/one teaser, one create/one update and

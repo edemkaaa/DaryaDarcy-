@@ -40,7 +40,13 @@ it("does not approve unmatched attachments or malformed photos as a complete map
     posts: [post(1, { photos: "not-json" })],
     media: [{ id: 7, postId: 99, url }],
   });
-  expect(report.groups).toEqual([]);
+  expect(report.groups).toEqual([
+    {
+      urlHash: createHash("sha256").update(url).digest("hex"),
+      visibility: "unknown",
+      references: ["post_media:7.url"],
+    },
+  ]);
   expect(report.issues).toEqual([
     "posts:1.photos.invalid-json",
     "post_media:7.parent-not-in-snapshot",
@@ -115,7 +121,13 @@ it("preserves malformed rich-text and unmatched comment diagnostics without disc
     media: [],
     comments: [{ id: 8, postId: 99, photos: [url] }],
   });
-  expect(report.groups).toEqual([]);
+  expect(report.groups).toEqual([
+    {
+      urlHash: createHash("sha256").update(url).digest("hex"),
+      visibility: "unknown",
+      references: ["post_comments:8.photos:0"],
+    },
+  ]);
   expect(report.issues).toEqual([
     "posts:1.richText:0.children:0.link.invalid-url",
     "post_comments:8.parent-not-in-snapshot",

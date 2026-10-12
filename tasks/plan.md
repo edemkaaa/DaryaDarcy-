@@ -56,6 +56,24 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**M1b8 — missing parent must not erase known associations, 12 октября МСК:**
+independent media-map review found post_media/comments parent absence emitted
+an issue but skipped the saved URL. Declared inventory therefore reported the
+referenced object unassociated-in-snapshot. **RED1 fail/12 filtered skips (13),
+exit1, 170 ms** proves dropped paths/unassociated label, not live SQL/object data.
+Fix keeps valid references with offline visibility `unknown`, keeps parent and
+malformed diagnostics; unknown dominates known classes for URL groups/object
+alias merges, requires resolution before any action. All known-only cases keep
+their classes; app auth/delivery/ACL unchanged. Existing omission assertions
+updated to retained unknown paths; native CLI same-URL/alias evidence tests.
+Initial26 pass (1.51 s), final stronger **28 pass, exit0, 2.36 s**, types pass.
+Review: strict selected metadata/exact hashes/redaction/scopes retained; no URL
+fetch/.env/SQL/S3/resources/deps/schema/API changes. Offline JSON enum extension
+documented in media-access-map M1b8; no implicit public/private fallback. Current
+default workers2 **2305 pass/1133 opt-in skips (3443), exit0, 49.51 s**;
+types/docs54/format/diff pass. No build/browser/SQL repeat for offline-only change.
+Rollout/local S3 details/C2n review stay gated, working tree reviewed/scoped commit.
+
 **C2o — article media association persistence, 12 октября МСК:** independent
 agreed C2 work while C2n review/M1c storage details are pending. Native HTTP
 create (not UI create) with cover plus literal heading/text/photo/png/carousel/

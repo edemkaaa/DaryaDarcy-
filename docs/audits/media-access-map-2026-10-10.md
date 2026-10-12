@@ -191,6 +191,30 @@ Scope `declared-selected-inventory-not-rollout`: supplied aliases/external label
 Final library/native CLI25 pass, types pass; default workers2 2302 pass/1122
 opt-in skips (3429), exit0, 51.76 s. No new dependency or production endpoint.
 
+### M1b8: missing-parent associations остаются в карте — 12 октября 2026
+
+Найдено и воспроизведено: выбранные post_media/comment строки с отсутствующим
+в снимке parent сохраняли issue, но теряли URL reference. Declared object тогда
+выглядел unassociated-in-snapshot несмотря на имеющуюся строку ссылки.
+RED1 → collector сохраняет валидные ссылки с `visibility: unknown`, parent issue
+остаётся. Malformed JSON/URL по-прежнему diagnostic, без раскрытия значений.
+
+`unknown` — добавленное значение offline JSON-контракта groups/objectMap.objects,
+не новый application endpoint или доступ к объекту. Оно имеет приоритет над
+public/restricted/shared при совмещении references или aliases одного объекта:
+неполная родительская связь не становится доказанной через другую ссылку.
+Все reference paths остаются; known public cover не разрешено молча закрывать.
+Любое `unknown`/issue требует ручного разрешения полноты/идентичности, **не ACL,
+orphan, удаление или разрешение private delivery**. Потребитель должен обрабатывать
+новое значение как unresolved, не подставлять public/restricted по умолчанию.
+
+Focused library + actual CLI28 pass (2.36 s), включая public same-URL и отдельный
+public alias рядом с unknown parent; исходные URL не выходят в stdout. SQL/S3
+не запускались: это offline JSON/CLI исправление, не live inventory acceptance.
+Default workers2 2305 pass/1133 opt-in skips (3443), exit0, 49.51 s;
+types/docs54/format/diff pass. SQL/browser/build с неизменённым приложением
+не повторялись; отсутствующие S3 details и reviewed rollout всё ещё gated.
+
 ### M1c runtime preflight — 12 октября 2026
 
 Официальный MinIO pinned RELEASE.2025-06-13T11-33-47Z недоступен: quay registry

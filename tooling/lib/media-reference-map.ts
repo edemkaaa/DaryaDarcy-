@@ -15,7 +15,7 @@ const snapshot = z
       .strict(),
   )
   .max(5000);
-type Visibility = "public" | "restricted";
+type Visibility = "public" | "restricted" | "unknown";
 type ReferenceMap = {
   groups: {
     urlHash: string;
@@ -89,8 +89,11 @@ function referenceReport() {
     scope,
     groups: [...grouped].map(([urlHash, group]) => ({
       urlHash,
-      visibility:
-        group.access.size > 1 ? ("shared" as const) : [...group.access][0],
+      visibility: group.access.has("unknown")
+        ? ("unknown" as const)
+        : group.access.size > 1
+          ? ("shared" as const)
+          : [...group.access][0],
       references: [...group.references],
     })),
     issues,
@@ -381,15 +384,15 @@ export function collectPostReferences(input: unknown) {
     const access = accessByPost.get(row.postId);
     if (!access) {
       issues.push(`post_media:${row.id}.parent-not-in-snapshot`);
-      continue;
     }
-    add(row.url, `post_media:${row.id}.url`, access);
+    // Missing parents remove visibility evidence, not the saved association.
+    add(row.url, `post_media:${row.id}.url`, access ?? "unknown");
   }
   for (const row of parsed.data.comments ?? []) {
     const location = `post_comments:${row.id}`;
-    if (!accessByPost.has(row.postId)) {
+    const parentPresent = accessByPost.has(row.postId);
+    if (!parentPresent) {
       issues.push(location + ".parent-not-in-snapshot");
-      continue;
     }
     let photos = row.photos;
     if (typeof photos === "string") {
@@ -401,7 +404,12 @@ export function collectPostReferences(input: unknown) {
       }
     }
     // club.comments requires membership even for a parent also visible in feed.
-    if (photos !== null) list(photos, location + ".photos", "restricted");
+    if (photos !== null)
+      list(
+        photos,
+        location + ".photos",
+        parentPresent ? "restricted" : "unknown",
+      );
   }
   for (const row of parsed.data.decoration?.avatars ?? [])
     add(row.avatarUrl, `users:${row.id}.avatarUrl`, "public");
@@ -472,8 +480,9 @@ function mapDeclaredObjects(report: ReferenceMap, input: unknown) {
       );
       return {
         objectId: object.objectId,
-        visibility:
-          visibility.size === 0
+        visibility: visibility.has("unknown")
+          ? "unknown"
+          : visibility.size === 0
             ? "unassociated-in-snapshot"
             : visibility.has("shared") || visibility.size > 1
               ? "shared"
