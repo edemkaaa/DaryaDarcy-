@@ -41,6 +41,27 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3ba, native revoked session during club setup — 12 октября МСК:**
+Продолжение от clean feature1c0aea2, test-only. Форма заполнена обычной paid
+участницей; только synthetic user JWT version0 отозван SQL sessionVersion=1.
+Настоящий profile.update возвращает401, закрывает private setup и показывает
+guest email gate; один POST, draft name/gender не записаны, scoped completion/
+name/gender cache пуст, credentials/roles/paid rows неизменны относительно
+явно отозванной fixture identity. Revocation не снят клиентом и роль не менялась.
+Initial locator assumptions были неверны: gated login CTA отсутствует в текущем
+default checkout UI; actual guest email field повторяется сверху/снизу. После
+диагностики текущего DOM выбран первый точный guest textbox, logs удалены;
+native401/SQL/no-cache assertions сохранены, не production RED/fix.
+Integrated club setup/direct-entry/avatar **8 pass/86 filtered skips (94), exit0,
+7.48 s**; types/format/diff pass. Production/build/default/UI не менялись;
+full94 не заявлен, предыдущий full91 checkpoint остаётся отдельным.
+Own labelled loopback/tmpfs backend_test exact ownership/ports/mounts verified
+до работы и удаления, database readiness gate pass; Next/tmpfs очищены. No push/
+deploy/working DB/secrets/external mail/payments/photo upload. Scoped review
+проверил настоящую denial boundary и отсутствие server/cache побочных изменений.
+Next independent C3: native save ACK followed by failed identity refresh;
+external avatar storage/atomicity/A7/Q1/provider/device gates остаются открыты.
+
 **C3az, native remote avatar-cache migration — 12 октября МСК:**
 Продолжение от clean feature5db5360. Test-only proof для avatar-only mount path:
 same-origin already remote icon URL из scoped cache при пустом server avatar

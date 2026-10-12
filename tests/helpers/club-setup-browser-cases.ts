@@ -48,6 +48,60 @@ async function openSetup(fixture: ClubSetupFixture) {
 }
 
 export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
+  it("C3 club setup closes without publishing a draft when native session access is revoked", async () => {
+    const current = fixture();
+    const { rows, connection, memberId } = current;
+    const { page, setup, identitySql, access } = await openSetup(current);
+    await connection.query(
+      "UPDATE users SET sessionVersion=1 WHERE id=? AND openId='binding-browser-member' AND sessionVersion=0",
+      [memberId],
+    );
+    const revokedIdentity = await rows(identitySql, [memberId]);
+    expect(
+      revokedIdentity.find((user) => user.id === memberId)?.sessionVersion,
+    ).toBe(1);
+    let writes = 0;
+    page.on("request", (request) => {
+      if (
+        request.method() === "POST" &&
+        request.url().includes("profile.update")
+      )
+        writes++;
+    });
+    const [denied] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          response.url().includes("profile.update"),
+      ),
+      setup.getByRole("button", { name: "Продолжить", exact: true }).click(),
+    ]);
+    expect(denied.status()).toBe(401);
+    await browserExpect(setup).toHaveCount(0);
+    await browserExpect(
+      page
+        .getByRole("textbox", {
+          name: "Почта для чека и входа",
+          exact: true,
+        })
+        .first(),
+    ).toBeVisible();
+    expect(writes).toBe(1);
+    expect(
+      await rows("SELECT name,gender FROM users WHERE id=?", [memberId]),
+    ).toEqual([{ name: "Browser phone member", gender: null }]);
+    expect(await rows(identitySql, [memberId])).toEqual(revokedIdentity);
+    expect(
+      await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+    ).toEqual(access);
+    expect(
+      await page.evaluate(() =>
+        Object.entries(localStorage).filter(([key]) =>
+          /:@darcy_club_profile_(name|gender|completed)$/.test(key),
+        ),
+      ),
+    ).toEqual([]);
+  }, 30_000);
   it.each(["missing", "present"])(
     "C3 club avatar-cache migration preserves identity and a confirmed server avatar (%s)",
     async (serverAvatar) => {

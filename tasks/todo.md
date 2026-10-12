@@ -6,6 +6,17 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3ba (12 октября МСК): test-only paid member setup→synthetic JWT revocation
+sessionVersion1→native profile.update401→private dialog gone/guest email gate.
+One POST, no name/gender/completion cache or SQL draft, credentials/roles/access
+unchanged after intentional revocation. Initial gated-login/duplicate guest-field
+locator assumptions corrected from actual DOM, diagnostic logs removed, native
+denial/SQL assertions not weakened/no production defect claim. Integrated8 pass/
+86 filtered skips (94), exit0 (7.48 s); types/format/diff pass. No production/
+build/default changes or whole94 claim. Own tmpfs/Next cleaned, local commit
+only/no external effects. Next: save ACK then failed native identity refresh;
+photo storage/atomicity/A7/Q1/provider/device gates remain open.
+
 C3az (12 октября МСК): test-only native same-origin remote avatar cache migration:
 missing server avatar→one native POST200/exact SQL URL; existing confirmed server
 URL retained against different cache/zero POST. Zero uploadAvatar, name/gender/
