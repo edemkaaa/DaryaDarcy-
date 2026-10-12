@@ -56,6 +56,24 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**M1c handoff / C2 safe next, 12 октября МСК:** пользователь выбрал свой готовый
+локальный S3-стенд вместо official-source MinIO build. Endpoint, отдельный test
+bucket и способ test-only подключения ещё не предоставлены; они запрошены в чате.
+Последняя read-only Docker проверка не нашла running containers, но это не
+доказательство отсутствия host/remote-local S3. Не искать credentials/.env/кабинеты,
+не повторять unavailable image pulls, не запускать MinIO build против выбора.
+Actual M1c GET/HEAD/range/API principal matrix остаётся внешне заблокированной.
+Независимый C2 audit: native admin browser cases покрывают draft CRUD, committed
+create/lost response/replay и schedule; manual-publication SQL покрывает existing
+attachment preservation/replacement. Native browser preservation/removal существующих
+audio/document associations при сохранении/потере ответа не найден в admin cases.
+Следующий срез: own synthetic draft с двумя уже ассоциированными media rows →
+editor labels → cancel remove (SQL unchanged) → save remove одного → reload
+с remaining association/metadata → lost committed reply/canonical recovery.
+Не выбирать upload/download и не fetch synthetic external URLs; это native UI/
+HTTP/SQL association acceptance, не object storage или upload readiness. Claims
+bugs/fixes/новых тестов пока нет: этот checkpoint read-only audit/doc-only.
+
 **M1b7 — selected snapshot CLI/object map, 12 октября МСК:** stdin CLI теперь
 принимает `{content, inventory?}` наряду с прежним `{articles}`; byte limit 1 MiB
 и generic no-raw-output error сохранены. SelectedFieldsComplete проверяет наличие

@@ -29,6 +29,18 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+M1c handoff (12 октября МСК): user selected own ready local S3 stand, not source
+build. Await endpoint/dedicated test bucket/test-only connection method requested
+in chat; no secrets/env/account read or repeated image pulls/build. Empty running
+Docker list doesn't rule out host S3. Actual object/principal matrix still blocked.
+Independent C2 read-only audit: native browser draft CRUD/create lost-reply replay/
+schedule exists; attachment metadata/preservation SQL exists, but admin browser
+existing audio/document remove/save/reload/lost update association case absent.
+Next own synthetic draft + two media rows → labels → cancel remove keeps SQL →
+save removal of one keeps remaining metadata → reload → lost committed reply/
+canonical recovery. No upload/download/storage URL fetch or object-ready claim.
+No new production bug/fix/test outcome asserted; docs-only checkpoint.
+
 M1b7 (12 октября МСК): full selected-source stdin envelope + explicit declared
 inventory mapping. Missing source/text/richText fields reported; field coverage
 not all-row/object coverage. Exact hash aliases only, ambiguous identity rejected;
