@@ -14,6 +14,157 @@ type Fixture = {
 };
 
 export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
+  it("C2 preserves article media associations through cancelled and committed title edits", async () => {
+    const { rows, connection, context, frontend } = fixture();
+    const title = "C2 article media associations fixture";
+    const renamed = title + " renamed";
+    const cancelled = title + " cancelled";
+    const coverUrl = "https://assets.example.test/c2-cover.webp";
+    const sections = [
+      { type: "heading", text: "C2 media heading" },
+      {
+        type: "text",
+        text: "C2 body with [reference](https://example.test/reference)",
+      },
+      {
+        type: "photo",
+        url: "https://assets.example.test/c2-photo.webp",
+        caption: "Photo caption",
+      },
+      {
+        type: "png",
+        url: "https://assets.example.test/c2-pattern.png",
+        caption: "Pattern caption",
+      },
+      {
+        type: "carousel",
+        urls: [
+          "https://assets.example.test/c2-first.webp",
+          "https://assets.example.test/c2-second.webp",
+        ],
+        caption: "Carousel caption",
+      },
+      {
+        type: "link",
+        url: "https://example.test/c2-reference",
+        label: "Reference label",
+      },
+    ];
+    await ensureArticles(connection);
+    let id: number | undefined;
+    try {
+      const page = await context.newPage();
+      const writes: string[] = [];
+      page.on("request", (request) => {
+        const pathname = new URL(request.url()).pathname;
+        if (
+          request.method() === "POST" &&
+          [
+            "/api/trpc/admin.createArticle",
+            "/api/trpc/admin.updateArticle",
+          ].includes(pathname)
+        )
+          writes.push(pathname);
+      });
+      await page.goto(frontend + "admin");
+      const created = await page.evaluate(
+        async (input) => {
+          const response = await fetch("/api/trpc/admin.createArticle", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ json: input }),
+          });
+          return { status: response.status, payload: await response.json() };
+        },
+        { title, coverUrl, sections, access: "club", published: true },
+      );
+      expect(created.status).toBe(200);
+      id = created.payload.result.data.json;
+      expect(Number.isSafeInteger(id) && id! > 0).toBe(true);
+      const sql =
+        "SELECT id,title,coverUrl,access,published,sections FROM articles WHERE id=?";
+      const expected = {
+        id,
+        title,
+        coverUrl,
+        access: "club",
+        published: 1,
+        sections,
+      };
+      expect(await rows(sql, [id])).toEqual([expected]);
+      const teaserSql =
+        "SELECT text,photos,target,status,published FROM posts WHERE source=?";
+      expect(await rows(teaserSql, [`article:${id}`])).toEqual([
+        {
+          text: title,
+          photos: [coverUrl],
+          target: "club",
+          status: "published",
+          published: 1,
+        },
+      ]);
+      await page.getByRole("button", { name: "Статьи", exact: true }).click();
+      const field = page.getByPlaceholder("Что посмотреть осенью...");
+      const edit = async (name: string) => {
+        await page
+          .getByText(name, { exact: true })
+          .locator("..")
+          .getByRole("button", { name: "Править", exact: true })
+          .click();
+        await browserExpect(field).toHaveValue(name);
+      };
+      await edit(title);
+      await field.fill(cancelled);
+      await page.getByRole("button", { name: "Отмена", exact: true }).click();
+      await browserExpect(field).toHaveCount(0);
+      expect(await rows(sql, [id])).toEqual([expected]);
+      expect(writes).toEqual(["/api/trpc/admin.createArticle"]);
+      await edit(title);
+      await field.fill(renamed);
+      await page
+        .getByRole("button", { name: "Сохранить", exact: true })
+        .click();
+      await browserExpect(field).toHaveCount(0);
+      expect(await rows(sql, [id])).toEqual([{ ...expected, title: renamed }]);
+      expect(await rows(teaserSql, [`article:${id}`])).toEqual([
+        {
+          text: renamed,
+          photos: [coverUrl],
+          target: "club",
+          status: "published",
+          published: 1,
+        },
+      ]);
+      await page.reload();
+      await page.getByRole("button", { name: "Статьи", exact: true }).click();
+      await edit(renamed);
+      await page.getByRole("button", { name: "Отмена", exact: true }).click();
+      await browserExpect(field).toHaveCount(0);
+      expect(await rows(sql, [id])).toEqual([{ ...expected, title: renamed }]);
+      expect(
+        await rows("SELECT id FROM articles WHERE title IN (?,?,?)", [
+          title,
+          renamed,
+          cancelled,
+        ]),
+      ).toEqual([{ id }]);
+      expect(writes).toEqual([
+        "/api/trpc/admin.createArticle",
+        "/api/trpc/admin.updateArticle",
+      ]);
+    } finally {
+      // Title-scoped fallback also cleans a committed create if its return parse failed.
+      for (const row of await rows(
+        "SELECT id FROM articles WHERE title IN (?,?,?)",
+        [title, renamed, cancelled],
+      )) {
+        await connection.query("DELETE FROM posts WHERE source=?", [
+          `article:${row.id}`,
+        ]);
+        await connection.query("DELETE FROM articles WHERE id=?", [row.id]);
+      }
+    }
+  }, 30_000);
   it.each([
     ["navigation", "returned"],
     ["account", "returned"],

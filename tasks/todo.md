@@ -29,6 +29,16 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+C2o (12 октября МСК): native HTTP article create + UI cancelled/committed title
+edit/reload keeps cover and six literal block kinds/order/URLs/captions/label/
+body; club/published unchanged, same ID/one teaser, one create/one update and
+no cancelled write. Final focused1 pass/114 filtered skips (115), exit0, 3.59 s;
+test-only characterization/no RED/fix. External asset requests blocked, metadata
+association is not S3 upload/delivery/render acceptance. Independent C2 work;
+C2n review and local S3 details remain pending, unchanged suites not rerun.
+Fresh types/docs54/format/diff pass; own scoped fixtures/Next and verified
+labelled loopback/tmpfs backend_test cleaned; no working data/providers/secrets.
+
 C2n (12 октября МСК): source-only audit confirms article create has no durable
 request identity; component uncertainSave does not survive reload. Not a native
 duplicate-write reproduction. Proposed article-create-recovery needs reviewed

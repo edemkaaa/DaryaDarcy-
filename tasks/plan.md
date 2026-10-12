@@ -56,6 +56,26 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**C2o — article media association persistence, 12 октября МСК:** independent
+agreed C2 work while C2n review/M1c storage details are pending. Native HTTP
+create (not UI create) with cover plus literal heading/text/photo/png/carousel/
+link sections; actual UI title edit/cancel→reopen/save→reload/reopen/cancel.
+SQL preserves all block types/order/URLs/captions/link label/inline text, cover,
+club access and published status; one original article ID, teaser title updated
+without losing cover/target/status. Request observer confirms create1/update0
+after cancel, create1/update1 at end. Initial focused1 pass (4.06 s), final
+stronger write-count proof **focused1 pass/114 filtered skips (115), exit0,
+3.59 s**. Characterization only, no new production bug/fix/RED; no mocks of API/
+SQL and no frontend design/schema/API changes. External asset requests blocked
+by the existing loopback browser harness: metadata association only, not upload,
+download/render quality/private delivery/S3 policy acceptance. Reviewed literal
+expected blocks (not computed via normalizer), ACK-before-SQL, scoped row/teaser
+cleanup. Unchanged build/default/native full115/C2l/m not rerun. C2n new ledger
+still needs review, storage endpoint/test bucket/test-only connection absent.
+Fresh types/docs54/format/diff pass; own fixtures/Next cleaned, exact labelled
+tmpfs container ownership/mounts/loopback rechecked before stop/removal. No
+working data/secrets/providers/storage/deploy or foreign resources touched.
+
 **C2n — durable article creation boundary audit, 12 октября МСК (read-only):**
 HEAD95c768a clean on the agreed feature branch. Current admin.createArticle
 input has no creation request key and delegates to article-writes.createArticle:
