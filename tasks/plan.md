@@ -56,6 +56,24 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**C2f — existing attachment associations, 12 октября МСК:** независимый срез
+пока ждём параметры выбранного пользователем S3-стенда. Native production UI/
+Nest/SQL: synthetic draft + existing PDF/audio metadata, remove→cancel сохраняет
+обе associations без update; remove→save удаляет только PDF, оставляет точный ID/
+URL/filename/mimeType/fileSize/order аудио. ACK и lost committed reply варианты:
+ровно один update POST, draft/id/text сохранены; lost reply оставляет editor
+unknown/Save disabled, отдельная canonical вкладка читает remaining attachment,
+не повторяя mutation. Identity role/sessionVersion/blockedAt не меняется.
+**Focused2 pass/104 filtered skips (106), exit0, 6.13 s; integrated C2 browser7
+pass/99 filtered skips (106), exit0, 10.49 s**; types/format/diff pass. Initial
+anchored filter выбрал 0 tests/106 skips, не GREEN; исправлен фильтр, не тесты/
+приложение. Characterization прошла сразу: production bug/fix/RED не заявлены.
+Review: own rows/scoped cleanup, real native transport, no upload/download или
+external object fetch, errors не подавлялись. Own labelled loopback/tmpfs/Next
+cleanup; unchanged app build/default/native106 не повторялись и не заявлены.
+C2 upload/storage/article UI и M1c principal/object gates остаются open. Next
+независимый C2 article editor native UI lifecycle; S3 параметры всё ещё ожидаются.
+
 **M1c handoff / C2 safe next, 12 октября МСК:** пользователь выбрал свой готовый
 локальный S3-стенд вместо official-source MinIO build. Endpoint, отдельный test
 bucket и способ test-only подключения ещё не предоставлены; они запрошены в чате.

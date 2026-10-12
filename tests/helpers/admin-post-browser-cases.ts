@@ -19,6 +19,157 @@ interface AdminPostBrowserFixture {
 export function registerAdminPostBrowserCases(
   fixture: () => AdminPostBrowserFixture,
 ) {
+  it.each([false, true])(
+    "C2 preserves attachment metadata through cancel/removal and lost reply=%s",
+    async (loseReply) => {
+      const { rows, connection, context, frontend, base, actorId } = fixture();
+      const text = "C2 existing attachment association fixture";
+      let id: number | undefined;
+      try {
+        await connection.query(
+          "INSERT INTO posts (text,photos,tags,source,status,published,target) VALUES (?,JSON_ARRAY(),JSON_ARRAY(),'manual','draft',FALSE,'feed')",
+          [text],
+        );
+        id = (
+          await rows("SELECT id FROM posts WHERE text=? AND source='manual'", [
+            text,
+          ])
+        )[0].id;
+        await connection.query(
+          "INSERT INTO post_media (postId,type,url,filename,mimeType,fileSize,sortOrder) VALUES (?,'document','https://assets.example.test/c2-fixture.pdf','C2 document.pdf','application/pdf',123,0),(?,'audio','https://assets.example.test/c2-fixture.mp3','C2 audio.mp3','audio/mpeg',456,1)",
+          [id, id],
+        );
+        const mediaSql =
+          "SELECT id,postId,type,url,filename,mimeType,fileSize,sortOrder FROM post_media WHERE postId=? ORDER BY sortOrder,id";
+        const original = await rows(mediaSql, [id]);
+        expect(original).toHaveLength(2);
+        const identitySql =
+          "SELECT role,sessionVersion,blockedAt FROM users WHERE id=?";
+        const identity = await rows(identitySql, [actorId]);
+        const page = await context.newPage();
+        let updates = 0;
+        await page.route("**/api/trpc/admin.updatePost*", async (route) => {
+          updates++;
+          const url = new URL(route.request().url());
+          const response = await route.fetch({
+            url: base + url.pathname + url.search,
+            maxRedirects: 0,
+          });
+          expect(response.status()).toBe(200);
+          if (loseReply) return route.abort("failed");
+          return route.fulfill({ response });
+        });
+        await page.goto(frontend + "admin");
+        const card = page.getByTestId(`admin-post-${id}`);
+        const editor = page.getByRole("dialog", {
+          name: "Редактор публикации",
+        });
+        const openEditor = async () => {
+          await card
+            .getByRole("button", { name: "Редактировать пост" })
+            .click();
+          await browserExpect(editor.locator(".ui-scroll")).not.toHaveAttribute(
+            "inert",
+            "",
+          );
+          await browserExpect(
+            editor.getByRole("button", {
+              name: "Удалить вложение C2 document.pdf",
+              exact: true,
+            }),
+          ).toBeVisible();
+          await browserExpect(
+            editor.getByRole("button", {
+              name: "Удалить вложение C2 audio.mp3",
+              exact: true,
+            }),
+          ).toBeVisible();
+        };
+        await openEditor();
+        await editor
+          .getByRole("button", {
+            name: "Удалить вложение C2 document.pdf",
+            exact: true,
+          })
+          .click();
+        page.once("dialog", (dialog) => dialog.accept());
+        await editor
+          .getByRole("button", { name: "Закрыть редактор", exact: true })
+          .click();
+        await browserExpect(editor).toHaveCount(0);
+        expect(await rows(mediaSql, [id])).toEqual(original);
+        expect(updates).toBe(0);
+        await openEditor();
+        await editor
+          .getByRole("button", {
+            name: "Удалить вложение C2 document.pdf",
+            exact: true,
+          })
+          .click();
+        const alerts: string[] = [];
+        page.on("dialog", async (dialog) => {
+          alerts.push(dialog.type());
+          await dialog.accept();
+        });
+        const save = editor.getByRole("button", {
+          name: "Сохранить",
+          exact: true,
+        });
+        await save.click();
+        await browserExpect
+          .poll(() => rows(mediaSql, [id]))
+          .toEqual([original[1]]);
+        if (loseReply) {
+          await browserExpect.poll(() => alerts).toEqual(["alert"]);
+          await browserExpect(save).toBeDisabled();
+          await browserExpect(editor).toContainText(
+            "Результат предыдущего сохранения не подтверждён",
+          );
+        } else await browserExpect(editor).toHaveCount(0);
+        const canonical = await context.newPage();
+        await canonical.goto(frontend + "admin");
+        await canonical
+          .getByTestId(`admin-post-${id}`)
+          .getByRole("button", { name: "Редактировать пост" })
+          .click();
+        const canonicalEditor = canonical.getByRole("dialog", {
+          name: "Редактор публикации",
+        });
+        await browserExpect(
+          canonicalEditor.locator(".ui-scroll"),
+        ).not.toHaveAttribute("inert", "");
+        await browserExpect(
+          canonicalEditor.getByRole("button", {
+            name: "Удалить вложение C2 document.pdf",
+            exact: true,
+          }),
+        ).toHaveCount(0);
+        await browserExpect(
+          canonicalEditor.getByRole("button", {
+            name: "Удалить вложение C2 audio.mp3",
+            exact: true,
+          }),
+        ).toBeVisible();
+        expect(updates).toBe(1);
+        expect(await rows(mediaSql, [id])).toEqual([original[1]]);
+        expect(
+          await rows("SELECT id,text,status,published FROM posts WHERE id=?", [
+            id,
+          ]),
+        ).toEqual([{ id, text, status: "draft", published: 0 }]);
+        expect(await rows(identitySql, [actorId])).toEqual(identity);
+      } finally {
+        if (id !== undefined) {
+          await connection.query("DELETE FROM post_media WHERE postId=?", [id]);
+          await connection.query(
+            "DELETE FROM posts WHERE id=? AND text=? AND source='manual'",
+            [id, text],
+          );
+        }
+      }
+    },
+    30_000,
+  );
   it("C2 publishes a due editor schedule once and exposes the committed post in the public feed", async () => {
     const { rows, connection, context, frontend, actorId, base } = fixture();
     const text = "C2 due schedule fixture";

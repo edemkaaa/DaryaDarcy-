@@ -29,6 +29,20 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+C2f (12 октября МСК): native UI/Nest/SQL existing attachment association ACK/
+lost-reply acceptance. Own synthetic draft + PDF/audio: cancel removal keeps both
+without POST, saved removal deletes only PDF, audio full metadata/ID retained.
+Committed update lost reply blocks Save/retains unknown editor; separate canonical
+tab reads remaining attachment, one update total, draft/text/id/identity unchanged.
+Focused2 pass/104 filtered skips (106), exit0, 6.13 s; integrated C2 browser7
+pass/99 filtered skips (106), exit0, 10.49 s; types/format/diff pass. Anchored
+filter initially selected 0/106 skips (not GREEN), corrected filter only. Test-only
+characterization, no production bug/fix/RED claim. Own labelled loopback/tmpfs/Next
+cleaned, scoped SQL rows/no upload/download/external URL fetch/providers/secrets.
+Unchanged build/default/native106 not repeated. C2 upload/storage/article UI and
+M1c actual object/principal matrix remain open. Next native article editor UI;
+await user-selected local S3 endpoint/bucket/test-only connection details.
+
 M1c handoff (12 октября МСК): user selected own ready local S3 stand, not source
 build. Await endpoint/dedicated test bucket/test-only connection method requested
 in chat; no secrets/env/account read or repeated image pulls/build. Empty running
