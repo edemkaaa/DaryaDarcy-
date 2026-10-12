@@ -43,10 +43,10 @@ export function usePostAttachments(
 ) {
   const [attachments, setAttachments] = useState<PostAttachment[]>([]);
   const removedIds = useRef<number[]>([]);
-  const reset = useCallback((media: readonly ExistingMedia[] = []) => {
+  const reset = useCallback((media?: readonly ExistingMedia[] | null) => {
     removedIds.current = [];
     setAttachments(
-      media.flatMap((item): PostAttachment[] =>
+      (media ?? []).flatMap((item): PostAttachment[] =>
         item.type === "audio" || item.type === "document"
           ? [
               {

@@ -4,6 +4,8 @@ import { Action } from "@/shared/ui/elements";
 import { createElement, useState, type SyntheticEvent } from "react";
 import { useCollectionItemRetention } from "@/shared/ui/collection-item-window";
 import { Picture } from "@/shared/media/image";
+import { getVkVideoEmbedUrl } from "./vk-video-url";
+import { VkVideoEmbed } from "./vk-video-embed";
 import MaterialIcons from "@/shared/ui/material-icon";
 import {
   FALLBACK_PHOTO_RATIO,
@@ -51,22 +53,26 @@ export function VideoGridCell({
           .filter(Boolean)
           .join(" ")}
       >
-        {createElement("video", {
-          src: url,
-          poster: thumbnailUrl || undefined,
-          controls: true,
-          playsInline: true,
-          preload: "metadata",
-          onPlay: () => setEnded(false),
-          onSeeked: (event: SyntheticEvent<HTMLVideoElement>) =>
-            setEnded(event.currentTarget.ended),
-          onEnded: () => setEnded(true),
-          style: {
-            backgroundColor: isPortrait ? "#EDE6DA" : "#1a1a1a",
-            objectFit: fitMode,
-          },
-          className: classes.videoElement,
-        })}
+        {getVkVideoEmbedUrl(url) ? (
+          <VkVideoEmbed url={url} className={classes.videoElement} />
+        ) : (
+          createElement("video", {
+            src: url,
+            poster: thumbnailUrl || undefined,
+            controls: true,
+            playsInline: true,
+            preload: "metadata",
+            onPlay: () => setEnded(false),
+            onSeeked: (event: SyntheticEvent<HTMLVideoElement>) =>
+              setEnded(event.currentTarget.ended),
+            onEnded: () => setEnded(true),
+            style: {
+              backgroundColor: isPortrait ? "#EDE6DA" : "#1a1a1a",
+              objectFit: fitMode,
+            },
+            className: classes.videoElement,
+          })
+        )}
       </div>
     );
   }

@@ -76,7 +76,9 @@ function normalizeFeedPost(
   const tags = Array.isArray(p.tags) ? (p.tags as string[]) : [];
   const text = typeof p.text === "string" ? p.text : "";
   const richText = sanitizeRichTextForDisplay(p.richText);
-  const media = Array.isArray(p.media) ? (p.media as FeedPost["media"]) : [];
+  const media = Array.isArray(p.media)
+    ? (p.media as FeedPost["media"])
+    : undefined;
   const targetRaw = p.target;
   const target =
     targetRaw === "club" || targetRaw === "both" || targetRaw === "feed"
@@ -436,7 +438,7 @@ export default function FeedScreen() {
                 publishedAt: item.publishedAt ?? null,
                 createdAt: item.createdAt ?? null,
                 target: item.target || "feed",
-                media: item.media ?? [],
+                media: item.media,
               })
           : undefined
       }

@@ -429,6 +429,12 @@ export function CreatePostModal({
   };
   const handleSubmit = async () => {
     if (recovery.blocked) return;
+    if (editingPost && !Array.isArray(editingPost.media)) {
+      notifyError(
+        "Не удалось загрузить вложения поста. Изменения оставлены в редакторе. Дождитесь сохранения черновика на этом устройстве и обновите страницу.",
+      );
+      return;
+    }
     if (
       !text.trim() &&
       photos.length === 0 &&

@@ -448,7 +448,7 @@ export function usePostManagement(onRefresh: () => void) {
                     ? new Date(activePost.createdAt).toISOString()
                     : null,
                   richText: activePost.richText ?? null,
-                  media: activePost.media ?? [],
+                  media: activePost.media,
                 }
               : null
           }

@@ -124,7 +124,9 @@ test("a legacy login link is cleaned and still returns an administrator correctl
   ).not.toMatch(/private|secret/);
   await enter(page);
   await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByText("Админка", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Админка", exact: true }),
+  ).toBeVisible();
 });
 
 test("an unsafe legacy return falls back to the profile", async ({ page }) => {

@@ -20,6 +20,8 @@ import { trpc } from "@/shared/api/trpc";
 import { parseContentId } from "@/shared/navigation/content-id";
 import { ContentRequestState } from "@/shared/ui/content-request-state";
 import { YouTubeEmbed } from "@/shared/media/youtube-embed";
+import { getVkVideoEmbedUrl } from "@/shared/media/vk-video-url";
+import { VkVideoEmbed } from "@/shared/media/vk-video-embed";
 import { displayVideoTitle } from "@/shared/media/video-title";
 import { PAPER_TEXTURE_URI } from "./video-screen.content";
 export default function VideoDetailScreen({ id }: { id: string }) {
@@ -76,6 +78,7 @@ export default function VideoDetailScreen({ id }: { id: string }) {
     );
   }
   const hasVideoFile = !!video.videoUrl;
+  const vkEmbedUrl = video.videoUrl ? getVkVideoEmbedUrl(video.videoUrl) : null;
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       <Background
@@ -94,7 +97,9 @@ export default function VideoDetailScreen({ id }: { id: string }) {
               .filter(Boolean)
               .join(" ")}
           >
-            {hasVideoFile ? (
+            {vkEmbedUrl ? (
+              <VkVideoEmbed url={vkEmbedUrl} className={classes.videoElement} />
+            ) : hasVideoFile ? (
               createElement("video", {
                 src: video.videoUrl,
                 controls: true,
@@ -141,9 +146,9 @@ export default function VideoDetailScreen({ id }: { id: string }) {
             )}
 
             <Typography className={classes.qualityHint}>
-              В приложении видео доступно к просмотру без VPN, но в более низком
-              качестве. Для просмотра в высоком разрешении рекомендую перейти на
-              YouTube
+              {vkEmbedUrl
+                ? "Видео воспроизводится плеером VK. Качество и полноэкранный режим можно выбрать в настройках плеера."
+                : "В приложении видео доступно к просмотру без VPN, но в более низком качестве. Для просмотра в высоком разрешении рекомендую перейти на YouTube"}
             </Typography>
 
             {video.youtubeId ? (

@@ -91,6 +91,31 @@ const existing = {
 };
 
 for (const mode of ["full", "quick"] as const) {
+  for (const media of [undefined, null]) {
+    test(`${mode}: an incomplete media response preserves the edit without overwriting attachments (${media})`, async ({
+      page,
+    }) => {
+      const writes: string[] = [];
+      await editorApi(page, (name) => {
+        const post = { ...existing, media };
+        if (name === "admin.posts") return ok([post]);
+        if (name === "feed.listPaginated")
+          return ok({ posts: [post], nextCursor: null });
+        if (/admin\.(createPost|updatePost|uploadMedia)/.test(name))
+          writes.push(name);
+      });
+      const messages = dialogs(page);
+      const form = await open(page, mode, true);
+      await field(form).fill("KEEP_EDIT_WITH_MISSING_MEDIA");
+      await saved(form);
+      await submit(form, mode, true).click();
+      await expect.poll(() => messages.length).toBe(1);
+      expect(messages[0]).toContain("Не удалось загрузить вложения поста");
+      await expect(field(form)).toHaveValue("KEEP_EDIT_WITH_MISSING_MEDIA");
+      expect(writes).toEqual([]);
+    });
+  }
+
   test(`${mode}: reload restores text, formatting and selected Files without sending anything`, async ({
     page,
   }) => {

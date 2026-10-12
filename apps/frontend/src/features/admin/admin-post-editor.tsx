@@ -224,6 +224,12 @@ export function AdminPostEditor({
   };
   const handleSubmit = async () => {
     if (recovery.blocked) return;
+    if (post && !Array.isArray(post.media)) {
+      notifyAdminError(
+        "Не удалось загрузить вложения поста. Изменения оставлены в редакторе. Дождитесь сохранения черновика на этом устройстве и обновите страницу.",
+      );
+      return;
+    }
     if (
       !form.text.trim() &&
       !form.photos.length &&
