@@ -41,6 +41,26 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3az, native remote avatar-cache migration — 12 октября МСК:**
+Продолжение от clean feature5db5360. Test-only proof для avatar-only mount path:
+same-origin already remote icon URL из scoped cache при пустом server avatar
+→ один native profile.update200 → тот же URL в SQL, zero uploadAvatar.
+При существующем подтверждённом favicon server URL отличный cache URL не
+перезаписывает SQL: zero profile.update/upload. Name/gender/credentials/roles/
+sessionVersion/paid rows неизменны в обоих cases. Только frontend static assets
+на собственном loopback; нет external upload, mock API/auth или внешнего письма.
+Первый test start опередил готовность свежего MySQL (connection closed, 93 skips,
+suite exit1, 1.81 s), это не production RED. После exact ownership/mount/port
+и mysqladmin health proof focused **2 pass/91 filtered skips, exit0, 3.70 s**;
+integrated club setup/direct-entry/avatar **7 pass/86 filtered skips (93), exit0,
+7.09 s**. Types/format/diff pass; production/default/build/UI не менялись и
+не перепроверялись без причины. Full93/default new-total readiness НЕ заявлена;
+C3ay full91 checkpoint сохранён отдельно. Scoped review: native SQL side effect
+and no-upload assertions, fixture isolation; no new production defect/fix claim.
+Own labelled loopback/tmpfs backend_test и Next очищены после проверки, no foreign
+containers/volumes/working DB/secrets. Next independent C3: setup auth/refresh
+failure cases; external photo storage/atomicity, A7/Q1/provider/device gates open.
+
 **C3ay, club setup unknown outcome and late-owner reply — 12 октября МСК:**
 Прямое поручение пользователя: сохранить анкету при потере ответа и смене
 аккаунта. Native RED **3 fail/88 filtered skips (91), exit1, 19.74 s**:

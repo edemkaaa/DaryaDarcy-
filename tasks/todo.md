@@ -6,6 +6,17 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3az (12 октября МСК): test-only native same-origin remote avatar cache migration:
+missing server avatar→one native POST200/exact SQL URL; existing confirmed server
+URL retained against different cache/zero POST. Zero uploadAvatar, name/gender/
+identity/paid rows unchanged. Initial fresh DB-not-ready suite failure (93 skips)
+resolved after ownership/health proof, not production RED. Focused2 pass (3.70 s);
+integrated club setup/direct-entry/avatar7 pass/86 filtered skips (93), exit0
+(7.09 s); types/format/diff pass. No production/build/default/UI changes or
+whole93 claim; C3ay full91 retained. Own tmpfs/Next cleaned, local commit only.
+Next: setup auth/refresh failures; external avatar upload/atomicity/A7/Q1/provider/
+device gates remain, no new fix/security/provider-readiness claim.
+
 C3ay (12 октября МСК): explicit user request, native RED3 fail: setup closed
 before ACK on lost-before-SQL/lost-after-native-commit/held late reply. Focused
 dialog owns canonical lock/signal/current-owner fences; direct chosen draft to

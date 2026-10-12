@@ -48,6 +48,69 @@ async function openSetup(fixture: ClubSetupFixture) {
 }
 
 export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
+  it.each(["missing", "present"])(
+    "C3 club avatar-cache migration preserves identity and a confirmed server avatar (%s)",
+    async (serverAvatar) => {
+      const current = fixture();
+      const { connection, rows, context, frontend, memberId } = current;
+      const cached = frontend + "assets/images/icon.png";
+      const confirmed = frontend + "assets/images/favicon.png";
+      if (serverAvatar === "present") {
+        await connection.query("UPDATE users SET avatarUrl=? WHERE id=?", [
+          confirmed,
+          memberId,
+        ]);
+      }
+      await context.addInitScript(
+        ({ id, avatar }) => {
+          localStorage.setItem(
+            `darcy:user:${id}:@darcy_club_profile_avatar`,
+            avatar,
+          );
+        },
+        { id: memberId, avatar: cached },
+      );
+      let writes = 0,
+        uploads = 0,
+        acknowledged = false;
+      context.on("request", (request) => {
+        if (request.method() !== "POST") return;
+        if (request.url().includes("profile.update")) writes++;
+        if (request.url().includes("profile.uploadAvatar")) uploads++;
+      });
+      context.on("response", (response) => {
+        if (
+          response.url().includes("profile.update") &&
+          response.status() === 200
+        )
+          acknowledged = true;
+      });
+      const { setup, identitySql, identity, access } = await openSetup(current);
+      await browserExpect(setup).toBeVisible();
+      if (serverAvatar === "missing") {
+        await browserExpect.poll(() => acknowledged).toBe(true);
+      }
+      expect(
+        await rows("SELECT avatarUrl FROM users WHERE id=?", [memberId]),
+      ).toEqual([
+        {
+          avatarUrl: serverAvatar === "present" ? confirmed : cached,
+        },
+      ]);
+      expect(writes).toBe(serverAvatar === "present" ? 0 : 1);
+      expect(uploads).toBe(0);
+      expect(await rows(identitySql, [memberId])).toEqual(identity);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(access);
+      expect(
+        await rows("SELECT name,gender FROM users WHERE id=?", [memberId]),
+      ).toEqual([{ name: "Browser phone member", gender: null }]);
+      // Only a same-origin, already remote URL is migrated. No external storage
+      // write or synthetic upload response is used by this acceptance case.
+    },
+    30_000,
+  );
   it.each(["uncommitted", "committed"])(
     "C3 club setup keeps the draft and requires manual retry after a lost native reply (%s)",
     async (lost) => {
