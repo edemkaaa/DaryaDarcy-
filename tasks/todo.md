@@ -29,6 +29,20 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+C2h (12 октября МСК): native committed create with ACK held exposed enabled
+Cancel/reset before acknowledgement. RED1 fail/107 filtered skips (108), exit1,
+8.12 s → Cancel disabled only for save operation (uploads/design/access unchanged).
+Fresh webpack build30 pages, types/frontend lint/boundaries618/format/diff pass;
+focused1 native pass (3.33 s), integrated C2 + public library10 pass/98 filtered
+skips (108), exit0, 15.80 s. Default workers2 2302 pass/1126 opt-in skips (3433),
+exit0, 55.36 s. One SQL draft/title retained until ACK/canonical closure. Initial
+inline build wrapper worker --e failure corrected via wrapper execArgv, no app
+config workaround; no .env read (owned empty build-env dir). Reviewed derived
+button state/no effects/roles/API/deps. Impeccable launcher denied; incumbent
+context fallback, no PRODUCT/DESIGN artifacts/redesign. Own tmpfs/Next cleaned.
+Next actual lost reply/cancel/canonical-read recovery; refresh/navigation/durable
+article recovery and M1c/M2/provider/rollout still open. Await own S3 details.
+
 C2g (12 октября МСК): native article editor draft create/reload/cancel edit →
 publish same ID/public canonical body via guest HTTP → cancel delete keeps row/
 club teaser → confirmed delete removes both/reload absent. Existing visibility

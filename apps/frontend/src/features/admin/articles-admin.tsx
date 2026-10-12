@@ -733,7 +733,7 @@ export function ArticlesAdmin() {
             .join(" ")}
         >
           <Action
-            disabled={remove.isPending}
+            disabled={operation.kind === "save" || remove.isPending}
             onClick={reset}
             className={classes.btnGhost}
           >

@@ -56,6 +56,26 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**C2h — cancel during pending article write, 12 октября МСК:** production bug
+воспроизведён native browser/Nest/SQL: create уже committed, ACK удерживается,
+«Отмена» активна и может reset/cancel редактор до подтверждения. RED1 fail/107
+filtered skips (108), exit1, 8.12 s. Кнопка отмены теперь disabled только при
+operation.kind=save (и прежнем deletion block); отмена uploads/дизайн/семантика
+доступа не меняются. На свежем production build **focused1 pass/107 filtered
+skips (108), exit0, 3.33 s; integrated C2 + public library10 pass/98 skips (108),
+exit0, 15.80 s**: заголовок остаётся до ACK, один article draft, затем canonical
+form closure. Root/frontend types, frontend lint, webpack build30 pages,
+boundaries618, format/diff pass; default workers2 **2302 pass/1126 opt-in skips
+(3433), exit0, 55.36 s**. Initial inline build wrapper propagated --e to worker
+NODE_OPTIONS (exit9); clearing wrapper execArgv fixed invocation, not app/config.
+Build env primed from owned empty temp dir, no working .env read. Review: derive
+disabled from existing operation state, no new effects/roles/API/quotas/deps.
+Impeccable launcher permission denied; fallback incumbent source/context used,
+PRODUCT/DESIGN absent; no redesign/context artifacts created. Own labelled
+loopback/tmpfs/Next cleaned. Next actual lost article reply + explicit cancel/
+canonical-read policy; refresh/navigation/durable article recovery not closed.
+M1c/M2/provider/rollout gates remain, local S3 details still awaited.
+
 **C2g — native article editor lifecycle, 12 октября МСК:** independent UI/Nest/
 SQL acceptance while selected local S3 endpoint/test bucket credentials method
 not yet supplied. Editor creates one club draft/text block → reload → cancel

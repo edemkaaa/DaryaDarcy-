@@ -12,6 +12,71 @@ type Fixture = {
 };
 
 export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
+  it("C2 retains the article editor while the committed create acknowledgement is pending", async () => {
+    const { rows, connection, context, frontend, base } = fixture();
+    const title = "C2 pending article acknowledgement fixture";
+    await ensureArticles(connection);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let handler: Promise<void> | undefined;
+    try {
+      const page = await context.newPage();
+      await page.route("**/api/trpc/admin.createArticle*", (route) => {
+        handler = (async () => {
+          const url = new URL(route.request().url());
+          const response = await route.fetch({
+            url: base + url.pathname + url.search,
+            maxRedirects: 0,
+          });
+          expect(response.status()).toBe(200);
+          await gate;
+          await route.fulfill({ response });
+        })();
+        return handler;
+      });
+      await page.goto(frontend + "admin");
+      await page.getByRole("button", { name: "Статьи", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Написать статью", exact: true })
+        .click();
+      const field = page.getByPlaceholder("Что посмотреть осенью...");
+      await field.fill(title);
+      await page
+        .getByRole("button", { name: "Статус: опубликована", exact: true })
+        .click();
+      await page
+        .getByRole("button", { name: "Сохранить черновик", exact: true })
+        .click();
+      await browserExpect
+        .poll(() => rows("SELECT id FROM articles WHERE title=?", [title]))
+        .toHaveLength(1);
+      await browserExpect(
+        page.getByRole("button", { name: "Отмена", exact: true }),
+      ).toBeDisabled();
+      await browserExpect(field).toHaveValue(title);
+      release();
+      await handler;
+      await browserExpect(field).toHaveCount(0);
+      expect(
+        await rows("SELECT title,published FROM articles WHERE title=?", [
+          title,
+        ]),
+      ).toEqual([{ title, published: 0 }]);
+    } finally {
+      release();
+      await handler;
+      for (const row of await rows("SELECT id FROM articles WHERE title=?", [
+        title,
+      ])) {
+        await connection.query("DELETE FROM posts WHERE source=?", [
+          `article:${row.id}`,
+        ]);
+        await connection.query("DELETE FROM articles WHERE id=?", [row.id]);
+      }
+    }
+  }, 30_000);
   it("C2 creates a draft article, cancels edits, publishes the same ID and confirms deletion", async () => {
     const { rows, connection, context, frontend, base } = fixture();
     const title = "C2 article editor lifecycle fixture";
