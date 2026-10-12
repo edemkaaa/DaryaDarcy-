@@ -56,6 +56,23 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**Autonomous handoff — 12 октября МСК:** HEAD3b14446 clean on the agreed
+feature branch; no new human reply to C2n schema/recovery review or selected
+local S3 connection request. Recent bounded media-map fixes M1b8–10 and native
+SQL/HTTP checkpoint M1b11 saved; no new reproducible issue found in the subsequent
+read-only post video/attachment transaction review. Current autonomous queue
+has reached its external/review boundary; recurring continuation is removed,
+chat stays open. This is not stage-one completion or exhaustive code certification.
+
+To resume substantive work: provide local S3 endpoint/dedicated test bucket/
+test-only connection method for M1c (never search working secrets), or approve
+the proposed article-create-recovery contract/schema review C2n. Other release
+gates remain: A7 history/rollout, provider permission/configuration, VK links/
+contract, customer materials and physical-device acceptance; complaints deferred.
+Latest recorded verification is default2308 at M1b10 and native article35 at
+M1b11, not new runs in this handoff. No unchanged tests repeated/no push/deploy/
+working data/ACL/roles/resources actions. Existing unchecked tasks preserved.
+
 **M1b11 — native SQL/HTTP checkpoint for unresolved associations, 12 октября
 МСК:** own labelled loopback/tmpfs backend_test only. Existing raw SQL article
 assertion still expected unsupported signed URL to be dropped: initial focused

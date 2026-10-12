@@ -29,6 +29,15 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+Autonomous handoff (12 октября МСК): current bounded queue reached review/
+external boundary after HEAD3b14446. Recurring continuation removed; chat open,
+stage one not declared complete. Resume M1c with selected local S3 endpoint/
+dedicated test bucket/test-only connection, or C2n after reviewed recovery/schema
+decision. No new reproducible defect in read-only video/attachment transaction
+checks; no unchanged tests repeated. Other external/rollout/device gates remain,
+complaints deferred and unchecked tasks preserved. Verification checkpoints
+remain M1b10 default2308/M1b11 native35, not new handoff test runs.
+
 M1b11 (12 октября МСК): full native article35 pass, exit0, 2.81 s, types pass
 on own labelled loopback/tmpfs SQL. Updated stale raw-SQL expected drop after
 M1b9 (diagnostic1 fail, not production RED); new HTTP create/real parent omitted
