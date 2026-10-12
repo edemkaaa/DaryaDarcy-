@@ -29,6 +29,17 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+C2m (12 октября МСК): delayed real canonical list200 then lost return after
+SPA editor unmount or cross-tab logout/member login. No stale alert/reset/
+private row/duplicate; new unsent editor retained, honest list retry reads one
+actual SQL draft. New focused2 pass/112 filtered skips (114), exit0, 8.98 s;
+test-only characterization, not production RED/fix. Diagnostic expected auto
+success for lost read/Next announcer alert corrected without timeout changes.
+C2l checkpoints retained, no unchanged build/default/full repeats. Durable
+article recovery and late commits remain open; M1c/M2 await local S3 details.
+Fresh types/docs54/format/diff pass; own fixtures/verified labelled tmpfs
+container/Next cleaned; no working data/storage/providers/secrets/deploy.
+
 C2l (12 октября МСК): pending native canonical read after lost committed article
 create; SPA view switch/new unsent editor and cross-tab logout/member password
 login keep stale response fenced. New editor retained/no stale alerts/member

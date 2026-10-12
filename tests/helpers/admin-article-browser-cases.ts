@@ -14,11 +14,16 @@ type Fixture = {
 };
 
 export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
-  it.each(["navigation", "account"] as const)(
-    "C2 fences pending article cancellation reads across %s changes",
-    async (transition) => {
+  it.each([
+    ["navigation", "returned"],
+    ["account", "returned"],
+    ["navigation", "read-lost"],
+    ["account", "read-lost"],
+  ] as const)(
+    "C2 fences pending article cancellation reads across %s changes with %s response",
+    async (transition, outcome) => {
       const { rows, connection, context, frontend, base, memberId } = fixture();
-      const title = `C2 pending reconciliation ${transition} fixture`;
+      const title = `C2 pending reconciliation ${transition} ${outcome} fixture`;
       const newTitle = title + " unsent new editor";
       await ensureArticles(connection);
       let release!: () => void;
@@ -90,6 +95,9 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
               );
               readReady = true;
               await gate;
+              // Lose only the held return transport after the actual SQL read.
+              // A stale rejection must not alert/reset the replacement owner.
+              if (outcome === "read-lost") return route.abort("failed");
             }
             await route.fulfill({ response });
           })();
@@ -178,6 +186,18 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
             .getByRole("button", { name: "Отмена", exact: true })
             .click();
           await browserExpect(field).toHaveCount(0);
+          if (outcome === "read-lost") {
+            // The returned view shared this failed read. Show an honest retry
+            // state rather than claiming an empty/complete canonical list.
+            await browserExpect(
+              page
+                .getByRole("alert")
+                .filter({ hasText: "Не удалось загрузить статьи" }),
+            ).toBeVisible();
+            await page
+              .getByRole("button", { name: "Повторить", exact: true })
+              .click();
+          }
           await browserExpect(
             page.getByText(title, { exact: true }),
           ).toHaveCount(1);

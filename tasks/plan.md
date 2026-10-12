@@ -56,6 +56,24 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**C2m — late failed reconciliation after leaving the editor, 12 октября МСК:**
+extends C2l with held native list200/body/committed ID proof followed by lost
+return transport after SPA view switch or cross-tab logout/member login.
+No stale alert/reset/private row or duplicate write; navigation retains the
+new unsent editor, then honest list-error/retry recovers the one SQL draft.
+Member remains fenced/read403. **Focused new2 pass/112 filtered skips (114),
+exit0, 8.98 s**. Characterization only, production unchanged/no RED/fix claim;
+initial test diagnostics expected automatic list success despite intentionally
+lost read and ambiguous Next route-announcer alert; corrected to explicit
+list-error/manual native retry and scoped alert, no timeout increases.
+Review: only held transport fails, real API/body/SQL unaffected, delayed route
+awaited, no speculative retries/writes/roles/design/dependencies. Successful
+unchanged C2l14/build/default/full suites not repeated. Durable recovery after
+reload/late server commits still open, M1c/M2 await selected local S3 details.
+Fresh types/docs54/format/diff pass; own fixture rows/Next cleaned and labelled
+loopback/tmpfs container identity rechecked before stop/removal. No working
+data/storage/secrets/providers/deploy changes, no foreign resources touched.
+
 **C2l — pending reconciliation account/navigation fences, 12 октября МСК:**
 native committed create200 followed by lost response; Cancel's native list200
 held after actual read, then SPA admin view switch/new unsent editor or cross-tab
