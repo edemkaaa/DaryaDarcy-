@@ -12,6 +12,116 @@ type Fixture = {
 };
 
 export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
+  it.each(["create", "update"] as const)(
+    "C2 retains an article after a committed %s reply is lost and blocks repeated writes",
+    async (mode) => {
+      const { rows, connection, context, frontend, base } = fixture();
+      const title = `C2 lost article ${mode} fixture`;
+      const originalTitle = title + " original";
+      await ensureArticles(connection);
+      try {
+        if (mode === "update")
+          await connection.query(
+            "INSERT INTO articles (title,access,published,sections) VALUES (?,'club',FALSE,JSON_ARRAY(JSON_OBJECT('type','text','text','Original body')))",
+            [originalTitle],
+          );
+        const original =
+          mode === "update"
+            ? (
+                await rows("SELECT id FROM articles WHERE title=?", [
+                  originalTitle,
+                ])
+              )[0]
+            : null;
+        const page = await context.newPage();
+        let writes = 0;
+        await page.route(`**/api/trpc/admin.${mode}Article*`, async (route) => {
+          writes++;
+          const url = new URL(route.request().url());
+          const response = await route.fetch({
+            url: base + url.pathname + url.search,
+            maxRedirects: 0,
+          });
+          expect(response.status()).toBe(200);
+          return route.abort("failed");
+        });
+        await page.goto(frontend + "admin");
+        await page.getByRole("button", { name: "Статьи", exact: true }).click();
+        if (mode === "create")
+          await page
+            .getByRole("button", { name: "Написать статью", exact: true })
+            .click();
+        else
+          await page
+            .getByText(originalTitle, { exact: true })
+            .locator("..")
+            .getByRole("button", { name: "Править", exact: true })
+            .click();
+        const field = page.getByPlaceholder("Что посмотреть осенью...");
+        await field.fill(title);
+        if (mode === "create")
+          await page
+            .getByRole("button", { name: "Статус: опубликована", exact: true })
+            .click();
+        const alerts: string[] = [];
+        page.on("dialog", async (dialog) => {
+          alerts.push(dialog.message());
+          await dialog.accept();
+        });
+        const save = page.getByRole("button", {
+          name: mode === "create" ? "Сохранить черновик" : "Сохранить",
+          exact: true,
+        });
+        await save.click();
+        await browserExpect.poll(() => alerts.length).toBe(1);
+        expect(alerts[0]).toContain("Результат сохранения не подтверждён");
+        await browserExpect(field).toHaveValue(title);
+        const sql =
+          "SELECT id,title,access,published,sections FROM articles WHERE title IN (?,?) ORDER BY id";
+        const committed = await rows(sql, [title, originalTitle]);
+        expect(committed).toHaveLength(1);
+        expect(committed[0]).toMatchObject({
+          id: original?.id ?? expect.any(Number),
+          title,
+          access: "club",
+          published: 0,
+        });
+        if (mode === "update")
+          expect(committed[0].sections).toEqual([
+            { type: "text", text: "Original body" },
+          ]);
+        await save.click();
+        await browserExpect.poll(() => alerts.length).toBe(2);
+        expect(alerts[1]).toContain("Результат сохранения не подтверждён");
+        expect(writes).toBe(1);
+        expect(await rows(sql, [title, originalTitle])).toEqual(committed);
+        const canonical = await context.newPage();
+        await canonical.goto(frontend + "admin");
+        await canonical
+          .getByRole("button", { name: "Статьи", exact: true })
+          .click();
+        await browserExpect(
+          canonical.getByText(title, { exact: true }),
+        ).toHaveCount(1);
+        await browserExpect(
+          canonical.getByText(originalTitle, { exact: true }),
+        ).toHaveCount(0);
+        expect(await rows(sql, [title, originalTitle])).toEqual(committed);
+        expect(writes).toBe(1);
+      } finally {
+        for (const row of await rows(
+          "SELECT id FROM articles WHERE title IN (?,?)",
+          [title, originalTitle],
+        )) {
+          await connection.query("DELETE FROM posts WHERE source=?", [
+            `article:${row.id}`,
+          ]);
+          await connection.query("DELETE FROM articles WHERE id=?", [row.id]);
+        }
+      }
+    },
+    30_000,
+  );
   it("C2 retains the article editor while the committed create acknowledgement is pending", async () => {
     const { rows, connection, context, frontend, base } = fixture();
     const title = "C2 pending article acknowledgement fixture";

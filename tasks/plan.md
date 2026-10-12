@@ -56,6 +56,22 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**C2i — actual lost article create/update replies, 12 октября МСК:** native
+browser/Nest/SQL2 modes, реальный 200 после commit затем abort только return
+transport. Editor title остаётся, alert честно unknown; повтор Save вызывает
+unknown alert без второго POST, одна draft row/прежний update ID/club access и
+original update body. Отдельная canonical вкладка admin article list показывает
+одну сохранённую запись, без дальнейшей mutation. Initial focused2 pass/108
+filtered skips (110), exit0, 4.20 s; затем добавлен literal update-body invariant,
+**final integrated C2 + public library12 pass/98 skips (110), exit0, 17.78 s**;
+types/format/diff pass. Test-only characterization passed сразу; production
+bug/fix/RED не заявлены. Review: own titles/IDs/scoped teaser cleanup, native
+responses/committed rows, no automatic retry/upload/storage/provider calls.
+Own labelled loopback/tmpfs/Next cleaned. Unchanged app build/default/full110
+не повторены; checkpoint C2h retained. Следующий C2 срез — actual cancel after
+unknown и fresh canonical list в той же вкладке; reload/navigation/durable
+article recovery всё ещё open. M1c/M2/real rollout ждут local S3 details/review.
+
 **C2h — cancel during pending article write, 12 октября МСК:** production bug
 воспроизведён native browser/Nest/SQL: create уже committed, ACK удерживается,
 «Отмена» активна и может reset/cancel редактор до подтверждения. RED1 fail/107

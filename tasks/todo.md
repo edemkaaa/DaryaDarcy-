@@ -29,6 +29,19 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+C2i (12 октября МСК): native committed article create/update200 then lost return
+transport. Title retained, unknown alert/no success claim; repeated Save stays
+guarded, only one POST/one SQL draft/old update ID/club access/body retained.
+Canonical separate tab sees one row, no retry. Initial focused2 pass/108 filtered
+skips (110), exit0, 4.20 s; literal update-body guard added, final integrated
+C2/public library12 pass/98 filtered skips (110), exit0, 17.78 s; types/format/
+diff pass. Test-only characterization, no production bug/fix/RED claim. Own
+labelled loopback/tmpfs/Next cleaned, scoped synthetic article/teaser rows, no
+upload/download/storage/provider calls. Unchanged build/default/full110 not
+repeated, C2h checkpoint retained. Next unknown cancel → same-tab fresh canonical
+list; reload/navigation/durable article recovery and M1c/M2/rollout still open.
+Await user's selected local S3 endpoint/test bucket/connection details.
+
 C2h (12 октября МСК): native committed create with ACK held exposed enabled
 Cancel/reset before acknowledgement. RED1 fail/107 filtered skips (108), exit1,
 8.12 s → Cancel disabled only for save operation (uploads/design/access unchanged).
