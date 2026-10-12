@@ -38,6 +38,33 @@ Own fixtures/Nest/pools закрыты harness; exact labelled loopback/tmpfs/no
 container rechecked before stop/removal. Удалены только одноразовые synthetic
 данные, не чужие resources. Старые строки рабочей БД не читались/не исправлялись.
 
+**Комментарии — пункт2, локальное исправление:** `club.comments` сохраняет
+обязательную авторизацию, но проверяет подписку по типу опубликованного поста
+в ContentCommentService. `feed`/`both` читаются без оплаченного периода;
+`club` использует прежнюю userHasClubAccess политику. Роут передаёт текущего
+пользователя, не только ID; формат ответа/авторы/viewer likes прежние. Нельзя
+просто убрать membership gate без проверки клубного поста в сервисе.
+
+Native RED2 fail/30 filtered skips (32), exit1, 1.41 s: public create сохранился
+в SQL, последующий read403 для обоих target. GREEN32 (2.78 s); добавлены
+guest/blocked, absent/draft/scheduled/hidden, staff без оплаты и public closed
+window cases. Native auth отклоняет blocked JWT до роутинга как401, прежняя
+семантика сохранена (исправлено ожидание теста403, не код авторизации).
+Final affected HTTP/JWT/SQL **110 pass/4 suites, exit0, 7.65 s**; отсутствие
+подписки/истёкший период не мешают public read, клубный read403, guest/blocked401,
+unpublished/missing404. Старое public обсуждение читается, новый comment400
+после закрытия окна; существующие non-community/add/edit/delete/like ограничения
+и параллельные переключения проходят. Final default workers2 **2308 pass/
+1147 opt-in skips (3460), exit0, 55.82 s**; types/backend build/boundaries618/
+focused format/diff pass. Review: content-owned policy, канонический helper,
+не новый SQL/query/зависимость/миграция; roles/paid period/session semantics/
+quota/CORS не менялись. Существующий frontend запрос не требует нового payload;
+native browser/UI этим backend-срезом не проверены. Только внешний push transport
+подменён harness, HTTP/auth/SQL настоящие. Own scoped fixtures/Nest/pools закрыты;
+exact labelled loopback/tmpfs/no mounts контейнер повторно проверен и удалён
+через --rm после stop. Только одноразовые synthetic данные; рабочие данные,
+S3/provider и staging не затронуты. Следующий согласованный пункт —1.
+
 ## Актуальный план завершения первого этапа — 10 октября 2026
 
 Это рабочий приоритет поверх исторического журнала ниже. Основание:

@@ -37,9 +37,15 @@ export class ContentCommentService {
     }
   }
 
-  async list(postId: number, viewerUserId: number) {
-    await this.publishedPost(postId);
-    return comments.listPostCommentsV2(postId, viewerUserId);
+  async list(postId: number, user: User) {
+    const post = await this.publishedPost(postId);
+    if (post.target === "club" && !(await userHasClubAccess(user))) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Доступно только участницам клуба Darcy",
+      });
+    }
+    return comments.listPostCommentsV2(postId, user.id);
   }
 
   async add(user: User, input: AddCommentInput): Promise<{ id: number }> {

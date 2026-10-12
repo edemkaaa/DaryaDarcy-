@@ -14,7 +14,13 @@ Local feature branch, без push/deploy/рабочей БД/автоматич�
   недоступных реакций автоматически не удаляются. Evidence — начало plan.md.
   Final types/build/docs54/focused format/diff pass; own scoped fixtures/Nest/
   pools/verified labelled loopback/tmpfs cleaned; no working data/resources.
-- [ ] Пункт2: отдельно сверить public comment read/write и существующие сроки.
+- [x] Пункт2 локально: public feed/both comment read доступен авторизованным
+  без оплаты; club проверяет прежнюю policy в сервисе, guest/blocked denied,
+  hidden/draft/scheduled/missing не выдают обсуждение. Сроки добавления прежние.
+  Native RED2 → GREEN32 → final affected HTTP/JWT/SQL110 pass (7.65 s);
+  default2308 pass/1147 opt-in skips (3460), 55.82 s; types/build/boundaries618/
+  focused format/diff pass. Own fixtures/pools/verified disposable DB cleaned.
+  API response прежний; native browser/staging/provider этим не закрыты.
 - [ ] Пункт1: отдельно сверить служебный club доступ и оплаченный период API/UI.
 - [ ] Пункт4: WorkerJobs binding delivery/maintenance с default-off/A7 gates.
 - [ ] Пункт5: actual isolated S3/private delivery, прежние storage/rollout gates.

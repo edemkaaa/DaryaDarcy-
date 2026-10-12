@@ -78,9 +78,9 @@ export const createClubRouter = (
     cancel: protectedProcedure.mutation(({ ctx }) =>
       billing.subscriptions.cancel(ctx.user.id),
     ),
-    comments: clubMemberProcedure
+    comments: protectedProcedure
       .input(z.object({ postId: z.number() }))
-      .query(({ ctx, input }) => comments.list(input.postId, ctx.user.id)),
+      .query(({ ctx, input }) => comments.list(input.postId, ctx.user)),
     addComment: protectedProcedure
       .input(addCommentInput)
       .mutation(({ ctx, input }) => comments.add(ctx.user, input)),

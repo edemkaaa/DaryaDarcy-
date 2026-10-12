@@ -128,7 +128,133 @@ describe.skipIf(!testDatabaseUrl)(
       () => client(bearer).club.deleteComment.mutate({ id }),
       () => client(bearer).club.reportComment.mutate({ id, reason: "reason" }),
     ];
-    it("lists author fields and viewer likes only for a live member", async () => {
+    it.each(["feed", "both"])(
+      "reads the saved public %s comment without a paid subscription",
+      async (target) => {
+        await conn.query("UPDATE posts SET target=? WHERE id=8991", [target]);
+        await conn.query(
+          "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-comment-subscription'",
+        );
+        try {
+          const { id } = await client(bearer).club.addComment.mutate({
+            postId: 8991,
+            text: "public reader reply",
+          });
+          expect((await comments()).find((row) => row.id === id)).toMatchObject(
+            {
+              postId: 8991,
+              userId: 8990,
+              text: "public reader reply",
+            },
+          );
+          expect(
+            await client(bearer).club.comments.query({ postId: 8991 }),
+          ).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ id: 8991, authorName: "Author" }),
+              expect.objectContaining({ id, authorName: "Reader" }),
+            ]),
+          );
+          const unpaidAuthor = await sdk.createSessionToken(
+            "native-comment-author",
+            {
+              sessionVersion: 0,
+            },
+          );
+          expect(
+            await client(unpaidAuthor).club.comments.query({ postId: 8991 }),
+          ).toHaveLength(2);
+          await expect(
+            client(unpaidAuthor).club.comments.query({ postId: 8990 }),
+          ).rejects.toMatchObject({
+            data: { code: "FORBIDDEN", httpStatus: 403 },
+          });
+        } finally {
+          await conn.query("UPDATE posts SET target='feed' WHERE id=8991");
+        }
+      },
+    );
+    it("requires a live authenticated account even for public discussion", async () => {
+      const original = await comments();
+      for (const postId of [8990, 8991]) {
+        await expect(
+          client().club.comments.query({ postId }),
+        ).rejects.toMatchObject({
+          data: { code: "UNAUTHORIZED", httpStatus: 401 },
+        });
+      }
+      await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=8990");
+      for (const postId of [8990, 8991]) {
+        await expect(
+          client(bearer).club.comments.query({ postId }),
+        ).rejects.toMatchObject({
+          data: { code: "UNAUTHORIZED", httpStatus: 401 },
+        });
+      }
+      expect(await comments()).toEqual(original);
+    });
+    it("keeps old public discussion readable but its posting window closed", async () => {
+      await conn.query(
+        "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-comment-subscription'",
+      );
+      await conn.query(
+        "UPDATE posts SET publishedAt='2020-01-01' WHERE id=8991",
+      );
+      try {
+        const original = await comments();
+        expect(
+          await client(bearer).club.comments.query({ postId: 8991 }),
+        ).toMatchObject([{ id: 8991, text: "public author" }]);
+        await expect(
+          client(bearer).club.addComment.mutate({
+            postId: 8991,
+            text: "too late",
+          }),
+        ).rejects.toMatchObject({
+          data: { code: "BAD_REQUEST", httpStatus: 400 },
+        });
+        expect(await comments()).toEqual(original);
+      } finally {
+        await conn.query("UPDATE posts SET publishedAt=NOW() WHERE id=8991");
+      }
+    });
+    it.each(["admin", "moderator"])(
+      "keeps %s service access to club discussion without a paid period",
+      async (role) => {
+        await conn.query("UPDATE users SET role=? WHERE id=8990", [role]);
+        await conn.query(
+          "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-comment-subscription'",
+        );
+        expect(
+          await client(bearer).club.comments.query({ postId: 8990 }),
+        ).toMatchObject([{ id: 8990, text: "club author" }]);
+      },
+    );
+    it("hides draft, scheduled, hidden and absent discussions from unpaid readers", async () => {
+      await conn.query(
+        "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-comment-subscription'",
+      );
+      const original = await comments();
+      for (const postId of [8993, 8994, 8996]) {
+        await expect(
+          client(bearer).club.comments.query({ postId }),
+        ).rejects.toMatchObject({
+          data: { code: "NOT_FOUND", httpStatus: 404 },
+        });
+      }
+      await conn.query("UPDATE posts SET status='scheduled' WHERE id=8993");
+      try {
+        await expect(
+          client(bearer).club.comments.query({ postId: 8993 }),
+        ).rejects.toMatchObject({
+          data: { code: "NOT_FOUND", httpStatus: 404 },
+        });
+        expect(await comments()).toEqual(original);
+      } finally {
+        await conn.query("UPDATE posts SET status='draft' WHERE id=8993");
+      }
+    });
+    it("lists club author fields and viewer likes only for a live member", async () => {
       expect(
         await client(bearer).club.toggleCommentLike.mutate({ commentId: 8990 }),
       ).toEqual({ liked: true, likeCount: 1 });
@@ -146,12 +272,11 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query(
         "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-comment-subscription'",
       );
-      for (const postId of [8990, 8991])
-        await expect(
-          client(bearer).club.comments.query({ postId }),
-        ).rejects.toMatchObject({
-          data: { code: "FORBIDDEN", httpStatus: 403 },
-        });
+      await expect(
+        client(bearer).club.comments.query({ postId: 8990 }),
+      ).rejects.toMatchObject({
+        data: { code: "FORBIDDEN", httpStatus: 403 },
+      });
     });
     it("denies all club mutations after expiry without changing records or notifying", async () => {
       const original = await comments();
