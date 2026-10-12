@@ -14,6 +14,152 @@ interface ProfileFixture {
 }
 
 export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
+  it("C3 explicit club setup still saves the chosen name and gender through native SQL", async () => {
+    const { rows, connection, context, frontend, memberId } = fixture();
+    await connection.query(
+      "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-club-setup-access','paid','0','2030-01-01')",
+      [memberId],
+    );
+    const identitySql =
+      "SELECT id,email,phone,passwordHash,role,sessionVersion FROM users WHERE id=?";
+    const identity = await rows(identitySql, [memberId]);
+    const access = await rows("SELECT * FROM club_payments WHERE userId=?", [
+      memberId,
+    ]);
+    try {
+      await context.clearCookies();
+      await context.addCookies([
+        {
+          name: COOKIE_NAME,
+          value: await sdk.createSessionToken("binding-browser-member", {
+            sessionVersion: 0,
+          }),
+          url: frontend,
+          httpOnly: true,
+          sameSite: "Lax",
+        },
+      ]);
+      const page = await context.newPage();
+      let writes = 0;
+      page.on("request", (request) => {
+        if (
+          request.method() === "POST" &&
+          request.url().includes("profile.update")
+        )
+          writes++;
+      });
+      await page.goto(frontend + "club");
+      const setup = page.getByRole("dialog", {
+        name: "Настройка профиля клуба",
+      });
+      await browserExpect(setup).toBeVisible();
+      await setup
+        .getByPlaceholder("Как тебя зовут?")
+        .fill("C3 Explicit club name");
+      await setup.getByRole("button", { name: "Женский", exact: true }).click();
+      const [saved] = await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.request().method() === "POST" &&
+            response.url().includes("profile.update"),
+        ),
+        setup.getByRole("button", { name: "Продолжить", exact: true }).click(),
+      ]);
+      expect(saved.status()).toBe(200);
+      await browserExpect(setup).toHaveCount(0);
+      await browserExpect(
+        page.getByText("Очень рада тебе, дорогая C3 Explicit club name", {
+          exact: true,
+        }),
+      ).toBeVisible();
+      expect(
+        await rows("SELECT name,gender FROM users WHERE id=?", [memberId]),
+      ).toEqual([{ name: "C3 Explicit club name", gender: "female" }]);
+      expect(writes).toBe(1);
+      expect(await rows(identitySql, [memberId])).toEqual(identity);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(access);
+    } finally {
+      await connection.query(
+        "DELETE FROM club_payments WHERE userId=? AND orderId='c3-club-setup-access'",
+        [memberId],
+      );
+    }
+  }, 30_000);
+  it("C3 direct club entry does not replay a stale cached name into native SQL", async () => {
+    const { rows, connection, context, frontend, memberId } = fixture();
+    await connection.query(
+      "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-direct-club-access','paid','0','2030-01-01')",
+      [memberId],
+    );
+    const identitySql =
+      "SELECT id,name,email,phone,passwordHash,role,sessionVersion,gender,avatarUrl FROM users WHERE id=?";
+    const identity = await rows(identitySql, [memberId]);
+    const access = await rows("SELECT * FROM club_payments WHERE userId=?", [
+      memberId,
+    ]);
+    try {
+      await context.clearCookies();
+      await context.addCookies([
+        {
+          name: COOKIE_NAME,
+          value: await sdk.createSessionToken("binding-browser-member", {
+            sessionVersion: 0,
+          }),
+          url: frontend,
+          httpOnly: true,
+          sameSite: "Lax",
+        },
+      ]);
+      await context.addInitScript((id) => {
+        localStorage.setItem(
+          `darcy:user:${id}:@darcy_club_profile_name`,
+          "C3 stale club name",
+        );
+        localStorage.setItem(
+          `darcy:user:${id}:@darcy_club_profile_gender`,
+          "male",
+        );
+      }, memberId);
+      const page = await context.newPage();
+      let identityReads = 0;
+      let writes = 0;
+      page.on("response", (response) => {
+        if (new URL(response.url()).pathname === "/api/auth/me")
+          identityReads++;
+      });
+      page.on("request", (request) => {
+        if (
+          request.method() === "POST" &&
+          request.url().includes("profile.update")
+        )
+          writes++;
+      });
+      await page.goto(frontend + "club");
+      // The mount sync finishes by refreshing native identity, even when no
+      // avatar needs migrating. Do not replace it with an arbitrary sleep.
+      await browserExpect.poll(() => identityReads).toBeGreaterThanOrEqual(2);
+      expect(await rows(identitySql, [memberId])).toEqual(identity);
+      expect(writes).toBe(0);
+      await browserExpect(
+        page.getByText(
+          /^Очень рада тебе, (?:дорогая |дорогой )?Browser phone member$/,
+        ),
+      ).toBeVisible();
+      await browserExpect(
+        page.getByText(/^Очень рада тебе, .*C3 stale club name$/),
+      ).toHaveCount(0);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(access);
+    } finally {
+      await connection.query(
+        "DELETE FROM club_payments WHERE userId=? AND orderId='c3-direct-club-access'",
+        [memberId],
+      );
+    }
+  }, 30_000);
   it("C3 profile name reconciles native identity instead of replaying stale browser cache", async () => {
     const { rows, connection, context, frontend, memberId } = fixture();
     await connection.query(

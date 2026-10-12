@@ -41,6 +41,34 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3ax, direct club-entry stale identity write — 12 октября МСК:**
+Продолжение от clean feature1a3a651, без branch switch/merge. Native RED при
+прямом /club: обычный mount sync записал C3 stale club name и gender=male из
+scoped browser cache поверх Browser phone member/null в настоящей test SQL.
+Это не только устаревшая надпись: изменение server identity подтверждено rows.
+Внутренний sync contract теперь требует explicit includeIdentity: mount=false
+переносит только аватар, выбранная пользователем настройка=true сохраняет имя
+и пол. Приветствие предпочитает подтверждённое server name. Avatar migration,
+owner fences, API validation, CSS/design/roles/access/subscriptions не изменены.
+Native positive setup: заполнение имени/женского пола → один profile.update200
+→ те же SQL значения и greeting; credentials/role/sessionVersion/paid rows
+сохранены. Direct entry: zero profile.update и полностью неизменная identity.
+Первый GREEN attempt имел два ошибочных exact text locators: greeting содержит
+«Очень рада тебе, …», не отдельное имя. Locators исправлены по существующему
+markup; SQL assertions не ослаблены. Focused **2 pass/86 filtered skips, exit0,
+2.71 s**; final **88 native browser→Nest HTTP→SQL/loopback SMTP pass, exit0,
+77.85 s**. Fresh default **2274 pass/1103 opt-in skips (3382), exit0, 27.65 s**;
+webpack build/types/ESLint/format/API73/617 boundaries/diff pass.
+TDD/native SQL regression и scoped security/interface review определили малый
+срез: automatic migration не получает право менять identity. Никакого redesign,
+реальных писем/платежей/secrets/working DB; собственный labelled loopback/tmpfs
+backend_test проверен exact ID/name/label/mounts/port и удаляется после тестов.
+Следующий независимый C3 срез: explicit setup lost-response/late-account и
+отдельное доказательство avatar migration. Setup пока закрывает modal/пишет
+completion cache до ACK; это не объявлено исправленным. Cached gender greeting
+при unset server gender также отдельно от предотвращённой SQL перезаписи.
+Local commit only; A7/Q1/provider/media/device gates остаются открыты.
+
 **C3aw, canonical profile name and existing-cache reconciliation — 12 октября МСК:**
 После прямого разрешения пользователя primary feature branch fast-forward
 71daa65 → verified origin/staging48f2f7d, без switch/rebase/overwrite; работа

@@ -6,6 +6,20 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3ax (12 октября МСК): native direct /club RED changed SQL name/gender from
+stale scoped cache. Required internal includeIdentity=false for mount avatar
+migration / true for explicit setup; server name wins in greeting. Native direct
+zero POST/unchanged identity; explicit setup one POST200/name+gender committed,
+credentials/role/sessionVersion/paid access unchanged. Initial GREEN selector
+failures corrected to actual full greeting, no weaker SQL assertions.
+Focused2 pass/86 filtered skips (2.71 s); final88 native browser/API/SQL/loopback
+SMTP pass, exit0 (77.85 s); default2274 pass/1103 opt-in skips (27.65 s).
+Webpack/types/ESLint/format/API73/617 boundaries/diff pass, no CSS/redesign,
+local commit/no push/deploy/working DB/providers/secrets. Own labelled tmpfs
+and Next cleaned after verification. Next: explicit setup lost reply/late account,
+avatar migration proof; premature completion cache/modal close and unset-server
+gender greeting fallback not claimed fixed. A7/Q1/external gates remain.
+
 C3aw (12 октября МСК): user-authorized primary feature fast-forward71daa65 →
 verified staging48f2f7d, no switch/rebase/overwrite. Native RED stale scoped name
 overrode auth/me identity. Profile now uses server name with temporary native ACK

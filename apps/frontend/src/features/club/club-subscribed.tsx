@@ -95,18 +95,21 @@ export function ClubSubscribed() {
   const updateProfile = trpc.profile.update.useMutation();
   const uploadAvatar = trpc.profile.uploadAvatar.useMutation();
   const interactions = usePostInteractions();
-  const pushProfileToServer = useCallback(async () => {
-    if (!user) return;
-    await syncClubProfileToServer(
-      {
-        updateProfile: (input) => updateProfile.mutateAsync(input),
-        uploadAvatar: (input) => uploadAvatar.mutateAsync(input),
-      },
-      { userId: user.id, currentAvatarUrl: user.avatarUrl },
-    );
-    await refresh();
-    void utils.club.comments.invalidate();
-  }, [user, updateProfile, uploadAvatar, refresh, utils.club.comments]);
+  const pushProfileToServer = useCallback(
+    async (includeIdentity: boolean) => {
+      if (!user) return;
+      await syncClubProfileToServer(
+        {
+          updateProfile: (input) => updateProfile.mutateAsync(input),
+          uploadAvatar: (input) => uploadAvatar.mutateAsync(input),
+        },
+        { userId: user.id, includeIdentity, currentAvatarUrl: user.avatarUrl },
+      );
+      await refresh();
+      void utils.club.comments.invalidate();
+    },
+    [user, updateProfile, uploadAvatar, refresh, utils.club.comments],
+  );
   // Admin post management (edit/delete)
   const onRefresh = () => {
     utils.club.list.invalidate();
@@ -163,7 +166,7 @@ export function ClubSubscribed() {
     const hasServerAvatar =
       user.avatarUrl && /^https?:\/\//.test(user.avatarUrl);
     if (hasServerAvatar) return;
-    void pushProfileToServer().catch(() => {});
+    void pushProfileToServer(false).catch(() => {});
   }, [user, pushProfileToServer]);
   const handleClubLike = (postId: string) => interactions.like(Number(postId));
   const handleClubSave = (postId: string) => interactions.save(Number(postId));
@@ -171,8 +174,8 @@ export function ClubSubscribed() {
   // profileCompleted: null = still loading, true = done, false = needs setup
   // Never show for owner/admin
   const needsProfileSetup = profileCompleted === false && !isOwner;
-  // Use local profile data for greeting (fallback to user from auth)
-  const displayName = profileName || user?.name;
+  // A cached setup draft must not override confirmed server identity.
+  const displayName = user?.name || profileName;
   const displayGender = profileGender || user?.gender;
   // Keep local rubric/alias filtering; the API currently supports one tag only.
   const clubQuery = trpc.club.list.useInfiniteQuery(
@@ -645,7 +648,7 @@ export function ClubSubscribed() {
                 setProfileName(data.name);
                 setProfileGender(data.gender);
                 if (user) {
-                  await pushProfileToServer();
+                  await pushProfileToServer(true);
                 } else {
                   await refresh();
                 }
