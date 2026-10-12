@@ -94,6 +94,38 @@ objects. Никакого fetch внешнего URL, загрузки .env, ч�
 результатом; затем M1c own isolated storage GET/HEAD/range. Контракт M2 требует
 отдельного review до изменения выдачи и переноса.
 
+### M1b2: offline article-reference collector — 12 октября 2026
+
+`tooling/scripts/media-reference-map.ts` принимает только stdin JSON envelope
+`{"articles":[...]}`. В каждой строке строго выбранные поля: положительный unique
+`id`, `access` public/club, `published` boolean либо SQL 0/1, `coverUrl` string/null,
+`sections` JSON array либо JSON string. Лимиты: 1 MiB stdin и 5000 articles.
+Пример запуска с заранее подготовленным **synthetic** snapshot через stdin:
+
+```sh
+node node_modules/tsx/dist/cli.mjs tooling/scripts/media-reference-map.ts < synthetic-article-snapshot.json
+```
+
+Сборщик не читает `.env`, БД, файлы хранилища и не делает URL fetch. Он возвращает
+`scope: articles-only-no-object-inventory`, SHA256 exact original URL groups,
+reference paths и issues; исходные URL/text/query/credentials в stdout/stderr не
+попадают. Invalid metadata, malformed stdin или oversize дают exit1 и generic
+error без partial stdout. Unknown sections/fields и malformed sections JSON
+сохраняются как issues; их нельзя считать полной картой. Optional пустые scalar
+URL пропускаются. URL с query/fragment остаются отдельными exact-byte группами
+и требуют object resolution: signed aliases не объединяются предположительно.
+
+Published cover намеренно public даже для club article; published public body
+public, club/unpublished body restricted. Совпадение public/restricted references
+даёт shared, **не ACL decision**. Ни external-vs-own, ни orphan, ни физический
+object identity этот срез не определяет. Native SQL/HTTP evidence M1b1 выше
+подтверждает cover exception; этот срез проверен JSON/unit и actual CLI, не SQL.
+Focused9 pass, types pass, default workers2 2286 pass/1121 opt-in skips, exit0.
+
+Next: synthetic SQL selected-row adapter; post/post_media/comment и остальные
+references; затем проверенная inventory/object resolution и M1c. M1b не закрыт,
+M2 delivery contract/rollout требует отдельного review.
+
 1. На собственном изолированном S3-совместимом хранилище проверить public/private
    объекты: guest/expired/blocked/paid через настоящее API и прямой GET/HEAD/range.
    Loopback wire выше не заменяет эту проверку.

@@ -56,6 +56,21 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**M1b2 — offline article collector, 12 октября МСК:** добавлен stdin-only
+сборщик выбранных article metadata/JSON полей, без БД/env/network/storage.
+Published cover остаётся public, club/unpublished body restricted; exact URL
+hash groups выявляют shared ссылки без вывода signed URL. Legacy/markdown links,
+unknown shape/fields, malformed JSON и query/fragment дают явные diagnostics.
+Это articles-only reference evidence, не object inventory/ACL/export рабочей БД.
+RED/GREEN: initial stub6 fail→6 pass; non-string type coercion1 fail→7 pass;
+null URL array item1 fail→9 pass. Native CLI malformed/oversize input не
+выводит исходные значения/partial report. Final focused9 pass (873 ms), types
+exit0; default workers2 **2286 pass/1121 opt-in skips (3412), exit0, 52.23 s**.
+Review: generic errors, byte/row limits, no network/ACL writes; existing renderer
+link parser reused. M1b остаётся open: next synthetic SQL selected-row adapter,
+then post/media/comment/global references and explicit object resolution/inventory.
+M1c/M2 и реальные rollout/provider gates не закрыты; приложение не менялось.
+
 **M1b1 — shared reference proof, 12 октября МСК:** продолжение от clean
 feature486f1ce согласно новому приоритету, жалобы не выполнялись. Read-only
 code/schema mapping и synthetic native admin HTTP/JWT/SQL: один URL допустим

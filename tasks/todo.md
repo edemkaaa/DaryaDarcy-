@@ -29,6 +29,18 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+M1b2 (12 октября МСК): offline articles-only reference collector, stdin JSON
+без DB/env/network/storage, SHA256 exact URL groups public/restricted/shared,
+legacy/markdown links и unknown/malformed/query diagnostics. Published cover
+не закрывается молча; signed query не печатается и не нормализуется в object.
+RED/GREEN stub6 fail→6 pass; object type coercion1 fail→7 pass; null URL array
+item1 fail→9 pass. Final focused9 pass (873 ms), types exit0; default workers2
+2286 pass/1121 opt-in skips (3412), exit0, 52.23 s. CLI malformed/oversize input
+returns generic error/no partial stdout. Reviewed byte/row limits, generic errors,
+no ACL writes. M1b still partial: next synthetic SQL selected article rows, then
+post/media/comment/global refs and object inventory/resolution. M1c/M2 not ready;
+no production change, SQL/browser/object access claim or working data accessed.
+
 M1b1 (12 октября МСК): partial read-only classification, не complete M1b/M2.
 Native admin article writer creates cover/section shared URL plus auto club
 teaser reference; guest locked article still exposes cover, admin sees sections.
