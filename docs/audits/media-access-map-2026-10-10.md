@@ -244,6 +244,20 @@ RED1 показал: сохранённый children[].link внутри неи�
 Default workers2 2308 pass/1133 opt-in skips (3446), exit0, 51.84 s;
 types/docs54/format/diff pass, неизменённые build/browser/SQL не повторялись.
 
+### M1b11: реальный SQL-снимок и HTTP — 12 октября 2026
+
+Собственный labelled loopback/tmpfs backend_test: полный native article suite35
+pass (2.81 s). Raw mysql2 signed URL из unsupported article block теперь реально
+остаётся unknown с query-resolution issue; старое ожидание его потери обновлено.
+Это коррекция test contract, не новый production RED/fix.
+
+Новый HTTP create создаёт статью и реальный club teaser; собственные attachment/
+comment rows читаются SELECT без repository normalization. Родитель намеренно
+не включён в selected posts snapshot: пути сохраняются, declared object unknown,
+SQL/teaser не меняются. Guest cover остаётся public, body locked/sections=[].
+selectedFieldsComplete=true не отменяет parent issues и не доказывает all rows.
+Никакого storage GET/HEAD/range/provider/working DB или ACL изменения.
+
 ### M1c runtime preflight — 12 октября 2026
 
 Официальный MinIO pinned RELEASE.2025-06-13T11-33-47Z недоступен: quay registry

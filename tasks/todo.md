@@ -29,6 +29,16 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+M1b11 (12 октября МСК): full native article35 pass, exit0, 2.81 s, types pass
+on own labelled loopback/tmpfs SQL. Updated stale raw-SQL expected drop after
+M1b9 (diagnostic1 fail, not production RED); new HTTP create/real parent omitted
+from selected snapshot keeps media/comment unknown paths and guest cover/locked
+body, SQL associations/teaser unchanged. Fields-complete is not rows-complete.
+Test-only, no production fix; unchanged default/CLI/build/browser not repeated.
+S3 details/C2n review/working rollout remain pending.
+Fresh types/docs54/format/diff pass; own scoped fixtures/Nest/pool/verified
+labelled loopback/tmpfs container cleaned; no working data/foreign resources.
+
 M1b10 (12 октября МСК): RED1 unknown rich-text block link inherited public post
 class; now retained as unknown candidate with issue, same public photo doesn't
 remove uncertainty. Supported blocks/access unchanged. Focused library/CLI31

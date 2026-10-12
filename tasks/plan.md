@@ -56,6 +56,23 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**M1b11 — native SQL/HTTP checkpoint for unresolved associations, 12 октября
+МСК:** own labelled loopback/tmpfs backend_test only. Existing raw SQL article
+assertion still expected unsupported signed URL to be dropped: initial focused
+1 fail/33 filtered skips (34), exit1, 1.36 s is stale test expectation after
+M1b9, not a production RED/regression. Updated literal expected unknown path/
+query-resolution issue. New real HTTP create→article/club teaser SQL→attachment/
+comment selected rows with parent intentionally omitted proves object unknown,
+paths retained, URL redacted, selectedFieldsComplete means fields not all rows.
+Article/teaser/association rows unchanged by collector, guest cover/locked empty
+body unchanged. **Full native article35 pass, exit0, 2.81 s**, types pass. Test-only
+checkpoint, no production changes/new fix. Unchanged default2308/CLI31/build/
+browser not repeated; no object GET/S3/provider/working data/role changes.
+Own resource cleanup recorded below; S3 details/C2n review/rollout still pending.
+Own fixture rows/Nest/pool cleaned by harness; exact labelled tmpfs/no mounts/
+loopback ownership rechecked before container stop/removal. Fresh types/docs54/
+format/diff pass; no foreign resources removed, local scoped commit only.
+
 **M1b10 — unsupported rich-text link classification, 12 октября МСК:** RED1
 fail/13 filtered skips (14), exit1, 350 ms: unknown block child link inherited
 public post access despite unknown-shape diagnostic. Minimal fix gives that

@@ -23,6 +23,7 @@ import { testDatabaseUrl } from "./helpers/backend-mysql";
 import {
   collectArticleReferences,
   collectPostReferences,
+  collectMediaSnapshot,
 } from "../tooling/lib/media-reference-map";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import type { AppRouter } from "../apps/backend/src/routers";
@@ -339,8 +340,18 @@ describe.skipIf(!testDatabaseUrl)(
               "articles:9062.sections:0.url",
             ],
           },
+          {
+            urlHash: createHash("sha256")
+              .update(url + "?signature=SYNTHETIC_ONLY")
+              .digest("hex"),
+            visibility: "unknown",
+            references: ["articles:9062.sections:1.url"],
+          },
         ],
-        issues: ["articles:9062.sections:1.unknown-shape"],
+        issues: [
+          "articles:9062.sections:1.unknown-shape",
+          "articles:9062.sections:1.url.query-or-fragment-needs-object-resolution",
+        ],
       });
       expect(JSON.stringify(report)).not.toContain("SYNTHETIC_ONLY");
       expect((await select())[0]).toEqual(before);
@@ -356,6 +367,78 @@ describe.skipIf(!testDatabaseUrl)(
           sections: [],
         },
       );
+    });
+    it("M1 retains raw SQL associations when a real parent is omitted from the selected snapshot", async () => {
+      const url = "https://storage.example.test/synthetic/partial-parent.webp";
+      const id = await create({
+        title: "M1 partial parent fixture",
+        access: "club",
+        published: true,
+        coverUrl: url,
+        sections: [{ type: "text", text: "Restricted body" }],
+      });
+      const parent = await teaser(id);
+      expect(parent).toHaveLength(1);
+      await conn.query(
+        "INSERT INTO post_media (id,postId,type,url) VALUES (9060,?,'document',?)",
+        [parent[0].id, url],
+      );
+      await conn.query(
+        "INSERT INTO post_comments (id,postId,userId,text,photos) VALUES (9060,?,9060,'Synthetic snapshot association',?)",
+        [parent[0].id, JSON.stringify([url])],
+      );
+      const select = async () => {
+        const [articles] = await conn.query<RowDataPacket[]>(
+          "SELECT id,access,published,coverUrl,sections FROM articles WHERE id=?",
+          [id],
+        );
+        const [media] = await conn.query<RowDataPacket[]>(
+          "SELECT id,postId,url FROM post_media WHERE id=9060",
+        );
+        const [comments] = await conn.query<RowDataPacket[]>(
+          "SELECT id,postId,photos FROM post_comments WHERE id=9060",
+        );
+        return {
+          articles,
+          posts: [],
+          media,
+          comments,
+          decoration: { avatars: [], videos: [], seasons: [] },
+        };
+      };
+      const before = await select();
+      const urlHash = createHash("sha256").update(url).digest("hex");
+      const report = collectMediaSnapshot(before, {
+        objects: [{ objectId: "partial-parent", urlHashes: [urlHash] }],
+        externalUrlHashes: [],
+      });
+      expect(report.objectMap?.objects).toEqual([
+        {
+          objectId: "partial-parent",
+          visibility: "unknown",
+          references: [
+            `articles:${id}.coverUrl`,
+            "post_media:9060.url",
+            "post_comments:9060.photos:0",
+          ],
+        },
+      ]);
+      expect(report.issues).toEqual([
+        "post_media:9060.parent-not-in-snapshot",
+        "post_comments:9060.parent-not-in-snapshot",
+      ]);
+      expect(report.snapshotCoverage).toEqual({
+        selectedFieldsComplete: true,
+        missingFields: [],
+      });
+      expect(JSON.stringify(report)).not.toContain(url);
+      expect(await select()).toEqual(before);
+      expect(await teaser(id)).toEqual(parent);
+      expect(await client().articles.getById.query({ id })).toMatchObject({
+        coverUrl: url,
+        locked: true,
+        sections: [],
+      });
     });
     it("normalizes legacy published sections in both repository lists and public detail", async () => {
       await conn.query("UPDATE articles SET sections=? WHERE id=9060", [
