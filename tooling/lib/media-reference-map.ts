@@ -425,3 +425,91 @@ export function collectPostReferences(input: unknown) {
   }
   return finish("content-references-partial-no-object-inventory");
 }
+
+/** Presence of selected fields is not proof of all database rows or objects. */
+const inventorySnapshot = z
+  .object({
+    objects: z
+      .array(
+        z
+          .object({
+            objectId: z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/),
+            urlHashes: z.array(z.string().regex(/^[a-f0-9]{64}$/)).max(100),
+          })
+          .strict(),
+      )
+      .max(10000),
+    externalUrlHashes: z.array(z.string().regex(/^[a-f0-9]{64}$/)).max(10000),
+  })
+  .strict();
+
+function mapDeclaredObjects(report: ReferenceMap, input: unknown) {
+  const parsed = inventorySnapshot.safeParse(input);
+  if (!parsed.success) throw new Error("Invalid media inventory");
+  const hashes = [
+    ...parsed.data.objects.flatMap((object) => object.urlHashes),
+    ...parsed.data.externalUrlHashes,
+  ];
+  if (
+    new Set(hashes).size !== hashes.length ||
+    new Set(parsed.data.objects.map((object) => object.objectId)).size !==
+      parsed.data.objects.length
+  )
+    throw new Error("Invalid media inventory");
+  const groups = new Map(report.groups.map((group) => [group.urlHash, group]));
+  const matched = new Set(hashes);
+  const external = new Set(parsed.data.externalUrlHashes);
+  return {
+    scope: "declared-selected-inventory-not-rollout" as const,
+    objects: parsed.data.objects.map((object) => {
+      const references = object.urlHashes.flatMap(
+        (hash) => groups.get(hash)?.references ?? [],
+      );
+      const visibility = new Set(
+        object.urlHashes
+          .map((hash) => groups.get(hash)?.visibility)
+          .filter((value) => value !== undefined),
+      );
+      return {
+        objectId: object.objectId,
+        visibility:
+          visibility.size === 0
+            ? "unassociated-in-snapshot"
+            : visibility.has("shared") || visibility.size > 1
+              ? "shared"
+              : [...visibility][0],
+        references: [...new Set(references)],
+      };
+    }),
+    externalReferences: report.groups
+      .filter((group) => external.has(group.urlHash))
+      .map((group) => ({
+        urlHash: group.urlHash,
+        references: group.references,
+      })),
+    unresolvedUrlHashes: report.groups
+      .filter((group) => !matched.has(group.urlHash))
+      .map((group) => group.urlHash),
+  };
+}
+
+export function collectMediaSnapshot(input: unknown, inventory?: unknown) {
+  const report = collectPostReferences(input);
+  const parsed = postSnapshot.parse(input);
+  const missingFields: string[] = [];
+  for (const key of ["articles", "comments", "decoration"] as const)
+    if (parsed[key] === undefined) missingFields.push(key);
+  for (const row of parsed.posts)
+    for (const key of ["text", "richText"] as const)
+      if (row[key] === undefined) missingFields.push(`posts:${row.id}.${key}`);
+  return {
+    ...report,
+    snapshotCoverage: {
+      selectedFieldsComplete: missingFields.length === 0,
+      missingFields,
+    },
+    ...(inventory === undefined
+      ? {}
+      : { objectMap: mapDeclaredObjects(report, inventory) }),
+  };
+}

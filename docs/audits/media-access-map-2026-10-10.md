@@ -171,8 +171,39 @@ JSON/unit pass и types pass; не новая SQL/object/browser проверк�
 Default workers2 2299 pass/1122 opt-in skips (3426), exit0, 48.97 s;
 docs/format/diff pass, no new dependencies or ACL/API changes.
 
-Next: complete-input diagnostics/CLI;
-затем проверенная inventory/object resolution и M1c. M1b не закрыт,
+### M1b7: selected-source CLI и declared inventory
+
+CLI поддерживает прежний `{articles}` либо `{content, inventory?}`. Content —
+selected posts/media/articles/comments/decoration по схемам выше, без `.env`/
+working DB/object fetch; stdin ограничен 1 MiB. `snapshotCoverage` сообщает
+missing source/text/richText fields. `selectedFieldsComplete` означает наличие
+полей, не всех строк базы, не отсутствие issues и не полноту objects.
+
+Optional inventory: `objects:[{objectId,urlHashes}]`, `externalUrlHashes:[hash]`.
+objectId — opaque ASCII identity 1–80 chars, hashes — exact SHA256 URLs; лимит
+10000 objects/100 aliases per object/10000 external hashes. Duplicate identities
+или неоднозначные aliases отклоняются generic error. Report `objectMap` даёт
+public/restricted/shared refs, заявленные external refs, unresolved URL hashes
+и unassociated-in-snapshot objects. **Никогда не orphan/delete authorization.**
+Scope `declared-selected-inventory-not-rollout`: supplied aliases/external labels
+не проверяются сетью и не доказывают рабочую object identity/ACL. Нельзя применять
+результат автоматически к рабочим objects, особенно при issues/missing fields.
+Final library/native CLI25 pass, types pass; default workers2 2302 pass/1122
+opt-in skips (3429), exit0, 51.76 s. No new dependency or production endpoint.
+
+### M1c runtime preflight — 12 октября 2026
+
+Официальный MinIO pinned RELEASE.2025-06-13T11-33-47Z недоступен: quay registry
+401, Docker Hub pull access denied, official archived linux-arm64 binary HTTP410.
+Контейнер не создавался, registry credentials/рабочий bucket не читались.
+Основание выбора runtime: [официальная container документация](https://min.io/docs/minio/container/index.html).
+Нужен доступный own isolated runtime (official-source build либо собственный
+S3-compatible test stand); это конкретный blocker actual GET/HEAD/range.
+SDK loopback wire не объявляется policy acceptance. Guest/paid/expired/blocked
+application API/direct object matrix и M2 reviewed delivery всё ещё open.
+
+Next: isolated runtime и actual storage acceptance на известных synthetic objects;
+рабочая inventory/object resolution отдельно gated. M1b rollout не закрыт,
 M2 delivery contract/rollout требует отдельного review.
 
 1. На собственном изолированном S3-совместимом хранилище проверить public/private

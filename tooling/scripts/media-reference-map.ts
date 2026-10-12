@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { collectArticleReferences } from "../lib/media-reference-map";
+import {
+  collectArticleReferences,
+  collectMediaSnapshot,
+} from "../lib/media-reference-map";
 
 // stdin only: no .env, database connection, filesystem export, storage or URL fetch.
 async function main() {
@@ -12,10 +15,17 @@ async function main() {
     chunks.push(buffer);
   }
   const input = z
-    .object({ articles: z.unknown() })
-    .strict()
+    .union([
+      z.object({ articles: z.unknown() }).strict(),
+      z
+        .object({ content: z.unknown(), inventory: z.unknown().optional() })
+        .strict(),
+    ])
     .parse(JSON.parse(Buffer.concat(chunks).toString("utf8")));
-  const report = collectArticleReferences(input.articles);
+  const report =
+    "content" in input
+      ? collectMediaSnapshot(input.content, input.inventory)
+      : collectArticleReferences(input.articles);
   process.stdout.write(JSON.stringify(report) + "\n");
 }
 void main().catch(() => {

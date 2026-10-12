@@ -56,6 +56,28 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**M1b7 — selected snapshot CLI/object map, 12 октября МСК:** stdin CLI теперь
+принимает `{content, inventory?}` наряду с прежним `{articles}`; byte limit 1 MiB
+и generic no-raw-output error сохранены. SelectedFieldsComplete проверяет наличие
+выбранных sources/text/richText, НЕ все SQL rows/полную inventory или отсутствие
+issues. Explicit inventory objectId/urlHashes и externalUrlHashes сопоставляются
+без prefix/path guesses; duplicate identities/ambiguous aliases отклоняются.
+Unmatched hash unresolved; object без references — unassociated-in-snapshot,
+никогда не orphan/delete authorization. Aliases/external identity — заявленные
+input evidence, не проверенный рабочий bucket. RED CLI1 fail/9 pass (1.13 s),
+object map2 fail/10 pass (1.21 s) → final library/native CLI25 pass (1.57 s),
+types exit0; default workers2 **2302 pass/1122 opt-in skips (3429), exit0,
+51.76 s**. Review: explicit declared identities, linear hash lookups, no orphan
+or rollout authority; legacy input preserved.
+No env/DB/storage fetch/migration/ACL/deploy/новых dependencies. Next M1c actual
+GET/HEAD/range подготовлен, но официальный runtime недоступен: pinned MinIO
+RELEASE.2025-06-13T11-33-47Z quay registry401, Docker Hub pull access denied,
+official linux-arm64 archived binary HTTP410. Нет обращения к working bucket,
+registry login/секретам или замены acceptance mock wire. Контейнер не создан.
+Нужен approved isolated runtime: official source build либо доступный собственный
+S3 test stand; вопрос пользователю отправлен. M1b rollout/inventory validation и
+M1c API/principal matrix остаются open; M2 delivery contract требует review.
+
 **M1b6 — public decoration references, 12 октября МСК:** optional offline
 decoration snapshot выбранных avatar/video/season URL, без profile/email/config
 PII полей и без чтения рабочей БД. Avatar и сезонные backgrounds/banners public;

@@ -29,6 +29,21 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+M1b7 (12 октября МСК): full selected-source stdin envelope + explicit declared
+inventory mapping. Missing source/text/richText fields reported; field coverage
+not all-row/object coverage. Exact hash aliases only, ambiguous identity rejected;
+public/restricted/shared/external/unresolved and unassociated-in-snapshot (never
+orphan/delete authorization). Legacy articles CLI/1 MiB/generic errors retained.
+RED CLI1 fail/9 pass (1.13 s), object map2 fail/10 pass (1.21 s) → native CLI/
+library25 pass (1.57 s), types pass; default workers2 2302 pass/1122 opt-in skips
+(3429), exit0, 51.76 s. Reviewed declared identities/linear lookups, no orphan
+authority or rollout automation. No working data/env/storage changes or new deps.
+M1c runtime blocker: official MinIO pinned release quay401, Docker Hub pull denied,
+official archived arm64 binary410. No container created or mock readiness claim.
+User asked for official-source isolated build vs own S3 test stand. Actual API/
+direct GET/HEAD/range guest/paid/expired/blocked still open, M2 contract review
+not bypassed. Working inventory/rollout also remain separately gated.
+
 M1b6 (12 октября МСК): optional selected decoration snapshot: public avatar/
 season URLs and published video URLs; unpublished video refs restricted. Shared
 club/public decoration collision never silently privatizes avatar/catalog/theme.

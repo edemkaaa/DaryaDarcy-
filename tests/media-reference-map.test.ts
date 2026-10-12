@@ -1,7 +1,10 @@
 import { expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
-import { collectArticleReferences } from "../tooling/lib/media-reference-map";
+import {
+  collectArticleReferences,
+  collectMediaSnapshot,
+} from "../tooling/lib/media-reference-map";
 
 const shared = "https://storage.example.test/bucket/feed/photos/shared.webp";
 const hash = (url: string) => createHash("sha256").update(url).digest("hex");
@@ -138,4 +141,124 @@ it("rejects a valid JSON snapshot exceeding the stdin byte budget without produc
   expect(failed.status).toBe(1);
   expect(failed.stdout).toBe("");
   expect(failed.stderr).toBe("Invalid media reference snapshot\n");
+});
+
+it("runs all selected sources through stdin and reports omitted source coverage", () => {
+  const run = (content: unknown, inventory?: unknown) =>
+    JSON.parse(
+      execFileSync(
+        process.execPath,
+        [
+          "node_modules/tsx/dist/cli.mjs",
+          "tooling/scripts/media-reference-map.ts",
+        ],
+        {
+          env: { PATH: process.env.PATH!, NODE_ENV: "test" },
+          timeout: 5000,
+          input: JSON.stringify({ content, inventory }),
+          encoding: "utf8",
+        },
+      ),
+    );
+  const content = {
+    articles: [article([])],
+    posts: [],
+    media: [],
+    comments: [],
+    decoration: { avatars: [], videos: [], seasons: [] },
+  };
+  const report = run(content);
+  expect(report.snapshotCoverage).toEqual({
+    selectedFieldsComplete: true,
+    missingFields: [],
+  });
+  expect(report.scope).toBe("content-references-partial-no-object-inventory");
+  expect(report.groups[0].references).toEqual(["articles:1.coverUrl"]);
+  expect(
+    run(content, {
+      objects: [{ objectId: "one", urlHashes: [hash(shared)] }],
+      externalUrlHashes: [],
+    }).objectMap.objects,
+  ).toEqual([
+    {
+      objectId: "one",
+      visibility: "public",
+      references: ["articles:1.coverUrl"],
+    },
+  ]);
+  const partial = run({
+    posts: [
+      { id: 1, published: 1, status: "published", target: "feed", photos: [] },
+    ],
+    media: [],
+  });
+  expect(partial.snapshotCoverage).toEqual({
+    selectedFieldsComplete: false,
+    missingFields: [
+      "articles",
+      "comments",
+      "decoration",
+      "posts:1.text",
+      "posts:1.richText",
+    ],
+  });
+});
+
+it("maps explicit object identities and external hashes without guessing from URL prefixes", () => {
+  const external = "https://external.example.test/file.webp";
+  const input = {
+    articles: [
+      article([
+        { type: "photo", url: shared },
+        { type: "photo", url: external },
+      ]),
+    ],
+    posts: [],
+    media: [],
+    comments: [],
+    decoration: { avatars: [], videos: [], seasons: [] },
+  };
+  const report = collectMediaSnapshot(input, {
+    objects: [
+      { objectId: "own-shared", urlHashes: [hash(shared)] },
+      { objectId: "unassociated", urlHashes: [] },
+    ],
+    externalUrlHashes: [hash(external)],
+  });
+  expect(report.objectMap).toEqual({
+    scope: "declared-selected-inventory-not-rollout",
+    objects: [
+      {
+        objectId: "own-shared",
+        visibility: "shared",
+        references: ["articles:1.coverUrl", "articles:1.sections:0.url"],
+      },
+      {
+        objectId: "unassociated",
+        visibility: "unassociated-in-snapshot",
+        references: [],
+      },
+    ],
+    externalReferences: [
+      { urlHash: hash(external), references: ["articles:1.sections:1.url"] },
+    ],
+    unresolvedUrlHashes: [],
+  });
+});
+it("rejects ambiguous object aliases and retains unmatched URL hashes as unresolved, never orphan", () => {
+  const input = { articles: [article([])], posts: [], media: [] };
+  const report = collectMediaSnapshot(input, {
+    objects: [],
+    externalUrlHashes: [],
+  });
+  expect(report.objectMap?.unresolvedUrlHashes).toEqual([hash(shared)]);
+  expect(() =>
+    collectMediaSnapshot(input, {
+      objects: [
+        { objectId: "one", urlHashes: [hash(shared)] },
+        { objectId: "two", urlHashes: [hash(shared)] },
+      ],
+      externalUrlHashes: [],
+    }),
+  ).toThrow("Invalid media inventory");
 });
