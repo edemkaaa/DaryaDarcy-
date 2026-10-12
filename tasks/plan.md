@@ -41,6 +41,40 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**I1, integration with frontend staging — 12 октября МСК:**
+Пользователь явно попросил отправить свои изменения в staging, сохранив работу
+фронтендера. Candidate построен в отдельном detached worktree от staging
+a4b6bbc (SergeyM, 11 октября 17:22 МСК) с merge feature71daa65: обе истории
+сохраняются, 125 source commits не squash/rebase. Auto-merge трёх пересечений
+WORK_PLAN/admin-screen/profile-screen без текстовых конфликтов; новый общий
+редактор/шапки/links/password/mobile формы и открытие saved club post сохранены.
+Primary feature checkout не переключён/не изменён. CI config содержит только
+verify, без deploy/migrate. Push разрешён только текущим прямым поручением;
+это не разрешение на rollout, рабочую БД или будущие автономные pushes.
+Первый прогон остановлен ENOSPC; после пользовательской очистки frontend
+webpack production build и backend bundle pass. В отдельной linked installation
+native offline CLI injection RED (1 fail/1 pass): parent.filename использует
+realpath. Test-only canonical cli path исправлен, версии/SQL/network guards
+сохранены; focused2 pass (716 ms). Общий default run **2274 pass /1100 opt-in
+skips (3379), 174 files pass /57 skipped, exit0, 32.29 s**, API73/types/ESLint/
+format/617 boundaries/docs/diff pass. Initial UI run86 pass/5 fail/1 skip:
+macOS Meta+End не перемещал caret; resize snapshot опережал ResizeObserver.
+Только тесты используют Mac Meta+ArrowDown / other Control+End и bounded5s
+ожидание тех же width/height/font/padding assertions. Focused10 pass (13.3 s),
+fresh integrated **91 UI pass /1 default-disabled skip (92), exit0, 1.5 min**.
+Эти UI cases используют подставной API и не выданы за SQL acceptance.
+После явного «включи» запущен Docker Desktop; own labelled loopback/tmpfs
+backend_test проверен по exact ID/label/mounts/ports. На merged production build
+**85 native browser → Nest HTTP → SQL/loopback SMTP pass, exit0, 80.26 s**,
+без mocks API/auth и внешних писем/платежей. Public binding flag=true только в
+одноразовой проверочной сборке; source/default rollout flags не изменены.
+Первоначальные диск/Docker ограничения устранены, но реальные A7 migration
+history/rollout, Q1 legacy chain и customer/provider/device gates остаются.
+Local services/tmpfs fixture и temporary validation config очищаются после
+проверок; no foreign containers/volumes/secrets/working data changes. Git push
+будет обычным fast-forward update staging, с повторной проверкой remote tip;
+никакой force/history rewrite или выкладки приложения.
+
 **C3av, native late profile-name reply after account switch — 12 октября МСК:**
 Продолжение C3au без production/UI изменений: настоящее profile.update HTTP200
 с success:true и SQL commit имени участницы удержано Promise-barrier в return

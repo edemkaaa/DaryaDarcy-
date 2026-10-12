@@ -106,7 +106,9 @@ for (const mode of ["full", "quick"] as const) {
     const prefix = "New entry: ";
     const suffix = " typed quickly 1234567890";
     await input.pressSequentially(prefix);
-    await input.press("ControlOrMeta+End");
+    await input.press(
+      process.platform === "darwin" ? "Meta+ArrowDown" : "Control+End",
+    );
     await input.pressSequentially(suffix);
     await input.press("Backspace");
     await input.press("Backspace");

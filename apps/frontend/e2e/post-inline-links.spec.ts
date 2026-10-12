@@ -106,26 +106,31 @@ for (const mode of ["full", "quick"] as const) {
           .locator("..")
           .locator("[aria-hidden='true'] > div");
         const assertAlignment = async () => {
-          const metrics = await input.evaluate((node: HTMLTextAreaElement) => {
-            const mirror = node.previousElementSibling!
-              .firstElementChild as HTMLElement;
-            const field = getComputedStyle(node);
-            const painted = getComputedStyle(mirror);
-            return {
-              nativeHeight: node.scrollHeight,
-              paintedHeight: mirror.scrollHeight,
-              nativeWidth: node.clientWidth,
-              paintedWidth: mirror.clientWidth,
-              font: field.font,
-              paintedFont: painted.font,
-              padding: field.padding,
-              paintedPadding: painted.padding,
-            };
-          });
-          expect(metrics.paintedWidth).toBe(metrics.nativeWidth);
-          expect(metrics.paintedHeight).toBeCloseTo(metrics.nativeHeight, 0);
-          expect(metrics.paintedFont).toBe(metrics.font);
-          expect(metrics.paintedPadding).toBe(metrics.padding);
+          // ResizeObserver paints asynchronously after a native viewport resize.
+          await expect(async () => {
+            const metrics = await input.evaluate(
+              (node: HTMLTextAreaElement) => {
+                const mirror = node.previousElementSibling!
+                  .firstElementChild as HTMLElement;
+                const field = getComputedStyle(node);
+                const painted = getComputedStyle(mirror);
+                return {
+                  nativeHeight: node.scrollHeight,
+                  paintedHeight: mirror.scrollHeight,
+                  nativeWidth: node.clientWidth,
+                  paintedWidth: mirror.clientWidth,
+                  font: field.font,
+                  paintedFont: painted.font,
+                  padding: field.padding,
+                  paintedPadding: painted.padding,
+                };
+              },
+            );
+            expect(metrics.paintedWidth).toBe(metrics.nativeWidth);
+            expect(metrics.paintedHeight).toBeCloseTo(metrics.nativeHeight, 0);
+            expect(metrics.paintedFont).toBe(metrics.font);
+            expect(metrics.paintedPadding).toBe(metrics.padding);
+          }).toPass({ timeout: 5_000 });
         };
         await assertAlignment();
         await tapLink(page, form, first);
@@ -250,7 +255,10 @@ for (const mode of ["full", "quick"] as const) {
     const originalUrl = page.url();
     const initialHeight = (await editor().boundingBox())!.height;
     await tapLink(page, form, first);
-    expect((await editor().boundingBox())!.height).toBeCloseTo(initialHeight, 1);
+    expect((await editor().boundingBox())!.height).toBeCloseTo(
+      initialHeight,
+      1,
+    );
     await expect(
       editor().getByRole("button", { name: "Изменить", exact: true }),
     ).toHaveCount(0);
@@ -384,7 +392,9 @@ for (const mode of ["full", "quick"] as const) {
       node.dispatchEvent(new Event("select", { bubbles: true }));
     });
     await page.keyboard.press("Backspace");
-    await expect(form.locator(`[data-editor-link="${other}"]`)).toHaveText("Друга");
+    await expect(form.locator(`[data-editor-link="${other}"]`)).toHaveText(
+      "Друга",
+    );
     await form
       .getByRole("button", { name: "Сохранить", exact: true })
       .first()

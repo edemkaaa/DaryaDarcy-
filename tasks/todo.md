@@ -6,6 +6,19 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+I1 (12 октября МСК): user-authorized staging integration from a4b6bbc + feature
+71daa65 in separate detached worktree; both histories/125 source commits retained,
+frontend design/editor/saved-club navigation preserved. No primary branch switch.
+After disk cleanup: frontend/backend build, types/ESLint/format/617 boundaries/
+docs/API73/diff pass; default2274 pass /1100 skips, exit0 (32.29 s).
+Test-only linked-cli realpath fix (RED→2 pass), Mac native caret shortcut and
+bounded ResizeObserver alignment wait (5 initial failures→10 focused pass).
+Fresh integrated UI91 pass/1 flag-off skip, exit0 (1.5 min), mocked API only;
+separate native browser/API/SQL/loopback SMTP85 pass, exit0 (80.26 s), own tmpfs.
+Docker launched only after explicit request. Binding flag true only in local
+validation build, rollout still gated. Ordinary user-authorized staging push,
+no force/deploy/working DB/secrets/external payment/mail; A7/Q1/customer gates open.
+
 C3av (12 октября МСК): native profile.update200/SQL commit held → native auth/me
 confirms switched admin in the same document → release original response.
 No late member name/cache, one POST, member commit retained, admin identity/access

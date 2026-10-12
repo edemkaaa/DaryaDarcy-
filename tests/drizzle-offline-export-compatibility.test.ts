@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
@@ -7,7 +7,8 @@ import { expect, it } from "vitest";
 const fixture = fileURLToPath(
   new URL("./fixtures/drizzle-export/", import.meta.url),
 );
-const cli = resolve("node_modules/drizzle-kit/bin.cjs");
+// Node resolves a linked installation before reporting the requiring filename.
+const cli = realpathSync(resolve("node_modules/drizzle-kit/bin.cjs"));
 
 // Export generates DDL on stdout only; it does NOT execute SQL or migrate a DB.
 // Both paths use the real CLI/register/schema serializer. No mocked results.
