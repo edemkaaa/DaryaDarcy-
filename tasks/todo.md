@@ -6,6 +6,21 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3bj (12 октября МСК): C3 map showed existing native search/saved/login and
+comment edit/delete coverage but no member report submission UI acceptance.
+Test-only report ACK/lost native reply cases: actual Nest/SQL report200/ok:true,
+one POST/one reporter row, original comment/both users/member access retained;
+ACK alone shows success notice, lost committed reply shows unknown-result alert
+without success notice. Initial broad locator matched two legitimate alerts
+(diagnostic/not production RED); scoped role=alert first fixes selection, not UI.
+Integrated comments6 native pass/98 filtered skips (104), exit0 (8.82 s).
+Types/format/diff pass; no production bug/change or fresh full104/default claim.
+Previous C3bi full102/default2277 checkpoint retained, unchanged builds/lint/API
+not repeated. Owned labelled loopback tmpfs/Next cleaned, local-only/no external
+messages/providers/working data/secrets. Next: native report ACK held across
+account switch, then explicit same-owner retry/idempotency after unknown result.
+A7/Q1/storage/atomicity/provider/device gates remain open.
+
 C3bi (12 октября МСК): native loopback slow/fast responses with page fallback
 reproduced prior proxy route.fulfill already handled deterministically: RED1
 fail/1 pass plus3 unhandled rejections (1.50 s), context-only control passed.

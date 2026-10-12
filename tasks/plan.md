@@ -41,6 +41,31 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3bj, member report native UI/SQL acceptance — 12 октября МСК:**
+Продолжение от clean feature30e8332. C3 coverage map: post-interactions helpers
+уже проверяют native feed search, saved-category filtering и login isolation;
+club-comments — foreign author denial, add/edit/delete с потерями ответов.
+Для отправки жалобы через UI была admin inbox acceptance, но не member submit.
+Добавлены два test-only варианта: настоящий browser→Nest reportComment200/
+ok:true→SQL commit, ответ либо доставлен, либо потерян на возврате. Native ACK
+вызывает success notice; потерянный reply — честный unknown-result alert без
+success notice. One POST и одна comment_reports запись с точным reporter/comment/
+reason, исходный comment неизменен, credentials/roles/block/sessionVersion и
+identity неизменна у обоих synthetic users, member paid access сохранён. Initial locator matched two
+legitimate alerts (1 pass/1 fail, 3.36 s), диагностический fixture сбой, не app
+RED; scoped role=alert first проверяет видимое предупреждение, не требует
+искусственно единственного места показа. Integrated comments **6 native pass/
+98 filtered skips (104), exit0, 8.82 s**. Types/format/diff pass. Production код/
+дизайн/API/roles/quota/subscription не менялись, это acceptance, не bug fix.
+Fresh full104/default/build/lint/API не заявлены/не повторялись: только test
+coverage меняется; C3bi full102/default2277 checkpoint остаётся прежним.
+Собственный контейнер проверен exact ID/label/tmpfs/no mounts/loopback port,
+остановлен с --rm; Next остановлен. Synthetic rows удаляются scoped predicates;
+рабочая БД/секреты/наружные сообщения/SMTP workers/providers не затрагивались.
+Next: native report ACK held across account switch, затем explicit same-owner
+retry/idempotency after unknown result. A7/Q1/storage/atomicity/provider/device
+gates остаются открыты.
+
 **C3bi, deterministic page/context proxy teardown — 12 октября МСК:**
 Продолжение от clean feature341e0c2. Prior intermittent native suite error
 воспроизведён на собственном loopback server без SQL/frontend/providers:

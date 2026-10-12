@@ -17,6 +17,157 @@ interface ClubCommentsBrowserFixture {
 export function registerClubCommentsBrowserCases(
   fixture: () => ClubCommentsBrowserFixture,
 ) {
+  it.each([false, true])(
+    "C3 member report preserves the comment and never claims success after a lost native reply (%s)",
+    async (lost) => {
+      const { connection, rows, context, frontend, memberId, actorId, base } =
+        fixture();
+      const postId = 94841,
+        commentId = 94842;
+      const text = "C3 reportable author comment";
+      const identitySql =
+        "SELECT id,email,phone,passwordHash,role,sessionVersion,blockedAt FROM users WHERE id IN (?,?) ORDER BY id";
+      const identity = await rows(identitySql, [memberId, actorId]);
+      try {
+        await connection.query(
+          "INSERT INTO posts (id,text,photos,tags,status,published,target,createdAt,publishedAt) VALUES (?,'C3 report community fixture','[]',JSON_ARRAY('community','autumn'),'published',1,'club',UTC_TIMESTAMP(),UTC_TIMESTAMP())",
+          [postId],
+        );
+        await connection.query(
+          "INSERT INTO post_comments (id,postId,userId,text) VALUES (?,?,?,?)",
+          [commentId, postId, actorId, text],
+        );
+        await connection.query(
+          "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-report-access','paid','0','2030-01-01')",
+          [memberId],
+        );
+        const comments = await rows("SELECT * FROM post_comments WHERE id=?", [
+          commentId,
+        ]);
+        const access = await rows(
+          "SELECT * FROM club_payments WHERE userId=?",
+          [memberId],
+        );
+        await context.clearCookies();
+        await context.addInitScript(
+          (id) =>
+            localStorage.setItem(
+              `darcy:user:${id}:@darcy_club_profile_completed`,
+              "true",
+            ),
+          memberId,
+        );
+        await context.addCookies([
+          {
+            name: COOKIE_NAME,
+            value: await sdk.createSessionToken("binding-browser-member", {
+              sessionVersion: 0,
+            }),
+            url: frontend,
+            httpOnly: true,
+            sameSite: "Lax",
+          },
+        ]);
+        const page = await context.newPage();
+        let writes = 0;
+        const notices: string[] = [];
+        page.on("dialog", async (dialog) => {
+          notices.push(dialog.message());
+          await dialog.accept();
+        });
+        await page.route("**/api/trpc/club.reportComment*", async (route) => {
+          writes++;
+          const url = new URL(route.request().url());
+          const response = await route.fetch({
+            url: base + url.pathname + url.search,
+            maxRedirects: 0,
+          });
+          expect(response.status()).toBe(200);
+          const body = await response.json();
+          expect(
+            (Array.isArray(body) ? body[0] : body).result.data.json,
+          ).toEqual({ ok: true });
+          return lost ? route.abort("failed") : route.fulfill({ response });
+        });
+        await page.goto(frontend + "club");
+        await page
+          .getByRole("button", { name: "Комьюнити", exact: true })
+          .click();
+        await browserExpect(
+          page.getByText(text, { exact: true }),
+        ).toBeVisible();
+        await page
+          .getByRole("button", { name: "Действия с комментарием", exact: true })
+          .click();
+        const result = lost
+          ? page.waitForEvent("requestfailed", (request) =>
+              request.url().includes("club.reportComment"),
+            )
+          : page.waitForResponse((response) =>
+              response.url().includes("club.reportComment"),
+            );
+        await page
+          .getByRole("dialog", { name: "Действия с комментарием" })
+          .getByRole("button", { name: "Пожаловаться", exact: true })
+          .click();
+        await result;
+        if (lost) {
+          await browserExpect(
+            page
+              .getByRole("alert")
+              .filter({
+                hasText: /Результат действия «Отправить жалобу» не подтверждён/,
+              })
+              .first(),
+          ).toBeVisible();
+          expect(notices).toEqual([]);
+        } else
+          await browserExpect
+            .poll(() => notices)
+            .toEqual(["Жалоба отправлена. Спасибо!"]);
+        const reports = await rows(
+          "SELECT commentId,reporterUserId,reason FROM comment_reports WHERE commentId=?",
+          [commentId],
+        );
+        expect(reports).toEqual([
+          {
+            commentId,
+            reporterUserId: memberId,
+            reason: "Нарушение правил клуба",
+          },
+        ]);
+        expect(
+          await rows("SELECT * FROM post_comments WHERE id=?", [commentId]),
+        ).toEqual(comments);
+        await browserExpect(
+          page.getByText(text, { exact: true }),
+        ).toBeVisible();
+        expect(writes).toBe(1);
+        expect(await rows(identitySql, [memberId, actorId])).toEqual(identity);
+        expect(
+          await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+        ).toEqual(access);
+      } finally {
+        await connection.query(
+          "DELETE FROM comment_reports WHERE commentId=?",
+          [commentId],
+        );
+        await connection.query(
+          "DELETE FROM post_comments WHERE id=? AND postId=? AND text=?",
+          [commentId, postId, text],
+        );
+        await connection.query(
+          "DELETE FROM posts WHERE id=? AND text='C3 report community fixture'",
+          [postId],
+        );
+        await connection.query(
+          "DELETE FROM club_payments WHERE userId=? AND orderId='c3-report-access'",
+          [memberId],
+        );
+      }
+    },
+    30_000,
+  );
   it.each(["user", "admin"] as const)(
     "C3 denies changing another author's comment as %s through the native API",
     async (role) => {
