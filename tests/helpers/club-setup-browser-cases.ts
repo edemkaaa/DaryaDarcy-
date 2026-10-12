@@ -48,6 +48,121 @@ async function openSetup(fixture: ClubSetupFixture) {
 }
 
 export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
+  it("C3 club setup shows native acknowledged identity when refresh reply is lost, then accepts a newer server identity", async () => {
+    const current = fixture();
+    const { rows, connection, base, memberId } = current;
+    const { page, setup, identitySql, identity, access } =
+      await openSetup(current);
+    let writes = 0,
+      refreshedNativeIdentity = false;
+    page.on("request", (request) => {
+      if (
+        request.method() === "POST" &&
+        request.url().includes("profile.update")
+      )
+        writes++;
+    });
+    await page.route("**/api/auth/me", async (route) => {
+      const response = await route.fetch({
+        url: base + "/api/auth/me",
+        maxRedirects: 0,
+      });
+      expect(response.status()).toBe(200);
+      expect(await response.json()).toMatchObject({
+        user: { name: "C3 Recovery club name", gender: "female" },
+      });
+      refreshedNativeIdentity = true;
+      return route.abort("failed");
+    });
+    const [saved] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          response.url().includes("profile.update"),
+      ),
+      page.waitForEvent(
+        "requestfailed",
+        (request) => new URL(request.url()).pathname === "/api/auth/me",
+      ),
+      setup.getByRole("button", { name: "Продолжить", exact: true }).click(),
+    ]);
+    expect(saved.status()).toBe(200);
+    expect(refreshedNativeIdentity).toBe(true);
+    expect(
+      await rows("SELECT name,gender FROM users WHERE id=?", [memberId]),
+    ).toEqual([{ name: "C3 Recovery club name", gender: "female" }]);
+    await browserExpect(setup).toHaveCount(0);
+    await browserExpect(
+      page.getByText("Очень рада тебе, дорогая C3 Recovery club name", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    if (process.env.CLUB_REFRESH_SCREENSHOT_PREFIX) {
+      for (const width of [390, 1280]) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.screenshot({
+          path: `${process.env.CLUB_REFRESH_SCREENSHOT_PREFIX}-${width}.png`,
+        });
+      }
+    }
+    expect(
+      await page.evaluate(
+        (id) =>
+          ["name", "gender", "completed"].map((key) =>
+            localStorage.getItem(`darcy:user:${id}:@darcy_club_profile_${key}`),
+          ),
+        memberId,
+      ),
+    ).toEqual(["C3 Recovery club name", "female", "true"]);
+    expect(writes).toBe(1);
+    await page.unrouteAll({ behavior: "wait" });
+    // A new confirmed snapshot can legitimately restore the original values.
+    // Compare snapshot identity, not just strings, and honour a cleared gender.
+    await connection.query(
+      "UPDATE users SET name='Browser phone member',gender=NULL WHERE id=? AND openId='binding-browser-member'",
+      [memberId],
+    );
+    const [restored] = await Promise.all([
+      page.waitForResponse(
+        (response) => new URL(response.url()).pathname === "/api/auth/me",
+      ),
+      page.evaluate(() => window.dispatchEvent(new Event("online"))),
+    ]);
+    expect(await restored.json()).toMatchObject({
+      user: { name: "Browser phone member", gender: null },
+    });
+    await browserExpect(
+      page.getByText("Очень рада тебе, Browser phone member", { exact: true }),
+    ).toBeVisible();
+    await connection.query(
+      "UPDATE users SET name='C3 New remote name',gender='male' WHERE id=? AND openId='binding-browser-member'",
+      [memberId],
+    );
+    const [recovered] = await Promise.all([
+      page.waitForResponse(
+        (response) => new URL(response.url()).pathname === "/api/auth/me",
+      ),
+      page.evaluate(() => window.dispatchEvent(new Event("online"))),
+    ]);
+    expect(await recovered.json()).toMatchObject({
+      user: { name: "C3 New remote name", gender: "male" },
+    });
+    await browserExpect(
+      page.getByText("Очень рада тебе, дорогой C3 New remote name", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await browserExpect(
+      page.getByText("Очень рада тебе, дорогая C3 Recovery club name", {
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    expect(writes).toBe(1);
+    expect(await rows(identitySql, [memberId])).toEqual(identity);
+    expect(
+      await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+    ).toEqual(access);
+  }, 30_000);
   it("C3 club setup closes without publishing a draft when native session access is revoked", async () => {
     const current = fixture();
     const { rows, connection, memberId } = current;

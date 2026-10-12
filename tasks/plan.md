@@ -41,6 +41,34 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3bb, confirmed setup after failed identity refresh — 12 октября МСК:**
+Native RED от clean featurecd817c0: profile.update HTTP200+SQL commit name/gender,
+затем настоящий auth/me отдаёт новые данные, но его ответ теряется в transport;
+форма закрыта, приветствие остаётся с прежним именем. **1 fail/94 filtered skips
+(95), exit1, 8.07 s**. Малый UI fix: только native-ACK name/gender временно
+приоритетны поверх прежнего auth snapshot; любой следующий confirmed snapshot
+снимает override по object identity, даже если вернулись исходные значения.
+Auth/session/roles/subscription state не изменяются. Дополнительный native RED
+на server gender=NULL обнаружил fallback к прежнему cached gender (7.85 s);
+теперь подтверждённый null действительно убирает гендерное обращение.
+Final case: native ACK→lost native GET reply→correct committed greeting/cache
+→ SQL restore исходных name/null→native GET→fresh greeting без старого gender
+→ новый server name/male→native GET→fresh greeting, всё с one profile.update,
+неизменными credentials/roles/sessionVersion/paid access. Нет mock API/auth.
+Focused **1 pass/94 filtered skips, exit0, 6.13 s**; final **95 native browser→
+Nest HTTP→SQL/loopback SMTP pass, exit0, 83.57 s**. Fresh default **2274 pass/
+1110 opt-in skips (3389), exit0, 27.44 s**; webpack/types/ESLint/format/API73/
+618 boundaries/diff pass. 390/1280 inspected in one batch: original tartan,
+fonts/navigation, existing honest session-refresh banner, no CSS/design change.
+TDD/debugging, React derived-state and scoped security review: no mirrored-state
+effect or whole-auth rewrite; only acknowledged fields held until confirmed GET.
+Own labelled loopback/tmpfs backend_test ownership/readiness/mounts/port verified,
+Next/tmpfs cleaned after checks. Local commit only, no push/deploy/working DB/
+secrets/external mail/payments/upload. Null server-name fallback and profile-name
+editor's equal-value auth refresh remain next independent native diagnostic
+slices; not claimed fixed here. A7/Q1/external storage/atomicity/provider/device
+gates остаются открыты; это не whole-stage/provider acceptance.
+
 **C3ba, native revoked session during club setup — 12 октября МСК:**
 Продолжение от clean feature1c0aea2, test-only. Форма заполнена обычной paid
 участницей; только synthetic user JWT version0 отозван SQL sessionVersion=1.

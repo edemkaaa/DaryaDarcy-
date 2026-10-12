@@ -88,6 +88,18 @@ export function ClubSubscribed() {
   );
   const [selectedBoardTag, setSelectedBoardTag] = useState<string | null>(null);
   const { user, refresh, isOwner } = useAuth();
+  // A native save ACK remains visible if the optional identity refresh fails.
+  // Any later confirmed auth snapshot supersedes it, even with the same name.
+  const [setupConfirmation, setSetupConfirmation] = useState<{
+    source: typeof user;
+    name: string;
+    gender: "female" | "male";
+  } | null>(null);
+  if (setupConfirmation && setupConfirmation.source !== user) {
+    setSetupConfirmation(null);
+  }
+  const confirmedSetup =
+    setupConfirmation?.source === user ? setupConfirmation : null;
   useClubContentProtection(true);
   const utils = trpc.useUtils();
   const updateProfile = trpc.profile.update.useMutation();
@@ -173,8 +185,9 @@ export function ClubSubscribed() {
   // Never show for owner/admin
   const needsProfileSetup = profileCompleted === false && !isOwner;
   // A cached setup draft must not override confirmed server identity.
-  const displayName = user?.name || profileName;
-  const displayGender = profileGender || user?.gender;
+  const displayName = confirmedSetup?.name || user?.name || profileName;
+  const displayGender =
+    confirmedSetup?.gender ?? (user ? user.gender : profileGender);
   // Keep local rubric/alias filtering; the API currently supports one tag only.
   const clubQuery = trpc.club.list.useInfiniteQuery(
     { limit: 12 },
@@ -610,6 +623,11 @@ export function ClubSubscribed() {
             active={active}
             onDismissed={() => setProfileCompleted(true)}
             onSaved={(data) => {
+              setSetupConfirmation({
+                source: user,
+                name: data.name,
+                gender: data.gender,
+              });
               setProfileCompleted(true);
               setProfileName(data.name);
               setProfileGender(data.gender);

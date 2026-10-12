@@ -6,6 +6,19 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3bb (12 октября МСК): native RED ACK+SQL save→lost native auth/me return kept
+old greeting (8.07 s). Temporary acknowledged name/gender override tied to auth
+snapshot reference; next confirmed GET supersedes it even with original values,
+no auth/roles/subscription rewrite. Additional RED server gender=NULL masked by
+cached gender (7.85 s) fixed; native restore original values/new server name/male
+verified with one POST, cache/SQL/credentials/access intact. Focused1 pass (6.13 s),
+final95 native browser/API/SQL/loopback SMTP pass (83.57 s); default2274 pass/
+1110 opt-in skips (27.44 s), webpack/types/lint/format/API73/618 boundaries/diff
+pass. Original 390/1280 club layout/banner inspected/no CSS change. Own tmpfs/
+Next cleaned; local commit/no push/providers/working data/secrets. Next: null
+server-name fallback and profile-name editor equal-value refresh, native proof;
+A7/Q1/external storage/atomicity/provider/device gates remain open.
+
 C3ba (12 октября МСК): test-only paid member setup→synthetic JWT revocation
 sessionVersion1→native profile.update401→private dialog gone/guest email gate.
 One POST, no name/gender/completion cache or SQL draft, credentials/roles/access
