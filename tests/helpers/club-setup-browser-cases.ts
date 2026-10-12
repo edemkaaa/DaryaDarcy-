@@ -48,6 +48,100 @@ async function openSetup(fixture: ClubSetupFixture) {
 }
 
 export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
+  it("C3 club setup supersedes a native auth read started before saving its identity", async () => {
+    const current = fixture();
+    const { rows, base, memberId } = current;
+    const { page, setup, identitySql, identity, access } =
+      await openSetup(current);
+    let enter!: () => void, release!: () => void, finish!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      enter = resolve;
+    });
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const finished = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    let reads = 0,
+      writes = 0;
+    page.on("request", (request) => {
+      if (
+        request.method() === "POST" &&
+        request.url().includes("profile.update")
+      )
+        writes++;
+    });
+    await page.route("**/api/auth/me", async (route) => {
+      const first = ++reads === 1;
+      const response = await route.fetch({
+        url: base + "/api/auth/me",
+        maxRedirects: 0,
+      });
+      expect(response.status()).toBe(200);
+      if (!first) {
+        expect(await response.json()).toMatchObject({
+          user: { name: "C3 Recovery club name", gender: "female" },
+        });
+        return route.fulfill({ response });
+      }
+      expect(await response.json()).toMatchObject({
+        user: { name: "Browser phone member", gender: null },
+      });
+      enter();
+      try {
+        await held;
+        await route.fulfill({ response });
+      } finally {
+        finish();
+      }
+    });
+    try {
+      await page.evaluate(() => window.dispatchEvent(new Event("online")));
+      await entered;
+      const [saved] = await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.request().method() === "POST" &&
+            response.url().includes("profile.update"),
+        ),
+        setup.getByRole("button", { name: "Продолжить", exact: true }).click(),
+      ]);
+      expect(saved.status()).toBe(200);
+      expect(
+        await rows("SELECT name,gender FROM users WHERE id=?", [memberId]),
+      ).toEqual([{ name: "C3 Recovery club name", gender: "female" }]);
+      release();
+      await finished;
+      await browserExpect.poll(() => reads).toBe(2);
+      await browserExpect(setup).toHaveCount(0);
+      await browserExpect(
+        page.getByText("Очень рада тебе, дорогая C3 Recovery club name", {
+          exact: true,
+        }),
+      ).toBeVisible();
+      expect(
+        await page.evaluate(
+          (id) =>
+            ["name", "gender", "completed"].map((key) =>
+              localStorage.getItem(
+                `darcy:user:${id}:@darcy_club_profile_${key}`,
+              ),
+            ),
+          memberId,
+        ),
+      ).toEqual(["C3 Recovery club name", "female", "true"]);
+      expect(writes).toBe(1);
+      expect(await rows(identitySql, [memberId])).toEqual(identity);
+      expect(
+        await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual(access);
+    } finally {
+      release();
+      await finished;
+      await page.unrouteAll({ behavior: "wait" });
+    }
+  }, 30_000);
   it("C3 club setup shows native acknowledged identity when refresh reply is lost, then accepts a newer server identity", async () => {
     const current = fixture();
     const { rows, connection, base, memberId } = current;

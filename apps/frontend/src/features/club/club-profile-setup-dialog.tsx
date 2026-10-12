@@ -29,12 +29,13 @@ export function ClubProfileSetupDialog({
   onDismissed: () => void;
   onSaved: (draft: ClubProfileDraft) => void;
 }) {
-  const { user, refresh } = useAuth();
+  const { user, refreshAfterMutation } = useAuth();
   const utils = trpc.useUtils();
   const operation = useSessionOperation(active);
   const save = async (draft: ClubProfileDraft) => {
     const task = operation.begin("save-club-profile");
-    if (!task) throw new DOMException("Операция отменена", "AbortError");
+    if (!task || !user)
+      throw new DOMException("Операция отменена", "AbortError");
     try {
       let avatarUrl = draft.avatarUrl;
       if (avatarUrl && !/^https?:\/\//i.test(avatarUrl)) {
@@ -70,7 +71,7 @@ export function ClubProfileSetupDialog({
           : []),
       ]);
       task.assertCurrent();
-      await refresh();
+      await refreshAfterMutation(user.id);
       task.assertCurrent();
       void utils.club.comments.invalidate();
       onSaved({ ...draft, avatarUrl });

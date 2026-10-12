@@ -6,6 +6,22 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3bf (12 октября МСК): club setup pre-write native auth/me held after reading
+old name/null gender; profile.update200 commits chosen identity, but ordinary
+refresh deduplicated against old GET (RED1 fail/97 filtered skips, 8.03 s).
+Dialog now reuses canonical owner-bound refreshAfterMutation after ACK/cache
+fence, preserving pending-login/closed-owner policy. Integrated club17 native
+pass/81 filtered skips (98), exit0 (17.86 s), one POST, fresh native snapshot,
+greeting/cache/SQL chosen name/female, identity/paid rows unchanged. Webpack/
+types/lint/format/diff pass; full98 native browser/API/SQL/loopback SMTP pass,
+exit0 (81.80 s); default2277 pass/1113 opt-in skips (3395), exit0 (26.30 s),
+docs54/diff pass. Own labelled tmpfs/Next cleaned, local commit/no push. No CSS/markup,
+API/controller/roles/quota/subscription changes or screenshot/provider claims.
+Next: same-owner pre-write read delivered while setup POST/ACK is still held,
+then post-write refresh lost; inspect captured confirmation callback reference.
+This distinct ordering is not declared fixed. A7/Q1/storage/atomicity/provider/
+device gates remain open; no working data/secrets/external actions.
+
 C3be (12 октября МСК): native auth/me read held after reading original SQL,
 then profile.update200/native commit; save incorrectly deduplicated against that
 pre-write read (RED1 fail/96 filtered skips, 7.53 s). Initial missing paid fixture

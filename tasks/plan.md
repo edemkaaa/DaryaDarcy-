@@ -41,6 +41,31 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3bf, club setup versus a pending pre-write auth read — 12 октября МСК:**
+Продолжение от clean featured02a396. Native SQL/HTTP barrier удерживает auth/me
+после чтения Browser phone member/genderNULL, затем выбранная анкета сохраняется
+одним настоящим profile.update200. Ordinary refresh() не запускал новый GET:
+RED **1 fail/97 filtered skips (98), exit1, 8.03 s**. ClubProfileSetupDialog
+теперь использует уже проверенный canonical refreshAfterMutation(user.id)
+после ACK и owner-scoped cache fence, не дублируя auth-controller и не выдавая
+screens безусловный force refresh. Pending login/closed-owner guards механизма
+сохранены; ordinary auth/logout/resume поведение и API не изменены.
+Integrated club **17 native browser/API/SQL pass/81 filtered skips (98), exit0,
+17.86 s**, включая новый held GET, потерю ответа до/после commit, ручной повтор,
+revoked JWT и held ACK/account switch; native fresh GET name/female, greeting/
+cache/SQL chosen identity, one POST, credentials/role/sessionVersion/paid rows
+unchanged. Full **98 native browser→Nest HTTP→SQL/loopback SMTP pass, exit0,
+81.80 s**; fresh default **2277 pass/1113 opt-in skips (3395), exit0, 26.30 s**;
+webpack/types/ESLint/format/docs54/diff pass. Local commit/no push.
+Owned labelled loopback tmpfs container stopped/removed after ownership/mounts/
+port inspection; own Next stopped, no foreign resources touched.
+No CSS/markup/import/API/controller changes or new screenshots/provider claim.
+Next: проверить другую последовательность — same-owner pre-write GET доставлен
+пока setup POST/ACK удерживается, затем post-write refresh теряется; parent
+confirmation callback захватывает user snapshot до сохранения. Это пока гипотеза,
+не исправленный/сквозно подтверждённый случай. A7/Q1/avatar storage/atomicity/
+provider/device gates remain open; working data/secrets/external actions untouched.
+
 **C3be, profile write versus a pending native auth read — 12 октября МСК:**
 Продолжение от clean featurefb0d2bd. Native auth/me читает исходное SQL имя,
 его ответ удерживается; profile.update200 сохраняет новое имя одной записью.
