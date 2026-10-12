@@ -14,11 +14,13 @@ import { createTRPCProxyClient, httpLink } from "@trpc/client";
 import superjson from "superjson";
 import { build } from "esbuild";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync, rmdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { openContentTestDatabase } from "./helpers/content-mysql";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
+import { collectArticleReferences } from "../tooling/lib/media-reference-map";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import type { AppRouter } from "../apps/backend/src/routers";
 import { sdk } from "../apps/backend/src/_core/sdk";
@@ -260,6 +262,57 @@ describe.skipIf(!testDatabaseUrl)(
       expect(identity).toEqual([
         { role: "admin", sessionVersion: 0, blockedAt: null },
       ]);
+    });
+    it("M1 collects selected raw SQL article rows without dropping unknown blocks or rewriting data", async () => {
+      const url = "https://storage.example.test/synthetic/shared.webp";
+      await conn.query("UPDATE articles SET coverUrl=? WHERE id=9060", [url]);
+      await conn.query("UPDATE articles SET sections=? WHERE id=9061", [
+        JSON.stringify([{ photos: [url], body: "Hidden legacy draft" }]),
+      ]);
+      await conn.query("UPDATE articles SET sections=? WHERE id=9062", [
+        JSON.stringify([
+          { type: "photo", url },
+          { type: "future-block", url: url + "?signature=SYNTHETIC_ONLY" },
+        ]),
+      ]);
+      const select = () =>
+        conn.query<RowDataPacket[]>(
+          "SELECT id,access,published,coverUrl,sections FROM articles WHERE id IN (9060,9061,9062) ORDER BY id",
+        );
+      const [before] = await select();
+      // Real mysql2 JSON/BOOLEAN values, not normalized repository DTOs.
+      expect(before.map((row) => row.published)).toEqual([1, 0, 1]);
+      expect(before[2].sections[1].type).toBe("future-block");
+      const report = collectArticleReferences(before);
+      expect(report).toEqual({
+        scope: "articles-only-no-object-inventory",
+        groups: [
+          {
+            urlHash: createHash("sha256").update(url).digest("hex"),
+            visibility: "shared",
+            references: [
+              "articles:9060.coverUrl",
+              "articles:9061.sections:0.photos:0",
+              "articles:9062.sections:0.url",
+            ],
+          },
+        ],
+        issues: ["articles:9062.sections:1.unknown-shape"],
+      });
+      expect(JSON.stringify(report)).not.toContain("SYNTHETIC_ONLY");
+      expect((await select())[0]).toEqual(before);
+      expect(await client().articles.getById.query({ id: 9060 })).toMatchObject(
+        {
+          coverUrl: url,
+          locked: false,
+        },
+      );
+      expect(await client().articles.getById.query({ id: 9062 })).toMatchObject(
+        {
+          locked: true,
+          sections: [],
+        },
+      );
     });
     it("normalizes legacy published sections in both repository lists and public detail", async () => {
       await conn.query("UPDATE articles SET sections=? WHERE id=9060", [

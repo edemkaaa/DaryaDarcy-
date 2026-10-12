@@ -56,6 +56,20 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**M1b3 — raw SQL article snapshot acceptance, 12 октября МСК:** test-only
+продолжение collector55336bb. Собственный labelled loopback/tmpfs backend_test,
+real mysql2 SELECT только id/access/published/coverUrl/sections: SQL0/1 + JSON
+array принимаются без repository normalization; public cover/restricted legacy
+draft/club photo дают одну shared группу. Unknown future block сохраняет issue,
+не исчезает как «готовая карта»; signed fixture value не печатается. Repeated
+SELECT идентичен, guest public/locked detail не меняется. **Focused1 pass/33
+filtered skips (34), exit0, 1.34 s; full native article34 pass, exit0, 2.27 s**;
+types exit0. Characterization прошла сразу: production bug/fix/RED не заявлены.
+Review: selected columns/own IDs, no export of working data or object GET/ACL.
+Default/build/browser не повторены: production/tool code unchanged, checkpoint
+M1b2 сохранён. M1b partial: следующий срез post/post_media/comment references
+и межисточниковая grouping; external/own/object inventory всё ещё unresolved.
+
 **M1b2 — offline article collector, 12 октября МСК:** добавлен stdin-only
 сборщик выбранных article metadata/JSON полей, без БД/env/network/storage.
 Published cover остаётся public, club/unpublished body restricted; exact URL

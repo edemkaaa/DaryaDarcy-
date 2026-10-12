@@ -122,8 +122,15 @@ object identity этот срез не определяет. Native SQL/HTTP evi
 подтверждает cover exception; этот срез проверен JSON/unit и actual CLI, не SQL.
 Focused9 pass, types pass, default workers2 2286 pass/1121 opt-in skips, exit0.
 
-Next: synthetic SQL selected-row adapter; post/post_media/comment и остальные
-references; затем проверенная inventory/object resolution и M1c. M1b не закрыт,
+M1b3 проверил реальный mysql2 SELECT выбранных article полей в own disposable
+loopback/tmpfs backend_test: SQL0/1 и JSON array без repository normalization
+сохраняют shared public cover/restricted legacy draft/club photo и unknown block
+issue. Snapshot после collector неизменен; guest public/locked HTTP detail
+сохраняется. Focused1 pass (1.34 s), full native article34 pass (2.27 s), types
+pass. Test-only characterization, не новый production fix или рабочий exporter.
+
+Next: post/post_media/comment и остальные references, cross-source grouping;
+затем проверенная inventory/object resolution и M1c. M1b не закрыт,
 M2 delivery contract/rollout требует отдельного review.
 
 1. На собственном изолированном S3-совместимом хранилище проверить public/private

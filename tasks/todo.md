@@ -29,6 +29,18 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+M1b3 (12 октября МСК): raw SQL selected article fields accepted by collector
+without normalized DTOs. Native mysql2 SQL0/1 and JSON arrays preserve shared
+public cover/restricted draft/club references and unknown future-block issue;
+no signed fixture value in report, repeated SELECT unchanged, guest detail
+public/locked behavior unchanged. Focused1 pass/33 filtered skips (34), exit0,
+1.34 s; full article34 native pass, exit0, 2.27 s; types pass. Test-only
+characterization passed immediately, no production fix/RED claim. Own labelled
+loopback/tmpfs backend_test only; no working DB/object/secrets/provider actions.
+M1b remains partial; next post/post_media/comment cross-source grouping,
+then object resolution/inventory. M1c/M2 remain gated. Unchanged default/build/
+browser not repeated; M1b2 checkpoint retained.
+
 M1b2 (12 октября МСК): offline articles-only reference collector, stdin JSON
 без DB/env/network/storage, SHA256 exact URL groups public/restricted/shared,
 legacy/markdown links и unknown/malformed/query diagnostics. Published cover
