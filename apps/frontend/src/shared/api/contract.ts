@@ -701,6 +701,7 @@ export type AppRouter = BuiltRouter<
       subscription: QueryProcedure<{
         input: void;
         output: {
+          hasClubAccess: boolean;
           subscribed: boolean;
           expiresAt: Date | null;
           cancelAtPeriodEnd: boolean;

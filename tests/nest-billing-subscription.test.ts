@@ -56,6 +56,7 @@ it("HTTP status uses the Nest-managed subscription provider for guests", async (
   vi.spyOn(subscriptions, "subscription").mockImplementation(async (actor) => {
     expect(actor).toBeNull();
     return {
+      hasClubAccess: false,
       subscribed: false,
       expiresAt: null,
       cancelAtPeriodEnd: false,
@@ -64,6 +65,7 @@ it("HTTP status uses the Nest-managed subscription provider for guests", async (
     };
   });
   expect(await client().club.subscription.query()).toEqual({
+    hasClubAccess: false,
     subscribed: false,
     expiresAt: null,
     cancelAtPeriodEnd: false,

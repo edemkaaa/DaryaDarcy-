@@ -128,6 +128,58 @@ describe.skipIf(!testDatabaseUrl)(
       () => client(bearer).club.deleteComment.mutate({ id }),
       () => client(bearer).club.reportComment.mutate({ id, reason: "reason" }),
     ];
+    it("subscription reports moderator service access separately from a paid period", async () => {
+      await conn.query("UPDATE users SET role='moderator' WHERE id=8990");
+      await conn.query(
+        "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-comment-subscription'",
+      );
+      expect(await client(bearer).club.subscription.query()).toMatchObject({
+        hasClubAccess: true,
+        subscribed: false,
+        isOwner: false,
+        expiresAt: null,
+        cancelAtPeriodEnd: false,
+      });
+      expect(
+        await client(bearer).club.comments.query({ postId: 8990 }),
+      ).toHaveLength(1);
+      await expect(client(bearer).admin.payments.query()).rejects.toMatchObject({
+        data: { code: "FORBIDDEN", httpStatus: 403 },
+      });
+    });
+    it("keeps paid access separate from moderator authority", async () => {
+      await conn.query("UPDATE users SET role='moderator' WHERE id=8990");
+      expect(await client(bearer).club.subscription.query()).toMatchObject({
+        hasClubAccess: true,
+        subscribed: true,
+        isOwner: false,
+        cancelAtPeriodEnd: false,
+        expiresAt: expect.any(Date),
+      });
+      await conn.query("UPDATE users SET role='user' WHERE id=8990");
+      expect(await client(bearer).club.subscription.query()).toMatchObject({
+        hasClubAccess: true,
+        subscribed: true,
+      });
+      await conn.query(
+        "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-comment-subscription'",
+      );
+      expect(await client(bearer).club.subscription.query()).toMatchObject({
+        hasClubAccess: false,
+        subscribed: false,
+        expiresAt: null,
+      });
+      await conn.query(
+        "UPDATE users SET role='moderator',blockedAt=NOW() WHERE id=8990",
+      );
+      for (const actor of [client(), client(bearer)])
+        expect(await actor.club.subscription.query()).toMatchObject({
+          hasClubAccess: false,
+          subscribed: false,
+          isOwner: false,
+          expiresAt: null,
+        });
+    });
     it.each(["feed", "both"])(
       "reads the saved public %s comment without a paid subscription",
       async (target) => {

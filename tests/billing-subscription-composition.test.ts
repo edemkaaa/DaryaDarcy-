@@ -35,6 +35,7 @@ const paidUntil = new Date("2026-11-01T00:00:00Z");
 const subscriptions = {
   async subscription(_actor: User | null) {
     return {
+      hasClubAccess: true,
       subscribed: true,
       expiresAt: paidUntil,
       cancelAtPeriodEnd: false,
@@ -72,6 +73,7 @@ afterEach(() => vi.unstubAllEnvs());
 it("subscription status uses the supplied billing service", async () => {
   vi.stubEnv("DATABASE_URL", "");
   expect(await caller().club.subscription()).toEqual({
+    hasClubAccess: true,
     subscribed: true,
     expiresAt: paidUntil,
     cancelAtPeriodEnd: false,

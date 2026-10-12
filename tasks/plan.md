@@ -65,6 +65,51 @@ exact labelled loopback/tmpfs/no mounts контейнер повторно пр
 через --rm после stop. Только одноразовые synthetic данные; рабочие данные,
 S3/provider и staging не затронуты. Следующий согласованный пункт —1.
 
+**Служебный доступ — пункт1, согласованная локальная API/UI интеграция:**
+`club.subscription.hasClubAccess` — additive boolean из канонической
+userHasClubAccess policy, с уже прочитанным paid record (без второго SQL lookup).
+`subscribed`/expiresAt/cancelAtPeriodEnd/isOwner сохраняют прежний контракт,
+включая существующее исключение owner. Moderator без оплаты: hasClubAccess=true,
+subscribed=false, expiresAt=null, isOwner=false. Роли/оплаченные периоды не
+меняются. Generated frontend API contract обновлён. Provider валидирует ответ
+через parseClubAccess; access status/content gates читают hasClubAccess. Его
+исторический isSubscribed остаётся content alias для существующих потребителей;
+hasServiceAccess отличает доступ без оплаты/owner от оплаченного периода.
+Profile показывает «Служебный доступ» и отсутствие оплаченной подписки, без
+следующего списания/cancel/renewal controls. При реальном paid record прежние
+платёжные состояния/контролы сохранены. CSS/layout/assets не менялись.
+
+Legacy server reply без нового поля сохраняет прежнюю subscribed-политику,
+не выводит staff доступ из клиентской роли. Неверный тип/null и противоречивый
+access=false с paid/owner rejected; checkout/cancellation продолжают отдельно
+проверять subscribed, не считают служебный доступ подтверждённой оплатой.
+
+RED: frontend parser1 (128 ms), native API1 (1.98 s), native production-browser1
+(7.02 s): backend доступ уже разрешён, вкладка клуба всё ещё показывает оплату.
+GREEN focused59; native discussion38, затем expanded content/discussion
+**81 pass/2 suites, exit0, 4.77 s**. Дополнительный owner-only payments read
+нативно403 для moderator (focused1, 940 ms). Final production-browser **2 pass,
+115 filtered skips, exit0, 3.42 s**, 390/1440 px: club→profile service/no payment
+→ synthetic paid fixture retains active billing → role removal locks profile.
+SQL подтверждает moderator без повышения/новых paid rows до synthetic fixture;
+fixture только в disposable DB, никаких provider платежей. Скриншоты service
+карточки обеих ширин осмотрены, переносы/стили сохранены. Сначала использован
+старый build для RED, затем свежий production build для GREEN. Недоступный
+default browser binary заменён уже установленным local headless Chromium;
+fixture expiry за2038 исправлен на NOW+1DAY, schema не менялась.
+
+Final default workers2 **2312 pass/1151 opt-in skips, exit0, 52.50 s**;
+types/frontend production build/backend build/lint/API73/boundaries618 pass.
+Self-review correctness/security/React: no local role elevation, shared policy,
+validated additive contract, derived service state без нового effect/request,
+никаких новых hooks в условных ветках/зависимостей/миграций. Impeccable narrow
+refinement сохранил текущую visual world; context launcher недоступен, контекст
+прочитан напрямую, новых PRODUCT/DESIGN не создавалось. Own scoped fixtures/
+Nest/pools/SMTP/browser закрыты harness; own frontend stop и exact labelled
+loopback/tmpfs/no mounts container rechecked, stopped/--rm removed. Только
+synthetic resources; нет working DB/S3/provider/push/deploy/новой automation.
+Это локальная проверка, не staging rollout или приёмка внешних платежей.
+
 ## Актуальный план завершения первого этапа — 10 октября 2026
 
 Это рабочий приоритет поверх исторического журнала ниже. Основание:

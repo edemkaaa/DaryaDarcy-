@@ -21,7 +21,13 @@ Local feature branch, без push/deploy/рабочей БД/автоматич�
   default2308 pass/1147 opt-in skips (3460), 55.82 s; types/build/boundaries618/
   focused format/diff pass. Own fixtures/pools/verified disposable DB cleaned.
   API response прежний; native browser/staging/provider этим не закрыты.
-- [ ] Пункт1: отдельно сверить служебный club доступ и оплаченный период API/UI.
+- [x] Пункт1 локально: additive hasClubAccess + прежний subscribed/paid/owner
+  контракт; moderator без оплаты открывает club/profile, видит служебный доступ,
+  не получает owner rights/paid marker/expiry/cancel/renewal controls.
+  Native API/parser/browser RED1 каждый; focused59, native81, final production
+  browser2 (390/1440 px, service→paid fixture→role removal), owner-only read403.
+  Default2312 pass/1151 skips, 52.50 s; types/builds/lint/API73/boundaries618 pass.
+  Дизайн сохранён; own synthetic resources cleaned, no provider payments/rollout.
 - [ ] Пункт4: WorkerJobs binding delivery/maintenance с default-off/A7 gates.
 - [ ] Пункт5: actual isolated S3/private delivery, прежние storage/rollout gates.
 

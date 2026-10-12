@@ -45,6 +45,7 @@ import { registerSeasonAdminBrowserCases } from "./helpers/season-admin-browser-
 import { registerProfileBrowserCases } from "./helpers/profile-browser-cases";
 import { registerProfileOrderBrowserCases } from "./helpers/profile-order-browser-cases";
 import { registerClubSetupBrowserCases } from "./helpers/club-setup-browser-cases";
+import { registerClubServiceAccessBrowserCases } from "./helpers/club-service-access-browser-cases";
 
 // Opt in with a separately started, enabled production frontend build. API
 // forwarding below is a transport proxy, never a mock response or fake session.
@@ -212,6 +213,13 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       ).toBeEnabled();
       return form;
     }
+    registerClubServiceAccessBrowserCases(() => ({
+      connection,
+      rows,
+      context,
+      frontend: frontend!,
+      memberId,
+    }));
     registerQuizBrowserCases(() => ({
       rows,
       base,

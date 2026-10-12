@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { TRPCError } from "@trpc/server";
 import type { User } from "../../../../packages/database/src/schema";
 import * as db from "../db";
+import { userHasClubAccess } from "../identity/club-access";
 import { cancelProdamusSubscription, CLUB_PRICE } from "../prodamus";
 import { requestClubCancellation } from "./cancellation";
 
@@ -11,6 +12,7 @@ export class ClubSubscriptionService {
   async subscription(actor: User | null) {
     if (!actor || actor.blockedAt) {
       return {
+        hasClubAccess: false,
         subscribed: false,
         expiresAt: null as Date | null,
         cancelAtPeriodEnd: false,
@@ -21,6 +23,7 @@ export class ClubSubscriptionService {
     const owner = db.isOwnerAccount(actor);
     const paid = await db.getActiveClubSubscription(actor.id);
     return {
+      hasClubAccess: await userHasClubAccess(actor, async () => paid),
       subscribed: owner || Boolean(paid),
       expiresAt: paid?.expiresAt ?? null,
       cancelAtPeriodEnd: Boolean(paid?.cancelAtPeriodEnd),

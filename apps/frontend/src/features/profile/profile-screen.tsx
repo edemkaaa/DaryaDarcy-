@@ -93,6 +93,7 @@ export default function ProfileScreen() {
   } = useAuth();
   const {
     isSubscribed,
+    hasServiceAccess,
     expiresAt,
     cancelAtPeriodEnd,
     isOwner,
@@ -748,7 +749,16 @@ export default function ProfileScreen() {
                 .filter(Boolean)
                 .join(" ")}
             >
-              {isSubscribed ? (
+              {hasServiceAccess ? (
+                <>
+                  <Typography className={classes.subscriptionStatusText}>
+                    Служебный доступ
+                  </Typography>
+                  <Typography className={classes.subscriptionInfo}>
+                    Клуб открыт для модерации. Оплаченной подписки нет.
+                  </Typography>
+                </>
+              ) : isSubscribed ? (
                 <>
                   <div
                     className={["ui-stack ", classes.subscriptionStatus]

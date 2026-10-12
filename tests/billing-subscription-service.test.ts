@@ -55,6 +55,7 @@ it.each([null, { ...member, role: "admin" as const, blockedAt: new Date(0) }])(
       .spyOn(db, "getActiveClubSubscription")
       .mockRejectedValue(new Error("must not read"));
     expect(await service.subscription(actor)).toEqual({
+      hasClubAccess: false,
       subscribed: false,
       expiresAt: null,
       cancelAtPeriodEnd: false,
@@ -74,6 +75,7 @@ it.each(["user", "moderator", "admin"] as const)(
       },
     );
     expect(await service.subscription({ ...member, role })).toEqual({
+      hasClubAccess: role !== "user",
       subscribed: role === "admin",
       expiresAt: null,
       cancelAtPeriodEnd: false,
@@ -85,6 +87,7 @@ it.each(["user", "moderator", "admin"] as const)(
 it("paid status preserves the expiry and confirmed cancellation flag", async () => {
   vi.spyOn(db, "getActiveClubSubscription").mockResolvedValue(paid);
   expect(await service.subscription(member)).toEqual({
+    hasClubAccess: true,
     subscribed: true,
     expiresAt: paidUntil,
     cancelAtPeriodEnd: true,

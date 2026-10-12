@@ -1,18 +1,23 @@
 import type { ApiOutputs } from "./types";
 import { invalidResponse } from "./errors";
 
-/** Only a fresh, valid server reply can update paid access. */
+/** Keep content access separate from payment; legacy replies never infer staff access. */
 export function parseClubAccess(
   value: unknown,
 ): ApiOutputs["club"]["subscription"] {
   if (!value || typeof value !== "object") throw invalidResponse();
   const data = value as Record<string, unknown>;
+  const hasClubAccess = data.hasClubAccess ?? data.subscribed;
   if (
     typeof data.subscribed !== "boolean" ||
     typeof data.cancelAtPeriodEnd !== "boolean" ||
     typeof data.isOwner !== "boolean" ||
     typeof data.monthlyPrice !== "string" ||
-    !data.monthlyPrice.trim()
+    !data.monthlyPrice.trim() ||
+    (data.hasClubAccess !== undefined &&
+      typeof data.hasClubAccess !== "boolean") ||
+    typeof hasClubAccess !== "boolean" ||
+    (!hasClubAccess && (data.subscribed || data.isOwner))
   )
     throw invalidResponse();
   const raw = data.expiresAt;
@@ -25,6 +30,7 @@ export function parseClubAccess(
   )
     throw invalidResponse();
   return {
+    hasClubAccess,
     subscribed: data.subscribed,
     cancelAtPeriodEnd: data.cancelAtPeriodEnd,
     isOwner: data.isOwner,
