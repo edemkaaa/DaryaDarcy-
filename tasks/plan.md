@@ -56,6 +56,22 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**M1b4 — post photo/attachment references, 12 октября МСК:** offline library
+добавляет выбранные post metadata/photos и post_media id/postId/url. Visibility
+берётся из published + status + target: feed/both public только при публикации,
+club/draft/scheduled/unpublished restricted, независимо от URL prefix. Shared
+exact URL groups используют тот же redacted URL collector, что articles.
+Malformed JSON photos и отсутствующий parent in snapshot сохраняют issues;
+missing parent не объявляется orphan/private/public. Strict metadata/unique IDs,
+bounded row counts, generic errors; no env/network/DB/ACL calls. Capability RED4
+fail (155 ms) → focused article/post13 pass (849 ms), types exit0. Default
+workers2 **2290 pass/1122 opt-in skips (3417), exit0, 47.78 s**; docs/format/diff
+pass. Review: shared helpers preserve article contract, no new deps/ACL paths.
+Existing
+article stdin CLI contract unchanged; post collector пока library-only, scope
+explicit photos/media-only. Text/richText/comment/global references, cross-source
+grouping и inventory остаются next; M1b/M1c/M2 не закрыты.
+
 **M1b3 — raw SQL article snapshot acceptance, 12 октября МСК:** test-only
 продолжение collector55336bb. Собственный labelled loopback/tmpfs backend_test,
 real mysql2 SELECT только id/access/published/coverUrl/sections: SQL0/1 + JSON

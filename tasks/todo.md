@@ -29,6 +29,18 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+M1b4 (12 октября МСК): library-only post photos/post_media reference collector;
+same redacted exact-URL helpers as article map. Published feed/both public;
+club/draft/scheduled/unpublished restricted. Missing parent in selected snapshot
+and malformed photos JSON explicitly diagnosed, never assumed orphan/approved.
+Capability RED4 fail (155 ms) → article/post13 pass (849 ms), types exit0.
+Default workers2 2290 pass/1122 opt-in skips (3417), exit0, 47.78 s; docs/format/
+diff pass. Reviewed shared helpers/unchanged article contract, no new deps.
+Strict metadata/unique IDs/row limits, no raw URLs or DB/env/network/ACL changes.
+Existing article stdin CLI unchanged; scope photos/media-only. Next text/richText/
+comment/global references and cross-source grouping, then object inventory.
+M1b/M1c/M2 remain open; no fresh SQL/browser/storage readiness claim.
+
 M1b3 (12 октября МСК): raw SQL selected article fields accepted by collector
 without normalized DTOs. Native mysql2 SQL0/1 and JSON arrays preserve shared
 public cover/restricted draft/club references and unknown future-block issue;

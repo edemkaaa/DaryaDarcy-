@@ -129,7 +129,19 @@ issue. Snapshot после collector неизменен; guest public/locked HTT
 сохраняется. Focused1 pass (1.34 s), full native article34 pass (2.27 s), types
 pass. Test-only characterization, не новый production fix или рабочий exporter.
 
-Next: post/post_media/comment и остальные references, cross-source grouping;
+M1b4 library `collectPostReferences` принимает selected `{posts,media}` snapshot:
+posts: id/published/status/target/photos; media: id/postId/url. Strict metadata,
+unique IDs и лимиты 5000 posts/10000 attachments; photos array или JSON string.
+Published feed/both photos/attachments public, club или непубликуемые restricted.
+Та же exact-byte/redacted URL обработка; prefix не определяет доступ. Malformed
+photos и attachment parent absent in snapshot дают issues, не orphan result.
+Scope `post-photos-media-only-no-object-inventory` явно исключает text/richText/
+comments/прочие источники. Article stdin CLI по-прежнему принимает только articles;
+post helper пока library-only. Focused article/post13 pass, types pass; actual
+post SQL/object acceptance этим срезом не заявлена. Default workers2 2290 pass/
+1122 opt-in skips (3417), exit0, 47.78 s; docs/format/diff pass.
+
+Next: text/richText/comment и остальные references, cross-source grouping;
 затем проверенная inventory/object resolution и M1c. M1b не закрыт,
 M2 delivery contract/rollout требует отдельного review.
 

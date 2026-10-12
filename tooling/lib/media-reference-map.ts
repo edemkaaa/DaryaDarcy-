@@ -17,14 +17,7 @@ const snapshot = z
   .max(5000);
 type Visibility = "public" | "restricted";
 
-/** Offline reference evidence only: never an object inventory or ACL decision. */
-export function collectArticleReferences(input: unknown) {
-  const parsed = snapshot.safeParse(input);
-  if (
-    !parsed.success ||
-    new Set(parsed.data.map((row) => row.id)).size !== parsed.data.length
-  )
-    throw new Error("Invalid article snapshot");
+function referenceReport() {
   const issues: string[] = [];
   const grouped = new Map<
     string,
@@ -83,6 +76,28 @@ export function collectArticleReferences(input: unknown) {
       else add(url, item, access);
     });
   };
+  const finish = <S extends string>(scope: S) => ({
+    scope,
+    groups: [...grouped].map(([urlHash, group]) => ({
+      urlHash,
+      visibility:
+        group.access.size > 1 ? ("shared" as const) : [...group.access][0],
+      references: [...group.references],
+    })),
+    issues,
+  });
+  return { add, text, list, issues, finish };
+}
+
+/** Offline reference evidence only: never an object inventory or ACL decision. */
+export function collectArticleReferences(input: unknown) {
+  const parsed = snapshot.safeParse(input);
+  if (
+    !parsed.success ||
+    new Set(parsed.data.map((row) => row.id)).size !== parsed.data.length
+  )
+    throw new Error("Invalid article snapshot");
+  const { add, text, list, issues, finish } = referenceReport();
   const known = new Set([
     "type",
     "text",
@@ -143,14 +158,78 @@ export function collectArticleReferences(input: unknown) {
       } else issues.push(location + ".unknown-shape");
     });
   }
-  return {
-    scope: "articles-only-no-object-inventory" as const,
-    groups: [...grouped].map(([urlHash, group]) => ({
-      urlHash,
-      visibility:
-        group.access.size > 1 ? ("shared" as const) : [...group.access][0],
-      references: [...group.references],
-    })),
-    issues,
-  };
+  return finish("articles-only-no-object-inventory");
+}
+
+const postSnapshot = z
+  .object({
+    posts: z
+      .array(
+        z
+          .object({
+            id: z.number().int().positive(),
+            published: z.union([z.boolean(), z.literal(0), z.literal(1)]),
+            status: z.enum(["published", "draft", "scheduled"]),
+            target: z.enum(["feed", "club", "both"]),
+            photos: z.unknown().refine((value) => value !== undefined),
+          })
+          .strict(),
+      )
+      .max(5000),
+    media: z
+      .array(
+        z
+          .object({
+            id: z.number().int().positive(),
+            postId: z.number().int().positive(),
+            url: z.string().max(4096),
+          })
+          .strict(),
+      )
+      .max(10000),
+  })
+  .strict();
+
+/** Photos/attachments only; text, richText and other content remain unmapped. */
+export function collectPostReferences(input: unknown) {
+  const parsed = postSnapshot.safeParse(input);
+  if (
+    !parsed.success ||
+    new Set(parsed.data.posts.map((row) => row.id)).size !==
+      parsed.data.posts.length ||
+    new Set(parsed.data.media.map((row) => row.id)).size !==
+      parsed.data.media.length
+  )
+    throw new Error("Invalid post snapshot");
+  const { add, list, issues, finish } = referenceReport();
+  const accessByPost = new Map<number, Visibility>();
+  for (const row of parsed.data.posts) {
+    const access: Visibility =
+      (row.published === true || row.published === 1) &&
+      row.status === "published" &&
+      row.target !== "club"
+        ? "public"
+        : "restricted";
+    accessByPost.set(row.id, access);
+    const location = `posts:${row.id}.photos`;
+    let photos = row.photos;
+    if (typeof photos === "string") {
+      try {
+        photos = JSON.parse(photos);
+      } catch {
+        issues.push(location + ".invalid-json");
+        continue;
+      }
+    }
+    list(photos, location, access);
+  }
+  for (const row of parsed.data.media) {
+    const access = accessByPost.get(row.postId);
+    if (!access) {
+      issues.push(`post_media:${row.id}.parent-not-in-snapshot`);
+      continue;
+    }
+    add(row.url, `post_media:${row.id}.url`, access);
+  }
+  return finish("post-photos-media-only-no-object-inventory");
 }
