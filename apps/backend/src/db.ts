@@ -60,6 +60,7 @@ import type { PostCreationIntent } from "./content/post-creation-request";
 import type { PostAttachmentChanges } from "./content/post-attachments";
 import {
   togglePostReaction,
+  type ReactionAccessCheck,
   getUserLikedPostIds as readUserLikedPostIds,
   getUserSavedPostIds as readUserSavedPostIds,
 } from "./content/post-reactions";
@@ -291,19 +292,19 @@ export async function getAllTags(): Promise<Tag[]> {
 }
 
 // Toggle like on a post
-export async function toggleLike(userId: number, postId: number): Promise<boolean> {
+export async function toggleLike(userId: number, postId: number, hasClubAccess: ReactionAccessCheck): Promise<boolean> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return togglePostReaction(db, "like", userId, postId);
+  return togglePostReaction(db, "like", userId, postId, hasClubAccess);
 }
 
 // Toggle save/bookmark on a post
-export async function toggleSave(userId: number, postId: number): Promise<boolean> {
+export async function toggleSave(userId: number, postId: number, hasClubAccess: ReactionAccessCheck): Promise<boolean> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return togglePostReaction(db, "save", userId, postId);
+  return togglePostReaction(db, "save", userId, postId, hasClubAccess);
 }
 
 // Get user's liked post IDs
@@ -957,8 +958,8 @@ export async function getClubPaymentByOrderId(orderId: string): Promise<ClubPaym
   return rows[0];
 }
 
-export async function getActiveClubSubscription(userId: number): Promise<ClubPayment | undefined> {
-  const db = await getDb();
+export async function getActiveClubSubscription(userId: number, reader?: Pick<MySql2Database, "select">): Promise<ClubPayment | undefined> {
+  const db = reader ?? await getDb();
   if (!db) return undefined;
   const rows = await db
     .select()

@@ -4,7 +4,15 @@ import {
   likes,
   savedPosts,
   users,
+  posts,
+  type User,
 } from "../../../../packages/database/src/schema";
+import { TRPCError } from "@trpc/server";
+
+export type ReactionAccessCheck = (
+  actor: Pick<User, "id" | "role" | "email" | "openId" | "blockedAt">,
+  reader: Pick<MySql2Database, "select">,
+) => Promise<boolean>;
 
 export async function getUserLikedPostIds(
   db: MySql2Database | null,
@@ -39,17 +47,47 @@ export async function togglePostReaction(
   kind: "like" | "save",
   userId: number,
   postId: number,
+  hasClubAccess: ReactionAccessCheck,
 ): Promise<boolean> {
   const table = kind === "like" ? likes : savedPosts;
   return database.transaction(async (tx) => {
     // A stable actor row serializes requests even when no reaction row exists.
     // Read the reaction only after acquiring it, so no stale snapshot wins.
     const [actor] = await tx
-      .select({ id: users.id })
+      .select({
+        id: users.id,
+        role: users.role,
+        email: users.email,
+        openId: users.openId,
+        blockedAt: users.blockedAt,
+      })
       .from(users)
       .where(eq(users.id, userId))
       .for("update");
     if (!actor) throw new Error("Reaction actor no longer exists");
+    if (actor.blockedAt)
+      throw new TRPCError({ code: "FORBIDDEN", message: "Доступ ограничен" });
+    // A current locked read fences deletion and visibility edits until commit.
+    const [post] = await tx
+      .select({
+        id: posts.id,
+        published: posts.published,
+        status: posts.status,
+        target: posts.target,
+      })
+      .from(posts)
+      .where(eq(posts.id, postId))
+      .for("update");
+    if (!post || !post.published || post.status !== "published")
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Публикация не найдена",
+      });
+    if (post.target === "club" && !(await hasClubAccess(actor, tx)))
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Материал доступен участницам клуба",
+      });
     const pair = and(eq(table.userId, userId), eq(table.postId, postId));
     const existing = await tx
       .select({ id: table.id })

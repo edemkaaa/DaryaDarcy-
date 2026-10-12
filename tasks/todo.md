@@ -1,5 +1,27 @@
 # Daryadarcy Modular Monorepo
 
+## Текущее поручение — 13 октября 2026
+
+Подтверждён пользователем список «Задачи_бэкендеру_2026-10-12.md», начать с3.
+Local feature branch, без push/deploy/рабочей БД/автоматического включения.
+
+- [x] Пункт3 локально: ID/наличие/публикация/доступ проверяются перед like/save
+  внутри транзакции; actor/post locks, общий club policy и та же SQL-сессия.
+  RED2 → native30; final affected HTTP/JWT/SQL103 pass (8.44 s), default2308
+  pass/1140 opt-in skips (3453), exit0, 50.50 s; types/build/boundaries618 pass.
+  Invalid/missing/hidden/draft/scheduled/expired клуб denied без записей;
+  public без оплаты/staff доступ/concurrent20/21 toggles сохранены. Старые строки
+  недоступных реакций автоматически не удаляются. Evidence — начало plan.md.
+  Final types/build/docs54/focused format/diff pass; own scoped fixtures/Nest/
+  pools/verified labelled loopback/tmpfs cleaned; no working data/resources.
+- [ ] Пункт2: отдельно сверить public comment read/write и существующие сроки.
+- [ ] Пункт1: отдельно сверить служебный club доступ и оплаченный период API/UI.
+- [ ] Пункт4: WorkerJobs binding delivery/maintenance с default-off/A7 gates.
+- [ ] Пункт5: actual isolated S3/private delivery, прежние storage/rollout gates.
+
+Автоматизация остаётся удалённой; это возобновление работы по прямому поручению,
+не подтверждение готовности первого этапа и не реальная платёжная приёмка.
+
 ## Активная очередь по ТЗ и фронту — 10 октября 2026
 
 Приоритет и критерии — в начале [плана](plan.md). Пользователь разрешил

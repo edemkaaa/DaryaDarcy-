@@ -1,5 +1,43 @@
 # Implementation Plan: Daryadarcy Modular Monorepo
 
+## Поручение 13 октября 2026 — задачи для бэкендера
+
+Пользователь предоставил «Задачи_бэкендеру_2026-10-12.md» (снимок staging
+48f2f7d) и подтвердил начать с пункта3 — проверок перед лайком/сохранением.
+Работа остаётся local-only в feature/stage-one-completion-2026-10-10, baseline
+ef567df; это не проверка текущего удалённого staging и не разрешение выкладки.
+Пункты1–2 сверяются отдельно без переопределения служебных ролей/оплаченного
+периода; пункт4 сохраняет default-off и A7 schema/rollout gate; пункт5 сохраняет
+S3/private delivery gates. Прежние evidence/неоконченные пункты ниже остаются.
+
+**Реакции — пункт3, локальное исправление:** input postId — положительный integer;
+NOT_FOUND для отсутствующего/hidden/draft/scheduled поста, FORBIDDEN для клуба
+без текущего доступа. Проверка actor/публикации и существующее переключение
+совместно в транзакции: actor lock сохраняет сериализацию, post lock закрывает
+check→write race при изменении видимости/удалении. Каноническая userHasClubAccess
+политика прежняя (owner/admin/moderator/paid/blocked), с reader той же транзакции,
+без второго pool checkout/исчерпания пула под параллельными запросами. Business
+policy wiring в ContentWriteService, не новый db→identity цикл. Subscription
+lookup default остаётся прежним для остальных клиентов.
+
+Native RED2 fail/24 filtered skips (26), exit1, 1.49 s: обе операции принимали
+postId0/возвращалиtrue. GREEN native26 (2.27 s); дополнительные staff/legacy-row/
+visibility-lock cases → native30 (2.17 s). Final affected native HTTP/JWT/SQL
+content/admin/deletion/comments **103 pass/4 suites, exit0, 8.44 s**, включая
+compiled ESM compatibility, параллельные20/21 toggles, текущий доступ после
+lock wait; отрицательные запросы без SQL writes, старые недоступные reactions
+не очищаются вслепую. Public без подписки и служебный club доступ сохранены.
+Final default workers2 **2308 pass/1140 opt-in skips (3453), exit0, 50.50 s**;
+types/backend build/boundaries618 pass. Финальное уточнение return-type reader
+не меняет runtime; final types/build/docs54/focused format/diff pass. Review: поля actor
+минимальны, query параметризован, роль/сессия/платёжные правила/квоты/CORS не
+менялись. Нет миграции/зависимостей/нового endpoint/автоматического retry.
+Сетевая доставка push подменена только существующим test transport; HTTP/SQL/
+auth настоящие. UI/browser/device/provider/рабочая БД не выдаются за проверенные.
+Own fixtures/Nest/pools закрыты harness; exact labelled loopback/tmpfs/no mounts
+container rechecked before stop/removal. Удалены только одноразовые synthetic
+данные, не чужие resources. Старые строки рабочей БД не читались/не исправлялись.
+
 ## Актуальный план завершения первого этапа — 10 октября 2026
 
 Это рабочий приоритет поверх исторического журнала ниже. Основание:

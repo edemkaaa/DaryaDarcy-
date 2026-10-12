@@ -431,6 +431,127 @@ describe.skipIf(!testDatabaseUrl)(
       15_000,
     );
     it.each(["toggleLike", "toggleSave"] as const)(
+      "rejects %s for invalid, absent, unpublished and inaccessible posts without SQL writes",
+      async (method) => {
+        const table = method === "toggleLike" ? "likes" : "saved_posts";
+        await conn.query(
+          "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-comment-subscription'",
+        );
+        await conn.query("UPDATE posts SET status='scheduled' WHERE id=8993");
+        for (const [postId, code] of [
+          [0, "BAD_REQUEST"],
+          [-1, "BAD_REQUEST"],
+          [8991.5, "BAD_REQUEST"],
+          [8996, "NOT_FOUND"],
+          [8993, "NOT_FOUND"],
+          [8994, "NOT_FOUND"],
+          [8990, "FORBIDDEN"],
+        ] as const) {
+          await expect(
+            client(bearer).feed[method].mutate({ postId }),
+          ).rejects.toMatchObject({ data: { code } });
+          const [rows] = await conn.query<RowDataPacket[]>(
+            `SELECT postId FROM ${table} WHERE userId=8990`,
+          );
+          expect(rows).toEqual([]);
+        }
+        await conn.query("UPDATE posts SET status='draft' WHERE id=8993");
+        await expect(
+          client(bearer).feed[method].mutate({ postId: 8993 }),
+        ).rejects.toMatchObject({ data: { code: "NOT_FOUND" } });
+        // Public reactions remain available without a subscription.
+        expect(await client(bearer).feed[method].mutate({ postId: 8991 })).toBe(
+          true,
+        );
+        expect(await client(bearer).feed[method].mutate({ postId: 8991 })).toBe(
+          false,
+        );
+        const [rows] = await conn.query<RowDataPacket[]>(
+          `SELECT postId FROM ${table} WHERE userId=8990`,
+        );
+        expect(rows).toEqual([]);
+      },
+    );
+    it.each(["toggleLike", "toggleSave"] as const)(
+      "preserves staff club access and does not remove inaccessible existing %s rows",
+      async (method) => {
+        const table = method === "toggleLike" ? "likes" : "saved_posts";
+        await conn.query(
+          "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-comment-subscription'",
+        );
+        for (const role of ["moderator", "admin"]) {
+          await conn.query("UPDATE users SET role=? WHERE id=8990", [role]);
+          expect(
+            await client(bearer).feed[method].mutate({ postId: 8990 }),
+          ).toBe(true);
+          expect(
+            await client(bearer).feed[method].mutate({ postId: 8990 }),
+          ).toBe(false);
+        }
+        await conn.query("UPDATE users SET role='user' WHERE id=8990");
+        await conn.query(
+          `INSERT INTO ${table} (userId,postId) VALUES (8990,8990)`,
+        );
+        const [before] = await conn.query<RowDataPacket[]>(
+          `SELECT * FROM ${table} WHERE userId=8990`,
+        );
+        await expect(
+          client(bearer).feed[method].mutate({ postId: 8990 }),
+        ).rejects.toMatchObject({ data: { code: "FORBIDDEN" } });
+        expect(
+          (
+            await conn.query<RowDataPacket[]>(
+              `SELECT * FROM ${table} WHERE userId=8990`,
+            )
+          )[0],
+        ).toEqual(before);
+      },
+    );
+    it.each(["toggleLike", "toggleSave"] as const)(
+      "rechecks publication after %s waits for a concurrent visibility edit",
+      async (method) => {
+        const table = method === "toggleLike" ? "likes" : "saved_posts";
+        let pending: Promise<unknown> | undefined;
+        await conn.beginTransaction();
+        try {
+          await conn.query("SELECT id FROM posts WHERE id=8991 FOR UPDATE");
+          pending = client(bearer)
+            .feed[method].mutate({ postId: 8991 })
+            .then(
+              (result) => result,
+              (error: unknown) => error,
+            );
+          await vi.waitFor(
+            async () => {
+              const [rows] = await conn.query<RowDataPacket[]>(
+                "SELECT COUNT(*) AS waiting FROM performance_schema.data_lock_waits w JOIN performance_schema.data_locks b ON b.ENGINE_LOCK_ID=w.BLOCKING_ENGINE_LOCK_ID WHERE b.OBJECT_SCHEMA='backend_test' AND b.OBJECT_NAME='posts' AND b.LOCK_DATA='8991'",
+              );
+              expect(Number(rows[0].waiting)).toBeGreaterThan(0);
+            },
+            { timeout: 5000 },
+          );
+          await conn.query(
+            "UPDATE posts SET status='draft',published=FALSE WHERE id=8991",
+          );
+          await conn.commit();
+          expect(await pending).toMatchObject({ data: { code: "NOT_FOUND" } });
+          expect(
+            (
+              await conn.query<RowDataPacket[]>(
+                `SELECT postId FROM ${table} WHERE userId=8990`,
+              )
+            )[0],
+          ).toEqual([]);
+        } finally {
+          await conn.rollback();
+          await pending;
+          await conn.query(
+            "UPDATE posts SET status='published',published=TRUE WHERE id=8991",
+          );
+        }
+      },
+    );
+    it.each(["toggleLike", "toggleSave"] as const)(
       "serializes concurrent %s requests without duplicates or lost toggles",
       async (method) => {
         const table = method === "toggleLike" ? "likes" : "saved_posts";

@@ -9,16 +9,21 @@ import { sendMarketingPostNotification } from "../push";
 import { postCreationIntent } from "./post-creation-request";
 import type { CreatePostInput, UpdatePostInput } from "./post-write-input";
 import type { ImportVideosInput } from "./video-import-input";
+import { userHasClubAccess } from "../identity/club-access";
+import type { ReactionAccessCheck } from "./post-reactions";
 
 /** The adapter authorizes/validates inputs; existing helpers own transactions. */
 @Injectable()
 export class ContentWriteService {
+  private readonly reactionAccess: ReactionAccessCheck = (actor, reader) =>
+    userHasClubAccess(actor, (id) => db.getActiveClubSubscription(id, reader));
+
   toggleLike(userId: number, postId: number): Promise<boolean> {
-    return db.toggleLike(userId, postId);
+    return db.toggleLike(userId, postId, this.reactionAccess);
   }
 
   toggleSave(userId: number, postId: number): Promise<boolean> {
-    return db.toggleSave(userId, postId);
+    return db.toggleSave(userId, postId, this.reactionAccess);
   }
 
   createArticle(
