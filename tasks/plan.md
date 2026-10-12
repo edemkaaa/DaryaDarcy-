@@ -41,6 +41,33 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3av, native late profile-name reply after account switch — 12 октября МСК:**
+Продолжение C3au без production/UI изменений: настоящее profile.update HTTP200
+с success:true и SQL commit имени участницы удержано Promise-barrier в return
+transport. До release в том же открытом документе synthetic cookie заменена на
+существующего admin; native auth/me200 подтверждает Browser administrator,
+прежний editor исчезает. Original native response затем fulfill без catch/ignore:
+профиль остаётся admin, late member name отсутствует, owner-scoped name cache
+пуст, ровно один POST, committed member name сохранено, admin name/identity/access
+SQL неизменны. Это один ordering с online event, не реальный password login/logout
+и не утверждение об остальных session races. Regression сохраняется в helper398.
+Первый и diagnostic run упали не на ownership assertions, а на fixture fulfill
+/api/trpc/feed.savedPosts,club.subscription: дополнительный page.reload отменял
+новые background reads. Diagnostic catch только логировал pathname и rethrow;
+полностью удалён. Убран лишний reload из нового late-reply case, не подавлены
+исключения и не изменён общий proxy/teardown. Его произвольный reload посреди
+forwarding не объявлен проверенным; C3au обычный save/reload остаётся отдельным.
+Focused 1 pass / 84 skips (85), exit0 (2.66 s); integrated profile **4 pass /
+81 filtered skips (85), exit0, 5.43 s**; stability rerun после fixture race
+**1 pass / 84 skips, exit0, 2.98 s**, без unhandled errors. Types/format/607
+boundaries/diff/docs pass. Прежние default suite/build не повторены: нет
+production/dependency изменений. Skills incremental/TDD/security/review применены
+к native isolation; дополнительный definition-of-done reference отсутствует,
+вместо него действуют проверенные gates актуального плана, без stage-one claim.
+Own labelled loopback/tmpfs backend_test и Next остановлены после ownership
+check; synthetic data невосстановимо удалены, working data/secrets/providers
+не тронуты. Legacy cache reconciliation, password-login и external/A7/Q1 gates open.
+
 **C3au, profile-name confirmation and manual recovery — 12 октября МСК:**
 Native browser RED: при потере POST до исполнения SQL оставался Browser phone
 member, но UI показывал новое имя как сохранённое; код заранее записывал его

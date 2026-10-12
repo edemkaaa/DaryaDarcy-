@@ -6,6 +6,18 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3av (12 октября МСК): native profile.update200/SQL commit held → native auth/me
+confirms switched admin in the same document → release original response.
+No late member name/cache, one POST, member commit retained, admin identity/access
+unchanged. Test-only, no new production defect/fix claim. Initial extra reload
+cancelled background fixture forwarding (Route already handled); narrow case
+omits that unrelated reload, diagnostic logging removed/no ignored errors.
+Focused1 pass (2.66 s), integrated profile4 pass /81 filtered skips (85), exit0
+(5.43 s), stability1 pass (2.98 s); types/format/607 boundaries/diff/docs pass.
+Own labelled tmpfs DB/Next stopped, synthetic data discarded. General mid-proxy
+reload/password-login/legacy cache and external/A7/Q1 gates remain; unchanged
+default/build not repeated. Skills used for native verification and scoped review.
+
 C3au (12 октября МСК): fixed real optimistic profile-name save defect, native RED
 then final 3 pass / 81 filtered skips (84), exit0 (4.12 s). Server success:true
 before UI/scoped cache; canonical current-owner lock/signal; retained draft,
