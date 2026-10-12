@@ -29,6 +29,18 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+C2k (12 октября МСК): actual native canonical list200 after lost committed
+create/update; only returned IDs corrupted to0, explicit nonempty/positive-ID
+proof before injection. Invalid identities retain editor/unknown guard, repeat
+Save still one POST/one unchanged row; subsequent unmodified read closes editor
+and same-tab canonical list accurate. Final focused2 pass/108 filtered skips
+(110), exit0, 8.98 s; types/format/diff pass. Test-only negative transport-fault
+characterization, no production fix/RED or native malformed-server claim.
+Own labelled loopback/tmpfs/Next cleaned, scoped fixture rows/no working data/
+storage/providers/secrets. Unchanged build/default/full110/integrated12 not
+repeated; C2j checkpoint retained. Next pending-read account/navigation fences;
+durable recovery/late commits and M1c/M2/rollout remain open, await own S3 details.
+
 C2j (12 октября МСК): user requested same-tab cancel after lost article reply.
 Native RED2 fail/108 filtered skips (110), exit1, 14.19 s: Cancel cleared form/
 unknown state without reading canonical list. Cancel now requires validated fresh

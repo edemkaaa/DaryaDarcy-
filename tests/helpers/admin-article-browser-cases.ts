@@ -109,15 +109,29 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
         expect(await rows(sql, [title, originalTitle])).toEqual(committed);
         expect(writes).toBe(1);
         // A failed reconciliation cannot discard the unknown write state.
-        let denyRead = true;
+        let readFault: "network" | "invalid-identity" | "none" = "network";
         await page.route("**/api/trpc/admin.articles*", async (route) => {
-          if (denyRead) return route.abort("failed");
+          if (readFault === "network") return route.abort("failed");
           const url = new URL(route.request().url());
           const response = await route.fetch({
             url: base + url.pathname + url.search,
             maxRedirects: 0,
           });
           expect(response.status()).toBe(200);
+          if (readFault === "invalid-identity") {
+            // Corrupt only the native return payload after the real SQL read.
+            // HTTP200 alone must not authorize discarding an unknown write.
+            const payload = await response.json();
+            let corrupted = 0;
+            for (const item of Array.isArray(payload) ? payload : [payload])
+              for (const article of item.result.data.json) {
+                expect(article.id).toBeGreaterThan(0);
+                article.id = 0;
+                corrupted++;
+              }
+            expect(corrupted).toBeGreaterThan(0);
+            return route.fulfill({ response, json: payload });
+          }
           return route.fulfill({ response });
         });
         await page.getByRole("button", { name: "Отмена", exact: true }).click();
@@ -128,7 +142,17 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
         await browserExpect.poll(() => alerts.length).toBe(4);
         expect(alerts[3]).toContain("Результат сохранения не подтверждён");
         expect(writes).toBe(1);
-        denyRead = false;
+        readFault = "invalid-identity";
+        await page.getByRole("button", { name: "Отмена", exact: true }).click();
+        await browserExpect.poll(() => alerts.length).toBe(5);
+        expect(alerts[4]).toContain("Редактор остаётся открытым");
+        await browserExpect(field).toHaveValue(title);
+        await save.click();
+        await browserExpect.poll(() => alerts.length).toBe(6);
+        expect(alerts[5]).toContain("Результат сохранения не подтверждён");
+        expect(writes).toBe(1);
+        expect(await rows(sql, [title, originalTitle])).toEqual(committed);
+        readFault = "none";
         await page.getByRole("button", { name: "Отмена", exact: true }).click();
         await browserExpect(field).toHaveCount(0);
         await browserExpect(page.getByText(title, { exact: true })).toHaveCount(

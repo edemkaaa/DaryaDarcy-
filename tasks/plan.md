@@ -56,6 +56,22 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**C2k — HTTP200 invalid canonical identities, 12 октября МСК:** independent
+negative reconciliation acceptance while local S3 details remain absent. After
+real committed create/update with lost reply, Cancel performs actual native SQL
+read200; only return article IDs are corrupted to0 (verified positive before
+injection/nonempty payload). Invalid read cannot clear editor/unknown guard;
+repeated Save still one POST, SQL row unchanged. Next unmodified native read
+closes editor and same-tab list shows one actual article. **Final focused2 pass/
+108 filtered skips (110), exit0, 8.98 s**, types/format/diff pass. Negative
+transport-fault characterization passed immediately, no production bug/fix/RED
+claim; injected payload is not claimed as real server output or mock readiness.
+Review: validated payload boundary/own rows/explicit fault proof/scoped cleanup.
+Own labelled loopback/tmpfs/Next cleaned; unchanged build/default/full110 and
+integrated12 not repeated, C2j checkpoints retained. Next account/navigation
+fence for pending canonical reads; durable recovery/late commits/M1c/M2/rollout
+remain open. No working data/ACL/providers/secrets/deploy actions.
+
 **C2j — same-tab cancel after lost article reply, 12 октября МСК:** direct user
 request. Native create/update200 committed→lost return→Cancel exposed reset of
 editor/uncertain guard without fresh canonical list. **RED2 fail/108 filtered
