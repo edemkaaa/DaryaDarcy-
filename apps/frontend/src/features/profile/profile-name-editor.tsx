@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import {
   checkOperationAccessError,
@@ -17,6 +17,12 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
   const { user, refreshAfterMutation } = useAuth();
   const utils = trpc.useUtils();
   const operation = useSessionOperation();
+  const currentUserRef = useRef(user);
+  // A same-owner snapshot can commit during the write. ACK belongs to the
+  // snapshot current at that point; subsequent server snapshots still win.
+  useLayoutEffect(() => {
+    currentUserRef.current = user;
+  }, [user]);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState(false);
@@ -65,7 +71,7 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
       if (result?.success !== true) throw invalidResponse();
       task.assertCurrent();
       // Publish and cache only a server-confirmed name for the current owner.
-      setConfirmation({ source: user, name });
+      setConfirmation({ source: currentUserRef.current, name });
       await AsyncStorage.setItem(PROFILE_NAME_KEY, name);
       task.assertCurrent();
       editingRef.current = false;

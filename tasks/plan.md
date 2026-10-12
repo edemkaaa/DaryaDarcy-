@@ -41,6 +41,43 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3bh, profile editor ACK versus a snapshot delivered during the write — 12 октября МСК:**
+Продолжение от clean featuree0b460c. Новый focused profile-order-browser helper
+использует только exported fixture type старого helper (runtime cycle отсутствует);
+main suite регистрирует два варианта, старый profile917 файл не растёт.
+Native pre-write GET читает intermediate fixture name, POST действительно commits
+ACK name/success:true и удерживается; GET возвращается. Existing-cache effect
+публикует intermediate name, доказывая receipt/render нового user snapshot;
+disabled field сохраняет chosen draft. Затем POST ACK возвращается, новый
+native GET реально читает SQL и его reply либо теряется, либо несёт newer fixture
+server name. RED **1 fail/1 pass/100 filtered skips (102), exit1, 8.18 s**:
+lost refresh не показывал ACK name из-за save-start source user reference.
+Теперь latest committed user ref обновляется в layout effect (не render-phase),
+confirmation берёт этот source сразу после native ACK/owner fence. Последующий
+новый native snapshot по-прежнему supersedes ACK; отсутствующий cache marker
+не создаётся при простом просмотре, draft/owner/cancel/error fences сохранены.
+Focused profile **9 native pass/93 filtered skips (102), exit0, 6.29 s**,
+включая новый lost/newer, прежний equal-value refresh, pending pre-write GET,
+lost write/manual retry и held ACK/account switch. One POST, chosen/newer SQL/UI/
+cache, credentials/role/sessionVersion/paid rows unchanged. Webpack/types/ESLint/
+format/boundaries618/diff pass. First full **101 pass/1 fail (102), exit1,
+83.69 s**, plus unhandled rejection: generic context proxy route.fulfill already
+handled in existing club held ACK/account switch, another late rejection noted
+at next profile case. No production-fix attribution, swallowed route error or
+timeout increase. Unchanged targeted switch+profile **10 pass/92 filtered skips
+(102), exit0, 7.49 s**; repeated unchanged full **102 native browser→Nest HTTP→
+SQL/loopback SMTP pass, exit0, 83.80 s**; fresh default **2277 pass/1117 opt-in
+skips (3399), exit0, 26.11 s**, docs54/diff pass. Local commit/no push. The earlier
+intermittent proxy failure remains documented, not declared fixed. Own labelled
+loopback tmpfs/Next stopped/removed after exact ownership/mounts/port inspection.
+No CSS/markup/API/
+auth-controller changes or new screenshot/provider claim.
+Next: отдельно воспроизвести page/context route-drain ordering на собственном
+loopback wire, затем вернуться к C3 coverage map по frontend WORK_PLAN/code/native tests и
+выбрать следующий независимый comments/saved/search сценарий; не расширять
+перестановки запросов без воспроизводимой причины и не повторять неизменные gates.
+A7/Q1/avatar storage/atomicity/provider/device gates remain open.
+
 **C3bg, club ACK versus a snapshot delivered during the write — 12 октября МСК:**
 Продолжение от clean feature93f492c. Собственный SQL/HTTP barrier: pre-write
 auth/me читает fixture intermediate name/null, profile.update200 действительно

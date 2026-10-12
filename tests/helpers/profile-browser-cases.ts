@@ -4,7 +4,7 @@ import type { Connection, RowDataPacket } from "mysql2/promise";
 import { COOKIE_NAME } from "../../packages/shared/src/const";
 import { sdk } from "../../apps/backend/src/_core/sdk";
 
-interface ProfileFixture {
+export interface ProfileFixture {
   rows(sql: string, args?: unknown[]): Promise<RowDataPacket[]>;
   connection: Pick<Connection, "query">;
   context: BrowserContext;

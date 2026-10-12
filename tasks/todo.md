@@ -6,6 +6,29 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3bh (12 октября МСК): equivalent profile editor native held POST commits ACK
+name while pre-write same-owner GET renders intermediate identity (existing-cache
+reconcile proves React receipt; draft remains unchanged), then ACK delivered and
+post-write refresh lost/newer. Native RED1 fail/1 pass (8.18 s) for lost refresh:
+save-start source discarded confirmed name display. Latest committed user ref
+via layout effect is now read at native ACK, after owner fence, not after refresh.
+Newer server snapshot still supersedes UI/cache. New206-line ordering helper
+reuses exported test fixture type; profile917 helper not grown. Profile9 native
+pass/93 filtered skips (102), exit0 (6.29 s); one POST, SQL/cache/identity/access
+verified. Webpack/types/lint/format/boundaries618/diff pass. First full102:
+101 pass/1 fail and one unhandled rejection (83.69 s), generic native proxy
+route.fulfill already handled during existing club held ACK/account switch;
+unchanged targeted switch+profile10 pass (7.49 s). No suppression/timeout bump
+or harness-fix claim. Repeated unchanged full102 native browser/API/SQL/loopback
+SMTP pass, exit0 (83.80 s); fresh default2277 pass/1117 opt-in skips (3399),
+exit0 (26.11 s), docs54/diff pass. Own tmpfs/Next cleaned, local commit/no push.
+No CSS/markup/API/auth/roles/quota/subscription changes.
+Next: reproduce page/context route-drain ordering in isolated loopback fixture,
+then return to current C3 coverage map against frontend WORK_PLAN/code/native
+tests and select the next independent comments/saved/search scenario; do not
+invent more ordering permutations or repeat unchanged successful checks.
+A7/Q1/storage/atomicity/provider/device gates remain open.
+
 C3bg (12 октября МСК): held native profile POST commits while a pre-write
 auth read renders an intermediate same-owner name, then ACK delivered and next
 native refresh reply lost. Save-start callback discarded ACK display (RED1 fail,

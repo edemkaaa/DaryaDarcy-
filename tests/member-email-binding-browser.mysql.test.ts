@@ -38,6 +38,7 @@ import { registerEmailBindingRecipientBrowserCases } from "./helpers/email-bindi
 import { trackRouteHandler } from "./helpers/route-drain";
 import { registerSeasonAdminBrowserCases } from "./helpers/season-admin-browser-cases";
 import { registerProfileBrowserCases } from "./helpers/profile-browser-cases";
+import { registerProfileOrderBrowserCases } from "./helpers/profile-order-browser-cases";
 import { registerClubSetupBrowserCases } from "./helpers/club-setup-browser-cases";
 
 // Opt in with a separately started, enabled production frontend build. API
@@ -253,6 +254,14 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       frontend: frontend!,
     }));
     registerProfileBrowserCases(() => ({
+      rows,
+      connection,
+      context,
+      memberId,
+      base,
+      frontend: frontend!,
+    }));
+    registerProfileOrderBrowserCases(() => ({
       rows,
       connection,
       context,
