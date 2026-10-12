@@ -205,6 +205,62 @@ describe.skipIf(!testDatabaseUrl)(
         },
       );
     });
+    it("M1 identifies an object shared by a public cover, a restricted section and an auto-created club teaser", async () => {
+      // Migration must classify every reference, not the URL prefix or the
+      // club target of the generated teaser. No object GET or ACL claim here.
+      const shared =
+        "https://storage.example.test/synthetic/feed/photos/shared.webp";
+      const restricted =
+        "https://storage.example.test/synthetic/feed/photos/body-only.webp";
+      const sections = [
+        { type: "photo" as const, url: shared },
+        { type: "photo" as const, url: restricted },
+      ];
+      const id = await create({
+        title: "M1 shared-reference article fixture",
+        access: "club",
+        published: true,
+        coverUrl: shared,
+        sections,
+      });
+      const stored = await article(id);
+      expect(stored.coverUrl).toBe(shared);
+      expect(stored.sections).toEqual(sections);
+      const generated = await teaser(id);
+      expect(generated).toHaveLength(1);
+      expect(generated[0]).toMatchObject({
+        source: `article:${id}`,
+        target: "club",
+        published: 1,
+        status: "published",
+        photos: [shared],
+      });
+      expect(await client().articles.getById.query({ id })).toEqual({
+        id,
+        title: "M1 shared-reference article fixture",
+        access: "club",
+        locked: true,
+        coverUrl: shared,
+        sections: [],
+      });
+      expect(await client(bearer).articles.getById.query({ id })).toEqual({
+        id,
+        title: "M1 shared-reference article fixture",
+        access: "club",
+        locked: false,
+        coverUrl: shared,
+        sections,
+      });
+      // Reading through either boundary must not rewrite associations or rights.
+      expect(await article(id)).toEqual(stored);
+      expect(await teaser(id)).toEqual(generated);
+      const [identity] = await conn.query<RowDataPacket[]>(
+        "SELECT role,sessionVersion,blockedAt FROM users WHERE id=9060",
+      );
+      expect(identity).toEqual([
+        { role: "admin", sessionVersion: 0, blockedAt: null },
+      ]);
+    });
     it("normalizes legacy published sections in both repository lists and public detail", async () => {
       await conn.query("UPDATE articles SET sections=? WHERE id=9060", [
         JSON.stringify([

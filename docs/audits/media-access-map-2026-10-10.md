@@ -48,6 +48,52 @@ Public Access, Object Ownership, CDN или Timeweb. Успех этих тес�
 
 ## Открытая приёмка M1/M2
 
+### M1b1: точные reference-границы — 12 октября 2026
+
+Первая часть M1b, не готовый exporter/object inventory и не M2. Проверка
+[native article HTTP/JWT/SQL](../../tests/nest-admin-articles.mysql.test.ts)
+создаёт synthetic published club article, где один URL одновременно находится
+в cover и photo section. Настоящий writer добавляет его в photos автоматически
+созданного club teaser (`source=article:<id>`). Guest получает этот URL в cover
+locked article, но sections=[]; admin получает оба section URL. SQL associations
+и admin identity не меняются при чтении. **1 focused pass (1.49 s), полный
+article suite 33 pass (2.88 s)**. Object GET/HEAD/range не выполнялись; hostname
+synthetic, хранилище/рабочие ACL не затронуты. Это доказательство пересечения
+API references, не доказательство читаемости закрытого файла в рабочем bucket.
+
+Collector должен учитывать сырые сохранённые references, не только нормализованный
+renderer output: legacy sections могут хранить heading/body/photos, а неизвестные
+JSON shape нельзя молча отбросить и объявить объект orphan.
+
+| Источник для локальной карты | Видимость reference по текущему коду | Особый случай |
+| --- | --- | --- |
+| posts.photos, post_media.url, richText.children[].link, ссылки posts.text | Published feed/both доступны публично; club — club access; draft/scheduled/legacy published=false не public | target=both не становится private от наличия club view; ссылки в тексте — candidates для сопоставления inventory |
+| articles.coverUrl | Published article: cover возвращается guest даже при locked=true | Auto teaser содержит тот же URL, но target=club; этот target не отменяет публичность cover |
+| articles.sections[].url/urls и legacy photos, ссылки text/body | Published public article body публичен; published club sections требуют доступа; unpublished article не public | photo/png/carousel/link и markdown candidate links; неизвестный формат требует diagnostic, не empty result |
+| post_comments.photos | Чтение club.comments требует clubMemberProcedure; родитель должен быть published | Префикс club/comments и автора недостаточно для прямого URL access-check |
+| users.avatarUrl | Отдельный публичный avatar class согласно сохранённому дизайну | Не закрывать avatar из-за club user/общей папки |
+| videos.thumbnailUrl/videoUrl | Published videos list/getById используют publicProcedure | Не превращать каталог в платный без отдельного V1-контракта |
+| launch_settings.config сезонные backgroundUrl/bannerUrl | Публичное оформление | Учитывать отдельно от закрытых вложений; inline/static/external URL не обязательно S3 object |
+
+Источники: [schema](../../packages/database/src/schema.ts),
+[rich text](../../packages/shared/src/rich-text-types.ts),
+[article normalization](../../packages/shared/src/article-blocks.ts),
+[teaser writer](../../apps/backend/src/content/article-writes.ts),
+[feed reads](../../apps/backend/src/content/post-catalog-repository.ts),
+[comment boundary](../../apps/backend/src/club/router.ts),
+[video boundary](../../apps/backend/src/content/videos-router.ts),
+[season configuration](../../packages/shared/src/launch-settings.ts).
+
+Для будущего read-only collector: группировать все exact references на объект;
+public/restricted/shared — состояние ссылок, не автоматически назначаемый ACL.
+Unmatched/ambiguous URL и неполная inventory остаются unresolved. Orphan можно
+объявлять только при полной проверенной карте ссылок и перечислении собственных
+objects. Никакого fetch внешнего URL, загрузки .env, чтения working bucket/PII,
+вывода signed query/PII в log или автоматической смены ACL/URL/SQL здесь нет.
+Следующий срез: collector на synthetic SQL/JSON с явным incomplete/unknown
+результатом; затем M1c own isolated storage GET/HEAD/range. Контракт M2 требует
+отдельного review до изменения выдачи и переноса.
+
 1. На собственном изолированном S3-совместимом хранилище проверить public/private
    объекты: guest/expired/blocked/paid через настоящее API и прямой GET/HEAD/range.
    Loopback wire выше не заменяет эту проверку.

@@ -29,6 +29,18 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+M1b1 (12 октября МСК): partial read-only classification, не complete M1b/M2.
+Native admin article writer creates cover/section shared URL plus auto club
+teaser reference; guest locked article still exposes cover, admin sees sections.
+Native SQL/HTTP1 focused pass (1.49 s), article suite33 pass (2.88 s), associations/
+identity unchanged. Updated existing media map with exact SQL/JSON/link/legacy/
+season paths and public/both/locked-cover exceptions; no prefix-derived ACL.
+Types/format/diff pass; no production change, object GET or working-bucket leak
+claim. Owned labelled loopback tmpfs cleaned, no secrets/providers/deploy.
+Next: synthetic SQL/JSON read-only collector with incomplete/unknown diagnostics,
+then M1c isolated storage GET/HEAD/range; M2 contract reviewed before delivery/ACL
+changes. Жалобы остаются отложены, прежние A7/Q1/external gates сохранены.
+
 C3bj (12 октября МСК): C3 map showed existing native search/saved/login and
 comment edit/delete coverage but no member report submission UI acceptance.
 Test-only report ACK/lost native reply cases: actual Nest/SQL report200/ok:true,

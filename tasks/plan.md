@@ -56,6 +56,26 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**M1b1 — shared reference proof, 12 октября МСК:** продолжение от clean
+feature486f1ce согласно новому приоритету, жалобы не выполнялись. Read-only
+code/schema mapping и synthetic native admin HTTP/JWT/SQL: один URL допустим
+как published club article cover + restricted photo section + automatically
+created club teaser photos. Guest locked detail отдаёт cover при sections=[],
+admin получает body; чтение не меняет associations/identity. **Focused1 pass,
+exit0, 1.49 s; full native article33 pass, exit0, 2.88 s**. Это проверенный
+API reference collision, не object GET/ACL/policy рабочего bucket. Existing
+[media map](../docs/audits/media-access-map-2026-10-10.md) расширена raw SQL/JSON/
+richText/markdown/legacy/season reference paths; both/public-cover exceptions
+сохраняют прежнюю видимость. Unknown/incomplete/ambiguous нельзя молча объявлять
+private/public/orphan; shared reference не запускает автоматический ACL change.
+Types/format/diff pass, production/API/roles/quota/subscription/storage unchanged.
+Own loopback tmpfs verified exact ID/label/mounts/port and stopped with --rm;
+no working data/secrets/provider/SMTP/deployment actions. M1b остаётся открытым:
+нет exporter/inventory/classifier всего dataset, M1c/M2 ещё не закрыты. Next:
+synthetic SQL/JSON collector with explicit incomplete diagnostics; M1c real own
+storage GET/HEAD/range. Security/spec skills keep M2 contract under review before
+changing delivery/ACL; no speculative unused production scaffold added.
+
 | Пункт ТЗ | Что уже есть | Остаток / этап ниже |
 | --- | --- | --- |
 | 2.1, админка/участницы | Списки, оплаты, выдача доступа, блокировка, повтор письма; заявка и подтверждение почты внутри backend | A1–A7: доставка/очистка/HTTP/форма; новая привязка пока недоступна |
