@@ -6,6 +6,23 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3ay (12 октября МСК): explicit user request, native RED3 fail: setup closed
+before ACK on lost-before-SQL/lost-after-native-commit/held late reply. Focused
+dialog owns canonical lock/signal/current-owner fences; direct chosen draft to
+native API, scoped completion/name/gender/avatar cache and close only after ACK.
+Disabled close/fields/choices while saving, retained draft/error/manual retry,
+no automatic resend. Native retry one next POST200/cache+SQL verified; held
+member commit→native admin switch→release cannot publish old setup/cache/greeting.
+Credentials/roles/paid rows unchanged. Separate test helper; initial missing
+PenPals Dialog import repaired/no unrelated UI changes. Focused3 pass (9.25 s),
+final91 native browser/API/SQL/loopback SMTP pass (80.76 s); default2274 pass/
+1106 opt-in skips (31.17 s), final webpack/types/lint/format/API73/618 boundaries/
+diff pass.
+390/1280 retained error/retry layout inspected. Own tmpfs/Next cleaned; local
+commit only/no push/deploy/working data/providers/secrets. Avatar separate backend
+write/external upload atomicity NOT claimed. Next: native avatar-cache migration
+without external storage, setup auth/refresh failures; A7/Q1/external gates open.
+
 C3ax (12 октября МСК): native direct /club RED changed SQL name/gender from
 stale scoped cache. Required internal includeIdentity=false for mount avatar
 migration / true for explicit setup; server name wins in greeting. Native direct

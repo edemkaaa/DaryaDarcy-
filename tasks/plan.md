@@ -41,6 +41,42 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3ay, club setup unknown outcome and late-owner reply — 12 октября МСК:**
+Прямое поручение пользователя: сохранить анкету при потере ответа и смене
+аккаунта. Native RED **3 fail/88 filtered skips (91), exit1, 19.74 s**:
+потеря до SQL / потеря после настоящего HTTP200+SQL commit / удержанный success
+до смены account — dialog уже закрыт до ACK. Новый focused setup-dialog владеет
+canonical useSessionOperation lock/signal/current-owner fences; не пишет cache
+и не закрывает форму до profile.update success:true. Явный draft передаётся
+native API напрямую, не через преждевременно опубликованные preferences.
+Выбор/декодирование фото и native calls получают task signal; remote avatar cache
+публикуется только после ACK всей анкеты. Close/input/gender/photo/submit disabled
+при сохранении; синхронный submitting ref исключает повторную отправку.
+Неизвестный результат оставляет name/gender draft, accessible inline alert и
+явную «Повторить сохранение анкеты», без автоматического retry/blur POST.
+Completion/name/gender cache проверен отсутствующим после обеих потерь; manual
+retry даёт один следующий POST200, SQL name/gender и scoped cache подтверждены.
+Late-case: настоящий member SQL commit/HTTP200 удержан → native auth/me
+подтверждает admin в том же документе → release: no old greeting/setup/cache,
+one POST, member commit сохранён, admin identity/credentials/paid access прежние.
+Новые cases вынесены в отдельный helper вместо роста большого profile helper.
+Initial build обнаружил удалённый вместе с setup import Dialog, ещё нужный
+PenPals: import восстановлен, реально неиспользуемый icon import удалён.
+Focused **3 pass/88 filtered skips, exit0, 9.25 s**; full **91 native browser→
+Nest HTTP→SQL/loopback SMTP pass, exit0, 80.76 s**. Default **2274 pass/1106
+opt-in skips, exit0, 31.17 s**; final webpack build/types/ESLint/format/API73/
+618 boundaries/diff pass.
+390/1280 error screenshots inspected in one bounded batch: retained incumbent
+fonts/forms/palette/close/header; only honest error/retry state added. TDD,
+owner/security/interface review и React/Impeccable hardening без redesign.
+Own labelled loopback/tmpfs backend_test checked exact ID/name/label/mounts/port;
+Next/tmpfs cleaned after verification. Only local commit/no push/deploy/secrets/
+working data/external mail/payments. Avatar upload is a separate backend write:
+external storage/photo acceptance and atomicity across avatar+identity are NOT
+claimed. Next independent C3: native avatar-cache migration without external
+upload and additional setup refresh/auth failures; A7/Q1/provider/device gates
+remain. Voluntary idle close/skip behavior preserved, not reported as server save.
+
 **C3ax, direct club-entry stale identity write — 12 октября МСК:**
 Продолжение от clean feature1a3a651, без branch switch/merge. Native RED при
 прямом /club: обычный mount sync записал C3 stale club name и gender=male из

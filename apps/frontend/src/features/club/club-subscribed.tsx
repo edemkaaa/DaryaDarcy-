@@ -26,12 +26,11 @@ import {
 import { useAuth } from "@/domain/session/session-context";
 import AsyncStorage from "@/shared/browser/storage";
 import { Picture } from "@/shared/media/image";
-import { MaterialIcons } from "@/shared/ui/icons";
 import { SafeArea } from "@/shared/ui/safe-area";
 
 import { PenPals } from "@/features/club/pen-pals";
 import { useCapabilities } from "@/shared/api/capabilities";
-import { ProfileSetup } from "@/features/club/profile-setup";
+import { ClubProfileSetupDialog } from "./club-profile-setup-dialog";
 import { TagBoardDrawer } from "@/features/club/tag-board-drawer";
 import { ScrollToTopButton } from "@/shared/ui/scroll-to-top-button";
 import { AdminFAB } from "@/features/admin/admin-fab";
@@ -54,7 +53,6 @@ import { articleIdFromSource } from "@/domain/content/article-blocks";
 import { PhotoViewer } from "@/shared/media/photo-viewer";
 import { useClubContentProtection } from "@/shared/browser/use-club-protection";
 import {
-  CLUB_PROFILE_AVATAR_KEY,
   CLUB_PROFILE_GENDER_KEY,
   CLUB_PROFILE_NAME_KEY,
   syncClubProfileToServer,
@@ -608,53 +606,15 @@ export function ClubSubscribed() {
 
         {/* Profile Setup Modal — shown only once for new users who haven't set up profile */}
         {needsProfileSetup ? (
-          <Dialog label="Настройка профиля клуба" open motion="slide">
-            <div
-              className={["ui-stack ", classes.div].filter(Boolean).join(" ")}
-            >
-              <Action
-                aria-label="Закрыть настройку профиля"
-                onClick={async () => {
-                  await AsyncStorage.setItem(PROFILE_COMPLETED_KEY, "true");
-                  setProfileCompleted(true);
-                }}
-                className={({ pressed }) =>
-                  [
-                    classes.action3,
-                    pressed ? classes.opacityState3 : classes.opacityState4,
-                  ]
-                    .filter(Boolean)
-                    .join(" ")
-                }
-              >
-                <MaterialIcons name="close" size={24} color="#4A3728" />
-              </Action>
-            </div>
-            <ProfileSetup
-              onComplete={async (data) => {
-                await AsyncStorage.setItem(PROFILE_COMPLETED_KEY, "true");
-                await AsyncStorage.setItem(CLUB_PROFILE_NAME_KEY, data.name);
-                await AsyncStorage.setItem(
-                  CLUB_PROFILE_GENDER_KEY,
-                  data.gender,
-                );
-                if (data.avatarUrl) {
-                  await AsyncStorage.setItem(
-                    CLUB_PROFILE_AVATAR_KEY,
-                    data.avatarUrl,
-                  );
-                }
-                setProfileCompleted(true);
-                setProfileName(data.name);
-                setProfileGender(data.gender);
-                if (user) {
-                  await pushProfileToServer(true);
-                } else {
-                  await refresh();
-                }
-              }}
-            />
-          </Dialog>
+          <ClubProfileSetupDialog
+            active={active}
+            onDismissed={() => setProfileCompleted(true)}
+            onSaved={(data) => {
+              setProfileCompleted(true);
+              setProfileName(data.name);
+              setProfileGender(data.gender);
+            }}
+          />
         ) : null}
       </SafeArea>
       {isOwner && ManagementModals}
