@@ -20,7 +20,10 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { openContentTestDatabase } from "./helpers/content-mysql";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
-import { collectArticleReferences } from "../tooling/lib/media-reference-map";
+import {
+  collectArticleReferences,
+  collectPostReferences,
+} from "../tooling/lib/media-reference-map";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import type { AppRouter } from "../apps/backend/src/routers";
 import { sdk } from "../apps/backend/src/_core/sdk";
@@ -253,6 +256,46 @@ describe.skipIf(!testDatabaseUrl)(
         coverUrl: shared,
         sections,
       });
+      await conn.query(
+        "INSERT INTO post_comments (id,postId,userId,text,photos) VALUES (9060,?,9060,'Synthetic media reference',?)",
+        [generated[0].id, JSON.stringify([shared])],
+      );
+      const [articleSnapshot] = await conn.query<RowDataPacket[]>(
+        "SELECT id,access,published,coverUrl,sections FROM articles WHERE id=?",
+        [id],
+      );
+      const [postSnapshot] = await conn.query<RowDataPacket[]>(
+        "SELECT id,published,status,target,photos,text,richText FROM posts WHERE id=?",
+        [generated[0].id],
+      );
+      const [comments] = await conn.query<RowDataPacket[]>(
+        "SELECT id,postId,photos FROM post_comments WHERE id=9060",
+      );
+      const report = collectPostReferences({
+        articles: articleSnapshot,
+        posts: postSnapshot,
+        comments,
+        media: [],
+      });
+      expect(
+        report.groups.find(
+          (group) =>
+            group.urlHash === createHash("sha256").update(shared).digest("hex"),
+        ),
+      ).toEqual({
+        urlHash: createHash("sha256").update(shared).digest("hex"),
+        visibility: "shared",
+        references: [
+          `articles:${id}.coverUrl`,
+          `articles:${id}.sections:0.url`,
+          `posts:${generated[0].id}.photos:0`,
+          "post_comments:9060.photos:0",
+        ],
+      });
+      const [commentsAfter] = await conn.query<RowDataPacket[]>(
+        "SELECT id,postId,photos FROM post_comments WHERE id=9060",
+      );
+      expect(commentsAfter).toEqual(comments);
       // Reading through either boundary must not rewrite associations or rights.
       expect(await article(id)).toEqual(stored);
       expect(await teaser(id)).toEqual(generated);

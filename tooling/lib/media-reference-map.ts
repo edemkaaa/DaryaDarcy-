@@ -16,6 +16,14 @@ const snapshot = z
   )
   .max(5000);
 type Visibility = "public" | "restricted";
+type ReferenceMap = {
+  groups: {
+    urlHash: string;
+    visibility: Visibility | "shared";
+    references: string[];
+  }[];
+  issues: string[];
+};
 
 function referenceReport() {
   const issues: string[] = [];
@@ -72,7 +80,8 @@ function referenceReport() {
     }
     value.forEach((url, index) => {
       const item = `${location}:${index}`;
-      if (typeof url !== "string") issues.push(item + ".invalid-url");
+      if (typeof url !== "string" || url === "")
+        issues.push(item + ".invalid-url");
       else add(url, item, access);
     });
   };
@@ -86,7 +95,22 @@ function referenceReport() {
     })),
     issues,
   });
-  return { add, text, list, issues, finish };
+  const merge = (report: ReferenceMap) => {
+    issues.push(...report.issues);
+    for (const source of report.groups) {
+      const group = grouped.get(source.urlHash) ?? {
+        access: new Set<Visibility>(),
+        references: new Set<string>(),
+      };
+      if (source.visibility === "shared") {
+        group.access.add("public");
+        group.access.add("restricted");
+      } else group.access.add(source.visibility);
+      source.references.forEach((reference) => group.references.add(reference));
+      grouped.set(source.urlHash, group);
+    }
+  };
+  return { add, text, list, issues, finish, merge };
 }
 
 /** Offline reference evidence only: never an object inventory or ACL decision. */
@@ -172,6 +196,8 @@ const postSnapshot = z
             status: z.enum(["published", "draft", "scheduled"]),
             target: z.enum(["feed", "club", "both"]),
             photos: z.unknown().refine((value) => value !== undefined),
+            text: z.unknown().optional(),
+            richText: z.unknown().optional(),
           })
           .strict(),
       )
@@ -187,10 +213,23 @@ const postSnapshot = z
           .strict(),
       )
       .max(10000),
+    articles: snapshot.optional(),
+    comments: z
+      .array(
+        z
+          .object({
+            id: z.number().int().positive(),
+            postId: z.number().int().positive(),
+            photos: z.unknown().refine((value) => value !== undefined),
+          })
+          .strict(),
+      )
+      .max(10000)
+      .optional(),
   })
   .strict();
 
-/** Photos/attachments only; text, richText and other content remain unmapped. */
+/** Selected references only; omitted sources are never an inventory or ACL. */
 export function collectPostReferences(input: unknown) {
   const parsed = postSnapshot.safeParse(input);
   if (
@@ -198,10 +237,14 @@ export function collectPostReferences(input: unknown) {
     new Set(parsed.data.posts.map((row) => row.id)).size !==
       parsed.data.posts.length ||
     new Set(parsed.data.media.map((row) => row.id)).size !==
-      parsed.data.media.length
+      parsed.data.media.length ||
+    new Set(parsed.data.comments?.map((row) => row.id)).size !==
+      (parsed.data.comments?.length ?? 0)
   )
     throw new Error("Invalid post snapshot");
-  const { add, list, issues, finish } = referenceReport();
+  const { add, list, issues, finish, merge } = referenceReport();
+  if (parsed.data.articles)
+    merge(collectArticleReferences(parsed.data.articles));
   const accessByPost = new Map<number, Visibility>();
   for (const row of parsed.data.posts) {
     const access: Visibility =
@@ -211,6 +254,70 @@ export function collectPostReferences(input: unknown) {
         ? "public"
         : "restricted";
     accessByPost.set(row.id, access);
+    if (row.text !== undefined) {
+      if (typeof row.text !== "string")
+        issues.push(`posts:${row.id}.text.invalid-text`);
+      else {
+        // Plain posts render text, not automatic anchors. These are candidates
+        // only; punctuation/aliases must not be normalized into object identity.
+        const candidates = row.text.match(/https?:\/\/[^\s<>"']+/gi) ?? [];
+        if (candidates.length)
+          issues.push(`posts:${row.id}.text.candidates-not-rendered-links`);
+        candidates.forEach((url, index) =>
+          add(url, `posts:${row.id}.text.candidate:${index}`, access),
+        );
+      }
+    }
+    let richText = row.richText;
+    const richLocation = `posts:${row.id}.richText`;
+    if (typeof richText === "string") {
+      try {
+        richText = JSON.parse(richText);
+      } catch {
+        issues.push(richLocation + ".invalid-json");
+        richText = null;
+      }
+    }
+    if (richText !== undefined && richText !== null) {
+      if (!Array.isArray(richText))
+        issues.push(richLocation + ".invalid-array");
+      else
+        richText.forEach((value, index) => {
+          const location = `${richLocation}:${index}`;
+          if (!value || typeof value !== "object" || Array.isArray(value)) {
+            issues.push(location + ".unknown-shape");
+            return;
+          }
+          const block = value as Record<string, unknown>;
+          if (block.type !== "paragraph" && block.type !== "heading")
+            issues.push(location + ".unknown-shape");
+          if (
+            Object.keys(block).some(
+              (key) => !["type", "children"].includes(key),
+            )
+          )
+            issues.push(location + ".unknown-fields");
+          if (!Array.isArray(block.children)) {
+            issues.push(location + ".children.invalid-array");
+            return;
+          }
+          block.children.forEach((child, childIndex) => {
+            const childLocation = `${location}.children:${childIndex}`;
+            if (!child || typeof child !== "object" || Array.isArray(child)) {
+              issues.push(childLocation + ".unknown-shape");
+              return;
+            }
+            const inline = child as Record<string, unknown>;
+            if (
+              Object.keys(inline).some(
+                (key) => !["text", "bold", "italic", "link"].includes(key),
+              )
+            )
+              issues.push(childLocation + ".unknown-fields");
+            add(inline.link, childLocation + ".link", access);
+          });
+        });
+    }
     const location = `posts:${row.id}.photos`;
     let photos = row.photos;
     if (typeof photos === "string") {
@@ -231,5 +338,23 @@ export function collectPostReferences(input: unknown) {
     }
     add(row.url, `post_media:${row.id}.url`, access);
   }
-  return finish("post-photos-media-only-no-object-inventory");
+  for (const row of parsed.data.comments ?? []) {
+    const location = `post_comments:${row.id}`;
+    if (!accessByPost.has(row.postId)) {
+      issues.push(location + ".parent-not-in-snapshot");
+      continue;
+    }
+    let photos = row.photos;
+    if (typeof photos === "string") {
+      try {
+        photos = JSON.parse(photos);
+      } catch {
+        issues.push(location + ".photos.invalid-json");
+        continue;
+      }
+    }
+    // club.comments requires membership even for a parent also visible in feed.
+    if (photos !== null) list(photos, location + ".photos", "restricted");
+  }
+  return finish("content-references-partial-no-object-inventory");
 }

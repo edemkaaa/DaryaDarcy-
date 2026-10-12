@@ -56,6 +56,29 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**M1b5 — cross-source references, 12 октября МСК:** posts raw text URL candidates,
+richText children.link и club comment photos добавлены к offline collector;
+optional selected articles объединяются по exact hash с post/media/comment refs.
+Scope теперь content-references-partial-no-object-inventory: отсутствующие
+источники/normalization/own-vs-external/object identity не считаются проверенными.
+Plain text не linkified нынешним renderer: candidates явно помечены, aliases/
+punctuation не нормализуются в objects. Comment photos restricted даже при feed
+parent; missing parent, unknown/malformed blocks и duplicate comment IDs не
+одобряются молча. RED3 fail/4 pass (220 ms) → расширение; compile выявил circular
+inference merge, устранено explicit internal report type. Найден отдельный
+collector bug: empty array URL молча пропускался; RED1 fail/9 pass (143 ms) →
+явный invalid-url, optional empty scalar semantics сохранены. Final focused
+article/post19 pass (852 ms), native article34 pass (2.06 s), types exit0.
+Default workers2 **2296 pass/1122 opt-in skips (3423), exit0, 48.16 s**;
+docs/format/diff pass. Review: strict selected columns/IDs, redacted merge,
+partial scope, no endpoint/auth/ACL changes. Own tmpfs container cleaned.
+Real SQL article writer→auto club teaser + synthetic comment дают shared group;
+повторные rows/associations/identity неизменны. Own labelled loopback/tmpfs only,
+no working DB/bucket/env secrets/ACL/provider actions. Article stdin CLI unchanged,
+новые источники library-only. Next global avatar/video/season references, complete
+input diagnostics/CLI and explicit owned-object inventory/resolution; M1b/M1c/M2
+не закрыты, новое storage/browser acceptance не заявлено.
+
 **M1b4 — post photo/attachment references, 12 октября МСК:** offline library
 добавляет выбранные post metadata/photos и post_media id/postId/url. Visibility
 берётся из published + status + target: feed/both public только при публикации,

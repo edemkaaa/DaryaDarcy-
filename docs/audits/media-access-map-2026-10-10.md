@@ -141,7 +141,25 @@ post helper пока library-only. Focused article/post13 pass, types pass; actu
 post SQL/object acceptance этим срезом не заявлена. Default workers2 2290 pass/
 1122 opt-in skips (3417), exit0, 47.78 s; docs/format/diff pass.
 
-Next: text/richText/comment и остальные references, cross-source grouping;
+M1b5 расширяет library snapshot optional `articles` и `comments` (selected
+id/postId/photos), а posts — optional text/richText. Article cover/sections и
+post/media/comment refs объединяются по exact URL hash; scope теперь
+`content-references-partial-no-object-inventory`. Comments photos null допустимы,
+array/SQL JSON string собираются как restricted даже для feed parent — нынешний
+club.comments boundary требует membership. Missing parent/unknown fields/shape/
+malformed JSON остаются issues, duplicate comment IDs отклоняются generic error.
+Raw richText links собираются до display normalization, чтобы не терять evidence.
+Plain posts не renderят automatic links: HTTP(S) text candidates явно помечены,
+punctuation и www/relative aliases не превращаются в object identity.
+Empty photo-array URL теперь invalid-url (RED/GREEN); optional scalar empty
+cover/link semantics прежние. Native SQL writer→auto teaser + synthetic comment
+подтвердил cross-source shared group и отсутствие rewrite rows/rights. Final
+focused19 pass, native article34 pass, types pass; default workers2 2296 pass/
+1122 opt-in skips (3423), exit0, 48.16 s. Own tmpfs cleaned; docs/format/diff pass.
+Article stdin CLI unchanged;
+новые sources пока library-only, не exporter рабочих данных/полная inventory.
+
+Next: global avatar/video/season refs, complete-input diagnostics/CLI;
 затем проверенная inventory/object resolution и M1c. M1b не закрыт,
 M2 delivery contract/rollout требует отдельного review.
 

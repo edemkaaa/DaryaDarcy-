@@ -29,6 +29,22 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+M1b5 (12 октября МСК): raw post text URL candidates/richText links + club comment
+photos merged with selected article/post/media groups. Comment photos remain
+restricted for feed parents too; missing parent/unknown fields/malformed blocks
+diagnosed, duplicate comment identities rejected. Plain text candidates explicitly
+not rendered links; scope content-references-partial-no-object-inventory.
+RED3 fail/4 pass (220 ms) → new sources; compile circular inference resolved by
+explicit report type. Found empty photo URL silently omitted: RED1 fail/9 pass
+(143 ms) → invalid-url. Final focused19 pass (852 ms), native article34 pass
+(2.06 s), types pass; default workers2 2296 pass/1122 opt-in skips (3423),
+exit0, 48.16 s; docs/format/diff pass. Reviewed selected fields/IDs, generic
+errors, partial scope/redacted merge, no auth/endpoint/ACL changes; own tmpfs
+container cleaned. Real SQL writer→auto teaser + synthetic comment shared URL,
+rows/associations/identity unchanged. Own labelled loopback/tmpfs only; no working
+data/ACL/providers. CLI remains articles-only; next global refs/full-input CLI/
+object identity/inventory. M1b/M1c/M2 remain open, no object/browser readiness claim.
+
 M1b4 (12 октября МСК): library-only post photos/post_media reference collector;
 same redacted exact-URL helpers as article map. Published feed/both public;
 club/draft/scheduled/unpublished restricted. Missing parent in selected snapshot
