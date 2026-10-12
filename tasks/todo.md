@@ -29,6 +29,19 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+C2g (12 октября МСК): native article editor draft create/reload/cancel edit →
+publish same ID/public canonical body via guest HTTP → cancel delete keeps row/
+club teaser → confirmed delete removes both/reload absent. Existing visibility
+semantics preserved, no upload/banner/storage fetch. Shared existing article
+schema fixture reused; test-only, no API mock. Diagnostic initial SQL read before
+ACK failed (3.70 s); fixed test to wait for form closure, no production fix/timeout
+bump claim. Focused1 pass/106 filtered skips (107), exit0, 4.67 s; integrated
+C2 + public library9 pass/98 filtered skips (107), exit0, 15.00 s; types/format/
+diff pass. Own labelled loopback/tmpfs/Next cleaned; scoped synthetic rows only,
+no working data/providers/secrets. Unchanged build/default/full107 not repeated.
+Next unknown-result article writes/cancel during pending write; code risk not yet
+confirmed bug. M1c actual storage/M2 review/rollout wait for selected local S3 data.
+
 C2f (12 октября МСК): native UI/Nest/SQL existing attachment association ACK/
 lost-reply acceptance. Own synthetic draft + PDF/audio: cancel removal keeps both
 without POST, saved removal deletes only PDF, audio full metadata/ID retained.

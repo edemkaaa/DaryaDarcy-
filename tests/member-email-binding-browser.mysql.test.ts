@@ -30,6 +30,7 @@ import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openLoopbackSmtp } from "./helpers/loopback-smtp";
 import { registerAdminMembershipBrowserCases } from "./helpers/admin-membership-browser-cases";
 import { registerAdminPostBrowserCases } from "./helpers/admin-post-browser-cases";
+import { registerAdminArticleBrowserCases } from "./helpers/admin-article-browser-cases";
 import { registerPostInteractionsBrowserCases } from "./helpers/post-interactions-browser-cases";
 import { registerClubCommentsBrowserCases } from "./helpers/club-comments-browser-cases";
 import { registerLibraryBrowserCases } from "./helpers/library-browser-cases";
@@ -303,6 +304,13 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       context,
       actorId,
       memberId,
+      base,
+      frontend: frontend!,
+    }));
+    registerAdminArticleBrowserCases(() => ({
+      rows,
+      connection,
+      context,
       base,
       frontend: frontend!,
     }));

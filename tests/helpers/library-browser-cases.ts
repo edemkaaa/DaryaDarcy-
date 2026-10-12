@@ -16,7 +16,7 @@ interface LibraryBrowserFixture {
   memberId: number;
 }
 
-async function ensureArticles(connection: Pick<Connection, "query">) {
+export async function ensureArticles(connection: Pick<Connection, "query">) {
   await connection.query(`CREATE TABLE IF NOT EXISTS articles (
     id INT AUTO_INCREMENT PRIMARY KEY,title VARCHAR(255) NOT NULL,coverUrl TEXT,
     access ENUM('public','club') NOT NULL DEFAULT 'public',published BOOLEAN NOT NULL DEFAULT TRUE,

@@ -56,6 +56,24 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**C2g — native article editor lifecycle, 12 октября МСК:** independent UI/Nest/
+SQL acceptance while selected local S3 endpoint/test bucket credentials method
+not yet supplied. Editor creates one club draft/text block → reload → cancel
+title edit preserves row → publish same ID as public article → guest native
+HTTP reads canonical body under existing semantics → cancel delete retains
+article/club teaser → confirm delete removes both → reload remains absent.
+No upload/banner/image fetch or change of article access meaning. Test-only
+helper reuses exported existing ensureArticles schema fixture, not mocks.
+First diagnostic fail read SQL before save ACK (3.70 s); waiting for editor
+closure before canonical card resolves it, no production fix/timeout bump.
+**Focused1 pass/106 filtered skips (107), exit0, 4.67 s; integrated C2 + public
+library9 pass/98 filtered skips (107), exit0, 15.00 s**; types/format/diff pass.
+Review: scoped synthetic titles/IDs/teaser cleanup, native responses, no external
+providers/secrets/working data. Own labelled loopback/tmpfs/Next cleaned; unchanged
+build/default/full107 not repeated. Next C2 article unknown-result create/update
+and cancellation during pending write; code risk not yet reproduced as a bug.
+M1c/M2/storage rollout gates still open; waiting for user's chosen local stand.
+
 **C2f — existing attachment associations, 12 октября МСК:** независимый срез
 пока ждём параметры выбранного пользователем S3-стенда. Native production UI/
 Nest/SQL: synthetic draft + existing PDF/audio metadata, remove→cancel сохраняет
