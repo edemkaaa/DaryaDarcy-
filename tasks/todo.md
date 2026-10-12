@@ -6,6 +6,19 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3bd (12 октября МСК): native profile ACK/lost auth refresh→server restores
+original name/equal-value native snapshot left ACK name/cache stale, RED1 fail
+(7.79 s). Initial executable-path typo repaired/not production RED. Confirmation
+and existing-cache reconcile now keyed to confirmed user snapshot reference,
+owner/cancelled/absent-cache guards intact, no draft/auth/roles/access changes.
+One POST, restored UI/cache and identity/paid rows verified; profile6 pass (10.44 s),
+final96 native browser/API/SQL/loopback SMTP pass (83.13 s); default2274 pass/
+1111 opt-in skips (27.69 s), webpack/types/lint/format/diff pass. No CSS/markup/
+imports/API/boundary change or new screenshot claim. Own tmpfs/Next cleaned,
+local commit/no push/providers/working data/secrets. Next: native same-owner auth
+read already pending before save; do not bypass login ordering with force refresh
+without evidence. A7/Q1/storage/atomicity/provider/device gates remain open.
+
 C3bc (12 октября МСК): native server name=NULL/auth-me:null revived cached setup
 greeting, RED1 fail (8.31 s). One-line confirmed-user name selection honours null;
 ACK override and later native name/male recovery preserved, one POST, identity/

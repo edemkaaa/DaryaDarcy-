@@ -21,16 +21,17 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState(false);
   // Keep an acknowledged save visible while auth refresh is pending. A new
-  // server name supersedes it without discarding an unsaved editing draft.
+  // server snapshot supersedes it, including equal-name refreshes, without
+  // discarding an unsaved editing draft.
   const [confirmation, setConfirmation] = useState({
-    source: displayName,
+    source: user,
     name: displayName,
   });
-  if (confirmation.source !== displayName) {
-    setConfirmation({ source: displayName, name: displayName });
+  if (confirmation.source !== user) {
+    setConfirmation({ source: user, name: displayName });
   }
   const shownName =
-    confirmation.source === displayName ? confirmation.name : displayName;
+    confirmation.source === user ? confirmation.name : displayName;
   useEffect(() => {
     if (!user?.id || !isPersonalDataOwner(user.id)) return;
     let cancelled = false;
@@ -44,7 +45,7 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, user?.name]);
+  }, [user]);
   // Enter, disabling the input and removing it can also trigger blur.
   const editingRef = useRef(false);
   const errorRef = useRef(false);
@@ -64,7 +65,7 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
       if (result?.success !== true) throw invalidResponse();
       task.assertCurrent();
       // Publish and cache only a server-confirmed name for the current owner.
-      setConfirmation({ source: displayName, name });
+      setConfirmation({ source: user, name });
       await AsyncStorage.setItem(PROFILE_NAME_KEY, name);
       task.assertCurrent();
       editingRef.current = false;

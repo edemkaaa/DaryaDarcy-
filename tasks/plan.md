@@ -41,6 +41,34 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3bd, profile name equal-value snapshot and cache — 12 октября МСК:**
+Продолжение от clean featurec89149f. Первоначальный CLI executable path имел
+повтор directory segment (browser не стартовал, 96 skips, suite exit1/2.00 s);
+путь исправлен, это не production RED. Native RED **1 fail/95 filtered skips
+(96), exit1, 7.79 s**: настоящее profile.update200+SQL commit → новый auth/me
+body прочитан native transport, но потерян на возврате → ACK имя показано;
+затем SQL restore исходного имени → native auth/me с прежним значением, но
+editor продолжает показывать сохранённый ACK. Причина: equality сравнивала строку
+имени, а cache effect зависел только от id/name. Теперь temporary ACK привязан
+к user snapshot reference; каждый confirmed snapshot сверяет существующий cache,
+даже при равном имени. Cancelled/owner guard сохранены, absent/empty cache не
+создаётся при просмотре, draft не сбрасывается, auth/roles/subscription untouched.
+Native UI и cache снова Browser phone member, one POST, credentials/role/
+sessionVersion/paid rows неизменны. Focused profile **6 pass/90 filtered skips
+(96), exit0, 10.44 s**; full **96 native browser→Nest HTTP→SQL/loopback SMTP
+pass, exit0, 83.13 s**, включая profile→quiz→club setup и account isolation.
+Fresh default **2274 pass/1111 opt-in skips (3390), exit0, 27.69 s**;
+webpack/types/ESLint/format/diff pass. No CSS/markup/import/API/boundary changes;
+предыдущий bounded profile layout review не выдан за новый screenshot run.
+TDD и React/security review: snapshot dependency намеренна для equal-name cache
+reconciliation, storage effect не зеркалит React state. Own labelled loopback/
+tmpfs backend_test ownership/readiness/mounts/port verified; Next/tmpfs cleaned,
+local commit/no push/deploy/working DB/secrets/providers/external sending.
+Next independent C3: native same-owner auth read already in flight before profile
+save; overlapping read/write ordering НЕ объявлено проверенным этим срезом.
+Не использовать force refresh для обхода login ordering без нового native proof.
+A7/Q1/external storage/atomicity/provider/device gates остаются открыты.
+
 **C3bc, confirmed null club name does not revive cache — 12 октября МСК:**
 Продолжение от clean feature3666a93. Native C3bb journey расширен: после ACK/
 lost auth response и восстановления исходных данных synthetic SQL name=NULL

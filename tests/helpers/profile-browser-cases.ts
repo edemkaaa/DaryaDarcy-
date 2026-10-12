@@ -14,6 +14,115 @@ interface ProfileFixture {
 }
 
 export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
+  it("C3 profile name accepts an equal-value native snapshot after acknowledged save and lost refresh", async () => {
+    const { connection, rows, context, frontend, base, memberId } = fixture();
+    await connection.query(
+      "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-profile-equal-snapshot','paid','0','2030-01-01')",
+      [memberId],
+    );
+    const identitySql =
+      "SELECT id,email,phone,passwordHash,role,sessionVersion FROM users WHERE id=?";
+    const identity = await rows(identitySql, [memberId]);
+    const access = await rows("SELECT * FROM club_payments WHERE userId=?", [
+      memberId,
+    ]);
+    await context.clearCookies();
+    await context.addCookies([
+      {
+        name: COOKIE_NAME,
+        value: await sdk.createSessionToken("binding-browser-member", {
+          sessionVersion: 0,
+        }),
+        url: frontend,
+        httpOnly: true,
+        sameSite: "Lax",
+      },
+    ]);
+    const page = await context.newPage();
+    await page.goto(frontend + "profile");
+    await page
+      .getByRole("button", { name: "Browser phone member", exact: true })
+      .click();
+    const field = page.getByRole("textbox", {
+      name: "Имя профиля",
+      exact: true,
+    });
+    await field.fill("C3 Profile acknowledged name");
+    let writes = 0,
+      lostNativeRefresh = false;
+    page.on("request", (request) => {
+      if (
+        request.method() === "POST" &&
+        request.url().includes("profile.update")
+      )
+        writes++;
+    });
+    await page.route("**/api/auth/me", async (route) => {
+      const response = await route.fetch({
+        url: base + "/api/auth/me",
+        maxRedirects: 0,
+      });
+      expect(response.status()).toBe(200);
+      expect(await response.json()).toMatchObject({
+        user: { name: "C3 Profile acknowledged name" },
+      });
+      lostNativeRefresh = true;
+      return route.abort("failed");
+    });
+    const [saved] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          response.url().includes("profile.update"),
+      ),
+      page.waitForEvent(
+        "requestfailed",
+        (request) => new URL(request.url()).pathname === "/api/auth/me",
+      ),
+      field.press("Enter"),
+    ]);
+    expect(saved.status()).toBe(200);
+    expect(lostNativeRefresh).toBe(true);
+    expect(await rows("SELECT name FROM users WHERE id=?", [memberId])).toEqual(
+      [{ name: "C3 Profile acknowledged name" }],
+    );
+    await browserExpect(
+      page.getByRole("button", {
+        name: "C3 Profile acknowledged name",
+        exact: true,
+      }),
+    ).toBeVisible();
+    const cached = () =>
+      page.evaluate(
+        (id) =>
+          localStorage.getItem(`darcy:user:${id}:@darcy_club_profile_name`),
+        memberId,
+      );
+    expect(await cached()).toBe("C3 Profile acknowledged name");
+    await page.unrouteAll({ behavior: "wait" });
+    await connection.query(
+      "UPDATE users SET name='Browser phone member' WHERE id=? AND openId='binding-browser-member'",
+      [memberId],
+    );
+    const [restored] = await Promise.all([
+      page.waitForResponse(
+        (response) => new URL(response.url()).pathname === "/api/auth/me",
+      ),
+      page.evaluate(() => window.dispatchEvent(new Event("online"))),
+    ]);
+    expect(await restored.json()).toMatchObject({
+      user: { name: "Browser phone member" },
+    });
+    await browserExpect(
+      page.getByRole("button", { name: "Browser phone member", exact: true }),
+    ).toBeVisible();
+    await browserExpect.poll(cached).toBe("Browser phone member");
+    expect(writes).toBe(1);
+    expect(await rows(identitySql, [memberId])).toEqual(identity);
+    expect(
+      await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
+    ).toEqual(access);
+  }, 30_000);
   it("C3 explicit club setup still saves the chosen name and gender through native SQL", async () => {
     const { rows, connection, context, frontend, memberId } = fixture();
     await connection.query(
