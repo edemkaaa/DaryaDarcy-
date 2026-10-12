@@ -159,7 +159,19 @@ focused19 pass, native article34 pass, types pass; default workers2 2296 pass/
 Article stdin CLI unchanged;
 новые sources пока library-only, не exporter рабочих данных/полная inventory.
 
-Next: global avatar/video/season refs, complete-input diagnostics/CLI;
+M1b6 добавляет optional `decoration` с selected arrays: avatars id/avatarUrl,
+videos id/published/thumbnailUrl/videoUrl, seasons season/backgroundUrl/bannerUrl.
+Список не принимает email/profile/managerEmail/full configuration. Avatar и theme
+URLs public, published video URLs public, unpublished video refs restricted.
+Duplicate IDs/season names и extra fields отвергаются; ограничения 10000 avatars,
+5000 videos, 4 seasons, URL 4096 chars; nullable URL пропускаются. Shared collision
+с club content не меняет публичность этих references автоматически. Focused22
+JSON/unit pass и types pass; не новая SQL/object/browser проверка. Partial scope
+остаётся, omitted sources не считаются полными; article stdin CLI unchanged.
+Default workers2 2299 pass/1122 opt-in skips (3426), exit0, 48.97 s;
+docs/format/diff pass, no new dependencies or ACL/API changes.
+
+Next: complete-input diagnostics/CLI;
 затем проверенная inventory/object resolution и M1c. M1b не закрыт,
 M2 delivery contract/rollout требует отдельного review.
 

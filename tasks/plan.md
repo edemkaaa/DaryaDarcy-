@@ -56,6 +56,22 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**M1b6 — public decoration references, 12 октября МСК:** optional offline
+decoration snapshot выбранных avatar/video/season URL, без profile/email/config
+PII полей и без чтения рабочей БД. Avatar и сезонные backgrounds/banners public;
+published video thumbnail/video URL public, unpublished restricted. Совпадение
+с club reference даёт shared, не автоматическую приватизацию публичного объекта.
+Strict selected fields/unique identities и row limits; nullable URL допускаются,
+unknown extra fields отклоняются generic error. RED2 fail/11 pass (172 ms) →
+focused article/post22 pass (881 ms), types exit0. Default workers2 **2299 pass/
+1122 opt-in skips (3426), exit0, 48.97 s**; docs/format/diff pass. Review:
+selected URL fields, bounded/unique IDs, partial scope; existing ACL/API unchanged.
+Это JSON/library acceptance;
+fresh SQL/browser/storage/ACL не заявлены, unchanged native34 checkpoint сохранён.
+Next complete-input diagnostics/CLI, explicit object inventory/identity/external
+resolution; partial scope и M1b/M1c/M2 gates остаются. No production paths/deps/
+permissions/providers/working data изменены.
+
 **M1b5 — cross-source references, 12 октября МСК:** posts raw text URL candidates,
 richText children.link и club comment photos добавлены к offline collector;
 optional selected articles объединяются по exact hash с post/media/comment refs.

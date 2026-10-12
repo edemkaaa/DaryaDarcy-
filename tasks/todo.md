@@ -29,6 +29,18 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+M1b6 (12 октября МСК): optional selected decoration snapshot: public avatar/
+season URLs and published video URLs; unpublished video refs restricted. Shared
+club/public decoration collision never silently privatizes avatar/catalog/theme.
+Strict URL-only fields/unique identities/row limits; unexpected personal fields
+rejected, no actual PII/DB/config read. RED2 fail/11 pass (172 ms) → focused22
+pass (881 ms), types pass; default workers2 2299 pass/1122 opt-in skips (3426),
+exit0, 48.97 s; docs/format/diff pass. Reviewed selected URLs/IDs, partial scope,
+no ACL/API change. JSON/library only; unchanged native34 checkpoint
+retained, no fresh SQL/browser/storage/ACL claim. Next complete-input CLI and
+explicit owned object inventory/identity/external resolution. M1b/M1c/M2 open,
+no working data/providers/permissions/dependencies changed.
+
 M1b5 (12 октября МСК): raw post text URL candidates/richText links + club comment
 photos merged with selected article/post/media groups. Comment photos remain
 restricted for feed parents too; missing parent/unknown fields/malformed blocks

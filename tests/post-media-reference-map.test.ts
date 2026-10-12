@@ -159,3 +159,65 @@ it("diagnoses empty photo array elements instead of approving missing references
     collect({ posts: [post(1, { photos: [""] })], media: [] }).issues,
   ).toEqual(["posts:1.photos:0.invalid-url"]);
 });
+
+it("preserves public avatars, published videos and seasonal decoration when also referenced by club content", () => {
+  const report = collect({
+    posts: [post(1, { target: "club" })],
+    media: [],
+    decoration: {
+      avatars: [{ id: 4, avatarUrl: url }],
+      videos: [{ id: 5, published: 1, thumbnailUrl: url, videoUrl: null }],
+      seasons: [{ season: "winter", backgroundUrl: url, bannerUrl: null }],
+    },
+  });
+  expect(report.groups[0]).toEqual({
+    urlHash: createHash("sha256").update(url).digest("hex"),
+    visibility: "shared",
+    references: [
+      "posts:1.photos:0",
+      "users:4.avatarUrl",
+      "videos:5.thumbnailUrl",
+      "launch_settings.seasons:winter.backgroundUrl",
+    ],
+  });
+  expect(report.issues).toEqual([]);
+});
+it("keeps unpublished video links restricted rather than privatizing the public catalog", () => {
+  const report = collect({
+    posts: [],
+    media: [],
+    decoration: {
+      avatars: [],
+      seasons: [],
+      videos: [{ id: 5, published: 0, thumbnailUrl: null, videoUrl: url }],
+    },
+  });
+  expect(report.groups[0]).toMatchObject({
+    visibility: "restricted",
+    references: ["videos:5.videoUrl"],
+  });
+});
+it("rejects duplicate decoration identities and unintended personal fields", () => {
+  const input = {
+    posts: [],
+    media: [],
+    decoration: {
+      avatars: [
+        { id: 4, avatarUrl: url },
+        { id: 4, avatarUrl: null },
+      ],
+      videos: [],
+      seasons: [],
+    },
+  };
+  expect(() => collect(input)).toThrow("Invalid post snapshot");
+  expect(() =>
+    collect({
+      ...input,
+      decoration: {
+        ...input.decoration,
+        avatars: [{ id: 4, avatarUrl: url, email: "PRIVATE_VALUE" }],
+      },
+    }),
+  ).toThrow("Invalid post snapshot");
+});

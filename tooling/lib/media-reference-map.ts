@@ -185,6 +185,52 @@ export function collectArticleReferences(input: unknown) {
   return finish("articles-only-no-object-inventory");
 }
 
+const decorationSnapshot = z
+  .object({
+    avatars: z
+      .array(
+        z
+          .object({
+            id: z.number().int().positive(),
+            avatarUrl: z.string().max(4096).nullable(),
+          })
+          .strict(),
+      )
+      .max(10000),
+    videos: z
+      .array(
+        z
+          .object({
+            id: z.number().int().positive(),
+            published: z.union([z.boolean(), z.literal(0), z.literal(1)]),
+            thumbnailUrl: z.string().max(4096).nullable(),
+            videoUrl: z.string().max(4096).nullable(),
+          })
+          .strict(),
+      )
+      .max(5000),
+    seasons: z
+      .array(
+        z
+          .object({
+            season: z.enum(["winter", "spring", "summer", "autumn"]),
+            backgroundUrl: z.string().max(4096).nullable(),
+            bannerUrl: z.string().max(4096).nullable(),
+          })
+          .strict(),
+      )
+      .max(4),
+  })
+  .strict()
+  .refine(
+    (value) =>
+      new Set(value.avatars.map((row) => row.id)).size ===
+        value.avatars.length &&
+      new Set(value.videos.map((row) => row.id)).size === value.videos.length &&
+      new Set(value.seasons.map((row) => row.season)).size ===
+        value.seasons.length,
+  );
+
 const postSnapshot = z
   .object({
     posts: z
@@ -214,6 +260,7 @@ const postSnapshot = z
       )
       .max(10000),
     articles: snapshot.optional(),
+    decoration: decorationSnapshot.optional(),
     comments: z
       .array(
         z
@@ -355,6 +402,26 @@ export function collectPostReferences(input: unknown) {
     }
     // club.comments requires membership even for a parent also visible in feed.
     if (photos !== null) list(photos, location + ".photos", "restricted");
+  }
+  for (const row of parsed.data.decoration?.avatars ?? [])
+    add(row.avatarUrl, `users:${row.id}.avatarUrl`, "public");
+  for (const row of parsed.data.decoration?.videos ?? []) {
+    const access =
+      row.published === true || row.published === 1 ? "public" : "restricted";
+    add(row.thumbnailUrl, `videos:${row.id}.thumbnailUrl`, access);
+    add(row.videoUrl, `videos:${row.id}.videoUrl`, access);
+  }
+  for (const row of parsed.data.decoration?.seasons ?? []) {
+    add(
+      row.backgroundUrl,
+      `launch_settings.seasons:${row.season}.backgroundUrl`,
+      "public",
+    );
+    add(
+      row.bannerUrl,
+      `launch_settings.seasons:${row.season}.bannerUrl`,
+      "public",
+    );
   }
   return finish("content-references-partial-no-object-inventory");
 }
