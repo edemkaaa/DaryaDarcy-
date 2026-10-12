@@ -6,6 +6,15 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+Q1y (12 октября МСК): Q1w JSON assumption corrected. Native installed CLI export
+without --sql and with --sql=false both output synthetic SQL, exit0/no stderr.
+Source: exportRaw supports sql/config/dialect/schema only; MySQL handler prints
+SQL unconditionally, no JSON branch. No candidate-JSON compatibility claim;
+public serializer/API path requires separate justified scope if needed.
+Minimal env/disabled dotenv/cache/network guard, no SQL execution/DB/secrets/
+dependency/lock/code changes. Docs-only; Q1x upstream blocker still applies.
+Next independent agreed work, not repeated compiler probes; A7/external gates open.
+
 S1f (12 октября МСК): HTTP/javascript/HTTPS synthetic-credentials image URLs
 rejected by real admin form, retained draft/no success, zero PUT requests and
 unchanged native SQL config/audit. No mock API/external request/production fix;

@@ -41,6 +41,29 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**Q1y, correct the offline JSON-export assumption — 12 октября МСК:**
+При переходе от S1 к независимому Q1w остаток «JSON export» проверен на
+установленной CLI, а не реализован по предположению. Два native child
+запуска над tests/fixtures/drizzle-export: export без --sql и с --sql=false
+оба выдают прежний synthetic CREATE TABLE, exit0, без stderr/JSON.
+Minimal env с nonexistent DOTENV_CONFIG_PATH и ESBK_DISABLE_CACHE, connect
+guard запрещает сетевые соединения; SQL только stdout, никогда не исполняется.
+Installed bin.cjs exportRaw объявляет только sql/config/dialect/schema и
+desc «formats: sql»; prepareAndExportMysql безусловно печатает sqlStatements,
+config.sql не выбирает JSON-ветку. Это ограничение installed tooling и
+ошибочное ожидание следующего среза, не production-дефект приложения.
+Сравнение candidate compiler в JSON-режиме НЕ выполнено: этого CLI режима нет.
+Для JSON нужен отдельный проверенный public serializer/API path, если такой
+формат действительно требуется; не придумывать flag, mock или новую миграцию.
+Q1u/v/w evidence и Q1x upstream-chain blocker остаются прежними: stable bump
+сам по себе не снимает legacy esbuild finding. Никаких dependency/lock/code
+изменений, секретов, working DB/container/server/external calls. Fixture
+inventory по-прежнему два tracked TS файла, git clean до journal edit.
+54-document link check и whitespace проходят. Docs-only correction;
+unchanged tests/types/build/native browser не повторены.
+Продолжать независимый согласованный пункт, не циклические compiler probes;
+Q1/A7/provider/customer media/device acceptance не закрыта.
+
 **S1f, unsafe image URL client refusal — 12 октября МСК:**
 Три browser сценария в настоящем native fixture: HTTP URL, javascript URL,
 HTTPS со synthetic credentials. Форма показывает scoped validation error,
