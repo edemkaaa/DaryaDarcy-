@@ -19,6 +19,41 @@
 означает полный пользовательский сценарий, включая API/SQL и необходимые внешние
 проверки; наличие кнопки или зелёный mock-тест само по себе её не закрывает.
 
+### Актуальный приоритет — 12 октября 2026, поручение пользователя
+
+Пользователь отложил жалобы и запросил более серьёзные задачи. Historical C3bj
+next report account-switch/retry больше не является ближайшей очередью; уже
+сохранённый код/acceptance не отменяется. Следующий крупный блок — **M1/M2:
+закрытые файлы**, затем **C2: полный путь публикации материалов**. Это изменение
+порядка существующего плана, не разрешение менять рабочие ACL/данные или права.
+
+1. **M1b — object-to-content classification (M, 3–5 файлов).** По существующей
+   [карте медиа](../docs/audits/media-access-map-2026-10-10.md) определить все
+   ссылки post/article/comment на object, public/private/shared/external/orphan.
+   Начать с кода и synthetic SQL/JSON fixtures, не читать working bucket/секреты.
+   Acceptance: доступ не выводится из prefix; shared public/private и внешние
+   URL отдельно выявлены; намеренно публичные cover/avatar не закрыты молча.
+   Verification: focused classification/SQL tests на own backend_test; review.
+2. **M1c — isolated storage acceptance (M).** На собственных synthetic objects
+   проверить actual GET/HEAD/range через API и прямую ссылку для guest/paid/
+   expired/blocked. Зависимость M1b. Проверка SDK PUT сама по себе недостаточна.
+   Acceptance: public decoration остаётся читаемой, private access измерен;
+   local policy не выдана за состояние рабочего bucket/CDN. Review checkpoint.
+3. **M2 — closed delivery (M на вертикальный срез).** После доказательств M1 —
+   reviewed контракт live-check proxy либо ограниченной подписанной ссылки,
+   затем один полный upload→associate→authorized read сценарий. Existing
+   objects/URLs требуют отдельной карты, backup/rollback и rollout procedure;
+   глобальная замена public-read на private запрещена. Права/квоты/смысл
+   подписки не менять. Verification: browser/API/storage плюс access/expiry.
+4. **C2 — publication workflow (M на сценарий).** Следующий независимый крупный
+   блок, если M1c зависит от недоступной внешней среды: create→attachments→
+   publish/read→edit/delete через native API/SQL; сохранение черновика при сбое,
+   без дублей, с прежним frontend design. Real external storage отдельно gated.
+
+Остальные A/P/C/S/M/V/Q критерии сохранены. A7/Q1 real migration history/rollout,
+внешняя приёмка оплат/VK/устройств не снимаются; push/deploy/рабочая БД автоматически
+не меняются. Даты и обещание готовности выпуска не добавлены.
+
 ### Сверка ТЗ и фактического состояния
 
 | Пункт ТЗ | Что уже есть | Остаток / этап ниже |

@@ -6,6 +6,29 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+## Изменение приоритета по поручению пользователя — 12 октября 2026
+
+Жалобы отложены: следующие report account-switch/retry acceptance из C3bj
+не выполнять сейчас. Уже сохранённые результаты и исторические записи остаются.
+Ближайший крупный блок — M1/M2 (закрытые файлы), затем C2 (полный путь публикации).
+
+- [ ] M1b: локальная object-to-content карта по всем post/article/comment
+  references, включая shared public/private, external и unassociated objects.
+  Сначала код и synthetic fixtures, без чтения рабочих объектов/секретов.
+  Проверка: SQL/JSON fixtures не классифицируют доступ только по prefix или URL.
+- [ ] M1c: actual public/private GET/HEAD/range в собственном изолированном
+  хранилище; guest/paid/expired/blocked и API/direct URL. Не выдавать local
+  acceptance за ACL/policy рабочего bucket. Зависимость: классификация M1b.
+- [ ] M2: после M1b/M1c — reviewed closed-delivery contract и первый вертикальный
+  срез; не менять ACL глобально/не переносить старые объекты без проверенной
+  карты, backup/rollback и отдельной процедуры. Публичные cover/avatar сохранить.
+- [ ] C2: если storage-проверка внешне заблокирована, следующий независимый
+  крупный блок — native create→attachments→publish/read→edit/delete с сохранением
+  frontend design и черновика при сбоях. External uploads отдельно gated.
+
+A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
+остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
+
 C3bj (12 октября МСК): C3 map showed existing native search/saved/login and
 comment edit/delete coverage but no member report submission UI acceptance.
 Test-only report ACK/lost native reply cases: actual Nest/SQL report200/ok:true,
