@@ -6,6 +6,15 @@
 
 ## 12 октября — интеграционный checkpoint редактора статей
 
+Отмена после lost create/update reply теперь сначала читает свежий валидный
+список, затем закрывает форму. При read failure редактор/заголовок и защита от
+повторного POST сохраняются; показано честное предложение восстановить связь.
+Native RED2 → GREEN2, 12 integrated C2/public-library cases; one committed row/
+old update ID/body сохраняются и видны в той же вкладке. Default2302 pass,
+types/lint/build/boundaries проходят. Внешний вид и обычная отмена/загрузки прежние;
+нет automatic replay/new API/auth change. Reload/navigation/durable article
+recovery и поздний ambiguous server commit этим срезом не закрыты.
+
 По актуальному общему stage-one плану проведён local-only native UI/API/SQL срез
 на собственной одноразовой БД. Найдено: после commit create, но до ACK кнопка
 «Отмена» оставалась активной и могла сбросить редактор. Native RED1 → GREEN1;

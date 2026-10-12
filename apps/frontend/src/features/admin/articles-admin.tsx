@@ -102,6 +102,28 @@ export function ArticlesAdmin() {
     setPreviewing(false);
     setBlocks([emptyBlock("text")]);
   };
+  const cancel = async () => {
+    if (operation.kind === "save") return;
+    if (!uncertainSave.current) {
+      reset();
+      return;
+    }
+    const task = operation.begin("save");
+    if (!task) return;
+    try {
+      await readArticles();
+      task.assertCurrent();
+      reset();
+    } catch (error) {
+      checkOperationAccessError(error);
+      if (task.isCurrent())
+        notify(
+          "Не удалось проверить список статей. Редактор остаётся открытым. Восстановите связь и повторите отмену.",
+        );
+    } finally {
+      task.finish();
+    }
+  };
   const pickImages = async (
     preserveAlpha: boolean,
     multiple: boolean,
@@ -734,7 +756,7 @@ export function ArticlesAdmin() {
         >
           <Action
             disabled={operation.kind === "save" || remove.isPending}
-            onClick={reset}
+            onClick={() => void cancel()}
             className={classes.btnGhost}
           >
             <Typography className={classes.btnGhostText}>Отмена</Typography>

@@ -29,6 +29,20 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+C2j (12 октября МСК): user requested same-tab cancel after lost article reply.
+Native RED2 fail/108 filtered skips (110), exit1, 14.19 s: Cancel cleared form/
+unknown state without reading canonical list. Cancel now requires validated fresh
+read + owner fence before reset; failed read preserves title/unknown guard and
+retry notice. Same-tab list shows actual committed row, repeated Save still one
+POST, old update ID/body/club/draft preserved. Focused2 native pass (8.84 s),
+stronger notice assertions then final integrated C2/public library12 pass/98
+skips (110), exit0, 21.12 s; types/frontend lint/webpack30 pages/boundaries618/
+format/diff pass. Default workers2 2302 pass/1128 opt-in skips (3435), exit0,
+53.81 s. Reviewed existing session fence/validated read, no effects/new API/
+roles/deps/styles. Own tmpfs/Next cleaned; no working data/providers/storage.
+Reload/navigation/durable article recovery/late ambiguous commits remain open;
+no backend article-idempotency claim. M1c/M2 await own S3 details/review.
+
 C2i (12 октября МСК): native committed article create/update200 then lost return
 transport. Title retained, unknown alert/no success claim; repeated Save stays
 guarded, only one POST/one SQL draft/old update ID/club access/body retained.

@@ -56,6 +56,25 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**C2j — same-tab cancel after lost article reply, 12 октября МСК:** direct user
+request. Native create/update200 committed→lost return→Cancel exposed reset of
+editor/uncertain guard without fresh canonical list. **RED2 fail/108 filtered
+skips (110), exit1, 14.19 s**. Cancel now reuses validated readArticles first;
+owner-bound operation asserts current before reset. Failed read keeps form/title/
+unknown guard, gives honest retry notice; normal cancel/uploads unchanged, no
+automatic write/replay/new API or auth policy. Fresh production build **focused2
+pass/108 skips (110), exit0, 8.84 s**, then stronger retry-notice assertions →
+**final integrated C2/public library12 pass/98 skips (110), exit0, 21.12 s**.
+Same-tab list shows one committed row, no stale original title, original update
+ID/body/access/draft retained; repeated Save after failed reconciliation still
+one POST. Types/frontend lint/webpack30 pages/boundaries618/format/diff pass;
+default workers2 **2302 pass/1128 opt-in skips (3435), exit0, 53.81 s**.
+Review: existing session-operation fence, validated canonical read, no effects/
+deps/style replacement. Own labelled loopback/tmpfs/Next cleaned; no secrets/
+working data/storage/providers/deploy. Reload/navigation/durable article recovery
+и late/ambiguous server commit after unsuccessful transport remain separate gates;
+не заявлена backend article idempotency. M1c/M2 ждут выбранный local S3/review.
+
 **C2i — actual lost article create/update replies, 12 октября МСК:** native
 browser/Nest/SQL2 modes, реальный 200 после commit затем abort только return
 transport. Editor title остаётся, alert честно unknown; повтор Save вызывает

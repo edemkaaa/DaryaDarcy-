@@ -108,6 +108,37 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
         ).toHaveCount(0);
         expect(await rows(sql, [title, originalTitle])).toEqual(committed);
         expect(writes).toBe(1);
+        // A failed reconciliation cannot discard the unknown write state.
+        let denyRead = true;
+        await page.route("**/api/trpc/admin.articles*", async (route) => {
+          if (denyRead) return route.abort("failed");
+          const url = new URL(route.request().url());
+          const response = await route.fetch({
+            url: base + url.pathname + url.search,
+            maxRedirects: 0,
+          });
+          expect(response.status()).toBe(200);
+          return route.fulfill({ response });
+        });
+        await page.getByRole("button", { name: "Отмена", exact: true }).click();
+        await browserExpect.poll(() => alerts.length).toBe(3);
+        expect(alerts[2]).toContain("Редактор остаётся открытым");
+        await browserExpect(field).toHaveValue(title);
+        await save.click();
+        await browserExpect.poll(() => alerts.length).toBe(4);
+        expect(alerts[3]).toContain("Результат сохранения не подтверждён");
+        expect(writes).toBe(1);
+        denyRead = false;
+        await page.getByRole("button", { name: "Отмена", exact: true }).click();
+        await browserExpect(field).toHaveCount(0);
+        await browserExpect(page.getByText(title, { exact: true })).toHaveCount(
+          1,
+        );
+        await browserExpect(
+          page.getByText(originalTitle, { exact: true }),
+        ).toHaveCount(0);
+        expect(await rows(sql, [title, originalTitle])).toEqual(committed);
+        expect(writes).toBe(1);
       } finally {
         for (const row of await rows(
           "SELECT id FROM articles WHERE title IN (?,?)",
