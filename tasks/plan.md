@@ -56,6 +56,32 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**C2n — durable article creation boundary audit, 12 октября МСК (read-only):**
+HEAD95c768a clean on the agreed feature branch. Current admin.createArticle
+input has no creation request key and delegates to article-writes.createArticle:
+each invocation inserts a newly allocated article in a transaction with its
+teaser. Frontend uncertainSave is component-local useRef; reload/unmount removes
+it. C2l/m fence stale callbacks but do not establish durable retry identity.
+This is source-backed limitation, not a newly executed duplicate-write test.
+Post creation already has an actor-bound payload-hashed request ledger with
+unique-key serialization and retained result after deletion; it is a reference,
+not an article guarantee and must not be repurposed silently.
+
+Next proposed capability: **article-create-recovery** only, no update replay or
+automatic retry. Need human review before adding a separate durable request
+ledger/migration and owner-bound client recovery contract. Required criteria:
+same actor/key/payload returns the original ID without recreating the article
+or teaser; changed payload conflicts; current admin authorization precedes
+recovery; deletion must not turn a replay into recreation; unknown/in-flight
+is not interpreted as absence. Client recovery must not infer identity from
+title/time/list snapshots or persist article bodies/media URLs casually. Exact
+client persistence/retention and compatible legacy API behavior are not decided.
+No approved spec, schema/API/client edits or migration numbering chosen here;
+spec-driven-development requires review before proceeding with this new schema
+contract. Verify eventual slices with native concurrent SQL/HTTP + reload/lost
+response browser cases and preflight; working rollout remains separately gated.
+S3 M1c/M2 dependency unchanged; other independent agreed work remains eligible.
+
 **C2m — late failed reconciliation after leaving the editor, 12 октября МСК:**
 extends C2l with held native list200/body/committed ID proof followed by lost
 return transport after SPA view switch or cross-tab logout/member login.

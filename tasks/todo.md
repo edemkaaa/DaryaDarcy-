@@ -29,6 +29,16 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+C2n (12 октября МСК): source-only audit confirms article create has no durable
+request identity; component uncertainSave does not survive reload. Not a native
+duplicate-write reproduction. Proposed article-create-recovery needs reviewed
+separate request-ledger/schema and owner-bound client recovery contract before
+implementation (spec-driven-development gate). Post ledger is only precedent;
+do not silently reuse it or deduplicate by title/time. Replay after deletion,
+changed payload, current auth and concurrent/late commit need explicit acceptance.
+No migration/API/client/working data changes. C2l/m evidence unchanged; S3 and
+rollout gates remain, next independent agreed work can continue while reviewed.
+
 C2m (12 октября МСК): delayed real canonical list200 then lost return after
 SPA editor unmount or cross-tab logout/member login. No stale alert/reset/
 private row/duplicate; new unsent editor retained, honest list retry reads one
