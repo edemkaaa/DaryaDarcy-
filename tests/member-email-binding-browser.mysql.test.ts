@@ -311,6 +311,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       rows,
       connection,
       context,
+      memberId,
       base,
       frontend: frontend!,
     }));

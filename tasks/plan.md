@@ -56,6 +56,27 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**C2l — pending reconciliation account/navigation fences, 12 октября МСК:**
+native committed create200 followed by lost response; Cancel's native list200
+held after actual read, then SPA admin view switch/new unsent editor or cross-tab
+logout/password member login. Late response cannot reset replacement editor,
+raise stale alerts or expose the club draft to the member; native read403,
+one POST/one unchanged SQL row/no unsent row. Logout correctly redirects the
+old tab to login, not admin; no test-forced reload to hide the pending callback.
+Integrated C2/public library **14 pass/98 filtered skips (112), exit0, 59.27 s**;
+final stronger payload ID/title proof **focused2 pass/110 skips (112), exit0,
+9.07 s**. Types pass; production unchanged, no fix/RED claim. Initial test
+diagnostics corrected: expected old-tab admin view after logout and interception
+of deliberate403; no timeout increase or swallowed route errors. Review:
+session abort/cache clear + operation-current guard, held native response gate,
+frame settlement, awaited handler/scoped fixture cleanup. No roles/design/API/
+dependencies changes; unchanged build/default/full112 not repeated. Durable
+unknown-write recovery across reload/navigation and late server commits remain
+open; this checks stale callbacks, not durable idempotency. M1c/M2 still await
+user-selected S3 endpoint/test bucket/test-only connection details.
+Final types/docs54/format/diff pass; own labelled tmpfs container identity
+rechecked before stopping/removal, Next server stopped, fixture rows cleaned.
+
 **C2k — HTTP200 invalid canonical identities, 12 октября МСК:** independent
 negative reconciliation acceptance while local S3 details remain absent. After
 real committed create/update with lost reply, Cancel performs actual native SQL

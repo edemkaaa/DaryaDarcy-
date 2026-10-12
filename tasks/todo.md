@@ -29,6 +29,19 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+C2l (12 октября МСК): pending native canonical read after lost committed article
+create; SPA view switch/new unsent editor and cross-tab logout/member password
+login keep stale response fenced. New editor retained/no stale alerts/member
+read403/no private row rendered; one POST/one unchanged SQL row/no unsent row.
+Integrated14 pass/98 filtered skips (112), exit0, 59.27 s; final stronger native
+ID/title proof focused2 pass/110 skips, exit0, 9.07 s; types pass. Test-only
+characterization; diagnostic route403 interception/old-tab logout redirect
+expectation corrected, no production RED/fix or timeout changes. No design/
+roles/API/deps/working data/providers/storage. Durable recovery/late commits
+remain open, M1c/M2 await user's selected S3 details; see C2l plan evidence.
+Final types/docs54/format/diff pass; scoped SQL fixtures and own verified
+labelled loopback/tmpfs container/Next cleaned, no foreign resources removed.
+
 C2k (12 октября МСК): actual native canonical list200 after lost committed
 create/update; only returned IDs corrupted to0, explicit nonempty/positive-ID
 proof before injection. Invalid identities retain editor/unknown guard, repeat

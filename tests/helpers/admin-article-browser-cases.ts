@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { expect as browserExpect, type BrowserContext } from "@playwright/test";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { ensureArticles } from "./library-browser-cases";
+import { hashPassword } from "../../apps/backend/src/_core/password";
 
 type Fixture = {
   rows(sql: string, args?: unknown[]): Promise<RowDataPacket[]>;
@@ -9,9 +10,210 @@ type Fixture = {
   context: BrowserContext;
   frontend: string;
   base: string;
+  memberId: number;
 };
 
 export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
+  it.each(["navigation", "account"] as const)(
+    "C2 fences pending article cancellation reads across %s changes",
+    async (transition) => {
+      const { rows, connection, context, frontend, base, memberId } = fixture();
+      const title = `C2 pending reconciliation ${transition} fixture`;
+      const newTitle = title + " unsent new editor";
+      await ensureArticles(connection);
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      let handler: Promise<void> | undefined;
+      let readReady = false;
+      let writes = 0;
+      try {
+        const page = await context.newPage();
+        const alerts: string[] = [];
+        page.on("dialog", async (dialog) => {
+          alerts.push(dialog.message());
+          await dialog.accept();
+        });
+        await page.route("**/api/trpc/admin.createArticle*", async (route) => {
+          writes++;
+          const url = new URL(route.request().url());
+          const response = await route.fetch({
+            url: base + url.pathname + url.search,
+            maxRedirects: 0,
+          });
+          expect(response.status()).toBe(200);
+          await route.abort("failed");
+        });
+        await page.goto(frontend + "admin");
+        await page.getByRole("button", { name: "Статьи", exact: true }).click();
+        await page
+          .getByRole("button", { name: "Написать статью", exact: true })
+          .click();
+        const field = page.getByPlaceholder("Что посмотреть осенью...");
+        await field.fill(title);
+        await page
+          .getByRole("button", { name: "Статус: опубликована", exact: true })
+          .click();
+        await page
+          .getByRole("button", { name: "Сохранить черновик", exact: true })
+          .click();
+        await browserExpect.poll(() => alerts.length).toBe(1);
+        expect(alerts[0]).toContain("Результат сохранения не подтверждён");
+        const sql =
+          "SELECT id,title,access,published FROM articles WHERE title IN (?,?) ORDER BY id";
+        const committed = await rows(sql, [title, newTitle]);
+        expect(committed).toHaveLength(1);
+        expect(committed[0]).toMatchObject({
+          title,
+          access: "club",
+          published: 0,
+        });
+        await page.route("**/api/trpc/admin.articles*", (route) => {
+          const hold = !handler;
+          const pending = (async () => {
+            const url = new URL(route.request().url());
+            const response = await route.fetch({
+              url: base + url.pathname + url.search,
+              maxRedirects: 0,
+            });
+            expect(response.status()).toBe(200);
+            if (hold) {
+              const payload = await response.json();
+              const returned = (
+                Array.isArray(payload) ? payload : [payload]
+              ).flatMap((item) => item.result.data.json);
+              expect(returned).toEqual(
+                expect.arrayContaining([
+                  expect.objectContaining({ id: committed[0].id, title }),
+                ]),
+              );
+              readReady = true;
+              await gate;
+            }
+            await route.fulfill({ response });
+          })();
+          if (!handler) handler = pending;
+          return pending;
+        });
+        await page.getByRole("button", { name: "Отмена", exact: true }).click();
+        await browserExpect.poll(() => readReady).toBe(true);
+        await browserExpect(field).toHaveValue(title);
+        if (transition === "navigation") {
+          // Switching views unmounts the old editor without a document reload.
+          await page
+            .getByRole("button", { name: "Посты", exact: true })
+            .click();
+          await browserExpect(field).toHaveCount(0);
+          await page
+            .getByRole("button", { name: "Статьи", exact: true })
+            .click();
+          await page
+            .getByRole("button", { name: "Написать статью", exact: true })
+            .click();
+          await field.fill(newTitle);
+        } else {
+          const password = "Synthetic-C2-reconciliation-only-2026!";
+          await connection.query(
+            "UPDATE users SET email=?,passwordHash=? WHERE id=?",
+            [
+              "c2.reconciliation.member@example.test",
+              await hashPassword(password),
+              memberId,
+            ],
+          );
+          const other = await context.newPage();
+          await other.goto(frontend + "profile");
+          await other
+            .getByRole("button", { name: "Выйти", exact: true })
+            .click();
+          await browserExpect(
+            page.getByRole("button", { name: "Войти", exact: true }),
+          ).toBeVisible();
+          await other.goto(frontend + "login?next=/admin");
+          await other
+            .getByPlaceholder("Email", { exact: true })
+            .fill("c2.reconciliation.member@example.test");
+          await other
+            .getByPlaceholder("Пароль", { exact: true })
+            .fill(password);
+          await other
+            .getByRole("button", { name: "Войти", exact: true })
+            .click();
+          await browserExpect(
+            other.getByRole("button", {
+              name: "Вернуться в профиль",
+              exact: true,
+            }),
+          ).toBeVisible();
+          await page.bringToFront();
+          // Logout redirects this tab to login; it must stay fenced there,
+          // not be forced back into admin by the later list callback.
+          await browserExpect(page).toHaveURL(/\/login(?:\?|$)/);
+          expect(
+            await page.evaluate(async () =>
+              (await fetch("/api/auth/me")).json(),
+            ),
+          ).toMatchObject({ user: { id: memberId, role: "user" } });
+        }
+        release();
+        await handler;
+        await page.unroute("**/api/trpc/admin.articles*");
+        // Let the returned read and React's resulting callbacks settle before
+        // checking that they did not reset the replacement editor/session.
+        await page.evaluate(
+          () =>
+            new Promise<void>((resolve) =>
+              requestAnimationFrame(() =>
+                requestAnimationFrame(() => resolve()),
+              ),
+            ),
+        );
+        if (transition === "navigation") {
+          await browserExpect(field).toHaveValue(newTitle);
+          await browserExpect(
+            page.getByRole("button", { name: "Опубликовать", exact: true }),
+          ).toBeEnabled();
+          await page
+            .getByRole("button", { name: "Отмена", exact: true })
+            .click();
+          await browserExpect(field).toHaveCount(0);
+          await browserExpect(
+            page.getByText(title, { exact: true }),
+          ).toHaveCount(1);
+        } else {
+          await browserExpect(field).toHaveCount(0);
+          await browserExpect(
+            page.getByText(title, { exact: true }),
+          ).toHaveCount(0);
+          await browserExpect(
+            page.getByRole("button", { name: "Статьи", exact: true }),
+          ).toHaveCount(0);
+          expect(
+            await page.evaluate(
+              async () => (await fetch("/api/trpc/admin.articles")).status,
+            ),
+          ).toBe(403);
+        }
+        expect(alerts).toHaveLength(1);
+        expect(writes).toBe(1);
+        expect(await rows(sql, [title, newTitle])).toEqual(committed);
+      } finally {
+        release();
+        await handler;
+        for (const row of await rows(
+          "SELECT id FROM articles WHERE title IN (?,?)",
+          [title, newTitle],
+        )) {
+          await connection.query("DELETE FROM posts WHERE source=?", [
+            `article:${row.id}`,
+          ]);
+          await connection.query("DELETE FROM articles WHERE id=?", [row.id]);
+        }
+      }
+    },
+    30_000,
+  );
   it.each(["create", "update"] as const)(
     "C2 retains an article after a committed %s reply is lost and blocks repeated writes",
     async (mode) => {
