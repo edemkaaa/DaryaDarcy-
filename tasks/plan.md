@@ -56,6 +56,18 @@ next report account-switch/retry больше не является ближай
 
 ### Сверка ТЗ и фактического состояния
 
+**M1b10 — unsupported rich-text link classification, 12 октября МСК:** RED1
+fail/13 filtered skips (14), exit1, 350 ms: unknown block child link inherited
+public post access despite unknown-shape diagnostic. Minimal fix gives that
+raw link candidate unknown; parent photo cannot wash out uncertainty. Supported
+paragraph/heading retain access. Focused library/CLI31 pass, exit0, 2.79 s;
+types/docs54/format/diff pass; default workers2 **2308 pass/1133 opt-in skips
+(3446), exit0, 51.84 s**. Review: link extraction preserved,
+diagnostics/redaction/strict snapshots unchanged, no renderer/ACL/API/schema/
+SQL/S3/deps/resources. Existing issue previously prohibited rollout already;
+this corrects misleading class, not an observed production disclosure. S3
+details/C2n review/working rollout remain pending.
+
 **M1b9 — unknown article shape must retain explicit URL candidates, 12 октября
 МСК:** direct continue request. **RED1 fail/15 filtered skips (16), exit1,
 202 ms**: future-video raw url/urls/photos lost, same-URL public cover made

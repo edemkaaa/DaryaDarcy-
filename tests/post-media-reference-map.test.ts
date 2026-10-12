@@ -108,6 +108,29 @@ it("retains raw text URL candidates with an explicit non-rendered-link diagnosti
   });
   expect(report.issues).toEqual(["posts:1.text.candidates-not-rendered-links"]);
 });
+it("does not infer public visibility for links in unsupported rich-text block shapes", () => {
+  const report = collect({
+    posts: [
+      post(1, {
+        richText: [
+          {
+            type: "future-widget",
+            children: [{ text: "Candidate", link: url }],
+          },
+        ],
+      }),
+    ],
+    media: [],
+  });
+  expect(report.groups).toEqual([
+    {
+      urlHash: createHash("sha256").update(url).digest("hex"),
+      visibility: "unknown",
+      references: ["posts:1.richText:0.children:0.link", "posts:1.photos:0"],
+    },
+  ]);
+  expect(report.issues).toEqual(["posts:1.richText:0.unknown-shape"]);
+});
 it("preserves malformed rich-text and unmatched comment diagnostics without disclosing input", () => {
   const report = collect({
     posts: [

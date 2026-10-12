@@ -346,8 +346,9 @@ export function collectPostReferences(input: unknown) {
             return;
           }
           const block = value as Record<string, unknown>;
-          if (block.type !== "paragraph" && block.type !== "heading")
-            issues.push(location + ".unknown-shape");
+          const supported =
+            block.type === "paragraph" || block.type === "heading";
+          if (!supported) issues.push(location + ".unknown-shape");
           if (
             Object.keys(block).some(
               (key) => !["type", "children"].includes(key),
@@ -371,7 +372,11 @@ export function collectPostReferences(input: unknown) {
               )
             )
               issues.push(childLocation + ".unknown-fields");
-            add(inline.link, childLocation + ".link", access);
+            add(
+              inline.link,
+              childLocation + ".link",
+              supported ? access : "unknown",
+            );
           });
         });
     }

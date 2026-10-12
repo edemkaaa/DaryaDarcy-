@@ -232,6 +232,18 @@ pass (1.80 s), types pass; actual SQL/storage/browser этим срезом не
 Default workers2 2307 pass/1133 opt-in skips (3445), exit0, 53.42 s;
 types/docs54/format/diff pass. Рабочие файлы/данные/ACL не затронуты.
 
+### M1b10: неподдерживаемый rich-text block — 12 октября 2026
+
+RED1 показал: сохранённый children[].link внутри неизвестного типа блока
+поста получал public-класс родителя, хотя присутствовал unknown-shape issue.
+Теперь explicit link candidate сохраняет `unknown`; совпадающее публичное фото
+не устраняет неопределённость. Поддерживаемые paragraph/heading сохраняют прежнюю
+классификацию. Политика renderer/access не меняется, неизвестный тип не получает
+поддержку; issue и hashed reference paths остаются. Focused library/CLI31 pass
+(2.79 s), types pass; это offline классификация, не SQL/S3/direct URL acceptance.
+Default workers2 2308 pass/1133 opt-in skips (3446), exit0, 51.84 s;
+types/docs54/format/diff pass, неизменённые build/browser/SQL не повторялись.
+
 ### M1c runtime preflight — 12 октября 2026
 
 Официальный MinIO pinned RELEASE.2025-06-13T11-33-47Z недоступен: quay registry

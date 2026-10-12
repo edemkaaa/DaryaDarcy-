@@ -29,6 +29,14 @@
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
 
+M1b10 (12 октября МСК): RED1 unknown rich-text block link inherited public post
+class; now retained as unknown candidate with issue, same public photo doesn't
+remove uncertainty. Supported blocks/access unchanged. Focused library/CLI31
+pass, exit0, 2.79 s; types/docs54/format/diff pass; default workers2 2308 pass/
+1133 opt-in skips (3446), exit0, 51.84 s. Offline-only, no
+SQL/S3/working data/resources/renderer change or production disclosure claim.
+S3 details/C2n review/rollout remain pending.
+
 M1b9 (12 октября МСК): RED1 lost known URL fields of unsupported article blocks,
 same cover made object public-only. Keeps url/urls/photos as unknown candidates
 and unknown-shape issue; valid no-cover candidates retained/malformed diagnostic/
