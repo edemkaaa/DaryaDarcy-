@@ -185,7 +185,7 @@ export function ClubSubscribed() {
   // Never show for owner/admin
   const needsProfileSetup = profileCompleted === false && !isOwner;
   // A cached setup draft must not override confirmed server identity.
-  const displayName = confirmedSetup?.name || user?.name || profileName;
+  const displayName = confirmedSetup?.name ?? (user ? user.name : profileName);
   const displayGender =
     confirmedSetup?.gender ?? (user ? user.gender : profileGender);
   // Keep local rubric/alias filtering; the API currently supports one tag only.

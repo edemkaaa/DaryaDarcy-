@@ -41,6 +41,28 @@
 
 ### 1. Завершить первую привязку почты (A)
 
+**C3bc, confirmed null club name does not revive cache — 12 октября МСК:**
+Продолжение от clean feature3666a93. Native C3bb journey расширен: после ACK/
+lost auth response и восстановления исходных данных synthetic SQL name=NULL
+→ настоящее auth/me name:null/gender:null. RED: одно старое greeting из cached
+setup name вместо отсутствия; **1 fail/94 filtered skips (95), exit1, 8.31 s**.
+One-line fix выбирает имя подтверждённого user даже при null; cache fallback
+остаётся только при отсутствии user. Native-ACK override до следующего snapshot
+сохранён; последующий SQL name/male→native GET снова показывает свежую строку.
+One setup POST, credentials/roles/sessionVersion/paid rows неизменны; нет API/
+auth mocks, внешних uploads/payments/messages или working-data writes.
+Integrated club setup/direct-entry/avatar **9 pass/86 filtered skips (95), exit0,
+11.93 s**; fresh default **2274 pass/1110 opt-in skips (3389), exit0, 28.05 s**.
+Webpack/types/ESLint/format/diff pass; imports/API/boundaries/CSS/layout unchanged.
+Предыдущий C3bb full95 checkpoint не выдан за новый full95 run: узкий повтор
+подтверждает изменённый greeting path и его связанные denial/lost/late-owner cases.
+TDD/native null-field proof и scoped review: confirmed absent value отличается
+от отсутствия identity; frontend design и authority semantics не менялись.
+Own labelled loopback/tmpfs backend_test exact ownership/readiness/mounts/port
+verified, Next/tmpfs cleaned after checks; local commit/no push/deploy/secrets.
+Next independent C3: profile-name editor equal-value auth refresh after ACK;
+A7/Q1/external storage/atomicity/provider/device gates остаются открыты.
+
 **C3bb, confirmed setup after failed identity refresh — 12 октября МСК:**
 Native RED от clean featurecd817c0: profile.update HTTP200+SQL commit name/gender,
 затем настоящий auth/me отдаёт новые данные, но его ответ теряется в transport;

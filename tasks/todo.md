@@ -6,6 +6,16 @@
 продолжать работу по нему самостоятельно. Исторические пункты ниже сохраняются;
 их старые статусы выкладки не отменяют свежий release 2e3339c/2210be5.
 
+C3bc (12 октября МСК): native server name=NULL/auth-me:null revived cached setup
+greeting, RED1 fail (8.31 s). One-line confirmed-user name selection honours null;
+ACK override and later native name/male recovery preserved, one POST, identity/
+paid rows unchanged. Integrated club9 pass/86 filtered skips (95), exit0 (11.93 s);
+default2274 pass/1110 opt-in skips (28.05 s); webpack/types/lint/format/diff pass.
+No CSS/import/API/boundary changes, no new full95 claim (C3bb checkpoint retained).
+Own tmpfs/Next cleaned, local commit/no push/working data/providers/secrets.
+Next: profile-name editor equal-value auth refresh after ACK; A7/Q1/storage/
+atomicity/provider/device gates remain open.
+
 C3bb (12 октября МСК): native RED ACK+SQL save→lost native auth/me return kept
 old greeting (8.07 s). Temporary acknowledged name/gender override tied to auth
 snapshot reference; next confirmed GET supersedes it even with original values,

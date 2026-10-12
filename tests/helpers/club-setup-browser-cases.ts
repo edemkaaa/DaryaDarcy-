@@ -135,6 +135,20 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
       page.getByText("Очень рада тебе, Browser phone member", { exact: true }),
     ).toBeVisible();
     await connection.query(
+      "UPDATE users SET name=NULL WHERE id=? AND openId='binding-browser-member'",
+      [memberId],
+    );
+    const [cleared] = await Promise.all([
+      page.waitForResponse(
+        (response) => new URL(response.url()).pathname === "/api/auth/me",
+      ),
+      page.evaluate(() => window.dispatchEvent(new Event("online"))),
+    ]);
+    expect(await cleared.json()).toMatchObject({
+      user: { name: null, gender: null },
+    });
+    await browserExpect(page.getByText(/^Очень рада тебе,/)).toHaveCount(0);
+    await connection.query(
       "UPDATE users SET name='C3 New remote name',gender='male' WHERE id=? AND openId='binding-browser-member'",
       [memberId],
     );
