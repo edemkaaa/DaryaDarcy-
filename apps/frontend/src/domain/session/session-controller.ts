@@ -122,18 +122,6 @@ export class SessionController {
       }
     }
   };
-  /** Re-read after an acknowledged write, superseding only older reads for its owner. */
-  refreshAfterMutation = async (ownerId: number): Promise<void> => {
-    // A write must not deduplicate against a pre-write read, but it also must
-    // never cancel a login or revive an owner whose access has already closed.
-    if (
-      this.authenticating ||
-      this.state.status !== "authenticated" ||
-      this.state.user?.id !== ownerId
-    )
-      return;
-    await this.refresh(true);
-  };
   authenticate = async (
     request: (signal: AbortSignal) => Promise<{ user: Api.AuthUser }>,
   ): Promise<boolean> => {

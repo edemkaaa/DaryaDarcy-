@@ -13,6 +13,7 @@ import { useCollectionItemRetention } from "@/shared/ui/collection-item-window";
 import { Picture } from "@/shared/media/image";
 import { PhotoDots } from "./photo-dots";
 import { scrollPhotoWithKeyboard } from "./photo-carousel-navigation";
+import { usePhotoMouseDrag } from "./use-photo-mouse-drag";
 export function PostPhotoCarousel({
   photos,
   onPhotoPress,
@@ -25,6 +26,7 @@ export function PostPhotoCarousel({
   useCollectionItemRetention(index > 0);
   const currentIndex = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const mouseDrag = usePhotoMouseDrag(width, photos.length);
   useLayoutEffect(() => {
     const preserved = Math.min(
       currentIndex.current,
@@ -58,6 +60,7 @@ export function PostPhotoCarousel({
     >
       {width > 0 ? (
         <ScrollArea
+          {...mouseDrag}
           ref={scrollRef}
           horizontal
           paging

@@ -1,10 +1,13 @@
 "use client";
+import { ManagedVideo } from "@/shared/media/managed-video";
 import { useViewport } from "@/shared/browser/viewport";
 
 import classes from "./video-preview.module.scss";
 import { DomImage } from "@/shared/ui/elements";
 
-import { createElement, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { getVkVideoEmbedUrl } from "./vk-video-url";
+import { VkVideoEmbed } from "./vk-video-embed";
 
 interface VideoPreviewProps {
   url: string;
@@ -64,18 +67,24 @@ export function VideoPreviewCard({
           .filter(Boolean)
           .join(" ")}
       >
-        {createElement("video", {
-          src: url,
-          poster: thumbnailUrl || undefined,
-          controls: true,
-          playsInline: true,
-          preload: "metadata",
-          style: {
-            backgroundColor: isPortrait ? "#EDE6DA" : "#1a1a1a",
-            objectFit: fitMode,
-          },
-          className: classes.videoElement,
-        })}
+        {getVkVideoEmbedUrl(url) ? (
+          <VkVideoEmbed url={url} className={classes.videoElement} />
+        ) : (
+          <ManagedVideo
+            {...{
+              src: url,
+              poster: thumbnailUrl || undefined,
+              controls: true,
+              playsInline: true,
+              preload: "metadata",
+              style: {
+                backgroundColor: isPortrait ? "#EDE6DA" : "#1a1a1a",
+                objectFit: fitMode,
+              },
+              className: classes.videoElement,
+            }}
+          />
+        )}
       </div>
     );
   }

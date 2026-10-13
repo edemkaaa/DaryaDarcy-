@@ -37,7 +37,6 @@ type SessionContext = {
   isAuthenticated: boolean;
   isOwner: boolean;
   refresh: () => Promise<void>;
-  refreshAfterMutation: (ownerId: number) => Promise<void>;
   logout: () => Promise<void>;
   authenticate: (
     request: (signal: AbortSignal) => Promise<{ user: Api.AuthUser }>,
@@ -148,7 +147,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: Boolean(user),
       isOwner: isOwnerUser(user),
       refresh: controller.refresh,
-      refreshAfterMutation: controller.refreshAfterMutation,
       logout: controller.logout,
       authenticate: controller.authenticate,
       applySession: controller.applySession,

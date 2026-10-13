@@ -23,8 +23,6 @@ import { StatsDashboard } from "@/features/admin/stats-dashboard";
 
 import { ArticlesAdmin } from "@/features/admin/articles-admin";
 import { SeasonSettings } from "@/features/admin/season-settings";
-import { MemberEmailBinding } from "./member-email-binding";
-import { useMemberEmailBindings } from "./use-member-email-bindings";
 import { MemberAccessEmail } from "./member-access-email";
 import {
   canResendAccessEmail,
@@ -133,10 +131,6 @@ export default function AdminScreen() {
       }),
   });
   const readMembers = () => readQuery(membersQuery);
-  const emailBindings = useMemberEmailBindings(
-    isOwner && viewTab === "members" && !showForm,
-    readMembers,
-  );
   const readReports = () => readQuery(reportsQuery);
   const deleteMutation = mutation(
     "delete-post",
@@ -894,11 +888,7 @@ export default function AdminScreen() {
                       item.email || item.name || String(item.id),
                     )
                   }
-                  disabled={
-                    grantClub.isPending ||
-                    accessEmail.busy ||
-                    emailBindings.busy
-                  }
+                  disabled={grantClub.isPending || accessEmail.busy}
                   className={classes.action}
                 >
                   <Typography className={classes.grantBtnText}>
@@ -908,11 +898,7 @@ export default function AdminScreen() {
                 {item.blockedAt ? (
                   <Action
                     onClick={() => unblockUser.mutate({ userId: item.id })}
-                    disabled={
-                      unblockUser.isPending ||
-                      accessEmail.busy ||
-                      emailBindings.busy
-                    }
+                    disabled={unblockUser.isPending || accessEmail.busy}
                     className={classes.action}
                   >
                     <Typography className={classes.grantBtnText}>
@@ -934,36 +920,13 @@ export default function AdminScreen() {
                         });
                       }
                     }}
-                    disabled={
-                      blockUser.isPending ||
-                      accessEmail.busy ||
-                      emailBindings.busy
-                    }
+                    disabled={blockUser.isPending || accessEmail.busy}
                     className={classes.action}
                   >
                     <Typography className={classes.typography}>
                       Заблокировать
                     </Typography>
                   </Action>
-                ) : null}
-                {(item.email === null || item.email === "") &&
-                item.role === "user" &&
-                !item.blockedAt ? (
-                  <MemberEmailBinding
-                    key={`${user?.id}:${item.id}`}
-                    memberId={item.id}
-                    memberName={item.name}
-                    result={emailBindings.results[item.id]}
-                    error={emailBindings.errors[item.id]}
-                    onSend={emailBindings.send}
-                    onInspect={emailBindings.inspect}
-                    onNewDraft={emailBindings.newDraft}
-                    disabled={
-                      adminActions.blocked ||
-                      accessEmail.busy ||
-                      emailBindings.busy
-                    }
-                  />
                 ) : null}
                 {canResendAccessEmail(item) ? (
                   <MemberAccessEmail
@@ -972,11 +935,7 @@ export default function AdminScreen() {
                     pending={
                       accessEmail.pendingId === `access-email-${item.id}`
                     }
-                    disabled={
-                      adminActions.blocked ||
-                      accessEmail.busy ||
-                      emailBindings.busy
-                    }
+                    disabled={adminActions.blocked || accessEmail.busy}
                     onSend={accessEmail.send}
                   />
                 ) : null}

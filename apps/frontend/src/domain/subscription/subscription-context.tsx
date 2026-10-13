@@ -11,7 +11,6 @@ import {
 import { useAuth } from "@/domain/session/session-context";
 import { trpc } from "@/shared/api/trpc";
 import { isTemporaryRequestError, shouldRetryQuery } from "@/shared/api/errors";
-import { parseClubAccess } from "@/shared/api/club-access";
 export type SubscriptionStatus =
   | "guest"
   | "checking"
@@ -22,9 +21,7 @@ interface ClubContextType {
   status: SubscriptionStatus;
   error: unknown;
   refreshError: unknown;
-  /** Legacy content gate; billing UI must also distinguish service access. */
   isSubscribed: boolean;
-  hasServiceAccess: boolean;
   setIsSubscribed: (value: boolean) => void;
   refreshSubscription: () => Promise<void>;
   expiresAt: Date | null;
@@ -41,7 +38,6 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     retry: shouldRetryQuery,
-    select: parseClubAccess,
   });
   const refetchSubscription = subscription.refetch;
   const refreshSubscription = useCallback(async () => {
@@ -64,7 +60,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
           ? "checking"
           : !hasConfirmedData
             ? "error"
-            : subscription.data?.hasClubAccess === true
+            : subscription.data?.subscribed === true
               ? "active"
               : "inactive";
   const wasActive = useRef(false);
@@ -85,10 +81,6 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     refreshError:
       user && !isOwner && backgroundFailure ? subscription.error : null,
     isSubscribed: status === "active",
-    hasServiceAccess:
-      status === "active" &&
-      !isOwner &&
-      subscription.data?.subscribed === false,
     setIsSubscribed: refreshSubscription,
     refreshSubscription,
     expiresAt,

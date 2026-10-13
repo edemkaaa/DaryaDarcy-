@@ -94,7 +94,7 @@ export async function layoutApi(page: Page, subscribed = false) {
           case "club.subscription":
             return {
               subscribed,
-              expiresAt: null,
+              expiresAt: subscribed ? "2040-11-01T10:00:00Z" : null,
               cancelAtPeriodEnd: false,
               isOwner: false,
               monthlyPrice: "790",

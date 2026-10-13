@@ -155,9 +155,11 @@ for (const mode of ["full", "quick"] as const) {
           exact: true,
         })
         .click();
-      await form
-        .getByRole("button", { name: "Восстановить черновик", exact: true })
-        .click();
+      await expect(
+        form.getByText("Незавершённый черновик восстановлен автоматически.", {
+          exact: true,
+        }),
+      ).toBeVisible();
       await expect(
         form.getByPlaceholder("Текст поста… Enter — новый абзац"),
       ).toHaveValue("KEEP_SELECTED_MEDIA");

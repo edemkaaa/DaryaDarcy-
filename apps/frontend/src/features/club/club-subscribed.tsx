@@ -26,11 +26,12 @@ import {
 import { useAuth } from "@/domain/session/session-context";
 import AsyncStorage from "@/shared/browser/storage";
 import { Picture } from "@/shared/media/image";
+import { MaterialIcons } from "@/shared/ui/icons";
 import { SafeArea } from "@/shared/ui/safe-area";
 
 import { PenPals } from "@/features/club/pen-pals";
 import { useCapabilities } from "@/shared/api/capabilities";
-import { ClubProfileSetupDialog } from "./club-profile-setup-dialog";
+import { ProfileSetup } from "@/features/club/profile-setup";
 import { TagBoardDrawer } from "@/features/club/tag-board-drawer";
 import { ScrollToTopButton } from "@/shared/ui/scroll-to-top-button";
 import { AdminFAB } from "@/features/admin/admin-fab";
@@ -53,6 +54,7 @@ import { articleIdFromSource } from "@/domain/content/article-blocks";
 import { PhotoViewer } from "@/shared/media/photo-viewer";
 import { useClubContentProtection } from "@/shared/browser/use-club-protection";
 import {
+  CLUB_PROFILE_AVATAR_KEY,
   CLUB_PROFILE_GENDER_KEY,
   CLUB_PROFILE_NAME_KEY,
   syncClubProfileToServer,
@@ -88,38 +90,23 @@ export function ClubSubscribed() {
   );
   const [selectedBoardTag, setSelectedBoardTag] = useState<string | null>(null);
   const { user, refresh, isOwner } = useAuth();
-  // A native save ACK remains visible if the optional identity refresh fails.
-  // Any later confirmed auth snapshot supersedes it, even with the same name.
-  const [setupConfirmation, setSetupConfirmation] = useState<{
-    source: typeof user;
-    name: string;
-    gender: "female" | "male";
-  } | null>(null);
-  if (setupConfirmation && setupConfirmation.source !== user) {
-    setSetupConfirmation(null);
-  }
-  const confirmedSetup =
-    setupConfirmation?.source === user ? setupConfirmation : null;
   useClubContentProtection(true);
   const utils = trpc.useUtils();
   const updateProfile = trpc.profile.update.useMutation();
   const uploadAvatar = trpc.profile.uploadAvatar.useMutation();
   const interactions = usePostInteractions();
-  const pushProfileToServer = useCallback(
-    async (includeIdentity: boolean) => {
-      if (!user) return;
-      await syncClubProfileToServer(
-        {
-          updateProfile: (input) => updateProfile.mutateAsync(input),
-          uploadAvatar: (input) => uploadAvatar.mutateAsync(input),
-        },
-        { userId: user.id, includeIdentity, currentAvatarUrl: user.avatarUrl },
-      );
-      await refresh();
-      void utils.club.comments.invalidate();
-    },
-    [user, updateProfile, uploadAvatar, refresh, utils.club.comments],
-  );
+  const pushProfileToServer = useCallback(async () => {
+    if (!user) return;
+    await syncClubProfileToServer(
+      {
+        updateProfile: (input) => updateProfile.mutateAsync(input),
+        uploadAvatar: (input) => uploadAvatar.mutateAsync(input),
+      },
+      { userId: user.id, currentAvatarUrl: user.avatarUrl },
+    );
+    await refresh();
+    void utils.club.comments.invalidate();
+  }, [user, updateProfile, uploadAvatar, refresh, utils.club.comments]);
   // Admin post management (edit/delete)
   const onRefresh = () => {
     utils.club.list.invalidate();
@@ -176,7 +163,7 @@ export function ClubSubscribed() {
     const hasServerAvatar =
       user.avatarUrl && /^https?:\/\//.test(user.avatarUrl);
     if (hasServerAvatar) return;
-    void pushProfileToServer(false).catch(() => {});
+    void pushProfileToServer().catch(() => {});
   }, [user, pushProfileToServer]);
   const handleClubLike = (postId: string) => interactions.like(Number(postId));
   const handleClubSave = (postId: string) => interactions.save(Number(postId));
@@ -184,10 +171,9 @@ export function ClubSubscribed() {
   // profileCompleted: null = still loading, true = done, false = needs setup
   // Never show for owner/admin
   const needsProfileSetup = profileCompleted === false && !isOwner;
-  // A cached setup draft must not override confirmed server identity.
-  const displayName = confirmedSetup?.name ?? (user ? user.name : profileName);
-  const displayGender =
-    confirmedSetup?.gender ?? (user ? user.gender : profileGender);
+  // Use local profile data for greeting (fallback to user from auth)
+  const displayName = profileName || user?.name;
+  const displayGender = profileGender || user?.gender;
   // Keep local rubric/alias filtering; the API currently supports one tag only.
   const clubQuery = trpc.club.list.useInfiniteQuery(
     { limit: 12 },
@@ -619,20 +605,53 @@ export function ClubSubscribed() {
 
         {/* Profile Setup Modal — shown only once for new users who haven't set up profile */}
         {needsProfileSetup ? (
-          <ClubProfileSetupDialog
-            active={active}
-            onDismissed={() => setProfileCompleted(true)}
-            onSaved={(data) => {
-              setSetupConfirmation({
-                source: user,
-                name: data.name,
-                gender: data.gender,
-              });
-              setProfileCompleted(true);
-              setProfileName(data.name);
-              setProfileGender(data.gender);
-            }}
-          />
+          <Dialog label="Настройка профиля клуба" open motion="slide">
+            <div
+              className={["ui-stack ", classes.div].filter(Boolean).join(" ")}
+            >
+              <Action
+                aria-label="Закрыть настройку профиля"
+                onClick={async () => {
+                  await AsyncStorage.setItem(PROFILE_COMPLETED_KEY, "true");
+                  setProfileCompleted(true);
+                }}
+                className={({ pressed }) =>
+                  [
+                    classes.action3,
+                    pressed ? classes.opacityState3 : classes.opacityState4,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
+                }
+              >
+                <MaterialIcons name="close" size={24} color="#4A3728" />
+              </Action>
+            </div>
+            <ProfileSetup
+              onComplete={async (data) => {
+                await AsyncStorage.setItem(PROFILE_COMPLETED_KEY, "true");
+                await AsyncStorage.setItem(CLUB_PROFILE_NAME_KEY, data.name);
+                await AsyncStorage.setItem(
+                  CLUB_PROFILE_GENDER_KEY,
+                  data.gender,
+                );
+                if (data.avatarUrl) {
+                  await AsyncStorage.setItem(
+                    CLUB_PROFILE_AVATAR_KEY,
+                    data.avatarUrl,
+                  );
+                }
+                setProfileCompleted(true);
+                setProfileName(data.name);
+                setProfileGender(data.gender);
+                if (user) {
+                  await pushProfileToServer();
+                } else {
+                  await refresh();
+                }
+              }}
+            />
+          </Dialog>
         ) : null}
       </SafeArea>
       {isOwner && ManagementModals}

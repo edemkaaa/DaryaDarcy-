@@ -65,7 +65,12 @@ function subscribeViewport(listener: () => void) {
   };
 }
 export function getViewport(scope: "window" | "screen" = "window") {
-  const width = typeof window === "undefined" ? 480 : window.innerWidth;
+  // Mobile WebKit can keep innerWidth enlarged by old, overflowing content
+  // after rotation. Use the layout viewport so that content can shrink again.
+  const width =
+    typeof window === "undefined"
+      ? 480
+      : document.documentElement.clientWidth || window.innerWidth;
   const height =
     typeof window === "undefined"
       ? 800

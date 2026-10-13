@@ -23,12 +23,11 @@ export type ClubProfileServerApi = {
 function isRemoteUrl(value: string): boolean {
   return /^https?:\/\//i.test(value);
 }
-/** Migrate an avatar automatically; apply cached identity only after explicit setup. */
+/** Push locally saved club profile (name, gender, avatar) to the server user record. */
 export async function syncClubProfileToServer(
   api: ClubProfileServerApi,
   options: {
     userId: number;
-    includeIdentity: boolean;
     currentAvatarUrl?: string | null;
   },
 ): Promise<{
@@ -50,10 +49,8 @@ export async function syncClubProfileToServer(
     gender?: Gender;
     avatarUrl?: string;
   } = {};
-  if (options.includeIdentity) {
-    if (name?.trim()) profilePatch.name = name.trim();
-    if (gender === "female" || gender === "male") profilePatch.gender = gender;
-  }
+  if (name?.trim()) profilePatch.name = name.trim();
+  if (gender === "female" || gender === "male") profilePatch.gender = gender;
   const serverHasAvatar = isRemoteUrl(options.currentAvatarUrl ?? "");
   let syncedAvatarUrl: string | undefined;
   if (!serverHasAvatar && localAvatar?.trim()) {

@@ -615,18 +615,16 @@ test("a refreshed photo list clamps selection and removes empty indicators", asy
       .first()
       .evaluate((node) => {
         node.scrollTop = 0;
+        // Exercise refresh state with synthetic events. Mobile WebKit does not
+        // expose a constructible Touch; this is not native gesture acceptance.
         node.dispatchEvent(
-          new TouchEvent("touchstart", {
-            bubbles: true,
-            touches: [new Touch({ identifier: 1, target: node, clientY: 0 })],
+          Object.assign(new Event("touchstart", { bubbles: true }), {
+            touches: [{ identifier: 1, target: node, clientY: 0 }],
           }),
         );
         node.dispatchEvent(
-          new TouchEvent("touchend", {
-            bubbles: true,
-            changedTouches: [
-              new Touch({ identifier: 1, target: node, clientY: 200 }),
-            ],
+          Object.assign(new Event("touchend", { bubbles: true }), {
+            changedTouches: [{ identifier: 1, target: node, clientY: 200 }],
           }),
         );
       });

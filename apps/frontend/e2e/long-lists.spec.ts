@@ -447,9 +447,38 @@ test("a completed native video releases its offscreen row and can be reopened", 
   wav.writeUInt16LE(8, 34);
   wav.write("data", 36);
   wav.writeUInt32LE(samples, 40);
-  await page.route("https://media.example.test/**", (route) =>
-    route.fulfill({ contentType: "audio/wav", body: wav }),
-  );
+  await page.route("https://media.example.test/**", (route) => {
+    // Seeking in WebKit requests the PCM payload after the WAV header.
+    // A fixture that ignores Range stalls at readyState=2 after seeking.
+    const range = /^bytes=(\d+)-(\d*)$/.exec(
+      route.request().headers().range ?? "",
+    );
+    if (!range)
+      return route.fulfill({
+        contentType: "audio/wav",
+        headers: { "Accept-Ranges": "bytes" },
+        body: wav,
+      });
+    const start = Number(range[1]);
+    const end = Math.min(
+      range[2] ? Number(range[2]) : wav.length - 1,
+      wav.length - 1,
+    );
+    if (start > end)
+      return route.fulfill({
+        status: 416,
+        headers: { "Content-Range": `bytes */${wav.length}` },
+      });
+    return route.fulfill({
+      status: 206,
+      contentType: "audio/wav",
+      headers: {
+        "Accept-Ranges": "bytes",
+        "Content-Range": `bytes ${start}-${end}/${wav.length}`,
+      },
+      body: wav.subarray(start, end + 1),
+    });
+  });
   await editorApi(page, (name) =>
     name === "feed.listPaginated"
       ? {
@@ -486,7 +515,9 @@ test("a completed native video releases its offscreen row and can be reopened", 
   await row.getByRole("button", { name: "Открыть видео", exact: true }).click();
   const video = row.locator("video");
   await video.evaluate(async (node) => {
-    await (node as HTMLVideoElement).play();
+    const media = node as HTMLVideoElement;
+    media.muted = true; // Playback lifecycle does not require an audio output device.
+    await media.play();
   });
   await list(page).focus();
   await list(page).evaluate((node) => {
@@ -503,10 +534,43 @@ test("a completed native video releases its offscreen row and can be reopened", 
     await media.play();
   });
   await expect
-    .poll(() => video.evaluate((node) => (node as HTMLVideoElement).ended), {
-      timeout: 10_000,
-    })
-    .toBe(true);
+    .poll(
+      () =>
+        video.evaluate((node) => {
+          const media = node as HTMLVideoElement;
+          return {
+            ended: media.ended,
+            paused: media.paused,
+            time: media.currentTime,
+            duration: media.duration,
+          };
+        }),
+      {
+        timeout: 10_000,
+      },
+    )
+    .toMatchObject({ ended: true })
+    .catch(async (error) => {
+      console.log(
+        "video completion diagnostic",
+        await video.evaluate((node) => {
+          const media = node as HTMLVideoElement;
+          const bounds = media.getBoundingClientRect();
+          return {
+            ended: media.ended,
+            paused: media.paused,
+            time: media.currentTime,
+            duration: media.duration,
+            ready: media.readyState,
+            hidden: document.hidden,
+            y: bounds.y,
+            height: bounds.height,
+            viewport: innerHeight,
+          };
+        }),
+      );
+      throw error;
+    });
   await list(page).focus();
   await list(page).evaluate((node) => {
     node.scrollTop = node.scrollHeight;

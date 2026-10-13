@@ -9,7 +9,7 @@ import {
   Spinner,
 } from "@/shared/ui/elements";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Picture } from "@/shared/media/image";
 import * as ImagePicker from "@/shared/browser/file-picker";
 import { MaterialIcons } from "@/shared/ui/icons";
@@ -18,13 +18,12 @@ import { AvatarCropper } from "@/shared/media/avatar-cropper";
 import { BROWN_MUTED, CREAM } from "./profile-setup.content";
 
 type Gender = "female" | "male";
-export interface ClubProfileDraft {
-  name: string;
-  gender: Gender;
-  avatarUrl?: string;
-}
 interface ProfileSetupProps {
-  onComplete: (data: ClubProfileDraft) => void | Promise<void>;
+  onComplete: (data: {
+    name: string;
+    gender: Gender;
+    avatarUrl?: string;
+  }) => void | Promise<void>;
 }
 interface CropperImage {
   uri: string;
@@ -37,8 +36,6 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [cropperImage, setCropperImage] = useState<CropperImage | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const submittingRef = useRef(false);
-  const [error, setError] = useState(false);
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -67,21 +64,17 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
     setCropperImage(null);
   };
   const handleSubmit = async () => {
-    if (submittingRef.current || !name.trim() || !gender) return;
-    submittingRef.current = true;
+    if (!name.trim() || !gender) return;
     setSubmitting(true);
-    setError(false);
     try {
-      // Keep the draft mounted until its owner receives native confirmation.
+      // Complete profile setup (data saved locally by parent component)
       await onComplete({
         name: name.trim(),
         gender,
         avatarUrl: avatarUri || undefined,
       });
-    } catch {
-      setError(true);
-    } finally {
-      submittingRef.current = false;
+    } catch (error) {
+      console.error("[ProfileSetup] Error:", error);
       setSubmitting(false);
     }
   };
@@ -120,7 +113,6 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
           {/* Avatar picker */}
           <Action
             onClick={pickImage}
-            disabled={submitting}
             aria-label="Выбрать фото профиля"
             className={({ pressed }) =>
               [classes.action, pressed ? classes.opacityState : ""]
@@ -161,7 +153,6 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
             <Typography className={classes.label}>Имя или никнейм</Typography>
             <Field
               value={name}
-              disabled={submitting}
               onValueChange={setName}
               placeholder="Как тебя зовут?"
               placeholderColor="#A89880"
@@ -184,7 +175,6 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
             >
               <Action
                 onClick={() => setGender("female")}
-                disabled={submitting}
                 className={({ pressed }) =>
                   [
                     classes.action2,
@@ -212,7 +202,6 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
               </Action>
               <Action
                 onClick={() => setGender("male")}
-                disabled={submitting}
                 className={({ pressed }) =>
                   [
                     classes.action2,
@@ -242,16 +231,10 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
           </div>
 
           {/* Submit button */}
-          {error && (
-            <Typography role="alert" className={classes.saveError}>
-              Не удалось сохранить анкету: результат не подтверждён. Ваш ввод
-              сохранён. Повторите сохранение вручную.
-            </Typography>
-          )}
           <Action
             onClick={handleSubmit}
             disabled={!isValid || submitting}
-            aria-label={error ? "Повторить сохранение анкеты" : "Продолжить"}
+            aria-label="Продолжить"
             aria-busy={submitting}
             className={({ pressed }) =>
               [
@@ -271,7 +254,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
               <Spinner color={CREAM} size="small" />
             ) : (
               <Typography className={classes.submitButtonText}>
-                {error ? "Повторить сохранение анкеты" : "Продолжить"}
+                Продолжить
               </Typography>
             )}
           </Action>

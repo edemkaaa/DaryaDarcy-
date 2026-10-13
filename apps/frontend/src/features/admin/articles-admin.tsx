@@ -102,28 +102,6 @@ export function ArticlesAdmin() {
     setPreviewing(false);
     setBlocks([emptyBlock("text")]);
   };
-  const cancel = async () => {
-    if (operation.kind === "save") return;
-    if (!uncertainSave.current) {
-      reset();
-      return;
-    }
-    const task = operation.begin("save");
-    if (!task) return;
-    try {
-      await readArticles();
-      task.assertCurrent();
-      reset();
-    } catch (error) {
-      checkOperationAccessError(error);
-      if (task.isCurrent())
-        notify(
-          "Не удалось проверить список статей. Редактор остаётся открытым. Восстановите связь и повторите отмену.",
-        );
-    } finally {
-      task.finish();
-    }
-  };
   const pickImages = async (
     preserveAlpha: boolean,
     multiple: boolean,
@@ -370,7 +348,7 @@ export function ArticlesAdmin() {
           </div>
           <Typography className={classes.hint}>
             {access === "public"
-              ? "Появится в Эксклюзиве клуба и в библиотеке с замочком — только по подписке. В общую ленту статьи не попадают."
+              ? "Появится в Эксклюзиве клуба и в библиотеке. В библиотеке статью можно читать без подписки. В общую ленту статьи не попадают."
               : "Только во вкладке Эксклюзив клуба, без библиотеки и без общей ленты."}
           </Typography>
 
@@ -755,8 +733,8 @@ export function ArticlesAdmin() {
             .join(" ")}
         >
           <Action
-            disabled={operation.kind === "save" || remove.isPending}
-            onClick={() => void cancel()}
+            disabled={remove.isPending}
+            onClick={reset}
             className={classes.btnGhost}
           >
             <Typography className={classes.btnGhostText}>Отмена</Typography>
@@ -807,8 +785,8 @@ export function ArticlesAdmin() {
         <Typography className={classes.btnText}>Написать статью</Typography>
       </Action>
       <Typography className={classes.hint}>
-        Два места: только Эксклюзив клуба или Эксклюзив + библиотека с замочком.
-        В общую ленту статьи не попадают.
+        Два варианта: только Эксклюзив клуба по подписке или Эксклюзив +
+        библиотека с чтением без подписки. В общую ленту статьи не попадают.
       </Typography>
       <QueryRetryState
         isLoading={list.isLoading}

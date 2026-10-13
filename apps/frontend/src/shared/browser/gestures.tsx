@@ -24,6 +24,7 @@ class PointerGesture {
   start?: Handler;
   update?: Handler;
   end?: Handler;
+  cancel?: Handler;
   longPress = 0;
   taps = 1;
   offsetY?: number[];
@@ -39,6 +40,10 @@ class PointerGesture {
   }
   onEnd(fn: Handler) {
     this.end = fn;
+    return this;
+  }
+  onCancel(fn: Handler) {
+    this.cancel = fn;
     return this;
   }
   activateAfterLongPress(ms: number) {
@@ -67,9 +72,11 @@ export const Gesture = {
 export function GestureDetector({
   gesture,
   children,
+  pointerTypes,
 }: {
   gesture: PointerGesture | PointerGesture[];
   children: ReactNode;
+  pointerTypes?: readonly string[];
 }) {
   const state = useRef({
     points: new Map<
@@ -114,6 +121,7 @@ export function GestureDetector({
   return (
     <div
       onPointerDown={(e) => {
+        if (pointerTypes && !pointerTypes.includes(e.pointerType)) return;
         const s = state.current;
         s.points.set(e.pointerId, { x: e.clientX, y: e.clientY });
         if (s.points.size === 1) {
@@ -152,12 +160,17 @@ export function GestureDetector({
           return;
         }
         if (
+          !s.failed &&
           pan?.offsetX &&
           (data.translationX < pan.offsetX[0] ||
             data.translationX > pan.offsetX[1])
-        )
+        ) {
           s.failed = true;
+          if (s.active) pan.cancel?.(data);
+          s.active = false;
+        }
         if (
+          !s.failed &&
           !s.active &&
           pan?.offsetY &&
           (data.translationY < pan.offsetY[0] ||
@@ -180,6 +193,7 @@ export function GestureDetector({
       }}
       onPointerUp={(e) => {
         const s = state.current;
+        if (!s.points.has(e.pointerId)) return;
         clearTimeout(s.timer);
         if (s.points.size > 1) pinch?.end?.(event(e));
         else if (s.active && !s.failed) pan?.end?.(event(e));
@@ -199,6 +213,17 @@ export function GestureDetector({
         s.points.delete(e.pointerId);
       }}
       onPointerCancel={(e) => {
+        if (!state.current.points.has(e.pointerId)) return;
+        if (state.current.active && !state.current.failed)
+          pan?.cancel?.(event(e));
+        clearTimeout(state.current.timer);
+        state.current.points.delete(e.pointerId);
+        state.current.active = false;
+      }}
+      onLostPointerCapture={(e) => {
+        if (!state.current.points.has(e.pointerId)) return;
+        if (state.current.active && !state.current.failed)
+          pan?.cancel?.(event(e));
         clearTimeout(state.current.timer);
         state.current.points.delete(e.pointerId);
         state.current.active = false;
