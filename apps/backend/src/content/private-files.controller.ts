@@ -53,6 +53,12 @@ export class PrivateFilesController {
     res.once("close", cancel);
     let reader: ReturnType<typeof privateObjectReader> | undefined;
     let body: Readable | undefined;
+    let idle: ReturnType<typeof setTimeout> | undefined;
+    const progress = () => {
+      clearTimeout(idle);
+      idle = setTimeout(() => abort.abort(), 30_000);
+      idle.unref();
+    };
     try {
       const file = await this.files.authorizedAttachment(id, req);
       if (!file) return unavailable();
@@ -81,6 +87,8 @@ export class PrivateFilesController {
           : null;
       if (range === undefined) {
         res.removeHeader("Content-Length");
+        res.removeHeader("Content-Type");
+        res.removeHeader("Content-Disposition");
         res.setHeader("Content-Range", `bytes */${size}`);
         return res.status(416).json({ error: "Диапазон недоступен." });
       }
@@ -105,6 +113,9 @@ export class PrivateFilesController {
         res.status(206);
         res.setHeader("Content-Range", expectedRange!);
       }
+      // Bound stalled data flow, not the total duration of a progressing download.
+      body.on("data", progress);
+      progress();
       await pipeline(body, res, { signal: abort.signal });
     } catch {
       if (res.headersSent || res.destroyed) {
@@ -112,10 +123,13 @@ export class PrivateFilesController {
         return;
       }
       res.removeHeader("Content-Length");
+      res.removeHeader("Content-Type");
       res.removeHeader("Content-Disposition");
       res.status(503).json({ error: "Файл временно недоступен." });
     } finally {
       res.off("close", cancel);
+      clearTimeout(idle);
+      body?.off("data", progress);
       abort.abort();
       body?.destroy();
       reader?.close();

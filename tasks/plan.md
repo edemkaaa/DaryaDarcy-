@@ -44,6 +44,24 @@ by harness; exact container/name/task label/loopback/tmpfs/no mounts rechecked,
 stopped/--rm removed. Только одноразовые synthetic данные удалены (невосстановимы),
 чужие containers/volumes и working data не затронуты. No pushes/deploy/external mail.
 
+**M2a follow-up, approved continuation:** SDK handler defaults have no timeout.
+Native wire RED1 waits for outer12s abort → GREEN own10s header deadline/no retry/
+socket closure; connection budget5s configured. Body RED1 reaches35s safety cutoff
+→ own30s data-flow inactivity timer, reset on actual chunks; progressing40s stream
+completes. Timer/data listener/reader clean on normal/error/client abort, no total
+duration cap or global quota change. Full affected4 suites **102 pass, 85.94 s**.
+Native RED9 further catches file MIME inherited by JSON416/503; file headers cleared.
+Final affected **100 pass/2 deliberate long-case filters (102), 14.50 s**; previously
+successful30s/40s stream code unchanged by last JSON header fix. Types/build480.5kb/
+boundaries622/API73/format/diff pass. No frontend/upload/old files/ACL/deploy change.
+M2b waits for user-selected dedicated local S3 endpoint/bucket/test-only connection;
+asked non-blockingly, no working secrets read. Browser/device/load and actual ACL
+are not certified by these own HTTP/SQL fixtures.
+Final default workers2 **2328 pass/1213 opt-in skips (3546), exit0, 58.16 s**;
+docs54/diff pass. Own second labelled loopback/tmpfs/no mounts container rechecked
+and stopped/--rm removed after native tests; only volatile synthetic data removed,
+not recoverable. Own HTTP/Nest/pools/timers closed by harness; no foreign resources.
+
 **Пункт5, backend-only code review / точная адресация — 13 октября:**
 Прослежены storagePut→photo/media/raw-video/comment/avatar→persisted URL,
 storageGet, admin media read, feed/post/article/video read. Admin media route

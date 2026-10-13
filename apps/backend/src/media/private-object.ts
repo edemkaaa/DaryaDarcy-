@@ -71,6 +71,12 @@ export function privateObjectReader(key: string, signal: AbortSignal) {
     },
     forcePathStyle: true,
     maxAttempts: 1,
+    // Fail on stalled connection/response headers; do not merely log a warning.
+    requestHandler: {
+      connectionTimeout: 5_000,
+      requestTimeout: 10_000,
+      throwOnRequestTimeout: true,
+    },
   });
   const object = { Bucket: ENV.s3Bucket, Key: key };
   return {

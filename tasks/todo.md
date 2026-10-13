@@ -13,6 +13,13 @@ Local feature branch, без push/deploy/рабочей БД/автоматич�
   unchanged afterwards. Types/build479.9kb/boundaries622/API73 pass; flag off.
 - [ ] M2b actual private S3/browser rewrite acceptance: после M2a и test-only
   локального S3 endpoint/bucket/connection, без working bucket credentials.
+- [x] M2a hardening: own10s header deadline/connection5s; data-flow idle30s,
+  progressing40s stream remains complete, timer/listener/upstream cleanup;
+  JSON416/503 no longer inherits file MIME/disposition. RED1/RED1/RED9;
+  full102 pass/4 suites (85.94 s), final100 pass/2 already checked long-case filters
+  (14.50 s), types/build480.5kb/boundaries622/API73/format pass. Only new route.
+  Final default2328 pass/1213 skips (3546), 58.16 s; docs54/diff pass. Own fixture
+  resources closed and verified disposable container removed; no working writes.
 - [ ] M2c upload→associate→proxy URL + old object rollout: отдельный review,
   schema/public/shared map/backup/rollback approval; пока не реализовывать.
 

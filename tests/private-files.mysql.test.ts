@@ -68,6 +68,16 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
         res.write("0");
         return;
       }
+      if (wireMode === "progress") {
+        res.write("0");
+        const middle = setTimeout(() => res.write("1234"), 20_000);
+        const end = setTimeout(() => res.end("56789"), 40_000);
+        res.once("close", () => {
+          clearTimeout(middle);
+          clearTimeout(end);
+        });
+        return;
+      }
       if (req.headers.range && wireMode !== "ignored-range") {
         const match = /^bytes=(\d+)-(\d+)$/.exec(req.headers.range)!;
         const start = Number(match[1]),
@@ -227,6 +237,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
     async (range) => {
       const res = await read({ headers: { Range: range } });
       expect(res.status).toBe(416);
+      expect(res.headers.get("content-type")).toContain("application/json");
       expect(res.headers.get("cache-control")).toBe("private, no-store");
       expect(effects.some((effect) => effect.startsWith("GET"))).toBe(false);
     },
@@ -323,6 +334,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       wireMode = mode;
       const res = await read();
       expect(res.status).toBe(503);
+      expect(res.headers.get("content-type")).toContain("application/json");
       expect(await res.text()).not.toContain("PRIVATE_PROVIDER_SENTINEL");
       expect(res.headers.get("location")).toBeNull();
       expect(res.headers.get("set-cookie")).toBeNull();
@@ -342,6 +354,21 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       timeout: 2000,
     });
   });
+  it("body with no further progress closes before the outer safety cutoff", async () => {
+    wireMode = "hold";
+    const started = Date.now();
+    const res = await read({ signal: AbortSignal.timeout(35_000) });
+    expect(res.status).toBe(200);
+    await expect(res.text()).rejects.toThrow();
+    expect(Date.now() - started).toBeLessThan(33_000);
+    await vi.waitFor(() => expect(upstreamClosed).toBe(true));
+  }, 40_000);
+  it("progressing download outlives the idle limit without truncation", async () => {
+    wireMode = "progress";
+    const res = await read({ signal: AbortSignal.timeout(45_000) });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("0123456789");
+  }, 48_000);
   it("ingress rejection is also private no-store, without SQL or object reads", async () => {
     const res = await read({
       headers: { Origin: "https://untrusted.example.test" },

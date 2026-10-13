@@ -149,6 +149,25 @@ in native99, production code unchanged. Types/build479.9kb/boundaries622/API73
 pass; no new dependency/schema/upload/legacy URL/frontend change.
 
 Actual S3 ACL/private anonymous denial, browser rewrite/device acceptance and
-provider timeout/load tuning remain unaccepted before enablement; next is M2b
+real-provider load tuning remain unaccepted before enablement; next is M2b
 on selected dedicated local S3 fixture. App proxy itself cannot close old direct
 URLs. No working flag/ACL/DB mutation, push/deploy or external file fetch occurred.
+
+### Follow-up: bounded waits and error format
+
+Installed SDK handler has timeouts off by default. Own-wire RED1 waited until
+12-second outer abort; GREEN1 fails itself at10 seconds with one request and
+socket closure. New reader config: connection5 seconds, header response10 seconds,
+throw on timeout, no retries. SDK resolves GET at response headers, so controller
+also bounds data-flow inactivity to30 seconds, resets on chunks and removes timer/
+listener on all exits. This is not a30-second total download limit: native40-second
+progressing stream delivers complete bytes. Native stalled-body RED1 reached
+35-second safety cutoff; GREEN stops at30 seconds and closes upstream.
+
+Full affected run **102 pass/4 suites, 85.94 s**, including both long stream cases.
+Follow-up RED9 exposed file MIME/disposition leaking into JSON416/503 errors;
+cleared file headers before JSON replies. Final affected **100 pass/2 deliberately
+filtered long cases (102), 14.50 s**; long cases were already checked above and
+their stream/timer code unchanged by the final error-format fix. Types/build480.5kb/
+boundaries622/API73/focused format pass. Only new route/reader are changed; existing
+upload/public URLs/working files/frontend untouched. Actual S3 and load remain gates.
