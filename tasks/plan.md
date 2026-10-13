@@ -110,6 +110,35 @@ loopback/tmpfs/no mounts container rechecked, stopped/--rm removed. Только
 synthetic resources; нет working DB/S3/provider/push/deploy/новой automation.
 Это локальная проверка, не staging rollout или приёмка внешних платежей.
 
+**Фронт — продолжение 13 октября, защита обработчика отмены:** после разделения
+служебного доступа/оплаты экран уже скрывает billing controls, но cancellation
+controller использовал historical isSubscribed content alias как признак оплаты.
+Native Chromium RED1 fail/1 pass (2.06 s): прямой вызов реального controller для
+moderator service-only открывал подтверждение отмены. Теперь обе операции
+cancel/check требуют !hasServiceAccess вместе с прежними active/non-owner/
+non-cancelled условиями. Backend/roles/API/paid semantics не меняются; это
+клиентский guard, не замена серверной авторизации. Визуальный код/CSS не менялся.
+
+GREEN browser2, exit0, 2.02 s: service-only не открывает dialog и не отправляет
+POST; paid moderator сохраняет один confirm/один POST/прочитанное подтверждение.
+Real AuthProvider/ClubProvider/cancellation controller/HTTP client в Chromium,
+контролируемые complete local billing/session replies; не JWT/SQL/provider
+acceptance. Test probe ждёт завершения controller до отрицательной проверки,
+чтобы отсутствие запроса не зависело от гонки. Внешние requests заблокированы,
+browser/own loopback HTTP server закрыты в finally. SQL/Docker/рабочие данные
+не использовались; настоящие/новые provider платежи и отмены не проводились.
+
+Свежий production frontend build и **26 cancellation UI scenarios pass**, exit0,
+14.9 s, на controlled API fixtures: 320/390/1440, failed/timeout/malformed reads,
+same intent без duplicate writes, navigation/another account/expiry и прежние
+owner/guest/cancelled restrictions. Default workers2 **2312 pass/1153 opt-in
+skips, exit0, 53.40 s**; types/lint/boundaries618/focused format/diff pass.
+Playwright автоматически поднял/закрыл только свой frontend на заранее свободном
+8081; обычные FORCE_COLOR warnings не являются app failure. Self-review: общий
+eligibility guard для write/read, hooks без новой условности, данные оплаты из
+валидированного provider; нет новых ресурсов/зависимостей или внешней приёмки.
+Крупные M1c/M2/C2n/provider/rollout gates и deferred complaints прежние.
+
 ## Актуальный план завершения первого этапа — 10 октября 2026
 
 Это рабочий приоритет поверх исторического журнала ниже. Основание:

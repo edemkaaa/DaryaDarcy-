@@ -29,6 +29,11 @@ Local feature branch, без push/deploy/рабочей БД/автоматич�
   Default2312 pass/1151 skips, 52.50 s; types/builds/lint/API73/boundaries618 pass.
   Дизайн сохранён; own synthetic resources cleaned, no provider payments/rollout.
 - [ ] Пункт4: WorkerJobs binding delivery/maintenance с default-off/A7 gates.
+- [x] Фронт, follow-up13 октября: cancellation controller не принимает service
+  content access за paid subscription. Browser RED1 → GREEN2, 26 existing
+  cancellation UI cases pass; default2312/1153 skips, 53.40 s, types/build/lint/
+  boundaries618/focused format/diff pass. Controlled API, не provider/SQL приёмка;
+  design/backend/API unchanged, own browser/HTTP/frontend resources closed.
 - [ ] Пункт5: actual isolated S3/private delivery, прежние storage/rollout gates.
 
 Автоматизация остаётся удалённой; это возобновление работы по прямому поручению,

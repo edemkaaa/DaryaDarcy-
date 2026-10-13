@@ -1,5 +1,22 @@
 # План работы и результаты аудита фронтенда DARYADARCY
 
+## 13 октября — обработчик отмены не путает служебный доступ с оплатой
+
+Продолжение фронтовых правок: billing controller теперь проверяет
+!hasServiceAccess, а не только historical isSubscribed content gate. Экран уже
+скрывал кнопку, но сам обработчик позволял service-only moderator открыть confirm.
+Native Chromium RED1 → GREEN2: реальный controller/providers/HTTP client не
+отправляет отмену без оплаты, paid moderator сохраняет обычное подтверждение и
+один запрос. Ответы session/billing — controlled local fixtures, не настоящая
+платёжная отмена или native SQL acceptance. Проверка ждёт завершения операции,
+browser/loopback server закрываются; внешние запросы запрещены.
+
+На свежем production build26 cancellation UI cases проходят: timeout/error/
+malformed, navigation/account switch/expiry, отсутствие дублей, 320/390/1440 px.
+Default2312 pass/1153 opt-in skips (53.40 s), types/build/lint/boundaries618/
+format/diff проходят. Внешний вид, backend/API/roles/paid period не менялись.
+Evidence и прежние внешние/rollout gates — начало корневого plan.md.
+
 ## 13 октября — служебный доступ модератора без оплаты
 
 Согласованная local-only API/UI интеграция по пункту1 списка бэкендеру:

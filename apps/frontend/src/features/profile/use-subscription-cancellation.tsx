@@ -49,7 +49,8 @@ function requireSubscription(value: ApiOutputs["club"]["subscription"]) {
 
 /** A timed-out write may already be queued by the server; retry only reads. */
 function useCancellationController(active: boolean) {
-  const { isSubscribed, isOwner, cancelAtPeriodEnd } = useClub();
+  const { isSubscribed, hasServiceAccess, isOwner, cancelAtPeriodEnd } =
+    useClub();
   const operation = useSessionOperation(active);
   const utils = trpc.useUtils();
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -64,7 +65,8 @@ function useCancellationController(active: boolean) {
     noticeRef.current = value;
     setNotice(value);
   };
-  const eligible = isSubscribed && !isOwner && !cancelAtPeriodEnd;
+  const eligible =
+    isSubscribed && !hasServiceAccess && !isOwner && !cancelAtPeriodEnd;
 
   const readStatus = async (task: ScopedOperation) => {
     // Do not let an older background read overwrite this verification.
