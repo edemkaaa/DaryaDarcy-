@@ -1,5 +1,15 @@
 # Daryadarcy Modular Monorepo
 
+## VK API access — 13 октября 2026
+
+- [x] Native current post-media VK gates:8 new HTTP/JWT/own SQL cases, final
+  content/video persistence53 pass2 suites2.21s, root types pass. No external VK.
+  Existing gates pass; no production/auth/frontend/schema changes claimed.
+- [ ] Standalone video classification contract: approve additive public/club
+  (old rows public), live canonical access in list/detail, no club anonymous
+  stream/worker bypass; owner setting/source identity need agreed contract.
+  Existing mandatory youtubeId/public-only catalog is not a club video model.
+
 ## Article-create-recovery — 13 октября 2026
 
 - [x] Подготовить proposed серверный контракт:

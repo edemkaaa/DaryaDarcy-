@@ -1,5 +1,47 @@
 # Implementation Plan: Daryadarcy Modular Monorepo
 
+## VK access API checkpoint — 13 октября 2026
+
+По поручению «проверь доступ к клубным VK-видео через API ... фронт не трогай»
+прослежены feed list/page/detail/saved, club list, admin.getPostMedia, videos
+list/detail, anonymous /api/yt/:id и worker public catalog. Клубные post_media
+наследуют post.target; публичные feed/both сохраняют гостевой доступ. URL/domain/
+имя/тип видео не являются политикой. Прямой полученный VK URL вне приложения
+не защищается по согласованной границе; external VK requests не выполнялись.
+
+Добавлены8 native HTTP/JWT/SQL checks: guest/paid/expired/blocked/revoked/
+unpaid moderator/unpaid admin, включая public feed списки, private detail,
+bookmarks, club list и admin-only media; draft source не выдаётся даже allowed.
+Платёж — только synthetic SQL entitlement, не provider/payment test. Existing
+standalone VK fixture опубликован и доступен гостю; unpublished полностью скрыт.
+Это характеризует нынешний public catalog, НЕ доказательство клубной защиты.
+Все8 проходят сразу: production defect в уже защищённом post пути не найден,
+нет искусственного RED/исправления или повторного внедрения existing gates.
+Final affected **53 pass/2 suites, exit0, 2.21s**, root types pass. Только tests/
+plans, без frontend/runtime/schema/roles/quotas/CORS/working DB/push/deploy edits.
+
+**Блокер самостоятельных club videos:** videos schema не имеет access/source;
+videos.list/getById всегда published/public. /api/yt/:id также проверяет только
+publication до cache/downloader. youtubeId остаётся mandatory unique; worker
+принимает только11-character YouTube IDs и не совместим с произвольными фиктивными
+VK identities. Current frontend VK playback не вводит server access policy.
+Не классифицировать строки по URL или закрывать публичный каталог целиком.
+
+Минимальное предложение на согласование: additive videos.access public|club,
+старые строки default public без авто-переклассификации. Authenticated allowed
+пользователь видит published club; guest/expired/blocked/revoked не получают
+строку/source в list/detail. Прежний numeric ID/order/public поля сохраняются.
+Owner-only способ выставить access определить в следующем контракте, не принять
+роль/access от гостя. Anonymous /api/yt и worker не получают club source/cache;
+проверки publication/access перед каждым request/external effect. Формат хранения
+и наполнения VK без фиктивных youtubeId согласовать отдельно; V1a gate не снят.
+Новая schema/API требует человеческого review; пока не создаётся миграция.
+Docs55/focused format/diff pass. Self-review: literal URL membership expectations,
+real session/payment-row read, no mocked policy and no external fetch. Own Nest/
+pool/fixture connections closed; exact ID/name/task label/loopback/tmpfs/no mounts
+rechecked before stop/--rm. Only volatile synthetic backend_test removed
+(not recoverable), no foreign container/volume/data touched.
+
 ## Article-create-recovery — локальная серверная реализация, 13 октября 2026
 
 Контракт принят для local backend: после предложения пользователь поручил

@@ -18,6 +18,7 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import type { AppRouter } from "../apps/backend/src/routers";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb, getPostById, getPostsForTarget } from "../apps/backend/src/db";
+import { openVideoTestDatabase } from "./helpers/video-mysql";
 
 describe.skipIf(!testDatabaseUrl)(
   "native content reads over real HTTP/JWT/MySQL",
@@ -28,6 +29,8 @@ describe.skipIf(!testDatabaseUrl)(
       bearer: string;
     beforeAll(async () => {
       conn = await openContentTestDatabase();
+      const videoFixture = await openVideoTestDatabase();
+      await videoFixture.end();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
       vi.stubEnv("JWT_SECRET", "native-content-fixture-secret-32-characters");
       vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
@@ -113,6 +116,9 @@ describe.skipIf(!testDatabaseUrl)(
       );
       await conn?.query("DELETE FROM users WHERE id=8970");
       await conn?.query("DELETE FROM articles WHERE id BETWEEN 8970 AND 8972");
+      await conn?.query(
+        "DELETE FROM videos WHERE id=8990 AND youtubeId='native-vk-public'",
+      );
       await conn?.end();
       await (
         (await getDb()) as unknown as { $client: { end(): Promise<void> } }
@@ -135,6 +141,168 @@ describe.skipIf(!testDatabaseUrl)(
         text: "public body",
       });
       expect(await client().feed.getById.query({ id: 8971 })).toBeUndefined();
+    });
+
+    const clubVk =
+      "https://vkvideo.ru/video_ext.php?oid=-101&id=1&hash=clubfixture123";
+    const publicVk =
+      "https://vk.com/video_ext.php?oid=-101&id=2&hash=publicfixture123";
+    it.each([
+      {
+        name: "guest",
+        token: false,
+        patch: "role='user'",
+        paid: true,
+        allowed: false,
+      },
+      {
+        name: "paid",
+        token: true,
+        patch: "role='user'",
+        paid: true,
+        allowed: true,
+      },
+      {
+        name: "expired",
+        token: true,
+        patch: "role='user'",
+        paid: false,
+        allowed: false,
+      },
+      {
+        name: "blocked",
+        token: true,
+        patch: "blockedAt=NOW()",
+        paid: true,
+        allowed: false,
+      },
+      {
+        name: "revoked",
+        token: true,
+        patch: "sessionVersion=1",
+        paid: true,
+        allowed: false,
+      },
+      {
+        name: "moderator unpaid",
+        token: true,
+        patch: "role='moderator'",
+        paid: false,
+        allowed: true,
+      },
+      {
+        name: "admin unpaid",
+        token: true,
+        patch: "role='admin'",
+        paid: false,
+        allowed: true,
+      },
+    ])(
+      "gates club VK attachment URLs across detail/list/saved/admin reads ($name)",
+      async (fixture) => {
+        await conn.query(
+          `INSERT INTO post_media (id,postId,type,url) VALUES
+        (8980,8971,'video',?),(8981,8970,'video',?),(8982,8972,'video',?)`,
+          [clubVk, publicVk, clubVk],
+        );
+        try {
+          await conn.query(`UPDATE users SET ${fixture.patch} WHERE id=8970`);
+          if (!fixture.paid)
+            await conn.query(
+              "UPDATE club_payments SET expiresAt=DATE_SUB(NOW(),INTERVAL 1 DAY) WHERE orderId='native-content-subscription'",
+            );
+          await conn.query(
+            "INSERT INTO saved_posts (userId,postId) VALUES (8970,8971),(8970,8972)",
+          );
+          const caller = client(fixture.token ? bearer : undefined);
+          const detail = await caller.feed.getById.query({ id: 8971 });
+          if (fixture.allowed)
+            expect(detail).toMatchObject({
+              media: expect.arrayContaining([
+                expect.objectContaining({ url: clubVk }),
+              ]),
+            });
+          else expect(detail).toBeUndefined();
+          const publicDetail = await caller.feed.getById.query({ id: 8970 });
+          expect(publicDetail).toMatchObject({
+            media: expect.arrayContaining([
+              expect.objectContaining({ url: publicVk }),
+            ]),
+          });
+          expect(await caller.feed.getById.query({ id: 8972 })).toBeUndefined();
+          const list = await caller.feed.list.query();
+          const page = await caller.feed.listPaginated.query({ limit: 50 });
+          for (const data of [list, page])
+            expect(JSON.stringify(data)).not.toContain(clubVk);
+          if (fixture.allowed) {
+            expect(JSON.stringify(await caller.club.list.query())).toContain(
+              clubVk,
+            );
+            expect(
+              JSON.stringify(await caller.feed.savedPosts.query()),
+            ).toContain(clubVk);
+          } else {
+            await expect(caller.club.list.query()).rejects.toMatchObject({
+              data: {
+                code: expect.stringMatching(/^(UNAUTHORIZED|FORBIDDEN)$/),
+              },
+            });
+            if (fixture.token && fixture.name === "expired")
+              expect(await caller.feed.savedPosts.query()).toEqual([]);
+            else
+              await expect(
+                caller.feed.savedPosts.query(),
+              ).rejects.toMatchObject({ data: { code: "UNAUTHORIZED" } });
+          }
+          if (fixture.name === "admin unpaid")
+            expect(
+              JSON.stringify(
+                await caller.admin.getPostMedia.query({ postId: 8971 }),
+              ),
+            ).toContain(clubVk);
+          else
+            await expect(
+              caller.admin.getPostMedia.query({ postId: 8971 }),
+            ).rejects.toMatchObject({
+              data: {
+                code: expect.stringMatching(/^(UNAUTHORIZED|FORBIDDEN)$/),
+              },
+            });
+        } finally {
+          await conn.query(
+            "DELETE FROM post_media WHERE id IN (8980,8981,8982)",
+          );
+        }
+      },
+    );
+    it("keeps the existing standalone VK video catalog public and hides unpublished sources", async () => {
+      await conn.query(
+        "INSERT INTO videos (id,youtubeId,title,videoUrl,published) VALUES (8990,'native-vk-public','VK standalone fixture',?,TRUE)",
+        [publicVk],
+      );
+      try {
+        expect(await client().videos.getById.query({ id: 8990 })).toMatchObject(
+          { id: 8990, videoUrl: publicVk },
+        );
+        expect(
+          (await client().videos.list.query()).find(
+            (video) => video.id === 8990,
+          )?.videoUrl,
+        ).toBe(publicVk);
+        await conn.query("UPDATE videos SET published=FALSE WHERE id=8990");
+        expect(
+          await client().videos.getById.query({ id: 8990 }),
+        ).toBeUndefined();
+        expect(
+          (await client().videos.list.query()).find(
+            (video) => video.id === 8990,
+          ),
+        ).toBeUndefined();
+      } finally {
+        await conn.query(
+          "DELETE FROM videos WHERE id=8990 AND youtubeId='native-vk-public'",
+        );
+      }
     });
     it("keeps private row lookup separate from public visibility", async () => {
       for (const fixture of [
