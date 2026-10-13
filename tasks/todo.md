@@ -41,6 +41,13 @@ Local feature branch, без push/deploy/рабочей БД/автоматич�
   boundaries618/focused format/diff pass. Controlled API, не provider/SQL приёмка;
   design/backend/API unchanged, own browser/HTTP/frontend resources closed.
 - [ ] Пункт5: actual isolated S3/private delivery, прежние storage/rollout gates.
+  Backend-only review13 октября: public-read/direct persisted URLs обходят app
+  content checks; working bucket anonymous access не проверен. Safe key fix:
+  RED4/RED6 → storage14 actual SDK PUT/loopback exact-byte GET; focused70 pass.
+  Encoding сохраняет exact key, unsafe empty/dot/backslash/control rejected до
+  effects. ACL/auth/frontend/old URLs не менялись; пункт5 остаётся незавершённым.
+  Default2327 pass/1163 skips (3495), 52.81 s; types/build/boundaries619/docs54/
+  focused test format/diff pass. Own HTTP fixture closed, no working storage.
 
 Автоматизация остаётся удалённой; это возобновление работы по прямому поручению,
 не подтверждение готовности первого этапа и не реальная платёжная приёмка.

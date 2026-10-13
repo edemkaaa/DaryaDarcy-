@@ -4,6 +4,39 @@
 
 **Уточнение пользователя: продолжать по документу, без новых правок фронтендера.**
 
+**Пункт5, backend-only code review / точная адресация — 13 октября:**
+Прослежены storagePut→photo/media/raw-video/comment/avatar→persisted URL,
+storageGet, admin media read, feed/post/article/video read. Admin media route
+admin-gated; post/article публикация и club policy проверяются, public video
+catalog намеренно published/public. Но сохранённые прямые object URLs не проходят
+эти проверки: S3 PutObject по-прежнему public-read, storageGet unsigned, отдельного
+authenticated file proxy нет; Manus fallback также не имеет visibility contract.
+Это подтверждённый разрыв в коде, не доказательство anonymous GET рабочего bucket.
+
+Найден безопасный независимый defect: S3 SDK PUT кодирует ключ, ручное построение
+URL нет — #/?/% и endpoint trailing slash меняют адрес возвращаемого объекта.
+RED4 → exact per-segment encoding в put/get/connection helper; object key не
+декодируется, prefix/ACL/rights не выбираются по URL. RED6 → общий key boundary
+отклоняет empty/dot-segments/backslash/control до provider effects (S3 и fallback),
+прежние leading slash и generated keys сохранены. Shared URL builder исключает
+разные правила put/get. Не переписывает сохранённые ссылки или working objects.
+Final focused **70 pass/5 suites, exit0, 2.01 s**; storage14 включает настоящий
+AWS SDK PUT и HTTP GET тех же synthetic bytes по exact path на own loopback.
+Fixture не моделирует ACL/auth/signatures/CDN: не private S3 acceptance.
+Final default workers2 **2327 pass/1163 opt-in skips (3495), exit0, 52.81 s**;
+types/backend build470.1kb/boundaries619/docs54/focused test format/diff pass.
+Self-review: exact object identity, no percent decoding, no new visibility
+inference; bounded string processing and no new provider calls. Own HTTP fixture
+and connections closed by harness; SQL/container/browser не нужны этому key fix.
+
+Review/security scope: frontend/API auth/roles/CORS/quotas/subscription semantics,
+ACL, SQL/schema и VK/embed настройки не менялись; новых dependencies/endpoints
+нет. Global public-read→private запрещён: public covers/avatars/shared references
+и existing client preview нельзя ломать. M1c ждёт dedicated local S3 endpoint/
+test bucket/test-only connection; M2 требует reviewed live-check proxy или
+short-lived URL contract плюс upload→associate→read и отдельный existing-object
+rollout/backup/rollback. Не считать этот key fix завершением пункта5.
+
 **Фоновые задачи привязки почты — пункт4, локально:** existing WorkerJobs/Nest
 регистрирует delivery и maintenance в прежнем billing cadence30s, без пятого
 таймера. Общий single-flight/stop ждёт завершения; binding failure изолирован

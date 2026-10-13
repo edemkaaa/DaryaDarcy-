@@ -4,6 +4,26 @@ import { ENV } from "./_core/env";
 
 // --- Timeweb S3 Storage ---
 
+function storageKey(relKey: string): string {
+  const key = relKey.replace(/^\/+/, "");
+  if (!key || /[\\\x00-\x1f\x7f]/.test(key) ||
+      key.split("/").some((part) => part === "." || part === "..")) {
+    throw new Error("Invalid storage key");
+  }
+  return key;
+}
+
+/** Encode the exact object key, not URL syntax or an already-decoded alias. */
+function s3ObjectUrl(key: string): string {
+  const encode = (part: string) =>
+    encodeURIComponent(part).replace(
+      /[!'()*]/g,
+      (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+    );
+  const encodedKey = key.split("/").map(encode).join("/");
+  return `${ENV.s3Endpoint.replace(/\/+$/, "")}/${encode(ENV.s3Bucket)}/${encodedKey}`;
+}
+
 function getS3Client(): S3Client | null {
   if (!ENV.s3Endpoint || !ENV.s3AccessKey || !ENV.s3SecretKey || !ENV.s3Bucket) {
     return null;
@@ -40,7 +60,7 @@ async function s3Put(
     }),
   );
 
-  const url = `${ENV.s3Endpoint}/${ENV.s3Bucket}/${key}`;
+  const url = s3ObjectUrl(key);
   return { key, url };
 }
 
@@ -109,20 +129,21 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
+  const key = storageKey(relKey);
   // Prefer Timeweb S3 if configured
   if (ENV.s3Endpoint && ENV.s3AccessKey && ENV.s3SecretKey && ENV.s3Bucket) {
-    return s3Put(relKey, data, contentType);
+    return s3Put(key, data, contentType);
   }
   // Fallback to Manus built-in storage
-  return manusPut(relKey, data, contentType);
+  return manusPut(key, data, contentType);
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
-  const key = relKey.replace(/^\/+/, "");
+  const key = storageKey(relKey);
 
   // If S3 is configured, return direct public URL
   if (ENV.s3Endpoint && ENV.s3Bucket) {
-    return { key, url: `${ENV.s3Endpoint}/${ENV.s3Bucket}/${key}` };
+    return { key, url: s3ObjectUrl(key) };
   }
 
   // Fallback to Manus
@@ -148,7 +169,7 @@ export async function testS3Connection(): Promise<{ success: boolean; message: s
         ACL: "public-read",
       }),
     );
-    const url = `${ENV.s3Endpoint}/${ENV.s3Bucket}/${testKey}`;
+    const url = s3ObjectUrl(testKey);
     return { success: true, message: `S3 connected. Test file: ${url}` };
   } catch (err: any) {
     return { success: false, message: err.message || "Unknown error" };

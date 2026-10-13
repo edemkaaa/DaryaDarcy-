@@ -7,6 +7,16 @@
 
 ## Подтверждённая граница
 
+Checkpoint13 октября: backend-only review сохраняет этот access finding.
+Исправлена только точность новых S3 URL: raw #/?/% и trailing endpoint slash
+больше не меняют объект относительно SDK PUT; key encoded per segment, не
+decoded. Empty/dot-segment/backslash/control keys rejected before provider work.
+RED4 + RED6 → storage14 checks; actual loopback SDK PUT→HTTP exact-byte GET
+проверяет адрес, **не bucket ACL, подпись, auth или приватность**. Старые URLs,
+working objects/ACL, frontend и VK не менялись. Production generated keys и
+leading-slash normalization сохранены. Полное закрытие всё ещё требует M1c/M2
+и reviewed rollout, public/shared/decoration exceptions нельзя закрывать глобально.
+
 [storage.ts](../../apps/backend/src/storage.ts) отправляет `PutObject` с
 `ACL: public-read` для всех S3-загрузок, независимо от будущего типа публикации.
 Возвращается прямой endpoint/bucket/key URL без срока/подписи/проверки подписки.
@@ -14,7 +24,7 @@
 helper не используется production-потребителями. Основной путь — сохранённые
 URL, возвращённые `storagePut`, а не вызов `storageGet` при каждом чтении.
 
-[Четыре wire-проверки](../../tests/storage-public-boundary.test.ts) используют
+[Исходные четыре wire-проверки](../../tests/storage-public-boundary.test.ts) используют
 настоящий AWS SDK и собственный loopback HTTP endpoint с синтетическими ключами.
 Проверены исходящие PUT/ключ/ACL для фото, документов и club comment photos,
 а также отсутствие storage-запроса при `storageGet`. Все четыре проходят.
@@ -29,7 +39,7 @@ Public Access, Object Ownership, CDN или Timeweb. Успех этих тес�
 | Фото публикации | `admin.uploadPhoto`; чтение club-поста ограничено сервисом | `feed/photos/<uuid>.webp`; `posts.photos`/richText | Сопоставить объект всем постам и статьям; один prefix не означает публичность |
 | Аудио/документ/видео вложения | `admin.uploadMedia`; публикация/чтение зависит от поста | `feed/audio`, `feed/documents`, `feed/videos`; `post_media.url` | Club/draft/scheduled против feed/both; загрузка до ассоциации может оставлять orphan |
 | Raw-видео | admin-only `/api/admin/upload-video` | `feed/reels/<uuid>_<safe-name>` | Определять доступ по всем ссылкам на объект, не по filename/prefix |
-| Фото комментария | `club.uploadCommentPhoto` требует аккаунт; `club.comments` — clubMemberProcedure | `club/comments/<userId>/<uuid>.webp`; `post_comments.photos` | Подписка/блокировка на API не проверяется при прямом чтении object URL |
+| Фото комментария | `club.uploadCommentPhoto` требует аккаунт; с13 октября `club.comments` — protectedProcedure + target-aware club policy | `club/comments/<userId>/<uuid>.webp`; `post_comments.photos` | Public обсуждение доступно авторизованным без оплаты; API policy не проверяется при прямом чтении object URL |
 | Avatar | профиль своего аккаунта | `avatars/<userId>/<uuid>.webp`; `users.avatarUrl` | Не считать платным вложением автоматически; сохранить публичный дизайн |
 | Статья/обложка | `articleById` скрывает sections без club-доступа, но отдаёт cover/title как teaser | `articles.coverUrl`, `articles.sections` | Обложка может быть намеренно публичной; вложения sections классифицировать отдельно |
 | Каталог видео/YouTube service | published-каталог и отдельный сервис явно публичны | `videos`, `/api/yt/<id>`, thumbnail cache | Не превращать нынешние публичные видео в платные молча; это отдельный V1-контракт |
