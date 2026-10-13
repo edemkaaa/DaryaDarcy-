@@ -1,5 +1,20 @@
 # Daryadarcy Modular Monorepo
 
+## Article-create-recovery — 13 октября 2026
+
+- [x] Подготовить proposed серверный контракт:
+  [SPEC-article-create-recovery](../SPEC-article-create-recovery.md), без кода/фронта.
+- [ ] Human approval optional UUID key, numeric replay, read-only status,
+  отдельный ledger без TTL; затем schema review и малые RED/GREEN срезы.
+- [x] Approval for local backend inferred from direct «я спать а ты делай дальше»
+  after contract proposal; no working rollout/ frontend authority added.
+- [ ] AR1: additive 0029/actor-scoped keyed atomic article/teaser creation;
+  native replay/conflict/delete/concurrent/rollback verification.
+- [ ] AR2: read-only status + native lost-response/restart/auth/schema checks;
+  frontend artifacts untouched, handoff describes pending client integration.
+- [ ] Native HTTP/SQL concurrency/lost reply/restart/conflict/rollback/delete/
+  current authority acceptance. Browser reload не считать закрытым без клиента.
+
 ## Текущее поручение — 13 октября 2026
 
 Подтверждён пользователем список «Задачи_бэкендеру_2026-10-12.md», начать с3.

@@ -1,5 +1,22 @@
 # Implementation Plan: Daryadarcy Modular Monorepo
 
+## Article-create-recovery — контракт на согласование, 13 октября 2026
+
+Контракт принят для local backend: после предложения пользователь поручил
+«я спать а ты делай дальше». Frontend/working migration/push/deploy запрещены.
+Порядок: native replay/conflict/delete RED → keyed atomic create/0029 schema;
+затем status/lost reply/restart/concurrency/schema refusal RED/GREEN; review,
+affected/native/default/types/build/docs и отдельные local commits. Auth-before-
+replay, immutable intent, no TTL; browser integration отдельно фронтендеру.
+
+Пользователь поручил защиту от дублей после потери ответа/reload, сначала
+согласовать серверный контракт, фронт не трогать. Draft:
+[SPEC-article-create-recovery](../SPEC-article-create-recovery.md).
+Optional actor-bound UUID key/прежний numeric result, read-only status и отдельный
+durable ledger с atomic article/teaser commit. Это предложение, не реализация:
+миграция/retention/совместимость ждут human review; rollout отдельно gated.
+Перезагрузка требует сохранённого клиентом ключа; frontend не меняется.
+
 ## Поручение 13 октября 2026 — задачи для бэкендера
 
 **Уточнение пользователя: продолжать по документу, без новых правок фронтендера.**
