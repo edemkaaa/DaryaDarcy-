@@ -312,6 +312,17 @@ export const billingCheckoutIntents = mysqlTable("billing_checkout_intents", {
 
 export type BillingCheckoutIntent = typeof billingCheckoutIntents.$inferSelect;
 
+export const normalCheckoutRequests = mysqlTable("normal_checkout_requests", {
+  requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
+  actorUserId: int("actorUserId").notNull(),
+  requestHash: varchar("requestHash", { length: 64 }).notNull(),
+  orderId: varchar("orderId", { length: 64 }).notNull().unique("normal_checkout_order_unique"),
+  amountMinor: int("amountMinor").notNull(),
+  merchantDomain: varchar("merchantDomain", { length: 255 }).notNull(),
+  checkoutUrlHash: varchar("checkoutUrlHash", { length: 64 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const billingReceipts = mysqlTable("billing_receipts", {
   paymentKey: varchar("paymentKey", { length: 64 }).primaryKey(),
   userId: int("userId").notNull(),

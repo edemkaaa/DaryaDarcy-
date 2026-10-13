@@ -1,10 +1,11 @@
 # Spec: восстановление обычного checkout — AG6/P2
 
-## Статус и объём — Proposed, 14 октября 2026
+## Статус и объём — Accepted for local backend implementation, 14 октября 2026
 
-Пользователь поручил продолжить AG6 после предложения конкретизировать контракт.
-Подготовлен первый обозримый срез; это не принятие новой схемы/API или включение
-реальных платежей. Реализация начинается после решения по этому контракту.
+Пользователь явно подтвердил: «Да, принимаю контракт AG6, го реализовывай локально
+и проверяй по плану. Фронт и рабочую БД не трогай». Приняты authenticated scope,
+два additive метода и отдельный ledger для локальной реализации/тестовой миграции.
+Это не разрешение реальных платежей, включения или working rollout.
 
 Цель: вошедший пользователь после потери ответа/reload получает тот же pending
 заказ либо подтверждённый результат именно этой покупки. Retry одного намерения
@@ -165,7 +166,25 @@ PATH=/opt/homebrew/opt/node@22/bin:$PATH pnpm check:docs
 git diff --check
 ```
 
-Новый test file ещё не создан: первая команда для будущего среза, не текущий pass.
+Локальная реализация 14 октября: migration 0030, отдельный billing helper и два
+protected метода с default-off NORMAL_CHECKOUT_RECOVERY_ENABLED. Native suite:
+26 SQL/HTTP сценариев; дополнительный procedure inventory — 1 pass. RED наблюдался
+для отсутствующих routes, terminal states и schema/evidence integrity; GREEN
+подтверждён на одноразовом loopback/tmpfs backend_test. Потеря ответа моделируется
+отбрасыванием HTTP acknowledgement после commit, не browser/device acceptance.
+Два независимо запущенных compiled ESM процесса возвращают один order/link.
+Регрессия existing billing/TEST/settlement/cancellation: 200 pass в 11 файлах.
+Финальный совместный прогон native/inventory/history/preflight/billing: 244 pass,
+14 файлов, без skip.
+TypeScript/backend build/boundaries/docs и diff проверены; self-review: корректность,
+читабельность, границы модуля, безопасность и конкурентность/SQL нагрузка.
+Runtime guard проверяет ledger PK/unique order/InnoDB; изменения старых таблиц/
+цен/ролей/settlement отсутствуют. check:api ожидаемо
+отрицательный: generated frontend contract не обновлён согласно границе задачи.
+Offline migration preflight: только untracked 0017–0019; 0030 зарегистрирован,
+databaseChecked=false/releaseApproval=false. Fixture применяет только выделенные
+test migrations, не доказывает чистоту working history или готовность rollout.
+
 Native tests требуют явного BACKEND_TEST_DATABASE_URL собственной БД; отсутствие
 переменной/skip не доказывает работу. В fixtures только synthetic merchant config/
 SQL receipt, внешнего payform/платежа нет. Проверять единственный order/ledger,
@@ -173,14 +192,14 @@ identity/password/session/paid expiry неизменны до settlement; не �
 
 Always: auth-before-effect, atomic claim, payload conflict, finite SQL wait,
 no logging sensitive data, review и свежая verification. До начала кода принять
-первый authenticated scope, новые две процедуры и ledger/schema. Never: frontend,
+первый authenticated scope, новые две процедуры и ledger/schema принят. Never: frontend,
 реальный provider payment/mail/working DB, TEST fallback, изменение цены/recurrence,
 TTL/исправление старых данных, push/deploy/автоматическое включение.
 
-## Решение, которое требуется
+## Принятое решение
 
-Принять первый срез только для вошедших аккаунтов: отдельные normal create/status,
+Принят первый срез только для вошедших аккаунтов: отдельные normal create/status,
 минимальный ledger, точный replay/отказ при config drift, guest checkout прежний.
 Это разрешает последующую локальную backend реализацию/тестовую миграцию после
 schema review; не разрешает working rollout. Гостевой proof/первую оплату и frontend
-integration согласовывать отдельно. До решения документ остаётся Proposed.
+integration согласовывать отдельно. Новые изменения этого объёма сначала обосновать.

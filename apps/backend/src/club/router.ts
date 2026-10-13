@@ -11,12 +11,36 @@ import { addCommentInput } from "../content/comment-input";
 import { photoInput, uploadPhoto } from "../media/photos";
 import type { ClubBillingServices } from "../billing/billing.module";
 import { enforceReturnCheckLimit } from "../billing/yookassa/return-check-limit";
+import {
+  createNormalCheckout,
+  normalCheckoutInput,
+  normalCheckoutKey,
+  normalCheckoutStatus,
+  normalCheckoutResult,
+  normalCheckoutStatusResult,
+} from "../billing/normal-checkout";
 
 export const createClubRouter = (
   comments: ContentCommentService,
   billing: ClubBillingServices,
 ) =>
   router({
+    normalCheckoutStatus: protectedProcedure
+      .input(z.object({ idempotencyKey: normalCheckoutKey }).strict())
+      .output(normalCheckoutStatusResult)
+      .query(({ ctx, input }) =>
+        normalCheckoutStatus(ctx.user, input.idempotencyKey),
+      ),
+    createNormalCheckout: protectedProcedure
+      .input(normalCheckoutInput)
+      .output(normalCheckoutResult)
+      .mutation(({ ctx, input }) =>
+        createNormalCheckout(
+          ctx.user,
+          input,
+          ctx.req.headers?.["idempotency-key"],
+        ),
+      ),
     list: clubMemberProcedure
       .input(
         z
