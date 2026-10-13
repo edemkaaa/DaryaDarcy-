@@ -39,7 +39,15 @@ export async function readPublicCatalog(url, signal) {
     )
   )
     throw new Error("invalid catalog");
-  return rows.map(({ youtubeId, published }) => ({ youtubeId, published }));
+  // Legacy authority has no access/provider fields; explicit private or unknown
+  // policy must not be erased into a public-looking record by normalization.
+  return rows
+    .filter(
+      (row) =>
+        (row.access === undefined || row.access === "public") &&
+        (row.provider === undefined || row.provider === "youtube"),
+    )
+    .map(({ youtubeId, published }) => ({ youtubeId, published }));
 }
 
 export async function readThumbnail(id, signal, request = fetch) {
@@ -74,7 +82,7 @@ export function createThumbnailReader({
 } = {}) {
   const entries = new Map();
   let bytes = 0;
-  const remove = id => {
+  const remove = (id) => {
     const entry = entries.get(id);
     if (entry) bytes -= entry.image.length;
     entries.delete(id);
@@ -90,7 +98,10 @@ export function createThumbnailReader({
     if (image.length > maxBytes) return image;
     // A concurrent request may have populated this key while we fetched.
     remove(id);
-    while (entries.size && (entries.size >= maxEntries || bytes + image.length > maxBytes))
+    while (
+      entries.size &&
+      (entries.size >= maxEntries || bytes + image.length > maxBytes)
+    )
       remove(entries.keys().next().value);
     entries.set(id, { image, expiresAt: now() + ttlMs });
     bytes += image.length;

@@ -46,6 +46,28 @@ test("serves a complete prepared video with a bounded content length", async () 
   assert.equal(response.headers.get("x-content-type-options"), "nosniff");
   assert.equal(await response.text(), "0123456789");
 });
+test("rejects explicit club authority for GET HEAD Range and thumbnail before preparation", async () => {
+  const base = await start({
+    readCatalog: async () => [
+      { youtubeId: id, published: true, access: "club" },
+    ],
+    cache: {
+      acquire: async () => {
+        throw Error("club preparation reached");
+      },
+    },
+    readThumbnail: async () => {
+      throw Error("club thumbnail reached");
+    },
+  });
+  for (const [path, options] of [
+    [`/api/yt/${id}`, {}],
+    [`/api/yt/${id}`, { method: "HEAD" }],
+    [`/api/yt/${id}`, { headers: { Range: "bytes=0-3" } }],
+    [`/media/yt-thumb/${id}/hqdefault.jpg`, {}],
+  ])
+    assert.equal((await fetch(base + path, options)).status, 404);
+});
 
 test("serves a byte range for browser seeking", async () => {
   const base = await start();

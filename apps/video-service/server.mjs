@@ -67,7 +67,11 @@ export function createVideoServer({
     try {
       const published = async () =>
         (await readCatalog(controller.signal)).some(
-          (video) => video.youtubeId === id && video.published === true,
+          (video) =>
+            video.youtubeId === id &&
+            video.published === true &&
+            (video.access === undefined || video.access === "public") &&
+            (video.provider === undefined || video.provider === "youtube"),
         );
       if (!(await published())) return error(response, 404);
       if (thumbnail) {
