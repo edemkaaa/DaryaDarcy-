@@ -223,7 +223,7 @@ Read-only сопоставление owning services и existing native suites, 
 не новая полная SQL/browser регрессия и не доказательство всех interleavings.
 Поведение, тесты и фронт не изменены; прежние pass не выдаются за свежий запуск.
 
-VK: в Git staging `62b24a6` есть whitelist HTTPS exported `video_ext.php`
+Исторический VK audit до принятия каталога: в Git staging `62b24a6` есть whitelist HTTPS exported `video_ext.php`
 renderer с oid/id/hash, без произвольного iframe HTML и без новой формы ввода.
 Post-media доступ наследуется от родителя и native проверен ранее. Published
 самостоятельный catalog остаётся публичным; mandatory youtubeId/anonymous worker
@@ -232,6 +232,49 @@ Post-media доступ наследуется от родителя и native �
 как передаются/вносятся экспортируемые ссылки. Пока данных нет, новые access поля,
 provider union/миграции/фиктивные IDs не добавлять. Реальные ролики/настройки VK и
 телефоны ещё требуются; публичный тестовый embed не принимает контент заказчика.
+
+## AG8 — принятый VK-каталог, локальная реализация 14 октября
+
+[Контракт](../../SPEC-vk-catalog-access.md) принят пользователем; новые API/schema
+реализованы локально, не выкладывались. Фронт и generated types не изменены.
+Backend/schema/tests: `70a5110`; anonymous worker guards: `3978691`.
+
+- `videos.catalog` public query: strict `{limit?: 1..100, cursor?: positive safe id}`,
+  default limit20, no input допустим. `{items,nextCursor}`; item только
+  `{id,title,duration,access:public|club,canWatch}`. Никаких sources/hash/URL в карточках.
+- `videos.playback` public query с server gate: strict `{id}`; public опубликованный
+  источник доступен гостю, club требует текущего hasClubAccess. Ответ union:
+  `{id,provider:"vk",embedUrl}` либо `{id,provider:"youtube",youtubeId,videoUrl}`.
+  Гость club — UNAUTHORIZED; пользователь без доступа — FORBIDDEN;
+  revoked/blocked — existing identity policy; unknown/unpublished — NOT_FOUND;
+  schema/SQL/corrupt source — INTERNAL_SERVER_ERROR, без публичного fallback.
+- `admin.upsertVkVideo` admin mutation: strict `{embedUrl,title,access,published,id?}`
+  → `{id}`. Без id — create/replay одного canonical source; другой payload даёт
+  CONFLICT. С id — explicit update существующего VK, без конвертации старого YouTube.
+  Allowlist согласован с staging parser (полные правила в spec); неизвестные
+  query/duplicate/HTML/share URLs отвергаются. Никакого fetch/download VK на сервере.
+- Старые `videos.list/getById` сохраняют public YouTube wire shape, не возвращают
+  club/VK даже при выключенном новом флаге. Старый importVideos остаётся public
+  YouTube; access/provider/VK source fields теперь явно отвергаются, а не молча
+  теряются с последующей публичной публикацией.
+
+`VK_CATALOG_ENABLED=false` по умолчанию. Сначала проверенная schema 0031,
+затем backend/совместимый клиент и worker, затем согласованное включение.
+Служебный canWatch не равен subscribed; billing/роли/CORS/квоты не менялись.
+Новый интерфейс не реализован агентом: frontend team подключает catalog/playback
+и admin запись, обрабатывает недоступность/ошибки и обновляет generated contract.
+
+88 backend checks/11 файлов (21 VK SQL/HTTP + отдельный Node worker с настоящим
+API/SQL и warm cache), 42 native worker checks; без skip. TypeScript/build/boundaries
+прошли; API check остаётся stale. URL/bytes/payment rows — synthetic,
+ни одного реального VK проигрывания или рабочего migration acceptance.
+
+Перед выпуском проверить фактическую edge routing: teamassist/edge.video.conf
+пропускает /api/yt и yt-thumb через защищённый worker. Старый nginx-daryadarcy.conf
+проксирует yt-thumb прямо во внешний public cache без catalog gate; это не
+закрытая маршрутизация. Рабочие конфиги не проверены/не изменены. AG5 preflight
+всё ещё блокируют untracked 0017–0019; 0031 зарегистрирован, DB approval отсутствует.
+Реальные embed/настройки владельца, устройства, frontend и rollout остаются AG9.
 
 ## Исторические передачи
 

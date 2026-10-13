@@ -9,7 +9,8 @@
 
 **Следующий исполняемый шаг зависит от входов:** AG2 после предоставления S3;
 AG4 после AG2/решения AG3; AG5 после истории/retention. AG6 принят и реализован
-локально 14 октября; внешняя приёмка/включение не разрешены этим результатом.
+локально 14 октября; AG8 также принят/реализован локально. Внешняя приёмка/включение
+не разрешены этими результатами.
 Доступная локальная подготовка сохранена. Внешние действия/фронт не выполнялись.
 Составление плана само по себе не запускает реализацию. Следующее поручение
 «работай по плану» запускает AG1 либо уже следующий доступный незавершённый пункт.
@@ -66,13 +67,19 @@ AG4 после AG2/решения AG3; AG5 после истории/retention. 
   backend-дефекта в выбранных путях не установлено; код/тесты не менялись и GREEN
   без причины не повторялись. Это не сквозная приёмка всего C/S.
   Проверка документации: docs55/diff exit0, source/test coverage review.
-- [ ] **AG8 — необходимый объём VK.** Статус: контракт подготовлен 14 октября.
-  По сохранённому ТЗ 4.11 нужны раздел Видео и вложения; public каталог/mandatory
-  youtubeId/anonymous worker требуют согласованного продолжения. Proposed
-  [контракт](../SPEC-vk-catalog-access.md): mixed catalog, additive reads/admin write,
-  nullable YouTube ID, source-free cards и запрет legacy worker обхода.
-  Ждёт принятия конкретного API/schema и реальных embed примеров заказчика.
-  Source/docs review, не runtime/native GREEN. Фронт/БД/worker/старые видео неизменны.
+- [x] **AG8 — необходимый объём VK.** Статус: принят и реализован локально 14 октября.
+  [Контракт](../SPEC-vk-catalog-access.md): mixed catalog, additive reads/admin write,
+  0031/nullable YouTube ID, source-free cards, default-off VK_CATALOG_ENABLED.
+  Native RED/GREEN: 88 backend checks в 11 файлах (21 VK SQL/HTTP + live Node worker
+  с настоящим API/SQL); worker native 42 pass, skip=0, real VK не проверялся.
+  TypeScript/build/boundaries проверены; API types stale оставлены фронтендеру.
+  Offline preflight: только untracked 0017–0019, 0031 зарегистрирован, без DB approval.
+  Worker guards сохранены 3978691; source/transaction/auth/wire review выполнен.
+  Backend/schema/native tests сохранены 70a5110; одноразовый SQL стенд после
+  проверок удаляется с проверкой owner label/id/loopback/tmpfs, без чужих volumes.
+  Остаток AG9: реальные embed/device/frontend, working migration/history и edge
+  routes. Старый nginx yt-thumb public proxy не сертифицирован как закрытый.
+  Фронт/рабочая БД/настройки VK/старые ролики не изменены; flags не включались.
 - [ ] **AG9 — пакет выпуска и сквозная приёмка.** Статус: локальная матрица ТЗ,
   owners/условия/версии и порядок приёмки подготовлены в runbook. Общий candidate,
   working history/schema/restore, frontend integration, реальные provider/mail/

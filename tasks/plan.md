@@ -256,10 +256,14 @@ module и соответствующий тест. Реальные платеж
 
 #### AG8 — Зафиксировать необходимый объём VK (V1/V2; S, исследование)
 
-14 октября по поручению подготовлен [Proposed контракт](../SPEC-vk-catalog-access.md).
+14 октября принят и реализован локально [контракт](../SPEC-vk-catalog-access.md).
 Сохранённое ТЗ 4.11 предусматривает раздел Видео и вложения; старый public каталог
-не является защищённым mixed каталогом. API/schema и worker guards предложены,
-не реализованы. Нужны принятие конкретной границы и реальные embed примеры.
+не являлся защищённым mixed каталогом. Добавлены catalog/playback/admin VK write,
+default-off VK_CATALOG_ENABLED, schema 0031 и legacy/worker guards. Native: 88
+backend checks/11 файлов + 42 worker checks; 21 VK SQL/HTTP и live SQL API →
+native Node worker с warm cache. Реальные VK/player/client/device и working
+migration/edge routes остаются AG9. Фронт/рабочая БД/старые ролики не изменены.
+Worker guard commit 3978691; backend/schema/native acceptance 70a5110.
 
 Сверить настоящий frontend commit и способ наполнения: плеер уже есть; доступ к
 вложениям наследуется от поста. Установить по материалам/решению пользователя,
