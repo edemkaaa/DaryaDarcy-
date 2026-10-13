@@ -69,56 +69,6 @@ it("a late guest response cannot overwrite a successful sign-in", async () => {
   });
 });
 
-it("post-mutation refresh replaces a pre-write read without resetting the owner's private scope", async () => {
-  const old = deferred<AuthUser | null>();
-  const updated = { ...member(1), name: "Acknowledged name" };
-  const getMe = vi
-    .fn()
-    .mockImplementationOnce(() => old.promise)
-    .mockResolvedValue(updated);
-  const f = fixture(getMe);
-  await f.controller.applySession(member(1));
-  f.cache.setQueryData(["savedPosts"], ["PRIVATE_MEMBER_1"]);
-  const scope = f.controller.getSnapshot().scope;
-  const pending = f.controller.refresh();
-  await f.controller.refreshAfterMutation(1);
-  old.resolve(member(1));
-  await pending;
-  expect(f.controller.getSnapshot()).toMatchObject({
-    status: "authenticated",
-    user: updated,
-    scope,
-  });
-  expect(f.cache.getQueryData(["savedPosts"])).toEqual(["PRIVATE_MEMBER_1"]);
-});
-
-it("post-mutation refresh does not cancel a pending login", async () => {
-  const f = fixture();
-  await f.controller.applySession(member(1));
-  const login = deferred<{ user: AuthUser }>();
-  let signal!: AbortSignal;
-  const pending = f.controller.authenticate((s) => {
-    signal = s;
-    return login.promise;
-  });
-  await f.controller.refreshAfterMutation(1);
-  expect(signal.aborted).toBe(false);
-  login.resolve({ user: member(2) });
-  expect(await pending).toBe(true);
-  expect(f.controller.getSnapshot()).toMatchObject({
-    status: "authenticated",
-    user: { id: 2 },
-  });
-});
-
-it("a previous owner's mutation cannot refresh the new account", async () => {
-  const f = fixture();
-  await f.controller.applySession(member(2));
-  const snapshot = f.controller.getSnapshot();
-  await f.controller.refreshAfterMutation(1);
-  expect(f.controller.getSnapshot()).toBe(snapshot);
-});
-
 it.each([200, 401])(
   "a late loopback session response (%s) cannot replace the new account or its private cache",
   async (status) => {

@@ -1,0 +1,3557 @@
+{
+  "base": "62b24a6",
+  "environment": "Linux Chromium + Linux WebKit, Pixel 7 / iPhone 13 browser profiles; mocked API; not physical devices",
+  "command": "CI=1 pnpm --filter @daryadarcy/frontend exec playwright test --config=playwright.acceptance.config.ts --workers=2 --reporter=line,json",
+  "initialFullRun": {
+    "startTime": "2026-10-13T10:21:56.662Z",
+    "duration": 1040419.9469999999,
+    "expected": 281,
+    "skipped": 4,
+    "unexpected": 3,
+    "flaky": 0
+  },
+  "followupRuns": [
+    {
+      "command": "playwright test --config=playwright.acceptance.config.ts post-draft-recovery.spec.ts editor-safety.spec.ts long-lists.spec.ts --grep \"legacy version-one|refreshed photo list|completed native video\" --workers=1",
+      "stats": {
+        "startTime": "2026-10-13T10:39:45.765Z",
+        "duration": 51813.757000000005,
+        "expected": 4,
+        "skipped": 1,
+        "unexpected": 1,
+        "flaky": 0
+      }
+    },
+    {
+      "command": "playwright test --config=playwright.acceptance.config.ts long-lists.spec.ts --grep \"completed native video\" --workers=1",
+      "stats": {
+        "startTime": "2026-10-13T10:44:18.178Z",
+        "duration": 22029.423000000003,
+        "expected": 2,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    }
+  ],
+  "tests": [
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "closed club filters cannot receive keyboard or programmatic focus",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 5624,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "club filters support selection, Escape and focus return at 390px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 6335,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "club filters support selection, Escape and focus return at 1440px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 7180,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "closed filters remain off-screen after resizing and rapid reopening",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 7498,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "comment links and actions work with the keyboard and menu focus is restored",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3596,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "main screens expose named visible buttons without horizontal overflow",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 15286,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "visual quiz choices have a name and announce their selected state",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2757,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "the filter reset remains fully reachable by scrolling and keyboard on narrow and short screens",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 7258,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "closed club filters cannot receive keyboard or programmatic focus",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 6672,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "club filters support selection, Escape and focus return at 390px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 12666,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "club filters support selection, Escape and focus return at 1440px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 16885,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "closed filters remain off-screen after resizing and rapid reopening",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 27039,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "comment links and actions work with the keyboard and menu focus is restored",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 7828,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "main screens expose named visible buttons without horizontal overflow",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 20905,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "visual quiz choices have a name and announce their selected state",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 2862,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "accessibility-actions.spec.ts",
+      "groups": [
+        "accessibility-actions.spec.ts"
+      ],
+      "title": "the filter reset remains fully reachable by scrolling and keyboard on narrow and short screens",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 14660,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "login keeps its focused input visible with a layout keyboard at 320px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 4750,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "register keeps its focused input visible with a layout keyboard at 320px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3035,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "recover keeps its focused input visible with a layout keyboard at 320px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2230,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "totp keeps its focused input visible with a layout keyboard at 320px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2836,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "login keeps its focused input visible with a layout keyboard at 390px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2490,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "register keeps its focused input visible with a layout keyboard at 390px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2091,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "recover keeps its focused input visible with a layout keyboard at 390px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2825,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "totp keeps its focused input visible with a layout keyboard at 390px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2446,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "login keeps its focused input visible with a visual keyboard at 320px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2265,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "register keeps its focused input visible with a visual keyboard at 320px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2379,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "recover keeps its focused input visible with a visual keyboard at 320px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2591,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "totp keeps its focused input visible with a visual keyboard at 320px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3101,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "login keeps its focused input visible with a visual keyboard at 390px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2579,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "register keeps its focused input visible with a visual keyboard at 390px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2985,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "recover keeps its focused input visible with a visual keyboard at 390px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3239,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "totp keeps its focused input visible with a visual keyboard at 390px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3439,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "login keeps its focused input visible with a layout keyboard at 320px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3595,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "register keeps its focused input visible with a layout keyboard at 320px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3759,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "recover keeps its focused input visible with a layout keyboard at 320px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4584,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "totp keeps its focused input visible with a layout keyboard at 320px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3415,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "login keeps its focused input visible with a layout keyboard at 390px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3063,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "register keeps its focused input visible with a layout keyboard at 390px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3876,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "recover keeps its focused input visible with a layout keyboard at 390px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3718,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "totp keeps its focused input visible with a layout keyboard at 390px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4106,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "login keeps its focused input visible with a visual keyboard at 320px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3331,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "register keeps its focused input visible with a visual keyboard at 320px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3221,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "recover keeps its focused input visible with a visual keyboard at 320px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3549,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "totp keeps its focused input visible with a visual keyboard at 320px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3689,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "login keeps its focused input visible with a visual keyboard at 390px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3159,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "register keeps its focused input visible with a visual keyboard at 390px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3592,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "recover keeps its focused input visible with a visual keyboard at 390px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3972,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "auth-keyboard.spec.ts",
+      "groups": [
+        "auth-keyboard.spec.ts"
+      ],
+      "title": "totp keeps its focused input visible with a visual keyboard at 390px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4934,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "cache-and-resume.spec.ts",
+      "groups": [
+        "cache-and-resume.spec.ts"
+      ],
+      "title": "a fast focus check is not repeated by the paired resume event",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 4543,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "cache-and-resume.spec.ts",
+      "groups": [
+        "cache-and-resume.spec.ts"
+      ],
+      "title": "a fast visibilitychange check is not repeated by the paired resume event",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3778,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "cache-and-resume.spec.ts",
+      "groups": [
+        "cache-and-resume.spec.ts"
+      ],
+      "title": "stale feed data and scroll survive focus and reconnect for a guest",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2088,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "cache-and-resume.spec.ts",
+      "groups": [
+        "cache-and-resume.spec.ts"
+      ],
+      "title": "stale feed data and scroll survive focus and reconnect for a member",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2625,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "cache-and-resume.spec.ts",
+      "groups": [
+        "cache-and-resume.spec.ts"
+      ],
+      "title": "browser really reuses hashed artwork on a second visit",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3588,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "cache-and-resume.spec.ts",
+      "groups": [
+        "cache-and-resume.spec.ts"
+      ],
+      "title": "a fast focus check is not repeated by the paired resume event",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 6079,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "cache-and-resume.spec.ts",
+      "groups": [
+        "cache-and-resume.spec.ts"
+      ],
+      "title": "a fast visibilitychange check is not repeated by the paired resume event",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 6401,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "cache-and-resume.spec.ts",
+      "groups": [
+        "cache-and-resume.spec.ts"
+      ],
+      "title": "stale feed data and scroll survive focus and reconnect for a guest",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3266,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "cache-and-resume.spec.ts",
+      "groups": [
+        "cache-and-resume.spec.ts"
+      ],
+      "title": "stale feed data and scroll survive focus and reconnect for a member",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4300,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "cache-and-resume.spec.ts",
+      "groups": [
+        "cache-and-resume.spec.ts"
+      ],
+      "title": "browser really reuses hashed artwork on a second visit",
+      "project": "webkit-mobile",
+      "status": "skipped",
+      "durationMs": 410,
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Cache transfer evidence requires Chromium CDP",
+          "location": {
+            "file": "/home/reeskeen/typescript/daryadarcy/apps/frontend/e2e/cache-and-resume.spec.ts",
+            "line": 119,
+            "column": 8
+          }
+        }
+      ],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a failed save keeps editor text and an explicit retry sends one write",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3217,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "audio upload rejection leaves the post untouched and retry commits it once",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 4451,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "an unconfirmed save is never automatically repeated",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2981,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a pending final write cannot be abandoned; confirmed completion allows a fresh editor",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3273,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a video upload returning HTML 413 shows its size error and adds no video",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3119,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "editing an unpublished article preserves its status",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2207,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a rejected attachment upload cannot unpublish an existing post; retry saves it once",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 4179,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a failed like rolls back and requires a read before repeating an unconfirmed write",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2985,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "two synchronous like clicks send one mutation and confirmed count comes from the post",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2520,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "an empty saved category does not show posts from the other category",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1989,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "the photo viewer preserves the chosen photo when the viewport changes",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2913,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a photo scroll immediately followed by resize preserves the new selection",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2197,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "photo carousel dots, edges and resize work in /post/1",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3155,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "photo carousel dots, edges and resize work in /feed",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3697,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "photo carousel dots, edges and resize work in /club",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2878,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a refreshed photo list clamps selection and removes empty indicators",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2573,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-followup.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "photo indicators handle 0 photos without overflow",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1091,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "photo indicators handle 1 photos without overflow",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1357,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "photo indicators handle 11 photos without overflow",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1355,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a rejected audio play does not display playing state",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1420,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a failed comment photo upload keeps the text and reports its error",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2085,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a failed article list offers retry instead of showing an empty list",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3582,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "shared image picker decoding errors are caught by its existing profile consumer",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1681,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "an expired session during an editor write closes private UI before any error dialog",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3054,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a failed save keeps editor text and an explicit retry sends one write",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4696,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "audio upload rejection leaves the post untouched and retry commits it once",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 6695,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "an unconfirmed save is never automatically repeated",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 5538,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a pending final write cannot be abandoned; confirmed completion allows a fresh editor",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 5494,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a video upload returning HTML 413 shows its size error and adds no video",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 5470,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "editing an unpublished article preserves its status",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3414,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a rejected attachment upload cannot unpublish an existing post; retry saves it once",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 9290,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a failed like rolls back and requires a read before repeating an unconfirmed write",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3080,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "two synchronous like clicks send one mutation and confirmed count comes from the post",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 2683,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "an empty saved category does not show posts from the other category",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 2954,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "the photo viewer preserves the chosen photo when the viewport changes",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3101,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a photo scroll immediately followed by resize preserves the new selection",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3303,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "photo carousel dots, edges and resize work in /post/1",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 11070,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "photo carousel dots, edges and resize work in /feed",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 10823,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "photo carousel dots, edges and resize work in /club",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 12564,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a refreshed photo list clamps selection and removes empty indicators",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 5420,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-followup.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "photo indicators handle 0 photos without overflow",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 1392,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "photo indicators handle 1 photos without overflow",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 2622,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "photo indicators handle 11 photos without overflow",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 2253,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a rejected audio play does not display playing state",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 2247,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a failed comment photo upload keeps the text and reports its error",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 5464,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "a failed article list offers retry instead of showing an empty list",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4656,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "shared image picker decoding errors are caught by its existing profile consumer",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3319,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "editor-safety.spec.ts",
+      "groups": [
+        "editor-safety.spec.ts"
+      ],
+      "title": "an expired session during an editor write closes private UI before any error dialog",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4423,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "club retains a reply draft outside the viewport and restores keyboard focus at 390px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 7299,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "feed retains expanded text and the top button follows its active list at 390px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 8453,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "club retains a reply draft outside the viewport and restores keyboard focus at 1440px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 8788,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "feed retains expanded text and the top button follows its active list at 1440px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 8011,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "measured windows bound heavy DOM and preserve old posts in /feed",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 39753,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "measured windows bound heavy DOM and preserve old posts in /club",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 41562,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "old comment caches expire while a reply draft survives",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 6012,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "a completed native video releases its offscreen row and can be reopened",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 7061,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-video-end-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "feed stops a repeated cursor, deduplicates posts and retries explicitly",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2270,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "windowing preserves the chosen photo and audio playback",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 5852,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "club retains a reply draft outside the viewport and restores keyboard focus at 390px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 19077,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "feed retains expanded text and the top button follows its active list at 390px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 11023,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "club retains a reply draft outside the viewport and restores keyboard focus at 1440px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 20969,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "feed retains expanded text and the top button follows its active list at 1440px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 19570,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "measured windows bound heavy DOM and preserve old posts in /feed",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 43079,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "measured windows bound heavy DOM and preserve old posts in /club",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 54949,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "old comment caches expire while a reply draft survives",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 14796,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "a completed native video releases its offscreen row and can be reopened",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 9384,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-video-end-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "feed stops a repeated cursor, deduplicates posts and retries explicitly",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4596,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "long-lists.spec.ts",
+      "groups": [
+        "long-lists.spec.ts"
+      ],
+      "title": "windowing preserves the chosen photo and audio playback",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 10426,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "broken video has an explicit retry and releases its source on /feed",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1925,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "broken video has an explicit retry and releases its source on /post/42",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1644,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "broken video has an explicit retry and releases its source on /video/42",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1969,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "VK unloads in a hidden retained tab, reloads explicitly and never autoplays on return",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2398,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "a denied club post response never requests a VK player",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1106,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "corrupt jpg refuses upload and releases every temporary URL over repeated attempts",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 4510,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "corrupt png refuses upload and releases every temporary URL over repeated attempts",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 4212,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "corrupt webp refuses upload and releases every temporary URL over repeated attempts",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 4438,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "corrupt heic refuses upload and releases every temporary URL over repeated attempts",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 4045,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "a failed access refetch hides a previously loaded video instead of retaining stale playback",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2277,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "broken video has an explicit retry and releases its source on /feed",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 7125,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "broken video has an explicit retry and releases its source on /post/42",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4544,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "broken video has an explicit retry and releases its source on /video/42",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4474,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "VK unloads in a hidden retained tab, reloads explicitly and never autoplays on return",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 6870,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "a denied club post response never requests a VK player",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 1987,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "corrupt jpg refuses upload and releases every temporary URL over repeated attempts",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 9040,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "corrupt png refuses upload and releases every temporary URL over repeated attempts",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 8641,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "corrupt webp refuses upload and releases every temporary URL over repeated attempts",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 10041,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "corrupt heic refuses upload and releases every temporary URL over repeated attempts",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 8576,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-failure-lifecycle.spec.ts",
+      "groups": [
+        "media-failure-lifecycle.spec.ts"
+      ],
+      "title": "a failed access refetch hides a previously loaded video instead of retaining stale playback",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4773,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-upload-contract.spec.ts",
+      "groups": [
+        "media-upload-contract.spec.ts"
+      ],
+      "title": "an original photo above 4 MiB is prepared within the server limit",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3863,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-upload-contract.spec.ts",
+      "groups": [
+        "media-upload-contract.spec.ts"
+      ],
+      "title": "transparent article PNG is resized/encoded within the limit with alpha preserved",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 4265,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-upload-contract.spec.ts",
+      "groups": [
+        "media-upload-contract.spec.ts"
+      ],
+      "title": "animated gif is refused before upload",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2176,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-upload-contract.spec.ts",
+      "groups": [
+        "media-upload-contract.spec.ts"
+      ],
+      "title": "animated apng is refused before upload",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2168,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-upload-contract.spec.ts",
+      "groups": [
+        "media-upload-contract.spec.ts"
+      ],
+      "title": "animated webp is refused before upload",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2137,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-upload-contract.spec.ts",
+      "groups": [
+        "media-upload-contract.spec.ts"
+      ],
+      "title": "invalid raw video explains format refusal without recommending a blind retry",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2285,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-upload-contract.spec.ts",
+      "groups": [
+        "media-upload-contract.spec.ts"
+      ],
+      "title": "an original photo above 4 MiB is prepared within the server limit",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 5079,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-upload-contract.spec.ts",
+      "groups": [
+        "media-upload-contract.spec.ts"
+      ],
+      "title": "transparent article PNG is resized/encoded within the limit with alpha preserved",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 5090,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-upload-contract.spec.ts",
+      "groups": [
+        "media-upload-contract.spec.ts"
+      ],
+      "title": "animated gif is refused before upload",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4710,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-upload-contract.spec.ts",
+      "groups": [
+        "media-upload-contract.spec.ts"
+      ],
+      "title": "animated apng is refused before upload",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 5130,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-upload-contract.spec.ts",
+      "groups": [
+        "media-upload-contract.spec.ts"
+      ],
+      "title": "animated webp is refused before upload",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 5592,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "media-upload-contract.spec.ts",
+      "groups": [
+        "media-upload-contract.spec.ts"
+      ],
+      "title": "invalid raw video explains format refusal without recommending a blind retry",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4934,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "main screens preserve fixed headers and hide overlay headers while keeping bottom navigation (guest)",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 15156,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "main screens preserve fixed headers and hide overlay headers while keeping bottom navigation (member)",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 15599,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "feed navigation overlays its original banner without adding a row at 390x844",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2223,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "feed navigation overlays its original banner without adding a row at 1440x844",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2121,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "feed navigation overlays its original banner without adding a row at 320x400",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2479,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "details, login, quiz, documents and missing pages all have an exit even when the API fails",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 19463,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "direct entry /post/invalid returns to /feed instead of leaving the app",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2213,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "direct entry /video/invalid returns to /videos instead of leaving the app",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2127,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "direct entry /shop/invalid returns to /shop instead of leaving the app",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2723,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "direct entry /library/article/invalid returns to /library instead of leaving the app",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2485,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "direct entry /quiz returns to /interactive instead of leaving the app",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1855,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "direct entry /legal/offer returns to /legal instead of leaving the app",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2384,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "direct entry /profile returns to / instead of leaving the app",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2384,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "back preserves actual app history across reload and forward, with a fallback at the initial entry",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 5175,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "session loading and failure keep home, back and the sections available",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2310,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "an external previous page is not used as the app's back destination",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1583,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "the login screen's contextual back also has a safe direct-entry fallback",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1844,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "the same navigation remains mounted between sections and details, with the correct active section",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2768,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "main screens preserve fixed headers and hide overlay headers while keeping bottom navigation (guest)",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 26740,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "main screens preserve fixed headers and hide overlay headers while keeping bottom navigation (member)",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 29272,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "feed navigation overlays its original banner without adding a row at 390x844",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3988,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "feed navigation overlays its original banner without adding a row at 1440x844",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3609,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "feed navigation overlays its original banner without adding a row at 320x400",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3484,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "details, login, quiz, documents and missing pages all have an exit even when the API fails",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 20161,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "direct entry /post/invalid returns to /feed instead of leaving the app",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3031,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "direct entry /video/invalid returns to /videos instead of leaving the app",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 2808,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "direct entry /shop/invalid returns to /shop instead of leaving the app",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3919,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "direct entry /library/article/invalid returns to /library instead of leaving the app",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3183,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "direct entry /quiz returns to /interactive instead of leaving the app",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3435,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "direct entry /legal/offer returns to /legal instead of leaving the app",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 2798,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "direct entry /profile returns to / instead of leaving the app",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4286,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "back preserves actual app history across reload and forward, with a fallback at the initial entry",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 9541,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "session loading and failure keep home, back and the sections available",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3596,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "an external previous page is not used as the app's back destination",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3120,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "the login screen's contextual back also has a safe direct-entry fallback",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 2596,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "navigation-layout.spec.ts",
+      "groups": [
+        "navigation-layout.spec.ts"
+      ],
+      "title": "the same navigation remains mounted between sections and details, with the correct active section",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3160,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "full: an incomplete media response preserves the edit without overwriting attachments (undefined)",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3193,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "full: an incomplete media response preserves the edit without overwriting attachments (null)",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3292,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "full: reload restores text, formatting and selected Files without sending anything",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 7196,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "full: lost create response recovers with the identical key, payload and uploaded metadata",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 8404,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "full: a definite rejection survives reload without reuploading its confirmed files",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 5375,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "full: unknown attachment upload stays blocked after reload",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 4843,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "full: reload preserves an edit, attachment removal and unknown-update protection",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 8568,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "quick: an incomplete media response preserves the edit without overwriting attachments (undefined)",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3613,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "quick: an incomplete media response preserves the edit without overwriting attachments (null)",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3301,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "quick: reload restores text, formatting and selected Files without sending anything",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 8897,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "quick: lost create response recovers with the identical key, payload and uploaded metadata",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 6990,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "quick: a definite rejection survives reload without reuploading its confirmed files",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 5373,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "quick: unknown attachment upload stays blocked after reload",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 5497,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "quick: reload preserves an edit, attachment removal and unknown-update protection",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 8702,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "drafts belong to the authenticated account and return only to their original owner",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 6770,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "another tab cannot overwrite the newer draft or send a stale creation",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 6165,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "failed local persistence blocks server writes and keeps input",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3456,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "a corrupt draft is not overwritten or submitted and can be explicitly discarded",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 6520,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "a confirmed commit surviving local cleanup is finished without another server write",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 5387,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "legacy version-one drafts remain readable with their selected file",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 7185,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-followup.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "full: an incomplete media response preserves the edit without overwriting attachments (undefined)",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3660,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "full: an incomplete media response preserves the edit without overwriting attachments (null)",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3559,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "full: reload restores text, formatting and selected Files without sending anything",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 11164,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "full: lost create response recovers with the identical key, payload and uploaded metadata",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 13558,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "full: a definite rejection survives reload without reuploading its confirmed files",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 7012,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "full: unknown attachment upload stays blocked after reload",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 7150,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "full: reload preserves an edit, attachment removal and unknown-update protection",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 10516,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "quick: an incomplete media response preserves the edit without overwriting attachments (undefined)",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 7306,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "quick: an incomplete media response preserves the edit without overwriting attachments (null)",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 7152,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "quick: reload restores text, formatting and selected Files without sending anything",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 15578,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "quick: lost create response recovers with the identical key, payload and uploaded metadata",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 13074,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "quick: a definite rejection survives reload without reuploading its confirmed files",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 10365,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "quick: unknown attachment upload stays blocked after reload",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 9062,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "quick: reload preserves an edit, attachment removal and unknown-update protection",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 18283,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "drafts belong to the authenticated account and return only to their original owner",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 8710,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "another tab cannot overwrite the newer draft or send a stale creation",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 11854,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "failed local persistence blocks server writes and keeps input",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 6804,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "a corrupt draft is not overwritten or submitted and can be explicitly discarded",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 13547,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "a confirmed commit surviving local cleanup is finished without another server write",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 9848,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-draft-recovery.spec.ts",
+      "groups": [
+        "post-draft-recovery.spec.ts"
+      ],
+      "title": "legacy version-one drafts remain readable with their selected file",
+      "project": "webkit-mobile",
+      "status": "skipped",
+      "durationMs": 630,
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Creating the legacy Blob record requires IndexedDB Blob support",
+          "location": {
+            "file": "/home/reeskeen/typescript/daryadarcy/apps/frontend/e2e/post-draft-recovery.spec.ts",
+            "line": 673,
+            "column": 8
+          }
+        }
+      ],
+      "verifiedIn": "daryadarcy-acceptance-followup.json"
+    },
+    {
+      "file": "post-editor-typing.spec.ts",
+      "groups": [
+        "post-editor-typing.spec.ts"
+      ],
+      "title": "full: native typing avoids rebuilding observers and the admin list, and saves the latest text",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 6174,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-editor-typing.spec.ts",
+      "groups": [
+        "post-editor-typing.spec.ts"
+      ],
+      "title": "quick: native typing avoids rebuilding observers and the admin list, and saves the latest text",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 4775,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-editor-typing.spec.ts",
+      "groups": [
+        "post-editor-typing.spec.ts"
+      ],
+      "title": "full: native typing avoids rebuilding observers and the admin list, and saves the latest text",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 11920,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-editor-typing.spec.ts",
+      "groups": [
+        "post-editor-typing.spec.ts"
+      ],
+      "title": "quick: native typing avoids rebuilding observers and the admin list, and saves the latest text",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 16202,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts"
+      ],
+      "title": "full: edits links through selection and deletes them with their text without changing editor height",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 7536,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts"
+      ],
+      "title": "quick: edits links through selection and deletes them with their text without changing editor height",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 8639,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts"
+      ],
+      "title": "full: deleting a linked duplicate does not transfer its URL and partial deletion keeps the other link",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3194,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts"
+      ],
+      "title": "quick: deleting a linked duplicate does not transfer its URL and partial deletion keeps the other link",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 4031,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts"
+      ],
+      "title": "full: edits links through selection and deletes them with their text without changing editor height",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 10081,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts"
+      ],
+      "title": "quick: edits links through selection and deletes them with their text without changing editor height",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 16741,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts"
+      ],
+      "title": "full: deleting a linked duplicate does not transfer its URL and partial deletion keeps the other link",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4917,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts"
+      ],
+      "title": "quick: deleting a linked duplicate does not transfer its URL and partial deletion keeps the other link",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 9450,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts",
+        "full: inline link wrapping at 320px"
+      ],
+      "title": "keeps taps aligned after native scrolling, resizing and inserting text",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3946,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts",
+        "full: inline link wrapping at 320px"
+      ],
+      "title": "keeps taps aligned after native scrolling, resizing and inserting text",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 10969,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts",
+        "full: inline link wrapping at 1440px"
+      ],
+      "title": "keeps taps aligned after native scrolling, resizing and inserting text",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3620,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts",
+        "full: inline link wrapping at 1440px"
+      ],
+      "title": "keeps taps aligned after native scrolling, resizing and inserting text",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 13640,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts",
+        "quick: inline link wrapping at 320px"
+      ],
+      "title": "keeps taps aligned after native scrolling, resizing and inserting text",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3910,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts",
+        "quick: inline link wrapping at 320px"
+      ],
+      "title": "keeps taps aligned after native scrolling, resizing and inserting text",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 9525,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts",
+        "quick: inline link wrapping at 1440px"
+      ],
+      "title": "keeps taps aligned after native scrolling, resizing and inserting text",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 4901,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "post-inline-links.spec.ts",
+      "groups": [
+        "post-inline-links.spec.ts",
+        "quick: inline link wrapping at 1440px"
+      ],
+      "title": "keeps taps aligned after native scrolling, resizing and inserting text",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 16584,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-editor.spec.ts",
+      "groups": [
+        "vk-editor.spec.ts"
+      ],
+      "title": "full VK add, validation, draft, preview, save and remove at 320px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 11775,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-editor.spec.ts",
+      "groups": [
+        "vk-editor.spec.ts"
+      ],
+      "title": "full VK add, validation, draft, preview, save and remove at 390px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 7950,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-editor.spec.ts",
+      "groups": [
+        "vk-editor.spec.ts"
+      ],
+      "title": "full VK add, validation, draft, preview, save and remove at 1440px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 13666,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-editor.spec.ts",
+      "groups": [
+        "vk-editor.spec.ts"
+      ],
+      "title": "quick VK add, validation, draft, preview, save and remove at 320px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 13496,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-editor.spec.ts",
+      "groups": [
+        "vk-editor.spec.ts"
+      ],
+      "title": "quick VK add, validation, draft, preview, save and remove at 390px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 12072,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-editor.spec.ts",
+      "groups": [
+        "vk-editor.spec.ts"
+      ],
+      "title": "quick VK add, validation, draft, preview, save and remove at 1440px",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 12720,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-editor.spec.ts",
+      "groups": [
+        "vk-editor.spec.ts"
+      ],
+      "title": "full VK add, validation, draft, preview, save and remove at 320px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 19390,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-editor.spec.ts",
+      "groups": [
+        "vk-editor.spec.ts"
+      ],
+      "title": "full VK add, validation, draft, preview, save and remove at 390px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 17593,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-editor.spec.ts",
+      "groups": [
+        "vk-editor.spec.ts"
+      ],
+      "title": "full VK add, validation, draft, preview, save and remove at 1440px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 38236,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-editor.spec.ts",
+      "groups": [
+        "vk-editor.spec.ts"
+      ],
+      "title": "quick VK add, validation, draft, preview, save and remove at 320px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 23670,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-editor.spec.ts",
+      "groups": [
+        "vk-editor.spec.ts"
+      ],
+      "title": "quick VK add, validation, draft, preview, save and remove at 390px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 15540,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-editor.spec.ts",
+      "groups": [
+        "vk-editor.spec.ts"
+      ],
+      "title": "quick VK add, validation, draft, preview, save and remove at 1440px",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 31782,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 320px on /feed",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2842,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 320px on /post/42",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2876,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 320px on /video/42",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2082,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 390px on /feed",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2451,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 390px on /post/42",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2239,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 390px on /video/42",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 3005,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 1440px on /feed",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2122,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 1440px on /post/42",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 2289,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 1440px on /video/42",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1772,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "a direct video file retains the native player",
+      "project": "chromium-mobile",
+      "status": "passed",
+      "durationMs": 1661,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "optional public VK playback advances in the embedded provider player",
+      "project": "chromium-mobile",
+      "status": "skipped",
+      "durationMs": 322,
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Requires explicit public-provider opt-in",
+          "location": {
+            "file": "/home/reeskeen/typescript/daryadarcy/apps/frontend/e2e/vk-video.spec.ts",
+            "line": 97,
+            "column": 8
+          }
+        }
+      ],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 320px on /feed",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4796,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 320px on /post/42",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3122,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 320px on /video/42",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 2913,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 390px on /feed",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 4199,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 390px on /post/42",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3060,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 390px on /video/42",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3752,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 1440px on /feed",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 5719,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 1440px on /post/42",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 3983,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "VK uses the existing video frame at 1440px on /video/42",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 1851,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "a direct video file retains the native player",
+      "project": "webkit-mobile",
+      "status": "passed",
+      "durationMs": 1978,
+      "annotations": [],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    },
+    {
+      "file": "vk-video.spec.ts",
+      "groups": [
+        "vk-video.spec.ts"
+      ],
+      "title": "optional public VK playback advances in the embedded provider player",
+      "project": "webkit-mobile",
+      "status": "skipped",
+      "durationMs": 467,
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Requires explicit public-provider opt-in",
+          "location": {
+            "file": "/home/reeskeen/typescript/daryadarcy/apps/frontend/e2e/vk-video.spec.ts",
+            "line": 97,
+            "column": 8
+          }
+        }
+      ],
+      "verifiedIn": "daryadarcy-acceptance-final.json"
+    }
+  ],
+  "projects": {
+    "chromium-mobile": {
+      "passed": 143,
+      "skipped": 1
+    },
+    "webkit-mobile": {
+      "passed": 141,
+      "skipped": 3
+    }
+  },
+  "finalCoverage": {
+    "passed": 284,
+    "skipped": 4
+  }
+}

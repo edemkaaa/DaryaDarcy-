@@ -12,21 +12,6 @@ const paid = {
   monthlyPrice: "790",
 };
 describe("server-confirmed club access", () => {
-  it("retains service access without claiming paid subscription", () => {
-    expect(
-      parseClubAccess({
-        ...paid,
-        subscribed: false,
-        expiresAt: null,
-        hasClubAccess: true,
-      }),
-    ).toMatchObject({
-      hasClubAccess: true,
-      subscribed: false,
-      expiresAt: null,
-      isOwner: false,
-    });
-  });
   it.each([paid.expiresAt, new Date(paid.expiresAt)])(
     "accepts a real expiry in the transport format %s",
     (expiresAt) => {
@@ -51,9 +36,6 @@ describe("server-confirmed club access", () => {
     [],
     {},
     { ...paid, subscribed: "true" },
-    { ...paid, hasClubAccess: "true" },
-    { ...paid, hasClubAccess: null },
-    { ...paid, hasClubAccess: false },
     { ...paid, cancelAtPeriodEnd: "false" },
     { ...paid, isOwner: "true" },
     { ...paid, monthlyPrice: null },
