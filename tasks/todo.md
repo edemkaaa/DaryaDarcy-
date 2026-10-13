@@ -28,7 +28,13 @@ Local feature branch, без push/deploy/рабочей БД/автоматич�
   browser2 (390/1440 px, service→paid fixture→role removal), owner-only read403.
   Default2312 pass/1151 skips, 52.50 s; types/builds/lint/API73/boundaries618 pass.
   Дизайн сохранён; own synthetic resources cleaned, no provider payments/rollout.
-- [ ] Пункт4: WorkerJobs binding delivery/maintenance с default-off/A7 gates.
+- [x] Пункт4 локально, backend-only: WorkerJobs binding delivery/maintenance
+  в прежнем cadence30s; default-off до flag=true и schema presence/index guard.
+  RED1 → native10, final affected78 pass/7 suites (7.12 s), default2317 pass/
+  1163 opt-in skips (3485), 53.88 s; types/build/boundaries619/format pass.
+  Реальные own SQL/loopback SMTP retry-delay/expiry/purge и partial schema refusal;
+  ошибки не прекращают другие branches, single-flight/stop сохранены.
+  Frontend не менялся; A7 preflight/rollout/external inbox acceptance не закрыты.
 - [x] Фронт, follow-up13 октября: cancellation controller не принимает service
   content access за paid subscription. Browser RED1 → GREEN2, 26 existing
   cancellation UI cases pass; default2312/1153 skips, 53.40 s, types/build/lint/

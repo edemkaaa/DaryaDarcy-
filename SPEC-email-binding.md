@@ -490,3 +490,26 @@ Remaining before exposure: finalized HTTP schemas/status/explicit POST, fragment
 page and existing admin form integration, worker registration, reviewed migration
 history/data rollout and actual external delivery acceptance. These local changes
 do not enable email binding on the working server or certify payment providers.
+
+## Worker registration checkpoint — 13 October 2026
+
+The internal lifecycle/delivery helpers are now registered in existing WorkerJobs
+billing cadence (30 seconds), maintenance before delivery, with the existing
+single-flight and shutdown settlement. Binding errors produce only a fixed safe
+warning and do not reject cancellation/access-mail branches. There is no new timer
+or distributed coordination guarantee beyond the existing delivery leases.
+
+MEMBER_EMAIL_BINDING_ENABLED must be exactly true; otherwise no binding SQL/mail
+is attempted. Before mutations, zero-row column probes and critical unique-index
+metadata checks reject absent/partial schema and a same-name noncanonical email
+index. This presence guard is not a substitute for reviewed migration history,
+data preflight or rollout of 0027/0028. No schema or working data is repaired.
+Disabling the flag stops future sweeps, not already-in-flight SMTP. Independent
+account-deletion cleanup and all existing retry/lease/expiry/retention bounds remain.
+
+Ten native worker cases exercise real Nest wiring, owned MySQL and loopback SMTP:
+delivery, persisted retry delay, flag-off, expiry/purge and schema refusal. The
+final affected seven suites pass 78 tests; default run passes 2317 with 1163 opt-in
+skips. Account identity/password/session/role and subscription state remain unchanged.
+External inbox delivery, approved rollout and working storage remain unaccepted;
+no frontend changes, external mail, working DB mutation or deployment in this slice.

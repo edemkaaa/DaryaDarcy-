@@ -39,7 +39,7 @@ export async function completeMemberEmailBinding(
     .where(eq(memberEmailBindingOutbox.requestKey, requestKey));
 }
 
-/** Internal bounded maintenance; not registered until the binding schema rollout. */
+/** Internal bounded maintenance; worker registration stays flag/schema-gated. */
 export async function maintainMemberEmailBindings(
   database: MySql2Database,
   limit = 100,

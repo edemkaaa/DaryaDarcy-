@@ -62,6 +62,12 @@ export class WorkerJobs {
       this.operations
         .processAccessEmails(database, this.operations.sendTransactionalEmail)
         .catch(() => console.warn("[billing] email worker failed")),
+      this.operations
+        .processMemberEmailBindingJobs(
+          database,
+          this.operations.sendTransactionalEmail,
+        )
+        .catch(() => console.warn("[billing] binding worker failed")),
     ]);
   }
 

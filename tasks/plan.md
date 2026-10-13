@@ -2,6 +2,39 @@
 
 ## Поручение 13 октября 2026 — задачи для бэкендера
 
+**Уточнение пользователя: продолжать по документу, без новых правок фронтендера.**
+
+**Фоновые задачи привязки почты — пункт4, локально:** existing WorkerJobs/Nest
+регистрирует delivery и maintenance в прежнем billing cadence30s, без пятого
+таймера. Общий single-flight/stop ждёт завершения; binding failure изолирован
+от cancellation/access-mail через settled branches и безопасное fixed warning.
+Существующий MEMBER_EMAIL_BINDING_ENABLED должен быть строго true; иначе нет
+binding SQL/SMTP. Перед изменениями zero-row column probes и metadata guard
+проверяют наличие таблиц и четырёх critical unique indexes, включая canonical
+normalized-email expression. Guard не заменяет A7 reviewed history/data preflight,
+не мигрирует/не исправляет данные и не сертифицирует всю схему.
+
+Maintenance перед delivery: прежние bounded100 cleanup/20 mail candidates,
+leases/backoff/12 attempts, expiry/30-day retention сохранены. Выключение флага
+останавливает будущие binding sweeps, не гарантирует отмену SMTP уже в полёте.
+Account-deletion scrub остаётся независимым от UI/worker flag. Роли, пароль,
+sessions, подписки, API/frontend/design/миграции не менялись.
+
+Native RED1 (pending proof не доставлялся через worker) → GREEN; MySQL8.4
+escaped expression metadata учтена без ослабления canonical-index проверки.
+Actual Nest→WorkerJobs→owned SQL→loopback SMTP **10 pass**: доставка/retry с
+persisted delay, default-off, expiry/purge, absent table/missing indexes/wrong
+same-name index definition fail closed до cleanup/mail. Final affected7 suites
+**78 pass, exit0, 7.12 s**; final default workers2 **2317 pass/1163 opt-in skips
+(3485), exit0, 53.88 s**. Types/focused format pass, backend build469.6kb и
+boundaries619 pass. Unrelated worker effects заменены только native harness;
+binding wiring/SQL/SMTP настоящие. SMTP acceptance не означает inbox receipt.
+Reviewed rollout0027/0028 и внешняя доставка остаются gates; flag не включён
+на рабочем сервере. Docs54/diff pass; own labelled loopback/tmpfs/no mounts
+container повторно проверен и stopped/--rm removed после тестов. Удалены только
+одноразовые synthetic данные (невосстановимы), чужие resources не затронуты;
+нет push/deploy/рабочей БД/внешних писем/платежей/чтения secrets.
+
 Пользователь предоставил «Задачи_бэкендеру_2026-10-12.md» (снимок staging
 48f2f7d) и подтвердил начать с пункта3 — проверок перед лайком/сохранением.
 Работа остаётся local-only в feature/stage-one-completion-2026-10-10, baseline

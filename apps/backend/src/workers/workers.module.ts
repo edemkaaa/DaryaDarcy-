@@ -9,6 +9,7 @@ import { processPendingShopDeliveryEmails } from "../shop-delivery";
 import { runDataRetentionMaintenance } from "../platform-db";
 import { runMysqlBackupIfDue } from "../_core/backup";
 import { WorkerJobs } from "./worker-jobs.service";
+import { processMemberEmailBindingJobs } from "../identity/email-binding-worker";
 import { WORKER_OPERATIONS, type WorkerOperations } from "./worker-operations";
 
 @Module({
@@ -23,6 +24,7 @@ import { WORKER_OPERATIONS, type WorkerOperations } from "./worker-operations";
         processCancellations,
         cancelProdamusSubscription,
         processAccessEmails,
+        processMemberEmailBindingJobs,
         sendTransactionalEmail,
         processPendingShopDeliveryEmails,
         runDataRetentionMaintenance,

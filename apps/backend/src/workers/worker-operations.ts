@@ -7,6 +7,7 @@ import type { sendMarketingPostNotification } from "../push";
 import type { processPendingShopDeliveryEmails } from "../shop-delivery";
 import type { runDataRetentionMaintenance } from "../platform-db";
 import type { runMysqlBackupIfDue } from "../_core/backup";
+import type { processMemberEmailBindingJobs } from "../identity/email-binding-worker";
 
 export const WORKER_OPERATIONS = Symbol("WORKER_OPERATIONS");
 
@@ -18,6 +19,7 @@ export type WorkerOperations = Readonly<{
   processCancellations: typeof processCancellations;
   cancelProdamusSubscription: typeof cancelProdamusSubscription;
   processAccessEmails: typeof processAccessEmails;
+  processMemberEmailBindingJobs: typeof processMemberEmailBindingJobs;
   sendTransactionalEmail: typeof sendTransactionalEmail;
   processPendingShopDeliveryEmails: typeof processPendingShopDeliveryEmails;
   runDataRetentionMaintenance: typeof runDataRetentionMaintenance;

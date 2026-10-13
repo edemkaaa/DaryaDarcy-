@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as db from "../apps/backend/src/db";
 import { WorkerJobs } from "../apps/backend/src/workers/worker-jobs.service";
 import type { WorkerOperations } from "../apps/backend/src/workers/worker-operations";
+import { processMemberEmailBindingJobs } from "../apps/backend/src/identity/email-binding-worker";
 
 // SQL stays below a doubled boundary. This opaque handle is never queried.
 const database = {} as NonNullable<Awaited<ReturnType<typeof db.getDb>>>;
@@ -34,6 +35,7 @@ function fixture() {
     processAccessEmails: async () => {
       events.push("email");
     },
+    processMemberEmailBindingJobs: async () => {},
     sendTransactionalEmail: async () => false,
     processPendingShopDeliveryEmails: async () => {
       events.push("shop");
@@ -57,9 +59,26 @@ afterEach(() => {
   vi.clearAllTimers();
   vi.restoreAllMocks();
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 });
 
 describe("explicit worker job orchestration", () => {
+  it.each(["", "false", "1"])(
+    "disabled binding flag=%s performs no SQL or mail work",
+    async (flag) => {
+      vi.stubEnv("MEMBER_EMAIL_BINDING_ENABLED", flag);
+      const unavailable = new Proxy(database, {
+        get() {
+          throw new Error("SQL must not be touched");
+        },
+      });
+      await expect(
+        processMemberEmailBindingJobs(unavailable, async () => {
+          throw new Error("SMTP must not be touched");
+        }),
+      ).resolves.toBeUndefined();
+    },
+  );
   it("does not touch domain boundaries or schedule timers during construction", async () => {
     const { operations, events } = fixture();
     new WorkerJobs(operations);
@@ -171,6 +190,57 @@ describe("explicit worker job orchestration", () => {
     expect(console.warn).toHaveBeenCalledExactlyOnceWith(
       "[billing] email worker failed",
     );
+    jobs.stop();
+  });
+
+  it("isolates binding failure and retries it on the next billing cadence", async () => {
+    const { operations, events } = fixture();
+    const jobs = new WorkerJobs({
+      ...operations,
+      getDb: async () => database,
+      processMemberEmailBindingJobs: async (handle, send) => {
+        expect(handle).toBe(database);
+        expect(send).toBe(operations.sendTransactionalEmail);
+        events.push("binding");
+        throw new Error("PRIVATE_BINDING_PROOF");
+      },
+    });
+    jobs.start();
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(events.filter((event) => event === "binding")).toHaveLength(2);
+    expect(events.filter((event) => event === "email")).toHaveLength(2);
+    expect(events.filter((event) => event === "cancellation")).toHaveLength(2);
+    expect(events).toContain("retention");
+    expect(console.warn).toHaveBeenCalledTimes(2);
+    expect(console.warn).toHaveBeenCalledWith(
+      "[billing] binding worker failed",
+    );
+    jobs.stop();
+  });
+
+  it("holds billing single-flight while binding delivery is still pending", async () => {
+    const { operations, events } = fixture();
+    const pending = deferred();
+    let acquisitions = 0;
+    const jobs = new WorkerJobs({
+      ...operations,
+      getDb: async () => {
+        acquisitions++;
+        return database;
+      },
+      processMemberEmailBindingJobs: async () => {
+        events.push("binding");
+        return pending.promise;
+      },
+    });
+    jobs.start();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(acquisitions).toBe(1);
+    expect(events.filter((event) => event === "binding")).toHaveLength(1);
+    pending.resolve();
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(acquisitions).toBe(2);
+    expect(events.filter((event) => event === "binding")).toHaveLength(2);
     jobs.stop();
   });
 
