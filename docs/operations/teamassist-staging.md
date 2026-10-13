@@ -1,5 +1,112 @@
 # Отдельный тестовый стенд TeamAssist
 
+## AG5 — процедура подготовки выпуска, 13 октября 2026
+
+**Подготовка, не выполненный rollout.** Действующий backend план — начало
+[tasks/plan.md](../../tasks/plan.md). Рабочая БД/SSH/секреты не читались, миграции
+и флаги не применялись. Старые описания выпусков ниже относятся к указанным датам;
+сегодняшняя версия сервера не установлена.
+
+### 1. Зафиксировать реальную историю, не чинить её по догадке
+
+Локальный manifest содержит незарегистрированные SQL `0017`–`0019`; стандартный
+preflight должен отказать до подключения БД. Подготовительная команда из repo:
+
+```sh
+env -u DATABASE_URL -u MIGRATION_PREFLIGHT_DATABASE_URL \
+  PATH=/opt/homebrew/opt/node@22/bin:$PATH pnpm db:preflight
+```
+
+Это локальная проверка без соединения: `databaseChecked:false`, `pending:null`,
+`releaseApproval:false`; ненулевой exit при manifest issues ожидаем и не скрывается.
+Нельзя заменить проверку `db:push`, вставить придуманные history rows или повторить
+старые ALTER только потому, что SQL-файл существует. Не редактировать hashes/when
+применённых миграций. MySQL DDL не считать общей rollback-транзакцией.
+
+Для решения владелец среды предоставляет проверенный пакет без credentials/PII:
+точный repo commit/SQL hashes, snapshot миграционного журнала (created_at/hash),
+schema-only DDL/index/collation/engine затрагиваемых таблиц и происхождение
+выполненных `0017`–`0019`. Доказать для каждой миграции, что и когда было выполнено;
+согласовать исправление manifest/history отдельно. SQL structure equivalence не
+доказывает автора/время исполнения. Synthetic fixture не является историей среды.
+До получения этого пакета — **блокер истории**, никаких working connections.
+
+### 2. Проверить применимость 0027/0028/0029
+
+После согласованной истории проверенный владелец выполняет штатный read-only
+preflight именно для целевой БД. Не путать inspection URI с apply DATABASE_URL:
+`--require-database` проверяет тот же target и отказывает при несовпадении.
+Доступ агента к рабочей БД текущим поручением не разрешён.
+
+| Миграция | Обязательное доказательство до apply | Отказ/граница |
+| --- | --- | --- |
+| 0027_user_email_identity | Поддерживаемый MySQL/functional unique index, collation; полный read-only результат email preflight: no invalid/noncanonical/normalized duplicates | Конфликтные данные не исправлять/не объединять автоматически; не печатать email |
+| 0028_member_email_bindings | Таблицы/поля/PK/proofHash uniqueness и worker indexes совместимы с точным backend commit, InnoDB; нет частичного/чужого schema rollout | Presence guard не заменяет историю/DDL review; partial schema не «лечить» runtime DDL |
+| 0029_article_creation_requests | PK(requestKey), actor/payloadHash/claimToken/articleId/createdAt, InnoDB; reviewed journal и retention/export/account-deletion решение | Keyed create/status fail closed; не переключать запрос на unkeyed при отказе |
+
+Email identity preflight сейчас вызывается штатным инструментом, когда `0027`
+остаётся pending. Если индекс уже помечен applied, отдельно подтвердить существующее
+определение/совместимость схемы и данных; отсутствие повторного scanner call не
+является доказательством этого состояния. Неполная проверка — отказ, не одобрение.
+
+### 3. Репетиция и backup/rollback
+
+Сначала использовать только собственный disposable loopback/tmpfs `backend_test`
+и existing fixtures. Выполнить после выбранного изменения relevant lifecycle/
+retention/email worker/article recovery suites; recorded unchanged GREEN не
+прогонять снова без причины. Отдельная репетиция на предоставленном обезличенном
+schema/history snapshot не может называться репетицией рабочих данных.
+
+Перед любым отдельно разрешённым working apply владелец среды фиксирует точные
+commits/image/schema/flags, защищённый backup и проверенный restore. Проверка gzip
+или числа таблиц не доказывает восстановление. Не переносить пароль/secret values
+в отчёт. Во время rollout ограничить несовместимые writes/workers по согласованной
+процедуре; существующие данные сохраняются.
+
+Rollback: сначала выключить новые write/UI/worker flags, остановить новые операции
+по проверенному lifecycle, затем вернуть **совместимый** backend/frontend образ.
+Не удалять новые таблицы/ledger/unique index автоматически. Старый upsert до
+identity hardening может неверно обработать новый unique email index: такой образ
+не является допустимым rollback только потому, что он раньше работал.
+После успешной binding/application нельзя восстановить старый SQL dump поверх
+новых идентичностей/операций без отдельного плана потери данных и решения владельца.
+History/DDL rollback не имитировать. Выбор checkpoint и остановки — часть review.
+
+### 4. Порядок включения и критерии
+
+1. Согласовать history/retention, проверить target/preflight и rehearsal/restore.
+2. По отдельному разрешению применить нужную schema; проверить exact columns/
+   indexes/engines и совместимый backend при выключенных новых функциях.
+3. Фронтендер регенерирует API contract на общей выбранной базе и подключает
+   `hasClubAccess`, article intent/status, email форму/страницу; backend первым.
+4. Только после проверки schema/crypto/SMTP/public URL/navigation включить backend
+   binding, затем согласованную frontend build форму. Worker не запускается с
+   частичной схемой. Email ACK/queued не считать inbox delivery.
+5. Article ключи включать клиентом после 0029; потеря ответа/reload сохраняет один
+   ID и teaser. Неизвестный статус не разрешает новую UUID. Новый ledger не стирать
+   при rollback клиента или удалении статьи.
+6. Private file flag отдельно: пока нет AG2/принятого AG3, upload/URLs/ACL остаются
+   прежними. Binding/article rollout не включает storage-функции автоматически.
+7. Сквозные оплата/письмо/вход/продление/отмена, устройства/нагрузка/пилот — AG9
+   после разрешения владельца; не выдавать fixtures за провайдера/участницу.
+
+### Нерешённая политика журнала статей
+
+`article_creation_requests` содержит actorUserId/articleId, payload fingerprint и
+результат операции: это связываемые с автором данные, хотя текст/URL не копируются.
+Успешные ключи сейчас без TTL/FK cascade. Удаление статьи сохраняет результат для
+позднего retry. Срок по цене диска назначать нельзя; удаление истории открывает
+повторное создание и требует нового контракта recovery.
+
+До working rollout владелец выбирает цель/срок хранения, поведение при окончательном
+удалении аккаунта и составе export/backup. Требуется проверить **оба** existing
+post_creation_requests и новый article ledger при таком решении, без расширения
+сбора данных. Agent не вводит TTL/автоматическую очистку в этом шаге.
+
+Локальная процедура подготовлена. Она не снимает manifest blockers и не разрешает
+подключение/миграцию/отправку почты. Native article/email checkpoints уже есть;
+здесь не утверждается новая SQL-репетиция или успешный восстановленный backup.
+
 Это тестовый запуск, не разрешение на production. Первоначально пользователь
 согласовал новую пустую БД без переноса реальных аккаунтов, оплат и ключей
 интеграций. Последующее наполнение публичным контентом описано ниже отдельно.
