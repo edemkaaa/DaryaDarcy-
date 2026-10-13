@@ -4,14 +4,25 @@
 
 - [x] Подготовить proposed серверный контракт:
   [SPEC-article-create-recovery](../SPEC-article-create-recovery.md), без кода/фронта.
-- [ ] Human approval optional UUID key, numeric replay, read-only status,
+- [x] Human approval optional UUID key, numeric replay, read-only status,
   отдельный ledger без TTL; затем schema review и малые RED/GREEN срезы.
 - [x] Approval for local backend inferred from direct «я спать а ты делай дальше»
   after contract proposal; no working rollout/ frontend authority added.
-- [ ] AR1: additive 0029/actor-scoped keyed atomic article/teaser creation;
+- [x] AR1: additive 0029/actor-scoped keyed atomic article/teaser creation;
   native replay/conflict/delete/concurrent/rollback verification.
-- [ ] AR2: read-only status + native lost-response/restart/auth/schema checks;
+- [x] AR2: read-only status + native lost-response/restart/auth/schema checks;
   frontend artifacts untouched, handoff describes pending client integration.
+  Final native/affected123 pass6 suites7.21s; RED3+RED2 before implementation.
+  Two independent compiled processes, 12 concurrent calls, actual SQL locks,
+  teardown/rollback/error/key/authority cases. Types/build486.3kb/boundaries623/
+  docs55/diff pass. check:api intentionally stale until frontend handoff, not green.
+  Final default2328 pass/1240 skips (3573),55.84s, types pass. Read-only preflight
+  retains exactly0017–0019 manifest blockers; no DB inspected/migrated.
+  Code e8ba8fd; own harnesses/pools closed, exact ownership/mount/loopback checks
+  before stop/--rm of disposable DB; only unrecoverable synthetic data removed.
+  Working resources/front/push/deploy untouched.
+- [ ] AR rollout: reviewed history/schema0029 + retention/account deletion/export;
+  frontend-generated types/key persistence/reload acceptance by frontend developer.
 - [ ] Native HTTP/SQL concurrency/lost reply/restart/conflict/rollback/delete/
   current authority acceptance. Browser reload не считать закрытым без клиента.
 

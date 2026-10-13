@@ -1,6 +1,6 @@
 # Implementation Plan: Daryadarcy Modular Monorepo
 
-## Article-create-recovery — контракт на согласование, 13 октября 2026
+## Article-create-recovery — локальная серверная реализация, 13 октября 2026
 
 Контракт принят для local backend: после предложения пользователь поручил
 «я спать а ты делай дальше». Frontend/working migration/push/deploy запрещены.
@@ -10,12 +10,56 @@ affected/native/default/types/build/docs и отдельные local commits. Au
 replay, immutable intent, no TTL; browser integration отдельно фронтендеру.
 
 Пользователь поручил защиту от дублей после потери ответа/reload, сначала
-согласовать серверный контракт, фронт не трогать. Draft:
+согласовать серверный контракт, фронт не трогать. Accepted local contract:
 [SPEC-article-create-recovery](../SPEC-article-create-recovery.md).
 Optional actor-bound UUID key/прежний numeric result, read-only status и отдельный
-durable ledger с atomic article/teaser commit. Это предложение, не реализация:
-миграция/retention/совместимость ждут human review; rollout отдельно gated.
+durable ledger с atomic article/teaser commit. Working migration/retention/
+rollout отдельно gated; no automatic cleanup or schema repair.
 Перезагрузка требует сохранённого клиентом ключа; frontend не меняется.
+
+**AR1/AR2 local checkpoint:** Native RED3 reproduces duplicate IDs, changed
+payload success and resurrection after delete. GREEN keyed creation in same
+article/teaser transaction; additive0029 journal, actor/operation-scoped hash,
+validated defaults/canonical object fields/ordered arrays. Unique no-op upsert
+and locking read serialize duplicates. Internal claimToken prevents takeover of
+malformed committed rows without result. No TTL/cascade or new role privileges.
+Native RED2 catches missing status route and missing-PK unsafe creation; GREEN
+read-only admin.articleCreationStatus and transaction-local schema/PK/InnoDB
+guard. Metadata lock protects the guard through commit; no auto-DDL/fallback.
+
+Final affected **123 pass/6 suites, exit0, 7.21s**: actual Nest/HTTP/JWT/own SQL,
+lost HTTP acknowledgement after receiving committed response, fresh client,
+12 concurrent calls, genuinely uncommitted creation via SQL trigger/lock plus
+waiting duplicate, rollback teaser, edit/delete replay, same key/different actor,
+guest/role removal/blocked/session revocation, accepted defaults/order conflicts,
+malformed keys, missing schema/PK/nontransactional ledger/incomplete result.
+Two separately spawned compiled ESM server processes return one article/teaser;
+no in-memory replay cache used. NOT frontend reload or device acceptance.
+
+Root types pass; backend build486.3kb and boundaries623 pass. New server procedure
+raises contract surface73→74; root inventory regression updated intentionally.
+Generated frontend API file unchanged: check:api reports expected stale contract,
+not declared green or hidden. Frontend must regenerate types after agreed handoff,
+persist actor-isolated key BEFORE first write, query status or resend same original
+payload/key, never treat notRecorded as proof of failed in-flight creation.
+0017–0019 history and working0027/0028/0029 rollout/retention remain gates.
+Docs55/format/diff pass; no frontend/working data/push/deploy/mail/payment effects.
+
+Final default **2328 pass/1240 opt-in skips (3573), exit0, 55.84s** after updating
+the intended server inventory addition; root types pass. Earlier default failure
+was exactly the newly added admin.articleCreationStatus missing from the frozen
+test list (2327 pass/1 failure); expected inventory updated, no assertion removed.
+Read-only preflight (explicitly no connection environment) still blocks exactly
+untracked0017/0018/0019;0029 is correctly registered, no working DB inspected.
+
+Implementation saved as e8ba8fd (contract approval e1c7743). Final self-review:
+no frontend changes, no network storage/mail/payment flow, parameterized queries,
+no payload/claim/key leak, auth-before-replay/status, same transaction holds schema
+metadata and unique claim locks. Existing article/teaser visibility unchanged.
+Own Nest applications and pools closed by native harness; exact disposable
+container ID/name/task label/127.0.0.1/tmpfs/no mounts rechecked before stopping.
+--rm removed only synthetic backend_test data (not recoverable); no foreign
+container/volume or working DB touched. No push/deploy; integration gates above.
 
 ## Поручение 13 октября 2026 — задачи для бэкендера
 
