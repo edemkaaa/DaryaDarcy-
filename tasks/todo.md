@@ -8,7 +8,8 @@
 поручением. Новый список создан для продолжения, а не для повторной реализации.
 
 **Следующий исполняемый шаг зависит от входов:** AG2 после предоставления S3;
-AG4 после AG2/решения AG3; AG5 после истории/retention; AG6 после нового контракта.
+AG4 после AG2/решения AG3; AG5 после истории/retention. AG6 принят и реализован
+локально 14 октября; внешняя приёмка/включение не разрешены этим результатом.
 Доступная локальная подготовка сохранена. Внешние действия/фронт не выполнялись.
 Составление плана само по себе не запускает реализацию. Следующее поручение
 «работай по плану» запускает AG1 либо уже следующий доступный незавершённый пункт.
@@ -44,17 +45,21 @@ AG4 после AG2/решения AG3; AG5 после истории/retention; 
   Offline preflight exit1: ровно untracked 0017/0018/0019, databaseChecked=false,
   releaseApproval=false; manifest 0029 зарегистрирован. Docs55/diff exit0.
   Процедура сохранена 24e7b31; migrations/working connection не выполнялись.
-- [ ] **AG6 — точные остатки обычной оплаты/отмены.** Статус: аудит подготовлен,
-  14 октября конкретный [серверный контракт](../SPEC-normal-checkout-recovery.md)
-  Proposed: первый authenticated normal create/status, отдельный ledger,
-  guest/TEST прежние; exact replay/config drift и order-specific receipt.
-  Ждёт принятия scope/API/schema, затем native RED/GREEN; runtime не менялся.
-  Проверка 14 октября: spec/source self-review, Prettier/spec и docs55/diff exit0.
-  Новая schema/API/test file не созданы; внешние платежи/фронт не затронуты.
-  Обычный путь создаёт
-  новый pending orderId на вызов и не принимает TEST key; old subscription не
-  подтверждает новую покупку. Свойства минимального решения и existing P3 evidence
-  в handoff. Нет нового native RED/реального списания/изменений runtime или схемы.
+- [x] **AG6 — точные остатки обычной оплаты/отмены.** Статус: готово локально
+  14 октября по принятому контракту. Authenticated normal create/status,
+  ledger 0030 и default-off flag; guest/TEST/settlement/отмена прежние.
+  Native RED: отсутствующие routes, terminal states, schema/evidence guards.
+  GREEN: 26 SQL/HTTP сценариев, включая replay/concurrency, lost ACK,
+  два compiled процесса, rollback, config drift и session revocation fence.
+  200 existing billing tests; inventory/history/preflight unit tests зелёные.
+  Финальный объединённый прогон: 244 pass в 14 файлах, skip=0.
+  TypeScript/backend build/boundaries/docs/diff проверены; review пяти осей.
+  Handoff обновлён. check:api stale, frontend/рабочая БД/provider не затронуты.
+  Offline preflight: только старые untracked 0017–0019, databaseChecked=false,
+  releaseApproval=false; 0030 зарегистрирован. Working rollout/retention/client/
+  реальные provider payment остаются AG5/AG9. Это не external payment acceptance.
+  Код/schema/tests: локальный commit fa8d70f. Остальная доступная очередь требует
+  внешних входов/решений AG2/AG3/AG5/AG8/AG9; не выполнять вместо них лишнее.
 - [x] **AG7 — точные остатки публикаций/пользовательских API.** Статус: ограниченный
   аудит готов локально. Owning services/существующие native suites сопоставлены
   в handoff; storage/клиент/devices остаются внешними границами. Нового подтверждённого

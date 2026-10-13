@@ -216,11 +216,17 @@ synthetic fixture. При отсутствии предоставленных п
 
 #### AG6 — Остатки обычной оплаты и отмены на локальном сервере (P2/P3; M на сценарий)
 
-14 октября подготовлен [Proposed normal-checkout recovery contract](../SPEC-normal-checkout-recovery.md):
+14 октября принят [normal-checkout recovery contract](../SPEC-normal-checkout-recovery.md):
 первый срез только authenticated аккаунт, две отдельные protected процедуры,
-ledger/transactional replay, существующие guest/TEST пути неизменны. Это проект
-нового API/schema, не принятие реализации. После решения: AG6a create, AG6b
-status/guards, AG6c handoff; команды/acceptance и границы указаны в spec.
+ledger/transactional replay, существующие guest/TEST пути неизменны. Пользователь
+явно разрешил локальную реализацию без фронта/рабочей БД. AG6a/AG6b реализованы:
+default-off NORMAL_CHECKOUT_RECOVERY_ENABLED, ledger 0030, exact URL replay,
+status по своему order/receipt, fail-closed schema/session/evidence guards.
+Native: 26 SQL/HTTP сценариев + procedure inventory; 200 existing billing tests.
+TypeScript/backend build/boundaries/docs проверены; generated frontend contract
+остаётся stale и не изменялся. AG6c handoff фиксирует внешние rollout/retention/
+provider/client границы; контракт и команды в spec. Код/schema/tests сохранены
+локально fa8d70f. Это не working payment acceptance.
 
 Сопоставить обычный checkout с существующими тестами: потеря ответа, определение
 конкретной новой операции/продления, повторное событие, неизменность аккаунта/пароля;

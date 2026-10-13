@@ -134,7 +134,39 @@ guest/expired/blocked/revoked; публичное и клубное обсужд
 Текущая документационная
 проверка не доказывает рабочую оплату/почту/S3/устройства или готовность первого этапа.
 
-## AG6 — обычный checkout: подтверждённая граница кода
+## AG6 — normal checkout recovery, локально 14 октября
+
+Принят и реализован [контракт](../../SPEC-normal-checkout-recovery.md):
+локальный commit `fa8d70f`, на сервер не выкладывался.
+`club.createNormalCheckout` (protected mutation) принимает strict
+`{idempotencyKey: lowercase UUIDv4, plan?: "monthly" | "semiannual"}`;
+`club.normalCheckoutStatus` (protected query) — strict `{idempotencyKey}`.
+Create: pending с orderId/url, succeeded с orderId/expiresAt или failed с orderId.
+Status: notRecorded либо pending/succeeded/failed; без payment URL/почты.
+Формат dates прежний tRPC/SuperJSON. Оба метода default-off за
+`NORMAL_CHECKOUT_RECOVERY_ENABLED=true` и требуют проверенной migration 0030.
+Без схемы/PK/unique-order/InnoDB — закрытая ошибка, без runtime DDL/fallback.
+
+Key хранится клиентом **до** POST для одной покупки и своего аккаунта. Потеря
+ответа/reload не создаёт новый key; повтор возвращает исходный order/link.
+`notRecorded` — снимок, не разрешение заменить key при ещё идущем POST.
+Смена plan/email под старым key — CONFLICT. Новая намеренная покупка — новый key.
+Pending replay при изменении merchant/price/signing/app config — PRECONDITION_FAILED,
+без новой ссылки/заказа; read-only status остаётся доступен. Succeeded требует
+receipt именно этого order; чужая/предыдущая подписка не доказывает новую оплату.
+Смена аккаунта изолирует raw key; blocked/deleted/revoked identity закрывается.
+TEST header/включённые либо malformed TEST flags не переключают create на normal.
+Обычные guest createCheckout/reconcileCheckout, TEST, settlement и отмена неизменны.
+
+26 native SQL/HTTP сценариев, lost ACK, concurrent replay, rollback, два compiled
+процесса и session fence; 200 existing billing tests. Фронт/его generated types
+не изменялись; check:api остаётся stale. Ничего не развёрнуто/включено, реальных
+платежей/писем нет. Перед working rollout: AG5 preflight/history (0017–0019),
+retention/export ledger, совместимая migration/rollback rehearsal, затем клиентская
+интеграция и отдельная внешняя payment acceptance. Повторное открытие ранее
+скопированной платёжной ссылки не является гарантией от двойного списания.
+
+### Исторический аудит до принятия контракта, 13 октября
 
 Read-only review 13 октября: `ClubCheckoutService.createCheckout` в обычном
 Prodamus режиме генерирует новый random orderId и pending club_payments на каждый
@@ -151,7 +183,7 @@ ordinary create гарантию восстановления после lost re
 provider payment и повтор создания нового pending order — разные операции.
 
 P2 требует нового согласованного контракта. Минимальные свойства предлагаемого
-normal пути (не реализованы, wire/storage имена пока не утверждены):
+normal пути (на момент аудита не были реализованы/утверждены):
 
 - Стабильный key одной покупки и namespace выбранного provider/mode/recipient/plan;
   новая намеренная покупка имеет другой key, timeout не меняет прежний.
