@@ -129,9 +129,77 @@ guest/expired/blocked/revoked; публичное и клубное обсужд
 смену аккаунта/страницы без позднего чужого результата. Email и файлы отдельно
 проверяются после миграционных/storage gates; включение не следует из этого текста.
 
-Native доказательства уже записаны в [плане](../../tasks/plan.md): AR123 и VK53
-— прошлые успешные прогоны, не новые тесты этого документа. Текущая документационная
+Доказательства уже записаны в [плане](../../tasks/plan.md): affected AR123 и VK53
+— прошлые успешные прогоны с указанными SQL/HTTP границами, не новые тесты документа.
+Текущая документационная
 проверка не доказывает рабочую оплату/почту/S3/устройства или готовность первого этапа.
+
+## AG6 — обычный checkout: подтверждённая граница кода
+
+Read-only review 13 октября: `ClubCheckoutService.createCheckout` в обычном
+Prodamus режиме генерирует новый random orderId и pending club_payments на каждый
+вызов. `idempotency-key` в этом режиме отклоняется специально, чтобы TEST caller
+не переключился на другую платёжную семантику. `reconcileCheckout` делегирует
+тестовому провайдерскому пути; `claimPending` читает прежний оплаченный доступ,
+не подтверждает именно новую попытку продления. Это не новый native RED и не
+наблюдение двойного списания: исходящие реальные платежи не проводились.
+
+Existing tests покрывают отсутствие сессии/выдачи доступа при checkout, сохранность
+пароля, blocked/configuration refusal, signed receipt replay/renewal/rollback и
+pending/confirmed cancellation с сохранением срока. Эти результаты не дают
+ordinary create гарантию восстановления после lost reply. Повтор webhook одного
+provider payment и повтор создания нового pending order — разные операции.
+
+P2 требует нового согласованного контракта. Минимальные свойства предлагаемого
+normal пути (не реализованы, wire/storage имена пока не утверждены):
+
+- Стабильный key одной покупки и namespace выбранного provider/mode/recipient/plan;
+  новая намеренная покупка имеет другой key, timeout не меняет прежний.
+- Atomic claim/result и fingerprint принятого payload; один key/данные возвращают
+  один order/link, изменённые данные — конфликт. Price/период остаются прежними.
+- Read-only результат конкретного intent/order: pending не является оплатой;
+  succeeded требует подтверждённой settlement связи с этим order. Старый paid
+  период другого order не является результатом нового продления.
+- Authenticated статус только своего пользователя; гостевой recovery требует
+  отдельного проверенного proof/receipt контракта, не поиска по одному email/ID.
+  Покупка по email по-прежнему не создаёт сессию и не меняет пароль.
+- При смене provider flags исходный TEST intent не переходит на normal и наоборот.
+  Существующий header guard не удаляется ради добавления normal recovery.
+- Pending/retention/replay после удаления/конкурентного settlement описываются до
+  изменения схемы; не копировать TEST ledger в обычные оплаты без проверки полей.
+
+P3 core уже durable: failure остаётся pending, worker retries сохранены;
+подтверждение не обрезает expiry. Реальная recurring/cancel приёмка остаётся внешней.
+Runtime/API/schema/frontend не менялись, повтор существующих GREEN не запускался.
+
+## AG7/AG8 — покрытие API и остатки материалов
+
+Read-only сопоставление owning services и existing native suites, 13 октября:
+
+| Обязательный путь | Код/существующее доказательство | Остаток |
+| --- | --- | --- |
+| Create post/replay/schedule/edit | post-creator/editor/creation-request, post-creation-idempotency/content/native browser helpers | Реальные медиа/клиент/устройства, не повторять уже проверенный replay |
+| Article/teaser atomicity/replay/delete | article-writes, article-write-consistency и article-creation-recovery native suites | Новый клиентский key/status и 0029 rollout |
+| Media complete reads/removal | Batched post-media-repository, transactional attachments/videos; retained IDs/metadata | Новое trusted upload metadata/private association и S3; описано в AG3 |
+| Public/club comments и реакции | Target-aware service, transactional post-reactions; nest-comments/nest-content | Direct photos/storage и совместная сборка; жалобы отложены |
+| Search/saved/library | ContentReadService, post-catalog repositories, native content/browser evidence | Реальные данные/материалы и devices, без нового API |
+| Тест/результат/переходы Главной/поддержка | Existing native quiz/library helpers, profile read и frontend WORK_PLAN; поддержка через согласованный email | Проверка клиентской общей базы/устройств; расширенные советы вне API-защиты этапа |
+| Seasons/config/manager | LaunchService/settings, launch-settings native CAS/HTTP/границы | Реальные calendar настройки/фоны/баннеры и mailto на телефоне |
+
+Нового воспроизведённого backend-дефекта за пределами уже отмеченных storage/P2
+границ в выбранных путях не установлено. Это завершение ограниченного аудита,
+не новая полная SQL/browser регрессия и не доказательство всех interleavings.
+Поведение, тесты и фронт не изменены; прежние pass не выдаются за свежий запуск.
+
+VK: в Git staging `62b24a6` есть whitelist HTTPS exported `video_ext.php`
+renderer с oid/id/hash, без произвольного iframe HTML и без новой формы ввода.
+Post-media доступ наследуется от родителя и native проверен ранее. Published
+самостоятельный catalog остаётся публичным; mandatory youtubeId/anonymous worker
+не являются моделью private VK. Следующее решение владельца материалов:
+клубные ролики размещаются только как вложения или также в самостоятельном каталоге;
+как передаются/вносятся экспортируемые ссылки. Пока данных нет, новые access поля,
+provider union/миграции/фиктивные IDs не добавлять. Реальные ролики/настройки VK и
+телефоны ещё требуются; публичный тестовый embed не принимает контент заказчика.
 
 ## Исторические передачи
 
