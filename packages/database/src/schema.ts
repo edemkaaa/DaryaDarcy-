@@ -91,6 +91,16 @@ export const postCreationRequests = mysqlTable("post_creation_requests", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+// Keep committed results after article deletion: replay must never resurrect it.
+export const articleCreationRequests = mysqlTable("article_creation_requests", {
+  requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
+  actorUserId: int("actorUserId").notNull(),
+  payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
+  claimToken: varchar("claimToken", { length: 36 }).notNull(),
+  articleId: int("articleId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 // ── Post Media (video, audio, documents — photos stay in posts.photos for backward compat) ──
 export const postMedia = mysqlTable("post_media", {
   id: int("id").autoincrement().primaryKey(),

@@ -183,6 +183,13 @@
       "when": 1791580801000,
       "tag": "0028_member_email_bindings",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "5",
+      "when": 1791849600000,
+      "tag": "0029_article_creation_requests",
+      "breakpoints": true
     }
   ]
 }

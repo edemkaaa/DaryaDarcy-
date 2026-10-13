@@ -58,6 +58,13 @@ describe.skipIf(!testDatabaseUrl)(
         .filter((row) => row.id >= 9060 && row.id <= 9062)
         .map((row) => row.id);
     async function clearOwnedRows() {
+      const [ledgerTables] = await conn.query<RowDataPacket[]>(
+        "SHOW TABLES LIKE 'article_creation_requests'",
+      );
+      if (ledgerTables.length)
+        await conn.query(
+          "DELETE FROM article_creation_requests WHERE actorUserId=9060",
+        );
       await conn.query(
         "DELETE FROM club_payments WHERE orderId='native-article-reader-access' AND userId=9060",
       );
@@ -144,6 +151,37 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return rows;
     }
+
+    const keyedInput = {
+      title: "native recoverable creation",
+      sections: [{ type: "text" as const, text: "recoverable body" }],
+      idempotencyKey: "fb080a17-63f3-4e49-9eba-0cc4ee14c801",
+    };
+    it("replays a committed article creation without duplicating its teaser", async () => {
+      const id = await create(keyedInput);
+      const repeated = await create(keyedInput);
+      expect(repeated).toBe(id);
+      expect(await teaser(id)).toHaveLength(1);
+      const [rows] = await conn.query<RowDataPacket[]>(
+        "SELECT id FROM articles WHERE title=?",
+        [keyedInput.title],
+      );
+      expect(rows.map((row) => row.id)).toEqual([id]);
+    });
+    it("rejects a changed article payload for the same creation key", async () => {
+      const id = await create(keyedInput);
+      await expect(
+        create({ ...keyedInput, title: "different intent" }),
+      ).rejects.toMatchObject({ data: { code: "CONFLICT" } });
+      expect((await article(id)).title).toBe(keyedInput.title);
+    });
+    it("does not recreate an article deleted after its creation reply", async () => {
+      const id = await create(keyedInput);
+      await client(bearer).admin.deleteArticle.mutate({ id });
+      expect(await create(keyedInput)).toBe(id);
+      expect(await article(id)).toBeUndefined();
+      expect(await teaser(id)).toEqual([]);
+    });
 
     it("keeps hidden/private bodies, legacy block normalization and admin ordering", async () => {
       const rows = await client(bearer).admin.articles.query();

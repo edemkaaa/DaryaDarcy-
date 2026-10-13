@@ -57,6 +57,8 @@ import {
   createPostOnce as persistPostOnce,
 } from "./content/post-creator";
 import type { PostCreationIntent } from "./content/post-creation-request";
+import type { ArticleCreationIntent } from "./content/article-creation-request";
+import { articleCreationStatus as readArticleCreationStatus } from "./content/article-creation-request";
 import type { PostAttachmentChanges } from "./content/post-attachments";
 import {
   togglePostReaction,
@@ -1123,10 +1125,16 @@ export async function getArticleById(id: number): Promise<Article | undefined> {
   return readArticleById(db, id);
 }
 
-export async function createArticle(data: CreateArticleInput): Promise<number> {
+export async function createArticle(data: CreateArticleInput, intent?: ArticleCreationIntent): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return persistArticleCreation(db, data);
+  return persistArticleCreation(db, data, intent);
+}
+
+export async function getArticleCreationStatus(actorUserId: number, key: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return readArticleCreationStatus(db, actorUserId, key);
 }
 
 export async function updateArticle(id: number, data: UpdateArticleInput): Promise<void> {

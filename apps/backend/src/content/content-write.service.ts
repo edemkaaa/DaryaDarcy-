@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { articleCreationIntent } from "./article-creation-request";
 import type { InsertPost } from "../../../../packages/database/src/schema";
 import {
   normalizeRichTextForStorage,
@@ -27,9 +28,20 @@ export class ContentWriteService {
   }
 
   createArticle(
-    input: Parameters<typeof db.createArticle>[0],
+    input: Parameters<typeof db.createArticle>[0] & { idempotencyKey?: string },
+    actorUserId: number,
   ): Promise<number> {
-    return db.createArticle(input);
+    const { idempotencyKey, ...data } = input;
+    return db.createArticle(
+      data,
+      idempotencyKey === undefined
+        ? undefined
+        : articleCreationIntent(actorUserId, idempotencyKey, data),
+    );
+  }
+
+  articleCreationStatus(actorUserId: number, key: string) {
+    return db.getArticleCreationStatus(actorUserId, key);
   }
 
   async updateArticle(

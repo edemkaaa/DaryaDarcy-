@@ -9,6 +9,7 @@ import { mediaUploadInput } from "../content/media-upload-input";
 import type { ContentReadService } from "../content/content-read.service";
 import { importVideosInput } from "../content/video-import-input";
 import type { NotificationsService } from "../notifications/notifications.service";
+import { articleCreationKey } from "../content/article-creation-request";
 
 export const createAdminRouter = (
   content: ContentReadService,
@@ -82,6 +83,7 @@ export const createAdminRouter = (
     .input(
       z.object({
         title: z.string().trim().min(1).max(255),
+        idempotencyKey: articleCreationKey.optional(),
         coverUrl: z.string().nullable().optional(),
         access: z.enum(["public", "club"]).default("club"),
         published: z.boolean().default(true),
@@ -105,7 +107,10 @@ export const createAdminRouter = (
         ),
       }),
     )
-    .mutation(({ input }) => posts.createArticle(input)),
+    .mutation(({ input, ctx }) => posts.createArticle(input, ctx.user.id)),
+  articleCreationStatus: adminProcedure
+    .input(z.object({ idempotencyKey: articleCreationKey }))
+    .query(({ input, ctx }) => posts.articleCreationStatus(ctx.user.id, input.idempotencyKey)),
   updateArticle: adminProcedure
     .input(
       z.object({

@@ -3,6 +3,7 @@ import { appRouter } from "../apps/backend/src/routers";
 
 const expectedProcedures = {
   admin: [
+    "articleCreationStatus",
     "articles",
     "cleanupMediaNames",
     "confirmPost",

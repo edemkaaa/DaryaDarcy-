@@ -1,14 +1,18 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
   articles,
+  articleCreationRequests,
   posts,
   type Article,
   type ArticleBlock,
 } from "../../../../packages/database/src/schema";
 import { normalizeArticleBlocks } from "../../../../packages/shared/src/article-blocks";
 import { deletePostRows, type ContentTransaction } from "./post-deletion";
+import type { ArticleCreationIntent } from "./article-creation-request";
+import { requireArticleCreationSchema } from "./article-creation-request";
 
 export type CreateArticleInput = {
   title: string;
@@ -70,8 +74,41 @@ async function syncTeaser(
 export async function createArticle(
   database: MySql2Database,
   data: CreateArticleInput,
+  intent?: ArticleCreationIntent,
 ): Promise<number> {
+  // A different nonce on a pre-existing incomplete row prevents unsafe takeover.
+  const claimToken = randomUUID();
   return database.transaction(async (tx) => {
+    if (intent) {
+      await requireArticleCreationSchema(tx);
+      await tx
+        .insert(articleCreationRequests)
+        .values({ ...intent, claimToken })
+        .onDuplicateKeyUpdate({
+          set: { requestKey: sql`${articleCreationRequests.requestKey}` },
+        });
+      const [request] = await tx
+        .select()
+        .from(articleCreationRequests)
+        .where(eq(articleCreationRequests.requestKey, intent.requestKey))
+        .for("update");
+      if (!request) throw new Error("Article creation record unavailable");
+      if (
+        request.actorUserId !== intent.actorUserId ||
+        request.payloadHash !== intent.payloadHash
+      )
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Ключ запроса уже использован для другого содержимого",
+        });
+      if (request.articleId !== null) {
+        if (!Number.isSafeInteger(request.articleId) || request.articleId <= 0)
+          throw new Error("Invalid article creation result");
+        return request.articleId;
+      }
+      if (request.claimToken !== claimToken)
+        throw new Error("Incomplete article creation record");
+    }
     const values = {
       title: data.title,
       coverUrl: data.coverUrl ?? null,
@@ -84,6 +121,11 @@ export async function createArticle(
     const id = Number(result.insertId);
     // The insert owns this newly allocated article row until commit.
     await syncTeaser(tx, { ...values, id });
+    if (intent)
+      await tx
+        .update(articleCreationRequests)
+        .set({ articleId: id })
+        .where(eq(articleCreationRequests.requestKey, intent.requestKey));
     return id;
   });
 }

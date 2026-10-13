@@ -105,7 +105,8 @@ actor/key, PK), actorUserId, payloadHash, articleId, createdAt. Unique no-op ups
 создать удалённый материал заново. Retention/account-deletion требует отдельной
 review-процедуры; не расширять обещание бессрочного хранения персональных данных.
 
-Номер миграции не выбирается до schema review. Additive migration, собственный
+Локально подготовлена additive миграция 0029; working schema review не заменена.
+Собственный
 одноразовый backend_test loopback/tmpfs. Keyed create/status при отсутствующей
 схеме fail closed; никакого auto-DDL/unkeyed fallback. Старый unkeyed путь прежний.
 Откат кода сохраняет журнал. История 0017–0019/рабочий rollout — отдельные gates.
@@ -129,7 +130,7 @@ Reload моделировать новым HTTP-клиентом с прежни
 Команды из корня репозитория (Node22 в PATH):
 
 ```sh
-pnpm exec vitest run tests/nest-admin-articles.mysql.test.ts tests/article-write-consistency.mysql.test.ts --maxWorkers=1
+pnpm exec vitest run tests/article-creation-recovery.mysql.test.ts tests/nest-admin-articles.mysql.test.ts tests/article-write-consistency.mysql.test.ts tests/post-creation-idempotency.mysql.test.ts tests/migration-preflight.test.ts --maxWorkers=1
 pnpm exec vitest run --maxWorkers=2 --reporter=dot --silent
 pnpm build
 pnpm check:boundaries
@@ -138,8 +139,13 @@ git diff --check
 ```
 
 Native suites требуют BACKEND_TEST_DATABASE_URL собственного контейнера; skip
-не считается приёмкой. Новый ledger suite и серверную проверку типов определить
-при разбиении реализации; клиентские contract artifacts не обновлять самовольно.
+не считается приёмкой. Серверные/общие типы: pnpm exec tsc --noEmit. Клиентские
+contract artifacts не обновлять самовольно; новый API передать фронтендеру.
+
+Локальная деталь реализации: journal содержит внутренний claimToken (UUID) для
+попытки SQL claim. Свежая строка отличима от malformed committed row с пустым
+articleId; такую строку нельзя «перехватить» и создать статью заново. Этот nonce
+не меняет постоянный клиентский ключ и не возвращается через API.
 
 ## Границы и решение пользователя
 
