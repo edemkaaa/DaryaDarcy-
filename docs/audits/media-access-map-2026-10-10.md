@@ -88,7 +88,7 @@ JSON shape нельзя молча отбросить и объявить объ
 | posts.photos, post_media.url, richText.children[].link, ссылки posts.text | Published feed/both доступны публично; club — club access; draft/scheduled/legacy published=false не public | target=both не становится private от наличия club view; ссылки в тексте — candidates для сопоставления inventory |
 | articles.coverUrl | Published article: cover возвращается guest даже при locked=true | Auto teaser содержит тот же URL, но target=club; этот target не отменяет публичность cover |
 | articles.sections[].url/urls и legacy photos, ссылки text/body | Published public article body публичен; published club sections требуют доступа; unpublished article не public | photo/png/carousel/link и markdown candidate links; неизвестный формат требует diagnostic, не empty result |
-| post_comments.photos | Чтение club.comments требует clubMemberProcedure; родитель должен быть published | Префикс club/comments и автора недостаточно для прямого URL access-check |
+| post_comments.photos | club.comments требует авторизацию и published родителя; оплата нужна только для club target | Префикс club/comments и автора недостаточно для прямого URL access-check; public обсуждение нельзя молча переклассифицировать в club |
 | users.avatarUrl | Отдельный публичный avatar class согласно сохранённому дизайну | Не закрывать avatar из-за club user/общей папки |
 | videos.thumbnailUrl/videoUrl | Published videos list/getById используют publicProcedure | Не превращать каталог в платный без отдельного V1-контракта |
 | launch_settings.config сезонные backgroundUrl/bannerUrl | Публичное оформление | Учитывать отдельно от закрытых вложений; inline/static/external URL не обязательно S3 object |
