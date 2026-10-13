@@ -200,7 +200,11 @@ export type InsertPushConsentEvent = typeof pushConsentEvents.$inferInsert;
 export const videos = mysqlTable("videos", {
   id: int("id").autoincrement().primaryKey(),
   /** YouTube video ID (e.g. sq7pY1H_fYU) */
-  youtubeId: varchar("youtubeId", { length: 32 }).notNull().unique(),
+  youtubeId: varchar("youtubeId", { length: 32 }).unique(),
+  provider: mysqlEnum("provider", ["youtube", "vk"]).default("youtube").notNull(),
+  access: mysqlEnum("access", ["public", "club"]).default("public").notNull(),
+  vkEmbedUrl: text("vkEmbedUrl"),
+  vkSourceKey: varchar("vkSourceKey", { length: 64 }).unique("videos_vk_source_unique"),
   /** Video title */
   title: varchar("title", { length: 512 }).notNull(),
   /** Duration string (e.g. "15:27") */

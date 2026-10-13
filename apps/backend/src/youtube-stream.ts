@@ -51,7 +51,7 @@ export function registerYoutubeStream(app: Express) {
       // Check current publication before cache resolution or external work.
       // A public catalog player must not become a proxy for arbitrary IDs.
       const video = await getVideoByYoutubeId(id);
-      if (!video?.published) {
+      if (!video?.published || video.access !== "public" || video.provider !== "youtube") {
         cache.delete(id);
         res.status(404).json({ error: "video unavailable" });
         return;
@@ -65,6 +65,13 @@ export function registerYoutubeStream(app: Express) {
       if (!upstream.ok && upstream.status !== 206) {
         cache.delete(id);
         res.status(upstream.status).end();
+        return;
+      }
+      const current = await getVideoByYoutubeId(id);
+      if (!current?.published || current.access !== "public" || current.provider !== "youtube") {
+        cache.delete(id);
+        await upstream.body?.cancel();
+        res.status(404).json({ error: "video unavailable" });
         return;
       }
       res.status(upstream.status);

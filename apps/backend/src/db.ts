@@ -39,6 +39,7 @@ import {
   bulkImportVideos as persistVideoImport,
   updateVideo as persistVideoUpdate,
   deleteVideo as persistVideoDeletion,
+  type PublicVideo,
 } from "./content/video-repository";
 import {
   listPublishedArticles as readPublishedArticles,
@@ -649,12 +650,12 @@ export async function getLatestPublishedPost(
 // ── Videos ──
 
 // Get all published videos ordered by sortOrder
-export async function getVideos(): Promise<Video[]> {
+export async function getVideos(): Promise<PublicVideo[]> {
   return readVideos(await getDb());
 }
 
 // Public details must obey the same publication gate as the list.
-export async function getVideoById(id: number): Promise<Video | undefined> {
+export async function getVideoById(id: number): Promise<PublicVideo | undefined> {
   return readVideoById(await getDb(), id);
 }
 

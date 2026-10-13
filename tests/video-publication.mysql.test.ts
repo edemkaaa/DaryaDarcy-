@@ -164,5 +164,19 @@ describe.skipIf(!testDatabaseUrl)(
       expect(external.commands).toEqual([]);
       expect(external.upstream).toEqual([]);
     });
+    it("denies a club video before downloader, cached URL, or upstream requests", async () => {
+      await conn.query("UPDATE videos SET access='club' WHERE id=10903");
+      const response = await httpFetch(`${base}/api/yt/auditrev001`);
+      expect(response.status).toBe(404);
+      expect(external.commands).toEqual([]);
+      expect(external.upstream).toEqual([]);
+    });
+    it("rechecks club access after an in-flight upstream response before returning bytes", async () => {
+      vi.stubGlobal("fetch",async()=>{
+        await conn.query("UPDATE videos SET access='club' WHERE id=10903");
+        return new Response("owned private bytes",{status:200,headers:{"content-type":"video/mp4"}});
+      });
+      expect((await httpFetch(`${base}/api/yt/auditrev001`)).status).toBe(404);
+    });
   },
 );

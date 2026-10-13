@@ -8,6 +8,8 @@ import type { ContentUploadService } from "../content/content-upload.service";
 import { mediaUploadInput } from "../content/media-upload-input";
 import type { ContentReadService } from "../content/content-read.service";
 import { importVideosInput } from "../content/video-import-input";
+import { vkVideoInput } from "../content/vk-video-input";
+import { upsertVkVideo } from "../content/vk-catalog";
 import type { NotificationsService } from "../notifications/notifications.service";
 import { articleCreationKey } from "../content/article-creation-request";
 
@@ -168,6 +170,10 @@ export const createAdminRouter = (
   importVideos: adminProcedure
     .input(importVideosInput)
     .mutation(({ input }) => posts.importVideos(input)),
+  upsertVkVideo: adminProcedure
+    .input(vkVideoInput)
+    .output(z.object({id:z.number().int().positive()}).strict())
+    .mutation(({ctx,input})=>upsertVkVideo(ctx.user,input)),
 
   /** Remove push tokens when deleting/deactivating a user account (manual deletion workflow). */
   purgeUserPushData: adminProcedure

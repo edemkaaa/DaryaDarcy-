@@ -27,6 +27,7 @@ const expectedProcedures = {
     "updatePost",
     "uploadMedia",
     "uploadPhoto",
+    "upsertVkVideo",
   ],
   articles: ["getById", "list"],
   auth: ["logout", "me"],
@@ -83,7 +84,7 @@ const expectedProcedures = {
   profileExtras: ["requestAccountDeletion"],
   shop: ["createCheckout", "owned"],
   system: ["health", "notifyOwner"],
-  videos: ["getById", "list"],
+  videos: ["catalog", "getById", "list", "playback"],
 } as const;
 
 describe("public tRPC contract", () => {

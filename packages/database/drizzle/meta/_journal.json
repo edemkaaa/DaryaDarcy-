@@ -197,6 +197,13 @@
       "when": 1791936000000,
       "tag": "0030_normal_checkout_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "5",
+      "when": 1791936001000,
+      "tag": "0031_vk_catalog_access",
+      "breakpoints": true
     }
   ]
 }

@@ -1,10 +1,11 @@
 # AG8: VK-каталог и клубный доступ
 
-## Статус — Proposed, 14 октября 2026
+## Статус — Accepted for local backend implementation, 14 октября 2026
 
-Поручение «Давай делаем да все» продолжает подготовку минимального серверного
-контракта. Конкретные API/schema ниже предложены для принятия, не включены в код.
-Фронт, рабочая БД, старые ролики, worker и настройки VK не изменяются.
+Пользователь явно принял контракт и разрешил локальную реализацию/проверки:
+«Фронт и рабочую БД не трогай, реальные ссылки проверим отдельно».
+Фронт, рабочая БД, старые ролики и настройки VK не изменяются. Worker меняется
+только для принятого запрета anonymous club bypass и его loopback acceptance.
 
 Основание: [сохранённый разбор ТЗ, 4.11](docs/audits/frontend-stage-one-scope-2026-10-03.md)
 и [план фронтендера](apps/frontend/WORK_PLAN.md). VK требуется в разделе Видео и
@@ -12,7 +13,7 @@
 VK-ссылки от пересылки/скачивания исключена. Оригинал договора недоступен;
 это сверка сохранённого разбора, а не новая проверка первоисточника.
 
-## Проверенный текущий код
+## Проверенный исходный код до реализации
 
 - videos.list/getById — public, repository возвращает все published строки.
 - videos.youtubeId обязательный unique; videoUrl nullable; access/provider нет.
@@ -24,18 +25,18 @@ VK-ссылки от пересылки/скачивания исключена.
 - Наличие VK-плеера ранее проверено в staging; текущая локальная feature-ветка
   не содержит найденных VK-renderer исходников. Ветки автоматически не объединять.
 
-## Минимальное предлагаемое решение
+## Принятое минимальное решение
 
 Один существующий videos-каталог, без второго видеохранилища/платного хостинга.
 Additive схема: access public|club (default public для старых записей), provider
 youtube|vk (старые youtube), nullable youtubeId и отдельный vkEmbedUrl для VK.
 Валидация взаимоисключающих источников на server boundary; никакого фиктивного
 youtubeId, автоматического переноса/закрытия старых строк или массового импорта.
-Номер миграции выбрать по актуальному journal после принятия; SQL сейчас не создаётся.
+Миграция 0031 зарегистрирована после 0030; рабочая история/применение не проверены.
 
 ### Чтение
 
-Предлагаются additive процедуры; старые wire shapes публичных YouTube сохраняются:
+Добавлены additive процедуры; старые wire shapes публичных YouTube сохраняются:
 
 ```ts
 videos.catalog.query({ limit?: number, cursor?: number })
@@ -84,9 +85,18 @@ credentials, redirects, arbitrary fetch/SSRF, short URLs и загрузки с 
 Не считать обычную share-ссылку готовым iframe источником. Точный allowlist и
 canonical fingerprint фиксируются по реальным примерам заказчика и совместимому
 parser фронтендера до реализации; неизвестные параметры не «исправлять» догадкой.
+Уточнение для локального среза: проверен parser в origin/staging. Допустимы
+https://vk.com, https://vk.ru, https://vkvideo.ru, path /video*ext.php;
+oid — ненулевой signed decimal до 20 цифр, id — positive decimal до 20 цифр,
+hash — 8..128 символов A-Z/a-z/0-9/*/-. Только single oid/id/hash/hd/autoplay,
+hd 0..3 optional, autoplay 0/1 приводится к 0; fragment/лишние параметры запрещены.
+Ссылка canonical сохраняет origin и hd; unique source key — SHA256([oid,id]),
+не hash/настройки плеера. Тот же source с другой canonical ссылкой/данными — CONFLICT
+при create; explicit id обозначает update. Возврат записи: {id:number}.
+Реальные настройки/воспроизведение VK не заявляются проверенными.
 Настройку приватности/встраивания и наполнение выполняет владелец VK.
 
-## Реализация после принятия — локальные RED/GREEN срезы
+## Локальные RED/GREEN срезы и границы
 
 1. Схема/входы и native SQL: старые YouTube/public неизменны, VK без fake ID,
    malformed источник отвергнут, repeated create/rollback/CONFLICT проверены.
@@ -103,27 +113,64 @@ parser фронтендера до реализации; неизвестные 
 S3 не нужен для local API/worker acceptance; физическое воспроизведение VK требует
 реальных embed-ссылок, разрешения владельца и отдельной внешней проверки.
 
-## Необходимое решение
+## Результат локальной реализации
 
-Проверки подготовки (из корня repo):
+Реализованы admin.upsertVkVideo, videos.catalog/playback, default-off
+VK_CATALOG_ENABLED, migration 0031 и legacy public-YouTube projection без новых
+source fields. Повторы создания защищены unique vkSourceKey; иной payload —
+CONFLICT. Текущий actor/session/role проверяется внутри SQL transaction. Рабочие
+строки/флаги не менялись; миграция выполнена только на одноразовом backend_test.
+
+RED наблюдался на отсутствующих routes, раскрытии новых полей в старом ответе,
+legacy /api/yt, silent public import policy и worker normalization/access bypass.
+Затем GREEN: 88 проверок
+в 11 backend/test файлах, без skip; внутри них 21 VK SQL/HTTP сценарий и один
+SQL API → отдельный Node worker → warm cache/GET/HEAD/Range/thumb сценарий.
+Native Node worker suite — 42 pass, без skip (существующее MockTimers warning).
+Синтетические bytes/URLs и контролируемый downloader double не доказывают реальное
+VK-воспроизведение. Миграция отдельно проверена на старой структуре с сохранением
+YouTube строки, её прежних полей и public defaults. Не репетиция working history.
+
+TypeScript/backend build/boundaries успешны. check:api остаётся stale: frontend
+generated types не переписывались. Offline migration preflight: только старые
+untracked 0017–0019, databaseChecked=false/releaseApproval=false; 0031 зарегистрирован.
+Self-review: wire compatibility, transaction/unique guard, auth/privacy,
+bounded pagination и отсутствие внешнего VK fetch. Новых dependencies/CI нет.
+
+### Обязательные условия выпуска
+
+- Совместимый frontend, реальные VK embed/настройки/устройства проверяются отдельно.
+- AG5 history/preflight/backup/rollback перед working migration; schema → backend
+  → compatible client/worker → flag. Никакого rollback старого public-only API
+  поверх club строк или снятия фильтров при отключении нового флага.
+- Проверить **реальный** edge route. teamassist/edge.video.conf направляет
+  /api/yt и /media/yt-thumb в проверенный worker. Старый nginx-daryadarcy.conf
+  напрямую проксирует yt-thumb в i.ytimg.com с public cache, не проверяя каталог:
+  этот путь не сертифицирован как закрытый и не должен обслуживать mixed catalog.
+  Рабочий nginx не прочитан/не изменён, local шаблоны не выкладывались.
+- Не обещать защиту полученной VK/YouTube-ссылки вне приложения. Старые public
+  материалы не переводить в club автоматически. Реальных ссылок/платежей/почты нет.
+
+Проверки (из корня repo, SQL только после проверки принадлежности своего стенда):
 
 ```sh
 PATH=/opt/homebrew/opt/node@22/bin:$PATH pnpm check:docs
 PATH=/opt/homebrew/opt/node@22/bin:$PATH pnpm exec prettier --check SPEC-vk-catalog-access.md
+PATH=/opt/homebrew/opt/node@22/bin:$PATH pnpm exec tsc --noEmit
+PATH=/opt/homebrew/opt/node@22/bin:$PATH pnpm --filter @daryadarcy/backend build
+PATH=/opt/homebrew/opt/node@22/bin:$PATH BACKEND_TEST_DATABASE_URL=mysql://root@127.0.0.1:33380/backend_test pnpm exec vitest run tests/vk-catalog.mysql.test.ts tests/vk-worker-boundary.mysql.test.ts tests/video-publication.mysql.test.ts --maxWorkers=1
+PATH=/opt/homebrew/opt/node@22/bin:$PATH node --test --test-reporter=spec apps/video-service/test/*.test.mjs
 git diff --check
 ```
 
-Будущий код: owning content videos router/repository/read/write services,
+Код: owning content videos router/repository/vk-catalog,
 packages/database schema и отдельная additive migration; tests в корневом tests/,
 worker acceptance в apps/video-service/test/. Vitest/native MySQL и node:test
 используют existing conventions, без новых dependencies/CI/фронтовых тестов.
-Exact focused команды и имена новых suites записать при принятом первом срезе;
-не выдавать ещё несуществующий runtime test за pass. Стиль — existing TypeScript,
+Отсутствие BACKEND_TEST_DATABASE_URL означает skip, не acceptance. Стиль — existing TypeScript,
 Zod strict на wire boundary, явный discriminated Playback union выше.
 
-Принять mixed public/club каталог, описанные additive reads и admin запись,
-nullable YouTube ID вместо фиктивных значений, публичные title/duration карточек
-и обязательное закрытие legacy worker обхода. Дать 1–2 реальных embed примера
-и указать, какие из них клубные. Это не разрешение на фронт/working migration.
-
-Проверка этой подготовки: source/spec review и docs/diff, не runtime GREEN.
+Mixed public/club каталог, additive reads/admin запись, nullable YouTube ID,
+public title/duration и worker guards приняты к локальной реализации. Реальные
+embed примеры и их public/club размещение нужны только для отдельной внешней
+приёмки. Это не разрешение на frontend/working migration/включение.

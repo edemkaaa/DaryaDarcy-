@@ -1,0 +1,217 @@
+import { and, asc, eq, gt, sql } from "drizzle-orm";
+import type { MySql2Database } from "drizzle-orm/mysql2";
+import { TRPCError } from "@trpc/server";
+import {
+  videos,
+  users,
+  type User,
+} from "../../../../packages/database/src/schema";
+import { getDb } from "../db";
+import { parseVkEmbed, type VkVideoInput } from "./vk-video-input";
+import { userHasClubAccess } from "../identity/club-access";
+import { getActiveClubSubscription } from "../db";
+
+export function requireVkCatalogEnabled() {
+  if (process.env.VK_CATALOG_ENABLED !== "true")
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Раздел видео временно недоступен",
+    });
+}
+type Reader = Pick<MySql2Database, "select" | "execute">;
+export async function requireVkCatalogSchema(tx: Reader) {
+  await tx.select().from(videos).limit(0);
+  const [result] = await tx.execute(sql`
+    SELECT s.INDEX_NAME AS name,s.COLUMN_NAME AS columnName,s.SEQ_IN_INDEX AS position,t.ENGINE AS engine
+    FROM information_schema.STATISTICS s JOIN information_schema.TABLES t ON t.TABLE_SCHEMA=s.TABLE_SCHEMA AND t.TABLE_NAME=s.TABLE_NAME
+    WHERE s.TABLE_SCHEMA=DATABASE() AND s.TABLE_NAME='videos' AND s.NON_UNIQUE=0`);
+  const rows: unknown = result;
+  if (
+    !Array.isArray(rows) ||
+    !rows.some(
+      (row) =>
+        row.columnName === "vkSourceKey" &&
+        row.position === 1 &&
+        row.engine === "InnoDB" &&
+        rows.filter((other) => other.name === row.name).length === 1,
+    )
+  )
+    throw new Error("Video schema unavailable");
+}
+export async function currentVideoActor(tx: Reader, actor: User) {
+  const [current] = await tx
+    .select()
+    .from(users)
+    .where(eq(users.id, actor.id))
+    .for("update");
+  if (!current || current.sessionVersion !== actor.sessionVersion)
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  if (current.blockedAt || current.accountDeletionRequestedAt)
+    throw new TRPCError({ code: "FORBIDDEN" });
+  return current;
+}
+export async function upsertVkVideo(actor: User, input: VkVideoInput) {
+  requireVkCatalogEnabled();
+  const source = parseVkEmbed(input.embedUrl);
+  if (!source) throw new TRPCError({ code: "BAD_REQUEST" });
+  const database = await getDb();
+  if (!database) throw new Error("Database unavailable");
+  return database.transaction(async (tx) => {
+    const current = await currentVideoActor(tx, actor);
+    if (current.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+    await requireVkCatalogSchema(tx);
+    const data = {
+      provider: "vk" as const,
+      youtubeId: null,
+      vkEmbedUrl: source.embedUrl,
+      vkSourceKey: source.sourceKey,
+      title: input.title,
+      access: input.access,
+      published: input.published,
+    };
+    if (input.id !== undefined) {
+      const [existing] = await tx
+        .select()
+        .from(videos)
+        .where(eq(videos.id, input.id))
+        .for("update");
+      if (!existing || existing.provider !== "vk")
+        throw new TRPCError({ code: "NOT_FOUND" });
+      const [duplicate] = await tx
+        .select({ id: videos.id })
+        .from(videos)
+        .where(eq(videos.vkSourceKey, source.sourceKey));
+      if (duplicate && duplicate.id !== input.id)
+        throw new TRPCError({ code: "CONFLICT" });
+      await tx.update(videos).set(data).where(eq(videos.id, input.id));
+      return { id: input.id };
+    }
+    await tx
+      .insert(videos)
+      .values(data)
+      .onDuplicateKeyUpdate({
+        set: {
+          vkSourceKey: sql`${videos.vkSourceKey}`,
+          updatedAt: sql`${videos.updatedAt}`,
+        },
+      });
+    const [saved] = await tx
+      .select()
+      .from(videos)
+      .where(eq(videos.vkSourceKey, source.sourceKey))
+      .for("update");
+    if (!saved) throw new Error("Invalid video write");
+    if (
+      saved.provider !== data.provider ||
+      saved.youtubeId !== null ||
+      saved.vkEmbedUrl !== data.vkEmbedUrl ||
+      saved.title !== data.title ||
+      saved.access !== data.access ||
+      saved.published !== data.published
+    )
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Ролик уже существует с другими данными",
+      });
+    return { id: saved.id };
+  });
+}
+
+export async function videoCatalog(
+  actor: User | null,
+  input: { limit: number; cursor?: number },
+) {
+  requireVkCatalogEnabled();
+  const database = await getDb();
+  if (!database) throw new Error("Database unavailable");
+  return database.transaction(async (tx) => {
+    const current = actor ? await currentVideoActor(tx, actor) : null;
+    await requireVkCatalogSchema(tx);
+    const canWatchClub = current
+      ? await userHasClubAccess(current, (id) =>
+          getActiveClubSubscription(id, tx),
+        )
+      : false;
+    const rows = await tx
+      .select({
+        id: videos.id,
+        title: videos.title,
+        duration: videos.duration,
+        access: videos.access,
+      })
+      .from(videos)
+      .where(
+        and(
+          eq(videos.published, true),
+          input.cursor ? gt(videos.id, input.cursor) : undefined,
+        ),
+      )
+      .orderBy(asc(videos.id))
+      .limit(input.limit + 1);
+    const items = rows
+      .slice(0, input.limit)
+      .map((row) => ({
+        ...row,
+        title: row.title.normalize("NFC"),
+        canWatch: row.access === "public" || canWatchClub,
+      }));
+    return {
+      items,
+      nextCursor: rows.length > input.limit ? items.at(-1)!.id : null,
+    };
+  });
+}
+export async function videoPlayback(actor: User | null, id: number) {
+  requireVkCatalogEnabled();
+  const database = await getDb();
+  if (!database) throw new Error("Database unavailable");
+  return database.transaction(async (tx) => {
+    const current = actor ? await currentVideoActor(tx, actor) : null;
+    await requireVkCatalogSchema(tx);
+    const [video] = await tx
+      .select()
+      .from(videos)
+      .where(and(eq(videos.id, id), eq(videos.published, true)))
+      .for("update");
+    if (!video) throw new TRPCError({ code: "NOT_FOUND" });
+    if (video.access === "club") {
+      if (!current) throw new TRPCError({ code: "UNAUTHORIZED" });
+      if (
+        !(await userHasClubAccess(current, (userId) =>
+          getActiveClubSubscription(userId, tx),
+        ))
+      )
+        throw new TRPCError({ code: "FORBIDDEN" });
+    } else if (video.access !== "public")
+      throw new Error("Invalid video access");
+    if (video.provider === "vk") {
+      const source = video.vkEmbedUrl ? parseVkEmbed(video.vkEmbedUrl) : null;
+      if (
+        !source ||
+        source.sourceKey !== video.vkSourceKey ||
+        video.youtubeId !== null ||
+        video.videoUrl !== null
+      )
+        throw new Error("Invalid VK source");
+      return {
+        id: video.id,
+        provider: "vk" as const,
+        embedUrl: source.embedUrl,
+      };
+    }
+    if (
+      video.provider !== "youtube" ||
+      !video.youtubeId ||
+      !/^[\w-]{11}$/.test(video.youtubeId) ||
+      video.vkEmbedUrl !== null ||
+      video.vkSourceKey !== null
+    )
+      throw new Error("Invalid YouTube source");
+    return {
+      id: video.id,
+      provider: "youtube" as const,
+      youtubeId: video.youtubeId,
+      videoUrl: video.videoUrl,
+    };
+  });
+}

@@ -1,5 +1,6 @@
 import type { RowDataPacket } from "mysql2/promise";
 import { openTestDatabase } from "./backend-mysql";
+import { readFile } from "node:fs/promises";
 
 export async function openVideoTestDatabase() {
   const conn = await openTestDatabase();
@@ -17,6 +18,23 @@ export async function openVideoTestDatabase() {
         published BOOLEAN NOT NULL DEFAULT TRUE,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB`);
+      const [applied] = await conn.query<RowDataPacket[]>(
+        "SELECT name FROM backend_test_migrations WHERE name='0031_vk_catalog_access'",
+      );
+      if (!applied.length) {
+        await conn.query(
+          await readFile(
+            new URL(
+              "../../packages/database/drizzle/0031_vk_catalog_access.sql",
+              import.meta.url,
+            ),
+            "utf8",
+          ),
+        );
+        await conn.query(
+          "INSERT INTO backend_test_migrations VALUES ('0031_vk_catalog_access')",
+        );
+      }
       // Fixed fixtures reserve IDs below one million. Use live metadata: cached
       // counters could repeat ALTER while another suite holds a transaction lock.
       await conn.query("SET SESSION information_schema_stats_expiry=0");

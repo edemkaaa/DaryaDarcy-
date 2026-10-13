@@ -8,33 +8,57 @@ import {
 
 // Connection ownership stays in db.ts; reads retain their unavailable-DB defaults.
 type Database = MySql2Database | null;
+export type PublicVideo = Omit<
+  Video,
+  "provider" | "access" | "vkEmbedUrl" | "vkSourceKey" | "youtubeId"
+> & { youtubeId: string };
+function publicVideo(row: Video): PublicVideo {
+  if (typeof row.youtubeId !== "string" || !row.youtubeId)
+    throw new Error("Invalid public video");
+  const { provider, access, vkEmbedUrl, vkSourceKey, ...legacy } = row;
+  return {
+    ...legacy,
+    youtubeId: row.youtubeId,
+    title: (row.title || "").normalize("NFC"),
+  };
+}
 
-export async function getVideos(db: Database): Promise<Video[]> {
+export async function getVideos(db: Database): Promise<PublicVideo[]> {
   if (!db) return [];
   const rows = await db
     .select()
     .from(videos)
-    .where(eq(videos.published, true))
+    .where(
+      and(
+        eq(videos.published, true),
+        eq(videos.access, "public"),
+        eq(videos.provider, "youtube"),
+      ),
+    )
     .orderBy(asc(videos.sortOrder), desc(videos.createdAt));
-  return rows.map((row) => ({
-    ...row,
-    title: (row.title || "").normalize("NFC"),
-  }));
+  return rows.map(publicVideo);
 }
 
 export async function getVideoById(
   db: Database,
   id: number,
-): Promise<Video | undefined> {
+): Promise<PublicVideo | undefined> {
   if (!db) return undefined;
   const result = await db
     .select()
     .from(videos)
-    .where(and(eq(videos.id, id), eq(videos.published, true)))
+    .where(
+      and(
+        eq(videos.id, id),
+        eq(videos.published, true),
+        eq(videos.access, "public"),
+        eq(videos.provider, "youtube"),
+      ),
+    )
     .limit(1);
   const row = result[0];
   if (!row) return undefined;
-  return { ...row, title: (row.title || "").normalize("NFC") };
+  return publicVideo(row);
 }
 
 // Internal dedup includes unpublished rows and preserves the raw stored title.
@@ -68,6 +92,8 @@ export async function bulkImportVideos(
   return db.transaction(async (tx) => {
     let imported = 0;
     for (const item of items) {
+      if (typeof item.youtubeId !== "string" || !item.youtubeId)
+        throw new Error("YouTube ID required for import");
       const [existing] = await tx
         .select({ id: videos.id })
         .from(videos)
