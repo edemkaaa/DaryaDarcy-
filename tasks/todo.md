@@ -45,7 +45,13 @@ AG4 после AG2/решения AG3; AG5 после истории/retention; 
   releaseApproval=false; manifest 0029 зарегистрирован. Docs55/diff exit0.
   Процедура сохранена 24e7b31; migrations/working connection не выполнялись.
 - [ ] **AG6 — точные остатки обычной оплаты/отмены.** Статус: аудит подготовлен,
-  ждёт normal checkout recovery контракта/внешней приёмки. Обычный путь создаёт
+  14 октября конкретный [серверный контракт](../SPEC-normal-checkout-recovery.md)
+  Proposed: первый authenticated normal create/status, отдельный ledger,
+  guest/TEST прежние; exact replay/config drift и order-specific receipt.
+  Ждёт принятия scope/API/schema, затем native RED/GREEN; runtime не менялся.
+  Проверка 14 октября: spec/source self-review, Prettier/spec и docs55/diff exit0.
+  Новая schema/API/test file не созданы; внешние платежи/фронт не затронуты.
+  Обычный путь создаёт
   новый pending orderId на вызов и не принимает TEST key; old subscription не
   подтверждает новую покупку. Свойства минимального решения и existing P3 evidence
   в handoff. Нет нового native RED/реального списания/изменений runtime или схемы.
