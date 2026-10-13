@@ -4,6 +4,46 @@
 
 **Уточнение пользователя: продолжать по документу, без новых правок фронтендера.**
 
+**M2a — approved first read-only proxy slice, 13 октября:** accepted contract
+[SPEC-private-files](../SPEC-private-files.md), explicit go to implement. Порядок:
+native HTTP/JWT/SQL RED → Content-owned attachment/parent access boundary и
+default-off controller → S3 signed transport stream/HEAD/range + loopback wire
+→ failures/abort/revocation acceptance → types/build/boundaries/docs/review/commit.
+Files: content private-files controller/service, storage transport, ContentModule,
+native test/harness. Рисковые проверки сначала: no storage на denied/flag-off,
+arbitrary URL не fetchится, stale session не открывает club. Нет фронта/upload/
+schema/old URLs/working ACL changes. SQL только own labelled loopback/tmpfs;
+actual bucket privacy/browser rewrite/upload integration отдельные gates.
+
+**M2a local implementation checkpoint:** GET/HEAD /api/media/post-attachments/:id
+default-off (strict true), content-owned joined attachment/parent SQL and current
+session/club policy; published public feed/both stays guest-readable. Uniform404
+for inaccessible/missing/ambiguous, internal failures generic503. Every denial
+precedes S3, ingress errors private/no-store without changing CORS policy. Reads
+stream via real SDK, HEAD metadata only, GET single ranges 206/416; If-Match and
+size/ETag/Content-Range validation prevent mixed object versions or full-body
+fallback on bad range. Fixed disposition/MIME allowlist; no provider cookies,
+redirects/signed URLs/errors leaked. Disconnect aborts/destroys upstream stream.
+
+Native RED3 initial → GREEN3; range RED10→GREEN14; expanded URL alias/empty Range
+RED2→GREEN41, ingress no-store RED1→GREEN45; additional consistency cases native48.
+Actual HTTP/JWT/MySQL + SDK loopback wire, not mocked authorization/repositories.
+Fixture's SDK x-id mismatch corrected after diagnostic2 failures, not weakened
+production check. Final affected **99 pass/3 suites, exit0, 3.39 s**. Default
+workers2 **2327 pass/1208 opt-in skips (3540), exit0, 55.37 s** on final production
+code, before three supplemental opt-in consistency tests; native99 includes them.
+Types/build479.9kb/boundaries622/API73 pass. Review: scope/roles/quota/session
+semantics unchanged; no generic user URL fetch or fallback/ACL changes, no SQL
+transaction held across storage streaming. Access revoked on next request, not
+retroactive cancellation of already-delivered bytes. Own fixture uses signed
+header/If-Match check but does not verify cryptography/bucket ACL. M2b actual S3,
+browser/device and timeout/load checks remain pre-enable gates; M2c old-object
+rollout/upload switching not authorized. No frontend or prior URLs/files touched.
+Docs54/focused format/diff pass. Own Nest/HTTP/SQL pool and object wire closed
+by harness; exact container/name/task label/loopback/tmpfs/no mounts rechecked,
+stopped/--rm removed. Только одноразовые synthetic данные удалены (невосстановимы),
+чужие containers/volumes и working data не затронуты. No pushes/deploy/external mail.
+
 **Пункт5, backend-only code review / точная адресация — 13 октября:**
 Прослежены storagePut→photo/media/raw-video/comment/avatar→persisted URL,
 storageGet, admin media read, feed/post/article/video read. Admin media route

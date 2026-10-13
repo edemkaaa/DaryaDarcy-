@@ -5,6 +5,17 @@
 Подтверждён пользователем список «Задачи_бэкендеру_2026-10-12.md», начать с3.
 Local feature branch, без push/deploy/рабочей БД/автоматического включения.
 
+- [x] M2a local read-only post_media proxy: native HTTP/JWT/SQL RED/GREEN,
+  default-off/no provider on denied, stream/HEAD/single range/abort/revocation;
+  types/build/boundaries/docs/review/local commit. Не frontend/upload/old URL switch.
+  Native48; final content/deletion affected99 pass/3 suites (3.39 s), default2327
+  pass/1208 skips (3540, 55.37 s) before three extra opt-in cases; production
+  unchanged afterwards. Types/build479.9kb/boundaries622/API73 pass; flag off.
+- [ ] M2b actual private S3/browser rewrite acceptance: после M2a и test-only
+  локального S3 endpoint/bucket/connection, без working bucket credentials.
+- [ ] M2c upload→associate→proxy URL + old object rollout: отдельный review,
+  schema/public/shared map/backup/rollback approval; пока не реализовывать.
+
 - [x] Пункт3 локально: ID/наличие/публикация/доступ проверяются перед like/save
   внутри транзакции; actor/post locks, общий club policy и та же SQL-сессия.
   RED2 → native30; final affected HTTP/JWT/SQL103 pass (8.44 s), default2308

@@ -5,15 +5,18 @@ import { ContentCommentService } from "./content-comment.service";
 import { ContentUploadService } from "./content-upload.service";
 import { IdentityModule } from "../identity/identity.module";
 import { VideoUploadController } from "./video-upload.controller";
+import { PrivateFilesController } from "./private-files.controller";
+import { PrivateFilesService } from "./private-files.service";
 
 @Module({
   imports: [IdentityModule],
-  controllers: [VideoUploadController],
+  controllers: [VideoUploadController, PrivateFilesController],
   providers: [
     ContentReadService,
     ContentWriteService,
     ContentCommentService,
     ContentUploadService,
+    PrivateFilesService,
   ],
   exports: [
     ContentReadService,

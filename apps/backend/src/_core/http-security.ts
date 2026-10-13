@@ -18,6 +18,10 @@ export function registerHttpSecurity(app: Express): void {
     if ((req.method === "POST" && req.path.startsWith("/api/")) || /^\/api\/auth(?:\/|$)/.test(req.path) || /^\/api\/admin\/member-email-bindings(?:\/|$)/i.test(req.path) || req.headers.cookie || req.headers.authorization) {
       res.setHeader("Cache-Control", "no-store");
     }
+    // File denials can happen in this ingress layer before the controller.
+    if (/^\/api\/media\/post-attachments(?:\/|$)/.test(req.path)) {
+      res.setHeader("Cache-Control", "private, no-store");
+    }
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "no-referrer");
     res.setHeader("X-Frame-Options", "DENY");
