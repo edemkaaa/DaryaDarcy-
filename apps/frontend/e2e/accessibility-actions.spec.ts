@@ -295,8 +295,10 @@ test("visual quiz choices have a name and announce their selected state", async 
   );
 });
 
-test("the filter reset remains fully reachable by wheel and keyboard on narrow and short screens", async ({
+test("the filter reset remains fully reachable by scrolling and keyboard on narrow and short screens", async ({
   page,
+  browserName,
+  isMobile,
 }, testInfo) => {
   await layoutApi(page, true);
   await decoration(page);
@@ -311,9 +313,26 @@ test("the filter reset remains fully reachable by wheel and keyboard on narrow a
     const winter = page.getByRole("button", { name: "Зима", exact: true });
     await winter.click();
     const reset = page.getByRole("button", { name: "Сбросить фильтр ×" });
-    const box = await winter.boundingBox();
-    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
-    await page.mouse.wheel(0, 1000);
+    if (browserName === "webkit" && isMobile) {
+      // Playwright cannot inject a wheel/touch swipe in mobile WebKit.
+      // Exercise the real scroll container; do not claim a physical gesture.
+      await winter.evaluate((button) => {
+        for (
+          let parent = button.parentElement;
+          parent;
+          parent = parent.parentElement
+        ) {
+          if (/auto|scroll/.test(getComputedStyle(parent).overflowY)) {
+            parent.scrollBy({ top: 1000 });
+            break;
+          }
+        }
+      });
+    } else {
+      const box = await winter.boundingBox();
+      await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+      await page.mouse.wheel(0, 1000);
+    }
     const chipsFit = await page
       .getByRole("region", { name: "Фильтры клуба" })
       .locator("button[aria-pressed]")

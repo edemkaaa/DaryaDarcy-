@@ -1,5 +1,14 @@
 # Spec: first email binding for a legacy member
 
+## Current status — 13 October 2026
+
+The user clarified that the application has no existing users or legacy phone
+accounts and cancelled this scenario. The frontend UI, confirmation route,
+clients, recovery journal and dedicated frontend tests have been removed.
+Backend handlers, migrations and backend tests remain unchanged for the backend
+owner to handle separately. The requirements and acceptance journal below are
+historical; they are no longer a frontend delivery or rollout plan.
+
 ## Status and objective
 
 10 October 2026: the human approved the feature after the admin scope review.

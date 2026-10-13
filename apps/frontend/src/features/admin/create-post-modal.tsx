@@ -18,6 +18,7 @@ import {
 import { MAX_VIDEO_BYTES } from "@/shared/browser/file-operations";
 import { requireUploadedUrl } from "@/shared/media/upload-result";
 import { PostSaveCoordinator } from "@/domain/post/save-post";
+import { VkVideoField, VkVideoPreviewButton } from "./vk-video-field";
 import { usePostAttachments } from "./use-post-attachments";
 import { usePostUploadSelection } from "./use-post-upload-selection";
 import { PostUploadStatus } from "./post-upload-status";
@@ -912,9 +913,14 @@ export function CreatePostModal({
                 {mediaUploading ? "Загрузка..." : "Выбрать видеофайл"}
               </Typography>
             </Action>
+            <VkVideoField
+              videos={videos}
+              disabled={isPending || recovery.blocked}
+              onAdd={addVideoUrl}
+            />
             {videos.length > 0 && (
               <Typography className={classes.hint}>
-                Видео загружено — нажмите «Опубликовать»
+                Видео добавлено — сохраните или опубликуйте пост
               </Typography>
             )}
             {videos.length > 0 && (
@@ -934,7 +940,9 @@ export function CreatePostModal({
                     <Typography lines={1} className={classes.mediaItemName}>
                       Видео {i + 1}
                     </Typography>
+                    <VkVideoPreviewButton url={uri} index={i} />
                     <Action
+                      disabled={isPending}
                       aria-label={`Удалить видео ${i + 1}`}
                       onClick={() =>
                         setVideos((prev) => prev.filter((_, idx) => idx !== i))

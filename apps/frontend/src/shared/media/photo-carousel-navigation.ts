@@ -1,13 +1,21 @@
 import type { KeyboardEvent } from "react";
 
 export function scrollPhotoWithKeyboard(
-  event: KeyboardEvent<HTMLDivElement>,
+  event: KeyboardEvent<HTMLElement>,
   width: number,
   count: number,
+  node: HTMLDivElement | null = event.currentTarget as HTMLDivElement,
 ) {
-  if (width <= 0 || count < 2 || event.altKey || event.ctrlKey || event.metaKey)
+  if (
+    !node ||
+    width <= 0 ||
+    count < 2 ||
+    event.defaultPrevented ||
+    event.altKey ||
+    event.ctrlKey ||
+    event.metaKey
+  )
     return;
-  const node = event.currentTarget;
   const index = Math.round(node.scrollLeft / width);
   let next: number;
   switch (event.key) {
@@ -27,8 +35,18 @@ export function scrollPhotoWithKeyboard(
       return;
   }
   event.preventDefault();
+  scrollPhotoTo(node, width, count, next);
+}
+
+export function scrollPhotoTo(
+  node: HTMLDivElement | null,
+  width: number,
+  count: number,
+  index: number,
+) {
+  if (!node || width <= 0 || count < 1) return;
   node.scrollTo({
-    left: Math.min(Math.max(next, 0), count - 1) * width,
+    left: Math.min(Math.max(index, 0), count - 1) * width,
     behavior: "instant",
   });
 }

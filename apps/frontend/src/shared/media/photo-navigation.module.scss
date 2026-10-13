@@ -1,0 +1,45 @@
+@use "../styles/layers";
+
+@layer elements {
+  .button {
+    display: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    background-color: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+
+    &:disabled {
+      opacity: 0.35;
+    }
+  }
+
+  .previous {
+    left: 12px;
+  }
+
+  .next {
+    right: 12px;
+  }
+
+  .draggable[data-photo-dragging] {
+    cursor: grabbing;
+    user-select: none;
+
+    * {
+      cursor: grabbing;
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .button {
+      display: flex;
+    }
+  }
+}

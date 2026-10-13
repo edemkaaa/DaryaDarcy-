@@ -166,6 +166,54 @@ for (const mode of ["full", "quick"] as const) {
     await choose(page, form, "Аудио", "kept.wav", "audio/wav");
     await choose(page, form, "Документ", "kept.txt", "text/plain");
     await saved(form);
+    // A small Blob/File already fails IndexedDB writes in some WebKit contexts.
+    // The durable format must contain bytes, then recreate usable Files on load.
+    await expect
+      .poll(() =>
+        page.evaluate(
+          (slot) =>
+            new Promise((resolve, reject) => {
+              const opening = indexedDB.open("darcy-post-drafts", 1);
+              opening.onerror = () => reject(opening.error);
+              opening.onsuccess = () => {
+                const db = opening.result;
+                const tx = db.transaction("drafts", "readonly");
+                const read = tx.objectStore("drafts").get(`101:${slot}`);
+                read.onsuccess = () =>
+                  resolve({
+                    version: read.result?.version,
+                    files: read.result?.editor.attachments.map(
+                      (item: {
+                        file?: File;
+                        fileData?: {
+                          bytes: ArrayBuffer;
+                          name: string;
+                          type: string;
+                        };
+                      }) => ({
+                        fileAbsent: item.file === undefined,
+                        text:
+                          item.fileData?.bytes instanceof ArrayBuffer
+                            ? new TextDecoder().decode(item.fileData.bytes)
+                            : null,
+                        name: item.fileData?.name,
+                      }),
+                    ),
+                  });
+                tx.oncomplete = () => db.close();
+                tx.onerror = () => reject(tx.error);
+              };
+            }),
+          mode === "full" ? "full:new" : "quick:new:feed",
+        ),
+      )
+      .toEqual({
+        version: 2,
+        files: [
+          { fileAbsent: true, text: "attachment fixture", name: "kept.wav" },
+          { fileAbsent: true, text: "attachment fixture", name: "kept.txt" },
+        ],
+      });
     await page.reload({ waitUntil: "domcontentloaded" });
     form = await open(page, mode);
     expect(
@@ -180,7 +228,7 @@ for (const mode of ["full", "quick"] as const) {
     await expect(form.getByText("kept.txt", { exact: true })).toBeVisible();
     await saved(form);
     expect(writes).toEqual([]);
-    // Actual IndexedDB File cloning is exercised by the browser, then by FileReader.
+    // Actual IndexedDB bytes are restored to Files, then read by FileReader.
     await page.route("**/api/trpc/admin.uploadMedia*", async (route) => {
       writes.push("admin.uploadMedia");
       const input = JSON.parse(route.request().postData() || "{}")[0].json;
@@ -616,4 +664,65 @@ test("a confirmed commit surviving local cleanup is finished without another ser
     .click();
   await expect(form).toHaveCount(0);
   expect(creates).toBe(1);
+});
+
+test("legacy version-one drafts remain readable with their selected file", async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName !== "chromium",
+    "Creating the legacy Blob record requires IndexedDB Blob support",
+  );
+  let uploaded: Record<string, unknown> | undefined;
+  await editorApi(page, (name, input) => {
+    if (name === "admin.uploadMedia") {
+      uploaded = input;
+      return ok({
+        url: "https://example.test/legacy.wav",
+        mimeType: "audio/wav",
+        fileSize: 18,
+      });
+    }
+  });
+  dialogs(page);
+  let form = await open(page, "full");
+  await field(form).fill("LEGACY_DRAFT");
+  await choose(page, form, "Аудио", "legacy.wav", "audio/wav");
+  await saved(form);
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const opening = indexedDB.open("darcy-post-drafts", 1);
+        opening.onerror = () => reject(opening.error);
+        opening.onsuccess = () => {
+          const db = opening.result;
+          const tx = db.transaction("drafts", "readwrite");
+          const store = tx.objectStore("drafts");
+          const read = store.get("101:full:new");
+          read.onsuccess = () => {
+            const record = read.result;
+            const item = record.editor.attachments[0];
+            const { bytes, name, type, lastModified } = item.fileData;
+            item.file = new File([bytes], name, { type, lastModified });
+            delete item.fileData;
+            store.put({ ...record, version: 1 }, "101:full:new");
+          };
+          tx.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+  );
+  await page.reload();
+  form = await open(page, "full");
+  await expect(field(form)).toHaveValue("LEGACY_DRAFT");
+  await expect(form.getByText("legacy.wav", { exact: true })).toBeVisible();
+  await submit(form, "full").click();
+  await expect(form).toHaveCount(0);
+  expect(uploaded?.base64).toBe(
+    Buffer.from("attachment fixture").toString("base64"),
+  );
 });

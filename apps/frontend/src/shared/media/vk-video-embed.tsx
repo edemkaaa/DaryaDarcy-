@@ -1,4 +1,20 @@
+"use client";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
+import { Action } from "@/shared/ui/action";
 import { getVkVideoEmbedUrl } from "./vk-video-url";
+import classes from "./media-playback.module.scss";
+
+const subscribe = (notify: () => void) => {
+  document.addEventListener("visibilitychange", notify);
+  window.addEventListener("pagehide", notify);
+  window.addEventListener("pageshow", notify);
+  return () => {
+    document.removeEventListener("visibilitychange", notify);
+    window.removeEventListener("pagehide", notify);
+    window.removeEventListener("pageshow", notify);
+  };
+};
 
 export function VkVideoEmbed({
   url,
@@ -8,17 +24,71 @@ export function VkVideoEmbed({
   className: string;
 }) {
   const src = getVkVideoEmbedUrl(url);
-  if (!src) return null;
+  const active = useScreenActive();
+  const visible = useSyncExternalStore(
+    subscribe,
+    () => !document.hidden,
+    () => true,
+  );
+  if (!src || !active || !visible) return null;
+  return <Player key={src} src={src} className={className} />;
+}
+
+function Player({ src, className }: { src: string; className: string }) {
+  const frame = useRef<HTMLIFrameElement>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    // pagehide can precede visibilitychange when entering the back/forward cache.
+    const hide = () => frame.current?.removeAttribute("src");
+    const show = () => {
+      if (frame.current) frame.current.src = src;
+    };
+    window.addEventListener("pagehide", hide);
+    window.addEventListener("pageshow", show);
+    return () => {
+      window.removeEventListener("pagehide", hide);
+      window.removeEventListener("pageshow", show);
+    };
+  }, [src]);
+  useEffect(() => {
+    const timer = setTimeout(() => setSlow(true), 15_000);
+    return () => clearTimeout(timer);
+  }, [attempt]);
   return (
-    <iframe
-      src={src}
-      title="VK Видео"
-      className={className}
-      style={{ border: 0 }}
-      allow="encrypted-media; fullscreen; picture-in-picture"
-      allowFullScreen
-      loading="lazy"
-      referrerPolicy="strict-origin-when-cross-origin"
-    />
+    <div className={classes.frame}>
+      <iframe
+        ref={frame}
+        key={attempt}
+        src={src}
+        title="VK Видео"
+        className={className}
+        style={{ border: 0 }}
+        allow="encrypted-media; fullscreen; picture-in-picture"
+        allowFullScreen
+        loading="lazy"
+        referrerPolicy="strict-origin-when-cross-origin"
+        onLoad={() => setLoaded(true)}
+      />
+      {!loaded && slow && (
+        <div className={classes.notice} role="status">
+          Плеер VK загружается дольше обычного. Проверьте соединение и повторите
+          загрузку.
+        </div>
+      )}
+      <Action
+        className={classes.reload}
+        aria-label="Перезагрузить плеер VK"
+        title="Перезагрузить плеер VK"
+        onClick={() => {
+          setLoaded(false);
+          setSlow(false);
+          setAttempt((value) => value + 1);
+        }}
+      >
+        ↻
+      </Action>
+    </div>
   );
 }

@@ -40,6 +40,7 @@ import {
   checkOperationAccessError,
 } from "@/domain/session/use-session-operation";
 import { PostSaveCoordinator } from "@/domain/post/save-post";
+import { VkVideoField, VkVideoPreviewButton } from "./vk-video-field";
 import { usePostAttachments } from "./use-post-attachments";
 import { usePostUploadSelection } from "./use-post-upload-selection";
 import { PostUploadStatus } from "./post-upload-status";
@@ -881,6 +882,19 @@ export function AdminPostEditor({
                   {videoUploading ? "Загрузка видео..." : "Выбрать видеофайл"}
                 </Typography>
               </Action>
+              <VkVideoField
+                videos={form.videos}
+                disabled={operation.busy || recovery.blocked}
+                onAdd={(url) =>
+                  setForm((previous) => ({
+                    ...previous,
+                    videos: [...previous.videos, url],
+                    tags: previous.tags.includes("video")
+                      ? previous.tags
+                      : [...previous.tags, "video"],
+                  }))
+                }
+              />
               {form.videos.length > 0 && (
                 <div
                   className={["ui-stack ", classes.videoList]
@@ -902,7 +916,9 @@ export function AdminPostEditor({
                       <Typography lines={1} className={classes.videoItemName}>
                         Видео {i + 1}
                       </Typography>
+                      <VkVideoPreviewButton url={uri} index={i} />
                       <Action
+                        disabled={operation.busy}
                         aria-label={`Удалить видео ${i + 1}`}
                         onClick={() => removeVideo(i)}
                         className={classes.mediaRemoveBtn}

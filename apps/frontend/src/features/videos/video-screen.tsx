@@ -1,4 +1,5 @@
 "use client";
+import { ManagedVideo } from "@/shared/media/managed-video";
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getVideoScreenLayout } from "./video-screen.layout";
@@ -10,7 +11,7 @@ import {
   Typography,
 } from "@/shared/ui/elements";
 import { openExternalUrl } from "@/shared/browser/actions";
-import { createElement } from "react";
+
 import { MaterialIcons } from "@/shared/ui/icons";
 import { useRouter } from "@/shared/navigation/router";
 import { useSafeAreaInsets } from "@/shared/ui/safe-area";
@@ -43,7 +44,7 @@ export default function VideoDetailScreen({ id }: { id: string }) {
   const handleBack = () => {
     router.back();
   };
-  if (isLoading || !video) {
+  if (isLoading || error || !video) {
     return (
       <ScreenContainer edges={["top", "bottom", "left", "right"]}>
         <Background
@@ -100,13 +101,15 @@ export default function VideoDetailScreen({ id }: { id: string }) {
             {vkEmbedUrl ? (
               <VkVideoEmbed url={vkEmbedUrl} className={classes.videoElement} />
             ) : hasVideoFile ? (
-              createElement("video", {
-                src: video.videoUrl,
-                controls: true,
-                playsInline: true,
-                preload: "metadata",
-                className: classes.videoElement,
-              })
+              <ManagedVideo
+                {...{
+                  src: video.videoUrl!,
+                  controls: true,
+                  playsInline: true,
+                  preload: "metadata",
+                  className: classes.videoElement,
+                }}
+              />
             ) : (
               <YouTubeEmbed youtubeId={video.youtubeId} />
             )}

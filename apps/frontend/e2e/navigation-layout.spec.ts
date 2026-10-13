@@ -36,7 +36,7 @@ async function checkChrome(page: Page) {
 }
 
 for (const subscribed of [false, true]) {
-  test(`all main screens hide and restore the header while keeping bottom navigation (${subscribed ? "member" : "guest"})`, async ({
+  test(`main screens preserve fixed headers and hide overlay headers while keeping bottom navigation (${subscribed ? "member" : "guest"})`, async ({
     page,
   }) => {
     await layoutApi(page, subscribed);
@@ -72,7 +72,16 @@ for (const subscribed of [false, true]) {
         }),
       ).toBeLessThanOrEqual(1);
       const position = await scroll.evaluate((node) => node.scrollTop);
-      if (position > 20) {
+      const fixedHeader = ["/videos", "/profile"].includes(path);
+      if (fixedHeader) {
+        await expect(page.locator(headerSelector)).toHaveAttribute(
+          "data-hidden",
+          "false",
+        );
+        expect(await page.locator(headerSelector).boundingBox()).toEqual(
+          before.top,
+        );
+      } else if (position > 20) {
         await expect(page.locator(headerSelector)).toHaveAttribute(
           "data-hidden",
           "true",

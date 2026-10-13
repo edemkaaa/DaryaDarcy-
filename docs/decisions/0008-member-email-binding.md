@@ -1,7 +1,11 @@
 # ADR-008: Purpose-specific first email binding
 
-- **Status:** Accepted for the approved local backend stage; no rollout approval
+- **Status:** Scenario cancelled by the user on 2026-10-13; frontend removed, backend unchanged
 - **Date:** 2026-10-10
+
+The user confirmed there are no existing legacy phone accounts. This decision
+records the historical implementation; it no longer authorizes frontend rollout.
+Server removal remains with the backend owner.
 
 ## Context
 

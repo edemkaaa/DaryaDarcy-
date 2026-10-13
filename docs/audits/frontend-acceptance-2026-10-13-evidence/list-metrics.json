@@ -1,0 +1,44 @@
+[
+  {
+    "project": "chromium-mobile",
+    "path": "/feed",
+    "dom": 607,
+    "listDom": 504,
+    "mounted": 3,
+    "comments": 0,
+    "heapBytes": 10970060,
+    "height": 262549,
+    "top": 261786
+  },
+  {
+    "project": "chromium-mobile",
+    "path": "/club",
+    "dom": 682,
+    "listDom": 485,
+    "mounted": 2,
+    "comments": 126,
+    "heapBytes": 14491884,
+    "height": 403206,
+    "top": 402333
+  },
+  {
+    "project": "webkit-mobile",
+    "path": "/feed",
+    "dom": 610,
+    "listDom": 504,
+    "mounted": 3,
+    "comments": 0,
+    "height": 224385,
+    "top": 223797
+  },
+  {
+    "project": "webkit-mobile",
+    "path": "/club",
+    "dom": 683,
+    "listDom": 485,
+    "mounted": 2,
+    "comments": 112,
+    "height": 378108,
+    "top": 377306
+  }
+]

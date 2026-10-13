@@ -26,12 +26,21 @@ export type PostRecoveryRecord = {
 };
 const DATABASE = "darcy-post-drafts";
 const STORE = "drafts";
+type StoredAttachment = PostAttachment & {
+  fileData?: {
+    bytes: ArrayBuffer;
+    name: string;
+    type: string;
+    lastModified: number;
+  };
+};
+type StoredRecord = Omit<PostRecoveryRecord, "version"> & { version: 1 | 2 };
 const storageError = () =>
   new Error(
     "Не удалось сохранить черновик на этом устройстве. Освободите место или разрешите хранение данных сайта и попробуйте снова. Не закрывайте редактор.",
   );
 
-/** Files use IndexedDB structured cloning; no base64 copies or unowned localStorage. */
+/** Binary data uses ArrayBuffer: some WebKit contexts cannot persist Blob/File. */
 function transaction<T>(
   mode: IDBTransactionMode,
   work: (
@@ -194,6 +203,7 @@ export class PostRecoveryJournal {
   private queue: Promise<unknown> = Promise.resolve();
   private closed = false;
   private loaded = false;
+  private fileBytes = new WeakMap<File, Promise<ArrayBuffer>>();
   constructor(
     readonly ownerId: number,
     readonly slot: string,
@@ -207,7 +217,7 @@ export class PostRecoveryJournal {
   }
   async load(): Promise<PostRecoveryRecord | null> {
     this.assertOwner();
-    const record = await transaction<PostRecoveryRecord | undefined>(
+    const stored = await transaction<StoredRecord | undefined>(
       "readonly",
       (store, finish) => {
         const request = store.get(this.key());
@@ -215,13 +225,58 @@ export class PostRecoveryJournal {
       },
     );
     this.assertOwner();
-    if (record === undefined) {
+    if (stored === undefined) {
       this.loaded = true;
       return null;
     }
-    this.revision = Number.isSafeInteger(record?.revision)
-      ? record.revision
+    this.revision = Number.isSafeInteger(stored?.revision)
+      ? stored.revision
       : 0;
+    let record: PostRecoveryRecord;
+    try {
+      if (stored.version === 2) {
+        const restored = new Map<PostAttachment, PostAttachment>();
+        const restore = (attachment: StoredAttachment): PostAttachment => {
+          const existing = restored.get(attachment);
+          if (existing) return existing;
+          const { fileData, ...result } = attachment;
+          if (fileData !== undefined) {
+            if (
+              !(fileData.bytes instanceof ArrayBuffer) ||
+              typeof fileData.name !== "string" ||
+              typeof fileData.type !== "string" ||
+              !Number.isFinite(fileData.lastModified)
+            )
+              throw storageError();
+            result.file = new File([fileData.bytes], fileData.name, {
+              type: fileData.type,
+              lastModified: fileData.lastModified,
+            });
+          }
+          restored.set(attachment, result);
+          return result;
+        };
+        record = {
+          ...stored,
+          version: 1,
+          editor: {
+            ...stored.editor,
+            attachments: stored.editor.attachments.map(restore),
+          },
+          save: {
+            ...stored.save,
+            uploaded: stored.save.uploaded.map(([item, uploaded]) => [
+              restore(item),
+              uploaded,
+            ]),
+          },
+        };
+      } else record = stored as PostRecoveryRecord;
+    } catch {
+      throw new Error(
+        "Локальный черновик повреждён. Сначала проверьте список публикаций, затем удалите локальную копию.",
+      );
+    }
     if (!validRecord(record, this.ownerId, this.slot))
       throw new Error(
         "Локальный черновик повреждён. Сначала проверьте список публикаций, затем удалите локальную копию.",
@@ -241,10 +296,50 @@ export class PostRecoveryJournal {
     let snapshot: { editor: PostEditorSnapshot; save: PostSaveSnapshot };
     try {
       snapshot = structuredClone({ editor, save });
+      // File bytes are immutable. Preserve their identity to avoid rereading
+      // every attachment on each text checkpoint; metadata remains snapshotted.
+      editor.attachments.forEach((item, index) => {
+        snapshot.editor.attachments[index].file = item.file;
+      });
+      save.uploaded.forEach(([item], index) => {
+        snapshot.save.uploaded[index][0].file = item.file;
+      });
     } catch {
       return Promise.reject(storageError());
     }
     const action = this.queue.then(async () => {
+      this.assertOwner();
+      const packed = new Map<PostAttachment, StoredAttachment>();
+      const pack = async (item: PostAttachment): Promise<StoredAttachment> => {
+        const existing = packed.get(item);
+        if (existing) return existing;
+        const { file, ...result } = item;
+        const attachment: StoredAttachment = result;
+        if (file) {
+          let bytes = this.fileBytes.get(file);
+          if (!bytes) {
+            bytes = file.arrayBuffer();
+            this.fileBytes.set(file, bytes);
+            void bytes.catch(() => this.fileBytes.delete(file));
+          }
+          attachment.fileData = {
+            bytes: await bytes,
+            name: file.name,
+            type: file.type,
+            lastModified: file.lastModified,
+          };
+        }
+        packed.set(item, attachment);
+        return attachment;
+      };
+      // Read before opening the transaction: awaiting file I/O inside it would
+      // let IndexedDB auto-commit. Keep attachment aliases for upload recovery.
+      const attachments: PostAttachment[] = [];
+      for (const item of snapshot.editor.attachments)
+        attachments.push(await pack(item));
+      const uploaded: PostSaveSnapshot["uploaded"] = [];
+      for (const [item, result] of snapshot.save.uploaded)
+        uploaded.push([await pack(item), result]);
       this.assertOwner();
       const revision = await transaction<number>(
         "readwrite",
@@ -263,13 +358,14 @@ export class PostRecoveryJournal {
             const next = this.revision + 1;
             store.put(
               {
-                version: 1,
+                version: 2,
                 ownerId: this.ownerId,
                 slot: this.slot,
                 revision: next,
                 updatedAt: Date.now(),
-                ...snapshot,
-              } satisfies PostRecoveryRecord,
+                editor: { ...snapshot.editor, attachments },
+                save: { ...snapshot.save, uploaded },
+              } satisfies StoredRecord,
               this.key(),
             );
             finish(next);

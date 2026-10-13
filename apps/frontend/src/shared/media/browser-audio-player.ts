@@ -102,6 +102,8 @@ export class BrowserAudioPlayer {
     if (this.snapshot.starting) return;
     const generation = ++this.generation;
     const audio = this.audio;
+    // play() alone cannot recover a source left in a native media-error state.
+    if (audio.error) audio.load();
     this.update({ starting: true, error: null });
     let timer!: ReturnType<typeof setTimeout>;
     const deadline = new Promise<never>((_, reject) => {

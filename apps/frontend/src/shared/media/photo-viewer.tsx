@@ -13,7 +13,12 @@ import { useViewport } from "@/shared/browser/viewport";
 import { useState, useCallback, useRef, useLayoutEffect } from "react";
 import { Picture } from "@/shared/media/image";
 import { PhotoDots } from "./photo-dots";
-import { scrollPhotoWithKeyboard } from "./photo-carousel-navigation";
+import {
+  scrollPhotoTo,
+  scrollPhotoWithKeyboard,
+} from "./photo-carousel-navigation";
+import { PhotoNavigation } from "./photo-navigation";
+import { usePhotoMouseDrag } from "./use-photo-mouse-drag";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { useSafeAreaInsets } from "@/shared/ui/safe-area";
 import Animated, {
@@ -60,6 +65,7 @@ function PhotoViewerInner({
   );
   const [currentIndex, setCurrentIndex] = useState(safeInitialIndex);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const mouseDrag = usePhotoMouseDrag(screenWidth, photos.length);
   const currentIndexRef = useRef(safeInitialIndex);
   const translateY = useSharedValue(0);
   const opacity = useSharedValue(1);
@@ -75,14 +81,17 @@ function PhotoViewerInner({
     const offset = preservedIndex * screenWidth;
     scrollRef.current?.scrollTo({ left: offset, top: 0, behavior: "instant" });
   }, [screenWidth, photos.length]);
+  const resetPan = () => {
+    translateY.value = withTiming(0, { duration: 200 });
+    opacity.value = withTiming(1, { duration: 200 });
+  };
   const panGesture = Gesture.Pan()
     .activeOffsetY(28)
     .failOffsetX([-24, 24])
     .onUpdate((e) => {
-      if (e.translationY > 0) {
-        translateY.value = e.translationY;
-        opacity.value = 1 - Math.min(e.translationY / 400, 0.6);
-      }
+      const offset = Math.max(e.translationY, 0);
+      translateY.value = offset;
+      opacity.value = 1 - Math.min(offset / 400, 0.6);
     })
     .onEnd((e) => {
       if (e.translationY > 150) {
@@ -91,10 +100,10 @@ function PhotoViewerInner({
           runOnJS(handleClose)();
         });
       } else {
-        translateY.value = withTiming(0, { duration: 200 });
-        opacity.value = withTiming(1, { duration: 200 });
+        resetPan();
       }
-    });
+    })
+    .onCancel(resetPan);
   const animatedContainerStyle = useAnimatedStyle(() => ({
     transform: cssTransform([{ translateY: translateY.value }]),
   }));
@@ -126,8 +135,19 @@ function PhotoViewerInner({
       onClose={handleClose}
     >
       <Animated.div style={animatedBgStyle} className={classes.div} />
-      <GestureDetector gesture={panGesture}>
-        <Animated.div style={animatedContainerStyle} className={classes.div2}>
+      <GestureDetector gesture={panGesture} pointerTypes={["touch"]}>
+        <Animated.div
+          style={animatedContainerStyle}
+          className={classes.div2}
+          onKeyDown={(event) =>
+            scrollPhotoWithKeyboard(
+              event,
+              screenWidth,
+              photos.length,
+              scrollRef.current,
+            )
+          }
+        >
           <Action
             onClick={handleClose}
             aria-label="Закрыть фотографии"
@@ -149,6 +169,7 @@ function PhotoViewerInner({
           )}
 
           <ScrollArea
+            {...mouseDrag}
             ref={scrollRef}
             horizontal
             paging
@@ -156,11 +177,8 @@ function PhotoViewerInner({
             snapInterval={screenWidth}
             onScroll={onScroll}
             aria-label="Перелистывание фотографий"
-            onKeyDown={(event) =>
-              scrollPhotoWithKeyboard(event, screenWidth, photos.length)
-            }
             contentStyle={{ width: screenWidth * photos.length }}
-            className={classes.scroll}
+            className={`${classes.scroll} ${mouseDrag.className}`}
           >
             {photos.map((uri, index) => (
               <div
@@ -171,7 +189,9 @@ function PhotoViewerInner({
                   .join(" ")}
               >
                 <Picture
-                  source={Math.abs(index - currentIndex) <= 1 ? { uri } : undefined}
+                  source={
+                    Math.abs(index - currentIndex) <= 1 ? { uri } : undefined
+                  }
                   fullSize
                   loading={index === currentIndex ? "eager" : "lazy"}
                   style={{ width: screenWidth, height: imageHeight }}
@@ -187,6 +207,13 @@ function PhotoViewerInner({
             index={currentIndex}
             style={{ bottom: insets.bottom + 30 }}
             className={classes.div5}
+          />
+          <PhotoNavigation
+            count={photos.length}
+            index={currentIndex}
+            onNavigate={(next) =>
+              scrollPhotoTo(scrollRef.current, screenWidth, photos.length, next)
+            }
           />
         </Animated.div>
       </GestureDetector>

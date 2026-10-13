@@ -7,6 +7,15 @@ for (const first of ["focus", "visibilitychange"] as const) {
   }) => {
     await layoutApi(page);
     await gotoWithSession(page, "/feed");
+    // The HTTP response can precede hydration/session completion in WebKit.
+    await expect(
+      page
+        .getByText(/Проверка длинной публикации и прокрутки содержимого/)
+        .first(),
+    ).toBeVisible();
+    // A real focus event during initial navigation may already start the
+    // coalescing window. The measured return begins after that window.
+    await page.waitForTimeout(1000);
     let checks = 0;
     await page.route("**/api/auth/me", (route) => {
       checks++;
@@ -105,7 +114,12 @@ for (const subscribed of [false, true]) {
 test("browser really reuses hashed artwork on a second visit", async ({
   page,
   context,
+  browserName,
 }) => {
+  test.skip(
+    browserName !== "chromium",
+    "Cache transfer evidence requires Chromium CDP",
+  );
   // Playwright routing disables HTTP caching. This check uses the real static
   // server with no intercepted requests and does not require a running API.
   await page.addInitScript(() =>

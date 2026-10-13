@@ -1,7 +1,8 @@
 "use client";
+import { ManagedVideo } from "@/shared/media/managed-video";
 import classes from "./video-grid-cell.module.scss";
 import { Action } from "@/shared/ui/elements";
-import { createElement, useState, type SyntheticEvent } from "react";
+import { useState, type SyntheticEvent } from "react";
 import { useCollectionItemRetention } from "@/shared/ui/collection-item-window";
 import { Picture } from "@/shared/media/image";
 import { getVkVideoEmbedUrl } from "./vk-video-url";
@@ -26,8 +27,8 @@ export function VideoGridCell({
   fillCell = false,
 }: VideoGridCellProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [ended, setEnded] = useState(false);
-  useCollectionItemRetention(isPlaying && !ended);
+  const [playing, setPlaying] = useState(false);
+  useCollectionItemRetention(playing);
   const { ratios, onLoad } = usePhotoAspectRatios(
     thumbnailUrl ? [thumbnailUrl] : [],
   );
@@ -56,22 +57,28 @@ export function VideoGridCell({
         {getVkVideoEmbedUrl(url) ? (
           <VkVideoEmbed url={url} className={classes.videoElement} />
         ) : (
-          createElement("video", {
-            src: url,
-            poster: thumbnailUrl || undefined,
-            controls: true,
-            playsInline: true,
-            preload: "metadata",
-            onPlay: () => setEnded(false),
-            onSeeked: (event: SyntheticEvent<HTMLVideoElement>) =>
-              setEnded(event.currentTarget.ended),
-            onEnded: () => setEnded(true),
-            style: {
-              backgroundColor: isPortrait ? "#EDE6DA" : "#1a1a1a",
-              objectFit: fitMode,
-            },
-            className: classes.videoElement,
-          })
+          <ManagedVideo
+            {...{
+              src: url,
+              poster: thumbnailUrl || undefined,
+              controls: true,
+              playsInline: true,
+              preload: "metadata",
+              onPlay: () => setPlaying(true),
+              onPause: () => setPlaying(false),
+              onError: () => setPlaying(false),
+              onSeeked: (event: SyntheticEvent<HTMLVideoElement>) =>
+                setPlaying(
+                  !event.currentTarget.paused && !event.currentTarget.ended,
+                ),
+              onEnded: () => setPlaying(false),
+              style: {
+                backgroundColor: isPortrait ? "#EDE6DA" : "#1a1a1a",
+                objectFit: fitMode,
+              },
+              className: classes.videoElement,
+            }}
+          />
         )}
       </div>
     );

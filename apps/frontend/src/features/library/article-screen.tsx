@@ -7,7 +7,7 @@ import {
   Typography,
   ScrollArea,
 } from "@/shared/ui/elements";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
 import { Picture } from "@/shared/media/image";
@@ -42,6 +42,10 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
     photos: string[];
     index: number;
   } | null>(null);
+  useEffect(() => {
+    // Discard the old viewer intent; a later successful retry must not reopen it.
+    setViewer(null);
+  }, [articleId, error, data?.locked]);
   const blocks = useMemo(
     () => (data?.sections || []) as ArticleBlock[],
     [data],
@@ -56,7 +60,7 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
       }),
     [blocks],
   );
-  if (isLoading || !data) {
+  if (isLoading || error || !data) {
     return (
       <ScreenContainer edges={["top", "bottom", "left", "right"]}>
         <Background source={{ uri: PAPER }} fit="cover" className={classes.bg}>

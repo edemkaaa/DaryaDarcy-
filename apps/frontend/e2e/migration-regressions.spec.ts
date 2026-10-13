@@ -364,7 +364,9 @@ test("nested dialogs isolate focus, close only the top window and restore the tr
   const field = editor.getByPlaceholder("Текст поста… Enter — новый абзац");
   await field.fill("Текст для ссылки");
   await field.press("ControlOrMeta+a");
-  await editor.getByRole("button", { name: "Добавить ссылку" }).click();
+  await editor
+    .getByRole("button", { name: "Добавить ссылку", exact: true })
+    .click();
   const nested = page.getByRole("dialog", {
     name: "Ссылка в публикации",
     exact: true,

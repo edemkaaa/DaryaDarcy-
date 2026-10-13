@@ -1,0 +1,26 @@
+{
+  "base": "62b24a6",
+  "stats": {
+    "startTime": "2026-10-13T10:04:55.427Z",
+    "duration": 20525.02,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "file": "vk-video.spec.ts",
+      "title": "optional public VK playback advances in the embedded provider player",
+      "project": "webkit-mobile",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 15745,
+          "annotations": []
+        }
+      ]
+    }
+  ]
+}
