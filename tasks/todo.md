@@ -66,9 +66,13 @@ AG4 после AG2/решения AG3; AG5 после истории/retention. 
   backend-дефекта в выбранных путях не установлено; код/тесты не менялись и GREEN
   без причины не повторялись. Это не сквозная приёмка всего C/S.
   Проверка документации: docs55/diff exit0, source/test coverage review.
-- [ ] **AG8 — необходимый объём VK.** Статус: нужны данные о наполнении/размещении
-  клубных роликов. Плеер в staging и gates клубных post_media уже есть.
-  Не добавлять access/schema/новый каталог по предположению; no direct-link DRM.
+- [ ] **AG8 — необходимый объём VK.** Статус: контракт подготовлен 14 октября.
+  По сохранённому ТЗ 4.11 нужны раздел Видео и вложения; public каталог/mandatory
+  youtubeId/anonymous worker требуют согласованного продолжения. Proposed
+  [контракт](../SPEC-vk-catalog-access.md): mixed catalog, additive reads/admin write,
+  nullable YouTube ID, source-free cards и запрет legacy worker обхода.
+  Ждёт принятия конкретного API/schema и реальных embed примеров заказчика.
+  Source/docs review, не runtime/native GREEN. Фронт/БД/worker/старые видео неизменны.
 - [ ] **AG9 — пакет выпуска и сквозная приёмка.** Статус: локальная матрица ТЗ,
   owners/условия/версии и порядок приёмки подготовлены в runbook. Общий candidate,
   working history/schema/restore, frontend integration, реальные provider/mail/
