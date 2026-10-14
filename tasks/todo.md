@@ -161,7 +161,9 @@ AG6 принят и реализован
     Article status — nonblocking repeatable-read snapshot, writer — ledger→marker
     locks; регрессия ожидания незавершённой записи исправлена. Schema missing
     legacy допускается только flag off; partial PK/owner mismatch fail closed.
-    Следующий срезR4c — атомарная bounded компактизация, затемR5/R6.
+    R4c первый срез: post/article compaction атомарно marker+delete details,
+    bounded1–100 на ledger, два default-off флага, без API/scheduler wiring.
+    4 native SQL +6 policy tests/skip0 прошли; private read evidence/cleanup далее.
     Preflight зарегистрировал0033, отказывает только на прежних0017–0019,
     databaseChecked=false/releaseApproval=false. Никакой working DDL.
   - [ ] AG5-R5 — bounded orphan cleanup. ПослеR4; loopback SDK/SQL, ownership,
