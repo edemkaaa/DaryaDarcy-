@@ -296,6 +296,12 @@ Runtime-дефектов не выявлено; фронт/рабочая БД �
 existing backend handoff. AG9 остаётся открытым для browser, actual provider/mail,
 working rollout/history/restore, S3/devices/load/pilot.
 
+Дополнение 14 октября: расширенный native flow проверяет reset пароля оплаченного
+аккаунта через перехваченное SMTP-письмо, отзыв старой cookie-сессии и сохранение
+paid rows/срока при новом входе. 1 pass/skips0 (1.83 s), runtime изменений нет;
+отмена и истечение проверены после reset. Предыдущие native suites не повторяются
+без изменений; это не расширение auth policy и не working/provider acceptance.
+
 Подготовить компактную матрицу ТЗ: backend commit, frontend commit, миграции,
 проверка, результат, ответственный и блокер. Согласовать конкретные критерии нагрузки
 и устройства; пилот 30–50 участниц/5–7 дней не заменяет нагрузочный тест.

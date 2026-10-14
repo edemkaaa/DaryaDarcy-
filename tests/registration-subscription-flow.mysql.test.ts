@@ -88,8 +88,8 @@ describe.skipIf(!testDatabaseUrl)(
         { timeout: 3000, interval: 20 },
       );
     }
-    function setupToken() {
-      const part = smtp.messages[0]
+    function setupToken(index = 0) {
+      const part = smtp.messages[index]
         .split(/\r\n--[^\r\n]+(?:\r\n|$)/)
         .find((value) => /^Content-Type: text\/plain;/im.test(value));
       expect(part).toBeDefined();
@@ -209,7 +209,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.unstubAllGlobals();
       vi.unstubAllEnvs();
     });
-    it("preserves one registered identity through paid access, renewal, pending cancellation and expiry", async () => {
+    it("preserves paid access through registration, password recovery, renewal, cancellation and expiry", async () => {
       const register = {
         email,
         name: "Synthetic member",
@@ -246,7 +246,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(login.status).toBe(200);
       const cookieHeader = login.headers.get("set-cookie")!;
       expect(cookieHeader).toMatch(/HttpOnly/i);
-      const cookie = cookieHeader.split(";")[0];
+      let cookie = cookieHeader.split(";")[0];
       const initialIdentity = await rows(
         "SELECT id,passwordHash,sessionVersion,role FROM users WHERE id=?",
         [userId],
@@ -325,6 +325,74 @@ describe.skipIf(!testDatabaseUrl)(
           )
         ).data,
       ).toMatchObject({ state: "succeeded", orderId: order.data!.orderId });
+
+      // Reset must revoke old sessions without revoking an already paid period.
+      const paidRows = await rows(
+        "SELECT orderId,status,expiresAt,cancelAtPeriodEnd FROM club_payments WHERE userId=? ORDER BY id",
+        [userId],
+      );
+      const recovery = await post("/api/auth/password/request", { email });
+      expect(recovery.status).toBe(202);
+      expect((await post("/api/auth/login", { email, password })).status).toBe(
+        200,
+      );
+      expect(
+        (await trpc("club.subscription", undefined, cookie, true)).data,
+      ).toEqual(renewed);
+      await drainMail();
+      expect(smtp.messages).toHaveLength(4); // setup + two purchases + reset.
+      const resetToken = setupToken(smtp.messages.length - 1);
+      const newPassword = "local-recovered-password-456";
+      const changed = await post("/api/auth/password/complete", {
+        token: resetToken,
+        password: newPassword,
+      });
+      expect(changed.status).toBe(200);
+      expect(changed.headers.get("set-cookie")).toBeNull();
+      expect(
+        (await trpc("club.subscription", undefined, cookie, true)).data
+          ?.hasClubAccess,
+      ).toBe(false);
+      expect(
+        (
+          await trpc(
+            "club.normalCheckoutStatus",
+            { idempotencyKey: intent.idempotencyKey },
+            cookie,
+            true,
+          )
+        ).status,
+      ).toBe(401);
+      expect((await post("/api/auth/login", { email, password })).status).toBe(
+        401,
+      );
+      expect(
+        (
+          await post("/api/auth/password/complete", {
+            token: resetToken,
+            password,
+          })
+        ).status,
+      ).toBe(400);
+      const relogin = await post("/api/auth/login", {
+        email,
+        password: newPassword,
+      });
+      expect(relogin.status).toBe(200);
+      cookie = relogin.headers.get("set-cookie")!.split(";")[0];
+      expect(
+        (await trpc("club.subscription", undefined, cookie, true)).data,
+      ).toEqual(renewed);
+      expect(
+        await rows(
+          "SELECT orderId,status,expiresAt,cancelAtPeriodEnd FROM club_payments WHERE userId=? ORDER BY id",
+          [userId],
+        ),
+      ).toEqual(paidRows);
+      expect(
+        (await rows("SELECT sessionVersion FROM users WHERE id=?", [userId]))[0]
+          .sessionVersion,
+      ).toBe(initialIdentity[0].sessionVersion + 1);
       expect((await trpc("club.cancel", undefined, "")).status).toBe(401);
       expect((await trpc("club.cancel", undefined, cookie)).status).toBe(500);
       expect(
@@ -357,7 +425,7 @@ describe.skipIf(!testDatabaseUrl)(
         expiresAt: renewed.expiresAt,
       });
       await drainMail();
-      expect(smtp.messages).toHaveLength(3);
+      expect(smtp.messages).toHaveLength(4);
       // Simulate expiry in the synthetic database, not by altering subscription policy.
       await conn.query(
         "UPDATE club_payments SET expiresAt=DATE_SUB(NOW(),INTERVAL 1 SECOND) WHERE userId=?",

@@ -112,6 +112,18 @@ normal-checkout-recovery/nest-billing-webhook/billing-settlement/identity —
 через --rm, синтетические данные в памяти уничтожены; foreign diplom-postgres
 не затронут. SMTP/API/SQL соединения закрыты harness. Docs56/format/diff exit0.
 
+Продолжение 14 октября: тот же native flow расширен восстановлением пароля после
+двух оплаченных заказов. До proof старый пароль/сессия работают; после proof
+старый пароль отклонён, старый cookie не читает recovery status (401) и не имеет
+club access. Ссылка однократная, завершение reset не выдаёт сессию. Новый вход
+возвращает прежний оплаченный срок, paid rows не изменены, sessionVersion +1;
+отмена/истечение после reset также проходят. 1 расширенный flow pass (1.83 s),
+без пропусков; production код не менялся. Это local API/SQL/SMTP, не browser или
+external provider. Свой tmpfs стенд loopback 33382, test-only окружение; фронт и
+рабочая БД не затронуты. Предыдущие 94 неизменных проверки не повторялись.
+TypeScript/docs56/diff exit0. Свой контейнер после повторной проверки label/ID/
+loopback/tmpfs остановлен; --rm removal подтверждён, SMTP/API/SQL закрыты.
+
 ### Зафиксированные ограничения
 
 - Локальный снимок `123c9c6`; Git staging при сверке `62b24a6`. Обновлять сведения
