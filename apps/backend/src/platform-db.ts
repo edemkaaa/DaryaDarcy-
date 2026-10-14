@@ -505,6 +505,8 @@ export async function processScheduledAccountDeletions(): Promise<number> {
         blockedReason: null,
         accountDeletionRequestedAt: null,
         openId: `deleted-${user.id}-${Date.now()}`,
+        // Fence contexts authenticated before final retirement, not only new logins.
+        sessionVersion: sql`${users.sessionVersion}+1`,
       }).where(eq(users.id, user.id));
       return true;
     });

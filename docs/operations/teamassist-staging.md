@@ -234,6 +234,17 @@ Full regression на R4c/R5:3454 pass/1 unchanged frontend viewport failure/179 
 тот же прежний тест/код, frontend не исправлялся/не скрывался. Report own temp
 `/tmp/daryadarcy-ag5-cleanup-report.KtBiSu/full.json`; это не full GREEN.
 
+R6a: окончательная обработка удаления атомарно увеличивает sessionVersion вместе
+с existing scrub/openId retirement. RED на SQL fence: snapshot actor старого admin
+мог продолжить private write после удаления; после исправления UNAUTHORIZED.
+19 real SQL/native maintenance cases,0 skip,2.06s: paid/grace/renewal timing,
+transaction rollback, два workers и повторный tick сохраняют прежнюю семантику.
+Роли, срок удаления, платежи/журналы оплат не изменены. Это первый срез R6,
+не полная irreversible retirement приёмка всех writers: post/article in-flight
+contexts ещё требуют отдельной проверки/fence; owner-link scrub с сохранением
+bound/orphan evidence и own export пока НЕ реализованы. Backup/restore/history
+условия остаются внешними. Working DB/S3/фронт не затронуты.
+
 Первый локальный срез — `CONTENT_RECOVERY_RETENTION_ENABLED`, default-off,
 отказ409 после30 суток на upload/status/unbound association, keyed post create
 и article create/status. Новый post status endpoint не добавлять. В первом срезе строки не удалялись; R4c/R5 меняют лишь own fixture. Bound read

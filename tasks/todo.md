@@ -185,6 +185,13 @@ AG6 принят и реализован
     migration31 pass, offline preflight прежний gate0017–0019.
   - [ ] AG5-R6 — final scrub/export. ПослеR4/R5; existing account timing unchanged,
     own records only, no resurrection/no secrets. Backup/real restore/history внешние.
+    R6a: final account retirement атомарно отзывает sessionVersion. RED: stale
+    authenticated private actor проходил SQL write fence после scrub; GREEN19
+    real SQL/native maintenance cases,skip0,2.06s, включая paid/grace/renewal,
+    rollback/два workers и однократный epoch increment. Roles/timing не менялись.
+    R6 ещё НЕ завершён: удалить owner links recovery journals с сохранением bound
+    read/orphan evidence, проверить in-flight post/article writers и own export.
+    Эти пункты не заменяются отзывом сессии; backup/restore gates прежние.
 - [x] **AG6 — точные остатки обычной оплаты/отмены.** Статус: готово локально
   14 октября по принятому контракту. Authenticated normal create/status,
   ledger 0030 и default-off flag; guest/TEST/settlement/отмена прежние.

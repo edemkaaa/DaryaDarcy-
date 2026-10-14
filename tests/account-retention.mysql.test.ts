@@ -14,6 +14,7 @@ import { WorkerJobs } from "../apps/backend/src/workers/worker-jobs.service";
 import { WORKER_OPERATIONS, type WorkerOperations } from "../apps/backend/src/workers/worker-operations";
 import { randomUUID } from "node:crypto";
 import { requestMemberEmailBinding } from "../apps/backend/src/identity/email-binding";
+import { lockPrivateAttachmentActor } from "../apps/backend/src/content/private-attachment-uploads";
 
 describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () => {
   let conn: Connection;
@@ -172,6 +173,16 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
       await expect(processScheduledAccountDeletions()).rejects.toThrow();
       expect(await snapshot()).toEqual(before);
     } finally { await conn.query("DROP TRIGGER backend_test_retention_failure"); }
+  });
+  it("revokes the pre-deletion actor epoch so an already authenticated upload cannot resume", async () => {
+    await conn.query("UPDATE users SET role='admin',sessionVersion=7 WHERE id=92101");
+    expect(await processScheduledAccountDeletions()).toBe(1);
+    await expect((await getDb())!.transaction(tx => lockPrivateAttachmentActor(tx,{id:92101,sessionVersion:7}))).rejects.toMatchObject({code:"UNAUTHORIZED"});
+    const [rows] = await conn.query<RowDataPacket[]>("SELECT sessionVersion,role FROM users WHERE id=92101");
+    expect(rows).toEqual([{sessionVersion:8,role:"admin"}]);
+    expect(await processScheduledAccountDeletions()).toBe(0);
+    const [again] = await conn.query<RowDataPacket[]>("SELECT sessionVersion FROM users WHERE id=92101");
+    expect(again).toEqual([{sessionVersion:8}]);
   });
   it("completes eligible scrubbing once and retains the discussion structure", async () => {
     expect(await processScheduledAccountDeletions()).toBe(1);
