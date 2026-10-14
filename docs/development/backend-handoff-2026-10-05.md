@@ -13,7 +13,10 @@
 AG5-R2 применяет тот же flag/window к existing keyed `admin.createPost` replay:
 после срока409, без новой записи/повторного уведомления; disabled replay прежний.
 Нового post status endpoint нет и не добавлен.38 native cases pass,skip0.
-Rows/S3 не удаляются вR1/R2, compaction/orphan/scrub и рабочий rollout — следующие
+AG5-R3: тот же flag/window у keyed `admin.createArticle` и
+`admin.articleCreationStatus`; просроченный результат409, не `notRecorded`.
+Живая статья сохраняется, удалённая/teaser не воскрешаются.27 native cases pass.
+Rows/S3 не удаляются вR1–R3, compaction/orphan/scrub и рабочий rollout — следующие
 AG5 срезы/gates. Frontend/types не менялись. RED200→409;31 native/unit pass.
 
 ## 14 октября — AG4, новые закрытые вложения постов

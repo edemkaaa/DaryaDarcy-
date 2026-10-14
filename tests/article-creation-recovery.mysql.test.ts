@@ -103,6 +103,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
   });
   beforeEach(async () => {
     await cleanup();
+    vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "false");
     await conn.query(
       "UPDATE users SET role='admin',blockedAt=NULL,sessionVersion=0 WHERE id=9090",
     );
@@ -137,6 +138,51 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
     expect(
       await rows("SELECT id FROM articles WHERE title=?", [input.title]),
     ).toEqual([]);
+  });
+  it("expired article recovery refuses create and status without recreating a deleted material", async () => {
+    const id = await client().admin.createArticle.mutate(input);
+    await client().admin.deleteArticle.mutate({ id });
+    await conn.query(
+      "UPDATE article_creation_requests SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=9090",
+    );
+    vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true");
+    await expect(
+      client().admin.createArticle.mutate(input),
+    ).rejects.toMatchObject({ data: { code: "CONFLICT", httpStatus: 409 } });
+    expect(await status()).toEqual({ code: 409, data: "CONFLICT" });
+    expect(
+      await rows("SELECT id FROM articles WHERE title=?", [input.title]),
+    ).toEqual([]);
+    expect(
+      await rows("SELECT id FROM posts WHERE source=?", [`article:${id}`]),
+    ).toEqual([]);
+    expect(
+      await rows(
+        "SELECT articleId FROM article_creation_requests WHERE actorUserId=9090",
+      ),
+    ).toEqual([{ articleId: id }]);
+  });
+  it("expired status of a live article is not reported as notRecorded or success", async () => {
+    const id = await client().admin.createArticle.mutate(input);
+    await conn.query(
+      "UPDATE article_creation_requests SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=9090",
+    );
+    vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true");
+    expect(await status()).toEqual({ code: 409, data: "CONFLICT" });
+    expect(
+      await rows("SELECT id FROM articles WHERE title=?", [input.title]),
+    ).toEqual([{ id }]);
+  });
+  it("disabled expiry retains old article creation and status replay", async () => {
+    const id = await client().admin.createArticle.mutate(input);
+    await conn.query(
+      "UPDATE article_creation_requests SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=9090",
+    );
+    expect(await client().admin.createArticle.mutate(input)).toBe(id);
+    expect(await status()).toEqual({
+      code: 200,
+      data: { status: "created", articleId: id },
+    });
   });
   it("does not reveal a successful creation to a guest", async () => {
     await client().admin.createArticle.mutate(input);

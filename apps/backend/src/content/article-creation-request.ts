@@ -7,6 +7,7 @@ import {
   articleCreationRequests,
   articles,
 } from "../../../../packages/database/src/schema";
+import { assertContentRecoveryWindow } from "./recovery-window";
 
 export const articleCreationKey = z
   .string()
@@ -87,6 +88,7 @@ export async function articleCreationStatus(
       .select({
         actorUserId: articleCreationRequests.actorUserId,
         articleId: articleCreationRequests.articleId,
+        createdAt: articleCreationRequests.createdAt,
         currentId: articles.id,
       })
       .from(articleCreationRequests)
@@ -105,6 +107,7 @@ export async function articleCreationStatus(
       request.articleId <= 0
     )
       throw new Error("Invalid article creation result");
+    assertContentRecoveryWindow(request.createdAt);
     return {
       status: request.currentId === null ? "deleted" : "created",
       articleId: request.articleId,

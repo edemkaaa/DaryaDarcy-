@@ -13,6 +13,7 @@ import { normalizeArticleBlocks } from "../../../../packages/shared/src/article-
 import { deletePostRows, type ContentTransaction } from "./post-deletion";
 import type { ArticleCreationIntent } from "./article-creation-request";
 import { requireArticleCreationSchema } from "./article-creation-request";
+import { assertContentRecoveryWindow } from "./recovery-window";
 
 export type CreateArticleInput = {
   title: string;
@@ -101,6 +102,7 @@ export async function createArticle(
           code: "CONFLICT",
           message: "Ключ запроса уже использован для другого содержимого",
         });
+      assertContentRecoveryWindow(request.createdAt);
       if (request.articleId !== null) {
         if (!Number.isSafeInteger(request.articleId) || request.articleId <= 0)
           throw new Error("Invalid article creation result");
