@@ -139,13 +139,16 @@ export class ContentWriteService {
       ? await db.createPostOnce(
           postData,
           videos,
-          { attachments, privateAssetIds, actor },
+          {
+            attachments,
+            ...(privateAssetIds?.length ? { privateAssetIds, actor } : {}),
+          },
           postCreationIntent(actorUserId, idempotencyKey, payload),
         )
       : {
           postId: await db.createPostWithVideos(postData, videos, {
             attachments,
-            privateAssetIds, actor,
+            ...(privateAssetIds?.length ? { privateAssetIds, actor } : {}),
           }),
           created: true,
         };
@@ -200,7 +203,7 @@ export class ContentWriteService {
     const publication = await db.savePostEdit(id, updateData, videos, {
       attachments,
       removedMediaIds,
-      privateAssetIds, actor,
+      ...(privateAssetIds?.length ? { privateAssetIds, actor } : {}),
     });
     if (publication) {
       void sendMarketingPostNotification(
