@@ -70,14 +70,14 @@ describe.skipIf(!uri || !container)(
         await conn.query("DROP TABLE fresh_owned_sentinel");
       }
     });
-    it("initializes all 36 migrations from an actually empty owned database", async () => {
+    it("initializes all 37 migrations from an actually empty owned database", async () => {
       expect((await conn.query<RowDataPacket[]>("SHOW TABLES"))[0]).toEqual([]);
       const result = await run();
       expect(result.output).not.toContain("fresh-fixture-only");
       expect(result.code, result.output).toBe(0);
       expect(JSON.parse(result.output)).toMatchObject({
         profile: "fresh-install-local",
-        migrations: 36,
+        migrations: 37,
         initialized: true,
         releaseApproval: false,
       });
@@ -87,7 +87,7 @@ describe.skipIf(!uri || !container)(
             "SELECT hash,created_at FROM __drizzle_migrations",
           )
         )[0],
-      ).toHaveLength(36);
+      ).toHaveLength(37);
     });
     it("refuses a repeat without changing the initialized schema/history", async () => {
       const [before] = await conn.query<RowDataPacket[]>(
@@ -108,7 +108,7 @@ describe.skipIf(!uri || !container)(
       expect(result.code, result.output).toBe(0);
       expect(JSON.parse(result.output)).toMatchObject({
         profile: "fresh-install-local",
-        migrations: 36,
+        migrations: 37,
         initialized: false,
         pending: [],
         releaseApproval: false,

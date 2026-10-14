@@ -162,6 +162,30 @@ export const privateAttachmentUploads = mysqlTable("private_attachment_uploads",
   index("private_attachment_owner_key").on(table.actorUserId, table.requestKey),
 ]);
 
+// New content only. Parent identity survives detachment, preventing late replay/rebind.
+export const privateContentFiles = mysqlTable("private_content_files", {
+  requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
+  actorUserId: int("actorUserId"),
+  assetId: varchar("assetId", { length: 36 }).notNull(),
+  payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
+  namespaceHash: varchar("namespaceHash", { length: 64 }).notNull(),
+  usage: mysqlEnum("usage", ["postPhoto", "articlePhoto", "articleDocument", "commentPhoto"]).notNull(),
+  targetPostId: int("targetPostId"),
+  filename: varchar("filename", { length: 512 }).notNull(),
+  mimeType: varchar("mimeType", { length: 128 }).notNull(),
+  fileSize: int("fileSize").notNull(),
+  state: mysqlEnum("state", ["pending", "ready"]).default("pending").notNull(),
+  etag: varchar("etag", { length: 128 }),
+  parentKind: mysqlEnum("parentKind", ["post", "article", "comment"]),
+  parentId: int("parentId"),
+  retiredAt: timestamp("retiredAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  uniqueIndex("private_content_asset_unique").on(table.assetId),
+  index("private_content_owner_key").on(table.actorUserId, table.requestKey),
+  index("private_content_parent").on(table.parentKind, table.parentId),
+]);
+
 // ── Feed: Tags (reference table for available tags) ──
 export const tags = mysqlTable("tags", {
   id: int("id").autoincrement().primaryKey(),

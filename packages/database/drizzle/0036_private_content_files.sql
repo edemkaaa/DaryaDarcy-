@@ -1,0 +1,22 @@
+CREATE TABLE `private_content_files` (
+  `requestKey` varchar(64) NOT NULL,
+  `actorUserId` int,
+  `assetId` varchar(36) NOT NULL,
+  `payloadHash` varchar(64) NOT NULL,
+  `namespaceHash` varchar(64) NOT NULL,
+  `usage` enum('postPhoto','articlePhoto','articleDocument','commentPhoto') NOT NULL,
+  `targetPostId` int,
+  `filename` varchar(512) NOT NULL,
+  `mimeType` varchar(128) NOT NULL,
+  `fileSize` int NOT NULL,
+  `state` enum('pending','ready') NOT NULL DEFAULT 'pending',
+  `etag` varchar(128),
+  `parentKind` enum('post','article','comment'),
+  `parentId` int,
+  `retiredAt` timestamp NULL,
+  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`requestKey`),
+  UNIQUE KEY `private_content_asset_unique` (`assetId`),
+  KEY `private_content_owner_key` (`actorUserId`,`requestKey`),
+  KEY `private_content_parent` (`parentKind`,`parentId`)
+) ENGINE=InnoDB;

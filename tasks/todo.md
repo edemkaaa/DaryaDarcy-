@@ -12,7 +12,11 @@
   exit0. Проверены EXIF/alpha, отдельный policy guard и lost PUT ACK без второго
   объекта. Это loopback SDK wire, не actual Timeweb ACL acceptance. Рабочий S3
   не вызывался. Существующая public photo pipeline сохранена.
-- [ ] CF2: durable ledger/upload/status, native own SQL/loopback wire.
+- [x] CF2: durable ledger/upload/status и migration0036. Native7 + transport4
+  checks pass/skip0 на own tmpfs MySQL + HTTP/JWT/SDK wire, не Timeweb. RED:
+  отсутствующие новые procedures. GREEN: lost ACK/pending/status/retry, concurrent
+  upload, changed payload, owner isolation, default-off/role/epoch/deletion,
+  photo byte validation/alpha. TXT сохраняет canonical charset=utf-8.
 - [ ] CF3: atomic post/article binding, live GET/HEAD/Range access и removal.
 - [ ] CF4: comment binding и права чтения/удаление, без изменения ролей/сроков.
 - [ ] CF5: retirement/export, regression и передача фронтендеру; flags off.
