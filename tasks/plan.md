@@ -56,6 +56,10 @@
   префиксе, их точечное чтение/удаление и read-only диагностика policy/ACL.
   Старые объекты не читать, bucket policy/ACL не менять; ключи не сохранять в файлы,
   Git или логи. Это не разрешение включения закрытой выдачи в рабочей среде.
+  После показа prefix proposal пользователь разрешил «делай далее все»:
+  bounded trial policy только `feed/audio/private-v1/`, `feed/documents/private-v1/`
+  и own synthetic acceptance. Сначала identity/enforcement и policy hash guards;
+  не менять старые statements/ACL/объекты и не включать runtime flags на сервере.
 - Сохранять роли, CORS, proxy trust, квоты и смысл подписок. Служебный доступ
   модератора не является оплатой. Публичные обложки/аватары не закрывать случайно.
 - Не начинать жалобы (отложены), push, полное почтовое отделение, новую анимацию,
@@ -77,7 +81,7 @@ HEAD и не подтверждение версии сервера. В нача
 | Документ бэкендеру, 1–3 | Служебный доступ, публичные комментарии, проверка поста перед реакцией | Актуальная интеграция с фронтом/выпуск |
 | Email, A1–A6 и пункт 4 | Заявка/подтверждение/доставка/очистка, WorkerJobs; native SQL/loopback SMTP | A7, история/миграции 0027/0028, включение и внешняя доставка |
 | Статьи, AR1/AR2 | Ключ создания, атомарная статья/teaser, статус, миграция 0029; native replay/concurrency/restart | Ключ во фронте до POST, generated types, миграция/retention и browser reload |
-| Медиа, M1/M2 | Offline-карта и default-off proxy для post_media audio/document/video | Реальный изолированный S3, загрузка/ассоциация/выдача; фото/статьи/старые URL не закрыты |
+| Медиа, M1/M2 | Offline-карта/default-off proxy; AG2 private-prefix/native API/browser acceptance 14 октября | AG4 upload/receipt/association; фото/статьи/старые URL не закрыты |
 | VK | Серверный доступ вложений наследуется от поста и проверен; в staging есть плеер фронтендера | Реальное наполнение, устройства; отдельный каталог сейчас публичный |
 | Сезоны/магазин | Настройки/CAS/границы дат; подготовка mailto | Материалы/настройки заказчика и устройства; mailto не подтверждает отправку |
 | Платежи/выпуск | Серверная логика и локальные сценарии | Реальный провайдер/почта, физические устройства, нагрузка и пилот |
@@ -193,11 +197,53 @@ object-level private PUT. Новых ACL/policy изменений не дела
 Предоставленные в переписке ключи использованы только из stdin в памяти процесса;
 рекомендуется их заменить и предоставить ограниченный профиль безопасным способом.
 
+Уточнение пользователя 14 октября после обсуждения стоимости: отдельный платный
+private bucket не создавать; от замены ключей пользователь также отказался.
+Это не разрешение автоматически ограничить policy текущего bucket и не отмена
+обязательного private-denial gate. Альтернатива с новым закрытым prefix требует
+отдельного согласования; AG2/AG4 пока заблокированы. Рабочие файлы/ACL/policy
+оставить без изменений.
+
+Последующее поручение 14 октября разрешило read-only исследование prefix без нового
+bucket, с показом изменений **до применения**. GetBucketPolicy/GetBucketAcl и
+ListObjectsV2 MaxKeys1 только на два candidate prefixes подтвердили пустоту
+`feed/audio/private-v1/`, `feed/documents/private-v1/`; policy hash
+`c0dc04cad86fecd7b9cda2a3fe958be9572bc19514dbe19b8a4887907a2c34e2`.
+Существующий Deny ограничивает anonymous reads `backups/mysql/*`; backups не читали.
+Proposal в SPEC-private-files: сохранить старые statements, новый scoped Deny
+для неразрешённых S3 principals, только новые private uploads в принятом AG4,
+текущий canonical reader подходит без нового bucket/env. Точное backend username
+и условие Timeweb ещё не подтверждены; anonymous-only Deny при общем Allow `*`
+не объявлять полной защитой. Никаких S3 writes/runtime/фронт/рабочей БД изменений.
+Нужен review конкретного diff и отдельное разрешение перед policy trial.
+
 Review AG2: acceptance probe, а не новое поведение/выдуманный RED; SDK requests
 ограничены одним созданным key, без list/чтения рабочего содержимого и без policy
 mutation. Runtime/зависимости не менялись; изменены только spec/план/статус.
 Документационные проверки — `pnpm check:docs` и `git diff --check`;
 неизменные native suites/сборка не повторяются при документационном результате.
+
+**AG2, последующий scoped trial и acceptance — 14 октября:** после разрешения
+«делай далее все» добавлен только `DaryadarcyPrivateAttachmentsV1` на два новых
+private-v1 prefixes. Старые statements сохранены; backups/старые объекты не читали.
+Проба Owner.ID не прошла и полностью откачена; signed IAM GetUser подтвердил именно
+service username текущих ключей. Валидная подпись при несовпадающем allowlist=403;
+правильное подключение HEAD/GET=200 и Range=206 exact bytes. Anonymous GET/HEAD=403;
+own public-control=200. Второй реальный S3 аккаунт не проверялся.
+Native API/SQL/Timeweb/Chromium/неизменённый Next rewrite: **23 pass, skips0**,
+9.08 s, exit0; матрица и команда в SPEC-private-files. Временная копия фронта без
+env/credentials удалена, исходный фронт не изменён. Проверены актуальная подписка,
+блокировка/отзыв сессии/роли, публикация/удаление связи, bytes/HEAD/range/ошибки;
+denial не вызывает S3. Это transport acceptance, не UI/player/device сертификация.
+Три synthetic S3 объекта удалены после owner/ETag/size guards, HEAD404; scoped policy
+сохранена. Одноразовая БД удалена после owner/id/loopback/tmpfs проверки; чужие
+контейнеры/volumes не затронуты. Проверки tsc/docs56/diff exit0. Runtime не менялся;
+старые suites/build без причины не повторялись. Review пяти осей: явный opt-in,
+exact own fixture keys, параметризованный SQL, реальные provider bytes, bounded
+S3 timeouts, отсутствие секретов в child arguments/files и cleanup своих ресурсов.
+AG2 завершён в ограниченном объёме; следующий доступный пункт **AG4** по принятому
+AG3. Новые uploads/receipt/transactional association ещё не готовы. Working flags,
+история/миграции/rollout, старые объекты, фронт, push/deploy не разрешались.
 
 Готово: реальные прямые GET/HEAD private-объекта запрещены гостю; авторизованный
 proxy возвращает точные байты/Range, expired/blocked/revoked получают отказ без

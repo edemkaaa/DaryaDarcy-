@@ -7,9 +7,8 @@
 фронтенд не менять. Незачёркнутые пункты истории ниже не являются дополнительным
 поручением. Новый список создан для продолжения, а не для повторной реализации.
 
-**Следующий исполняемый шаг зависит от входов:** AG2 после решения о закрытом
-S3 bucket/prefix (14 октября anonymous-denial gate не пройден);
-AG3 принят 14 октября; AG4 только после проверки AG2; AG5 после истории/retention.
+**Следующий исполняемый шаг — AG4:** AG2 scoped private-prefix storage/API/browser
+acceptance пройден 14 октября; AG3 принят. AG5 после истории/retention.
 AG6 принят и реализован
 локально 14 октября; AG8 также принят/реализован локально. Внешняя приёмка/включение
 не разрешены этими результатами.
@@ -26,26 +25,54 @@ AG6 принят и реализован
   Проверка: docs55/diff exit0; check:api exit1 — ожидаемый stale contract,
   не скрыт и не объявлен зелёным. Native suites неизменны, не повторялись.
   Commit 793dd57; внешняя отправка не выполнялась.
-- [ ] **AG2 — native S3/private attachment acceptance.** Статус: storage gate
-  проверен 14 октября, блокер — anonymous GET/HEAD=200 для нового private объекта.
+- [x] **AG2 — native S3/private attachment acceptance.** Статус: ограниченная
+  native acceptance пройдена 14 октября; первоначальный storage gate дал отказ:
+  anonymous GET/HEAD=200 для нового private объекта.
   Пользователь предоставил рабочий Timeweb bucket `daryadarcy-s3` и прямо разрешил
   synthetic проверку. Signed PUT/HEAD/GET/Range прошли; private denial не прошёл
   (probe exit1). Read-only policy содержит unconditional anonymous GetObject Allow
   на все объекты. Только свой десятибайтовый fixture удалён после owner/ETag/size
   проверки, signed HEAD после удаления=404. Старые объекты и policy/ACL не менялись.
   Нужен отдельный закрытый bucket или отдельно согласованная policy нового prefix;
-  proxy/SQL/browser acceptance ещё не выполнена. Ключи не сохранялись, заменить
-  предоставленные в переписке credentials. AG3 принят, AG4 остаётся за AG2 gate.
+  proxy/SQL/browser acceptance ещё не выполнена. Ключи не сохранялись; пользователь
+  отказался от их замены, автоматическая ротация не разрешена.
+  14 октября после уточнения стоимости пользователь отказался от создания нового
+  платного bucket. Не создавать его и не заменять это разрешением на изменение
+  policy существующего bucket. Решение по новому private prefix не принято;
+  AG2/AG4 остаются заблокированными, а не завершёнными. AG3 принят.
+  Последующее поручение — только исследование закрытого prefix без нового bucket.
+  Read-only policy/ACL + ListObjectsV2 MaxKeys1 подтвердили пустоту
+  `feed/audio/private-v1/`, `feed/documents/private-v1/`; proposal в SPEC-private-files.
+  Предложен точечный Deny для неразрешённого principal, не anonymous-only guard;
+  точное username/условие Timeweb и policy diff ещё требуют проверки/согласования.
+  PUT/DELETE/policy/ACL writes, runtime/фронт/рабочая БД не выполнялись.
+  После показа proposal пользователь разрешил продолжение: bounded policy trial
+  двух новых prefixes с identity/hash/enforcement guards, затем native acceptance;
+  старые statements/объекты/права не менять, AG4 только после прохождения AG2.
+  Последующий trial: Owner.ID не совпал с caller username, первая проба откачена;
+  signed IAM GetUser подтвердил service identity. Установлено одно scoped правило
+  `DaryadarcyPrivateAttachmentsV1`; original statements сохранены. Valid signed
+  nonmatching-allowlist=403, правильный SDK GET/HEAD=200/Range206 exact bytes,
+  anonymous GET/HEAD403; public-control200. Второй S3 аккаунт не проверялся.
+  Native API/SQL/Timeweb/Chromium и unchanged Next rewrite: 23 pass, skips0,
+  9.08 s, exit0. Denial без S3; draft/hidden/deleted/detached/removed, подписка,
+  block/role/session revocation, bytes/HEAD/Range/416/503 пройдены. Не UI/player/device
+  приёмка. Три own S3 fixtures удалены с ownership guards/HEAD404; scoped policy
+  остаётся. Собственная tmpfs БД удалена после exact owner/id/loopback/mount checks;
+  чужие контейнеры/volumes не затронуты. TypeScript/docs56/diff exit0, review пяти осей.
+  Фронт/working DB/runtime flags/старые ресурсы не менялись; новый bucket не создан.
 - [x] **AG3 — минимальное продолжение закрытой выдачи.** Контракт принят
   пользователем 14 октября: новые audio/document, существующие администраторы,
   server assetId/receipt/transactional association, локальный File preview без
   draft read, восстановление upload ACK тем же ключом без дублей. Автоочистка
   выключена, retention отдельно; фото/статьи/shared/public/old вне среза.
   Зафиксировано в SPEC-private-files. Это согласование, не реализация/приёмка:
-  runtime/API/schema/ACL/фронт/рабочая БД не менялись, actual S3 отсутствует.
+  runtime/API/schema/ACL/фронт/рабочая БД не менялись; на момент согласования
+  actual S3 отсутствовал (последующая AG2 acceptance описана выше).
   Проверка документации: docs55/diff exit0; runtime tests не повторялись.
-- [ ] **AG4 — реализация расширения файлов по принятому AG3.** Статус: ждёт
-  успешной проверки AG2. По одному типу связи; native SQL/HTTP/S3 и review на срез.
+- [ ] **AG4 — реализация расширения файлов по принятому AG3.** Статус: доступен
+  после успешной AG2 acceptance 14 октября. По одному типу связи; native SQL/HTTP/S3
+  и review на срез. Upload/receipt/transactional association ещё не реализованы.
   Старые файлы/рабочие URL/ACL/фронт не менять. До принятия AG3 не начинать.
 - [ ] **AG5 — подготовка миграций/email/статей к выпуску.** Статус: процедура
   подготовлена в existing runbook; ждёт истории/retention решения и репетиции

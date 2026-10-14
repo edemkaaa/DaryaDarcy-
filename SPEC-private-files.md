@@ -8,7 +8,7 @@
 Это не разрешение миграции рабочих объектов или включения флага.
 Фронтенд не меняется.
 
-## AG2 — фактический Timeweb S3, storage gate не пройден 14 октября
+## AG2 — первоначальный Timeweb storage gate: отказ 14 октября
 
 Пользователь предоставил endpoint `https://s3.twcstorage.ru`, рабочий bucket
 `daryadarcy-s3` и прямо разрешил проверку. Это узкое исключение: только новые
@@ -36,7 +36,133 @@ storage gate не запускали. Полную рабочую конфигу
 Ключи из переписки использованы только из stdin в памяти процесса; рекомендуется
 заменить их и передать ограниченный профиль вне переписки/репозитория.
 
-## AG3 — контракт принят 14 октября 2026, реализация ждёт AG2
+## Закрытые префиксы в существующем bucket — ограниченный trial принят 14 октября
+
+Пользователь разрешил только исследование: «Старые файлы и доступ к ним не трогай,
+сначала покажи, что нужно поменять». Новый платный bucket исключён. Этот раздел
+сам по себе не разрешал применять policy, писать объекты или начинать AG4.
+После показа предложения пользователь поручил «делай далее все»:
+разрешены bounded policy trial только новых `feed/audio/private-v1/` и
+`feed/documents/private-v1/`, own synthetic fixtures и native acceptance.
+Старые statements/объекты/права не менять. При неизвестной identity, policy drift
+или невалидном enforcement остановиться; AG4 по-прежнему только после AG2 gate.
+
+Read-only SDK GetBucketPolicy/GetBucketAcl и по одному ListObjectsV2 (MaxKeys=1)
+только на каждый предложенный prefix подтвердили:
+
+- `feed/audio/private-v1/` и `feed/documents/private-v1/` пустые;
+- policy содержит общий anonymous GetObject Allow, а отдельный Deny для
+  `backups/mysql/*` с GetObject/GetObjectVersion и
+  `StringEqualsIfExists: { "aws:username": ["anonymous", ""] }`;
+- policy SHA256 `c0dc04cad86fecd7b9cda2a3fe958be9572bc19514dbe19b8a4887907a2c34e2`.
+
+Содержимое backups/старых файлов не читалось. Никаких PUT/DELETE/ACL/policy writes
+в этом исследовании нет. Исходная policy целиком не печаталась/не сохранялась;
+выведены лишь schema/scope/anonymous условие и hash, без credentials.
+
+### Что потребуется изменить после отдельного согласования
+
+1. Сохранить все существующие statements, включая публичное чтение и ограничение
+   backups. Добавить отдельное ограничение GetObject/GetObjectVersion **только**
+   на два новых ARN:
+   `arn:aws:s3:::daryadarcy-s3/feed/audio/private-v1/*` и
+   `arn:aws:s3:::daryadarcy-s3/feed/documents/private-v1/*`.
+   Его семантика: отказ анонимному и любому неразрешённому S3 principal; backend
+   S3 principal читает подписанным SDK запросом. Один anonymous Deny недостаточен:
+   исходный Principal `*` Allow потенциально разрешает чтение другому подписанному
+   пользователю. Не применять общий безусловный Deny, который запретит и SDK.
+2. Кандидат дополнительного statement — Deny/Principal `*`/два указанных Resource
+   с `StringNotEqualsIfExists` по `aws:username` и allowlist подтверждённых backend
+   S3 identities. **Не готовый apply JSON:** сначала подтвердить точное значение
+   principal для существующего подключения и поддержку/поведение этого условия
+   на Timeweb. Access Key ID и Owner.ID сами по себе не доказательство `aws:username`.
+   Поддержку AWS/Ceph языка не выдавать за acceptance конкретного Timeweb cluster.
+3. В принятом AG4 — отдельный opt-in private S3 writer для новых audio/document:
+   server key внутри этих prefixes, ACL=private, receipt/assetId, стабильный upload
+   intent и transaction association. Не пользоваться нынешним `storagePut`, который
+   выставляет public-read и допускает fallback. Новый закрытый путь при storage
+   отказе закрывается, не переключается на публичный upload или другой сервис.
+4. `ownAttachmentKey` уже принимает точные собственные `feed/audio/...` и
+   `feed/documents/...`: новый bucket/endpoint/region/env и расширение URL allowlist
+   для этих prefixes не требуются. Read route остаётся session/live-access proxy,
+   без storage URL в клиенте. Старый upload, фото, статьи, видео и ACL не менять.
+   Metadata resolver compatibility не доказывает ещё native delivery/новый upload.
+
+### Безопасная проверка и остановка
+
+После утверждения точного diff policy повторно проверить пустоту двух prefixes
+и hash текущей policy. При изменении hash/неизвестном principal остановиться, не
+перезаписывать чужую policy и не пробовать несколько AWS условий вслепую.
+Проверка на новых synthetic private и public-control объектах: anonymous
+GET/HEAD/Range отказ; signed backend HEAD/GET/Range точные байты; неразрешённый
+S3 principal отказ; public-control вне prefixes сохраняет прежний ответ. Затем
+native API/SQL access matrix в собственной одноразовой БД и browser rewrite.
+Проверку другим валидным S3 principal не подменять заведомо неверной подписью.
+
+Rollback пробной policy допустим только до появления настоящих закрытых данных;
+после их загрузки слепой возврат общего public Allow может открыть вложения.
+Никаких перемещений/переписывания/массовой смены ACL старых объектов, public
+listing или blanket Block Public Access. Фронт и рабочая БД не меняются.
+Новый тариф/bucket не подключается; обычное хранение/трафик остаются оплачиваемыми.
+
+Основания: [Timeweb bucket policies](https://timeweb.cloud/docs/s3-storage/supported-features/bucket-policies),
+[Ceph policy subset](https://docs.ceph.com/en/latest/radosgw/bucketpolicy/) и
+существующие storage/private-object/content-upload модули. Это историческое
+предложение; результат последующего разрешённого trial приведён ниже.
+
+### AG2 — scoped policy и native acceptance пройдены 14 октября
+
+После разрешения «делай далее все» правило проверено сначала на двух точных
+synthetic keys, затем распространено только на два перечисленных private-v1
+prefixes. Добавлен один statement `DaryadarcyPrivateAttachmentsV1`:
+Deny/Principal `*`, GetObject/GetObjectVersion, `StringNotEqualsIfExists` по
+`aws:username` с одной подтверждённой service identity. Все прежние statements
+сохранены структурно; bucket/object ACL старых ресурсов не менялись.
+
+Owner.ID bucket оказался не username подписанного подключения: первая проба
+с ним запретила также служебное чтение. Исходная policy восстановлена с readback
+и guard против concurrent изменений, три own fixtures удалены с HEAD=404.
+Подписанный IAM GetUser без UserName вернул identity текущих ключей; UserName
+равен UserId, fingerprint `886adafddaec`. Credentials не использовались как
+principal и не сохранялись в файлы/Git/логи. Затем bounded trial повторён с этой
+подтверждённой identity.
+
+Отрицательный контроль — настоящая валидная подпись при несовпадающем allowlist:
+GET=403; это не проверка заведомо неверным ключом. Второй самостоятельный S3
+аккаунт не предоставлялся/не проверялся. С правильным allowlist signed HEAD/GET=200,
+точные десять байт; Range=206, `2345`, `bytes 2-5/10`. Anonymous GET/HEAD=403
+в обоих prefixes. Синтетический public-control снаружи prefixes сохраняет 200.
+Старые public covers/avatars не читались; их прежние policy statements сохранены.
+
+Новый opt-in `tests/private-files.s3.mysql.test.ts`: **23 pass, skips0**, exit0,
+9.08 s. Реальные Nest HTTP/JWT/cookie/Bearer/SQL/AWS SDK/Timeweb и Chromium с
+неизменённым Next rewrite проверили guest/paid/unpaid/expired/blocked/staff/role
+revocation/session revocation, draft/hidden/deleted/detached/removed association,
+GET/HEAD/Range/416, exact bytes/length, default-off и generic 503 при плохой
+подписи. На access denial call-through наблюдение подтверждает отсутствие S3 calls;
+ответы не подменялись. Браузер стартовал из собственной временной копии исходников
+без env-файлов и S3/DB credentials, внешние browser requests запрещены. Исходный
+фронт не изменён. Несовпадение default browser revision устранено явным указанием
+уже установленного Chromium; это исправление стенда, не runtime приложения.
+
+SQL только own loopback/tmpfs `backend_test`, не рабочая история миграций.
+Файл в audio-prefix — text/plain transport fixture, **не проверка аудиодекодера**.
+UI/player/device acceptance и реальные старые URL этим не сертифицированы.
+Все три own S3 объекта после metadata owner/ETag/size guards удалены, HEAD=404;
+успешное scoped правило оставлено действующим. Новый bucket/тариф не создавался.
+AG2 завершён в этом ограниченном объёме, AG4 теперь доступен. Закрытый upload,
+receipt/association ещё не реализованы; runtime flags/сервер/рабочая БД не включались.
+
+Воспроизведение: чистое окружение, явные test-only DB/S3 inputs, credentials
+только в памяти родительского процесса и окружении Vitest child, manifest собственных
+fixtures (`endpoint`, `Bucket`, UUID `owner`, `objects` с точными keys/private flags;
+опционально `browserExecutable`). Opt-in `AG2_S3_ACCEPTANCE=true` и
+`AG2_S3_FIXTURE_MANIFEST=<own manifest>`; команда
+`pnpm exec vitest run tests/private-files.s3.mysql.test.ts --maxWorkers=1 --reporter=dot`.
+Без opt-in это skip, а не новое native evidence. Нельзя наследовать рабочие env-файлы
+или указывать старые S3 объекты вместо fixtures.
+
+## AG3 — контракт принят 14 октября 2026, следующий срез AG4
 
 Пользователь принял все четыре рекомендации и поручил зафиксировать AG3:
 «Реализацию AG4 начнём после проверки S3. Фронт и рабочую БД не трогай».
