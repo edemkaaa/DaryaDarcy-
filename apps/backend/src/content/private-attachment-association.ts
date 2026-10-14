@@ -10,6 +10,7 @@ import {
   privateStorageNamespace,
 } from "../media/private-upload-object";
 import { isRawMediaFilename } from "../../../../packages/shared/src/media-label";
+import { assertContentRecoveryWindow } from "./recovery-window";
 import {
   lockPrivateAttachmentActor,
   requirePrivateAttachmentSchema,
@@ -66,6 +67,8 @@ export async function bindPrivateAttachments(
       asset.namespaceHash !== namespace.hash
     )
       throw conflict();
+    if (asset.postId === null && asset.mediaId === null)
+      assertContentRecoveryWindow(asset.createdAt);
     if (asset.postId !== null || asset.mediaId !== null) {
       if (asset.postId !== postId || asset.mediaId === null) throw conflict();
       const [media] = await tx

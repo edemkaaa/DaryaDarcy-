@@ -10,8 +10,8 @@
 **AG4 завершён локально 14 октября:** upload/recovery/association и actual S3
 acceptance после MIME guard повторно пройдена на HEAD e3044af:2 pass/skip0,
 21.22 s, exit0. Timeweb timeout снят; flags off. AG5/AG9 ждут history/retention, frontend integration
-и разрешённой внешней приёмки/rollout. Незавершённой самостоятельной AG-реализации
-в принятых границах не осталось.
+и разрешённой внешней приёмки/rollout. Следующий локальный срез после последующего
+«да все делаем дальше» — **AG5-R2**, R1 проверен, expiry без удаления данных.
 AG6 принят и реализован
 локально 14 октября; AG8 также принят/реализован локально. Внешняя приёмка/включение
 не разрешены этими результатами.
@@ -127,8 +127,27 @@ AG6 принят и реализован
   Процедура сохранена 24e7b31; migrations/working connection не выполнялись.
   14 октября подготовлен проект четырёх рекомендаций хранения в existing runbook:
   окно30 суток/compact marker/owned orphan cleanup/scrub-export-backup. Статус:
-  **ждёт решения**, не принят. Bound read evidence сохраняется; billing отдельно.
-  Runtime/schema/TTL/S3/frontend/рабочая БД не менялись; native suites не повторялись.
+  После объяснения30 суток и ответа «да все делаем дальше» агент явно обозначил
+  трактовку как принятие всех четырёх рекомендаций; локальная реализация начинается
+  default-off. Bound read evidence сохраняется; billing/working rollout отдельно.
+  - [x] AG5-R1 — private upload/status/unbound binding expiry, без удаления.
+    Acceptance:30 суток409, pending/ready не дают новый PUT/bind; flag off прежний
+    replay, живой bound read сохраняется. RED/GREEN native SQL/HTTP + policy boundary
+    units; tsc/build/boundaries/docs. Files: private uploads/association/policy/tests.
+    RED200→409 для upload/status и unbound bind; cutoff mutation `>` вместо`>=`
+    пойман unit тестом. GREEN31 pass/2 suites/skip0,3.75 s; tsc exit0.
+    Default-off CONTENT_RECOVERY_RETENTION_ENABLED; rows/objects не удаляются.
+    Backend build529.1kb/boundaries633/docs56/diff/review passed; frontend не менялся.
+  - [ ] AG5-R2 — keyed post create expiry. ПослеR1;409/no duplicate/delete,
+    flag off legacy replay. Native post suite + types/build; owning creator.
+  - [ ] AG5-R3 — keyed article create/status expiry. ПослеR1;409/no duplicate,
+    flag off legacy replay. Native article suite + types/build; owning writes/status.
+  - [ ] AG5-R4 — compact markers/read evidence. ПослеR1–R3; additive schema,
+    replay после compact отказывает, bound bytes доступны; native SQL/read + review.
+  - [ ] AG5-R5 — bounded orphan cleanup. ПослеR4; loopback SDK/SQL, ownership,
+    detach clock, cleanup↔upload/bind/lost DELETE ACK/restart, no old/bound objects.
+  - [ ] AG5-R6 — final scrub/export. ПослеR4/R5; existing account timing unchanged,
+    own records only, no resurrection/no secrets. Backup/real restore/history внешние.
 - [x] **AG6 — точные остатки обычной оплаты/отмены.** Статус: готово локально
   14 октября по принятому контракту. Authenticated normal create/status,
   ledger 0030 и default-off flag; guest/TEST/settlement/отмена прежние.

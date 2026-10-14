@@ -321,11 +321,22 @@ service, storage boundary, affected tests (обычно 3–5 за срез). Ф
 
 #### AG5 — Подготовка безопасного выпуска схемы и email (A7/AR/Q1; M на срез)
 
-14 октября по просьбе подготовлен **непринятый** проект хранения в existing
+14 октября по просьбе подготовлен проект хранения в existing
 runbook, раздел «AG5 — проект контракта хранения»: окно30 суток, compact anti-duplicate
 marker, owned orphan cleanup, окончательная scrub/export/backup с сохранением bound
-read evidence. Runtime/schema/TTL/S3/frontend не менялись; согласование и история
-миграций остаются gates. Это предложение, не разрешение самостоятельной реализации.
+read evidence. Последующее «да все делаем дальше» трактовано как принятие четырёх
+рекомендаций; трактовка с30 сутками явно сообщена перед локальным продолжением.
+Runtime enablement/S3 DELETE/working migration по-прежнему запрещены.
+
+Локальная зависимость: R1 private upload/status/unbound bind + общий default-off
+guard → R2 keyed post create → R3 article create/status → R4 compact markers/
+живые read evidence → R5 bounded owned orphan cleanup → R6 final scrub/export.
+Критерии/команды и backup gates в existing AG5 runbook; подробный текущий статус
+в todo. RED/GREEN SQL/HTTP; не удалять существующие receipt до terminal guards.
+Working history/snapshot/restore остаются внешними входами, не обходить preflight.
+R1 GREEN31 native/unit pass (3.75 s), RED200→409/точная cutoff граница; без удаления
+rows/objects, bound read/edits сохранены. Post status endpoint не существовал:
+новый не добавлять, R2 — только существующее keyed create.
 
 Сначала прочитать существующий preflight/runbook. Проверить локальный manifest и
 подготовить процедуру для 0017–0019, 0027/0028/0029: необходимые доказательства

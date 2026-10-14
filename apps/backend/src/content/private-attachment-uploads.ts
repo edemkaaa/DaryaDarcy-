@@ -11,6 +11,7 @@ import {
 import { getDb } from "../db";
 import { decodeMediaBase64 } from "../media/media-encoding";
 import { isDeliverableAttachmentMime } from "../media/private-attachment-mime";
+import { assertContentRecoveryWindow } from "./recovery-window";
 import {
   digest,
   ensurePrivateUploadObject,
@@ -102,6 +103,7 @@ function requestKey(actor: PrivateAttachmentActor, key: string) {
   return digest(JSON.stringify(["admin.privateAttachment:v1", actor.id, key]));
 }
 export function privateUploadReceipt(row: Receipt) {
+  assertContentRecoveryWindow(row.createdAt);
   if (row.state === "ready" && !row.etag) throw unavailable();
   return {
     state: row.state,
@@ -124,6 +126,7 @@ function assertIntent(
       message: "Ключ загрузки уже использован для другого файла",
     });
   if (row.namespaceHash !== namespaceHash) throw unavailable();
+  assertContentRecoveryWindow(row.createdAt);
 }
 export async function uploadPrivateAttachment(
   actor: PrivateAttachmentActor,

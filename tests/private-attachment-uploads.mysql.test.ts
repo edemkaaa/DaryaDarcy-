@@ -114,6 +114,7 @@ describe.skipIf(!testDatabaseUrl)(
       wire.effects.length = 0;
       wire.rejectPolicy(false);
       vi.stubEnv("PRIVATE_POST_MEDIA_UPLOAD_ENABLED", "true");
+      vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "false");
       await conn.query(
         "UPDATE users SET role='admin',blockedAt=NULL,sessionVersion=0 WHERE id=97330",
       );
@@ -525,6 +526,123 @@ describe.skipIf(!testDatabaseUrl)(
         ).status,
       ).toBe(400);
       expect(wire.effects).toEqual([]);
+    });
+    it("expired upload intent refuses replay and status without another storage effect", async () => {
+      const original = await request("uploadPrivateAttachment");
+      expect(original.status).toBe(200);
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true");
+      wire.effects.length = 0;
+      expect(await request("uploadPrivateAttachment")).toEqual({
+        status: 409,
+        data: "CONFLICT",
+      });
+      expect(
+        await request(
+          "privateAttachmentStatus",
+          { idempotencyKey: input.idempotencyKey },
+          token,
+          true,
+        ),
+      ).toEqual({ status: 409, data: "CONFLICT" });
+      expect(wire.effects).toEqual([]);
+      expect(wire.objects.size).toBe(1);
+      expect(
+        await rows(
+          "SELECT assetId,state FROM private_attachment_uploads WHERE actorUserId=97330",
+        ),
+      ).toEqual([
+        expect.objectContaining({
+          assetId: original.data.assetId,
+          state: "ready",
+        }),
+      ]);
+    });
+    it("expired unknown storage outcome cannot retry the external write", async () => {
+      wire.dropPutAck();
+      expect((await request("uploadPrivateAttachment")).status).toBe(503);
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true");
+      wire.effects.length = 0;
+      expect((await request("uploadPrivateAttachment")).status).toBe(409);
+      expect(wire.effects).toEqual([]);
+      expect(wire.objects.size).toBe(1);
+      expect(
+        (
+          await rows(
+            "SELECT state FROM private_attachment_uploads WHERE actorUserId=97330",
+          )
+        )[0].state,
+      ).toBe("pending");
+    });
+    it("expired unbound receipt cannot create a post or media binding", async () => {
+      const receipt = (await request("uploadPrivateAttachment")).data;
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true");
+      wire.effects.length = 0;
+      expect(
+        (await request("createPost", postInput(receipt.assetId))).status,
+      ).toBe(409);
+      expect(
+        await rows("SELECT id FROM posts WHERE source='ag4-upload-suite'"),
+      ).toEqual([]);
+      expect(
+        await rows(
+          "SELECT postId,mediaId FROM private_attachment_uploads WHERE actorUserId=97330",
+        ),
+      ).toEqual([{ postId: null, mediaId: null }]);
+      expect(wire.effects).toEqual([]);
+    });
+    it("disabled retention preserves aged upload and status recovery", async () => {
+      const first = await request("uploadPrivateAttachment");
+      expect(first.status).toBe(200);
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      wire.effects.length = 0;
+      expect(await request("uploadPrivateAttachment")).toEqual(first);
+      expect(
+        await request(
+          "privateAttachmentStatus",
+          { idempotencyKey: input.idempotencyKey },
+          token,
+          true,
+        ),
+      ).toEqual(first);
+      expect(wire.effects).toEqual([]);
+    });
+    it("aged bound receipt remains readable and editable without reattachment", async () => {
+      const receipt = (await request("uploadPrivateAttachment")).data;
+      const post = await request("createPost", postInput(receipt.assetId));
+      expect(post.status).toBe(200);
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true");
+      vi.stubEnv("PRIVATE_POST_MEDIA_DELIVERY_ENABLED", "true");
+      expect(
+        (
+          await request("updatePost", {
+            id: post.data,
+            status: "published",
+            target: "feed",
+            privateAssetIds: [receipt.assetId],
+          })
+        ).status,
+      ).toBe(200);
+      const media = await rows("SELECT url FROM post_media WHERE postId=?", [
+        post.data,
+      ]);
+      expect(media).toHaveLength(1);
+      const response = await fetch(`${base}${media[0].url}`);
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe("0123456789");
     });
   },
 );

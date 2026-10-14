@@ -119,8 +119,11 @@ immutable fingerprints/namespace, storage evidence и binding. Ключи и orp
 
 ### AG5 — проект контракта хранения, 14 октября 2026
 
-**Предложен, не принят и не реализован.** Пользователь разрешил подготовить
-рекомендации, не включать TTL/очистку. Четыре решения ниже — продуктовые сроки,
+**Принят для локального продолжения, в реализации.** После объяснения30 суток
+и повторного уточнения пользователь ответил «да все делаем дальше». Агент явно
+обозначил трактовку как четыре рекомендации перед началом локального среза.
+Рабочие TTL/очистку не включать; backup условия отдельно подтверждает владелец.
+Четыре решения ниже — продуктовые сроки,
 не требования ТЗ или утверждение о юридических сроках. Область:
 `post_creation_requests`, `article_creation_requests`, `private_attachment_uploads`.
 Billing/провайдерские журналы, email lifecycle и прежние файлы не менять этим контрактом.
@@ -131,7 +134,7 @@ Billing/провайдерские журналы, email lifecycle и прежн
    дают409 CONFLICT «Срок восстановления истёк», не `notRecorded`, не новый create
    или PUT. Нельзя предложить новую операцию автоматически после timeout/expired.
    Этот срок не ограничивает жизнь опубликованного материала или bound файла.
-   До согласования остаются нынешние no-TTL/replay правила.
+   Новый режим default-off; до совместимого rollout остаются нынешние no-TTL/replay правила.
 2. **После окна — минимальная отметка против дубля.** Для обработанного ключа
    сохранить только namespace/request fingerprint, принадлежность нужному аккаунту
    и терминальный запрет повторного эффекта; без текста, имени файла и результата
@@ -173,12 +176,23 @@ default-off после draining несовместимых writers. Формат
 History0017–0019 и обезличенный schema/journal snapshot остаются отдельным gate;
 утверждение срока не разрешает working migration, S3 DELETE или rollout.
 
+Первый локальный срез — `CONTENT_RECOVERY_RETENTION_ENABLED`, default-off,
+отказ409 после30 суток на upload/status/unbound association, keyed post create
+и article create/status. Новый post status endpoint не добавлять. Существующие строки пока не удалять/не компактизировать; bound read
+не зависит от окна восстановления. Invalid timestamps — отказ503, не успех.
+Команды в own loopback/tmpfs fixture: `pnpm exec vitest run tests/private-attachment-uploads.mysql.test.ts --maxWorkers=1`;
+`pnpm exec tsc --noEmit`, `pnpm build`, `pnpm check:boundaries`, `pnpm check:docs`.
+Сначала RED на настоящем HTTP/SQL, затем runtime guard; новый flag не включать
+в рабочей среде и не регенерировать frontend types.
+
 Критерии будущей native SQL/HTTP/owned S3 приёмки: граница30 суток, retry после
 компактизации/удаления материала без дубля, cleanup↔upload/bind race, lost DELETE
 ACK/restart, alive bound bytes, другой аккаунт/revoked session, export без утечки,
 окончательная scrub и restore без воскрешения удалённой идентичности. Сейчас
-проверен только документ (`pnpm check:docs`, `git diff --check`); runtime не менялся,
-новая native/restore/рабочая storage приёмка не заявляется.
+R1 проверен31 native HTTP/SQL/loopback SDK-wire + policy unit cases (3.75 s):
+expired pending/ready/status, unbound rollback, disabled legacy replay и live bound
+read/edit, точная30-day граница/invalid timestamp. SQL только own backend_test.
+Остальные срезы/restore/working storage не приняты этим checkpoint.
 
 Локальная процедура подготовлена. Она не снимает manifest blockers и не разрешает
 подключение/миграцию/отправку почты. Native article/email checkpoints уже есть;
