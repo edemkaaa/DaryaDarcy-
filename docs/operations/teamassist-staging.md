@@ -34,6 +34,40 @@ Acceptance: native MySQL без fixture DDL; 36 строк истории, от�
 ORM-таблиц/колонок; native HTTP пустых feed/articles и отказ гостю в admin API.
 Существующая БД, frontend, S3 и внешняя почта не затрагиваются.
 
+### AG5-F4 — локальная репетиция резервной копии и восстановления
+
+14 октября по отдельному поручению проверен полный цикл **только синтетической
+БД**: fresh-install36 → существующий `runMysqlBackupIfDue` → gzip → native mysql
+в другой пустой собственный tmpfs контейнер. Шесть native checks прошли без
+пропусков за2.55s. Все таблицы и SHA256 содержимого каждой совпали; точные
+SHOW CREATE TABLE совпали (engine, collation, generated expressions, indexes,
+AUTO_INCREMENT). История36/hashes, Unicode/JSON/NULL, уникальность email и recovery
+key сохранены. Непустой restore target отказывает до исполнения дампа.
+
+Повторяемая проверка: `pnpm exec vitest run tests/fresh-backup-restore.mysql.test.ts
+--maxWorkers=1`. Требуются четыре **test-only** переменные:
+`BACKUP_REHEARSAL_SOURCE_URL`, `BACKUP_REHEARSAL_TARGET_URL`,
+`BACKUP_REHEARSAL_SOURCE_ID`, `BACKUP_REHEARSAL_TARGET_ID`. Оба backend_test должны
+быть пустыми, адрес127.0.0.1 с отдельными портами, MySQL8.4/tmpfs без mounts,
+имя и codex.owner совпадают с `daryadarcy-fresh-backup-<идентификатор>`.
+ID/порты/storage проверяются до подключения; source и target различаются.
+
+На host нет mysqldump: test-only transport adapter в
+[tests/fixtures/native-mysql-dump.cjs](../../tests/fixtures/native-mysql-dump.cjs)
+переносит настоящий MySQL8.4 dump в source container, сохраняя production
+single-transaction/quick, gzip, файловые права и контроль завершения. SQL и
+результат резервирования не имитируются. Пароль source передаётся через stdin
+option-file; restore использует только синтетический пароль своего контейнера.
+Рабочие `.env` не читаются, S3 переменные явно пустые, каталог временный/закрытый.
+Архив и только свои контейнеры удаляются после проверки принадлежности.
+
+Это доказательство восстановления **текущей схемы на такой же MySQL8.4**, не
+production-процедура импорта: разрешён только generated synthetic dump в own
+пустой target. Не проверены рабочее расписание, off-site/S3-медиа, шифрование,
+межверсионное восстановление или нагрузка/изменения схемы во время дампа.
+Создание владельца, server configuration, production backup/restore и выкладка
+остаются отдельно согласуемыми. Runtime backup и frontend не изменялись.
+
 ## AG5 — процедура подготовки выпуска, 13 октября 2026
 
 **Подготовка, не выполненный rollout.** Действующий backend план — начало

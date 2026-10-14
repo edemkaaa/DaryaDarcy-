@@ -176,6 +176,18 @@ frontend/working DB/S3 неизменны; ошибки не раскрываю�
 Остаток: operator provisioning владельца/configuration, backup/restore и release
 приёмка; fresh-profile upgrade procedure отдельно, стандартный db:push запрещён.
 
+Последующее поручение14 октября — **AG5-F4, локальная backup/restore репетиция**:
+два отдельных собственных loopback/tmpfs MySQL8.4/backend_test, source сначала
+получает все36 миграций, target остаётся пустой. Использовать существующий backend
+backup (gzip, atomic completion, private files) с настоящим mysqldump; восстановить
+реальным mysql только в проверенный собственный empty target. Сверить все table
+rows и SHOW CREATE TABLE, hashes истории, Unicode/JSON/NULL, unique email/recovery,
+отказ повторного restore без изменения данных. Не создавать владельца, не читать
+секреты/env, не обращаться к рабочей БД/S3/SMTP, не добавлять production restore
+endpoint/расписание. Сохранить проверку и evidence в existing runbook/checklist;
+затем exact ownership cleanup двух своих контейнеров и synthetic архива.
+Это не production backup/restore или approval выкладки.
+
 Checkpoint после локального R6 — backend b525130: доступная реализация выполнена;
 remaining AG5/AG9 ждут verified migration history/schema snapshot, backup/restore
 и совместной frontend/release приёмки. Общий runbook учитывает0035/R6 flags,

@@ -34,6 +34,19 @@ AG6 принят и реализован
   native HTTP feed/articles=200/empty, guest admin=401, users=0.
   Runbook описывает partial-DDL отказ и отдельный fresh history profile;
   стандартный db:push на эту историю не разрешён. Это не release approval.
+- [x] F4 — по последующему поручению пользователя локальная backup/restore
+  репетиция: existing backend backup + настоящий mysqldump8.4, gzip в own temp,
+  восстановление native mysql в другой пустой own tmpfs backend_test.
+  **6 native pass/skip0, 2.55s**: все tables/rows и точные SHOW CREATE TABLE
+  совпали; migration history36, Unicode/JSON/NULL и уникальность email/requestKey
+  сохранены. Повторный restore отказывает без изменений. Администратор не создан.
+  Тестовый transport adapter переносит вызов mysqldump в контейнер (на host нет
+  клиента); SQL/production gzip/file completion не подменяются. S3 выключен.
+  Это локальная rehearsal, не подтверждение production/media/off-site backup.
+  tsc/docs56/diff exit0; review correctness/security/architecture/performance:
+  runtime code unchanged, test harness only, no credentials from working env.
+  Synthetic архив удалён test cleanup; оба собственных контейнера удалены после
+  exact ID/name/owner/loopback/tmpfs/mount inspection; чужие контейнеры сохранены.
 Старый history gate ниже относится к upgrade существующей среды, не к fresh-only
 установке. Общая внешняя приёмка/backup/выкладка остаются отдельными условиями.
 
