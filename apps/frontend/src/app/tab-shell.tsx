@@ -11,10 +11,11 @@ import { SubscriptionCancellationProvider } from "@/features/profile/use-subscri
 import { useAuth } from "@/domain/session/session-context";
 export default function TabShell({ children }: { children: ReactNode }) {
   const path = usePathname();
+  const isPostDetail = path.startsWith("/post/");
   const { isOwner, user } = useAuth();
   const { headerRef, contentRef } = useScrollHeader(
     path,
-    !["/videos", "/admin", "/profile"].includes(path),
+    !isPostDetail && !["/videos", "/admin", "/profile"].includes(path),
   );
   const overlayHeader = ["/", "/feed", "/club", "/library", "/shop"].includes(
     path,
@@ -30,11 +31,13 @@ export default function TabShell({ children }: { children: ReactNode }) {
           }
           showBack={path !== "/"}
           title={
-            path === "/admin"
-              ? user?.role === "moderator" && !isOwner
-                ? "Модерация"
-                : "Админка"
-              : undefined
+            isPostDetail
+              ? "Пост"
+              : path === "/admin"
+                ? user?.role === "moderator" && !isOwner
+                  ? "Модерация"
+                  : "Админка"
+                : undefined
           }
           backHref={path === "/admin" ? "/profile" : undefined}
           musicUrl={path === "/club" ? CLUB_MUSIC_URL : undefined}

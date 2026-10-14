@@ -34,6 +34,7 @@ async function mockContent(
       if (custom !== undefined) return custom;
       if (name === "club.subscription")
         return ok({
+          hasClubAccess: admin,
           subscribed: admin,
           monthlyPrice: "790",
           expiresAt: null,
@@ -269,6 +270,7 @@ test("an authenticated payment return still asks the API before opening club acc
     (name) => {
       if (name === "club.subscription")
         return ok({
+          hasClubAccess: false,
           subscribed: false,
           monthlyPrice: "790",
           expiresAt: null,

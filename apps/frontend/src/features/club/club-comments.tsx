@@ -8,10 +8,11 @@ import {
   Spinner,
 } from "@/shared/ui/elements";
 import { safeExternalUrl } from "@/shared/navigation/external-url";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { useAuth } from "@/domain/session/session-context";
+import { ContentRequestState } from "@/shared/ui/content-request-state";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { trpc } from "@/shared/api/trpc";
 import {
@@ -21,7 +22,11 @@ import {
 } from "@/domain/post/club-tags";
 import { normalizeLinkUrl } from "@/shared/media/photo-aspect-ratios";
 import { checkOperationAccessError } from "@/domain/session/use-session-operation";
-import { getRequestErrorMessage, invalidResponse } from "@/shared/api/errors";
+import {
+  getHttpStatus,
+  getRequestErrorMessage,
+  invalidResponse,
+} from "@/shared/api/errors";
 import { requireOk, requireCommentLike } from "@/shared/api/action-result";
 import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
 import { usePostUploadSelection } from "@/features/admin/use-post-upload-selection";
@@ -230,11 +235,27 @@ export function ClubComments({
   const comments = trpc.club.comments.useQuery(
     { postId },
     {
-      enabled: community && active && nearby,
+      enabled: isAuthenticated && community && active && nearby,
       staleTime: 60_000,
       gcTime: 60_000,
     },
   );
+  const denied = [401, 403, 404].includes(getHttpStatus(comments.error) ?? 0);
+  const cancelOperation = operation.cancel;
+  const resetUploads = selection.reset;
+  useEffect(() => {
+    if (!denied) return;
+    cancelOperation();
+    resetUploads();
+    setText("");
+    setPhotos([]);
+    setReplyTo(null);
+    setEditingId(null);
+    setEditText("");
+    setMenuCommentId(null);
+    setViewerVisible(false);
+    setViewerPhotos([]);
+  }, [denied, cancelOperation, resetUploads]);
   const commentPlaceholder = useCollectionItemPlaceholder(
     "comments",
     !comments.data,
@@ -369,7 +390,7 @@ export function ClubComments({
       ),
   };
   const tree = useMemo(() => {
-    const rows = comments.data || [];
+    const rows = isAuthenticated && !denied ? comments.data || [] : [];
     const roots = rows.filter((c) => !c.parentId);
     const byParent = new Map<number, typeof rows>();
     for (const row of rows) {
@@ -379,8 +400,16 @@ export function ClubComments({
       byParent.set(row.parentId, list);
     }
     return { roots, byParent };
-  }, [comments.data]);
+  }, [comments.data, isAuthenticated, denied]);
   if (!community) return null;
+  if (denied && isAuthenticated)
+    return (
+      <ContentRequestState
+        error={comments.error}
+        notFoundText="Комментарии недоступны"
+        onRetry={() => void comments.refetch()}
+      />
+    );
   const loadedCount = comments.data?.length ?? 0;
   const commentCount = comments.data ? loadedCount : (commentCountProp ?? 0);
   const untilLabel = until

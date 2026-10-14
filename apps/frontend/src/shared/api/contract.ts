@@ -39,6 +39,27 @@ export type Post = {
   publishedAt: Date | null;
   richText: Array<RichTextBlock> | null;
 };
+export type PublicVideo = Omit<
+  {
+    duration: string | null;
+    id: number;
+    createdAt: Date;
+    updatedAt: Date;
+    title: string;
+    sortOrder: number;
+    published: boolean;
+    access: "club" | "public";
+    provider: "vk" | "youtube";
+    youtubeId: string | null;
+    videoUrl: string | null;
+    vkEmbedUrl: string | null;
+    vkSourceKey: string | null;
+    thumbnailUrl: string | null;
+    views: string | null;
+    publishedText: string | null;
+  },
+  "access" | "provider" | "youtubeId" | "vkEmbedUrl" | "vkSourceKey"
+> & { youtubeId: string };
 export type PostStatistics = {
   totalPosts: number;
   publishedPosts: number;
@@ -321,42 +342,42 @@ export type AppRouter = BuiltRouter<
       }>;
     };
     videos: {
+      catalog: QueryProcedure<{
+        input:
+          | { limit?: number | undefined; cursor?: number | undefined }
+          | undefined;
+        output: {
+          items: Array<{
+            id: number;
+            title: string;
+            duration: string | null;
+            access: "club" | "public";
+            canWatch: boolean;
+          }>;
+          nextCursor: number | null;
+        };
+        meta: unknown;
+      }>;
+      playback: QueryProcedure<{
+        input: { id: number };
+        output:
+          | { id: number; provider: "vk"; embedUrl: string }
+          | {
+              id: number;
+              provider: "youtube";
+              youtubeId: string;
+              videoUrl: string | null;
+            };
+        meta: unknown;
+      }>;
       list: QueryProcedure<{
         input: void;
-        output: Array<{
-          duration: string | null;
-          id: number;
-          createdAt: Date;
-          updatedAt: Date;
-          title: string;
-          sortOrder: number;
-          published: boolean;
-          youtubeId: string;
-          thumbnailUrl: string | null;
-          videoUrl: string | null;
-          views: string | null;
-          publishedText: string | null;
-        }>;
+        output: Array<PublicVideo>;
         meta: unknown;
       }>;
       getById: QueryProcedure<{
         input: { id: number };
-        output:
-          | {
-              duration: string | null;
-              id: number;
-              createdAt: Date;
-              updatedAt: Date;
-              title: string;
-              sortOrder: number;
-              published: boolean;
-              youtubeId: string;
-              thumbnailUrl: string | null;
-              videoUrl: string | null;
-              views: string | null;
-              publishedText: string | null;
-            }
-          | undefined;
+        output: PublicVideo | undefined;
         meta: unknown;
       }>;
     };
@@ -569,8 +590,8 @@ export type AppRouter = BuiltRouter<
           title: string;
           sortOrder: number;
           published: boolean;
-          coverUrl: string | null;
           access: "club" | "public";
+          coverUrl: string | null;
           sections: Array<ArticleBlock>;
         }>;
         meta: unknown;
@@ -586,12 +607,20 @@ export type AppRouter = BuiltRouter<
             caption?: string | undefined;
             urls?: Array<string> | undefined;
           }>;
+          idempotencyKey?: string | undefined;
           coverUrl?: string | null | undefined;
           access?: "club" | "public" | undefined;
           published?: boolean | undefined;
           sortOrder?: number | undefined;
         };
         output: number;
+        meta: unknown;
+      }>;
+      articleCreationStatus: QueryProcedure<{
+        input: { idempotencyKey: string };
+        output:
+          | { status: "notRecorded" }
+          | { status: "created" | "deleted"; articleId: number };
         meta: unknown;
       }>;
       updateArticle: MutationProcedure<{
@@ -672,9 +701,24 @@ export type AppRouter = BuiltRouter<
             thumbnailUrl?: string | undefined;
             views?: string | undefined;
             publishedText?: string | undefined;
+            access?: undefined;
+            provider?: undefined;
+            vkEmbedUrl?: undefined;
+            vkSourceKey?: undefined;
           }>;
         };
         output: { imported: number };
+        meta: unknown;
+      }>;
+      upsertVkVideo: MutationProcedure<{
+        input: {
+          embedUrl: string;
+          title: string;
+          access: "club" | "public";
+          published: boolean;
+          id?: number | undefined;
+        };
+        output: { id: number };
         meta: unknown;
       }>;
       purgeUserPushData: MutationProcedure<{
@@ -684,6 +728,26 @@ export type AppRouter = BuiltRouter<
       }>;
     };
     club: {
+      normalCheckoutStatus: QueryProcedure<{
+        input: { idempotencyKey: string };
+        output:
+          | { state: "notRecorded" }
+          | { state: "pending"; orderId: string }
+          | { state: "succeeded"; orderId: string; expiresAt: Date }
+          | { state: "failed"; orderId: string };
+        meta: unknown;
+      }>;
+      createNormalCheckout: MutationProcedure<{
+        input: {
+          idempotencyKey: string;
+          plan?: "monthly" | "semiannual" | undefined;
+        };
+        output:
+          | { state: "succeeded"; orderId: string; expiresAt: Date }
+          | { state: "failed"; orderId: string }
+          | { state: "pending"; orderId: string; url: string };
+        meta: unknown;
+      }>;
       list: QueryProcedure<{
         input:
           | {
@@ -701,6 +765,7 @@ export type AppRouter = BuiltRouter<
       subscription: QueryProcedure<{
         input: void;
         output: {
+          hasClubAccess: boolean;
           subscribed: boolean;
           expiresAt: Date | null;
           cancelAtPeriodEnd: boolean;

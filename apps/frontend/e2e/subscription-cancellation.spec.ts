@@ -41,6 +41,7 @@ async function fixture(page: Page) {
       lastSignedIn: string;
     } | null,
     subscription: {
+      hasClubAccess: true,
       subscribed: true,
       expiresAt: expiration as string | null,
       cancelAtPeriodEnd: false,
@@ -331,6 +332,7 @@ for (const readResult of [
   failure(429),
   ok({ subscribed: true, cancelAtPeriodEnd: true }),
   ok({
+    hasClubAccess: true,
     subscribed: true,
     cancelAtPeriodEnd: true,
     expiresAt: "invalid",
@@ -498,6 +500,7 @@ test("confirmed expiration closes private access without extending its period", 
   state.cancel = () => {
     state.subscription = {
       ...state.subscription,
+      hasClubAccess: false,
       subscribed: false,
       expiresAt: "2000-01-01T00:00:00Z",
       cancelAtPeriodEnd: true,
@@ -525,7 +528,10 @@ for (const kind of ["owner", "canceled", "inactive", "guest"]) {
       state.subscription.isOwner = true;
     }
     if (kind === "canceled") state.subscription.cancelAtPeriodEnd = true;
-    if (kind === "inactive") state.subscription.subscribed = false;
+    if (kind === "inactive") {
+      state.subscription.hasClubAccess = false;
+      state.subscription.subscribed = false;
+    }
     if (kind === "guest") state.user = null;
     await gotoWithSession(page, "/profile");
     const expected =

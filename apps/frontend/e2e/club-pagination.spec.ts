@@ -51,9 +51,11 @@ async function clubApi(
         if (name === "club.list") return answer(inputs[index]?.json ?? {});
         if (name === "club.subscription")
           return ok({
+            hasClubAccess: true,
             subscribed: true,
             cancelAtPeriodEnd: false,
-            expiresAt: null,
+            expiresAt: "2040-11-01T10:00:00Z",
+            isOwner: false,
             monthlyPrice: "790",
           });
         if (name === "feed.userInteractions")

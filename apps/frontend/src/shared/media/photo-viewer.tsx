@@ -20,6 +20,7 @@ import {
 import { PhotoNavigation } from "./photo-navigation";
 import { usePhotoMouseDrag } from "./use-photo-mouse-drag";
 import { MaterialIcons } from "@/shared/ui/icons";
+import { Spinner } from "@/shared/ui/spinner";
 import { useSafeAreaInsets } from "@/shared/ui/safe-area";
 import Animated, {
   useSharedValue,
@@ -193,6 +194,16 @@ function PhotoViewerInner({
                     Math.abs(index - currentIndex) <= 1 ? { uri } : undefined
                   }
                   fullSize
+                  showRetryButton
+                  loadingFallback={
+                    <div className={classes.loading}>
+                      <Spinner
+                        size="large"
+                        color="#eee"
+                        label="Загрузка изображения…"
+                      />
+                    </div>
+                  }
                   loading={index === currentIndex ? "eager" : "lazy"}
                   style={{ width: screenWidth, height: imageHeight }}
                   contentFit="contain"

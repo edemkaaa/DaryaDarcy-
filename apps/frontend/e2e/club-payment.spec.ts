@@ -29,6 +29,7 @@ async function fixture(page: Page, authenticated = false, subscribed = false) {
   const state = {
     user: authenticated ? (member() as ReturnType<typeof member> | null) : null,
     subscription: {
+      hasClubAccess: subscribed,
       subscribed,
       expiresAt: subscribed ? expiration : null,
       cancelAtPeriodEnd: false,
@@ -366,6 +367,7 @@ test("a guest return opens the email login path without granting access", async 
     state.user = member();
     state.subscription = {
       ...state.subscription,
+      hasClubAccess: true,
       subscribed: true,
       expiresAt: expiration,
     };
@@ -471,6 +473,7 @@ for (const result of [
     monthlyPrice: "790",
   }),
   ok({
+    hasClubAccess: true,
     subscribed: true,
     expiresAt: "invalid",
     cancelAtPeriodEnd: false,
@@ -497,6 +500,7 @@ for (const result of [
     state.read = undefined;
     state.subscription = {
       ...state.subscription,
+      hasClubAccess: true,
       subscribed: true,
       expiresAt: expiration,
     };
@@ -620,6 +624,11 @@ test("recovery handles malformed replies, rate limits and a valid queued instruc
   await expect(
     page.getByRole("status").filter({ hasText: "Если аккаунт доступен" }),
   ).toBeVisible();
+  await expect(page.getByLabel("Пароль", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Отправить инструкцию", exact: true }),
+  ).toBeEnabled();
+  await page.getByRole("button", { name: "Вернуться ко входу" }).click();
   await expect(page.getByLabel("Пароль", { exact: true })).toBeVisible();
   expect(attempts).toBe(3);
 });

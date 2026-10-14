@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { trpc } from "@/shared/api/trpc";
 import { useAuth } from "@/domain/session/session-context";
 import { checkOperationAccessError } from "@/domain/session/use-session-operation";
@@ -15,9 +16,14 @@ import {
 type InteractionKind = "like" | "save";
 export function usePostInteractions() {
   const { user } = useAuth();
+  const active = useScreenActive();
   const utils = trpc.useUtils();
   const query = trpc.feed.userInteractions.useQuery(undefined, {
-    enabled: Boolean(user),
+    enabled: Boolean(user) && active,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
   const scopes = useRef(new Map<string, OperationScope>());
   const blocked = useRef(new Set<string>());
@@ -48,7 +54,9 @@ export function usePostInteractions() {
     if (value) ids.add(Number(id));
     else ids.delete(Number(id));
   }
-  const ready = Boolean(user && validData);
+  const ready = Boolean(
+    active && user && validData && !query.isFetching && !query.isError,
+  );
   const retry = async () => {
     const parent = getSessionRequestSignal();
     const owner = user?.id;

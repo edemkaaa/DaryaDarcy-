@@ -2,7 +2,14 @@
 import classes from "./image.module.scss";
 import { mergeStyles } from "@/shared/ui/css";
 import { type BoxProps, DomImage } from "@/shared/ui/elements";
-import { forwardRef, useState, type ImgHTMLAttributes } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useRef,
+  useState,
+  type ImgHTMLAttributes,
+  type ReactNode,
+} from "react";
 import { resolveImageAttributes } from "@/shared/ui/static-images";
 export type ImageSource = {
   uri: string;
@@ -22,6 +29,11 @@ export type ImageProps = Omit<BoxProps, "onLoad" | "onError"> & {
   contentPosition?: string;
   transition?: number;
   fadeOnLoad?: boolean;
+  retryKey?: number;
+  showRetryButton?: boolean;
+  loadingFallback?: ReactNode;
+  errorFallback?: ReactNode;
+  /** Called after automatic recovery attempts have failed. */
   onError?: (event: unknown) => void;
   onLoad?: (event: {
     source: {
@@ -31,8 +43,32 @@ export type ImageProps = Omit<BoxProps, "onLoad" | "onError"> & {
     };
   }) => void;
 };
-export const Picture = Object.assign(
-  forwardRef<HTMLDivElement, ImageProps>(function Picture(
+const RETRY_DELAYS = [2_000, 5_000];
+
+export function ImageFailure({ onRetry }: { onRetry?: () => void }) {
+  return (
+    <div className={classes.fallback}>
+      <span role="img" aria-label="Изображение недоступно">
+        Не удалось загрузить изображение
+      </span>
+      {onRetry ? (
+        <button
+          type="button"
+          className={classes.retry}
+          onClick={(event) => {
+            event.stopPropagation();
+            onRetry();
+          }}
+        >
+          Повторить загрузку
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
+  function PictureContent(
     {
       source,
       loading = "lazy",
@@ -46,6 +82,10 @@ export const Picture = Object.assign(
       contentPosition = "center",
       transition = 0,
       fadeOnLoad = false,
+      retryKey: _retryKey,
+      showRetryButton = false,
+      loadingFallback,
+      errorFallback,
       onLoad,
       onError,
       style,
@@ -61,21 +101,75 @@ export const Picture = Object.assign(
         : typeof source === "object"
           ? source
           : null;
-    const [loadedSource, setLoadedSource] = useState<string | null>(null);
-    const [failedSource, setFailedSource] = useState<string | null>(null);
+    const [loaded, setLoaded] = useState(false);
+    const imageRef = useRef<HTMLImageElement | null>(null);
+    const [failed, setFailed] = useState(false);
+    const [attempt, setAttempt] = useState(0);
+    const [useOriginal, setUseOriginal] = useState(false);
     const resolved = resolveImageAttributes(
       asset?.uri,
-      fullSize,
+      fullSize || useOriginal,
       optimizeLocal,
       sizes,
     );
-    const sourceKey = JSON.stringify([
+    const terminalFailure = failed && attempt >= RETRY_DELAYS.length;
+    const hasCustomLoader = loadingFallback !== undefined;
+    const retry = () => {
+      setLoaded(false);
+      setFailed(false);
+      setAttempt((value) => value + 1);
+    };
+    useEffect(() => {
+      if (
+        !hasCustomLoader ||
+        !asset?.uri ||
+        loaded ||
+        failed
+      )
+        return;
+      const image = imageRef.current;
+      if (!image) return;
+      // Also detect completion if a cached image's load event was missed.
+      // Intrinsic dimensions alone do not mean a progressive photo is finished.
+      const isComplete = () => image.complete && image.naturalWidth > 0;
+      if (isComplete()) {
+        setLoaded(true);
+        return;
+      }
+      const timer = window.setInterval(() => {
+        if (!isComplete()) return;
+        setLoaded(true);
+        window.clearInterval(timer);
+      }, 100);
+      return () => window.clearInterval(timer);
+    }, [
+      hasCustomLoader,
       asset?.uri,
-      srcSet ?? resolved.srcSet,
-      fullSize,
-      optimizeLocal,
+      loaded,
+      failed,
+      attempt,
+      useOriginal,
     ]);
-    const failed = failedSource === sourceKey;
+    useEffect(() => {
+      if (!failed) return;
+      // Retry only failed requests. A slow request remains in flight indefinitely.
+      const resume = () => {
+        if (!navigator.onLine) return;
+        setLoaded(false);
+        setFailed(false);
+        setAttempt((value) => value + 1);
+      };
+      window.addEventListener("online", resume);
+      const delay = RETRY_DELAYS[attempt];
+      const timer =
+        navigator.onLine && delay !== undefined
+          ? window.setTimeout(resume, delay)
+          : undefined;
+      return () => {
+        window.removeEventListener("online", resume);
+        window.clearTimeout(timer);
+      };
+    }, [failed, attempt]);
     return (
       <div
         ref={ref}
@@ -102,10 +196,13 @@ export const Picture = Object.assign(
           .join(" ")}
       >
         <img
+          key={`${attempt}-${useOriginal}`}
           ref={(image) => {
+            imageRef.current = image;
             // Cached images may finish before the load handler is attached.
-            if (fadeOnLoad && image?.complete && image.naturalWidth > 0)
-              setLoadedSource(sourceKey);
+            if (image?.complete && image.naturalWidth > 0) {
+              setLoaded(true);
+            }
           }}
           src={resolved.src}
           alt={label || ""}
@@ -114,16 +211,23 @@ export const Picture = Object.assign(
           loading={loading}
           decoding={decoding}
           fetchPriority={fetchPriority}
-          srcSet={srcSet ?? resolved.srcSet}
+          srcSet={useOriginal ? undefined : (srcSet ?? resolved.srcSet)}
           sizes={sizes ?? resolved.sizes}
           draggable={false}
           onError={(event) => {
-            setFailedSource(sourceKey);
-            onError?.(event);
+            // The frontend optimizer has its own upstream timeout. Bypass it
+            // after a failure so the browser can wait for the original photo.
+            if (!useOriginal && resolved.src?.startsWith("/_next/image?")) {
+              setLoaded(false);
+              setUseOriginal(true);
+              return;
+            }
+            setFailed(true);
+            if (attempt >= RETRY_DELAYS.length) onError?.(event);
           }}
           onLoad={(event) => {
-            setFailedSource(null);
-            if (fadeOnLoad) setLoadedSource(sourceKey);
+            setFailed(false);
+            setLoaded(true);
             const image = event.currentTarget;
             onLoad?.({
               source: {
@@ -135,23 +239,57 @@ export const Picture = Object.assign(
           }}
           style={{
             visibility: failed ? "hidden" : undefined,
-            opacity: fadeOnLoad && loadedSource !== sourceKey ? 0 : undefined,
+            opacity: fadeOnLoad && !loaded ? 0 : undefined,
             objectFit: contentFit,
             objectPosition: contentPosition,
             transition: transition ? `opacity ${transition}ms` : undefined,
           }}
           className={classes.img}
         />
-        {failed ? (
-          <span
-            role="img"
-            aria-label="Изображение недоступно"
-            className={classes.fallback}
-          >
-            Изображение недоступно
-          </span>
+        {terminalFailure ? (
+          errorFallback !== undefined ? (
+            errorFallback
+          ) : (
+            <ImageFailure onRetry={showRetryButton ? retry : undefined} />
+          )
+        ) : asset?.uri &&
+          !loaded &&
+          (fadeOnLoad ||
+            showRetryButton ||
+            failed ||
+            attempt > 0 ||
+            useOriginal) ? (
+          loadingFallback !== undefined ? (
+            loadingFallback
+          ) : (
+            <span role="status" className={classes.loading}>
+              {failed ? "Повторяем загрузку…" : "Загрузка изображения…"}
+            </span>
+          )
         ) : null}
       </div>
+    );
+  },
+);
+
+export const Picture = Object.assign(
+  forwardRef<HTMLDivElement, ImageProps>(function Picture(props, ref) {
+    const uri =
+      typeof props.source === "string" ? props.source : props.source?.uri;
+    // Source changes and manual retries start a fresh lifecycle, including timers.
+    return (
+      <PictureContent
+        key={JSON.stringify([
+          uri,
+          props.srcSet,
+          props.sizes,
+          props.fullSize,
+          props.optimizeLocal,
+          props.retryKey,
+        ])}
+        {...props}
+        ref={ref}
+      />
     );
   }),
   { getSize: DomImage.getSize, prefetch: DomImage.prefetch },

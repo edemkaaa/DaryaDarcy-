@@ -53,13 +53,13 @@ export function QuizResultScreen() {
   const { stylesLayout } = getQuizResultLayout(viewport);
 
   const { state, dispatch } = useQuiz();
-  const { isSubscribed } = useClub();
+  const { hasClubAccess } = useClub();
   const result = state.result;
   const [showClubContent, setShowClubContent] = useState(false);
   const [activeKey, setActiveKey] = useState<AestheticKey | null>(null);
   useEffect(() => {
-    if (!isSubscribed) setShowClubContent(false);
-  }, [isSubscribed]);
+    if (!hasClubAccess) setShowClubContent(false);
+  }, [hasClubAccess]);
   // Persist result to AsyncStorage when it becomes available
   useEffect(() => {
     if (result && !state.restored) {
@@ -102,7 +102,7 @@ export function QuizResultScreen() {
     router.back();
   };
   const handleClubCTA = () => {
-    if (isSubscribed && clubContent) {
+    if (hasClubAccess && clubContent) {
       setShowClubContent(true);
     } else {
       // Navigate to club tab (subscription page)
@@ -342,7 +342,7 @@ export function QuizResultScreen() {
                 .filter(Boolean)
                 .join(" ")}
             >
-              {isSubscribed ? (
+              {hasClubAccess ? (
                 <>
                   <Typography className={classes.clubCTAPrivilege}>
                     Вам доступен полный гид по вашей эстетике
@@ -367,14 +367,14 @@ export function QuizResultScreen() {
                 className={classes.action}
               >
                 <Typography className={classes.clubCTAButtonText}>
-                  {isSubscribed ? "Читать" : "Вступить в клуб"}
+                  {hasClubAccess ? "Читать" : "Вступить в клуб"}
                 </Typography>
               </Action>
             </div>
           )}
 
           {/* Club Content (expanded) */}
-          {showClubContent && isSubscribed && clubContent && (
+          {showClubContent && hasClubAccess && clubContent && (
             <ClubContentSection
               content={clubContent}
               aestheticKey={activeResult.key}

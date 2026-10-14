@@ -11,10 +11,14 @@ export function VkVideoField({
   videos,
   disabled,
   onAdd,
+  validateUrl = getVkVideoEmbedUrl,
+  helpText,
 }: {
   videos: readonly string[];
   disabled: boolean;
   onAdd: (url: string) => void;
+  validateUrl?: (url: string) => string | null;
+  helpText?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
@@ -27,14 +31,14 @@ export function VkVideoField({
   };
   const add = () => {
     if (disabled) return;
-    const url = getVkVideoEmbedUrl(value.trim());
+    const url = validateUrl(value.trim());
     if (!url) {
       setError(
         "Вставьте HTTPS-ссылку video_ext.php из экспорта VK с параметрами oid, id и hash. Ссылка на страницу ролика и HTML-код не подходят.",
       );
       return;
     }
-    if (videos.some((item) => getVkVideoEmbedUrl(item) === url)) {
+    if (videos.some((item) => validateUrl(item) === url)) {
       setError("Это видео уже добавлено.");
       return;
     }
@@ -79,9 +83,10 @@ export function VkVideoField({
             className={classes.input}
           />
           <Typography id={`${id}-help`} className={classes.hint}>
-            В VK откройте «Поделиться» → «Экспортировать» и скопируйте адрес из
+            {helpText ??
+              `В VK откройте «Поделиться» → «Экспортировать» и скопируйте адрес из
             src, без HTML-кода. Доступ определяется местом публикации поста.
-            Ссылка сохраняется вместе с постом.
+            Ссылка сохраняется вместе с постом.`}
           </Typography>
           <Typography
             id={`${id}-error`}

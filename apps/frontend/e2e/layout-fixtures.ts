@@ -93,6 +93,7 @@ export async function layoutApi(page: Page, subscribed = false) {
         switch (name) {
           case "club.subscription":
             return {
+              hasClubAccess: subscribed,
               subscribed,
               expiresAt: subscribed ? "2040-11-01T10:00:00Z" : null,
               cancelAtPeriodEnd: false,

@@ -5,6 +5,7 @@ import {
 } from "../apps/frontend/src/shared/api/club-access";
 
 const paid = {
+  hasClubAccess: true,
   subscribed: true,
   expiresAt: "2040-11-01T10:00:00Z",
   cancelAtPeriodEnd: false,
@@ -27,14 +28,36 @@ describe("server-confirmed club access", () => {
   });
   it("keeps a server-confirmed inactive account inactive", () => {
     expect(
-      parseClubAccess({ ...paid, subscribed: false, expiresAt: null })
-        .subscribed,
+      parseClubAccess({
+        ...paid,
+        hasClubAccess: false,
+        subscribed: false,
+        expiresAt: null,
+      }).subscribed,
+    ).toBe(false);
+  });
+  it("accepts service access without inventing a paid subscription", () => {
+    expect(
+      parseClubAccess({ ...paid, subscribed: false, expiresAt: null }),
+    ).toMatchObject({
+      hasClubAccess: true,
+      subscribed: false,
+      expiresAt: null,
+      cancelAtPeriodEnd: false,
+      isOwner: false,
+    });
+  });
+  it("preserves the server's access decision independently of subscribed", () => {
+    expect(
+      parseClubAccess({ ...paid, hasClubAccess: false }).hasClubAccess,
     ).toBe(false);
   });
   it.each([
     null,
     [],
     {},
+    { ...paid, hasClubAccess: undefined },
+    { ...paid, hasClubAccess: "true" },
     { ...paid, subscribed: "true" },
     { ...paid, cancelAtPeriodEnd: "false" },
     { ...paid, isOwner: "true" },

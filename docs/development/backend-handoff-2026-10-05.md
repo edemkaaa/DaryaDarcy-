@@ -1,5 +1,24 @@
 # Передача изменений бэкенда фронтендеру
 
+## 15 октября — локальное объединение со staging, без публикации
+
+После отдельного разрешения пользователя свежий staging81e8563 объединён с
+нашей feature-веткой (parent ad54e16) без конфликтов. Весь frontend сохранён
+точно как в staging; backend/database сохранены точно как у нас. Ручных правок
+frontend или его generated contract нет. Remote/server/DB/S3 не обновлялись.
+
+Прошли root/frontend/E2E types, lint, backend/frontend builds, boundaries656 и
+docs58. Full Vitest:2339 pass/1 fail/1427 skipped/5 pending (255 files),51.26s.
+Fail web-viewport.test.ts воспроизводится отдельно: window stub без document,
+viewport.ts:73. Оба файла/config/setup одинаковы в parents; это не регрессия merge.
+Проверку не отключали и фронт не исправляли. `check:api` по-прежнему RED82/79:
+frontend team должен обновить контракт при подключении private uploads.
+Общий GREEN, native SQL/browser/provider/device readiness не заявляются.
+
+Передача ниже теперь применима к объединённым локальным исходникам. Утверждения
+о раздельных ветках описывают предыдущую сверку. Private upload/status/association
+остаётся frontend-задачей; публикация merge и rollout требуют отдельного разрешения.
+
 ## 15 октября — актуальная передача после интеграции фронтендера
 
 **Начинать здесь.** Сверены local backend `2e986f3` и свежий

@@ -4,6 +4,22 @@
 
 ### Проверенный остаток на 15 октября
 
+- [x] По прямому разрешению пользователя локально объединены parent ad54e16 и
+  свежий staging81e8563 на feature/stage-one-completion-2026-10-10; без конфликтов,
+  ручных правок frontend, push/deploy/DB/S3. Frontend tree точно равен81e8563;
+  apps/backend и packages/database точно равны ad54e16. Зависимости не менялись.
+  `pnpm check` (root + frontend/E2E types), lint, backend/frontend builds,
+  boundaries656, docs58, staged diff check — exit0.
+  Полный Vitest без external/SQL credentials: **2339 pass, 1 fail, 1427 skipped,
+  5 pending**, 255 файлов/3772 tests,51.26s, exit1. Единственный fail:
+  __tests__/web-viewport.test.ts — document is not defined (viewport.ts:73).
+  Адресный повтор:1 pass/1 fail. Test/viewport/config/setup одинаковы в обоих
+  parents: это существующий пробел Node fixture (window задан, document нет),
+  не новый merge conflict; исправление фронта/его тестов не разрешено.
+  check:api exit1 — сохранён known contract82 vs frontend79, без regeneration.
+  JSON evidence: /tmp/daryadarcy-merge-check.fCpphO/vitest.json. Не общий GREEN;
+  SQL/browser/provider/mobile acceptance этим merge не выполнены.
+
 - [x] AG9: актуализировать existing backend handoff после frontend34f1a8d/
   staging81e8563. Fetch15 октября: snapshot не менялся с прошлой сверки;
   club access/articles/NORMAL/VK уже подключены, не делать заново.
@@ -12,8 +28,9 @@
   Новый UI для recoveryExport не назначен. Только docs, без runtime/front changes.
   Документация56/diff exit0; review сопоставил текст с current handlers и staging
   исходниками. SQL/browser/build не повторялись: code не изменён, новых claims нет.
-- [ ] Совместная private-media интеграция и native acceptance: клиент ещё старый;
-  backend0032–0035 не целиком в staging/не выложен; push/merge/rollout не разрешены.
+- [ ] Совместная private-media интеграция и native acceptance: upload-клиент ещё
+  старый; backend0032–0035 теперь с новым frontend объединены только локально,
+  remote staging/сервер не обновлены. Push/rollout всё ещё не разрешены.
   Пакет передачи: начало docs/development/backend-handoff-2026-10-05.md.
   Без новых входов не повторять готовые тесты/не придумывать backend функции.
 

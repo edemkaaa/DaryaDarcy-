@@ -22,6 +22,7 @@ import {
   useCallback,
   useMemo,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import AsyncStorage from "@/shared/browser/storage";
@@ -70,7 +71,11 @@ import {
   PROFILE_COMPLETED_KEY,
 } from "./club-subscribed.content";
 import type { ClubTab, ClubPost } from "./club-subscribed.content";
-export function ClubSubscribed() {
+export function ClubSubscribed({
+  purchaseNotice,
+}: {
+  purchaseNotice?: ReactNode;
+}) {
   const active = useScreenActive();
   const appearanceQuery = useClubAppearance();
   const [failedImages, setFailedImages] = useState<string[]>([]);
@@ -481,7 +486,12 @@ export function ClubSubscribed() {
           renderItem={renderPost}
           keyExtractor={(item) => item.id}
           hideScrollbar
-          header={ListHeader()}
+          header={
+            <>
+              {purchaseNotice}
+              {ListHeader()}
+            </>
+          }
           footer={
             posts.length > 0 ? (
               <QueryRetryState

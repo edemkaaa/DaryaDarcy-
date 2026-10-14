@@ -20,6 +20,7 @@ import {
 } from "@/shared/api/errors";
 import { trpc } from "@/shared/api/trpc";
 import type { ApiOutputs } from "@/shared/api/types";
+import { parseClubAccess } from "@/shared/api/club-access";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 
 type Notice = { status: "unknown" | "error"; message: string };
@@ -35,16 +36,7 @@ function validExpiration(value: unknown): boolean {
 }
 
 function requireSubscription(value: ApiOutputs["club"]["subscription"]) {
-  if (
-    !value ||
-    typeof value.subscribed !== "boolean" ||
-    typeof value.cancelAtPeriodEnd !== "boolean" ||
-    typeof value.isOwner !== "boolean" ||
-    typeof value.monthlyPrice !== "string" ||
-    !validExpiration(value.expiresAt) ||
-    (value.subscribed && !value.isOwner && value.expiresAt === null)
-  )
-    throw invalidResponse();
+  return parseClubAccess(value);
 }
 
 /** A timed-out write may already be queued by the server; retry only reads. */
@@ -74,10 +66,10 @@ function useCancellationController(active: boolean) {
       signal: task.signal,
     });
     task.assertCurrent();
-    requireSubscription(value);
+    const subscription = requireSubscription(value);
     await utils.club.subscription.cancel();
     task.assertCurrent();
-    utils.club.subscription.setData(undefined, value);
+    utils.club.subscription.setData(undefined, subscription);
     remember(
       value.cancelAtPeriodEnd
         ? null

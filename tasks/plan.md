@@ -72,6 +72,16 @@
 
 ### Снимок, от которого продолжать
 
+Последующее прямое разрешение15 октября: **локальный merge staging81e8563 в
+текущую feature-ветку**, сохранять весь frontend, без ручных frontend правок,
+push/deploy/рабочей DB. Выполнен no-ff merge без конфликтов из ad54e16;
+frontend точно совпадает с incoming staging, backend/database — с нашим parent.
+Типы/root+frontend+E2E, lint, обе сборки, boundaries656/docs58 проходят.
+Full tests2339 pass/1 existing viewport fail/1427 skipped/5 pending,51.26s;
+check:api known RED82/79. Подробности/JSON evidence — начало todo.
+Это проверенное локальное объединение с зафиксированными ограничениями, не
+разрешение будущих merge/push/rollout и не совместная browser/S3 приёмка.
+
 Дополнение15 октября: read-only fetch подтвердил staging81e8563; local2e986f3,
 чистое дерево до doc-среза. Frontend34f1a8d уже интегрировал club access/articles/
 NORMAL/VK. Existing handoff актуализирован: следующий остаток private upload/

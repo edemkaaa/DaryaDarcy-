@@ -25,7 +25,7 @@ import type { ArticleBlock } from "@/domain/content/article-blocks";
 import { PAPER } from "./article-screen.content";
 export default function LibraryArticleScreen({ id }: { id: string }) {
   const router = useRouter();
-  const { isSubscribed } = useClub();
+  const { hasClubAccess } = useClub();
   const articleId = parseContentId(id);
   const utils = trpc.useUtils();
   const input = { id: articleId ?? 0 };
@@ -113,7 +113,7 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
                 className={classes.clubBtn}
               >
                 <Typography className={classes.clubBtnText}>
-                  {isSubscribed ? "Открыть клуб" : "Вступить в клуб"}
+                  {hasClubAccess ? "Открыть клуб" : "Вступить в клуб"}
                 </Typography>
               </Action>
             </div>

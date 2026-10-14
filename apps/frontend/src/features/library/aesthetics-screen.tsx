@@ -77,7 +77,7 @@ export default function AestheticsGuideScreen() {
   const viewport = useViewport();
   const { stylesLayout } = getAestheticsScreenLayout(viewport);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { isSubscribed } = useClub();
+  const { hasClubAccess } = useClub();
   const handleBack = () => {
     router.back();
   };
@@ -132,7 +132,7 @@ export default function AestheticsGuideScreen() {
           </div>
 
           {/* Subscription Gate */}
-          {!isSubscribed ? (
+          {!hasClubAccess ? (
             <div
               className={["ui-stack ", classes.lockedContainer]
                 .filter(Boolean)
@@ -247,7 +247,7 @@ export default function AestheticsGuideScreen() {
           )}
 
           {/* Aesthetic Sections (only for subscribers) */}
-          {isSubscribed &&
+          {hasClubAccess &&
             AESTHETIC_ORDER.map((key) => {
               const result = AESTHETIC_RESULTS[key];
               const clubContent = getClubContent(key);
@@ -354,7 +354,7 @@ export default function AestheticsGuideScreen() {
                   ) : null}
 
                   {/* Premium Content (Club only) */}
-                  {isSubscribed && clubContent && (
+                  {hasClubAccess && clubContent && (
                     <>
                       {/* СТИЛЬ */}
                       <div
@@ -815,7 +815,7 @@ export default function AestheticsGuideScreen() {
             })}
 
           {/* Bottom CTA (only for subscribers) */}
-          {isSubscribed && (
+          {hasClubAccess && (
             <div
               className={["ui-stack ", classes.bottomCTA]
                 .filter(Boolean)

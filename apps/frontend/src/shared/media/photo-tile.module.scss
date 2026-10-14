@@ -1,0 +1,19 @@
+@use "../styles/layers";
+
+@layer elements {
+  .open,
+  .picture {
+    position: absolute;
+    inset: 0;
+  }
+
+  .open {
+    width: 100%;
+    height: 100%;
+  }
+
+  .pressed {
+    opacity: 0.92;
+    --action-base-opacity: 0.92;
+  }
+}

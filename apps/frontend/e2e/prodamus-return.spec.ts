@@ -39,6 +39,7 @@ async function fixture(page: Page, member = false) {
         state.accessReads++;
         const subscribed = member && state.accessReads > 1;
         return ok({
+          hasClubAccess: subscribed,
           subscribed,
           expiresAt: subscribed ? "2040-11-01T10:00:00Z" : null,
           cancelAtPeriodEnd: false,

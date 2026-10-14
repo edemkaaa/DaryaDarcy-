@@ -23,6 +23,8 @@ import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { trpc } from "@/shared/api/trpc";
 import { PAPER_TEXTURE_URI } from "./videos-screen.content";
 import { apiUrl } from "@/shared/config/api";
+import { isVkCatalogEnabled } from "./catalog-api";
+import { VideoCatalogScreen } from "./catalog-screen";
 type Video = {
   id: number;
   youtubeId: string;
@@ -68,9 +70,12 @@ function VideosScreenInner() {
     ({ item }: { item: Video }) => {
       const stored = item.thumbnailUrl?.trim() ?? "";
       const thumbnailUrl =
-        stored && !/ytimg\.com|img\.youtube\.com|\/media\/yt-thumb\//i.test(stored)
+        stored &&
+        !/ytimg\.com|img\.youtube\.com|\/media\/yt-thumb\//i.test(stored)
           ? stored
-          : apiUrl(`/media/yt-thumb/${encodeURIComponent(item.youtubeId)}/hqdefault.jpg`);
+          : apiUrl(
+              `/media/yt-thumb/${encodeURIComponent(item.youtubeId)}/hqdefault.jpg`,
+            );
       return (
         <Action
           onClick={() => handleVideoPress(item)}
@@ -178,6 +183,7 @@ function VideosScreenInner() {
   );
 }
 export default function VideosScreen() {
+  if (isVkCatalogEnabled()) return <VideoCatalogScreen />;
   return (
     <div className="ui-stack ">
       <VideosScreenInner />
