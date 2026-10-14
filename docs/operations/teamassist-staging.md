@@ -245,6 +245,38 @@ contexts ещё требуют отдельной проверки/fence; owner-
 bound/orphan evidence и own export пока НЕ реализованы. Backup/restore/history
 условия остаются внешними. Working DB/S3/фронт не затронуты.
 
+R6c локальный контракт: `CONTENT_RECOVERY_RETIREMENT_ENABLED=true` (default-off)
+включает удаление post/article recovery rows и markers автора в existing final
+scrub transaction. Private receipts сохраняют assetId, state, MIME/size, ETag,
+payload/namespace hashes, post/media, createdAt/orphanedAt; actorUserId=NULL,
+filename пуст, recoveryCompactedAt установлен, requestKey заменён fingerprint
+`retired-private:v1` + assetId без старого actor/client intent. Это не полная
+анонимность S3 metadata/backup и не удаление материалов проекта. Maintenance
+не воссоздаёт marker владельца для terminal NULL-owner receipt. Миграция0035
+разрешает nullable private owner и добавляет owner/key indexes; runtime не
+исправляет DDL и отказывает на partial/non-InnoDB schema. SQL rollback сохраняет
+все прежние links/identity. Перед рабочим включением drain старых writers и
+existing history/backup/restore gates; откат flag возможен, deanonymization нет.
+DDL rollback0035 после scrub не выполнять: NULL owners необратимы; restore требует
+повторного retirement до открытия API. Все проверки только на own tmpfs DB.
+
+R6d API contract (локальная реализация): `profileExtras.recoveryExport` query,
+protected, `CONTENT_RECOVERY_EXPORT_ENABLED` default-off. Strict input
+`{kind:'post'|'article'|'private_attachment', afterKey?:64 lowercase hex, limit?:1..100}`,
+default limit25. Нет userId selector: owner берётся только из текущей сессии.
+Output `{items:[{requestId,createdAt,status}], nextCursor:string|null}`. requestId —
+серверный fingerprint, НЕ original client idempotencyKey; курсор такой же fingerprint.
+Post/article status `created|deleted` (существует ли committed material), upload
+`pending|ready`, compact/expired `expired`. Expiry использует existing retention flag;
+marker всегда terminal независимо от flag. Нет content, filename, material/assetId,
+payload/namespace hash, claimToken, ETag, credentials, signed/public/file URLs.
+Экспорт не восстанавливает draft-download capability и не экспортирует billing/email
+ledgers. Две indexed keyset выборки journal/markers объединяются на одной read-only
+RR snapshot; marker побеждает duplicate. Это live pagination, не frozen bulk backup:
+новые записи перед курсором требуют нового обхода. Existing session epoch/block
+проверяются на той же nonlocking snapshot; missing/partial0035 schema даёт sanitized503,
+не empty success. API/backend handoff additive; frontend/generated types не меняются.
+
 R6b: post/article keyed/legacy create, edit/delete и confirm post получают epoch
 из authenticated context и повторно проверяют его в write transaction под user
 PK lock, перед locks материалов/журналов. После final retirement старый context

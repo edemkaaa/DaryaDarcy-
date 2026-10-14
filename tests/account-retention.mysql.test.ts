@@ -17,6 +17,10 @@ import { WORKER_OPERATIONS, type WorkerOperations } from "../apps/backend/src/wo
 import { randomUUID } from "node:crypto";
 import { requestMemberEmailBinding } from "../apps/backend/src/identity/email-binding";
 import { lockPrivateAttachmentActor } from "../apps/backend/src/content/private-attachment-uploads";
+import { drizzle } from "drizzle-orm/mysql2";
+import { privateReceiptForMedia } from "../apps/backend/src/content/private-attachment-association";
+import { maintainPrivateRecovery } from "../apps/backend/src/content/private-recovery-maintenance";
+import { privateStorageNamespace } from "../apps/backend/src/media/private-upload-object";
 
 describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () => {
   let conn: Connection;
@@ -89,6 +93,8 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     await conn.query("DELETE FROM admin_audit_log WHERE actorUserId=92103");
   }
   async function cleanupRecoveryContent() {
+    await conn.query("DELETE FROM private_attachment_uploads WHERE assetId IN ('92100000-0000-4000-8000-000000000001','92100000-0000-4000-8000-000000000002')");
+    await conn.query("DELETE FROM content_recovery_markers WHERE actorUserId=92102 AND requestKey=REPEAT('b',64)");
     await conn.query("DELETE FROM post_media WHERE postId IN (SELECT id FROM posts WHERE source='r6-content-fixture')");
     await conn.query("DELETE FROM posts WHERE source='r6-content-fixture' OR source='article:92150'");
     await conn.query("DELETE FROM articles WHERE id=92150 OR title='r6-content-fixture'");
@@ -96,6 +102,70 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     await conn.query("DELETE FROM article_creation_requests WHERE actorUserId=92101");
     await conn.query("DELETE FROM content_recovery_markers WHERE actorUserId=92101");
   }
+  async function recoveryFixture() {
+    await conn.query("INSERT INTO post_creation_requests(requestKey,actorUserId,payloadHash,postId) VALUES(REPEAT('a',64),92101,REPEAT('c',64),92150)");
+    await conn.query("INSERT INTO article_creation_requests(requestKey,actorUserId,payloadHash,claimToken,articleId) VALUES(REPEAT('a',64),92101,REPEAT('c',64),'92100000-0000-4000-8000-000000000003',92150)");
+    await conn.query("INSERT INTO content_recovery_markers(kind,requestKey,actorUserId,createdAt) VALUES('post',REPEAT('b',64),92101,NOW()),('article',REPEAT('b',64),92102,NOW())");
+    await conn.query("INSERT INTO private_attachment_uploads(requestKey,actorUserId,assetId,payloadHash,namespaceHash,type,filename,mimeType,fileSize,state,etag,postId,mediaId) VALUES(REPEAT('a',64),92101,'92100000-0000-4000-8000-000000000001',REPEAT('c',64),REPEAT('d',64),'document','Personal name.pdf','application/pdf',10,'ready','fixture-etag',92150,92150),(REPEAT('b',64),92102,'92100000-0000-4000-8000-000000000002',REPEAT('c',64),REPEAT('d',64),'document','Neighbor.pdf','application/pdf',10,'pending',NULL,NULL,NULL)");
+  }
+  it("erases retired recovery ownership but preserves bound evidence and neighbor records", async () => {
+    vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", "true");
+    try {
+      await recoveryFixture();
+      await conn.query("INSERT INTO posts(id,text,photos,tags,source) VALUES(92150,'Keep',JSON_ARRAY(),JSON_ARRAY(),'r6-content-fixture')");
+      await conn.query("INSERT INTO post_media(id,postId,type,url) VALUES(92150,92150,'document','/api/media/post-attachments/92150')");
+      expect(await processScheduledAccountDeletions()).toBe(1);
+      for (const table of ["post_creation_requests", "article_creation_requests", "content_recovery_markers"] as const) {
+        const [rows] = await conn.query<RowDataPacket[]>(`SELECT requestKey FROM ${table} WHERE actorUserId=92101`);
+        expect(rows).toEqual([]);
+      }
+      const [rows] = await conn.query<RowDataPacket[]>("SELECT * FROM private_attachment_uploads ORDER BY assetId");
+      expect(rows.find(row => row.assetId.endsWith('000001'))).toMatchObject({actorUserId:null,filename:'',state:'ready',etag:'fixture-etag',payloadHash:'c'.repeat(64),namespaceHash:'d'.repeat(64),postId:92150,mediaId:92150});
+      expect(rows.find(row => row.assetId.endsWith('000002'))).toMatchObject({actorUserId:92102,filename:'Neighbor.pdf',state:'pending'});
+      expect(rows.find(row => row.assetId.endsWith('000001'))!.requestKey).not.toBe('a'.repeat(64));
+      vi.stubEnv('S3_ENDPOINT','http://127.0.0.1:1');
+      vi.stubEnv('S3_BUCKET','r6-fixture');
+      await conn.query("UPDATE private_attachment_uploads SET namespaceHash=? WHERE assetId='92100000-0000-4000-8000-000000000001'",[privateStorageNamespace().hash]);
+      expect(await privateReceiptForMedia(drizzle(conn),{id:92150,postId:92150,type:'document'})).toMatchObject({key:'feed/documents/private-v1/92100000-0000-4000-8000-000000000001',etag:'fixture-etag'});
+    } finally { vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", "false"); }
+  });
+  it.each(["off", "rollback", "partial"])("keeps recovery links intact on %s retirement", async scenario => {
+    await recoveryFixture();
+    vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", scenario === "off" ? "false" : "true");
+    if (scenario === "rollback") await conn.query("CREATE TRIGGER backend_test_r6_failure BEFORE UPDATE ON users FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='fixture rollback'");
+    if (scenario === "partial") await conn.query("RENAME TABLE content_recovery_markers TO backend_test_r6_markers_hold");
+    try {
+      if (scenario === "off") expect(await processScheduledAccountDeletions()).toBe(1);
+      else await expect(processScheduledAccountDeletions()).rejects.toThrow();
+      const [rows] = await conn.query<RowDataPacket[]>("SELECT actorUserId,filename FROM private_attachment_uploads WHERE assetId='92100000-0000-4000-8000-000000000001'");
+      expect(rows).toEqual([{actorUserId:92101,filename:'Personal name.pdf'}]);
+      expect((await conn.query<RowDataPacket[]>("SELECT requestKey FROM post_creation_requests WHERE actorUserId=92101"))[0]).toHaveLength(1);
+      if (scenario !== "off") expect((await conn.query<RowDataPacket[]>("SELECT sessionVersion,email FROM users WHERE id=92101"))[0][0]).toMatchObject({sessionVersion:0,email:'retention@example.test'});
+    } finally {
+      if (scenario === "rollback") await conn.query("DROP TRIGGER backend_test_r6_failure");
+      if (scenario === "partial") await conn.query("RENAME TABLE backend_test_r6_markers_hold TO content_recovery_markers");
+      vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED","false");
+    }
+  });
+  it("keeps retired orphan evidence without recreating an owner marker during local compaction", async () => {
+    await recoveryFixture();
+    await conn.query("UPDATE private_attachment_uploads SET postId=NULL,mediaId=NULL,createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=92101");
+    vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED","true");
+    vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED","true");
+    vi.stubEnv("CONTENT_RECOVERY_MAINTENANCE_ENABLED","true");
+    vi.stubEnv("PRIVATE_ORPHAN_CLEANUP_ENABLED","false");
+    try {
+      expect(await processScheduledAccountDeletions()).toBe(1);
+      const result=await maintainPrivateRecovery(drizzle(conn),{limit:100});
+      expect(result.failed).toBe(0);
+      const [rows]=await conn.query<RowDataPacket[]>("SELECT actorUserId,orphanedAt,etag FROM private_attachment_uploads WHERE assetId='92100000-0000-4000-8000-000000000001'");
+      expect(rows[0]).toMatchObject({actorUserId:null,etag:'fixture-etag'});
+      expect(rows[0].orphanedAt).toBeInstanceOf(Date);
+      expect((await conn.query<RowDataPacket[]>("SELECT requestKey FROM content_recovery_markers WHERE kind='private_attachment'"))[0]).toEqual([]);
+    } finally {
+      for (const key of ['CONTENT_RECOVERY_RETIREMENT_ENABLED','CONTENT_RECOVERY_RETENTION_ENABLED','CONTENT_RECOVERY_MAINTENANCE_ENABLED']) vi.stubEnv(key,'false');
+    }
+  });
   async function contentSnapshot() {
     const [posts] = await conn.query<RowDataPacket[]>("SELECT id,text,status FROM posts WHERE source='r6-content-fixture' OR source='article:92150' ORDER BY id");
     const [articles] = await conn.query<RowDataPacket[]>("SELECT id,title FROM articles WHERE id=92150 OR title='r6-content-fixture' ORDER BY id");

@@ -197,8 +197,13 @@ AG6 принят и реализован
     RED→GREEN сценария подтверждают no resurrection и nonblocking busy activity.
     Affected checkpoint:179 pass/7 suites/skip0,8.84s, включая HTTP lost ACK,
     compiled-process replay и uncommitted article status; tsc/build/boundaries exit0.
-    R6 ещё НЕ завершён: удалить owner links recovery journals с сохранением bound
-    read/orphan evidence и реализовать own export. All-admin writers не заявлены.
+    R6c локально: final transaction удаляет post/article journals и markers автора,
+    private receipts NULL-owner/empty filename/rotated key сохраняют bound/orphan
+    evidence.0035 только own tmpfs fixture; flag retirement off. RED retained owner
+    links→GREEN; affected112 pass/7 suites/skip0,17.05s; tsc/build exit0.
+    Native rollback/partial schema/flag-off/neighbor/bound receipt/retired compaction
+    проверены. Runtime DDL/S3 нет; read check без обращения к storage.
+    R6 ещё НЕ завершён: реализовать own export. All-admin writers не заявлены.
     Эти пункты не заменяются отзывом сессии; backup/restore gates прежние.
 - [x] **AG6 — точные остатки обычной оплаты/отмены.** Статус: готово локально
   14 октября по принятому контракту. Authenticated normal create/status,

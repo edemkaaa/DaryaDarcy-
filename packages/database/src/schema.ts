@@ -89,7 +89,7 @@ export const postCreationRequests = mysqlTable("post_creation_requests", {
   payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
   postId: int("postId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, table => [index("post_creation_retention").on(table.createdAt, table.requestKey)]);
+}, table => [index("post_creation_retention").on(table.createdAt, table.requestKey), index("post_creation_owner_key").on(table.actorUserId, table.requestKey)]);
 
 // Keep committed results after article deletion: replay must never resurrect it.
 export const articleCreationRequests = mysqlTable("article_creation_requests", {
@@ -99,7 +99,7 @@ export const articleCreationRequests = mysqlTable("article_creation_requests", {
   claimToken: varchar("claimToken", { length: 36 }).notNull(),
   articleId: int("articleId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, table => [index("article_creation_retention").on(table.createdAt, table.requestKey)]);
+}, table => [index("article_creation_retention").on(table.createdAt, table.requestKey), index("article_creation_owner_key").on(table.actorUserId, table.requestKey)]);
 
 // Expired intents remain spent after their detailed recovery row is compacted.
 export const contentRecoveryMarkers = mysqlTable("content_recovery_markers", {
@@ -110,6 +110,7 @@ export const contentRecoveryMarkers = mysqlTable("content_recovery_markers", {
 }, table => [
   primaryKey({ columns: [table.kind, table.requestKey] }),
   index("content_recovery_marker_owner").on(table.actorUserId, table.createdAt),
+  index("content_recovery_owner_key").on(table.actorUserId, table.kind, table.requestKey),
 ]);
 
 // ── Post Media (video, audio, documents — photos stay in posts.photos for backward compat) ──
@@ -139,7 +140,7 @@ export type InsertPostMedia = typeof postMedia.$inferInsert;
 // Recovery evidence survives detachment/deletion. Never auto-expire or rebind it.
 export const privateAttachmentUploads = mysqlTable("private_attachment_uploads", {
   requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
-  actorUserId: int("actorUserId").notNull(),
+  actorUserId: int("actorUserId"),
   assetId: varchar("assetId", { length: 36 }).notNull(),
   payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
   namespaceHash: varchar("namespaceHash", { length: 64 }).notNull(),
@@ -158,6 +159,7 @@ export const privateAttachmentUploads = mysqlTable("private_attachment_uploads",
   uniqueIndex("private_attachment_asset_unique").on(table.assetId),
   uniqueIndex("private_attachment_media_unique").on(table.mediaId),
   index("private_attachment_retention").on(table.createdAt, table.requestKey),
+  index("private_attachment_owner_key").on(table.actorUserId, table.requestKey),
 ]);
 
 // ── Feed: Tags (reference table for available tags) ──

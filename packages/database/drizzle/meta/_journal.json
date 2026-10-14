@@ -225,6 +225,13 @@
       "when": 1791936004000,
       "tag": "0034_private_recovery_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "5",
+      "when": 1791936005000,
+      "tag": "0035_recovery_retirement",
+      "breakpoints": true
     }
   ]
 }

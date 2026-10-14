@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { queueCancellationForUser } from "./billing/cancellation";
 import { cancelDeletedUserEmailBindings } from "./identity/email-binding-retention";
+import { retireContentRecovery } from "./content/recovery-retirement";
 import {
   adminAuditLog,
   clubPayments,
@@ -494,6 +495,7 @@ export async function processScheduledAccountDeletions(): Promise<number> {
       await scrubUserComments(tx, user.id);
       await purgeUserActivity(tx, user.id);
       await cancelDeletedUserEmailBindings(tx, user.id);
+      await retireContentRecovery(tx, user.id);
       await tx.update(users).set({
         name: DELETED_USER_LABEL,
         email: null,

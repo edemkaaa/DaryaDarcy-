@@ -16,6 +16,16 @@ import { deletePrivateOrphanObject } from "../media/private-orphan-object";
 import { ENV } from "../_core/env";
 
 type Receipt = typeof privateAttachmentUploads.$inferSelect;
+async function closeRecovery(tx: ContentTransaction, row: Receipt) {
+  if (row.actorUserId !== null) {
+    await recordSpentRecovery(tx, "private_attachment", {
+      ...row,
+      actorUserId: row.actorUserId,
+    });
+  } else if (!row.recoveryCompactedAt) {
+    throw new Error("Retired recovery evidence incomplete");
+  }
+}
 async function isLiveBound(tx: ContentTransaction, row: Receipt) {
   if (row.postId === null && row.mediaId === null) return false;
   if (row.postId === null || row.mediaId === null)
@@ -90,14 +100,14 @@ export async function maintainPrivateRecovery(
           if (!row || row.createdAt > cutoff) return progress;
           const live = await isLiveBound(tx, row);
           if (!row.recoveryCompactedAt) {
-            await recordSpentRecovery(tx, "private_attachment", row);
+            await closeRecovery(tx, row);
             await tx
               .update(privateAttachmentUploads)
               .set({ filename: "", recoveryCompactedAt: new Date() })
               .where(eq(privateAttachmentUploads.requestKey, row.requestKey));
             progress.compacted++;
           } else {
-            await recordSpentRecovery(tx, "private_attachment", row);
+            await closeRecovery(tx, row);
           }
           if (live) return progress;
           if (!row.orphanedAt) {
@@ -144,7 +154,7 @@ export async function maintainPrivateRecovery(
             (await isLiveBound(tx, row))
           )
             return false;
-          await recordSpentRecovery(tx, "private_attachment", row);
+          await closeRecovery(tx, row);
           await deletePrivateOrphanObject(row);
           await tx
             .delete(privateAttachmentUploads)

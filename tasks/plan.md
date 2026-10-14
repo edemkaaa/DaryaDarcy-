@@ -339,7 +339,9 @@ R6b локально: post/article write transactions повторно пров�
 RPC context после final retirement не пишет. Authentication activity больше
 не создаёт identity через upsert и пропускает занятую user row (SKIP LOCKED),
 сохраняя nonblocking article status. Evidence179 pass/7 suites/skip0 в todo.
-Owner-link scrub и own export остаются следующими незавершёнными частямиR6;
+R6c owner-link scrub реализован локально (0035, default-off retirement), bound/orphan
+technical evidence сохранены,112 affected tests/skip0. Own export остаётся
+следующей незавершённой частьюR6;
 рабочая БД/S3/фронт не менялись, внешние backup/history gates прежние.
 
 Локальная зависимость: R1 private upload/status/unbound bind + общий default-off
