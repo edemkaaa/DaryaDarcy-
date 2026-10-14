@@ -21,6 +21,8 @@ import { useRouter } from "@/shared/navigation/router";
 import { CalendarTracker } from "@/features/admin/calendar-tracker";
 import { StatsDashboard } from "@/features/admin/stats-dashboard";
 
+import { VkCatalogAdmin } from "./vk-catalog-admin";
+import { isVkCatalogEnabled } from "@/features/videos/catalog-api";
 import { ArticlesAdmin } from "@/features/admin/articles-admin";
 import { SeasonSettings } from "@/features/admin/season-settings";
 import { MemberAccessEmail } from "./member-access-email";
@@ -67,6 +69,7 @@ export default function AdminScreen() {
     | "stats"
     | "members"
     | "payments"
+    | "videos"
     | "articles"
     | "reports"
     | "seasons"
@@ -564,6 +567,33 @@ export default function AdminScreen() {
                 Посты
               </Typography>
             </Action>
+            {isVkCatalogEnabled() ? (
+              <Action
+                onClick={() => setViewTab("videos")}
+                className={[
+                  classes.viewTabActive,
+                  viewTab === "videos"
+                    ? classes.backgroundColorState11
+                    : classes.backgroundColorState12,
+                ].join(" ")}
+              >
+                <MaterialIcons
+                  name="video-library"
+                  size={16}
+                  color={viewTab === "videos" ? CREAM_BG : BROWN_LIGHT}
+                />
+                <Typography
+                  className={[
+                    classes.targetChipTextActive,
+                    viewTab === "videos"
+                      ? classes.colorState15
+                      : classes.colorState16,
+                  ].join(" ")}
+                >
+                  Видео
+                </Typography>
+              </Action>
+            ) : null}
             <Action
               onClick={() => setViewTab("articles")}
               className={[
@@ -771,6 +801,8 @@ export default function AdminScreen() {
         />
       ) : viewTab === "seasons" ? (
         <SeasonSettings />
+      ) : viewTab === "videos" ? (
+        <VkCatalogAdmin />
       ) : viewTab === "articles" ? (
         <ArticlesAdmin />
       ) : viewTab === "calendar" ? (

@@ -53,6 +53,7 @@ async function commentsApi(
     if (custom !== undefined) return custom;
     if (name === "club.subscription")
       return ok({
+        hasClubAccess: true,
         subscribed: true,
         expiresAt: "2027-01-01T00:00:00Z",
         cancelAtPeriodEnd: false,

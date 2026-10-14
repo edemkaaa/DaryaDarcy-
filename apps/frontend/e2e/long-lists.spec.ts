@@ -72,9 +72,11 @@ async function longListApi(
       let data: unknown = [];
       if (name === "club.subscription")
         data = {
+          hasClubAccess: true,
           subscribed: true,
-          expiresAt: null,
+          expiresAt: "2040-11-01T10:00:00Z",
           cancelAtPeriodEnd: false,
+          isOwner: false,
           monthlyPrice: "790",
         };
       if (name === "feed.userInteractions")
@@ -600,7 +602,15 @@ test("feed stops a repeated cursor, deduplicates posts and retries explicitly", 
       let data: unknown = [];
       if (name === "feed.userInteractions")
         data = { likedIds: [], savedIds: [] };
-      if (name === "club.subscription") data = { subscribed: true };
+      if (name === "club.subscription")
+        data = {
+          hasClubAccess: true,
+          subscribed: true,
+          expiresAt: "2040-11-01T10:00:00Z",
+          cancelAtPeriodEnd: false,
+          isOwner: false,
+          monthlyPrice: "790",
+        };
       if (name === "feed.listPaginated") {
         const cursor = inputs[index]?.json?.cursor ?? 0;
         if (cursor) cursors.push(cursor);

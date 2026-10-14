@@ -60,7 +60,7 @@ export default function LibraryScreen() {
   const router = useRouter();
   const { COLUMN_WIDTH: columnWidth } = getLibraryScreenContent(useViewport());
   const [searchQuery, setSearchQuery] = useState("");
-  const { isSubscribed } = useClub();
+  const { hasClubAccess } = useClub();
   const articlesQuery = trpc.articles.list.useQuery(undefined, {
     staleTime: 30_000,
     enabled: active,
@@ -85,7 +85,7 @@ export default function LibraryScreen() {
     );
   }, [searchQuery, allMaterials]);
   const handleMaterialPress = async (item: MaterialItem) => {
-    if (item.isClubOnly && !isSubscribed) {
+    if (item.isClubOnly && !hasClubAccess) {
       router.push("/club");
       return;
     }
@@ -96,7 +96,7 @@ export default function LibraryScreen() {
     }
   };
   const getActionLabel = (item: MaterialItem): string => {
-    if (item.isClubOnly && !isSubscribed) {
+    if (item.isClubOnly && !hasClubAccess) {
       return "Для участниц клуба Darcy →";
     }
     if (item.action === "browser") return "Скачать →";
@@ -148,15 +148,16 @@ export default function LibraryScreen() {
           onClick={() => handleMaterialPress(item)}
           activeOpacity={0.7}
           style={{
-            ...((item.isClubOnly && !isSubscribed ? true : false)
+            ...((item.isClubOnly && !hasClubAccess ? true : false)
               ? {
-                  borderWidth: item.isClubOnly && !isSubscribed ? 1 : undefined,
+                  borderWidth:
+                    item.isClubOnly && !hasClubAccess ? 1 : undefined,
                 }
               : {}),
-            ...((item.isClubOnly && !isSubscribed ? true : false)
+            ...((item.isClubOnly && !hasClubAccess ? true : false)
               ? {
                   borderColor:
-                    item.isClubOnly && !isSubscribed
+                    item.isClubOnly && !hasClubAccess
                       ? "rgba(160,132,92,0.2)"
                       : undefined,
                 }
@@ -164,14 +165,14 @@ export default function LibraryScreen() {
           }}
           className={[
             classes.actionButtonLocked,
-            item.isClubOnly && !isSubscribed
+            item.isClubOnly && !hasClubAccess
               ? classes.backgroundColorState
               : classes.backgroundColorState2,
           ]
             .filter(Boolean)
             .join(" ")}
         >
-          {item.isClubOnly && !isSubscribed ? (
+          {item.isClubOnly && !hasClubAccess ? (
             <div
               className={["ui-stack ", classes.actionButtonContent]
                 .filter(Boolean)

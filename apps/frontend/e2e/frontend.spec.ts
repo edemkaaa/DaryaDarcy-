@@ -83,7 +83,8 @@ test("registration requests an email instruction and stays signed out", async ({
       status: 202,
       json: {
         ok: true,
-        message: "Проверьте почту: отправлена ссылка для установки пароля.",
+        message:
+          "Запрос принят. Проверьте почту: в письме будет ссылка для установки пароля.",
       },
     });
   });

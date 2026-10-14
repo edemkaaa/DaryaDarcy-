@@ -58,10 +58,11 @@ async function fixtures(page: Page, owner: boolean) {
             json:
               name === "club.subscription"
                 ? {
+                    hasClubAccess: true,
                     subscribed: true,
                     cancelAtPeriodEnd: false,
                     isOwner: owner,
-                    expiresAt: null,
+                    expiresAt: owner ? null : "2040-11-01T10:00:00Z",
                     monthlyPrice: "790",
                   }
                 : name === "feed.listPaginated" || name === "club.list"

@@ -2,6 +2,9 @@
 import { useBrowserReady } from "@/shared/browser/use-browser-ready";
 
 import classes from "./post-screen.module.scss";
+import { useQuery } from "@tanstack/react-query";
+import { getQueryKey } from "@trpc/react-query";
+import { getHttpStatus, getRequestErrorMessage } from "@/shared/api/errors";
 import { useEffect, useState } from "react";
 import { PhotoViewer } from "@/shared/media/photo-viewer";
 import {
@@ -16,8 +19,10 @@ import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { useRouter } from "@/shared/navigation/router";
 import { usePostInteractions } from "@/domain/post/use-post-interactions";
 import { PostInteractionStatus } from "@/domain/post/post-interaction-status";
+import { ClubComments } from "@/features/club/club-comments";
 import { trpc } from "@/shared/api/trpc";
 import { parseContentId } from "@/shared/navigation/content-id";
+import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { ContentRequestState } from "@/shared/ui/content-request-state";
 import { useAuth } from "@/domain/session/session-context";
 import { RichTextRenderer } from "@/domain/content/rich-text-renderer";
@@ -64,16 +69,29 @@ function PostDetailScreenInner({ id }: { id: string }) {
   const isSaved = interactions.savedIds.has(postId);
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
-  useEffect(() => setViewerVisible(false), [postId]);
+  const utils = trpc.useUtils();
+  const input = { id: postId };
   const {
     data: post,
     isLoading,
     error,
     refetch,
-  } = trpc.feed.getById.useQuery(
-    { id: postId },
-    { enabled: postId > 0, staleTime: 30_000 },
-  );
+  } = useQuery({
+    queryKey: getQueryKey(trpc.feed.getById, input, "query"),
+    // Missing/hidden posts are successful absence, never a stale cached copy.
+    queryFn: async ({ signal }) =>
+      (await utils.client.feed.getById.query(input, { signal })) ?? null,
+    enabled: postId > 0,
+    staleTime: 30_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
+    refetchOnReconnect: "always",
+  });
+  const denied = [401, 403, 404].includes(getHttpStatus(error) ?? 0);
+  const unavailable = !post || denied;
+  useEffect(() => {
+    setViewerVisible(false);
+  }, [postId, unavailable]);
   useClubContentProtection(
     Boolean(post && (post.target === "club" || post.target === "both")),
   );
@@ -132,7 +150,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
       </ScreenContainer>
     );
   }
-  if (!post) {
+  if (!post || denied) {
     return (
       <ScreenContainer edges={["top", "bottom", "left", "right"]}>
         <Background
@@ -275,12 +293,26 @@ function PostDetailScreenInner({ id }: { id: string }) {
               .filter(Boolean)
               .join(" ")}
           >
+            {error ? (
+              <QueryRetryState
+                isLoading={false}
+                isError
+                message={getRequestErrorMessage(error)}
+                onRetry={() => void refetch()}
+              />
+            ) : null}
             {/* Full text */}
             <RichTextRenderer
               richText={post.richText}
               plainText={post.text}
               selectable={!isClubPost}
               textClassName={classes.postText}
+            />
+
+            <ClubComments
+              postId={postId}
+              tags={tags}
+              createdAt={post.createdAt}
             />
 
             {/* Tags */}

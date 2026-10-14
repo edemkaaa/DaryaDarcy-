@@ -42,7 +42,7 @@ export default function PatternsScreen() {
   const router = useRouter();
   const viewport = useViewport();
   const { stylesLayout } = getPatternsScreenLayout(viewport);
-  const { isSubscribed } = useClub();
+  const { hasClubAccess } = useClub();
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerImage, setViewerImage] = useState("");
   const [viewerTitle, setViewerTitle] = useState("");
@@ -114,7 +114,7 @@ export default function PatternsScreen() {
           </div>
 
           {/* Subscription Gate */}
-          {!isSubscribed ? (
+          {!hasClubAccess ? (
             <div
               className={["ui-stack ", classes.lockedContainer]
                 .filter(Boolean)

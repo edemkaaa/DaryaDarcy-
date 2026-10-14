@@ -196,8 +196,10 @@ export default function LoginScreen({
             : await Api.requestPasswordInstructions(email.trim(), task.signal);
         if (!mounted.current || task.signal.aborted) return;
         setNotice(result.message);
-        setMode("login");
-        setConsentChecked(false);
+        // Acceptance means queued instructions, not delivery or an installed password.
+        // Keep the current form available for a deliberate resend.
+        setPassword("");
+        setPasswordVisible(false);
       }
     } catch (err) {
       if (!mounted.current || task.signal.aborted) return;
@@ -437,7 +439,9 @@ export default function LoginScreen({
                 >
                   <Typography className={classes.switchText}>
                     {mode === "register"
-                      ? "Уже есть аккаунт? Войти"
+                      ? notice
+                        ? "Пароль уже установлен? Войти"
+                        : "Уже есть аккаунт? Войти"
                       : "Нет аккаунта? Зарегистрироваться"}
                   </Typography>
                 </Action>

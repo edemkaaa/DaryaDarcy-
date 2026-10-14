@@ -16,6 +16,8 @@ import { OperationScope } from "@/shared/browser/operation-scope";
 import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { requirePaymentUrl } from "@/shared/navigation/external-url";
 import { requireProdamusTestUrl } from "./payment-mode";
+import { isNormalCheckoutRecoveryEnabled } from "./payment-mode";
+import { useNormalClubPayment } from "./use-normal-club-payment";
 
 const uncertainCheckout =
   "Создание ссылки не подтверждено. Если вы уже оплатили, не платите повторно: проверьте доступ или обратитесь в поддержку.";
@@ -41,6 +43,37 @@ function wait(signal: AbortSignal) {
 
 /** Legacy Prodamus flow: URL flags are hints, never proof of a paid order. */
 export function useClubPayment({
+  active,
+  returnKey,
+  guestEmail,
+  prodamusTest = false,
+}: {
+  active: boolean;
+  returnKey: string | null;
+  guestEmail: string;
+  prodamusTest?: boolean;
+}) {
+  const { isAuthenticated } = useAuth();
+  const normal =
+    isAuthenticated && !prodamusTest && isNormalCheckoutRecoveryEnabled();
+  const legacy = useLegacyClubPayment({
+    active: active && !normal,
+    returnKey,
+    guestEmail,
+    prodamusTest,
+  });
+  const recovery = useNormalClubPayment({ enabled: normal, active, returnKey });
+  return normal
+    ? recovery
+    : {
+        ...legacy,
+        normalRecovery: false,
+        hasSavedPurchase: false,
+        purchaseLabel: null,
+      };
+}
+
+function useLegacyClubPayment({
   active,
   returnKey,
   guestEmail,

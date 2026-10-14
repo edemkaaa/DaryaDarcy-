@@ -5,12 +5,19 @@ import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { Action } from "@/shared/ui/action";
 import classes from "./media-playback.module.scss";
 
-type Props = VideoHTMLAttributes<HTMLVideoElement> & { src: string };
+type Props = VideoHTMLAttributes<HTMLVideoElement> & {
+  src: string;
+  releaseOnPageHide?: boolean;
+};
 export function ManagedVideo(props: Props) {
   return <VideoResource key={props.src} {...props} />;
 }
 
-function VideoResource({ onError, ...props }: Props) {
+function VideoResource({
+  onError,
+  releaseOnPageHide = false,
+  ...props
+}: Props) {
   const node = useRef<HTMLVideoElement>(null);
   const [failed, setFailed] = useState(false);
   const active = useScreenActive();
@@ -20,19 +27,26 @@ function VideoResource({ onError, ...props }: Props) {
     // Restore after React Strict Mode's setup/cleanup/setup cycle as well.
     if (video.getAttribute("src") !== props.src) video.src = props.src;
     const pause = () => video.pause();
+    const hide = () => {
+      pause();
+      if (releaseOnPageHide) {
+        video.removeAttribute("src");
+        video.load();
+      }
+    };
     const visibility = () => {
       if (document.hidden) pause();
     };
     document.addEventListener("visibilitychange", visibility);
-    window.addEventListener("pagehide", pause);
+    window.addEventListener("pagehide", hide);
     return () => {
       document.removeEventListener("visibilitychange", visibility);
-      window.removeEventListener("pagehide", pause);
+      window.removeEventListener("pagehide", hide);
       pause();
       video.removeAttribute("src");
       video.load();
     };
-  }, [props.src]);
+  }, [props.src, releaseOnPageHide]);
   useEffect(() => {
     if (!active) node.current?.pause();
   }, [active]);

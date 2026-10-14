@@ -8,7 +8,14 @@ import {
   Field,
   Spinner,
 } from "@/shared/ui/elements";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "@/domain/session/session-context";
+import {
+  ArticleCreationJournal,
+  parseArticleCreationStatus,
+  type ArticleCreationRecord,
+} from "@/domain/content/article-creation-journal";
+import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
@@ -42,6 +49,10 @@ import {
 } from "./articles-admin.content";
 type Access = "public" | "club";
 export function ArticlesAdmin() {
+  const { user } = useAuth();
+  return user ? <ArticleEditor key={user.id} ownerId={user.id} /> : null;
+}
+function ArticleEditor({ ownerId }: { ownerId: number }) {
   const utils = trpc.useUtils();
   const list = trpc.admin.articles.useQuery();
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -51,6 +62,36 @@ export function ArticlesAdmin() {
   const [access, setAccess] = useState<Access>("club");
   const [previewing, setPreviewing] = useState(false);
   const [blocks, setBlocks] = useState<ArticleBlock[]>([emptyBlock("text")]);
+  const [journal] = useState(() => new ArticleCreationJournal(ownerId));
+  const [creation, setCreation] = useState<ArticleCreationRecord | null>(null);
+  const [storageStatus, setStorageStatus] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void journal
+      .load()
+      .then((record) => {
+        if (!alive) return;
+        setCreation(record);
+        setStorageStatus("ready");
+        setRecoveryMessage(null);
+      })
+      .catch((error: unknown) => {
+        if (!alive) return;
+        setStorageStatus("error");
+        setRecoveryMessage(
+          error instanceof Error
+            ? error.message
+            : "Не удалось прочитать операцию статьи",
+        );
+      });
+    return () => {
+      alive = false;
+    };
+  }, [journal, loadAttempt]);
   const deletion = useConfirmedAction(!showForm);
   const readArticles = async () => {
     const result = await list.refetch();
@@ -101,6 +142,120 @@ export function ArticlesAdmin() {
     setAccess("club");
     setPreviewing(false);
     setBlocks([emptyBlock("text")]);
+  };
+  const restoreCreation = (record: ArticleCreationRecord) => {
+    operation.cancel();
+    uncertainSave.current = false;
+    setCreation(record);
+    const payload = structuredClone(record.payload);
+    setEditingId(null);
+    setTitle(payload.title);
+    setCoverUrl(payload.coverUrl || "");
+    setAccess(payload.access);
+    setPublished(payload.published);
+    setBlocks(payload.sections);
+    setPreviewing(false);
+    setShowForm(true);
+  };
+  const readCurrentArticles = async (task: ScopedOperation) => {
+    await utils.admin.articles.cancel();
+    task.assertCurrent();
+    const articles = await utils.client.admin.articles.query(undefined, {
+      signal: task.signal,
+    });
+    task.assertCurrent();
+    requireIdList(articles);
+    await utils.admin.articles.cancel();
+    task.assertCurrent();
+    utils.admin.articles.setData(undefined, articles);
+  };
+  const completeCreation = async (
+    record: ArticleCreationRecord,
+    task: ScopedOperation,
+  ) => {
+    await readCurrentArticles(task);
+    task.assertCurrent();
+    await journal.clear(record);
+    task.assertCurrent();
+    setCreation(null);
+    setRecoveryMessage(null);
+    void utils.articles.list.invalidate();
+    void utils.club.list.invalidate();
+    reset();
+  };
+  const cancelEditing = async () => {
+    operation.cancel();
+    const task = operation.begin("cancel-article");
+    if (!task) return;
+    try {
+      // A cancelled POST can still commit. Keep its durable operation.
+      const record = await journal.load();
+      task.assertCurrent();
+      setCreation(record);
+      await readCurrentArticles(task);
+      task.assertCurrent();
+      setRecoveryMessage(null);
+      reset();
+    } catch (error) {
+      checkOperationAccessError(error);
+      if (task.isCurrent())
+        setRecoveryMessage(
+          "Не удалось обновить список статей. Отмена не подтверждена; форма сохранена.",
+        );
+    } finally {
+      task.finish();
+    }
+  };
+  const recoverCreation = async (replay: boolean) => {
+    if (!creation) return;
+    const record = creation;
+    const task = operation.begin("recover-article");
+    if (!task) return;
+    try {
+      await journal.requireCurrent(record);
+      task.assertCurrent();
+      const status = parseArticleCreationStatus(
+        await utils.client.admin.articleCreationStatus.query(
+          { idempotencyKey: record.idempotencyKey },
+          { signal: task.signal },
+        ),
+      );
+      task.assertCurrent();
+      if (status.status !== "notRecorded") {
+        await completeCreation(record, task);
+        notify(
+          status.status === "deleted"
+            ? `Статья №${status.articleId} была создана и затем удалена. Замена не создавалась.`
+            : `Создание статьи №${status.articleId} подтверждено.`,
+        );
+        return;
+      }
+      if (!replay) {
+        setRecoveryMessage(
+          "Создание пока не подтверждено. Первый запрос ещё может завершиться. Можно повторить сохранение с исходными данными; новая статья автоматически не создаётся.",
+        );
+        return;
+      }
+      await journal.requireCurrent(record);
+      task.assertCurrent();
+      const id = await utils.client.admin.createArticle.mutate(
+        { ...record.payload, idempotencyKey: record.idempotencyKey },
+        { signal: task.signal },
+      );
+      if (!Number.isSafeInteger(id) || id <= 0) throw invalidResponse();
+      task.assertCurrent();
+      await completeCreation(record, task);
+    } catch (error) {
+      checkOperationAccessError(error);
+      if (task.isCurrent())
+        setRecoveryMessage(
+          getHttpStatus(error) === 409
+            ? "Сервер сообщил конфликт данных этой операции. Исходный ключ сохранён. Проверьте результат сохранения; новая операция не создавалась."
+            : "Не удалось подтвердить сохранение статьи. Исходные данные и ключ сохранены. Проверьте результат ещё раз.",
+        );
+    } finally {
+      task.finish();
+    }
   };
   const pickImages = async (
     preserveAlpha: boolean,
@@ -167,6 +322,11 @@ export function ArticlesAdmin() {
       notify("Напишите название статьи");
       return;
     }
+    if (title.trim().length > 255) {
+      notify("Название статьи должно быть не длиннее 255 символов");
+      return;
+    }
+    if (!editingId && (creation || storageStatus !== "ready")) return;
     if (uncertainSave.current) {
       notify(
         "Результат сохранения не подтверждён. Проверьте статью в списке перед новой попыткой.",
@@ -175,6 +335,7 @@ export function ArticlesAdmin() {
     }
     const task = operation.begin("save");
     if (!task) return;
+    let storedCreation = false;
     try {
       const payload = {
         title: title.trim(),
@@ -183,22 +344,35 @@ export function ArticlesAdmin() {
         published,
         sections: blocks,
       };
-      const result = editingId
-        ? await utils.client.admin.updateArticle.mutate(
-            { id: editingId, ...payload },
-            { signal: task.signal },
-          )
-        : await utils.client.admin.createArticle.mutate(payload, {
-            signal: task.signal,
-          });
-      if (
-        editingId
-          ? !result || typeof result !== "object" || result.ok !== true
-          : typeof result !== "number" ||
-            !Number.isSafeInteger(result) ||
-            result <= 0
-      )
-        throw new Error("Сервер не подтвердил сохранение статьи");
+      if (!editingId) {
+        const prepared = await journal.prepare(payload);
+        task.assertCurrent();
+        storedCreation = true;
+        setCreation(prepared.record);
+        if (prepared.restored) {
+          restoreCreation(prepared.record);
+          setRecoveryMessage(
+            "Восстановлена предыдущая операция создания. Сначала проверьте её результат.",
+          );
+          return;
+        }
+        const id = await utils.client.admin.createArticle.mutate(
+          {
+            ...prepared.record.payload,
+            idempotencyKey: prepared.record.idempotencyKey,
+          },
+          { signal: task.signal },
+        );
+        if (!Number.isSafeInteger(id) || id <= 0) throw invalidResponse();
+        task.assertCurrent();
+        await completeCreation(prepared.record, task);
+        return;
+      }
+      const result = await utils.client.admin.updateArticle.mutate(
+        { id: editingId, ...payload },
+        { signal: task.signal },
+      );
+      requireOk(result);
       task.assertCurrent();
       void utils.admin.articles.invalidate();
       void utils.articles.list.invalidate();
@@ -207,10 +381,21 @@ export function ArticlesAdmin() {
     } catch (error) {
       checkOperationAccessError(error);
       const status = getHttpStatus(error);
-      if (task.isCurrent()) uncertainSave.current = !status || status >= 500;
+      if (task.isCurrent() && editingId)
+        uncertainSave.current = !status || status >= 500;
+      if (task.isCurrent() && !editingId)
+        setRecoveryMessage(
+          !storedCreation
+            ? error instanceof Error
+              ? error.message
+              : "Не удалось сохранить операцию на устройстве. Запрос не отправлен."
+            : status === 409
+              ? "Конфликт данных операции. Проверьте сохранение; ключ не изменён."
+              : "Результат сохранения не подтверждён. Проверьте сохранение статьи; исходная операция сохранена на устройстве.",
+        );
       if (task.isCurrent())
         notify(
-          uncertainSave.current
+          (!editingId && storedCreation) || uncertainSave.current
             ? "Результат сохранения не подтверждён. Проверьте статью в списке перед новой попыткой."
             : error instanceof Error
               ? error.message
@@ -248,9 +433,35 @@ export function ArticlesAdmin() {
   };
   if (showForm) {
     const busy = operation.busy;
+    const pendingCreation = !editingId && creation !== null;
     return (
       <ScrollArea contentClassName={classes.form}>
-        <div inert={operation.busy} style={{ display: "contents" }}>
+        {recoveryMessage ? (
+          <Typography role="alert">{recoveryMessage}</Typography>
+        ) : null}
+        {pendingCreation ? (
+          <div>
+            <Typography className={classes.hint}>
+              Исходные данные создания сохранены на этом устройстве. Сначала
+              проверьте результат; повтор использует ту же операцию.
+            </Typography>
+            <Action
+              disabled={busy}
+              onClick={() => void recoverCreation(false)}
+              className={classes.btnGhost}
+            >
+              Проверить сохранение
+            </Action>
+            <Action
+              disabled={busy}
+              onClick={() => void recoverCreation(true)}
+              className={classes.btnGhost}
+            >
+              Повторить сохранение
+            </Action>
+          </div>
+        ) : null}
+        <div inert={busy || pendingCreation} style={{ display: "contents" }}>
           <Typography className={classes.formTitle}>
             {editingId ? "Редактировать статью" : "Новая статья"}
           </Typography>
@@ -734,14 +945,18 @@ export function ArticlesAdmin() {
         >
           <Action
             disabled={remove.isPending}
-            onClick={reset}
+            onClick={() => void cancelEditing()}
             className={classes.btnGhost}
           >
             <Typography className={classes.btnGhostText}>Отмена</Typography>
           </Action>
           <Action
             onClick={save}
-            disabled={busy}
+            disabled={
+              busy ||
+              pendingCreation ||
+              (!editingId && storageStatus !== "ready")
+            }
             aria-busy={busy}
             aria-label={
               editingId
@@ -770,6 +985,20 @@ export function ArticlesAdmin() {
   }
   return (
     <ScrollArea contentClassName={classes.list}>
+      {recoveryMessage ? (
+        <Typography role="alert">{recoveryMessage}</Typography>
+      ) : null}
+      {storageStatus === "error" ? (
+        <Action onClick={() => setLoadAttempt((value) => value + 1)}>
+          Повторить чтение операции
+        </Action>
+      ) : null}
+      {creation ? (
+        <Typography className={classes.hint}>
+          Есть незавершённая операция создания статьи. Восстановите её перед
+          новой статьёй.
+        </Typography>
+      ) : null}
       {deletion.error ? (
         <Typography role="alert">{deletion.error}</Typography>
       ) : null}
@@ -777,12 +1006,16 @@ export function ArticlesAdmin() {
         <Action onClick={() => void deletion.check()}>Обновить список</Action>
       ) : null}
       <Action
-        disabled={remove.isPending}
-        onClick={() => setShowForm(true)}
+        disabled={remove.isPending || storageStatus !== "ready"}
+        onClick={() =>
+          creation ? restoreCreation(creation) : setShowForm(true)
+        }
         className={classes.btn}
       >
         <MaterialIcons name="menu-book" size={16} color={CREAM} />
-        <Typography className={classes.btnText}>Написать статью</Typography>
+        <Typography className={classes.btnText}>
+          {creation ? "Восстановить создание статьи" : "Написать статью"}
+        </Typography>
       </Action>
       <Typography className={classes.hint}>
         Два варианта: только Эксклюзив клуба по подписке или Эксклюзив +

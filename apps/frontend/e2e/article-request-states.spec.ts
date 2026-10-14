@@ -79,6 +79,7 @@ async function articleApi(page: Page) {
       // Preserve unrelated procedures when tRPC batches the article with access checks.
       if (name === "club.subscription")
         return ok({
+          hasClubAccess: true,
           subscribed: true,
           expiresAt: "2040-11-01T10:00:00Z",
           cancelAtPeriodEnd: false,

@@ -9,6 +9,10 @@ export default {
       process.env.NEXT_PUBLIC_CLUB_TEST_CHECKOUT ?? "false",
     NEXT_PUBLIC_PRODAMUS_TEST_ENABLED:
       process.env.NEXT_PUBLIC_PRODAMUS_TEST_ENABLED ?? "false",
+    NEXT_PUBLIC_NORMAL_CHECKOUT_RECOVERY_ENABLED:
+      process.env.NEXT_PUBLIC_NORMAL_CHECKOUT_RECOVERY_ENABLED ?? "false",
+    NEXT_PUBLIC_VK_CATALOG_ENABLED:
+      process.env.NEXT_PUBLIC_VK_CATALOG_ENABLED ?? "false",
   },
   devIndicators: false,
   allowedDevOrigins: ["127.0.0.1"],

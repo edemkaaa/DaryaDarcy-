@@ -34,9 +34,11 @@ async function imagesApi(page: Page, posts = [post(1)]) {
       });
     if (name === "club.subscription")
       return ok({
+        hasClubAccess: true,
         subscribed: true,
-        expiresAt: null,
+        expiresAt: "2040-11-01T10:00:00Z",
         cancelAtPeriodEnd: false,
+        isOwner: false,
         monthlyPrice: "790",
       });
     if (name === "feed.getById") return ok(posts[0]);

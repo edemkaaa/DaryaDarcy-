@@ -27,7 +27,9 @@ async function fixtures(page: Page) {
     if (name === "videos.getById") return ok(video);
     if (name === "club.subscription")
       return ok({
+        hasClubAccess: true,
         subscribed: true,
+        cancelAtPeriodEnd: false,
         expiresAt: null,
         isOwner: true,
         monthlyPrice: "790",

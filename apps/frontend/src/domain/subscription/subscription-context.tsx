@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/domain/session/session-context";
 import { trpc } from "@/shared/api/trpc";
 import { isTemporaryRequestError, shouldRetryQuery } from "@/shared/api/errors";
+import { parseClubAccess } from "@/shared/api/club-access";
 export type SubscriptionStatus =
   | "guest"
   | "checking"
@@ -21,6 +22,8 @@ interface ClubContextType {
   status: SubscriptionStatus;
   error: unknown;
   refreshError: unknown;
+  hasClubAccess: boolean;
+  hasServiceAccess: boolean;
   isSubscribed: boolean;
   setIsSubscribed: (value: boolean) => void;
   refreshSubscription: () => Promise<void>;
@@ -38,12 +41,14 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     retry: shouldRetryQuery,
+    select: parseClubAccess,
   });
   const refetchSubscription = subscription.refetch;
   const refreshSubscription = useCallback(async () => {
     if (user) await refetchSubscription();
   }, [user, refetchSubscription]);
   const hasConfirmedData =
+    typeof subscription.data?.hasClubAccess === "boolean" &&
     typeof subscription.data?.subscribed === "boolean" &&
     typeof subscription.data?.cancelAtPeriodEnd === "boolean";
   const backgroundFailure =
@@ -60,7 +65,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
           ? "checking"
           : !hasConfirmedData
             ? "error"
-            : subscription.data?.subscribed === true
+            : subscription.data?.hasClubAccess === true
               ? "active"
               : "inactive";
   const wasActive = useRef(false);
@@ -80,7 +85,14 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     error: subscription.error,
     refreshError:
       user && !isOwner && backgroundFailure ? subscription.error : null,
-    isSubscribed: status === "active",
+    hasClubAccess: status === "active",
+    hasServiceAccess:
+      status === "active" &&
+      !isOwner &&
+      subscription.data?.subscribed === false,
+    isSubscribed:
+      status === "active" &&
+      (isOwner || subscription.data?.subscribed === true),
     setIsSubscribed: refreshSubscription,
     refreshSubscription,
     expiresAt,

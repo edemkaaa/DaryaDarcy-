@@ -19,9 +19,11 @@ const subscribe = (notify: () => void) => {
 export function VkVideoEmbed({
   url,
   className,
+  recheckOnResume = false,
 }: {
   url: string;
   className: string;
+  recheckOnResume?: boolean;
 }) {
   const src = getVkVideoEmbedUrl(url);
   const active = useScreenActive();
@@ -31,10 +33,25 @@ export function VkVideoEmbed({
     () => true,
   );
   if (!src || !active || !visible) return null;
-  return <Player key={src} src={src} className={className} />;
+  return (
+    <Player
+      key={src}
+      src={src}
+      className={className}
+      recheckOnResume={recheckOnResume}
+    />
+  );
 }
 
-function Player({ src, className }: { src: string; className: string }) {
+function Player({
+  src,
+  className,
+  recheckOnResume,
+}: {
+  src: string;
+  className: string;
+  recheckOnResume: boolean;
+}) {
   const frame = useRef<HTMLIFrameElement>(null);
   const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState(false);
@@ -43,7 +60,7 @@ function Player({ src, className }: { src: string; className: string }) {
     // pagehide can precede visibilitychange when entering the back/forward cache.
     const hide = () => frame.current?.removeAttribute("src");
     const show = () => {
-      if (frame.current) frame.current.src = src;
+      if (!recheckOnResume && frame.current) frame.current.src = src;
     };
     window.addEventListener("pagehide", hide);
     window.addEventListener("pageshow", show);
@@ -51,7 +68,7 @@ function Player({ src, className }: { src: string; className: string }) {
       window.removeEventListener("pagehide", hide);
       window.removeEventListener("pageshow", show);
     };
-  }, [src]);
+  }, [src, recheckOnResume]);
   useEffect(() => {
     const timer = setTimeout(() => setSlow(true), 15_000);
     return () => clearTimeout(timer);

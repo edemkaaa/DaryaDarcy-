@@ -63,9 +63,9 @@ function LegacyClubScreen() {
   const viewport = useViewport();
   const { stylesLayout } = getClubScreenLayout(viewport);
   const { SCREEN_WIDTH } = getClubScreenContent(viewport);
-  const { isSubscribed, monthlyPrice, status: subscriptionStatus } = useClub();
+  const { hasClubAccess, monthlyPrice, status: subscriptionStatus } = useClub();
   const price = prodamusTest ? 790 : monthlyPrice;
-  const payLabel = prodamusTest
+  const defaultPayLabel = prodamusTest
     ? "Открыть тестовую оплату"
     : `Оплатить ${price} ₽`;
   const {
@@ -83,6 +83,7 @@ function LegacyClubScreen() {
     prodamusTest,
   });
   const payError = payment.payError;
+  const payLabel = payment.purchaseLabel ?? defaultPayLabel;
   const [, setActiveLetterIndex] = useState(0);
   const onLetterScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
@@ -101,11 +102,53 @@ function LegacyClubScreen() {
       </ScreenContainer>
     );
   }
-  if (isSubscribed && !forceCheckout) {
-    return <ClubSubscribed />;
+  if (hasClubAccess && !forceCheckout) {
+    return (
+      <ClubSubscribed
+        purchaseNotice={
+          payment.normalRecovery && (payment.hasSavedPurchase || justPaid) ? (
+            <section
+              aria-label="Результат покупки подписки"
+              className={classes.priceSection}
+            >
+              {payment.accessNotice ? (
+                <Typography role="status" className={classes.priceNote}>
+                  {payment.accessNotice}
+                </Typography>
+              ) : null}
+              {payError ? (
+                <Typography role="alert" className={classes.priceNote}>
+                  {payError}
+                </Typography>
+              ) : null}
+              <Action
+                disabled={payment.disabled}
+                onClick={() => void payment.check()}
+                className={classes.action2}
+              >
+                <Typography className={classes.privacyLink}>
+                  {payment.checking ? "Проверяем…" : "Проверить покупку"}
+                </Typography>
+              </Action>
+              {payment.hasSavedPurchase ? (
+                <Action
+                  disabled={payment.disabled}
+                  onClick={() => void payment.prepare()}
+                  className={classes.action2}
+                >
+                  <Typography className={classes.privacyLink}>
+                    {payLabel}
+                  </Typography>
+                </Action>
+              ) : null}
+            </section>
+          ) : undefined
+        }
+      />
+    );
   }
   // ── Subscription Landing Page (including an explicit renewal) ──
-  if (!isSubscribed || forceCheckout) {
+  if (!hasClubAccess || forceCheckout) {
     return (
       <ScreenContainer edges={["left", "right"]} backgroundColor="#F5EDE3">
         <Background
@@ -549,7 +592,9 @@ function LegacyClubScreen() {
                         ? "Проверяем…"
                         : prodamusTest
                           ? "Проверить доступ"
-                          : "Я уже оплатила"}
+                          : payment.normalRecovery
+                            ? "Проверить покупку"
+                            : "Я уже оплатила"}
                     </Typography>
                   </Action>
                 ) : null}

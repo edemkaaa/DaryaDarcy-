@@ -93,6 +93,8 @@ export default function ProfileScreen() {
     error: sessionError,
   } = useAuth();
   const {
+    hasClubAccess,
+    hasServiceAccess,
     isSubscribed,
     expiresAt,
     cancelAtPeriodEnd,
@@ -353,7 +355,7 @@ export default function ProfileScreen() {
       </ScreenContainer>
     );
   }
-  if (!isSubscribed) {
+  if (!hasClubAccess) {
     return (
       <ScreenContainer backgroundColor="#FDF8F0">
         <Background
@@ -454,7 +456,7 @@ export default function ProfileScreen() {
               onSaved={setProfileName}
             />
 
-            {isSubscribed && (
+            {hasClubAccess && (
               <div
                 className={["ui-stack ", classes.subscriptionBadge]
                   .filter(Boolean)
@@ -755,7 +757,16 @@ export default function ProfileScreen() {
                 .filter(Boolean)
                 .join(" ")}
             >
-              {isSubscribed ? (
+              {hasServiceAccess ? (
+                <>
+                  <Typography className={classes.subscriptionStatusText}>
+                    Служебный доступ
+                  </Typography>
+                  <Typography className={classes.subscriptionInfo}>
+                    Клуб открыт для модерации. Оплаченной подписки нет.
+                  </Typography>
+                </>
+              ) : isSubscribed ? (
                 <>
                   <div
                     className={["ui-stack ", classes.subscriptionStatus]
