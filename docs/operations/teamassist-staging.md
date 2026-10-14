@@ -31,7 +31,7 @@ schema-only DDL/index/collation/engine затрагиваемых таблиц �
 доказывает автора/время исполнения. Synthetic fixture не является историей среды.
 До получения этого пакета — **блокер истории**, никаких working connections.
 
-### 2. Проверить применимость 0027/0028/0029 и 0032–0034
+### 2. Проверить применимость 0027/0028/0029 и 0032–0035
 
 После согласованной истории проверенный владелец выполняет штатный read-only
 preflight именно для целевой БД. Не путать inspection URI с apply DATABASE_URL:
@@ -46,6 +46,7 @@ preflight именно для целевой БД. Не путать inspection 
 | 0032_private_attachment_uploads | InnoDB; full PK(requestKey), unique assetId/mediaId, binary ASCII identities, immutable payload/namespace hashes, pending/ready/ETag/post/media binding; retention/export/delete/orphans решение | Runtime не ремонтирует DDL и не делает public fallback; ready без storage evidence не успех |
 | 0033_content_recovery_markers | InnoDB/full PK(kind,requestKey), ASCII_BIN key, owner index и expiry scan indexes | Schema/spent guards/explicit local compaction готовы; scheduler отсутствует. После compact старый writer не является допустимым rollback |
 | 0034_private_recovery_lifecycle | Nullable recoveryCompactedAt/orphanedAt на private_attachment_uploads; применить до backend с расширенной ORM-моделью | Только own fixture применён. Private upload/delivery на новом backend требуют полных новых columns даже при maintenance flags off; working apply запрещён |
+| 0035_recovery_retirement | Nullable private actorUserId, owner/key indexes четырёх recovery таблиц; полные PK, unique assetId/mediaId и InnoDB сохранены. Точный backend включает R6 session/write fences | Нужна до retirement/export flags. После NULL-owner scrub возвращать NOT NULL или старые recovery writers нельзя; исторические удаления не чинить автоматически |
 
 Email identity preflight сейчас вызывается штатным инструментом, когда `0027`
 остаётся pending. Если индекс уже помечен applied, отдельно подтвердить существующее
@@ -96,8 +97,28 @@ History/DDL rollback не имитировать. Выбор checkpoint и ос�
    мигрировать этим включением. Rollback: остановить новые writes, не стирать
    ledger/objects и не возвращать общий public Allow для prefixes с закрытыми
    данными. Binding/article rollout не включает storage автоматически.
-7. Сквозные оплата/письмо/вход/продление/отмена, устройства/нагрузка/пилот — AG9
+7. R6 отдельно: после0035/schema проверки, подтверждённых backup/restore условий
+   и остановки несовместимых API/writers/workers использовать backend с session
+   epoch fence и existing-only activity update. Зафиксировать одинаковую версию/
+   конфигурацию всех workers; старый worker может выполнить final scrub без
+   отвязки журналов, повторный tick этого не исправляет. Retirement/export flags
+   (`CONTENT_RECOVERY_RETIREMENT_ENABLED`, `CONTENT_RECOVERY_EXPORT_ENABLED`)
+   включать только отдельным решением владельца. Они не включают storage cleanup.
+   Проверить own export/foreign denial, final deletion/старую сессию, сохранённые
+   bound read evidence; actual file bytes требуют отдельного разрешения S3.
+   После scrub откат флага не возвращает удалённые связи. Restore повторяет
+   удаления/expiration до открытия API; backend без R6 fences не допустимый rollback.
+8. Сквозные оплата/письмо/вход/продление/отмена, устройства/нагрузка/пилот — AG9
    после разрешения владельца; не выдавать fixtures за провайдера/участницу.
+
+**Следующий вход после локального R6 (backend checkpoint b525130):** владелец
+среды предоставляет пакет истории0017–0019 и обезличенный schema/history snapshot
+из раздела1, подтверждает срок хранения recovery backups/проверенный restore и
+общий release candidate с фронтендером. Snapshot не содержит пользовательских
+rows, паролей или ключей. До этого AG5/AG9 остаются открытыми; локальные fixtures
+не заменяют недостающую историю. Этот документ не является разрешением доступа
+к рабочей БД, rollout, S3 или включения flags. Новая runtime работа без обнаруженного
+дефекта/недостающего согласованного сценария не добавляется.
 
 ### Нерешённая политика журнала статей
 
