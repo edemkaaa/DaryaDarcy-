@@ -38,7 +38,12 @@ export async function recordSpentRecovery(
     throw new Error("Invalid recovery evidence");
   await tx
     .insert(contentRecoveryMarkers)
-    .values({ kind, ...row })
+    .values({
+      kind,
+      requestKey: row.requestKey,
+      actorUserId: row.actorUserId,
+      createdAt: row.createdAt,
+    })
     .onDuplicateKeyUpdate({
       set: { requestKey: sql`${contentRecoveryMarkers.requestKey}` },
     });

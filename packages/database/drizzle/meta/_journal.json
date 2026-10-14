@@ -218,6 +218,13 @@
       "when": 1791936003000,
       "tag": "0033_content_recovery_markers",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "5",
+      "when": 1791936004000,
+      "tag": "0034_private_recovery_lifecycle",
+      "breakpoints": true
     }
   ]
 }

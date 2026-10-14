@@ -18,6 +18,7 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import type { AppRouter } from "../apps/backend/src/routers";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
+import { compactContentRecovery } from "../apps/backend/src/content/recovery-compaction";
 import { build } from "esbuild";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, rmdirSync } from "node:fs";
@@ -190,11 +191,12 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
   it("a compacted article refuses replay and never returns notRecorded", async () => {
     const id = await client().admin.createArticle.mutate(input);
     await conn.query(
-      "INSERT INTO content_recovery_markers (kind,requestKey,actorUserId,createdAt) SELECT 'article',requestKey,actorUserId,createdAt FROM article_creation_requests WHERE actorUserId=9090",
+      "UPDATE article_creation_requests SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=9090",
     );
-    await conn.query(
-      "DELETE FROM article_creation_requests WHERE actorUserId=9090",
-    );
+    vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true");
+    vi.stubEnv("CONTENT_RECOVERY_MAINTENANCE_ENABLED", "true");
+    expect((await compactContentRecovery((await getDb())!)).article).toBe(1);
+    vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "false");
     await expect(
       client().admin.createArticle.mutate(input),
     ).rejects.toMatchObject({ data: { code: "CONFLICT", httpStatus: 409 } });

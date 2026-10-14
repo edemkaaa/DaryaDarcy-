@@ -11,7 +11,8 @@
 acceptance после MIME guard повторно пройдена на HEAD e3044af:2 pass/skip0,
 21.22 s, exit0. Timeweb timeout снят; flags off. AG5/AG9 ждут history/retention, frontend integration
 и разрешённой внешней приёмки/rollout. Следующий локальный срез после последующего
-«да все делаем дальше» — **AG5-R4**, R1–R3 проверены, expiry без удаления данных.
+«да все делаем дальше» — **AG5-R6**, после локальных R4/R5 ниже. Рабочая очистка
+не включена; rollout/history/backup/restore остаются внешними gate.
 AG6 принят и реализован
 локально 14 октября; AG8 также принят/реализован локально. Внешняя приёмка/включение
 не разрешены этими результатами.
@@ -150,7 +151,7 @@ AG6 принят и реализован
     R1–R3 full наaf058ba:3434 pass/1 unchanged frontend viewport fail/179 skip,
     3614 cases,194.65 s,exit1. Frontend не исправлялся/не скрыт; код остальных
     backend suites не менялся. Новые policy/runtime tests пройдены явно на own DB.
-  - [ ] AG5-R4 — compact markers/read evidence. ПослеR1–R3; additive schema,
+  - [x] AG5-R4 — compact markers/read evidence. ПослеR1–R3; additive schema,
     replay после compact отказывает, bound bytes доступны; native SQL/read + review.
     R4a:0033 marker schema/полный compositePK(kind,requestKey)/ASCII_BIN,
     owner и expiry scan indexes. RED absent table→2 native SQL GREEN,0 skip,
@@ -161,13 +162,27 @@ AG6 принят и реализован
     Article status — nonblocking repeatable-read snapshot, writer — ledger→marker
     locks; регрессия ожидания незавершённой записи исправлена. Schema missing
     legacy допускается только flag off; partial PK/owner mismatch fail closed.
-    R4c первый срез: post/article compaction атомарно marker+delete details,
+    R4c: post/article compaction атомарно marker+delete details,
     bounded1–100 на ledger, два default-off флага, без API/scheduler wiring.
-    4 native SQL +6 policy tests/skip0 прошли; private read evidence/cleanup далее.
+    4 native SQL +6 policy tests/skip0 прошли; private lifecycle0034,
+    filename scrub/marker без потери bound read/cleanup evidence. Live bytes/edit
+    пройдены; подробная процедура/flags/cursor в existing runbook.
     Preflight зарегистрировал0033, отказывает только на прежних0017–0019,
     databaseChecked=false/releaseApproval=false. Никакой working DDL.
-  - [ ] AG5-R5 — bounded orphan cleanup. ПослеR4; loopback SDK/SQL, ownership,
+  - [x] AG5-R5 — bounded orphan cleanup. ПослеR4; loopback SDK/SQL, ownership,
     detach clock, cleanup↔upload/bind/lost DELETE ACK/restart, no old/bound objects.
+    Explicit local call,1–100/keyset cursor, flags default off, API/jobs не подключены.
+    Never-bound30d; detached clock от first observation, не guessed upload date.
+    Exact private-v1 key/metadata/size/MIME/ETag/namespace guards, conditionalDELETE,
+    HEAD404; marker committed before storage, receipt retained при unknown outcome.
+    Storage/DB guards запрещают non-loopback/production targets. Native affected:
+    116 pass/6 suites/skip0,8.25 s; lost ACK и fresh compiled process recovery,
+    pending PUT reconciliation, late bind lock race, SQL rollback counters verified.
+    Это loopback wire, не actual Timeweb cleanup acceptance; рабочая очистка off.
+    Full checkpoint:3454 pass/1 прежний frontend viewport fail/179 skip,
+    3634 total,195.13 s,exit1. Все affected native cases прошли; full GREEN
+    не заявлен, frontend/его tests не менялись.0034 только own tmpfs fixture;
+    migration31 pass, offline preflight прежний gate0017–0019.
   - [ ] AG5-R6 — final scrub/export. ПослеR4/R5; existing account timing unchanged,
     own records only, no resurrection/no secrets. Backup/real restore/history внешние.
 - [x] **AG6 — точные остатки обычной оплаты/отмены.** Статус: готово локально

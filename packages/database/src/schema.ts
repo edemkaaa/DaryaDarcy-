@@ -151,6 +151,8 @@ export const privateAttachmentUploads = mysqlTable("private_attachment_uploads",
   etag: varchar("etag", { length: 128 }),
   postId: int("postId"),
   mediaId: int("mediaId"),
+  recoveryCompactedAt: timestamp("recoveryCompactedAt"),
+  orphanedAt: timestamp("orphanedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, table => [
   uniqueIndex("private_attachment_asset_unique").on(table.assetId),

@@ -328,6 +328,12 @@ read evidence. Последующее «да все делаем дальше» 
 рекомендаций; трактовка с30 сутками явно сообщена перед локальным продолжением.
 Runtime enablement/S3 DELETE/working migration по-прежнему запрещены.
 
+Последующее прямое поручение разрешило local-only R4/R5. Post/article compaction,
+private lifecycle0034/marker/read evidence и bounded owned orphan cleanup
+реализованы на own loopback SQL/SDK-wire, без API/scheduler и рабочей очистки.
+Прогресс/evidence — todo/runbook; следующий незавершённый срезR6. Полная
+приёмка рабочего rollout/restore этим результатом не объявляется.
+
 Локальная зависимость: R1 private upload/status/unbound bind + общий default-off
 guard → R2 keyed post create → R3 article create/status → R4 compact markers/
 живые read evidence → R5 bounded owned orphan cleanup → R6 final scrub/export.

@@ -31,7 +31,7 @@ schema-only DDL/index/collation/engine затрагиваемых таблиц �
 доказывает автора/время исполнения. Synthetic fixture не является историей среды.
 До получения этого пакета — **блокер истории**, никаких working connections.
 
-### 2. Проверить применимость 0027/0028/0029 и 0032/0033
+### 2. Проверить применимость 0027/0028/0029 и 0032–0034
 
 После согласованной истории проверенный владелец выполняет штатный read-only
 preflight именно для целевой БД. Не путать inspection URI с apply DATABASE_URL:
@@ -44,7 +44,8 @@ preflight именно для целевой БД. Не путать inspection 
 | 0028_member_email_bindings | Таблицы/поля/PK/proofHash uniqueness и worker indexes совместимы с точным backend commit, InnoDB; нет частичного/чужого schema rollout | Presence guard не заменяет историю/DDL review; partial schema не «лечить» runtime DDL |
 | 0029_article_creation_requests | PK(requestKey), actor/payloadHash/claimToken/articleId/createdAt, InnoDB; reviewed journal и retention/export/account-deletion решение | Keyed create/status fail closed; не переключать запрос на unkeyed при отказе |
 | 0032_private_attachment_uploads | InnoDB; full PK(requestKey), unique assetId/mediaId, binary ASCII identities, immutable payload/namespace hashes, pending/ready/ETag/post/media binding; retention/export/delete/orphans решение | Runtime не ремонтирует DDL и не делает public fallback; ready без storage evidence не успех |
-| 0033_content_recovery_markers | InnoDB/full PK(kind,requestKey), ASCII_BIN key, owner index и expiry scan indexes | Schema и spent guards готовы локально; компактизация/worker выключены. После compact старый writer не является допустимым rollback |
+| 0033_content_recovery_markers | InnoDB/full PK(kind,requestKey), ASCII_BIN key, owner index и expiry scan indexes | Schema/spent guards/explicit local compaction готовы; scheduler отсутствует. После compact старый writer не является допустимым rollback |
+| 0034_private_recovery_lifecycle | Nullable recoveryCompactedAt/orphanedAt на private_attachment_uploads; применить до backend с расширенной ORM-моделью | Только own fixture применён. Private upload/delivery на новом backend требуют полных новых columns даже при maintenance flags off; working apply запрещён |
 
 Email identity preflight сейчас вызывается штатным инструментом, когда `0027`
 остаётся pending. Если индекс уже помечен applied, отдельно подтвердить существующее
@@ -187,13 +188,55 @@ withConsistentSnapshot+accessMode: установленная версия со�
 пробелом вместо запятой; достаточно explicit RR и первого consistent read.
 Пойманная блокировка uncommitted status и последующий SQL-start отказ устранены,
 полные affected native suites пройдены после восстановления own fault fixtures.
-Batch compactor, orphan DELETE и final scrub/export пока не реализованы; никаких
+На checkpointR4b batch compactor/orphan DELETE ещё не реализованы; последующее
+локальное продолжение описано ниже. Final scrub/export не реализованы, никаких
 working rows/objects не удалялось. Полный regression сохраняет ранее зафиксированный
 frontend viewport failure, этот focused GREEN его не заменяет.
 
+**R4c/R5 — явная локальная maintenance, 14 октября.** Компактизация post/article
+в bounded1–100 rows на ledger транзакционно сохраняет minimal spent marker и
+удаляет detailed journal. Материал/teaser не удаляются; conflicting marker
+откатывает detail deletion. Private keyset pass bounded1–100 rows с nextCursor:
+атомарно сохраняет marker, очищает original upload filename, сохраняет read/cleanup
+evidence и серверные lifecycle timestamps. Payload/namespace fingerprints, size,
+MIME/ETag, asset/post/media остаются необходимым доказательством владения до
+закрытия связи/подтверждения storage cleanup; это не полная анонимизация данных.
+Bound post_media filename/display и материалы этим сроком не очищаются.
+
+Never-bound срок — original createdAt; отсутствующая связь detached/deleted post
+получает orphanedAt в момент первого безопасного наблюдения, а не давнюю дату
+загрузки. Живая связь сохраняется, marker закрывает только recovery. Перед S3
+DELETE marker уже committed; затем original asset lock повторно проверяет live
+binding, ownership/namespace/size/MIME/metadata/ETag и точный derived private-v1
+key. Только conditional DELETE IfMatch, затем HEAD404. Lost ACK/SQL rollback
+сохраняют receipt/marker; новый compiled процесс доводит подтверждение без второго
+DELETE и без нового PUT/bind. Unknown pending PUT reconciled тем же ключом.
+Versioned buckets отказаны; versioning/object-lock/provider acceptance отдельно.
+
+Два default-off флага `CONTENT_RECOVERY_RETENTION_ENABLED` и
+`CONTENT_RECOVERY_MAINTENANCE_ENABLED` нужны для compaction; дополнительный
+`PRIVATE_ORPHAN_CLEANUP_ENABLED` нужен для storage DELETE. Функции не подключены
+к API, scheduler или production boot. Private maintenance жёстко ограничена
+non-production loopback `backend_test`; storage DELETE — loopback HTTP S3 wire.
+Включение flags не делает рабочее хранилище допустимым target. Scope расширять
+лишь отдельным согласованным rollout после history/snapshot, draining старых
+writers, provider IfMatch/versioning acceptance и backup/restore решения.
+Не запускать bucket sweep/ListObjects, рабочую очистку, старые migrations или
+автоматический цикл. Cursor продолжать явно; failed>0 — не успех, evidence
+сохранена для точечного повторного прохода/исследования. Счётчики растут только
+после SQL commit; deadlock/timeout — retry pass, не ложный completed result.
+Native affected checkpoint:116 pass/6 suites/skip0,8.25s; реальные SQL/HTTP,
+loopback SDK bytes, forced SQL rollback, late binding row-lock race и fresh-process
+lost DELETE ACK. Это не новое Timeweb acceptance. Migration tests31 pass,
+offline preflight0034 зарегистрирован, прежние0017–0019 gate не обходились.
+Full regression на R4c/R5:3454 pass/1 unchanged frontend viewport failure/179 skip,
+3634 total,195.13 s,exit1. Failure: `document is not defined`, frontend viewport.ts:73,
+тот же прежний тест/код, frontend не исправлялся/не скрывался. Report own temp
+`/tmp/daryadarcy-ag5-cleanup-report.KtBiSu/full.json`; это не full GREEN.
+
 Первый локальный срез — `CONTENT_RECOVERY_RETENTION_ENABLED`, default-off,
 отказ409 после30 суток на upload/status/unbound association, keyed post create
-и article create/status. Новый post status endpoint не добавлять. Существующие строки пока не удалять/не компактизировать; bound read
+и article create/status. Новый post status endpoint не добавлять. В первом срезе строки не удалялись; R4c/R5 меняют лишь own fixture. Bound read
 не зависит от окна восстановления. Invalid timestamps — отказ503, не успех.
 Команды в own loopback/tmpfs fixture: `pnpm exec vitest run tests/private-attachment-uploads.mysql.test.ts --maxWorkers=1`;
 `pnpm exec tsc --noEmit`, `pnpm build`, `pnpm check:boundaries`, `pnpm check:docs`.

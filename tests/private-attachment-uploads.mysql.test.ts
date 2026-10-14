@@ -17,6 +17,9 @@ import { openPrivateUploadWire } from "./helpers/private-upload-wire";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
+import { drizzle } from "drizzle-orm/mysql2";
+import type { MySql2Database } from "drizzle-orm/mysql2";
+import { runPrivateRecoveryProcess } from "./helpers/private-recovery-process";
 
 describe.skipIf(!testDatabaseUrl)(
   "private upload native HTTP/SQL and SDK wire",
@@ -85,6 +88,18 @@ describe.skipIf(!testDatabaseUrl)(
       idempotencyKey: "private-post-intent-0001",
       privateAssetIds: [assetId],
     });
+    async function maintain(
+      database: MySql2Database = drizzle(conn),
+      cleanup = true,
+    ) {
+      vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true");
+      vi.stubEnv("CONTENT_RECOVERY_MAINTENANCE_ENABLED", "true");
+      vi.stubEnv("PRIVATE_ORPHAN_CLEANUP_ENABLED", String(cleanup));
+      const module =
+        await import("../apps/backend/src/content/private-recovery-maintenance");
+      expect(module.maintainPrivateRecovery).toBeTypeOf("function");
+      return module.maintainPrivateRecovery(database, { limit: 10 });
+    }
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       // Native notification selector finds no recipients; no external push transport.
@@ -141,6 +156,259 @@ describe.skipIf(!testDatabaseUrl)(
         )?.$client.end();
       await wire?.close();
       vi.unstubAllEnvs();
+    });
+    it("expired never-bound upload is deleted once and cannot be resurrected", async () => {
+      expect((await request("uploadPrivateAttachment")).status).toBe(200);
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      const result = await maintain();
+      expect(result.deleted).toBe(1);
+      expect(wire.objects.size).toBe(0);
+      expect(
+        await rows(
+          "SELECT assetId FROM private_attachment_uploads WHERE actorUserId=97330",
+        ),
+      ).toEqual([]);
+      expect(
+        await rows(
+          "SELECT kind FROM content_recovery_markers WHERE actorUserId=97330",
+        ),
+      ).toEqual([{ kind: "private_attachment" }]);
+      const effects = wire.effects.length;
+      expect((await request("uploadPrivateAttachment")).status).toBe(409);
+      expect(
+        (
+          await request(
+            "privateAttachmentStatus",
+            { idempotencyKey: input.idempotencyKey },
+            token,
+            true,
+          )
+        ).status,
+      ).toBe(409);
+      expect(wire.effects).toHaveLength(effects);
+    });
+    it("compacts a live bound receipt without deleting its object or read evidence", async () => {
+      const uploaded = await request("uploadPrivateAttachment");
+      const assetId = String(uploaded.data.assetId);
+      expect((await request("createPost", postInput(assetId))).status).toBe(
+        200,
+      );
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      const result = await maintain();
+      expect(result.compacted).toBe(1);
+      expect(result.deleted).toBe(0);
+      expect(wire.objects.size).toBe(1);
+      const [receipt] = await rows(
+        "SELECT filename,mimeType,fileSize,etag,mediaId,postId FROM private_attachment_uploads WHERE actorUserId=97330",
+      );
+      expect(receipt.filename).toBe("");
+      expect(receipt.mimeType).toBe("text/plain; charset=utf-8");
+      expect(receipt.fileSize).toBe(10);
+      expect(receipt.etag).toBeTruthy();
+      expect(receipt.mediaId).toBeGreaterThan(0);
+      expect(receipt.postId).toBeGreaterThan(0);
+      expect(wire.effects.some((effect) => effect.startsWith("DELETE "))).toBe(
+        false,
+      );
+      vi.stubEnv("PRIVATE_POST_MEDIA_DELIVERY_ENABLED", "true");
+      expect(
+        (
+          await request("updatePost", {
+            id: receipt.postId,
+            status: "published",
+            target: "feed",
+            privateAssetIds: [assetId],
+          })
+        ).status,
+      ).toBe(200);
+      const response = await fetch(
+        `${base}/api/media/post-attachments/${receipt.mediaId}`,
+      );
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe("0123456789");
+    });
+    it("starts a detached receipt clock at observation, not its old upload date", async () => {
+      const uploaded = await request("uploadPrivateAttachment");
+      const assetId = String(uploaded.data.assetId);
+      expect((await request("createPost", postInput(assetId))).status).toBe(
+        200,
+      );
+      await conn.query(
+        "DELETE m FROM post_media m JOIN private_attachment_uploads u ON m.id=u.mediaId WHERE u.actorUserId=97330",
+      );
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 90 DAY) WHERE actorUserId=97330",
+      );
+      expect((await maintain()).deleted).toBe(0);
+      const [receipt] = await rows(
+        "SELECT orphanedAt FROM private_attachment_uploads WHERE actorUserId=97330",
+      );
+      expect(Date.now() - receipt.orphanedAt.getTime()).toBeLessThan(10000);
+      expect((await maintain()).deleted).toBe(0);
+      expect(wire.objects.size).toBe(1);
+      await conn.query(
+        "UPDATE private_attachment_uploads SET orphanedAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      expect((await maintain()).deleted).toBe(1);
+      expect(wire.objects.size).toBe(0);
+    });
+    it("keeps durable evidence after lost DELETE ACK and confirms absence on retry", async () => {
+      await request("uploadPrivateAttachment");
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      wire.dropDeleteAck();
+      const first = await maintain();
+      expect(first.failed).toBe(1);
+      expect(first.deleted).toBe(0);
+      expect(wire.objects.size).toBe(0);
+      expect(
+        await rows(
+          "SELECT assetId FROM private_attachment_uploads WHERE actorUserId=97330",
+        ),
+      ).toHaveLength(1);
+      expect((await request("uploadPrivateAttachment")).status).toBe(409);
+      const resumed = await runPrivateRecoveryProcess();
+      expect(resumed.pid).not.toBe(process.pid);
+      expect(resumed.result.deleted).toBe(1);
+      expect(resumed.result.failed).toBe(0);
+      expect(
+        wire.effects.filter((effect) => effect.startsWith("DELETE ")),
+      ).toHaveLength(1);
+      expect(
+        await rows(
+          "SELECT assetId FROM private_attachment_uploads WHERE actorUserId=97330",
+        ),
+      ).toEqual([]);
+    });
+    it("reconciles an expired pending upload without performing another PUT", async () => {
+      wire.dropPutAck();
+      expect((await request("uploadPrivateAttachment")).status).toBe(503);
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      expect((await maintain()).deleted).toBe(1);
+      expect(
+        wire.effects.filter((effect) => effect.startsWith("PUT ")),
+      ).toHaveLength(1);
+      expect(wire.objects.size).toBe(0);
+    });
+    it("refuses a foreign object and retains its receipt for investigation", async () => {
+      await request("uploadPrivateAttachment");
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      for (const object of wire.objects.values())
+        object.metadata["intent-hash"] = "foreign";
+      const result = await maintain();
+      expect(result.failed).toBe(1);
+      expect(result.deleted).toBe(0);
+      expect(wire.objects.size).toBe(1);
+      expect(wire.effects.some((effect) => effect.startsWith("DELETE "))).toBe(
+        false,
+      );
+      expect(
+        await rows(
+          "SELECT assetId FROM private_attachment_uploads WHERE actorUserId=97330",
+        ),
+      ).toHaveLength(1);
+    });
+    it("never reports compaction when the SQL transaction was rolled back", async () => {
+      await request("uploadPrivateAttachment");
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      await conn.query(
+        "CREATE TRIGGER backend_test_ag5_rollback BEFORE UPDATE ON private_attachment_uploads FOR EACH ROW BEGIN IF NEW.actorUserId=97330 AND NEW.orphanedAt IS NOT NULL THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Owned lifecycle failure'; END IF; END",
+      );
+      try {
+        const result = await maintain();
+        expect(result.compacted).toBe(0);
+        expect(result.observed).toBe(0);
+        expect(result.deleted).toBe(0);
+        expect(result.failed).toBe(1);
+        expect(
+          await rows(
+            "SELECT filename FROM private_attachment_uploads WHERE actorUserId=97330",
+          ),
+        ).toEqual([{ filename: "fixture.txt" }]);
+        expect(
+          await rows(
+            "SELECT kind FROM content_recovery_markers WHERE actorUserId=97330",
+          ),
+        ).toEqual([]);
+        expect(wire.objects.size).toBe(1);
+      } finally {
+        await conn.query("DROP TRIGGER backend_test_ag5_rollback");
+      }
+    });
+    it("keeps compacted orphan evidence without contacting S3 while cleanup is disabled", async () => {
+      await request("uploadPrivateAttachment");
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      wire.effects.length = 0;
+      const result = await maintain(drizzle(conn), false);
+      expect(result.compacted).toBe(1);
+      expect(result.deleted).toBe(0);
+      expect(wire.effects).toEqual([]);
+      expect(wire.objects.size).toBe(1);
+    });
+    it("refuses a non-loopback S3 endpoint without any storage request", async () => {
+      await request("uploadPrivateAttachment");
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      wire.effects.length = 0;
+      vi.stubEnv("S3_ENDPOINT", "https://storage.example.test");
+      try {
+        const result = await maintain();
+        expect(result.failed).toBe(1);
+        expect(result.deleted).toBe(0);
+        expect(wire.effects).toEqual([]);
+        expect(wire.objects.size).toBe(1);
+      } finally {
+        vi.stubEnv("S3_ENDPOINT", wire.endpoint);
+      }
+    });
+    it("serializes cleanup against a late binding without deleting a newly bound object", async () => {
+      const upload = await request("uploadPrivateAttachment");
+      const assetId = String(upload.data.assetId);
+      await conn.query(
+        "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
+      );
+      const gate = wire.pauseDelete();
+      const cleanup = maintain((await getDb())!);
+      let bind: ReturnType<typeof request> | undefined;
+      try {
+        await gate.entered;
+        // Disabling expiry must not reopen the already committed spent marker.
+        vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "false");
+        bind = request("createPost", postInput(assetId));
+        await vi.waitFor(
+          async () =>
+            expect(
+              (
+                await rows(
+                  "SELECT 1 FROM performance_schema.data_lock_waits w JOIN performance_schema.data_locks l ON l.ENGINE_LOCK_ID=w.REQUESTING_ENGINE_LOCK_ID AND l.ENGINE=w.ENGINE WHERE l.OBJECT_SCHEMA=DATABASE() AND l.OBJECT_NAME='private_attachment_uploads'",
+                )
+              ).length,
+            ).toBeGreaterThan(0),
+          { timeout: 3000, interval: 20 },
+        );
+      } finally {
+        gate.release();
+        await cleanup;
+      }
+      expect((await bind!).status).toBe(409);
+      expect(
+        await rows("SELECT id FROM posts WHERE source='ag4-upload-suite'"),
+      ).toEqual([]);
+      expect(wire.objects.size).toBe(0);
     });
     it("uploads a private document and replays the same server receipt", async () => {
       const first = await request("uploadPrivateAttachment");

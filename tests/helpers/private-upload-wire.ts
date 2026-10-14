@@ -14,7 +14,9 @@ export async function openPrivateUploadWire() {
     }
   >();
   const effects: string[] = [];
+  let deleteGate: { entered: () => void; wait: Promise<void> } | undefined;
   let dropNextPut = false,
+    dropNextDelete = false,
     rejectPolicy = false;
   const bucket = "private-upload-fixture";
   const server = createServer(async (req, res) => {
@@ -49,6 +51,13 @@ export async function openPrivateUploadWire() {
                 },
               ],
         }),
+      );
+      return;
+    }
+    if (url.searchParams.has("versioning")) {
+      res.setHeader("content-type", "application/xml");
+      res.end(
+        '<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>',
       );
       return;
     }
@@ -102,6 +111,26 @@ export async function openPrivateUploadWire() {
       res.writeHead(404).end();
       return;
     }
+    if (req.method === "DELETE") {
+      if (req.headers["if-match"] !== object.etag) {
+        res.writeHead(412).end();
+        return;
+      }
+      if (deleteGate) {
+        const gate = deleteGate;
+        deleteGate = undefined;
+        gate.entered();
+        await gate.wait;
+      }
+      objects.delete(key);
+      if (dropNextDelete) {
+        dropNextDelete = false;
+        req.socket.destroy();
+        return;
+      }
+      res.writeHead(204).end();
+      return;
+    }
     res.setHeader("content-length", object.bytes.length);
     res.setHeader("content-type", object.mime);
     res.setHeader("etag", object.etag);
@@ -125,6 +154,20 @@ export async function openPrivateUploadWire() {
     endpoint: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
     dropPutAck: () => {
       dropNextPut = true;
+    },
+    dropDeleteAck: () => {
+      dropNextDelete = true;
+    },
+    pauseDelete: () => {
+      let enter!: () => void, release!: () => void;
+      const entered = new Promise<void>((resolve) => {
+        enter = resolve;
+      });
+      const wait = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      deleteGate = { entered: enter, wait };
+      return { entered, release };
     },
     rejectPolicy: (value: boolean) => {
       rejectPolicy = value;

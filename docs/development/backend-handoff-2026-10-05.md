@@ -1,5 +1,18 @@
 # Передача изменений бэкенда фронтендеру
 
+## 14 октября — AG5-R4/R5, локальная компактизация и orphan cleanup
+
+Фронтенд/types не изменялись; нового endpoint или success shape нет. После
+компактизации known spent intent по-прежнему409, даже если expiry flag выключили:
+не трактовать это как отсутствие операции и не создавать новый ключ автоматически.
+Живые bound вложения/материалы не удаляются, их чтение не ограничено30 сутками.
+Код очистки реализован только для own loopback backend_test/S3 wire, default-off,
+без scheduler/API wiring. Рабочая Timeweb очистка не включена и не проверена этим
+срезом. Новая0034 до backend с расширенной ORM-моделью обязательна для private
+routes; рабочую apply нельзя выполнять без AG5 preflight/history/rollout решения.
+Подробные условия и evidence — [existing runbook](../operations/teamassist-staging.md).
+Final scrub/export/backup/restore остаются следующимR6/внешними gate.
+
 ## 14 октября — AG5-R1, окно восстановления новых вложений
 
 Локальный `CONTENT_RECOVERY_RETENTION_ENABLED`, default-off. При отдельном
