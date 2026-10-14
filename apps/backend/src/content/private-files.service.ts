@@ -7,6 +7,7 @@ import { getDb } from "../db";
 import { SessionService } from "../identity/session.service";
 import { userHasClubAccess } from "../identity/club-access";
 import { ownAttachmentKey } from "../media/private-object";
+import { privateMediaUrl, privateReceiptForMedia } from "./private-attachment-association";
 
 const SAFE_MIMES = new Set([
   "text/plain",
@@ -31,7 +32,7 @@ export class PrivateFilesService {
     @Inject(SessionService) private readonly sessions: SessionService,
   ) {}
 
-  async authorizedAttachment(id: number, req: Request) {
+  async authorizedAttachment(id: number, req: Request): Promise<{ key: string; mime: string; etag?: string } | undefined> {
     const database = await getDb();
     if (!database) throw new Error("Database unavailable");
     const [row] = await database
@@ -42,6 +43,7 @@ export class PrivateFilesService {
         published: posts.published,
         status: posts.status,
         target: posts.target,
+        postId: posts.id,
       })
       .from(postMedia)
       .innerJoin(posts, eq(posts.id, postMedia.postId))
@@ -59,6 +61,10 @@ export class PrivateFilesService {
       }
       if (!(await userHasClubAccess(user))) return;
     } else if (row.target !== "feed" && row.target !== "both") return;
+    if (row.url === privateMediaUrl(id)) {
+      const receipt = await privateReceiptForMedia(database, { id, postId: row.postId, type: row.type });
+      return receipt && SAFE_MIMES.has(receipt.mime.split(";")[0].trim().toLowerCase()) ? receipt : undefined;
+    }
     const key = ownAttachmentKey(row.url);
     const mime =
       row.mime?.split(";")[0].trim().toLowerCase() ??

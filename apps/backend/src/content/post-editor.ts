@@ -11,6 +11,7 @@ import {
   type PostAttachmentChanges,
 } from "./post-attachments";
 import { TRPCError } from "@trpc/server";
+import { authorizePrivateAttachmentChanges } from "./private-attachment-association";
 
 /** Save a normalized partial edit and optional videos as one committed change. */
 export async function savePostEdit(
@@ -21,6 +22,7 @@ export async function savePostEdit(
   attachments: PostAttachmentChanges = {},
 ): Promise<PostPublication | undefined> {
   return database.transaction(async (tx) => {
+    await authorizePrivateAttachmentChanges(tx, attachments);
     const [post] = await tx
       .select({
         id: posts.id,

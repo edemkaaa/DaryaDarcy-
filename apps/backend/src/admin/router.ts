@@ -26,12 +26,12 @@ export const createAdminRouter = (
   // Create a new post (admin only)
   createPost: adminProcedure
     .input(createPostInput)
-    .mutation(({ input, ctx }) => posts.createPost(ctx.user.id, input)),
+    .mutation(({ input, ctx }) => posts.createPost(ctx.user.id, input, ctx.user)),
 
   // Update an existing post (admin only)
   updatePost: adminProcedure
     .input(updatePostInput)
-    .mutation(({ input }) => posts.updatePost(input)),
+    .mutation(({ input, ctx }) => posts.updatePost(input, ctx.user)),
 
   // Delete a post (admin only)
   deletePost: adminProcedure

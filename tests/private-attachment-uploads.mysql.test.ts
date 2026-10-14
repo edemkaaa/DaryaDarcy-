@@ -60,8 +60,34 @@ describe.skipIf(!testDatabaseUrl)(
     async function rows(sql: string, args: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(sql, args))[0];
     }
+    async function cleanupPosts() {
+      const ids = (
+        await rows("SELECT id FROM posts WHERE source='ag4-upload-suite'")
+      ).map((row) => row.id);
+      for (const id of ids) {
+        await conn.query("DELETE FROM post_media WHERE postId=?", [id]);
+        await conn.query("DELETE FROM posts WHERE id=?", [id]);
+      }
+      await conn.query(
+        "DELETE FROM post_creation_requests WHERE actorUserId IN (97330,97331)",
+      );
+    }
+    const postInput = (assetId: string) => ({
+      text: "Private attachment fixture",
+      photos: [],
+      tags: [],
+      source: "ag4-upload-suite",
+      target: "club",
+      status: "draft",
+      idempotencyKey: "private-post-intent-0001",
+      privateAssetIds: [assetId],
+    });
     beforeAll(async () => {
       conn = await openContentTestDatabase();
+      // Native notification selector finds no recipients; no external push transport.
+      await conn.query(
+        "CREATE TABLE IF NOT EXISTS push_consent_events (id INT AUTO_INCREMENT PRIMARY KEY,userId INT NOT NULL,consentType ENUM('service','marketing') NOT NULL,status ENUM('granted','revoked') NOT NULL,consentVersion VARCHAR(32) NOT NULL,consentText TEXT,platform VARCHAR(16),createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
+      );
       wire = await openPrivateUploadWire();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
       vi.stubEnv("JWT_SECRET", "ag4-fixture-session-secret-32-characters");
@@ -79,6 +105,7 @@ describe.skipIf(!testDatabaseUrl)(
       token = await sdk.createSessionToken("ag4-admin", { sessionVersion: 0 });
     });
     beforeEach(async () => {
+      await cleanupPosts();
       if ((await rows("SHOW TABLES LIKE 'private_attachment_uploads'")).length)
         await conn.query(
           "DELETE FROM private_attachment_uploads WHERE actorUserId IN (97330,97331)",
@@ -94,6 +121,7 @@ describe.skipIf(!testDatabaseUrl)(
     afterAll(async () => {
       await app?.close();
       if (conn) {
+        await cleanupPosts();
         if (
           (await rows("SHOW TABLES LIKE 'private_attachment_uploads'")).length
         )
@@ -247,6 +275,222 @@ describe.skipIf(!testDatabaseUrl)(
       wire.effects.length = 0;
       expect((await request("uploadPrivateAttachment")).status).toBe(403);
       expect(wire.effects).toEqual([]);
+    });
+    it("binds a ready receipt in post creation without exposing the object URL", async () => {
+      const receipt = (await request("uploadPrivateAttachment")).data;
+      const created = await request("createPost", postInput(receipt.assetId));
+      expect(created.status).toBe(200);
+      const media = await rows("SELECT * FROM post_media WHERE postId=?", [
+        created.data,
+      ]);
+      expect(media).toHaveLength(1);
+      expect(media[0]).toMatchObject({
+        type: "document",
+        filename: "fixture.txt",
+        mimeType: "text/plain; charset=utf-8",
+        fileSize: 10,
+        url: `/api/media/post-attachments/${media[0].id}`,
+      });
+      expect(await request("createPost", postInput(receipt.assetId))).toEqual(
+        created,
+      );
+      expect(
+        await rows("SELECT id FROM posts WHERE source='ag4-upload-suite'"),
+      ).toHaveLength(1);
+      expect(
+        await rows("SELECT id FROM post_media WHERE postId=?", [created.data]),
+      ).toHaveLength(1);
+      expect((await fetch(`${base}${media[0].url}`)).status).toBe(404);
+      expect(
+        (
+          await request("updatePost", {
+            id: created.data,
+            status: "published",
+            privateAssetIds: [receipt.assetId],
+          })
+        ).status,
+      ).toBe(200);
+      vi.stubEnv("PRIVATE_POST_MEDIA_DELIVERY_ENABLED", "true");
+      const authorized = await fetch(`${base}${media[0].url}`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(authorized.status).toBe(200);
+      expect(authorized.headers.get("content-type")).toBe(
+        "text/plain; charset=utf-8",
+      );
+      expect(await authorized.text()).toBe("0123456789");
+      expect((await fetch(`${base}${media[0].url}`)).status).toBe(404);
+    });
+    it("rejects a foreign receipt and rolls back post creation", async () => {
+      const receipt = (await request("uploadPrivateAttachment")).data;
+      const other = await sdk.createSessionToken("ag4-other-admin", {
+        sessionVersion: 0,
+      });
+      expect(
+        (await request("createPost", postInput(receipt.assetId), other)).status,
+      ).toBe(409);
+      expect(
+        await rows("SELECT id FROM posts WHERE source='ag4-upload-suite'"),
+      ).toHaveLength(0);
+    });
+    it("removal revokes read and late attachment retry cannot resurrect it", async () => {
+      const receipt = (await request("uploadPrivateAttachment")).data;
+      const created = await request("createPost", postInput(receipt.assetId));
+      const media = await rows("SELECT id FROM post_media WHERE postId=?", [
+        created.data,
+      ]);
+      expect(media).toHaveLength(1);
+      vi.stubEnv("PRIVATE_POST_MEDIA_DELIVERY_ENABLED", "true");
+      await request("updatePost", {
+        id: created.data,
+        target: "feed",
+        status: "published",
+      });
+      const before = await fetch(
+        `${base}/api/media/post-attachments/${media[0].id}`,
+      );
+      expect(before.status).toBe(200);
+      await before.text();
+      expect(
+        (
+          await request("updatePost", {
+            id: created.data,
+            removedMediaIds: [media[0].id],
+          })
+        ).status,
+      ).toBe(200);
+      wire.effects.length = 0;
+      expect(
+        (await fetch(`${base}/api/media/post-attachments/${media[0].id}`))
+          .status,
+      ).toBe(404);
+      expect(wire.effects).toEqual([]);
+      expect(
+        (
+          await request("updatePost", {
+            id: created.data,
+            privateAssetIds: [receipt.assetId],
+          })
+        ).status,
+      ).toBe(409);
+      expect(
+        await rows("SELECT id FROM post_media WHERE postId=?", [created.data]),
+      ).toHaveLength(0);
+      expect(wire.objects.size).toBe(1);
+    });
+    it("legacy URL attachment cannot bypass ownership for a private-v1 object", async () => {
+      await request("uploadPrivateAttachment");
+      const url = `${wire.endpoint}/${wire.bucket}/${[...wire.objects.keys()][0]}`;
+      const payload = {
+        ...postInput("unused"),
+        privateAssetIds: [],
+        attachments: [
+          {
+            type: "document",
+            url,
+            filename: "fixture.txt",
+            mimeType: "text/plain",
+            fileSize: 10,
+          },
+        ],
+      };
+      expect((await request("createPost", payload)).status).toBe(400);
+      expect(
+        await rows("SELECT id FROM posts WHERE source='ag4-upload-suite'"),
+      ).toHaveLength(0);
+    });
+    it("failed media insertion rolls back the post edit and receipt binding", async () => {
+      const receipt = (await request("uploadPrivateAttachment")).data;
+      const created = await request("createPost", {
+        ...postInput(receipt.assetId),
+        privateAssetIds: [],
+      });
+      await conn.query(
+        "CREATE TRIGGER ag4_fixture_media_abort BEFORE INSERT ON post_media FOR EACH ROW BEGIN IF NEW.url LIKE 'private-asset:%' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='ag4 fixture rollback'; END IF; END",
+      );
+      try {
+        expect(
+          (
+            await request("updatePost", {
+              id: created.data,
+              text: "must roll back",
+              privateAssetIds: [receipt.assetId],
+            })
+          ).status,
+        ).toBe(500);
+        expect(
+          (await rows("SELECT text FROM posts WHERE id=?", [created.data]))[0]
+            .text,
+        ).toBe("Private attachment fixture");
+        expect(
+          await rows("SELECT id FROM post_media WHERE postId=?", [
+            created.data,
+          ]),
+        ).toHaveLength(0);
+        expect(
+          (
+            await rows(
+              "SELECT postId,mediaId FROM private_attachment_uploads WHERE assetId=?",
+              [receipt.assetId],
+            )
+          )[0],
+        ).toEqual({ postId: null, mediaId: null });
+      } finally {
+        await conn.query("DROP TRIGGER ag4_fixture_media_abort");
+      }
+    });
+    it("pending receipt cannot be attached or treated as a completed post", async () => {
+      wire.dropPutAck();
+      await request("uploadPrivateAttachment");
+      const receipt = (
+        await request(
+          "privateAttachmentStatus",
+          { idempotencyKey: input.idempotencyKey },
+          token,
+          true,
+        )
+      ).data;
+      expect(
+        (await request("createPost", postInput(receipt.assetId))).status,
+      ).toBe(409);
+      expect(
+        await rows("SELECT id FROM posts WHERE source='ag4-upload-suite'"),
+      ).toHaveLength(0);
+    });
+    it("a receipt cannot be rebound to another post", async () => {
+      const receipt = (await request("uploadPrivateAttachment")).data;
+      expect(
+        (await request("createPost", postInput(receipt.assetId))).status,
+      ).toBe(200);
+      expect(
+        (
+          await request("createPost", {
+            ...postInput(receipt.assetId),
+            idempotencyKey: "private-post-intent-0002",
+          })
+        ).status,
+      ).toBe(409);
+      expect(
+        await rows("SELECT id FROM posts WHERE source='ag4-upload-suite'"),
+      ).toHaveLength(1);
+    });
+    it("changed object ETag is not served under a previously committed receipt", async () => {
+      const receipt = (await request("uploadPrivateAttachment")).data;
+      const created = await request("createPost", postInput(receipt.assetId));
+      await request("updatePost", {
+        id: created.data,
+        target: "feed",
+        status: "published",
+      });
+      const media = await rows("SELECT id FROM post_media WHERE postId=?", [
+        created.data,
+      ]);
+      [...wire.objects.values()][0].etag = '"changed-object"';
+      vi.stubEnv("PRIVATE_POST_MEDIA_DELIVERY_ENABLED", "true");
+      expect(
+        (await fetch(`${base}/api/media/post-attachments/${media[0].id}`))
+          .status,
+      ).toBe(503);
     });
   },
 );

@@ -70,7 +70,7 @@ export class PrivateFilesController {
         typeof size !== "number" ||
         !Number.isSafeInteger(size) ||
         size < 0 ||
-        !meta.ETag
+        !meta.ETag || (file.etag !== undefined && file.etag !== meta.ETag)
       )
         throw new Error("Invalid object metadata");
       res.setHeader("Content-Type", file.mime);

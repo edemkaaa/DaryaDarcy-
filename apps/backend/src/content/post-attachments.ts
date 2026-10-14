@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { postMedia } from "../../../../packages/database/src/schema";
 import { isRawMediaFilename } from "../../../../packages/shared/src/media-label";
+import { bindPrivateAttachments, type PrivateAttachmentChanges } from "./private-attachment-association";
 
 // Administrators may attach uploaded public media, as with existing photos/videos.
 // These URLs are stored, never fetched by the server. Do not accept executable URLs.
@@ -15,10 +16,12 @@ export const postAttachmentInput = z.object({
     .url()
     .refine((value) => {
       const url = new URL(value);
+      let reserved = false;
+      try { reserved = /\/feed\/(audio|documents)\/private-v1\//.test(decodeURIComponent(url.pathname)); } catch { /* Legacy URL validation remains unchanged. */ }
       return (
         ["https:", "http:"].includes(url.protocol) &&
         !url.username &&
-        !url.password
+        !url.password && !reserved
       );
     }),
   filename: z.string().min(1).max(512),
@@ -30,18 +33,19 @@ export const postAttachmentInput = z.object({
     .max(32 * 1024 * 1024),
 });
 export type PostAttachmentInput = z.infer<typeof postAttachmentInput>;
-export type PostAttachmentChanges = {
+export type PostAttachmentChanges = PrivateAttachmentChanges & {
   attachments?: PostAttachmentInput[];
   removedMediaIds?: number[];
 };
-type AttachmentWriter = Pick<MySql2Database, "select" | "insert" | "delete">;
+type AttachmentWriter = Pick<MySql2Database, "select" | "insert" | "delete" | "update">;
 
 /** Caller holds the post lock; attachment changes share its save transaction. */
 export async function savePostAttachments(
   writer: AttachmentWriter,
   postId: number,
-  { attachments = [], removedMediaIds = [] }: PostAttachmentChanges,
+  changes: PostAttachmentChanges,
 ): Promise<void> {
+  const { attachments = [], removedMediaIds = [] } = changes;
   const ids = [...new Set(removedMediaIds)];
   if (ids.length) {
     const rows = await writer
@@ -81,4 +85,6 @@ export async function savePostAttachments(
       })),
     );
   }
+  if (changes.privateAssetIds?.length)
+    await bindPrivateAttachments(writer, postId, changes);
 }

@@ -12,6 +12,8 @@ import type { CreatePostInput, UpdatePostInput } from "./post-write-input";
 import type { ImportVideosInput } from "./video-import-input";
 import { userHasClubAccess } from "../identity/club-access";
 import type { ReactionAccessCheck } from "./post-reactions";
+import { TRPCError } from "@trpc/server";
+import type { PrivateAttachmentActor } from "./private-attachment-uploads";
 
 /** The adapter authorizes/validates inputs; existing helpers own transactions. */
 @Injectable()
@@ -89,6 +91,7 @@ export class ContentWriteService {
   async createPost(
     actorUserId: number,
     input: CreatePostInput,
+    actor?: PrivateAttachmentActor,
   ): Promise<number> {
     const { idempotencyKey, ...payload } = input;
     const {
@@ -98,8 +101,10 @@ export class ContentWriteService {
       status,
       videos = [],
       attachments,
+      privateAssetIds,
       ...rest
     } = payload;
+    if (privateAssetIds?.length && !idempotencyKey) throw new TRPCError({ code: "BAD_REQUEST", message: "Для закрытых вложений нужен ключ создания поста" });
     const text = sanitizePlainPostText(rest.text);
     const richText = normalizeRichTextForStorage(rest.richText, text);
     const tags =
@@ -134,12 +139,13 @@ export class ContentWriteService {
       ? await db.createPostOnce(
           postData,
           videos,
-          { attachments },
+          { attachments, privateAssetIds, actor },
           postCreationIntent(actorUserId, idempotencyKey, payload),
         )
       : {
           postId: await db.createPostWithVideos(postData, videos, {
             attachments,
+            privateAssetIds, actor,
           }),
           created: true,
         };
@@ -149,13 +155,14 @@ export class ContentWriteService {
     return result.postId;
   }
 
-  async updatePost(input: UpdatePostInput): Promise<{ success: boolean }> {
+  async updatePost(input: UpdatePostInput, actor?: PrivateAttachmentActor): Promise<{ success: boolean }> {
     const {
       id,
       scheduledAt,
       publishedAt,
       videos,
       attachments,
+      privateAssetIds,
       removedMediaIds,
       ...data
     } = input;
@@ -193,6 +200,7 @@ export class ContentWriteService {
     const publication = await db.savePostEdit(id, updateData, videos, {
       attachments,
       removedMediaIds,
+      privateAssetIds, actor,
     });
     if (publication) {
       void sendMarketingPostNotification(

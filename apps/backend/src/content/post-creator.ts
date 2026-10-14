@@ -12,6 +12,7 @@ import {
   type PostAttachmentChanges,
 } from "./post-attachments";
 import type { PostCreationIntent } from "./post-creation-request";
+import { authorizePrivateAttachmentChanges } from "./private-attachment-association";
 
 async function insertPost(
   writer: Pick<MySql2Database, "insert" | "delete" | "select" | "update">,
@@ -33,9 +34,10 @@ export async function createPostWithVideos(
   videos: string[],
   attachments: PostAttachmentChanges = {},
 ): Promise<number> {
-  return database.transaction((tx) =>
-    insertPost(tx, data, videos, attachments),
-  );
+  return database.transaction(async (tx) => {
+    await authorizePrivateAttachmentChanges(tx, attachments);
+    return insertPost(tx, data, videos, attachments);
+  });
 }
 
 export async function createPostOnce(
@@ -46,6 +48,7 @@ export async function createPostOnce(
   intent: PostCreationIntent,
 ): Promise<{ postId: number; created: boolean }> {
   return database.transaction(async (tx) => {
+    await authorizePrivateAttachmentChanges(tx, attachments);
     // Unique upsert acquires an exclusive key lock; never SELECT-then-INSERT.
     // Keep the winning payload/result unchanged on a concurrent duplicate.
     await tx

@@ -82,7 +82,14 @@ AG6 принят и реализован
     namespace drift/status и schema uniqueness refusal проверены. В объединённом
     focused прогоне 32 pass/3 files, skips0. tsc/build/boundaries/diff exit0;
     это не actual Timeweb acceptance. Привязка/чтение — AG4b, actual S3 — AG4c.
-  - [ ] AG4b — actor-owned transactional post association/replay/removal denial.
+  - [x] AG4b — actor-owned transactional post association/replay/removal denial.
+    RED: stripped privateAssetIds/foreign save и URL bypass, missing charset;
+    GREEN: 18 native HTTP/SQL/SDK-wire сценариев; ready/pending/foreign/rebind,
+    create replay/update/removal и SQL-trigger rollback. Новые post_media возвращают
+    только API URL; pinned receipt ETag проверяется перед чтением. Старый URL input
+    не принимает только новые private-v1 prefixes, старые files/URLs не менялись.
+    Combined affected suites 126 pass/4 files, skips0, 75.95 s. tsc/build/boundaries
+    проверены; frontend/provider S3 acceptance не подменены wire результатом.
   - [ ] AG4c — actual S3 synthetic upload/read/denial/restart и handoff/review.
 - [ ] **AG5 — подготовка миграций/email/статей к выпуску.** Статус: процедура
   подготовлена в existing runbook; ждёт истории/retention решения и репетиции
