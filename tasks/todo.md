@@ -8,8 +8,8 @@
 поручением. Новый список создан для продолжения, а не для повторной реализации.
 
 **AG4 завершён локально 14 октября:** upload/recovery/association и actual S3
-acceptance checkpoint пройден; повтор после MIME guard ждёт доступности Timeweb,
-flags off. AG5/AG9 ждут history/retention, frontend integration
+acceptance после MIME guard повторно пройдена на HEAD e3044af:2 pass/skip0,
+21.22 s, exit0. Timeweb timeout снят; flags off. AG5/AG9 ждут history/retention, frontend integration
 и разрешённой внешней приёмки/rollout. Незавершённой самостоятельной AG-реализации
 в принятых границах не осталось.
 AG6 принят и реализован
@@ -100,8 +100,14 @@ AG6 принят и реализован
     Own objects удалены с guards/HEAD404, policy unchanged. Wire guards20 pass
     (ready без ETag отказывает503; FLAC/read mismatch RED200→GREEN400 до SQL/S3),
     final affected84 pass/4 files/skip0; tsc/build/boundaries/docs/diff/five-axis review.
-    Actual повтор после guard дважды отказал на GetBucketPolicy timeout до объектов;
-    public endpoint TLS timeout тоже. Skipped не pass; повтор при доступном S3 перед rollout.
+    Первые повторы после guard дважды отказали на GetBucketPolicy timeout до объектов;
+    public endpoint TLS timeout тоже. По новому поручению повтор на HEAD e3044af
+    прошёл:2 pass/skip0,21.22 s,exit0, native API/SQL/Timeweb и fresh process restart.
+    Own S3 objects удалены после guards/HEAD404, полная policy unchanged.
+    Own backend_test892be65d1156/loopback58418/tmpfs/no volumes удалён после exact
+    owner/id/port/mount guards; foreign containers сохранены. Front/старые objects/
+    working DB/runtime flags не трогались. Код не менялся; прежнюю full regression
+    без причины не повторяли. S3 timeout блокер снят, остались внешние AG5/AG9 входы.
     Final full3418 pass/1 fail/179 skip,206.53 s после MIME guard: unchanged frontend viewport/document
     undefined не исправлялся. Backend inventory/save compatibility исправлены;
     bulk-video focused/final GREEN, runtime не менялся. Proof в SPEC-private-files;

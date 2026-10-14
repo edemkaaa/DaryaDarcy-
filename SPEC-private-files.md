@@ -256,7 +256,16 @@ Storage-ACK fault отдельно проверен на owned SDK wire, не о
 Повтор после MIME guard: два запуска отказали на GetBucketPolicy requestTimeout10s
 до подключения SQL/создания объектов; оба actual сценария пропущены, не pass.
 Отдельный public endpoint HEAD также дал TLS connection timeout; повтор при
-восстановленной доступности Timeweb нужен перед rollout, timeout не обходили.
+восстановленной доступности Timeweb был нужен, timeout не обходили.
+По новому поручению повтор выполнен на HEAD e3044af **после MIME guard**:
+**2 pass / 0 skip, 21.22 s, exit0**. API/SQL/Timeweb/restart сценарии и afterAll
+cleanup/policy equality прошли. Signed/anonymous границы, lost HTTP upload/post
+ACK recovery без дублей и exact WAV Range подтверждены; storage ACK fault по-прежнему
+проверяется отдельно на owned wire, не на реальном Timeweb. Runtime-код неизменён,
+предыдущий full checkpoint без причины не повторялся.
+Новая own tmpfs БД backend_test892be65d1156/loopback58418 удалена после exact
+ID/name/owner/port/mount checks, чужие geotermo/diplom не тронуты.
+S3 timeout блокер снят; working history/retention/frontend/device gates остаются.
 
 Document10B и корректный WAV46B загружены только в согласованные private-v1 prefixes;
 direct anonymous GET/HEAD403. Published club cookie получает точные bytes;

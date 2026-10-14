@@ -288,7 +288,12 @@ Actual Timeweb2 pass/skip0/6.24 s до MIME guard:
 document/WAV, lost HTTP ACK, два fresh backend процесса, one PUT/asset/post/media,
 anonymous403/cookie/expiry/removal/Range206. Повтор после guard дважды отказал на
 GetBucketPolicy timeout до создания объектов, public endpoint TLS timeout тоже;
-нужен повтор на доступном S3 перед rollout, skipped не pass. Свои fixtures после guards удалены/
+этот отказ снят повтором по новому поручению на HEAD e3044af:2 pass/skip0,
+21.22 s,exit0 после MIME guard. Native API/SQL/Timeweb, lost upload/post ACK,
+fresh process restart и exact WAV Range пройдены. Own repeat container892be65d1156,
+loopback58418/tmpfs/no volumes удалён после ownership guards; foreign сохранены.
+Повтор не включает рабочие flags/миграции и не закрывает client/device приёмку.
+Свои fixtures после guards удалены/
 HEAD404, policy unchanged. Own loopback33383/tmpfs контейнер752bd9b9dffe удалён
 после exact owner/id/port/mount guards, foreign containers сохранены.
 Working DB/runtime enablement/deploy/push не выполнялись.

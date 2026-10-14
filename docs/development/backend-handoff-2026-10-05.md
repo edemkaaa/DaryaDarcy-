@@ -48,9 +48,10 @@ working history/rollout отдельно в AG5/AG9, не заменяются s
 Проверки: native HTTP/JWT/SQL и SDK-wire (20 сценариев); actual Timeweb API/SQL
 с двумя fresh compiled Node процессами, потерей реального HTTP ответа через
 loopback proxy, document/WAV/Range и direct anonymous denial. Это backend acceptance,
-не UI/player/device/реальная внешняя почта или платежи. Успешный actual checkpoint
-до последнего MIME guard; два повтора после него остановлены на Timeweb timeout
-до создания объектов, требуют доступного S3 перед rollout. Все synthetic S3 объекты
+не UI/player/device/реальная внешняя почта или платежи. После двух Timeweb timeout
+повтор по новому поручению на HEAD e3044af, **после MIME guard**, прошёл:
+2 pass/skip0,21.22 s,exit0. Lost upload/post ACK и fresh backend restart не создают
+дубли, guest/expired/removal denial и exact WAV Range подтверждены. Все synthetic S3 объекты
 удалены с assetId/hash/size/ETag guards, policy не менялась. Команды/итоги в
 SPEC-private-files и активном checklist; нельзя повторять их с рабочей DB/env.
 
