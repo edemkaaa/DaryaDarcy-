@@ -74,6 +74,16 @@ AG6 принят и реализован
   после успешной AG2 acceptance 14 октября. По одному типу связи; native SQL/HTTP/S3
   и review на срез. Upload/receipt/transactional association ещё не реализованы.
   Старые файлы/рабочие URL/ACL/фронт не менять. До принятия AG3 не начинать.
+  Прямое поручение реализации 14 октября; bounded wire в SPEC-private-files:
+  - [x] AG4a — private upload/immutable receipt/status, unknown outcome recovery.
+    Первый backend-срез 14 октября: 0032/default-off, durable intent до S3,
+    ACL private/IfNoneMatch/no fallback/policy guard, canonical server metadata.
+    RED routes404 → GREEN 10 native HTTP/SQL/SDK-wire; concurrency/lost PUT ACK,
+    namespace drift/status и schema uniqueness refusal проверены. В объединённом
+    focused прогоне 32 pass/3 files, skips0. tsc/build/boundaries/diff exit0;
+    это не actual Timeweb acceptance. Привязка/чтение — AG4b, actual S3 — AG4c.
+  - [ ] AG4b — actor-owned transactional post association/replay/removal denial.
+  - [ ] AG4c — actual S3 synthetic upload/read/denial/restart и handoff/review.
 - [ ] **AG5 — подготовка миграций/email/статей к выпуску.** Статус: процедура
   подготовлена в existing runbook; ждёт истории/retention решения и репетиции
   применимого snapshot. 0017–0019, 0027/0028/0029, guards и порядок включения,

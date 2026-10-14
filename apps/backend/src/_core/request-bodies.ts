@@ -42,7 +42,9 @@ export function registerRequestBodies(app: Express) {
     let path: string;
     try { path = decodeURIComponent(req.path); } catch { res.sendStatus(400); return; }
     const names = path.startsWith("/api/trpc/") ? path.slice("/api/trpc/".length).split(",") : [];
-    const media = names.includes("admin.uploadMedia");
+    const privateUpload = names.includes("admin.uploadPrivateAttachment");
+    if (privateUpload && process.env.PRIVATE_POST_MEDIA_UPLOAD_ENABLED !== "true") { res.status(404).json({ error: "Загрузка недоступна" }); return; }
+    const media = names.includes("admin.uploadMedia") || privateUpload;
     const photo = names.some(name => photoProcedures.has(name));
     if ((media || photo) && !(await requireUploadIdentity(req, res, media || names.includes("admin.uploadPhoto")))) return;
     const parser = media ? jsonParsers.media : photo ? jsonParsers.photo : path.startsWith("/api/auth/") ? jsonParsers.auth : jsonParsers.ordinary;

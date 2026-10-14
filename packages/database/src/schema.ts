@@ -125,6 +125,27 @@ export const postMedia = mysqlTable("post_media", {
 export type PostMedia = typeof postMedia.$inferSelect;
 export type InsertPostMedia = typeof postMedia.$inferInsert;
 
+// Recovery evidence survives detachment/deletion. Never auto-expire or rebind it.
+export const privateAttachmentUploads = mysqlTable("private_attachment_uploads", {
+  requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
+  actorUserId: int("actorUserId").notNull(),
+  assetId: varchar("assetId", { length: 36 }).notNull(),
+  payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
+  namespaceHash: varchar("namespaceHash", { length: 64 }).notNull(),
+  type: mysqlEnum("type", ["audio", "document"]).notNull(),
+  filename: varchar("filename", { length: 512 }).notNull(),
+  mimeType: varchar("mimeType", { length: 128 }).notNull(),
+  fileSize: int("fileSize").notNull(),
+  state: mysqlEnum("state", ["pending", "ready"]).default("pending").notNull(),
+  etag: varchar("etag", { length: 128 }),
+  postId: int("postId"),
+  mediaId: int("mediaId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  uniqueIndex("private_attachment_asset_unique").on(table.assetId),
+  uniqueIndex("private_attachment_media_unique").on(table.mediaId),
+]);
+
 // ── Feed: Tags (reference table for available tags) ──
 export const tags = mysqlTable("tags", {
   id: int("id").autoincrement().primaryKey(),

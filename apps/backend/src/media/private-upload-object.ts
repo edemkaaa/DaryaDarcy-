@@ -1,0 +1,181 @@
+import { createHash } from "node:crypto";
+import {
+  S3Client,
+  GetBucketPolicyCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
+import { z } from "zod";
+import { ENV } from "../_core/env";
+
+export const digest = (value: string | Buffer) =>
+  createHash("sha256").update(value).digest("hex");
+export function privateStorageNamespace() {
+  const url = new URL(ENV.s3Endpoint);
+  const loopback =
+    !ENV.isProduction &&
+    url.protocol === "http:" &&
+    ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname);
+  if (
+    (!loopback && url.protocol !== "https:") ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    !/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(ENV.s3Bucket)
+  )
+    throw new Error("Private storage unavailable");
+  const endpoint = `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
+  const bucket = ENV.s3Bucket;
+  return { endpoint, bucket, hash: digest(JSON.stringify([endpoint, bucket])) };
+}
+export function privateAttachmentObjectKey(
+  type: "audio" | "document",
+  assetId: string,
+) {
+  if (
+    !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(
+      assetId,
+    )
+  )
+    throw new Error("Invalid asset identity");
+  return `feed/${type === "audio" ? "audio" : "documents"}/private-v1/${assetId}`;
+}
+const ruleSchema = z
+  .object({
+    Sid: z.literal("DaryadarcyPrivateAttachmentsV1"),
+    Effect: z.literal("Deny"),
+    Principal: z.literal("*"),
+    Action: z.array(z.string()),
+    Resource: z.array(z.string()),
+    Condition: z
+      .object({
+        StringNotEqualsIfExists: z
+          .object({
+            "aws:username": z.array(z.string().min(1).max(128)).length(1),
+          })
+          .strict(),
+      })
+      .strict(),
+  })
+  .strict();
+export type PrivateUploadObject = {
+  assetId: string;
+  type: "audio" | "document";
+  payloadHash: string;
+  mimeType: string;
+  fileSize: number;
+  namespaceHash: string;
+};
+
+/** Only new owned keys. Never overwrite, delete, grant public ACL or fall back. */
+export async function ensurePrivateUploadObject(
+  receipt: PrivateUploadObject,
+  bytes: Buffer,
+) {
+  const namespace = privateStorageNamespace();
+  if (
+    namespace.hash !== receipt.namespaceHash ||
+    !ENV.s3AccessKey ||
+    !ENV.s3SecretKey ||
+    bytes.length !== receipt.fileSize
+  )
+    throw new Error("Private storage mismatch");
+  const client = new S3Client({
+    endpoint: namespace.endpoint,
+    region: "ru-1",
+    forcePathStyle: true,
+    maxAttempts: 1,
+    credentials: {
+      accessKeyId: ENV.s3AccessKey,
+      secretAccessKey: ENV.s3SecretKey,
+    },
+    requestHandler: {
+      connectionTimeout: 5000,
+      requestTimeout: 10000,
+      throwOnRequestTimeout: true,
+    },
+  });
+  const signal = AbortSignal.timeout(30000);
+  const object = {
+    Bucket: namespace.bucket,
+    Key: privateAttachmentObjectKey(receipt.type, receipt.assetId),
+  };
+  try {
+    // Private ACL alone does not defeat this bucket's broad public read policy.
+    const result = await client.send(
+      new GetBucketPolicyCommand({ Bucket: namespace.bucket }),
+      { abortSignal: signal },
+    );
+    const policy = JSON.parse(result.Policy ?? "null");
+    const rule = Array.isArray(policy?.Statement)
+      ? policy.Statement.find(
+          (row: { Sid?: string }) =>
+            row?.Sid === "DaryadarcyPrivateAttachmentsV1",
+        )
+      : undefined;
+    const accepted = ruleSchema.parse(rule);
+    const username =
+      accepted.Condition.StringNotEqualsIfExists["aws:username"][0];
+    if (
+      ["anonymous", "*"].includes(username.toLowerCase()) ||
+      JSON.stringify([...accepted.Action].sort()) !==
+        JSON.stringify(["s3:GetObject", "s3:GetObjectVersion"].sort()) ||
+      JSON.stringify([...accepted.Resource].sort()) !==
+        JSON.stringify(
+          ["audio", "documents"]
+            .map(
+              (folder) =>
+                `arn:aws:s3:::${namespace.bucket}/feed/${folder}/private-v1/*`,
+            )
+            .sort(),
+        )
+    )
+      throw new Error("Private policy unavailable");
+    const head = () =>
+      client.send(new HeadObjectCommand(object), { abortSignal: signal });
+    let meta;
+    try {
+      meta = await head();
+    } catch (error) {
+      if (
+        (error as { $metadata?: { httpStatusCode?: number } }).$metadata
+          ?.httpStatusCode !== 404
+      )
+        throw error;
+    }
+    if (!meta) {
+      await client.send(
+        new PutObjectCommand({
+          ...object,
+          Body: bytes,
+          ContentLength: bytes.length,
+          ContentType: receipt.mimeType,
+          ContentMD5: createHash("md5").update(bytes).digest("base64"),
+          ACL: "private",
+          IfNoneMatch: "*",
+          CacheControl: "no-store",
+          Metadata: {
+            "asset-id": receipt.assetId,
+            "intent-hash": receipt.payloadHash,
+          },
+        }),
+        { abortSignal: signal },
+      );
+      meta = await head();
+    }
+    // A lost PUT ACK is reconciled from the same object on a later retry.
+    if (
+      meta.ContentLength !== bytes.length ||
+      meta.ContentType !== receipt.mimeType ||
+      meta.Metadata?.["asset-id"] !== receipt.assetId ||
+      meta.Metadata?.["intent-hash"] !== receipt.payloadHash ||
+      !meta.ETag ||
+      meta.ETag.length > 128
+    )
+      throw new Error("Invalid private object evidence");
+    return meta.ETag;
+  } finally {
+    client.destroy();
+  }
+}

@@ -12,6 +12,7 @@ import { vkVideoInput } from "../content/vk-video-input";
 import { upsertVkVideo } from "../content/vk-catalog";
 import type { NotificationsService } from "../notifications/notifications.service";
 import { articleCreationKey } from "../content/article-creation-request";
+import { privateUploadInput, privateUploadStatusInput, uploadPrivateAttachment, privateAttachmentStatus } from "../content/private-attachment-uploads";
 
 export const createAdminRouter = (
   content: ContentReadService,
@@ -52,6 +53,11 @@ export const createAdminRouter = (
   uploadMedia: adminProcedure
     .input(mediaUploadInput)
     .mutation(({ input }) => uploads.uploadMedia(input)),
+
+  uploadPrivateAttachment: adminProcedure.input(privateUploadInput)
+    .mutation(({ input, ctx }) => uploadPrivateAttachment(ctx.user, input)),
+  privateAttachmentStatus: adminProcedure.input(privateUploadStatusInput)
+    .query(({ input, ctx }) => privateAttachmentStatus(ctx.user, input.idempotencyKey)),
 
   // Get media for a post (admin only)
   getPostMedia: adminProcedure

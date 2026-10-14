@@ -194,6 +194,42 @@ default-off включается только после schema/backend/client/s
 Имена маршрутов/таблицы/флага и wire-схемы уточняются в review AG4 внутри этих
 границ; это не разрешение добавлять новые продуктовые возможности.
 
+### AG4 — wire и порядок реализации, 14 октября
+
+По прямому поручению реализовать AG4 после AG2. Не менять legacy upload/старые
+objects/ACL, frontend, рабочую БД, runtime flags или bucket policy.
+
+- Additive admin procedures `admin.uploadPrivateAttachment` (mutation) и
+  `admin.privateAttachmentStatus` (query), только существующий admin/session.
+  Первый вход: `idempotencyKey` (16–128 ASCII chars, как существующий post intent),
+  `type=audio|document`, canonical base64, filename/MIME; прежние HTTP 50 MiB и
+  attachment 32 MiB ceilings не увеличивать. Нет client URL/key/owner/postId/size.
+  MIME проверяется существующим byte detector. Receipt: state, assetId, type,
+  filename, canonical mimeType/fileSize; object URL/key никогда не возвращаются.
+- Новый default-off `PRIVATE_POST_MEDIA_UPLOAD_ENABLED`; read flag сохраняется.
+  SQL ledger `private_attachment_uploads`, миграция 0032 только в fixture БД:
+  unique actor-scoped request digest, unique server UUID assetId, immutable hash
+  bytes+metadata, pinned endpoint/bucket namespace, pending/ready, ETag и связь.
+  Intent фиксируется **до** обращения к S3. Retry по тому же ключу проверяет hash,
+  текущую сессию/роль и тот же object; pending не выдаётся как успех.
+- S3 writer только проверенные private-v1 prefixes, ACL private, conditional PUT
+  IfNoneMatch=*, no fallback. Перед upload проверяет scoped Deny policy; после
+  lost ACK HEAD/metadata/size/ETag восстанавливают готовность без нового key.
+  При неизвестном исходе остаётся pending. Повтор может продолжить только тот же
+  объект; автоочистки/TTL/delete endpoint нет. Namespace drift/collision — отказ.
+- Additive `privateAssetIds` в existing create/update post. Только свой ready
+  receipt и актуальный admin/session; вставка post_media и фиксация receipt binding
+  в existing post transaction. Create с private assets требует существующий
+  post idempotencyKey. Повторная привязка к тому же посту не добавляет ряд;
+  другой пост/автор или удалённая связь — conflict, не скрытое перепривязывание.
+  Legacy URL input не может обходить receipt для двух **новых** private-v1 prefixes.
+  Старые URL input/metadata остаются прежними. Удаление связи не удаляет S3 и ledger;
+  поздний retry не воскресит вложение. Shared objects вне принятого среза.
+
+Срезы: AG4a upload/receipt/status (RED/GREEN SQL/HTTP/SDK wire), AG4b post transaction
+и live read access, AG4c actual S3 synthetic acceptance/restart/concurrency/review
+и handoff. Wire не считать actual S3 evidence. До full acceptance flag остаётся off.
+
 ### Историческое основание проекта — 13 октября
 
 13 октября пользователь уточнил, что S3-стенда пока нет. AG2 (настоящая проверка

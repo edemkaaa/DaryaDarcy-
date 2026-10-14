@@ -204,6 +204,13 @@
       "when": 1791936001000,
       "tag": "0031_vk_catalog_access",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "5",
+      "when": 1791936002000,
+      "tag": "0032_private_attachment_uploads",
+      "breakpoints": true
     }
   ]
 }
