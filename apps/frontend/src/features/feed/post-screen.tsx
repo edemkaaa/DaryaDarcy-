@@ -32,11 +32,9 @@ import { NaturalPhotoStack } from "@/shared/media/natural-photo-stack";
 import { useClubContentProtection } from "@/shared/browser/use-club-protection";
 import { postTagLabel } from "@/domain/post/post-tags";
 import { postDisplayDate } from "@/domain/post/post-date";
-import { pressableProps } from "@/shared/browser/press";
 import { ScreenErrorBoundary } from "@/shared/ui/screen-error-boundary";
 import {
   PAPER_TEXTURE_URI,
-  BROWN_DARK,
   BROWN_LIGHT,
   GREEN_ACCENT,
 } from "./post-screen.content";
@@ -118,28 +116,6 @@ function PostDetailScreenInner({ id }: { id: string }) {
           className={classes.background}
         >
           <div
-            className={["ui-stack ", classes.header].filter(Boolean).join(" ")}
-          >
-            <Action
-              aria-label="Назад"
-              {...pressableProps(() => router.back())}
-              className={({ pressed }) =>
-                [
-                  classes.action,
-                  pressed ? classes.opacityState : classes.opacityState2,
-                ]
-                  .filter(Boolean)
-                  .join(" ")
-              }
-            >
-              <MaterialIcons name="arrow-back" size={22} color={BROWN_DARK} />
-            </Action>
-            <Typography className={classes.headerTitle}>Пост</Typography>
-            <div
-              className={["ui-stack ", classes.div].filter(Boolean).join(" ")}
-            />
-          </div>
-          <div
             className={["ui-stack ", classes.loadingContainer]
               .filter(Boolean)
               .join(" ")}
@@ -158,28 +134,6 @@ function PostDetailScreenInner({ id }: { id: string }) {
           fit="cover"
           className={classes.background}
         >
-          <div
-            className={["ui-stack ", classes.header].filter(Boolean).join(" ")}
-          >
-            <Action
-              aria-label="Назад"
-              onClick={() => router.back()}
-              className={({ pressed }) =>
-                [
-                  classes.action,
-                  pressed ? classes.opacityState3 : classes.opacityState4,
-                ]
-                  .filter(Boolean)
-                  .join(" ")
-              }
-            >
-              <MaterialIcons name="arrow-back" size={22} color={BROWN_DARK} />
-            </Action>
-            <Typography className={classes.headerTitle}>Пост</Typography>
-            <div
-              className={["ui-stack ", classes.div].filter(Boolean).join(" ")}
-            />
-          </div>
           <div
             className={["ui-stack ", classes.loadingContainer]
               .filter(Boolean)
@@ -225,30 +179,6 @@ function PostDetailScreenInner({ id }: { id: string }) {
         fit="cover"
         className={classes.background}
       >
-        {/* Header */}
-        <div
-          className={["ui-stack ", classes.header].filter(Boolean).join(" ")}
-        >
-          <Action
-            aria-label="Назад"
-            {...pressableProps(() => router.back())}
-            className={({ pressed }) =>
-              [
-                classes.action,
-                pressed ? classes.opacityState5 : classes.opacityState6,
-              ]
-                .filter(Boolean)
-                .join(" ")
-            }
-          >
-            <MaterialIcons name="arrow-back" size={22} color={BROWN_DARK} />
-          </Action>
-          <Typography className={classes.headerTitle}>Пост</Typography>
-          <div
-            className={["ui-stack ", classes.div].filter(Boolean).join(" ")}
-          />
-        </div>
-
         <ScrollArea
           hideScrollbar
           className={classes.background}

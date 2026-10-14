@@ -5,12 +5,12 @@ import {
   type ScrollEvent,
   MeasuredBox,
   ScrollArea,
-  Action,
   Typography,
 } from "@/shared/ui/elements";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useCollectionItemRetention } from "@/shared/ui/collection-item-window";
 import { Picture } from "@/shared/media/image";
+import { PhotoTile } from "./photo-tile";
 import { PhotoDots } from "./photo-dots";
 import { scrollPhotoWithKeyboard } from "./photo-carousel-navigation";
 import { usePhotoMouseDrag } from "./use-photo-mouse-drag";
@@ -72,29 +72,19 @@ export function PostPhotoCarousel({
           }
         >
           {photos.map((uri, photoIndex) => (
-            <Action
+            <PhotoTile
               key={`${uri}-${photoIndex}`}
-              onClick={() => onPhotoPress?.(photoIndex)}
-              disabled={!onPhotoPress}
-              aria-label={`Открыть фото ${photoIndex + 1} из ${photos.length}`}
-              style={() => ({
+              uri={Math.abs(photoIndex - index) <= 1 ? uri : undefined}
+              onPhotoPress={
+                onPhotoPress ? () => onPhotoPress(photoIndex) : undefined
+              }
+              label={`Открыть фото ${photoIndex + 1} из ${photos.length}`}
+              style={{
                 width: width,
                 height: "100%",
-              })}
-              className={({ pressed }) =>
-                [classes.action, pressed ? classes.opacityState : ""]
-                  .filter(Boolean)
-                  .join(" ")
-              }
-            >
-              <Picture
-                source={Math.abs(photoIndex - index) <= 1 ? { uri } : undefined}
-                contentFit="cover"
-                transition={180}
-                fadeOnLoad
-                className={classes.picture}
-              />
-            </Action>
+              }}
+              className={classes.action}
+            />
           ))}
         </ScrollArea>
       ) : (

@@ -15,31 +15,39 @@
   }
 
   .searchRow {
+    --search-control-size: 36px;
+    --search-control-gap: 10px;
     flex-direction: row;
     align-items: center;
     padding-left: 16px;
     padding-right: 16px;
-    padding-top: 12px;
+    padding-top: var(--feed-controls-inset);
     padding-bottom: 8px;
-    gap: 10px;
+    gap: var(--search-control-gap);
   }
 
   .searchContainer {
+    --search-inset: 10px;
     flex: 1;
+    height: var(--search-control-size);
     flex-direction: row;
     align-items: center;
-    background-color: rgba(139, 115, 85, 0.08);
-    border-radius: 10px;
-    padding-left: 10px;
-    padding-right: 10px;
-    padding-top: 8px;
-    padding-bottom: 8px;
+    gap: var(--search-inset);
+    background-color: #f3eddd;
+    border-radius: 8px;
+    padding-inline: var(--search-inset);
+    padding-top: 0;
+    padding-bottom: 0;
     border-width: 1px;
-    border-color: rgba(139, 115, 85, 0.15);
-  }
+    border-color: rgba(139, 115, 85, 0.25);
 
-  .searchIcon {
-    margin-right: 6px;
+    &:focus-within {
+      border-color: var(--muted);
+    }
+
+    .searchInput:focus {
+      border: 0;
+    }
   }
 
   .searchInput {
@@ -52,16 +60,17 @@
   }
 
   .videoFilterButton {
+    height: var(--search-control-size);
+    border: 1px solid rgba(139, 115, 85, 0.25);
     flex-direction: row;
     align-items: center;
     gap: 4px;
     padding-left: 10px;
     padding-right: 10px;
-    padding-top: 6px;
-    padding-bottom: 6px;
+    padding-top: 0;
+    padding-bottom: 0;
     border-radius: 14px;
     background-color: #eee9e0;
-    margin-left: 8px;
   }
 
   .videoFilterText {
@@ -72,12 +81,13 @@
 
   .toggleRow {
     flex-direction: row;
-    gap: 4px;
+    gap: var(--search-control-gap);
   }
 
   .toggleButtonActive {
-    width: 30px;
-    height: 30px;
+    width: var(--search-control-size);
+    height: var(--search-control-size);
+    border: 1px solid rgba(139, 115, 85, 0.25);
     border-radius: 8px;
     justify-content: center;
     align-items: center;
@@ -92,7 +102,7 @@
 
   .chipScroll {
     flex-grow: 0;
-    margin-bottom: 8px;
+    margin-bottom: var(--feed-controls-inset);
   }
 
   .chipActive {
@@ -111,6 +121,7 @@
   }
 
   .div {
+    --feed-controls-inset: 12px;
     position: relative;
   }
 
@@ -155,6 +166,10 @@
           var(--floating-stack-height) + var(--page-end-gap)
       )
     );
+
+    :global(.ui-collection-item[data-item-index="0"]) > article {
+      margin-top: 0;
+    }
   }
 
   .typography {

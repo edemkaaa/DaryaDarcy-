@@ -1,9 +1,8 @@
 "use client";
 import classes from "./natural-photo-stack.module.scss";
 import frameClasses from "./post-photo-frame.module.scss";
-import { Action } from "@/shared/ui/elements";
 import { type ReactNode } from "react";
-import { Picture } from "@/shared/media/image";
+import { PhotoTile } from "./photo-tile";
 import { PostPhotoCarousel } from "@/shared/media/post-photo-carousel";
 import { VideoGridCell } from "@/shared/media/video-grid-cell";
 export interface VideoGridSlot {
@@ -12,24 +11,7 @@ export interface VideoGridSlot {
 }
 function Cell({ uri, onClick }: { uri: string; onClick?: () => void }) {
   return (
-    <Action
-      aria-label="Открыть фото"
-      disabled={!onClick}
-      onClick={onClick}
-      className={({ pressed }) =>
-        [classes.cell, pressed ? classes.opacityState : ""]
-          .filter(Boolean)
-          .join(" ")
-      }
-    >
-      <Picture
-        source={{ uri }}
-        contentFit="cover"
-        transition={180}
-        fadeOnLoad
-        className={classes.picture}
-      />
-    </Action>
+    <PhotoTile uri={uri} onPhotoPress={onClick} className={classes.cell} />
   );
 }
 function Row({ children }: { children: ReactNode }) {

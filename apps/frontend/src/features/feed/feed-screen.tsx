@@ -247,13 +247,9 @@ export default function FeedScreen() {
           .filter(Boolean)
           .join(" ")}
       >
-        <MaterialIcons
-          name="search"
-          size={18}
-          color={BROWN_LIGHT}
-          className={classes.searchIcon}
-        />
+        <MaterialIcons name="search" size={18} color={BROWN_LIGHT} />
         <Field
+          aria-label="Поиск по ленте"
           placeholder="Поиск..."
           placeholderColor={BROWN_LIGHT}
           value={searchQuery}

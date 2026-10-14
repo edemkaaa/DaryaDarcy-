@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import { MaterialIcons } from "@/shared/ui/icons";
+import { Action } from "@/shared/ui/elements";
+import { PhotoViewer } from "@/shared/media/photo-viewer";
 import type { ClubTestimonial } from "./club-testimonials.content";
 import classes from "./club-testimonials.module.scss";
 
@@ -16,6 +18,7 @@ export function ClubTestimonials({
 }) {
   const track = useRef<HTMLDivElement>(null);
   const [current, setCurrent] = useState(0);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   if (!items.length) return null;
 
   function move(index: number) {
@@ -53,7 +56,7 @@ export function ClubTestimonials({
           );
         }}
       >
-        {items.map((item) => (
+        {items.map((item, index) => (
           <article key={item.id} className={classes.letter}>
             <span className={classes.quotation} aria-hidden="true">
               “
@@ -64,16 +67,14 @@ export function ClubTestimonials({
                 {item.author ?? "Участница клуба"}
               </p>
               <span className={classes.excerpt}>Фрагмент отзыва</span>
-              <a
+              <Action
                 className={classes.source}
-                href={item.source}
-                target="_blank"
-                rel="noopener noreferrer"
+                onClick={() => setViewerIndex(index)}
                 aria-label={item.sourceLabel}
               >
                 Читать оригинал
-                <MaterialIcons name="north-east" size={14} />
-              </a>
+                <MaterialIcons name="zoom-in" size={14} />
+              </Action>
             </footer>
           </article>
         ))}
@@ -103,6 +104,14 @@ export function ClubTestimonials({
           </button>
         </div>
       </div>
+      {viewerIndex !== null ? (
+        <PhotoViewer
+          visible
+          photos={items.map((item) => item.source)}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      ) : null}
     </section>
   );
 }

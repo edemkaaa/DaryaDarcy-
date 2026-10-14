@@ -137,14 +137,279 @@ test("a delayed missing photo keeps its frame and shows a readable fallback", as
     expect(before?.height).toBeGreaterThan(300);
     release();
     await expect(
-      frame.getByRole("img", { name: "Изображение недоступно" }),
-    ).toBeVisible();
+      frame.locator("..").getByRole("img", { name: "Изображение недоступно" }),
+    ).toBeVisible({ timeout: 12_000 });
     const after = await frame.boundingBox();
     expect(after?.height).toBeCloseTo(before!.height, 1);
     expect(after?.width).toBeCloseTo(before!.width, 1);
     await page.screenshot({
       path: test.info().outputPath("missing-photo.png"),
     });
+  } finally {
+    release();
+  }
+});
+
+test("a slow photo stays pending without restarting its request", async ({
+  page,
+}) => {
+  await imagesApi(page);
+  await page.clock.install();
+  let requests = 0;
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(imageUrl(1), async (route) => {
+    requests += 1;
+    await pending;
+    await route.fulfill({ contentType: "image/png", body: await raster() });
+  });
+  try {
+    await gotoWithSession(page, "/feed");
+    const frame = page.getByRole("button", {
+      name: "Открыть фото",
+      exact: true,
+    });
+    await expect(frame.getByRole("status")).toHaveText("Загрузка изображения…");
+    await expect.poll(() => requests).toBe(1);
+    const before = await frame.boundingBox();
+    await page.clock.runFor(60_000);
+    await expect(frame.getByRole("status")).toHaveText("Загрузка изображения…");
+    await expect(
+      frame.getByRole("img", { name: "Изображение недоступно" }),
+    ).toHaveCount(0);
+    expect(requests).toBe(1);
+    release();
+    await expect
+      .poll(() =>
+        frame
+          .locator("img")
+          .evaluate((img) => (img as HTMLImageElement).naturalWidth),
+      )
+      .toBe(640);
+    await expect(frame.getByRole("status")).toHaveCount(0);
+    expect((await frame.boundingBox())!.height).toBeCloseTo(before!.height, 1);
+  } finally {
+    release();
+  }
+});
+
+test("a transient image error recovers automatically", async ({ page }) => {
+  await imagesApi(page);
+  await page.clock.install();
+  let requests = 0;
+  await page.route(imageUrl(1), async (route) => {
+    requests += 1;
+    return requests === 1
+      ? route.abort("connectionreset")
+      : route.fulfill({ contentType: "image/png", body: await raster() });
+  });
+  await gotoWithSession(page, "/feed");
+  const frame = page.getByRole("button", { name: "Открыть фото", exact: true });
+  await expect(frame.getByRole("status")).toHaveText("Повторяем загрузку…");
+  await page.clock.runFor(2_100);
+  await expect
+    .poll(() =>
+      frame
+        .locator("img")
+        .evaluate((img) => (img as HTMLImageElement).naturalWidth),
+    )
+    .toBe(640);
+  expect(requests).toBe(2);
+  await expect(
+    page.getByRole("button", { name: "Повторить загрузку", exact: true }),
+  ).toHaveCount(0);
+});
+
+test("a failed photo retries after the connection returns", async ({
+  page,
+  context,
+}) => {
+  await imagesApi(page);
+  await page.clock.install();
+  let requests = 0;
+  await page.route(imageUrl(1), async (route) => {
+    requests += 1;
+    return requests === 1
+      ? route.abort("internetdisconnected")
+      : route.fulfill({ contentType: "image/png", body: await raster() });
+  });
+  await gotoWithSession(page, "/feed");
+  const photo = page.locator(`img[src="${imageUrl(1)}"]`);
+  await expect(
+    page.getByText("Повторяем загрузку…", { exact: true }),
+  ).toBeVisible();
+  await context.setOffline(true);
+  // A retry scheduled before going offline must also wait for connectivity.
+  await page.clock.runFor(2_100);
+  expect(requests).toBe(1);
+  await page.clock.runFor(60_000);
+  expect(requests).toBe(1);
+  await context.setOffline(false);
+  await expect
+    .poll(() => photo.evaluate((img) => (img as HTMLImageElement).naturalWidth))
+    .toBe(640);
+  expect(requests).toBe(2);
+});
+
+for (const count of [1, 9, 10]) {
+  test(`manual retry restores a photo in a ${count}-photo gallery without opening the viewer`, async ({
+    page,
+  }) => {
+    if (count === 9) await page.setViewportSize({ width: 320, height: 568 });
+    await imagesApi(page, [
+      post(
+        1,
+        Array.from({ length: count }, (_, i) => imageUrl(i + 1)),
+      ),
+    ]);
+    await page.clock.install();
+    let requests = 0;
+    let recover = false;
+    await page.route("https://images.example.test/**", async (route) => {
+      if (route.request().url() !== imageUrl(1))
+        return route.fulfill({
+          contentType: "image/png",
+          body: await raster(),
+        });
+      requests += 1;
+      return recover
+        ? route.fulfill({ contentType: "image/png", body: await raster() })
+        : route.fulfill({ status: 503 });
+    });
+    await gotoWithSession(page, "/feed");
+    const frame = page.getByRole("button", { name: /^Открыть фото/ }).first();
+    await expect(frame.getByRole("status")).toHaveText("Повторяем загрузку…");
+    await page.clock.runFor(2_100);
+    await expect.poll(() => requests).toBe(2);
+    await expect(frame.getByRole("status")).toHaveText("Повторяем загрузку…");
+    await page.clock.runFor(5_100);
+    const retry = page.getByRole("button", {
+      name: "Повторить загрузку",
+      exact: true,
+    });
+    await expect(retry).toBeVisible();
+    expect(requests).toBe(3);
+    await page.clock.runFor(60_000);
+    expect(requests).toBe(3);
+    const tile = (await frame.boundingBox())!;
+    const message = (await frame
+      .locator("..")
+      .getByRole("img", { name: "Изображение недоступно" })
+      .boundingBox())!;
+    const button = (await retry.boundingBox())!;
+    expect(button.y).toBeGreaterThanOrEqual(message.y + message.height);
+    expect(button.y + button.height).toBeLessThanOrEqual(tile.y + tile.height);
+    await page.screenshot({
+      path: test.info().outputPath(`photo-retry-${count}.png`),
+    });
+    recover = true;
+    await retry.focus();
+    await retry.press("Enter");
+    await expect
+      .poll(() =>
+        frame
+          .locator("img")
+          .evaluate((img) => (img as HTMLImageElement).naturalWidth),
+      )
+      .toBe(640);
+    await expect(retry).toHaveCount(0);
+    await expect(
+      page.getByRole("dialog", { name: "Просмотр фотографий" }),
+    ).toHaveCount(0);
+  });
+}
+
+test("manual retry also restores a full-size photo in the viewer", async ({
+  page,
+}) => {
+  await imagesApi(page);
+  await page.clock.install();
+  let fail = false;
+  let requests = 0;
+  await page.route(imageUrl(1), async (route) => {
+    if (fail) {
+      requests += 1;
+      return route.fulfill({ status: 503 });
+    }
+    return route.fulfill({ contentType: "image/png", body: await raster() });
+  });
+  await gotoWithSession(page, "/feed");
+  const frame = page.getByRole("button", { name: "Открыть фото", exact: true });
+  await expect
+    .poll(() =>
+      frame
+        .locator("img")
+        .evaluate((img) => (img as HTMLImageElement).naturalWidth),
+    )
+    .toBe(640);
+  fail = true;
+  await frame.click();
+  const viewer = page.getByRole("dialog", { name: "Просмотр фотографий" });
+  await expect(
+    viewer.getByRole("status", { name: "Загрузка изображения…" }),
+  ).toBeVisible();
+  await page.clock.runFor(2_100);
+  await expect.poll(() => requests).toBe(2);
+  await expect(
+    viewer.getByRole("status", { name: "Загрузка изображения…" }),
+  ).toBeVisible();
+  await page.clock.runFor(5_100);
+  const retry = viewer.getByRole("button", {
+    name: "Повторить загрузку",
+    exact: true,
+  });
+  await expect(retry).toBeVisible();
+  fail = false;
+  await retry.click();
+  await expect
+    .poll(() =>
+      viewer
+        .locator("img")
+        .evaluate((img) => (img as HTMLImageElement).naturalWidth),
+    )
+    .toBe(640);
+  await expect(viewer).toBeVisible();
+  await expect(retry).toHaveCount(0);
+});
+
+test("a failed optimized preview falls back to the original and waits for it", async ({
+  page,
+}) => {
+  const original = "https://s3.twcstorage.ru/daryadarcy-s3/feed/slow-photo.jpg";
+  await imagesApi(page, [post(1, [original])]);
+  await page.clock.install();
+  let requests = 0;
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/_next/image?**", (route) =>
+    route.fulfill({ status: 504 }),
+  );
+  await page.route(original, async (route) => {
+    requests += 1;
+    await pending;
+    await route.fulfill({ contentType: "image/png", body: await raster() });
+  });
+  try {
+    await gotoWithSession(page, "/feed");
+    const photo = page.locator(`img[src="${original}"]`);
+    await expect(photo).toHaveCount(1);
+    await expect(photo).not.toHaveAttribute("srcset");
+    await expect.poll(() => requests).toBe(1);
+    await page.clock.runFor(60_000);
+    expect(requests).toBe(1);
+    await expect(
+      page.getByRole("button", { name: "Повторить загрузку", exact: true }),
+    ).toHaveCount(0);
+    release();
+    await expect
+      .poll(() =>
+        photo.evaluate((img) => (img as HTMLImageElement).naturalWidth),
+      )
+      .toBe(640);
   } finally {
     release();
   }
@@ -203,8 +468,8 @@ test("replacing a photo keeps its reserved frame and clears a previous failure",
   await refresh(page);
   await expect(photo).toHaveAttribute("src", imageUrl(2));
   await expect(
-    frame.getByRole("img", { name: "Изображение недоступно" }),
-  ).toBeVisible();
+    frame.locator("..").getByRole("img", { name: "Изображение недоступно" }),
+  ).toBeVisible({ timeout: 12_000 });
   await expect
     .poll(() =>
       frame.evaluate(
@@ -227,7 +492,7 @@ test("replacing a photo keeps its reserved frame and clears a previous failure",
     )
     .toBeCloseTo(0.8, 2);
   await expect(
-    frame.getByRole("img", { name: "Изображение недоступно" }),
+    frame.locator("..").getByRole("img", { name: "Изображение недоступно" }),
   ).toHaveCount(0);
   await expect(photo).toBeVisible();
 });
@@ -420,7 +685,7 @@ for (const width of [390, 1440]) {
             expect(after[2].height).toBeCloseTo(after[3].height, 1);
             await expect(
               page.getByRole("img", { name: "Изображение недоступно" }),
-            ).toBeVisible();
+            ).toBeVisible({ timeout: 12_000 });
           }
           if (count === 10) {
             const carousel = page.getByRole("region", {

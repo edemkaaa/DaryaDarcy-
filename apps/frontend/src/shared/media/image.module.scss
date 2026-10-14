@@ -5,10 +5,13 @@
     overflow: hidden;
   }
 
-  .fallback {
+  .fallback,
+  .loading {
     position: absolute;
     inset: 0;
     display: flex;
+    flex-direction: column;
+    gap: 8px;
     align-items: center;
     justify-content: center;
     padding: 8px;
@@ -17,6 +20,18 @@
     color: var(--brown-muted, #8b7867);
     background-color: #ede6da;
     pointer-events: none;
+  }
+
+  .retry {
+    pointer-events: auto;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    color: var(--brown-muted, #8b7867);
+    background: #ede6da;
+    font: inherit;
+    cursor: pointer;
   }
 
   @media (prefers-reduced-motion: reduce) {

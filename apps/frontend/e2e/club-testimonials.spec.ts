@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { layoutApi, gotoWithSession } from "./layout-fixtures";
+import { CLUB_TESTIMONIALS } from "../src/features/club/club-testimonials.content";
 
 for (const width of [390, 1440]) {
   test(`club testimonials are readable text with original sources at ${width}px`, async ({
     page,
-    request,
   }) => {
     await page.setViewportSize({ width, height: 844 });
     await layoutApi(page);
@@ -31,17 +31,29 @@ for (const width of [390, 1440]) {
       community.getByText("Ирина Ячменева", { exact: true }),
     ).toBeVisible();
     await expect(community.locator("img")).toHaveCount(0);
-    const original = community.getByRole("link", {
+    expect(screenshots).toEqual([]);
+    const original = community.getByRole("button", {
       name: "Оригинал отзыва Ирины Ячменевой",
     });
-    const href = await original.getAttribute("href");
-    expect(href).toBe(
-      "/assets/responsive/0c95d509c862-oewXdFleqUUvImKT.w1440.c34d124a0a3d6f02.webp",
-    );
-    expect((await request.get(href!)).status()).toBe(200);
     await page.screenshot({
       path: test.info().outputPath(`community-${width}.png`),
     });
+    const viewer = page.getByRole("dialog", { name: "Просмотр фотографий" });
+    const pagesBefore = page.context().pages().length;
+    await original.click();
+    await expect(viewer).toBeVisible();
+    const photo = viewer.locator(
+      'img[src="/assets/responsive/0c95d509c862-oewXdFleqUUvImKT.w1440.c34d124a0a3d6f02.webp"]',
+    );
+    await expect(photo).toBeInViewport();
+    await expect
+      .poll(() => photo.evaluate((img) => (img as HTMLImageElement).naturalWidth))
+      .toBeGreaterThan(0);
+    await expect(viewer.getByText("1 / 3", { exact: true })).toBeVisible();
+    expect(page.context().pages().length).toBe(pagesBefore);
+    await viewer.getByRole("button", { name: "Закрыть фотографии" }).click();
+    await expect(viewer).toHaveCount(0);
+    await expect(original).toBeFocused();
 
     const reviews = page.getByRole("region", {
       name: "Отзывы участниц",
@@ -57,10 +69,20 @@ for (const width of [390, 1440]) {
     await expect(reviews.locator("blockquote").first()).toContainText(
       "Для меня клуб– это возможность побыть наедине с собой",
     );
-    expect(screenshots).toEqual([]);
     await page.screenshot({
       path: test.info().outputPath(`reviews-${width}.png`),
     });
+    await reviews
+      .getByRole("button", { name: "Оригинал отзыва Полины" })
+      .click();
+    await expect(viewer).toBeVisible();
+    await expect(viewer.getByText("2 / 6", { exact: true })).toBeVisible();
+    await expect(
+      viewer.locator(`img[src="${CLUB_TESTIMONIALS[1].source}"]`),
+    ).toBeInViewport();
+    await viewer.getByRole("button", { name: "Закрыть фотографии" }).click();
+    await expect(viewer).toHaveCount(0);
+    expect(page.context().pages().length).toBe(pagesBefore);
   });
 }
 

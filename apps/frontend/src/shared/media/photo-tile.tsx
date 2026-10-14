@@ -1,0 +1,62 @@
+"use client";
+
+import { useState, type CSSProperties } from "react";
+import { Action } from "@/shared/ui/elements";
+import { ImageFailure, Picture } from "./image";
+import classes from "./photo-tile.module.scss";
+
+type PhotoTileProps = {
+  uri?: string;
+  onPhotoPress?: () => void;
+  label?: string;
+  className?: string;
+  style?: CSSProperties;
+};
+
+/** Keep the retry button beside the photo action, avoiding nested buttons. */
+export function PhotoTile(props: PhotoTileProps) {
+  return <PhotoTileContent key={props.uri} {...props} />;
+}
+
+function PhotoTileContent({
+  uri,
+  onPhotoPress,
+  label = "Открыть фото",
+  className,
+  style,
+}: PhotoTileProps) {
+  const [failedUri, setFailedUri] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
+  return (
+    <div className={`ui-stack ${className ?? ""}`} style={style}>
+      <Action
+        aria-label={label}
+        disabled={!onPhotoPress}
+        onClick={onPhotoPress}
+        className={({ pressed }) =>
+          `${classes.open} ${pressed ? classes.pressed : ""}`
+        }
+      >
+        <Picture
+          source={uri}
+          retryKey={retryKey}
+          contentFit="cover"
+          transition={180}
+          fadeOnLoad
+          errorFallback={null}
+          className={classes.picture}
+          onError={() => setFailedUri(uri ?? null)}
+          onLoad={() => setFailedUri(null)}
+        />
+      </Action>
+      {uri && failedUri === uri ? (
+        <ImageFailure
+          onRetry={() => {
+            setFailedUri(null);
+            setRetryKey((value) => value + 1);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
