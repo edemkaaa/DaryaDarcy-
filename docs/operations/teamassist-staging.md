@@ -31,7 +31,7 @@ schema-only DDL/index/collation/engine затрагиваемых таблиц �
 доказывает автора/время исполнения. Synthetic fixture не является историей среды.
 До получения этого пакета — **блокер истории**, никаких working connections.
 
-### 2. Проверить применимость 0027/0028/0029 и 0032
+### 2. Проверить применимость 0027/0028/0029 и 0032/0033
 
 После согласованной истории проверенный владелец выполняет штатный read-only
 preflight именно для целевой БД. Не путать inspection URI с apply DATABASE_URL:
@@ -44,6 +44,7 @@ preflight именно для целевой БД. Не путать inspection 
 | 0028_member_email_bindings | Таблицы/поля/PK/proofHash uniqueness и worker indexes совместимы с точным backend commit, InnoDB; нет частичного/чужого schema rollout | Presence guard не заменяет историю/DDL review; partial schema не «лечить» runtime DDL |
 | 0029_article_creation_requests | PK(requestKey), actor/payloadHash/claimToken/articleId/createdAt, InnoDB; reviewed journal и retention/export/account-deletion решение | Keyed create/status fail closed; не переключать запрос на unkeyed при отказе |
 | 0032_private_attachment_uploads | InnoDB; full PK(requestKey), unique assetId/mediaId, binary ASCII identities, immutable payload/namespace hashes, pending/ready/ETag/post/media binding; retention/export/delete/orphans решение | Runtime не ремонтирует DDL и не делает public fallback; ready без storage evidence не успех |
+| 0033_content_recovery_markers | InnoDB/full PK(kind,requestKey), ASCII_BIN key, owner index и expiry scan indexes | Пока schema-only foundation; компактизация/worker выключены. После compact старый writer не является допустимым rollback |
 
 Email identity preflight сейчас вызывается штатным инструментом, когда `0027`
 остаётся pending. Если индекс уже помечен applied, отдельно подтвердить существующее

@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean, unique, index, uniqueIndex } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean, unique, index, uniqueIndex, primaryKey } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 import type { RichTextBlock, RichTextInline } from "../../shared/src/rich-text-types";
 import type { LaunchConfiguration } from "../../shared/src/launch-settings";
@@ -89,7 +89,7 @@ export const postCreationRequests = mysqlTable("post_creation_requests", {
   payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
   postId: int("postId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, table => [index("post_creation_retention").on(table.createdAt, table.requestKey)]);
 
 // Keep committed results after article deletion: replay must never resurrect it.
 export const articleCreationRequests = mysqlTable("article_creation_requests", {
@@ -99,7 +99,18 @@ export const articleCreationRequests = mysqlTable("article_creation_requests", {
   claimToken: varchar("claimToken", { length: 36 }).notNull(),
   articleId: int("articleId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, table => [index("article_creation_retention").on(table.createdAt, table.requestKey)]);
+
+// Expired intents remain spent after their detailed recovery row is compacted.
+export const contentRecoveryMarkers = mysqlTable("content_recovery_markers", {
+  kind: mysqlEnum("kind", ["post", "article", "private_attachment"]).notNull(),
+  requestKey: varchar("requestKey", { length: 64 }).notNull(),
+  actorUserId: int("actorUserId").notNull(),
+  createdAt: timestamp("createdAt").notNull(),
+}, table => [
+  primaryKey({ columns: [table.kind, table.requestKey] }),
+  index("content_recovery_marker_owner").on(table.actorUserId, table.createdAt),
+]);
 
 // ── Post Media (video, audio, documents — photos stay in posts.photos for backward compat) ──
 export const postMedia = mysqlTable("post_media", {
@@ -144,6 +155,7 @@ export const privateAttachmentUploads = mysqlTable("private_attachment_uploads",
 }, table => [
   uniqueIndex("private_attachment_asset_unique").on(table.assetId),
   uniqueIndex("private_attachment_media_unique").on(table.mediaId),
+  index("private_attachment_retention").on(table.createdAt, table.requestKey),
 ]);
 
 // ── Feed: Tags (reference table for available tags) ──

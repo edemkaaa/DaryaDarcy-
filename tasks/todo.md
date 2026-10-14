@@ -147,8 +147,16 @@ AG6 принят и реализован
     RED create/status200→409, GREEN27 native pass/skip0,3.82 s; tsc/build529.3kb.
     Live/deleted articles и teaser не удаляются/не воскрешаются.96 total focused
     cases в4 files поR1–R3; общий regression checkpoint отдельно.
+    R1–R3 full наaf058ba:3434 pass/1 unchanged frontend viewport fail/179 skip,
+    3614 cases,194.65 s,exit1. Frontend не исправлялся/не скрыт; код остальных
+    backend suites не менялся. Новые policy/runtime tests пройдены явно на own DB.
   - [ ] AG5-R4 — compact markers/read evidence. ПослеR1–R3; additive schema,
     replay после compact отказывает, bound bytes доступны; native SQL/read + review.
+    R4a:0033 marker schema/полный compositePK(kind,requestKey)/ASCII_BIN,
+    owner и expiry scan indexes. RED absent table→2 native SQL GREEN,0 skip,
+    254 ms. Compaction и replay guards ещё не реализованы; worker не включён.
+    Preflight зарегистрировал0033, отказывает только на прежних0017–0019,
+    databaseChecked=false/releaseApproval=false. Никакой working DDL.
   - [ ] AG5-R5 — bounded orphan cleanup. ПослеR4; loopback SDK/SQL, ownership,
     detach clock, cleanup↔upload/bind/lost DELETE ACK/restart, no old/bound objects.
   - [ ] AG5-R6 — final scrub/export. ПослеR4/R5; existing account timing unchanged,
