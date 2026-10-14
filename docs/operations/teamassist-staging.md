@@ -68,6 +68,28 @@ production-процедура импорта: разрешён только gene
 Создание владельца, server configuration, production backup/restore и выкладка
 остаются отдельно согласуемыми. Runtime backup и frontend не изменялись.
 
+### AG5-F5 — согласованный локальный тестовый владелец
+
+14 октября пользователь отдельно разрешил свой тестовый owner и случайный
+пароль, сохранённый вне Git в закрытом локальном каталоге. На новом own tmpfs
+MySQL8.4 после fresh36 создан один account с existing admin role и существующим
+scrypt hashing. Административные права согласованы только для этого локального
+стенда; auth/role/CORS/proxy/quotas/runtime code не изменялись.
+
+Native API восемь групп проверок прошли: неверный пароль401 без cookie;
+правильный200, HttpOnly/SameSite=Lax cookie, me с ожидаемым admin;
+guest admin401/owner200; passwordHash не раскрывается; logout очищает cookie;
+users=1/email-binding-outbox=0. Минимальное окружение без рабочих DB/S3/SMTP
+секретов, composition без .env и scheduler; письма/платежи не запускались.
+
+Стенд оставлен локально для пользователя, frontend не запускался. Точный active
+container/API/private-directory metadata — в начале todo, без пароля/email/JWT.
+Credentials file600, private directory700 проверены. Это одноразовая tmpfs БД:
+остановка контейнера уничтожит её содержимое; не переносить её в рабочую среду
+или включать резервирование credential данных автоматически. Перед остановкой/
+удалением подтверждать exact ownership; private пароль не публиковать в Git/логах.
+Это выполненная локальная проверка входа, не production bootstrap или UI приёмка.
+
 ## AG5 — процедура подготовки выпуска, 13 октября 2026
 
 **Подготовка, не выполненный rollout.** Действующий backend план — начало

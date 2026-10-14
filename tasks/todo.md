@@ -47,6 +47,19 @@ AG6 принят и реализован
   runtime code unchanged, test harness only, no credentials from working env.
   Synthetic архив удалён test cleanup; оба собственных контейнера удалены после
   exact ID/name/owner/loopback/tmpfs/mount inspection; чужие контейнеры сохранены.
+- [x] F5 — отдельное согласование тестового owner14 октября: own new fresh36
+  tmpfs backend_test, один owner existing admin/scrypt, random192-bit пароль
+  в private600 файле вне Git (directory700, user ownership verified).
+  Native loopback HTTP8 checks pass: wrong401, login200/cookie flags, me/admin,
+  guest401/owner200, public response без hash, logout clearing, users1/outbox0.
+  Owner test API retained `http://127.0.0.1:53530`, own database50130,
+  container `daryadarcy-fresh-owner-20261014` / ID
+  `39fdda9432419407613a02cc313a531c22e065dacbdac54b191b5f841129011b`;
+  app exec session67647. Private stand-info/credentials в
+  `/Users/edem/.daryadarcy-local-owner.u7zmU7/` (содержимое не читать/не печатать).
+  Frontend/working DB/S3/auth code/roles/CORS/proxy/quotas не менялись, писем нет.
+  Не удалить активный стенд как чужой leftover; перед teardown exact owner guards.
+  Это не production owner/deploy; tmpfs account пропадёт при остановке контейнера.
 Старый history gate ниже относится к upgrade существующей среды, не к fresh-only
 установке. Общая внешняя приёмка/backup/выкладка остаются отдельными условиями.
 

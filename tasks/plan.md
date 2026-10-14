@@ -188,6 +188,22 @@ endpoint/расписание. Сохранить проверку и evidence �
 затем exact ownership cleanup двух своих контейнеров и synthetic архива.
 Это не production backup/restore или approval выкладки.
 
+Последующее прямое согласование14 октября — **AG5-F5, тестовый владелец**:
+пользователь выбрал собственный email и разрешил случайный временный пароль
+в закрытом локальном файле вне Git. Создан только новый own loopback/tmpfs
+backend_test после fresh36 и guarded history check. Единственный owner — existing
+role=admin, existing scrypt hash, без изменения auth/ролей/runtime кода.
+Native HTTP восемь групп проверок: random-password/private600 file, wrong401,
+login200/HttpOnly/SameSite cookie, me admin без passwordHash, guest admin401/
+owner200, logout cookie clearing, users=1/email-binding-outbox=0. Письма/внешние
+платежи не запускались; composition без .env/WorkerJobs, минимальное окружение.
+Локальный API retained для пользователя; frontend не запускался. Private runner/
+credentials/stand-info находятся вне Git в каталоге пользователя mode700.
+Это local-only provisioning, не production bootstrap contract; личный email,
+пароль и JWT в план не сохранять. Следующее восстановление/остановка этого стенда
+должны учитывать tmpfs: остановка контейнера уничтожает тестовую БД; не делать
+её backup с личными credential данными без отдельного поручения.
+
 Checkpoint после локального R6 — backend b525130: доступная реализация выполнена;
 remaining AG5/AG9 ждут verified migration history/schema snapshot, backup/restore
 и совместной frontend/release приёмки. Общий runbook учитывает0035/R6 flags,
