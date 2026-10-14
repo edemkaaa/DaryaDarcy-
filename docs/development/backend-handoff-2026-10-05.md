@@ -1,5 +1,48 @@
 # Передача изменений бэкенда фронтендеру
 
+## 14 октября — регистрация и подписка на одном локальном аккаунте
+
+По разрешению пользователя проверен связный API-сценарий без изменений фронта и
+рабочей БД. Кодовая база 684a48e, новый тест
+`tests/registration-subscription-flow.mysql.test.ts`. Используются настоящий Nest
+HTTP, cookie/JWT, password hashing, MySQL и Nodemailer с loopback SMTP. Только
+ответ отмены платёжного провайдера подменён строгим double (pending/confirmed).
+Checkout строит синтетический URL, но никогда не открывает его; неверная подпись
+локального уведомления отклоняется до выдачи доступа.
+
+Один синтетический аккаунт проходит регистрацию/повтор, доставку setup-письма в
+перехватчик, однократную установку пароля, вход, checkout и replay, подписанное
+уведомление и replay, получение доступа, вторую покупку и продление на 30 суток,
+pending отмену и подтверждение без потери оплаченного срока. Истечение моделируется
+только на принадлежащих сценарию строках. После него доступ закрыт. Аккаунт/пароль/
+роль/sessionVersion не изменяются оплатой; дубли receipt/order не появляются.
+
+Проверка нового сценария: 1 pass (финальный прогон 1.67 s); существующие шесть
+native suites — 94 pass, skips0 (13.62 s). TypeScript exit0. Нового runtime-дефекта
+не найдено, production код неизменён. Это не сквозная browser-проверка, не настоящая
+платёжная операция, не проверка реального автосписания/отмены у провайдера и не
+доставка во внешний ящик. Рабочая история миграций этим не подтверждена.
+
+Воспроизведение: собственный mysql:8.4 с backend_test, root без пароля только на
+loopback 33381, tmpfs /var/lib/mysql, без persistent volumes. Не использовать
+унаследованные секреты/рабочие подключения. После проверки удалить только свой
+контейнер по literal ID с проверкой task label, loopback binding и tmpfs.
+
+```sh
+env -i PATH=/opt/homebrew/opt/node@22/bin:/Users/edem/.npm-global/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin \
+  BACKEND_TEST_DATABASE_URL=mysql://root@127.0.0.1:33381/backend_test NO_COLOR=1 \
+  pnpm exec vitest run tests/registration-subscription-flow.mysql.test.ts \
+  tests/registration.mysql.test.ts tests/registration-retry.mysql.test.ts \
+  tests/normal-checkout-recovery.mysql.test.ts tests/nest-billing-webhook.mysql.test.ts \
+  tests/billing-settlement.mysql.test.ts tests/identity.mysql.test.ts \
+  --maxWorkers=1 --reporter=dot --silent
+```
+
+БД строится существующим изолированным fixture helper, а не рабочим migrator;
+это различие сохраняет AG5 preflight/rollout gate. SMTP поднимается и закрывается
+самим тестом, фоновые jobs не стартуют. Исторические результаты ниже не заменяют
+этот checkpoint и не подтверждают версию работающего сервера.
+
 ## AG1 — актуальные контракты, 13 октября 2026
 
 Серверная база: локальный `e8ba8fd`, последние native проверки `123c9c6`;

@@ -88,6 +88,30 @@ AG6 принят и реализован
   S3/devices/load/pilot остаются непринятыми. Автоматические внешние действия запрещены.
   Проверка: docs55/diff exit0; новая runtime/native/provider приёмка не заявлена.
 
+### AG9 — локальная цепочка регистрации/подписки, 14 октября 2026
+
+По отдельному разрешению пользователя поднята собственная одноразовая MySQL 8.4:
+backend_test, loopback 33381, tmpfs, без volumes; чужие контейнеры не затронуты.
+Новый registration-subscription-flow.mysql.test проверяет один аккаунт через
+настоящие HTTP/cookie/JWT/SQL/Nodemailer и loopback SMTP: register/retry → setup
+link once → login → normal checkout/replay → signed webhook/replay → access →
+вторая покупка/продление → pending cancellation → confirmed cancellation → expiry.
+Проверены отказ неверной подписи, отсутствие доступа от pending, неизменность
+пароля/сессии/роли после оплаты, сохранение оплаченного срока при отмене.
+Provider cancellation — строгий double; checkout URL не посещается, внешний HTTP
+в новом тесте запрещён. Фабрика API не запускает scheduled workers и не читает env
+файлы; команда запускает тесты с чистым окружением и явной test-only БД.
+
+Результат: новый сценарий 1 pass; существующие registration/registration-retry/
+normal-checkout-recovery/nest-billing-webhook/billing-settlement/identity —
+94 pass/6 files, skips0. TypeScript exit0. Runtime-дефекта не найдено: production
+код не менялся, добавлена воспроизводимая интеграционная проверка. Это API-цепочка,
+не browser/provider/external email acceptance и не репетиция рабочей истории БД.
+Фронт/рабочая БД/настройки/реальные платежи и письма не затронуты.
+После проверки owner label/id/loopback/tmpfs свой контейнер остановлен и удалён
+через --rm, синтетические данные в памяти уничтожены; foreign diplom-postgres
+не затронут. SMTP/API/SQL соединения закрыты harness. Docs56/format/diff exit0.
+
 ### Зафиксированные ограничения
 
 - Локальный снимок `123c9c6`; Git staging при сверке `62b24a6`. Обновлять сведения

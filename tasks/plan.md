@@ -286,6 +286,16 @@ worker, без фиктивных ID; реализация после решен
 
 #### AG9 — Совместная интеграция, выпуск и приёмка (P1/Q1–Q3; внешние условия)
 
+14 октября по отдельному разрешению выполнена локальная API-цепочка регистрации
+и подписки: собственные tmpfs MySQL/backend_test + loopback SMTP, один аккаунт
+register → setup → login → checkout → подписанное подтверждение → продление →
+pending/confirmed отмена → истечение. Новый тест 1 pass, 94 existing native cases
+pass/6 suites/skips0; TypeScript exit0. Checkout не посещает провайдера, отмена
+через строгий provider double; настоящий HTTP/SQL/session/SMTP без mail mocks.
+Runtime-дефектов не выявлено; фронт/рабочая БД не менялись. Подробности/команды в
+existing backend handoff. AG9 остаётся открытым для browser, actual provider/mail,
+working rollout/history/restore, S3/devices/load/pilot.
+
 Подготовить компактную матрицу ТЗ: backend commit, frontend commit, миграции,
 проверка, результат, ответственный и блокер. Согласовать конкретные критерии нагрузки
 и устройства; пилот 30–50 участниц/5–7 дней не заменяет нагрузочный тест.
