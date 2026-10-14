@@ -7,24 +7,8 @@ import { getDb } from "../db";
 import { SessionService } from "../identity/session.service";
 import { userHasClubAccess } from "../identity/club-access";
 import { ownAttachmentKey } from "../media/private-object";
+import { isDeliverableAttachmentMime } from "../media/private-attachment-mime";
 import { privateMediaUrl, privateReceiptForMedia } from "./private-attachment-association";
-
-const SAFE_MIMES = new Set([
-  "text/plain",
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "audio/mpeg",
-  "audio/mp4",
-  "audio/wav",
-  "audio/x-wav",
-  "audio/ogg",
-  "audio/webm",
-  "video/mp4",
-  "video/webm",
-  "video/quicktime",
-  "application/octet-stream",
-]);
 
 @Injectable()
 export class PrivateFilesService {
@@ -63,13 +47,13 @@ export class PrivateFilesService {
     } else if (row.target !== "feed" && row.target !== "both") return;
     if (row.url === privateMediaUrl(id)) {
       const receipt = await privateReceiptForMedia(database, { id, postId: row.postId, type: row.type });
-      return receipt && SAFE_MIMES.has(receipt.mime.split(";")[0].trim().toLowerCase()) ? receipt : undefined;
+      return receipt && isDeliverableAttachmentMime(receipt.mime) ? receipt : undefined;
     }
     const key = ownAttachmentKey(row.url);
     const mime =
       row.mime?.split(";")[0].trim().toLowerCase() ??
       "application/octet-stream";
-    if (!key || !SAFE_MIMES.has(mime)) return;
+    if (!key || !isDeliverableAttachmentMime(mime)) return;
     return { key, mime };
   }
 }

@@ -10,6 +10,7 @@ import {
 } from "../../../../packages/database/src/schema";
 import { getDb } from "../db";
 import { decodeMediaBase64 } from "../media/media-encoding";
+import { isDeliverableAttachmentMime } from "../media/private-attachment-mime";
 import {
   digest,
   ensurePrivateUploadObject,
@@ -140,6 +141,11 @@ export async function uploadPrivateAttachment(
       message: "Загрузите PDF, DOCX или текстовый файл",
     });
   const mimeType = await resolveMediaContentType(input.type, declared, bytes);
+  if (!isDeliverableAttachmentMime(mimeType))
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Формат файла не поддерживается закрытой выдачей",
+    });
   const payloadHash = digest(
     JSON.stringify([
       input.type,

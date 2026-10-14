@@ -511,5 +511,20 @@ describe.skipIf(!testDatabaseUrl)(
       ).toBe(503);
       expect(wire.effects).toEqual([]);
     });
+    it("refuses a detected audio format that the closed read route cannot serve", async () => {
+      const bytes = Buffer.concat([Buffer.from("fLaC"), Buffer.alloc(64)]);
+      expect(
+        (
+          await request("uploadPrivateAttachment", {
+            ...input,
+            type: "audio",
+            filename: "fixture.flac",
+            mimeType: "audio/flac",
+            base64: bytes.toString("base64"),
+          })
+        ).status,
+      ).toBe(400);
+      expect(wire.effects).toEqual([]);
+    });
   },
 );
