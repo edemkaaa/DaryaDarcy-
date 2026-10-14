@@ -4,13 +4,15 @@ import type { AddressInfo } from "node:net";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { createHmac, randomUUID } from "node:crypto";
 import superjson from "superjson";
-import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
+import { testDatabaseUrl } from "./helpers/backend-mysql";
+import { openContentTestDatabase } from "./helpers/content-mysql";
 import { openLoopbackSmtp } from "./helpers/loopback-smtp";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { getDb } from "../apps/backend/src/db";
 import { processAccessEmails } from "../apps/backend/src/identity/access";
 import { sendTransactionalEmail } from "../apps/backend/src/_core/email";
 import * as prodamus from "../apps/backend/src/prodamus";
+import { sdk } from "../apps/backend/src/_core/sdk";
 import { EMAIL_REGISTER_CONSENT_VERSION } from "../packages/shared/src/consent-texts";
 
 type FlowResult = {
@@ -33,6 +35,9 @@ describe.skipIf(!testDatabaseUrl)(
     const email = "registration-subscription-flow@example.test";
     const password = "local-fixture-password-123";
     const secret = "local-fixture-merchant-signing-key";
+    const moderatorId = 96122;
+    const clubPostId = 96122;
+    const clubBody = "OWNED_CLUB_BODY_PAID_BLOCK_CHECK";
     const nativeFetch = globalThis.fetch;
     let confirmCancellation = false;
 
@@ -50,6 +55,7 @@ describe.skipIf(!testDatabaseUrl)(
       input: unknown,
       cookie = "",
       query = false,
+      extraHeaders: Record<string, string> = {},
     ) {
       const encoded = superjson.stringify(input);
       const response = await fetch(
@@ -59,6 +65,7 @@ describe.skipIf(!testDatabaseUrl)(
           headers: {
             "Content-Type": "application/json",
             ...(cookie ? { Cookie: cookie } : {}),
+            ...extraHeaders,
           },
           ...(query ? {} : { body: encoded }),
         },
@@ -66,6 +73,7 @@ describe.skipIf(!testDatabaseUrl)(
       const body = await response.json();
       return {
         status: response.status,
+        wire: JSON.stringify(body),
         data: body.result
           ? superjson.deserialize<FlowResult>(body.result.data)
           : null,
@@ -136,7 +144,15 @@ describe.skipIf(!testDatabaseUrl)(
       });
     }
     beforeAll(async () => {
-      conn = await openTestDatabase();
+      conn = await openContentTestDatabase();
+      await conn.query(
+        "INSERT INTO users (id,openId,role) VALUES (?,'paid-block-fixture-moderator','moderator')",
+        [moderatorId],
+      );
+      await conn.query(
+        "INSERT INTO posts (id,text,photos,tags,target,status,published) VALUES (?,?,JSON_ARRAY(),JSON_ARRAY(),'club','published',TRUE)",
+        [clubPostId, clubBody],
+      );
       await conn.query(
         "CREATE TABLE IF NOT EXISTS user_consent_events (id INT AUTO_INCREMENT PRIMARY KEY,userId INT NOT NULL,consentKey VARCHAR(64) NOT NULL,status ENUM('granted','revoked') NOT NULL,consentVersion VARCHAR(32) NOT NULL,consentText TEXT,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
       );
@@ -186,6 +202,10 @@ describe.skipIf(!testDatabaseUrl)(
       await app?.close();
       await smtp?.close();
       if (conn && userId) {
+        await conn.query(
+          "DELETE FROM admin_audit_log WHERE actorUserId=? AND targetId=?",
+          [moderatorId, userId],
+        );
         for (const [table, owner] of [
           ["normal_checkout_requests", "actorUserId"],
           ["billing_receipts", "userId"],
@@ -201,6 +221,16 @@ describe.skipIf(!testDatabaseUrl)(
           email,
         ]);
       }
+      if (conn) {
+        await conn.query("DELETE FROM posts WHERE id=? AND text=?", [
+          clubPostId,
+          clubBody,
+        ]);
+        await conn.query(
+          "DELETE FROM users WHERE id=? AND openId='paid-block-fixture-moderator'",
+          [moderatorId],
+        );
+      }
       await conn?.end();
       await (
         (await getDb()) as unknown as { $client: { end(): Promise<void> } }
@@ -209,7 +239,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.unstubAllGlobals();
       vi.unstubAllEnvs();
     });
-    it("preserves paid access through registration, password recovery, renewal, cancellation and expiry", async () => {
+    it("revokes blocked paid sessions without losing entitlement across unblock, recovery and cancellation", async () => {
       const register = {
         email,
         name: "Synthetic member",
@@ -326,6 +356,146 @@ describe.skipIf(!testDatabaseUrl)(
         ).data,
       ).toMatchObject({ state: "succeeded", orderId: order.data!.orderId });
 
+      const paidBeforeBlock = await rows(
+        "SELECT orderId,status,expiresAt,cancelAtPeriodEnd FROM club_payments WHERE userId=? ORDER BY id",
+        [userId],
+      );
+      expect((await trpc("club.list", undefined, cookie, true)).wire).toContain(
+        clubBody,
+      );
+      expect(
+        (await trpc("feed.getById", { id: clubPostId }, cookie, true)).wire,
+      ).toContain(clubBody);
+      const cookieName = cookie.split("=")[0];
+      const moderatorCookie = `${cookieName}=${await sdk.createSessionToken("paid-block-fixture-moderator", { sessionVersion: 0 })}`;
+      const blockInput = { userId, reason: "Synthetic paid access check" };
+      expect(
+        (await trpc("moderation.blockUser", blockInput, cookie)).status,
+      ).toBe(403);
+      expect(
+        (await trpc("moderation.blockUser", blockInput, moderatorCookie))
+          .status,
+      ).toBe(200);
+      expect(
+        (
+          await rows("SELECT blockedAt,sessionVersion FROM users WHERE id=?", [
+            userId,
+          ])
+        )[0],
+      ).toMatchObject({
+        blockedAt: expect.any(Date),
+        sessionVersion: initialIdentity[0].sessionVersion + 1,
+      });
+      for (const path of [
+        "club.list",
+        "feed.savedPosts",
+        "feed.userInteractions",
+      ])
+        expect((await trpc(path, undefined, cookie, true)).status).toBe(401);
+      const oldBearer = cookie.slice(cookie.indexOf("=") + 1);
+      expect(
+        (
+          await trpc("club.list", undefined, "", true, {
+            Authorization: `Bearer ${oldBearer}`,
+          })
+        ).status,
+      ).toBe(401);
+      expect(
+        (
+          await trpc(
+            "club.normalCheckoutStatus",
+            { idempotencyKey: intent.idempotencyKey },
+            cookie,
+            true,
+          )
+        ).status,
+      ).toBe(401);
+      expect(
+        (
+          await trpc(
+            "club.createNormalCheckout",
+            { ...intent, idempotencyKey: randomUUID() },
+            cookie,
+          )
+        ).status,
+      ).toBe(401);
+      const hiddenPost = await trpc(
+        "feed.getById",
+        { id: clubPostId },
+        cookie,
+        true,
+      );
+      expect(hiddenPost.status).toBe(200);
+      expect(hiddenPost.data).toBeUndefined();
+      expect(hiddenPost.wire).not.toContain(clubBody);
+      expect(
+        (await trpc("club.subscription", undefined, cookie, true)).data,
+      ).toMatchObject({ hasClubAccess: false, subscribed: false });
+      const me = await fetch(`${base}/api/auth/me`, {
+        headers: { Cookie: cookie },
+      });
+      expect(await me.json()).toEqual({ user: null });
+      expect((await post("/api/auth/login", { email, password })).status).toBe(
+        401,
+      );
+      const beforeRefusedReplay = await rows(
+        "SELECT orderId FROM billing_receipts WHERE userId=? ORDER BY orderId",
+        [userId],
+      );
+      expect((await notify(order.data!.orderId!, "100001")).status).toBe(422);
+      expect(
+        await rows(
+          "SELECT orderId FROM billing_receipts WHERE userId=? ORDER BY orderId",
+          [userId],
+        ),
+      ).toEqual(beforeRefusedReplay);
+      expect(
+        await rows(
+          "SELECT orderId,status,expiresAt,cancelAtPeriodEnd FROM club_payments WHERE userId=? ORDER BY id",
+          [userId],
+        ),
+      ).toEqual(paidBeforeBlock);
+      expect(
+        (
+          await rows(
+            "SELECT cancelRequestedAt,cancelledAt FROM billing_profiles WHERE userId=?",
+            [userId],
+          )
+        )[0],
+      ).toMatchObject({
+        cancelRequestedAt: expect.any(Date),
+        cancelledAt: null,
+      });
+      expect(
+        await rows(
+          "SELECT action FROM admin_audit_log WHERE actorUserId=? AND targetId=?",
+          [moderatorId, userId],
+        ),
+      ).toEqual([{ action: "block_user" }]);
+      expect(
+        (await trpc("moderation.unblockUser", { userId }, moderatorCookie))
+          .status,
+      ).toBe(200);
+      // Removing the block must not resurrect the old revoked cookie.
+      expect((await trpc("club.list", undefined, cookie, true)).status).toBe(
+        401,
+      );
+      const unblockedLogin = await post("/api/auth/login", { email, password });
+      expect(unblockedLogin.status).toBe(200);
+      cookie = unblockedLogin.headers.get("set-cookie")!.split(";")[0];
+      expect((await trpc("club.list", undefined, cookie, true)).wire).toContain(
+        clubBody,
+      );
+      expect(
+        (await trpc("club.subscription", undefined, cookie, true)).data,
+      ).toEqual(renewed);
+      expect(
+        await rows(
+          "SELECT orderId,status,expiresAt,cancelAtPeriodEnd FROM club_payments WHERE userId=? ORDER BY id",
+          [userId],
+        ),
+      ).toEqual(paidBeforeBlock);
+
       // Reset must revoke old sessions without revoking an already paid period.
       const paidRows = await rows(
         "SELECT orderId,status,expiresAt,cancelAtPeriodEnd FROM club_payments WHERE userId=? ORDER BY id",
@@ -392,7 +562,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(
         (await rows("SELECT sessionVersion FROM users WHERE id=?", [userId]))[0]
           .sessionVersion,
-      ).toBe(initialIdentity[0].sessionVersion + 1);
+      ).toBe(initialIdentity[0].sessionVersion + 2); // block + password reset.
       expect((await trpc("club.cancel", undefined, "")).status).toBe(401);
       expect((await trpc("club.cancel", undefined, cookie)).status).toBe(500);
       expect(

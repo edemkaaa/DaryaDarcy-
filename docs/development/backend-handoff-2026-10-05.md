@@ -2,6 +2,20 @@
 
 ## 14 октября — регистрация и подписка на одном локальном аккаунте
 
+Проверка блокировки после checkpoint8d65968: реальный moderation API блокирует
+оплаченного пользователя, увеличивает sessionVersion, пишет audit и ставит
+cancellation в очередь (не объявляет provider cancellation подтверждённой).
+Старые cookie/Bearer закрывают club.list, cookie также закрывает savedPosts,
+interactions, checkout/status; auth.me → user:null и login → generic401.
+feed.getById штатно скрывает club body, без ложного успеха от SQL500. Paid rows и
+срок не изменены. Подписанный receipt replay при blocked отклонён422 без новых
+receipt/периодов. Unblock не восстанавливает старый cookie; новый login возвращает
+прежний доступ/срок. Обычный пользователь не может вызвать blockUser (403).
+24 pass/2 suites/skips0 (3.01 s), final strengthened flow1 pass (2.05 s),
+TypeScript exit0. Первый отказ — ошибка ожидания login403 в harness, не runtime
+RED; generic401 оставлен прежним. Production код не менялся. Own fixture33383,
+SMTP loopback и запрет внешнего HTTP; не проверяет рабочую БД/ACL/провайдера.
+
 Дополнение после checkpoint e368a7d: в том же flow проверено восстановление
 пароля после двух оплаченных заказов. До proof старый пароль/сессия сохраняются;
 после proof старый пароль отклонён, cookie не имеет club access и получает401

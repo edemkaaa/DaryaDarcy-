@@ -124,6 +124,23 @@ external provider. Свой tmpfs стенд loopback 33382, test-only окру�
 TypeScript/docs56/diff exit0. Свой контейнер после повторной проверки label/ID/
 loopback/tmpfs остановлен; --rm removal подтверждён, SMTP/API/SQL закрыты.
 
+14 октября, оплаченный аккаунт/блокировка: native flow расширен реальными
+moderation.blockUser/unblockUser и club post fixture. Старая cookie/Bearer →401
+для club.list; savedPosts/interactions/checkout/status также закрыты, auth.me
+возвращает user:null, login401. feed.getById возвращает штатное отсутствие поста
+(200/undefined), без club body. Блокировка увеличивает sessionVersion, пишет
+audit и ставит cancellation в очередь, но не меняет paid rows/срок. Signed
+receipt replay при блокировке422 без новых receipts/периодов; после unblock
+старый cookie остаётся revoked, только новый login восстанавливает доступ с тем
+же сроком. Runtime-дефектов нет: исправлено лишь неверное ожидание login403 в
+тесте (политика generic401 сохранена). 24 pass/2 native suites/skips0 (3.01 s),
+после усиления hidden-post assertion focused1 pass (2.05 s); TypeScript exit0.
+Own loopback33383/tmpfs/backend_test, clean env, SMTP loopback, HTTP egress guard;
+фронт/рабочая БД/provider/внешние письма не затронуты. Это selected API acceptance,
+не закрытие всех media/working release gates.
+Review/format/docs56/diff exit0; свой контейнер удалён после owner/ID/tmpfs
+проверки, отсутствие подтверждено. API/SMTP/SQL закрыты; foreign container прежний.
+
 ### Зафиксированные ограничения
 
 - Локальный снимок `123c9c6`; Git staging при сверке `62b24a6`. Обновлять сведения

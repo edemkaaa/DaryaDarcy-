@@ -302,6 +302,12 @@ paid rows/срока при новом входе. 1 pass/skips0 (1.83 s), runti
 отмена и истечение проверены после reset. Предыдущие native suites не повторяются
 без изменений; это не расширение auth policy и не working/provider acceptance.
 
+Дополнение 14 октября: оплаченный аккаунт блокируется/разблокируется реальным
+moderation API. Native flow подтверждает отзыв cookie/Bearer, скрытие club body,
+неизменность paid history и отказ webhook replay при блокировке. После unblock
+нужен новый login; срок сохраняется. 24 native checks pass/2 suites/skips0,
+final focused1 pass, TypeScript exit0; production код неизменён. Evidence в todo.
+
 Подготовить компактную матрицу ТЗ: backend commit, frontend commit, миграции,
 проверка, результат, ответственный и блокер. Согласовать конкретные критерии нагрузки
 и устройства; пилот 30–50 участниц/5–7 дней не заменяет нагрузочный тест.
