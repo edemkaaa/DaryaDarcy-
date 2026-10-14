@@ -248,6 +248,13 @@ describe.skipIf(!testDatabaseUrl)(
       const accepted = await post("/api/auth/register", register);
       expect(accepted.status).toBe(202);
       expect(accepted.headers.get("set-cookie")).toBeNull();
+      const acceptedBody = await accepted.json();
+      expect(acceptedBody).toMatchObject({
+        ok: true,
+        message: expect.stringContaining("Запрос принят"),
+      });
+      expect(acceptedBody).not.toHaveProperty("sent");
+      expect(acceptedBody).not.toHaveProperty("sessionToken");
       const accounts = await rows(
         "SELECT id,passwordHash FROM users WHERE email=?",
         [email],
@@ -258,8 +265,89 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await post("/api/auth/login", { email, password })).status).toBe(
         401,
       );
-      expect((await post("/api/auth/register", register)).status).toBe(202);
+      // The native SMTP server rejects RCPT; acceptance of registration is not
+      // delivery. Retry must keep the same account, setup token and durable mail.
+      const pendingIdentity = await rows(
+        "SELECT id,name,passwordHash,role,sessionVersion FROM users WHERE id=?",
+        [userId],
+      );
+      const pendingTokens = await rows(
+        "SELECT id,tokenHash,consumedAt FROM password_tokens WHERE userId=? ORDER BY id",
+        [userId],
+      );
+      smtp.rejectRecipients(true);
+      const failedAt = Date.now();
+      await processAccessEmails(
+        (await getDb())!,
+        sendTransactionalEmail,
+        userId,
+      );
+      expect(smtp.messages).toHaveLength(0);
+      const failedMail = await rows(
+        "SELECT id,sentAt,discardedAt,lastError,attempts,nextAttemptAt FROM access_email_outbox WHERE userId=? ORDER BY id",
+        [userId],
+      );
+      expect(failedMail).toHaveLength(1);
+      expect(failedMail[0]).toMatchObject({
+        sentAt: null,
+        discardedAt: null,
+        lastError: "delivery_failed",
+        attempts: 1,
+      });
+      expect(failedMail[0].nextAttemptAt.getTime()).toBeGreaterThan(failedAt);
+      for (const retry of await Promise.all(
+        Array.from({ length: 3 }, () =>
+          post("/api/auth/register", {
+            ...register,
+            name: "Must not overwrite pending identity",
+          }),
+        ),
+      )) {
+        expect(retry.status).toBe(202);
+        expect(retry.headers.get("set-cookie")).toBeNull();
+        expect(await retry.json()).toEqual(acceptedBody);
+      }
+      expect(
+        await rows(
+          "SELECT id,name,passwordHash,role,sessionVersion FROM users WHERE email=?",
+          [email],
+        ),
+      ).toEqual(pendingIdentity);
+      expect(
+        await rows(
+          "SELECT id,tokenHash,consumedAt FROM password_tokens WHERE userId=? ORDER BY id",
+          [userId],
+        ),
+      ).toEqual(pendingTokens);
+      expect(
+        await rows(
+          "SELECT id,sentAt,discardedAt,lastError,attempts,nextAttemptAt FROM access_email_outbox WHERE userId=? ORDER BY id",
+          [userId],
+        ),
+      ).toEqual(failedMail);
+      expect((await post("/api/auth/login", { email, password })).status).toBe(
+        401,
+      );
+      smtp.rejectRecipients(false);
+      // Advance ONLY this fixture's retry deadline, leaving production backoff intact.
+      await conn.query(
+        "UPDATE access_email_outbox SET nextAttemptAt=NOW() WHERE userId=?",
+        [userId],
+      );
       await drainMail();
+      expect(
+        await rows(
+          "SELECT id,sentAt,discardedAt,attempts FROM access_email_outbox WHERE userId=?",
+          [userId],
+        ),
+      ).toEqual([
+        {
+          id: failedMail[0].id,
+          sentAt: expect.any(Date),
+          discardedAt: null,
+          attempts: 2,
+        },
+      ]);
       expect(smtp.messages).toHaveLength(1);
       expect(smtp.recipients).toEqual([`RCPT TO:<${email}>`]);
       const token = setupToken();

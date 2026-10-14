@@ -141,6 +141,18 @@ Own loopback33383/tmpfs/backend_test, clean env, SMTP loopback, HTTP egress guar
 Review/format/docs56/diff exit0; свой контейнер удалён после owner/ID/tmpfs
 проверки, отсутствие подтверждено. API/SMTP/SQL закрыты; foreign container прежний.
 
+14 октября, SMTP refusal/retry: own native flow теперь начинает с реального
+RCPT550 loopback SMTP. sentAt/discardedAt null, delivery_failed/attempts1/backoff;
+три concurrent register retries возвращают прежний202 «Запрос принят», без
+session/sent claims, и сохраняют account/name/role/password/sessionVersion,
+тот же token и mail/backoff. После восстановления SMTP тот же outbox ID принят
+(attempts2/sentAt), одна копия письма; setup once → login → остальной paid flow
+проходит. 17 pass/2 suites/skips0 (4.24 s), TypeScript exit0. Runtime дефектов нет,
+production/frontend/рабочая БД неизменны; only own backend_test/tmpfs/loopback33384
+и SMTP, clean env, запрет внешнего HTTP. Это не приёмка внешнего почтового ящика.
+После проверки owner label/ID/binding/tmpfs контейнер остановлен и удалён --rm;
+SMTP/API/SQL закрыты, synthetic data уничтожены, чужие данные/volumes не затронуты.
+
 ### Зафиксированные ограничения
 
 - Локальный снимок `123c9c6`; Git staging при сверке `62b24a6`. Обновлять сведения

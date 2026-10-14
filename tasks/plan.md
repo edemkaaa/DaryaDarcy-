@@ -308,6 +308,12 @@ moderation API. Native flow подтверждает отзыв cookie/Bearer, �
 нужен новый login; срок сохраняется. 24 native checks pass/2 suites/skips0,
 final focused1 pass, TypeScript exit0; production код неизменён. Evidence в todo.
 
+14 октября SMTP refusal/retry в native flow: RCPT550 не выставляет sentAt;
+concurrent retry не дублирует аккаунт/token/outbox и не снимает backoff. После
+SMTP recovery та же запись доставлена один раз в loopback и setup/login проходят.
+17 pass/2 suites/skips0, TypeScript exit0; production изменений нет, внешняя
+доставка/фронт/working rollout не проверены. Evidence/границы в todo.
+
 Подготовить компактную матрицу ТЗ: backend commit, frontend commit, миграции,
 проверка, результат, ответственный и блокер. Согласовать конкретные критерии нагрузки
 и устройства; пилот 30–50 участниц/5–7 дней не заменяет нагрузочный тест.

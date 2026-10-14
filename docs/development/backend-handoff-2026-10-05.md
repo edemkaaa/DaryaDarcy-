@@ -2,6 +2,16 @@
 
 ## 14 октября — регистрация и подписка на одном локальном аккаунте
 
+SMTP refusal/retry после29f3252: loopback RCPT550 оставляет sentAt null и
+delivery_failed; три одновременных register retries не меняют account/name/role/
+password/sessionVersion, token/outbox ID и backoff.202/ok означает принятие
+запроса, не доставку: API не выдаёт session или sent claim. После восстановления
+SMTP та же запись принята (attempts2/sentAt), одна копия setup-письма, setup/login
+и остальной flow проходят. 17 pass/2 suites/skips0 (4.24 s), TypeScript exit0.
+Production код не менялся, fixture loopback33384/tmpfs, SMTP only local; это не
+сертификат внешней доставки. Команда: registration-subscription-flow.mysql.test.ts
+и registration-retry.mysql.test.ts, --maxWorkers=1, чистое окружение как ниже.
+
 Проверка блокировки после checkpoint8d65968: реальный moderation API блокирует
 оплаченного пользователя, увеличивает sessionVersion, пишет audit и ставит
 cancellation в очередь (не объявляет provider cancellation подтверждённой).
