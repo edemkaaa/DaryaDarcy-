@@ -1,5 +1,85 @@
 # Передача изменений бэкенда фронтендеру
 
+## 15 октября — адресные задачи фронтендеру после merge33b8bbe
+
+Основание: проверенное локальное объединение33b8bbe, frontend строго из
+staging81e8563. Ни frontend source, ни его тесты/types бэкендер не исправлял.
+Ниже два независимых исправления проверок, не новая функциональность/редизайн.
+
+### F-TEST-1: привести viewport fixture к реальному DOM-контракту
+
+Файл: [__tests__/web-viewport.test.ts](../../__tests__/web-viewport.test.ts).
+Причина воспроизведённого `ReferenceError: document is not defined`: тест создаёт
+`window`, но не `document`. Текущий getViewport сначала читает layout viewport
+`document.documentElement.clientWidth`, затем fallback window.innerWidth.
+Это намеренная поддержка сужения layout после rotation/WebKit overflow; не
+удалять её из [viewport.ts](../../apps/frontend/src/shared/browser/viewport.ts)
+ради старой неполной fixture. Конфликта слияния нет: файлы совпадают в parents.
+
+Минимальное исправление первого существующего теста — дополнить его fixture:
+
+```ts
+vi.stubGlobal("document", {
+  documentElement: { clientWidth: 1000 },
+});
+```
+
+Оставить его window1000x800/devicePixelRatio2 и прежние проверки480/1000/2.
+Сохранять afterEach `vi.unstubAllGlobals()`. Дополнительно проверить реальные
+ветви, без изменения runtime или глобального подавления ошибок:
+
+- layout320 при innerWidth1280 → window/screen width320, не старые1280;
+- clientWidth0 при innerWidth1000 → fallback window480/screen1000;
+- без window/document → прежний deterministic SSR480x800/scale1/fontScale1.
+
+Критерий: `pnpm exec vitest run __tests__/web-viewport.test.ts` — без fail/skip;
+полный набор тоже не скрывает этот тест через exclude/skip или fake GREEN.
+
+### F-API-1: регенерировать типы именно на объединённом бэкенде
+
+Файл: [apps/frontend/src/shared/api/contract.ts](../../apps/frontend/src/shared/api/contract.ts).
+На backend33b8bbe82 процедуры, сохранённый frontend contract79. Отсутствуют:
+`admin.uploadPrivateAttachment`, `admin.privateAttachmentStatus`,
+`profileExtras.recoveryExport`. У existing `admin.createPost`/`admin.updatePost`
+добавился optional `privateAssetIds`. Это причина текущего check:api RED;
+types/frontend build сами по себе не гарантируют актуальность contract.
+
+Фронтендер выполняет из корня **совместимых объединённых исходников**:
+
+```sh
+pnpm api:contract
+pnpm check:api
+pnpm check
+pnpm lint
+pnpm build:frontend
+```
+
+Первая команда пишет generated frontend file — её выполняет frontend team,
+не backend-agent. Типы не писать вручную; не убирать серверные методы и не
+добавлять any/ts-ignore ради проверки. Убедиться, что diff — generated types,
+без импорта backend runtime, случайных env/секретов/feature flags.
+Критерий для33b8bbe: все82 процедуры и privateAssetIds отражены, check:api exit0.
+Если backend после этого изменится, основание сверить заново, не фиксировать82
+как вечную константу. Не запускать db:push/миграции для генерации типов.
+
+После обеих правок повторить affected tests: viewport, frontend-article-creation,
+frontend-club-access, frontend-normal-checkout, frontend-video-catalog, затем
+полный Vitest; opt-in SQL/provider skips не считать сквозной приёмкой.
+Регенерация типов **не подключает закрытый upload UI**: actual intent/status/
+privateAssetIds/read/reload приёмка остаётся отдельным пунктом передачи ниже.
+Новый экран recoveryExport не требуется этим поручением. Отчёт фронтендера должен
+содержать SHA, команды/exit codes и оставшиеся границы, без утверждения о deploy.
+
+### Остаток бэкенда в действующем объёме
+
+После проверки AG-очереди новых незавершённых самостоятельных local runtime
+пунктов нет. AG1–AG4/AG6–AG8, local AG5-R1–R6 и fresh/backup/owner подготовка
+выполнены в записанных границах. AG5/AG9 ещё требуют совместимого клиента,
+выбранного разрешённого target/rollout и общей native приёмки; готовность всего
+ТЗ/рабочих платежей/устройств не заявляется. Без новых входов не повторять
+успешные SQL/S3 сценарии и не придумывать новые API. Push/выкладка по-прежнему
+запрещены; отправка этого документа разработчику автоматически не выполнялась.
+
 ## 15 октября — локальное объединение со staging, без публикации
 
 После отдельного разрешения пользователя свежий staging81e8563 объединён с

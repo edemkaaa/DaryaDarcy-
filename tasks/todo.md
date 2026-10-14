@@ -4,6 +4,14 @@
 
 ### Проверенный остаток на 15 октября
 
+- [x] По следующему поручению подготовлены F-TEST-1/F-API-1 в начале existing
+  backend handoff: точная причина viewport fixture, минимальный DOM stub и
+  layout/fallback/SSR cases; regeneration на merged backend33b8bbe82/79 и
+  критерии check:api/affected/full tests. Frontend/tests/types не исправлялись.
+  Проверена активная очередь: независимого незавершённого backend runtime среза
+  нет; совместная private-media/native/rollout остаётся незавершённой, не GREEN.
+  Никаких новых функций, рабочих данных, push/deploy или внешней отправки.
+
 - [x] По прямому разрешению пользователя локально объединены parent ad54e16 и
   свежий staging81e8563 на feature/stage-one-completion-2026-10-10; без конфликтов,
   ручных правок frontend, push/deploy/DB/S3. Frontend tree точно равен81e8563;
