@@ -125,6 +125,10 @@ AG6 принят и реализован
   Offline preflight exit1: ровно untracked 0017/0018/0019, databaseChecked=false,
   releaseApproval=false; manifest 0029 зарегистрирован. Docs55/diff exit0.
   Процедура сохранена 24e7b31; migrations/working connection не выполнялись.
+  14 октября подготовлен проект четырёх рекомендаций хранения в existing runbook:
+  окно30 суток/compact marker/owned orphan cleanup/scrub-export-backup. Статус:
+  **ждёт решения**, не принят. Bound read evidence сохраняется; billing отдельно.
+  Runtime/schema/TTL/S3/frontend/рабочая БД не менялись; native suites не повторялись.
 - [x] **AG6 — точные остатки обычной оплаты/отмены.** Статус: готово локально
   14 октября по принятому контракту. Authenticated normal create/status,
   ledger 0030 и default-off flag; guest/TEST/settlement/отмена прежние.
