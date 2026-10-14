@@ -15,6 +15,7 @@ import type { PostCreationIntent } from "./post-creation-request";
 import { authorizePrivateAttachmentChanges } from "./private-attachment-association";
 import { assertContentRecoveryWindow } from "./recovery-window";
 import { assertContentRecoveryNotSpent } from "./recovery-markers";
+import { assertContentWriteActor } from "./content-write-actor";
 
 async function insertPost(
   writer: Pick<MySql2Database, "insert" | "delete" | "select" | "update" | "execute">,
@@ -37,6 +38,7 @@ export async function createPostWithVideos(
   attachments: PostAttachmentChanges = {},
 ): Promise<number> {
   return database.transaction(async (tx) => {
+    await assertContentWriteActor(tx,attachments.actor);
     await authorizePrivateAttachmentChanges(tx, attachments);
     return insertPost(tx, data, videos, attachments);
   });
@@ -50,6 +52,7 @@ export async function createPostOnce(
   intent: PostCreationIntent,
 ): Promise<{ postId: number; created: boolean }> {
   return database.transaction(async (tx) => {
+    await assertContentWriteActor(tx,attachments.actor);
     await authorizePrivateAttachmentChanges(tx, attachments);
     // Unique upsert acquires an exclusive key lock; never SELECT-then-INSERT.
     // Keep the winning payload/result unchanged on a concurrent duplicate.

@@ -5,7 +5,9 @@ import { createTRPCProxyClient, httpLink } from "@trpc/client";
 import superjson from "superjson";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openContentTestDatabase } from "./helpers/content-mysql";
-import { getDb } from "../apps/backend/src/db";
+import { getDb, getUserByOpenId } from "../apps/backend/src/db";
+import { appRouter } from "../apps/backend/src/routers";
+import type { TrpcContext } from "../apps/backend/src/_core/context";
 import { processScheduledAccountDeletions } from "../apps/backend/src/platform-db";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
@@ -22,6 +24,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     conn = await openContentTestDatabase();
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
     vi.stubEnv("JWT_SECRET", "retention-http-synthetic-secret-32");
+    await conn.query("CREATE TABLE IF NOT EXISTS articles (id INT AUTO_INCREMENT PRIMARY KEY,title VARCHAR(255) NOT NULL,coverUrl TEXT,access ENUM('public','club') NOT NULL DEFAULT 'public',published BOOLEAN NOT NULL DEFAULT TRUE,sortOrder INT NOT NULL DEFAULT 0,sections JSON NOT NULL,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB");
     await conn.query(`CREATE TABLE IF NOT EXISTS pen_pal_profiles (
       id INT AUTO_INCREMENT PRIMARY KEY,userId INT NOT NULL UNIQUE,fullName VARCHAR(128),
       city VARCHAR(128) NOT NULL,interests JSON NOT NULL,address TEXT NOT NULL,
@@ -45,6 +48,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     ) ENGINE=InnoDB`);
   });
   beforeEach(async () => {
+    await cleanupRecoveryContent();
     await cleanupBindings();
     await conn.query("DELETE FROM pen_pal_matches WHERE userLowId=92101");
     await conn.query("DELETE FROM pen_pal_shown WHERE userId=92101 OR matchUserId=92101");
@@ -70,6 +74,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
   });
   afterEach(() => vi.restoreAllMocks());
   afterAll(async () => {
+    if (conn) await cleanupRecoveryContent();
     if (conn) await cleanupBindings();
     await conn?.query("DELETE FROM push_tokens WHERE token='retention-fixture-token'");
     await conn?.query("UPDATE users SET accountDeletionRequestedAt=NULL WHERE id BETWEEN 92101 AND 92104");
@@ -83,6 +88,48 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     await conn.query("DELETE FROM member_email_bindings WHERE actorUserId=92103");
     await conn.query("DELETE FROM admin_audit_log WHERE actorUserId=92103");
   }
+  async function cleanupRecoveryContent() {
+    await conn.query("DELETE FROM post_media WHERE postId IN (SELECT id FROM posts WHERE source='r6-content-fixture')");
+    await conn.query("DELETE FROM posts WHERE source='r6-content-fixture' OR source='article:92150'");
+    await conn.query("DELETE FROM articles WHERE id=92150 OR title='r6-content-fixture'");
+    await conn.query("DELETE FROM post_creation_requests WHERE actorUserId=92101");
+    await conn.query("DELETE FROM article_creation_requests WHERE actorUserId=92101");
+    await conn.query("DELETE FROM content_recovery_markers WHERE actorUserId=92101");
+  }
+  async function contentSnapshot() {
+    const [posts] = await conn.query<RowDataPacket[]>("SELECT id,text,status FROM posts WHERE source='r6-content-fixture' OR source='article:92150' ORDER BY id");
+    const [articles] = await conn.query<RowDataPacket[]>("SELECT id,title FROM articles WHERE id=92150 OR title='r6-content-fixture' ORDER BY id");
+    const [postIntents] = await conn.query<RowDataPacket[]>("SELECT requestKey FROM post_creation_requests WHERE actorUserId=92101");
+    const [articleIntents] = await conn.query<RowDataPacket[]>("SELECT requestKey FROM article_creation_requests WHERE actorUserId=92101");
+    return {posts,articles,postIntents,articleIntents};
+  }
+  it.each(["post-create-keyed","post-create-legacy","post-edit","post-delete","post-confirm","article-create-keyed","article-create-legacy","article-edit","article-delete"])("refuses stale pre-retirement RPC context for %s before any content effect", async operation => {
+    await conn.query("UPDATE users SET role='admin' WHERE id=92101");
+    await conn.query("INSERT INTO posts (id,text,photos,tags,source,status,published) VALUES (92150,'Keep original',JSON_ARRAY(),JSON_ARRAY(),'r6-content-fixture','draft',FALSE)");
+    await conn.query("INSERT INTO articles (id,title,access,published,sections) VALUES (92150,'Keep original','club',FALSE,JSON_ARRAY())");
+    const user = await getUserByOpenId("retention-fixture");
+    const caller = appRouter.createCaller({user:user!, req:{} as TrpcContext['req'], res:{} as TrpcContext['res']});
+    expect(await processScheduledAccountDeletions()).toBe(1);
+    const before = await contentSnapshot();
+    const post = {text:"r6-content-fixture",photos:[],tags:[],source:"r6-content-fixture",status:"draft" as const};
+    const article = {title:"r6-content-fixture",published:false,sections:[]};
+    const invoke = () => {
+      switch(operation) {
+        case "post-create-keyed": return caller.admin.createPost({...post,idempotencyKey:"r6-content-key-00001"});
+        case "post-create-legacy": return caller.admin.createPost(post);
+        case "post-edit": return caller.admin.updatePost({id:92150,text:"r6-content-fixture"});
+        case "post-delete": return caller.admin.deletePost({id:92150});
+        case "post-confirm": return caller.admin.confirmPost({id:92150});
+        case "article-create-keyed": return caller.admin.createArticle({...article,idempotencyKey:"cb7e9219-b57b-46ba-8718-a41b61197b10"});
+        case "article-create-legacy": return caller.admin.createArticle(article);
+        case "article-edit": return caller.admin.updateArticle({id:92150,title:"r6-content-fixture"});
+        case "article-delete": return caller.admin.deleteArticle({id:92150});
+        default: throw new Error("Unknown fixture operation");
+      }
+    };
+    await expect(invoke()).rejects.toMatchObject({code:"UNAUTHORIZED"});
+    expect(await contentSnapshot()).toEqual(before);
+  });
   async function queueBinding() {
     vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", Buffer.alloc(32, 33).toString("base64"));
     await conn.query("INSERT INTO users (id,openId,role,sessionVersion) VALUES (92103,'retention-binding-admin','admin',0)");

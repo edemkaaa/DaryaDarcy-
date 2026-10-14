@@ -8,7 +8,7 @@ vi.mock("../apps/backend/src/db", () => ({
     sessionVersion: state.version,
     blockedAt: state.blocked ? new Date() : null,
   }),
-  upsertUser: async () => {},
+  recordAuthenticatedActivity: async () => {},
 }));
 import { sdk } from "../apps/backend/src/_core/sdk";
 vi.stubEnv("JWT_SECRET", "local-test-only-session-signing-key");

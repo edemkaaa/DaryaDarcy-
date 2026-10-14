@@ -334,6 +334,14 @@ private lifecycle0034/marker/read evidence и bounded owned orphan cleanup
 Прогресс/evidence — todo/runbook; следующий незавершённый срезR6. Полная
 приёмка рабочего rollout/restore этим результатом не объявляется.
 
+R6b локально: post/article write transactions повторно проверяют actor epoch,
+роль и блокировку под user PK lock до material/ledger locks. Устаревший native
+RPC context после final retirement не пишет. Authentication activity больше
+не создаёт identity через upsert и пропускает занятую user row (SKIP LOCKED),
+сохраняя nonblocking article status. Evidence179 pass/7 suites/skip0 в todo.
+Owner-link scrub и own export остаются следующими незавершёнными частямиR6;
+рабочая БД/S3/фронт не менялись, внешние backup/history gates прежние.
+
 Локальная зависимость: R1 private upload/status/unbound bind + общий default-off
 guard → R2 keyed post create → R3 article create/status → R4 compact markers/
 живые read evidence → R5 bounded owned orphan cleanup → R6 final scrub/export.

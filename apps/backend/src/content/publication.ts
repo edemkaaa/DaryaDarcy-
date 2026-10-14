@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { posts, type Post } from "../../../../packages/database/src/schema";
+import { assertContentWriteActor, type ContentWriteActor } from "./content-write-actor";
 
 export type PostPublication = Pick<Post, "id" | "text" | "target">;
 
@@ -9,8 +10,10 @@ export type PostPublication = Pick<Post, "id" | "text" | "target">;
 export async function confirmPostPublication(
   database: MySql2Database,
   postId: number,
+  actor?: ContentWriteActor,
 ): Promise<PostPublication | undefined> {
   return database.transaction(async (tx) => {
+    await assertContentWriteActor(tx,actor);
     const [post] = await tx
       .select({
         id: posts.id,

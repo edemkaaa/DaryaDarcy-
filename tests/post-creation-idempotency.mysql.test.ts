@@ -218,7 +218,7 @@ describe.skipIf(!testDatabaseUrl)(
         await vi.waitFor(
           async () => {
             const [waiting] = await conn.query<RowDataPacket[]>(
-              "SELECT 1 FROM performance_schema.data_lock_waits w JOIN performance_schema.data_locks l ON l.ENGINE_LOCK_ID=w.REQUESTING_ENGINE_LOCK_ID AND l.ENGINE=w.ENGINE WHERE l.OBJECT_SCHEMA=DATABASE() AND l.OBJECT_NAME='post_creation_requests'",
+              "SELECT 1 FROM performance_schema.data_lock_waits w JOIN performance_schema.data_locks l ON l.ENGINE_LOCK_ID=w.REQUESTING_ENGINE_LOCK_ID AND l.ENGINE=w.ENGINE WHERE l.OBJECT_SCHEMA=DATABASE() AND l.OBJECT_NAME='users' AND l.LOCK_DATA='97401'",
             );
             expect(waiting.length).toBeGreaterThan(0);
           },

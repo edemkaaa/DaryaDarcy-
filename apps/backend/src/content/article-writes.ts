@@ -15,6 +15,7 @@ import type { ArticleCreationIntent } from "./article-creation-request";
 import { requireArticleCreationSchema } from "./article-creation-request";
 import { assertContentRecoveryWindow } from "./recovery-window";
 import { assertContentRecoveryNotSpent } from "./recovery-markers";
+import { assertContentWriteActor, type ContentWriteActor } from "./content-write-actor";
 
 export type CreateArticleInput = {
   title: string;
@@ -77,10 +78,12 @@ export async function createArticle(
   database: MySql2Database,
   data: CreateArticleInput,
   intent?: ArticleCreationIntent,
+  actor?: ContentWriteActor,
 ): Promise<number> {
   // A different nonce on a pre-existing incomplete row prevents unsafe takeover.
   const claimToken = randomUUID();
   return database.transaction(async (tx) => {
+    await assertContentWriteActor(tx,actor);
     if (intent) {
       await requireArticleCreationSchema(tx);
       await tx
@@ -143,8 +146,10 @@ export async function updateArticle(
   database: MySql2Database,
   id: number,
   data: UpdateArticleInput,
+  actor?: ContentWriteActor,
 ): Promise<void> {
   await database.transaction(async (tx) => {
+    await assertContentWriteActor(tx,actor);
     // A current read before any snapshot/teaser read serializes article writers.
     const [existing] = await tx
       .select({ id: articles.id })
@@ -169,8 +174,10 @@ export async function updateArticle(
 export async function deleteArticle(
   database: MySql2Database,
   id: number,
+  actor?: ContentWriteActor,
 ): Promise<void> {
   await database.transaction(async (tx) => {
+    await assertContentWriteActor(tx,actor);
     await tx
       .select({ id: articles.id })
       .from(articles)

@@ -32,6 +32,7 @@ export class ContentWriteService {
   createArticle(
     input: Parameters<typeof db.createArticle>[0] & { idempotencyKey?: string },
     actorUserId: number,
+    actor?: PrivateAttachmentActor,
   ): Promise<number> {
     const { idempotencyKey, ...data } = input;
     return db.createArticle(
@@ -39,6 +40,7 @@ export class ContentWriteService {
       idempotencyKey === undefined
         ? undefined
         : articleCreationIntent(actorUserId, idempotencyKey, data),
+      actor,
     );
   }
 
@@ -48,19 +50,20 @@ export class ContentWriteService {
 
   async updateArticle(
     input: { id: number } & Parameters<typeof db.updateArticle>[1],
+    actor?: PrivateAttachmentActor,
   ): Promise<{ ok: true }> {
     const { id, ...data } = input;
-    await db.updateArticle(id, data);
+    await db.updateArticle(id, data, actor);
     return { ok: true };
   }
 
-  async deleteArticle(id: number): Promise<{ ok: true }> {
-    await db.deleteArticle(id);
+  async deleteArticle(id: number, actor?: PrivateAttachmentActor): Promise<{ ok: true }> {
+    await db.deleteArticle(id, actor);
     return { ok: true };
   }
 
-  deletePost(id: number): Promise<void> {
-    return db.deletePost(id);
+  deletePost(id: number, actor?: PrivateAttachmentActor): Promise<void> {
+    return db.deletePost(id, actor);
   }
 
   deleteMedia(id: number): Promise<void> {
@@ -141,14 +144,16 @@ export class ContentWriteService {
           videos,
           {
             attachments,
-            ...(privateAssetIds?.length ? { privateAssetIds, actor } : {}),
+            actor,
+            ...(privateAssetIds?.length ? { privateAssetIds } : {}),
           },
           postCreationIntent(actorUserId, idempotencyKey, payload),
         )
       : {
           postId: await db.createPostWithVideos(postData, videos, {
             attachments,
-            ...(privateAssetIds?.length ? { privateAssetIds, actor } : {}),
+            actor,
+            ...(privateAssetIds?.length ? { privateAssetIds } : {}),
           }),
           created: true,
         };
@@ -203,7 +208,8 @@ export class ContentWriteService {
     const publication = await db.savePostEdit(id, updateData, videos, {
       attachments,
       removedMediaIds,
-      ...(privateAssetIds?.length ? { privateAssetIds, actor } : {}),
+      actor,
+      ...(privateAssetIds?.length ? { privateAssetIds } : {}),
     });
     if (publication) {
       void sendMarketingPostNotification(
@@ -215,8 +221,8 @@ export class ContentWriteService {
     return { success: true };
   }
 
-  async confirmPost(postId: number): Promise<{ success: boolean }> {
-    const post = await db.confirmScheduledPost(postId);
+  async confirmPost(postId: number, actor?: PrivateAttachmentActor): Promise<{ success: boolean }> {
+    const post = await db.confirmScheduledPost(postId, actor);
     if (post) {
       void sendMarketingPostNotification(post.text, post.id, post.target);
     }

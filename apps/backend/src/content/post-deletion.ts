@@ -1,5 +1,6 @@
 import { asc, eq, inArray } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
+import { assertContentWriteActor, type ContentWriteActor } from "./content-write-actor";
 import {
   posts,
   postComments,
@@ -53,6 +54,10 @@ export async function deletePostRows(
 export async function deletePost(
   database: MySql2Database,
   id: number,
+  actor?: ContentWriteActor,
 ): Promise<void> {
-  await database.transaction((tx) => deletePostRows(tx, id));
+  await database.transaction(async tx => {
+    await assertContentWriteActor(tx, actor);
+    await deletePostRows(tx, id);
+  });
 }

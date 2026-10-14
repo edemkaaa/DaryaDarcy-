@@ -245,6 +245,19 @@ contexts ещё требуют отдельной проверки/fence; owner-
 bound/orphan evidence и own export пока НЕ реализованы. Backup/restore/history
 условия остаются внешними. Working DB/S3/фронт не затронуты.
 
+R6b: post/article keyed/legacy create, edit/delete и confirm post получают epoch
+из authenticated context и повторно проверяют его в write transaction под user
+PK lock, перед locks материалов/журналов. После final retirement старый context
+получает UNAUTHORIZED без write; нормальные системные helper/job вызовы остаются
+internal actorless. Это не blanket guard всех admin routes. Authentication
+activity заменена с upsert на existing-only update: id/openId/sessionVersion/block
+совпадают, busy row пропускается через SKIP LOCKED. Старый openId не воскресает
+после scrub; article status не ждёт in-flight writer через incidental heartbeat.
+RED:9 stale RPC write cases и2 native SDK/SQL activity races; GREEN affected
+checkpoint179 pass/7 suites/skip0,8.84s. Native HTTP/compiled-process lost ACK/replay
+и uncommitted status сохранены. tsc/backend build/boundaries exit0. Это не browser
+и не production acceptance. Owner-link scrub/export всё ещё не реализованы.
+
 Первый локальный срез — `CONTENT_RECOVERY_RETENTION_ENABLED`, default-off,
 отказ409 после30 суток на upload/status/unbound association, keyed post create
 и article create/status. Новый post status endpoint не добавлять. В первом срезе строки не удалялись; R4c/R5 меняют лишь own fixture. Bound read

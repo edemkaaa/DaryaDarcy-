@@ -189,8 +189,16 @@ AG6 принят и реализован
     authenticated private actor проходил SQL write fence после scrub; GREEN19
     real SQL/native maintenance cases,skip0,2.06s, включая paid/grace/renewal,
     rollback/два workers и однократный epoch increment. Roles/timing не менялись.
+    R6b: 9 stale-context native RPC/SQL случаев RED→GREEN: keyed/legacy create,
+    edit/delete post/article и confirm post после final retirement дают UNAUTHORIZED
+    без изменения материалов/журналов. Actor PK/epoch/role/block fence держится
+    первым до commit. Activity upsert мог заново создать old openId после scrub;
+    заменён existing-only epoch/identity update с SKIP LOCKED. Два native SDK/SQL
+    RED→GREEN сценария подтверждают no resurrection и nonblocking busy activity.
+    Affected checkpoint:179 pass/7 suites/skip0,8.84s, включая HTTP lost ACK,
+    compiled-process replay и uncommitted article status; tsc/build/boundaries exit0.
     R6 ещё НЕ завершён: удалить owner links recovery journals с сохранением bound
-    read/orphan evidence, проверить in-flight post/article writers и own export.
+    read/orphan evidence и реализовать own export. All-admin writers не заявлены.
     Эти пункты не заменяются отзывом сессии; backup/restore gates прежние.
 - [x] **AG6 — точные остатки обычной оплаты/отмены.** Статус: готово локально
   14 октября по принятому контракту. Authenticated normal create/status,

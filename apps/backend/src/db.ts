@@ -11,6 +11,7 @@ import {
 import { confirmPostPublication, type PostPublication } from "./content/publication";
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
 import { deletePost as persistPostDeletion } from "./content/post-deletion";
+import type { ContentWriteActor } from "./content/content-write-actor";
 import {
   getPostMediaByPostId as readPostMediaByPostId,
 } from "./content/post-media-repository";
@@ -118,6 +119,26 @@ export async function getDb() {
     _db = null;
   }
   return _db;
+}
+
+/** Activity is not identity creation. Busy owners are skipped, never resurrected. */
+export async function recordAuthenticatedActivity(
+  user: Pick<User, "id" | "openId" | "sessionVersion">,
+  signedInAt: Date,
+): Promise<void> {
+  const database = await getDb();
+  if (!database) return;
+  await database.transaction(async tx => {
+    const [current] = await tx.select({ id: users.id }).from(users).where(and(
+      eq(users.id, user.id),
+      eq(users.openId, user.openId),
+      eq(users.sessionVersion, user.sessionVersion),
+      isNull(users.blockedAt),
+    )).for("update", { skipLocked: true });
+    if (current) {
+      await tx.update(users).set({ lastSignedIn: signedInAt }).where(eq(users.id, current.id));
+    }
+  });
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -393,10 +414,10 @@ export async function savePostEdit(
   return persistPostEdit(db, id, data, videos, attachments);
 }
 
-export async function deletePost(id: number): Promise<void> {
+export async function deletePost(id: number, actor?: ContentWriteActor): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await persistPostDeletion(db, id);
+  await persistPostDeletion(db, id, actor);
 }
 
 // Get all posts for admin (including unpublished)
@@ -758,11 +779,11 @@ export async function clearRawCameraFilenames(): Promise<void> {
 }
 
 // Update post status (for confirming scheduled posts)
-export async function confirmScheduledPost(postId: number): Promise<PostPublication | undefined> {
+export async function confirmScheduledPost(postId: number, actor?: ContentWriteActor): Promise<PostPublication | undefined> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return confirmPostPublication(db, postId);
+  return confirmPostPublication(db, postId, actor);
 }
 
 export async function publishDueScheduledPosts(): Promise<{ id: number; text: string; target: "feed" | "club" | "both" }[]> {
@@ -1126,10 +1147,10 @@ export async function getArticleById(id: number): Promise<Article | undefined> {
   return readArticleById(db, id);
 }
 
-export async function createArticle(data: CreateArticleInput, intent?: ArticleCreationIntent): Promise<number> {
+export async function createArticle(data: CreateArticleInput, intent?: ArticleCreationIntent, actor?: ContentWriteActor): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return persistArticleCreation(db, data, intent);
+  return persistArticleCreation(db, data, intent, actor);
 }
 
 export async function getArticleCreationStatus(actorUserId: number, key: string) {
@@ -1138,14 +1159,14 @@ export async function getArticleCreationStatus(actorUserId: number, key: string)
   return readArticleCreationStatus(db, actorUserId, key);
 }
 
-export async function updateArticle(id: number, data: UpdateArticleInput): Promise<void> {
+export async function updateArticle(id: number, data: UpdateArticleInput, actor?: ContentWriteActor): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await persistArticleUpdate(db, id, data);
+  await persistArticleUpdate(db, id, data, actor);
 }
 
-export async function deleteArticle(id: number): Promise<void> {
+export async function deleteArticle(id: number, actor?: ContentWriteActor): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await persistArticleDeletion(db, id);
+  await persistArticleDeletion(db, id, actor);
 }

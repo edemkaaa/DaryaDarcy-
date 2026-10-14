@@ -36,7 +36,7 @@ export const createAdminRouter = (
   // Delete a post (admin only)
   deletePost: adminProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(({ input }) => posts.deletePost(input.id)),
+    .mutation(({ input, ctx }) => posts.deletePost(input.id, ctx.user)),
 
   importVideoUrl: adminProcedure
     .input(
@@ -115,7 +115,7 @@ export const createAdminRouter = (
         ),
       }),
     )
-    .mutation(({ input, ctx }) => posts.createArticle(input, ctx.user.id)),
+    .mutation(({ input, ctx }) => posts.createArticle(input, ctx.user.id, ctx.user)),
   articleCreationStatus: adminProcedure
     .input(z.object({ idempotencyKey: articleCreationKey }))
     .query(({ input, ctx }) => posts.articleCreationStatus(ctx.user.id, input.idempotencyKey)),
@@ -149,16 +149,16 @@ export const createAdminRouter = (
           .optional(),
       }),
     )
-    .mutation(({ input }) => posts.updateArticle(input)),
+    .mutation(({ input, ctx }) => posts.updateArticle(input, ctx.user)),
   deleteArticle: adminProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(({ input }) => posts.deleteArticle(input.id)),
+    .mutation(({ input, ctx }) => posts.deleteArticle(input.id, ctx.user)),
   cleanupMediaNames: adminProcedure.mutation(() => posts.cleanupMediaNames()),
 
   // Confirm a scheduled post (publish it) (admin only)
   confirmPost: adminProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(({ input }) => posts.confirmPost(input.id)),
+    .mutation(({ input, ctx }) => posts.confirmPost(input.id, ctx.user)),
 
   // Get admin posts filtered by status/target
   postsFiltered: adminProcedure
