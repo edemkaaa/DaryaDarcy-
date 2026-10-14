@@ -492,5 +492,24 @@ describe.skipIf(!testDatabaseUrl)(
           .status,
       ).toBe(503);
     });
+    it("ready receipt without committed storage evidence never reports success", async () => {
+      expect((await request("uploadPrivateAttachment")).status).toBe(200);
+      await conn.query(
+        "UPDATE private_attachment_uploads SET etag=NULL WHERE actorUserId=97330",
+      );
+      wire.effects.length = 0;
+      expect((await request("uploadPrivateAttachment")).status).toBe(503);
+      expect(
+        (
+          await request(
+            "privateAttachmentStatus",
+            { idempotencyKey: input.idempotencyKey },
+            token,
+            true,
+          )
+        ).status,
+      ).toBe(503);
+      expect(wire.effects).toEqual([]);
+    });
   },
 );

@@ -101,6 +101,7 @@ function requestKey(actor: PrivateAttachmentActor, key: string) {
   return digest(JSON.stringify(["admin.privateAttachment:v1", actor.id, key]));
 }
 export function privateUploadReceipt(row: Receipt) {
+  if (row.state === "ready" && !row.etag) throw unavailable();
   return {
     state: row.state,
     assetId: row.assetId,
