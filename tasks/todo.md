@@ -2,6 +2,21 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Проверенный остаток на 15 октября
+
+- [x] AG9: актуализировать existing backend handoff после frontend34f1a8d/
+  staging81e8563. Fetch15 октября: snapshot не менялся с прошлой сверки;
+  club access/articles/NORMAL/VK уже подключены, не делать заново.
+  Остаток клиента — новые private upload/status/association; контракт82/79 и
+  два post input mismatch записаны с датой предыдущей read-only проверки.
+  Новый UI для recoveryExport не назначен. Только docs, без runtime/front changes.
+  Документация56/diff exit0; review сопоставил текст с current handlers и staging
+  исходниками. SQL/browser/build не повторялись: code не изменён, новых claims нет.
+- [ ] Совместная private-media интеграция и native acceptance: клиент ещё старый;
+  backend0032–0035 не целиком в staging/не выложен; push/merge/rollout не разрешены.
+  Пакет передачи: начало docs/development/backend-handoff-2026-10-05.md.
+  Без новых входов не повторять готовые тесты/не придумывать backend функции.
+
 Правила, основания и критерии: начало [плана](plan.md), раздел «Действующий план
 агента». Это единственная текущая очередь. Работать по одному доступному AG-пункту;
 фронтенд не менять. Незачёркнутые пункты истории ниже не являются дополнительным

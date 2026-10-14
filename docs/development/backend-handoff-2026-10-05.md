@@ -1,5 +1,68 @@
 # Передача изменений бэкенда фронтендеру
 
+## 15 октября — актуальная передача после интеграции фронтендера
+
+**Начинать здесь.** Сверены local backend `2e986f3` и свежий
+`origin/staging=81e8563` после fetch15 октября; ветки не объединялись. Фронтендер
+уже подключил в `34f1a8d` служебный `hasClubAccess` отдельно от оплаты,
+article durable intent/status/replay, NORMAL checkout recovery и VK catalog/
+playback/admin. Не назначать эти реализации заново. Исторические фразы ниже
+«в staging ещё нет» относятся к снимкам до `34f1a8d`, не к текущему фронту.
+Это сверка исходников, не повторная browser/provider/server приёмка.
+
+### Что действительно осталось подключить: новые audio/document вложения
+
+В обоих редакторах staging по-прежнему используется `admin.uploadMedia`;
+вызовов `uploadPrivateAttachment`/`privateAttachmentStatus` и `privateAssetIds`
+нет. Старые объекты/URL/фото/видео/обложки не мигрировать и не закрывать попутно.
+Не подменять отказ нового пути старой публичной загрузкой.
+
+1. На согласованной backend-базе фронтендер обновляет generated contract и
+   проверяет `check:api`. Сверка14 октября: local82/staging79 procedures;
+   отсутствуют `admin.uploadPrivateAttachment`, `admin.privateAttachmentStatus`,
+   `profileExtras.recoveryExport`; createPost/updatePost не знают privateAssetIds.
+   Исходники backend/frontend после этой сверки не менялись; новый API-check не
+   объявляется зелёным. `recoveryExport` — существующий отдельный контракт, не
+   поручение добавлять новый экран или блокер upload-интерфейса.
+2. До первого upload сохранить account-scoped intent с одним ключом16–128 ASCII
+   `[A-Za-z0-9._:-]`, типом и metadata. Новый запрос:
+   `admin.uploadPrivateAttachment({idempotencyKey,type,filename,mimeType,base64})`.
+   Не передавать postId, objectKey, URL, owner или клиентский размер.
+3. После timeout/reload сначала `admin.privateAttachmentStatus({idempotencyKey})`.
+   pending/notRecorded не означают окончательное отсутствие сохранения;
+   ready — подтверждённый receipt без storage URL. Повторяет исходный upload с
+   прежними ключом/bytes/metadata, не новый intent; при ready сервер восстанавливает
+   receipt без повторного S3 PUT. После reload при необходимости выбрать тот же File.
+   Смена аккаунта/уход страницы исключают применение позднего ответа.
+4. В create/update поста передавать `privateAssetIds` из своих ready receipts,
+   максимум100 UUID; create требует отдельный прежний post idempotencyKey.
+   Upload ready не равно «пост сохранён». CONFLICT/pending/ошибку связи не считать
+   успехом; проверять реальный список/результат операции, не создавать замену.
+5. Preview до публикации — локальный File. После публикации чтение существующего
+   media URL `/api/media/post-attachments/:mediaId` через same-origin cookie/rewrite.
+   Удаление — существующий removedMediaIds; это отвязка, не удаление объекта S3.
+   Новый путь принимает PDF/DOCX/TXT и detected audio MPEG/MP4/WAV/OGG/WebM,
+   не legacy DOC/FLAC/AIFF. Лимит файла32MiB, HTTP JSON50MiB; квоты других путей
+   не менять. Точная семантика — AG4 ниже и [SPEC-private-files](../../SPEC-private-files.md).
+
+### Критерии совместной приёмки и граница следующего шага
+
+Проверить настоящий create/edit + read/download/audio Range; потерю ACK upload и
+post, reload, повтор без дублей, удаление связи, смену аккаунта/роль/блокировку/
+истечение клубного доступа и поздние ответы. Проверить 400/401/403/404/409/413/503,
+повреждённый ответ и истечение окна восстановления:409 не становится notRecorded
+или новым intent. Mock-проверки не заменяют native SQL/HTTP/S3/browser доказательства.
+
+Backend upload/read flags по умолчанию выключены. До включения нужны совместимая
+schema0032–0035, согласованный способ нового запуска/upgrade и клиент; стандартный
+db:push нельзя применять к fresh-only истории. Рабочие миграции/флаги/выкладка,
+push/merge и внешний S3 этой передачей не разрешаются. Готовы локальные fresh36,
+synthetic backup/restore и проверка owner login, но это не выложенный стенд для
+совместной приёмки. Следующий организационный шаг — передать этот документ и
+согласовать объединение проверенного backend со staging без перезаписи фронта.
+Отправка другому человеку автоматически не выполнена; новая runtime работа не
+открывается вместо внешних условий. Отменённую первую email-привязку не возвращать.
+
 ## 14 октября — AG5-R6, локальная отвязка журналов и собственный экспорт
 
 Новый additive query `profileExtras.recoveryExport`, protected, default-off
