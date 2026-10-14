@@ -32,6 +32,7 @@
     "deploy:api": "node tooling/operations/deploy-api.mjs",
     "db:push": "pnpm db:preflight --require-database && drizzle-kit migrate",
     "db:preflight": "tsx tooling/scripts/migration-preflight.ts",
+    "db:fresh:local": "tsx tooling/scripts/fresh-database.ts",
     "qr": "node tooling/scripts/generate_qr.mjs",
     "dev:frontend": "pnpm --filter @daryadarcy/frontend dev",
     "build:frontend": "pnpm --filter @daryadarcy/frontend build",

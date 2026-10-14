@@ -166,6 +166,16 @@ ORM schema, native API smoke без fixture DDL. Проверить CLI failures
 working DB/S3/реальные письма и платежи запрещены. Новые flags остаются off.
 Это локальная подготовка нового запуска, не upgrade старой базы и не рабочий rollout.
 
+AG5-F локально завершён14 октября: F1 checkpoint56f015f; F2/F3 guarded CLI,
+полный36-SQL install на двух собственных пустых tmpfs MySQL8.4, matching history,
+current ORM и native HTTP без fixture DDL/seeds. Финально30 tests/4 suites/skip0,
+3.02s; tsc/backend build/docs56/diff exit0. Review: legacy SQL/journal/preflight,
+frontend/working DB/S3 неизменны; ошибки не раскрывают URL/credentials;
+непустая/повторная/непринадлежащая target отказывают без ремонта. Test-only
+контейнеры удаляются после exact ownership inspection; рабочая среда не создана.
+Остаток: operator provisioning владельца/configuration, backup/restore и release
+приёмка; fresh-profile upgrade procedure отдельно, стандартный db:push запрещён.
+
 Checkpoint после локального R6 — backend b525130: доступная реализация выполнена;
 remaining AG5/AG9 ждут verified migration history/schema snapshot, backup/restore
 и совместной frontend/release приёмки. Общий runbook учитывает0035/R6 flags,

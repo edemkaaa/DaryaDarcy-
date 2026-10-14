@@ -24,8 +24,16 @@ AG6 принят и реализован
   Известные0017–0019 включены только в отдельный generated profile с новыми
   fresh-only ordering IDs; прежние SQL bytes/hashes и зарегистрированные when
   сохранены. Unknown orphan/missing SQL отказывают; старая история не подделывается.
-- [ ] F2 — own-container/empty-target guarded local initializer, no reset/retry repair.
-- [ ] F3 — full SQL install/history/current schema/native API acceptance и runbook.
+- [x] F2 — own-container/empty-target guarded local initializer, no reset/retry repair.
+  `db:fresh:local` требует FRESH-only URL/ID, matching owner/name/loopback port,
+  tmpfs без volumes; production/nonlocal/unowned/nonempty/repeat отказывают.
+  Все36 SQL применены настоящим Drizzle; никаких env-файлов/seed/default admin.
+- [x] F3 — full SQL install/history/current schema/native API acceptance и runbook.
+  Финальная новая пустая MySQL8.4: native9 + policy/history21 = **30 pass,
+  4 suites, skip0, 3.02s**. Все текущие ORM tables/columns читаются без fixture DDL;
+  native HTTP feed/articles=200/empty, guest admin=401, users=0.
+  Runbook описывает partial-DDL отказ и отдельный fresh history profile;
+  стандартный db:push на эту историю не разрешён. Это не release approval.
 Старый history gate ниже относится к upgrade существующей среды, не к fresh-only
 установке. Общая внешняя приёмка/backup/выкладка остаются отдельными условиями.
 
