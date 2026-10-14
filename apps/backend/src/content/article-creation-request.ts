@@ -8,6 +8,7 @@ import {
   articles,
 } from "../../../../packages/database/src/schema";
 import { assertContentRecoveryWindow } from "./recovery-window";
+import { assertContentRecoveryNotSpent } from "./recovery-markers";
 
 export const articleCreationKey = z
   .string()
@@ -82,35 +83,49 @@ export async function articleCreationStatus(
   actorUserId: number,
   key: string,
 ): Promise<ArticleCreationStatus> {
-  return database.transaction(async (tx) => {
-    await requireArticleCreationSchema(tx);
-    const [request] = await tx
-      .select({
-        actorUserId: articleCreationRequests.actorUserId,
-        articleId: articleCreationRequests.articleId,
-        createdAt: articleCreationRequests.createdAt,
-        currentId: articles.id,
-      })
-      .from(articleCreationRequests)
-      .leftJoin(articles, eq(articles.id, articleCreationRequests.articleId))
-      .where(
-        eq(
-          articleCreationRequests.requestKey,
-          articleRequestKey(actorUserId, key),
-        ),
+  return database.transaction(
+    async (tx) => {
+      await requireArticleCreationSchema(tx);
+      const [request] = await tx
+        .select({
+          actorUserId: articleCreationRequests.actorUserId,
+          articleId: articleCreationRequests.articleId,
+          createdAt: articleCreationRequests.createdAt,
+          currentId: articles.id,
+        })
+        .from(articleCreationRequests)
+        .leftJoin(articles, eq(articles.id, articleCreationRequests.articleId))
+        .where(
+          eq(
+            articleCreationRequests.requestKey,
+            articleRequestKey(actorUserId, key),
+          ),
+        );
+      await assertContentRecoveryNotSpent(
+        tx,
+        "article",
+        [articleRequestKey(actorUserId, key)],
+        actorUserId,
+        "snapshot",
       );
-    if (!request) return { status: "notRecorded" };
-    if (
-      request.actorUserId !== actorUserId ||
-      !Number.isSafeInteger(request.articleId) ||
-      !request.articleId ||
-      request.articleId <= 0
-    )
-      throw new Error("Invalid article creation result");
-    assertContentRecoveryWindow(request.createdAt);
-    return {
-      status: request.currentId === null ? "deleted" : "created",
-      articleId: request.articleId,
-    };
-  });
+      if (!request) return { status: "notRecorded" };
+      if (
+        request.actorUserId !== actorUserId ||
+        !Number.isSafeInteger(request.articleId) ||
+        !request.articleId ||
+        request.articleId <= 0
+      )
+        throw new Error("Invalid article creation result");
+      assertContentRecoveryWindow(request.createdAt);
+      return {
+        status: request.currentId === null ? "deleted" : "created",
+        articleId: request.articleId,
+      };
+    },
+    {
+      // Both nonlocking reads share one snapshot; do not wait for an in-flight create.
+      isolationLevel: "repeatable read",
+      accessMode: "read only",
+    },
+  );
 }

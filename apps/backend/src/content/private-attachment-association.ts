@@ -11,6 +11,7 @@ import {
 } from "../media/private-upload-object";
 import { isRawMediaFilename } from "../../../../packages/shared/src/media-label";
 import { assertContentRecoveryWindow } from "./recovery-window";
+import { assertContentRecoveryNotSpent } from "./recovery-markers";
 import {
   lockPrivateAttachmentActor,
   requirePrivateAttachmentSchema,
@@ -44,7 +45,7 @@ export async function authorizePrivateAttachmentChanges(
 }
 /** Called under the post lock in its save transaction; never touches storage. */
 export async function bindPrivateAttachments(
-  tx: Pick<MySql2Database, "select" | "insert" | "update">,
+  tx: Pick<MySql2Database, "select" | "insert" | "update" | "execute">,
   postId: number,
   changes: PrivateAttachmentChanges,
 ) {
@@ -84,6 +85,14 @@ export async function bindPrivateAttachments(
         throw conflict();
     }
   }
+  await assertContentRecoveryNotSpent(
+    tx,
+    "private_attachment",
+    assets
+      .filter((asset) => asset.postId === null && asset.mediaId === null)
+      .map((asset) => asset.requestKey),
+    changes.actor.id,
+  );
   const [last] = await tx
     .select({ order: max(postMedia.sortOrder) })
     .from(postMedia)
@@ -92,17 +101,15 @@ export async function bindPrivateAttachments(
   for (const id of ids) {
     const asset = assets.find((row) => row.assetId === id)!;
     if (asset.mediaId !== null) continue;
-    const [result] = await tx
-      .insert(postMedia)
-      .values({
-        postId,
-        type: asset.type,
-        url: `private-asset:${asset.assetId}`,
-        filename: isRawMediaFilename(asset.filename) ? null : asset.filename,
-        mimeType: asset.mimeType,
-        fileSize: asset.fileSize,
-        sortOrder: sortOrder++,
-      });
+    const [result] = await tx.insert(postMedia).values({
+      postId,
+      type: asset.type,
+      url: `private-asset:${asset.assetId}`,
+      filename: isRawMediaFilename(asset.filename) ? null : asset.filename,
+      mimeType: asset.mimeType,
+      fileSize: asset.fileSize,
+      sortOrder: sortOrder++,
+    });
     const mediaId = Number(result.insertId);
     await tx
       .update(postMedia)

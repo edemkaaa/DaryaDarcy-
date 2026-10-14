@@ -154,7 +154,14 @@ AG6 принят и реализован
     replay после compact отказывает, bound bytes доступны; native SQL/read + review.
     R4a:0033 marker schema/полный compositePK(kind,requestKey)/ASCII_BIN,
     owner и expiry scan indexes. RED absent table→2 native SQL GREEN,0 skip,
-    254 ms. Compaction и replay guards ещё не реализованы; worker не включён.
+    254 ms. Compaction ещё не реализована; worker не включён.
+    R4b: spent-marker guards для post/article/private upload/status и unbound bind.
+    RED: duplicate create/false notRecorded/unbound bind200 → GREEN102 cases,
+    5 suites/skip0,7.02 s, own SQL/HTTP/SDK wire; bound bytes/edit сохранены.
+    Article status — nonblocking repeatable-read snapshot, writer — ledger→marker
+    locks; регрессия ожидания незавершённой записи исправлена. Schema missing
+    legacy допускается только flag off; partial PK/owner mismatch fail closed.
+    Следующий срезR4c — атомарная bounded компактизация, затемR5/R6.
     Preflight зарегистрировал0033, отказывает только на прежних0017–0019,
     databaseChecked=false/releaseApproval=false. Никакой working DDL.
   - [ ] AG5-R5 — bounded orphan cleanup. ПослеR4; loopback SDK/SQL, ownership,

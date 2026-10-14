@@ -14,9 +14,10 @@ import {
 import type { PostCreationIntent } from "./post-creation-request";
 import { authorizePrivateAttachmentChanges } from "./private-attachment-association";
 import { assertContentRecoveryWindow } from "./recovery-window";
+import { assertContentRecoveryNotSpent } from "./recovery-markers";
 
 async function insertPost(
-  writer: Pick<MySql2Database, "insert" | "delete" | "select" | "update">,
+  writer: Pick<MySql2Database, "insert" | "delete" | "select" | "update" | "execute">,
   data: InsertPost,
   videos: string[],
   attachments: PostAttachmentChanges,
@@ -63,6 +64,12 @@ export async function createPostOnce(
       .from(postCreationRequests)
       .where(eq(postCreationRequests.requestKey, intent.requestKey))
       .for("update");
+    await assertContentRecoveryNotSpent(
+      tx,
+      "post",
+      [intent.requestKey],
+      intent.actorUserId,
+    );
     if (
       request.actorUserId !== intent.actorUserId ||
       request.payloadHash !== intent.payloadHash

@@ -14,6 +14,7 @@ import { deletePostRows, type ContentTransaction } from "./post-deletion";
 import type { ArticleCreationIntent } from "./article-creation-request";
 import { requireArticleCreationSchema } from "./article-creation-request";
 import { assertContentRecoveryWindow } from "./recovery-window";
+import { assertContentRecoveryNotSpent } from "./recovery-markers";
 
 export type CreateArticleInput = {
   title: string;
@@ -94,6 +95,12 @@ export async function createArticle(
         .where(eq(articleCreationRequests.requestKey, intent.requestKey))
         .for("update");
       if (!request) throw new Error("Article creation record unavailable");
+      await assertContentRecoveryNotSpent(
+        tx,
+        "article",
+        [intent.requestKey],
+        intent.actorUserId,
+      );
       if (
         request.actorUserId !== intent.actorUserId ||
         request.payloadHash !== intent.payloadHash

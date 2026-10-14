@@ -71,6 +71,9 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query(
         "DELETE FROM post_creation_requests WHERE actorUserId IN (97330,97331)",
       );
+      await conn.query(
+        "DELETE FROM content_recovery_markers WHERE actorUserId IN (97330,97331)",
+      );
     }
     const postInput = (assetId: string) => ({
       text: "Private attachment fixture",
@@ -624,6 +627,9 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query(
         "UPDATE private_attachment_uploads SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97330",
       );
+      await conn.query(
+        "INSERT INTO content_recovery_markers (kind,requestKey,actorUserId,createdAt) SELECT 'private_attachment',requestKey,actorUserId,createdAt FROM private_attachment_uploads WHERE actorUserId=97330",
+      );
       vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true");
       vi.stubEnv("PRIVATE_POST_MEDIA_DELIVERY_ENABLED", "true");
       expect(
@@ -643,6 +649,53 @@ describe.skipIf(!testDatabaseUrl)(
       const response = await fetch(`${base}${media[0].url}`);
       expect(response.status).toBe(200);
       expect(await response.text()).toBe("0123456789");
+    });
+    it("a compacted private intent cannot upload again or report notRecorded", async () => {
+      const first = await request("uploadPrivateAttachment");
+      expect(first.status).toBe(200);
+      await conn.query(
+        "INSERT INTO content_recovery_markers (kind,requestKey,actorUserId,createdAt) SELECT 'private_attachment',requestKey,actorUserId,createdAt FROM private_attachment_uploads WHERE actorUserId=97330",
+      );
+      await conn.query(
+        "DELETE FROM private_attachment_uploads WHERE actorUserId=97330",
+      );
+      wire.effects.length = 0;
+      expect((await request("uploadPrivateAttachment")).status).toBe(409);
+      expect(
+        (
+          await request(
+            "privateAttachmentStatus",
+            { idempotencyKey: input.idempotencyKey },
+            token,
+            true,
+          )
+        ).status,
+      ).toBe(409);
+      expect(wire.effects).toEqual([]);
+      expect(wire.objects.size).toBe(1);
+      expect(
+        await rows(
+          "SELECT assetId FROM private_attachment_uploads WHERE actorUserId=97330",
+        ),
+      ).toEqual([]);
+    });
+    it("a retained orphan receipt cannot bind after its marker closes recovery", async () => {
+      const first = await request("uploadPrivateAttachment");
+      expect(first.status).toBe(200);
+      await conn.query(
+        "INSERT INTO content_recovery_markers (kind,requestKey,actorUserId,createdAt) SELECT 'private_attachment',requestKey,actorUserId,createdAt FROM private_attachment_uploads WHERE actorUserId=97330",
+      );
+      expect(
+        (await request("createPost", postInput(first.data.assetId))).status,
+      ).toBe(409);
+      expect(
+        await rows("SELECT id FROM posts WHERE source='ag4-upload-suite'"),
+      ).toEqual([]);
+      expect(
+        await rows(
+          "SELECT mediaId FROM private_attachment_uploads WHERE actorUserId=97330",
+        ),
+      ).toEqual([{ mediaId: null }]);
     });
   },
 );

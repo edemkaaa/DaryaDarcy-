@@ -69,6 +69,9 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       await conn.query(
         "DELETE FROM article_creation_requests WHERE actorUserId IN (9090,9091)",
       );
+    await conn.query(
+      "DELETE FROM content_recovery_markers WHERE kind='article' AND actorUserId IN (9090,9091)",
+    );
   }
   async function status(token: string | null = bearer, requestKey = key) {
     const response = await fetch(
@@ -183,6 +186,27 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       code: 200,
       data: { status: "created", articleId: id },
     });
+  });
+  it("a compacted article refuses replay and never returns notRecorded", async () => {
+    const id = await client().admin.createArticle.mutate(input);
+    await conn.query(
+      "INSERT INTO content_recovery_markers (kind,requestKey,actorUserId,createdAt) SELECT 'article',requestKey,actorUserId,createdAt FROM article_creation_requests WHERE actorUserId=9090",
+    );
+    await conn.query(
+      "DELETE FROM article_creation_requests WHERE actorUserId=9090",
+    );
+    await expect(
+      client().admin.createArticle.mutate(input),
+    ).rejects.toMatchObject({ data: { code: "CONFLICT", httpStatus: 409 } });
+    expect(await status()).toEqual({ code: 409, data: "CONFLICT" });
+    expect(
+      await rows("SELECT id FROM articles WHERE title=?", [input.title]),
+    ).toEqual([{ id }]);
+    expect(
+      await rows(
+        "SELECT articleId FROM article_creation_requests WHERE actorUserId=9090",
+      ),
+    ).toEqual([]);
   });
   it("does not reveal a successful creation to a guest", async () => {
     await client().admin.createArticle.mutate(input);

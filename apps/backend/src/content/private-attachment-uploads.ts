@@ -12,6 +12,7 @@ import { getDb } from "../db";
 import { decodeMediaBase64 } from "../media/media-encoding";
 import { isDeliverableAttachmentMime } from "../media/private-attachment-mime";
 import { assertContentRecoveryWindow } from "./recovery-window";
+import { assertContentRecoveryNotSpent } from "./recovery-markers";
 import {
   digest,
   ensurePrivateUploadObject,
@@ -189,6 +190,12 @@ export async function uploadPrivateAttachment(
         .where(eq(privateAttachmentUploads.requestKey, key))
         .for("update");
       assertIntent(row, actor, payloadHash, namespace.hash);
+      await assertContentRecoveryNotSpent(
+        tx,
+        "private_attachment",
+        [key],
+        actor.id,
+      );
     });
     return await database.transaction(async (tx) => {
       await lockPrivateAttachmentActor(tx, actor);
@@ -199,6 +206,12 @@ export async function uploadPrivateAttachment(
         .where(eq(privateAttachmentUploads.requestKey, key))
         .for("update");
       assertIntent(row, actor, payloadHash, namespace.hash);
+      await assertContentRecoveryNotSpent(
+        tx,
+        "private_attachment",
+        [key],
+        actor.id,
+      );
       if (row.state === "ready") return privateUploadReceipt(row);
       const etag = await ensurePrivateUploadObject(row, bytes);
       await tx
@@ -228,6 +241,12 @@ export async function privateAttachmentStatus(
         .from(privateAttachmentUploads)
         .where(eq(privateAttachmentUploads.requestKey, requestKey(actor, key)))
         .for("update");
+      await assertContentRecoveryNotSpent(
+        tx,
+        "private_attachment",
+        [requestKey(actor, key)],
+        actor.id,
+      );
       if (row && row.namespaceHash !== privateStorageNamespace().hash)
         throw unavailable();
       return row

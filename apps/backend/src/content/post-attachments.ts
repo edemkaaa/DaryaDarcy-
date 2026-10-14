@@ -37,7 +37,7 @@ export type PostAttachmentChanges = PrivateAttachmentChanges & {
   attachments?: PostAttachmentInput[];
   removedMediaIds?: number[];
 };
-type AttachmentWriter = Pick<MySql2Database, "select" | "insert" | "delete" | "update">;
+type AttachmentWriter = Pick<MySql2Database, "select" | "insert" | "delete" | "update" | "execute">;
 
 /** Caller holds the post lock; attachment changes share its save transaction. */
 export async function savePostAttachments(

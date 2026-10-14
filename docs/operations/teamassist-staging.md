@@ -44,7 +44,7 @@ preflight именно для целевой БД. Не путать inspection 
 | 0028_member_email_bindings | Таблицы/поля/PK/proofHash uniqueness и worker indexes совместимы с точным backend commit, InnoDB; нет частичного/чужого schema rollout | Presence guard не заменяет историю/DDL review; partial schema не «лечить» runtime DDL |
 | 0029_article_creation_requests | PK(requestKey), actor/payloadHash/claimToken/articleId/createdAt, InnoDB; reviewed journal и retention/export/account-deletion решение | Keyed create/status fail closed; не переключать запрос на unkeyed при отказе |
 | 0032_private_attachment_uploads | InnoDB; full PK(requestKey), unique assetId/mediaId, binary ASCII identities, immutable payload/namespace hashes, pending/ready/ETag/post/media binding; retention/export/delete/orphans решение | Runtime не ремонтирует DDL и не делает public fallback; ready без storage evidence не успех |
-| 0033_content_recovery_markers | InnoDB/full PK(kind,requestKey), ASCII_BIN key, owner index и expiry scan indexes | Пока schema-only foundation; компактизация/worker выключены. После compact старый writer не является допустимым rollback |
+| 0033_content_recovery_markers | InnoDB/full PK(kind,requestKey), ASCII_BIN key, owner index и expiry scan indexes | Schema и spent guards готовы локально; компактизация/worker выключены. После compact старый writer не является допустимым rollback |
 
 Email identity preflight сейчас вызывается штатным инструментом, когда `0027`
 остаётся pending. Если индекс уже помечен applied, отдельно подтвердить существующее
@@ -176,6 +176,20 @@ default-off после draining несовместимых writers. Формат
 и совместимой приёмки до enablement. Никаких новых dependencies/хостингов.
 History0017–0019 и обезличенный schema/journal snapshot остаются отдельным gate;
 утверждение срока не разрешает working migration, S3 DELETE или rollout.
+
+R4b проверен локально:102 pass/5 suites/skip0,7.02 s, own MySQL/HTTP/SDK wire.
+Spent marker проверяется независимо от expiry flag: rollback флага не открывает
+старый ключ для нового post/article/PUT или непривязанного asset. Bound receipt
+с marker остаётся read evidence, чтение/редактирование не истекает. Writer locks
+original ledger→marker; status статьи читает ledger/marker в одном nonblocking
+repeatable-read read-only snapshot. Не использовать сочетание Drizzle0.45.3
+withConsistentSnapshot+accessMode: установленная версия соединяет SQL options
+пробелом вместо запятой; достаточно explicit RR и первого consistent read.
+Пойманная блокировка uncommitted status и последующий SQL-start отказ устранены,
+полные affected native suites пройдены после восстановления own fault fixtures.
+Batch compactor, orphan DELETE и final scrub/export пока не реализованы; никаких
+working rows/objects не удалялось. Полный regression сохраняет ранее зафиксированный
+frontend viewport failure, этот focused GREEN его не заменяет.
 
 Первый локальный срез — `CONTENT_RECOVERY_RETENTION_ENABLED`, default-off,
 отказ409 после30 суток на upload/status/unbound association, keyed post create

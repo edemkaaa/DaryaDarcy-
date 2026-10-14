@@ -76,6 +76,9 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query(
           "DELETE FROM post_creation_requests WHERE actorUserId IN (97401,97402,97403)",
         );
+      await conn.query(
+        "DELETE FROM content_recovery_markers WHERE kind='post' AND actorUserId IN (97401,97402,97403)",
+      );
     }
     async function created() {
       const [rows] = await conn.query<RowDataPacket[]>(
@@ -149,6 +152,24 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(await admin.admin.createPost.mutate(input)).toBe(id);
       expect(await created()).toEqual([{ id, text: "One creation intent" }]);
+      expect(transport.announcements).toEqual([id]);
+    });
+    it("a compacted intent never becomes new when expiry is switched off", async () => {
+      const id = await admin.admin.createPost.mutate(input);
+      await conn.query(
+        "INSERT INTO content_recovery_markers (kind,requestKey,actorUserId,createdAt) SELECT 'post',requestKey,actorUserId,createdAt FROM post_creation_requests WHERE actorUserId=97401",
+      );
+      await conn.query(
+        "DELETE FROM post_creation_requests WHERE actorUserId=97401",
+      );
+      await expect(admin.admin.createPost.mutate(input)).rejects.toMatchObject({
+        data: { code: "CONFLICT", httpStatus: 409 },
+      });
+      expect(await created()).toEqual([{ id, text: "One creation intent" }]);
+      const [keys] = await conn.query<RowDataPacket[]>(
+        "SELECT requestKey FROM post_creation_requests WHERE actorUserId=97401",
+      );
+      expect(keys).toEqual([]);
       expect(transport.announcements).toEqual([id]);
     });
     it("serializes concurrent identical requests into one committed post", async () => {
