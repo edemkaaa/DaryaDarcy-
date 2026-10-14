@@ -1,5 +1,59 @@
 # Передача изменений бэкенда фронтендеру
 
+## 14 октября — AG4, новые закрытые вложения постов
+
+Локально реализован additive backend-контракт (фронт не изменялся):
+
+- `admin.uploadPrivateAttachment`: admin mutation, вход `{ idempotencyKey,
+  type: "audio" | "document", filename, mimeType, base64 }`. Ключ намерения
+  16–128 ASCII `[A-Za-z0-9._:-]`, создать один раз и сохранить **до** первого
+  POST. Повтор — тот же ключ и тот же файл/metadata; другое содержимое →409.
+  Нет client postId/URL/objectKey/size/owner/duration. HTTP JSON ceiling50MiB,
+  вложение≤32MiB; это не изменение legacy video/photo/upload квот.
+- Успех: `{ state: "ready", assetId, type, filename, mimeType, fileSize }`.
+  MIME/размер определяет сервер; charset TXT сохраняется. Никакого storage URL.
+  PDF/DOCX/TXT; audio MIME после byte detection: MPEG/MP4/WAV/OGG/WebM.
+  FLAC и прочие форматы вне существующей read allowlist отклоняются400 до SQL/S3,
+  а не становятся нечитаемым ready receipt. Legacy DOC (`application/msword`)
+  в **новом** пути отклоняется, поскольку прежний detector не проверяет Word.
+  Старый upload остаётся прежним; detection не означает antivirus/player acceptance.
+- `admin.privateAttachmentStatus` query `{ idempotencyKey }` возвращает
+  `notRecorded` либо receipt `pending|ready`. `pending` не успех. Network/5xx
+  не разрешает новую загрузку с новым ключом. При ready повторный POST восстанавливает
+  тот же receipt без S3 PUT. При pending нужно повторить прежние bytes/metadata
+  (после reload — выбрать тот же File); новый файл под старым ключом не принимается.
+  До публикации preview только локального File; server draft preview отсутствует.
+- Existing `admin.createPost`/`admin.updatePost` принимают optional
+  `privateAssetIds: string[]` (UUID,≤100). При create с ними обязателен existing
+  post idempotencyKey. Привязка своего ready receipt — часть транзакции поста;
+  legacy `attachments` с URL относится только к прежним публичным объектам.
+  Новые private-v1 URL этим старым входом не принимаются. Чужой/pending/rebound
+  или уже удалённый receipt →409; не скрывать как успешное сохранение.
+- В возвращаемом post_media URL — `/api/media/post-attachments/:mediaId`, не S3.
+  Использовать тот же origin/cookie и existing rewrite. Guest читает published
+  feed/both, клуб — актуальный член/staff; draft/hidden/remove/expired/block/revoke
+  дают отказ. Служебный доступ не означает оплату. Прежний `removedMediaIds`
+  удаляет связь, не объект S3; поздний повтор не восстанавливает удалённое вложение.
+  Успех upload отдельно от успеха post association: статус ready не подтверждает
+  сохранение поста; retry создания использует прежний post key.
+
+Rollout: миграция0032/history preflight → backend → интеграция фронтендера →
+совместная приёмка → явное включение `PRIVATE_POST_MEDIA_UPLOAD_ENABLED=true`
+и existing `PRIVATE_POST_MEDIA_DELIVERY_ENABLED=true`. Оба default-off; на сервере
+не включались. Не запускать agent `pnpm api:contract`: generated frontend types
+обновляет фронтендер. Старые S3 объекты, photos/articles/video/shared вне среза.
+Ledger/orphans автоматически не истекают/не удаляются; retention, export/deletion,
+working history/rollout отдельно в AG5/AG9, не заменяются synthetic DB.
+
+Проверки: native HTTP/JWT/SQL и SDK-wire (20 сценариев); actual Timeweb API/SQL
+с двумя fresh compiled Node процессами, потерей реального HTTP ответа через
+loopback proxy, document/WAV/Range и direct anonymous denial. Это backend acceptance,
+не UI/player/device/реальная внешняя почта или платежи. Успешный actual checkpoint
+до последнего MIME guard; два повтора после него остановлены на Timeweb timeout
+до создания объектов, требуют доступного S3 перед rollout. Все synthetic S3 объекты
+удалены с assetId/hash/size/ETag guards, policy не менялась. Команды/итоги в
+SPEC-private-files и активном checklist; нельзя повторять их с рабочей DB/env.
+
 ## 14 октября — регистрация и подписка на одном локальном аккаунте
 
 SMTP refusal/retry после29f3252: loopback RCPT550 оставляет sentAt null и

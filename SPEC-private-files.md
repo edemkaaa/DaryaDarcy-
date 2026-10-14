@@ -230,6 +230,77 @@ objects/ACL, frontend, рабочую БД, runtime flags или bucket policy.
 и live read access, AG4c actual S3 synthetic acceptance/restart/concurrency/review
 и handoff. Wire не считать actual S3 evidence. До full acceptance flag остаётся off.
 
+### AG4 — локальная реализация, проверки и ограничения 14 октября
+
+Срезы: `31b5a2d` (upload/receipt/0032), `ffcdbb3` (association/read), `9c68ccc`
+(refuse ready без ETag), `b52b469` (upload/read MIME parity), `b9cae24` (legacy save
+compatibility), `314bf2c` (actual restart acceptance). RED показал отсутствующий route; следующие RED — stripped
+privateAssetIds/foreign save, legacy private URL bypass, потерю charset и ложный
+ready без storage evidence. Дополнительный RED: FLAC получил200, хотя read route
+его не обслуживает. Новый upload теперь отклоняет неподдерживаемый MIME400 до SQL/S3;
+общая MIME-политика не расширяет прежнюю read boundary или legacy upload.
+GREEN: **20** HTTP/JWT/SQL/SDK-wire сценариев; итоговый affected checkpoint
+84 pass/4 files/skip0 (75.06 s):
+concurrency/lost storage ACK, immutable metadata/namespace, uniqueness guards,
+actor/role, SQL-trigger rollback, removal/no resurrection. Старые affected suites:
+checkpoint126 pass/4 files/skip0. Roles/CORS/proxy trust/квоты не менялись.
+
+Actual Timeweb `private-attachment-uploads.s3.mysql.test.ts`: **2 pass, skips0**,
+6.24 s до последнего MIME guard. API compiled в два fresh Node процесса, SQL/S3 ответы не подменены.
+Loopback HTTP proxy пересылает запрос/полный ответ бэкенда и разрывает соединение:
+caller не получает ACK. После restart прежний upload key восстанавливает один
+assetId/receipt без второго PUT. Lost response создания поста тоже не дублирует
+post/media binding. S3 command observer в test bootstrap — call-through.
+Storage-ACK fault отдельно проверен на owned SDK wire, не объявлен потерей ответа
+реального Timeweb. Bootstrap не читает dotenv и не запускает jobs.
+Повтор после MIME guard: два запуска отказали на GetBucketPolicy requestTimeout10s
+до подключения SQL/создания объектов; оба actual сценария пропущены, не pass.
+Отдельный public endpoint HEAD также дал TLS connection timeout; повтор при
+восстановленной доступности Timeweb нужен перед rollout, timeout не обходили.
+
+Document10B и корректный WAV46B загружены только в согласованные private-v1 prefixes;
+direct anonymous GET/HEAD403. Published club cookie получает точные bytes;
+guest/expired отказ без S3, feed guest разрешён. Removal отзывает reads/rebind;
+WAV Range206, `RIFF`, `bytes 0-3/46`. Новые post_media возвращают только API URL,
+receipt ETag pin отказывает при изменённом объекте. Draft preview/shared/TTL/fallback
+не добавлялись. Это backend transport acceptance, не UI/player/device проверка.
+
+Все own S3 fixtures удалены после assetId/payloadHash/size/ETag guards и HEAD404;
+полная policy до/после совпала, writes policy/старых файлов не выполнялись.
+Own MySQL backend_test loopback33383/tmpfs/no volumes удалён после exact
+owner/id/port/mount guards (752bd9b9dffe, daryadarcy-ag4-20261014-1047).
+Чужие geotermo/diplom контейнеры сохранены; удалены только synthetic tmpfs данные.
+Working DB/history не проверялись/не менялись. Credentials
+только stdin/memory и allowlisted child env, не arguments/files/Git.
+
+Финальная общая регрессия после MIME guard: **3418 pass / 1 fail / 179 skip**,
+3598 cases, 206.53 s, exit1. Не объявлять весь repo GREEN. Остаток — неизменённый frontend
+`__tests__/web-viewport.test.ts`: window stub без document, ReferenceError.
+Файл и frontend source совпадают с baseline `c4428eb`, focused reproduce тот же;
+по запрету пользователя не исправлялись. Initial full также выявил old publication
+argument shape и stale backend procedure inventory: legacy save payload сохранён,
+inventory дополнен двумя принятыми процедурами. SQL bulk-video contention сначала
+не прошёл, focused и final full прошли; его runtime не менялся. tsc/backend build/
+boundaries/docs/diff проверены; skipped не считаются pass.
+Read-only check:api exit1 — frontend generated contract отстаёт, не перегенерирован
+по запрету пользователя. Backend procedure inventory проверен независимо.
+
+Offline preflight exit1: только прежние untracked0017/0018/0019;0032 зарегистрирован,
+databaseChecked=false/releaseApproval=false. На сервер ничего не включено/не выложено.
+AG5/AG9 требуют history, retention/export/account deletion для ledger/orphans,
+client integration и отдельное разрешение rollout. Recovery правила переданы
+в existing backend handoff. TDD/security/incremental/API/review применены;
+дополнительные definition-of-done/security-checklist references отсутствуют,
+обязательные gates взяты из project plan, работа этим не блокировалась.
+
+Команды: wire — `pnpm exec vitest run tests/private-attachment-uploads.mysql.test.ts --maxWorkers=1`;
+actual — чистое окружение с provided in-memory S3 credentials/own DB,
+`AG4_S3_ACCEPTANCE=true`,
+`pnpm exec vitest run tests/private-attachment-uploads.s3.mysql.test.ts --maxWorkers=1`.
+Без opt-in actual suite пропускается и не создаёт fixtures — это не S3 evidence.
+Full: `pnpm exec vitest run --maxWorkers=1`; frontend failure не исключать/не скрывать.
+Агент `pnpm api:contract` не запускал, generated frontend types не изменялись.
+
 ### Историческое основание проекта — 13 октября
 
 13 октября пользователь уточнил, что S3-стенда пока нет. AG2 (настоящая проверка

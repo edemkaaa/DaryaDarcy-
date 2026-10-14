@@ -81,7 +81,7 @@ HEAD и не подтверждение версии сервера. В нача
 | Документ бэкендеру, 1–3 | Служебный доступ, публичные комментарии, проверка поста перед реакцией | Актуальная интеграция с фронтом/выпуск |
 | Email, A1–A6 и пункт 4 | Заявка/подтверждение/доставка/очистка, WorkerJobs; native SQL/loopback SMTP | A7, история/миграции 0027/0028, включение и внешняя доставка |
 | Статьи, AR1/AR2 | Ключ создания, атомарная статья/teaser, статус, миграция 0029; native replay/concurrency/restart | Ключ во фронте до POST, generated types, миграция/retention и browser reload |
-| Медиа, M1/M2 | Offline-карта/default-off proxy; AG2 private-prefix/native API/browser acceptance 14 октября | AG4 upload/receipt/association; фото/статьи/старые URL не закрыты |
+| Медиа, M1/M2 | AG2 private-prefix/read; AG4 private upload/receipt/transactional association и actual S3/restart 14 октября | Working history/client/rollout/retention; фото/статьи/старые URL не закрыты |
 | VK | Серверный доступ вложений наследуется от поста и проверен; в staging есть плеер фронтендера | Реальное наполнение, устройства; отдельный каталог сейчас публичный |
 | Сезоны/магазин | Настройки/CAS/границы дат; подготовка mailto | Материалы/настройки заказчика и устройства; mailto не подтверждает отправку |
 | Платежи/выпуск | Серверная логика и локальные сценарии | Реальный провайдер/почта, физические устройства, нагрузка и пилот |
@@ -275,6 +275,33 @@ uploads/ACL/формат ответа до AG2, фронт или рабочую
 Файлы: существующие spec/media map. Проверка: code/reference map review и docs.
 
 #### AG4 — Реализация принятого продолжения закрытой выдачи (M2; условно)
+
+**14 октября — завершён локально по прямому поручению после AG2/AG3.**
+Срезы31b5a2d/ffcdbb3/9c68ccc:0032 ledger, private admin upload/status, durable
+actor-scoped intent, current session/role fence, ACL private/conditional PUT/policy
+guard/no fallback; post association в existing transaction. Server metadata/API URL,
+immutable namespace/ETag, no foreign/rebind/resurrection. Legacy upload/files/roles/
+CORS/proxy trust/квоты сохранены; frontend не менялся. Native wire20 pass;
+MIME mismatch FLAC RED200→GREEN400 до SQL/S3 (b52b469), прежний read allowlist сохранён.
+Final affected84 pass/4 files/skip0; предыдущий checkpoint126 pass/4 files.
+Actual Timeweb2 pass/skip0/6.24 s до MIME guard:
+document/WAV, lost HTTP ACK, два fresh backend процесса, one PUT/asset/post/media,
+anonymous403/cookie/expiry/removal/Range206. Повтор после guard дважды отказал на
+GetBucketPolicy timeout до создания объектов, public endpoint TLS timeout тоже;
+нужен повтор на доступном S3 перед rollout, skipped не pass. Свои fixtures после guards удалены/
+HEAD404, policy unchanged. Own loopback33383/tmpfs контейнер752bd9b9dffe удалён
+после exact owner/id/port/mount guards, foreign containers сохранены.
+Working DB/runtime enablement/deploy/push не выполнялись.
+Proof/команды/recovery в SPEC-private-files и handoff; оба flags default-off.
+Final full3418 pass/1 fail/179 skip,206.53 s после MIME guard: unchanged frontend viewport fixture
+document undefined остаётся AG9 issue, не скрыт/не исправлен. Compatibility старого
+save payload/backend inventory исправлены; bulk-video focused/final pass (initial
+contention failure записан), runtime не менялся. tsc/backend build/boundaries/docs/
+diff/five-axis review. Read-only check:api exit1 — frontend generated contract stale,
+не изменён. Compatibility fix сохранён b9cae24. Skill дополнительные references не найдены, project gates
+применены. 0032 зарегистрирован; preflight отказывает на прежних0017–0019,
+databaseChecked=false/releaseApproval=false. AG5/AG9 ждут history/retention/client/
+external acceptance, не заменяются fixtures или автоматическим enablement.
 
 Начинать только после принятия расширения AG3 и доступной проверки AG2. Делить на
 малые вертикальные срезы по одному согласованному типу связи; не строить общую новую

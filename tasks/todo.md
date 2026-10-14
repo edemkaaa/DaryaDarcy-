@@ -7,8 +7,11 @@
 фронтенд не менять. Незачёркнутые пункты истории ниже не являются дополнительным
 поручением. Новый список создан для продолжения, а не для повторной реализации.
 
-**Следующий исполняемый шаг — AG4:** AG2 scoped private-prefix storage/API/browser
-acceptance пройден 14 октября; AG3 принят. AG5 после истории/retention.
+**AG4 завершён локально 14 октября:** upload/recovery/association и actual S3
+acceptance checkpoint пройден; повтор после MIME guard ждёт доступности Timeweb,
+flags off. AG5/AG9 ждут history/retention, frontend integration
+и разрешённой внешней приёмки/rollout. Незавершённой самостоятельной AG-реализации
+в принятых границах не осталось.
 AG6 принят и реализован
 локально 14 октября; AG8 также принят/реализован локально. Внешняя приёмка/включение
 не разрешены этими результатами.
@@ -70,9 +73,9 @@ AG6 принят и реализован
   runtime/API/schema/ACL/фронт/рабочая БД не менялись; на момент согласования
   actual S3 отсутствовал (последующая AG2 acceptance описана выше).
   Проверка документации: docs55/diff exit0; runtime tests не повторялись.
-- [ ] **AG4 — реализация расширения файлов по принятому AG3.** Статус: доступен
-  после успешной AG2 acceptance 14 октября. По одному типу связи; native SQL/HTTP/S3
-  и review на срез. Upload/receipt/transactional association ещё не реализованы.
+- [x] **AG4 — реализация расширения файлов по принятому AG3.** Статус: backend
+  реализован/проверен локально 14 октября, actual S3 synthetic acceptance пройдена.
+  Upload/receipt/transactional association готов; frontend/working rollout отдельно.
   Старые файлы/рабочие URL/ACL/фронт не менять. До принятия AG3 не начинать.
   Прямое поручение реализации 14 октября; bounded wire в SPEC-private-files:
   - [x] AG4a — private upload/immutable receipt/status, unknown outcome recovery.
@@ -90,7 +93,25 @@ AG6 принят и реализован
     не принимает только новые private-v1 prefixes, старые files/URLs не менялись.
     Combined affected suites 126 pass/4 files, skips0, 75.95 s. tsc/build/boundaries
     проверены; frontend/provider S3 acceptance не подменены wire результатом.
-  - [ ] AG4c — actual S3 synthetic upload/read/denial/restart и handoff/review.
+  - [x] AG4c — actual S3 synthetic upload/read/denial/restart и handoff/review.
+    Actual2 pass/skip0,6.24 s до последнего MIME guard: два fresh compiled Node процесса, потеря native HTTP
+    upload/post ACK и restart не создают второй PUT/asset/post/media. Document/WAV,
+    anonymous403, cookie/paid/guest/expiry, feed/removal, Range206 exact bytes.
+    Own objects удалены с guards/HEAD404, policy unchanged. Wire guards20 pass
+    (ready без ETag отказывает503; FLAC/read mismatch RED200→GREEN400 до SQL/S3),
+    final affected84 pass/4 files/skip0; tsc/build/boundaries/docs/diff/five-axis review.
+    Actual повтор после guard дважды отказал на GetBucketPolicy timeout до объектов;
+    public endpoint TLS timeout тоже. Skipped не pass; повтор при доступном S3 перед rollout.
+    Final full3418 pass/1 fail/179 skip,206.53 s после MIME guard: unchanged frontend viewport/document
+    undefined не исправлялся. Backend inventory/save compatibility исправлены;
+    bulk-video focused/final GREEN, runtime не менялся. Proof в SPEC-private-files;
+    existing handoff обновлён. Own loopback33383/tmpfs backend_test752bd9b9dffe удалён
+    после exact owner/id/port/mount checks; чужие контейнеры сохранены.
+    Read-only check:api exit1 — frontend generated stale, не изменён.
+    0032 в manifest, offline preflight только
+    untracked0017–0019/DB not checked. Front/старые files/working DB/flags/deploy
+    не менялись. Срезы31b5a2d/ffcdbb3/9c68ccc/b52b469/b9cae24,
+    Native restart/S3 harness314bf2c; документационный checkpoint отдельно.
 - [ ] **AG5 — подготовка миграций/email/статей к выпуску.** Статус: процедура
   подготовлена в existing runbook; ждёт истории/retention решения и репетиции
   применимого snapshot. 0017–0019, 0027/0028/0029, guards и порядок включения,

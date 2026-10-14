@@ -31,7 +31,7 @@ schema-only DDL/index/collation/engine затрагиваемых таблиц �
 доказывает автора/время исполнения. Synthetic fixture не является историей среды.
 До получения этого пакета — **блокер истории**, никаких working connections.
 
-### 2. Проверить применимость 0027/0028/0029
+### 2. Проверить применимость 0027/0028/0029 и 0032
 
 После согласованной истории проверенный владелец выполняет штатный read-only
 preflight именно для целевой БД. Не путать inspection URI с apply DATABASE_URL:
@@ -43,6 +43,7 @@ preflight именно для целевой БД. Не путать inspection 
 | 0027_user_email_identity | Поддерживаемый MySQL/functional unique index, collation; полный read-only результат email preflight: no invalid/noncanonical/normalized duplicates | Конфликтные данные не исправлять/не объединять автоматически; не печатать email |
 | 0028_member_email_bindings | Таблицы/поля/PK/proofHash uniqueness и worker indexes совместимы с точным backend commit, InnoDB; нет частичного/чужого schema rollout | Presence guard не заменяет историю/DDL review; partial schema не «лечить» runtime DDL |
 | 0029_article_creation_requests | PK(requestKey), actor/payloadHash/claimToken/articleId/createdAt, InnoDB; reviewed journal и retention/export/account-deletion решение | Keyed create/status fail closed; не переключать запрос на unkeyed при отказе |
+| 0032_private_attachment_uploads | InnoDB; full PK(requestKey), unique assetId/mediaId, binary ASCII identities, immutable payload/namespace hashes, pending/ready/ETag/post/media binding; retention/export/delete/orphans решение | Runtime не ремонтирует DDL и не делает public fallback; ready без storage evidence не успех |
 
 Email identity preflight сейчас вызывается штатным инструментом, когда `0027`
 остаётся pending. Если индекс уже помечен applied, отдельно подтвердить существующее
@@ -85,8 +86,14 @@ History/DDL rollback не имитировать. Выбор checkpoint и ос�
 5. Article ключи включать клиентом после 0029; потеря ответа/reload сохраняет один
    ID и teaser. Неизвестный статус не разрешает новую UUID. Новый ledger не стирать
    при rollback клиента или удалении статьи.
-6. Private file flag отдельно: пока нет AG2/принятого AG3, upload/URLs/ACL остаются
-   прежними. Binding/article rollout не включает storage-функции автоматически.
+6. Private file flags отдельно: AG2/AG3/AG4 пройдены локально 14 октября для новых
+   audio/document. До0032/history/client acceptance остаются off:
+   PRIVATE_POST_MEDIA_UPLOAD_ENABLED/PRIVATE_POST_MEDIA_DELIVERY_ENABLED.
+   Проверить scoped policy двух private-v1 prefixes и synthetic rollout. Backend
+   первым, фронтендер подключает assetId/post keys. Старый upload/objects/ACL не
+   мигрировать этим включением. Rollback: остановить новые writes, не стирать
+   ledger/objects и не возвращать общий public Allow для prefixes с закрытыми
+   данными. Binding/article rollout не включает storage автоматически.
 7. Сквозные оплата/письмо/вход/продление/отмена, устройства/нагрузка/пилот — AG9
    после разрешения владельца; не выдавать fixtures за провайдера/участницу.
 
@@ -102,6 +109,13 @@ History/DDL rollback не имитировать. Выбор checkpoint и ос�
 удалении аккаунта и составе export/backup. Требуется проверить **оба** existing
 post_creation_requests и новый article ledger при таком решении, без расширения
 сбора данных. Agent не вводит TTL/автоматическую очистку в этом шаге.
+
+AG4 добавляет `private_attachment_uploads`: actorUserId, display filename,
+immutable fingerprints/namespace, storage evidence и binding. Ключи и orphans
+без TTL; отдельное решение хранения/export/account deletion/backup требуется
+перед0032/flags. Удаление media/post оставляет recovery evidence; чистка его без
+контракта может разрешить повторную загрузку/привязку. Автоматическое физическое
+удаление объектов и рабочие data fixes этим шагом не разрешены.
 
 Локальная процедура подготовлена. Она не снимает manifest blockers и не разрешает
 подключение/миграцию/отправку почты. Native article/email checkpoints уже есть;
