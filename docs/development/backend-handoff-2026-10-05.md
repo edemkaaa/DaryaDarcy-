@@ -1,5 +1,26 @@
 # Передача изменений бэкенда фронтендеру
 
+## 14 октября — AG5-R6, локальная отвязка журналов и собственный экспорт
+
+Новый additive query `profileExtras.recoveryExport`, protected, default-off
+`CONTENT_RECOVERY_EXPORT_ENABLED`. Input strict: `{kind:'post'|'article'|
+'private_attachment',afterKey?:64 lowercase hex,limit?:1..100}` (default25).
+Output `{items:[{requestId,createdAt,status}],nextCursor:string|null}`; статусы
+`created|deleted|pending|ready|expired`. requestId — server fingerprint, не original
+idempotencyKey и не capability повторного создания/скачивания. Только собственные
+records, без content/имён файлов/ID материалов/assetId/секретов/storage URLs.
+Guest/revoked/blocked HTTP401 (existing SDK), disabled404, invalid input400,
+partial schema503. Compacted marker всегда expired, независимо от expiry flag.
+Курсор устойчив к компактизации, но это live keyset export, не frozen backup.
+Подробнее: [R6 contract/runbook](../operations/teamassist-staging.md).
+
+Final scrub default-off `CONTENT_RECOVERY_RETIREMENT_ENABLED` атомарно удаляет
+post/article journals/markers автора; private receipt отвязывается, но bound
+файл/материалы проекта не удаляются. Новая0035 только локально проверена; working
+rollout требует history/preflight/drain/backup решения. Existing upload/create
+response shapes не изменены. Фронт/generated types агент не менял; это передача
+контракта, не выполненная интеграция и не разрешение рабочего включения.
+
 ## 14 октября — AG5-R4/R5, локальная компактизация и orphan cleanup
 
 Фронтенд/types не изменялись; нового endpoint или success shape нет. После

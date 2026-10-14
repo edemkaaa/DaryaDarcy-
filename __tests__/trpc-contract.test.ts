@@ -83,7 +83,7 @@ const expectedProcedures = {
     "upsert",
   ],
   profile: ["update", "uploadAvatar"],
-  profileExtras: ["requestAccountDeletion"],
+  profileExtras: ["recoveryExport", "requestAccountDeletion"],
   shop: ["createCheckout", "owned"],
   system: ["health", "notifyOwner"],
   videos: ["catalog", "getById", "list", "playback"],

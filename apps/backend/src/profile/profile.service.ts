@@ -3,10 +3,35 @@ import * as db from "../db";
 import * as platformDb from "../platform-db";
 import { uploadPhoto } from "../media/photos";
 import type { ProfileUpdateInput } from "./profile-input";
+import {
+  exportContentRecovery,
+  recoveryExportInput,
+  requireRecoveryExportEnabled,
+} from "../content/recovery-export";
+import type { ContentWriteActor } from "../content/content-write-actor";
+import type { z } from "zod";
+import { TRPCError } from "@trpc/server";
 
 /** Adapters authorize/validate; SQL and photo helpers retain their policies. */
 @Injectable()
 export class ProfileService {
+  async recoveryExport(
+    actor: ContentWriteActor,
+    input: z.output<typeof recoveryExportInput>,
+  ) {
+    requireRecoveryExportEnabled();
+    try {
+      const database = await db.getDb();
+      if (!database) throw new Error("Database unavailable");
+      return await exportContentRecovery(database, actor, input);
+    } catch (error) {
+      if (error instanceof TRPCError) throw error;
+      throw new TRPCError({
+        code: "SERVICE_UNAVAILABLE",
+        message: "Экспорт временно недоступен",
+      });
+    }
+  }
   async update(
     userId: number,
     input: ProfileUpdateInput,

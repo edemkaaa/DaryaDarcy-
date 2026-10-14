@@ -2,6 +2,10 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { photoInput } from "../media/photos";
 import { profileUpdateInput } from "./profile-input";
 import type { ProfileService } from "./profile.service";
+import {
+  recoveryExportInput,
+  recoveryExportOutput,
+} from "../content/recovery-export";
 
 export const createProfileRouter = (profiles: ProfileService) =>
   router({
@@ -17,6 +21,10 @@ export const createProfileRouter = (profiles: ProfileService) =>
 
 export const createProfileExtrasRouter = (profiles: ProfileService) =>
   router({
+    recoveryExport: protectedProcedure
+      .input(recoveryExportInput)
+      .output(recoveryExportOutput)
+      .query(({ ctx, input }) => profiles.recoveryExport(ctx.user, input)),
     requestAccountDeletion: protectedProcedure.mutation(({ ctx }) =>
       profiles.requestAccountDeletion(ctx.user.id),
     ),

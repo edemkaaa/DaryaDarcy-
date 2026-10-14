@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import {
   articleCreationRequests,
   contentRecoveryMarkers,
@@ -7,6 +7,7 @@ import {
   privateAttachmentUploads,
 } from "../../../../packages/database/src/schema";
 import type { ContentTransaction } from "./post-deletion";
+import { requirePrivateAttachmentSchema } from "./private-attachment-uploads";
 
 /** No runtime DDL or partial cleanup on missing/nontransactional rollout schema. */
 export async function requireRecoveryRetirementSchema(tx: ContentTransaction) {
@@ -34,6 +35,33 @@ export async function requireRecoveryRetirementSchema(tx: ContentTransaction) {
     )
   ) {
     throw new Error("Recovery retirement schema unavailable");
+  }
+  await requirePrivateAttachmentSchema(tx);
+  const [indexes] =
+    await tx.execute(sql`SELECT TABLE_NAME AS name,COLUMN_NAME AS columnName,SEQ_IN_INDEX AS position,SUB_PART AS prefix
+    FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND INDEX_NAME='PRIMARY' AND NON_UNIQUE=0
+    AND TABLE_NAME IN ('post_creation_requests','article_creation_requests','content_recovery_markers','private_attachment_uploads')
+    ORDER BY TABLE_NAME,SEQ_IN_INDEX`);
+  if (!Array.isArray(indexes))
+    throw new Error("Recovery uniqueness unavailable");
+  for (const [name, columns] of [
+    ["post_creation_requests", ["requestKey"]],
+    ["article_creation_requests", ["requestKey"]],
+    ["private_attachment_uploads", ["requestKey"]],
+    ["content_recovery_markers", ["kind", "requestKey"]],
+  ] as const) {
+    const actual = indexes.filter((row) => row.name === name);
+    if (
+      actual.length !== columns.length ||
+      actual.some(
+        (row, index) =>
+          row.columnName !== columns[index] ||
+          row.position !== index + 1 ||
+          row.prefix !== null,
+      )
+    ) {
+      throw new Error("Recovery uniqueness unavailable");
+    }
   }
 }
 
@@ -76,7 +104,12 @@ export async function retireContentRecovery(
           filename: "",
           recoveryCompactedAt: new Date(),
         })
-        .where(eq(privateAttachmentUploads.requestKey, receipt.requestKey));
+        .where(
+          and(
+            eq(privateAttachmentUploads.requestKey, receipt.requestKey),
+            eq(privateAttachmentUploads.actorUserId, actorUserId),
+          ),
+        );
     }
   }
   await tx

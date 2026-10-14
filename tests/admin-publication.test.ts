@@ -3,6 +3,7 @@ import type { TrpcContext } from "../apps/backend/src/_core/context";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { savePostEdit } from "../apps/backend/src/content/post-editor";
 import type { UpdatePostInput } from "../apps/backend/src/content/post-write-input";
+import { users } from "../packages/database/src/schema";
 const state = vi.hoisted(() => ({
   update: vi.fn(),
   notify: vi.fn(),
@@ -27,7 +28,7 @@ const caller = () =>
     new ContentUploadService(),
     new NotificationsService(),
   ).createCaller({
-    user: { id: 1, role: "admin", blockedAt: null },
+    user: { id: 1, role: "admin", blockedAt: null, sessionVersion:0 },
     req: {},
     res: {},
   } as TrpcContext);
@@ -69,7 +70,7 @@ describe("publication notification follows successful persistence", () => {
       // router execute their real missing-post/error propagation paths.
       const reader = {
         select: () => ({
-          from: () => ({ where: () => ({ for: async () => [] }) }),
+          from: (table:unknown) => ({ where: () => ({ for: async () => table===users ? [{id:1,role:'admin',blockedAt:null,sessionVersion:0}] : [] }) }),
         }),
       };
       const database = {
@@ -139,7 +140,7 @@ describe("publication notification follows successful persistence", () => {
         status: "published",
       }),
       [],
-      { attachments: undefined, removedMediaIds: undefined },
+      { attachments: undefined, removedMediaIds: undefined, actor:{id:1,role:'admin',blockedAt:null,sessionVersion:0} },
     );
   });
   it("does not reannounce an already published post", async () => {

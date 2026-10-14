@@ -178,6 +178,16 @@ describe("profile use cases over native HTTP", () => {
       );
     },
   );
+  it('disabled recovery export remains unavailable without acquiring a broken database',async()=>{
+    vi.stubEnv('CONTENT_RECOVERY_EXPORT_ENABLED','false');
+    vi.spyOn(db,'getDb').mockRejectedValue(new Error('synthetic database failure'));
+    await expect(app.get(ProfileService).recoveryExport(member,{kind:'post',limit:25})).rejects.toMatchObject({code:'NOT_FOUND'});
+  });
+  it('enabled recovery export reports sanitized unavailability on database acquisition failure',async()=>{
+    vi.stubEnv('CONTENT_RECOVERY_EXPORT_ENABLED','true');
+    vi.spyOn(db,'getDb').mockRejectedValue(new Error('synthetic private database details'));
+    await expect(app.get(ProfileService).recoveryExport(member,{kind:'post',limit:25})).rejects.toMatchObject({code:'SERVICE_UNAVAILABLE',message:'Экспорт временно недоступен'});
+  });
 
   it.each(operations)(
     "$name uses the actual Nest-managed profile provider",

@@ -277,6 +277,28 @@ RR snapshot; marker побеждает duplicate. Это live pagination, не f
 проверяются на той же nonlocking snapshot; missing/partial0035 schema даёт sanitized503,
 не empty success. API/backend handoff additive; frontend/generated types не меняются.
 
+R6c/R6d verification: first retirement RED retained actor links; native SQL GREEN
+preserves neighbors/material/receipt, rollback/partial schema/disabled flag,
+101-row bounded batches, retired orphan compaction without resurrecting markers.
+Export RED absent route; native HTTP/JWT/SQL GREEN18 cases: own vs foreign,
+created/deleted/pending/ready/expired, marker precedence/cursor after compaction,
+strict input, guest/revoked/block, stale context, busy owner nonblocking read,
+partial schema503/no secret fields. Acquisition/disabled gate два unit RED→GREEN.
+Final review RED dropped private PK still allowed retirement; shared schema guard
+now requires full primary keys/InnoDB/private asset/media uniqueness before scrub
+or export. Последний affected checkpoint288 pass/14 suites/skip0,16.00s; tsc/build/
+boundaries/docs/diff exit0. Full checkpoint before this last uniqueness guard:
+3498 pass/1 unchanged frontend viewport failure/174 skip/3673 total,197.06s,exit1;
+`/tmp/daryadarcy-r6-export.WsYnXU/full-final.json`. Backend test doubles/lock gates
+aligned with R6b actor→material locks; actual missing material/atomic final result/
+one announcement assertions retained. Full GREEN не заявлен; frontend untouched.
+API generated contract intentionally stale (`check:api` exit1); offline preflight
+0035 registered but0017–0019 unresolved, databaseChecked=false/releaseApproval=false.
+Flags remain off. Historical already-retired production records are not scanned
+or repaired by this change; such inventory needs reviewed rollout/snapshot input.
+Local R6 implementation complete; backup expiry/restore replay/working acceptance
+not performed. No working DB/S3 access or external deliveries in these checks.
+
 R6b: post/article keyed/legacy create, edit/delete и confirm post получают epoch
 из authenticated context и повторно проверяют его в write transaction под user
 PK lock, перед locks материалов/журналов. После final retirement старый context

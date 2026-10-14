@@ -93,7 +93,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     await conn.query("DELETE FROM admin_audit_log WHERE actorUserId=92103");
   }
   async function cleanupRecoveryContent() {
-    await conn.query("DELETE FROM private_attachment_uploads WHERE assetId IN ('92100000-0000-4000-8000-000000000001','92100000-0000-4000-8000-000000000002')");
+    await conn.query("DELETE FROM private_attachment_uploads WHERE assetId LIKE '92100000-0000-4000-8000-%'");
     await conn.query("DELETE FROM content_recovery_markers WHERE actorUserId=92102 AND requestKey=REPEAT('b',64)");
     await conn.query("DELETE FROM post_media WHERE postId IN (SELECT id FROM posts WHERE source='r6-content-fixture')");
     await conn.query("DELETE FROM posts WHERE source='r6-content-fixture' OR source='article:92150'");
@@ -112,9 +112,14 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", "true");
     try {
       await recoveryFixture();
+      vi.stubEnv("CONTENT_RECOVERY_EXPORT_ENABLED","true");
+      const user=await getUserByOpenId('retention-fixture');
+      const caller=appRouter.createCaller({user:user!,req:{} as TrpcContext['req'],res:{} as TrpcContext['res']});
+      expect((await caller.profileExtras.recoveryExport({kind:'private_attachment'})).items).toHaveLength(1);
       await conn.query("INSERT INTO posts(id,text,photos,tags,source) VALUES(92150,'Keep',JSON_ARRAY(),JSON_ARRAY(),'r6-content-fixture')");
       await conn.query("INSERT INTO post_media(id,postId,type,url) VALUES(92150,92150,'document','/api/media/post-attachments/92150')");
       expect(await processScheduledAccountDeletions()).toBe(1);
+      await expect(caller.profileExtras.recoveryExport({kind:'private_attachment'})).rejects.toMatchObject({code:'UNAUTHORIZED'});
       for (const table of ["post_creation_requests", "article_creation_requests", "content_recovery_markers"] as const) {
         const [rows] = await conn.query<RowDataPacket[]>(`SELECT requestKey FROM ${table} WHERE actorUserId=92101`);
         expect(rows).toEqual([]);
@@ -129,11 +134,13 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
       expect(await privateReceiptForMedia(drizzle(conn),{id:92150,postId:92150,type:'document'})).toMatchObject({key:'feed/documents/private-v1/92100000-0000-4000-8000-000000000001',etag:'fixture-etag'});
     } finally { vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", "false"); }
   });
-  it.each(["off", "rollback", "partial"])("keeps recovery links intact on %s retirement", async scenario => {
+  it.each(["off", "rollback", "partial", "nontransactional", "nonunique"])("keeps recovery links intact on %s retirement", async scenario => {
     await recoveryFixture();
     vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", scenario === "off" ? "false" : "true");
     if (scenario === "rollback") await conn.query("CREATE TRIGGER backend_test_r6_failure BEFORE UPDATE ON users FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='fixture rollback'");
     if (scenario === "partial") await conn.query("RENAME TABLE content_recovery_markers TO backend_test_r6_markers_hold");
+    if (scenario === "nontransactional") await conn.query("ALTER TABLE post_creation_requests ENGINE=MyISAM");
+    if (scenario === "nonunique") await conn.query("ALTER TABLE private_attachment_uploads DROP PRIMARY KEY");
     try {
       if (scenario === "off") expect(await processScheduledAccountDeletions()).toBe(1);
       else await expect(processScheduledAccountDeletions()).rejects.toThrow();
@@ -144,8 +151,19 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     } finally {
       if (scenario === "rollback") await conn.query("DROP TRIGGER backend_test_r6_failure");
       if (scenario === "partial") await conn.query("RENAME TABLE backend_test_r6_markers_hold TO content_recovery_markers");
+      if (scenario === "nontransactional") await conn.query("ALTER TABLE post_creation_requests ENGINE=InnoDB");
+      if (scenario === "nonunique") await conn.query("ALTER TABLE private_attachment_uploads ADD PRIMARY KEY(requestKey)");
       vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED","false");
     }
+  });
+  it('retires all private receipts across bounded batches without skipping moved keys',async()=>{
+    for(let n=1000;n<1101;n++)await conn.query("INSERT INTO private_attachment_uploads(requestKey,actorUserId,assetId,payloadHash,namespaceHash,type,filename,mimeType,fileSize) VALUES(?,92101,?,REPEAT('c',64),REPEAT('d',64),'document','Personal.pdf','application/pdf',10)",[n.toString(16).padStart(64,'0'),`92100000-0000-4000-8000-${n.toString().padStart(12,'0')}`]);
+    vi.stubEnv('CONTENT_RECOVERY_RETIREMENT_ENABLED','true');
+    try{
+      expect(await processScheduledAccountDeletions()).toBe(1);
+      const [rows]=await conn.query<RowDataPacket[]>("SELECT actorUserId,filename,recoveryCompactedAt FROM private_attachment_uploads WHERE assetId LIKE '92100000-0000-4000-8000-%'");
+      expect(rows).toHaveLength(101);expect(rows.every(row=>row.actorUserId===null&&row.filename===''&&row.recoveryCompactedAt instanceof Date)).toBe(true);
+    }finally{vi.stubEnv('CONTENT_RECOVERY_RETIREMENT_ENABLED','false');}
   });
   it("keeps retired orphan evidence without recreating an owner marker during local compaction", async () => {
     await recoveryFixture();

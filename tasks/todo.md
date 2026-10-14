@@ -11,7 +11,7 @@
 acceptance после MIME guard повторно пройдена на HEAD e3044af:2 pass/skip0,
 21.22 s, exit0. Timeweb timeout снят; flags off. AG5/AG9 ждут history/retention, frontend integration
 и разрешённой внешней приёмки/rollout. Следующий локальный срез после последующего
-«да все делаем дальше» — **AG5-R6**, после локальных R4/R5 ниже. Рабочая очистка
+«да все делаем дальше» — **AG5-R6**, локальная часть завершена ниже. Рабочая очистка
 не включена; rollout/history/backup/restore остаются внешними gate.
 AG6 принят и реализован
 локально 14 октября; AG8 также принят/реализован локально. Внешняя приёмка/включение
@@ -183,7 +183,7 @@ AG6 принят и реализован
     3634 total,195.13 s,exit1. Все affected native cases прошли; full GREEN
     не заявлен, frontend/его tests не менялись.0034 только own tmpfs fixture;
     migration31 pass, offline preflight прежний gate0017–0019.
-  - [ ] AG5-R6 — final scrub/export. ПослеR4/R5; existing account timing unchanged,
+  - [x] AG5-R6 — final scrub/export, **локальная часть**. ПослеR4/R5; existing account timing unchanged,
     own records only, no resurrection/no secrets. Backup/real restore/history внешние.
     R6a: final account retirement атомарно отзывает sessionVersion. RED: stale
     authenticated private actor проходил SQL write fence после scrub; GREEN19
@@ -203,8 +203,26 @@ AG6 принят и реализован
     links→GREEN; affected112 pass/7 suites/skip0,17.05s; tsc/build exit0.
     Native rollback/partial schema/flag-off/neighbor/bound receipt/retired compaction
     проверены. Runtime DDL/S3 нет; read check без обращения к storage.
-    R6 ещё НЕ завершён: реализовать own export. All-admin writers не заявлены.
-    Эти пункты не заменяются отзывом сессии; backup/restore gates прежние.
+    R6d: собственный protected `profileExtras.recoveryExport`, strict kind/keyset
+    limit1–100/default25, current epoch/block snapshot, default-off export flag.
+    Только request fingerprint/createdAt/status; нет content/filename/material IDs,
+    assetId/claimToken/hash/ETag/storage URLs. Marker terminal независимо от flag;
+    nonblocking RR сохраняет pagination через compaction. Guest/revoked/blocked
+    HTTP401, malformed400, disabled404, partial schema503 sanitized.
+    Финальное review: full primary keys/InnoDB/private unique evidence обязательны;
+    RED dropped PK позволял scrub→GREEN fail-closed rollback.101 receipts обработаны
+    bounded batches без пропусков/возврата owner links. Native SDK/HTTP/SQL и unit:
+    **288 pass/14 suites/skip0,16.00s**, tsc/build/boundaries/docs/diff exit0.
+    Full checkpoint перед последним uniqueness guard:3498 pass/1 unchanged frontend
+    viewport failure/174 skip/3673 total,197.06s,exit1. Report
+    `/tmp/daryadarcy-r6-export.WsYnXU/full-final.json`; финальный guard проверен
+    affected checkpoint выше. Full GREEN не заявлен. Backend publication tests
+    обновлены к user→material lock order, missing post/one notification checks
+    сохранены; API inventory добавлен, generated frontend contract не менялся.
+    `check:api` expected stale exit1; offline preflight прежние0017–0019,0035
+    зарегистрирована, databaseChecked=false/releaseApproval=false. S3/working DB
+    не затронуты. Режимы off; это НЕ production enablement/полное стирание backup.
+    All-admin writers не заявлены; AG5/AG9/backup/restore/history gates прежние.
 - [x] **AG6 — точные остатки обычной оплаты/отмены.** Статус: готово локально
   14 октября по принятому контракту. Authenticated normal create/status,
   ledger 0030 и default-off flag; guest/TEST/settlement/отмена прежние.

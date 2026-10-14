@@ -461,7 +461,9 @@ describe.skipIf(!testDatabaseUrl)(
           >(`SELECT COUNT(DISTINCT w.REQUESTING_ENGINE_TRANSACTION_ID) n
           FROM performance_schema.data_lock_waits w
           JOIN performance_schema.data_locks b ON b.ENGINE_LOCK_ID=w.BLOCKING_ENGINE_LOCK_ID
-          WHERE b.OBJECT_SCHEMA=DATABASE() AND b.OBJECT_NAME='posts' AND b.LOCK_DATA='11402'`);
+          WHERE b.OBJECT_SCHEMA=DATABASE() AND b.INDEX_NAME='PRIMARY'
+            AND ((b.OBJECT_NAME='posts' AND b.LOCK_DATA='11402')
+              OR (b.OBJECT_NAME='users' AND b.LOCK_DATA='92601'))`);
           expect(Number(rows[0].n)).toBeGreaterThanOrEqual(count);
         },
         { timeout: 3000, interval: 20 },
