@@ -15,6 +15,58 @@ const journalSchema = z.object({
     .min(1),
 });
 export type MigrationIdentity = { tag: string; when: number; hash: string };
+/** Separate NEW-database profile, never a reconciliation of an existing history. */
+export function inspectFreshInstallManifest(
+  journal: unknown,
+  files: ReadonlyMap<string, string>,
+) {
+  const original = inspectMigrationManifest(journal, files);
+  const additions = [
+    "0017_consent_text",
+    "0018_push_consent_text",
+    "0019_comment_likes",
+  ];
+  const expected = additions.map((tag) => `untracked-file:${tag}.sql`);
+  const parsed = journalSchema.safeParse(journal);
+  if (
+    !parsed.success ||
+    original.issues.length !== expected.length ||
+    original.issues.some((issue, index) => issue !== expected[index])
+  ) {
+    return {
+      issues: original.issues.length
+        ? original.issues
+        : ["fresh-install-layout-mismatch"],
+      migrations: [] as MigrationIdentity[],
+      journal: null,
+    };
+  }
+  const previous = parsed.data.entries.find(
+    (row) => row.tag === "0016_platform_features",
+  );
+  if (!previous)
+    return {
+      issues: ["fresh-install-layout-mismatch"],
+      migrations: [] as MigrationIdentity[],
+      journal: null,
+    };
+  const entries = [
+    ...parsed.data.entries,
+    ...additions.map((tag, index) => ({
+      idx: 0,
+      when: previous.when + 1000 * (index + 1),
+      tag,
+      breakpoints: true,
+    })),
+  ]
+    .sort((a, b) => a.when - b.when)
+    .map((row, idx) => ({ ...row, idx }));
+  const freshJournal = { dialect: "mysql", entries };
+  return {
+    ...inspectMigrationManifest(freshJournal, files),
+    journal: freshJournal,
+  };
+}
 export function inspectMigrationManifest(
   journal: unknown,
   files: ReadonlyMap<string, string>,

@@ -17,6 +17,18 @@ AG6 принят и реализован
 локально 14 октября; AG8 также принят/реализован локально. Внешняя приёмка/включение
 не разрешены этими результатами.
 Доступная локальная подготовка сохранена. Внешние действия/фронт не выполнялись.
+Последующее решение пользователя14 октября: подготовить **отдельную пустую БД**
+локально, существующую не трогать, без frontend/deploy. Теперь доступен AG5-F:
+- [x] F1 — fresh-only manifest всех36 SQL, старый journal/preflight без изменений.
+  RED absent fresh profile→GREEN21 policy/history checks/skip0; typecheck exit0.
+  Известные0017–0019 включены только в отдельный generated profile с новыми
+  fresh-only ordering IDs; прежние SQL bytes/hashes и зарегистрированные when
+  сохранены. Unknown orphan/missing SQL отказывают; старая история не подделывается.
+- [ ] F2 — own-container/empty-target guarded local initializer, no reset/retry repair.
+- [ ] F3 — full SQL install/history/current schema/native API acceptance и runbook.
+Старый history gate ниже относится к upgrade существующей среды, не к fresh-only
+установке. Общая внешняя приёмка/backup/выкладка остаются отдельными условиями.
+
 После checkpoint b525130 проверена активная очередь: AG1–AG4/AG6–AG8 и локальные
 AG5-R1–R6 закрыты. Общая release-процедура дополнена0035 и порядком R6 flags/drain/
 rollback. Следующие AG5/AG9 требуют внешнего пакета истории/schema snapshot,

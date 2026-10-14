@@ -150,6 +150,22 @@ HEAD и не подтверждение версии сервера. В нача
 
 ### Очередь задач
 
+#### AG5-F — отдельная пустая БД, локальная подготовка по поручению 14 октября
+
+Пользователь выбрал новый запуск без переноса существующей базы. История старой
+БД не является входом этого пути; её journal/SQL и existing preflight не менять.
+F1: явный fresh-install manifest для всех36 SQL0000–0035, включая0017–0019;
+не принять неизвестный orphan/не переписывать старые hashes/when. Unit RED/GREEN.
+F2: отдельный opt-in local initializer — только own loopback/tmpfs backend_test,
+до DDL доказать пустоту и принадлежность контейнера. Непустая/частичная БД и
+повторный initialize отказывают без записи; нет reset/drop/авторемонт/env loading.
+F3: весь реальный SQL chain на пустой базе, matching migration history и current
+ORM schema, native API smoke без fixture DDL. Проверить CLI failures/repeat и
+обновить existing runbook/evidence. Native SQL/HTTP, tsc/build/docs/review/commits.
+Выделить последовательные срезы policy→initializer→acceptance; frontend/deploy/
+working DB/S3/реальные письма и платежи запрещены. Новые flags остаются off.
+Это локальная подготовка нового запуска, не upgrade старой базы и не рабочий rollout.
+
 Checkpoint после локального R6 — backend b525130: доступная реализация выполнена;
 remaining AG5/AG9 ждут verified migration history/schema snapshot, backup/restore
 и совместной frontend/release приёмки. Общий runbook учитывает0035/R6 flags,
