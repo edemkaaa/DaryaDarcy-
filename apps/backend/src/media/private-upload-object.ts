@@ -32,6 +32,7 @@ export function privateStorageNamespace() {
 export function privateAttachmentObjectKey(
   type: "audio" | "document",
   assetId: string,
+  scope?: "content",
 ) {
   if (
     !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(
@@ -39,11 +40,11 @@ export function privateAttachmentObjectKey(
     )
   )
     throw new Error("Invalid asset identity");
-  return `feed/${type === "audio" ? "audio" : "documents"}/private-v1/${assetId}`;
+  return scope === "content" ? `content/private-v1/${assetId}` : `feed/${type === "audio" ? "audio" : "documents"}/private-v1/${assetId}`;
 }
 const ruleSchema = z
   .object({
-    Sid: z.literal("DaryadarcyPrivateAttachmentsV1"),
+    Sid: z.enum(["DaryadarcyPrivateAttachmentsV1", "DaryadarcyPrivateContentV1"]),
     Effect: z.literal("Deny"),
     Principal: z.literal("*"),
     Action: z.array(z.string()),
@@ -60,6 +61,7 @@ const ruleSchema = z
   })
   .strict();
 export type PrivateUploadObject = {
+  scope?: "content";
   assetId: string;
   type: "audio" | "document";
   payloadHash: string;
@@ -99,7 +101,7 @@ export async function ensurePrivateUploadObject(
   const signal = AbortSignal.timeout(30000);
   const object = {
     Bucket: namespace.bucket,
-    Key: privateAttachmentObjectKey(receipt.type, receipt.assetId),
+    Key: privateAttachmentObjectKey(receipt.type, receipt.assetId, receipt.scope),
   };
   try {
     // Private ACL alone does not defeat this bucket's broad public read policy.
@@ -111,7 +113,7 @@ export async function ensurePrivateUploadObject(
     const rule = Array.isArray(policy?.Statement)
       ? policy.Statement.find(
           (row: { Sid?: string }) =>
-            row?.Sid === "DaryadarcyPrivateAttachmentsV1",
+            row?.Sid === (receipt.scope === "content" ? "DaryadarcyPrivateContentV1" : "DaryadarcyPrivateAttachmentsV1"),
         )
       : undefined;
     const accepted = ruleSchema.parse(rule);
@@ -123,12 +125,12 @@ export async function ensurePrivateUploadObject(
         JSON.stringify(["s3:GetObject", "s3:GetObjectVersion"].sort()) ||
       JSON.stringify([...accepted.Resource].sort()) !==
         JSON.stringify(
-          ["audio", "documents"]
+          (receipt.scope === "content" ? [`arn:aws:s3:::${namespace.bucket}/content/private-v1/*`] : ["audio", "documents"]
             .map(
               (folder) =>
                 `arn:aws:s3:::${namespace.bucket}/feed/${folder}/private-v1/*`,
             )
-            .sort(),
+            .sort()),
         )
     )
       throw new Error("Private policy unavailable");

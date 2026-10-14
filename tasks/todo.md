@@ -4,6 +4,19 @@
 
 ### Проверенный остаток на 15 октября
 
+- [x] CF0: пользователь принял показанный контракт новых фото постов/комментариев
+  и файлов статей. Зафиксирован в SPEC-private-files.md, без рабочего rollout.
+- [x] CF1: photo pipeline и отдельный private content storage guard, RED/GREEN.
+  RED: preparePhoto отсутствует, content scope не сохраняет объект. GREEN:
+  21 checks (photo + SDK-wire), 37 existing native AG4 checks/skip0; tsc/docs58
+  exit0. Проверены EXIF/alpha, отдельный policy guard и lost PUT ACK без второго
+  объекта. Это loopback SDK wire, не actual Timeweb ACL acceptance. Рабочий S3
+  не вызывался. Существующая public photo pipeline сохранена.
+- [ ] CF2: durable ledger/upload/status, native own SQL/loopback wire.
+- [ ] CF3: atomic post/article binding, live GET/HEAD/Range access и removal.
+- [ ] CF4: comment binding и права чтения/удаление, без изменения ролей/сроков.
+- [ ] CF5: retirement/export, regression и передача фронтендеру; flags off.
+
 - [x] По следующему поручению подготовлены F-TEST-1/F-API-1 в начале existing
   backend handoff: точная причина viewport fixture, минимальный DOM stub и
   layout/fallback/SSR cases; regeneration на merged backend33b8bbe82/79 и

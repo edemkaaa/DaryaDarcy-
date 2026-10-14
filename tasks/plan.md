@@ -167,6 +167,19 @@ HEAD и не подтверждение версии сервера. В нача
 
 ### Очередь задач
 
+#### CF — новые фото и файлы статей, принято 15 октября
+
+Последнее прямое поручение расширяет AG4, см. CF в SPEC-private-files.md.
+Реализация локальная, новый префикс только в protocol fixture; никаких рабочих
+policy/DB/S3/frontend writes или включения flags.
+Порядок: CF1 photo validation/private transport → CF2 recoverable upload/status
+→ CF3 atomic post/article binding + live read → CF4 comment binding/read
+→ CF5 retirement/export/regression/handoff. Каждому срезу RED/GREEN,
+affected tests и проверенный локальный commit. Старые URL не мигрировать.
+Acceptance: нет anonymous обхода нового storage scope, чужой binding невозможен,
+lost ACK не дублирует объект/материал, removal/revoke закрывает следующий read.
+Actual Timeweb policy/client/browser rollout остаются отдельным разрешённым gate.
+
 #### AG5-F — отдельная пустая БД, локальная подготовка по поручению 14 октября
 
 Пользователь выбрал новый запуск без переноса существующей базы. История старой

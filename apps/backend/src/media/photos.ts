@@ -20,7 +20,7 @@ export const photoInput = z.object({
 });
 
 /** Decode/re-encode on every photo boundary; keys and MIME are server-owned. */
-export async function uploadPhoto(base64: string, folder: string): Promise<{ url: string }> {
+export async function preparePhoto(base64: string): Promise<Buffer> {
   if (base64.length > 4 * Math.ceil(MAX_PHOTO_BYTES / 3) ||
       base64.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Некорректное фото" });
@@ -51,6 +51,11 @@ export async function uploadPhoto(base64: string, folder: string): Promise<{ url
   } finally {
     decoding--;
   }
+  return output;
+}
+
+export async function uploadPhoto(base64: string, folder: string): Promise<{ url: string }> {
+  const output = await preparePhoto(base64);
   const stored = await storagePut(`${folder}/${randomUUID()}.webp`, output, "image/webp");
   return { url: stored.url };
 }

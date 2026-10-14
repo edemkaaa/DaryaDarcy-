@@ -1,5 +1,49 @@
 # Spec: закрытая серверная выдача вложений постов
 
+## CF — фото и материалы статей, принят 15 октября 2026
+
+После показа минимального контракта пользователь поручил «делай далее все».
+Разрешена локальная backend реализация новых фото постов/комментариев и фото,
+PNG/каруселей/документов статей. Frontend, старые S3 objects/URL, working DB,
+bucket policy и rollout не менять. Новая возможность default-off.
+
+Контракт: upload с actor-scoped idempotencyKey, usage (postPhoto,
+articlePhoto, articleDocument, commentPhoto), filename/MIME/base64. Ответ pending
+или ready с assetId, проверенными MIME/size и application URL; никогда S3 URL.
+Status по тому же ключу; несовпадающий payload —409. Durable intent до S3;
+неизвестный исход не означает успех или новую загрузку. Новый префикс
+`content/private-v1/`, отдельный required Deny statement; существующий AG4 policy
+guard и старые префиксы не расширять. До отдельной storage acceptance не включать.
+
+Ссылки приложения сохраняются в существующих photos/url/urls полях. Их точный
+namespace распознаёт сервер: только свой ready receipt, правильный usage и один
+родитель, binding и материал в одной SQL транзакции. Порядок карусели сохраняется.
+Нельзя подставить private S3 URL вместо receipt или использовать такой файл как
+публичную обложку. Create с новыми файлами требует постоянный ключ операции.
+Удаление связи не удаляет S3, повтор не должен воскресить удалённую связь.
+
+Фото: прежние JPEG/PNG/WebP<=4MiB, byte gate/re-encode/stripping EXIF, прозрачность
+сохраняется. Документы: PDF/DOCX/TXT<=32MiB, прежние проверки bytes/MIME, без DOC,
+HTML/SVG/новых форматов. Обложки, аватары и сезоны остаются публичными.
+Публичный published материал читается по прежним правилам; club — live session
+и userHasClubAccess. Фото комментария дополнительно требует существующий
+комментарий и прежние права чтения обсуждения (включая login для public discussion).
+Draft/hidden/deleted/unbound — недоступно. На каждом GET/HEAD/Range актуальные
+права и связь до S3. No-store, nosniff, никакого public image optimizer/cache;
+фото inline, документ attachment. Уже скачанные копии отозвать невозможно.
+
+Срезы: CF1 обработка фото/storage transport; CF2 ledger/upload/status;
+CF3 post/article association/read; CF4 comment association/read;
+CF5 retirement/export, native regression и frontend handoff. Для каждого тест
+сначала RED, затем GREEN. SQL только own loopback/tmpfs backend_test, S3 только
+локальный protocol fixture; wire не является Timeweb ACL acceptance.
+Команды: `pnpm exec vitest run tests/private-content-files.test.ts`,
+native opt-in `pnpm exec vitest run tests/private-content-files.mysql.test.ts --maxWorkers=1`,
+`pnpm check`, `pnpm build`, `pnpm check:boundaries`, `pnpm check:docs`.
+Runtime в apps/backend/src/content и media, schema/migrations в packages/database.
+Использовать existing transaction/session/receipt patterns, без новой платформы,
+ролей, лимитов, внешних сервисов и автоматической очистки новых объектов.
+
 ## Статус — Accepted for local implementation, 13 октября 2026
 
 Пользователь разрешил делать серверную выдачу после code review пункта5 документа

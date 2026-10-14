@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import type { AddressInfo } from "node:net";
 
 /** Owned SDK wire fixture, not Timeweb ACL acceptance. Stores actual request bytes. */
-export async function openPrivateUploadWire() {
+export async function openPrivateUploadWire(options: { content?: boolean } = {}) {
   const objects = new Map<
     string,
     {
@@ -35,11 +35,11 @@ export async function openPrivateUploadWire() {
             ? []
             : [
                 {
-                  Sid: "DaryadarcyPrivateAttachmentsV1",
+                  Sid: options.content ? "DaryadarcyPrivateContentV1" : "DaryadarcyPrivateAttachmentsV1",
                   Effect: "Deny",
                   Principal: "*",
                   Action: ["s3:GetObject", "s3:GetObjectVersion"],
-                  Resource: ["audio", "documents"].map(
+                  Resource: options.content ? [`arn:aws:s3:::${bucket}/content/private-v1/*`] : ["audio", "documents"].map(
                     (folder) =>
                       `arn:aws:s3:::${bucket}/feed/${folder}/private-v1/*`,
                   ),
@@ -66,7 +66,7 @@ export async function openPrivateUploadWire() {
       if (
         req.headers["if-none-match"] !== "*" ||
         req.headers["x-amz-acl"] !== "private" ||
-        !/^feed\/(audio|documents)\/private-v1\/[a-f0-9-]{36}$/.test(key)
+        !(options.content ? /^content\/private-v1\/[a-f0-9-]{36}$/ : /^feed\/(audio|documents)\/private-v1\/[a-f0-9-]{36}$/).test(key)
       ) {
         res.writeHead(400).end();
         return;
