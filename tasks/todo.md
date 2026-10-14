@@ -18,6 +18,9 @@
   upload, changed payload, owner isolation, default-off/role/epoch/deletion,
   photo byte validation/alpha. TXT сохраняет canonical charset=utf-8.
 - [ ] CF3: atomic post/article binding, live GET/HEAD/Range access и removal.
+  CF3a post photos: native9 pass/skip0, после RED foreign binding и missing SQL
+  association. Current parent, draft/public/club, owner/usage/raw URL guards,
+  create key/replay, HEAD/bytes/no-store/inline и detach/no resurrection проверены.
 - [ ] CF4: comment binding и права чтения/удаление, без изменения ролей/сроков.
 - [ ] CF5: retirement/export, regression и передача фронтендеру; flags off.
 

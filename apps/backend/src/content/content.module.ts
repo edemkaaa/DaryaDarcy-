@@ -7,16 +7,19 @@ import { IdentityModule } from "../identity/identity.module";
 import { VideoUploadController } from "./video-upload.controller";
 import { PrivateFilesController } from "./private-files.controller";
 import { PrivateFilesService } from "./private-files.service";
+import { PrivateContentFilesController } from "./private-content-files.controller";
+import { PrivateContentFilesService } from "./private-content-files.service";
 
 @Module({
   imports: [IdentityModule],
-  controllers: [VideoUploadController, PrivateFilesController],
+  controllers: [VideoUploadController, PrivateFilesController, PrivateContentFilesController],
   providers: [
     ContentReadService,
     ContentWriteService,
     ContentCommentService,
     ContentUploadService,
     PrivateFilesService,
+    PrivateContentFilesService,
   ],
   exports: [
     ContentReadService,

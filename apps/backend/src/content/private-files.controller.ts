@@ -46,6 +46,16 @@ export class PrivateFilesController {
       Object.keys(req.query).length
     )
       return unavailable();
+    return sendPrivateFile(req, res, () => this.files.authorizedAttachment(id, req), `attachment-${id}`);
+  }
+}
+
+/** Shared streaming boundary: authorization resolves before any storage request. */
+export async function sendPrivateFile(req: Request, res: Response,
+  resolve: () => Promise<{ key: string; mime: string; etag?: string; inline?: boolean } | undefined>, label = "file") {
+    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    const unavailable = () => res.status(404).json({ error: "Файл недоступен." });
     const abort = new AbortController();
     const cancel = () => {
       if (!res.writableFinished) abort.abort();
@@ -60,7 +70,7 @@ export class PrivateFilesController {
       idle.unref();
     };
     try {
-      const file = await this.files.authorizedAttachment(id, req);
+      const file = await resolve();
       if (!file) return unavailable();
       if (res.destroyed) return;
       reader = privateObjectReader(file.key, abort.signal);
@@ -76,7 +86,7 @@ export class PrivateFilesController {
       res.setHeader("Content-Type", file.mime);
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="attachment-${id}"`,
+        `${file.inline ? "inline" : "attachment"}; filename="${label}"`,
       );
       res.setHeader("Content-Length", size);
       res.setHeader("Accept-Ranges", "bytes");
@@ -134,5 +144,4 @@ export class PrivateFilesController {
       body?.destroy();
       reader?.close();
     }
-  }
 }

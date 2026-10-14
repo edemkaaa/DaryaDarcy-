@@ -16,6 +16,7 @@ import { authorizePrivateAttachmentChanges } from "./private-attachment-associat
 import { assertContentRecoveryWindow } from "./recovery-window";
 import { assertContentRecoveryNotSpent } from "./recovery-markers";
 import { assertContentWriteActor } from "./content-write-actor";
+import { bindContentFiles, hasPrivateContent, postPhotoReferences } from "./private-content-binding";
 
 async function insertPost(
   writer: Pick<MySql2Database, "insert" | "delete" | "select" | "update" | "execute">,
@@ -25,6 +26,7 @@ async function insertPost(
 ): Promise<number> {
   const [result] = await writer.insert(posts).values(data);
   const postId = Number(result.insertId);
+  await bindContentFiles(writer, "post", postId, postPhotoReferences(data.photos ?? []), [], attachments.actor);
   if (videos.length > 0) await replacePostVideoRows(writer, postId, videos);
   await savePostAttachments(writer, postId, attachments);
   return postId;
@@ -37,6 +39,7 @@ export async function createPostWithVideos(
   videos: string[],
   attachments: PostAttachmentChanges = {},
 ): Promise<number> {
+  if (hasPrivateContent(postPhotoReferences(data.photos ?? []))) throw new TRPCError({ code: "BAD_REQUEST", message: "Для новых закрытых фото нужен ключ создания" });
   return database.transaction(async (tx) => {
     await assertContentWriteActor(tx,attachments.actor);
     await authorizePrivateAttachmentChanges(tx, attachments);

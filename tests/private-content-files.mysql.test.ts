@@ -15,6 +15,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
   let conn: Connection, app: INestApplication, base: string;
   let wire: Awaited<ReturnType<typeof openPrivateUploadWire>>;
   const tokens: Record<string, string> = {};
+  const madePosts = new Set<number>();
   const input = { idempotencyKey: "content-upload-intent-0001", usage: "articleDocument", filename: "article.txt", mimeType: "text/plain", base64: Buffer.from("private article document").toString("base64") };
   async function rows(query: string, args: unknown[] = []) { return (await conn.query<RowDataPacket[]>(query, args))[0]; }
   async function call(method: string, data: unknown = input, who = "admin", query = false) {
@@ -28,6 +29,19 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
   }
   const upload = (value: unknown = input, who = "admin") => call("admin.uploadPrivateContentFile", value, who);
   const status = (who = "admin") => call("admin.privateContentFileStatus", { idempotencyKey: input.idempotencyKey }, who, true);
+  async function photo(usage = "postPhoto", key = "content-photo-intent-0001") {
+    const png = await sharp({ create: { width: 2, height: 3, channels: 4, background: { r: 1, g: 2, b: 3, alpha: 0.5 } } }).png().toBuffer();
+    const result = await upload({ ...input, idempotencyKey: key, usage, filename: "photo.png", mimeType: "image/png", base64: png.toString("base64") });
+    expect(result.status).toBe(200); return result.data!;
+  }
+  const postInput = (url: string) => ({ text: "Private content post", source: "cf-photos", tags: [], photos: [url], target: "club", status: "draft", idempotencyKey: "content-post-create-0001" });
+  async function makePost(data: unknown, who = "admin") {
+    const result = await call("admin.createPost", data, who);
+    if (result.status === 200) madePosts.add(Number(result.data)); return result;
+  }
+  async function readFile(url: string, who = "guest", method = "GET", range?: string) {
+    return fetch(`${base}${url}`, { method, headers: { ...(tokens[who] ? { authorization: `Bearer ${tokens[who]}` } : {}), ...(range ? { range } : {}) } });
+  }
   beforeAll(async () => {
     conn = await openContentTestDatabase();
     wire = await openPrivateUploadWire({ content: true });
@@ -41,6 +55,8 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     for (const name of ["admin", "other", "member"]) tokens[name] = await sdk.createSessionToken(`cf-${name}`, { sessionVersion: 0 });
   });
   beforeEach(async () => {
+    for (const id of madePosts) { await conn.query("DELETE FROM posts WHERE id=?", [id]); } madePosts.clear();
+    await conn.query("DELETE FROM post_creation_requests WHERE actorUserId IN (98150,98151)");
     if ((await rows("SHOW TABLES LIKE 'private_content_files'")).length) await conn.query("DELETE FROM private_content_files WHERE actorUserId IN (98150,98151,98152)");
     await conn.query("UPDATE users SET role='admin',sessionVersion=0,blockedAt=NULL,accountDeletionRequestedAt=NULL WHERE id=98150");
     vi.stubEnv("PRIVATE_CONTENT_FILES_ENABLED", "true"); vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "false");
@@ -49,6 +65,8 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
   afterAll(async () => {
     await app?.close();
     if (conn) {
+      for (const id of madePosts) await conn.query("DELETE FROM posts WHERE id=?", [id]);
+      await conn.query("DELETE FROM post_creation_requests WHERE actorUserId IN (98150,98151)");
       if ((await rows("SHOW TABLES LIKE 'private_content_files'")).length) await conn.query("DELETE FROM private_content_files WHERE actorUserId IN (98150,98151,98152)");
       await conn.query("DELETE FROM users WHERE id IN (98150,98151,98152)"); await conn.end();
     }
@@ -102,5 +120,37 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     const stored = [...wire.objects.values()][0]; expect(await sharp(stored.bytes).metadata()).toMatchObject({ format: "webp", hasAlpha: true });
     expect((await upload({ ...photo, idempotencyKey: "content-invalid-photo-001", base64: Buffer.from("<svg/>").toString("base64") })).status).toBe(400);
     expect(await rows("SELECT assetId FROM private_content_files WHERE actorUserId=98150")).toHaveLength(1);
+  });
+  it("binds a post photo atomically, inherits live visibility and never exposes a draft or detached photo", async () => {
+    const asset = await photo(); const url = String(asset.url);
+    expect((await readFile(url, "admin")).status).toBe(404);
+    const saved = await makePost(postInput(url)); expect(saved.status).toBe(200); const id = Number(saved.data);
+    expect((await readFile(url, "admin")).status).toBe(404);
+    expect((await makePost(postInput(url))).data).toBe(id);
+    expect(await rows("SELECT parentKind,parentId FROM private_content_files WHERE actorUserId=98150")).toEqual([{ parentKind: "post", parentId: id }]);
+    expect((await call("admin.updatePost", { id, status: "published" })).status).toBe(200);
+    const effects = wire.effects.length;
+    expect((await readFile(url)).status).toBe(404); expect((await readFile(url, "member")).status).toBe(404); expect(wire.effects).toHaveLength(effects);
+    const delivered = await readFile(url, "admin"); expect(delivered.status).toBe(200);
+    expect(delivered.headers.get("cache-control")).toBe("private, no-store");
+    expect(delivered.headers.get("content-disposition")).toMatch(/^inline;/);
+    expect(Buffer.from(await delivered.arrayBuffer())).toEqual([...wire.objects.values()][0].bytes);
+    expect((await readFile(url, "admin", "HEAD")).status).toBe(200);
+    expect((await call("admin.updatePost", { id, target: "feed" })).status).toBe(200);
+    expect((await readFile(url)).status).toBe(200);
+    expect((await call("admin.updatePost", { id, photos: [] })).status).toBe(200);
+    expect((await readFile(url, "admin")).status).toBe(404);
+    expect((await call("admin.updatePost", { id, photos: [url] })).status).toBe(409);
+    expect(wire.objects.size).toBe(1);
+  });
+  it("rejects foreign, wrong-usage and raw private storage references before post commit", async () => {
+    const asset = await photo(); const url = String(asset.url);
+    expect((await makePost(postInput(url), "other")).status).toBe(409);
+    const { idempotencyKey: omitted, ...withoutKey } = postInput(url);
+    expect((await makePost(withoutKey)).status).toBe(400);
+    const doc = await upload(); expect((await makePost(postInput(String(doc.data!.url)))).status).toBe(400);
+    expect((await makePost(postInput(`${wire.endpoint}/${wire.bucket}/content/private-v1/${asset.assetId}`))).status).toBe(400);
+    expect((await makePost(postInput(`https://other.example.test${url}`))).status).toBe(400);
+    expect(await rows("SELECT id FROM posts WHERE source='cf-photos'")).toEqual([]);
   });
 });
