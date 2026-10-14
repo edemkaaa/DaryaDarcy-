@@ -13,6 +13,7 @@ import {
 } from "./post-attachments";
 import type { PostCreationIntent } from "./post-creation-request";
 import { authorizePrivateAttachmentChanges } from "./private-attachment-association";
+import { assertContentRecoveryWindow } from "./recovery-window";
 
 async function insertPost(
   writer: Pick<MySql2Database, "insert" | "delete" | "select" | "update">,
@@ -70,6 +71,7 @@ export async function createPostOnce(
         code: "CONFLICT",
         message: "Ключ запроса уже использован для другого содержимого",
       });
+    assertContentRecoveryWindow(request.createdAt);
     if (request.postId !== null)
       return { postId: request.postId, created: false };
     const postId = await insertPost(tx, data, videos, attachments);

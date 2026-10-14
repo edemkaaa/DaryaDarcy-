@@ -11,7 +11,7 @@
 acceptance после MIME guard повторно пройдена на HEAD e3044af:2 pass/skip0,
 21.22 s, exit0. Timeweb timeout снят; flags off. AG5/AG9 ждут history/retention, frontend integration
 и разрешённой внешней приёмки/rollout. Следующий локальный срез после последующего
-«да все делаем дальше» — **AG5-R2**, R1 проверен, expiry без удаления данных.
+«да все делаем дальше» — **AG5-R3**, R1/R2 проверены, expiry без удаления данных.
 AG6 принят и реализован
 локально 14 октября; AG8 также принят/реализован локально. Внешняя приёмка/включение
 не разрешены этими результатами.
@@ -138,8 +138,10 @@ AG6 принят и реализован
     пойман unit тестом. GREEN31 pass/2 suites/skip0,3.75 s; tsc exit0.
     Default-off CONTENT_RECOVERY_RETENTION_ENABLED; rows/objects не удаляются.
     Backend build529.1kb/boundaries633/docs56/diff/review passed; frontend не менялся.
-  - [ ] AG5-R2 — keyed post create expiry. ПослеR1;409/no duplicate/delete,
+  - [x] AG5-R2 — keyed post create expiry. ПослеR1;409/no duplicate/delete,
     flag off legacy replay. Native post suite + types/build; owning creator.
+    RED replay200→409;38 native pass/skip0,2.24 s, tsc/build/diff verified.
+    Без новой status процедуры; уведомление не повторяется, материал не удаляется.
   - [ ] AG5-R3 — keyed article create/status expiry. ПослеR1;409/no duplicate,
     flag off legacy replay. Native article suite + types/build; owning writes/status.
   - [ ] AG5-R4 — compact markers/read evidence. ПослеR1–R3; additive schema,

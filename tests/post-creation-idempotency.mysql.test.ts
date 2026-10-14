@@ -107,6 +107,7 @@ describe.skipIf(!testDatabaseUrl)(
     }, 35_000);
     beforeEach(async () => {
       await cleanup();
+      vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "false");
       transport.announcements.length = 0;
       await conn.query(
         "UPDATE users SET blockedAt=NULL,role='admin',sessionVersion=0 WHERE id=97401",
@@ -125,6 +126,27 @@ describe.skipIf(!testDatabaseUrl)(
     });
     it("returns the original numeric ID on a sequential retry without reannouncing", async () => {
       const id = await admin.admin.createPost.mutate(input);
+      expect(await admin.admin.createPost.mutate(input)).toBe(id);
+      expect(await created()).toEqual([{ id, text: "One creation intent" }]);
+      expect(transport.announcements).toEqual([id]);
+    });
+    it("refuses expired keyed creation without duplicating the post", async () => {
+      const id = await admin.admin.createPost.mutate(input);
+      await conn.query(
+        "UPDATE post_creation_requests SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97401",
+      );
+      vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true");
+      await expect(admin.admin.createPost.mutate(input)).rejects.toMatchObject({
+        data: { code: "CONFLICT", httpStatus: 409 },
+      });
+      expect(await created()).toEqual([{ id, text: "One creation intent" }]);
+      expect(transport.announcements).toEqual([id]);
+    });
+    it("disabled expiry preserves aged keyed post recovery", async () => {
+      const id = await admin.admin.createPost.mutate(input);
+      await conn.query(
+        "UPDATE post_creation_requests SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=97401",
+      );
       expect(await admin.admin.createPost.mutate(input)).toBe(id);
       expect(await created()).toEqual([{ id, text: "One creation intent" }]);
       expect(transport.announcements).toEqual([id]);
