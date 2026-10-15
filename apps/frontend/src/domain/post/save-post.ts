@@ -10,6 +10,13 @@ import {
   type PrivateUploadInput,
   type PrivateUploadIntent,
 } from "./private-upload";
+import {
+  selectPrivatePostPhotos,
+  resolvePrivatePostPhotos,
+  uploadPrivatePostPhoto,
+  type PrivatePostPhoto,
+  type PrivatePostPhotoApi,
+} from "./private-photo-upload";
 
 export type PostPayload = ReturnType<typeof serializePostDraft>;
 type Payload = PostPayload;
@@ -31,7 +38,7 @@ export type PostAttachment = {
   id?: number;
   url?: string;
 };
-export type PostSaveApi = {
+export type PostSaveApi = PrivatePostPhotoApi & {
   create: (payload: CreatePayload, signal: AbortSignal) => Promise<unknown>;
   update: (
     id: number,
@@ -63,6 +70,7 @@ export type PostSaveSnapshot = {
   creationIntent?: { key: string; payloadJson: string };
   uploaded: [PostAttachment, UploadedAttachment][];
   privateUploads?: [PostAttachment, PrivateUploadIntent][];
+  privatePhotos?: PrivatePostPhoto[];
 };
 export class PostSaveError extends Error {
   public data?: { httpStatus: number };
@@ -82,6 +90,7 @@ export class PostSaveCoordinator {
   private savedId: number | null;
   private uploaded = new Map<PostAttachment, UploadedAttachment>();
   private privateUploads = new Map<PostAttachment, PrivateUploadIntent>();
+  private privatePhotos: PrivatePostPhoto[] = [];
   private uncertain = false;
   private completed = false;
   private postWritePending = false;
@@ -101,6 +110,7 @@ export class PostSaveCoordinator {
       creationIntent: this.creationIntent,
       uploaded: [...this.uploaded],
       privateUploads: [...this.privateUploads],
+      privatePhotos: [...this.privatePhotos],
     };
   }
   restore(state: PostSaveSnapshot): void {
@@ -109,6 +119,7 @@ export class PostSaveCoordinator {
     this.creationIntent = state.creationIntent;
     this.uploaded = new Map(state.uploaded);
     this.privateUploads = new Map(state.privateUploads ?? []);
+    this.privatePhotos = state.privatePhotos ?? [];
     this.phase = state.phase;
     this.completed = state.phase === "complete";
     this.uncertain = state.phase !== "idle" && !this.completed;
@@ -127,14 +138,26 @@ export class PostSaveCoordinator {
     api: PostSaveApi,
     operation: ScopedOperation,
   ): Promise<void> {
-    if (this.phase !== "upload" || !this.privateUploads.size)
+    if (
+      this.phase !== "upload" ||
+      (!this.privateUploads.size && !this.privatePhotos.length)
+    )
       throw new Error(
         "Для этой загрузки нужна ручная проверка списка публикаций",
+      );
+    if (this.privatePhotos.length && !this.checkpoint)
+      throw new Error(
+        "Не настроено сохранение исходных фото на этом устройстве",
       );
     for (const [attachment, intent] of this.privateUploads) {
       operation.assertCurrent();
       if (intent.receipt?.state === "ready") continue;
       await this.uploadPrivate(attachment, api, operation);
+    }
+    for (const photo of this.privatePhotos) {
+      await uploadPrivatePostPhoto(photo, api, operation, () =>
+        this.remember("upload"),
+      );
     }
     operation.assertCurrent();
     this.uncertain = false;
@@ -254,6 +277,7 @@ export class PostSaveCoordinator {
     removedIds: number[],
     api: PostSaveApi,
     operation: ScopedOperation,
+    photos: PrivatePostPhoto[] = this.privatePhotos,
   ): Promise<number> {
     this.assertCanSave();
     for (const attachment of attachments)
@@ -261,6 +285,22 @@ export class PostSaveCoordinator {
     operation.assertCurrent();
     let writing = false;
     try {
+      const selectedPhotos = selectPrivatePostPhotos(payload.photos, photos);
+      if (selectedPhotos.length && !this.checkpoint)
+        throw new Error(
+          "Не настроено сохранение исходных фото на этом устройстве",
+        );
+      this.privatePhotos = selectedPhotos;
+      for (const photo of this.privatePhotos) {
+        await uploadPrivatePostPhoto(photo, api, operation, () =>
+          this.remember("upload"),
+        );
+        await this.remember("idle");
+      }
+      payload = {
+        ...payload,
+        photos: resolvePrivatePostPhotos(payload.photos, this.privatePhotos),
+      };
       for (const attachment of attachments) {
         if (!attachment.file || this.uploaded.has(attachment)) continue;
         if (api.uploadPrivate) {
@@ -372,7 +412,8 @@ export class PostSaveCoordinator {
         this.postWritePending = false;
       this.uncertain =
         this.uncertain ||
-        (this.phase === "upload" && this.privateUploads.size > 0) ||
+        (this.phase === "upload" &&
+          (this.privateUploads.size > 0 || this.privatePhotos.length > 0)) ||
         (writing && (!status || status >= 500));
       if (!this.completed && !this.uncertain) {
         this.postWritePending = false;

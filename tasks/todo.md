@@ -2,7 +2,34 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
-### Проверенный остаток на 15 октября
+### Проверенный остаток на 16 октября
+
+- [ ] CF-F1 (16 октября): новые закрытые фото постов без изменения дизайна.
+  - [x] CF-F1a: typed receipt/upload/status в общем save coordinator. File +
+    стабильный key включаются в checkpoint до отправки; отсутствие checkpoint
+    запрещает запись. После lost ACK — explicit status-first recovery; create
+    replay использует frozen payload/key. Старые URL/порядок фото сохраняются,
+    удалённое восстановленное фото не возвращается. Pending/невалидный receipt
+    не допускают публикацию; no public fallback; late upload/status receipt
+    после потери operation ownership не принимается. Серверный WebP size НЕ
+    сравнивается с исходным File.size (CF выполняет re-encode).
+    RED19/20 до реализации, затем guards RED2→GREEN и recovery checkpoint
+    RED1→GREEN; итог **34/34 unit pass**. Это mock API/checkpoint + structuredClone, НЕ native
+    IndexedDB/browser/API/SQL/S3 приёмка. TSX/оформление редакторов не менялись.
+    Affected regression146/6 suites pass (0.25s), root/frontend/e2e tsc,
+    targeted ESLint, boundaries668/API86/docs58/diff — exit0.
+    Общий Vitest:2414 pass/1 fail/1463 skipped,39.28s; единственный fail —
+    ENOSPC при mkdtemp в file-signature.test.ts, не дефект CF. Его отдельный
+    повтор8/8 pass,0.72s. Ни skipped, ни отдельный повтор не считать единым
+    зелёным прогоном. Секреты/DB/S3 не читались.
+  - [ ] CF-F1b: durable IndexedDB File/alias validation и локальные превью в
+    обоих существующих редакторах, затем browser→API acceptance. До этого
+    новый photo path НЕ подключён к UI; CF client НЕ считать готовым.
+    Место при проверках упало с1.5GiB до~187MiB; Next build/native стенд не
+    запускались (минимум2GiB). Доступных больших кэшей этой задачи не найдено:
+    .next/cache отсутствует, node_modules/.vite24KiB; старые reports сохранены.
+    Без освобождения места не запускать тяжёлые проверки. Рабочие flags/DB/S3,
+    старые файлы и оформление не менять; no push/deploy.
 
 - [x] FE5: после переключения сети пользователем S3 HEAD200/TLS handshake~1.4сек,
   policy hash0484dfa2… и versioning off прошли штатный preflight. Настоящие

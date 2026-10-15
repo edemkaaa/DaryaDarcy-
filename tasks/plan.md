@@ -352,6 +352,17 @@ JSON — tooling/data/backend-load/2026-10-15.json. Не повторять бе
 
 #### CF — новые фото и файлы статей, принято 15 октября
 
+Клиентское продолжение16 октября (разрешение на внутреннюю frontend-интеграцию
+из актуальных границ выше): CF-F1a добавляет закрытые фото постов в общий save
+coordinator, не подключая пока UI. Typed receipt, стабильный File/key checkpoint,
+status-first recovery, frozen create replay, порядок/удаление и session guard
+проверены34 unit tests. API contract уже содержит86 процедур; новая серверная
+функция не добавляется. Следующий CF-F1b — IndexedDB + локальные превью/оба
+редактора, затем browser→API acceptance. CF client остаётся незавершённым.
+Срез и ограничения проверок записаны в начале todo. Тяжёлые проверки остановлены
+по нехватке диска (~187MiB, full Vitest один ENOSPC); не запускать Next/native
+стенд до минимум2GiB. Рабочие DB/S3/flags, дизайн, push/deploy исключены.
+
 Последнее прямое поручение расширяет AG4, см. CF в SPEC-private-files.md.
 Реализация runtime локальная. Изначально новый префикс был только в protocol
 fixture; последующее узкое разрешение на actual policy/S3 probe15 октября — ниже.
