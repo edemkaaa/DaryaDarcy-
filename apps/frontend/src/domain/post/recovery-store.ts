@@ -3,6 +3,12 @@ import type { PostAttachment, PostSaveSnapshot } from "./save-post";
 import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { requireUploadedMedia } from "@/shared/media/upload-result";
 import { requirePrivateReceipt } from "./private-upload";
+import {
+  requirePrivatePostPhotoReceipt,
+  selectPrivatePostPhotos,
+  validatePrivatePostPhoto,
+  type PrivatePostPhoto,
+} from "./private-photo-upload";
 
 export type PendingPostUpload = {
   id: number;
@@ -15,6 +21,7 @@ export type PostEditorSnapshot = {
   attachments: PostAttachment[];
   removedIds: number[];
   pending: PendingPostUpload[];
+  privatePhotos?: PrivatePostPhoto[];
 };
 export type PostRecoveryRecord = {
   version: 1;
@@ -27,19 +34,77 @@ export type PostRecoveryRecord = {
 };
 const DATABASE = "darcy-post-drafts";
 const STORE = "drafts";
-type StoredAttachment = PostAttachment & {
-  fileData?: {
-    bytes: ArrayBuffer;
-    name: string;
-    type: string;
-    lastModified: number;
-  };
+type FileData = {
+  bytes: ArrayBuffer;
+  name: string;
+  type: string;
+  lastModified: number;
 };
-type StoredRecord = Omit<PostRecoveryRecord, "version"> & { version: 1 | 2 };
+type StoredAttachment = PostAttachment & { fileData?: FileData };
+type StoredPhoto = Omit<PrivatePostPhoto, "file"> & { fileData: FileData };
+type StoredRecord =
+  | PostRecoveryRecord
+  | (Omit<PostRecoveryRecord, "version" | "editor" | "save"> & {
+      version: 2;
+      editor: Omit<PostEditorSnapshot, "privatePhotos"> & {
+        privatePhotos?: StoredPhoto[];
+      };
+      save: Omit<PostSaveSnapshot, "privatePhotos"> & {
+        privatePhotos?: StoredPhoto[];
+      };
+    });
 const storageError = () =>
   new Error(
     "Не удалось сохранить черновик на этом устройстве. Освободите место или разрешите хранение данных сайта и попробуйте снова. Не закрывайте редактор.",
   );
+
+function restoreFile(data: FileData): File {
+  if (
+    !data ||
+    !(data.bytes instanceof ArrayBuffer) ||
+    typeof data.name !== "string" ||
+    typeof data.type !== "string" ||
+    !Number.isFinite(data.lastModified)
+  )
+    throw storageError();
+  return new File([data.bytes], data.name, {
+    type: data.type,
+    lastModified: data.lastModified,
+  });
+}
+function validPhotos(
+  editor: PostEditorSnapshot,
+  save: PostSaveSnapshot,
+): boolean {
+  try {
+    const selected = editor.privatePhotos ?? [];
+    const attempted = save.privatePhotos ?? [];
+    if (!Array.isArray(selected) || !Array.isArray(attempted)) return false;
+    const keys = new Set<string>();
+    for (const photo of selected) {
+      validatePrivatePostPhoto(photo);
+      if (
+        keys.has(photo.key) ||
+        (photo.attempted !== undefined && typeof photo.attempted !== "boolean")
+      )
+        return false;
+      keys.add(photo.key);
+      if (photo.receipt !== undefined) {
+        if (!photo.attempted) return false;
+        requirePrivatePostPhotoReceipt(photo.receipt, photo.file);
+      }
+    }
+    selectPrivatePostPhotos(editor.draft.photos, selected);
+    const uploadKeys = new Set<string>();
+    return attempted.every((photo) => {
+      if (uploadKeys.has(photo.key) || !selected.includes(photo)) return false;
+      uploadKeys.add(photo.key);
+      return true;
+    });
+  } catch {
+    return false;
+  }
+}
 
 /** Binary data uses ArrayBuffer: some WebKit contexts cannot persist Blob/File. */
 function transaction<T>(
@@ -156,6 +221,7 @@ function validRecord(
         typeof item.uncertain === "boolean",
     ) &&
     save &&
+    validPhotos(record.editor, save) &&
     ["idle", "upload", "create", "update", "complete"].includes(save.phase) &&
     (save.savedId === null ||
       (Number.isSafeInteger(save.savedId) && save.savedId > 0)) &&
@@ -234,6 +300,20 @@ export class PostRecoveryJournal {
   private closed = false;
   private loaded = false;
   private fileBytes = new WeakMap<File, Promise<ArrayBuffer>>();
+  private async fileData(file: File): Promise<FileData> {
+    let bytes = this.fileBytes.get(file);
+    if (!bytes) {
+      bytes = file.arrayBuffer();
+      this.fileBytes.set(file, bytes);
+      void bytes.catch(() => this.fileBytes.delete(file));
+    }
+    return {
+      bytes: await bytes,
+      name: file.name,
+      type: file.type,
+      lastModified: file.lastModified,
+    };
+  }
   constructor(
     readonly ownerId: number,
     readonly slot: string,
@@ -271,19 +351,18 @@ export class PostRecoveryJournal {
           if (existing) return existing;
           const { fileData, ...result } = attachment;
           if (fileData !== undefined) {
-            if (
-              !(fileData.bytes instanceof ArrayBuffer) ||
-              typeof fileData.name !== "string" ||
-              typeof fileData.type !== "string" ||
-              !Number.isFinite(fileData.lastModified)
-            )
-              throw storageError();
-            result.file = new File([fileData.bytes], fileData.name, {
-              type: fileData.type,
-              lastModified: fileData.lastModified,
-            });
+            result.file = restoreFile(fileData);
           }
           restored.set(attachment, result);
+          return result;
+        };
+        const restoredPhotos = new Map<StoredPhoto, PrivatePostPhoto>();
+        const restorePhoto = (stored: StoredPhoto): PrivatePostPhoto => {
+          const existing = restoredPhotos.get(stored);
+          if (existing) return existing;
+          const { fileData, ...photo } = stored;
+          const result = { ...photo, file: restoreFile(fileData) };
+          restoredPhotos.set(stored, result);
           return result;
         };
         record = {
@@ -292,6 +371,7 @@ export class PostRecoveryJournal {
           editor: {
             ...stored.editor,
             attachments: stored.editor.attachments.map(restore),
+            privatePhotos: stored.editor.privatePhotos?.map(restorePhoto),
           },
           save: {
             ...stored.save,
@@ -302,6 +382,7 @@ export class PostRecoveryJournal {
             privateUploads: stored.save.privateUploads?.map(
               ([item, intent]) => [restore(item), intent],
             ),
+            privatePhotos: stored.save.privatePhotos?.map(restorePhoto),
           },
         };
       } else record = stored as PostRecoveryRecord;
@@ -340,6 +421,16 @@ export class PostRecoveryJournal {
       save.privateUploads?.forEach(([item], index) => {
         snapshot.save.privateUploads![index][0].file = item.file;
       });
+      editor.privatePhotos?.forEach((photo, index) => {
+        Object.assign(snapshot.editor.privatePhotos![index], {
+          file: photo.file,
+        });
+      });
+      save.privatePhotos?.forEach((photo, index) => {
+        Object.assign(snapshot.save.privatePhotos![index], {
+          file: photo.file,
+        });
+      });
     } catch {
       return Promise.reject(storageError());
     }
@@ -352,18 +443,7 @@ export class PostRecoveryJournal {
         const { file, ...result } = item;
         const attachment: StoredAttachment = result;
         if (file) {
-          let bytes = this.fileBytes.get(file);
-          if (!bytes) {
-            bytes = file.arrayBuffer();
-            this.fileBytes.set(file, bytes);
-            void bytes.catch(() => this.fileBytes.delete(file));
-          }
-          attachment.fileData = {
-            bytes: await bytes,
-            name: file.name,
-            type: file.type,
-            lastModified: file.lastModified,
-          };
+          attachment.fileData = await this.fileData(file);
         }
         packed.set(item, attachment);
         return attachment;
@@ -380,6 +460,23 @@ export class PostRecoveryJournal {
         [];
       for (const [item, intent] of snapshot.save.privateUploads ?? [])
         privateUploads.push([await pack(item), intent]);
+      const packedPhotos = new Map<PrivatePostPhoto, StoredPhoto>();
+      const packPhoto = async (
+        photo: PrivatePostPhoto,
+      ): Promise<StoredPhoto> => {
+        const existing = packedPhotos.get(photo);
+        if (existing) return existing;
+        const { file, ...metadata } = photo;
+        const result = { ...metadata, fileData: await this.fileData(file) };
+        packedPhotos.set(photo, result);
+        return result;
+      };
+      const editorPhotos: StoredPhoto[] = [],
+        savePhotos: StoredPhoto[] = [];
+      for (const photo of snapshot.editor.privatePhotos ?? [])
+        editorPhotos.push(await packPhoto(photo));
+      for (const photo of snapshot.save.privatePhotos ?? [])
+        savePhotos.push(await packPhoto(photo));
       this.assertOwner();
       const revision = await transaction<number>(
         "readwrite",
@@ -403,8 +500,17 @@ export class PostRecoveryJournal {
                 slot: this.slot,
                 revision: next,
                 updatedAt: Date.now(),
-                editor: { ...snapshot.editor, attachments },
-                save: { ...snapshot.save, uploaded, privateUploads },
+                editor: {
+                  ...snapshot.editor,
+                  attachments,
+                  privatePhotos: editorPhotos,
+                },
+                save: {
+                  ...snapshot.save,
+                  uploaded,
+                  privateUploads,
+                  privatePhotos: savePhotos,
+                },
               } satisfies StoredRecord,
               this.key(),
             );

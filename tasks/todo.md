@@ -30,6 +30,17 @@
     .next/cache отсутствует, node_modules/.vite24KiB; старые reports сохранены.
     Без освобождения места не запускать тяжёлые проверки. Рабочие flags/DB/S3,
     старые файлы и оформление не менять; no push/deploy.
+    - [x] CF-F1b1: File bytes/metadata упакованы в ArrayBuffer, identity alias
+      между editor и save snapshot сохраняется при записи/чтении. Восстановление
+      проверяет ключи, MIME/size, локальные references, receipt и принадлежность
+      одной и той же File-записи upload intent. Native Chromium File/IndexedDB:
+      RED2→GREEN,4/4 pass; reload bytes/name/type/lastModified, подмена receipt,
+      смена аккаунта read/write и same-key подмена File. HTTP document fixture
+      синтетический; API/SQL/S3 не вызывались, не считать сквозной приёмкой.
+      Affected48 pass, root tsc exit0. Место восстановилось до7.4GiB без нашей
+      очистки; прежний disk blocker больше не мешает следующему срезу.
+    - [ ] CF-F1b2: подключить локальные File/preview к обоим редакторам и
+      проверить их реальное поведение в браузере, без изменения дизайна.
 
 - [x] FE5: после переключения сети пользователем S3 HEAD200/TLS handshake~1.4сек,
   policy hash0484dfa2… и versioning off прошли штатный preflight. Настоящие
