@@ -4,6 +4,19 @@
 
 ### Проверенный остаток на 15 октября
 
+- [x] AG9-L0: по поручению предложен минимальный local API/DB load scenario в
+  начале очереди tasks/plan.md: current38 fresh SQL/own tmpfs, synthetic dataset,
+  real login отдельно от mixed HTTP read/toggle,5/10/25RPS, per-method latency/
+  correctness/recovery/resource criteria. Числа предложены, не взяты из ТЗ и не
+  согласованы как production SLA. Existing production load-probe не запускать.
+  Этот срез только документация; Docker/нагрузка/код/frontend/DB/S3 не менялись.
+  Проверка docs58/diff exit0; review сопоставил реальные routes/pool/login quota,
+  отделил ожидаемые access denials от ошибок и local baseline от рабочей приёмки.
+- [ ] AG9-L1: после принятия сценария подготовить guarded own local load stand,
+  harness и synthetic fixtures; проверить safety guards до нагрузочного прогона.
+- [ ] AG9-L2/L3: baseline→ступени→recovery/SQL invariants, отчёт и только
+  доказанные адресные исправления. Пока ждёт согласования; load pass не заявлен.
+
 - [x] CF0: пользователь принял показанный контракт новых фото постов/комментариев
   и файлов статей. Зафиксирован в SPEC-private-files.md, без рабочего rollout.
 - [x] CF1: photo pipeline и отдельный private content storage guard, RED/GREEN.

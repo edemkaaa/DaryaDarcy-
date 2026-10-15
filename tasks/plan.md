@@ -175,6 +175,79 @@ HEAD и не подтверждение версии сервера. В нача
 
 ### Очередь задач
 
+#### AG9-L — предложение локальной нагрузки API/БД, 15 октября
+
+По поручению пользователя сначала согласовать минимальный сценарий п.4.15,
+потом проверять локально. **Статус: предложено, запуск не разрешён этим срезом.**
+ТЗ требует нагрузочной приёмки, но не задаёт одновременную аудиторию, RPS или
+допустимые задержки. Числа ниже — предлагаемый local baseline, не договорный SLA
+и не подтверждение способности рабочего сервера обслуживать всех участниц.
+
+**L1 — изолированный стенд/данные после согласования.** Новый собственный MySQL8.4
+backend_test, loopback/tmpfs/no volumes, exact container ID/name/owner/ports/mounts
+guards до записи и удаления; guarded fresh-only install всех текущих38 SQL.
+Отдельный compiled Nest API process на127.0.0.1, без .env/production boot/WorkerJobs;
+чистое окружение без S3/SMTP/payment credentials и запрет внешних соединений.
+Никаких frontend/browser, S3 requests, checkout/webhook/писем, uploads, чужих
+стендов или working flags. Не запускать existing tooling/operations/load-probe.mjs:
+его target зашит на production и включает frontend. Runtime/pool/квоты/CORS/proxy
+trust не менять; текущий API SQL pool connectionLimit=10 оставить как есть.
+Данные только синтетические:60 аккаунтов (50 paid/10 unpaid, один из10 blocked),
+10000 постов public/club/draft,20000 комментариев с одним popular discussion,
+50 public/club статей,20 тегов и1000 сохранений. Без реальных медиа/личных данных;
+оплаченные периоды задаются fixture SQL, не платежами.
+
+**L2 — настоящий HTTP→session→SQL, без mocks.** Сначала проверить fixture и ответы
+без нагрузки. Отдельно10 одновременных настоящих password logins с одного loopback
+IP; они не доказывают50 одновременных входов: existing quota20/15мин/IP не менять
+и не обходить поддельными forwarded headers. Основной workload использует заранее
+подготовленные сессии synthetic аккаунтов, поэтому не измеряет password hashing.
+HTTP reads могут обновлять auth activity в SQL; эту реальную запись не отключать.
+Смесь запросов: feed.listPaginated20%, club.list20%, feed.getById15%,
+club.comments10%, articles.getById10%, club.subscription5%, auth.me5%,
+feed.savedPosts5%, feed.toggleLike5%, feed.toggleSave5%. Успешные protected операции
+выполняют paid accounts. Проверять body/identity/visibility/counts, не только200;
+первые и глубокие страницы/точный tag/search/missing search и hot-post включены.
+Лайки/сохранения без push; на каждую пару actor/post/kind только одна незавершённая
+операция, итог сверять с SQL по чётности подтверждённых toggle и unique rows.
+При потерянном ответе состояние неизвестно: не повторять toggle автоматически,
+сверить SQL и считать такой прогон неуспешным. Negative unpaid/blocked/expired
+reads — отдельные assertions до/после нагрузки, не маскировать ими error rate.
+
+После прогрева: baseline один in-flight client, минимум30 запросов на каждый
+метод; затем5RPS/2мин →10RPS/3мин →25RPS/5мин, не более50 in-flight HTTP.
+RPS — запланированные requests, не число пользователей. Подача по расписанию,
+без auto-retry/HTTP batching; missed starts, очередь и generator lag учитывать,
+не снижать молча нагрузку при торможении. Затем60сек без нагрузки и повтор
+baseline. Нехватка host/generator ресурсов — inconclusive, не backend GREEN.
+
+**Предлагаемые критерии L2 (каждая ступень и каждый метод отдельно):**
+
+- Ноль неожиданных5xx/timeout/429, SQL deadlock/connection ошибок и dropped starts;
+  ноль чужих/закрытых данных, дублей и расхождений подтверждённых записей с SQL.
+- Reads p95<=500мс/p99<=1500мс; toggle writes p95<=1000мс/p99<=2000мс;
+  real login p95<=1500мс. Percentiles считаются по полному чтению/проверке ответа;
+  отдельно показывать scheduling delay, total/max и размер выборки. При малой
+  выборке (например10 logins) p95/p99 не считать статистической гарантией.
+- После60сек восстановления p95 baseline не хуже max(1.2×исходный,
+  исходный+50мс); нет зависших запросов/транзакций. Фиксировать CPU/RSS/event-loop,
+  Docker CPU/RAM, MySQL connections/running/lock waits/deadlock counters и query
+  digests/EXPLAIN SELECT проблемных reads; connection observers учитывать отдельно
+  от API pool10. Не включать общий SQL log, не писать пароли/cookies/response bodies.
+- Утечка/ошибка данных/падение API — немедленный stop; три5сек timeout за30сек
+  или исчерпание own tmpfs — stop с проваленным результатом, без роста нагрузки.
+
+**L3 — отчёт/адресное продолжение.** Сохранить SHA, Node/MySQL версии, host/Docker
+ресурсы, dataset, planned/actual RPS, inflight, p50/p95/p99/max/status/errors по
+методам/ступеням, counters и post-run SQL invariants в existing evidence/runbook.
+Только доказанный bottleneck открывает отдельный RED/GREEN fix; не добавлять
+индексы/кэш/Redis и не менять архитектуру заранее. Собственный стенд убрать после
+ownership проверки, чужой local-owner оставить. Первые файлы реализации после
+согласования: local-only load harness + fixture/guard helper + affected tests,
+затем existing plan/todo evidence. Документный срез проверять docs/diff; нагрузка,
+код и Docker сейчас не запускались. Local pass не закрывает production/mail/S3/
+browser/device/pilot gates. Для рабочей приёмки отдельно нужны аудитория и target.
+
 #### CF — новые фото и файлы статей, принято 15 октября
 
 Последнее прямое поручение расширяет AG4, см. CF в SPEC-private-files.md.
