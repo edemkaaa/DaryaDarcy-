@@ -137,8 +137,8 @@ export class PostSaveCoordinator {
       await this.uploadPrivate(attachment, api, operation);
     }
     operation.assertCurrent();
-    await this.remember("idle");
     this.uncertain = false;
+    await this.remember("idle");
   }
   private async uploadPrivate(
     attachment: PostAttachment,

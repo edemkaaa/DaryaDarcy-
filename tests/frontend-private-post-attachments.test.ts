@@ -180,6 +180,7 @@ it.each([
   { ...receipt, fileSize: 15 },
   { ...receipt, type: "audio" },
   { ...receipt, filename: "another.txt" },
+  { ...receipt, mimeType: "garbage/" },
   { ...receipt, url: "https://example.test/public.txt" },
 ])(
   "an invalid or pending receipt never permits publishing: %j",
@@ -229,4 +230,26 @@ it("journaling failure before private upload sends no bytes", async () => {
   ).rejects.toThrow();
   expect(api.uploadPrivate).not.toHaveBeenCalled();
   expect(api.upload).not.toHaveBeenCalled();
+});
+
+it("a failed final recovery checkpoint can be retried without poisoning a ready receipt", async () => {
+  const api = boundary();
+  api.uploadPrivate.mockRejectedValueOnce(new Error("Timeout"));
+  const coordinator = new PostSaveCoordinator();
+  const attachment = file();
+  await expect(
+    coordinator.save(payload, [attachment], [], api, task()),
+  ).rejects.toThrow();
+  coordinator.setCheckpoint(async (snapshot) => {
+    if (snapshot.phase === "idle") throw new Error("Storage full");
+  });
+  await expect(coordinator.recoverUploads(api, task())).rejects.toThrow(
+    "Storage full",
+  );
+  coordinator.setCheckpoint(async () => {});
+  await coordinator.save(payload, [attachment], [], api, task());
+  expect(api.uploadPrivate).toHaveBeenCalledTimes(1);
+  expect(api.create.mock.calls[0][0]).toMatchObject({
+    privateAssetIds: [assetId],
+  });
 });

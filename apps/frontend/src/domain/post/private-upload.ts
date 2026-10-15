@@ -30,7 +30,9 @@ export function requirePrivateReceipt(value: unknown): PrivateUploadReceipt {
     typeof receipt.filename !== "string" ||
     !receipt.filename.trim() ||
     typeof receipt.mimeType !== "string" ||
-    !receipt.mimeType.includes("/") ||
+    !/^[a-z0-9!#$%&'*+.^_`|~-]+\/[a-z0-9!#$%&'*+.^_`|~-]+(?:;[^\r\n\x00-\x1f\x7f]*)?$/i.test(
+      receipt.mimeType,
+    ) ||
     !Number.isSafeInteger(receipt.fileSize) ||
     receipt.fileSize <= 0 ||
     receipt.fileSize > MAX_ATTACHMENT_BYTES ||
