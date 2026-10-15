@@ -6,6 +6,132 @@
 
 ## AG9-L — локальная нагрузка API/БД, 15 октября 2026
 
+### L4 — count-индексы и повтор нагрузки: local PASS
+
+Прямое поручение15.10: оптимизировать только подсчёт лайков/комментариев,
+сначала own disposable SQL, затем тот же load, без frontend/working DB/S3.
+Добавлены nonunique `likes_post_lookup(postId)` и
+`post_comments_post_created(postId,createdAt)` в additive migration0038 и ORM.
+Смысл COUNT(*), исторические duplicate likes, toggles и HTTP contract прежние.
+Не добавлялись уникальность, денормализованные counters, кэш, Redis или pool tuning.
+Comments index использует тот же leading postId для COUNT и existing createdAt
+ordering для чтения обсуждения; pagination/изменение API здесь не реализуется.
+
+Сначала current38 на own loopback59268/tmpfs MySQL8.4.11/2CPU/1GiB:
+10000 posts/20000 comments +1000 synthetic likes (50 повторяющихся actor/post
+пар по20 строк). Native RED:2 EXPLAIN checks показывают ALL вместо ref;
+exact public/club counts check PASS. Затем SQL trial,30 club-page reads/phase:
+
+| Фаза | Median | p95 | Handler_read_rnd_next /30 reads |
+| --- | --- | --- | --- |
+| До индексов | 30.24мс | 35.15мс | 13531320 |
+| Индексы visible | 4.83мс | 5.44мс | 300060 |
+| Invisible control | 30.36мс | 33.18мс | 13531320 |
+| Visible repeat | 6.10мс | 8.52мс | 300060 |
+
+Во всех120 ответах одинаковый SHA256; оба COUNT используют covering ref lookup,
+оценки20/500 rows для post2 совпадают с отдельно проверенными counts. Handler counters —
+операции доступа движка, не физические disk reads и не SQL ROWS_EXAMINED.
+Evidence: [исходный A/B JSON](../../tooling/data/backend-load/2026-10-15-index-trial.json).
+Контроль [MySQL invisible indexes](https://dev.mysql.com/doc/refman/8.4/en/invisible-indexes.html)
+отделяет эффект индекса от прогрева; leading columns описаны в
+[официальном manual](https://dev.mysql.com/doc/refman/8.4/en/multiple-column-indexes.html).
+Current repeatable CLI `content-count-index-trial.ts --owned-index-trial` принимает
+COUNT_INDEX_DATABASE_URL/COUNT_INDEX_CONTAINER_ID только с own load guard, работает
+на уже synthetic seeded fixture, создаёт отсутствующие кандидаты и сравнивает
+invisible/visible, восстанавливает visible в finally и пишет новый private tmp report.
+Для fixture preparation: fresh-only init, native content-count-indexes suite;
+никогда не запускать на working/personal stand, история миграций не обходится.
+
+Отдельная новая fresh39 DB/loopback60745 подтвердила native3 checks/skip0,
+exact count/duplicate semantics и физические состав/неуникальность индексов.
+Updated trial на ней:30.21→4.87мс, invisible27.53→visible5.16мс, тот же hash
+внутри прогона. Отдельная load DB/loopback60582 прошла9 fresh install/ORM/native HTTP
+checks/skip0. Все39 SQL действительно применены initializer, не fixture DDL.
+Оба trial-контейнера удалены после exact ID/owner/loopback/tmpfs/no mounts inspection;
+их synthetic tmpfs данные невосстановимы, пользовательские данные не удалялись.
+Сам A/B не является нагрузочной приёмкой; полный повтор описан ниже.
+
+Рабочая миграция не выполнялась. Перед любым отдельным rollout: existing preflight
+и проверка applied history/индексов, согласованное окно для DDL/metadata locks,
+контроль длительности/нагрузки и backup procedure. Не применять SQL вслепую при
+частично установленном0038. Откат по отдельному разрешению — удаление только
+этих двух новых nonunique индексов; строки и counts не переписываются. На текущем
+рабочем history gap0017–0019 этот срез не даёт разрешения обходить preflight.
+
+**Полный repeat, backend6680f21,11:08:22–11:19:28 UTC, exit0/PASS.** Тот же
+M4/Node24.19.0/MySQL8.4.11, реальные2CPU/1GiB (Docker inspect подтверждён),
+тот же dataset/mix/login/pool10/rates/durations и guards. Initial likes снова0:
+1000 duplicate rows существуют только в отдельном trial, не в full load.
+Full chain39 вместо38 — единственное runtime/database изменение: два индекса;
+backend source с baseline883b420 не менялся. Frontend тоже не менялся.
+Отчёт: [indexed JSON](../../tooling/data/backend-load/2026-10-15-indexed.json);
+исходный JSON ниже сохранён без перезаписи.
+
+| Ступень | Actual/planned | Worst read p95: до→после | Worst write p95: до→после | Errors/dropped |
+| --- | --- | --- | --- | --- |
+| 5RPS/2мин | 600/600 | 71.97→49.80мс | 20.79→22.67мс | 0/0 |
+| 10RPS/3мин | 1800/1800 | 71.69→40.88мс | 15.99→20.89мс | 0/0 |
+| 25RPS/5мин | 7500/7500 | 45.13→32.17мс | 10.45→14.09мс | 0/0 |
+
+| Метод,25RPS | p95 до→после | p99 до→после |
+| --- | --- | --- |
+| feed.listPaginated | 36.86→30.65мс | 38.44→33.48мс |
+| club.list | 45.13→28.14мс | 46.38→30.24мс |
+| feed.savedPosts | 30.53→13.06мс | 32.81→18.30мс |
+| club.comments | 30.84→32.17мс | 33.13→35.19мс |
+| feed.toggleLike | 9.38→13.49мс | 12.16→18.21мс |
+| feed.toggleSave | 10.45→14.09мс | 14.16→19.65мс |
+
+Не все HTTP methods ускорились: writes +3.64/+4.11мс на25RPS, comments +1.33мс;
+на10RPS like p95 +7.86мс. Пороги/recovery пройдены, но это не улучшение всех
+методов. Между прогонами есть host/VM/JIT variability; causal invisible A/B
+проверяет именно read-query выигрыш, не доказывает причину всех write изменений.
+Recovery: новый baseline→after idle club.list16.40→20.18мс, feed16.28→18.43мс,
+saved14.13→5.68мс; toggleSave8.02→25.52мс в принятом +50мс guard.
+10 actual logins p95 84.97→81.32мс; максимальный in-flight4→2, lag p95<=1.79мс.
+9900/9900 load +30 warmup/600 baseline-recovery/10 login/negative checks;
+exact SQL counts/reaction parity/uniqueness и access denials до/после сохранены,
+outbox/media/open transactions0, внешних TCP attempts0. Это native HTTP→SQL,
+без mocks, внешних писем, платежей, S3 или browser/device acceptance.
+
+**SQL, одинаковые digest/call counts/rows sent:**
+
+| Запрос | Calls | Average SQL ms до→после | Rows examined до→после |
+| --- | --- | --- | --- |
+| Count-page+OFFSET | 1702 | 32.77→15.51 | 627758650→21195682 |
+| Count-page без OFFSET | 1022 | 29.73→7.06 | 440007827→10777527 |
+| Tag/search page | 1362 | 17.51→11.06 | 190906122→13639749 |
+| Saved post IDs | 558 | 19.82→0.28 | 206026180→160348 |
+| Comments+authors | 1053 | 3.93→0.63 | 21600060→540060 |
+
+Первые два count-page digest получили на96.6–97.6% меньше examined rows.
+EXPLAIN comments теперь ref/post_comments_post_created,500 rows, без filesort;
+COUNT uses covering ref. Posts/filter/search всё ещё ALL/filesort (~10000 posts):
+это оставшийся риск роста, не закрытый этой миграцией. 500 comments по-прежнему
+~211KiB и без pagination; не расширять API автоматически.
+MySQL max CPU47.91→18.62% одного core из2, memory76.22→76.69% от1GiB;
+API RSS start/end/peak438.5/198.6/438.5MiB против321.9/291.1/386.2MiB.
+Peak API RSS вырос; отсутствие memory leak этим коротким прогоном не доказано.
+Tmpfs max26%, pool не увеличивался. Cumulative row waits7→7/current0;
+separate post-run INNODB_METRICS deadlocks/timeouts0, SUM_ERRORS=0 по всем187
+backend_test digests (не только top12), открытых транзакций0. Строка
+Innodb_deadlocks отсутствует в SHOW STATUS и не считалась успешным нулём.
+
+31 relevant checks/6 suites/skip0 (native3 counts, native9 fresh/ORM/HTTP,
+19 preflight/manifest/load-policy/CLI), tsc/build/boundaries664/docs58/diff exit0.
+Review: migration только additive/nonunique, старые SQL/journal entries прежние,
+SQL имена trial фиксированы, own target guard до соединения; no dead code/new deps.
+Вспомогательная команда сравнения сначала имела лишнюю скобку и не запустилась;
+исправлен только read-only вывод, успешный load отчёт не перезапускался.
+API/caffeinate завершены harness; собственный load container
+a070aa56d723e7887ba3f64abb58e51e4a535a7babab22fdaa19352558a0efaf удалён после
+exact name/owner/loopback60582/tmpfs/no mounts inspection, synthetic data не сохранены.
+Existing local-owner39fdda943241 и другие контейнеры сохранены. Никаких рабочих
+DB/S3/frontend изменений, push/deploy; локальная миграция не равна рабочему rollout.
+
+### Исходный baseline до индексов
+
 По принятым пользователем критериям п.4.15: **PASS для выбранного local baseline**,
 не доказательство production capacity/одновременного входа всей аудитории.
 Доказательство: [машинный отчёт](../../tooling/data/backend-load/2026-10-15.json).

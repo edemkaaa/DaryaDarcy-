@@ -4,11 +4,25 @@
 
 ### Проверенный остаток на 15 октября
 
-- [ ] AG9-L4: разрешены только count-индексы и повтор local load. RED2 ALL→ref
+- [x] AG9-L4: разрешены только count-индексы и повтор local load. RED2 ALL→ref
   tests + unchanged exact-count test; A/B30 calls/phase, одинаковый result hash:
   median30.24→4.83мс, invisible30.36мс, visible-repeat6.10мс. Candidate nonunique
-  likes(postId)/comments(postId,createdAt), additive0038; fresh39/native и полный
-  5/10/25RPS repeat в работе. Frontend/working DB/S3/API/квоты/пул без изменений.
+  likes(postId)/comments(postId,createdAt), additive0038 + ORM, commit6680f21.
+  Fresh39/native:31 relevant checks/6 suites/skip0, tsc/build/boundaries664/docs58/
+  diff exit0; старые SQL/journal неизменны, existing preflight не обойдён.
+  Full5/10/25RPS repeat9900/9900, errors/dropped0, recovery/counts/parity/denials
+  PASS.25RPS p95 club45.13→28.14мс, feed36.86→30.65мс, saved30.53→13.06мс;
+  comments30.84→32.17мс, worst write10.45→14.09мс — не все методы ускорились.
+  Два главных count-page digest examined rows -96.6–97.6%; comments ALL/filesort
+  →ref/index, posts/search ALL/filesort остались. DB CPU max47.91→18.62% core;
+  API peak RSS386.2→438.5MiB, end198.6MiB — leak/capacity не сертифицированы.
+  Native INNODB_METRICS deadlocks/timeouts0, all187 SQL digests SUM_ERRORS0,
+  outbox/media/open trx/external TCP0, cumulative row waits7→7. Full evidence:
+  docs/audits/content-launch.md + tooling/data/backend-load/2026-10-15-indexed.json,
+  исходный baseline JSON сохранён. API/caffeinate завершены, три own synthetic
+  tmpfs containers удалены после exact ID/owner/loopback/mounts checks; чужой
+  local-owner39fdda943241 и другие стенды не тронуты. Frontend/working DB/S3/API/
+  квоты/пул без изменений; без push/deploy. Working0038 rollout не выполнялся.
 
 - [x] AG9-L0: по поручению предложен минимальный local API/DB load scenario в
   начале очереди tasks/plan.md: current38 fresh SQL/own tmpfs, synthetic dataset,

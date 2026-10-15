@@ -177,14 +177,21 @@ HEAD и не подтверждение версии сервера. В нача
 
 #### AG9-L — предложение локальной нагрузки API/БД, 15 октября
 
-**L4 — согласованная оптимизация count-индексов, в работе15.10.** Пользователь
+**L4 — согласованная оптимизация count-индексов, local PASS15.10.** Пользователь
 разрешил сначала проверку индексов на own disposable SQL, затем тот же load.
 RED: EXPLAIN COUNT likes/comments даёт ALL; точность legacy duplicate counts
 сохранена. Causal A/B на own fresh38 +1000 synthetic likes: club page median
 30.24→4.83мс, invisible-control30.36мс, visible-repeat6.10мс, hash ответов одинаков.
 Выбраны только nonunique likes(postId), post_comments(postId,createdAt);
 additive0038 + ORM metadata, без API/cache/pool/quota изменений. Fresh39/native
-regression и повтор прежнего600+1800+7500 workload — до итоговой приёмки.
+regression PASS; повтор прежнего600+1800+7500 workload9900/9900, errors/dropped0,
+recovery/SQL invariants PASS.25RPS club p9545.13→28.14мс, saved30.53→13.06мс;
+count-page examined rows -96.6–97.6%. Writes p95 немного вырос:10.45→14.09мс,
+не заявлять ускорение всего API.31 relevant tests/6 suites/skip0, tsc/build/
+boundaries664/docs58/diff exit0. Индексы прошли review, сохранены6680f21.
+Три собственных trial/load tmpfs container удалены после exact guards, чужие
+сохранены. Полное сравнение/ограничения: docs/audits/content-launch.md,
+повтор JSON tooling/data/backend-load/2026-10-15-indexed.json, baseline не заменён.
 Evidence: tooling/data/backend-load/2026-10-15-index-trial.json. История0017–0019
 не исправляется; working migration/rollout отдельно, frontend/working DB/S3 off limits.
 
