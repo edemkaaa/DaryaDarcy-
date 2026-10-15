@@ -357,9 +357,17 @@ JSON — tooling/data/backend-load/2026-10-15.json. Не повторять бе
 постов к общему save coordinator, durable IndexedDB и обоим существующим редакторам.
 Typed receipt/File/key/status/replay/session guards34 unit, native storage4 и
 Chromium/Next с synthetic API12/12 проверок; дизайн не менялся. API contract
-содержит86 процедур; новая серверная функция не добавляется. Следующий CF-F1b3 —
-browser→actual API/SQL/S3 на own disposable DB/new synthetic objects. Затем
-отдельные CF клиенты статей/комментариев, browser/device matrix и rollout gates.
+содержит86 процедур; новая серверная функция не добавляется. CF-F1b3 закрыт16 октября:
+**8/8 native pass**,87.07s, browser→actual API/SQL/S3 на own disposable fresh39 DB.
+Оба редактора: lost upload/create ACK+reload без повторного PUT/дублей, edit с
+unknown update без replay, live account switch during upload/status с изоляцией
+черновика/receipt и восстановлением исходным владельцем. Проверены реальные WebP,
+GET/HEAD/Range, live access denial до S3 и anonymous S3 HEAD403. Все8 новых own
+objects удалены с metadata/ETag guards/HEAD404; policy hash unchanged. Own DB/API/
+Next/browser/proxy закрыты; старые files/working DB/flags/дизайн не менялись.
+Исправлений продукта не потребовалось, добавлен отдельный opt-in native test.
+Далее только отдельные согласованные срезы: CF клиенты статей/комментариев,
+browser/device matrix и rollout gates.
 CF целиком остаётся незавершённым. Доказательства/границы — в начале todo.
 Старый disk blocker снят без нашей очистки: при старте7.4GiB, новые build/types/
 lint и Full Vitest2416 pass. Рабочие DB/S3/flags, дизайн, push/deploy исключены.

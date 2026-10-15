@@ -22,9 +22,9 @@
     ENOSPC при mkdtemp в file-signature.test.ts, не дефект CF. Его отдельный
     повтор8/8 pass,0.72s. Ни skipped, ни отдельный повтор не считать единым
     зелёным прогоном. Секреты/DB/S3 не читались.
-  - [ ] CF-F1b: durable IndexedDB File/alias validation и локальные превью в
-    обоих существующих редакторах, затем browser→API acceptance. Локальные
-    storage/UI срезы ниже закрыты; настоящий browser→API/S3 ещё не выполнен.
+  - [x] CF-F1b: durable IndexedDB File/alias validation и локальные превью в
+    обоих существующих редакторах, затем browser→API acceptance. Storage/UI и
+    настоящий browser→API/S3 закрыты срезами ниже; rollout/device не заявлены.
     Ранее место при проверках упало с1.5GiB до~187MiB; Next build/native стенд не
     запускались (минимум2GiB). Доступных больших кэшей этой задачи не найдено:
     .next/cache отсутствует, node_modules/.vite24KiB; старые reports сохранены.
@@ -63,11 +63,33 @@
       Root tsc/frontend+e2e types/full lint/production build/API86/boundaries669
       проходят. Build без .env/рабочих credentials, target127.0.0.1:1. Стилей,
       visual assets/раскладки/backend/DB/S3/рабочих flags не меняли; no push/deploy.
-    - [ ] CF-F1b3: сквозная проверка новых фото обоих редакторов с actual
+    - [x] CF-F1b3: сквозная проверка новых фото обоих редакторов с actual
       API/SQL+S3 на собственном одноразовом backend_test и только новых synthetic
-      objects; отдельно browser/device matrix и разрешённый rollout. До этого
-      CF client не объявлять полностью принятым. Статьи/комментарии остаются
-      отдельной согласованной CF client интеграцией; существующие файлы не менять.
+      objects.16 октября: **8/8 native pass**, suite87.07s, actual Chromium→Next
+      rewrite→Nest→fresh39 MySQL→Timeweb S3. По4 сценария full/quick: lost upload
+      и create ACK+document reload; edit/lost update без auto replay; live account
+      switch during upload/status. SQL один asset/intent/post, no repeat PUT,
+      parent binding; full append/quick replace сохраняют точный набор своих фото.
+      Unbound preview только blob (без private GET), revoke blob при account switch,
+      чужой status=notRecorded; исходный владелец восстанавливает прежний файл.
+      Реальные WebP bytes/alpha/EXIF stripping, HEAD/single Range206/no-store/nosniff;
+      unbound/expired/guest GET/HEAD/Range404 до S3, anonymous S3 HEAD403.
+      Итог own SQL:6 posts/6 creation intents/8 receipts. Все8 новых objects удалены
+      с ledger/metadata/ETag guards и HEAD404; policy0484dfa2… unchanged/versioning off.
+      Own container1aa52335…/63081/tmpfs/no mounts удалён после повторной проверки
+      exact ID/name/owner/port/storage; API/Next/browser/proxy закрыты, temp dirs0.
+      Чужие4 containers не трогались (diplom уже был Up, остальные Exited).
+      Продуктовых дефектов в этих8 сценариях не выявлено, runtime/дизайн менять
+      не потребовалось. Добавлен tests/private-photo-editors.s3.mysql.test.ts;
+      acceptance existing working path, без искусственного RED. Secrets только
+      no-echo stdin/process memory; no secret files/Git/logs. Working DB/flags,
+      старые S3/policy/ACL не менялись; no push/deploy.
+      Root tsc, focused Prettier, API86/31712bytes, boundaries669/docs58/diff
+      проходят; five-axis self-review выполнен. Full Vitest/frontend build не
+      повторялись: runtime/схема/контракт/пакеты не менялись с прошлого GREEN.
+    - [ ] CF-F1b4: отдельная browser/device matrix и разрешённый rollout. CF
+      целиком не объявлять принятым: статьи/комментарии остаются отдельной
+      согласованной CF client интеграцией; существующие файлы не менять.
 
 - [x] FE5: после переключения сети пользователем S3 HEAD200/TLS handshake~1.4сек,
   policy hash0484dfa2… и versioning off прошли штатный preflight. Настоящие

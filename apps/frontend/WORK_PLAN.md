@@ -24,9 +24,24 @@ build, API86/boundaries669 проходят. Старый ENOSPC blocker сня�
 не трогали. Скиллы TDD/incremental/security/React использованы для checkpoint,
 scope/URL lifecycle и проверки восстановления, без redesign/refactor соседних UI.
 
-Следом CF-F1b3: оба редактора→actual API→own disposable MySQL→только новые own S3
-objects. Пока не объявлять CF целиком готовым; article/comment CF client остаются
-следующими отдельными срезами. Рабочий CF flag не включали, rollout не разрешён.
+CF-F1b3 закрыт16 октября: **8/8 native pass**, suite87.07s, оба редактора→actual
+Next rewrite/Nest API→own fresh39 MySQL→Timeweb S3. Lost upload/create ACK+reload
+не создаёт второй PUT/asset/post; edit/unknown update не повторяется. Full append/
+quick replace сохраняют правильный набор фото. Live account switch during upload/
+status отбрасывает late receipt, закрывает/revokes blob и не раскрывает другой
+аккаунт; исходный владелец восстанавливает прежний файл через status. Actual WebP
+alpha/EXIF stripping, GET/HEAD/Range206/no-store/nosniff и unbound/expired/guest404
+до S3, anonymous S3 HEAD403 подтверждены. Все8 новых own objects удалены с exact
+ledger/metadata/ETag guards/HEAD404, policy unchanged. Own tmpfs DB/API/Next/browser/
+proxy убраны, чужие контейнеры/старые файлы не трогали. Product fix не потребовался,
+runtime/дизайн не менялись; секреты только stdin/memory; no push/deploy.
+Native suite: `tests/private-photo-editors.s3.mysql.test.ts`, opt-in
+`PRIVATE_PHOTO_EDITORS_S3_ACCEPTANCE=true` и explicit fresh backend_test/container
+ID + provided S3 process credentials. Next получает только own API target, не ключи.
+
+Пока не объявлять CF целиком готовым: device/browser matrix и article/comment CF
+client остаются следующими отдельными срезами. Рабочий CF flag не включали,
+rollout не разрешён.
 Команды: `DARYADARCY_LOCAL_BROWSER=1 pnpm exec vitest run
 tests/post-photo-journal.browser.test.ts tests/private-photo-editors.browser.test.ts`
 (нужен installed Chromium, минимум2GiB; fixtures закрывают внешний network).
