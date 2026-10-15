@@ -141,6 +141,15 @@ export async function openPrivateUploadWire(options: { content?: boolean } = {})
       return;
     }
     if (req.method === "GET") {
+      if (req.headers["if-match"] !== object.etag) { res.writeHead(412).end(); return; }
+      if (req.headers.range) {
+        const range = /^bytes=(\d+)-(\d+)$/.exec(req.headers.range);
+        if (!range) { res.writeHead(416).end(); return; }
+        const start = Number(range[1]), end = Number(range[2]);
+        res.setHeader("content-range", `bytes ${start}-${end}/${object.bytes.length}`);
+        res.setHeader("content-length", end - start + 1);
+        res.writeHead(206).end(object.bytes.subarray(start, end + 1)); return;
+      }
       res.end(object.bytes);
       return;
     }

@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { privateContentFiles } from "../../../../packages/database/src/schema";
+import { privateContentFiles, type ArticleBlock } from "../../../../packages/database/src/schema";
 import type { ContentTransaction } from "./post-deletion";
 import type { ContentWriteActor } from "./content-write-actor";
 import { requirePrivateContentEnabled, requirePrivateContentSchema } from "./private-content-uploads";
@@ -23,6 +23,17 @@ export function contentAssetId(raw: string): string | undefined {
 }
 export const postPhotoReferences = (photos: string[]): ContentFileReference[] => photos.map(url => ({ url, usage: "postPhoto" }));
 export function hasPrivateContent(references: ContentFileReference[]): boolean { return references.some(ref => Boolean(contentAssetId(ref.url))); }
+export function articleFileReferences(blocks: ArticleBlock[]): ContentFileReference[] {
+  return blocks.flatMap((block): ContentFileReference[] => {
+    if (block.type === "photo" || block.type === "png") return [{ url: block.url ?? "", usage: "articlePhoto" }];
+    if (block.type === "carousel") return (block.urls ?? []).map(url => ({ url, usage: "articlePhoto" }));
+    if (block.type === "link") return [{ url: block.url ?? "", usage: "articleDocument" }];
+    return [];
+  });
+}
+export function assertPublicContentCover(url: string | null | undefined) {
+  if (url && contentAssetId(url)) throw new TRPCError({ code: "BAD_REQUEST", message: "Закрытый файл нельзя использовать как публичную обложку" });
+}
 
 /** Caller locks actor then parent. No storage operations occur inside a material write. */
 export async function bindContentFiles(tx: Writer, parentKind: "post" | "article" | "comment", parentId: number,

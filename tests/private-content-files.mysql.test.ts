@@ -16,6 +16,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
   let wire: Awaited<ReturnType<typeof openPrivateUploadWire>>;
   const tokens: Record<string, string> = {};
   const madePosts = new Set<number>();
+  const madeArticles = new Set<number>();
   const input = { idempotencyKey: "content-upload-intent-0001", usage: "articleDocument", filename: "article.txt", mimeType: "text/plain", base64: Buffer.from("private article document").toString("base64") };
   async function rows(query: string, args: unknown[] = []) { return (await conn.query<RowDataPacket[]>(query, args))[0]; }
   async function call(method: string, data: unknown = input, who = "admin", query = false) {
@@ -39,11 +40,20 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     const result = await call("admin.createPost", data, who);
     if (result.status === 200) madePosts.add(Number(result.data)); return result;
   }
+  async function makeArticle(data: unknown, who = "admin") {
+    const result = await call("admin.createArticle", data, who);
+    if (result.status === 200) madeArticles.add(Number(result.data)); return result;
+  }
+  async function clearArticles() {
+    for (const id of madeArticles) { await conn.query("DELETE FROM posts WHERE source=?", [`article:${id}`]); await conn.query("DELETE FROM articles WHERE id=?", [id]); }
+    madeArticles.clear(); await conn.query("DELETE FROM article_creation_requests WHERE actorUserId IN (98150,98151)");
+  }
   async function readFile(url: string, who = "guest", method = "GET", range?: string) {
     return fetch(`${base}${url}`, { method, headers: { ...(tokens[who] ? { authorization: `Bearer ${tokens[who]}` } : {}), ...(range ? { range } : {}) } });
   }
   beforeAll(async () => {
     conn = await openContentTestDatabase();
+    await conn.query("CREATE TABLE IF NOT EXISTS articles(id INT AUTO_INCREMENT PRIMARY KEY,title VARCHAR(255) NOT NULL,coverUrl TEXT,access ENUM('public','club') NOT NULL DEFAULT 'public',published BOOLEAN NOT NULL DEFAULT TRUE,sortOrder INT NOT NULL DEFAULT 0,sections JSON NOT NULL,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB");
     wire = await openPrivateUploadWire({ content: true });
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
     vi.stubEnv("JWT_SECRET", "content-fixture-jwt-secret-32-characters");
@@ -55,6 +65,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     for (const name of ["admin", "other", "member"]) tokens[name] = await sdk.createSessionToken(`cf-${name}`, { sessionVersion: 0 });
   });
   beforeEach(async () => {
+    await clearArticles();
     for (const id of madePosts) { await conn.query("DELETE FROM posts WHERE id=?", [id]); } madePosts.clear();
     await conn.query("DELETE FROM post_creation_requests WHERE actorUserId IN (98150,98151)");
     if ((await rows("SHOW TABLES LIKE 'private_content_files'")).length) await conn.query("DELETE FROM private_content_files WHERE actorUserId IN (98150,98151,98152)");
@@ -65,6 +76,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
   afterAll(async () => {
     await app?.close();
     if (conn) {
+      await clearArticles();
       for (const id of madePosts) await conn.query("DELETE FROM posts WHERE id=?", [id]);
       await conn.query("DELETE FROM post_creation_requests WHERE actorUserId IN (98150,98151)");
       if ((await rows("SHOW TABLES LIKE 'private_content_files'")).length) await conn.query("DELETE FROM private_content_files WHERE actorUserId IN (98150,98151,98152)");
@@ -152,5 +164,37 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect((await makePost(postInput(`${wire.endpoint}/${wire.bucket}/content/private-v1/${asset.assetId}`))).status).toBe(400);
     expect((await makePost(postInput(`https://other.example.test${url}`))).status).toBe(400);
     expect(await rows("SELECT id FROM posts WHERE source='cf-photos'")).toEqual([]);
+  });
+  it("atomically binds article image, ordered carousel and document, then follows publication and access changes", async () => {
+    const image = await photo("articlePhoto"), second = await photo("articlePhoto", "article-second-photo-0001");
+    const doc = (await upload()).data!;
+    const data = { title: "Private file article", coverUrl: "https://public.example.test/cover.webp", access: "club", published: true, idempotencyKey: "33221100-4455-4677-8899-aabbccddeeff",
+      sections: [{ type: "png", url: image.url }, { type: "carousel", urls: [second.url, image.url] }, { type: "link", url: doc.url, label: "Download" }] };
+    const saved = await makeArticle(data); expect(saved.status).toBe(200); const id = Number(saved.data);
+    expect((await makeArticle(data)).data).toBe(id);
+    expect(await rows("SELECT DISTINCT parentKind,parentId FROM private_content_files WHERE actorUserId=98150")).toEqual([{ parentKind: "article", parentId: id }]);
+    const locked = await call("articles.getById", { id }, "guest", true); expect(locked.data).toMatchObject({ locked: true, sections: [] });
+    const effects = wire.effects.length; expect((await readFile(String(doc.url))).status).toBe(404); expect(wire.effects).toHaveLength(effects);
+    const stream = await readFile(String(doc.url), "admin", "GET", "bytes=0-6"); expect(stream.status).toBe(206); expect(await stream.text()).toBe("private");
+    expect(stream.headers.get("content-disposition")).toMatch(/^attachment;/);
+    const full = await call("articles.getById", { id }, "admin", true);
+    expect((full.data!.sections as { urls?: string[] }[])[1].urls).toEqual([second.url, image.url]);
+    expect((await call("admin.updateArticle", { id, access: "public" })).status).toBe(200);
+    expect((await readFile(String(image.url))).status).toBe(200);
+    expect((await call("admin.updateArticle", { id, published: false })).status).toBe(200);
+    expect((await readFile(String(doc.url), "admin")).status).toBe(404);
+    expect((await call("admin.updateArticle", { id, published: true, sections: [{ type: "text", text: "No files" }] })).status).toBe(200);
+    expect((await readFile(String(doc.url), "admin")).status).toBe(404);
+    expect((await call("admin.updateArticle", { id, sections: data.sections })).status).toBe(409);
+  });
+  it("refuses private covers, foreign article files and creation without an intent before article/teaser commit", async () => {
+    const doc = (await upload()).data!;
+    const data = { title: "Invalid private article", published: true, idempotencyKey: "33221100-4455-4677-8899-aabbccddeef1", sections: [{ type: "link", url: doc.url }] };
+    expect((await makeArticle(data, "other")).status).toBe(409);
+    const { idempotencyKey: omitted, ...withoutKey } = data;
+    expect((await makeArticle(withoutKey)).status).toBe(400);
+    expect((await makeArticle({ ...data, coverUrl: doc.url })).status).toBe(400);
+    expect(await rows("SELECT id FROM articles WHERE title='Invalid private article'")).toEqual([]);
+    expect(await rows("SELECT id FROM posts WHERE text='Invalid private article'")).toEqual([]);
   });
 });

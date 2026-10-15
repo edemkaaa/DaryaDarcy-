@@ -16,6 +16,7 @@ import { requireArticleCreationSchema } from "./article-creation-request";
 import { assertContentRecoveryWindow } from "./recovery-window";
 import { assertContentRecoveryNotSpent } from "./recovery-markers";
 import { assertContentWriteActor, type ContentWriteActor } from "./content-write-actor";
+import { articleFileReferences, assertPublicContentCover, bindContentFiles, hasPrivateContent } from "./private-content-binding";
 
 export type CreateArticleInput = {
   title: string;
@@ -80,6 +81,8 @@ export async function createArticle(
   intent?: ArticleCreationIntent,
   actor?: ContentWriteActor,
 ): Promise<number> {
+  assertPublicContentCover(data.coverUrl);
+  if (!intent && hasPrivateContent(articleFileReferences(data.sections))) throw new TRPCError({ code: "BAD_REQUEST", message: "Для закрытых файлов нужен ключ создания статьи" });
   // A different nonce on a pre-existing incomplete row prevents unsafe takeover.
   const claimToken = randomUUID();
   return database.transaction(async (tx) => {
@@ -131,6 +134,7 @@ export async function createArticle(
     };
     const [result] = await tx.insert(articles).values(values);
     const id = Number(result.insertId);
+    await bindContentFiles(tx, "article", id, articleFileReferences(values.sections), [], actor);
     // The insert owns this newly allocated article row until commit.
     await syncTeaser(tx, { ...values, id });
     if (intent)
@@ -148,11 +152,12 @@ export async function updateArticle(
   data: UpdateArticleInput,
   actor?: ContentWriteActor,
 ): Promise<void> {
+  assertPublicContentCover(data.coverUrl);
   await database.transaction(async (tx) => {
     await assertContentWriteActor(tx,actor);
     // A current read before any snapshot/teaser read serializes article writers.
     const [existing] = await tx
-      .select({ id: articles.id })
+      .select({ id: articles.id, sections: articles.sections })
       .from(articles)
       .where(eq(articles.id, id))
       .for("update");
@@ -162,6 +167,7 @@ export async function updateArticle(
     if (data.sections) patch.sections = sectionsForStorage(data.sections);
     // Preserve the existing empty-patch error for an existing article.
     await tx.update(articles).set(patch).where(eq(articles.id, id));
+    if (patch.sections !== undefined) await bindContentFiles(tx, "article", id, articleFileReferences(patch.sections), articleFileReferences(existing.sections), actor);
     const [article] = await tx
       .select()
       .from(articles)

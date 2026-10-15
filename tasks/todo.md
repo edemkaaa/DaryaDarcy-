@@ -17,10 +17,15 @@
   отсутствующие новые procedures. GREEN: lost ACK/pending/status/retry, concurrent
   upload, changed payload, owner isolation, default-off/role/epoch/deletion,
   photo byte validation/alpha. TXT сохраняет canonical charset=utf-8.
-- [ ] CF3: atomic post/article binding, live GET/HEAD/Range access и removal.
+- [x] CF3: atomic post/article binding, live GET/HEAD/Range access и removal.
   CF3a post photos: native9 pass/skip0, после RED foreign binding и missing SQL
   association. Current parent, draft/public/club, owner/usage/raw URL guards,
   create key/replay, HEAD/bytes/no-store/inline и detach/no resurrection проверены.
+  CF3b article images/carousel/documents: native11 pass; article regression38
+  checks. Один compiled ESM run завершился ETIMEDOUT при длительных паузах
+  host/import; адресный повтор без изменений/увеличения timeout —1 pass.
+  Подтверждён sleep/wake macOS. Повтор с caffeinate без изменения timeout:
+  49 native checks/2 suites/skip0,8.18s, exit0. Working S3 не проверялся.
 - [ ] CF4: comment binding и права чтения/удаление, без изменения ролей/сроков.
 - [ ] CF5: retirement/export, regression и передача фронтендеру; flags off.
 

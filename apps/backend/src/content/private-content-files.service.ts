@@ -1,13 +1,14 @@
 import { Injectable, Inject } from "@nestjs/common";
 import type { Request } from "express";
 import { eq } from "drizzle-orm";
-import { privateContentFiles, posts } from "../../../../packages/database/src/schema";
+import { privateContentFiles, posts, articles } from "../../../../packages/database/src/schema";
 import { getDb } from "../db";
 import { SessionService } from "../identity/session.service";
 import { userHasClubAccess } from "../identity/club-access";
 import { HttpError } from "../../../../packages/shared/src/_core/errors";
 import { privateStorageNamespace, privateAttachmentObjectKey } from "../media/private-upload-object";
 import { contentFileUrl } from "./private-content-uploads";
+import { articleFileReferences } from "./private-content-binding";
 
 @Injectable()
 export class PrivateContentFilesService {
@@ -23,6 +24,11 @@ export class PrivateContentFilesService {
       if (!post?.published || post.status !== "published" || !post.photos?.includes(url)) return;
       if (!["feed", "both", "club"].includes(post.target)) return;
       club = post.target === "club";
+    } else if (file.parentKind === "article" && ["articlePhoto", "articleDocument"].includes(file.usage)) {
+      const [article] = await database.select().from(articles).where(eq(articles.id, file.parentId)).limit(1);
+      if (!article?.published || !articleFileReferences(article.sections).some(ref => ref.url === url && ref.usage === file.usage)) return;
+      if (!["public", "club"].includes(article.access)) return;
+      club = article.access === "club";
     } else return;
     if (club) {
       if (!req.headers.cookie && !req.headers.authorization) return;
