@@ -23,12 +23,27 @@
   Лимиты прежние32/80MiB; MIME/bytes/EOF/abort, early cancel/releaseLock и реальное
   закрытие chunked loopback response проверены. Не добавлялись API/flags/deps,
   layout/SCSS/TSX/visual assets прежние. Working S3/DB не вызывались.
-- [ ] FE3: браузерная media regression. Старый post/42 scenario использовал
+- [x] FE3: браузерная media regression. Старый post/42 scenario использовал
   неверный accessible name «Назад» вместо «Вернуться назад»: selector исправлен,
   адресный Chromium повтор прошёл; UI/source header не менялся. WebKit macOS
   возвращает image/png при canvas.toBlob(image/webp); random1100 PNG не помещается
-  в4MiB после existing1080 fallback. Сначала RED на valid PNG/WebP+alpha contract,
-  затем минимальный дополнительный resize, без SCSS/layout/API изменений.
+  в4MiB после existing1080 fallback. RED воспроизведён и после уточнения valid
+  PNG/WebP+alpha contract (uploads0); GREEN после дополнительного maxEdge960.
+  Обычные JPEG/WebP сохраняют первый успешный вариант; alpha/4MiB/MIME/filename
+  не подменяются. Никаких SCSS/layout/TSX/visual assets/backend/DB/S3 изменений.
+  Итог: **20 Chromium +20 macOS WebKit browser checks, skip0**,21.3/24.4sec;
+  frontend build/types/E2E/lint/root tsc проходят. Full Vitest **2360 pass,
+  0 fail/1455 skipped/5 pending,262 files,39.1sec**; opt-in не засчитан за native
+  backend/S3/provider acceptance. Первоначальный full fail — stale exact API
+  fixture, а не runtime regression; fixture теперь соответствует CF routes.
+  Исходные JSON: /tmp/daryadarcy-frontend-verify-2Ylry8/{vitest-final,chromium-final,
+  webkit-final}.json; воспроизводимые tests/commands и границы — начало WORK_PLAN.
+  Playwright установил Chromium1208/WebKit2248; его initial install автоматически
+  очистил unused cache1234/2336 (восстанавливается download), пользователь уведомлён;
+  далее GC отключён. Own Playwright server8081 завершён, loopback HTTP server закрыт.
+  Дизайн/working flags/old media/API semantics не менялись; no push/deploy.
+  Финальные API86/boundaries665/docs58/diff exit0; повторный fetch после transient
+  SSL ошибки подтвердил staging81e8563, без ослабления TLS/merge/перезаписи.
 
 - [x] AG9-L4: разрешены только count-индексы и повтор local load. RED2 ALL→ref
   tests + unchanged exact-count test; A/B30 calls/phase, одинаковый result hash:

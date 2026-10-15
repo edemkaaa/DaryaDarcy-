@@ -74,7 +74,9 @@ test("transparent article PNG is resized/encoded within the limit with alpha pre
   const prepared = Buffer.from(String(uploads[0].base64), "base64");
   expect(prepared.length).toBeLessThanOrEqual(MAX_PHOTO_BYTES);
   const metadata = await sharp(prepared).metadata();
-  expect(metadata.format).toBe("webp");
+  // WebKit may encode PNG when canvas WebP encoding is unavailable.
+  expect(["png", "webp"]).toContain(metadata.format);
+  expect(uploads[0].mimeType).toBe(`image/${metadata.format}`);
   expect(metadata.hasAlpha).toBe(true);
   expect((await sharp(prepared).stats()).channels[3].min).toBeLessThan(255);
 });

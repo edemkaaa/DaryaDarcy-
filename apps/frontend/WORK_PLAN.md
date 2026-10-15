@@ -20,8 +20,40 @@ FE2: HTTP body для вложений/видео/фото читается с �
 32/80MiB не изменены. RED3 consumers→GREEN10 bounded checks; вместе с media/save
 regressions105/4 suites, frontend/E2E types. Actual loopback chunked HTTP закрыт
 до полного тела;4 Chromium +4 WebKit stream/Blob/cancellation checks прошли.
-В работе FE3 WebKit PNG fallback и итоговый checkpoint. Подставной API в браузере
-не означает проверку working backend, S3 или физических устройств.
+FE3: macOS WebKit26.0 реально возвращает PNG вместо requested WebP при canvas
+encoding. Random1100x1100 alpha PNG не помещался в4MiB даже после1080px и upload
+не вызывался. Это воспроизведено до исправления; добавлен последний maxEdge960,
+с сохранением прозрачности/ratio и выбора первого уже подходящего JPEG/WebP.
+Тест проверяет разрешённые PNG/WebP, actual MIME,4MiB и alpha, а не требует
+неподдерживаемый браузером codec. Тест video lifecycle на post/42 теперь нажимает
+существующую «Вернуться назад»; имя/дизайн/код header не менялись.
+
+Итоговый checkpoint:20 Chromium +20 macOS WebKit checks/skip0,21.3/24.4sec;
+Full Vitest2360 pass/0 fail/1455 skipped/5 pending,262 files,39.1sec.
+API86, frontend/E2E/root types, lint/build, boundaries665/docs58 проходят. Исправлен
+type error в новой test-only Headers fixture; production типы не ослаблялись.
+SCSS/CSS/TSX/visual assets/configs/dependencies/backend не менялись, дизайн
+не редактировался. DB/S3/старые files/working flags, push/deploy не тронуты.
+Browser API/платёжные/медиа ответы подставные; bounded reader использует настоящий
+Response/ReadableStream/Blob и отдельно actual loopback HTTP. Это не working
+backend/S3/provider, physical iPhone/Safari или Android acceptance.
+
+Воспроизведение из корня, clean environment без рабочих integration credentials:
+`pnpm check:api`, `pnpm --filter @daryadarcy/frontend typecheck`, `pnpm lint`,
+`pnpm build:frontend`; не запускать typegen одновременно с build.
+`pnpm exec vitest run --maxWorkers=2` (opt-in skips не являются pass).
+Для браузеров после build из apps/frontend: `pnpm exec playwright test
+bounded-media-read.spec.ts media-upload-contract.spec.ts media-failure-lifecycle.spec.ts
+--browser=chromium`, затем тот же набор `--browser=webkit`;
+`CI=1 NEXT_TELEMETRY_DISABLED=1 RUN_REAL_API_TESTS=0`. Нужны pinned browsers
+Playwright1.58.2 (Chromium1208/WebKit2248); install с PLAYWRIGHT_SKIP_BROWSER_GC=1,
+чтобы не очищать другие cached versions. Подробная активная очередь — tasks/todo.md.
+
+Новый private upload/status/association ещё не подключён к редакторам: штатная
+генерация типов не означает готовность этой интеграции. Старые URL не мигрированы,
+рабочие private flags не включены; следующий срез — existing backend handoff.
+Контрольный fetch в конце сначала дал SSL_ERROR_SYSCALL; обычный повтор без
+ослабления TLS прошёл, staging остался81e8563. Нового merge/перезаписи не было.
 
 **Текущее поручение: доработать только фронтенд первого этапа для закрытия по договору — общую основу, затем публикации, вложения и взаимодействия, поэтапно с проверками. Дополнительные улучшения записываем отдельно и пока не реализуем. Бэкенд и базу не запускаем.** Бэкендер будет менять сервер; согласованные интеграции нужно проверять после уточнения API. Состояние ниже — снимок сегодняшних проверок, а не обещание, что найдены все возможные ошибки или приложение готово к сдаче.
 

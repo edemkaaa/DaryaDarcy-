@@ -63,7 +63,13 @@ for (const path of ["/feed", "/post/42", "/video/42"]) {
       await page
         .getByRole("button", { name: "Показать сеткой", exact: true })
         .click();
-    else await page.getByRole("button", { name: "Назад", exact: true }).click();
+    else
+      await page
+        .getByRole("button", {
+          name: path === "/post/42" ? "Вернуться назад" : "Назад",
+          exact: true,
+        })
+        .click();
     await expect
       .poll(() => handle!.evaluate((node) => node.getAttribute("src")))
       .toBe(null);

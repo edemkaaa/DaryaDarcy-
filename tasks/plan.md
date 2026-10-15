@@ -188,11 +188,14 @@ HEAD и не подтверждение версии сервера. В нача
    layout shrink/fallback/SSR, штатно сгенерировать current types, без runtime/UI
    workaround и без backend changes; affected102 checks/API86/types/lint/build
    PASS, exact procedure fixture обновлена для4 CF routes, без изменения server.
-3. FE2: первый подтверждённый внутренний defect/интеграционный gap из existing
-   handoff: сначала реальное воспроизведение, затем малый RED/GREEN fix и browser
-   regression. Выбран доказанный media download memory risk (RED attachment/
-   video/photo URL streams без корректного Content-Length), общий bounded reader.
-   FE3 — обнаруженный WebKit PNG encoding fallback и существующие E2E selectors.
+3. FE2/FE3 local PASS: media download memory risk (RED attachment/video/photo URL
+   streams без корректного Content-Length), общий bounded reader с прежними
+   32/80MiB limits. WebKit PNG fallback RED→GREEN с maxEdge960 без потери alpha;
+   существующий E2E selector исправлен без изменения кнопки.40 browser checks
+   Chromium/macOS WebKit, full Vitest2360 pass/1455 skipped/5 pending/0 fail,
+   types/lint/build проходят. Styles/TSX/visual assets и backend прежние.
+   Следующий отдельный frontend integration slice — согласованный private upload/
+   status/association в existing редакторах; генерация типов сама его не подключает.
    Не включать рабочие flags, не мигрировать старые URL/данные,
    не менять дизайн; не переделывать уже готовые article/NORMAL/VK flows без дефекта.
 

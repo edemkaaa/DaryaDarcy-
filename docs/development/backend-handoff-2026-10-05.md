@@ -1,5 +1,18 @@
 # Передача изменений бэкенда фронтендеру
 
+## 15 октября — уточнение после разрешённых внутренних frontend правок
+
+По новому прямому поручению frontend разрешён без дизайна. Свежий staging81e8563
+уже интегрирован, замены не было. F-TEST-1/F-API-1 ниже теперь выполнены локально:
+viewport fixture исправлена без runtime workaround, generated contract содержит86
+current procedures, exact API fixture актуализирована. Не назначать их повторно
+без нового API изменения. Backend runtime/schema/working DB/S3 прежние.
+Дополнительно исправлены bounded media URL reads и WebKit PNG fallback;
+40 browser checks/2360 unit pass, skip/pending и границы — начало frontend WORK_PLAN
+и tasks/todo.md. Проверки не являются working/provider/device acceptance.
+Private upload/status/privateAssetIds и CF association в редакторах ещё не
+подключены; типы не равны интеграции. Runtime flags off, без push/deploy.
+
 ## 15 октября — новые закрытые фото и файлы статей (CF, только локально)
 
 Этот раздел дополняет, а не отменяет передачу audio/document ниже. Frontend source,

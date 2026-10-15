@@ -229,7 +229,9 @@ async function preparePhotoBlob(
     );
   await assertStaticImage(raw, opts?.signal);
   const outputType = opts?.preserveAlpha ? "image/webp" : "image/jpeg";
-  for (const maxEdge of [1920, 1440, 1080]) {
+  // WebKit may fall back to PNG instead of encoding WebP. No quality knob then
+  // reduces its size; keep one smaller fallback while preserving transparency.
+  for (const maxEdge of [1920, 1440, 1080, 960]) {
     const blob = await compressImageBlob(
       raw,
       maxEdge,
