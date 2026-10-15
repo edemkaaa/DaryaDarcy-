@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { privateUploadKey } from "./private-upload-key";
 import {
   privateAttachmentUploads,
   users,
@@ -23,7 +24,7 @@ import {
   resolveMediaContentType,
 } from "./media-content-type";
 
-export const privateUploadKey = z.string().regex(/^[A-Za-z0-9._:-]{16,128}$/);
+export { privateUploadKey } from "./private-upload-key";
 export const privateUploadStatusInput = z
   .object({ idempotencyKey: privateUploadKey })
   .strict();

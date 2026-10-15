@@ -10,15 +10,26 @@ import {
   articleCreationRequests,
   privateAttachmentUploads,
   contentRecoveryMarkers,
+  privateContentFiles,
+  commentCreationRequests,
+  postComments,
 } from "../../../../packages/database/src/schema";
 import type { ContentWriteActor } from "./content-write-actor";
 import { requireRecoveryRetirementSchema } from "./recovery-retirement";
 import { assertContentRecoveryWindow } from "./recovery-window";
 import type { ContentTransaction } from "./post-deletion";
+import { requirePrivateContentSchema } from "./private-content-uploads";
+import { requireCommentFileSchema } from "./comment-file-creation";
 
 export const recoveryExportInput = z
   .object({
-    kind: z.enum(["post", "article", "private_attachment"]),
+    kind: z.enum([
+      "post",
+      "article",
+      "private_attachment",
+      "private_content",
+      "comment",
+    ]),
     afterKey: z
       .string()
       .regex(/^[a-f0-9]{64}$/)
@@ -62,6 +73,40 @@ async function details(
   input: Input,
 ): Promise<Item[]> {
   const after = input.afterKey ?? "";
+  if (input.kind === "private_content") {
+    await requirePrivateContentSchema(tx);
+    const rows = await tx
+      .select({
+        requestId: privateContentFiles.requestKey,
+        createdAt: privateContentFiles.createdAt,
+        state: privateContentFiles.state,
+        etag: privateContentFiles.etag,
+        retiredAt: privateContentFiles.retiredAt,
+      })
+      .from(privateContentFiles)
+      .where(
+        and(
+          eq(privateContentFiles.actorUserId, actor.id),
+          gt(privateContentFiles.requestKey, after),
+        ),
+      )
+      .orderBy(asc(privateContentFiles.requestKey))
+      .limit(input.limit + 1);
+    return rows.map((row) => {
+      if (expired(row.createdAt))
+        return {
+          requestId: row.requestId,
+          createdAt: row.createdAt,
+          status: "expired",
+        };
+      if (row.state === "ready" && !row.etag) throw unavailable();
+      return {
+        requestId: row.requestId,
+        createdAt: row.createdAt,
+        status: row.retiredAt ? "deleted" : row.state,
+      };
+    });
+  }
   if (input.kind === "private_attachment") {
     const rows = await tx
       .select({
@@ -96,12 +141,24 @@ async function details(
     });
   }
   const ledger =
-    input.kind === "post" ? postCreationRequests : articleCreationRequests;
-  const material = input.kind === "post" ? posts : articles;
+    input.kind === "post"
+      ? postCreationRequests
+      : input.kind === "comment"
+        ? commentCreationRequests
+        : articleCreationRequests;
+  if (input.kind === "comment") await requireCommentFileSchema(tx);
+  const material =
+    input.kind === "post"
+      ? posts
+      : input.kind === "comment"
+        ? postComments
+        : articles;
   const resultColumn =
     input.kind === "post"
       ? postCreationRequests.postId
-      : articleCreationRequests.articleId;
+      : input.kind === "comment"
+        ? commentCreationRequests.commentId
+        : articleCreationRequests.articleId;
   const rows = await tx
     .select({
       requestId: ledger.requestKey,
@@ -153,21 +210,24 @@ export async function exportContentRecovery(
         if (current.blockedAt) throw new TRPCError({ code: "FORBIDDEN" });
         await requireRecoveryRetirementSchema(tx);
         const records = await details(tx, actor, input);
-        const markers = await tx
-          .select({
-            requestId: contentRecoveryMarkers.requestKey,
-            createdAt: contentRecoveryMarkers.createdAt,
-          })
-          .from(contentRecoveryMarkers)
-          .where(
-            and(
-              eq(contentRecoveryMarkers.actorUserId, actor.id),
-              eq(contentRecoveryMarkers.kind, input.kind),
-              gt(contentRecoveryMarkers.requestKey, input.afterKey ?? ""),
-            ),
-          )
-          .orderBy(asc(contentRecoveryMarkers.requestKey))
-          .limit(input.limit + 1);
+        const markers =
+          input.kind === "comment" || input.kind === "private_content"
+            ? []
+            : await tx
+                .select({
+                  requestId: contentRecoveryMarkers.requestKey,
+                  createdAt: contentRecoveryMarkers.createdAt,
+                })
+                .from(contentRecoveryMarkers)
+                .where(
+                  and(
+                    eq(contentRecoveryMarkers.actorUserId, actor.id),
+                    eq(contentRecoveryMarkers.kind, input.kind),
+                    gt(contentRecoveryMarkers.requestKey, input.afterKey ?? ""),
+                  ),
+                )
+                .orderBy(asc(contentRecoveryMarkers.requestKey))
+                .limit(input.limit + 1);
         const merged = new Map(records.map((row) => [row.requestId, row]));
         for (const marker of markers)
           merged.set(marker.requestId, { ...marker, status: "expired" });

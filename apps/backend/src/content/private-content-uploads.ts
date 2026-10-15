@@ -8,7 +8,8 @@ import { preparePhoto } from "../media/photos";
 import { decodeMediaBase64 } from "../media/media-encoding";
 import { digest, ensurePrivateUploadObject, privateStorageNamespace } from "../media/private-upload-object";
 import { resolveMediaContentType, normalizeMediaContentType } from "./media-content-type";
-import { privateUploadKey, lockPrivateAttachmentActor, type PrivateAttachmentActor, type PrivateAttachmentTransaction } from "./private-attachment-uploads";
+import { lockPrivateAttachmentActor, type PrivateAttachmentActor, type PrivateAttachmentTransaction } from "./private-attachment-uploads";
+import { privateUploadKey } from "./private-upload-key";
 import { assertContentRecoveryWindow } from "./recovery-window";
 import { lockCommentFileActor, requireCommentFilePost } from "./private-comment-actor";
 

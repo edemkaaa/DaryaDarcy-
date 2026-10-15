@@ -3,6 +3,10 @@ import type { Connection, RowDataPacket } from "mysql2/promise";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
 import { createServer } from "node:http";
+import { drizzle } from "drizzle-orm/mysql2";
+import { eq } from "drizzle-orm";
+import { users } from "../packages/database/src/schema";
+import { retireContentRecovery } from "../apps/backend/src/content/recovery-retirement";
 import superjson from "superjson";
 import sharp from "sharp";
 import { openContentTestDatabase } from "./helpers/content-mysql";
@@ -18,6 +22,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
   const tokens: Record<string, string> = {};
   const madePosts = new Set<number>();
   const madeArticles = new Set<number>();
+  const madeFiles = new Set<string>();
   const input = { idempotencyKey: "content-upload-intent-0001", usage: "articleDocument", filename: "article.txt", mimeType: "text/plain", base64: Buffer.from("private article document").toString("base64") };
   async function rows(query: string, args: unknown[] = []) { return (await conn.query<RowDataPacket[]>(query, args))[0]; }
   async function call(method: string, data: unknown = input, who = "admin", query = false) {
@@ -29,7 +34,10 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     const json = await response.json();
     return { status: response.status, data: json.result ? superjson.deserialize<Record<string, unknown>>(json.result.data) : null, wire: JSON.stringify(json) };
   }
-  const upload = (value: unknown = input, who = "admin") => call("admin.uploadPrivateContentFile", value, who);
+  async function upload(value: unknown = input, who = "admin") {
+    const result = await call("admin.uploadPrivateContentFile", value, who);
+    if (result.data?.assetId) madeFiles.add(String(result.data.assetId)); return result;
+  }
   const status = (who = "admin") => call("admin.privateContentFileStatus", { idempotencyKey: input.idempotencyKey }, who, true);
   async function photo(usage = "postPhoto", key = "content-photo-intent-0001") {
     const png = await sharp({ create: { width: 2, height: 3, channels: 4, background: { r: 1, g: 2, b: 3, alpha: 0.5 } } }).png().toBuffer();
@@ -49,9 +57,10 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     for (const id of madeArticles) { await conn.query("DELETE FROM posts WHERE source=?", [`article:${id}`]); await conn.query("DELETE FROM articles WHERE id=?", [id]); }
     madeArticles.clear(); await conn.query("DELETE FROM article_creation_requests WHERE actorUserId IN (98150,98151)");
   }
-  async function commentPhoto(postId: number) {
+  async function commentPhoto(postId: number, idempotencyKey = input.idempotencyKey) {
     const png = await sharp({ create: { width: 2, height: 2, channels: 3, background: "red" } }).png().toBuffer();
-    return call("club.uploadPrivateCommentPhoto", { ...input, usage: "commentPhoto", postId, filename: "photo.png", mimeType: "image/png", base64: png.toString("base64") }, "member");
+    const result = await call("club.uploadPrivateCommentPhoto", { ...input, idempotencyKey, usage: "commentPhoto", postId, filename: "photo.png", mimeType: "image/png", base64: png.toString("base64") }, "member");
+    if (result.data?.assetId) madeFiles.add(String(result.data.assetId)); return result;
   }
   async function readFile(url: string, who = "guest", method = "GET", range?: string) {
     return fetch(`${base}${url}`, { method, headers: { ...(tokens[who] ? { authorization: `Bearer ${tokens[who]}` } : {}), ...(range ? { range } : {}) } });
@@ -70,6 +79,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     for (const name of ["admin", "other", "member"]) tokens[name] = await sdk.createSessionToken(`cf-${name}`, { sessionVersion: 0 });
   });
   beforeEach(async () => {
+    for (const id of madeFiles) await conn.query("DELETE FROM private_content_files WHERE assetId=?", [id]); madeFiles.clear();
     await clearArticles();
     for (const id of madePosts) { await conn.query("DELETE FROM post_comments WHERE postId=?", [id]); await conn.query("DELETE FROM posts WHERE id=?", [id]); } madePosts.clear();
     if ((await rows("SHOW TABLES LIKE 'comment_creation_requests'")).length) await conn.query("DELETE FROM comment_creation_requests WHERE actorUserId=98152");
@@ -85,6 +95,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
   afterAll(async () => {
     await app?.close();
     if (conn) {
+      for (const id of madeFiles) await conn.query("DELETE FROM private_content_files WHERE assetId=?", [id]);
       await clearArticles();
       for (const id of madePosts) { await conn.query("DELETE FROM post_comments WHERE postId=?", [id]); await conn.query("DELETE FROM posts WHERE id=?", [id]); }
       if ((await rows("SHOW TABLES LIKE 'comment_creation_requests'")).length) await conn.query("DELETE FROM comment_creation_requests WHERE actorUserId=98152");
@@ -226,7 +237,12 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     await conn.query("INSERT INTO club_payments(userId,orderId,status,paidAt,expiresAt) VALUES(98152,'cf-paid-reader','paid',NOW(),DATE_ADD(NOW(),INTERVAL 1 DAY))");
     expect((await readFile(url, "member")).status).toBe(200);
     await conn.query("UPDATE club_payments SET expiresAt=DATE_SUB(NOW(),INTERVAL 1 DAY) WHERE orderId='cf-paid-reader'");
-    const expiredEffects = wire.effects.length; expect((await readFile(url, "member")).status).toBe(404); expect(wire.effects).toHaveLength(expiredEffects);
+    const expiredEffects = wire.effects.length;
+    for (const [method, range] of [["GET", undefined], ["HEAD", undefined], ["GET", "bytes=0-3"]] as const) {
+      const denied = await readFile(url, "member", method, range);
+      expect(denied.status).toBe(404); expect(denied.headers.get("cache-control")).toBe("private, no-store");
+    }
+    expect(wire.effects).toHaveLength(expiredEffects);
     await conn.query("UPDATE club_payments SET expiresAt=DATE_ADD(NOW(),INTERVAL 1 DAY) WHERE orderId='cf-paid-reader'");
     await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=98152"); expect((await readFile(url, "member")).status).toBe(404);
     await conn.query("UPDATE users SET blockedAt=NULL WHERE id=98152");
@@ -275,6 +291,8 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
       await expect(fetch(`http://127.0.0.1:${(proxy.address() as AddressInfo).port}/lost-reply`, { method: "POST", body: superjson.stringify(payload) })).rejects.toThrow();
       expect(upstreamStatus).toBe(200);
       const committed = await rows("SELECT id FROM post_comments WHERE postId=?", [postId]); expect(committed).toHaveLength(1);
+      expect((await call("club.addComment", payload, "other")).status).toBe(409);
+      expect((await call("club.privateCommentPhotoStatus", { idempotencyKey: input.idempotencyKey }, "other", true)).data).toEqual({ state: "notRecorded" });
       const replay = await call("club.addComment", payload, "member"); expect(replay.status).toBe(200); expect(replay.data!.id).toBe(committed[0].id);
       expect(await rows("SELECT id FROM post_comments WHERE postId=?", [postId])).toEqual(committed);
       const listed = await call("club.comments", { postId }, "member", true);
@@ -285,5 +303,78 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     const asset = await photo(); const effects = wire.effects.length;
     const response = await fetch(`${base}${asset.url}`, { headers: { Origin: "https://untrusted.example.test" } });
     expect(response.status).toBe(403); expect(response.headers.get("cache-control")).toBe("private, no-store"); expect(wire.effects).toHaveLength(effects);
+  });
+  it("exports only own content recovery metadata without file URLs, names or storage capabilities", async () => {
+    vi.stubEnv("CONTENT_RECOVERY_EXPORT_ENABLED", "true"); const uploaded = await upload(); expect(uploaded.status, uploaded.wire).toBe(200); const asset = uploaded.data!;
+    expect((await upload({ ...input, idempotencyKey: "another-export-content-0001" })).status).toBe(200);
+    const result = await call("profileExtras.recoveryExport", { kind: "private_content", limit: 1 }, "admin", true);
+    expect(result.status).toBe(200); expect(result.data).toMatchObject({ items: [{ status: "ready" }], nextCursor: expect.stringMatching(/^[a-f0-9]{64}$/) });
+    const next = await call("profileExtras.recoveryExport", { kind: "private_content", limit: 1, afterKey: result.data!.nextCursor }, "admin", true);
+    expect(next.data).toMatchObject({ items: [{ status: "ready" }], nextCursor: null });
+    expect((next.data!.items as { requestId: string }[])[0].requestId).not.toBe((result.data!.items as { requestId: string }[])[0].requestId);
+    expect(result.wire).not.toContain(String(asset.assetId)); expect(result.wire).not.toContain("article.txt"); expect(result.wire).not.toContain(wire.endpoint);
+    expect((await call("profileExtras.recoveryExport", { kind: "private_content" }, "other", true)).data).toMatchObject({ items: [] });
+  });
+  it("retires new comment/file recovery links atomically and fences the old actor without touching storage", async () => {
+    vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", "true"); vi.stubEnv("CONTENT_RECOVERY_EXPORT_ENABLED", "true");
+    const post = await makePost({ ...postInput(""), photos: [], target: "feed", status: "published", tags: ["community"] }); expect(post.status, post.wire).toBe(200); const postId = Number(post.data);
+    const uploaded = await commentPhoto(postId); expect(uploaded.status, uploaded.wire).toBe(200); const asset = uploaded.data!;
+    expect((await call("club.addComment", { postId, text: "Retired request", photos: [asset.url], idempotencyKey: "retired-comment-intent-001" }, "member")).status).toBe(200);
+    expect((await call("profileExtras.recoveryExport", { kind: "comment" }, "member", true)).data).toMatchObject({ items: [{ status: "created" }] });
+    const orphan = await commentPhoto(postId, "unbound-comment-photo-0001"); expect(orphan.status).toBe(200);
+    const effects = wire.effects.length; vi.stubEnv("PRIVATE_CONTENT_FILES_ENABLED", "false");
+    await drizzle(conn).transaction(async tx => {
+      await tx.select().from(users).where(eq(users.id, 98152)).for("update");
+      await retireContentRecovery(tx, 98152);
+      await tx.update(users).set({ sessionVersion: 1 }).where(eq(users.id, 98152));
+    });
+    expect(await rows("SELECT requestKey FROM comment_creation_requests WHERE actorUserId=98152")).toEqual([]);
+    expect(await rows("SELECT actorUserId,filename FROM private_content_files WHERE assetId=?", [asset.assetId])).toEqual([{ actorUserId: null, filename: "" }]);
+    expect((await rows("SELECT actorUserId,filename,retiredAt FROM private_content_files WHERE assetId=?", [orphan.data!.assetId]))[0]).toMatchObject({ actorUserId: null, filename: "", retiredAt: expect.any(Date) });
+    expect(wire.effects).toHaveLength(effects);
+    vi.stubEnv("PRIVATE_CONTENT_FILES_ENABLED", "true");
+    expect((await readFile(String(asset.url), "member")).status).toBe(404);
+    expect((await readFile(String(asset.url), "other")).status).toBe(200);
+    expect((await call("club.privateCommentPhotoStatus", { idempotencyKey: input.idempotencyKey }, "member", true)).status).toBe(401);
+  });
+  it("refuses finishing a pending comment-photo upload after the session or account is revoked", async () => {
+    const post = await makePost({ ...postInput(""), photos: [], target: "feed", status: "published", tags: ["community"] }); const postId = Number(post.data);
+    wire.dropPutAck(); expect((await commentPhoto(postId)).status).toBe(503); const effects = wire.effects.length;
+    await conn.query("UPDATE users SET sessionVersion=1 WHERE id=98152");
+    expect((await commentPhoto(postId)).status).toBe(401);
+    await conn.query("UPDATE users SET sessionVersion=0,blockedAt=NOW() WHERE id=98152");
+    // Existing session authentication treats a blocked account as unauthenticated.
+    expect((await commentPhoto(postId)).status).toBe(401);
+    await conn.query("UPDATE users SET blockedAt=NULL,accountDeletionRequestedAt=NOW() WHERE id=98152");
+    expect((await commentPhoto(postId)).status).toBe(403);
+    expect(wire.effects).toHaveLength(effects);
+    expect(await rows("SELECT state,parentId FROM private_content_files WHERE actorUserId=98152")).toEqual([{ state: "pending", parentId: null }]);
+    expect(await rows("SELECT id FROM post_comments WHERE postId=?", [postId])).toEqual([]);
+  });
+  it("rolls retirement back when the comment ledger migration is missing", async () => {
+    vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", "true"); const uploaded = await upload(); expect(uploaded.status).toBe(200);
+    await conn.query("RENAME TABLE comment_creation_requests TO cf_owned_comment_ledger_missing");
+    try {
+      await expect(drizzle(conn).transaction(async tx => {
+        await tx.select().from(users).where(eq(users.id, 98150)).for("update");
+        await tx.update(users).set({ sessionVersion: 1 }).where(eq(users.id, 98150));
+        await retireContentRecovery(tx, 98150);
+      })).rejects.toThrow();
+      expect(await rows("SELECT sessionVersion FROM users WHERE id=98150")).toEqual([{ sessionVersion: 0 }]);
+      expect(await rows("SELECT actorUserId,filename FROM private_content_files WHERE assetId=?", [uploaded.data!.assetId])).toEqual([{ actorUserId: 98150, filename: "article.txt" }]);
+    } finally { await conn.query("RENAME TABLE cf_owned_comment_ledger_missing TO comment_creation_requests"); }
+  });
+  it("expires comment recovery without expiring the committed comment photo or creating a replacement", async () => {
+    const saved = await makePost({ ...postInput(""), photos: [], target: "feed", status: "published", tags: ["community"] }); const postId = Number(saved.data);
+    const asset = await commentPhoto(postId); expect(asset.status).toBe(200);
+    const payload = { postId, text: "Expired recovery, live comment", photos: [asset.data!.url], idempotencyKey: "expired-comment-recovery-0001" };
+    const created = await call("club.addComment", payload, "member"); expect(created.status).toBe(200);
+    await conn.query("UPDATE private_content_files SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=98152");
+    await conn.query("UPDATE comment_creation_requests SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=98152");
+    vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true");
+    expect((await call("club.privateCommentPhotoStatus", { idempotencyKey: input.idempotencyKey }, "member", true)).status).toBe(409);
+    expect((await call("club.addComment", payload, "member")).status).toBe(409);
+    expect(await rows("SELECT id FROM post_comments WHERE postId=?", [postId])).toEqual([{ id: Number(created.data!.id) }]);
+    expect((await readFile(String(asset.data!.url), "member")).status).toBe(200);
   });
 });

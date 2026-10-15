@@ -1,5 +1,50 @@
 # Передача изменений бэкенда фронтендеру
 
+## 15 октября — новые закрытые фото и файлы статей (CF, только локально)
+
+Этот раздел дополняет, а не отменяет передачу audio/document ниже. Frontend source,
+tests и generated contract не менялись. Backend CF default-off; policy нового
+`content/private-v1/` в рабочем bucket не применялась. До её отдельной native
+приёмки и согласованного rollout не включать `PRIVATE_CONTENT_FILES_ENABLED`.
+Старые URL/S3 objects/обложки/аватары остаются как были; это не их миграция.
+
+- Админ: `admin.uploadPrivateContentFile({idempotencyKey,usage,filename,mimeType,base64})`,
+  usage=`postPhoto|articlePhoto|articleDocument`; status —
+  `admin.privateContentFileStatus({idempotencyKey})`.
+- Комментарии: `club.uploadPrivateCommentPhoto` с теми же полями,
+  usage=`commentPhoto`, обязательным неизменным postId; status —
+  `club.privateCommentPhotoStatus({idempotencyKey})`.
+- Ответ pending/ready содержит assetId/usage/filename/mimeType/fileSize; только
+  ready содержит `url=/api/media/content-files/:assetId`. Это не S3 URL и не
+  подтверждение сохранённого поста/статьи/комментария. Status смотрит только свой
+  account-scoped ключ, чужой возвращает notRecorded.
+- До upload сохранить intent с ключом16–128 ASCII `[A-Za-z0-9._:-]` и исходными
+  bytes/metadata/usage/postId. После неизвестного результата/reload — свой status
+  и повтор исходного intent, не новая загрузка. 409 — конфликт/истёкшее окно,
+  не повод создавать замену. Pending/notRecorded не объявлять успехом/отменой.
+- Полученный application URL передаётся в существующие photos поста/комментария
+  или url/urls блоков статьи (photo/png/carousel/link). Для CF не используется
+  `privateAssetIds` старого audio/document пути. Приватный URL нельзя делать cover.
+  Новое создание требует отдельный стабильный ключ материала. Для комментария
+  новое optional `club.addComment.idempotencyKey` обязательно с private photo;
+  повтор с тем же ключом и payload возвращает тот же id, изменённый payload —409,
+  включая photos=[]. После удаления комментария replay не воскрешает его.
+- Смена аккаунта/уход страницы: не применять поздний ответ к другой сессии;
+  не переносить её intent/фото. Возвращаясь, сверять реальный серверный список.
+  Чужая привязка отвергается сервером, но клиентскую изоляцию это не заменяет.
+- Same-origin cookie/rewrite GET/HEAD/Range, без public optimizer/cache. Для фото
+  комментария требуется login даже у public post; club проверяется заново на
+  каждом чтении. Preview до привязки — локальный File, нового draft-read API нет.
+
+Фото JPEG/PNG/WebP<=4MiB перекодируются в WebP без EXIF с сохранением alpha;
+документы PDF/DOCX/TXT<=32MiB. Прежние48h/2-photo правила комментариев сохранены.
+Schema0036/0037 и fresh-only profile38 подготовлены локально; upgrade существующей
+БД по-прежнему требует preflight, автоматические миграции не разрешены.
+Recovery export добавляет kind private_content/comment (метаданные без файлов),
+новый UI не требуется. Очистка ownership при retirement не удаляет S3 objects.
+Локальные SQL/HTTP/SDK-wire проверки не доказывают Timeweb ACL или browser/device
+приёмку. `check:api` остаётся RED; типы регенерирует frontend team на совместимой базе.
+
 ## 15 октября — адресные задачи фронтендеру после merge33b8bbe
 
 Основание: проверенное локальное объединение33b8bbe, frontend строго из

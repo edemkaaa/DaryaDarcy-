@@ -36,7 +36,34 @@
   blocked/epoch/role revoke, delete/no resurrection, прежние 48h/2-photo rules.
   Ledger0037 для новых private-photo comments; legacy toggle/comment semantics
   не расширены. Нет внешнего S3/browser acceptance; фронт не изменён.
-- [ ] CF5: retirement/export, regression и передача фронтендеру; flags off.
+- [x] CF5: retirement/export, regression и передача фронтендеру; flags off.
+  RED: новые export kinds отвергались; retirement оставлял comment ledger и
+  actor/filename у новых receipts. Дополнительно native entrypoint через retirement
+  воспроизвёл cyclic initialization: upload schema получал undefined key validator.
+  Validator перенесён в dependency-light owning module, без изменения key contract.
+  GREEN: **234 checks/12 suites/skip0,15.78s**, native SQL/HTTP/JWT + loopback SDK,
+  включая old private upload/article/comment/retirement worker regressions.
+  Проверены pagination/owner isolation/no capabilities в export, atomic retirement
+  при upload flag off, rollback на partial0037, unbound retirement без S3 effects,
+  сохранение bound read evidence, expired recovery409 без нового comment и без
+  потери live photo. Отдельно current fresh38: **12 checks/2 suites/skip0,3.10s**,
+  все SQL реально применены на новой пустой own loopback/tmpfs DB, current ORM/API.
+  Первый запуск fresh suite не стартовал из-за неподдерживаемого reporter=basic;
+  исправлена только команда, повтор с dot прошёл. Это не сбой миграций.
+  tsc/build/boundaries664/docs58/diff exit0; check:api остаётся expected RED (frontend не
+  регенерировался). Previous broad checkpoint101 pass/5 opt-in worker skips не
+  засчитан за полную приёмку; финальный прогон включает эти5 checks.
+  SPEC и начало existing backend handoff описывают CF API и клиентские guards.
+  Review: current actor/parent before storage, one-intent SQL uniqueness, no
+  resurrection, bounded metadata export/retirement; новые deps и роли не менялись.
+  Оба own synthetic tmpfs контейнера удалены после exact ID/name/owner/ports/mounts
+  inspection; existing local-owner стенд39fdda943241 сохранён. Рабочие данные и
+  S3 objects не удалялись. Временный собственный caffeinate остановлен.
+- [ ] CF external gate: отдельно согласовать/проверить новый storage statement
+  DaryadarcyPrivateContentV1 только для content/private-v1/, затем совместимый
+  frontend/generated types, browser/device/native S3 acceptance и разрешённый
+  rollout. Рабочая policy/DB/S3/front не менялись, push/deploy не выполнялись.
+  Старые URL/objects не закрыты этим решением; автоочистка нового scope не включена.
 
 - [x] По следующему поручению подготовлены F-TEST-1/F-API-1 в начале existing
   backend handoff: точная причина viewport fixture, минимальный DOM stub и

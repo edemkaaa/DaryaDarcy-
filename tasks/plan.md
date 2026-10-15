@@ -180,6 +180,18 @@ Acceptance: нет anonymous обхода нового storage scope, чужой
 lost ACK не дублирует объект/материал, removal/revoke закрывает следующий read.
 Actual Timeweb policy/client/browser rollout остаются отдельным разрешённым gate.
 
+Checkpoint15 октября: CF1–CF5 реализованы локально, результат и RED/GREEN в начале
+todo. Последнее поручение по комментариям закрыто SQL/HTTP: lost response после
+commit, same-key/concurrent replay без дублей, изменённый/пустой photos payload409,
+смена аккаунта/epoch/role/block/paid expiry и GET/HEAD/Range denial до storage.
+CF5 добавляет новые ledgers в existing retirement/export; удаление ownership не
+удаляет S3 и не ломает сохранившееся bound integrity evidence. Native234/12 suites,
+skip0; fresh38 install12/2 suites,skip0. Frontend untouched, CF flag default-off.
+Следующий шаг требует внешнего решения: отдельная policy/ACL acceptance нового
+content/private-v1/ (не старый AG2 gate), затем клиентская интеграция/rollout.
+Автоматически обращаться к рабочему S3 или менять policy по текущему поручению
+нельзя. Новых самостоятельных runtime задач вместо этого не придумывать.
+
 #### AG5-F — отдельная пустая БД, локальная подготовка по поручению 14 октября
 
 Пользователь выбрал новый запуск без переноса существующей базы. История старой

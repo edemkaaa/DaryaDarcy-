@@ -34,6 +34,20 @@ changed payload (включая удаление photos из retry) или уд�
 фото из retry обошло бы ledger и создало дубль. Legacy comments без ключа и без
 private files сохраняют прежний путь; это не ретроактивная idempotency старого API.
 
+CF5: existing `profileExtras.recoveryExport` принимает дополнительные kind
+`private_content`/`comment`; только свои requestId/createdAt/status и прежняя
+ограниченная keyset pagination. Никаких filename, assetId, URL или storage keys.
+Existing retirement flag включает очистку новых ledger в той же транзакции под
+user lock: comment intents удаляются; у receipts убираются actorUserId/filename,
+actor-derived requestKey заменяется техническим asset-derived fingerprint.
+Ready/bound integrity evidence сохраняется для живого материала, unbound receipt
+помечается retired. Это не удаление S3. Частичная/небезопасная schema0036/0037
+откатывает retirement целиком; при наличии таблиц upload flag off не пропускает
+очистку. На старой схеме без обеих таблиц и с CF flag off старый путь сохраняется.
+Прежний opt-in 30-day recovery window действует и на новые intents:409 после
+истечения не создаёт замену, но не лишает опубликованный материал его файла.
+Автоматическая компактизация/очистка S3 для нового scope этим не включается.
+
 Фото: прежние JPEG/PNG/WebP<=4MiB, byte gate/re-encode/stripping EXIF, прозрачность
 сохраняется. Документы: PDF/DOCX/TXT<=32MiB, прежние проверки bytes/MIME, без DOC,
 HTML/SVG/новых форматов. Обложки, аватары и сезоны остаются публичными.

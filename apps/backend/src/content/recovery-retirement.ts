@@ -8,6 +8,7 @@ import {
 } from "../../../../packages/database/src/schema";
 import type { ContentTransaction } from "./post-deletion";
 import { requirePrivateAttachmentSchema } from "./private-attachment-uploads";
+import { retirePrivateContent } from "./private-content-retirement";
 
 /** No runtime DDL or partial cleanup on missing/nontransactional rollout schema. */
 export async function requireRecoveryRetirementSchema(tx: ContentTransaction) {
@@ -72,6 +73,7 @@ export async function retireContentRecovery(
 ) {
   if (process.env.CONTENT_RECOVERY_RETIREMENT_ENABLED !== "true") return;
   await requireRecoveryRetirementSchema(tx);
+  await retirePrivateContent(tx, actorUserId);
   // Source locks precede marker locks, matching compaction. Deletes also wait for compaction.
   await tx
     .delete(postCreationRequests)
