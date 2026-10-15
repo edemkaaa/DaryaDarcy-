@@ -4,6 +4,27 @@
 
 ### Проверенный остаток на 15 октября
 
+- [x] FE5: после переключения сети пользователем S3 HEAD200/TLS handshake~1.4сек,
+  policy hash0484dfa2… и versioning off прошли штатный preflight. Настоящие
+  Chromium→Next rewrite→Nest→fresh39 MySQL→Timeweb S3: **quick4/4 pass**,60.76s,
+  `-t 'quick:'`; full4 в этом прогоне skipped намеренно, НЕ засчитаны заново.
+  Вместе с ранее подтверждёнными full4/4 — **все8 разных сценариев FE5** за два
+  прогона. Оставшиеся quick edit и switch-during-upload/status закрыты:
+  существующие synthetic связи сохранены, lost ACK/reload/status-first replay
+  не создаёт дублей, unknown update не повторяется; другой аккаунт не получает
+  чужой intent/черновик/late receipt, исходный владелец восстанавливает прежний
+  файл. Actual GET bytes/HEAD/single Range206, paid access expiry/guest404 до
+  S3 вызова и anonymous S3 HEAD403 также прошли в quick create setup.
+  SQL итог:3 posts/5 media/3 creation intents/5 ready uploads, duplicate links0.
+  Все5 новых объектов этого прогона удалены с metadata/ETag guards и HEAD404;
+  policy hash unchanged. Own container99ceca6c…/59348/tmpfs/no mounts удалён
+  после повторной проверки exact ID/name/label/port/storage; API/Next/browser
+  закрыты, временных editor directories0, чужие4 containers сохранены.
+  Runtime frontend/backend/дизайн/старые S3/рабочая DB/flags не менялись;
+  исправлений продукта для прохождения не потребовалось. Рабочий rollout,
+  production build/device/browser matrix этим dev-Chromium прогоном не заявлены.
+  Секреты только stdin/memory, без secret files/Git/logs; no push/deploy.
+
 - FE5, после явного разрешения перезапустить Docker: штатный restart отказал
   по deadline; проверенные Docker UI/backend получили SIGTERM, после выхода
   дочерних процессов оставшийся stale supervisor5461 завершён, приложение
@@ -41,7 +62,8 @@
   сценария не засчитан. После восстановления engine — новая own fresh39 БД и
   `-t 'quick:'` (create нужен как setup для edit), без повтора уже пройденных full4.
 
-- [ ] FE5: разрешена сквозная проверка обоих редакторов с настоящими API/Timeweb
+- FE5, предыдущий неполный checkpoint (закрыт итогом выше): разрешена проверка
+  обоих редакторов с настоящими API/Timeweb
   S3 и own одноразовой БД. Preflight policy hash0484dfa2… совпал, versioning off,
   read-only; credentials только stdin/memory. Own loopback58158/tmpfs MySQL,
   fresh39 без pending, старые DB/objects/flags не тронуты. Новый opt-in
@@ -55,7 +77,7 @@
   Unknown update не повторяется автоматически; после SQL сверки удалён лишь
   локальный draft. В успешных частях создано и точно удалено9 own synthetic S3
   objects (2+7), metadata/ETag guards + HEAD404; policy hash не изменён.
-  **НЕ завершено:** quick edit+две account-switch проверки. Full-suite run
+  **Тогда не завершено:** quick edit+две account-switch проверки. Full-suite run
   5 pass/1 fail/bail,59.4s; quick edit прерван timeout холодной /club. Адресные
   cold /feed повторы до uploads также не прошли. Наблюдались Next HTTP500 и
   затем реальный ENOSPC при служебной проверке; свободно116MiB, после cleanup

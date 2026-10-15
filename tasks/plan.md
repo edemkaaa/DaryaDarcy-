@@ -83,7 +83,19 @@
 
 ### Снимок, от которого продолжать
 
-Последующее продолжение FE5: по явному разрешению пользователя освобождено около
+FE5 завершён после переключения сети пользователем: quick4/4 native pass,
+60.76s, без изменений runtime. Вместе с ранее пройденными full4/4 подтверждены
+все8 разных сценариев, не единый повтор всех8; opt-in skips не засчитаны.
+Edit/lost ACK/reload, account switch во время upload/status, SQL no-duplicates,
+actual private GET/HEAD/Range и отзыв доступа прошли через настоящий API и S3
+на новой own fresh39 БД. SQL3 posts/5 media/3 create intents/5 ready uploads,
+duplicate links0. Все5 новых S3 объектов удалены с guards/HEAD404, policy hash
+прежний; own DB и временные API/Next/browser убраны. Секреты не сохранены.
+Рабочая DB/старые S3/дизайн/flags/push/deploy не трогались. Точный итог — FE5
+в начале todo. Это dev-Chromium acceptance согласованных сценариев, не rollout
+или физические устройства; новые функции и повтор пройденного не нужны.
+
+История до закрытия FE5: по явному разрешению пользователя освобождено около
 1.6GiB за счёт только наших Next/build/browser кэшей; свободно около2GiB. Headless
 Chromium сохранён. Точные paths/ownership guards — начало todo. Пользователь
 разрешил restart Docker: выполнен, `_ping=OK`, новая own БД прошла fresh39.
@@ -95,7 +107,7 @@ HTTP1.1/TLS1.2, другие HTTPS сайты200. Нужна смена сети
 Три ранее работавших чужих контейнера после Docker restart остановлены, сохранены
 и вручную не запускались. Рабочие DB/S3/flags/code/push/deploy не менялись.
 
-15 октября, FE5: реальный Timeweb доступ подтверждён, оба редактора начали native
+Предыдущий неполный checkpoint15 октября, FE5: доступ подтверждён, оба редактора начали native
 приёмку на собственной fresh39/tmpfs БД. Подтверждены full4/4 и quick create1/4,
 не все8 сценариев. Остаток quick edit/account switch блокирован условиями локального
 стенда: cold navigation timeouts/HTTP500, затем ENOSPC и116MiB free. После cleanup

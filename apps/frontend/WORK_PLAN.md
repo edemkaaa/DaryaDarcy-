@@ -6,13 +6,19 @@
 
 FE5, последующая native проверка: `tests/private-editors.s3.mysql.test.ts`
 использует настоящий Chromium, Next rewrite, Nest API, собственную fresh39 MySQL
-и Timeweb S3. Подтверждены full4/4 и quick create/upload ACK recovery1/4; осталось
-quick edit и смена аккаунта во время upload/status. Это не полная приёмка обоих
-редакторов. Cold-page timeouts/HTTP500 и ENOSPC: после удаления own temp stand
-доступно около273MiB, для нового прогона нужен минимум2GiB (проверяется до writes).
-Все9 новых synthetic objects точечно удалены, HEAD404 и прежний policy hash
-подтверждены. Старые S3/рабочая DB/flags/дизайн не менялись, push/deploy не было.
-Точные доказательства/границы — FE5 в начале tasks/todo.md.
+и Timeweb S3. После освобождения только наших кэшей, разрешённого restart Docker
+и смены сети пользователем **quick4/4 pass**,60.76s. Вместе с ранее пройденными
+full4/4 подтверждены все8 разных сценариев; skipped4 full в quick прогоне не
+засчитаны повторно. Lost upload/create/update ACK, reload, отсутствие дублей,
+сохранение существующих synthetic связей и смена аккаунта при upload/status
+проверены. SQL3 posts/5 media/3 creation intents/5 ready uploads, дублей связей0.
+Actual private GET/HEAD/Range206, отзыв оплаченного доступа и guest404 до S3,
+anonymous S3 HEAD403 проходят. Все5 новых synthetic objects последнего прогона
+удалены с guards/HEAD404, policy hash прежний; own DB/API/Next/browser убраны.
+Продуктовый код/дизайн для прохождения не менялись. Рабочая DB, настройки S3/flags, старые
+файлы, push/deploy не трогались; production rollout/физические устройства и
+новая браузерная матрица этим dev-Chromium прогоном не заявлены.
+История предыдущих сетевых/ENOSPC ограничений и точные границы — FE5 в tasks/todo.md.
 
 Новое прямое поручение разрешает только внутреннюю логику frontend, без дизайна.
 Fetch подтвердил origin/staging81e8563, уже интегрированный в текущую feature-ветку;
