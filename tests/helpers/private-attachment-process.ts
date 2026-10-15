@@ -39,7 +39,9 @@ export async function privateAttachmentProcesses() {
       packages: "external",
       logLevel: "silent",
     });
-    async function start(options: { contentFiles?: boolean } = {}) {
+    async function start(
+      options: { contentFiles?: boolean; appOrigin?: string } = {},
+    ) {
       const env: Record<string, string> = {
         PATH: process.env.PATH!,
         NODE_ENV: "test",
@@ -49,6 +51,17 @@ export async function privateAttachmentProcesses() {
         PRIVATE_POST_MEDIA_DELIVERY_ENABLED: "true",
         PRIVATE_CONTENT_FILES_ENABLED: options.contentFiles ? "true" : "false",
       };
+      if (options.appOrigin) {
+        const origin = new URL(options.appOrigin);
+        if (
+          origin.protocol !== "http:" ||
+          origin.hostname !== "127.0.0.1" ||
+          !origin.port ||
+          origin.origin !== options.appOrigin
+        )
+          throw new Error("Owned browser origin required");
+        env.PUBLIC_APP_URL = origin.origin;
+      }
       for (const name of [
         "S3_ENDPOINT",
         "S3_BUCKET",

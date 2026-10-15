@@ -6,9 +6,12 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
 import { chromium, type Browser } from "@playwright/test";
 
-/** Unchanged Next rewrite in an owned copy: no .env reads or generated files
- * written back into the frontend owner's checkout. Not a UI/player acceptance. */
-export async function privateFilesBrowser(api: string) {
+/** Unchanged Next app/rewrite in an owned copy: no .env reads or generated files
+ * written back into the frontend owner's checkout. Public assets are read-only. */
+export async function privateFilesBrowser(
+  api: string,
+  options: { beforeStart?: (origin: string) => Promise<string> } = {},
+) {
   const root = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
   const temp = await mkdtemp(join(tmpdir(), "daryadarcy-ag2-browser-"));
   let child: ChildProcess | undefined, browser: Browser | undefined;
@@ -45,10 +48,11 @@ export async function privateFilesBrowser(api: string) {
         recursive: true,
         filter: (source) => !basename(source).startsWith(".env"),
       });
-    await mkdir(join(directory, "public"));
-    await cp(
-      join(root, "apps/frontend/public/privacy.html"),
-      join(directory, "public/privacy.html"),
+    // App pages import the generated static image catalog at compile time.
+    // A privacy-only public copy can test rewrites, but cannot render editors.
+    await symlink(
+      join(root, "apps/frontend/public"),
+      join(directory, "public"),
     );
     await symlink(join(root, "node_modules"), join(temp, "node_modules"));
     await symlink(join(root, "packages"), join(temp, "packages"));
@@ -58,6 +62,7 @@ export async function privateFilesBrowser(api: string) {
     const port = (reservation.address() as { port: number }).port;
     await new Promise<void>((resolve) => reservation.close(() => resolve()));
     const origin = `http://127.0.0.1:${port}`;
+    const apiTarget = (await options.beforeStart?.(origin)) ?? api;
     child = spawn(
       process.execPath,
       [
@@ -77,7 +82,7 @@ export async function privateFilesBrowser(api: string) {
         env: {
           PATH: process.env.PATH!,
           NODE_ENV: "development",
-          API_PROXY_TARGET: api,
+          API_PROXY_TARGET: apiTarget,
           NEXT_TELEMETRY_DISABLED: "1",
         },
       },

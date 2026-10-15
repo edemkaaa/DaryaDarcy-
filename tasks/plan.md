@@ -83,6 +83,16 @@
 
 ### Снимок, от которого продолжать
 
+15 октября, FE5: реальный Timeweb доступ подтверждён, оба редактора начали native
+приёмку на собственной fresh39/tmpfs БД. Подтверждены full4/4 и quick create1/4,
+не все8 сценариев. Остаток quick edit/account switch блокирован условиями локального
+стенда: cold navigation timeouts/HTTP500, затем ENOSPC и116MiB free. После cleanup
+own Next273MiB; нужен минимум2GiB free, preflight теперь отказывает до API/S3 writes.
+Не повторять S3 policy изменения, не чинить приложение по одному timeout, не
+засчитывать mock checks за оставшиеся3 native сценария. Все9 созданных synthetic
+objects удалены с metadata/ETag guards и HEAD404; policy unchanged. Точные результаты
+и продолжение — FE5 в начале todo. Продуктовый код/дизайн в этом срезе не менялись.
+
 Последующее прямое разрешение15 октября: **локальный merge staging81e8563 в
 текущую feature-ветку**, сохранять весь frontend, без ручных frontend правок,
 push/deploy/рабочей DB. Выполнен no-ff merge без конфликтов из ad54e16;

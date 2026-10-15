@@ -4,6 +4,46 @@
 
 ### Проверенный остаток на 15 октября
 
+- [ ] FE5: разрешена сквозная проверка обоих редакторов с настоящими API/Timeweb
+  S3 и own одноразовой БД. Preflight policy hash0484dfa2… совпал, versioning off,
+  read-only; credentials только stdin/memory. Own loopback58158/tmpfs MySQL,
+  fresh39 без pending, старые DB/objects/flags не тронуты. Новый opt-in
+  `tests/private-editors.s3.mysql.test.ts`: настоящий Chromium→Next rewrite→Nest→
+  MySQL/S3; только HTTP ACK теряется/задерживается после upstream commit.
+  Transport helper RED→GREEN2, commit278b975. Native подтверждены **5/8**:
+  full4/4 (create/upload ACK loss+reload, edit+existing synthetic links, live account switch
+  during upload/status), quick create/upload ACK loss+reload1/4. SQL: один пост,
+  одна запись intent, одна связь/file, без повторных PUT; GET bytes/HEAD/single
+  Range206, direct S3 anonymous403, expired paid access/guest404 до S3 вызова.
+  Unknown update не повторяется автоматически; после SQL сверки удалён лишь
+  локальный draft. В успешных частях создано и точно удалено9 own synthetic S3
+  objects (2+7), metadata/ETag guards + HEAD404; policy hash не изменён.
+  **НЕ завершено:** quick edit+две account-switch проверки. Full-suite run
+  5 pass/1 fail/bail,59.4s; quick edit прерван timeout холодной /club. Адресные
+  cold /feed повторы до uploads также не прошли. Наблюдались Next HTTP500 и
+  затем реальный ENOSPC при служебной проверке; свободно116MiB, после cleanup
+  own Next273MiB. Не объявлять эти сбои доказанным дефектом приложения или
+  полной native приёмкой. Сначала освободить **минимум2GiB**; новый preflight
+  проверяет место ДО подключения к API/S3. Не чистить чужие файлы автоматически.
+  Стенд теперь переносит необходимые public assets (read-only symlink), не
+  только privacy.html; подавлена лишь onboarding preference тестового браузера.
+  API child доверяет точному own browser origin, рабочие CORS/flags не менялись.
+  Итог: root tsc, targeted60 pass/8 opt-in skip, boundaries667/docs58/diff exit0.
+  Low-space preflight отдельно подтвердил ожидаемый отказ без DB/S3 credentials,
+  beforeAll/0 writes; это не native pass. Own контейнер a2518615… удалён после
+  повторной сверки name/owner/loopback58158/tmpfs/no mounts, чужие3 сохранены;
+  временные API/Next/browser закрыты. Последний free271MiB. Review: fixture-only
+  изменения, credentials не попадают в Next/Git/logs; новые DB/S3 objects только
+  синтетические. Рабочие frontend/backend runtime и дизайн прежние.
+  После освобождения места создать новую own fresh39 БД с именем/label
+  `daryadarcy-fresh-editors-*`, передать её URI в BACKEND_TEST_DATABASE_URL и
+  DATABASE_URL, exact64-char ID в PRIVATE_EDITORS_DATABASE_CONTAINER_ID, test JWT
+  в JWT_SECRET, прежний разрешённый S3 доступ только через stdin/memory.
+  `PRIVATE_EDITORS_S3_ACCEPTANCE=true CI=true pnpm exec vitest run
+  tests/private-editors.s3.mysql.test.ts --maxWorkers=1 --reporter=dot`.
+  Запускать весь файл: edit проверяет именно пост, ранее созданный UI того же mode.
+  Working flags не включать; fresh migration preflight и own cleanup обязательны.
+
 - [x] FE4: по прямому поручению подключены новые закрытые audio/document к обоим
   существующим post editors без дизайна. Domain slice ece9991: stable per-file
   intent/status/replay и privateAssetIds, RED9→GREEN18 + legacy regressions110.

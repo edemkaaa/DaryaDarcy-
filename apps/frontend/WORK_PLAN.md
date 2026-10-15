@@ -4,6 +4,16 @@
 
 ## 15 октября — внутренние исправления после сверки staging
 
+FE5, последующая native проверка: `tests/private-editors.s3.mysql.test.ts`
+использует настоящий Chromium, Next rewrite, Nest API, собственную fresh39 MySQL
+и Timeweb S3. Подтверждены full4/4 и quick create/upload ACK recovery1/4; осталось
+quick edit и смена аккаунта во время upload/status. Это не полная приёмка обоих
+редакторов. Cold-page timeouts/HTTP500 и ENOSPC: после удаления own temp stand
+доступно около273MiB, для нового прогона нужен минимум2GiB (проверяется до writes).
+Все9 новых synthetic objects точечно удалены, HEAD404 и прежний policy hash
+подтверждены. Старые S3/рабочая DB/flags/дизайн не менялись, push/deploy не было.
+Точные доказательства/границы — FE5 в начале tasks/todo.md.
+
 Новое прямое поручение разрешает только внутреннюю логику frontend, без дизайна.
 Fetch подтвердил origin/staging81e8563, уже интегрированный в текущую feature-ветку;
 исходный frontend совпадал точно, merge/перезапись не потребовались. Runtime
