@@ -217,7 +217,9 @@ export const likes = mysqlTable("likes", {
   userId: int("userId").notNull(),
   postId: int("postId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => [
+  index("likes_post_lookup").on(table.postId),
+]);
 
 export type Like = typeof likes.$inferSelect;
 export type InsertLike = typeof likes.$inferInsert;
@@ -509,7 +511,9 @@ export const postComments = mysqlTable("post_comments", {
   text: text("text").notNull(),
   photos: json("photos").$type<string[]>(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => [
+  index("post_comments_post_created").on(table.postId, table.createdAt),
+]);
 
 export type PostComment = typeof postComments.$inferSelect;
 export type InsertPostComment = typeof postComments.$inferInsert;

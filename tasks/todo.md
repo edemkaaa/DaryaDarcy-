@@ -4,6 +4,12 @@
 
 ### Проверенный остаток на 15 октября
 
+- [ ] AG9-L4: разрешены только count-индексы и повтор local load. RED2 ALL→ref
+  tests + unchanged exact-count test; A/B30 calls/phase, одинаковый result hash:
+  median30.24→4.83мс, invisible30.36мс, visible-repeat6.10мс. Candidate nonunique
+  likes(postId)/comments(postId,createdAt), additive0038; fresh39/native и полный
+  5/10/25RPS repeat в работе. Frontend/working DB/S3/API/квоты/пул без изменений.
+
 - [x] AG9-L0: по поручению предложен минимальный local API/DB load scenario в
   начале очереди tasks/plan.md: current38 fresh SQL/own tmpfs, synthetic dataset,
   real login отдельно от mixed HTTP read/toggle,5/10/25RPS, per-method latency/

@@ -1,0 +1,235 @@
+{
+  "at": "2026-10-15T11:05:27.097Z",
+  "fixture": {
+    "posts": 10000,
+    "comments": 20000,
+    "likes": 1000,
+    "syntheticUsers": 60
+  },
+  "phases": [
+    {
+      "phase": "before",
+      "requests": 30,
+      "medianMs": 30.239709000000175,
+      "p95Ms": 35.145791999999915,
+      "resultHash": "5942795483141c634915e591146b1f766f007032de5a0eb49588239a45801815",
+      "handlerDelta": {
+        "Handler_read_first": 1320,
+        "Handler_read_key": 1320,
+        "Handler_read_last": 0,
+        "Handler_read_next": 0,
+        "Handler_read_prev": 0,
+        "Handler_read_rnd": 0,
+        "Handler_read_rnd_next": 13531320
+      },
+      "plans": [
+        {
+          "table": "likes",
+          "plan": [
+            {
+              "id": 1,
+              "select_type": "SIMPLE",
+              "table": "likes",
+              "partitions": null,
+              "type": "ALL",
+              "possible_keys": null,
+              "key": null,
+              "key_len": null,
+              "ref": null,
+              "rows": 1000,
+              "filtered": 10,
+              "Extra": "Using where"
+            }
+          ]
+        },
+        {
+          "table": "post_comments",
+          "plan": [
+            {
+              "id": 1,
+              "select_type": "SIMPLE",
+              "table": "post_comments",
+              "partitions": null,
+              "type": "ALL",
+              "possible_keys": null,
+              "key": null,
+              "key_len": null,
+              "ref": null,
+              "rows": 19739,
+              "filtered": 10,
+              "Extra": "Using where"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "visible",
+      "requests": 30,
+      "medianMs": 4.82833299999993,
+      "p95Ms": 5.435916000000134,
+      "resultHash": "5942795483141c634915e591146b1f766f007032de5a0eb49588239a45801815",
+      "handlerDelta": {
+        "Handler_read_first": 60,
+        "Handler_read_key": 1320,
+        "Handler_read_last": 0,
+        "Handler_read_next": 27600,
+        "Handler_read_prev": 0,
+        "Handler_read_rnd": 0,
+        "Handler_read_rnd_next": 300060
+      },
+      "plans": [
+        {
+          "table": "likes",
+          "plan": [
+            {
+              "id": 1,
+              "select_type": "SIMPLE",
+              "table": "likes",
+              "partitions": null,
+              "type": "ref",
+              "possible_keys": "likes_post_lookup",
+              "key": "likes_post_lookup",
+              "key_len": "4",
+              "ref": "const",
+              "rows": 20,
+              "filtered": 100,
+              "Extra": "Using index"
+            }
+          ]
+        },
+        {
+          "table": "post_comments",
+          "plan": [
+            {
+              "id": 1,
+              "select_type": "SIMPLE",
+              "table": "post_comments",
+              "partitions": null,
+              "type": "ref",
+              "possible_keys": "post_comments_post_created",
+              "key": "post_comments_post_created",
+              "key_len": "4",
+              "ref": "const",
+              "rows": 500,
+              "filtered": 100,
+              "Extra": "Using index"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "invisible-control",
+      "requests": 30,
+      "medianMs": 30.363332999999784,
+      "p95Ms": 33.18458299999975,
+      "resultHash": "5942795483141c634915e591146b1f766f007032de5a0eb49588239a45801815",
+      "handlerDelta": {
+        "Handler_read_first": 1320,
+        "Handler_read_key": 1320,
+        "Handler_read_last": 0,
+        "Handler_read_next": 0,
+        "Handler_read_prev": 0,
+        "Handler_read_rnd": 0,
+        "Handler_read_rnd_next": 13531320
+      },
+      "plans": [
+        {
+          "table": "likes",
+          "plan": [
+            {
+              "id": 1,
+              "select_type": "SIMPLE",
+              "table": "likes",
+              "partitions": null,
+              "type": "ALL",
+              "possible_keys": null,
+              "key": null,
+              "key_len": null,
+              "ref": null,
+              "rows": 1000,
+              "filtered": 2,
+              "Extra": "Using where"
+            }
+          ]
+        },
+        {
+          "table": "post_comments",
+          "plan": [
+            {
+              "id": 1,
+              "select_type": "SIMPLE",
+              "table": "post_comments",
+              "partitions": null,
+              "type": "ALL",
+              "possible_keys": null,
+              "key": null,
+              "key_len": null,
+              "ref": null,
+              "rows": 19739,
+              "filtered": 0.01,
+              "Extra": "Using where"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "visible-repeat",
+      "requests": 30,
+      "medianMs": 6.099459000000024,
+      "p95Ms": 8.524124999999913,
+      "resultHash": "5942795483141c634915e591146b1f766f007032de5a0eb49588239a45801815",
+      "handlerDelta": {
+        "Handler_read_first": 60,
+        "Handler_read_key": 1320,
+        "Handler_read_last": 0,
+        "Handler_read_next": 27600,
+        "Handler_read_prev": 0,
+        "Handler_read_rnd": 0,
+        "Handler_read_rnd_next": 300060
+      },
+      "plans": [
+        {
+          "table": "likes",
+          "plan": [
+            {
+              "id": 1,
+              "select_type": "SIMPLE",
+              "table": "likes",
+              "partitions": null,
+              "type": "ref",
+              "possible_keys": "likes_post_lookup",
+              "key": "likes_post_lookup",
+              "key_len": "4",
+              "ref": "const",
+              "rows": 20,
+              "filtered": 100,
+              "Extra": "Using index"
+            }
+          ]
+        },
+        {
+          "table": "post_comments",
+          "plan": [
+            {
+              "id": 1,
+              "select_type": "SIMPLE",
+              "table": "post_comments",
+              "partitions": null,
+              "type": "ref",
+              "possible_keys": "post_comments_post_created",
+              "key": "post_comments_post_created",
+              "key_len": "4",
+              "ref": "const",
+              "rows": 500,
+              "filtered": 100,
+              "Extra": "Using index"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -177,6 +177,17 @@ HEAD и не подтверждение версии сервера. В нача
 
 #### AG9-L — предложение локальной нагрузки API/БД, 15 октября
 
+**L4 — согласованная оптимизация count-индексов, в работе15.10.** Пользователь
+разрешил сначала проверку индексов на own disposable SQL, затем тот же load.
+RED: EXPLAIN COUNT likes/comments даёт ALL; точность legacy duplicate counts
+сохранена. Causal A/B на own fresh38 +1000 synthetic likes: club page median
+30.24→4.83мс, invisible-control30.36мс, visible-repeat6.10мс, hash ответов одинаков.
+Выбраны только nonunique likes(postId), post_comments(postId,createdAt);
+additive0038 + ORM metadata, без API/cache/pool/quota изменений. Fresh39/native
+regression и повтор прежнего600+1800+7500 workload — до итоговой приёмки.
+Evidence: tooling/data/backend-load/2026-10-15-index-trial.json. История0017–0019
+не исправляется; working migration/rollout отдельно, frontend/working DB/S3 off limits.
+
 По поручению пользователя сначала согласовать минимальный сценарий п.4.15,
 потом проверять локально. **Критерии приняты следующим прямым сообщением пользователя;
 разрешён own local API/DB load, без frontend/working DB/S3. Прогон завершён ниже.**
