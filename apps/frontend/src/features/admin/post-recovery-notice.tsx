@@ -70,7 +70,10 @@ export function PostRecoveryNotice({
         </Typography>
         {phase === "create" ||
         (phase === "upload" &&
-          Boolean(recovery.saveState?.privateUploads?.length)) ? (
+          Boolean(
+            recovery.saveState?.privateUploads?.length ||
+            recovery.saveState?.privatePhotos?.length,
+          )) ? (
           <>
             <Typography>
               {phase === "upload"

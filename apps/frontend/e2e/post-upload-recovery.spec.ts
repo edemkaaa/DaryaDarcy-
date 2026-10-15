@@ -1,5 +1,4 @@
 import { test, expect } from "@playwright/test";
-import sharp from "sharp";
 import { editorApi, failure } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
@@ -61,7 +60,8 @@ for (const mode of ["full", "quick"] as const) {
     ).toBeVisible();
     expect(creates).toHaveLength(1);
   });
-  for (const kind of ["photo", "video"] as const) {
+  // Closed-photo recovery is covered by private-photo-editors.browser.test.ts.
+  for (const kind of ["video"] as const) {
     test(`${mode}: an unknown ${kind} upload blocks partial publication until explicitly discarded`, async ({
       page,
     }) => {
@@ -74,10 +74,6 @@ for (const mode of ["full", "quick"] as const) {
       });
       await editorApi(page, (name, input) => {
         if (name === "admin.createPost") creates.push(input);
-        if (name === "admin.uploadPhoto") {
-          uploads++;
-          return failure(503);
-        }
       });
       await page.route("**/api/admin/upload-video?*", (route) => {
         uploads++;
@@ -107,28 +103,16 @@ for (const mode of ["full", "quick"] as const) {
       const chooser = page.waitForEvent("filechooser");
       await form
         .getByRole("button", {
-          name: kind === "photo" ? "Выбрать из галереи" : "Выбрать видеофайл",
+          name: "Выбрать видеофайл",
           exact: true,
         })
         .click();
       await (
         await chooser
       ).setFiles({
-        name: kind === "photo" ? "chosen.png" : "chosen.webm",
-        mimeType: kind === "photo" ? "image/png" : "video/webm",
-        buffer:
-          kind === "photo"
-            ? await sharp({
-                create: {
-                  width: 10,
-                  height: 10,
-                  channels: 3,
-                  background: "red",
-                },
-              })
-                .png()
-                .toBuffer()
-            : Buffer.from("video fixture"),
+        name: "chosen.webm",
+        mimeType: "video/webm",
+        buffer: Buffer.from("video fixture"),
       });
       await expect.poll(() => uploads).toBe(1);
       await expect.poll(() => messages.length).toBe(1);
@@ -142,9 +126,7 @@ for (const mode of ["full", "quick"] as const) {
       await expect.poll(() => creates.length + messages.length).toBe(2);
       await expect(form).toBeVisible();
       expect(creates).toEqual([]);
-      await expect(form.getByRole("alert")).toContainText(
-        kind === "photo" ? "chosen.png" : "chosen.webm",
-      );
+      await expect(form.getByRole("alert")).toContainText("chosen.webm");
       await expect(
         form.getByText("Черновик сохранён на этом устройстве", { exact: true }),
       ).toBeVisible();
@@ -163,9 +145,7 @@ for (const mode of ["full", "quick"] as const) {
       await expect(
         form.getByPlaceholder("Текст поста… Enter — новый абзац"),
       ).toHaveValue("KEEP_SELECTED_MEDIA");
-      await expect(form.getByRole("alert")).toContainText(
-        kind === "photo" ? "chosen.png" : "chosen.webm",
-      );
+      await expect(form.getByRole("alert")).toContainText("chosen.webm");
       expect(uploads).toBe(1);
       expect(creates).toEqual([]);
       await form

@@ -353,15 +353,16 @@ JSON — tooling/data/backend-load/2026-10-15.json. Не повторять бе
 #### CF — новые фото и файлы статей, принято 15 октября
 
 Клиентское продолжение16 октября (разрешение на внутреннюю frontend-интеграцию
-из актуальных границ выше): CF-F1a добавляет закрытые фото постов в общий save
-coordinator, не подключая пока UI. Typed receipt, стабильный File/key checkpoint,
-status-first recovery, frozen create replay, порядок/удаление и session guard
-проверены34 unit tests. API contract уже содержит86 процедур; новая серверная
-функция не добавляется. Следующий CF-F1b — IndexedDB + локальные превью/оба
-редактора, затем browser→API acceptance. CF client остаётся незавершённым.
-Срез и ограничения проверок записаны в начале todo. Тяжёлые проверки остановлены
-по нехватке диска (~187MiB, full Vitest один ENOSPC); не запускать Next/native
-стенд до минимум2GiB. Рабочие DB/S3/flags, дизайн, push/deploy исключены.
+из актуальных границ выше): CF-F1a + CF-F1b1/b2 подключили новые закрытые фото
+постов к общему save coordinator, durable IndexedDB и обоим существующим редакторам.
+Typed receipt/File/key/status/replay/session guards34 unit, native storage4 и
+Chromium/Next с synthetic API12/12 проверок; дизайн не менялся. API contract
+содержит86 процедур; новая серверная функция не добавляется. Следующий CF-F1b3 —
+browser→actual API/SQL/S3 на own disposable DB/new synthetic objects. Затем
+отдельные CF клиенты статей/комментариев, browser/device matrix и rollout gates.
+CF целиком остаётся незавершённым. Доказательства/границы — в начале todo.
+Старый disk blocker снят без нашей очистки: при старте7.4GiB, новые build/types/
+lint и Full Vitest2416 pass. Рабочие DB/S3/flags, дизайн, push/deploy исключены.
 
 Последнее прямое поручение расширяет AG4, см. CF в SPEC-private-files.md.
 Реализация runtime локальная. Изначально новый префикс был только в protocol

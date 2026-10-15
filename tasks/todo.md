@@ -23,12 +23,12 @@
     повтор8/8 pass,0.72s. Ни skipped, ни отдельный повтор не считать единым
     зелёным прогоном. Секреты/DB/S3 не читались.
   - [ ] CF-F1b: durable IndexedDB File/alias validation и локальные превью в
-    обоих существующих редакторах, затем browser→API acceptance. До этого
-    новый photo path НЕ подключён к UI; CF client НЕ считать готовым.
-    Место при проверках упало с1.5GiB до~187MiB; Next build/native стенд не
+    обоих существующих редакторах, затем browser→API acceptance. Локальные
+    storage/UI срезы ниже закрыты; настоящий browser→API/S3 ещё не выполнен.
+    Ранее место при проверках упало с1.5GiB до~187MiB; Next build/native стенд не
     запускались (минимум2GiB). Доступных больших кэшей этой задачи не найдено:
     .next/cache отсутствует, node_modules/.vite24KiB; старые reports сохранены.
-    Без освобождения места не запускать тяжёлые проверки. Рабочие flags/DB/S3,
+    Тот disk blocker снят16 октября (7.4GiB при старте). Рабочие flags/DB/S3,
     старые файлы и оформление не менять; no push/deploy.
     - [x] CF-F1b1: File bytes/metadata упакованы в ArrayBuffer, identity alias
       между editor и save snapshot сохраняется при записи/чтении. Восстановление
@@ -39,8 +39,35 @@
       синтетический; API/SQL/S3 не вызывались, не считать сквозной приёмкой.
       Affected48 pass, root tsc exit0. Место восстановилось до7.4GiB без нашей
       очистки; прежний disk blocker больше не мешает следующему срезу.
-    - [ ] CF-F1b2: подключить локальные File/preview к обоим редакторам и
-      проверить их реальное поведение в браузере, без изменения дизайна.
+    - [x] CF-F1b2: оба существующих редактора используют подготовленный File и
+      local-photo key; новые фото не отправляются публично при выборе. Сохранение
+      использует CF upload/status и общую атомарную запись поста. Blob preview
+      принадлежит editor/account scope; revoke при удалении/замене/закрытии и
+      уходе/смене аккаунта. До binding закрытый GET не вызывается, старые URL
+      сохраняются; PhotoEditor/preview получают blob URL, не local-photo marker.
+      RED missing preview→GREEN; remove URL RED2→GREEN. Actual Chromium/Next UI
+      и File/IndexedDB + synthetic API: **12/12 pass**,46.84s. Create/edit обоих
+      редакторов, lost upload/create response+reload, ready без второго upload,
+      notRecorded с прежними bytes/key, frozen create replay, unsent draft reload,
+      live account switch during upload/status, close/remove/revoke, WebP alpha.
+      Реальные API/SQL/S3 в этих12 тестах НЕ использовались.
+      Existing3 browser specs:19 pass/1 selector failure,55.2s. Два сохранённых
+      экрана VK давали duplicate text locator; добавлен visible filter без
+      изменения runtime доступа, этот тест отдельно1/1 pass,3.0s. Не выдавать
+      19+1 за новый единый20/20 прогон. Внешняя сеть для этих проверок закрыта
+      own deny proxy; legacy URL/старые S3 не читались. Own Next/browser/proxy
+      завершены, временных Next directories0; служебные config/last-run metadata
+      остались в /private/tmp/daryadarcy-cf-legacy.p3S8CY/ (8KiB, без реальных
+      данных/секретов; старый failure trace очищен Playwright при повторе).
+      Full Vitest:2416 pass/1479 opt-in skips (37.38s, maxWorkers4); skips не pass.
+      Root tsc/frontend+e2e types/full lint/production build/API86/boundaries669
+      проходят. Build без .env/рабочих credentials, target127.0.0.1:1. Стилей,
+      visual assets/раскладки/backend/DB/S3/рабочих flags не меняли; no push/deploy.
+    - [ ] CF-F1b3: сквозная проверка новых фото обоих редакторов с actual
+      API/SQL+S3 на собственном одноразовом backend_test и только новых synthetic
+      objects; отдельно browser/device matrix и разрешённый rollout. До этого
+      CF client не объявлять полностью принятым. Статьи/комментарии остаются
+      отдельной согласованной CF client интеграцией; существующие файлы не менять.
 
 - [x] FE5: после переключения сети пользователем S3 HEAD200/TLS handshake~1.4сек,
   policy hash0484dfa2… и versioning off прошли штатный preflight. Настоящие

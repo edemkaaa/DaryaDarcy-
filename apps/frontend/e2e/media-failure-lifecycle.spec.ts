@@ -199,7 +199,11 @@ for (const format of ["jpg", "png", "webp", "heic"]) {
       await dialog.accept();
     });
     await editorApi(page, (name) => {
-      if (name === "admin.uploadPhoto") uploads++;
+      if (
+        name === "admin.uploadPhoto" ||
+        name === "admin.uploadPrivateContentFile"
+      )
+        uploads++;
     });
     await gotoWithSession(page, "/feed");
     await page.getByRole("button", { name: "Новый пост", exact: true }).click();
@@ -277,7 +281,10 @@ test("a failed access refetch hides a previously loaded video instead of retaini
   deny = true;
   await page.clock.setFixedTime(new Date(Date.now() + 60_000));
   await page.getByRole("button", { name: "Назад", exact: true }).click();
-  await page.getByText("PRIVATE_VIDEO", { exact: true }).click();
+  await page
+    .getByText("PRIVATE_VIDEO", { exact: true })
+    .filter({ visible: true })
+    .click();
   await expect(page.getByTitle("VK Видео", { exact: true })).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Повторить", exact: true }),

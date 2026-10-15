@@ -21,11 +21,7 @@ import type { AdminPost } from "@/shared/api/types";
 import { ScheduleDatetime } from "@/features/admin/schedule-datetime";
 
 import { uploadAdminVideoBlob } from "@/features/admin/media/video-upload";
-import {
-  blobToBase64,
-  fileToUpload,
-  pickWebFiles,
-} from "@/shared/media/image-upload";
+import { blobToBase64, pickWebFiles } from "@/shared/media/image-upload";
 import { mediaBasename } from "@/domain/post/post-media-photos";
 import { extractVideoPosterBlob } from "@/shared/media/video-poster";
 import { PhotoEditor } from "@/features/admin/photo-editor";
@@ -47,6 +43,7 @@ import { PostUploadStatus } from "./post-upload-status";
 import { PostEditorTags } from "./post-editor-tags";
 import { PostRecoveryNotice } from "./post-recovery-notice";
 import { usePostRecovery } from "./use-post-recovery";
+import { usePrivatePostPhotos } from "./use-private-post-photos";
 
 import {
   PostAttachmentsField,
@@ -155,12 +152,14 @@ export function AdminPostEditor({
     }
   };
   const attachments = usePostAttachments(operation, notifyAdminError);
+  const privatePhotos = usePrivatePostPhotos(showForm, editingId ?? "new");
   const editorSnapshot = useMemo(
     () => ({
       draft: { ...form, richText: richText ?? null },
       attachments: attachments.attachments,
       removedIds: attachments.removedIds,
       pending: uploadSelection.pending,
+      privatePhotos: privatePhotos.photos,
     }),
     [
       form,
@@ -168,6 +167,7 @@ export function AdminPostEditor({
       attachments.attachments,
       attachments.removedIds,
       uploadSelection.pending,
+      privatePhotos.photos,
     ],
   );
   const recovery = usePostRecovery({
@@ -176,6 +176,7 @@ export function AdminPostEditor({
     editor: editorSnapshot,
     coordinator: saveCoordinator,
     onRestore: (snapshot) => {
+      privatePhotos.restore(snapshot.privatePhotos ?? [], snapshot.draft.photos);
       setForm({
         ...snapshot.draft,
         published: snapshot.draft.status === "published",
@@ -216,12 +217,25 @@ export function AdminPostEditor({
       >[0],
       signal: AbortSignal,
     ) => utils.client.admin.privateAttachmentStatus.query(input, { signal }),
+    uploadPrivatePhoto: (
+      input: Parameters<
+        typeof utils.client.admin.uploadPrivateContentFile.mutate
+      >[0],
+      signal: AbortSignal,
+    ) => utils.client.admin.uploadPrivateContentFile.mutate(input, { signal }),
+    privatePhotoStatus: (
+      input: Parameters<
+        typeof utils.client.admin.privateContentFileStatus.query
+      >[0],
+      signal: AbortSignal,
+    ) => utils.client.admin.privateContentFileStatus.query(input, { signal }),
   };
   const resetAttachments = attachments.reset;
   useEffect(() => {
     resetAttachments(post?.media);
   }, [post, resetAttachments]);
   const resetForm = () => {
+    privatePhotos.reset();
     operation.cancel();
     uploadSelection.reset();
     saveCoordinator.current = new PostSaveCoordinator();
@@ -286,6 +300,7 @@ export function AdminPostEditor({
         attachments.removedIds,
         postApi,
         task,
+        privatePhotos.photos,
       );
       task.assertCurrent();
       await recovery.clear();
@@ -393,16 +408,10 @@ export function AdminPostEditor({
       task.assertCurrent();
       for (const [index, file] of files.entries()) {
         selected = selections[index];
-        const payload = await fileToUpload(file, { signal: task.signal });
-        task.assertCurrent();
         uploadSelection.sending(selected);
         await recovery.checkpoint(undefined, uploadSelection.snapshot());
         task.assertCurrent();
-        const url = requireUploadedUrl(
-          await utils.client.admin.uploadPhoto.mutate(payload, {
-            signal: task.signal,
-          }),
-        );
+        const url = await privatePhotos.add(file, task);
         task.assertCurrent();
         uploadSelection.confirmed(selected);
         setForm((prev) => ({ ...prev, photos: [...prev.photos, url] }));
@@ -421,6 +430,7 @@ export function AdminPostEditor({
   };
   const removePhoto = (index: number) => {
     if (operation.busy) return;
+    privatePhotos.removePreview(form.photos[index]);
     setForm((prev) => ({
       ...prev,
       photos: prev.photos.filter((_, i) => i !== index),
@@ -672,7 +682,7 @@ export function AdminPostEditor({
                   >
                     {form.photos.length === 1 ? (
                       <Picture
-                        source={{ uri: form.photos[0] }}
+                        source={{ uri: privatePhotos.preview(form.photos[0]) }}
                         contentFit="contain"
                         className={classes.previewSinglePhoto}
                       />
@@ -681,7 +691,7 @@ export function AdminPostEditor({
                         {form.photos.map((uri, i) => (
                           <Picture
                             key={i}
-                            source={{ uri }}
+                            source={{ uri: privatePhotos.preview(uri) }}
                             style={{
                               width: stylesLayout.previewCarouselPhoto.width,
                             }}
@@ -859,7 +869,7 @@ export function AdminPostEditor({
                 </Typography>
               </Action>
               <PhotoEditor
-                photos={form.photos}
+                photos={form.photos.map(privatePhotos.preview)}
                 onRemove={removePhoto}
                 onMove={(index, direction) =>
                   movePhoto(index, direction === "left" ? "up" : "down")

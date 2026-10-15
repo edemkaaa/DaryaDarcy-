@@ -16,7 +16,6 @@ import {
   checkOperationAccessError,
 } from "@/domain/session/use-session-operation";
 import { MAX_VIDEO_BYTES } from "@/shared/browser/file-operations";
-import { requireUploadedUrl } from "@/shared/media/upload-result";
 import { PostSaveCoordinator } from "@/domain/post/save-post";
 import { VkVideoField, VkVideoPreviewButton } from "./vk-video-field";
 import { usePostAttachments } from "./use-post-attachments";
@@ -25,9 +24,10 @@ import { PostUploadStatus } from "./post-upload-status";
 import { PostEditorTags } from "./post-editor-tags";
 import { PostRecoveryNotice } from "./post-recovery-notice";
 import { usePostRecovery } from "./use-post-recovery";
+import { usePrivatePostPhotos } from "./use-private-post-photos";
 import { PostAttachmentsField } from "./post-attachments-field";
 import { uploadAdminVideoBlob } from "@/features/admin/media/video-upload";
-import { fileToUpload, pickWebFiles } from "@/shared/media/image-upload";
+import { pickWebFiles } from "@/shared/media/image-upload";
 import { PhotoEditor } from "@/features/admin/photo-editor";
 import { ScheduleDatetime } from "@/features/admin/schedule-datetime";
 import { tagsForTarget } from "@/domain/post/post-tags";
@@ -113,6 +113,10 @@ export function CreatePostModal({
     new PostSaveCoordinator(editingPost?.id ?? null),
   );
   const uploadSelection = usePostUploadSelection();
+  const privatePhotos = usePrivatePostPhotos(
+    visible,
+    `${editingPost?.id ?? "new"}:${defaultTarget}`,
+  );
   const resetUploads = uploadSelection.reset;
   const seeded = useRef<string | null>(null);
   useEffect(() => {
@@ -191,6 +195,7 @@ export function CreatePostModal({
       attachments: mediaAttachments,
       removedIds: removedMediaIds,
       pending: uploadSelection.pending,
+      privatePhotos: privatePhotos.photos,
     }),
     [
       text,
@@ -205,6 +210,7 @@ export function CreatePostModal({
       mediaAttachments,
       removedMediaIds,
       uploadSelection.pending,
+      privatePhotos.photos,
     ],
   );
   const recovery = usePostRecovery({
@@ -213,6 +219,7 @@ export function CreatePostModal({
     editor: editorSnapshot,
     coordinator: saveCoordinator,
     onRestore: (snapshot) => {
+      privatePhotos.restore(snapshot.privatePhotos ?? [], snapshot.draft.photos);
       const draft = snapshot.draft;
       setText(draft.text);
       setPhotos(draft.photos);
@@ -258,8 +265,21 @@ export function CreatePostModal({
       >[0],
       signal: AbortSignal,
     ) => utils.client.admin.privateAttachmentStatus.query(input, { signal }),
+    uploadPrivatePhoto: (
+      input: Parameters<
+        typeof utils.client.admin.uploadPrivateContentFile.mutate
+      >[0],
+      signal: AbortSignal,
+    ) => utils.client.admin.uploadPrivateContentFile.mutate(input, { signal }),
+    privatePhotoStatus: (
+      input: Parameters<
+        typeof utils.client.admin.privateContentFileStatus.query
+      >[0],
+      signal: AbortSignal,
+    ) => utils.client.admin.privateContentFileStatus.query(input, { signal }),
   };
   const closeEditor = () => {
+    privatePhotos.reset();
     operation.cancel();
     resetUploads();
     setText("");
@@ -416,18 +436,13 @@ export function CreatePostModal({
       if (!files.length) return;
       task.assertCurrent();
       [selected] = uploadSelection.select(files);
-      const payload = await fileToUpload(files[0], { signal: task.signal });
-      task.assertCurrent();
       uploadSelection.sending(selected);
       await recovery.checkpoint(undefined, uploadSelection.snapshot());
       task.assertCurrent();
-      const url = requireUploadedUrl(
-        await utils.client.admin.uploadPhoto.mutate(payload, {
-          signal: task.signal,
-        }),
-      );
+      const url = await privatePhotos.add(files[0], task);
       task.assertCurrent();
       uploadSelection.confirmed(selected);
+      privatePhotos.removePreview(previous);
       setPhotos((prev) =>
         prev.map((photo, i) =>
           i === index && photo === previous ? url : photo,
@@ -500,6 +515,7 @@ export function CreatePostModal({
         removedMediaIds,
         postApi,
         task,
+        privatePhotos.photos,
       );
       task.assertCurrent();
       await recovery.clear();
@@ -540,16 +556,10 @@ export function CreatePostModal({
       task.assertCurrent();
       for (const [index, file] of files.entries()) {
         selected = selections[index];
-        const payload = await fileToUpload(file, { signal: task.signal });
-        task.assertCurrent();
         uploadSelection.sending(selected);
         await recovery.checkpoint(undefined, uploadSelection.snapshot());
         task.assertCurrent();
-        const url = requireUploadedUrl(
-          await utils.client.admin.uploadPhoto.mutate(payload, {
-            signal: task.signal,
-          }),
-        );
+        const url = await privatePhotos.add(file, task);
         task.assertCurrent();
         uploadSelection.confirmed(selected);
         setPhotos((prev) => [...prev, url]);
@@ -568,6 +578,7 @@ export function CreatePostModal({
   };
   const removePhoto = (index: number) => {
     if (operation.busy) return;
+    privatePhotos.removePreview(photos[index]);
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
   const movePhoto = (fromIndex: number, direction: "left" | "right") => {
@@ -891,7 +902,7 @@ export function CreatePostModal({
             </Action>
 
             <PhotoEditor
-              photos={photos}
+              photos={photos.map(privatePhotos.preview)}
               onRemove={removePhoto}
               onMove={movePhoto}
               onReorder={reorderPhotos}

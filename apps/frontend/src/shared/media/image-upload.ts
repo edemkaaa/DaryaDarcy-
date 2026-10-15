@@ -268,10 +268,10 @@ export async function uriToBase64(
   const blob = await preparePhotoBlob(raw, opts);
   return blobToBase64(blob, opts?.signal);
 }
-export async function fileToUpload(
+export async function fileForPhotoUpload(
   file: File,
   opts?: { preserveAlpha?: boolean; signal?: AbortSignal },
-): Promise<{ base64: string; filename: string; mimeType: string }> {
+): Promise<File> {
   opts?.signal?.throwIfAborted();
   const blob = await preparePhotoBlob(file, opts);
   opts?.signal?.throwIfAborted();
@@ -281,9 +281,19 @@ export async function fileToUpload(
     file.name.split(".").at(-1) ??
     "jpg";
   const baseName = (file.name || `photo_${Date.now()}`).replace(/\.[^.]+$/, "");
+  return new File([blob], `${baseName}.${ext}`, {
+    type: mimeType,
+    lastModified: file.lastModified,
+  });
+}
+export async function fileToUpload(
+  file: File,
+  opts?: { preserveAlpha?: boolean; signal?: AbortSignal },
+): Promise<{ base64: string; filename: string; mimeType: string }> {
+  const prepared = await fileForPhotoUpload(file, opts);
   return {
-    base64: await blobToBase64(blob, opts?.signal),
-    filename: `${baseName}.${ext}`,
-    mimeType,
+    base64: await blobToBase64(prepared, opts?.signal),
+    filename: prepared.name,
+    mimeType: prepared.type,
   };
 }

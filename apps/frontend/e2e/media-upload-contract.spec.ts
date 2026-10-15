@@ -11,6 +11,18 @@ async function setup(page: Page, uploads: Record<string, unknown>[]) {
       uploads.push(input);
       return ok({ url: "https://example.test/photo.webp" });
     }
+    if (name === "admin.uploadPrivateContentFile") {
+      uploads.push(input);
+      return ok({
+        state: "ready",
+        assetId: "3af23d8c-140f-454b-a123-123456789abc",
+        usage: "postPhoto",
+        filename: input.filename,
+        mimeType: "image/webp",
+        fileSize: 80,
+        url: "/api/media/content-files/3af23d8c-140f-454b-a123-123456789abc",
+      });
+    }
   });
   await page.route("https://s3.twcstorage.ru/**", (route) => route.abort());
   await page.route("https://example.test/**", (route) => route.abort());
@@ -44,10 +56,17 @@ test("an original photo above 4 MiB is prepared within the server limit", async 
   await (
     await chooser
   ).setFiles({ name: "large.png", mimeType: "image/png", buffer: bytes });
+  const form = page.getByRole("dialog", { name: "Редактор публикации" });
+  await expect(form.locator('img[src^="blob:"]').first()).toBeVisible();
+  expect(uploads).toHaveLength(0);
+  await form
+    .getByRole("button", { name: "Опубликовать", exact: true })
+    .first()
+    .click();
   await expect.poll(() => uploads.length).toBe(1);
   const prepared = Buffer.from(String(uploads[0].base64), "base64");
   expect(prepared.length).toBeLessThanOrEqual(MAX_PHOTO_BYTES);
-  expect((await sharp(prepared).metadata()).format).toBe("jpeg");
+  expect(["webp", "png"]).toContain((await sharp(prepared).metadata()).format);
 });
 
 test("transparent article PNG is resized/encoded within the limit with alpha preserved", async ({

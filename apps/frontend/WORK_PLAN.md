@@ -2,6 +2,36 @@
 
 Дата фиксации аудита: **3 октября 2026 года**. Обновление разработки: **13 октября 2026 года**. Проект после миграции на **Next.js**. Этот файл — точка возвращения к работе: здесь сохранены план первого этапа, все 42 пункта общего аудита, их расположение, дополнительные расхождения с договором и уже выполненные исправления контента.
 
+## 16 октября — закрытые фото постов, только внутренняя интеграция
+
+CF-F1a/F1b1/F1b2: новые фото в обоих существующих редакторах остаются локальными
+до сохранения. Подготовленный File/key сохраняется в owner-scoped IndexedDB как
+ArrayBuffer, после reload восстанавливаются bytes/metadata и editor/save aliases.
+Превью — локальный blob URL, не ранний GET закрытого unbound файла; URL отзывается
+при remove/replace/close/unmount/account switch. Оформление и классы не менялись.
+Сохранение использует existing CF upload/status и photos binding: status-first
+после lost ACK, ready без повторного upload, notRecorded с теми же bytes/key,
+create replay с прежним payload/key; старые URL не мигрируются. PNG alpha сохранён.
+
+Проверки:34 unit coordinator,4 native Chromium File/IndexedDB и12 Chromium/Next
+create/edit/reload/session/preview сценариев. В последних12 API synthetic — это
+НЕ actual API/SQL/S3 acceptance. Existing3 browser suites19/20; единственный fail
+был duplicate locator видимого/retained video экрана. Visible filter исправлен
+только в тесте, отдельный повтор1 pass; не считать единым новым20/20 прогоном.
+Full Vitest2416 pass/1479 skips, root/frontend/e2e types, full lint, production
+build, API86/boundaries669 проходят. Старый ENOSPC blocker снят (7.4GiB при старте).
+Временные Next/browser/proxy убраны; working DB/S3/flags/старые objects, push/deploy
+не трогали. Скиллы TDD/incremental/security/React использованы для checkpoint,
+scope/URL lifecycle и проверки восстановления, без redesign/refactor соседних UI.
+
+Следом CF-F1b3: оба редактора→actual API→own disposable MySQL→только новые own S3
+objects. Пока не объявлять CF целиком готовым; article/comment CF client остаются
+следующими отдельными срезами. Рабочий CF flag не включали, rollout не разрешён.
+Команды: `DARYADARCY_LOCAL_BROWSER=1 pnpm exec vitest run
+tests/post-photo-journal.browser.test.ts tests/private-photo-editors.browser.test.ts`
+(нужен installed Chromium, минимум2GiB; fixtures закрывают внешний network).
+Общий прогон — `pnpm exec vitest run --silent --maxWorkers=4`; skips не pass.
+
 ## 15 октября — внутренние исправления после сверки staging
 
 FE5, последующая native проверка: `tests/private-editors.s3.mysql.test.ts`
