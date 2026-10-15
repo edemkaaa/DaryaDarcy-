@@ -4,6 +4,22 @@
 
 ### Проверенный остаток на 16 октября
 
+- [ ] CF-F2 (16 октября, прямое поручение): закрытые фото/PNG/карусели и
+  PDF/DOCX/TXT в существующем редакторе статей. Баннер публичный, старые URL
+  сохраняются. Срезы: typed upload/status + block references; durable file bytes
+  и stable keys до S3 с existing article journal; wiring existing editor и blob
+  preview; lost ACK/reload/retry/account switch проверки. Unknown update не
+  повторять автоматически; frozen create key/payload сохранять. Дизайн/CSS,
+  working DB/старые S3/flags/push/deploy исключены. Проверки RED/GREEN + browser,
+  types/lint/build/boundaries/docs; native provider acceptance отмечать отдельно.
+  - [x] CF-F2a: общий existing CF upload/status transport для post/article,
+    typed articlePhoto/articleDocument, строгий receipt и local-content binding.
+    RED5→GREEN10 unit; вместе с existing post34/article19 —63 pass. Фото допускают
+    server re-encode size, документы требуют exact bytes length/normalized MIME.
+    Ready не загружается повторно, pending/notRecorded сохраняют прежний key,
+    checkpoint до network, late receipt/corrupt usage/URL запрещены. Root/frontend
+    types и focused ESLint проходят. Пока это не editor/API/S3 acceptance.
+
 - [ ] CF-F1 (16 октября): новые закрытые фото постов без изменения дизайна.
   - [x] CF-F1a: typed receipt/upload/status в общем save coordinator. File +
     стабильный key включаются в checkpoint до отправки; отсутствие checkpoint
