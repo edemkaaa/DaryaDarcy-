@@ -33,10 +33,13 @@
   Рабочая ветка: `feature/stage-one-completion-2026-10-10`.
 - Разрешены локальные backend-исправления подтверждённых дефектов в согласованном
   объёме, необходимые тесты, документация и отдельные проверенные локальные коммиты.
-- **Фронт не менять:** включая `apps/frontend`, его тесты, оформление и generated
-  API contract. Читать и сравнивать можно; изменения клиента выполняет фронтендер.
-  `pnpm api:contract` пишет во фронт — агенту не запускать. `pnpm check:api` только
-  проверяет; известное отставание отражать в передаче, не скрывать и не ослаблять check.
+- **Уточнение15 октября после AG9-L4:** пользователь разрешил актуализировать
+  frontend со staging и исправлять только внутреннюю логику/интеграцию, без дизайна.
+  Можно менять `apps/frontend` logic/tests/generated API contract по подтверждённым
+  проблемам и existing handoff. Стили/раскладку/визуальные assets не менять.
+  Прежний запрет frontend и `pnpm api:contract` относился к backend-only этапу;
+  теперь штатная генерация типов разрешена. Рабочие flags/DB/S3, push/deploy,
+  новые продуктовые функции и самостоятельные будущие merge не разрешены.
 - Не переключать/сливать ветки, не делать rebase/reset/force-push, push, deploy,
   рабочие миграции или включение флагов автоматически. Чужие изменения сохранять.
   Изменение общей схемы/контракта сверх уже принятого решения сначала обосновать.
@@ -174,6 +177,24 @@ HEAD и не подтверждение версии сервера. В нача
 вопрос; продолжать независимую разрешённую работу.
 
 ### Очередь задач
+
+#### FE — внутренняя интеграция frontend, разрешена15 октября
+
+1. FE0: fetch staging и безопасная синхронизация. Проверено clean ab348be,
+   origin/staging81e8563 уже ancestor (49 ahead/0 behind), frontend byte-equivalent;
+   merge --ff-only возвращает Already up to date, замены/нового merge не было.
+2. FE1: existing handoff F-TEST-1/F-API-1. Воспроизведены RED viewport missing
+   document fixture и check:api stale contract. Исправить fixture и проверить
+   layout shrink/fallback/SSR, штатно сгенерировать current types, без runtime/UI
+   workaround и без backend changes; affected102 checks/API86/types/lint/build
+   PASS, exact procedure fixture обновлена для4 CF routes, без изменения server.
+3. FE2: первый подтверждённый внутренний defect/интеграционный gap из existing
+   handoff: сначала реальное воспроизведение, затем малый RED/GREEN fix и browser
+   regression. Выбран доказанный media download memory risk (RED attachment/
+   video/photo URL streams без корректного Content-Length), общий bounded reader.
+   FE3 — обнаруженный WebKit PNG encoding fallback и существующие E2E selectors.
+   Не включать рабочие flags, не мигрировать старые URL/данные,
+   не менять дизайн; не переделывать уже готовые article/NORMAL/VK flows без дефекта.
 
 #### AG9-L — предложение локальной нагрузки API/БД, 15 октября
 

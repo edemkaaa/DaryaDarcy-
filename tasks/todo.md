@@ -4,6 +4,28 @@
 
 ### Проверенный остаток на 15 октября
 
+- [x] FE0: пользователь разрешил внутренние frontend исправления без дизайна.
+  Fetch origin/staging81e8563: clean ab348be,49 ahead/0 behind; frontend совпадал
+  byte-for-byte, merge --ff-only Already up to date. Ничего не перезаписывалось.
+- [x] FE1: воспроизведены stale API contract и missing document в viewport fixture.
+  Штатная генерация current86 procedures, private uploads/status/export и поля
+  отражены без backend runtime imports; exact procedure fixture актуализирована
+  для4 CF методов, обнаруженных full run. Viewport runtime прежний, tests4:
+  clamp/layout shrink/fallback/SSR. Affected102 checks/5 suites, contract1, API-check,
+  frontend+E2E types, lint/build/boundaries664 проходят. Общий GREEN пока не заявлен:
+  в работе отдельный media fix и WebKit PNG scenario, см. FE2/FE3.
+- [ ] FE2: потоковое ограничение URL→Blob для медиа. RED2 consumer tests:
+  oversized attachment/video body целиком читался при false Content-Length.
+  Исправление сохраняет32/80MiB, abort/error/empty stream и MIME; native loopback
+  HTTP и actual Chromium/WebKit stream APIs проверены. Третий consumer photo URI
+  отдельно воспроизведён RED; завершить общий bounded reader и итоговые проверки.
+- [ ] FE3: браузерная media regression. Старый post/42 scenario использовал
+  неверный accessible name «Назад» вместо «Вернуться назад»: selector исправлен,
+  адресный Chromium повтор прошёл; UI/source header не менялся. WebKit macOS
+  возвращает image/png при canvas.toBlob(image/webp); random1100 PNG не помещается
+  в4MiB после existing1080 fallback. Сначала RED на valid PNG/WebP+alpha contract,
+  затем минимальный дополнительный resize, без SCSS/layout/API изменений.
+
 - [x] AG9-L4: разрешены только count-индексы и повтор local load. RED2 ALL→ref
   tests + unchanged exact-count test; A/B30 calls/phase, одинаковый result hash:
   median30.24→4.83мс, invisible30.36мс, visible-repeat6.10мс. Candidate nonunique

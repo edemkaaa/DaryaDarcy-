@@ -421,6 +421,7 @@ export type AppRouter = BuiltRouter<
                 fileSize: number;
               }>
             | undefined;
+          privateAssetIds?: Array<string> | undefined;
           source?: string | undefined;
           published?: boolean | undefined;
           sortOrder?: number | undefined;
@@ -449,6 +450,7 @@ export type AppRouter = BuiltRouter<
                 fileSize: number;
               }>
             | undefined;
+          privateAssetIds?: Array<string> | undefined;
           removedMediaIds?: Array<number> | undefined;
           published?: boolean | undefined;
           sortOrder?: number | undefined;
@@ -495,6 +497,80 @@ export type AppRouter = BuiltRouter<
           mimeType: string;
           fileSize: number;
         };
+        meta: unknown;
+      }>;
+      uploadPrivateAttachment: MutationProcedure<{
+        input: {
+          idempotencyKey: string;
+          type: "audio" | "document";
+          filename: string;
+          mimeType: string;
+          base64: string;
+        };
+        output: {
+          state: "pending" | "ready";
+          assetId: string;
+          type: "audio" | "document";
+          filename: string;
+          mimeType: string;
+          fileSize: number;
+        };
+        meta: unknown;
+      }>;
+      privateAttachmentStatus: QueryProcedure<{
+        input: { idempotencyKey: string };
+        output:
+          | {
+              state: "pending" | "ready";
+              assetId: string;
+              type: "audio" | "document";
+              filename: string;
+              mimeType: string;
+              fileSize: number;
+            }
+          | { state: "notRecorded" };
+        meta: unknown;
+      }>;
+      uploadPrivateContentFile: MutationProcedure<{
+        input: {
+          idempotencyKey: string;
+          usage: "postPhoto" | "articlePhoto" | "articleDocument";
+          filename: string;
+          mimeType: string;
+          base64: string;
+        };
+        output: {
+          url?: string | undefined;
+          state: "pending" | "ready";
+          assetId: string;
+          usage:
+            | "postPhoto"
+            | "articlePhoto"
+            | "articleDocument"
+            | "commentPhoto";
+          filename: string;
+          mimeType: string;
+          fileSize: number;
+        };
+        meta: unknown;
+      }>;
+      privateContentFileStatus: QueryProcedure<{
+        input: { idempotencyKey: string };
+        output:
+          | {
+              url?: string | undefined;
+              state: "pending" | "ready";
+              assetId: string;
+              usage:
+                | "postPhoto"
+                | "articlePhoto"
+                | "articleDocument"
+                | "commentPhoto";
+              filename: string;
+              mimeType: string;
+              fileSize: number;
+            }
+          | { state: "notRecorded" };
         meta: unknown;
       }>;
       getPostMedia: QueryProcedure<{
@@ -810,6 +886,7 @@ export type AppRouter = BuiltRouter<
         input: {
           postId: number;
           text: string;
+          idempotencyKey?: string | undefined;
           parentId?: number | undefined;
           photos?: Array<string> | undefined;
         };
@@ -834,6 +911,49 @@ export type AppRouter = BuiltRouter<
       reportComment: MutationProcedure<{
         input: { id: number; reason: string };
         output: { ok: true };
+        meta: unknown;
+      }>;
+      uploadPrivateCommentPhoto: MutationProcedure<{
+        input: {
+          idempotencyKey: string;
+          filename: string;
+          mimeType: string;
+          base64: string;
+          usage: "commentPhoto";
+          postId: number;
+        };
+        output: {
+          url?: string | undefined;
+          state: "pending" | "ready";
+          assetId: string;
+          usage:
+            | "postPhoto"
+            | "articlePhoto"
+            | "articleDocument"
+            | "commentPhoto";
+          filename: string;
+          mimeType: string;
+          fileSize: number;
+        };
+        meta: unknown;
+      }>;
+      privateCommentPhotoStatus: QueryProcedure<{
+        input: { idempotencyKey: string };
+        output:
+          | {
+              url?: string | undefined;
+              state: "pending" | "ready";
+              assetId: string;
+              usage:
+                | "postPhoto"
+                | "articlePhoto"
+                | "articleDocument"
+                | "commentPhoto";
+              filename: string;
+              mimeType: string;
+              fileSize: number;
+            }
+          | { state: "notRecorded" };
         meta: unknown;
       }>;
       uploadCommentPhoto: MutationProcedure<{
@@ -934,6 +1054,27 @@ export type AppRouter = BuiltRouter<
       }>;
     };
     profileExtras: {
+      recoveryExport: QueryProcedure<{
+        input: {
+          kind:
+            | "post"
+            | "article"
+            | "comment"
+            | "private_attachment"
+            | "private_content";
+          afterKey?: string | undefined;
+          limit?: number | undefined;
+        };
+        output: {
+          items: Array<{
+            requestId: string;
+            createdAt: Date;
+            status: "pending" | "ready" | "created" | "deleted" | "expired";
+          }>;
+          nextCursor: string | null;
+        };
+        meta: unknown;
+      }>;
       requestAccountDeletion: MutationProcedure<{
         input: void;
         output: { ok: true };
