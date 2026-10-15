@@ -84,12 +84,16 @@
 ### Снимок, от которого продолжать
 
 Последующее продолжение FE5: по явному разрешению пользователя освобождено около
-1.6GiB за счёт только наших Next/build/browser кэшей; свободно2.2GiB. Headless
-Chromium сохранён. Точные paths/ownership guards — начало todo. Теперь Docker
-Desktop already running, но engine API/_ping не отвечает. Перезапуск требует
-разрешения, т.к. прервёт контейнеры других проектов; вопрос пользователю задан.
-Без восстановления engine три оставшихся quick сценария не выполнялись; не
-объявлять FE5 завершённым. Новых рабочих DB/S3/flags/push/deploy изменений нет.
+1.6GiB за счёт только наших Next/build/browser кэшей; свободно около2GiB. Headless
+Chromium сохранён. Точные paths/ownership guards — начало todo. Пользователь
+разрешил restart Docker: выполнен, `_ping=OK`, новая own БД прошла fresh39.
+Однако quick suite остановился до mutations на S3 preflight timeout10s. DNS/TCP
+успешны, TLS handshake с s3.twcstorage.ru не завершается; HTTP000 при default/
+HTTP1.1/TLS1.2, другие HTTPS сайты200. Нужна смена сети/VPN пользователем, не
+новые ключи и не отключение TLS/preflight. Остаток3 quick сценария не закрыт.
+Синтетических users/posts/uploads в новом запуске0, own DB удалена; S3 writes0.
+Три ранее работавших чужих контейнера после Docker restart остановлены, сохранены
+и вручную не запускались. Рабочие DB/S3/flags/code/push/deploy не менялись.
 
 15 октября, FE5: реальный Timeweb доступ подтверждён, оба редактора начали native
 приёмку на собственной fresh39/tmpfs БД. Подтверждены full4/4 и quick create1/4,

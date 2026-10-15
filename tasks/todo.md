@@ -4,6 +4,26 @@
 
 ### Проверенный остаток на 15 октября
 
+- FE5, после явного разрешения перезапустить Docker: штатный restart отказал
+  по deadline; проверенные Docker UI/backend получили SIGTERM, после выхода
+  дочерних процессов оставшийся stale supervisor5461 завершён, приложение
+  запущено заново. Unix `_ping=OK`, own MySQL health и fresh39/pending0 подтверждены.
+  Ничего не удалялось из Docker images/volumes/чужих containers. Три ранее
+  работавших контейнера после restart остались Exited255 (owner/geotermo/diplom),
+  вручную не запускались; прежний fintablo Exited128 также сохранён.
+  Новый own container5038558c…/62543/tmpfs/no mounts использован только для
+  fresh initialization: users/posts/uploads0. `-t 'quick:'` остановился в beforeAll
+  на S3 GetBucketPolicy/requestTimeout10s, до запуска API/Next/browser и mutations.
+  Read-only диагностика: DNS217.78.234.145, TCP443 connect~3ms, TLS ClientHello
+  без ServerHello/HTTP; curl default/HTTP1.1/TLS1.2 — SSL timeout, HTTP000.
+  Проверка сертификата не отключалась; timeweb.cloud/example.com HEAD200.
+  Это сетевой блокер ДО авторизации, не доказательство неверных ключей или
+  дефекта редактора. S3 objects/policy writes0, новый pass не засчитан; остаток3
+  quick сценария. Нужен доступ к s3.twcstorage.ru через другую сеть/VPN; вопрос
+  отправлен пользователю, ключи повторно не запрашивались. Own container удалён
+  после повторной сверки exact ID/name/label/port/tmpfs/no mounts; чужие4 сохранены.
+  Следующий запуск — новая own fresh39 БД и четыре quick теста (create как setup).
+
 - FE5, продолжение по разрешению очистки: удалены только регенерируемые артефакты
   проекта: `apps/frontend/.next/cache` (455MiB), `next-cache` (581MiB) из own
   `/private/tmp/daryadarcy-frontend-cache-20261014.1Z8BCc`, установленные нами
@@ -13,10 +33,10 @@
   Headless Chromium1208, общий старый ffmpeg1011, исходники, отчёты/скриншоты,
   чужие temp/cache/containers/volumes сохранены. Кэши восстанавливаются штатной
   сборкой/скачиванием, рабочие данные не удалялись. Free636MiB→2.2GiB.
-  Новый блокер ДО теста: Docker Desktop открыт, `desktop start --timeout20`
+  Предыдущий блокер ДО теста: Docker Desktop открыт, `desktop start --timeout20`
   подтверждает already running, но engine info/ps и unix-socket `_ping` (5s)
-  не отвечают; Desktop status/UI также timeout. Перезапуск не выполнен, потому
-  что затронет контейнеры других проектов; запрос разрешения отправлен пользователю.
+  не отвечают; Desktop status/UI также timeout. Тогда перезапуск не выполнялся
+  без разрешения, т.к. затронет другие проекты; теперь разрешён и выполнен выше.
   Новые DB/API/S3 writes не запускались, результат по-прежнему5/8, остаток3 quick
   сценария не засчитан. После восстановления engine — новая own fresh39 БД и
   `-t 'quick:'` (create нужен как setup для edit), без повтора уже пройденных full4.
