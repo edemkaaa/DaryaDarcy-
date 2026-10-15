@@ -14,8 +14,13 @@ document layout width, shrink320 при stale innerWidth1280, fallback и SSR.
 Штатно обновлён generated API contract до86 текущих процедур; exact contract test
 включает4 новых CF upload/status метода. API-check, affected102 unit checks,
 frontend/E2E types, lint и production build проходят. Дизайн/SCSS/TSX не менялись.
-В работе FE2 bounded media URL reads и FE3 WebKit PNG fallback, результаты и
-ограничения будут добавлены после итоговой проверки. Подставной API в браузере
+FE2: HTTP body для вложений/видео/фото читается с ограничением по фактическим
+байтам, а не только Content-Length. При превышении прекращается чтение; reader
+освобождается также при abort/error, пустой файл не считается успехом. Лимиты
+32/80MiB не изменены. RED3 consumers→GREEN10 bounded checks; вместе с media/save
+regressions105/4 suites, frontend/E2E types. Actual loopback chunked HTTP закрыт
+до полного тела;4 Chromium +4 WebKit stream/Blob/cancellation checks прошли.
+В работе FE3 WebKit PNG fallback и итоговый checkpoint. Подставной API в браузере
 не означает проверку working backend, S3 или физических устройств.
 
 **Текущее поручение: доработать только фронтенд первого этапа для закрытия по договору — общую основу, затем публикации, вложения и взаимодействия, поэтапно с проверками. Дополнительные улучшения записываем отдельно и пока не реализуем. Бэкенд и базу не запускаем.** Бэкендер будет менять сервер; согласованные интеграции нужно проверять после уточнения API. Состояние ниже — снимок сегодняшних проверок, а не обещание, что найдены все возможные ошибки или приложение готово к сдаче.

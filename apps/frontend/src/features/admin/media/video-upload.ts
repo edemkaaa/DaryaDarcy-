@@ -9,6 +9,7 @@ import { runApiRequest } from "@/shared/api/request-lifecycle";
 import { requestSessionCheck } from "@/shared/api/session-events";
 import {
   MAX_VIDEO_BYTES,
+  readResponseBlob,
   validateFileSize,
 } from "@/shared/browser/file-operations";
 const UPLOAD_TIMEOUT_MS = 3 * 60 * 1000;
@@ -93,9 +94,7 @@ export async function uploadAdminVideoFromUri(
 ): Promise<string> {
   const blob = await runApiRequest(uri, { signal }, async (response) => {
     if (!response.ok) throw new Error("Не удалось прочитать видеофайл");
-    if (Number(response.headers.get("Content-Length")) > MAX_VIDEO_BYTES)
-      throw new Error("Видео больше 80 МБ");
-    return response.blob();
+    return readResponseBlob(response, MAX_VIDEO_BYTES, signal);
   });
   const typed =
     mimeType && (!blob.type || blob.type === "application/octet-stream")

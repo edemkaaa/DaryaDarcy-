@@ -1,6 +1,8 @@
 "use client";
 import {
+  MAX_ATTACHMENT_BYTES,
   chooseFiles,
+  readResponseBlob,
   readFileDataUrl,
   validateFileSize,
   type FileSelectionOptions,
@@ -258,9 +260,7 @@ export async function uriToBase64(
     { signal: opts?.signal },
     async (response) => {
       if (!response.ok) throw new Error("Не удалось прочитать фото");
-      const blob = await response.blob();
-      validateFileSize(blob);
-      return blob;
+      return readResponseBlob(response, MAX_ATTACHMENT_BYTES, opts?.signal);
     },
   );
   const blob = await preparePhotoBlob(raw, opts);

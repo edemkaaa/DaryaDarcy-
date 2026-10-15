@@ -1,5 +1,6 @@
 import {
   MAX_ATTACHMENT_BYTES,
+  readResponseBlob,
   validateFileSize,
 } from "@/shared/browser/file-operations";
 import { runApiRequest } from "@/shared/api/request-lifecycle";
@@ -14,10 +15,7 @@ export async function attachmentBase64(
     typeof source === "string"
       ? await runApiRequest(source, { signal }, async (response) => {
           if (!response.ok) throw new Error("Не удалось прочитать вложение");
-          const length = Number(response.headers.get("Content-Length"));
-          if (length > MAX_ATTACHMENT_BYTES)
-            throw new Error("Вложение больше 32 МБ");
-          return response.blob();
+          return readResponseBlob(response, MAX_ATTACHMENT_BYTES, signal);
         })
       : source;
   validateFileSize(blob);

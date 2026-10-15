@@ -18,6 +18,47 @@ export function validateFileSize(
     throw new Error(`Файл больше ${Math.round(maxBytes / 1024 / 1024)} МБ.`);
 }
 
+/** Bound retained bytes even when Content-Length is absent or incorrect. */
+export async function readResponseBlob(
+  response: Response,
+  maxBytes: number,
+  signal?: AbortSignal,
+): Promise<Blob> {
+  const tooLarge = () =>
+    new Error(`Файл больше ${Math.round(maxBytes / 1024 / 1024)} МБ.`);
+  const reader = response.body?.getReader();
+  const cancel = () => {
+    void reader?.cancel().catch(() => {});
+  };
+  signal?.addEventListener("abort", cancel, { once: true });
+  try {
+    signal?.throwIfAborted();
+    if (Number(response.headers.get("Content-Length")) > maxBytes)
+      throw tooLarge();
+    const parts: BlobPart[] = [];
+    let size = 0;
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        signal?.throwIfAborted();
+        if (done) break;
+        size += value.byteLength;
+        if (size > maxBytes) throw tooLarge();
+        parts.push(value);
+      }
+    }
+    const blob = new Blob(parts, {
+      type: response.headers.get("Content-Type") ?? "",
+    });
+    validateFileSize(blob, maxBytes);
+    return blob;
+  } finally {
+    signal?.removeEventListener("abort", cancel);
+    cancel();
+    reader?.releaseLock();
+  }
+}
+
 /** Check every selected file before decoding or reading any of them. */
 export function validateFileSelection(
   files: File[],

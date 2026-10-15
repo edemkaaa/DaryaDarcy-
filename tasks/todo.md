@@ -14,11 +14,15 @@
   clamp/layout shrink/fallback/SSR. Affected102 checks/5 suites, contract1, API-check,
   frontend+E2E types, lint/build/boundaries664 проходят. Общий GREEN пока не заявлен:
   в работе отдельный media fix и WebKit PNG scenario, см. FE2/FE3.
-- [ ] FE2: потоковое ограничение URL→Blob для медиа. RED2 consumer tests:
+- [x] FE2: потоковое ограничение URL→Blob для медиа. RED2 consumer tests:
   oversized attachment/video body целиком читался при false Content-Length.
   Исправление сохраняет32/80MiB, abort/error/empty stream и MIME; native loopback
-  HTTP и actual Chromium/WebKit stream APIs проверены. Третий consumer photo URI
-  отдельно воспроизведён RED; завершить общий bounded reader и итоговые проверки.
+  HTTP и actual Chromium/WebKit stream APIs проверены (4+4 browser checks).
+  Третий consumer photo URI отдельно RED→GREEN. Всего10 bounded checks, вместе
+  с media/save regressions105/4 suites/skip0. Frontend/E2E types проходят.
+  Лимиты прежние32/80MiB; MIME/bytes/EOF/abort, early cancel/releaseLock и реальное
+  закрытие chunked loopback response проверены. Не добавлялись API/flags/deps,
+  layout/SCSS/TSX/visual assets прежние. Working S3/DB не вызывались.
 - [ ] FE3: браузерная media regression. Старый post/42 scenario использовал
   неверный accessible name «Назад» вместо «Вернуться назад»: selector исправлен,
   адресный Chromium повтор прошёл; UI/source header не менялся. WebKit macOS
