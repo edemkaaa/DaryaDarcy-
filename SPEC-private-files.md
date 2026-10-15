@@ -5,7 +5,9 @@
 После показа минимального контракта пользователь поручил «делай далее все».
 Разрешена локальная backend реализация новых фото постов/комментариев и фото,
 PNG/каруселей/документов статей. Frontend, старые S3 objects/URL, working DB,
-bucket policy и rollout не менять. Новая возможность default-off.
+bucket policy и rollout первоначально не менять. Новая возможность default-off.
+Последующее прямое разрешение15 октября на scoped policy/probe описано ниже;
+оно не разрешает рабочую DB, frontend, старые objects или включение флага.
 
 Контракт: upload с actor-scoped idempotencyKey, usage (postPhoto,
 articlePhoto, articleDocument, commentPhoto), filename/MIME/base64. Ответ pending
@@ -69,6 +71,59 @@ native opt-in `pnpm exec vitest run tests/private-content-files.mysql.test.ts --
 Runtime в apps/backend/src/content и media, schema/migrations в packages/database.
 Использовать existing transaction/session/receipt patterns, без новой платформы,
 ролей, лимитов, внешних сервисов и автоматической очистки новых объектов.
+
+## CF-S3 — новое scoped правило и storage probe выполнены 15 октября 2026
+
+После показа proposal пользователь явно разрешил проверить текущую policy и
+серверную identity, добавить правило только нового prefix и проверить собственные
+тестовые файлы. Frontend/working DB/старые файлы/флаг исключены из поручения.
+Разрешённый scope: endpoint `https://s3.twcstorage.ru`, bucket `daryadarcy-s3`,
+один statement `DaryadarcyPrivateContentV1` на
+`arn:aws:s3:::daryadarcy-s3/content/private-v1/*`. Новый bucket не создавался.
+
+Preflight: GetBucketPolicy/GetBucketAcl/GetBucketVersioning и ListObjectsV2
+(Prefix только content/private-v1/, MaxKeys1) подтвердили пустой префикс и
+выключенное versioning. Подписанный IAM GetUser подтвердил прежнюю service identity,
+fingerprint `886adafddaec`; username совпал с allowlist существующего private
+attachment rule. Access Key/Owner.ID не подставлялись вместо identity.
+
+Policy SHA256 до изменения:
+`1f66d0c775b9dd68d8f7785b30b7a4e788697a98b88d510ffa49ae0188ca6088`.
+Добавлен ровно один Deny/Principal `*`, actions GetObject/GetObjectVersion,
+Resource только нового prefix и StringNotEqualsIfExists aws:username с одной
+подтверждённой identity. Три прежних statement сохранены структурно; ACL не менялся.
+Перед PUT повторно проверены исходный hash/ACL/пустота/versioning; после PUT и после
+cleanup — readback полного ожидаемого документа. Это immediate drift guard, не
+атомарный compare-and-swap S3 policy. Не перезаписывать неизвестные изменения.
+Итоговый SHA256:
+`0484dfa2cc0164225db616bc516c53e8be377aca975d32701b6a6467ce1715e8`.
+
+Настоящий AWS SDK/Timeweb probe на новых UUID объектах: text/plain10 bytes и
+image/webp88 bytes. Private PUT с ACL=private/IfNoneMatch=*/ContentMD5/owner metadata;
+для обоих signed HEAD/GET=200, Range bytes2–5=206 с точными bytes/length/ETag.
+Anonymous GET/HEAD/Range=403 для обоих. Собственный новый public-control вне
+prefix возвращал200 с точными bytes до и после policy. Старые файлы не читались.
+Другой самостоятельный валидный S3 principal не предоставлен/не проверялся;
+это ограничение, не отрицательный контроль с неправильной подписью.
+
+Первая подготовка фото остановилась локально: signed host node_repl не смог
+загрузить sharp addon из-за разных Team IDs. S3 private PUT ещё не было.
+Тот же синтетический WebP подготовлен отдельным локальным Node-процессом без
+изменения dependencies/системной защиты; после этого storage probe прошёл.
+Это не provider timeout и не исправление приложения. SDK assertions выполнялись
+на реальных HTTP ответах, не Vitest SQL/browser acceptance и не mock GREEN.
+
+Три own объекта (два private и public-control) удалены только после exact key,
+UUID owner, MIME/size/intent hash/ETag проверки и conditional DELETE; signed
+HEAD каждого после удаления404. Новый prefix снова пуст, policy и ACL перепроверены.
+Правило оставлено действующим. Ключи не записывались в файлы/Git; временный JS
+kernel с credentials завершён. SQL/API/browser/source/frontend/server flags не
+менялись и не запускались. Не удалять Deny слепым rollback после появления
+настоящих закрытых данных: общий public Allow может их раскрыть.
+
+Следующий незакрытый этап — native CF upload/status/binding/read через API с
+этим S3 на собственной одноразовой БД, затем совместимый клиент/browser/device
+приёмка и отдельно разрешённый rollout. Флаг остаётся выключенным.
 
 ## Статус — Accepted for local implementation, 13 октября 2026
 

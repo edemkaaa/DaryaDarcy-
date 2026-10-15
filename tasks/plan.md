@@ -60,6 +60,10 @@
   bounded trial policy только `feed/audio/private-v1/`, `feed/documents/private-v1/`
   и own synthetic acceptance. Сначала identity/enforcement и policy hash guards;
   не менять старые statements/ACL/объекты и не включать runtime flags на сервере.
+  Следующее прямое разрешение15 октября: проверить текущую policy/identity и
+  добавить только DaryadarcyPrivateContentV1 на content/private-v1/*, own synthetic
+  probes и новый public-control вне prefix. Scope не включает старые файлы,
+  frontend, рабочую DB, CORS, lifecycle или включение флага. Выполнено ниже/в todo.
 - Сохранять роли, CORS, proxy trust, квоты и смысл подписок. Служебный доступ
   модератора не является оплатой. Публичные обложки/аватары не закрывать случайно.
 - Не начинать жалобы (отложены), push, полное почтовое отделение, новую анимацию,
@@ -170,8 +174,9 @@ HEAD и не подтверждение версии сервера. В нача
 #### CF — новые фото и файлы статей, принято 15 октября
 
 Последнее прямое поручение расширяет AG4, см. CF в SPEC-private-files.md.
-Реализация локальная, новый префикс только в protocol fixture; никаких рабочих
-policy/DB/S3/frontend writes или включения flags.
+Реализация runtime локальная. Изначально новый префикс был только в protocol
+fixture; последующее узкое разрешение на actual policy/S3 probe15 октября — ниже.
+Рабочая DB/frontend и включение flags по-прежнему исключены.
 Порядок: CF1 photo validation/private transport → CF2 recoverable upload/status
 → CF3 atomic post/article binding + live read → CF4 comment binding/read
 → CF5 retirement/export/regression/handoff. Каждому срезу RED/GREEN,
@@ -187,10 +192,14 @@ commit, same-key/concurrent replay без дублей, изменённый/п�
 CF5 добавляет новые ledgers в existing retirement/export; удаление ownership не
 удаляет S3 и не ломает сохранившееся bound integrity evidence. Native234/12 suites,
 skip0; fresh38 install12/2 suites,skip0. Frontend untouched, CF flag default-off.
-Следующий шаг требует внешнего решения: отдельная policy/ACL acceptance нового
-content/private-v1/ (не старый AG2 gate), затем клиентская интеграция/rollout.
-Автоматически обращаться к рабочему S3 или менять policy по текущему поручению
-нельзя. Новых самостоятельных runtime задач вместо этого не придумывать.
+Последующее прямое разрешение15 октября закрыло storage-only gate: текущая
+identity подтверждена, scoped policy добавлена без изменений старых statements
+и ACL; TXT/WebP signed200/Range206 и anonymous403, public-control200, own cleanup404.
+Полные hashes/границы — CF-S3 в SPEC и начало todo. API/SQL/browser этим не проверены,
+другой валидный S3 principal не предоставлен. Правило действует, CF flag выключен.
+Следующий этап — отдельная native CF API/SQL+S3 acceptance в own disposable DB,
+клиентская интеграция и разрешённый rollout. Текущее поручение только storage probe
+не расширять до DB/API/browser/старых S3 файлов; новых runtime функций не придумывать.
 
 #### AG5-F — отдельная пустая БД, локальная подготовка по поручению 14 октября
 

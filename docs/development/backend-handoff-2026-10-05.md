@@ -3,9 +3,12 @@
 ## 15 октября — новые закрытые фото и файлы статей (CF, только локально)
 
 Этот раздел дополняет, а не отменяет передачу audio/document ниже. Frontend source,
-tests и generated contract не менялись. Backend CF default-off; policy нового
-`content/private-v1/` в рабочем bucket не применялась. До её отдельной native
-приёмки и согласованного rollout не включать `PRIVATE_CONTENT_FILES_ENABLED`.
+tests и generated contract не менялись. Backend CF default-off. После отдельного
+разрешения15 октября policy нового content/private-v1/ применена и storage-only
+probe на own TXT/WebP прошёл: signed200/Range206 exact, anonymous GET/HEAD/Range403,
+own public-control200. Старые statement и ACL сохранены; fixtures удалены/HEAD404.
+Это не CF API/SQL/browser acceptance; другой валидный S3 principal не проверялся.
+До совместной приёмки и согласованного rollout не включать PRIVATE_CONTENT_FILES_ENABLED.
 Старые URL/S3 objects/обложки/аватары остаются как были; это не их миграция.
 
 - Админ: `admin.uploadPrivateContentFile({idempotencyKey,usage,filename,mimeType,base64})`,

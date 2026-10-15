@@ -59,11 +59,25 @@
   Оба own synthetic tmpfs контейнера удалены после exact ID/name/owner/ports/mounts
   inspection; existing local-owner стенд39fdda943241 сохранён. Рабочие данные и
   S3 objects не удалялись. Временный собственный caffeinate остановлен.
-- [ ] CF external gate: отдельно согласовать/проверить новый storage statement
-  DaryadarcyPrivateContentV1 только для content/private-v1/, затем совместимый
-  frontend/generated types, browser/device/native S3 acceptance и разрешённый
-  rollout. Рабочая policy/DB/S3/front не менялись, push/deploy не выполнялись.
-  Старые URL/objects не закрыты этим решением; автоочистка нового scope не включена.
+- [x] CF-S3 storage gate15 октября, по отдельному прямому разрешению: preflight
+  current policy/ACL/empty prefix/versioning и signed IAM GetUser; identity
+  fingerprint886adafddaec совпал с existing private attachment allowlist.
+  Добавлен только DaryadarcyPrivateContentV1 на content/private-v1/*; три прежних
+  statement и ACL сохранены. Hash до1f66d0c775b9, после0484dfa2cc01 (полные в SPEC).
+  Реальный SDK/Timeweb: TXT10/WebP88 bytes, signed HEAD/GET200/Range206 exact,
+  anonymous GET/HEAD/Range403 для обоих; own public-control до/после200 exact.
+  Три собственных файла удалены после owner/hash/MIME/size/ETag guards, HEAD404;
+  prefix пуст, rule/readback/ACL проверены. Другой валидный S3 principal не
+  проверен. SQL/API/browser этим probe не засчитываются. Локальная подготовка
+  sharp в signed host сначала отказала (Team IDs); отдельный Node подготовил
+  тот же WebP, dependencies/защита/приложение не менялись. JS kernel завершён.
+  Docs58/diff exit0; runtime не менялся, успешные прежние SQL/build suites без
+  новой причины не повторялись. Review ограничил claim storage-only результатом.
+- [ ] CF следующий gate: native API/SQL + actual S3 для нового content scope,
+  затем совместимый frontend/generated types, browser/device acceptance и
+  отдельно разрешённый rollout. Рабочая DB/frontend/старые objects/flags не
+  менялись; push/deploy нет. Автоочистка нового scope не включена. Не повторять
+  успешный storage-only probe без drift/изменения кода/новой причины.
 
 - [x] По следующему поручению подготовлены F-TEST-1/F-API-1 в начале existing
   backend handoff: точная причина viewport fixture, минимальный DOM stub и
