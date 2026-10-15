@@ -1,7 +1,7 @@
 import { Injectable, Inject } from "@nestjs/common";
 import type { Request } from "express";
 import { eq } from "drizzle-orm";
-import { privateContentFiles, posts, articles } from "../../../../packages/database/src/schema";
+import { privateContentFiles, posts, articles, postComments } from "../../../../packages/database/src/schema";
 import { getDb } from "../db";
 import { SessionService } from "../identity/session.service";
 import { userHasClubAccess } from "../identity/club-access";
@@ -19,6 +19,7 @@ export class PrivateContentFilesService {
     if (!file || file.state !== "ready" || !file.etag || file.retiredAt || file.parentId === null || file.namespaceHash !== privateStorageNamespace().hash) return;
     const url = contentFileUrl(assetId);
     let club = false;
+    let login = false;
     if (file.parentKind === "post" && file.usage === "postPhoto") {
       const [post] = await database.select().from(posts).where(eq(posts.id, file.parentId)).limit(1);
       if (!post?.published || post.status !== "published" || !post.photos?.includes(url)) return;
@@ -29,10 +30,16 @@ export class PrivateContentFilesService {
       if (!article?.published || !articleFileReferences(article.sections).some(ref => ref.url === url && ref.usage === file.usage)) return;
       if (!["public", "club"].includes(article.access)) return;
       club = article.access === "club";
+    } else if (file.parentKind === "comment" && file.usage === "commentPhoto") {
+      const [comment] = await database.select().from(postComments).where(eq(postComments.id, file.parentId)).limit(1);
+      if (!comment || comment.postId !== file.targetPostId || !comment.photos?.includes(url)) return;
+      const [post] = await database.select().from(posts).where(eq(posts.id, comment.postId)).limit(1);
+      if (!post?.published || post.status !== "published" || !["feed", "both", "club"].includes(post.target)) return;
+      club = post.target === "club"; login = true;
     } else return;
-    if (club) {
+    if (club || login) {
       if (!req.headers.cookie && !req.headers.authorization) return;
-      try { if (!(await userHasClubAccess(await this.sessions.authenticateRequest(req)))) return; }
+      try { const user = await this.sessions.authenticateRequest(req); if (club && !(await userHasClubAccess(user))) return; }
       catch (error) { if (error instanceof HttpError && error.statusCode === 403) return; throw error; }
     }
     return { key: privateAttachmentObjectKey("document", assetId, "content"), mime: file.mimeType, etag: file.etag, inline: file.mimeType === "image/webp" };

@@ -7,9 +7,15 @@ import {
   postComments,
   posts,
   users,
+  commentCreationRequests,
   type PostComment,
 } from "../../../../packages/database/src/schema";
 import { getDb } from "../db";
+import { bindContentFiles, hasPrivateContent, type ContentFileReference } from "./private-content-binding";
+import { requireCommentFilePost } from "./private-comment-actor";
+import { requirePrivateContentEnabled } from "./private-content-uploads";
+import { claimCommentFileCreation } from "./comment-file-creation";
+import type { ContentWriteActor } from "./content-write-actor";
 
 export type PostCommentRow = PostComment & {
   authorName: string | null;
@@ -94,17 +100,34 @@ export async function getPostCommentById(
   return rows[0] ?? null;
 }
 
-export async function addPostCommentV2(data: {
+type CommentWriteInput = {
   postId: number;
   userId: number;
   text: string;
   parentId?: number | null;
   photos?: string[];
-}): Promise<number> {
+  actor?: ContentWriteActor;
+  idempotencyKey?: string;
+};
+export async function addPostCommentV2(data: CommentWriteInput): Promise<number> {
+  return (await addPostCommentWithResult(data)).id;
+}
+export async function addPostCommentWithResult(data: CommentWriteInput): Promise<{ id: number; created: boolean }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const photos = (data.photos || []).slice(0, 2);
+  const references: ContentFileReference[] = photos.map(url => ({ url, usage: "commentPhoto" }));
+  const privatePhotos = hasPrivateContent(references);
+  const recoverable = privatePhotos || data.idempotencyKey !== undefined;
   return db.transaction(async (tx) => {
+    let intent: Awaited<ReturnType<typeof claimCommentFileCreation>> | undefined;
+    if (recoverable) {
+      requirePrivateContentEnabled();
+      if (!data.actor || data.actor.id !== data.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+      await requireCommentFilePost(tx, data.actor, data.postId);
+      intent = await claimCommentFileCreation(tx, data.actor, { ...data, photos });
+      if (intent.commentId !== null) return { id: intent.commentId, created: false };
+    }
     const [post] = await tx
       .select({
         id: posts.id,
@@ -131,7 +154,12 @@ export async function addPostCommentV2(data: {
       text: data.text,
       photos: photos.length ? photos : null,
     });
-    return Number(result[0].insertId);
+    const id = Number(result[0].insertId);
+    if (recoverable) {
+      if (privatePhotos) await bindContentFiles(tx, "comment", id, references, [], data.actor, data.postId);
+      await tx.update(commentCreationRequests).set({ commentId: id }).where(eq(commentCreationRequests.requestKey, intent!.requestKey));
+    }
+    return { id, created: true };
   });
 }
 

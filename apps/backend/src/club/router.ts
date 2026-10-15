@@ -9,6 +9,7 @@ import * as db from "../db";
 import type { ContentCommentService } from "../content/content-comment.service";
 import { addCommentInput } from "../content/comment-input";
 import { photoInput, uploadPhoto } from "../media/photos";
+import { privateCommentPhotoInput, privateContentStatusInput, uploadPrivateContentFile, privateContentFileStatus } from "../content/private-content-uploads";
 import type { ClubBillingServices } from "../billing/billing.module";
 import { enforceReturnCheckLimit } from "../billing/yookassa/return-check-limit";
 import {
@@ -130,6 +131,10 @@ export const createClubRouter = (
       .mutation(({ ctx, input }) =>
         comments.report(ctx.user, input.id, input.reason),
       ),
+    uploadPrivateCommentPhoto: protectedProcedure.input(privateCommentPhotoInput)
+      .mutation(({ ctx, input }) => uploadPrivateContentFile(ctx.user, input)),
+    privateCommentPhotoStatus: protectedProcedure.input(privateContentStatusInput)
+      .query(({ ctx, input }) => privateContentFileStatus(ctx.user, input.idempotencyKey, true)),
     uploadCommentPhoto: protectedProcedure
       .input(photoInput)
       .mutation(async ({ ctx, input }) => {

@@ -19,7 +19,7 @@ export function registerHttpSecurity(app: Express): void {
       res.setHeader("Cache-Control", "no-store");
     }
     // File denials can happen in this ingress layer before the controller.
-    if (/^\/api\/media\/post-attachments(?:\/|$)/.test(req.path)) {
+    if (/^\/api\/media\/(?:post-attachments|content-files)(?:\/|$)/.test(req.path)) {
       res.setHeader("Cache-Control", "private, no-store");
     }
     res.setHeader("X-Content-Type-Options", "nosniff");

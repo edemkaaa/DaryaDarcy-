@@ -187,6 +187,15 @@ export const privateContentFiles = mysqlTable("private_content_files", {
 ]);
 
 // ── Feed: Tags (reference table for available tags) ──
+export const commentCreationRequests = mysqlTable("comment_creation_requests", {
+  requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
+  actorUserId: int("actorUserId"),
+  payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
+  claimToken: varchar("claimToken", { length: 36 }).notNull(),
+  commentId: int("commentId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [index("comment_creation_owner_key").on(table.actorUserId, table.requestKey)]);
+
 export const tags = mysqlTable("tags", {
   id: int("id").autoincrement().primaryKey(),
   /** Unique slug used in code (e.g. "spring", "home", "recipes") */

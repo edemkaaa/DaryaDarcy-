@@ -10,6 +10,7 @@ import { digest, ensurePrivateUploadObject, privateStorageNamespace } from "../m
 import { resolveMediaContentType, normalizeMediaContentType } from "./media-content-type";
 import { privateUploadKey, lockPrivateAttachmentActor, type PrivateAttachmentActor, type PrivateAttachmentTransaction } from "./private-attachment-uploads";
 import { assertContentRecoveryWindow } from "./recovery-window";
+import { lockCommentFileActor, requireCommentFilePost } from "./private-comment-actor";
 
 export const privateContentInput = z.object({
   idempotencyKey: privateUploadKey,
@@ -18,6 +19,9 @@ export const privateContentInput = z.object({
   mimeType: z.string().min(1).max(128),
   base64: z.string().min(1).max(50 * 1024 * 1024),
 }).strict();
+export const privateCommentPhotoInput = privateContentInput.extend({
+  usage: z.literal("commentPhoto"), postId: z.number().int().positive(),
+});
 export const privateContentStatusInput = z.object({ idempotencyKey: privateUploadKey }).strict();
 export const contentFileUrl = (assetId: string) => `/api/media/content-files/${assetId}`;
 export function requirePrivateContentEnabled() {
@@ -41,7 +45,7 @@ function receipt(row: FileRow) {
     ...(row.state === "ready" ? { url: contentFileUrl(row.assetId) } : {}) };
 }
 const requestKey = (actor: PrivateAttachmentActor, key: string) => digest(JSON.stringify(["private.content:v1", actor.id, key]));
-export async function uploadPrivateContentFile(actor: PrivateAttachmentActor, input: z.output<typeof privateContentInput>) {
+export async function uploadPrivateContentFile(actor: PrivateAttachmentActor, input: z.output<typeof privateContentInput> | z.output<typeof privateCommentPhotoInput>) {
   requirePrivateContentEnabled();
   const raw = decodeMediaBase64(input.base64);
   if (raw.length > (input.usage === "articleDocument" ? 32 : 4) * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE" });
@@ -51,7 +55,7 @@ export async function uploadPrivateContentFile(actor: PrivateAttachmentActor, in
     if (!new Set(["text/plain", "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]).has(declared.split(";")[0])) throw new TRPCError({ code: "BAD_REQUEST" });
     bytes = raw; mimeType = await resolveMediaContentType("document", declared, raw);
   } else { bytes = await preparePhoto(input.base64); mimeType = "image/webp"; }
-  const hash = digest(JSON.stringify([input.usage, input.filename, mimeType, digest(raw), digest(bytes)]));
+  const hash = digest(JSON.stringify([input.usage, input.filename, mimeType, digest(raw), digest(bytes), ...(input.usage === "commentPhoto" ? [input.postId] : [])]));
   const key = requestKey(actor, input.idempotencyKey);
   try {
     const namespace = privateStorageNamespace();
@@ -62,14 +66,18 @@ export async function uploadPrivateContentFile(actor: PrivateAttachmentActor, in
       receipt(row); return row;
     };
     await database.transaction(async tx => {
-      await lockPrivateAttachmentActor(tx, actor); await requirePrivateContentSchema(tx);
+      if (input.usage === "commentPhoto") await requireCommentFilePost(tx, actor, input.postId);
+      else await lockPrivateAttachmentActor(tx, actor);
+      await requirePrivateContentSchema(tx);
       await tx.insert(privateContentFiles).values({ requestKey: key, actorUserId: actor.id, assetId: randomUUID(), payloadHash: hash,
-        namespaceHash: namespace.hash, usage: input.usage, filename: input.filename, mimeType, fileSize: bytes.length })
+        namespaceHash: namespace.hash, usage: input.usage, targetPostId: input.usage === "commentPhoto" ? input.postId : null, filename: input.filename, mimeType, fileSize: bytes.length })
         .onDuplicateKeyUpdate({ set: { requestKey: sql`${privateContentFiles.requestKey}` } });
       const [row] = await tx.select().from(privateContentFiles).where(eq(privateContentFiles.requestKey, key)).for("update"); check(row);
     });
     return await database.transaction(async tx => {
-      await lockPrivateAttachmentActor(tx, actor); await requirePrivateContentSchema(tx);
+      if (input.usage === "commentPhoto") await requireCommentFilePost(tx, actor, input.postId);
+      else await lockPrivateAttachmentActor(tx, actor);
+      await requirePrivateContentSchema(tx);
       const [existing] = await tx.select().from(privateContentFiles).where(eq(privateContentFiles.requestKey, key)).for("update");
       const row = check(existing); if (row.state === "ready") return receipt(row);
       const etag = await ensurePrivateUploadObject({ ...row, type: "document", scope: "content" }, bytes);
@@ -78,13 +86,15 @@ export async function uploadPrivateContentFile(actor: PrivateAttachmentActor, in
     });
   } catch (error) { if (error instanceof TRPCError) throw error; throw unavailable(); }
 }
-export async function privateContentFileStatus(actor: PrivateAttachmentActor, key: string) {
+export async function privateContentFileStatus(actor: PrivateAttachmentActor, key: string, comment = false) {
   requirePrivateContentEnabled();
   try {
     const database = await getDb(); if (!database) throw unavailable();
     return await database.transaction(async tx => {
-      await lockPrivateAttachmentActor(tx, actor); await requirePrivateContentSchema(tx);
+      if (comment) await lockCommentFileActor(tx, actor); else await lockPrivateAttachmentActor(tx, actor);
+      await requirePrivateContentSchema(tx);
       const [row] = await tx.select().from(privateContentFiles).where(eq(privateContentFiles.requestKey, requestKey(actor, key))).for("update");
+      if (row && (row.usage === "commentPhoto") !== comment) throw new TRPCError({ code: "CONFLICT" });
       if (row && row.namespaceHash !== privateStorageNamespace().hash) throw unavailable();
       return row ? receipt(row) : { state: "notRecorded" as const };
     });

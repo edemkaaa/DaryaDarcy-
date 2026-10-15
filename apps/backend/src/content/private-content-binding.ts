@@ -37,7 +37,7 @@ export function assertPublicContentCover(url: string | null | undefined) {
 
 /** Caller locks actor then parent. No storage operations occur inside a material write. */
 export async function bindContentFiles(tx: Writer, parentKind: "post" | "article" | "comment", parentId: number,
-  references: ContentFileReference[], previous: ContentFileReference[], actor: ContentWriteActor | undefined) {
+  references: ContentFileReference[], previous: ContentFileReference[], actor: ContentWriteActor | undefined, commentPostId?: number) {
   const current = new Map<string, ContentFileUsage>();
   for (const ref of references) {
     const id = contentAssetId(ref.url); if (!id) continue;
@@ -61,6 +61,7 @@ export async function bindContentFiles(tx: Writer, parentKind: "post" | "article
       continue;
     }
     if (file.usage !== current.get(file.assetId)) throw new TRPCError({ code: "BAD_REQUEST", message: "Файл не подходит для этого места" });
+    if (parentKind === "comment" && file.targetPostId !== commentPostId) throw conflict();
     if (file.retiredAt || file.state !== "ready" || !file.etag || file.namespaceHash !== privateStorageNamespace().hash) throw conflict();
     if (file.parentId === null) {
       assertContentRecoveryWindow(file.createdAt);

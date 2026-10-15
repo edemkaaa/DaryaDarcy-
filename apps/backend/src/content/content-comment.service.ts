@@ -8,6 +8,7 @@ import { isStaffAccount } from "../platform-db";
 import { sendServicePushNotification } from "../push";
 import type { AddCommentInput } from "./comment-input";
 import * as comments from "./comments";
+import { hasPrivateContent } from "./private-content-binding";
 
 /** Transport owns validation/authentication; SQL helpers retain transaction locks. */
 @Injectable()
@@ -67,15 +68,21 @@ export class ContentCommentService {
         message: "Комментарии к этому посту закрыты",
       });
     }
-    const id = await comments.addPostCommentV2({
+    const data = {
       postId: input.postId,
       userId: user.id,
       text: input.text,
       parentId: input.parentId,
       photos: input.photos,
-    });
+      actor: user,
+      idempotencyKey: input.idempotencyKey,
+    };
+    const result = input.idempotencyKey !== undefined || hasPrivateContent((input.photos ?? []).map(url => ({ url, usage: "commentPhoto" })))
+      ? await comments.addPostCommentWithResult(data)
+      : { id: await comments.addPostCommentV2(data), created: true };
+    const id = result.id;
     // Dispatch only after the comment transaction commits; durable delivery is separate.
-    if (input.parentId) {
+    if (input.parentId && result.created) {
       const parent = await comments.getPostCommentById(input.parentId);
       if (parent && parent.userId !== user.id) {
         const preview =

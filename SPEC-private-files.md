@@ -22,6 +22,18 @@ namespace распознаёт сервер: только свой ready receipt
 публичную обложку. Create с новыми файлами требует постоянный ключ операции.
 Удаление связи не удаляет S3, повтор не должен воскресить удалённую связь.
 
+CF4 wire: `club.uploadPrivateCommentPhoto` принимает те же поля и
+`usage=commentPhoto`, обязательный postId (не изменяемый при retry).
+`club.privateCommentPhotoStatus` — только свой ключ. Upload/save сверяют текущий
+epoch, блокировку, существующий опубликованный пост, доступ и прежние 48h правила
+комментирования. Existing `club.addComment` принимает optional idempotencyKey;
+для новых private photos он обязателен. New ledger0037 атомарен с комментарием
+и binding; same payload replay возвращает тот же commentId без повторного push,
+changed payload (включая удаление photos из retry) или удалённый comment —409.
+Переданный idempotencyKey всегда выбирает recovery path, иначе удаление всех
+фото из retry обошло бы ledger и создало дубль. Legacy comments без ключа и без
+private files сохраняют прежний путь; это не ретроактивная idempotency старого API.
+
 Фото: прежние JPEG/PNG/WebP<=4MiB, byte gate/re-encode/stripping EXIF, прозрачность
 сохраняется. Документы: PDF/DOCX/TXT<=32MiB, прежние проверки bytes/MIME, без DOC,
 HTML/SVG/новых форматов. Обложки, аватары и сезоны остаются публичными.

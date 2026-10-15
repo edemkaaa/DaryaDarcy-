@@ -26,7 +26,16 @@
   host/import; адресный повтор без изменений/увеличения timeout —1 pass.
   Подтверждён sleep/wake macOS. Повтор с caffeinate без изменения timeout:
   49 native checks/2 suites/skip0,8.18s, exit0. Working S3 не проверялся.
-- [ ] CF4: comment binding и права чтения/удаление, без изменения ролей/сроков.
+- [x] CF4: comment binding и права чтения/удаление, без изменения ролей/сроков.
+  RED: missing routes, затем дубли comment rows/foreign parent и missing no-store
+  на ingress denial; review RED выявил обход ledger при photos=[] в retry.
+  GREEN: **98 checks/7 suites/skip0,6.07s**, tsc exit0.
+  Native SQL/HTTP/JWT + loopback SDK: upload ACK loss, настоящий downstream HTTP
+  drop после upstream commit, same-key/concurrent replay, changed payload,
+  list реальных committed rows, другой аккаунт/чужой asset, истечение paid access,
+  blocked/epoch/role revoke, delete/no resurrection, прежние 48h/2-photo rules.
+  Ledger0037 для новых private-photo comments; legacy toggle/comment semantics
+  не расширены. Нет внешнего S3/browser acceptance; фронт не изменён.
 - [ ] CF5: retirement/export, regression и передача фронтендеру; flags off.
 
 - [x] По следующему поручению подготовлены F-TEST-1/F-API-1 в начале existing
