@@ -1,6 +1,15 @@
 import { z } from "zod";
 import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { invalidResponse } from "@/shared/api/errors";
+import {
+  selectArticleFiles,
+  resolveArticleFiles,
+  type PrivateArticleFile,
+} from "./private-article-files";
+import {
+  requirePrivateContentReceipt,
+  validatePrivateContentFile,
+} from "@/shared/media/private-content-upload";
 
 const payloadSchema = z
   .object({
@@ -33,6 +42,52 @@ const recordSchema = z
     ownerId: z.number().int().positive().safe(),
     idempotencyKey: keySchema,
     payload: payloadSchema,
+    media: z
+      .object({
+        editingId: z.number().int().positive().safe().nullable(),
+        phase: z.enum(["upload", "write"]),
+        revision: z.number().int().nonnegative().safe(),
+        files: z
+          .array(
+            z.custom<PrivateArticleFile>((value) => {
+              try {
+                const file = value as PrivateArticleFile;
+                if (
+                  !file ||
+                  !["articlePhoto", "articleDocument"].includes(file.usage) ||
+                  Object.keys(file).some(
+                    (key) =>
+                      ![
+                        "key",
+                        "file",
+                        "usage",
+                        "attempted",
+                        "receipt",
+                      ].includes(key),
+                  ) ||
+                  (file.attempted !== undefined &&
+                    typeof file.attempted !== "boolean")
+                )
+                  return false;
+                validatePrivateContentFile(file, file.usage);
+                if (file.receipt) {
+                  if (!file.attempted) return false;
+                  requirePrivateContentReceipt(
+                    file.receipt,
+                    file.file,
+                    file.usage,
+                  );
+                }
+                return true;
+              } catch {
+                return false;
+              }
+            }),
+          )
+          .min(1),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 export type ArticleCreationPayload = z.infer<typeof payloadSchema>;
@@ -47,7 +102,94 @@ export function parseArticleCreationRecord(
     throw new Error(
       "Сохранённая операция статьи повреждена. Проверьте список статей; новая операция автоматически не создаётся.",
     );
+  if (result.data.media) {
+    const { files, phase } = result.data.media;
+    const local = selectArticleFiles(result.data.payload.sections, files);
+    if (
+      phase === "upload"
+        ? local.length !== files.length
+        : local.length > 0 ||
+          files.some((file) => file.receipt?.state !== "ready")
+    )
+      throw storageError();
+    if (phase === "write") {
+      const links = result.data.payload.sections.flatMap((block) =>
+        block.type === "carousel"
+          ? (block.urls ?? [])
+          : block.url
+            ? [block.url]
+            : [],
+      );
+      if (files.some((file) => !links.includes(file.receipt!.url!)))
+        throw storageError();
+    }
+  }
   return result.data;
+}
+
+function restoreRecord(value: unknown, ownerId: number): ArticleCreationRecord {
+  if ((value as { version?: unknown } | null)?.version !== 2)
+    return parseArticleCreationRecord(value, ownerId);
+  const stored = value as Omit<ArticleCreationRecord, "media"> & {
+    media: Omit<NonNullable<ArticleCreationRecord["media"]>, "files"> & {
+      files: (Omit<PrivateArticleFile, "file"> & {
+        fileData: {
+          bytes: ArrayBuffer;
+          name: string;
+          type: string;
+          lastModified: number;
+        };
+      })[];
+    };
+  };
+  if (!Array.isArray(stored.media?.files)) throw storageError();
+  const files = stored.media.files.map(({ fileData, ...metadata }) => {
+    if (
+      !fileData ||
+      !(fileData.bytes instanceof ArrayBuffer) ||
+      typeof fileData.name !== "string" ||
+      typeof fileData.type !== "string" ||
+      !Number.isFinite(fileData.lastModified)
+    )
+      throw storageError();
+    return {
+      ...metadata,
+      file: new File([fileData.bytes], fileData.name, {
+        type: fileData.type,
+        lastModified: fileData.lastModified,
+      }),
+    };
+  });
+  return parseArticleCreationRecord(
+    { ...stored, version: 1, media: { ...stored.media, files } },
+    ownerId,
+  );
+}
+async function storeRecord(record: ArticleCreationRecord) {
+  if (!record.media) return record;
+  const files = await Promise.all(
+    record.media.files.map(async ({ file, ...metadata }) => ({
+      ...metadata,
+      fileData: {
+        bytes: await file.arrayBuffer(),
+        name: file.name,
+        type: file.type,
+        lastModified: file.lastModified,
+      },
+    })),
+  );
+  return { ...record, version: 2, media: { ...record.media, files } };
+}
+function matches(
+  current: ArticleCreationRecord | null,
+  expected: ArticleCreationRecord,
+): boolean {
+  return current?.media && expected.media
+    ? current.idempotencyKey === expected.idempotencyKey &&
+        current.ownerId === expected.ownerId &&
+        current.media.revision === expected.media.revision &&
+        current.media.editingId === expected.media.editingId
+    : JSON.stringify(current) === JSON.stringify(expected);
 }
 
 export function parseArticleCreationStatus(
@@ -171,57 +313,96 @@ export class ArticleCreationJournal {
   }
   load(): Promise<ArticleCreationRecord | null> {
     return this.transaction("readonly", (_store, value, finish) =>
-      finish(
-        value === undefined
-          ? null
-          : parseArticleCreationRecord(value, this.ownerId),
-      ),
+      finish(value === undefined ? null : restoreRecord(value, this.ownerId)),
     );
   }
-  prepare(
+  async prepare(
     payload: ArticleCreationPayload,
+    media?: { editingId: number | null; files: PrivateArticleFile[] },
   ): Promise<{ record: ArticleCreationRecord; restored: boolean }> {
     // Snapshot before awaiting storage: replay must preserve empty blocks and URLs.
     const snapshot = payloadSchema.parse(payload);
+    this.assertOwner();
+    if (typeof globalThis.crypto?.randomUUID !== "function")
+      throw new Error("Для безопасного сохранения откройте сайт через HTTPS в актуальном браузере.");
+    const proposed = parseArticleCreationRecord(
+      {
+        version: 1,
+        ownerId: this.ownerId,
+        idempotencyKey: crypto.randomUUID().toLowerCase(),
+        payload: snapshot,
+        ...(media ? { media: { ...media, phase: "upload", revision: 0 } } : {}),
+      },
+      this.ownerId,
+    );
+    const packed = await storeRecord(proposed);
+    this.assertOwner();
     return this.transaction("readwrite", (store, value, finish) => {
       if (value !== undefined) {
         finish({
-          record: parseArticleCreationRecord(value, this.ownerId),
+          record: restoreRecord(value, this.ownerId),
           restored: true,
         });
         return;
       }
-      if (typeof globalThis.crypto?.randomUUID !== "function")
-        throw new Error(
-          "Для безопасного сохранения откройте сайт через HTTPS в актуальном браузере.",
-        );
-      const record = parseArticleCreationRecord(
-        {
-          version: 1,
-          ownerId: this.ownerId,
-          idempotencyKey: crypto.randomUUID().toLowerCase(),
-          payload: snapshot,
-        },
-        this.ownerId,
-      );
-      store.put(record, this.ownerId);
-      finish({ record, restored: false });
+      store.put(packed, this.ownerId);
+      finish({ record: proposed, restored: false });
     });
   }
   async requireCurrent(record: ArticleCreationRecord): Promise<void> {
     const current = await this.load();
-    if (JSON.stringify(current) !== JSON.stringify(record))
+    if (!matches(current, record))
       throw new Error(
         "Операция статьи изменилась в другой вкладке. Откройте статьи заново.",
       );
   }
+  async checkpoint(
+    record: ArticleCreationRecord,
+    payload: ArticleCreationPayload,
+    phase: "upload" | "write",
+  ): Promise<ArticleCreationRecord> {
+    if (!record.media || record.media.phase !== "upload")
+      throw new Error(
+        "Исходная операция статьи уже отправлена и не может быть изменена",
+      );
+    if (phase === "write") {
+      const resolved = {
+        ...record.payload,
+        sections: resolveArticleFiles(
+          record.payload.sections,
+          record.media.files,
+        ),
+      };
+      if (JSON.stringify(resolved) !== JSON.stringify(payload))
+        throw storageError();
+    } else if (JSON.stringify(payload) !== JSON.stringify(record.payload))
+      throw storageError();
+    const next = parseArticleCreationRecord(
+      {
+        ...record,
+        payload,
+        media: { ...record.media, phase, revision: record.media.revision + 1 },
+      },
+      this.ownerId,
+    );
+    const packed = await storeRecord(next);
+    this.assertOwner();
+    return this.transaction("readwrite", (store, value, finish) => {
+      const current =
+        value === undefined ? null : restoreRecord(value, this.ownerId);
+      if (!matches(current, record))
+        throw new Error(
+          "Операция статьи изменилась в другой вкладке. Откройте статьи заново.",
+        );
+      store.put(packed, this.ownerId);
+      finish(next);
+    });
+  }
   clear(record: ArticleCreationRecord): Promise<void> {
     return this.transaction("readwrite", (store, value, finish) => {
       const current =
-        value === undefined
-          ? null
-          : parseArticleCreationRecord(value, this.ownerId);
-      if (JSON.stringify(current) !== JSON.stringify(record))
+        value === undefined ? null : restoreRecord(value, this.ownerId);
+      if (!matches(current, record))
         throw new Error(
           "Операция статьи изменилась в другой вкладке. Откройте статьи заново.",
         );

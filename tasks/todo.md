@@ -19,6 +19,11 @@
     Ready не загружается повторно, pending/notRecorded сохраняют прежний key,
     checkpoint до network, late receipt/corrupt usage/URL запрещены. Root/frontend
     types и focused ESLint проходят. Пока это не editor/API/S3 acceptance.
+  - [x] CF-F2b: existing article journal хранит File как ArrayBuffer/metadata,
+    стабильные file/create keys и phase/revision. Read/write owner guard и atomic
+    revision CAS между вкладками, freeze resolved URLs перед article write; legacy
+    v1 записи сохранены. Native Chromium/IndexedDB RED2→GREEN3, legacy parsing19
+    pass; API/SQL/S3 этим storage fixture не проверяются.
 
 - [ ] CF-F1 (16 октября): новые закрытые фото постов без изменения дизайна.
   - [x] CF-F1a: typed receipt/upload/status в общем save coordinator. File +
