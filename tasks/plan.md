@@ -198,6 +198,18 @@ HEAD и не подтверждение версии сервера. В нача
    status/association в existing редакторах; генерация типов сама его не подключает.
    Не включать рабочие flags, не мигрировать старые URL/данные,
    не менять дизайн; не переделывать уже готовые article/NORMAL/VK flows без дефекта.
+4. FE4 — прямое поручение: подключить принятый AG4 audio/document upload/status/
+   privateAssetIds в оба existing post editors. До dispatch сохранять ключ+File+
+   metadata в owner-scoped IndexedDB; recovery status first, explicit replay
+   original bytes/key, no public fallback. Upload ready не публикует пост.
+   Сохранить old attachments и removedMediaIds, creation intent и unknown-edit
+   protection. Проверить reload/lost upload+post ACK/account switch/late response,
+   повреждённые ответы/локальное хранилище, Chromium/WebKit, типы/сборку/регрессии.
+   Фото/видео/статьи/дизайн и рабочие flags/DB/S3 не входят; без push/deploy.
+   **Local PASS:** Chromium66 +WebKit65 (1 legacy Blob skip), full Vitest2380 pass/
+   0 fail/1455 skipped/5 pending; API86/types/lint/build/boundaries667/docs58.
+   Оба редактора подключены, старые media/URL сохранены; совместная actual-S3
+   приёмка и рабочее включение остаются отдельной внешней границей, не новым AG.
 
 #### AG9-L — предложение локальной нагрузки API/БД, 15 октября
 

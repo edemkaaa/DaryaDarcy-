@@ -54,19 +54,25 @@ test("audio upload rejection leaves the post untouched and retry commits it once
   let failUpload = true;
   await editorApi(page, (name, input) => {
     if (
-      ["admin.createPost", "admin.updatePost", "admin.uploadMedia"].includes(
-        name,
-      )
+      [
+        "admin.createPost",
+        "admin.updatePost",
+        "admin.uploadPrivateAttachment",
+      ].includes(name)
     )
       writes.push({ name, input });
-    if (name === "admin.uploadMedia")
+    if (name === "admin.privateAttachmentStatus")
+      return ok({ state: "notRecorded" });
+    if (name === "admin.uploadPrivateAttachment")
       return failUpload
         ? failure()
         : ok({
-            url: "https://example.test/audio.mp3",
-            mediaId: 7,
+            state: "ready",
+            assetId: "00000000-0000-4000-8000-000000000001",
+            type: "audio",
+            filename: "test.mp3",
             mimeType: "audio/mpeg",
-            fileSize: 18,
+            fileSize: 10,
           });
   });
   await openQuickEditor(page);
@@ -93,12 +99,15 @@ test("audio upload rejection leaves the post untouched and retry commits it once
     .first()
     .click();
   await expect.poll(() => messages.length).toBe(1);
-  expect(writes.map((w) => w.name)).toEqual(["admin.uploadMedia"]);
+  expect(writes.map((w) => w.name)).toEqual(["admin.uploadPrivateAttachment"]);
   expect(writes[0].input).not.toHaveProperty("postId");
   await expect(
     page.getByPlaceholder("Текст поста… Enter — новый абзац"),
   ).toHaveValue("POST_WITH_AUDIO");
   failUpload = false;
+  await page
+    .getByRole("button", { name: "Проверить сохранение", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Опубликовать", exact: true })
     .first()
@@ -111,7 +120,7 @@ test("audio upload rejection leaves the post untouched and retry commits it once
     name: "admin.createPost",
     input: {
       status: "published",
-      attachments: [expect.objectContaining({ filename: "test.mp3" })],
+      privateAssetIds: ["00000000-0000-4000-8000-000000000001"],
     },
   });
 });
@@ -295,13 +304,18 @@ test("a rejected attachment upload cannot unpublish an existing post; retry save
   await editorApi(page, (name, input) => {
     if (name === "feed.listPaginated")
       return ok({ posts: [post], nextCursor: null });
-    if (name === "admin.uploadMedia")
+    if (name === "admin.privateAttachmentStatus")
+      return ok({ state: "notRecorded" });
+    if (name === "admin.uploadPrivateAttachment")
       return failUpload
         ? failure()
         : ok({
-            url: "https://example.test/audio.mp3",
+            state: "ready",
+            assetId: "00000000-0000-4000-8000-000000000001",
+            type: "audio",
+            filename: "test.mp3",
             mimeType: "audio/mpeg",
-            fileSize: 18,
+            fileSize: 10,
           });
     if (name === "admin.updatePost") {
       edits.push(input);
@@ -346,6 +360,9 @@ test("a rejected attachment upload cannot unpublish an existing post; retry save
   expect(edits).toEqual([]);
   await expect(field).toHaveValue("EDITED_PUBLISHED_POST");
   failUpload = false;
+  await page
+    .getByRole("button", { name: "Проверить сохранение", exact: true })
+    .click();
   await page.getByRole("button", { name: "Сохранить", exact: true }).click();
   await expect(field).toHaveCount(0);
   expect(edits[0]).not.toHaveProperty("published");
@@ -354,9 +371,7 @@ test("a rejected attachment upload cannot unpublish an existing post; retry save
     expect.objectContaining({
       id: 1,
       text: "EDITED_PUBLISHED_POST",
-      attachments: [
-        expect.objectContaining({ url: "https://example.test/audio.mp3" }),
-      ],
+      privateAssetIds: ["00000000-0000-4000-8000-000000000001"],
     }),
   ]);
 });

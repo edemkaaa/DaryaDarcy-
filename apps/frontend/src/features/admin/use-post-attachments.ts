@@ -18,7 +18,6 @@ type ExistingMedia = {
 };
 const DOCUMENT_TYPES: Record<string, string> = {
   pdf: "application/pdf",
-  doc: "application/msword",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   txt: "text/plain",
 };
@@ -83,7 +82,7 @@ export function usePostAttachments(
         ? inferredType[extension]
         : undefined;
       if (type === "document" && !fallbackMime)
-        throw new Error("Выберите PDF, DOC, DOCX или TXT.");
+        throw new Error("Выберите PDF, DOCX или TXT.");
       if (
         type === "document" &&
         asset.mimeType &&

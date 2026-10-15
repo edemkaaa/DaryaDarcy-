@@ -101,7 +101,11 @@ for (const mode of ["full", "quick"] as const) {
         if (name === "admin.posts") return ok([post]);
         if (name === "feed.listPaginated")
           return ok({ posts: [post], nextCursor: null });
-        if (/admin\.(createPost|updatePost|uploadMedia)/.test(name))
+        if (
+          /admin\.(createPost|updatePost|uploadPrivateAttachment|uploadMedia)/.test(
+            name,
+          )
+        )
           writes.push(name);
       });
       const messages = dialogs(page);
@@ -122,7 +126,11 @@ for (const mode of ["full", "quick"] as const) {
     const writes: string[] = [];
     let created: Record<string, unknown> | undefined;
     await editorApi(page, (name, input) => {
-      if (/admin\.(createPost|updatePost|uploadMedia)/.test(name))
+      if (
+        /admin\.(createPost|updatePost|uploadPrivateAttachment|uploadMedia)/.test(
+          name,
+        )
+      )
         writes.push(name);
       if (name === "admin.createPost") created = input;
     });
@@ -229,27 +237,36 @@ for (const mode of ["full", "quick"] as const) {
     await saved(form);
     expect(writes).toEqual([]);
     // Actual IndexedDB bytes are restored to Files, then read by FileReader.
-    await page.route("**/api/trpc/admin.uploadMedia*", async (route) => {
-      writes.push("admin.uploadMedia");
-      const input = JSON.parse(route.request().postData() || "{}")[0].json;
-      expect(input.base64).toBe(
-        Buffer.from("attachment fixture").toString("base64"),
-      );
-      await route.fulfill({
-        json: [
-          ok({
-            url: `https://example.test/${input.filename}`,
-            mimeType: input.mimeType,
-            fileSize: 18,
-          }),
-        ],
-      });
-    });
+    await page.route(
+      "**/api/trpc/admin.uploadPrivateAttachment*",
+      async (route) => {
+        writes.push("admin.uploadPrivateAttachment");
+        const input = JSON.parse(route.request().postData() || "{}")[0].json;
+        expect(input.base64).toBe(
+          Buffer.from("attachment fixture").toString("base64"),
+        );
+        await route.fulfill({
+          json: [
+            ok({
+              state: "ready",
+              assetId:
+                input.type === "audio"
+                  ? "00000000-0000-4000-8000-000000000001"
+                  : "00000000-0000-4000-8000-000000000002",
+              type: input.type,
+              filename: input.filename,
+              mimeType: input.mimeType,
+              fileSize: 18,
+            }),
+          ],
+        });
+      },
+    );
     await submit(form, mode).click();
     await expect(form).toHaveCount(0);
     expect(writes).toEqual([
-      "admin.uploadMedia",
-      "admin.uploadMedia",
+      "admin.uploadPrivateAttachment",
+      "admin.uploadPrivateAttachment",
       "admin.createPost",
     ]);
     expect(JSON.stringify(created?.richText)).toContain('"italic":true');
@@ -268,12 +285,15 @@ for (const mode of ["full", "quick"] as const) {
     const creates: Record<string, unknown>[] = [];
     let uploads = 0;
     await editorApi(page, (name, input) => {
-      if (name === "admin.uploadMedia") {
+      if (name === "admin.uploadPrivateAttachment") {
         uploads++;
         return ok({
-          url: "https://example.test/song",
+          state: "ready",
+          assetId: "00000000-0000-4000-8000-000000000001",
+          type: input.type,
+          filename: input.filename,
           mimeType: "audio/wav",
-          fileSize: 46,
+          fileSize: 18,
         });
       }
       if (name === "admin.createPost") {
@@ -336,15 +356,10 @@ for (const mode of ["full", "quick"] as const) {
     await expect(form).toHaveCount(0);
     expect(creates).toHaveLength(2);
     expect(creates[1]).toEqual(creates[0]);
-    expect(creates[1].attachments).toEqual([
-      {
-        type: "audio",
-        filename: "song.mp3",
-        url: "https://example.test/song",
-        mimeType: "audio/wav",
-        fileSize: 46,
-      },
+    expect(creates[1].privateAssetIds).toEqual([
+      "00000000-0000-4000-8000-000000000001",
     ]);
+    expect(creates[1]).not.toHaveProperty("attachments");
     expect(uploads).toBe(1);
     form = await open(page, mode);
     await expect(
@@ -358,10 +373,13 @@ for (const mode of ["full", "quick"] as const) {
     const creates: Record<string, unknown>[] = [];
     let uploads = 0;
     await editorApi(page, (name, input) => {
-      if (name === "admin.uploadMedia") {
+      if (name === "admin.uploadPrivateAttachment") {
         uploads++;
         return ok({
-          url: "https://example.test/file",
+          state: "ready",
+          assetId: "00000000-0000-4000-8000-000000000001",
+          type: input.type,
+          filename: input.filename,
           mimeType: "text/plain",
           fileSize: 18,
         });
@@ -395,7 +413,7 @@ for (const mode of ["full", "quick"] as const) {
     let uploads = 0;
     let creates = 0;
     await editorApi(page, (name) => {
-      if (name === "admin.uploadMedia") {
+      if (name === "admin.uploadPrivateAttachment") {
         uploads++;
         return failure(503);
       }
@@ -418,7 +436,7 @@ for (const mode of ["full", "quick"] as const) {
     ).toBeVisible();
     await expect(
       form.getByRole("button", { name: "Проверить сохранение", exact: true }),
-    ).toHaveCount(0);
+    ).toBeVisible();
     expect(uploads).toBe(1);
     expect(creates).toBe(0);
   });
@@ -676,10 +694,13 @@ test("legacy version-one drafts remain readable with their selected file", async
   );
   let uploaded: Record<string, unknown> | undefined;
   await editorApi(page, (name, input) => {
-    if (name === "admin.uploadMedia") {
+    if (name === "admin.uploadPrivateAttachment") {
       uploaded = input;
       return ok({
-        url: "https://example.test/legacy.wav",
+        state: "ready",
+        assetId: "00000000-0000-4000-8000-000000000001",
+        type: input.type,
+        filename: input.filename,
         mimeType: "audio/wav",
         fileSize: 18,
       });

@@ -4,6 +4,25 @@
 
 ### Проверенный остаток на 15 октября
 
+- [x] FE4: по прямому поручению подключены новые закрытые audio/document к обоим
+  существующим post editors без дизайна. Domain slice ece9991: stable per-file
+  intent/status/replay и privateAssetIds, RED9→GREEN18 + legacy regressions110.
+  Durable IndexedDB aliases/File bytes, adapters и existing recovery notice;
+  status-first replay, no public fallback, upload ready не публикует пост.
+  Chromium66 pass, WebKit65 pass/1 existing legacy Blob skip; все14 новых private
+  cases проходят в обоих. Reload/lost upload+post ACK/same key+bytes/old media/
+  live account switch+late upload/status/cross-tab/storage failure проверены.
+  Дополнительные RED filename/MIME и recovery checkpoint→GREEN, DOC не выбирается
+  для нового private path; existing DOC/URL не трогались. Full2380 pass/0 fail,
+  1455 skipped/5 pending,263 files/45.8s; frontend/E2E/root types, lint/build,
+  API86/boundaries667/docs58/diff exit0. Review: alias identity до/после IndexedDB,
+  unknown legacy upload остаётся manual-only, 409/status errors не создают ключ,
+  late receipt не применяется к новому owner, старые связи не заменяются.
+  API browser fixtures подставные; File/IndexedDB/session/abort настоящие. Native
+  SQL/S3/rollout этим frontend срезом не заявлены. Working flags/DB/S3/old files,
+  SCSS/layout/assets/backend прежние; no push/deploy. Own Playwright server закрыт.
+  JSON Vitest/Chromium: /tmp/daryadarcy-private-editors-X7ePea/; WORK_PLAN — команды.
+
 - [x] FE0: пользователь разрешил внутренние frontend исправления без дизайна.
   Fetch origin/staging81e8563: clean ab348be,49 ahead/0 behind; frontend совпадал
   byte-for-byte, merge --ff-only Already up to date. Ничего не перезаписывалось.

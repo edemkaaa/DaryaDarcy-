@@ -2,6 +2,7 @@ import type { PostDraft } from "./draft";
 import type { PostAttachment, PostSaveSnapshot } from "./save-post";
 import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { requireUploadedMedia } from "@/shared/media/upload-result";
+import { requirePrivateReceipt } from "./private-upload";
 
 export type PendingPostUpload = {
   id: number;
@@ -178,6 +179,35 @@ function validRecord(
         return false;
       }
     }) &&
+    (save.privateUploads === undefined ||
+      (Array.isArray(save.privateUploads) &&
+        save.privateUploads.every((pair) => {
+          if (!Array.isArray(pair) || pair.length !== 2) return false;
+          const [item, intent] = pair;
+          if (
+            !item ||
+            !["audio", "document"].includes(item.type) ||
+            typeof item.name !== "string" ||
+            typeof item.mimeType !== "string" ||
+            !(item.file instanceof File) ||
+            !intent ||
+            typeof intent.key !== "string" ||
+            !/^[A-Za-z0-9._:-]{16,128}$/.test(intent.key)
+          )
+            return false;
+          if (intent.receipt === undefined) return true;
+          try {
+            const receipt = requirePrivateReceipt(intent.receipt);
+            return (
+              receipt.state === "ready" &&
+              receipt.type === item.type &&
+              receipt.filename === item.name.trim() &&
+              receipt.fileSize === item.file.size
+            );
+          } catch {
+            return false;
+          }
+        }))) &&
     (!["update", "complete"].includes(save.phase) || save.savedId !== null) &&
     (save.phase !== "create" ||
       (save.savedId === null &&
@@ -269,6 +299,9 @@ export class PostRecoveryJournal {
               restore(item),
               uploaded,
             ]),
+            privateUploads: stored.save.privateUploads?.map(
+              ([item, intent]) => [restore(item), intent],
+            ),
           },
         };
       } else record = stored as PostRecoveryRecord;
@@ -303,6 +336,9 @@ export class PostRecoveryJournal {
       });
       save.uploaded.forEach(([item], index) => {
         snapshot.save.uploaded[index][0].file = item.file;
+      });
+      save.privateUploads?.forEach(([item], index) => {
+        snapshot.save.privateUploads![index][0].file = item.file;
       });
     } catch {
       return Promise.reject(storageError());
@@ -340,6 +376,10 @@ export class PostRecoveryJournal {
       const uploaded: PostSaveSnapshot["uploaded"] = [];
       for (const [item, result] of snapshot.save.uploaded)
         uploaded.push([await pack(item), result]);
+      const privateUploads: NonNullable<PostSaveSnapshot["privateUploads"]> =
+        [];
+      for (const [item, intent] of snapshot.save.privateUploads ?? [])
+        privateUploads.push([await pack(item), intent]);
       this.assertOwner();
       const revision = await transaction<number>(
         "readwrite",
@@ -364,7 +404,7 @@ export class PostRecoveryJournal {
                 revision: next,
                 updatedAt: Date.now(),
                 editor: { ...snapshot.editor, attachments },
-                save: { ...snapshot.save, uploaded },
+                save: { ...snapshot.save, uploaded, privateUploads },
               } satisfies StoredRecord,
               this.key(),
             );

@@ -177,6 +177,15 @@ playback/admin. Не назначать эти реализации заново
 
 ### Что действительно осталось подключить: новые audio/document вложения
 
+**Локальное обновление15 октября, FE4:** по новому прямому поручению оба редактора
+подключены к принятому upload/status/privateAssetIds. Durable owner-scoped File+
+key, status-first explicit replay и late-response cancellation проверены в
+Chromium/macOS WebKit с mocked API и настоящим IndexedDB; дизайн/старые URL прежние.
+Описание ниже относится к remote staging81e8563, а не к состоянию локальной ветки
+после FE4. Никакого push/deploy/working flags/DB/S3 этим срезом не выполнялось.
+Совместная native backend/S3/browser приёмка и рабочее включение остаются отдельно;
+подробные проверки и воспроизводимые команды — начало frontend WORK_PLAN.
+
 В обоих редакторах staging по-прежнему используется `admin.uploadMedia`;
 вызовов `uploadPrivateAttachment`/`privateAttachmentStatus` и `privateAssetIds`
 нет. Старые объекты/URL/фото/видео/обложки не мигрировать и не закрывать попутно.

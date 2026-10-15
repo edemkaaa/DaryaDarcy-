@@ -246,6 +246,18 @@ export function CreatePostModal({
       input: Parameters<typeof utils.client.admin.uploadMedia.mutate>[0],
       signal: AbortSignal,
     ) => utils.client.admin.uploadMedia.mutate(input, { signal }),
+    uploadPrivate: (
+      input: Parameters<
+        typeof utils.client.admin.uploadPrivateAttachment.mutate
+      >[0],
+      signal: AbortSignal,
+    ) => utils.client.admin.uploadPrivateAttachment.mutate(input, { signal }),
+    privateStatus: (
+      input: Parameters<
+        typeof utils.client.admin.privateAttachmentStatus.query
+      >[0],
+      signal: AbortSignal,
+    ) => utils.client.admin.privateAttachmentStatus.query(input, { signal }),
   };
   const closeEditor = () => {
     operation.cancel();
@@ -292,6 +304,10 @@ export function CreatePostModal({
     const task = operation.begin("save");
     if (!task) return;
     try {
+      if (saveCoordinator.current.snapshot().phase === "upload") {
+        await saveCoordinator.current.recoverUploads(postApi, task);
+        return;
+      }
       await saveCoordinator.current.recoverCreation(postApi, task);
       task.assertCurrent();
       await recovery.clear();

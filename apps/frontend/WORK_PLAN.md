@@ -49,11 +49,41 @@ bounded-media-read.spec.ts media-upload-contract.spec.ts media-failure-lifecycle
 Playwright1.58.2 (Chromium1208/WebKit2248); install с PLAYWRIGHT_SKIP_BROWSER_GC=1,
 чтобы не очищать другие cached versions. Подробная активная очередь — tasks/todo.md.
 
-Новый private upload/status/association ещё не подключён к редакторам: штатная
-генерация типов не означает готовность этой интеграции. Старые URL не мигрированы,
-рабочие private flags не включены; следующий срез — existing backend handoff.
+На этом checkpoint новый private upload/status/association ещё не был подключён;
+реализация следующего отдельного поручения — FE4 ниже. Старые URL не мигрированы,
+рабочие private flags не включены.
 Контрольный fetch в конце сначала дал SSL_ERROR_SYSCALL; обычный повтор без
 ослабления TLS прошёл, staging остался81e8563. Нового merge/перезаписи не было.
+
+### FE4 — закрытые audio/document в существующих редакторах, 15 октября
+
+Оба post editors используют `uploadPrivateAttachment`/`privateAttachmentStatus`,
+а create/update привязывает ready `privateAssetIds`; публичного fallback нет.
+Ключ каждой загрузки и исходные metadata/File bytes сохраняются до dispatch в
+существующем owner-scoped IndexedDB. После lost ACK/reload пользователь запускает
+existing «Проверить сохранение»: status first, ready без повторной загрузки,
+pending/notRecorded — прежние bytes/key; 409/ошибка статуса не порождает новый key.
+Завершение upload не публикует пост: подтверждение публикации отдельно. Existing
+post create intent/unknown-update guard и legacy draft versions1/2 сохранены.
+Смена аккаунта отменяет/отбрасывает поздние upload/status receipts; черновик не
+переходит другому владельцу. Старые вложения/URL сохраняются, removedMediaIds
+по-прежнему явная отвязка. DOC больше не предлагается для новых private documents
+(PDF/DOCX/TXT); существующий DOC не мигрируется/не удаляется.
+
+TDD: RED9 domain + RED browser/public route → GREEN; дополнительно RED receipt
+filename/MIME и local checkpoint recovery → исправления. Full Vitest2380 pass,
+0 fail/1455 skipped/5 pending,263 files,45.8s. macOS WebKit65 pass/1 existing skip
+(legacy IndexedDB Blob); все14 новых private cases прошли. Chromium66 pass/skip0:
+14 private +8 checkpoint/upload +44 existing browser regressions на финальном
+дереве. Типы frontend/E2E/root, lint/build, API86,
+boundaries667/docs58 проходят. Проверки API в браузере подставные, IndexedDB/File/
+FileReader/abort/session реальные. Это не новая native SQL/S3 или рабочая приёмка.
+Команды: после build `playwright test private-post-attachments.spec.ts
+post-draft-recovery.spec.ts editor-safety.spec.ts post-upload-recovery.spec.ts
+post-draft-checkpoint.spec.ts --browser=chromium`, затем `--browser=webkit`.
+JSON unit/Chromium: `/tmp/daryadarcy-private-editors-X7ePea/`.
+Backend, DB, S3, flags, старые файлы, SCSS/layout/assets не менялись; no push/deploy.
+Включение рабочих upload/read flags и совместная actual-S3 acceptance отдельно.
 
 **Текущее поручение: доработать только фронтенд первого этапа для закрытия по договору — общую основу, затем публикации, вложения и взаимодействия, поэтапно с проверками. Дополнительные улучшения записываем отдельно и пока не реализуем. Бэкенд и базу не запускаем.** Бэкендер будет менять сервер; согласованные интеграции нужно проверять после уточнения API. Состояние ниже — снимок сегодняшних проверок, а не обещание, что найдены все возможные ошибки или приложение готово к сдаче.
 
