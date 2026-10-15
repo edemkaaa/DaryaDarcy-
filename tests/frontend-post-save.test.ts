@@ -29,7 +29,7 @@ const attachment = () => ({
 });
 const scope = () =>
   new OperationScope().begin("save", new AbortController().signal, () => true)!;
-let api: { [K in keyof PostSaveApi]: Mock<PostSaveApi[K]> };
+let api: { [K in keyof PostSaveApi]: Mock<NonNullable<PostSaveApi[K]>> };
 beforeEach(() => {
   api = {
     create: vi.fn(async () => 42),

@@ -5,6 +5,11 @@ import { attachmentBase64 } from "@/shared/media/read-attachment";
 import { validateFileSize } from "@/shared/browser/file-operations";
 import { requireUploadedMedia } from "@/shared/media/upload-result";
 import type { ApiInputs } from "@/shared/api/types";
+import {
+  requirePrivateReceipt,
+  type PrivateUploadInput,
+  type PrivateUploadIntent,
+} from "./private-upload";
 
 export type PostPayload = ReturnType<typeof serializePostDraft>;
 type Payload = PostPayload;
@@ -14,6 +19,7 @@ type UploadedAttachment = NonNullable<
 export type SavePayload = Payload & {
   attachments?: UploadedAttachment[];
   removedMediaIds?: number[];
+  privateAssetIds?: string[];
 };
 type CreatePayload = SavePayload & { idempotencyKey: string };
 type UpdatePayload = Partial<SavePayload>;
@@ -32,6 +38,14 @@ export type PostSaveApi = {
     payload: UpdatePayload,
     signal: AbortSignal,
   ) => Promise<unknown>;
+  uploadPrivate?: (
+    input: PrivateUploadInput,
+    signal: AbortSignal,
+  ) => Promise<unknown>;
+  privateStatus?: (
+    input: { idempotencyKey: string },
+    signal: AbortSignal,
+  ) => Promise<unknown>;
   upload: (
     input: {
       base64: string;
@@ -48,6 +62,7 @@ export type PostSaveSnapshot = {
   phase: "idle" | "upload" | "create" | "update" | "complete";
   creationIntent?: { key: string; payloadJson: string };
   uploaded: [PostAttachment, UploadedAttachment][];
+  privateUploads?: [PostAttachment, PrivateUploadIntent][];
 };
 export class PostSaveError extends Error {
   public data?: { httpStatus: number };
@@ -66,6 +81,7 @@ export class PostSaveError extends Error {
 export class PostSaveCoordinator {
   private savedId: number | null;
   private uploaded = new Map<PostAttachment, UploadedAttachment>();
+  private privateUploads = new Map<PostAttachment, PrivateUploadIntent>();
   private uncertain = false;
   private completed = false;
   private postWritePending = false;
@@ -84,6 +100,7 @@ export class PostSaveCoordinator {
       phase: this.phase,
       creationIntent: this.creationIntent,
       uploaded: [...this.uploaded],
+      privateUploads: [...this.privateUploads],
     };
   }
   restore(state: PostSaveSnapshot): void {
@@ -91,6 +108,7 @@ export class PostSaveCoordinator {
     this.original = state.original;
     this.creationIntent = state.creationIntent;
     this.uploaded = new Map(state.uploaded);
+    this.privateUploads = new Map(state.privateUploads ?? []);
     this.phase = state.phase;
     this.completed = state.phase === "complete";
     this.uncertain = state.phase !== "idle" && !this.completed;
@@ -103,6 +121,94 @@ export class PostSaveCoordinator {
   private async remember(phase: PostSaveSnapshot["phase"]): Promise<void> {
     this.phase = phase;
     await this.checkpoint?.(this.snapshot());
+  }
+  /** Explicit recovery only. Resolve uploads first, leave publishing to the user. */
+  async recoverUploads(
+    api: PostSaveApi,
+    operation: ScopedOperation,
+  ): Promise<void> {
+    if (this.phase !== "upload" || !this.privateUploads.size)
+      throw new Error(
+        "Для этой загрузки нужна ручная проверка списка публикаций",
+      );
+    for (const [attachment, intent] of this.privateUploads) {
+      operation.assertCurrent();
+      if (intent.receipt?.state === "ready") continue;
+      await this.uploadPrivate(attachment, api, operation);
+    }
+    operation.assertCurrent();
+    await this.remember("idle");
+    this.uncertain = false;
+  }
+  private async uploadPrivate(
+    attachment: PostAttachment,
+    api: PostSaveApi,
+    operation: ScopedOperation,
+  ): Promise<void> {
+    if (!api.uploadPrivate || !api.privateStatus || !attachment.file)
+      throw new Error(
+        "Закрытая загрузка недоступна. Вложение сохранено в черновике.",
+      );
+    let intent = this.privateUploads.get(attachment);
+    if (intent?.receipt?.state === "ready") return;
+    operation.assertCurrent();
+    if (intent) {
+      const status = await api.privateStatus(
+        { idempotencyKey: intent.key },
+        operation.signal,
+      );
+      operation.assertCurrent();
+      if (
+        !status ||
+        typeof status !== "object" ||
+        (status as { state?: unknown }).state !== "notRecorded"
+      ) {
+        const receipt = requirePrivateReceipt(status);
+        if (
+          receipt.type !== attachment.type ||
+          receipt.fileSize !== attachment.file.size ||
+          receipt.filename !== attachment.name.trim()
+        )
+          throw new Error("Подтверждение не соответствует выбранному вложению");
+        if (receipt.state === "ready") {
+          intent.receipt = receipt;
+          await this.remember("upload");
+          return;
+        }
+      }
+    } else {
+      intent = { key: globalThis.crypto.randomUUID() };
+      this.privateUploads.set(attachment, intent);
+    }
+    // The immutable File and its metadata are persisted together with this key.
+    await this.remember("upload");
+    operation.assertCurrent();
+    const base64 = await attachmentBase64(attachment.file, operation.signal);
+    operation.assertCurrent();
+    const result = await api.uploadPrivate(
+      {
+        idempotencyKey: intent.key,
+        type: attachment.type,
+        filename: attachment.name,
+        mimeType: attachment.mimeType,
+        base64,
+      },
+      operation.signal,
+    );
+    operation.assertCurrent();
+    const receipt = requirePrivateReceipt(result);
+    if (
+      receipt.type !== attachment.type ||
+      receipt.fileSize !== attachment.file.size ||
+      receipt.filename !== attachment.name.trim()
+    )
+      throw new Error("Подтверждение не соответствует выбранному вложению");
+    if (receipt.state !== "ready")
+      throw new Error(
+        "Загрузка ещё не подтверждена. Проверьте сохранение перед повтором.",
+      );
+    intent.receipt = receipt;
+    await this.remember("upload");
   }
   /** Explicit user action only: replay the exact durable create, never uploads or edits. */
   async recoverCreation(
@@ -157,6 +263,11 @@ export class PostSaveCoordinator {
     try {
       for (const attachment of attachments) {
         if (!attachment.file || this.uploaded.has(attachment)) continue;
+        if (api.uploadPrivate) {
+          await this.uploadPrivate(attachment, api, operation);
+          await this.remember("idle");
+          continue;
+        }
         const base64 = await attachmentBase64(
           attachment.file,
           operation.signal,
@@ -191,6 +302,14 @@ export class PostSaveCoordinator {
       const savePayload: SavePayload = {
         ...payload,
         ...(uploads.length ? { attachments: uploads } : {}),
+        ...(attachments.some((item) => this.privateUploads.has(item))
+          ? {
+              privateAssetIds: attachments.flatMap((item) => {
+                const receipt = this.privateUploads.get(item)?.receipt;
+                return receipt?.state === "ready" ? [receipt.assetId] : [];
+              }),
+            }
+          : {}),
         ...(this.savedId !== null && removedIds.length
           ? { removedMediaIds: [...new Set(removedIds)] }
           : {}),
@@ -225,6 +344,8 @@ export class PostSaveCoordinator {
           changes.richText = payload.richText;
         }
         if (uploads.length) changes.attachments = uploads;
+        if (savePayload.privateAssetIds?.length)
+          changes.privateAssetIds = savePayload.privateAssetIds;
         if (removedIds.length)
           changes.removedMediaIds = [...new Set(removedIds)];
         this.postWritePending = true;
@@ -250,7 +371,9 @@ export class PostSaveCoordinator {
       if (status && status >= 400 && status < 500)
         this.postWritePending = false;
       this.uncertain =
-        this.uncertain || (writing && (!status || status >= 500));
+        this.uncertain ||
+        (this.phase === "upload" && this.privateUploads.size > 0) ||
+        (writing && (!status || status >= 500));
       if (!this.completed && !this.uncertain) {
         this.postWritePending = false;
         this.phase = "idle";
