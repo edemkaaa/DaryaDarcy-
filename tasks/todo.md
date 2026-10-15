@@ -12,10 +12,32 @@
   Этот срез только документация; Docker/нагрузка/код/frontend/DB/S3 не менялись.
   Проверка docs58/diff exit0; review сопоставил реальные routes/pool/login quota,
   отделил ожидаемые access denials от ошибок и local baseline от рабочей приёмки.
-- [ ] AG9-L1: после принятия сценария подготовить guarded own local load stand,
-  harness и synthetic fixtures; проверить safety guards до нагрузочного прогона.
-- [ ] AG9-L2/L3: baseline→ступени→recovery/SQL invariants, отчёт и только
-  доказанные адресные исправления. Пока ждёт согласования; load pass не заявлен.
+- [x] AG9-L1: пользователь принял критерии и разрешил локальную нагрузку.
+  Новый own labelled loopback/tmpfs MySQL8.4/backend_test,2CPU/1GiB, fresh38,
+  отдельный compiled Nest process,60 synthetic users/10000 posts/20000 comments.
+  Guards/latency/dropped arrivals: RED3 absent functions→GREEN3, CLI refusal
+  проверен отдельно без Docker/SQL/секретов. Real login10 и baseline завершились;
+  это не финальная нагрузочная приёмка. Runtime/квоты/пул/фронт/working DB/S3 прежние.
+- [x] AG9-L2/L3: baseline→5RPS/2мин→10RPS/3мин→25RPS/5мин→60сек idle→recovery.
+  **9900/9900 load requests, errors/dropped0; native run exit0/PASS.** Read/write
+  worst p95:5RPS71.97/20.79мс,10RPS71.69/15.99мс,25RPS45.13/10.45мс;
+  25RPS read p99<=46.38мс, max in-flight4, scheduling lag p95<=2.44мс.
+  10 real login p95=84.97мс; дополнительно30 warmup/600 baseline-recovery requests.
+  Exact SQL counts/reaction parity/unique pairs; denied unpaid/blocked/expired,
+  outbox/media/open transactions0. INNODB_METRICS deadlocks/timeouts и all-digest
+  SQL errors отдельно проверены0; отсутствие SHOW STATUS строки не считалось0.
+  API RSS321.9→291.1MiB/peak386.2; MySQL max780.5MiB/47.91% одного core из2,
+  pool+observer<=11 connections, current row waits0, cumulative7→7 после login.
+  Списки/counts и comments full scans/filesort — подтверждённые первые риски роста,
+  но criteria не нарушены; runtime/индексы/пул не менялись. Подробности/команда:
+  docs/audits/content-launch.md, JSON tooling/data/backend-load/2026-10-15.json.
+  Own00e12d4b9c76/loopback55817/tmpfs/no volumes удалён после exact inspection;
+  local-owner39fdda943241/другие контейнеры сохранены, API/temp/caffeinate завершены.
+  Фронт/working DB/S3/старые files/flags/remote неизменны. Local-only результат,
+  не доказательство production capacity,50 concurrent login или devices.
+  Финально4 harness tests/2 suites/skip0, tsc/boundaries664/docs58/diff exit0;
+  review: failed/dropped requests не скрываются, latency до полного body check,
+  SQL-counter absence не считается success, generated evidence без credentials.
 
 - [x] CF0: пользователь принял показанный контракт новых фото постов/комментариев
   и файлов статей. Зафиксирован в SPEC-private-files.md, без рабочего rollout.

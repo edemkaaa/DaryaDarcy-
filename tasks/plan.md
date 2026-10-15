@@ -178,7 +178,8 @@ HEAD и не подтверждение версии сервера. В нача
 #### AG9-L — предложение локальной нагрузки API/БД, 15 октября
 
 По поручению пользователя сначала согласовать минимальный сценарий п.4.15,
-потом проверять локально. **Статус: предложено, запуск не разрешён этим срезом.**
+потом проверять локально. **Критерии приняты следующим прямым сообщением пользователя;
+разрешён own local API/DB load, без frontend/working DB/S3. Прогон завершён ниже.**
 ТЗ требует нагрузочной приёмки, но не задаёт одновременную аудиторию, RPS или
 допустимые задержки. Числа ниже — предлагаемый local baseline, не договорный SLA
 и не подтверждение способности рабочего сервера обслуживать всех участниц.
@@ -247,6 +248,19 @@ ownership проверки, чужой local-owner оставить. Первы�
 затем existing plan/todo evidence. Документный срез проверять docs/diff; нагрузка,
 код и Docker сейчас не запускались. Local pass не закрывает production/mail/S3/
 browser/device/pilot gates. Для рабочей приёмки отдельно нужны аудитория и target.
+
+Результат15 октября:9900/9900 scheduled load requests на5/10/25RPS, errors/dropped0,
+per-method latency/recovery gates PASS.10 native logins p95=84.97мс; на25RPS
+worst read/write p95=45.13/10.45мс, worst read p99=46.38мс, max in-flight4.
+SQL counts/reaction parity/uniqueness exact, access denial до/после сохранён,
+outbox/media/open transactions0. Native INNODB_METRICS deadlocks/timeouts0 и
+all-statement SUM_ERRORS0 дополнительно проверены отдельно перед cleanup.
+Подтверждён риск роста correlated counts/full scans/filesort списков и unpaginated
+comments; нарушений принятых thresholds нет, runtime/индексы не менялись.
+Свой tmpfs контейнер/API убраны с exact guards; чужие стенды сохранены.
+Отчёт/воспроизведение/границы — [existing content runbook](../docs/audits/content-launch.md),
+JSON — tooling/data/backend-load/2026-10-15.json. Не повторять без изменений/
+нового риска и не выдавать local baseline за production/device/S3 приёмку.
 
 #### CF — новые фото и файлы статей, принято 15 октября
 

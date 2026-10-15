@@ -4,6 +4,85 @@
 на одноразовой MySQL, а не рабочей базе. Предыдущий этап описан в
 [оплатах и доступе](billing-identity.md).
 
+## AG9-L — локальная нагрузка API/БД, 15 октября 2026
+
+По принятым пользователем критериям п.4.15: **PASS для выбранного local baseline**,
+не доказательство production capacity/одновременного входа всей аудитории.
+Доказательство: [машинный отчёт](../../tooling/data/backend-load/2026-10-15.json).
+Measured backend SHA883b420 (runtime не менялся); harness добавлен отдельными
+local test commits. Время09:34:59–09:46:10 UTC. Apple M4/10 logical CPU/16GiB,
+Node24.19.0; MySQL8.4.11 с лимитами2CPU/1GiB, собственным loopback/tmpfs backend_test
+и38 настоящими fresh-only миграциями. Dataset:60 users/50 paid,10000 posts,
+20000 comments (popular post500),50 articles/20 tags/1000 initial saves.
+
+Настоящие Nest HTTP/session/SQL, compiled отдельный процесс без .env/WorkerJobs.
+Нет provider doubles: платежи/SMTP/S3/uploads вообще не вызывались; исходящие TCP
+API разрешены только к своему SQL-порту. Внешних попыток0. Пул10, login quota,
+роли/proxy/CORS и рабочие flags не менялись. Основной mixed workload90% reads/
+10% like/save; scheduled arrivals, no retry/batching, максимум50 in-flight.
+Requests со статусом200 дополнительно проверены по body/actor/visibility.
+
+| Ступень | Planned/actual requests | Worst read p95 | Worst write p95 | Errors/dropped |
+| --- | --- | --- | --- | --- |
+| 5RPS/2мин | 600/600 | 71.97мс | 20.79мс | 0/0 |
+| 10RPS/3мин | 1800/1800 | 71.69мс | 15.99мс | 0/0 |
+| 25RPS/5мин | 7500/7500 | 45.13мс | 10.45мс | 0/0 |
+
+Всего9900 load requests, дополнительно30 warmup/600 baseline-recovery requests,
+10 настоящих одновременных login и отдельные negative access assertions.
+Login p95=84.97мс (выборка10, не статистическая гарантия массового входа).
+На25RPS worst read p99=46.38мс; max in-flight4, scheduling lag p95<=2.44мс.
+50 аккаунтов не означают50 одновременных запросов: saturation не искали.
+После60сек idle baseline восстановился: club.list p95 39.99→38.69мс,
+feed.listPaginated30.87→30.78мс. Все per-method p95/p99/recovery критерии пройдены.
+Полные распределения/counts/status/bytes/resources/digests/EXPLAIN — в JSON.
+
+Native SQL invariants до/после: те же users/posts/comments/articles/payments,
+exact like/save parity и отсутствие duplicate pairs, outbox/media0. После нагрузки
+unpaid/blocked/expired по-прежнему не читают клуб; чужие saved/body не возвращены.
+Незавершённых транзакций0. Отдельная read-only проверка перед cleanup:
+information_schema.INNODB_METRICS lock_deadlocks=0/lock_timeouts=0 и суммарный
+SUM_ERRORS всех backend_test statement digests=0. Это отдельная проверка:
+Innodb_deadlocks не возвращается SHOW GLOBAL STATUS на данной версии, отсутствие
+такой строки нельзя трактовать как нулевой счётчик. Current row waits0; cumulative
+row waits7→7 между первым и последним sampler (первый после login).
+API pool+observer connections max11; дополнительный CLI observer кратко даёт12.
+API RSS321.9→291.1MiB/peak386.2; MySQL max76.22% от1GiB, CPU max47.91% одного
+ядра при лимите2CPU; own tmpfs max26%. В этом прогоне исчерпания ресурсов нет.
+
+**Подтверждённые первые риски роста, не нарушения принятого порога:**
+
+- Главная SQL стоимость — page reads с correlated COUNT likes/post_comments:
+  два ведущих digest55774.88/30385.86мс суммарного SQL времени,627758650/
+  440007827 examined rows на1702/1022 calls (примерно369–431тыс/call).
+  EXPLAIN posts/search — ALL/без подходящего key/Using filesort. Первый адресный
+  кандидат для следующего согласованного среза — измерить индексы для подсчётов
+  по postId и scan/sort; не добавлять кэш/Redis или менять контракт заранее.
+- Comments read тоже ALL/filesort без key по postId; API выдаёт весь discussion.
+  500 comments дают216042 bytes (~211KiB) на response. На localhost быстро,
+  но рост обсуждения/мобильная сеть здесь не сертифицированы. Пагинация меняет
+  клиентский контракт: не реализована и не назначается автоматически.
+- Pool/login не стали bottleneck на выбранной ступени; увеличивать10 connections
+  или обходить20 login attempts/15мин/IP оснований нет.50 real login burst с
+  одного IP не проводился. Heap/GC/production resource reserve этим не доказаны.
+
+Воспроизведение: создать **новый** свой labelled daryadarcy-fresh-load-* контейнер
+MySQL8.4/backend_test с loopback/tmpfs/no volumes,2CPU/1GiB/performance-schema=ON;
+проверить exact ownership, выполнить existing fresh-only initializer, затем
+в чистом окружении без DATABASE_URL/интеграций задать LOAD_DATABASE_URL,
+LOAD_DATABASE_CONTAINER_ID и новый test-only JWT_SECRET с префиксом load-fixture-.
+Команда: `pnpm exec tsx tooling/scripts/api-load-local.ts --run-owned-local`.
+Инструмент отказывает на непустых users/неполной migration history и при inherited
+working config, печатает только путь к приватному report.json и безопасные totals.
+Перед утверждением SQL gates отдельно проверить INNODB_METRICS и SUM_ERRORS,
+как выше; report pass сам по себе не заменяет отсутствующие version-specific counters.
+Собственный API завершён и temp compiled directory удалён. Контейнер
+00e12d4b9c765d596f3a3e6f60f0383069fb3a155df55485cb82e35aaa181c6b удалён после
+exact ID/name/owner/loopback55817/tmpfs/no mounts inspection. Existing local-owner
+39fdda943241 и другие контейнеры сохранены; synthetic tmpfs данные не сохранялись.
+Нагрузочные harness tests/tsc/docs и commit results — начало tasks/todo.md.
+Frontend/working DB/S3/old files не менялись; push/deploy не выполнялись.
+
 ## Проверенные серверные модули
 
 - Аватар, фото поста и комментария: проверка настоящего JPEG/PNG/WebP, повторное
