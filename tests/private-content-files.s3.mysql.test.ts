@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 import { createServer, request as nativeRequest } from "node:http";
 import type { AddressInfo } from "node:net";
 import mysql, { type Connection, type RowDataPacket } from "mysql2/promise";
-import { S3Client, GetBucketPolicyCommand, GetBucketVersioningCommand, HeadObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetBucketPolicyCommand, GetBucketVersioningCommand, HeadObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import superjson from "superjson";
 import sharp from "sharp";
 import { sdk } from "../apps/backend/src/_core/sdk";
@@ -84,6 +84,23 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
       expect(response.status).toBe(403); await response.body?.cancel();
     }
   }
+  async function photoInput(usage: "postPhoto" | "articlePhoto" | "commentPhoto") {
+    const bytes = await sharp({ create: { width: 2, height: 3, channels: 4, background: { r: 1, g: 2, b: 3, alpha: 0.5 } } }).withExif({ IFD0: { Artist: "synthetic private author" } }).png().toBuffer();
+    return { idempotencyKey: `cf-${usage}-${owner}`, usage, filename: `cf-api-${owner}-${usage}.png`, mimeType: "image/png", base64: bytes.toString("base64") };
+  }
+  async function photoBytes(url: string, who = "member") {
+    const response = await read(url, who); expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/webp");
+    expect(response.headers.get("content-disposition")).toMatch(/^inline;/);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    const bytes = Buffer.from(await response.arrayBuffer()); const meta = await sharp(bytes).metadata();
+    expect(meta).toMatchObject({ format: "webp", width: 2, height: 3, hasAlpha: true }); expect(meta.exif).toBeUndefined();
+    const range = await read(url, who, "GET", "bytes=2-5"); expect(range.status).toBe(206);
+    expect(Buffer.from(await range.arrayBuffer())).toEqual(bytes.subarray(2, 6));
+    const head = await read(url, who, "HEAD"); expect(head.status).toBe(200); expect(head.headers.get("content-length")).toBe(String(bytes.length));
+    return bytes;
+  }
   beforeAll(async () => {
     const url = assertTestDatabase(uri!); const id = process.env.CF_S3_DATABASE_CONTAINER_ID;
     if (!id || !/^[a-f0-9]{64}$/.test(id) || url.hostname !== "127.0.0.1" || !url.port || process.env.DATABASE_URL !== uri || process.env.S3_ENDPOINT !== endpoint || process.env.S3_BUCKET !== Bucket || !process.env.S3_ACCESS_KEY || !process.env.S3_SECRET_KEY) throw new Error("Explicit owned acceptance inputs required");
@@ -159,5 +176,69 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     expect((await call("admin.updateArticle", { id: saved.data, sections: [{ type: "text", text: "Removed" }] })).status).toBe(200);
     await denied(recovered.data.url, "member");
     expect((await call("admin.updateArticle", { id: saved.data, sections: article.sections })).status).toBe(409);
+  }, 45000);
+  it("binds post photos once and rechecks paid, blocked, staff and session access before S3", async () => {
+    const input = await photoInput("postPhoto"); const asset = await call("admin.uploadPrivateContentFile", input); expect(asset.status).toBe(200);
+    const post = { text: "CF actual post photo", source, photos: [asset.data.url], tags: [], target: "club", status: "published", idempotencyKey: `cf-post-${owner}` };
+    expect((await call("admin.createPost", post, "other")).status).toBe(409);
+    await dropped("admin.createPost", post); const saved = await call("admin.createPost", post); expect(saved.status).toBe(200);
+    expect(await rows("SELECT id FROM posts WHERE source=?", [source])).toEqual([{ id: saved.data }]);
+    await photoBytes(asset.data.url); await directDenial(asset.data.assetId); await denied(asset.data.url);
+    await conn.query("UPDATE club_payments SET expiresAt=DATE_SUB(NOW(),INTERVAL 1 DAY) WHERE orderId=?", [`cf-api-paid-${owner}`]);
+    await denied(asset.data.url, "member");
+    await conn.query("UPDATE club_payments SET expiresAt=DATE_ADD(NOW(),INTERVAL 1 DAY) WHERE orderId=?", [`cf-api-paid-${owner}`]);
+    await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=98771"); await denied(asset.data.url, "member");
+    await conn.query("UPDATE users SET blockedAt=NULL,sessionVersion=1 WHERE id=98771"); await denied(asset.data.url, "member");
+    await photoBytes(asset.data.url, "other");
+    await conn.query("UPDATE users SET role='user' WHERE id=98772"); await denied(asset.data.url, "other");
+    expect((await call("admin.updatePost", { id: saved.data, status: "draft" })).status).toBe(200); await denied(asset.data.url, "admin");
+    expect((await call("admin.updatePost", { id: saved.data, status: "published", photos: [] })).status).toBe(200); await denied(asset.data.url, "admin");
+    expect((await call("admin.updatePost", { id: saved.data, photos: post.photos })).status).toBe(409);
+  }, 45000);
+  it("keeps article images behind their current publication/access and never treats them as public covers", async () => {
+    const asset = await call("admin.uploadPrivateContentFile", await photoInput("articlePhoto")); expect(asset.status).toBe(200);
+    const article = { title: `cf-api-${owner}-photo`, access: "public", published: true, idempotencyKey: randomUUID(), sections: [{ type: "png", url: asset.data.url }, { type: "carousel", urls: [asset.data.url] }] };
+    expect((await call("admin.createArticle", { ...article, coverUrl: asset.data.url })).status).toBe(400);
+    const saved = await call("admin.createArticle", article); expect(saved.status).toBe(200);
+    await photoBytes(asset.data.url, "guest"); await directDenial(asset.data.assetId);
+    expect((await call("admin.updateArticle", { id: saved.data, access: "club" })).status).toBe(200); await denied(asset.data.url);
+    await photoBytes(asset.data.url);
+    expect((await call("admin.updateArticle", { id: saved.data, published: false })).status).toBe(200); await denied(asset.data.url, "admin");
+    expect((await call("admin.updateArticle", { id: saved.data, published: true })).status).toBe(200);
+    await restart(false); await denied(asset.data.url, "member");
+    expect((await call("admin.uploadPrivateContentFile", document)).status).toBe(404); expect(api.commands).toEqual([]);
+    await restart(); await photoBytes(asset.data.url);
+  }, 45000);
+  it("recovers comment upload/save losses across restarts and isolates account changes and revocation", async () => {
+    const post = await call("admin.createPost", { text: "CF actual comment photo", source, photos: [], tags: ["community"], target: "feed", status: "published", idempotencyKey: `cf-comments-post-${owner}` }); expect(post.status).toBe(200);
+    const input = { ...await photoInput("commentPhoto"), postId: post.data }; const puts = api.commands.filter(name => name === "PutObjectCommand").length;
+    await dropped("club.uploadPrivateCommentPhoto", input, "member");
+    expect(api.commands.filter(name => name === "PutObjectCommand")).toHaveLength(puts + 1);
+    const recorded = await rows("SELECT assetId FROM private_content_files WHERE actorUserId=98771"); expect(recorded).toHaveLength(1);
+    await restart();
+    const recovered = await call("club.privateCommentPhotoStatus", { idempotencyKey: input.idempotencyKey }, "member", true); expect(recovered.status).toBe(200); expect(recovered.data.assetId).toBe(recorded[0].assetId);
+    expect((await call("club.privateCommentPhotoStatus", { idempotencyKey: input.idempotencyKey }, "other", true)).data).toEqual({ state: "notRecorded" });
+    for (const replay of await Promise.all([call("club.uploadPrivateCommentPhoto", input, "member"), call("club.uploadPrivateCommentPhoto", input, "member")])) expect(replay).toEqual(recovered);
+    expect(api.commands.filter(name => name === "PutObjectCommand")).toHaveLength(0);
+    const comment = { postId: post.data, text: "Only one committed comment", photos: [recovered.data.url], idempotencyKey: `cf-comment-save-${owner}` };
+    await dropped("club.addComment", comment, "member"); await restart();
+    const results = await Promise.all([call("club.addComment", comment, "member"), call("club.addComment", comment, "member")]);
+    expect(results.map(result => result.status)).toEqual([200, 200]); expect(results[0].data).toEqual(results[1].data);
+    expect(await rows("SELECT id FROM post_comments WHERE postId=?", [post.data])).toEqual([{ id: results[0].data.id }]);
+    expect((await call("club.comments", { postId: post.data }, "member", true)).data).toMatchObject([{ id: results[0].data.id, text: comment.text, photos: comment.photos }]);
+    expect((await call("club.addComment", comment, "other")).status).toBe(409);
+    expect((await call("club.addComment", { ...comment, photos: [] }, "member")).status).toBe(409);
+    expect((await call("club.addComment", { ...comment, text: "Different" }, "member")).status).toBe(409);
+    await photoBytes(recovered.data.url); await directDenial(recovered.data.assetId); await denied(recovered.data.url);
+    expect((await call("admin.updatePost", { id: post.data, target: "club" })).status).toBe(200);
+    await conn.query("UPDATE club_payments SET expiresAt=DATE_SUB(NOW(),INTERVAL 1 DAY) WHERE orderId=?", [`cf-api-paid-${owner}`]); await denied(recovered.data.url, "member");
+    const before = api.commands.length; expect((await call("club.uploadPrivateCommentPhoto", input, "member")).status).toBe(403); expect(api.commands.length).toBe(before);
+    await conn.query("UPDATE club_payments SET expiresAt=DATE_ADD(NOW(),INTERVAL 1 DAY) WHERE orderId=?", [`cf-api-paid-${owner}`]);
+    await conn.query("UPDATE users SET sessionVersion=1 WHERE id=98771"); await denied(recovered.data.url, "member");
+    expect((await call("club.privateCommentPhotoStatus", { idempotencyKey: input.idempotencyKey }, "member", true)).status).toBe(401);
+    tokens.member = await sdk.createSessionToken(`cf-api-member-${owner}`, { sessionVersion: 1 }); await photoBytes(recovered.data.url);
+    expect((await call("club.deleteComment", { id: results[0].data.id }, "member")).status).toBe(200); await denied(recovered.data.url, "member");
+    expect((await call("club.addComment", comment, "member")).status).toBe(409);
+    expect(api.commands.filter(name => name === "PutObjectCommand")).toHaveLength(0);
   }, 45000);
 });

@@ -73,11 +73,35 @@
   тот же WebP, dependencies/защита/приложение не менялись. JS kernel завершён.
   Docs58/diff exit0; runtime не менялся, успешные прежние SQL/build suites без
   новой причины не повторялись. Review ограничил claim storage-only результатом.
-- [ ] CF следующий gate: native API/SQL + actual S3 для нового content scope,
-  затем совместимый frontend/generated types, browser/device acceptance и
-  отдельно разрешённый rollout. Рабочая DB/frontend/старые objects/flags не
-  менялись; push/deploy нет. Автоочистка нового scope не включена. Не повторять
-  успешный storage-only probe без drift/изменения кода/новой причины.
+- [x] CF-API15 октября, по прямому разрешению: настоящий Nest HTTP/JWT + SQL38
+  fresh migrations + Timeweb S3, без fixture DDL. Новый opt-in
+  tests/private-content-files.s3.mysql.test.ts: **4 pass/skip0,35.11s,exit0**.
+  Документ/фото поста/фото статьи/фото комментария: upload/status/binding/read,
+  настоящие потерянные HTTP ответы после upstream200/commit, новые процессы API,
+  same-key/concurrent replay с прежним assetId/material id и без второго PUT;
+  changed payload и photos=[]409, foreign binding/account isolation, current list.
+  GET/HEAD/Range exact, WebP alpha/no EXIF/inline, document attachment, no-store/
+  nosniff, anonymous storage403. Draft/hidden/detached/deleted, paid expiry,
+  block/role/session revoke закрывают следующий read до S3; новая сессия допустима.
+  Default-off проверен только в own API children; рабочий флаг не включался.
+  Четыре own S3 objects удалены после ledger filename UUID/asset/hash/MIME/size/
+  ETag guards, signed HEAD404; policy hash0484dfa2cc01 неизменен, policy writes0.
+  Предварительный doc-срез1 pass/8.66s после исправления неверного test expectation:
+  у unpublished article нет teaser; после publish ровно один. Runtime не менялся.
+  Один запуск стенда стартовал до окончания DB readiness: connection closed,
+  cases не выполнялись. После реального readiness и SHOW TABLES=[] штатный
+  fresh-only initializer применил38 SQL; финальный прогон выше без skip/fail.
+  Типовая ошибка generic SDK helper устранена в тесте, не ослаблением tsc.
+  Дополнительно pure regression30/4 suites/skip0,1.32s; tsc/boundaries664/docs58/
+  diff exit0. Review: проверяется реальный результат/bytes/SQL, SDK наблюдение
+  call-through без подмены ответов; production и frontend source не менялись.
+  Все три own tmpfs контейнера срезов удалены после exact ownership inspection;
+  existing owner39fdda943241 сохранён, временные API/JS kernel/caffeinate завершены.
+- [ ] CF остаток: совместимый frontend/generated types, browser/device acceptance
+  и отдельно разрешённый rollout. Независимый второй валидный S3 principal всё
+  ещё не предоставлен/не проверен. Рабочая DB/frontend/старые objects/рабочие flags
+  не менялись; push/deploy нет. Не переделывать готовый runtime без дефекта и
+  не повторять успешные native/probe checks без drift/изменений/новой причины.
 
 - [x] По следующему поручению подготовлены F-TEST-1/F-API-1 в начале existing
   backend handoff: точная причина viewport fixture, минимальный DOM stub и

@@ -121,9 +121,61 @@ kernel с credentials завершён. SQL/API/browser/source/frontend/server f
 менялись и не запускались. Не удалять Deny слепым rollback после появления
 настоящих закрытых данных: общий public Allow может их раскрыть.
 
-Следующий незакрытый этап — native CF upload/status/binding/read через API с
-этим S3 на собственной одноразовой БД, затем совместимый клиент/browser/device
-приёмка и отдельно разрешённый rollout. Флаг остаётся выключенным.
+Следующий на тот момент этап — CF API/SQL с этим S3 — пройден по последующему
+прямому поручению ниже. Клиент/browser/device/rollout остаются отдельными gate.
+
+### CF-API — настоящий HTTP/SQL/S3, 15 октября 2026
+
+Пользователь разрешил закрытую загрузку/выдачу через локальный API с настоящим
+S3 на одноразовой тестовой БД, включая потерянный ответ и отзыв доступа.
+`tests/private-content-files.s3.mysql.test.ts`: **4 pass, skips0,35.11s,exit0**.
+Предварительный document-only срез1 pass/8.66s сохранён отдельно, не суммировать
+повтор одного сценария как дополнительное покрытие. Production runtime не менялся.
+
+Стенд: отдельный MySQL8.4 backend_test/127.0.0.1/tmpfs без mounts/volumes.
+Fresh-only initializer реально применил все38 SQL; suite проверил matching
+container ID/name/codex.owner/port/tmpfs, пустых users и38 history rows до seeds.
+Никаких fixture CREATE/ALTER TABLE, production boot/jobs/env-файлов или working DB.
+Synthetic admin/member/other и paid row созданы только SQL в own database —
+платёжный провайдер/внешняя почта не вызывались. API компилировался в новые
+изолированные Node процессы; PRIVATE_CONTENT_FILES_ENABLED менялся только там.
+
+Проверено: application-only upload receipt/status, durable assetId после HTTP
+drop при upload и restart, два concurrent replay без нового PUT; создание
+статьи/поста/комментария после dropped committed response не дублирует материал,
+teaser/comment list соответствуют SQL. Changed payload (включая photos=[]),
+чужой account/asset и повтор удалённого comment отказывают, не создают замену.
+Документ TXT, фото поста, png/carousel статьи и фото comment: привязка атомарна;
+GET/HEAD/Range точные, WebP alpha без EXIF, MIME/no-store/nosniff/disposition.
+Draft/hidden/removal/no resurrection, paid expiry, block, staff role loss,
+session epoch revoke —404 до S3; status старой сессии401. Новая валидная сессия
+того же пользователя читает живой файл. Default-off не выдаёт/не загружает.
+Direct anonymous GET/HEAD/Range каждого нового S3 asset —403, без policy writes.
+
+Сначала harness неверно ожидал teaser у unpublished article: подтверждено
+syncTeaser published=false→без teaser, после publish→один; исправлен тест,
+не приложение. Отдельный запуск попал до окончания readiness нового MySQL:
+connection closed, cases не выполнены. После readiness read-only SHOW TABLES=[]
+подтвердил отсутствие partial DDL, штатный initializer завершил38 SQL и suite
+прошёл без увеличения timeout/skip. Generic SDK helper type исправлен в тесте.
+
+Четыре S3 objects удалены после точного own ledger/UUID filename/asset/hash/
+MIME/size/ETag guard, conditional DELETE и signed HEAD404. Policy hash
+`0484dfa2cc0164225db616bc516c53e8be377aca975d32701b6a6467ce1715e8` неизменен.
+Все own SQL контейнеры срезов удалены после exact owner/storage/network checks;
+старый local-owner stand сохранён. API processes, scratch dirs, JS credentials
+kernel и временный caffeinate завершены. В Git только тесты и документация.
+
+Воспроизведение: clean env с BACKEND_TEST_DATABASE_URL=DATABASE_URL собственного
+свежего migrated backend_test, CF_S3_DATABASE_CONTAINER_ID и CF_S3_ACCEPTANCE=true;
+явные S3_ENDPOINT/S3_BUCKET/S3_ACCESS_KEY/S3_SECRET_KEY и synthetic JWT_SECRET.
+Ключи только в памяти/окружении child, не в CLI args/env-файлах/manifest/Git.
+Команда: `pnpm exec vitest run tests/private-content-files.s3.mysql.test.ts --maxWorkers=1 --reporter=dot`.
+Без opt-in — skip, не новая приёмка; policy drift/versioning/неowned DB отказывают.
+Непустую/частичную DB не ремонтировать, старые S3 objects не подставлять.
+Это native backend acceptance, не frontend/rewrites/browser/device/load/production
+rollout. Второй самостоятельный S3 principal всё ещё не проверен. Рабочий флаг
+не включён, новые автоматические cleanup/lifecycle правила не добавлялись.
 
 ## Статус — Accepted for local implementation, 13 октября 2026
 

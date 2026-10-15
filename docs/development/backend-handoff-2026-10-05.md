@@ -7,7 +7,12 @@ tests и generated contract не менялись. Backend CF default-off. По�
 разрешения15 октября policy нового content/private-v1/ применена и storage-only
 probe на own TXT/WebP прошёл: signed200/Range206 exact, anonymous GET/HEAD/Range403,
 own public-control200. Старые statement и ACL сохранены; fixtures удалены/HEAD404.
-Это не CF API/SQL/browser acceptance; другой валидный S3 principal не проверялся.
+Последующее прямое поручение15 октября: native CF API/SQL+Timeweb4 сценария pass,
+skip0,35.11s на own fresh38 tmpfs DB. Drop committed upload/material responses,
+restart, concurrent replay без дублей/нового PUT; live access/revoke/Range/removal/
+default-off проверены. Четыре own objects удалены/HEAD404, policy неизменна.
+Runtime/working flags не менялись. Это ещё не frontend/browser/device acceptance;
+другой валидный S3 principal не проверялся. Доказательства/opt-in команда — SPEC.
 До совместной приёмки и согласованного rollout не включать PRIVATE_CONTENT_FILES_ENABLED.
 Старые URL/S3 objects/обложки/аватары остаются как были; это не их миграция.
 

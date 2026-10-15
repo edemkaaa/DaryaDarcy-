@@ -64,6 +64,10 @@
   добавить только DaryadarcyPrivateContentV1 на content/private-v1/*, own synthetic
   probes и новый public-control вне prefix. Scope не включает старые файлы,
   frontend, рабочую DB, CORS, lifecycle или включение флага. Выполнено ниже/в todo.
+  Следующее прямое поручение15 октября разрешило CF API/SQL+actual S3 acceptance
+  только на own disposable fresh backend_test и собственных новых объектах.
+  Read-only проверка policy, никаких новых policy/ACL writes/старых objects;
+  флаг разрешён лишь в изолированных API children, не в рабочем окружении.
 - Сохранять роли, CORS, proxy trust, квоты и смысл подписок. Служебный доступ
   модератора не является оплатой. Публичные обложки/аватары не закрывать случайно.
 - Не начинать жалобы (отложены), push, полное почтовое отделение, новую анимацию,
@@ -197,9 +201,14 @@ identity подтверждена, scoped policy добавлена без из�
 и ACL; TXT/WebP signed200/Range206 и anonymous403, public-control200, own cleanup404.
 Полные hashes/границы — CF-S3 в SPEC и начало todo. API/SQL/browser этим не проверены,
 другой валидный S3 principal не предоставлен. Правило действует, CF flag выключен.
-Следующий этап — отдельная native CF API/SQL+S3 acceptance в own disposable DB,
-клиентская интеграция и разрешённый rollout. Текущее поручение только storage probe
-не расширять до DB/API/browser/старых S3 файлов; новых runtime функций не придумывать.
+Последующее прямое поручение закрыло native CF API/SQL+S3 acceptance: новый
+opt-in suite4 pass/skip0,35.11s на fresh38 own tmpfs DB и Timeweb. Real HTTP drop
+после commit, process restart, same-intent replay без дублей/второго PUT,
+photo/document read/access/revoke/default-off и owner cleanup4 files/HEAD404.
+Runtime/рабочие flags не менялись, policy hash прежний; подробности в todo/SPEC.
+Остаток — совместимый клиент/generated types, browser/device и отдельно разрешённый
+rollout; другой валидный S3 principal не предоставлен. Без новых входов не
+придумывать runtime функции, не повторять успешно проверенное и не включать флаги.
 
 #### AG5-F — отдельная пустая БД, локальная подготовка по поручению 14 октября
 
