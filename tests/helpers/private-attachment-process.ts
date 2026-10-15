@@ -39,7 +39,7 @@ export async function privateAttachmentProcesses() {
       packages: "external",
       logLevel: "silent",
     });
-    async function start() {
+    async function start(options: { contentFiles?: boolean } = {}) {
       const env: Record<string, string> = {
         PATH: process.env.PATH!,
         NODE_ENV: "test",
@@ -47,6 +47,7 @@ export async function privateAttachmentProcesses() {
         DATABASE_URL: process.env.BACKEND_TEST_DATABASE_URL!,
         PRIVATE_POST_MEDIA_UPLOAD_ENABLED: "true",
         PRIVATE_POST_MEDIA_DELIVERY_ENABLED: "true",
+        PRIVATE_CONTENT_FILES_ENABLED: options.contentFiles ? "true" : "false",
       };
       for (const name of [
         "S3_ENDPOINT",
