@@ -4,6 +4,23 @@
 
 ### Проверенный остаток на 15 октября
 
+- FE5, продолжение по разрешению очистки: удалены только регенерируемые артефакты
+  проекта: `apps/frontend/.next/cache` (455MiB), `next-cache` (581MiB) из own
+  `/private/tmp/daryadarcy-frontend-cache-20261014.1Z8BCc`, установленные нами
+  неактивные Playwright `chromium-1208` (330MiB) и `webkit-2248` (276MiB).
+  Realpath/no-symlink/uid/generated markers проверены; browser registry содержит
+  только текущий repo, lsof подтвердил отсутствие открытых файлов этих браузеров.
+  Headless Chromium1208, общий старый ffmpeg1011, исходники, отчёты/скриншоты,
+  чужие temp/cache/containers/volumes сохранены. Кэши восстанавливаются штатной
+  сборкой/скачиванием, рабочие данные не удалялись. Free636MiB→2.2GiB.
+  Новый блокер ДО теста: Docker Desktop открыт, `desktop start --timeout20`
+  подтверждает already running, но engine info/ps и unix-socket `_ping` (5s)
+  не отвечают; Desktop status/UI также timeout. Перезапуск не выполнен, потому
+  что затронет контейнеры других проектов; запрос разрешения отправлен пользователю.
+  Новые DB/API/S3 writes не запускались, результат по-прежнему5/8, остаток3 quick
+  сценария не засчитан. После восстановления engine — новая own fresh39 БД и
+  `-t 'quick:'` (create нужен как setup для edit), без повтора уже пройденных full4.
+
 - [ ] FE5: разрешена сквозная проверка обоих редакторов с настоящими API/Timeweb
   S3 и own одноразовой БД. Preflight policy hash0484dfa2… совпал, versioning off,
   read-only; credentials только stdin/memory. Own loopback58158/tmpfs MySQL,
