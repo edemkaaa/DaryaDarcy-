@@ -83,25 +83,23 @@
 
 ### Снимок, от которого продолжать
 
-Последнее прямое решение пользователя после `834826f`: локальные browser tests
-видео возобновлены, mobile по-прежнему отложен. Сейчас активен AG9-VU5 в начале
-todo: оба existing редактора→native API→own fresh41 tmpfs SQL→новые S3 fixtures,
-lost ACK/reload/no duplicates/account switch/read/revoke без дизайна/рабочих данных/
-старых файлов/push/deploy. Предыдущие пометки «browser отложен» — прежний scope.
-Первый native RED подтвердил пропущенную ветку privateVideos в existing recovery
-notice. Минимальное исправление и SSR RED/GREEN выполнены; полный native GREEN
-ещё НЕ получен: после own cache cleanup осталось1.4GiB при минимуме2GiB.
-Не снижать disk guard, не удалять образы/volumes/чужие файлы ради теста. Обе own
-fresh41 БД удалены после guards, единственный новый synthetic S3 object — HEAD404,
-policy прежняя. Продолжение: освободить место и первым повторить full lost ACK,
-затем оба редактора/account switch/read/revoke/explicit removal. Подробнее todo.
-Последнее продолжение: по разрешению пользователя удалены ещё62.93MiB только
-нашей generated `.next` и пяти temp report directories с ownership guards.
-Raw reports по старым tmp paths больше нет; исторические сводки в плане сохранены.
-После очистки1.338GiB free, всё ещё ниже2GiB gate. Docker build cache0B, крупные
-чужие browser caches/образы/volumes/БД сохранены. Новый native запуск не начинался.
-Продолжить после ещё минимум1GiB свободного места (лучше2–3GiB запаса); не менять
-код/порог ради обхода окружения. Текущий WIP browser test/helper сохранены.
+AG9-VU5 завершён16 октября после разрешённой очистки только unused Codex updater
+cache (две проверенные Installation copies,3.85GiB logical). Disk gate не снижался;
+существующие базы/образы/чужие данные не удалялись. Точные guards/пути и история
+предыдущих дисковых blockers сохранены в начале todo, не повторять очистку.
+Финальный единый Chromium→existing оба редактора→native IndexedDB/File/reload→
+Nest/API→own fresh41 tmpfs SQL→Timeweb S3 **6/6 pass/0 skip/99.09s**. Lost upload/
+create ACK/no duplicates, account switch во время upload/status, owner return,
+live GET/HEAD/Range/playback/expiry/revoke и explicit UI removal подтверждены.
+Прежний recovery notice fix `a7e46c2` получил native GREEN; новых runtime/design
+изменений не понадобилось. Fault helper/tests сохранены отдельным `d96e45e`.
+Full2504 pass/1557 opt-in skips/exit0,67.90s; types/lint/webpack29/29/boundaries681
+прошли. Opt-in skips не засчитываются как native acceptance. Итоговые9 own S3
+objects очищены с HEAD404/policy unchanged, все4 own БД/API/Next/browser закрыты,
+секреты не сохранены. Working DB/старые S3/flags/push/deploy не менялись.
+Текущий остаток — только внешние AG5/AG9 gates в handoff; mobile/real devices и
+настоящие VK-ссылки по-прежнему отдельно. Не начинать новые функции/редизайн или
+повтор уже пройденных suites без нового входа/подтверждённого изменения.
 
 Исторический checkpoint до возобновления browser16 октября — `0e8da4b`.
 VU1–VU4 и предыдущие FE/CF локальные срезы завершены; точные доказательства в начале

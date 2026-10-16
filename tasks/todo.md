@@ -4,7 +4,7 @@
 
 ### Проверенный остаток на 16 октября
 
-- [ ] AG9-VU5 — по новому прямому разрешению пользователя возобновить только
+- [x] AG9-VU5 — по новому прямому разрешению пользователя возобновить только
   локальную браузерную проверку видео. Оба existing редактора: потеря upload/
   create ответа и document reload с File/key/status-first/no duplicate; смена
   аккаунта во время upload/status и возврат исходного владельца; actual API/SQL/S3,
@@ -13,6 +13,47 @@
   Дизайн/working DB/старые S3/рабочие flags/push/deploy исключены; mobile отложен.
   Файлы среза: отдельный opt-in native browser test/existing proxy helper/tests;
   runtime только после подтверждённого RED.
+  - **Завершено16 октября:** финальный единый native browser прогон **6/6 pass,
+    0 skip/0 fail,99.09s**. Оба existing редактора→Chromium/File/native IndexedDB
+    document reload→Next rewrite/fault proxy→Nest/JWT→own fresh41 tmpfs SQL→Timeweb
+    S3. Lost upload/create ACK сохраняет original bytes/key/status-first, один
+    post/create intent/receipt, без дополнительных PUT/public fallback. Late upload/
+    status после account switch не меняет чужой editor/journal; возврат владельца
+    восстанавливает исходный File/key. Проверены private video+poster GET/HEAD/
+    Range206/no-store, playback, unpaid expiry404 до S3 и explicit UI removal:
+    video и poster после удаления404, без новых PUT. SQL:6 posts/6 create intents/
+    6 upload receipts/3 posters/4 media после двух удалений; pageErrors0.
+  - `a7e46c2` подтверждён native GREEN после прежнего RED. Новых runtime/design
+    изменений в этом продолжении нет. Test-only playback criterion исправлен после
+    диагностики: single-frame MP4 duration1/currentTime1/ended=true/error=null
+    мог завершиться до settling play() promise. Допускается только AbortError при
+    доказанном полном воспроизведении из0; decode/network ошибки по-прежнему FAIL.
+    Промежуточный matrix4pass/2fail103.23s и quick2pass/1fail51.55s не засчитаны
+    как готовность. В первом был также transient pending S3 receipt; ready/200
+    assertions и SDK timeouts не ослаблялись, в финале все6 raw uploads200/ready.
+  - Проверки: full Vitest **2504 pass/1557 opt-in skips,exit0,67.90s** (счётчики
+    как сообщает runner, skips не приёмка); proxy7/7/132ms. Root/frontend/E2E types,
+    full frontend lint, prettier и681 boundaries exit0. Production webpack29/29,
+    compile11.5s/types4.5s, clean env/API target127.0.0.1:1; frontend env files
+    только .env.example. Five-axis review: helper faults only real completed HTTP
+    responses, fresh/ownership/policy/ETag guards, no dependencies/roles/CSS/flags.
+  - Все9 новых video/poster объектов финального прогона удалены после own metadata/
+    hash/ETag guards, HEAD404; policy hash прежний0484dfa2…1715e8. Предыдущие новые
+    тестовые keys также очищены (2/9/3), старые objects не читались/не менялись.
+    Own resume0ad0d1fd…, matrixb0b66db7…, quickfc31e963…, finalaaa572fd… БД удалены
+    только после exact ID/name/owner/loopback/tmpfs/no-volume recheck. Existing
+    базы/образы/volumes/чужие контейнеры не затронуты. API/Next/browser/proxy закрыты,
+    temp stand directories0; parent S3 client закрыт, credentials refs очищены.
+  - По отдельному разрешению пользователя удалён только неиспользуемый Codex
+    updater cache: Installation/ifrLW4633 и Installation/fyukwdqGB внутри
+    /Users/edem/Library/Caches/com.openai.codex/org.sparkle-project.Sparkle.
+    Before delete: explicit targets/realpath/uid501/private mode/dev+inode/age>
+    48h/archive markers/no open files/no active updater. Logical3.85GiB reclaimed,
+    free1.2→4.5GiB. Установленные приложения/чаты/настройки сохранены; кэш можно
+    загрузить заново. Это не разрешение чистить прочие caches или проектные данные.
+    Mobile/real devices/VK real links/working rollout по-прежнему отдельно.
+  - Далее только внешние AG5/AG9 gates из handoff; новых программных задач нет.
+    Нижние записи этого пункта — история до финального GREEN, не текущие blockers.
   - Native RED: full editor/lost upload ACK —1 fail/5 filtered skips,25.22s.
     Реальные Chromium/File/IndexedDB/Next/Nest/fresh41 SQL/Timeweb: receipt ready,
     исходные bytes/key в journal, post0, но кнопки «Проверить сохранение» нет.

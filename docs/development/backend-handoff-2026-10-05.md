@@ -2,7 +2,7 @@
 
 ## 16 октября — актуальная передача после CF/VU
 
-Проверенный локальный candidate — `0e8da4b`, ветка
+Проверенный локальный runtime — `a7e46c2` поверх VU/`0e8da4b`, ветка
 `feature/stage-one-completion-2026-10-10`. Это версия исходников, не сервера.
 Последний проверенный staging — `81e8563`; новый fetch/push/deploy этим
 документационным срезом не выполнялся. Нижние датированные разделы — история
@@ -17,16 +17,26 @@
   `privateVideoPosters`/`posterUrl` не подменяют галерею. VU4:3/3 native35.77s,
   actual frontend transport/coordinator→API→own fresh41 SQL→Timeweb S3.
   Journal transaction double — НЕ browser reload или UI/playback acceptance.
-- Последний общий прогон на этом candidate:2499 pass/1551 opt-in skips/0 fail,
+- Исторический общий прогон до AG9-VU5:2499 pass/1551 opt-in skips/0 fail,
   45.53s; provider3 проверены отдельно выше, skip не засчитывается как приёмка.
   Типы/lint/production29/29 из VU3d применимы к неизменённому runtime. Это
   сохранённые результаты16 октября, не новые прогоны документационного среза.
+- Дополнение после разрешения browser/AG9-VU5: единая native матрица обоих
+  редакторов **6/6 pass/0 skip,99.09s**, настоящие IndexedDB/File/document reload/
+  API/JWT/fresh41 SQL/Timeweb S3. Lost upload/create ACK/no duplicates, account
+  switch во время upload/status и возврат владельца; GET/HEAD/Range/playback,
+  expiry и explicit video/poster removal подтверждены. Recovery notice fix
+  `a7e46c2` получил native GREEN, без CSS/layout изменений. Все9 новых тестовых
+  objects удалены/HEAD404/policy unchanged; own test DBs и процессы закрыты.
+  Новый full:2504 pass/1557 opt-in skips/exit0,67.90s; types/lint/webpack29/29
+  pass. Это local Chromium acceptance, не mobile/working rollout. Точные
+  промежуточные failures и playback fixture criterion — начало tasks/todo.md.
 
 Незакрытые границы AG5/AG9, без новой разработки:
 
 | Остаток | Что требуется | Сейчас |
 | --- | --- | --- |
-| Browser/mobile, новые видео UI/reload/playback | Возобновление отложенной приёмки; реальные устройства и VK-ссылки | Отложено пользователем |
+| Mobile/реальные устройства и VK-ссылки | Отдельная приёмка на устройствах и с настоящими ссылками | Отложено; local Chromium новых видео UI/reload/playback закрыт в AG9-VU5 |
 | Проверка другого S3 пользователя | Отдельный валидный test-only principal с разрешённым scope, без секретов в чат/документ | Не предоставлен; существующая подпись/anonymous denial не заменяет эту проверку |
 | Целевой запуск/backup/restore/flags | Выбранная отдельная пустая целевая БД и отдельное разрешение на развёртывание/включение | Локальный fresh41 путь проверен; рабочие действия запрещены |
 | Внешняя почта/провайдер/нагрузка целевого сервера/пилот | Выделенный согласованный стенд, владельцы и разрешение соответствующих внешних действий | Локальные HTTP/SQL/SMTP/load проверки не закрывают этот gate |
