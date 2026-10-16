@@ -4,6 +4,36 @@
 
 ### Проверенный остаток на 16 октября
 
+- [ ] CF-F3: внутренняя интеграция закрытых фото комментариев в existing форму,
+  продолжение accepted CF4/CF client remainder. Новые файлы только private API,
+  postId и actor-scoped keys неизменны, прежние two-photo/48h/access limits.
+  - [x] CF-F3a: typed comment upload/status и coordinator с checkpoint до network,
+    frozen addComment payload/key, lost upload/write ACK replay без дублей;
+    ownership/receipt/storage failure guards, RED/GREEN unit.10 meaningful RED
+    failures→11 GREEN, затем additional acceptance до15/15. Общий CF transport
+    расширен только typed commentPhoto adapter, post/article endpoints прежние.
+    Frozen post/reply/text/photos/key, status-first upload recovery, pending без
+    публикации, same-key exact replay after lost add ACK, late upload/status/add
+    reply не принимается после cancel/account change. Отказ checkpoint блокирует
+    upload/write, включая повтор после неудачной локальной freeze-записи;
+    повторный asset/неверный usage/storage URL отвергаются, two-photo order intact.
+    FileReader boundary заменён actual File.arrayBuffer в Node fixture; API и
+    checkpoint synthetic. Это НЕ durable/browser/SQL/S3 приёмка и ещё НЕ UI wiring.
+    Affected55 pass до дополнительных4 кейсов; fresh full **2441 pass/1497 opt-in
+    skips**,190 suites,39.72s. Root/frontend/E2E types, full frontend lint,
+    production webpack29/29 (compile7.3s), API86/boundaries674 проходят.
+    Build clean env/target127.0.0.1:1; отсутствие frontend .env* проверено по
+    метаданным до запуска, credentials не читались/не наследовались. Review:
+    existing server contract unchanged, bounded2 photos, no public fallback,
+    legacy ClubComments/UI и backend/DB/S3/flags untouched. Далее CF-F3b.
+  - [ ] CF-F3b: durable owner/post-scoped File bytes/keys и revision CAS,
+    reload/native IndexedDB проверки; без нового server API/schema.
+  - [ ] CF-F3c: подключить existing форму без CSS/layout изменений: local blob,
+    remove/revoke/session/unmount, explicit recovery/replay; legacy text-only и
+    edit/delete/like не переделывать. Browser lost ACK/reload/account switch.
+  - [ ] CF-F3d: scoped native API/SQL/S3 acceptance, affected regressions,
+    types/lint/build/review/docs и local commits; без rollout/device claims.
+
 - [x] CF-F2 (16 октября, прямое поручение): закрытые фото/PNG/карусели и
   PDF/DOCX/TXT в существующем редакторе статей. Баннер публичный, старые URL
   сохраняются. Срезы: typed upload/status + block references; durable file bytes

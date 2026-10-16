@@ -352,6 +352,16 @@ JSON — tooling/data/backend-load/2026-10-15.json. Не повторять бе
 
 #### CF — новые фото и файлы статей, принято 15 октября
 
+CF-F3 (16 октября, следующий доступный CF client slice): existing комментарии,
+только внутренняя интеграция без дизайна. CF-F3a local PASS: typed commentPhoto
+upload/status adapter, frozen addComment payload/key и checkpoint-before-network;
+15 unit cases (10 RED→11 GREEN +4 acceptance), full2441 pass/1497 opt-in skips,
+types/lint/build/API86/boundaries674. UI не подключён, durable storage/browser/
+API+SQL+S3 ещё НЕ приняты. Далее owner/post-scoped File journal/CAS (CF-F3b),
+existing form wiring/session/blob lifecycle (CF-F3c), scoped native/regression
+приёмка (CF-F3d). Existing text-only/edit/like/delete, two-photo/48h/access правила,
+backend schema/contracts, CSS/old S3/working DB/flags/push/deploy не менять.
+
 CF-F2 (16 октября): по прямому поручению закрытые фото/PNG/карусели и документы
 статей подключены к existing editor без CSS/redesign; баннер остаётся публичным,
 старые URL сохраняются. Общий CF transport, durable File bytes/stable keys/CAS,

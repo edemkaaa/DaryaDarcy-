@@ -1,7 +1,8 @@
 import type { ApiInputs } from "@/shared/api/types";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { attachmentBase64 } from "./read-attachment";
-export type ContentUsage = "postPhoto" | "articlePhoto" | "articleDocument";
+type AdminContentUsage = "postPhoto" | "articlePhoto" | "articleDocument";
+export type ContentUsage = AdminContentUsage | "commentPhoto";
 export type ContentReceipt<U extends ContentUsage = ContentUsage> = {
   state: "pending" | "ready";
   assetId: string;
@@ -17,9 +18,11 @@ export type PrivateContentFile<U extends ContentUsage = ContentUsage> = {
   attempted?: boolean;
   receipt?: ContentReceipt<U>;
 };
-export type PrivateContentApi = {
+export type PrivateContentApi<U extends ContentUsage = AdminContentUsage> = {
   upload: (
-    input: ApiInputs["admin"]["uploadPrivateContentFile"],
+    input: Omit<ApiInputs["admin"]["uploadPrivateContentFile"], "usage"> & {
+      usage: U;
+    },
     signal: AbortSignal,
   ) => Promise<unknown>;
   status: (
@@ -111,7 +114,7 @@ export function requirePrivateContentReceipt<U extends ContentUsage>(
 export async function uploadPrivateContentFile<U extends ContentUsage>(
   file: PrivateContentFile<U>,
   usage: U,
-  api: PrivateContentApi,
+  api: PrivateContentApi<U>,
   operation: ScopedOperation,
   checkpoint: () => Promise<void>,
 ): Promise<void> {

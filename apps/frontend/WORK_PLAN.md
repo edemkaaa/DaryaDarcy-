@@ -4,6 +4,16 @@
 
 ## 16 октября — закрытые фото постов, только внутренняя интеграция
 
+CF-F3a: подготовлен coordinator закрытых фото комментариев на accepted CF4 API.
+Actor/post-scoped intent, прежние2 photos, checkpoint до network, status-first
+upload recovery и exact frozen addComment replay после lost ACK.15 Node unit
+cases pass; synthetic API/checkpoint, реальный File.arrayBuffer вместо FileReader.
+Full2441 pass/1497 opt-in skips, root/frontend/E2E types/full lint/build29/29/
+API86/boundaries674. Пока НЕ подключено к ClubComments: durable journal/CAS,
+preview/session/reload UI и native API/S3 — следующие CF-F3b/c/d, не GREEN.
+Оформление/backend/DB/S3/flags не менялись, no push/deploy. TDD/security направили
+проверки на неизменяемый retry payload и запрет записи при storage failure.
+
 CF-F2 — редактор статей локально подключён к accepted CF API. Фото/PNG/карусели
 и новые PDF/DOCX/TXT (existing link block) остаются File/blob до save. Intent/key
 и bytes хранятся в existing owner-scoped article IndexedDB; reload/status-first
