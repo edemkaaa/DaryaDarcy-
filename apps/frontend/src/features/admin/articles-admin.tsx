@@ -34,6 +34,12 @@ import {
   requireIdList,
 } from "@/shared/api/action-result";
 import { fileToUpload, pickWebFiles } from "@/shared/media/image-upload";
+import { useArticleFiles } from "./use-article-files";
+import { selectArticleFiles } from "@/domain/content/private-article-files";
+import {
+  recoverArticleFileUploads,
+  sealArticleFileWrite,
+} from "@/domain/content/article-file-save";
 import {
   emptyBlock,
   normalizeArticleBlocks,
@@ -125,14 +131,29 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       }),
   };
   const operation = useSessionOperation(showForm, editingId);
+  const privateFiles = useArticleFiles(showForm, editingId);
+  const restorePrivateFiles = privateFiles.restore;
+  const fileApi = {
+    upload: (
+      input: Parameters<
+        typeof utils.client.admin.uploadPrivateContentFile.mutate
+      >[0],
+      signal: AbortSignal,
+    ) => utils.client.admin.uploadPrivateContentFile.mutate(input, { signal }),
+    status: (input: { idempotencyKey: string }, signal: AbortSignal) =>
+      utils.client.admin.privateContentFileStatus.query(input, { signal }),
+  };
   const uploading = operation.kind === "photos";
   const [published, setPublished] = useState(true);
   const uncertainSave = useRef(false);
+  const restoreFiles = useRef<ArticleCreationRecord | null>(null);
   const notify = (message: string) => {
     window.alert(message);
   };
   const reset = () => {
     operation.cancel();
+    privateFiles.reset();
+    restoreFiles.current = null;
     uncertainSave.current = false;
     setPublished(true);
     setEditingId(null);
@@ -148,15 +169,24 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     uncertainSave.current = false;
     setCreation(record);
     const payload = structuredClone(record.payload);
-    setEditingId(null);
+    setEditingId(record.media?.editingId ?? null);
     setTitle(payload.title);
     setCoverUrl(payload.coverUrl || "");
     setAccess(payload.access);
     setPublished(payload.published);
     setBlocks(payload.sections);
+    restoreFiles.current = record;
+    // Restore after the editing scope has rendered; the keyed effect below owns the URLs.
     setPreviewing(false);
     setShowForm(true);
   };
+  useEffect(() => {
+    const record = restoreFiles.current;
+    if (showForm && record && (record.media?.editingId ?? null) === editingId) {
+      restoreFiles.current = null;
+      restorePrivateFiles(record.media?.files ?? []);
+    }
+  }, [creation, showForm, editingId, restorePrivateFiles]);
   const readCurrentArticles = async (task: ScopedOperation) => {
     await utils.admin.articles.cancel();
     task.assertCurrent();
@@ -208,12 +238,45 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   };
   const recoverCreation = async (replay: boolean) => {
     if (!creation) return;
-    const record = creation;
+    let record = creation;
     const task = operation.begin("recover-article");
     if (!task) return;
     try {
       await journal.requireCurrent(record);
       task.assertCurrent();
+      if (record.media?.phase === "upload") {
+        record = await recoverArticleFileUploads(
+          record,
+          journal,
+          fileApi,
+          task,
+          setCreation,
+        );
+        if (!replay) {
+          setRecoveryMessage(
+            "Файлы подтверждены. Нажмите «Повторить сохранение», чтобы сохранить статью с исходными данными.",
+          );
+          return;
+        }
+        record = await sealArticleFileWrite(record, journal, task);
+        setCreation(record);
+        if (record.media?.editingId) {
+          const result = await utils.client.admin.updateArticle.mutate(
+            { id: record.media.editingId, ...record.payload },
+            { signal: task.signal },
+          );
+          requireOk(result);
+          task.assertCurrent();
+          await completeCreation(record, task);
+          return;
+        }
+      } else if (record.media?.editingId) {
+        await readCurrentArticles(task);
+        setRecoveryMessage(
+          "Результат изменения не подтверждён. Список обновлён. Проверьте статью; повторная запись не выполнялась.",
+        );
+        return;
+      }
       const status = parseArticleCreationStatus(
         await utils.client.admin.articleCreationStatus.query(
           { idempotencyKey: record.idempotencyKey },
@@ -261,11 +324,18 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     preserveAlpha: boolean,
     multiple: boolean,
     commit: (urls: string[]) => void,
+    publicCover = false,
   ) => {
     const task = operation.begin("photos");
     if (!task) return;
     const urls: string[] = [];
     try {
+      if (!publicCover) {
+        const selected = await privateFiles.photos(multiple, task);
+        task.assertCurrent();
+        if (selected.length) commit(selected);
+        return;
+      }
       const files = await pickWebFiles(
         preserveAlpha ? "image/png,image/webp" : "image/*",
         multiple,
@@ -296,6 +366,45 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       task.finish();
     }
   };
+  const pickDocument = async (index: number) => {
+    const task = operation.begin("photos");
+    if (!task) return;
+    try {
+      const file = await privateFiles.document(task);
+      task.assertCurrent();
+      if (file) updateBlock(index, file);
+    } catch (error) {
+      checkOperationAccessError(error);
+      if (task.isCurrent())
+        notify(
+          error instanceof Error ? error.message : "Не удалось выбрать файл",
+        );
+    } finally {
+      task.finish();
+    }
+  };
+  const discardUnknownEdit = async () => {
+    if (!creation?.media?.editingId || creation.media.phase !== "write") return;
+    const task = operation.begin("discard-article");
+    if (!task) return;
+    try {
+      await readCurrentArticles(task);
+      task.assertCurrent();
+      await journal.clear(creation);
+      task.assertCurrent();
+      setCreation(null);
+      setRecoveryMessage(null);
+      reset();
+    } catch (error) {
+      checkOperationAccessError(error);
+      if (task.isCurrent())
+        setRecoveryMessage(
+          "Не удалось обновить список. Локальная копия сохранена.",
+        );
+    } finally {
+      task.finish();
+    }
+  };
   const insertBlock = (index: number, type: ArticleBlock["type"]) => {
     setBlocks((prev) => {
       const next = [...prev];
@@ -304,9 +413,11 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     });
   };
   const updateBlock = (index: number, patch: Partial<ArticleBlock>) => {
-    setBlocks((prev) =>
-      prev.map((block, i) => (i === index ? { ...block, ...patch } : block)),
+    const next = blocks.map((block, i) =>
+      i === index ? { ...block, ...patch } : block,
     );
+    privateFiles.prune(next);
+    setBlocks(next);
   };
   const moveBlock = (index: number, direction: -1 | 1) => {
     setBlocks((prev) => {
@@ -327,6 +438,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       return;
     }
     if (!editingId && (creation || storageStatus !== "ready")) return;
+    if (editingId && creation?.media?.editingId === editingId) return;
     if (uncertainSave.current) {
       notify(
         "Результат сохранения не подтверждён. Проверьте статью в списке перед новой попыткой.",
@@ -344,6 +456,46 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         published,
         sections: blocks,
       };
+      const selected = selectArticleFiles(blocks, privateFiles.files);
+      if (selected.length) {
+        const prepared = await journal.prepare(payload, {
+          editingId,
+          files: selected,
+        });
+        task.assertCurrent();
+        storedCreation = true;
+        setCreation(prepared.record);
+        if (prepared.restored) {
+          restoreCreation(prepared.record);
+          return;
+        }
+        let record = await recoverArticleFileUploads(
+          prepared.record,
+          journal,
+          fileApi,
+          task,
+          setCreation,
+        );
+        record = await sealArticleFileWrite(record, journal, task);
+        setCreation(record);
+        if (editingId)
+          requireOk(
+            await utils.client.admin.updateArticle.mutate(
+              { id: editingId, ...record.payload },
+              { signal: task.signal },
+            ),
+          );
+        else {
+          const id = await utils.client.admin.createArticle.mutate(
+            { ...record.payload, idempotencyKey: record.idempotencyKey },
+            { signal: task.signal },
+          );
+          if (!Number.isSafeInteger(id) || id <= 0) throw invalidResponse();
+        }
+        task.assertCurrent();
+        await completeCreation(record, task);
+        return;
+      }
       if (!editingId) {
         const prepared = await journal.prepare(payload);
         task.assertCurrent();
@@ -422,6 +574,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     setAccess(item.access);
     setPreviewing(false);
     setBlocks(normalizeArticleBlocks(item.sections));
+    privateFiles.reset();
     setShowForm(true);
   };
   const confirmDelete = (id: number) => {
@@ -433,7 +586,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   };
   if (showForm) {
     const busy = operation.busy;
-    const pendingCreation = !editingId && creation !== null;
+    const pendingCreation =
+      creation !== null && (creation.media?.editingId ?? null) === editingId;
     return (
       <ScrollArea contentClassName={classes.form}>
         {recoveryMessage ? (
@@ -453,12 +607,27 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
               Проверить сохранение
             </Action>
             <Action
-              disabled={busy}
+              disabled={
+                busy ||
+                Boolean(
+                  creation?.media?.editingId &&
+                  creation.media.phase === "write",
+                )
+              }
               onClick={() => void recoverCreation(true)}
               className={classes.btnGhost}
             >
               Повторить сохранение
             </Action>
+            {creation?.media?.editingId && creation.media.phase === "write" ? (
+              <Action
+                disabled={busy}
+                onClick={() => void discardUnknownEdit()}
+                className={classes.btnGhost}
+              >
+                Проверил список — удалить локальную копию
+              </Action>
+            ) : null}
           </div>
         ) : null}
         <div inert={busy || pendingCreation} style={{ display: "contents" }}>
@@ -574,7 +743,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
               <ArticleContent
                 title={title}
                 coverUrl={coverUrl || null}
-                blocks={blocks}
+                blocks={privateFiles.previewBlocks(blocks)}
               />
             </Background>
           ) : (
@@ -584,9 +753,14 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
               </Typography>
               <Action
                 onClick={() =>
-                  pickImages(false, false, (urls) => {
-                    if (urls[0]) setCoverUrl(urls[0]);
-                  })
+                  pickImages(
+                    false,
+                    false,
+                    (urls) => {
+                      if (urls[0]) setCoverUrl(urls[0]);
+                    },
+                    true,
+                  )
                 }
                 className={classes.btn}
               >
@@ -666,11 +840,11 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
                       {blocks.length > 1 ? (
                         <Action
                           aria-label={`Удалить блок ${index + 1}`}
-                          onClick={() =>
-                            setBlocks((prev) =>
-                              prev.filter((_, i) => i !== index),
-                            )
-                          }
+                          onClick={() => {
+                            const next = blocks.filter((_, i) => i !== index);
+                            privateFiles.prune(next);
+                            setBlocks(next);
+                          }}
                           hitArea={8}
                         >
                           <MaterialIcons
@@ -734,6 +908,14 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
 
                   {block.type === "link" ? (
                     <>
+                      <Action
+                        onClick={() => void pickDocument(index)}
+                        className={classes.btnSecondary}
+                      >
+                        <Typography className={classes.btnSecondaryText}>
+                          Загрузить файл
+                        </Typography>
+                      </Action>
                       <Field
                         value={block.label || ""}
                         onValueChange={(value) =>
@@ -744,7 +926,11 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
                         className={classes.input}
                       />
                       <Field
-                        value={block.url || ""}
+                        value={
+                          block.url?.startsWith("local-content:")
+                            ? ""
+                            : block.url || ""
+                        }
                         onValueChange={(value) =>
                           updateBlock(index, { url: value })
                         }
@@ -800,7 +986,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
                               }
                             >
                               <Picture
-                                source={{ uri: url }}
+                                source={{ uri: privateFiles.preview(url) }}
                                 contentFit="cover"
                                 className={classes.carouselThumb}
                               />
@@ -829,24 +1015,23 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
                       <Action
                         onClick={() =>
                           pickImages(block.type === "png", true, (urls) => {
-                            setBlocks((prev) => {
-                              const next = [...prev];
-                              next[index] = {
-                                type: block.type,
-                                url: urls[0],
-                                caption: block.caption || "",
-                              };
-                              const extra = urls.slice(1).map(
-                                (url) =>
-                                  ({
-                                    type: block.type,
-                                    url,
-                                    caption: "",
-                                  }) as ArticleBlock,
-                              );
-                              next.splice(index + 1, 0, ...extra);
-                              return next;
-                            });
+                            const next = [...blocks];
+                            next[index] = {
+                              type: block.type,
+                              url: urls[0],
+                              caption: block.caption || "",
+                            };
+                            const extra = urls.slice(1).map(
+                              (url) =>
+                                ({
+                                  type: block.type,
+                                  url,
+                                  caption: "",
+                                }) as ArticleBlock,
+                            );
+                            next.splice(index + 1, 0, ...extra);
+                            privateFiles.prune(next);
+                            setBlocks(next);
                           })
                         }
                         className={classes.btnSecondary}
@@ -868,7 +1053,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
                       </Action>
                       {block.url ? (
                         <Picture
-                          source={{ uri: block.url }}
+                          source={{ uri: privateFiles.preview(block.url) }}
                           style={{
                             ...((block.type === "png" ? true : false)
                               ? {
@@ -1014,7 +1199,11 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       >
         <MaterialIcons name="menu-book" size={16} color={CREAM} />
         <Typography className={classes.btnText}>
-          {creation ? "Восстановить создание статьи" : "Написать статью"}
+          {creation
+            ? creation.media?.editingId
+              ? "Восстановить изменение статьи"
+              : "Восстановить создание статьи"
+            : "Написать статью"}
         </Typography>
       </Action>
       <Typography className={classes.hint}>

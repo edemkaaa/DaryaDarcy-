@@ -16,7 +16,7 @@ async function setup(page: Page, uploads: Record<string, unknown>[]) {
       return ok({
         state: "ready",
         assetId: "3af23d8c-140f-454b-a123-123456789abc",
-        usage: "postPhoto",
+        usage: input.usage,
         filename: input.filename,
         mimeType: "image/webp",
         fileSize: 80,
@@ -89,6 +89,12 @@ test("transparent article PNG is resized/encoded within the limit with alpha pre
   await (
     await chooser
   ).setFiles({ name: "transparent.png", mimeType: "image/png", buffer: bytes });
+  await expect(page.locator('img[src^="blob:"]').first()).toBeVisible();
+  expect(uploads).toHaveLength(0);
+  await page
+    .getByPlaceholder("Что посмотреть осенью...")
+    .fill("Prepared private PNG");
+  await page.getByRole("button", { name: "Опубликовать", exact: true }).click();
   await expect.poll(() => uploads.length).toBe(1);
   const prepared = Buffer.from(String(uploads[0].base64), "base64");
   expect(prepared.length).toBeLessThanOrEqual(MAX_PHOTO_BYTES);

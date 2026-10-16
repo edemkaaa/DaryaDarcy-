@@ -324,7 +324,9 @@ export class ArticleCreationJournal {
     const snapshot = payloadSchema.parse(payload);
     this.assertOwner();
     if (typeof globalThis.crypto?.randomUUID !== "function")
-      throw new Error("Для безопасного сохранения откройте сайт через HTTPS в актуальном браузере.");
+      throw new Error(
+        "Для безопасного сохранения откройте сайт через HTTPS в актуальном браузере.",
+      );
     const proposed = parseArticleCreationRecord(
       {
         version: 1,
