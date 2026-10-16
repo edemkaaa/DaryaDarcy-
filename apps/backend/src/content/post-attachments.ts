@@ -2,9 +2,10 @@ import { and, eq, inArray, max } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { postMedia } from "../../../../packages/database/src/schema";
+import { postMedia, privateAttachmentUploads } from "../../../../packages/database/src/schema";
 import { isRawMediaFilename } from "../../../../packages/shared/src/media-label";
-import { bindPrivateAttachments, type PrivateAttachmentChanges } from "./private-attachment-association";
+import { bindPrivateAttachments, privateMediaUrl, type PrivateAttachmentChanges } from "./private-attachment-association";
+import { privateStorageNamespace } from "../media/private-upload-object";
 
 // Administrators may attach uploaded public media, as with existing photos/videos.
 // These URLs are stored, never fetched by the server. Do not accept executable URLs.
@@ -49,17 +50,31 @@ export async function savePostAttachments(
   const ids = [...new Set(removedMediaIds)];
   if (ids.length) {
     const rows = await writer
-      .select({ id: postMedia.id })
+      .select({ id: postMedia.id, type: postMedia.type, url: postMedia.url })
       .from(postMedia)
       .where(
         and(
           eq(postMedia.postId, postId),
-          inArray(postMedia.type, ["audio", "document"]),
           inArray(postMedia.id, ids),
         ),
       )
       .for("update");
-    if (rows.length !== ids.length)
+    const videos = rows.filter(row => row.type === "video" && row.url === privateMediaUrl(row.id));
+    const legacyVideo = rows.some(row => row.type === "video" && row.url !== privateMediaUrl(row.id));
+    const receipts = videos.length
+      ? await writer.select().from(privateAttachmentUploads)
+          .where(inArray(privateAttachmentUploads.mediaId, videos.map(row => row.id)))
+          .for("update")
+      : [];
+    const byMediaId = new Map(receipts.map(asset => [asset.mediaId, asset]));
+    const namespace = videos.length ? privateStorageNamespace().hash : undefined;
+    const invalidVideo = videos.some(video => {
+      const asset = byMediaId.get(video.id);
+      return video.url !== privateMediaUrl(video.id) || !asset ||
+        asset.postId !== postId || asset.type !== "video" ||
+        asset.state !== "ready" || !asset.etag || asset.namespaceHash !== namespace;
+    });
+    if (rows.length !== ids.length || legacyVideo || invalidVideo)
       throw new TRPCError({
         code: "BAD_REQUEST",
         message:

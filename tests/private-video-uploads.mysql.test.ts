@@ -72,8 +72,45 @@ describe.skipIf(!testDatabaseUrl)(
         data: json.result ? superjson.deserialize(json.result.data) : undefined,
       };
     }
+    async function write(method: string, input: unknown) {
+      const response = await fetch(`${base}/api/trpc/admin.${method}`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: superjson.stringify(input),
+      });
+      const json = await response.json();
+      return {
+        status: response.status,
+        data: json.result ? superjson.deserialize(json.result.data) : undefined,
+      };
+    }
+    const postInput = (assetId: string) => ({
+      text: "VU private video",
+      photos: [],
+      tags: [],
+      source: "vu1-video-suite",
+      target: "club",
+      status: "draft",
+      idempotencyKey: "vu2-original-post-intent",
+      privateAssetIds: [assetId],
+    });
+    async function cleanupPosts() {
+      await conn.query(
+        "DELETE m FROM post_media m JOIN posts p ON p.id=m.postId WHERE p.source='vu1-video-suite'",
+      );
+      await conn.query("DELETE FROM posts WHERE source='vu1-video-suite'");
+      await conn.query(
+        "DELETE FROM post_creation_requests WHERE actorUserId=97680",
+      );
+    }
     beforeAll(async () => {
       conn = await openContentTestDatabase();
+      await conn.query(
+        "CREATE TABLE IF NOT EXISTS push_consent_events (id INT AUTO_INCREMENT PRIMARY KEY,userId INT NOT NULL,consentType ENUM('service','marketing') NOT NULL,status ENUM('granted','revoked') NOT NULL,consentVersion VARCHAR(32) NOT NULL,consentText TEXT,platform VARCHAR(16),createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
+      );
       wire = await openPrivateUploadWire({ content: true });
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
       vi.stubEnv("JWT_SECRET", "vu1-native-fixture-session-secret-32-chars");
@@ -83,7 +120,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.stubEnv("S3_ACCESS_KEY", "wire-fixture-access");
       vi.stubEnv("S3_SECRET_KEY", "wire-fixture-secret");
       await conn.query(
-        "INSERT INTO users (id,openId,role) VALUES (97680,'vu1-admin','admin'),(97681,'vu1-other','admin')",
+        "INSERT INTO users (id,openId,role) VALUES (97680,'vu1-admin','admin'),(97681,'vu1-other','admin'),(97682,'vu2-paid','user')",
       );
       app = await createBackendApplication();
       await app.listen(0, "127.0.0.1");
@@ -91,6 +128,8 @@ describe.skipIf(!testDatabaseUrl)(
       token = await sdk.createSessionToken("vu1-admin", { sessionVersion: 0 });
     });
     beforeEach(async () => {
+      await cleanupPosts();
+      await conn.query("DELETE FROM club_payments WHERE userId=97682");
       await conn.query(
         "DELETE FROM private_attachment_uploads WHERE actorUserId=97680",
       );
@@ -102,14 +141,17 @@ describe.skipIf(!testDatabaseUrl)(
       wire.rejectPolicy(false);
       vi.stubEnv("PRIVATE_POST_VIDEO_UPLOAD_ENABLED", "true");
       vi.stubEnv("PRIVATE_POST_MEDIA_UPLOAD_ENABLED", "true");
+      vi.stubEnv("PRIVATE_POST_MEDIA_DELIVERY_ENABLED", "true");
     });
     afterAll(async () => {
       await app?.close();
       if (conn) {
+        await cleanupPosts();
+        await conn.query("DELETE FROM club_payments WHERE userId=97682");
         await conn.query(
           "DELETE FROM private_attachment_uploads WHERE actorUserId=97680",
         );
-        await conn.query("DELETE FROM users WHERE id IN (97680,97681)");
+        await conn.query("DELETE FROM users WHERE id IN (97680,97681,97682)");
         await conn.end();
       }
       if (app)
@@ -320,5 +362,143 @@ describe.skipIf(!testDatabaseUrl)(
         observer.mockRestore();
       }
     });
+    it("binds once, gates draft/club/expiry reads and revokes an explicitly removed video", async () => {
+      const uploaded = await (await upload()).json();
+      const input = postInput(uploaded.assetId);
+      const created = await write("createPost", input);
+      expect(created.status).toBe(200);
+      expect(await write("createPost", input)).toEqual(created);
+      const [asset] = await rows();
+      const path = `${base}/api/media/post-attachments/${asset.mediaId}`;
+      expect(
+        await conn
+          .query<
+            RowDataPacket[]
+          >("SELECT id FROM post_media WHERE postId=?", [asset.postId])
+          .then(([rows]) => rows),
+      ).toHaveLength(1);
+      expect((await fetch(path)).status).toBe(404);
+      expect(
+        (await write("updatePost", { id: asset.postId, status: "published" }))
+          .status,
+      ).toBe(200);
+      const member = await sdk.createSessionToken("vu2-paid", {
+        sessionVersion: 0,
+      });
+      const headers = { authorization: `Bearer ${member}` };
+      const deniedEffects = wire.effects.length;
+      expect((await fetch(path, { headers })).status).toBe(404);
+      expect(wire.effects.length).toBe(deniedEffects);
+      await conn.query(
+        "INSERT INTO club_payments(userId,orderId,status,expiresAt) VALUES(97682,'vu2-paid-order','paid',DATE_ADD(NOW(),INTERVAL 1 DAY))",
+      );
+      const response = await fetch(path, { headers });
+      expect(response.status).toBe(200);
+      expect(Buffer.from(await response.arrayBuffer())).toEqual(mp4Fixture);
+      expect(response.headers.get("content-type")).toBe("video/mp4");
+      expect(response.headers.get("cache-control")).toContain("no-store");
+      expect((await fetch(path, { method: "HEAD", headers })).status).toBe(200);
+      const range = await fetch(path, {
+        headers: { ...headers, range: "bytes=2-5" },
+      });
+      expect(range.status).toBe(206);
+      expect(Buffer.from(await range.arrayBuffer())).toEqual(
+        mp4Fixture.subarray(2, 6),
+      );
+      await conn.query(
+        "UPDATE club_payments SET expiresAt=DATE_SUB(NOW(),INTERVAL 1 SECOND) WHERE userId=97682",
+      );
+      const beforeDenied = wire.effects.length;
+      expect((await fetch(path, { headers })).status).toBe(404);
+      expect((await fetch(path, { method: "HEAD", headers })).status).toBe(404);
+      expect(wire.effects.length).toBe(beforeDenied);
+      expect(
+        (
+          await write("updatePost", {
+            id: asset.postId,
+            removedMediaIds: [asset.mediaId],
+          })
+        ).status,
+      ).toBe(200);
+      expect(
+        (await fetch(path, { headers: { authorization: `Bearer ${token}` } }))
+          .status,
+      ).toBe(404);
+      expect(
+        (
+          await write("updatePost", {
+            id: asset.postId,
+            privateAssetIds: [uploaded.assetId],
+          })
+        ).status,
+      ).toBe(409);
+    });
+    it("does not detach a private video when legacy videos[] is saved without it", async () => {
+      const uploaded = await (await upload()).json();
+      expect(
+        (await write("createPost", postInput(uploaded.assetId))).status,
+      ).toBe(200);
+      const [asset] = await rows();
+      expect(
+        (
+          await write("updatePost", {
+            id: asset.postId,
+            videos: ["https://vkvideo.ru/video-123_456"],
+          })
+        ).status,
+      ).toBe(200);
+      const [media] = await conn.query<RowDataPacket[]>(
+        "SELECT id,type,url,mimeType,fileSize FROM post_media WHERE postId=? ORDER BY id",
+        [asset.postId],
+      );
+      expect(media).toHaveLength(2);
+      expect(media[0]).toEqual({
+        id: asset.mediaId,
+        type: "video",
+        url: `/api/media/post-attachments/${asset.mediaId}`,
+        mimeType: "video/mp4",
+        fileSize: mp4Fixture.length,
+      });
+      expect(
+        (await write("updatePost", { id: asset.postId, videos: [] })).status,
+      ).toBe(200);
+      expect(
+        (
+          await conn.query<RowDataPacket[]>(
+            "SELECT id FROM post_media WHERE postId=?",
+            [asset.postId],
+          )
+        )[0],
+      ).toEqual([{ id: asset.mediaId }]);
+    });
+    it("keeps legacy video removal validation independent of private storage configuration", async () => {
+      expect((await write("createPost",{...postInput("unused"),privateAssetIds:[],videos:["https://vkvideo.ru/video-123_456"]})).status).toBe(200);
+      const [[media]] = await conn.query<RowDataPacket[]>("SELECT m.id,m.postId FROM post_media m JOIN posts p ON p.id=m.postId WHERE p.source='vu1-video-suite'");
+      vi.stubEnv("S3_ENDPOINT", "");
+      try { expect((await write("updatePost",{id:media.postId,removedMediaIds:[media.id]})).status).toBe(400); }
+      finally { vi.stubEnv("S3_ENDPOINT",wire.endpoint); }
+    });
+    it.each([
+      "/api/media/post-attachments/123",
+      "https://assets.example.test/content/private-v1/123",
+      "https://assets.example.test/%63ontent/private-v1/123",
+    ])(
+      "rejects unowned reserved video URL without creating a post: %s",
+      async (url) => {
+        const result = await write("createPost", {
+          ...postInput("unused"),
+          privateAssetIds: [],
+          videos: [url],
+        });
+        expect(result.status).toBe(400);
+        expect(
+          (
+            await conn.query<RowDataPacket[]>(
+              "SELECT id FROM posts WHERE source='vu1-video-suite'",
+            )
+          )[0],
+        ).toEqual([]);
+      },
+    );
   },
 );

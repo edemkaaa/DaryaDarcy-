@@ -1,6 +1,8 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { postMedia } from "../../../../packages/database/src/schema";
+import { TRPCError } from "@trpc/server";
+import { privateMediaUrl } from "./private-attachment-association";
 
 type VideoWriter = Pick<
   MySql2Database,
@@ -43,6 +45,22 @@ export async function replacePostVideoRows(
     if (!url) continue;
     const bucket = byUrl.get(url);
     const video = bucket?.rows[bucket.next++];
+    let decoded = url;
+    try {
+      decoded = decodeURIComponent(url);
+    } catch {
+      /* Existing filename validation below still applies. */
+    }
+    if (
+      !video &&
+      /(?:\/api\/media\/post-attachments(?:\/|$)|(?:^|\/)content\/private-v1(?:\/|$))/.test(
+        decoded,
+      )
+    )
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Закрытое видео требует загруженного assetId",
+      });
     if (video) retained.add(video.id);
     // Decode only new filenames, before mutating rows; retained metadata is
     // authoritative, including filenames that cannot be derived from the URL.
@@ -52,7 +70,11 @@ export async function replacePostVideoRows(
     changes.push({ url, sortOrder, video, filename });
   }
   const removedIds = existing
-    .filter((video) => !retained.has(video.id))
+    // Private videos are removed only by the explicit, receipt-checked path.
+    .filter(
+      (video) =>
+        !retained.has(video.id) && video.url !== privateMediaUrl(video.id),
+    )
     .map((video) => video.id);
   if (removedIds.length)
     await writer
@@ -79,16 +101,14 @@ export async function replacePostVideoRows(
           );
     } else {
       // A URL (even one ending in .mp4) does not prove the media's MIME type.
-      await writer
-        .insert(postMedia)
-        .values({
-          postId,
-          type: "video",
-          url,
-          filename,
-          mimeType: null,
-          sortOrder,
-        });
+      await writer.insert(postMedia).values({
+        postId,
+        type: "video",
+        url,
+        filename,
+        mimeType: null,
+        sortOrder,
+      });
     }
   }
 }

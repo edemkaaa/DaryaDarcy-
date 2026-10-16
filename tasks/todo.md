@@ -22,6 +22,20 @@
     Клиент/poster/explicit removal ещё НЕ готовы; UI runtime не менялся.
   - [ ] VU2: canonical association/live delivery/explicit removal и private poster;
     legacy videos[]/VK/старые URL сохраняются.
+    - [x] VU2a: native RED5→GREEN26, затем legacy removal/no-storage regression
+      RED500→GREEN400. Сохранение videos[] больше не удаляет canonical private
+      video неявно; explicit removedMediaIds проверяет same-post ready receipt,
+      не удаляет legacy video этим путём. Reserved app/S3 URL нельзя вставить как
+      новое legacy video без asset receipt. Existing VK/old IDs/order сохраняются.
+      Create replay даёт1 post/media; draft/club unpaid/expiry закрыты до S3;
+      paid GET/HEAD/Range206 точные bytes/MIME/no-store; explicit removal закрывает
+      read и late rebind409. Финальные affected **64/64**,7.29s, включая previous
+      audio/document removal/retention; ранее reconciliation52/52 и affected89/89.
+      Full2444 pass/1543 opt-in skips/0 fail,25.76s; root types и backend585.5kb/
+      diff pass. Loopback wire, не actual S3/browser.
+      Docker build-cache prune342.6MB; before/after image6/volume12/container4
+      identities unchanged. Свободно2.5GiB; чужие образы/БД не удалялись.
+    - [ ] VU2b: явная связь с private postPhoto постером, live read/retirement.
   - [ ] VU3: durable File/key до network, status-first recovery и оба existing
     редактора без изменения дизайна; unit/type/build проверки.
   - [ ] VU4: own disposable API/SQL/S3 acceptance; browser/mobile отложены.
