@@ -510,7 +510,7 @@ export type AppRouter = BuiltRouter<
         output: {
           state: "pending" | "ready";
           assetId: string;
-          type: "audio" | "document";
+          type: "video" | "audio" | "document";
           filename: string;
           mimeType: string;
           fileSize: number;
@@ -523,7 +523,7 @@ export type AppRouter = BuiltRouter<
           | {
               state: "pending" | "ready";
               assetId: string;
-              type: "audio" | "document";
+              type: "video" | "audio" | "document";
               filename: string;
               mimeType: string;
               fileSize: number;

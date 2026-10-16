@@ -4,6 +4,32 @@
 
 ### Проверенный остаток на 16 октября
 
+- [ ] VU — принятый16 октября private raw video contract в SPEC-private-files.md.
+  - [x] VU1: additive video receipt migration,80MiB binary admin endpoint,
+    actor-scoped status/recovery, signature/MIME/SDK wire RED/GREEN.
+    RED16 endpoint404 → GREEN16; дополнительный metadata ambiguity RED1→GREEN21,
+    включая session revocation во время streaming body. Affected **110/110**,
+    5 suites8.57s: private video21 + прежние audio/document/raw/parser/migration
+    regressions. Реальные Nest/JWT/SQL/AWS SDK и loopback wire, НЕ Timeweb ACL.
+    Fresh40 migration/ORM/HTTP **9/9**,3.54s, отдельная пустая own tmpfs БД;
+    старые0017–0019/history не изменялись. Full **2444 pass/1537 opt-in skips/0 fail**,
+    JSON27.55s. Root/frontend/E2E types, backend583.9kb, API86/31732bytes,
+    boundaries678/docs58/diff pass. Server path default-off через новый
+    PRIVATE_POST_VIDEO_UPLOAD_ENABLED вместе с existing media upload flag;
+    Content prefix policy read-only, same actor/key namespace/hash/ETag/no overwrite.
+    Five-axis review: legacy upload и32MiB audio/doc unchanged, unknown storage
+    outcome остаётся pending, safe errors/no secrets, no new dependencies.
+    Клиент/poster/explicit removal ещё НЕ готовы; UI runtime не менялся.
+  - [ ] VU2: canonical association/live delivery/explicit removal и private poster;
+    legacy videos[]/VK/старые URL сохраняются.
+  - [ ] VU3: durable File/key до network, status-first recovery и оба existing
+    редактора без изменения дизайна; unit/type/build проверки.
+  - [ ] VU4: own disposable API/SQL/S3 acceptance; browser/mobile отложены.
+  Docker16 октября перезапущен по прямому разрешению, _ping=OK, free3.5GiB.
+  Чужие контейнеры сохранены (diplom-postgres остановлен перезапуском), вручную
+  не запускались. Образы/volumes не удалялись; зависший старый cache prune
+  не был выполнен, удаление кэша этим перезапуском не утверждается.
+
 - [x] LF1 — по прямому поручению16 октября: вернуть в existing Библиотеку карточки
   опубликованных club-статей. Public list содержит только id/title/coverUrl/access,
   без sections/вложений/черновиков; article detail/live access не менять. Сначала

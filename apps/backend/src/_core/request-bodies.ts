@@ -1,5 +1,6 @@
 import express, { type Express, type Request, type Response } from "express";
 import { sdk } from "./sdk";
+import { privateVideoMetadata, privateVideoUploadEnabled } from "../content/private-video-input";
 
 const photoProcedures = new Set(["profile.uploadAvatar", "club.uploadCommentPhoto", "admin.uploadPhoto"]);
 const jsonParsers = {
@@ -28,6 +29,18 @@ function isProviderWebhook(req: Request): boolean {
 }
 
 export function registerRequestBodies(app: Express) {
+  app.post("/api/admin/private-video-uploads", async (req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
+    if (!privateVideoUploadEnabled()) { res.status(404).json({ error: "Загрузка недоступна" }); return; }
+    if (!(await requireUploadIdentity(req, res, true))) return;
+    if (!privateVideoMetadata.safeParse({ query: req.query, idempotencyKey: req.headers["idempotency-key"], mimeType: req.headers["content-type"] ?? "application/octet-stream" }).success) {
+      res.status(400).json({ error: "Некорректный запрос" }); return;
+    }
+    express.raw({ type: () => true, limit: "80mb", inflate: false })(req, res, err => {
+      if (err) { bodyError(res, err); return; }
+      next();
+    });
+  });
   app.post("/api/admin/upload-video", async (req, res, next) => {
     if (!(await requireUploadIdentity(req, res, true))) return;
     express.raw({ type: () => true, limit: "80mb" })(req, res, err => {

@@ -30,7 +30,7 @@ export function privateStorageNamespace() {
   return { endpoint, bucket, hash: digest(JSON.stringify([endpoint, bucket])) };
 }
 export function privateAttachmentObjectKey(
-  type: "audio" | "document",
+  type: "audio" | "document" | "video",
   assetId: string,
   scope?: "content",
 ) {
@@ -40,7 +40,7 @@ export function privateAttachmentObjectKey(
     )
   )
     throw new Error("Invalid asset identity");
-  return scope === "content" ? `content/private-v1/${assetId}` : `feed/${type === "audio" ? "audio" : "documents"}/private-v1/${assetId}`;
+  return scope === "content" || type === "video" ? `content/private-v1/${assetId}` : `feed/${type === "audio" ? "audio" : "documents"}/private-v1/${assetId}`;
 }
 const ruleSchema = z
   .object({
@@ -63,7 +63,7 @@ const ruleSchema = z
 export type PrivateUploadObject = {
   scope?: "content";
   assetId: string;
-  type: "audio" | "document";
+  type: "audio" | "document" | "video";
   payloadHash: string;
   mimeType: string;
   fileSize: number;
@@ -76,6 +76,7 @@ export async function ensurePrivateUploadObject(
   bytes: Buffer,
 ) {
   const namespace = privateStorageNamespace();
+  const contentScope = receipt.scope === "content" || receipt.type === "video";
   if (
     namespace.hash !== receipt.namespaceHash ||
     !ENV.s3AccessKey ||
@@ -113,7 +114,7 @@ export async function ensurePrivateUploadObject(
     const rule = Array.isArray(policy?.Statement)
       ? policy.Statement.find(
           (row: { Sid?: string }) =>
-            row?.Sid === (receipt.scope === "content" ? "DaryadarcyPrivateContentV1" : "DaryadarcyPrivateAttachmentsV1"),
+            row?.Sid === (contentScope ? "DaryadarcyPrivateContentV1" : "DaryadarcyPrivateAttachmentsV1"),
         )
       : undefined;
     const accepted = ruleSchema.parse(rule);
@@ -125,7 +126,7 @@ export async function ensurePrivateUploadObject(
         JSON.stringify(["s3:GetObject", "s3:GetObjectVersion"].sort()) ||
       JSON.stringify([...accepted.Resource].sort()) !==
         JSON.stringify(
-          (receipt.scope === "content" ? [`arn:aws:s3:::${namespace.bucket}/content/private-v1/*`] : ["audio", "documents"]
+          (contentScope ? [`arn:aws:s3:::${namespace.bucket}/content/private-v1/*`] : ["audio", "documents"]
             .map(
               (folder) =>
                 `arn:aws:s3:::${namespace.bucket}/feed/${folder}/private-v1/*`,

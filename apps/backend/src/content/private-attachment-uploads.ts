@@ -151,6 +151,22 @@ export async function uploadPrivateAttachment(
       code: "BAD_REQUEST",
       message: "Формат файла не поддерживается закрытой выдачей",
     });
+  return storePrivateAttachment(actor, { ...input, mimeType }, bytes);
+}
+
+/** Validated canonical bytes only; all upload kinds share one actor/key namespace. */
+export async function storePrivateAttachment(
+  actor: PrivateAttachmentActor,
+  input: {
+    idempotencyKey: string;
+    type: "audio" | "document" | "video";
+    filename: string;
+    mimeType: string;
+  },
+  bytes: Buffer,
+) {
+  requirePrivateUploadEnabled();
+  const { mimeType } = input;
   const payloadHash = digest(
     JSON.stringify([
       input.type,
@@ -169,6 +185,16 @@ export async function uploadPrivateAttachment(
     await database.transaction(async (tx) => {
       await lockPrivateAttachmentActor(tx, actor);
       await requirePrivateAttachmentSchema(tx);
+      if (input.type === "video") {
+        const [columns] = await tx.execute(
+          sql`SELECT COLUMN_TYPE AS definition FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='private_attachment_uploads' AND COLUMN_NAME='type'`,
+        );
+        if (
+          !Array.isArray(columns) ||
+          columns[0]?.definition !== "enum('audio','document','video')"
+        )
+          throw unavailable();
+      }
       await tx
         .insert(privateAttachmentUploads)
         .values({

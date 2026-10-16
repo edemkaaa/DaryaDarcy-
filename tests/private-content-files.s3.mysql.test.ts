@@ -113,7 +113,7 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     expect((await storage.send(new GetBucketVersioningCommand({ Bucket }))).Status).toBeUndefined();
     conn = await mysql.createConnection({ uri: uri!, timezone: "Z" });
     expect(await rows("SELECT id FROM users")).toEqual([]);
-    expect(await rows("SELECT id FROM __drizzle_migrations")).toHaveLength(39);
+    expect(await rows("SELECT id FROM __drizzle_migrations")).toHaveLength(40);
     for (const [name, id, role] of [["admin", 98770, "admin"], ["member", 98771, "user"], ["other", 98772, "admin"]] as const) {
       await conn.query("INSERT INTO users(id,openId,role) VALUES(?,?,?)", [id, `cf-api-${name}-${owner}`, role]);
       tokens[name] = await sdk.createSessionToken(`cf-api-${name}-${owner}`, { sessionVersion: 0 });

@@ -1,5 +1,40 @@
 # Spec: закрытая серверная выдача вложений постов
 
+## VU — закрытые видео постов, принят 16 октября 2026
+
+Прямое согласование пользователя: реализовать локально принятый контракт,
+без дизайна, рабочей БД, старых файлов, push/deploy. Browser/mobile отложены.
+
+- Новый `POST /api/admin/private-video-uploads?filename=…`: bounded raw body
+  до прежних80MiB, admin session и `Idempotency-Key`16–128 ASCII. MP4/WebM/MOV,
+  проверка сигнатуры и canonical MIME; это не проверка tracks/codecs и не transcoding.
+- Ответ как existing private attachment receipt: pending/ready, assetId,
+  type=video, filename/mimeType/fileSize, без S3 URL. Existing
+  `admin.privateAttachmentStatus({idempotencyKey})` возвращает также video;
+  notRecorded не означает ошибку или разрешение менять ключ.
+- Actor-scoped durable SQL intent ДО S3. Повтор — исходные bytes/key, changed
+  payload409. HEAD+metadata/ETag и conditional PUT восстанавливают lost ACK,
+  не перезаписывают объект. Используется уже защищённый content/private-v1/,
+  без нового bucket/policy writes; только additive migration, старые строки прежние.
+- Existing privateAssetIds атомарно связывает canonical video с постом;
+  upload сам не публикует. Legacy videos[]/VK не удаляет private video неявно,
+  removal явный через removedMediaIds. Existing live GET/HEAD/Range proxy
+  проверяет публикацию/клуб; draft/unbound/deleted/detached закрыты.
+- Original File/metadata/stable key сохраняются локально до network; после
+  reload/timeout status-first, ready не перезаливается, pending не success.
+  Storage failure блокирует запрос, смена аккаунта отсеивает late replies.
+  Create replay использует existing post intent; unknown update — read/reconcile,
+  не автоматический новый POST. Старые файлы/legacy URL/VK не переделываются.
+- Автопостер только через existing private postPhoto с явной связью с video,
+  не public uploadPhoto и не угадывание по basename. Existing дизайн сохраняется.
+- Новый путь default-off, рабочие flags не включать. Прежние30 суток — окно
+  recovery/retention, не срок жизни опубликованного видео. Auto cleanup в рабочем
+  хранилище не включать. Настоящий S3 acceptance отмечать отдельно от loopback wire.
+
+Срезы: VU1 upload/status/schema/SDK wire; VU2 association/read/removal/private
+poster; VU3 durable client и оба existing editors; VU4 API/SQL/S3 acceptance
+без browser/mobile (отложены пользователем).
+
 ## CF — фото и материалы статей, принят 15 октября 2026
 
 После показа минимального контракта пользователь поручил «делай далее все».
