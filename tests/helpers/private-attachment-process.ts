@@ -40,7 +40,11 @@ export async function privateAttachmentProcesses() {
       logLevel: "silent",
     });
     async function start(
-      options: { contentFiles?: boolean; appOrigin?: string } = {},
+      options: {
+        contentFiles?: boolean;
+        privateVideos?: boolean;
+        appOrigin?: string;
+      } = {},
     ) {
       const env: Record<string, string> = {
         PATH: process.env.PATH!,
@@ -50,6 +54,9 @@ export async function privateAttachmentProcesses() {
         PRIVATE_POST_MEDIA_UPLOAD_ENABLED: "true",
         PRIVATE_POST_MEDIA_DELIVERY_ENABLED: "true",
         PRIVATE_CONTENT_FILES_ENABLED: options.contentFiles ? "true" : "false",
+        PRIVATE_POST_VIDEO_UPLOAD_ENABLED: options.privateVideos
+          ? "true"
+          : "false",
       };
       if (options.appOrigin) {
         const origin = new URL(options.appOrigin);

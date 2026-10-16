@@ -42,6 +42,15 @@
 poster; VU3 durable client и оба existing editors; VU4 API/SQL/S3 acceptance
 без browser/mobile (отложены пользователем).
 
+Локальная реализация VU1–VU4 завершена16 октября. VU4:3/3 actual frontend
+transport/coordinator→native API→own fresh41 SQL→Timeweb S3,35.77s. Lost upload/
+post ACK и API restarts, account switch во время upload/status, canonical video/
+poster GET/HEAD/Range/access revoke/explicit removal подтверждены. Journal
+transaction boundary — double, не browser reload/playback acceptance. Все4 новых
+synthetic объекта удалены с guards/HEAD404, policy unchanged; own DB/API убраны.
+Точные проверки/ограничения — начало tasks/todo.md. Working flags/DB/старые файлы,
+push/deploy не менялись; browser/mobile и выпуск остаются отдельно.
+
 ## CF — фото и материалы статей, принят 15 октября 2026
 
 После показа минимального контракта пользователь поручил «делай далее все».

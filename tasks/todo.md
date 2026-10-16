@@ -4,7 +4,8 @@
 
 ### Проверенный остаток на 16 октября
 
-- [ ] VU — принятый16 октября private raw video contract в SPEC-private-files.md.
+- [x] VU — принятый16 октября private raw video contract в SPEC-private-files.md;
+  локальная реализация/API/SQL/S3, НЕ rollout или browser/device acceptance.
   - [x] VU1: additive video receipt migration,80MiB binary admin endpoint,
     actor-scoped status/recovery, signature/MIME/SDK wire RED/GREEN.
     RED16 endpoint404 → GREEN16; дополнительный metadata ambiguity RED1→GREEN21,
@@ -114,7 +115,40 @@
       isolated production29/29, compile5.5s/types2.1s. SSR не доказывает browser
       playback/codec/hydration; browser/mobile отложены. Five-axis review: только
       metadata selection, no access/storage/URL migration or new dependencies.
-  - [ ] VU4: own disposable API/SQL/S3 acceptance; browser/mobile отложены.
+  - [x] VU4: own disposable API/SQL/S3 acceptance; browser/mobile отложены.
+    **3/3 native pass**,35.77s (tests34.86s): actual frontend binary transport/
+    save coordinator → native HTTP/JWT → own fresh41 SQL → Timeweb S3.
+    Upload ACK потерян после реального200, API перезапущен; status-first берёт
+    прежний video asset без repeat PUT, optional poster получает1 PUT. Lost post
+    ACK → второй API restart → frozen create replay оставляет1 post/1 creation
+    intent/1 video link, sum2 PUT. Original bytes/MIME/HEAD length/Range206 и
+    private,no-store для video/WebP poster; anonymous direct S3 GET/HEAD403.
+    Draft/guest/expired paid/blocked/revoked session закрывают video+poster до S3;
+    explicit removal убирает link, retire poster, read404 и late rebind409.
+    Actual delayed upload/status responses после A→B не принимаются coordinator,
+    B statusnotRecorded, A ready; посты/привязки не появляются. Fetch обёрнут
+    только для loopback session cookie/задержки уже настоящего ответа; public
+    upload запрещён. FileReader заменён реальным File.arrayBuffer, journal
+    transaction double — это НЕ browser reload/IndexedDB scheduling/playback.
+    Read-only preflight подтвердил прежний policy SHA2560484dfa2…1715e8,
+    unversioned bucket. Первичная curl проба timeout5s/HTTP000, последующая clean
+    IPv4 HTTPS200 и signed preflight прошли; TLS/preflight не обходились.
+    Final SQL:41 migrations/1 post/1 create intent/3 ready videos/1 ready poster,
+    retired poster1, media after explicit removal0, duplicate assets0.
+    Все4 own synthetic objects удалены с filename/UUID/metadata/hash/size/MIME/
+    ETag guards и HEAD404; policy unchanged. Own DB f52cb431dd32…ec605,
+    daryadarcy-fresh-video-api-20261016-vu4, loopback61534/tmpfs768MiB/no mounts
+    удалена только после S3 cleanup и повторных exact ID/name/owner/port/mount
+    guards. API children/temp compiled dirs убраны; foreign containers preserved.
+    Credentials только в памяти isolated runner/children, не файлы/Git/CLI args.
+    Final clean-env full **2499 pass/1551 opt-in skips/0 fail**, JSON45.53s;
+    новые3 provider cases пропущены в обычном full и отдельно реально пройдены
+    выше, skip не засчитан как acceptance. Root tsc/API86/boundaries681/docs58/
+    Prettier/diff pass. Frontend types/lint/production29/29 из VU3d остаются
+    актуальны: runtime после них не менялся. Five-axis review: default-off в
+    existing isolated process helper, explicit fresh/container/policy/versioning
+    gates before mutations, own ledger cleanup only, no new dependencies/schema.
+    Рабочая DB/старые S3/дизайн/policy writes/рабочие flags/push/deploy исключены.
   Docker16 октября перезапущен по прямому разрешению, _ping=OK, free3.5GiB.
   Чужие контейнеры сохранены (diplom-postgres остановлен перезапуском), вручную
   не запускались. Образы/volumes не удалялись; зависший старый cache prune

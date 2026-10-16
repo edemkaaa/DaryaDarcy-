@@ -223,8 +223,14 @@ private File/key локально и сохраняют через raw endpoint.
 optional private poster/preview и explicit removal подключены без CSS/layout.
 Explicit poster consumers сохраняют gallery и legacy fallback; pure/SSR RED6→9
 GREEN. Full2499 pass/1548 opt-in skips, types/lint/production29/29 pass; это
-unit/SSR/build, не UI/S3 acceptance. Следующий пункт VU4 из активного todo;
-actual S3 acceptance пока НЕ закрыт.
+unit/SSR/build, не UI acceptance. VU4 также завершён:3/3 native35.77s, actual
+frontend transport/coordinator→HTTP/JWT→own fresh41 SQL→Timeweb S3. Lost upload/
+create ACK + API restarts не дублируют video/poster/post/link; account switch
+во время upload/status не принимает late replies; live read/Range/access revoke/
+explicit removal pass. Все4 own S3 objects удалены с guards/HEAD404, policy
+unchanged; own tmpfs DB/API/temp workers убраны. Journal boundary double,
+не browser reload/playback. User-deferred browser/mobile/working rollout остаются
+отдельной незакрытой границей; VU повторно не начинать без изменения/нового основания.
 Не расширять видео в новый каталог/transcoding;
 reuse existing receipts/privateAssetIds/live proxy и защищённый content prefix.
 Новый upload default-off; рабочие flags/policy не менять. Остальные закрытые

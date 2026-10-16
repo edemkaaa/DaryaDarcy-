@@ -26,8 +26,16 @@ VU3d: explicit poster metadata подключена к feed/club/detail/shared p
 Private video без optional poster не берёт первое фото gallery, отдельный poster
 не удаляет gallery entry; legacy public thumb/fallback прежние. RED6→GREEN9
 pure/actual React SSR cases; full2499 pass/1548 skips/0 fail, types/lint/build29/29
-pass. Это не browser playback/codec/hydration. Actual S3 — VU4; browser/mobile отложены
-пользователем. Рабочая DB/старые S3/flags/push/deploy не менялись.
+pass. Это не browser playback/codec/hydration. VU4:3/3 native35.77s, actual
+frontend transport/coordinator→API/own fresh41 SQL/Timeweb S3. Lost upload/create
+ACK и API restarts дают1 video/1 poster/1 post/link, late upload/status after
+account switch не принимается. GET/HEAD/Range/club expiry/block/session revoke/
+explicit removal и direct anonymous S3 denial проходят. Journal transaction
+double, НЕ browser reload. Все4 own objects удалены с guards/HEAD404, policy
+unchanged; own DB/API/temp processes убраны. Browser/mobile по-прежнему отложены
+пользователем. Final full2499 pass/1551 opt-in skips/0 fail,45.53s;3 provider
+cases пройдены отдельно выше, не засчитаны по skip. Root types/API/boundaries/docs
+pass; runtime после VU3d не менялся. Рабочая DB/старые S3/flags/push/deploy не менялись.
 
 ## 16 октября — LF1, клубные статьи в Библиотеке
 
