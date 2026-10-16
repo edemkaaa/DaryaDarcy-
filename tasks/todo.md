@@ -72,8 +72,19 @@
       UI/API/S3 acceptance. Runtime редакторов ещё legacy video; флаги не включены.
       Docker build cache fully pruned:342.6MB+2.721GB logical, builder du0B;
       images6/volumes12/foreign containers3 preserved. Host free3.6GiB then3.2GiB.
-    - [ ] VU3b: pack/restore video+poster ArrayBuffer в existing owner journal,
+    - [x] VU3b: pack/restore video+poster ArrayBuffer в existing owner journal,
       alias/revision/validation guards; browser/mobile остаются отложенными.
+      RED4 missing video codec →3 GREEN/1 corrupt receipt RED→4 GREEN;
+      stale editor/upload alias RED1→GREEN7 total. Exact bytes/name/type/mtime/
+      keys и editor/coordinator aliases restored, old records without video read,
+      corrupt receipt/owner switch before/after I/O/stale revision refused.
+      Journal write validates video ownership/aliases before bytes/network, not
+      only on later load. Same version2 optional fields, no new DB/store/migration.
+      Real Node File/ArrayBuffer/structuredClone and transaction transport double
+      refusing Blob/File; НЕ native IndexedDB transaction scheduling/reload.
+      Affected35/35; full **2469 pass/1548 opt-in skips/0 fail**,41.30s.
+      Root/frontend/E2E types/full lint pass; isolated production29/29,
+      compile5.0s/types3.9s. User-deferred browser/mobile НЕ запускались.
     - [ ] VU3c: private binary HTTP transport + existing editors/local previews/
       explicit removal, без CSS/layout; использовать VU3b до первого upload.
     - [ ] VU3d: existing media consumers берут explicit poster, не крадут gallery.

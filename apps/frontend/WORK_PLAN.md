@@ -2,6 +2,24 @@
 
 Дата фиксации аудита: **3 октября 2026 года**. Обновление разработки: **13 октября 2026 года**. Проект после миграции на **Next.js**. Этот файл — точка возвращения к работе: здесь сохранены план первого этапа, все 42 пункта общего аудита, их расположение, дополнительные расхождения с договором и уже выполненные исправления контента.
 
+## 16 октября — VU, закрытые видео, локальная внутренняя логика
+
+Принят контракт VU в SPEC-private-files.md, рабочий путь default-off.
+Бэкенд: raw80MiB MP4/WebM/MOV с actor/key receipt recovery, canonical private
+association и optional privateVideoPosters, nullable post_media.posterUrl;
+live GET/HEAD/Range и explicit removal. Native HTTP/JWT/own SQL/SDK wire178 pass,
+7 opt-in skips; fresh41 migration9/9. Это не Timeweb/browser приёмка.
+Frontend VU3a/b: typed coordinator с checkpoint до raw File upload, status-first,
+no public fallback, private poster mapping/frozen create/unknown update guard.
+Existing owner journal pack/restore video+poster через ArrayBuffer, metadata/keys/
+aliases и revision/actor guards.18 video unit +7 storage transport checks;
+storage double не доказывает native IndexedDB scheduling/reload. Full2469 pass/
+1548 opt-in skips/0 fail; root/frontend/E2E types/lint и production29/29 pass.
+Далее VU3c/d: private transport/picker в оба редактора, local preview и explicit
+poster consumers без CSS/layout. Сейчас existing editors ещё legacy video path;
+не объявлять новую загрузку подключённой. Actual S3 — VU4; browser/mobile отложены
+пользователем. Рабочая DB/старые S3/flags/push/deploy не менялись.
+
 ## 16 октября — LF1, клубные статьи в Библиотеке
 
 По прямому поручению исправлен existing articles.list backend: карточки всех

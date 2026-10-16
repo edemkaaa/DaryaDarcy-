@@ -4,6 +4,12 @@ import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { requireUploadedMedia } from "@/shared/media/upload-result";
 import { requirePrivateReceipt } from "./private-upload";
 import {
+  validatePrivatePostVideo,
+  requirePrivateVideoReceipt,
+  selectPrivatePostVideos,
+  type PrivatePostVideo,
+} from "./private-video-upload";
+import {
   requirePrivatePostPhotoReceipt,
   selectPrivatePostPhotos,
   validatePrivatePostPhoto,
@@ -22,6 +28,7 @@ export type PostEditorSnapshot = {
   removedIds: number[];
   pending: PendingPostUpload[];
   privatePhotos?: PrivatePostPhoto[];
+  privateVideos?: PrivatePostVideo[];
 };
 export type PostRecoveryRecord = {
   version: 1;
@@ -42,15 +49,21 @@ type FileData = {
 };
 type StoredAttachment = PostAttachment & { fileData?: FileData };
 type StoredPhoto = Omit<PrivatePostPhoto, "file"> & { fileData: FileData };
+type StoredVideo = Omit<PrivatePostVideo, "file" | "poster"> & {
+  fileData: FileData;
+  poster?: StoredPhoto;
+};
 type StoredRecord =
   | PostRecoveryRecord
   | (Omit<PostRecoveryRecord, "version" | "editor" | "save"> & {
       version: 2;
-      editor: Omit<PostEditorSnapshot, "privatePhotos"> & {
+      editor: Omit<PostEditorSnapshot, "privatePhotos" | "privateVideos"> & {
         privatePhotos?: StoredPhoto[];
+        privateVideos?: StoredVideo[];
       };
-      save: Omit<PostSaveSnapshot, "privatePhotos"> & {
+      save: Omit<PostSaveSnapshot, "privatePhotos" | "privateVideos"> & {
         privatePhotos?: StoredPhoto[];
+        privateVideos?: StoredVideo[];
       };
     });
 const storageError = () =>
@@ -99,6 +112,47 @@ function validPhotos(
     return attempted.every((photo) => {
       if (uploadKeys.has(photo.key) || !selected.includes(photo)) return false;
       uploadKeys.add(photo.key);
+      return true;
+    });
+  } catch {
+    return false;
+  }
+}
+
+function validVideos(
+  editor: PostEditorSnapshot,
+  save: PostSaveSnapshot,
+): boolean {
+  try {
+    const selected = editor.privateVideos ?? [],
+      attempted = save.privateVideos ?? [];
+    if (!Array.isArray(selected) || !Array.isArray(attempted)) return false;
+    for (const video of selected) {
+      validatePrivatePostVideo(video);
+      if (video.attempted !== undefined && typeof video.attempted !== "boolean")
+        return false;
+      if (video.receipt !== undefined) {
+        if (!video.attempted) return false;
+        requirePrivateVideoReceipt(video.receipt, video.file);
+      }
+      const poster = video.poster;
+      if (poster) {
+        if (
+          poster.attempted !== undefined &&
+          typeof poster.attempted !== "boolean"
+        )
+          return false;
+        if (poster.receipt !== undefined) {
+          if (!poster.attempted) return false;
+          requirePrivatePostPhotoReceipt(poster.receipt, poster.file);
+        }
+      }
+    }
+    selectPrivatePostVideos(editor.draft.videos, selected);
+    const keys = new Set<string>();
+    return attempted.every((video) => {
+      if (keys.has(video.key) || !selected.includes(video)) return false;
+      keys.add(video.key);
       return true;
     });
   } catch {
@@ -222,6 +276,7 @@ function validRecord(
     ) &&
     save &&
     validPhotos(record.editor, save) &&
+    validVideos(record.editor, save) &&
     ["idle", "upload", "create", "update", "complete"].includes(save.phase) &&
     (save.savedId === null ||
       (Number.isSafeInteger(save.savedId) && save.savedId > 0)) &&
@@ -365,6 +420,19 @@ export class PostRecoveryJournal {
           restoredPhotos.set(stored, result);
           return result;
         };
+        const restoredVideos = new Map<StoredVideo, PrivatePostVideo>();
+        const restoreVideo = (stored: StoredVideo): PrivatePostVideo => {
+          const existing = restoredVideos.get(stored);
+          if (existing) return existing;
+          const { fileData, poster, ...metadata } = stored;
+          const result = {
+            ...metadata,
+            file: restoreFile(fileData),
+            ...(poster ? { poster: restorePhoto(poster) } : {}),
+          };
+          restoredVideos.set(stored, result);
+          return result;
+        };
         record = {
           ...stored,
           version: 1,
@@ -372,6 +440,7 @@ export class PostRecoveryJournal {
             ...stored.editor,
             attachments: stored.editor.attachments.map(restore),
             privatePhotos: stored.editor.privatePhotos?.map(restorePhoto),
+            privateVideos: stored.editor.privateVideos?.map(restoreVideo),
           },
           save: {
             ...stored.save,
@@ -383,6 +452,7 @@ export class PostRecoveryJournal {
               ([item, intent]) => [restore(item), intent],
             ),
             privatePhotos: stored.save.privatePhotos?.map(restorePhoto),
+            privateVideos: stored.save.privateVideos?.map(restoreVideo),
           },
         };
       } else record = stored as PostRecoveryRecord;
@@ -431,6 +501,19 @@ export class PostRecoveryJournal {
           file: photo.file,
         });
       });
+      const copyVideoFiles = (
+        videos: PrivatePostVideo[] | undefined,
+        copies: PrivatePostVideo[] | undefined,
+      ) => {
+        videos?.forEach((video, index) => {
+          Object.assign(copies![index], { file: video.file });
+          if (video.poster)
+            Object.assign(copies![index].poster!, { file: video.poster.file });
+        });
+      };
+      copyVideoFiles(editor.privateVideos, snapshot.editor.privateVideos);
+      copyVideoFiles(save.privateVideos, snapshot.save.privateVideos);
+      if (!validVideos(snapshot.editor, snapshot.save)) throw storageError();
     } catch {
       return Promise.reject(storageError());
     }
@@ -477,6 +560,27 @@ export class PostRecoveryJournal {
         editorPhotos.push(await packPhoto(photo));
       for (const photo of snapshot.save.privatePhotos ?? [])
         savePhotos.push(await packPhoto(photo));
+      const packedVideos = new Map<PrivatePostVideo, StoredVideo>();
+      const packVideo = async (
+        video: PrivatePostVideo,
+      ): Promise<StoredVideo> => {
+        const existing = packedVideos.get(video);
+        if (existing) return existing;
+        const { file, poster, ...metadata } = video;
+        const result = {
+          ...metadata,
+          fileData: await this.fileData(file),
+          ...(poster ? { poster: await packPhoto(poster) } : {}),
+        };
+        packedVideos.set(video, result);
+        return result;
+      };
+      const editorVideos: StoredVideo[] = [],
+        saveVideos: StoredVideo[] = [];
+      for (const video of snapshot.editor.privateVideos ?? [])
+        editorVideos.push(await packVideo(video));
+      for (const video of snapshot.save.privateVideos ?? [])
+        saveVideos.push(await packVideo(video));
       this.assertOwner();
       const revision = await transaction<number>(
         "readwrite",
@@ -504,12 +608,14 @@ export class PostRecoveryJournal {
                   ...snapshot.editor,
                   attachments,
                   privatePhotos: editorPhotos,
+                  privateVideos: editorVideos,
                 },
                 save: {
                   ...snapshot.save,
                   uploaded,
                   privateUploads,
                   privatePhotos: savePhotos,
+                  privateVideos: saveVideos,
                 },
               } satisfies StoredRecord,
               this.key(),

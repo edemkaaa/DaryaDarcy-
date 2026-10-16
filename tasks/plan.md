@@ -216,8 +216,11 @@ HEAD и не подтверждение версии сервера. В нача
 
 Последнее прямое поручение: реализовать принятый минимальный контракт
 [VU](../SPEC-private-files.md), локально, без дизайна/рабочей DB/старых файлов,
-push/deploy. Browser/mobile отложены. Следующий доступный пункт VU1, затем
-VU2–VU4 из активного todo. Не расширять видео в новый каталог/transcoding;
+push/deploy. Browser/mobile отложены. VU1/VU2 и VU3a/b проверены локально:
+private binary endpoint/receipt/schema, atomic poster/binding/read/removal,
+typed coordinator и binary owner journal. Следующий пункт VU3c, затем VU3d/VU4
+из активного todo; editor wiring и actual S3 acceptance пока НЕ закрыты.
+Не расширять видео в новый каталог/transcoding;
 reuse existing receipts/privateAssetIds/live proxy и защищённый content prefix.
 Новый upload default-off; рабочие flags/policy не менять. Остальные закрытые
 срезы без причины не повторять. Docker restart отдельно разрешён16 октября.
