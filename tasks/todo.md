@@ -4,6 +4,19 @@
 
 ### Проверенный остаток на 16 октября
 
+- [x] AG9 — актуализировать существующий пакет передачи после VU (`0e8da4b`),
+  сверить активные статусы с принятыми FE/CF/VU результатами. Local integration
+  больше не числится невыполненной; browser/mobile отложены. Для fresh-only пути
+  не требовать историю старой БД; working rollout/provider/mail/целевой load/pilot,
+  второй валидный S3 principal и решение по старым URL остаются внешними gates.
+  Исторические результаты не повторялись и не пересчитаны в новую приёмку.
+  Проверка: `pnpm check:docs` —58 документов/exit0; `git diff --check` —exit0.
+  Review сверил итоговый diff с FE/CF/VU evidence; изменены только3 существующих
+  документа. Runtime suites/build без изменения кода не повторялись. Runtime/
+  design/DB/S3/push/deploy не меняются.
+  Следующий AG-ID: AG5/AG9 только после соответствующего внешнего входа/решения;
+  независимого незавершённого программного пункта при текущих ограничениях нет.
+
 - [x] VU — принятый16 октября private raw video contract в SPEC-private-files.md;
   локальная реализация/API/SQL/S3, НЕ rollout или browser/device acceptance.
   - [x] VU1: additive video receipt migration,80MiB binary admin endpoint,
@@ -738,10 +751,11 @@
   call-through без подмены ответов; production и frontend source не менялись.
   Все три own tmpfs контейнера срезов удалены после exact ownership inspection;
   existing owner39fdda943241 сохранён, временные API/JS kernel/caffeinate завершены.
-- [ ] CF остаток: совместимый frontend/generated types, browser/device acceptance
-  и отдельно разрешённый rollout. Независимый второй валидный S3 principal всё
-  ещё не предоставлен/не проверен. Рабочая DB/frontend/старые objects/рабочие flags
-  не менялись; push/deploy нет. Не переделывать готовый runtime без дефекта и
+- [ ] CF остаток: browser/device acceptance и отдельно разрешённый rollout.
+  Frontend/generated types и scoped native acceptance закрыты CF-F1/F2/F3 выше.
+  Независимый второй валидный S3 principal не предоставлен/не проверен.
+  Рабочая DB/старые objects/рабочие flags не менялись; push/deploy нет.
+  Не переделывать готовый runtime без дефекта и
   не повторять успешные native/probe checks без drift/изменений/новой причины.
 
 - [x] По следующему поручению подготовлены F-TEST-1/F-API-1 в начале existing
@@ -776,9 +790,10 @@
   Новый UI для recoveryExport не назначен. Только docs, без runtime/front changes.
   Документация56/diff exit0; review сопоставил текст с current handlers и staging
   исходниками. SQL/browser/build не повторялись: code не изменён, новых claims нет.
-- [ ] Совместная private-media интеграция и native acceptance: upload-клиент ещё
-  старый; backend0032–0035 теперь с новым frontend объединены только локально,
-  remote staging/сервер не обновлены. Push/rollout всё ещё не разрешены.
+- [x] Локальная private-media интеграция и согласованная native acceptance:
+  FE5/CF-F1b3/CF-F2d/CF-F3d/VU4 завершены выше. Видео UI/browser reload не засчитаны
+  по VU4 transport/coordinator проверкам: browser/mobile отложены.
+  Remote staging/сервер этим результатом не обновлены; push/rollout не разрешены.
   Пакет передачи: начало docs/development/backend-handoff-2026-10-05.md.
   Без новых входов не повторять готовые тесты/не придумывать backend функции.
 
@@ -1097,8 +1112,11 @@ backup/restore подтверждения и общей frontend/release при�
   Фронт/рабочая БД/настройки VK/старые ролики не изменены; flags не включались.
 - [ ] **AG9 — пакет выпуска и сквозная приёмка.** Статус: локальная матрица ТЗ,
   owners/условия/версии и порядок приёмки подготовлены в runbook. Общий candidate,
-  working history/schema/restore, frontend integration, реальные provider/mail/
-  S3/devices/load/pilot остаются непринятыми. Автоматические внешние действия запрещены.
+  целевой schema/restore/rollout и реальные provider/mail/devices/target-load/pilot
+  остаются непринятыми. Local frontend integration/API/S3/load уже проверены FE/CF/
+  VU/AG9-L; второй S3 principal и старые public URL остаются отдельными границами.
+  Для выбранного fresh-only пути старая migration history не нужна.
+  Автоматические внешние действия запрещены.
   Проверка: docs55/diff exit0; новая runtime/native/provider приёмка не заявлена.
 
 ### AG9 — локальная цепочка регистрации/подписки, 14 октября 2026
@@ -1168,18 +1186,21 @@ SMTP/API/SQL закрыты, synthetic data уничтожены, чужие д�
 
 ### Зафиксированные ограничения
 
-- Локальный снимок `123c9c6`; Git staging при сверке `62b24a6`. Обновлять сведения
-  по факту, не переключать/сливать ветки автоматически; версия сервера не установлена.
+- Локальный candidate `0e8da4b`; последний проверенный staging `81e8563`.
+  Новый fetch не выполнялся; версия сервера не установлена. Ветки не переключать/
+  сливать автоматически; старые SHA в датированных разделах — история.
 - Документ фронтендера: пункты 1–4 реализованы локально; пункт 5 частично.
-- AR1/AR2 backend готовы локально; generated API contract отстал. Фронтендеру
-  остаются actor-scoped ключ до POST, статус/повтор и browser reload acceptance.
+- AR1/AR2/CF frontend recovery подключены локально; generated contract86 процедур.
+  Доказательства article key/retry/reload в CF-F2; не назначать повторно без дефекта.
+  Новые video UI/reload/playback и общая device matrix остаются отложенными.
 - Email и private-files остаются default-off. Старые public-read URL сохраняются.
 - A6/AR native доказательства есть в истории: старые пустые галочки не означают,
   что надо заново писать реализацию или без причины повторять успешные проверки.
 - ТЗ/переписка сверены по сохранённым источникам; первичный PDF/полный экспорт
   не доступны. Новую трактовку не выдавать за прямое требование договора.
-- Жалобы отложены. Фронт, старые файлы, рабочие данные и внешние действия вне
-  текущего разрешения; полный перечень ограничений — в плане.
+- Жалобы/browser/mobile отложены. Разрешённая внутренняя frontend-интеграция
+  выполнена без дизайна; старые файлы, рабочие данные, push/deploy и внешние
+  действия исключены. Полный перечень ограничений — в плане.
 
 ### Формат записи после среза
 
