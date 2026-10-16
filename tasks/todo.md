@@ -39,6 +39,24 @@
     browser/proxy закрыты. Parent S3 client закрыт, credentials bindings очищены;
     секреты не сохранены. Остаток: >=2GiB free (лучше ещё2–3GiB запаса), новая
     own DB и native full lost ACK→оба редактора/account switch/read/revoke/removal.
+  - Повтор16 октября по прямому разрешению очистить только наши temp/cache:
+    освобождено ещё62.93MiB. Удалены own regenerable `apps/frontend/.next`
+    (41.95MiB) и пять каталогов только generated JSON/log reports в `/private/tmp`:
+    `daryadarcy-video-vu1.09vZkI`, `daryadarcy-frontend-verify-2Ylry8`,
+    `daryadarcy-private-editors-X7ePea`, `daryadarcy-merge-check.fCpphO`,
+    `daryadarcy-r6-export.WsYnXU`. Исторические paths этих raw reports ниже больше
+    не доступны; проверенные сводки сохранены в плане. Сборка/отчёты создаются
+    заново штатными командами, точные удалённые raw файлы не сохранены.
+    До удаления: explicit target list, realpath/parent/uid501/no symlink/no
+    group/world write/dev+inode recheck, Next BUILD_ID/no tracked/no open files,
+    temp содержит только JSON/log. Исходники/текущий WIP native test сохранены.
+    Итоговый disk gate:1.338GiB free <2GiB. Browser/API/SQL/S3 запусков и новых
+    mutations0; GREEN не засчитан. Docker build cache0B; images6/volumes12/чужие
+    containers3 сохранены. Наш headless1208 нужен для следующего прогона;1234/
+    WebKit2336 связаны с другим проектом, не удалены. Больших подтверждённых наших
+    кэшей больше нет. Нужен внешний вход: освободить ещё хотя бы1GiB, лучше2–3GiB
+    запаса, или указать конкретные дополнительные разрешённые targets. Не снижать
+    preflight; после места — новая own fresh41 DB и незавершённая browser matrix.
 
 - [x] AG9 — актуализировать существующий пакет передачи после VU (`0e8da4b`),
   сверить активные статусы с принятыми FE/CF/VU результатами. Local integration

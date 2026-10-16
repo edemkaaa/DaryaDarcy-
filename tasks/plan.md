@@ -95,6 +95,13 @@ notice. Минимальное исправление и SSR RED/GREEN выпо�
 fresh41 БД удалены после guards, единственный новый synthetic S3 object — HEAD404,
 policy прежняя. Продолжение: освободить место и первым повторить full lost ACK,
 затем оба редактора/account switch/read/revoke/explicit removal. Подробнее todo.
+Последнее продолжение: по разрешению пользователя удалены ещё62.93MiB только
+нашей generated `.next` и пяти temp report directories с ownership guards.
+Raw reports по старым tmp paths больше нет; исторические сводки в плане сохранены.
+После очистки1.338GiB free, всё ещё ниже2GiB gate. Docker build cache0B, крупные
+чужие browser caches/образы/volumes/БД сохранены. Новый native запуск не начинался.
+Продолжить после ещё минимум1GiB свободного места (лучше2–3GiB запаса); не менять
+код/порог ради обхода окружения. Текущий WIP browser test/helper сохранены.
 
 Исторический checkpoint до возобновления browser16 октября — `0e8da4b`.
 VU1–VU4 и предыдущие FE/CF локальные срезы завершены; точные доказательства в начале
