@@ -25,8 +25,10 @@ import { PostEditorTags } from "./post-editor-tags";
 import { PostRecoveryNotice } from "./post-recovery-notice";
 import { usePostRecovery } from "./use-post-recovery";
 import { usePrivatePostPhotos } from "./use-private-post-photos";
+import { usePrivatePostVideos } from "./use-private-post-videos";
+import { useAuth } from "@/domain/session/session-context";
 import { PostAttachmentsField } from "./post-attachments-field";
-import { uploadAdminVideoBlob } from "@/features/admin/media/video-upload";
+import { uploadAdminPrivateVideo } from "@/features/admin/media/private-video-upload";
 import { pickWebFiles } from "@/shared/media/image-upload";
 import { PhotoEditor } from "@/features/admin/photo-editor";
 import { ScheduleDatetime } from "@/features/admin/schedule-datetime";
@@ -69,7 +71,16 @@ interface CreatePostModalProps {
     }[];
   } | null;
 }
-export function CreatePostModal({
+export function CreatePostModal(props: CreatePostModalProps) {
+  const { user } = useAuth();
+  return (
+    <CreatePostModalBody
+      key={`${user?.id ?? "guest"}:${props.editingPost?.id ?? "new"}:${props.defaultTarget}`}
+      {...props}
+    />
+  );
+}
+function CreatePostModalBody({
   visible,
   onClose,
   defaultTarget,
@@ -101,6 +112,7 @@ export function CreatePostModal({
     pick: pickAttachment,
     remove: removeMedia,
     restore: restoreAttachments,
+    markRemoved: markMediaRemoved,
   } = usePostAttachments(operation, notifyError);
   const [richText, setRichText] = useState<RichTextBlock[] | undefined>();
   const [richTextSeed, setRichTextSeed] = useState<
@@ -114,6 +126,10 @@ export function CreatePostModal({
   );
   const uploadSelection = usePostUploadSelection();
   const privatePhotos = usePrivatePostPhotos(
+    visible,
+    `${editingPost?.id ?? "new"}:${defaultTarget}`,
+  );
+  const privateVideos = usePrivatePostVideos(
     visible,
     `${editingPost?.id ?? "new"}:${defaultTarget}`,
   );
@@ -196,6 +212,7 @@ export function CreatePostModal({
       removedIds: removedMediaIds,
       pending: uploadSelection.pending,
       privatePhotos: privatePhotos.photos,
+      privateVideos: privateVideos.videos,
     }),
     [
       text,
@@ -211,6 +228,7 @@ export function CreatePostModal({
       removedMediaIds,
       uploadSelection.pending,
       privatePhotos.photos,
+      privateVideos.videos,
     ],
   );
   const recovery = usePostRecovery({
@@ -219,7 +237,14 @@ export function CreatePostModal({
     editor: editorSnapshot,
     coordinator: saveCoordinator,
     onRestore: (snapshot) => {
-      privatePhotos.restore(snapshot.privatePhotos ?? [], snapshot.draft.photos);
+      privatePhotos.restore(
+        snapshot.privatePhotos ?? [],
+        snapshot.draft.photos,
+      );
+      privateVideos.restore(
+        snapshot.privateVideos ?? [],
+        snapshot.draft.videos,
+      );
       const draft = snapshot.draft;
       setText(draft.text);
       setPhotos(draft.photos);
@@ -237,6 +262,7 @@ export function CreatePostModal({
     },
   });
   const postApi = {
+    uploadPrivateVideo: uploadAdminPrivateVideo,
     create: (
       input: Parameters<typeof utils.client.admin.createPost.mutate>[0],
       signal: AbortSignal,
@@ -280,6 +306,7 @@ export function CreatePostModal({
   };
   const closeEditor = () => {
     privatePhotos.reset();
+    privateVideos.reset();
     operation.cancel();
     resetUploads();
     setText("");
@@ -389,9 +416,9 @@ export function CreatePostModal({
     setTags((prev) => (prev.includes("video") ? prev : [...prev, "video"]));
   };
   const pickVideo = async () => {
+    if (recovery.blocked) return;
     const task = operation.begin("video");
     if (!task) return;
-    let selected: number | undefined;
     try {
       uploadSelection.assertReady();
       const files = await pickWebFiles("video/*", false, {
@@ -400,20 +427,10 @@ export function CreatePostModal({
       });
       if (!files.length) return;
       task.assertCurrent();
-      [selected] = uploadSelection.select(files);
-      uploadSelection.sending(selected);
-      await recovery.checkpoint(undefined, uploadSelection.snapshot());
+      const reference = await privateVideos.add(files[0], task);
       task.assertCurrent();
-      const url = await uploadAdminVideoBlob(
-        files[0],
-        files[0].name || "video.mp4",
-        task.signal,
-      );
-      task.assertCurrent();
-      uploadSelection.confirmed(selected);
-      addVideoUrl(url);
+      addVideoUrl(reference);
     } catch (error) {
-      if (task.isCurrent()) uploadSelection.failed(selected, error);
       checkOperationAccessError(error);
       if (task.isCurrent())
         notifyError(
@@ -422,6 +439,20 @@ export function CreatePostModal({
     } finally {
       task.finish();
     }
+  };
+  const removeVideo = (index: number) => {
+    if (operation.busy || recovery.blocked) return;
+    const reference = videos[index];
+    if (!reference) return;
+    privateVideos.remove(reference);
+    const existing = editingPost?.media?.find(
+      (item) =>
+        item.type === "video" &&
+        item.url === reference &&
+        reference === `/api/media/post-attachments/${item.id}`,
+    );
+    if (existing) markMediaRemoved(existing.id);
+    setVideos((previous) => previous.filter((_, i) => i !== index));
   };
   const replacePhoto = async (index: number) => {
     const task = operation.begin("photos");
@@ -516,6 +547,7 @@ export function CreatePostModal({
         postApi,
         task,
         privatePhotos.photos,
+        privateVideos.videos,
       );
       task.assertCurrent();
       await recovery.clear();
@@ -971,9 +1003,7 @@ export function CreatePostModal({
                     <Action
                       disabled={isPending}
                       aria-label={`Удалить видео ${i + 1}`}
-                      onClick={() =>
-                        setVideos((prev) => prev.filter((_, idx) => idx !== i))
-                      }
+                      onClick={() => removeVideo(i)}
                       className={classes.mediaRemoveBtn}
                     >
                       <MaterialIcons name="close" size={14} color="#A85C5C" />

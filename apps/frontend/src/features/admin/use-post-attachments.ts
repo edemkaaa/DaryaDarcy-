@@ -42,6 +42,10 @@ export function usePostAttachments(
 ) {
   const [attachments, setAttachments] = useState<PostAttachment[]>([]);
   const removedIds = useRef<number[]>([]);
+  const markRemoved = (id: number) => {
+    if (!operation.busy && !removedIds.current.includes(id))
+      removedIds.current = [...removedIds.current, id];
+  };
   const reset = useCallback((media?: readonly ExistingMedia[] | null) => {
     removedIds.current = [];
     setAttachments(
@@ -120,7 +124,7 @@ export function usePostAttachments(
     if (operation.busy) return;
     const attachment = attachments[index];
     if (!attachment) return;
-    if (attachment.id) removedIds.current.push(attachment.id);
+    if (attachment.id) markRemoved(attachment.id);
     setAttachments((previous) => previous.filter((_, i) => i !== index));
   };
   const restore = useCallback((items: PostAttachment[], removed: number[]) => {
@@ -134,5 +138,6 @@ export function usePostAttachments(
     restore,
     pick,
     remove,
+    markRemoved,
   };
 }

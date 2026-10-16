@@ -20,10 +20,8 @@ import type { AdminPost } from "@/shared/api/types";
 
 import { ScheduleDatetime } from "@/features/admin/schedule-datetime";
 
-import { uploadAdminVideoBlob } from "@/features/admin/media/video-upload";
-import { blobToBase64, pickWebFiles } from "@/shared/media/image-upload";
-import { mediaBasename } from "@/domain/post/post-media-photos";
-import { extractVideoPosterBlob } from "@/shared/media/video-poster";
+import { uploadAdminPrivateVideo } from "@/features/admin/media/private-video-upload";
+import { pickWebFiles } from "@/shared/media/image-upload";
 import { PhotoEditor } from "@/features/admin/photo-editor";
 import {
   RichTextField,
@@ -44,14 +42,14 @@ import { PostEditorTags } from "./post-editor-tags";
 import { PostRecoveryNotice } from "./post-recovery-notice";
 import { usePostRecovery } from "./use-post-recovery";
 import { usePrivatePostPhotos } from "./use-private-post-photos";
+import { usePrivatePostVideos } from "./use-private-post-videos";
+import { useAuth } from "@/domain/session/session-context";
 
 import {
   PostAttachmentsField,
   PostAttachmentsList,
 } from "./post-attachments-field";
-import { requireUploadedUrl } from "@/shared/media/upload-result";
 import { MAX_VIDEO_BYTES } from "@/shared/browser/file-operations";
-import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { serializePostDraft, postDraftSnapshot } from "@/domain/post/draft";
 import {
   CREAM_BG,
@@ -90,18 +88,31 @@ function formForPost(post: AdminPost): PostFormData {
   };
 }
 
-/** Own the editor state so typing never renders the admin lists or tabs. */
-export function AdminPostEditor({
-  post,
-  scheduledDate,
-  onClose,
-  onSaved,
-}: {
+type AdminPostEditorProps = {
   post: AdminPost | null;
   scheduledDate: Date | null;
   onClose: () => void;
   onSaved: () => void;
-}) {
+};
+
+/** A different account must never inherit the previous editor's File/coordinator state. */
+export function AdminPostEditor(props: AdminPostEditorProps) {
+  const { user } = useAuth();
+  return (
+    <AdminPostEditorBody
+      key={`${user?.id ?? "guest"}:${props.post?.id ?? "new"}`}
+      {...props}
+    />
+  );
+}
+
+/** Own the editor state so typing never renders the admin lists or tabs. */
+function AdminPostEditorBody({
+  post,
+  scheduledDate,
+  onClose,
+  onSaved,
+}: AdminPostEditorProps) {
   const viewport = useViewport();
   const { stylesLayout } = getAdminScreenLayout(viewport);
   const [showForm, setShowForm] = useState(true);
@@ -153,6 +164,7 @@ export function AdminPostEditor({
   };
   const attachments = usePostAttachments(operation, notifyAdminError);
   const privatePhotos = usePrivatePostPhotos(showForm, editingId ?? "new");
+  const privateVideos = usePrivatePostVideos(showForm, editingId ?? "new");
   const editorSnapshot = useMemo(
     () => ({
       draft: { ...form, richText: richText ?? null },
@@ -160,6 +172,7 @@ export function AdminPostEditor({
       removedIds: attachments.removedIds,
       pending: uploadSelection.pending,
       privatePhotos: privatePhotos.photos,
+      privateVideos: privateVideos.videos,
     }),
     [
       form,
@@ -168,6 +181,7 @@ export function AdminPostEditor({
       attachments.removedIds,
       uploadSelection.pending,
       privatePhotos.photos,
+      privateVideos.videos,
     ],
   );
   const recovery = usePostRecovery({
@@ -176,7 +190,14 @@ export function AdminPostEditor({
     editor: editorSnapshot,
     coordinator: saveCoordinator,
     onRestore: (snapshot) => {
-      privatePhotos.restore(snapshot.privatePhotos ?? [], snapshot.draft.photos);
+      privatePhotos.restore(
+        snapshot.privatePhotos ?? [],
+        snapshot.draft.photos,
+      );
+      privateVideos.restore(
+        snapshot.privateVideos ?? [],
+        snapshot.draft.videos,
+      );
       setForm({
         ...snapshot.draft,
         published: snapshot.draft.status === "published",
@@ -189,6 +210,7 @@ export function AdminPostEditor({
     },
   });
   const postApi = {
+    uploadPrivateVideo: uploadAdminPrivateVideo,
     create: (
       input: Parameters<typeof utils.client.admin.createPost.mutate>[0],
       signal: AbortSignal,
@@ -236,6 +258,7 @@ export function AdminPostEditor({
   }, [post, resetAttachments]);
   const resetForm = () => {
     privatePhotos.reset();
+    privateVideos.reset();
     operation.cancel();
     uploadSelection.reset();
     saveCoordinator.current = new PostSaveCoordinator();
@@ -301,6 +324,7 @@ export function AdminPostEditor({
         postApi,
         task,
         privatePhotos.photos,
+        privateVideos.videos,
       );
       task.assertCurrent();
       await recovery.clear();
@@ -317,38 +341,17 @@ export function AdminPostEditor({
       task.finish();
     }
   };
-  const addVideoUrl = (url: string, posterUrl?: string) => {
+  const addVideoUrl = (url: string) => {
     setForm((prev) => ({
       ...prev,
       videos: prev.videos.includes(url) ? prev.videos : [...prev.videos, url],
       tags: prev.tags.includes("video") ? prev.tags : [...prev.tags, "video"],
-      photos:
-        posterUrl && !prev.photos.includes(posterUrl)
-          ? [...prev.photos, posterUrl]
-          : prev.photos,
     }));
   };
-  const uploadVideoPoster = async (
-    videoUrl: string,
-    source: Blob,
-    task: ScopedOperation,
-  ): Promise<string | null> => {
-    const posterBlob = await extractVideoPosterBlob(source, task.signal);
-    if (!posterBlob) return null;
-    const videoBase = mediaBasename(videoUrl).replace(/\.[^.]+$/, "");
-    const base64 = await blobToBase64(posterBlob, task.signal);
-    task.assertCurrent();
-    return requireUploadedUrl(
-      await utils.client.admin.uploadPhoto.mutate(
-        { base64, filename: `${videoBase}_thumb.jpg`, mimeType: "image/jpeg" },
-        { signal: task.signal },
-      ),
-    );
-  };
   const pickVideo = async () => {
+    if (recovery.blocked) return;
     const task = operation.begin("video");
     if (!task) return;
-    let selected: number | undefined;
     try {
       uploadSelection.assertReady();
       const files = await pickWebFiles("video/*", false, {
@@ -357,25 +360,10 @@ export function AdminPostEditor({
       });
       if (!files.length) return;
       task.assertCurrent();
-      [selected] = uploadSelection.select(files);
-      uploadSelection.sending(selected);
-      await recovery.checkpoint(undefined, uploadSelection.snapshot());
+      const reference = await privateVideos.add(files[0], task, true);
       task.assertCurrent();
-      const file = files[0];
-      const url = await uploadAdminVideoBlob(
-        file,
-        file.name || "video.mp4",
-        task.signal,
-      );
-      task.assertCurrent();
-      uploadSelection.confirmed(selected);
-      // Keep the confirmed video even if preparing its optional cover fails.
-      addVideoUrl(url);
-      const posterUrl = await uploadVideoPoster(url, file, task);
-      task.assertCurrent();
-      if (posterUrl) addVideoUrl(url, posterUrl);
+      addVideoUrl(reference);
     } catch (error) {
-      if (task.isCurrent()) uploadSelection.failed(selected, error);
       checkOperationAccessError(error);
       if (task.isCurrent())
         notifyAdminError(
@@ -386,12 +374,33 @@ export function AdminPostEditor({
     }
   };
   const removeVideo = (index: number) => {
-    if (operation.busy) return;
+    if (operation.busy || recovery.blocked) return;
+    const reference = form.videos[index];
+    if (!reference) return;
+    privateVideos.remove(reference);
+    const existing = post?.media?.find(
+      (item) =>
+        item.type === "video" &&
+        item.url === reference &&
+        reference === `/api/media/post-attachments/${item.id}`,
+    );
+    if (existing) attachments.markRemoved(existing.id);
     setForm((prev) => ({
       ...prev,
       videos: prev.videos.filter((_, i) => i !== index),
     }));
   };
+  const previewPhotos = [
+    ...form.photos.map(privatePhotos.preview),
+    ...form.videos.flatMap((reference) => {
+      const poster =
+        privateVideos.poster(reference) ??
+        post?.media?.find(
+          (item) => item.type === "video" && item.url === reference,
+        )?.posterUrl;
+      return poster ? [poster] : [];
+    }),
+  ];
   const pickPhotosFromGallery = async () => {
     const task = operation.begin("photos");
     if (!task) return;
@@ -674,24 +683,24 @@ export function AdminPostEditor({
                   .filter(Boolean)
                   .join(" ")}
               >
-                {form.photos.length > 0 && (
+                {previewPhotos.length > 0 && (
                   <div
                     className={["ui-stack ", classes.previewPhotos]
                       .filter(Boolean)
                       .join(" ")}
                   >
-                    {form.photos.length === 1 ? (
+                    {previewPhotos.length === 1 ? (
                       <Picture
-                        source={{ uri: privatePhotos.preview(form.photos[0]) }}
+                        source={{ uri: previewPhotos[0] }}
                         contentFit="contain"
                         className={classes.previewSinglePhoto}
                       />
                     ) : (
                       <ScrollArea horizontal paging hideScrollbar>
-                        {form.photos.map((uri, i) => (
+                        {previewPhotos.map((uri, i) => (
                           <Picture
                             key={i}
-                            source={{ uri: privatePhotos.preview(uri) }}
+                            source={{ uri }}
                             style={{
                               width: stylesLayout.previewCarouselPhoto.width,
                             }}

@@ -85,8 +85,25 @@
       Affected35/35; full **2469 pass/1548 opt-in skips/0 fail**,41.30s.
       Root/frontend/E2E types/full lint pass; isolated production29/29,
       compile5.0s/types3.9s. User-deferred browser/mobile НЕ запускались.
-    - [ ] VU3c: private binary HTTP transport + existing editors/local previews/
-      explicit removal, без CSS/layout; использовать VU3b до первого upload.
+    - [x] VU3c: private binary HTTP transport + оба existing editors, без CSS/layout.
+      Raw File/key/credentials/no-store, no public URL/retry; transport RED8→GREEN12.
+      Original File и optional private poster выбираются локально; full сохраняет
+      прежний автопостер/preview, quick прежний выбор без автопостера. Selection
+      RED7→GREEN8 (1 existing invalid-source rejection already passed), включая
+      late poster success/error после account switch. UI snapshot/restore/save
+      используют VU3b до dispatch; account-keyed editor bodies сбрасывают весь
+      File/coordinator state при смене actor. Canonical video removal добавляет
+      explicit removedMediaIds; legacy/VK reconciliation unchanged. Preview URLs
+      отзываются при remove/close/unmount; File aliases остаются до следующего save
+      selection, чтобы idle recovered journal не терял attempted intent (8 storage
+      checks total). Affected **161/161**, full **2490 pass/1548 opt-in skips/0 fail**,
+      JSON49.50s. Root/frontend/E2E types/full lint/API86/32048bytes/boundaries681
+      pass; clean-env production29/29, compile3.9s/types4.6s. Five-axis review:
+      bytes only via accepted private endpoint, no public fallback or secret files,
+      shared coordinator/journal reused, optional poster failure retains original,
+      no new dependencies/styles/layout/working flags. File/fetch/codec/storage
+      boundaries synthetic, НЕ native UI/IndexedDB/S3 acceptance; browser/mobile
+      по-прежнему отложены. VU3d и VU4 ещё не закрыты.
     - [ ] VU3d: existing media consumers берут explicit poster, не крадут gallery.
   - [ ] VU4: own disposable API/SQL/S3 acceptance; browser/mobile отложены.
   Docker16 октября перезапущен по прямому разрешению, _ping=OK, free3.5GiB.

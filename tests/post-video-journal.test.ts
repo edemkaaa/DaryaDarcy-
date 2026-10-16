@@ -137,6 +137,21 @@ it("blocks a checkpoint when the editor no longer owns the attempted video", asy
   ).rejects.toThrow();
   expect(storage.records.size).toBe(0);
 });
+it("keeps a recovered video's File alias while its local reference is removed before the next save", async () => {
+  const selected = video(),
+    journal = new PostRecoveryJournal(101, "video");
+  await journal.load();
+  const draft = editor(selected);
+  draft.draft.videos = [];
+  const recovered = { ...snapshot(selected), phase: "idle" as const };
+  await journal.write(draft, recovered);
+  const loaded = (await new PostRecoveryJournal(101, "video").load())!;
+  expect(loaded.editor.draft.videos).toEqual([]);
+  expect(loaded.save.privateVideos![0]).toBe(loaded.editor.privateVideos![0]);
+  expect(await loaded.editor.privateVideos![0].file.text()).toBe(
+    "video original bytes",
+  );
+});
 it("keeps legacy journal records without a video field readable", async () => {
   const selected = video(),
     journal = new PostRecoveryJournal(101, "video");

@@ -15,9 +15,14 @@ Existing owner journal pack/restore video+poster через ArrayBuffer, metadat
 aliases и revision/actor guards.18 video unit +7 storage transport checks;
 storage double не доказывает native IndexedDB scheduling/reload. Full2469 pass/
 1548 opt-in skips/0 fail; root/frontend/E2E types/lint и production29/29 pass.
-Далее VU3c/d: private transport/picker в оба редактора, local preview и explicit
-poster consumers без CSS/layout. Сейчас existing editors ещё legacy video path;
-не объявлять новую загрузку подключённой. Actual S3 — VU4; browser/mobile отложены
+VU3c: оба existing editors выбирают original File/key локально и вызывают accepted
+private raw transport только через save/checkpoint. Full optional private poster
+и прежний preview сохранены, quick без нового автопостера; CSS/layout прежние.
+Actor-keyed bodies сбрасывают File/coordinator state при смене аккаунта, canonical
+removal использует removedMediaIds. Transport12/selection8/storage8 unit checks;
+affected161/161, full2490 pass/1548 opt-in skips/0 fail, types/lint/API/boundaries
+и clean-env production29/29 pass. Это не native UI/IndexedDB/S3 acceptance.
+Далее VU3d: explicit poster consumers без gallery guessing. Actual S3 — VU4; browser/mobile отложены
 пользователем. Рабочая DB/старые S3/flags/push/deploy не менялись.
 
 ## 16 октября — LF1, клубные статьи в Библиотеке
