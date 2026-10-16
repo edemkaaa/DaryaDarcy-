@@ -164,6 +164,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
           mimeType?: string | null;
           fileSize?: number | null;
           duration?: number | null;
+          posterUrl?: string | null;
         }[];
       }
     ).media || [];

@@ -55,7 +55,7 @@
       Own fixture1b55c09e… и fresha3c342a9… удалены после exact ownership/loopback/
       tmpfs/no-volume guards; SDK wire objects были только в памяти fixture.
       Actual S3/working DB/старые файлы не затрагивались. Далее VU3.
-  - [ ] VU3: durable File/key до network, status-first recovery и оба existing
+  - [x] VU3: durable File/key до network, status-first recovery и оба existing
     редактора без изменения дизайна; unit/type/build проверки.
     - [x] VU3a: typed video receipt/80MiB policy и existing save coordinator:
       private raw transport boundary, original File/key checkpoint before dispatch,
@@ -104,7 +104,16 @@
       no new dependencies/styles/layout/working flags. File/fetch/codec/storage
       boundaries synthetic, НЕ native UI/IndexedDB/S3 acceptance; browser/mobile
       по-прежнему отложены. VU3d и VU4 ещё не закрыты.
-    - [ ] VU3d: existing media consumers берут explicit poster, не крадут gallery.
+    - [x] VU3d: existing media consumers берут explicit poster, не крадут gallery.
+      RED6→GREEN9 pure/actual React SSR checks: canonical private video с optional
+      poster сохраняет весь photos[], без poster не заимствует первую фотографию;
+      legacy thumb/fallback прежние. Feed card/club/detail/shared player получают
+      nullable posterUrl, каждый player использует свой poster, не соседний.
+      CSS/layout/components прежние. Full **2499 pass/1548 opt-in skips/0 fail**,
+      JSON47.30s; types/root+frontend+E2E/full lint/boundaries681/diff pass,
+      isolated production29/29, compile5.5s/types2.1s. SSR не доказывает browser
+      playback/codec/hydration; browser/mobile отложены. Five-axis review: только
+      metadata selection, no access/storage/URL migration or new dependencies.
   - [ ] VU4: own disposable API/SQL/S3 acceptance; browser/mobile отложены.
   Docker16 октября перезапущен по прямому разрешению, _ping=OK, free3.5GiB.
   Чужие контейнеры сохранены (diplom-postgres остановлен перезапуском), вручную

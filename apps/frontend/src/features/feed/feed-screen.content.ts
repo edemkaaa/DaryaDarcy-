@@ -21,6 +21,7 @@ export interface FeedPost {
     mimeType?: string | null;
     fileSize?: number | null;
     duration?: number | null;
+    posterUrl?: string | null;
   }[];
   richText?:
     | {

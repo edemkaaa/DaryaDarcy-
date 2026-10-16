@@ -11,7 +11,7 @@ import Animated, {
   Easing,
 } from "@/shared/browser/motion";
 import { MaterialIcons } from "@/shared/ui/icons";
-import { splitVideoPhotos } from "@/domain/post/post-media-photos";
+import { resolvePostVideo } from "@/domain/post/resolve-post-video";
 import { PostMenuButton } from "@/shared/ui/post-menu-button";
 import { PostMediaSection } from "@/shared/media/post-media-section";
 import { NaturalPhotoStack } from "@/shared/media/natural-photo-stack";
@@ -86,12 +86,9 @@ export function PostCard({
     (post.media || []).some((item) => item.type === "video"),
   );
   const videoItem = post.media?.find((item) => item.type === "video");
-  const videoFile = videoItem?.filename;
-  const { posterUrl, galleryPhotos } = splitVideoPhotos(
-    post.photos || [],
-    videoFile,
-  );
-  const stackPhotos = hasVideo ? galleryPhotos : post.photos || [];
+  const { posterUrl, stackPhotos } = videoItem
+    ? resolvePostVideo(post.photos, [videoItem])
+    : { posterUrl: undefined, stackPhotos: post.photos || [] };
   const otherMedia = (post.media || []).filter((item) => item.type !== "video");
   return (
     <article

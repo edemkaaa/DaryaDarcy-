@@ -10,6 +10,7 @@ export interface PostMediaItem {
   mimeType?: string | null;
   fileSize?: number | null;
   duration?: number | null;
+  posterUrl?: string | null;
 }
 interface PostMediaSectionProps {
   media: PostMediaItem[];
@@ -31,7 +32,12 @@ export function PostMediaSection({
               <VideoPreviewCard
                 key={item.id}
                 url={item.url}
-                thumbnailUrl={posterUrl}
+                thumbnailUrl={
+                  item.posterUrl ??
+                  (/^\/api\/media\/post-attachments\/[1-9]\d*$/.test(item.url)
+                    ? undefined
+                    : posterUrl)
+                }
                 filename={item.filename ?? undefined}
                 duration={item.duration ?? undefined}
                 topAligned={topAligned}

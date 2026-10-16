@@ -8,6 +8,7 @@ export type PostMediaLike = {
   type: string;
   url: string;
   filename?: string | null;
+  posterUrl?: string | null;
 };
 export type ResolvedPostVideo = {
   hasVideo: boolean;
@@ -28,7 +29,13 @@ export function resolvePostVideo(
   const videoItem = media?.find((m) => m.type === "video");
   if (videoItem?.url) {
     const videoFilename = videoItem.filename || mediaBasename(videoItem.url);
-    const { posterUrl, galleryPhotos } = splitVideoPhotos(list, videoFilename);
+    // Canonical private videos never store their covers in photos[]. A missing
+    // optional poster is not permission to consume the first gallery photo.
+    const { posterUrl, galleryPhotos } =
+      videoItem.posterUrl ||
+      /^\/api\/media\/post-attachments\/[1-9]\d*$/.test(videoItem.url)
+        ? { posterUrl: videoItem.posterUrl ?? undefined, galleryPhotos: list }
+        : splitVideoPhotos(list, videoFilename);
     return {
       hasVideo: true,
       videoUrl: videoItem.url,

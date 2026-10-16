@@ -216,14 +216,15 @@ HEAD и не подтверждение версии сервера. В нача
 
 Последнее прямое поручение: реализовать принятый минимальный контракт
 [VU](../SPEC-private-files.md), локально, без дизайна/рабочей DB/старых файлов,
-push/deploy. Browser/mobile отложены. VU1/VU2 и VU3a/b/c проверены локально:
+push/deploy. Browser/mobile отложены. VU1/VU2/VU3 проверены локально:
 private binary endpoint/receipt/schema, atomic poster/binding/read/removal,
 typed coordinator и binary owner journal; оба existing editors теперь выбирают
 private File/key локально и сохраняют через raw endpoint. Owner-keyed state,
 optional private poster/preview и explicit removal подключены без CSS/layout.
-Full2490 pass/1548 opt-in skips, types/lint/production29/29 pass; это unit/build,
-не UI/S3 acceptance. Следующий пункт VU3d, затем VU4 из активного todo;
-explicit poster consumers и actual S3 acceptance пока НЕ закрыты.
+Explicit poster consumers сохраняют gallery и legacy fallback; pure/SSR RED6→9
+GREEN. Full2499 pass/1548 opt-in skips, types/lint/production29/29 pass; это
+unit/SSR/build, не UI/S3 acceptance. Следующий пункт VU4 из активного todo;
+actual S3 acceptance пока НЕ закрыт.
 Не расширять видео в новый каталог/transcoding;
 reuse existing receipts/privateAssetIds/live proxy и защищённый content prefix.
 Новый upload default-off; рабочие flags/policy не менять. Остальные закрытые

@@ -22,7 +22,11 @@ Actor-keyed bodies сбрасывают File/coordinator state при смене
 removal использует removedMediaIds. Transport12/selection8/storage8 unit checks;
 affected161/161, full2490 pass/1548 opt-in skips/0 fail, types/lint/API/boundaries
 и clean-env production29/29 pass. Это не native UI/IndexedDB/S3 acceptance.
-Далее VU3d: explicit poster consumers без gallery guessing. Actual S3 — VU4; browser/mobile отложены
+VU3d: explicit poster metadata подключена к feed/club/detail/shared player.
+Private video без optional poster не берёт первое фото gallery, отдельный poster
+не удаляет gallery entry; legacy public thumb/fallback прежние. RED6→GREEN9
+pure/actual React SSR cases; full2499 pass/1548 skips/0 fail, types/lint/build29/29
+pass. Это не browser playback/codec/hydration. Actual S3 — VU4; browser/mobile отложены
 пользователем. Рабочая DB/старые S3/flags/push/deploy не менялись.
 
 ## 16 октября — LF1, клубные статьи в Библиотеке
