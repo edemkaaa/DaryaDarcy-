@@ -9,8 +9,12 @@ Actor/post-scoped intent, прежние2 photos, checkpoint до network, statu
 upload recovery и exact frozen addComment replay после lost ACK.15 Node unit
 cases pass; synthetic API/checkpoint, реальный File.arrayBuffer вместо FileReader.
 Full2441 pass/1497 opt-in skips, root/frontend/E2E types/full lint/build29/29/
-API86/boundaries674. Пока НЕ подключено к ClubComments: durable journal/CAS,
-preview/session/reload UI и native API/S3 — следующие CF-F3b/c/d, не GREEN.
+API86/boundaries674. CF-F3b: owner/post-scoped ArrayBuffer/File journal + atomic
+revision CAS, native Chromium storage RED4→GREEN4 + concurrent claim:5/5 pass,
+850ms. Reload сохраняет bytes/keys/post/reply/text, stale write/clear и byte
+substitution/phase thaw/account mismatch отвергаются. Storage document fixture
+synthetic, API/SQL/S3 не вызываются. Пока НЕ подключено к ClubComments:
+preview/session/reload UI и native API/S3 — следующие CF-F3c/d, не GREEN.
 Оформление/backend/DB/S3/flags не менялись, no push/deploy. TDD/security направили
 проверки на неизменяемый retry payload и запрет записи при storage failure.
 

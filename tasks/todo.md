@@ -26,8 +26,19 @@
     метаданным до запуска, credentials не читались/не наследовались. Review:
     existing server contract unchanged, bounded2 photos, no public fallback,
     legacy ClubComments/UI и backend/DB/S3/flags untouched. Далее CF-F3b.
-  - [ ] CF-F3b: durable owner/post-scoped File bytes/keys и revision CAS,
+  - [x] CF-F3b: durable owner/post-scoped File bytes/keys и revision CAS,
     reload/native IndexedDB проверки; без нового server API/schema.
+    Native Chromium File/IndexedDB RED4→GREEN4 + concurrent-claim acceptance:
+    **5/5 pass**,850ms; вместе с coordinator15 —20 pass/1.29s. Настоящий document
+    reload сохраняет bytes/name/type/lastModified/file+create keys/post/reply/text.
+    Atomic revision CAS отклоняет stale checkpoint/clear, simultaneous prepares
+    возвращают одну исходную операцию. Подмена bytes при прежних name/size/mtime,
+    thaw write→upload, смена actor/post и receipt regression запрещены. Записи
+    ArrayBuffer, без tokens/S3 keys; owner guards before/after awaits/transactions.
+    HTTP document fixture и API synthetic; НЕ UI/API/SQL/S3 приёмка. Root/frontend/
+    E2E types pass; full lint/boundaries675/diff pass. App build/full2441 из CF-F3a
+    не повторять: новый journal ещё не импортируется приложением; native fixture
+    реально bundlит и выполняет его. Далее CF-F3c, форма пока legacy public path.
   - [ ] CF-F3c: подключить existing форму без CSS/layout изменений: local blob,
     remove/revoke/session/unmount, explicit recovery/replay; legacy text-only и
     edit/delete/like не переделывать. Browser lost ACK/reload/account switch.

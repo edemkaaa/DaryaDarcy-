@@ -356,9 +356,10 @@ CF-F3 (16 октября, следующий доступный CF client slice)
 только внутренняя интеграция без дизайна. CF-F3a local PASS: typed commentPhoto
 upload/status adapter, frozen addComment payload/key и checkpoint-before-network;
 15 unit cases (10 RED→11 GREEN +4 acceptance), full2441 pass/1497 opt-in skips,
-types/lint/build/API86/boundaries674. UI не подключён, durable storage/browser/
-API+SQL+S3 ещё НЕ приняты. Далее owner/post-scoped File journal/CAS (CF-F3b),
-existing form wiring/session/blob lifecycle (CF-F3c), scoped native/regression
+types/lint/build/API86/boundaries674. CF-F3b native File/IndexedDB RED4→GREEN4 +
+concurrent claim:5/5 pass,850ms; actor/post slots, durable bytes/keys/reply/text,
+revision CAS, same-key byte substitution и frozen phase guards. UI/API+SQL+S3
+ещё НЕ приняты. Далее existing form wiring/session/blob lifecycle (CF-F3c), scoped native/regression
 приёмка (CF-F3d). Existing text-only/edit/like/delete, two-photo/48h/access правила,
 backend schema/contracts, CSS/old S3/working DB/flags/push/deploy не менять.
 
