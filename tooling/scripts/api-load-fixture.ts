@@ -35,7 +35,7 @@ export const rows = async (
 export async function seedLoad(conn: Connection) {
   if (
     (await rows(conn, "SELECT id FROM users")).length ||
-    (await rows(conn, "SELECT id FROM __drizzle_migrations")).length !== 40
+    (await rows(conn, "SELECT id FROM __drizzle_migrations")).length !== 41
   )
     throw new Error("Empty migrated fixture required");
   const password = "local-load-fixture-password",

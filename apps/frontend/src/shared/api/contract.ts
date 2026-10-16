@@ -20,6 +20,7 @@ export type PostMedia = {
   mimeType: string | null;
   postId: number;
   sortOrder: number;
+  posterUrl: string | null;
   fileSize: number | null;
 };
 export type Post = {
@@ -422,6 +423,9 @@ export type AppRouter = BuiltRouter<
               }>
             | undefined;
           privateAssetIds?: Array<string> | undefined;
+          privateVideoPosters?:
+            | Array<{ videoAssetId: string; posterAssetId: string }>
+            | undefined;
           source?: string | undefined;
           published?: boolean | undefined;
           sortOrder?: number | undefined;
@@ -451,6 +455,9 @@ export type AppRouter = BuiltRouter<
               }>
             | undefined;
           privateAssetIds?: Array<string> | undefined;
+          privateVideoPosters?:
+            | Array<{ videoAssetId: string; posterAssetId: string }>
+            | undefined;
           removedMediaIds?: Array<number> | undefined;
           published?: boolean | undefined;
           sortOrder?: number | undefined;
@@ -585,6 +592,7 @@ export type AppRouter = BuiltRouter<
           mimeType: string | null;
           postId: number;
           sortOrder: number;
+          posterUrl: string | null;
           fileSize: number | null;
         }>;
         meta: unknown;

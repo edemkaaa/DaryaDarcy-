@@ -260,6 +260,13 @@
       "when": 1792108800000,
       "tag": "0039_private_video_uploads",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "5",
+      "when": 1792108801000,
+      "tag": "0040_private_video_posters",
+      "breakpoints": true
     }
   ]
 }

@@ -27,6 +27,13 @@
   не автоматический новый POST. Старые файлы/legacy URL/VK не переделываются.
 - Автопостер только через existing private postPhoto с явной связью с video,
   не public uploadPhoto и не угадывание по basename. Existing дизайн сохраняется.
+  Additive wire: create/updatePost.privateVideoPosters?:
+  `{videoAssetId,posterAssetId}[]` (max100, video включён в privateAssetIds).
+  Сервер сохраняет nullable post_media.posterUrl как canonical app reference,
+  не direct URL из клиента. PostPhoto проверяется/связывается в той же транзакции;
+  new gallery/постер одного поста входят в общий reference set. Removal/replacement
+  retire последнюю исчезнувшую ссылку; retained gallery не удаляется случайно.
+  Старые rows имеют NULL; их basename-постеры не мигрируются автоматически.
 - Новый путь default-off, рабочие flags не включать. Прежние30 суток — окно
   recovery/retention, не срок жизни опубликованного видео. Auto cleanup в рабочем
   хранилище не включать. Настоящий S3 acceptance отмечать отдельно от loopback wire.

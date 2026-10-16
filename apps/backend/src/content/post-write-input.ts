@@ -1,6 +1,18 @@
 import { z } from "zod";
 import { postAttachmentInput } from "./post-attachments";
 
+const privateVideoPosters = z
+  .array(
+    z
+      .object({
+        videoAssetId: z.string().uuid(),
+        posterAssetId: z.string().uuid(),
+      })
+      .strict(),
+  )
+  .max(100)
+  .optional();
+
 // These existing wire schemas also define the validated service inputs.
 export const createPostInput = z.object({
   text: z.string().min(1),
@@ -13,6 +25,7 @@ export const createPostInput = z.object({
   videos: z.array(z.string()).optional(),
   attachments: z.array(postAttachmentInput).max(100).optional(),
   privateAssetIds: z.array(z.string().uuid()).max(100).optional(),
+  privateVideoPosters,
   source: z.string().default("manual"),
   published: z.boolean().default(true),
   sortOrder: z.number().default(0),
@@ -31,6 +44,7 @@ export const updatePostInput = z.object({
   videos: z.array(z.string()).optional(),
   attachments: z.array(postAttachmentInput).max(100).optional(),
   privateAssetIds: z.array(z.string().uuid()).max(100).optional(),
+  privateVideoPosters,
   removedMediaIds: z.array(z.number().int().positive()).max(100).optional(),
   published: z.boolean().optional(),
   sortOrder: z.number().optional(),

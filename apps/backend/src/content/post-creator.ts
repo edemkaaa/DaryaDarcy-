@@ -16,7 +16,7 @@ import { authorizePrivateAttachmentChanges } from "./private-attachment-associat
 import { assertContentRecoveryWindow } from "./recovery-window";
 import { assertContentRecoveryNotSpent } from "./recovery-markers";
 import { assertContentWriteActor } from "./content-write-actor";
-import { bindContentFiles, hasPrivateContent, postPhotoReferences } from "./private-content-binding";
+import { bindContentFiles, hasPrivateContent, postPhotoReferences, postFileReferences } from "./private-content-binding";
 
 async function insertPost(
   writer: Pick<MySql2Database, "insert" | "delete" | "select" | "update" | "execute">,
@@ -26,9 +26,9 @@ async function insertPost(
 ): Promise<number> {
   const [result] = await writer.insert(posts).values(data);
   const postId = Number(result.insertId);
-  await bindContentFiles(writer, "post", postId, postPhotoReferences(data.photos ?? []), [], attachments.actor);
   if (videos.length > 0) await replacePostVideoRows(writer, postId, videos);
   await savePostAttachments(writer, postId, attachments);
+  await bindContentFiles(writer, "post", postId, await postFileReferences(writer, postId, data.photos ?? []), [], attachments.actor);
   return postId;
 }
 

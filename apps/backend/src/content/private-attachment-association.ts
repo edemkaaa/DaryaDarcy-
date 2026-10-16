@@ -4,6 +4,7 @@ import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
   privateAttachmentUploads,
   postMedia,
+  posts,
 } from "../../../../packages/database/src/schema";
 import {
   privateAttachmentObjectKey,
@@ -12,6 +13,7 @@ import {
 import { isRawMediaFilename } from "../../../../packages/shared/src/media-label";
 import { assertContentRecoveryWindow } from "./recovery-window";
 import { assertContentRecoveryNotSpent } from "./recovery-markers";
+import { contentFileUrl } from "./private-content-uploads";
 import {
   lockPrivateAttachmentActor,
   requirePrivateAttachmentSchema,
@@ -22,6 +24,7 @@ import {
 
 export type PrivateAttachmentChanges = {
   privateAssetIds?: string[];
+  privateVideoPosters?: { videoAssetId: string; posterAssetId: string }[];
   actor?: PrivateAttachmentActor;
 };
 export const privateMediaUrl = (id: number) =>
@@ -37,6 +40,16 @@ export async function authorizePrivateAttachmentChanges(
   tx: PrivateAttachmentTransaction,
   changes: PrivateAttachmentChanges,
 ) {
+  const posters = changes.privateVideoPosters ?? [];
+  if (
+    new Set(posters.map((row) => row.videoAssetId)).size !== posters.length ||
+    new Set(posters.map((row) => row.posterAssetId)).size !== posters.length ||
+    posters.some((row) => !changes.privateAssetIds?.includes(row.videoAssetId))
+  )
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Постер требует явного закрытого видео",
+    });
   if (!changes.privateAssetIds?.length) return;
   requirePrivateUploadEnabled();
   if (!changes.actor) throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -60,7 +73,15 @@ export async function bindPrivateAttachments(
     .for("update");
   if (assets.length !== ids.length) throw conflict();
   const namespace = privateStorageNamespace();
+  const posters = new Map(
+    (changes.privateVideoPosters ?? []).map((row) => [
+      row.videoAssetId,
+      contentFileUrl(row.posterAssetId),
+    ]),
+  );
   for (const asset of assets) {
+    if (posters.has(asset.assetId) && asset.type !== "video")
+      throw new TRPCError({ code: "BAD_REQUEST" });
     if (
       asset.actorUserId !== changes.actor.id ||
       asset.state !== "ready" ||
@@ -100,7 +121,15 @@ export async function bindPrivateAttachments(
   let sortOrder = (last?.order ?? -1) + 1;
   for (const id of ids) {
     const asset = assets.find((row) => row.assetId === id)!;
-    if (asset.mediaId !== null) continue;
+    const posterUrl = posters.get(id);
+    if (asset.mediaId !== null) {
+      if (posterUrl !== undefined)
+        await tx
+          .update(postMedia)
+          .set({ posterUrl })
+          .where(eq(postMedia.id, asset.mediaId));
+      continue;
+    }
     const [result] = await tx.insert(postMedia).values({
       postId,
       type: asset.type,
@@ -108,6 +137,7 @@ export async function bindPrivateAttachments(
       filename: isRawMediaFilename(asset.filename) ? null : asset.filename,
       mimeType: asset.mimeType,
       fileSize: asset.fileSize,
+      posterUrl,
       sortOrder: sortOrder++,
     });
     const mediaId = Number(result.insertId);
@@ -119,6 +149,18 @@ export async function bindPrivateAttachments(
       .update(privateAttachmentUploads)
       .set({ postId, mediaId })
       .where(eq(privateAttachmentUploads.requestKey, asset.requestKey));
+  }
+  // Preserve the existing automatic video category for canonical uploads too.
+  if (assets.some((asset) => asset.type === "video")) {
+    const [post] = await tx
+      .select({ tags: posts.tags })
+      .from(posts)
+      .where(eq(posts.id, postId));
+    if (post && !post.tags.includes("video"))
+      await tx
+        .update(posts)
+        .set({ tags: [...post.tags, "video"] })
+        .where(eq(posts.id, postId));
   }
 }
 

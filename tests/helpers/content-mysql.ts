@@ -1,5 +1,6 @@
 import { openTestDatabase } from "./backend-mysql";
 import type { RowDataPacket } from "mysql2/promise";
+import { readFile } from "node:fs/promises";
 
 export async function openContentTestDatabase() {
   const conn = await openTestDatabase();
@@ -16,6 +17,11 @@ export async function openContentTestDatabase() {
       id INT PRIMARY KEY,postId INT NOT NULL,type ENUM('video','audio','document') NOT NULL,url TEXT NOT NULL,
       filename VARCHAR(512),mimeType VARCHAR(128),fileSize INT,duration INT,sortOrder INT DEFAULT 0,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB`);
+    const [posterMigration] = await conn.query<RowDataPacket[]>("SELECT name FROM backend_test_migrations WHERE name='0040_private_video_posters'");
+    if (!posterMigration.length) {
+      await conn.query(await readFile(new URL("../../packages/database/drizzle/0040_private_video_posters.sql", import.meta.url), "utf8"));
+      await conn.query("INSERT INTO backend_test_migrations VALUES('0040_private_video_posters')");
+    }
     await conn.query("CREATE TABLE IF NOT EXISTS likes (id INT AUTO_INCREMENT PRIMARY KEY,userId INT,postId INT,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
     await conn.query("CREATE TABLE IF NOT EXISTS saved_posts (id INT AUTO_INCREMENT PRIMARY KEY,userId INT NOT NULL,postId INT NOT NULL,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB");
     await conn.query(`CREATE TABLE IF NOT EXISTS post_comments (

@@ -1,7 +1,7 @@
 import { Injectable, Inject } from "@nestjs/common";
 import type { Request } from "express";
-import { eq } from "drizzle-orm";
-import { privateContentFiles, posts, articles, postComments } from "../../../../packages/database/src/schema";
+import { and, eq } from "drizzle-orm";
+import { privateContentFiles, postMedia, posts, articles, postComments } from "../../../../packages/database/src/schema";
 import { getDb } from "../db";
 import { SessionService } from "../identity/session.service";
 import { userHasClubAccess } from "../identity/club-access";
@@ -9,6 +9,7 @@ import { HttpError } from "../../../../packages/shared/src/_core/errors";
 import { privateStorageNamespace, privateAttachmentObjectKey } from "../media/private-upload-object";
 import { contentFileUrl } from "./private-content-uploads";
 import { articleFileReferences } from "./private-content-binding";
+import { privateMediaUrl, privateReceiptForMedia } from "./private-attachment-association";
 
 @Injectable()
 export class PrivateContentFilesService {
@@ -22,7 +23,13 @@ export class PrivateContentFilesService {
     let login = false;
     if (file.parentKind === "post" && file.usage === "postPhoto") {
       const [post] = await database.select().from(posts).where(eq(posts.id, file.parentId)).limit(1);
-      if (!post?.published || post.status !== "published" || !post.photos?.includes(url)) return;
+      if (!post?.published || post.status !== "published") return;
+      if (!post.photos?.includes(url)) {
+        const [video] = await database.select().from(postMedia)
+          .where(and(eq(postMedia.postId, post.id), eq(postMedia.type, "video"), eq(postMedia.posterUrl, url))).limit(1);
+        if (!video || video.url !== privateMediaUrl(video.id) ||
+            !await privateReceiptForMedia(database, video)) return;
+      }
       if (!["feed", "both", "club"].includes(post.target)) return;
       club = post.target === "club";
     } else if (file.parentKind === "article" && ["articlePhoto", "articleDocument"].includes(file.usage)) {

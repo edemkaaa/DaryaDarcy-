@@ -20,7 +20,7 @@
     Five-axis review: legacy upload и32MiB audio/doc unchanged, unknown storage
     outcome остаётся pending, safe errors/no secrets, no new dependencies.
     Клиент/poster/explicit removal ещё НЕ готовы; UI runtime не менялся.
-  - [ ] VU2: canonical association/live delivery/explicit removal и private poster;
+  - [x] VU2: canonical association/live delivery/explicit removal и private poster;
     legacy videos[]/VK/старые URL сохраняются.
     - [x] VU2a: native RED5→GREEN26, затем legacy removal/no-storage regression
       RED500→GREEN400. Сохранение videos[] больше не удаляет canonical private
@@ -35,7 +35,26 @@
       diff pass. Loopback wire, не actual S3/browser.
       Docker build-cache prune342.6MB; before/after image6/volume12/container4
       identities unchanged. Свободно2.5GiB; чужие образы/БД не удалялись.
-    - [ ] VU2b: явная связь с private postPhoto постером, live read/retirement.
+    - [x] VU2b: явная связь с private postPhoto постером, live read/retirement.
+      RED4 ignored mapping→GREEN4; video category RED1→GREEN, additional replace/
+      exact retry/reject retired poster coverage —5/5. Nullable post_media.posterUrl
+      и additive0040, optional privateVideoPosters[{videoAssetId,posterAssetId}].
+      Gallery+poster reference set связывается/retire атомарно, без public upload,
+      basename guessing или правки старых rows. Club guest denied до S3, staff
+      HEAD200, public GET image/webp/no-store; unrelated edit сохраняетposter,
+      removal закрываетread, replacement сохраняетgallery и не воскрешаетretired.
+      Native affected **178 pass/7 opt-in skips/0 fail**,8 suites32.03s; actual
+      HTTP/JWT/SQL/SDK/loopback object wire, НЕ provider/browser acceptance.
+      Full2444 pass/1548 opt-in skips/0 fail,36.90s. Initial7 full failures были
+      positional SQL fixture без нового nullable поля; добавлен literal NULL,
+      runtime не ослаблен. Root/frontend/E2E types, API86/32048bytes, backend588.6kb,
+      boundaries678/docs58/diff pass. Five-axis review: actor/post/asset locks,
+      same create hash includes mapping, privatePhoto usage/owner проверяется
+      внутри save tx, no role/CSS/quota/working flag changes/dependencies.
+      Fresh41/ORM/native HTTP **9/9** на отдельной пустой own tmpfs DB.
+      Own fixture1b55c09e… и fresha3c342a9… удалены после exact ownership/loopback/
+      tmpfs/no-volume guards; SDK wire objects были только в памяти fixture.
+      Actual S3/working DB/старые файлы не затрагивались. Далее VU3.
   - [ ] VU3: durable File/key до network, status-first recovery и оба existing
     редактора без изменения дизайна; unit/type/build проверки.
   - [ ] VU4: own disposable API/SQL/S3 acceptance; browser/mobile отложены.

@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { privateContentFiles, type ArticleBlock } from "../../../../packages/database/src/schema";
+import { postMedia, privateContentFiles, type ArticleBlock } from "../../../../packages/database/src/schema";
 import type { ContentTransaction } from "./post-deletion";
 import type { ContentWriteActor } from "./content-write-actor";
 import { requirePrivateContentEnabled, requirePrivateContentSchema } from "./private-content-uploads";
@@ -22,6 +22,12 @@ export function contentAssetId(raw: string): string | undefined {
   return match[1];
 }
 export const postPhotoReferences = (photos: string[]): ContentFileReference[] => photos.map(url => ({ url, usage: "postPhoto" }));
+export async function postFileReferences(tx: Pick<Writer, "select">,
+  postId: number, photos: string[]): Promise<ContentFileReference[]> {
+  const media = await tx.select({ posterUrl: postMedia.posterUrl }).from(postMedia)
+    .where(and(eq(postMedia.postId, postId), eq(postMedia.type, "video")));
+  return postPhotoReferences([...photos, ...media.flatMap(row => row.posterUrl ? [row.posterUrl] : [])]);
+}
 export function hasPrivateContent(references: ContentFileReference[]): boolean { return references.some(ref => Boolean(contentAssetId(ref.url))); }
 export function articleFileReferences(blocks: ArticleBlock[]): ContentFileReference[] {
   return blocks.flatMap((block): ContentFileReference[] => {

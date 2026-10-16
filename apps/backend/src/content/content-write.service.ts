@@ -105,6 +105,7 @@ export class ContentWriteService {
       videos = [],
       attachments,
       privateAssetIds,
+      privateVideoPosters,
       ...rest
     } = payload;
     if (privateAssetIds?.length && !idempotencyKey) throw new TRPCError({ code: "BAD_REQUEST", message: "Для закрытых вложений нужен ключ создания поста" });
@@ -145,6 +146,7 @@ export class ContentWriteService {
           {
             attachments,
             actor,
+            ...(privateVideoPosters?.length ? { privateVideoPosters } : {}),
             ...(privateAssetIds?.length ? { privateAssetIds } : {}),
           },
           postCreationIntent(actorUserId, idempotencyKey, payload),
@@ -153,6 +155,7 @@ export class ContentWriteService {
           postId: await db.createPostWithVideos(postData, videos, {
             attachments,
             actor,
+            ...(privateVideoPosters?.length ? { privateVideoPosters } : {}),
             ...(privateAssetIds?.length ? { privateAssetIds } : {}),
           }),
           created: true,
@@ -171,6 +174,7 @@ export class ContentWriteService {
       videos,
       attachments,
       privateAssetIds,
+      privateVideoPosters,
       removedMediaIds,
       ...data
     } = input;
@@ -208,6 +212,7 @@ export class ContentWriteService {
     const publication = await db.savePostEdit(id, updateData, videos, {
       attachments,
       removedMediaIds,
+      ...(privateVideoPosters?.length ? { privateVideoPosters } : {}),
       actor,
       ...(privateAssetIds?.length ? { privateAssetIds } : {}),
     });
