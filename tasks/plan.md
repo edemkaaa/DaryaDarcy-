@@ -352,6 +352,24 @@ JSON — tooling/data/backend-load/2026-10-15.json. Не повторять бе
 
 #### CF — новые фото и файлы статей, принято 15 октября
 
+CF-F2 (16 октября): по прямому поручению закрытые фото/PNG/карусели и документы
+статей подключены к existing editor без CSS/redesign; баннер остаётся публичным,
+старые URL сохраняются. Общий CF transport, durable File bytes/stable keys/CAS,
+frozen create и unknown update guard. Unit10 + legacy post34/article19 pass,
+native File/IndexedDB3 pass, Chromium/Next с synthetic API5/5 pass (26.19s).
+Реальная browser/API/SQL/S3 приёмка статей НЕ закрыта: Timeweb timeouts и sleep/
+network suspension прервали attempts; записи/точечная очистка и остаток gates —
+CF-F2 в начале todo. Все own fixture containers/API/Next закрыты, новые own S3
+objects очищены по exact ledger/metadata/ETag; рабочие DB/flags/старые files не
+трогались. Пользователь подключил питание: AC/34%, charging; прежний sleep
+blocker снят. Следующий native запуск остановлен disk preflight (<1GiB против
+минимума2GiB) до API/S3 writes. Own fresh39 DB a530f4dd…/55006: files0/articles0,
+удалена после exact ownership/storage guards. Чужие файлы/containers сохранены.
+Свежие full Vitest2426 pass/1497 opt-in skips (42.93s), root/frontend/e2e types,
+full lint/API86/boundaries673 проходят. Дальше после освобождения места: native
+`article:` cases, post-photo и legacy browser regression, production build и
+актуализация доказательств. Push/deploy остаются запрещены.
+
 Клиентское продолжение16 октября (разрешение на внутреннюю frontend-интеграцию
 из актуальных границ выше): CF-F1a + CF-F1b1/b2 подключили новые закрытые фото
 постов к общему save coordinator, durable IndexedDB и обоим существующим редакторам.

@@ -56,6 +56,7 @@ describe.skipIf(!enabled)(
     const messages: string[] = [],
       objects = new Map<string, RowDataPacket>();
     let contentReads = 0;
+    let articleId: number;
     const rows = async (sql: string, values: unknown[] = []) =>
       (await conn.query<RowDataPacket[]>(sql, values))[0];
     const puts = () =>
@@ -330,9 +331,13 @@ describe.skipIf(!enabled)(
           for (const row of await rows("SELECT * FROM private_content_files")) {
             if (
               row.actorUserId !== 98920 ||
-              row.usage !== "postPhoto" ||
+              !["postPhoto", "articlePhoto", "articleDocument"].includes(
+                row.usage,
+              ) ||
               !row.filename.startsWith(`${prefix}-`) ||
-              row.mimeType !== "image/webp" ||
+              (row.usage === "articleDocument"
+                ? !row.mimeType.startsWith("text/plain")
+                : row.mimeType !== "image/webp") ||
               !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(
                 row.assetId,
               )
@@ -375,7 +380,7 @@ describe.skipIf(!enabled)(
             ),
           ).toBe(policyHash);
           console.info(
-            `[PHOTO-EDITORS] cleaned ${objects.size} own objects; HEAD404; policy unchanged; posts=${(await rows("SELECT id FROM posts")).length}; intents=${(await rows("SELECT requestKey FROM post_creation_requests")).length}`,
+            `[PHOTO-EDITORS] cleaned ${objects.size} own objects; HEAD404; policy unchanged; posts=${(await rows("SELECT id FROM posts")).length}; intents=${(await rows("SELECT requestKey FROM post_creation_requests")).length}; articles=${(await rows("SELECT id FROM articles")).length}`,
           );
         }
       } finally {
@@ -383,6 +388,266 @@ describe.skipIf(!enabled)(
         storage?.destroy();
       }
     }, 60000);
+
+    async function openArticle(restore = false, editing = false) {
+      await page.goto(`${browser.origin}/admin`);
+      await page.getByRole("button", { name: "Статьи", exact: true }).click();
+      await page
+        .getByRole("button", {
+          name: restore
+            ? editing
+              ? "Восстановить изменение статьи"
+              : "Восстановить создание статьи"
+            : editing
+              ? "Править"
+              : "Написать статью",
+          exact: true,
+        })
+        .click();
+    }
+    async function chooseArticle(
+      button: string,
+      name: string,
+      bytes = png,
+      mimeType = "image/png",
+    ) {
+      const [chooser] = await Promise.all([
+        page.waitForEvent("filechooser"),
+        page.getByRole("button", { name: button, exact: true }).click(),
+      ]);
+      await chooser.setFiles({
+        name: `${prefix}-${name}`,
+        mimeType,
+        buffer: bytes,
+      });
+    }
+    it("article: mixed private photo/PNG/carousel/document recover upload/create response loss with actual SQL and S3", async () => {
+      const beforePuts = puts(),
+        beforeUploads = calls("uploadPrivateContentFile").length,
+        beforeCreates = calls("createArticle").length;
+      await openArticle();
+      await page
+        .getByPlaceholder("Что посмотреть осенью...")
+        .fill(`${prefix}-article`);
+      for (const [block, button, filename] of [
+        ["Фото", "Выбрать фото", "article-photo.png"],
+        ["PNG", "Выбрать PNG без фона", "article-alpha.png"],
+        ["Карусель", "Выбрать фото для карусели", "article-slide.png"],
+      ]) {
+        await page
+          .getByRole("button", { name: block, exact: true })
+          .first()
+          .click();
+        await chooseArticle(button, filename);
+      }
+      await page
+        .getByRole("button", { name: "Ссылка", exact: true })
+        .first()
+        .click();
+      await chooseArticle(
+        "Загрузить файл",
+        "article-doc.txt",
+        Buffer.from("private article document"),
+        "text/plain",
+      );
+      expect(puts()).toBe(beforePuts);
+      expect(calls("uploadPhoto")).toEqual([]);
+      const lostUpload = proxy.arm("admin.uploadPrivateContentFile", "drop");
+      await page
+        .getByRole("button", { name: "Опубликовать", exact: true })
+        .click();
+      await lostUpload.reached;
+      await ui(
+        page.getByRole("button", { name: "Проверить сохранение", exact: true }),
+      ).toBeEnabled();
+      expect(calls("uploadPrivateContentFile").at(-1)?.status).toBe(200);
+      expect(puts()).toBe(beforePuts + 1);
+      expect(await rows("SELECT id FROM articles")).toEqual([]);
+      await openArticle(true);
+      await ui(page.locator('img[src^="blob:"]')).toHaveCount(3);
+      await page
+        .getByRole("button", { name: "Проверить сохранение", exact: true })
+        .click();
+      // Three remaining real S3 uploads are sequential and individually bounded
+      // by the transport. Wait for the operation, not Playwright's 5s text default.
+      try {
+        await ui(
+          page.getByRole("button", {
+            name: "Повторить сохранение",
+            exact: true,
+          }),
+        ).toBeEnabled({ timeout: 45000 });
+        await ui(
+          page.getByRole("alert").filter({ hasText: "Файлы подтверждены" }),
+        ).toBeVisible();
+      } catch (error) {
+        console.info("[ARTICLE-S3] recovery diagnostic", {
+          calls: proxy.calls.slice(-12),
+          receipts: await rows("SELECT state FROM private_content_files"),
+          text: (await page.locator("body").innerText()).slice(-3500),
+        });
+        throw error;
+      }
+      expect(puts()).toBe(beforePuts + 4);
+      expect(calls("uploadPrivateContentFile")).toHaveLength(beforeUploads + 4);
+      const lostCreate = proxy.arm("admin.createArticle", "drop");
+      await page
+        .getByRole("button", { name: "Повторить сохранение", exact: true })
+        .click();
+      await lostCreate.reached;
+      await ui(
+        page.getByRole("alert").filter({ hasText: "Не удалось подтвердить" }),
+      ).toBeVisible();
+      expect(calls("createArticle").at(-1)?.status).toBe(200);
+      await openArticle(true);
+      await page
+        .getByRole("button", { name: "Проверить сохранение", exact: true })
+        .click();
+      await ui(page.getByPlaceholder("Что посмотреть осенью...")).toHaveCount(
+        0,
+      );
+      const saved = await rows("SELECT * FROM articles WHERE title=?", [
+        `${prefix}-article`,
+      ]);
+      expect(saved).toHaveLength(1);
+      articleId = saved[0].id;
+      expect(
+        await rows(
+          "SELECT requestKey FROM article_creation_requests WHERE articleId=?",
+          [articleId],
+        ),
+      ).toHaveLength(1);
+      expect(
+        await rows("SELECT id FROM posts WHERE source=?", [
+          `article:${articleId}`,
+        ]),
+      ).toHaveLength(1);
+      const files = await rows(
+        "SELECT * FROM private_content_files WHERE parentKind='article' AND parentId=?",
+        [articleId],
+      );
+      expect(files).toHaveLength(4);
+      expect(calls("createArticle")).toHaveLength(beforeCreates + 1);
+      expect(puts()).toBe(beforePuts + 4);
+      const sections =
+        typeof saved[0].sections === "string"
+          ? JSON.parse(saved[0].sections)
+          : saved[0].sections;
+      expect(
+        sections.flatMap(
+          (block: { url?: string; urls?: string[] }) =>
+            block.urls ?? (block.url ? [block.url] : []),
+        ),
+      ).toHaveLength(4);
+      await identity(98922);
+      for (const file of files) {
+        const url = `/api/media/content-files/${file.assetId}`,
+          response = await read(url);
+        expect(response.status()).toBe(200);
+        expect(response.headers()["cache-control"]).toBe("private, no-store");
+        const bytes = await response.body();
+        if (file.usage === "articleDocument")
+          expect(bytes.toString()).toBe("private article document");
+        else
+          expect(await sharp(bytes).metadata()).toMatchObject({
+            format: "webp",
+            width: 4,
+            height: 4,
+            hasAlpha: true,
+          });
+        expect((await read(url, "HEAD")).headers()["content-length"]).toBe(
+          String(bytes.length),
+        );
+        const range = await read(url, "GET", "bytes=0-3");
+        expect(range.status()).toBe(206);
+        expect(await range.body()).toEqual(bytes.subarray(0, 4));
+        await inspectObject(file);
+        const direct = await fetch(
+          `${endpoint}/${Bucket}/content/private-v1/${file.assetId}`,
+          {
+            method: "HEAD",
+            redirect: "error",
+            signal: AbortSignal.timeout(10000),
+          },
+        );
+        expect(direct.status).toBe(403);
+        await direct.body?.cancel();
+      }
+      await conn.query(
+        "UPDATE club_payments SET expiresAt=DATE_SUB(NOW(),INTERVAL 1 SECOND) WHERE orderId=?",
+        [prefix],
+      );
+      for (const file of files)
+        await denied(`/api/media/content-files/${file.assetId}`);
+    }, 180000);
+    it("article: editing retains previous file bindings and never replays a lost update response", async () => {
+      expect(articleId).toBeTypeOf("number");
+      const previous = await rows(
+        "SELECT assetId FROM private_content_files WHERE parentId=?",
+        [articleId],
+      );
+      const beforePuts = puts(),
+        beforeUpdates = calls("updateArticle").length;
+      await openArticle(false, true);
+      await page
+        .getByRole("button", { name: "Фото", exact: true })
+        .first()
+        .click();
+      await chooseArticle("Выбрать фото", "article-edit.png");
+      const lostUpload = proxy.arm("admin.uploadPrivateContentFile", "drop");
+      await page
+        .getByRole("button", { name: "Сохранить", exact: true })
+        .click();
+      await lostUpload.reached;
+      await ui(
+        page.getByRole("button", { name: "Проверить сохранение", exact: true }),
+      ).toBeEnabled();
+      await openArticle(true, true);
+      const lostUpdate = proxy.arm("admin.updateArticle", "drop");
+      await page
+        .getByRole("button", { name: "Повторить сохранение", exact: true })
+        .click();
+      await lostUpdate.reached;
+      await ui(
+        page.getByRole("button", {
+          name: "Проверил список — удалить локальную копию",
+          exact: true,
+        }),
+      ).toBeVisible();
+      expect(calls("updateArticle").at(-1)?.status).toBe(200);
+      expect(puts()).toBe(beforePuts + 1);
+      await openArticle(true, true);
+      await ui(
+        page.getByRole("button", { name: "Повторить сохранение", exact: true }),
+      ).toBeDisabled();
+      await page
+        .getByRole("button", { name: "Проверить сохранение", exact: true })
+        .click();
+      await ui(
+        page
+          .getByRole("alert")
+          .filter({ hasText: "повторная запись не выполнялась" }),
+      ).toBeVisible();
+      expect(calls("updateArticle")).toHaveLength(beforeUpdates + 1);
+      const after = await rows(
+        "SELECT assetId FROM private_content_files WHERE parentKind='article' AND parentId=?",
+        [articleId],
+      );
+      expect(after).toHaveLength(5);
+      for (const file of previous) expect(after).toContainEqual(file);
+      expect(
+        await rows("SELECT id FROM articles WHERE id=?", [articleId]),
+      ).toHaveLength(1);
+      await page
+        .getByRole("button", {
+          name: "Проверил список — удалить локальную копию",
+          exact: true,
+        })
+        .click();
+      await ui(page.getByPlaceholder("Что посмотреть осенью...")).toHaveCount(
+        0,
+      );
+    }, 120000);
 
     for (const mode of ["full", "quick"] as const) {
       it(`${mode}: lost upload/create responses recover real photos across reload without duplicate rows or PUT`, async () => {

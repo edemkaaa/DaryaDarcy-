@@ -4,6 +4,24 @@
 
 ## 16 октября — закрытые фото постов, только внутренняя интеграция
 
+CF-F2 — редактор статей локально подключён к accepted CF API. Фото/PNG/карусели
+и новые PDF/DOCX/TXT (existing link block) остаются File/blob до save. Intent/key
+и bytes хранятся в existing owner-scoped article IndexedDB; reload/status-first
+recovery, frozen create и unknown update без auto replay. Удаление/замена фото,
+закрытие и смена аккаунта отзывают blob URLs; старые URL не мигрируются, баннер
+публичный. Новые действия используют прежние компоненты/классы, CSS не менялся.
+Unit10, native storage3 и actual Chromium/Next + synthetic API5/5 pass (26.19s).
+Реальный editor→API/SQL/S3 пока НЕ принят: timeouts/network suspension и повторный
+сон Mac при1–2% battery. Own S3 fixtures очищены с exact guards, own DB/API/Next
+убраны, working data/flags не менялись. Питание восстановлено (AC/34%, charging),
+но новый native запуск остановлен disk preflight: <1GiB при минимуме2GiB, до
+API/S3 writes. Own пустая fresh39 БД удалена после guards. Свежие full Vitest2426
+pass/1497 opt-in skips, root/frontend/e2e types, full lint/API86/boundaries673 pass.
+Нужны native article cases, post-photo/legacy article creation/media specs и
+production build после освобождения места. Updated legacy PNG upload expectation
+ещё не запускалась. Скиллы TDD/security/incremental
+использованы для checkpoint-before-write/CAS/session/blob lifecycle; не редизайн.
+
 CF-F1a/F1b1/F1b2: новые фото в обоих существующих редакторах остаются локальными
 до сохранения. Подготовленный File/key сохраняется в owner-scoped IndexedDB как
 ArrayBuffer, после reload восстанавливаются bytes/metadata и editor/save aliases.

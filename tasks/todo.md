@@ -24,6 +24,42 @@
     revision CAS между вкладками, freeze resolved URLs перед article write; legacy
     v1 записи сохранены. Native Chromium/IndexedDB RED2→GREEN3, legacy parsing19
     pass; API/SQL/S3 этим storage fixture не проверяются.
+  - [x] CF-F2c: existing editor wired to CF upload/status for photo/PNG/carousel
+    and link-block PDF/DOCX/TXT chooser. Public cover path unchanged; no CSS,
+    visual assets or layout changes. Local blob preview until binding, stable
+    file intent before network, frozen create replay and unknown update guard
+    survive reload. Account-switch receipts ignored; original owner restores.
+    Native Chromium/Next + real File/IndexedDB but synthetic API: **5/5 pass**,
+    suite26.19s. Includes removed block blob lifecycle RED1→GREEN and no removed
+    file upload; create/edit/reload/lost ACK/live upload+status account switch.
+    Updated existing transparent article PNG e2e expectation to deferred CF
+    upload; this legacy spec has NOT been rerun yet.
+  - [ ] CF-F2d: actual editor→Nest→fresh39 SQL→Timeweb S3 acceptance and final
+    regression/build. Added two opt-in `article:` cases to existing private-photo
+    editor native suite; **no native article success claimed**. Attempts:
+    first stopped waiting for remaining uploads (5s assertion), cleaned3 own
+    objects/HEAD404; second ERR_NETWORK_IO_SUSPENDED before writes/objects0;
+    third SDK requestTimeout10s during upload+cleanup, own DB retained, then exact
+    guarded cleanup deleted2/third pending object HEAD404, policy hash unchanged,
+    DB2f09c366…/60423 removed. Last attempt actual wall time~990.99s exceeded
+    180s test timeout during sleep; no file intents/articles. API/Next/browser
+    closed; own DB89e065ea…/62122 removed after repeated metadata guards+SQL0.
+    All owned containers removed; foreign4 preserved. Old S3/working DB/flags
+    untouched, no policy writes. No credentials saved (only no-echo stdin/memory).
+    **Environment update16 October:** user connected charger; pmset AC/34%,
+    charging, previous sleep blocker cleared. New native attempt stopped at disk
+    preflight (<1GiB free vs required2GiB), BEFORE API/S3 writes; own fresh39 DB
+    a530f4dd…/55006 had files0/articles0 and was removed after exact identity,
+    owner/loopback/tmpfs/no-mount guards. Foreign containers preserved. Do not
+    lower preflight or raise timeouts. Own known .next cache315MiB is insufficient
+    to reach2GiB; no foreign files/cache deleted. User asked to free2–3GiB.
+    Fresh full Vitest: **2426 pass/1497 opt-in skipped**,189 passed suites,
+    42.93s (maxWorkers4). Root/frontend/e2e types, full frontend lint, API86/
+    31712bytes and boundaries673 pass. Production build and legacy article
+    recovery/media specs remain unverified for this UI slice. Continue with
+    native `article:` cases, post-photo browser regression and legacy specs once
+    free space>=2GiB, then production build. Do not repeat unchanged passing
+    tests without a new risk; native acceptance remains OPEN.
 
 - [ ] CF-F1 (16 октября): новые закрытые фото постов без изменения дизайна.
   - [x] CF-F1a: typed receipt/upload/status в общем save coordinator. File +
