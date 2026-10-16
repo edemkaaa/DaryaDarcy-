@@ -4,7 +4,7 @@
 
 ### Проверенный остаток на 16 октября
 
-- [ ] CF-F3: внутренняя интеграция закрытых фото комментариев в existing форму,
+- [x] CF-F3: внутренняя интеграция закрытых фото комментариев в existing форму,
   продолжение accepted CF4/CF client remainder. Новые файлы только private API,
   postId и actor-scoped keys неизменны, прежние two-photo/48h/access limits.
   - [x] CF-F3a: typed comment upload/status и coordinator с checkpoint до network,
@@ -62,8 +62,31 @@
     Disk снова1.8GiB: только own generated .next/cache360MiB удалён после
     realpath/uid/no-symlink/BUILD_ID guards; regenerated on build, остальные
     output/source/images/containers/volumes сохранены. Free2.1GiB. Далее CF-F3d.
-  - [ ] CF-F3d: scoped native API/SQL/S3 acceptance, affected regressions,
-    types/lint/build/review/docs и local commits; без rollout/device claims.
+  - [x] CF-F3d: scoped native API/SQL/S3 acceptance — **3/3 pass**,10 намеренно
+    filtered post/article skips,50.89s, exit0. Actual Chromium→Next→Nest→own
+    fresh39 MySQL→Timeweb S3: lost upload+addComment ACK/reload/exact replay,
+    account switch during upload/status, owner-only journal/receipt restoration.
+    В каждом сценарии ровно1 photo PUT/asset/comment/create intent; непривязанное фото
+    до binding недоступно, paid member получает GET/HEAD/Range206/no-store,
+    paid expiry закрывает следующий GET/HEAD/Range до S3. Public upload calls0.
+    Первый запуск3 fail до upload из-за admin-only test fault allowlist;
+    добавлены только3 explicit club routes, loopback transport RED3→GREEN5.
+    Второй запуск3 fail: S3 upload10s timeout, SQL3 pending/comments0, no false
+    success. Cleanup также timeout: own DB397fcb6a… временно сохранена как ledger.
+    После HTTPS/TLS восстановления все3 exact keys HEAD404 (объекты отсутствовали),
+    policy unchanged; exact own DB удалена после повторных ownership guards.
+    Финальный успешный прогон на новой own DB6603b54f…/loopback63232/tmpfs/no
+    volumes. Все3 новых S3 objects удалены после actor/prefix/asset/hash/MIME/size/
+    ETag guards и HEAD404; policy hash0484dfa2… прежний, versioning off. Own DB,
+    API/Next/browser/proxy закрыты, чужие контейнеры сохранены. Secrets только
+    no-echo stdin/process memory, без файлов/логов/Git. Root tsc и full Vitest
+    **2444 pass/1510 opt-in skips/0 fail**, JSON report67.79s. Runtime не менялся
+    после CF-F3c: его frontend/E2E types/lint/production29/29 не повторялись.
+    Five-axis review: test-only explicit faults и real upstream replies, SQL/S3
+    ownership guards не ослаблены, no mocks-as-native. Boundaries676/docs58/
+    focused Prettier/diff exit0. Без rollout/device claims.
+    Далее CF-F1b4/AG9: устройства и отдельно разрешённый release/working flags,
+    второй валидный S3 principal; новых независимых runtime задач не выявлено.
 
 - [x] CF-F2 (16 октября, прямое поручение): закрытые фото/PNG/карусели и
   PDF/DOCX/TXT в существующем редакторе статей. Баннер публичный, старые URL
@@ -232,8 +255,9 @@
       проходят; five-axis self-review выполнен. Full Vitest/frontend build не
       повторялись: runtime/схема/контракт/пакеты не менялись с прошлого GREEN.
     - [ ] CF-F1b4: отдельная browser/device matrix и разрешённый rollout. CF
-      целиком не объявлять принятым: статьи/комментарии остаются отдельной
-      согласованной CF client интеграцией; существующие файлы не менять.
+      целиком не объявлять принятым: local post/article/comment client integration
+      и native acceptance закрыты (CF-F1b3/CF-F2d/CF-F3d), физические устройства,
+      второй S3 principal и рабочее включение не приняты; старые files не менять.
 
 - [x] FE5: после переключения сети пользователем S3 HEAD200/TLS handshake~1.4сек,
   policy hash0484dfa2… и versioning off прошли штатный preflight. Настоящие

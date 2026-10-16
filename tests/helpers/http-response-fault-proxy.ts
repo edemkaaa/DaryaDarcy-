@@ -95,7 +95,15 @@ export async function httpResponseFaultProxy(upstream: string) {
     base: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
     calls,
     arm(procedure: string, mode: "drop" | "hold") {
-      if (rule || !/^admin\.[A-Za-z]+$/.test(procedure))
+      if (
+        rule ||
+        (!/^admin\.[A-Za-z]+$/.test(procedure) &&
+          ![
+            "club.addComment",
+            "club.uploadPrivateCommentPhoto",
+            "club.privateCommentPhotoStatus",
+          ].includes(procedure))
+      )
         throw new Error("Invalid or overlapping transport fault");
       let reached!: () => void, release!: () => void;
       const pending = new Promise<void>((resolve) => {

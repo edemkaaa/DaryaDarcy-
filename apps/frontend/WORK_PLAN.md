@@ -19,8 +19,18 @@ discard; unknown write replay только exact key/payload. Thread keyed на 
 post, late canonical read не очищает чужую операцию.5/5 Chromium/Next cases17.29s
 (API synthetic, File/IndexedDB/session настоящие), existing comments/moderation
 21/21 pass36.1s. Full2441 pass/1507 opt-in skips/0 fail, types/full lint/isolated
-production build29/29 pass. Native API/SQL/S3 — следующий CF-F3d, ещё не GREEN.
-Оформление/backend/DB/S3/flags не менялись, no push/deploy. TDD/security направили
+production build29/29 pass. CF-F3d закрыт локально: **3 native pass/10 filtered
+skips**,50.89s, actual Chromium→Next→Nest→own fresh39 SQL→Timeweb S3. Lost
+upload/write ACK+reload и switch-during-upload/status дают1 PUT/asset/comment/
+create intent на сценарий. Unbound404, paid GET/HEAD/Range206/no-store и expiry404
+до S3 pass. После промежуточного S3 timeout pending3/comments0; все3 keys оказались
+absent, own DB убрана только после HEAD404/ownership guards. Финальные3 own objects
+удалены с metadata/ETag guards/HEAD404, policy unchanged; новый tmpfs DB/API/Next/
+browser/proxy убраны. Full2444 pass/1510 opt-in skips/0 fail, root tsc pass;
+runtime с CF-F3c прежний, build/types/lint без причины не повторялись. Подробности
+двух неуспешных попыток — tasks/todo.md CF-F3d. Дальше физические устройства,
+второй валидный S3 principal и отдельно разрешённый rollout, не новые функции.
+Оформление/backend/working DB/старые S3/flags не менялись, no push/deploy. TDD/security направили
 проверки на неизменяемый retry payload и запрет записи при storage failure.
 
 CF-F2 — редактор статей локально подключён к accepted CF API. Фото/PNG/карусели

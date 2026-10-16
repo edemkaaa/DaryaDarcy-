@@ -362,8 +362,21 @@ revision CAS, same-key byte substitution и frozen phase guards. CF-F3c existing
 form wired без CSS:5/5 real Chromium/File/IndexedDB +synthetic API (17.29s),
 legacy comments/moderation21/21 (36.1s), full2441 pass/1507 opt-in skips,
 types/lint/isolated build29/29 pass. Lost ACK/reload, account switch during
-upload/status/canonical read, remove/revoke проверены; API+SQL+S3 ещё НЕ приняты.
-Далее scoped native/regression приёмка (CF-F3d). Existing text-only/edit/like/delete, two-photo/48h/access правила,
+upload/status/canonical read, remove/revoke проверены. CF-F3d local PASS:
+**3 native pass/10 filtered skips**,50.89s, actual Chromium→Next→Nest→own fresh39
+SQL→Timeweb S3. Lost upload+write ACK/reload сохраняют1 PUT/asset/comment/intent;
+account switch during upload/status изолирует receipt/journal, первоначальный
+actor восстанавливает отправку. Unbound404, paid GET/HEAD/Range206/no-store и
+paid expiry404 до S3 подтверждены. Первый fail был admin-only fault helper,
+test-only explicit club allowlist подтверждён RED3→GREEN5. Второй fail — S3
+timeout, pending3/comments0; own DB сохранена до exact HEAD404 всех3 keys после
+восстановления сети, затем удалена. Финальный успешный новый стенд6603b54f…:
+все3 own objects удалены с metadata/ETag guards/HEAD404, policy hash прежний;
+own DB/API/Next/browser убраны, чужие сохранены. Full2444 pass/1510 opt-in skips/
+0 fail,67.79s JSON report; root tsc pass. Product runtime после CF-F3c не менялся,
+его build/types/lint не повторяются. Подробные попытки/границы — CF-F3d todo.
+Далее только device/release gates CF-F1b4/AG9 и второй валидный S3 principal;
+независимого незавершённого runtime среза нет. Existing text-only/edit/like/delete, two-photo/48h/access правила,
 backend schema/contracts, CSS/old S3/working DB/flags/push/deploy не менять.
 
 CF-F2 (16 октября): по прямому поручению закрытые фото/PNG/карусели и документы
@@ -401,8 +414,8 @@ GET/HEAD/Range, live access denial до S3 и anonymous S3 HEAD403. Все8 но
 objects удалены с metadata/ETag guards/HEAD404; policy hash unchanged. Own DB/API/
 Next/browser/proxy закрыты; старые files/working DB/flags/дизайн не менялись.
 Исправлений продукта не потребовалось, добавлен отдельный opt-in native test.
-Далее только отдельные согласованные срезы: CF клиенты статей/комментариев,
-browser/device matrix и rollout gates.
+Клиенты статей/комментариев завершены выше (CF-F2d/CF-F3d). Далее отдельные
+browser/device matrix, второй валидный S3 principal и rollout gates.
 CF целиком остаётся незавершённым. Доказательства/границы — в начале todo.
 Старый disk blocker снят без нашей очистки: при старте7.4GiB, новые build/types/
 lint и Full Vitest2416 pass. Рабочие DB/S3/flags, дизайн, push/deploy исключены.

@@ -21,6 +21,7 @@ import { assertTestDatabase } from "../tooling/scripts/test-database-policy";
 import { privateAttachmentProcesses } from "./helpers/private-attachment-process";
 import { privateFilesBrowser } from "./helpers/private-files-browser";
 import { httpResponseFaultProxy } from "./helpers/http-response-fault-proxy";
+import { registerPrivateCommentS3BrowserCases } from "./helpers/private-comment-s3-browser-cases";
 
 const enabled = process.env.PRIVATE_PHOTO_EDITORS_S3_ACCEPTANCE === "true";
 const endpoint = "https://s3.twcstorage.ru",
@@ -331,9 +332,12 @@ describe.skipIf(!enabled)(
           for (const row of await rows("SELECT * FROM private_content_files")) {
             if (
               row.actorUserId !== 98920 ||
-              !["postPhoto", "articlePhoto", "articleDocument"].includes(
-                row.usage,
-              ) ||
+              ![
+                "postPhoto",
+                "articlePhoto",
+                "articleDocument",
+                "commentPhoto",
+              ].includes(row.usage) ||
               !row.filename.startsWith(`${prefix}-`) ||
               (row.usage === "articleDocument"
                 ? !row.mimeType.startsWith("text/plain")
@@ -389,6 +393,20 @@ describe.skipIf(!enabled)(
       }
     }, 60000);
 
+    registerPrivateCommentS3BrowserCases(() => ({
+      page,
+      context: browser.context,
+      origin: browser.origin,
+      prefix,
+      png,
+      proxy,
+      rows,
+      execute: (sql, args) => conn.query(sql, args),
+      identity,
+      puts,
+      read,
+      denied,
+    }));
     async function openArticle(restore = false, editing = false) {
       await page.goto(`${browser.origin}/admin`);
       await page.getByRole("button", { name: "Статьи", exact: true }).click();
