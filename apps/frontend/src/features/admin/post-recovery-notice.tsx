@@ -72,7 +72,8 @@ export function PostRecoveryNotice({
         (phase === "upload" &&
           Boolean(
             recovery.saveState?.privateUploads?.length ||
-            recovery.saveState?.privatePhotos?.length,
+            recovery.saveState?.privatePhotos?.length ||
+            recovery.saveState?.privateVideos?.length,
           )) ? (
           <>
             <Typography>

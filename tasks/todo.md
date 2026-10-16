@@ -4,6 +4,42 @@
 
 ### Проверенный остаток на 16 октября
 
+- [ ] AG9-VU5 — по новому прямому разрешению пользователя возобновить только
+  локальную браузерную проверку видео. Оба existing редактора: потеря upload/
+  create ответа и document reload с File/key/status-first/no duplicate; смена
+  аккаунта во время upload/status и возврат исходного владельца; actual API/SQL/S3,
+  live read/revoke/explicit removal. Own fresh41 loopback/tmpfs backend_test,
+  новые synthetic video/poster, existing isolated Next/Chromium/fault proxy.
+  Дизайн/working DB/старые S3/рабочие flags/push/deploy исключены; mobile отложен.
+  Файлы среза: отдельный opt-in native browser test/existing proxy helper/tests;
+  runtime только после подтверждённого RED.
+  - Native RED: full editor/lost upload ACK —1 fail/5 filtered skips,25.22s.
+    Реальные Chromium/File/IndexedDB/Next/Nest/fresh41 SQL/Timeweb: receipt ready,
+    исходные bytes/key в journal, post0, но кнопки «Проверить сохранение» нет.
+    Причина — notice учитывал privateUploads/privatePhotos, но не privateVideos.
+    Добавлена только existing recovery branch для видео, без CSS/layout/нового
+    replay API. SSR regression RED1/2 guard pass→GREEN3/3; affected video/proxy/
+    notice28/28; расширенный recovery/transport/selection/notice/proxy набор58/58,
+    6 suites515ms. Root/frontend/E2E types/full frontend lint exit0 после fix.
+    Final prettier5files/docs58/diff exit0. Five-axis review: UI использует тот же
+    onRecover/status-first coordinator, unknown update по-прежнему без replay;
+    нет новых запросов/ролей/CSS/dependencies/секретов в diff. Native matrix/helper
+    сохранены как незавершённые рабочие изменения, не подтверждённая приёмка.
+  - Native GREEN после исправления НЕ запускался: свободное место упало с2.5GiB
+    до1.0GiB; удалён только own regenerable apps/frontend/.next/cache (~368MiB),
+    осталось1.4GiB при минимуме2GiB. Docker build cache0B. Образы/volumes/чужие
+    контейнеры не тронуты. Production build/full suite в этом срезе не повторены.
+    Browser matrix пока WIP6 случаев, explicit editor removal ещё не добавлен;
+    skips/SSR не считать сквозным GREEN или готовностью обоих редакторов.
+  - Cleanup RED:1 own video object удалён после metadata/hash/ETag guards,
+    HEAD404, policy прежняя, posts0/pageErrors0. Own RED DB f718703c… удалена после
+    ID/name/owner/loopback/tmpfs/no-volume guards. Второй own fresh41 DB925a606a…
+    был подготовлен, но disk gate остановил запуск до fixtures/API/S3 writes;
+    users/uploads/content_files0, удалён после тех же guards. Временные Next/API/
+    browser/proxy закрыты. Parent S3 client закрыт, credentials bindings очищены;
+    секреты не сохранены. Остаток: >=2GiB free (лучше ещё2–3GiB запаса), новая
+    own DB и native full lost ACK→оба редактора/account switch/read/revoke/removal.
+
 - [x] AG9 — актуализировать существующий пакет передачи после VU (`0e8da4b`),
   сверить активные статусы с принятыми FE/CF/VU результатами. Local integration
   больше не числится невыполненной; browser/mobile отложены. Для fresh-only пути
