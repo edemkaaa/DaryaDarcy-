@@ -357,18 +357,21 @@ CF-F2 (16 октября): по прямому поручению закрыты
 старые URL сохраняются. Общий CF transport, durable File bytes/stable keys/CAS,
 frozen create и unknown update guard. Unit10 + legacy post34/article19 pass,
 native File/IndexedDB3 pass, Chromium/Next с synthetic API5/5 pass (26.19s).
-Реальная browser/API/SQL/S3 приёмка статей НЕ закрыта: Timeweb timeouts и sleep/
-network suspension прервали attempts; записи/точечная очистка и остаток gates —
-CF-F2 в начале todo. Все own fixture containers/API/Next закрыты, новые own S3
-objects очищены по exact ledger/metadata/ETag; рабочие DB/flags/старые files не
-трогались. Пользователь подключил питание: AC/34%, charging; прежний sleep
-blocker снят. Следующий native запуск остановлен disk preflight (<1GiB против
-минимума2GiB) до API/S3 writes. Own fresh39 DB a530f4dd…/55006: files0/articles0,
-удалена после exact ownership/storage guards. Чужие файлы/containers сохранены.
-Свежие full Vitest2426 pass/1497 opt-in skips (42.93s), root/frontend/e2e types,
-full lint/API86/boundaries673 проходят. Дальше после освобождения места: native
-`article:` cases, post-photo и legacy browser regression, production build и
-актуализация доказательств. Push/deploy остаются запрещены.
+Локальный CF-F2 завершён16 октября: после разрешённой очистки только Docker build
+cache5.495GB (образы/volumes/containers unchanged) actual browser→Nest→own fresh39
+MySQL→Timeweb S3: **2 native pass/8 filtered skips**,67.44s. Lost upload/create
+ACK+reload без повторного PUT/asset/article; edit сохраняет старые bindings и не
+повторяет unknown write. WebP alpha/TXT bytes/GET/HEAD/Range/expiry/direct403
+подтверждены; account-switch статей остаётся evidence synthetic API5, не native.
+Все5 own objects удалены с guards/HEAD404, policy unchanged; own DB22c144b0…/62677
+и API/Next/browser/proxy убраны. История прежних sleep/network/disk failures и
+границы доказательств сохранены в CF-F2 todo, не выданы за успешные прогоны.
+Legacy article/media browser17/17 pass (29.8s), shared post-photo regression12/12
+pass (43.36s), production webpack build в own copy без .env/credentials exit0,
+static29/29. Неизменённый runtime: full Vitest2426 pass/1497 opt-in skips (42.93s),
+root/frontend/e2e types, full lint/API86/boundaries673 остаются актуальными.
+Working DB/flags/old S3/design не менялись. Это локальная интеграция, не rollout/
+physical-device acceptance. Push/deploy остаются запрещены.
 
 Клиентское продолжение16 октября (разрешение на внутреннюю frontend-интеграцию
 из актуальных границ выше): CF-F1a + CF-F1b1/b2 подключили новые закрытые фото

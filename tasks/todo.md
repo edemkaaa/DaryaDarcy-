@@ -4,7 +4,7 @@
 
 ### Проверенный остаток на 16 октября
 
-- [ ] CF-F2 (16 октября, прямое поручение): закрытые фото/PNG/карусели и
+- [x] CF-F2 (16 октября, прямое поручение): закрытые фото/PNG/карусели и
   PDF/DOCX/TXT в существующем редакторе статей. Баннер публичный, старые URL
   сохраняются. Срезы: typed upload/status + block references; durable file bytes
   и stable keys до S3 с existing article journal; wiring existing editor и blob
@@ -33,8 +33,8 @@
     suite26.19s. Includes removed block blob lifecycle RED1→GREEN and no removed
     file upload; create/edit/reload/lost ACK/live upload+status account switch.
     Updated existing transparent article PNG e2e expectation to deferred CF
-    upload; this legacy spec has NOT been rerun yet.
-  - [ ] CF-F2d: actual editor→Nest→fresh39 SQL→Timeweb S3 acceptance and final
+    upload; subsequent legacy17/17 pass recorded in CF-F2d below.
+  - [x] CF-F2d: actual editor→Nest→fresh39 SQL→Timeweb S3 acceptance and final
     regression/build. Added two opt-in `article:` cases to existing private-photo
     editor native suite; **no native article success claimed**. Attempts:
     first stopped waiting for remaining uploads (5s assertion), cleaned3 own
@@ -46,7 +46,7 @@
     closed; own DB89e065ea…/62122 removed after repeated metadata guards+SQL0.
     All owned containers removed; foreign4 preserved. Old S3/working DB/flags
     untouched, no policy writes. No credentials saved (only no-echo stdin/memory).
-    **Environment update16 October:** user connected charger; pmset AC/34%,
+    **Historical environment checkpoint16 October:** user connected charger; pmset AC/34%,
     charging, previous sleep blocker cleared. New native attempt stopped at disk
     preflight (<1GiB free vs required2GiB), BEFORE API/S3 writes; own fresh39 DB
     a530f4dd…/55006 had files0/articles0 and was removed after exact identity,
@@ -55,11 +55,37 @@
     to reach2GiB; no foreign files/cache deleted. User asked to free2–3GiB.
     Fresh full Vitest: **2426 pass/1497 opt-in skipped**,189 passed suites,
     42.93s (maxWorkers4). Root/frontend/e2e types, full frontend lint, API86/
-    31712bytes and boundaries673 pass. Production build and legacy article
-    recovery/media specs remain unverified for this UI slice. Continue with
-    native `article:` cases, post-photo browser regression and legacy specs once
-    free space>=2GiB, then production build. Do not repeat unchanged passing
-    tests without a new risk; native acceptance remains OPEN.
+    31712bytes and boundaries673 pass. At that checkpoint build/native/browser
+    regressions were still OPEN; resolved by the verified continuation below.
+    **Verified continuation16 October:** user authorized Docker build-cache-only
+    cleanup. `docker builder prune --force` reclaimed5.495GB; images9/6.816GB,
+    existing containers3 and volumes12/1.636GB unchanged. Host free space4.1GiB
+    immediately, then5.8GiB; no image/volume/system prune. The earlier authorized
+    removal of stopped own tmpfs owner39fdda943241 is separate (see F5).
+    Actual Chromium→Next rewrite→Nest→fresh39 MySQL→Timeweb S3: **2 native pass/
+    8 filtered post skips**, suite67.44s/command68.47s. Mixed photo/PNG/carousel/TXT
+    lost upload/create ACK+reload: no repeat PUT/asset/article, one creation intent
+    and teaser. Edit adds one photo, retains four bindings, lost update/reload
+    never repeats write; explicit local discard after canonical list read.
+    Actual WebP alpha/TXT bytes, GET/HEAD/Range206/no-store, expired access404
+    before S3 and anonymous direct S3 HEAD403 verified. These2 cases do NOT add
+    native article account-switch/PDF/DOCX/device evidence: session races are
+    covered by the earlier5 synthetic-API browser cases, not mislabelled native.
+    All5 new own objects deleted with exact ledger/metadata/ETag guards+HEAD404;
+    policy0484dfa2… unchanged/versioning off. Own DB22c144b0…/62677/tmpfs/no mounts
+    removed after repeated exact owner/storage guards. Existing3 containers,
+    working DB/flags/policy/old S3 files preserved. Credentials stdin/memory only.
+    Existing article-creation-recovery/media-upload specs: **17/17 pass**,29.8s,
+    actual Next/File/IndexedDB with synthetic API and external-deny proxy.
+    Temporary launcher first failed CJS/ESM import BEFORE tests; corrected only
+    launcher import, no product workaround. Post-photo shared transport regression:
+    **12/12 pass**,43.36s (synthetic API, real Next/File/IndexedDB).
+    Production webpack build in own copy: compile7.8s, TypeScript2.6s, static29/29,
+    exit0. No .env/working credentials; API target127.0.0.1:1. Own build/browser/
+    API/proxy temp resources removed. No production source changes were required
+    in this continuation; full2426/types/lint/API/boundaries above stay applicable.
+    Local CF-F2 integration complete, NOT rollout/physical-device acceptance.
+    Design/working DB/old files unchanged; no push/deploy or working flag enable.
 
 - [ ] CF-F1 (16 октября): новые закрытые фото постов без изменения дизайна.
   - [x] CF-F1a: typed receipt/upload/status в общем save coordinator. File +
@@ -557,6 +583,11 @@ AG6 принят и реализован
   Frontend/working DB/S3/auth code/roles/CORS/proxy/quotas не менялись, писем нет.
   Не удалить активный стенд как чужой leftover; перед teardown exact owner guards.
   Это не production owner/deploy; tmpfs account пропадёт при остановке контейнера.
+  Уточнение16 октября: после прямого разрешения очистить неиспользуемые контейнеры
+  удалён остановленный39fdda943241 (exact ID/name/owner verified, tmpfs, mounts0).
+  Его tmpfs данные уже утрачены при остановке; старый адрес/API выше — история,
+  не активный стенд. Образ mysql и закрытый локальный credentials directory не
+  трогали/не читали; при необходимости стенд создаётся заново штатной процедурой.
 Старый history gate ниже относится к upgrade существующей среды, не к fresh-only
 установке. Общая внешняя приёмка/backup/выкладка остаются отдельными условиями.
 
