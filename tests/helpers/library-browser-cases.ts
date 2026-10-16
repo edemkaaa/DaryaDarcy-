@@ -65,9 +65,14 @@ export function registerLibraryBrowserCases(
         exact: true,
       });
       await browserExpect(material).toBeVisible();
+      const clubCard = page.getByRole("button", {
+        name: "Открыть материал: C3 library club fixture",
+        exact: true,
+      });
+      await browserExpect(clubCard).toBeVisible();
       await browserExpect(
-        page.getByText("C3 library club fixture", { exact: true }),
-      ).toHaveCount(0);
+        clubCard.getByText("Для участниц клуба Darcy →", { exact: true }),
+      ).toBeVisible();
       await browserExpect(
         page.getByText("C3 library draft fixture", { exact: true }),
       ).toHaveCount(0);

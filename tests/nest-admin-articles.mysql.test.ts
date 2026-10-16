@@ -199,15 +199,21 @@ describe.skipIf(!testDatabaseUrl)(
         { type: "text", text: "private body" },
       ]);
     });
-    it("keeps the published repository order but exposes only public article summaries", async () => {
+    it("keeps published public and club cards in repository order without article bodies", async () => {
       expect(ownIds(await listPublishedArticles())).toEqual([9060, 9062]);
       const rows = await client().articles.list.query();
-      expect(ownIds(rows)).toEqual([9060]);
+      expect(ownIds(rows)).toEqual([9060, 9062]);
       expect(rows.find((row) => row.id === 9060)).toEqual({
         id: 9060,
         title: "native public article",
         coverUrl: null,
         access: "public",
+      });
+      expect(rows.find((row) => row.id === 9062)).toEqual({
+        id: 9062,
+        title: "native private article",
+        coverUrl: null,
+        access: "club",
       });
     });
     it("keeps unpublished internal lookup available without publishing it to guests or admins", async () => {

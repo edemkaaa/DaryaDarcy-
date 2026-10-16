@@ -839,14 +839,71 @@ describe.skipIf(!testDatabaseUrl)(
         (await client(bearer).feed.savedPosts.query()).map((post) => post.id),
       ).toEqual([8970, 8971, 8970]);
     });
-    it("lists only public article summaries, never paid sections", async () => {
-      const rows = (await client().articles.list.query()).filter(
-        (article) => article.id >= 8970 && article.id <= 8972,
-      );
-      expect(rows).toEqual([
-        { id: 8970, title: "public article", coverUrl: null, access: "public" },
-      ]);
-    });
+    it.each([
+      {
+        name: "guest",
+        authenticated: false,
+        patch: "role='user'",
+        paid: false,
+      },
+      { name: "paid", authenticated: true, patch: "role='user'", paid: true },
+      {
+        name: "unpaid",
+        authenticated: true,
+        patch: "role='user'",
+        paid: false,
+      },
+      {
+        name: "moderator",
+        authenticated: true,
+        patch: "role='moderator'",
+        paid: false,
+      },
+      {
+        name: "admin",
+        authenticated: true,
+        patch: "role='admin'",
+        paid: false,
+      },
+      {
+        name: "blocked",
+        authenticated: true,
+        patch: "blockedAt=NOW()",
+        paid: true,
+      },
+      {
+        name: "revoked",
+        authenticated: true,
+        patch: "sessionVersion=1",
+        paid: true,
+      },
+    ])(
+      "lists published public and club cards without bodies or drafts ($name)",
+      async (fixture) => {
+        await conn.query(`UPDATE users SET ${fixture.patch} WHERE id=8970`);
+        if (!fixture.paid)
+          await conn.query(
+            "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-content-subscription'",
+          );
+        const rows = (
+          await client(
+            fixture.authenticated ? bearer : undefined,
+          ).articles.list.query()
+        )
+          .filter((article) => article.id >= 8970 && article.id <= 8972)
+          .sort((a, b) => a.id - b.id);
+        // Exact allowlist: cards may identify club content, never ship its sections/URLs.
+        expect(rows).toEqual([
+          {
+            id: 8970,
+            title: "public article",
+            coverUrl: null,
+            access: "public",
+          },
+          { id: 8971, title: "club article", coverUrl: null, access: "club" },
+        ]);
+      },
+    );
     it("serves public article sections but only an allowlisted locked club preview to anonymous readers", async () => {
       expect(await client().articles.getById.query({ id: 8970 })).toEqual({
         id: 8970,

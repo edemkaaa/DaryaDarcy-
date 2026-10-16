@@ -4,6 +4,28 @@
 
 ### Проверенный остаток на 16 октября
 
+- [x] LF1 — по прямому поручению16 октября: вернуть в existing Библиотеку карточки
+  опубликованных club-статей. Public list содержит только id/title/coverUrl/access,
+  без sections/вложений/черновиков; article detail/live access не менять. Сначала
+  RED native HTTP/SQL, затем минимальное исправление и affected/full проверки.
+  RED7/7: guest/paid/unpaid/moderator/admin/blocked/revoked видели только public
+  карточку. Удалён только access=public filter, explicit four-field projection
+  сохранён; frontend уже отображает club badge/CTA и проверяет hasClubAccess.
+  Native **94/94 pass**,2 suites,4.14s: public+club cards без sections/лишних полей,
+  published-only и repository order, прежние locked detail/paid expiry/blocked/
+  revoked/staff правила, article CRUD/teaser regressions. Own backend_test на
+  loopback51831/tmpfs/no volumes; existing fixture DDL, НЕ fresh migration/rollout
+  acceptance. Own articles после cleanup0; exact DBaddf9c12… удалена после повторных
+  ID/name/owner/loopback/tmpfs/mount guards, чужие контейнеры сохранены.
+  Full **2444 pass/1516 opt-in skips/0 fail**, JSON report76.47s, exit0; root/
+  frontend/E2E types, backend build578.5kb/API86/31712bytes/boundaries676/Prettier/
+  diff pass. Generated contract не менялся. Existing native browser expectation
+  актуализирован: club card+lock CTA visible, draft/body guards retained; browser
+  НЕ запускался по поручению. Five-axis review: роли/body policy/schema/CSS/старые
+  файлы/S3/working flags не менялись, новых endpoint/зависимостей нет. Frontend
+  source прежний, его production build/lint без причины не повторялись.
+  Дизайн/working DB/старые файлы/S3/push/deploy исключены; browser/device отложены.
+
 - [x] CF-F3: внутренняя интеграция закрытых фото комментариев в existing форму,
   продолжение accepted CF4/CF client remainder. Новые файлы только private API,
   postId и actor-scoped keys неизменны, прежние two-photo/48h/access limits.

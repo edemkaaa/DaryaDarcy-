@@ -2,6 +2,24 @@
 
 Дата фиксации аудита: **3 октября 2026 года**. Обновление разработки: **13 октября 2026 года**. Проект после миграции на **Next.js**. Этот файл — точка возвращения к работе: здесь сохранены план первого этапа, все 42 пункта общего аудита, их расположение, дополнительные расхождения с договором и уже выполненные исправления контента.
 
+## 16 октября — LF1, клубные статьи в Библиотеке
+
+По прямому поручению исправлен existing articles.list backend: карточки всех
+опубликованных public/club статей, только id/title/публичный coverUrl/access.
+Sections/вложения/черновики в список не входят; detail/live access прежние.
+LibraryScreen уже использует article.access для lock CTA и hasClubAccess для
+перехода: runtime/frontend/CSS/дизайн менять не потребовалось. Native HTTP/JWT/
+own disposable MySQL RED7→GREEN94/94 (2 suites,4.14s), включая прежние body expiry/
+block/session revoke и admin CRUD/order guards. Это fixture DDL, не migration
+acceptance. Own DB удалена с exact ownership guards, S3/working DB не трогались.
+Full2444 pass/1516 opt-in skips/0 fail, root/frontend/E2E types/backend build/
+API86/boundaries676 pass. Existing native browser expectation обновлён с отсутствия
+club карточки на наличие карточки/lock CTA, body/draft guards сохранены; browser
+и физические устройства НЕ запускались по поручению. Frontend build/lint не
+повторялись: app source/generated contract неизменны. Без push/deploy/flags.
+Старые внешние library-файлы/публичные выкройки и raw-video upload этим срезом
+не закрыты, их не выдавать за подключённые к private delivery.
+
 ## 16 октября — закрытые фото постов, только внутренняя интеграция
 
 CF-F3a: подготовлен coordinator закрытых фото комментариев на accepted CF4 API.

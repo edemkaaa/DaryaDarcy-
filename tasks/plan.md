@@ -352,6 +352,25 @@ JSON — tooling/data/backend-load/2026-10-15.json. Не повторять бе
 
 #### CF — новые фото и файлы статей, принято 15 октября
 
+LF1 (прямое поручение16 октября после полной сверки фронта): existing articles.list
+должен возвращать карточки всех опубликованных public/club статей для Библиотеки.
+Allowlist прежний: id/title/публичный coverUrl/access; sections/вложения/непубликуемые
+статьи не выдавать. Existing articles.getById и live membership/session policy
+сохранить. Без нового endpoint/schema, дизайна, working DB, старых файлов или S3.
+RED/GREEN native HTTP/SQL на own disposable backend_test, affected/full regression,
+types/API contract/build/review/docs; browser/device остаются отложенными.
+LF1 local PASS16 октября:7 meaningful HTTP/SQL RED →94/94 affected native pass,
+2 suites/4.14s. Удалён только public-only filter, four-field projection и existing
+detail/live access unchanged. Guest/paid/unpaid/staff/blocked/revoked получают
+только published cards, body остаётся защищён; hidden/order/CRUD regressions pass.
+Own loopback/tmpfs SQL fixture удалена после ownership guards; это fixture DDL,
+не репетиция миграций. Full2444 pass/1516 opt-in skips/0 fail,76.47s JSON report;
+root/frontend/E2E types/backend build/API86/boundaries676/format/diff pass. Frontend
+runtime/contract/CSS unchanged; existing browser expectation обновлён под card
+visibility, но запуск отложен пользователем. Working DB/S3/старые files/flags/
+push/deploy не трогались. Отдельные legacy library files/raw-video gaps из сверки
+не исправлять этим срезом: для них нужны собственные согласованные границы.
+
 CF-F3 (16 октября, следующий доступный CF client slice): existing комментарии,
 только внутренняя интеграция без дизайна. CF-F3a local PASS: typed commentPhoto
 upload/status adapter, frozen addComment payload/key и checkpoint-before-network;
