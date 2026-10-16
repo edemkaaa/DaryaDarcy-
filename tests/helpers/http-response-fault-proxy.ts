@@ -30,7 +30,9 @@ export async function httpResponseFaultProxy(upstream: string) {
     const pathname = new URL(req.url!, "http://127.0.0.1").pathname;
     const procedures = pathname.startsWith("/api/trpc/")
       ? pathname.slice(10).split(",")
-      : [];
+      : pathname === "/api/admin/private-video-uploads"
+        ? ["binary.privateVideoUpload"]
+        : [];
     const selected =
       rule && procedures.includes(rule.procedure) ? rule : undefined;
     if (selected) {
@@ -102,6 +104,7 @@ export async function httpResponseFaultProxy(upstream: string) {
             "club.addComment",
             "club.uploadPrivateCommentPhoto",
             "club.privateCommentPhotoStatus",
+            "binary.privateVideoUpload",
           ].includes(procedure))
       )
         throw new Error("Invalid or overlapping transport fault");

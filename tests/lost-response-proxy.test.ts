@@ -7,6 +7,7 @@ it.each([
   "admin.createPost",
   "club.addComment",
   "club.uploadPrivateCommentPhoto",
+  "binary.privateVideoUpload",
 ])(
   "drops only the response after the real upstream mutation has committed: %s",
   async (procedure) => {
@@ -26,8 +27,12 @@ it.each([
     );
     try {
       const fault = proxy.arm(procedure, "drop");
+      const path =
+        procedure === "binary.privateVideoUpload"
+          ? "/api/admin/private-video-uploads?filename=video.mp4"
+          : `/api/trpc/${procedure}?batch=1`;
       await expect(
-        fetch(`${proxy.base}/api/trpc/${procedure}?batch=1`, {
+        fetch(`${proxy.base}${path}`, {
           method: "POST",
           body: "{}",
         }),
@@ -35,9 +40,9 @@ it.each([
       await fault.reached;
       expect(writes).toBe(1);
       expect(proxy.calls).toMatchObject([
-        { status: 200, pathname: `/api/trpc/${procedure}` },
+        { status: 200, pathname: path.split("?")[0] },
       ]);
-      const response = await fetch(`${proxy.base}/api/trpc/${procedure}`, {
+      const response = await fetch(`${proxy.base}${path}`, {
         method: "POST",
         body: "{}",
       });
@@ -51,8 +56,12 @@ it.each([
   },
 );
 
-it.each(["admin.privateAttachmentStatus", "club.privateCommentPhotoStatus"])(
-  "holds a completed status response until released, without replacing it: %s",
+it.each([
+  "admin.privateAttachmentStatus",
+  "club.privateCommentPhotoStatus",
+  "binary.privateVideoUpload",
+])(
+  "holds a completed upstream response until released, without replacing it: %s",
   async (procedure) => {
     const upstream = createServer((_req, res) => {
       res.setHeader("x-real", "yes");
@@ -67,12 +76,16 @@ it.each(["admin.privateAttachmentStatus", "club.privateCommentPhotoStatus"])(
     try {
       const fault = proxy.arm(procedure, "hold");
       let settled = false;
-      const response = fetch(`${proxy.base}/api/trpc/${procedure}`).then(
-        (value) => {
-          settled = true;
-          return value;
-        },
-      );
+      const path =
+        procedure === "binary.privateVideoUpload"
+          ? "/api/admin/private-video-uploads?filename=video.mp4"
+          : `/api/trpc/${procedure}`;
+      const response = fetch(`${proxy.base}${path}`, {
+        method: procedure === "binary.privateVideoUpload" ? "POST" : "GET",
+      }).then((value) => {
+        settled = true;
+        return value;
+      });
       await fault.reached;
       expect(settled).toBe(false);
       fault.release();
