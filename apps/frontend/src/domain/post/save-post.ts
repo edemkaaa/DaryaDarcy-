@@ -17,6 +17,12 @@ import {
   type PrivatePostPhoto,
   type PrivatePostPhotoApi,
 } from "./private-photo-upload";
+import {
+  selectPrivatePostVideos,
+  uploadPrivatePostVideo,
+  type PrivatePostVideo,
+  type PrivatePostVideoApi,
+} from "./private-video-upload";
 
 export type PostPayload = ReturnType<typeof serializePostDraft>;
 type Payload = PostPayload;
@@ -27,6 +33,7 @@ export type SavePayload = Payload & {
   attachments?: UploadedAttachment[];
   removedMediaIds?: number[];
   privateAssetIds?: string[];
+  privateVideoPosters?: { videoAssetId: string; posterAssetId: string }[];
 };
 type CreatePayload = SavePayload & { idempotencyKey: string };
 type UpdatePayload = Partial<SavePayload>;
@@ -38,31 +45,32 @@ export type PostAttachment = {
   id?: number;
   url?: string;
 };
-export type PostSaveApi = PrivatePostPhotoApi & {
-  create: (payload: CreatePayload, signal: AbortSignal) => Promise<unknown>;
-  update: (
-    id: number,
-    payload: UpdatePayload,
-    signal: AbortSignal,
-  ) => Promise<unknown>;
-  uploadPrivate?: (
-    input: PrivateUploadInput,
-    signal: AbortSignal,
-  ) => Promise<unknown>;
-  privateStatus?: (
-    input: { idempotencyKey: string },
-    signal: AbortSignal,
-  ) => Promise<unknown>;
-  upload: (
-    input: {
-      base64: string;
-      filename: string;
-      mimeType: string;
-      type: "audio" | "document";
-    },
-    signal: AbortSignal,
-  ) => Promise<unknown>;
-};
+export type PostSaveApi = PrivatePostPhotoApi &
+  PrivatePostVideoApi & {
+    create: (payload: CreatePayload, signal: AbortSignal) => Promise<unknown>;
+    update: (
+      id: number,
+      payload: UpdatePayload,
+      signal: AbortSignal,
+    ) => Promise<unknown>;
+    uploadPrivate?: (
+      input: PrivateUploadInput,
+      signal: AbortSignal,
+    ) => Promise<unknown>;
+    privateStatus?: (
+      input: { idempotencyKey: string },
+      signal: AbortSignal,
+    ) => Promise<unknown>;
+    upload: (
+      input: {
+        base64: string;
+        filename: string;
+        mimeType: string;
+        type: "audio" | "document";
+      },
+      signal: AbortSignal,
+    ) => Promise<unknown>;
+  };
 export type PostSaveSnapshot = {
   savedId: number | null;
   original?: Payload;
@@ -71,6 +79,7 @@ export type PostSaveSnapshot = {
   uploaded: [PostAttachment, UploadedAttachment][];
   privateUploads?: [PostAttachment, PrivateUploadIntent][];
   privatePhotos?: PrivatePostPhoto[];
+  privateVideos?: PrivatePostVideo[];
 };
 export class PostSaveError extends Error {
   public data?: { httpStatus: number };
@@ -91,6 +100,7 @@ export class PostSaveCoordinator {
   private uploaded = new Map<PostAttachment, UploadedAttachment>();
   private privateUploads = new Map<PostAttachment, PrivateUploadIntent>();
   private privatePhotos: PrivatePostPhoto[] = [];
+  private privateVideos: PrivatePostVideo[] = [];
   private uncertain = false;
   private completed = false;
   private postWritePending = false;
@@ -111,6 +121,7 @@ export class PostSaveCoordinator {
       uploaded: [...this.uploaded],
       privateUploads: [...this.privateUploads],
       privatePhotos: [...this.privatePhotos],
+      privateVideos: [...this.privateVideos],
     };
   }
   restore(state: PostSaveSnapshot): void {
@@ -120,6 +131,7 @@ export class PostSaveCoordinator {
     this.uploaded = new Map(state.uploaded);
     this.privateUploads = new Map(state.privateUploads ?? []);
     this.privatePhotos = state.privatePhotos ?? [];
+    this.privateVideos = state.privateVideos ?? [];
     this.phase = state.phase;
     this.completed = state.phase === "complete";
     this.uncertain = state.phase !== "idle" && !this.completed;
@@ -140,12 +152,17 @@ export class PostSaveCoordinator {
   ): Promise<void> {
     if (
       this.phase !== "upload" ||
-      (!this.privateUploads.size && !this.privatePhotos.length)
+      (!this.privateUploads.size &&
+        !this.privatePhotos.length &&
+        !this.privateVideos.length)
     )
       throw new Error(
         "Для этой загрузки нужна ручная проверка списка публикаций",
       );
-    if (this.privatePhotos.length && !this.checkpoint)
+    if (
+      (this.privatePhotos.length || this.privateVideos.length) &&
+      !this.checkpoint
+    )
       throw new Error(
         "Не настроено сохранение исходных фото на этом устройстве",
       );
@@ -158,6 +175,15 @@ export class PostSaveCoordinator {
       await uploadPrivatePostPhoto(photo, api, operation, () =>
         this.remember("upload"),
       );
+    }
+    for (const video of this.privateVideos) {
+      await uploadPrivatePostVideo(video, api, operation, () =>
+        this.remember("upload"),
+      );
+      if (video.poster)
+        await uploadPrivatePostPhoto(video.poster, api, operation, () =>
+          this.remember("upload"),
+        );
     }
     operation.assertCurrent();
     this.uncertain = false;
@@ -278,6 +304,7 @@ export class PostSaveCoordinator {
     api: PostSaveApi,
     operation: ScopedOperation,
     photos: PrivatePostPhoto[] = this.privatePhotos,
+    videos: PrivatePostVideo[] = this.privateVideos,
   ): Promise<number> {
     this.assertCanSave();
     for (const attachment of attachments)
@@ -285,6 +312,11 @@ export class PostSaveCoordinator {
     operation.assertCurrent();
     let writing = false;
     try {
+      this.privateVideos = selectPrivatePostVideos(payload.videos, videos);
+      if (this.privateVideos.length && !this.checkpoint)
+        throw new Error(
+          "Не настроено сохранение исходного видео на этом устройстве",
+        );
       const selectedPhotos = selectPrivatePostPhotos(payload.photos, photos);
       if (selectedPhotos.length && !this.checkpoint)
         throw new Error(
@@ -300,7 +332,18 @@ export class PostSaveCoordinator {
       payload = {
         ...payload,
         photos: resolvePrivatePostPhotos(payload.photos, this.privatePhotos),
+        videos: payload.videos.filter((url) => !url.startsWith("local-video:")),
       };
+      for (const video of this.privateVideos) {
+        await uploadPrivatePostVideo(video, api, operation, () =>
+          this.remember("upload"),
+        );
+        if (video.poster)
+          await uploadPrivatePostPhoto(video.poster, api, operation, () =>
+            this.remember("upload"),
+          );
+        await this.remember("idle");
+      }
       for (const attachment of attachments) {
         if (!attachment.file || this.uploaded.has(attachment)) continue;
         if (api.uploadPrivate) {
@@ -339,17 +382,30 @@ export class PostSaveCoordinator {
         const uploaded = this.uploaded.get(attachment);
         return uploaded ? [uploaded] : [];
       });
+      const privateAssetIds = [
+        ...attachments.flatMap((item) => {
+          const receipt = this.privateUploads.get(item)?.receipt;
+          return receipt?.state === "ready" ? [receipt.assetId] : [];
+        }),
+        ...this.privateVideos.map((video) => video.receipt!.assetId),
+      ];
+      if (new Set(privateAssetIds).size !== privateAssetIds.length)
+        throw new Error("Повторное подтверждение вложения в черновике");
+      const privateVideoPosters = this.privateVideos.flatMap((video) =>
+        video.poster
+          ? [
+              {
+                videoAssetId: video.receipt!.assetId,
+                posterAssetId: video.poster.receipt!.assetId,
+              },
+            ]
+          : [],
+      );
       const savePayload: SavePayload = {
         ...payload,
         ...(uploads.length ? { attachments: uploads } : {}),
-        ...(attachments.some((item) => this.privateUploads.has(item))
-          ? {
-              privateAssetIds: attachments.flatMap((item) => {
-                const receipt = this.privateUploads.get(item)?.receipt;
-                return receipt?.state === "ready" ? [receipt.assetId] : [];
-              }),
-            }
-          : {}),
+        ...(privateAssetIds.length ? { privateAssetIds } : {}),
+        ...(privateVideoPosters.length ? { privateVideoPosters } : {}),
         ...(this.savedId !== null && removedIds.length
           ? { removedMediaIds: [...new Set(removedIds)] }
           : {}),
@@ -386,6 +442,8 @@ export class PostSaveCoordinator {
         if (uploads.length) changes.attachments = uploads;
         if (savePayload.privateAssetIds?.length)
           changes.privateAssetIds = savePayload.privateAssetIds;
+        if (savePayload.privateVideoPosters?.length)
+          changes.privateVideoPosters = savePayload.privateVideoPosters;
         if (removedIds.length)
           changes.removedMediaIds = [...new Set(removedIds)];
         this.postWritePending = true;
@@ -413,7 +471,9 @@ export class PostSaveCoordinator {
       this.uncertain =
         this.uncertain ||
         (this.phase === "upload" &&
-          (this.privateUploads.size > 0 || this.privatePhotos.length > 0)) ||
+          (this.privateUploads.size > 0 ||
+            this.privatePhotos.length > 0 ||
+            this.privateVideos.length > 0)) ||
         (writing && (!status || status >= 500));
       if (!this.completed && !this.uncertain) {
         this.postWritePending = false;

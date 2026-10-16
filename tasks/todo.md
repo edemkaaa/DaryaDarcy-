@@ -57,6 +57,26 @@
       Actual S3/working DB/старые файлы не затрагивались. Далее VU3.
   - [ ] VU3: durable File/key до network, status-first recovery и оба existing
     редактора без изменения дизайна; unit/type/build проверки.
+    - [x] VU3a: typed video receipt/80MiB policy и existing save coordinator:
+      private raw transport boundary, original File/key checkpoint before dispatch,
+      status-first ready/pending/notRecorded, no public fallback/local URL write,
+      private poster mapping и frozen create/existing unknown-update guards.
+      RED13 meaningful failures (1 existing storage guard already passed)→GREEN14;
+      additional poster/create ACK/update/removal coverage —18 video cases,
+      affected **72/72** with existing attachments/photos. Late upload/status
+      responses after actor change ignored, pending/invalid receipt blocks publish.
+      Full **2462 pass/1548 opt-in skips/0 fail**,72.80s(maxWorkers2); root/frontend/
+      E2E types/full lint pass. Production webpack29/29, compile9.6s/types3.0s,
+      clean env/API target127.0.0.1:1/no frontend .env* inputs except example.
+      API/checkpoint synthetic, File bytes настоящие Node; это НЕ IndexedDB/reload/
+      UI/API/S3 acceptance. Runtime редакторов ещё legacy video; флаги не включены.
+      Docker build cache fully pruned:342.6MB+2.721GB logical, builder du0B;
+      images6/volumes12/foreign containers3 preserved. Host free3.6GiB then3.2GiB.
+    - [ ] VU3b: pack/restore video+poster ArrayBuffer в existing owner journal,
+      alias/revision/validation guards; browser/mobile остаются отложенными.
+    - [ ] VU3c: private binary HTTP transport + existing editors/local previews/
+      explicit removal, без CSS/layout; использовать VU3b до первого upload.
+    - [ ] VU3d: existing media consumers берут explicit poster, не крадут gallery.
   - [ ] VU4: own disposable API/SQL/S3 acceptance; browser/mobile отложены.
   Docker16 октября перезапущен по прямому разрешению, _ping=OK, free3.5GiB.
   Чужие контейнеры сохранены (diplom-postgres остановлен перезапуском), вручную

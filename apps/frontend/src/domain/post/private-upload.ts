@@ -1,11 +1,14 @@
 import type { ApiInputs } from "@/shared/api/types";
-import { MAX_ATTACHMENT_BYTES } from "@/shared/browser/file-operations";
+import {
+  MAX_ATTACHMENT_BYTES,
+  MAX_VIDEO_BYTES,
+} from "@/shared/browser/file-operations";
 
 export type PrivateUploadInput = ApiInputs["admin"]["uploadPrivateAttachment"];
 export type PrivateUploadReceipt = {
   state: "pending" | "ready";
   assetId: string;
-  type: "audio" | "document";
+  type: "audio" | "document" | "video";
   filename: string;
   mimeType: string;
   fileSize: number;
@@ -26,7 +29,7 @@ export function requirePrivateReceipt(value: unknown): PrivateUploadReceipt {
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
       receipt.assetId,
     ) ||
-    !["audio", "document"].includes(receipt.type) ||
+    !["audio", "document", "video"].includes(receipt.type) ||
     typeof receipt.filename !== "string" ||
     !receipt.filename.trim() ||
     typeof receipt.mimeType !== "string" ||
@@ -35,7 +38,8 @@ export function requirePrivateReceipt(value: unknown): PrivateUploadReceipt {
     ) ||
     !Number.isSafeInteger(receipt.fileSize) ||
     receipt.fileSize <= 0 ||
-    receipt.fileSize > MAX_ATTACHMENT_BYTES ||
+    receipt.fileSize >
+      (receipt.type === "video" ? MAX_VIDEO_BYTES : MAX_ATTACHMENT_BYTES) ||
     "url" in value ||
     "objectKey" in value
   )
