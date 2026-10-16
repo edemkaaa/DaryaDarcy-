@@ -7,6 +7,18 @@ const png = Buffer.from(
   "base64",
 );
 const now = () => new Date().toISOString();
+const privatePhoto = (input: Record<string, unknown>, index: number) => {
+  const assetId = `3af23d8c-140f-454b-a123-${String(index).padStart(12, "0")}`;
+  return {
+    state: "ready",
+    assetId,
+    usage: "commentPhoto",
+    filename: input.filename,
+    mimeType: "image/webp",
+    fileSize: 80,
+    url: `/api/media/content-files/${assetId}`,
+  };
+};
 const comment = (id = 11, userId = 101) => ({
   id,
   userId,
@@ -123,16 +135,14 @@ function dialogs(page: Page) {
   return messages;
 }
 
-test("a partial photo failure blocks an incomplete comment until the pending selection is discarded", async ({
+test("a partial private photo failure blocks the frozen comment until explicit discard refreshes the list", async ({
   page,
 }) => {
   let uploads = 0;
   const sends: Record<string, unknown>[] = [];
   await commentsApi(page, (name, input) => {
-    if (name === "club.uploadCommentPhoto")
-      return ++uploads === 1
-        ? ok({ url: "https://example.test/first.webp" })
-        : failure(400);
+    if (name === "club.uploadPrivateCommentPhoto")
+      return ++uploads === 1 ? ok(privatePhoto(input, 1)) : failure(400);
     if (name === "club.addComment") {
       sends.push(input);
       return ok({ id: 13 });
@@ -143,28 +153,34 @@ test("a partial photo failure blocks an incomplete comment until the pending sel
   const field = page.getByPlaceholder("Написать комментарий...");
   await field.fill("KEEP_WITH_FIRST_PHOTO");
   await choosePhotos(page);
+  await expect(page.locator('img[src^="blob:"]')).toHaveCount(2);
+  expect(uploads).toBe(0);
+  await page.getByRole("button", { name: "Отправить", exact: true }).click();
   await expect.poll(() => uploads).toBe(2);
   await expect(
     page.getByRole("button", { name: "Отправить", exact: true }),
   ).toBeDisabled();
   await expect(field).toHaveValue("KEEP_WITH_FIRST_PHOTO");
   await expect(
-    page.getByRole("alert").filter({ hasText: "second.png" }),
+    page.getByRole("button", { name: "Повторить отправку", exact: true }),
   ).toBeVisible();
   await page
     .getByRole("button", {
-      name: "Отказаться от выбранных файлов",
+      name: "Отказаться от неподтверждённой отправки",
       exact: true,
     })
     .click();
+  await expect(field).toHaveValue("");
+  expect(sends).toEqual([]);
+  await field.fill("FRESH_TEXT_ONLY");
   await page.getByRole("button", { name: "Отправить", exact: true }).click();
   await expect(field).toHaveValue("");
   expect(sends).toEqual([
     {
       postId: 1,
-      text: "KEEP_WITH_FIRST_PHOTO",
+      text: "FRESH_TEXT_ONLY",
       parentId: null,
-      photos: ["https://example.test/first.webp"],
+      photos: null,
     },
   ]);
   expect(uploads).toBe(2);
@@ -463,8 +479,8 @@ test("a reply with two confirmed photos is sent once and updates the loaded comm
   let uploads = 0;
   await commentsApi(page, (name, input) => {
     if (name === "club.comments") return ok(rows);
-    if (name === "club.uploadCommentPhoto")
-      return ok({ url: `https://example.test/${++uploads}.webp` });
+    if (name === "club.uploadPrivateCommentPhoto")
+      return ok(privatePhoto(input, ++uploads));
     if (name === "club.addComment") {
       sends.push(input);
       rows.push({
@@ -501,7 +517,8 @@ test("a reply with two confirmed photos is sent once and updates the loaded comm
       postId: 1,
       text: "TWO_PHOTO_REPLY",
       parentId: 11,
-      photos: ["https://example.test/1.webp", "https://example.test/2.webp"],
+      photos: [privatePhoto({}, 1).url, privatePhoto({}, 2).url],
+      idempotencyKey: expect.any(String),
     },
   ]);
 });

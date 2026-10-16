@@ -13,8 +13,13 @@ API86/boundaries674. CF-F3b: owner/post-scoped ArrayBuffer/File journal + atomic
 revision CAS, native Chromium storage RED4→GREEN4 + concurrent claim:5/5 pass,
 850ms. Reload сохраняет bytes/keys/post/reply/text, stale write/clear и byte
 substitution/phase thaw/account mismatch отвергаются. Storage document fixture
-synthetic, API/SQL/S3 не вызываются. Пока НЕ подключено к ClubComments:
-preview/session/reload UI и native API/S3 — следующие CF-F3c/d, не GREEN.
+synthetic, API/SQL/S3 не вызываются. CF-F3c теперь подключён к ClubComments без
+CSS/assets: local blob до save, durable checkpoint, explicit restore/replay/
+discard; unknown write replay только exact key/payload. Thread keyed на actor/
+post, late canonical read не очищает чужую операцию.5/5 Chromium/Next cases17.29s
+(API synthetic, File/IndexedDB/session настоящие), existing comments/moderation
+21/21 pass36.1s. Full2441 pass/1507 opt-in skips/0 fail, types/full lint/isolated
+production build29/29 pass. Native API/SQL/S3 — следующий CF-F3d, ещё не GREEN.
 Оформление/backend/DB/S3/flags не менялись, no push/deploy. TDD/security направили
 проверки на неизменяемый retry payload и запрет записи при storage failure.
 

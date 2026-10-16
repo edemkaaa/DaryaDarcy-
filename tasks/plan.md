@@ -358,9 +358,12 @@ upload/status adapter, frozen addComment payload/key и checkpoint-before-networ
 15 unit cases (10 RED→11 GREEN +4 acceptance), full2441 pass/1497 opt-in skips,
 types/lint/build/API86/boundaries674. CF-F3b native File/IndexedDB RED4→GREEN4 +
 concurrent claim:5/5 pass,850ms; actor/post slots, durable bytes/keys/reply/text,
-revision CAS, same-key byte substitution и frozen phase guards. UI/API+SQL+S3
-ещё НЕ приняты. Далее existing form wiring/session/blob lifecycle (CF-F3c), scoped native/regression
-приёмка (CF-F3d). Existing text-only/edit/like/delete, two-photo/48h/access правила,
+revision CAS, same-key byte substitution и frozen phase guards. CF-F3c existing
+form wired без CSS:5/5 real Chromium/File/IndexedDB +synthetic API (17.29s),
+legacy comments/moderation21/21 (36.1s), full2441 pass/1507 opt-in skips,
+types/lint/isolated build29/29 pass. Lost ACK/reload, account switch during
+upload/status/canonical read, remove/revoke проверены; API+SQL+S3 ещё НЕ приняты.
+Далее scoped native/regression приёмка (CF-F3d). Existing text-only/edit/like/delete, two-photo/48h/access правила,
 backend schema/contracts, CSS/old S3/working DB/flags/push/deploy не менять.
 
 CF-F2 (16 октября): по прямому поручению закрытые фото/PNG/карусели и документы

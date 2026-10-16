@@ -39,9 +39,29 @@
     E2E types pass; full lint/boundaries675/diff pass. App build/full2441 из CF-F3a
     не повторять: новый journal ещё не импортируется приложением; native fixture
     реально bundlит и выполняет его. Далее CF-F3c, форма пока legacy public path.
-  - [ ] CF-F3c: подключить existing форму без CSS/layout изменений: local blob,
+  - [x] CF-F3c: подключить existing форму без CSS/layout изменений: local blob,
     remove/revoke/session/unmount, explicit recovery/replay; legacy text-only и
     edit/delete/like не переделывать. Browser lost ACK/reload/account switch.
+    Local selection без public upload, explicit restore/replay/discard с прежним
+    payload/key; canonical read под task/owner guard до clear. Keyed thread на
+    actor/post изолирует всю compose/session state; уход скрывает/revokes blobs,
+    возврат использует локальные bytes. Storage error fail-closed, никаких public
+    fallbacks. RED missing blob1→GREEN; final **5/5 Chromium/Next pass**,17.29s:
+    lost upload+write ACK/reload, account switch during upload/status/canonical
+    read, remove/revoke/no removed-file upload. API synthetic; File/IndexedDB/
+    session/browser настоящие. Initial3/4 pass: единственный test expectation
+    ошибочно ожидал отсутствия undefined полей, fixture JSON даёт null; исправлен
+    только expectation, legacy text-only wire не менялся. Existing comments/
+    moderation spec **21/21 pass**,36.1s; прежние два public-upload expectations
+    обновлены на deferred private flow/frozen discard без частичной публикации.
+    Full **2441 pass/1507 opt-in skips**,0 fail; JSON unit report26.60s.
+    Root/frontend/E2E types/full lint pass; production isolated build compile11.9s,
+    TypeScript4.9s/static29/29 exit0, no .env/working credentials, target127.0.0.1:1.
+    React/security review: no CSS/assets/role/quota changes, existing text/edit/
+    like/delete server paths preserved, late read cannot clear another owner.
+    Disk снова1.8GiB: только own generated .next/cache360MiB удалён после
+    realpath/uid/no-symlink/BUILD_ID guards; regenerated on build, остальные
+    output/source/images/containers/volumes сохранены. Free2.1GiB. Далее CF-F3d.
   - [ ] CF-F3d: scoped native API/SQL/S3 acceptance, affected regressions,
     types/lint/build/review/docs и local commits; без rollout/device claims.
 

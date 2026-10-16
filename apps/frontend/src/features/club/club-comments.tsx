@@ -29,10 +29,8 @@ import {
 } from "@/shared/api/errors";
 import { requireOk, requireCommentLike } from "@/shared/api/action-result";
 import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
-import { usePostUploadSelection } from "@/features/admin/use-post-upload-selection";
-import { PostUploadStatus } from "@/features/admin/post-upload-status";
-import { requireUploadedUrl } from "@/shared/media/upload-result";
-import { fileToUpload, pickWebFiles } from "@/shared/media/image-upload";
+import { usePrivateCommentFiles } from "./use-private-comment-files";
+import type { PrivateCommentRecord } from "@/domain/post/private-comment-save";
 import { PhotoViewer } from "@/shared/media/photo-viewer";
 import {
   COMMENT_CHAR_LIMIT,
@@ -190,7 +188,13 @@ function CommentMenu({
     </Dialog>
   );
 }
-export function ClubComments({
+export function ClubComments(props: ClubCommentsProps) {
+  const { user } = useAuth();
+  return (
+    <CommentThread key={`${user?.id ?? "guest"}:${props.postId}`} {...props} />
+  );
+}
+function CommentThread({
   postId,
   tags,
   createdAt,
@@ -202,7 +206,6 @@ export function ClubComments({
   const active = useScreenActive();
   const action = useConfirmedAction(active, postId);
   const operation = action.operation;
-  const selection = usePostUploadSelection();
   const uploading = operation.kind === "photos";
   const actionError = action.error;
   const setActionError = action.setError;
@@ -224,12 +227,21 @@ export function ClubComments({
       viewerVisible ||
       operation.busy ||
       actionError ||
-      selection.pending.length ||
       action.unknown,
     ),
   );
   const utils = trpc.useUtils();
   const community = isCommunityPost(tags);
+  const privateFiles = usePrivateCommentFiles(
+    active && nearby && community && isAuthenticated,
+    postId,
+  );
+  const pendingPrivate = privateFiles.record;
+  const composeBlocked =
+    action.blocked ||
+    Boolean(pendingPrivate) ||
+    privateFiles.loading ||
+    Boolean(privateFiles.error);
   const open = areCommentsOpen(tags, createdAt);
   const until = commentsCloseAt(createdAt);
   const comments = trpc.club.comments.useQuery(
@@ -242,7 +254,7 @@ export function ClubComments({
   );
   const denied = [401, 403, 404].includes(getHttpStatus(comments.error) ?? 0);
   const cancelOperation = operation.cancel;
-  const resetUploads = selection.reset;
+  const resetUploads = privateFiles.reset;
   useEffect(() => {
     if (!denied) return;
     cancelOperation();
@@ -295,10 +307,8 @@ export function ClubComments({
     mutate: (
       input: Parameters<typeof utils.client.club.addComment.mutate>[0],
     ) => {
-      try {
-        selection.assertReady();
-      } catch (cause) {
-        setActionError((cause as Error).message);
+      if (photos.length) {
+        void sendPrivate();
         return;
       }
       runAction(
@@ -319,6 +329,64 @@ export function ClubComments({
         true,
       );
     },
+  };
+  const clearComposer = () => {
+    setText("");
+    setPhotos([]);
+    setReplyTo(null);
+    refreshCounts();
+  };
+  const sendPrivate = async (record?: PrivateCommentRecord) => {
+    const task = operation.begin("send");
+    if (!task) return;
+    setActionError(null);
+    try {
+      let current = record;
+      if (!current) {
+        const prepared = await privateFiles.prepare(
+          { text: text.trim(), parentId: replyTo ?? undefined },
+          photos,
+          task,
+        );
+        if (prepared.restored) {
+          setActionError(
+            "На этом устройстве уже есть отправка. Восстановите её перед повтором.",
+          );
+          return;
+        }
+        current = prepared.record;
+      }
+      await privateFiles.save(current, task);
+      task.assertCurrent();
+      clearComposer();
+    } catch (error) {
+      checkOperationAccessError(error);
+      if (task.isCurrent()) setActionError(getRequestErrorMessage(error));
+    } finally {
+      task.finish();
+    }
+  };
+  const readOrDiscardPrivate = async (discard: boolean) => {
+    if (!pendingPrivate) return;
+    const task = operation.begin("check-private-comment");
+    if (!task) return;
+    try {
+      if (discard) {
+        await privateFiles.discard(pendingPrivate, task);
+        task.assertCurrent();
+        clearComposer();
+      } else {
+        await privateFiles.read(task);
+        setActionError(
+          "Комментарии обновлены. Повтор отправки использует прежние данные и ключ.",
+        );
+      }
+    } catch (error) {
+      checkOperationAccessError(error);
+      if (task.isCurrent()) setActionError(getRequestErrorMessage(error));
+    } finally {
+      task.finish();
+    }
   };
   const update = {
     isPending: operation.kind === "edit",
@@ -452,38 +520,17 @@ export function ClubComments({
     }
   };
   const pickPhotos = async () => {
-    if (photos.length >= 2 || action.blocked) return;
+    if (photos.length >= 2 || composeBlocked) return;
     const task = operation.begin("photos");
     if (!task) return;
     setActionError(null);
-    let selected: number | undefined;
     try {
-      selection.assertReady();
-      const slots = 2 - photos.length;
-      const files = await pickWebFiles("image/*", slots > 1, {
-        signal: task.signal,
-        maxFiles: slots,
-      });
+      const selected = await privateFiles.pick(2 - photos.length, task);
       task.assertCurrent();
-      const selections = selection.select(files);
-      for (const [index, file] of files.entries()) {
-        selected = selections[index];
-        const payload = await fileToUpload(file, { signal: task.signal });
-        task.assertCurrent();
-        selection.sending(selected);
-        const url = requireUploadedUrl(
-          await utils.client.club.uploadCommentPhoto.mutate(payload, {
-            signal: task.signal,
-          }),
-        );
-        task.assertCurrent();
-        selection.confirmed(selected);
-        setPhotos((prev) => [...prev, url].slice(0, 2));
-      }
+      setPhotos((prev) => [...prev, ...selected].slice(0, 2));
     } catch (error) {
       checkOperationAccessError(error);
       if (task.isCurrent()) {
-        selection.failed(selected, error);
         setActionError(getRequestErrorMessage(error));
       }
     } finally {
@@ -670,7 +717,7 @@ export function ClubComments({
             </Action>
             {open && isAuthenticated ? (
               <Action
-                disabled={action.blocked}
+                disabled={composeBlocked}
                 onClick={() => setReplyTo(item.id)}
               >
                 <Typography className={classes.replyBtn}>Ответить</Typography>
@@ -716,14 +763,14 @@ export function ClubComments({
             .join(" ")}
         >
           {replyTo ? (
-            <Action disabled={action.blocked} onClick={() => setReplyTo(null)}>
+            <Action disabled={composeBlocked} onClick={() => setReplyTo(null)}>
               <Typography className={classes.cancelReply}>
                 Отмена ответа
               </Typography>
             </Action>
           ) : null}
           <Field
-            disabled={action.blocked}
+            disabled={composeBlocked}
             value={text}
             onValueChange={setText}
             placeholder={replyTo ? "Ваш ответ..." : "Написать комментарий..."}
@@ -758,16 +805,17 @@ export function ClubComments({
                     .join(" ")}
                 >
                   <Picture
-                    source={{ uri }}
+                    source={{ uri: privateFiles.preview(uri) }}
                     contentFit="cover"
                     className={classes.photo}
                   />
                   <Action
-                    disabled={action.blocked}
+                    disabled={composeBlocked}
                     aria-label="Удалить фото из комментария"
-                    onClick={() =>
-                      setPhotos((prev) => prev.filter((p) => p !== uri))
-                    }
+                    onClick={() => {
+                      privateFiles.remove(uri);
+                      setPhotos((prev) => prev.filter((p) => p !== uri));
+                    }}
                     className={classes.removePhoto}
                   >
                     <Typography className={classes.removePhotoText}>
@@ -787,11 +835,7 @@ export function ClubComments({
               onClick={() => void pickPhotos()}
               aria-label={`Фото (${photos.length}/2)`}
               aria-busy={uploading}
-              disabled={
-                action.blocked ||
-                photos.length >= 2 ||
-                selection.pending.length > 0
-              }
+              disabled={composeBlocked || photos.length >= 2}
               className={classes.attachBtn}
             >
               {uploading ? (
@@ -813,9 +857,7 @@ export function ClubComments({
                   photos: photos.length ? photos : undefined,
                 });
               }}
-              disabled={
-                action.blocked || !text.trim() || selection.pending.length > 0
-              }
+              disabled={composeBlocked || !text.trim()}
               aria-label="Отправить"
               aria-busy={add.isPending}
               className={classes.send}
@@ -836,11 +878,55 @@ export function ClubComments({
           Войдите, чтобы оставить комментарий
         </Typography>
       ) : null}
-      <PostUploadStatus
-        selection={selection}
-        busy={operation.busy || Boolean(action.unknown)}
-        subject="комментария"
-      />
+      {privateFiles.error ? (
+        <Typography role="alert" className={classes.error}>
+          {privateFiles.error}
+        </Typography>
+      ) : null}
+      {pendingPrivate ? (
+        <div className="ui-stack">
+          <Typography role="alert" className={classes.error}>
+            На устройстве сохранена отправка комментария.
+          </Typography>
+          <Action
+            disabled={operation.busy}
+            onClick={() => {
+              const restored = privateFiles.restore();
+              if (!restored) return;
+              setText(restored.record.text);
+              setPhotos(restored.photos);
+              setReplyTo(restored.record.parentId ?? null);
+            }}
+          >
+            Восстановить отправку
+          </Action>
+          <Action
+            disabled={operation.busy}
+            onClick={() => void sendPrivate(pendingPrivate)}
+          >
+            Повторить отправку
+          </Action>
+          <Action
+            disabled={operation.busy}
+            onClick={() => void readOrDiscardPrivate(false)}
+          >
+            Обновить комментарии
+          </Action>
+          <Action
+            disabled={operation.busy}
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Отказаться от сохранённой отправки? Уже отправленный комментарий останется в списке.",
+                )
+              )
+                void readOrDiscardPrivate(true);
+            }}
+          >
+            Отказаться от неподтверждённой отправки
+          </Action>
+        </div>
+      ) : null}
       {action.unknown && !operation.busy ? (
         <div className="ui-stack">
           <Typography role="alert" className={classes.error}>
@@ -861,7 +947,7 @@ export function ClubComments({
                 setText("");
                 setPhotos([]);
                 setReplyTo(null);
-                selection.reset();
+                privateFiles.reset();
                 action.discard();
               }}
             >
