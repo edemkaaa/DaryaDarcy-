@@ -10,10 +10,11 @@ import { PrivateFilesController } from "./private-files.controller";
 import { PrivateFilesService } from "./private-files.service";
 import { PrivateContentFilesController } from "./private-content-files.controller";
 import { PrivateContentFilesService } from "./private-content-files.service";
+import { LibraryFilesController } from "./library-files.controller";
 
 @Module({
   imports: [IdentityModule],
-  controllers: [VideoUploadController, PrivateVideoUploadController, PrivateFilesController, PrivateContentFilesController],
+  controllers: [VideoUploadController, PrivateVideoUploadController, PrivateFilesController, PrivateContentFilesController, LibraryFilesController],
   providers: [
     ContentReadService,
     ContentWriteService,

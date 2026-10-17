@@ -1,5 +1,27 @@
 # Spec: закрытая серверная выдача вложений постов
 
+## LB — встроенные файлы Библиотеки, принят17 октября2026
+
+Разрешена local реализация и репетиция только synthetic6 files, own disposable
+backend_test и loopback SDK wire. Working DB/real S3/старые files/URLs/design/
+push/deploy запрещены. Это не перенос настоящего содержимого Яндекса.
+
+Привязка materialKey (recipes/peterburg/patterns), fileKey, assetId, sortOrder,
+enabled, revision: unique slot и asset, private file принадлежит одной binding.
+Новый parent=library, отдельные libraryPhoto/libraryDocument usages; existing
+user upload API не расширяется. GET /api/library/materials/:materialKey/files
+и GET/HEAD /api/media/library-files/:materialKey/:fileKey, bounded list/Range,
+live session/club policy до storage,404 при отказе/disabled,503 при сбое,
+no-store/nosniff и никогда raw storage URL/public fallback. Default-off.
+
+Операционный importer (без нового HTTP upload/editor): validated manifest с
+bytes/hash/MIME/size/expectedRevision и постоянным ключом ДО storage. Изменённый
+payload409; pending не success. Ready copies затем одна транзакция material
+binding CAS; exact-key replay/restart без дублей. Старые verified private версии
+сохраняются для revision-guarded rollback; никакого возврата anonymous URL.
+Публичные covers/avatars/theme/free materials не менять, guest preview не
+получает original. Репетиция SDK wire не доказывает actual S3 privacy/cache purge.
+
 ## VU — закрытые видео постов, принят 16 октября 2026
 
 Прямое согласование пользователя: реализовать локально принятый контракт,

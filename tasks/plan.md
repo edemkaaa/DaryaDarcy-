@@ -83,6 +83,17 @@
 
 ### Снимок, от которого продолжать
 
+**17 октября, LB — принят контракт Библиотеки и локальная репетиция.**
+Новое прямое поручение разрешает local schema/API/importer/tests только для
+synthetic файлов, own disposable SQL и loopback protocol storage. Никаких
+Timeweb/S3 requests, working DB, старых files/URLs, frontend/design/push/deploy.
+LB1: default-off привязки materialKey/fileKey→assetId/revision и live file/list
+routes. LB2: durable keyed import, проверка bytes/hash/revision, atomic material
+switch и закрытый rollback. LB3: репетиция6 synthetic files, lost ACK/restart/
+concurrent retry/access revoke/unchanged public controls; native SQL/API/wire,
+fresh additive migration, review и локальные коммиты. Не засчитывать fixture
+storage как ACL acceptance и не включать рабочие флаги.
+
 **17 октября, AG9-TZ:** по прямому поручению повторно сверены §2.1/4.1–4.16,
 existing frontend/backend и доказательства. [Актуальная матрица](../docs/audits/frontend-stage-one-scope-2026-10-03.md)
 отделяет local implementation от приёмки выпуска. Свежие349 native HTTP/SQL и

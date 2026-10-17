@@ -10,6 +10,7 @@ import { privateStorageNamespace, privateAttachmentObjectKey } from "../media/pr
 import { contentFileUrl } from "./private-content-uploads";
 import { articleFileReferences } from "./private-content-binding";
 import { privateMediaUrl, privateReceiptForMedia } from "./private-attachment-association";
+import { libraryFileActive } from "./library-files";
 
 @Injectable()
 export class PrivateContentFilesService {
@@ -43,12 +44,15 @@ export class PrivateContentFilesService {
       const [post] = await database.select().from(posts).where(eq(posts.id, comment.postId)).limit(1);
       if (!post?.published || post.status !== "published" || !["feed", "both", "club"].includes(post.target)) return;
       club = post.target === "club"; login = true;
+    } else if (file.parentKind === "library") {
+      if (!await libraryFileActive(file)) return;
+      club = true;
     } else return;
     if (club || login) {
       if (!req.headers.cookie && !req.headers.authorization) return;
       try { const user = await this.sessions.authenticateRequest(req); if (club && !(await userHasClubAccess(user))) return; }
       catch (error) { if (error instanceof HttpError && error.statusCode === 403) return; throw error; }
     }
-    return { key: privateAttachmentObjectKey("document", assetId, "content"), mime: file.mimeType, etag: file.etag, inline: file.mimeType === "image/webp" };
+    return { key: privateAttachmentObjectKey("document", assetId, "content"), mime: file.mimeType, etag: file.etag, inline: file.mimeType === "image/webp" || file.usage === "libraryPhoto" };
   }
 }

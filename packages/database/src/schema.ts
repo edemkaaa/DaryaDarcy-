@@ -171,14 +171,14 @@ export const privateContentFiles = mysqlTable("private_content_files", {
   assetId: varchar("assetId", { length: 36 }).notNull(),
   payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
   namespaceHash: varchar("namespaceHash", { length: 64 }).notNull(),
-  usage: mysqlEnum("usage", ["postPhoto", "articlePhoto", "articleDocument", "commentPhoto"]).notNull(),
+  usage: mysqlEnum("usage", ["postPhoto", "articlePhoto", "articleDocument", "commentPhoto", "libraryPhoto", "libraryDocument"]).notNull(),
   targetPostId: int("targetPostId"),
   filename: varchar("filename", { length: 512 }).notNull(),
   mimeType: varchar("mimeType", { length: 128 }).notNull(),
   fileSize: int("fileSize").notNull(),
   state: mysqlEnum("state", ["pending", "ready"]).default("pending").notNull(),
   etag: varchar("etag", { length: 128 }),
-  parentKind: mysqlEnum("parentKind", ["post", "article", "comment"]),
+  parentKind: mysqlEnum("parentKind", ["post", "article", "comment", "library"]),
   parentId: int("parentId"),
   retiredAt: timestamp("retiredAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -187,6 +187,30 @@ export const privateContentFiles = mysqlTable("private_content_files", {
   index("private_content_owner_key").on(table.actorUserId, table.requestKey),
   index("private_content_parent").on(table.parentKind, table.parentId),
 ]);
+
+export const libraryFileBindings = mysqlTable("library_file_bindings", {
+  id: int("id").autoincrement().primaryKey(),
+  materialKey: varchar("materialKey", { length: 32 }).notNull(),
+  fileKey: varchar("fileKey", { length: 64 }).notNull(),
+  assetId: varchar("assetId", { length: 36 }).notNull(),
+  sortOrder: int("sortOrder").notNull(),
+  enabled: boolean("enabled").notNull().default(false),
+  revision: int("revision").notNull(),
+}, table => [
+  uniqueIndex("library_file_slot_unique").on(table.materialKey, table.fileKey),
+  uniqueIndex("library_file_asset_unique").on(table.assetId),
+]);
+
+/** Operation journal stores opaque references, never source paths, URLs or file bytes. */
+export const libraryFileMigrations = mysqlTable("library_file_migrations", {
+  requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
+  payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
+  plan: json("plan").$type<string[]>().notNull(),
+  state: mysqlEnum("state", ["pending", "committed", "rolledBack"]).default("pending").notNull(),
+  previous: json("previous").$type<(typeof libraryFileBindings.$inferSelect | null)[]>(),
+  result: json("result").$type<(typeof libraryFileBindings.$inferSelect)[]>(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
 
 // ── Feed: Tags (reference table for available tags) ──
 export const commentCreationRequests = mysqlTable("comment_creation_requests", {

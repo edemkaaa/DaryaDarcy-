@@ -2,6 +2,23 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### LB — Библиотека, принято17 октября
+
+- [x] LB1 — add-only schema, default-off list/read routes и live club/session
+  checks; сначала native HTTP RED, затем GREEN. Existing streaming/Range reuse.
+  RED404→GREEN; display-order RED→GREEN. Native5 library +21 existing content
+  checks=26 pass/2 suites/5.07s, skips0. Fixture SQL0041, не fresh acceptance.
+  Unit7/2 suites pass; root types/backend build/boundaries683/docs58/diff exit0.
+  No frontend/working/S3 changes. Existing content suite logs missing fixture
+  push-consent table, transport credentials отсутствуют; внешних push нет.
+  Review: новый parent library требует live binding+asset match; old UUID read
+  тоже закрыт при disabled binding/flag, list source-free/keyset bounded.
+- [ ] LB2 — keyed migration manifest/intent до копирования, exact byte import,
+  atomic binding revision CAS, recovery без дублей и rollback закрытой версии.
+- [ ] LB3 —6 synthetic files/own tmpfs backend_test/loopback storage: потеря
+  ответов, restart/retry, откат, права и public controls. Никаких real S3/working
+  DB/старых files/frontend/design/push/deploy. Проверки и коммиты записывать здесь.
+
 ### Сверка всего первого этапа — 17 октября
 
 - [x] AG9-TZ — повторно сопоставить сохранённое ТЗ§2.1/4.1–4.16 с current
