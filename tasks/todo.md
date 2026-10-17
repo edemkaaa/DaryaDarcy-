@@ -22,6 +22,30 @@
   Следующий вход — пользователь переключает VPN/сеть, затем read-only S3 preflight;
   новые bucket/ключи/ослабление TLS/policy для обхода блокера не нужны.
 
+- [x] AG5/LB — независимая локальная репетиция backup/restore с новой0041.
+  По «давай дальше пока»17 октября актуализирован existing native backup test:
+  synthetic library binding/ready receipt и pending receipt/import intent,
+  JSON snapshots/reserved IDs и Unicode filename. Причина повтора — прежний
+  native restore был на41 migrations, а после LB появились2 таблицы и enum values.
+  Production backup→actual mysqldump8.4→gzip→native mysql restore в другую own
+  пустую БД: **7/7 pass,0 skip,4.42s**, обе42-migration schema/history проверены.
+  Сравнены hashes содержимого всех таблиц и точный SHOW CREATE TABLE: InnoDB,
+  collations/generated fields/indexes/auto increments. Отдельно проверены live
+  binding→ready receipt, pending без parent/ETag, committed/pending journals и
+  уникальность slot/asset/requestKey после restore. Файл0600/каталог0700,
+  partial artifacts отсутствуют; nonempty target отказывает без изменения данных.
+  Это metadata/DB restore, не проверка файлов S3/выпуска. Runtime не менялся,
+  новых функций/deps нет; existing backup transport test adapter сохранён.
+  Root types/prettier/boundaries685/diff exit0, review test/ownership/no-network.
+  S3 env в isolated runner отсутствует и явно выключен; flags/mail/payment/
+  frontend/design/working DB/старые files/push/deploy не трогались.
+  Own `daryadarcy-fresh-backup-library-source-20261017`52e9fed1…9ea11f/64106 и
+  `daryadarcy-fresh-backup-library-target-20261017`4f7d5478…21da3e/64107 удалены
+  после exact ID/name/label/loopback/tmpfs768MiB/no mounts guards. Temp archive/
+  adapter удалены самим тестом; чужие2 stopped containers/images/volumes сохранены.
+  LB4 actual S3 остаётся blocked/не PASS. Исторические пустые галочки ниже не
+  возобновлять как новые задачи; оставшиеся AG5/AG9 требуют external inputs/решений.
+
 - [x] LB1 — add-only schema, default-off list/read routes и live club/session
   checks; сначала native HTTP RED, затем GREEN. Existing streaming/Range reuse.
   RED404→GREEN; display-order RED→GREEN. Native5 library +21 existing content

@@ -165,6 +165,48 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         "INSERT INTO private_attachment_uploads(requestKey,actorUserId,assetId,payloadHash,namespaceHash,type,filename,mimeType,fileSize) VALUES('backup-fixture-upload',NULL,'backup-fixture-asset',?,?,'document','fixture.pdf','application/pdf',10)",
         ["b".repeat(64), "c".repeat(64)],
       );
+      // Real SQL dump/restore must preserve both published references and unfinished intents.
+      const libraryAsset = "00000000-0000-4000-8000-000000070001";
+      const pendingAsset = "00000000-0000-4000-8000-000000070002";
+      const libraryBinding = {
+        id: 70001,
+        materialKey: "recipes",
+        fileKey: "main",
+        assetId: libraryAsset,
+        sortOrder: 0,
+        enabled: true,
+        revision: 1,
+      };
+      await source.execute(
+        "INSERT INTO private_content_files(requestKey,actorUserId,assetId,payloadHash,namespaceHash,`usage`,filename,mimeType,fileSize,state,etag,parentKind,parentId) VALUES(?,70001,?,?,?,'libraryDocument','Материал 🧪.txt','text/plain; charset=utf-8',10,'ready','\"backup-library-etag\"','library',70001),(?,70001,?,?,?,'libraryDocument','pending.txt','text/plain; charset=utf-8',12,'pending',NULL,NULL,NULL)",
+        [
+          "1".repeat(64),
+          libraryAsset,
+          "2".repeat(64),
+          "3".repeat(64),
+          "4".repeat(64),
+          pendingAsset,
+          "5".repeat(64),
+          "3".repeat(64),
+        ],
+      );
+      await source.execute(
+        "INSERT INTO library_file_bindings(id,materialKey,fileKey,assetId,sortOrder,enabled,revision) VALUES(70001,'recipes','main',?,0,TRUE,1)",
+        [libraryAsset],
+      );
+      await source.execute(
+        "INSERT INTO library_file_migrations(requestKey,payloadHash,plan,state,previous,result) VALUES(?,?,?,'committed',?,?),(?,?,?,'pending',NULL,NULL)",
+        [
+          "6".repeat(64),
+          "7".repeat(64),
+          JSON.stringify([libraryAsset]),
+          JSON.stringify([null]),
+          JSON.stringify([libraryBinding]),
+          "8".repeat(64),
+          "9".repeat(64),
+          JSON.stringify([pendingAsset]),
+        ],
+      );
       tables = (await rows(source, "SHOW TABLES"))
         .map((row) => String(Object.values(row)[0]))
         .sort();
@@ -235,6 +277,58 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
     });
     it("preserves engines, collations, generated expressions, indexes and auto increments", async () => {
       expect(await definitions(target)).toEqual(ddl);
+    });
+    it("preserves library binding integrity, pending recovery and uniqueness after restore", async () => {
+      expect(
+        await rows(
+          target,
+          "SELECT b.fileKey,b.enabled,b.revision,f.filename,f.parentKind,f.state FROM library_file_bindings b JOIN private_content_files f ON f.assetId=b.assetId AND f.parentId=b.id",
+        ),
+      ).toEqual([
+        {
+          fileKey: "main",
+          enabled: 1,
+          revision: 1,
+          filename: "Материал 🧪.txt",
+          parentKind: "library",
+          state: "ready",
+        },
+      ]);
+      expect(
+        await rows(
+          target,
+          "SELECT state,JSON_LENGTH(plan) AS reserved,JSON_UNQUOTE(JSON_EXTRACT(result,'$[0].assetId')) AS boundAsset FROM library_file_migrations ORDER BY requestKey",
+        ),
+      ).toEqual([
+        {
+          state: "committed",
+          reserved: 1,
+          boundAsset: "00000000-0000-4000-8000-000000070001",
+        },
+        { state: "pending", reserved: 1, boundAsset: null },
+      ]);
+      expect(
+        await rows(
+          target,
+          "SELECT state,parentId,etag FROM private_content_files WHERE assetId='00000000-0000-4000-8000-000000070002'",
+        ),
+      ).toEqual([{ state: "pending", parentId: null, etag: null }]);
+      await expect(
+        target.execute(
+          "INSERT INTO library_file_bindings(materialKey,fileKey,assetId,sortOrder,enabled,revision) VALUES('recipes','main','duplicate-slot',0,TRUE,1)",
+        ),
+      ).rejects.toMatchObject({ code: "ER_DUP_ENTRY" });
+      await expect(
+        target.execute(
+          "INSERT INTO library_file_bindings(materialKey,fileKey,assetId,sortOrder,enabled,revision) VALUES('patterns','other','00000000-0000-4000-8000-000000070001',0,TRUE,1)",
+        ),
+      ).rejects.toMatchObject({ code: "ER_DUP_ENTRY" });
+      await expect(
+        target.execute(
+          "INSERT INTO library_file_migrations(requestKey,payloadHash,plan) VALUES(?,?,JSON_ARRAY())",
+          ["8".repeat(64), "0".repeat(64)],
+        ),
+      ).rejects.toMatchObject({ code: "ER_DUP_ENTRY" });
     });
     it("keeps identity and recovery uniqueness enforced after restore", async () => {
       await expect(

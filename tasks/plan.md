@@ -92,6 +92,15 @@ TCP connect, но TLS timeout до HTTP/auth. Записей в S3 нет, actua
 **не пройден**, LB3 не подменяет его. Own fresh42 initialization прошла. Для
 продолжения нужно восстановление сети/VPN пользователем; точные факты в todo.
 
+По последующему «давай дальше пока» выполнена независимая AG5/LB local backup/
+restore acceptance уже с42 migrations: synthetic library ready/pending receipts,
+binding/JSON journals, exact table hashes/DDL и uniqueness восстановлены native
+MySQL tools в другой own пустой БД.7/7 pass/0 skip/4.42s; runtime не менялся.
+Оба tmpfs контейнера и временный архив убраны с guards. S3/working DB/frontend/
+старые files/flags/push/deploy не трогались. Это не отменяет network blocker LB4
+и не является releaseApproval. Далее только восстановление S3-связи или отдельные
+внешние AG5/AG9 входы; готовое/исторические unchecked пункты не переделывать.
+
 **17 октября, LB — принят контракт Библиотеки и локальная репетиция.**
 Новое прямое поручение разрешает local schema/API/importer/tests только для
 synthetic файлов, own disposable SQL и loopback protocol storage. Никаких
