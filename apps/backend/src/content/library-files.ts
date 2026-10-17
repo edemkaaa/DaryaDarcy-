@@ -91,7 +91,7 @@ export async function listLibraryFiles(
   const rows = await database
     .select({ binding: libraryFileBindings, file: privateContentFiles })
     .from(libraryFileBindings)
-    .innerJoin(
+    .leftJoin(
       privateContentFiles,
       eq(privateContentFiles.assetId, libraryFileBindings.assetId),
     )
@@ -113,21 +113,19 @@ export async function listLibraryFiles(
     .orderBy(asc(libraryFileBindings.sortOrder), asc(libraryFileBindings.id))
     .limit(51);
   const page = rows.slice(0, 50);
-  if (
-    page.some(
-      ({ binding, file }) =>
-        file.parentKind !== "library" ||
-        file.parentId !== binding.id ||
-        file.state !== "ready" ||
-        !file.etag ||
-        file.retiredAt ||
-        file.namespaceHash !== privateStorageNamespace().hash ||
-        !["libraryPhoto", "libraryDocument"].includes(file.usage),
+  const files = page.map(({ binding, file }) => {
+    if (
+      !file ||
+      file.parentKind !== "library" ||
+      file.parentId !== binding.id ||
+      file.state !== "ready" ||
+      !file.etag ||
+      file.retiredAt ||
+      file.namespaceHash !== privateStorageNamespace().hash ||
+      !["libraryPhoto", "libraryDocument"].includes(file.usage)
     )
-  )
-    throw new Error("Library binding unavailable");
-  return {
-    files: page.map(({ binding, file }) => ({
+      throw new Error("Library binding unavailable");
+    return {
       fileKey: binding.fileKey,
       sortOrder: binding.sortOrder,
       revision: binding.revision,
@@ -135,7 +133,10 @@ export async function listLibraryFiles(
       mimeType: file.mimeType,
       fileSize: file.fileSize,
       url: libraryFileUrl(material, binding.fileKey),
-    })),
+    };
+  });
+  return {
+    files,
     nextCursor:
       rows.length > 50
         ? `${page.at(-1)!.binding.sortOrder}:${page.at(-1)!.binding.id}`

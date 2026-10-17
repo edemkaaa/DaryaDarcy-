@@ -83,6 +83,14 @@
 
 ### Снимок, от которого продолжать
 
+**17 октября, локальный LB read integrity после «пока без S3».** Native тесты
+выявили INNER JOIN silent omission: enabled binding без receipt показывалась
+как успешный empty/partial list. Minimal LEFT JOIN/validation исправление прошло
+RED2→GREEN, pagination52/50→2/auth revoke/cursor boundaries. Focused20 checks/
+3 suites/0 skips/6.16s; API contract86 unchanged. Own SQL/SDK/API стенд убран
+с guards, внешние/рабочие системы и frontend не трогались. Точный итог в todo;
+это локальное исправление существующего контракта, не actual S3 acceptance.
+
 **17 октября, LB4 — новое разрешение на actual S3 acceptance Библиотеки.**
 Пользователь разрешил existing import/API с Timeweb S3 только на новых synthetic
 files и own disposable fresh backend_test. Не переносить реальные sources/старые

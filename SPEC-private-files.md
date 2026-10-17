@@ -13,6 +13,9 @@ user upload API не расширяется. GET /api/library/materials/:materia
 и GET/HEAD /api/media/library-files/:materialKey/:fileKey, bounded list/Range,
 live session/club policy до storage,404 при отказе/disabled,503 при сбое,
 no-store/nosniff и никогда raw storage URL/public fallback. Default-off.
+Активная binding без соответствующего receipt — ошибка целостности: list503,
+не успешный empty/partial list. Это проверяется на каждой выдаваемой странице;
+disabled bindings исключены, отсутствие прав по-прежнему404 до storage.
 
 Операционный importer (без нового HTTP upload/editor): validated manifest с
 bytes/hash/MIME/size/expectedRevision и постоянным ключом ДО storage. Изменённый

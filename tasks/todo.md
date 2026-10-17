@@ -4,6 +4,27 @@
 
 ### LB — Библиотека, принято17 октября
 
+- [x] LB-read integrity — по «пока без S3»17 октября проверены оставшиеся
+  локальные границы list контракта. **Подтверждённый дефект:** INNER JOIN скрывал
+  enabled binding без receipt и возвращал200/empty либо partial list. Native
+  RED:2 failures200→503 (первая и следующая страница). Minimal LEFT JOIN +
+  validation перед metadata mapping даёт existing generic503/no-store;
+  auth404/disabled hiding/50-item cursor contract не меняются, raw URLs не выдаются.
+  GREEN:8 native list/read +8 native import/rehearsal +4 pure/type =20 checks,
+  3 suites/0 skips/6.16s.52 valid entries+disabled sentinel:50→2, одинаковые
+  sortOrder/граница следующего порядка без gaps/duplicates; malformed cursors
+  и отозванная между страницами сессия404, SDK effects на list отсутствуют.
+  Root types/check:api86(32048 bytes unchanged)/backend bundle/boundaries685/
+  prettier/diff exit0. Review:1 bounded query/51 rows, unique asset join,
+  nullable receipt валидируется до сериализации, нет новых deps/quotas/roles/API.
+  Общий regression:2508 pass/1574 opt-in skips,197 passed suites/91 skipped,
+  60.18s/exit0. Skips не native acceptance;16 native+4 pure checks выше отдельно.
+  Docs58/exit0. После review исправление и regression tests сохраняются вместе.
+  Own `daryadarcy-library-list-20261017` ed6fd6f7…4c843eb/65228 удалён после
+  exact ID/name/label/127.0.0.1/tmpfs768MiB/no mounts guards, SDK/API закрыты.
+  Чужие2 stopped containers/images/volumes сохранены. Настоящие S3/старые files/
+  working DB/frontend/design/flags/push/deploy не трогались; LB4 остаётся blocked.
+
 - [ ] LB4 — по новому прямому разрешению17 октября проверить existing library
   import/read/recovery с actual Timeweb S3, только новые synthetic файлы и own
   fresh tmpfs backend_test. Старые files/working DB/frontend/design/policy writes/
