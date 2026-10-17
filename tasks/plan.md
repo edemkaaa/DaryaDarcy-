@@ -99,8 +99,12 @@ dry-run/rollback, без нового editor API. Focused38 pass/4 suites/8.52s,
 4 manifest/type,5 library read,8 import/rehearsal,21 existing private content.
 Type-contract gate обнаружил accidental enum widening — backend receipt narrowed,
 existing86 frontend procedures/32048 bytes unchanged. MyISAM fault доказал нужный
-engine guard: небезопасная схема отклоняется до intent/SDK. LB3 финальные evidence/
-cleanup ниже в active todo; actual S3/real sources/rollout не разрешены.
+engine guard: небезопасная схема отклоняется до intent/SDK. LB3 завершён:6 synthetic
+files/restart/lost ACK/concurrent retry/rollback/access native, fresh42 install9/9,
+общий2508 pass/1570 opt-in skips/74.73s. Оба own tmpfs SQL/API/SDK стенда убраны
+с guards, чужие containers сохранены. Evidence — начало active todo. Локальный
+scope завершён; actual S3/real sources/старые URLs/frontend integration/rollout
+не разрешены. Не начинать их по общей команде «дальше» без соответствующего решения.
 
 **17 октября, AG9-TZ:** по прямому поручению повторно сверены §2.1/4.1–4.16,
 existing frontend/backend и доказательства. [Актуальная матрица](../docs/audits/frontend-stage-one-scope-2026-10-03.md)

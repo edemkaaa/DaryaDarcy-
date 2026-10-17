@@ -24,9 +24,40 @@
   Review: live admin epoch/role/block, full unique keys+InnoDB, short SQL locks,
   conditional PUT без overwrite, durable UUID/hash, same-material atomic CAS,
   retained private versions/guarded rollback, нет HTTP upload/URL fetch/новых deps.
-- [ ] LB3 —6 synthetic files/own tmpfs backend_test/loopback storage: потеря
+- [x] LB3 —6 synthetic files/own tmpfs backend_test/loopback storage: потеря
   ответов, restart/retry, откат, права и public controls. Никаких real S3/working
   DB/старых files/frontend/design/push/deploy. Проверки и коммиты записывать здесь.
+  - Полная synthetic репетиция:2 TXT placeholders (recipes/peterburg) и4 real
+    lossless WebP (holly/sock/star/apple); dry-run без DB/SDK effects, bytes/hash
+    через stable Nest GET совпали. Это не проверка состава настоящей папки Петербурга.
+    Отдельные Node processes: lost PUT ACK→pending→restart/recovery; SQL commit
+    при намеренно потерянном результате child→restart/replay без нового SDK call.
+    Итог6 enabled bindings/6 receipts/3 committed ops/6 binary PUTs. Параллельные
+    попытки сходятся к одной операции/двум assets; conditional PUT503 допускает
+    same-key retry, не объявляется ложным success. SQL fault второго binding
+    откатывает весь batch, rollback сохраняет stable URL/bytes/private revision.
+    Pending UUID/alias закрыты, epoch revoke до recovery отказывает без storage.
+    Synthetic public-control bytes/metadata неизменны, запросов к ним нет;
+    это fixture, не доказательство anonymous ACL/cache purge реальных URLs.
+  - Отдельная действительно пустая own БД: fresh42 canonical migrations,
+    native schema/HTTP/preflight acceptance **9/9 pass,3.59s**, без fixture DDL.
+    История legacy0017–0019/рабочая БД не исправлялись и не читались.
+  - Финальный общий unit/regression run **2508 pass/1570 opt-in skips,
+    197 passed suites/91 skipped,74.73s/exit0**. SQL/S3/browser skips не PASS;
+    native scoped34 + pure/type4 выше проверены отдельно, fresh9 отдельно.
+    Root types/backend bundle/boundaries685/docs58/check:api86/diff exit0.
+    Скиллы TDD/incremental/API/security/review помогли разделить schema/read,
+    pure manifest и durable importer; найденные order/engine/type defects
+    получили RED/GREEN, новых зависимостей/продуктовых функций нет.
+  - Own containers `daryadarcy-library-rehearsal-20261017` 0bfc0249…5f31a8/52251
+    и `daryadarcy-fresh-library-20261017` 2dba76ad…fb6d50/55614 удалены после
+    exact64 ID/name/codex.owner/127.0.0.1-only/tmpfs768MiB/no mounts guards.
+    Synthetic DB data ephemeral; тесты воссоздают их. Loopback HTTP/SDK закрыты,
+    чужие2 stopped containers/images/volumes сохранены. Git frontend diff пуст.
+  - Коммиты: df3efdc(read/schema),ce32fb7(manifest),9fc1d2d(editor boundary),
+    168ae6f(importer/rehearsal). Текущий разрешённый LB scope закрыт локально;
+    реальные sources/перенос, storage enforcement/старые public URLs, frontend
+    integration и rollout — отдельные решения, не запускать автоматически.
 
 ### Сверка всего первого этапа — 17 октября
 
