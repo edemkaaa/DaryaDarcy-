@@ -4,6 +4,24 @@
 
 ### LB — Библиотека, принято17 октября
 
+- [ ] LB4 — по новому прямому разрешению17 октября проверить existing library
+  import/read/recovery с actual Timeweb S3, только новые synthetic файлы и own
+  fresh tmpfs backend_test. Старые files/working DB/frontend/design/policy writes/
+  runtime flags/push/deploy исключены. Второй principal по-прежнему отложен.
+  **Не выполнено: network blocker.** Два SDK GetBucketPolicy preflight завершились
+  TimeoutError без HTTP status; независимый HTTPS HEAD к endpoint подтвердил TCP
+  connect≈0.003s, TLS не установлен за5s (`SSL connection timeout`,http000).
+  Это не ошибка авторизации/доказательство неверных ключей. Policy не прочитана,
+  PUT/DELETE не выполнялись, synthetic objects не создавались, старые keys/данные
+  не читались. Нельзя засчитывать LB3 loopback как actual S3 acceptance.
+  Own `daryadarcy-fresh-library-s3-20261017` 070f0fa4…71aa5c8/58689:
+  fresh initialization42/exit0/releaseApproval=false, без working configuration.
+  Контейнер удалён после exact ID/name/label/loopback/tmpfs768MiB/no mounts guards;
+  чужие2 stopped containers/images/volumes сохранены. SDK client закрыт,
+  предоставленные ранее ключи использовались лишь в памяти, не записаны в файлы.
+  Следующий вход — пользователь переключает VPN/сеть, затем read-only S3 preflight;
+  новые bucket/ключи/ослабление TLS/policy для обхода блокера не нужны.
+
 - [x] LB1 — add-only schema, default-off list/read routes и live club/session
   checks; сначала native HTTP RED, затем GREEN. Existing streaming/Range reuse.
   RED404→GREEN; display-order RED→GREEN. Native5 library +21 existing content

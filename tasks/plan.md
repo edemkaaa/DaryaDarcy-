@@ -83,6 +83,15 @@
 
 ### Снимок, от которого продолжать
 
+**17 октября, LB4 — новое разрешение на actual S3 acceptance Библиотеки.**
+Пользователь разрешил existing import/API с Timeweb S3 только на новых synthetic
+files и own disposable fresh backend_test. Не переносить реальные sources/старые
+objects, не менять policy/working DB/flags/frontend/design и не делать push/deploy.
+Read-only preflight дважды завершился SDK timeout; отдельный HTTPS HEAD показал
+TCP connect, но TLS timeout до HTTP/auth. Записей в S3 нет, actual acceptance
+**не пройден**, LB3 не подменяет его. Own fresh42 initialization прошла. Для
+продолжения нужно восстановление сети/VPN пользователем; точные факты в todo.
+
 **17 октября, LB — принят контракт Библиотеки и локальная репетиция.**
 Новое прямое поручение разрешает local schema/API/importer/tests только для
 synthetic файлов, own disposable SQL и loopback protocol storage. Никаких
