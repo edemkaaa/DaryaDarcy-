@@ -94,6 +94,14 @@ concurrent retry/access revoke/unchanged public controls; native SQL/API/wire,
 fresh additive migration, review и локальные коммиты. Не засчитывать fixture
 storage как ACL acceptance и не включать рабочие флаги.
 
+LB1/LB2 реализованы17 октября: default-off server binding/read и operator import/
+dry-run/rollback, без нового editor API. Focused38 pass/4 suites/8.52s, no skips:
+4 manifest/type,5 library read,8 import/rehearsal,21 existing private content.
+Type-contract gate обнаружил accidental enum widening — backend receipt narrowed,
+existing86 frontend procedures/32048 bytes unchanged. MyISAM fault доказал нужный
+engine guard: небезопасная схема отклоняется до intent/SDK. LB3 финальные evidence/
+cleanup ниже в active todo; actual S3/real sources/rollout не разрешены.
+
 **17 октября, AG9-TZ:** по прямому поручению повторно сверены §2.1/4.1–4.16,
 existing frontend/backend и доказательства. [Актуальная матрица](../docs/audits/frontend-stage-one-scope-2026-10-03.md)
 отделяет local implementation от приёмки выпуска. Свежие349 native HTTP/SQL и

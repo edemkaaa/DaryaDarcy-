@@ -22,6 +22,40 @@ binding CAS; exact-key replay/restart без дублей. Старые verified
 Публичные covers/avatars/theme/free materials не менять, guest preview не
 получает original. Репетиция SDK wire не доказывает actual S3 privacy/cache purge.
 
+Локальные entrypoints: `inspectLibraryMigration(manifest)` без DB/storage,
+`applyLibraryMigration({id,sessionVersion},manifest)` и
+`rollbackLibraryMigration(actor,idempotencyKey)` в backend content module.
+Это operator-only library functions, не новый API редактора/автоматический job.
+Существующий editor upload/status контракт не получает library usages.
+
+Manifest strict: materialKey, idempotencyKey и files[1..100], каждый содержит
+fileKey, filename, mimeType, bytes=Buffer, sha256, sortOrder, expectedRevision.
+Пути/URL не принимаются и не скачиваются. SHA-256 проверяется до записи intent,
+source bytes копируются без конвертации. Фото JPEG/PNG/WebP≤4MiB/20Mp/single-page
+с decoder validation и без EXIF/XMP/IPTC; небезопасный original отклоняется, не
+перекодируется молча. Документы PDF/TXT/DOCX≤32MiB используют existing MIME
+verifier. Общий batch≤64MiB — предел операционной репетиции, не новая user quota.
+Dry-run выводит только materialKey/count/totalBytes/payloadHash, без bytes/имён.
+
+Actor-scoped journal хранит hash ключа/manifest, reserved UUIDs, state и snapshots
+привязок, не source URL/path/bytes. Intent и pending receipts durable до SDK;
+conditional PUT/HEAD проверяет namespace/policy/metadata/ETag. Потеря ACK даёт503,
+тот же manifest/key восстанавливается после рестарта; pending не публикуется.
+Гонка conditional PUT может дать retryable503; повтор с тем же ключом сходится
+к одной операции/одному объекту на slot. Иной payload или stale revision —409.
+После ready копий изменяются только перечисленные slots одного материала,
+одной транзакцией. Прочие slots не удаляются. Проверяются полные unique indexes
+и InnoDB до intent/storage; live admin/session/block/deletion checks повторяются
+после storage и перед commit, networking не держит SQL transaction открытой.
+
+Rollback допустим только для текущих unchanged revisions/assets; prior verified
+private copies сохраняются, revision растёт. Первый import без prior binding
+откатывается в disabled slot, не в публичный URL; повтор rollback идемпотентен.
+Replay отменённого import запрещён409, более поздний edit не перезаписывается.
+Default-off: PRIVATE_LIBRARY_FILES_ENABLED плюс PRIVATE_CONTENT_FILES_ENABLED.
+Рабочие flags не включены. Реальные sources/перенос, private storage acceptance,
+удаление/закрытие старых URLs и frontend integration требуют отдельного разрешения.
+
 ## VU — закрытые видео постов, принят 16 октября 2026
 
 Прямое согласование пользователя: реализовать локально принятый контракт,

@@ -1,7 +1,7 @@
 import { expect, expectTypeOf, it } from "vitest";
 import sharp from "sharp";
 import { createHash } from "node:crypto";
-import { inspectLibraryMigration } from "../apps/backend/src/content/library-file-migration";
+import { inspectLibraryMigration } from "../apps/backend/src/content/library-migration-manifest";
 import { uploadPrivateContentFile } from "../apps/backend/src/content/private-content-uploads";
 
 it("keeps operator-only library usages out of the existing editor upload contract", () => {

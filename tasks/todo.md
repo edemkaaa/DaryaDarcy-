@@ -13,8 +13,17 @@
   push-consent table, transport credentials отсутствуют; внешних push нет.
   Review: новый parent library требует live binding+asset match; old UUID read
   тоже закрыт при disabled binding/flag, list source-free/keyset bounded.
-- [ ] LB2 — keyed migration manifest/intent до копирования, exact byte import,
+- [x] LB2 — keyed migration manifest/intent до копирования, exact byte import,
   atomic binding revision CAS, recovery без дублей и rollback закрытой версии.
+  Pure manifest RED→3 GREEN; type-contract RED→GREEN обнаружил/устранил accidental
+  library usage widening в editor receipts: check:api86/32048 bytes unchanged,
+  frontend не менялся. Native importer RED4→GREEN; MyISAM preflight RED→GREEN.
+  Финальный focused run:4 pure/type +5 read +8 import/rehearsal +21 existing
+  private-content =38 pass/4 suites/8.52s/skip0. Native JWT/Nest/MySQL/SDK wire,
+  не actual S3. Root types/backend bundle exit0. Dry-run limits и функции — SPEC.
+  Review: live admin epoch/role/block, full unique keys+InnoDB, short SQL locks,
+  conditional PUT без overwrite, durable UUID/hash, same-material atomic CAS,
+  retained private versions/guarded rollback, нет HTTP upload/URL fetch/новых deps.
 - [ ] LB3 —6 synthetic files/own tmpfs backend_test/loopback storage: потеря
   ответов, restart/retry, откат, права и public controls. Никаких real S3/working
   DB/старых files/frontend/design/push/deploy. Проверки и коммиты записывать здесь.
