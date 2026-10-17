@@ -4,6 +4,16 @@
 
 ## 16 октября — VU, закрытые видео, локальная внутренняя логика
 
+Актуализация17 октября: VU5 завершён после отдельного разрешения браузера —
+6/6 native Chromium/IndexedDB/File/reload→API/fresh41 SQL→Timeweb S3,99.09s;
+точная история/cleanup в начале tasks/todo.md. Упоминание отложенного browser
+ниже относится к checkpoint VU4, не к текущему VU5; mobile остаётся отложенным.
+Повторная сверка всего этапа:349 native API/SQL +372 client/component checks,
+skips0; runtime/design без изменений. Полная приёмка не закрыта: старые club
+public URLs/assets, целевой выпуск/external providers/real devices/pilot.
+Второй S3 principal отложен пользователем, не PASS. Актуальная матрица:
+[ТЗ и границы](../../docs/audits/frontend-stage-one-scope-2026-10-03.md).
+
 Принят контракт VU в SPEC-private-files.md, рабочий путь default-off.
 Бэкенд: raw80MiB MP4/WebM/MOV с actor/key receipt recovery, canonical private
 association и optional privateVideoPosters, nullable post_media.posterUrl;

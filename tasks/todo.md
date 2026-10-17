@@ -2,6 +2,31 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Сверка всего первого этапа — 17 октября
+
+- [x] AG9-TZ — повторно сопоставить сохранённое ТЗ§2.1/4.1–4.16 с current
+  frontend/backend и последними результатами. Матрица/команды/границы:
+  [существующий аудит](../docs/audits/frontend-stage-one-scope-2026-10-03.md).
+  Native HTTP/JWT/own fixture SQL:305/12 suites/17.81s +44/3 suites/3.28s;
+  client25 suites/372 pass, включая5 actual Chromium component checks с
+  контролируемыми API replies. Все exit0/skip0; суммарно721, не полный
+  production E2E. Client elapsed915.06s/import912.98s не performance evidence.
+  Нового runtime дефекта не выявлено; приложения/дизайн/контракты не менялись.
+  Собственный `daryadarcy-tz-audit-20261016` c3acd2a5…e149a23/52310 удалён
+  после exact ID/name/label/loopback/tmpfs768MiB/no persistent mounts проверки;
+  чужие containers2 сохранены. S3/working DB/SMTP outside loopback/provider
+  payments/flags/push/deploy не трогались. Docs check58/exit0, diff check/exit0;
+  review: доказательства разделены на native/component/исторические, новых
+  функций/dependencies/runtime changes нет, весь этап не объявлен закрытым.
+- [ ] Полная приёмка этапа — **не закрыта**. Новые закрытые файлы проверены
+  ранее в FE/CF/VU; старые club Yandex URLs/встроенные assets не подключены к
+  закрытому read API и требуют отдельного решения, не массового переноса. Далее
+  внешние AG5/AG9: fresh target/release/backup/flags, mail/payment/VK, реальные
+  даты/assets/contact, physical devices/target load/pilot. Это не новые функции.
+- По прямому решению пользователя второй S3 principal **отложен/не проверен**;
+  не запрашивать новую учётку как блокер. Ранние строки «не предоставлен» ниже
+  сохраняют историю и не отменяют это уточнение. Mobile по-прежнему отложен.
+
 ### Проверенный остаток на 16 октября
 
 - [x] AG9-VU5 — по новому прямому разрешению пользователя возобновить только

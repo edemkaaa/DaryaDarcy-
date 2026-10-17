@@ -1,5 +1,74 @@
 # Фронтенд DARYADARCY в первом этапе запуска
 
+## Повторная сверка 16–17 октября 2026
+
+Основание: сохранённые требования §2.1/4.1–4.16 ниже, принятые SPEC и последние
+прямые решения пользователя; исходники `f1c1a54`. Оригинальный PDF и полный экспорт
+переписки сейчас недоступны: это не повторное чтение договора. Старые наблюдения
+3 октября ниже — история, а не список сегодняшних дефектов.
+
+**Весь этап ещё не закрыт.** Реализация согласованного локального объёма и приёмка
+выпуска — разные статусы. Свежие безопасные проверки не выявили нового runtime
+дефекта; новые функции или переделка дизайна не требуются по результатам этой сверки.
+
+| Пункт | Подтверждённая реализация / доказательство | Что не закрыто этим результатом |
+| --- | --- | --- |
+| 2.1, навигация/Лента/поиск/тест/профиль | Existing экраны и переходы; серверная пагинация/поиск, client-scoped результат теста, canonical restore и очистка при смене аккаунта. Свежие content/profile/session SQL и quiz/navigation/storage проверки; прежние C3 browser cases в todo | Результат теста хранится на устройстве, не обещать межустройственную синхронизацию. Общая приёмка всех экранов на целевом выпуске не выполнена |
+| 4.1, оплата → письмо → вход/reset | Native HTTP/JWT/SQL + loopback SMTP flow, отказ RCPT/retry, установка/reset пароля, безопасная cookie; SMS закрыт. Наличие самостоятельной регистрации не подменяет платёжный путь | Настоящий платёж, доставка внешнего письма и фактическая цепочка на целевом сервере |
+| 4.2, повторная оплата | Тот же аккаунт/пароль, signed webhook replay и keyed checkout без нового заказа проверены локально | Отсутствие повторного списания у реального провайдера; СБП/карты не объявлены исправными |
+| 4.3, подписка/отмена | Оплаченный срок, expiry и cancel pending/confirmed; служебный доступ отдельно от subscribed, повтор неизвестной операции. Native flow/grants/checkout и два Chromium provider-component кейса | Реальные автопродление/отмена/уведомления провайдера; HTTP-double отмены не является внешним подтверждением |
+| 4.4, блокировка | Native moderation отзывает cookie/Bearer, закрывает контент/checkout; paid history сохраняется, unblock требует нового входа. Client provider сбрасывает чужой кэш | Общий рабочий browser→API сценарий на целевом выпуске |
+| 4.5, закрытые материалы | Live server access статей/постов/VK; список статей отдаёт только teaser metadata. Новые закрытые uploads/read/revoke приняты в FE/CF/VU | **Частично:** старые прямые URL и встроенные клубные файлы не подключены к закрытому read API. Например club recipes/Petersburg в `library-screen.content.ts` содержат внешние Yandex URL; `patterns-screen.content.ts` содержит прежние public assets. Клиентский lock не закрывает сами файлы; нужен отдельный согласованный перенос/решение. Фактическая анонимная выдача внешнего Yandex в этом прогоне не проверялась |
+| 4.6, публикации/редакторы | Форматирование, drafts/schedule, фото/video/audio/docs и статьи; atomic write/receipt/key/status recovery. Свежие post/article/admin SQL; принятые native FE/CF/VU browser/API/SQL/S3, включая lost ACK/reload/account switch | Рабочее включение default-off путей и iPhone selection/клавиатура; старые public вложения не становятся закрытыми автоматически |
+| 4.7, фото/точки | Existing общая карусель, сохранение выбора/порядка; прежние C3 browser proofs и текущие media safety guards | Поворот/жесты/геометрия на физических телефонах и визуальное сравнение не перепроверялись |
+| 4.8, фото комментариев | Accepted quota/format/size, server re-encode/metadata stripping, transactional comment key и read/revoke. Свежий comments SQL, прежние CF-F3d native API/S3/browser | Реальные устройства/working flag; прежние public фото отдельно, жалобы отложены пользователем |
+| 4.9, лайки/сохранённое | Native SQL: доступ/публикация, конкурентные toggles, actor isolation, rollback/counters; client cache/lifecycle. C3 browser сохранность и категории сохранены | Финальный целевой выпуск; текущая проверка не заменяет весь browser проход |
+| 4.10, сезоны | Четыре конфигурируемых набора, Москва/даты/fallback/revision CAS; свежие launch-settings SQL и frontend-seasons/settings tests | Подтверждённые заказчиком даты и реальные изображения, приёмка наполнения; не придумывать отсутствующие картинки |
+| 4.11, VK | Existing embed parser/player и source-free catalog→authorized playback, admin upsert/unique source. Свежий VK SQL/client tests | Реальные ссылки/ограничения владельца/воспроизведение; защита уже выданной VK-ссылки исключена из этапа |
+| 4.12, Магазин | Digital товары готовят письмо менеджеру с нужным товаром/контактом, явно требуют самостоятельной отправки; книги ведут наружу. Свежие manager mail/settings tests | Проверка реального контакта и почтового приложения. `mailto:` не квитанция отправки; новую серверную форму/автовыдачу не добавлять |
+| 4.13, профиль | `PERSONAL_MOODBOARDS_ENABLED=false` скрывает обе ветки блока; quiz moodboard materials намеренно сохранены | Нового изменения не требуется; физическая/визуальная приёмка отдельно |
+| 4.14, почтовое отделение | Existing «Почтовое отделение — скоро» без подбора; launch-capabilities проверяет закрытые серверные операции | Полное почтовое отделение исключено; не возобновлять автоматически |
+| 4.15, производительность | Прежний согласованный local API/DB load:9900/9900, errors/dropped0; count-index A/B и повтор после0038. JSON и границы в `content-launch.md` | Нагрузка целевого сервера, production frontend на реальных данных, пилот; unit elapsed time не performance benchmark |
+| 4.16, устройства/PWA | Local Chromium сценарии существуют; FE/CF/VU отдельные accepted native цепочки. Production29/29 подтверждён предыдущим VU5 | **Не закрыто:** реальные iPhone/Android/Safari/установленная PWA, keyboard/scroll/media и пилот30–50/5–7дней. Mobile остаётся отложенным |
+
+### Свежая проверка и границы
+
+- Реальные Nest HTTP/JWT/SQL, собственный loopback/tmpfs `backend_test`: **305/305**
+  в12 suites/17.81s + **44/44** в3 suites/3.28s, exit0, skips0. Команды:
+  `vitest run --maxWorkers=1 --reporter=verbose tests/{registration-subscription-flow,registration-retry,member-email-binding-http,club-grants,normal-checkout-recovery,nest-content,nest-comments,nest-profile,launch-settings,vk-catalog,post-creation-idempotency,article-creation-recovery}.mysql.test.ts`;
+  затем `tests/{nest-sessions,nest-admin-content,content}.mysql.test.ts` с теми же
+  параметрами. Existing helpers строят fixture DDL; это **не** fresh41 migration
+  acceptance. Платежи synthetic/signed local, внешняя отмена — strict double,
+  почта — loopback, push transport в отдельных suites подменён.
+- **372/372** в25 client suites, exit0/skips0: quiz scoring/reducer/restore,
+  navigation, seasons/manager, club access/catalog/VK, rich-text ranges,
+  post/article recovery, cache/storage/request lifecycle/media safety и
+  launch-capabilities. Включены **5 Chromium component cases**:
+  `session-provider.browser`, `quiz-owner-component.browser`(2),
+  `subscription-cancellation-provider.browser`(2), с настоящими React/storage,
+  но контролируемыми HTTP/auth/billing boundaries; это не полный UI→API→SQL E2E.
+  Runner elapsed915.06s с import912.98s/tests5.59s не трактуется как скорость API.
+  Команда: `vitest run --maxWorkers=2 --reporter=verbose tests/{session-provider.browser,subscription-cancellation-provider.browser,quiz-owner-component.browser,quiz-scoring,quiz-reducer,quiz-saved-result,frontend-seasons,frontend-manager-settings,frontend-manager-order-email,frontend-navigation,frontend-query-cache,frontend-personal-storage,frontend-session-controller,frontend-club-access,frontend-video-catalog,frontend-vk-video,frontend-editor-ranges,frontend-post-recovery,frontend-article-creation,frontend-request-lifecycle,launch-capabilities,frontend-audio-player,frontend-bounded-media-read,frontend-media-safety,frontend-static-images}.test.ts`.
+  `PLAYWRIGHT_EXECUTABLE_PATH` указывал на установленный headless Chromium1208;
+  все прогоны в clean env, DB URLs только собственного контейнера, S3 settings0.
+- Итого **721 свежая проверка/40 файлов/0 fail/0 skip**. Общая VU5 unit/build и
+  native editor/S36/6 — сохранённые предыдущие доказательства, не новые прогоны.
+  Никаких новых S3 requests/объектов/policy, внешних писем/платежей или deploy.
+- Own DB `daryadarcy-tz-audit-20261016`, ID`c3acd2a5…e149a23`, port52310:
+  перед удалением совпали exact ID/name/owner label/loopback/tmpfs768MiB,
+  persistent mounts0; удалена. Два чужих контейнера сохранены.
+- По последнему решению пользователя **второй валидный S3 principal отложен,
+  не проверен**; отдельную учётку больше не запрашивать как условие этой сверки.
+  Это не PASS и не снимает ограничение старых публичных файлов.
+
+Для полного закрытия остаются решение по старым клубным файлам и AG5/AG9:
+отдельная пустая целевая БД/backup-restore/flags/release, внешние mail/payment/VK,
+реальное наполнение, устройства/нагрузка целевого сервера/пилот. Историю0017–0019
+не требовать для уже выбранного fresh-only запуска. Сейчас эти действия не
+разрешены; новую разработку вместо них не придумывать.
+
+## Исторический разбор 3 октября 2026
+
 Дата разбора: 3 октября 2026 года. Документ предназначен для разработчика фронтенда и согласования границ с бэкендером. Это план работ и проверки, а не подтверждение готовности к сдаче. Код приложения при разборе не изменялся; бэкенд и база не запускались.
 
 Для планирования использованы предоставленный договор № 1/10-26 от 1 октября 2026 года (исходный PDF `Договор_ИП_Левина_Д_С_—_АО_ТимАссист.pdf` не включён в репозиторий), приложение № 1 на страницах 5–6, сообщения заказчика и команды от 29 сентября до 1 октября, четыре скриншота, render.zip и IMG_0254.MP4. Предыдущий [аудит фронтенда](frontend-audit-2026-10-03.md) описывает технические проблемы всего приложения. Его 42 пункта не являются согласованным объёмом первого этапа: договор содержит явные исключения.
