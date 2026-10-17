@@ -39,6 +39,8 @@ export async function requirePrivateContentSchema(tx: Pick<PrivateAttachmentTran
 }
 type FileRow = typeof privateContentFiles.$inferSelect;
 function receipt(row: FileRow) {
+  // Library imports have a separate operator contract, never an editor receipt.
+  if (row.usage === "libraryPhoto" || row.usage === "libraryDocument") throw unavailable();
   assertContentRecoveryWindow(row.createdAt);
   if (row.retiredAt) throw new TRPCError({ code: "CONFLICT", message: "Файл больше недоступен для восстановления" });
   if (row.state === "ready" && !row.etag) throw unavailable();

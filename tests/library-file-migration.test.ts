@@ -1,7 +1,14 @@
-import { expect, it } from "vitest";
+import { expect, expectTypeOf, it } from "vitest";
 import sharp from "sharp";
 import { createHash } from "node:crypto";
 import { inspectLibraryMigration } from "../apps/backend/src/content/library-file-migration";
+import { uploadPrivateContentFile } from "../apps/backend/src/content/private-content-uploads";
+
+it("keeps operator-only library usages out of the existing editor upload contract", () => {
+  expectTypeOf<Awaited<ReturnType<typeof uploadPrivateContentFile>>["usage"]>().toEqualTypeOf<
+    "postPhoto" | "articlePhoto" | "articleDocument" | "commentPhoto"
+  >();
+});
 
 const hash = (bytes: Buffer) =>
   createHash("sha256").update(bytes).digest("hex");
