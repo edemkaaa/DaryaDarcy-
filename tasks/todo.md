@@ -4,6 +4,18 @@
 
 ### LB — Библиотека, принято17 октября
 
+- [x] AG9/LB-handoff —18 октября по продолжению без S3 existing документ
+  передачи сверен с774bbe9. Добавлены REST list/read payload, cursor/50 limit,
+  live session/club checks, empty200 vs404/503, default-off42-migration boundary
+  и отсутствие library usages в editor upload/status. Описаны ограничения для
+  будущей интеграции (кэш аккаунта/late responses/no public fallback), без правок
+  фронта/дизайна. Доказательства17 октября отделены от actual S3/выпуска;
+  LB4 остаётся unchecked. Новых runtime функций/запусков/БД/S3/старых files нет.
+  Передача сохранена локально, внешние сообщения не отправлены.
+  Docs check58/exit0 и diff check/exit0; API shape/statuses сверены по controller/
+  list implementation и принятому SPEC. Повтор runtime suites не требуется:
+  изменены только3 существующих Markdown файла, приложение не менялось.
+
 - [x] LB-read integrity — по «пока без S3»17 октября проверены оставшиеся
   локальные границы list контракта. **Подтверждённый дефект:** INNER JOIN скрывал
   enabled binding без receipt и возвращал200/empty либо partial list. Native

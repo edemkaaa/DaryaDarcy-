@@ -83,6 +83,15 @@
 
 ### Снимок, от которого продолжать
 
+**18 октября, AG9/LB — актуализация передачи без S3.** Existing
+[handoff фронтендеру](../docs/development/backend-handoff-2026-10-05.md) сверен
+с local774bbe9: REST list/read, cursor/empty404/503, live access, default-off
+и отсутствие library upload в editor API. Документирует будущую интеграцию,
+не выполняет её. Исторические результаты17 октября не выданы за новые прогоны;
+runtime/frontend/дизайн/БД/S3 не меняются. LB4 ждёт восстановления сети, затем
+actual S3 acceptance; real sources/старые URLs/выпуск — отдельные разрешения.
+Новых независимых runtime-пунктов нет; не придумывать функции ради продолжения.
+
 **17 октября, локальный LB read integrity после «пока без S3».** Native тесты
 выявили INNER JOIN silent omission: enabled binding без receipt показывалась
 как успешный empty/partial list. Minimal LEFT JOIN/validation исправление прошло
