@@ -83,6 +83,19 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября, FRESH-D1 — разрешена подготовка переноса данных, не switch.**
+После создания server admin по прямому запросу (существующий account, без
+новой регистрации) пользователь запросил latest staging deployment. Remote
+`e25ffda` получен; working app остаётся2e3339c. Read-only gate: current DB29
+tables/no migration history, target42/40 tables/app rows0; ordinary manifest
+по-прежнему отказывает из-за0017–0019. Пользователь отдельно разрешил перенос
+данных в проверенную candidate, сохранив тот же admin/password hash, и запретил
+старую DB writes/app switch. FRESH-D1 в todo: согласованный snapshot, native
+synthetic rehearsal, candidate-only copy/validation/auth без workers/providers.
+Actual source rows не переносить в локальные fixtures/Git/logs, frontend/S3
+не менять. Source остаётся активной: snapshot позже потребует delta/write gate
+перед отдельно разрешённым cutover. Это не обход старой истории миграций.
+
 **19 октября, FRESH-C6 — native image backup/restore локально проверены.**
 На original2083911/e774… восстановление данных/DDL/history прошло, но native
 rehearsal нашёл backup directory0755 вместо0700. Исправлен только Dockerfile:

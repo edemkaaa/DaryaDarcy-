@@ -4,6 +4,31 @@
 
 ### Разрешённая подготовка staging/server — 19 октября
 
+- [ ] FRESH-D1 — прямое разрешение подготовить перенос staging data в existing
+  `daryadarcy_candidate_20261019`, сохранив admin/password, без app switch/deploy.
+  Source только SELECT/read-only snapshot; никакой repair history0017–0019,
+  schema/data writes, блокировки writes или удаления старой DB. Candidate42
+  history не переписывать, all application tables должны быть пусты. Exact
+  server/container/UUID/schema guards, least-privilege temporary operator,
+  synthetic native rehearsal перед server copy; row/column/hash/counter/default
+  comparison и isolated candidate API/auth/admin checks без workers/providers.
+  No frontend/S3/payments/mail. Source rows не скачивать в local fixtures/logs.
+  Snapshot не является continuous sync: будущий cutover требует новой сверки
+  writes/дельты, отдельного разрешения и готового image/frontend rollback.
+  Read-only19 октября: old DB29 tables/no history, candidate40/history42,
+  candidate application rows0. Source850 rows (742 posts/60 videos/2 users,
+  payments10/receipts2/outbox8/password_tokens7/tags17/consent2), admin active.
+  Foreign keys/triggers/routines/events0; только nullable youtubeId widening,
+  new default provider/access и nullable poster/VK fields. Schemas/row counts
+  сохранены private вне Git, без user data/credentials. Local RED→GREEN:
+  6 mapping units +4 native tests, fresh42/legacy29 own tmpfs backend_test.
+  Real identity conflict откатывает все rows, непустой target refused, source
+  SQL writes запрещены read-only transaction. Синтетические password hash/
+  session/paid subscription/JSON/opaque mail+token rows сохранены, counters
+  не понижаются. Candidate-only counter DDL предшествует row transaction:
+  при отказе могут остаться повышенные counters, но не частичные rows/history.
+  Root types pass. Server copy/API/auth acceptance ещё впереди.
+
 - [x] FRESH-C6 — прямое разрешение проверить backup/restore **финальным image2083911**
   локально на двух own loopback/tmpfs `backend_test`. Native dump + restore
   clients из immutable image, настоящий production backup module без workers;
