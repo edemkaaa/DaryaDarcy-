@@ -437,9 +437,14 @@
   все container IDs/images/start times прежние. API env/secrets/S3/flags/image
   configs не менялись; контейнеры не перезапускались. HTTPS current unchanged
   deployment: `/`, `/api/auth/me`, `/api/launch-config`200; guest admin.stats401.
-- [ ] Fresh server candidate: подготовить проверенную отдельную процедуру
+- [x] Fresh server candidate: подготовить проверенную отдельную процедуру
   fresh schema на новой БД, candidate image/API checks и rollback приложения;
-  **после проверки согласовать switch с пользователем**. FRESH-C2/C3 выполнен:
+  **после проверки согласовать switch с пользователем**. Закрыто последующими
+  FRESH-D1/D2 и RELEASE-D3/D4: switch явно разрешён и выполнен, admin/password
+  сохранены, active candidate/history42/backup/образы проверены. Этот пункт
+  не требует повторного создания БД или переноса; evidence в начале checklist
+  и [runbook](../docs/operations/candidate-backend-image-rollback.md).
+  Историческое состояние до этих выпусков: FRESH-C2/C3 выполнен:
   схема42 и guest candidate API проверены, но данных/owner/permanent app grants
   нет, новый backend не выложен. FRESH-C4 local image/archive/rollback подготовлен;
   FRESH-C5 final image candidate acceptance выполнен; остались backup client и отдельное решение
@@ -1714,7 +1719,13 @@ backup/restore подтверждения и общей frontend/release при�
     untracked0017–0019/DB not checked. Front/старые files/working DB/flags/deploy
     не менялись. Срезы31b5a2d/ffcdbb3/9c68ccc/b52b469/b9cae24,
     Native restart/S3 harness314bf2c; документационный checkpoint отдельно.
-- [ ] **AG5 — подготовка миграций/email/статей к выпуску.** Статус: процедура
+- [ ] **AG5 — подготовка миграций/email/статей к выпуску.** Актуально после D4:
+  локальные R1–R6/fresh42/backup-restore выполнены, candidate/switch/admin и
+  выпуск проверены; старая0017–0019 history не блокирует выбранный fresh путь.
+  Незакрыты отдельно разрешаемые рабочие email binding/private/retention flags,
+  внешняя почта и перенос реальных материалов. Нового доступного локального
+  backend среза не выявлено. Не повторять завершённую подготовку/импорт БД.
+  Следующая запись сохраняет историю14 октября, не текущий блокер: процедура
   подготовлена в existing runbook; ждёт истории/retention решения и репетиции
   применимого snapshot. 0017–0019, 0027/0028/0029, guards и порядок включения,
   совместимый rollback/реальный restore описаны; рабочая БД не проверена/не изменена.
@@ -1852,7 +1863,18 @@ backup/restore подтверждения и общей frontend/release при�
   Остаток AG9: реальные embed/device/frontend, working migration/history и edge
   routes. Старый nginx yt-thumb public proxy не сертифицирован как закрытый.
   Фронт/рабочая БД/настройки VK/старые ролики не изменены; flags не включались.
-- [ ] **AG9 — пакет выпуска и сквозная приёмка.** Статус: локальная матрица ТЗ,
+- [ ] **AG9 — пакет выпуска и сквозная приёмка.** Актуальная локальная сверка
+  после D4 (19 октября): branch/status/log и завершённые AG1–AG8/fresh/LB4/
+  RELEASE-D3/D4 evidence проверены; восстановлены действующие статусы AG5 и
+  fresh candidate. Нового подтверждённого backend-дефекта или доступной локальной
+  задачи нет. Остаток: обычная Prodamus790/recurring/cancel и реальная почта
+  (включая выбор password/setup-link), рабочие flags/старые материалы по отдельному
+  разрешению, реальные VK/сезоны/контакты, target-load/devices/pilot. Второй S3
+  principal отложен и не является обязательным блокером. Frontend/design,
+  generated types, сервер, рабочая DB/S3 и runtime не менялись; no push/deploy.
+  Проверка этого среза — docs/diff и review статусов; runtime tests не повторять
+  на неизменном коде. Следующий AG-ID остаётся AG5/AG9, нужны указанные внешние
+  условия/решения, а не новые функции. История прежнего состояния: локальная матрица ТЗ,
   owners/условия/версии и порядок приёмки подготовлены в runbook. Общий candidate,
   целевой schema/restore/rollout и реальные provider/mail/devices/target-load/pilot
   остаются непринятыми. Local frontend integration/API/S3/load уже проверены FE/CF/
