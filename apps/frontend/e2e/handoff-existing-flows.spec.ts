@@ -484,7 +484,7 @@ test("returning after an unknown save reads state before allowing another toggle
     page.getByRole("button", { name: "Сохранить пост", exact: true }),
   ).toBeDisabled();
   expect(state.toggleWrites).toHaveLength(1);
-  await page.getByRole("button", { name: "Назад", exact: true }).click();
+  await page.getByRole("button", { name: "Вернуться назад", exact: true }).click();
   const gate = deferred();
   state.interactionsGate = gate.promise;
   const reads = state.interactionReads;

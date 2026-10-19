@@ -1,5 +1,7 @@
 "use client";
 import { useCallback, useMemo } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { getQueryKey } from "@trpc/react-query";
 import { trpc } from "@/shared/api/trpc";
 import { useAuth } from "@/domain/session/session-context";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
@@ -33,24 +35,34 @@ export function VideoCatalogScreen() {
   const { loading, error: sessionError } = useAuth();
   const { stylesLayout } = getVideosScreenLayout(useViewport());
   const router = useRouter();
-  const query = trpc.videos.catalog.useInfiniteQuery(
-    { limit: 20 },
-    {
-      enabled: active && !loading && !sessionError,
-      staleTime: 0,
-      refetchOnMount: "always",
-      refetchOnWindowFocus: true,
-      refetchOnReconnect: true,
-      getNextPageParam: (last, _pages, _lastParam, params) => {
-        try {
-          return nextVideoCursor(parseVideoCatalog(last), params);
-        } catch {
-          return undefined;
-        } // select reports an invalid response without breaking the screen.
-      },
-      select: (data) => ({ ...data, pages: data.pages.map(parseVideoCatalog) }),
+  const utils = trpc.useUtils();
+  const query = useInfiniteQuery({
+    queryKey: getQueryKey(trpc.videos.catalog, { limit: 20 }, "infinite"),
+    initialPageParam: undefined as number | undefined,
+    // tRPC's infinite hook adds `direction`, which this strict API rejects.
+    // Keep pagination local and send only the server's limit/cursor fields.
+    queryFn: ({ pageParam, signal }) =>
+      utils.client.videos.catalog.query(
+        {
+          limit: 20,
+          ...(pageParam === undefined ? {} : { cursor: pageParam }),
+        },
+        { signal },
+      ),
+    enabled: active && !loading && !sessionError,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    getNextPageParam: (last, _pages, _lastParam, params) => {
+      try {
+        return nextVideoCursor(parseVideoCatalog(last), params);
+      } catch {
+        return undefined;
+      } // select reports an invalid response without breaking the screen.
     },
-  );
+    select: (data) => ({ ...data, pages: data.pages.map(parseVideoCatalog) }),
+  });
   const stalled = stalledVideoCursor(
     query.data?.pages.at(-1),
     query.data?.pageParams ?? [],

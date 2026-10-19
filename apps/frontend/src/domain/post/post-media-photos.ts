@@ -27,6 +27,7 @@ function thumbForVideo(
 export function splitVideoPhotos(
   photos: string[] | undefined,
   videoFilename?: string | null,
+  allowFallback = true,
 ): {
   posterUrl?: string;
   galleryPhotos: string[];
@@ -39,10 +40,10 @@ export function splitVideoPhotos(
   if (videoFilename) {
     posterUrl = thumbForVideo(thumbs, videoFilename);
   }
-  if (!posterUrl && thumbs.length) {
+  if (!posterUrl && allowFallback && thumbs.length) {
     posterUrl = thumbs[0];
   }
-  if (!posterUrl && fullPhotos.length) {
+  if (!posterUrl && allowFallback && fullPhotos.length) {
     return {
       posterUrl: fullPhotos[0],
       galleryPhotos: fullPhotos.slice(1),

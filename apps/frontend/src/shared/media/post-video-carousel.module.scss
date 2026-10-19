@@ -1,0 +1,45 @@
+@use "../styles/layers";
+
+@layer elements {
+  .wrap {
+    width: 100%;
+    min-width: 0;
+  }
+  .viewport {
+    > :global(.ui-scroll-horizontal) {
+      position: absolute;
+      inset: 0;
+      height: 100%;
+      > :global(.ui-scroll-content-horizontal) {
+        height: 100%;
+      }
+    }
+  }
+  .slide {
+    flex-shrink: 0;
+    scroll-snap-stop: always;
+    height: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .indicators {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    touch-action: pan-y pinch-zoom;
+    user-select: none;
+  }
+  // Keep the swipe target above player controls, including cross-origin VK.
+  .viewport:has(video, iframe) .indicators {
+    bottom: 44px;
+  }
+  .viewport:has(iframe) .counter {
+    right: 48px;
+  }
+}

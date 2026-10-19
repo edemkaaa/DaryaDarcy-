@@ -34,6 +34,7 @@ import { trpc } from "@/shared/api/trpc";
 import type { ApiOutputs } from "@/shared/api/types";
 import { useCapabilities } from "@/shared/api/capabilities";
 import { displayPostTitle } from "@/shared/media/media-label";
+import { articleIdFromSource } from "@/domain/content/article-blocks";
 import { SmsCodeForm } from "@/features/auth/sms-code-form";
 import { formatRuPhone } from "@/domain/session/phone";
 import {
@@ -251,7 +252,9 @@ export default function ProfileScreen() {
   }
   // Render saved post card
   const handlePostPress = (post: SavedPost) => {
-    if (post.id) router.push(`/post/${post.id}`);
+    const articleId = articleIdFromSource(post.source);
+    if (articleId) router.push(`/library/article/${articleId}`);
+    else if (post.id) router.push(`/post/${post.id}`);
   };
   const renderSavedPost = ({ item }: { item: SavedPost }) => (
     <Action
@@ -282,6 +285,20 @@ export default function ProfileScreen() {
           </Typography>
         </div>
       )}
+    </Action>
+  );
+  const logoutAction = (
+    <Action
+      onClick={async () => {
+        await logout();
+      }}
+      className={({ pressed }) =>
+        [classes.action10, pressed ? classes.opacityState17 : ""]
+          .filter(Boolean)
+          .join(" ")
+      }
+    >
+      <Typography className={classes.logoutButtonText}>Выйти</Typography>
     </Action>
   );
   // Auth / subscription gates
@@ -352,6 +369,7 @@ export default function ProfileScreen() {
     return (
       <ScreenContainer backgroundColor="#FDF8F0">
         <SubscriptionStatus />
+        <div className={classes.section}>{logoutAction}</div>
       </ScreenContainer>
     );
   }
@@ -398,6 +416,7 @@ export default function ProfileScreen() {
                   Вступить в клуб →
                 </Typography>
               </Action>
+              {logoutAction}
             </div>
           </ScrollArea>
         </Background>
@@ -1061,20 +1080,7 @@ export default function ProfileScreen() {
                     />
                   </div>
                 )}
-                <Action
-                  onClick={async () => {
-                    await logout();
-                  }}
-                  className={({ pressed }) =>
-                    [classes.action10, pressed ? classes.opacityState17 : ""]
-                      .filter(Boolean)
-                      .join(" ")
-                  }
-                >
-                  <Typography className={classes.logoutButtonText}>
-                    Выйти
-                  </Typography>
-                </Action>
+                {logoutAction}
               </div>
             ) : (
               <div
