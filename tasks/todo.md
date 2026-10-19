@@ -2,6 +2,58 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### CAP-U / ADM-S1 — пять новых замечаний,19 октября
+
+- [x] Сверены clean HEAD49954ee/ветка, текущие планы/источники и evidence D5/D6.
+  Подтверждены отсутствующие upload capabilities и безлимитный admin.posts.
+  Live GET /api/capabilities200 возвращает только четыре прежние возможности;
+  private uploads в нём не описаны. Настройки/данные стенда не менялись.
+- [x] ADM-S1: статистика больше не переносит весь архив/тексты из SQL в Node
+  ради counters. Один aggregate row, прежний numeric response/top5/80 UTF-16
+  units, month boundaries в process TZ, status/target и legacy duplicates.
+  Нет нового API, индекса/схемы/зависимостей, frontend/design изменений.
+- [x] RED на собственной MySQL8.4 loopback/tmpfs backend_test с742 synthetic
+  posts: максимальный result set742 нарушал <=5. GREEN3 native statistics +22
+  existing native admin HTTP =25 pass/0skip. Проверены также zero rows, Moscow
+  month boundary, legacy published flag, future dates, like/save duplicates;
+  точные emitted SELECTs возвращают <=5 rows и суммарно <64KiB на fixture.
+  Это bounded transfer evidence, не замер ускорения рабочего API/всего SQL.
+  Connection-local TEMPORARY tables не удаляют чужие fixtures; начальная
+  LIKE-self ошибка setup исправлена SHOW CREATE, до meaningful RED. Контейнер
+  удалён после exact ID/name/labels/loopback/tmpfs/no-volume ownership guards.
+- [x] Unit maintenance/request-bodies81 pass. Первая full regression нашла
+  устаревший SQL transport fixture: пустой aggregate был подставлен как0 rows,
+  хотя настоящий SQL возвращает1 строку zero counters. Исправлена только форма
+  test response; infrastructure rejection остаётся, read-errors40 pass.
+- [x] Финальная full regression2646 pass/1604 opt-in skips (204 suites pass,
+  96 skipped); native25 выше выполнялись отдельно без skips. Root/frontend/E2E
+  types, API86/32138, boundaries690, backend build598.5KiB, formatting/docs/diff
+  проходят. Review: parameterized Dates/columns, прежняя month семантика и
+  access checks, SQL errors не подменяются zero stats; нет контрактных изменений.
+  Не заявляется live load/полная приёмка пяти замечаний. Только локальный commit,
+  без push/deploy/flags/frontend/working DB/S3/старых файлов.
+- [ ] Upload availability: согласовать additive capabilities для фото/файлов,
+  audio/docs и video, derived от действующих server flags (video требует оба).
+  Unknown/error/false запрещают новую загрузку, без public fallback/потери
+  выбранных вложений/recovery. Потом logic integration и отдельно reviewed
+  включение полного upload→bind→read на стенде; флаги сейчас не включать.
+- [ ] Admin lists: согласовать bounded page/filter/cursor + отдельный protected
+  full detail для редактирования (включая drafts), calendar date-window/counts/
+  upcoming8. Старый endpoint не обрезать молча до переключения frontend.
+  Текущий CalendarTracker уже использует общий posts prop; новое живое
+  подтверждение повторного запроса отсутствует. Статистика исправлена лишь
+  первым срезом, большой admin.posts response ещё не устранён.
+- [ ] Старые protected материалы: карта реальных public patterns/URL и guide,
+  защищённая доставка вместо client imports и separately reviewed закрытие
+  прежних источников/cache. Не расширять это автоматически на публичный quiz.
+  LB backend/importer готовы, не считать настоящие файлы уже перенесёнными.
+- [x] CF-HTTP1 уже исправлен/выпущен D5: envelopes6/50MiB при прежних decoded
+  photo4/document32; ordinary JSON256KiB остаётся намеренно. Disabled404 —
+  отдельный feature gate, не доказательство старого upload body limit.
+- [x] SAVED-P1 public/both unpaid уже37c1bf2 в Git; club остаётся закрытым.
+  Server D6 отложен пользователем: не повторять исправление/не возобновлять
+  выпуск автоматически. Эти два пункта не назначать новыми backend дефектами.
+
 ### AG5/AG9 — фактический остаток бэкенда,19 октября
 
 - [x] Пользователь подтвердил отсутствие старых телефонных аккаунтов: первую

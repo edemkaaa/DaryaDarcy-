@@ -278,7 +278,15 @@ describe("admin content read availability", () => {
         new Error("PRIVATE_ADMIN_SQL_SENTINEL"),
       );
       await expect(run()).rejects.toThrow();
-      transport.query.mockResolvedValue([[], []]);
+      transport.query.mockImplementation(async ({ sql }: { sql: string }) => {
+        // SQL aggregates return one row even for a connected empty catalog.
+        // Preserve the actual transport shape; ordinary row reads stay empty.
+        if (sql.includes("COUNT(CASE WHEN"))
+          return [[[0, 0, 0, 0, 0, 0, 0, 0, 0]], []];
+        if (sql.includes("COUNT(*)") && !sql.includes("limit"))
+          return [[[0]], []];
+        return [[], []];
+      });
       expect(await run()).toEqual(want);
     },
   );

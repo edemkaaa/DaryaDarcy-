@@ -64,20 +64,23 @@ export async function getScheduledPosts(db: Database): Promise<Post[]> {
 export async function getPostStatistics(db: Database) {
   if (!db) throw new Error("Database not available");
 
-  // Get all posts
-  const allPosts = await db.select().from(posts);
-
-  const totalPosts = allPosts.length;
-  const publishedPosts = allPosts.filter(
-    (p) => p.status === "published",
-  ).length;
-  const scheduledPostsCount = allPosts.filter(
-    (p) => p.status === "scheduled",
-  ).length;
-  const draftPosts = allPosts.filter((p) => p.status === "draft").length;
-  const feedPosts = allPosts.filter((p) => p.target === "feed").length;
-  const clubPosts = allPosts.filter((p) => p.target === "club").length;
-  const bothPosts = allPosts.filter((p) => p.target === "both").length;
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  // Return one aggregate row, not the entire archive and its text/media fields.
+  const [counts] = await db
+    .select({
+      totalPosts: sql<number>`COUNT(*)`,
+      publishedPosts: sql<number>`COUNT(CASE WHEN ${posts.status} = 'published' THEN 1 END)`,
+      scheduledPosts: sql<number>`COUNT(CASE WHEN ${posts.status} = 'scheduled' THEN 1 END)`,
+      draftPosts: sql<number>`COUNT(CASE WHEN ${posts.status} = 'draft' THEN 1 END)`,
+      feedPosts: sql<number>`COUNT(CASE WHEN ${posts.target} = 'feed' THEN 1 END)`,
+      clubPosts: sql<number>`COUNT(CASE WHEN ${posts.target} = 'club' THEN 1 END)`,
+      bothPosts: sql<number>`COUNT(CASE WHEN ${posts.target} = 'both' THEN 1 END)`,
+      postsThisMonth: sql<number>`COUNT(CASE WHEN ${posts.createdAt} >= ${startOfMonth} THEN 1 END)`,
+      postsLastMonth: sql<number>`COUNT(CASE WHEN ${posts.createdAt} >= ${startOfLastMonth} AND ${posts.createdAt} < ${startOfMonth} THEN 1 END)`,
+    })
+    .from(posts);
 
   // Count total likes
   const likesResult = await db
@@ -90,18 +93,6 @@ export async function getPostStatistics(db: Database) {
     .select({ count: sql<number>`COUNT(*)` })
     .from(savedPosts);
   const totalSaves = Number(savesResult[0]?.count ?? 0);
-
-  // Posts this month
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const postsThisMonth = allPosts.filter(
-    (p) => new Date(p.createdAt) >= startOfMonth,
-  ).length;
-  const postsLastMonth = allPosts.filter((p) => {
-    const d = new Date(p.createdAt);
-    return d >= startOfLastMonth && d < startOfMonth;
-  }).length;
 
   // Top liked posts (top 5)
   const postsWithLikes = await db
@@ -124,17 +115,17 @@ export async function getPostStatistics(db: Database) {
   }));
 
   return {
-    totalPosts,
-    publishedPosts,
-    scheduledPosts: scheduledPostsCount,
-    draftPosts,
-    feedPosts,
-    clubPosts,
-    bothPosts,
+    totalPosts: Number(counts.totalPosts),
+    publishedPosts: Number(counts.publishedPosts),
+    scheduledPosts: Number(counts.scheduledPosts),
+    draftPosts: Number(counts.draftPosts),
+    feedPosts: Number(counts.feedPosts),
+    clubPosts: Number(counts.clubPosts),
+    bothPosts: Number(counts.bothPosts),
     totalLikes,
     totalSaves,
-    postsThisMonth,
-    postsLastMonth,
+    postsThisMonth: Number(counts.postsThisMonth),
+    postsLastMonth: Number(counts.postsLastMonth),
     topLikedPosts,
   };
 }
