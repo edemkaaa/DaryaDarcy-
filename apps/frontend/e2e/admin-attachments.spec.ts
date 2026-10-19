@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { editorApi, ok, failure } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
@@ -42,8 +43,35 @@ const post = () => ({
   ],
 });
 type Write = { name: string; input: Record<string, unknown> };
+function assetIdFor(input: Record<string, unknown>) {
+  const hash = createHash("sha256")
+    .update(`${input.type}:${input.filename}`)
+    .digest("hex");
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
+}
+function receipt(
+  input: Record<string, unknown>,
+  extra: Record<string, unknown> = {},
+) {
+  return {
+    state: "ready",
+    assetId: assetIdFor(input),
+    type: input.type,
+    filename: input.filename,
+    mimeType: input.mimeType,
+    fileSize: Buffer.from(String(input.base64), "base64").length,
+    ...extra,
+  };
+}
 async function api(page: Page, answer?: Parameters<typeof editorApi>[1]) {
-  await editorApi(page, answer);
+  await editorApi(page, async (name, input, route) => {
+    const custom = await answer?.(name, input, route);
+    if (custom !== undefined) return custom;
+    if (name === "admin.privateAttachmentStatus")
+      return ok({ state: "notRecorded" });
+    if (name === "admin.uploadMedia")
+      throw new Error("Unexpected public upload");
+  });
   // Media availability is a separate acceptance check; decoration must not delay these editor checks.
   await page.route("https://s3.twcstorage.ru/**", (route) =>
     route.fulfill({
@@ -116,7 +144,7 @@ test("the full editor restores existing attachments without reuploading or remov
   const writes: Write[] = [];
   await api(page, (name, input) => {
     if (name === "admin.posts") return ok([post()]);
-    if (name === "admin.uploadMedia" || name === "admin.updatePost")
+    if (name === "admin.uploadPrivateAttachment" || name === "admin.updatePost")
       writes.push({ name, input });
   });
   const form = await open(page, "full", true);
@@ -149,13 +177,9 @@ test("removing and adding attachments commits once and the reopened editor reads
   const writes: Write[] = [];
   await api(page, (name, input) => {
     if (name === "admin.posts") return ok([current]);
-    if (name === "admin.uploadMedia") {
+    if (name === "admin.uploadPrivateAttachment") {
       writes.push({ name, input });
-      return ok({
-        url: "https://example.test/new.pdf",
-        mimeType: "application/pdf",
-        fileSize: 18,
-      });
+      return ok(receipt(input, { mimeType: "application/pdf" }));
     }
     if (name === "admin.updatePost") {
       writes.push({ name, input });
@@ -188,7 +212,7 @@ test("removing and adding attachments commits once and the reopened editor reads
   await form.getByRole("button", { name: "Сохранить", exact: true }).click();
   await expect(form).toHaveCount(0);
   expect(writes.map((write) => write.name)).toEqual([
-    "admin.uploadMedia",
+    "admin.uploadPrivateAttachment",
     "admin.updatePost",
   ]);
   expect(writes[0].input).not.toHaveProperty("postId");
@@ -196,13 +220,7 @@ test("removing and adding attachments commits once and the reopened editor reads
     id: 1,
     text: "UPDATED_WITH_DOCUMENT",
     removedMediaIds: [7],
-    attachments: [
-      {
-        type: "document",
-        filename: "new.pdf",
-        url: "https://example.test/new.pdf",
-      },
-    ],
+    privateAssetIds: [assetIdFor({ type: "document", filename: "new.pdf" })],
   });
   await expect(
     page.getByText("UPDATED_WITH_DOCUMENT", { exact: true }),
@@ -220,13 +238,9 @@ test("an attachment-only full post previews filenames at mobile and desktop widt
 }, testInfo) => {
   const writes: Write[] = [];
   await api(page, (name, input) => {
-    if (name === "admin.uploadMedia") {
+    if (name === "admin.uploadPrivateAttachment") {
       writes.push({ name, input });
-      return ok({
-        url: `https://example.test/${input.filename}`,
-        mimeType: input.mimeType,
-        fileSize: 18,
-      });
+      return ok(receipt(input, { mimeType: input.mimeType }));
     }
     if (name === "admin.createPost") writes.push({ name, input });
   });
@@ -274,16 +288,16 @@ test("an attachment-only full post previews filenames at mobile and desktop widt
   await form.getByRole("button", { name: "Сохранить", exact: true }).click();
   await expect(form).toHaveCount(0);
   expect(writes.map((write) => write.name)).toEqual([
-    "admin.uploadMedia",
-    "admin.uploadMedia",
+    "admin.uploadPrivateAttachment",
+    "admin.uploadPrivateAttachment",
     "admin.createPost",
   ]);
   expect(writes[2].input).toMatchObject({
     status: "published",
     published: true,
-    attachments: [
-      expect.objectContaining({ type: "audio" }),
-      expect.objectContaining({ type: "document" }),
+    privateAssetIds: [
+      assetIdFor({ type: "audio", filename: "lesson.mp3" }),
+      assetIdFor({ type: "document", filename: documentName }),
     ],
   });
 });
@@ -295,15 +309,11 @@ test("partial upload failure retains files and reuses the confirmed upload on ex
   const writes: Write[] = [];
   await api(page, (name, input) => {
     if (name === "admin.posts") return ok([post()]);
-    if (name === "admin.uploadMedia") {
+    if (name === "admin.uploadPrivateAttachment") {
       writes.push({ name, input });
       return input.filename === "second.mp3" && fail
         ? failure()
-        : ok({
-            url: `https://example.test/${input.filename}`,
-            mimeType: input.mimeType,
-            fileSize: 18,
-          });
+        : ok(receipt(input, { mimeType: input.mimeType }));
     }
     if (name === "admin.updatePost") writes.push({ name, input });
   });
@@ -316,13 +326,22 @@ test("partial upload failure retains files and reuses the confirmed upload on ex
   await expect(form.getByText("first.mp3", { exact: true })).toBeVisible();
   await expect(form.getByText("second.mp3", { exact: true })).toBeVisible();
   expect(writes.map((write) => write.name)).toEqual([
-    "admin.uploadMedia",
-    "admin.uploadMedia",
+    "admin.uploadPrivateAttachment",
+    "admin.uploadPrivateAttachment",
   ]);
+  fail = false;
+  await expect(
+    form.getByRole("button", { name: "Сохранить", exact: true }),
+  ).toBeDisabled();
+  await form
+    .getByRole("button", { name: "Проверить сохранение", exact: true })
+    .click();
+  await expect(
+    form.getByRole("button", { name: "Сохранить", exact: true }),
+  ).toBeEnabled();
   await form
     .getByPlaceholder("Текст поста… Enter — новый абзац")
     .fill("TEXT_SURVIVES_RETRY");
-  fail = false;
   await form.getByRole("button", { name: "Сохранить", exact: true }).click();
   await expect(form).toHaveCount(0);
   expect(
@@ -336,7 +355,7 @@ test("partial upload failure retains files and reuses the confirmed upload on ex
       name: "admin.updatePost",
       input: expect.objectContaining({
         text: "TEXT_SURVIVES_RETRY",
-        attachments: expect.any(Array),
+        privateAssetIds: expect.any(Array),
       }),
     },
   ]);
@@ -348,13 +367,9 @@ test("an unconfirmed full editor write is not repeated and keeps the attachment"
   const writes: Write[] = [];
   await api(page, (name, input) => {
     if (name === "admin.posts") return ok([post()]);
-    if (name === "admin.uploadMedia") {
+    if (name === "admin.uploadPrivateAttachment") {
       writes.push({ name, input });
-      return ok({
-        url: "https://example.test/new.mp3",
-        mimeType: "audio/mpeg",
-        fileSize: 18,
-      });
+      return ok(receipt(input, { mimeType: "audio/mpeg" }));
     }
     if (name === "admin.updatePost") {
       writes.push({ name, input });
@@ -372,7 +387,7 @@ test("an unconfirmed full editor write is not repeated and keeps the attachment"
   ).toBeDisabled();
   await expect(form.getByText("new.mp3", { exact: true })).toBeVisible();
   expect(writes.map((write) => write.name)).toEqual([
-    "admin.uploadMedia",
+    "admin.uploadPrivateAttachment",
     "admin.updatePost",
   ]);
 });
@@ -387,14 +402,10 @@ test("closing during upload ignores a late result and resets attachments and pre
   let uploads = 0;
   const creates: unknown[] = [];
   await api(page, async (name, input) => {
-    if (name === "admin.uploadMedia") {
+    if (name === "admin.uploadPrivateAttachment") {
       uploads++;
       await held;
-      return ok({
-        url: "https://example.test/late.mp3",
-        mimeType: "audio/mpeg",
-        fileSize: 18,
-      });
+      return ok(receipt(input, { mimeType: "audio/mpeg" }));
     }
     if (name === "admin.createPost") creates.push(input.text);
   });
@@ -433,7 +444,7 @@ for (const mode of ["full", "quick"] as const) {
   }) => {
     let uploads = 0;
     await api(page, (name) => {
-      if (name === "admin.uploadMedia") uploads++;
+      if (name === "admin.uploadPrivateAttachment") uploads++;
     });
     const messages = alerts(page);
     const form = await open(page, mode);
@@ -466,7 +477,7 @@ for (const mode of ["full", "quick"] as const) {
         name: "invalid.exe",
         mime: "application/octet-stream",
         buffer: Buffer.from("invalid"),
-        message: "PDF, DOC, DOCX или TXT",
+        message: "PDF, DOCX или TXT",
       },
       {
         name: "invalid.pdf",
@@ -497,13 +508,9 @@ for (const mode of ["full", "quick"] as const) {
   }, testInfo) => {
     const uploads: Record<string, unknown>[] = [];
     await api(page, (name, input) => {
-      if (name === "admin.uploadMedia") {
+      if (name === "admin.uploadPrivateAttachment") {
         uploads.push(input);
-        return ok({
-          url: `https://example.test/${input.filename}`,
-          mimeType: input.mimeType,
-          fileSize: 18,
-        });
+        return ok(receipt(input, { mimeType: input.mimeType }));
       }
     });
     const form = await open(page, mode);
@@ -556,7 +563,7 @@ for (const mode of ["full", "quick"] as const) {
 
 for (const mode of ["full", "quick"] as const) {
   for (const editing of [false, true]) {
-    test(`${mode} ${editing ? "update" : "create"} saves server MIME and size after an explicit retry`, async ({
+    test(`${mode} ${editing ? "update" : "create"} binds confirmed private assets after an explicit save retry`, async ({
       page,
     }) => {
       let uploads = 0;
@@ -566,20 +573,15 @@ for (const mode of ["full", "quick"] as const) {
         if (name === "admin.posts") return ok([post()]);
         if (name === "feed.listPaginated")
           return ok({ posts: [post()], nextCursor: null });
-        if (name === "admin.uploadMedia") {
+        if (name === "admin.uploadPrivateAttachment") {
           uploads++;
           return ok(
-            input.type === "audio"
-              ? {
-                  url: "https://example.test/opaque-audio",
-                  mimeType: "audio/wav",
-                  fileSize: 46,
-                }
-              : {
-                  url: "https://example.test/opaque-document",
-                  mimeType: "text/plain; charset=utf-8",
-                  fileSize: 123,
-                },
+            receipt(input, {
+              mimeType:
+                input.type === "audio"
+                  ? "audio/wav"
+                  : "text/plain; charset=utf-8",
+            }),
           );
         }
         if (name === (editing ? "admin.updatePost" : "admin.createPost")) {
@@ -614,22 +616,11 @@ for (const mode of ["full", "quick"] as const) {
       expect(uploads).toBe(2);
       expect(writes).toHaveLength(2);
       for (const input of writes) {
-        expect(input.attachments).toEqual([
-          {
-            type: "audio",
-            filename: "claimed.mp3",
-            url: "https://example.test/opaque-audio",
-            mimeType: "audio/wav",
-            fileSize: 46,
-          },
-          {
-            type: "document",
-            filename: "notes.txt",
-            url: "https://example.test/opaque-document",
-            mimeType: "text/plain; charset=utf-8",
-            fileSize: 123,
-          },
+        expect(input.privateAssetIds).toEqual([
+          assetIdFor({ type: "audio", filename: "claimed.mp3" }),
+          assetIdFor({ type: "document", filename: "notes.txt" }),
         ]);
+        expect(input).not.toHaveProperty("attachments");
       }
     });
   }
@@ -639,7 +630,7 @@ for (const mode of ["full", "quick"] as const) {
     let uploads = 0;
     let saves = 0;
     await api(page, (name) => {
-      if (name === "admin.uploadMedia") {
+      if (name === "admin.uploadPrivateAttachment") {
         uploads++;
         return ok({ url: "https://example.test/incomplete" });
       }
@@ -677,7 +668,10 @@ for (const mode of ["full", "quick"] as const) {
         if (name === "admin.posts") return ok([current]);
         if (name === "feed.listPaginated")
           return ok({ posts: [current], nextCursor: null });
-        if (name === "admin.uploadMedia" || name === "admin.updatePost")
+        if (
+          name === "admin.uploadPrivateAttachment" ||
+          name === "admin.updatePost"
+        )
           writes.push({ name, input });
       });
       await page.route("https://example.test/**", (route) => route.abort());
@@ -748,18 +742,14 @@ for (const mode of ["full", "quick"] as const) {
     ).toHaveCount(0);
   });
   for (const mime of ["", "application/octet-stream"]) {
-    test(`${mode} audio with ${mime || "empty"} MIME saves server-confirmed metadata`, async ({
+    test(`${mode} audio with ${mime || "empty"} MIME binds a server-confirmed private asset`, async ({
       page,
     }) => {
       const writes: Write[] = [];
       await api(page, (name, input) => {
-        if (name === "admin.uploadMedia") {
+        if (name === "admin.uploadPrivateAttachment") {
           writes.push({ name, input });
-          return ok({
-            url: "https://example.test/opaque",
-            mimeType: "audio/wav",
-            fileSize: 46,
-          });
+          return ok(receipt(input, { mimeType: "audio/wav" }));
         }
         if (name === "admin.createPost") writes.push({ name, input });
       });
@@ -785,18 +775,13 @@ for (const mode of ["full", "quick"] as const) {
       await submit.click();
       await expect(form).toHaveCount(0);
       expect(writes.map((write) => write.name)).toEqual([
-        "admin.uploadMedia",
+        "admin.uploadPrivateAttachment",
         "admin.createPost",
       ]);
-      expect(writes[1].input.attachments).toEqual([
-        {
-          type: "audio",
-          filename: "recording.wav",
-          url: "https://example.test/opaque",
-          mimeType: "audio/wav",
-          fileSize: 46,
-        },
+      expect(writes[1].input.privateAssetIds).toEqual([
+        assetIdFor({ type: "audio", filename: "recording.wav" }),
       ]);
+      expect(writes[1].input).not.toHaveProperty("attachments");
     });
   }
 }

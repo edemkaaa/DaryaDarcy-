@@ -5,6 +5,7 @@ import { type ReactNode } from "react";
 import { PhotoTile } from "./photo-tile";
 import { PostPhotoCarousel } from "@/shared/media/post-photo-carousel";
 import { VideoGridCell } from "@/shared/media/video-grid-cell";
+import { PostVideoCarousel, type PostVideoSlide } from "./post-video-carousel";
 export interface VideoGridSlot {
   url: string;
   thumbnailUrl?: string;
@@ -37,12 +38,28 @@ export function NaturalPhotoStack({
   onPhotoPress,
   video,
   posterUrl,
+  videos,
 }: {
   photos: string[];
   onPhotoPress?: (index: number) => void;
   video?: VideoGridSlot;
   posterUrl?: string;
+  videos?: PostVideoSlide[];
 }) {
+  if (videos && videos.length > 1) {
+    return (
+      <div className="ui-stack">
+        <PostVideoCarousel videos={videos} />
+        {photos.length ? (
+          <NaturalPhotoStack photos={photos} onPhotoPress={onPhotoPress} />
+        ) : null}
+      </div>
+    );
+  }
+  if (videos?.length) {
+    video = { url: videos[0].url, thumbnailUrl: videos[0].posterUrl };
+    posterUrl = videos[0].posterUrl;
+  }
   if (!photos.length && !video) return null;
   if (video && !photos.length) {
     return (

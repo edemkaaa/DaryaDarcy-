@@ -10,7 +10,7 @@ import Animated, {
   Easing,
 } from "@/shared/browser/motion";
 import { PostMenuButton } from "@/shared/ui/post-menu-button";
-import { resolvePostVideo } from "@/domain/post/resolve-post-video";
+import { resolvePostVideos } from "@/domain/post/resolve-post-video";
 import { PostMediaSection } from "@/shared/media/post-media-section";
 import { NaturalPhotoStack } from "@/shared/media/natural-photo-stack";
 import { RichTextRenderer } from "@/domain/content/rich-text-renderer";
@@ -83,9 +83,9 @@ export function ClubPostCard({
     );
     onSave();
   };
-  const resolved = resolvePostVideo(item.photos, item.media);
+  const resolved = resolvePostVideos(item.photos, item.media);
   const stackPhotos = resolved.stackPhotos;
-  const hasVideo = resolved.hasVideo;
+  const hasVideo = resolved.videos.length > 0;
   const showPhotoStack = stackPhotos.length > 0 || hasVideo;
   const otherMedia = item.media?.filter((m) => m.type !== "video") || [];
   return (
@@ -104,12 +104,7 @@ export function ClubPostCard({
           >
             <NaturalPhotoStack
               photos={stackPhotos}
-              video={
-                hasVideo && resolved.videoUrl
-                  ? { url: resolved.videoUrl }
-                  : undefined
-              }
-              posterUrl={resolved.posterUrl}
+              videos={resolved.videos}
               onPhotoPress={
                 onPhotoPress
                   ? (index) => onPhotoPress(stackPhotos, index)

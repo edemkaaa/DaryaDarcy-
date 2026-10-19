@@ -53,6 +53,9 @@ async function fixture(page: Page) {
   await editorApi(page, async (name, input) => {
     if (name === "videos.catalog") {
       state.reads.push({ name, input });
+      // Match the real catalog's strict limit/cursor input contract.
+      if (Object.keys(input).some((key) => key !== "limit" && key !== "cursor"))
+        return failure(400);
       if (input.limit === 1)
         return ok({ items: [state.card], nextCursor: null });
       return ok(
@@ -143,6 +146,10 @@ test("catalog does not prefetch any source and paginates without duplicate cards
   await expect(
     page.getByRole("button", { name: "Показать ещё", exact: true }),
   ).toHaveCount(0);
+  expect(state.reads.filter((row) => row.name === "videos.catalog")).toEqual([
+    { name: "videos.catalog", input: { limit: 20 } },
+    { name: "videos.catalog", input: { limit: 20, cursor: 42 } },
+  ]);
   expect(state.legacy).toEqual([]);
   await page.screenshot({ path: test.info().outputPath("catalog-mobile.png") });
 });

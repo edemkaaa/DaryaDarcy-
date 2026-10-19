@@ -11,7 +11,7 @@ import Animated, {
   Easing,
 } from "@/shared/browser/motion";
 import { MaterialIcons } from "@/shared/ui/icons";
-import { resolvePostVideo } from "@/domain/post/resolve-post-video";
+import { resolvePostVideos } from "@/domain/post/resolve-post-video";
 import { PostMenuButton } from "@/shared/ui/post-menu-button";
 import { PostMediaSection } from "@/shared/media/post-media-section";
 import { NaturalPhotoStack } from "@/shared/media/natural-photo-stack";
@@ -82,13 +82,8 @@ export function PostCard({
   const tagLabels = (post.tags || [])
     .map((slug) => postTagLabel(slug))
     .filter(Boolean);
-  const hasVideo = Boolean(
-    (post.media || []).some((item) => item.type === "video"),
-  );
-  const videoItem = post.media?.find((item) => item.type === "video");
-  const { posterUrl, stackPhotos } = videoItem
-    ? resolvePostVideo(post.photos, [videoItem])
-    : { posterUrl: undefined, stackPhotos: post.photos || [] };
+  const { videos, stackPhotos } = resolvePostVideos(post.photos, post.media);
+  const hasVideo = videos.length > 0;
   const otherMedia = (post.media || []).filter((item) => item.type !== "video");
   return (
     <article
@@ -108,8 +103,7 @@ export function PostCard({
       {hasVideo || (stackPhotos && stackPhotos.length > 0) ? (
         <NaturalPhotoStack
           photos={stackPhotos || []}
-          video={hasVideo && videoItem ? { url: videoItem.url } : undefined}
-          posterUrl={posterUrl}
+          videos={videos}
           onPhotoPress={
             onPhotoPress
               ? (index) => onPhotoPress(stackPhotos || [], index)

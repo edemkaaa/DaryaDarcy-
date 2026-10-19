@@ -50,15 +50,21 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
     () => (data?.sections || []) as ArticleBlock[],
     [data],
   );
+  const coverUrl = data?.coverUrl;
   const photoUrls = useMemo(
-    () =>
-      blocks.flatMap((block) => {
-        if ((block.type === "photo" || block.type === "png") && block.url)
-          return [block.url];
-        if (block.type === "carousel" && block.urls?.length) return block.urls;
-        return [];
-      }),
-    [blocks],
+    () => [
+      ...new Set([
+        ...(coverUrl ? [coverUrl] : []),
+        ...blocks.flatMap((block) => {
+          if ((block.type === "photo" || block.type === "png") && block.url)
+            return [block.url];
+          if (block.type === "carousel" && block.urls?.length)
+            return block.urls;
+          return [];
+        }),
+      ]),
+    ],
+    [blocks, coverUrl],
   );
   if (isLoading || error || !data) {
     return (
@@ -134,8 +140,8 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
             coverUrl={data.coverUrl}
             blocks={blocks}
             onOpenImage={(url) => {
-              const photos = photoUrls.length ? photoUrls : [url];
-              setViewer({ photos, index: Math.max(0, photos.indexOf(url)) });
+              const photos = photoUrls.includes(url) ? photoUrls : [url];
+              setViewer({ photos, index: photos.indexOf(url) });
             }}
           />
         </ScrollArea>

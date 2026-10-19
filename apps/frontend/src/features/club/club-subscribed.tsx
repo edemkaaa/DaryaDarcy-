@@ -228,6 +228,7 @@ export function ClubSubscribed({
       const rawText = sanitizePlainPostText(String(p.text || ""));
       return {
         id: String(p.id),
+        target: p.target,
         title: displayPostTitle(rawText),
         preview: sanitizePlainPostText(body),
         rawText,
@@ -324,7 +325,7 @@ export function ClubSubscribed({
                 richText: item.richText ?? null,
                 publishedAt: item.publishedAt ?? item.createdAt ?? null,
                 createdAt: item.createdAt ?? null,
-                target: "club",
+                target: item.target,
               })
           : undefined
       }

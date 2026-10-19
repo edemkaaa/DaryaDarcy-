@@ -26,7 +26,7 @@ import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { ContentRequestState } from "@/shared/ui/content-request-state";
 import { useAuth } from "@/domain/session/session-context";
 import { RichTextRenderer } from "@/domain/content/rich-text-renderer";
-import { resolvePostVideo } from "@/domain/post/resolve-post-video";
+import { resolvePostVideos } from "@/domain/post/resolve-post-video";
 import { PostMediaSection } from "@/shared/media/post-media-section";
 import { NaturalPhotoStack } from "@/shared/media/natural-photo-stack";
 import { useClubContentProtection } from "@/shared/browser/use-club-protection";
@@ -168,9 +168,9 @@ function PostDetailScreenInner({ id }: { id: string }) {
         }[];
       }
     ).media || [];
-  const resolved = resolvePostVideo(photos, media);
+  const resolved = resolvePostVideos(photos, media);
   const viewPhotos = resolved.stackPhotos;
-  const hasVideo = resolved.hasVideo;
+  const hasVideo = resolved.videos.length > 0;
   const isClubPost = post.target === "club" || post.target === "both";
   const tagLabels = tags.map((slug) => postTagLabel(slug)).filter(Boolean);
   return (
@@ -197,12 +197,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
                   setViewerIndex(index);
                   setViewerVisible(true);
                 }}
-                video={
-                  hasVideo && resolved.videoUrl
-                    ? { url: resolved.videoUrl }
-                    : undefined
-                }
-                posterUrl={resolved.posterUrl}
+                videos={resolved.videos}
               />
             </div>
           )}
@@ -213,7 +208,6 @@ function PostDetailScreenInner({ id }: { id: string }) {
             >
               <PostMediaSection
                 media={media.filter((item) => item.type !== "video")}
-                posterUrl={resolved.posterUrl}
               />
             </div>
           ) : null}
@@ -243,7 +237,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
             <ClubComments
               postId={postId}
               tags={tags}
-              createdAt={post.createdAt}
+              createdAt={post.publishedAt ?? post.createdAt}
             />
 
             {/* Tags */}

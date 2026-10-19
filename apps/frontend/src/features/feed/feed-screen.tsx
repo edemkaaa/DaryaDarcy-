@@ -370,7 +370,11 @@ export default function FeedScreen() {
     <GridItem
       item={item}
       isVideo={isVideoPost(item)}
-      href={`/post/${item.id}`}
+      href={
+        item.articleId
+          ? `/library/article/${item.articleId}`
+          : `/post/${item.id}`
+      }
     />
   );
   // ── Header ──

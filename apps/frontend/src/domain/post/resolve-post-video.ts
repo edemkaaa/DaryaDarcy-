@@ -17,45 +17,73 @@ export type ResolvedPostVideo = {
   posterUrl?: string;
   stackPhotos: string[];
 };
+export type PostVideoSlide = {
+  url: string;
+  filename?: string;
+  posterUrl?: string;
+};
 export function isVideoMediaUrl(url: string): boolean {
   return VIDEO_URL_RE.test(url.split("?")[0] || "");
 }
-/** Resolve video + gallery photos from post_media and/or legacy video URLs in photos[]. */
+/** Preserve every saved video in media order, followed by unrepresented legacy URLs. */
+export function resolvePostVideos(
+  photos: string[] | undefined,
+  media: PostMediaLike[] | undefined,
+): { videos: PostVideoSlide[]; stackPhotos: string[] } {
+  const list = photos || [];
+  const items = (media || []).filter(
+    (item) => item.type === "video" && item.url,
+  );
+  const represented = new Set(items.map((item) => item.url));
+  const legacy = list.filter(
+    (url) => isVideoMediaUrl(url) && !represented.has(url),
+  );
+  const photoList = list.filter((url) => !isVideoMediaUrl(url));
+  const all: PostMediaLike[] = [
+    ...items,
+    ...legacy.map((url) => ({ type: "video", url })),
+  ];
+  let stackPhotos = photoList;
+  const videos = all.map((item): PostVideoSlide => {
+    const filename = item.filename || mediaBasename(item.url);
+    const explicitPoster = item.posterUrl;
+    // Private videos keep their own poster, never an unrelated gallery photo.
+    if (
+      explicitPoster ||
+      /^\/api\/media\/post-attachments\/[1-9]\d*$/.test(item.url)
+    )
+      return {
+        url: item.url,
+        filename,
+        posterUrl: explicitPoster || undefined,
+      };
+    // Ambiguous legacy covers must not be shared between several videos.
+    const { posterUrl, galleryPhotos } = splitVideoPhotos(
+      photoList,
+      filename,
+      all.length === 1,
+    );
+    stackPhotos = stackPhotos.filter((url) => galleryPhotos.includes(url));
+    return { url: item.url, filename, posterUrl };
+  });
+  return { videos, stackPhotos };
+}
+
+/** Compatibility view for callers that need the first video and its photo split. */
 export function resolvePostVideo(
   photos: string[] | undefined,
   media: PostMediaLike[] | undefined,
 ): ResolvedPostVideo {
-  const list = photos || [];
-  const videoItem = media?.find((m) => m.type === "video");
-  if (videoItem?.url) {
-    const videoFilename = videoItem.filename || mediaBasename(videoItem.url);
-    // Canonical private videos never store their covers in photos[]. A missing
-    // optional poster is not permission to consume the first gallery photo.
-    const { posterUrl, galleryPhotos } =
-      videoItem.posterUrl ||
-      /^\/api\/media\/post-attachments\/[1-9]\d*$/.test(videoItem.url)
-        ? { posterUrl: videoItem.posterUrl ?? undefined, galleryPhotos: list }
-        : splitVideoPhotos(list, videoFilename);
+  const { videos, stackPhotos } = resolvePostVideos(photos, media);
+  const first = videos[0];
+  if (first) {
     return {
       hasVideo: true,
-      videoUrl: videoItem.url,
-      videoFilename,
-      posterUrl,
-      stackPhotos: galleryPhotos,
+      videoUrl: first.url,
+      videoFilename: first.filename,
+      posterUrl: first.posterUrl,
+      stackPhotos,
     };
   }
-  const videoIndex = list.findIndex(isVideoMediaUrl);
-  if (videoIndex >= 0) {
-    const videoUrl = list[videoIndex];
-    const rest = list.filter((_, index) => index !== videoIndex);
-    const { posterUrl, galleryPhotos } = splitVideoPhotos(rest);
-    return {
-      hasVideo: true,
-      videoUrl,
-      videoFilename: mediaBasename(videoUrl),
-      posterUrl,
-      stackPhotos: galleryPhotos,
-    };
-  }
-  return { hasVideo: false, stackPhotos: list };
+  return { hasVideo: false, stackPhotos };
 }
