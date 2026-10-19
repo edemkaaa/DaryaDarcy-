@@ -13,6 +13,7 @@ import { join } from "node:path";
 import mysql, { type Connection, type RowDataPacket } from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
 import { migrate } from "drizzle-orm/mysql2/migrator";
+import { candidateApiEnvironment } from "./candidate-api-environment";
 import {
   candidateIdentityAllowed,
   candidateTargetAllowed,
@@ -157,10 +158,10 @@ async function main() {
 
 async function checkApi(conn: Connection) {
   // Composition-only entrypoint: no index/load-env and no WorkerJobs.start().
-  process.env.DATABASE_URL = process.env.CANDIDATE_DATABASE_URL;
-  process.env.PUBLIC_APP_URL = "http://127.0.0.1";
-  process.env.JWT_SECRET =
-    "candidate-probe-only-not-a-working-session-key-20261019";
+  Object.assign(
+    process.env,
+    candidateApiEnvironment(process.env.CANDIDATE_DATABASE_URL!),
+  );
   const { is, getTableName } = await import("drizzle-orm");
   const { MySqlTable } = await import("drizzle-orm/mysql-core");
   const schema = await import("../../packages/database/src/schema");
