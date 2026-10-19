@@ -32,7 +32,7 @@ import {
   getScheduledPosts as readScheduledPosts,
   getPostStatistics as readPostStatistics,
 } from "./content/post-admin-repository";
-import { getAdminPostsPage as readAdminPostsPage, getAdminPostDetail as readAdminPostDetail, type adminPostsPageInput } from "./content/admin-post-reads";
+import { getAdminPostsPage as readAdminPostsPage, getAdminPostDetail as readAdminPostDetail, getAdminPostCounts as readAdminPostCounts, getAdminPostCalendar as readAdminPostCalendar, type adminPostsPageInput, type adminPostCalendarInput } from "./content/admin-post-reads";
 import type { z } from "zod";
 import {
   getVideos as readVideos,
@@ -433,6 +433,14 @@ export async function getAdminPostsPage(input: z.infer<typeof adminPostsPageInpu
 
 export async function getAdminPostDetail(id: number) {
   return readAdminPostDetail(await getDb(), id);
+}
+
+export async function getAdminPostCounts() {
+  return readAdminPostCounts(await getDb());
+}
+
+export async function getAdminPostCalendar(input: z.infer<typeof adminPostCalendarInput>) {
+  return readAdminPostCalendar(await getDb(), input);
 }
 
 // Get post by Instagram ID (for dedup during import)

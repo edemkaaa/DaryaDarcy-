@@ -459,6 +459,54 @@ export type AppRouter = BuiltRouter<
         } & { media: PostMedia[] };
         meta: unknown;
       }>;
+      postCounts: QueryProcedure<{
+        input: void;
+        output: {
+          total: number;
+          published: number;
+          scheduled: number;
+          draft: number;
+        };
+        meta: unknown;
+      }>;
+      postCalendar: QueryProcedure<{
+        input: { days: Array<{ from: string; to: string }> };
+        output: {
+          days: Array<{
+            dayIndex: number;
+            total: number;
+            published: number;
+            scheduled: number;
+            draft: number;
+            id: number;
+            text: string;
+            photos: Array<string>;
+            tags: Array<string>;
+            tagCount: number;
+            hasVideo: boolean;
+            status: "published" | "draft" | "scheduled";
+            target: "feed" | "club" | "both";
+            scheduledAt: Date | null;
+            publishedAt: Date | null;
+            createdAt: Date;
+          }>;
+          upcoming: Array<{
+            id: number;
+            text: string;
+            photos: Array<string>;
+            tags: Array<string>;
+            tagCount: number;
+            hasVideo: boolean;
+            published: boolean;
+            status: "published" | "draft" | "scheduled";
+            target: "feed" | "club" | "both";
+            scheduledAt: Date | null;
+            publishedAt: Date | null;
+            createdAt: Date;
+          }>;
+        };
+        meta: unknown;
+      }>;
       createPost: MutationProcedure<{
         input: {
           text: string;

@@ -297,6 +297,106 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("UPDATE users SET role='admin' WHERE id=9040");
       }
     });
+    it("returns day summaries instead of all bodies, including a dense day and local boundaries", async () => {
+      const admin = client(bearer).admin as any;
+      const days = [
+        { from: "2031-01-01T21:00:00Z", to: "2031-01-02T21:00:00Z" },
+        { from: "2031-01-02T21:00:00Z", to: "2031-01-03T21:00:00Z" },
+      ];
+      try {
+        await conn.query(
+          "INSERT INTO posts(id,text,photos,tags,scheduledAt,status,target,published) VALUES ?",
+          [
+            Array.from({ length: 742 }, (_, i) => [
+              98000 + i,
+              "🌿".repeat(1000),
+              "[]",
+              "[]",
+              i === 741 ? "2031-01-02 21:00:00" : "2031-01-02 00:00:00",
+              i === 741 ? "draft" : "scheduled",
+              "club",
+              false,
+            ]),
+          ],
+        );
+        const result = await admin.postCalendar.query({ days });
+        expect(result.days).toHaveLength(2);
+        expect(result.days[0]).toMatchObject({
+          dayIndex: 0,
+          total: 741,
+          published: 0,
+          scheduled: 741,
+          draft: 0,
+        });
+        expect(result.days[1]).toMatchObject({
+          dayIndex: 1,
+          total: 1,
+          published: 0,
+          scheduled: 0,
+          draft: 1,
+          id: 98741,
+        });
+        expect(result.days[0]).not.toHaveProperty("richText");
+        expect(result.days[0]).not.toHaveProperty("media");
+        expect(result.upcoming).toHaveLength(8);
+        expect(
+          result.upcoming.slice(0, 2).map((p: { id: number }) => p.id),
+        ).toEqual([9043, 9042]);
+        expect(Buffer.byteLength(JSON.stringify(result))).toBeLessThan(
+          40 * 1024,
+        );
+        const page = await admin.postsPage.query({ limit: 50, target: "club" });
+        expect(page.posts).toHaveLength(50);
+        expect(Buffer.byteLength(JSON.stringify(page))).toBeLessThan(
+          150 * 1024,
+        );
+      } finally {
+        await conn.query("DELETE FROM posts WHERE id BETWEEN 98000 AND 98741");
+      }
+    });
+    it("retains the existing header counts including a hidden published record", async () => {
+      expect(await (client(bearer).admin as any).postCounts.query()).toEqual({
+        total: 5,
+        published: 3,
+        scheduled: 2,
+        draft: 2,
+      });
+    });
+    it("bounds calendar windows and checks access to calendar and counters", async () => {
+      const day = { from: "2030-01-01T00:00:00Z", to: "2030-01-02T00:00:00Z" };
+      const admin = client(bearer).admin as any;
+      for (const days of [
+        [],
+        Array(63).fill(day),
+        [day, day],
+        [{ ...day, to: "2030-02-01T00:00:00Z" }],
+        [{ from: "bad", to: day.to }],
+      ]) {
+        await expect(admin.postCalendar.query({ days })).rejects.toMatchObject({
+          data: { httpStatus: 400 },
+        });
+      }
+      expect(
+        (
+          await admin.postCalendar.query({
+            days: [
+              { from: "2030-03-30T23:00:00Z", to: "2030-03-31T22:00:00Z" },
+            ],
+          })
+        ).days,
+      ).toEqual([]);
+      for (const name of ["postCalendar", "postCounts"]) {
+        const input = name === "postCalendar" ? { days: [day] } : undefined;
+        await expect(
+          (client().admin as any)[name].query(input),
+        ).rejects.toMatchObject({ data: { httpStatus: 401 } });
+        await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=9040");
+        await expect(admin[name].query(input)).rejects.toMatchObject({
+          data: { httpStatus: 401 },
+        });
+        await conn.query("UPDATE users SET blockedAt=NULL WHERE id=9040");
+      }
+    });
     it("orders equal-position admin posts by publication date with creation fallback", async () => {
       try {
         await conn.query(`INSERT INTO posts (id,text,photos,tags,sortOrder,createdAt,publishedAt) VALUES

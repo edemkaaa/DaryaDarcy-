@@ -3,7 +3,7 @@ import type { User } from "../../../../packages/database/src/schema";
 import { userHasClubAccess } from "../identity/club-access";
 import * as db from "../db";
 import type { z } from "zod";
-import type { adminPostsPageInput } from "./admin-post-reads";
+import type { adminPostsPageInput, adminPostCalendarInput } from "./admin-post-reads";
 
 @Injectable()
 export class ContentReadService {
@@ -19,6 +19,14 @@ export class ContentReadService {
 
   adminPostDetail(id: number) {
     return db.getAdminPostDetail(id);
+  }
+
+  adminPostCounts() {
+    return db.getAdminPostCounts();
+  }
+
+  adminPostCalendar(input: z.infer<typeof adminPostCalendarInput>) {
+    return db.getAdminPostCalendar(input);
   }
 
   listAllAdminArticles() {

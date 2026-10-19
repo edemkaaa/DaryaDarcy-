@@ -14,8 +14,14 @@
   Protected postDetail возвращает full draft с ordered media или null;
   malformed400, guest401/moderator403. Types/build/API88/33680/boundaries691
   pass. Схема/индексы/рабочие данные не менялись. Проверен только local fixture.
-- [ ] Slice2: bounded calendar per-day cards/counts + upcoming8, header counts
-  с прежней published/draft семантикой; SQL/HTTP guards и dense-day regression.
+- [x] Slice2 RED3 missing calendar/counters; GREEN28 native admin +3 aggregate
+  =31/31. Dense741-event day возвращает1 summary с точными counts, следующий
+  local-day boundary отдельно; SQL first-card window не обрезает counts. Есть
+  <=62 adjacent20–28h day windows/DST, upcoming8, header legacy semantics;
+  invalid400/guest401/blocked401 прежние. Первое ожидание blocked403 исправлено
+  на действующую native-session401 семантику без auth изменений. Synthetic
+  calendar JSON<40KiB,50 cards<150KiB с длинными Unicode текстами; это fixture
+  bound, не live speed benchmark. Types/build/API90/35099/boundaries691 pass.
 - [ ] Slice3: lazy posts page only visible tab, existing infinite collection,
   protected detail before editor, calendar projection, counters без archive;
   loading/error/retry/save/delete/account change/navigation regressions.
