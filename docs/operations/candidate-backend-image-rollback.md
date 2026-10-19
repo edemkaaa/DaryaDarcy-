@@ -393,8 +393,8 @@ dependencies без DB/egress. Root types/prettier pass; backup units16 pass/2
 native opt-in skips, эти2 не выдавать за отдельную SQL acceptance.
 
 Повторять только на **новых пустых** owned fixtures, как existing rehearsal:
-`tests/fresh-backup-restore.mysql.test.ts`. Явно задать SOURCE/TARGET*URL и
-SOURCE/TARGET_ID в `BACKUP_REHEARSAL*\*`, только synthetic credentials;
+`tests/fresh-backup-restore.mysql.test.ts`. Явно задать SOURCE/TARGET_URL и
+SOURCE/TARGET_ID в `BACKUP_REHEARSAL_*`, только synthetic credentials;
 добавить `BACKUP_REHEARSAL_IMAGE`, `BACKUP_REHEARSAL_IMAGE_ID`,
 `BACKUP_REHEARSAL_REVISION=20839114f6cc4236f477ecd6c2c15a80059c66ca`,
 `BACKUP_REHEARSAL_BUNDLE_SHA=bb9775d1da5bd418d0ccf6138f81414425f5b4f6e3f56db08f357273c5da903f`.
@@ -442,7 +442,8 @@ cap-drop/no-new-privileges/memory256MiB/CPU0.4. Запускался тольк�
 создание/SELECT grant/удаление собственной временной тестовой учётки.
 
 Actual checks:39 ORM tables/columns через LIMIT0; guest auth/launch/feed/articles
-200 (user:null/empty lists), protected admin401, default-off Library/content files 404. Все8 HTTP прошли, exit0/OOM=false. User count0/history digest прежние.
+200 (user:null/empty lists), protected admin401, default-off Library/content files
+404. Все8 HTTP прошли, exit0/OOM=false. User count0/history digest прежние.
 Own container/account/env удалены. Все24 existing running containers IDs/images/
 start times/health, configuration **metadata** и volume names совпали до/после.
 Это не hash-сравнение содержимого working env: его не читали. Все7 project services
