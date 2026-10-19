@@ -35,9 +35,11 @@
   acceptance. Не менять schema/flags/S3/старые файлы/provider/SMTP. Push runtime
   baaeb47 выполнен;20 октября после VPN и minimal forward compatibility fix
   1fc155e выпуск реально применён, health/bundles/admin/DB и live acceptance
-  подтверждены в todo/runbook. Working версия теперь D7. Отдельный предел:
-  club-only Saved не проверен на dev, т.к. все742 posts public; без согласия
-  не создавать synthetic club post и не менять target existing content.
+  подтверждены в todo/runbook. Working версия теперь D7. По отдельному прямому
+  согласию20 октября создан и точно удалён1 synthetic club post с unpaid test
+  account; live API/browser club-only Saved теперь проверен, первоначальный
+  предел снят. Existing content/admin/runtime не менялись; повторное создание
+  тестового контента не является автоматическим поручением.
 - **19 октября, ADM-P2, принято пользователем «давай да»:** локально добавить
   страницы коротких admin post cards, protected full detail, bounded calendar
   и counters; подключить существующую админку без изменения дизайна. Старые API

@@ -40,11 +40,27 @@ Schema/roles/quotas/flags не менялись. Old incompatible images не п
   payments/outbox не создавались. Install guide штатно закрыт Escape после двух
   остановок automation на backdrop, production UI не меняли.
 
-**Предел live проверки:** все742 existing posts target=feed; club-only примера
-нет. Отдельно запрошено согласие на synthetic club post, его ещё не создавали.
-Не выдавать пустую вкладку/несуществующий ID за доказательство club access denial.
-Это operational acceptance выпуска с явным пределом, не full contract/mobile/
-pilot/S3/real payment acceptance. S3/legacy files/working content не менялись.
+**Первоначальный предел live проверки снят отдельным follow-up20 октября.**
+По прямому согласию созданы1 synthetic published club post745, unpaid account512
+и2 own bookmarks (existing public1/test club745). Club bookmark добавлен только
+тестовому аккаунту как retained old record, не через paid subscription/role grant.
+Admin API подтвердил существование и точный synthetic body; guest/unpaid API
+getById200/null и реальный Chromium direct link «Пост не найден» без body.
+savedPosts/вкладка клуба скрывают старую закладку, новый toggleSave403, public
+saved post по-прежнему открывается, public search не раскрывает клубный текст.
+API mocks, внешних писем, платежей, файлов и изменения existing content не было.
+
+Finally cleanup с exact ID/source/text/password-hash/owner/dependency guards:
+post745/user512/2 saved rows удалены. Все исходные posts/saved rows совпали с
+baseline по digest, user count прежний (742 posts/3 users), auto-increment gaps
+не сбрасывались. Admin/schema/history/config/running release прежние, все6
+side-effect counters0. Фронт/дизайн/S3/старые файлы не менялись, нового rollout нет.
+Evidence local0700 `.local-artifacts/saved-club-20261020.kjEsfo`;
+server0600 `release-baaeb47.4qlmx5/saved-club-followup.json`, SHA
+`9cf7177ea329de619229ea229db827ed6d71b62e554d041370f4b554285a0257`.
+Original release receipt ниже immutable и исторически содержит первоначальный
+предел; это дополнение снимает только club-only Saved limitation, не является
+full contract/mobile/pilot/S3/real payment acceptance.
 
 Private local0700: `.local-artifacts/release-baaeb47.31scch`;
 server0700: `/home/edem/apps/daryadarcy-staging/release-baaeb47.4qlmx5`.

@@ -2,7 +2,7 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
-### RELEASE-D7 — сервер обновлён,20 октября; предел проверки клуба
+### RELEASE-D7 — сервер обновлён,20 октября; live проверка клуба завершена
 
 - [x] После смены VPN выпуск реально применён на публичном dev, а не только
   отправлен в Git. Runtime commit1fc155e44c9d2c689e6cf567cfa735556975c61c;
@@ -50,11 +50,25 @@
   Fresh backup/configs/receipts сохранены; server free1092MiB. Финальный read-only
   guard: accepted, schema/admin/config прежние, posts742/club0/fixtureUsers0,
   side-effect counters0. Чужие файлы, images, volumes и БД не удалялись.
-- [ ] **Только отдельная live проверка club-only Saved:** все742 существующих
-  поста target=feed, клубного примера нет. Не выдавать пустую вкладку/несуществующий
-  ID за проверку защиты. Запрошено отдельное согласие на1 synthetic club post и
-  его точечное удаление; пока такой пост не создавался и existing content не менялся.
-  Mobile/full contract/pilot/payment/S3 acceptance этим выпуском не заявлена.
+- [x] **Club-only Saved, отдельное прямое согласие20 октября:** созданы только
+  synthetic published club post745, unpaid user512 и2 own bookmarks (public1/
+  club745). Никаких paid rows, подписок или изменения ролей: club bookmark
+  заранее записан только тестовому пользователю как retained old bookmark.
+  Реальные API/Chromium без mocks: admin positive control видит существующий
+  club body; guest/unpaid getById200/null, direct browser link «Пост не найден»;
+  savedPosts и вкладка клуба скрывают retained club record, toggleSave403 не
+  раскрывает body. Public bookmark по-прежнему открывается, public search не
+  выдаёт synthetic club content. Этот первоначальный live предел снят.
+- [x] В finally exact ID/source/text/hash/owner/dependency guards удалили post745,
+  user512 и2 own saved rows. Digest всех исходных posts/saved rows и user count
+  равен baseline (742 posts/3 users); admin/schema/config/history/runtime прежние,
+  все6 side-effect counters0. Auto-increment gaps не сбрасывались. Фронт/дизайн,
+  S3/старые файлы/письма/платежи не затрагивались, новых push/deploy не было.
+  Evidence local0700 `.local-artifacts/saved-club-20261020.kjEsfo`, follow-up
+  server0600 `release-baaeb47.4qlmx5/saved-club-followup.json`, SHA
+  9cf7177ea329de619229ea229db827ed6d71b62e554d041370f4b554285a0257.
+  Original release receipt immutable; дополнение снимает только этот предел,
+  не является full contract/mobile/pilot/payment/S3 acceptance.
 
 ### RELEASE-D7 — история подготовки до смены VPN,19 октября
 
