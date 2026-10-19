@@ -20,12 +20,14 @@ import {
   inspectMigrationHistory,
 } from "./migration-policy";
 
+let phase = "arguments";
 async function main() {
   const mode = process.argv[2];
   assert(
     process.argv.length === 3 &&
       ["--initialize-candidate", "--check-api"].includes(mode),
   );
+  phase = "manifest";
   const folder = new URL("../../packages/database/drizzle/", import.meta.url);
   const files = new Map(
     await Promise.all(
@@ -45,6 +47,7 @@ async function main() {
   const planHash = createHash("sha256")
     .update(JSON.stringify(manifest.migrations))
     .digest("hex");
+  phase = "candidate-target";
   assert(candidateTargetAllowed(process.env, planHash));
   // This operator never inherits application/provider settings or loads .env.
   assert(!process.env.DATABASE_URL);
@@ -59,12 +62,14 @@ async function main() {
   let scratch: string | undefined;
   let locked = false;
   try {
+    phase = "connect";
     conn = await mysql.createConnection({
       uri: process.env.CANDIDATE_DATABASE_URL!,
       multipleStatements: true,
       timezone: "Z",
       connectTimeout: 10000,
     });
+    phase = "identity";
     const [[identity]] = await conn.query<RowDataPacket[]>(
       "SELECT DATABASE() AS name, @@server_uuid AS serverUuid, @@version AS version, @@default_storage_engine AS engine",
     );
@@ -80,6 +85,7 @@ async function main() {
       ),
     );
     if (mode === "--initialize-candidate") {
+      phase = "empty-schema";
       const [[lock]] = await conn.query<RowDataPacket[]>(
         "SELECT GET_LOCK('daryadarcy_candidate_20261019_init',10) AS acquired",
       );
@@ -108,8 +114,10 @@ async function main() {
       for (const [name, sql] of files)
         await writeFile(join(scratch, name), sql, { mode: 0o600, flag: "wx" });
       // Actual Drizzle execution records fresh history; partial DDL is never repaired.
+      phase = "migrate";
       await migrate(drizzle(conn), { migrationsFolder: scratch });
     }
+    phase = "history";
     const [history] = await conn.query<RowDataPacket[]>(
       "SELECT hash,created_at FROM __drizzle_migrations ORDER BY created_at",
     );
@@ -153,16 +161,18 @@ async function checkApi(conn: Connection) {
   process.env.PUBLIC_APP_URL = "http://127.0.0.1";
   process.env.JWT_SECRET =
     "candidate-probe-only-not-a-working-session-key-20261019";
-  const { is } = await import("drizzle-orm");
+  const { is, getTableName } = await import("drizzle-orm");
   const { MySqlTable } = await import("drizzle-orm/mysql-core");
   const schema = await import("../../packages/database/src/schema");
   const db = drizzle(conn);
   let ormTables = 0;
   for (const table of Object.values(schema)) {
     if (!is(table, MySqlTable)) continue;
+    phase = `orm:${getTableName(table)}`;
     await db.select().from(table).limit(0);
     ormTables++;
   }
+  phase = "api-composition";
   const { createBackendApplication } =
     await import("../../apps/backend/src/_core/application");
   const { getDb } = await import("../../apps/backend/src/db");
@@ -181,6 +191,7 @@ async function checkApi(conn: Connection) {
       ["/api/library/materials/recipes/files", 404],
       ["/api/media/content-files/3af23d8c-140f-454b-a123-123456789abc", 404],
     ] as const) {
+      phase = `http:${path}`;
       const response = await fetch(`http://127.0.0.1:${port}${path}`, {
         redirect: "error",
         signal: AbortSignal.timeout(10000),
@@ -212,9 +223,22 @@ async function checkApi(conn: Connection) {
     )?.$client.end();
   }
 }
-main().catch(() => {
+main().catch((error: unknown) => {
   console.error(
     "Candidate database operation refused or failed. No existing database is repaired; details withheld.",
+  );
+  const code =
+    error && typeof error === "object" && "code" in error
+      ? error.code
+      : undefined;
+  console.error(
+    JSON.stringify({
+      phase,
+      code:
+        typeof code === "string" && /^[A-Z0-9_]{1,64}$/.test(code)
+          ? code
+          : undefined,
+    }),
   );
   process.exitCode = 1;
 });

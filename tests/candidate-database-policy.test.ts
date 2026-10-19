@@ -129,8 +129,14 @@ it.each(["--force", "--initialize-candidate", "--check-api"])(
     );
     expect(result.status).toBe(1);
     expect(result.stdout).toBe("");
-    expect(result.stderr.trim()).toBe(
+    const lines = result.stderr.trim().split("\n");
+    expect(lines[0]).toBe(
       "Candidate database operation refused or failed. No existing database is repaired; details withheld.",
     );
+    expect(JSON.parse(lines[1] ?? "{}")).toMatchObject({
+      phase: mode === "--force" ? "arguments" : "candidate-target",
+      code: "ERR_ASSERTION",
+    });
+    expect(result.stderr).not.toContain("private-cli-sentinel");
   },
 );
