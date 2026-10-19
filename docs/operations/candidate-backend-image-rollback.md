@@ -7,17 +7,21 @@ FRESH-C4 разрешала **только локальную подготовк
 для isolated SELECT-only API check на существующей БД-кандидате; выполнено ниже.
 Следующее прямое поручение FRESH-D1 разрешило data-only snapshot в candidate
 с сохранением admin/password, без source writes/switch; выполнено ниже.
+FRESH-D2 разрешила transfer/load corrected0763 image, isolated API acceptance
+на populated candidate и read-only source delta, не sync/switch; выполнено ниже.
 Этот документ и example override не разрешают deployment, restart/switch рабочих
 сервисов, permanent grants, seeds, SQL apply, S3 mutations или private flags.
 Текущая БД, frontend и существующая конфигурация rollout остаются прежними.
 Результаты схемы/API кандидата: [основной runbook](teamassist-staging.md).
 
-Состояние подготовки: **исправленный локальный image/archive готовы**,
-native backup/restore10/10 и offline image2/2 прошли в FRESH-C6 ниже.
+Состояние подготовки: **исправленный image0763 принят на server candidate**
+в FRESH-D2 ниже:39 ORM/13 HTTP, admin/password сохранены. D1 data snapshot850
+rows принят; D2 source delta — только activity timestamps, без sync/switch.
+Native backup/restore10/10 и offline image2/2 прошли в FRESH-C6 ниже.
 Original e774 image принимался в C5 на server candidate42:39 ORM +8 HTTP,
 но C6 нашла backup directory0755 и подготовила исправленный0763 image.
-Новый artifact ещё не проверялся на сервере. Разрешения на deployment/switch
-нет; transfer/load старого image был только для C5 test, не release approval.
+Разрешения на deployment/switch нет; transfer/load обоих images был только
+для изолированных проверок, не release approval.
 
 Исходный image C4/C5 — source `20839114f6cc4236f477ecd6c2c15a80059c66ca`;
 tag `daryadarcy-backend:fresh-c4-2083911`, Linux amd64/Node22.23.3/USER node.
@@ -234,6 +238,75 @@ probe populated target проверять schema/guest responses без ожид
 empty feed; login probe отдельно требует минимальных candidate users grants.
 Ни frontend/deploy/push/switch, ни S3/payment/mail/workers acceptance не выполнялись.
 
+## FRESH-D2 — corrected image и проверка новых изменений после D1
+
+19 октября13:44MSK. Exact artifact0763/source2083911, archive SHA-1b957…/
+266596352 bytes и D1 receipt SHA-500221… проверены перед подключением. Exact
+host/user/API/MySQL IDs/images/start times/health/UUID/internal network прежние,
+history42 hashes совпали. До upload free1735MiB/RAM available~594MiB; rebuild/
+install/pull на shared server не выполнялись. Архив загружен в own private700
+directory, его SHA подтверждён **перед** docker load. Image metadata/amd64/
+non-root/config/source label и executable bundle SHA-bb977… подтверждены.
+В каждом probe `/app/backups`0700/UID1000: исправление C6 присутствует в image.
+
+Delta: один consistent read-only snapshot охватил обе БД через временный
+SELECT-only account. Общие columns/PK из проверенных metadata, JSON/dates/
+bigints/UTC без преобразования, canonical D1 row-digest algorithm, bounded RAM,
+никаких actual row values вне сервера/в логах. Comparator отдельно проверен
+на5 synthetic cases в offline image: insert/delete/update/row-order/guards.
+На сервере850 rows в каждой БД. Все28 таблиц, кроме users, совпали с D1 SHA;
+в users2/2/no insert/delete. Различие одной строки между source/candidate:
+только lastSignedIn/updatedAt, не контент/подписки/права/credentials. Admin id1
+password hash/role admin/sessionVersion2/blockedAt совпадают.10 added tables
+пусты, columns/history42 прежние. Это сверка текущего состояния, не CDC/audit
+всех промежуточных изменений; после момента проверки source остаётся активной.
+Никакие timestamps/data не синхронизировали и не перезаписывали.
+
+Дополнительная read-only metadata сверка подтвердила unchanged indexes/table
+engines/collations, triggers/routines/events/FK0. Обнаружена и техническая
+delta: users AUTO_INCREMENT source next500/candidate499 на13:50MSK, при2/2
+rows. Counter не выравнивали по поручению «проверить», а не синхронизировать.
+Перед future cutover нужен свежий floor не ниже source на согласованной write
+boundary, а не hardcoded ALTER500 по устаревающему наблюдению. Supplementary
+checker сначала отказал из-за порядка JSON keys при string comparison; deep
+object comparison/captured metadata подтвердили отсутствие schema drift.
+Minimal private comparator RED→GREEN2, реальная смена engine по-прежнему
+отклоняется; повторная проверка сохранённых metadata локальна, SQL не replay.
+Это диагностика own operator, не изменение схемы или приложение.
+
+Перед API source SELECT grant отозван; account получил только SELECT candidate
+и users INSERT/UPDATE для штатного login. Actual image0763 production deps +
+**неизменённый** D1 composition probe bundle, не старый empty-target CLI.
+39 ORM/13 HTTP pass: guest/auth/launch/feed/articles, admin401/default-off files404,
+wrong password401/no cookie, прежний password login200/me200/admin.stats200/
+logout200 и secure host-only cookie. Protected hash/role/session/history после
+login сверены. В candidate обновились только обычные login timestamps/возможный
+AUTO_INCREMENT gap штатного upsert. Working env/session/provider secrets не
+читались; пароль использован только в памяти из прежнего private owner profile.
+No production CMD/WorkerJobs.start/providers/S3/mail/payments. UID1001/internal
+net/no ports/read-only/cap-drop/no-new-privileges/256MiB/CPU0.4, exit0/OOMfalse.
+
+Оба own containers/technical account удалены guarded; own uploaded archive254MiB
+и code files удалены по hashes после успеха. Local original archive, loaded0763,
+e774 и working images сохранены. Все29 existing containers IDs/images/start
+times/health совпали, рабочая DB connection daryadarcy_staging/current HTTPS200.
+Private server directory0700/receipt0600 содержит только safe receipt:
+`/home/edem/apps/daryadarcy-staging/candidate-final-20261019.SCIDGJ/receipt.json`.
+Local `.local-artifacts/candidate-final-20261019.4w5NSy/verification.json` вне Git;
+обе копии SHA-256:
+`89392d893c58f71d2192acce137f8ed3161da398626b508c4aa904fd0a07de72`.
+Рядом local/server `postcheck.json` дополняет receipt metadata/counter checks;
+SHA `6e603b4c46ceb6c3fb29ff3aa72bbd9830763b1b79326055233f888010e4f0c1`.
+Никаких source data/schema writes, sync, frontend/S3/push/deploy/app switch.
+
+Corrected-image candidate gate закрыт для неизменного0763 artifact. Это не
+разрешение switch и не проверка production workers/провайдеров, backup working
+mount/off-site или production-scale concurrent-write recovery. Перед будущим
+switch: новая delta/users counter floor на границе согласованных writes/downtime,
+backup/rollback, permanent minimum grants и сохранение working session/
+encryption/provider config. Original0017–0019 preflight не обходить. Успешные
+unchanged local native backup tests C6 не повторяли без изменения artifact.
+
 ## Состав и воспроизведение образа
 
 Отдельный [Dockerfile.backend](../../infrastructure/deploy/teamassist/Dockerfile.backend)
@@ -314,9 +387,11 @@ Schema39/HTTP8 на candidate проверялись в FRESH-C3; exact final im
    **STAGING_IMAGE не менять на backend-only**: это сломало бы web.
    Проверить resolved diff в закрытой среде: только api image/DB URI; web/mysql/
    edge/networks/volumes/resources/security/flags неизменны. Не выводить secret diff.
-6. Перед switch проверить **corrected0763** image на candidate с composition-only
-   SELECT account, без workers/providers/egress, как FRESH-C5. Закрыть тестовый
-   процесс/учётку. Native backup/restore именно с image client на own disposable
+6. Corrected0763 image на populated candidate проверен в FRESH-D2:39 ORM/13 HTTP,
+   без workers/providers/egress; temporary account/process удалены. Не повторять
+   прежний empty-target CLI, не выдавать D2 за write-cutover. При изменении image/
+   schema/context требуется новая isolated acceptance. Native backup/restore
+   именно с image client на own disposable
    MySQL8.4 для0763 выполнен в C6: не повторять без изменения artifact/условий.
    При смене client/image новая native acceptance обязательна: `--version` мало.
 7. Согласовать downtime, rollback triggers, владельца решения, backup/writes и

@@ -83,6 +83,24 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября, FRESH-D2 — corrected0763 image проверен на populated candidate.**
+Archive/hash/source/runtime bundle и backup directory0700/owner проверены на
+сервере; actual image39 ORM/13 HTTP pass, прежний admin/password работают,
+hash/role/session/history сохранены. Source D1 delta проверена read-only по
+29 table SHA/PK/columns:850/850 rows,28 tables exact; users — только activity
+lastSignedIn/updatedAt у одной строки, no insert/delete,10 new tables empty.
+Indexes/engines/collations и отсутствие triggers/routines/events/FK подтверждены.
+Техническая metadata delta: users next-id source500/candidate499 на13:50MSK;
+перед future cutover обновить floor на согласованной write boundary, не сейчас.
+Ничего не синхронизировали/не переписывали. Все29 existing containers прежние,
+рабочий API всё ещё daryadarcy_staging/HTTPS200. Own probes/account/uploads
+удалены; loaded0763/local archive/old images сохранены. Receipt SHA-89392d…,
+details FRESH-D2 todo/[runbook](../docs/operations/candidate-backend-image-rollback.md).
+Corrected-image candidate gate закрыт для этого artifact/context, не release
+approval. App switch требует новой delta/users counter floor/write boundary, backup/permanent grants/
+working encryption-session-provider config continuity/rollback и разрешения.
+Не запускать прежние empty-target copy/initialize/API CLI; candidate populated.
+
 **19 октября, FRESH-D1 — снимок данных перенесён и проверен, switch не выполнен.**
 Source staging29 → existing fresh candidate40/history42:850 rows, explicit
 columns/row hashes/counts совпали, все10 added tables пусты. Старый admin id1/

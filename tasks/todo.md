@@ -4,6 +4,57 @@
 
 ### Разрешённая подготовка staging/server — 19 октября
 
+- [x] FRESH-D2 — прямое разрешение проверить corrected final image0763 на
+  populated candidate и source delta после D1 snapshot. Старую DB только
+  SELECT/read-only; candidate data не синхронизировать/не перезаписывать.
+  Сохранить admin/password hash/session/role, проверить existing password через
+  isolated API. Exact archive/image/bundle/host/container/UUID/history guards,
+  temporary least-privilege account/no workers/providers/ports, cleanup receipts.
+  App switch/deploy/frontend/S3/push и source writes запрещены. Delta сравнивать
+  с сохранёнными D1 hashes, не только row counts; candidate login timestamps
+  отделить от новых изменений источника. Выполнено19 октября,13:44MSK:
+  local archive SHA-1b957… и D1 receipt SHA-500221… verified; exact host/DB UUID/
+  containers/network/history42, disk1735MiB/available RAM594MiB guards.
+  Archive254MiB загружен без rebuild/install/pull; server SHA совпал перед load.
+  Actual image0763/source2083911/amd64/non-root/config/bundle SHA-bb977… verified;
+  backup directory0700/UID1000 проверен внутри обоих isolated probes.
+  Real SQL consistent read-only snapshot в обеих DB, временный SELECT-only
+  account, explicit source columns/dateStrings/jsonStrings/bigints/UTC и D1
+  digest algorithm. Source850/candidate850; все28 tables кроме users совпали
+  с D1 SHA. Users2/2/no insert/delete; различие одной строки только
+  lastSignedIn/updatedAt. Hash/role/admin/sessionVersion2/blockedAt совпали,
+  new10 tables пусты/history42/column fingerprints прежние. Sync/DML отсутствуют.
+  Дополнительный read-only metadata check: indexes/table engines/collations
+  совпали, triggers/routines/events/FK0. Users AUTO_INCREMENT после snapshot
+  вырос: observed source next500/candidate499 (13:50MSK), rows по-прежнему2/2.
+  Candidate counter не меняли: перед future cutover нужен свежий source floor
+  на согласованной write boundary; никакого фиксированного ALTER500 сейчас.
+  Первый supplementary checker ошибочно сравнивал JSON property order как
+  строку; diagnostic capture подтвердил равенство объектов. Minimal RED→GREEN2
+  исправил только own private checker; captured metadata проверены повторно
+  локально, без SQL replay/изменения guards. Product code не менялся.
+  Диагностический comparator отдельно прошёл5 synthetic checks на image без
+  network/SQL; это не дополнительные native SQL cases. После delta source
+  grant отозван; API только SELECT candidate +users INSERT/UPDATE для login.
+  Exact D1 API probe bundle повторно использован без изменения/overlay deps:
+  39 ORM/13 HTTP pass, wrong password401/no cookie, прежний password login200,
+  me/admin.stats/logout/secure host-only cookie; hash/role/session/history
+  после login неизменны. Workers/providers/working executable не запускались.
+  UID1001/internal network/no ports/read-only/cap-drop/256MiB/CPU0.4, exit0/OOMfalse.
+  Оба own probes и temporary account удалены с exact guards. Uploaded archive
+  и own code files удалены по hashes; local original/loaded0763/old images сохранены.
+  Все29 existing containers IDs/images/start times/health совпали; working API
+  по-прежнему daryadarcy_staging/current HTTPS200. Server private directory0700/
+  receipt0600, local/server receipt SHA
+  `89392d893c58f71d2192acce137f8ed3161da398626b508c4aa904fd0a07de72`.
+  Дополнительный local/server postcheck.json (metadata/counter), SHA
+  `6e603b4c46ceb6c3fb29ff3aa72bbd9830763b1b79326055233f888010e4f0c1`.
+  No source writes/sync/frontend/S3/push/deploy/switch. Остаток для future cutover:
+  новая delta/users counter floor на границе writes, backup/config/secrets continuity/permanent app
+  grants/rollback и отдельное разрешение. При unchanged image прежние успешные
+  local native backup tests не повторялись; production workers/реальные providers
+  этим isolated acceptance не проверены. Только plans/runbook изменены в Git.
+
 - [x] FRESH-D1 — прямое разрешение подготовить перенос staging data в existing
   `daryadarcy_candidate_20261019`, сохранив admin/password, без app switch/deploy.
   Source только SELECT/read-only snapshot; никакой repair history0017–0019,
