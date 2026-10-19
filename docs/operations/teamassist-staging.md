@@ -1,5 +1,40 @@
 # Отдельный тестовый стенд TeamAssist
 
+## 19 октября — FRESH-C1: офлайн-план схемы кандидата
+
+Первый локальный срез подготовки server candidate, **не инициализация сервера**.
+Существующий fresh tool теперь имеет отдельный режим без подключения:
+
+```sh
+pnpm db:fresh:local --plan
+```
+
+Запускать локально, не с `NODE_ENV=production`. Он читает versioned SQL/journal,
+проверяет отдельный fresh-профиль и возвращает JSON: `profile:fresh-install-plan`,
+`migrations` (42 ordered tag/when/hash), `planHash` (SHA-256 UTF-8 JSON этого
+массива), `databaseChecked:false`, `initialized:false`, `releaseApproval:false`.
+SQL body/URI/секреты не печатаются. Docker, SQL, SSH, S3 и `.env` не используются;
+даже унаследованные application/preflight/fixture URI игнорируются. Режим ничего
+не сохраняет и не создаёт журнал применённых миграций.
+
+Текущий отпечаток source-плана:
+`51616035e287f221c633d8c7975fef46229d6fbc4ef1e80e586f85e96469684a`.
+Хранить его вместе с выбранным source commit при дальнейшем review. Это не
+самостоятельный trust anchor, проверка целевой БД или разрешение apply: любое
+изменение SQL меняет hash и требует нового review; новый hash сам себя не одобряет.
+Неизвестный/отсутствующий SQL, malformed manifest или совмещённые/неизвестные
+операции дают отказ, не частичный план. Existing local initialize/check по-прежнему
+ограничены собственным loopback/tmpfs backend_test; server mode не добавлен.
+
+CLI RED:3 ожидаемых failures до реализации; GREEN:11 CLI +3 fresh policy +12
+manifest/history +13 command gate =39 pass/4 suites/0 skip на Node22.23.2.
+Connection trap получил0 соединений, legacy journal bytes сохранены. Все source
+fixtures созданы только в own mkdtemp и удалены тестом. Server candidate не
+проверялся/не менялся, migration apply/image rollout/switch ещё впереди.
+Общий Node22 regression:2519 pass/1574 opt-in skips/198 passed suites/91 skipped,
+63.67s/exit0. Root types/boundaries685/API86 unchanged/docs58/prettier/diff pass.
+Новые SQL/S3/browser проверки и build неизменённого приложения не запускались.
+
 ## 19 октября — подготовка отдельной пустой БД, без переключения
 
 Пользователь запросил push в staging и обновление сервера; после preflight выбрал

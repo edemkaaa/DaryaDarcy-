@@ -83,6 +83,20 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября, продолжение backend — первый срез FRESH-C1 выполнен локально.**
+Подготовлен
+offline plan в existing fresh CLI: `--plan` читает только versioned SQL/journal,
+показывает42 ordered identities и SHA-256 плана, `databaseChecked:false`/
+`releaseApproval:false`. Не открывает Docker/SQL/SSH/S3 и не использует URI из env.
+Тестировать настоящий CLI на own temp source fixtures и loopback connection trap;
+unknown SQL/args — отказ, любые SQL bytes отражены hash. Local fixture guards
+не ослаблять; server initialization/image/switch этим срезом не разрешены.
+Фронт, working/server DB и flags не трогать; отдельный local commit после проверок.
+CLI RED3→GREEN11, всего focused39 checks/0 skips; план42/hash записан в
+[операционной заметке](../docs/operations/teamassist-staging.md). Это проверка
+исходников без Docker/SQL, не доказательство текущей server schema. Следующий
+срез — target-specific fresh procedure/candidate API, без автоматического switch.
+
 **19 октября — push и подготовка server candidate по отдельному разрешению.**
 Пользователь запросил staging/server, затем выбрал отдельную пустую БД и
 согласование переключения после проверки. На `teamassist-dev` создана только

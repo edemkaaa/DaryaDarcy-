@@ -32,6 +32,25 @@
   Ordinary preflight: untracked0017–0019, databaseChecked=false/exit1;
   guard не обходили. Для fresh пути история старой базы не нужна. No migration
   apply/DB replacement/old-file migration/private flag enable разрешения нет.
+  - [x] FRESH-C1 — local offline `--plan` в existing fresh tool: точный порядок/
+    SHA-25642 миграций и общий plan hash, без Docker/SQL/network/credential reads.
+    RED/GREEN CLI tests: пустое окружение, унаследованные DB URI игнорируются,
+    изменённые bytes меняют hash, неизвестный SQL/args fail closed. Existing
+    local initialize/check guards не расширять. Это подготовка, не server apply.
+    Выполнено: RED3 до реализации; GREEN11 CLI +3 policy +12 history/manifest
+    +13 apply-command guards =39 pass/4 suites/0 skip/5.66s на Node22.23.2.
+    Без DB credentials/PATH Docker; connection trap0, journal bytes unchanged,
+    missing/unknown SQL и combined/unknown modes отказали. Source plan hash
+    `51616035e287f221c633d8c7975fef46229d6fbc4ef1e80e586f85e96469684a`;
+    databaseChecked/initialized/releaseApproval=false. Existing local guards и
+    SQL apply body сохранены; source inspection теперь до fixture inspection.
+    Сервер/БД/фронт/S3/flags/push/deploy не трогались в этом срезе.
+    Full Node22:2519 pass/1574 opt-in skips,198 passed suites/91 skipped,
+    63.67s/exit0. Native SQL/S3/browser acceptance не повторялась. Root types,
+    boundaries685, API86/32048 unchanged, docs58, prettier/diff exit0.
+    Review: только новый early-return offline mode и общий source preflight;
+    existing Docker ownership/URI/production/empty DB locks/apply не ослаблены,
+    новых deps/HTTP API/schema нет. Build приложения не повторяли: runtime не менялся.
 
 ### LB — Библиотека, принято17 октября
 

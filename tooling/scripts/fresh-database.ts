@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { promisify } from "node:util";
 import {
   mkdtemp,
@@ -22,10 +23,45 @@ async function main() {
   const args = process.argv.slice(2);
   if (
     args.length !== 1 ||
-    !["--initialize-empty-local", "--check-local"].includes(args[0]!) ||
+    !["--plan", "--initialize-empty-local", "--check-local"].includes(
+      args[0]!,
+    ) ||
     process.env.NODE_ENV === "production"
   )
     throw new Error("Invalid mode");
+  const folder = new URL("../../packages/database/drizzle/", import.meta.url);
+  const files = new Map(
+    await Promise.all(
+      (await readdir(folder))
+        .filter((name) => name.endsWith(".sql"))
+        .map(
+          async (name) =>
+            [name, await readFile(new URL(name, folder), "utf8")] as const,
+        ),
+    ),
+  );
+  const manifest = inspectFreshInstallManifest(
+    JSON.parse(await readFile(new URL("meta/_journal.json", folder), "utf8")),
+    files,
+  );
+  if (manifest.issues.length || !manifest.journal)
+    throw new Error("Invalid fresh profile");
+  // A source fingerprint is not target validation or permission to apply SQL.
+  if (args[0] === "--plan") {
+    console.log(
+      JSON.stringify({
+        profile: "fresh-install-plan",
+        migrations: manifest.migrations,
+        planHash: createHash("sha256")
+          .update(JSON.stringify(manifest.migrations))
+          .digest("hex"),
+        databaseChecked: false,
+        initialized: false,
+        releaseApproval: false,
+      }),
+    );
+    return;
+  }
   const uri = process.env.FRESH_DATABASE_URL;
   const id = process.env.FRESH_DATABASE_CONTAINER_ID;
   if (!uri || !id || !/^[a-f0-9]{64}$/.test(id))
@@ -64,23 +100,6 @@ async function main() {
     bindings[0].HostPort !== url.port
   )
     throw new Error("Unowned fixture");
-  const folder = new URL("../../packages/database/drizzle/", import.meta.url);
-  const files = new Map(
-    await Promise.all(
-      (await readdir(folder))
-        .filter((name) => name.endsWith(".sql"))
-        .map(
-          async (name) =>
-            [name, await readFile(new URL(name, folder), "utf8")] as const,
-        ),
-    ),
-  );
-  const manifest = inspectFreshInstallManifest(
-    JSON.parse(await readFile(new URL("meta/_journal.json", folder), "utf8")),
-    files,
-  );
-  if (manifest.issues.length || !manifest.journal)
-    throw new Error("Invalid fresh profile");
   let conn: Connection | undefined;
   let scratch: string | undefined;
   let locked = false;
