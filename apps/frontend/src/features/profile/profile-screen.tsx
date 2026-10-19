@@ -178,7 +178,10 @@ export default function ProfileScreen() {
     void AsyncStorage.setItem(PROFILE_AVATAR_KEY, serverAvatar);
   }, [serverAvatar]);
   const savedPosts = useMemo(() => {
-    const rows = savedFromApi.data || [];
+    // A retained response must not expose club-only cards after access is lost.
+    const rows = (savedFromApi.data || []).filter(
+      (post) => hasClubAccess || post.target !== "club",
+    );
     const feedRows = rows.filter((p) => p.target !== "club");
     const clubRows = rows.filter(
       (p) => p.target === "club" || p.target === "both",
@@ -187,7 +190,7 @@ export default function ProfileScreen() {
       return feedRows;
     }
     return clubRows;
-  }, [savedTab, savedFromApi.data]);
+  }, [savedTab, savedFromApi.data, hasClubAccess]);
   const isLoadingSaved = savedFromApi.isLoading;
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -301,7 +304,7 @@ export default function ProfileScreen() {
       <Typography className={classes.logoutButtonText}>Выйти</Typography>
     </Action>
   );
-  // Auth / subscription gates
+  // Personal bookmarks require a session, not club membership.
   if (sessionError) return <SessionStatus />;
   if (authLoading) {
     return (
@@ -359,64 +362,6 @@ export default function ProfileScreen() {
                   Войти →
                 </Typography>
               </Action>
-            </div>
-          </ScrollArea>
-        </Background>
-      </ScreenContainer>
-    );
-  }
-  if (subscriptionStatus === "checking" || subscriptionStatus === "error") {
-    return (
-      <ScreenContainer backgroundColor="#FDF8F0">
-        <SubscriptionStatus />
-        <div className={classes.section}>{logoutAction}</div>
-      </ScreenContainer>
-    );
-  }
-  if (!hasClubAccess) {
-    return (
-      <ScreenContainer backgroundColor="#FDF8F0">
-        <Background
-          source={{ uri: PAPER_TEXTURE_URI }}
-          fit="cover"
-          className={classes.background2}
-        >
-          <ScrollArea
-            hideScrollbar
-            contentClassName={classes.scrollAreacontent}
-          >
-            <div
-              className={["ui-stack ", classes.lockedContainer]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              <MaterialIcons
-                name="lock-outline"
-                size={48}
-                color={BROWN_MUTED}
-              />
-              <Typography className={classes.lockedTitle}>DARCY</Typography>
-              <Typography className={classes.lockedText}>
-                Личный профиль с возможностью сохранять публикации и результаты
-                интерактивов доступен для участниц клуба Darcy
-              </Typography>
-              <Action
-                onClick={() => router.push("/club")}
-                className={({ pressed }) =>
-                  [
-                    classes.action2,
-                    pressed ? classes.opacityState3 : "",
-                    pressed ? classes.transformState2 : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")
-                }
-              >
-                <Typography className={classes.lockedButtonText}>
-                  Вступить в клуб →
-                </Typography>
-              </Action>
-              {logoutAction}
             </div>
           </ScrollArea>
         </Background>
@@ -776,7 +721,10 @@ export default function ProfileScreen() {
                 .filter(Boolean)
                 .join(" ")}
             >
-              {hasServiceAccess ? (
+              {subscriptionStatus === "checking" ||
+              subscriptionStatus === "error" ? (
+                <SubscriptionStatus />
+              ) : hasServiceAccess ? (
                 <>
                   <Typography className={classes.subscriptionStatusText}>
                     Служебный доступ

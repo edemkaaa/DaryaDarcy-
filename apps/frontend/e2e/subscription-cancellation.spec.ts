@@ -510,13 +510,14 @@ test("confirmed expiration closes private access without extending its period", 
   await open(page);
   await cancel(page);
   await expect(
-    page.getByText("Личный профиль с возможностью сохранять публикации", {
-      exact: false,
+    page.getByText("У тебя нет активной подписки", {
+      exact: true,
     }),
   ).toBeVisible();
   await expect(
     page.getByText("member@example.test", { exact: true }),
-  ).toHaveCount(0);
+  ).toBeVisible();
+  await expect(cancelButton(page)).toHaveCount(0);
   expect(state.writes).toBe(1);
 });
 
@@ -540,7 +541,7 @@ for (const kind of ["owner", "canceled", "inactive", "guest"]) {
         : kind === "canceled"
           ? "Отменена, доступ сохранён"
           : kind === "inactive"
-            ? "Личный профиль с возможностью сохранять публикации"
+            ? "У тебя нет активной подписки"
             : "Войдите, чтобы открыть личный кабинет";
     await expect(page.getByText(expected, { exact: false })).toBeVisible();
     await expect(cancelButton(page)).toHaveCount(0);

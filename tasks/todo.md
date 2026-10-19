@@ -2,6 +2,45 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### SAVED-P1 — открытое «Сохранённое» без подписки,19 октября, локально
+
+- [x] Прямое поручение после RELEASE-D5; исходные branch/clean status/HEAD
+  c3fcf25 проверены. Снята подписочная блокировка всего профиля, а не доступ
+  к клубу: session/guest gates сохранены; состояние/ошибка подписки выводится
+  внутри прежней subscription card. Авторизованному без подписки доступны
+  сохранённые опубликованные feed/both посты; club-only карточки дополнительно
+  скрываются из retained response без подтверждённого доступа. Права оплаченной
+  участницы и служебный доступ модератора не смешиваются и не меняются.
+- [x] RED на прежнем production build: первый browser test не находит открытую
+  сохранённую карточку, snapshot подтверждает прежний full-profile клубный gate.
+  Минимальная правка одного TSX, без CSS/assets/перераскладки/нового UI/API.
+  GREEN7 новых browser scenarios: unpaid public/both/detail, club-only denial,
+  paid/moderator, subscription503 без ложного inactive, отзыв доступа с retained
+  club snapshot, saved read503/retry, guest. HTTP в браузере синтетический,
+  React/query/router настоящие; это не сквозной browser+live API/S3 результат.
+- [x] Browser regression: session-safety25 pass без правок. Новые7 + отмена
+  подписки26 =33 pass после актуализации двух прежних assertions о закрытии
+  всего профиля; checks отсутствия cancel/recovery и one-write сохранены.
+  Первый reconnect test не вызывал refetch, потому что online уже true:
+  исправлен только stimulus offline→online с ожиданием ответа, не доступы.
+  Отзыв проверяется именно во вкладке клуба, в том числе после reset экрана.
+- [x] Сервер уже фильтрует published/status/target и проверяет действующие
+  права: unchanged nest-content native JWT/Nest/HTTP/MySQL56 pass/0skip.
+  Только own loopback/tmpfs backend_test; exact container ID/labels/port/mounts
+  проверены перед удалением, контейнер удалён без volumes. Рабочие DB/S3 и
+  внешние интеграции не использовались; backend/schema/types/flags не менялись.
+- [x] Общая Vitest regression2646 pass/1601 opt-in skips (204 files pass/95
+  skipped); root/frontend/e2e types, lint, API86/32138, boundaries690 pass.
+  Next production build29 pages с same-origin API проходит. Review: изменение
+  только profile logic и соответствующих тестов; клубные API gates прежние,
+  both остаётся публичным; ошибки подписки не блокируют открытые сохранения
+  и не выдаются за отсутствие подписки. Локальный screenshot нового unpaid
+  состояния использует существующий профиль; физическая mobile/full contract
+  приёмка не заявляется. Impeccable context launcher недоступен по правам:
+  existing UI/стили и прямые инструкции прочитаны без изменения инструментов.
+- [x] План актуализирован; локальная правка не опубликована. Сервер по-прежнему
+  RELEASE-D5. Нет push/deploy/merge, правок дизайна, рабочей DB, S3 или пароля.
+
 ### RELEASE-D5 — объединённая11e4c6d опубликована на dev,19 октября
 
 - [x] Прямое разрешение push/server update с сохранением текущей DB/admin.
