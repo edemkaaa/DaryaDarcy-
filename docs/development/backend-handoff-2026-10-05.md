@@ -1,5 +1,28 @@
 # Передача изменений бэкенда фронтендеру
 
+## 19 октября — совместимость пагинации видеокаталога, локально
+
+VCAT-C1: сервер `videos.catalog` теперь принимает необязательное
+`direction: "forward"`, автоматически добавляемое текущим tRPC infinite-query
+клиентом. Раньше первая загрузка получала400 из-за strict input. Формат
+`{items,nextCursor}`, порядок и проверки public/club не изменены. Старый вызов
+без direction допустим; backward/иные значения/лишние поля отклоняются с400.
+Новый режим обратной пагинации не добавлялся.
+
+Native test использует **существующий generated frontend AppRouter**,
+настоящие tRPC/QueryClient/InfiniteQueryObserver → loopback Nest → собственную
+одноразовую MySQL. Три страницы, скрытая запись, закрытая карточка без источника,
+конечный cursor и отсутствие повторного запроса после конца проверены.
+Все30 native VK cases pass; дополнительно105 regressions/6 files pass.
+Root types/backend build/boundaries pass. SQL fixture DDL не является проверкой
+working migration history; реальных VK запросов, S3 и рабочего SQL нет.
+
+**Фронт, включая generated contract.ts, не изменялся по прямому запрету.**
+Текущий клиент совместим в runtime, но `pnpm check:api` пока сообщает устаревшие
+generated types из-за добавленного optional wire field. Синхронизировать штатной
+генерацией только при разрешённой работе над фронтом; не обходить проверку.
+Это локальная правка, не обновление dev; push/deploy/flags не выполнялись.
+
 ## 19 октября — Библиотека: actual S3 проверка закрыта, контракт прежний
 
 LB4:4/4 native checks/0 skips/80.57s на собственной fresh42 tmpfs БД и шести

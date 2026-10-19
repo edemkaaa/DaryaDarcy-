@@ -39,7 +39,7 @@ youtubeId, автоматического переноса/закрытия ст
 Добавлены additive процедуры; старые wire shapes публичных YouTube сохраняются:
 
 ```ts
-videos.catalog.query({ limit?: number, cursor?: number })
+videos.catalog.query({ limit?: number, cursor?: number, direction?: "forward" })
 // strict input; limit 1..100, default 20; cursor positive safe integer
 // deterministic id ordering; nextCursor: number|null
 type VideoCard = {
@@ -53,6 +53,16 @@ type Playback =
   | { id: number; provider: "vk"; embedUrl: string }
   | { id: number; provider: "youtube"; youtubeId: string; videoUrl: string|null };
 ```
+
+Совместимость 19 октября (VCAT-C1): текущий tRPC infinite-query клиент сам
+добавляет `direction: "forward"`. Сервер принимает только этот необязательный
+служебный параметр; отсутствие параметра сохраняет прежние вызовы. Обратная
+пагинация не вводится: `backward`, другие значения и неизвестные поля дают
+BAD_REQUEST. Начальная страница не передаёт cursor; null не заменяет его отсутствие.
+Порядок, SQL, лимиты, output и проверки доступа не меняются. Текущий frontend
+transport проверен без правок его файлов. Generated frontend contract пока
+не синхронизирован: `check:api` требует regeneration, отложенную по прямому
+запрету менять фронт. Это не разрешение на push/deploy или рабочие SQL/S3.
 
 Только published карточки. Заголовок/длительность клубной карточки намеренно
 публичны для метки «Для участниц клуба»; содержание и источник не раскрываются.

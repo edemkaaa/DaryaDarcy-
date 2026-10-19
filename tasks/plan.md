@@ -83,6 +83,18 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября, VCAT-C1 — локальная совместимость каталога, не выпуск.**
+По прямому поручению исправлен только backend input: optional direction:forward
+от текущего tRPC infinite-query клиента больше не даёт400. Strict validation,
+cursor/limit/output/SQL/права прежние; backward не поддерживается. Native
+existing-client→Nest→own tmpfs MySQL RED→GREEN30, отдельные regressions105,
+types/build/boundaries pass. Own backend_test удалена после проверки точного
+ID/label/loopback/tmpfs/no volumes. Frontend не менялся, в том числе generated
+contract: `check:api` остаётся stale и требует отдельно разрешённой синхронизации
+types, не обхода проверки. Runtime совместимость старого клиента подтверждена.
+Рабочие DB/S3/flags/server не трогались, no push/deploy. Working RELEASE-D3
+по-прежнему da47b54, без VCAT-C1 и AUTH-S2. Подробности — VCAT-C1 в todo/handoff.
+
 **19 октября, AUTH-S2 — дополнительный локальный fix, не новый выпуск.**
 По повторному поручению рабочие REST me/tRPC проверены: AUTH-S1 уже действует.
 Исправлены оставшиеся catch-all legacy context, Bearer→cookie exchange и

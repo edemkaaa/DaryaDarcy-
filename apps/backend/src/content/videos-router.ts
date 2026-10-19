@@ -12,6 +12,8 @@ export const createVideosRouter = (content: ContentReadService) =>
           .object({
             limit: z.number().int().min(1).max(100).default(20),
             cursor: id.optional(),
+            // tRPC infinite queries send this hint; this catalog is forward-only.
+            direction: z.literal("forward").optional(),
           })
           .strict()
           .default({ limit: 20 }),

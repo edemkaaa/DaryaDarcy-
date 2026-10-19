@@ -11,6 +11,10 @@ import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import superjson from "superjson";
+import { createTRPCProxyClient, httpLink } from "@trpc/client";
+import { createTRPCQueryUtils } from "@trpc/react-query";
+import { InfiniteQueryObserver, QueryClient } from "@tanstack/react-query";
+import type { AppRouter } from "../apps/frontend/src/shared/api/contract";
 import { openVideoTestDatabase } from "./helpers/video-mysql";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
@@ -376,6 +380,68 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
     expect(
       await rows("SELECT id FROM videos WHERE title LIKE 'Owned VK%'"),
     ).toHaveLength(1);
+  });
+  it("accepts the existing infinite-query client across all pages without exposing club sources", async () => {
+    await conn.query(
+      "INSERT INTO videos (id,youtubeId,title,published,access) VALUES (11501,'vkpublic001','Owned VK first',TRUE,'public'),(11502,'vkpublic002','Owned VK hidden',FALSE,'public'),(11503,'vkpublic003','Owned VK club',TRUE,'club'),(11504,'vkpublic004','Owned VK last',TRUE,'public')",
+    );
+    const sent: unknown[] = [];
+    const client = createTRPCProxyClient<AppRouter>({
+      links: [httpLink({
+        url: `${base}/api/trpc`,
+        transformer: superjson,
+        fetch: (url, options) => {
+          sent.push(superjson.parse(new URL(String(url)).searchParams.get("input")!));
+          return fetch(url, options);
+        },
+      })],
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+    const utils = createTRPCQueryUtils({ client, queryClient });
+    const observer = new InfiniteQueryObserver(queryClient, utils.videos.catalog.infiniteQueryOptions(
+      { limit: 1 },
+      { getNextPageParam: last => last.nextCursor ?? undefined },
+    ));
+    try {
+      const first = await observer.fetchNextPage();
+      expect(first.error).toBeNull();
+      expect(first.data?.pages[0]).toEqual({
+        items: [{ id: 11501, title: "Owned VK first", duration: null, access: "public", canWatch: true }],
+        nextCursor: 11501,
+      });
+      const second = await observer.fetchNextPage();
+      expect(second.data?.pages[1]).toEqual({
+        items: [{ id: 11503, title: "Owned VK club", duration: null, access: "club", canWatch: false }],
+        nextCursor: 11503,
+      });
+      const last = await observer.fetchNextPage();
+      expect(last.data?.pages[2]).toEqual({
+        items: [{ id: 11504, title: "Owned VK last", duration: null, access: "public", canWatch: true }],
+        nextCursor: null,
+      });
+      expect(last.hasNextPage).toBe(false);
+      await observer.fetchNextPage();
+      expect(sent).toEqual([
+        { limit: 1, direction: "forward" },
+        { limit: 1, cursor: 11501, direction: "forward" },
+        { limit: 1, cursor: 11503, direction: "forward" },
+      ]);
+    } finally {
+      observer.destroy();
+      queryClient.clear();
+    }
+  });
+  it.each([
+    { direction: "backward" },
+    { direction: "FORWARD" },
+    { direction: null },
+    { direction: 1 },
+    { direction: "forward", access: "public" },
+    { direction: "forward", cursor: 0 },
+    { direction: "forward", cursor: null },
+    { direction: "forward", limit: 101 },
+  ])("rejects unsupported infinite-query input %j", async value => {
+    expect((await request("videos.catalog", value, null)).code).toBe(400);
   });
   it("paginates source-free cards and validates safe IDs and strict query fields", async () => {
     await conn.query(

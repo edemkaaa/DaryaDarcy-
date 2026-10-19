@@ -2,6 +2,30 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Совместимость видеокаталога —19 октября, локально
+
+- [x] VCAT-C1 — прямое поручение исправить несовместимость текущего frontend
+  запроса только на бэкенде. Реальный tRPC infinite query автоматически шлёт
+  direction:forward, strict schema раньше возвращала400. Минимальное изменение:
+  optional literal forward; strict, limit/cursor, output и SQL/доступ прежние.
+  Native RED: существующий client/QueryClient/InfiniteQueryObserver получает
+  BAD_REQUEST/unrecognized direction. Отдельный fixture trigger test требовал
+  SUPER; повтор с root только своего backend_test, без настройки MySQL.
+  GREEN30/0 skip/1.93s: три страницы/no duplicate/terminal cursor, hidden row,
+  source-free locked card, playback gates, paid/expired/blocked/revoked,
+  unsupported directions/extra fields/invalid cursor/limit400. Никаких doubles
+  API/SQL в этом прогоне; synthetic VK ссылки не запрашивались.
+  Отдельно6 targeted files105 pass/0 skip/2.44s; root tsc/backend build/
+  boundaries685/diff pass. Generated API check **не проходит**: optional
+  direction меняет inferred input; frontend contract по запрету не генерировать.
+  Existing generated frontend тип использован в native client test и совместим;
+  синхронизация types — отдельный разрешённый frontend шаг, не скрывать gate.
+  Own mysql8.4/container8716cd7d…607c0, loopback61691/backend_test,
+  tmpfs768MiB/no volumes: принадлежность и изоляция проверены перед удалением.
+  Working DB/S3/frontend/flags/платежи/почта/server не трогались; no push/deploy.
+  RELEASE-D3/da47b54 этой правки не содержит. Контракт —
+  [SPEC](../SPEC-vk-catalog-access.md), [handoff](../docs/development/backend-handoff-2026-10-05.md).
+
 ### Дополнительная обработка ошибок сессии —19 октября, локально
 
 - [x] AUTH-S2 — по прямому поручению повторно проверить REST/tRPC: рабочие
