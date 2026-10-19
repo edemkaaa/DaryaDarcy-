@@ -94,6 +94,25 @@ API с SELECT-only правами, composition без scheduler, isolated networ
 Partial DDL сохраняется, повтор отказывает без ремонта. Завершить удалением
 только своих probe containers/credentials, текущие сервисы/configs сохранить.
 
+**FRESH-C2/C3 выполнен19 октября.** Схема кандидата установлена настоящим
+Drizzle:42 проверенные history записи; повтор initialize отказал, digest истории
+не изменился. API source `6f06e09` проверен в production Node22/Linux amd64 с
+актуальными frozen-lockfile dependencies:39 ORM tables/columns и8 loopback HTTP,
+users0, SELECT-only account, без workers/providers/egress/published ports.
+Найден и исправлен только probe configuration defect: HTTP synthetic origin
+не проходил production validation; теперь HTTPS `.example.test`, без изменения
+CORS/production защиты. Server dependency install остановлен own384MiB/OOM;
+вместо повышения лимита зависимости подготовлены локально и проверены hashes.
+Точные receipts и ограничения — [runbook](../docs/operations/teamassist-staging.md).
+Temporary candidate account/env/containers удалены, existing services/config
+metadata/IDs/images/start times сохранены, все7 healthy/current site200.
+Full Node22:2544 pass/1574 opt-in skips/200 passed suites/43.88s/exit0; focused35,
+types/boundaries685/API86 unchanged/docs58/code prettier/diff pass. Это проверка
+**пустого candidate API**, не регистрация/платежи/S3/browser/production acceptance.
+Фронт/текущая БД/S3/flags не менялись, push/deploy/switch не выполнялись.
+Следующее решение — отдельное согласование release artifact/rollback/switch и
+owner/начальных данных. Общая команда «дальше» не разрешает это автоматически.
+
 **19 октября, продолжение backend — первый срез FRESH-C1 выполнен локально.**
 Подготовлен
 offline plan в existing fresh CLI: `--plan` читает только versioned SQL/journal,
@@ -114,10 +133,11 @@ CLI RED3→GREEN11, всего focused39 checks/0 skips; план42/hash зап�
 `daryadarcy_candidate_20261019` в existing project MySQL8.4: 0 таблиц/routines/
 triggers/events. Проверены exact mysql identity/project/health/no published ports;
 все container IDs/start times/images сохранены. Ни старую БД, ни конфигурацию
-API, ни runtime flags не меняли. Новая БД пока **без схемы**, не fresh42 acceptance.
-Сервер остаётся на `2e3339c`; новые images/миграции/переключение не выполнены.
-Следующий операционный шаг — проверенная target-specific fresh-инициализация
-новой БД и candidate API/image acceptance, затем отдельное согласование switch.
+API, ни runtime flags не меняли. На момент этого шага БД была **без схемы**;
+fresh42 и candidate API затем проверены в FRESH-C2/C3 выше. Рабочее приложение
+остаётся на `2e3339c`, новый release image не выложен, переключения нет.
+Следующий операционный шаг — отдельное согласование release artifact/rollback
+и switch после решения о owner/начальных данных.
 Local-only `db:fresh:local` guards не обходить; старая история0017–0019 нужна
 для upgrade существующей БД, не для выбранной новой. Ordinary preflight по-прежнему
 отказывает до подключения, фиктивную историю не создавать. Точный push/result

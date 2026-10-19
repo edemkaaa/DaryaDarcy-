@@ -1,5 +1,78 @@
 # Отдельный тестовый стенд TeamAssist
 
+## 19 октября — FRESH-C2/C3: схема кандидата и изолированное API проверены
+
+По прямому разрешению применён **только новый** fresh-профиль к
+`daryadarcy_candidate_20261019`. Текущее приложение/БД, frontend, S3 и flags
+не менялись; push/rollout/switch не выполнялись. Это не upgrade старой БД.
+
+- Target: teamassist-dev, MySQL8.4.11, UUID
+  `2a41f961-c168-11f1-8660-0a4124b25f9f`; mysql container3442fbda5e84,
+  project/service labels, internal network и отсутствие DB published ports
+  сверены перед доступом. До DDL:0 tables/routines/triggers/events.
+- Новый `tooling/scripts/candidate-database.ts` принимает только exact candidate,
+  собственную временную учётку и reviewed plan hash из C1; `.env` не загружает,
+  унаследованные application/provider credentials отказывает. Existing local
+  fresh/preflight guards не расширены. Advisory lock/empty-schema check до DDL;
+  partial apply не ремонтирует. Настоящий Drizzle выполнил42 миграции и записал
+  history. Повтор initialize отказал, история осталась неизменной.
+- DDL source `1a61c261aca9979fdc284517106b6095055a58cf`; API probe source
+  `6f06e09785022f0281d26272e5279edab6395081`, SQL bytes/plan прежние.
+  History SHA-256:
+  `e8d87d9b4547b9568134a4578acf173f0ebc61b868cccde177c7808bf793c9f6`.
+- API: composition-only entrypoint без `load-env`, executable и `WorkerJobs.start`.
+  Node22.23.3/Linux amd64; runtime JS dependencies установлены локально через
+  pnpm9.12.0 `--prod --frozen-lockfile --ignore-scripts` в отдельном Linux container
+  и переданы read-only overlay, не заменой рабочего image/node_modules.
+  Lock SHA-256 `5843748a36df5dc742249b848b5c56263e16d31addd2656d0f5dc08043839721`;
+  dependency archive SHA-256
+  `ecc4cccd0e01a834be957a18352ef7893a3072a7cb9e51a9c7e87792127eaf07`.
+  Проверены @trpc/server11.8.0, axios1.20.0, sharp0.35.5, Nest12.1.2,
+  Drizzle0.45.3/mysql2 3.24.5; старые image dependencies не выданы за актуальные.
+- Probe: candidate account **только SELECT**; internal network/no published ports,
+  read-only root/mounts, cap-drop/no-new-privileges, UID1001, memory256MiB/CPU0.4.
+  Проверены history/все39 ORM tables и columns через real SQL `LIMIT 0`;
+  пользователей0. Workers/providers не включены, рабочие SMTP/payment/S3 settings
+  отсутствуют, private flags выключены.
+- Actual loopback GET: `/api/auth/me`200/user:null, `/api/launch-config`200,
+  `/api/trpc/feed.list`200/[], `/api/trpc/articles.list`200/[],
+  `/api/admin/launch-settings`401, `/api/trpc/admin.stats`401,
+  `/api/library/materials/recipes/files`404 и synthetic
+  `/api/media/content-files/<uuid>`404. Все8 прошли, exit0/OOM=false.
+- Temporary account/password/env и exact owned probe containers удалены после
+  каждого запуска. Existing running container IDs/images/start times и config
+  metadata до/после совпали; все7 project services healthy, current HTTPS `/`200.
+  Existing working rows не читались/не изменялись. Permanent application grants,
+  owner/content seed не создавались.
+
+Проверяемое доказательство на сервере (закрытый каталог, без credentials):
+`candidate-20261019-1a61c26.HqAby1/verification.json` в existing project directory.
+SHA-256 receipt:
+`d6ed9c664c51116e3a20bd79cedacedbcee06c821848c1495a566041e701da60`.
+Для повтора API нужны новая временная candidate-only SELECT учётка, exact
+identity/source/dependency/hash проверки и обязательная очистка; не использовать
+working API env. **Не запускать initialize снова и не менять историю0017–0019.**
+
+Промежуточные отказы не скрыты: macOS metadata archive rejected до SQL;
+первый Linux probe UID1000 не видел private UID1001 directory (не засчитан как
+успешный schema-negative test). После исправления UID empty-history отказ и
+real initialization прошли. Затем production origin validation отклонил synthetic
+HTTP origin; safe phase diagnostics выявили причину. Regression RED1→GREEN1,
+исправлена только настройка probe на HTTPS `.example.test`; CORS/security не
+ослаблены. Server-only dependency install достиг own384MiB/OOM: контейнер удалён,
+shared-host лимит не повышали; актуальные dependencies подготовлены локально.
+Неудачный offline pnpm deploy не имел полного metadata cache, поэтому его output
+не использован: acceptance использует успешную frozen installation, не новый resolve.
+
+Локальные проверки: focused35/3 suites/0 skips, root types, boundaries685,
+API86/32048 bytes unchanged, docs58, code prettier/diff exit0. Full Node22.23.2:
+2544 pass/1574 opt-in skips/200 passed suites/91 skipped/43.88s/exit0.
+SQL выше — настоящая проверка server candidate, не результат skipped suites.
+Пустой read-only API не является новой регистрацией/платежом/S3/browser acceptance,
+проверкой production image целиком или разрешением релиза. Далее отдельно
+согласовать release artifact/rollback/switch и owner/начальные данные;
+приложение остаётся на старом image/старой БД до такого решения.
+
 ## 19 октября — FRESH-C1: офлайн-план схемы кандидата
 
 Первый локальный срез подготовки server candidate, **не инициализация сервера**.

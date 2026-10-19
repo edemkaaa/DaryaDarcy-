@@ -4,7 +4,7 @@
 
 ### Разрешённая подготовка staging/server — 19 октября
 
-- [ ] FRESH-C2/C3 — новое прямое разрешение: применить fresh42 только к
+- [x] FRESH-C2/C3 — новое прямое разрешение: применить fresh42 только к
   `daryadarcy_candidate_20261019` и проверить candidate API без switch.
   Exact server/container/network/UUID + pinned plan hash + empty schema guard;
   отдельная candidate-only учётка, затем SELECT-only для API, без working env.
@@ -13,6 +13,24 @@
   services/configs не меняются. Partial DDL сохранять для диагностики, не repair.
   После проверки убрать только свои probe containers/временные credentials;
   приложение не переключать и не пушить без нового запроса.
+  Выполнено19 октября: actual Drizzle fresh42, проверенная история; повтор
+  initialize отказал без изменения истории. Отдельный candidate-only operator,
+  существующие local/preflight guards не ослаблены. Source `6f06e09`, план
+  `51616035e287f221c633d8c7975fef46229d6fbc4ef1e80e586f85e96469684a`.
+  API на Node22/Linux amd64 с актуальными frozen-lockfile dependencies:
+  39 ORM tables/columns +8 actual loopback HTTP/0 users, SELECT-only account,
+  internal network/no published ports, workers/providers не запускались.
+  Guest auth/launch/feed/articles200; admin401; default-off private files404.
+  Исправлен только дефект synthetic probe origin: production запрещает HTTP;
+  отдельный regression RED1→GREEN1, CORS/production policy не менялась.
+  Server dependency install достиг лимита own container384MiB/OOM; не повышали
+  лимит shared host, Linux dependencies подготовлены локально и сверены SHA-256.
+  Все7 existing services healthy, IDs/images/start times/config metadata прежние,
+  current site200; own containers/account/env удалены. Фронт/текущая БД/S3/flags/
+  push/switch не трогались. Full Node22:2544 pass/1574 opt-in skips,
+  200 passed suites/91 skipped/43.88s/exit0; focused35, root types, boundaries685,
+  API86 unchanged, docs58, code prettier/diff pass. Подробности/receipt hashes:
+  [operations runbook](../docs/operations/teamassist-staging.md).
 
 - [x] Fresh remote staging `81e8563` — ancestor local `e4ac07b`, remote-only0;
   правки фронтендера сохранены без замены/ручного редактирования frontend.
@@ -37,8 +55,10 @@
   deployment: `/`, `/api/auth/me`, `/api/launch-config`200; guest admin.stats401.
 - [ ] Fresh server candidate: подготовить проверенную отдельную процедуру
   fresh schema на новой БД, candidate image/API checks и rollback приложения;
-  **после проверки согласовать switch с пользователем**. Сейчас таблиц0,
-  схема42/данные/owner/app grants не создавались, новый backend не выложен.
+  **после проверки согласовать switch с пользователем**. FRESH-C2/C3 выполнен:
+  схема42 и guest candidate API проверены, но данных/owner/permanent app grants
+  нет, новый backend не выложен. Остались release artifact/rollback и отдельное
+  решение о switch/owner/начальных данных; автоматически не выполнять.
   Ordinary preflight: untracked0017–0019, databaseChecked=false/exit1;
   guard не обходили. Для fresh пути история старой базы не нужна. No migration
   apply к текущей БД/DB replacement/old-file migration/private flag enable
