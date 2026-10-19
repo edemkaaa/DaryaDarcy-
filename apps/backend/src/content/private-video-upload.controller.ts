@@ -26,10 +26,8 @@ export class PrivateVideoUploadController {
     try {
       if (!privateVideoUploadEnabled())
         throw new TRPCError({ code: "NOT_FOUND" });
-      let actor;
-      try {
-        actor = await this.identity.authenticateRequest(req);
-      } catch {
+      const actor = await this.identity.optionalUser(req);
+      if (!actor) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       if (!this.identity.isAdministrator(actor))

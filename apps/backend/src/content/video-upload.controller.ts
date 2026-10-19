@@ -19,15 +19,13 @@ export class VideoUploadController {
   @Post("upload-video")
   @HttpCode(200)
   async uploadVideo(@Req() req: Request, @Res() res: Response) {
+    // Recheck after body admission; a failed lookup must remain a server error.
+    const user = await this.identity.optionalUser(req);
+    if (!user) {
+      res.status(401).json({ error: "Нужно войти" });
+      return;
+    }
     try {
-      // Middleware admits before allocating the body; recheck live access now.
-      let user;
-      try {
-        user = await this.identity.authenticateRequest(req);
-      } catch {
-        res.status(401).json({ error: "Нужно войти" });
-        return;
-      }
       if (!this.identity.isAdministrator(user)) {
         res.status(403).json({ error: "Только для администратора" });
         return;

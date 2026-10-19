@@ -1,6 +1,9 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../../../packages/database/src/schema";
-import { sdk } from "./sdk";
+import { SessionService } from "../identity/session.service";
+
+// Compatibility entry point: share Nest's policy without retaining an actor.
+const sessions = new SessionService();
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -9,18 +12,9 @@ export type TrpcContext = {
 };
 
 export async function createContext(opts: CreateExpressContextOptions): Promise<TrpcContext> {
-  let user: User | null = null;
-
-  try {
-    user = await sdk.authenticateRequest(opts.req);
-  } catch (error) {
-    // Authentication is optional for public procedures.
-    user = null;
-  }
-
   return {
     req: opts.req,
     res: opts.res,
-    user,
+    user: await sessions.optionalUser(opts.req),
   };
 }

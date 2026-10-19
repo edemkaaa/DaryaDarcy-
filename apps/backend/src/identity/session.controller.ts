@@ -202,19 +202,19 @@ export class SessionController {
   @Post("session")
   @HttpCode(200)
   async session(@Req() req: Request, @Res() res: Response) {
-    try {
-      const user = await this.identity.authenticateRequest(req);
-      const authHeader = req.headers.authorization || req.headers.Authorization;
-      if (typeof authHeader !== "string" || !authHeader.startsWith("Bearer ")) {
-        res.status(400).json({ error: "Bearer token required" });
-        return;
-      }
-      const token = authHeader.slice("Bearer ".length).trim();
-      setSessionCookie(req, res, token);
-      res.json({ success: true, user: publicUser(user) });
-    } catch {
+    const user = await this.identity.optionalUser(req);
+    if (!user) {
       res.status(401).json({ error: "Invalid token" });
+      return;
     }
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    if (typeof authHeader !== "string" || !authHeader.startsWith("Bearer ")) {
+      res.status(400).json({ error: "Bearer token required" });
+      return;
+    }
+    const token = authHeader.slice("Bearer ".length).trim();
+    setSessionCookie(req, res, token);
+    res.json({ success: true, user: publicUser(user) });
   }
 
   @Post("sms/send")

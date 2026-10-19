@@ -2,6 +2,28 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Дополнительная обработка ошибок сессии —19 октября, локально
+
+- [x] AUTH-S2 — по прямому поручению повторно проверить REST/tRPC: рабочие
+  GET /api/auth/me и TrpcService уже используют AUTH-S1. Оставшийся legacy
+  createContext переводил все ошибки в guest, POST /api/auth/session — в401;
+  raw/tRPC upload admission и повторные проверки двух video controllers тоже
+  маскировали lookup/activity failure под401. Все используют существующую
+  политику SessionService.optionalUser; роли/отзыв/квоты не расширялись.
+  RED5/14 pass → GREEN19; дополнительный RED16/19 pass → GREEN35.
+  Контроль блокировки/revocation/смены роли после body admission и tRPC faults
+  довёл focused suite до43. Final12 targeted suites:141 pass/0 fail/0 skip,
+  5.50s; root tsc, backend build, boundaries685/API86/32048/diff pass.
+  Anonymous fixture в request-bodies исправлена на настоящий typed denial
+  ForbiddenError вместо generic Error; ожидания401/403 не ослаблены.
+  REST checks503/no-store/no cookie mutation, active tRPC500/safe formatter,
+  recovery с тем же JWT; confirmed guest/invalid Bearer по-прежнему null/401.
+  Native JWT/SDK/Nest/loopback HTTP, fault injection только на SQL seams;
+  отсутствуют настоящая SQL-сессия, отключение БД, S3/providers/письма/платежи.
+  Frontend/дизайн/working DB/server/flags не менялись, no push/deploy.
+  **RELEASE-D3/da47b54 не содержит AUTH-S2**; изменения только локальные.
+  Контракт и границы — [API](../docs/architecture/api.md).
+
 ### Фактический выпуск на dev — 19 октября 2026
 
 - [x] RELEASE-D3 — пользователь явно разрешил обновить backend/frontend,

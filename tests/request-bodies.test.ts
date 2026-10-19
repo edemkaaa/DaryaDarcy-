@@ -2,6 +2,7 @@ import express from "express";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from "vitest";
+import { ForbiddenError } from "../packages/shared/src/_core/errors";
 const boundary = vi.hoisted(() => ({ auth: vi.fn(), storage: vi.fn() }));
 vi.mock("../apps/backend/src/_core/sdk", () => ({ sdk: { authenticateRequest: boundary.auth } }));
 vi.mock("../apps/backend/src/storage", () => ({ storagePut: boundary.storage }));
@@ -25,7 +26,7 @@ beforeEach(() => {
   boundary.auth.mockReset().mockImplementation(async req => {
     if (req.headers.authorization === "Bearer admin") return { id: 1, role: "admin", blockedAt: null };
     if (req.headers.authorization === "Bearer member") return { id: 2, role: "user", blockedAt: null };
-    throw new Error("Invalid session");
+    throw ForbiddenError("Invalid session");
   });
   boundary.storage.mockReset().mockResolvedValue({ url: "https://assets.example.test/video.mp4" });
 });

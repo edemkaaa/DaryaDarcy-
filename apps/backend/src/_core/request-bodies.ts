@@ -1,8 +1,9 @@
 import express, { type Express, type Request, type Response } from "express";
-import { sdk } from "./sdk";
+import { SessionService } from "../identity/session.service";
 import { privateVideoMetadata, privateVideoUploadEnabled } from "../content/private-video-input";
 
 const photoProcedures = new Set(["profile.uploadAvatar", "club.uploadCommentPhoto", "admin.uploadPhoto"]);
+const sessions = new SessionService();
 const jsonParsers = {
   auth: express.json({ limit: "16kb" }),
   ordinary: express.json({ limit: "256kb" }),
@@ -12,10 +13,11 @@ const jsonParsers = {
 
 async function requireUploadIdentity(req: Request, res: Response, administrator: boolean) {
   try {
-    const user = await sdk.authenticateRequest(req);
+    const user = await sessions.optionalUser(req);
+    if (!user) { res.status(401).json({ error: "Нужно войти" }); return false; }
     if (user.blockedAt || (administrator && user.role !== "admin")) { res.status(403).json({ error: "Нет доступа" }); return false; }
     return true;
-  } catch { res.status(401).json({ error: "Нужно войти" }); return false; }
+  } catch { res.status(503).json({ error: "Проверка сессии временно недоступна" }); return false; }
 }
 function bodyError(res: Response, error: unknown) {
   const status = (error as { status?: number })?.status;

@@ -83,6 +83,18 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября, AUTH-S2 — дополнительный локальный fix, не новый выпуск.**
+По повторному поручению рабочие REST me/tRPC проверены: AUTH-S1 уже действует.
+Исправлены оставшиеся catch-all legacy context, Bearer→cookie exchange и
+upload admission/recheck обоих video controllers: сбой lookup/activity
+не выдаётся за guest/401. Используется прежняя политика SessionService,
+роль/blocked/revoked отказы сохранены, frontend не менялся. Два RED→GREEN
+среза, focused43;12 targeted suites141 pass/0 skip, types/build/boundaries/API
+pass. Настоящую БД не отключали, SQL/S3/providers не вызывали; только JWT/SDK/
+Nest/loopback HTTP и SQL fault seams. Запись и ограничения — AUTH-S2 в todo.
+**На сервере остаётся RELEASE-D3/da47b54 с AUTH-S1, без AUTH-S2.** Новый push,
+deploy, включение flags и изменения рабочей БД этим поручением не выполнялись.
+
 **19 октября, RELEASE-D3 — фактически обновлён публичный dev.** По прямому
 разрешению выпущены backend/frontend `da47b54` и restricted TEST service, working
 DB переключена на `daryadarcy_candidate_20261019` (history42 unchanged).
