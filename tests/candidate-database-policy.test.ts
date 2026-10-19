@@ -136,6 +136,7 @@ it.each(["--force", "--initialize-candidate", "--check-api"])(
     expect(JSON.parse(lines[1] ?? "{}")).toMatchObject({
       phase: mode === "--force" ? "arguments" : "candidate-target",
       code: "ERR_ASSERTION",
+      errorName: "AssertionError",
     });
     expect(result.stderr).not.toContain("private-cli-sentinel");
   },

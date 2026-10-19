@@ -231,9 +231,23 @@ main().catch((error: unknown) => {
     error && typeof error === "object" && "code" in error
       ? error.code
       : undefined;
+  let compositionError: string | undefined;
+  if (phase === "api-composition" && error instanceof Error) {
+    compositionError = error.message;
+    const uri = process.env.CANDIDATE_DATABASE_URL!;
+    for (const value of [uri, new URL(uri).password])
+      if (value)
+        compositionError = compositionError.replaceAll(value, "[redacted]");
+    compositionError = compositionError.slice(0, 1500);
+  }
   console.error(
     JSON.stringify({
       phase,
+      errorName:
+        error instanceof Error && /^[A-Za-z]{1,64}$/.test(error.name)
+          ? error.name
+          : undefined,
+      compositionError,
       code:
         typeof code === "string" && /^[A-Z0-9_]{1,64}$/.test(code)
           ? code
