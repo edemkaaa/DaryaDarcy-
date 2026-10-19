@@ -78,9 +78,6 @@ export default function AestheticsGuideScreen() {
   const { stylesLayout } = getAestheticsScreenLayout(viewport);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { hasClubAccess } = useClub();
-  const handleBack = () => {
-    router.back();
-  };
   const handleQuizCTA = () => {
     router.push("/quiz");
   };
@@ -120,15 +117,6 @@ export default function AestheticsGuideScreen() {
               contentFit="cover"
               className={classes.bannerImage}
             />
-            <Action
-              onClick={handleBack}
-              activeOpacity={0.7}
-              className={classes.backButtonOverlay}
-            >
-              <Typography className={classes.backButtonOverlayText}>
-                ← Назад
-              </Typography>
-            </Action>
           </div>
 
           {/* Subscription Gate */}

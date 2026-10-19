@@ -27,6 +27,7 @@ import {
 } from "@/domain/session/use-session-operation";
 import { requireUploadedUrl } from "@/shared/media/upload-result";
 import { getHttpStatus, invalidResponse } from "@/shared/api/errors";
+import { privateUploadRejectionMessage } from "@/shared/api/upload-errors";
 import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
 import {
   requireOk,
@@ -310,11 +311,17 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       await completeCreation(record, task);
     } catch (error) {
       checkOperationAccessError(error);
+      const uploadRejection =
+        record.media?.phase === "upload"
+          ? privateUploadRejectionMessage(error)
+          : null;
       if (task.isCurrent())
         setRecoveryMessage(
-          getHttpStatus(error) === 409
-            ? "Сервер сообщил конфликт данных этой операции. Исходный ключ сохранён. Проверьте результат сохранения; новая операция не создавалась."
-            : "Не удалось подтвердить сохранение статьи. Исходные данные и ключ сохранены. Проверьте результат ещё раз.",
+          uploadRejection
+            ? `${uploadRejection} Исходные файлы сохранены на этом устройстве. Проверьте загрузку позже.`
+            : getHttpStatus(error) === 409
+              ? "Сервер сообщил конфликт данных этой операции. Исходный ключ сохранён. Проверьте результат сохранения; новая операция не создавалась."
+              : "Не удалось подтвердить сохранение статьи. Исходные данные и ключ сохранены. Проверьте результат ещё раз.",
         );
     } finally {
       task.finish();
@@ -448,6 +455,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     const task = operation.begin("save");
     if (!task) return;
     let storedCreation = false;
+    let uploadingFiles = false;
     try {
       const payload = {
         title: title.trim(),
@@ -469,6 +477,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
           restoreCreation(prepared.record);
           return;
         }
+        uploadingFiles = true;
         let record = await recoverArticleFileUploads(
           prepared.record,
           journal,
@@ -476,6 +485,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
           task,
           setCreation,
         );
+        uploadingFiles = false;
         record = await sealArticleFileWrite(record, journal, task);
         setCreation(record);
         if (editingId)
@@ -533,25 +543,33 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     } catch (error) {
       checkOperationAccessError(error);
       const status = getHttpStatus(error);
+      const uploadRejection = uploadingFiles
+        ? privateUploadRejectionMessage(error)
+        : null;
+      const uploadMessage = uploadRejection
+        ? `${uploadRejection} Исходные файлы сохранены на этом устройстве. Проверьте загрузку позже.`
+        : null;
       if (task.isCurrent() && editingId)
         uncertainSave.current = !status || status >= 500;
-      if (task.isCurrent() && !editingId)
+      if (task.isCurrent() && (uploadMessage || !editingId))
         setRecoveryMessage(
-          !storedCreation
-            ? error instanceof Error
-              ? error.message
-              : "Не удалось сохранить операцию на устройстве. Запрос не отправлен."
-            : status === 409
-              ? "Конфликт данных операции. Проверьте сохранение; ключ не изменён."
-              : "Результат сохранения не подтверждён. Проверьте сохранение статьи; исходная операция сохранена на устройстве.",
+          uploadMessage ??
+            (!storedCreation
+              ? error instanceof Error
+                ? error.message
+                : "Не удалось сохранить операцию на устройстве. Запрос не отправлен."
+              : status === 409
+                ? "Конфликт данных операции. Проверьте сохранение; ключ не изменён."
+                : "Результат сохранения не подтверждён. Проверьте сохранение статьи; исходная операция сохранена на устройстве."),
         );
       if (task.isCurrent())
         notify(
-          (!editingId && storedCreation) || uncertainSave.current
-            ? "Результат сохранения не подтверждён. Проверьте статью в списке перед новой попыткой."
-            : error instanceof Error
-              ? error.message
-              : "Не удалось сохранить статью",
+          uploadMessage ??
+            ((!editingId && storedCreation) || uncertainSave.current
+              ? "Результат сохранения не подтверждён. Проверьте статью в списке перед новой попыткой."
+              : error instanceof Error
+                ? error.message
+                : "Не удалось сохранить статью"),
         );
     } finally {
       task.finish();

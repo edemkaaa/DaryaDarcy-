@@ -7,6 +7,7 @@ import {
   invalidResponse,
 } from "@/shared/api/errors";
 import { requestSessionCheck } from "@/shared/api/session-events";
+import { privateUploadRejectionMessage } from "@/shared/api/upload-errors";
 import {
   validatePrivatePostVideo,
   requirePrivateVideoReceipt,
@@ -41,7 +42,12 @@ export async function uploadAdminPrivateVideo(
         throw new ApiError(
           response.status === 413
             ? "Видео слишком большое для загрузки. Сожмите файл или выберите другой."
-            : getRequestErrorMessage({ data: { httpStatus: response.status } }),
+            : (privateUploadRejectionMessage({
+                data: { httpStatus: response.status },
+              }) ??
+                getRequestErrorMessage({
+                  data: { httpStatus: response.status },
+                })),
           response.status,
         );
       }

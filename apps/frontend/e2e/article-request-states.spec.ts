@@ -189,7 +189,7 @@ for (const width of [320, 1440])
         const beforeRetry = api.reads;
         if (outcome === 404) {
           await page
-            .getByRole("button", { name: "← Назад", exact: true })
+            .getByRole("button", { name: "Вернуться назад", exact: true })
             .click();
           await page
             .getByRole("button", {
@@ -279,7 +279,9 @@ for (const outcome of ["missing", "locked"] as const)
       await page.clock.setFixedTime(
         new Date((await page.evaluate(() => Date.now())) + 60_000),
       );
-      await page.getByRole("button", { name: "← Назад", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Вернуться назад", exact: true })
+        .click();
       await page
         .getByRole("button", {
           name: `Открыть материал: ${title}`,

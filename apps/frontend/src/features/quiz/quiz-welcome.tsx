@@ -14,10 +14,8 @@ import { Picture } from "@/shared/media/image";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 import { useQuiz } from "@/domain/quiz/quiz-state";
 
-import { useRouter } from "@/shared/navigation/router";
 import { PAPER_TEXTURE_URI } from "./quiz-welcome.content";
 export function QuizWelcome() {
-  const router = useRouter();
   const viewport = useViewport();
   const { stylesLayout } = getQuizWelcomeLayout(viewport);
 
@@ -33,15 +31,6 @@ export function QuizWelcome() {
         className={classes.background}
       >
         <ScrollArea hideScrollbar contentClassName={classes.scrollContent}>
-          {/* Back link — above collage, left aligned */}
-          <Action
-            onClick={() => router.back()}
-            activeOpacity={0.7}
-            className={classes.backButton}
-          >
-            <Typography className={classes.backText}>← Назад</Typography>
-          </Action>
-
           {/* Floating collage on app background */}
           <div
             style={{

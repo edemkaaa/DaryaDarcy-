@@ -15,7 +15,6 @@ import {
 import { openExternalUrl } from "@/shared/browser/actions";
 import { useState } from "react";
 import { Picture } from "@/shared/media/image";
-import { useRouter } from "@/shared/navigation/router";
 import { useSafeAreaInsets } from "@/shared/ui/safe-area";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { LegalDocumentsFooter } from "@/features/legal/legal-documents-footer";
@@ -24,7 +23,6 @@ import { managerOrderEmail } from "@/domain/product/manager-order-email";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import {
   PAPER_TEXTURE_URI,
-  BROWN,
   BROWN_MUTED,
   BROWN_LIGHT,
   CREAM,
@@ -41,7 +39,6 @@ export default function ProductDetailScreen({ id }: { id: string }) {
   const viewport = useViewport();
   const { stylesLayout } = getProductScreenLayout(viewport);
 
-  const router = useRouter();
   const managerOrderEnabled = product?.type === "digital";
   const manager = useManagerOrderSettings(managerOrderEnabled);
   const insets = useSafeAreaInsets();
@@ -97,30 +94,6 @@ export default function ProductDetailScreen({ id }: { id: string }) {
       className={classes.div}
     >
       <ScrollArea hideScrollbar contentClassName={classes.scrollAreacontent}>
-        {/* Header */}
-        <div
-          style={{ paddingTop: insets.top + 8 }}
-          className={["ui-stack ", classes.div2].filter(Boolean).join(" ")}
-        >
-          <Action
-            aria-label="Назад"
-            onClick={() => router.back()}
-            className={({ pressed }) =>
-              [
-                classes.action,
-                pressed ? classes.opacityState : classes.opacityState2,
-              ]
-                .filter(Boolean)
-                .join(" ")
-            }
-          >
-            <MaterialIcons name="arrow-back" size={20} color={BROWN} />
-          </Action>
-          <div
-            className={["ui-stack ", classes.div3].filter(Boolean).join(" ")}
-          />
-        </div>
-
         {/* Cover Image */}
         <div
           className={["ui-stack ", classes.coverSection]

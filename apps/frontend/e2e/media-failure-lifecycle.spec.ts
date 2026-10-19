@@ -66,7 +66,7 @@ for (const path of ["/feed", "/post/42", "/video/42"]) {
     else
       await page
         .getByRole("button", {
-          name: path === "/post/42" ? "Вернуться назад" : "Назад",
+          name: "Вернуться назад",
           exact: true,
         })
         .click();
@@ -280,7 +280,9 @@ test("a failed access refetch hides a previously loaded video instead of retaini
   await expect(page.getByTitle("VK Видео", { exact: true })).toBeVisible();
   deny = true;
   await page.clock.setFixedTime(new Date(Date.now() + 60_000));
-  await page.getByRole("button", { name: "Назад", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Вернуться назад", exact: true })
+    .click();
   await page
     .getByText("PRIVATE_VIDEO", { exact: true })
     .filter({ visible: true })

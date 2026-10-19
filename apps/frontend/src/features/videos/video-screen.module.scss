@@ -20,17 +20,6 @@
     background-color: #000000;
   }
 
-  .action {
-    position: absolute;
-    left: 12px;
-    width: 36px;
-    height: 36px;
-    border-radius: 18px;
-    background-color: rgba(0, 0, 0, 0.5);
-    justify-content: center;
-    align-items: center;
-  }
-
   .infoContainer {
     padding: 16px;
   }
@@ -83,11 +72,6 @@
     background-color: #000;
     object-fit: contain;
   }
-  .opacityState {
-    opacity: 0.6;
-    --action-base-opacity: 0.6;
-  }
-
   .opacityState2 {
     opacity: 0.7;
     --action-base-opacity: 0.7;

@@ -283,7 +283,7 @@ export const PRODUCT_DETAILS: Product[] = [
       "8 глав",
       "136+ страниц",
       "Ботанические иллюстрации",
-      "Цифровой продукт — мгновенная доставка",
+      "Цифровой продукт — получение через менеджера",
     ],
     gallery: [
       "/assets/responsive/PBfYGmrZAiWpzHvD.full.d6301c36d68af3e0.webp",
@@ -363,7 +363,7 @@ export const PRODUCT_DETAILS: Product[] = [
     details: [
       "Формат: PDF",
       "Цифровой продукт",
-      "Мгновенная доставка",
+      "Получение через менеджера",
       "Шаблоны и материалы",
     ],
     gallery: [

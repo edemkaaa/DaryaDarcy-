@@ -6,7 +6,6 @@ import { useState, useMemo } from "react";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
-import { trpc } from "@/shared/api/trpc";
 import type { AdminPost } from "@/shared/api/types";
 import {
   BROWN_DARK,
@@ -18,22 +17,24 @@ import {
 } from "./calendar-tracker.content";
 type ScheduledPost = AdminPost;
 interface CalendarTrackerProps {
+  posts: AdminPost[] | undefined;
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
   onPostPress?: (post: ScheduledPost) => void;
   onDayPress?: (date: Date) => void;
 }
 export function CalendarTracker({
+  posts: allPosts,
+  isLoading,
+  isError,
+  onRetry,
   onPostPress,
   onDayPress,
 }: CalendarTrackerProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const {
-    data: allPosts,
-    isLoading,
-    isError,
-    refetch,
-  } = trpc.admin.posts.useQuery();
   const postsByDay = useMemo(() => {
     const byMonth = new Map<string, Map<number, ScheduledPost[]>>();
     if (!allPosts) return byMonth;
@@ -94,7 +95,7 @@ export function CalendarTracker({
       <QueryRetryState
         isLoading={false}
         isError
-        onRetry={() => void refetch()}
+        onRetry={onRetry}
         message="Не удалось загрузить календарь публикаций"
       />
     );

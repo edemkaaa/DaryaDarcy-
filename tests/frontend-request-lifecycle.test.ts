@@ -8,6 +8,10 @@ import {
   cancelSessionRequests,
   runApiRequest,
 } from "../apps/frontend/src/shared/api/request-lifecycle";
+import {
+  getHttpStatus,
+  shouldRetryQuery,
+} from "../apps/frontend/src/shared/api/errors";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -163,6 +167,117 @@ it("normalizes real tRPC transport errors without discarding their status", asyn
   ).rejects.toMatchObject({
     message: "Сервис временно недоступен. Попробуйте ещё раз.",
     data: { httpStatus: 500 },
+  });
+});
+
+const privateUploadCalls = [
+  ["mutation", "admin.uploadPrivateContentFile"],
+  ["query", "admin.privateContentFileStatus"],
+  ["mutation", "admin.uploadPrivateAttachment"],
+  ["query", "admin.privateAttachmentStatus"],
+  ["mutation", "club.uploadPrivateCommentPhoto"],
+  ["query", "club.privateCommentPhotoStatus"],
+] as const;
+
+it.each(
+  privateUploadCalls.flatMap(([method, path]) =>
+    [404, 413].map((status) => ({ method, path, status })),
+  ),
+)(
+  "explains $status for $path without retrying or exposing internals",
+  async ({ method, path, status }) => {
+    const { createTRPCClient } =
+      await import("../apps/frontend/src/shared/api/trpc");
+    const { getUntypedClient } = await import("@trpc/client");
+    const fetcher = vi.fn(async () =>
+      Response.json(
+        [
+          {
+            error: {
+              json: {
+                message: "PRIVATE_UPLOAD_DETAILS",
+                code: -32603,
+                data: {
+                  code: status === 404 ? "NOT_FOUND" : "PAYLOAD_TOO_LARGE",
+                  httpStatus: status,
+                },
+              },
+            },
+          },
+        ],
+        { status },
+      ),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    const client = getUntypedClient(createTRPCClient());
+    const error = await client[method](path, {
+      idempotencyKey: "test-upload-intent",
+    }).catch((error: unknown) => error);
+    expect(getHttpStatus(error)).toBe(status);
+    expect((error as Error).message).toContain(
+      status === 404
+        ? "Загрузка файлов сейчас недоступна"
+        : "ограничения размера",
+    );
+    expect(JSON.stringify(error)).not.toContain("PRIVATE_UPLOAD_DETAILS");
+    expect(shouldRetryQuery(0, error)).toBe(false);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  },
+);
+
+it.each([404, 413])(
+  "preserves a plain HTTP %s refusal before tRPC parsing",
+  async (status) => {
+    const { createTRPCClient } =
+      await import("../apps/frontend/src/shared/api/trpc");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({ error: "PRIVATE_BODY_PARSER_DETAIL" }, { status }),
+      ),
+    );
+    const error = await createTRPCClient()
+      .admin.privateContentFileStatus.query({
+        idempotencyKey: "test-upload-intent",
+      })
+      .catch((error: unknown) => error);
+    expect(getHttpStatus(error)).toBe(status);
+    expect((error as Error).message).toContain(
+      status === 404
+        ? "Загрузка файлов сейчас недоступна"
+        : "ограничения размера",
+    );
+    expect(JSON.stringify(error)).not.toContain("PRIVATE_BODY_PARSER_DETAIL");
+  },
+);
+
+it("keeps ordinary content 404 responses separate from upload availability", async () => {
+  const { createTRPCClient } =
+    await import("../apps/frontend/src/shared/api/trpc");
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () =>
+      Response.json(
+        [
+          {
+            error: {
+              json: {
+                message: "Статья удалена",
+                code: -32004,
+                data: { code: "NOT_FOUND", httpStatus: 404 },
+              },
+            },
+          },
+        ],
+        { status: 404 },
+      ),
+    ),
+  );
+  await expect(
+    createTRPCClient().articles.getById.query({ id: 42 }),
+  ).rejects.toMatchObject({
+    message: "Статья удалена",
+    data: { httpStatus: 404 },
   });
 });
 

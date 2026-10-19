@@ -131,9 +131,6 @@ export function CatalogVideoDetail({ id }: { id: string }) {
                 onRetry={() => void playback.refetch()}
               />
             )}
-            <Action aria-label="Назад" onClick={() => router.back()}>
-              <Typography>← Назад</Typography>
-            </Action>
           </div>
         </Background>
       </ScreenContainer>

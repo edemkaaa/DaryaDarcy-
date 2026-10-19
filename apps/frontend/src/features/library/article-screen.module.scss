@@ -6,20 +6,6 @@
     background-color: var(--paper);
   }
 
-  .back {
-    align-self: flex-start;
-    padding-left: 20px;
-    padding-right: 20px;
-    padding-top: 12px;
-    padding-bottom: 12px;
-  }
-
-  .backText {
-    color: var(--muted);
-    font-size: 16px;
-    font-family: var(--font-italic);
-  }
-
   .center {
     flex: 1;
     align-items: center;

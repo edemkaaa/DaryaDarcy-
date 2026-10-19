@@ -2,6 +2,23 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### MERGE-ST5 — свежий staging123aef8,19 октября, только локально
+
+- [x] Прямое поручение «стяни все с стейджа». Исходная ветка чистая, c8b4973;
+  fetch нашёл один новый frontend commit123aef8 SergeyM,44 files. Проверены
+  изменения logic/tests, пересечение с локальными backend files отсутствует.
+  Merge без конфликтов, frontend точно совпадает с origin/staging; CF-HTTP1
+  сохранён. Изменения автора импортированы целиком, без ручной правки фронта
+  и дизайна; package/lockfile/schema/flags не менялись. Новый commit не трогает
+  профиль: обсуждение доступа к «Сохранённому» без подписки остаётся отдельным.
+- [x] Root/frontend/e2e types, frontend lint, API86/32138, boundaries689,
+  docs59/diff pass. Backend598.3KiB/restricted TEST595.4KiB и Next build29
+  pages проходят. Полная merged Vitest suite2646 pass/1601 opt-in skips,
+  204 files pass/95 skipped,74.78s; native SQL/S3 и browser не запускались.
+  Next собран с API base127.0.0.1:1: это локальная проверка
+  сборки, не выпуск и не настоящее API/S3/browser acceptance. SQL/провайдеры,
+  рабочая DB/S3, push/server/deploy этим поручением не затронуты.
+
 ### CF-HTTP1 — лимит Base64 новых закрытых загрузок,19 октября, локально
 
 - [x] Подтверждён пользовательский дефект: admin.uploadPrivateContentFile и

@@ -2,16 +2,12 @@ import classes from "./legal-screen.module.scss";
 
 import { ScrollArea } from "@/shared/ui/elements";
 import Link from "next/link";
-import { LegalBackButton } from "./legal-back-button";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 import { LEGAL_HUB_LINKS } from "@/features/legal/legal-documents";
 export default function LegalHubScreen() {
   return (
     <ScreenContainer backgroundColor="#FDF8F0">
       <ScrollArea contentClassName={classes.scroll}>
-        <LegalBackButton className={classes.back}>
-          <span className={`ui-text ${classes.backText}`}>← Назад</span>
-        </LegalBackButton>
         <span className={`ui-text ${classes.kicker}`}>DARYADARCY</span>
         <h1 className={`ui-text ${classes.title}`}>Юридические документы</h1>
         <span className={`ui-text ${classes.subtitle}`}>

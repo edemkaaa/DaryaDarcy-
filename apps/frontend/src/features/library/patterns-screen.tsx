@@ -47,9 +47,6 @@ export default function PatternsScreen() {
   const [viewerImage, setViewerImage] = useState("");
   const [viewerTitle, setViewerTitle] = useState("");
   const [downloading] = useState(false);
-  const handleBack = () => {
-    router.back();
-  };
   const handleClubCTA = () => {
     router.push("/club");
   };
@@ -102,15 +99,6 @@ export default function PatternsScreen() {
             >
               <Typography className={classes.bannerTitle}>ВЫКРОЙКИ</Typography>
             </div>
-            <Action
-              onClick={handleBack}
-              activeOpacity={0.7}
-              className={classes.backButtonOverlay}
-            >
-              <Typography className={classes.backButtonOverlayText}>
-                ← Назад
-              </Typography>
-            </Action>
           </div>
 
           {/* Subscription Gate */}

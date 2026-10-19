@@ -1,6 +1,6 @@
 "use client";
 import classes from "./youtube-embed.module.scss";
-import { createElement, useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import { ManagedVideo } from "./managed-video";
 import { apiUrl } from "@/shared/config/api";
 type Props = {
@@ -24,34 +24,19 @@ export function YouTubeEmbed({
   );
   if (officialPlayer)
     return <OfficialPlayer key={youtubeId} youtubeId={youtubeId} />;
-  if (catalogMode)
-    return (
-      <div className={classes.frame}>
-        <ManagedVideo
-          src={src}
-          poster={poster}
-          controls
-          playsInline
-          preload="metadata"
-          className={classes.videoElement}
-          releaseOnPageHide
-        />
-      </div>
-    );
-  {
-    return (
-      <div className={["ui-stack ", classes.frame].filter(Boolean).join(" ")}>
-        {createElement("video", {
-          src,
-          poster,
-          controls: true,
-          playsInline: true,
-          preload: "metadata",
-          className: classes.videoElement,
-        })}
-      </div>
-    );
-  }
+  return (
+    <div className={`ui-stack ${classes.frame}`}>
+      <ManagedVideo
+        src={src}
+        poster={poster}
+        controls
+        playsInline
+        preload="metadata"
+        className={classes.videoElement}
+        releaseOnPageHide={catalogMode}
+      />
+    </div>
+  );
 }
 
 function OfficialPlayer({ youtubeId }: { youtubeId: string }) {
