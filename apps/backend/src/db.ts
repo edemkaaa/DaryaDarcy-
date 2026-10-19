@@ -32,6 +32,8 @@ import {
   getScheduledPosts as readScheduledPosts,
   getPostStatistics as readPostStatistics,
 } from "./content/post-admin-repository";
+import { getAdminPostsPage as readAdminPostsPage, getAdminPostDetail as readAdminPostDetail, type adminPostsPageInput } from "./content/admin-post-reads";
+import type { z } from "zod";
 import {
   getVideos as readVideos,
   getVideoById as readVideoById,
@@ -423,6 +425,14 @@ export async function deletePost(id: number, actor?: ContentWriteActor): Promise
 // Get all posts for admin (including unpublished)
 export async function getAllPostsAdmin(): Promise<(Post & { media: PostMedia[] })[]> {
   return readAllAdminPosts(await getDb());
+}
+
+export async function getAdminPostsPage(input: z.infer<typeof adminPostsPageInput>) {
+  return readAdminPostsPage(await getDb(), input);
+}
+
+export async function getAdminPostDetail(id: number) {
+  return readAdminPostDetail(await getDb(), id);
 }
 
 // Get post by Instagram ID (for dedup during import)

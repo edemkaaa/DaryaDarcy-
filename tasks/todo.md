@@ -2,6 +2,25 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### ADM-P2 — принятые страницы админки и календарь,19 октября
+
+- [x] Прямое «давай да», clean51523d2/ветка проверены. Scope: local backend +
+  existing frontend logic/generated types/tests, без дизайна/working DB/S3,
+  push/deploy/flags. Contract записан в начале plan; old admin.posts сохранён.
+- [x] Slice1 RED3 новых native HTTP/JWT/SQL сценария на missing postsPage404;
+  GREEN25/25 с существующим admin suite. Страницы20 default/50 max, numeric
+  offset cursor, status/target, прежний total order. SQL projection: text512
+  Unicode chars, first photo/3 tags+tagCount/hasVideo, без richText/media.
+  Protected postDetail возвращает full draft с ordered media или null;
+  malformed400, guest401/moderator403. Types/build/API88/33680/boundaries691
+  pass. Схема/индексы/рабочие данные не менялись. Проверен только local fixture.
+- [ ] Slice2: bounded calendar per-day cards/counts + upcoming8, header counts
+  с прежней published/draft семантикой; SQL/HTTP guards и dense-day regression.
+- [ ] Slice3: lazy posts page only visible tab, existing infinite collection,
+  protected detail before editor, calendar projection, counters без archive;
+  loading/error/retry/save/delete/account change/navigation regressions.
+- [ ] Финальная integration/общая regression/review/build и scoped cleanup.
+
 ### CAP-U / ADM-S1 — пять новых замечаний,19 октября
 
 - [x] Сверены clean HEAD49954ee/ветка, текущие планы/источники и evidence D5/D6.

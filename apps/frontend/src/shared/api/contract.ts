@@ -410,6 +410,55 @@ export type AppRouter = BuiltRouter<
         >;
         meta: unknown;
       }>;
+      postsPage: QueryProcedure<{
+        input:
+          | {
+              limit?: number | undefined;
+              cursor?: number | null | undefined;
+              status?: "published" | "draft" | "scheduled" | undefined;
+              target?: "feed" | "club" | "both" | undefined;
+            }
+          | undefined;
+        output: {
+          posts: Array<{
+            id: number;
+            text: string;
+            photos: Array<string>;
+            tags: Array<string>;
+            tagCount: number;
+            hasVideo: boolean;
+            published: boolean;
+            status: "published" | "draft" | "scheduled";
+            target: "feed" | "club" | "both";
+            scheduledAt: Date | null;
+            publishedAt: Date | null;
+            createdAt: Date;
+          }>;
+          nextCursor: number | null;
+        };
+        meta: unknown;
+      }>;
+      postDetail: QueryProcedure<{
+        input: { id: number };
+        output: {
+          id: number;
+          text: string;
+          photos: Array<string>;
+          tags: Array<string>;
+          source: string;
+          instagramId: string | null;
+          sortOrder: number;
+          published: boolean;
+          status: "published" | "draft" | "scheduled";
+          target: "feed" | "club" | "both";
+          scheduledAt: Date | null;
+          publishedAt: Date | null;
+          richText: Array<RichTextBlock> | null;
+          createdAt: Date;
+          updatedAt: Date;
+        } & { media: PostMedia[] };
+        meta: unknown;
+      }>;
       createPost: MutationProcedure<{
         input: {
           text: string;

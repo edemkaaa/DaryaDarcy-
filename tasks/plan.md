@@ -29,6 +29,17 @@
 
 ### Границы работы
 
+- **19 октября, ADM-P2, принято пользователем «давай да»:** локально добавить
+  страницы коротких admin post cards, protected full detail, bounded calendar
+  и counters; подключить существующую админку без изменения дизайна. Старые API
+  не обрезать/удалять. Никаких push/deploy/working DB/S3/flags. Минимальный
+  контракт: postsPage({limit:20 default/50 max,cursor:offset,status?,target?}) →
+  {posts,nextCursor}; postDetail({id}) → full post с media либо null; postCounts
+  → прежние четыре header counts. Порядок прежний sortOrder/date/id; offset
+  не является snapshot при конкурентных изменениях, после записи обновляется
+  список, на клиенте IDs не дублируются. Calendar → одна карточка/счётчики на
+  каждый видимый день + upcoming8, границы локальных дней передаёт клиент
+  (до62 смежных дней, DST допустим); без richText/полных media в cards.
 - Репозиторий: `/Users/edem/Desktop/ASSIST/dina_project/daryadarcy-app`.
   Рабочая ветка: `feature/stage-one-completion-2026-10-10`.
 - Разрешены локальные backend-исправления подтверждённых дефектов в согласованном

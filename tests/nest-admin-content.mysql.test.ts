@@ -202,6 +202,101 @@ describe.skipIf(!testDatabaseUrl)(
         "admin hidden club",
       );
     });
+    it("pages lightweight admin cards without losing draft editing data", async () => {
+      const admin = client(bearer).admin as any;
+      const first = await admin.postsPage.query({ limit: 2 });
+      expect(first.posts.map((row: { id: number }) => row.id)).toEqual([
+        9043, 9041,
+      ]);
+      expect(first.nextCursor).toBe(2);
+      expect(first.posts[1]).not.toHaveProperty("richText");
+      expect(first.posts[1]).not.toHaveProperty("media");
+      const second = await admin.postsPage.query({
+        limit: 2,
+        cursor: first.nextCursor,
+      });
+      expect(second.posts.map((row: { id: number }) => row.id)).toEqual([
+        9042, 9040,
+      ]);
+      const last = await admin.postsPage.query({
+        limit: 2,
+        cursor: second.nextCursor,
+      });
+      expect(last.posts.map((row: { id: number }) => row.id)).toEqual([9044]);
+      expect(last.nextCursor).toBeNull();
+      const draft = await admin.postDetail.query({ id: 9041 });
+      expect(draft).toMatchObject({
+        id: 9041,
+        text: "admin private draft",
+        published: false,
+      });
+      expect(draft.media.map((row: { id: number }) => row.id)).toEqual([
+        9041, 9040,
+      ]);
+      expect(await admin.postDetail.query({ id: 999999 })).toBeNull();
+      const filtered = await admin.postsPage.query({
+        status: "draft",
+        target: "club",
+      });
+      expect(filtered.posts.map((row: { id: number }) => row.id)).toEqual([
+        9041,
+      ]);
+      expect(filtered.nextCursor).toBeNull();
+    });
+    it("bounds card bodies and keeps complete data only in protected detail", async () => {
+      const admin = client(bearer).admin as any;
+      const text = "🌿".repeat(800);
+      try {
+        await conn.query(
+          "UPDATE posts SET text=?,photos=JSON_ARRAY('https://assets.example.test/first.webp','https://assets.example.test/second.webp'),tags=JSON_ARRAY('a','b','c','d'),richText=JSON_OBJECT('text','private body') WHERE id=9041",
+          [text],
+        );
+        const page = await admin.postsPage.query({ status: "draft" });
+        expect(Array.from(page.posts[0].text)).toHaveLength(512);
+        expect(page.posts[0]).toMatchObject({
+          photos: ["https://assets.example.test/first.webp"],
+          tags: ["a", "b", "c"],
+          tagCount: 4,
+          hasVideo: false,
+        });
+        expect(await admin.postDetail.query({ id: 9041 })).toMatchObject({
+          text,
+          richText: { text: "private body" },
+          photos: [
+            "https://assets.example.test/first.webp",
+            "https://assets.example.test/second.webp",
+          ],
+        });
+      } finally {
+        await conn.query(
+          "UPDATE posts SET text='admin private draft',photos=JSON_ARRAY(),tags=JSON_ARRAY(),richText=NULL WHERE id=9041",
+        );
+      }
+    });
+    it("rejects unbounded pagination and preserves admin authorization", async () => {
+      for (const input of [
+        { limit: 0 },
+        { limit: 51 },
+        { cursor: -1 },
+        { cursor: 1.5 },
+        { status: "all" },
+      ]) {
+        await expect(
+          (client(bearer).admin as any).postsPage.query(input),
+        ).rejects.toMatchObject({ data: { httpStatus: 400 } });
+      }
+      for (const name of ["postsPage", "postDetail"]) {
+        const input = name === "postDetail" ? { id: 9041 } : {};
+        await expect(
+          (client().admin as any)[name].query(input),
+        ).rejects.toMatchObject({ data: { httpStatus: 401 } });
+        await conn.query("UPDATE users SET role='moderator' WHERE id=9040");
+        await expect(
+          (client(bearer).admin as any)[name].query(input),
+        ).rejects.toMatchObject({ data: { httpStatus: 403 } });
+        await conn.query("UPDATE users SET role='admin' WHERE id=9040");
+      }
+    });
     it("orders equal-position admin posts by publication date with creation fallback", async () => {
       try {
         await conn.query(`INSERT INTO posts (id,text,photos,tags,sortOrder,createdAt,publishedAt) VALUES

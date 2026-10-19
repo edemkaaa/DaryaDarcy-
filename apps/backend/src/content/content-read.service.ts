@@ -2,6 +2,8 @@ import { Injectable } from "@nestjs/common";
 import type { User } from "../../../../packages/database/src/schema";
 import { userHasClubAccess } from "../identity/club-access";
 import * as db from "../db";
+import type { z } from "zod";
+import type { adminPostsPageInput } from "./admin-post-reads";
 
 @Injectable()
 export class ContentReadService {
@@ -9,6 +11,14 @@ export class ContentReadService {
   // adminProcedure before calling these reads, never the public feed boundary.
   listAllAdminPosts() {
     return db.getAllPostsAdmin();
+  }
+
+  listAdminPostsPage(input: z.infer<typeof adminPostsPageInput>) {
+    return db.getAdminPostsPage(input);
+  }
+
+  adminPostDetail(id: number) {
+    return db.getAdminPostDetail(id);
   }
 
   listAllAdminArticles() {

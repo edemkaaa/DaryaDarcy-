@@ -8,6 +8,7 @@ import type { ContentUploadService } from "../content/content-upload.service";
 import { mediaUploadInput } from "../content/media-upload-input";
 import type { ContentReadService } from "../content/content-read.service";
 import { importVideosInput } from "../content/video-import-input";
+import { adminPostsPageInput } from "../content/admin-post-reads";
 import { vkVideoInput } from "../content/vk-video-input";
 import { upsertVkVideo } from "../content/vk-catalog";
 import type { NotificationsService } from "../notifications/notifications.service";
@@ -23,6 +24,8 @@ export const createAdminRouter = (
 ) => router({
   // Get all posts including unpublished (admin only)
   posts: adminProcedure.query(() => content.listAllAdminPosts()),
+  postsPage: adminProcedure.input(adminPostsPageInput).query(({ input }) => content.listAdminPostsPage(input)),
+  postDetail: adminProcedure.input(z.object({ id: z.number().int().positive() }).strict()).query(({ input }) => content.adminPostDetail(input.id)),
 
   // Create a new post (admin only)
   createPost: adminProcedure
