@@ -153,7 +153,7 @@ export async function getAdminPostCalendar(
       ...card,
       dayIndex: dayIndex.mapWith(Number).as("dayIndex"),
       position:
-      sql<number>`ROW_NUMBER() OVER (${partition} ORDER BY ${sql.join([...postListOrder], sql`, `)})`.as(
+        sql<number>`ROW_NUMBER() OVER (${partition} ORDER BY ${sql.join([...postListOrder], sql`, `)})`.as(
           "position",
         ),
       total: sql<number>`COUNT(*) OVER (${partition})`
@@ -190,7 +190,7 @@ export async function getAdminPostCalendar(
     .select(card)
     .from(posts)
     .where(and(eq(posts.status, "scheduled"), isNotNull(posts.scheduledAt)))
-    .orderBy(asc(posts.scheduledAt), asc(posts.id))
+    .orderBy(asc(posts.scheduledAt), ...postListOrder)
     .limit(8);
   return {
     days: rows.map(({ position, ...day }) => day),

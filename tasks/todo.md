@@ -22,6 +22,14 @@
   на действующую native-session401 семантику без auth изменений. Synthetic
   calendar JSON<40KiB,50 cards<150KiB с длинными Unicode текстами; это fixture
   bound, не live speed benchmark. Types/build/API90/35099/boundaries691 pass.
+- [x] Review follow-up: равные upcoming times должны сохранять прежний catalog
+  tie-order, а не переходить на id. RED [99000,99001] вместо [99001,99000],
+  исправлено scheduledAt + прежний postListOrder. GREEN32 native SQL/HTTP,
+  включая полноценный62-day HTTP request; нет snapshot/UTC truncation смены.
+  Invalid native inputs явно typed as never, остальные новые tests используют
+  настоящий AppRouter без any. Public namespace manifest дополнен4 принятыми
+  процедурами, прежние endpoints сохранены. Общая regression2646 pass/1611
+  opt-in skips (204 suites pass/96 skipped); native32 выполнены отдельно.
 - [ ] Slice3: lazy posts page only visible tab, existing infinite collection,
   protected detail before editor, calendar projection, counters без archive;
   loading/error/retry/save/delete/account change/navigation regressions.

@@ -203,7 +203,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
     });
     it("pages lightweight admin cards without losing draft editing data", async () => {
-      const admin = client(bearer).admin as any;
+      const admin = client(bearer).admin;
       const first = await admin.postsPage.query({ limit: 2 });
       expect(first.posts.map((row: { id: number }) => row.id)).toEqual([
         9043, 9041,
@@ -244,7 +244,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(filtered.nextCursor).toBeNull();
     });
     it("bounds card bodies and keeps complete data only in protected detail", async () => {
-      const admin = client(bearer).admin as any;
+      const admin = client(bearer).admin;
       const text = "🌿".repeat(800);
       try {
         await conn.query(
@@ -282,23 +282,25 @@ describe.skipIf(!testDatabaseUrl)(
         { status: "all" },
       ]) {
         await expect(
-          (client(bearer).admin as any).postsPage.query(input),
+          client(bearer).admin.postsPage.query(input as never),
         ).rejects.toMatchObject({ data: { httpStatus: 400 } });
       }
-      for (const name of ["postsPage", "postDetail"]) {
-        const input = name === "postDetail" ? { id: 9041 } : {};
-        await expect(
-          (client().admin as any)[name].query(input),
-        ).rejects.toMatchObject({ data: { httpStatus: 401 } });
+      for (const read of [
+        (token?: string) => client(token).admin.postsPage.query({}),
+        (token?: string) => client(token).admin.postDetail.query({ id: 9041 }),
+      ]) {
+        await expect(read()).rejects.toMatchObject({
+          data: { httpStatus: 401 },
+        });
         await conn.query("UPDATE users SET role='moderator' WHERE id=9040");
-        await expect(
-          (client(bearer).admin as any)[name].query(input),
-        ).rejects.toMatchObject({ data: { httpStatus: 403 } });
+        await expect(read(bearer)).rejects.toMatchObject({
+          data: { httpStatus: 403 },
+        });
         await conn.query("UPDATE users SET role='admin' WHERE id=9040");
       }
     });
     it("returns day summaries instead of all bodies, including a dense day and local boundaries", async () => {
-      const admin = client(bearer).admin as any;
+      const admin = client(bearer).admin;
       const days = [
         { from: "2031-01-01T21:00:00Z", to: "2031-01-02T21:00:00Z" },
         { from: "2031-01-02T21:00:00Z", to: "2031-01-03T21:00:00Z" },
@@ -355,16 +357,38 @@ describe.skipIf(!testDatabaseUrl)(
       }
     });
     it("retains the existing header counts including a hidden published record", async () => {
-      expect(await (client(bearer).admin as any).postCounts.query()).toEqual({
+      expect(await client(bearer).admin.postCounts.query()).toEqual({
         total: 5,
         published: 3,
         scheduled: 2,
         draft: 2,
       });
     });
+    it("keeps catalog order for scheduled posts sharing one upcoming time", async () => {
+      try {
+        await conn.query(`INSERT INTO posts(id,text,photos,tags,status,scheduledAt,sortOrder) VALUES
+          (99000,'later catalog position',JSON_ARRAY(),JSON_ARRAY(),'scheduled','2030-01-03',-2),
+          (99001,'earlier catalog position',JSON_ARRAY(),JSON_ARRAY(),'scheduled','2030-01-03',-3)`);
+        const result = await client(bearer).admin.postCalendar.query({
+          days: [{ from: "2030-01-03T00:00:00Z", to: "2030-01-04T00:00:00Z" }],
+        });
+        expect(
+          result.upcoming.filter((row) => row.id >= 99000).map((row) => row.id),
+        ).toEqual([99001, 99000]);
+      } finally {
+        await conn.query("DELETE FROM posts WHERE id BETWEEN 99000 AND 99001");
+      }
+    });
     it("bounds calendar windows and checks access to calendar and counters", async () => {
       const day = { from: "2030-01-01T00:00:00Z", to: "2030-01-02T00:00:00Z" };
-      const admin = client(bearer).admin as any;
+      const admin = client(bearer).admin;
+      const maximumWindow = Array.from({ length: 62 }, (_, index) => ({
+        from: new Date(Date.UTC(2031, 6, index + 1)).toISOString(),
+        to: new Date(Date.UTC(2031, 6, index + 2)).toISOString(),
+      }));
+      expect(
+        (await admin.postCalendar.query({ days: maximumWindow })).days,
+      ).toEqual([]);
       for (const days of [
         [],
         Array(63).fill(day),
@@ -372,7 +396,9 @@ describe.skipIf(!testDatabaseUrl)(
         [{ ...day, to: "2030-02-01T00:00:00Z" }],
         [{ from: "bad", to: day.to }],
       ]) {
-        await expect(admin.postCalendar.query({ days })).rejects.toMatchObject({
+        await expect(
+          admin.postCalendar.query({ days } as never),
+        ).rejects.toMatchObject({
           data: { httpStatus: 400 },
         });
       }
@@ -385,13 +411,16 @@ describe.skipIf(!testDatabaseUrl)(
           })
         ).days,
       ).toEqual([]);
-      for (const name of ["postCalendar", "postCounts"]) {
-        const input = name === "postCalendar" ? { days: [day] } : undefined;
-        await expect(
-          (client().admin as any)[name].query(input),
-        ).rejects.toMatchObject({ data: { httpStatus: 401 } });
+      for (const read of [
+        (token?: string) =>
+          client(token).admin.postCalendar.query({ days: [day] }),
+        (token?: string) => client(token).admin.postCounts.query(),
+      ]) {
+        await expect(read()).rejects.toMatchObject({
+          data: { httpStatus: 401 },
+        });
         await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=9040");
-        await expect(admin[name].query(input)).rejects.toMatchObject({
+        await expect(read(bearer)).rejects.toMatchObject({
           data: { httpStatus: 401 },
         });
         await conn.query("UPDATE users SET blockedAt=NULL WHERE id=9040");
