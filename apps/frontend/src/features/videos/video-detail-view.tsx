@@ -11,8 +11,6 @@ import {
 } from "@/shared/ui/elements";
 import { openExternalUrl } from "@/shared/browser/actions";
 import { MaterialIcons } from "@/shared/ui/icons";
-import { useRouter } from "@/shared/navigation/router";
-import { useSafeAreaInsets } from "@/shared/ui/safe-area";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 import { PAPER_TEXTURE_URI } from "./video-screen.content";
 export function VideoDetailView({
@@ -29,8 +27,6 @@ export function VideoDetailView({
   hint: string;
 }) {
   const { stylesLayout } = getVideoScreenLayout(useViewport());
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       <Background
@@ -51,22 +47,6 @@ export function VideoDetailView({
           >
             {player}
           </div>
-
-          {/* Back button */}
-          <Action
-            aria-label="Назад"
-            onClick={() => router.back()}
-            style={() => ({
-              top: insets.top + 8,
-            })}
-            className={({ pressed }) =>
-              [classes.action, pressed ? classes.opacityState : ""]
-                .filter(Boolean)
-                .join(" ")
-            }
-          >
-            <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
-          </Action>
 
           {/* Video info */}
           <div

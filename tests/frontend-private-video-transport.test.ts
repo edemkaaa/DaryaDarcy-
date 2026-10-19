@@ -45,7 +45,7 @@ it("sends the exact File/key to the private binary route with session-bound cred
   expect(init.credentials).toBe("include");
   expect(init.cache).toBe("no-store");
 });
-it.each([400, 401, 403, 409, 413, 503])(
+it.each([400, 401, 403, 404, 409, 413, 503])(
   "preserves HTTP %s without returning server details",
   async (status) => {
     vi.stubGlobal("fetch", async () =>
@@ -59,6 +59,17 @@ it.each([400, 401, 403, 409, 413, 503])(
     expect((error as Error).message).not.toContain("PRIVATE_SERVER_DETAIL");
   },
 );
+it("explains that private video uploads are currently unavailable", async () => {
+  const fetcher = vi.fn(async () =>
+    Response.json({ error: "NOT_FOUND" }, { status: 404 }),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  await expect(uploadAdminPrivateVideo(file(), key)).rejects.toMatchObject({
+    status: 404,
+    message: "Загрузка файлов сейчас недоступна. Попробуйте позже.",
+  });
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});
 it("refuses invalid keys before dispatch", async () => {
   await expect(uploadAdminPrivateVideo(file(), "short")).rejects.toThrow();
   expect(requests).toEqual([]);

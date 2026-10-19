@@ -320,12 +320,14 @@ test("an external previous page is not used as the app's back destination", asyn
   await expect(page).toHaveURL(/\/feed$/);
 });
 
-test("the login screen's contextual back also has a safe direct-entry fallback", async ({
+test("the login screen's header back has a safe direct-entry fallback", async ({
   page,
 }) => {
   await layoutApi(page);
   await gotoWithSession(page, "/login");
-  await page.getByRole("button", { name: "Назад", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Вернуться назад", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/$/);
 });
 
@@ -350,7 +352,9 @@ test("the same navigation remains mounted between sections and details, with the
   await expect(page).toHaveURL(/\/post\/invalid$/);
   expect(await header.evaluate((node) => node.isConnected)).toBe(true);
   expect(await tabs.evaluate((node) => node.isConnected)).toBe(true);
-  // Existing contextual back controls use the same safe fallback.
-  await page.getByRole("button", { name: "Назад", exact: true }).click();
+  // The same header action also handles the direct-entry fallback.
+  await page
+    .getByRole("button", { name: "Вернуться назад", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/feed$/);
 });

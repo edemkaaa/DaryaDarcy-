@@ -1,6 +1,7 @@
 import { serializePostDraft } from "./draft";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { getHttpStatus } from "@/shared/api/errors";
+import { privateUploadRejectionMessage } from "@/shared/api/upload-errors";
 import { attachmentBase64 } from "@/shared/media/read-attachment";
 import { validateFileSize } from "@/shared/browser/file-operations";
 import { requireUploadedMedia } from "@/shared/media/upload-result";
@@ -485,13 +486,17 @@ export class PostSaveCoordinator {
           /* The editor reports the storage failure. */
         }
       }
+      const uploadRejection =
+        this.phase === "upload" ? privateUploadRejectionMessage(error) : null;
       const message = this.completed
         ? "Публикация сохранена. Обновите список перед новой правкой."
-        : this.uncertain
-          ? "Результат сохранения не подтверждён. Проверьте публикацию в списке перед новой попыткой."
-          : error instanceof Error
-            ? error.message
-            : "Не удалось сохранить публикацию";
+        : uploadRejection
+          ? `${uploadRejection} Исходные файлы сохранены в черновике на этом устройстве. Проверьте загрузку перед повторным сохранением.`
+          : this.uncertain
+            ? "Результат сохранения не подтверждён. Проверьте публикацию в списке перед новой попыткой."
+            : error instanceof Error
+              ? error.message
+              : "Не удалось сохранить публикацию";
       throw new PostSaveError(message, this.uncertain, error);
     }
   }

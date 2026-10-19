@@ -18,29 +18,6 @@
     padding-bottom: var(--page-end-gap);
   }
 
-  .div2 {
-    flex-direction: row;
-    align-items: center;
-    padding-left: 16px;
-    padding-right: 16px;
-    padding-bottom: 4px;
-  }
-
-  .action {
-    width: 36px;
-    height: 36px;
-    border-radius: 18px;
-    background-color: rgba(253, 248, 240, 0.85);
-    align-items: center;
-    justify-content: center;
-    border-width: 1px;
-    border-color: #d4c4a860;
-  }
-
-  .div3 {
-    flex: 1;
-  }
-
   .coverSection {
     align-items: center;
     padding-left: 0;
@@ -348,16 +325,6 @@
     font-size: 16px;
     color: #fff;
   }
-  .opacityState {
-    opacity: 0.6;
-    --action-base-opacity: 0.6;
-  }
-
-  .opacityState2 {
-    opacity: 1;
-    --action-base-opacity: 1;
-  }
-
   .appearanceState {
     aspect-ratio: 0.77;
     border-radius: 0;

@@ -2,16 +2,12 @@ import classes from "./privacy-screen.module.scss";
 
 import { ScrollArea } from "@/shared/ui/elements";
 import Link from "next/link";
-import { LegalBackButton } from "./legal-back-button";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 import { SECTIONS } from "./privacy-screen.content";
 export default function PrivacyScreen() {
   return (
     <ScreenContainer backgroundColor="#FDF8F0">
       <ScrollArea contentClassName={classes.scroll}>
-        <LegalBackButton className={classes.back}>
-          <span className={`ui-text ${classes.backText}`}>← Назад</span>
-        </LegalBackButton>
         <span className={`ui-text ${classes.kicker}`}>DARYADARCY</span>
         <h1 className={`ui-text ${classes.title}`}>
           Политика конфиденциальности{"\n"}и Условия использования

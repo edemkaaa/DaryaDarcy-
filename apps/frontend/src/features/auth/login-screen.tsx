@@ -472,9 +472,6 @@ export default function LoginScreen({
                 </Typography>
               </Action>
             )}
-            <Action onClick={() => router.back()}>
-              <Typography className={classes.backText}>Назад</Typography>
-            </Action>
           </ScrollArea>
         </div>
       </Background>

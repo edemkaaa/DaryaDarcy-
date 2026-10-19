@@ -36,24 +36,6 @@
     text-transform: uppercase;
   }
 
-  .backButtonOverlay {
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    background-color: rgba(0, 0, 0, 0.35);
-    padding-left: 14px;
-    padding-right: 14px;
-    padding-top: 6px;
-    padding-bottom: 6px;
-    border-radius: 16px;
-  }
-
-  .backButtonOverlayText {
-    font-size: 15px;
-    font-family: var(--font-italic);
-    color: #fff;
-  }
-
   .lockedContainer {
     align-items: center;
     padding-left: 24px;

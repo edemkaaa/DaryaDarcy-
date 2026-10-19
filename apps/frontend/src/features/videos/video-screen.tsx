@@ -2,9 +2,8 @@
 import { ManagedVideo } from "@/shared/media/managed-video";
 
 import classes from "./video-screen.module.scss";
-import { Background, Action, Typography } from "@/shared/ui/elements";
+import { Background } from "@/shared/ui/elements";
 
-import { useRouter } from "@/shared/navigation/router";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { trpc } from "@/shared/api/trpc";
@@ -26,7 +25,6 @@ export default function VideoDetailScreen({ id }: { id: string }) {
   );
 }
 function LegacyVideoDetail({ id }: { id: string }) {
-  const router = useRouter();
   const videoId = parseContentId(id);
   const {
     data: video,
@@ -37,9 +35,6 @@ function LegacyVideoDetail({ id }: { id: string }) {
     { id: videoId ?? 0 },
     { enabled: videoId !== null, staleTime: 30_000 },
   );
-  const handleBack = () => {
-    router.back();
-  };
   if (isLoading || error || !video) {
     return (
       <ScreenContainer edges={["top", "bottom", "left", "right"]}>
@@ -56,18 +51,13 @@ function LegacyVideoDetail({ id }: { id: string }) {
             {isLoading ? (
               <ContentPlaceholder kind="video" count={1} />
             ) : (
-              <>
-                <ContentRequestState
-                  error={error}
-                  onRetry={() => {
-                    void refetch();
-                  }}
-                  notFoundText="Видео не найдено"
-                />
-                <Action aria-label="Назад" onClick={handleBack}>
-                  <Typography>← Назад</Typography>
-                </Action>
-              </>
+              <ContentRequestState
+                error={error}
+                onRetry={() => {
+                  void refetch();
+                }}
+                notFoundText="Видео не найдено"
+              />
             )}
           </div>
         </Background>

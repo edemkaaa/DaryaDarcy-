@@ -196,14 +196,17 @@ test("a shorter viewport keeps the login inputs and final action reachable", asy
   await page.setViewportSize({ width: 390, height: 360 });
   await email.scrollIntoViewIfNeeded();
   await expect(email).toBeInViewport();
-  const back = page
+  const finalAction = page
     .locator("main")
-    .getByRole("button", { name: "Назад", exact: true });
-  await back.scrollIntoViewIfNeeded();
+    .getByRole("button", {
+      name: "Забыли пароль или ещё не установили его?",
+      exact: true,
+    });
+  await finalAction.scrollIntoViewIfNeeded();
   const menu = (await page
     .getByRole("navigation", { name: "Разделы" })
     .boundingBox())!;
-  const button = (await back.boundingBox())!;
+  const button = (await finalAction.boundingBox())!;
   expect(button.y + button.height).toBeLessThanOrEqual(menu.y - 16);
   await expect(email).toHaveValue("member@example.test");
 });

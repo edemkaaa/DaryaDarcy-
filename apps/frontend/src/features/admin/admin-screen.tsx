@@ -811,6 +811,10 @@ export default function AdminScreen() {
           contentClassName={classes.scrollAreacontent}
         >
           <CalendarTracker
+            posts={posts}
+            isLoading={postsQuery.isLoading}
+            isError={postsQuery.isError}
+            onRetry={() => void postsQuery.refetch()}
             onPostPress={(post) => {
               handleEdit(post);
             }}

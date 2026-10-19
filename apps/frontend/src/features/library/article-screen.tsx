@@ -70,9 +70,6 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
     return (
       <ScreenContainer edges={["top", "bottom", "left", "right"]}>
         <Background source={{ uri: PAPER }} fit="cover" className={classes.bg}>
-          <Action onClick={() => router.back()} className={classes.back}>
-            <Typography className={classes.backText}>← Назад</Typography>
-          </Action>
           <div
             className={["ui-stack ", classes.center].filter(Boolean).join(" ")}
           >
@@ -97,9 +94,6 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
       <ScreenContainer edges={["top", "bottom", "left", "right"]}>
         <Background source={{ uri: PAPER }} fit="cover" className={classes.bg}>
           <ScrollArea hideScrollbar contentClassName={classes.scroll}>
-            <Action onClick={() => router.back()} className={classes.back}>
-              <Typography className={classes.backText}>← Назад</Typography>
-            </Action>
             {data.coverUrl ? (
               <Picture
                 source={{ uri: data.coverUrl }}
@@ -132,9 +126,6 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       <Background source={{ uri: PAPER }} fit="cover" className={classes.bg}>
         <ScrollArea hideScrollbar contentClassName={classes.scroll}>
-          <Action onClick={() => router.back()} className={classes.back}>
-            <Typography className={classes.backText}>← Назад</Typography>
-          </Action>
           <ArticleContent
             title={data.title}
             coverUrl={data.coverUrl}

@@ -98,9 +98,6 @@ export function QuizResultScreen() {
       });
     } catch {}
   };
-  const handleBack = () => {
-    router.back();
-  };
   const handleClubCTA = () => {
     if (hasClubAccess && clubContent) {
       setShowClubContent(true);
@@ -404,16 +401,6 @@ export function QuizResultScreen() {
             >
               <Typography className={classes.restartButtonText}>
                 Пройти ещё раз
-              </Typography>
-            </Action>
-
-            <Action
-              onClick={handleBack}
-              activeOpacity={0.7}
-              className={classes.backLink}
-            >
-              <Typography className={classes.backLinkText}>
-                ← Вернуться
               </Typography>
             </Action>
           </div>

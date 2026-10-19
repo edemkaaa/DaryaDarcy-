@@ -16,7 +16,6 @@ import { useRef, useState, useCallback } from "react";
 import { Picture } from "@/shared/media/image";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 import { PhotoViewer } from "@/shared/media/photo-viewer";
-import { useRouter } from "@/shared/navigation/router";
 import {
   PAPER_TEXTURE_URI,
   CAROUSEL_IMAGES,
@@ -26,7 +25,6 @@ import {
   PART_TEXTS,
 } from "./about-screen.content";
 export default function AboutMeScreen() {
-  const router = useRouter();
   const viewport = useViewport();
   const { stylesLayout } = getAboutScreenLayout(viewport);
 
@@ -37,9 +35,6 @@ export default function AboutMeScreen() {
   const [tocExpanded, setTocExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionPositions = useRef<Record<number, number>>({});
-  const handleBack = () => {
-    router.back();
-  };
   const openViewer = (photos: string[], index: number) => {
     setViewerPhotos(photos);
     setViewerInitialIndex(index);
@@ -98,23 +93,6 @@ export default function AboutMeScreen() {
           hideScrollbar
           contentClassName={classes.scrollContent}
         >
-          {/* Back Button */}
-          <div
-            className={["ui-stack ", classes.backButtonRow]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            <Action
-              onClick={handleBack}
-              activeOpacity={0.7}
-              className={classes.backButton}
-            >
-              <Typography className={classes.backButtonText}>
-                ← Назад
-              </Typography>
-            </Action>
-          </div>
-
           {/* Carousel */}
           <div
             className={["ui-stack ", classes.carouselContainer]

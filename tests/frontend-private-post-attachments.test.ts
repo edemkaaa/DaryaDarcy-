@@ -56,6 +56,47 @@ function boundary() {
   };
 }
 
+it.each([404, 413])(
+  "keeps the original attachment and key after HTTP %s, without partial publication",
+  async (status) => {
+    const api = boundary();
+    const selected = file();
+    const coordinator = new PostSaveCoordinator();
+    coordinator.setCheckpoint(async () => {});
+    api.uploadPrivate.mockRejectedValueOnce(
+      new ApiError("PRIVATE_UPLOAD_DETAILS", status),
+    );
+    const error = await coordinator
+      .save(payload, [selected], [], api, task())
+      .catch((error: unknown) => error);
+    expect(error).toMatchObject({
+      uncertain: true,
+      data: { httpStatus: status },
+    });
+    expect((error as Error).message).toContain(
+      status === 404
+        ? "Загрузка файлов сейчас недоступна"
+        : "ограничения размера",
+    );
+    expect((error as Error).message).toContain("сохранены в черновике");
+    expect((error as Error).message).not.toContain("PRIVATE_UPLOAD_DETAILS");
+    const snapshot = coordinator.snapshot();
+    expect(snapshot.phase).toBe("upload");
+    expect(snapshot.privateUploads?.[0][0].file).toBe(selected.file);
+    const key = snapshot.privateUploads?.[0][1].key;
+    expect(api.uploadPrivate.mock.calls[0][0].idempotencyKey).toBe(key);
+    expect(api.create).not.toHaveBeenCalled();
+    expect(api.update).not.toHaveBeenCalled();
+    expect(api.upload).not.toHaveBeenCalled();
+    api.privateStatus.mockRejectedValueOnce(new ApiError("Unavailable", 404));
+    await expect(coordinator.recoverUploads(api, task())).rejects.toMatchObject(
+      { status: 404 },
+    );
+    expect(coordinator.snapshot().privateUploads?.[0][1].key).toBe(key);
+    expect(api.uploadPrivate).toHaveBeenCalledTimes(1);
+  },
+);
+
 it.each([null, 42])(
   "binds only private receipts in the final post transaction (%s)",
   async (id) => {
