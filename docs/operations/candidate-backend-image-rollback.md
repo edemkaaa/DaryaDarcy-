@@ -1,5 +1,46 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## RELEASE-D7 — ADM-P2/SAVED-P1 в staging, server rollout заблокирован
+
+19 октября разрешены совместный image-only выпуск и live проверка pagination,
+calendar, Saved. Normal push runtime `baaeb470979378c70c8fc33351e08682ba8bf0f0`
+подтверждён remote staging ref (incoming0/ours7). **Сервер ещё D5:** health200,
+admin.postCounts/postsPage404;7 staging services healthy на прежних images.
+SSH закрывается примерно через2s при rsync и raw chunk transfer. Docker load,
+prepare/fresh backup/apply/accept ещё не выполнялись. БД/admin/password/config/
+schema/flags/provider/SMTP/S3 не менялись; тестового пользователя не создавали.
+Для продолжения запрошено переключение VPN/сети; не заявлять обновление стенда.
+
+Final clean-source Linux amd64/node images (пока локально):
+API/restricted TEST `sha256:0f53b87e68485aeb447487602020393a712b9fd78178f9a231a43ffeb46dd173`;
+web `sha256:c805299e18e36e00ed2d1ea2cb8281a3b1b44571700a7ec2f8d5243619d51015`.
+BUILD_ID `ioLtYikvyK780DlSuNqiI`; API SHA
+`5acd5123bc53836f30d593404ffcd817f29d0e504aedff89ea54a4a92e845d28`, TEST SHA
+`f38c0d68d8138f2761068882c96a287c691cb843b3e2732fe87dc7622455415e`.
+Pinned D4 base/runtime/deps/config/compiled flags прежние; audit0/325 deps,
+Next29 pages, native --network none API5/web7/TEST3 pass. Initial packaging
+с Next build cache заменён ДО load; cache удалён из собственного build directory,
+web перепакован и isolated checks повторены. Не использовать initial web206162…
+или initial archive623080855 bytes как release artifact.
+
+Private local directory0700: `.local-artifacts/release-baaeb47.31scch`.
+Server directory0700: `/home/edem/apps/daryadarcy-staging/release-baaeb47.4qlmx5`.
+FINAL archive535314232 bytes/SHA
+`c751b2532de061d0d66ecdd12684a88915c9259d71ff96d2128f61a43c44a802` локально;
+старый incomplete server archive327680 bytes удалён после prefix SHA check.
+Перед resume сверить exact current files/refs и запускать stage.cjs: он доставит
+новые images.json/TEST source/guarded rollout-images.py до prepare. Скрипт ожидает
+current D5 images и ту же DB/schema/admin; никаких старых DB cutover scripts.
+Сначала full archive SHA, load, fresh backup/guards; только затем apply и live
+проверки. До acceptance same-DB image rollback; старые DB/images/backups сохранять.
+
+D6 obsolete own local archive534852537 и remote partial200540160 удалены с
+exact path/owner/non-symlink/size/full-or-prefix SHA guards, только после проверки
+отсутствия D6 state/backup; retained images/configs/receipts не удалялись. Это
+обновляет сведения о наличии archive в историческом разделе D6 ниже. Mac после
+own build-cache/archive cleanup1.3GiB, server1.2GiB free; образы и базы не чистились.
+Live acceptance D7 и временный unpaid Saved fixture пока не выполнялись.
+
 ## RELEASE-D6 — исправление «Сохранённого» в Git, server rollout отложен
 
 19 октября normal push `37c1bf2f80314db2647514b745da8de7140fba8d` в
@@ -352,8 +393,8 @@ dependencies без DB/egress. Root types/prettier pass; backup units16 pass/2
 native opt-in skips, эти2 не выдавать за отдельную SQL acceptance.
 
 Повторять только на **новых пустых** owned fixtures, как existing rehearsal:
-`tests/fresh-backup-restore.mysql.test.ts`. Явно задать SOURCE/TARGET_URL и
-SOURCE/TARGET_ID в `BACKUP_REHEARSAL_*`, только synthetic credentials;
+`tests/fresh-backup-restore.mysql.test.ts`. Явно задать SOURCE/TARGET*URL и
+SOURCE/TARGET_ID в `BACKUP_REHEARSAL*\*`, только synthetic credentials;
 добавить `BACKUP_REHEARSAL_IMAGE`, `BACKUP_REHEARSAL_IMAGE_ID`,
 `BACKUP_REHEARSAL_REVISION=20839114f6cc4236f477ecd6c2c15a80059c66ca`,
 `BACKUP_REHEARSAL_BUNDLE_SHA=bb9775d1da5bd418d0ccf6138f81414425f5b4f6e3f56db08f357273c5da903f`.
@@ -401,8 +442,7 @@ cap-drop/no-new-privileges/memory256MiB/CPU0.4. Запускался тольк�
 создание/SELECT grant/удаление собственной временной тестовой учётки.
 
 Actual checks:39 ORM tables/columns через LIMIT0; guest auth/launch/feed/articles
-200 (user:null/empty lists), protected admin401, default-off Library/content files
-404. Все8 HTTP прошли, exit0/OOM=false. User count0/history digest прежние.
+200 (user:null/empty lists), protected admin401, default-off Library/content files 404. Все8 HTTP прошли, exit0/OOM=false. User count0/history digest прежние.
 Own container/account/env удалены. Все24 existing running containers IDs/images/
 start times/health, configuration **metadata** и volume names совпали до/после.
 Это не hash-сравнение содержимого working env: его не читали. Все7 project services

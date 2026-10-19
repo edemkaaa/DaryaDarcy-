@@ -2,151 +2,188 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### RELEASE-D7 — staging опубликован, сервер ещё D5,19 октября
+
+- [x] Прямое разрешение на push/deploy ADM-P2 + ранее отложенный SAVED-P1.
+      Clean feature/stage-one-completion-2026-10-10, fetch: incoming0/ours7;
+      normal push runtime baaeb470979378c70c8fc33351e08682ba8bf0f0 в staging,
+      remote ref подтверждён. Чужие frontend commits не перезаписывались.
+- [x] Clean Git archive: API/TEST build, Next29-page production build;
+      pinned runtime/deps/config unchanged, compiled flags сравнены с D5.
+      Audit0/325 production deps; API90/35099/boundaries692/docs59/diff pass.
+      Final Linux amd64/node images: API0f53b87e…/webc805299e…;
+      isolated --network none API5/web7/restricted TEST3 HTTP pass,
+      exact bundles и BUILD_ID ioLtYikvyK780DlSuNqiI совпали. Это не live acceptance.
+- [x] Осмотр сервера: все7 staging services healthy, API/web/TEST прежние D5.
+      Public health200, новые admin.postCounts/postsPage404 подтверждают отсутствие
+      rollout. Обычная rsync передача и raw8MiB chunk оборвались с SSH255 примерно
+      через2s, remote prefix196608/327680 bytes; Docker load/prepare/backup/apply
+      НЕ выполнялись. Config/DB/admin/schema/flags/почта/оплата/S3 не менялись;
+      временный аккаунт не создавался. Пользователю запрошено переключение VPN/сети.
+- [x] Cleanup только собственных воспроизводимых файлов с exact path/owner/
+      symlink/size/SHA guards: obsolete D6 local archive534852537 bytes и remote
+      partial200540160 удалены; образы/backups/configs/receipts сохранены. Initial
+      D7 packaging включал Next build cache; этот невыгруженный образ не применялся.
+      Его local archive623080855/remote partial327680 и собственный Next cache357MiB
+      удалены, web image перепакован без build cache и native checks повторены.
+      Final archive535314232 bytes, SHA c751b2532de061d0d66ecdd12684a88915c9259d71ff96d2128f61a43c44a802;
+      Mac1.3GiB/server1.2GiB free. Docker cache/images/volumes/foreign files не чистились.
+- [ ] После восстановления связи: повторно проверить Git/server/config/inventory,
+      доставить FINAL archive с full SHA guard; stage.cjs обновляет images.json/TEST
+      source/rollout script. Выполнить fresh backup/DB-admin-schema/config guards,
+      coordinated image-only apply, health/bundle checks и live acceptance.
+      Local artifact `.local-artifacts/release-baaeb47.31scch`, server
+      `/home/edem/apps/daryadarcy-staging/release-baaeb47.4qlmx5`; state.json пока нет.
+- [ ] Пагинация: все IDs/order/cursors без дублей, bounded card bytes vs legacy;
+      календарь: local-day counts/first cards/upcoming совпадают; browser не делает
+      admin.posts. Saved: unpaid own temporary account — public доступны, club closed,
+      exact cleanup. Эти live проверки ещё НЕ запускались; D7 не принят/не завершён.
+
 ### ADM-P2 — принятые страницы админки и календарь,19 октября
 
 - [x] Прямое «давай да», clean51523d2/ветка проверены. Scope: local backend +
-  existing frontend logic/generated types/tests, без дизайна/working DB/S3,
-  push/deploy/flags. Contract записан в начале plan; old admin.posts сохранён.
+      existing frontend logic/generated types/tests, без дизайна/working DB/S3,
+      push/deploy/flags. Contract записан в начале plan; old admin.posts сохранён.
 - [x] Slice1 RED3 новых native HTTP/JWT/SQL сценария на missing postsPage404;
-  GREEN25/25 с существующим admin suite. Страницы20 default/50 max, numeric
-  offset cursor, status/target, прежний total order. SQL projection: text512
-  Unicode chars, first photo/3 tags+tagCount/hasVideo, без richText/media.
-  Protected postDetail возвращает full draft с ordered media или null;
-  malformed400, guest401/moderator403. Types/build/API88/33680/boundaries691
-  pass. Схема/индексы/рабочие данные не менялись. Проверен только local fixture.
+      GREEN25/25 с существующим admin suite. Страницы20 default/50 max, numeric
+      offset cursor, status/target, прежний total order. SQL projection: text512
+      Unicode chars, first photo/3 tags+tagCount/hasVideo, без richText/media.
+      Protected postDetail возвращает full draft с ordered media или null;
+      malformed400, guest401/moderator403. Types/build/API88/33680/boundaries691
+      pass. Схема/индексы/рабочие данные не менялись. Проверен только local fixture.
 - [x] Slice2 RED3 missing calendar/counters; GREEN28 native admin +3 aggregate
-  =31/31. Dense741-event day возвращает1 summary с точными counts, следующий
-  local-day boundary отдельно; SQL first-card window не обрезает counts. Есть
-  <=62 adjacent20–28h day windows/DST, upcoming8, header legacy semantics;
-  invalid400/guest401/blocked401 прежние. Первое ожидание blocked403 исправлено
-  на действующую native-session401 семантику без auth изменений. Synthetic
-  calendar JSON<40KiB,50 cards<150KiB с длинными Unicode текстами; это fixture
-  bound, не live speed benchmark. Types/build/API90/35099/boundaries691 pass.
+      =31/31. Dense741-event day возвращает1 summary с точными counts, следующий
+      local-day boundary отдельно; SQL first-card window не обрезает counts. Есть
+      <=62 adjacent20–28h day windows/DST, upcoming8, header legacy semantics;
+      invalid400/guest401/blocked401 прежние. Первое ожидание blocked403 исправлено
+      на действующую native-session401 семантику без auth изменений. Synthetic
+      calendar JSON<40KiB,50 cards<150KiB с длинными Unicode текстами; это fixture
+      bound, не live speed benchmark. Types/build/API90/35099/boundaries691 pass.
 - [x] Review follow-up: равные upcoming times должны сохранять прежний catalog
-  tie-order, а не переходить на id. RED [99000,99001] вместо [99001,99000],
-  исправлено scheduledAt + прежний postListOrder. GREEN32 native SQL/HTTP,
-  включая полноценный62-day HTTP request; нет snapshot/UTC truncation смены.
-  Invalid native inputs явно typed as never, остальные новые tests используют
-  настоящий AppRouter без any. Public namespace manifest дополнен4 принятыми
-  процедурами, прежние endpoints сохранены. Общая regression2646 pass/1611
-  opt-in skips (204 suites pass/96 skipped); native32 выполнены отдельно.
+      tie-order, а не переходить на id. RED [99000,99001] вместо [99001,99000],
+      исправлено scheduledAt + прежний postListOrder. GREEN32 native SQL/HTTP,
+      включая полноценный62-day HTTP request; нет snapshot/UTC truncation смены.
+      Invalid native inputs явно typed as never, остальные новые tests используют
+      настоящий AppRouter без any. Public namespace manifest дополнен4 принятыми
+      процедурами, прежние endpoints сохранены. Общая regression2646 pass/1611
+      opt-in skips (204 suites pass/96 skipped); native32 выполнены отдельно.
 - [x] Slice3: admin uses postsPage only visible posts tab/outside editor,
-  existing infinite collection/dedup IDs, separate counts/calendar window;
-  selected draft loads full detail/media before editor. Pending read cancelled
-  by tab/navigation/session/unmount guards; no source/design/CSS/assets changes.
-  Next-page failure retains cards/retry, counters error gives dashes/retry.
-  Exact-ID delete verification (also unknown reply inspection) cannot infer
-  absence from a partial page; no automatic replay. Seven new browser scenarios
-  cover these branches plus quick-save cache invalidation across real navigation.
-  RED initial3 on old list; RED2 edge cases on missing exact-ID check/counter
-  retry; late-account case already safe through shared scope. Quick-cache RED
-  confirmed after correcting an ambiguous publish selector; GREEN71 browser
-  checks including existing sessions/calendar/stats/editor/action paths.
+      existing infinite collection/dedup IDs, separate counts/calendar window;
+      selected draft loads full detail/media before editor. Pending read cancelled
+      by tab/navigation/session/unmount guards; no source/design/CSS/assets changes.
+      Next-page failure retains cards/retry, counters error gives dashes/retry.
+      Exact-ID delete verification (also unknown reply inspection) cannot infer
+      absence from a partial page; no automatic replay. Seven new browser scenarios
+      cover these branches plus quick-save cache invalidation across real navigation.
+      RED initial3 on old list; RED2 edge cases on missing exact-ID check/counter
+      retry; late-account case already safe through shared scope. Quick-cache RED
+      confirmed after correcting an ambiguous publish selector; GREEN71 browser
+      checks including existing sessions/calendar/stats/editor/action paths.
 - [x] Test transport migration: existing full synthetic catalogs serve both
-  cards/detail in shared editor fixture, native SQL coverage remains separate.
-  Session/layout fixtures updated for the new shapes. Two old upload tests
-  still assumed immediate public upload on selection: updated to current
-  deferred private submit, preserving assertions draft retained/no post created/
-  actionable413/no internal leak. No upload/session production code changed.
+      cards/detail in shared editor fixture, native SQL coverage remains separate.
+      Session/layout fixtures updated for the new shapes. Two old upload tests
+      still assumed immediate public upload on selection: updated to current
+      deferred private submit, preserving assertions draft retained/no post created/
+      actionable413/no internal leak. No upload/session production code changed.
 - [x] Native own loopback/tmpfs container94f4d0f9… removed after final32 native
-  pass with exact ID/name/owner+task labels/port65485/tmpfs/no mounts/backend_test
-  guards. Only synthetic data discarded; images, volumes and other projects
-  untouched. Working DB/S3/files/flags/credentials not used or modified.
+      pass with exact ID/name/owner+task labels/port65485/tmpfs/no mounts/backend_test
+      guards. Only synthetic data discarded; images, volumes and other projects
+      untouched. Working DB/S3/files/flags/credentials not used or modified.
 - [x] Финальная regression: root2646 pass/1611 opt-in skips; native32 pass/0skip;
-  browser71 pass (7 новых ADM scenarios + existing suites). Editor/media/
-  rich-text/draft/VK regression80 из82 сразу pass;2 full malformed-media tests
-  ожидали открыть редактор, который новый guard корректно не открывает.
-  Актуализированы: visible invalid-response/no editor/no write, затем retry
-  с полной media успешен; отдельно GREEN2/2. Quick counterparts не менялись.
-  Итого153 distinct browser scenarios подтверждены совокупностью этих прогонов,
-  не одним повторным82-test all-green запуском. Первый узкий повтор ошибочно
-  использовал anchored title grep (0 tests), затем исправлен filter; также
-  исправлен alert locator, отличающий app error от Next route announcer.
+      browser71 pass (7 новых ADM scenarios + existing suites). Editor/media/
+      rich-text/draft/VK regression80 из82 сразу pass;2 full malformed-media tests
+      ожидали открыть редактор, который новый guard корректно не открывает.
+      Актуализированы: visible invalid-response/no editor/no write, затем retry
+      с полной media успешен; отдельно GREEN2/2. Quick counterparts не менялись.
+      Итого153 distinct browser scenarios подтверждены совокупностью этих прогонов,
+      не одним повторным82-test all-green запуском. Первый узкий повтор ошибочно
+      использовал anchored title grep (0 tests), затем исправлен filter; также
+      исправлен alert locator, отличающий app error от Next route announcer.
 - [x] Root/frontend/E2E types, lint, backend и Next production29 pages builds,
-  API90/35099, boundaries692, docs59, formatting/diff pass. Final modified
-  E2E recovery file отдельно typechecked/linted. Review по correctness/security/
-  performance/React: new reads admin-only, parameterized bounds, old role/date/
-  header semantics, no partial-page deletion proof; active-tab queries/cache
-  invalidation/session scope сохраняются. Скриншоты posts/calendar390 просмотрены;
-  CSS/assets/layout classes не менялись, полноценная device acceptance не заявлена.
-  Backend SQL/HTTP и browser synthetic HTTP проверены отдельно: это не live
-  browser→deployed API/S3 acceptance и не server load benchmark.
+      API90/35099, boundaries692, docs59, formatting/diff pass. Final modified
+      E2E recovery file отдельно typechecked/linted. Review по correctness/security/
+      performance/React: new reads admin-only, parameterized bounds, old role/date/
+      header semantics, no partial-page deletion proof; active-tab queries/cache
+      invalidation/session scope сохраняются. Скриншоты posts/calendar390 просмотрены;
+      CSS/assets/layout classes не менялись, полноценная device acceptance не заявлена.
+      Backend SQL/HTTP и browser synthetic HTTP проверены отдельно: это не live
+      browser→deployed API/S3 acceptance и не server load benchmark.
 - [x] Scope завершён локально; no push/deploy/working DB/S3/старых файлов/flags/
-  admin password changes. RELEASE-D6 остаётся отложенным; CAP-U и реальные
-  protected materials требуют своих следующих решений, не включать автоматически.
+      admin password changes. RELEASE-D6 остаётся отложенным; CAP-U и реальные
+      protected materials требуют своих следующих решений, не включать автоматически.
 
 ### CAP-U / ADM-S1 — пять новых замечаний,19 октября
 
 - [x] Сверены clean HEAD49954ee/ветка, текущие планы/источники и evidence D5/D6.
-  Подтверждены отсутствующие upload capabilities и безлимитный admin.posts.
-  Live GET /api/capabilities200 возвращает только четыре прежние возможности;
-  private uploads в нём не описаны. Настройки/данные стенда не менялись.
+      Подтверждены отсутствующие upload capabilities и безлимитный admin.posts.
+      Live GET /api/capabilities200 возвращает только четыре прежние возможности;
+      private uploads в нём не описаны. Настройки/данные стенда не менялись.
 - [x] ADM-S1: статистика больше не переносит весь архив/тексты из SQL в Node
-  ради counters. Один aggregate row, прежний numeric response/top5/80 UTF-16
-  units, month boundaries в process TZ, status/target и legacy duplicates.
-  Нет нового API, индекса/схемы/зависимостей, frontend/design изменений.
+      ради counters. Один aggregate row, прежний numeric response/top5/80 UTF-16
+      units, month boundaries в process TZ, status/target и legacy duplicates.
+      Нет нового API, индекса/схемы/зависимостей, frontend/design изменений.
 - [x] RED на собственной MySQL8.4 loopback/tmpfs backend_test с742 synthetic
-  posts: максимальный result set742 нарушал <=5. GREEN3 native statistics +22
-  existing native admin HTTP =25 pass/0skip. Проверены также zero rows, Moscow
-  month boundary, legacy published flag, future dates, like/save duplicates;
-  точные emitted SELECTs возвращают <=5 rows и суммарно <64KiB на fixture.
-  Это bounded transfer evidence, не замер ускорения рабочего API/всего SQL.
-  Connection-local TEMPORARY tables не удаляют чужие fixtures; начальная
-  LIKE-self ошибка setup исправлена SHOW CREATE, до meaningful RED. Контейнер
-  удалён после exact ID/name/labels/loopback/tmpfs/no-volume ownership guards.
+      posts: максимальный result set742 нарушал <=5. GREEN3 native statistics +22
+      existing native admin HTTP =25 pass/0skip. Проверены также zero rows, Moscow
+      month boundary, legacy published flag, future dates, like/save duplicates;
+      точные emitted SELECTs возвращают <=5 rows и суммарно <64KiB на fixture.
+      Это bounded transfer evidence, не замер ускорения рабочего API/всего SQL.
+      Connection-local TEMPORARY tables не удаляют чужие fixtures; начальная
+      LIKE-self ошибка setup исправлена SHOW CREATE, до meaningful RED. Контейнер
+      удалён после exact ID/name/labels/loopback/tmpfs/no-volume ownership guards.
 - [x] Unit maintenance/request-bodies81 pass. Первая full regression нашла
-  устаревший SQL transport fixture: пустой aggregate был подставлен как0 rows,
-  хотя настоящий SQL возвращает1 строку zero counters. Исправлена только форма
-  test response; infrastructure rejection остаётся, read-errors40 pass.
+      устаревший SQL transport fixture: пустой aggregate был подставлен как0 rows,
+      хотя настоящий SQL возвращает1 строку zero counters. Исправлена только форма
+      test response; infrastructure rejection остаётся, read-errors40 pass.
 - [x] Финальная full regression2646 pass/1604 opt-in skips (204 suites pass,
-  96 skipped); native25 выше выполнялись отдельно без skips. Root/frontend/E2E
-  types, API86/32138, boundaries690, backend build598.5KiB, formatting/docs/diff
-  проходят. Review: parameterized Dates/columns, прежняя month семантика и
-  access checks, SQL errors не подменяются zero stats; нет контрактных изменений.
-  Не заявляется live load/полная приёмка пяти замечаний. Только локальный commit,
-  без push/deploy/flags/frontend/working DB/S3/старых файлов.
+      96 skipped); native25 выше выполнялись отдельно без skips. Root/frontend/E2E
+      types, API86/32138, boundaries690, backend build598.5KiB, formatting/docs/diff
+      проходят. Review: parameterized Dates/columns, прежняя month семантика и
+      access checks, SQL errors не подменяются zero stats; нет контрактных изменений.
+      Не заявляется live load/полная приёмка пяти замечаний. Только локальный commit,
+      без push/deploy/flags/frontend/working DB/S3/старых файлов.
 - [ ] Upload availability: согласовать additive capabilities для фото/файлов,
-  audio/docs и video, derived от действующих server flags (video требует оба).
-  Unknown/error/false запрещают новую загрузку, без public fallback/потери
-  выбранных вложений/recovery. Потом logic integration и отдельно reviewed
-  включение полного upload→bind→read на стенде; флаги сейчас не включать.
+      audio/docs и video, derived от действующих server flags (video требует оба).
+      Unknown/error/false запрещают новую загрузку, без public fallback/потери
+      выбранных вложений/recovery. Потом logic integration и отдельно reviewed
+      включение полного upload→bind→read на стенде; флаги сейчас не включать.
 - [x] Admin lists: contract принят и выполнен ADM-P2 выше. Новая админка больше
-  не вызывает legacy admin.posts; он сохранён без усечения для других callers,
-  включая quick-management verification. Сам факт старого endpoint742 rows
-  не выдавать за результат новой страницы; server rollout не выполнялся.
+      не вызывает legacy admin.posts; он сохранён без усечения для других callers,
+      включая quick-management verification. Сам факт старого endpoint742 rows
+      не выдавать за результат новой страницы; server rollout не выполнялся.
 - [ ] Старые protected материалы: карта реальных public patterns/URL и guide,
-  защищённая доставка вместо client imports и separately reviewed закрытие
-  прежних источников/cache. Не расширять это автоматически на публичный quiz.
-  LB backend/importer готовы, не считать настоящие файлы уже перенесёнными.
+      защищённая доставка вместо client imports и separately reviewed закрытие
+      прежних источников/cache. Не расширять это автоматически на публичный quiz.
+      LB backend/importer готовы, не считать настоящие файлы уже перенесёнными.
 - [x] CF-HTTP1 уже исправлен/выпущен D5: envelopes6/50MiB при прежних decoded
-  photo4/document32; ordinary JSON256KiB остаётся намеренно. Disabled404 —
-  отдельный feature gate, не доказательство старого upload body limit.
+      photo4/document32; ordinary JSON256KiB остаётся намеренно. Disabled404 —
+      отдельный feature gate, не доказательство старого upload body limit.
 - [x] SAVED-P1 public/both unpaid уже37c1bf2 в Git; club остаётся закрытым.
-  Server D6 отложен пользователем: не повторять исправление/не возобновлять
-  выпуск автоматически. Эти два пункта не назначать новыми backend дефектами.
+      Server D6 отложен пользователем: не повторять исправление/не возобновлять
+      выпуск автоматически. Эти два пункта не назначать новыми backend дефектами.
 
 ### AG5/AG9 — фактический остаток бэкенда,19 октября
 
 - [x] Пользователь подтвердил отсутствие старых телефонных аккаунтов: первую
-  привязку email оставить выключенной, из остатка запуска исключить. Frontend
-  ранее удалён, backend/tables/tests сохраняются без автоматического удаления.
+      привязку email оставить выключенной, из остатка запуска исключить. Frontend
+      ранее удалён, backend/tables/tests сохраняются без автоматического удаления.
 - [x] Branch clean831a02a, планы/матрица ТЗ/последние D5/D6/LB4 результаты сверены.
-  Подтверждённых незакрытых локальных backend-дефектов не установлено; исправленные
-  session errors/catalog pagination/Base64 limits не назначаются заново.
+      Подтверждённых незакрытых локальных backend-дефектов не установлено; исправленные
+      session errors/catalog pagination/Base64 limits не назначаются заново.
 - [ ] Оплата/письмо: отдельная согласованная приёмка ordinary790/recurring/cancel,
-  внешней доставки и входа. Согласовать договорное «логин/пароль» против текущей
-  setup-link схемы; без автоматического изменения auth/SMTP/provider или платежей.
+      внешней доставки и входа. Согласовать договорное «логин/пароль» против текущей
+      setup-link схемы; без автоматического изменения auth/SMTP/provider или платежей.
 - [ ] Новые закрытые загрузки: reviewed включение existing flags/полного пути
-  upload→bind→read на целевом стенде; local API/SQL/actual S3 уже проверены.
-  Нужны отдельное разрешение и scope тестовых данных/писем/платежей по действию,
-  не новые API или повтор неизменных synthetic проверок.
+      upload→bind→read на целевом стенде; local API/SQL/actual S3 уже проверены.
+      Нужны отдельное разрешение и scope тестовых данных/писем/платежей по действию,
+      не новые API или повтор неизменных synthetic проверок.
 - [ ] Старые клубные материалы: согласованная карта реальных файлов/URL,
-  отдельно разрешённый перенос и контроль совместимости/anonymous denial.
-  Importer/LB backend готовы; frontend integration и реальные материалы отдельно.
-  Сами файлы/S3/данные этим пунктом не разрешено читать/переносить автоматически.
+      отдельно разрешённый перенос и контроль совместимости/anonymous denial.
+      Importer/LB backend готовы; frontend integration и реальные материалы отдельно.
+      Сами файлы/S3/данные этим пунктом не разрешено читать/переносить автоматически.
 - [ ] Target API/DB load/пилот: критерии/окружение и отдельное разрешение;
-  local9900/9900 не заменяет результат целевого сервера. Physical devices,
-  реальные VK/сезонные assets/даты/контакты — совместная приёмка, не новый бэкенд.
+      local9900/9900 не заменяет результат целевого сервера. Physical devices,
+      реальные VK/сезонные assets/даты/контакты — совместная приёмка, не новый бэкенд.
 - Не включать retention/auto cleanup ради закрытия чек-листа: это отдельно
   разрешаемое обслуживание, не обязательная новая функция первого этапа.
   Backup/restore/fresh42 уже проверены; legacy0017–0019 не возвращать как блокер.
@@ -156,761 +193,761 @@
 ### RELEASE-D6 — Git опубликован; server rollout отложен пользователем,19 октября
 
 - [x] Прямое разрешение push/deploy с сохранением current DB/admin/password;
-  дополнительно разрешён один временный unpaid account/own saved rows/cleanup,
-  без писем и оплаты. Fetch: origin/staging c3fcf25 — предок37c1bf2, incoming0;
-  normal push37c1bf2 подтверждён remote refs. Рабочая ветка не менялась.
+      дополнительно разрешён один временный unpaid account/own saved rows/cleanup,
+      без писем и оплаты. Fetch: origin/staging c3fcf25 — предок37c1bf2, incoming0;
+      normal push37c1bf2 подтверждён remote refs. Рабочая ветка не менялась.
 - [x] Clean Git archive37c1bf2, Next29 pages; pinned D4 Linux amd64/User node
-  runtime/deps/config прежние. New web native --network none7 HTTP проходят,
-  BUILD_ID rnbY-9QeXaHIe08g7pb85 совпадает. Production audit0 advisories/325 deps.
-  Никаких новых backend/schema/dependency/design правок. Первая archive-команда
-  запущена вне checkout и исправлена на git -C до build; исходники не менялись.
+      runtime/deps/config прежние. New web native --network none7 HTTP проходят,
+      BUILD_ID rnbY-9QeXaHIe08g7pb85 совпадает. Production audit0 advisories/325 deps.
+      Никаких новых backend/schema/dependency/design правок. Первая archive-команда
+      запущена вне checkout и исправлена на git -C до build; исходники не менялись.
 - [ ] Передача и guarded web-only rollout отложены по прямому ответу
-  «давай потом протестим, делай другие правки». SSH прерывает большие передачи;
-  сначала openrsync не поддержал append-verify, затем обрывы при append/stream.
-  Только own unique archive, prefix SHA проверяется до resume, полный SHA —
-  до load. До успешного prepare/apply working сервисы/DB/config не менялись.
-  Все transfer processes завершены; local archive534852537 bytes сохранён,
-  server partial200540160 bytes, образ не загружен. Собственные scripts/receipts
-  `.local-artifacts/release-37c1bf2.B5rzP4` (workspace parent), server
-  `/home/edem/apps/daryadarcy-staging/release-37c1bf2.B0ZMz0`; оба parent0700.
-  Это остаток для resume, не новая working версия. Подробности в runbook.
+      «давай потом протестим, делай другие правки». SSH прерывает большие передачи;
+      сначала openrsync не поддержал append-verify, затем обрывы при append/stream.
+      Только own unique archive, prefix SHA проверяется до resume, полный SHA —
+      до load. До успешного prepare/apply working сервисы/DB/config не менялись.
+      Все transfer processes завершены; local archive534852537 bytes сохранён,
+      server partial200540160 bytes, образ не загружен. Собственные scripts/receipts
+      `.local-artifacts/release-37c1bf2.B5rzP4` (workspace parent), server
+      `/home/edem/apps/daryadarcy-staging/release-37c1bf2.B0ZMz0`; оба parent0700.
+      Это остаток для resume, не новая working версия. Подробности в runbook.
 - [ ] Fresh consistent backup, current DB/schema/history/admin guards; web
-  healthy и runtime BUILD_ID, неизменность API/TEST/остальных контейнеров/config.
+      healthy и runtime BUILD_ID, неизменность API/TEST/остальных контейнеров/config.
 - [ ] Public HTTPS/API/admin same-password и live browser unpaid bookmarks,
-  club denial, точечное удаление разрешённого test account/own saved rows.
-  Account не создавался, seed/HTTP writes не запускались. CUA показал настоящую
-  guest login gate прежнего стенда, временная вкладка закрыта; не acceptance D6.
+      club denial, точечное удаление разрешённого test account/own saved rows.
+      Account не создавался, seed/HTTP writes не запускались. CUA показал настоящую
+      guest login gate прежнего стенда, временная вкладка закрыта; не acceptance D6.
 - [ ] Финальная receipt/runbook/cleanup только own transient archive; старый
-  web image и backup сохранить. Не заявлять server acceptance до этих checks.
+      web image и backup сохранить. Не заявлять server acceptance до этих checks.
 - [x] После переноса проверки сверены активные AG5–AG9 и прежние evidence.
-  Иных подтверждённых локальных backend-дефектов/доступных implementation задач
-  в актуальном плане нет: AG5 ждёт отдельно разрешаемых email/private/retention
-  flags и материалов; AG9 — настоящие mail/Prodamus/VK/devices/load/pilot.
-  Готовые тесты/код без нового риска не повторялись; новые функции/правки фронта
-  не добавлены. Нужен выбор следующего внешнего включения/приёмки, не код ради кода.
+      Иных подтверждённых локальных backend-дефектов/доступных implementation задач
+      в актуальном плане нет: AG5 ждёт отдельно разрешаемых email/private/retention
+      flags и материалов; AG9 — настоящие mail/Prodamus/VK/devices/load/pilot.
+      Готовые тесты/код без нового риска не повторялись; новые функции/правки фронта
+      не добавлены. Нужен выбор следующего внешнего включения/приёмки, не код ради кода.
 
 ### SAVED-P1 — открытое «Сохранённое» без подписки,19 октября, локально
 
 - [x] Прямое поручение после RELEASE-D5; исходные branch/clean status/HEAD
-  c3fcf25 проверены. Снята подписочная блокировка всего профиля, а не доступ
-  к клубу: session/guest gates сохранены; состояние/ошибка подписки выводится
-  внутри прежней subscription card. Авторизованному без подписки доступны
-  сохранённые опубликованные feed/both посты; club-only карточки дополнительно
-  скрываются из retained response без подтверждённого доступа. Права оплаченной
-  участницы и служебный доступ модератора не смешиваются и не меняются.
+      c3fcf25 проверены. Снята подписочная блокировка всего профиля, а не доступ
+      к клубу: session/guest gates сохранены; состояние/ошибка подписки выводится
+      внутри прежней subscription card. Авторизованному без подписки доступны
+      сохранённые опубликованные feed/both посты; club-only карточки дополнительно
+      скрываются из retained response без подтверждённого доступа. Права оплаченной
+      участницы и служебный доступ модератора не смешиваются и не меняются.
 - [x] RED на прежнем production build: первый browser test не находит открытую
-  сохранённую карточку, snapshot подтверждает прежний full-profile клубный gate.
-  Минимальная правка одного TSX, без CSS/assets/перераскладки/нового UI/API.
-  GREEN7 новых browser scenarios: unpaid public/both/detail, club-only denial,
-  paid/moderator, subscription503 без ложного inactive, отзыв доступа с retained
-  club snapshot, saved read503/retry, guest. HTTP в браузере синтетический,
-  React/query/router настоящие; это не сквозной browser+live API/S3 результат.
+      сохранённую карточку, snapshot подтверждает прежний full-profile клубный gate.
+      Минимальная правка одного TSX, без CSS/assets/перераскладки/нового UI/API.
+      GREEN7 новых browser scenarios: unpaid public/both/detail, club-only denial,
+      paid/moderator, subscription503 без ложного inactive, отзыв доступа с retained
+      club snapshot, saved read503/retry, guest. HTTP в браузере синтетический,
+      React/query/router настоящие; это не сквозной browser+live API/S3 результат.
 - [x] Browser regression: session-safety25 pass без правок. Новые7 + отмена
-  подписки26 =33 pass после актуализации двух прежних assertions о закрытии
-  всего профиля; checks отсутствия cancel/recovery и one-write сохранены.
-  Первый reconnect test не вызывал refetch, потому что online уже true:
-  исправлен только stimulus offline→online с ожиданием ответа, не доступы.
-  Отзыв проверяется именно во вкладке клуба, в том числе после reset экрана.
+      подписки26 =33 pass после актуализации двух прежних assertions о закрытии
+      всего профиля; checks отсутствия cancel/recovery и one-write сохранены.
+      Первый reconnect test не вызывал refetch, потому что online уже true:
+      исправлен только stimulus offline→online с ожиданием ответа, не доступы.
+      Отзыв проверяется именно во вкладке клуба, в том числе после reset экрана.
 - [x] Сервер уже фильтрует published/status/target и проверяет действующие
-  права: unchanged nest-content native JWT/Nest/HTTP/MySQL56 pass/0skip.
-  Только own loopback/tmpfs backend_test; exact container ID/labels/port/mounts
-  проверены перед удалением, контейнер удалён без volumes. Рабочие DB/S3 и
-  внешние интеграции не использовались; backend/schema/types/flags не менялись.
+      права: unchanged nest-content native JWT/Nest/HTTP/MySQL56 pass/0skip.
+      Только own loopback/tmpfs backend_test; exact container ID/labels/port/mounts
+      проверены перед удалением, контейнер удалён без volumes. Рабочие DB/S3 и
+      внешние интеграции не использовались; backend/schema/types/flags не менялись.
 - [x] Общая Vitest regression2646 pass/1601 opt-in skips (204 files pass/95
-  skipped); root/frontend/e2e types, lint, API86/32138, boundaries690 pass.
-  Next production build29 pages с same-origin API проходит. Review: изменение
-  только profile logic и соответствующих тестов; клубные API gates прежние,
-  both остаётся публичным; ошибки подписки не блокируют открытые сохранения
-  и не выдаются за отсутствие подписки. Локальный screenshot нового unpaid
-  состояния использует существующий профиль; физическая mobile/full contract
-  приёмка не заявляется. Impeccable context launcher недоступен по правам:
-  existing UI/стили и прямые инструкции прочитаны без изменения инструментов.
+      skipped); root/frontend/e2e types, lint, API86/32138, boundaries690 pass.
+      Next production build29 pages с same-origin API проходит. Review: изменение
+      только profile logic и соответствующих тестов; клубные API gates прежние,
+      both остаётся публичным; ошибки подписки не блокируют открытые сохранения
+      и не выдаются за отсутствие подписки. Локальный screenshot нового unpaid
+      состояния использует существующий профиль; физическая mobile/full contract
+      приёмка не заявляется. Impeccable context launcher недоступен по правам:
+      existing UI/стили и прямые инструкции прочитаны без изменения инструментов.
 - [x] План актуализирован; локальная правка не опубликована. Сервер по-прежнему
-  RELEASE-D5. Нет push/deploy/merge, правок дизайна, рабочей DB, S3 или пароля.
+      RELEASE-D5. Нет push/deploy/merge, правок дизайна, рабочей DB, S3 или пароля.
 
 ### RELEASE-D5 — объединённая11e4c6d опубликована на dev,19 октября
 
 - [x] Прямое разрешение push/server update с сохранением текущей DB/admin.
-  Origin/staging123aef8 — предок merge11e4c6d; normal push11e4c6d подтверждён
-  remote refs. Frontend автора и backend CF-HTTP1 сохранены, без ручных правок.
-  По проверенному merged source2646 tests/types/lint/API и builds pass.
+      Origin/staging123aef8 — предок merge11e4c6d; normal push11e4c6d подтверждён
+      remote refs. Frontend автора и backend CF-HTTP1 сохранены, без ручных правок.
+      По проверенному merged source2646 tests/types/lint/API и builds pass.
 - [x] Clean git archive11e4c6d, backend/TEST/Next29 pages собраны отдельно,
-  runtime/deps/Next config/public assets неизменны с D4. Audit0/325 deps.
-  Linux amd64/USER node и pinned D4 base layers/config проверены; native
-  --network none API5/web7/restricted TEST3 HTTP проходят, bundles/BUILD_ID
-  совпадают. Initial local FROM image-ID syntax и неверный cwd web probe
-  исправлены только в packaging/probe, product source не менялся.
+      runtime/deps/Next config/public assets неизменны с D4. Audit0/325 deps.
+      Linux amd64/USER node и pinned D4 base layers/config проверены; native
+      --network none API5/web7/restricted TEST3 HTTP проходят, bundles/BUILD_ID
+      совпадают. Initial local FROM image-ID syntax и неверный cwd web probe
+      исправлены только в packaging/probe, product source не менялся.
 - [x] SCP/первый stdin stream оборвались до working changes; rsync продолжил
-  передачу. Archive535380430 bytes, полный SHA1783ed2f…f54c совпал на обоих
-  хостах перед load. Guarded prepare: текущая daryadarcy_candidate_20261019,
-  history42, schema/admin digest зафиксированы; consistent gzip backup351593
-  bytes/40 tables валиден, все6 side-effect counters0. Только api/web/TEST
-  image references +TEST bundle source изменены; полный canonical config
-  сравнивался, включая сохранение DB URI/JWT/flags/provider/SMTP. Миграций,
-  seed/import/DB switch/пароля/S3/новых платежей/внешней почты не было.
+      передачу. Archive535380430 bytes, полный SHA1783ed2f…f54c совпал на обоих
+      хостах перед load. Guarded prepare: текущая daryadarcy_candidate_20261019,
+      history42, schema/admin digest зафиксированы; consistent gzip backup351593
+      bytes/40 tables валиден, все6 side-effect counters0. Только api/web/TEST
+      image references +TEST bundle source изменены; полный canonical config
+      сравнивался, включая сохранение DB URI/JWT/flags/provider/SMTP. Миграций,
+      seed/import/DB switch/пароля/S3/новых платежей/внешней почты не было.
 - [x] Rollout принят без server rollback: три сервиса healthy/restart0/OOMfalse,
-  26 остальных контейнеров неизменны. Actual running API/TEST SHA и web BUILD_ID
-  совпали с exact release. Public HTTPS23 checks: pages/chunk/health/launch,
-  guest me/subscription, videos.catalog default/forward200/backward400,
-  normalCheckoutStatus guest401/admin200/notRecorded, прежний admin password
-  login/me/stats/logout, hasClubAccess; обе disabled private procedures на
-  invalid300KiB дают pre-body404, ordinary остаётся413. Это не успешная
-  загрузка в S3: рабочие private flags не включались, файлов не создавали.
-  После публичного входа schema/history/admin hash/role/version проверены снова.
+      26 остальных контейнеров неизменны. Actual running API/TEST SHA и web BUILD_ID
+      совпали с exact release. Public HTTPS23 checks: pages/chunk/health/launch,
+      guest me/subscription, videos.catalog default/forward200/backward400,
+      normalCheckoutStatus guest401/admin200/notRecorded, прежний admin password
+      login/me/stats/logout, hasClubAccess; обе disabled private procedures на
+      invalid300KiB дают pre-body404, ordinary остаётся413. Это не успешная
+      загрузка в S3: рабочие private flags не включались, файлов не создавали.
+      После публичного входа schema/history/admin hash/role/version проверены снова.
 - [x] Private receipts/code: local release-11e4c6d.SqdAUZ; server
-  release-11e4c6d.rpQ0dY. Release receipt0600 SHA99a36eff…bdca, parent0700.
-  Только own archive на Mac/server и synthetic1MiB probe удалены после
-  exact path/ownership/non-symlink/size/SHA guards; архив восстанавливается из
-  retained images. Fresh backup, configs и previous images оставлены;
-  server free1176MiB. Точные hashes и same-DB rollback — [runbook](../docs/operations/candidate-backend-image-rollback.md).
-  Browser/mobile/полная приёмка договора не повторялись; gate «Сохранённого»
-  в профиле не менялся. Одноразовое release approval не разрешает следующий deploy.
+      release-11e4c6d.rpQ0dY. Release receipt0600 SHA99a36eff…bdca, parent0700.
+      Только own archive на Mac/server и synthetic1MiB probe удалены после
+      exact path/ownership/non-symlink/size/SHA guards; архив восстанавливается из
+      retained images. Fresh backup, configs и previous images оставлены;
+      server free1176MiB. Точные hashes и same-DB rollback — [runbook](../docs/operations/candidate-backend-image-rollback.md).
+      Browser/mobile/полная приёмка договора не повторялись; gate «Сохранённого»
+      в профиле не менялся. Одноразовое release approval не разрешает следующий deploy.
 
 ### MERGE-ST5 — свежий staging123aef8,19 октября, только локально
 
 - [x] Прямое поручение «стяни все с стейджа». Исходная ветка чистая, c8b4973;
-  fetch нашёл один новый frontend commit123aef8 SergeyM,44 files. Проверены
-  изменения logic/tests, пересечение с локальными backend files отсутствует.
-  Merge без конфликтов, frontend точно совпадает с origin/staging; CF-HTTP1
-  сохранён. Изменения автора импортированы целиком, без ручной правки фронта
-  и дизайна; package/lockfile/schema/flags не менялись. Новый commit не трогает
-  профиль: обсуждение доступа к «Сохранённому» без подписки остаётся отдельным.
+      fetch нашёл один новый frontend commit123aef8 SergeyM,44 files. Проверены
+      изменения logic/tests, пересечение с локальными backend files отсутствует.
+      Merge без конфликтов, frontend точно совпадает с origin/staging; CF-HTTP1
+      сохранён. Изменения автора импортированы целиком, без ручной правки фронта
+      и дизайна; package/lockfile/schema/flags не менялись. Новый commit не трогает
+      профиль: обсуждение доступа к «Сохранённому» без подписки остаётся отдельным.
 - [x] Root/frontend/e2e types, frontend lint, API86/32138, boundaries689,
-  docs59/diff pass. Backend598.3KiB/restricted TEST595.4KiB и Next build29
-  pages проходят. Полная merged Vitest suite2646 pass/1601 opt-in skips,
-  204 files pass/95 skipped,74.78s; native SQL/S3 и browser не запускались.
-  Next собран с API base127.0.0.1:1: это локальная проверка
-  сборки, не выпуск и не настоящее API/S3/browser acceptance. SQL/провайдеры,
-  рабочая DB/S3, push/server/deploy этим поручением не затронуты.
+      docs59/diff pass. Backend598.3KiB/restricted TEST595.4KiB и Next build29
+      pages проходят. Полная merged Vitest suite2646 pass/1601 opt-in skips,
+      204 files pass/95 skipped,74.78s; native SQL/S3 и browser не запускались.
+      Next собран с API base127.0.0.1:1: это локальная проверка
+      сборки, не выпуск и не настоящее API/S3/browser acceptance. SQL/провайдеры,
+      рабочая DB/S3, push/server/deploy этим поручением не затронуты.
 
 ### CF-HTTP1 — лимит Base64 новых закрытых загрузок,19 октября, локально
 
 - [x] Подтверждён пользовательский дефект: admin.uploadPrivateContentFile и
-  club.uploadPrivateCommentPhoto не классифицировались как загрузки и получали
-  ordinary256KiB. Изолированный native HTTP RED22fail/4pass воспроизводит
-  преждевременные413 и отсутствие pre-body admission. Минимальная правка в
-  request-bodies: прежние media50MiB и photo6MiB; decoded квоты документов32MiB
-  и фото4MiB не менялись. Флаг PRIVATE_CONTENT_FILES_ENABLED и сессия/admin
-  проверяются до большого тела; точные encoded имена и batch учтены,
-  mixed batch требует admin. Статусные/обычные256KiB, auth16KiB прежние.
+      club.uploadPrivateCommentPhoto не классифицировались как загрузки и получали
+      ordinary256KiB. Изолированный native HTTP RED22fail/4pass воспроизводит
+      преждевременные413 и отсутствие pre-body admission. Минимальная правка в
+      request-bodies: прежние media50MiB и photo6MiB; decoded квоты документов32MiB
+      и фото4MiB не менялись. Флаг PRIVATE_CONTENT_FILES_ENABLED и сессия/admin
+      проверяются до большого тела; точные encoded имена и batch учтены,
+      mixed batch требует admin. Статусные/обычные256KiB, auth16KiB прежние.
 - [x] GREEN26 транспортных проверок: full4/32MiB envelope до настоящей schema400,
-  контроль300KiB, feature-off404/anonymous401/non-admin403/session-fault503
-  до парсинга, encoded/batch/mixed, envelope6/50MiB413, decoded quota+1
-  tRPC PAYLOAD_TOO_LARGE413. Только SQL lookup/activity seams подменены;
-  upload SQL явно запрещён, storage не вызывается. Вместе с existing parser и
-  session availability79 pass/0 skip. Native HTTP/SQL25 pass/0 skip/4.57s на
-  own mysql8.4 tmpfs backend_test: valid32MiB text document + replay = один
-  asset/один PUT; реальные PNG>256KiB post/article/comment проходят WebP
-  обработку. Это настоящий JWT/Nest/HTTP/MySQL, но **loopback SDK wire, не S3**.
+      контроль300KiB, feature-off404/anonymous401/non-admin403/session-fault503
+      до парсинга, encoded/batch/mixed, envelope6/50MiB413, decoded quota+1
+      tRPC PAYLOAD_TOO_LARGE413. Только SQL lookup/activity seams подменены;
+      upload SQL явно запрещён, storage не вызывается. Вместе с existing parser и
+      session availability79 pass/0 skip. Native HTTP/SQL25 pass/0 skip/4.57s на
+      own mysql8.4 tmpfs backend_test: valid32MiB text document + replay = один
+      asset/один PUT; реальные PNG>256KiB post/article/comment проходят WebP
+      обработку. Это настоящий JWT/Nest/HTTP/MySQL, но **loopback SDK wire, не S3**.
 - [x] Root tsc, backend build, restricted TEST build, API86/32138 и
-  boundaries688 pass; generated frontend contract неизменен. Полный локальный
-  прогон2627 pass/1601 opt-in skips,204 test files pass/95 skipped,62.73s;
-  native SQL25 выше выполнены отдельно, не выдаются за skipped E2E.
-  Docs59/diff pass. Review по correctness/security/architecture/performance:
-  только две точные private процедуры получают existing upload policy;
-  большой JSON доступен после флага/сессии/роли, бизнес-квоты и доступ к post
-  не обходятся; новых зависимостей/схемы/публичных типов нет. Own container
-  3f71ab92…c9f удалён после exact ID/labels/loopback61862/tmpfs768MiB/no volumes
-  проверки; синтетическая БД была одноразовой и воспроизводится фикстурами.
-  Frontend/дизайн/working DB/S3/flags/server не трогались; no push/deploy.
-  Рабочий RELEASE-D4/b7d7338 этой правки не содержит; включение флага само по
-  себе прежний parser bug не исправляет. Контракт — [API](../docs/architecture/api.md).
+      boundaries688 pass; generated frontend contract неизменен. Полный локальный
+      прогон2627 pass/1601 opt-in skips,204 test files pass/95 skipped,62.73s;
+      native SQL25 выше выполнены отдельно, не выдаются за skipped E2E.
+      Docs59/diff pass. Review по correctness/security/architecture/performance:
+      только две точные private процедуры получают existing upload policy;
+      большой JSON доступен после флага/сессии/роли, бизнес-квоты и доступ к post
+      не обходятся; новых зависимостей/схемы/публичных типов нет. Own container
+      3f71ab92…c9f удалён после exact ID/labels/loopback61862/tmpfs768MiB/no volumes
+      проверки; синтетическая БД была одноразовой и воспроизводится фикстурами.
+      Frontend/дизайн/working DB/S3/flags/server не трогались; no push/deploy.
+      Рабочий RELEASE-D4/b7d7338 этой правки не содержит; включение флага само по
+      себе прежний parser bug не исправляет. Контракт — [API](../docs/architecture/api.md).
 
 ### RELEASE-D4 — объединение и фактический выпуск19 октября
 
 - [x] По прямому поручению объединён origin/staging9e933d2 с нашей веткой:
-  merge7433e7f без конфликтов, сохранены AUTH-S2/VCAT-C1 и весь frontend автора.
-  Единственное интеграционное изменение frontend — generated API contract:
-  optional direction:forward. API86/32138, types/lint/boundaries688/docs pass.
-  Общий прогон обнаружил устаревший guest double в nest-profile: generic Error
-  заменён на настоящий typed ForbiddenError; ожидания401/403 не ослаблены,
-  профиль+request bodies39 pass. Это тестовая фикстура, не runtime изменение.
+      merge7433e7f без конфликтов, сохранены AUTH-S2/VCAT-C1 и весь frontend автора.
+      Единственное интеграционное изменение frontend — generated API contract:
+      optional direction:forward. API86/32138, types/lint/boundaries688/docs pass.
+      Общий прогон обнаружил устаревший guest double в nest-profile: generic Error
+      заменён на настоящий typed ForbiddenError; ожидания401/403 не ослаблены,
+      профиль+request bodies39 pass. Это тестовая фикстура, не runtime изменение.
 - [x] Full merged suite2601 pass/1597 opt-in skips; отдельно native
-  JWT/HTTP/MySQL49 pass/0 skip на own tmpfs backend_test. Containerb44e6bfc
-  удалён после ID/labels/loopback/tmpfs/no-volumes проверки. Root/frontend types,
-  lint/API86/32138/boundaries688/docs pass; clean-source backend/TEST и Next29
-  pages build; audit0 advisories/325 production deps. Финальные Linux bundles
-  совпали по SHA с source, isolated web7 HTTP и restricted TEST3 HTTP pass.
+      JWT/HTTP/MySQL49 pass/0 skip на own tmpfs backend_test. Containerb44e6bfc
+      удалён после ID/labels/loopback/tmpfs/no-volumes проверки. Root/frontend types,
+      lint/API86/32138/boundaries688/docs pass; clean-source backend/TEST и Next29
+      pages build; audit0 advisories/325 production deps. Финальные Linux bundles
+      совпали по SHA с source, isolated web7 HTTP и restricted TEST3 HTTP pass.
 - [x] Normal push b7d7338 в origin/staging, без force; обновлены только
-  api/web/prodamus-test. Первая попытка выявила mode0600 нового non-secret
-  TEST bind source: контейнер node не мог прочитать код. Образы успешно
-  откачены на той же DB; EACCES воспроизведён, только этот файл0644,
-  parent0700/configs+backups0600 сохранены. Native isolated startup без сети/DB
-  прошёл; повторная выкладка принята, три сервиса healthy/restart0/OOMfalse.
-  26 остальных контейнеров неизменны. Runtime source b7d7338, image IDs,
-  BUILD_ID и actual rollback — [runbook](../docs/operations/candidate-backend-image-rollback.md).
-  На действующей candidate сохранены schema/history42/admin hash/role/version,
-  прежний password login подтверждён. Config delta строго images+TEST bundle;
-  JWT/SMTP/provider/flags/DB URI не менялись. Два fresh private gzip backup40
-  tables проверены; никакого SQL migration/copy, S3, платежей или внешних писем.
+      api/web/prodamus-test. Первая попытка выявила mode0600 нового non-secret
+      TEST bind source: контейнер node не мог прочитать код. Образы успешно
+      откачены на той же DB; EACCES воспроизведён, только этот файл0644,
+      parent0700/configs+backups0600 сохранены. Native isolated startup без сети/DB
+      прошёл; повторная выкладка принята, три сервиса healthy/restart0/OOMfalse.
+      26 остальных контейнеров неизменны. Runtime source b7d7338, image IDs,
+      BUILD_ID и actual rollback — [runbook](../docs/operations/candidate-backend-image-rollback.md).
+      На действующей candidate сохранены schema/history42/admin hash/role/version,
+      прежний password login подтверждён. Config delta строго images+TEST bundle;
+      JWT/SMTP/provider/flags/DB URI не менялись. Два fresh private gzip backup40
+      tables проверены; никакого SQL migration/copy, S3, платежей или внешних писем.
 - [x] Public HTTPS20 checks: catalog без direction и с forward200, backward400,
-  checkoutStatus guest401/admin200/notRecorded, subscription.hasClubAccess,
-  admin login/me/stats/logout, launch config/pages/chunk. В реальном браузере
-  после гидрации /videos —20 карточек и «Показать ещё», без ошибки каталога.
-  Это не полная приёмка договора2.1, реальной оплаты, mobile или pilot.
-  Private receipt с проверенной SHA256 и ограничения сохранены в runbook.
-  Удалены только два собственных временных image archive (Mac/server), по
-  exact path/size/hash guards; восстанавливаются из сохранённых images.
-  Два backup и образы отката сохранены; после cleanup на сервере1249MiB свободно.
+      checkoutStatus guest401/admin200/notRecorded, subscription.hasClubAccess,
+      admin login/me/stats/logout, launch config/pages/chunk. В реальном браузере
+      после гидрации /videos —20 карточек и «Показать ещё», без ошибки каталога.
+      Это не полная приёмка договора2.1, реальной оплаты, mobile или pilot.
+      Private receipt с проверенной SHA256 и ограничения сохранены в runbook.
+      Удалены только два собственных временных image archive (Mac/server), по
+      exact path/size/hash guards; восстанавливаются из сохранённых images.
+      Два backup и образы отката сохранены; после cleanup на сервере1249MiB свободно.
 
 ### Совместимость видеокаталога —19 октября, локально
 
 - [x] VCAT-C1 — прямое поручение исправить несовместимость текущего frontend
-  запроса только на бэкенде. Реальный tRPC infinite query автоматически шлёт
-  direction:forward, strict schema раньше возвращала400. Минимальное изменение:
-  optional literal forward; strict, limit/cursor, output и SQL/доступ прежние.
-  Native RED: существующий client/QueryClient/InfiniteQueryObserver получает
-  BAD_REQUEST/unrecognized direction. Отдельный fixture trigger test требовал
-  SUPER; повтор с root только своего backend_test, без настройки MySQL.
-  GREEN30/0 skip/1.93s: три страницы/no duplicate/terminal cursor, hidden row,
-  source-free locked card, playback gates, paid/expired/blocked/revoked,
-  unsupported directions/extra fields/invalid cursor/limit400. Никаких doubles
-  API/SQL в этом прогоне; synthetic VK ссылки не запрашивались.
-  Отдельно6 targeted files105 pass/0 skip/2.44s; root tsc/backend build/
-  boundaries685/diff pass. Generated API check **не проходит**: optional
-  direction меняет inferred input; frontend contract по запрету не генерировать.
-  Existing generated frontend тип использован в native client test и совместим;
-  синхронизация types — отдельный разрешённый frontend шаг, не скрывать gate.
-  Own mysql8.4/container8716cd7d…607c0, loopback61691/backend_test,
-  tmpfs768MiB/no volumes: принадлежность и изоляция проверены перед удалением.
-  Working DB/S3/frontend/flags/платежи/почта/server не трогались; no push/deploy.
-  RELEASE-D3/da47b54 этой правки не содержит. Контракт —
-  [SPEC](../SPEC-vk-catalog-access.md), [handoff](../docs/development/backend-handoff-2026-10-05.md).
+      запроса только на бэкенде. Реальный tRPC infinite query автоматически шлёт
+      direction:forward, strict schema раньше возвращала400. Минимальное изменение:
+      optional literal forward; strict, limit/cursor, output и SQL/доступ прежние.
+      Native RED: существующий client/QueryClient/InfiniteQueryObserver получает
+      BAD_REQUEST/unrecognized direction. Отдельный fixture trigger test требовал
+      SUPER; повтор с root только своего backend_test, без настройки MySQL.
+      GREEN30/0 skip/1.93s: три страницы/no duplicate/terminal cursor, hidden row,
+      source-free locked card, playback gates, paid/expired/blocked/revoked,
+      unsupported directions/extra fields/invalid cursor/limit400. Никаких doubles
+      API/SQL в этом прогоне; synthetic VK ссылки не запрашивались.
+      Отдельно6 targeted files105 pass/0 skip/2.44s; root tsc/backend build/
+      boundaries685/diff pass. Generated API check **не проходит**: optional
+      direction меняет inferred input; frontend contract по запрету не генерировать.
+      Existing generated frontend тип использован в native client test и совместим;
+      синхронизация types — отдельный разрешённый frontend шаг, не скрывать gate.
+      Own mysql8.4/container8716cd7d…607c0, loopback61691/backend_test,
+      tmpfs768MiB/no volumes: принадлежность и изоляция проверены перед удалением.
+      Working DB/S3/frontend/flags/платежи/почта/server не трогались; no push/deploy.
+      RELEASE-D3/da47b54 этой правки не содержит. Контракт —
+      [SPEC](../SPEC-vk-catalog-access.md), [handoff](../docs/development/backend-handoff-2026-10-05.md).
 
 ### Дополнительная обработка ошибок сессии —19 октября, локально
 
 - [x] AUTH-S2 — по прямому поручению повторно проверить REST/tRPC: рабочие
-  GET /api/auth/me и TrpcService уже используют AUTH-S1. Оставшийся legacy
-  createContext переводил все ошибки в guest, POST /api/auth/session — в401;
-  raw/tRPC upload admission и повторные проверки двух video controllers тоже
-  маскировали lookup/activity failure под401. Все используют существующую
-  политику SessionService.optionalUser; роли/отзыв/квоты не расширялись.
-  RED5/14 pass → GREEN19; дополнительный RED16/19 pass → GREEN35.
-  Контроль блокировки/revocation/смены роли после body admission и tRPC faults
-  довёл focused suite до43. Final12 targeted suites:141 pass/0 fail/0 skip,
-  5.50s; root tsc, backend build, boundaries685/API86/32048/diff pass.
-  Anonymous fixture в request-bodies исправлена на настоящий typed denial
-  ForbiddenError вместо generic Error; ожидания401/403 не ослаблены.
-  REST checks503/no-store/no cookie mutation, active tRPC500/safe formatter,
-  recovery с тем же JWT; confirmed guest/invalid Bearer по-прежнему null/401.
-  Native JWT/SDK/Nest/loopback HTTP, fault injection только на SQL seams;
-  отсутствуют настоящая SQL-сессия, отключение БД, S3/providers/письма/платежи.
-  Frontend/дизайн/working DB/server/flags не менялись, no push/deploy.
-  **RELEASE-D3/da47b54 не содержит AUTH-S2**; изменения только локальные.
-  Контракт и границы — [API](../docs/architecture/api.md).
+      GET /api/auth/me и TrpcService уже используют AUTH-S1. Оставшийся legacy
+      createContext переводил все ошибки в guest, POST /api/auth/session — в401;
+      raw/tRPC upload admission и повторные проверки двух video controllers тоже
+      маскировали lookup/activity failure под401. Все используют существующую
+      политику SessionService.optionalUser; роли/отзыв/квоты не расширялись.
+      RED5/14 pass → GREEN19; дополнительный RED16/19 pass → GREEN35.
+      Контроль блокировки/revocation/смены роли после body admission и tRPC faults
+      довёл focused suite до43. Final12 targeted suites:141 pass/0 fail/0 skip,
+      5.50s; root tsc, backend build, boundaries685/API86/32048/diff pass.
+      Anonymous fixture в request-bodies исправлена на настоящий typed denial
+      ForbiddenError вместо generic Error; ожидания401/403 не ослаблены.
+      REST checks503/no-store/no cookie mutation, active tRPC500/safe formatter,
+      recovery с тем же JWT; confirmed guest/invalid Bearer по-прежнему null/401.
+      Native JWT/SDK/Nest/loopback HTTP, fault injection только на SQL seams;
+      отсутствуют настоящая SQL-сессия, отключение БД, S3/providers/письма/платежи.
+      Frontend/дизайн/working DB/server/flags не менялись, no push/deploy.
+      **RELEASE-D3/da47b54 не содержит AUTH-S2**; изменения только локальные.
+      Контракт и границы — [API](../docs/architecture/api.md).
 
 ### Фактический выпуск на dev — 19 октября 2026
 
 - [x] RELEASE-D3 — пользователь явно разрешил обновить backend/frontend,
-  переключить приложение на проверенную candidate, сохранить admin/password
-  и старую DB для отката; отдельно разрешил VK catalog +normal checkout recovery.
-  **Выполнено на публичном https://daryadarcy.dev.reeskeen.ru, не только isolated.**
-  Source runtime/frontend: `da47b54c19129a8eeee976312bc3bd4f9e7cbbd3`;
-  frontend совпадает со свежим remote staging `e25ffda`, без ручных правок дизайна.
-  Новый backend/TEST image `b8e2a908…`, web `3b3011d6…`; полные IDs и откат —
-  [runbook](../docs/operations/candidate-backend-image-rollback.md).
-  Ранее проверенный native frozen runtime0763 сохранён; package/lockfile с2083911
-  не менялись, добавлены exact archived-source API/TEST bundles и новый Next build.
-  84 targeted regressions, root types, API86/32048 и production audit0 advisories;
-  frontend29 pages/types и native Linux web7 HTTP checks pass. Image/archive/SHA
-  guards; actual server candidate39 ORM/18 HTTP checks, прежний password login.
-  На границе остановлены только API/TEST writers; fresh read-only delta850 rows,
-  29 tables: product data совпали, users отличается только activity timestamps.
-  Созданы private gzip backups обеих DB (29/40 tables), counter floors проверены:
-  повышать не требовалось. Candidate runtime account только для её schema;
-  JWT/SMTP/provider configuration прежние, изменены DB URI и два approved flags.
-  Обновлены только api/web/prodamus-test, edge DNS reload без изменения config.
-  **Working DB теперь `daryadarcy_candidate_20261019`, history42 без изменений.**
-  Old `daryadarcy_staging` не изменяли/не удаляли/не ремонтировали0017–0019.
-  Public HTTPS16 checks: videos.catalog200, normalCheckoutStatus guest401 /
-  authenticated200/notRecorded, subscription200/hasClubAccess:boolean;
-  прежний admin login/me/admin.stats/logout, страницы/launch config pass.
-  Admin id1/hash/role/sessionVersion2 сохранены. Source table hashes после
-  write boundary совпали; остальные26 containers unchanged, seven services healthy,
-  три новых restart0/OOMfalse. Actual new worker native backup40 tables/gzip
-  verified, file0600/directory0700. Temporary SQL readers/probes удалены;
-  approved temporary image archives удалены с SHA guards, images/DB/backups retained.
-  Working private flags остались off, S3/legacy URLs не менялись. Публичные старые
-  выкройки **не закрыты этим выпуском**. Платежи/внешние письма не запускались;
-  pending email/binding/schedule/deletion/cancellation/shop queues до старта0.
-  Git push не выполнялся. Server evidence: release-da47b54.al4N82, receipt SHA
-  `608a539ff9ef864d7d0bf48e01811da651fa6769a35dd14ad80f1c2358d321c1`.
-  Backup/config rollback сохранён; возврат на старую DB после новых writes требует
-  отдельной сверки, не запускать historical copy/empty-candidate процедуры заново.
+      переключить приложение на проверенную candidate, сохранить admin/password
+      и старую DB для отката; отдельно разрешил VK catalog +normal checkout recovery.
+      **Выполнено на публичном https://daryadarcy.dev.reeskeen.ru, не только isolated.**
+      Source runtime/frontend: `da47b54c19129a8eeee976312bc3bd4f9e7cbbd3`;
+      frontend совпадает со свежим remote staging `e25ffda`, без ручных правок дизайна.
+      Новый backend/TEST image `b8e2a908…`, web `3b3011d6…`; полные IDs и откат —
+      [runbook](../docs/operations/candidate-backend-image-rollback.md).
+      Ранее проверенный native frozen runtime0763 сохранён; package/lockfile с2083911
+      не менялись, добавлены exact archived-source API/TEST bundles и новый Next build.
+      84 targeted regressions, root types, API86/32048 и production audit0 advisories;
+      frontend29 pages/types и native Linux web7 HTTP checks pass. Image/archive/SHA
+      guards; actual server candidate39 ORM/18 HTTP checks, прежний password login.
+      На границе остановлены только API/TEST writers; fresh read-only delta850 rows,
+      29 tables: product data совпали, users отличается только activity timestamps.
+      Созданы private gzip backups обеих DB (29/40 tables), counter floors проверены:
+      повышать не требовалось. Candidate runtime account только для её schema;
+      JWT/SMTP/provider configuration прежние, изменены DB URI и два approved flags.
+      Обновлены только api/web/prodamus-test, edge DNS reload без изменения config.
+      **Working DB теперь `daryadarcy_candidate_20261019`, history42 без изменений.**
+      Old `daryadarcy_staging` не изменяли/не удаляли/не ремонтировали0017–0019.
+      Public HTTPS16 checks: videos.catalog200, normalCheckoutStatus guest401 /
+      authenticated200/notRecorded, subscription200/hasClubAccess:boolean;
+      прежний admin login/me/admin.stats/logout, страницы/launch config pass.
+      Admin id1/hash/role/sessionVersion2 сохранены. Source table hashes после
+      write boundary совпали; остальные26 containers unchanged, seven services healthy,
+      три новых restart0/OOMfalse. Actual new worker native backup40 tables/gzip
+      verified, file0600/directory0700. Temporary SQL readers/probes удалены;
+      approved temporary image archives удалены с SHA guards, images/DB/backups retained.
+      Working private flags остались off, S3/legacy URLs не менялись. Публичные старые
+      выкройки **не закрыты этим выпуском**. Платежи/внешние письма не запускались;
+      pending email/binding/schedule/deletion/cancellation/shop queues до старта0.
+      Git push не выполнялся. Server evidence: release-da47b54.al4N82, receipt SHA
+      `608a539ff9ef864d7d0bf48e01811da651fa6769a35dd14ad80f1c2358d321c1`.
+      Backup/config rollback сохранён; возврат на старую DB после новых writes требует
+      отдельной сверки, не запускать historical copy/empty-candidate процедуры заново.
 
 ### Локальное исправление проверки сессии —19 октября
 
 - [x] AUTH-S1 — подтверждённый пользователем дефект: SessionService.optionalUser
-  ловил любую ошибку → GET /api/auth/me200/user:null → ложный confirmed guest.
-  Minimal fix: null только для typed HttpError401/403; остальные failures →
-  sanitized Nest503 без cookie mutation/no-store. Обнаружен второй путь в том
-  же lookup: getUserByOpenId при !DB client возвращал undefined; теперь throw,
-  undefined остаётся только для отсутствующей строки в доступной DB.
-  RED4 failures/6 pass на настоящих JWT/SDK/Nest/loopback HTTP, injected SQL
-  lookup/activity failures; после первого fix10 pass. Дополнительный !DB test
-  RED1/10 pass → GREEN11. Никакую реальную DB не отключали/не читали/не меняли.
-  Проверены503 → recovery тем же JWT/cookie, no cookie clearing, safe body;
-  upstream plain status403 не считается authenticated denial; no-cookie/bad/
-  expired/deleted/blocked/revoked по-прежнему200/null. tRPC auth.me вместо200/null
-  даёт существующий safe500/INTERNAL_SERVER_ERROR и восстанавливается; отдельную
-  tRPC error mapping не вводили. Неизменённый legacy createContext не active entry.
-  Targeted regression:9 files/84 pass/0 skip/1.83s (включая11 новых), root types
-  и backend build pass. Это HTTP/JWT +fault injection на SQL seams, не native
-  MySQL/browser acceptance. No workers/provider/network outside loopback.
-  Фронт/дизайн/схема/working DB/candidate/S3/роли/квоты/CORS не менялись;
-  server access/push/deploy/app switch отсутствуют. Scope — local fix only.
-  **Images2083911/e774/0763 не содержат AUTH-S1.** Для будущего rollout нужен
-  новый backend image с этим fix и его отдельная acceptance, не reuse старого
-  образа как «актуального». D2 receipt остаётся исторической проверкой0763.
+      ловил любую ошибку → GET /api/auth/me200/user:null → ложный confirmed guest.
+      Minimal fix: null только для typed HttpError401/403; остальные failures →
+      sanitized Nest503 без cookie mutation/no-store. Обнаружен второй путь в том
+      же lookup: getUserByOpenId при !DB client возвращал undefined; теперь throw,
+      undefined остаётся только для отсутствующей строки в доступной DB.
+      RED4 failures/6 pass на настоящих JWT/SDK/Nest/loopback HTTP, injected SQL
+      lookup/activity failures; после первого fix10 pass. Дополнительный !DB test
+      RED1/10 pass → GREEN11. Никакую реальную DB не отключали/не читали/не меняли.
+      Проверены503 → recovery тем же JWT/cookie, no cookie clearing, safe body;
+      upstream plain status403 не считается authenticated denial; no-cookie/bad/
+      expired/deleted/blocked/revoked по-прежнему200/null. tRPC auth.me вместо200/null
+      даёт существующий safe500/INTERNAL_SERVER_ERROR и восстанавливается; отдельную
+      tRPC error mapping не вводили. Неизменённый legacy createContext не active entry.
+      Targeted regression:9 files/84 pass/0 skip/1.83s (включая11 новых), root types
+      и backend build pass. Это HTTP/JWT +fault injection на SQL seams, не native
+      MySQL/browser acceptance. No workers/provider/network outside loopback.
+      Фронт/дизайн/схема/working DB/candidate/S3/роли/квоты/CORS не менялись;
+      server access/push/deploy/app switch отсутствуют. Scope — local fix only.
+      **Images2083911/e774/0763 не содержат AUTH-S1.** Для будущего rollout нужен
+      новый backend image с этим fix и его отдельная acceptance, не reuse старого
+      образа как «актуального». D2 receipt остаётся исторической проверкой0763.
 
 ### Разрешённая подготовка staging/server — 19 октября
 
 - [x] FRESH-D2 — прямое разрешение проверить corrected final image0763 на
-  populated candidate и source delta после D1 snapshot. Старую DB только
-  SELECT/read-only; candidate data не синхронизировать/не перезаписывать.
-  Сохранить admin/password hash/session/role, проверить existing password через
-  isolated API. Exact archive/image/bundle/host/container/UUID/history guards,
-  temporary least-privilege account/no workers/providers/ports, cleanup receipts.
-  App switch/deploy/frontend/S3/push и source writes запрещены. Delta сравнивать
-  с сохранёнными D1 hashes, не только row counts; candidate login timestamps
-  отделить от новых изменений источника. Выполнено19 октября,13:44MSK:
-  local archive SHA-1b957… и D1 receipt SHA-500221… verified; exact host/DB UUID/
-  containers/network/history42, disk1735MiB/available RAM594MiB guards.
-  Archive254MiB загружен без rebuild/install/pull; server SHA совпал перед load.
-  Actual image0763/source2083911/amd64/non-root/config/bundle SHA-bb977… verified;
-  backup directory0700/UID1000 проверен внутри обоих isolated probes.
-  Real SQL consistent read-only snapshot в обеих DB, временный SELECT-only
-  account, explicit source columns/dateStrings/jsonStrings/bigints/UTC и D1
-  digest algorithm. Source850/candidate850; все28 tables кроме users совпали
-  с D1 SHA. Users2/2/no insert/delete; различие одной строки только
-  lastSignedIn/updatedAt. Hash/role/admin/sessionVersion2/blockedAt совпали,
-  new10 tables пусты/history42/column fingerprints прежние. Sync/DML отсутствуют.
-  Дополнительный read-only metadata check: indexes/table engines/collations
-  совпали, triggers/routines/events/FK0. Users AUTO_INCREMENT после snapshot
-  вырос: observed source next500/candidate499 (13:50MSK), rows по-прежнему2/2.
-  Candidate counter не меняли: перед future cutover нужен свежий source floor
-  на согласованной write boundary; никакого фиксированного ALTER500 сейчас.
-  Первый supplementary checker ошибочно сравнивал JSON property order как
-  строку; diagnostic capture подтвердил равенство объектов. Minimal RED→GREEN2
-  исправил только own private checker; captured metadata проверены повторно
-  локально, без SQL replay/изменения guards. Product code не менялся.
-  Диагностический comparator отдельно прошёл5 synthetic checks на image без
-  network/SQL; это не дополнительные native SQL cases. После delta source
-  grant отозван; API только SELECT candidate +users INSERT/UPDATE для login.
-  Exact D1 API probe bundle повторно использован без изменения/overlay deps:
-  39 ORM/13 HTTP pass, wrong password401/no cookie, прежний password login200,
-  me/admin.stats/logout/secure host-only cookie; hash/role/session/history
-  после login неизменны. Workers/providers/working executable не запускались.
-  UID1001/internal network/no ports/read-only/cap-drop/256MiB/CPU0.4, exit0/OOMfalse.
-  Оба own probes и temporary account удалены с exact guards. Uploaded archive
-  и own code files удалены по hashes; local original/loaded0763/old images сохранены.
-  Все29 existing containers IDs/images/start times/health совпали; working API
-  по-прежнему daryadarcy_staging/current HTTPS200. Server private directory0700/
-  receipt0600, local/server receipt SHA
-  `89392d893c58f71d2192acce137f8ed3161da398626b508c4aa904fd0a07de72`.
-  Дополнительный local/server postcheck.json (metadata/counter), SHA
-  `6e603b4c46ceb6c3fb29ff3aa72bbd9830763b1b79326055233f888010e4f0c1`.
-  No source writes/sync/frontend/S3/push/deploy/switch. Остаток для future cutover:
-  новая delta/users counter floor на границе writes, backup/config/secrets continuity/permanent app
-  grants/rollback и отдельное разрешение. При unchanged image прежние успешные
-  local native backup tests не повторялись; production workers/реальные providers
-  этим isolated acceptance не проверены. Только plans/runbook изменены в Git.
+      populated candidate и source delta после D1 snapshot. Старую DB только
+      SELECT/read-only; candidate data не синхронизировать/не перезаписывать.
+      Сохранить admin/password hash/session/role, проверить existing password через
+      isolated API. Exact archive/image/bundle/host/container/UUID/history guards,
+      temporary least-privilege account/no workers/providers/ports, cleanup receipts.
+      App switch/deploy/frontend/S3/push и source writes запрещены. Delta сравнивать
+      с сохранёнными D1 hashes, не только row counts; candidate login timestamps
+      отделить от новых изменений источника. Выполнено19 октября,13:44MSK:
+      local archive SHA-1b957… и D1 receipt SHA-500221… verified; exact host/DB UUID/
+      containers/network/history42, disk1735MiB/available RAM594MiB guards.
+      Archive254MiB загружен без rebuild/install/pull; server SHA совпал перед load.
+      Actual image0763/source2083911/amd64/non-root/config/bundle SHA-bb977… verified;
+      backup directory0700/UID1000 проверен внутри обоих isolated probes.
+      Real SQL consistent read-only snapshot в обеих DB, временный SELECT-only
+      account, explicit source columns/dateStrings/jsonStrings/bigints/UTC и D1
+      digest algorithm. Source850/candidate850; все28 tables кроме users совпали
+      с D1 SHA. Users2/2/no insert/delete; различие одной строки только
+      lastSignedIn/updatedAt. Hash/role/admin/sessionVersion2/blockedAt совпали,
+      new10 tables пусты/history42/column fingerprints прежние. Sync/DML отсутствуют.
+      Дополнительный read-only metadata check: indexes/table engines/collations
+      совпали, triggers/routines/events/FK0. Users AUTO_INCREMENT после snapshot
+      вырос: observed source next500/candidate499 (13:50MSK), rows по-прежнему2/2.
+      Candidate counter не меняли: перед future cutover нужен свежий source floor
+      на согласованной write boundary; никакого фиксированного ALTER500 сейчас.
+      Первый supplementary checker ошибочно сравнивал JSON property order как
+      строку; diagnostic capture подтвердил равенство объектов. Minimal RED→GREEN2
+      исправил только own private checker; captured metadata проверены повторно
+      локально, без SQL replay/изменения guards. Product code не менялся.
+      Диагностический comparator отдельно прошёл5 synthetic checks на image без
+      network/SQL; это не дополнительные native SQL cases. После delta source
+      grant отозван; API только SELECT candidate +users INSERT/UPDATE для login.
+      Exact D1 API probe bundle повторно использован без изменения/overlay deps:
+      39 ORM/13 HTTP pass, wrong password401/no cookie, прежний password login200,
+      me/admin.stats/logout/secure host-only cookie; hash/role/session/history
+      после login неизменны. Workers/providers/working executable не запускались.
+      UID1001/internal network/no ports/read-only/cap-drop/256MiB/CPU0.4, exit0/OOMfalse.
+      Оба own probes и temporary account удалены с exact guards. Uploaded archive
+      и own code files удалены по hashes; local original/loaded0763/old images сохранены.
+      Все29 existing containers IDs/images/start times/health совпали; working API
+      по-прежнему daryadarcy_staging/current HTTPS200. Server private directory0700/
+      receipt0600, local/server receipt SHA
+      `89392d893c58f71d2192acce137f8ed3161da398626b508c4aa904fd0a07de72`.
+      Дополнительный local/server postcheck.json (metadata/counter), SHA
+      `6e603b4c46ceb6c3fb29ff3aa72bbd9830763b1b79326055233f888010e4f0c1`.
+      No source writes/sync/frontend/S3/push/deploy/switch. Остаток для future cutover:
+      новая delta/users counter floor на границе writes, backup/config/secrets continuity/permanent app
+      grants/rollback и отдельное разрешение. При unchanged image прежние успешные
+      local native backup tests не повторялись; production workers/реальные providers
+      этим isolated acceptance не проверены. Только plans/runbook изменены в Git.
 
 - [x] FRESH-D1 — прямое разрешение подготовить перенос staging data в existing
-  `daryadarcy_candidate_20261019`, сохранив admin/password, без app switch/deploy.
-  Source только SELECT/read-only snapshot; никакой repair history0017–0019,
-  schema/data writes, блокировки writes или удаления старой DB. Candidate42
-  history не переписывать, all application tables должны быть пусты. Exact
-  server/container/UUID/schema guards, least-privilege temporary operator,
-  synthetic native rehearsal перед server copy; row/column/hash/counter/default
-  comparison и isolated candidate API/auth/admin checks без workers/providers.
-  No frontend/S3/payments/mail. Source rows не скачивать в local fixtures/logs.
-  Snapshot не является continuous sync: будущий cutover требует новой сверки
-  writes/дельты, отдельного разрешения и готового image/frontend rollback.
-  Read-only19 октября: old DB29 tables/no history, candidate40/history42,
-  candidate application rows0. Source850 rows (742 posts/60 videos/2 users,
-  payments10/receipts2/outbox8/password_tokens7/tags17/consent2), admin active.
-  Foreign keys/triggers/routines/events0; только nullable youtubeId widening,
-  new default provider/access и nullable poster/VK fields. Schemas/row counts
-  сохранены private вне Git, без user data/credentials. Local RED→GREEN:
-  6 mapping units +4 native tests, fresh42/legacy29 own tmpfs backend_test.
-  Real identity conflict откатывает все rows, непустой target refused, source
-  SQL writes запрещены read-only transaction. Синтетические password hash/
-  session/paid subscription/JSON/opaque mail+token rows сохранены, counters
-  не понижаются. Candidate-only counter DDL предшествует row transaction:
-  при отказе могут остаться повышенные counters, но не частичные rows/history.
-  Root types pass. Выполнено19 октября: exact host/MySQL3442fbda…/UUID/network/
-  source API29e02dc… guards, verified fresh42 hashes/indexes/column fingerprints.
-  Read-only source snapshot → candidate:29 tables/850 rows, explicit columns,
-  per-table count+SHA exact before commit; all10 added tables остались пусты.
-  Account id1/password hash/admin/sessionVersion2/blockedAt сохранены; paid
-  records/receipts/outbox8/password_tokens7/JSON/old URL strings без изменений.
-  Actual server API с image e774/runtime source2083911 (код API не менялся):
-  39 ORM +13 HTTP, guest/admin denial, wrong password401/no cookie, прежний
-  пароль login200/me200/admin.stats200/logout200, secure host-only cookie.
-  Hash/role/session/history после login неизменны; только candidate login
-  timestamps и возможный AUTO_INCREMENT gap от штатного upsert допустимы.
-  Source account имел только SELECT; candidate SELECT/INSERT и exact counter
-  ALTER grants. Перед API source/INSERT-all отозваны, users INSERT/UPDATE only.
-  Isolated UID1001/internal net/read-only/no ports/no workers/provider config,
-  exit0/OOM=false. Account и оба own server probes/upload удалены с guards.
-  Local synthetic API39/13 тоже pass; own local DB fixtures/network удалены,
-  прежние2 containers/12 volumes/images не трогали. Все29 existing server
-  containers IDs/images/start times/health совпали; API по-прежнему использует
-  daryadarcy_staging, current HTTPS200. Final read-only counts850/850, all10
-  new tables0, counter floors не ниже source, candidate history42 сохранена.
-  Source history по-прежнему отсутствует: ничего не repair/apply на old DB.
-  Private local/server receipt SHA
-  `5002210c4046aaac2430fea97324feef6904e8fd0d7d87c11679053315af4a44`;
-  .local-artifacts/candidate-transfer-20261019.4m7y89 + server own receipt,
-  permissions0700/0600. Rows/passwords/JWT/SQL credentials в Git/logs не попадали.
-  Это snapshot, не cutover/sync/production-worker/S3/payment/mail acceptance.
-  App/front/current DB/S3/flags/config/deployment/push не менялись. Corrected
-  0763 image всё ещё только локально; future switch требует его отдельной
-  populated-candidate проверки, delta/write/backup/permanent-grants/rollback gate.
+      `daryadarcy_candidate_20261019`, сохранив admin/password, без app switch/deploy.
+      Source только SELECT/read-only snapshot; никакой repair history0017–0019,
+      schema/data writes, блокировки writes или удаления старой DB. Candidate42
+      history не переписывать, all application tables должны быть пусты. Exact
+      server/container/UUID/schema guards, least-privilege temporary operator,
+      synthetic native rehearsal перед server copy; row/column/hash/counter/default
+      comparison и isolated candidate API/auth/admin checks без workers/providers.
+      No frontend/S3/payments/mail. Source rows не скачивать в local fixtures/logs.
+      Snapshot не является continuous sync: будущий cutover требует новой сверки
+      writes/дельты, отдельного разрешения и готового image/frontend rollback.
+      Read-only19 октября: old DB29 tables/no history, candidate40/history42,
+      candidate application rows0. Source850 rows (742 posts/60 videos/2 users,
+      payments10/receipts2/outbox8/password_tokens7/tags17/consent2), admin active.
+      Foreign keys/triggers/routines/events0; только nullable youtubeId widening,
+      new default provider/access и nullable poster/VK fields. Schemas/row counts
+      сохранены private вне Git, без user data/credentials. Local RED→GREEN:
+      6 mapping units +4 native tests, fresh42/legacy29 own tmpfs backend_test.
+      Real identity conflict откатывает все rows, непустой target refused, source
+      SQL writes запрещены read-only transaction. Синтетические password hash/
+      session/paid subscription/JSON/opaque mail+token rows сохранены, counters
+      не понижаются. Candidate-only counter DDL предшествует row transaction:
+      при отказе могут остаться повышенные counters, но не частичные rows/history.
+      Root types pass. Выполнено19 октября: exact host/MySQL3442fbda…/UUID/network/
+      source API29e02dc… guards, verified fresh42 hashes/indexes/column fingerprints.
+      Read-only source snapshot → candidate:29 tables/850 rows, explicit columns,
+      per-table count+SHA exact before commit; all10 added tables остались пусты.
+      Account id1/password hash/admin/sessionVersion2/blockedAt сохранены; paid
+      records/receipts/outbox8/password_tokens7/JSON/old URL strings без изменений.
+      Actual server API с image e774/runtime source2083911 (код API не менялся):
+      39 ORM +13 HTTP, guest/admin denial, wrong password401/no cookie, прежний
+      пароль login200/me200/admin.stats200/logout200, secure host-only cookie.
+      Hash/role/session/history после login неизменны; только candidate login
+      timestamps и возможный AUTO_INCREMENT gap от штатного upsert допустимы.
+      Source account имел только SELECT; candidate SELECT/INSERT и exact counter
+      ALTER grants. Перед API source/INSERT-all отозваны, users INSERT/UPDATE only.
+      Isolated UID1001/internal net/read-only/no ports/no workers/provider config,
+      exit0/OOM=false. Account и оба own server probes/upload удалены с guards.
+      Local synthetic API39/13 тоже pass; own local DB fixtures/network удалены,
+      прежние2 containers/12 volumes/images не трогали. Все29 existing server
+      containers IDs/images/start times/health совпали; API по-прежнему использует
+      daryadarcy_staging, current HTTPS200. Final read-only counts850/850, all10
+      new tables0, counter floors не ниже source, candidate history42 сохранена.
+      Source history по-прежнему отсутствует: ничего не repair/apply на old DB.
+      Private local/server receipt SHA
+      `5002210c4046aaac2430fea97324feef6904e8fd0d7d87c11679053315af4a44`;
+      .local-artifacts/candidate-transfer-20261019.4m7y89 + server own receipt,
+      permissions0700/0600. Rows/passwords/JWT/SQL credentials в Git/logs не попадали.
+      Это snapshot, не cutover/sync/production-worker/S3/payment/mail acceptance.
+      App/front/current DB/S3/flags/config/deployment/push не менялись. Corrected
+      0763 image всё ещё только локально; future switch требует его отдельной
+      populated-candidate проверки, delta/write/backup/permanent-grants/rollback gate.
 
 - [x] FRESH-C6 — прямое разрешение проверить backup/restore **финальным image2083911**
-  локально на двух own loopback/tmpfs `backend_test`. Native dump + restore
-  clients из immutable image, настоящий production backup module без workers;
-  fresh42/synthetic rows, точное сравнение всех tables/data/DDL/history,
-  uniqueness/recovery и отказ restore в непустую target. Ownership guards до
-  SQL/cleanup; image/source/bundle SHA, private artifact permissions, no S3/mail.
-  Текущую и server candidate DB/frontend/app configuration не менять;
-  без server access/push/deployment/switch. Обновить evidence/runbook после проверки.
-  Выполнено19 октября: две own MySQL8.4.11/tmpfs без volumes, loopback autoports.
-  Прежний rehearsal RED1/7 pass подтвердил, что он использовал MySQL-container
-  client, а не image. Новый opt-in native image path запускает source-identical
-  backup module/ENV и настоящие mysqldump/mysql из image, UID1000/cap-drop/
-  namespace только guarded DB, provider env не наследуется, no workers.
-  На original e774…:8 pass/1 fail — реальный дефект Dockerfile, backup directory
-  0755 вместо0700. Сами gzip0600; data/DDL/history/restore уже проходили.
-  Исправлен только Dockerfile: дополнительный chmod0700 layer. Clean selected
-  archive2083911 + exact one-line canonical Dockerfile patch; runtime source/
-  bundle/dependencies/config и все9 base layers побайтно прежние.
-  Новый **локальный** tag fresh-c6-2083911-private-backups, image0763…,
-  Dockerfile SHA-c5d13…; source label2083911 означает unchanged runtime source,
-  не отсутствие отдельного packaging patch. Final native10 pass/0 skip/3.47s:
-  40 tables exact DDL/data,42 history, Unicode/JSON/indexes/auto increments,
-  identity/recovery/library uniqueness, source unchanged, непустой target refused,
-  реальный wrong-password dump без complete/partial/credential leftovers.
-  Новый image offline2/2/2.43s (6 HTTP/native deps), root types/prettier pass;
-  backup units16 pass/2 opt-in skips (не выдавать за acceptance этих2).
-  Image/archive254MiB/checksum/verification+JSON test report сохранены вне Git:
-  .local-artifacts/backend-2083911-c6; archive SHA-1b957… verified, receipt SHA
-  `63faf78c6fe63678dc805e598feed8c46a990690659a7f0582cc9e4e801d705c`.
-  Own probe/DB containers и empty network удалены с точными guards; прежние
-  2 foreign stopped containers/12 volumes/images сохранены, free~3.1GiB.
-  Preflight: internal network не публиковала loopback ports, заменена только
-  own network на bridge с masquerade=false; initial readiness race устранён
-  штатным wait-test-database, SQL тогда ещё не менялся. Product не изменяли.
-  Server/current DB/candidate/frontend/S3 не читались/не менялись. Новый0763
-  image не загружался на сервер: C5 относится только к прежнему e774. Будущий
-  corrected-image candidate check/switch/owner/grants/writes, backup mount0700
-  и off-site/production-scale recovery остаются отдельными gates.
-  Final docs59/diff/code prettier/root types pass; self-review scope/security/
-  correctness: production change только owner-only backup directory в image,
-  no runtime/API/schema/lockfile/frontend changes. Full unchanged suite не повторяли.
+      локально на двух own loopback/tmpfs `backend_test`. Native dump + restore
+      clients из immutable image, настоящий production backup module без workers;
+      fresh42/synthetic rows, точное сравнение всех tables/data/DDL/history,
+      uniqueness/recovery и отказ restore в непустую target. Ownership guards до
+      SQL/cleanup; image/source/bundle SHA, private artifact permissions, no S3/mail.
+      Текущую и server candidate DB/frontend/app configuration не менять;
+      без server access/push/deployment/switch. Обновить evidence/runbook после проверки.
+      Выполнено19 октября: две own MySQL8.4.11/tmpfs без volumes, loopback autoports.
+      Прежний rehearsal RED1/7 pass подтвердил, что он использовал MySQL-container
+      client, а не image. Новый opt-in native image path запускает source-identical
+      backup module/ENV и настоящие mysqldump/mysql из image, UID1000/cap-drop/
+      namespace только guarded DB, provider env не наследуется, no workers.
+      На original e774…:8 pass/1 fail — реальный дефект Dockerfile, backup directory
+      0755 вместо0700. Сами gzip0600; data/DDL/history/restore уже проходили.
+      Исправлен только Dockerfile: дополнительный chmod0700 layer. Clean selected
+      archive2083911 + exact one-line canonical Dockerfile patch; runtime source/
+      bundle/dependencies/config и все9 base layers побайтно прежние.
+      Новый **локальный** tag fresh-c6-2083911-private-backups, image0763…,
+      Dockerfile SHA-c5d13…; source label2083911 означает unchanged runtime source,
+      не отсутствие отдельного packaging patch. Final native10 pass/0 skip/3.47s:
+      40 tables exact DDL/data,42 history, Unicode/JSON/indexes/auto increments,
+      identity/recovery/library uniqueness, source unchanged, непустой target refused,
+      реальный wrong-password dump без complete/partial/credential leftovers.
+      Новый image offline2/2/2.43s (6 HTTP/native deps), root types/prettier pass;
+      backup units16 pass/2 opt-in skips (не выдавать за acceptance этих2).
+      Image/archive254MiB/checksum/verification+JSON test report сохранены вне Git:
+      .local-artifacts/backend-2083911-c6; archive SHA-1b957… verified, receipt SHA
+      `63faf78c6fe63678dc805e598feed8c46a990690659a7f0582cc9e4e801d705c`.
+      Own probe/DB containers и empty network удалены с точными guards; прежние
+      2 foreign stopped containers/12 volumes/images сохранены, free~3.1GiB.
+      Preflight: internal network не публиковала loopback ports, заменена только
+      own network на bridge с masquerade=false; initial readiness race устранён
+      штатным wait-test-database, SQL тогда ещё не менялся. Product не изменяли.
+      Server/current DB/candidate/frontend/S3 не читались/не менялись. Новый0763
+      image не загружался на сервер: C5 относится только к прежнему e774. Будущий
+      corrected-image candidate check/switch/owner/grants/writes, backup mount0700
+      и off-site/production-scale recovery остаются отдельными gates.
+      Final docs59/diff/code prettier/root types pass; self-review scope/security/
+      correctness: production change только owner-only backup directory в image,
+      no runtime/API/schema/lockfile/frontend changes. Full unchanged suite не повторяли.
 
 - [x] FRESH-C5 — прямое разрешение проверить **финальный image2083911** на
-  existing `daryadarcy_candidate_20261019`, без switch/frontend/текущей DB.
-  Разрешён transfer/load versioned artifact только для isolated probe; не
-  deployment/update Compose/working env/services. Exact host/MySQL UUID/ID/
-  internal network, archive/config/bundle SHA, history42 до любых новых credentials.
-  Canonical candidate CLI `--check-api`, временный SELECT-only account, без
-  dependency overlay/пересборки/server installer/schema DDL/seed/workers/providers/ports.
-  Проверить39 ORM schemas/8 HTTP; удалить только own probe/account/env, сохранить
-  receipt и сравнить existing container/config metadata/history/volumes до/после.
-  Выполнено19 октября: strict SSH exact host/key; MySQL3442fbda…/UUID/network
-  прежние, candidate history42 SHA-e8d87… прежний/users0. Archive SHA-2ad091…
-  сверён перед load; exact image e774…/source2083911 и actual bundle SHA-bb977…
-  проверены, без rebuild/dependency overlay. Canonical candidate CLI bundle
-  SHA-8e871… совпал с C3: runtime source6f06e09..2083911 неизменён.
-  Actual image/Nest/SQL:39 ORM tables/columns +8 loopback HTTP, exit0/OOM=false.
-  Guest auth/launch/feed/articles200; admin401; default-off files404. Только
-  временный SELECT на candidate, UID1001/internal net/no ports/read-only/cap-drop/
-  memory256MiB/CPU0.4, без executable/WorkerJobs.start/providers/working env.
-  Нет SQL initialize/schema DDL/seed/data writes. История/users0 после прежние;
-  exact own container/account/env удалены,24 existing containers IDs/images/
-  start times/health +configuration metadata и volume names совпали до/после.
-  Все7 project services healthy, current HTTPS200. Receipt SHA-256:
-  `4c1ef5ad5241298411a98de2a941ce63b42a448ffcb491f00e6fc04bca570f8a`;
-  server private candidate-image-20261019-2083911.f1vR0P/verification.json и
-  local .local-artifacts/backend-2083911/candidate-verification.json совпали.
-  Удалена только own uploaded archive254MiB после guards/hash +receipt success;
-  local original/loaded image сохранены, free~1.7GiB, archive-cleanup.json.
-  Диагностика до load/account: metadata template не принимал missing Health;
-  исправлен безопасный index. Tar allowlist отклонил trailing directory slash,
-  затем macOS AppleDouble metadata; нормализованы directory names, архив создан
-  COPYFILE_DISABLE=1/59 allowlisted entries, guard не расширен. Initial SSH без
-  agent identities отказал; использован existing project key, private bytes не
-  читались. Отдельные SSH banner timeouts: основной retry прошёл; поздняя
-  optional copy cleanup receipt отказала, основной verified receipt уже локально.
-  Runtime не исправлялся.
-  Push/deployment/switch/frontend/current DB/S3 отсутствуют. Native backup/restore
-  с image client на own disposable MySQL ещё не проверен; release gate открыт.
-  Final docs59/diff pass. Только4 существующих Markdown files изменены;
-  application/schema/API/dependencies не менялись, успешные unchanged local
-  native image/types/full suites не повторяли. Это actual server SQL/HTTP,
-  не mock/browser/payment/mail/S3/production worker acceptance.
+      existing `daryadarcy_candidate_20261019`, без switch/frontend/текущей DB.
+      Разрешён transfer/load versioned artifact только для isolated probe; не
+      deployment/update Compose/working env/services. Exact host/MySQL UUID/ID/
+      internal network, archive/config/bundle SHA, history42 до любых новых credentials.
+      Canonical candidate CLI `--check-api`, временный SELECT-only account, без
+      dependency overlay/пересборки/server installer/schema DDL/seed/workers/providers/ports.
+      Проверить39 ORM schemas/8 HTTP; удалить только own probe/account/env, сохранить
+      receipt и сравнить existing container/config metadata/history/volumes до/после.
+      Выполнено19 октября: strict SSH exact host/key; MySQL3442fbda…/UUID/network
+      прежние, candidate history42 SHA-e8d87… прежний/users0. Archive SHA-2ad091…
+      сверён перед load; exact image e774…/source2083911 и actual bundle SHA-bb977…
+      проверены, без rebuild/dependency overlay. Canonical candidate CLI bundle
+      SHA-8e871… совпал с C3: runtime source6f06e09..2083911 неизменён.
+      Actual image/Nest/SQL:39 ORM tables/columns +8 loopback HTTP, exit0/OOM=false.
+      Guest auth/launch/feed/articles200; admin401; default-off files404. Только
+      временный SELECT на candidate, UID1001/internal net/no ports/read-only/cap-drop/
+      memory256MiB/CPU0.4, без executable/WorkerJobs.start/providers/working env.
+      Нет SQL initialize/schema DDL/seed/data writes. История/users0 после прежние;
+      exact own container/account/env удалены,24 existing containers IDs/images/
+      start times/health +configuration metadata и volume names совпали до/после.
+      Все7 project services healthy, current HTTPS200. Receipt SHA-256:
+      `4c1ef5ad5241298411a98de2a941ce63b42a448ffcb491f00e6fc04bca570f8a`;
+      server private candidate-image-20261019-2083911.f1vR0P/verification.json и
+      local .local-artifacts/backend-2083911/candidate-verification.json совпали.
+      Удалена только own uploaded archive254MiB после guards/hash +receipt success;
+      local original/loaded image сохранены, free~1.7GiB, archive-cleanup.json.
+      Диагностика до load/account: metadata template не принимал missing Health;
+      исправлен безопасный index. Tar allowlist отклонил trailing directory slash,
+      затем macOS AppleDouble metadata; нормализованы directory names, архив создан
+      COPYFILE_DISABLE=1/59 allowlisted entries, guard не расширен. Initial SSH без
+      agent identities отказал; использован existing project key, private bytes не
+      читались. Отдельные SSH banner timeouts: основной retry прошёл; поздняя
+      optional copy cleanup receipt отказала, основной verified receipt уже локально.
+      Runtime не исправлялся.
+      Push/deployment/switch/frontend/current DB/S3 отсутствуют. Native backup/restore
+      с image client на own disposable MySQL ещё не проверен; release gate открыт.
+      Final docs59/diff pass. Только4 существующих Markdown files изменены;
+      application/schema/API/dependencies не менялись, успешные unchanged local
+      native image/types/full suites не повторяли. Это actual server SQL/HTTP,
+      не mock/browser/payment/mail/S3/production worker acceptance.
 
 - [x] FRESH-C4 — по прямому разрешению подготовить локальный Linux amd64
-  backend-only image и процедуру отката пары image/DB connection. Existing
-  combined Dockerfile/compose, frontend и текущую/кандидатную server DB не менять.
-  Frozen lockfile/pinned Node22, no install scripts; native offline image probe
-  (non-root, sharp, mysql client, real composition HTTP, no workers/providers).
-  Образ не загружать на сервер, приложение не переключать, push/deploy нет.
-  Откат без reverse SQL/drop/restore поверх существующих БД; новые записи после
-  возможного switch — stop/сохранить/согласовать, не обещать lossless switchback.
-  Подготовлены Dockerfile/allowlist, offline API-only override и runbook.
-  Native RED2 (образ отсутствует); backend compilation597.1kB прошла, но
-  production packaging не завершена: две own попытки остановлены, registry
-  ECONNRESET и свободное место115MiB, Docker API timeout/Desktop stopped.
-  Удалены только own extracted dependency tree/pnpm cache под private tmp,
-  matching SHA-256 archive сохранён; свободно~760MiB. Targeted Docker cache
-  prune ID `v0augx12yu8atgzx3hfyozdxg` вернул daemon timeout, очистка не подтверждена.
-  Native image GREEN/ID/export отсутствуют; не считать artifact готовым.
-  Compose RED1→GREEN1: actual offline config candidate diff только api image/URI,
-  baseline round-trip exact; Docker containers/SQL не запускались. Synthetic
-  env files0600/temporary removed, no working env/credentials read.
-  Нужны восстановление Docker/места и окончание native image acceptance;
-  задан вопрос о запуске Docker и удалении только точного own cache.
-  Final local checks: root types/exit0, offline Compose1 pass +image2 opt-in
-  skips (не image acceptance), docs59/prettier/diff pass. Native production
-  dependency audit0 advisories/325 deps; lockfile неизменён. Existing runtime
-  source/API/schema/rollout/frontend не менялись, full2544/S3/SQL не повторяли.
-  Продолжено после прямого разрешения запуска Docker/только own cache cleanup.
-  Обычный start отказал, restart45s не остановил hung backend. Проверены uid/path
-  точных процессов; TERM, затем KILL только supervisor12219 после отсутствия VM.
-  Docker29.8.1 восстановлен; own aborted IDs v0aug…/qxvp… уже отсутствовали,
-  cache1113MB успешных stages сохранён, broad prune не выполнялся. Те же6 images,
-  12 volumes и2 foreign stopped containers сохранены; free~4.7GiB до сборки.
-  С чистого archive2083911 image build exit0. Первый native1 pass/1 fail —
-  ошибочное ожидание launch200 без DB; подтверждён existing fail-closed503,
-  исправлен только test helper, runtime не менялся. GREEN native2 +Compose1 =
-  3 pass/0 skip/8.80s; sharp pixel/dump version/non-root +6 actual HTTP,
-  network=none/read-only/no workers/providers/ports/SQL/S3. Actual CMD bundle
-  syntax check exit0; image frozen package versions сверены. Source2083911,
-  image `sha256:e774b30f3b9a04b10de094d2b0999da6be0d8dd3620721e2d1b2cd3ab56403d5`.
-  Save archive254MiB +receipt/checksum вне Git в .local-artifacts/backend-2083911;
-  tar tag/config digest/source/platform +checksum verified, не server load.
-  Финальный image на candidate DB и dump/restore client ещё не принимались;
-  upload/deploy/switch/working DB/frontend/old S3 не трогались. Полные hashes
-  и процедура — [runbook](../docs/operations/candidate-backend-image-rollback.md).
-  Final root types/exit0, docs59/code prettier/diff pass; checksum file verifies
-  archive OK. Postchecks:2 прежних stopped containers/12 volumes/6 прежних images
-  плюс только новый backend image, free~2.5GiB. Runtime/lockfile/Dockerfile не
-  менялись в продолжении, только probe expectation и evidence docs; full suite
-  не повторялась, prior frozen-lockfile production audit0 advisories сохранён.
+      backend-only image и процедуру отката пары image/DB connection. Existing
+      combined Dockerfile/compose, frontend и текущую/кандидатную server DB не менять.
+      Frozen lockfile/pinned Node22, no install scripts; native offline image probe
+      (non-root, sharp, mysql client, real composition HTTP, no workers/providers).
+      Образ не загружать на сервер, приложение не переключать, push/deploy нет.
+      Откат без reverse SQL/drop/restore поверх существующих БД; новые записи после
+      возможного switch — stop/сохранить/согласовать, не обещать lossless switchback.
+      Подготовлены Dockerfile/allowlist, offline API-only override и runbook.
+      Native RED2 (образ отсутствует); backend compilation597.1kB прошла, но
+      production packaging не завершена: две own попытки остановлены, registry
+      ECONNRESET и свободное место115MiB, Docker API timeout/Desktop stopped.
+      Удалены только own extracted dependency tree/pnpm cache под private tmp,
+      matching SHA-256 archive сохранён; свободно~760MiB. Targeted Docker cache
+      prune ID `v0augx12yu8atgzx3hfyozdxg` вернул daemon timeout, очистка не подтверждена.
+      Native image GREEN/ID/export отсутствуют; не считать artifact готовым.
+      Compose RED1→GREEN1: actual offline config candidate diff только api image/URI,
+      baseline round-trip exact; Docker containers/SQL не запускались. Synthetic
+      env files0600/temporary removed, no working env/credentials read.
+      Нужны восстановление Docker/места и окончание native image acceptance;
+      задан вопрос о запуске Docker и удалении только точного own cache.
+      Final local checks: root types/exit0, offline Compose1 pass +image2 opt-in
+      skips (не image acceptance), docs59/prettier/diff pass. Native production
+      dependency audit0 advisories/325 deps; lockfile неизменён. Existing runtime
+      source/API/schema/rollout/frontend не менялись, full2544/S3/SQL не повторяли.
+      Продолжено после прямого разрешения запуска Docker/только own cache cleanup.
+      Обычный start отказал, restart45s не остановил hung backend. Проверены uid/path
+      точных процессов; TERM, затем KILL только supervisor12219 после отсутствия VM.
+      Docker29.8.1 восстановлен; own aborted IDs v0aug…/qxvp… уже отсутствовали,
+      cache1113MB успешных stages сохранён, broad prune не выполнялся. Те же6 images,
+      12 volumes и2 foreign stopped containers сохранены; free~4.7GiB до сборки.
+      С чистого archive2083911 image build exit0. Первый native1 pass/1 fail —
+      ошибочное ожидание launch200 без DB; подтверждён existing fail-closed503,
+      исправлен только test helper, runtime не менялся. GREEN native2 +Compose1 =
+      3 pass/0 skip/8.80s; sharp pixel/dump version/non-root +6 actual HTTP,
+      network=none/read-only/no workers/providers/ports/SQL/S3. Actual CMD bundle
+      syntax check exit0; image frozen package versions сверены. Source2083911,
+      image `sha256:e774b30f3b9a04b10de094d2b0999da6be0d8dd3620721e2d1b2cd3ab56403d5`.
+      Save archive254MiB +receipt/checksum вне Git в .local-artifacts/backend-2083911;
+      tar tag/config digest/source/platform +checksum verified, не server load.
+      Финальный image на candidate DB и dump/restore client ещё не принимались;
+      upload/deploy/switch/working DB/frontend/old S3 не трогались. Полные hashes
+      и процедура — [runbook](../docs/operations/candidate-backend-image-rollback.md).
+      Final root types/exit0, docs59/code prettier/diff pass; checksum file verifies
+      archive OK. Postchecks:2 прежних stopped containers/12 volumes/6 прежних images
+      плюс только новый backend image, free~2.5GiB. Runtime/lockfile/Dockerfile не
+      менялись в продолжении, только probe expectation и evidence docs; full suite
+      не повторялась, prior frozen-lockfile production audit0 advisories сохранён.
 
 - [x] FRESH-C2/C3 — новое прямое разрешение: применить fresh42 только к
-  `daryadarcy_candidate_20261019` и проверить candidate API без switch.
-  Exact server/container/network/UUID + pinned plan hash + empty schema guard;
-  отдельная candidate-only учётка, затем SELECT-only для API, без working env.
-  API composition без executable/scheduler, no external egress/ports/SMTP/S3/
-  payments/owner seeds; ORM columns/history и guest HTTP. Текущая БД/фронт/
-  services/configs не меняются. Partial DDL сохранять для диагностики, не repair.
-  После проверки убрать только свои probe containers/временные credentials;
-  приложение не переключать и не пушить без нового запроса.
-  Выполнено19 октября: actual Drizzle fresh42, проверенная история; повтор
-  initialize отказал без изменения истории. Отдельный candidate-only operator,
-  существующие local/preflight guards не ослаблены. Source `6f06e09`, план
-  `51616035e287f221c633d8c7975fef46229d6fbc4ef1e80e586f85e96469684a`.
-  API на Node22/Linux amd64 с актуальными frozen-lockfile dependencies:
-  39 ORM tables/columns +8 actual loopback HTTP/0 users, SELECT-only account,
-  internal network/no published ports, workers/providers не запускались.
-  Guest auth/launch/feed/articles200; admin401; default-off private files404.
-  Исправлен только дефект synthetic probe origin: production запрещает HTTP;
-  отдельный regression RED1→GREEN1, CORS/production policy не менялась.
-  Server dependency install достиг лимита own container384MiB/OOM; не повышали
-  лимит shared host, Linux dependencies подготовлены локально и сверены SHA-256.
-  Все7 existing services healthy, IDs/images/start times/config metadata прежние,
-  current site200; own containers/account/env удалены. Фронт/текущая БД/S3/flags/
-  push/switch не трогались. Full Node22:2544 pass/1574 opt-in skips,
-  200 passed suites/91 skipped/43.88s/exit0; focused35, root types, boundaries685,
-  API86 unchanged, docs58, code prettier/diff pass. Подробности/receipt hashes:
-  [operations runbook](../docs/operations/teamassist-staging.md).
+      `daryadarcy_candidate_20261019` и проверить candidate API без switch.
+      Exact server/container/network/UUID + pinned plan hash + empty schema guard;
+      отдельная candidate-only учётка, затем SELECT-only для API, без working env.
+      API composition без executable/scheduler, no external egress/ports/SMTP/S3/
+      payments/owner seeds; ORM columns/history и guest HTTP. Текущая БД/фронт/
+      services/configs не меняются. Partial DDL сохранять для диагностики, не repair.
+      После проверки убрать только свои probe containers/временные credentials;
+      приложение не переключать и не пушить без нового запроса.
+      Выполнено19 октября: actual Drizzle fresh42, проверенная история; повтор
+      initialize отказал без изменения истории. Отдельный candidate-only operator,
+      существующие local/preflight guards не ослаблены. Source `6f06e09`, план
+      `51616035e287f221c633d8c7975fef46229d6fbc4ef1e80e586f85e96469684a`.
+      API на Node22/Linux amd64 с актуальными frozen-lockfile dependencies:
+      39 ORM tables/columns +8 actual loopback HTTP/0 users, SELECT-only account,
+      internal network/no published ports, workers/providers не запускались.
+      Guest auth/launch/feed/articles200; admin401; default-off private files404.
+      Исправлен только дефект synthetic probe origin: production запрещает HTTP;
+      отдельный regression RED1→GREEN1, CORS/production policy не менялась.
+      Server dependency install достиг лимита own container384MiB/OOM; не повышали
+      лимит shared host, Linux dependencies подготовлены локально и сверены SHA-256.
+      Все7 existing services healthy, IDs/images/start times/config metadata прежние,
+      current site200; own containers/account/env удалены. Фронт/текущая БД/S3/flags/
+      push/switch не трогались. Full Node22:2544 pass/1574 opt-in skips,
+      200 passed suites/91 skipped/43.88s/exit0; focused35, root types, boundaries685,
+      API86 unchanged, docs58, code prettier/diff pass. Подробности/receipt hashes:
+      [operations runbook](../docs/operations/teamassist-staging.md).
 
 - [x] Fresh remote staging `81e8563` — ancestor local `e4ac07b`, remote-only0;
-  правки фронтендера сохранены без замены/ручного редактирования frontend.
-  Перед push проверены types/E2E types, backend build, webpack29/29, lint,
-  boundaries685, docs58, API86/32048 bytes и production audit (0 advisories).
-  Node22.23.2 выявил test-only дефект: structuredClone(File) теряет имя/File type,
-  два recovery unit cases падали. Isolated RED воспроизведён; helper копирует
-  metadata, сохраняя immutable File, без ослабления production validation.
-  GREEN34/34 на Node22 и23; full Node22:2508 pass/1574 opt-in skips,
-  197 passed suites/91 skipped,64.19s/exit0. SQL/S3/browser skips не приёмка;
-  real SQL/S3/external mail/payment не запускались. Test fix `b810ddb`.
-  Обычный fast-forward push `81e8563..b810ddb` принят; ls-remote подтвердил
-  `b810ddb29caad4528f18a74168b97c487b2a0dd9`. Ветки не переключались,
-  force/merge/rebase не выполнялись; это Git-обновление, не deployment.
+      правки фронтендера сохранены без замены/ручного редактирования frontend.
+      Перед push проверены types/E2E types, backend build, webpack29/29, lint,
+      boundaries685, docs58, API86/32048 bytes и production audit (0 advisories).
+      Node22.23.2 выявил test-only дефект: structuredClone(File) теряет имя/File type,
+      два recovery unit cases падали. Isolated RED воспроизведён; helper копирует
+      metadata, сохраняя immutable File, без ослабления production validation.
+      GREEN34/34 на Node22 и23; full Node22:2508 pass/1574 opt-in skips,
+      197 passed suites/91 skipped,64.19s/exit0. SQL/S3/browser skips не приёмка;
+      real SQL/S3/external mail/payment не запускались. Test fix `b810ddb`.
+      Обычный fast-forward push `81e8563..b810ddb` принят; ls-remote подтвердил
+      `b810ddb29caad4528f18a74168b97c487b2a0dd9`. Ветки не переключались,
+      force/merge/rebase не выполнялись; это Git-обновление, не deployment.
 - [x] По отдельному ответу пользователя создана **пустая**, не переключённая
-  server DB `daryadarcy_candidate_20261019`. До CREATE подтверждены отсутствие
-  такого имени, host/teamassist-dev, existing MySQL8.4/container3442fbda5e84,
-  project/service labels/healthy и отсутствие published DB ports. После CREATE:
-  0 tables/routines/triggers/events; existing rows не читались/не изменялись,
-  все container IDs/images/start times прежние. API env/secrets/S3/flags/image
-  configs не менялись; контейнеры не перезапускались. HTTPS current unchanged
-  deployment: `/`, `/api/auth/me`, `/api/launch-config`200; guest admin.stats401.
+      server DB `daryadarcy_candidate_20261019`. До CREATE подтверждены отсутствие
+      такого имени, host/teamassist-dev, existing MySQL8.4/container3442fbda5e84,
+      project/service labels/healthy и отсутствие published DB ports. После CREATE:
+      0 tables/routines/triggers/events; existing rows не читались/не изменялись,
+      все container IDs/images/start times прежние. API env/secrets/S3/flags/image
+      configs не менялись; контейнеры не перезапускались. HTTPS current unchanged
+      deployment: `/`, `/api/auth/me`, `/api/launch-config`200; guest admin.stats401.
 - [x] Fresh server candidate: подготовить проверенную отдельную процедуру
-  fresh schema на новой БД, candidate image/API checks и rollback приложения;
-  **после проверки согласовать switch с пользователем**. Закрыто последующими
-  FRESH-D1/D2 и RELEASE-D3/D4: switch явно разрешён и выполнен, admin/password
-  сохранены, active candidate/history42/backup/образы проверены. Этот пункт
-  не требует повторного создания БД или переноса; evidence в начале checklist
-  и [runbook](../docs/operations/candidate-backend-image-rollback.md).
-  Историческое состояние до этих выпусков: FRESH-C2/C3 выполнен:
-  схема42 и guest candidate API проверены, но данных/owner/permanent app grants
-  нет, новый backend не выложен. FRESH-C4 local image/archive/rollback подготовлен;
-  FRESH-C5 final image candidate acceptance выполнен; остались backup client и отдельное решение
-  о upload/switch/owner/начальных данных; автоматически не выполнять.
-  Ordinary preflight: untracked0017–0019, databaseChecked=false/exit1;
-  guard не обходили. Для fresh пути история старой базы не нужна. No migration
-  apply к текущей БД/DB replacement/old-file migration/private flag enable
-  разрешения нет; новое разрешение apply только candidate — FRESH-C2/C3 выше.
+      fresh schema на новой БД, candidate image/API checks и rollback приложения;
+      **после проверки согласовать switch с пользователем**. Закрыто последующими
+      FRESH-D1/D2 и RELEASE-D3/D4: switch явно разрешён и выполнен, admin/password
+      сохранены, active candidate/history42/backup/образы проверены. Этот пункт
+      не требует повторного создания БД или переноса; evidence в начале checklist
+      и [runbook](../docs/operations/candidate-backend-image-rollback.md).
+      Историческое состояние до этих выпусков: FRESH-C2/C3 выполнен:
+      схема42 и guest candidate API проверены, но данных/owner/permanent app grants
+      нет, новый backend не выложен. FRESH-C4 local image/archive/rollback подготовлен;
+      FRESH-C5 final image candidate acceptance выполнен; остались backup client и отдельное решение
+      о upload/switch/owner/начальных данных; автоматически не выполнять.
+      Ordinary preflight: untracked0017–0019, databaseChecked=false/exit1;
+      guard не обходили. Для fresh пути история старой базы не нужна. No migration
+      apply к текущей БД/DB replacement/old-file migration/private flag enable
+      разрешения нет; новое разрешение apply только candidate — FRESH-C2/C3 выше.
   - [x] FRESH-C1 — local offline `--plan` в existing fresh tool: точный порядок/
-    SHA-25642 миграций и общий plan hash, без Docker/SQL/network/credential reads.
-    RED/GREEN CLI tests: пустое окружение, унаследованные DB URI игнорируются,
-    изменённые bytes меняют hash, неизвестный SQL/args fail closed. Existing
-    local initialize/check guards не расширять. Это подготовка, не server apply.
-    Выполнено: RED3 до реализации; GREEN11 CLI +3 policy +12 history/manifest
-    +13 apply-command guards =39 pass/4 suites/0 skip/5.66s на Node22.23.2.
-    Без DB credentials/PATH Docker; connection trap0, journal bytes unchanged,
-    missing/unknown SQL и combined/unknown modes отказали. Source plan hash
-    `51616035e287f221c633d8c7975fef46229d6fbc4ef1e80e586f85e96469684a`;
-    databaseChecked/initialized/releaseApproval=false. Existing local guards и
-    SQL apply body сохранены; source inspection теперь до fixture inspection.
-    Сервер/БД/фронт/S3/flags/push/deploy не трогались в этом срезе.
-    Full Node22:2519 pass/1574 opt-in skips,198 passed suites/91 skipped,
-    63.67s/exit0. Native SQL/S3/browser acceptance не повторялась. Root types,
-    boundaries685, API86/32048 unchanged, docs58, prettier/diff exit0.
-    Review: только новый early-return offline mode и общий source preflight;
-    existing Docker ownership/URI/production/empty DB locks/apply не ослаблены,
-    новых deps/HTTP API/schema нет. Build приложения не повторяли: runtime не менялся.
+        SHA-25642 миграций и общий plan hash, без Docker/SQL/network/credential reads.
+        RED/GREEN CLI tests: пустое окружение, унаследованные DB URI игнорируются,
+        изменённые bytes меняют hash, неизвестный SQL/args fail closed. Existing
+        local initialize/check guards не расширять. Это подготовка, не server apply.
+        Выполнено: RED3 до реализации; GREEN11 CLI +3 policy +12 history/manifest
+        +13 apply-command guards =39 pass/4 suites/0 skip/5.66s на Node22.23.2.
+        Без DB credentials/PATH Docker; connection trap0, journal bytes unchanged,
+        missing/unknown SQL и combined/unknown modes отказали. Source plan hash
+        `51616035e287f221c633d8c7975fef46229d6fbc4ef1e80e586f85e96469684a`;
+        databaseChecked/initialized/releaseApproval=false. Existing local guards и
+        SQL apply body сохранены; source inspection теперь до fixture inspection.
+        Сервер/БД/фронт/S3/flags/push/deploy не трогались в этом срезе.
+        Full Node22:2519 pass/1574 opt-in skips,198 passed suites/91 skipped,
+        63.67s/exit0. Native SQL/S3/browser acceptance не повторялась. Root types,
+        boundaries685, API86/32048 unchanged, docs58, prettier/diff exit0.
+        Review: только новый early-return offline mode и общий source preflight;
+        existing Docker ownership/URI/production/empty DB locks/apply не ослаблены,
+        новых deps/HTTP API/schema нет. Build приложения не повторяли: runtime не менялся.
 
 ### LB — Библиотека, принято17 октября
 
 - [x] AG9/LB-handoff —18 октября по продолжению без S3 existing документ
-  передачи сверен с774bbe9. Добавлены REST list/read payload, cursor/50 limit,
-  live session/club checks, empty200 vs404/503, default-off42-migration boundary
-  и отсутствие library usages в editor upload/status. Описаны ограничения для
-  будущей интеграции (кэш аккаунта/late responses/no public fallback), без правок
-  фронта/дизайна. Доказательства17 октября отделены от actual S3/выпуска;
-  LB4 остаётся unchecked. Новых runtime функций/запусков/БД/S3/старых files нет.
-  Передача сохранена локально, внешние сообщения не отправлены.
-  Docs check58/exit0 и diff check/exit0; API shape/statuses сверены по controller/
-  list implementation и принятому SPEC. Повтор runtime suites не требуется:
-  изменены только3 существующих Markdown файла, приложение не менялось.
+      передачи сверен с774bbe9. Добавлены REST list/read payload, cursor/50 limit,
+      live session/club checks, empty200 vs404/503, default-off42-migration boundary
+      и отсутствие library usages в editor upload/status. Описаны ограничения для
+      будущей интеграции (кэш аккаунта/late responses/no public fallback), без правок
+      фронта/дизайна. Доказательства17 октября отделены от actual S3/выпуска;
+      LB4 остаётся unchecked. Новых runtime функций/запусков/БД/S3/старых files нет.
+      Передача сохранена локально, внешние сообщения не отправлены.
+      Docs check58/exit0 и diff check/exit0; API shape/statuses сверены по controller/
+      list implementation и принятому SPEC. Повтор runtime suites не требуется:
+      изменены только3 существующих Markdown файла, приложение не менялось.
 
 - [x] LB-read integrity — по «пока без S3»17 октября проверены оставшиеся
-  локальные границы list контракта. **Подтверждённый дефект:** INNER JOIN скрывал
-  enabled binding без receipt и возвращал200/empty либо partial list. Native
-  RED:2 failures200→503 (первая и следующая страница). Minimal LEFT JOIN +
-  validation перед metadata mapping даёт existing generic503/no-store;
-  auth404/disabled hiding/50-item cursor contract не меняются, raw URLs не выдаются.
-  GREEN:8 native list/read +8 native import/rehearsal +4 pure/type =20 checks,
-  3 suites/0 skips/6.16s.52 valid entries+disabled sentinel:50→2, одинаковые
-  sortOrder/граница следующего порядка без gaps/duplicates; malformed cursors
-  и отозванная между страницами сессия404, SDK effects на list отсутствуют.
-  Root types/check:api86(32048 bytes unchanged)/backend bundle/boundaries685/
-  prettier/diff exit0. Review:1 bounded query/51 rows, unique asset join,
-  nullable receipt валидируется до сериализации, нет новых deps/quotas/roles/API.
-  Общий regression:2508 pass/1574 opt-in skips,197 passed suites/91 skipped,
-  60.18s/exit0. Skips не native acceptance;16 native+4 pure checks выше отдельно.
-  Docs58/exit0. После review исправление и regression tests сохраняются вместе.
-  Own `daryadarcy-library-list-20261017` ed6fd6f7…4c843eb/65228 удалён после
-  exact ID/name/label/127.0.0.1/tmpfs768MiB/no mounts guards, SDK/API закрыты.
-  Чужие2 stopped containers/images/volumes сохранены. Настоящие S3/старые files/
-  working DB/frontend/design/flags/push/deploy не трогались; LB4 остаётся blocked.
+      локальные границы list контракта. **Подтверждённый дефект:** INNER JOIN скрывал
+      enabled binding без receipt и возвращал200/empty либо partial list. Native
+      RED:2 failures200→503 (первая и следующая страница). Minimal LEFT JOIN +
+      validation перед metadata mapping даёт existing generic503/no-store;
+      auth404/disabled hiding/50-item cursor contract не меняются, raw URLs не выдаются.
+      GREEN:8 native list/read +8 native import/rehearsal +4 pure/type =20 checks,
+      3 suites/0 skips/6.16s.52 valid entries+disabled sentinel:50→2, одинаковые
+      sortOrder/граница следующего порядка без gaps/duplicates; malformed cursors
+      и отозванная между страницами сессия404, SDK effects на list отсутствуют.
+      Root types/check:api86(32048 bytes unchanged)/backend bundle/boundaries685/
+      prettier/diff exit0. Review:1 bounded query/51 rows, unique asset join,
+      nullable receipt валидируется до сериализации, нет новых deps/quotas/roles/API.
+      Общий regression:2508 pass/1574 opt-in skips,197 passed suites/91 skipped,
+      60.18s/exit0. Skips не native acceptance;16 native+4 pure checks выше отдельно.
+      Docs58/exit0. После review исправление и regression tests сохраняются вместе.
+      Own `daryadarcy-library-list-20261017` ed6fd6f7…4c843eb/65228 удалён после
+      exact ID/name/label/127.0.0.1/tmpfs768MiB/no mounts guards, SDK/API закрыты.
+      Чужие2 stopped containers/images/volumes сохранены. Настоящие S3/старые files/
+      working DB/frontend/design/flags/push/deploy не трогались; LB4 остаётся blocked.
 
 - [x] LB4 — по новому прямому разрешению17 октября проверить existing library
-  import/read/recovery с actual Timeweb S3, только новые synthetic файлы и own
-  fresh tmpfs backend_test. Старые files/working DB/frontend/design/policy writes/
-  runtime flags/push/deploy исключены. Второй principal по-прежнему отложен.
-  **Выполнено19 октября:** связь восстановилась, signed policy hash совпал,
-  versioning off. Новый opt-in `tests/library-files.s3.mysql.test.ts`:
-  **4/4 pass,0 skip,80.57s/exit0**, actual importer/fresh processes→SQL42→Timeweb
-  S3→Nest/JWT/loopback HTTP. Три материала/6 новых synthetic photo+document:
-  потеря настоящего PUT ACK и результата committed import, повтор/concurrent
-  replay без второго PUT/новых receipts, changed payload conflict. Direct
-  anonymous GET/HEAD/Range403; API byte-exact200/HEAD/206, inline/attachment,
-  no-store/nosniff, list без raw key/URL. Guest/unpaid/sessionVersion/block404,
-  moderator без paid row имеет service access; чужой rollback conflict,
-  own rollback идемпотентен/disabled без public fallback, replay409.
-  Финальные6 targets удалены с metadata/ETag/IfMatch guards и HEAD404, policy
-  unchanged. SDK/процессы/ключи в памяти закрыты; own tmpfs fixtures396788e6…/60852,
-  c941dc70…/61368,b3324ccb…/61908 удалены после exact ownership/storage/port checks;
-  чужие2 stopped containers сохранены. Рабочая/candidate БД, старые files,
-  frontend/design/flags/push/deploy не трогались; runtime-дефекта не выявлено.
-  Промежуточно: PATH не содержал Docker — guard отказал до DDL; test projection
-  id→assetId исправлен. Первый native3 pass/1 test-query fail; параллельный
-  повтор1 pass/3 fail после незавершённого импорта, точный SDK отказ не записан.
-  Его pending не публиковался, все own targets стали404; safe SDK diagnostics
-  добавлены без изменения timeout/retry/security. Изолированный финал выше PASS;
-  стабильность внешней сети/target-load этим не доказана.
-  Full Node22:2544 pass/1578 opt-in skips/200 suites pass/92 skipped/33.91s/exit0;
-  skips не S3 acceptance. Final types/code prettier/diff/docs check pass.
-  **Предыдущий блокер17 октября:** два SDK GetBucketPolicy preflight завершились
-  TimeoutError без HTTP status; независимый HTTPS HEAD к endpoint подтвердил TCP
-  connect≈0.003s, TLS не установлен за5s (`SSL connection timeout`,http000).
-  Это не ошибка авторизации/доказательство неверных ключей. Policy не прочитана,
-  PUT/DELETE не выполнялись, synthetic objects не создавались, старые keys/данные
-  не читались. Нельзя засчитывать LB3 loopback как actual S3 acceptance.
-  Own `daryadarcy-fresh-library-s3-20261017` 070f0fa4…71aa5c8/58689:
-  fresh initialization42/exit0/releaseApproval=false, без working configuration.
-  Контейнер удалён после exact ID/name/label/loopback/tmpfs768MiB/no mounts guards;
-  чужие2 stopped containers/images/volumes сохранены. SDK client закрыт,
-  предоставленные ранее ключи использовались лишь в памяти, не записаны в файлы.
-  Прежний network blocker снят результатом19 октября; новые bucket/ключи/
-  ослабление TLS/policy не понадобились. Далее только отдельно разрешённые
-  real sources/старые URL/frontend integration и release gates AG5/AG9.
+      import/read/recovery с actual Timeweb S3, только новые synthetic файлы и own
+      fresh tmpfs backend_test. Старые files/working DB/frontend/design/policy writes/
+      runtime flags/push/deploy исключены. Второй principal по-прежнему отложен.
+      **Выполнено19 октября:** связь восстановилась, signed policy hash совпал,
+      versioning off. Новый opt-in `tests/library-files.s3.mysql.test.ts`:
+      **4/4 pass,0 skip,80.57s/exit0**, actual importer/fresh processes→SQL42→Timeweb
+      S3→Nest/JWT/loopback HTTP. Три материала/6 новых synthetic photo+document:
+      потеря настоящего PUT ACK и результата committed import, повтор/concurrent
+      replay без второго PUT/новых receipts, changed payload conflict. Direct
+      anonymous GET/HEAD/Range403; API byte-exact200/HEAD/206, inline/attachment,
+      no-store/nosniff, list без raw key/URL. Guest/unpaid/sessionVersion/block404,
+      moderator без paid row имеет service access; чужой rollback conflict,
+      own rollback идемпотентен/disabled без public fallback, replay409.
+      Финальные6 targets удалены с metadata/ETag/IfMatch guards и HEAD404, policy
+      unchanged. SDK/процессы/ключи в памяти закрыты; own tmpfs fixtures396788e6…/60852,
+      c941dc70…/61368,b3324ccb…/61908 удалены после exact ownership/storage/port checks;
+      чужие2 stopped containers сохранены. Рабочая/candidate БД, старые files,
+      frontend/design/flags/push/deploy не трогались; runtime-дефекта не выявлено.
+      Промежуточно: PATH не содержал Docker — guard отказал до DDL; test projection
+      id→assetId исправлен. Первый native3 pass/1 test-query fail; параллельный
+      повтор1 pass/3 fail после незавершённого импорта, точный SDK отказ не записан.
+      Его pending не публиковался, все own targets стали404; safe SDK diagnostics
+      добавлены без изменения timeout/retry/security. Изолированный финал выше PASS;
+      стабильность внешней сети/target-load этим не доказана.
+      Full Node22:2544 pass/1578 opt-in skips/200 suites pass/92 skipped/33.91s/exit0;
+      skips не S3 acceptance. Final types/code prettier/diff/docs check pass.
+      **Предыдущий блокер17 октября:** два SDK GetBucketPolicy preflight завершились
+      TimeoutError без HTTP status; независимый HTTPS HEAD к endpoint подтвердил TCP
+      connect≈0.003s, TLS не установлен за5s (`SSL connection timeout`,http000).
+      Это не ошибка авторизации/доказательство неверных ключей. Policy не прочитана,
+      PUT/DELETE не выполнялись, synthetic objects не создавались, старые keys/данные
+      не читались. Нельзя засчитывать LB3 loopback как actual S3 acceptance.
+      Own `daryadarcy-fresh-library-s3-20261017` 070f0fa4…71aa5c8/58689:
+      fresh initialization42/exit0/releaseApproval=false, без working configuration.
+      Контейнер удалён после exact ID/name/label/loopback/tmpfs768MiB/no mounts guards;
+      чужие2 stopped containers/images/volumes сохранены. SDK client закрыт,
+      предоставленные ранее ключи использовались лишь в памяти, не записаны в файлы.
+      Прежний network blocker снят результатом19 октября; новые bucket/ключи/
+      ослабление TLS/policy не понадобились. Далее только отдельно разрешённые
+      real sources/старые URL/frontend integration и release gates AG5/AG9.
 
 - [x] AG5/LB — независимая локальная репетиция backup/restore с новой0041.
-  По «давай дальше пока»17 октября актуализирован existing native backup test:
-  synthetic library binding/ready receipt и pending receipt/import intent,
-  JSON snapshots/reserved IDs и Unicode filename. Причина повтора — прежний
-  native restore был на41 migrations, а после LB появились2 таблицы и enum values.
-  Production backup→actual mysqldump8.4→gzip→native mysql restore в другую own
-  пустую БД: **7/7 pass,0 skip,4.42s**, обе42-migration schema/history проверены.
-  Сравнены hashes содержимого всех таблиц и точный SHOW CREATE TABLE: InnoDB,
-  collations/generated fields/indexes/auto increments. Отдельно проверены live
-  binding→ready receipt, pending без parent/ETag, committed/pending journals и
-  уникальность slot/asset/requestKey после restore. Файл0600/каталог0700,
-  partial artifacts отсутствуют; nonempty target отказывает без изменения данных.
-  Это metadata/DB restore, не проверка файлов S3/выпуска. Runtime не менялся,
-  новых функций/deps нет; existing backup transport test adapter сохранён.
-  Root types/prettier/boundaries685/diff exit0, review test/ownership/no-network.
-  S3 env в isolated runner отсутствует и явно выключен; flags/mail/payment/
-  frontend/design/working DB/старые files/push/deploy не трогались.
-  Own `daryadarcy-fresh-backup-library-source-20261017`52e9fed1…9ea11f/64106 и
-  `daryadarcy-fresh-backup-library-target-20261017`4f7d5478…21da3e/64107 удалены
-  после exact ID/name/label/loopback/tmpfs768MiB/no mounts guards. Temp archive/
-  adapter удалены самим тестом; чужие2 stopped containers/images/volumes сохранены.
-  LB4 actual S3 остаётся blocked/не PASS. Исторические пустые галочки ниже не
-  возобновлять как новые задачи; оставшиеся AG5/AG9 требуют external inputs/решений.
+      По «давай дальше пока»17 октября актуализирован existing native backup test:
+      synthetic library binding/ready receipt и pending receipt/import intent,
+      JSON snapshots/reserved IDs и Unicode filename. Причина повтора — прежний
+      native restore был на41 migrations, а после LB появились2 таблицы и enum values.
+      Production backup→actual mysqldump8.4→gzip→native mysql restore в другую own
+      пустую БД: **7/7 pass,0 skip,4.42s**, обе42-migration schema/history проверены.
+      Сравнены hashes содержимого всех таблиц и точный SHOW CREATE TABLE: InnoDB,
+      collations/generated fields/indexes/auto increments. Отдельно проверены live
+      binding→ready receipt, pending без parent/ETag, committed/pending journals и
+      уникальность slot/asset/requestKey после restore. Файл0600/каталог0700,
+      partial artifacts отсутствуют; nonempty target отказывает без изменения данных.
+      Это metadata/DB restore, не проверка файлов S3/выпуска. Runtime не менялся,
+      новых функций/deps нет; existing backup transport test adapter сохранён.
+      Root types/prettier/boundaries685/diff exit0, review test/ownership/no-network.
+      S3 env в isolated runner отсутствует и явно выключен; flags/mail/payment/
+      frontend/design/working DB/старые files/push/deploy не трогались.
+      Own `daryadarcy-fresh-backup-library-source-20261017`52e9fed1…9ea11f/64106 и
+      `daryadarcy-fresh-backup-library-target-20261017`4f7d5478…21da3e/64107 удалены
+      после exact ID/name/label/loopback/tmpfs768MiB/no mounts guards. Temp archive/
+      adapter удалены самим тестом; чужие2 stopped containers/images/volumes сохранены.
+      LB4 actual S3 остаётся blocked/не PASS. Исторические пустые галочки ниже не
+      возобновлять как новые задачи; оставшиеся AG5/AG9 требуют external inputs/решений.
 
 - [x] LB1 — add-only schema, default-off list/read routes и live club/session
-  checks; сначала native HTTP RED, затем GREEN. Existing streaming/Range reuse.
-  RED404→GREEN; display-order RED→GREEN. Native5 library +21 existing content
-  checks=26 pass/2 suites/5.07s, skips0. Fixture SQL0041, не fresh acceptance.
-  Unit7/2 suites pass; root types/backend build/boundaries683/docs58/diff exit0.
-  No frontend/working/S3 changes. Existing content suite logs missing fixture
-  push-consent table, transport credentials отсутствуют; внешних push нет.
-  Review: новый parent library требует live binding+asset match; old UUID read
-  тоже закрыт при disabled binding/flag, list source-free/keyset bounded.
+      checks; сначала native HTTP RED, затем GREEN. Existing streaming/Range reuse.
+      RED404→GREEN; display-order RED→GREEN. Native5 library +21 existing content
+      checks=26 pass/2 suites/5.07s, skips0. Fixture SQL0041, не fresh acceptance.
+      Unit7/2 suites pass; root types/backend build/boundaries683/docs58/diff exit0.
+      No frontend/working/S3 changes. Existing content suite logs missing fixture
+      push-consent table, transport credentials отсутствуют; внешних push нет.
+      Review: новый parent library требует live binding+asset match; old UUID read
+      тоже закрыт при disabled binding/flag, list source-free/keyset bounded.
 - [x] LB2 — keyed migration manifest/intent до копирования, exact byte import,
-  atomic binding revision CAS, recovery без дублей и rollback закрытой версии.
-  Pure manifest RED→3 GREEN; type-contract RED→GREEN обнаружил/устранил accidental
-  library usage widening в editor receipts: check:api86/32048 bytes unchanged,
-  frontend не менялся. Native importer RED4→GREEN; MyISAM preflight RED→GREEN.
-  Финальный focused run:4 pure/type +5 read +8 import/rehearsal +21 existing
-  private-content =38 pass/4 suites/8.52s/skip0. Native JWT/Nest/MySQL/SDK wire,
-  не actual S3. Root types/backend bundle exit0. Dry-run limits и функции — SPEC.
-  Review: live admin epoch/role/block, full unique keys+InnoDB, short SQL locks,
-  conditional PUT без overwrite, durable UUID/hash, same-material atomic CAS,
-  retained private versions/guarded rollback, нет HTTP upload/URL fetch/новых deps.
+      atomic binding revision CAS, recovery без дублей и rollback закрытой версии.
+      Pure manifest RED→3 GREEN; type-contract RED→GREEN обнаружил/устранил accidental
+      library usage widening в editor receipts: check:api86/32048 bytes unchanged,
+      frontend не менялся. Native importer RED4→GREEN; MyISAM preflight RED→GREEN.
+      Финальный focused run:4 pure/type +5 read +8 import/rehearsal +21 existing
+      private-content =38 pass/4 suites/8.52s/skip0. Native JWT/Nest/MySQL/SDK wire,
+      не actual S3. Root types/backend bundle exit0. Dry-run limits и функции — SPEC.
+      Review: live admin epoch/role/block, full unique keys+InnoDB, short SQL locks,
+      conditional PUT без overwrite, durable UUID/hash, same-material atomic CAS,
+      retained private versions/guarded rollback, нет HTTP upload/URL fetch/новых deps.
 - [x] LB3 —6 synthetic files/own tmpfs backend_test/loopback storage: потеря
-  ответов, restart/retry, откат, права и public controls. Никаких real S3/working
-  DB/старых files/frontend/design/push/deploy. Проверки и коммиты записывать здесь.
+      ответов, restart/retry, откат, права и public controls. Никаких real S3/working
+      DB/старых files/frontend/design/push/deploy. Проверки и коммиты записывать здесь.
   - Полная synthetic репетиция:2 TXT placeholders (recipes/peterburg) и4 real
     lossless WebP (holly/sock/star/apple); dry-run без DB/SDK effects, bytes/hash
     через stable Nest GET совпали. Это не проверка состава настоящей папки Петербурга.
@@ -946,24 +983,24 @@
 ### Сверка всего первого этапа — 17 октября
 
 - [x] AG9-TZ — повторно сопоставить сохранённое ТЗ§2.1/4.1–4.16 с current
-  frontend/backend и последними результатами. Матрица/команды/границы:
-  [существующий аудит](../docs/audits/frontend-stage-one-scope-2026-10-03.md).
-  Native HTTP/JWT/own fixture SQL:305/12 suites/17.81s +44/3 suites/3.28s;
-  client25 suites/372 pass, включая5 actual Chromium component checks с
-  контролируемыми API replies. Все exit0/skip0; суммарно721, не полный
-  production E2E. Client elapsed915.06s/import912.98s не performance evidence.
-  Нового runtime дефекта не выявлено; приложения/дизайн/контракты не менялись.
-  Собственный `daryadarcy-tz-audit-20261016` c3acd2a5…e149a23/52310 удалён
-  после exact ID/name/label/loopback/tmpfs768MiB/no persistent mounts проверки;
-  чужие containers2 сохранены. S3/working DB/SMTP outside loopback/provider
-  payments/flags/push/deploy не трогались. Docs check58/exit0, diff check/exit0;
-  review: доказательства разделены на native/component/исторические, новых
-  функций/dependencies/runtime changes нет, весь этап не объявлен закрытым.
+      frontend/backend и последними результатами. Матрица/команды/границы:
+      [существующий аудит](../docs/audits/frontend-stage-one-scope-2026-10-03.md).
+      Native HTTP/JWT/own fixture SQL:305/12 suites/17.81s +44/3 suites/3.28s;
+      client25 suites/372 pass, включая5 actual Chromium component checks с
+      контролируемыми API replies. Все exit0/skip0; суммарно721, не полный
+      production E2E. Client elapsed915.06s/import912.98s не performance evidence.
+      Нового runtime дефекта не выявлено; приложения/дизайн/контракты не менялись.
+      Собственный `daryadarcy-tz-audit-20261016` c3acd2a5…e149a23/52310 удалён
+      после exact ID/name/label/loopback/tmpfs768MiB/no persistent mounts проверки;
+      чужие containers2 сохранены. S3/working DB/SMTP outside loopback/provider
+      payments/flags/push/deploy не трогались. Docs check58/exit0, diff check/exit0;
+      review: доказательства разделены на native/component/исторические, новых
+      функций/dependencies/runtime changes нет, весь этап не объявлен закрытым.
 - [ ] Полная приёмка этапа — **не закрыта**. Новые закрытые файлы проверены
-  ранее в FE/CF/VU; старые club Yandex URLs/встроенные assets не подключены к
-  закрытому read API и требуют отдельного решения, не массового переноса. Далее
-  внешние AG5/AG9: fresh target/release/backup/flags, mail/payment/VK, реальные
-  даты/assets/contact, physical devices/target load/pilot. Это не новые функции.
+      ранее в FE/CF/VU; старые club Yandex URLs/встроенные assets не подключены к
+      закрытому read API и требуют отдельного решения, не массового переноса. Далее
+      внешние AG5/AG9: fresh target/release/backup/flags, mail/payment/VK, реальные
+      даты/assets/contact, physical devices/target load/pilot. Это не новые функции.
 - По прямому решению пользователя второй S3 principal **отложен/не проверен**;
   не запрашивать новую учётку как блокер. Ранние строки «не предоставлен» ниже
   сохраняют историю и не отменяют это уточнение. Mobile по-прежнему отложен.
@@ -971,14 +1008,14 @@
 ### Проверенный остаток на 16 октября
 
 - [x] AG9-VU5 — по новому прямому разрешению пользователя возобновить только
-  локальную браузерную проверку видео. Оба existing редактора: потеря upload/
-  create ответа и document reload с File/key/status-first/no duplicate; смена
-  аккаунта во время upload/status и возврат исходного владельца; actual API/SQL/S3,
-  live read/revoke/explicit removal. Own fresh41 loopback/tmpfs backend_test,
-  новые synthetic video/poster, existing isolated Next/Chromium/fault proxy.
-  Дизайн/working DB/старые S3/рабочие flags/push/deploy исключены; mobile отложен.
-  Файлы среза: отдельный opt-in native browser test/existing proxy helper/tests;
-  runtime только после подтверждённого RED.
+      локальную браузерную проверку видео. Оба existing редактора: потеря upload/
+      create ответа и document reload с File/key/status-first/no duplicate; смена
+      аккаунта во время upload/status и возврат исходного владельца; actual API/SQL/S3,
+      live read/revoke/explicit removal. Own fresh41 loopback/tmpfs backend_test,
+      новые synthetic video/poster, existing isolated Next/Chromium/fault proxy.
+      Дизайн/working DB/старые S3/рабочие flags/push/deploy исключены; mobile отложен.
+      Файлы среза: отдельный opt-in native browser test/existing proxy helper/tests;
+      runtime только после подтверждённого RED.
   - **Завершено16 октября:** финальный единый native browser прогон **6/6 pass,
     0 skip/0 fail,99.09s**. Оба existing редактора→Chromium/File/native IndexedDB
     document reload→Next rewrite/fault proxy→Nest/JWT→own fresh41 tmpfs SQL→Timeweb
@@ -1066,465 +1103,465 @@
     preflight; после места — новая own fresh41 DB и незавершённая browser matrix.
 
 - [x] AG9 — актуализировать существующий пакет передачи после VU (`0e8da4b`),
-  сверить активные статусы с принятыми FE/CF/VU результатами. Local integration
-  больше не числится невыполненной; browser/mobile отложены. Для fresh-only пути
-  не требовать историю старой БД; working rollout/provider/mail/целевой load/pilot,
-  второй валидный S3 principal и решение по старым URL остаются внешними gates.
-  Исторические результаты не повторялись и не пересчитаны в новую приёмку.
-  Проверка: `pnpm check:docs` —58 документов/exit0; `git diff --check` —exit0.
-  Review сверил итоговый diff с FE/CF/VU evidence; изменены только3 существующих
-  документа. Runtime suites/build без изменения кода не повторялись. Runtime/
-  design/DB/S3/push/deploy не меняются.
-  Следующий AG-ID: AG5/AG9 только после соответствующего внешнего входа/решения;
-  независимого незавершённого программного пункта при текущих ограничениях нет.
+      сверить активные статусы с принятыми FE/CF/VU результатами. Local integration
+      больше не числится невыполненной; browser/mobile отложены. Для fresh-only пути
+      не требовать историю старой БД; working rollout/provider/mail/целевой load/pilot,
+      второй валидный S3 principal и решение по старым URL остаются внешними gates.
+      Исторические результаты не повторялись и не пересчитаны в новую приёмку.
+      Проверка: `pnpm check:docs` —58 документов/exit0; `git diff --check` —exit0.
+      Review сверил итоговый diff с FE/CF/VU evidence; изменены только3 существующих
+      документа. Runtime suites/build без изменения кода не повторялись. Runtime/
+      design/DB/S3/push/deploy не меняются.
+      Следующий AG-ID: AG5/AG9 только после соответствующего внешнего входа/решения;
+      независимого незавершённого программного пункта при текущих ограничениях нет.
 
 - [x] VU — принятый16 октября private raw video contract в SPEC-private-files.md;
-  локальная реализация/API/SQL/S3, НЕ rollout или browser/device acceptance.
+      локальная реализация/API/SQL/S3, НЕ rollout или browser/device acceptance.
   - [x] VU1: additive video receipt migration,80MiB binary admin endpoint,
-    actor-scoped status/recovery, signature/MIME/SDK wire RED/GREEN.
-    RED16 endpoint404 → GREEN16; дополнительный metadata ambiguity RED1→GREEN21,
-    включая session revocation во время streaming body. Affected **110/110**,
-    5 suites8.57s: private video21 + прежние audio/document/raw/parser/migration
-    regressions. Реальные Nest/JWT/SQL/AWS SDK и loopback wire, НЕ Timeweb ACL.
-    Fresh40 migration/ORM/HTTP **9/9**,3.54s, отдельная пустая own tmpfs БД;
-    старые0017–0019/history не изменялись. Full **2444 pass/1537 opt-in skips/0 fail**,
-    JSON27.55s. Root/frontend/E2E types, backend583.9kb, API86/31732bytes,
-    boundaries678/docs58/diff pass. Server path default-off через новый
-    PRIVATE_POST_VIDEO_UPLOAD_ENABLED вместе с existing media upload flag;
-    Content prefix policy read-only, same actor/key namespace/hash/ETag/no overwrite.
-    Five-axis review: legacy upload и32MiB audio/doc unchanged, unknown storage
-    outcome остаётся pending, safe errors/no secrets, no new dependencies.
-    Клиент/poster/explicit removal ещё НЕ готовы; UI runtime не менялся.
+        actor-scoped status/recovery, signature/MIME/SDK wire RED/GREEN.
+        RED16 endpoint404 → GREEN16; дополнительный metadata ambiguity RED1→GREEN21,
+        включая session revocation во время streaming body. Affected **110/110**,
+        5 suites8.57s: private video21 + прежние audio/document/raw/parser/migration
+        regressions. Реальные Nest/JWT/SQL/AWS SDK и loopback wire, НЕ Timeweb ACL.
+        Fresh40 migration/ORM/HTTP **9/9**,3.54s, отдельная пустая own tmpfs БД;
+        старые0017–0019/history не изменялись. Full **2444 pass/1537 opt-in skips/0 fail**,
+        JSON27.55s. Root/frontend/E2E types, backend583.9kb, API86/31732bytes,
+        boundaries678/docs58/diff pass. Server path default-off через новый
+        PRIVATE_POST_VIDEO_UPLOAD_ENABLED вместе с existing media upload flag;
+        Content prefix policy read-only, same actor/key namespace/hash/ETag/no overwrite.
+        Five-axis review: legacy upload и32MiB audio/doc unchanged, unknown storage
+        outcome остаётся pending, safe errors/no secrets, no new dependencies.
+        Клиент/poster/explicit removal ещё НЕ готовы; UI runtime не менялся.
   - [x] VU2: canonical association/live delivery/explicit removal и private poster;
-    legacy videos[]/VK/старые URL сохраняются.
+        legacy videos[]/VK/старые URL сохраняются.
     - [x] VU2a: native RED5→GREEN26, затем legacy removal/no-storage regression
-      RED500→GREEN400. Сохранение videos[] больше не удаляет canonical private
-      video неявно; explicit removedMediaIds проверяет same-post ready receipt,
-      не удаляет legacy video этим путём. Reserved app/S3 URL нельзя вставить как
-      новое legacy video без asset receipt. Existing VK/old IDs/order сохраняются.
-      Create replay даёт1 post/media; draft/club unpaid/expiry закрыты до S3;
-      paid GET/HEAD/Range206 точные bytes/MIME/no-store; explicit removal закрывает
-      read и late rebind409. Финальные affected **64/64**,7.29s, включая previous
-      audio/document removal/retention; ранее reconciliation52/52 и affected89/89.
-      Full2444 pass/1543 opt-in skips/0 fail,25.76s; root types и backend585.5kb/
-      diff pass. Loopback wire, не actual S3/browser.
-      Docker build-cache prune342.6MB; before/after image6/volume12/container4
-      identities unchanged. Свободно2.5GiB; чужие образы/БД не удалялись.
+          RED500→GREEN400. Сохранение videos[] больше не удаляет canonical private
+          video неявно; explicit removedMediaIds проверяет same-post ready receipt,
+          не удаляет legacy video этим путём. Reserved app/S3 URL нельзя вставить как
+          новое legacy video без asset receipt. Existing VK/old IDs/order сохраняются.
+          Create replay даёт1 post/media; draft/club unpaid/expiry закрыты до S3;
+          paid GET/HEAD/Range206 точные bytes/MIME/no-store; explicit removal закрывает
+          read и late rebind409. Финальные affected **64/64**,7.29s, включая previous
+          audio/document removal/retention; ранее reconciliation52/52 и affected89/89.
+          Full2444 pass/1543 opt-in skips/0 fail,25.76s; root types и backend585.5kb/
+          diff pass. Loopback wire, не actual S3/browser.
+          Docker build-cache prune342.6MB; before/after image6/volume12/container4
+          identities unchanged. Свободно2.5GiB; чужие образы/БД не удалялись.
     - [x] VU2b: явная связь с private postPhoto постером, live read/retirement.
-      RED4 ignored mapping→GREEN4; video category RED1→GREEN, additional replace/
-      exact retry/reject retired poster coverage —5/5. Nullable post_media.posterUrl
-      и additive0040, optional privateVideoPosters[{videoAssetId,posterAssetId}].
-      Gallery+poster reference set связывается/retire атомарно, без public upload,
-      basename guessing или правки старых rows. Club guest denied до S3, staff
-      HEAD200, public GET image/webp/no-store; unrelated edit сохраняетposter,
-      removal закрываетread, replacement сохраняетgallery и не воскрешаетretired.
-      Native affected **178 pass/7 opt-in skips/0 fail**,8 suites32.03s; actual
-      HTTP/JWT/SQL/SDK/loopback object wire, НЕ provider/browser acceptance.
-      Full2444 pass/1548 opt-in skips/0 fail,36.90s. Initial7 full failures были
-      positional SQL fixture без нового nullable поля; добавлен literal NULL,
-      runtime не ослаблен. Root/frontend/E2E types, API86/32048bytes, backend588.6kb,
-      boundaries678/docs58/diff pass. Five-axis review: actor/post/asset locks,
-      same create hash includes mapping, privatePhoto usage/owner проверяется
-      внутри save tx, no role/CSS/quota/working flag changes/dependencies.
-      Fresh41/ORM/native HTTP **9/9** на отдельной пустой own tmpfs DB.
-      Own fixture1b55c09e… и fresha3c342a9… удалены после exact ownership/loopback/
-      tmpfs/no-volume guards; SDK wire objects были только в памяти fixture.
-      Actual S3/working DB/старые файлы не затрагивались. Далее VU3.
+          RED4 ignored mapping→GREEN4; video category RED1→GREEN, additional replace/
+          exact retry/reject retired poster coverage —5/5. Nullable post_media.posterUrl
+          и additive0040, optional privateVideoPosters[{videoAssetId,posterAssetId}].
+          Gallery+poster reference set связывается/retire атомарно, без public upload,
+          basename guessing или правки старых rows. Club guest denied до S3, staff
+          HEAD200, public GET image/webp/no-store; unrelated edit сохраняетposter,
+          removal закрываетread, replacement сохраняетgallery и не воскрешаетretired.
+          Native affected **178 pass/7 opt-in skips/0 fail**,8 suites32.03s; actual
+          HTTP/JWT/SQL/SDK/loopback object wire, НЕ provider/browser acceptance.
+          Full2444 pass/1548 opt-in skips/0 fail,36.90s. Initial7 full failures были
+          positional SQL fixture без нового nullable поля; добавлен literal NULL,
+          runtime не ослаблен. Root/frontend/E2E types, API86/32048bytes, backend588.6kb,
+          boundaries678/docs58/diff pass. Five-axis review: actor/post/asset locks,
+          same create hash includes mapping, privatePhoto usage/owner проверяется
+          внутри save tx, no role/CSS/quota/working flag changes/dependencies.
+          Fresh41/ORM/native HTTP **9/9** на отдельной пустой own tmpfs DB.
+          Own fixture1b55c09e… и fresha3c342a9… удалены после exact ownership/loopback/
+          tmpfs/no-volume guards; SDK wire objects были только в памяти fixture.
+          Actual S3/working DB/старые файлы не затрагивались. Далее VU3.
   - [x] VU3: durable File/key до network, status-first recovery и оба existing
-    редактора без изменения дизайна; unit/type/build проверки.
+        редактора без изменения дизайна; unit/type/build проверки.
     - [x] VU3a: typed video receipt/80MiB policy и existing save coordinator:
-      private raw transport boundary, original File/key checkpoint before dispatch,
-      status-first ready/pending/notRecorded, no public fallback/local URL write,
-      private poster mapping и frozen create/existing unknown-update guards.
-      RED13 meaningful failures (1 existing storage guard already passed)→GREEN14;
-      additional poster/create ACK/update/removal coverage —18 video cases,
-      affected **72/72** with existing attachments/photos. Late upload/status
-      responses after actor change ignored, pending/invalid receipt blocks publish.
-      Full **2462 pass/1548 opt-in skips/0 fail**,72.80s(maxWorkers2); root/frontend/
-      E2E types/full lint pass. Production webpack29/29, compile9.6s/types3.0s,
-      clean env/API target127.0.0.1:1/no frontend .env* inputs except example.
-      API/checkpoint synthetic, File bytes настоящие Node; это НЕ IndexedDB/reload/
-      UI/API/S3 acceptance. Runtime редакторов ещё legacy video; флаги не включены.
-      Docker build cache fully pruned:342.6MB+2.721GB logical, builder du0B;
-      images6/volumes12/foreign containers3 preserved. Host free3.6GiB then3.2GiB.
+          private raw transport boundary, original File/key checkpoint before dispatch,
+          status-first ready/pending/notRecorded, no public fallback/local URL write,
+          private poster mapping и frozen create/existing unknown-update guards.
+          RED13 meaningful failures (1 existing storage guard already passed)→GREEN14;
+          additional poster/create ACK/update/removal coverage —18 video cases,
+          affected **72/72** with existing attachments/photos. Late upload/status
+          responses after actor change ignored, pending/invalid receipt blocks publish.
+          Full **2462 pass/1548 opt-in skips/0 fail**,72.80s(maxWorkers2); root/frontend/
+          E2E types/full lint pass. Production webpack29/29, compile9.6s/types3.0s,
+          clean env/API target127.0.0.1:1/no frontend .env\* inputs except example.
+          API/checkpoint synthetic, File bytes настоящие Node; это НЕ IndexedDB/reload/
+          UI/API/S3 acceptance. Runtime редакторов ещё legacy video; флаги не включены.
+          Docker build cache fully pruned:342.6MB+2.721GB logical, builder du0B;
+          images6/volumes12/foreign containers3 preserved. Host free3.6GiB then3.2GiB.
     - [x] VU3b: pack/restore video+poster ArrayBuffer в existing owner journal,
-      alias/revision/validation guards; browser/mobile остаются отложенными.
-      RED4 missing video codec →3 GREEN/1 corrupt receipt RED→4 GREEN;
-      stale editor/upload alias RED1→GREEN7 total. Exact bytes/name/type/mtime/
-      keys и editor/coordinator aliases restored, old records without video read,
-      corrupt receipt/owner switch before/after I/O/stale revision refused.
-      Journal write validates video ownership/aliases before bytes/network, not
-      only on later load. Same version2 optional fields, no new DB/store/migration.
-      Real Node File/ArrayBuffer/structuredClone and transaction transport double
-      refusing Blob/File; НЕ native IndexedDB transaction scheduling/reload.
-      Affected35/35; full **2469 pass/1548 opt-in skips/0 fail**,41.30s.
-      Root/frontend/E2E types/full lint pass; isolated production29/29,
-      compile5.0s/types3.9s. User-deferred browser/mobile НЕ запускались.
+          alias/revision/validation guards; browser/mobile остаются отложенными.
+          RED4 missing video codec →3 GREEN/1 corrupt receipt RED→4 GREEN;
+          stale editor/upload alias RED1→GREEN7 total. Exact bytes/name/type/mtime/
+          keys и editor/coordinator aliases restored, old records without video read,
+          corrupt receipt/owner switch before/after I/O/stale revision refused.
+          Journal write validates video ownership/aliases before bytes/network, not
+          only on later load. Same version2 optional fields, no new DB/store/migration.
+          Real Node File/ArrayBuffer/structuredClone and transaction transport double
+          refusing Blob/File; НЕ native IndexedDB transaction scheduling/reload.
+          Affected35/35; full **2469 pass/1548 opt-in skips/0 fail**,41.30s.
+          Root/frontend/E2E types/full lint pass; isolated production29/29,
+          compile5.0s/types3.9s. User-deferred browser/mobile НЕ запускались.
     - [x] VU3c: private binary HTTP transport + оба existing editors, без CSS/layout.
-      Raw File/key/credentials/no-store, no public URL/retry; transport RED8→GREEN12.
-      Original File и optional private poster выбираются локально; full сохраняет
-      прежний автопостер/preview, quick прежний выбор без автопостера. Selection
-      RED7→GREEN8 (1 existing invalid-source rejection already passed), включая
-      late poster success/error после account switch. UI snapshot/restore/save
-      используют VU3b до dispatch; account-keyed editor bodies сбрасывают весь
-      File/coordinator state при смене actor. Canonical video removal добавляет
-      explicit removedMediaIds; legacy/VK reconciliation unchanged. Preview URLs
-      отзываются при remove/close/unmount; File aliases остаются до следующего save
-      selection, чтобы idle recovered journal не терял attempted intent (8 storage
-      checks total). Affected **161/161**, full **2490 pass/1548 opt-in skips/0 fail**,
-      JSON49.50s. Root/frontend/E2E types/full lint/API86/32048bytes/boundaries681
-      pass; clean-env production29/29, compile3.9s/types4.6s. Five-axis review:
-      bytes only via accepted private endpoint, no public fallback or secret files,
-      shared coordinator/journal reused, optional poster failure retains original,
-      no new dependencies/styles/layout/working flags. File/fetch/codec/storage
-      boundaries synthetic, НЕ native UI/IndexedDB/S3 acceptance; browser/mobile
-      по-прежнему отложены. VU3d и VU4 ещё не закрыты.
+          Raw File/key/credentials/no-store, no public URL/retry; transport RED8→GREEN12.
+          Original File и optional private poster выбираются локально; full сохраняет
+          прежний автопостер/preview, quick прежний выбор без автопостера. Selection
+          RED7→GREEN8 (1 existing invalid-source rejection already passed), включая
+          late poster success/error после account switch. UI snapshot/restore/save
+          используют VU3b до dispatch; account-keyed editor bodies сбрасывают весь
+          File/coordinator state при смене actor. Canonical video removal добавляет
+          explicit removedMediaIds; legacy/VK reconciliation unchanged. Preview URLs
+          отзываются при remove/close/unmount; File aliases остаются до следующего save
+          selection, чтобы idle recovered journal не терял attempted intent (8 storage
+          checks total). Affected **161/161**, full **2490 pass/1548 opt-in skips/0 fail**,
+          JSON49.50s. Root/frontend/E2E types/full lint/API86/32048bytes/boundaries681
+          pass; clean-env production29/29, compile3.9s/types4.6s. Five-axis review:
+          bytes only via accepted private endpoint, no public fallback or secret files,
+          shared coordinator/journal reused, optional poster failure retains original,
+          no new dependencies/styles/layout/working flags. File/fetch/codec/storage
+          boundaries synthetic, НЕ native UI/IndexedDB/S3 acceptance; browser/mobile
+          по-прежнему отложены. VU3d и VU4 ещё не закрыты.
     - [x] VU3d: existing media consumers берут explicit poster, не крадут gallery.
-      RED6→GREEN9 pure/actual React SSR checks: canonical private video с optional
-      poster сохраняет весь photos[], без poster не заимствует первую фотографию;
-      legacy thumb/fallback прежние. Feed card/club/detail/shared player получают
-      nullable posterUrl, каждый player использует свой poster, не соседний.
-      CSS/layout/components прежние. Full **2499 pass/1548 opt-in skips/0 fail**,
-      JSON47.30s; types/root+frontend+E2E/full lint/boundaries681/diff pass,
-      isolated production29/29, compile5.5s/types2.1s. SSR не доказывает browser
-      playback/codec/hydration; browser/mobile отложены. Five-axis review: только
-      metadata selection, no access/storage/URL migration or new dependencies.
+          RED6→GREEN9 pure/actual React SSR checks: canonical private video с optional
+          poster сохраняет весь photos[], без poster не заимствует первую фотографию;
+          legacy thumb/fallback прежние. Feed card/club/detail/shared player получают
+          nullable posterUrl, каждый player использует свой poster, не соседний.
+          CSS/layout/components прежние. Full **2499 pass/1548 opt-in skips/0 fail**,
+          JSON47.30s; types/root+frontend+E2E/full lint/boundaries681/diff pass,
+          isolated production29/29, compile5.5s/types2.1s. SSR не доказывает browser
+          playback/codec/hydration; browser/mobile отложены. Five-axis review: только
+          metadata selection, no access/storage/URL migration or new dependencies.
   - [x] VU4: own disposable API/SQL/S3 acceptance; browser/mobile отложены.
-    **3/3 native pass**,35.77s (tests34.86s): actual frontend binary transport/
-    save coordinator → native HTTP/JWT → own fresh41 SQL → Timeweb S3.
-    Upload ACK потерян после реального200, API перезапущен; status-first берёт
-    прежний video asset без repeat PUT, optional poster получает1 PUT. Lost post
-    ACK → второй API restart → frozen create replay оставляет1 post/1 creation
-    intent/1 video link, sum2 PUT. Original bytes/MIME/HEAD length/Range206 и
-    private,no-store для video/WebP poster; anonymous direct S3 GET/HEAD403.
-    Draft/guest/expired paid/blocked/revoked session закрывают video+poster до S3;
-    explicit removal убирает link, retire poster, read404 и late rebind409.
-    Actual delayed upload/status responses после A→B не принимаются coordinator,
-    B statusnotRecorded, A ready; посты/привязки не появляются. Fetch обёрнут
-    только для loopback session cookie/задержки уже настоящего ответа; public
-    upload запрещён. FileReader заменён реальным File.arrayBuffer, journal
-    transaction double — это НЕ browser reload/IndexedDB scheduling/playback.
-    Read-only preflight подтвердил прежний policy SHA2560484dfa2…1715e8,
-    unversioned bucket. Первичная curl проба timeout5s/HTTP000, последующая clean
-    IPv4 HTTPS200 и signed preflight прошли; TLS/preflight не обходились.
-    Final SQL:41 migrations/1 post/1 create intent/3 ready videos/1 ready poster,
-    retired poster1, media after explicit removal0, duplicate assets0.
-    Все4 own synthetic objects удалены с filename/UUID/metadata/hash/size/MIME/
-    ETag guards и HEAD404; policy unchanged. Own DB f52cb431dd32…ec605,
-    daryadarcy-fresh-video-api-20261016-vu4, loopback61534/tmpfs768MiB/no mounts
-    удалена только после S3 cleanup и повторных exact ID/name/owner/port/mount
-    guards. API children/temp compiled dirs убраны; foreign containers preserved.
-    Credentials только в памяти isolated runner/children, не файлы/Git/CLI args.
-    Final clean-env full **2499 pass/1551 opt-in skips/0 fail**, JSON45.53s;
-    новые3 provider cases пропущены в обычном full и отдельно реально пройдены
-    выше, skip не засчитан как acceptance. Root tsc/API86/boundaries681/docs58/
-    Prettier/diff pass. Frontend types/lint/production29/29 из VU3d остаются
-    актуальны: runtime после них не менялся. Five-axis review: default-off в
-    existing isolated process helper, explicit fresh/container/policy/versioning
-    gates before mutations, own ledger cleanup only, no new dependencies/schema.
-    Рабочая DB/старые S3/дизайн/policy writes/рабочие flags/push/deploy исключены.
-  Docker16 октября перезапущен по прямому разрешению, _ping=OK, free3.5GiB.
-  Чужие контейнеры сохранены (diplom-postgres остановлен перезапуском), вручную
-  не запускались. Образы/volumes не удалялись; зависший старый cache prune
-  не был выполнен, удаление кэша этим перезапуском не утверждается.
+        **3/3 native pass**,35.77s (tests34.86s): actual frontend binary transport/
+        save coordinator → native HTTP/JWT → own fresh41 SQL → Timeweb S3.
+        Upload ACK потерян после реального200, API перезапущен; status-first берёт
+        прежний video asset без repeat PUT, optional poster получает1 PUT. Lost post
+        ACK → второй API restart → frozen create replay оставляет1 post/1 creation
+        intent/1 video link, sum2 PUT. Original bytes/MIME/HEAD length/Range206 и
+        private,no-store для video/WebP poster; anonymous direct S3 GET/HEAD403.
+        Draft/guest/expired paid/blocked/revoked session закрывают video+poster до S3;
+        explicit removal убирает link, retire poster, read404 и late rebind409.
+        Actual delayed upload/status responses после A→B не принимаются coordinator,
+        B statusnotRecorded, A ready; посты/привязки не появляются. Fetch обёрнут
+        только для loopback session cookie/задержки уже настоящего ответа; public
+        upload запрещён. FileReader заменён реальным File.arrayBuffer, journal
+        transaction double — это НЕ browser reload/IndexedDB scheduling/playback.
+        Read-only preflight подтвердил прежний policy SHA2560484dfa2…1715e8,
+        unversioned bucket. Первичная curl проба timeout5s/HTTP000, последующая clean
+        IPv4 HTTPS200 и signed preflight прошли; TLS/preflight не обходились.
+        Final SQL:41 migrations/1 post/1 create intent/3 ready videos/1 ready poster,
+        retired poster1, media after explicit removal0, duplicate assets0.
+        Все4 own synthetic objects удалены с filename/UUID/metadata/hash/size/MIME/
+        ETag guards и HEAD404; policy unchanged. Own DB f52cb431dd32…ec605,
+        daryadarcy-fresh-video-api-20261016-vu4, loopback61534/tmpfs768MiB/no mounts
+        удалена только после S3 cleanup и повторных exact ID/name/owner/port/mount
+        guards. API children/temp compiled dirs убраны; foreign containers preserved.
+        Credentials только в памяти isolated runner/children, не файлы/Git/CLI args.
+        Final clean-env full **2499 pass/1551 opt-in skips/0 fail**, JSON45.53s;
+        новые3 provider cases пропущены в обычном full и отдельно реально пройдены
+        выше, skip не засчитан как acceptance. Root tsc/API86/boundaries681/docs58/
+        Prettier/diff pass. Frontend types/lint/production29/29 из VU3d остаются
+        актуальны: runtime после них не менялся. Five-axis review: default-off в
+        existing isolated process helper, explicit fresh/container/policy/versioning
+        gates before mutations, own ledger cleanup only, no new dependencies/schema.
+        Рабочая DB/старые S3/дизайн/policy writes/рабочие flags/push/deploy исключены.
+        Docker16 октября перезапущен по прямому разрешению, \_ping=OK, free3.5GiB.
+        Чужие контейнеры сохранены (diplom-postgres остановлен перезапуском), вручную
+        не запускались. Образы/volumes не удалялись; зависший старый cache prune
+        не был выполнен, удаление кэша этим перезапуском не утверждается.
 
 - [x] LF1 — по прямому поручению16 октября: вернуть в existing Библиотеку карточки
-  опубликованных club-статей. Public list содержит только id/title/coverUrl/access,
-  без sections/вложений/черновиков; article detail/live access не менять. Сначала
-  RED native HTTP/SQL, затем минимальное исправление и affected/full проверки.
-  RED7/7: guest/paid/unpaid/moderator/admin/blocked/revoked видели только public
-  карточку. Удалён только access=public filter, explicit four-field projection
-  сохранён; frontend уже отображает club badge/CTA и проверяет hasClubAccess.
-  Native **94/94 pass**,2 suites,4.14s: public+club cards без sections/лишних полей,
-  published-only и repository order, прежние locked detail/paid expiry/blocked/
-  revoked/staff правила, article CRUD/teaser regressions. Own backend_test на
-  loopback51831/tmpfs/no volumes; existing fixture DDL, НЕ fresh migration/rollout
-  acceptance. Own articles после cleanup0; exact DBaddf9c12… удалена после повторных
-  ID/name/owner/loopback/tmpfs/mount guards, чужие контейнеры сохранены.
-  Full **2444 pass/1516 opt-in skips/0 fail**, JSON report76.47s, exit0; root/
-  frontend/E2E types, backend build578.5kb/API86/31712bytes/boundaries676/Prettier/
-  diff pass. Generated contract не менялся. Existing native browser expectation
-  актуализирован: club card+lock CTA visible, draft/body guards retained; browser
-  НЕ запускался по поручению. Five-axis review: роли/body policy/schema/CSS/старые
-  файлы/S3/working flags не менялись, новых endpoint/зависимостей нет. Frontend
-  source прежний, его production build/lint без причины не повторялись.
-  Дизайн/working DB/старые файлы/S3/push/deploy исключены; browser/device отложены.
+      опубликованных club-статей. Public list содержит только id/title/coverUrl/access,
+      без sections/вложений/черновиков; article detail/live access не менять. Сначала
+      RED native HTTP/SQL, затем минимальное исправление и affected/full проверки.
+      RED7/7: guest/paid/unpaid/moderator/admin/blocked/revoked видели только public
+      карточку. Удалён только access=public filter, explicit four-field projection
+      сохранён; frontend уже отображает club badge/CTA и проверяет hasClubAccess.
+      Native **94/94 pass**,2 suites,4.14s: public+club cards без sections/лишних полей,
+      published-only и repository order, прежние locked detail/paid expiry/blocked/
+      revoked/staff правила, article CRUD/teaser regressions. Own backend_test на
+      loopback51831/tmpfs/no volumes; existing fixture DDL, НЕ fresh migration/rollout
+      acceptance. Own articles после cleanup0; exact DBaddf9c12… удалена после повторных
+      ID/name/owner/loopback/tmpfs/mount guards, чужие контейнеры сохранены.
+      Full **2444 pass/1516 opt-in skips/0 fail**, JSON report76.47s, exit0; root/
+      frontend/E2E types, backend build578.5kb/API86/31712bytes/boundaries676/Prettier/
+      diff pass. Generated contract не менялся. Existing native browser expectation
+      актуализирован: club card+lock CTA visible, draft/body guards retained; browser
+      НЕ запускался по поручению. Five-axis review: роли/body policy/schema/CSS/старые
+      файлы/S3/working flags не менялись, новых endpoint/зависимостей нет. Frontend
+      source прежний, его production build/lint без причины не повторялись.
+      Дизайн/working DB/старые файлы/S3/push/deploy исключены; browser/device отложены.
 
 - [x] CF-F3: внутренняя интеграция закрытых фото комментариев в existing форму,
-  продолжение accepted CF4/CF client remainder. Новые файлы только private API,
-  postId и actor-scoped keys неизменны, прежние two-photo/48h/access limits.
+      продолжение accepted CF4/CF client remainder. Новые файлы только private API,
+      postId и actor-scoped keys неизменны, прежние two-photo/48h/access limits.
   - [x] CF-F3a: typed comment upload/status и coordinator с checkpoint до network,
-    frozen addComment payload/key, lost upload/write ACK replay без дублей;
-    ownership/receipt/storage failure guards, RED/GREEN unit.10 meaningful RED
-    failures→11 GREEN, затем additional acceptance до15/15. Общий CF transport
-    расширен только typed commentPhoto adapter, post/article endpoints прежние.
-    Frozen post/reply/text/photos/key, status-first upload recovery, pending без
-    публикации, same-key exact replay after lost add ACK, late upload/status/add
-    reply не принимается после cancel/account change. Отказ checkpoint блокирует
-    upload/write, включая повтор после неудачной локальной freeze-записи;
-    повторный asset/неверный usage/storage URL отвергаются, two-photo order intact.
-    FileReader boundary заменён actual File.arrayBuffer в Node fixture; API и
-    checkpoint synthetic. Это НЕ durable/browser/SQL/S3 приёмка и ещё НЕ UI wiring.
-    Affected55 pass до дополнительных4 кейсов; fresh full **2441 pass/1497 opt-in
-    skips**,190 suites,39.72s. Root/frontend/E2E types, full frontend lint,
-    production webpack29/29 (compile7.3s), API86/boundaries674 проходят.
-    Build clean env/target127.0.0.1:1; отсутствие frontend .env* проверено по
-    метаданным до запуска, credentials не читались/не наследовались. Review:
-    existing server contract unchanged, bounded2 photos, no public fallback,
-    legacy ClubComments/UI и backend/DB/S3/flags untouched. Далее CF-F3b.
+        frozen addComment payload/key, lost upload/write ACK replay без дублей;
+        ownership/receipt/storage failure guards, RED/GREEN unit.10 meaningful RED
+        failures→11 GREEN, затем additional acceptance до15/15. Общий CF transport
+        расширен только typed commentPhoto adapter, post/article endpoints прежние.
+        Frozen post/reply/text/photos/key, status-first upload recovery, pending без
+        публикации, same-key exact replay after lost add ACK, late upload/status/add
+        reply не принимается после cancel/account change. Отказ checkpoint блокирует
+        upload/write, включая повтор после неудачной локальной freeze-записи;
+        повторный asset/неверный usage/storage URL отвергаются, two-photo order intact.
+        FileReader boundary заменён actual File.arrayBuffer в Node fixture; API и
+        checkpoint synthetic. Это НЕ durable/browser/SQL/S3 приёмка и ещё НЕ UI wiring.
+        Affected55 pass до дополнительных4 кейсов; fresh full **2441 pass/1497 opt-in
+        skips**,190 suites,39.72s. Root/frontend/E2E types, full frontend lint,
+        production webpack29/29 (compile7.3s), API86/boundaries674 проходят.
+        Build clean env/target127.0.0.1:1; отсутствие frontend .env\* проверено по
+        метаданным до запуска, credentials не читались/не наследовались. Review:
+        existing server contract unchanged, bounded2 photos, no public fallback,
+        legacy ClubComments/UI и backend/DB/S3/flags untouched. Далее CF-F3b.
   - [x] CF-F3b: durable owner/post-scoped File bytes/keys и revision CAS,
-    reload/native IndexedDB проверки; без нового server API/schema.
-    Native Chromium File/IndexedDB RED4→GREEN4 + concurrent-claim acceptance:
-    **5/5 pass**,850ms; вместе с coordinator15 —20 pass/1.29s. Настоящий document
-    reload сохраняет bytes/name/type/lastModified/file+create keys/post/reply/text.
-    Atomic revision CAS отклоняет stale checkpoint/clear, simultaneous prepares
-    возвращают одну исходную операцию. Подмена bytes при прежних name/size/mtime,
-    thaw write→upload, смена actor/post и receipt regression запрещены. Записи
-    ArrayBuffer, без tokens/S3 keys; owner guards before/after awaits/transactions.
-    HTTP document fixture и API synthetic; НЕ UI/API/SQL/S3 приёмка. Root/frontend/
-    E2E types pass; full lint/boundaries675/diff pass. App build/full2441 из CF-F3a
-    не повторять: новый journal ещё не импортируется приложением; native fixture
-    реально bundlит и выполняет его. Далее CF-F3c, форма пока legacy public path.
+        reload/native IndexedDB проверки; без нового server API/schema.
+        Native Chromium File/IndexedDB RED4→GREEN4 + concurrent-claim acceptance:
+        **5/5 pass**,850ms; вместе с coordinator15 —20 pass/1.29s. Настоящий document
+        reload сохраняет bytes/name/type/lastModified/file+create keys/post/reply/text.
+        Atomic revision CAS отклоняет stale checkpoint/clear, simultaneous prepares
+        возвращают одну исходную операцию. Подмена bytes при прежних name/size/mtime,
+        thaw write→upload, смена actor/post и receipt regression запрещены. Записи
+        ArrayBuffer, без tokens/S3 keys; owner guards before/after awaits/transactions.
+        HTTP document fixture и API synthetic; НЕ UI/API/SQL/S3 приёмка. Root/frontend/
+        E2E types pass; full lint/boundaries675/diff pass. App build/full2441 из CF-F3a
+        не повторять: новый journal ещё не импортируется приложением; native fixture
+        реально bundlит и выполняет его. Далее CF-F3c, форма пока legacy public path.
   - [x] CF-F3c: подключить existing форму без CSS/layout изменений: local blob,
-    remove/revoke/session/unmount, explicit recovery/replay; legacy text-only и
-    edit/delete/like не переделывать. Browser lost ACK/reload/account switch.
-    Local selection без public upload, explicit restore/replay/discard с прежним
-    payload/key; canonical read под task/owner guard до clear. Keyed thread на
-    actor/post изолирует всю compose/session state; уход скрывает/revokes blobs,
-    возврат использует локальные bytes. Storage error fail-closed, никаких public
-    fallbacks. RED missing blob1→GREEN; final **5/5 Chromium/Next pass**,17.29s:
-    lost upload+write ACK/reload, account switch during upload/status/canonical
-    read, remove/revoke/no removed-file upload. API synthetic; File/IndexedDB/
-    session/browser настоящие. Initial3/4 pass: единственный test expectation
-    ошибочно ожидал отсутствия undefined полей, fixture JSON даёт null; исправлен
-    только expectation, legacy text-only wire не менялся. Existing comments/
-    moderation spec **21/21 pass**,36.1s; прежние два public-upload expectations
-    обновлены на deferred private flow/frozen discard без частичной публикации.
-    Full **2441 pass/1507 opt-in skips**,0 fail; JSON unit report26.60s.
-    Root/frontend/E2E types/full lint pass; production isolated build compile11.9s,
-    TypeScript4.9s/static29/29 exit0, no .env/working credentials, target127.0.0.1:1.
-    React/security review: no CSS/assets/role/quota changes, existing text/edit/
-    like/delete server paths preserved, late read cannot clear another owner.
-    Disk снова1.8GiB: только own generated .next/cache360MiB удалён после
-    realpath/uid/no-symlink/BUILD_ID guards; regenerated on build, остальные
-    output/source/images/containers/volumes сохранены. Free2.1GiB. Далее CF-F3d.
+        remove/revoke/session/unmount, explicit recovery/replay; legacy text-only и
+        edit/delete/like не переделывать. Browser lost ACK/reload/account switch.
+        Local selection без public upload, explicit restore/replay/discard с прежним
+        payload/key; canonical read под task/owner guard до clear. Keyed thread на
+        actor/post изолирует всю compose/session state; уход скрывает/revokes blobs,
+        возврат использует локальные bytes. Storage error fail-closed, никаких public
+        fallbacks. RED missing blob1→GREEN; final **5/5 Chromium/Next pass**,17.29s:
+        lost upload+write ACK/reload, account switch during upload/status/canonical
+        read, remove/revoke/no removed-file upload. API synthetic; File/IndexedDB/
+        session/browser настоящие. Initial3/4 pass: единственный test expectation
+        ошибочно ожидал отсутствия undefined полей, fixture JSON даёт null; исправлен
+        только expectation, legacy text-only wire не менялся. Existing comments/
+        moderation spec **21/21 pass**,36.1s; прежние два public-upload expectations
+        обновлены на deferred private flow/frozen discard без частичной публикации.
+        Full **2441 pass/1507 opt-in skips**,0 fail; JSON unit report26.60s.
+        Root/frontend/E2E types/full lint pass; production isolated build compile11.9s,
+        TypeScript4.9s/static29/29 exit0, no .env/working credentials, target127.0.0.1:1.
+        React/security review: no CSS/assets/role/quota changes, existing text/edit/
+        like/delete server paths preserved, late read cannot clear another owner.
+        Disk снова1.8GiB: только own generated .next/cache360MiB удалён после
+        realpath/uid/no-symlink/BUILD_ID guards; regenerated on build, остальные
+        output/source/images/containers/volumes сохранены. Free2.1GiB. Далее CF-F3d.
   - [x] CF-F3d: scoped native API/SQL/S3 acceptance — **3/3 pass**,10 намеренно
-    filtered post/article skips,50.89s, exit0. Actual Chromium→Next→Nest→own
-    fresh39 MySQL→Timeweb S3: lost upload+addComment ACK/reload/exact replay,
-    account switch during upload/status, owner-only journal/receipt restoration.
-    В каждом сценарии ровно1 photo PUT/asset/comment/create intent; непривязанное фото
-    до binding недоступно, paid member получает GET/HEAD/Range206/no-store,
-    paid expiry закрывает следующий GET/HEAD/Range до S3. Public upload calls0.
-    Первый запуск3 fail до upload из-за admin-only test fault allowlist;
-    добавлены только3 explicit club routes, loopback transport RED3→GREEN5.
-    Второй запуск3 fail: S3 upload10s timeout, SQL3 pending/comments0, no false
-    success. Cleanup также timeout: own DB397fcb6a… временно сохранена как ledger.
-    После HTTPS/TLS восстановления все3 exact keys HEAD404 (объекты отсутствовали),
-    policy unchanged; exact own DB удалена после повторных ownership guards.
-    Финальный успешный прогон на новой own DB6603b54f…/loopback63232/tmpfs/no
-    volumes. Все3 новых S3 objects удалены после actor/prefix/asset/hash/MIME/size/
-    ETag guards и HEAD404; policy hash0484dfa2… прежний, versioning off. Own DB,
-    API/Next/browser/proxy закрыты, чужие контейнеры сохранены. Secrets только
-    no-echo stdin/process memory, без файлов/логов/Git. Root tsc и full Vitest
-    **2444 pass/1510 opt-in skips/0 fail**, JSON report67.79s. Runtime не менялся
-    после CF-F3c: его frontend/E2E types/lint/production29/29 не повторялись.
-    Five-axis review: test-only explicit faults и real upstream replies, SQL/S3
-    ownership guards не ослаблены, no mocks-as-native. Boundaries676/docs58/
-    focused Prettier/diff exit0. Без rollout/device claims.
-    Далее CF-F1b4/AG9: устройства и отдельно разрешённый release/working flags,
-    второй валидный S3 principal; новых независимых runtime задач не выявлено.
+        filtered post/article skips,50.89s, exit0. Actual Chromium→Next→Nest→own
+        fresh39 MySQL→Timeweb S3: lost upload+addComment ACK/reload/exact replay,
+        account switch during upload/status, owner-only journal/receipt restoration.
+        В каждом сценарии ровно1 photo PUT/asset/comment/create intent; непривязанное фото
+        до binding недоступно, paid member получает GET/HEAD/Range206/no-store,
+        paid expiry закрывает следующий GET/HEAD/Range до S3. Public upload calls0.
+        Первый запуск3 fail до upload из-за admin-only test fault allowlist;
+        добавлены только3 explicit club routes, loopback transport RED3→GREEN5.
+        Второй запуск3 fail: S3 upload10s timeout, SQL3 pending/comments0, no false
+        success. Cleanup также timeout: own DB397fcb6a… временно сохранена как ledger.
+        После HTTPS/TLS восстановления все3 exact keys HEAD404 (объекты отсутствовали),
+        policy unchanged; exact own DB удалена после повторных ownership guards.
+        Финальный успешный прогон на новой own DB6603b54f…/loopback63232/tmpfs/no
+        volumes. Все3 новых S3 objects удалены после actor/prefix/asset/hash/MIME/size/
+        ETag guards и HEAD404; policy hash0484dfa2… прежний, versioning off. Own DB,
+        API/Next/browser/proxy закрыты, чужие контейнеры сохранены. Secrets только
+        no-echo stdin/process memory, без файлов/логов/Git. Root tsc и full Vitest
+        **2444 pass/1510 opt-in skips/0 fail**, JSON report67.79s. Runtime не менялся
+        после CF-F3c: его frontend/E2E types/lint/production29/29 не повторялись.
+        Five-axis review: test-only explicit faults и real upstream replies, SQL/S3
+        ownership guards не ослаблены, no mocks-as-native. Boundaries676/docs58/
+        focused Prettier/diff exit0. Без rollout/device claims.
+        Далее CF-F1b4/AG9: устройства и отдельно разрешённый release/working flags,
+        второй валидный S3 principal; новых независимых runtime задач не выявлено.
 
 - [x] CF-F2 (16 октября, прямое поручение): закрытые фото/PNG/карусели и
-  PDF/DOCX/TXT в существующем редакторе статей. Баннер публичный, старые URL
-  сохраняются. Срезы: typed upload/status + block references; durable file bytes
-  и stable keys до S3 с existing article journal; wiring existing editor и blob
-  preview; lost ACK/reload/retry/account switch проверки. Unknown update не
-  повторять автоматически; frozen create key/payload сохранять. Дизайн/CSS,
-  working DB/старые S3/flags/push/deploy исключены. Проверки RED/GREEN + browser,
-  types/lint/build/boundaries/docs; native provider acceptance отмечать отдельно.
+      PDF/DOCX/TXT в существующем редакторе статей. Баннер публичный, старые URL
+      сохраняются. Срезы: typed upload/status + block references; durable file bytes
+      и stable keys до S3 с existing article journal; wiring existing editor и blob
+      preview; lost ACK/reload/retry/account switch проверки. Unknown update не
+      повторять автоматически; frozen create key/payload сохранять. Дизайн/CSS,
+      working DB/старые S3/flags/push/deploy исключены. Проверки RED/GREEN + browser,
+      types/lint/build/boundaries/docs; native provider acceptance отмечать отдельно.
   - [x] CF-F2a: общий existing CF upload/status transport для post/article,
-    typed articlePhoto/articleDocument, строгий receipt и local-content binding.
-    RED5→GREEN10 unit; вместе с existing post34/article19 —63 pass. Фото допускают
-    server re-encode size, документы требуют exact bytes length/normalized MIME.
-    Ready не загружается повторно, pending/notRecorded сохраняют прежний key,
-    checkpoint до network, late receipt/corrupt usage/URL запрещены. Root/frontend
-    types и focused ESLint проходят. Пока это не editor/API/S3 acceptance.
+        typed articlePhoto/articleDocument, строгий receipt и local-content binding.
+        RED5→GREEN10 unit; вместе с existing post34/article19 —63 pass. Фото допускают
+        server re-encode size, документы требуют exact bytes length/normalized MIME.
+        Ready не загружается повторно, pending/notRecorded сохраняют прежний key,
+        checkpoint до network, late receipt/corrupt usage/URL запрещены. Root/frontend
+        types и focused ESLint проходят. Пока это не editor/API/S3 acceptance.
   - [x] CF-F2b: existing article journal хранит File как ArrayBuffer/metadata,
-    стабильные file/create keys и phase/revision. Read/write owner guard и atomic
-    revision CAS между вкладками, freeze resolved URLs перед article write; legacy
-    v1 записи сохранены. Native Chromium/IndexedDB RED2→GREEN3, legacy parsing19
-    pass; API/SQL/S3 этим storage fixture не проверяются.
+        стабильные file/create keys и phase/revision. Read/write owner guard и atomic
+        revision CAS между вкладками, freeze resolved URLs перед article write; legacy
+        v1 записи сохранены. Native Chromium/IndexedDB RED2→GREEN3, legacy parsing19
+        pass; API/SQL/S3 этим storage fixture не проверяются.
   - [x] CF-F2c: existing editor wired to CF upload/status for photo/PNG/carousel
-    and link-block PDF/DOCX/TXT chooser. Public cover path unchanged; no CSS,
-    visual assets or layout changes. Local blob preview until binding, stable
-    file intent before network, frozen create replay and unknown update guard
-    survive reload. Account-switch receipts ignored; original owner restores.
-    Native Chromium/Next + real File/IndexedDB but synthetic API: **5/5 pass**,
-    suite26.19s. Includes removed block blob lifecycle RED1→GREEN and no removed
-    file upload; create/edit/reload/lost ACK/live upload+status account switch.
-    Updated existing transparent article PNG e2e expectation to deferred CF
-    upload; subsequent legacy17/17 pass recorded in CF-F2d below.
+        and link-block PDF/DOCX/TXT chooser. Public cover path unchanged; no CSS,
+        visual assets or layout changes. Local blob preview until binding, stable
+        file intent before network, frozen create replay and unknown update guard
+        survive reload. Account-switch receipts ignored; original owner restores.
+        Native Chromium/Next + real File/IndexedDB but synthetic API: **5/5 pass**,
+        suite26.19s. Includes removed block blob lifecycle RED1→GREEN and no removed
+        file upload; create/edit/reload/lost ACK/live upload+status account switch.
+        Updated existing transparent article PNG e2e expectation to deferred CF
+        upload; subsequent legacy17/17 pass recorded in CF-F2d below.
   - [x] CF-F2d: actual editor→Nest→fresh39 SQL→Timeweb S3 acceptance and final
-    regression/build. Added two opt-in `article:` cases to existing private-photo
-    editor native suite; **no native article success claimed**. Attempts:
-    first stopped waiting for remaining uploads (5s assertion), cleaned3 own
-    objects/HEAD404; second ERR_NETWORK_IO_SUSPENDED before writes/objects0;
-    third SDK requestTimeout10s during upload+cleanup, own DB retained, then exact
-    guarded cleanup deleted2/third pending object HEAD404, policy hash unchanged,
-    DB2f09c366…/60423 removed. Last attempt actual wall time~990.99s exceeded
-    180s test timeout during sleep; no file intents/articles. API/Next/browser
-    closed; own DB89e065ea…/62122 removed after repeated metadata guards+SQL0.
-    All owned containers removed; foreign4 preserved. Old S3/working DB/flags
-    untouched, no policy writes. No credentials saved (only no-echo stdin/memory).
-    **Historical environment checkpoint16 October:** user connected charger; pmset AC/34%,
-    charging, previous sleep blocker cleared. New native attempt stopped at disk
-    preflight (<1GiB free vs required2GiB), BEFORE API/S3 writes; own fresh39 DB
-    a530f4dd…/55006 had files0/articles0 and was removed after exact identity,
-    owner/loopback/tmpfs/no-mount guards. Foreign containers preserved. Do not
-    lower preflight or raise timeouts. Own known .next cache315MiB is insufficient
-    to reach2GiB; no foreign files/cache deleted. User asked to free2–3GiB.
-    Fresh full Vitest: **2426 pass/1497 opt-in skipped**,189 passed suites,
-    42.93s (maxWorkers4). Root/frontend/e2e types, full frontend lint, API86/
-    31712bytes and boundaries673 pass. At that checkpoint build/native/browser
-    regressions were still OPEN; resolved by the verified continuation below.
-    **Verified continuation16 October:** user authorized Docker build-cache-only
-    cleanup. `docker builder prune --force` reclaimed5.495GB; images9/6.816GB,
-    existing containers3 and volumes12/1.636GB unchanged. Host free space4.1GiB
-    immediately, then5.8GiB; no image/volume/system prune. The earlier authorized
-    removal of stopped own tmpfs owner39fdda943241 is separate (see F5).
-    Actual Chromium→Next rewrite→Nest→fresh39 MySQL→Timeweb S3: **2 native pass/
-    8 filtered post skips**, suite67.44s/command68.47s. Mixed photo/PNG/carousel/TXT
-    lost upload/create ACK+reload: no repeat PUT/asset/article, one creation intent
-    and teaser. Edit adds one photo, retains four bindings, lost update/reload
-    never repeats write; explicit local discard after canonical list read.
-    Actual WebP alpha/TXT bytes, GET/HEAD/Range206/no-store, expired access404
-    before S3 and anonymous direct S3 HEAD403 verified. These2 cases do NOT add
-    native article account-switch/PDF/DOCX/device evidence: session races are
-    covered by the earlier5 synthetic-API browser cases, not mislabelled native.
-    All5 new own objects deleted with exact ledger/metadata/ETag guards+HEAD404;
-    policy0484dfa2… unchanged/versioning off. Own DB22c144b0…/62677/tmpfs/no mounts
-    removed after repeated exact owner/storage guards. Existing3 containers,
-    working DB/flags/policy/old S3 files preserved. Credentials stdin/memory only.
-    Existing article-creation-recovery/media-upload specs: **17/17 pass**,29.8s,
-    actual Next/File/IndexedDB with synthetic API and external-deny proxy.
-    Temporary launcher first failed CJS/ESM import BEFORE tests; corrected only
-    launcher import, no product workaround. Post-photo shared transport regression:
-    **12/12 pass**,43.36s (synthetic API, real Next/File/IndexedDB).
-    Production webpack build in own copy: compile7.8s, TypeScript2.6s, static29/29,
-    exit0. No .env/working credentials; API target127.0.0.1:1. Own build/browser/
-    API/proxy temp resources removed. No production source changes were required
-    in this continuation; full2426/types/lint/API/boundaries above stay applicable.
-    Local CF-F2 integration complete, NOT rollout/physical-device acceptance.
-    Design/working DB/old files unchanged; no push/deploy or working flag enable.
+        regression/build. Added two opt-in `article:` cases to existing private-photo
+        editor native suite; **no native article success claimed**. Attempts:
+        first stopped waiting for remaining uploads (5s assertion), cleaned3 own
+        objects/HEAD404; second ERR_NETWORK_IO_SUSPENDED before writes/objects0;
+        third SDK requestTimeout10s during upload+cleanup, own DB retained, then exact
+        guarded cleanup deleted2/third pending object HEAD404, policy hash unchanged,
+        DB2f09c366…/60423 removed. Last attempt actual wall time~990.99s exceeded
+        180s test timeout during sleep; no file intents/articles. API/Next/browser
+        closed; own DB89e065ea…/62122 removed after repeated metadata guards+SQL0.
+        All owned containers removed; foreign4 preserved. Old S3/working DB/flags
+        untouched, no policy writes. No credentials saved (only no-echo stdin/memory).
+        **Historical environment checkpoint16 October:** user connected charger; pmset AC/34%,
+        charging, previous sleep blocker cleared. New native attempt stopped at disk
+        preflight (<1GiB free vs required2GiB), BEFORE API/S3 writes; own fresh39 DB
+        a530f4dd…/55006 had files0/articles0 and was removed after exact identity,
+        owner/loopback/tmpfs/no-mount guards. Foreign containers preserved. Do not
+        lower preflight or raise timeouts. Own known .next cache315MiB is insufficient
+        to reach2GiB; no foreign files/cache deleted. User asked to free2–3GiB.
+        Fresh full Vitest: **2426 pass/1497 opt-in skipped**,189 passed suites,
+        42.93s (maxWorkers4). Root/frontend/e2e types, full frontend lint, API86/
+        31712bytes and boundaries673 pass. At that checkpoint build/native/browser
+        regressions were still OPEN; resolved by the verified continuation below.
+        **Verified continuation16 October:** user authorized Docker build-cache-only
+        cleanup. `docker builder prune --force` reclaimed5.495GB; images9/6.816GB,
+        existing containers3 and volumes12/1.636GB unchanged. Host free space4.1GiB
+        immediately, then5.8GiB; no image/volume/system prune. The earlier authorized
+        removal of stopped own tmpfs owner39fdda943241 is separate (see F5).
+        Actual Chromium→Next rewrite→Nest→fresh39 MySQL→Timeweb S3: **2 native pass/
+        8 filtered post skips**, suite67.44s/command68.47s. Mixed photo/PNG/carousel/TXT
+        lost upload/create ACK+reload: no repeat PUT/asset/article, one creation intent
+        and teaser. Edit adds one photo, retains four bindings, lost update/reload
+        never repeats write; explicit local discard after canonical list read.
+        Actual WebP alpha/TXT bytes, GET/HEAD/Range206/no-store, expired access404
+        before S3 and anonymous direct S3 HEAD403 verified. These2 cases do NOT add
+        native article account-switch/PDF/DOCX/device evidence: session races are
+        covered by the earlier5 synthetic-API browser cases, not mislabelled native.
+        All5 new own objects deleted with exact ledger/metadata/ETag guards+HEAD404;
+        policy0484dfa2… unchanged/versioning off. Own DB22c144b0…/62677/tmpfs/no mounts
+        removed after repeated exact owner/storage guards. Existing3 containers,
+        working DB/flags/policy/old S3 files preserved. Credentials stdin/memory only.
+        Existing article-creation-recovery/media-upload specs: **17/17 pass**,29.8s,
+        actual Next/File/IndexedDB with synthetic API and external-deny proxy.
+        Temporary launcher first failed CJS/ESM import BEFORE tests; corrected only
+        launcher import, no product workaround. Post-photo shared transport regression:
+        **12/12 pass**,43.36s (synthetic API, real Next/File/IndexedDB).
+        Production webpack build in own copy: compile7.8s, TypeScript2.6s, static29/29,
+        exit0. No .env/working credentials; API target127.0.0.1:1. Own build/browser/
+        API/proxy temp resources removed. No production source changes were required
+        in this continuation; full2426/types/lint/API/boundaries above stay applicable.
+        Local CF-F2 integration complete, NOT rollout/physical-device acceptance.
+        Design/working DB/old files unchanged; no push/deploy or working flag enable.
 
 - [ ] CF-F1 (16 октября): новые закрытые фото постов без изменения дизайна.
   - [x] CF-F1a: typed receipt/upload/status в общем save coordinator. File +
-    стабильный key включаются в checkpoint до отправки; отсутствие checkpoint
-    запрещает запись. После lost ACK — explicit status-first recovery; create
-    replay использует frozen payload/key. Старые URL/порядок фото сохраняются,
-    удалённое восстановленное фото не возвращается. Pending/невалидный receipt
-    не допускают публикацию; no public fallback; late upload/status receipt
-    после потери operation ownership не принимается. Серверный WebP size НЕ
-    сравнивается с исходным File.size (CF выполняет re-encode).
-    RED19/20 до реализации, затем guards RED2→GREEN и recovery checkpoint
-    RED1→GREEN; итог **34/34 unit pass**. Это mock API/checkpoint + structuredClone, НЕ native
-    IndexedDB/browser/API/SQL/S3 приёмка. TSX/оформление редакторов не менялись.
-    Affected regression146/6 suites pass (0.25s), root/frontend/e2e tsc,
-    targeted ESLint, boundaries668/API86/docs58/diff — exit0.
-    Общий Vitest:2414 pass/1 fail/1463 skipped,39.28s; единственный fail —
-    ENOSPC при mkdtemp в file-signature.test.ts, не дефект CF. Его отдельный
-    повтор8/8 pass,0.72s. Ни skipped, ни отдельный повтор не считать единым
-    зелёным прогоном. Секреты/DB/S3 не читались.
+        стабильный key включаются в checkpoint до отправки; отсутствие checkpoint
+        запрещает запись. После lost ACK — explicit status-first recovery; create
+        replay использует frozen payload/key. Старые URL/порядок фото сохраняются,
+        удалённое восстановленное фото не возвращается. Pending/невалидный receipt
+        не допускают публикацию; no public fallback; late upload/status receipt
+        после потери operation ownership не принимается. Серверный WebP size НЕ
+        сравнивается с исходным File.size (CF выполняет re-encode).
+        RED19/20 до реализации, затем guards RED2→GREEN и recovery checkpoint
+        RED1→GREEN; итог **34/34 unit pass**. Это mock API/checkpoint + structuredClone, НЕ native
+        IndexedDB/browser/API/SQL/S3 приёмка. TSX/оформление редакторов не менялись.
+        Affected regression146/6 suites pass (0.25s), root/frontend/e2e tsc,
+        targeted ESLint, boundaries668/API86/docs58/diff — exit0.
+        Общий Vitest:2414 pass/1 fail/1463 skipped,39.28s; единственный fail —
+        ENOSPC при mkdtemp в file-signature.test.ts, не дефект CF. Его отдельный
+        повтор8/8 pass,0.72s. Ни skipped, ни отдельный повтор не считать единым
+        зелёным прогоном. Секреты/DB/S3 не читались.
   - [x] CF-F1b: durable IndexedDB File/alias validation и локальные превью в
-    обоих существующих редакторах, затем browser→API acceptance. Storage/UI и
-    настоящий browser→API/S3 закрыты срезами ниже; rollout/device не заявлены.
-    Ранее место при проверках упало с1.5GiB до~187MiB; Next build/native стенд не
-    запускались (минимум2GiB). Доступных больших кэшей этой задачи не найдено:
-    .next/cache отсутствует, node_modules/.vite24KiB; старые reports сохранены.
-    Тот disk blocker снят16 октября (7.4GiB при старте). Рабочие flags/DB/S3,
-    старые файлы и оформление не менять; no push/deploy.
+        обоих существующих редакторах, затем browser→API acceptance. Storage/UI и
+        настоящий browser→API/S3 закрыты срезами ниже; rollout/device не заявлены.
+        Ранее место при проверках упало с1.5GiB до~187MiB; Next build/native стенд не
+        запускались (минимум2GiB). Доступных больших кэшей этой задачи не найдено:
+        .next/cache отсутствует, node_modules/.vite24KiB; старые reports сохранены.
+        Тот disk blocker снят16 октября (7.4GiB при старте). Рабочие flags/DB/S3,
+        старые файлы и оформление не менять; no push/deploy.
     - [x] CF-F1b1: File bytes/metadata упакованы в ArrayBuffer, identity alias
-      между editor и save snapshot сохраняется при записи/чтении. Восстановление
-      проверяет ключи, MIME/size, локальные references, receipt и принадлежность
-      одной и той же File-записи upload intent. Native Chromium File/IndexedDB:
-      RED2→GREEN,4/4 pass; reload bytes/name/type/lastModified, подмена receipt,
-      смена аккаунта read/write и same-key подмена File. HTTP document fixture
-      синтетический; API/SQL/S3 не вызывались, не считать сквозной приёмкой.
-      Affected48 pass, root tsc exit0. Место восстановилось до7.4GiB без нашей
-      очистки; прежний disk blocker больше не мешает следующему срезу.
+          между editor и save snapshot сохраняется при записи/чтении. Восстановление
+          проверяет ключи, MIME/size, локальные references, receipt и принадлежность
+          одной и той же File-записи upload intent. Native Chromium File/IndexedDB:
+          RED2→GREEN,4/4 pass; reload bytes/name/type/lastModified, подмена receipt,
+          смена аккаунта read/write и same-key подмена File. HTTP document fixture
+          синтетический; API/SQL/S3 не вызывались, не считать сквозной приёмкой.
+          Affected48 pass, root tsc exit0. Место восстановилось до7.4GiB без нашей
+          очистки; прежний disk blocker больше не мешает следующему срезу.
     - [x] CF-F1b2: оба существующих редактора используют подготовленный File и
-      local-photo key; новые фото не отправляются публично при выборе. Сохранение
-      использует CF upload/status и общую атомарную запись поста. Blob preview
-      принадлежит editor/account scope; revoke при удалении/замене/закрытии и
-      уходе/смене аккаунта. До binding закрытый GET не вызывается, старые URL
-      сохраняются; PhotoEditor/preview получают blob URL, не local-photo marker.
-      RED missing preview→GREEN; remove URL RED2→GREEN. Actual Chromium/Next UI
-      и File/IndexedDB + synthetic API: **12/12 pass**,46.84s. Create/edit обоих
-      редакторов, lost upload/create response+reload, ready без второго upload,
-      notRecorded с прежними bytes/key, frozen create replay, unsent draft reload,
-      live account switch during upload/status, close/remove/revoke, WebP alpha.
-      Реальные API/SQL/S3 в этих12 тестах НЕ использовались.
-      Existing3 browser specs:19 pass/1 selector failure,55.2s. Два сохранённых
-      экрана VK давали duplicate text locator; добавлен visible filter без
-      изменения runtime доступа, этот тест отдельно1/1 pass,3.0s. Не выдавать
-      19+1 за новый единый20/20 прогон. Внешняя сеть для этих проверок закрыта
-      own deny proxy; legacy URL/старые S3 не читались. Own Next/browser/proxy
-      завершены, временных Next directories0; служебные config/last-run metadata
-      остались в /private/tmp/daryadarcy-cf-legacy.p3S8CY/ (8KiB, без реальных
-      данных/секретов; старый failure trace очищен Playwright при повторе).
-      Full Vitest:2416 pass/1479 opt-in skips (37.38s, maxWorkers4); skips не pass.
-      Root tsc/frontend+e2e types/full lint/production build/API86/boundaries669
-      проходят. Build без .env/рабочих credentials, target127.0.0.1:1. Стилей,
-      visual assets/раскладки/backend/DB/S3/рабочих flags не меняли; no push/deploy.
+          local-photo key; новые фото не отправляются публично при выборе. Сохранение
+          использует CF upload/status и общую атомарную запись поста. Blob preview
+          принадлежит editor/account scope; revoke при удалении/замене/закрытии и
+          уходе/смене аккаунта. До binding закрытый GET не вызывается, старые URL
+          сохраняются; PhotoEditor/preview получают blob URL, не local-photo marker.
+          RED missing preview→GREEN; remove URL RED2→GREEN. Actual Chromium/Next UI
+          и File/IndexedDB + synthetic API: **12/12 pass**,46.84s. Create/edit обоих
+          редакторов, lost upload/create response+reload, ready без второго upload,
+          notRecorded с прежними bytes/key, frozen create replay, unsent draft reload,
+          live account switch during upload/status, close/remove/revoke, WebP alpha.
+          Реальные API/SQL/S3 в этих12 тестах НЕ использовались.
+          Existing3 browser specs:19 pass/1 selector failure,55.2s. Два сохранённых
+          экрана VK давали duplicate text locator; добавлен visible filter без
+          изменения runtime доступа, этот тест отдельно1/1 pass,3.0s. Не выдавать
+          19+1 за новый единый20/20 прогон. Внешняя сеть для этих проверок закрыта
+          own deny proxy; legacy URL/старые S3 не читались. Own Next/browser/proxy
+          завершены, временных Next directories0; служебные config/last-run metadata
+          остались в /private/tmp/daryadarcy-cf-legacy.p3S8CY/ (8KiB, без реальных
+          данных/секретов; старый failure trace очищен Playwright при повторе).
+          Full Vitest:2416 pass/1479 opt-in skips (37.38s, maxWorkers4); skips не pass.
+          Root tsc/frontend+e2e types/full lint/production build/API86/boundaries669
+          проходят. Build без .env/рабочих credentials, target127.0.0.1:1. Стилей,
+          visual assets/раскладки/backend/DB/S3/рабочих flags не меняли; no push/deploy.
     - [x] CF-F1b3: сквозная проверка новых фото обоих редакторов с actual
-      API/SQL+S3 на собственном одноразовом backend_test и только новых synthetic
-      objects.16 октября: **8/8 native pass**, suite87.07s, actual Chromium→Next
-      rewrite→Nest→fresh39 MySQL→Timeweb S3. По4 сценария full/quick: lost upload
-      и create ACK+document reload; edit/lost update без auto replay; live account
-      switch during upload/status. SQL один asset/intent/post, no repeat PUT,
-      parent binding; full append/quick replace сохраняют точный набор своих фото.
-      Unbound preview только blob (без private GET), revoke blob при account switch,
-      чужой status=notRecorded; исходный владелец восстанавливает прежний файл.
-      Реальные WebP bytes/alpha/EXIF stripping, HEAD/single Range206/no-store/nosniff;
-      unbound/expired/guest GET/HEAD/Range404 до S3, anonymous S3 HEAD403.
-      Итог own SQL:6 posts/6 creation intents/8 receipts. Все8 новых objects удалены
-      с ledger/metadata/ETag guards и HEAD404; policy0484dfa2… unchanged/versioning off.
-      Own container1aa52335…/63081/tmpfs/no mounts удалён после повторной проверки
-      exact ID/name/owner/port/storage; API/Next/browser/proxy закрыты, temp dirs0.
-      Чужие4 containers не трогались (diplom уже был Up, остальные Exited).
-      Продуктовых дефектов в этих8 сценариях не выявлено, runtime/дизайн менять
-      не потребовалось. Добавлен tests/private-photo-editors.s3.mysql.test.ts;
-      acceptance existing working path, без искусственного RED. Secrets только
-      no-echo stdin/process memory; no secret files/Git/logs. Working DB/flags,
-      старые S3/policy/ACL не менялись; no push/deploy.
-      Root tsc, focused Prettier, API86/31712bytes, boundaries669/docs58/diff
-      проходят; five-axis self-review выполнен. Full Vitest/frontend build не
-      повторялись: runtime/схема/контракт/пакеты не менялись с прошлого GREEN.
+          API/SQL+S3 на собственном одноразовом backend_test и только новых synthetic
+          objects.16 октября: **8/8 native pass**, suite87.07s, actual Chromium→Next
+          rewrite→Nest→fresh39 MySQL→Timeweb S3. По4 сценария full/quick: lost upload
+          и create ACK+document reload; edit/lost update без auto replay; live account
+          switch during upload/status. SQL один asset/intent/post, no repeat PUT,
+          parent binding; full append/quick replace сохраняют точный набор своих фото.
+          Unbound preview только blob (без private GET), revoke blob при account switch,
+          чужой status=notRecorded; исходный владелец восстанавливает прежний файл.
+          Реальные WebP bytes/alpha/EXIF stripping, HEAD/single Range206/no-store/nosniff;
+          unbound/expired/guest GET/HEAD/Range404 до S3, anonymous S3 HEAD403.
+          Итог own SQL:6 posts/6 creation intents/8 receipts. Все8 новых objects удалены
+          с ledger/metadata/ETag guards и HEAD404; policy0484dfa2… unchanged/versioning off.
+          Own container1aa52335…/63081/tmpfs/no mounts удалён после повторной проверки
+          exact ID/name/owner/port/storage; API/Next/browser/proxy закрыты, temp dirs0.
+          Чужие4 containers не трогались (diplom уже был Up, остальные Exited).
+          Продуктовых дефектов в этих8 сценариях не выявлено, runtime/дизайн менять
+          не потребовалось. Добавлен tests/private-photo-editors.s3.mysql.test.ts;
+          acceptance existing working path, без искусственного RED. Secrets только
+          no-echo stdin/process memory; no secret files/Git/logs. Working DB/flags,
+          старые S3/policy/ACL не менялись; no push/deploy.
+          Root tsc, focused Prettier, API86/31712bytes, boundaries669/docs58/diff
+          проходят; five-axis self-review выполнен. Full Vitest/frontend build не
+          повторялись: runtime/схема/контракт/пакеты не менялись с прошлого GREEN.
     - [ ] CF-F1b4: отдельная browser/device matrix и разрешённый rollout. CF
-      целиком не объявлять принятым: local post/article/comment client integration
-      и native acceptance закрыты (CF-F1b3/CF-F2d/CF-F3d), физические устройства,
-      второй S3 principal и рабочее включение не приняты; старые files не менять.
+          целиком не объявлять принятым: local post/article/comment client integration
+          и native acceptance закрыты (CF-F1b3/CF-F2d/CF-F3d), физические устройства,
+          второй S3 principal и рабочее включение не приняты; старые files не менять.
 
 - [x] FE5: после переключения сети пользователем S3 HEAD200/TLS handshake~1.4сек,
-  policy hash0484dfa2… и versioning off прошли штатный preflight. Настоящие
-  Chromium→Next rewrite→Nest→fresh39 MySQL→Timeweb S3: **quick4/4 pass**,60.76s,
-  `-t 'quick:'`; full4 в этом прогоне skipped намеренно, НЕ засчитаны заново.
-  Вместе с ранее подтверждёнными full4/4 — **все8 разных сценариев FE5** за два
-  прогона. Оставшиеся quick edit и switch-during-upload/status закрыты:
-  существующие synthetic связи сохранены, lost ACK/reload/status-first replay
-  не создаёт дублей, unknown update не повторяется; другой аккаунт не получает
-  чужой intent/черновик/late receipt, исходный владелец восстанавливает прежний
-  файл. Actual GET bytes/HEAD/single Range206, paid access expiry/guest404 до
-  S3 вызова и anonymous S3 HEAD403 также прошли в quick create setup.
-  SQL итог:3 posts/5 media/3 creation intents/5 ready uploads, duplicate links0.
-  Все5 новых объектов этого прогона удалены с metadata/ETag guards и HEAD404;
-  policy hash unchanged. Own container99ceca6c…/59348/tmpfs/no mounts удалён
-  после повторной проверки exact ID/name/label/port/storage; API/Next/browser
-  закрыты, временных editor directories0, чужие4 containers сохранены.
-  Runtime frontend/backend/дизайн/старые S3/рабочая DB/flags не менялись;
-  исправлений продукта для прохождения не потребовалось. Рабочий rollout,
-  production build/device/browser matrix этим dev-Chromium прогоном не заявлены.
-  Секреты только stdin/memory, без secret files/Git/logs; no push/deploy.
+      policy hash0484dfa2… и versioning off прошли штатный preflight. Настоящие
+      Chromium→Next rewrite→Nest→fresh39 MySQL→Timeweb S3: **quick4/4 pass**,60.76s,
+      `-t 'quick:'`; full4 в этом прогоне skipped намеренно, НЕ засчитаны заново.
+      Вместе с ранее подтверждёнными full4/4 — **все8 разных сценариев FE5** за два
+      прогона. Оставшиеся quick edit и switch-during-upload/status закрыты:
+      существующие synthetic связи сохранены, lost ACK/reload/status-first replay
+      не создаёт дублей, unknown update не повторяется; другой аккаунт не получает
+      чужой intent/черновик/late receipt, исходный владелец восстанавливает прежний
+      файл. Actual GET bytes/HEAD/single Range206, paid access expiry/guest404 до
+      S3 вызова и anonymous S3 HEAD403 также прошли в quick create setup.
+      SQL итог:3 posts/5 media/3 creation intents/5 ready uploads, duplicate links0.
+      Все5 новых объектов этого прогона удалены с metadata/ETag guards и HEAD404;
+      policy hash unchanged. Own container99ceca6c…/59348/tmpfs/no mounts удалён
+      после повторной проверки exact ID/name/label/port/storage; API/Next/browser
+      закрыты, временных editor directories0, чужие4 containers сохранены.
+      Runtime frontend/backend/дизайн/старые S3/рабочая DB/flags не менялись;
+      исправлений продукта для прохождения не потребовалось. Рабочий rollout,
+      production build/device/browser matrix этим dev-Chromium прогоном не заявлены.
+      Секреты только stdin/memory, без secret files/Git/logs; no push/deploy.
 
 - FE5, после явного разрешения перезапустить Docker: штатный restart отказал
   по deadline; проверенные Docker UI/backend получили SIGTERM, после выхода
@@ -1600,263 +1637,263 @@
   DATABASE_URL, exact64-char ID в PRIVATE_EDITORS_DATABASE_CONTAINER_ID, test JWT
   в JWT_SECRET, прежний разрешённый S3 доступ только через stdin/memory.
   `PRIVATE_EDITORS_S3_ACCEPTANCE=true CI=true pnpm exec vitest run
-  tests/private-editors.s3.mysql.test.ts --maxWorkers=1 --reporter=dot`.
+tests/private-editors.s3.mysql.test.ts --maxWorkers=1 --reporter=dot`.
   Запускать весь файл: edit проверяет именно пост, ранее созданный UI того же mode.
   Working flags не включать; fresh migration preflight и own cleanup обязательны.
 
 - [x] FE4: по прямому поручению подключены новые закрытые audio/document к обоим
-  существующим post editors без дизайна. Domain slice ece9991: stable per-file
-  intent/status/replay и privateAssetIds, RED9→GREEN18 + legacy regressions110.
-  Durable IndexedDB aliases/File bytes, adapters и existing recovery notice;
-  status-first replay, no public fallback, upload ready не публикует пост.
-  Chromium66 pass, WebKit65 pass/1 existing legacy Blob skip; все14 новых private
-  cases проходят в обоих. Reload/lost upload+post ACK/same key+bytes/old media/
-  live account switch+late upload/status/cross-tab/storage failure проверены.
-  Дополнительные RED filename/MIME и recovery checkpoint→GREEN, DOC не выбирается
-  для нового private path; existing DOC/URL не трогались. Full2380 pass/0 fail,
-  1455 skipped/5 pending,263 files/45.8s; frontend/E2E/root types, lint/build,
-  API86/boundaries667/docs58/diff exit0. Review: alias identity до/после IndexedDB,
-  unknown legacy upload остаётся manual-only, 409/status errors не создают ключ,
-  late receipt не применяется к новому owner, старые связи не заменяются.
-  API browser fixtures подставные; File/IndexedDB/session/abort настоящие. Native
-  SQL/S3/rollout этим frontend срезом не заявлены. Working flags/DB/S3/old files,
-  SCSS/layout/assets/backend прежние; no push/deploy. Own Playwright server закрыт.
-  JSON Vitest/Chromium: /tmp/daryadarcy-private-editors-X7ePea/; WORK_PLAN — команды.
+      существующим post editors без дизайна. Domain slice ece9991: stable per-file
+      intent/status/replay и privateAssetIds, RED9→GREEN18 + legacy regressions110.
+      Durable IndexedDB aliases/File bytes, adapters и existing recovery notice;
+      status-first replay, no public fallback, upload ready не публикует пост.
+      Chromium66 pass, WebKit65 pass/1 existing legacy Blob skip; все14 новых private
+      cases проходят в обоих. Reload/lost upload+post ACK/same key+bytes/old media/
+      live account switch+late upload/status/cross-tab/storage failure проверены.
+      Дополнительные RED filename/MIME и recovery checkpoint→GREEN, DOC не выбирается
+      для нового private path; existing DOC/URL не трогались. Full2380 pass/0 fail,
+      1455 skipped/5 pending,263 files/45.8s; frontend/E2E/root types, lint/build,
+      API86/boundaries667/docs58/diff exit0. Review: alias identity до/после IndexedDB,
+      unknown legacy upload остаётся manual-only, 409/status errors не создают ключ,
+      late receipt не применяется к новому owner, старые связи не заменяются.
+      API browser fixtures подставные; File/IndexedDB/session/abort настоящие. Native
+      SQL/S3/rollout этим frontend срезом не заявлены. Working flags/DB/S3/old files,
+      SCSS/layout/assets/backend прежние; no push/deploy. Own Playwright server закрыт.
+      JSON Vitest/Chromium: /tmp/daryadarcy-private-editors-X7ePea/; WORK_PLAN — команды.
 
 - [x] FE0: пользователь разрешил внутренние frontend исправления без дизайна.
-  Fetch origin/staging81e8563: clean ab348be,49 ahead/0 behind; frontend совпадал
-  byte-for-byte, merge --ff-only Already up to date. Ничего не перезаписывалось.
+      Fetch origin/staging81e8563: clean ab348be,49 ahead/0 behind; frontend совпадал
+      byte-for-byte, merge --ff-only Already up to date. Ничего не перезаписывалось.
 - [x] FE1: воспроизведены stale API contract и missing document в viewport fixture.
-  Штатная генерация current86 procedures, private uploads/status/export и поля
-  отражены без backend runtime imports; exact procedure fixture актуализирована
-  для4 CF методов, обнаруженных full run. Viewport runtime прежний, tests4:
-  clamp/layout shrink/fallback/SSR. Affected102 checks/5 suites, contract1, API-check,
-  frontend+E2E types, lint/build/boundaries664 проходят. Общий GREEN пока не заявлен:
-  в работе отдельный media fix и WebKit PNG scenario, см. FE2/FE3.
+      Штатная генерация current86 procedures, private uploads/status/export и поля
+      отражены без backend runtime imports; exact procedure fixture актуализирована
+      для4 CF методов, обнаруженных full run. Viewport runtime прежний, tests4:
+      clamp/layout shrink/fallback/SSR. Affected102 checks/5 suites, contract1, API-check,
+      frontend+E2E types, lint/build/boundaries664 проходят. Общий GREEN пока не заявлен:
+      в работе отдельный media fix и WebKit PNG scenario, см. FE2/FE3.
 - [x] FE2: потоковое ограничение URL→Blob для медиа. RED2 consumer tests:
-  oversized attachment/video body целиком читался при false Content-Length.
-  Исправление сохраняет32/80MiB, abort/error/empty stream и MIME; native loopback
-  HTTP и actual Chromium/WebKit stream APIs проверены (4+4 browser checks).
-  Третий consumer photo URI отдельно RED→GREEN. Всего10 bounded checks, вместе
-  с media/save regressions105/4 suites/skip0. Frontend/E2E types проходят.
-  Лимиты прежние32/80MiB; MIME/bytes/EOF/abort, early cancel/releaseLock и реальное
-  закрытие chunked loopback response проверены. Не добавлялись API/flags/deps,
-  layout/SCSS/TSX/visual assets прежние. Working S3/DB не вызывались.
+      oversized attachment/video body целиком читался при false Content-Length.
+      Исправление сохраняет32/80MiB, abort/error/empty stream и MIME; native loopback
+      HTTP и actual Chromium/WebKit stream APIs проверены (4+4 browser checks).
+      Третий consumer photo URI отдельно RED→GREEN. Всего10 bounded checks, вместе
+      с media/save regressions105/4 suites/skip0. Frontend/E2E types проходят.
+      Лимиты прежние32/80MiB; MIME/bytes/EOF/abort, early cancel/releaseLock и реальное
+      закрытие chunked loopback response проверены. Не добавлялись API/flags/deps,
+      layout/SCSS/TSX/visual assets прежние. Working S3/DB не вызывались.
 - [x] FE3: браузерная media regression. Старый post/42 scenario использовал
-  неверный accessible name «Назад» вместо «Вернуться назад»: selector исправлен,
-  адресный Chromium повтор прошёл; UI/source header не менялся. WebKit macOS
-  возвращает image/png при canvas.toBlob(image/webp); random1100 PNG не помещается
-  в4MiB после existing1080 fallback. RED воспроизведён и после уточнения valid
-  PNG/WebP+alpha contract (uploads0); GREEN после дополнительного maxEdge960.
-  Обычные JPEG/WebP сохраняют первый успешный вариант; alpha/4MiB/MIME/filename
-  не подменяются. Никаких SCSS/layout/TSX/visual assets/backend/DB/S3 изменений.
-  Итог: **20 Chromium +20 macOS WebKit browser checks, skip0**,21.3/24.4sec;
-  frontend build/types/E2E/lint/root tsc проходят. Full Vitest **2360 pass,
-  0 fail/1455 skipped/5 pending,262 files,39.1sec**; opt-in не засчитан за native
-  backend/S3/provider acceptance. Первоначальный full fail — stale exact API
-  fixture, а не runtime regression; fixture теперь соответствует CF routes.
-  Исходные JSON: /tmp/daryadarcy-frontend-verify-2Ylry8/{vitest-final,chromium-final,
-  webkit-final}.json; воспроизводимые tests/commands и границы — начало WORK_PLAN.
-  Playwright установил Chromium1208/WebKit2248; его initial install автоматически
-  очистил unused cache1234/2336 (восстанавливается download), пользователь уведомлён;
-  далее GC отключён. Own Playwright server8081 завершён, loopback HTTP server закрыт.
-  Дизайн/working flags/old media/API semantics не менялись; no push/deploy.
-  Финальные API86/boundaries665/docs58/diff exit0; повторный fetch после transient
-  SSL ошибки подтвердил staging81e8563, без ослабления TLS/merge/перезаписи.
+      неверный accessible name «Назад» вместо «Вернуться назад»: selector исправлен,
+      адресный Chromium повтор прошёл; UI/source header не менялся. WebKit macOS
+      возвращает image/png при canvas.toBlob(image/webp); random1100 PNG не помещается
+      в4MiB после existing1080 fallback. RED воспроизведён и после уточнения valid
+      PNG/WebP+alpha contract (uploads0); GREEN после дополнительного maxEdge960.
+      Обычные JPEG/WebP сохраняют первый успешный вариант; alpha/4MiB/MIME/filename
+      не подменяются. Никаких SCSS/layout/TSX/visual assets/backend/DB/S3 изменений.
+      Итог: **20 Chromium +20 macOS WebKit browser checks, skip0**,21.3/24.4sec;
+      frontend build/types/E2E/lint/root tsc проходят. Full Vitest **2360 pass,
+      0 fail/1455 skipped/5 pending,262 files,39.1sec**; opt-in не засчитан за native
+      backend/S3/provider acceptance. Первоначальный full fail — stale exact API
+      fixture, а не runtime regression; fixture теперь соответствует CF routes.
+      Исходные JSON: /tmp/daryadarcy-frontend-verify-2Ylry8/{vitest-final,chromium-final,
+      webkit-final}.json; воспроизводимые tests/commands и границы — начало WORK_PLAN.
+      Playwright установил Chromium1208/WebKit2248; его initial install автоматически
+      очистил unused cache1234/2336 (восстанавливается download), пользователь уведомлён;
+      далее GC отключён. Own Playwright server8081 завершён, loopback HTTP server закрыт.
+      Дизайн/working flags/old media/API semantics не менялись; no push/deploy.
+      Финальные API86/boundaries665/docs58/diff exit0; повторный fetch после transient
+      SSL ошибки подтвердил staging81e8563, без ослабления TLS/merge/перезаписи.
 
 - [x] AG9-L4: разрешены только count-индексы и повтор local load. RED2 ALL→ref
-  tests + unchanged exact-count test; A/B30 calls/phase, одинаковый result hash:
-  median30.24→4.83мс, invisible30.36мс, visible-repeat6.10мс. Candidate nonunique
-  likes(postId)/comments(postId,createdAt), additive0038 + ORM, commit6680f21.
-  Fresh39/native:31 relevant checks/6 suites/skip0, tsc/build/boundaries664/docs58/
-  diff exit0; старые SQL/journal неизменны, existing preflight не обойдён.
-  Full5/10/25RPS repeat9900/9900, errors/dropped0, recovery/counts/parity/denials
-  PASS.25RPS p95 club45.13→28.14мс, feed36.86→30.65мс, saved30.53→13.06мс;
-  comments30.84→32.17мс, worst write10.45→14.09мс — не все методы ускорились.
-  Два главных count-page digest examined rows -96.6–97.6%; comments ALL/filesort
-  →ref/index, posts/search ALL/filesort остались. DB CPU max47.91→18.62% core;
-  API peak RSS386.2→438.5MiB, end198.6MiB — leak/capacity не сертифицированы.
-  Native INNODB_METRICS deadlocks/timeouts0, all187 SQL digests SUM_ERRORS0,
-  outbox/media/open trx/external TCP0, cumulative row waits7→7. Full evidence:
-  docs/audits/content-launch.md + tooling/data/backend-load/2026-10-15-indexed.json,
-  исходный baseline JSON сохранён. API/caffeinate завершены, три own synthetic
-  tmpfs containers удалены после exact ID/owner/loopback/mounts checks; чужой
-  local-owner39fdda943241 и другие стенды не тронуты. Frontend/working DB/S3/API/
-  квоты/пул без изменений; без push/deploy. Working0038 rollout не выполнялся.
+      tests + unchanged exact-count test; A/B30 calls/phase, одинаковый result hash:
+      median30.24→4.83мс, invisible30.36мс, visible-repeat6.10мс. Candidate nonunique
+      likes(postId)/comments(postId,createdAt), additive0038 + ORM, commit6680f21.
+      Fresh39/native:31 relevant checks/6 suites/skip0, tsc/build/boundaries664/docs58/
+      diff exit0; старые SQL/journal неизменны, existing preflight не обойдён.
+      Full5/10/25RPS repeat9900/9900, errors/dropped0, recovery/counts/parity/denials
+      PASS.25RPS p95 club45.13→28.14мс, feed36.86→30.65мс, saved30.53→13.06мс;
+      comments30.84→32.17мс, worst write10.45→14.09мс — не все методы ускорились.
+      Два главных count-page digest examined rows -96.6–97.6%; comments ALL/filesort
+      →ref/index, posts/search ALL/filesort остались. DB CPU max47.91→18.62% core;
+      API peak RSS386.2→438.5MiB, end198.6MiB — leak/capacity не сертифицированы.
+      Native INNODB_METRICS deadlocks/timeouts0, all187 SQL digests SUM_ERRORS0,
+      outbox/media/open trx/external TCP0, cumulative row waits7→7. Full evidence:
+      docs/audits/content-launch.md + tooling/data/backend-load/2026-10-15-indexed.json,
+      исходный baseline JSON сохранён. API/caffeinate завершены, три own synthetic
+      tmpfs containers удалены после exact ID/owner/loopback/mounts checks; чужой
+      local-owner39fdda943241 и другие стенды не тронуты. Frontend/working DB/S3/API/
+      квоты/пул без изменений; без push/deploy. Working0038 rollout не выполнялся.
 
 - [x] AG9-L0: по поручению предложен минимальный local API/DB load scenario в
-  начале очереди tasks/plan.md: current38 fresh SQL/own tmpfs, synthetic dataset,
-  real login отдельно от mixed HTTP read/toggle,5/10/25RPS, per-method latency/
-  correctness/recovery/resource criteria. Числа предложены, не взяты из ТЗ и не
-  согласованы как production SLA. Existing production load-probe не запускать.
-  Этот срез только документация; Docker/нагрузка/код/frontend/DB/S3 не менялись.
-  Проверка docs58/diff exit0; review сопоставил реальные routes/pool/login quota,
-  отделил ожидаемые access denials от ошибок и local baseline от рабочей приёмки.
+      начале очереди tasks/plan.md: current38 fresh SQL/own tmpfs, synthetic dataset,
+      real login отдельно от mixed HTTP read/toggle,5/10/25RPS, per-method latency/
+      correctness/recovery/resource criteria. Числа предложены, не взяты из ТЗ и не
+      согласованы как production SLA. Existing production load-probe не запускать.
+      Этот срез только документация; Docker/нагрузка/код/frontend/DB/S3 не менялись.
+      Проверка docs58/diff exit0; review сопоставил реальные routes/pool/login quota,
+      отделил ожидаемые access denials от ошибок и local baseline от рабочей приёмки.
 - [x] AG9-L1: пользователь принял критерии и разрешил локальную нагрузку.
-  Новый own labelled loopback/tmpfs MySQL8.4/backend_test,2CPU/1GiB, fresh38,
-  отдельный compiled Nest process,60 synthetic users/10000 posts/20000 comments.
-  Guards/latency/dropped arrivals: RED3 absent functions→GREEN3, CLI refusal
-  проверен отдельно без Docker/SQL/секретов. Real login10 и baseline завершились;
-  это не финальная нагрузочная приёмка. Runtime/квоты/пул/фронт/working DB/S3 прежние.
+      Новый own labelled loopback/tmpfs MySQL8.4/backend_test,2CPU/1GiB, fresh38,
+      отдельный compiled Nest process,60 synthetic users/10000 posts/20000 comments.
+      Guards/latency/dropped arrivals: RED3 absent functions→GREEN3, CLI refusal
+      проверен отдельно без Docker/SQL/секретов. Real login10 и baseline завершились;
+      это не финальная нагрузочная приёмка. Runtime/квоты/пул/фронт/working DB/S3 прежние.
 - [x] AG9-L2/L3: baseline→5RPS/2мин→10RPS/3мин→25RPS/5мин→60сек idle→recovery.
-  **9900/9900 load requests, errors/dropped0; native run exit0/PASS.** Read/write
-  worst p95:5RPS71.97/20.79мс,10RPS71.69/15.99мс,25RPS45.13/10.45мс;
-  25RPS read p99<=46.38мс, max in-flight4, scheduling lag p95<=2.44мс.
-  10 real login p95=84.97мс; дополнительно30 warmup/600 baseline-recovery requests.
-  Exact SQL counts/reaction parity/unique pairs; denied unpaid/blocked/expired,
-  outbox/media/open transactions0. INNODB_METRICS deadlocks/timeouts и all-digest
-  SQL errors отдельно проверены0; отсутствие SHOW STATUS строки не считалось0.
-  API RSS321.9→291.1MiB/peak386.2; MySQL max780.5MiB/47.91% одного core из2,
-  pool+observer<=11 connections, current row waits0, cumulative7→7 после login.
-  Списки/counts и comments full scans/filesort — подтверждённые первые риски роста,
-  но criteria не нарушены; runtime/индексы/пул не менялись. Подробности/команда:
-  docs/audits/content-launch.md, JSON tooling/data/backend-load/2026-10-15.json.
-  Own00e12d4b9c76/loopback55817/tmpfs/no volumes удалён после exact inspection;
-  local-owner39fdda943241/другие контейнеры сохранены, API/temp/caffeinate завершены.
-  Фронт/working DB/S3/старые files/flags/remote неизменны. Local-only результат,
-  не доказательство production capacity,50 concurrent login или devices.
-  Финально4 harness tests/2 suites/skip0, tsc/boundaries664/docs58/diff exit0;
-  review: failed/dropped requests не скрываются, latency до полного body check,
-  SQL-counter absence не считается success, generated evidence без credentials.
+      **9900/9900 load requests, errors/dropped0; native run exit0/PASS.** Read/write
+      worst p95:5RPS71.97/20.79мс,10RPS71.69/15.99мс,25RPS45.13/10.45мс;
+      25RPS read p99<=46.38мс, max in-flight4, scheduling lag p95<=2.44мс.
+      10 real login p95=84.97мс; дополнительно30 warmup/600 baseline-recovery requests.
+      Exact SQL counts/reaction parity/unique pairs; denied unpaid/blocked/expired,
+      outbox/media/open transactions0. INNODB_METRICS deadlocks/timeouts и all-digest
+      SQL errors отдельно проверены0; отсутствие SHOW STATUS строки не считалось0.
+      API RSS321.9→291.1MiB/peak386.2; MySQL max780.5MiB/47.91% одного core из2,
+      pool+observer<=11 connections, current row waits0, cumulative7→7 после login.
+      Списки/counts и comments full scans/filesort — подтверждённые первые риски роста,
+      но criteria не нарушены; runtime/индексы/пул не менялись. Подробности/команда:
+      docs/audits/content-launch.md, JSON tooling/data/backend-load/2026-10-15.json.
+      Own00e12d4b9c76/loopback55817/tmpfs/no volumes удалён после exact inspection;
+      local-owner39fdda943241/другие контейнеры сохранены, API/temp/caffeinate завершены.
+      Фронт/working DB/S3/старые files/flags/remote неизменны. Local-only результат,
+      не доказательство production capacity,50 concurrent login или devices.
+      Финально4 harness tests/2 suites/skip0, tsc/boundaries664/docs58/diff exit0;
+      review: failed/dropped requests не скрываются, latency до полного body check,
+      SQL-counter absence не считается success, generated evidence без credentials.
 
 - [x] CF0: пользователь принял показанный контракт новых фото постов/комментариев
-  и файлов статей. Зафиксирован в SPEC-private-files.md, без рабочего rollout.
+      и файлов статей. Зафиксирован в SPEC-private-files.md, без рабочего rollout.
 - [x] CF1: photo pipeline и отдельный private content storage guard, RED/GREEN.
-  RED: preparePhoto отсутствует, content scope не сохраняет объект. GREEN:
-  21 checks (photo + SDK-wire), 37 existing native AG4 checks/skip0; tsc/docs58
-  exit0. Проверены EXIF/alpha, отдельный policy guard и lost PUT ACK без второго
-  объекта. Это loopback SDK wire, не actual Timeweb ACL acceptance. Рабочий S3
-  не вызывался. Существующая public photo pipeline сохранена.
+      RED: preparePhoto отсутствует, content scope не сохраняет объект. GREEN:
+      21 checks (photo + SDK-wire), 37 existing native AG4 checks/skip0; tsc/docs58
+      exit0. Проверены EXIF/alpha, отдельный policy guard и lost PUT ACK без второго
+      объекта. Это loopback SDK wire, не actual Timeweb ACL acceptance. Рабочий S3
+      не вызывался. Существующая public photo pipeline сохранена.
 - [x] CF2: durable ledger/upload/status и migration0036. Native7 + transport4
-  checks pass/skip0 на own tmpfs MySQL + HTTP/JWT/SDK wire, не Timeweb. RED:
-  отсутствующие новые procedures. GREEN: lost ACK/pending/status/retry, concurrent
-  upload, changed payload, owner isolation, default-off/role/epoch/deletion,
-  photo byte validation/alpha. TXT сохраняет canonical charset=utf-8.
+      checks pass/skip0 на own tmpfs MySQL + HTTP/JWT/SDK wire, не Timeweb. RED:
+      отсутствующие новые procedures. GREEN: lost ACK/pending/status/retry, concurrent
+      upload, changed payload, owner isolation, default-off/role/epoch/deletion,
+      photo byte validation/alpha. TXT сохраняет canonical charset=utf-8.
 - [x] CF3: atomic post/article binding, live GET/HEAD/Range access и removal.
-  CF3a post photos: native9 pass/skip0, после RED foreign binding и missing SQL
-  association. Current parent, draft/public/club, owner/usage/raw URL guards,
-  create key/replay, HEAD/bytes/no-store/inline и detach/no resurrection проверены.
-  CF3b article images/carousel/documents: native11 pass; article regression38
-  checks. Один compiled ESM run завершился ETIMEDOUT при длительных паузах
-  host/import; адресный повтор без изменений/увеличения timeout —1 pass.
-  Подтверждён sleep/wake macOS. Повтор с caffeinate без изменения timeout:
-  49 native checks/2 suites/skip0,8.18s, exit0. Working S3 не проверялся.
+      CF3a post photos: native9 pass/skip0, после RED foreign binding и missing SQL
+      association. Current parent, draft/public/club, owner/usage/raw URL guards,
+      create key/replay, HEAD/bytes/no-store/inline и detach/no resurrection проверены.
+      CF3b article images/carousel/documents: native11 pass; article regression38
+      checks. Один compiled ESM run завершился ETIMEDOUT при длительных паузах
+      host/import; адресный повтор без изменений/увеличения timeout —1 pass.
+      Подтверждён sleep/wake macOS. Повтор с caffeinate без изменения timeout:
+      49 native checks/2 suites/skip0,8.18s, exit0. Working S3 не проверялся.
 - [x] CF4: comment binding и права чтения/удаление, без изменения ролей/сроков.
-  RED: missing routes, затем дубли comment rows/foreign parent и missing no-store
-  на ingress denial; review RED выявил обход ledger при photos=[] в retry.
-  GREEN: **98 checks/7 suites/skip0,6.07s**, tsc exit0.
-  Native SQL/HTTP/JWT + loopback SDK: upload ACK loss, настоящий downstream HTTP
-  drop после upstream commit, same-key/concurrent replay, changed payload,
-  list реальных committed rows, другой аккаунт/чужой asset, истечение paid access,
-  blocked/epoch/role revoke, delete/no resurrection, прежние 48h/2-photo rules.
-  Ledger0037 для новых private-photo comments; legacy toggle/comment semantics
-  не расширены. Нет внешнего S3/browser acceptance; фронт не изменён.
+      RED: missing routes, затем дубли comment rows/foreign parent и missing no-store
+      на ingress denial; review RED выявил обход ledger при photos=[] в retry.
+      GREEN: **98 checks/7 suites/skip0,6.07s**, tsc exit0.
+      Native SQL/HTTP/JWT + loopback SDK: upload ACK loss, настоящий downstream HTTP
+      drop после upstream commit, same-key/concurrent replay, changed payload,
+      list реальных committed rows, другой аккаунт/чужой asset, истечение paid access,
+      blocked/epoch/role revoke, delete/no resurrection, прежние 48h/2-photo rules.
+      Ledger0037 для новых private-photo comments; legacy toggle/comment semantics
+      не расширены. Нет внешнего S3/browser acceptance; фронт не изменён.
 - [x] CF5: retirement/export, regression и передача фронтендеру; flags off.
-  RED: новые export kinds отвергались; retirement оставлял comment ledger и
-  actor/filename у новых receipts. Дополнительно native entrypoint через retirement
-  воспроизвёл cyclic initialization: upload schema получал undefined key validator.
-  Validator перенесён в dependency-light owning module, без изменения key contract.
-  GREEN: **234 checks/12 suites/skip0,15.78s**, native SQL/HTTP/JWT + loopback SDK,
-  включая old private upload/article/comment/retirement worker regressions.
-  Проверены pagination/owner isolation/no capabilities в export, atomic retirement
-  при upload flag off, rollback на partial0037, unbound retirement без S3 effects,
-  сохранение bound read evidence, expired recovery409 без нового comment и без
-  потери live photo. Отдельно current fresh38: **12 checks/2 suites/skip0,3.10s**,
-  все SQL реально применены на новой пустой own loopback/tmpfs DB, current ORM/API.
-  Первый запуск fresh suite не стартовал из-за неподдерживаемого reporter=basic;
-  исправлена только команда, повтор с dot прошёл. Это не сбой миграций.
-  tsc/build/boundaries664/docs58/diff exit0; check:api остаётся expected RED (frontend не
-  регенерировался). Previous broad checkpoint101 pass/5 opt-in worker skips не
-  засчитан за полную приёмку; финальный прогон включает эти5 checks.
-  SPEC и начало existing backend handoff описывают CF API и клиентские guards.
-  Review: current actor/parent before storage, one-intent SQL uniqueness, no
-  resurrection, bounded metadata export/retirement; новые deps и роли не менялись.
-  Оба own synthetic tmpfs контейнера удалены после exact ID/name/owner/ports/mounts
-  inspection; existing local-owner стенд39fdda943241 сохранён. Рабочие данные и
-  S3 objects не удалялись. Временный собственный caffeinate остановлен.
+      RED: новые export kinds отвергались; retirement оставлял comment ledger и
+      actor/filename у новых receipts. Дополнительно native entrypoint через retirement
+      воспроизвёл cyclic initialization: upload schema получал undefined key validator.
+      Validator перенесён в dependency-light owning module, без изменения key contract.
+      GREEN: **234 checks/12 suites/skip0,15.78s**, native SQL/HTTP/JWT + loopback SDK,
+      включая old private upload/article/comment/retirement worker regressions.
+      Проверены pagination/owner isolation/no capabilities в export, atomic retirement
+      при upload flag off, rollback на partial0037, unbound retirement без S3 effects,
+      сохранение bound read evidence, expired recovery409 без нового comment и без
+      потери live photo. Отдельно current fresh38: **12 checks/2 suites/skip0,3.10s**,
+      все SQL реально применены на новой пустой own loopback/tmpfs DB, current ORM/API.
+      Первый запуск fresh suite не стартовал из-за неподдерживаемого reporter=basic;
+      исправлена только команда, повтор с dot прошёл. Это не сбой миграций.
+      tsc/build/boundaries664/docs58/diff exit0; check:api остаётся expected RED (frontend не
+      регенерировался). Previous broad checkpoint101 pass/5 opt-in worker skips не
+      засчитан за полную приёмку; финальный прогон включает эти5 checks.
+      SPEC и начало existing backend handoff описывают CF API и клиентские guards.
+      Review: current actor/parent before storage, one-intent SQL uniqueness, no
+      resurrection, bounded metadata export/retirement; новые deps и роли не менялись.
+      Оба own synthetic tmpfs контейнера удалены после exact ID/name/owner/ports/mounts
+      inspection; existing local-owner стенд39fdda943241 сохранён. Рабочие данные и
+      S3 objects не удалялись. Временный собственный caffeinate остановлен.
 - [x] CF-S3 storage gate15 октября, по отдельному прямому разрешению: preflight
-  current policy/ACL/empty prefix/versioning и signed IAM GetUser; identity
-  fingerprint886adafddaec совпал с existing private attachment allowlist.
-  Добавлен только DaryadarcyPrivateContentV1 на content/private-v1/*; три прежних
-  statement и ACL сохранены. Hash до1f66d0c775b9, после0484dfa2cc01 (полные в SPEC).
-  Реальный SDK/Timeweb: TXT10/WebP88 bytes, signed HEAD/GET200/Range206 exact,
-  anonymous GET/HEAD/Range403 для обоих; own public-control до/после200 exact.
-  Три собственных файла удалены после owner/hash/MIME/size/ETag guards, HEAD404;
-  prefix пуст, rule/readback/ACL проверены. Другой валидный S3 principal не
-  проверен. SQL/API/browser этим probe не засчитываются. Локальная подготовка
-  sharp в signed host сначала отказала (Team IDs); отдельный Node подготовил
-  тот же WebP, dependencies/защита/приложение не менялись. JS kernel завершён.
-  Docs58/diff exit0; runtime не менялся, успешные прежние SQL/build suites без
-  новой причины не повторялись. Review ограничил claim storage-only результатом.
+      current policy/ACL/empty prefix/versioning и signed IAM GetUser; identity
+      fingerprint886adafddaec совпал с existing private attachment allowlist.
+      Добавлен только DaryadarcyPrivateContentV1 на content/private-v1/\*; три прежних
+      statement и ACL сохранены. Hash до1f66d0c775b9, после0484dfa2cc01 (полные в SPEC).
+      Реальный SDK/Timeweb: TXT10/WebP88 bytes, signed HEAD/GET200/Range206 exact,
+      anonymous GET/HEAD/Range403 для обоих; own public-control до/после200 exact.
+      Три собственных файла удалены после owner/hash/MIME/size/ETag guards, HEAD404;
+      prefix пуст, rule/readback/ACL проверены. Другой валидный S3 principal не
+      проверен. SQL/API/browser этим probe не засчитываются. Локальная подготовка
+      sharp в signed host сначала отказала (Team IDs); отдельный Node подготовил
+      тот же WebP, dependencies/защита/приложение не менялись. JS kernel завершён.
+      Docs58/diff exit0; runtime не менялся, успешные прежние SQL/build suites без
+      новой причины не повторялись. Review ограничил claim storage-only результатом.
 - [x] CF-API15 октября, по прямому разрешению: настоящий Nest HTTP/JWT + SQL38
-  fresh migrations + Timeweb S3, без fixture DDL. Новый opt-in
-  tests/private-content-files.s3.mysql.test.ts: **4 pass/skip0,35.11s,exit0**.
-  Документ/фото поста/фото статьи/фото комментария: upload/status/binding/read,
-  настоящие потерянные HTTP ответы после upstream200/commit, новые процессы API,
-  same-key/concurrent replay с прежним assetId/material id и без второго PUT;
-  changed payload и photos=[]409, foreign binding/account isolation, current list.
-  GET/HEAD/Range exact, WebP alpha/no EXIF/inline, document attachment, no-store/
-  nosniff, anonymous storage403. Draft/hidden/detached/deleted, paid expiry,
-  block/role/session revoke закрывают следующий read до S3; новая сессия допустима.
-  Default-off проверен только в own API children; рабочий флаг не включался.
-  Четыре own S3 objects удалены после ledger filename UUID/asset/hash/MIME/size/
-  ETag guards, signed HEAD404; policy hash0484dfa2cc01 неизменен, policy writes0.
-  Предварительный doc-срез1 pass/8.66s после исправления неверного test expectation:
-  у unpublished article нет teaser; после publish ровно один. Runtime не менялся.
-  Один запуск стенда стартовал до окончания DB readiness: connection closed,
-  cases не выполнялись. После реального readiness и SHOW TABLES=[] штатный
-  fresh-only initializer применил38 SQL; финальный прогон выше без skip/fail.
-  Типовая ошибка generic SDK helper устранена в тесте, не ослаблением tsc.
-  Дополнительно pure regression30/4 suites/skip0,1.32s; tsc/boundaries664/docs58/
-  diff exit0. Review: проверяется реальный результат/bytes/SQL, SDK наблюдение
-  call-through без подмены ответов; production и frontend source не менялись.
-  Все три own tmpfs контейнера срезов удалены после exact ownership inspection;
-  existing owner39fdda943241 сохранён, временные API/JS kernel/caffeinate завершены.
+      fresh migrations + Timeweb S3, без fixture DDL. Новый opt-in
+      tests/private-content-files.s3.mysql.test.ts: **4 pass/skip0,35.11s,exit0**.
+      Документ/фото поста/фото статьи/фото комментария: upload/status/binding/read,
+      настоящие потерянные HTTP ответы после upstream200/commit, новые процессы API,
+      same-key/concurrent replay с прежним assetId/material id и без второго PUT;
+      changed payload и photos=[]409, foreign binding/account isolation, current list.
+      GET/HEAD/Range exact, WebP alpha/no EXIF/inline, document attachment, no-store/
+      nosniff, anonymous storage403. Draft/hidden/detached/deleted, paid expiry,
+      block/role/session revoke закрывают следующий read до S3; новая сессия допустима.
+      Default-off проверен только в own API children; рабочий флаг не включался.
+      Четыре own S3 objects удалены после ledger filename UUID/asset/hash/MIME/size/
+      ETag guards, signed HEAD404; policy hash0484dfa2cc01 неизменен, policy writes0.
+      Предварительный doc-срез1 pass/8.66s после исправления неверного test expectation:
+      у unpublished article нет teaser; после publish ровно один. Runtime не менялся.
+      Один запуск стенда стартовал до окончания DB readiness: connection closed,
+      cases не выполнялись. После реального readiness и SHOW TABLES=[] штатный
+      fresh-only initializer применил38 SQL; финальный прогон выше без skip/fail.
+      Типовая ошибка generic SDK helper устранена в тесте, не ослаблением tsc.
+      Дополнительно pure regression30/4 suites/skip0,1.32s; tsc/boundaries664/docs58/
+      diff exit0. Review: проверяется реальный результат/bytes/SQL, SDK наблюдение
+      call-through без подмены ответов; production и frontend source не менялись.
+      Все три own tmpfs контейнера срезов удалены после exact ownership inspection;
+      existing owner39fdda943241 сохранён, временные API/JS kernel/caffeinate завершены.
 - [ ] CF остаток: browser/device acceptance и отдельно разрешённый rollout.
-  Frontend/generated types и scoped native acceptance закрыты CF-F1/F2/F3 выше.
-  Независимый второй валидный S3 principal не предоставлен/не проверен.
-  Рабочая DB/старые objects/рабочие flags не менялись; push/deploy нет.
-  Не переделывать готовый runtime без дефекта и
-  не повторять успешные native/probe checks без drift/изменений/новой причины.
+      Frontend/generated types и scoped native acceptance закрыты CF-F1/F2/F3 выше.
+      Независимый второй валидный S3 principal не предоставлен/не проверен.
+      Рабочая DB/старые objects/рабочие flags не менялись; push/deploy нет.
+      Не переделывать готовый runtime без дефекта и
+      не повторять успешные native/probe checks без drift/изменений/новой причины.
 
 - [x] По следующему поручению подготовлены F-TEST-1/F-API-1 в начале existing
-  backend handoff: точная причина viewport fixture, минимальный DOM stub и
-  layout/fallback/SSR cases; regeneration на merged backend33b8bbe82/79 и
-  критерии check:api/affected/full tests. Frontend/tests/types не исправлялись.
-  Проверена активная очередь: независимого незавершённого backend runtime среза
-  нет; совместная private-media/native/rollout остаётся незавершённой, не GREEN.
-  Никаких новых функций, рабочих данных, push/deploy или внешней отправки.
+      backend handoff: точная причина viewport fixture, минимальный DOM stub и
+      layout/fallback/SSR cases; regeneration на merged backend33b8bbe82/79 и
+      критерии check:api/affected/full tests. Frontend/tests/types не исправлялись.
+      Проверена активная очередь: независимого незавершённого backend runtime среза
+      нет; совместная private-media/native/rollout остаётся незавершённой, не GREEN.
+      Никаких новых функций, рабочих данных, push/deploy или внешней отправки.
 
 - [x] По прямому разрешению пользователя локально объединены parent ad54e16 и
-  свежий staging81e8563 на feature/stage-one-completion-2026-10-10; без конфликтов,
-  ручных правок frontend, push/deploy/DB/S3. Frontend tree точно равен81e8563;
-  apps/backend и packages/database точно равны ad54e16. Зависимости не менялись.
-  `pnpm check` (root + frontend/E2E types), lint, backend/frontend builds,
-  boundaries656, docs58, staged diff check — exit0.
-  Полный Vitest без external/SQL credentials: **2339 pass, 1 fail, 1427 skipped,
-  5 pending**, 255 файлов/3772 tests,51.26s, exit1. Единственный fail:
-  __tests__/web-viewport.test.ts — document is not defined (viewport.ts:73).
-  Адресный повтор:1 pass/1 fail. Test/viewport/config/setup одинаковы в обоих
-  parents: это существующий пробел Node fixture (window задан, document нет),
-  не новый merge conflict; исправление фронта/его тестов не разрешено.
-  check:api exit1 — сохранён known contract82 vs frontend79, без regeneration.
-  JSON evidence: /tmp/daryadarcy-merge-check.fCpphO/vitest.json. Не общий GREEN;
-  SQL/browser/provider/mobile acceptance этим merge не выполнены.
+      свежий staging81e8563 на feature/stage-one-completion-2026-10-10; без конфликтов,
+      ручных правок frontend, push/deploy/DB/S3. Frontend tree точно равен81e8563;
+      apps/backend и packages/database точно равны ad54e16. Зависимости не менялись.
+      `pnpm check` (root + frontend/E2E types), lint, backend/frontend builds,
+      boundaries656, docs58, staged diff check — exit0.
+      Полный Vitest без external/SQL credentials: **2339 pass, 1 fail, 1427 skipped,
+      5 pending**, 255 файлов/3772 tests,51.26s, exit1. Единственный fail:
+      **tests**/web-viewport.test.ts — document is not defined (viewport.ts:73).
+      Адресный повтор:1 pass/1 fail. Test/viewport/config/setup одинаковы в обоих
+      parents: это существующий пробел Node fixture (window задан, document нет),
+      не новый merge conflict; исправление фронта/его тестов не разрешено.
+      check:api exit1 — сохранён known contract82 vs frontend79, без regeneration.
+      JSON evidence: /tmp/daryadarcy-merge-check.fCpphO/vitest.json. Не общий GREEN;
+      SQL/browser/provider/mobile acceptance этим merge не выполнены.
 
 - [x] AG9: актуализировать existing backend handoff после frontend34f1a8d/
-  staging81e8563. Fetch15 октября: snapshot не менялся с прошлой сверки;
-  club access/articles/NORMAL/VK уже подключены, не делать заново.
-  Остаток клиента — новые private upload/status/association; контракт82/79 и
-  два post input mismatch записаны с датой предыдущей read-only проверки.
-  Новый UI для recoveryExport не назначен. Только docs, без runtime/front changes.
-  Документация56/diff exit0; review сопоставил текст с current handlers и staging
-  исходниками. SQL/browser/build не повторялись: code не изменён, новых claims нет.
+      staging81e8563. Fetch15 октября: snapshot не менялся с прошлой сверки;
+      club access/articles/NORMAL/VK уже подключены, не делать заново.
+      Остаток клиента — новые private upload/status/association; контракт82/79 и
+      два post input mismatch записаны с датой предыдущей read-only проверки.
+      Новый UI для recoveryExport не назначен. Только docs, без runtime/front changes.
+      Документация56/diff exit0; review сопоставил текст с current handlers и staging
+      исходниками. SQL/browser/build не повторялись: code не изменён, новых claims нет.
 - [x] Локальная private-media интеграция и согласованная native acceptance:
-  FE5/CF-F1b3/CF-F2d/CF-F3d/VU4 завершены выше. Видео UI/browser reload не засчитаны
-  по VU4 transport/coordinator проверкам: browser/mobile отложены.
-  Remote staging/сервер этим результатом не обновлены; push/rollout не разрешены.
-  Пакет передачи: начало docs/development/backend-handoff-2026-10-05.md.
-  Без новых входов не повторять готовые тесты/не придумывать backend функции.
+      FE5/CF-F1b3/CF-F2d/CF-F3d/VU4 завершены выше. Видео UI/browser reload не засчитаны
+      по VU4 transport/coordinator проверкам: browser/mobile отложены.
+      Remote staging/сервер этим результатом не обновлены; push/rollout не разрешены.
+      Пакет передачи: начало docs/development/backend-handoff-2026-10-05.md.
+      Без новых входов не повторять готовые тесты/не придумывать backend функции.
 
 Правила, основания и критерии: начало [плана](plan.md), раздел «Действующий план
 агента». Это единственная текущая очередь. Работать по одному доступному AG-пункту;
@@ -1875,54 +1912,55 @@ AG6 принят и реализован
 Доступная локальная подготовка сохранена. Внешние действия/фронт не выполнялись.
 Последующее решение пользователя14 октября: подготовить **отдельную пустую БД**
 локально, существующую не трогать, без frontend/deploy. Теперь доступен AG5-F:
+
 - [x] F1 — fresh-only manifest всех36 SQL, старый journal/preflight без изменений.
-  RED absent fresh profile→GREEN21 policy/history checks/skip0; typecheck exit0.
-  Известные0017–0019 включены только в отдельный generated profile с новыми
-  fresh-only ordering IDs; прежние SQL bytes/hashes и зарегистрированные when
-  сохранены. Unknown orphan/missing SQL отказывают; старая история не подделывается.
+      RED absent fresh profile→GREEN21 policy/history checks/skip0; typecheck exit0.
+      Известные0017–0019 включены только в отдельный generated profile с новыми
+      fresh-only ordering IDs; прежние SQL bytes/hashes и зарегистрированные when
+      сохранены. Unknown orphan/missing SQL отказывают; старая история не подделывается.
 - [x] F2 — own-container/empty-target guarded local initializer, no reset/retry repair.
-  `db:fresh:local` требует FRESH-only URL/ID, matching owner/name/loopback port,
-  tmpfs без volumes; production/nonlocal/unowned/nonempty/repeat отказывают.
-  Все36 SQL применены настоящим Drizzle; никаких env-файлов/seed/default admin.
+      `db:fresh:local` требует FRESH-only URL/ID, matching owner/name/loopback port,
+      tmpfs без volumes; production/nonlocal/unowned/nonempty/repeat отказывают.
+      Все36 SQL применены настоящим Drizzle; никаких env-файлов/seed/default admin.
 - [x] F3 — full SQL install/history/current schema/native API acceptance и runbook.
-  Финальная новая пустая MySQL8.4: native9 + policy/history21 = **30 pass,
-  4 suites, skip0, 3.02s**. Все текущие ORM tables/columns читаются без fixture DDL;
-  native HTTP feed/articles=200/empty, guest admin=401, users=0.
-  Runbook описывает partial-DDL отказ и отдельный fresh history profile;
-  стандартный db:push на эту историю не разрешён. Это не release approval.
+      Финальная новая пустая MySQL8.4: native9 + policy/history21 = **30 pass,
+      4 suites, skip0, 3.02s**. Все текущие ORM tables/columns читаются без fixture DDL;
+      native HTTP feed/articles=200/empty, guest admin=401, users=0.
+      Runbook описывает partial-DDL отказ и отдельный fresh history profile;
+      стандартный db:push на эту историю не разрешён. Это не release approval.
 - [x] F4 — по последующему поручению пользователя локальная backup/restore
-  репетиция: existing backend backup + настоящий mysqldump8.4, gzip в own temp,
-  восстановление native mysql в другой пустой own tmpfs backend_test.
-  **6 native pass/skip0, 2.55s**: все tables/rows и точные SHOW CREATE TABLE
-  совпали; migration history36, Unicode/JSON/NULL и уникальность email/requestKey
-  сохранены. Повторный restore отказывает без изменений. Администратор не создан.
-  Тестовый transport adapter переносит вызов mysqldump в контейнер (на host нет
-  клиента); SQL/production gzip/file completion не подменяются. S3 выключен.
-  Это локальная rehearsal, не подтверждение production/media/off-site backup.
-  tsc/docs56/diff exit0; review correctness/security/architecture/performance:
-  runtime code unchanged, test harness only, no credentials from working env.
-  Synthetic архив удалён test cleanup; оба собственных контейнера удалены после
-  exact ID/name/owner/loopback/tmpfs/mount inspection; чужие контейнеры сохранены.
+      репетиция: existing backend backup + настоящий mysqldump8.4, gzip в own temp,
+      восстановление native mysql в другой пустой own tmpfs backend_test.
+      **6 native pass/skip0, 2.55s**: все tables/rows и точные SHOW CREATE TABLE
+      совпали; migration history36, Unicode/JSON/NULL и уникальность email/requestKey
+      сохранены. Повторный restore отказывает без изменений. Администратор не создан.
+      Тестовый transport adapter переносит вызов mysqldump в контейнер (на host нет
+      клиента); SQL/production gzip/file completion не подменяются. S3 выключен.
+      Это локальная rehearsal, не подтверждение production/media/off-site backup.
+      tsc/docs56/diff exit0; review correctness/security/architecture/performance:
+      runtime code unchanged, test harness only, no credentials from working env.
+      Synthetic архив удалён test cleanup; оба собственных контейнера удалены после
+      exact ID/name/owner/loopback/tmpfs/mount inspection; чужие контейнеры сохранены.
 - [x] F5 — отдельное согласование тестового owner14 октября: own new fresh36
-  tmpfs backend_test, один owner existing admin/scrypt, random192-bit пароль
-  в private600 файле вне Git (directory700, user ownership verified).
-  Native loopback HTTP8 checks pass: wrong401, login200/cookie flags, me/admin,
-  guest401/owner200, public response без hash, logout clearing, users1/outbox0.
-  Owner test API retained `http://127.0.0.1:53530`, own database50130,
-  container `daryadarcy-fresh-owner-20261014` / ID
-  `39fdda9432419407613a02cc313a531c22e065dacbdac54b191b5f841129011b`;
-  app exec session67647. Private stand-info/credentials в
-  `/Users/edem/.daryadarcy-local-owner.u7zmU7/` (содержимое не читать/не печатать).
-  Frontend/working DB/S3/auth code/roles/CORS/proxy/quotas не менялись, писем нет.
-  Не удалить активный стенд как чужой leftover; перед teardown exact owner guards.
-  Это не production owner/deploy; tmpfs account пропадёт при остановке контейнера.
-  Уточнение16 октября: после прямого разрешения очистить неиспользуемые контейнеры
-  удалён остановленный39fdda943241 (exact ID/name/owner verified, tmpfs, mounts0).
-  Его tmpfs данные уже утрачены при остановке; старый адрес/API выше — история,
-  не активный стенд. Образ mysql и закрытый локальный credentials directory не
-  трогали/не читали; при необходимости стенд создаётся заново штатной процедурой.
-Старый history gate ниже относится к upgrade существующей среды, не к fresh-only
-установке. Общая внешняя приёмка/backup/выкладка остаются отдельными условиями.
+      tmpfs backend_test, один owner existing admin/scrypt, random192-bit пароль
+      в private600 файле вне Git (directory700, user ownership verified).
+      Native loopback HTTP8 checks pass: wrong401, login200/cookie flags, me/admin,
+      guest401/owner200, public response без hash, logout clearing, users1/outbox0.
+      Owner test API retained `http://127.0.0.1:53530`, own database50130,
+      container `daryadarcy-fresh-owner-20261014` / ID
+      `39fdda9432419407613a02cc313a531c22e065dacbdac54b191b5f841129011b`;
+      app exec session67647. Private stand-info/credentials в
+      `/Users/edem/.daryadarcy-local-owner.u7zmU7/` (содержимое не читать/не печатать).
+      Frontend/working DB/S3/auth code/roles/CORS/proxy/quotas не менялись, писем нет.
+      Не удалить активный стенд как чужой leftover; перед teardown exact owner guards.
+      Это не production owner/deploy; tmpfs account пропадёт при остановке контейнера.
+      Уточнение16 октября: после прямого разрешения очистить неиспользуемые контейнеры
+      удалён остановленный39fdda943241 (exact ID/name/owner verified, tmpfs, mounts0).
+      Его tmpfs данные уже утрачены при остановке; старый адрес/API выше — история,
+      не активный стенд. Образ mysql и закрытый локальный credentials directory не
+      трогали/не читали; при необходимости стенд создаётся заново штатной процедурой.
+      Старый history gate ниже относится к upgrade существующей среды, не к fresh-only
+      установке. Общая внешняя приёмка/backup/выкладка остаются отдельными условиями.
 
 После checkpoint b525130 проверена активная очередь: AG1–AG4/AG6–AG8 и локальные
 AG5-R1–R6 закрыты. Общая release-процедура дополнена0035 и порядком R6 flags/drain/
@@ -1935,268 +1973,268 @@ backup/restore подтверждения и общей frontend/release при�
 «работай по плану» запускает AG1 либо уже следующий доступный незавершённый пункт.
 
 - [x] Составить ограниченный план агента с критериями, скиллами и границами:
-  текущая документационная задача 13 октября. Реализация AG1–AG9 этим не выполнена.
+      текущая документационная задача 13 октября. Реализация AG1–AG9 этим не выполнена.
 - [x] **AG1 — пакет контрактов для фронтендера.** Статус: готово локально.
-  Обновлён existing backend handoff: служебный доступ, ключ/статус статьи,
-  email/files flags, ошибки и критерии совместимости. Runtime/фронт не менялись.
-  Remote staging повторно проверен: 62b24a6; версия сервера не установлена.
-  Проверка: docs55/diff exit0; check:api exit1 — ожидаемый stale contract,
-  не скрыт и не объявлен зелёным. Native suites неизменны, не повторялись.
-  Commit 793dd57; внешняя отправка не выполнялась.
+      Обновлён existing backend handoff: служебный доступ, ключ/статус статьи,
+      email/files flags, ошибки и критерии совместимости. Runtime/фронт не менялись.
+      Remote staging повторно проверен: 62b24a6; версия сервера не установлена.
+      Проверка: docs55/diff exit0; check:api exit1 — ожидаемый stale contract,
+      не скрыт и не объявлен зелёным. Native suites неизменны, не повторялись.
+      Commit 793dd57; внешняя отправка не выполнялась.
 - [x] **AG2 — native S3/private attachment acceptance.** Статус: ограниченная
-  native acceptance пройдена 14 октября; первоначальный storage gate дал отказ:
-  anonymous GET/HEAD=200 для нового private объекта.
-  Пользователь предоставил рабочий Timeweb bucket `daryadarcy-s3` и прямо разрешил
-  synthetic проверку. Signed PUT/HEAD/GET/Range прошли; private denial не прошёл
-  (probe exit1). Read-only policy содержит unconditional anonymous GetObject Allow
-  на все объекты. Только свой десятибайтовый fixture удалён после owner/ETag/size
-  проверки, signed HEAD после удаления=404. Старые объекты и policy/ACL не менялись.
-  Нужен отдельный закрытый bucket или отдельно согласованная policy нового prefix;
-  proxy/SQL/browser acceptance ещё не выполнена. Ключи не сохранялись; пользователь
-  отказался от их замены, автоматическая ротация не разрешена.
-  14 октября после уточнения стоимости пользователь отказался от создания нового
-  платного bucket. Не создавать его и не заменять это разрешением на изменение
-  policy существующего bucket. Решение по новому private prefix не принято;
-  AG2/AG4 остаются заблокированными, а не завершёнными. AG3 принят.
-  Последующее поручение — только исследование закрытого prefix без нового bucket.
-  Read-only policy/ACL + ListObjectsV2 MaxKeys1 подтвердили пустоту
-  `feed/audio/private-v1/`, `feed/documents/private-v1/`; proposal в SPEC-private-files.
-  Предложен точечный Deny для неразрешённого principal, не anonymous-only guard;
-  точное username/условие Timeweb и policy diff ещё требуют проверки/согласования.
-  PUT/DELETE/policy/ACL writes, runtime/фронт/рабочая БД не выполнялись.
-  После показа proposal пользователь разрешил продолжение: bounded policy trial
-  двух новых prefixes с identity/hash/enforcement guards, затем native acceptance;
-  старые statements/объекты/права не менять, AG4 только после прохождения AG2.
-  Последующий trial: Owner.ID не совпал с caller username, первая проба откачена;
-  signed IAM GetUser подтвердил service identity. Установлено одно scoped правило
-  `DaryadarcyPrivateAttachmentsV1`; original statements сохранены. Valid signed
-  nonmatching-allowlist=403, правильный SDK GET/HEAD=200/Range206 exact bytes,
-  anonymous GET/HEAD403; public-control200. Второй S3 аккаунт не проверялся.
-  Native API/SQL/Timeweb/Chromium и unchanged Next rewrite: 23 pass, skips0,
-  9.08 s, exit0. Denial без S3; draft/hidden/deleted/detached/removed, подписка,
-  block/role/session revocation, bytes/HEAD/Range/416/503 пройдены. Не UI/player/device
-  приёмка. Три own S3 fixtures удалены с ownership guards/HEAD404; scoped policy
-  остаётся. Собственная tmpfs БД удалена после exact owner/id/loopback/mount checks;
-  чужие контейнеры/volumes не затронуты. TypeScript/docs56/diff exit0, review пяти осей.
-  Фронт/working DB/runtime flags/старые ресурсы не менялись; новый bucket не создан.
+      native acceptance пройдена 14 октября; первоначальный storage gate дал отказ:
+      anonymous GET/HEAD=200 для нового private объекта.
+      Пользователь предоставил рабочий Timeweb bucket `daryadarcy-s3` и прямо разрешил
+      synthetic проверку. Signed PUT/HEAD/GET/Range прошли; private denial не прошёл
+      (probe exit1). Read-only policy содержит unconditional anonymous GetObject Allow
+      на все объекты. Только свой десятибайтовый fixture удалён после owner/ETag/size
+      проверки, signed HEAD после удаления=404. Старые объекты и policy/ACL не менялись.
+      Нужен отдельный закрытый bucket или отдельно согласованная policy нового prefix;
+      proxy/SQL/browser acceptance ещё не выполнена. Ключи не сохранялись; пользователь
+      отказался от их замены, автоматическая ротация не разрешена.
+      14 октября после уточнения стоимости пользователь отказался от создания нового
+      платного bucket. Не создавать его и не заменять это разрешением на изменение
+      policy существующего bucket. Решение по новому private prefix не принято;
+      AG2/AG4 остаются заблокированными, а не завершёнными. AG3 принят.
+      Последующее поручение — только исследование закрытого prefix без нового bucket.
+      Read-only policy/ACL + ListObjectsV2 MaxKeys1 подтвердили пустоту
+      `feed/audio/private-v1/`, `feed/documents/private-v1/`; proposal в SPEC-private-files.
+      Предложен точечный Deny для неразрешённого principal, не anonymous-only guard;
+      точное username/условие Timeweb и policy diff ещё требуют проверки/согласования.
+      PUT/DELETE/policy/ACL writes, runtime/фронт/рабочая БД не выполнялись.
+      После показа proposal пользователь разрешил продолжение: bounded policy trial
+      двух новых prefixes с identity/hash/enforcement guards, затем native acceptance;
+      старые statements/объекты/права не менять, AG4 только после прохождения AG2.
+      Последующий trial: Owner.ID не совпал с caller username, первая проба откачена;
+      signed IAM GetUser подтвердил service identity. Установлено одно scoped правило
+      `DaryadarcyPrivateAttachmentsV1`; original statements сохранены. Valid signed
+      nonmatching-allowlist=403, правильный SDK GET/HEAD=200/Range206 exact bytes,
+      anonymous GET/HEAD403; public-control200. Второй S3 аккаунт не проверялся.
+      Native API/SQL/Timeweb/Chromium и unchanged Next rewrite: 23 pass, skips0,
+      9.08 s, exit0. Denial без S3; draft/hidden/deleted/detached/removed, подписка,
+      block/role/session revocation, bytes/HEAD/Range/416/503 пройдены. Не UI/player/device
+      приёмка. Три own S3 fixtures удалены с ownership guards/HEAD404; scoped policy
+      остаётся. Собственная tmpfs БД удалена после exact owner/id/loopback/mount checks;
+      чужие контейнеры/volumes не затронуты. TypeScript/docs56/diff exit0, review пяти осей.
+      Фронт/working DB/runtime flags/старые ресурсы не менялись; новый bucket не создан.
 - [x] **AG3 — минимальное продолжение закрытой выдачи.** Контракт принят
-  пользователем 14 октября: новые audio/document, существующие администраторы,
-  server assetId/receipt/transactional association, локальный File preview без
-  draft read, восстановление upload ACK тем же ключом без дублей. Автоочистка
-  выключена, retention отдельно; фото/статьи/shared/public/old вне среза.
-  Зафиксировано в SPEC-private-files. Это согласование, не реализация/приёмка:
-  runtime/API/schema/ACL/фронт/рабочая БД не менялись; на момент согласования
-  actual S3 отсутствовал (последующая AG2 acceptance описана выше).
-  Проверка документации: docs55/diff exit0; runtime tests не повторялись.
+      пользователем 14 октября: новые audio/document, существующие администраторы,
+      server assetId/receipt/transactional association, локальный File preview без
+      draft read, восстановление upload ACK тем же ключом без дублей. Автоочистка
+      выключена, retention отдельно; фото/статьи/shared/public/old вне среза.
+      Зафиксировано в SPEC-private-files. Это согласование, не реализация/приёмка:
+      runtime/API/schema/ACL/фронт/рабочая БД не менялись; на момент согласования
+      actual S3 отсутствовал (последующая AG2 acceptance описана выше).
+      Проверка документации: docs55/diff exit0; runtime tests не повторялись.
 - [x] **AG4 — реализация расширения файлов по принятому AG3.** Статус: backend
-  реализован/проверен локально 14 октября, actual S3 synthetic acceptance пройдена.
-  Upload/receipt/transactional association готов; frontend/working rollout отдельно.
-  Старые файлы/рабочие URL/ACL/фронт не менять. До принятия AG3 не начинать.
-  Прямое поручение реализации 14 октября; bounded wire в SPEC-private-files:
+      реализован/проверен локально 14 октября, actual S3 synthetic acceptance пройдена.
+      Upload/receipt/transactional association готов; frontend/working rollout отдельно.
+      Старые файлы/рабочие URL/ACL/фронт не менять. До принятия AG3 не начинать.
+      Прямое поручение реализации 14 октября; bounded wire в SPEC-private-files:
   - [x] AG4a — private upload/immutable receipt/status, unknown outcome recovery.
-    Первый backend-срез 14 октября: 0032/default-off, durable intent до S3,
-    ACL private/IfNoneMatch/no fallback/policy guard, canonical server metadata.
-    RED routes404 → GREEN 10 native HTTP/SQL/SDK-wire; concurrency/lost PUT ACK,
-    namespace drift/status и schema uniqueness refusal проверены. В объединённом
-    focused прогоне 32 pass/3 files, skips0. tsc/build/boundaries/diff exit0;
-    это не actual Timeweb acceptance. Привязка/чтение — AG4b, actual S3 — AG4c.
+        Первый backend-срез 14 октября: 0032/default-off, durable intent до S3,
+        ACL private/IfNoneMatch/no fallback/policy guard, canonical server metadata.
+        RED routes404 → GREEN 10 native HTTP/SQL/SDK-wire; concurrency/lost PUT ACK,
+        namespace drift/status и schema uniqueness refusal проверены. В объединённом
+        focused прогоне 32 pass/3 files, skips0. tsc/build/boundaries/diff exit0;
+        это не actual Timeweb acceptance. Привязка/чтение — AG4b, actual S3 — AG4c.
   - [x] AG4b — actor-owned transactional post association/replay/removal denial.
-    RED: stripped privateAssetIds/foreign save и URL bypass, missing charset;
-    GREEN: 18 native HTTP/SQL/SDK-wire сценариев; ready/pending/foreign/rebind,
-    create replay/update/removal и SQL-trigger rollback. Новые post_media возвращают
-    только API URL; pinned receipt ETag проверяется перед чтением. Старый URL input
-    не принимает только новые private-v1 prefixes, старые files/URLs не менялись.
-    Combined affected suites 126 pass/4 files, skips0, 75.95 s. tsc/build/boundaries
-    проверены; frontend/provider S3 acceptance не подменены wire результатом.
+        RED: stripped privateAssetIds/foreign save и URL bypass, missing charset;
+        GREEN: 18 native HTTP/SQL/SDK-wire сценариев; ready/pending/foreign/rebind,
+        create replay/update/removal и SQL-trigger rollback. Новые post_media возвращают
+        только API URL; pinned receipt ETag проверяется перед чтением. Старый URL input
+        не принимает только новые private-v1 prefixes, старые files/URLs не менялись.
+        Combined affected suites 126 pass/4 files, skips0, 75.95 s. tsc/build/boundaries
+        проверены; frontend/provider S3 acceptance не подменены wire результатом.
   - [x] AG4c — actual S3 synthetic upload/read/denial/restart и handoff/review.
-    Actual2 pass/skip0,6.24 s до последнего MIME guard: два fresh compiled Node процесса, потеря native HTTP
-    upload/post ACK и restart не создают второй PUT/asset/post/media. Document/WAV,
-    anonymous403, cookie/paid/guest/expiry, feed/removal, Range206 exact bytes.
-    Own objects удалены с guards/HEAD404, policy unchanged. Wire guards20 pass
-    (ready без ETag отказывает503; FLAC/read mismatch RED200→GREEN400 до SQL/S3),
-    final affected84 pass/4 files/skip0; tsc/build/boundaries/docs/diff/five-axis review.
-    Первые повторы после guard дважды отказали на GetBucketPolicy timeout до объектов;
-    public endpoint TLS timeout тоже. По новому поручению повтор на HEAD e3044af
-    прошёл:2 pass/skip0,21.22 s,exit0, native API/SQL/Timeweb и fresh process restart.
-    Own S3 objects удалены после guards/HEAD404, полная policy unchanged.
-    Own backend_test892be65d1156/loopback58418/tmpfs/no volumes удалён после exact
-    owner/id/port/mount guards; foreign containers сохранены. Front/старые objects/
-    working DB/runtime flags не трогались. Код не менялся; прежнюю full regression
-    без причины не повторяли. S3 timeout блокер снят, остались внешние AG5/AG9 входы.
-    Final full3418 pass/1 fail/179 skip,206.53 s после MIME guard: unchanged frontend viewport/document
-    undefined не исправлялся. Backend inventory/save compatibility исправлены;
-    bulk-video focused/final GREEN, runtime не менялся. Proof в SPEC-private-files;
-    existing handoff обновлён. Own loopback33383/tmpfs backend_test752bd9b9dffe удалён
-    после exact owner/id/port/mount checks; чужие контейнеры сохранены.
-    Read-only check:api exit1 — frontend generated stale, не изменён.
-    0032 в manifest, offline preflight только
-    untracked0017–0019/DB not checked. Front/старые files/working DB/flags/deploy
-    не менялись. Срезы31b5a2d/ffcdbb3/9c68ccc/b52b469/b9cae24,
-    Native restart/S3 harness314bf2c; документационный checkpoint отдельно.
+        Actual2 pass/skip0,6.24 s до последнего MIME guard: два fresh compiled Node процесса, потеря native HTTP
+        upload/post ACK и restart не создают второй PUT/asset/post/media. Document/WAV,
+        anonymous403, cookie/paid/guest/expiry, feed/removal, Range206 exact bytes.
+        Own objects удалены с guards/HEAD404, policy unchanged. Wire guards20 pass
+        (ready без ETag отказывает503; FLAC/read mismatch RED200→GREEN400 до SQL/S3),
+        final affected84 pass/4 files/skip0; tsc/build/boundaries/docs/diff/five-axis review.
+        Первые повторы после guard дважды отказали на GetBucketPolicy timeout до объектов;
+        public endpoint TLS timeout тоже. По новому поручению повтор на HEAD e3044af
+        прошёл:2 pass/skip0,21.22 s,exit0, native API/SQL/Timeweb и fresh process restart.
+        Own S3 objects удалены после guards/HEAD404, полная policy unchanged.
+        Own backend_test892be65d1156/loopback58418/tmpfs/no volumes удалён после exact
+        owner/id/port/mount guards; foreign containers сохранены. Front/старые objects/
+        working DB/runtime flags не трогались. Код не менялся; прежнюю full regression
+        без причины не повторяли. S3 timeout блокер снят, остались внешние AG5/AG9 входы.
+        Final full3418 pass/1 fail/179 skip,206.53 s после MIME guard: unchanged frontend viewport/document
+        undefined не исправлялся. Backend inventory/save compatibility исправлены;
+        bulk-video focused/final GREEN, runtime не менялся. Proof в SPEC-private-files;
+        existing handoff обновлён. Own loopback33383/tmpfs backend_test752bd9b9dffe удалён
+        после exact owner/id/port/mount checks; чужие контейнеры сохранены.
+        Read-only check:api exit1 — frontend generated stale, не изменён.
+        0032 в manifest, offline preflight только
+        untracked0017–0019/DB not checked. Front/старые files/working DB/flags/deploy
+        не менялись. Срезы31b5a2d/ffcdbb3/9c68ccc/b52b469/b9cae24,
+        Native restart/S3 harness314bf2c; документационный checkpoint отдельно.
 - [ ] **AG5 — подготовка миграций/email/статей к выпуску.** Актуально после D4:
-  локальные R1–R6/fresh42/backup-restore выполнены, candidate/switch/admin и
-  выпуск проверены; старая0017–0019 history не блокирует выбранный fresh путь.
-  Незакрыты отдельно разрешаемые рабочие private flags, внешняя почта и перенос
-  реальных материалов. Email binding исключён пользователем19 октября; retention
-  не является обязательной функцией запуска. Нового доступного локального
-  backend среза не выявлено. Не повторять завершённую подготовку/импорт БД.
-  Следующая запись сохраняет историю14 октября, не текущий блокер: процедура
-  подготовлена в existing runbook; ждёт истории/retention решения и репетиции
-  применимого snapshot. 0017–0019, 0027/0028/0029, guards и порядок включения,
-  совместимый rollback/реальный restore описаны; рабочая БД не проверена/не изменена.
-  Offline preflight exit1: ровно untracked 0017/0018/0019, databaseChecked=false,
-  releaseApproval=false; manifest 0029 зарегистрирован. Docs55/diff exit0.
-  Процедура сохранена 24e7b31; migrations/working connection не выполнялись.
-  14 октября подготовлен проект четырёх рекомендаций хранения в existing runbook:
-  окно30 суток/compact marker/owned orphan cleanup/scrub-export-backup. Статус:
-  После объяснения30 суток и ответа «да все делаем дальше» агент явно обозначил
-  трактовку как принятие всех четырёх рекомендаций; локальная реализация начинается
-  default-off. Bound read evidence сохраняется; billing/working rollout отдельно.
+      локальные R1–R6/fresh42/backup-restore выполнены, candidate/switch/admin и
+      выпуск проверены; старая0017–0019 history не блокирует выбранный fresh путь.
+      Незакрыты отдельно разрешаемые рабочие private flags, внешняя почта и перенос
+      реальных материалов. Email binding исключён пользователем19 октября; retention
+      не является обязательной функцией запуска. Нового доступного локального
+      backend среза не выявлено. Не повторять завершённую подготовку/импорт БД.
+      Следующая запись сохраняет историю14 октября, не текущий блокер: процедура
+      подготовлена в existing runbook; ждёт истории/retention решения и репетиции
+      применимого snapshot. 0017–0019, 0027/0028/0029, guards и порядок включения,
+      совместимый rollback/реальный restore описаны; рабочая БД не проверена/не изменена.
+      Offline preflight exit1: ровно untracked 0017/0018/0019, databaseChecked=false,
+      releaseApproval=false; manifest 0029 зарегистрирован. Docs55/diff exit0.
+      Процедура сохранена 24e7b31; migrations/working connection не выполнялись.
+      14 октября подготовлен проект четырёх рекомендаций хранения в existing runbook:
+      окно30 суток/compact marker/owned orphan cleanup/scrub-export-backup. Статус:
+      После объяснения30 суток и ответа «да все делаем дальше» агент явно обозначил
+      трактовку как принятие всех четырёх рекомендаций; локальная реализация начинается
+      default-off. Bound read evidence сохраняется; billing/working rollout отдельно.
   - [x] AG5-R1 — private upload/status/unbound binding expiry, без удаления.
-    Acceptance:30 суток409, pending/ready не дают новый PUT/bind; flag off прежний
-    replay, живой bound read сохраняется. RED/GREEN native SQL/HTTP + policy boundary
-    units; tsc/build/boundaries/docs. Files: private uploads/association/policy/tests.
-    RED200→409 для upload/status и unbound bind; cutoff mutation `>` вместо`>=`
-    пойман unit тестом. GREEN31 pass/2 suites/skip0,3.75 s; tsc exit0.
-    Default-off CONTENT_RECOVERY_RETENTION_ENABLED; rows/objects не удаляются.
-    Backend build529.1kb/boundaries633/docs56/diff/review passed; frontend не менялся.
+        Acceptance:30 суток409, pending/ready не дают новый PUT/bind; flag off прежний
+        replay, живой bound read сохраняется. RED/GREEN native SQL/HTTP + policy boundary
+        units; tsc/build/boundaries/docs. Files: private uploads/association/policy/tests.
+        RED200→409 для upload/status и unbound bind; cutoff mutation `>` вместо`>=`
+        пойман unit тестом. GREEN31 pass/2 suites/skip0,3.75 s; tsc exit0.
+        Default-off CONTENT_RECOVERY_RETENTION_ENABLED; rows/objects не удаляются.
+        Backend build529.1kb/boundaries633/docs56/diff/review passed; frontend не менялся.
   - [x] AG5-R2 — keyed post create expiry. ПослеR1;409/no duplicate/delete,
-    flag off legacy replay. Native post suite + types/build; owning creator.
-    RED replay200→409;38 native pass/skip0,2.24 s, tsc/build/diff verified.
-    Без новой status процедуры; уведомление не повторяется, материал не удаляется.
+        flag off legacy replay. Native post suite + types/build; owning creator.
+        RED replay200→409;38 native pass/skip0,2.24 s, tsc/build/diff verified.
+        Без новой status процедуры; уведомление не повторяется, материал не удаляется.
   - [x] AG5-R3 — keyed article create/status expiry. ПослеR1;409/no duplicate,
-    flag off legacy replay. Native article suite + types/build; owning writes/status.
-    RED create/status200→409, GREEN27 native pass/skip0,3.82 s; tsc/build529.3kb.
-    Live/deleted articles и teaser не удаляются/не воскрешаются.96 total focused
-    cases в4 files поR1–R3; общий regression checkpoint отдельно.
-    R1–R3 full наaf058ba:3434 pass/1 unchanged frontend viewport fail/179 skip,
-    3614 cases,194.65 s,exit1. Frontend не исправлялся/не скрыт; код остальных
-    backend suites не менялся. Новые policy/runtime tests пройдены явно на own DB.
+        flag off legacy replay. Native article suite + types/build; owning writes/status.
+        RED create/status200→409, GREEN27 native pass/skip0,3.82 s; tsc/build529.3kb.
+        Live/deleted articles и teaser не удаляются/не воскрешаются.96 total focused
+        cases в4 files поR1–R3; общий regression checkpoint отдельно.
+        R1–R3 full наaf058ba:3434 pass/1 unchanged frontend viewport fail/179 skip,
+        3614 cases,194.65 s,exit1. Frontend не исправлялся/не скрыт; код остальных
+        backend suites не менялся. Новые policy/runtime tests пройдены явно на own DB.
   - [x] AG5-R4 — compact markers/read evidence. ПослеR1–R3; additive schema,
-    replay после compact отказывает, bound bytes доступны; native SQL/read + review.
-    R4a:0033 marker schema/полный compositePK(kind,requestKey)/ASCII_BIN,
-    owner и expiry scan indexes. RED absent table→2 native SQL GREEN,0 skip,
-    254 ms. Compaction ещё не реализована; worker не включён.
-    R4b: spent-marker guards для post/article/private upload/status и unbound bind.
-    RED: duplicate create/false notRecorded/unbound bind200 → GREEN102 cases,
-    5 suites/skip0,7.02 s, own SQL/HTTP/SDK wire; bound bytes/edit сохранены.
-    Article status — nonblocking repeatable-read snapshot, writer — ledger→marker
-    locks; регрессия ожидания незавершённой записи исправлена. Schema missing
-    legacy допускается только flag off; partial PK/owner mismatch fail closed.
-    R4c: post/article compaction атомарно marker+delete details,
-    bounded1–100 на ledger, два default-off флага, без API/scheduler wiring.
-    4 native SQL +6 policy tests/skip0 прошли; private lifecycle0034,
-    filename scrub/marker без потери bound read/cleanup evidence. Live bytes/edit
-    пройдены; подробная процедура/flags/cursor в existing runbook.
-    Preflight зарегистрировал0033, отказывает только на прежних0017–0019,
-    databaseChecked=false/releaseApproval=false. Никакой working DDL.
+        replay после compact отказывает, bound bytes доступны; native SQL/read + review.
+        R4a:0033 marker schema/полный compositePK(kind,requestKey)/ASCII_BIN,
+        owner и expiry scan indexes. RED absent table→2 native SQL GREEN,0 skip,
+        254 ms. Compaction ещё не реализована; worker не включён.
+        R4b: spent-marker guards для post/article/private upload/status и unbound bind.
+        RED: duplicate create/false notRecorded/unbound bind200 → GREEN102 cases,
+        5 suites/skip0,7.02 s, own SQL/HTTP/SDK wire; bound bytes/edit сохранены.
+        Article status — nonblocking repeatable-read snapshot, writer — ledger→marker
+        locks; регрессия ожидания незавершённой записи исправлена. Schema missing
+        legacy допускается только flag off; partial PK/owner mismatch fail closed.
+        R4c: post/article compaction атомарно marker+delete details,
+        bounded1–100 на ledger, два default-off флага, без API/scheduler wiring.
+        4 native SQL +6 policy tests/skip0 прошли; private lifecycle0034,
+        filename scrub/marker без потери bound read/cleanup evidence. Live bytes/edit
+        пройдены; подробная процедура/flags/cursor в existing runbook.
+        Preflight зарегистрировал0033, отказывает только на прежних0017–0019,
+        databaseChecked=false/releaseApproval=false. Никакой working DDL.
   - [x] AG5-R5 — bounded orphan cleanup. ПослеR4; loopback SDK/SQL, ownership,
-    detach clock, cleanup↔upload/bind/lost DELETE ACK/restart, no old/bound objects.
-    Explicit local call,1–100/keyset cursor, flags default off, API/jobs не подключены.
-    Never-bound30d; detached clock от first observation, не guessed upload date.
-    Exact private-v1 key/metadata/size/MIME/ETag/namespace guards, conditionalDELETE,
-    HEAD404; marker committed before storage, receipt retained при unknown outcome.
-    Storage/DB guards запрещают non-loopback/production targets. Native affected:
-    116 pass/6 suites/skip0,8.25 s; lost ACK и fresh compiled process recovery,
-    pending PUT reconciliation, late bind lock race, SQL rollback counters verified.
-    Это loopback wire, не actual Timeweb cleanup acceptance; рабочая очистка off.
-    Full checkpoint:3454 pass/1 прежний frontend viewport fail/179 skip,
-    3634 total,195.13 s,exit1. Все affected native cases прошли; full GREEN
-    не заявлен, frontend/его tests не менялись.0034 только own tmpfs fixture;
-    migration31 pass, offline preflight прежний gate0017–0019.
+        detach clock, cleanup↔upload/bind/lost DELETE ACK/restart, no old/bound objects.
+        Explicit local call,1–100/keyset cursor, flags default off, API/jobs не подключены.
+        Never-bound30d; detached clock от first observation, не guessed upload date.
+        Exact private-v1 key/metadata/size/MIME/ETag/namespace guards, conditionalDELETE,
+        HEAD404; marker committed before storage, receipt retained при unknown outcome.
+        Storage/DB guards запрещают non-loopback/production targets. Native affected:
+        116 pass/6 suites/skip0,8.25 s; lost ACK и fresh compiled process recovery,
+        pending PUT reconciliation, late bind lock race, SQL rollback counters verified.
+        Это loopback wire, не actual Timeweb cleanup acceptance; рабочая очистка off.
+        Full checkpoint:3454 pass/1 прежний frontend viewport fail/179 skip,
+        3634 total,195.13 s,exit1. Все affected native cases прошли; full GREEN
+        не заявлен, frontend/его tests не менялись.0034 только own tmpfs fixture;
+        migration31 pass, offline preflight прежний gate0017–0019.
   - [x] AG5-R6 — final scrub/export, **локальная часть**. ПослеR4/R5; existing account timing unchanged,
-    own records only, no resurrection/no secrets. Backup/real restore/history внешние.
-    R6a: final account retirement атомарно отзывает sessionVersion. RED: stale
-    authenticated private actor проходил SQL write fence после scrub; GREEN19
-    real SQL/native maintenance cases,skip0,2.06s, включая paid/grace/renewal,
-    rollback/два workers и однократный epoch increment. Roles/timing не менялись.
-    R6b: 9 stale-context native RPC/SQL случаев RED→GREEN: keyed/legacy create,
-    edit/delete post/article и confirm post после final retirement дают UNAUTHORIZED
-    без изменения материалов/журналов. Actor PK/epoch/role/block fence держится
-    первым до commit. Activity upsert мог заново создать old openId после scrub;
-    заменён existing-only epoch/identity update с SKIP LOCKED. Два native SDK/SQL
-    RED→GREEN сценария подтверждают no resurrection и nonblocking busy activity.
-    Affected checkpoint:179 pass/7 suites/skip0,8.84s, включая HTTP lost ACK,
-    compiled-process replay и uncommitted article status; tsc/build/boundaries exit0.
-    R6c локально: final transaction удаляет post/article journals и markers автора,
-    private receipts NULL-owner/empty filename/rotated key сохраняют bound/orphan
-    evidence.0035 только own tmpfs fixture; flag retirement off. RED retained owner
-    links→GREEN; affected112 pass/7 suites/skip0,17.05s; tsc/build exit0.
-    Native rollback/partial schema/flag-off/neighbor/bound receipt/retired compaction
-    проверены. Runtime DDL/S3 нет; read check без обращения к storage.
-    R6d: собственный protected `profileExtras.recoveryExport`, strict kind/keyset
-    limit1–100/default25, current epoch/block snapshot, default-off export flag.
-    Только request fingerprint/createdAt/status; нет content/filename/material IDs,
-    assetId/claimToken/hash/ETag/storage URLs. Marker terminal независимо от flag;
-    nonblocking RR сохраняет pagination через compaction. Guest/revoked/blocked
-    HTTP401, malformed400, disabled404, partial schema503 sanitized.
-    Финальное review: full primary keys/InnoDB/private unique evidence обязательны;
-    RED dropped PK позволял scrub→GREEN fail-closed rollback.101 receipts обработаны
-    bounded batches без пропусков/возврата owner links. Native SDK/HTTP/SQL и unit:
-    **288 pass/14 suites/skip0,16.00s**, tsc/build/boundaries/docs/diff exit0.
-    Full checkpoint перед последним uniqueness guard:3498 pass/1 unchanged frontend
-    viewport failure/174 skip/3673 total,197.06s,exit1. Report
-    `/tmp/daryadarcy-r6-export.WsYnXU/full-final.json`; финальный guard проверен
-    affected checkpoint выше. Full GREEN не заявлен. Backend publication tests
-    обновлены к user→material lock order, missing post/one notification checks
-    сохранены; API inventory добавлен, generated frontend contract не менялся.
-    `check:api` expected stale exit1; offline preflight прежние0017–0019,0035
-    зарегистрирована, databaseChecked=false/releaseApproval=false. S3/working DB
-    не затронуты. Режимы off; это НЕ production enablement/полное стирание backup.
-    All-admin writers не заявлены; AG5/AG9/backup/restore/history gates прежние.
+        own records only, no resurrection/no secrets. Backup/real restore/history внешние.
+        R6a: final account retirement атомарно отзывает sessionVersion. RED: stale
+        authenticated private actor проходил SQL write fence после scrub; GREEN19
+        real SQL/native maintenance cases,skip0,2.06s, включая paid/grace/renewal,
+        rollback/два workers и однократный epoch increment. Roles/timing не менялись.
+        R6b: 9 stale-context native RPC/SQL случаев RED→GREEN: keyed/legacy create,
+        edit/delete post/article и confirm post после final retirement дают UNAUTHORIZED
+        без изменения материалов/журналов. Actor PK/epoch/role/block fence держится
+        первым до commit. Activity upsert мог заново создать old openId после scrub;
+        заменён existing-only epoch/identity update с SKIP LOCKED. Два native SDK/SQL
+        RED→GREEN сценария подтверждают no resurrection и nonblocking busy activity.
+        Affected checkpoint:179 pass/7 suites/skip0,8.84s, включая HTTP lost ACK,
+        compiled-process replay и uncommitted article status; tsc/build/boundaries exit0.
+        R6c локально: final transaction удаляет post/article journals и markers автора,
+        private receipts NULL-owner/empty filename/rotated key сохраняют bound/orphan
+        evidence.0035 только own tmpfs fixture; flag retirement off. RED retained owner
+        links→GREEN; affected112 pass/7 suites/skip0,17.05s; tsc/build exit0.
+        Native rollback/partial schema/flag-off/neighbor/bound receipt/retired compaction
+        проверены. Runtime DDL/S3 нет; read check без обращения к storage.
+        R6d: собственный protected `profileExtras.recoveryExport`, strict kind/keyset
+        limit1–100/default25, current epoch/block snapshot, default-off export flag.
+        Только request fingerprint/createdAt/status; нет content/filename/material IDs,
+        assetId/claimToken/hash/ETag/storage URLs. Marker terminal независимо от flag;
+        nonblocking RR сохраняет pagination через compaction. Guest/revoked/blocked
+        HTTP401, malformed400, disabled404, partial schema503 sanitized.
+        Финальное review: full primary keys/InnoDB/private unique evidence обязательны;
+        RED dropped PK позволял scrub→GREEN fail-closed rollback.101 receipts обработаны
+        bounded batches без пропусков/возврата owner links. Native SDK/HTTP/SQL и unit:
+        **288 pass/14 suites/skip0,16.00s**, tsc/build/boundaries/docs/diff exit0.
+        Full checkpoint перед последним uniqueness guard:3498 pass/1 unchanged frontend
+        viewport failure/174 skip/3673 total,197.06s,exit1. Report
+        `/tmp/daryadarcy-r6-export.WsYnXU/full-final.json`; финальный guard проверен
+        affected checkpoint выше. Full GREEN не заявлен. Backend publication tests
+        обновлены к user→material lock order, missing post/one notification checks
+        сохранены; API inventory добавлен, generated frontend contract не менялся.
+        `check:api` expected stale exit1; offline preflight прежние0017–0019,0035
+        зарегистрирована, databaseChecked=false/releaseApproval=false. S3/working DB
+        не затронуты. Режимы off; это НЕ production enablement/полное стирание backup.
+        All-admin writers не заявлены; AG5/AG9/backup/restore/history gates прежние.
 - [x] **AG6 — точные остатки обычной оплаты/отмены.** Статус: готово локально
-  14 октября по принятому контракту. Authenticated normal create/status,
-  ledger 0030 и default-off flag; guest/TEST/settlement/отмена прежние.
-  Native RED: отсутствующие routes, terminal states, schema/evidence guards.
-  GREEN: 26 SQL/HTTP сценариев, включая replay/concurrency, lost ACK,
-  два compiled процесса, rollback, config drift и session revocation fence.
-  200 existing billing tests; inventory/history/preflight unit tests зелёные.
-  Финальный объединённый прогон: 244 pass в 14 файлах, skip=0.
-  TypeScript/backend build/boundaries/docs/diff проверены; review пяти осей.
-  Handoff обновлён. check:api stale, frontend/рабочая БД/provider не затронуты.
-  Offline preflight: только старые untracked 0017–0019, databaseChecked=false,
-  releaseApproval=false; 0030 зарегистрирован. Working rollout/retention/client/
-  реальные provider payment остаются AG5/AG9. Это не external payment acceptance.
-  Код/schema/tests: локальный commit fa8d70f. Остальная доступная очередь требует
-  внешних входов/решений AG2/AG3/AG5/AG8/AG9; не выполнять вместо них лишнее.
+      14 октября по принятому контракту. Authenticated normal create/status,
+      ledger 0030 и default-off flag; guest/TEST/settlement/отмена прежние.
+      Native RED: отсутствующие routes, terminal states, schema/evidence guards.
+      GREEN: 26 SQL/HTTP сценариев, включая replay/concurrency, lost ACK,
+      два compiled процесса, rollback, config drift и session revocation fence.
+      200 existing billing tests; inventory/history/preflight unit tests зелёные.
+      Финальный объединённый прогон: 244 pass в 14 файлах, skip=0.
+      TypeScript/backend build/boundaries/docs/diff проверены; review пяти осей.
+      Handoff обновлён. check:api stale, frontend/рабочая БД/provider не затронуты.
+      Offline preflight: только старые untracked 0017–0019, databaseChecked=false,
+      releaseApproval=false; 0030 зарегистрирован. Working rollout/retention/client/
+      реальные provider payment остаются AG5/AG9. Это не external payment acceptance.
+      Код/schema/tests: локальный commit fa8d70f. Остальная доступная очередь требует
+      внешних входов/решений AG2/AG3/AG5/AG8/AG9; не выполнять вместо них лишнее.
 - [x] **AG7 — точные остатки публикаций/пользовательских API.** Статус: ограниченный
-  аудит готов локально. Owning services/существующие native suites сопоставлены
-  в handoff; storage/клиент/devices остаются внешними границами. Нового подтверждённого
-  backend-дефекта в выбранных путях не установлено; код/тесты не менялись и GREEN
-  без причины не повторялись. Это не сквозная приёмка всего C/S.
-  Проверка документации: docs55/diff exit0, source/test coverage review.
+      аудит готов локально. Owning services/существующие native suites сопоставлены
+      в handoff; storage/клиент/devices остаются внешними границами. Нового подтверждённого
+      backend-дефекта в выбранных путях не установлено; код/тесты не менялись и GREEN
+      без причины не повторялись. Это не сквозная приёмка всего C/S.
+      Проверка документации: docs55/diff exit0, source/test coverage review.
 - [x] **AG8 — необходимый объём VK.** Статус: принят и реализован локально 14 октября.
-  [Контракт](../SPEC-vk-catalog-access.md): mixed catalog, additive reads/admin write,
-  0031/nullable YouTube ID, source-free cards, default-off VK_CATALOG_ENABLED.
-  Native RED/GREEN: 88 backend checks в 11 файлах (21 VK SQL/HTTP + live Node worker
-  с настоящим API/SQL); worker native 42 pass, skip=0, real VK не проверялся.
-  TypeScript/build/boundaries проверены; API types stale оставлены фронтендеру.
-  Offline preflight: только untracked 0017–0019, 0031 зарегистрирован, без DB approval.
-  Worker guards сохранены 3978691; source/transaction/auth/wire review выполнен.
-  Backend/schema/native tests сохранены 70a5110; одноразовый SQL стенд после
-  проверок удаляется с проверкой owner label/id/loopback/tmpfs, без чужих volumes.
-  Остаток AG9: реальные embed/device/frontend, working migration/history и edge
-  routes. Старый nginx yt-thumb public proxy не сертифицирован как закрытый.
-  Фронт/рабочая БД/настройки VK/старые ролики не изменены; flags не включались.
+      [Контракт](../SPEC-vk-catalog-access.md): mixed catalog, additive reads/admin write,
+      0031/nullable YouTube ID, source-free cards, default-off VK_CATALOG_ENABLED.
+      Native RED/GREEN: 88 backend checks в 11 файлах (21 VK SQL/HTTP + live Node worker
+      с настоящим API/SQL); worker native 42 pass, skip=0, real VK не проверялся.
+      TypeScript/build/boundaries проверены; API types stale оставлены фронтендеру.
+      Offline preflight: только untracked 0017–0019, 0031 зарегистрирован, без DB approval.
+      Worker guards сохранены 3978691; source/transaction/auth/wire review выполнен.
+      Backend/schema/native tests сохранены 70a5110; одноразовый SQL стенд после
+      проверок удаляется с проверкой owner label/id/loopback/tmpfs, без чужих volumes.
+      Остаток AG9: реальные embed/device/frontend, working migration/history и edge
+      routes. Старый nginx yt-thumb public proxy не сертифицирован как закрытый.
+      Фронт/рабочая БД/настройки VK/старые ролики не изменены; flags не включались.
 - [ ] **AG9 — пакет выпуска и сквозная приёмка.** Актуальная локальная сверка
-  после D4 (19 октября): branch/status/log и завершённые AG1–AG8/fresh/LB4/
-  RELEASE-D3/D4 evidence проверены; восстановлены действующие статусы AG5 и
-  fresh candidate. Нового подтверждённого backend-дефекта или доступной локальной
-  задачи нет. Остаток: обычная Prodamus790/recurring/cancel и реальная почта
-  (включая выбор password/setup-link), рабочие flags/старые материалы по отдельному
-  разрешению, реальные VK/сезоны/контакты, target-load/devices/pilot. Второй S3
-  principal отложен и не является обязательным блокером. Frontend/design,
-  generated types, сервер, рабочая DB/S3 и runtime не менялись; no push/deploy.
-  Проверка этого среза — docs/diff и review статусов; runtime tests не повторять
-  на неизменном коде. Следующий AG-ID остаётся AG5/AG9, нужны указанные внешние
-  условия/решения, а не новые функции. История прежнего состояния: локальная матрица ТЗ,
-  owners/условия/версии и порядок приёмки подготовлены в runbook. Общий candidate,
-  целевой schema/restore/rollout и реальные provider/mail/devices/target-load/pilot
-  остаются непринятыми. Local frontend integration/API/S3/load уже проверены FE/CF/
-  VU/AG9-L; второй S3 principal и старые public URL остаются отдельными границами.
-  Для выбранного fresh-only пути старая migration history не нужна.
-  Автоматические внешние действия запрещены.
-  Проверка: docs55/diff exit0; новая runtime/native/provider приёмка не заявлена.
+      после D4 (19 октября): branch/status/log и завершённые AG1–AG8/fresh/LB4/
+      RELEASE-D3/D4 evidence проверены; восстановлены действующие статусы AG5 и
+      fresh candidate. Нового подтверждённого backend-дефекта или доступной локальной
+      задачи нет. Остаток: обычная Prodamus790/recurring/cancel и реальная почта
+      (включая выбор password/setup-link), рабочие flags/старые материалы по отдельному
+      разрешению, реальные VK/сезоны/контакты, target-load/devices/pilot. Второй S3
+      principal отложен и не является обязательным блокером. Frontend/design,
+      generated types, сервер, рабочая DB/S3 и runtime не менялись; no push/deploy.
+      Проверка этого среза — docs/diff и review статусов; runtime tests не повторять
+      на неизменном коде. Следующий AG-ID остаётся AG5/AG9, нужны указанные внешние
+      условия/решения, а не новые функции. История прежнего состояния: локальная матрица ТЗ,
+      owners/условия/версии и порядок приёмки подготовлены в runbook. Общий candidate,
+      целевой schema/restore/rollout и реальные provider/mail/devices/target-load/pilot
+      остаются непринятыми. Local frontend integration/API/S3/load уже проверены FE/CF/
+      VU/AG9-L; второй S3 principal и старые public URL остаются отдельными границами.
+      Для выбранного fresh-only пути старая migration history не нужна.
+      Автоматические внешние действия запрещены.
+      Проверка: docs55/diff exit0; новая runtime/native/provider приёмка не заявлена.
 
 ### AG9 — локальная цепочка регистрации/подписки, 14 октября 2026
 
@@ -2295,38 +2333,38 @@ SMTP/API/SQL закрыты, synthetic data уничтожены, чужие д�
 ## VK API access — 13 октября 2026
 
 - [x] Native current post-media VK gates:8 new HTTP/JWT/own SQL cases, final
-  content/video persistence53 pass2 suites2.21s, root types pass. No external VK.
-  Existing gates pass; no production/auth/frontend/schema changes claimed.
+      content/video persistence53 pass2 suites2.21s, root types pass. No external VK.
+      Existing gates pass; no production/auth/frontend/schema changes claimed.
 - [ ] Standalone video classification contract: approve additive public/club
-  (old rows public), live canonical access in list/detail, no club anonymous
-  stream/worker bypass; owner setting/source identity need agreed contract.
-  Existing mandatory youtubeId/public-only catalog is not a club video model.
+      (old rows public), live canonical access in list/detail, no club anonymous
+      stream/worker bypass; owner setting/source identity need agreed contract.
+      Existing mandatory youtubeId/public-only catalog is not a club video model.
 
 ## Article-create-recovery — 13 октября 2026
 
 - [x] Подготовить proposed серверный контракт:
-  [SPEC-article-create-recovery](../SPEC-article-create-recovery.md), без кода/фронта.
+      [SPEC-article-create-recovery](../SPEC-article-create-recovery.md), без кода/фронта.
 - [x] Human approval optional UUID key, numeric replay, read-only status,
-  отдельный ledger без TTL; затем schema review и малые RED/GREEN срезы.
+      отдельный ledger без TTL; затем schema review и малые RED/GREEN срезы.
 - [x] Approval for local backend inferred from direct «я спать а ты делай дальше»
-  after contract proposal; no working rollout/ frontend authority added.
+      after contract proposal; no working rollout/ frontend authority added.
 - [x] AR1: additive 0029/actor-scoped keyed atomic article/teaser creation;
-  native replay/conflict/delete/concurrent/rollback verification.
+      native replay/conflict/delete/concurrent/rollback verification.
 - [x] AR2: read-only status + native lost-response/restart/auth/schema checks;
-  frontend artifacts untouched, handoff describes pending client integration.
-  Final native/affected123 pass6 suites7.21s; RED3+RED2 before implementation.
-  Two independent compiled processes, 12 concurrent calls, actual SQL locks,
-  teardown/rollback/error/key/authority cases. Types/build486.3kb/boundaries623/
-  docs55/diff pass. check:api intentionally stale until frontend handoff, not green.
-  Final default2328 pass/1240 skips (3573),55.84s, types pass. Read-only preflight
-  retains exactly0017–0019 manifest blockers; no DB inspected/migrated.
-  Code e8ba8fd; own harnesses/pools closed, exact ownership/mount/loopback checks
-  before stop/--rm of disposable DB; only unrecoverable synthetic data removed.
-  Working resources/front/push/deploy untouched.
+      frontend artifacts untouched, handoff describes pending client integration.
+      Final native/affected123 pass6 suites7.21s; RED3+RED2 before implementation.
+      Two independent compiled processes, 12 concurrent calls, actual SQL locks,
+      teardown/rollback/error/key/authority cases. Types/build486.3kb/boundaries623/
+      docs55/diff pass. check:api intentionally stale until frontend handoff, not green.
+      Final default2328 pass/1240 skips (3573),55.84s, types pass. Read-only preflight
+      retains exactly0017–0019 manifest blockers; no DB inspected/migrated.
+      Code e8ba8fd; own harnesses/pools closed, exact ownership/mount/loopback checks
+      before stop/--rm of disposable DB; only unrecoverable synthetic data removed.
+      Working resources/front/push/deploy untouched.
 - [ ] AR rollout: reviewed history/schema0029 + retention/account deletion/export;
-  frontend-generated types/key persistence/reload acceptance by frontend developer.
+      frontend-generated types/key persistence/reload acceptance by frontend developer.
 - [ ] Native HTTP/SQL concurrency/lost reply/restart/conflict/rollback/delete/
-  current authority acceptance. Browser reload не считать закрытым без клиента.
+      current authority acceptance. Browser reload не считать закрытым без клиента.
 
 ## Текущее поручение — 13 октября 2026
 
@@ -2334,66 +2372,66 @@ SMTP/API/SQL закрыты, synthetic data уничтожены, чужие д�
 Local feature branch, без push/deploy/рабочей БД/автоматического включения.
 
 - [x] M2a local read-only post_media proxy: native HTTP/JWT/SQL RED/GREEN,
-  default-off/no provider on denied, stream/HEAD/single range/abort/revocation;
-  types/build/boundaries/docs/review/local commit. Не frontend/upload/old URL switch.
-  Native48; final content/deletion affected99 pass/3 suites (3.39 s), default2327
-  pass/1208 skips (3540, 55.37 s) before three extra opt-in cases; production
-  unchanged afterwards. Types/build479.9kb/boundaries622/API73 pass; flag off.
+      default-off/no provider on denied, stream/HEAD/single range/abort/revocation;
+      types/build/boundaries/docs/review/local commit. Не frontend/upload/old URL switch.
+      Native48; final content/deletion affected99 pass/3 suites (3.39 s), default2327
+      pass/1208 skips (3540, 55.37 s) before three extra opt-in cases; production
+      unchanged afterwards. Types/build479.9kb/boundaries622/API73 pass; flag off.
 - [ ] M2b actual private S3/browser rewrite acceptance: после M2a и test-only
-  локального S3 endpoint/bucket/connection, без working bucket credentials.
+      локального S3 endpoint/bucket/connection, без working bucket credentials.
 - [x] M2a hardening: own10s header deadline/connection5s; data-flow idle30s,
-  progressing40s stream remains complete, timer/listener/upstream cleanup;
-  JSON416/503 no longer inherits file MIME/disposition. RED1/RED1/RED9;
-  full102 pass/4 suites (85.94 s), final100 pass/2 already checked long-case filters
-  (14.50 s), types/build480.5kb/boundaries622/API73/format pass. Only new route.
-  Final default2328 pass/1213 skips (3546), 58.16 s; docs54/diff pass. Own fixture
-  resources closed and verified disposable container removed; no working writes.
+      progressing40s stream remains complete, timer/listener/upstream cleanup;
+      JSON416/503 no longer inherits file MIME/disposition. RED1/RED1/RED9;
+      full102 pass/4 suites (85.94 s), final100 pass/2 already checked long-case filters
+      (14.50 s), types/build480.5kb/boundaries622/API73/format pass. Only new route.
+      Final default2328 pass/1213 skips (3546), 58.16 s; docs54/diff pass. Own fixture
+      resources closed and verified disposable container removed; no working writes.
 - [ ] M2c upload→associate→proxy URL + old object rollout: отдельный review,
-  schema/public/shared map/backup/rollback approval; пока не реализовывать.
+      schema/public/shared map/backup/rollback approval; пока не реализовывать.
 
 - [x] Пункт3 локально: ID/наличие/публикация/доступ проверяются перед like/save
-  внутри транзакции; actor/post locks, общий club policy и та же SQL-сессия.
-  RED2 → native30; final affected HTTP/JWT/SQL103 pass (8.44 s), default2308
-  pass/1140 opt-in skips (3453), exit0, 50.50 s; types/build/boundaries618 pass.
-  Invalid/missing/hidden/draft/scheduled/expired клуб denied без записей;
-  public без оплаты/staff доступ/concurrent20/21 toggles сохранены. Старые строки
-  недоступных реакций автоматически не удаляются. Evidence — начало plan.md.
-  Final types/build/docs54/focused format/diff pass; own scoped fixtures/Nest/
-  pools/verified labelled loopback/tmpfs cleaned; no working data/resources.
+      внутри транзакции; actor/post locks, общий club policy и та же SQL-сессия.
+      RED2 → native30; final affected HTTP/JWT/SQL103 pass (8.44 s), default2308
+      pass/1140 opt-in skips (3453), exit0, 50.50 s; types/build/boundaries618 pass.
+      Invalid/missing/hidden/draft/scheduled/expired клуб denied без записей;
+      public без оплаты/staff доступ/concurrent20/21 toggles сохранены. Старые строки
+      недоступных реакций автоматически не удаляются. Evidence — начало plan.md.
+      Final types/build/docs54/focused format/diff pass; own scoped fixtures/Nest/
+      pools/verified labelled loopback/tmpfs cleaned; no working data/resources.
 - [x] Пункт2 локально: public feed/both comment read доступен авторизованным
-  без оплаты; club проверяет прежнюю policy в сервисе, guest/blocked denied,
-  hidden/draft/scheduled/missing не выдают обсуждение. Сроки добавления прежние.
-  Native RED2 → GREEN32 → final affected HTTP/JWT/SQL110 pass (7.65 s);
-  default2308 pass/1147 opt-in skips (3460), 55.82 s; types/build/boundaries618/
-  focused format/diff pass. Own fixtures/pools/verified disposable DB cleaned.
-  API response прежний; native browser/staging/provider этим не закрыты.
+      без оплаты; club проверяет прежнюю policy в сервисе, guest/blocked denied,
+      hidden/draft/scheduled/missing не выдают обсуждение. Сроки добавления прежние.
+      Native RED2 → GREEN32 → final affected HTTP/JWT/SQL110 pass (7.65 s);
+      default2308 pass/1147 opt-in skips (3460), 55.82 s; types/build/boundaries618/
+      focused format/diff pass. Own fixtures/pools/verified disposable DB cleaned.
+      API response прежний; native browser/staging/provider этим не закрыты.
 - [x] Пункт1 локально: additive hasClubAccess + прежний subscribed/paid/owner
-  контракт; moderator без оплаты открывает club/profile, видит служебный доступ,
-  не получает owner rights/paid marker/expiry/cancel/renewal controls.
-  Native API/parser/browser RED1 каждый; focused59, native81, final production
-  browser2 (390/1440 px, service→paid fixture→role removal), owner-only read403.
-  Default2312 pass/1151 skips, 52.50 s; types/builds/lint/API73/boundaries618 pass.
-  Дизайн сохранён; own synthetic resources cleaned, no provider payments/rollout.
+      контракт; moderator без оплаты открывает club/profile, видит служебный доступ,
+      не получает owner rights/paid marker/expiry/cancel/renewal controls.
+      Native API/parser/browser RED1 каждый; focused59, native81, final production
+      browser2 (390/1440 px, service→paid fixture→role removal), owner-only read403.
+      Default2312 pass/1151 skips, 52.50 s; types/builds/lint/API73/boundaries618 pass.
+      Дизайн сохранён; own synthetic resources cleaned, no provider payments/rollout.
 - [x] Пункт4 локально, backend-only: WorkerJobs binding delivery/maintenance
-  в прежнем cadence30s; default-off до flag=true и schema presence/index guard.
-  RED1 → native10, final affected78 pass/7 suites (7.12 s), default2317 pass/
-  1163 opt-in skips (3485), 53.88 s; types/build/boundaries619/format pass.
-  Реальные own SQL/loopback SMTP retry-delay/expiry/purge и partial schema refusal;
-  ошибки не прекращают другие branches, single-flight/stop сохранены.
-  Frontend не менялся; A7 preflight/rollout/external inbox acceptance не закрыты.
+      в прежнем cadence30s; default-off до flag=true и schema presence/index guard.
+      RED1 → native10, final affected78 pass/7 suites (7.12 s), default2317 pass/
+      1163 opt-in skips (3485), 53.88 s; types/build/boundaries619/format pass.
+      Реальные own SQL/loopback SMTP retry-delay/expiry/purge и partial schema refusal;
+      ошибки не прекращают другие branches, single-flight/stop сохранены.
+      Frontend не менялся; A7 preflight/rollout/external inbox acceptance не закрыты.
 - [x] Фронт, follow-up13 октября: cancellation controller не принимает service
-  content access за paid subscription. Browser RED1 → GREEN2, 26 existing
-  cancellation UI cases pass; default2312/1153 skips, 53.40 s, types/build/lint/
-  boundaries618/focused format/diff pass. Controlled API, не provider/SQL приёмка;
-  design/backend/API unchanged, own browser/HTTP/frontend resources closed.
+      content access за paid subscription. Browser RED1 → GREEN2, 26 existing
+      cancellation UI cases pass; default2312/1153 skips, 53.40 s, types/build/lint/
+      boundaries618/focused format/diff pass. Controlled API, не provider/SQL приёмка;
+      design/backend/API unchanged, own browser/HTTP/frontend resources closed.
 - [ ] Пункт5: actual isolated S3/private delivery, прежние storage/rollout gates.
-  Backend-only review13 октября: public-read/direct persisted URLs обходят app
-  content checks; working bucket anonymous access не проверен. Safe key fix:
-  RED4/RED6 → storage14 actual SDK PUT/loopback exact-byte GET; focused70 pass.
-  Encoding сохраняет exact key, unsafe empty/dot/backslash/control rejected до
-  effects. ACL/auth/frontend/old URLs не менялись; пункт5 остаётся незавершённым.
-  Default2327 pass/1163 skips (3495), 52.81 s; types/build/boundaries619/docs54/
-  focused test format/diff pass. Own HTTP fixture closed, no working storage.
+      Backend-only review13 октября: public-read/direct persisted URLs обходят app
+      content checks; working bucket anonymous access не проверен. Safe key fix:
+      RED4/RED6 → storage14 actual SDK PUT/loopback exact-byte GET; focused70 pass.
+      Encoding сохраняет exact key, unsafe empty/dot/backslash/control rejected до
+      effects. ACL/auth/frontend/old URLs не менялись; пункт5 остаётся незавершённым.
+      Default2327 pass/1163 skips (3495), 52.81 s; types/build/boundaries619/docs54/
+      focused test format/diff pass. Own HTTP fixture closed, no working storage.
 
 Автоматизация остаётся удалённой; это возобновление работы по прямому поручению,
 не подтверждение готовности первого этапа и не реальная платёжная приёмка.
@@ -2416,18 +2454,18 @@ Local feature branch, без push/deploy/рабочей БД/автоматич�
 Ближайший крупный блок — M1/M2 (закрытые файлы), затем C2 (полный путь публикации).
 
 - [ ] M1b: локальная object-to-content карта по всем post/article/comment
-  references, включая shared public/private, external и unassociated objects.
-  Сначала код и synthetic fixtures, без чтения рабочих объектов/секретов.
-  Проверка: SQL/JSON fixtures не классифицируют доступ только по prefix или URL.
+      references, включая shared public/private, external и unassociated objects.
+      Сначала код и synthetic fixtures, без чтения рабочих объектов/секретов.
+      Проверка: SQL/JSON fixtures не классифицируют доступ только по prefix или URL.
 - [ ] M1c: actual public/private GET/HEAD/range в собственном изолированном
-  хранилище; guest/paid/expired/blocked и API/direct URL. Не выдавать local
-  acceptance за ACL/policy рабочего bucket. Зависимость: классификация M1b.
+      хранилище; guest/paid/expired/blocked и API/direct URL. Не выдавать local
+      acceptance за ACL/policy рабочего bucket. Зависимость: классификация M1b.
 - [ ] M2: после M1b/M1c — reviewed closed-delivery contract и первый вертикальный
-  срез; не менять ACL глобально/не переносить старые объекты без проверенной
-  карты, backup/rollback и отдельной процедуры. Публичные cover/avatar сохранить.
+      срез; не менять ACL глобально/не переносить старые объекты без проверенной
+      карты, backup/rollback и отдельной процедуры. Публичные cover/avatar сохранить.
 - [ ] C2: если storage-проверка внешне заблокирована, следующий независимый
-  крупный блок — native create→attachments→publish/read→edit/delete с сохранением
-  frontend design и черновика при сбоях. External uploads отдельно gated.
+      крупный блок — native create→attachments→publish/read→edit/delete с сохранением
+      frontend design и черновика при сбоях. External uploads отдельно gated.
 
 A7/Q1 migration history/rollout, внешние оплаты/VK и физические устройства
 остаются отдельными зависимостями. Автоматических push/deploy/рабочей БД нет.
@@ -3370,8 +3408,7 @@ wait teardown не воспроизвёл старую race. C1 transport gate �
       без reset token, identity/expiry сохранены; повтор delivery без дубля.
       5 C1 browser pass; первая выдача/moderator actions/deployment ещё открыты.
       C1e: moderator закрывает конкретную жалобу через UI/Nest/SQL; комментарий
-      и автор сохранены, audit одна, reload не возвращает жалобу. 6 C1 browser
-      + 4 report SQL/HTTP pass. Первая выдача/остальные moderation/deployment открыты.
+      и автор сохранены, audit одна, reload не возвращает жалобу. 6 C1 browser + 4 report SQL/HTTP pass. Первая выдача/остальные moderation/deployment открыты.
       C1f: первая выдача через UI/native API/SQL; cancel без write, confirm =
       31 день от now, pending future order игнорируется и сохраняется. Тот же
       member JWT 403 → 200, reload показывает продление; identity/no mail сохранены.
@@ -3404,8 +3441,7 @@ wait teardown не воспроизвёл старую race. C1 transport gate �
       Local transport proxy; prepared-dev skipped suite/deployment не закрыты.
       C2d: UI create/edit/reload будущего schedule, Moscow → literal UTC;
       один ID, scheduled/published=0/publishedAt=NULL. До срока core ticks пусты,
-      public feed не содержит пост; +3h mutation RED снята. 13 C1/C2 browser
-      + 3 content SQL GREEN, типы. Full due/publication delivery ещё открыта;
+      public feed не содержит пост; +3h mutation RED снята. 13 C1/C2 browser + 3 content SQL GREEN, типы. Full due/publication delivery ещё открыта;
       A6 active-build регрессия после explicit timezone fixture: 27 cases GREEN;
       default-off build восстановлен, rollout/deployment всё ещё открыты.
       C2e: собственный editor schedule переведён SQL fixture на прошедший срок;
@@ -3595,7 +3631,7 @@ wait teardown не воспроизвёл старую race. C1 transport gate �
       compile/expand на 9003-char/4500-deep pattern дают caught RangeError
       в bounded child; latest 3.0.3, patched release отсутствует. Actual nested
       esbuild 0.18.20 own stdin-only loopback server возвращает synthetic module
-      с ACAO * для untrusted Origin; closed/disposed, no user files. Core-utils
+      с ACAO \* для untrusted Origin; closed/disposed, no user files. Core-utils
       использует transform, не serve; reachable app exploit не доказан.
       No blind out-of-range esbuild override/patch/audit suppression; нужен
       отдельный reviewed compatibility slice. Registry 2 + manual Q1m/Q1p
@@ -3617,8 +3653,7 @@ wait teardown не воспроизвёл старую race. C1 transport gate �
       Integrity/hooks/selected runtime review, deps unchanged; no major 5.x.
       Full default 2248 pass / 1053 skips, exit 0 (20.97s); types/lint/format/
       frozen install GREEN. Prod audit 0/exit 0; full audit 4 (1 high /
-      3 moderate), exit 1 / 828 deps. Registry esbuild/Vitest/mocker/braces
-      + manual Q1m/Q1p остаются; Q1/A7/внешняя приёмка открыты, не выложено.
+      3 moderate), exit 1 / 828 deps. Registry esbuild/Vitest/mocker/braces + manual Q1m/Q1p остаются; Q1/A7/внешняя приёмка открыты, не выложено.
       Q1q: scoped brace-expansion 1.1.21 только ESLint/minimatch 3 edge;
       output count/product/character bounds: 3 native RED → 4 focused GREEN,
       соседний minimatch вместе 7 pass. Ordinary brace/range/escape/dollar
@@ -3764,75 +3799,75 @@ webmail exception согласован/проверен, обычный вход
 ## Requested frontend corrections — 2026-10-09
 
 - [x] Bind the durable draft notice to the captured editor/owner/slot; add
-  controlled IndexedDB race regressions for both editors.
+      controlled IndexedDB race regressions for both editors.
 - [x] Separate Prodamus demo UI from live/YooKassa TEST: 790 RUB / 30 days,
-  one-off, guest login after plain `/club` return, server-confirmed access and
-  profile expiry; reject mismatched demo links and conflicting build flags.
+      one-off, guest login after plain `/club` return, server-confirmed access and
+      profile expiry; reject mismatched demo links and conflicting build flags.
 - [x] Stabilize the known browser-test causes: clock drift, ambiguous retry
-  selector, scroll-hidden Back button and premature unconfirmed-create assertion.
-  Attachment pickers await the checkpoint before clicking; four server-MIME/size
-  retry scenarios pass three times each (12/12).
+      selector, scroll-hidden Back button and premature unconfirmed-create assertion.
+      Attachment pickers await the checkpoint before clicking; four server-MIME/size
+      retry scenarios pass three times each (12/12).
 - [x] Types/lint/API (73 procedures), 541 frontend/client/contract/quiz checks,
-  and 568-file dependency boundary check.
+      and 568-file dependency boundary check.
 - [x] Normal and Prodamus TEST production builds; both editor race regressions
-  RED on the old hook, each GREEN three times. Other affected scenarios pass
-  three times, Moscow-midnight five times. Prodamus TEST browser flow and
-  320/390/1440 px layout pass; normal UI remains unchanged.
+      RED on the old hook, each GREEN three times. Other affected scenarios pass
+      three times, Moscow-midnight five times. Prodamus TEST browser flow and
+      320/390/1440 px layout pass; normal UI remains unchanged.
 - [x] Separate YooKassa TEST build and browser regression preserve the existing
-  result-check, canceled intent and explicit next-purchase flow.
+      result-check, canceled intent and explicit next-purchase flow.
 - [x] Full browser acceptance: 456 pass / 3 real-API skips in six checked batches;
-  all 459 manifest IDs accounted for exactly once, no unexpected/flaky in final
-  reports. Batch 4 passed 77/77 after the chooser fix; interrupted partial
-  90-case run is not used in the final result.
-  Loopback/mock-API execution authorized by user; no API/database/payment/deploy.
-  Dockerfile reverted as requested; no image-build mode selection added.
+      all 459 manifest IDs accounted for exactly once, no unexpected/flaky in final
+      reports. Batch 4 passed 77/77 after the chooser fix; interrupted partial
+      90-case run is not used in the final result.
+      Loopback/mock-API execution authorized by user; no API/database/payment/deploy.
+      Dockerfile reverted as requested; no image-build mode selection added.
 - [ ] Shop 4.12: agree manager request form and server acceptance/outbox contract.
-  Legacy Expo had online Prodamus checkout, no manager request form. No shop edit.
-  Details and remaining acceptance: `apps/frontend/WORK_PLAN.md`.
+      Legacy Expo had online Prodamus checkout, no manager request form. No shop edit.
+      Details and remaining acceptance: `apps/frontend/WORK_PLAN.md`.
 
 ## Prodamus sandbox connection — 2026-10-08
 
 - [x] Inspect supplied test cabinet and generate/open a synthetic demo invoice.
-  Existing subscription definitions and global callback targets found; no global
-  settings changed. Their presence does not establish another project's ownership.
-  User explicitly confirms this test cabinet was issued for DaryaDarcy.
-  Invoice creation is not payment/access acceptance.
+      Existing subscription definitions and global callback targets found; no global
+      settings changed. Their presence does not establish another project's ownership.
+      User explicitly confirms this test cabinet was issued for DaryaDarcy.
+      Invoice creation is not payment/access acceptance.
 - [x] PD1: real webhook refuses ordinary-key demo markers before granting or
-  cancelling; fixture + native HTTP RED/GREEN, existing live regressions,
-  full/types/build/API/boundaries/docs review and local commit.
-  Eight fixture failures and native HTTP 200-before/400-after reproduced the
-  missing guard. 13 new cases; full Node 22 suite 1499 pass / 618 SQL/external
-  skip. Types/API/build/boundaries pass. Source-only; no provider payment or
-  database acceptance, no server flags/callback/key/deployment changes.
+      cancelling; fixture + native HTTP RED/GREEN, existing live regressions,
+      full/types/build/API/boundaries/docs review and local commit.
+      Eight fixture failures and native HTTP 200-before/400-after reproduced the
+      missing guard. 13 new cases; full Node 22 suite 1499 pass / 618 SQL/external
+      skip. Types/API/build/boundaries pass. Source-only; no provider payment or
+      database acceptance, no server flags/callback/key/deployment changes.
 - [x] User approved diagnostic-before-entitlement contract on 8 October.
-  PD4 still requires its own isolated entitlement design; no live access enabled.
+      PD4 still requires its own isolated entitlement design; no live access enabled.
 - [x] PD2: default-off separate synthetic-only diagnostic link/receiver, no
-  persistence/access/mail. Verify host/merchant/key/amount/demo rejection and
-  browser-return non-authority. No live webhook demo-key fallback.
-  Operator CLI and bounded native Nest ingress verified: 81 new service/native/
-  CLI/compiled cases, 1580 full pass / 618 SQL/external skip. Production ESM
-  native probe succeeds; disabling controller registration makes it fail.
-  Dedicated configuration per instance, numeric provider IDs, deep input errors,
-  replay, wrong bindings/signatures, live-key fallback and cookies are covered.
-  No actual provider key loaded, payment made, callback delivered or server changed.
+      persistence/access/mail. Verify host/merchant/key/amount/demo rejection and
+      browser-return non-authority. No live webhook demo-key fallback.
+      Operator CLI and bounded native Nest ingress verified: 81 new service/native/
+      CLI/compiled cases, 1580 full pass / 618 SQL/external skip. Production ESM
+      native probe succeeds; disabling controller registration makes it fail.
+      Dedicated configuration per instance, numeric provider IDs, deep input errors,
+      replay, wrong bindings/signatures, live-key fallback and cookies are covered.
+      No actual provider key loaded, payment made, callback delivered or server changed.
 - [ ] PD3 after PD2: scoped test deployment/rollback and actual notification
-  delivery; retain working data/overlays, audit/reachability and live blocks.
-  Read-only server check: API 300c8d3, web 62c4001, six healthy services; local
-  branch remains ahead 40 / behind 1 before this increment. No automatic merge
-  or full branch rollout. User selected the dedicated diagnostic service on
-  8 October (no DB/mail, one exact ingress path); cannot enable by env alone.
-  Standalone Nest composition and compiled isolation acceptance complete locally:
-  19 additional cases, full 1599 pass / 618 SQL/external skip. Source-only,
-  no secrets loaded or containers/edge changed. Exact runtime/dependency and
-  edge rollout review remain; the current API image cannot be assumed to supply
-  Nest/reflect-metadata (package-resolution probe reports unavailable).
-  Provider-assigned SYS and callback isolation need support confirmation before
-  a real demo callback probe; arbitrary fixture SYS is not provider approval.
+      delivery; retain working data/overlays, audit/reachability and live blocks.
+      Read-only server check: API 300c8d3, web 62c4001, six healthy services; local
+      branch remains ahead 40 / behind 1 before this increment. No automatic merge
+      or full branch rollout. User selected the dedicated diagnostic service on
+      8 October (no DB/mail, one exact ingress path); cannot enable by env alone.
+      Standalone Nest composition and compiled isolation acceptance complete locally:
+      19 additional cases, full 1599 pass / 618 SQL/external skip. Source-only,
+      no secrets loaded or containers/edge changed. Exact runtime/dependency and
+      edge rollout review remain; the current API image cannot be assumed to supply
+      Nest/reflect-metadata (package-resolution probe reports unavailable).
+      Provider-assigned SYS and callback isolation need support confirmation before
+      a real demo callback probe; arbitrary fixture SYS is not provider approval.
 - [ ] PD4 after PD3: separately approved isolated test-entitlement contract and
-  disposable SQL replay/rollback acceptance before demo access activation.
+      disposable SQL replay/rollback acceptance before demo access activation.
 - [ ] Recurring provider test: verify the selected test subscription's price,
-  interval and notification routing. Do not infer foreign ownership from existing
-  definitions. No changes to existing subscribers or real charges are authorized.
+      interval and notification routing. Do not infer foreign ownership from existing
+      definitions. No changes to existing subscribers or real charges are authorized.
 
 Ownership correction, 8 October: read-only cabinet settings show demo mode, an
 integration-key field and demo URL notifications not disabled. The configured
@@ -3862,15 +3897,15 @@ path. No key disclosed, callback changed, payment made or service deployed here.
 - [x] Move backend to `apps/backend`.
 - [x] Move schema/migrations to `packages/database`.
 - [ ] Extract domain routers and repositories.
-  HTTP policy, billing, identity, launch configuration and comment repositories
-  separated; club and moderation routers extracted without API changes;
-  feed, articles and notification routers extracted with unchanged compiled handlers;
-  legacy unused comment accessors removed; all tRPC namespaces now have domain
-  modules, the root composes only. Remaining work: split db.ts/platform-db.ts
-  repositories and large admin internals.
-  Video catalogue's seven persistence operations are now separated with an
-  unchanged caller facade; see the 9 October checkpoint below. Other domains
-  and removal of compatibility facades remain open.
+      HTTP policy, billing, identity, launch configuration and comment repositories
+      separated; club and moderation routers extracted without API changes;
+      feed, articles and notification routers extracted with unchanged compiled handlers;
+      legacy unused comment accessors removed; all tRPC namespaces now have domain
+      modules, the root composes only. Remaining work: split db.ts/platform-db.ts
+      repositories and large admin internals.
+      Video catalogue's seven persistence operations are now separated with an
+      unchanged caller facade; see the 9 October checkpoint below. Other domains
+      and removal of compatibility facades remain open.
 - [ ] Green checkpoint: API contract, tests, check, backend build.
 
 ## Phase 3 — Frontend
@@ -3890,1072 +3925,1072 @@ path. No key disclosed, callback changed, payment made or service deployed here.
 ## Backend safety / launch follow-up — 2026-10-02
 
 - [x] B01: Return/webhook trust boundary; unsigned, invalid/demo and failed events
-  never grant or cancel. Files: prodamus.ts, billing-webhook.test.ts.
+      never grant or cancel. Files: prodamus.ts, billing-webhook.test.ts.
 - [x] B02: Checkout is not login; claimPending only reports verified access;
-  blocked email rejected. Files: routers.ts, db.ts, billing-checkout.test.ts.
+      blocked email rejected. Files: routers.ts, db.ts, billing-checkout.test.ts.
 - [x] B03: Blocked staff/public post details obey a shared access policy.
-  Files: trpc.ts, routers.ts, access-policy.test.ts.
+      Files: trpc.ts, routers.ts, access-policy.test.ts.
 - [x] Checkpoint: full tests, type check, API build and evidence-backed review.
-  215 passed / 3 skipped; check/build/diff-check pass. This is not release approval.
-  Prototype pollution in webhook parser additionally reproduced and repaired.
+      215 passed / 3 skipped; check/build/diff-check pass. This is not release approval.
+      Prototype pollution in webhook parser additionally reproduced and repaired.
 - [ ] B04: Atomic/idempotent billing + amount/currency/provider identity validation.
-  Acceptance: sequential/concurrent duplicate extends once, mismatched sum rejected.
-  Verify: isolated MySQL integration tests + sandbox notification fixtures.
-  Local club implementation and real-MySQL tests done; sandbox and legacy
-  reconciliation pending. Shop remains outside this stage and must stay off at launch.
+      Acceptance: sequential/concurrent duplicate extends once, mismatched sum rejected.
+      Verify: isolated MySQL integration tests + sandbox notification fixtures.
+      Local club implementation and real-MySQL tests done; sandbox and legacy
+      reconciliation pending. Shop remains outside this stage and must stay off at launch.
 - [ ] B05: Email verification/setup/reset; no email-inferred staff privileges.
-  Acceptance: expired/reused token rejected, existing password untouched.
-  Verify: identity HTTP tests + migration rehearsal.
-  Backend links/versioned sessions/explicit staff roles done locally;
-  Frontend recovery entry and strict SMS capability switch checked locally;
-  insert-only registration + atomic consent/setup outbox, email proof before
-  password/login and explicit frontend consent checked on local HTTP/MySQL.
-  staff preflight and production migration rehearsal pending.
-  Read-only migration preflight added: detects orphan 0017–0019, changed hashes,
-  unknown/gapped DB history; explicit connection only, no auto-apply. Migration
-  0024 email/outbox indexes checked on disposable MySQL with lock-scope tests.
+      Acceptance: expired/reused token rejected, existing password untouched.
+      Verify: identity HTTP tests + migration rehearsal.
+      Backend links/versioned sessions/explicit staff roles done locally;
+      Frontend recovery entry and strict SMS capability switch checked locally;
+      insert-only registration + atomic consent/setup outbox, email proof before
+      password/login and explicit frontend consent checked on local HTTP/MySQL.
+      staff preflight and production migration rehearsal pending.
+      Read-only migration preflight added: detects orphan 0017–0019, changed hashes,
+      unknown/gapped DB history; explicit connection only, no auto-apply. Migration
+      0024 email/outbox indexes checked on disposable MySQL with lock-scope tests.
 - [ ] B06: Transactional email outbox and resend.
-  Acceptance: crash/retry loses no event, duplicate payment queues one message.
-  Verify: worker failure/recovery integration tests.
-  Atomic club outbox, leased workers, discarded status and audited staff resend
-  implemented locally; real SMTP/device/operator acceptance pending.
+      Acceptance: crash/retry loses no event, duplicate payment queues one message.
+      Verify: worker failure/recovery integration tests.
+      Atomic club outbox, leased workers, discarded status and audited staff resend
+      implemented locally; real SMTP/device/operator acceptance pending.
 - [ ] B07: Provider-confirmed cancellation and immediate block enforcement.
-  Acceptance: failed provider response cannot report cancellation success;
-  paid expiry retained. Verify: sandbox cancellation + all access-path tests.
-  Durable request/confirmation, real local HTTP provider errors and retry checked;
-  live sandbox profiles and legacy blacklist reconciliation pending.
+      Acceptance: failed provider response cannot report cancellation success;
+      paid expiry retained. Verify: sandbox cancellation + all access-path tests.
+      Durable request/confirmation, real local HTTP provider errors and retry checked;
+      live sandbox profiles and legacy blacklist reconciliation pending.
 - [ ] B08: Media validation, closed-body access and comment retention.
-  Acceptance: non-image rejected, EXIF removed, protected body unavailable publicly.
-  Verify: file fixtures and API authorization tests.
-  Photo slice checked: avatar/post/comment JPEG/PNG/WebP decode and re-encode,
-  metadata removal, server-owned filenames, 4 MiB/20 MP/concurrent decoder limits.
-  13 photo scenarios pass; full local suite 236 pass / 32 skip (DB not provisioned),
-  check/build/diff-check pass. Private legacy assets and retention still pending.
-  Content/retention slice checked: published status enforced in feed/club/saved
-  queries and discussion API; comments retained 365 days, bounded transactional
-  cleanup also removes likes/reports and detaches newer replies.
-  Disposable-MySQL checkpoint: 271 passed / 3 skipped, check/build/diff-check pass.
-  Existing public storage links are NOT revoked by this API repair; migration and
-  any optional protected-video implementation remain explicit release decisions.
-  URL-import SSRF repaired: no external server-side download; accept only exact
-  configured S3 origin + bucket. File upload/provider embeds remain separate paths.
-  Eight spoofed/internal URL scenarios checked; full MySQL suite 292 pass / 3 skip.
+      Acceptance: non-image rejected, EXIF removed, protected body unavailable publicly.
+      Verify: file fixtures and API authorization tests.
+      Photo slice checked: avatar/post/comment JPEG/PNG/WebP decode and re-encode,
+      metadata removal, server-owned filenames, 4 MiB/20 MP/concurrent decoder limits.
+      13 photo scenarios pass; full local suite 236 pass / 32 skip (DB not provisioned),
+      check/build/diff-check pass. Private legacy assets and retention still pending.
+      Content/retention slice checked: published status enforced in feed/club/saved
+      queries and discussion API; comments retained 365 days, bounded transactional
+      cleanup also removes likes/reports and detaches newer replies.
+      Disposable-MySQL checkpoint: 271 passed / 3 skipped, check/build/diff-check pass.
+      Existing public storage links are NOT revoked by this API repair; migration and
+      any optional protected-video implementation remain explicit release decisions.
+      URL-import SSRF repaired: no external server-side download; accept only exact
+      configured S3 origin + bucket. File upload/provider embeds remain separate paths.
+      Eight spoofed/internal URL scenarios checked; full MySQL suite 292 pass / 3 skip.
 - [ ] B09: First-release capabilities and seasonal/manager configuration.
-  Acceptance: disabled SMS/shop payment/pen-pal routes cannot be called directly.
-  Verify: capability matrix API tests and admin configuration roundtrip.
-  Server guards checked for SMS, pen-pal discovery/matching and all legacy shop
-  entry points (checkout/redirect/webhook/queued mail). Privacy withdrawal remains
-  available. Shop cannot be enabled by an environment flag before durable repair.
-  Seasonal/manager configuration and client wiring are still pending.
-  Configuration slice checked locally: four seasonal sets/annual Moscow dates,
-  fixed winter default, managerEmail, administrator-only revisioned/audited writes.
-  Tests include concurrent edits, blocked actor, invalid dates/URLs and real JWT
-  HTTP admin/public roundtrip. Migration 0023 rehearsed only on disposable MySQL.
-  Client wiring/order submission still pending; contact config is not sent mail.
+      Acceptance: disabled SMS/shop payment/pen-pal routes cannot be called directly.
+      Verify: capability matrix API tests and admin configuration roundtrip.
+      Server guards checked for SMS, pen-pal discovery/matching and all legacy shop
+      entry points (checkout/redirect/webhook/queued mail). Privacy withdrawal remains
+      available. Shop cannot be enabled by an environment flag before durable repair.
+      Seasonal/manager configuration and client wiring are still pending.
+      Configuration slice checked locally: four seasonal sets/annual Moscow dates,
+      fixed winter default, managerEmail, administrator-only revisioned/audited writes.
+      Tests include concurrent edits, blocked actor, invalid dates/URLs and real JWT
+      HTTP admin/public roundtrip. Migration 0023 rehearsed only on disposable MySQL.
+      Client wiring/order submission still pending; contact config is not sent mail.
 - [ ] Release checkpoint: sandbox E2E, migrations rehearsal, mail/load/security
-  checks and approved rollout. Optional HLS/web push require separate scope review.
-  Browser/API repair checked: explicit credentialed Origin allowlist, cross-site
-  rejection before handlers, provider signature/return boundaries exempt, native
-  JSON compatibility, no-sniff/referrer/framing headers and canonical client IP.
-  Reverse proxy trust restricted to loopback; remote proxy topologies need review.
-  GitLab/GitHub verification pipelines added with disposable MySQL, guarded test
-  database URLs, frozen installs, boundaries/types/tests/API/web/post-build checks.
-  Local equivalent: 341 passed / 3 skipped, both builds and regression pass.
-  YAML parsed; remote runner execution has NOT been performed. No auto deployment.
+      checks and approved rollout. Optional HLS/web push require separate scope review.
+      Browser/API repair checked: explicit credentialed Origin allowlist, cross-site
+      rejection before handlers, provider signature/return boundaries exempt, native
+      JSON compatibility, no-sniff/referrer/framing headers and canonical client IP.
+      Reverse proxy trust restricted to loopback; remote proxy topologies need review.
+      GitLab/GitHub verification pipelines added with disposable MySQL, guarded test
+      database URLs, frozen installs, boundaries/types/tests/API/web/post-build checks.
+      Local equivalent: 341 passed / 3 skipped, both builds and regression pass.
+      YAML parsed; remote runner execution has NOT been performed. No auto deployment.
 
 ## Repository navigation cleanup — 2026-10-02
 
 - [x] R01: Group documents and archive historical notes without losing files/tasks.
-  Verify: move inventory, relative links and tracked reference scan.
+      Verify: move inventory, relative links and tracked reference scan.
 - [x] R02: Concise entry README/docs index/current backend and workflow guides.
-  Verify: manual onboarding walk-through and link check.
+      Verify: manual onboarding walk-through and link check.
 - [x] R03: Separate one-off legacy tools; preserve normal command paths.
-  Verify: command/import inventory and local build commands; no remote script run.
+      Verify: command/import inventory and local build commands; no remote script run.
 - [x] R04: Local-doc links tested and checked in CI; final types/tests/build review.
-  Verify: failing fixtures → passing check, API/web/legacy builds, clean diff.
-  Cleanup checkpoint: all 1070 original tracked files accounted for; 253 paths
-  relocated, root Markdown reduced to README only. Current docs separated from
-  archival snapshots; active tasks and runtime assets/licences preserved.
-  Tools grouped into scripts/assets/data/operations/legacy at the same depth.
-  Package command paths resolved; 99 JS/60 Python/4 shell files syntax-checked
-  without executing remote operations. Frozen install passed without lock changes.
-  Link checker: red fixtures first, then unit/isolated-Git CLI coverage; 40 current
-  documents pass. CI gate added; remote pipelines have not been executed.
-  Final local disposable-MySQL suite: 469 passed / 2 skipped. Types, 279-file
-  boundaries, API build, legacy Vite build, main Expo web build and 52-test verify
-  passed. Legacy font warning remains; no deployment or release approval.
+      Verify: failing fixtures → passing check, API/web/legacy builds, clean diff.
+      Cleanup checkpoint: all 1070 original tracked files accounted for; 253 paths
+      relocated, root Markdown reduced to README only. Current docs separated from
+      archival snapshots; active tasks and runtime assets/licences preserved.
+      Tools grouped into scripts/assets/data/operations/legacy at the same depth.
+      Package command paths resolved; 99 JS/60 Python/4 shell files syntax-checked
+      without executing remote operations. Frozen install passed without lock changes.
+      Link checker: red fixtures first, then unit/isolated-Git CLI coverage; 40 current
+      documents pass. CI gate added; remote pipelines have not been executed.
+      Final local disposable-MySQL suite: 469 passed / 2 skipped. Types, 279-file
+      boundaries, API build, legacy Vite build, main Expo web build and 52-test verify
+      passed. Legacy font warning remains; no deployment or release approval.
 
 ## Repository hygiene follow-up — 2026-10-02
 
 - [x] C01: Canonical frontend public resources; packaging fails on missing files.
-  Verify: red/green isolated packaging tests and both web builds with byte checks.
-  Three fixture tests failed for the intended omissions before the repair, then
-  passed. Legacy Vite and Expo exports passed; public-resource bytes preserved.
+      Verify: red/green isolated packaging tests and both web builds with byte checks.
+      Three fixture tests failed for the intended omissions before the repair, then
+      passed. Legacy Vite and Expo exports passed; public-resource bytes preserved.
 - [x] C02: Preserve historical deployment artifacts in the audit archive; ignore
-  generated reports and document active configuration versus old snapshots.
-  Four artifacts moved with exact byte comparison against Git originals. Lifecycle
-  policy unchanged; both old/current report output paths ignored, archive tracked.
-  Existing S3/SSH root/path mismatch documented; repair remains separate work.
+      generated reports and document active configuration versus old snapshots.
+      Four artifacts moved with exact byte comparison against Git originals. Lifecycle
+      policy unchanged; both old/current report output paths ignored, archive tracked.
+      Existing S3/SSH root/path mismatch documented; repair remains separate work.
 - [x] C03: Remove empty root placeholder; align Cursor guidance with monorepo and
-  explicit deployment authorization; verify links/types/boundaries/local tests.
-  Local checkpoint: 409 tests passed / 65 skipped without a test MySQL. Types,
-  279-file boundaries, 40-document links, API/Vite/Expo builds and 52-test verify
-  passed. Legacy Vite font warning remains. Root .gitkeep removed (recoverable in
-  Git); source, licences and unfinished backend tasks preserved. No push/deploy.
+      explicit deployment authorization; verify links/types/boundaries/local tests.
+      Local checkpoint: 409 tests passed / 65 skipped without a test MySQL. Types,
+      279-file boundaries, 40-document links, API/Vite/Expo builds and 52-test verify
+      passed. Legacy Vite font warning remains. Root .gitkeep removed (recoverable in
+      Git); source, licences and unfinished backend tasks preserved. No push/deploy.
 
 ## Current-team ownership cleanup — 2026-10-02
 
 - [x] C04: Delete irrelevant editor/generator/one-off artifacts, remove stale
-  commands/links and ignore local Cursor settings. Preserve deployment and its
-  helper closure, current requirements/audits, CI, runtime sources and open tasks.
-  Verify: protected-file hashes, reference scan, docs/boundaries/types/tests/builds.
-  Removed 37 tracked files, including Cursor rules, unused Expo reset, old report
-  generator/command, archived npm lock/QR and spent notes/diagnostic scripts.
-  Protected-file digest confirms 815 runtime/deploy/CI/lock files unchanged.
-  Frozen install, 37-document links, 279-file boundaries, types, API/Vite/Expo
-  builds and 52-test verify passed; final local suite 409 pass / 65 skip without
-  test MySQL. Vite font warning remains. Removed files recoverable from 9c39659;
-  no push, external operation or release approval.
+      commands/links and ignore local Cursor settings. Preserve deployment and its
+      helper closure, current requirements/audits, CI, runtime sources and open tasks.
+      Verify: protected-file hashes, reference scan, docs/boundaries/types/tests/builds.
+      Removed 37 tracked files, including Cursor rules, unused Expo reset, old report
+      generator/command, archived npm lock/QR and spent notes/diagnostic scripts.
+      Protected-file digest confirms 815 runtime/deploy/CI/lock files unchanged.
+      Frozen install, 37-document links, 279-file boundaries, types, API/Vite/Expo
+      builds and 52-test verify passed; final local suite 409 pass / 65 skip without
+      test MySQL. Vite font warning remains. Removed files recoverable from 9c39659;
+      no push, external operation or release approval.
 
 ## Backend continuation: notification access — 2026-10-02
 
 - [x] N01: Blocked accounts excluded from every push delivery audience; latest
-  consent resolves equal-second events deterministically. Extends B07.
-  Verify: failing real-MySQL regressions, permitted/denied recipient matrix,
-  grant/revoke ties, full local suite/types/boundaries/API build and contract.
-  Confirmed both defects with real MySQL: 14 of 15 focused cases failed before
-  the fix; all 15 pass after. Full disposable-MySQL suite: 487 pass / 2 skip;
-  types/boundaries/docs/API build/52-test verify pass. No schema/API changes or
-  external notifications. Already-queued messages/device acceptance remain out
-  of this local guarantee; B07 and the overall release checkpoint stay open.
+      consent resolves equal-second events deterministically. Extends B07.
+      Verify: failing real-MySQL regressions, permitted/denied recipient matrix,
+      grant/revoke ties, full local suite/types/boundaries/API build and contract.
+      Confirmed both defects with real MySQL: 14 of 15 focused cases failed before
+      the fix; all 15 pass after. Full disposable-MySQL suite: 487 pass / 2 skip;
+      types/boundaries/docs/API build/52-test verify pass. No schema/API changes or
+      external notifications. Already-queued messages/device acceptance remain out
+      of this local guarantee; B07 and the overall release checkpoint stay open.
 - [x] N02: Push failures cannot be reported as successful submissions. Validate
-  HTTP/JSON/ticket outcomes, preserve audience filtering and 100-message chunks.
-  Verify: failing transport fixtures, partial batches, full suite/types/API build.
-  Confirmed 13 failing cases before repair; all 17 transport regressions pass.
-  Full disposable-MySQL suite: 504 pass / 2 skip; types/boundaries/docs/API build
-  and 52-test verify pass. Only provider acceptance is counted, not device delivery.
-  Real devices, receipts/retries and stale-token cleanup remain separate work.
+      HTTP/JSON/ticket outcomes, preserve audience filtering and 100-message chunks.
+      Verify: failing transport fixtures, partial batches, full suite/types/API build.
+      Confirmed 13 failing cases before repair; all 17 transport regressions pass.
+      Full disposable-MySQL suite: 504 pass / 2 skip; types/boundaries/docs/API build
+      and 52-test verify pass. Only provider acceptance is counted, not device delivery.
+      Real devices, receipts/retries and stale-token cleanup remain separate work.
 
 ## Backend continuation: account retention — 2026-10-02
 
 - [x] N03: Account anonymization is atomic and rechecks eligibility under the
-  billing owner lock. Late failure rolls back all profile/comment/activity edits;
-  concurrent workers count once; a committed renewal prevents stale deletion.
-  Verify: real-MySQL failure/renewal/concurrency tests, existing 30-day and active
-  subscription rules, full suite/types/boundaries/docs/API build. No live purge.
-  Three failures reproduced before repair; all 8 real-MySQL cases pass after.
-  Full suite: 512 pass / 2 skip; types/boundaries/API build/52-test verify pass.
-  Financial/audit/backup/S3 and old mail/link retention remain separate work;
-  B08 and release checkpoint remain open, not complete erasure or release approval.
+      billing owner lock. Late failure rolls back all profile/comment/activity edits;
+      concurrent workers count once; a committed renewal prevents stale deletion.
+      Verify: real-MySQL failure/renewal/concurrency tests, existing 30-day and active
+      subscription rules, full suite/types/boundaries/docs/API build. No live purge.
+      Three failures reproduced before repair; all 8 real-MySQL cases pass after.
+      Full suite: 512 pass / 2 skip; types/boundaries/API build/52-test verify pass.
+      Financial/audit/backup/S3 and old mail/link retention remain separate work;
+      B08 and release checkpoint remain open, not complete erasure or release approval.
 - [x] N04: Manual club grants serialize with settlement and account retention;
-  distinct simultaneous grants accumulate every day with distinct order IDs.
-  Preserve API/default duration; validate days and reject blocked/deleted users.
-  Verify: real MySQL concurrency/expiry/recipient/bounds tests, full suite and API
-  contract/types/boundaries/docs/build. Retried HTTP intent idempotency not added.
-  Six original failures → all 12 focused cases pass, including 10 simultaneous
-  grants with independent order IDs and all added days preserved. Full suite:
-  524 pass / 2 skip; types/280-file boundaries/docs/API build/52-test verify pass.
-  Module billing/grants.ts owns the transaction; router/facade signatures unchanged.
+      distinct simultaneous grants accumulate every day with distinct order IDs.
+      Preserve API/default duration; validate days and reject blocked/deleted users.
+      Verify: real MySQL concurrency/expiry/recipient/bounds tests, full suite and API
+      contract/types/boundaries/docs/build. Retried HTTP intent idempotency not added.
+      Six original failures → all 12 focused cases pass, including 10 simultaneous
+      grants with independent order IDs and all added days preserved. Full suite:
+      524 pass / 2 skip; types/280-file boundaries/docs/API build/52-test verify pass.
+      Module billing/grants.ts owns the transaction; router/facade signatures unchanged.
 
 ## Backend continuation: video publication boundaries — 2026-10-02
 
 - [x] N05: Hidden videos cannot be fetched by public ID or streamed through the
-  YouTube proxy; unknown catalog IDs never invoke downloader/upstream transport.
-  Verify: real HTTP/MySQL list/detail/stream/Range/cache-revocation fixtures,
-  internal hidden-video dedup, full suite/types/contract/boundaries/docs/API build.
-  Public S3/YouTube originals and already-open streams stay outside this guarantee.
-  Four original assertion failures → all 8 HTTP/MySQL cases pass. Parallel fixture
-  ID collision separately reproduced and fixed only in guarded test setup.
-  Full suite on reused and freshly provisioned MySQL: 533 pass / 2 skip;
-  types/280-file boundaries/docs/API build/52-test verify pass. B08 stays open.
+      YouTube proxy; unknown catalog IDs never invoke downloader/upstream transport.
+      Verify: real HTTP/MySQL list/detail/stream/Range/cache-revocation fixtures,
+      internal hidden-video dedup, full suite/types/contract/boundaries/docs/API build.
+      Public S3/YouTube originals and already-open streams stay outside this guarantee.
+      Four original assertion failures → all 8 HTTP/MySQL cases pass. Parallel fixture
+      ID collision separately reproduced and fixed only in guarded test setup.
+      Full suite on reused and freshly provisioned MySQL: 533 pass / 2 skip;
+      types/280-file boundaries/docs/API build/52-test verify pass. B08 stays open.
 
 ## Backend continuation: scheduled publication ownership — 2026-10-02
 
 - [x] N06: Scheduled workers return only their own committed publications;
-  concurrent workers do not duplicate announcement inputs, and an admin's
-  withdrawal while a row is locked is not returned as a publication.
-  Verify: real MySQL locks/concurrency/rollback/date and eligibility matrix,
-  full suite/types/contract/boundaries/docs/API build. Push outbox/retries and
-  manual confirmScheduledPost announcement ownership remain separate work.
-  Two actual assertion failures on the original worker → all 4 MySQL scenarios
-  pass, including two worker batches, next tick, withdrawal and trigger rollback.
-  Full suite: 537 pass / 2 skip; types/280-file boundaries/docs/API build and
-  52-test verify pass. No real push or schema change; release checkpoint stays open.
+      concurrent workers do not duplicate announcement inputs, and an admin's
+      withdrawal while a row is locked is not returned as a publication.
+      Verify: real MySQL locks/concurrency/rollback/date and eligibility matrix,
+      full suite/types/contract/boundaries/docs/API build. Push outbox/retries and
+      manual confirmScheduledPost announcement ownership remain separate work.
+      Two actual assertion failures on the original worker → all 4 MySQL scenarios
+      pass, including two worker batches, next tick, withdrawal and trigger rollback.
+      Full suite: 537 pass / 2 skip; types/280-file boundaries/docs/API build and
+      52-test verify pass. No real push or schema change; release checkpoint stays open.
 
 ## Backend continuation: manual publication ownership — 2026-10-02
 
 - [x] N07: admin.confirmPost announces only its own committed draft/scheduled
-  transition, never an already-published retry or scheduler-owned publication.
-  Preserve early confirmation/date rules and HTTP result. Verify real authenticated
-  HTTP/MySQL repeats/concurrency/scheduler/rollback/role and missing-row cases,
-  full suite/types/boundaries/docs/build. No push-outbox or updatePost guarantee.
-  Four original assertion failures → all 10 real authenticated HTTP/MySQL cases
-  pass. Legacy published/false visibility is still repairable; repeat HTTP result
-  remains {success:true}. Full suite: 547 pass / 2 skip, types/281-file boundaries/
-  docs/API build/52-test verify pass. Fixtures for global scheduler suites are
-  mutually exclusive, while their actual concurrent workers remain real.
+      transition, never an already-published retry or scheduler-owned publication.
+      Preserve early confirmation/date rules and HTTP result. Verify real authenticated
+      HTTP/MySQL repeats/concurrency/scheduler/rollback/role and missing-row cases,
+      full suite/types/boundaries/docs/build. No push-outbox or updatePost guarantee.
+      Four original assertion failures → all 10 real authenticated HTTP/MySQL cases
+      pass. Legacy published/false visibility is still repairable; repeat HTTP result
+      remains {success:true}. Full suite: 547 pass / 2 skip, types/281-file boundaries/
+      docs/API build/52-test verify pass. Fixtures for global scheduler suites are
+      mutually exclusive, while their actual concurrent workers remain real.
 
 ## Backend continuation: atomic post editing — 2026-10-02
 
 - [x] N08: Post edits and replacement videos commit/rollback together; edit
-  publication shares ownership with manual/scheduled paths and uses saved text.
-  Verify real HTTP/MySQL partial failure/decoded filenames/optional vs empty video
-  lists/non-video preservation/concurrency/date and missing-row regressions,
-  full suite/types/contract/boundaries/docs/API build. createPost, uploadMedia,
-  optimistic revisions, full request idempotency and push outbox remain separate.
-  Nine genuine regression failures on the original route → 24 real HTTP/MySQL
-  cases and 6 route unit cases pass. Full suite: 561 pass / 2 skip; types,
-  283-file boundaries, docs, API build and 52-test verify pass.
+      publication shares ownership with manual/scheduled paths and uses saved text.
+      Verify real HTTP/MySQL partial failure/decoded filenames/optional vs empty video
+      lists/non-video preservation/concurrency/date and missing-row regressions,
+      full suite/types/contract/boundaries/docs/API build. createPost, uploadMedia,
+      optimistic revisions, full request idempotency and push outbox remain separate.
+      Nine genuine regression failures on the original route → 24 real HTTP/MySQL
+      cases and 6 route unit cases pass. Full suite: 561 pass / 2 skip; types,
+      283-file boundaries, docs, API build and 52-test verify pass.
 - [ ] Investigate one transient parallel registration failure (both race
-  requests returned 500); MySQL's error counters record deadlocks at the same
-  time, but the precise cause is not established. Five subsequent full runs
-  pass without changes to registration. Do not treat this as repaired or hide
-  it with test retries. Reproduce with SQL diagnostics on a fresh test database.
-  Investigation 2026-10-03: 11 full runs on a new disposable database and
-  8 paired registration/retention runs pass. Statement history captures no
-  registration deadlock; global error counters also rise during successful runs.
-  Those counters alone do not establish the endpoint failure's cause. Still open.
-  Recurred during N11 on 2026-10-05: both responses were 500. InnoDB's latest
-  deadlock was an earlier content-test cleanup, not this registration attempt.
-  A subsequent diagnostic full run with statement history enabled passed;
-  do not call registration fixed or enable automatic test retries.
+      requests returned 500); MySQL's error counters record deadlocks at the same
+      time, but the precise cause is not established. Five subsequent full runs
+      pass without changes to registration. Do not treat this as repaired or hide
+      it with test retries. Reproduce with SQL diagnostics on a fresh test database.
+      Investigation 2026-10-03: 11 full runs on a new disposable database and
+      8 paired registration/retention runs pass. Statement history captures no
+      registration deadlock; global error counters also rise during successful runs.
+      Those counters alone do not establish the endpoint failure's cause. Still open.
+      Recurred during N11 on 2026-10-05: both responses were 500. InnoDB's latest
+      deadlock was an earlier content-test cleanup, not this registration attempt.
+      A subsequent diagnostic full run with statement history enabled passed;
+      do not call registration fixed or enable automatic test retries.
 
 ## Backend continuation: atomic post creation — 2026-10-03
 
 - [x] N09: New post and initial videos commit or roll back together. Preserve
-  numeric response, normalization/status/date rules and permissions; announce
-  only after commit. Check real HTTP/MySQL failures/pending visibility and
-  scheduler behaviour, then full suite/types/boundaries/docs/build/regressions.
-  Legacy teasers, standalone uploads, HTTP idempotency and push outbox stay open.
-  Four real regression failures on the old path → all 35 HTTP/MySQL content
-  cases pass, including 11 new creation cases. Full suite: 572 pass / 2 skip;
-  types, 284-file boundaries, docs, API build and 52-test verify pass.
+      numeric response, normalization/status/date rules and permissions; announce
+      only after commit. Check real HTTP/MySQL failures/pending visibility and
+      scheduler behaviour, then full suite/types/boundaries/docs/build/regressions.
+      Legacy teasers, standalone uploads, HTTP idempotency and push outbox stay open.
+      Four real regression failures on the old path → all 35 HTTP/MySQL content
+      cases pass, including 11 new creation cases. Full suite: 572 pass / 2 skip;
+      types, 284-file boundaries, docs, API build and 52-test verify pass.
 
 ## Backend continuation: safe MySQL backups — 2026-10-05
 
 - [x] N10: Remove database credentials from process arguments/errors; finalize a
-  private gzip only after successful dump exit and completed output. Failed jobs
-  remove their own partial/config files and can retry on the next scheduled tick;
-  concurrent callers share one in-process job. Regression tests reproduce four
-  original failures and two scheduling failures; real MySQL 8.4 option parsing
-  and dump/restore on a disposable fixture checked. Full suite 554 pass / 2 skip;
-  types/lint/API build/contract/boundaries/docs/format pass. Production restore, S3 retry,
-  timeout, crash-leftover cleanup and cross-process ownership remain outside N10.
+      private gzip only after successful dump exit and completed output. Failed jobs
+      remove their own partial/config files and can retry on the next scheduled tick;
+      concurrent callers share one in-process job. Regression tests reproduce four
+      original failures and two scheduling failures; real MySQL 8.4 option parsing
+      and dump/restore on a disposable fixture checked. Full suite 554 pass / 2 skip;
+      types/lint/API build/contract/boundaries/docs/format pass. Production restore, S3 retry,
+      timeout, crash-leftover cleanup and cross-process ownership remain outside N10.
   - [x] Redact raw S3 exceptions in the MySQL backup orchestrator's upload and
-    retention failure warnings. Three synthetic private-marker RED cases repaired;
-    local gzip, exact SDK commands, local retention and warning visibility remain
-    verified. Backup tests: 16 pass / 2 native MySQL skip; whole non-MySQL suite:
-    839 pass / 4 skip. No real S3 or MySQL restore acceptance in this increment;
-    off-site retry/durability and production rehearsal remain open.
+        retention failure warnings. Three synthetic private-marker RED cases repaired;
+        local gzip, exact SDK commands, local retention and warning visibility remain
+        verified. Backup tests: 16 pass / 2 native MySQL skip; whole non-MySQL suite:
+        839 pass / 4 skip. No real S3 or MySQL restore acceptance in this increment;
+        off-site retry/durability and production rehearsal remain open.
 - [x] N11: Server-side createPost request idempotency. Lost response/retry must
-  return the original post ID, including concurrent identical requests; reject
-  reuse of a key for another payload. Preserve legacy clients without a key.
-  Four old-path HTTP assertion failures → 35 real HTTP/JWT/MySQL cases pass,
-  including a duplicate observed waiting on the owner's actual transaction.
-  Additive migration 0025 rehearsed only on disposable MySQL. Latest full suite:
-  589 pass / 2 external skip; types/lint/build/72-procedure contract/397-file
-  boundaries/41-document links pass. Earlier full run failed the existing
-  registration race, still open above. No production migrations or external push.
+      return the original post ID, including concurrent identical requests; reject
+      reuse of a key for another payload. Preserve legacy clients without a key.
+      Four old-path HTTP assertion failures → 35 real HTTP/JWT/MySQL cases pass,
+      including a duplicate observed waiting on the owner's actual transaction.
+      Additive migration 0025 rehearsed only on disposable MySQL. Latest full suite:
+      589 pass / 2 external skip; types/lint/build/72-procedure contract/397-file
+      boundaries/41-document links pass. Earlier full run failed the existing
+      registration race, still open above. No production migrations or external push.
 - [ ] Wire stable createPost intent keys into the frontend editor and its
-  uncertain-response/retry flow, with browser verification. Backend optional
-  support alone does not protect today's unkeyed frontend calls.
+      uncertain-response/retry flow, with browser verification. Backend optional
+      support alone does not protect today's unkeyed frontend calls.
 - [ ] N12: Transactional publication push outbox; worker crash/retry cannot lose
-  an announcement. Provider delivery/deduplication limits must remain explicit.
+      an announcement. Provider delivery/deduplication limits must remain explicit.
 
 ## NestJS migration — 2026-10-05
 
 - [x] M01: Review/pin Nest dependencies; keep pnpm/Vitest/esbuild/Drizzle.
-  Acceptance: scripts disabled, one lockfile, baseline suite/types/build preserved.
-  Verify: pnpm test with disposable MySQL; pnpm check; pnpm build; native audit.
-  Files: apps/backend/package.json, pnpm-lock.yaml, tsconfig.json, ADR-005.
-  Dependencies: none; scope: medium.
-  Verified: Nest 12.1.2 family, reflect-metadata 0.2.2, RxJS 7.8.2; frozen
-  ignore-scripts install. Baseline and post-dependency runs: 589 pass / 2 skip.
-  Types/build/lint/API/docs pass; audit unchanged at 33 high/36 moderate/4 low.
+      Acceptance: scripts disabled, one lockfile, baseline suite/types/build preserved.
+      Verify: pnpm test with disposable MySQL; pnpm check; pnpm build; native audit.
+      Files: apps/backend/package.json, pnpm-lock.yaml, tsconfig.json, ADR-005.
+      Dependencies: none; scope: medium.
+      Verified: Nest 12.1.2 family, reflect-metadata 0.2.2, RxJS 7.8.2; frozen
+      ignore-scripts install. Baseline and post-dependency runs: 589 pass / 2 skip.
+      Types/build/lint/API/docs pass; audit unchanged at 33 high/36 moderate/4 low.
 - [x] M02: Nest HTTP runtime with native health/capability controllers.
-  Acceptance: one HTTP application, unchanged security/parsers/tRPC contracts;
-  runtime creation performs no worker/external side effects, close releases port.
-  Verify: tests/nest-application.test.ts; pnpm check; pnpm build; full suite.
-  Files: runtime factory, app module, system controller, launch module, HTTP tests.
-  Dependencies: M01; scope: medium. Executable switch is a separately verified step.
-  Real factory starts no jobs/listener; 20 real HTTP checks cover parser/auth/CORS/
-  HMAC/logout/tRPC/disabled features/close. Executable switched in M02b below.
+      Acceptance: one HTTP application, unchanged security/parsers/tRPC contracts;
+      runtime creation performs no worker/external side effects, close releases port.
+      Verify: tests/nest-application.test.ts; pnpm check; pnpm build; full suite.
+      Files: runtime factory, app module, system controller, launch module, HTTP tests.
+      Dependencies: M01; scope: medium. Executable switch is a separately verified step.
+      Real factory starts no jobs/listener; 20 real HTTP checks cover parser/auth/CORS/
+      HMAC/logout/tRPC/disabled features/close. Executable switched in M02b below.
 - [x] M02b: Use Nest runtime from the existing production/dev executable.
-  Acceptance: same host/port/timeouts and routes; actual built artifact starts.
-  Verify: built-process loopback smoke; full suite/types/build/contract checks.
-  Files: _core/index.ts, backend README, root README, architecture API docs.
-  Dependencies: M02; scope: medium.
-  Verified: the compiled Node entrypoint includes the Nest modules, serves real
-  health/capabilities HTTP, and rejects an occupied production port (3 tests).
-  Full MySQL suite: 612 pass / 2 external skip; types/build/lint/API/boundaries/
-  documentation pass. A shared-fixture latest-post assertion failed once;
-  deterministic owned ordering dates fixed it, without changing production code.
-  Workers still use existing intervals; Nest shutdown lifecycle is deferred to M07.
+      Acceptance: same host/port/timeouts and routes; actual built artifact starts.
+      Verify: built-process loopback smoke; full suite/types/build/contract checks.
+      Files: \_core/index.ts, backend README, root README, architecture API docs.
+      Dependencies: M02; scope: medium.
+      Verified: the compiled Node entrypoint includes the Nest modules, serves real
+      health/capabilities HTTP, and rejects an occupied production port (3 tests).
+      Full MySQL suite: 612 pass / 2 external skip; types/build/lint/API/boundaries/
+      documentation pass. A shared-fixture latest-post assertion failed once;
+      deterministic owned ordering dates fixed it, without changing production code.
+      Workers still use existing intervals; Nest shutdown lifecycle is deferred to M07.
 - [x] M03: Native launch settings controller/service, preserving JWT/Drizzle.
-  Acceptance: HTTP shapes/statuses, role checks, optimistic revision and audit
-  transaction preserved; only one production registration for each endpoint.
-  Verify: real Nest HTTP/JWT/MySQL roundtrip/conflict/blocked-user tests.
-  Files: launch controller/service/module, runtime factory, existing settings tests.
-  Dependencies: M02b; scope: medium.
-  Verified: launch routes now belong only to LaunchController/LaunchService;
-  unused Express launch adapter removed. Real Nest/JWT/MySQL suite preserves
-  save/read/public response shapes, 401/403/415, safe 400, stale-edit 409, audit
-  transaction and role/block changes with an existing token. Full suite: 620
-  pass / 2 external skip; types/build/lint/72-procedure API/402-file boundaries/
-  42-document checks pass. Built Node process also exercises safe settings failure.
+      Acceptance: HTTP shapes/statuses, role checks, optimistic revision and audit
+      transaction preserved; only one production registration for each endpoint.
+      Verify: real Nest HTTP/JWT/MySQL roundtrip/conflict/blocked-user tests.
+      Files: launch controller/service/module, runtime factory, existing settings tests.
+      Dependencies: M02b; scope: medium.
+      Verified: launch routes now belong only to LaunchController/LaunchService;
+      unused Express launch adapter removed. Real Nest/JWT/MySQL suite preserves
+      save/read/public response shapes, 401/403/415, safe 400, stale-edit 409, audit
+      transaction and role/block changes with an existing token. Full suite: 620
+      pass / 2 external skip; types/build/lint/72-procedure API/402-file boundaries/
+      42-document checks pass. Built Node process also exercises safe settings failure.
 - [x] Checkpoint: Nest foundation + launch verified; record actual migration gaps,
-  dependency advisories and earlier registration failure before continuing.
-  Only foundation + launch are native so far. Identity/password/payment/media
-  adapters, tRPC service composition, worker intervals and Drizzle pool ownership
-  are transitional. Native audit and release gates remain open; registration
-  race was not reproduced in these runs and is NOT declared fixed. No frontend
-  code, SQL schema, deployment configuration, production data or remote push changed.
+      dependency advisories and earlier registration failure before continuing.
+      Only foundation + launch are native so far. Identity/password/payment/media
+      adapters, tRPC service composition, worker intervals and Drizzle pool ownership
+      are transitional. Native audit and release gates remain open; registration
+      race was not reproduced in these runs and is NOT declared fixed. No frontend
+      code, SQL schema, deployment configuration, production data or remote push changed.
 - [ ] M04: Specify and migrate identity adapters/guards; retain sessions/password
-  invariants and investigate the existing intermittent registration race.
+      invariants and investigate the existing intermittent registration race.
   - [x] M04a: Native PasswordController/PasswordService and IdentityModule;
-    password request/completion/setup page + staff access resend. Previous
-    identity/routes adapter removed; real Nest/MySQL mail/setup/provider-boundary
-    tests retain one-use links, no automatic session, safe recipient response,
-    CSP nonce, no-store and staff/block/audit rules. 621 pass / 2 external skip;
-    types/lint/API/boundaries/docs/backend build pass; Next production build passes.
+        password request/completion/setup page + staff access resend. Previous
+        identity/routes adapter removed; real Nest/MySQL mail/setup/provider-boundary
+        tests retain one-use links, no automatic session, safe recipient response,
+        CSP nonce, no-store and staff/block/audit rules. 621 pass / 2 external skip;
+        types/lint/API/boundaries/docs/backend build pass; Next production build passes.
   - [x] M04b: Native session/login/registration/SMS transport + injected service;
-    remove OAuth adapter, preserve cookies/TOTP/rate limits/disabled features.
-    Verified: 10 real-password/JWT/MySQL tests cover login/cookie/Bearer bridge,
-    database session revocation/blocking, independently calculated TOTP and
-    quota; existing registration and cookie regressions pass through Nest.
-    Built Node artifact invokes the injected login service. Previous OAuth
-    adapter removed. Full suite: 631 pass / 2 external skip; types/build/lint/
-    API/boundaries/docs pass. Common policy/guards and the registration-race
-    investigation still remain; M04 as a whole is not marked complete.
+        remove OAuth adapter, preserve cookies/TOTP/rate limits/disabled features.
+        Verified: 10 real-password/JWT/MySQL tests cover login/cookie/Bearer bridge,
+        database session revocation/blocking, independently calculated TOTP and
+        quota; existing registration and cookie regressions pass through Nest.
+        Built Node artifact invokes the injected login service. Previous OAuth
+        adapter removed. Full suite: 631 pass / 2 external skip; types/build/lint/
+        API/boundaries/docs pass. Common policy/guards and the registration-race
+        investigation still remain; M04 as a whole is not marked complete.
   - [ ] M04c: Shared injectable session/role policy and registration-race diagnosis.
     - [x] M04c1: IdentityModule exports SessionService; native session/launch/
-      password controllers share required/optional authentication and role checks.
-      New provider contract assertion failed before implementation; real JWT/MySQL
-      verifies live role changes, blocking and session-version revocation. Focused
-      71 tests and root/Next typechecks pass. Native guards and race diagnosis remain.
+          password controllers share required/optional authentication and role checks.
+          New provider contract assertion failed before implementation; real JWT/MySQL
+          verifies live role changes, blocking and session-version revocation. Focused
+          71 tests and root/Next typechecks pass. Native guards and race diagnosis remain.
     - [x] M04c2: Native AdministratorGuard/AccessEmailStaffGuard + narrow HTTP
-      denial filter. Eight added HTTP/JWT/MySQL characterization cases passed
-      before and after extraction: legacy plain/JSON errors, no-store, JSON-body
-      spoofing, live roles/revocation/blocking, content-type ordering and stricter
-      resend origin. Existing successful resend/audit/quotas remain covered.
-      Full disposable-MySQL suite: 640 pass / 2 external skip; root/Next types pass.
+          denial filter. Eight added HTTP/JWT/MySQL characterization cases passed
+          before and after extraction: legacy plain/JSON errors, no-store, JSON-body
+          spoofing, live roles/revocation/blocking, content-type ordering and stricter
+          resend origin. Existing successful resend/audit/quotas remain covered.
+          Full disposable-MySQL suite: 640 pass / 2 external skip; root/Next types pass.
     - [ ] M04c3: Reproduce and establish the intermittent registration cause.
-      Added bounded, code-only error capture around the actual SessionService
-      calls; existing HTTP race assertions now retain nested SQL/configuration
-      classifications without SQL/recipients/tokens/key material. Its diagnostics
-      are verified against actual consent-trigger and invalid-encryption failures.
-      A forced twenty-way precheck burst produces one account/token/mail/consent
-      and nineteen duplicates; HTTP quota is not disabled (burst uses the domain
-      service). Two full runs in this continuation pass, latest 641 / 2 external
-      skip. Test MySQL history enabled, no new 1213/1205 observed in that run.
-      This does NOT reproduce or repair the earlier HTTP 500/500; no speculative
-      retry or registration production change. API build/Next build/types/lint/
-      72-procedure contract/406-file boundaries/42-document links pass.
+          Added bounded, code-only error capture around the actual SessionService
+          calls; existing HTTP race assertions now retain nested SQL/configuration
+          classifications without SQL/recipients/tokens/key material. Its diagnostics
+          are verified against actual consent-trigger and invalid-encryption failures.
+          A forced twenty-way precheck burst produces one account/token/mail/consent
+          and nineteen duplicates; HTTP quota is not disabled (burst uses the domain
+          service). Two full runs in this continuation pass, latest 641 / 2 external
+          skip. Test MySQL history enabled, no new 1213/1205 observed in that run.
+          This does NOT reproduce or repair the earlier HTTP 500/500; no speculative
+          retry or registration production change. API build/Next build/types/lint/
+          72-procedure contract/406-file boundaries/42-document links pass.
   - [x] N13 separate repair: a blocked account with a correct password previously
-    reached a sign-in write and HTTP 500. A real HTTP/MySQL assertion reproduced
-    500 vs required 401; PasswordUser now rejects before lastSignedIn/session
-    issuance. Uniform invalid-credential response, no cookie/JWT/sign-in write
-    verified; staff TOTP and quotas still pass. Latest full suite: 631 pass /
-    2 external skip; types/lint/API/boundaries/docs/API build/Next build pass.
+        reached a sign-in write and HTTP 500. A real HTTP/MySQL assertion reproduced
+        500 vs required 401; PasswordUser now rejects before lastSignedIn/session
+        issuance. Uniform invalid-credential response, no cookie/JWT/sign-in write
+        verified; staff TOTP and quotas still pass. Latest full suite: 631 pass /
+        2 external skip; types/lint/API/boundaries/docs/API build/Next build pass.
 - [ ] M05: Specify and migrate content service wiring; preserve N07–N11 regressions.
   - [x] M05a: ContentModule/ContentReadService for post detail, bookmarks and
-    interaction aggregation; application-scoped TrpcModule/TrpcService composes
-    the HTTP router and optional session via injected services. Common club policy
-    moved unchanged into identity, no content→tRPC policy dependency. Nine added
-    real HTTP/JWT/MySQL cases preserve unpublished/paid visibility, saved order/
-    media, live role/expiry/block/version and auth failures. Removing the existing
-    paid-detail check deliberately caused four assertion failures; restored before
-    extraction (mutation proof, not a newly found production bug). Full suite:
-    650 pass / 2 external skip; types/lint/API build/72-procedure contract/411-file
-    boundaries pass. Article/read and admin/write slices still remain.
+        interaction aggregation; application-scoped TrpcModule/TrpcService composes
+        the HTTP router and optional session via injected services. Common club policy
+        moved unchanged into identity, no content→tRPC policy dependency. Nine added
+        real HTTP/JWT/MySQL cases preserve unpublished/paid visibility, saved order/
+        media, live role/expiry/block/version and auth failures. Removing the existing
+        paid-detail check deliberately caused four assertion failures; restored before
+        extraction (mutation proof, not a newly found production bug). Full suite:
+        650 pass / 2 external skip; types/lint/API build/72-procedure contract/411-file
+        boundaries pass. Article/read and admin/write slices still remain.
   - [x] M05b: Article summaries/detail/locked previews use the same injected
-    ContentReadService; article router now only validates/dispatches. Six new
-    native HTTP/JWT/MySQL cases cover public summaries, allowlisted previews,
-    paid sections/expiry/staff, revoked/blocked sessions and unpublished/missing
-    articles. Intentional bypass produced four assertion failures, restored before
-    extraction; no newly found production leak is claimed. Actual compiled Node
-    smoke exercises feed/article reads, optional context and protected denial.
-    Full suite: 656 pass / 2 external skip; root/Next types, lint, server/Next
-    builds, unchanged 72-procedure contract and 411-file boundaries pass.
+        ContentReadService; article router now only validates/dispatches. Six new
+        native HTTP/JWT/MySQL cases cover public summaries, allowlisted previews,
+        paid sections/expiry/staff, revoked/blocked sessions and unpublished/missing
+        articles. Intentional bypass produced four assertion failures, restored before
+        extraction; no newly found production leak is claimed. Actual compiled Node
+        smoke exercises feed/article reads, optional context and protected denial.
+        Full suite: 656 pass / 2 external skip; root/Next types, lint, server/Next
+        builds, unchanged 72-procedure contract and 411-file boundaries pass.
   - [x] M05c: ContentWriteService injected through ContentModule/TrpcService and
-    required router factories; unchanged shared schemas define validated inputs.
-    Existing 79 creation/edit/publication HTTP/JWT/MySQL regressions now use the
-    production Nest application. Three added cases cover live moderator/session
-    denial for all writes and revoked replay. Deliberate idempotency bypass failed
-    the numeric-ID retry assertion and was restored before extraction; no newly
-    found production duplicate is claimed. Transactions, intent hash, media rollback
-    and post-commit announcement ownership preserved. Compiled Node admin denials,
-    full suite 659 pass / 2 external skip, root/Next types, lint, API/Next builds,
-    unchanged 72-procedure contract, 413-file boundaries and docs pass. Existing
-    db.ts pool/helpers remain transitional; N12 delivery and registration diagnosis
-    remain open. No frontend/schema/dependency/deployment/provider changes.
+        required router factories; unchanged shared schemas define validated inputs.
+        Existing 79 creation/edit/publication HTTP/JWT/MySQL regressions now use the
+        production Nest application. Three added cases cover live moderator/session
+        denial for all writes and revoked replay. Deliberate idempotency bypass failed
+        the numeric-ID retry assertion and was restored before extraction; no newly
+        found production duplicate is claimed. Transactions, intent hash, media rollback
+        and post-commit announcement ownership preserved. Compiled Node admin denials,
+        full suite 659 pass / 2 external skip, root/Next types, lint, API/Next builds,
+        unchanged 72-procedure contract, 413-file boundaries and docs pass. Existing
+        db.ts pool/helpers remain transitional; N12 delivery and registration diagnosis
+        remain open. No frontend/schema/dependency/deployment/provider changes.
   - [x] M05d separate pagination fix: four native HTTP/MySQL regressions reject
-    fractional limit, negative/fractional offset and unsafe integers with 400.
-    Before repair the first three returned 500 (real helper: ER_PARSE_ERROR), and
-    unsafe integers were accepted. Default 12/nullish cursor and wire types remain.
-    Full suite 663 pass / 2 external skip; types/lint/backend build/API check pass.
+        fractional limit, negative/fractional offset and unsafe integers with 400.
+        Before repair the first three returned 500 (real helper: ER_PARSE_ERROR), and
+        unsafe integers were accepted. Default 12/nullish cursor and wire types remain.
+        Full suite 663 pass / 2 external skip; types/lint/backend build/API check pass.
   - [x] M05d: Feed list/pagination/tags and public video list/detail use the
-    injected ContentReadService; video router requires the same service factory.
-    Five new native HTTP/MySQL cases cover public visibility, exact page IDs/default
-    12/null cursor, tag+trimmed search/bound values, counts/ordered attachments and
-    reference tags. Removing the existing club-target filter deliberately failed
-    the page assertion, then was restored before extraction (not a real new leak).
-    Eight video/stream regressions now use the production application, mocking
-    only the downloader/upstream; hidden/revoked playback and Range preserved.
-    Compiled Node smoke exercises catalog fallback/invalid input as well. Full
-    suite 668 pass / 2 external skip; root/Next types, lint, backend/Next builds,
-    unchanged 72-procedure contract and 413-file boundaries pass. Query helpers
-    and pool still transitional; no frontend/schema/provider or deployment changes,
-    reaction/comment/upload paths remain next.
+        injected ContentReadService; video router requires the same service factory.
+        Five new native HTTP/MySQL cases cover public visibility, exact page IDs/default
+        12/null cursor, tag+trimmed search/bound values, counts/ordered attachments and
+        reference tags. Removing the existing club-target filter deliberately failed
+        the page assertion, then was restored before extraction (not a real new leak).
+        Eight video/stream regressions now use the production application, mocking
+        only the downloader/upstream; hidden/revoked playback and Range preserved.
+        Compiled Node smoke exercises catalog fallback/invalid input as well. Full
+        suite 668 pass / 2 external skip; root/Next types, lint, backend/Next builds,
+        unchanged 72-procedure contract and 413-file boundaries pass. Query helpers
+        and pool still transitional; no frontend/schema/provider or deployment changes,
+        reaction/comment/upload paths remain next.
   - [x] Club pagination: native HTTP/JWT/MySQL reproduced 500 for fractional
-    limit and negative/fractional offset, and silent acceptance of unsafe integers.
-    Integer/nonnegative safe-number validation now returns 400. Five new cases
-    retain default 20, optional input/null cursor, max 200, paging, visibility and
-    anonymous denial. Full suite 673 pass / 2 external skip; types, lint, backend
-    build and unchanged 72-procedure/25376-byte API pass. No SQL/auth policy change.
+        limit and negative/fractional offset, and silent acceptance of unsafe integers.
+        Integer/nonnegative safe-number validation now returns 400. Five new cases
+        retain default 20, optional input/null cursor, max 200, paging, visibility and
+        anonymous denial. Full suite 673 pass / 2 external skip; types, lint, backend
+        build and unchanged 72-procedure/25376-byte API pass. No SQL/auth policy change.
   - [x] M05e: Six discussion operations now use injected ContentCommentService;
-    post reactions use ContentWriteService and mandatory feed/club factories.
-    Fourteen new native HTTP/JWT/MySQL cases preserve club/public distinctions,
-    publication/window rules, ownership/live staff, blocked/revoked sessions,
-    text/photos, replies, report upserts and cleanup, boolean/coerced post toggles.
-    Deliberate club guard bypass failed the expiry-denial assertion, restored
-    immediately; not a production leak. Full suite 687 pass / 2 external skip;
-    root/Next types, lint, backend/Next builds, exact 72-procedure/25376-byte API
-    and 415-file boundaries pass. SQL helpers/pool and durable reply delivery
-    remain transitional. A test-fixture media deadlock was diagnosed via InnoDB;
-    intentionally gated suites now share fixture ownership without disabling
-    concurrent requests inside them. No production locking/schema change claimed.
+        post reactions use ContentWriteService and mandatory feed/club factories.
+        Fourteen new native HTTP/JWT/MySQL cases preserve club/public distinctions,
+        publication/window rules, ownership/live staff, blocked/revoked sessions,
+        text/photos, replies, report upserts and cleanup, boolean/coerced post toggles.
+        Deliberate club guard bypass failed the expiry-denial assertion, restored
+        immediately; not a production leak. Full suite 687 pass / 2 external skip;
+        root/Next types, lint, backend/Next builds, exact 72-procedure/25376-byte API
+        and 415-file boundaries pass. SQL helpers/pool and durable reply delivery
+        remain transitional. A test-fixture media deadlock was diagnosed via InnoDB;
+        intentionally gated suites now share fixture ownership without disabling
+        concurrent requests inside them. No production locking/schema change claimed.
   - [x] Post reaction atomicity: native HTTP/JWT/MySQL reproduced lost toggles
-    in concurrent bursts and two duplicate rows from deterministically gated
-    inserts. Canonical like/save helpers now lock the actor row and toggle inside
-    one transaction, returning after commit. Ten new regressions cover gated/even/
-    odd requests, independent actors, legacy duplicate disable and failed-write
-    rollback; existing auth/coercion/boolean contract preserved. Full suite:
-    697 pass / 2 external skip; root/Next types, lint, backend/Next builds,
-    unchanged 72-procedure/25376-byte API, 416-file boundaries and docs pass.
-    No schema, frontend, provider or deployment changes.
+        in concurrent bursts and two duplicate rows from deterministically gated
+        inserts. Canonical like/save helpers now lock the actor row and toggle inside
+        one transaction, returning after commit. Ten new regressions cover gated/even/
+        odd requests, independent actors, legacy duplicate disable and failed-write
+        rollback; existing auth/coercion/boolean contract preserved. Full suite:
+        697 pass / 2 external skip; root/Next types, lint, backend/Next builds,
+        unchanged 72-procedure/25376-byte API, 416-file boundaries and docs pass.
+        No schema, frontend, provider or deployment changes.
   - [ ] Review reaction pair indexes/unique constraints and missing-post policy
-    separately; network retries of a toggle are still non-idempotent. Review media
-    query indexes/transaction deadlocks separately from test-fixture isolation.
+        separately; network retries of a toggle are still non-idempotent. Review media
+        query indexes/transaction deadlocks separately from test-fixture isolation.
   - [x] M05f: admin.uploadPhoto/admin.uploadMedia use injected ContentUploadService;
-    ContentModule/TrpcService and mandatory router factories own composition.
-    Seventeen new native HTTP/JWT/MySQL cases preserve live access/pre-parser
-    denial, real photo re-encoding, media folders/names/association/defaults and
-    safe storage/SQL failures. Deliberate byte-validation bypass failed three
-    rejection assertions, restored before extraction (not a production leak).
-    Focused 39 pass, full suite 714 pass / 2 external skip; root/Next types, lint,
-    backend/Next builds, exact 72-procedure/25376-byte API, 418-file boundaries
-    and docs pass. No new endpoint, frontend, provider, schema or deployment change.
+        ContentModule/TrpcService and mandatory router factories own composition.
+        Seventeen new native HTTP/JWT/MySQL cases preserve live access/pre-parser
+        denial, real photo re-encoding, media folders/names/association/defaults and
+        safe storage/SQL failures. Deliberate byte-validation bypass failed three
+        rejection assertions, restored before extraction (not a production leak).
+        Focused 39 pass, full suite 714 pass / 2 external skip; root/Next types, lint,
+        backend/Next builds, exact 72-procedure/25376-byte API, 418-file boundaries
+        and docs pass. No new endpoint, frontend, provider, schema or deployment change.
   - [x] Generic media encoding/key safety: invalid/empty/noncanonical base64 and
-    same-name/same-millisecond key collisions reproduced before repair. Bound
-    encoded length by the existing 50 MiB JSON ceiling before decoding; fixed
-    folders plus server UUID keys exclude client paths/names/extensions. Human
-    metadata, MIME/type, association, auth and API shapes preserved. Seventeen
-    added regressions; focused 47 pass, full suite 731 pass / 2 external skip;
-    root/Next types, lint, backend/Next builds, unchanged 72-procedure/25376-byte
-    API and 419-file boundaries pass. No legacy object rewrite or provider calls.
+        same-name/same-millisecond key collisions reproduced before repair. Bound
+        encoded length by the existing 50 MiB JSON ceiling before decoding; fixed
+        folders plus server UUID keys exclude client paths/names/extensions. Human
+        metadata, MIME/type, association, auth and API shapes preserved. Seventeen
+        added regressions; focused 47 pass, full suite 731 pass / 2 external skip;
+        root/Next types, lint, backend/Next builds, unchanged 72-procedure/25376-byte
+        API and 419-file boundaries pass. No legacy object rewrite or provider calls.
   - [x] Generic media declared Content-Type: native HTTP/JWT/MySQL reproduced
-    acceptance of HTML/SVG headers for every category and incompatible/malformed
-    MIME values; an overlong value failed SQL with 500 after storage. MIME essence
-    is now validated against the category and normalized consistently for storage
-    and SQL, before decoding. Editor PDF/DOC/DOCX/TXT, audio/video families and
-    octet-stream fallback remain accepted; valid ASCII token/quoted parameters
-    including charset/codecs are preserved, malformed parameters rejected.
-    Thirty new cases; focused 77 pass,
-    full suite 761 pass / 2 external skip; root/Next types, lint, backend/Next
-    builds, unchanged 72-procedure/25376-byte API and 420-file boundaries pass.
-    No dependencies, schema, parser, frontend or provider changes. Format-byte
-    detection is a separate step; this does not certify safe files/playback.
+        acceptance of HTML/SVG headers for every category and incompatible/malformed
+        MIME values; an overlong value failed SQL with 500 after storage. MIME essence
+        is now validated against the category and normalized consistently for storage
+        and SQL, before decoding. Editor PDF/DOC/DOCX/TXT, audio/video families and
+        octet-stream fallback remain accepted; valid ASCII token/quoted parameters
+        including charset/codecs are preserved, malformed parameters rejected.
+        Thirty new cases; focused 77 pass,
+        full suite 761 pass / 2 external skip; root/Next types, lint, backend/Next
+        builds, unchanged 72-procedure/25376-byte API and 420-file boundaries pass.
+        No dependencies, schema, parser, frontend or provider changes. Format-byte
+        detection is a separate step; this does not certify safe files/playback.
   - [x] Audio/video signature detection: approved file-type 22.1.1 promoted from
-    the existing lock graph to an exact direct backend dependency. Unknown/foreign
-    signatures fail before storage/SQL; canonical MIME replaces misleading labels,
-    aliases and binary fallback. MP4/WebM are shared containers, not proof of tracks.
-    One active worker, five-second active deadline, owned byte copy and awaited
-    teardown; no new HTTP quota/429. Native HTTP/JWT/MySQL regression, genuine
-    generated fixtures, worker failure/timeout/serialization tests and compiled
-    ESM plus existing CommonJS/tsx runtime checks. Focused 99 pass; full 783 pass /
-    2 external skip. Clean frozen offline install with scripts disabled passed;
-    no added transitive versions. Audit still reports 33 high / 36 moderate / 4 low
-    in the existing workspace graph; no detector-chain advisories in this snapshot.
-    This is signature classification, not full validation/playback/antivirus.
+        the existing lock graph to an exact direct backend dependency. Unknown/foreign
+        signatures fail before storage/SQL; canonical MIME replaces misleading labels,
+        aliases and binary fallback. MP4/WebM are shared containers, not proof of tracks.
+        One active worker, five-second active deadline, owned byte copy and awaited
+        teardown; no new HTTP quota/429. Native HTTP/JWT/MySQL regression, genuine
+        generated fixtures, worker failure/timeout/serialization tests and compiled
+        ESM plus existing CommonJS/tsx runtime checks. Focused 99 pass; full 783 pass /
+        2 external skip. Clean frozen offline install with scripts disabled passed;
+        no added transitive versions. Audit still reports 33 high / 36 moderate / 4 low
+        in the existing workspace graph; no detector-chain advisories in this snapshot.
+        This is signature classification, not full validation/playback/antivirus.
   - [x] Declared PDF/DOCX signature slice: native HTTP/JWT/MySQL reproduced
-    fourteen accepted invalid/mislabelled payloads before repair. Require exact
-    detected MIME for these two declared types before storage/SQL; preserve bytes,
-    valid MIME parameters and standalone/associated contracts. Locally constructed
-    PDF/minimal DOCX, ordinary ZIP and a package advertising macro-enabled Word;
-    no user's documents or executable macro payloads. Eighteen added native cases
-    and one compiled ESM/real-worker policy case; focused 118 pass, full 802 pass /
-    2 external skip. No dependency, schema, frontend, parser, provider or quota change.
-    This is classification, not full PDF/OPC validation or antivirus.
+        fourteen accepted invalid/mislabelled payloads before repair. Require exact
+        detected MIME for these two declared types before storage/SQL; preserve bytes,
+        valid MIME parameters and standalone/associated contracts. Locally constructed
+        PDF/minimal DOCX, ordinary ZIP and a package advertising macro-enabled Word;
+        no user's documents or executable macro payloads. Eighteen added native cases
+        and one compiled ESM/real-worker policy case; focused 118 pass, full 802 pass /
+        2 external skip. No dependency, schema, frontend, parser, provider or quota change.
+        This is classification, not full PDF/OPC validation or antivirus.
   - [x] TXT/opaque upload slice: native HTTP/JWT/MySQL reproduced byte-validation
-    bypass before repair. Known foreign binaries no longer pass as text/opaque;
-    complete fatal text decoding supports Unicode/BOM and explicit Windows-1251,
-    rejects malformed bytes/controls/charset ambiguity and preserves storage bytes.
-    Opaque PDF/DOCX/text gets canonical MIME; appended charset respects SQL ceiling.
-    Forty-eight native additions and expanded compiled ESM real-worker policy;
-    focused 166 pass, full 850 pass / 2 external skip. Root/Next types, lint,
-    backend/Next builds, unchanged 72-procedure/25376-byte API, 422-file boundaries
-    and docs pass. No dependencies/schema/frontend/quota/provider change. This
-    is encoding/type validation, not an HTML filter/antivirus or all-document safety.
-    Windows-1251 picker text without explicit charset may require UTF-8 conversion.
+        bypass before repair. Known foreign binaries no longer pass as text/opaque;
+        complete fatal text decoding supports Unicode/BOM and explicit Windows-1251,
+        rejects malformed bytes/controls/charset ambiguity and preserves storage bytes.
+        Opaque PDF/DOCX/text gets canonical MIME; appended charset respects SQL ceiling.
+        Forty-eight native additions and expanded compiled ESM real-worker policy;
+        focused 166 pass, full 850 pass / 2 external skip. Root/Next types, lint,
+        backend/Next builds, unchanged 72-procedure/25376-byte API, 422-file boundaries
+        and docs pass. No dependencies/schema/frontend/quota/provider change. This
+        is encoding/type validation, not an HTML filter/antivirus or all-document safety.
+        Windows-1251 picker text without explicit charset may require UTF-8 conversion.
   - [x] Backend standalone upload metadata: return the canonical mimeType and
-    decoded fileSize alongside unchanged url/mediaId for associated and standalone
-    uploads. Native HTTP/JWT/MySQL reproduced six missing-metadata failures before
-    repair; 140 upload cases now pass, including WAV labelled MP3, opaque PDF and
-    TXT with appended charset. No frontend source/tests/generated types changed;
-    the user explicitly reserves those updates for the frontend developer.
-    Handoff: docs/development/backend-handoff-2026-10-05.md. Strict check:api is
-    intentionally not bypassed: its stale frontend snapshot blocks staging merge
-    until the frontend owner regenerates it. Full suite: 851 pass / 2 external S3
-    skip with real disposable MySQL backup/restore enabled; types, lint, backend
-    build, 422 source boundaries pass. No new dependency/schema/provider.
+        decoded fileSize alongside unchanged url/mediaId for associated and standalone
+        uploads. Native HTTP/JWT/MySQL reproduced six missing-metadata failures before
+        repair; 140 upload cases now pass, including WAV labelled MP3, opaque PDF and
+        TXT with appended charset. No frontend source/tests/generated types changed;
+        the user explicitly reserves those updates for the frontend developer.
+        Handoff: docs/development/backend-handoff-2026-10-05.md. Strict check:api is
+        intentionally not bypassed: its stale frontend snapshot blocks staging merge
+        until the frontend owner regenerates it. Full suite: 851 pass / 2 external S3
+        skip with real disposable MySQL backup/restore enabled; types, lint, backend
+        build, 422 source boundaries pass. No new dependency/schema/provider.
   - [x] Raw-video signature validation: the existing HTTP endpoint reuses the
-    canonical MIME policy/isolated detector before storage. Native HTTP/JWT/MySQL
-    reproduced 20 incorrect outcomes before repair; 34 native scenarios plus
-    four injected-failure cases pass. MP4/WebM/MOV container compatibility,
-    URL-only response, live admin/block/revocation and actual 80 MiB HTTP ceiling
-    retained. No frontend/dependency/schema/quota changes. Full suite: 889 pass /
-    2 external S3 skip with disposable MySQL backup/restore enabled. This is not
-    playback/antivirus/provider acceptance or migration of raw wiring to Nest.
+        canonical MIME policy/isolated detector before storage. Native HTTP/JWT/MySQL
+        reproduced 20 incorrect outcomes before repair; 34 native scenarios plus
+        four injected-failure cases pass. MP4/WebM/MOV container compatibility,
+        URL-only response, live admin/block/revocation and actual 80 MiB HTTP ceiling
+        retained. No frontend/dependency/schema/quota changes. Full suite: 889 pass /
+        2 external S3 skip with disposable MySQL backup/restore enabled. This is not
+        playback/antivirus/provider acceptance or migration of raw wiring to Nest.
   - [x] Raw-video object key isolation: fixed-clock native HTTP/JWT/MySQL tests
-    reproduced collisions for two sequential/four concurrent same-name uploads.
-    Built-in randomUUID now replaces timestamps; folder, sanitized filename,
-    original bytes/MIME and URL-only response preserved. Two failing regressions
-    now pass; focused 63/full 891 pass with 2 external S3 skip. Types/lint/backend
-    build/boundaries pass. No old-object migration, frontend or dependency changes;
-    distinct keys do not make retries idempotent or prove provider acceptance.
+        reproduced collisions for two sequential/four concurrent same-name uploads.
+        Built-in randomUUID now replaces timestamps; folder, sanitized filename,
+        original bytes/MIME and URL-only response preserved. Two failing regressions
+        now pass; focused 63/full 891 pass with 2 external S3 skip. Types/lint/backend
+        build/boundaries pass. No old-object migration, frontend or dependency changes;
+        distinct keys do not make retries idempotent or prove provider acceptance.
   - [ ] Remaining document format/ownership: reviewed Word-specific detector for
-    legacy DOC, frontend consumption of canonical standalone upload metadata
-    (backend response ready; editor unchanged), and orphan cleanup after failed
-    SQL association. Declared msword still
-    bypasses byte checks; generic CFB is not proof of Word. Do not claim a safe
-    document boundary. Signatures do not prove absence of active content or
-    protect public URLs. Reconcile persisted ownership/references before deletion,
-    not on ambiguous SQL errors. Provider/header/privacy acceptance remains open.
+        legacy DOC, frontend consumption of canonical standalone upload metadata
+        (backend response ready; editor unchanged), and orphan cleanup after failed
+        SQL association. Declared msword still
+        bypasses byte checks; generic CFB is not proof of Word. Do not claim a safe
+        document boundary. Signatures do not prove absence of active content or
+        protect public URLs. Reconcile persisted ownership/references before deletion,
+        not on ambiguous SQL errors. Provider/header/privacy acceptance remains open.
   - [x] Video-link input error mapping: native HTTP/JWT/MySQL reproduced 14
-    unsupported/malformed URL failures returning 500 rather than 400. Trusted
-    policy refusals now use BAD_REQUEST; safe messages/success response and exact
-    configured HTTPS origin/bucket boundary preserved. Twenty-one native cases
-    cover URL refusals, trim/retain, live role/block/revocation and anonymous access;
-    no outbound fetch or storage write. Focused 69/full 912 pass with 2 external
-    S3 skip, types/lint/backend build/boundaries pass. No dependencies/frontend,
-    ownership proof or reopening external imports; Nest wiring is the next slice.
+        unsupported/malformed URL failures returning 500 rather than 400. Trusted
+        policy refusals now use BAD_REQUEST; safe messages/success response and exact
+        configured HTTPS origin/bucket boundary preserved. Twenty-one native cases
+        cover URL refusals, trim/retain, live role/block/revocation and anonymous access;
+        no outbound fetch or storage write. Focused 69/full 912 pass with 2 external
+        S3 skip, types/lint/backend build/boundaries pass. No dependencies/frontend,
+        ownership proof or reopening external imports; Nest wiring is the next slice.
   - [x] URL-import Nest wiring: admin.importVideoUrl now uses the existing injected
-    ContentUploadService, with the origin/bucket policy owned by content instead
-    of the raw Express upload adapter. Reuse the 21 native API/eight policy tests;
-    focused 210/full 912 pass with 2 external S3 skip. Compiler-rendered contracts
-    before/after refactor are identical across 72 procedures (read-only comparison,
-    no frontend generation); types/lint/backend build/423-file boundaries pass.
-    Existing live authorization/input/error/success behavior preserved. No new
-    provider/module/schema/dependency/frontend or outbound fetch. Strict check:api
-    still fails on the intentionally untouched snapshot from the earlier metadata
-    change; migration does not unblock staging/CI/deploy or prove storage ownership.
+        ContentUploadService, with the origin/bucket policy owned by content instead
+        of the raw Express upload adapter. Reuse the 21 native API/eight policy tests;
+        focused 210/full 912 pass with 2 external S3 skip. Compiler-rendered contracts
+        before/after refactor are identical across 72 procedures (read-only comparison,
+        no frontend generation); types/lint/backend build/423-file boundaries pass.
+        Existing live authorization/input/error/success behavior preserved. No new
+        provider/module/schema/dependency/frontend or outbound fetch. Strict check:api
+        still fails on the intentionally untouched snapshot from the earlier metadata
+        change; migration does not unblock staging/CI/deploy or prove storage ownership.
   - [x] Raw-video Nest wiring: native VideoUploadController calls injected upload
-    and session services. Parser middleware retains pre-body admission, then
-    fresh JWT/SQL authorization runs after body reception; superseded admin-video
-    business handler removed. Same endpoint, URL-only 200, 80 MiB limit, MIME
-    checks, UUID keys and errors. Three streaming revocation tests pass before/
-    after migration and fail when the late check is deliberately disabled.
-    Compiled ESM HTTP/JWT/SQL/worker test proves actual runtime injection;
-    no provider/production jobs, frontend/schema/dependency/auth-policy change.
-    Focused 238 plus one compiled case; full 916 pass / 2 external S3 skip with
-    disposable MySQL backup/restore. Types/lint/backend build/423-file boundaries
-    pass; read-only 72-procedure contract fingerprint unchanged. Strict check:api
-    remains blocked on the earlier metadata snapshot; no staging merge/deploy.
+        and session services. Parser middleware retains pre-body admission, then
+        fresh JWT/SQL authorization runs after body reception; superseded admin-video
+        business handler removed. Same endpoint, URL-only 200, 80 MiB limit, MIME
+        checks, UUID keys and errors. Three streaming revocation tests pass before/
+        after migration and fail when the late check is deliberately disabled.
+        Compiled ESM HTTP/JWT/SQL/worker test proves actual runtime injection;
+        no provider/production jobs, frontend/schema/dependency/auth-policy change.
+        Focused 238 plus one compiled case; full 916 pass / 2 external S3 skip with
+        disposable MySQL backup/restore. Types/lint/backend build/423-file boundaries
+        pass; read-only 72-procedure contract fingerprint unchanged. Strict check:api
+        remains blocked on the earlier metadata snapshot; no staging merge/deploy.
   - [x] Admin-content read wiring: five admin queries (posts/postsFiltered/
-    scheduledPosts/getPostMedia/stats) now use the existing injected read service.
-    Same schemas/adminProcedure, private/unpublished catalog, three post ordering
-    rules, ordered metadata and legacy dashboard counts. No extra module,
-    fallback service locator, frontend/schema/dependency/auth-policy change.
-    Nineteen native cases include compiled ESM HTTP/JWT/SQL; public-catalog
-    mutation is detected. Focused 90 pass; the old direct-router publication
-    fixture now supplies the mandatory read dependency (six failures resolved).
-    Final full suite: 935 pass / 2 external S3 skip, disposable backup/restore;
-    types/lint/build/boundaries pass, 72-procedure fingerprint unchanged.
-    Strict check:api remains blocked on the earlier untouched frontend snapshot.
-    Other admin reads/writes and unbounded admin lists/statistics SQL remain open.
+        scheduledPosts/getPostMedia/stats) now use the existing injected read service.
+        Same schemas/adminProcedure, private/unpublished catalog, three post ordering
+        rules, ordered metadata and legacy dashboard counts. No extra module,
+        fallback service locator, frontend/schema/dependency/auth-policy change.
+        Nineteen native cases include compiled ESM HTTP/JWT/SQL; public-catalog
+        mutation is detected. Focused 90 pass; the old direct-router publication
+        fixture now supplies the mandatory read dependency (six failures resolved).
+        Final full suite: 935 pass / 2 external S3 skip, disposable backup/restore;
+        types/lint/build/boundaries pass, 72-procedure fingerprint unchanged.
+        Strict check:api remains blocked on the earlier untouched frontend snapshot.
+        Other admin reads/writes and unbounded admin lists/statistics SQL remain open.
   - [ ] Investigate intermittent concurrency verification: one full run timed out
-    observing the second in-flight toggleSave's MySQL actor lock (native comments
-    suite). Isolated, paired-with-admin and instrumented full runs passed; no
-    cause/fix proven. Final original-test full run passed as well. Temporary
-    diagnostic removed; assertions/timeouts unchanged.
-    Do not call this fixed or conceal it with automatic retries/skip flags.
+        observing the second in-flight toggleSave's MySQL actor lock (native comments
+        suite). Isolated, paired-with-admin and instrumented full runs passed; no
+        cause/fix proven. Final original-test full run passed as well. Temporary
+        diagnostic removed; assertions/timeouts unchanged.
+        Do not call this fixed or conceal it with automatic retries/skip flags.
   - [ ] Remaining M05: Remaining admin service wiring; no
-    claim that all content, storage or SQL ownership has been migrated.
+        claim that all content, storage or SQL ownership has been migrated.
     - [x] Route admin post/media deletion and raw-camera filename cleanup through
-      the existing Nest-managed ContentWriteService. Preserve ID schemas, admin
-      policy, SQL helpers, void deletion responses and cleanup's no-DB no-op.
-      Five expected RED HTTP cases before wiring; 23 new checks pass afterwards,
-      including guest/member/moderator/blocked-admin refusal, malformed IDs,
-      provider errors and missing-database outcomes. Full non-MySQL suite:
-      836 pass / 4 skip; types/build/API/boundaries pass. Session lookup and the
-      selected provider are doubled in HTTP wiring cases; real JWT/MySQL deletion
-      acceptance is verified at the evening checkpoint below. Raw-camera filename
-      cleanup SQL is verified in its separate isolated checkpoint. No frontend/schema/payment,
-      shared-server data mutation, push or deployment.
+          the existing Nest-managed ContentWriteService. Preserve ID schemas, admin
+          policy, SQL helpers, void deletion responses and cleanup's no-DB no-op.
+          Five expected RED HTTP cases before wiring; 23 new checks pass afterwards,
+          including guest/member/moderator/blocked-admin refusal, malformed IDs,
+          provider errors and missing-database outcomes. Full non-MySQL suite:
+          836 pass / 4 skip; types/build/API/boundaries pass. Session lookup and the
+          selected provider are doubled in HTTP wiring cases; real JWT/MySQL deletion
+          acceptance is verified at the evening checkpoint below. Raw-camera filename
+          cleanup SQL is verified in its separate isolated checkpoint. No frontend/schema/payment,
+          shared-server data mutation, push or deployment.
     - [x] Route admin.importVideos through the existing ContentWriteService;
-      extract its unchanged wire schema as the service's input type. Preserve
-      ordered metadata, null/empty-string defaults, publication flags, helper
-      count and administrator policy. Two expected RED service-wiring cases;
-      12 added native HTTP checks, 69 focused pass. Full non-MySQL suite:
-      851 pass / 4 skip; types/build/API/473-file boundaries/frontend lint pass.
-      Session lookup and provider or persistence boundary are doubled; real
-      MySQL writes, deduplication and batch rollback are verified at the evening
-      atomic-import checkpoint below; concurrency acceptance remains open.
-      No frontend/schema/payment/provider/push/deployment changes.
+          extract its unchanged wire schema as the service's input type. Preserve
+          ordered metadata, null/empty-string defaults, publication flags, helper
+          count and administrator policy. Two expected RED service-wiring cases;
+          12 added native HTTP checks, 69 focused pass. Full non-MySQL suite:
+          851 pass / 4 skip; types/build/API/473-file boundaries/frontend lint pass.
+          Session lookup and provider or persistence boundary are doubled; real
+          MySQL writes, deduplication and batch rollback are verified at the evening
+          atomic-import checkpoint below; concurrency acceptance remains open.
+          No frontend/schema/payment/provider/push/deployment changes.
   - [x] Admin article slice: four operations use existing injected read/write
-    services; schemas, private/draft order, block normalization and teaser lifecycle
-    are unchanged. Twenty real HTTP/JWT/MySQL cases include compiled ESM; a
-    deliberate published-only list mutation fails the private/draft assertion.
-    Focused 68 pass; corrected-environment full run 1032 pass / 4 skip (two external
-    S3 and two native Docker backup/restore cases not run). The first full failure
-    and environment diagnosis are recorded in plan.md; no assertions/timeouts
-    changed. Types/lint/build/API/boundaries/docs pass, 72-procedure contract intact.
-    Owned temporary containers/SQL volume/network/artifacts removed after exact
-    ownership checks; staging and other shared-server applications remain healthy.
-    No frontend/schema/dependency/provider or staging-deployment change.
+        services; schemas, private/draft order, block normalization and teaser lifecycle
+        are unchanged. Twenty real HTTP/JWT/MySQL cases include compiled ESM; a
+        deliberate published-only list mutation fails the private/draft assertion.
+        Focused 68 pass; corrected-environment full run 1032 pass / 4 skip (two external
+        S3 and two native Docker backup/restore cases not run). The first full failure
+        and environment diagnosis are recorded in plan.md; no assertions/timeouts
+        changed. Types/lint/build/API/boundaries/docs pass, 72-procedure contract intact.
+        Owned temporary containers/SQL volume/network/artifacts removed after exact
+        ownership checks; staging and other shared-server applications remain healthy.
+        No frontend/schema/dependency/provider or staging-deployment change.
   - [x] Article write consistency: atomic article/teaser create/edit/delete
-    and concurrent publication behavior. Keep teaser visibility, missing-ID/empty-
-    patch semantics and production schema/history unchanged.
+        and concurrent publication behavior. Keep teaser visibility, missing-ID/empty-
+        patch semantics and production schema/history unchanged.
     - [x] Extract and verify reusable in-transaction post deletion cascade.
-      Before/after: 33 real HTTP/JWT/MySQL tests pass, including compiled ESM
-      and deletion rollback/concurrency. Types and backend build pass.
+          Before/after: 33 real HTTP/JWT/MySQL tests pass, including compiled ESM
+          and deletion rollback/concurrency. Types and backend build pass.
     - [x] Reproduce partial writes/visibility with real SQL failures and gates;
-      implement atomic article mutations and serialize same-article writers.
-      Nine behavioral failures reproduced before repair; 11 new cases pass after
-      repair, focused HTTP/JWT/MySQL + cascade + compiled ESM run: 44 pass.
+          implement atomic article mutations and serialize same-article writers.
+          Nine behavioral failures reproduced before repair; 11 new cases pass after
+          repair, focused HTTP/JWT/MySQL + cascade + compiled ESM run: 44 pass.
     - [x] Full/static/compiled verification, review and exact fixture cleanup.
-      Full 1043 pass / 4 skip (external S3 and native Docker backup/restore not
-      run); types/lint/build/API/436-file boundaries/44-doc check pass. Owned
-      containers, synthetic SQL volume, network and temporary artifacts removed.
-      Staging remains healthy at 12cfc8d; no frontend/schema/provider/push/deploy.
-      Historical duplicates, generic post-source ownership, article creation
-      idempotency and teaser visibility/update policy remain separate tasks.
+          Full 1043 pass / 4 skip (external S3 and native Docker backup/restore not
+          run); types/lint/build/API/436-file boundaries/44-doc check pass. Owned
+          containers, synthetic SQL volume, network and temporary artifacts removed.
+          Staging remains healthy at 12cfc8d; no frontend/schema/provider/push/deploy.
+          Historical duplicates, generic post-source ownership, article creation
+          idempotency and teaser visibility/update policy remain separate tasks.
 - [ ] M06: Specify and migrate billing service wiring; sandbox/provider acceptance
-  remains separate from local tests, no TypeORM/data-model rewrite.
+      remains separate from local tests, no TypeORM/data-model rewrite.
   - [x] Club checkout: Nest-managed service and explicit router composition;
-    2 expected RED failures, 76 focused pass and 723 non-MySQL pass / 4 skip.
-    Real HTTP and compiled ESM verified; deliberate hidden-instance wiring
-    mutation fails the HTTP assertion. Types/build/lint/API/boundaries pass;
-    no frontend, dependencies, SQL/schema, provider, push or deploy changes.
+        2 expected RED failures, 76 focused pass and 723 non-MySQL pass / 4 skip.
+        Real HTTP and compiled ESM verified; deliberate hidden-instance wiring
+        mutation fails the HTTP assertion. Types/build/lint/API/boundaries pass;
+        no frontend, dependencies, SQL/schema, provider, push or deploy changes.
   - [x] Subscription reads, read-only claimPending and cancellation use case:
-    explicit ClubSubscriptionService, unchanged authorization/SQL/provider policy.
-    Three expected composition RED failures; real HTTP hidden-instance mutation
-    fails three assertions. 31 slice-focused checks and 753 non-MySQL pass / 4 skip;
-    types/build, unchanged API, boundaries and docs pass. Compiled ESM preserves
-    verified session ID, paid expiry and guest rejection. No real SQL/provider test.
+        explicit ClubSubscriptionService, unchanged authorization/SQL/provider policy.
+        Three expected composition RED failures; real HTTP hidden-instance mutation
+        fails three assertions. 31 slice-focused checks and 753 non-MySQL pass / 4 skip;
+        types/build, unchanged API, boundaries and docs pass. Compiled ESM preserves
+        verified session ID, paid expiry and guest rejection. No real SQL/provider test.
   - [x] Native webhook ingress: one BillingModule controller, application-scoped
-    typed handler binding; raw POST and query-only GET/implicit HEAD preserved.
-    2 ingress RED cases, 4 parser-compatibility RED cases repaired before commit;
-    DI-bypass mutation fails the raw forwarding test. 72 focused cases pass,
-    including real HTTP and compiled ESM; 767 non-MySQL pass / 4 skip,
-    types/build/API/boundaries/docs pass; no live SQL/provider replay claim.
+        typed handler binding; raw POST and query-only GET/implicit HEAD preserved.
+        2 ingress RED cases, 4 parser-compatibility RED cases repaired before commit;
+        DI-bypass mutation fails the raw forwarding test. 72 focused cases pass,
+        including real HTTP and compiled ESM; 767 non-MySQL pass / 4 skip,
+        types/build/API/boundaries/docs pass; no live SQL/provider replay claim.
   - [ ] Webhook/settlement business-logic decomposition; preserve signature,
-    payment replay protection and transaction boundaries with their own tests.
+        payment replay protection and transaction boundaries with their own tests.
     - [x] Pure Prodamus canonicalization/HMAC extracted to billing/prodamus-signature.
-      One implementation and the existing legacy export; merchant-key selection,
-      timing-safe verification, parser, transport and settlement are unchanged.
-      Nine expected scaffold RED assertions; direct/legacy fixtures preserve own
-      __proto__, Unicode, slashes, arrays, nullish values and frozen input.
-      Removing slash escaping fails two checks; restore full 1344 pass / 618 skip,
-      types/build/API/517-file boundaries pass. No SQL/provider acceptance,
-      secret access, frontend, activation, merge, push or deployment.
+          One implementation and the existing legacy export; merchant-key selection,
+          timing-safe verification, parser, transport and settlement are unchanged.
+          Nine expected scaffold RED assertions; direct/legacy fixtures preserve own
+          **proto**, Unicode, slashes, arrays, nullish values and frozen input.
+          Removing slash escaping fails two checks; restore full 1344 pass / 618 skip,
+          types/build/API/517-file boundaries pass. No SQL/provider acceptance,
+          secret access, frontend, activation, merge, push or deployment.
     - [x] Request-neutral Prodamus payload parsing extracted to billing/prodamus-payload;
-      webhook and browser return use the same parser and record coercion helper.
-      Twenty-four expected scaffold RED assertions preserve query/body precedence,
-      PHP indexed objects, duplicate/collision behavior, JSON/empty-body handling,
-      blocked PHP path names and signed own JSON fields. Two native mixed-input
-      cases added; dropping query forwarding fails seven HTTP and one compiled
-      assertion. Restore full 1370 pass / 618 skip, types/build/API/boundaries pass.
-      Decoding is not authentication or settlement acceptance. No schema, SQL,
-      external service, frontend, auth/CORS/proxy/quota, activation or rollout.
+          webhook and browser return use the same parser and record coercion helper.
+          Twenty-four expected scaffold RED assertions preserve query/body precedence,
+          PHP indexed objects, duplicate/collision behavior, JSON/empty-body handling,
+          blocked PHP path names and signed own JSON fields. Two native mixed-input
+          cases added; dropping query forwarding fails seven HTTP and one compiled
+          assertion. Restore full 1370 pass / 618 skip, types/build/API/boundaries pass.
+          Decoding is not authentication or settlement acceptance. No schema, SQL,
+          external service, frontend, auth/CORS/proxy/quota, activation or rollout.
     - [x] Pure notification field selectors extracted to billing/prodamus-fields;
-      preserve exact-key/alias precedence, scalar coercion, selected order prefixes,
-      success status, nullish user-ID hints and nested subscription actions.
-      Forty literal cases / 23 expected scaffold RED failures; native alias fixture
-      preserves complete settlement proof. Alias-removal mutation fails six checks,
-      status mutation four; restore full 1411 pass / 618 skip, static/build gates pass.
-      Existing selectors are not ID/schema validators or payment authorization.
-      Binding/signature/replay/transaction policy and disabled-shop gate unchanged;
-      no SQL/provider, secret access, activation, frontend, push or deployment.
+          preserve exact-key/alias precedence, scalar coercion, selected order prefixes,
+          success status, nullish user-ID hints and nested subscription actions.
+          Forty literal cases / 23 expected scaffold RED failures; native alias fixture
+          preserves complete settlement proof. Alias-removal mutation fails six checks,
+          status mutation four; restore full 1411 pass / 618 skip, static/build gates pass.
+          Existing selectors are not ID/schema validators or payment authorization.
+          Binding/signature/replay/transaction policy and disabled-shop gate unchanged;
+          no SQL/provider, secret access, activation, frontend, push or deployment.
     - [x] Outbound PHP query encoder extracted to billing/prodamus-query;
-      signed links and cancellation share one implementation. Ten intended
-      scaffold RED failures; missing value escaping fails four literal fixtures
-      and a new signed-checkout plus-address assertion. Restore: 91 focused checks
-      pass, types/backend build/API/520-file boundaries/frontend lint pass.
-      Overnight ENOSPC blocked full verification; resumed with 14 GiB free,
-      without deleting user files. Fresh full 1422 pass / 618 skip, 111 files pass /
-      30 skip; types/build/API/boundaries/frontend lint/docs/format gates pass.
-      No failures waived; SQL/external acceptance remains outside this checkpoint.
-      No unrelated cache/user-file removal, SQL/provider call, activation or rollout.
+          signed links and cancellation share one implementation. Ten intended
+          scaffold RED failures; missing value escaping fails four literal fixtures
+          and a new signed-checkout plus-address assertion. Restore: 91 focused checks
+          pass, types/backend build/API/520-file boundaries/frontend lint pass.
+          Overnight ENOSPC blocked full verification; resumed with 14 GiB free,
+          without deleting user files. Fresh full 1422 pass / 618 skip, 111 files pass /
+          30 skip; types/build/API/boundaries/frontend lint/docs/format gates pass.
+          No failures waived; SQL/external acceptance remains outside this checkpoint.
+          No unrelated cache/user-file removal, SQL/provider call, activation or rollout.
     - [x] Payment field projection extracted to billing/prodamus-payment with a
-      typed return contract; handler retains signature/merchant binding gates.
-      Ten literal fixtures / nine intended scaffold RED failures preserve distinct
-      order/payment IDs, raw amount/currency, normalized recipient/domain, nested
-      subscription/profile and existing unvalidated user hints. Native monthly
-      fixture preserves the full settlement input, one dispatch and no login cookie.
-      Dropping profile ID fails four pure checks and native acceptance; restore:
-      full 1433 pass / 618 skip, types/build/API/521-file boundaries/lint/docs pass.
-      Decoding is not authentication or SQL/provider acceptance. No activation,
-      frontend implementation, schema/dependency, auth policy or rollout change.
+          typed return contract; handler retains signature/merchant binding gates.
+          Ten literal fixtures / nine intended scaffold RED failures preserve distinct
+          order/payment IDs, raw amount/currency, normalized recipient/domain, nested
+          subscription/profile and existing unvalidated user hints. Native monthly
+          fixture preserves the full settlement input, one dispatch and no login cookie.
+          Dropping profile ID fails four pure checks and native acceptance; restore:
+          full 1433 pass / 618 skip, types/build/API/521-file boundaries/lint/docs pass.
+          Decoding is not authentication or SQL/provider acceptance. No activation,
+          frontend implementation, schema/dependency, auth policy or rollout change.
     - [x] Club payment field binding extracted to billing/prodamus-binding with
-      explicit trusted configuration and guard clauses; original-body HMAC,
-      merchant-key selection and durable settlement checks remain in the handler.
-      35 independent expected-value fixtures / 12 intended scaffold RED failures
-      preserve monthly/semiannual rules and legacy profile boundaries. Six new
-      signed native rejection cases cannot dispatch settlement or create a cookie.
-      Dropping domain matching fails three pure cases and native HTTP; restored:
-      162 focused checks, full 1474 pass / 618 skip, types/build/API/522-file
-      boundaries/frontend lint/docs/format/whitespace pass. Field matching is not
-      authentication or SQL/provider acceptance; M06 orchestration remains open.
-      No frontend, schema/dependency, policy, external effects, activation or rollout.
+          explicit trusted configuration and guard clauses; original-body HMAC,
+          merchant-key selection and durable settlement checks remain in the handler.
+          35 independent expected-value fixtures / 12 intended scaffold RED failures
+          preserve monthly/semiannual rules and legacy profile boundaries. Six new
+          signed native rejection cases cannot dispatch settlement or create a cookie.
+          Dropping domain matching fails three pure cases and native HTTP; restored:
+          162 focused checks, full 1474 pass / 618 skip, types/build/API/522-file
+          boundaries/frontend lint/docs/format/whitespace pass. Field matching is not
+          authentication or SQL/provider acceptance; M06 orchestration remains open.
+          No frontend, schema/dependency, policy, external effects, activation or rollout.
     - [x] Club settlement now uses an application-owned ClubSettlementService and
-      required typed durable port; initial and recurring native webhooks consume
-      the supplied instance. Legacy facade/default effect and 30/180-day exports
-      stay compatible; no SQL/replay/transaction or validation policy rewrite.
-      Six service RED failures and native DI 200-instead-of-422 failure reproduced.
-      Nine service/legacy cases, three native cases and extended compiled ESM
-      protect forwarding, rejected/error/pending decisions and app isolation.
-      Legacy-bypass mutation fails three native and one compiled assertion;
-      restore full 1486 pass / 618 skip, types/build/API/523-file boundaries,
-      frontend lint/docs/format/whitespace pass. SQL/provider acceptance and
-      remaining orchestration stay open; no activation or rollout change.
+          required typed durable port; initial and recurring native webhooks consume
+          the supplied instance. Legacy facade/default effect and 30/180-day exports
+          stay compatible; no SQL/replay/transaction or validation policy rewrite.
+          Six service RED failures and native DI 200-instead-of-422 failure reproduced.
+          Nine service/legacy cases, three native cases and extended compiled ESM
+          protect forwarding, rejected/error/pending decisions and app isolation.
+          Legacy-bypass mutation fails three native and one compiled assertion;
+          restore full 1486 pass / 618 skip, types/build/API/523-file boundaries,
+          frontend lint/docs/format/whitespace pass. SQL/provider acceptance and
+          remaining orchestration stay open; no activation or rollout change.
     - [x] Pure cancellation profile field binding extracted to
-      billing/prodamus-cancellation; original-body HMAC, recurring key selection,
-      demo guard and durable confirmation stay in the HTTP handler. Eighteen
-      literal/frozen fixtures, eight native HTTP cases; eight scaffold RED
-      assertions. Merchant-guard removal fails three pure checks and one native
-      rejection. Restore: 145 focused pass, full 1629 pass / 618 SQL/external
-      skip, types/407.2 kB build/unchanged API/529-file boundaries/lint pass.
-      Numeric native fixture canonicalization corrected without production change.
-      Existing nonempty profile semantics preserved, not stricter payment regex;
-      no actual SQL/provider effects, frontend, secrets, activation or rollout.
+          billing/prodamus-cancellation; original-body HMAC, recurring key selection,
+          demo guard and durable confirmation stay in the HTTP handler. Eighteen
+          literal/frozen fixtures, eight native HTTP cases; eight scaffold RED
+          assertions. Merchant-guard removal fails three pure checks and one native
+          rejection. Restore: 145 focused pass, full 1629 pass / 618 SQL/external
+          skip, types/407.2 kB build/unchanged API/529-file boundaries/lint pass.
+          Numeric native fixture canonicalization corrected without production change.
+          Existing nonempty profile semantics preserved, not stricter payment regex;
+          no actual SQL/provider effects, frontend, secrets, activation or rollout.
     - [x] Post-verification cancellation confirmation now uses application-owned
-      ClubCancellationService and required typed acquisition/confirmation ports.
-      Missing DB, errors, durable false and pending completion preserve policy;
-      HMAC/demo/recurring-key/profile guards and SQL transaction stay unchanged.
-      Six empty-service RED failures and supplied-service native refusal RED;
-      six direct and six new native cases plus compiled ESM acceptance. Hidden
-      legacy bypass fails six native checks and one compiled assertion. Restore
-      full 1641 pass / 618 SQL/external skip, types/408.5 kB build/unchanged API/
-      530-file boundaries/frontend lint/docs/format/whitespace pass. No new
-      effects, frontend, dependencies, schema, activation, push or deployment;
-      remaining M06 orchestration and durable/provider/release gates stay open.
+          ClubCancellationService and required typed acquisition/confirmation ports.
+          Missing DB, errors, durable false and pending completion preserve policy;
+          HMAC/demo/recurring-key/profile guards and SQL transaction stay unchanged.
+          Six empty-service RED failures and supplied-service native refusal RED;
+          six direct and six new native cases plus compiled ESM acceptance. Hidden
+          legacy bypass fails six native checks and one compiled assertion. Restore
+          full 1641 pass / 618 SQL/external skip, types/408.5 kB build/unchanged API/
+          530-file boundaries/frontend lint/docs/format/whitespace pass. No new
+          effects, frontend, dependencies, schema, activation, push or deployment;
+          remaining M06 orchestration and durable/provider/release gates stay open.
     - [x] Outbound setActivity now belongs to billing/prodamus-cancellation-client
-      with explicit trusted config/fetch; legacy facade/worker sender identity and
-      merchant/key/profile/HTTPS/redirect/timeout/response rules remain unchanged.
-      Fifteen direct cases / four intended empty-contract RED failures; sixteen
-      existing native loopback cases preserved. Redirect-follow mutation fails
-      six native checks; restore full 1656 pass / 618 SQL/external skip, types/
-      409.0 kB build/API/531-file boundaries/frontend lint/docs/format pass.
-      No actual provider/SQL effect or rollout; M06/release gates remain open.
+          with explicit trusted config/fetch; legacy facade/worker sender identity and
+          merchant/key/profile/HTTPS/redirect/timeout/response rules remain unchanged.
+          Fifteen direct cases / four intended empty-contract RED failures; sixteen
+          existing native loopback cases preserved. Redirect-follow mutation fails
+          six native checks; restore full 1656 pass / 618 SQL/external skip, types/
+          409.0 kB build/API/531-file boundaries/frontend lint/docs/format pass.
+          No actual provider/SQL effect or rollout; M06/release gates remain open.
     - [x] Signature comparison/key-list verification now belongs beside canonical
-      signing; explicit readonly keys, no env/default/demo-key/cache in the helper.
-      Legacy dynamic key trimming and per-operation key selection unchanged.
-      Nineteen new checks / five empty-contract RED failures; broad-key cancellation
-      mutation fails native HTTP (200 instead of 422). Restored full 1675 pass /
-      618 SQL/external skip; types/409.1 kB build/API/531-file boundaries/lint pass.
-      No SQL/provider acceptance, frontend, policy, activation or server changes;
-      M06 orchestration and all existing release gates remain open.
+          signing; explicit readonly keys, no env/default/demo-key/cache in the helper.
+          Legacy dynamic key trimming and per-operation key selection unchanged.
+          Nineteen new checks / five empty-contract RED failures; broad-key cancellation
+          mutation fails native HTTP (200 instead of 422). Restored full 1675 pass /
+          618 SQL/external skip; types/409.1 kB build/API/531-file boundaries/lint pass.
+          No SQL/provider acceptance, frontend, policy, activation or server changes;
+          M06 orchestration and all existing release gates remain open.
   - [x] Shop owned/checkout use cases now use explicit ShopModule/ShopService
-    composition in Nest and standalone callers. Router schemas/protected access
-    and hard-disabled capability gate remain before checkout service entry;
-    actor/email, UUID, signed-link-before-write and dormant order tests preserved.
-    Two expected supplied-service RED failures repaired. Fifteen new composition
-    and native HTTP checks; deliberate hidden-instance mutation fails five
-    composition/HTTP/compiled assertions. Restore: 200 focused checks pass,
-    full 1300 pass / 618 skip, types/build/API/512-file boundaries/docs pass.
-    No real JWT, SQL, provider, frontend, capability enablement, push or rollout.
+        composition in Nest and standalone callers. Router schemas/protected access
+        and hard-disabled capability gate remain before checkout service entry;
+        actor/email, UUID, signed-link-before-write and dormant order tests preserved.
+        Two expected supplied-service RED failures repaired. Fifteen new composition
+        and native HTTP checks; deliberate hidden-instance mutation fails five
+        composition/HTTP/compiled assertions. Restore: 200 focused checks pass,
+        full 1300 pass / 618 skip, types/build/API/512-file boundaries/docs pass.
+        No real JWT, SQL, provider, frontend, capability enablement, push or rollout.
   - [x] Preserve own JSON fields throughout Prodamus signature normalization,
-    including root/nested/array-element __proto__. Two null-prototype dictionaries
-    prevent this property from being lost before HMAC; the PHP form parser's
-    existing blocked-key policy remains unchanged. Nine expected RED failures
-    (including native HTTP 200 instead of 400), then 90 focused checks pass;
-    reverting only the sorting dictionary produces eight failures again.
-    Full 1285 pass / 618 skip, types/build/lint/API/510-file boundaries pass.
-    This is payload-integrity hardening, not a demonstrated paid-access bypass,
-    provider compatibility acceptance or completion of M06. No SQL/provider,
-    frontend, secret, authorization, push, merge or deployment changes.
+        including root/nested/array-element **proto**. Two null-prototype dictionaries
+        prevent this property from being lost before HMAC; the PHP form parser's
+        existing blocked-key policy remains unchanged. Nine expected RED failures
+        (including native HTTP 200 instead of 400), then 90 focused checks pass;
+        reverting only the sorting dictionary produces eight failures again.
+        Full 1285 pass / 618 skip, types/build/lint/API/510-file boundaries pass.
+        This is payload-integrity hardening, not a demonstrated paid-access bypass,
+        provider compatibility acceptance or completion of M06. No SQL/provider,
+        frontend, secret, authorization, push, merge or deployment changes.
   - [x] Cancellation transport rejects all redirects instead of accepting an
-    unconfigured endpoint's success. Six native loopback RED failures reproduced;
-    redirect: error repairs them. Sixteen transport checks preserve independent
-    user/manager signatures, direct success, binding and production HTTPS policy.
-    Eight focused files / 87 pass; full 1316 pass / 618 skip, types/build/API/
-    512-file boundaries pass. Timeout and durable retries unchanged; false means
-    unconfirmed, not proof of no remote effect. Real provider/SQL acceptance
-    remains open; only owned local listeners and synthetic configuration used.
-    No frontend, auth/CORS/proxy/quota, secrets, activation, push or deployment.
+        unconfigured endpoint's success. Six native loopback RED failures reproduced;
+        redirect: error repairs them. Sixteen transport checks preserve independent
+        user/manager signatures, direct success, binding and production HTTPS policy.
+        Eight focused files / 87 pass; full 1316 pass / 618 skip, types/build/API/
+        512-file boundaries pass. Timeout and durable retries unchanged; false means
+        unconfirmed, not proof of no remote effect. Real provider/SQL acceptance
+        remains open; only owned local listeners and synthetic configuration used.
+        No frontend, auth/CORS/proxy/quota, secrets, activation, push or deployment.
   - [x] Remove millisecond-based shop checkout order collisions from both tRPC
-    and legacy redirects. Three concurrent same-clock failures reproduced;
-    UUID suffixes retain product parsing and fit the existing 80-character column.
-    Shop stays hard-disabled; SQL/provider settlement acceptance is still open.
+        and legacy redirects. Three concurrent same-clock failures reproduced;
+        UUID suffixes retain product parsing and fit the existing 80-character column.
+        Shop stays hard-disabled; SQL/provider settlement acceptance is still open.
   - [x] Build both shop checkout links before the pending-order write; two
-    expected persistence-order failures repaired, 774 non-MySQL pass / 4 skip.
+        expected persistence-order failures repaired, 774 non-MySQL pass / 4 skip.
   - [x] Shop links reject incomplete/unsafe selected merchant, unsigned URLs,
-    invalid price and callback origin before persistence. 23 expected RED cases;
-    800 non-MySQL pass / 4 skip, independent HMAC compatibility fixtures pass.
-    Shop remains hard-disabled; settlement/outbox/provider acceptance stay open.
+        invalid price and callback origin before persistence. 23 expected RED cases;
+        800 non-MySQL pass / 4 skip, independent HMAC compatibility fixtures pass.
+        Shop remains hard-disabled; settlement/outbox/provider acceptance stay open.
   - [x] Legacy shop checkout errors no longer log raw database exceptions;
-    one expected private-marker leakage failure repaired. 801 non-MySQL pass /
-    4 skip, Node 22 gates pass; Docker EOF blocks disposable-MySQL acceptance.
+        one expected private-marker leakage failure repaired. 801 non-MySQL pass /
+        4 skip, Node 22 gates pass; Docker EOF blocks disposable-MySQL acceptance.
   - [x] Shop catalog lookup rejects inherited object properties in the builder,
-    authenticated checkout and legacy redirect before configuration/persistence.
-    12 expected RED cases repaired; 813 non-MySQL pass / 4 skip on Node 22.
-    Shop remains disabled; no real SQL/provider acceptance or deployment.
+        authenticated checkout and legacy redirect before configuration/persistence.
+        12 expected RED cases repaired; 813 non-MySQL pass / 4 skip on Node 22.
+        Shop remains disabled; no real SQL/provider acceptance or deployment.
 - [ ] M07: Specify and migrate worker lifecycle; implement N12 as its own feature.
   - [x] Inspect and draft lifecycle specification in the existing plan, 8 October.
-    Four immediate/fixed-interval jobs; timer handles not owned, no executable
-    stop/drain, possible slow-run overlap. Existing backup guard and SQL leases
-    preserved; detached announcement sends and pool ownership recorded. These
-    are source findings, not observed data loss or duplicate payments. Docker
-    still returns EOF; no database or external transport touched.
+        Four immediate/fixed-interval jobs; timer handles not owned, no executable
+        stop/drain, possible slow-run overlap. Existing backup guard and SQL leases
+        preserved; detached announcement sends and pool ownership recorded. These
+        are source findings, not observed data loss or duplicate payments. Docker
+        still returns EOF; no database or external transport touched.
   - [x] M07a: inert IntervalJobs primitive, not activated by the executable.
-    Thirteen deferred/fake-timer checks: immediate/fixed cadence, busy skip/no
-    backlog, independent jobs, safe error recovery, idempotent start/stop,
-    unfinished/rejected work, queued callback fences and owned timers only.
-    Ten expected scaffold RED assertions; busy/fence mutations each fail two
-    checks, restore passes 37 focused and full 1329 / 618 SQL/external skip.
-    Types/build/API/513-file boundaries/docs pass. stop exposes pending promises,
-    not a timeout/cancellation/provider-success claim. No domain/provider changes
-    or runtime activation; M07b/M07c/N12 remain separate and open.
+        Thirteen deferred/fake-timer checks: immediate/fixed cadence, busy skip/no
+        backlog, independent jobs, safe error recovery, idempotent start/stop,
+        unfinished/rejected work, queued callback fences and owned timers only.
+        Ten expected scaffold RED assertions; busy/fence mutations each fail two
+        checks, restore passes 37 focused and full 1329 / 618 SQL/external skip.
+        Types/build/API/513-file boundaries/docs pass. stop exposes pending promises,
+        not a timeout/cancellation/provider-success claim. No domain/provider changes
+        or runtime activation; M07b/M07c/N12 remain separate and open.
   - [x] M07b after M07a: Nest job composition; activate only after listen and
-    preserve four cadences/helper semantics. Native factory remains worker-free;
-    controlled run failures and isolated built startup/listen failure accepted.
+        preserve four cadences/helper semantics. Native factory remains worker-free;
+        controlled run failures and isolated built startup/listen failure accepted.
     - [x] M07b1: inert WorkersModule/WorkerJobs and typed per-app helper binding.
-      Nine orchestration checks, two native apps and one compiled ESM child;
-      eight use-case/two missing-provider RED failures, injected-helper bypass
-      mutation fails native and built assertions. Restore: 63 focused pass,
-      full 1341 pass / 618 skip; types/build/API/516-file boundaries/docs pass.
-      Old whole-DB stub completed; per-app test spies isolated after diagnosis.
-      index.ts remains unchanged: no new executable timers or shutdown hooks,
-      real SQL/provider/mail/push/backup, frontend, secrets, push or deployment.
+          Nine orchestration checks, two native apps and one compiled ESM child;
+          eight use-case/two missing-provider RED failures, injected-helper bypass
+          mutation fails native and built assertions. Restore: 63 focused pass,
+          full 1341 pass / 618 skip; types/build/API/516-file boundaries/docs pass.
+          Old whole-DB stub completed; per-app test spies isolated after diagnosis.
+          index.ts remains unchanged: no new executable timers or shutdown hooks,
+          real SQL/provider/mail/push/backup, frontend, secrets, push or deployment.
     - [x] M07b2: replace old executable timers with one explicit activation only
-      after successful listen; prove failed-listen behavior in an isolated child.
-      Never activate both runners; shutdown-bound review remains unresolved.
-      Actual compiled entrypoint: one start, four original cadences and synthetic
-      helper effects; occupied port exits 1 with no starts/timers/effects. Env
-      loading is removed only by the test build plugin, never in production.
-      Original executable RED: zero owned starts/effects. Early-start mutation
-      fails against the real HTTP listening event; restored code passes.
+          after successful listen; prove failed-listen behavior in an isolated child.
+          Never activate both runners; shutdown-bound review remains unresolved.
+          Actual compiled entrypoint: one start, four original cadences and synthetic
+          helper effects; occupied port exits 1 with no starts/timers/effects. Env
+          loading is removed only by the test build plugin, never in production.
+          Original executable RED: zero owned starts/effects. Early-start mutation
+          fails against the real HTTP listening event; restored code passes.
   - [ ] M07c after shutdown-bound review: stop timers before drain, app.close and
-    signal acceptance, honest pending-at-bound handling. No remote-success claim,
-    forced lease reset or real provider activity; inventory detached tasks first.
-    Ask for the maximum drain wait before implementing this runtime policy.
+        signal acceptance, honest pending-at-bound handling. No remote-success claim,
+        forced lease reset or real provider activity; inventory detached tasks first.
+        Ask for the maximum drain wait before implementing this runtime policy.
   - [ ] Keep mysql2 pool ownership/close and N12 durable publication outbox as
-    separate data-lifecycle/features; local single-flight is not a distributed
-    lock or exactly-once delivery. Do not close M07 on the specification alone.
+        separate data-lifecycle/features; local single-flight is not a distributed
+        lock or exactly-once delivery. Do not close M07 on the specification alone.
 - [ ] M08: Specify/migrate remaining API services, remove superseded adapters and
-  decompose db.ts without changing contracts. Review every module separately.
+      decompose db.ts without changing contracts. Review every module separately.
   - [x] Fix moderation mutation ID validation as a separate behavior change:
-    report/comment/user IDs must be positive safe integers, including optional
-    reportId when supplied. Twenty native HTTP invalid-ID regressions fail for
-    false success before schema changes; final slice 45 pass, focused 85 pass,
-    whole non-MySQL 975 pass / 4 skip. Valid moderator/admin targets, actor,
-    audit order, reason trim, optional omission and role refusals preserved.
-    Identity/persistence are doubled; no real JWT/SQL mutation/audit claim.
+        report/comment/user IDs must be positive safe integers, including optional
+        reportId when supplied. Twenty native HTTP invalid-ID regressions fail for
+        false success before schema changes; final slice 45 pass, focused 85 pass,
+        whole non-MySQL 975 pass / 4 skip. Valid moderator/admin targets, actor,
+        audit order, reason trim, optional omission and role refusals preserved.
+        Identity/persistence are doubled; no real JWT/SQL mutation/audit claim.
   - [x] M08a: migrate all five moderation operations into explicit Nest-managed
-    ModerationService/ModerationModule, shared factory for standalone callers.
-    Five expected RED supplied-service refusals repaired; 66 moderation checks,
-    bounded inbox, role/ID guards, session actor, failure and audit-order checks.
-    Hidden-instance mutation fails ten composition/native-HTTP assertions;
-    restore and full suite 1275 pass / 618 SQL/external skip. Types/backend build,
-    unchanged API and 510 dependency boundaries pass. Identity/persistence
-    doubled; no authorization change, real SQL/JWT or durable audit acceptance.
+        ModerationService/ModerationModule, shared factory for standalone callers.
+        Five expected RED supplied-service refusals repaired; 66 moderation checks,
+        bounded inbox, role/ID guards, session actor, failure and audit-order checks.
+        Hidden-instance mutation fails ten composition/native-HTTP assertions;
+        restore and full suite 1275 pass / 618 SQL/external skip. Types/backend build,
+        unchanged API and 510 dependency boundaries pass. Identity/persistence
+        doubled; no authorization change, real SQL/JWT or durable audit acceptance.
   - [x] Verify/fix actual moderation mutation/audit transactional consistency
-    separately. User block/unblock, report dismissal and reported-comment deletion
-    now have real SQL rollback and native HTTP/JWT coverage (checkpoints below).
-    This closes these four mutation/audit windows, not M08 or release acceptance.
+        separately. User block/unblock, report dismissal and reported-comment deletion
+        now have real SQL rollback and native HTTP/JWT coverage (checkpoints below).
+        This closes these four mutation/audit windows, not M08 or release acceptance.
   - [x] Notification token lifecycle slice (scope approved): preserve
-    registration, consent reads/writes and admin purge contracts while wiring
-    an explicit Nest-managed notification provider. First characterize HTTP,
-    then prove provider-bypass failures and wire the service; finish with full
-    non-MySQL/static/API/review gates and a local commit. Exclude latest content
-    reads, real delivery, worker lifecycle and any auth/consent-policy change.
-    24 characterization checks; four expected RED composition failures repaired.
-    Final slice 32 pass, focused 128 pass; a hidden-instance mutation fails four
-    native HTTP assertions and is removed. Full non-MySQL: 883 pass / 4 skip;
-    types/build/unchanged API/476-file boundaries/frontend lint pass. Separate
-    compiled ESM native HTTP probe passes all four paths plus injected refusal.
-    Session lookup and provider or persistence boundary are doubled; no real
-    JWT/MySQL/device delivery, durable no-DB writes or production-readiness claim.
+        registration, consent reads/writes and admin purge contracts while wiring
+        an explicit Nest-managed notification provider. First characterize HTTP,
+        then prove provider-bypass failures and wire the service; finish with full
+        non-MySQL/static/API/review gates and a local commit. Exclude latest content
+        reads, real delivery, worker lifecycle and any auth/consent-policy change.
+        24 characterization checks; four expected RED composition failures repaired.
+        Final slice 32 pass, focused 128 pass; a hidden-instance mutation fails four
+        native HTTP assertions and is removed. Full non-MySQL: 883 pass / 4 skip;
+        types/build/unchanged API/476-file boundaries/frontend lint pass. Separate
+        compiled ESM native HTTP probe passes all four paths plus injected refusal.
+        Session lookup and provider or persistence boundary are doubled; no real
+        JWT/MySQL/device delivery, durable no-DB writes or production-readiness claim.
   - [x] Move notifications.latest into the existing injected ContentReadService;
-    preserve public/club access, response fields, ordering and safe errors.
-    Characterize HTTP first and prove supplied-provider wiring before full gates.
-    16 characterization cases pass before production changes; two native HTTP
-    provider-bypass RED cases repaired. Notification suite 50 pass, focused 123
-    pass, whole non-MySQL 901 pass / 4 skip; types/build/unchanged API/boundaries/
-    frontend-only lint/docs pass. SQL helpers and session lookup are doubled;
-    actual JWT/MySQL publication visibility/ordering/expiry acceptance completed
-    in the separate native SQL checkpoint below; provider delivery remains open.
+        preserve public/club access, response fields, ordering and safe errors.
+        Characterize HTTP first and prove supplied-provider wiring before full gates.
+        16 characterization cases pass before production changes; two native HTTP
+        provider-bypass RED cases repaired. Notification suite 50 pass, focused 123
+        pass, whole non-MySQL 901 pass / 4 skip; types/build/unchanged API/boundaries/
+        frontend-only lint/docs pass. SQL helpers and session lookup are doubled;
+        actual JWT/MySQL publication visibility/ordering/expiry acceptance completed
+        in the separate native SQL checkpoint below; provider delivery remains open.
   - [x] Reject no-DB false success for token registration, consent grant/revocation
-    and administrator token purge at the existing persistence boundaries. Five
-    native HTTP regressions fail for false success before the three guard fixes;
-    actual missing-DB helpers run with only session lookup doubled. Notification
-    suite 52 pass, focused 100 pass, whole non-MySQL 930 pass / 4 skip; types/
-    build/unchanged API/479-file boundaries pass. Success shapes, access and legal
-    metadata unchanged; no-DB read defaults/recipient selection stay fail-closed.
+        and administrator token purge at the existing persistence boundaries. Five
+        native HTTP regressions fail for false success before the three guard fixes;
+        actual missing-DB helpers run with only session lookup doubled. Notification
+        suite 52 pass, focused 100 pass, whole non-MySQL 930 pass / 4 skip; types/
+        build/unchanged API/479-file boundaries pass. Success shapes, access and legal
+        metadata unchanged; no-DB read defaults/recipient selection stay fail-closed.
   - [x] Run token registration/upsert, consent event ordering/legal metadata and
-    administrator purge with real HTTP/JWT/disposable MySQL; 10 native SQL cases
-    and 77 focused checks pass (checkpoint below). Docker is available locally.
+        administrator purge with real HTTP/JWT/disposable MySQL; 10 native SQL cases
+        and 77 focused checks pass (checkpoint below). Docker is available locally.
   - [ ] Migrate other remaining domains in their own slices. Real notification
-    provider/device delivery remains a separate gate; latest-publication SQL
-    acceptance completed below, not full publication/delivery acceptance.
+        provider/device delivery remains a separate gate; latest-publication SQL
+        acceptance completed below, not full publication/delivery acceptance.
   - [x] Migrate profile update/avatar/deletion-request orchestration into an
-    explicit Nest-managed profile service; preserve schemas, session ownership,
-    protected access, canonical photo validation and upload-before-update order.
-    18 characterization checks pass before production changes; three expected
-    RED composition failures repaired. Final profile 24 pass, focused 128 pass;
-    a hidden-instance mutation fails three native HTTP assertions and is removed.
-    Full non-MySQL 925 pass / 4 skip; types/build/unchanged API/479-file boundaries/
-    frontend-only lint/docs pass. SQL/storage and both identity lookups are doubled;
-    the real photo decoder runs. No frontend/payment/provider/push/deployment work.
+        explicit Nest-managed profile service; preserve schemas, session ownership,
+        protected access, canonical photo validation and upload-before-update order.
+        18 characterization checks pass before production changes; three expected
+        RED composition failures repaired. Final profile 24 pass, focused 128 pass;
+        a hidden-instance mutation fails three native HTTP assertions and is removed.
+        Full non-MySQL 925 pass / 4 skip; types/build/unchanged API/479-file boundaries/
+        frontend-only lint/docs pass. SQL/storage and both identity lookups are doubled;
+        the real photo decoder runs. No frontend/payment/provider/push/deployment work.
   - [x] Reject false-success profile/avatar responses when no database is
-    available; reproduce through native HTTP and fix the common write boundary.
-    Three expected RED cases (nonempty/empty patch and avatar URL) repaired;
-    the actual no-DB helper runs, only identity/storage are doubled. Profile 26
-    pass, focused 70 pass; whole non-MySQL 927 pass / 4 skip. Successful responses,
-    schemas and access rules remain unchanged; failure now returns safe HTTP 500.
+        available; reproduce through native HTTP and fix the common write boundary.
+        Three expected RED cases (nonempty/empty patch and avatar URL) repaired;
+        the actual no-DB helper runs, only identity/storage are doubled. Profile 26
+        pass, focused 70 pass; whole non-MySQL 927 pass / 4 skip. Successful responses,
+        schemas and access rules remain unchanged; failure now returns safe HTTP 500.
   - [x] Preflight avatar persistence before photo/storage work: no DB client or
-    rejected acquisition yields safe HTTP 500 with no uploaded object. Both new
-    HTTP regression expectations fail before the fix for the expected side
-    effect; final profile 27 pass, focused 71 pass, whole non-MySQL 928 pass /
-    4 skip. Configured-client fixtures use the installed Drizzle mock builder,
-    not a real connection; photo sanitization and SQL/storage failure checks pass.
-    Types/build/unchanged API/479-file boundaries/frontend-only lint pass.
-    This is client availability only, not a live connection/write guarantee.
+        rejected acquisition yields safe HTTP 500 with no uploaded object. Both new
+        HTTP regression expectations fail before the fix for the expected side
+        effect; final profile 27 pass, focused 71 pass, whole non-MySQL 928 pass /
+        4 skip. Configured-client fixtures use the installed Drizzle mock builder,
+        not a real connection; photo sanitization and SQL/storage failure checks pass.
+        Types/build/unchanged API/479-file boundaries/frontend-only lint pass.
+        This is client availability only, not a live connection/write guarantee.
   - [x] Verify profile field writes and deletion requests with real HTTP/JWT/MySQL;
-    eight new SQL cases and 45 focused checks pass (checkpoint below).
+        eight new SQL cases and 45 focused checks pass (checkpoint below).
   - [ ] Verify avatar upload with real isolated S3; address orphaned uploads after
-    SQL failure separately. Immediate erasure/retention policy remains open;
-    zero-row profile/deletion-request writes guarded in the checkpoint below.
+        SQL failure separately. Immediate erasure/retention policy remains open;
+        zero-row profile/deletion-request writes guarded in the checkpoint below.
 - [ ] Final checkpoint: whole Nest runtime/MySQL/frontend flow, release rehearsal,
-  audit triage/migration history/provider/SMTP/private-file gates and approved rollout.
+      audit triage/migration history/provider/SMTP/private-file gates and approved rollout.
 
 ## TeamAssist isolated staging deployment — 2026-10-06
 
 - [x] Confirm SSH host/teamassist-dev, free resources and existing applications.
-  User approved a separate empty test DB; no production imports/providers.
+      User approved a separate empty test DB; no production imports/providers.
 - [x] Triage current runtime/build dependency advisories for the exact test setup;
-  see docs/operations/teamassist-staging.md; dependency updates remain separate.
+      see docs/operations/teamassist-staging.md; dependency updates remain separate.
 - [x] Build and verify exact staging SHA as Linux/amd64 containers using the
-  bounded remote builder after local disk exhaustion. Native sharp/file-type,
-  production-only dependencies and absence of env files verified.
+      bounded remote builder after local disk exhaustion. Native sharp/file-type,
+      production-only dependencies and absence of env files verified.
 - [x] Initialize new isolated empty MySQL from the canonical test baseline;
-  retain production migration-history blocker (0017–0019).
+      retain production migration-history blocker (0017–0019).
 - [x] Verify HTTPS UI/API/SQL, protected routes, disabled integrations and bounded
-  resources without editing frontend source/types/tests or other server projects.
+      resources without editing frontend source/types/tests or other server projects.
 - [x] Record deployment version and safe stop/rollback instructions; keep known
-  browser failures and remaining production release gates open.
+      browser failures and remaining production release gates open.
 - [ ] Local build cleanup: Docker became unavailable after disk exhaustion.
-  Generated source/config temp directory removed; old failed local staging image
-  and task-specific cache need removal once the local engine works. Do not delete
-  unrelated images/containers/volumes or reset Docker Desktop.
+      Generated source/config temp directory removed; old failed local staging image
+      and task-specific cache need removal once the local engine works. Do not delete
+      unrelated images/containers/volumes or reset Docker Desktop.
 
 ## Migration application guard — 2026-10-06
 
 - [x] Reproduce unsafe db:push ordering using disposable process probes.
-  Six behavioral failures observed before repair; no real SQL generated/applied.
+      Six behavioral failures observed before repair; no real SQL generated/applied.
 - [x] Require a clean manifest and matching explicit database history before
-  applying reviewed SQL; no automatic generation, journal repair or live SQL.
+      applying reviewed SQL; no automatic generation, journal repair or live SQL.
 - [x] Verify focused command/CLI/history tests and static/build gates; record
-  missing real-MySQL rehearsal separately from this tooling slice.
-  31 focused tests pass; full local run 518 pass / 498 skip (SQL/provider gates
-  not run). Disposable MySQL is unavailable (Docker info reports EOF).
-  Types, lint, backend build,
-  exact 72-procedure/25461-byte API, 434-file boundaries and 44-doc check pass.
-  Actual db:push refuses the existing three orphan files before DB/migrate.
+      missing real-MySQL rehearsal separately from this tooling slice.
+      31 focused tests pass; full local run 518 pass / 498 skip (SQL/provider gates
+      not run). Disposable MySQL is unavailable (Docker info reports EOF).
+      Types, lint, backend build,
+      exact 72-procedure/25461-byte API, 434-file boundaries and 44-doc check pass.
+      Actual db:push refuses the existing three orphan files before DB/migrate.
 - [ ] Reconcile 0017–0019 with source database evidence and rehearse approved
-  migrations on a disposable copy. This command guard does not close B05/release.
+      migrations on a disposable copy. This command guard does not close B05/release.
 
 ## Pending registration retry — 2026-10-06
 
 - [x] Reproduce passwordless public-registration retry without account takeover;
-  return 202 instead of misleading 409, preserve all identity fields and consent.
+      return 202 instead of misleading 409, preserve all identity fields and consent.
 - [x] Preserve usable queued/prior links, enforce approved three-mail/hour bound
-  under concurrent retries, prove transactional rollback and real local SMTP flow.
+      under concurrent retries, prove transactional rollback and real local SMTP flow.
 - [x] Full/static/API/compiled verification, review, handoff and fixture cleanup.
-  58 focused; final full suite 1059 pass / 4 provider/native-Docker skips.
-  Types/lint/build/API/boundaries/docs pass. Only owned disposable resources
-  removed; staging remains healthy at 12cfc8d. No frontend, migration or rollout.
+      58 focused; final full suite 1059 pass / 4 provider/native-Docker skips.
+      Types/lint/build/API/boundaries/docs pass. Only owned disposable resources
+      removed; staging remains healthy at 12cfc8d. No frontend, migration or rollout.
 - [ ] Receive test SMTP configuration securely; agree provider/network setup and
-  rollout, then verify real mailbox delivery. No live credentials provided yet.
+      rollout, then verify real mailbox delivery. No live credentials provided yet.
 
 ## Frontend/backend handoff: deleted post update (B7) — 2026-10-07
 
 - [x] Reject every missing-post admin.updatePost with NOT_FOUND, not success;
-  preserve successful response and stop before media writes/announcements.
-  Six false-success cases reproduced before repair; 13 focused cases pass after
-  repair with real editor/service/router and a doubled SQL reader.
+      preserve successful response and stop before media writes/announcements.
+      Six false-success cases reproduced before repair; 13 focused cases pass after
+      repair with real editor/service/router and a doubled SQL reader.
 - [x] Verify local non-MySQL/static/build gates and document frontend handling.
-  650 pass / 4 skip excluding MySQL suites; verify 239 pass. Types, lint, API,
-  backend build, 452-file boundaries and documentation checks pass.
-  No frontend/generated types, migration, push, staging update or deployment.
+      650 pass / 4 skip excluding MySQL suites; verify 239 pass. Types, lint, API,
+      backend build, 452-file boundaries and documentation checks pass.
+      No frontend/generated types, migration, push, staging update or deployment.
 - [x] Run manual-publication.mysql.test.ts against disposable MySQL and verify
-  deleted-post HTTP 404/media invariants plus existing successful writes.
-  Docker recovered; 52 SQL cases (including real HTTP/JWT) pass in the 8 October evening
-  checkpoint below. No source/test assertions changed for this verification.
+      deleted-post HTTP 404/media invariants plus existing successful writes.
+      Docker recovered; 52 SQL cases (including real HTTP/JWT) pass in the 8 October evening
+      checkpoint below. No source/test assertions changed for this verification.
 - [ ] Frontend draft retention/notification still needs its owner's acceptance;
-  existing browser photo-viewer failure is not addressed by this SQL checkpoint.
+      existing browser photo-viewer failure is not addressed by this SQL checkpoint.
 
 ## Frontend/backend handoff: complete media reads (B1) — 2026-10-07
 
 - [x] Propagate post_media failures instead of returning a complete empty model;
-  reject unavailable DB in the seven media/post read helpers, preserve genuine
-  empty results and original media metadata after recovery.
-  21 failing outcomes reproduced before repair; 33 fault/empty/recovery/HTTP
-  scenarios pass with real repositories/Drizzle and a doubled SQL transport.
+      reject unavailable DB in the seven media/post read helpers, preserve genuine
+      empty results and original media metadata after recovery.
+      21 failing outcomes reproduced before repair; 33 fault/empty/recovery/HTTP
+      scenarios pass with real repositories/Drizzle and a doubled SQL transport.
 - [x] Verify compiled runtime without DB, static/build/API gates and handoff.
-  Non-MySQL suite 683 pass / 4 skip; verify 239 pass. Types, lint, API, backend
-  build and 452-file boundaries pass. No frontend, schema, push or deployment.
+      Non-MySQL suite 683 pass / 4 skip; verify 239 pass. Types, lint, API, backend
+      build and 452-file boundaries pass. No frontend, schema, push or deployment.
 - [x] Run existing content.mysql/nest-content.mysql/nest-admin-content.mysql
-  suites on disposable MySQL: 51 cases pass, including compiled ESM, in the
-  8 October evening checkpoint below; source/tests/assertions unchanged.
+      suites on disposable MySQL: 51 cases pass, including compiled ESM, in the
+      8 October evening checkpoint below; source/tests/assertions unchanged.
 - [ ] Accept editor refusal to change videos without a complete initial model.
-  Client UI acceptance and version conflicts are not fixed by SQL reads alone.
+      Client UI acceptance and version conflicts are not fixed by SQL reads alone.
 
 ## Frontend/backend handoff: preserve video identity (B2) — 2026-10-07
 
 - [x] Reconcile exact URL occurrences instead of deleting/recreating every video;
-  preserve retained IDs and all metadata, update only order, scope deletions to
-  this post's excluded video IDs. Keep omitted/empty videos semantics and other
-  media unchanged. Route the internal replacement wrapper through the post lock
-  and edit transaction. New URL-only videos have unknown MIME, not a guessed MP4.
-  All 16 new transport-level tests failed before repair and now pass; the real
-  helper/Drizzle are exercised, not mocked application logic.
+      preserve retained IDs and all metadata, update only order, scope deletions to
+      this post's excluded video IDs. Keep omitted/empty videos semantics and other
+      media unchanged. Route the internal replacement wrapper through the post lock
+      and edit transaction. New URL-only videos have unknown MIME, not a guessed MP4.
+      All 16 new transport-level tests failed before repair and now pass; the real
+      helper/Drizzle are exercised, not mocked application logic.
 - [x] Verify non-MySQL/static/build/API gates and update the existing handoff.
-  699 pass / 4 skip; verify 239 pass. Types, lint, compiled runtime, backend
-  build, unchanged 72-procedure API, 452-file boundaries and 47-document checks
-  pass. No frontend/generated types, schema, push, staging update or deployment.
+      699 pass / 4 skip; verify 239 pass. Types, lint, compiled runtime, backend
+      build, unchanged 72-procedure API, 452-file boundaries and 47-document checks
+      pass. No frontend/generated types, schema, push, staging update or deployment.
 - [x] Verify disposable MySQL acceptance: unchanged/add/remove/reorder, omitted/
-  empty lists, duplicate occurrences and rollback of the post plus all media.
-  Ten focused SQL tests pass in the 8 October evening checkpoint below; Docker
-  recovered and only a new isolated fixture database was used. Manual-publication
-  SQL checks also pass separately; frontend/provider acceptance remains open.
+      empty lists, duplicate occurrences and rollback of the post plus all media.
+      Ten focused SQL tests pass in the 8 October evening checkpoint below; Docker
+      recovered and only a new isolated fixture database was used. Manual-publication
+      SQL checks also pass separately; frontend/provider acceptance remains open.
 - [ ] Agree and implement a trusted metadata source for newly uploaded videos;
-  URL-derived filename is only a compatibility label, MIME/size/duration stay
-  null. No client metadata guessing or server fetch of arbitrary URLs. B2 is not
-  fully accepted until this and real SQL verification are completed.
+      URL-derived filename is only a compatibility label, MIME/size/duration stay
+      null. No client metadata guessing or server fetch of arbitrary URLs. B2 is not
+      fully accepted until this and real SQL verification are completed.
 
 ## Frontend compatibility and test rollout — 2026-10-07
 
 - [x] B2 native SQL acceptance: all 10 cases pass on an owned disposable MySQL.
-  Content/Nest read suites and creation idempotency: 87 cases pass; publication
-  and B7: 52 cases pass. Existing
-  earlier native-SQL skips above are historical; metadata registry remains open.
+      Content/Nest read suites and creation idempotency: 87 cases pass; publication
+      and B7: 52 cases pass. Existing
+      earlier native-SQL skips above are historical; metadata registry remains open.
 - [x] Retain pending photo/video selections after failed/unknown upload in both
-  editors; prevent partial saves and blind reselection until explicit discard.
-  Prevent closing a pending/unknown final post write from resetting its guard.
-  Six new regressions fail before repair and pass after; 38 upload/editor browser
-  cases pass. Reload-safe intent/idempotency recovery (full F5.1) remains open.
+      editors; prevent partial saves and blind reselection until explicit discard.
+      Prevent closing a pending/unknown final post write from resetting its guard.
+      Six new regressions fail before repair and pass after; 38 upload/editor browser
+      cases pass. Reload-safe intent/idempotency recovery (full F5.1) remains open.
 - [x] Final gates: 701 non-MySQL cases pass / 4 skips; verify 241 pass;
-  complete browser run 232 pass / 3 real-development-API skips; native SQL 149
-  pass. Types, lint, both builds, unchanged API, boundaries and docs pass.
-  Local generated Next cache removed after screenshot ENOSPC; full rerun passes.
+      complete browser run 232 pass / 3 real-development-API skips; native SQL 149
+      pass. Types, lint, both builds, unchanged API, boundaries and docs pass.
+      Local generated Next cache removed after screenshot ENOSPC; full rerun passes.
 - [x] Update isolated test images, preserving the existing database, SMTP proxy
-  and payment prohibition; verify health/HTTPS and record actual release.
-  API/web 5c4a9cc deployed, five containers healthy, eight HTTPS checks pass;
-  public feed visible. Database counts unchanged; protected backup recorded in
-  operations guide. No remote Git push or staging-branch merge in this rollout.
+      and payment prohibition; verify health/HTTPS and record actual release.
+      API/web 5c4a9cc deployed, five containers healthy, eight HTTPS checks pass;
+      public feed visible. Database counts unchanged; protected backup recorded in
+      operations guide. No remote Git push or staging-branch merge in this rollout.
 
 ### 2026-10-07 — F5.1, подключение ключа create без постоянного черновика
 
@@ -5599,392 +5634,393 @@ drafts remain local after interruption; disposable container already removed.
 - [ ] All interleavings and automatic retry/conflict UX are not accepted by this
       forced collision. No runtime/frontend/server/policy/provider change; prior
       video metadata/storage, M07c human drain bound and release gates remain open.
+
 ### M05 video catalogue persistence extraction — 9 October, 02:28 Moscow
 
 - [x] Move the seven video catalogue SQL operations into a typed connection-free
-  content/video-repository.ts; preserve db.ts API/getDb ownership, publication
-  predicates, ordering/NFC, internal raw dedup, write refusals and bulk transaction.
-  Executable ASTs match the pre-extraction statements. Seven no-DB cases and three
-  SQL CRUD/publication cases supplement native import/publication coverage; false
-  success and wrong-row deletion mutations both fail before restoration. Final
-  focused 50 pass (40 SQL + seven no-DB + three built-runtime); full 1838 pass /
-  768 SQL-external skips. Types/build/API/564-file boundaries/lint/docs pass.
-  Owned tmpfs-only MySQL removed, no working DB/provider/remote changes. Existing
-  video SQL fixtures require sequential files because fixed cleanup IDs overlap
-  auto-increment imports; this harness limitation is not claimed fixed. M05/M08,
-  M07c and rollout/dependency/provider gates remain open. Details in plan.md.
+      content/video-repository.ts; preserve db.ts API/getDb ownership, publication
+      predicates, ordering/NFC, internal raw dedup, write refusals and bulk transaction.
+      Executable ASTs match the pre-extraction statements. Seven no-DB cases and three
+      SQL CRUD/publication cases supplement native import/publication coverage; false
+      success and wrong-row deletion mutations both fail before restoration. Final
+      focused 50 pass (40 SQL + seven no-DB + three built-runtime); full 1838 pass /
+      768 SQL-external skips. Types/build/API/564-file boundaries/lint/docs pass.
+      Owned tmpfs-only MySQL removed, no working DB/provider/remote changes. Existing
+      video SQL fixtures require sequential files because fixed cleanup IDs overlap
+      auto-increment imports; this harness limitation is not claimed fixed. M05/M08,
+      M07c and rollout/dependency/provider gates remain open. Details in plan.md.
 
 ### M05 parallel video fixture isolation — 9 October, 02:32 Moscow
 
 - [x] Reproduce one fixture connection deleting another connection's imported
-  video through overlapping fixed/auto-generated IDs (fresh real-SQL RED).
-  Share test-only video schema initialization with checked named-lock ownership
-  and generated IDs outside existing fixed cleanup ranges; preserve every runtime
-  file, schema definition and original behavior assertion. Regression now proves
-  the created row survives independent cleanup, not an exact ID constant.
+      video through overlapping fixed/auto-generated IDs (fresh real-SQL RED).
+      Share test-only video schema initialization with checked named-lock ownership
+      and generated IDs outside existing fixed cleanup ranges; preserve every runtime
+      file, schema definition and original behavior assertion. Regression now proves
+      the created row survives independent cleanup, not an exact ID constant.
 - [x] Fresh-counter parallel acceptance: five SQL files / 41 checks pass, including
-  published video policy and competing bulk-import rollback/retry. Full default
-  1838 pass / 769 SQL-external skips; types/build/API/564-file boundaries/lint/docs
-  pass. Owned loopback/tmpfs-only MySQL removed; owner inventory empty. This closes
-  the preceding video fixture serial-only limitation, not all SQL isolation or the
-  unrelated saved-post lock observation. No runtime/frontend/shared-server change,
-  migration, payment/provider, policy, merge/push/deploy; existing gates stay open.
+      published video policy and competing bulk-import rollback/retry. Full default
+      1838 pass / 769 SQL-external skips; types/build/API/564-file boundaries/lint/docs
+      pass. Owned loopback/tmpfs-only MySQL removed; owner inventory empty. This closes
+      the preceding video fixture serial-only limitation, not all SQL isolation or the
+      unrelated saved-post lock observation. No runtime/frontend/shared-server change,
+      migration, payment/provider, policy, merge/push/deploy; existing gates stay open.
 
 ### M06 settlement request preparation — 9 October, 02:42 Moscow
 
 - [x] Extract existing proof/amount/period checks and receipt/order preparation into
-  a pure typed billing module. Original predicates, hashes and all recipient/SQL
-  transaction statements match structurally; no changed signature/replay policy.
+      a pure typed billing module. Original predicates, hashes and all recipient/SQL
+      transaction statements match structurally; no changed signature/replay policy.
 - [x] Thirty-nine literal-hash/refusal/immutable-input cases pass after scaffold
-  RED. Removing FX binding produces four RED failures, including real HTTP/SQL
-  changed-currency replay acceptance; restored before final checks. Original and
-  extracted SQL baselines each pass 79 checks; final focused 172 pass, full default
-  1877 pass / 769 SQL-external skips. Types/build/API/boundaries/lint/docs pass.
+      RED. Removing FX binding produces four RED failures, including real HTTP/SQL
+      changed-currency replay acceptance; restored before final checks. Original and
+      extracted SQL baselines each pass 79 checks; final focused 172 pass, full default
+      1877 pass / 769 SQL-external skips. Types/build/API/boundaries/lint/docs pass.
 - [x] Review completed; exact owned loopback/tmpfs MySQL removed after ownership
-  verification, inventory empty. Trigger creator setting changed only in that
-  disposable fixture. Missing auxiliary review files disclosed; primary review
-  instructions and project gates used. Details and evidence in plan.md.
+      verification, inventory empty. Trigger creator setting changed only in that
+      disposable fixture. Missing auxiliary review files disclosed; primary review
+      instructions and project gates used. Details and evidence in plan.md.
 - [ ] Remaining M06 work and real provider/browser/recurring acceptance stay open,
-  as do M07c human drain-bound and dependency/rollout/frontend wording/CSP gates.
-  No frontend, shared-server, actual payment, auth/CORS/proxy/quota, schema,
-  dependency, merge/push or deployment changes.
+      as do M07c human drain-bound and dependency/rollout/frontend wording/CSP gates.
+      No frontend, shared-server, actual payment, auth/CORS/proxy/quota, schema,
+      dependency, merge/push or deployment changes.
 
 ### Frontend/admin backend alignment — 9 October, 02:49 Moscow
 
 - [x] Fetch staging and inspect frontend 0b77270: already included via 7524987,
-  no remote-only changes. Check editor, action confirmations, moderation, seasons,
-  manager contact, access resend and subscription request/response boundaries.
+      no remote-only changes. Check editor, action confirmations, moderation, seasons,
+      manager contact, access resend and subscription request/response boundaries.
 - [x] Reproduce missing-user block/unblock 200 and missing-post publication false
-  success (three RED cases); return transaction-checked NOT_FOUND/404 without
-  changes, cancellation/audit or announcement. Preserve successful response shapes,
-  already-published retry and role/session policies. Green: 60 focused checks.
+      success (three RED cases); return transaction-checked NOT_FOUND/404 without
+      changes, cancellation/audit or announcement. Preserve successful response shapes,
+      already-published retry and role/session policies. Green: 60 focused checks.
 - [x] Expanded disposable HTTP/JWT/SQL: 231 pass / 12 files. Full 1877 pass /
-  771 reported SQL/external skips; types/build/API/boundaries/lint pass. Review and
-  frontend handoff/API docs updated. Owned loopback/tmpfs MySQL removed, inventory
-  empty; fixture diagnostic permissions never changed a shared server.
+      771 reported SQL/external skips; types/build/API/boundaries/lint pass. Review and
+      frontend handoff/API docs updated. Owned loopback/tmpfs MySQL removed, inventory
+      empty; fixture diagnostic permissions never changed a shared server.
 - [ ] First-email binding remains disabled awaiting a concrete approved identity
-  scenario. Reload recovery of legacy checkout/cancellation/resend, actual provider,
-  SMTP/devices and previous rollout/dependency/M07c gates stay open. No frontend,
-  auth/CORS/proxy/quota/schema/dependency, push/merge/deployment changes.
+      scenario. Reload recovery of legacy checkout/cancellation/resend, actual provider,
+      SMTP/devices and previous rollout/dependency/M07c gates stay open. No frontend,
+      auth/CORS/proxy/quota/schema/dependency, push/merge/deployment changes.
 
 ### M06 blocked-recipient / saved-profile acceptance — 9 October, early morning
 
 - [x] Extend existing native signed webhook SQL coverage with six cases:
-  blocked initial/renewal/existing-receipt rejection, unblock/retry without double
-  access, and initial saved-profile owner/recipient/amount conflict. Full durable
-  rows of both synthetic members stay unchanged on refusal; no session cookie.
+      blocked initial/renewal/existing-receipt rejection, unblock/retry without double
+      access, and initial saved-profile owner/recipient/amount conflict. Full durable
+      rows of both synthetic members stay unchanged on refusal; no session cookie.
 - [x] Prove sensitivity with temporary guard removals: three blocked-case RED
-  failures and one profile-owner native 200-instead-of-422 failure. Restore runtime
-  exactly; new tests characterize existing policy, do not change it. Outbox still
-  refuses blocked recipients independently; do not claim first/renewal access bypass.
+      failures and one profile-owner native 200-instead-of-422 failure. Restore runtime
+      exactly; new tests characterize existing policy, do not change it. Outbox still
+      refuses blocked recipients independently; do not claim first/renewal access bypass.
 - [x] Five SQL/native files / 98 pass; full 1877 pass / 777 opt-in SQL-external
-  skips. Types/build/API/boundaries/lint/format pass. Review and existing handoff
-  updated; precise evidence/limitations in plan.md. Exact owned loopback/tmpfs
-  MySQL removed, label inventory empty; only synthetic data removed.
+      skips. Types/build/API/boundaries/lint/format pass. Review and existing handoff
+      updated; precise evidence/limitations in plan.md. Exact owned loopback/tmpfs
+      MySQL removed, label inventory empty; only synthetic data removed.
 - [ ] First-email identity scenario and M07c drain bound still require the user;
-  real provider/recurring/SMTP/devices and previous rollout/dependency gates stay
-  open. Inspect remaining safe M08 domain/repository scopes next, not another
-  completed payment/cancellation wrapper. No runtime/frontend/shared-server,
-  policy/schema/dependency, actual payment, merge/push or deployment changes.
+      real provider/recurring/SMTP/devices and previous rollout/dependency gates stay
+      open. Inspect remaining safe M08 domain/repository scopes next, not another
+      completed payment/cancellation wrapper. No runtime/frontend/shared-server,
+      policy/schema/dependency, actual payment, merge/push or deployment changes.
 
 ### Frontend/admin stale article save — 9 October, early morning
 
 - [x] Fresh staging fetch confirms current frontend already included. Fix
-  updateArticle acknowledgement of missing/deleted article: NOT_FOUND/404 under
-  existing row lock, before article/teaser writes. Preserve same-data successful
-  save and idempotent delete/orphan cleanup, schemas/roles and lock/transaction.
+      updateArticle acknowledgement of missing/deleted article: NOT_FOUND/404 under
+      existing row lock, before article/teaser writes. Preserve same-data successful
+      save and idempotent delete/orphan cleanup, schemas/roles and lock/transaction.
 - [x] RED four native missing/stale/orphan/concurrent cases; GREEN 36 focused,
-  final eight-file SQL 156 pass; full 1877 pass / 782 opt-in SQL/external skips.
-  Types/build/API/boundaries/lint pass, review and existing API/handoff updated.
-  No frontend edit or browser/server acceptance claimed. Evidence in plan.md.
-  Owned tmpfs MySQL removed after identity/owner/no-mount/no-OOM verification;
-  owner inventory empty. Only synthetic resources from this run removed.
+      final eight-file SQL 156 pass; full 1877 pass / 782 opt-in SQL/external skips.
+      Types/build/API/boundaries/lint pass, review and existing API/handoff updated.
+      No frontend edit or browser/server acceptance claimed. Evidence in plan.md.
+      Owned tmpfs MySQL removed after identity/owner/no-mount/no-OOM verification;
+      owner inventory empty. Only synthetic resources from this run removed.
 - [ ] First-email scenario still needs explicit user approval; M07c human drain
-  bound, optimistic article revisions, actual provider/SMTP/devices and previous
-  rollout/dependency gates remain open. No push, merge or server deployment.
+      bound, optimistic article revisions, actual provider/SMTP/devices and previous
+      rollout/dependency gates remain open. No push, merge or server deployment.
 
 ### Frontend/admin member/payment availability — 9 October, early morning
 
 - [x] Follow actual current frontend: email-binding draft remains disabled,
-  no identity change inferred. Existing members/payments reject a missing DB
-  client instead of returning false known-empty lists. Successful SQL unchanged.
+      no identity change inferred. Existing members/payments reject a missing DB
+      client instead of returning false known-empty lists. Successful SQL unchanged.
 - [x] Four RED helper/native HTTP refusals; 47 focused GREEN including access
-  policy. Session lookup alone is doubled, not JWT unavailability acceptance.
-  Real SQL 42 pass / three files; three added member/payment/grant projection
-  checks. Full 1889 pass / 785 opt-in skips; types/build/API/boundaries/lint pass.
-  Review/API/handoff updated; evidence and limits in plan.md.
-  Owned loopback/tmpfs MySQL removed after exact owner/no-mount/no-OOM checks;
-  owner inventory empty, only synthetic resources removed.
+      policy. Session lookup alone is doubled, not JWT unavailability acceptance.
+      Real SQL 42 pass / three files; three added member/payment/grant projection
+      checks. Full 1889 pass / 785 opt-in skips; types/build/API/boundaries/lint pass.
+      Review/API/handoff updated; evidence and limits in plan.md.
+      Owned loopback/tmpfs MySQL removed after exact owner/no-mount/no-OOM checks;
+      owner inventory empty, only synthetic resources removed.
 - [ ] First-email identity contract remains unapproved/disabled as in frontend;
-  previous M07c/provider/SMTP/device/rollout/dependency gates remain open.
-  No frontend or shared-server changes, merge/push/deploy.
+      previous M07c/provider/SMTP/device/rollout/dependency gates remain open.
+      No frontend or shared-server changes, merge/push/deploy.
 
 ### Frontend/admin club-grant refusals — 9 October, early morning
 
 - [x] Current admin confirmation flow now receives explicit 404 for absent and
-  409 for blocked/deleted grant recipients, under unchanged pre-write owner lock.
-  31-day default, separate per-call grant, permissions and success shape unchanged.
-  No blind retry made safe; unconfirmed SQL/network result still needs checking.
+      409 for blocked/deleted grant recipients, under unchanged pre-write owner lock.
+      31-day default, separate per-call grant, permissions and success shape unchanged.
+      No blind retry made safe; unconfirmed SQL/network result still needs checking.
 - [x] Six RED regressions; 23 focused GREEN with real HTTP/JWT/SQL. Expanded
-  three-file SQL 50 pass; full default 1889 pass / 793 opt-in skips. Types/build/
-  API/boundaries/lint pass, review/API/handoff updated; evidence in plan.md.
-  Exact owned tmpfs MySQL removed after owner/no-mount/no-OOM checks; matching
-  owner inventory empty, only synthetic resources removed, working DB untouched.
+      three-file SQL 50 pass; full default 1889 pass / 793 opt-in skips. Types/build/
+      API/boundaries/lint pass, review/API/handoff updated; evidence in plan.md.
+      Exact owned tmpfs MySQL removed after owner/no-mount/no-OOM checks; matching
+      owner inventory empty, only synthetic resources removed, working DB untouched.
 - [ ] Initial email identity contract, M07c drain bound, provider/SMTP/device and
-  previous rollout/dependency gates remain open. No frontend edit or server
-  acceptance, merge/push/deploy; do not present this as all scenarios completed.
+      previous rollout/dependency gates remain open. No frontend edit or server
+      acceptance, merge/push/deploy; do not present this as all scenarios completed.
 
 ### M08 admin membership read repository — 9 October, early morning
 
 - [x] Continue from 46654dd; inspected M06 checkpoints without repeating completed
-  payment modules. Extract only admin member/payment reads into domain-owned
-  repository with supplied DB handle, same public facade/queries/error/rights.
+      payment modules. Extract only admin member/payment reads into domain-owned
+      repository with supplied DB handle, same public facade/queries/error/rights.
 - [x] Four new SQL characterizations; two expiry/order mutation RED failures,
-  original behavior restored before extraction; executable AST unchanged. Final
-  five-file 101 pass (54 real SQL), full 1889 pass / 797 opt-in skips. Types/build/
-  unchanged API/boundaries/lint/format pass. Review and existing docs updated.
-  Owned tmpfs MySQL removed after exact owner/no-mount/no-OOM checks; owner
-  inventory empty. Evidence and type-generator diagnosis saved in plan.md.
+      original behavior restored before extraction; executable AST unchanged. Final
+      five-file 101 pass (54 real SQL), full 1889 pass / 797 opt-in skips. Types/build/
+      unchanged API/boundaries/lint/format pass. Review and existing docs updated.
+      Owned tmpfs MySQL removed after exact owner/no-mount/no-OOM checks; owner
+      inventory empty. Evidence and type-generator diagnosis saved in plan.md.
 - [ ] Remaining safe domain/repository scopes and existing first-email/M07c/
-  provider/SMTP/device/dependency/rollout gates stay open. No frontend edit,
-  pagination/optimization, actual payment, merge/push/deploy or shared-server work.
+      provider/SMTP/device/dependency/rollout gates stay open. No frontend edit,
+      pagination/optimization, actual payment, merge/push/deploy or shared-server work.
 
 ### M08 article read repository — 9 October, early morning
 
 - [x] Continue locally after user-requested staging update to ae70522. Extract
-  three article reads behind unchanged facade/connection/queries/normalization;
-  public hidden/body rules and admin rights remain in their existing owners.
+      three article reads behind unchanged facade/connection/queries/normalization;
+      public hidden/body rules and admin rights remain in their existing owners.
 - [x] Four new native SQL characterizations, three mutation RED failures;
-  original restored before extraction, executable AST unchanged. Final selected
-  105 pass (40 real SQL); default 1889 pass / 801 opt-in skips. Types/build/API/
-  boundaries/lint/format pass. Existing docs/review/evidence recorded in plan.md.
-  Exact owned tmpfs database removed after owner/no-mount/no-OOM checks; matching
-  owner inventory empty, working database untouched.
+      original restored before extraction, executable AST unchanged. Final selected
+      105 pass (40 real SQL); default 1889 pass / 801 opt-in skips. Types/build/API/
+      boundaries/lint/format pass. Existing docs/review/evidence recorded in plan.md.
+      Exact owned tmpfs database removed after owner/no-mount/no-OOM checks; matching
+      owner inventory empty, working database untouched.
 - [ ] Remaining safe repository scopes and prior identity/M07c/provider/SMTP/
-  device/dependency/rollout gates stay open. This new slice is local only, without
-  frontend, actual payment, automatic merge/push/deploy or server acceptance.
+      device/dependency/rollout gates stay open. This new slice is local only, without
+      frontend, actual payment, automatic merge/push/deploy or server acceptance.
 
 ### M05/M08 ordinary-reader article acceptance — 9 October, before deadline
 
 - [x] Four new real HTTP/JWT/SQL cases protect paid ordinary-reader access,
-  next-request expiry revocation, pending/failed refusal and immediate block.
-  Reuse one exact synthetic order/owned account; no session or SQL double.
+      next-request expiry revocation, pending/failed refusal and immediate block.
+      Reuse one exact synthetic order/owned account; no session or SQL double.
 - [x] Baseline 32 pass, three mutation RED failures, runtime restored exactly.
-  Final 85 selected pass (67 real SQL), full 1889 pass / 805 opt-in skips;
-  types/build/API/boundaries/lint/format checked. Existing handoff/review/evidence
-  saved in plan.md. Owned tmpfs container removed after exact ownership/no-mount/
-  no-OOM checks; matching inventory empty, working DB untouched.
+      Final 85 selected pass (67 real SQL), full 1889 pass / 805 opt-in skips;
+      types/build/API/boundaries/lint/format checked. Existing handoff/review/evidence
+      saved in plan.md. Owned tmpfs container removed after exact ownership/no-mount/
+      no-OOM checks; matching inventory empty, working DB untouched.
 - [ ] Previous first-email/M07c/provider/SMTP/device/dependency/rollout gates and
-  remaining repository work remain open. Test-only local increment, no runtime
-  authorization/payment policy, frontend, remote merge/push/deploy or server claim.
+      remaining repository work remain open. Test-only local increment, no runtime
+      authorization/payment policy, frontend, remote merge/push/deploy or server claim.
 
 ### M08 admin post-read repository — 9 October, daytime continuation
 
 - [x] Resume from clean 9a0c0bd under the new human request; expired overnight
-  heartbeat confirmed PAUSED, no replacement schedule or new deploy authority.
+      heartbeat confirmed PAUSED, no replacement schedule or new deploy authority.
 - [x] Extract filters/calendar/statistics behind unchanged db.ts facade and
-  canonical shared post ordering. Existing SQL, signatures, counts, access and
-  no-DB projections retained; executable AST/initializer comparison unchanged.
+      canonical shared post ordering. Existing SQL, signatures, counts, access and
+      no-DB projections retained; executable AST/initializer comparison unchanged.
 - [x] RED/GREEN and review: baseline 21 / five expected mutation failures; sixth
-  candidate proves top-5 limit independently, nullable projections checked with
-  existing session double. Exploratory month-delta probe removed because shared
-  global statistics are not transactional snapshots; no month acceptance claim.
+      candidate proves top-5 limit independently, nullable projections checked with
+      existing session double. Exploratory month-delta probe removed because shared
+      global statistics are not transactional snapshots; no month acceptance claim.
 - [x] Final 100 selected pass (52 real SQL), full 1890 pass / 806 opt-in skips;
-  types/build/API/boundaries/lint/format/docs checked. Owned tmpfs database removed
-  after exact ownership/no-mount/no-OOM checks; matching inventory empty, working
-  DB untouched. Handoff/review/evidence recorded in plan.md.
+      types/build/API/boundaries/lint/format/docs checked. Owned tmpfs database removed
+      after exact ownership/no-mount/no-OOM checks; matching inventory empty, working
+      DB untouched. Handoff/review/evidence recorded in plan.md.
 - [ ] Remaining M08/M06, first-email/M07c/provider/SMTP/device/dependency/rollout
-  gates remain open. Local backend-only slice, no frontend/payment-policy change,
-  remote merge/push/deploy, server acceptance or automatic continuation.
+      gates remain open. Local backend-only slice, no frontend/payment-policy change,
+      remote merge/push/deploy, server acceptance or automatic continuation.
 
 ### M08 post-media read repository — 9 October, daytime continuation
 
 - [x] Continue clean f8694a6 on the current feature branch. Move canonical batched
-  hydration and single-post media read out of db.ts; connection/visibility owners,
-  SQL/order/grouping/metadata/empty/error behavior and API remain unchanged.
+      hydration and single-post media read out of db.ts; connection/visibility owners,
+      SQL/order/grouping/metadata/empty/error behavior and API remain unchanged.
 - [x] Two new native detail/batch media cases; baseline 51 pass, six expected
-  order/selector RED failures, one grouping-fallback RED failure. Runtime restored;
-  both executable AST bodies unchanged. No injected SQL-error acceptance claim.
+      order/selector RED failures, one grouping-fallback RED failure. Runtime restored;
+      both executable AST bodies unchanged. No injected SQL-error acceptance claim.
 - [x] Final 102 selected pass (54 real SQL), full 1890 pass / 808 opt-in skips;
-  types/build/API/boundaries/lint/format/docs checked. Exact owned tmpfs database
-  removed after owner/no-mount/no-OOM checks; matching inventory empty, working DB
-  untouched. Existing handoff/review/evidence saved in plan.md.
+      types/build/API/boundaries/lint/format/docs checked. Exact owned tmpfs database
+      removed after owner/no-mount/no-OOM checks; matching inventory empty, working DB
+      untouched. Existing handoff/review/evidence saved in plan.md.
 - [ ] Remaining M08/M06/first-email/M07c/provider/SMTP/device/dependency/rollout gates
-  open. No frontend/payment-policy/upload/storage change, push/deploy, server
-  acceptance or recurring continuation.
+      open. No frontend/payment-policy/upload/storage change, push/deploy, server
+      acceptance or recurring continuation.
 
 ### Prodamus TEST successful return — 9 October, 13:33 MSK
 
 - [x] User-approved single-line fix: successful TEST return /club?paid=1 starts
-  existing bounded server-access checking; non-success return stays /club.
-  URL hint never grants access. Frontend/signatures/settlement remain unchanged.
+      existing bounded server-access checking; non-success return stays /club.
+      URL hint never grants access. Frontend/signatures/settlement remain unchanged.
 - [x] Native HTTP/SQL RED then GREEN; 100 focused pass (52 SQL), full 1890 pass /
-  808 opt-in skips, types/build/API/boundaries/lint/docs checks pass. Exact owned
-  disposable database/network removed; working DB not used as a test fixture.
+      808 opt-in skips, types/build/API/boundaries/lint/docs checks pass. Exact owned
+      disposable database/network removed; working DB not used as a test fixture.
 - [x] Deploy only prior 6987883 runtime source plus this one line, not unrelated
-  local refactors. Old bundle reproduces byte-for-byte; new artifact differs in
-  one line. Only TEST container replaced, seven healthy, 15 HTTPS checks pass;
-  fresh provider link observed with corrected return. Rollback/evidence in plan
-  and operations docs. No payment, resend, cabinet change, branch merge or push.
+      local refactors. Old bundle reproduces byte-for-byte; new artifact differs in
+      one line. Only TEST container replaced, seven healthy, 15 HTTPS checks pass;
+      fresh provider link observed with corrected return. Rollback/evidence in plan
+      and operations docs. No payment, resend, cabinet change, branch merge or push.
 - [ ] Card/GPB and SBP failures remain unconfirmed upstream issues; no new paid
-  end-to-end acceptance, real money/autocharges or production approval. Old links
-  retain their old return URL; do not repeat a payment merely to test the return.
-  Existing dependency/rollout and unrelated backend gates remain open.
+      end-to-end acceptance, real money/autocharges or production approval. Old links
+      retain their old return URL; do not repeat a payment merely to test the return.
+      Existing dependency/rollout and unrelated backend gates remain open.
 
 ### M08 post-catalog read repository — 9 October, daytime continuation
 
 - [x] Continue clean bd31aa0 on the current feature branch. Extract paginated
-  feed/club and saved-ID reads behind unchanged db.ts signatures. Preserve SQL,
-  filters/cursors/order/duplicate IDs/media/errors; services keep access decisions.
+      feed/club and saved-ID reads behind unchanged db.ts signatures. Preserve SQL,
+      filters/cursors/order/duplicate IDs/media/errors; services keep access decisions.
 - [x] Two characterization cases, baseline 33; independent filter/ID-order
-  mutations each produce the expected RED failure and are restored. Executable
-  AST/helpers/columns and facade signatures unchanged except passing the client.
+      mutations each produce the expected RED failure and are restored. Executable
+      AST/helpers/columns and facade signatures unchanged except passing the client.
 - [x] Final 137 selected pass (56 real SQL, 81 maintenance/transport doubles),
-  full 1890 pass / 810 opt-in skips; types/build/API/boundaries/lint/format/docs
-  checked. Exact owned tmpfs DB removed after ownership/no-mount/no-OOM checks,
-  matching inventory empty, working DB untouched. Evidence/review in plan.md.
+      full 1890 pass / 810 opt-in skips; types/build/API/boundaries/lint/format/docs
+      checked. Exact owned tmpfs DB removed after ownership/no-mount/no-OOM checks,
+      matching inventory empty, working DB untouched. Evidence/review in plan.md.
 - [x] Prodamus diagnostic request sent by the user through the website chat;
-  supplied screenshot shows Sent. Agent sent nothing/read no mailbox. No need
-  to duplicate the request or require MAX login; provider diagnosis still open.
+      supplied screenshot shows Sent. Agent sent nothing/read no mailbox. No need
+      to duplicate the request or require MAX login; provider diagnosis still open.
 - [ ] Remaining M08/M06/identity/M07c/SMTP/device/dependency/rollout gates stay
-  open. Local backend-only slice; no frontend, payment policy, new public search,
-  remote merge/push/deploy, server acceptance or automatic continuation.
+      open. Local backend-only slice; no frontend, payment policy, new public search,
+      remote merge/push/deploy, server acceptance or automatic continuation.
 
 ### M08 post detail / latest read repository — 9 October, continuation
 
 - [x] Continue clean 3048108. Move single-post and latest-announcement reads to
-  content/post-detail-repository.ts; preserve facade signatures/executable AST,
-  fields/media/date ordering/absence/errors and existing service-owned access.
+      content/post-detail-repository.ts; preserve facade signatures/executable AST,
+      fields/media/date ordering/absence/errors and existing service-owned access.
 - [x] Two new native detail cases; baseline 35 content / 14 latest. Selector
-  mutation fails two checks; wrong date ordering fails one. Both restored before
-  extraction. Global latest run isolated on a fresh empty publication dataset.
+      mutation fails two checks; wrong date ordering fails one. Both restored before
+      extraction. Global latest run isolated on a fresh empty publication dataset.
 - [x] Final 153 selected pass (72 real SQL, 81 doubles); full 1890 pass / 812
-  opt-in skips. Types/build/API/boundaries/lint/format/docs/diff checked. Exact
-  owned tmpfs DB removed after ownership/no-mount/no-OOM checks; inventory empty,
-  working DB untouched. Evidence/review saved in plan.md and existing handoff.
+      opt-in skips. Types/build/API/boundaries/lint/format/docs/diff checked. Exact
+      owned tmpfs DB removed after ownership/no-mount/no-OOM checks; inventory empty,
+      working DB untouched. Evidence/review saved in plan.md and existing handoff.
 - [ ] Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout gates
-  remain open. No frontend, auth/payment policy, remote merge/push/deploy, new
-  payment or server acceptance. Await provider reply to the user's sent request.
+      remain open. No frontend, auth/payment policy, remote merge/push/deploy, new
+      payment or server acceptance. Await provider reply to the user's sent request.
 
 ### M08 legacy feed read repository — 9 October, continuation
 
 - [x] Continue clean b708ff1. Move getPosts to the existing content catalog
-  repository, preserving facade signature, executable AST, single client
-  acquisition, projection/visibility/order/tag membership/media/errors.
+      repository, preserving facade signature, executable AST, single client
+      acquisition, projection/visibility/order/tag membership/media/errors.
 - [x] Two native HTTP/MySQL characterizations; baseline 37 pass. Uncorrelated
-  likes and substring-tag mutations each give one expected RED failure and are
-  restored before extraction. No normalization or commentCount field added.
+      likes and substring-tag mutations each give one expected RED failure and are
+      restored before extraction. No normalization or commentCount field added.
 - [x] Final 141 selected pass (60 real SQL, 81 doubles); full 1890 pass / 814
-  opt-in skips. Types, backend/web builds, unchanged API, boundaries, frontend
-  lint, selected formatting/docs/diff checked; client regression 208 pass.
-  Exact owned tmpfs DB removed after owner/no-mount/no-OOM checks; matching
-  inventory empty, working DB untouched. Evidence and review in plan.md.
+      opt-in skips. Types, backend/web builds, unchanged API, boundaries, frontend
+      lint, selected formatting/docs/diff checked; client regression 208 pass.
+      Exact owned tmpfs DB removed after owner/no-mount/no-OOM checks; matching
+      inventory empty, working DB untouched. Evidence and review in plan.md.
 - [ ] Legacy list remains unpaginated; no query/performance/SQL-error acceptance
-  change. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout
-  gates stay open. No frontend edits, payment-policy changes, merge/push/deploy
-  or new payment; no recurring continuation enabled.
+      change. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout
+      gates stay open. No frontend edits, payment-policy changes, merge/push/deploy
+      or new payment; no recurring continuation enabled.
 
 ### M08 full admin post catalog — 9 October, continuation
 
 - [x] Continue clean 4b3a9ac. Move getAllPostsAdmin to the existing admin content
-  repository; preserve executable AST/facade signature, one client, private rows,
-  canonical sort/media/errors. Access stays at the unchanged native boundary.
+      repository; preserve executable AST/facade signature, one client, private rows,
+      canonical sort/media/errors. Access stays at the unchanged native boundary.
 - [x] Two new native HTTP/MySQL cases, baseline 22 pass; wrong date and neighbor
-  media mutations each fail one check, restored before extraction.
+      media mutations each fail one check, restored before extraction.
 - [x] Final 143 selected pass (62 real SQL, 81 doubles); full 1890 pass / 816
-  opt-in skips. Types, both builds, API/boundaries, frontend lint, selected
-  formatting/docs/diff checked; client regression 208 pass. Exact owned tmpfs
-  DB removed after ownership/no-mount/no-OOM check; working DB untouched.
+      opt-in skips. Types, both builds, API/boundaries, frontend lint, selected
+      formatting/docs/diff checked; client regression 208 pass. Exact owned tmpfs
+      DB removed after ownership/no-mount/no-OOM check; working DB untouched.
 - [ ] No pagination/performance/auth/payment-policy change or new SQL-fault
-  acceptance. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/
-  rollout gates open; no frontend edit, merge/push/deploy or new continuation.
+      acceptance. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/
+      rollout gates open; no frontend edit, merge/push/deploy or new continuation.
 
 ### M08 personal post-reaction reads — 9 October, continuation
 
 - [x] Continue clean c205581; group liked/saved-ID reads in existing
-  content/post-reactions.ts with unchanged toggle transaction. Executable AST,
-  facade signatures/client acquisition, actor predicates, duplicates, bookmark
-  order and historical no-DB/error behavior preserved; body access stays separate.
+      content/post-reactions.ts with unchanged toggle transaction. Executable AST,
+      facade signatures/client acquisition, actor predicates, duplicates, bookmark
+      order and historical no-DB/error behavior preserved; body access stays separate.
 - [x] Two new real HTTP/JWT/MySQL cases; two missing actor predicates and reverse
-  bookmark order each fail one check, restored before extraction. Eight added
-  transport-only cases cover empty/error/recovery without claiming real faults.
+      bookmark order each fail one check, restored before extraction. Eight added
+      transport-only cases cover empty/error/recovery without claiming real faults.
 - [x] Selected 153 pass (64 real SQL, 89 doubles), full 1898 pass / 818 opt-in
-  skips. Types, both builds, unchanged API/boundaries, frontend lint, selected
-  formatting, docs/diff checks and client regression 208 pass. Self-review and
-  exact owned tmpfs DB cleanup recorded in plan; working DB untouched.
+      skips. Types, both builds, unchanged API/boundaries, frontend lint, selected
+      formatting, docs/diff checks and client regression 208 pass. Self-review and
+      exact owned tmpfs DB cleanup recorded in plan; working DB untouched.
 - [ ] Existing unpaginated reads and historical no-DB empty results deliberately
-  unchanged. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/
-  rollout gates open; no frontend edits, merge/push/deploy or new schedule.
+      unchanged. Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/
+      rollout gates open; no frontend edits, merge/push/deploy or new schedule.
 
 ### M08 full tag catalog — 9 October, continuation
 
 - [x] Continue clean 9082ae1; move getAllTags to the existing catalog repository.
-  Executable body/signature and one lazy client preserved; all categories and
-  unused tags, original labels, ascending sortOrder, no-DB empty and SQL error
-  behavior unchanged. No new layer/query/filter/normalization.
+      Executable body/signature and one lazy client preserved; all categories and
+      unused tags, original labels, ascending sortOrder, no-DB empty and SQL error
+      behavior unchanged. No new layer/query/filter/normalization.
 - [x] One native HTTP/MySQL characterization plus three transport cases;
-  wrong order, missing seasons and swallowed error each fail one RED check.
-  All temporary mutations restored; 157 selected pass (65 SQL, 92 doubles),
-  full 1901 pass / 819 opt-in skips. Types, both builds, API/boundaries, lint,
-  formatting, docs/diff and 208 client regressions checked. Exact owned tmpfs
-  database removed, owner inventory empty, working DB untouched.
+      wrong order, missing seasons and swallowed error each fail one RED check.
+      All temporary mutations restored; 157 selected pass (65 SQL, 92 doubles),
+      full 1901 pass / 819 opt-in skips. Types, both builds, API/boundaries, lint,
+      formatting, docs/diff and 208 client regressions checked. Exact owned tmpfs
+      database removed, owner inventory empty, working DB untouched.
 - [ ] Remaining M08/M06/identity/M07c/provider/SMTP/device/dependency/rollout
-  gates open. Local-only; no frontend/auth/payment-policy/server changes,
-  merge/push/deploy or new continuation. Provider card/SBP acceptance still open.
+      gates open. Local-only; no frontend/auth/payment-policy/server changes,
+      merge/push/deploy or new continuation. Provider card/SBP acceptance still open.
 
 ### Prodamus TEST return dialog — human-approved behavior, 9 October
 
 - [x] Human-approved exact webpack cache cleared (618 MiB, rebuildable), Docker
-  engine recovered after approved restart; disposable SQL tests possible.
-  Host disk pressure returned during full transform run, not fully resolved.
+      engine recovered after approved restart; disposable SQL tests possible.
+      Host disk pressure returned during full transform run, not fully resolved.
 - [x] Backend-only one-order TEST result implementation and self-review:
-  95 selected pass, including 73 SQL; pending versus
-  durable receipt, mail/setup/login status, tamper/expiry/refusal/no writes or
-  session proven through RED/GREEN; existing quota preserved. Exact owned DB
-  removed, working DB untouched. Full parallel run blocked by ENOSPC; unchanged
-  serial retry 1911 pass / 840 skips. Types/backend+TEST builds/API/boundaries,
-  lint/client regressions/docs/format/diff checked; local-only backend slice.
+      95 selected pass, including 73 SQL; pending versus
+      durable receipt, mail/setup/login status, tamper/expiry/refusal/no writes or
+      session proven through RED/GREEN; existing quota preserved. Exact owned DB
+      removed, working DB untouched. Full parallel run blocked by ENOSPC; unchanged
+      serial retry 1911 pass / 840 skips. Types/backend+TEST builds/API/boundaries,
+      lint/client regressions/docs/format/diff checked; local-only backend slice.
 - [x] Add accessible return dialog and bounded cancellable check locally
-  (10 October; see current evidence below). Success only
-  after server proof; guest goes to email setup/login, signed-in member gets
-  verified access; pending/error/old links never imply payment or sent mail.
+      (10 October; see current evidence below). Success only
+      after server proof; guest goes to email setup/login, signed-in member gets
+      verified access; pending/error/old links never imply payment or sent mail.
 - [x] Local frontend verification/self-review/commit completed 10 October;
-  see fresh evidence below. The 9 October disk/build blocker is historical.
+      see fresh evidence below. The 9 October disk/build blocker is historical.
 - [ ] New user's actual order/notification/mail/browser acceptance still unverified.
-  No automatic deployment, edge/auth/schema/quotas change, external mail,
-  resend or payment. Rollout and SMTP acceptance remain open.
+      No automatic deployment, edge/auth/schema/quotas change, external mail,
+      resend or payment. Rollout and SMTP acceptance remain open.
 
 ### Staging publication review — human request, 9 October
 
 - [x] Fetch staging; ae70522 is already an ancestor of 09868ff, 13 feature
-  commits ahead and no incoming commits. Frontend 0b77270 already integrated
-  by 7524987; preserve frontend source, no redundant merge or force push.
+      commits ahead and no incoming commits. Frontend 0b77270 already integrated
+      by 7524987; preserve frontend source, no redundant merge or force push.
 - [x] Review key frontend/backend contracts and regressions. Fresh types,
-  lint/API/boundaries/docs, standard+TEST backend and frontend builds pass;
-  serial Vitest 1911 pass / 840 opt-in skips, selected browser suites 168 pass.
-  Missing expected browser recovered with installed executable override only.
+      lint/API/boundaries/docs, standard+TEST backend and frontend builds pass;
+      serial Vitest 1911 pass / 840 opt-in skips, selected browser suites 168 pass.
+      Missing expected browser recovered with installed executable override only.
 - [x] Publish reviewed current feature plus this evidence to staging by normal
-  fast-forward push. Remote SHA b52381e995590a51cbef1759c8e9b69bf765ebc7
-  matches local HEAD; this checklist confirmation follows as docs only.
-  Server deployment not requested or performed.
+      fast-forward push. Remote SHA b52381e995590a51cbef1759c8e9b69bf765ebc7
+      matches local HEAD; this checklist confirmation follows as docs only.
+      Server deployment not requested or performed.
 - [ ] Real SQL/provider/SMTP/device/dependency/rollout acceptance remains open.
-  Docker inventory currently unresponsive; no working DB or container changes.
-  Frontend return dialog and concrete email-binding scenario still pending.
+      Docker inventory currently unresponsive; no working DB or container changes.
+      Frontend return dialog and concrete email-binding scenario still pending.
 
 ### Frontend UI/navigation integration — explicit human request, 9 October
 
 - [x] Review source eb0e01f / frontend fix 67c9002; fast-forward staging from
-  160be04 without conflicts or loss of backend changes.
+      160be04 without conflicts or loss of backend changes.
 - [x] Trace and correct browser-test readiness/scroll/layout preconditions and
-  obsolete paid URL expectation; production code and acceptance assertions
-  preserved. Repeated affected suites pass; see plan for exact run accounting.
+      obsolete paid URL expectation; production code and acceptance assertions
+      preserved. Repeated affected suites pass; see plan for exact run accounting.
 - [x] Fresh serial unit tests 1963 pass / 840 opt-in skips, types/lint/API/
-  boundaries/builds/docs/format/whitespace pass. All 547 browser cases accounted
-  for across runs: 544 successful, three real-API skips; no single-green-full-run
-  claim. Provider/SQL/SMTP/physical-device acceptance not inferred from fixtures.
+      boundaries/builds/docs/format/whitespace pass. All 547 browser cases accounted
+      for across runs: 544 successful, three real-API skips; no single-green-full-run
+      claim. Provider/SQL/SMTP/physical-device acceptance not inferred from fixtures.
 - [x] Refetch and publish integrated staging by normal push, verify remote SHA
-  9662f6c (integrated code; publication evidence follows as docs only).
-  No server deployment or payment configuration change authorized by this merge.
+      9662f6c (integrated code; publication evidence follows as docs only).
+      No server deployment or payment configuration change authorized by this merge.
 
 ### Prodamus TEST account/access return UI — 10 October, human continuation
 

@@ -29,6 +29,12 @@
 
 ### Границы работы
 
+- **19 октября, RELEASE-D7 — прямое разрешение на выпуск ADM-P2/SAVED-P1:**
+  push в staging, coordinated API/web/restricted TEST image-only rollout на
+  той же DB с сохранением admin/password, затем live pages/calendar/Saved
+  acceptance. Не менять schema/flags/S3/старые файлы/provider/SMTP. Push runtime
+  baaeb47 выполнен; server rollout пока заблокирован обрывом SSH передачи.
+  Не считать Git push обновлением стенда; текущая working версия остаётся D5.
 - **19 октября, ADM-P2, принято пользователем «давай да»:** локально добавить
   страницы коротких admin post cards, protected full detail, bounded calendar
   и counters; подключить существующую админку без изменения дизайна. Старые API
@@ -101,7 +107,7 @@
   и own synthetic acceptance. Сначала identity/enforcement и policy hash guards;
   не менять старые statements/ACL/объекты и не включать runtime flags на сервере.
   Следующее прямое разрешение15 октября: проверить текущую policy/identity и
-  добавить только DaryadarcyPrivateContentV1 на content/private-v1/*, own synthetic
+  добавить только DaryadarcyPrivateContentV1 на content/private-v1/\*, own synthetic
   probes и новый public-control вне prefix. Scope не включает старые файлы,
   frontend, рабочую DB, CORS, lifecycle или включение флага. Выполнено ниже/в todo.
   Следующее прямое поручение15 октября разрешило CF API/SQL+actual S3 acceptance
@@ -637,15 +643,15 @@ Backend/runtime/frontend, ветки, сервер, flags/DB/S3 этим сре�
 `origin/staging` на момент сверки — `62b24a6`. Это снимок, не закреплённый навсегда
 HEAD и не подтверждение версии сервера. В начале следующей работы перепроверить.
 
-| Блок | Уже выполнено локально | Незакрытая граница |
-| --- | --- | --- |
-| Документ бэкендеру, 1–3 | Служебный доступ, публичные комментарии, проверка поста перед реакцией | Актуальная интеграция с фронтом/выпуск |
-| Email, A1–A6 и пункт 4 | Заявка/подтверждение/доставка/очистка, WorkerJobs; native SQL/loopback SMTP | A7, история/миграции 0027/0028, включение и внешняя доставка |
-| Статьи, AR1/AR2 | Ключ создания, атомарная статья/teaser, статус, миграция 0029; native replay/concurrency/restart | Ключ во фронте до POST, generated types, миграция/retention и browser reload |
-| Медиа, M1/M2 | AG2 private-prefix/read; AG4 private upload/receipt/transactional association и actual S3/restart 14 октября | Working history/client/rollout/retention; фото/статьи/старые URL не закрыты |
-| VK | Серверный доступ вложений наследуется от поста и проверен; в staging есть плеер фронтендера | Реальное наполнение, устройства; отдельный каталог сейчас публичный |
-| Сезоны/магазин | Настройки/CAS/границы дат; подготовка mailto | Материалы/настройки заказчика и устройства; mailto не подтверждает отправку |
-| Платежи/выпуск | Серверная логика и локальные сценарии | Реальный провайдер/почта, физические устройства, нагрузка и пилот |
+| Блок                    | Уже выполнено локально                                                                                       | Незакрытая граница                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| Документ бэкендеру, 1–3 | Служебный доступ, публичные комментарии, проверка поста перед реакцией                                       | Актуальная интеграция с фронтом/выпуск                                       |
+| Email, A1–A6 и пункт 4  | Заявка/подтверждение/доставка/очистка, WorkerJobs; native SQL/loopback SMTP                                  | A7, история/миграции 0027/0028, включение и внешняя доставка                 |
+| Статьи, AR1/AR2         | Ключ создания, атомарная статья/teaser, статус, миграция 0029; native replay/concurrency/restart             | Ключ во фронте до POST, generated types, миграция/retention и browser reload |
+| Медиа, M1/M2            | AG2 private-prefix/read; AG4 private upload/receipt/transactional association и actual S3/restart 14 октября | Working history/client/rollout/retention; фото/статьи/старые URL не закрыты  |
+| VK                      | Серверный доступ вложений наследуется от поста и проверен; в staging есть плеер фронтендера                  | Реальное наполнение, устройства; отдельный каталог сейчас публичный          |
+| Сезоны/магазин          | Настройки/CAS/границы дат; подготовка mailto                                                                 | Материалы/настройки заказчика и устройства; mailto не подтверждает отправку  |
+| Платежи/выпуск          | Серверная логика и локальные сценарии                                                                        | Реальный провайдер/почта, физические устройства, нагрузка и пилот            |
 
 Локальные UI-правки из истории не засчитывать как новую работу фронтендера.
 Свежая сверка `check:api` выявила отставание generated contract после AR1/AR2;
@@ -663,19 +669,20 @@ HEAD и не подтверждение версии сервера. В нача
 3. Перед действием прочитать соответствующие `SKILL.md` из доступного каталога,
    включая необходимые ссылки. Применять скиллы по смыслу, не только перечислять:
 
-   | Ситуация | Скиллы |
-   | --- | --- |
-   | Выбор/разбиение задачи | `planning-and-task-breakdown`, `incremental-implementation` |
-   | Дефект/неожиданное поведение | `systematic-debugging`, затем `test-driven-development` |
-   | Новое согласованное поведение | `test-driven-development`; `spec-driven-development`, если нет достаточной спецификации |
-   | API/новая граница данных | `api-and-interface-design`, `documentation-and-adrs` |
-   | Доступ, ввод, файлы, SQL, внешняя интеграция | `security-and-hardening` |
-   | Изменения/коммит | `git-workflow-and-versioning`, `code-review-and-quality`, `verification-before-completion` |
+   | Ситуация                                     | Скиллы                                                                                     |
+   | -------------------------------------------- | ------------------------------------------------------------------------------------------ |
+   | Выбор/разбиение задачи                       | `planning-and-task-breakdown`, `incremental-implementation`                                |
+   | Дефект/неожиданное поведение                 | `systematic-debugging`, затем `test-driven-development`                                    |
+   | Новое согласованное поведение                | `test-driven-development`; `spec-driven-development`, если нет достаточной спецификации    |
+   | API/новая граница данных                     | `api-and-interface-design`, `documentation-and-adrs`                                       |
+   | Доступ, ввод, файлы, SQL, внешняя интеграция | `security-and-hardening`                                                                   |
+   | Изменения/коммит                             | `git-workflow-and-versioning`, `code-review-and-quality`, `verification-before-completion` |
 
    Первый раз кратко сообщить пользователю, какие скиллы применяются и зачем.
    Не читать весь каталог на каждом шаге. Недоступный необходимый скилл не считать
    использованным: зафиксировать отсутствие и применить доступные правила либо
    остановить зависимую часть, если без него невозможно выполнить требование.
+
 4. Для дефекта сначала воспроизведение и причина, затем минимальное исправление.
    Для поведения — осмысленный RED → GREEN, без искусственно сломанных ожиданий.
    Уже работающий путь допускает acceptance-тест без выдуманного RED и «исправления».
@@ -2258,23 +2265,23 @@ synthetic SQL/JSON collector with explicit incomplete diagnostics; M1c real own
 storage GET/HEAD/range. Security/spec skills keep M2 contract under review before
 changing delivery/ACL; no speculative unused production scaffold added.
 
-| Пункт ТЗ | Что уже есть | Остаток / этап ниже |
-| --- | --- | --- |
-| 2.1, админка/участницы | Списки, оплаты, выдача доступа, блокировка, повтор письма; заявка и подтверждение почты внутри backend | A1–A7: доставка/очистка/HTTP/форма; новая привязка пока недоступна |
-| 4.1–4.2, оплата → письмо → вход | Отдельный Prodamus TEST, подпись, транзакции, защита повторов, диалог результата, setup/reset | P1–P2: свежая сквозная проверка и точный результат обычного checkout; ошибки СБП/GPB не подтверждены как устранённые |
-| 4.3, продление/отмена | Backend и UI продления/отмены; TEST даёт разовые 30 дней | P3: согласованность конкретной операции после потери ответа и настоящая provider-приёмка автопродления |
-| 4.4, блокировка | Проверки ролей/блокировки, отзыв сессий, интерфейс ошибок | C1: полный браузер → настоящее API → SQL для admin/moderator/member |
-| 4.5, закрытый контент | Серверные проверки постов/статей, гостевые состояния | M1–M2: проверить прямые файлы; storage.ts сейчас использует public-read |
-| 4.6, редакторы | Форматирование, вложения, preview, черновики, ключ create, атомарная запись | C2: три оставшихся real-API browser кейса, настоящие медиа и устройства |
-| 4.7, фото | Общая карусель, точки, восстановление выбора | C3/Q2: реальные материалы, поворот и телефон |
-| 4.8, комментарии | Фото, жалобы, модерация, ограничения и очистка метаданных | C3: совместная SQL/storage-проверка и повтор после потери ответа |
-| 4.9, лайки/сохранения | Подтверждённые счётчики, категории, защита гонок и смешения аккаунтов | C3: сохранность после выхода/входа и повторного открытия |
-| 4.10, сезоны | Четыре сезона, Москва, revision/CAS, форма администратора | S1: реальные настройки, граничные даты и изображения заказчика |
-| 4.11, VK | HTML video/YouTube и отдельный публичный video service | V1–V2: VK-формат данных, единый embed, реальные ссылки и public/club; отдельного VK renderer в текущем коде нет |
-| 4.12, магазин | Обе цифровые карточки готовят mailto менеджеру, книги ведут наружу, заголовок исправлен | S2: проверить реальные контакты/телефоны; серверная форма заявки — вариант на решение, не молчаливый новый объём |
-| 4.13–4.14 | Мудборды профиля выключены флагом, «Почтовое отделение — скоро», закрытые серверные возможности | C3: сохранить эти ограничения при финальной регрессии |
-| 4.15–4.16 | Оптимизированные изображения/списки, браузерные проверки, PWA-инструкция | Q1–Q3: зависимости, нагрузка по измеримому сценарию, физические устройства и пилот |
-| 2.1, остальные разделы | Главная, Лента/поиск, Библиотека, тест/результат, профиль/поддержка | C3: контроль всей навигации и сохранённых данных с настоящим API |
+| Пункт ТЗ                        | Что уже есть                                                                                           | Остаток / этап ниже                                                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| 2.1, админка/участницы          | Списки, оплаты, выдача доступа, блокировка, повтор письма; заявка и подтверждение почты внутри backend | A1–A7: доставка/очистка/HTTP/форма; новая привязка пока недоступна                                                   |
+| 4.1–4.2, оплата → письмо → вход | Отдельный Prodamus TEST, подпись, транзакции, защита повторов, диалог результата, setup/reset          | P1–P2: свежая сквозная проверка и точный результат обычного checkout; ошибки СБП/GPB не подтверждены как устранённые |
+| 4.3, продление/отмена           | Backend и UI продления/отмены; TEST даёт разовые 30 дней                                               | P3: согласованность конкретной операции после потери ответа и настоящая provider-приёмка автопродления               |
+| 4.4, блокировка                 | Проверки ролей/блокировки, отзыв сессий, интерфейс ошибок                                              | C1: полный браузер → настоящее API → SQL для admin/moderator/member                                                  |
+| 4.5, закрытый контент           | Серверные проверки постов/статей, гостевые состояния                                                   | M1–M2: проверить прямые файлы; storage.ts сейчас использует public-read                                              |
+| 4.6, редакторы                  | Форматирование, вложения, preview, черновики, ключ create, атомарная запись                            | C2: три оставшихся real-API browser кейса, настоящие медиа и устройства                                              |
+| 4.7, фото                       | Общая карусель, точки, восстановление выбора                                                           | C3/Q2: реальные материалы, поворот и телефон                                                                         |
+| 4.8, комментарии                | Фото, жалобы, модерация, ограничения и очистка метаданных                                              | C3: совместная SQL/storage-проверка и повтор после потери ответа                                                     |
+| 4.9, лайки/сохранения           | Подтверждённые счётчики, категории, защита гонок и смешения аккаунтов                                  | C3: сохранность после выхода/входа и повторного открытия                                                             |
+| 4.10, сезоны                    | Четыре сезона, Москва, revision/CAS, форма администратора                                              | S1: реальные настройки, граничные даты и изображения заказчика                                                       |
+| 4.11, VK                        | HTML video/YouTube и отдельный публичный video service                                                 | V1–V2: VK-формат данных, единый embed, реальные ссылки и public/club; отдельного VK renderer в текущем коде нет      |
+| 4.12, магазин                   | Обе цифровые карточки готовят mailto менеджеру, книги ведут наружу, заголовок исправлен                | S2: проверить реальные контакты/телефоны; серверная форма заявки — вариант на решение, не молчаливый новый объём     |
+| 4.13–4.14                       | Мудборды профиля выключены флагом, «Почтовое отделение — скоро», закрытые серверные возможности        | C3: сохранить эти ограничения при финальной регрессии                                                                |
+| 4.15–4.16                       | Оптимизированные изображения/списки, браузерные проверки, PWA-инструкция                               | Q1–Q3: зависимости, нагрузка по измеримому сценарию, физические устройства и пилот                                   |
+| 2.1, остальные разделы          | Главная, Лента/поиск, Библиотека, тест/результат, профиль/поддержка                                    | C3: контроль всей навигации и сохранённых данных с настоящим API                                                     |
 
 ### 1. Завершить первую привязку почты (A)
 
@@ -3033,7 +3040,7 @@ subject/body/product URL, заменён только recipient. SQL config и p
 пары; рабочие настройки/админка не менялись. **2 native pass / 57 filtered skips
 (59), exit 0 (3.02 s)**; root types/format/docs/diff проходят. Первые fixture
 failures ожидали исчезновение всех role=alert: diagnostic показал пустой
-__next-route-announcer__, не manager error. Теперь error scoped по точному
+**next-route-announcer**, не manager error. Теперь error scoped по точному
 тексту менеджера; diagnostic удалён, no suppression/force-click. Review:
 native response не подменён, abort только после настоящего чтения; SQL UPDATE
 только synthetic test setup, не admin write acceptance. Production/design/roles/
@@ -3568,8 +3575,7 @@ media/devices/A7 остаются открытыми. Сервер/рабоча�
 После двух isolated probes проверен сам native scenario: moderator dismiss
 report, затем весь C1 lifecycle. Own MySQL 8.4 контейнер с уникальным owner
 label, loopback 33367, tmpfs `/var/lib/mysql`, без volumes, только backend_test;
-настоящий Nest API, Chromium и существующая production Next сборка на loopback
-33368. Next env loader предварительно кеширован на собственном пустом temp
+настоящий Nest API, Chromium и существующая production Next сборка на loopback 33368. Next env loader предварительно кеширован на собственном пустом temp
 directory: dotenv/секреты не читались. Внешние браузерные запросы блокировал
 существующий fixture. Production workers/provider calls не запускались.
 Временная instrumentation отмечала method/path (без query, credentials/body),
@@ -5114,7 +5120,7 @@ SQL/HTTP/browser не повторялись без причины.
 Prod audit **0 findings / exit 0 / 325 dependencies**; full audit
 **15 findings (9 high / 6 moderate), exit 1 / 828 dependencies**.
 **Residual blocker:** версия не меняет default RegExp engine. Owned child
-на actual 6.14.0 с $data:true, pattern `^(a|a)*$`, value 40 `a` + `!` всё ещё
+на actual 6.14.0 с $data:true, pattern `^(a|a)*$`, value 40 `a`+`!` всё ещё
 достигает 2s timeout / SIGTERM (64 MB heap, 4 KB output). Поэтому отсутствие
 AJV advisory в registry не равно исправлению ReDoS default engine. Opt-in
 engine API доступен, но новый native RE2/изменение validation policy не добавлены.
@@ -5340,7 +5346,7 @@ quotas не менялись. A7/migrations/provider/media/device/rollout ещё
 4.28.7 по [релизу](https://github.com/browserslist/browserslist/releases/tag/4.28.7),
 [changelog](https://raw.githubusercontent.com/browserslist/browserslist/4.28.7/CHANGELOG.md)
 и [stats advisory](https://github.com/advisories/GHSA-73wf-gq98-2v4g).
-Actual Babel helper dependency на bounded JSON stats с __proto__/constructor/
+Actual Babel helper dependency на bounded JSON stats с **proto**/constructor/
 toString раньше бросала TypeError при unrelated explicit query: **3 RED**;
 теперь возвращает literal chrome 100. Обычный custom usage query сохранён:
 **4 focused GREEN**. В тесте нет poisoned files/global prototype mutations.
@@ -5719,15 +5725,15 @@ The repository remains a **modular monolith**, not a microservice system. Worksp
 
 ## Risks and Mitigations
 
-| Risk | Mitigation |
-|---|---|
-| Expo/Metro path resolution breaks after moving the app | Move config with the app and verify the web bundle before removing old paths |
-| Backend aliases resolve in TypeScript but not at runtime | Verify both `tsx` startup/build and the bundled server artifact |
-| tRPC contract changes during router extraction | Runtime characterization of namespaces/procedures and compatibility composition |
-| Database imports form cycles | Enforce app → database → shared dependency direction |
-| Deployment scripts silently retain old paths | Search repository-wide and run script syntax/config checks after the move |
-| Legacy Vite app is mistaken for production | Isolate it as `apps/legacy-web` and document it as frozen pending product decision |
-| Structural changes mix with security/payment fixes | Keep behavior changes in separate follow-up commits |
+| Risk                                                     | Mitigation                                                                         |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Expo/Metro path resolution breaks after moving the app   | Move config with the app and verify the web bundle before removing old paths       |
+| Backend aliases resolve in TypeScript but not at runtime | Verify both `tsx` startup/build and the bundled server artifact                    |
+| tRPC contract changes during router extraction           | Runtime characterization of namespaces/procedures and compatibility composition    |
+| Database imports form cycles                             | Enforce app → database → shared dependency direction                               |
+| Deployment scripts silently retain old paths             | Search repository-wide and run script syntax/config checks after the move          |
+| Legacy Vite app is mistaken for production               | Isolate it as `apps/legacy-web` and document it as frozen pending product decision |
+| Structural changes mix with security/payment fixes       | Keep behavior changes in separate follow-up commits                                |
 
 ## Explicit Non-Goals
 
@@ -6249,15 +6255,15 @@ Do not replace tRPC with REST or Drizzle with TypeORM in the same migration.
 
 ### Capability map and build order
 
-| Module id | Responsibility | Depends on |
-| --- | --- | --- |
-| http-runtime | Nest bootstrap, security/parsers, HTTP lifecycle | — |
-| launch | Health/capabilities, seasonal settings | http-runtime, existing database/identity |
-| identity | Registration, session, passwords and authorization | http-runtime, database |
-| content | Post/media/edit/publication behaviour | identity, database |
-| billing | Checkout, receipts, cancellation | identity, database |
-| workers | Existing background jobs and later durable publication delivery | content, billing |
-| remaining-api | Profile, club, moderation, pen pals, disabled shop | identity, content |
+| Module id     | Responsibility                                                  | Depends on                               |
+| ------------- | --------------------------------------------------------------- | ---------------------------------------- |
+| http-runtime  | Nest bootstrap, security/parsers, HTTP lifecycle                | —                                        |
+| launch        | Health/capabilities, seasonal settings                          | http-runtime, existing database/identity |
+| identity      | Registration, session, passwords and authorization              | http-runtime, database                   |
+| content       | Post/media/edit/publication behaviour                           | identity, database                       |
+| billing       | Checkout, receipts, cancellation                                | identity, database                       |
+| workers       | Existing background jobs and later durable publication delivery | content, billing                         |
+| remaining-api | Profile, club, moderation, pen pals, disabled shop              | identity, content                        |
 
 Build order: dependency/tooling proof → http-runtime → launch → identity → content
 → billing → workers → remaining-api → release rehearsal. Module specs/acceptance
@@ -6546,7 +6552,7 @@ Generic media declared Content-Type specification: existing admin.uploadMedia
 forwards caller MIME directly into public storage and SQL, even text/html for a
 PDF-named document. Reproduce this through native HTTP/JWT/MySQL before repair.
 This small slice checks declared category/MIME compatibility, NOT file signatures:
-audio/* for audio, video/* for video; PDF, DOC, DOCX and text/plain for documents;
+audio/_ for audio, video/_ for video; PDF, DOC, DOCX and text/plain for documents;
 application/octet-stream remains the existing picker fallback for every category.
 Reject missing/malformed/control-bearing or over-128-character MIME values and
 incompatible categories as BAD_REQUEST before decoding/storage/SQL. Normalize
@@ -6604,8 +6610,7 @@ Run detection in an isolated worker with a five-second active-task deadline; one
 active detector per process, serialized without introducing HTTP quotas or 429s.
 Transfer a dedicated copy of the already size-bounded bytes, preserving storage
 bytes; terminate/await the worker on every outcome. Malformed/parser-limit/timeout
-input fails closed; worker startup/runtime infrastructure failure stays a generic
-500. Test native HTTP/JWT/MySQL rejection and unchanged supported uploads, plus
+input fails closed; worker startup/runtime infrastructure failure stays a generic 500. Test native HTTP/JWT/MySQL rejection and unchanged supported uploads, plus
 worker teardown/recovery and compiled Node 22 execution. No schema, frontend,
 provider, raw-video, storage privacy or orphan-object deletion changes.
 
@@ -7602,7 +7607,7 @@ in separate increments. Online shop stays hard-disabled.
 ## 2026-10-07 — shop checkout: own catalog entries only
 
 Continue backend only from 0c23918. User-controlled product IDs crossed a plain
-object lookup: __proto__, constructor and toString resolved to inherited values
+object lookup: **proto**, constructor and toString resolved to inherited values
 instead of unknown products. Twelve expected RED cases reproduce the helper,
 builder, actual tRPC caller and loopback legacy HTTP failure paths. Restrict the
 canonical lookup to Object.hasOwn and reuse it in URL construction. Unknown
@@ -8866,12 +8871,12 @@ Different jobs remain independent; local single-flight is not a distributed lock
 
 Inspection baseline in `_core/index.ts`:
 
-| Job | Initial run | Interval | Existing semantics to preserve |
-| --- | --- | --- | --- |
-| Scheduled publication | after listener succeeds | 60 seconds | publish SQL first, then announce |
-| Billing | after listener succeeds | 30 seconds | cancellation and access-email workers use independent settled promises |
-| Maintenance | after listener succeeds | 5 minutes | disabled-shop helper first, then retention |
-| Backup due check | after listener succeeds | 6 hours | helper's 24-hour due check and existing activeBackup guard |
+| Job                   | Initial run             | Interval   | Existing semantics to preserve                                         |
+| --------------------- | ----------------------- | ---------- | ---------------------------------------------------------------------- |
+| Scheduled publication | after listener succeeds | 60 seconds | publish SQL first, then announce                                       |
+| Billing               | after listener succeeds | 30 seconds | cancellation and access-email workers use independent settled promises |
+| Maintenance           | after listener succeeds | 5 minutes  | disabled-shop helper first, then retention                             |
+| Backup due check      | after listener succeeds | 6 hours    | helper's 24-hour due check and existing activeBackup guard             |
 
 All four interval handles are currently discarded. There is no executable
 shutdown-hook registration or application-owned stop/drain path. A slow run can
@@ -8937,7 +8942,7 @@ runtime code is unchanged, so no new application test/build result is claimed.
 ### M06 signature integrity — own JSON keys, 8 October
 
 Local investigation reproduced a narrow canonicalization defect in
-apps/backend/src/prodamus.ts. JSON parsing/spread preserve an own __proto__ key,
+apps/backend/src/prodamus.ts. JSON parsing/spread preserve an own **proto** key,
 but assigning that key into ordinary objects in stringifyValues and sortDeep
 does not preserve it as an own property. Consequently an otherwise unchanged
 signed JSON callback can acquire that field without invalidating its signature.
@@ -8954,7 +8959,7 @@ rewrite, a parser refactor or a claim that Prodamus sends these unusual fields.
 
 Acceptance uses only synthetic keys and independent, hand-derived canonical
 strings: ordinary nested data plus root scalar/object/null, nested and array
-__proto__ fields; adding an unsigned field must fail verification. The real Nest
+**proto** fields; adding an unsigned field must fail verification. The real Nest
 HTTP case rejects the tampered callback before settlement. Nine expected RED
 assertions were observed; GREEN passes all 90 focused checks across six billing
 test files. A deliberate regression of the sorting dictionary alone fails eight
@@ -9219,8 +9224,8 @@ scaffold, then repaired by the extraction. Literal fixtures preserve first scala
 query values, whole-field body precedence, UTF-8/form decoding, indexed PHP
 objects (not arrays), last duplicate form values and insertion-order collisions.
 They also preserve valid non-object JSON exclusion, missing/blank/array bodies,
-blocked __proto__/constructor/prototype path segments at both depths and own JSON
-__proto__ fields for subsequent HMAC verification. Frozen inputs remain untouched.
+blocked **proto**/constructor/prototype path segments at both depths and own JSON
+**proto** fields for subsequent HMAC verification. Frozen inputs remain untouched.
 An empty-array table fixture initially spread to zero test arguments; named
 fixture objects corrected it before the second RED run and implementation.
 
@@ -9662,7 +9667,7 @@ contract. No server change or transaction is claimed from the source-only guard.
 
 PD2 implementation contract: operator-only local CLI produces a signed link for
 one configured `dd-demo-<UUID>` order (not a public link-creation endpoint). Use
-dedicated PRODAMUS_SANDBOX_* configuration, explicit true flag, exact testpage1
+dedicated PRODAMUS*SANDBOX*\* configuration, explicit true flag, exact testpage1
 merchant and dev application origin. Fixed 790 RUB, reserved example.test email,
 no phone or subscription. POST /api/prodamus/sandbox/webhook accepts bounded raw
 JSON/form bodies only, rejects query additions and requires a valid dedicated
@@ -10699,7 +10704,7 @@ PD3, not live payment acceptance. One billing capability; no new schema/provider
 Keep production webhook/demo guard, existing API/web images, auth/CORS/proxy trust,
 quotas, shop blocks and subscription settings unchanged.
 
-Implementation contract: dedicated default-off PRODAMUS_TEST_* configuration,
+Implementation contract: dedicated default-off PRODAMUS*TEST*\* configuration,
 exact testpage1.payform.ru and dev public origin. Existing club.createCheckout
 response stays {url,user:null}; monthly only, fixed 790 RUB, explicit demo_mode=1,
 one-off products, no subscription/card-saving/SYS/per-link callback. Use the
@@ -11316,8 +11321,8 @@ First-email identity scenario, M07c drain bound, provider/SMTP/recurring/device 
 previous dependency/rollout gates remain open.
 
 Verification notes: the attempted tests/docs-links.test.ts filter does not exist
-and ran no tests; the correct __tests__/documentation-links.test.ts and
-__tests__/documentation-cli.test.ts then passed all 14 checks. Docs command
+and ran no tests; the correct **tests**/documentation-links.test.ts and
+**tests**/documentation-cli.test.ts then passed all 14 checks. Docs command
 itself passed 51 documents.
 Formatting of old Markdown produced unrelated changes; restored those exact
 original hunks and kept only new sections before commit. No waived test failure.
