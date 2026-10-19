@@ -63,6 +63,17 @@ function coordinatorFor(id: number | null = null, original?: PostPayload) {
   coordinator.setCheckpoint(async () => {}); // Unit boundary, NOT IndexedDB acceptance.
   return coordinator;
 }
+function recoverySnapshot(coordinator: PostSaveCoordinator) {
+  const { privatePhotos, ...state } = coordinator.snapshot();
+  return {
+    ...structuredClone(state),
+    // Node 22 clones File as Blob. Keep immutable Files; native persistence is tested in Chromium.
+    privatePhotos: privatePhotos?.map(({ file, ...intent }) => ({
+      ...structuredClone(intent),
+      file,
+    })),
+  };
+}
 
 it.each([null, 42])(
   "uploads new photos before binding, preserving old URL order (%s)",
@@ -111,7 +122,7 @@ it("lost upload ACK restores the same intent, status first, without uploading tw
     coordinator.save(payload(), [], [], api, task(), [photo()]),
   ).rejects.toMatchObject({ uncertain: true });
   const restored = coordinatorFor();
-  restored.restore(structuredClone(coordinator.snapshot()));
+  restored.restore(recoverySnapshot(coordinator));
   await restored.recoverUploads(api, task());
   expect(api.create).not.toHaveBeenCalled();
   await restored.save(payload(), [], [], api, task());
@@ -150,7 +161,7 @@ it("unknown create replays the frozen payload/key without uploading or creating 
     coordinator.save(payload(), [], [], api, task(), [photo()]),
   ).rejects.toThrow();
   const restored = coordinatorFor();
-  restored.restore(structuredClone(coordinator.snapshot()));
+  restored.restore(recoverySnapshot(coordinator));
   await restored.recoverCreation(api, task());
   expect(api.create.mock.calls[1][0]).toEqual(api.create.mock.calls[0][0]);
   expect(api.create.mock.calls[1][0]).toMatchObject({ photos: [oldUrl, url] });
@@ -265,7 +276,7 @@ it("recovery cannot replay a photo before durable storage is installed", async (
     original.save(payload(), [], [], api, task(), [photo()]),
   ).rejects.toThrow();
   const restored = new PostSaveCoordinator();
-  restored.restore(structuredClone(original.snapshot()));
+  restored.restore(recoverySnapshot(original));
   api.privatePhotoStatus.mockResolvedValueOnce({ state: "notRecorded" });
   await expect(restored.recoverUploads(api, task())).rejects.toThrow();
   expect(api.uploadPrivatePhoto).toHaveBeenCalledTimes(1);
@@ -362,7 +373,7 @@ it("recovers only the second unresolved photo and preserves the user's reordered
     coordinator.save(original, [], [], api, task(), [photo(), second]),
   ).rejects.toThrow();
   const restored = coordinatorFor();
-  restored.restore(structuredClone(coordinator.snapshot()));
+  restored.restore(recoverySnapshot(coordinator));
   api.privatePhotoStatus.mockResolvedValueOnce(secondReceipt);
   await restored.recoverUploads(api, task());
   await restored.save(
