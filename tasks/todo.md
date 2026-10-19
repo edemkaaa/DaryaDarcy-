@@ -2,7 +2,61 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
-### RELEASE-D7 — staging опубликован, сервер ещё D5,19 октября
+### RELEASE-D7 — сервер обновлён,20 октября; предел проверки клуба
+
+- [x] После смены VPN выпуск реально применён на публичном dev, а не только
+  отправлен в Git. Runtime commit1fc155e44c9d2c689e6cf567cfa735556975c61c;
+  normal push staging подтверждён. Ветка прежняя, чужие frontend правки сохранены.
+- [x] До переключения найдена реальная несовместимость tRPC infinite query:
+  direction=forward отклонялся strict schema. RED unit и native HTTP/SQL400;
+  минимальный optional literal forward, backward/unknown по-прежнему400.
+  GREEN7 unit +33 native HTTP/JWT/SQL; root2653 pass/1612 opt-in skips,
+  types/build/API90/35148/boundaries692/docs59/format/diff pass. Только backend,
+  его тесты и generated type; frontend runtime/design не менялись. Own tmpfs
+  backend_test3fec99a9… удалён после ID/name/labels/port65486/tmpfs/no-volume guards.
+- [x] API/TEST images498aa1a9…/webbecc5c65…, BUILD_ID ioLtYikvyK780DlSuNqiI.
+  Web runtime layers/config точно равны подготовленному baaeb47 Next build;
+  обновлена только revision metadata. Clean-source API/TEST повторно собраны,
+  production audit0/325 deps; isolated --network none API5/web7/TEST3 pass.
+  Superseded partial285605888 bytes удалён после prefix SHA, без Docker load/apply.
+  Final archive535315197 bytes/SHA4695f4163d2a45259ff799a8221ed9b1633a5f5e752d3be229a90a009e5e9444
+  сверён полностью до load. Старую несовместимую версию не выпускали.
+- [x] Fresh consistent backup351598 bytes/40 tables/SHA
+  234e1177ba9b17676d413c7fe87883c4b35afb1f208c8cece1d1c60f3f0a0c97;
+  server0600 и проверенная local0600 copy вне Git. Working DB по-прежнему
+  daryadarcy_candidate_20261019; schema/history42/admin hash/role/sessionVersion
+  сохранены до/после. Все6 side-effect counters0; полная Compose delta только
+  API/web/TEST images и TEST bundle source. Остальные26 containers неизменны;
+  все3 новые services healthy/restart0/OOMfalse, actual bundles совпадают.
+- [x] Public HTTPS73 pass: same-password admin login/me/logout, новые endpoints,
+  все742 IDs/38 pages без дублей и с legacy order, status/target filters/detail,
+  backward400/guest401. Первая20-card page15685 bytes вместо1544982 legacy;
+  единичные HTTP замеры888ms/1932ms не являются нагрузочным benchmark.
+  Header counts совпали. Calendar current61 days пуст и корректен; отдельно
+  исторические2 nonempty days/2056 bytes с точными counts/first cards/upcoming.
+- [x] Реальный Chromium → HTTPS API → working DB, без mock API:40 cards после
+  догрузки, no duplicate DOM IDs, calendar navigation, admin.posts requests0.
+  Unpaid own account507 сохранил и открыл public post1 через профиль, не получив
+  подписку. Account507 и1 own saved row удалены с exact identity/hash guards;
+  письма/платежи не создавались. Первые browser attempts остановились на install
+  guide overlay; закрыт штатным Escape, production UI не менялся, повтор GREEN.
+- [x] Image rollout принят с явным пределом club verification; receipt SHA
+  a07440325f191e3de2765a7c2a4c7ebee4de8176e5ab9c609c963aca4e576e89.
+  Local `.local-artifacts/release-baaeb47.31scch`, server
+  `/home/edem/apps/daryadarcy-staging/release-baaeb47.4qlmx5`. Старые images,
+  backups/configs/TEST source остаются для same-DB rollback; не запускать DB cutover.
+- [x] После acceptance удалены только own local/server image archives с exact
+  path/owner/non-symlink/size/SHA guards; они восстанавливаются из retained images.
+  Fresh backup/configs/receipts сохранены; server free1092MiB. Финальный read-only
+  guard: accepted, schema/admin/config прежние, posts742/club0/fixtureUsers0,
+  side-effect counters0. Чужие файлы, images, volumes и БД не удалялись.
+- [ ] **Только отдельная live проверка club-only Saved:** все742 существующих
+  поста target=feed, клубного примера нет. Не выдавать пустую вкладку/несуществующий
+  ID за проверку защиты. Запрошено отдельное согласие на1 synthetic club post и
+  его точечное удаление; пока такой пост не создавался и existing content не менялся.
+  Mobile/full contract/pilot/payment/S3 acceptance этим выпуском не заявлена.
+
+### RELEASE-D7 — история подготовки до смены VPN,19 октября
 
 - [x] Прямое разрешение на push/deploy ADM-P2 + ранее отложенный SAVED-P1.
       Clean feature/stage-one-completion-2026-10-10, fetch: incoming0/ours7;
@@ -28,16 +82,17 @@
       удалены, web image перепакован без build cache и native checks повторены.
       Final archive535314232 bytes, SHA c751b2532de061d0d66ecdd12684a88915c9259d71ff96d2128f61a43c44a802;
       Mac1.3GiB/server1.2GiB free. Docker cache/images/volumes/foreign files не чистились.
-- [ ] После восстановления связи: повторно проверить Git/server/config/inventory,
+- [x] После восстановления связи: повторно проверить Git/server/config/inventory,
       доставить FINAL archive с full SHA guard; stage.cjs обновляет images.json/TEST
       source/rollout script. Выполнить fresh backup/DB-admin-schema/config guards,
       coordinated image-only apply, health/bundle checks и live acceptance.
       Local artifact `.local-artifacts/release-baaeb47.31scch`, server
       `/home/edem/apps/daryadarcy-staging/release-baaeb47.4qlmx5`; state.json пока нет.
-- [ ] Пагинация: все IDs/order/cursors без дублей, bounded card bytes vs legacy;
+- [x] Пагинация: все IDs/order/cursors без дублей, bounded card bytes vs legacy;
       календарь: local-day counts/first cards/upcoming совпадают; browser не делает
       admin.posts. Saved: unpaid own temporary account — public доступны, club closed,
-      exact cleanup. Эти live проверки ещё НЕ запускались; D7 не принят/не завершён.
+      exact cleanup. Эта запись — прежний план до возобновления; актуальный итог
+      и отдельный предел club-only проверки приведены выше.
 
 ### ADM-P2 — принятые страницы админки и календарь,19 октября
 

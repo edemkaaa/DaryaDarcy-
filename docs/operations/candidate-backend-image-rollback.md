@@ -1,6 +1,67 @@
 # БД-кандидат: backend artifact и откат приложения
 
-## RELEASE-D7 — ADM-P2/SAVED-P1 в staging, server rollout заблокирован
+## Текущий working dev — RELEASE-D7,20 октября 2026
+
+Публичный `https://daryadarcy.dev.reeskeen.ru` реально обновлён, runtime commit
+`1fc155e44c9d2c689e6cf567cfa735556975c61c` в staging. Выпущены ADM-P2 и SAVED-P1.
+До apply обнаружена несовместимость strict postsPage с direction=forward,
+который добавляет настоящий tRPC infinite client. RED unit/native HTTP400,
+минимальный optional forward, backward/unknown400; GREEN7 input units +33
+native SQL/HTTP, root2653 pass/1612 opt-in skips, types/build/API90/35148 pass.
+Schema/roles/quotas/flags не менялись. Old incompatible images не применялись.
+
+- API/restricted TEST:
+  `sha256:498aa1a9bda02c41ab8bf1f75870907f703bb03ac33bbca31a4686c683b9eae9`;
+  web `sha256:becc5c65d17f46c99d09f2bdafa7b2be87e75e4c8f5972524f8e21f28a855649`.
+  API bundle SHA `3210fa9bf530b0ae09709be1773d4cb4ec58e9de13cb3cee0238a58fb899b3ca`;
+  TEST SHA `7b9892b3afb129c55a248aa759fccc0a9c17ee9636e08075aee1aa2039c00d83`.
+  BUILD_ID `ioLtYikvyK780DlSuNqiI`. Web filesystem layers/runtime config равны
+  проверенному baaeb47 Next29 build; frontend diff только generated type,
+  поэтому assets/runtime переиспользованы с новой revision metadata. API/TEST
+  собраны из актуального Git source, pinned D4 deps/config прежние;
+  audit0/325 deps, native --network none API5/web7/TEST3 pass.
+- Final archive535315197 bytes, SHA
+  `4695f4163d2a45259ff799a8221ed9b1633a5f5e752d3be229a90a009e5e9444`
+  проверен до load. Fresh single-transaction backup351598 bytes/40 tables,
+  SHA `234e1177ba9b17676d413c7fe87883c4b35afb1f208c8cece1d1c60f3f0a0c97`:
+  server0600 и matching local0600 copy. Active DB всё ещё
+  `daryadarcy_candidate_20261019`; schema/history42/admin password hash/role/
+  sessionVersion до/после равны. Full Compose delta только3 images и TEST source;
+  provider/SMTP/DB URI/JWT/flags прежние. Side effects6 counters0, все3 services
+  healthy/restart0/OOMfalse; остальные26 containers неизменны, actual bundles match.
+- Public HTTPS73: existing-password admin login/me/logout,742 IDs/38 pages с
+  прежним порядком/без дублей, filters/detail/counters, forward200/backward400/
+  guest401. First20 cards15685 bytes vs legacy1544982. Разовые замеры888/1932ms
+  не являются нагрузочным benchmark. Current61-day calendar корректно пуст;
+  отдельно historical2 nonempty days/2056 bytes сверены с полным baseline.
+- Реальный Chromium без API mocks:40 cards после scroll, IDs unique, calendar
+  navigation без admin.posts; unpaid temporary user507 сохраняет и открывает
+  public post1 в профиле. Own account507 и1 own saved row точно удалены;
+  payments/outbox не создавались. Install guide штатно закрыт Escape после двух
+  остановок automation на backdrop, production UI не меняли.
+
+**Предел live проверки:** все742 existing posts target=feed; club-only примера
+нет. Отдельно запрошено согласие на synthetic club post, его ещё не создавали.
+Не выдавать пустую вкладку/несуществующий ID за доказательство club access denial.
+Это operational acceptance выпуска с явным пределом, не full contract/mobile/
+pilot/S3/real payment acceptance. S3/legacy files/working content не менялись.
+
+Private local0700: `.local-artifacts/release-baaeb47.31scch`;
+server0700: `/home/edem/apps/daryadarcy-staging/release-baaeb47.4qlmx5`.
+Receipt0600 SHA
+`a07440325f191e3de2765a7c2a4c7ebee4de8176e5ab9c609c963aca4e576e89`.
+Имя directory сохранено от начала D7, actual revision1fc155e в images/receipt.
+State accepted. Старые images/configs/TEST source/backups сохранены; после
+acceptance новый rollback требует отдельного разрешения и fresh same-DB guards.
+Не применять старые DB cutover scripts и не возвращать устаревшую old DB.
+
+После acceptance удалены только own local/server image archives: exact path/
+owner/non-symlink/size/SHA guards, воспроизводимы из retained images. Fresh backup,
+configs, receipts и old images сохранены, server1092MiB free. Финальный read-only
+осмотр: accepted, admin/schema/config прежние, posts742/club0/fixtureUsers0,
+все6 side-effect counters0. Никаких foreign files/images/volumes/DB cleanup.
+
+## RELEASE-D7 — историческая подготовка до возобновления20 октября
 
 19 октября разрешены совместный image-only выпуск и live проверка pagination,
 calendar, Saved. Normal push runtime `baaeb470979378c70c8fc33351e08682ba8bf0f0`
@@ -75,7 +136,7 @@ Server directory0700:
 поверх текущей DB. После user-deferred возобновление выпуска согласовать отдельно.
 Pending scripts ещё не являются server acceptance; итог в начале tasks/todo.md.
 
-## Текущий working dev — RELEASE-D5,19 октября 2026
+## Предыдущий working dev — RELEASE-D5,19 октября 2026
 
 По прямому поручению объединённая версия опубликована в origin/staging и
 фактически выпущена на `https://daryadarcy.dev.reeskeen.ru`:

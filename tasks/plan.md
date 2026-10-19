@@ -33,8 +33,11 @@
   push в staging, coordinated API/web/restricted TEST image-only rollout на
   той же DB с сохранением admin/password, затем live pages/calendar/Saved
   acceptance. Не менять schema/flags/S3/старые файлы/provider/SMTP. Push runtime
-  baaeb47 выполнен; server rollout пока заблокирован обрывом SSH передачи.
-  Не считать Git push обновлением стенда; текущая working версия остаётся D5.
+  baaeb47 выполнен;20 октября после VPN и minimal forward compatibility fix
+  1fc155e выпуск реально применён, health/bundles/admin/DB и live acceptance
+  подтверждены в todo/runbook. Working версия теперь D7. Отдельный предел:
+  club-only Saved не проверен на dev, т.к. все742 posts public; без согласия
+  не создавать synthetic club post и не менять target existing content.
 - **19 октября, ADM-P2, принято пользователем «давай да»:** локально добавить
   страницы коротких admin post cards, protected full detail, bounded calendar
   и counters; подключить существующую админку без изменения дизайна. Старые API
