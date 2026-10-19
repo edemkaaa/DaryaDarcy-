@@ -7,7 +7,7 @@ import {
   Spinner,
   Collection,
 } from "@/shared/ui/elements";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
@@ -15,7 +15,12 @@ import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { LoadingIndicator } from "@/shared/ui/loading-indicator";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { trpc } from "@/shared/api/trpc";
-import type { AdminPost } from "@/shared/api/types";
+import type { AdminPost, AdminPostCard } from "@/shared/api/types";
+import {
+  useSessionOperation,
+  checkOperationAccessError,
+} from "@/domain/session/use-session-operation";
+import { getRequestErrorMessage } from "@/shared/api/errors";
 import { useRouter } from "@/shared/navigation/router";
 
 import { CalendarTracker } from "@/features/admin/calendar-tracker";
@@ -37,7 +42,6 @@ import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
 import {
   requireOk,
   requireGrant,
-  requireAbsentId,
   requireIdList,
 } from "@/shared/api/action-result";
 import { invalidResponse } from "@/shared/api/errors";
@@ -79,7 +83,8 @@ export default function AdminScreen() {
     if (sessionStatus === "guest") router.login("/admin", true);
   }, [router, sessionStatus]);
   const viewTab = isOwner ? ownerViewTab : "reports";
-  const adminActions = useConfirmedAction(staff && !showForm);
+  const adminActions = useConfirmedAction(staff && !showForm, viewTab);
+  const detailRead = useSessionOperation(isOwner && !showForm, viewTab);
   const accessEmail = useAccessEmailResend(
     isOwner && viewTab === "members" && !showForm,
   );
@@ -95,12 +100,38 @@ export default function AdminScreen() {
       throw result.error ?? invalidResponse();
     requireIdList(result.data);
   };
-  // Fetch all posts (admin)
-  const postsQuery = trpc.admin.posts.useQuery(undefined, { enabled: isOwner });
-  const { data: posts, isLoading, refetch } = postsQuery;
+  const postsQuery = trpc.admin.postsPage.useInfiniteQuery(
+    { limit: 20 },
+    {
+      enabled: isOwner && viewTab === "posts" && !showForm,
+      getNextPageParam: (lastPage, _pages, _lastParam, params) =>
+        params.includes(lastPage.nextCursor) ? undefined : lastPage.nextCursor,
+      staleTime: 30_000,
+    },
+  );
+  const { isLoading } = postsQuery;
+  const posts = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          (postsQuery.data?.pages.flatMap((page) => page.posts) ?? []).map(
+            (post) => [post.id, post],
+          ),
+        ).values(),
+      ),
+    [postsQuery.data],
+  );
+  const countsQuery = trpc.admin.postCounts.useQuery(undefined, {
+    enabled: isOwner,
+    staleTime: 30_000,
+  });
+  const counts = countsQuery.isError ? undefined : countsQuery.data;
   const utils = trpc.useUtils();
   const invalidatePublicFeeds = () => {
-    void refetch();
+    void utils.admin.postsPage.invalidate();
+    void utils.admin.postCounts.invalidate();
+    void utils.admin.postCalendar.invalidate();
+    void utils.admin.stats.invalidate();
     void utils.feed.list.invalidate();
     void utils.feed.listPaginated.invalidate();
     void utils.club.list.invalidate();
@@ -118,7 +149,7 @@ export default function AdminScreen() {
     kind: string,
     label: string,
     perform: (input: T, signal: AbortSignal) => Promise<unknown>,
-    read: () => Promise<void>,
+    read: (input: T, signal: AbortSignal) => Promise<void>,
     commit: (result: unknown) => void,
     validate = requireOk,
   ) => ({
@@ -128,7 +159,7 @@ export default function AdminScreen() {
         kind,
         label,
         perform: (signal) => perform(input, signal),
-        read,
+        read: (signal) => read(input, signal),
         commit,
         validate,
       }),
@@ -140,13 +171,22 @@ export default function AdminScreen() {
     "Удалить пост",
     async (input: { id: number }, signal) => {
       await utils.client.admin.deletePost.mutate(input, { signal });
-      const result = await postsQuery.refetch();
-      if (!result.isSuccess || !Array.isArray(result.data))
-        throw result.error ?? invalidResponse();
-      requireAbsentId(result.data, input.id);
+      const result = await utils.client.admin.postDetail.query(input, {
+        signal,
+      });
+      if (result !== null) throw invalidResponse();
       return { ok: true };
     },
-    () => readQuery(postsQuery),
+    async (input, signal) => {
+      const detail = await utils.client.admin.postDetail.query(input, {
+        signal,
+      });
+      if (detail !== null) throw invalidResponse();
+      const result = await postsQuery.refetch();
+      if (!result.isSuccess || !result.data)
+        throw result.error ?? invalidResponse();
+      requireIdList(result.data.pages.flatMap((page) => page.posts));
+    },
     () => invalidatePublicFeeds(),
   );
   const grantClub = mutation(
@@ -223,10 +263,28 @@ export default function AdminScreen() {
     setScheduledDate(null);
     setShowForm(true);
   };
-  const handleEdit = (post: AdminPost) => {
-    setEditingPost(post);
-    setScheduledDate(null);
-    setShowForm(true);
+  const handleEdit = async (post: { id: number }) => {
+    const task = detailRead.begin("post-detail");
+    if (!task) return;
+    adminActions.setError(null);
+    try {
+      const full = await utils.client.admin.postDetail.query(
+        { id: post.id },
+        { signal: task.signal },
+      );
+      task.assertCurrent();
+      if (!full || full.id !== post.id || !Array.isArray(full.media))
+        throw invalidResponse();
+      setEditingPost(full);
+      setScheduledDate(null);
+      setShowForm(true);
+    } catch (error) {
+      checkOperationAccessError(error);
+      if (task.isCurrent())
+        adminActions.setError(getRequestErrorMessage(error));
+    } finally {
+      task.finish();
+    }
   };
   const handleDelete = (id: number) => {
     {
@@ -253,7 +311,7 @@ export default function AdminScreen() {
     });
   };
   // ── Post list item ──
-  const renderPostItem = ({ item }: { item: AdminPost }) => (
+  const renderPostItem = ({ item }: { item: AdminPostCard }) => (
     <div
       data-testid={`admin-post-${item.id}`}
       className={["ui-stack ", classes.postItem].filter(Boolean).join(" ")}
@@ -271,8 +329,7 @@ export default function AdminScreen() {
           />
         )}
         {!(item.photos && (item.photos as string[]).length > 0) &&
-          Array.isArray(item.media) &&
-          item.media.some((media) => media?.type === "video") && (
+          item.hasVideo && (
             <div
               className={["ui-stack ", classes.postThumbVideo]
                 .filter(Boolean)
@@ -349,9 +406,9 @@ export default function AdminScreen() {
                 </Typography>
               </div>
             ))}
-            {(item.tags as string[]).length > 3 && (
+            {item.tagCount > 3 && (
               <Typography className={classes.moreTagsText}>
-                +{(item.tags as string[]).length - 3}
+                +{item.tagCount - 3}
               </Typography>
             )}
           </div>
@@ -364,8 +421,8 @@ export default function AdminScreen() {
       >
         <Action
           aria-label="Редактировать пост"
-          disabled={adminActions.blocked}
-          onClick={() => handleEdit(item)}
+          disabled={adminActions.blocked || detailRead.busy}
+          onClick={() => void handleEdit(item)}
           className={({ pressed }) =>
             [
               classes.action,
@@ -454,6 +511,14 @@ export default function AdminScreen() {
           {adminActions.error}
         </Typography>
       ) : null}
+      {countsQuery.isError && isOwner ? (
+        <Action
+          onClick={() => void countsQuery.refetch()}
+          className={classes.formHint}
+        >
+          Повторить счётчики
+        </Action>
+      ) : null}
       {adminActions.unknown && !adminActions.operation.busy ? (
         <Action
           onClick={() => void adminActions.check()}
@@ -472,7 +537,7 @@ export default function AdminScreen() {
               .join(" ")}
           >
             <Typography className={classes.statNumber}>
-              {posts?.length || 0}
+              {counts?.total ?? "—"}
             </Typography>
             <Typography className={classes.formHint}>Всего</Typography>
           </div>
@@ -482,7 +547,7 @@ export default function AdminScreen() {
               .join(" ")}
           >
             <Typography className={classes.statNumber}>
-              {posts?.filter((p) => p.published).length || 0}
+              {counts?.published ?? "—"}
             </Typography>
             <Typography className={classes.formHint}>Опубликовано</Typography>
           </div>
@@ -492,7 +557,7 @@ export default function AdminScreen() {
               .join(" ")}
           >
             <Typography className={classes.statNumber}>
-              {posts?.filter((p) => p.status === "scheduled").length || 0}
+              {counts?.scheduled ?? "—"}
             </Typography>
             <Typography className={classes.formHint}>Отложено</Typography>
           </div>
@@ -502,11 +567,7 @@ export default function AdminScreen() {
               .join(" ")}
           >
             <Typography className={classes.statNumber}>
-              {posts?.filter(
-                (p) =>
-                  p.status === "draft" ||
-                  (!p.published && p.status !== "scheduled"),
-              ).length || 0}
+              {counts?.draft ?? "—"}
             </Typography>
             <Typography className={classes.formHint}>Черновики</Typography>
           </div>
@@ -792,7 +853,8 @@ export default function AdminScreen() {
         </>
       ) : null}
 
-      {selectedListQuery?.isError ? (
+      {selectedListQuery?.isError &&
+      !(viewTab === "posts" && postsQuery.isFetchNextPageError) ? (
         <QueryRetryState
           isLoading={false}
           isError
@@ -811,12 +873,9 @@ export default function AdminScreen() {
           contentClassName={classes.scrollAreacontent}
         >
           <CalendarTracker
-            posts={posts}
-            isLoading={postsQuery.isLoading}
-            isError={postsQuery.isError}
-            onRetry={() => void postsQuery.refetch()}
+            active={!showForm}
             onPostPress={(post) => {
-              handleEdit(post);
+              void handleEdit(post);
             }}
             onDayPress={(date) => {
               setEditingPost(null);
@@ -1137,6 +1196,26 @@ export default function AdminScreen() {
           renderItem={renderPostItem}
           keyExtractor={(item) => item.id.toString()}
           hideScrollbar
+          onLoadMore={
+            postsQuery.hasNextPage &&
+            !postsQuery.isFetching &&
+            !postsQuery.isError &&
+            !showForm
+              ? () => void postsQuery.fetchNextPage()
+              : undefined
+          }
+          footer={
+            postsQuery.isFetchNextPageError ? (
+              <Action
+                onClick={() => void postsQuery.fetchNextPage()}
+                className={classes.newPostBtn}
+              >
+                Повторить загрузку
+              </Action>
+            ) : postsQuery.isFetchingNextPage ? (
+              <Spinner color={GREEN_ACCENT} />
+            ) : null
+          }
           empty={
             <div
               className={["ui-stack ", classes.emptyContainer]

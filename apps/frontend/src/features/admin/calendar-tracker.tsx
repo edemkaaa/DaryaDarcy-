@@ -6,7 +6,8 @@ import { useState, useMemo } from "react";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
-import type { AdminPost } from "@/shared/api/types";
+import type { ApiOutputs } from "@/shared/api/types";
+import { trpc } from "@/shared/api/trpc";
 import {
   BROWN_DARK,
   BROWN_LIGHT,
@@ -15,54 +16,56 @@ import {
   WEEKDAYS,
   MONTHS_RU,
 } from "./calendar-tracker.content";
-type ScheduledPost = AdminPost;
+type ScheduledPost = { id: number };
+type CalendarDay = ApiOutputs["admin"]["postCalendar"]["days"][number];
 interface CalendarTrackerProps {
-  posts: AdminPost[] | undefined;
-  isLoading: boolean;
-  isError: boolean;
-  onRetry: () => void;
+  active?: boolean;
   onPostPress?: (post: ScheduledPost) => void;
   onDayPress?: (date: Date) => void;
 }
 export function CalendarTracker({
-  posts: allPosts,
-  isLoading,
-  isError,
-  onRetry,
+  active = true,
   onPostPress,
   onDayPress,
 }: CalendarTrackerProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+  const days = useMemo(() => {
+    const result: { from: string; to: string }[] = [];
+    for (
+      let date = new Date(year, month, 1);
+      date < new Date(year, month + 2, 1);
+    ) {
+      const next = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate() + 1,
+      );
+      result.push({ from: date.toISOString(), to: next.toISOString() });
+      date = next;
+    }
+    return result;
+  }, [year, month]);
+  const query = trpc.admin.postCalendar.useQuery(
+    { days },
+    { enabled: active, staleTime: 30_000 },
+  );
   const postsByDay = useMemo(() => {
-    const byMonth = new Map<string, Map<number, ScheduledPost[]>>();
-    if (!allPosts) return byMonth;
-    allPosts.forEach((post) => {
-      const dateStr = post.scheduledAt || post.publishedAt || post.createdAt;
-      if (!dateStr) return;
-      const date = new Date(dateStr);
+    const byMonth = new Map<string, Map<number, CalendarDay>>();
+    (query.data?.days ?? []).forEach((post) => {
+      const window = days[post.dayIndex];
+      if (!window) return;
+      const date = new Date(window.from);
       const key = `${date.getFullYear()}-${date.getMonth()}`;
       if (!byMonth.has(key)) byMonth.set(key, new Map());
       const map = byMonth.get(key)!;
       const day = date.getDate();
-      const existing = map.get(day) || [];
-      existing.push(post as ScheduledPost);
-      map.set(day, existing);
+      map.set(day, post);
     });
     return byMonth;
-  }, [allPosts]);
-  const upcoming = useMemo(() => {
-    if (!allPosts) return [] as ScheduledPost[];
-    return (allPosts as ScheduledPost[])
-      .filter((post) => post.status === "scheduled" && post.scheduledAt)
-      .sort(
-        (a, b) =>
-          new Date(a.scheduledAt || 0).getTime() -
-          new Date(b.scheduledAt || 0).getTime(),
-      )
-      .slice(0, 8);
-  }, [allPosts]);
+  }, [query.data, days]);
+  const upcoming = query.data?.upcoming ?? [];
   const goToPrevMonth = () => {
     setCurrentDate(new Date(year, month - 1, 1));
   };
@@ -85,21 +88,21 @@ export function CalendarTracker({
     const map = postsByDay.get(`${y}-${m}`) || new Map();
     const posts = [...map.values()].flat();
     return {
-      published: posts.filter((post) => post.status === "published").length,
-      scheduled: posts.filter((post) => post.status === "scheduled").length,
-      draft: posts.filter((post) => post.status === "draft").length,
+      published: posts.reduce((sum, post) => sum + post.published, 0),
+      scheduled: posts.reduce((sum, post) => sum + post.scheduled, 0),
+      draft: posts.reduce((sum, post) => sum + post.draft, 0),
     };
   };
-  if (isError)
+  if (query.isError)
     return (
       <QueryRetryState
         isLoading={false}
         isError
-        onRetry={onRetry}
+        onRetry={() => void query.refetch()}
         message="Не удалось загрузить календарь публикаций"
       />
     );
-  if (isLoading) {
+  if (query.isLoading) {
     return (
       <div
         className={["ui-stack ", classes.loadingContainer]
@@ -255,7 +258,7 @@ function MonthGrid({
 }: {
   year: number;
   month: number;
-  postsByDay: Map<number, ScheduledPost[]>;
+  postsByDay: Map<number, CalendarDay>;
   stats: {
     published: number;
     scheduled: number;
@@ -315,8 +318,8 @@ function MonthGrid({
             );
           }
           const posts = postsByDay.get(day);
-          const hasPost = Boolean(posts && posts.length > 0);
-          const firstPost = hasPost ? posts![0] : null;
+          const hasPost = Boolean(posts && posts.total > 0);
+          const firstPost = hasPost ? posts! : null;
           const firstPhoto = firstPost?.photos?.[0];
           const isToday =
             day === new Date().getDate() &&
@@ -410,9 +413,9 @@ function MonthGrid({
                   ) : null}
                 </div>
               )}
-              {posts && posts.length > 1 ? (
+              {posts && posts.total > 1 ? (
                 <Typography className={classes.multiPostBadge}>
-                  +{posts.length - 1}
+                  +{posts.total - 1}
                 </Typography>
               ) : null}
             </Action>

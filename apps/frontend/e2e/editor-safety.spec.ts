@@ -215,11 +215,19 @@ test("a pending final write cannot be abandoned; confirmed completion allows a f
   ).toBeEnabled();
 });
 
-test("a video upload returning HTML 413 shows its size error and adds no video", async ({
+test("a private video upload returning HTML 413 preserves its draft without creating a post", async ({
   page,
 }) => {
-  await editorApi(page);
-  await page.route("**/api/admin/upload-video?*", (route) =>
+  let writes = 0;
+  await editorApi(page, (name) => {
+    if (name === "admin.privateAttachmentStatus")
+      return ok({ state: "notRecorded" });
+    if (name === "admin.createPost") {
+      writes++;
+      return ok(42);
+    }
+  });
+  await page.route("**/api/admin/private-video-uploads?*", (route) =>
     route.fulfill({
       status: 413,
       contentType: "text/html",
@@ -243,10 +251,20 @@ test("a video upload returning HTML 413 shows its size error and adds no video",
     mimeType: "video/mp4",
     buffer: Buffer.from("test video"),
   });
+  const form = page.getByRole("dialog");
+  await expect(page.getByText("Видео (1)", { exact: true })).toBeVisible();
+  await form
+    .getByPlaceholder("Текст поста… Enter — новый абзац")
+    .fill("UNSENT_VIDEO");
+  await form.getByLabel("Опубликовать", { exact: true }).click();
   await expect.poll(() => messages.length).toBe(1);
-  expect(messages[0]).toContain("слишком большое");
+  expect(messages[0]).toMatch(/слишком большое|ограничения размера/);
   expect(messages[0]).not.toMatch(/PRIVATE_DETAILS|already been read/);
-  await expect(page.getByText("Видео (0)", { exact: true })).toBeVisible();
+  await expect(page.getByText("Видео (1)", { exact: true })).toBeVisible();
+  await expect(
+    form.getByPlaceholder("Текст поста… Enter — новый абзац"),
+  ).toHaveValue("UNSENT_VIDEO");
+  expect(writes).toBe(0);
 });
 
 test("editing an unpublished article preserves its status", async ({
@@ -759,7 +777,7 @@ test("a failed comment photo upload keeps the text and reports its error", async
         ],
         nextCursor: null,
       });
-    if (name === "club.uploadCommentPhoto") {
+    if (name === "club.uploadPrivateCommentPhoto") {
       uploads++;
       return failure();
     }
@@ -780,6 +798,11 @@ test("a failed comment photo upload keeps the text and reports its error", async
       "base64",
     ),
   });
+  await expect(
+    page.getByRole("button", { name: "Фото (1/2)", exact: true }),
+  ).toBeVisible();
+  expect(uploads).toBe(0);
+  await page.getByRole("button", { name: "Отправить", exact: true }).click();
   await expect(
     page.getByRole("alert").filter({ hasText: "Тестовая ошибка сохранения" }),
   ).toBeVisible();

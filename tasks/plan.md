@@ -120,6 +120,24 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября, ADM-P2 — локальная интеграция страниц и календаря.**
+Принятый additive backend: postsPage20/50, full postDetail, postCounts,
+postCalendar с <=62 adjacent local-day summaries + upcoming8. Native SQL/HTTP32
+pass, including dense741-event day, maximum62-day query, draft/media detail,
+authorization и прежний upcoming tie-order. Админка использует lazy infinite
+cards только в posts tab, календарь — свою projection, header — counts; editor
+открывается лишь после full detail с session/tab/unmount cancellation guard.
+Delete confirmation проверяет exact ID, не отсутствие на неполной странице.
+Quick editor/recovery обновляют новые caches. Browser71 pass; editor regression
+80 pass +2 malformed-media cases актуализированы для раннего запрета открытия
+и перепроверены2/2. Всего153 distinct browser scenarios проверены, synthetic
+HTTP отдельно от native SQL/API32. Types/lint/backend+Next builds/API/boundaries/
+docs проходят; завершение/ограничения — начало todo.
+Старый admin.posts сохранён без усечения для совместимости (включая прежние
+quick-management verification callers); новая админка/календарь его не вызывают.
+CSS/assets/design, working DB/S3/flags, push/deploy не затрагивались. Это не
+новая версия на сервере и не завершение CAP-U/переноса старых материалов/D6.
+
 **19 октября — новые замечания пользователя: CAP-U / ADM-S1.**
 Подтверждены по коду: capabilities не описывает private uploads, редакторы не
 узнают доступность до попытки; admin.posts читает весь архив с media, stats
@@ -130,8 +148,8 @@ SQL+HTTP25 pass. Проверены counts/month/legacy duplicates/top5 и bound
 transferred rows/bytes, не ускорение target API. Сам admin.posts всё ещё без
 пагинации. Календарь в текущем frontend уже получает общий posts prop: отдельный
 повторный запрос не подтверждён заново, не назначать его исправленным/виновным.
-Пагинация/календарные projections и upload capabilities требуют минимального
-согласованного additive контракта. CF-HTTP1 уже выпущен D5; SAVED-P1 только в Git,
+Пагинация/календарные projections приняты и реализованы в ADM-P2 выше; upload
+capabilities всё ещё требуют отдельного контракта. CF-HTTP1 уже выпущен D5; SAVED-P1 только в Git,
 D6 отложен. Старые файлы/публичный guide — совместный следующий контракт/миграция,
 не исправляются изменением upload flag. Guide client imports содержат полный
 текст; отделить защищённый guide от намеренно открытого quiz result, прежде чем

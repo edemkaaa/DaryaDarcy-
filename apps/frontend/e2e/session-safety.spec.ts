@@ -76,6 +76,10 @@ async function mockApp(
         data = { likedIds: [], savedIds: [] };
       if (name === "feed.listPaginated" || name === "club.list")
         data = { posts: [], nextCursor: null };
+      if (name === "admin.postsPage") data = { posts: [], nextCursor: null };
+      if (name === "admin.postCounts")
+        data = { total: 0, published: 0, scheduled: 0, draft: 0 };
+      if (name === "admin.postCalendar") data = { days: [], upcoming: [] };
       if (name === "notifications.latest")
         data = { feedId: null, clubId: null };
       return { result: { data: { json: data } } };

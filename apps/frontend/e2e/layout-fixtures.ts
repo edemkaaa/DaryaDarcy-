@@ -104,6 +104,12 @@ export async function layoutApi(page: Page, subscribed = false) {
             return { granted: false, orderId: null };
           case "feed.listPaginated":
             return { posts, nextCursor: null };
+          case "admin.postsPage":
+            return { posts: [], nextCursor: null };
+          case "admin.postCounts":
+            return { total: 0, published: 0, scheduled: 0, draft: 0 };
+          case "admin.postCalendar":
+            return { days: [], upcoming: [] };
           case "club.list":
             return {
               posts: posts.map((post) => ({ ...post, target: "club" })),

@@ -121,6 +121,13 @@ function CreatePostModalBody({
   const [draftKey, setDraftKey] = useState(0);
   const richTextFieldRef = useRef<RichTextFieldHandle>(null);
   const utils = trpc.useUtils();
+  const invalidateAdminReads = () => {
+    void utils.admin.posts.invalidate();
+    void utils.admin.postsPage.invalidate();
+    void utils.admin.postCalendar.invalidate();
+    void utils.admin.postCounts.invalidate();
+    void utils.admin.stats.invalidate();
+  };
   const saveCoordinator = useRef(
     new PostSaveCoordinator(editingPost?.id ?? null),
   );
@@ -339,7 +346,7 @@ function CreatePostModalBody({
   const finishRecovery = async () => {
     try {
       await recovery.clear();
-      void utils.admin.posts.invalidate();
+      invalidateAdminReads();
       void utils.feed.listPaginated.invalidate();
       void utils.club.list.invalidate();
       closeEditor();
@@ -359,7 +366,7 @@ function CreatePostModalBody({
       task.assertCurrent();
       await recovery.clear();
       task.assertCurrent();
-      void utils.admin.posts.invalidate();
+      invalidateAdminReads();
       void utils.feed.listPaginated.invalidate();
       void utils.club.list.invalidate();
       closeEditor();
@@ -553,7 +560,7 @@ function CreatePostModalBody({
       await recovery.clear();
       task.assertCurrent();
       // Cache refresh is independent of a confirmed write and must not delay closing the editor.
-      void utils.admin.posts.invalidate();
+      invalidateAdminReads();
       void utils.admin.scheduledPosts.invalidate();
       void utils.feed.list.invalidate();
       void utils.feed.listPaginated.invalidate();

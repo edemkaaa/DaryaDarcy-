@@ -3,29 +3,52 @@ import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 import { mp4Fixture } from "../../../tests/helpers/media-fixtures";
 
-test("calendar reuses the admin post list even after its cache becomes stale", async ({
+test("calendar reads its own projection without fetching the stale post archive", async ({
   page,
 }) => {
   let reads = 0;
   await page.clock.setFixedTime(new Date("2026-10-19T10:00:00Z"));
   await editorApi(page, (name) => {
-    if (name === "admin.posts") {
+    if (name === "admin.postsPage") {
       reads++;
-      return ok([
-        {
-          id: 42,
-          text: "CALENDAR_POST",
-          photos: [],
-          tags: [],
-          media: [],
-          status: "scheduled",
-          published: false,
-          target: "club",
-          scheduledAt: "2026-10-20T10:00:00Z",
-          createdAt: "2026-10-19T10:00:00Z",
-        },
-      ]);
+      return ok({
+        posts: [
+          {
+            id: 42,
+            text: "CALENDAR_POST",
+            photos: [],
+            tags: [],
+            media: [],
+            status: "scheduled",
+            published: false,
+            target: "club",
+            scheduledAt: "2026-10-20T10:00:00Z",
+            createdAt: "2026-10-19T10:00:00Z",
+          },
+        ],
+        nextCursor: null,
+      });
     }
+    if (name === "admin.postCalendar")
+      return ok({
+        days: [],
+        upcoming: [
+          {
+            id: 42,
+            text: "CALENDAR_POST",
+            photos: [],
+            tags: [],
+            hasVideo: false,
+            tagCount: 0,
+            status: "scheduled",
+            published: false,
+            target: "club",
+            scheduledAt: "2026-10-20T10:00:00Z",
+            publishedAt: null,
+            createdAt: "2026-10-19T10:00:00Z",
+          },
+        ],
+      });
   });
   await gotoWithSession(page, "/admin");
   await expect(page.getByText("CALENDAR_POST", { exact: true })).toBeVisible();
@@ -39,20 +62,30 @@ test("calendar reuses the admin post list even after its cache becomes stale", a
   await page
     .getByRole("button", { name: "Следующий месяц", exact: true })
     .click();
+  expect(reads).toBe(before);
   await page.getByRole("button", { name: "Посты", exact: true }).click();
+  await expect.poll(() => reads).toBe(before + 1);
   await page.getByRole("button", { name: "Календарь", exact: true }).click();
   await expect(
     page.getByText("Отложенные публикации", { exact: true }),
   ).toBeVisible();
-  expect(reads).toBe(before);
+  expect(reads).toBe(before + 1);
 });
 
-test("calendar can retry the shared post list after a failed read", async ({
+test("calendar can retry its projection after a failed read", async ({
   page,
 }) => {
   let unavailable = true;
   await editorApi(page, (name) =>
-    name === "admin.posts" ? (unavailable ? failure(503) : ok([])) : undefined,
+    name === "admin.postsPage"
+      ? unavailable
+        ? failure(503)
+        : ok({ posts: [], nextCursor: null })
+      : name === "admin.postCalendar"
+        ? unavailable
+          ? failure(503)
+          : ok({ days: [], upcoming: [] })
+        : undefined,
   );
   await gotoWithSession(page, "/admin");
   await expect(

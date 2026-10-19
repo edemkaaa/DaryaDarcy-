@@ -30,10 +30,50 @@
   настоящий AppRouter без any. Public namespace manifest дополнен4 принятыми
   процедурами, прежние endpoints сохранены. Общая regression2646 pass/1611
   opt-in skips (204 suites pass/96 skipped); native32 выполнены отдельно.
-- [ ] Slice3: lazy posts page only visible tab, existing infinite collection,
-  protected detail before editor, calendar projection, counters без archive;
-  loading/error/retry/save/delete/account change/navigation regressions.
-- [ ] Финальная integration/общая regression/review/build и scoped cleanup.
+- [x] Slice3: admin uses postsPage only visible posts tab/outside editor,
+  existing infinite collection/dedup IDs, separate counts/calendar window;
+  selected draft loads full detail/media before editor. Pending read cancelled
+  by tab/navigation/session/unmount guards; no source/design/CSS/assets changes.
+  Next-page failure retains cards/retry, counters error gives dashes/retry.
+  Exact-ID delete verification (also unknown reply inspection) cannot infer
+  absence from a partial page; no automatic replay. Seven new browser scenarios
+  cover these branches plus quick-save cache invalidation across real navigation.
+  RED initial3 on old list; RED2 edge cases on missing exact-ID check/counter
+  retry; late-account case already safe through shared scope. Quick-cache RED
+  confirmed after correcting an ambiguous publish selector; GREEN71 browser
+  checks including existing sessions/calendar/stats/editor/action paths.
+- [x] Test transport migration: existing full synthetic catalogs serve both
+  cards/detail in shared editor fixture, native SQL coverage remains separate.
+  Session/layout fixtures updated for the new shapes. Two old upload tests
+  still assumed immediate public upload on selection: updated to current
+  deferred private submit, preserving assertions draft retained/no post created/
+  actionable413/no internal leak. No upload/session production code changed.
+- [x] Native own loopback/tmpfs container94f4d0f9… removed after final32 native
+  pass with exact ID/name/owner+task labels/port65485/tmpfs/no mounts/backend_test
+  guards. Only synthetic data discarded; images, volumes and other projects
+  untouched. Working DB/S3/files/flags/credentials not used or modified.
+- [x] Финальная regression: root2646 pass/1611 opt-in skips; native32 pass/0skip;
+  browser71 pass (7 новых ADM scenarios + existing suites). Editor/media/
+  rich-text/draft/VK regression80 из82 сразу pass;2 full malformed-media tests
+  ожидали открыть редактор, который новый guard корректно не открывает.
+  Актуализированы: visible invalid-response/no editor/no write, затем retry
+  с полной media успешен; отдельно GREEN2/2. Quick counterparts не менялись.
+  Итого153 distinct browser scenarios подтверждены совокупностью этих прогонов,
+  не одним повторным82-test all-green запуском. Первый узкий повтор ошибочно
+  использовал anchored title grep (0 tests), затем исправлен filter; также
+  исправлен alert locator, отличающий app error от Next route announcer.
+- [x] Root/frontend/E2E types, lint, backend и Next production29 pages builds,
+  API90/35099, boundaries692, docs59, formatting/diff pass. Final modified
+  E2E recovery file отдельно typechecked/linted. Review по correctness/security/
+  performance/React: new reads admin-only, parameterized bounds, old role/date/
+  header semantics, no partial-page deletion proof; active-tab queries/cache
+  invalidation/session scope сохраняются. Скриншоты posts/calendar390 просмотрены;
+  CSS/assets/layout classes не менялись, полноценная device acceptance не заявлена.
+  Backend SQL/HTTP и browser synthetic HTTP проверены отдельно: это не live
+  browser→deployed API/S3 acceptance и не server load benchmark.
+- [x] Scope завершён локально; no push/deploy/working DB/S3/старых файлов/flags/
+  admin password changes. RELEASE-D6 остаётся отложенным; CAP-U и реальные
+  protected materials требуют своих следующих решений, не включать автоматически.
 
 ### CAP-U / ADM-S1 — пять новых замечаний,19 октября
 
@@ -70,12 +110,10 @@
   Unknown/error/false запрещают новую загрузку, без public fallback/потери
   выбранных вложений/recovery. Потом logic integration и отдельно reviewed
   включение полного upload→bind→read на стенде; флаги сейчас не включать.
-- [ ] Admin lists: согласовать bounded page/filter/cursor + отдельный protected
-  full detail для редактирования (включая drafts), calendar date-window/counts/
-  upcoming8. Старый endpoint не обрезать молча до переключения frontend.
-  Текущий CalendarTracker уже использует общий posts prop; новое живое
-  подтверждение повторного запроса отсутствует. Статистика исправлена лишь
-  первым срезом, большой admin.posts response ещё не устранён.
+- [x] Admin lists: contract принят и выполнен ADM-P2 выше. Новая админка больше
+  не вызывает legacy admin.posts; он сохранён без усечения для других callers,
+  включая quick-management verification. Сам факт старого endpoint742 rows
+  не выдавать за результат новой страницы; server rollout не выполнялся.
 - [ ] Старые protected материалы: карта реальных public patterns/URL и guide,
   защищённая доставка вместо client imports и separately reviewed закрытие
   прежних источников/cache. Не расширять это автоматически на публичный quiz.

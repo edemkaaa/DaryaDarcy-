@@ -92,12 +92,13 @@ const existing = {
 
 for (const mode of ["full", "quick"] as const) {
   for (const media of [undefined, null]) {
-    test(`${mode}: an incomplete media response preserves the edit without overwriting attachments (${media})`, async ({
+    test(`${mode}: an incomplete media response cannot overwrite attachments (${media})`, async ({
       page,
     }) => {
       const writes: string[] = [];
+      let availableMedia = media as typeof existing.media | null | undefined;
       await editorApi(page, (name) => {
-        const post = { ...existing, media };
+        const post = { ...existing, media: availableMedia };
         if (name === "admin.posts") return ok([post]);
         if (name === "feed.listPaginated")
           return ok({ posts: [post], nextCursor: null });
@@ -108,6 +109,21 @@ for (const mode of ["full", "quick"] as const) {
         )
           writes.push(name);
       });
+      if (mode === "full") {
+        await gotoWithSession(page, "/admin");
+        await page.getByRole("button", { name: "Редактировать пост" }).click();
+        await expect(page.getByRole("main").getByRole("alert")).toContainText(
+          "Некорректный ответ сервера",
+        );
+        await expect(editor(page)).toHaveCount(0);
+        expect(writes).toEqual([]);
+        availableMedia = existing.media;
+        await page.getByRole("button", { name: "Редактировать пост" }).click();
+        await expect(editor(page)).toBeVisible();
+        await expect(field(editor(page))).toHaveValue(existing.text);
+        expect(writes).toEqual([]);
+        return;
+      }
       const messages = dialogs(page);
       const form = await open(page, mode, true);
       await field(form).fill("KEEP_EDIT_WITH_MISSING_MEDIA");
