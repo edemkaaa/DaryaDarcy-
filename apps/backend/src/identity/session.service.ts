@@ -1,7 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import type { Request } from "express";
 import { ONE_YEAR_MS } from "../../../../packages/shared/src/const";
 import type { User } from "../../../../packages/database/src/schema";
+import { HttpError } from "../../../../packages/shared/src/_core/errors";
 import {
   emailToOpenId,
   getDb,
@@ -40,8 +41,14 @@ export class SessionService {
   async optionalUser(request: Request): Promise<User | null> {
     try {
       return await this.authenticateRequest(request);
-    } catch {
-      return null;
+    } catch (error) {
+      // Only a confirmed authentication denial means guest. Infrastructure
+      // failures must not make clients discard an authenticated user's state.
+      if (error instanceof HttpError && [401, 403].includes(error.statusCode))
+        return null;
+      throw new ServiceUnavailableException({
+        error: "Проверка сессии временно недоступна",
+      });
     }
   }
 

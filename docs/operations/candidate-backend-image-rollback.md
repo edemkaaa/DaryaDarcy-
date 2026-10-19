@@ -14,6 +14,14 @@ FRESH-D2 разрешила transfer/load corrected0763 image, isolated API acce
 Текущая БД, frontend и существующая конфигурация rollout остаются прежними.
 Результаты схемы/API кандидата: [основной runbook](teamassist-staging.md).
 
+**Актуализация AUTH-S1,19 октября:** после D2 локально исправлен ложный guest
+при временном сбое проверки сессии; см. [API-контракт](../architecture/api.md).
+Images2083911/e774/0763 этого fix **не содержат**. Проверки D2 ниже исторически
+валидны для0763, но не подтверждают актуальный исправленный source. Перед
+будущим rollout нужен новый image с AUTH-S1 и отдельная isolated acceptance;
+не переключать приложение на0763 как на «последний исправленный backend».
+Новый image/transfer/load/deploy по AUTH-S1 не выполнялись и не разрешены.
+
 Состояние подготовки: **исправленный image0763 принят на server candidate**
 в FRESH-D2 ниже:39 ORM/13 HTTP, admin/password сохранены. D1 data snapshot850
 rows принят; D2 source delta — только activity timestamps, без sync/switch.

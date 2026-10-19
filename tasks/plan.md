@@ -83,6 +83,18 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября, AUTH-S1 — локально исправлен ложный guest при сбое сессии.**
+SessionService.optionalUser теперь различает confirmed typed auth denial и
+инфраструктурную ошибку: GET /api/auth/me503/no-store/no cookie mutation вместо
+200/user:null, восстановление тем же JWT после transient fault. getUserByOpenId
+без DB client больше не маскирует недоступность как отсутствие пользователя.
+11 HTTP/JWT regression cases (RED→GREEN),9 targeted files/84 pass, root types/
+backend build pass. Настоящие DB/server/frontend/S3 не трогались, no push/deploy.
+Контракт и ограничения — [API](../docs/architecture/api.md), AUTH-S1 todo.
+**Прежние images2083911/e774/0763 этого fix не содержат:** перед rollout нужен
+новый source/image и новая acceptance. D2 ниже не является acceptance текущего
+исправленного backend source; copy/initialize/switch не запускать автоматически.
+
 **19 октября, FRESH-D2 — corrected0763 image проверен на populated candidate.**
 Archive/hash/source/runtime bundle и backup directory0700/owner проверены на
 сервере; actual image39 ORM/13 HTTP pass, прежний admin/password работают,

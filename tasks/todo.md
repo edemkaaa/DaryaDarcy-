@@ -2,6 +2,31 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Локальное исправление проверки сессии —19 октября
+
+- [x] AUTH-S1 — подтверждённый пользователем дефект: SessionService.optionalUser
+  ловил любую ошибку → GET /api/auth/me200/user:null → ложный confirmed guest.
+  Minimal fix: null только для typed HttpError401/403; остальные failures →
+  sanitized Nest503 без cookie mutation/no-store. Обнаружен второй путь в том
+  же lookup: getUserByOpenId при !DB client возвращал undefined; теперь throw,
+  undefined остаётся только для отсутствующей строки в доступной DB.
+  RED4 failures/6 pass на настоящих JWT/SDK/Nest/loopback HTTP, injected SQL
+  lookup/activity failures; после первого fix10 pass. Дополнительный !DB test
+  RED1/10 pass → GREEN11. Никакую реальную DB не отключали/не читали/не меняли.
+  Проверены503 → recovery тем же JWT/cookie, no cookie clearing, safe body;
+  upstream plain status403 не считается authenticated denial; no-cookie/bad/
+  expired/deleted/blocked/revoked по-прежнему200/null. tRPC auth.me вместо200/null
+  даёт существующий safe500/INTERNAL_SERVER_ERROR и восстанавливается; отдельную
+  tRPC error mapping не вводили. Неизменённый legacy createContext не active entry.
+  Targeted regression:9 files/84 pass/0 skip/1.83s (включая11 новых), root types
+  и backend build pass. Это HTTP/JWT +fault injection на SQL seams, не native
+  MySQL/browser acceptance. No workers/provider/network outside loopback.
+  Фронт/дизайн/схема/working DB/candidate/S3/роли/квоты/CORS не менялись;
+  server access/push/deploy/app switch отсутствуют. Scope — local fix only.
+  **Images2083911/e774/0763 не содержат AUTH-S1.** Для будущего rollout нужен
+  новый backend image с этим fix и его отдельная acceptance, не reuse старого
+  образа как «актуального». D2 receipt остаётся исторической проверкой0763.
+
 ### Разрешённая подготовка staging/server — 19 октября
 
 - [x] FRESH-D2 — прямое разрешение проверить corrected final image0763 на

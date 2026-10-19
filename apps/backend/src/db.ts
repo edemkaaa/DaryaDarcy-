@@ -213,8 +213,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
+    // Unavailable storage is not evidence that this identity was deleted.
+    throw new Error("Database unavailable");
   }
 
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
