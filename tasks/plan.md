@@ -83,6 +83,22 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября — push и подготовка server candidate по отдельному разрешению.**
+Пользователь запросил staging/server, затем выбрал отдельную пустую БД и
+согласование переключения после проверки. На `teamassist-dev` создана только
+`daryadarcy_candidate_20261019` в existing project MySQL8.4: 0 таблиц/routines/
+triggers/events. Проверены exact mysql identity/project/health/no published ports;
+все container IDs/start times/images сохранены. Ни старую БД, ни конфигурацию
+API, ни runtime flags не меняли. Новая БД пока **без схемы**, не fresh42 acceptance.
+Сервер остаётся на `2e3339c`; новые images/миграции/переключение не выполнены.
+Следующий операционный шаг — проверенная target-specific fresh-инициализация
+новой БД и candidate API/image acceptance, затем отдельное согласование switch.
+Local-only `db:fresh:local` guards не обходить; старая история0017–0019 нужна
+для upgrade существующей БД, не для выбранной новой. Ordinary preflight по-прежнему
+отказывает до подключения, фиктивную историю не создавать. Точный push/result
+и проверки — начало todo и operations runbook. Это разовое разрешение, не
+возобновление автоматических deploy/merge/рабочих flags по общему «дальше».
+
 **18 октября, AG9/LB — актуализация передачи без S3.** Existing
 [handoff фронтендеру](../docs/development/backend-handoff-2026-10-05.md) сверен
 с local774bbe9: REST list/read, cursor/empty404/503, live access, default-off

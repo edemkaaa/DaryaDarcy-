@@ -2,6 +2,37 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Разрешённая подготовка staging/server — 19 октября
+
+- [x] Fresh remote staging `81e8563` — ancestor local `e4ac07b`, remote-only0;
+  правки фронтендера сохранены без замены/ручного редактирования frontend.
+  Перед push проверены types/E2E types, backend build, webpack29/29, lint,
+  boundaries685, docs58, API86/32048 bytes и production audit (0 advisories).
+  Node22.23.2 выявил test-only дефект: structuredClone(File) теряет имя/File type,
+  два recovery unit cases падали. Isolated RED воспроизведён; helper копирует
+  metadata, сохраняя immutable File, без ослабления production validation.
+  GREEN34/34 на Node22 и23; full Node22:2508 pass/1574 opt-in skips,
+  197 passed suites/91 skipped,64.19s/exit0. SQL/S3/browser skips не приёмка;
+  real SQL/S3/external mail/payment не запускались. Test fix `b810ddb`.
+  Обычный fast-forward push `81e8563..b810ddb` принят; ls-remote подтвердил
+  `b810ddb29caad4528f18a74168b97c487b2a0dd9`. Ветки не переключались,
+  force/merge/rebase не выполнялись; это Git-обновление, не deployment.
+- [x] По отдельному ответу пользователя создана **пустая**, не переключённая
+  server DB `daryadarcy_candidate_20261019`. До CREATE подтверждены отсутствие
+  такого имени, host/teamassist-dev, existing MySQL8.4/container3442fbda5e84,
+  project/service labels/healthy и отсутствие published DB ports. После CREATE:
+  0 tables/routines/triggers/events; existing rows не читались/не изменялись,
+  все container IDs/images/start times прежние. API env/secrets/S3/flags/image
+  configs не менялись; контейнеры не перезапускались. HTTPS current unchanged
+  deployment: `/`, `/api/auth/me`, `/api/launch-config`200; guest admin.stats401.
+- [ ] Fresh server candidate: подготовить проверенную отдельную процедуру
+  fresh schema на новой БД, candidate image/API checks и rollback приложения;
+  **после проверки согласовать switch с пользователем**. Сейчас таблиц0,
+  схема42/данные/owner/app grants не создавались, новый backend не выложен.
+  Ordinary preflight: untracked0017–0019, databaseChecked=false/exit1;
+  guard не обходили. Для fresh пути история старой базы не нужна. No migration
+  apply/DB replacement/old-file migration/private flag enable разрешения нет.
+
 ### LB — Библиотека, принято17 октября
 
 - [x] AG9/LB-handoff —18 октября по продолжению без S3 existing документ

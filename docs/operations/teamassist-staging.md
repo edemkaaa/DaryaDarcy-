@@ -1,5 +1,49 @@
 # Отдельный тестовый стенд TeamAssist
 
+## 19 октября — подготовка отдельной пустой БД, без переключения
+
+Пользователь запросил push в staging и обновление сервера; после preflight выбрал
+«подготовить отдельную пустую БД на сервере; переключение согласовать после проверки».
+Это не разрешение очистки/upgrade существующей БД или включения private flags.
+Remote staging обновлён обычным fast-forward `81e8563..b810ddb`;
+`ls-remote` подтвердил `b810ddb29caad4528f18a74168b97c487b2a0dd9`.
+История/правки фронтендера сохранены; ветки не переключались, force не применялся.
+Следующий evidence commit меняет лишь документацию, не приложение.
+
+- SSH: exact `edem@155.212.216.16`, hostname `teamassist-dev`, существующий ключ,
+  strict host verification. Каталог приложения прежний; env-файлы не выводились.
+- В existing project MySQL8.4 создана **только новая пустая database**
+  `daryadarcy_candidate_20261019`, charset utf8mb4/collation utf8mb4_0900_ai_ci.
+  До CREATE проверено отсутствие имени; mysql3442fbda5e84, Compose project
+  `daryadarcy-staging`/service mysql, healthy, без published DB ports.
+  После CREATE: 0 таблиц, routines, triggers, events. Root credential использован
+  только внутри existing container для этой операции, не выведен/скопирован.
+- Existing database rows не читались/не менялись. Все running container IDs,
+  images и start times до/после совпали; новые контейнеры/volumes/учётки не создавались.
+  `api.env`, image/Compose/nginx configuration и S3 не менялись. Сервисы не
+  перезапускались: api/web остаются `daryadarcy-staging:2e3339c`.
+- Existing HTTPS deployment, **не новый кандидат**: GET `/`, `/api/auth/me`,
+  `/api/launch-config`200, guest admin.stats401. Никаких покупок/писем/webhooks.
+  Свободно3.5ГБ диска/около667МБ available RAM: тяжёлую сборку на shared host
+  автоматически не запускать, чужие образы/кэши/БД не чистить.
+
+Проверки исходников перед push: types/E2E types, lint, backend build,
+Next webpack29/29, API86/32048 bytes, boundaries685, docs58, production audit0.
+Общий Node22 regression сначала выявил2 failures из-за test-only
+structuredClone(File)→Blob; минимальный fixture fix `b810ddb` сохраняет File,
+клонируя metadata. Production validation/frontend не менялись. Focused34/34
+на Node22 и23; full Node22 —2508 pass/1574 opt-in skips/197 passed suites/
+91 skipped/64.19s/exit0. Это не новые SQL/S3/browser/native Linux acceptance.
+
+Стандартный migration preflight остановлен до подключения: незарегистрированные
+0017–0019, `databaseChecked:false`, `releaseApproval:false`. Рабочую историю
+не исправляли. Выбранный fresh путь не требует истории старой БД, но existing
+`db:fresh:local` намеренно ограничен own local tmpfs backend_test: его guards
+нельзя отключать ради server target. Далее нужна проверенная target-specific
+fresh процедура и candidate image/API acceptance на новой БД; после неё отдельное
+согласование switch. Пока схема, owner/application grants и данные отсутствуют;
+новый backend не выложен, fresh42 acceptance сервера не объявляется.
+
 ## Отдельная пустая БД — локальный fresh-install, 14 октября 2026
 
 Это отдельный путь нового запуска, не обновление существующей базы. Команда
