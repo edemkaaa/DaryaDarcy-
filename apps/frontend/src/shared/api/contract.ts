@@ -345,7 +345,11 @@ export type AppRouter = BuiltRouter<
     videos: {
       catalog: QueryProcedure<{
         input:
-          | { limit?: number | undefined; cursor?: number | undefined }
+          | {
+              limit?: number | undefined;
+              cursor?: number | undefined;
+              direction?: "forward" | undefined;
+            }
           | undefined;
         output: {
           items: Array<{

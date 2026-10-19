@@ -2,6 +2,21 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### RELEASE-D4 — объединение и выпуск19 октября, в работе
+
+- [x] По прямому поручению объединён origin/staging9e933d2 с нашей веткой:
+  merge7433e7f без конфликтов, сохранены AUTH-S2/VCAT-C1 и весь frontend автора.
+  Единственное интеграционное изменение frontend — generated API contract:
+  optional direction:forward. API86/32138, types/lint/boundaries688/docs pass.
+  Общий прогон обнаружил устаревший guest double в nest-profile: generic Error
+  заменён на настоящий typed ForbiddenError; ожидания401/403 не ослаблены,
+  профиль+request bodies39 pass. Это тестовая фикстура, не runtime изменение.
+- [ ] Проверить полный merged suite, native JWT/HTTP/MySQL на собственном
+  tmpfs backend_test и финальные Linux образы. Push только fast-forward.
+- [ ] Обновить лишь api/web/restricted TEST на текущей candidate DB, сохранив
+  admin/password/JWT/флаги/provider settings, старые образы/DB для отката.
+  Проверить живые API и videos после гидрации. Пока не считать выпущенным.
+
 ### Совместимость видеокаталога —19 октября, локально
 
 - [x] VCAT-C1 — прямое поручение исправить несовместимость текущего frontend

@@ -35,6 +35,7 @@ import { NotificationsService } from "../apps/backend/src/notifications/notifica
 import { ProfileService } from "../apps/backend/src/profile/profile.service";
 import { ModerationService } from "../apps/backend/src/moderation/moderation.service";
 import { ShopService } from "../apps/backend/src/shop/shop.service";
+import { ForbiddenError } from "../packages/shared/src/_core/errors";
 
 // Real HTTP, validation, authorization and photo decoder; only session lookup,
 // SQL and external storage are substituted. No real JWT/MySQL/S3 acceptance.
@@ -105,7 +106,7 @@ describe("profile use cases over native HTTP", () => {
     actor = { ...member };
     vi.spyOn(sessions, "optionalUser").mockImplementation(async () => actor);
     vi.spyOn(sdk, "authenticateRequest").mockImplementation(async () => {
-      if (!actor) throw new Error("synthetic missing identity");
+      if (!actor) throw ForbiddenError("synthetic missing identity");
       return actor;
     });
   });
