@@ -1,5 +1,39 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## RELEASE-D6 — исправление «Сохранённого» в Git, server rollout отложен
+
+19 октября normal push `37c1bf2f80314db2647514b745da8de7140fba8d` в
+origin/staging подтверждён remote refs; входящих commits не было. Clean Git
+archive/Next29 pages, production audit0/325 deps и isolated native Linux web7
+HTTP проходят. Новый web image:
+`sha256:e052c50b333c0815d285b03af211cd377d2b8517e0c26094162cddf70b8a1f5a`,
+BUILD_ID `rnbY-9QeXaHIe08g7pb85`. Pinned D4 base/runtime/deps/config прежние;
+API/restricted TEST не требуют обновления и не пересоздавались.
+
+**Это не working версия.** SSH несколько раз закрывался при передаче image
+archive; openrsync append-verify не поддержан, затем append и chunk stream
+прерывались. Prefix SHA проверялся перед продолжением. Полный archive ещё не
+доставлен, Docker load/prepare/backup/apply не выполнялись. Последний read-only
+осмотр: все семь staging services healthy, API/web/TEST всё ещё D5; config,
+working DB, migration history, admin account/password и flags не менялись.
+По ответу пользователя «давай потом протестим, делай другие правки» передача,
+rollout и live acceptance остановлены. Тестовый аккаунт отдельно разрешён,
+но ещё не создавался; новых HTTP/SQL writes/писем/оплаты/S3 не было.
+
+Private local directory0700 (от корня workspace, вне repo):
+`.local-artifacts/release-37c1bf2.B5rzP4`.
+Server directory0700:
+`/home/edem/apps/daryadarcy-staging/release-37c1bf2.B0ZMz0`.
+`images.tar.gz` local0600 —534852537 bytes; server partial —200540160 bytes.
+При возобновлении сначала сравнить exact partial prefix SHA с local archive,
+затем полный SHA из private `archive.json` перед load; не доверять одному размеру.
+`rollout-web.py` меняет только STAGING_IMAGE в .env, сравнивает всю Compose delta,
+готовит fresh consistent backup и same-DB/admin/schema guards. Только web будет
+пересоздан; rollback в пределах незавершённого выпуска возвращает D5 web image
+на той же DB. Не запускать старые DB cutover scripts и не восстанавливать dump
+поверх текущей DB. После user-deferred возобновление выпуска согласовать отдельно.
+Pending scripts ещё не являются server acceptance; итог в начале tasks/todo.md.
+
 ## Текущий working dev — RELEASE-D5,19 октября 2026
 
 По прямому поручению объединённая версия опубликована в origin/staging и

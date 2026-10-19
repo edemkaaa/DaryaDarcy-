@@ -2,6 +2,42 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### RELEASE-D6 — Git опубликован; server rollout отложен пользователем,19 октября
+
+- [x] Прямое разрешение push/deploy с сохранением current DB/admin/password;
+  дополнительно разрешён один временный unpaid account/own saved rows/cleanup,
+  без писем и оплаты. Fetch: origin/staging c3fcf25 — предок37c1bf2, incoming0;
+  normal push37c1bf2 подтверждён remote refs. Рабочая ветка не менялась.
+- [x] Clean Git archive37c1bf2, Next29 pages; pinned D4 Linux amd64/User node
+  runtime/deps/config прежние. New web native --network none7 HTTP проходят,
+  BUILD_ID rnbY-9QeXaHIe08g7pb85 совпадает. Production audit0 advisories/325 deps.
+  Никаких новых backend/schema/dependency/design правок. Первая archive-команда
+  запущена вне checkout и исправлена на git -C до build; исходники не менялись.
+- [ ] Передача и guarded web-only rollout отложены по прямому ответу
+  «давай потом протестим, делай другие правки». SSH прерывает большие передачи;
+  сначала openrsync не поддержал append-verify, затем обрывы при append/stream.
+  Только own unique archive, prefix SHA проверяется до resume, полный SHA —
+  до load. До успешного prepare/apply working сервисы/DB/config не менялись.
+  Все transfer processes завершены; local archive534852537 bytes сохранён,
+  server partial200540160 bytes, образ не загружен. Собственные scripts/receipts
+  `.local-artifacts/release-37c1bf2.B5rzP4` (workspace parent), server
+  `/home/edem/apps/daryadarcy-staging/release-37c1bf2.B0ZMz0`; оба parent0700.
+  Это остаток для resume, не новая working версия. Подробности в runbook.
+- [ ] Fresh consistent backup, current DB/schema/history/admin guards; web
+  healthy и runtime BUILD_ID, неизменность API/TEST/остальных контейнеров/config.
+- [ ] Public HTTPS/API/admin same-password и live browser unpaid bookmarks,
+  club denial, точечное удаление разрешённого test account/own saved rows.
+  Account не создавался, seed/HTTP writes не запускались. CUA показал настоящую
+  guest login gate прежнего стенда, временная вкладка закрыта; не acceptance D6.
+- [ ] Финальная receipt/runbook/cleanup только own transient archive; старый
+  web image и backup сохранить. Не заявлять server acceptance до этих checks.
+- [x] После переноса проверки сверены активные AG5–AG9 и прежние evidence.
+  Иных подтверждённых локальных backend-дефектов/доступных implementation задач
+  в актуальном плане нет: AG5 ждёт отдельно разрешаемых email/private/retention
+  flags и материалов; AG9 — настоящие mail/Prodamus/VK/devices/load/pilot.
+  Готовые тесты/код без нового риска не повторялись; новые функции/правки фронта
+  не добавлены. Нужен выбор следующего внешнего включения/приёмки, не код ради кода.
+
 ### SAVED-P1 — открытое «Сохранённое» без подписки,19 октября, локально
 
 - [x] Прямое поручение после RELEASE-D5; исходные branch/clean status/HEAD
