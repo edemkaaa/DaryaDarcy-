@@ -1,6 +1,79 @@
 # БД-кандидат: backend artifact и откат приложения
 
-## Текущий working dev — RELEASE-D3,19 октября 2026
+## Текущий working dev — RELEASE-D4,19 октября 2026
+
+По прямому поручению свежий frontend staging9e933d2 объединён с AUTH-S2 и
+VCAT-C1: merge7433e7f, source/runtime `b7d733814fb3d535bc3a3c624016a10eec490d8f`.
+Normal push в origin/staging выполнен; последующий documentation-only commit
+не меняет runtime code. Дизайн и ручные компоненты автора сохранены целиком;
+единственная интеграционная правка frontend — generated API contract forward.
+
+- API/restricted TEST image:
+  `sha256:dcbe4bba90e6cae85517c5dcab21a786188e5251319fa59746752fa178a0cf12`.
+  Web image:
+  `sha256:a0115b6752e7fb343a970eb444ae75d6151a219bca76c17b444de3bfb82891aa`.
+  Backend bundle SHA:
+  `ddf280e362fad4dc327079181d375cd31f538ec7873003bc04f80d20e03c38e6`;
+  TEST bundle SHA:
+  `5fac7afd35ec81b50926a55701d7b4db75d21e3b2b889430c504aa50188d5858`.
+  Frontend BUILD_ID: `Cnfusp_tQGMiJ5PRX1B1Y`.
+- Package/lock/public assets/Next config неизменны с D3. Reused pinned Linux
+  runtime/deps, только clean-source API/TEST bundles и новый Next29-page build.
+  Native bundle checksums совпали; root/frontend types/lint/API86/32138/
+  boundaries688/docs pass. Full merged suite2601 pass/1597 opt-in skips,
+  отдельно real JWT/HTTP/MySQL49 pass/0 skip на own disposable tmpfs backend_test.
+  SQL helper fixture не выдаётся за повторную репетицию всей миграционной истории.
+  Native isolated web7 HTTP/restricted TEST3 HTTP, production audit0/325 deps.
+- Только api/web/prodamus-test пересозданы; все healthy/restart0/OOMfalse.
+  Остальные26 контейнеров не изменились. Compose delta проверен целиком:
+  только три image references и TEST bundle source. DB URI, JWT, SMTP, provider
+  settings, permissions и runtime flags сохранены. Схема/history42/admin
+  hash/role/sessionVersion прежние; старый password login успешно проверен.
+  Working DB по-прежнему `daryadarcy_candidate_20261019`; старую DB не читали
+  для переноса/не меняли. SQL apply/copy/seed и S3 операций не было.
+- Public HTTPS20 checks: catalog без direction/forward200, backward400,
+  normalCheckoutStatus guest401/admin200/notRecorded, subscription.hasClubAccess,
+  same-password admin login/me/admin.stats/logout, страницы/launch config/chunk.
+  CUA browser после гидрации `/videos`:20 настоящих карточек, «Показать ещё»,
+  без ошибки каталога. Плееры/оплата/внешняя почта не запускались; это не full
+  end-to-end подтверждение договора2.1, mobile, legacy files или реальных денег.
+
+### D4 evidence и проверенный image-only rollback
+
+Server private directory0700:
+`/home/edem/apps/daryadarcy-staging/release-b7d7338.k9MJvF`.
+`release-receipt.json`0600 SHA:
+`1a2a8578e1d3621a6e2ef79a5051e5f61feead6ab7f236af7b2a2e5d8b80228b`.
+`state.json`, `before-config.json`, `before-*`/`after-*` config copies0600 —
+секретные операционные файлы, не печатать/не переносить в Git или чат.
+Локальные matching receipts/code вне Git:
+`.local-artifacts/release-merge-20261019.k6ps1h`.
+
+Первая попытка была **откачена**, не принята: новый TEST bind-mounted source
+имел0600 и был нечитаем node UID. Сохранены `attempt1.json` и частный failure log.
+EACCES подтверждён native чтением, только non-secret `prodamus-test.mjs` получил
+0644; parent0700 и configs/backups0600 сохранены. Затем actual Linux TEST startup
+и3 HTTP checks в `--network none`/без DB/с synthetic provider config прошли.
+Повторный guarded rollout принят. Это ошибка доставки файла, не смена платёжного
+режима/провайдера и не изменение source API. Откат реально вернул D3 images на
+той же DB: без restore, reverse migration, переключения на старую БД или password
+reset. Старые API `b8e2a908…` и web `3b3011d6…` образы сохранены.
+
+Перед обеими попытками side-effect queues проверены0. `before-candidate.sql.gz`
+и `before-retry-candidate.sql.gz`0600 — два consistent single-transaction dump
+active DB, gzip прочитан/40 таблиц подтверждены. Не восстанавливать их вслепую.
+`rollout-images.py rollback` ограничен pre-acceptance фазой; после accepted новый
+откат требует отдельной авторизации, fresh backup/schema/admin/config guards и
+same-DB image-only процедуры. Старый D3 `rollout.py` **не применять**: он относится
+к первоначальному DB cutover. Никогда не возвращать устаревшую old DB как
+автоматический откат приложения после новых записей.
+
+После приёмки удалены только новые собственные `images.tar.gz` на Mac и сервере:
+exact path/non-symlink/size/SHA256 guards, архив воспроизводится из retained images.
+Образы, два DB backup, configs, receipts и TEST bind source сохранены.
+Server после cleanup:1249MiB свободно; чужие файлы/образы/volumes не удалялись.
+
+## Предыдущий working dev — RELEASE-D3,19 октября 2026
 
 Пользователь явно разрешил обновить backend **и frontend**, переключить приложение
 на проверенную candidate, сохранить admin/password и старую DB для отката.

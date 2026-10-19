@@ -1,6 +1,16 @@
 # Передача изменений бэкенда фронтендеру
 
-## 19 октября — совместимость пагинации видеокаталога, локально
+## 19 октября — RELEASE-D4, актуальный staging и dev
+
+Code/runtime `b7d7338`: свежий frontend9e933d2 сохранён, AUTH-S2/VCAT-C1 включены
+в выпуск. Generated API types синхронизированы, API86/32138 проходит. Normal push
+в staging и image-only обновление dev выполнены. Реальные HTTPS checks20 и CUA
+videos20 cards pass, прежний admin password сохранён. DB/schema/flags/S3 не менялись.
+Доказательства и rollback — [runbook](../operations/candidate-backend-image-rollback.md).
+Записи ниже «локально/не обновляли dev» описывают предыдущие срезы до D4.
+Реальные платежи, внешние письма и полный договор2.1 этим выпуском не приняты.
+
+## 19 октября — совместимость пагинации видеокаталога, до RELEASE-D4
 
 VCAT-C1: сервер `videos.catalog` теперь принимает необязательное
 `direction: "forward"`, автоматически добавляемое текущим tRPC infinite-query

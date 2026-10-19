@@ -410,7 +410,7 @@ optional removedMediaIds. Добавления и удаления привяз�
 
 TrpcService использует эту же optional-проверку для действующего HTTP-контекста: временный сбой не превращается в200/null. Существующий tRPC formatter возвращает безопасный500/INTERNAL_SERVER_ERROR без SQL, stack или credentials; транспортный контракт не переводился на REST503. Старый самостоятельный `createContext` не является entrypoint действующего Nest-приложения; с AUTH-S2 он также использует SessionService вместо catch-all guest. Фронтенд не должен трактовать5xx как подтверждённый выход.
 
-AUTH-S2 (19 октября, локально): `POST /api/auth/session` отличает недействительный
+AUTH-S2 (19 октября; выпущен на dev в RELEASE-D4, source b7d7338): `POST /api/auth/session` отличает недействительный
 Bearer от сбоя lookup/activity. Подтверждённый отказ остаётся401 `Invalid token`,
 инфраструктурный сбой даёт503 с безопасным сообщением проверки сессии, без
 установки/сброса cookie; повтор с прежним действительным Bearer работает.

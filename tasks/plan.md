@@ -83,12 +83,18 @@
 
 ### Снимок, от которого продолжать
 
-**19 октября, RELEASE-D4 — выпуск объединённого staging, в работе.**
+**19 октября, RELEASE-D4 — объединённый staging выпущен и проверен.**
 Пользователь явно разрешил merge/push/server update. Merge7433e7f сохранил
 frontend9e933d2 и AUTH-S2/VCAT-C1; generated types синхронизированы без ручных
-правок дизайна. Продолжать с RELEASE-D4 в todo. Выпуск image-only на уже активной
-daryadarcy_candidate_20261019: никаких миграций/переноса данных/S3/смены флагов.
-До живой проверки не объявлять обновлённым сервер или закрытым договор2.1.
+правок дизайна. Runtime и опубликованный code b7d7338; image-only на уже активной
+daryadarcy_candidate_20261019: без миграций/переноса данных/S3/смены флагов.
+Merged2601 tests +native49, Linux web7/restricted TEST3 checks, audit0 pass.
+Первая попытка: EACCES нового TEST bind source; same-DB image rollback выполнен,
+права non-secret кода исправлены, повторный выпуск healthy. Public HTTPS20
+checks и реальный browser videos20 cards pass, admin password/hash сохранены,
+26 остальных контейнеров неизменны. Доказательства/откат — RELEASE-D4 в todo и
+[runbook](../docs/operations/candidate-backend-image-rollback.md). Старые записи
+«локально/не выпущено» ниже — история до D4. Полная приёмка договора2.1 не закрыта.
 
 **19 октября, VCAT-C1 — локальная совместимость каталога, не выпуск.**
 По прямому поручению исправлен только backend input: optional direction:forward

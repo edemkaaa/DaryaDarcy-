@@ -2,7 +2,7 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
-### RELEASE-D4 — объединение и выпуск19 октября, в работе
+### RELEASE-D4 — объединение и фактический выпуск19 октября
 
 - [x] По прямому поручению объединён origin/staging9e933d2 с нашей веткой:
   merge7433e7f без конфликтов, сохранены AUTH-S2/VCAT-C1 и весь frontend автора.
@@ -11,11 +11,33 @@
   Общий прогон обнаружил устаревший guest double в nest-profile: generic Error
   заменён на настоящий typed ForbiddenError; ожидания401/403 не ослаблены,
   профиль+request bodies39 pass. Это тестовая фикстура, не runtime изменение.
-- [ ] Проверить полный merged suite, native JWT/HTTP/MySQL на собственном
-  tmpfs backend_test и финальные Linux образы. Push только fast-forward.
-- [ ] Обновить лишь api/web/restricted TEST на текущей candidate DB, сохранив
-  admin/password/JWT/флаги/provider settings, старые образы/DB для отката.
-  Проверить живые API и videos после гидрации. Пока не считать выпущенным.
+- [x] Full merged suite2601 pass/1597 opt-in skips; отдельно native
+  JWT/HTTP/MySQL49 pass/0 skip на own tmpfs backend_test. Containerb44e6bfc
+  удалён после ID/labels/loopback/tmpfs/no-volumes проверки. Root/frontend types,
+  lint/API86/32138/boundaries688/docs pass; clean-source backend/TEST и Next29
+  pages build; audit0 advisories/325 production deps. Финальные Linux bundles
+  совпали по SHA с source, isolated web7 HTTP и restricted TEST3 HTTP pass.
+- [x] Normal push b7d7338 в origin/staging, без force; обновлены только
+  api/web/prodamus-test. Первая попытка выявила mode0600 нового non-secret
+  TEST bind source: контейнер node не мог прочитать код. Образы успешно
+  откачены на той же DB; EACCES воспроизведён, только этот файл0644,
+  parent0700/configs+backups0600 сохранены. Native isolated startup без сети/DB
+  прошёл; повторная выкладка принята, три сервиса healthy/restart0/OOMfalse.
+  26 остальных контейнеров неизменны. Runtime source b7d7338, image IDs,
+  BUILD_ID и actual rollback — [runbook](../docs/operations/candidate-backend-image-rollback.md).
+  На действующей candidate сохранены schema/history42/admin hash/role/version,
+  прежний password login подтверждён. Config delta строго images+TEST bundle;
+  JWT/SMTP/provider/flags/DB URI не менялись. Два fresh private gzip backup40
+  tables проверены; никакого SQL migration/copy, S3, платежей или внешних писем.
+- [x] Public HTTPS20 checks: catalog без direction и с forward200, backward400,
+  checkoutStatus guest401/admin200/notRecorded, subscription.hasClubAccess,
+  admin login/me/stats/logout, launch config/pages/chunk. В реальном браузере
+  после гидрации /videos —20 карточек и «Показать ещё», без ошибки каталога.
+  Это не полная приёмка договора2.1, реальной оплаты, mobile или pilot.
+  Private receipt с проверенной SHA256 и ограничения сохранены в runbook.
+  Удалены только два собственных временных image archive (Mac/server), по
+  exact path/size/hash guards; восстанавливаются из сохранённых images.
+  Два backup и образы отката сохранены; после cleanup на сервере1249MiB свободно.
 
 ### Совместимость видеокаталога —19 октября, локально
 
