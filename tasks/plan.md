@@ -83,6 +83,25 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября, FRESH-C6 — native image backup/restore локально проверены.**
+На original2083911/e774… восстановление данных/DDL/history прошло, но native
+rehearsal нашёл backup directory0755 вместо0700. Исправлен только Dockerfile:
+один дополнительный chmod0700 layer, без изменения runtime bundle/dependencies/
+config/9 base layers. Новый local image0763…/fresh-c6-2083911-private-backups:
+10 native SQL checks/0 skip,40 tables/42 migrations exact, Unicode/JSON/indexes/
+recovery/uniqueness, source unchanged; refusal nonempty target и wrong-password
+dump без usable/partial copy/credential leftovers. Offline image2/2, types и
+backup units16 pass/2 opt-in skips. Build context — clean selected archive2083911
+плюс one-line Dockerfile packaging patch (SHA-c5d13…), не чистый unmodified2083911.
+Private archive/receipt/checksum вне Git в .local-artifacts/backend-2083911-c6,
+archive SHA-1b957…; все own containers/network удалены, foreign2/volumes12 прежние.
+Подробности — [runbook](../docs/operations/candidate-backend-image-rollback.md).
+Сервер/обе existing DB/frontend/S3/switch не трогались. Corrected0763 image только
+локально: C5 server acceptance относится к прежнему e774, не новому artifact.
+Будущие corrected-image candidate check, owner/grants/writes/switch и private
+backup mounts/off-site/production-scale recovery требуют отдельной проверки/
+разрешения; не включать workers или выкладку по этому локальному результату.
+
 **19 октября, FRESH-C5 — финальный image проверен на server candidate.** Прямое
 поручение разрешило transfer/load только для isolated test, не deployment/switch.
 Точный image2083911/e774… и bundle hash проверены без rebuild/dependency overlay;

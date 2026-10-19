@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
 import { assertTestDatabase } from "../tooling/scripts/test-database-policy";
+import { prepareBackupImage } from "./helpers/backup-release-image";
 
 const sourceUrl = process.env.BACKUP_REHEARSAL_SOURCE_URL;
 const targetUrl = process.env.BACKUP_REHEARSAL_TARGET_URL;
@@ -36,6 +37,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
     let tables: string[],
       snapshot: Record<string, string>,
       ddl: Record<string, string>;
+    let runImage: Awaited<ReturnType<typeof prepareBackupImage>> | undefined;
     async function guard(id: string, uri: string) {
       const url = assertTestDatabase(uri);
       if (
@@ -92,6 +94,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
       await guard(targetId!, targetUrl!);
       if ((await rows(target, "SHOW TABLES")).length)
         throw new Error("Restore target not empty");
+      if (runImage) return runImage("restore", targetId!, targetUrl!, sql);
       // The password is synthetic and passed only to the isolated container's client.
       await new Promise<void>((resolve, reject) => {
         const child = spawn(
@@ -125,6 +128,9 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
       expect(sourceUrl).not.toBe(targetUrl);
       await guard(sourceId!, sourceUrl!);
       await guard(targetId!, targetUrl!);
+      directory = await mkdtemp(join(tmpdir(), "daryadarcy-backup-rehearsal-"));
+      if (process.env.BACKUP_REHEARSAL_IMAGE)
+        runImage = await prepareBackupImage(root, directory);
       source = await mysql.createConnection({ uri: sourceUrl!, timezone: "Z" });
       target = await mysql.createConnection({ uri: targetUrl!, timezone: "Z" });
       expect(await rows(source, "SHOW TABLES")).toEqual([]);
@@ -212,33 +218,52 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         .sort();
       snapshot = await contents(source);
       ddl = await definitions(source);
-      directory = await mkdtemp(join(tmpdir(), "daryadarcy-backup-rehearsal-"));
-      await mkdir(join(directory, "bin"));
-      const binary = join(directory, "bin", "mysqldump");
-      await copyFile(
-        join(root, "tests/fixtures/native-mysql-dump.cjs"),
-        binary,
-      );
-      await chmod(binary, 0o700);
-      vi.spyOn(process, "cwd").mockReturnValue(directory);
-      vi.stubEnv("PATH", `${join(directory, "bin")}:${process.env.PATH}`);
-      vi.stubEnv("DATABASE_URL", sourceUrl!);
-      for (const key of [
-        "S3_ENDPOINT",
-        "S3_ACCESS_KEY",
-        "S3_SECRET_KEY",
-        "S3_BUCKET",
-      ])
-        vi.stubEnv(key, "");
-      const { runMysqlBackupIfDue } =
-        await import("../apps/backend/src/_core/backup");
-      await runMysqlBackupIfDue(0);
+      if (runImage) {
+        await guard(sourceId!, sourceUrl!);
+        await runImage("backup", sourceId!, sourceUrl!);
+      } else {
+        await mkdir(join(directory, "bin"));
+        const binary = join(directory, "bin", "mysqldump");
+        await copyFile(
+          join(root, "tests/fixtures/native-mysql-dump.cjs"),
+          binary,
+        );
+        await chmod(binary, 0o700);
+        vi.spyOn(process, "cwd").mockReturnValue(directory);
+        vi.stubEnv("PATH", `${join(directory, "bin")}:${process.env.PATH}`);
+        vi.stubEnv("DATABASE_URL", sourceUrl!);
+        for (const key of [
+          "S3_ENDPOINT",
+          "S3_ACCESS_KEY",
+          "S3_SECRET_KEY",
+          "S3_BUCKET",
+        ])
+          vi.stubEnv(key, "");
+        const { runMysqlBackupIfDue } =
+          await import("../apps/backend/src/_core/backup");
+        await runMysqlBackupIfDue(0);
+      }
       const archives = await readdir(join(directory, "backups"));
       expect(archives).toHaveLength(1);
       archive = join(directory, "backups", archives[0]!);
       sql = gunzipSync(await readFile(archive));
       await restore();
-    }, 30000);
+      console.log(
+        JSON.stringify({
+          tables: tables.length,
+          schemaSha256: createHash("sha256")
+            .update(JSON.stringify(ddl))
+            .digest("hex"),
+          dataSha256: createHash("sha256")
+            .update(JSON.stringify(snapshot))
+            .digest("hex"),
+          archiveSha256: createHash("sha256")
+            .update(await readFile(archive))
+            .digest("hex"),
+          archiveBytes: (await stat(archive)).size,
+        }),
+      );
+    }, 120000);
     afterAll(async () => {
       vi.restoreAllMocks();
       vi.unstubAllEnvs();
@@ -256,6 +281,26 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
       ).toEqual([]);
       expect(sql.length).toBeGreaterThan(1000);
     });
+    it.skipIf(!process.env.BACKUP_REHEARSAL_IMAGE)(
+      "uses the release image's MariaDB client against the real MySQL source",
+      () => {
+        expect(sql.toString("utf8").slice(0, 200)).toContain("MariaDB dump");
+      },
+    );
+    it("does not change the source while backing up or restoring", async () => {
+      expect(await contents(source)).toEqual(snapshot);
+      expect(await definitions(source)).toEqual(ddl);
+    });
+    it.skipIf(!process.env.BACKUP_REHEARSAL_IMAGE)(
+      "leaves no completed or partial archive after a real client authentication failure",
+      async () => {
+        await guard(sourceId!, sourceUrl!);
+        const invalid = new URL(sourceUrl!);
+        invalid.password = "rejected-synthetic-password";
+        await runImage!("failed-backup", sourceId!, invalid.href);
+        expect(await contents(source)).toEqual(snapshot);
+      },
+    );
     it("restores every table and exact synthetic contents including all migration hashes", async () => {
       expect(
         (await rows(target, "SHOW TABLES"))

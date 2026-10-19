@@ -10,13 +10,14 @@ FRESH-C4 разрешала **только локальную подготовк
 Текущая БД, frontend и существующая конфигурация rollout остаются прежними.
 Результаты схемы/API кандидата: [основной runbook](teamassist-staging.md).
 
-Состояние подготовки: **локальный image/archive готовы**, native offline image
-acceptance2/2 и configuration round-trip1/1 прошли. Точный финальный image затем
-проверен в isolated server container на candidate42:39 ORM +8 HTTP/exit0/OOM=false.
-Native backup/restore с его client и switch не выполнялись. Разрешения на
-deployment/switch нет; transfer/load был только для C5 test, не release approval.
+Состояние подготовки: **исправленный локальный image/archive готовы**,
+native backup/restore10/10 и offline image2/2 прошли в FRESH-C6 ниже.
+Original e774 image принимался в C5 на server candidate42:39 ORM +8 HTTP,
+но C6 нашла backup directory0755 и подготовила исправленный0763 image.
+Новый artifact ещё не проверялся на сервере. Разрешения на deployment/switch
+нет; transfer/load старого image был только для C5 test, не release approval.
 
-Проверенный источник image — `20839114f6cc4236f477ecd6c2c15a80059c66ca`;
+Исходный image C4/C5 — source `20839114f6cc4236f477ecd6c2c15a80059c66ca`;
 tag `daryadarcy-backend:fresh-c4-2083911`, Linux amd64/Node22.23.3/USER node.
 Image ID (OCI index):
 `sha256:e774b30f3b9a04b10de094d2b0999da6be0d8dd3620721e2d1b2cd3ab56403d5`.
@@ -31,6 +32,84 @@ Archive254MiB и verification.json сохранены вне Git в private dire
 Docker save exit0, archive tag/config SHA/source/platform и checksum проверены.
 В C5 archive с тем же SHA загружен в exact server Docker; Image ID остался
 тем же OCI index e774…. Не подменять OCI index/config/manifest IDs.
+
+## FRESH-C6 — native backup/restore и исправленный локальный image
+
+На original e774 image настоящие dump/restore из Debian MariaDB10.11.19 с
+MySQL8.4.11 прошли сравнение данных/DDL/history, но полный run:8 pass/1 fail.
+Причина: Dockerfile заранее создавал `/app/backups` с0755; recursive mkdir0700
+в production backup не меняет уже существующий directory. Gzip был0600,
+но имена копий видны другим локальным пользователям. Не ослабляли test.
+Исправлен только packaging: дополнительный `RUN chmod 0700 /app/backups`.
+
+Контекст сборки: выбранные файлы clean Git archive2083911 +exact one-line
+canonical Dockerfile patch. Не выдавать source label2083911 за полностью
+неизменённый Dockerfile; его новый SHA-256:
+`c5d13f3dd0980a1a45b6caae4c6d5498bcb5bc673f798fb8fc341140cc592f78`.
+Build frozen install/backend stages cached; все9 old layers и runtime
+User/Cmd/Entrypoint/WorkDir/Env/Labels сравнивались — неизменны, добавлен
+один permission layer. Lockfile, executable bundle и dependencies прежние.
+Внутри каждого probe bundle SHA-bb977… проверен; canonical backup/ENV source
+сравнен с2083911. Probe монтирует только test entry, использует **image deps и
+native clients**, не MySQL-container binary adapter. API executable/workers
+не импортируются, S3/SMTP/working env не наследуется.
+
+Новый tag: `daryadarcy-backend:fresh-c6-2083911-private-backups`, Linux amd64.
+Image index:
+`sha256:0763beb522779c97501d0ce32527ce680facc6a6d021d5dfc307c05ed370d4ba`;
+platform manifest `sha256:303a5e0214e432f6ae6caac8c3d003d474f3f91e986e4ab897d0d808d29c08bb`;
+config `sha256:a678266c40d9f7cf06459751f51e4f45467c79404afa1c6513554e4dcb75492d`.
+Archive266596352 bytes (254MiB), SHA-256:
+`1b957407c5817db07033f7e22a273ba37482ab8c14ba61cf3a75946db9c47ae6`.
+Private directory вне Git:
+`/Users/edem/Desktop/ASSIST/dina_project/.local-artifacts/backend-2083911-c6/`.
+Export tag/config/source/platform +checksum verified, files0600/parent0700.
+Original C4 archive/image сохранены, ничего не заменено на сервере.
+
+Native acceptance10/10/0 skip/3.47s на **двух новых own** MySQL8.4.11
+loopback/tmpfs `backend_test`, no persistent volumes. Image UID1000,
+cap-drop/no-new-privileges/memory256MiB, network namespace exact guarded DB;
+source installer применил fresh42 только к пустой own source. Restore только в
+пустую отдельную target. Все40 таблиц/строки/DDL (engines/collations/generated
+expressions/indexes/auto increments) и42 migration rows совпали. Проверены
+Unicode/quotes/newlines/JSON, identity/article/library recovery uniqueness,
+pending intents/готовые binding references, unchanged source. Повтор restore
+в непустую target отказал без mutation. Реальная auth failure native dump
+не оставила completed/partial gzip или temporary credential files.
+Dir0700/gzip0600 подтверждены **внутри image**, а не только после docker cp.
+Schema digest `2dd2cd79e6c540a6b75e96c77a0bc53e647171bb502cf2d44d1c86b0f5a50c2e`;
+data digest `65a64c89b2039e7e924cb5dfcf530931b5c2d9a92f2ff84d2c6e38f02fd5c0e7`.
+Synthetic gzip7863 bytes SHA-0563146… после rehearsal удалён как test fixture;
+hashes/JSON report сохранены. Offline image2/2/2.43s проверила6 HTTP/native
+dependencies без DB/egress. Root types/prettier pass; backup units16 pass/2
+native opt-in skips, эти2 не выдавать за отдельную SQL acceptance.
+
+Повторять только на **новых пустых** owned fixtures, как existing rehearsal:
+`tests/fresh-backup-restore.mysql.test.ts`. Явно задать SOURCE/TARGET_URL и
+SOURCE/TARGET_ID в `BACKUP_REHEARSAL_*`, только synthetic credentials;
+добавить `BACKUP_REHEARSAL_IMAGE`, `BACKUP_REHEARSAL_IMAGE_ID`,
+`BACKUP_REHEARSAL_REVISION=20839114f6cc4236f477ecd6c2c15a80059c66ca`,
+`BACKUP_REHEARSAL_BUNDLE_SHA=bb9775d1da5bd418d0ccf6138f81414425f5b4f6e3f56db08f357273c5da903f`.
+Без IMAGE сохраняется прежний MySQL-container-client mode; это **не** проверка
+release image. Guards image/source/loopback/container ownership выполняются до
+SQL init; перед cleanup проверять exact ID/owner/name/ports/tmpfs/mounts.
+
+Own image probe/SQL containers и empty network удалены; прежние2 foreign
+stopped containers/12 volumes/images сохранены, free~3.1GiB. В подготовке
+internal network не публиковала loopback ports; заменена только own network
+на bridge с masquerade=false. Initial readiness race устранён штатным waiter;
+на этой неудачной попытке SQL init ещё не выполнялся. Это не дефекты продукта.
+Receipt verification.json SHA-256:
+`63faf78c6fe63678dc805e598feed8c46a990690659a7f0582cc9e4e801d705c`.
+
+**Остаток:** corrected0763 image существует только локально; C5 ниже относится
+к e774. Перед будущим switch отдельно проверить corrected image на candidate
+по прежним SELECT-only guards. Backup mount может скрыть image directory:
+проверить owner/0700 в будущей конфигурации, не chmod чужие рабочие mounts вслепую.
+Off-site/S3 retention/restore, production-scale/concurrent-write recovery,
+permanent grants/owner/seeds, production workers, downtime/write cutover и
+реальный rollback этим synthetic rehearsal не проверены и не разрешены.
+Server/current DB/candidate/frontend/S3/app configuration не затрагивались.
 
 ## FRESH-C5 — результат на существующей БД-кандидате
 
@@ -160,10 +239,11 @@ Schema39/HTTP8 на candidate проверялись в FRESH-C3; exact final im
    **STAGING_IMAGE не менять на backend-only**: это сломало бы web.
    Проверить resolved diff в закрытой среде: только api image/DB URI; web/mysql/
    edge/networks/volumes/resources/security/flags неизменны. Не выводить secret diff.
-6. Перед switch проверить точный финальный image на candidate с composition-only
-   SELECT account, без workers/providers/egress, как FRESH-C3. Закрыть тестовый
+6. Перед switch проверить **corrected0763** image на candidate с composition-only
+   SELECT account, без workers/providers/egress, как FRESH-C5. Закрыть тестовый
    процесс/учётку. Native backup/restore именно с image client на own disposable
-   MySQL8.4 проверить до включения расписания backup: `--version` недостаточно.
+   MySQL8.4 для0763 выполнен в C6: не повторять без изменения artifact/условий.
+   При смене client/image новая native acceptance обязательна: `--version` мало.
 7. Согласовать downtime, rollback triggers, владельца решения, backup/writes и
    явное разрешение switch. Будущая операция должна затрагивать только `api`,
    с `--no-deps`; не делать общий compose up/down, не пересоздавать mysql/web.

@@ -1,5 +1,26 @@
 # Отдельный тестовый стенд TeamAssist
 
+## 19 октября — FRESH-C6: backup/restore финальным образом на disposable DB
+
+Две own MySQL8.4.11 `backend_test`, tmpfs/no volumes/loopback; сервер, текущая и
+candidate DB, frontend, S3 и приложение не затрагивались. Native mysqldump/mysql
+из original image2083911/e774… реально восстановили40 tables/42 migrations,
+но проверка обнаружила backup directory0755 вместо0700. Исправлен только
+Dockerfile: дополнительный chmod0700 layer. Runtime source/bundle/dependencies/
+config и все9 base layers неизменны. Новый local tag
+`daryadarcy-backend:fresh-c6-2083911-private-backups`, image0763…:10 SQL checks
+pass/0 skip/3.47s +offline image2/2/2.43s. Exact data/DDL/history, recovery и
+uniqueness; source unchanged, nonempty target refused, real wrong-password dump
+не оставляет usable/partial archive или temporary credentials. Gzip0600/dir0700.
+
+Все own probe/DB containers и network удалены с guards; foreign2 stopped
+containers/12 volumes/images сохранены. Private archive254MiB/receipt/checksum
+вне Git: .local-artifacts/backend-2083911-c6, archive SHA-1b957…, receipt SHA
+`63faf78c6fe63678dc805e598feed8c46a990690659a7f0582cc9e4e801d705c`.
+Полные hashes/границы — [runbook](candidate-backend-image-rollback.md).
+Новый образ **не загружен на сервер**; C5 ниже принимала прежний e774, не0763.
+Это не разрешение switch, не off-site/S3/production-scale recovery acceptance.
+
 ## 19 октября — FRESH-C5: финальный image на server candidate, без switch
 
 По прямому поручению загружен exact image2083911/e774… только для isolated probe.

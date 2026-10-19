@@ -4,6 +4,48 @@
 
 ### Разрешённая подготовка staging/server — 19 октября
 
+- [x] FRESH-C6 — прямое разрешение проверить backup/restore **финальным image2083911**
+  локально на двух own loopback/tmpfs `backend_test`. Native dump + restore
+  clients из immutable image, настоящий production backup module без workers;
+  fresh42/synthetic rows, точное сравнение всех tables/data/DDL/history,
+  uniqueness/recovery и отказ restore в непустую target. Ownership guards до
+  SQL/cleanup; image/source/bundle SHA, private artifact permissions, no S3/mail.
+  Текущую и server candidate DB/frontend/app configuration не менять;
+  без server access/push/deployment/switch. Обновить evidence/runbook после проверки.
+  Выполнено19 октября: две own MySQL8.4.11/tmpfs без volumes, loopback autoports.
+  Прежний rehearsal RED1/7 pass подтвердил, что он использовал MySQL-container
+  client, а не image. Новый opt-in native image path запускает source-identical
+  backup module/ENV и настоящие mysqldump/mysql из image, UID1000/cap-drop/
+  namespace только guarded DB, provider env не наследуется, no workers.
+  На original e774…:8 pass/1 fail — реальный дефект Dockerfile, backup directory
+  0755 вместо0700. Сами gzip0600; data/DDL/history/restore уже проходили.
+  Исправлен только Dockerfile: дополнительный chmod0700 layer. Clean selected
+  archive2083911 + exact one-line canonical Dockerfile patch; runtime source/
+  bundle/dependencies/config и все9 base layers побайтно прежние.
+  Новый **локальный** tag fresh-c6-2083911-private-backups, image0763…,
+  Dockerfile SHA-c5d13…; source label2083911 означает unchanged runtime source,
+  не отсутствие отдельного packaging patch. Final native10 pass/0 skip/3.47s:
+  40 tables exact DDL/data,42 history, Unicode/JSON/indexes/auto increments,
+  identity/recovery/library uniqueness, source unchanged, непустой target refused,
+  реальный wrong-password dump без complete/partial/credential leftovers.
+  Новый image offline2/2/2.43s (6 HTTP/native deps), root types/prettier pass;
+  backup units16 pass/2 opt-in skips (не выдавать за acceptance этих2).
+  Image/archive254MiB/checksum/verification+JSON test report сохранены вне Git:
+  .local-artifacts/backend-2083911-c6; archive SHA-1b957… verified, receipt SHA
+  `63faf78c6fe63678dc805e598feed8c46a990690659a7f0582cc9e4e801d705c`.
+  Own probe/DB containers и empty network удалены с точными guards; прежние
+  2 foreign stopped containers/12 volumes/images сохранены, free~3.1GiB.
+  Preflight: internal network не публиковала loopback ports, заменена только
+  own network на bridge с masquerade=false; initial readiness race устранён
+  штатным wait-test-database, SQL тогда ещё не менялся. Product не изменяли.
+  Server/current DB/candidate/frontend/S3 не читались/не менялись. Новый0763
+  image не загружался на сервер: C5 относится только к прежнему e774. Будущий
+  corrected-image candidate check/switch/owner/grants/writes, backup mount0700
+  и off-site/production-scale recovery остаются отдельными gates.
+  Final docs59/diff/code prettier/root types pass; self-review scope/security/
+  correctness: production change только owner-only backup directory в image,
+  no runtime/API/schema/lockfile/frontend changes. Full unchanged suite не повторяли.
+
 - [x] FRESH-C5 — прямое разрешение проверить **финальный image2083911** на
   existing `daryadarcy_candidate_20261019`, без switch/frontend/текущей DB.
   Разрешён transfer/load versioned artifact только для isolated probe; не
