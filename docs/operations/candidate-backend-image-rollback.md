@@ -1,6 +1,80 @@
 # БД-кандидат: backend artifact и откат приложения
 
-## Граница разрешения —19 октября 2026
+## Текущий working dev — RELEASE-D3,19 октября 2026
+
+Пользователь явно разрешил обновить backend **и frontend**, переключить приложение
+на проверенную candidate, сохранить admin/password и старую DB для отката.
+Отдельно подтвердил VK catalog и normal checkout recovery; private flags/S3/
+legacy files не входят в разрешение. **Выпуск выполнен, публичный API проверен.**
+Исторические запреты switch и результаты2083911 ниже относятся к прежним этапам,
+а не описывают текущую working версию. Не переисполнять empty-candidate import.
+
+- Source: `da47b54c19129a8eeee976312bc3bd4f9e7cbbd3`, включая AUTH-S1.
+  Backend/ограниченный TEST image:
+  `sha256:b8e2a908108e667c04975f3873c95c8e828c77e0b7d98e83cb81bcaff00ed21c`.
+  Web image:
+  `sha256:3b3011d62dfa641204e8494828cc4435ca461610673b91da3f43e1f7828ecac2`.
+  Это новые exact images, не старые e774/0763. Неизменённые Linux runtime/deps
+  из0763 (lock/package unchanged since2083911), новые API/TEST bundles из clean
+  Git archive, Next29-page build. Frontend source совпадает с remote staging e25ffda;
+  дизайн/компоненты вручную не изменялись. Labels/full revision/non-root verified.
+- Actual main bundle SHA:
+  `35d8613396ff0487e1b61091c2a90169e2d006f082c11b9317da4b84f4a63fa8`;
+  TEST bundle SHA:
+  `0ac8f24c2e4eb893b59e7d9ea5206c582886984c145fd0189c6bed601ee7a48a`;
+  frontend BUILD_ID: `7i5Wu32yYc4hxf-fZKfrm`.
+  Frozen production audit0/325 deps; targeted regression84, root types/API86 pass.
+  Native isolated web7 HTTP checks; actual candidate39 ORM/18 HTTP, same password.
+- Working database: `daryadarcy_candidate_20261019`, existing42 history unchanged.
+  Source `daryadarcy_staging` retained and unchanged after write boundary; no
+  migration-history repair, reverse SQL, seed, truncate or source DML.
+  Fresh boundary comparison850 rows/29 tables, only users activity differences;
+  counters already at/above source floors. Old API/TEST stopped before final
+  comparison/dumps; only api/web/prodamus-test recreated with exact immutable IDs.
+  Original JWT/SMTP/provider configuration preserved; candidate-only permanent
+  runtime SQL account, VK_CATALOG_ENABLED/NORMAL_CHECKOUT_RECOVERY_ENABLED=true.
+  Frontend matching flags=true, prior Prodamus TEST=true/YooKassa TEST=false remain.
+  Working private content/library flags remain disabled. No S3 operations.
+- Public HTTPS16 checks pass: videos.catalog200; normalCheckoutStatus guest401,
+  same-password admin200/notRecorded; club.subscription boolean hasClubAccess;
+  login/me/admin.stats/logout, launch config and frontend pages. This is **live
+  acceptance**, unlike previous isolated image checks. No payment or external
+  mail tests; pending provider-effect queues0 before startup. Existing seven
+  project services healthy; three new restart0/OOMfalse, other26 containers
+  unchanged. Existing edge nginx tested/reloaded for updated Docker DNS only.
+  Actual native worker gzip backup contains40 tables; file0600/dir0700 checked.
+
+### Evidence, backups and rollback boundary
+
+Server private directory (0700):
+`/home/edem/apps/daryadarcy-staging/release-da47b54.al4N82`.
+`release-receipt.json` (0600), SHA:
+`608a539ff9ef864d7d0bf48e01811da651fa6769a35dd14ad80f1c2358d321c1`.
+It records16 public HTTP checks, admin hash/identity preservation, source hashes
+unchanged after the write boundary, candidate history/schema and actual images.
+`final-check.json` additionally verifies native worker backup/health/cleanup.
+Local matching private receipts/code under `.local-artifacts/release-20261019.RrRO3g`
+outside this repository; no credentials/rows/cookies are recorded in Git.
+
+`before-*.sql.gz` (0600) retain source29/candidate40 table snapshots, gzip validated;
+`before-*` config copies and `before-config.json` preserve exact prior image/env
+and JWT values privately. `rollout-state.json` contains candidate credentials:
+never print/copy it into Git or chat. Previous images and old DB were retained.
+Only confirmed own archives/caches removed with exact guards. Export archives
+can be recreated from retained images; receipts/checksums were kept.
+
+`rollout.py rollback` is intentionally restricted to pre-acceptance states.
+After `running-new`, **do not blindly switch to the stale old DB**: pause writers,
+back up candidate, compare new writes and agree reconciliation first. Never run
+historical C/D1 copy, recreate the populated candidate or repair0017–0019 as a
+rollback shortcut. No reverse migration or SQL restore was performed here.
+
+Known separate remainder: old public pattern/static/Yandex URLs are unchanged;
+this release does not revoke anonymous access or purge their long-lived cache.
+Actual money/provider flows, old-file migration and mobile acceptance are not
+certified by these checks. No Git push was performed for this deployment.
+
+## Историческая граница разрешения до RELEASE-D3 —19 октября 2026
 
 FRESH-C4 разрешала **только локальную подготовку** образа и процедуры отката.
 Следующее прямое поручение FRESH-C5 разрешило transfer/load точного image только

@@ -83,6 +83,24 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября, RELEASE-D3 — фактически обновлён публичный dev.** По прямому
+разрешению выпущены backend/frontend `da47b54` и restricted TEST service, working
+DB переключена на `daryadarcy_candidate_20261019` (history42 unchanged).
+Backend image b8e2a908…, web3b3011d6… содержат AUTH-S1; старые images2083911
+не являются working. Прежний admin/password/hash/role/session сохранены;
+old `daryadarcy_staging` оставлена без source DML/repair0017–0019 для отката.
+Fresh boundary delta850 rows, private backups обеих DB, counters и native
+worker backup проверены. Public HTTPS16 checks pass: catalog200, checkout status
+guest401/admin200/notRecorded, subscription.hasClubAccess:boolean, same-password
+admin login/admin stats/logout и страницы. VK catalog/recovery включены отдельно
+согласованно; TEST режим прежний, private flags off/S3/legacy files не менялись.
+Старые публичные выкройки не закрыты. Перед будущим rollback нужна сверка новых
+writes: не повторять copy/initialization и не возвращать stale source молча.
+Evidence/границы — RELEASE-D3 в [todo](todo.md) и
+[текущий runbook](../docs/operations/candidate-backend-image-rollback.md).
+Разрешение было на этот выпуск, не на автоматические будущие deploy/push.
+Следующие снимки AUTH-S1/FRESH-D2 и ниже — история до переключения.
+
 **19 октября, AUTH-S1 — локально исправлен ложный guest при сбое сессии.**
 SessionService.optionalUser теперь различает confirmed typed auth denial и
 инфраструктурную ошибку: GET /api/auth/me503/no-store/no cookie mutation вместо

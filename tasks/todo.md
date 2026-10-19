@@ -2,6 +2,45 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Фактический выпуск на dev — 19 октября 2026
+
+- [x] RELEASE-D3 — пользователь явно разрешил обновить backend/frontend,
+  переключить приложение на проверенную candidate, сохранить admin/password
+  и старую DB для отката; отдельно разрешил VK catalog +normal checkout recovery.
+  **Выполнено на публичном https://daryadarcy.dev.reeskeen.ru, не только isolated.**
+  Source runtime/frontend: `da47b54c19129a8eeee976312bc3bd4f9e7cbbd3`;
+  frontend совпадает со свежим remote staging `e25ffda`, без ручных правок дизайна.
+  Новый backend/TEST image `b8e2a908…`, web `3b3011d6…`; полные IDs и откат —
+  [runbook](../docs/operations/candidate-backend-image-rollback.md).
+  Ранее проверенный native frozen runtime0763 сохранён; package/lockfile с2083911
+  не менялись, добавлены exact archived-source API/TEST bundles и новый Next build.
+  84 targeted regressions, root types, API86/32048 и production audit0 advisories;
+  frontend29 pages/types и native Linux web7 HTTP checks pass. Image/archive/SHA
+  guards; actual server candidate39 ORM/18 HTTP checks, прежний password login.
+  На границе остановлены только API/TEST writers; fresh read-only delta850 rows,
+  29 tables: product data совпали, users отличается только activity timestamps.
+  Созданы private gzip backups обеих DB (29/40 tables), counter floors проверены:
+  повышать не требовалось. Candidate runtime account только для её schema;
+  JWT/SMTP/provider configuration прежние, изменены DB URI и два approved flags.
+  Обновлены только api/web/prodamus-test, edge DNS reload без изменения config.
+  **Working DB теперь `daryadarcy_candidate_20261019`, history42 без изменений.**
+  Old `daryadarcy_staging` не изменяли/не удаляли/не ремонтировали0017–0019.
+  Public HTTPS16 checks: videos.catalog200, normalCheckoutStatus guest401 /
+  authenticated200/notRecorded, subscription200/hasClubAccess:boolean;
+  прежний admin login/me/admin.stats/logout, страницы/launch config pass.
+  Admin id1/hash/role/sessionVersion2 сохранены. Source table hashes после
+  write boundary совпали; остальные26 containers unchanged, seven services healthy,
+  три новых restart0/OOMfalse. Actual new worker native backup40 tables/gzip
+  verified, file0600/directory0700. Temporary SQL readers/probes удалены;
+  approved temporary image archives удалены с SHA guards, images/DB/backups retained.
+  Working private flags остались off, S3/legacy URLs не менялись. Публичные старые
+  выкройки **не закрыты этим выпуском**. Платежи/внешние письма не запускались;
+  pending email/binding/schedule/deletion/cancellation/shop queues до старта0.
+  Git push не выполнялся. Server evidence: release-da47b54.al4N82, receipt SHA
+  `608a539ff9ef864d7d0bf48e01811da651fa6769a35dd14ad80f1c2358d321c1`.
+  Backup/config rollback сохранён; возврат на старую DB после новых writes требует
+  отдельной сверки, не запускать historical copy/empty-candidate процедуры заново.
+
 ### Локальное исправление проверки сессии —19 октября
 
 - [x] AUTH-S1 — подтверждённый пользователем дефект: SessionService.optionalUser

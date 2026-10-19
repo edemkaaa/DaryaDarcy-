@@ -1,5 +1,27 @@
 # Отдельный тестовый стенд TeamAssist
 
+## 19 октября — RELEASE-D3: backend/frontend действительно обновлены, candidate активна
+
+После явного разрешения обновлены api/web/prodamus-test, приложение переключено
+на `daryadarcy_candidate_20261019`. Working source `da47b54`, включая AUTH-S1;
+backend image b8e2a908…, web3b3011d6…, frontend BUILD_ID7i5Wu32yYc4hxf-fZKfrm.
+Это выполненный публичный rollout, а не только подготовка или isolated acceptance.
+Новые VK catalog и normal checkout recovery включены после согласия пользователя;
+private flags off, S3/старые URLs/дизайн не менялись. Прежний админский пароль,
+hash/role/sessionVersion2/JWT сохранены. Source DB не удалялась и не изменялась
+после write boundary; history0017–0019 не ремонтировали/не обходили.
+
+84 targeted regressions/types/API86/audit0, Next29 pages/native web7 checks,
+server candidate39 ORM/18 HTTP и public HTTPS16 checks pass. Public catalog200,
+checkout status guest401/admin200/notRecorded, subscription.hasClubAccess boolean.
+Проверен настоящий вход прежним паролем, admin stats/logout и страницы стенда.
+Обе DB имеют свежие private gzip copies29/40 tables; native new worker backup40
+tables/file0600/dir0700 verified. Three new containers healthy/restart0/OOMfalse,
+other26 unchanged. TEST режим прежний; платежи/внешние письма не запускались.
+Старые публичные выкройки этим выпуском **не защищены** и остаются отдельным пунктом.
+Полные immutable IDs, source/delta evidence, private receipts и граница отката:
+[актуальный runbook](candidate-backend-image-rollback.md#текущий-working-dev--release-d319-октября-2026).
+
 ## 19 октября — FRESH-C6: backup/restore финальным образом на disposable DB
 
 Две own MySQL8.4.11 `backend_test`, tmpfs/no volumes/loopback; сервер, текущая и
