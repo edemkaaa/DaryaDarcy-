@@ -2,6 +2,44 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### RELEASE-D5 — объединённая11e4c6d опубликована на dev,19 октября
+
+- [x] Прямое разрешение push/server update с сохранением текущей DB/admin.
+  Origin/staging123aef8 — предок merge11e4c6d; normal push11e4c6d подтверждён
+  remote refs. Frontend автора и backend CF-HTTP1 сохранены, без ручных правок.
+  По проверенному merged source2646 tests/types/lint/API и builds pass.
+- [x] Clean git archive11e4c6d, backend/TEST/Next29 pages собраны отдельно,
+  runtime/deps/Next config/public assets неизменны с D4. Audit0/325 deps.
+  Linux amd64/USER node и pinned D4 base layers/config проверены; native
+  --network none API5/web7/restricted TEST3 HTTP проходят, bundles/BUILD_ID
+  совпадают. Initial local FROM image-ID syntax и неверный cwd web probe
+  исправлены только в packaging/probe, product source не менялся.
+- [x] SCP/первый stdin stream оборвались до working changes; rsync продолжил
+  передачу. Archive535380430 bytes, полный SHA1783ed2f…f54c совпал на обоих
+  хостах перед load. Guarded prepare: текущая daryadarcy_candidate_20261019,
+  history42, schema/admin digest зафиксированы; consistent gzip backup351593
+  bytes/40 tables валиден, все6 side-effect counters0. Только api/web/TEST
+  image references +TEST bundle source изменены; полный canonical config
+  сравнивался, включая сохранение DB URI/JWT/flags/provider/SMTP. Миграций,
+  seed/import/DB switch/пароля/S3/новых платежей/внешней почты не было.
+- [x] Rollout принят без server rollback: три сервиса healthy/restart0/OOMfalse,
+  26 остальных контейнеров неизменны. Actual running API/TEST SHA и web BUILD_ID
+  совпали с exact release. Public HTTPS23 checks: pages/chunk/health/launch,
+  guest me/subscription, videos.catalog default/forward200/backward400,
+  normalCheckoutStatus guest401/admin200/notRecorded, прежний admin password
+  login/me/stats/logout, hasClubAccess; обе disabled private procedures на
+  invalid300KiB дают pre-body404, ordinary остаётся413. Это не успешная
+  загрузка в S3: рабочие private flags не включались, файлов не создавали.
+  После публичного входа schema/history/admin hash/role/version проверены снова.
+- [x] Private receipts/code: local release-11e4c6d.SqdAUZ; server
+  release-11e4c6d.rpQ0dY. Release receipt0600 SHA99a36eff…bdca, parent0700.
+  Только own archive на Mac/server и synthetic1MiB probe удалены после
+  exact path/ownership/non-symlink/size/SHA guards; архив восстанавливается из
+  retained images. Fresh backup, configs и previous images оставлены;
+  server free1176MiB. Точные hashes и same-DB rollback — [runbook](../docs/operations/candidate-backend-image-rollback.md).
+  Browser/mobile/полная приёмка договора не повторялись; gate «Сохранённого»
+  в профиле не менялся. Одноразовое release approval не разрешает следующий deploy.
+
 ### MERGE-ST5 — свежий staging123aef8,19 октября, только локально
 
 - [x] Прямое поручение «стяни все с стейджа». Исходная ветка чистая, c8b4973;

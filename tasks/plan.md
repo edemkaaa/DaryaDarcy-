@@ -36,6 +36,12 @@
 - **Последнее поручение19 октября после RELEASE-D4:** продолжать только backend;
   frontend, generated API types и дизайн не менять. Новые push/deploy запрещены.
   Разрешение предыдущего выпуска не переносится на следующую задачу.
+- **Разовое разрешение19 октября, RELEASE-D5:** после MERGE-ST5 пользователь
+  явно поручил push объединённой11e4c6d в staging и обновление сервера с
+  сохранением текущей БД и админского входа. Разрешены только exact image-only
+  api/web/restricted TEST rollout, consistent backup и проверки сохранности;
+  без миграций/переноса/смены DB, пароля, flags, S3 или ручной правки frontend.
+  Разрешение не переносится на будущие выпуски или новые функции.
 - **Уточнение15 октября после AG9-L4:** пользователь разрешил актуализировать
   frontend со staging и исправлять только внутреннюю логику/интеграцию, без дизайна.
   Можно менять `apps/frontend` logic/tests/generated API contract по подтверждённым
@@ -85,6 +91,20 @@
   контракт. Не восстанавливать старые предложения как уже утверждённые задачи.
 
 ### Снимок, от которого продолжать
+
+**19 октября, RELEASE-D5 —11e4c6d опубликована и фактически работает на dev.**
+Normal push и exact image-only rollout завершены: CF-HTTP1 + frontend123aef8,
+без ручных правок фронта/дизайна. Clean source/builds, audit0/325 deps;
+native Linux API5/web7/TEST3 HTTP. Транспортный обрыв преодолён через проверенный
+префикс и полный SHA archive. Fresh backup40 tables, current candidate/history42,
+admin hash/role/version и весь config кроме images/TEST source сохранены.
+Api/web/TEST healthy/restart0/OOMfalse,26 остальных контейнеров неизменны.
+Public HTTPS23 checks и прежний admin password login прошли; runtime bundles и
+BUILD_ID совпали с release. Никаких миграций/переноса/DB switch/flags/S3/provider
+тестов/внешней почты. Own temporary archives/probe удалены; backup и rollback
+images сохранены. Точные IDs/receipt/ограничения — RELEASE-D5 в todo и
+[runbook](../docs/operations/candidate-backend-image-rollback.md).
+Browser/mobile/full contract acceptance и решение о gate профиля не закрывались.
 
 **19 октября, MERGE-ST5 — свежий frontend из staging, только локально.**
 По прямому поручению подтянут origin/staging123aef8 (SergeyM): обработка ошибок

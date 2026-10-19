@@ -1,6 +1,78 @@
 # БД-кандидат: backend artifact и откат приложения
 
-## Текущий working dev — RELEASE-D4,19 октября 2026
+## Текущий working dev — RELEASE-D5,19 октября 2026
+
+По прямому поручению объединённая версия опубликована в origin/staging и
+фактически выпущена на `https://daryadarcy.dev.reeskeen.ru`:
+`11e4c6d43d0a10a75a0ae8b85f3171147daee54a`. Сохранён весь frontend123aef8
+и backend CF-HTTP1. Последующий documentation-only commit не меняет runtime.
+Без ручных правок дизайна, миграций, импорта, смены DB/пароля или flags.
+
+- API/restricted TEST image:
+  `sha256:479c7f72e6d564f774fc158c9688f44ebd96d5fb4a86821690b7dc4700bdc0bc`.
+  Web image:
+  `sha256:9952d6cb1f05171b9cd5252bcbbd12c886690d4adbf20e92991c6139e0e08c86`.
+  Running API bundle SHA:
+  `d5bca8029fa63655a0625287b08b9e68fa001b10c1503e8fb4ed3d16b26da6a6`;
+  running TEST bundle SHA:
+  `13c2dee69e909b159e60b2f4d078d46673e833143a501de08543e7978fb20723`.
+  Actual web BUILD_ID: `BCIgEvcJAF_SDkYF8wYp7`.
+- Source — clean Git archive. Package/lock/config/assets/dependencies прежние;
+  pinned D4 base IDs/layers/User/Cmd/Entrypoint/Env проверены до упаковки.
+  Новый Next29-page build без build cache в image, старый .next удалён только
+  внутри нового immutable image. Native isolated --network none API5/web7/
+  restricted TEST3 HTTP pass, exact bundles и BUILD_ID проверены. Merged
+  regression2646 pass/1601 opt-in skips/types/lint/API86/32138/boundaries689
+  прошли до push; production audit0 advisories/325 deps повторён перед release.
+  Initial local FROM image-ID syntax и неверный cwd web probe исправлялись
+  только в packaging/check fixture, не в product source или working service.
+- Archive535380430 bytes, SHA
+  `1783ed2f8e87bc98f76061331243f555c59aa17ad6ab59124ead09084605f54c`.
+  SCP/первый stdin transport оборвались до перезапуска; частичный префикс
+  сверялся перед resume, полный archive сверялся перед Docker load.
+  Только после успешного prepare выполнен guarded image-only rollout.
+- Active database по-прежнему `daryadarcy_candidate_20261019`, history42.
+  Current schema/admin password hash/role/sessionVersion сохранены, сравнение
+  до/после и повторно после публичного входа прошло. Fresh consistent backup
+  `before-candidate.sql.gz`0600,351593 bytes/40 tables, SHA
+  `e34e00dcc55ec5b2d6ebe344955aecca9c62ccf5e0d3d149e6639320cae4fb94`.
+  Все6 side-effect counters были0. Полная Compose delta — только api/web/TEST
+  images и TEST bundle source; DB URI/JWT/provider/SMTP/flags прежние.
+  Три сервиса healthy/restart0/OOMfalse; остальные26 контейнеров неизменны.
+- Public HTTPS23 checks pass: pages/chunk/health/launch config, guest me и
+  subscription, videos.catalog default/forward200/backward400, checkoutStatus
+  guest401/admin200/notRecorded, same-password admin login/me/stats/logout,
+  hasClubAccess. Invalid300KiB к обеим disabled private content procedures
+  возвращают pre-body404, ordinary JSON остаётся413. Это проверка фактически
+  работающего нового parser admission, не успешная загрузка в S3. Private flags
+  не включались; legacy files/S3/платежи/внешние письма не затронуты.
+
+### D5 evidence и откат на той же БД
+
+Server directory0700:
+`/home/edem/apps/daryadarcy-staging/release-11e4c6d.rpQ0dY`.
+`release-receipt.json`0600 SHA:
+`99a36eff889ca84a233dfd1179d59ec39d061b4880e295b7c2f37e9ab5e9bdca`.
+Локальные receipts/code вне Git:
+`.local-artifacts/release-11e4c6d.SqdAUZ`.
+Config copies/state содержат чувствительные операционные настройки: не печатать,
+не копировать в Git/чат. TEST source0644 не секретен, parent остаётся0700.
+
+D4 images dcbe4bba…/a0115b67… и previous configs сохранены. Во время неудачного
+rollout `rollout-images.py rollback` разрешён только до acceptance и возвращает
+images на **той же current DB**, без restore/reverse migration/cutover. D5 прошёл
+без server rollback. После accepted новый откат требует отдельного разрешения,
+fresh backup/admin/schema/config guards; не применять старый D3 DB-cutover script
+или возвращать устаревшую old DB как автоматический откат приложения.
+
+После acceptance удалены только own local/server archive и synthetic1MiB
+transport probe, exact path/ownership/non-symlink/size/SHA guards. Archives
+восстанавливаются из retained images; backup/configs/receipts/rollback images
+сохранены. Server free1176MiB; чужие caches/images/volumes/files не очищались.
+Browser/mobile/pilot/full contract acceptance не повторялись. Обсуждённый gate
+профиля/«Сохранённого» не исправлялся этим выпуском и требует отдельного решения.
+
+## Предыдущий working dev — RELEASE-D4,19 октября 2026
 
 По прямому поручению свежий frontend staging9e933d2 объединён с AUTH-S2 и
 VCAT-C1: merge7433e7f, source/runtime `b7d733814fb3d535bc3a3c624016a10eec490d8f`.
