@@ -1,5 +1,35 @@
 # Отдельный тестовый стенд TeamAssist
 
+## 19 октября — FRESH-C4: подготовка backend image и rollback
+
+Прямое разрешение — только локальный artifact и процедура, без server upload,
+deployment/switch и без изменения frontend/текущей или candidate DB. Отдельный
+[runbook образа и отката](candidate-backend-image-rollback.md) описывает backend-only
+сборку, API-only override, возврат пары image/connection без reverse SQL и stop
+при новых writes. Existing combined Dockerfile/compose не заменяются.
+Offline Compose acceptance RED1→GREEN1: actual Docker Compose5.5.1 config diff
+только api image/DB URI; снятие override даёт exact baseline, web/mysql/edge/
+networks/volumes/security неизменны. Синтетические private temp env files удалены.
+Image acceptance RED2: образ отсутствует. Backend compilation597.1kB/exit0,
+frozen dev install и Debian client install успешны, но production packaging
+не завершена. Первый prod-over-dev скачивал лишние optional platform packages;
+отделён clean prod stage. Registry ECONNRESET/retries и free space115MiB,
+Docker API timeout/Desktop stopped; обе own builds остановлены. Native image
+GREEN/ID/export отсутствуют — **artifact ещё не готов**. SQL/provider checks
+и серверный rollback не запускались, working env не читался.
+
+Удалены только own extracted dependencies и pnpm store в protected
+`/tmp/daryadarcy-candidate-20261019.BhP3la/runtime-linux`, после realpath/owner/
+0700-parent и archive SHA-256 guards. Node_modules/store имели shared hardlinks;
+свободное место после удаления обоих~760MiB. Verified archive143MiB сохранён
+(`ecc4cccd…27eaf07`), данные/образы/БД/чужие containers не удалялись.
+Own BuildKit cache `v0augx12yu8atgzx3hfyozdxg`2.046GB создан первой попыткой,
+exact-id prune по [Docker selectors](https://docs.docker.com/reference/cli/docker/buildx/prune/)
+вернул daemon timeout — результат не подтверждён, broad prune не выполнялся.
+Задан вопрос о запуске Docker/только own cache cleanup. Нужны свободное место,
+живой Docker, финальная сборка и native test. Наличие инструкции само по себе
+не является проверкой серверного отката.
+
 ## 19 октября — LB4: Библиотека с actual S3, без старых файлов
 
 Новый opt-in test: `tests/library-files.s3.mysql.test.ts` (Node22).

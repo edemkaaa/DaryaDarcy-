@@ -83,6 +83,20 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября, FRESH-C4 — подготовлено, image acceptance заблокирована средой.** Локально подготовить
+backend-only Linux amd64 image и процедуру rollback пары image/DB connection;
+без server upload/deployment/switch, без frontend/текущей и candidate server DB.
+Existing rollout сохранить; frozen dependencies, native offline image probe и
+offline API-only Compose round-trip. Отдельное разрешение на switch по-прежнему
+обязательно. Детали: [runbook](../docs/operations/candidate-backend-image-rollback.md).
+Dockerfile/allowlist/API-only override/rollback procedure сохранены; backend
+compilation прошла, offline Compose round-trip GREEN1. Native image ещё не
+собран/не проверен: после уменьшения free space до115MiB Docker API timeout,
+Desktop stopped. Только own temporary dependency cache удалён с guards,
+verified archive сохранён, свободно~760MiB. Own exact Docker cache prune не
+подтверждён (daemon timeout); запуск Docker/его targeted cleanup запрошен.
+Следующий шаг — восстановить среду, завершить image native acceptance, не switch.
+
 **19 октября, LB4 actual S3 acceptance завершён.** По продолжению backend
 первый доступный остаток — Библиотека: сеть восстановилась (HTTPS200, signed
 policy hash прежний). Новый opt-in native suite на own fresh42 tmpfs SQL и

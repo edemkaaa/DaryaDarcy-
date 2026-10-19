@@ -4,6 +4,32 @@
 
 ### Разрешённая подготовка staging/server — 19 октября
 
+- [ ] FRESH-C4 — по прямому разрешению подготовить локальный Linux amd64
+  backend-only image и процедуру отката пары image/DB connection. Existing
+  combined Dockerfile/compose, frontend и текущую/кандидатную server DB не менять.
+  Frozen lockfile/pinned Node22, no install scripts; native offline image probe
+  (non-root, sharp, mysql client, real composition HTTP, no workers/providers).
+  Образ не загружать на сервер, приложение не переключать, push/deploy нет.
+  Откат без reverse SQL/drop/restore поверх существующих БД; новые записи после
+  возможного switch — stop/сохранить/согласовать, не обещать lossless switchback.
+  Подготовлены Dockerfile/allowlist, offline API-only override и runbook.
+  Native RED2 (образ отсутствует); backend compilation597.1kB прошла, но
+  production packaging не завершена: две own попытки остановлены, registry
+  ECONNRESET и свободное место115MiB, Docker API timeout/Desktop stopped.
+  Удалены только own extracted dependency tree/pnpm cache под private tmp,
+  matching SHA-256 archive сохранён; свободно~760MiB. Targeted Docker cache
+  prune ID `v0augx12yu8atgzx3hfyozdxg` вернул daemon timeout, очистка не подтверждена.
+  Native image GREEN/ID/export отсутствуют; не считать artifact готовым.
+  Compose RED1→GREEN1: actual offline config candidate diff только api image/URI,
+  baseline round-trip exact; Docker containers/SQL не запускались. Synthetic
+  env files0600/temporary removed, no working env/credentials read.
+  Нужны восстановление Docker/места и окончание native image acceptance;
+  задан вопрос о запуске Docker и удалении только точного own cache.
+  Final local checks: root types/exit0, offline Compose1 pass +image2 opt-in
+  skips (не image acceptance), docs59/prettier/diff pass. Native production
+  dependency audit0 advisories/325 deps; lockfile неизменён. Existing runtime
+  source/API/schema/rollout/frontend не менялись, full2544/S3/SQL не повторяли.
+
 - [x] FRESH-C2/C3 — новое прямое разрешение: применить fresh42 только к
   `daryadarcy_candidate_20261019` и проверить candidate API без switch.
   Exact server/container/network/UUID + pinned plan hash + empty schema guard;
