@@ -2,16 +2,19 @@
 
 ## Граница разрешения —19 октября 2026
 
-Разрешена **только локальная подготовка** образа и процедуры отката. Этот документ
-и example override не разрешают upload/load на сервер, deployment, restart,
-switch, grants, seeds, SQL apply, S3 mutations или включение private flags.
+FRESH-C4 разрешала **только локальную подготовку** образа и процедуры отката.
+Следующее прямое поручение FRESH-C5 разрешило transfer/load точного image только
+для isolated SELECT-only API check на существующей БД-кандидате; выполнено ниже.
+Этот документ и example override не разрешают deployment, restart/switch рабочих
+сервисов, permanent grants, seeds, SQL apply, S3 mutations или private flags.
 Текущая БД, frontend и существующая конфигурация rollout остаются прежними.
 Результаты схемы/API кандидата: [основной runbook](teamassist-staging.md).
 
 Состояние подготовки: **локальный image/archive готовы**, native offline image
-acceptance2/2 и configuration round-trip1/1 прошли. Серверная проверка именно
-финального image, native backup/restore с его client и switch не выполнялись.
-Разрешения на upload/deploy/switch нет.
+acceptance2/2 и configuration round-trip1/1 прошли. Точный финальный image затем
+проверен в isolated server container на candidate42:39 ORM +8 HTTP/exit0/OOM=false.
+Native backup/restore с его client и switch не выполнялись. Разрешения на
+deployment/switch нет; transfer/load был только для C5 test, не release approval.
 
 Проверенный источник image — `20839114f6cc4236f477ecd6c2c15a80059c66ca`;
 tag `daryadarcy-backend:fresh-c4-2083911`, Linux amd64/Node22.23.3/USER node.
@@ -25,8 +28,57 @@ Archive254MiB и verification.json сохранены вне Git в private dire
 `/Users/edem/Desktop/ASSIST/dina_project/.local-artifacts/backend-2083911/`.
 `backend-image.tar` SHA-256:
 `2ad09117275954d4207e5b97ffa7386c270cf93bed5b2a01a44dedf032a04f44`.
-Docker save exit0, archive tag/config SHA/source/platform и checksum проверены;
-archive load на сервере не выполнялся. Не подменять OCI index/config/manifest IDs.
+Docker save exit0, archive tag/config SHA/source/platform и checksum проверены.
+В C5 archive с тем же SHA загружен в exact server Docker; Image ID остался
+тем же OCI index e774…. Не подменять OCI index/config/manifest IDs.
+
+## FRESH-C5 — результат на существующей БД-кандидате
+
+Target teamassist-dev/edem UID1001, exact MySQL container3442fbda…/UUID
+`2a41f961-c168-11f1-8660-0a4124b25f9f`, internal network b64d0e6b… прежние.
+Before load: history42 digest
+`e8d87d9b4547b9568134a4578acf173f0ebc61b868cccde177c7808bf793c9f6`, users0,
+archive/source/probe hashes проверены. Build/install на shared host не запускался.
+Проверен hash actual `/app/dist/index.mjs` внутри финального image; зависимости
+использовались **из image**, без overlay node_modules. Composition-only canonical
+candidate CLI bundle SHA-256:
+`8e871f89149b67375ffb82841df9da09cb186b67e774ca28d1e0d304dd372103`.
+Он побайтно совпал с C3; runtime source6f06e09..2083911 не менялся.
+
+Temporary account имел только SELECT на candidate, без global elevated grants.
+Probe UID1001:1001/read-only root+mount/internal net/no published ports,
+cap-drop/no-new-privileges/memory256MiB/CPU0.4. Запускался только `--check-api`;
+не production CMD, не workers, не installer. Working env/секреты providers не
+читались; MySQL administrative credential использован внутри existing container,
+значения не выводились. Миграции/repair/schema DDL/seed не выполнялись;
+прямые SQL/user-data reads старой БД отсутствовали. Из SQL writes были только
+создание/SELECT grant/удаление собственной временной тестовой учётки.
+
+Actual checks:39 ORM tables/columns через LIMIT0; guest auth/launch/feed/articles
+200 (user:null/empty lists), protected admin401, default-off Library/content files
+404. Все8 HTTP прошли, exit0/OOM=false. User count0/history digest прежние.
+Own container/account/env удалены. Все24 existing running containers IDs/images/
+start times/health, configuration **metadata** и volume names совпали до/после.
+Это не hash-сравнение содержимого working env: его не читали. Все7 project services
+healthy, current HTTPS `/`200. Application/front/current DB/S3/flags не менялись.
+
+Server receipt (private):
+`/home/edem/apps/daryadarcy-staging/candidate-image-20261019-2083911.f1vR0P/verification.json`.
+Local receipt: `.local-artifacts/backend-2083911/candidate-verification.json`
+рядом с сохранённым archive вне Git. SHA-256 обеих копий:
+`4c1ef5ad5241298411a98de2a941ce63b42a448ffcb491f00e6fc04bca570f8a`.
+После успеха только uploaded archive254MiB удалён с exact root/owner/0700/
+no-symlink/SHA/positive receipt guards. Original local export и loaded image
+сохранены; отдельный archive-cleanup.json, free~1.7GiB. Чужие files/images/volumes
+не очищались. На shared server не запускать тяжёлые новые работы без disk/RAM gate.
+
+Preflight-only отказы до image load/credentials: missing Health в metadata
+template; directory trailing slash и macOS AppleDouble в probe tar. Исправлены
+только диагностика/packaging (COPYFILE_DISABLE=1,59 allowlisted entries); target
+guards не расширены. Runtime/SQL source/dependencies не менялись. Эти отказы
+не являются найденными дефектами продукта. Native backup/restore image client,
+production executable/worker lifecycle, owner/initial data/permanent app grants,
+write cutover и реальный rollback не проверялись этим SELECT-only прогоном.
 
 ## Состав и воспроизведение образа
 
@@ -77,8 +129,8 @@ LaunchService.database()/existing nest-application test подтверждают
 Финальный native2 +offline Compose1:3 pass/0 skip/8.80s; Node syntax check
 actual `/app/dist/index.mjs` exit0. Production dependencies сверены внутри image:
 Nest12.1.2/tRPC11.8.0/axios1.20.0/Drizzle0.45.3/mysql2 3.24.5/sharp0.35.5.
-Schema39/HTTP8 на candidate уже проверялись отдельно в FRESH-C3; новую сборку
-ещё нужно отдельно принять на candidate перед любым switch.
+Schema39/HTTP8 на candidate проверялись в FRESH-C3; exact final image повторно
+проверен в FRESH-C5 выше. Это по-прежнему не разрешение switch.
 
 ## Подготовка будущего switch — не выполнять сейчас
 

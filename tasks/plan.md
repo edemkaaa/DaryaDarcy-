@@ -83,6 +83,19 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября, FRESH-C5 — финальный image проверен на server candidate.** Прямое
+поручение разрешило transfer/load только для isolated test, не deployment/switch.
+Точный image2083911/e774… и bundle hash проверены без rebuild/dependency overlay;
+existing candidate42/read-only account:39 ORM tables/columns +8 actual HTTP,
+exit0/OOM=false. История/users0 неизменны; own container/account/env удалены,
+24 existing containers/config metadata/volumes прежние,7 project services healthy,
+current HTTPS200. Фронт/working DB/S3/app switch не трогались. Receipt SHA-256
+`4c1ef5ad5241298411a98de2a941ce63b42a448ffcb491f00e6fc04bca570f8a` сохранён
+на сервере и локально. Own uploaded archive254MiB удалён с guards, local original
+и loaded image сохранены, free~1.7GiB. Дальше остаются native backup/restore
+image client на own disposable DB и отдельные launch/owner/grants/writes/switch
+решения. Не запускать рабочий CMD/workers/переключение автоматически.
+
 **19 октября, FRESH-C4 — локальная подготовка завершена.** Подготовлены
 backend-only Linux amd64 image и процедура rollback пары image/DB connection;
 без server upload/deployment/switch, без frontend/текущей и candidate server DB.
@@ -95,8 +108,8 @@ native image2 +offline Compose1 =3 pass/0 skip,6 actual HTTP/no DB/egress/worker
 Собственный test ожидал launch200 без DB; исправлен на подтверждённый503/no-store,
 production не менялся. Image `sha256:e774b30f…56403d5`, archive254MiB+receipt
 вне Git, полный source/config/manifest/bundle/archive hashes в runbook.
-Следующий шаг — отдельно разрешённая проверка final image на candidate и backup
-client; server upload/deploy/switch ещё не разрешены. Parent release gate открыт.
+Final image candidate check выполнен в C5 выше. Native backup/restore image
+client и отдельное решение о deployment/switch ещё впереди. Parent release gate открыт.
 
 **19 октября, LB4 actual S3 acceptance завершён.** По продолжению backend
 первый доступный остаток — Библиотека: сеть восстановилась (HTTPS200, signed

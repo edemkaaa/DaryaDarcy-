@@ -1,5 +1,25 @@
 # Отдельный тестовый стенд TeamAssist
 
+## 19 октября — FRESH-C5: финальный image на server candidate, без switch
+
+По прямому поручению загружен exact image2083911/e774… только для isolated probe.
+Archive и actual bundle hashes совпали с local C4; rebuild/dependency overlay нет.
+Candidate UUID/контейнер/network и history42 прежние. Actual image/Nest/MySQL:
+39 ORM tables/columns +8 HTTP, exit0/OOM=false; временный SELECT-only account,
+без executable/workers/providers/working env/ports/SQL apply. После: users0/
+history прежние, own container/account/env удалены,24 existing container IDs/
+images/start times/health +config metadata/volumes совпали,7 project services
+healthy/current HTTPS200. Фронт/текущая DB/приложение/S3/flags не менялись.
+
+Полный [результат и rollout limits](candidate-backend-image-rollback.md).
+Server private receipt: candidate-image-20261019-2083911.f1vR0P/verification.json,
+local .local-artifacts/backend-2083911/candidate-verification.json вне Git;
+SHA-256 `4c1ef5ad5241298411a98de2a941ce63b42a448ffcb491f00e6fc04bca570f8a`.
+Только own uploaded archive254MiB удалён после SHA/owner/root/receipt guards;
+локальный оригинал и loaded image сохранены, free~1.7GiB. Это не deployment,
+не native dump/restore image client и не разрешение switch. Временные preflight
+ошибки metadata template/tar portability исправлены без изменения продукта.
+
 ## 19 октября — FRESH-C4: подготовка backend image и rollback
 
 Прямое разрешение — только локальный artifact и процедура, без server upload,

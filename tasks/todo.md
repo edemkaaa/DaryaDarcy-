@@ -4,6 +4,48 @@
 
 ### Разрешённая подготовка staging/server — 19 октября
 
+- [x] FRESH-C5 — прямое разрешение проверить **финальный image2083911** на
+  existing `daryadarcy_candidate_20261019`, без switch/frontend/текущей DB.
+  Разрешён transfer/load versioned artifact только для isolated probe; не
+  deployment/update Compose/working env/services. Exact host/MySQL UUID/ID/
+  internal network, archive/config/bundle SHA, history42 до любых новых credentials.
+  Canonical candidate CLI `--check-api`, временный SELECT-only account, без
+  dependency overlay/пересборки/server installer/schema DDL/seed/workers/providers/ports.
+  Проверить39 ORM schemas/8 HTTP; удалить только own probe/account/env, сохранить
+  receipt и сравнить existing container/config metadata/history/volumes до/после.
+  Выполнено19 октября: strict SSH exact host/key; MySQL3442fbda…/UUID/network
+  прежние, candidate history42 SHA-e8d87… прежний/users0. Archive SHA-2ad091…
+  сверён перед load; exact image e774…/source2083911 и actual bundle SHA-bb977…
+  проверены, без rebuild/dependency overlay. Canonical candidate CLI bundle
+  SHA-8e871… совпал с C3: runtime source6f06e09..2083911 неизменён.
+  Actual image/Nest/SQL:39 ORM tables/columns +8 loopback HTTP, exit0/OOM=false.
+  Guest auth/launch/feed/articles200; admin401; default-off files404. Только
+  временный SELECT на candidate, UID1001/internal net/no ports/read-only/cap-drop/
+  memory256MiB/CPU0.4, без executable/WorkerJobs.start/providers/working env.
+  Нет SQL initialize/schema DDL/seed/data writes. История/users0 после прежние;
+  exact own container/account/env удалены,24 existing containers IDs/images/
+  start times/health +configuration metadata и volume names совпали до/после.
+  Все7 project services healthy, current HTTPS200. Receipt SHA-256:
+  `4c1ef5ad5241298411a98de2a941ce63b42a448ffcb491f00e6fc04bca570f8a`;
+  server private candidate-image-20261019-2083911.f1vR0P/verification.json и
+  local .local-artifacts/backend-2083911/candidate-verification.json совпали.
+  Удалена только own uploaded archive254MiB после guards/hash +receipt success;
+  local original/loaded image сохранены, free~1.7GiB, archive-cleanup.json.
+  Диагностика до load/account: metadata template не принимал missing Health;
+  исправлен безопасный index. Tar allowlist отклонил trailing directory slash,
+  затем macOS AppleDouble metadata; нормализованы directory names, архив создан
+  COPYFILE_DISABLE=1/59 allowlisted entries, guard не расширен. Initial SSH без
+  agent identities отказал; использован existing project key, private bytes не
+  читались. Отдельные SSH banner timeouts: основной retry прошёл; поздняя
+  optional copy cleanup receipt отказала, основной verified receipt уже локально.
+  Runtime не исправлялся.
+  Push/deployment/switch/frontend/current DB/S3 отсутствуют. Native backup/restore
+  с image client на own disposable MySQL ещё не проверен; release gate открыт.
+  Final docs59/diff pass. Только4 существующих Markdown files изменены;
+  application/schema/API/dependencies не менялись, успешные unchanged local
+  native image/types/full suites не повторяли. Это actual server SQL/HTTP,
+  не mock/browser/payment/mail/S3/production worker acceptance.
+
 - [x] FRESH-C4 — по прямому разрешению подготовить локальный Linux amd64
   backend-only image и процедуру отката пары image/DB connection. Existing
   combined Dockerfile/compose, frontend и текущую/кандидатную server DB не менять.
@@ -107,7 +149,7 @@
   **после проверки согласовать switch с пользователем**. FRESH-C2/C3 выполнен:
   схема42 и guest candidate API проверены, но данных/owner/permanent app grants
   нет, новый backend не выложен. FRESH-C4 local image/archive/rollback подготовлен;
-  остались final image candidate acceptance/backup client и отдельное решение
+  FRESH-C5 final image candidate acceptance выполнен; остались backup client и отдельное решение
   о upload/switch/owner/начальных данных; автоматически не выполнять.
   Ordinary preflight: untracked0017–0019, databaseChecked=false/exit1;
   guard не обходили. Для fresh пути история старой базы не нужна. No migration
