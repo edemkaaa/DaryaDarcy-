@@ -7,6 +7,29 @@ deployment/switch и без изменения frontend/текущей или ca
 [runbook образа и отката](candidate-backend-image-rollback.md) описывает backend-only
 сборку, API-only override, возврат пары image/connection без reverse SQL и stop
 при новых writes. Existing combined Dockerfile/compose не заменяются.
+
+**Финальное продолжение после разрешения запуска Docker/очистки только own cache:**
+Docker29.8.1 восстановлен (штатный restart timeout; точные uid/path checks,
+TERM и KILL только зависшего supervisor после подтверждения отсутствия VM).
+Aborted cache IDs v0aug…/qxvp… после восстановления уже отсутствовали; broad prune
+не выполнялся. Existing6 images/12 volumes/2 foreign stopped containers сохранены,
+free~4.7GiB до сборки. Собран clean Git archive2083911, pinned Node22/Linux amd64,
+frozen prod install291 packages/26.3s и build/export exit0. Первый native run:
+metadata pass, probe fail из-за собственного ожидания launch200 без DB.
+Existing LaunchService/nest-application test подтверждают503/no-store с generic
+body; исправлен только helper, production не менялся. Final native image2 +
+offline Compose1 =3 pass/0 skip/8.80s,6 real HTTP/no DB/egress/workers/providers;
+sharp pixel и actual executable syntax check pass, dump client только --version.
+
+Image `daryadarcy-backend:fresh-c4-2083911`, index `sha256:e774b30f…56403d5`.
+Archive254MiB/receipt/checksum вне Git в private .local-artifacts/backend-2083911;
+Docker save/tag/config SHA/source/platform verified, не server load. Полные hashes
+и обязательные gates — в linked runbook. Финальный image ещё не проверен на
+candidate DB; native dump/restore с image client не запускался. Upload/deploy/
+switch/DB/S3/frontend не трогались. Это завершение локальной подготовки,
+**не разрешение и не приёмка выкладки или серверного отката**.
+
+Предыдущая попытка (история диагностики, заменена результатом выше):
 Offline Compose acceptance RED1→GREEN1: actual Docker Compose5.5.1 config diff
 только api image/DB URI; снятие override даёт exact baseline, web/mysql/edge/
 networks/volumes/security неизменны. Синтетические private temp env files удалены.

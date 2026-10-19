@@ -8,9 +8,25 @@ switch, grants, seeds, SQL apply, S3 mutations или включение private
 Текущая БД, frontend и существующая конфигурация rollout остаются прежними.
 Результаты схемы/API кандидата: [основной runbook](teamassist-staging.md).
 
-Состояние подготовки: offline configuration round-trip проверен; backend build
-прошёл, но image packaging/native acceptance не завершены из-за нехватки места
-и остановленного Docker. Проверенного image ID/archive пока нет. Switch запрещён.
+Состояние подготовки: **локальный image/archive готовы**, native offline image
+acceptance2/2 и configuration round-trip1/1 прошли. Серверная проверка именно
+финального image, native backup/restore с его client и switch не выполнялись.
+Разрешения на upload/deploy/switch нет.
+
+Проверенный источник image — `20839114f6cc4236f477ecd6c2c15a80059c66ca`;
+tag `daryadarcy-backend:fresh-c4-2083911`, Linux amd64/Node22.23.3/USER node.
+Image ID (OCI index):
+`sha256:e774b30f3b9a04b10de094d2b0999da6be0d8dd3620721e2d1b2cd3ab56403d5`.
+Platform manifest `sha256:150363760433fb07582bca20ae7fcb3d44ade2261418743bace7f3719c69015e`;
+config `sha256:598b23ab47e094b8ef8d7288369ec7158f78edb4a612d82e2e3acd1226e05272`.
+Bundle SHA-256 `bb9775d1da5bd418d0ccf6138f81414425f5b4f6e3f56db08f357273c5da903f`;
+lockfile `5843748a36df5dc742249b848b5c56263e16d31addd2656d0f5dc08043839721`.
+Archive254MiB и verification.json сохранены вне Git в private directory
+`/Users/edem/Desktop/ASSIST/dina_project/.local-artifacts/backend-2083911/`.
+`backend-image.tar` SHA-256:
+`2ad09117275954d4207e5b97ffa7386c270cf93bed5b2a01a44dedf032a04f44`.
+Docker save exit0, archive tag/config SHA/source/platform и checksum проверены;
+archive load на сервере не выполнялся. Не подменять OCI index/config/manifest IDs.
 
 ## Состав и воспроизведение образа
 
@@ -52,9 +68,15 @@ CANDIDATE_COMPOSE_ACCEPTANCE=true \
 
 Image test использует `--pull=never`, Linux amd64, network=none/read-only/non-root,
 cap-drop/no-new-privileges, без env_file/ports/volumes/SQL/S3. Проверяет metadata,
-native sharp, наличие dump client, guest auth/launch200, protected admin401,
+native sharp, наличие dump client, guest auth200, launch503 без DB, protected admin401,
 default-off files404 через настоящий Nest composition. Это не fresh SQL check,
 реальные mail/payment/S3 checks или проверка backup client с MySQL8.4.
+В первом native run1 pass/1 fail: собственный test ожидал launch200 без DB.
+LaunchService.database()/existing nest-application test подтверждают503/no-store
+с generic body; исправлено только ожидание probe. Production route не менялся.
+Финальный native2 +offline Compose1:3 pass/0 skip/8.80s; Node syntax check
+actual `/app/dist/index.mjs` exit0. Production dependencies сверены внутри image:
+Nest12.1.2/tRPC11.8.0/axios1.20.0/Drizzle0.45.3/mysql2 3.24.5/sharp0.35.5.
 Schema39/HTTP8 на candidate уже проверялись отдельно в FRESH-C3; новую сборку
 ещё нужно отдельно принять на candidate перед любым switch.
 

@@ -4,7 +4,7 @@
 
 ### Разрешённая подготовка staging/server — 19 октября
 
-- [ ] FRESH-C4 — по прямому разрешению подготовить локальный Linux amd64
+- [x] FRESH-C4 — по прямому разрешению подготовить локальный Linux amd64
   backend-only image и процедуру отката пары image/DB connection. Existing
   combined Dockerfile/compose, frontend и текущую/кандидатную server DB не менять.
   Frozen lockfile/pinned Node22, no install scripts; native offline image probe
@@ -29,6 +29,29 @@
   skips (не image acceptance), docs59/prettier/diff pass. Native production
   dependency audit0 advisories/325 deps; lockfile неизменён. Existing runtime
   source/API/schema/rollout/frontend не менялись, full2544/S3/SQL не повторяли.
+  Продолжено после прямого разрешения запуска Docker/только own cache cleanup.
+  Обычный start отказал, restart45s не остановил hung backend. Проверены uid/path
+  точных процессов; TERM, затем KILL только supervisor12219 после отсутствия VM.
+  Docker29.8.1 восстановлен; own aborted IDs v0aug…/qxvp… уже отсутствовали,
+  cache1113MB успешных stages сохранён, broad prune не выполнялся. Те же6 images,
+  12 volumes и2 foreign stopped containers сохранены; free~4.7GiB до сборки.
+  С чистого archive2083911 image build exit0. Первый native1 pass/1 fail —
+  ошибочное ожидание launch200 без DB; подтверждён existing fail-closed503,
+  исправлен только test helper, runtime не менялся. GREEN native2 +Compose1 =
+  3 pass/0 skip/8.80s; sharp pixel/dump version/non-root +6 actual HTTP,
+  network=none/read-only/no workers/providers/ports/SQL/S3. Actual CMD bundle
+  syntax check exit0; image frozen package versions сверены. Source2083911,
+  image `sha256:e774b30f3b9a04b10de094d2b0999da6be0d8dd3620721e2d1b2cd3ab56403d5`.
+  Save archive254MiB +receipt/checksum вне Git в .local-artifacts/backend-2083911;
+  tar tag/config digest/source/platform +checksum verified, не server load.
+  Финальный image на candidate DB и dump/restore client ещё не принимались;
+  upload/deploy/switch/working DB/frontend/old S3 не трогались. Полные hashes
+  и процедура — [runbook](../docs/operations/candidate-backend-image-rollback.md).
+  Final root types/exit0, docs59/code prettier/diff pass; checksum file verifies
+  archive OK. Postchecks:2 прежних stopped containers/12 volumes/6 прежних images
+  плюс только новый backend image, free~2.5GiB. Runtime/lockfile/Dockerfile не
+  менялись в продолжении, только probe expectation и evidence docs; full suite
+  не повторялась, prior frozen-lockfile production audit0 advisories сохранён.
 
 - [x] FRESH-C2/C3 — новое прямое разрешение: применить fresh42 только к
   `daryadarcy_candidate_20261019` и проверить candidate API без switch.
@@ -83,8 +106,9 @@
   fresh schema на новой БД, candidate image/API checks и rollback приложения;
   **после проверки согласовать switch с пользователем**. FRESH-C2/C3 выполнен:
   схема42 и guest candidate API проверены, но данных/owner/permanent app grants
-  нет, новый backend не выложен. Остались release artifact/rollback и отдельное
-  решение о switch/owner/начальных данных; автоматически не выполнять.
+  нет, новый backend не выложен. FRESH-C4 local image/archive/rollback подготовлен;
+  остались final image candidate acceptance/backup client и отдельное решение
+  о upload/switch/owner/начальных данных; автоматически не выполнять.
   Ordinary preflight: untracked0017–0019, databaseChecked=false/exit1;
   guard не обходили. Для fresh пути история старой базы не нужна. No migration
   apply к текущей БД/DB replacement/old-file migration/private flag enable

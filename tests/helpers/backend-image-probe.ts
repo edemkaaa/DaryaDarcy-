@@ -32,7 +32,8 @@ try {
   const port = (app.getHttpServer().address() as { port: number }).port;
   for (const [path, status] of [
     ["/api/auth/me", 200],
-    ["/api/launch-config", 200],
+    // Launch readiness must fail closed when this offline probe has no database.
+    ["/api/launch-config", 503],
     ["/api/admin/launch-settings", 401],
     ["/api/trpc/admin.stats", 401],
     ["/api/library/materials/recipes/files", 404],
@@ -45,7 +46,10 @@ try {
     assert.equal(response.status, status, path);
     if (path === "/api/auth/me")
       assert.equal((await response.json()).user, null);
-    else await response.arrayBuffer();
+    else if (path === "/api/launch-config") {
+      assert.deepEqual(await response.json(), { error: "Запрос недоступен" });
+      assert.equal(response.headers.get("cache-control"), "no-store");
+    } else await response.arrayBuffer();
   }
   console.log(
     JSON.stringify({

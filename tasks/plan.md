@@ -83,19 +83,20 @@
 
 ### Снимок, от которого продолжать
 
-**19 октября, FRESH-C4 — подготовлено, image acceptance заблокирована средой.** Локально подготовить
-backend-only Linux amd64 image и процедуру rollback пары image/DB connection;
+**19 октября, FRESH-C4 — локальная подготовка завершена.** Подготовлены
+backend-only Linux amd64 image и процедура rollback пары image/DB connection;
 без server upload/deployment/switch, без frontend/текущей и candidate server DB.
 Existing rollout сохранить; frozen dependencies, native offline image probe и
 offline API-only Compose round-trip. Отдельное разрешение на switch по-прежнему
 обязательно. Детали: [runbook](../docs/operations/candidate-backend-image-rollback.md).
-Dockerfile/allowlist/API-only override/rollback procedure сохранены; backend
-compilation прошла, offline Compose round-trip GREEN1. Native image ещё не
-собран/не проверен: после уменьшения free space до115MiB Docker API timeout,
-Desktop stopped. Только own temporary dependency cache удалён с guards,
-verified archive сохранён, свободно~760MiB. Own exact Docker cache prune не
-подтверждён (daemon timeout); запуск Docker/его targeted cleanup запрошен.
-Следующий шаг — восстановить среду, завершить image native acceptance, не switch.
+Docker восстановлен после прямого разрешения; own aborted cache IDs отсутствуют,
+образы/volumes/foreign containers не удалялись. Clean archive2083911 build exit0,
+native image2 +offline Compose1 =3 pass/0 skip,6 actual HTTP/no DB/egress/workers.
+Собственный test ожидал launch200 без DB; исправлен на подтверждённый503/no-store,
+production не менялся. Image `sha256:e774b30f…56403d5`, archive254MiB+receipt
+вне Git, полный source/config/manifest/bundle/archive hashes в runbook.
+Следующий шаг — отдельно разрешённая проверка final image на candidate и backup
+client; server upload/deploy/switch ещё не разрешены. Parent release gate открыт.
 
 **19 октября, LB4 actual S3 acceptance завершён.** По продолжению backend
 первый доступный остаток — Библиотека: сеть восстановилась (HTTPS200, signed
