@@ -1,5 +1,53 @@
 # Отдельный тестовый стенд TeamAssist
 
+## 19 октября — LB4: Библиотека с actual S3, без старых файлов
+
+Новый opt-in test: `tests/library-files.s3.mysql.test.ts` (Node22).
+Требует явно переданные `LB_S3_ACCEPTANCE=true`, `BACKEND_TEST_DATABASE_URL`,
+совпадающий `DATABASE_URL`, `LB_S3_DATABASE_CONTAINER_ID`, synthetic JWT secret
+и согласованные S3 inputs только в памяти. Не загружать рабочий `.env`.
+Перед DB/S3 mutation тест проверяет exact ID/name/owner, fresh-library-s3 label,
+единственный loopback port, tmpfs/no persistent mounts, пустые users/bindings
+и историю42 миграций.
+Bucket/endpoint фиксированы, policy SHA-256 должен быть
+`0484dfa2cc0164225db616bc516c53e8be377aca975d32701b6a6467ce1715e8`, versioning off.
+Никаких policy/ACL/старых object writes/listing или working/candidate SQL.
+
+Финальный изолированный прогон:4/4 pass/0 skip,80.57s/exit0. Импортируются
+только6 новых synthetic files (photo/doc×recipes/peterburg/patterns). Потеря PUT
+ACK инъецируется **после настоящего S3 PUT**, не mock storage; затем тот же
+manifest/key восстанавливается в новом Node process. Результат committed import
+отбрасывается exit23; новые процессы/concurrent replay подтверждают единственную
+операцию/receipt/object на slot и отсутствие новых SDK PUT. API — настоящий
+Nest/JWT/SQL с live доступом; anonymous direct GET/HEAD/Range403, byte-exact
+200/HEAD/206, no-store/nosniff, service access без paid row, expiry/session/block
+revoke404, чужой rollback conflict и idempotent own rollback/replay409.
+Production executable/workers/SMTP/payment/frontend не запускались.
+
+Cleanup только по own ledger actor/UUID/точному набору6 filenames, с matching
+metadata/size/MIME/ETag, conditional Delete IfMatch и HEAD404. Policy hash/versioning
+сверены до/после; key values не записаны в файлы/Git/logs, клиенты закрыты и
+временная память очищена. Все3 own tmpfs fixtures (396788e6…/60852,
+c941dc70…/61368,b3324ccb…/61908) удалены с exact guards, чужие2 stopped containers
+сохранены. Их данные synthetic и воспроизводятся test/fresh installer.
+
+Промежуточные отказы: installer PATH без `/usr/local/bin/docker` отказал до DDL;
+исправлен только environment. В новом тесте `SELECT id` ошибочно использовал
+таблицу с PK assetId: первый native3 pass/1 test-query fail, query исправлен.
+Параллельный с full regression повтор:1 pass/3 fail после незавершённого импорта;
+точный SDK error не записан, причиной без доказательства сеть/код не объявлять.
+Pending не публиковался, own targets стали404. Добавлены только categorical
+SDK diagnostics (command/name/status) без секретов, timeout/retry не менялись.
+Отдельный финальный прогон выше успешен. Это не target performance/S3 SLA.
+
+Full Node22:2544 pass/1578 opt-in skips/200 suites passed/92 skipped/33.91s/exit0;
+4 skips нового S3 suite не засчитаны за native acceptance — оно отдельно выше.
+Final root types/code prettier/diff/docs pass. Runtime/schema/API/dependencies
+не менялись, неизменённую сборку повторно не запускали. LB4 закрыт только для
+новых synthetic files; real sources/старые public URL, frontend integration,
+second principal (отложен), devices и выпуск/флаги требуют отдельных действий.
+Рабочее приложение и server candidate не переключались; push/deploy отсутствуют.
+
 ## 19 октября — FRESH-C2/C3: схема кандидата и изолированное API проверены
 
 По прямому разрешению применён **только новый** fresh-профиль к

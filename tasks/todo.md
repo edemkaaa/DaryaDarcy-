@@ -118,11 +118,34 @@
   Чужие2 stopped containers/images/volumes сохранены. Настоящие S3/старые files/
   working DB/frontend/design/flags/push/deploy не трогались; LB4 остаётся blocked.
 
-- [ ] LB4 — по новому прямому разрешению17 октября проверить existing library
+- [x] LB4 — по новому прямому разрешению17 октября проверить existing library
   import/read/recovery с actual Timeweb S3, только новые synthetic файлы и own
   fresh tmpfs backend_test. Старые files/working DB/frontend/design/policy writes/
   runtime flags/push/deploy исключены. Второй principal по-прежнему отложен.
-  **Не выполнено: network blocker.** Два SDK GetBucketPolicy preflight завершились
+  **Выполнено19 октября:** связь восстановилась, signed policy hash совпал,
+  versioning off. Новый opt-in `tests/library-files.s3.mysql.test.ts`:
+  **4/4 pass,0 skip,80.57s/exit0**, actual importer/fresh processes→SQL42→Timeweb
+  S3→Nest/JWT/loopback HTTP. Три материала/6 новых synthetic photo+document:
+  потеря настоящего PUT ACK и результата committed import, повтор/concurrent
+  replay без второго PUT/новых receipts, changed payload conflict. Direct
+  anonymous GET/HEAD/Range403; API byte-exact200/HEAD/206, inline/attachment,
+  no-store/nosniff, list без raw key/URL. Guest/unpaid/sessionVersion/block404,
+  moderator без paid row имеет service access; чужой rollback conflict,
+  own rollback идемпотентен/disabled без public fallback, replay409.
+  Финальные6 targets удалены с metadata/ETag/IfMatch guards и HEAD404, policy
+  unchanged. SDK/процессы/ключи в памяти закрыты; own tmpfs fixtures396788e6…/60852,
+  c941dc70…/61368,b3324ccb…/61908 удалены после exact ownership/storage/port checks;
+  чужие2 stopped containers сохранены. Рабочая/candidate БД, старые files,
+  frontend/design/flags/push/deploy не трогались; runtime-дефекта не выявлено.
+  Промежуточно: PATH не содержал Docker — guard отказал до DDL; test projection
+  id→assetId исправлен. Первый native3 pass/1 test-query fail; параллельный
+  повтор1 pass/3 fail после незавершённого импорта, точный SDK отказ не записан.
+  Его pending не публиковался, все own targets стали404; safe SDK diagnostics
+  добавлены без изменения timeout/retry/security. Изолированный финал выше PASS;
+  стабильность внешней сети/target-load этим не доказана.
+  Full Node22:2544 pass/1578 opt-in skips/200 suites pass/92 skipped/33.91s/exit0;
+  skips не S3 acceptance. Final types/code prettier/diff/docs check pass.
+  **Предыдущий блокер17 октября:** два SDK GetBucketPolicy preflight завершились
   TimeoutError без HTTP status; независимый HTTPS HEAD к endpoint подтвердил TCP
   connect≈0.003s, TLS не установлен за5s (`SSL connection timeout`,http000).
   Это не ошибка авторизации/доказательство неверных ключей. Policy не прочитана,
@@ -133,8 +156,9 @@
   Контейнер удалён после exact ID/name/label/loopback/tmpfs768MiB/no mounts guards;
   чужие2 stopped containers/images/volumes сохранены. SDK client закрыт,
   предоставленные ранее ключи использовались лишь в памяти, не записаны в файлы.
-  Следующий вход — пользователь переключает VPN/сеть, затем read-only S3 preflight;
-  новые bucket/ключи/ослабление TLS/policy для обхода блокера не нужны.
+  Прежний network blocker снят результатом19 октября; новые bucket/ключи/
+  ослабление TLS/policy не понадобились. Далее только отдельно разрешённые
+  real sources/старые URL/frontend integration и release gates AG5/AG9.
 
 - [x] AG5/LB — независимая локальная репетиция backup/restore с новой0041.
   По «давай дальше пока»17 октября актуализирован existing native backup test:

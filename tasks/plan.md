@@ -83,6 +83,25 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября, LB4 actual S3 acceptance завершён.** По продолжению backend
+первый доступный остаток — Библиотека: сеть восстановилась (HTTPS200, signed
+policy hash прежний). Новый opt-in native suite на own fresh42 tmpfs SQL и
+6 новых synthetic photo/doc files дал4/4 pass/0 skip/80.57s/exit0: lost PUT ACK/
+committed import reply, fresh-process/concurrent replay без дубликатов,
+anonymous S3 GET/HEAD/Range403, authenticated byte-exact200/HEAD/206, live
+expiry/session/block revoke и operator rollback. Это actual S3/SQL/API, не
+browser/frontend/реальные материалы/старые URLs/полный релиз. Все собственные
+targets стали HEAD404 после guarded cleanup, policy неизменна; tmpfs fixtures
+удалены, чужие контейнеры/working и server candidate DB сохранены. Runtime не
+менялся: исправлены только собственные test projection/diagnostics. Один
+параллельный прогон не завершил импорт; точная SDK ошибка того прогона неизвестна,
+pending не публиковался, timeout/retry/security не ослаблялись. Финальный
+изолированный прогон выше успешен; подробности в todo/operations. Full Node22:
+2544 pass/1578 opt-in skips/33.91s/exit0; final types/code prettier/diff/docs pass.
+Следующий шаг — внешние AG5/AG9 решения/release artifact/rollback/switch и
+отдельно согласованный перенос настоящих sources. Новых независимых runtime
+пунктов нет; frontend, текущую БД, flags, старые files/push/deploy не трогать.
+
 **19 октября, новое прямое разрешение FRESH-C2/C3.** Пользователь разрешил
 готовить схему в отдельной server БД-кандидате и проверять API, без текущей БД,
 фронта и switch приложения. Scope: exact `daryadarcy_candidate_20261019` на
