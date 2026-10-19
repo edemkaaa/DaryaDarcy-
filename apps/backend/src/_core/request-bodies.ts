@@ -2,7 +2,7 @@ import express, { type Express, type Request, type Response } from "express";
 import { SessionService } from "../identity/session.service";
 import { privateVideoMetadata, privateVideoUploadEnabled } from "../content/private-video-input";
 
-const photoProcedures = new Set(["profile.uploadAvatar", "club.uploadCommentPhoto", "admin.uploadPhoto"]);
+const photoProcedures = new Set(["profile.uploadAvatar", "club.uploadCommentPhoto", "club.uploadPrivateCommentPhoto", "admin.uploadPhoto"]);
 const sessions = new SessionService();
 const jsonParsers = {
   auth: express.json({ limit: "16kb" }),
@@ -59,7 +59,10 @@ export function registerRequestBodies(app: Express) {
     const names = path.startsWith("/api/trpc/") ? path.slice("/api/trpc/".length).split(",") : [];
     const privateUpload = names.includes("admin.uploadPrivateAttachment");
     if (privateUpload && process.env.PRIVATE_POST_MEDIA_UPLOAD_ENABLED !== "true") { res.status(404).json({ error: "Загрузка недоступна" }); return; }
-    const media = names.includes("admin.uploadMedia") || privateUpload;
+    const privateContentUpload = names.includes("admin.uploadPrivateContentFile") || names.includes("club.uploadPrivateCommentPhoto");
+    if (privateContentUpload && process.env.PRIVATE_CONTENT_FILES_ENABLED !== "true") { res.status(404).json({ error: "Загрузка недоступна" }); return; }
+    // Base64 envelopes need room above the existing decoded 4/32 MiB quotas.
+    const media = names.includes("admin.uploadMedia") || privateUpload || names.includes("admin.uploadPrivateContentFile");
     const photo = names.some(name => photoProcedures.has(name));
     if ((media || photo) && !(await requireUploadIdentity(req, res, media || names.includes("admin.uploadPhoto")))) return;
     const parser = media ? jsonParsers.media : photo ? jsonParsers.photo : path.startsWith("/api/auth/") ? jsonParsers.auth : jsonParsers.ordinary;

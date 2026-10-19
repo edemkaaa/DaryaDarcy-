@@ -86,6 +86,21 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября, CF-HTTP1 — локальное исправление лимита новых Base64-загрузок.**
+После D4 пользователь сообщил подтверждённый дефект: обе private content
+процедуры попадали в ordinary256KiB JSON. Минимальный backend fix направляет
+admin.uploadPrivateContentFile в существующий50MiB envelope, comment photo —6MiB;
+decoded квоты4/32MiB, бизнес-права, роли и остальные лимиты прежние. Флаг и
+сессия проверяются до большого тела, включая encoded names/batches. RED22fail/4pass
+→ GREEN26; вместе с parser/session regressions79 pass. Native JWT/Nest/HTTP/
+own tmpfs MySQL25 pass: full32MiB document+идемпотентный повтор/один PUT,
+реальные PNG>256KiB для поста/статьи/комментария и прежние access/recovery gates.
+Storage — исключительно loopback SDK wire, **не настоящий S3**. Проверки сборки,
+общая регрессия и ограничения — CF-HTTP1 в todo. Frontend/generated types/дизайн,
+рабочие DB/S3/flags/server не менялись, без push/deploy. RELEASE-D4/b7d7338
+не содержит эту локальную правку; прежний вывод «нет нового runtime среза» ниже
+относится к сверке до сообщения об этом дефекте.
+
 **19 октября, RELEASE-D4 — объединённый staging выпущен и проверен.**
 Пользователь явно разрешил merge/push/server update. Merge7433e7f сохранил
 frontend9e933d2 и AUTH-S2/VCAT-C1; generated types синхронизированы без ручных
@@ -99,7 +114,7 @@ checks и реальный browser videos20 cards pass, admin password/hash со
 [runbook](../docs/operations/candidate-backend-image-rollback.md). Старые записи
 «локально/не выпущено» ниже — история до D4. Полная приёмка договора2.1 не закрыта.
 
-**Следующий backend шаг после D4:** сверка очереди показала, что доступные локальные
+**Сверка backend очереди после D4, до сообщения CF-HTTP1:** доступные локальные
 AG1–AG8 срезы завершены. Fresh candidate/перенос/admin/switch/backup и D4 images
 уже проверены; legacy0017–0019 не блокируют выбранный fresh путь. AG5/AG9 остаются
 открыты только для внешней приёмки и отдельно разрешённого включения: ordinary

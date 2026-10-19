@@ -3,6 +3,7 @@ import type { Connection, RowDataPacket } from "mysql2/promise";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
 import { createServer } from "node:http";
+import { randomBytes } from "node:crypto";
 import { drizzle } from "drizzle-orm/mysql2";
 import { eq } from "drizzle-orm";
 import { users } from "../packages/database/src/schema";
@@ -114,6 +115,36 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect(result.wire).not.toContain(wire.endpoint); expect(result.wire).not.toContain("content/private-v1");
     expect(await rows("SELECT state,parentId FROM private_content_files WHERE actorUserId=98150")).toEqual([{ state: "ready", parentId: null }]);
     expect((await status()).data).toEqual(result.data);
+  });
+  it("accepts a full 32 MiB document over Base64 HTTP and replays one stored asset", async () => {
+    const bytes = Buffer.alloc(32 * 1024 * 1024, 0x61);
+    const value = { ...input, base64: bytes.toString("base64") };
+    const result = await upload(value);
+    expect(result.status).toBe(200);
+    expect(result.data).toMatchObject({ state: "ready", usage: "articleDocument", fileSize: bytes.length });
+    expect((await upload(value)).data).toEqual(result.data);
+    expect(wire.objects.size).toBe(1);
+    expect([...wire.objects.values()][0].bytes.equals(bytes)).toBe(true);
+    expect(wire.effects.filter(effect => effect.startsWith("PUT "))).toHaveLength(1);
+    expect(await rows("SELECT state,fileSize FROM private_content_files WHERE actorUserId=98150"))
+      .toEqual([{ state: "ready", fileSize: bytes.length }]);
+  });
+  it.each(["postPhoto", "articlePhoto", "commentPhoto"])("accepts a real %s photo above the ordinary JSON limit", async usage => {
+    const png = await sharp(randomBytes(512 * 512 * 3), { raw: { width: 512, height: 512, channels: 3 } }).png().toBuffer();
+    expect(png.length).toBeGreaterThan(256 * 1024);
+    const value = { ...input, usage, filename: "photo.png", mimeType: "image/png", base64: png.toString("base64") };
+    let result;
+    if (usage === "commentPhoto") {
+      const saved = await makePost({ ...postInput(""), photos: [], target: "feed", status: "published", tags: ["community"] });
+      expect(saved.status).toBe(200);
+      result = await call("club.uploadPrivateCommentPhoto", { ...value, postId: Number(saved.data) }, "member");
+      if (result.data?.assetId) madeFiles.add(String(result.data.assetId));
+    } else result = await upload(value);
+    expect(result.status).toBe(200);
+    expect(result.data).toMatchObject({ state: "ready", usage, mimeType: "image/webp" });
+    expect(wire.objects.size).toBe(1);
+    const meta = await sharp([...wire.objects.values()][0].bytes).metadata();
+    expect(meta).toMatchObject({ format: "webp", width: 512, height: 512 });
   });
   it("reconciles lost storage ACK without creating another object", async () => {
     wire.dropPutAck(); expect((await upload()).status).toBe(503);

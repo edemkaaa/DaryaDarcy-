@@ -2,6 +2,39 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### CF-HTTP1 — лимит Base64 новых закрытых загрузок,19 октября, локально
+
+- [x] Подтверждён пользовательский дефект: admin.uploadPrivateContentFile и
+  club.uploadPrivateCommentPhoto не классифицировались как загрузки и получали
+  ordinary256KiB. Изолированный native HTTP RED22fail/4pass воспроизводит
+  преждевременные413 и отсутствие pre-body admission. Минимальная правка в
+  request-bodies: прежние media50MiB и photo6MiB; decoded квоты документов32MiB
+  и фото4MiB не менялись. Флаг PRIVATE_CONTENT_FILES_ENABLED и сессия/admin
+  проверяются до большого тела; точные encoded имена и batch учтены,
+  mixed batch требует admin. Статусные/обычные256KiB, auth16KiB прежние.
+- [x] GREEN26 транспортных проверок: full4/32MiB envelope до настоящей schema400,
+  контроль300KiB, feature-off404/anonymous401/non-admin403/session-fault503
+  до парсинга, encoded/batch/mixed, envelope6/50MiB413, decoded quota+1
+  tRPC PAYLOAD_TOO_LARGE413. Только SQL lookup/activity seams подменены;
+  upload SQL явно запрещён, storage не вызывается. Вместе с existing parser и
+  session availability79 pass/0 skip. Native HTTP/SQL25 pass/0 skip/4.57s на
+  own mysql8.4 tmpfs backend_test: valid32MiB text document + replay = один
+  asset/один PUT; реальные PNG>256KiB post/article/comment проходят WebP
+  обработку. Это настоящий JWT/Nest/HTTP/MySQL, но **loopback SDK wire, не S3**.
+- [x] Root tsc, backend build, restricted TEST build, API86/32138 и
+  boundaries688 pass; generated frontend contract неизменен. Полный локальный
+  прогон2627 pass/1601 opt-in skips,204 test files pass/95 skipped,62.73s;
+  native SQL25 выше выполнены отдельно, не выдаются за skipped E2E.
+  Docs59/diff pass. Review по correctness/security/architecture/performance:
+  только две точные private процедуры получают existing upload policy;
+  большой JSON доступен после флага/сессии/роли, бизнес-квоты и доступ к post
+  не обходятся; новых зависимостей/схемы/публичных типов нет. Own container
+  3f71ab92…c9f удалён после exact ID/labels/loopback61862/tmpfs768MiB/no volumes
+  проверки; синтетическая БД была одноразовой и воспроизводится фикстурами.
+  Frontend/дизайн/working DB/S3/flags/server не трогались; no push/deploy.
+  Рабочий RELEASE-D4/b7d7338 этой правки не содержит; включение флага само по
+  себе прежний parser bug не исправляет. Контракт — [API](../docs/architecture/api.md).
+
 ### RELEASE-D4 — объединение и фактический выпуск19 октября
 
 - [x] По прямому поручению объединён origin/staging9e933d2 с нашей веткой:
