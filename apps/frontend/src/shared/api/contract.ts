@@ -415,6 +415,7 @@ export type AppRouter = BuiltRouter<
           | {
               limit?: number | undefined;
               cursor?: number | null | undefined;
+              direction?: "forward" | undefined;
               status?: "published" | "draft" | "scheduled" | undefined;
               target?: "feed" | "club" | "both" | undefined;
             }

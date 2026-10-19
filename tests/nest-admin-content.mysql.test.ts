@@ -243,6 +243,23 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       expect(filtered.nextCursor).toBeNull();
     });
+    it("accepts forward infinite-query requests across admin pages", async () => {
+      const admin = client(bearer).admin;
+      const first = await admin.postsPage.query({
+        limit: 2,
+        direction: "forward",
+      });
+      const next = await admin.postsPage.query({
+        limit: 2,
+        direction: "forward",
+        cursor: first.nextCursor,
+      });
+      expect(first.posts.map((post) => post.id)).toEqual([9043, 9041]);
+      expect(next.posts.map((post) => post.id)).toEqual([9042, 9040]);
+      await expect(
+        admin.postsPage.query({ direction: "backward" } as never),
+      ).rejects.toMatchObject({ data: { httpStatus: 400 } });
+    });
     it("bounds card bodies and keeps complete data only in protected detail", async () => {
       const admin = client(bearer).admin;
       const text = "🌿".repeat(800);

@@ -9,6 +9,8 @@ export const adminPostsPageInput = z
   .object({
     limit: z.number().int().min(1).max(50).default(20),
     cursor: z.number().int().min(0).max(1_000_000).nullish(),
+    // tRPC infinite queries send this even for the first page; only forward is supported.
+    direction: z.literal("forward").optional(),
     status: z.enum(["draft", "scheduled", "published"]).optional(),
     target: z.enum(["feed", "club", "both"]).optional(),
   })
