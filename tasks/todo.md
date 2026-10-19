@@ -4,6 +4,16 @@
 
 ### Разрешённая подготовка staging/server — 19 октября
 
+- [ ] FRESH-C2/C3 — новое прямое разрешение: применить fresh42 только к
+  `daryadarcy_candidate_20261019` и проверить candidate API без switch.
+  Exact server/container/network/UUID + pinned plan hash + empty schema guard;
+  отдельная candidate-only учётка, затем SELECT-only для API, без working env.
+  API composition без executable/scheduler, no external egress/ports/SMTP/S3/
+  payments/owner seeds; ORM columns/history и guest HTTP. Текущая БД/фронт/
+  services/configs не меняются. Partial DDL сохранять для диагностики, не repair.
+  После проверки убрать только свои probe containers/временные credentials;
+  приложение не переключать и не пушить без нового запроса.
+
 - [x] Fresh remote staging `81e8563` — ancestor local `e4ac07b`, remote-only0;
   правки фронтендера сохранены без замены/ручного редактирования frontend.
   Перед push проверены types/E2E types, backend build, webpack29/29, lint,
@@ -31,7 +41,8 @@
   схема42/данные/owner/app grants не создавались, новый backend не выложен.
   Ordinary preflight: untracked0017–0019, databaseChecked=false/exit1;
   guard не обходили. Для fresh пути история старой базы не нужна. No migration
-  apply/DB replacement/old-file migration/private flag enable разрешения нет.
+  apply к текущей БД/DB replacement/old-file migration/private flag enable
+  разрешения нет; новое разрешение apply только candidate — FRESH-C2/C3 выше.
   - [x] FRESH-C1 — local offline `--plan` в existing fresh tool: точный порядок/
     SHA-25642 миграций и общий plan hash, без Docker/SQL/network/credential reads.
     RED/GREEN CLI tests: пустое окружение, унаследованные DB URI игнорируются,

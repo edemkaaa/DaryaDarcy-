@@ -83,6 +83,17 @@
 
 ### Снимок, от которого продолжать
 
+**19 октября, новое прямое разрешение FRESH-C2/C3.** Пользователь разрешил
+готовить схему в отдельной server БД-кандидате и проверять API, без текущей БД,
+фронта и switch приложения. Scope: exact `daryadarcy_candidate_20261019` на
+проверенном teamassist-dev/MySQL8.4, hash fresh42 из C1, пустота до DDL,
+реальные Drizzle history записи. Не расширять `db:fresh:local` guards и не
+применять этот профиль к старой БД. Candidate-only temporary credential;
+API с SELECT-only правами, composition без scheduler, isolated network/no ports,
+без рабочих env/SMTP/payment/S3. Никаких seed owner/контента или копий текущих rows.
+Partial DDL сохраняется, повтор отказывает без ремонта. Завершить удалением
+только своих probe containers/credentials, текущие сервисы/configs сохранить.
+
 **19 октября, продолжение backend — первый срез FRESH-C1 выполнен локально.**
 Подготовлен
 offline plan в existing fresh CLI: `--plan` читает только versioned SQL/journal,

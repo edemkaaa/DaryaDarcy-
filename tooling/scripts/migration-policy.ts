@@ -15,6 +15,55 @@ const journalSchema = z.object({
     .min(1),
 });
 export type MigrationIdentity = { tag: string; when: number; hash: string };
+export function candidateIdentityAllowed(
+  identity: {
+    name: unknown;
+    serverUuid: unknown;
+    version: unknown;
+    engine: unknown;
+  },
+  expectedUuid: string,
+): boolean {
+  return (
+    identity.name === "daryadarcy_candidate_20261019" &&
+    identity.serverUuid === expectedUuid &&
+    typeof identity.version === "string" &&
+    /^8\.4\./.test(identity.version) &&
+    identity.engine === "InnoDB"
+  );
+}
+/** One reviewed new-database target; never an upgrade or a general server installer. */
+export function candidateTargetAllowed(
+  env: NodeJS.ProcessEnv,
+  actualPlanHash: string,
+): boolean {
+  const reviewedPlan =
+    "51616035e287f221c633d8c7975fef46229d6fbc4ef1e80e586f85e96469684a";
+  if (
+    actualPlanHash !== reviewedPlan ||
+    env.CANDIDATE_PLAN_HASH !== reviewedPlan ||
+    !/^[a-f0-9]{40}$/.test(env.CANDIDATE_SOURCE_REVISION ?? "") ||
+    !/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(
+      env.CANDIDATE_SERVER_UUID ?? "",
+    )
+  )
+    return false;
+  try {
+    const uri = new URL(env.CANDIDATE_DATABASE_URL ?? "");
+    return (
+      uri.protocol === "mysql:" &&
+      uri.hostname === "mysql" &&
+      ["", "3306"].includes(uri.port) &&
+      uri.pathname === "/daryadarcy_candidate_20261019" &&
+      uri.username === "darcy_candidate_20261019" &&
+      /^[a-f0-9]{64}$/.test(uri.password) &&
+      !uri.search &&
+      !uri.hash
+    );
+  } catch {
+    return false;
+  }
+}
 /** Separate NEW-database profile, never a reconciliation of an existing history. */
 export function inspectFreshInstallManifest(
   journal: unknown,
