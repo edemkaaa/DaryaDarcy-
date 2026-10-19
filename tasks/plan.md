@@ -83,7 +83,22 @@
 
 ### Снимок, от которого продолжать
 
-**19 октября, FRESH-D1 — разрешена подготовка переноса данных, не switch.**
+**19 октября, FRESH-D1 — снимок данных перенесён и проверен, switch не выполнен.**
+Source staging29 → existing fresh candidate40/history42:850 rows, explicit
+columns/row hashes/counts совпали, все10 added tables пусты. Старый admin id1/
+тот же password hash/admin/sessionVersion2 сохранены; actual isolated API
+39 ORM/13 HTTP подтвердил вход прежним паролем и права admin. Wrong password401,
+guest admin401, cookie flags/me/logout pass. Pending mail/token rows скопированы
+opaque; workers/providers не запускали. Текущий API/все29 server containers
+metadata неизменны; DB connection всё ещё daryadarcy_staging, HTTPS200.
+Temporary operator/probes/upload и own local synthetic fixtures удалены guarded;
+private receipts совпали SHA-500221…; details в FRESH-D1 todo/runbook.
+Это не continuous sync и не deployment: перед будущим switch нужно отдельно
+сверить дельту/политику writes, corrected0763 image на populated candidate,
+backup/permanent grants/сохранение working encryption-session config/rollback.
+Не запускать прежний empty-target API CLI или copy повторно: candidate непуста.
+
+Основание FRESH-D1:
 После создания server admin по прямому запросу (существующий account, без
 новой регистрации) пользователь запросил latest staging deployment. Remote
 `e25ffda` получен; working app остаётся2e3339c. Read-only gate: current DB29

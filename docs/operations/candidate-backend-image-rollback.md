@@ -5,6 +5,8 @@
 FRESH-C4 разрешала **только локальную подготовку** образа и процедуры отката.
 Следующее прямое поручение FRESH-C5 разрешило transfer/load точного image только
 для isolated SELECT-only API check на существующей БД-кандидате; выполнено ниже.
+Следующее прямое поручение FRESH-D1 разрешило data-only snapshot в candidate
+с сохранением admin/password, без source writes/switch; выполнено ниже.
 Этот документ и example override не разрешают deployment, restart/switch рабочих
 сервисов, permanent grants, seeds, SQL apply, S3 mutations или private flags.
 Текущая БД, frontend и существующая конфигурация rollout остаются прежними.
@@ -158,6 +160,79 @@ guards не расширены. Runtime/SQL source/dependencies не менял�
 не являются найденными дефектами продукта. Native backup/restore image client,
 production executable/worker lifecycle, owner/initial data/permanent app grants,
 write cutover и реальный rollback не проверялись этим SELECT-only прогоном.
+
+## FRESH-D1 — data-only snapshot в существующую candidate
+
+19 октября по отдельному разрешению скопированы данные из `daryadarcy_staging`
+в `daryadarcy_candidate_20261019`. Source только SELECT/read-only consistent
+snapshot; никакого repair0017–0019, migrations/history или app-data writes в
+старую БД. Приложение не переключалось, working DB connection осталась прежней.
+Candidate до переноса:39 пустых application tables +42 migration rows;
+source:29 tables/no history/850 rows. Column/index/engine/UUID/container guards
+подтверждены до копирования; foreign keys/triggers/routines/events отсутствуют.
+
+Воспроизводимый helper [candidate-data-transfer.ts](../../tooling/scripts/candidate-data-transfer.ts)
+не импортируется executable приложения. Только exact live pair/UUID или own
+два disposable `backend_test`; источник обязательно без history. Preserving
+explicit common columns, nullable widening, только удовлетворимые new columns;
+даты/JSON/bigints без преобразования типов. Bounded snapshot в RAM, без dump
+user rows на ноутбук/в Git/логи. Один candidate DML transaction, count+SHA всех
+common rows перед commit, warning/constraint/schema mismatch → rollback rows.
+Counter-only ALTER candidate выполняется **до** transaction: при отказе могут
+остаться повышенные counters, но не частично committed rows; counters не снижать.
+Helper не является разрешением запуска или универсальным мигратором старой DB.
+
+RED→GREEN:6 mapping units +4 real MySQL8.4 tests, own fresh42/legacy29 tmpfs
+fixtures. Непустой target refused; native case-insensitive identity conflict
+откатил все rows без утечки SQL/data. Synthetic Unicode/JSON/admin/password hash/
+session/paid subscription/opaque mail+token rows и counter floors сохранены.
+Дополнительно local data API:39 ORM/13 HTTP. Root types/docs/diff pass.
+
+Actual server copy:29 tables/850 rows, per-table count+SHA exact. Сохранены742
+posts/60 videos/2 users/10 payments/2 receipts/8 outbox/7 password_tokens/17 tags/
+2 consents. Скопированы старые URL strings, **не** S3 objects/ACL. New video
+provider/access default youtube/public, VK/poster nullable; all10 new tables0.
+Admin id1/password hash/role admin/sessionVersion2/blockedAt exact. Fresh42
+hashes сохранены без переписывания. Source count/history29/none остались прежними.
+
+Временная SQL identity: SELECT source, SELECT/INSERT candidate +ALTER только
+candidate counter tables. Перед API source/INSERT-all grants отозваны; API
+разрешены SELECT candidate и INSERT/UPDATE users для штатного login upsert.
+Working session/encryption/provider secrets не читались; password hashes
+перенесены opaque. Existing owner login password взят в памяти из уже
+согласованного private0600 file.
+Image e774/source2083911 и его production deps, compiled composition-only probe
+без executable/workers. API source/schema/lockfile между2083911 и D1 неизменны.
+UID1001, internal network/no ports, read-only root/mount, cap-drop/no-new-privileges,
+256MiB/CPU0.4. Exact39 ORM +13 HTTP: guest lists/launch/auth, protected admin401,
+default-off file404, wrong password401/no cookie, old password login200,
+me200/admin.stats200/logout200/secure host-only cookie. Exit0/OOM=false.
+Login меняет только candidate activity timestamps (и может создать ID gap из
+штатного upsert); protected hash/role/session/history после него сверены.
+
+Оба own server probes/technical account/upload удалены guarded. Все29 existing
+containers IDs/images/start times/health совпали до/после; current HTTPS200.
+Final read-only:850/850 rows,10 new tables empty, counters не ниже source.
+Own local test DB containers/network удалены, чужие2 containers/12 volumes и
+все images сохранены. Safe receipt локально вне Git:
+`.local-artifacts/candidate-transfer-20261019.4m7y89/operation-receipt.json`;
+server `/home/edem/apps/daryadarcy-staging/candidate-transfer-20261019.EjmNRV/receipt.json`.
+Обе копии SHA-256:
+`5002210c4046aaac2430fea97324feef6904e8fd0d7d87c11679053315af4a44`,0700/0600;
+отдельный final-verification.json содержит безопасные aggregate checks.
+
+**Не повторять copy/initialize или прежний empty-target `--check-api`: target
+теперь содержит данные.** Не ослаблять empty-target checks ради нового прогона.
+При потере SSH после commit сначала прочесть safe receipt и проверить target;
+не truncate/delete/retry blindly. Это подготовленный snapshot, а не continuous
+sync. Source остаётся активной: перед отдельно разрешённым cutover нужны свежая
+дельта/write boundary, backup, permanent app grants, сохранение прежних session/
+encryption/provider settings и rollback policy. Pending outbox не replay вслепую.
+Corrected0763 image ещё не загружен/не проверен на сервере; D1 относится только
+к прежнему e774 runtime, не закрывает corrected-image gate. Для future read-only
+probe populated target проверять schema/guest responses без ожидания users0/
+empty feed; login probe отдельно требует минимальных candidate users grants.
+Ни frontend/deploy/push/switch, ни S3/payment/mail/workers acceptance не выполнялись.
 
 ## Состав и воспроизведение образа
 

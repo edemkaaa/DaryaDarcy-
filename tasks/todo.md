@@ -4,7 +4,7 @@
 
 ### Разрешённая подготовка staging/server — 19 октября
 
-- [ ] FRESH-D1 — прямое разрешение подготовить перенос staging data в existing
+- [x] FRESH-D1 — прямое разрешение подготовить перенос staging data в existing
   `daryadarcy_candidate_20261019`, сохранив admin/password, без app switch/deploy.
   Source только SELECT/read-only snapshot; никакой repair history0017–0019,
   schema/data writes, блокировки writes или удаления старой DB. Candidate42
@@ -27,7 +27,35 @@
   session/paid subscription/JSON/opaque mail+token rows сохранены, counters
   не понижаются. Candidate-only counter DDL предшествует row transaction:
   при отказе могут остаться повышенные counters, но не частичные rows/history.
-  Root types pass. Server copy/API/auth acceptance ещё впереди.
+  Root types pass. Выполнено19 октября: exact host/MySQL3442fbda…/UUID/network/
+  source API29e02dc… guards, verified fresh42 hashes/indexes/column fingerprints.
+  Read-only source snapshot → candidate:29 tables/850 rows, explicit columns,
+  per-table count+SHA exact before commit; all10 added tables остались пусты.
+  Account id1/password hash/admin/sessionVersion2/blockedAt сохранены; paid
+  records/receipts/outbox8/password_tokens7/JSON/old URL strings без изменений.
+  Actual server API с image e774/runtime source2083911 (код API не менялся):
+  39 ORM +13 HTTP, guest/admin denial, wrong password401/no cookie, прежний
+  пароль login200/me200/admin.stats200/logout200, secure host-only cookie.
+  Hash/role/session/history после login неизменны; только candidate login
+  timestamps и возможный AUTO_INCREMENT gap от штатного upsert допустимы.
+  Source account имел только SELECT; candidate SELECT/INSERT и exact counter
+  ALTER grants. Перед API source/INSERT-all отозваны, users INSERT/UPDATE only.
+  Isolated UID1001/internal net/read-only/no ports/no workers/provider config,
+  exit0/OOM=false. Account и оба own server probes/upload удалены с guards.
+  Local synthetic API39/13 тоже pass; own local DB fixtures/network удалены,
+  прежние2 containers/12 volumes/images не трогали. Все29 existing server
+  containers IDs/images/start times/health совпали; API по-прежнему использует
+  daryadarcy_staging, current HTTPS200. Final read-only counts850/850, all10
+  new tables0, counter floors не ниже source, candidate history42 сохранена.
+  Source history по-прежнему отсутствует: ничего не repair/apply на old DB.
+  Private local/server receipt SHA
+  `5002210c4046aaac2430fea97324feef6904e8fd0d7d87c11679053315af4a44`;
+  .local-artifacts/candidate-transfer-20261019.4m7y89 + server own receipt,
+  permissions0700/0600. Rows/passwords/JWT/SQL credentials в Git/logs не попадали.
+  Это snapshot, не cutover/sync/production-worker/S3/payment/mail acceptance.
+  App/front/current DB/S3/flags/config/deployment/push не менялись. Corrected
+  0763 image всё ещё только локально; future switch требует его отдельной
+  populated-candidate проверки, delta/write/backup/permanent-grants/rollback gate.
 
 - [x] FRESH-C6 — прямое разрешение проверить backup/restore **финальным image2083911**
   локально на двух own loopback/tmpfs `backend_test`. Native dump + restore

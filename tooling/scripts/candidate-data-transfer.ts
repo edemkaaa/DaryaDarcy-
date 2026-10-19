@@ -106,7 +106,11 @@ async function transferColumns(
   )) as TransferColumn[];
 }
 
-/** Caller owns/guards the containers and scoped SQL account. No files or providers. */
+/**
+ * Caller guards containers, scoped grants and exact schema/history fingerprints.
+ * Connections must use dateStrings/jsonStrings/supportBigNumbers/bigNumberStrings
+ * with timezone Z; source values stay opaque. No files or providers are used.
+ */
 export async function copyCandidateData(
   source: Connection,
   target: Connection,
