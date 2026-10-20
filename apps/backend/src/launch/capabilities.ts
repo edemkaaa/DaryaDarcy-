@@ -10,6 +10,12 @@ export function getCapabilities(): LaunchCapabilities {
     // No opt-in until shop has its own validated, atomic settlement/outbox.
     shopOnlinePayment: false,
     webPush: false,
+    privateContentUploads: process.env.PRIVATE_CONTENT_FILES_ENABLED === "true",
+    privatePostMediaUploads:
+      process.env.PRIVATE_POST_MEDIA_UPLOAD_ENABLED === "true",
+    privatePostVideoUploads:
+      process.env.PRIVATE_POST_MEDIA_UPLOAD_ENABLED === "true" &&
+      process.env.PRIVATE_POST_VIDEO_UPLOAD_ENABLED === "true",
   } as const;
 }
 

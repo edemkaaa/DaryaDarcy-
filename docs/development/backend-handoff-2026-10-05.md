@@ -1,5 +1,20 @@
 # Передача изменений бэкенда фронтендеру
 
+## 20 октября — CAP-U, локальный additive контракт доступности загрузок
+
+`GET /api/capabilities` (no-store) дополнен тремя boolean полями:
+`privateContentUploads` = PRIVATE_CONTENT_FILES_ENABLED;
+`privatePostMediaUploads` = PRIVATE_POST_MEDIA_UPLOAD_ENABLED;
+`privatePostVideoUploads` = PRIVATE_POST_MEDIA_UPLOAD_ENABLED **и**
+PRIVATE_POST_VIDEO_UPLOAD_ENABLED. Только точное значение `true` включает флаг.
+Это существующие release switches, не новые права/роли и не проверка здоровья S3.
+Остальные четыре поля и защита upload endpoints не меняются.
+
+Старый сервер без этих полей совместим: клиент трактует missing/invalid/null как
+false, ошибку запроса не использует как разрешение загрузки. Доступность не
+заменяет server authorization. Рабочие flags этим изменением не включаются.
+Интеграция действий редакторов и проверок перед отправкой — следующий срез CAP-U.
+
 ## 20 октября — logout и nullable admin detail, локально, ещё не dev
 
 - REST `POST /api/auth/logout` и tRPC `auth.logout` сохраняют `{success:true}`,

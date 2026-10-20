@@ -224,5 +224,8 @@ it("serves the existing health and capability contracts through the real applica
     penPals: false,
     shopOnlinePayment: false,
     webPush: false,
+    privateContentUploads: false,
+    privatePostMediaUploads: false,
+    privatePostVideoUploads: false,
   });
 });

@@ -100,6 +100,36 @@ it("reads capabilities from the server and does not accept a string as permissio
   );
   expect((await getAppCapabilities()).smsLogin).toBe(false);
 });
+it.each([
+  [{}, false],
+  [
+    {
+      privateContentUploads: true,
+      privatePostMediaUploads: true,
+      privatePostVideoUploads: true,
+    },
+    true,
+  ],
+  [
+    {
+      privateContentUploads: "true",
+      privatePostMediaUploads: 1,
+      privatePostVideoUploads: {},
+    },
+    false,
+  ],
+  [null, false],
+])(
+  "normalizes private upload availability conservatively: %j",
+  async (payload, allowed) => {
+    fetcher.mockResolvedValueOnce(new Response(JSON.stringify(payload)));
+    expect(await getAppCapabilities()).toMatchObject({
+      privateContentUploads: allowed,
+      privatePostMediaUploads: allowed,
+      privatePostVideoUploads: allowed,
+    });
+  },
+);
 it("does not log session cookies, response headers or failed request bodies", async () => {
   const logs = vi.spyOn(console, "log").mockImplementation(() => {});
   const errors = vi.spyOn(console, "error").mockImplementation(() => {});

@@ -65,6 +65,9 @@ beforeEach(() => {
     penPals: false,
     shopOnlinePayment: true,
     webPush: false,
+    privateContentUploads: false,
+    privatePostMediaUploads: false,
+    privatePostVideoUploads: false,
   });
 });
 afterEach(() => {

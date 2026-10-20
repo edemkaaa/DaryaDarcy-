@@ -85,6 +85,9 @@ afterAll(async () => {
 beforeEach(() => {
   vi.stubEnv("ENABLE_SMS_LOGIN", "false");
   vi.stubEnv("ENABLE_PEN_PALS", "false");
+  vi.stubEnv("PRIVATE_CONTENT_FILES_ENABLED", "false");
+  vi.stubEnv("PRIVATE_POST_MEDIA_UPLOAD_ENABLED", "false");
+  vi.stubEnv("PRIVATE_POST_VIDEO_UPLOAD_ENABLED", "false");
   vi.stubEnv("JWT_SECRET", "local-capability-test-only-secret-32-chars");
   Object.assign(effects, { database: 0, sms: 0, orders: 0, profiles: 0 });
 });
@@ -111,8 +114,37 @@ describe("first-release disabled features cannot mutate through direct requests"
       penPals: false,
       shopOnlinePayment: false,
       webPush: false,
+      privateContentUploads: false,
+      privatePostMediaUploads: false,
+      privatePostVideoUploads: false,
     });
   });
+  it.each([
+    [false, false, false, false],
+    [false, false, true, false],
+    [false, true, false, false],
+    [false, true, true, true],
+    [true, false, false, false],
+    [true, false, true, false],
+    [true, true, false, false],
+    [true, true, true, true],
+  ])(
+    "advertises content=%s/media=%s/video=%s with effective video=%s without touching storage",
+    async (content, media, video, effectiveVideo) => {
+      vi.stubEnv("PRIVATE_CONTENT_FILES_ENABLED", String(content));
+      vi.stubEnv("PRIVATE_POST_MEDIA_UPLOAD_ENABLED", String(media));
+      vi.stubEnv("PRIVATE_POST_VIDEO_UPLOAD_ENABLED", String(video));
+      const response = await fetch(`${base}/api/capabilities`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(await response.json()).toMatchObject({
+        privateContentUploads: content,
+        privatePostMediaUploads: media,
+        privatePostVideoUploads: effectiveVideo,
+      });
+      expect(effects.database).toBe(0);
+    },
+  );
   it.each(["send", "verify"])(
     "rejects direct SMS %s without calling SMS or database",
     async (action) => {

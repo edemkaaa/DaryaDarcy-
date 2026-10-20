@@ -4,4 +4,7 @@ export type LaunchCapabilities = {
   penPals: boolean;
   shopOnlinePayment: boolean;
   webPush: boolean;
+  privateContentUploads: boolean;
+  privatePostMediaUploads: boolean;
+  privatePostVideoUploads: boolean;
 };
