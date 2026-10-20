@@ -4,6 +4,15 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+- [x] По запросу пользователя подготовлена [подробная передача фронтендеру](../docs/development/frontend-fixes-contract-audit-2026-10-20.md):
+  F1 legacy full archive в quick management, F2 смешение review/gallery state,
+  F3 отсутствие «Смотреть», F4 links внутри button, F5 безымянные grid links.
+  История строк проверена; это задачи слоя frontend, не перенос ответственности
+  за Library404/наш переход «Лошадки» в club flow/Prodamus TEST/read acceptance.
+  Повторно прочитаны страницы5–6 доступного оригинала договора, исключения
+  сохранены. Existing246 tests/14 suites/0fail/0skip, check:api90 pass; это не
+  новый browser/live прогон. Fetch staging timeout20s, local frontend равен
+  последнему доступному origin/staging becaf6d. App source/tests/DB/S3 не менялись.
 - [x] Уточнены зимние выкройки:4 keys holly/sock/star/apple — действующий club
   access или admin; гость denied. Handoff/SPEC больше не требуют переноса
   «Лошадки» как пятого платного файла: b06a46a подтверждает исходный free статус,
