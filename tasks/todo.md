@@ -4,6 +4,37 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### VK-CUTOVER —22 открытых VK вместо60 YouTube,20 октября
+
+- [x] Явный выбор пользователя:22 VK public;60 YouTube скрыть, records оставить
+  для отката. Existing source export22 canonical embeds/status ok; source/access
+  не угадывать по позиции. Ни один старый ID не переназначать другому ролику.
+- [x] Подготовлен private input22 с реальными src, полными titles и22 durations
+  из user TXT/PDF.19 native PNG SHA/bytes match;3 missing
+  456239226/456239052/456239035 остаются null. No VK/CDN network обхода.
+- [x] Own tmpfs SQL rehearsal: plan/draft/replay/atomic cutover/replay/rollback,
+  все82 records/old metadata сохранены; existing upsert/strict parser reused.
+  Дополнительно concurrent edit отклонён до publication writes,60 старых
+  остались доступны; loss of receipt/ACK повторён без дублей/частичного cutover.
+  Fresh42 schema, synthetic admin, loopback/tmpfs без volumes/рабочих данных.
+- [x] Fresh live baseline/backup/admin+schema guards;19 new public assets only
+  app-assets/vk-catalog-20261020-U52Zwx, byte-exact signed/anonymous verification,
+  затем22 drafts и atomic publication transition. No migrations/old S3/users/UI.
+  Backup40 tables/353118 bytes/SHA5f39153b… server+Mac0600; history42/admin
+  credential+role+session fingerprint/39 non-video counts/14 configs/runtime
+  images и existing containers unchanged. Phase accepted,82 rows сохранены.
+- [x]33 public HTTPS checks: catalog22/pagination10+10+2/22 matching playback
+  sources/legacy0/old playback+media404/pages200. Frontend handoff обновлён:
+  текущий build не включает NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED; пересборка
+  с true нужна фронтендеру, frontend исполнитель не менял.
+  Mac HTTPS independently подтвердил catalog22/legacy0/2 cover SHA/served JS
+  SHA, final live guards GREEN. Fresh fetch обнаружил новый07cada2 frontend
+  admin/navigation/editor commit поверх6737dca: прочитан, не объединялся и не
+  выкладывался в content-only задаче. Наши документы сохраняются локально.
+- [ ] Ручная VK playback приёмка, frontend thumbnail flag/rebuild и3 missing
+  covers. Browser site-safety gate отказал, обход не разрешён; API200 не
+  доказывает реальное воспроизведение. Не объявлять эти остатки закрытыми.
+
 #### RELEASE-MIXED — выпуск без отключения YouTube принят,20 октября
 
 - [x] Push origin/staging:b32d0bc→1994e19. Deployed app source427195a,

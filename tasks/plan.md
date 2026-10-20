@@ -63,6 +63,20 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **20 октября, VK-CUTOVER — новое явное разрешение:** пользователь принял22
+  public VK и снятие публикации60 YouTube с сохранением records. Supersedes
+  postponement только в этом объёме. Новые19 public cover copies — лишь из
+  предоставленных native PNG,3 null, без CDN обхода/генерации/изменения старых
+  объектов. Требуются own SQL rehearsal/fresh backup/guards/atomic cutover/replay/
+  rollback и API checks; существующие frontend/UI/schema/users не меняются.
+  Реальная browser playback проверка запрещена site-safety gate и остаётся
+  ручной приёмкой; metadata/200 response не доказывают декодирование VK-видео.
+  Перенос принят33 live HTTPS checks:22 published VK/60 hidden YouTube,
+  records82/19 verified new covers/3 null. Fresh backup40 tables сохранён
+  server+Mac, admin/schema42/config/прочие таблицы/runtime прежние. Открыты
+  только ручной playback,3 missing covers и включение frontend thumbnail flag
+  при следующей сборке фронтендером; его точный handoff обновлён, UI не меняли.
+
 - **20 октября, RELEASE-MIXED — принят:** user-approved normal push staging
   b32d0bc→1994e19, app source427195a. Image-only API/web/restricted TEST rollout
   принят20 public HTTPS reads + Mac covers200/60;17 offline native checks и1613

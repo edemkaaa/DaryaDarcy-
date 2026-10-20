@@ -1,5 +1,88 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## VK-CUTOVER —22 VK опубликованы,60 YouTube скрыты,20 октября2026
+
+После mixed release пользователь явно выбрал22 открытых VK и скрытие60
+YouTube с сохранением старых записей. Это **content-only transition**, не новый
+app build/deploy и не разрешение переносить старые файлы/менять другие таблицы.
+API/web/TEST images, BUILD_ID и DB ниже прежние. Перенос выполнен существующим
+strict VK parser/upsert,22 matching src из user export; никаких придуманных
+источников, hash или сопоставлений старых YouTube ID новым роликам.
+
+Private local workspace directory `.local-artifacts/vk-cutover-20261020.U52Zwx`
+и server staging base `/home/edem/apps/daryadarcy-staging/` с одноимённой папкой:
+input22/19 cover bytes/operator/supervisor/guards/backup/progress/ID mapping/
+publication и acceptance receipts. Directory0700/files0600; env/raw dump/embed
+hashes не переносить в Git/чат. Transport archive5474612 bytes/SHA
+`b59f890b6e06af6d255bd1d0291d8f99e4e9feeefd36256dffa7dff97af1140d`.
+
+### Репетиция и подготовка
+
+Own MySQL8.4 loopback/tmpfs512MiB `backend_test`, fresh42 migrations,
+synthetic admin+60 synthetic YouTube: plan/draft/replay/cutover/replay/rollback
+проверены. Concurrent old metadata edit отвергнут до publication writes;
+60 old остались доступны. После восстановления fixture и удаления только
+своего receipt loss-of-ACK replay дал те же22 IDs/82 rows без дублей.
+Own labelled container удалён после ID/owner/tmpfs/no mounts guards;
+images/volumes/чужие контейнеры не удалялись.
+
+Live prepare закрепил current MySQL UUID/candidate,42 migrations/40 tables,
+admin credential/role/session fingerprint, counts всех39 non-video tables,
+14 config files и existing container ID/image/start/state. Fresh consistent
+backup353118 bytes/SHA
+`5f39153b4140c2349895ef3f572f2857781766cace1e41417c9dd417f3b006d8`
+сохранён server+Mac0600, gzip/40 CREATE TABLE/SHA проверены **до apply**.
+SSH был intermittent: два backup download timeout до успешной копии; apply
+до неё не запускался. Первый extract guard ошибочно ожидал24 tar members вместо
+23; остановился до extraction/DB/S3. Состав перепроверен, разрешена только
+пустая own0700 папка и expected23 entries, без symlinks/absolute/traversal paths.
+
+### Apply и проверенный результат
+
+- 19 PNG5443271 bytes помещены только в новый public prefix
+  `app-assets/vk-catalog-20261020-U52Zwx/`. Conditional create/no overwrite;
+  HEAD metadata/size, signed GET и anonymous GET SHA совпали у всех19.
+  Никаких policy/ACL/старых object writes. Native533–537x300–301, не HD.
+  У456239226/456239052/456239035 thumbnailUrl=null: оригиналов нет.
+- 22 новых VK сначала unpublished, sourceKey replay через existing upsert.
+  Titles из VK export,22 durations из user TXT/PDF. Затем publication flags
+  изменены одной transaction с named lock/row locks/exact guards:22 VK public
+  published,60 YouTube hidden. Старые IDs/access/metadata и все82 rows сохранены.
+- Phase `accepted`:33 HTTPS checks со staging host — catalog22/covers19,
+  pagination10+10+2 without duplicates,22 exact matching playback responses,
+  legacy list0, old playback404 и YouTube proxy/thumbnail HEAD404, pages200.
+  Guards после каждой стадии: same admin/history/non-video counts/config/
+  runtime images/other containers. Ни migrations, ни платежей/внешних писем.
+- Независимый Mac HTTPS: catalog22/public/canWatch/durations/covers exact,
+  legacy0, два sample covers byte SHA, served chunk SHA совпал с release build.
+  Published chunk всё ещё читает NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED из browser
+  env, не inline true. Это frontend build integration остаток: следующий build
+  фронтендера с true. Runtime-only env готового Next image не решает его.
+- Реальное VK воспроизведение **не принято**: browser site-safety отказал,
+  raw HTTP/CDP/другой браузер/CDN не использовались для обхода. API200 проверяет
+  контракт/источник, не запуск/перемотку/звук. Handoff и3 missing covers:
+  [фронтендеру](../development/frontend-video-fixes-2026-10-20.md).
+
+Fresh fetch после переноса: origin/staging07cada2 содержит21 frontend admin/
+editor/E2E files, не меняет video contract/thumbnail flag. Он не объединялся,
+не перезаписывался и не выкладывался в этой content-only задаче. Новые docs
+коммитятся только локально; это не утверждение, что07cada2 уже работает на dev.
+
+### Откат только публикаций
+
+Не повторять `supervise.py apply`: accepted phase намеренно отказывает.
+При отдельном поручении отката сначала сверить actual UUID/DB/runtime/config,
+current82 rows и ID map с private before-videos/drafts-ready/publication receipt,
+проверить отсутствие новых правок владельца. Использовать сохранённый operator
+mode `rollback` в том же pinned API image/isolated network/user1001, с own
+private env/bind mounts/read-only root как в supervisor. Operator атомарно
+возвращает old60 published/new22 draft; повтор безопасен на unchanged state.
+При drift он отказывает: не снимать guards и не restore всей working DB.
+Новые22 записи/19 cover objects остаются для повторного выпуска; старыеS3,
+users/credentials и другие таблицы не трогать. Backup — страховка, не команда
+автоматического overwrite. Реальный rollback выполнен только на synthetic DB;
+на стенде принятую публикацию ради повторного теста не отменяли.
+
 ## RELEASE-MIXED — выбран выпуск остальных правок, cutover VK отложен
 
 ### Итог: выпуск принят,20 октября2026

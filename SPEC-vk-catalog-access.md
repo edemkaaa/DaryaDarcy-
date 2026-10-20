@@ -1,5 +1,37 @@
 # AG8: VK-каталог и клубный доступ
 
+## VK-перенос20 октября2026 — состав явно принят пользователем
+
+После mixed release пользователь поручил доделать VK и подтвердил:
+«Да:22 открытых VK, старые YouTube скрыть». Это разрешает только22 новых
+canonical VK источника из предоставленного export и снятие публикации60
+существующих YouTube rows, без удаления/переназначения старых ID и access.
+Новые VK access=public. Рабочие schema/users/subscriptions/config и старые
+S3 objects не менять. Фронтенду — документ, не ручные UI/design изменения.
+
+До cutover: fresh backup/admin+schema guards и репетиция на own tmpfs
+backend_test. Новые VK сначала unpublished, replay по existing upsert/sourceKey;
+длительности — из предоставленного PDF/TXT. Затем одна SQL transaction
+публикует22 и скрывает60; rollback меняет только эти publication flags.
+Новые публичные copies19 предоставленных PNG допустимы только в отдельном
+app-assets/vk-catalog-20261020-U52Zwx prefix, без overwrite/ACL/policy изменений.
+Это native533–537x300–301 fallback, не большие исходники. Для3 остальных
+thumbnailUrl=null, без чужой/придуманной обложки. Дизайн остаётся прежним.
+
+Браузерная проверка настоящего vk.ru iframe снова остановлена site-safety gate.
+Не обходить другим браузером/raw HTTP/CDP/CDN. Реальный playback остаётся
+ручной внешней приёмкой, даже если22 API playback responses верны.
+
+Перенос выполнен:22 public VK опубликованы,60 YouTube скрыты и сохранены.
+33 live HTTPS checks приняты,19 new public copies прочитаны signed/anonymous
+с совпадением SHA,3 thumbnailUrl=null. Fresh backup40 tables server/local0600;
+schema42/admin credentials/session/config/прочие таблицы/runtime images прежние.
+Нового build/deploy app code не было: используется текущий mixed backend.
+Текущему frontend build нужен thumbnail flag=true при следующей пересборке;
+UI здесь не менялся. Остаток и точный handoff —
+[документ фронтендеру](docs/development/frontend-video-fixes-2026-10-20.md).
+Rollback/доказательства — [runbook](docs/operations/candidate-backend-image-rollback.md).
+
 ## Выпуск20 октября2026 — VK-only cutover отложен пользователем
 
 После read-only проверки стенда (60 опубликованных YouTube,0 VK) пользователь
