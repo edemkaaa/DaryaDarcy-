@@ -33,9 +33,41 @@ pnpm dev:frontend
 ```dotenv
 NEXT_PUBLIC_API_BASE_URL=
 API_PROXY_TARGET=https://daryadarcy.dev.reeskeen.ru
+# Payment/video flags match staging. These flags do not enable server features.
+NEXT_PUBLIC_PRODAMUS_TEST_ENABLED=true
+NEXT_PUBLIC_CLUB_TEST_CHECKOUT=false
+NEXT_PUBLIC_NORMAL_CHECKOUT_RECOVERY_ENABLED=true
+NEXT_PUBLIC_VK_CATALOG_ENABLED=true
+# Current API does not yet support the thumbnail opt-in/save contract.
+NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED=false
+# Use protected delivery for recipes/Petersburg locally; requires server readiness.
+NEXT_PUBLIC_PRIVATE_LIBRARY_FILES_ENABLED=true
 ```
 
+`NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED` отдельно включает подготовленную интеграцию
+по документу от 20.10.2026: `includeThumbnails: true` на всех страницах каталога
+и поле обложки в форме VK. С текущим API оставляйте `false`; флаг не включает
+возможности сервера. До получения backend-коммитов `36fc86d` и `b6dbdf4`
+generated contract остаётся основанным на текущем серверном коде. После их
+интеграции выполните `pnpm api:contract` и `pnpm check:api`, сверьте допустимые
+публичные адреса, проверьте сохранение на одноразовой БД и только затем включайте
+флаг с пересборкой. Браузерные проверки нового режима используют тестовые ответы;
+они не подтверждают воспроизведение реального VK-ролика или готовность сервера.
+
 После изменения цели перезапустите `pnpm dev:frontend`. Браузер обращается к локальным `/api/*` и `/media/*`, Next.js пересылает их удалённому серверу. [src/proxy.ts](src/proxy.ts) только в режиме `development` с HTTPS-целью заменяет Origin собственного локального фронтенда на origin цели. Запросы с чужим Origin, `cross-site` или публичным Host отклоняются. Cookies передаются как обычно; вход нужно выполнить отдельно на локальном фронтенде. Production и локальный HTTP-бэкенд сохраняют прежнюю обработку Origin.
+
+Эта конфигурация предназначена для `pnpm dev:frontend` на `http://127.0.0.1:8081`.
+Загрузки фото/видео/документов определяет текущий ответ `/api/capabilities`;
+локальные флаги загрузок не нужны. `NEXT_PUBLIC_NORMAL_CHECKOUT_RECOVERY_ENABLED`
+используется только в обычном режиме оплаты, поэтому при Prodamus TEST не меняет
+платёжный сценарий. Выкройки уже используют защищённый API независимо от флага
+рецептов/Петербурга. Локально этот флаг включён для интеграции: прямые ссылки
+Яндекса не используются, при недоступном API отображается ошибка с повтором.
+Текущий сервер возвращает `404` для всех трёх списков даже администратору;
+локальная настройка не заменяет перенос файлов и включение серверной выдачи.
+Для проверки с удалённым API используйте
+dev-сервер: `next start` сохраняет production-политику Origin и ранее собранные
+значения переменных. Локальная работа с API использует реальные данные стенда.
 
 ## Сборка и проверки
 

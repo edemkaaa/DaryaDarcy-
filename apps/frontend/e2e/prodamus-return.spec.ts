@@ -61,7 +61,7 @@ async function fixture(page: Page, member = false) {
     {
       name: "session_fixture",
       value: "not-a-real-session",
-      url: "http://localhost:8081",
+      url: new URL(test.info().project.use.baseURL!).origin,
     },
   ]);
   await page.route("**/api/prodamus/test/result", async (route) => {
@@ -76,6 +76,61 @@ async function fixture(page: Page, member = false) {
     await route.fulfill({ json: state.result });
   });
   return state;
+}
+
+for (const actor of [null, 101, 102]) {
+  test(`delayed initial session preserves the payment reference for ${actor ?? "guest"}`, async ({
+    page,
+  }) => {
+    const state = await fixture(page, actor !== null);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/api/auth/me", async (route) => {
+      await gate;
+      await route.fulfill({
+        json: {
+          user:
+            actor === null
+              ? null
+              : {
+                  id: actor,
+                  openId: `delayed-${actor}`,
+                  name: "Участница",
+                  email: "member@example.test",
+                  role: "user",
+                  lastSignedIn: "2026-10-01T12:00:00Z",
+                },
+        },
+      });
+    });
+    try {
+      await page.goto(returned, { waitUntil: "domcontentloaded" });
+      await expect(page).toHaveURL(
+        new RegExp(`#paymentReturn=${token.replaceAll(".", "\\.")}$`),
+      );
+      await expect(dialog(page)).toHaveCount(0);
+      expect(state.reads).toBe(0);
+    } finally {
+      release();
+    }
+    await expect(dialog(page)).toContainText(
+      actor === 101 ? "Доступ к клубу открыт" : "Письмо отправлено",
+    );
+    await expect(page).toHaveURL(/\/club$/);
+    expect(state.reads).toBe(1);
+    expect(state.claims).toBe(0);
+    if (actor !== 101)
+      await expect(dialog(page)).not.toContainText("Доступ к клубу открыт");
+    expect(
+      await page.evaluate(() =>
+        [...Object.values(localStorage), ...Object.values(sessionStorage)].some(
+          (value) => value.includes("club-test-101-"),
+        ),
+      ),
+    ).toBe(false);
+  });
 }
 
 for (const width of [320, 390, 1440])

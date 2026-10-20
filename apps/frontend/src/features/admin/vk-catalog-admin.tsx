@@ -10,6 +10,8 @@ import { getHttpStatus, getRequestErrorMessage } from "@/shared/api/errors";
 import { Action, Field, ScrollArea, Typography } from "@/shared/ui/elements";
 import {
   getVkCatalogEmbedUrl,
+  isVideoThumbnailsEnabled,
+  normalizeVkThumbnailUrl,
   requireVkVideoId,
 } from "@/features/videos/catalog-api";
 import { VkVideoField } from "./vk-video-field";
@@ -21,6 +23,7 @@ type Payload = {
   title: string;
   access: "public" | "club";
   published: boolean;
+  thumbnailUrl?: string | null;
 };
 export function VkCatalogAdmin() {
   const { user, isOwner } = useAuth();
@@ -38,6 +41,9 @@ function Editor() {
   const [embedUrl, setEmbedUrl] = useState("");
   const [access, setAccess] = useState<"public" | "club">("club");
   const [published, setPublished] = useState(false);
+  const thumbnailsEnabled = isVideoThumbnailsEnabled();
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [thumbnailChanged, setThumbnailChanged] = useState(false);
   const [pending, setPending] = useState<Payload | null>(null);
   const [resultId, setResultId] = useState<number | null>(null);
   const [error, setError] = useState("");
@@ -51,6 +57,8 @@ function Editor() {
     setEmbedUrl("");
     setAccess("club");
     setPublished(false);
+    setThumbnailUrl("");
+    setThumbnailChanged(false);
     setError("");
   };
   const save = async () => {
@@ -67,6 +75,20 @@ function Editor() {
       );
       return;
     }
+    let thumbnail: Pick<Payload, "thumbnailUrl"> = {};
+    if (!pending && thumbnailsEnabled && thumbnailChanged) {
+      if (thumbnailUrl === "") thumbnail = { thumbnailUrl: null };
+      else {
+        const normalized = normalizeVkThumbnailUrl(thumbnailUrl);
+        if (!normalized) {
+          setError(
+            "Укажите публичный адрес обложки без параметров или очистите поле для удаления обложки.",
+          );
+          return;
+        }
+        thumbnail = { thumbnailUrl: normalized };
+      }
+    }
     const task = operation.begin("save-vk-video");
     if (!task) return;
     const payload: Payload = pending ?? {
@@ -75,6 +97,7 @@ function Editor() {
       title: title.trim(),
       access,
       published,
+      ...thumbnail,
     };
     setPending(payload);
     setError("");
@@ -100,16 +123,21 @@ function Editor() {
       if (!task.isCurrent()) return;
       checkOperationAccessError(cause);
       const status = getHttpStatus(cause);
+      // A definite rejection permits correction; unknown writes keep their exact payload.
+      if (status && [400, 401, 403, 404, 409, 412].includes(status))
+        setPending(null);
       setError(
         status === 409
           ? payload.id
             ? "Запись с этим ID нельзя сохранить как VK с указанными данными. Проверьте ID и источник ролика."
             : "Это видео уже связано с другими данными. Укажите его ID для явного редактирования; новая запись не создана."
-          : status === 412
-            ? "Каталог VK пока не включён на сервере. Сохранение не подтверждено."
-            : status === 404
-              ? "Видео с таким ID не найдено. Новая запись вместо него не создаётся."
-              : getRequestErrorMessage(cause),
+          : status === 400
+            ? "Проверьте название, ссылку VK и адрес обложки. Изменения не сохранены."
+            : status === 412
+              ? "Каталог VK пока не включён на сервере. Сохранение не подтверждено."
+              : status === 404
+                ? "Видео с таким ID не найдено. Новая запись вместо него не создаётся."
+                : getRequestErrorMessage(cause),
       );
     } finally {
       task.finish();
@@ -178,6 +206,43 @@ function Editor() {
       />
       {embedUrl ? (
         <Typography className={classes.hint}>Ссылка VK добавлена</Typography>
+      ) : null}
+      {thumbnailsEnabled ? (
+        <>
+          <Typography className={classes.label}>Обложка</Typography>
+          <Field
+            aria-label="Публичный адрес обложки VK"
+            value={thumbnailUrl}
+            onValueChange={(value) => {
+              setThumbnailUrl(value);
+              setThumbnailChanged(true);
+            }}
+            placeholder="https://… или /assets/responsive/…"
+            disabled={locked}
+            className={classes.titleInput}
+          />
+          <Typography className={classes.hint}>
+            {editing && !thumbnailChanged
+              ? "Если поле не менять, текущая обложка сохранится."
+              : thumbnailChanged && thumbnailUrl === ""
+                ? "Видео будет сохранено без обложки."
+                : "Используйте согласованное публичное изображение. Файл здесь не загружается."}
+          </Typography>
+          {editing ? (
+            <Action
+              className={classes.btn}
+              disabled={locked}
+              onClick={() => {
+                setThumbnailUrl("");
+                setThumbnailChanged(true);
+              }}
+            >
+              <Typography className={classes.btnText}>
+                Удалить обложку
+              </Typography>
+            </Action>
+          ) : null}
+        </>
       ) : null}
       <div className={`ui-stack ${classes.row}`}>
         <Action

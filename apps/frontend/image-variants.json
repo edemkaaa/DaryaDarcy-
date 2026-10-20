@@ -1568,43 +1568,6 @@
       "fullSha256": "d7c8b288aeb9bebb446f76fe34a640ddaa1dff028bfe949dd5284b7f8d82aaa4"
     },
     {
-      "origin": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/18c14e47537e-EJllmcoOmdUexPyK.jpg",
-      "full": "/assets/responsive/18c14e47537e-EJllmcoOmdUexPyK.full.3806194d71bef3f6.webp",
-      "zoomable": true,
-      "width": 1200,
-      "height": 1470,
-      "originalBytes": 151829,
-      "originalSha256": "b418b1ee748ba069e838f36fbac1abc0d1b21b5953695351ae34646cf94aa8f8",
-      "variants": [
-        {
-          "uri": "/assets/responsive/18c14e47537e-EJllmcoOmdUexPyK.w320.f0e6c850e71e9a42.webp",
-          "width": 320,
-          "bytes": 23486,
-          "sha256": "f0e6c850e71e9a4235c85444cd36fc675ff5ae0137b39acd5d40089eb54ad4ec"
-        },
-        {
-          "uri": "/assets/responsive/18c14e47537e-EJllmcoOmdUexPyK.w640.73262f1c680deede.webp",
-          "width": 640,
-          "bytes": 57212,
-          "sha256": "73262f1c680deede389a7e4c759245183e704040f50b9a24b735000a2f2eabd4"
-        },
-        {
-          "uri": "/assets/responsive/18c14e47537e-EJllmcoOmdUexPyK.w960.d038d838736d2627.webp",
-          "width": 960,
-          "bytes": 95864,
-          "sha256": "d038d838736d2627929b9fd952c882dcf84a38baab6a4e3170b84d7e6f7085b7"
-        },
-        {
-          "uri": "/assets/responsive/18c14e47537e-EJllmcoOmdUexPyK.w1200.dd9a8b6ba161a1ff.webp",
-          "width": 1200,
-          "bytes": 141152,
-          "sha256": "dd9a8b6ba161a1fffa26cba58b914e34fdc7914b4dad74c905e704d3a489beb1"
-        }
-      ],
-      "fullBytes": 907380,
-      "fullSha256": "3806194d71bef3f6644d878a354212d958ab60647eab92b9a9115fd498981235"
-    },
-    {
       "origin": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/1a03ee114023-cCbdKIZtJmsSzKzg.png",
       "full": "/assets/responsive/1a03ee114023-cCbdKIZtJmsSzKzg.w1440.ccebb507fe42227f.webp",
       "zoomable": false,
@@ -3064,43 +3027,6 @@
       "fullSha256": "7be64499f031f20cc32bb816fffbc91799c09772a9206f82b8076ab0094f944c"
     },
     {
-      "origin": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/958b97c139fc-kvcsayGSgtVcnjGN.jpg",
-      "full": "/assets/responsive/958b97c139fc-kvcsayGSgtVcnjGN.full.1cc0462841dbff90.webp",
-      "zoomable": true,
-      "width": 1200,
-      "height": 1484,
-      "originalBytes": 150186,
-      "originalSha256": "e3dcaa7e76e1b9af6de671235d21dd4fb0612112d1d30d8afbea5bd8803bdc62",
-      "variants": [
-        {
-          "uri": "/assets/responsive/958b97c139fc-kvcsayGSgtVcnjGN.w320.f9219cd2c9c5bc02.webp",
-          "width": 320,
-          "bytes": 22752,
-          "sha256": "f9219cd2c9c5bc029c7577c27d6d7efa127cc4029cac7220e0a59301fd042bb3"
-        },
-        {
-          "uri": "/assets/responsive/958b97c139fc-kvcsayGSgtVcnjGN.w640.ee2f1bba2de0da66.webp",
-          "width": 640,
-          "bytes": 56784,
-          "sha256": "ee2f1bba2de0da664c6cb39af67e043ad6eb5eef2fcf78fbe68c241a5809fa9a"
-        },
-        {
-          "uri": "/assets/responsive/958b97c139fc-kvcsayGSgtVcnjGN.w960.b1e74334ee1247cd.webp",
-          "width": 960,
-          "bytes": 94496,
-          "sha256": "b1e74334ee1247cd1935670c7ef14f78502e59ca2f2a57a31da91aa677e96ccd"
-        },
-        {
-          "uri": "/assets/responsive/958b97c139fc-kvcsayGSgtVcnjGN.w1200.a3353a55403adc5d.webp",
-          "width": 1200,
-          "bytes": 138638,
-          "sha256": "a3353a55403adc5d5dcc03b4b899b09ac07242b605d1cb1d7d88f79fb3a352d4"
-        }
-      ],
-      "fullBytes": 903476,
-      "fullSha256": "1cc0462841dbff90e9ad0f9d65427289e3d7f453f394e72690ec7631396369c1"
-    },
-    {
       "origin": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/98ab8fafc475-UumiPOEfgzXJXOMx.webp",
       "full": "/assets/responsive/98ab8fafc475-UumiPOEfgzXJXOMx.w900.cfac9f24edadc576.webp",
       "zoomable": false,
@@ -3124,43 +3050,6 @@
       ],
       "fullBytes": 30730,
       "fullSha256": "cfac9f24edadc5760b275446963518dbac3cbef2bfd1ae4617bd13c43d7b5d64"
-    },
-    {
-      "origin": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/9b32f7b0c8f1-ReabYqEbymjBrDEY.jpg",
-      "full": "/assets/responsive/9b32f7b0c8f1-ReabYqEbymjBrDEY.full.73f233acce5d7b95.webp",
-      "zoomable": true,
-      "width": 1200,
-      "height": 1481,
-      "originalBytes": 162782,
-      "originalSha256": "64f01b5bcbb261ad2cf0931e7bc1d0703882835c2483f56e992e1c62974cd121",
-      "variants": [
-        {
-          "uri": "/assets/responsive/9b32f7b0c8f1-ReabYqEbymjBrDEY.w320.73c0e8eb4fafd6b6.webp",
-          "width": 320,
-          "bytes": 25284,
-          "sha256": "73c0e8eb4fafd6b6fa6f730e195d8d2dcb1d195920521fb375d1d35cbd86cd54"
-        },
-        {
-          "uri": "/assets/responsive/9b32f7b0c8f1-ReabYqEbymjBrDEY.w640.55097544d50f71fa.webp",
-          "width": 640,
-          "bytes": 62260,
-          "sha256": "55097544d50f71fad6933bac03c7d4adfbef23bf8e0f919af73a1f3cf1a15d07"
-        },
-        {
-          "uri": "/assets/responsive/9b32f7b0c8f1-ReabYqEbymjBrDEY.w960.c9b988c7ec4dd908.webp",
-          "width": 960,
-          "bytes": 103192,
-          "sha256": "c9b988c7ec4dd9080fcc1052ccb1b42fd8159d9081fb611806fec338c557f217"
-        },
-        {
-          "uri": "/assets/responsive/9b32f7b0c8f1-ReabYqEbymjBrDEY.w1200.693c9c1f00c732a7.webp",
-          "width": 1200,
-          "bytes": 150408,
-          "sha256": "693c9c1f00c732a74532f9f9dddbb70c6f362ec8ce27e7b1759f7b801e747b8c"
-        }
-      ],
-      "fullBytes": 972770,
-      "fullSha256": "73f233acce5d7b9589b10f8d5326aabef9bafe6c4428c59e8bff16f488df5a90"
     },
     {
       "origin": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/9e3aec1f0a5d-PUMBhecZrXmmctyT.jpg",
@@ -4629,43 +4518,6 @@
       ],
       "fullBytes": 870488,
       "fullSha256": "c6ca6084fcc415f0ced598c9543f83609632b0606272e61433fda269d8fb2293"
-    },
-    {
-      "origin": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/ded750bddbeb-HSvrSZijpbSHOLAN.jpg",
-      "full": "/assets/responsive/ded750bddbeb-HSvrSZijpbSHOLAN.full.493a6b466590d5c7.webp",
-      "zoomable": true,
-      "width": 1200,
-      "height": 1487,
-      "originalBytes": 150132,
-      "originalSha256": "fc2a96a7206bc037cf006ea739303202001b2e041f206bf12fce3a11f9b40ff4",
-      "variants": [
-        {
-          "uri": "/assets/responsive/ded750bddbeb-HSvrSZijpbSHOLAN.w320.e51c27b84bf41ce2.webp",
-          "width": 320,
-          "bytes": 22768,
-          "sha256": "e51c27b84bf41ce21593c6cfebd2f0525426d8148d2bcc5b8800c38b2c5f3166"
-        },
-        {
-          "uri": "/assets/responsive/ded750bddbeb-HSvrSZijpbSHOLAN.w640.f415cd3520797616.webp",
-          "width": 640,
-          "bytes": 56608,
-          "sha256": "f415cd352079761660c5e47539ccaec7a64908301d174afb7ea3040890b250ad"
-        },
-        {
-          "uri": "/assets/responsive/ded750bddbeb-HSvrSZijpbSHOLAN.w960.9b5a8b0c8628426a.webp",
-          "width": 960,
-          "bytes": 95490,
-          "sha256": "9b5a8b0c8628426ab6d4b8f40413058b9934c9f660f068a57b1e0142c61f2ee1"
-        },
-        {
-          "uri": "/assets/responsive/ded750bddbeb-HSvrSZijpbSHOLAN.w1200.098316dc2a7610b9.webp",
-          "width": 1200,
-          "bytes": 138044,
-          "sha256": "098316dc2a7610b9b7f891b37be100496e2b1dc30368a7edb26bac5a8c81890e"
-        }
-      ],
-      "fullBytes": 897376,
-      "fullSha256": "493a6b466590d5c796ddc5a36bb946e2301be896a02778fabafb4175c7131b4d"
     },
     {
       "origin": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/shop/duefjXzIoLGcxdSk.JPG",

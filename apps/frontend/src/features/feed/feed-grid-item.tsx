@@ -6,6 +6,8 @@ import classes from "./feed-grid-item.module.scss";
 import Link from "next/link";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
+import { sanitizePlainPostText } from "@/domain/content/post-text-sanitize";
+import { truncateSelectionPreview } from "@shared/rich-text-edit";
 import type { FeedPost } from "./feed-screen.content";
 export function GridItem({
   item,
@@ -18,10 +20,25 @@ export function GridItem({
 }) {
   const viewport = useViewport();
   const { stylesLayout } = getFeedScreenLayout(viewport);
+  const preview = truncateSelectionPreview(
+    sanitizePlainPostText(item.text) ||
+      sanitizePlainPostText(
+        item.richText
+          ?.map((block) => block.children.map((inline) => inline.text).join(""))
+          .join("\n") ?? "",
+      ),
+  );
+  const action = item.articleId ? "Открыть статью" : "Открыть публикацию";
+  const label = preview
+    ? `${action}: ${preview}`
+    : item.date
+      ? `${action} от ${item.date}`
+      : action;
 
   return (
     <Link
       href={href}
+      aria-label={label}
       style={{
         width: stylesLayout.gridItem.width,
         height: stylesLayout.gridItem.height,

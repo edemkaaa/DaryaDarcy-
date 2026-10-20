@@ -13,7 +13,7 @@ import {
   Dialog,
   Spinner,
 } from "@/shared/ui/elements";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Picture } from "@/shared/media/image";
 import { BlurView } from "@/shared/ui/blur";
 import { LinearGradient } from "@/shared/ui/gradient";
@@ -57,6 +57,13 @@ function PatternsScreenContent() {
   const [viewerImage, setViewerImage] = useState("");
   const [viewerTitle, setViewerTitle] = useState("");
   const [downloading] = useState(false);
+  useEffect(() => {
+    if (!hasClubAccess || bindings.error) {
+      setViewerVisible(false);
+      setViewerImage("");
+      setViewerTitle("");
+    }
+  }, [hasClubAccess, bindings.error]);
   const handleClubCTA = () => {
     router.push("/club");
   };
@@ -65,7 +72,7 @@ function PatternsScreenContent() {
   };
   const openPattern = (pattern: PatternItem) => {
     const file = bindings.files?.[pattern.id];
-    if (!file) return;
+    if (!hasClubAccess || !file) return;
     setViewerImage(file.url);
     setViewerTitle(pattern.title);
     setViewerVisible(true);

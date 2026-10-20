@@ -7,7 +7,7 @@ const post = (id: number, text: string, target: "feed" | "club" | "both") => ({
   id,
   text,
   target,
-  photos: [],
+  photos: [] as string[],
   media: [],
   tags: [],
   richText: null,
@@ -29,6 +29,7 @@ type State = {
   subscriptionError?: boolean;
   savedError?: boolean;
   staleSavedSnapshot?: boolean;
+  savedPosts?: ReturnType<typeof post>[];
 };
 async function fixture(page: Page, state: State) {
   await page.route("**/*", (route) =>
@@ -83,11 +84,13 @@ async function fixture(page: Page, state: State) {
       if (name === "feed.savedPosts")
         return state.savedError
           ? failure(503)
-          : ok([
-              openPost,
-              bothPost,
-              ...(state.access || state.staleSavedSnapshot ? [clubPost] : []),
-            ]);
+          : ok(
+              state.savedPosts ?? [
+                openPost,
+                bothPost,
+                ...(state.access || state.staleSavedSnapshot ? [clubPost] : []),
+              ],
+            );
       if (name === "feed.getById") {
         const id = (
           url.searchParams.has("batch") ? inputs[index]?.json : inputs.json
@@ -140,6 +143,49 @@ test("an unpaid member opens saved public posts without opening club-only conten
   await page.goto("/post/44");
   await expect(page.getByText("Пост не найден", { exact: true })).toBeVisible();
   await expect(page.getByText("CLOSED_SAVED_POST")).toHaveCount(0);
+});
+
+test("saved photo and article cards have content names and independent keyboard destinations", async ({
+  page,
+}) => {
+  const photo =
+    "/assets/responsive/78b61d3f13ad-ecZVWefzXRwRboPv.w900.6bd950f10a33771e.webp";
+  await fixture(page, {
+    access: false,
+    savedPosts: [
+      { ...openPost, text: "Осенний сад", photos: [photo] },
+      { ...bothPost, text: "Уютный дом", source: "article:9", photos: [photo] },
+      { ...post(45, "", "feed"), photos: [photo] },
+    ],
+  });
+  await gotoWithSession(page, "/profile");
+  const publication = page.getByRole("button", {
+    name: "Открыть публикацию: Осенний сад",
+    exact: true,
+  });
+  const article = page.getByRole("button", {
+    name: "Открыть статью: Уютный дом",
+    exact: true,
+  });
+  await expect(publication).toBeVisible();
+  await expect(article).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: "Открыть публикацию от 1 октября 2026 г.",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Открыть публикацию: Осенний сад", { exact: true }),
+  ).toHaveCount(0);
+  await publication.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/post\/42$/);
+  await page.goBack();
+  await expect(article).toBeVisible();
+  await article.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/library\/article\/9$/);
 });
 
 for (const role of ["user", "moderator"] as const) {

@@ -83,7 +83,7 @@ function LegacyVideoDetail({ id }: { id: string }) {
     <VideoDetailView
       title={displayVideoTitle(video.title, video.youtubeId)}
       player={player}
-      youtubeId={video.youtubeId}
+      youtubeId={vkEmbedUrl ? undefined : video.youtubeId}
       meta={
         video.views || video.publishedText
           ? `${video.views ?? ""}${video.publishedText ? ` • ${video.publishedText}` : ""}`
@@ -92,7 +92,9 @@ function LegacyVideoDetail({ id }: { id: string }) {
       hint={
         vkEmbedUrl
           ? "Видео воспроизводится плеером VK. Качество и полноэкранный режим можно выбрать в настройках плеера."
-          : "В приложении видео доступно к просмотру без VPN, но в более низком качестве. Для просмотра в высоком разрешении рекомендую перейти на YouTube"
+          : hasVideoFile
+            ? "Качество и полноэкранный режим можно выбрать в настройках плеера."
+            : "Если видео не запускается, повторите загрузку. Оригинал можно открыть на YouTube."
       }
     />
   );

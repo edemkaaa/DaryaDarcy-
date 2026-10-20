@@ -8,6 +8,7 @@ import classes from "./media-playback.module.scss";
 type Props = VideoHTMLAttributes<HTMLVideoElement> & {
   src: string;
   releaseOnPageHide?: boolean;
+  onRetry?: () => void;
 };
 export function ManagedVideo(props: Props) {
   return <VideoResource key={props.src} {...props} />;
@@ -15,6 +16,7 @@ export function ManagedVideo(props: Props) {
 
 function VideoResource({
   onError,
+  onRetry,
   releaseOnPageHide = false,
   ...props
 }: Props) {
@@ -69,6 +71,10 @@ function VideoResource({
           <Action
             className={classes.retry}
             onClick={() => {
+              if (onRetry) {
+                onRetry();
+                return;
+              }
               setFailed(false);
               node.current?.load();
             }}

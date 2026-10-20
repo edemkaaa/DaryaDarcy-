@@ -7,11 +7,13 @@ type Props = {
   youtubeId: string;
   catalogMode?: boolean;
   officialPlayer?: boolean;
+  onRetry?: () => void;
 };
 export function YouTubeEmbed({
   youtubeId,
   catalogMode = false,
   officialPlayer = false,
+  onRetry,
 }: Props) {
   const src = useMemo(
     () => apiUrl(`/api/yt/${encodeURIComponent(youtubeId)}`),
@@ -34,6 +36,7 @@ export function YouTubeEmbed({
         preload="metadata"
         className={classes.videoElement}
         releaseOnPageHide={catalogMode}
+        onRetry={onRetry}
       />
     </div>
   );

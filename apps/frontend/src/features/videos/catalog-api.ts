@@ -5,6 +5,44 @@ import { safeExternalUrl } from "@/shared/navigation/external-url";
 
 export const isVkCatalogEnabled = () =>
   process.env.NEXT_PUBLIC_VK_CATALOG_ENABLED === "true";
+// Enable only after the opt-in catalog and VK save contracts are deployed.
+export const isVideoThumbnailsEnabled = () =>
+  process.env.NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED === "true";
+export function videoCatalogInput(limit: number, cursor?: number) {
+  return {
+    limit,
+    ...(isVideoThumbnailsEnabled() ? { includeThumbnails: true as const } : {}),
+    ...(cursor === undefined ? {} : { cursor }),
+  };
+}
+/** Documented public cover locations. The API remains authoritative. */
+export function normalizeVkThumbnailUrl(value: string): string | null {
+  const raw = value.trim();
+  if (!raw || /[\u0000-\u0020\u007f\\]/.test(raw)) return null;
+  try {
+    const url = new URL(raw, "https://thumbnail.invalid");
+    if (url.search || url.hash || url.username || url.password || url.port)
+      return null;
+    // Reject ambiguous encodings and dot-segment traversal before normalization.
+    if (/%|(?:^|\/)\.{1,2}(?:\/|$)/.test(raw)) return null;
+    if (
+      raw.startsWith("/assets/responsive/") &&
+      url.origin === "https://thumbnail.invalid"
+    )
+      return url.pathname.length > "/assets/responsive/".length
+        ? url.pathname
+        : null;
+    if (
+      url.protocol === "https:" &&
+      url.hostname === "s3.twcstorage.ru" &&
+      /^\/daryadarcy-s3\/(?:feed|app-assets)\/.+/.test(url.pathname)
+    )
+      return url.href;
+  } catch {
+    // A malformed address is a form error, never an instruction to remove a cover.
+  }
+  return null;
+}
 const id = z.number().int().positive().safe();
 const card = z
   .object({
@@ -13,12 +51,25 @@ const card = z
     duration: z.string().nullable(),
     access: z.enum(["public", "club"]),
     canWatch: z.boolean(),
+    // Compatibility first: deployed APIs may omit covers until their rollout.
+    thumbnailUrl: z.string().nullable().optional(),
   })
   .strict();
 const page = z
   .object({ items: z.array(card).max(100), nextCursor: id.nullable() })
   .strict();
 export type VideoCard = z.infer<typeof card>;
+export function videoThumbnailUrl(
+  value: string | null | undefined,
+): string | null {
+  const url = safeExternalUrl(value);
+  if (!url || !/^(https?:\/\/|\/)/.test(url)) return null;
+  const path = new URL(url, "https://thumbnail.invalid").pathname;
+  // A preview must never request a protected file or a provider player.
+  if (path.startsWith("/api/") || /\/(?:video_ext\.php|embed\/)/.test(path))
+    return null;
+  return url;
+}
 export function parseVideoCatalog(value: unknown) {
   const result = page.safeParse(value);
   if (!result.success) throw invalidResponse();

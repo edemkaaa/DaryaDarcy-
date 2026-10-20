@@ -1,0 +1,92 @@
+import { z } from "zod";
+import { apiCall } from "@/shared/api/auth";
+import { invalidResponse } from "@/shared/api/errors";
+
+export type LibraryMaterialKey = "recipes" | "peterburg" | "patterns";
+export const isPrivateLibraryEnabled = () =>
+  process.env.NEXT_PUBLIC_PRIVATE_LIBRARY_FILES_ENABLED === "true";
+export function libraryMaterialKey(value: string): LibraryMaterialKey | null {
+  return value === "recipes" || value === "peterburg" || value === "patterns"
+    ? value
+    : null;
+}
+const integer = z.number().int().safe().nonnegative();
+const cursor = z.string().regex(/^(0|[1-9]\d*):[1-9]\d*$/);
+const file = z
+  .object({
+    fileKey: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
+    sortOrder: integer,
+    revision: integer.positive(),
+    filename: z.string().min(1).max(255),
+    mimeType: z.enum([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "application/pdf",
+      "text/plain",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ]),
+    fileSize: integer.positive(),
+    url: z.string(),
+  })
+  .strict();
+const page = z
+  .object({ files: z.array(file).max(50), nextCursor: cursor.nullable() })
+  .strict();
+export type LibraryFile = z.infer<typeof file>;
+
+export function parseLibraryFiles(
+  value: unknown,
+  material: LibraryMaterialKey,
+) {
+  const parsed = page.safeParse(value);
+  if (!parsed.success) throw invalidResponse();
+  const keys = new Set<string>();
+  for (const entry of parsed.data.files) {
+    if (
+      entry.url !== `/api/media/library-files/${material}/${entry.fileKey}` ||
+      keys.has(entry.fileKey)
+    )
+      throw invalidResponse();
+    keys.add(entry.fileKey);
+  }
+  return parsed.data;
+}
+
+/** No direct/public URL fallback, including on empty, partial or failed reads. */
+export async function getLibraryFiles(
+  material: LibraryMaterialKey,
+  signal: AbortSignal,
+  read = (path: string, signal: AbortSignal) =>
+    apiCall<unknown>(path, { signal }),
+): Promise<LibraryFile[]> {
+  const files: LibraryFile[] = [],
+    keys = new Set<string>(),
+    cursors = new Set<string>();
+  let next: string | null = null;
+  do {
+    const result = parseLibraryFiles(
+      await read(
+        `/api/library/materials/${material}/files${next ? `?cursor=${encodeURIComponent(next)}` : ""}`,
+        signal,
+      ),
+      material,
+    );
+    for (const entry of result.files) {
+      if (keys.has(entry.fileKey)) throw invalidResponse();
+      keys.add(entry.fileKey);
+      files.push(entry);
+    }
+    if (result.nextCursor !== null) {
+      if (
+        !result.files.length ||
+        cursors.has(result.nextCursor) ||
+        cursors.size >= 20
+      )
+        throw invalidResponse();
+      cursors.add(result.nextCursor);
+    }
+    next = result.nextCursor;
+  } while (next !== null);
+  return files;
+}

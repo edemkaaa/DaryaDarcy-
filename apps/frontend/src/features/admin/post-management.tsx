@@ -7,7 +7,7 @@ import { trpc } from "@/shared/api/trpc";
 import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
 import { useAuth } from "@/domain/session/session-context";
 import { invalidResponse } from "@/shared/api/errors";
-import { requireAbsentId, requireIdList } from "@/shared/api/action-result";
+import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import dynamic from "next/dynamic";
 const CreatePostModal = dynamic(
@@ -290,20 +290,65 @@ export function usePostManagement(onRefresh: () => void) {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [tagModalVisible, setTagModalVisible] = useState(false);
   const [activePost, setActivePost] = useState<PostData | null>(null);
-  const { isOwner } = useAuth();
+  const { isOwner, user } = useAuth();
   const active = useScreenActive();
   const actions = useConfirmedAction(isOwner && active && !editModalVisible);
-  const readPosts = async (signal: AbortSignal) => {
-    const rows = await utils.client.admin.posts.query(undefined, { signal });
-    requireIdList(rows);
-    return rows;
+  const assertReadCurrent = (signal: AbortSignal) => {
+    signal.throwIfAborted();
+    if (!user?.id || !isPersonalDataOwner(user.id))
+      throw new DOMException("Операция отменена", "AbortError");
   };
-  const inspect = async (signal: AbortSignal) => {
-    await readPosts(signal);
-    if (signal.aborted) throw signal.reason;
+  const readPost = async (id: number, signal: AbortSignal) => {
+    assertReadCurrent(signal);
+    const post = await utils.client.admin.postDetail.query({ id }, { signal });
+    assertReadCurrent(signal);
+    if (
+      post !== null &&
+      (!post ||
+        post.id !== id ||
+        !Array.isArray(post.tags) ||
+        post.tags.some((tag) => typeof tag !== "string"))
+    )
+      throw invalidResponse();
+    return post;
+  };
+  const refreshPosts = (id: number) => {
+    void utils.admin.postDetail.invalidate({ id });
+    void utils.admin.postsPage.invalidate();
+    void utils.admin.postCounts.invalidate();
+    void utils.admin.postCalendar.invalidate();
+    void utils.admin.stats.invalidate();
+    void utils.feed.getById.invalidate({ id });
+    void utils.feed.list.invalidate();
     void utils.feed.listPaginated.invalidate();
     void utils.club.list.invalidate();
     onRefresh();
+  };
+  const closePost = () => {
+    setActivePost(null);
+    setEditModalVisible(false);
+    setTagModalVisible(false);
+    setActionSheetVisible(false);
+  };
+  const inspectTags = async (id: number, signal: AbortSignal) => {
+    const post = await readPost(id, signal);
+    assertReadCurrent(signal);
+    if (post === null) closePost();
+    else
+      setActivePost((current) =>
+        current?.id === id &&
+        (current.tags.length !== post.tags.length ||
+          current.tags.some((tag, index) => tag !== post.tags[index]))
+          ? { ...current, tags: post.tags }
+          : current,
+      );
+    refreshPosts(id);
+  };
+  const inspectDeletion = async (id: number, signal: AbortSignal) => {
+    if ((await readPost(id, signal)) !== null) throw invalidResponse();
+    assertReadCurrent(signal);
+    closePost();
+    refreshPosts(id);
   };
   const updateMutation = {
     isPending: actions.blocked,
@@ -311,15 +356,19 @@ export function usePostManagement(onRefresh: () => void) {
       void actions.run({
         kind: "tags",
         label: "Сохранить теги",
-        read: inspect,
+        read: (signal) => inspectTags(input.id, signal),
         perform: (signal) =>
           utils.client.admin.updatePost.mutate(input, { signal }),
         validate: (result) => {
           if (result?.success !== true) throw invalidResponse();
         },
         commit: () => {
-          onRefresh();
-          void utils.club.list.invalidate();
+          setActivePost((current) =>
+            current?.id === input.id
+              ? { ...current, tags: input.tags }
+              : current,
+          );
+          refreshPosts(input.id);
           setTagModalVisible(false);
         },
       }),
@@ -330,21 +379,16 @@ export function usePostManagement(onRefresh: () => void) {
       void actions.run({
         kind: "delete",
         label: "Удалить пост",
-        read: inspect,
+        read: (signal) => inspectDeletion(input.id, signal),
         perform: async (signal) => {
           await utils.client.admin.deletePost.mutate(input, { signal });
-          const rows = await readPosts(signal);
-          requireAbsentId(rows, input.id);
+          if ((await readPost(input.id, signal)) !== null)
+            throw invalidResponse();
         },
         validate: () => {},
         commit: () => {
-          setActivePost(null);
-          setEditModalVisible(false);
-          setTagModalVisible(false);
-          setActionSheetVisible(false);
-          void utils.feed.listPaginated.invalidate();
-          void utils.club.list.invalidate();
-          onRefresh();
+          closePost();
+          refreshPosts(input.id);
         },
       }),
   };

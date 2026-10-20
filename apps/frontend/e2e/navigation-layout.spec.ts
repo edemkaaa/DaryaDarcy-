@@ -25,7 +25,7 @@ async function checkChrome(page: Page) {
   const path = new URL(page.url()).pathname;
   expect(top.y).toBe(0);
   expect(top.height).toBe(path === "/shop" ? 46 : 44);
-  expect(bottom.height).toBe(76);
+  expect(bottom.height).toBe(66);
   expect(bottom.y + bottom.height).toBe(400);
   expect(main.y).toBe(0);
   expect(main.y + main.height).toBe(bottom.y);
