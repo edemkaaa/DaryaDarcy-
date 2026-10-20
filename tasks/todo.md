@@ -4,6 +4,29 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### RELEASE-VK — запрос обновить staging/server,20 октября: preflight stop
+
+- [x] Получено явное разрешение push/server update с локальным backend и свежим
+  frontend. Fresh fetch:origin/staging=b32d0bc, HEAD2e12c80 ahead23/behind0,
+  clean tree. CI configs содержат verify, не автоматический deploy. Старые scripts
+  rollout-images.py/storage-rollout.py привязаны к прежнему baseline: не запускались.
+- [x] Read-only server155.212.216.16/teamassist-dev/uid1001: API2c604839f745,
+  web e84c205cc6c7 и все8 project containers healthy. Один SSH banner timeout
+  до исполнения, следующий retry успешен. SQL SET/START TRANSACTION READ ONLY,
+  readOnly1, database=daryadarcy_candidate_20261019/history42/adminExists=true.
+  Video groups:youtube/public/published=60, VK=0. API namespace launch/catalog/
+  legacy list200, оба списка60; внешний Mac HTTPS catalog200/60.
+- [x] check:api повторно RED/outdated. Локальный VK-only4c04d62 выключает legacy
+  и фильтрует каталог: полный выпуск на подтверждённых данных даст0 роликов.
+ 22-src export не импортирован и не заменяет60 прежних записей/ID/access mapping.
+  Не обходить CI/preflight, не наполнять working DB и не менять flags автоматически.
+- [ ] Нужно решение: выпустить остальные правки с отложенным VK-only cutover
+  (рекомендовано) либо сначала согласовать/завершить VK migration и затем полный
+  выпуск. Вопрос пользователю задан. После решения — точный release source,
+  generated contract coordination/check, audit/build/backup/guards/rollback,
+  image-only rollout и real API postcheck. На этом шаге NO push/deploy/restart,
+  DB/S3/schema/users/env/provider flags не менялись; рабочий сервис прежний.
+
 #### FE-SYNC — подтянуть авторские правки фронтендера,20 октября
 
 - [x] По отдельному поручению fetch origin/staging:becaf6d→b32d0bc, один новый

@@ -63,6 +63,18 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **20 октября, RELEASE-VK — новое разрешение с preflight stop:** пользователь
+  поручил обновить staging и сервер всеми локальными/свежими frontend изменениями.
+  Fresh remote b32d0bc, local2e12c80 ahead23/behind0. Read-only server SQL/API
+  подтвердили60 published public YouTube и0 VK, current candidate DB/history42,
+  adminExists и8 healthy containers. Full local VK-only срез даст пустой каталог;
+  working22 VK exports ещё не импортированы. check:api RED/outdated повторно.
+  Нужен выбор временного выпуска без VK-only cutover или сначала согласованного
+  переноса VK. Не превращать update разрешение в неоговорённые content/access
+  writes; вопрос задан, push/deploy/restarts/env/DB/S3 не выполнялись. Старые
+  guarded scripts нельзя переиспользовать без fresh baseline. Current runtime
+  и учётные данные сохранены, состояние — верх todo/operational runbook.
+
 - **20 октября, FE-SYNC — выполненное разовое поручение:** подтянут origin/staging
   b32d0bc (один новый frontend commit), локальный merge467253e без конфликтов и
   переключения ветки. Frontend byte-exact staging; backend/database/tooling

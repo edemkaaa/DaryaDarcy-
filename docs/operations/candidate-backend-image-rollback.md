@@ -1,5 +1,39 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## RELEASE-VK — разрешение обновления получено, preflight остановил полный выпуск
+
+20 октября2026 пользователь разрешил push в staging и обновление frontend/backend
+с сохранением current DB/admin/S3. Source до подготовки:local2e12c80,
+origin/staging=b32d0bc, ahead23/behind0, clean tree. CI configurations выполняют
+verify; явного auto-deploy job нет. Push и server apply ещё НЕ выполнялись.
+
+Проверенный running baseline:teamassist-dev/155.212.216.16/uid1001,
+API2c604839f745/image15865765a80d, web e84c205cc6c7/imageca936764114d;
+все8 project containers healthy. Одно промежуточное подключение завершилось
+banner timeout до авторизации/исполнения; повторный read-only probe успешен.
+Не запускались старые rollout-images.py/storage-rollout.py: их guards относятся
+к предыдущим revisions/images/compose file sets.
+
+SQL в SET SESSION TRANSACTION READ ONLY + START TRANSACTION READ ONLY:
+readOnly1, database=daryadarcy_candidate_20261019, migration rows42,
+adminExists=true (email/role/not-blocked/has-password predicate, без вывода hash).
+Video aggregate:60 youtube/public/published,0 VK. API namespace launch200,
+videos.catalog200/60 и legacy videos.list200/60; public HTTPS с Mac catalog200/60.
+Secrets/raw users/stream URLs не выводились, DB writes/DDL отсутствовали.
+
+**Стоп-факторы:** текущий local4c04d62 прекращает YouTube-выдачу/worker fallback
+и фильтрует VK до pagination, поэтому полный rollout даст0 карточек.22 VK src
+из ручного export — ещё не working import, не карта60 старых ID/access и не
+принятые covers/playback. Также fresh check:api exit1/outdated — release check
+не зелёный, игнорировать его ради push/deploy нельзя.
+
+Пользователю предложен выбор: временно выпустить остальные правки с отложенным
+VK-only cutover либо сначала согласовать/завершить VK migration и затем полный
+выпуск. Не угадывать missing sources/access и не менять working content/flags
+на основании общего update request. До решения остановиться: новый artifact,
+native audit/backup/new guarded rollout и acceptance ещё не готовились, приложение
+не переключено. DB/admin/password/S3/schema/config/работающие images сохранены.
+
 ## RELEASE-U1 — обновление применено, приёмка загрузок открыта,20 октября 2026
 
 ### WIN-LIVE — четыре зимние выкройки включены и backend API принят
