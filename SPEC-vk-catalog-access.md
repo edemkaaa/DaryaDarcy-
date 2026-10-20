@@ -27,8 +27,11 @@ thumbnailUrl=null, без чужой/придуманной обложки. Ди
 с совпадением SHA,3 thumbnailUrl=null. Fresh backup40 tables server/local0600;
 schema42/admin credentials/session/config/прочие таблицы/runtime images прежние.
 Нового build/deploy app code не было: используется текущий mixed backend.
-Текущему frontend build нужен thumbnail flag=true при следующей пересборке;
-UI здесь не менялся. Остаток и точный handoff —
+21 октября по явному разрешению thumbnail flag=true включён при сборке и web
+обновлён без ручных UI/source изменений. Настоящий browser/guest подтвердил22
+карточки/19 loaded images/3 прежних fallback и opt-in на обеих страницах.
+DB/admin/backend/S3 прежние; real VK playback по-прежнему не принят.
+Остаток и точный handoff —
 [документ фронтендеру](docs/development/frontend-video-fixes-2026-10-20.md).
 Rollback/доказательства — [runbook](docs/operations/candidate-backend-image-rollback.md).
 

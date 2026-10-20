@@ -1,5 +1,62 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## COVERS-RELEASE — thumbnail build flag включён,21 октября2026
+
+Явное разрешение: включить обложки при сборке и обновить стенд, без ручных
+frontend/UI/design изменений; сохранить DB/admin/3 missing covers. Пересобран
+ровно deployed source427195a с NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED=true.
+Handwritten frontend, public assets, package manifests/lock и dependencies
+byte-exact прежние. Отдельный07cada2 не объединялся/не выкладывался. Прежние
+CLUB_TEST=false/TEST=true/recovery=true/VK=true/private-library=false сохранены.
+Никаких backend images/config flags, DB/schema/rows, S3/старых файлов/платежей/писем.
+
+Existing58 catalog +18 VK renderer tests, API90, production native audit0,
+Next29 routes/TypeScript GREEN. Новый build `6aNkRjNyI6ouSxY_1276u`.
+Private workspace directory `.local-artifacts/release-covers-20261021.LRdeST`
+и одноимённый child staging base на сервере содержат manifest/package/probes/
+guarded procedure/backup/receipts. Parent0700, sensitive files0600; public
+probe/manifest0644 только для отдельного bind mount uid1000, env не в образе.
+Archive29577903 bytes/SHA
+`6581dec10e091123ab21652d0f2e852366489df04722979544fc9e755eddd8a5`.
+Состав699 exact files/no AppleDouble/symlinks/traversal/env/cache;698 .next
+files SHA проверены внутри Linux image. Base image/dependency layers прежние,
+public assets не перекладывались.7 offline native HTTP checks GREEN;
+client flag inline true даже при runtime false, providers/network отсутствуют.
+
+Новый web image
+`sha256:b87fece1c384cbc976fc7f39658f5edf70acd9de9f580fa28ec7ee6e383e66c5`;
+web container `dff5a1ba2c0bb33f8727331eef6bc84a3fba88edbfcdf4a655e8d906f70f958f`.
+Web-only compose --no-deps, healthy/restart0/OOMfalse; edge configtest/reload.
+Остальные29 container IDs/images/start states, в том числе API/MySQL/TEST,
+сохранены. Config delta — только STAGING_IMAGE в .env и resolved web.image;
+14 остальных/проверяемых файлов не переписывались. Fresh DB UUID/schema42/
+admin passwordHash+role+session fingerprint/all40 table counts/video82 digest
+совпали до/после. Backup40 tables/355564 bytes/SHA
+`00065bc2ae9b9e38739c395ce58fc634ee9b3a88d19c7f3ceb4cd23243cbf056`
+server+Mac0600, gzip/SHA проверены до deploy. Данные не восстанавливались и
+не изменялись, админский пароль не читался/не сбрасывался.
+
+Phase accepted:10 public HTTPS checks —22 VK/public/canWatch,19 covers/3 null,
+legacy0,3 exact served JS hashes и5 pages200. Существующие old YouTube60 hidden
+сохранены. Независимый Chromium/guest на настоящем стенде:22 cards/19 loaded
+native images533–537x300–301/3 прежних fallback,2 catalog requests с opt-in
+на обеих страницах. Никаких mocks/DB writes/provider requests; VK hosts не
+разрешались. Сохранены browser-check.json и catalog-covers.jpg в private local
+release directory. Браузерный прогон первоначально остановился на штатном
+first-visit install guide: center backdrop-кнопки перекрыт card. По исходникам
+и UI установлено, что штатное действие — «Понятно →»; исправлен только private
+test harness, не приложение/дизайн. После обычного dismiss полный прогон GREEN.
+Реальный VK playback не проверялся и не заявляется.
+
+Rollback: сначала fresh current image/config/DB identity и отсутствие concurrent
+config writes. Сохранены before.env/after.env/private state и old web image
+7ba6a5caddc7. Вернуть только прежний STAGING_IMAGE/тот же web.image через
+web-only --no-deps, edge test/reload и public checks. Не восстанавливать всю
+БД и не возвращать YouTube publications. Автоматический rollback подготовлен
+для applying phase; accepted deploy повторно не запускать. Принятый выпуск
+ради повторной репетиции не откатывали. Remote procedure/config/backup с
+секретами не переносить в Git/чат. Новые source UI/style files не создавались.
+
 ## VK-CUTOVER —22 VK опубликованы,60 YouTube скрыты,20 октября2026
 
 После mixed release пользователь явно выбрал22 открытых VK и скрытие60

@@ -4,6 +4,29 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### COVERS-RELEASE — включить existing thumbnail build flag,21 октября
+
+- [x] Пользователь разрешил пересборку/обновление стенда без ручных изменений
+  frontend/UI/design; DB/admin credentials и3 missing covers сохранить.
+  Source427195a остаётся опубликованной версией;07cada2 frontend отдельно
+  не объединять/не выкладывать. Existing API/web/TEST healthy, DB прежняя.
+- [x] Build-only NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED=true с прежними остальными
+  флагами; existing tests/native audit, byte guards/artifact/native image checks.
+ 58 catalog +18 VK renderer tests GREEN, API90, native prod audit0. Build29
+  routes/TypeScript GREEN, handwritten frontend/public/dependency hashes прежние.
+  Native Linux image b87fece1…:7 offline pages и698 artifact SHA verified;
+  build6aNkRjNyI6ouSxY_1276u, client flag inline true, runtime false не меняет его.
+- [x] Fresh backup/admin/schema/data/config guards, web-only rollout/rollback,
+  public/browser catalog opt-in и19 covers/3 null. Backend/DB/S3 не менять.
+  Phase accepted: web dff5a1ba…/image b87fece1… healthy/restart0/OOMfalse;
+  config only web image/.env STAGING_IMAGE,29 other containers untouched.
+  Backup40 tables/355564 bytes/SHA00065bc2… server+Mac0600 checked before deploy;
+  admin credential/role/session, schema42/all40 counts/video82 digest preserved.
+ 10 live HTTP checks + Chromium guest22 cards/19 images loaded/3 fallback,
+  2 real catalog requests with thumbnail opt-in GREEN. First-visit guide dismissed
+  normally via «Понятно →»; only private harness adjusted, no UI changes.
+  Screenshot/receipts/runbook saved; old web image kept, no live rollback rehearsal.
+
 #### VK-CUTOVER —22 открытых VK вместо60 YouTube,20 октября
 
 - [x] Явный выбор пользователя:22 VK public;60 YouTube скрыть, records оставить
@@ -31,8 +54,8 @@
   SHA, final live guards GREEN. Fresh fetch обнаружил новый07cada2 frontend
   admin/navigation/editor commit поверх6737dca: прочитан, не объединялся и не
   выкладывался в content-only задаче. Наши документы сохраняются локально.
-- [ ] Ручная VK playback приёмка, frontend thumbnail flag/rebuild и3 missing
-  covers. Browser site-safety gate отказал, обход не разрешён; API200 не
+- [ ] Ручная VK playback приёмка и3 missing covers. Thumbnail flag/rebuild
+  закрыт COVERS-RELEASE21 октября. Browser site-safety gate отказал, обход не разрешён; API200 не
   доказывает реальное воспроизведение. Не объявлять эти остатки закрытыми.
 
 #### RELEASE-MIXED — выпуск без отключения YouTube принят,20 октября

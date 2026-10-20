@@ -63,6 +63,18 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **21 октября, COVERS-RELEASE — новое явное разрешение:** пересобрать и
+  обновить web опубликованного427195a с единственным build flag
+  NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED=true. Без ручных frontend/UI/design
+  изменений, backend/DB/S3 writes и подмешивания отдельного07cada2.
+  Остальные public flags прежние. Fresh backup/admin/schema/data guards,
+  web-only rollback и проверка browser opt-in/19 covers/3 null обязательны;
+  реальное VK playback этим поручением не принимается.
+  Выпуск принят: web b87fece1…/build6aNkRjNyI6ouSxY_1276u,10 public HTTP и
+  Chromium guest22 cards/19 loaded/3 fallback/2 opt-in pages GREEN. Same DB/
+  schema42/admin/video82/config except web image,29 other containers unchanged.
+  Fresh backup40 tables server+Mac SHA verified. Ручных frontend edits нет.
+
 - **20 октября, VK-CUTOVER — новое явное разрешение:** пользователь принял22
   public VK и снятие публикации60 YouTube с сохранением records. Supersedes
   postponement только в этом объёме. Новые19 public cover copies — лишь из
@@ -74,8 +86,8 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
   Перенос принят33 live HTTPS checks:22 published VK/60 hidden YouTube,
   records82/19 verified new covers/3 null. Fresh backup40 tables сохранён
   server+Mac, admin/schema42/config/прочие таблицы/runtime прежние. Открыты
-  только ручной playback,3 missing covers и включение frontend thumbnail flag
-  при следующей сборке фронтендером; его точный handoff обновлён, UI не меняли.
+  только ручной playback и3 missing covers; thumbnail flag закрыт следующим
+  COVERS-RELEASE21 октября. Точный handoff обновлён, UI не меняли.
 
 - **20 октября, RELEASE-MIXED — принят:** user-approved normal push staging
   b32d0bc→1994e19, app source427195a. Image-only API/web/restricted TEST rollout
