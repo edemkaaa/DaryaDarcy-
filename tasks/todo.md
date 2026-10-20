@@ -4,6 +4,22 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### PLAYBACK-LIVE — выборочная реальная проверка VK,21 октября
+
+- [x] Только guest browser/read-only: на опубликованном стенде штатный iframe
+  доступен; прямые VK pages/CDN/raw HTTP не использовались для обхода gate.
+  Реально играют3/22: Англия/весенний влог/зимний декор без cover; advancing
+  currentTime/852x480/error=null, не только API200. Весь каталог не просмотрен.
+- [x] Англия: pause/resume, seek67.691845→77.691845→67.691845, mute true→false,
+  fullscreen1280x720 и выход480x270; зима — fullscreen while playing.
+- [ ] Физическая слышимость/качество аудио: инструмент не отдаёт аудиозахват
+  или decoded audio counters. Mute/unmute control/state GREEN, но слышимость
+  не заявлять. Реальный lifecycle/account-switch и остальные19 не проверены.
+- [ ] Frontend handoff: reload32x32/top-right перекрывает VK «Закрыть» на
+  recommendations overlay. Mouse click intercepted, keyboard Enter worked.
+  Записано в существующий frontend-video-fixes; frontend/styles не менялись.
+  Backend/БД/admin/S3/config не трогались, push/deploy не выполнялись.
+
 #### COVERS-RELEASE — включить existing thumbnail build flag,21 октября
 
 - [x] Пользователь разрешил пересборку/обновление стенда без ручных изменений
@@ -54,9 +70,10 @@
   SHA, final live guards GREEN. Fresh fetch обнаружил новый07cada2 frontend
   admin/navigation/editor commit поверх6737dca: прочитан, не объединялся и не
   выкладывался в content-only задаче. Наши документы сохраняются локально.
-- [ ] Ручная VK playback приёмка и3 missing covers. Thumbnail flag/rebuild
-  закрыт COVERS-RELEASE21 октября. Browser site-safety gate отказал, обход не разрешён; API200 не
-  доказывает реальное воспроизведение. Не объявлять эти остатки закрытыми.
+- [ ] Полная VK playback/аудио/device приёмка и3 missing covers. Выборка3/22
+  реально играет (PLAYBACK-LIVE21 октября), но слуховая проверка не выполнена.
+  Thumbnail flag/rebuild закрыт COVERS-RELEASE. Исторический direct VK gate
+  не обходился; API200 сам по себе не доказывает воспроизведение.
 
 #### RELEASE-MIXED — выпуск без отключения YouTube принят,20 октября
 

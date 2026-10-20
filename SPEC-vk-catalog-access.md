@@ -18,7 +18,7 @@ app-assets/vk-catalog-20261020-U52Zwx prefix, без overwrite/ACL/policy изм
 Это native533–537x300–301 fallback, не большие исходники. Для3 остальных
 thumbnailUrl=null, без чужой/придуманной обложки. Дизайн остаётся прежним.
 
-Браузерная проверка настоящего vk.ru iframe снова остановлена site-safety gate.
+Историческая проверка настоящего vk.ru iframe останавливалась site-safety gate.
 Не обходить другим браузером/raw HTTP/CDP/CDN. Реальный playback остаётся
 ручной внешней приёмкой, даже если22 API playback responses верны.
 
@@ -30,7 +30,12 @@ schema42/admin credentials/session/config/прочие таблицы/runtime im
 21 октября по явному разрешению thumbnail flag=true включён при сборке и web
 обновлён без ручных UI/source изменений. Настоящий browser/guest подтвердил22
 карточки/19 loaded images/3 прежних fallback и opt-in на обеих страницах.
-DB/admin/backend/S3 прежние; real VK playback по-прежнему не принят.
+DB/admin/backend/S3 прежние; на этапе выпуска covers real VK playback ещё не принят.
+Позднее21 октября штатный embedded UI на стенде доступен:3/22 образца реально
+воспроизводятся, seek/pause/resume/mute/fullscreen проверены. Это не принятие
+всех22, физической слышимости/качества аудио или mobile/device/lifecycle.
+Прямой VK/CDN/raw HTTP обход не выполнялся. Reload перекрывает VK close на
+рекомендациях — найдено для фронтендера, исходники/UI здесь не менялись.
 Остаток и точный handoff —
 [документ фронтендеру](docs/development/frontend-video-fixes-2026-10-20.md).
 Rollback/доказательства — [runbook](docs/operations/candidate-backend-image-rollback.md).

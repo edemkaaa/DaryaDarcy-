@@ -63,6 +63,14 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **21 октября, PLAYBACK-LIVE — read-only проверка:** штатный embedded VK
+  на опубликованной странице доступен через IAB. Реальный запуск3/22 образцов,
+  mute controls, точный seek ±10s, pause/resume и fullscreen entry/exit
+  подтверждены DOM/media/frame geometry, не одним API200. Прямые VK pages/
+  CDN/raw HTTP обходы не применялись. Слуховая проверка аудио/весь каталог/
+  mobile/account lifecycle не приняты. Найдено перекрытие VK close нашей reload
+  кнопкой, передано только документом фронтендеру. Код/БД/admin/сервер/S3 прежние.
+
 - **21 октября, COVERS-RELEASE — новое явное разрешение:** пересобрать и
   обновить web опубликованного427195a с единственным build flag
   NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED=true. Без ручных frontend/UI/design
