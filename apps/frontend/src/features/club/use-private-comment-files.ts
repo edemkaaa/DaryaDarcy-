@@ -14,6 +14,7 @@ import { requirePrivateUpload } from "@/shared/api/capabilities";
 import { requireIdList } from "@/shared/api/action-result";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { fileForPhotoUpload, pickWebFiles } from "@/shared/media/image-upload";
+import { checkPrivateUploadAvailability } from "@/shared/media/private-upload-availability";
 const reference = (file: PrivateCommentPhoto) => `local-comment:${file.key}`;
 
 /** The keyed comment thread owns selection, previews and this account/post journal. */
@@ -146,6 +147,16 @@ export function usePrivateCommentFiles(enabled: boolean, postId: number) {
           throw new Error("Не удалось найти исходное фото комментария");
         return file;
       });
+      // A fresh draft has no dispatched upload to recover. Probe before preparing its journal.
+      if (!record && selected.length) {
+        await checkPrivateUploadAvailability(
+          (input, signal) =>
+            utils.client.club.privateCommentPhotoStatus.query(input, {
+              signal,
+            }),
+          task,
+        );
+      }
       const proposed = preparePrivateComment(
         journal.ownerId,
         { postId, ...input },

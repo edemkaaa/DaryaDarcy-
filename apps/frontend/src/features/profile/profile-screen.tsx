@@ -35,6 +35,8 @@ import type { ApiOutputs } from "@/shared/api/types";
 import { useCapabilities } from "@/shared/api/capabilities";
 import { displayPostTitle } from "@/shared/media/media-label";
 import { articleIdFromSource } from "@/domain/content/article-blocks";
+import { sanitizePlainPostText } from "@/domain/content/post-text-sanitize";
+import { truncateSelectionPreview } from "@shared/rich-text-edit";
 import { SmsCodeForm } from "@/features/auth/sms-code-form";
 import { formatRuPhone } from "@/domain/session/phone";
 import {
@@ -259,37 +261,59 @@ export default function ProfileScreen() {
     if (articleId) router.push(`/library/article/${articleId}`);
     else if (post.id) router.push(`/post/${post.id}`);
   };
-  const renderSavedPost = ({ item }: { item: SavedPost }) => (
-    <Action
-      onClick={() => handlePostPress(item)}
-      className={({ pressed }) =>
-        [classes.action, pressed ? classes.opacityState : ""]
-          .filter(Boolean)
-          .join(" ")
-      }
-    >
-      {item.photos && item.photos.length > 0 ? (
-        <Picture
-          source={{ uri: item.photos[0] }}
-          contentFit="cover"
-          className={classes.savedPostImage}
-        />
-      ) : (
-        <div
-          className={["ui-stack ", classes.savedPostTextOnly]
+  const renderSavedPost = ({ item }: { item: SavedPost }) => {
+    const preview = truncateSelectionPreview(
+      sanitizePlainPostText(item.text) ||
+        sanitizePlainPostText(
+          item.richText
+            ?.map((block) =>
+              block.children.map((inline) => inline.text).join(""),
+            )
+            .join("\n") ?? "",
+        ),
+    );
+    const action = articleIdFromSource(item.source)
+      ? "Открыть статью"
+      : "Открыть публикацию";
+    const date = new Date(item.publishedAt ?? item.createdAt);
+    const label = preview
+      ? `${action}: ${preview}`
+      : Number.isFinite(date.getTime())
+        ? `${action} от ${formatRuDate(date)}`
+        : action;
+    return (
+      <Action
+        aria-label={label}
+        onClick={() => handlePostPress(item)}
+        className={({ pressed }) =>
+          [classes.action, pressed ? classes.opacityState : ""]
             .filter(Boolean)
-            .join(" ")}
-        >
-          <Typography lines={2} className={classes.savedPostTitle}>
-            {displayPostTitle(item.text)}
-          </Typography>
-          <Typography lines={3} className={classes.savedPostPreview}>
-            {item.text || ""}
-          </Typography>
-        </div>
-      )}
-    </Action>
-  );
+            .join(" ")
+        }
+      >
+        {item.photos && item.photos.length > 0 ? (
+          <Picture
+            source={{ uri: item.photos[0] }}
+            contentFit="cover"
+            className={classes.savedPostImage}
+          />
+        ) : (
+          <div
+            className={["ui-stack ", classes.savedPostTextOnly]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            <Typography lines={2} className={classes.savedPostTitle}>
+              {displayPostTitle(item.text)}
+            </Typography>
+            <Typography lines={3} className={classes.savedPostPreview}>
+              {item.text || ""}
+            </Typography>
+          </div>
+        )}
+      </Action>
+    );
+  };
   const logoutAction = (
     <Action
       onClick={async () => {

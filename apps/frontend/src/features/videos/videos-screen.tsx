@@ -128,6 +128,7 @@ function VideosScreenInner() {
             <Typography lines={2} className={classes.title}>
               {displayVideoTitle(item.title, item.youtubeId)}
             </Typography>
+            <Typography className={classes.meta}>Смотреть</Typography>
             {item.views ? (
               <Typography className={classes.meta}>
                 {item.views}

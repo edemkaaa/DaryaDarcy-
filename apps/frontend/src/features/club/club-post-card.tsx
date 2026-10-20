@@ -136,28 +136,22 @@ export function ClubPostCard({
               <PostMenuButton onClick={onMenuPress} />
             </div>
           ) : null}
-          <Action
-            onClick={openPost}
-            disabled={!canOpen || Boolean(item.articleId)}
-            style={() => ({
-              ...((canOpen && !item.articleId ? true : false)
-                ? { cursor: canOpen && !item.articleId ? "pointer" : undefined }
-                : {}),
-            })}
-            className={({ pressed }) =>
-              canOpen && !item.articleId && pressed ? classes.opacityState : ""
-            }
-          >
+          <div className="ui-stack">
             <RichTextRenderer
               richText={item.richText}
               plainText={item.preview}
               selectable={false}
               textClassName={classes.postPreview}
             />
-          </Action>
-          {item.articleId ? (
+          </div>
+          {item.articleId || canOpen ? (
             <Action
-              onClick={() => router.push(`/library/article/${item.articleId}`)}
+              onClick={
+                item.articleId
+                  ? () => router.push(`/library/article/${item.articleId}`)
+                  : openPost
+              }
+              aria-label={item.articleId ? undefined : "Открыть публикацию"}
               className={classes.readArticleBtn}
             >
               <Typography className={classes.readArticleText}>

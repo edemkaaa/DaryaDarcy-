@@ -19,10 +19,13 @@ import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { SessionStatus } from "@/domain/session/session-status";
 import { displayVideoTitle } from "@/shared/media/video-title";
+import { Picture } from "@/shared/media/image";
 import {
   parseVideoCatalog,
   nextVideoCursor,
   stalledVideoCursor,
+  videoThumbnailUrl,
+  videoCatalogInput,
   type VideoCard,
 } from "./catalog-api";
 import { getVideosScreenLayout } from "./videos-screen.layout";
@@ -36,17 +39,14 @@ export function VideoCatalogScreen() {
   const { stylesLayout } = getVideosScreenLayout(useViewport());
   const router = useRouter();
   const utils = trpc.useUtils();
+  const catalogInput = videoCatalogInput(20);
   const query = useInfiniteQuery({
-    queryKey: getQueryKey(trpc.videos.catalog, { limit: 20 }, "infinite"),
+    queryKey: getQueryKey(trpc.videos.catalog, catalogInput, "infinite"),
     initialPageParam: undefined as number | undefined,
-    // tRPC's infinite hook adds `direction`, which this strict API rejects.
-    // Keep pagination local and send only the server's limit/cursor fields.
+    // The same opt-in is included in the cache key and every requested page.
     queryFn: ({ pageParam, signal }) =>
       utils.client.videos.catalog.query(
-        {
-          limit: 20,
-          ...(pageParam === undefined ? {} : { cursor: pageParam }),
-        },
+        videoCatalogInput(20, pageParam),
         { signal },
       ),
     enabled: active && !loading && !sessionError,
@@ -89,48 +89,63 @@ export function VideoCatalogScreen() {
     else void query.refetch({ cancelRefetch: false });
   };
   if (loading || sessionError) return <SessionStatus />;
-  const renderCard = ({ item }: { item: VideoCard }) => (
-    <Action
-      aria-label={`Открыть видео: ${displayVideoTitle(item.title)}`}
-      onClick={() => router.push(`/video/${item.id}`)}
-      className={({ pressed }) =>
-        [classes.action, pressed ? classes.opacityState : ""]
-          .filter(Boolean)
-          .join(" ")
-      }
-    >
-      <div
-        className={classes.thumbnailContainer}
-        style={{
-          height: stylesLayout.thumbnailContainer.height,
-          background: "var(--brown)",
-        }}
+  const renderCard = ({ item }: { item: VideoCard }) => {
+    const thumbnail = videoThumbnailUrl(item.thumbnailUrl);
+    return (
+      <Action
+        aria-label={`Открыть видео: ${displayVideoTitle(item.title)}`}
+        onClick={() => router.push(`/video/${item.id}`)}
+        className={({ pressed }) =>
+          [classes.action, pressed ? classes.opacityState : ""]
+            .filter(Boolean)
+            .join(" ")
+        }
       >
-        <div className={`ui-stack ${classes.playOverlay}`}>
-          <MaterialIcons
-            name={item.canWatch ? "play-arrow" : "lock-outline"}
-            size={48}
-            color="rgba(255,255,255,0.9)"
-          />
-        </div>
-        {item.duration ? (
-          <div className={`ui-stack ${classes.durationBadge}`}>
-            <Typography className={classes.durationText}>
-              {item.duration}
-            </Typography>
+        <div
+          data-video-thumbnail
+          className={classes.thumbnailContainer}
+          style={{
+            height: stylesLayout.thumbnailContainer.height,
+            background: "var(--brown)",
+          }}
+        >
+          {thumbnail ? (
+            <Picture
+              source={{ uri: thumbnail }}
+              contentFit="cover"
+              className={classes.thumbnail}
+              loadingFallback={null}
+              errorFallback={<ThumbnailUnavailable />}
+            />
+          ) : (
+            <ThumbnailUnavailable />
+          )}
+          <div className={`ui-stack ${classes.playOverlay}`}>
+            <MaterialIcons
+              name={item.canWatch ? "play-arrow" : "lock-outline"}
+              size={48}
+              color="rgba(255,255,255,0.9)"
+            />
           </div>
-        ) : null}
-      </div>
-      <div className={`ui-stack ${classes.cardDescriptionContainer}`}>
-        <Typography lines={2} className={classes.title}>
-          {displayVideoTitle(item.title)}
-        </Typography>
-        {item.access === "club" ? (
-          <Typography className={classes.meta}>Для участниц клуба</Typography>
-        ) : null}
-      </div>
-    </Action>
-  );
+          {item.duration ? (
+            <div className={`ui-stack ${classes.durationBadge}`}>
+              <Typography className={classes.durationText}>
+                {item.duration}
+              </Typography>
+            </div>
+          ) : null}
+        </div>
+        <div className={`ui-stack ${classes.cardDescriptionContainer}`}>
+          <Typography lines={2} className={classes.title}>
+            {displayVideoTitle(item.title)}
+          </Typography>
+          <Typography className={classes.meta}>
+            {item.access === "club" ? "Для участниц клуба" : "Смотреть"}
+          </Typography>
+        </div>
+      </Action>
+    );
+  };
   return (
     <ScreenContainer>
       <Background
@@ -168,7 +183,7 @@ export function VideoCatalogScreen() {
                   <Action
                     onClick={loadMore}
                     disabled={query.isFetching}
-                    className={classes.action}
+                    className={`${classes.action} ${classes.loadMore}`}
                   >
                     <Typography className={classes.meta}>
                       Показать ещё
@@ -191,5 +206,13 @@ export function VideoCatalogScreen() {
         />
       </Background>
     </ScreenContainer>
+  );
+}
+
+function ThumbnailUnavailable() {
+  return (
+    <Typography className={classes.thumbnailUnavailable}>
+      Обложка недоступна
+    </Typography>
   );
 }

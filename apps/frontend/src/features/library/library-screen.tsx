@@ -7,7 +7,7 @@ import {
   ScrollArea,
   Field,
 } from "@/shared/ui/elements";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useViewport } from "@/shared/browser/viewport";
 import { getLibraryScreenContent } from "./library-screen.content";
 import { useRouter } from "@/shared/navigation/router";
@@ -16,6 +16,12 @@ import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
+import {
+  isPrivateLibraryEnabled,
+  libraryMaterialKey,
+} from "./library-files-api";
+import type { LibraryMaterialKey } from "./library-files-api";
+import { LibraryFilesDialog } from "./library-files-dialog";
 
 import { useClub } from "@/domain/subscription/subscription-context";
 import { trpc } from "@/shared/api/trpc";
@@ -60,7 +66,14 @@ export default function LibraryScreen() {
   const router = useRouter();
   const { COLUMN_WIDTH: columnWidth } = getLibraryScreenContent(useViewport());
   const [searchQuery, setSearchQuery] = useState("");
+  const [fileMaterial, setFileMaterial] = useState<{
+    key: LibraryMaterialKey;
+    title: string;
+  } | null>(null);
   const { hasClubAccess } = useClub();
+  useEffect(() => {
+    if (!hasClubAccess) setFileMaterial(null);
+  }, [hasClubAccess]);
   const articlesQuery = trpc.articles.list.useQuery(undefined, {
     staleTime: 30_000,
     enabled: active,
@@ -92,6 +105,11 @@ export default function LibraryScreen() {
     if (item.action === "navigate" && item.route) {
       router.push(item.route);
     } else if (item.action === "browser" && item.pdfUrl) {
+      const key = libraryMaterialKey(item.id);
+      if (isPrivateLibraryEnabled() && key) {
+        setFileMaterial({ key, title: item.title });
+        return;
+      }
       await WebBrowser.openBrowserAsync(item.pdfUrl);
     }
   };
@@ -293,6 +311,14 @@ export default function LibraryScreen() {
           message="Не удалось загрузить статьи библиотеки"
         />
       </ScrollArea>
+      {fileMaterial && hasClubAccess ? (
+        <LibraryFilesDialog
+          key={fileMaterial.key}
+          material={fileMaterial.key}
+          title={fileMaterial.title}
+          onClose={() => setFileMaterial(null)}
+        />
+      ) : null}
     </Background>
   );
 }

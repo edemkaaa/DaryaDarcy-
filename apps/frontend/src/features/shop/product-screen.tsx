@@ -42,9 +42,10 @@ export default function ProductDetailScreen({ id }: { id: string }) {
   const managerOrderEnabled = product?.type === "digital";
   const manager = useManagerOrderSettings(managerOrderEnabled);
   const insets = useSafeAreaInsets();
-  const [zoomVisible, setZoomVisible] = useState(false);
-  const [zoomImageUri, setZoomImageUri] = useState("");
-  const [zoomIndex, setZoomIndex] = useState(0);
+  const [zoom, setZoom] = useState<{
+    images: readonly string[];
+    index: number;
+  } | null>(null);
   if (!product) {
     return (
       <div
@@ -68,24 +69,24 @@ export default function ProductDetailScreen({ id }: { id: string }) {
     typeof window !== "undefined"
       ? managerOrderEmail(manager.settings, product, window.location.origin)
       : null;
-  const openZoom = (uri: string, index: number) => {
-    setZoomImageUri(uri);
-    setZoomIndex(index);
-    setZoomVisible(true);
+  const zoomImages = zoom?.images ?? [];
+  const zoomIndex = zoom?.index ?? 0;
+  const openZoom = (images: readonly string[], index: number) => {
+    if (images[index]) setZoom({ images, index });
   };
   const zoomPrev = () => {
-    if (zoomIndex > 0) {
-      const newIdx = zoomIndex - 1;
-      setZoomIndex(newIdx);
-      setZoomImageUri(gallery[newIdx]);
-    }
+    setZoom((current) =>
+      current && current.index > 0
+        ? { ...current, index: current.index - 1 }
+        : current,
+    );
   };
   const zoomNext = () => {
-    if (zoomIndex < gallery.length - 1) {
-      const newIdx = zoomIndex + 1;
-      setZoomIndex(newIdx);
-      setZoomImageUri(gallery[newIdx]);
-    }
+    setZoom((current) =>
+      current && current.index < current.images.length - 1
+        ? { ...current, index: current.index + 1 }
+        : current,
+    );
   };
   return (
     <Background
@@ -147,7 +148,7 @@ export default function ProductDetailScreen({ id }: { id: string }) {
               renderItem={({ item, index }) => (
                 <Action
                   aria-label={`Открыть фото товара ${index + 1}`}
-                  onClick={() => openZoom(item, index)}
+                  onClick={() => openZoom(gallery, index)}
                   style={() => ({
                     width: stylesLayout.carouselItem.width,
                     height: stylesLayout.carouselItem.height,
@@ -388,10 +389,7 @@ export default function ProductDetailScreen({ id }: { id: string }) {
               <Action
                 aria-label={`Открыть фото отзыва ${idx + 1}`}
                 key={`review-img-${idx}`}
-                onClick={() => {
-                  setZoomImageUri(imgUri);
-                  setZoomVisible(true);
-                }}
+                onClick={() => openZoom(reviewImages, idx)}
                 className={({ pressed }) =>
                   [classes.action5, pressed ? classes.opacityState9 : ""]
                     .filter(Boolean)
@@ -463,9 +461,9 @@ export default function ProductDetailScreen({ id }: { id: string }) {
       {/* Fullscreen Zoom Modal */}
       <Dialog
         label="Просмотр фотографии товара"
-        open={zoomVisible}
+        open={zoom !== null}
         motion="fade"
-        onClose={() => setZoomVisible(false)}
+        onClose={() => setZoom(null)}
       >
         <div
           className={["ui-stack ", classes.zoomOverlay]
@@ -474,7 +472,7 @@ export default function ProductDetailScreen({ id }: { id: string }) {
         >
           <Action
             aria-label="Закрыть просмотр фото"
-            onClick={() => setZoomVisible(false)}
+            onClick={() => setZoom(null)}
             style={{ top: insets.top + 16 }}
             className={classes.action6}
           >
@@ -482,7 +480,7 @@ export default function ProductDetailScreen({ id }: { id: string }) {
           </Action>
 
           <Picture
-            source={{ uri: zoomImageUri }}
+            source={{ uri: zoomImages[zoomIndex] ?? "" }}
             fullSize
             style={{
               width: stylesLayout.zoomImage.width,
@@ -517,16 +515,16 @@ export default function ProductDetailScreen({ id }: { id: string }) {
               <MaterialIcons name="chevron-left" size={36} color="#fff" />
             </Action>
             <Typography className={classes.zoomCounter}>
-              {zoomIndex + 1} / {gallery.length}
+              {zoomIndex + 1} / {zoomImages.length}
             </Typography>
             <Action
               aria-label="Следующее фото"
               onClick={zoomNext}
-              disabled={zoomIndex === gallery.length - 1}
+              disabled={zoomIndex === zoomImages.length - 1}
               className={({ pressed }) =>
                 [
                   classes.action7,
-                  zoomIndex === gallery.length - 1
+                  zoomIndex === zoomImages.length - 1
                     ? classes.opacityState13
                     : pressed
                       ? classes.opacityState14

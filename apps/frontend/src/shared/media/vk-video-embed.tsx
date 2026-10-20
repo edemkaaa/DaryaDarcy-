@@ -20,10 +20,12 @@ export function VkVideoEmbed({
   url,
   className,
   recheckOnResume = false,
+  onRetry,
 }: {
   url: string;
   className: string;
   recheckOnResume?: boolean;
+  onRetry?: () => void;
 }) {
   const src = getVkVideoEmbedUrl(url);
   const active = useScreenActive();
@@ -39,6 +41,7 @@ export function VkVideoEmbed({
       src={src}
       className={className}
       recheckOnResume={recheckOnResume}
+      onRetry={onRetry}
     />
   );
 }
@@ -47,10 +50,12 @@ function Player({
   src,
   className,
   recheckOnResume,
+  onRetry,
 }: {
   src: string;
   className: string;
   recheckOnResume: boolean;
+  onRetry?: () => void;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const [attempt, setAttempt] = useState(0);
@@ -99,6 +104,10 @@ function Player({
         aria-label="Перезагрузить плеер VK"
         title="Перезагрузить плеер VK"
         onClick={() => {
+          if (onRetry) {
+            onRetry();
+            return;
+          }
           setLoaded(false);
           setSlow(false);
           setAttempt((value) => value + 1);

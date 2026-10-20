@@ -32,6 +32,7 @@ import {
 } from "@/domain/session/use-session-operation";
 import { requireUploadedUrl } from "@/shared/media/upload-result";
 import { getHttpStatus, invalidResponse } from "@/shared/api/errors";
+import { checkPrivateUploadAvailability } from "@/shared/media/private-upload-availability";
 import { privateUploadRejectionMessage } from "@/shared/api/upload-errors";
 import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
 import {
@@ -467,6 +468,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     if (!task) return;
     let storedCreation = false;
     let uploadingFiles = false;
+    let writeStarted = false;
     try {
       const payload = {
         title: title.trim(),
@@ -477,6 +479,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       };
       const selected = selectArticleFiles(blocks, privateFiles.files);
       if (selected.length) {
+        await checkPrivateUploadAvailability(fileApi.status, task);
         const prepared = await journal.prepare(payload, {
           editingId,
           files: selected,
@@ -541,6 +544,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         await completeCreation(prepared.record, task);
         return;
       }
+      writeStarted = true;
       const result = await utils.client.admin.updateArticle.mutate(
         { id: editingId, ...payload },
         { signal: task.signal },
@@ -561,7 +565,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         ? `${uploadRejection} Исходные файлы сохранены на этом устройстве. Проверьте загрузку позже.`
         : null;
       if (task.isCurrent() && editingId)
-        uncertainSave.current = !status || status >= 500;
+        uncertainSave.current = writeStarted && (!status || status >= 500);
       if (task.isCurrent() && (uploadMessage || !editingId))
         setRecoveryMessage(
           uploadMessage ??

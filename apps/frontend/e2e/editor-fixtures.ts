@@ -64,6 +64,18 @@ export async function editorApi(
     const results = await Promise.all(
       names.map(async (name, index) => {
         const input = inputs[index]?.json ?? {};
+        // A fresh read-only availability probe is not a recovery request for
+        // an earlier fixture upload. Specific recovery handlers run below.
+        if (
+          [
+            "admin.privateContentFileStatus",
+            "admin.privateAttachmentStatus",
+            "club.privateCommentPhotoStatus",
+          ].includes(name) &&
+          typeof input.idempotencyKey === "string" &&
+          input.idempotencyKey.startsWith("availability:")
+        )
+          return ok({ state: "notRecorded" });
         const custom = await answer?.(name, input, route);
         if (custom !== undefined) return custom;
         // Existing editor scenarios provide a full synthetic catalog. Serve the

@@ -159,7 +159,7 @@ for (const format of ["gif", "apng", "webp"] as const) {
   });
 }
 
-test("invalid raw video explains format refusal without recommending a blind retry", async ({
+test("a rejected private video stays in the draft without publishing or exposing server details", async ({
   page,
 }) => {
   const messages: string[] = [];
@@ -168,9 +168,19 @@ test("invalid raw video explains format refusal without recommending a blind ret
     await dialog.accept();
   });
   await setup(page, []);
-  await page.route("**/api/admin/upload-video?*", (route) =>
-    route.fulfill({ status: 400, json: { error: "Некорректный видеофайл" } }),
-  );
+  let uploads = 0,
+    creates = 0;
+  await page.route("**/api/admin/private-video-uploads?*", (route) => {
+    uploads++;
+    return route.fulfill({
+      status: 400,
+      json: { error: "PRIVATE_SERVER_DETAILS" },
+    });
+  });
+  await page.route("**/api/trpc/admin.createPost*", (route) => {
+    creates++;
+    return route.abort();
+  });
   await open(page);
   const chooser = page.waitForEvent("filechooser");
   await page
@@ -183,5 +193,24 @@ test("invalid raw video explains format refusal without recommending a blind ret
     mimeType: "video/mp4",
     buffer: Buffer.from("not a video"),
   });
-  await expect.poll(() => messages).toEqual(["Некорректный видеофайл"]);
+  const form = page.getByRole("dialog", { name: "Редактор публикации" });
+  await expect(
+    form.getByText("Черновик сохранён на этом устройстве", { exact: true }),
+  ).toBeVisible();
+  await form
+    .getByPlaceholder("Текст поста… Enter — новый абзац")
+    .fill("REJECTED_VIDEO_DRAFT");
+  expect(uploads).toBe(0);
+  await form
+    .getByRole("button", { name: "Опубликовать", exact: true })
+    .first()
+    .click();
+  await expect.poll(() => uploads).toBe(1);
+  await expect.poll(() => messages.length).toBe(1);
+  expect(messages[0]).not.toContain("PRIVATE_SERVER_DETAILS");
+  await expect(form).toBeVisible();
+  await expect(
+    form.getByPlaceholder("Текст поста… Enter — новый абзац"),
+  ).toHaveValue("REJECTED_VIDEO_DRAFT");
+  expect(creates).toBe(0);
 });

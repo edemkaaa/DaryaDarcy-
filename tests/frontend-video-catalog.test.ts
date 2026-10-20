@@ -7,6 +7,10 @@ import {
   parseVideoPlayback,
   requireVkVideoId,
   stalledVideoCursor,
+  videoThumbnailUrl,
+  isVideoThumbnailsEnabled,
+  videoCatalogInput,
+  normalizeVkThumbnailUrl,
 } from "../apps/frontend/src/features/videos/catalog-api";
 import { PlaybackLifecycle } from "../apps/frontend/src/features/videos/playback-lifecycle";
 
@@ -23,6 +27,73 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("catalog contracts", () => {
+  it("keeps thumbnail opt-in out of old requests and includes it on every enabled page", () => {
+    for (const value of ["", "false", "1", "TRUE"]) {
+      vi.stubEnv("NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED", value);
+      expect(isVideoThumbnailsEnabled()).toBe(false);
+      expect(videoCatalogInput(20)).toEqual({ limit: 20 });
+      expect(videoCatalogInput(20, 42)).toEqual({ limit: 20, cursor: 42 });
+    }
+    vi.stubEnv("NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED", "true");
+    expect(videoCatalogInput(20)).toEqual({
+      limit: 20,
+      includeThumbnails: true,
+    });
+    expect(videoCatalogInput(20, 42)).toEqual({
+      limit: 20,
+      includeThumbnails: true,
+      cursor: 42,
+    });
+    expect(videoCatalogInput(20)).not.toEqual({ limit: 20 });
+  });
+  it.each([
+    "/assets/responsive/cover.webp",
+    "https://s3.twcstorage.ru/daryadarcy-s3/feed/cover.jpg",
+    "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/videos/cover.png",
+  ])("accepts documented public cover location %s", (value) => {
+    expect(normalizeVkThumbnailUrl(`  ${value}  `)).toBe(value);
+  });
+  it.each([
+    "",
+    " ",
+    "javascript:alert(1)",
+    "data:image/png;base64,abc",
+    "/api/media/content-files/1",
+    "/assets/responsive/",
+    "/assets/responsive/../private.jpg",
+    "/assets/responsive/%2e%2e/private.jpg",
+    "/assets/responsive/a.webp?signature=secret",
+    "https://vk.ru/video_ext.php?oid=-1&id=2&hash=abcdefgh",
+    "https://cdn.example.test/cover.jpg",
+    "http://s3.twcstorage.ru/daryadarcy-s3/feed/cover.jpg",
+    "https://s3.twcstorage.ru/daryadarcy-s3/private/cover.jpg",
+    "https://s3.twcstorage.ru/daryadarcy-s3/feed/cover.jpg?X-Amz-Signature=secret",
+    "https://s3.twcstorage.ru/daryadarcy-s3/feed/cover.jpg#private",
+    "https://user:password@s3.twcstorage.ru/daryadarcy-s3/feed/cover.jpg",
+  ])("rejects private or ambiguous cover input %s", (value) => {
+    expect(normalizeVkThumbnailUrl(value)).toBeNull();
+  });
+  it.each([
+    "javascript:alert(1)",
+    "data:image/png;base64,abc",
+    "mailto:a@example.test",
+    "/api/media/post-attachments/1",
+    "https://app.example.test/api/media/content-files/id",
+    embed,
+    "https://www.youtube.com/embed/abc_DEF-123",
+  ])("does not load private media or a player as a thumbnail: %s", (value) => {
+    expect(videoThumbnailUrl(value)).toBeNull();
+  });
+  it("uses only the supplied public thumbnail URL", () => {
+    expect(videoThumbnailUrl("/media/yt-thumb/abc_DEF-123/hqdefault.jpg")).toBe(
+      "/media/yt-thumb/abc_DEF-123/hqdefault.jpg",
+    );
+    expect(videoThumbnailUrl("https://images.example.test/cover.webp")).toBe(
+      "https://images.example.test/cover.webp",
+    );
+    expect(videoThumbnailUrl(undefined)).toBeNull();
+    expect(videoThumbnailUrl(null)).toBeNull();
+  });
   it("keeps the integration off unless explicitly enabled", () => {
     for (const value of ["", "false", "1", "TRUE"]) {
       vi.stubEnv("NEXT_PUBLIC_VK_CATALOG_ENABLED", value);
@@ -37,6 +108,21 @@ describe("catalog contracts", () => {
       nextCursor: 2,
     });
   });
+  it.each([null, "https://images.example.test/public-cover.webp"])(
+    "accepts the optional public thumbnail field without relaxing other fields: %s",
+    (thumbnailUrl) => {
+      const item = { ...card, thumbnailUrl };
+      expect(
+        parseVideoCatalog({ items: [item], nextCursor: null }).items,
+      ).toEqual([item]);
+      expect(() =>
+        parseVideoCatalog({
+          items: [{ ...item, embedUrl: embed }],
+          nextCursor: null,
+        }),
+      ).toThrow();
+    },
+  );
   it.each([
     { items: [{ ...card, embedUrl: embed }], nextCursor: null },
     { items: [{ ...card, canWatch: "true" }], nextCursor: null },

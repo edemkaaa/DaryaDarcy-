@@ -21,6 +21,8 @@ import {
   useCapabilities,
   uploadUnavailableMessage,
 } from "@/shared/api/capabilities";
+import { checkPrivateUploadAvailability } from "@/shared/media/private-upload-availability";
+import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import type { AdminPost } from "@/shared/api/types";
 
 import { ScheduleDatetime } from "@/features/admin/schedule-datetime";
@@ -216,6 +218,24 @@ function AdminPostEditorBody({
     },
   });
   const postApi = {
+    checkUploadsAvailable: async (
+      kinds: readonly ("content" | "attachment")[],
+      task: ScopedOperation,
+    ) => {
+      for (const kind of kinds) {
+        await checkPrivateUploadAvailability(
+          (input, signal) =>
+            kind === "content"
+              ? utils.client.admin.privateContentFileStatus.query(input, {
+                  signal,
+                })
+              : utils.client.admin.privateAttachmentStatus.query(input, {
+                  signal,
+                }),
+          task,
+        );
+      }
+    },
     uploadPrivateVideo: async (
       file: File,
       key: string,

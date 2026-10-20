@@ -144,36 +144,42 @@ export function CatalogVideoDetail({ id }: { id: string }) {
   const player =
     source.provider === "vk" ? (
       <VkVideoEmbed
+        key={playback.dataUpdatedAt}
         url={source.embedUrl}
         className={classes.videoElement}
         recheckOnResume
+        onRetry={() => void playback.refetch({ cancelRefetch: false })}
       />
     ) : source.videoUrl ? (
       <ManagedVideo
+        key={playback.dataUpdatedAt}
         src={source.videoUrl}
         controls
         playsInline
         preload="metadata"
         className={classes.videoElement}
         releaseOnPageHide
+        onRetry={() => void playback.refetch({ cancelRefetch: false })}
       />
     ) : (
       <YouTubeEmbed
+        key={playback.dataUpdatedAt}
         youtubeId={source.youtubeId}
         catalogMode
         officialPlayer={!publicYouTube}
+        onRetry={() => void playback.refetch({ cancelRefetch: false })}
       />
     );
   return (
     <VideoDetailView
       title={displayVideoTitle(metadata.data?.title ?? "Видео", youtube)}
       player={player}
-      youtubeId={youtube}
+      youtubeId={publicYouTube ? youtube : undefined}
       hint={
         source.provider === "vk"
           ? "Видео воспроизводится плеером VK. Качество и полноэкранный режим можно выбрать в настройках плеера."
           : publicYouTube && !source.videoUrl
-            ? "В приложении видео доступно к просмотру без VPN, но в более низком качестве. Для просмотра в высоком разрешении рекомендую перейти на YouTube"
+            ? "Если видео не запускается, повторите загрузку. Оригинал можно открыть на YouTube."
             : "Качество и полноэкранный режим можно выбрать в настройках плеера."
       }
     />

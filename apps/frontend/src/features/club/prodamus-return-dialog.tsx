@@ -37,7 +37,9 @@ export function ProdamusReturnDialog() {
   const [now, setNow] = useState(0);
 
   useEffect(() => {
-    if (!active) return;
+    // Resolving the initial identity remounts this subtree. Leave the reference
+    // in the fragment until that identity is settled so the new scope can read it.
+    if (!active || !ready) return;
     const capture = () => {
       if (window.location.pathname !== "/club") return;
       const reference = readProdamusReturnToken(window.location.hash);
@@ -59,7 +61,7 @@ export function ProdamusReturnDialog() {
       window.removeEventListener("popstate", capture);
       window.removeEventListener(navigationIntentEvent, capture);
     };
-  }, [active]);
+  }, [active, ready]);
 
   useEffect(() => {
     if (!active || !token || !ready) return;

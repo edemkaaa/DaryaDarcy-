@@ -13,6 +13,8 @@ export default {
       process.env.NEXT_PUBLIC_NORMAL_CHECKOUT_RECOVERY_ENABLED ?? "false",
     NEXT_PUBLIC_VK_CATALOG_ENABLED:
       process.env.NEXT_PUBLIC_VK_CATALOG_ENABLED ?? "false",
+    NEXT_PUBLIC_PRIVATE_LIBRARY_FILES_ENABLED:
+      process.env.NEXT_PUBLIC_PRIVATE_LIBRARY_FILES_ENABLED ?? "false",
   },
   devIndicators: false,
   allowedDevOrigins: ["127.0.0.1"],

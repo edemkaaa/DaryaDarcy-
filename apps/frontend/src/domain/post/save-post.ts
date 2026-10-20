@@ -48,6 +48,10 @@ export type PostAttachment = {
 };
 export type PostSaveApi = PrivatePostPhotoApi &
   PrivatePostVideoApi & {
+    checkUploadsAvailable?: (
+      kinds: readonly ("content" | "attachment")[],
+      operation: ScopedOperation,
+    ) => Promise<void>;
     create: (payload: CreatePayload, signal: AbortSignal) => Promise<unknown>;
     update: (
       id: number,
@@ -313,6 +317,21 @@ export class PostSaveCoordinator {
     operation.assertCurrent();
     let writing = false;
     try {
+      const kinds: ("content" | "attachment")[] = [];
+      if (
+        payload.photos.some((url) => url.startsWith("local-photo:")) ||
+        videos.some((video) => video.poster)
+      )
+        kinds.push("content");
+      if (
+        payload.videos.some((url) => url.startsWith("local-video:")) ||
+        attachments.some((item) => item.file)
+      )
+        kinds.push("attachment");
+      if (kinds.length) {
+        await api.checkUploadsAvailable?.(kinds, operation);
+        operation.assertCurrent();
+      }
       this.privateVideos = selectPrivatePostVideos(payload.videos, videos);
       if (this.privateVideos.length && !this.checkpoint)
         throw new Error(

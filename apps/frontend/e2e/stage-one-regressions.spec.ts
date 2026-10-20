@@ -107,13 +107,16 @@ test("canonical uploaded photo stays visible in feed and detail", async ({
     page.locator('img[src*="/api/media/content-files/"]'),
   ).toHaveCount(1);
 });
-test("unpaid member can log out while club-only profile remains locked", async ({
+test("unpaid member can log out while public bookmarks remain available", async ({
   page,
 }) => {
   await fixture(page, { paid: false });
   await gotoWithSession(page, "/profile");
   await expect(
-    page.getByText(/Личный профиль с возможностью сохранять/),
+    page.getByRole("button", {
+      name: "Открыть публикацию: AUDIT_POST",
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Выйти", exact: true }),
