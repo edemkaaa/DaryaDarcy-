@@ -4,16 +4,38 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
-#### RELEASE-VK — выпуск без отключения YouTube,20 октября
+#### RELEASE-MIXED — выпуск без отключения YouTube принят,20 октября
+
+- [x] Push origin/staging:b32d0bc→1994e19. Deployed app source427195a,
+  API image d602803efec7/web7ba6a5caddc7, frontend BUILD_ID
+  3AnAHG4Xnst8bDvWGRSal.17 offline native checks +1613 served-file hashes,
+  затем20 public HTTPS read-only checks со staging host и Mac covers200/60.
+  Covers opt-in прежде400, теперь200; original shape/legacy60/pagination/guest
+  Library denial/frontend asset SHA проверены. Это не реальное видео playback.
+- [x] Same DB/schema42/admin credential+role+session fingerprints/config flags
+  сохранены,27 other containers unchanged. Два fresh backups40 tables в private
+  server/local0600, SHA verified. Последний353143 bytes/SHA4af608f8….
+  Никаких migrations/content writes/S3/платежей/писем/ручного UI или дизайна.
+  Старые images/config backups оставлены для отката. Native TEST не платёж.
+- [x] Release guards остановили Mac AppleDouble metadata в первом tar;
+  repack COPYFILE_DISABLE=1 дал exact1616 source files. Первый rollout вернулся
+  на старые images из-за неверного assertion harness на intentional legacy DTO
+  (provider/access отсутствуют по контракту). Исправлен только test harness:
+ 60 public IDs/youtubeId и отсутствие private fields. Same-image retry accepted;
+  DB/admin preserved после обоих переключений, image-only rollback проверен.
+- [x] Удалены только3 own old temporary archives777619075 bytes (contexts
+  сохранены) и own failed/new transport contexts после byte checks. Images,
+  backups/БД/чужие files не удалялись. Private receipts и процедура отката —
+  existing operational runbook. Откат не запускать повторно вслепую.
 
 - [x] Пользователь выбрал выпуск остальных правок с отложенным отключением
   YouTube до переноса VK. Cutover4c04d62 отменяется отдельным обратным commit,
   без удаления истории; covers/остальные backend fixes сохраняются. Разрешена
   штатная генерация API-контракта, без ручной правки UI/дизайна.
-- [ ] Проверить release source, SQL/HTTP на own tmpfs backend_test, сборки и
-  native audit. Затем normal push staging, fresh baseline/backup/rollback,
-  image-only rollout API/web/restricted TEST и реальные read-only API postchecks.
-  Working DB/admin/password/schema/S3/config flags сохранить, контент не импортировать.
+- [x] Проверены release source, SQL/HTTP на own tmpfs backend_test, сборки и
+  native audit. Normal push staging, fresh baseline/backup/rollback,
+  image-only rollout API/web/restricted TEST и реальные read-only postchecks
+  выполнены. Working DB/admin/password/schema/S3/config flags сохранены.
 - [x] Local release checks:222 tests/8 suites (native HTTP/JWT/SQL, mixed
   catalog/playback/legacy/worker access, VK covers/replay, content/download names,
   session availability) +221 tests/7 suites frontend/collector/admin;0skip.
@@ -29,14 +51,15 @@
   bundles, frontend BUILD_ID=3AnAHG4Xnst8bDvWGRSal. Private artifact manifest1616
   files/context archive206733749 bytes вне Git, source/dependency equality
   проверены; frontend кроме generated contract совпадает с b32d0bc.
-- [ ] Внешний блокер: после начального успешного baseline SSH четыре раза
+- [x] Исторический сетевой блокер снят следующим подтверждённым соединением.
+  До этого после начального успешного baseline SSH четыре раза
   завершился banner timeout до авторизации; внешний HTTPS стенда SSL timeout,
   bounded Git fetch SSL_ERROR_SYSCALL. Push НЕ выполнялся, сервер/DB/S3/config
   не менялись, новый remote release directory/backup/images ещё не созданы.
   Подготовленные private scripts не запускались на сервере; archive cleanup
   только намечен по exact трём own tar targets, ничего удалено не было.
-  Запрошено переключение VPN/сети; после восстановления начать с fresh fetch и
-  live baseline, не повторять apply вслепую и не объявлять выпуск завершённым.
+  После восстановления выполнены fresh fetch/live baseline и описанный выше
+  проверенный выпуск. Предыдущие NO push/deploy относятся только к stop point.
 
 - [x] Получено явное разрешение push/server update с локальным backend и свежим
   frontend. Fresh fetch:origin/staging=b32d0bc, HEAD2e12c80 ahead23/behind0,
@@ -52,12 +75,9 @@
   и фильтрует каталог: полный выпуск на подтверждённых данных даст0 роликов.
  22-src export не импортирован и не заменяет60 прежних записей/ID/access mapping.
   Не обходить CI/preflight, не наполнять working DB и не менять flags автоматически.
-- [ ] Нужно решение: выпустить остальные правки с отложенным VK-only cutover
-  (рекомендовано) либо сначала согласовать/завершить VK migration и затем полный
-  выпуск. Вопрос пользователю задан. После решения — точный release source,
-  generated contract coordination/check, audit/build/backup/guards/rollback,
-  image-only rollout и real API postcheck. На этом шаге NO push/deploy/restart,
-  DB/S3/schema/users/env/provider flags не менялись; рабочий сервис прежний.
+- [x] Решение получено: остальные правки выпущены, VK-only cutover отложен
+  до отдельного переноса.22 VK exports не импортированы; mapping/access/covers/
+  provider playback остаются отдельным шагом, не выполнять по этой release-задаче.
 
 #### FE-SYNC — подтянуть авторские правки фронтендера,20 октября
 
@@ -72,10 +92,10 @@
 - [x] Авторский commit удаляет20 старых public pattern variants только из local
   frontend tree; публичные обложки сохранены/test GREEN, удалённое восстановимо
   из Git history. Working S3/server/DB/admin и Downloads exports не затронуты.
-- [ ] Прежний check:api остаётся RED/outdated. Контракт не перегенерирован:
-  отдельная координация с фронтендером, не самостоятельная ручная правка UI.
-  Это локальная синхронизация, не разрешение push/deploy или дальнейших frontend
-  изменений. Публикация/новые flags/закрытие старых внешних sources не выполнялись.
+- [x] На stop point FE-SYNC check:api был RED/outdated; позднейший RELEASE-MIXED
+  по явному разрешению выполнил штатную генерацию/check90 и выпуск. Ручных
+  UI/design changes и закрытия старых S3 sources не было. Сам FE-SYNC не являлся
+  разрешением дальнейших frontend правок; действует только новый release scope.
 
 #### VK-COVER — качество обложек всех22,20 октября
 

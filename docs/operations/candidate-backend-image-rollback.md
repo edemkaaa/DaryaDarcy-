@@ -2,6 +2,76 @@
 
 ## RELEASE-MIXED — выбран выпуск остальных правок, cutover VK отложен
 
+### Итог: выпуск принят,20 октября2026
+
+Нормальный push `origin/staging`:b32d0bc→1994e19 без force/переключения ветки.
+App source `427195a957ed58315c8e32d8f52a50fac8e41f6c`;
+1994e19 добавляет только документацию, app/dependencies byte-exact427195a.
+Handwritten frontend сохранён byte-exact b32d0bc, только generated contract
+согласован с covers API. Никакого ручного UI/дизайна.
+Immutable release tag: `staging-2026-10-20-427195a` указывает на app source.
+
+API image `sha256:d602803efec7286aa04a8a3ff4c6d3ef02b6da842bb0b47952d7e544e4e6d576`,
+web image `sha256:7ba6a5caddc765b2c211f3d87595db9c5d2a17e4d33344544fcc4d7e6e5dab99`.
+Active API `2cae1064530d`, web `1b7dc5ba43f2`, restricted TEST `475ecf8691fd`;
+BUILD_ID `3AnAHG4Xnst8bDvWGRSal`. Native image checks17/17 без DB/providers,
+source/served files hashes1613 verified. Не устанавливались новые зависимости:
+использованы проверенные pinned Linux production runtime images, offline build.
+
+Guarded prepare: тот же MySQL container/UUID/current candidate DB, history42,
+40 tables; admin passwordHash/role/sessionVersion/not-blocked fingerprint совпал.
+Pending mail/bindings/scheduled/deletions/billingProfiles/shopMail все0 перед
+обоими apply. Два consistent backups server/local0600 проверены gzip/SHA40 tables:
+353137 bytes/SHA31010ce7… перед первым apply и353143 bytes/SHA
+`4af608f87c7ff9003b01b3161dedf51ea280e327c8a3d7a707fde506bc12fbe5`
+перед принятым retry. Операционные файлы/receipts остаются в private directory
+`.local-artifacts/release-mixed-20261020.AY5lVU` от workspace и одноимённой
+папке staging base на сервере. Env/resolved config/raw backup не коммитить.
+
+Изменились только API/web/TEST images и путь монтируемого restricted TEST bundle;
+resolved compose config проверен exact delta,14 configuration guards сохранены.
+Та же DB, схема, credentials/roles/session, все provider/private flags прежние,
+27 other containers (включая MySQL/video/S3 egress/другие проекты) неизменны.
+App services healthy/restart0/OOM=false, edge configtest/reload штатный.
+Никаких DDL/DB switch/content import/S3 writes/платежей/внешних писем.
+
+Acceptance:20 read-only public HTTPS checks со staging host: capabilities,
+auth guest, launch readiness, original catalog60 с прежним exact shape,
+opt-in includeThumbnails200/60 (до выпуска400), forward pagination10+10 без
+дублей, legacy60 с прежним публичным DTO, public playback metadata, admin401,
+guest Library list/direct GET/HEAD404,6 frontend pages200 и SHA нового JS asset.
+Отдельный Mac public HTTPS covers200/60 подтверждён. `state.json=accepted`;
+live-read-check.json сохраняет результаты. Это не browser/mobile acceptance,
+не загрузка/чтение реальных S3 files и не воспроизведение YouTube/VK.
+22 VK sources/covers/access mapping не импортированы, cutover намеренно отложен.
+
+Два исправления процедуры, не application code:
+
+- Первый tar содержал1845 AppleDouble metadata files; все1616 app files SHA
+  совпали. Fail-closed guard остановил build. Repack COPYFILE_DISABLE=1,
+  v2 archive206588383 bytes/SHA2ae18710… проверен exact1616/no extras.
+- Первый rollout автоматически вернулся к прежним images: harness ошибочно
+  ожидал provider/access у legacy DTO, который намеренно их исключает.
+  После сверки repository/generated contract проверяются60 matching public IDs,
+  youtubeId format и отсутствие private/provider fields. Образы/приложение
+  не менялись. Rearm подтвердил same DB/admin/config/other containers и создал
+  fresh backup; same-image retry прошёл все20 checks. Image-only rollback
+  фактически проверен, без восстановления/изменения DB.
+
+Удалены только3 подтверждённых own temporary archives777619075 bytes,
+распакованные старые contexts сохранены; own failed context/transport archive
+и новый build context убраны после exact byte checks. Local source/context,
+backups, native images и все прежние rollback images сохранены. Не было prune,
+удаления images/volumes/DB/чужих файлов. Свободное место остаётся ограниченным.
+Финальный fresh df:768MiB free;8 project services healthy, BUILD_ID подтверждён.
+
+Не запускать apply/старый rearm снова: phase accepted. При новом поручении
+rollback сначала fresh inventory/config/snapshot и отдельный guarded reversal
+только images+TEST mount на ту же DB, с учётом актуальных file hashes/ID.
+Текущий helper намеренно не откатывает accepted release автоматически.
+
+### История подготовки до принятого выпуска
+
 20 октября пользователь принял временный выпуск без отключения60 текущих
 YouTube до переноса VK. Обратный commit4c04d62 сохраняет историю и mixed API,
 не затрагивает covers/прочие fixes и working content. Generated frontend

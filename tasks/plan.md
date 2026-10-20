@@ -63,6 +63,18 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **20 октября, RELEASE-MIXED — принят:** user-approved normal push staging
+  b32d0bc→1994e19, app source427195a. Image-only API/web/restricted TEST rollout
+  принят20 public HTTPS reads + Mac covers200/60;17 offline native checks и1613
+  artifact hashes GREEN. Все60 YouTube сохранены до отдельной VK migration.
+  Same DB/history42/admin credentials/session/roles/provider flags,27 other
+  containers неизменны; backups40 tables server/local0600 SHA verified.
+  Первый artifact был остановлен из-за Mac metadata; первый rollout безопасно
+  откатился из-за ошибочного legacy DTO assertion в harness, не backend bug.
+  Исправлен только harness, same images retry accepted. Working DB/S3/content/
+  mail/payments и handwritten UI/design не менялись; rollback images сохранены.
+  Остаток VK/covers/playback не закрыт этим выпуском, см. todo/runbook.
+
 - **20 октября, RELEASE-VK — выбор пользователя получен:** выпустить остальные
   правки, отключение YouTube отложить до переноса VK. Обратный commit только
   для4c04d62 сохраняет исходную работу в истории; mixed catalog/proxy/worker
