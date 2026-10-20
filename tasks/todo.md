@@ -4,6 +4,38 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### U1-MAX — реальные предельные размеры,21 октября
+
+- [x] Пользователь разрешил настоящий API/S3 только с одноразовой БД и новыми
+  синтетическими файлами. Clean9e78c8c/прежняя feature branch, disk2.1GiB,
+  Docker29.8.1; обе новые loopback/tmpfs backend_test без volumes, fresh42.
+  Существующий закрытый S3 profile0600, значения не выводились. Ни working DB,
+  ни старые objects/policy/flags/frontend/push/deploy не менялись.
+- [x]3 фото: postPhoto/articlePhoto/commentPhoto ровно4194304 bytes через
+  реальные Base64 HTTP/SQL/S3. +1 byte →413 без SQL intent/S3 commands.
+  Повтор того же ключа → тот же asset/без дополнительного PUT; привязка к
+  post/article/comment, paid GET/HEAD/Range, guest API404/anonymous S3403 GREEN.
+  Валидный PNG2x3 дополнен tEXt chunk/CRC до4MiB; штатно очищен/перекодирован
+  в78-byte WebP. Это проверка размера источника, не тяжёлого pixel decoder.
+- [x]4 больших файла: articleDocument/postDocument TXT33554432 bytes,
+  WAV33554432 bytes, raw MP483886080 bytes. Каждый +1 byte →413 без intent/S3;
+  максимум → ready, retry без нового PUT/ledger, привязка к club article/post.
+  Полный потоковый GET со сверкой длины и SHA256, HEAD, suffix Range последних
+ 8 bytes, guest denial до S3 и anonymous S3 GET/HEAD/Range403 GREEN. MP4 с valid
+  free box проверяет byte transport, не duration/playback; PDF/DOCX max не гонялись.
+- [x] Два focused прогона:3 pass/4 deselected,46.47s и4 pass/7 deselected,
+ 102.73s.7 новых сценариев выполнены все;4 старых успешных сценария намеренно
+  не повторялись. Production runtime/quotas/timeouts не изменялись.
+- [x] Очистка7 новых objects только после UUID/run-prefix/metadata/ETag guards,
+  conditional DELETE и HEAD404; policy hash прежний/versioning off. Точные
+  own DB21c7739a… и04d128d0… удалены после повторных ownership/storage/port guards.
+  Evidence вне Git: release-u1.pUAwLj/isolated-max-XUUItN/acceptance.log и
+  isolated-max-db6Jxb/acceptance.log. Tests opt-in CF_S3_ACCEPTANCE,
+  `-t 'maximum 4 MiB'` / `-t 'maximum binary'`, maxWorkers1, env/DB guards прежние.
+- [ ] Не закрыто этим прогоном: опубликованный proxy/API/max-size/client путь,
+  browser/device и все форматы/сети. Синтетический byte-limit acceptance не
+  доказывает длительное воспроизведение или готовность всего U1 на стенде.
+
 #### U1-ISO — audio/video на актуальной схеме,21 октября
 
 - [x] Clean a0b31fb/прежняя feature branch, disk2.1GiB/Docker29.8.1;
@@ -29,8 +61,9 @@
 - [x] Evidence вне Git: release-u1.pUAwLj/isolated-video-jcL43Z (RED/timeout),
   isolated-video-l94J6G/acceptance.log и isolated-attachment-1MkdTm/acceptance.log.
   Секреты не выводились; новые функции/production API код не добавлялись.
-- [ ] Остаток: actual max-size upload/read, published U1 и browser/device
-  приёмка. Video fixture1680 bytes/WAV46/document10 — НЕ проверка предельных
+- [x] Actual max-size upload/read на isolated current API закрыт U1-MAX выше.
+- [ ] Остаток: published U1 и browser/device приёмка.
+  Video fixture1680 bytes/WAV46/document10 — НЕ проверка предельных
   размеров. Journal/FileReader doubles — НЕ browser/reload/playback proof.
   Не повторять эти5 успешных сценариев без изменения кода или новой причины.
 
@@ -298,8 +331,9 @@
   Account SQL заменён double, upload SQL/S3 не вызываются: НЕ сквозная загрузка.
 - [x] Audio/video/read/revoke actual API/SQL/S3 повторно проверены21 октября:
  5 pass/0skip; точная очистка новых объектов/своих БД — U1-ISO выше.
-- [ ] Actual max-size upload/read и published U1 acceptance остаются
-  незавершёнными. Не повторять неизменный quota suite как сквозной результат.
+- [x] Actual max-size upload/read на own backend_test проверены21 октября:
+  U1-MAX выше. Не повторять неизменный quota suite как сквозной результат.
+- [ ] Published U1 acceptance остаётся незавершённой.
 
 #### VIDEO — локальный backend контракт и переход на VK
 

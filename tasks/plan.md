@@ -63,6 +63,17 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **21 октября, U1-MAX — проверка предельных размеров:** по прямому разрешению
+  проверены7 новых native API/SQL/Timeweb S3 сценариев: post/article/comment
+  source photos4MiB, article/post TXT и WAV32MiB, raw MP480MiB. +1 byte →413
+  до SQL intent/S3; максимум/replay без дублей/bind/full read/HEAD/Range и
+  private denial GREEN. Binary full length/SHA256 совпали; photos штатно WebP.
+  Два focused run3+4 pass, неизменные recovery suites не повторялись. Все7 новых
+  objects удалены с metadata/ETag/HEAD404, policy прежний, обе own fresh42 tmpfs
+  DB удалены по guards. Runtime/API/quotas/timeouts/frontend/working DB/старые
+  файлы/flags/push/deploy не менялись. Это не published proxy/client acceptance,
+  не все форматы/сети или воспроизведение; точные evidence/ограничения — todo.
+
 - **21 октября, U1-ISO — продолжение backend:** actual video API/SQL/Timeweb
   S3: 3 pass/0skip,35.28s и audio/document: 2 pass/0skip,21.35s на отдельных own
   loopback/tmpfs backend_test с fresh42. Исправлен только устаревший test guard
@@ -71,8 +82,9 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
   созданных объекта убраны; clean GREEN run удалил4 video/poster и2 audio/doc
   objects с metadata/ETag/HEAD404, policy неизменна. Все3 свои БД удалены по
   ownership guards. Production API/frontend/working DB/flags/старые файлы и
-  выпуск не менялись. Малые synthetic fixtures и journal double не доказывают
-  max-size upload или browser/playback; это следующий остаток, не закрытый U1.
+  выпуск не менялись. Малые synthetic fixtures и journal double сами не доказывают
+  max-size upload или browser/playback. Max-size позже принят U1-MAX выше;
+  published/browser/playback U1 остаётся отдельно.
 
 - **21 октября, PLAYBACK-LIVE — read-only проверка:** штатный embedded VK
   на опубликованной странице доступен через IAB. Реальный запуск3/22 образцов,

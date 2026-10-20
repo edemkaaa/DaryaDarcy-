@@ -1,5 +1,21 @@
 # Spec: закрытая серверная выдача вложений постов
 
+## 21 октября — реальные предельные размеры без изменения лимитов
+
+Семь новых native API/SQL/Timeweb S3 сценариев GREEN: source post/article/comment
+photos4MiB, article/post TXT32MiB, WAV32MiB, raw MP480MiB. +1 byte для каждого
+пути возвращает413 без SQL intent и S3 commands; максимум создаёт один ready
+asset, повтор не добавляет PUT/ledger, привязка и private API read/HEAD/Range
+работают. Полные binary GET проверены по длине/SHA256; guest API404 до storage
+и anonymous S3 GET/HEAD/Range403. Photos2x3 с валидным ancillary tEXt/CRC до4MiB
+перекодированы в78-byte WebP: это проверка входного byte limit, не нагрузки
+декодирования пикселей. MP4 padded valid free box — не playback/duration proof.
+PDF/DOCX на максимуме не проверялись.3+4 selected pass,4 прежних сценария не
+повторялись.7 новых objects и2 свои tmpfs БД удалены по guards, policy прежний;
+production код/лимиты/таймауты/frontend/working DB/старые файлы/flags/deploy не
+менялись. Published proxy/client/browser приёмка остаётся отдельно.
+Evidence — U1-MAX в начале tasks/todo.md.
+
 ## 21 октября — повторная isolated audio/video приёмка
 
 На актуальной fresh42 схеме video API/SQL/Timeweb S3:3 pass/0skip35.28s;

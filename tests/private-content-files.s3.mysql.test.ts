@@ -12,6 +12,7 @@ import sharp from "sharp";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { privateAttachmentProcesses } from "./helpers/private-attachment-process";
 import { assertTestDatabase } from "../tooling/scripts/test-database-policy";
+import { mp4Fixture, wavFixture } from "./helpers/media-fixtures";
 
 const uri = process.env.BACKEND_TEST_DATABASE_URL;
 const enabled = process.env.CF_S3_ACCEPTANCE === "true" && !!uri;
@@ -55,8 +56,8 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
   async function restart(contentFiles = true) {
     const previous = api.pid; await api.stop(); api = await workers.start({ contentFiles }); expect(api.pid).not.toBe(previous);
   }
-  const read = (url: string, who = "member", method = "GET", range?: string) => fetch(`${api.base}${url}`, {
-    method, headers: { ...(tokens[who] ? { authorization: `Bearer ${tokens[who]}` } : {}), ...(range ? { range } : {}) }, signal: AbortSignal.timeout(20000),
+  const read = (url: string, who = "member", method = "GET", range?: string, timeout = 20000) => fetch(`${api.base}${url}`, {
+    method, headers: { ...(tokens[who] ? { authorization: `Bearer ${tokens[who]}` } : {}), ...(range ? { range } : {}) }, signal: AbortSignal.timeout(timeout),
   });
   async function denied(url: string, who = "guest") {
     const count = api.commands.length;
@@ -67,21 +68,25 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     expect(api.commands.length).toBe(count);
   }
   async function rememberObjects() {
-    for (const row of await rows("SELECT * FROM private_content_files WHERE actorUserId IN (98770,98771,98772)")) {
-      if (!row.filename.startsWith(`cf-api-${owner}`) || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(row.assetId)) throw new Error("Owned content ledger mismatch");
-      objects.set(row.assetId, row);
+    for (const [table, media] of [["private_content_files", false], ["private_attachment_uploads", true]] as const) {
+      for (const row of await rows(`SELECT * FROM ${table} WHERE actorUserId IN (98770,98771,98772)`)) {
+        if (!row.filename.startsWith(`cf-api-${owner}`) || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(row.assetId)) throw new Error("Owned content ledger mismatch");
+        if (media && !["audio", "video", "document"].includes(row.type)) throw new Error("Owned media type mismatch");
+        const Key = !media || row.type === "video" ? `content/private-v1/${row.assetId}` : `feed/${row.type === "audio" ? "audio" : "documents"}/private-v1/${row.assetId}`;
+        objects.set(row.assetId, { ...row, Key });
+      }
     }
   }
   async function checkObject(row: RowDataPacket) {
-    const Key = `content/private-v1/${row.assetId}`;
+    const Key: string = row.Key;
     const meta = await storage.send(new HeadObjectCommand({ Bucket, Key }), { abortSignal: AbortSignal.timeout(20000) });
     if (meta.Metadata?.["asset-id"] !== row.assetId || meta.Metadata?.["intent-hash"] !== row.payloadHash || meta.ContentLength !== row.fileSize || meta.ContentType !== row.mimeType || !meta.ETag || (row.etag && meta.ETag !== row.etag)) throw new Error("Owned content storage guard refused");
     return { Key, meta };
   }
   async function directDenial(assetId: string) {
-    await rememberObjects(); const row = objects.get(assetId); expect(row).toBeDefined(); await checkObject(row!);
+    await rememberObjects(); const row = objects.get(assetId); expect(row).toBeDefined(); const { Key } = await checkObject(row!);
     for (const spec of [{ method: "GET" }, { method: "HEAD" }, { method: "GET", headers: { range: "bytes=2-5" } }]) {
-      const response = await fetch(`${endpoint}/${Bucket}/content/private-v1/${assetId}`, { ...spec, redirect: "error", signal: AbortSignal.timeout(20000) });
+      const response = await fetch(`${endpoint}/${Bucket}/${Key}`, { ...spec, redirect: "error", signal: AbortSignal.timeout(20000) });
       expect(response.status).toBe(403); await response.body?.cancel();
     }
   }
@@ -112,6 +117,26 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     chunk.write("Comment\0", 8, "ascii");
     chunk.writeUInt32BE(crc32(chunk.subarray(4, -4)), chunk.length - 4);
     return Buffer.concat([png.subarray(0, -12), chunk, png.subarray(-12)]);
+  }
+  async function maximumFileRead(url: string, bytes: Buffer) {
+    const response = await read(url, "member", "GET", undefined, 90000);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-length")).toBe(String(bytes.length));
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    const expected = createHash("sha256").update(bytes).digest("hex");
+    const digest = createHash("sha256"), reader = response.body!.getReader();
+    let length = 0;
+    for (;;) {
+      const part = await reader.read(); if (part.done) break;
+      length += part.value.length; digest.update(part.value);
+    }
+    expect(length).toBe(bytes.length); expect(digest.digest("hex")).toBe(expected);
+    const head = await read(url, "member", "HEAD"); expect(head.status).toBe(200);
+    expect(head.headers.get("content-length")).toBe(String(bytes.length));
+    const range = await read(url, "member", "GET", "bytes=-8"); expect(range.status).toBe(206);
+    expect(range.headers.get("content-range")).toBe(`bytes ${bytes.length - 8}-${bytes.length - 1}/${bytes.length}`);
+    expect(Buffer.from(await range.arrayBuffer())).toEqual(bytes.subarray(-8));
+    await denied(url);
   }
   beforeAll(async () => {
     const url = assertTestDatabase(uri!); const id = process.env.CF_S3_DATABASE_CONTAINER_ID;
@@ -161,7 +186,7 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
         console.info(`[CF-S3] owner fixtures removed: ${objects.size}; HEAD404; policy unchanged`);
       }
     } finally { await conn?.end(); storage?.destroy(); }
-  }, 30000);
+  }, 60000);
   it.each(["postPhoto", "articlePhoto", "commentPhoto"] as const)("accepts maximum 4 MiB %s through native API/S3 and rejects one extra byte", async usage => {
     const post = await call("admin.createPost", { text: "Maximum photo fixture", source, photos: [], tags: ["community"], target: "club", status: "published", idempotencyKey: `max-photo-post-${usage}-${owner}` });
     expect(post.status).toBe(200);
@@ -199,6 +224,59 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     await denied(uploaded.data.url);
     console.info(`[MAX-S3] ${usage}: source=4194304 stored=${output.length}; extra-byte413; replay/read/HEAD/Range/private GREEN`);
   }, 60000);
+  it.each(["articleDocument", "postDocument", "audio", "video"] as const)("accepts maximum binary %s through native API/S3 and rejects one extra byte", async kind => {
+    const limit = (kind === "video" ? 80 : 32) * 1024 * 1024;
+    const bytes = Buffer.alloc(limit, kind.endsWith("Document") ? 0x61 : 0);
+    const mimeType = kind === "video" ? "video/mp4" : kind === "audio" ? "audio/wav" : "text/plain";
+    if (kind === "audio") { wavFixture().copy(bytes); bytes.writeUInt32LE(limit - 8, 4); bytes.writeUInt32LE(limit - 44, 40); }
+    if (kind === "video") {
+      mp4Fixture.copy(bytes);
+      // ISO BMFF free space is a valid container box, not arbitrary garbage.
+      bytes.writeUInt32BE(limit - mp4Fixture.length, mp4Fixture.length); bytes.write("free", mp4Fixture.length + 4);
+      await api.stop(); api = await workers.start({ contentFiles: true, privateVideos: true });
+    }
+    const filename = `cf-api-${owner}-maximum-${kind}.${kind === "video" ? "mp4" : kind === "audio" ? "wav" : "txt"}`;
+    const idempotencyKey = `max-binary-${kind}-${owner}`;
+    async function upload(body: Buffer) {
+      if (kind !== "video") return call(kind === "articleDocument" ? "admin.uploadPrivateContentFile" : "admin.uploadPrivateAttachment", {
+        idempotencyKey, filename, mimeType, base64: body.toString("base64"),
+        ...(kind === "articleDocument" ? { usage: "articleDocument" } : { type: kind === "audio" ? "audio" : "document" }),
+      });
+      const response = await fetch(`${api.base}/api/admin/private-video-uploads?filename=${encodeURIComponent(filename)}`, {
+        method: "POST", headers: { authorization: `Bearer ${tokens.admin}`, "content-type": mimeType, "idempotency-key": idempotencyKey },
+        body: new Uint8Array(body), signal: AbortSignal.timeout(90000),
+      });
+      return { status: response.status, data: await response.json() };
+    }
+    const beforeContent = await rows("SELECT assetId FROM private_content_files");
+    const beforeMedia = await rows("SELECT assetId FROM private_attachment_uploads");
+    const commands = api.commands.length;
+    expect((await upload(Buffer.concat([bytes, Buffer.from([0x61])]))).status).toBe(413);
+    expect(await rows("SELECT assetId FROM private_content_files")).toEqual(beforeContent);
+    expect(await rows("SELECT assetId FROM private_attachment_uploads")).toEqual(beforeMedia);
+    expect(api.commands.length).toBe(commands);
+    const uploaded = await upload(bytes);
+    expect(uploaded.status).toBe(200);
+    expect(uploaded.data).toMatchObject({ state: "ready", fileSize: limit });
+    const puts = api.commands.filter(name => name === "PutObjectCommand").length;
+    expect(await upload(bytes)).toEqual(uploaded);
+    expect(api.commands.filter(name => name === "PutObjectCommand").length).toBe(puts);
+    expect((await rows("SELECT assetId FROM private_content_files")).length).toBe(beforeContent.length + (kind === "articleDocument" ? 1 : 0));
+    expect((await rows("SELECT assetId FROM private_attachment_uploads")).length).toBe(beforeMedia.length + (kind === "articleDocument" ? 0 : 1));
+    let url: string;
+    if (kind === "articleDocument") {
+      url = uploaded.data.url;
+      expect((await call("admin.createArticle", { title: `cf-api-${owner}-maximum-document`, access: "club", published: true, idempotencyKey: randomUUID(), sections: [{ type: "link", url, label: "Maximum document" }] })).status).toBe(200);
+    } else {
+      const post = await call("admin.createPost", { text: "Maximum binary fixture", source, photos: [], tags: [], target: "club", status: "published", idempotencyKey: `max-binary-post-${kind}-${owner}`, privateAssetIds: [uploaded.data.assetId] });
+      expect(post.status).toBe(200);
+      const media = await rows("SELECT url FROM post_media WHERE postId=?", [post.data]); expect(media).toHaveLength(1);
+      url = media[0].url;
+    }
+    await maximumFileRead(url, bytes);
+    await directDenial(uploaded.data.assetId);
+    console.info(`[MAX-S3] ${kind}: source/stored=${limit}; extra-byte413; replay/full SHA256/HEAD/suffix Range/private GREEN`);
+  }, 150000);
   it("recovers lost upload and article responses in fresh API processes without another file or article", async () => {
     await dropped("admin.uploadPrivateContentFile", document);
     expect(api.commands.filter(name => name === "PutObjectCommand")).toHaveLength(1);

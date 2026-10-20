@@ -1,5 +1,19 @@
 # Передача изменений бэкенда фронтендеру
 
+## 21 октября — подтверждены предельные размеры на isolated API/S3
+
+Ровно4MiB photos (post/article/comment),32MiB TXT (article/post) и WAV,
+80MiB raw MP4 проверены через actual native API/SQL/Timeweb S3. Все7 новых
+сценариев GREEN: +1 byte413 до intent/storage, максимум/replay без дублей/bind,
+полный binary GET с SHA256/HEAD/suffix Range/private denial. Фото штатно очищаются
+и перекодируются; их stored size не обязан совпадать с входным. Синтетический
+PNG с ancillary padding и MP4 free box не являются pixel-load/playback proof;
+PDF/DOCX max и опубликованный proxy/client путь отдельно не приняты.
+Runtime API/квоты/таймауты/контракт не менялись; для фронта новых требований нет.
+Все7 новых objects и обе одноразовые БД убраны, policy прежний. Точные проверки
+и evidence — U1-MAX [чек-листа](../../tasks/todo.md). Working DB/старые files,
+frontend/flags/push/deploy не затрагивались.
+
 ## 21 октября — изолированная проверка аудио/видео
 
 Текущий backend прошёл5 actual API/SQL/Timeweb S3 тестов без пропусков:
