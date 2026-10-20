@@ -108,12 +108,14 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     const fixture = JSON.parse(stdout), bindings = fixture.ports?.["3306/tcp"];
     if (fixture.id !== id || !/^daryadarcy-fresh-content-api-[a-z0-9-]+$/.test(fixture.owner) || fixture.name !== `/${fixture.owner}` || !fixture.tmpfs?.["/var/lib/mysql"] || fixture.mounts?.length !== 0 || bindings?.length !== 1 || bindings[0].HostIp !== "127.0.0.1" || bindings[0].HostPort !== url.port) throw new Error("Unowned database refused");
     storage = new S3Client({ endpoint, region: "ru-1", forcePathStyle: true, maxAttempts: 1, credentials: { accessKeyId: process.env.S3_ACCESS_KEY, secretAccessKey: process.env.S3_SECRET_KEY }, requestHandler: { connectionTimeout: 5000, requestTimeout: 10000, throwOnRequestTimeout: true } });
+    console.info("[CF-S3] preflight: GetBucketPolicyCommand");
     const policy = await storage.send(new GetBucketPolicyCommand({ Bucket }));
     expect(hash(policy.Policy!)).toBe(acceptedPolicyHash);
+    console.info("[CF-S3] preflight: GetBucketVersioningCommand");
     expect((await storage.send(new GetBucketVersioningCommand({ Bucket }))).Status).toBeUndefined();
     conn = await mysql.createConnection({ uri: uri!, timezone: "Z" });
     expect(await rows("SELECT id FROM users")).toEqual([]);
-    expect(await rows("SELECT id FROM __drizzle_migrations")).toHaveLength(41);
+    expect(await rows("SELECT id FROM __drizzle_migrations")).toHaveLength(42);
     for (const [name, id, role] of [["admin", 98770, "admin"], ["member", 98771, "user"], ["other", 98772, "admin"]] as const) {
       await conn.query("INSERT INTO users(id,openId,role) VALUES(?,?,?)", [id, `cf-api-${name}-${owner}`, role]);
       tokens[name] = await sdk.createSessionToken(`cf-api-${name}-${owner}`, { sessionVersion: 0 });
