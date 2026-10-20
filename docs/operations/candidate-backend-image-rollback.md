@@ -2,7 +2,54 @@
 
 ## RELEASE-U1 — обновление применено, приёмка загрузок открыта,20 октября 2026
 
-### WIN-PREP — четыре зимние выкройки подготовлены, выдача пока выключена
+### WIN-LIVE — четыре зимние выкройки включены и backend API принят
+
+Пользователь отдельно разрешил Library flag и2 временных аккаунта/1 synthetic
+access row без провайдера/SMTP, с точной очисткой. Применён только
+PRIVATE_LIBRARY_FILES_ENABLED=true в closed0600 private-uploads.env; private
+content flag уже был true. Recreate только API тем же image15865765… и штатный
+edge reload без правок. Финальный API
+`2c604839f745f7b88aa907341d284fa5f73bb7d43ab9de20946f603e6535548f`,
+image `sha256:15865765a80d030dd2e80aa863c5b45e5714a0e9162e6940554907f486eabb87`,
+healthy/restart0. Другие containers/images/config/flags/network isolation прежние;
+никаких push, нового image, frontend, DDL/DB switch или S3 writes.
+
+До включения — consistent backup40 tables/353120 bytes, server/local0600 SHA
+`a53f157be69e029e1e336d75cfe706c7a9d50c66af0e9a54fb338c4ccb6c007c`.
+Private artifacts: local `.local-artifacts/library-enable-20261020.ER3Dqo`
+от workspace и server `/home/edem/apps/daryadarcy-staging/library-enable-20261020.ER3Dqo`.
+Там closed baseline/env backups/receipts; не выводить prepared.json/env/DB dump
+в отчёт и не добавлять в Git. Production native dependency audit0 findings.
+
+Public verified HTTPS с staging host:89 checks, admin/member list200/4 exact
+WebP full GET SHA/HEAD200/Range206, guest/unpaid/deleted fixture sessions404 на
+list/direct GET/HEAD/Range; anonymous direct S3 GET/HEAD403. Full HTTP GET246–359ms.
+Каждый прогон создавал только2 test users/1 synthetic club_payments row, без
+email/phone/billing profile/outbox/provider; все fixtures всех прогонов удалены.
+После очистки fingerprints40 tables совпали с baseline, кроме normal admin
+lastSignedIn/updatedAt; credentials/role/session, schema42/4 bindings прежние.
+AUTO_INCREMENT не сбрасывался. Четыре рабочих S3 copies сохранены; старые sources,
+«Лошадка», recipes/Petersburg не переносились/не закрывались.
+
+Границы: два внешних Mac прогона не accepted. Во втором admin/apple GET уже200,
+Content-Length972770, body не завершился до абсолютного30s deadline harness.
+Оба завершились exact cleanup и проверенным rollback flag; точная причина
+внешнего поведения не доказана. Same API namespace S3 full reads417/51/54/73ms.
+Отдельный финальный прогон с VM использовал публичный HTTPS/обычную проверку
+TLS, не loopback/mock и не browser. Его accepted receipt — server-acceptance.json;
+enabled.json/cleanup.json подтверждают состояние. Нестабильная SSH разрывалась
+после apply; актуальное состояние проверено по running container/receipt,
+apply вслепую не повторялся. Acceptance worker был ограничен300s и выполнялся
+независимо от SSH с cleanup/guarded rollback на ошибке.
+
+Откат только по отдельному поручению: enable.py rollback проверяет текущие
+hashes/прочие сервисы, возвращает exact before-private-uploads.env и recreate
+только API тем же образом + edge reload. Не применять старый storage-rollout.py
+enable/disable: его baseline IDs/config устарели. Не повторять apply/importer/
+acceptance без свежей проверки статуса и нового scope; эти копии НЕ fixtures.
+Старые public sources и клиентская/браузерная приёмка остаются отдельными шагами.
+
+### История WIN-PREP — четыре зимние выкройки подготовлены до включения
 
 Новое явное разрешение20 октября: только новые private copies и bindings
 holly/sock/star/apple, без включения Library API/старых sources/frontend/deploy.

@@ -26,7 +26,12 @@
 Полный экспорт переписки не восстановлен. Документы служат источниками
 требований, но не самостоятельным разрешением действий от имени пользователя.
 
-20 октября, backend-only follow-up: локально исправлена потеря расширения имени
+Актуальный результат20 октября: WIN-LIVE включил backend-выдачу четырёх зимних
+выкроек, Library/content flags true, public HTTPS89 checks accepted с staging
+host. Это не Mac/browser приёмка или закрытие старых sources. Детали, область
+разрешения и остаток — начало todo и WIN-LIVE в границах ниже.
+
+История до WIN-LIVE,20 октября: локально исправлена потеря расширения имени
 при скачивании через shared private read; canonical MIME extension, прежние
 generic labels/inline/права и отсутствие storage paths сохранены. RED/GREEN и
 границы проверки записаны в todo/SPEC. Это не закрывает live RELEASE-U1, выдачу
@@ -58,6 +63,25 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **Результат WIN-LIVE20 октября:** Library/content flags true; API2c604839…
+  с прежним image15865765…healthy/restart0. Public verified HTTPS с staging host:
+  89 checks, admin/member четыре exact WebP GET/HEAD/Range, guest/unpaid/deleted
+  sessions denied и anonymous direct S3 denied. Все temporary rows удалены,
+  исходные40 tables сохранены кроме normal admin activity timestamps;
+  admin credentials/role/session/schema42/bindings4/config остальных сервисов
+  прежние. Подробные receipts/backup/rollback — existing runbook. Mac/browser
+  прогон не принят (абсолютный30s timeout body после200); источник сетевого
+  поведения не установлен. Не переносить этот статус на весь U1 или старые
+  public sources/«Лошадку»/recipes/Petersburg. Нового image/frontend/push нет.
+- **20 октября, WIN-LIVE — пользователь разрешил включение и проверку:**
+  включить PRIVATE_LIBRARY_FILES_ENABLED для уже подготовленных4 зимних
+  bindings, сохранив текущий image/DB/admin/password/прочие flags/frontend.
+  Дополнительно явно разрешены2 временных test-only аккаунта и1 синтетическая
+  запись доступа без provider/SMTP; после live read удалить только их данные.
+  Сохранить baseline/backup/точный откат одного флага. Проверить admin/member
+  list/bytes/HEAD/Range и guest/unpaid/direct URL denial. Нормальные activity
+  timestamps при проверке admin допустимы, credentials/role/session не менять.
+  Ни старые public sources, ни «Лошадку», recipes/Petersburg не переносить/закрывать.
 - **20 октября, WIN-PREP — принято пользователем «да — доделай все блокеры»:**
   подготовить новые закрытые копии ровно4 зимних изображений holly/sock/star/apple
   и их ready bindings в current DB через existing operator importer. Сначала

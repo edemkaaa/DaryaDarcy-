@@ -4,17 +4,25 @@
 
 Четыре зимние выкройки `holly`, `sock`, `star`, `apple` должны открываться
 участницам с действующим клубным доступом и администратору, но не гостям.
-Их выдача на стенде не принята: последний пользовательский результат — 404
-даже для администратора. Проверить оба server flags и реальные ready bindings,
-а не предлагать исправление локальных настроек или публичный fallback.
+Первоначальный пользовательский результат — 404 даже для администратора —
+был связан с выключенным Library flag, не требовал публичного fallback.
+
+WIN-LIVE20 октября: выдача четырёх зимних включена на staging; Library и content
+flags true.89 public verified HTTPS проверок с staging host подтвердили admin/
+member list200 и exact bytes/HEAD/Range, guest/unpaid/deleted-test sessions denial
+на list/direct API URL, anonymous direct S3 GET/HEAD403. Temporary users/access
+rows удалены, admin credentials/role/session/schema42 и4 bindings сохранены.
+Это backend API acceptance, не браузерная/Mac проверка: внешний Mac прогон
+прерывался на абсолютном30s deadline чтения. Старые public copies ещё не закрыты;
+не объявлять всю Библиотеку защищённой или остальные материалы перенесёнными.
 
 WIN-PREP20 октября после отдельного разрешения: новые закрытые copies четырёх
 WebP и ready bindings подготовлены через existing importer; revision1,
 3681002 bytes, source hash совпал с deployed assets. Signed GET/HEAD/Range и
 anonymous403 проверены, повтор того же manifest без дублей. Fresh backup и
 guards подтвердили сохранность всех прежних записей/admin/schema/policy.
-`PRIVATE_LIBRARY_FILES_ENABLED` работающего API остаётся false: это подготовка
-данных, не включение выдачи или успешная live проверка club/admin/guest.
+На стадии WIN-PREP `PRIVATE_LIBRARY_FILES_ENABLED` оставался false; позднейшее
+включение и границы backend-приёмки указаны в WIN-LIVE выше.
 Старые public sources/derivatives/cache сохранены и ещё не защищены.
 
 «Лошадка» (`loshadka`) — отдельный материал. В исходном импорте b06a46a она

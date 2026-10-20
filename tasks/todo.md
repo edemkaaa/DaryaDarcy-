@@ -4,6 +4,55 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### WIN-LIVE — разрешено включение и проверка четырёх выкроек
+
+- [x] Пользователь подтвердил включение Library flag для4 ready winter bindings.
+  Дополнительно разрешил2 временных test-only аккаунта и1 synthetic access row,
+  без provider/почты, с точным удалением только fixtures. Frontend/старые файлы/
+  «Лошадка»/recipes/Petersburg остаются вне переноса; credentials admin сохранить.
+- [x] Fresh preflight: тот же API image15865765…/schema42/4 ready bindings;
+  normal production dependency audit0. Consistent backup40 tables/353120 bytes,
+  SHAa53f157b… server/local0600 одинаковый; config/snapshot/rollback сохранены
+  вне Git в library-enable-20261020.ER3Dqo. Пока это не acceptance.
+- [x] Включить ровно PRIVATE_LIBRARY_FILES_ENABLED, recreate только API,
+  edge config reload без правок; остальные images/services/flags/DB прежние.
+- [x] Public HTTPS: admin/member четыре byte-exact WebP GET/HEAD/Range;
+  guest/unpaid/удалённые test sessions denied на list/direct API URL,
+  anonymous direct S3 denied; точная очистка2 users/1 synthetic access row.
+- [x] Проверить baseline40 tables/schema/bindings/config и admin credentials;
+  normal admin activity timestamps не восстанавливать. При неуспехе — guarded
+  rollback одного флага, не whole-DB restore и не удаление рабочих files.
+- [x] Первый WIN-LIVE: recreate только API7e2e5c3f… с прежним image; guest/unpaid
+  denied и4 admin byte-exact/HEAD/Range прошли. Authorized group затем TypeError
+  клиента, точная граница не сохранена — не объявлять причиной S3/прав доступа.
+  Обе temporary users и1 access row удалены, baseline/schema/bindings сохранены
+  (кроме normal admin activity). Флаг safely rolled back, API2169d6d4…healthy.
+  Добавлена только диагностическая точка в private harness, проверки не ослаблены;
+  выполнен один guarded повтор Mac-прогона после проверки исходной конфигурации.
+- [x] Повтор Mac: admin/apple GET уже HTTP200/Content-Length972770,
+  body не завершился до абсолютного30s deadline harness → TimeoutError.
+  Снова scoped cleanup и rollback, API741b77e7…healthy; это не установленный
+  дефект прав/S3. Из того же API namespace отдельно прочитаны все4 S3 copies:
+  byte-exact, full GET417/51/54/73ms. Старые objects не читались/не менялись.
+  Дальше отдельный public verified HTTPS прогон с staging host, не выдавать
+  его за успешный Mac/browser прогон и не ослаблять server access checks.
+- [x] Финальный WIN-LIVE accepted:89 checks с staging host через public verified
+  HTTPS, без TLS bypass. Admin/member list200/4 exact WebP, full GET SHA/HEAD200/
+  Range206; guest/unpaid/deleted-fixture tokens list/direct GET/HEAD/Range404,
+  anonymous direct S3 GET/HEAD403. Full GET246–359ms. Это проверка backend API,
+  НЕ Mac/browser/frontend приёмка. Mac absolute30s body abort не исправлялся
+  изменением продукта или ослаблением assertions; его точная внешняя причина
+  не доказана. Server acceptance выполнялся независимо от нестабильной SSH.
+- [x] Library flag true/content true, API2c604839… image15865765…healthy/restart0;
+  остальные containers/images/config/flags прежние. Тот же backend/DB, без
+  push/image deploy/migrations/frontend. Все temporary users/access rows всех
+  прогонов удалены; исходные40-table fingerprints совпали кроме normal admin
+  lastSignedIn/updatedAt. Credentials/role/session и schema42/4 bindings прежние.
+  Рабочие4 S3 copies сохранены, S3 writes не было. Private receipts:
+  library-enable-20261020.ER3Dqo/server-acceptance.json + enabled/cleanup.json;
+  точный откат env сохранён. Старые public sources не закрыты, «Лошадка»/
+  recipes/Petersburg не перенесены. Передача фронтендеру обновлена.
+
 #### WIN-PREP — новая разрешённая подготовка четырёх выкроек
 
 - [x] Пользователь разрешил новые private copies и4 bindings в рабочей БД,
@@ -35,11 +84,12 @@
 - [x] Дополнительные лёгкие backend проверки: raw-video errors, encoded size
   ceiling и media read errors —45/3 suites/0fail/0skip. Root tsc/check:docs61/
   diff check без ошибок; frontend и generated contract не менялись.
-- [ ] Остаток: согласованное включение Library + club/admin/guest live read;
-  отдельно старые public sources. Published U1 read/max-size/audio/video ещё
-  не приняты. Новый SQL/S3 стенд сейчас не запускать: Mac ниже safe512MiB;
-  сначала освободить место отдельным согласованным действием. Образы/БД/чужое
-  не удалялись. Frontend, push/deploy/runtime configuration не менялись.
+- [ ] Остаток после WIN-LIVE: browser/client приёмка4 зимних и отдельно старые
+  public sources. Published U1 read/max-size/audio/video ещё
+  не приняты. Предыдущая остановка fresh SQL/S3 была при Mac <512MiB; теперь
+  наблюдалось1.5GiB, перед новым стендом проверить ресурс заново. Образы/БД/чужое
+  не удалялись. WIN-LIVE изменил только разрешённый flag/runtime API выше;
+  frontend/push/нового image нет.
 
 #### Проверенные результаты до WIN-PREP
 
@@ -91,10 +141,10 @@
   access или admin; гость denied. Handoff/SPEC больше не требуют переноса
   «Лошадки» как пятого платного файла: b06a46a подтверждает исходный free статус,
   2fede81 — переход на закрытый flow. Отдельное решение о платности ещё требуется.
-- [ ] Зимние выкройки на staging: WIN-PREP выше завершил разрешённую подготовку
-  четырёх копий/ready bindings. Остались club/admin/guest через работающий API
-  и согласованное enablement; Library flag false. Не возвращать public fallback,
-  не закрывать старые источники автоматически; «Лошадка» отдельно.
+- [x] Зимние выкройки на staging: WIN-PREP подготовил4 copies/ready bindings,
+  WIN-LIVE выше включил и принял backend API для admin/member/guest/unpaid.
+  Browser/client и старые public sources отдельно; public fallback не добавлять,
+  старые источники автоматически не закрывать; «Лошадка» отдельно.
 - [x] Последнее уточнение пользователя: рецепты и Петербург остаются как есть;
   не менять их ссылки, выдачу, флаги или привязки. Backend-only/handoff сохраняется.
 - [x] Повторная диагностика после c0067bc: ветка прежняя, рабочее дерево чистое.
