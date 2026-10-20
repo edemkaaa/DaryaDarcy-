@@ -1,5 +1,60 @@
 # Spec: закрытая серверная выдача вложений постов
 
+## CAP-U — доступность подготовленных загрузок, принят20 октября2026
+
+Локальная интеграция существующих editors/comment photos с existing server flags,
+без изменения дизайна, working DB/S3/старых файлов, push/deploy или включения flags.
+GET /api/capabilities/no-store дополнен privateContentUploads (content flag),
+privatePostMediaUploads (post media flag), privatePostVideoUploads (media AND video).
+Только exact true; это release availability, не право доступа и не health S3.
+Старый сервер без новых полей, malformed payload и failed refresh дают false.
+
+UI сохраняет кнопки/дизайн, но отключает недоступные новые выбор/замену файлов.
+Remove/reorder, текст, VK-ссылки, public cover и status/recovery не отключаются
+одним общим upload flag. Выбор и фактическая отправка требуют свежего capabilities
+read с signal текущей операции; ошибка/false не допускают upload mutation.
+Binary transport остаётся прежним, guard принадлежит editor API adapter.
+Видео в редакторе требует также content flag: его generated poster — private photo.
+Это дополнительное ограничение целого editor workflow, не изменение video endpoint.
+Отказ не очищает File/receipt/journal/key и не переключается на public upload.
+Existing status-first recovery сохраняется, новую попытку создания поста не добавлять.
+UI query cached60s и revalidates stale data при focus/reconnect; failed refresh
+не использует прежний enabled результат. Между refresh UI может быть устаревшим,
+поэтому fresh guard перед выбором/отправкой обязателен, server checks остаются final.
+
+## LIB-P — минимальное предложение переноса платной Библиотеки,20 октября2026
+
+**Это предложение следующего среза, не реализованный API и не перенос файлов.**
+Не включать flags и не менять старые источники до отдельной проверенной процедуры.
+
+- Seven existing result modules смешивают free fairyTale/archetype/roleModels/
+  depth/challenge и club style/space/rituals/blog/inspiration. Открытый результат
+  теста/расчёт/названия/обложки сохранить. Только пять club полей убрать из client
+  runtime imports обоих consumers: aesthetics-screen и quiz-result; type-only
+  контракт общий, backend не импортирует frontend. Shared result renderer
+  получает лишь club payload, не полную mixed data константу.
+- Минимальный proposed read: GET /api/library/guides/aesthetics/:key для7 existing
+  aesthetic keys → {key,style,space,rituals,blog,inspiration}, без free duplicate
+  fields/новой DB таблицы/редактора. Existing live session + userHasClubAccess,
+  denial404 без content, infra503, private/no-store; ни paid JS imports, ни
+  static prerender/RSC props с платным payload для гостя. Поздние ответы и кэш
+  изолируются по аккаунту; revoke/account-switch/unmount убирают paid view.
+- Patterns:4 slots holly/sock/star/apple и отдельная «Лошадка» сейчас используют
+  public /assets/responsive originals и Yandex URL. Подключить уже принятые LB
+  list/read/bindings для material=patterns; перенос только по reviewed manifest
+  и проверенным source bytes. Не загружать/менять реальные файлы автоматически.
+- Отдельно инвентаризировать originals/derivatives и shared uses. Public covers,
+  quiz houses и декорации не закрывать автоматически. Existing moodboards/outfits/
+  interiors в public assets не становятся private от переноса текста; если это
+  платные originals, включить их в точный manifest до заявления полной защиты.
+- Порядок: синтетическая репетиция → проверенные новые private copies/bindings →
+  client delivery/bundle leak tests → согласованный rollout → отдельное закрытие
+  прежних originals/derivatives/old JS на origin и purge контролируемых caches.
+  Прямая Yandex share ссылка не может одновременно оставаться публичной и стать
+  защищённой проверкой приложения; её закрытие требует контроля владельца.
+  Уже скачанные пользователями bytes отозвать невозможно. До закрытия старых
+  источников нельзя заявлять полную защиту, даже если новые API работают.
+
 ## LB — встроенные файлы Библиотеки, принят17 октября2026
 
 Разрешена local реализация и репетиция только synthetic6 files, own disposable

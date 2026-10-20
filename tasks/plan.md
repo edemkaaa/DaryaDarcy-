@@ -29,6 +29,14 @@
 
 ### Границы работы
 
+- **20 октября, CAP-U — пользователь «давай да делаем»:** локально реализовать
+  additive upload availability и соединить с existing editors/comment photos,
+  не включая рабочие flags. Контракт и проверки — SPEC-private-files/CAP-U;
+  post video editor требует content flag для private poster дополнительно к
+  server media+video. Дизайн/public covers/VK/roles/quotas/schema неизменны.
+  По Библиотеке подготовлен LIB-P proposal: сначала согласовать точное отделение
+  paid/free и перенос источников, не начинать реальный перенос/закрытие старых
+  ссылок автоматически. Push/deploy, рабочие DB/S3/flags по-прежнему не разрешены.
 - **20 октября, AUTH-OUT / ADM-T1 / CAP-U:** по новым четырём замечаниям
   разрешены локальные исправления подтверждённых дефектов и generated contract.
   Пользователь доверил выбор семантики logout: используем существующий

@@ -2,6 +2,58 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### CAP-U — доступность загрузок связана с интерфейсом,20 октября; локально
+
+- Локальные commits: contract `d368a6c`, integration/tests `156920c`.
+- [x] Clean11db3af/рабочая feature branch/планы проверены. Contract slice
+  `d368a6c`: GET capabilities дополнен3 booleans из existing flags, video=media
+  AND video, no-store. RED13 → GREEN35 focused; дополнительно native Nest
+  HTTP/transport/fixtures72 pass. Старые ответы с4 полями/не-bool/null безопасны.
+  Один existing aggregate contract fixture потребовал3 новых false, runtime
+  поведение shop/disabled функций не менялось. Working settings не читались.
+- [x] Both post editors, private article files и comment photos: disabled выбор/
+  замена для недоступного формата, без изменения CSS/assets/layout/copy кнопок.
+  Новая отправка требует свежего capabilities read с operation signal; old UI
+  hint не разрешает mutation. Video editor требует также content для постера.
+  Нет публичного fallback. Текст, VK, public cover, remove/reorder и status-first
+  recovery сохранены. Исходные File/key/receipt/journal при отказе не очищаются.
+- [x] Shared query data cached60s; opt-in refetch stale data focus/reconnect,
+  failed refresh больше не использует прежний true. Глобальные query settings
+  не менялись. RED browser: оба defect класса подтверждены в реальном Next UI;
+  initial cold compile timeout был setup, не product RED. Refresh-test event
+  исправлен после проверки window listener query-core, production hacks не нужны.
+- [x]7 новых Chromium browser cases pass/0skip: оба редактора old-server/off,
+  text-only publish, false после выбора до upload без mutation/create и с
+  сохранением фото/текста после reload; comment-photo API503 с text-only comment;
+  article private photos/docs disabled, public banner доступен; failed refresh
+  после prior true отключает picker. Контролируемые HTTP responses, не actual S3.
+- [x]22 existing photo/comment/article browser cases pass/0skip,86.57s:
+  lost upload/create ACK, status-first stable keys, reload, account switch и
+  closed/deleted scopes. Explicit editor fixture теперь advertises enabled
+  uploads, negative cases override response; flags стенда не менялись.
+- [x] Full regression2672 pass/1628 opt-in skips;206 passed suites/97 skipped.
+  Browser29 выше выполнены отдельно без skips. Root/frontend/E2E types, lint,
+  backend607.1KiB, API90/35243, boundaries692, scoped format/diff проходят.
+  Review: shared read/strict bool/default false, fresh guard для picker/uploads,
+  cancellable requests, no new persistence/deps/auth/roles/quotas. Собственные
+  Next fixtures закрыты/удалены helper finally; рабочие БД/S3/старые files не
+  использовались. Server runtime по-прежнему D7, это ещё не live upload acceptance.
+- [x] Final production Next build29/29 pages, lint/root/frontend/E2E types и
+  docs59/exit0 подтверждены после последнего runtime изменения. Browser7 новый
+  suite и22 existing suites выполнены без skips; full default suite их opt-in
+  skips не скрывает и не считается сквозной приёмкой настоящего API/S3.
+- [ ] Reviewed enable/upload→bind→read на dev остаётся отдельной процедурой:
+  определить флаги полного workflow, подтвердить storage privacy/schema/config,
+  сохранить rollback и проверить реальные API/S3 с own synthetic fixtures.
+  Не включать flags и не выполнять выпуск автоматически.
+- [x] LIB-P: минимальное предложение и ограничения сохранены в SPEC-private-files:
+  five paid sections/7 aesthetics → protected server read для двух consumers;
+  free quiz fields/public covers прежние; patterns → existing LB bindings.
+  Это proposal, не новая готовая процедура или сделанный перенос.
+- [ ] Далее согласовать LIB-P и точную карту public originals/derivatives/shared
+  uses. Старые Yandex/assets/old JS/cache не закрывались; никакой полной защиты
+  Библиотеки сейчас не заявлять. S3/working DB/design/push/deploy не трогать.
+
 ### AUTH-OUT / ADM-T1 — новые замечания,20 октября; только локально
 
 - Локальные code commits: ADM-T1 `53d800a`, AUTH-OUT `818f00b`.
@@ -38,14 +90,8 @@
   abe3117f…65487 удалён после exact ID/owner/task/loopback/tmpfs768MiB/no-volume
   guards. Одноразовые fixture данные воспроизводимы; образы, volumes и чужие
   контейнеры не удалялись. Реальные S3/письма/платежи и live browser не проверялись.
-- [ ] CAP-U: private upload API подготовлены, рабочие flags всё ещё off;
-  capabilities пока содержат только прежние4 поля, редакторы/фото комментариев
-  не читают доступность private upload. Следующий минимальный контракт:
-  additive booleans для content-photo/file, post-audio/document и post-video,
-  derived только от existing flags (video требует media+video). Unknown/error/
-  false блокируют новые выбор/загрузку без public fallback и потери recovery.
-  Отдельно согласовать contract/integration, затем reviewed enable+acceptance;
-  в этой задаче не включать рабочие flags автоматически.
+- [x] CAP-U local contract/integration выполнены20 октября, см. новый верхний
+  раздел. Working flags по-прежнему off; reviewed enable/live acceptance открыт.
 - [ ] Библиотека остаётся реально незакрытой:4 CHRISTMAS_PATTERNS — public
   /assets/responsive originals, «Лошадка» — public Yandex URL; guide импортирует
   7 full club-result modules. Те же7 modules импортирует quiz-result: убрать
@@ -264,11 +310,9 @@
   access checks, SQL errors не подменяются zero stats; нет контрактных изменений.
   Не заявляется live load/полная приёмка пяти замечаний. Только локальный commit,
   без push/deploy/flags/frontend/working DB/S3/старых файлов.
-- [ ] Upload availability: согласовать additive capabilities для фото/файлов,
-  audio/docs и video, derived от действующих server flags (video требует оба).
-  Unknown/error/false запрещают новую загрузку, без public fallback/потери
-  выбранных вложений/recovery. Потом logic integration и отдельно reviewed
-  включение полного upload→bind→read на стенде; флаги сейчас не включать.
+- [x] Upload availability:20 октября local contract/integration CAP-U выполнены
+  по прямому продолжению пользователя, см. начало checklist. Отдельное reviewed
+  включение полного upload→bind→read на стенде остаётся открытым; flags не включать.
 - [x] Admin lists: contract принят и выполнен ADM-P2 выше. Новая админка больше
   не вызывает legacy admin.posts; он сохранён без усечения для других callers,
   включая quick-management verification. Сам факт старого endpoint742 rows
