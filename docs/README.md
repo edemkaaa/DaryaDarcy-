@@ -11,6 +11,7 @@
 5. [Передача изменений бэкенда фронтендеру](development/backend-handoff-2026-10-05.md).
 6. [Текущие задачи фронтендеру по Библиотеке и загрузкам](development/frontend-handoff-library-uploads-2026-10-20.md).
 7. [Правки фронтенда после сверки договора и API от 20 октября](development/frontend-fixes-contract-audit-2026-10-20.md).
+8. [Пакетный сбор iframe и адресов обложек VK](development/vk-metadata-export-2026-10-20.md) — локальная утилита без импорта в приложение.
 
 ## Устройство системы
 

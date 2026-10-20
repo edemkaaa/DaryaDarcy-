@@ -4,6 +4,26 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### VK-META — пакетный сбор метаданных,20 октября
+
+- [x] V1: existing TXT распознан как22 unique community-211171256 URLs;
+  native CLI --plan: sourceCount22/networkRequested=false. RED1→GREEN16.
+- [x] V2:3127a95, явный official video.getOembed collect без credentials/cookies,
+  bounded body/timeouts/no redirect, match iframe oid/id через existing parser,
+  thumbnail metadata без скачивания; private new output/no overwrite. Проверить
+  на own loopback provider server, не обходить browser VK site-safety блок.
+  RED19→GREEN36, CLI RED3→GREEN43; review RED quoted-title fake-src→GREEN44,
+  mixed batch→45. Final metadata45 + existing VK validator18:63 pass/2 suites/
+  0skip/1.99s; TSC/Prettier/boundaries704/diff GREEN. Полный suite не запускался.
+- [x] [Handoff одной команды](../docs/development/vk-metadata-export-2026-10-20.md):
+  status/errors/exit0/1/2, JSON0600/outside Git, no overwrite, no HTML execution,
+  paused after external failures не выглядит success. Test-only processes/server/
+  directories закрыты/удалены. Working DB/S3/frontend/runtime/deploy untouched.
+- [ ] Пользователь запускает реальный export и предоставляет JSON. Все проверки
+  provider были loopback fixtures, реальных VK calls не было, browser policy не
+  обходилась. ThumbnailSourceUrl — только metadata, не проверенный готовый cover;
+  bytes/S3/import/public-club policy и playback acceptance требуют отдельного шага.
+
 #### VK-ONLY — убрать YouTube из раздела Видео,20 октября
 
 - [x] Подтверждён backend-only scope/документ фронтендеру; old source rows,

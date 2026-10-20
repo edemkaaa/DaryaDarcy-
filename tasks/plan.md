@@ -63,6 +63,24 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **20 октября, VK-META — новая разрешённая подготовка:** пользователь согласовал
+  сбор iframe/cover metadata по22 page URLs. Только локальная standalone утилита:
+  V1 parse/dedupe/owner guards и offline plan; V2 явный oEmbed collect, bounded
+  responses/timeouts/no redirects/no cookies/tokens/HTML execution, отчёт без
+  auto-import. Проверять RED/GREEN на loopback provider fixture, не обращаться
+  к VK через API/другой канал в обход browser site-safety отказа. Live export
+  запускает пользователь; результат не playback acceptance. Не менять frontend,
+  рабочую DB/S3/старые файлы, не скачивать cover bytes/не публиковать exports.
+  Output вне Git0600/no-overwrite; thumbnail URL только metadata, не готовый
+  backend-approved cover. После получения export отдельно проверить источники.
+  Реализация3127a95:45 новых +18 существующих validator checks GREEN (63/2,
+  skip0), TSC/Prettier/boundaries704/diff GREEN; native actual TXT --plan22/no
+  network. Нашёлся и закрыт RED quoted-title fake-src; целиком токенизированы
+  атрибуты вместо поиска src внутри чужого значения. Test-only provider loopback,
+  CLI streams/timeouts/partial batch/private no-overwrite output проверены.
+  [Команда владельцу](../docs/development/vk-metadata-export-2026-10-20.md)
+  подготовлена; live export/обложки/playback не объявлять принятыми.
+
 - **20 октября, VK-ONLY — принято и готово локально:** пользователь поручил
   убрать YouTube, затем уточнил backend-only и документ фронтендеру.4c04d62
   фильтрует catalog/playback только VK, retire legacy list/detail/import и
