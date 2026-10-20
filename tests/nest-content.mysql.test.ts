@@ -275,20 +275,18 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
-    it("keeps the existing standalone VK video catalog public and hides unpublished sources", async () => {
+    it("does not expose legacy rows through the retired public adapters", async () => {
       await conn.query(
         "INSERT INTO videos (id,youtubeId,title,videoUrl,published) VALUES (8990,'native-vk-public','VK standalone fixture',?,TRUE)",
         [publicVk],
       );
       try {
-        expect(await client().videos.getById.query({ id: 8990 })).toMatchObject(
-          { id: 8990, videoUrl: publicVk },
-        );
+        expect(await client().videos.getById.query({ id: 8990 })).toBeUndefined();
         expect(
           (await client().videos.list.query()).find(
             (video) => video.id === 8990,
           )?.videoUrl,
-        ).toBe(publicVk);
+        ).toBeUndefined();
         await conn.query("UPDATE videos SET published=FALSE WHERE id=8990");
         expect(
           await client().videos.getById.query({ id: 8990 }),

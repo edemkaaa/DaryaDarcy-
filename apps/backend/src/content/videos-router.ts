@@ -43,28 +43,18 @@ export const createVideosRouter = (content: ContentReadService) =>
     playback: publicProcedure
       .input(z.object({ id }).strict())
       .output(
-        z.discriminatedUnion("provider", [
-          z
-            .object({
-              id,
-              provider: z.literal("vk"),
-              embedUrl: z.string().url(),
-            })
-            .strict(),
-          z
-            .object({
-              id,
-              provider: z.literal("youtube"),
-              youtubeId: z.string(),
-              videoUrl: z.string().nullable(),
-            })
-            .strict(),
-        ]),
+        z
+          .object({
+            id,
+            provider: z.literal("vk"),
+            embedUrl: z.string().url(),
+          })
+          .strict(),
       )
       .query(({ ctx, input }) => videoPlayback(ctx.user, input.id)),
     list: publicProcedure.query(() => content.listVideos()),
 
     getById: publicProcedure
       .input(z.object({ id: z.number() }))
-      .query(({ input }) => content.videoById(input.id)),
+      .query(() => content.videoById()),
   });

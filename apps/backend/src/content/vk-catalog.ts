@@ -150,6 +150,7 @@ export async function videoCatalog(
       .from(videos)
       .where(
         and(
+          eq(videos.provider, "vk"),
           eq(videos.published, true),
           input.cursor ? gt(videos.id, input.cursor) : undefined,
         ),
@@ -182,7 +183,13 @@ export async function videoPlayback(actor: User | null, id: number) {
     const [video] = await tx
       .select()
       .from(videos)
-      .where(and(eq(videos.id, id), eq(videos.published, true)))
+      .where(
+        and(
+          eq(videos.id, id),
+          eq(videos.published, true),
+          eq(videos.provider, "vk"),
+        ),
+      )
       .for("update");
     if (!video) throw new TRPCError({ code: "NOT_FOUND" });
     if (video.access === "club") {
@@ -195,34 +202,18 @@ export async function videoPlayback(actor: User | null, id: number) {
         throw new TRPCError({ code: "FORBIDDEN" });
     } else if (video.access !== "public")
       throw new Error("Invalid video access");
-    if (video.provider === "vk") {
-      const source = video.vkEmbedUrl ? parseVkEmbed(video.vkEmbedUrl) : null;
-      if (
-        !source ||
-        source.sourceKey !== video.vkSourceKey ||
-        video.youtubeId !== null ||
-        video.videoUrl !== null
-      )
-        throw new Error("Invalid VK source");
-      return {
-        id: video.id,
-        provider: "vk" as const,
-        embedUrl: source.embedUrl,
-      };
-    }
+    const source = video.vkEmbedUrl ? parseVkEmbed(video.vkEmbedUrl) : null;
     if (
-      video.provider !== "youtube" ||
-      !video.youtubeId ||
-      !/^[\w-]{11}$/.test(video.youtubeId) ||
-      video.vkEmbedUrl !== null ||
-      video.vkSourceKey !== null
+      !source ||
+      source.sourceKey !== video.vkSourceKey ||
+      video.youtubeId !== null ||
+      video.videoUrl !== null
     )
-      throw new Error("Invalid YouTube source");
+      throw new Error("Invalid VK source");
     return {
       id: video.id,
-      provider: "youtube" as const,
-      youtubeId: video.youtubeId,
-      videoUrl: video.videoUrl,
+      provider: "vk" as const,
+      embedUrl: source.embedUrl,
     };
   });
 }

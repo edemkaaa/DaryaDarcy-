@@ -4,6 +4,7 @@ import { userHasClubAccess } from "../identity/club-access";
 import * as db from "../db";
 import type { z } from "zod";
 import type { adminPostsPageInput, adminPostCalendarInput } from "./admin-post-reads";
+import type { PublicVideo } from "./video-repository";
 
 @Injectable()
 export class ContentReadService {
@@ -88,12 +89,14 @@ export class ContentReadService {
     return db.getAllTags();
   }
 
-  listVideos() {
-    return db.getVideos();
+  async listVideos(): Promise<PublicVideo[]> {
+    // Retired YouTube wire shape stays empty, including when VK is disabled.
+    // Never put VK capabilities into an anonymous worker's legacy catalog.
+    return [];
   }
 
-  videoById(id: number) {
-    return db.getVideoById(id);
+  async videoById(): Promise<PublicVideo | undefined> {
+    return undefined;
   }
 
   async postById(id: number, user: User | null) {

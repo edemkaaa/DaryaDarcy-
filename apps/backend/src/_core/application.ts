@@ -6,7 +6,6 @@ import type { INestApplication } from "@nestjs/common";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { AppModule } from "../app.module";
 import { registerProdamusRoutes } from "../prodamus";
-import { registerYoutubeStream } from "../youtube-stream";
 import { TrpcService } from "./trpc.service";
 import { registerHttpSecurity } from "./http-security";
 import { registerRequestBodies } from "./request-bodies";
@@ -52,7 +51,6 @@ export async function createBackendApplication(
 
   // Transitional adapters: replace one domain at a time behind the same API.
   registerProdamusRoutes(http);
-  registerYoutubeStream(http);
   const application = await NestFactory.create(AppModule, adapter, {
     bodyParser: false,
     logger: false,

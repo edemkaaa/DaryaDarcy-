@@ -9,7 +9,6 @@ import * as db from "../db";
 import { sendMarketingPostNotification } from "../push";
 import { postCreationIntent } from "./post-creation-request";
 import type { CreatePostInput, UpdatePostInput } from "./post-write-input";
-import type { ImportVideosInput } from "./video-import-input";
 import { userHasClubAccess } from "../identity/club-access";
 import type { ReactionAccessCheck } from "./post-reactions";
 import { TRPCError } from "@trpc/server";
@@ -75,20 +74,13 @@ export class ContentWriteService {
     return { ok: true };
   }
 
-  async importVideos(input: ImportVideosInput): Promise<{ imported: number }> {
-    const items = input.videos.map((video, index) => ({
-      youtubeId: video.youtubeId,
-      title: video.title,
-      duration: video.duration ?? null,
-      thumbnailUrl: video.thumbnailUrl ?? null,
-      videoUrl: null,
-      views: video.views ?? null,
-      publishedText: video.publishedText ?? null,
-      sortOrder: index,
-      published: true,
-    }));
-    const count = await db.bulkImportVideos(items);
-    return { imported: count };
+  async importVideos(): Promise<{ imported: number }> {
+    // Keep validation/authentication on the old procedure, but never write
+    // another YouTube row after the agreed VK-only transition.
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Импорт YouTube отключён; используйте VK",
+    });
   }
 
   async createPost(
