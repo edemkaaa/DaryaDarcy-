@@ -29,6 +29,17 @@
 
 ### Границы работы
 
+- **20 октября, RELEASE-U1 — прямое разрешение пользователя:** выпустить
+  последние правки в staging и проверить все вложения и фото комментариев.
+  Сохранить текущую БД, admin/password, дизайн, старые файлы и rollback images.
+  Сначала schema/storage/identity/privacy preflight и обновление с прежними
+  upload flags; включать только проверенные upload/delivery flags, затем live
+  acceptance на собственных новых synthetic объектах с точечной очисткой.
+  Не включать Library/cleanup flags, не переносить старые файлы, не менять
+  payment/SMTP настройки, роли/CORS/proxy trust. На старте D7 API не содержит
+  S3 config и подключён только к internal network: отдельно требуется безопасный
+  доступ к endpoint без общего снятия сетевой изоляции. Приёмка не считается
+  выполненной по одним локальным mocks, capability booleans или image health.
 - **20 октября, LIB-P — прямое принятие контракта:** локально отделить пять
   платных блоков семи эстетик, добавить защищённое server read и подключить оба
   существующих consumer (гид/quiz result); patterns подключить к existing LB

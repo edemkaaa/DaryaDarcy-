@@ -1,0 +1,35 @@
+# Reviewed opt-in overlay. Keep flags false in private-uploads.env until the
+# same-DB/schema/policy/identity/TLS preflight has passed. Never publish ports.
+services:
+  api:
+    env_file: [./api.env, ./private-uploads.env]
+    depends_on:
+      s3-egress: { condition: service_healthy }
+  s3-egress:
+    image: nginx:stable-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
+    pull_policy: never
+    user: "101:101"
+    entrypoint: ["nginx", "-g", "daemon off;"]
+    networks:
+      isolated: { aliases: [s3.twcstorage.ru] }
+      s3-egress: {}
+    volumes: ["./s3-egress.conf:/etc/nginx/nginx.conf:ro"]
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    read_only: true
+    sysctls: { net.ipv4.ip_unprivileged_port_start: "0" }
+    mem_limit: 32m
+    cpus: 0.1
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    healthcheck:
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: "1m", max-file: "2" }
+networks:
+  s3-egress: {}

@@ -1,5 +1,38 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## RELEASE-U1 — загрузки, подготовка20 октября 2026
+
+Пользователь разрешил выпуск последних правок и live upload acceptance с
+сохранением current DB/admin/password/design/legacy files. На старте работает
+именно D7 ниже. New app source2fede8134b13f0e6ee6d02fb503cb28675846262,
+production manifests/lock/public assets/Next config совпадают с D7; рабочие
+compiled VK/recovery/Prodamus TEST flags сохраняются. Library/cleanup flags не
+включать и старые источники не переносить в рамках upload release.
+
+Fresh preflight выявил отсутствие S3 config и only-internal API networking.
+Optional compose.private-uploads.yaml добавляет отдельный non-root readonly
+S3 TLS passthrough, не общий egress API: canonical endpoint/DNS alias, один
+upstream IPv4:443 и exact SNI, no published ports/secrets/TLS termination.
+IP217.78.234.145 подтверждён DNS staging host и verified HTTPS20 октября;
+перед apply перепроверить DNS/certificate. Это operational pin, не вечная гарантия.
+Механизм SNI основан на [официальном ssl_preread](https://nginx.org/en/docs/stream/ngx_stream_ssl_preread_module.html).
+
+Существующий key из явно разрешённой переписки проверен с staging web namespace:
+signed PUT/HEAD/GET и anonymous GET/HEAD/Range403 на трёх новых UUID objects во
+всех private prefixes. Policy SHA0484dfa2cc0164225db616bc516c53e8be377aca975d32701b6a6467ce1715e8
+до/после прежний; versioning disabled, exact metadata/ETag delete и HEAD404.
+Никаких old object/policy/ACL writes. Это storage preflight, ещё не API приёмка.
+Private evidence local0700 `.local-artifacts/release-u1.pUAwLj` от workspace;
+server0700 `/home/edem/apps/daryadarcy-staging/release-u1.HxeY5r` пока пуст.
+Закрытые operational credentials/configs/backup не добавлять в Git или отчёты.
+
+Последовательность: pinned image delta/native checks → fresh consistent backup
+и same-DB/schema/admin guards → image-only rollout с прежними flags → metadata/
+S3 identity/privacy through isolated API → только4 upload/delivery flags →
+own synthetic live acceptance/cleanup. Ни prepare, ни image health сами по
+себе не означают working upload readiness. Существующие rollback images,
+backup и current DB сохранять; не применять исторические cutover scripts.
+
 ## Текущий working dev — RELEASE-D7,20 октября 2026
 
 Публичный `https://daryadarcy.dev.reeskeen.ru` реально обновлён, runtime commit

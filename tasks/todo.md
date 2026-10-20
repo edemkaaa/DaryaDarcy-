@@ -2,6 +2,38 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### RELEASE-U1 — выпуск и приёмка загрузок на staging,20 октября
+
+- [x] Clean feature branch/2fede81, incoming staging0/ours9 после fetch;
+      существующий D7 runtime и guarded image rollback inspected. SSH доступен.
+- [x] Fresh ограничения: server1086MiB free; API только internal network,
+      S3 configuration отсутствует. Одних flags недостаточно. DB/admin/config
+      пока не менялись, push/deploy ещё не выполнены.
+- [x] Настоящий S3 с host-egress web namespace:3 новых UUID probe objects,
+      signed PUT/HEAD/GET, anonymous GET/HEAD/Range403 во всех3 private prefixes;
+      exact metadata/ETag cleanup и HEAD404. Policy SHA0484dfa2…прежний, versioning
+      disabled, policy/ACL/старые objects не менялись. Доступ восстановлен только
+      из явно присланных пользователем ключей, значения не попали в Git/вывод.
+- [x] Новый opt-in Compose overlay: API остаётся только на internal network,
+      отдельный non-root/read-only/cap-drop TLS passthrough только к pinned S3 IPv4
+      и SNI, без published ports/TLS termination. RED missing S3 environment →
+      GREEN native Compose contract1/0skip. Конфигурация пока не применена на сервере.
+- [x] Native production audit0/325 deps; Next29 pages с прежними working
+      compiled flags (VK/recovery/Prodamus TEST true, other TEST false); focused68
+      pass, types/lint/API90/35243/boundaries704/docs59/diff pass. Runtime bundles
+      собраны из app source2fede81, manifests/lock/public assets/config неизменны.
+- [ ] Проверить schema/history/admin fingerprint, fresh backup, storage policy
+      и identity; подготовить узкий S3 egress без отключения изоляции API.
+- [ ] Собрать и проверить final API/web/restricted TEST artifacts с сохранением
+      compiled runtime flags, нормальный push staging; image-only rollout с прежними
+      upload flags и проверенным same-DB rollback.
+- [ ] После preflight включить только complete upload/delivery workflow;
+      проверить post/article фото, audio/doc/video и comment photos, права/отзыв,
+      lost response/status-first retry/no duplicates на новых synthetic fixtures.
+- [ ] Точно убрать только собственные fixtures/objects, проверить сохранность
+      admin/schema/старых данных и прочих containers, сохранить proof/ограничения.
+      Library/retention flags, старые sources/файлы/ACL, provider/SMTP — вне scope.
+
 ### LIB-P — принят20 октября; локальная реализация
 
 - [x] Проверены clean fd8378d, feature branch, планы и frontend AGENTS/Next guide.
