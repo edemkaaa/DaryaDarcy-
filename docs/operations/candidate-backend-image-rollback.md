@@ -1,6 +1,6 @@
 # БД-кандидат: backend artifact и откат приложения
 
-## RELEASE-U1 — загрузки, подготовка20 октября 2026
+## RELEASE-U1 — обновление применено, приёмка загрузок открыта,20 октября 2026
 
 Пользователь разрешил выпуск последних правок и live upload acceptance с
 сохранением current DB/admin/password/design/legacy files. На старте работает
@@ -23,7 +23,7 @@ signed PUT/HEAD/GET и anonymous GET/HEAD/Range403 на трёх новых UUID
 до/после прежний; versioning disabled, exact metadata/ETag delete и HEAD404.
 Никаких old object/policy/ACL writes. Это storage preflight, ещё не API приёмка.
 Private evidence local0700 `.local-artifacts/release-u1.pUAwLj` от workspace;
-server0700 `/home/edem/apps/daryadarcy-staging/release-u1.HxeY5r` пока пуст.
+server0700 `/home/edem/apps/daryadarcy-staging/release-u1.HxeY5r`.
 Закрытые operational credentials/configs/backup не добавлять в Git или отчёты.
 
 Последовательность: pinned image delta/native checks → fresh consistent backup
@@ -33,7 +33,71 @@ own synthetic live acceptance/cleanup. Ни prepare, ни image health сами 
 себе не означают working upload readiness. Существующие rollback images,
 backup и current DB сохранять; не применять исторические cutover scripts.
 
-## Текущий working dev — RELEASE-D7,20 октября 2026
+### Фактически применённый U1 и точка продолжения
+
+Normal push becaf6d69112a845ac5173fba0e237cf9fd33994 подтверждён remote staging.
+Runtime app source2fede8134b13f0e6ee6d02fb503cb28675846262:
+API/restricted TEST `sha256:15865765a80d030dd2e80aa863c5b45e5714a0e9162e6940554907f486eabb87`,
+web `sha256:ca936764114d51fc0e0b1c3c8fceb26bd5e6e485326acb6d1e25bb945b50292b`.
+API bundle82ff11c0a04e66ae8970dd9615e34a5f7bb31567e5d812504244ed5e8f28d440,
+restricted TEST11768605a3b045d071b449f7d61f0d64e1f72611abb7b804f91c24a1884cc2de,
+BUILD_ID iWTVsayf9GvrBy89i4TdJ. Native server offline17 checks pass, non-root,
+no provider/DB/S3 secrets embedded, dependency/native base pinned D7 unchanged.
+Передан не полный535MB image archive, а checked build context29795331 bytes,
+SHAf46ecdb27f9611e810d93a03e0365a54912ecec5212f65fa4b191599e61cbb5d;
+server offline delta build на прежних exact image bases. Old served .next tree
+удалён только внутри нового image перед COPY; старые public assets неизменны.
+
+Fresh backup351863 bytes/40 tables,
+SHA9ca1191a9ae9109be7d798e8766598df662f7c38ec69d173bffa6b77a920073a,
+server/local0600 copies совпали. Та же DB daryadarcy_candidate_20261019,
+schema/history42/admin/password/role/sessionVersion fingerprints до/после равны.
+Images-only verify: все3 services healthy/restart0/OOMfalse, остальные26
+containers неизменны; pending mail/binding/deletion/shop/scheduled/billing0.
+
+Затем storage-rollout.py применил compose.private-uploads.yaml и отдельный
+closed0600 private-uploads.env только API; первоначально все4 flags false.
+API-only isolated networking сохранён. Из actual API повторены S3 signed
+read/anonymous GET/HEAD/Range403 и точная очистка3 новых probe objects;
+policy прежний, verified TLS/exact SNI, wrong SNI rejected, general egress denied.
+После storage-preflight.json включены PRIVATE_CONTENT_FILES_ENABLED,
+PRIVATE_POST_MEDIA_UPLOAD_ENABLED, PRIVATE_POST_MEDIA_DELIVERY_ENABLED,
+PRIVATE_POST_VIDEO_UPLOAD_ENABLED. Last-known API container
+035752d8e1d7a748bff6b08bae27fbbfbaa2f83dad2f0fff83fed5680d28b9a5;
+proxy9b53c54a…healthy. Library/cleanup/provider/SMTP/CORS/roles/квоты прежние.
+
+Первый live acceptance реально дошёл до9 ready objects: post photo/poster,
+article photo/PDF, MP3/TXT/raw MP4,2 comment photos. PNG >256KiB, public HTTPS,
+actual deployed API/SQL/S3; собственный proxy теряет completed successful
+responses, затем status/retry подтверждают прежние asset/parent IDs без дублей.
+Чужой actor status notRecorded/bind409, max2 comment photos400 на третьем.
+На группе authorized bytes/headers/range — AssertionError, причина неизвестна.
+Read/access revocation/browser/полные предельные размеры не приняты.
+
+Finally первого прогона удалил только9 guarded own objects (HEAD404), synthetic
+post/article/teaser/comment/4 users и recovery rows. Count+digest всех исходных
+SQL tables совпали до/после; policy прежний, helper container9fe674e2…удалён.
+Старые files/данные не менялись; искусственных платежей/писем не создавали.
+Private live-output.log содержит safe failure/cleanup evidence. Старый harness
+писал подробности в tmpfs /tmp, исчезнувший после exit, поэтому copied report
+не сохранился и wrapper groups0 НЕ означает отсутствие пройденных mutations.
+Local harness исправлен на0700 persistent evidence directory и non-root1001
+bind /evidence, но повторная доставка не удалась: несколько SSH banner timeout,
+Mac HTTPS TLS timeout. У пользователя запрошена смена VPN/сети.
+
+**Не считать выпуск accepted.** images state.json running-new, storage-state.json
+enabled. После восстановления связи сначала health/schema/admin/config guards,
+затем доставить local live-uploads.mjs/run-live.py и установить точную read
+assertion. При confirmed read defect — guarded storage-rollout.py disable
+до product RED/GREEN и повторной приёмки. Для полного отката сначала
+storage-rollout.py rollback (перемещает только3 own configs в private directory,
+восстанавливает isolated API и удаляет только own proxy/network), затем
+rollout-images.py rollback на D7 в той же БД. Не восстанавливать старую DB.
+После окончательной acceptance нужны свежие fingerprints/receipt с actual
+current API ID и storage delta; первоначальный images verify не покрывает
+последующее включение flags. Старые backups/images не удалять.
+
+## Предыдущий working dev — RELEASE-D7,20 октября 2026
 
 Публичный `https://daryadarcy.dev.reeskeen.ru` реально обновлён, runtime commit
 `1fc155e44c9d2c689e6cf567cfa735556975c61c` в staging. Выпущены ADM-P2 и SAVED-P1.

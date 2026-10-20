@@ -40,6 +40,11 @@
   S3 config и подключён только к internal network: отдельно требуется безопасный
   доступ к endpoint без общего снятия сетевой изоляции. Приёмка не считается
   выполненной по одним локальным mocks, capability booleans или image health.
+  **Фактический статус:** U1 app2fede81 уже применён,4 flags включены после
+  native storage/schema/TLS preflight; acceptance не accepted. Первые9 synthetic
+  upload/recovery/bind проверены и точно очищены, исходные SQL rows совпали.
+  На read группе остановка с неизвестной assertion; повтор blocked SSH/HTTPS
+  сетью. Продолжать по RELEASE-U1 в todo/runbook, не повторять rollout/смену DB.
 - **20 октября, LIB-P — прямое принятие контракта:** локально отделить пять
   платных блоков семи эстетик, добавить защищённое server read и подключить оба
   существующих consumer (гид/quiz result); patterns подключить к existing LB

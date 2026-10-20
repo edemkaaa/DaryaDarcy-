@@ -22,17 +22,43 @@
       compiled flags (VK/recovery/Prodamus TEST true, other TEST false); focused68
       pass, types/lint/API90/35243/boundaries704/docs59/diff pass. Runtime bundles
       собраны из app source2fede81, manifests/lock/public assets/config неизменны.
-- [ ] Проверить schema/history/admin fingerprint, fresh backup, storage policy
-      и identity; подготовить узкий S3 egress без отключения изоляции API.
-- [ ] Собрать и проверить final API/web/restricted TEST artifacts с сохранением
-      compiled runtime flags, нормальный push staging; image-only rollout с прежними
-      upload flags и проверенным same-DB rollback.
+- [x] Schema/history42/admin fingerprint проверены; fresh single-transaction
+      backup351863 bytes/40 tables, SHA9ca1191a… на server0600 и local0600 равен.
+      Native uniqueness preflight5; старую/current DB не переключали и DDL нет.
+- [x] Push becaf6d в staging подтверждён remote ref. API/web/restricted TEST
+      image-only rollout app source2fede81 реально применён сначала с прежними
+      flags. Exact bundle hashes/BUILD_ID, health/restart0/OOMfalse, admin/schema
+      сохранены, остальные26 containers неизменны. Server offline native17 pass;
+      API image15865765…, webca936764…, подробности/rollback в runbook.
+- [x] S3 config добавлен только API через closed private-uploads.env и узкий
+      opt-in proxy. С самого isolated API: ещё3 own objects, signed read и
+      anonymous GET/HEAD/Range403 во всех3 prefixes; metadata/ETag cleanup HEAD404.
+      Policy прежний, canonical verified TLS, wrong SNI отказ, общий egress API
+      закрыт. После этого включены ровно4 upload/delivery flags. Library/cleanup,
+      provider/SMTP/CORS/roles/квоты не менялись. Это ещё не полная live приёмка.
 - [ ] После preflight включить только complete upload/delivery workflow;
       проверить post/article фото, audio/doc/video и comment photos, права/отзыв,
       lost response/status-first retry/no duplicates на новых synthetic fixtures.
-- [ ] Точно убрать только собственные fixtures/objects, проверить сохранность
-      admin/schema/старых данных и прочих containers, сохранить proof/ограничения.
-      Library/retention flags, старые sources/файлы/ACL, provider/SMTP — вне scope.
+- [x] Первый live HTTPS/API/real S3 прогон:9 synthetic objects (PNG/JPEG/WebP,
+      article PDF, MP3/TXT/raw MP4 и2 comment photos), large >256KiB inputs,
+      upload/create ACK loss через собственный dropping proxy; status/retry,
+      чужой actor notRecorded, bind conflict409, post/article/comment без дублей.
+      Затем AssertionError на read/header/range группе: точная причина НЕ
+      установлена, полного success нет. Дальнейшие revocation/open/read группы
+      ещё не исполнены. Не выдавать первый прогон за полную готовность.
+- [x] Finally первого прогона: все9 own S3 objects точно удалены с ETag/metadata
+      guards/HEAD404, own posts/article/comments/4 actors/recovery rows удалены.
+      Hash+count всех исходных40 SQL tables после cleanup совпали с baseline;
+      policy прежний, own fixture container удалён. Existing files не читались.
+- [ ] Возобновление требует рабочей SSH/HTTPS сети. После первого прогона SSH
+      несколько раз timeout до banner, Mac HTTPS TLS timeout; новый helper не
+      доставлен. Working last-known flags ON, acceptance не accepted. Проверить
+      health/config, при подтверждённом read дефекте отключить upload flags
+      guarded storage-rollout.py disable до исправления и повторной приёмки.
+      Старый harness писал diagnostics в tmpfs, который исчезает при exit:
+      local harness исправлен на private persistent /evidence, server пока старый.
+      Текущую причину read assertion не угадывать и без RED не менять продукт.
+      Browser/полные предельные размеры/оставшиеся live права — ещё не подтверждены.
 
 ### LIB-P — принят20 октября; локальная реализация
 
