@@ -4,6 +4,25 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### U1-ISO — повторная приёмка загрузок,20 октября
+
+- [x] Пользователь разрешил отдельную одноразовую БД и новые synthetic S3
+  fixtures для upload/read/размеров/audio/video/revoke. Working DB, старые
+  objects, frontend и deploy вне scope; прежний working-DB helper не запускать.
+- [x] Preflight: clean353bc75/прежняя feature branch, Docker29.8.1 отвечает,
+  disk843MiB. Ранее предоставленный S3 profile найден вне Git с правами0600;
+  значения не выводились. HTTPS HEAD: curl28/SSL timeout; SDK GetBucketPolicy
+  с maxAttempts1/absolute12s: TimeoutError, HTTP-ответ отсутствует. Причина
+  прежнего read assertion не установлена. Новые DB/objects не создавались.
+- [x] Независимая проверка `pnpm exec vitest run tests/private-content-request-bodies.test.ts --maxWorkers=1`:
+  exit0,26 pass/0skip,3.83s. Реальный HTTP/JSON/JWT и полные Base64 envelopes
+  4/32MiB; превышение decoded/envelope quota413, admission/roles/503 проверены.
+  Account SQL заменён double, upload SQL/S3 не вызываются: НЕ сквозная загрузка.
+- [ ] После восстановления соединения с S3 продолжить actual API/SQL/S3
+  на own loopback/tmpfs backend_test: audio/video/read/размеры/revoke,
+  exact metadata/ETag cleanup новых UUID objects. Не повторять неизменный
+  quota suite; published U1 acceptance остаётся незавершённой.
+
 #### VIDEO — локальный backend контракт и переход на VK
 
 - [x] FOLLOW-UP «доделай всё» в прежних границах: найден и исправлен разрыв

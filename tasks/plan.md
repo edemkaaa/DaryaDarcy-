@@ -63,6 +63,14 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **20 октября, U1-ISO разрешён:** отдельная disposable backend_test и только
+  новые synthetic S3 fixtures, без frontend/working DB/старых objects/deploy.
+  Начальный preflight остановлен до fixtures: HTTPS SSL timeout и SDK policy
+  TimeoutError без HTTP-ответа. Независимый request-body suite26 pass проверил
+  реальные 4/32MiB Base64 envelopes/413/admission, но с account SQL double,
+  без upload SQL/S3. Actual audio/video/read/revoke acceptance не закрыта;
+  после восстановления сети продолжить этот срез, а не working-DB live helper.
+
 - **20 октября, VIDEO follow-up завершён локально:** b6dbdf4 добавил недостающий
   write-path VK thumbnailUrl?/null с прежней политикой public image addresses,
   omitted-update preserve, explicit-null clear, create replay/conflict без дублей.
