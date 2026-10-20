@@ -1,7 +1,12 @@
 import { and, asc, eq, gte, isNotNull, lt, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { z } from "zod";
-import { posts, postMedia } from "../../../../packages/database/src/schema";
+import {
+  posts,
+  postMedia,
+  type Post,
+  type PostMedia,
+} from "../../../../packages/database/src/schema";
 import { postListOrder } from "./post-order";
 import { attachPostMedia } from "./post-media-repository";
 
@@ -75,7 +80,10 @@ export async function getAdminPostsPage(
   };
 }
 
-export async function getAdminPostDetail(db: Database, id: number) {
+export async function getAdminPostDetail(
+  db: Database,
+  id: number,
+): Promise<(Post & { media: PostMedia[] }) | null> {
   if (!db) throw new Error("Database not available");
   const rows = await db.select().from(posts).where(eq(posts.id, id)).limit(1);
   const [post] = await attachPostMedia(db, rows);

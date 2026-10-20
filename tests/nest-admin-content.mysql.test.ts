@@ -230,7 +230,7 @@ describe.skipIf(!testDatabaseUrl)(
         text: "admin private draft",
         published: false,
       });
-      expect(draft.media.map((row: { id: number }) => row.id)).toEqual([
+      expect(draft?.media.map((row: { id: number }) => row.id)).toEqual([
         9041, 9040,
       ]);
       expect(await admin.postDetail.query({ id: 999999 })).toBeNull();

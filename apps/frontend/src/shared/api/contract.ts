@@ -441,23 +441,25 @@ export type AppRouter = BuiltRouter<
       }>;
       postDetail: QueryProcedure<{
         input: { id: number };
-        output: {
-          id: number;
-          text: string;
-          photos: Array<string>;
-          tags: Array<string>;
-          source: string;
-          instagramId: string | null;
-          sortOrder: number;
-          published: boolean;
-          status: "published" | "draft" | "scheduled";
-          target: "feed" | "club" | "both";
-          scheduledAt: Date | null;
-          publishedAt: Date | null;
-          richText: Array<RichTextBlock> | null;
-          createdAt: Date;
-          updatedAt: Date;
-        } & { media: PostMedia[] };
+        output:
+          | ({
+              id: number;
+              text: string;
+              createdAt: Date;
+              updatedAt: Date;
+              tags: Array<string>;
+              photos: Array<string>;
+              source: string;
+              instagramId: string | null;
+              sortOrder: number;
+              published: boolean;
+              status: "published" | "draft" | "scheduled";
+              target: "feed" | "club" | "both";
+              scheduledAt: Date | null;
+              publishedAt: Date | null;
+              richText: Array<RichTextBlock> | null;
+            } & { media: PostMedia[] })
+          | null;
         meta: unknown;
       }>;
       postCounts: QueryProcedure<{
