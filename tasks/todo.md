@@ -6,6 +6,19 @@
 
 #### VIDEO — локальный backend контракт и переход на VK
 
+- [x] FOLLOW-UP «доделай всё» в прежних границах: найден и исправлен разрыв
+  сохранения обложки VK. admin.upsertVkVideo принимает thumbnailUrl?/null;
+  отсутствие сохраняет при update, null очищает, unsafe URL400 без изменения
+  строки, изменённый create409. Единая политика с catalog, без uploads/migrations.
+  RED2 HTTP/SQL400 → GREEN102/5 suites. Реальная потеря ACK после commit через
+  loopback HTTP relay, concurrent create без дублей. TSC/backend build/docs GREEN.
+  Code commit b6dbdf4, frontend не менялся; check:api по-прежнему RED/outdated.
+- [x] Свой follow-up backend_test611501a3… удалён после ID/labels/tmpfs/loopback
+  guards, volumes отсутствовали. Образы/чужие данные/working DB/S3 не затронуты.
+- [x] Два video-fixes handoff документа приведены к текущему VK-контракту:
+  точные поля/ошибки/retry/null, список действий фронтендеру и приёмка. Это не
+  выкладка или live VK acceptance; старый YouTube-сбой не объявляется исправленным.
+
 - [x] Пользователь разрешил backend-правки по handoff, без frontend/working
   DB/S3/push/deploy; затем уточнил VK вместо YouTube. YouTube-доработку
   приостановить, старый обрыв не считать исправленным.
@@ -19,9 +32,12 @@
   существующие frontend parsers read-only; root TypeScript/backend build GREEN.
 - [ ] Generated frontend contract ожидает штатной генерации фронтендером:
   check:api RED/outdated, намеренно не менялся под запретом frontend.
-- [ ] Реальный VK export ещё не получен: wall-211171256_41982 и
-  VK.Widgets.Post относятся к посту, не video_ext.php. JS не исполнялся,
-  hash не выдумывался, каталог не заменялся. Live VK/наполнение обложек не приняты.
+- [x] После wall/Widgets.Post получен реальный iframe video_ext.php на vk.ru,
+  oid=-211171256/id=456239238. Локально parseVkEmbed/vkVideoInput принимают URL,
+  canonical replay/autoplay0/public+club input и отказ wall/JS проверены.
+  Полный URL/hash в Git не сохраняется; валидатор не требовал исправлений.
+- [ ] Browser tool отклонил открытие VK по site-safety policy; обход не делался.
+  Live VK playback/seek/наполнение обложек не приняты. Working catalog не менялся.
 - [x] Свой container67ec05eb… удалён после guards exact ID/labels/tmpfs/loopback,
   volumes отсутствовали. Только synthetic backend_test; images/чужие БД не тронуты.
 

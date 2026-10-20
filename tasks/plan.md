@@ -63,6 +63,15 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **20 октября, VIDEO follow-up завершён локально:** b6dbdf4 добавил недостающий
+  write-path VK thumbnailUrl?/null с прежней политикой public image addresses,
+  omitted-update preserve, explicit-null clear, create replay/conflict без дублей.
+  RED2→GREEN102/5 с real loopback HTTP/SQL и потерей ACK после записи; TSC/build/docs
+  GREEN. Свой tmpfs backend_test удалён по guards, frontend/working DB/S3/push/deploy
+  не менялись. Существующие два video-fixes документа стали текущим handoff для
+  фронта. Остаток: generated contract/подключение UI, согласованное наполнение и
+  выпуск, реальная VK browser приёмка (инструмент блокирует, обход не делать).
+
 - **20 октября, VIDEO — локально backend и VK:** пользователь разрешил правки
   по backend-video-fixes, затем уточнил VK вместо YouTube. Не менять frontend
   (включая generated contract), working DB/S3/flags/push/deploy. YouTube-прокси
@@ -70,8 +79,11 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
   `videos.catalog.includeThumbnails`: прежние запросы сохраняют прежний ответ,
   true добавляет public-image URL/null. RED8→GREEN93/5, native HTTP/loopback SQL,
   TypeScript/backend build GREEN. check:api RED/outdated до работы фронтендера.
-  Wall URL и VK.Widgets.Post не являются video_ext.php; ждать экспорт самого
-  ролика для live приёмки, не исполнять постовый JS и не подменять весь каталог.
+  После Wall/Widgets.Post получен video_ext.php на vk.ru, oid=-211171256/
+  id=456239238: локальный parser/input/canonical replay GREEN без правок.
+  Полный URL/hash не сохраняется в Git. Browser tool блокирует открытие по
+  site-safety policy; live playback/seek не приняты, обход не делать.
+  Не исполнять постовый JS и не подменять весь каталог.
   Подробный статус — VIDEO в начале todo и два video-fixes handoff документа.
 
 - **Результат WIN-LIVE20 октября:** Library/content flags true; API2c604839…
