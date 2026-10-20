@@ -20,7 +20,6 @@ export const PATTERNS_COVER_URL =
   "/assets/responsive/4327bffa91b1-TRkGduziKBAAVhso.w1200.f8dbe5d9ca763eb2.webp";
 export const LOSHADKA_COVER_URL =
   "/assets/responsive/loshadka-cover.w1176.272be882ac7b774e.webp";
-export const LOSHADKA_YANDEX_URL = "https://disk.yandex.ru/i/nDfsd5ptLO1xRA";
 export const ABOUT_ME_COVER_URL =
   "/assets/responsive/1fbca647058b-LvxZFiaBWuJSsIgj.full.1f4bca1ed4720a16.webp";
 export const BROWN = "#5C4033";
@@ -87,9 +86,9 @@ export const MATERIALS: MaterialItem[] = [
     title: "Выкройка лошадка-качалка",
     coverUrl: LOSHADKA_COVER_URL,
     coverAspectRatio: 1176 / 1500,
-    isClubOnly: false,
-    action: "browser",
-    pdfUrl: LOSHADKA_YANDEX_URL,
+    isClubOnly: true,
+    action: "navigate",
+    route: "/library/patterns",
   },
   {
     id: "patterns",

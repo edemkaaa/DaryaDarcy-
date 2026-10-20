@@ -7,7 +7,7 @@ import classes from "./aesthetic-result-content.module.scss";
 import { Typography, Collection } from "@/shared/ui/elements";
 import { Picture } from "@/shared/media/image";
 import { type AestheticKey } from "@/domain/quiz/quiz-data";
-import { type CottagecoreResultContent } from "@/domain/quiz/content/cottagecore-result";
+import type { AestheticGuideContent } from "@shared/aesthetic-guide";
 import { formatInspirationList } from "@/domain/post/inspiration-titles";
 import {
   COTTAGECORE_MOODBOARDS,
@@ -36,7 +36,7 @@ export function ClubContentSection({
   content,
   aestheticKey,
 }: {
-  content: CottagecoreResultContent;
+  content: AestheticGuideContent;
   aestheticKey: AestheticKey;
 }) {
   const viewport = useViewport();

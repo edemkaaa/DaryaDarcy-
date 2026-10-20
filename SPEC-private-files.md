@@ -56,6 +56,23 @@ UI query cached60s и revalidates stale data при focus/reconnect; failed refr
   Уже скачанные пользователями bytes отозвать невозможно. До закрытия старых
   источников нельзя заявлять полную защиту, даже если новые API работают.
 
+Локальная реализация20 октября: backend-owned catalog/read сохранён в bc7116b;
+client read и оба consumers используют общий shape без платных строк. Quiz
+read отложен до «Читать»; private query owner-scoped, gc0, no persistence,
+abort signal, stale/failed refresh скрывает prior payload. Pattern metadata
+проверяется постранично (до50/page); принимаются только canonical app URL и
+подходящий MIME пяти slots. Карточка «Лошадка» ведёт к закрытому patterns screen,
+не к внешнему URL. Free fields и existing public covers сохраняются.
+Точная reference map — docs/audits/library-source-map-2026-10-20.json:20 public
+pattern copies и220 candidate visual URIs (104 shared). Эти файлы, реальные
+S3/БД/flags и старые JS/cache не менялись. Проверки и ограничения — начало todo.
+
+Повторяемая production leakage check после свежего `pnpm build:frontend`:
+`DARYADARCY_LIBRARY_PRODUCTION_BUILD=1 pnpm exec vitest run tests/library-client-bundle.test.ts`.
+Native guide: tests/aesthetic-guides.mysql.test.ts; local UI/API/SQL и synthetic
+loopback SDK wire: tests/private-library.browser.test.ts (отдельные opt-in flags,
+own disposable backend_test по общей политике). Это не actual S3 acceptance.
+
 ## LB — встроенные файлы Библиотеки, принят17 октября2026
 
 Разрешена local реализация и репетиция только synthetic6 files, own disposable

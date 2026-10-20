@@ -25,16 +25,8 @@ import {
   AESTHETIC_RESULTS,
   type AestheticKey,
 } from "@/domain/quiz/quiz-data";
-import {
-  COTTAGECORE_RESULT,
-  type CottagecoreResultContent,
-} from "@/domain/quiz/content/cottagecore-result";
-import { DARK_ACADEMIA_RESULT } from "@/domain/quiz/content/darkacademia-result";
-import { GOBLINCORE_RESULT } from "@/domain/quiz/content/goblincore-result";
-import { CASTLECORE_RESULT } from "@/domain/quiz/content/castlecore-result";
-import { WITCHCORE_RESULT } from "@/domain/quiz/content/witchcore-result";
-import { FAIRYCORE_RESULT } from "@/domain/quiz/content/fairycore-result";
-import { LIGHT_ACADEMIA_RESULT } from "@/domain/quiz/content/lightacademia-result";
+import { useAestheticGuides } from "@/domain/library/private-library";
+import { PrivateLibraryState } from "./private-library-state";
 import { formatInspirationList } from "@/domain/post/inspiration-titles";
 import {
   PAPER_TEXTURE_URI,
@@ -44,16 +36,6 @@ import {
   OUTFITS,
   INTERIORS,
 } from "./aesthetics-screen.content";
-function getClubContent(key: AestheticKey): CottagecoreResultContent | null {
-  if (key === "cottagecore") return COTTAGECORE_RESULT;
-  if (key === "darkAcademia") return DARK_ACADEMIA_RESULT;
-  if (key === "goblincore") return GOBLINCORE_RESULT;
-  if (key === "castlecore") return CASTLECORE_RESULT;
-  if (key === "witchcore") return WITCHCORE_RESULT;
-  if (key === "fairycore") return FAIRYCORE_RESULT;
-  if (key === "lightAcademia") return LIGHT_ACADEMIA_RESULT;
-  return null;
-}
 function getTableHeaders(key: AestheticKey): [string, string] {
   switch (key) {
     case "darkAcademia":
@@ -78,6 +60,9 @@ export default function AestheticsGuideScreen() {
   const { stylesLayout } = getAestheticsScreenLayout(viewport);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { hasClubAccess } = useClub();
+  const guides = useAestheticGuides(AESTHETIC_ORDER);
+  const loadingGuides = guides.some((guide) => guide.isLoading);
+  const guideError = guides.find((guide) => guide.error)?.error;
   const handleQuizCTA = () => {
     router.push("/quiz");
   };
@@ -235,10 +220,17 @@ export default function AestheticsGuideScreen() {
           )}
 
           {/* Aesthetic Sections (only for subscribers) */}
+          {hasClubAccess && (loadingGuides || guideError) && (
+            <PrivateLibraryState
+              isLoading={loadingGuides}
+              error={guideError}
+              retry={() => guides.forEach((guide) => guide.retry())}
+            />
+          )}
           {hasClubAccess &&
             AESTHETIC_ORDER.map((key) => {
               const result = AESTHETIC_RESULTS[key];
-              const clubContent = getClubContent(key);
+              const clubContent = guides[AESTHETIC_ORDER.indexOf(key)]?.data;
               const moodboards = MOODBOARDS[key];
               const outfits = OUTFITS[key];
               const interiors = INTERIORS[key];

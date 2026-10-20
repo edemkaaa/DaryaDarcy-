@@ -11,12 +11,63 @@
   checks → GREEN19/0skip на own loopback/tmpfs backend_test65488. Отзыв версии,
   block/expiry/unpaid/service/cancel-until-end/invalid key/query/infra проверены.
   Контрольные суммы всех7 paid payloads совпадают с исходными mixed modules.
-- [ ] Оба client consumer без paid imports; free hashes, bundle leakage,
-  identity/revoke/unmount/browser и regression/build review — в работе.
-- [ ] Patterns → existing LB metadata/read,5 known slots, без public originals
-  в guest preview и без Yandex fallback. Только synthetic local acceptance.
-- [ ] Карта originals/derivatives/shared uses, оставшийся rollout и источники.
-  Реальные старые public файлы/JS/cache остаются незакрытыми, полной защиты нет.
+- [x] Оба consumer (гид/quiz result) получают только validated server payload.
+  Платные5 fields удалены из7 client modules, все7 free hashes прежние. Query
+  owner-scoped, gc0, abortable, без persistence/placeholder/public fallback;
+  stale/failed refetch не показывает prior paid payload. Quiz грузит club read
+  только после «Читать», расчёт/guest flow/free result прежние. CSS/layout и
+  public covers/assets не менялись; используются existing loading/retry states.
+- [x] Patterns → existing LB list/read,5 known slots, bounded50/page metadata,
+  canonical same-origin URLs и MIME validation. Нет originals в guest preview
+  (existing public cover), прямой Yandex fallback убран также с карточки
+  «Лошадка» в каталоге: она ведёт к закрытым patterns. Metadata unavailable,
+  pending/empty/missing bindings не дают публичного fallback; обе PDF actions
+  disabled при отсутствии binding. Account/access scope remount закрывает viewer.
+- [x]42 focused checks:7 paid hashes +7 free hashes, bundled consumer graph,
+  client parse/wrong-key/404/503/abort/canonical metadata/pagination и existing
+  quiz calculation. Existing native LB list/read/import/rollback16 pass/0skip
+  на own SQL + loopback SDK wire; никаких настоящих S3/старых bytes.
+- [x] Production Next29/29 pages; отдельный scan9 pass проверяет новые
+  JS/HTML/RSC и обе client entry graphs: paid style/space/blog payloads и
+  Yandex horse fallback отсутствуют, backend не попал в browser graph.
+  Старые cached builds/legacy copies этим не отозваны. Native guide19/0skip
+  и browser acceptance записаны отдельно; default regression2702 pass /
+  1653 opt-in skips (снимок до добавления3 последних browser cases и build scan).
+- [x] Финальный Chromium suite9 pass/0skip,22.20s: оба text consumers, guest
+  полный quiz, failed refresh/retry, late reply/account switch, SPA leave/return,
+  pending pattern metadata/account switch и отсутствие public fallback. Два
+  content paths идут через настоящий Next proxy/Nest/JWT/SQL: guide expiry и
+  importer→5 synthetic bindings→4 decoded PNG + PDF→expiry/read404. Storage —
+  owned loopback SDK wire, не actual S3; прочая UI рамка/subscription hint —
+  controlled HTTP fixtures. Даже устаревший active hint не обходит server check.
+  Найдена/исправлена вторая PDF action, которая первоначально не disabled.
+  Отдельно исправлены harness: markup answer labels, lazy image scroll,
+  native media route interception и exact migration requestKey cleanup.
+  Focus может дать дополнительный safe GET при возврате, не новую запись.
+- [x] Review по correctness/security/architecture/performance/React: payload
+  server-only; нет нового schema/dependency/roles/CORS/proxy/quotas/цены/flags;
+ 7 reads bounded existing aesthetic count, metadata50/page, live access на
+  выдаче, private/no-store, strict wire parsing и отсутствие persistence.
+  Typecheck root/frontend/E2E, lint, boundaries704/API90/35243, docs59,
+  scoped format/diff pass. CSS/assets/layout diff отсутствует.
+- [x] Own backend_test1706c52d… удалён после exact ID/name/owner/task/port65488/
+  tmpfs768MiB/no-volume guards; synthetic данные воспроизводимы. Next copies
+  закрыты/удалены helper finally; в рабочей БД/S3 ничего не читалось/не менялось.
+  По дополнительному «почисть ты» удалены inactive duplicate updater cache
+  (version/build20770 совпали с установленным, lsof empty), ignored webpack cache
+  и ровно1 unused unshared Docker build-cache entry eqoyewvy…537.7MB из нашего
+  release frontend. Приложение, sources, images18, постоянные volumes12 и чужие
+  containers не удалялись. Это пересоздаваемые кэши, не резервные копии/БД.
+- [x] Точная local reference map: docs/audits/library-source-map-2026-10-20.json.
+  20 public copies четырёх выкроек (full+w320/640/960/1200), отдельный Yandex
+  horse source и220 visual URIs, из них104 shared у guide/quiz; все существуют
+  локально. Public quiz houses/landscapes/covers/decor сохраняются. Это карта
+  references, не готовый storage manifest/permission на real source migration.
+- [ ] Только отдельным разрешением: reviewed bytes/private bindings на рабочей
+  среде, проверка actual S3, rollout/flags, затем закрытие старых origins,
+  derivatives/Yandex/old JS и управляемый cache purge. Recipes/Peterburg legacy
+  delivery не менялась, public стилизации сохранены. Полной защиты старых
+  источников сейчас нет; локальную интеграцию не выдавать за working acceptance.
 
 ### CAP-U — доступность загрузок связана с интерфейсом,20 октября; локально
 
@@ -66,9 +117,9 @@
   five paid sections/7 aesthetics → protected server read для двух consumers;
   free quiz fields/public covers прежние; patterns → existing LB bindings.
   Это proposal, не новая готовая процедура или сделанный перенос.
-- [ ] Далее согласовать LIB-P и точную карту public originals/derivatives/shared
-  uses. Старые Yandex/assets/old JS/cache не закрывались; никакой полной защиты
-  Библиотеки сейчас не заявлять. S3/working DB/design/push/deploy не трогать.
+- [x] LIB-P принят и локально реализован отдельным следующим срезом, см. начало
+  чек-листа/reference map. Реальные Yandex/assets/old JS/cache не закрывались;
+  полной защиты старых источников нет. S3/working DB/design/push/deploy прежние.
 
 ### AUTH-OUT / ADM-T1 — новые замечания,20 октября; только локально
 

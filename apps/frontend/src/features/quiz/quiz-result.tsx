@@ -21,32 +21,14 @@ import { useClub } from "@/domain/subscription/subscription-context";
 import { AESTHETIC_NAMES, type AestheticKey } from "@/domain/quiz/quiz-data";
 
 import { useRouter } from "@/shared/navigation/router";
-import {
-  COTTAGECORE_RESULT,
-  type CottagecoreResultContent,
-} from "@/domain/quiz/content/cottagecore-result";
-import { DARK_ACADEMIA_RESULT } from "@/domain/quiz/content/darkacademia-result";
-import { GOBLINCORE_RESULT } from "@/domain/quiz/content/goblincore-result";
-import { CASTLECORE_RESULT } from "@/domain/quiz/content/castlecore-result";
-import { WITCHCORE_RESULT } from "@/domain/quiz/content/witchcore-result";
-import { FAIRYCORE_RESULT } from "@/domain/quiz/content/fairycore-result";
-import { LIGHT_ACADEMIA_RESULT } from "@/domain/quiz/content/lightacademia-result";
+import { useAestheticGuides } from "@/domain/library/private-library";
+import { PrivateLibraryState } from "@/features/library/private-library-state";
 import {
   PAPER_TEXTURE_URI,
   BROWN,
   BROWN_MUTED,
   HOUSE_IMAGES,
 } from "./quiz-result.content";
-function getClubContent(key: AestheticKey): CottagecoreResultContent | null {
-  if (key === "cottagecore") return COTTAGECORE_RESULT;
-  if (key === "darkAcademia") return DARK_ACADEMIA_RESULT;
-  if (key === "goblincore") return GOBLINCORE_RESULT;
-  if (key === "castlecore") return CASTLECORE_RESULT;
-  if (key === "witchcore") return WITCHCORE_RESULT;
-  if (key === "fairycore") return FAIRYCORE_RESULT;
-  if (key === "lightAcademia") return LIGHT_ACADEMIA_RESULT;
-  return null;
-}
 export function QuizResultScreen() {
   const router = useRouter();
   const viewport = useViewport();
@@ -74,6 +56,11 @@ export function QuizResultScreen() {
       AsyncStorage.setItem("@darcy_quiz_result", JSON.stringify(resultData));
     }
   }, [result, state.restored]);
+  const requestedKey = activeKey || result?.primary.key;
+  const [guide] = useAestheticGuides(
+    requestedKey ? [requestedKey] : [],
+    showClubContent,
+  );
   if (!result) return null;
   const { primary, secondary, isBlend, scores } = result;
   // Determine the active aesthetic (for blend tab switching)
@@ -81,7 +68,7 @@ export function QuizResultScreen() {
   const activeResult =
     isBlend && secondary && currentKey === secondary.key ? secondary : primary;
   const houseImage = HOUSE_IMAGES[activeResult.key];
-  const clubContent = getClubContent(activeResult.key);
+  const clubContent = guide?.data;
   const handleTabSwitch = (key: AestheticKey) => {
     if (key !== currentKey) {
       setActiveKey(key);
@@ -99,7 +86,7 @@ export function QuizResultScreen() {
     } catch {}
   };
   const handleClubCTA = () => {
-    if (hasClubAccess && clubContent) {
+    if (hasClubAccess) {
       setShowClubContent(true);
     } else {
       // Navigate to club tab (subscription page)
@@ -333,7 +320,7 @@ export function QuizResultScreen() {
           </div>
 
           {/* Club CTA Block */}
-          {clubContent && !showClubContent && (
+          {!showClubContent && (
             <div
               className={["ui-stack ", classes.clubCTA]
                 .filter(Boolean)
@@ -371,6 +358,13 @@ export function QuizResultScreen() {
           )}
 
           {/* Club Content (expanded) */}
+          {showClubContent && hasClubAccess && !clubContent && (
+            <PrivateLibraryState
+              isLoading={guide?.isLoading ?? false}
+              error={guide?.error}
+              retry={() => guide?.retry()}
+            />
+          )}
           {showClubContent && hasClubAccess && clubContent && (
             <ClubContentSection
               content={clubContent}

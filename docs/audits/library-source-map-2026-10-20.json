@@ -1,0 +1,1479 @@
+{
+  "date": "2026-10-20",
+  "scope": "Read-only local source/reference inventory. Not a migration or storage manifest.",
+  "patterns": {
+    "holly": {
+      "binding": "/api/media/library-files/patterns/holly",
+      "untouchedPublicCopies": [
+        "/assets/responsive/18c14e47537e-EJllmcoOmdUexPyK.full.3806194d71bef3f6.webp",
+        "/assets/responsive/18c14e47537e-EJllmcoOmdUexPyK.w1200.dd9a8b6ba161a1ff.webp",
+        "/assets/responsive/18c14e47537e-EJllmcoOmdUexPyK.w320.f0e6c850e71e9a42.webp",
+        "/assets/responsive/18c14e47537e-EJllmcoOmdUexPyK.w640.73262f1c680deede.webp",
+        "/assets/responsive/18c14e47537e-EJllmcoOmdUexPyK.w960.d038d838736d2627.webp"
+      ]
+    },
+    "sock": {
+      "binding": "/api/media/library-files/patterns/sock",
+      "untouchedPublicCopies": [
+        "/assets/responsive/958b97c139fc-kvcsayGSgtVcnjGN.full.1cc0462841dbff90.webp",
+        "/assets/responsive/958b97c139fc-kvcsayGSgtVcnjGN.w1200.a3353a55403adc5d.webp",
+        "/assets/responsive/958b97c139fc-kvcsayGSgtVcnjGN.w320.f9219cd2c9c5bc02.webp",
+        "/assets/responsive/958b97c139fc-kvcsayGSgtVcnjGN.w640.ee2f1bba2de0da66.webp",
+        "/assets/responsive/958b97c139fc-kvcsayGSgtVcnjGN.w960.b1e74334ee1247cd.webp"
+      ]
+    },
+    "star": {
+      "binding": "/api/media/library-files/patterns/star",
+      "untouchedPublicCopies": [
+        "/assets/responsive/ded750bddbeb-HSvrSZijpbSHOLAN.full.493a6b466590d5c7.webp",
+        "/assets/responsive/ded750bddbeb-HSvrSZijpbSHOLAN.w1200.098316dc2a7610b9.webp",
+        "/assets/responsive/ded750bddbeb-HSvrSZijpbSHOLAN.w320.e51c27b84bf41ce2.webp",
+        "/assets/responsive/ded750bddbeb-HSvrSZijpbSHOLAN.w640.f415cd3520797616.webp",
+        "/assets/responsive/ded750bddbeb-HSvrSZijpbSHOLAN.w960.9b5a8b0c8628426a.webp"
+      ]
+    },
+    "apple": {
+      "binding": "/api/media/library-files/patterns/apple",
+      "untouchedPublicCopies": [
+        "/assets/responsive/9b32f7b0c8f1-ReabYqEbymjBrDEY.full.73f233acce5d7b95.webp",
+        "/assets/responsive/9b32f7b0c8f1-ReabYqEbymjBrDEY.w1200.693c9c1f00c732a7.webp",
+        "/assets/responsive/9b32f7b0c8f1-ReabYqEbymjBrDEY.w320.73c0e8eb4fafd6b6.webp",
+        "/assets/responsive/9b32f7b0c8f1-ReabYqEbymjBrDEY.w640.55097544d50f71fa.webp",
+        "/assets/responsive/9b32f7b0c8f1-ReabYqEbymjBrDEY.w960.c9b988c7ec4dd908.webp"
+      ]
+    }
+  },
+  "loshadka": {
+    "binding": "/api/media/library-files/patterns/loshadka",
+    "untouchedExternalShare": "https://disk.yandex.ru/i/nDfsd5ptLO1xRA",
+    "note": "Old external share is not revoked. New Library card navigates to protected patterns screen."
+  },
+  "visuals": {
+    "classification": "Unresolved candidate paid visuals. Do not close public/shared/free sources without reviewed manifest and authorization.",
+    "files": [
+      {
+        "uri": "/assets/results/castlecore/interiors/interior1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/interiors/interior10.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/interiors/interior11.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/interiors/interior12.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/interiors/interior13.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/interiors/interior2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/interiors/interior3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/interiors/interior4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/interiors/interior5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/interiors/interior6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/interiors/interior7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/interiors/interior8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/interiors/interior9.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/moodboards/mood1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/moodboards/mood2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/moodboards/mood3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/moodboards/mood4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/moodboards/mood5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/moodboards/mood6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/moodboards/mood7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/moodboards/mood8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/moodboards/mood9.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/outfits/outfit1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/outfits/outfit10.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/outfits/outfit11.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/outfits/outfit12.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/outfits/outfit2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/outfits/outfit3.lossless.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/outfits/outfit4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/outfits/outfit5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/outfits/outfit6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/outfits/outfit7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/outfits/outfit8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/castlecore/outfits/outfit9.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/interiors/interior1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/interiors/interior2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/interiors/interior3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/interiors/interior4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/moodboards/moodboard1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/moodboards/moodboard2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/moodboards/moodboard3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/moodboards/moodboard4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/moodboards/moodboard5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/moodboards/moodboard6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/moodboards/moodboard7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/moodboards/moodboard8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/moodboards/moodboard9.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/outfits/outfit1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/outfits/outfit10.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/outfits/outfit11.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/outfits/outfit12.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/outfits/outfit2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/outfits/outfit3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/outfits/outfit4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/outfits/outfit5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/outfits/outfit6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/outfits/outfit7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/outfits/outfit8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/cottagecore/outfits/outfit9.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/interiors/interior1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/interiors/interior2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/interiors/interior3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/interiors/interior4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/interiors/interior5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/interiors/interior6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/interiors/interior7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/interiors/interior8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/moodboards/moodboard1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/moodboards/moodboard2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/moodboards/moodboard3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/moodboards/moodboard4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/moodboards/moodboard5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/moodboards/moodboard6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/moodboards/moodboard7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/moodboards/moodboard8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/outfits/outfit1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/outfits/outfit10.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/outfits/outfit11.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/outfits/outfit12.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/outfits/outfit13.lossless.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/outfits/outfit2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/outfits/outfit3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/outfits/outfit4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/outfits/outfit5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/outfits/outfit6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/outfits/outfit7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/outfits/outfit8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/darkacademia/outfits/outfit9.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/interiors/interior1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/interiors/interior10.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/interiors/interior2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/interiors/interior3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/interiors/interior4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/interiors/interior5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/interiors/interior6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/interiors/interior7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/interiors/interior8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/interiors/interior9.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/moodboards/look1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/moodboards/look2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/moodboards/look3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/moodboards/look4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/moodboards/look5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/moodboards/look6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/moodboards/look7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/moodboards/look8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/outfits/outfit1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/outfits/outfit10.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/outfits/outfit11.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/outfits/outfit12.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/outfits/outfit2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/outfits/outfit3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/outfits/outfit4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/outfits/outfit5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/outfits/outfit6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/outfits/outfit7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/outfits/outfit8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/fairycore/outfits/outfit9.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/interiors/interior1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/interiors/interior2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/interiors/interior3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/interiors/interior4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/interiors/interior5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/interiors/interior6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/interiors/interior7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/interiors/interior8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/interiors/interior9.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/moodboards/mood1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/moodboards/mood2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/moodboards/mood3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/moodboards/mood4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/moodboards/mood5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/moodboards/mood6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/moodboards/mood7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit10.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit11.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit12.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit13.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit14.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit15.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/goblincore/outfits/outfit9.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/interiors/interior1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/interiors/interior10.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/interiors/interior11.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/interiors/interior2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/interiors/interior3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/interiors/interior4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/interiors/interior5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/interiors/interior6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/interiors/interior7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/interiors/interior8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/moodboards/moodboard1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/moodboards/moodboard10.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/moodboards/moodboard11.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/moodboards/moodboard2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/moodboards/moodboard3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/moodboards/moodboard4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/moodboards/moodboard5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/moodboards/moodboard6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/moodboards/moodboard7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/moodboards/moodboard8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/moodboards/moodboard9.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit10.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit11.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit12.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit13.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit14.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit15.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit16.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/lightacademia/outfits/outfit9.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/interiors/interior1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/interiors/interior2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/interiors/interior3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/interiors/interior4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/interiors/interior5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/interiors/interior6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/interiors/interior7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/interiors/interior8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/moodboards/look1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/moodboards/look2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/moodboards/look3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/moodboards/look4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/moodboards/look5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/moodboards/look6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/moodboards/look7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/moodboards/look8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/moodboards/look9.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit1.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit10.lossless.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit11.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit12.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit13.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit14.lossless.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit15.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit16.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit17.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit2.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit3.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit4.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit5.webp",
+        "consumers": [
+          "apps/frontend/src/features/library/aesthetics-screen.content.ts",
+          "apps/frontend/src/features/quiz/quiz-result.content.ts"
+        ],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit6.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit7.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit8.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      },
+      {
+        "uri": "/assets/results/witchcore/outfits/outfit9.webp",
+        "consumers": ["apps/frontend/src/features/quiz/quiz-result.content.ts"],
+        "existsLocally": true
+      }
+    ]
+  },
+  "remainPublic": [
+    "/assets/quiz/houses/*",
+    "/assets/quiz/landscapes/*",
+    "public covers, paper textures, banners and decorative assets"
+  ],
+  "remainingOrigins": {
+    "recipes": "Existing Yandex delivery unchanged; not part of LIB-P accepted implementation.",
+    "peterburg": "Existing Yandex delivery unchanged; not part of LIB-P accepted implementation.",
+    "stilizacii": "Existing free material unchanged."
+  },
+  "rollout": "No working DB/S3/flags/origins/assets/cache touched. Old JS/builds/legacy-expo copies and downloads are not revoked by the new read endpoint."
+}

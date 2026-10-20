@@ -35,14 +35,24 @@ import {
   PATTERNS_HERO_URL,
   CHRISTMAS_PATTERNS,
   LOSHADKA_COVER_URL,
-  LOSHADKA_YANDEX_URL,
 } from "./patterns-screen.content";
+import { usePatternBindings } from "@/domain/library/private-library";
+import { useAuth } from "@/domain/session/session-context";
+import { PrivateLibraryState } from "./private-library-state";
 import type { PatternItem } from "./patterns-screen.content";
 export default function PatternsScreen() {
+  const { user } = useAuth();
+  const { hasClubAccess } = useClub();
+  return (
+    <PatternsScreenContent key={`${user?.id ?? "guest"}:${hasClubAccess}`} />
+  );
+}
+function PatternsScreenContent() {
   const router = useRouter();
   const viewport = useViewport();
   const { stylesLayout } = getPatternsScreenLayout(viewport);
   const { hasClubAccess } = useClub();
+  const bindings = usePatternBindings();
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerImage, setViewerImage] = useState("");
   const [viewerTitle, setViewerTitle] = useState("");
@@ -54,18 +64,26 @@ export default function PatternsScreen() {
     router.push("/quiz");
   };
   const openPattern = (pattern: PatternItem) => {
-    setViewerImage(pattern.imageUrl);
+    const file = bindings.files?.[pattern.id];
+    if (!file) return;
+    setViewerImage(file.url);
     setViewerTitle(pattern.title);
     setViewerVisible(true);
   };
   const handleDownload = useCallback(async () => {
     {
-      await WebBrowser.openBrowserAsync(viewerImage);
+      if (
+        hasClubAccess &&
+        bindings.files &&
+        Object.values(bindings.files).some((file) => file.url === viewerImage)
+      )
+        await WebBrowser.openBrowserAsync(viewerImage);
       return;
     }
-  }, [viewerImage]);
+  }, [viewerImage, hasClubAccess, bindings.files]);
   const handleOpenLoshadka = async () => {
-    await WebBrowser.openBrowserAsync(LOSHADKA_YANDEX_URL);
+    if (hasClubAccess && bindings.files?.loshadka)
+      await WebBrowser.openBrowserAsync(bindings.files.loshadka.url);
   };
   const closeViewer = () => {
     setViewerVisible(false);
@@ -158,7 +176,7 @@ export default function PatternsScreen() {
                           .join(" ")}
                       >
                         <Picture
-                          source={{ uri: p.imageUrl }}
+                          source={{ uri: PATTERNS_HERO_URL }}
                           contentFit="cover"
                           className={classes.bannerImage}
                         />
@@ -198,7 +216,21 @@ export default function PatternsScreen() {
                     .filter(Boolean)
                     .join(" ")}
                 >
-                  {CHRISTMAS_PATTERNS.map((pattern) => (
+                  {bindings.isLoading ||
+                  bindings.error ||
+                  !bindings.files ||
+                  CHRISTMAS_PATTERNS.some(
+                    (pattern) => !bindings.files?.[pattern.id],
+                  ) ? (
+                    <PrivateLibraryState
+                      isLoading={bindings.isLoading}
+                      error={bindings.error}
+                      retry={bindings.retry}
+                    />
+                  ) : null}
+                  {CHRISTMAS_PATTERNS.filter(
+                    (pattern) => bindings.files?.[pattern.id],
+                  ).map((pattern) => (
                     <Action
                       key={pattern.id}
                       style={{ width: stylesLayout.patternCard.width }}
@@ -208,7 +240,7 @@ export default function PatternsScreen() {
                       className={classes.patternCard}
                     >
                       <Picture
-                        source={{ uri: pattern.imageUrl }}
+                        source={{ uri: bindings.files![pattern.id].url }}
                         contentFit="cover"
                         sizes="(max-width: 480px) calc((100vw - 60px) / 2), 210px"
                         transition={200}
@@ -243,6 +275,7 @@ export default function PatternsScreen() {
                     .join(" ")}
                 />
                 <Action
+                  disabled={!bindings.files?.loshadka}
                   onClick={handleOpenLoshadka}
                   aria-label="Открыть выкройку лошадки-качалки"
                   activeOpacity={0.8}
@@ -262,7 +295,15 @@ export default function PatternsScreen() {
                 <Typography className={classes.sectionSubtitle}>
                   Выкройка в формате PDF для печати
                 </Typography>
+                {!bindings.files?.loshadka && (
+                  <PrivateLibraryState
+                    isLoading={bindings.isLoading}
+                    error={bindings.error}
+                    retry={bindings.retry}
+                  />
+                )}
                 <Action
+                  disabled={!bindings.files?.loshadka}
                   onClick={handleOpenLoshadka}
                   activeOpacity={0.8}
                   className={classes.ctaButtonOlive}
@@ -278,7 +319,16 @@ export default function PatternsScreen() {
 
         {/* Full-screen Image Viewer */}
         <FullScreenViewer
-          visible={viewerVisible}
+          visible={
+            viewerVisible &&
+            hasClubAccess &&
+            Boolean(
+              bindings.files &&
+              Object.values(bindings.files).some(
+                (file) => file.url === viewerImage,
+              ),
+            )
+          }
           imageUrl={viewerImage}
           title={viewerTitle}
           onClose={closeViewer}
