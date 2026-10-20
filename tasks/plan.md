@@ -63,6 +63,19 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **20 октября, VK-ONLY — принято и готово локально:** пользователь поручил
+  убрать YouTube, затем уточнил backend-only и документ фронтендеру.4c04d62
+  фильтрует catalog/playback только VK, retire legacy list/detail/import и
+  удаляет backend yt proxy. Старые SQL rows/schema/backup helpers сохранены;
+  raw private video attachments и YouTube-рекомендации в текстах не менялись.
+  RED7→GREEN7, финальный affected260/13 suites/0skip, types/build/docs/boundaries
+  GREEN. Own loopback/tmpfs backend_test b58741e5… удалён после guards, volumes0.
+  Frontend/generated contract не менялся, check:api ожидаемо outdated. Нет
+  working DB/S3/push/deploy.22 page URLs из PDF — не22 iframe; нужен21 export,
+  согласованные titles/covers/access и синхронная frontend/data интеграция до
+  выпуска. Пустую VK-выдачу не считать завершённым переносом. Текущий handoff:
+  [фронтендеру](../docs/development/frontend-video-fixes-2026-10-20.md).
+
 - **20 октября, U1-ISO разрешён:** отдельная disposable backend_test и только
   новые synthetic S3 fixtures, без frontend/working DB/старых objects/deploy.
   Начальный preflight остановлен до fixtures: HTTPS SSL timeout и SDK policy

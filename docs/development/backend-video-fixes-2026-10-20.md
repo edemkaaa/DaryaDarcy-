@@ -1,16 +1,46 @@
 # Backend контракт каталога обложек и плеера VK
 
+## Актуальный срез: VK-only,20 октября
+
+Пользователь подтвердил замену YouTube в разделе Видео, только backend и handoff
+фронтендеру. Локально catalog фильтрует provider=vk до пагинации, playback output
+содержит только VK. Старый YouTube ID даёт404; fallback на прямой mp4/YouTube нет.
+Legacy list=[]/detail=undefined, включая выключенный VK flag. Валидный admin
+importVideos404 без записи; authentication/strict input checks сохранены.
+Backend youtube-stream proxy удалён вместе с регистрацией, GET/HEAD404.
+Standalone worker при чтении нового API отказывает GET/HEAD/Range/thumb даже
+при прогретом кэше. Это не изменение или остановка работающего edge/container.
+
+Code commit: `4c04d62`, только локальный. RED7 native HTTP/SQL → GREEN7.
+Финальный affected checkpoint —260 pass/13 suites/0skip,8.56s; TypeScript,
+backend build, docs63, boundaries704 и diff check exit0. После изоляции имён
+новых fixtures от старого cleanup-prefix focused7/7,1.50s. Общий исторический
+suite не запускался. Прежние store-only backup/repository
+возможности не удалялись. Исторические102 проверки ниже относятся к cover slice,
+не складывать их как независимые текущие сценарии. Финальные команды в todo.
+
+Свой b58741e5…/loopback49542/tmpfs512MiB/volumes0 удалён после exact ID/name/
+labels/mounts/ports guards. Рабочие и чужие БД/images не затронуты. check:api
+exit1/outdated ожидаем до работы фронтендера: backend не менял generated types.
+
+Старые rows/schema/data/cache/S3 не удалены. Это не автоматическая миграция22
+роликов: PDF дал22 page URLs, но только1 подтверждённый iframe src. Для21
+остальных нужны exports; hash, полный title, covers и public/club не выдумывать.
+Не выпускать один backend перед frontend integration/наполнением: раздел может
+остаться пустым. Браузерный VK acceptance не выполнен; обход policy не делался.
+Frontend/generated contract, рабочая БД, S3, сервер, push/deploy не менялись.
+
 Дата: 20 октября 2026 года. Стенд: <https://daryadarcy.dev.reeskeen.ru/videos>.
 
 Доступная локальная backend-часть перехода на VK подготовлена: каталог выдаёт безопасные обложки по запросу клиента, сохранение VK принимает необязательную обложку, повтор создания не создаёт дубликат. Правила доступа к клубу сохранены. Код не выложен; рабочие БД, S3, каталог и настройки не менялись.
 
 [Пошаговое задание фронтендеру](frontend-video-fixes-2026-10-20.md).
 
-Локальные коммиты: `36fc86d` (catalog opt-in) и `b6dbdf4` (VK cover write/replay). В staging не отправлялись.
+Локальные коммиты: `36fc86d` (catalog opt-in), `b6dbdf4` (VK cover write/replay), `4c04d62` (VK-only delivery). Текущий срез в staging не отправлялся.
 
 ## Границы результата
 
-Пользователь подтвердил VK вместо YouTube. Прежний сбой `/video/1` через YouTube-прокси остаётся неустранённым; доработка этого прокси остановлена по смене направления. Не считать текущие тесты его исправлением.
+Пользователь подтвердил VK вместо YouTube. Прежний обрыв `/video/1` не исправляли: сам backend YouTube-прокси теперь удалён по смене направления. Текущие тесты подтверждают прекращение YouTube-выдачи, а не исправление старого внешнего воспроизведения.
 
 Получен настоящий `video_ext.php` на `vk.ru`, `oid=-211171256`, `id=456239238`. Он проходит локальные parser/input/canonical replay проверки; autoplay нормализуется в 0. Полный URL и hash не хранятся в документации Git. Исходный экспорт — в сообщении пользователя.
 

@@ -4,6 +4,32 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### VK-ONLY — убрать YouTube из раздела Видео,20 октября
+
+- [x] Подтверждён backend-only scope/документ фронтендеру; old source rows,
+  рабочая DB/S3/стенд/frontend вне изменений. Никакого массового fake-ID import.
+- [x] 4c04d62: catalog provider=vk до cursor/limit; playback output только VK,
+  YouTube ID404. Legacy list=[]/detail=undefined без fallback даже с VK flag off;
+  valid admin.importVideos404 без writes, auth/input validation прежние.
+  Удалён backend youtube-stream proxy; standalone worker с текущим пустым
+  catalog не выдаёт GET/HEAD/Range/thumb даже при warm cache. Schema/rows прежние.
+- [x] RED7 native HTTP/JWT/SQL→GREEN7. Финальный affected Vitest260 pass/
+  13 suites/0skip/8.56s, TSC/build/docs63/boundaries704/diff exit0. После
+  изоляции fixture title от старого cleanup-prefix ещё7/7,1.50s. Общий исторический
+  suite не запускался; frontend parsers проверены read-only, frontend diff пуст.
+  check:api exit1/outdated: generation только фронтендером, не обходить запрет.
+- [x] Exact owned container b58741e5…/loopback49542/tmpfs512MiB/volumes0 удалён
+  по ID/name/labels/mount/port guards. Удалена только синтетическая БД; images,
+  чужие контейнеры/БД, рабочие rows/файлы не менялись. Backend proxy восстановим
+  из Git, рабочий сервис не останавливался. S3/network/provider не вызывались.
+- [x] Два существующих video-fixes документа обновлены: VK-only contract,
+  removed paths/UI fallback, regenerate types, rollout gate и все22 page URLs
+  с названиями/временем из PDF. Hash не сохранён и iframe не выдумывался.
+- [ ] До выпуска:21 недостающий настоящий iframe export, titles/covers/access,
+  согласованная карта old/new IDs и наполнение, frontend integration/real VK
+  playback acceptance. Один backend не выпускать: старый клиент/пустой VK
+  каталог иначе останутся без видео. Рабочие данные/фронт/push/deploy не разрешены.
+
 #### U1-ISO — повторная приёмка загрузок,20 октября
 
 - [x] Пользователь разрешил отдельную одноразовую БД и новые synthetic S3
