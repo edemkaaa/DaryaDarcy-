@@ -45,11 +45,7 @@ async function open(page: Page, mode: Mode, edit = false) {
       .click();
   await page
     .getByRole("button", {
-      name: edit
-        ? "Редактировать пост"
-        : mode === "full"
-          ? "Новый"
-          : "Новый пост",
+      name: edit ? "Редактировать пост" : "Новый пост",
       exact: true,
     })
     .first()
@@ -172,7 +168,7 @@ for (const mode of ["full", "quick"] as const) {
       await expect(form).toHaveCount(0);
       await page
         .getByRole("button", {
-          name: mode === "full" ? "Новый" : "Новый пост",
+          name: "Новый пост",
           exact: true,
         })
         .first()

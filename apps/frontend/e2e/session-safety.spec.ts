@@ -472,7 +472,7 @@ test("a temporary session check failure preserves an administrator's unsaved tex
       : route.fulfill({ json: { user: administrator } }),
   );
   await page.goto("/admin");
-  await page.getByRole("button", { name: /Новый$/ }).click();
+  await page.getByRole("button", { name: /^Новый пост$/ }).click();
   const text = page.getByPlaceholder("Текст поста… Enter — новый абзац");
   await text.fill("UNSAVED_TEST_DRAFT");
   offline = true;

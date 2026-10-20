@@ -311,10 +311,22 @@ export default function AdminScreen() {
     });
   };
   // ── Post list item ──
-  const renderPostItem = ({ item }: { item: AdminPostCard }) => (
+  const renderPostItem = ({
+    item,
+    index,
+  }: {
+    item: AdminPostCard;
+    index: number;
+  }) => (
     <div
       data-testid={`admin-post-${item.id}`}
-      className={["ui-stack ", classes.postItem].filter(Boolean).join(" ")}
+      className={[
+        "ui-stack",
+        classes.postItem,
+        index === 0 ? classes.firstPost : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
       <div
         className={["ui-stack ", classes.postItemHeader]
@@ -577,28 +589,12 @@ export default function AdminScreen() {
         <>
           {/* View tabs */}
           <div
+            role="group"
+            aria-label="Разделы админки"
             className={["ui-stack ", classes.viewTabs]
               .filter(Boolean)
               .join(" ")}
           >
-            {viewTab === "posts" || viewTab === "calendar" ? (
-              <Action
-                onClick={handleCreate}
-                disabled={adminActions.blocked}
-                className={({ pressed }) =>
-                  [
-                    classes.newPostBtn,
-                    classes.createPost,
-                    pressed ? classes.opacityState16 : classes.opacityState17,
-                  ]
-                    .filter(Boolean)
-                    .join(" ")
-                }
-              >
-                <MaterialIcons name="add" size={18} color={CREAM_BG} />
-                <Typography className={classes.submitBtnText}>Новый</Typography>
-              </Action>
-            ) : null}
             <Action
               onClick={() => setViewTab("posts")}
               className={[
@@ -850,6 +846,28 @@ export default function AdminScreen() {
               </Typography>
             </Action>
           </div>
+          {viewTab === "posts" || viewTab === "calendar" ? (
+            <div className={`ui-stack ${classes.sectionToolbar}`}>
+              <Action
+                onClick={handleCreate}
+                disabled={adminActions.blocked}
+                className={({ pressed }) =>
+                  [
+                    classes.newPostBtn,
+                    classes.createPost,
+                    pressed ? classes.opacityState16 : classes.opacityState17,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
+                }
+              >
+                <MaterialIcons name="add" size={16} color={CREAM_BG} />
+                <Typography className={classes.submitBtnText}>
+                  Новый пост
+                </Typography>
+              </Action>
+            </div>
+          ) : null}
         </>
       ) : null}
 
@@ -1205,15 +1223,19 @@ export default function AdminScreen() {
               : undefined
           }
           footer={
-            postsQuery.isFetchNextPageError ? (
-              <Action
-                onClick={() => void postsQuery.fetchNextPage()}
-                className={classes.newPostBtn}
-              >
-                Повторить загрузку
-              </Action>
-            ) : postsQuery.isFetchingNextPage ? (
-              <Spinner color={GREEN_ACCENT} />
+            postsQuery.isFetchNextPageError || postsQuery.isFetchingNextPage ? (
+              <div className={`ui-stack ${classes.postsFooter}`}>
+                {postsQuery.isFetchingNextPage ? (
+                  <Spinner color={GREEN_ACCENT} />
+                ) : (
+                  <Action
+                    onClick={() => void postsQuery.fetchNextPage()}
+                    className={classes.postsRetry}
+                  >
+                    <Typography>Повторить загрузку</Typography>
+                  </Action>
+                )}
+              </div>
             ) : null
           }
           empty={
@@ -1232,7 +1254,7 @@ export default function AdminScreen() {
             </div>
           }
           className={classes.formScroll}
-          contentClassName={classes.listContent}
+          contentClassName={`${classes.listContent} ${classes.postsListContent}`}
         />
       )}
 

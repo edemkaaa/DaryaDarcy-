@@ -39,7 +39,7 @@ test("calendar opens an independent scheduled club editor and a subsequent new p
     ];
   }, chosen.toISOString());
   expect(parts).toEqual([2026, 9, 15, 10]);
-  await page.getByRole("button", { name: "Новый", exact: true }).click();
+  await page.getByRole("button", { name: "Новый пост", exact: true }).click();
   await expect(form.getByText("Проверяем сохранённый черновик…")).toHaveCount(
     0,
   );

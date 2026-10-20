@@ -24,11 +24,7 @@ async function open(page: Page, mode: Mode, editing = false) {
       .click();
   await page
     .getByRole("button", {
-      name: editing
-        ? "Редактировать пост"
-        : mode === "full"
-          ? "Новый"
-          : "Новый пост",
+      name: editing ? "Редактировать пост" : "Новый пост",
       exact: true,
     })
     .first()

@@ -327,7 +327,7 @@ for (const status of [404, 413]) {
         },
       );
     await gotoWithSession(page, "/admin");
-    await page.getByRole("button", { name: "Новый", exact: true }).click();
+    await page.getByRole("button", { name: "Новый пост", exact: true }).click();
     const form = page.getByRole("dialog", { name: "Редактор публикации" });
     await expect(
       form.getByText("Черновик сохранён на этом устройстве", { exact: true }),
@@ -361,7 +361,7 @@ for (const status of [404, 413]) {
     expect(creates).toBe(0);
     const original = uploads[0];
     await gotoWithSession(page, "/admin");
-    await page.getByRole("button", { name: "Новый", exact: true }).click();
+    await page.getByRole("button", { name: "Новый пост", exact: true }).click();
     await form
       .getByRole("button", { name: "Восстановить черновик", exact: true })
       .click();

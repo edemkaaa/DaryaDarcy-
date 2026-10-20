@@ -392,7 +392,7 @@ test("a moderator can use the report inbox without requesting owner-only admin d
     page.getByText("REPORTED_COMMENT", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Новый", exact: true }),
+    page.getByRole("button", { name: "Новый пост", exact: true }),
   ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Участницы", exact: true }),

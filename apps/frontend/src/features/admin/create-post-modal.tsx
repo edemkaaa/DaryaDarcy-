@@ -700,28 +700,25 @@ function CreatePostModalBody({
       label="Редактор публикации"
       open
       motion="slide"
+      className={classes.editorDialog}
       onClose={handleClose}
     >
       <div
         className={["ui-stack ", classes.container].filter(Boolean).join(" ")}
       >
-        <PostRecoveryNotice
-          recovery={recovery}
-          busy={operation.busy}
-          onRecover={() => void recoverCreation()}
-          onFinish={() => void finishRecovery()}
-          onDiscard={() => void discardRecovery()}
-        />
         {/* Header */}
-        <PostUploadStatus selection={uploadSelection} busy={operation.busy} />
         <div
           className={["ui-stack ", classes.header].filter(Boolean).join(" ")}
         >
           <Action
             onClick={handleClose}
             aria-label="Закрыть редактор"
+            hitArea={6}
             className={({ pressed }) =>
-              pressed ? classes.opacityState : classes.opacityState2
+              [
+                classes.closeButton,
+                pressed ? classes.opacityState : classes.opacityState2,
+              ].join(" ")
             }
           >
             <MaterialIcons name="close" size={24} color={BROWN_DARK} />
@@ -732,6 +729,7 @@ function CreatePostModalBody({
           <Action
             onClick={handleSubmit}
             disabled={isPending || recovery.blocked}
+            hitArea={6}
             aria-busy={isPending}
             aria-label={
               editingPost
@@ -768,6 +766,15 @@ function CreatePostModalBody({
             )}
           </Action>
         </div>
+
+        <PostRecoveryNotice
+          recovery={recovery}
+          busy={operation.busy}
+          onRecover={() => void recoverCreation()}
+          onFinish={() => void finishRecovery()}
+          onDiscard={() => void discardRecovery()}
+        />
+        <PostUploadStatus selection={uploadSelection} busy={operation.busy} />
 
         <ScrollArea
           contentInert={operation.busy || recovery.blocked}

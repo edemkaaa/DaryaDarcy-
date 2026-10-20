@@ -1,8 +1,20 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  .editorDialog {
+    bottom: auto;
+    width: 100%;
+    max-width: var(--app-max-width);
+    height: var(--app-height, 100dvh);
+    margin-inline: auto;
+    overflow: hidden;
+    background-color: var(--paper);
+  }
+
   .container {
     flex: 1;
+    width: 100%;
+    overflow: hidden;
     background-color: var(--paper);
   }
 
@@ -10,27 +22,40 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
     padding-left: 16px;
     padding-right: 16px;
-    padding-top: 14px;
+    padding-top: calc(14px + env(safe-area-inset-top, 0px));
     padding-bottom: 14px;
     border-bottom-width: 1px;
     border-bottom-color: var(--border);
   }
 
   .headerTitle {
+    flex: 1;
+    text-align: center;
     font-size: 17px;
     font-family: EBGaramond-SemiBold;
     color: var(--ink);
   }
 
   .action {
+    min-height: 32px;
+    align-items: center;
+    justify-content: center;
     background-color: var(--muted);
     padding-left: 14px;
     padding-right: 14px;
     padding-top: 7px;
     padding-bottom: 7px;
     border-radius: 16px;
+  }
+
+  .closeButton {
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
   }
 
   .submitBtnText {
@@ -112,6 +137,7 @@
   }
 
   .action2 {
+    min-height: 44px;
     flex-direction: row;
     align-items: center;
     justify-content: center;
@@ -129,7 +155,8 @@
   }
 
   .action3 {
-    flex: 0;
+    flex: 0 0 auto;
+    min-height: 44px;
     flex-direction: row;
     align-items: center;
     justify-content: center;
