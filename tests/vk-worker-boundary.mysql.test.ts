@@ -36,7 +36,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
-    it("denies retired YouTube GET HEAD Range and thumbnails despite warm media cache", async () => {
+    it("denies GET HEAD Range and thumbnails after access revocation despite warm media cache", async () => {
       const moduleUrl = (file: string) =>
         JSON.stringify(pathToFileURL(resolve("apps/video-service", file)).href);
       const script = `
@@ -49,7 +49,6 @@ describe.skipIf(!testDatabaseUrl)(
       const cache=await createVideoCache({root,prepare:async(id,directory)=>{
         await writeFile(join(directory,'video.mp4'),Buffer.from('0123456789'));
       }});
-      const lease=await cache.acquire('vkworker001');lease.release();
       const server=createVideoServer({cache,readCatalog:signal=>readPublicCatalog(${JSON.stringify(api + "/api/trpc/videos.list")},signal),readThumbnail:async()=>Buffer.from([255,216,255])});
       await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
       console.log('WORKER_URL:http://127.0.0.1:'+server.address().port);
@@ -86,7 +85,15 @@ describe.skipIf(!testDatabaseUrl)(
             if (line) finish(undefined, line.slice(11));
           });
         });
-        // Prepared bytes exist, but the API no longer authorizes any old ID.
+        const warm = await fetch(base + "/api/yt/vkworker001");
+        expect(warm.status).toBe(200);
+        expect(await warm.text()).toBe("0123456789");
+        const range = await fetch(base + "/api/yt/vkworker001", {
+          headers: { Range: "bytes=2-4" },
+        });
+        expect(range.status).toBe(206);
+        expect(await range.text()).toBe("234");
+        await conn.query("UPDATE videos SET access='club' WHERE id=11511");
         for (const id of ["vkworker001", "vkworker002"])
           for (const [path, options] of [
             [`/api/yt/${id}`, {}],

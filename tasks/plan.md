@@ -63,6 +63,14 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **20 октября, RELEASE-VK — выбор пользователя получен:** выпустить остальные
+  правки, отключение YouTube отложить до переноса VK. Обратный commit только
+  для4c04d62 сохраняет исходную работу в истории; mixed catalog/proxy/worker
+  временно действуют. Covers и прочие исправления остаются. Штатная генерация
+  API-контракта входит в согласованный выпуск; ручного UI/дизайна не менять.
+  Проверки/backup/rollback/fresh guards обязательны, rollout только app images;
+  текущая DB/admin/password/schema/S3/provider flags без изменений, без VK import.
+
 - **20 октября, RELEASE-VK — новое разрешение с preflight stop:** пользователь
   поручил обновить staging и сервер всеми локальными/свежими frontend изменениями.
   Fresh remote b32d0bc, local2e12c80 ahead23/behind0. Read-only server SQL/API

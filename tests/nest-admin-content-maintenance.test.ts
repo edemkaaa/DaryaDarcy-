@@ -249,23 +249,114 @@ describe("native admin content maintenance service boundary", () => {
     );
   });
 
-  describe("retired video metadata import", () => {
-    it.each([
-      { videos: [{ youtubeId: "first", title: "Title" }] },
-      { videos: [] },
-    ])(
-      "refuses valid metadata instead of reporting import success: %j",
-      async (input) => {
-        vi.spyOn(db, "bulkImportVideos").mockImplementation(async () => {
-          throw new Error("Unexpected persistence in a retired importer");
+  describe("video metadata import", () => {
+    it("returns the injected import service outcome with validated input", async () => {
+      let received: unknown;
+      Object.defineProperty(writes, "importVideos", {
+        configurable: true,
+        value: async (input: unknown) => {
+          received = input;
+          return { imported: 7 };
+        },
+      });
+      try {
+        const input = {
+          videos: [{ youtubeId: "first", title: "Title", published: false }],
+          bypass: "ignored",
+        };
+        expect(await client().admin.importVideos.mutate(input)).toEqual({
+          imported: 7,
         });
+        expect(received).toEqual({
+          videos: [{ youtubeId: "first", title: "Title" }],
+        });
+      } finally {
+        Reflect.deleteProperty(writes, "importVideos");
+      }
+    });
+
+    it("keeps a domain refusal from the injected import service", async () => {
+      Object.defineProperty(writes, "importVideos", {
+        configurable: true,
+        value: async () => {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "synthetic import refusal",
+          });
+        },
+      });
+      try {
         await expect(
-          client().admin.importVideos.mutate(input),
+          client().admin.importVideos.mutate({
+            videos: [{ youtubeId: "first", title: "Title" }],
+          }),
         ).rejects.toMatchObject({
-          data: { code: "NOT_FOUND", httpStatus: 404 },
+          message: "synthetic import refusal",
+          data: { code: "CONFLICT", httpStatus: 409 },
         });
-      },
-    );
+      } finally {
+        Reflect.deleteProperty(writes, "importVideos");
+      }
+    });
+
+    it("keeps ordered metadata, null defaults and the persistence count", async () => {
+      let persisted: Parameters<typeof db.bulkImportVideos>[0] | undefined;
+      vi.spyOn(db, "bulkImportVideos").mockImplementation(async (items) => {
+        persisted = items;
+        return 1;
+      });
+      expect(
+        await client().admin.importVideos.mutate({
+          videos: [
+            { youtubeId: "first", title: "  Original title  " },
+            {
+              youtubeId: "second",
+              title: "Second",
+              duration: "",
+              thumbnailUrl: "https://assets.example.test/cover.jpg",
+              views: "300",
+              publishedText: "yesterday",
+            },
+          ],
+        }),
+      ).toEqual({ imported: 1 });
+      expect(persisted).toEqual([
+        {
+          youtubeId: "first",
+          title: "  Original title  ",
+          duration: null,
+          thumbnailUrl: null,
+          videoUrl: null,
+          views: null,
+          publishedText: null,
+          sortOrder: 0,
+          published: true,
+        },
+        {
+          youtubeId: "second",
+          title: "Second",
+          duration: "",
+          thumbnailUrl: "https://assets.example.test/cover.jpg",
+          videoUrl: null,
+          views: "300",
+          publishedText: "yesterday",
+          sortOrder: 1,
+          published: true,
+        },
+      ]);
+    });
+
+    it("preserves the empty import response without inventing records", async () => {
+      let persisted: Parameters<typeof db.bulkImportVideos>[0] | undefined;
+      vi.spyOn(db, "bulkImportVideos").mockImplementation(async (items) => {
+        persisted = items;
+        return 0;
+      });
+      expect(await client().admin.importVideos.mutate({ videos: [] })).toEqual({
+        imported: 0,
+      });
+      expect(persisted).toEqual([]);
+    });
 
     it.each([
       { videos: [{ youtubeId: "missing-title" }] },
@@ -317,7 +408,7 @@ describe("native admin content maintenance service boundary", () => {
       },
     );
 
-    it("refuses the retired importer without reaching unavailable persistence", async () => {
+    it("does not expose a failed persistence operation as a successful import", async () => {
       vi.spyOn(db, "bulkImportVideos").mockRejectedValue(
         new Error("synthetic private SQL error"),
       );
@@ -326,7 +417,8 @@ describe("native admin content maintenance service boundary", () => {
           videos: [{ youtubeId: "first", title: "Title" }],
         }),
       ).rejects.toMatchObject({
-        data: { code: "NOT_FOUND", httpStatus: 404 },
+        message: "Внутренняя ошибка сервера",
+        data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
       });
     });
   });

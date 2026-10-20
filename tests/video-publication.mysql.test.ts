@@ -107,13 +107,16 @@ describe.skipIf(!testDatabaseUrl)(
     it("does not disclose a hidden video or its media URL by public numeric ID", async () => {
       expect(await client.videos.getById.query({ id: 10902 })).toBeUndefined();
     });
-    it("hides published legacy detail and list as well as hidden rows", async () => {
-      expect(await client.videos.getById.query({ id: 10901 })).toBeUndefined();
+    it("keeps published detail and list available, with hidden rows excluded", async () => {
+      expect(await client.videos.getById.query({ id: 10901 })).toMatchObject({
+        id: 10901,
+        title: "Café",
+      });
       expect(
         (await client.videos.list.query())
           .filter((row) => row.id >= 10901 && row.id <= 10906)
           .map((row) => row.id),
-      ).toEqual([]);
+      ).toEqual([10901, 10903]);
       expect(await client.videos.getById.query({ id: 10906 })).toBeUndefined();
     });
     it("keeps unpublished entries available to internal import deduplication", async () => {
@@ -131,18 +134,21 @@ describe.skipIf(!testDatabaseUrl)(
         expect(external.upstream).toEqual([]);
       },
     );
-    it("refuses a published legacy entry even with a Range request", async () => {
+    it("streams a published catalog entry with Range semantics preserved", async () => {
       const response = await httpFetch(`${base}/api/yt/auditpub001`, {
         headers: { Range: "bytes=0-3" },
       });
-      expect(response.status).toBe(404);
-      expect(response.headers.get("content-range")).toBeNull();
-      expect(external.commands).toEqual([]);
-      expect(external.upstream).toEqual([]);
+      expect(response.status).toBe(206);
+      expect(response.headers.get("content-range")).toBe("bytes 0-3/8");
+      expect(response.headers.get("content-type")).toBe("video/mp4");
+      expect(await response.text()).toBe("test");
+      expect(external.commands[0]?.at(-1)).toBe(
+        "https://www.youtube.com/watch?v=auditpub001",
+      );
     });
-    it("refuses the retired proxy both before and after unpublishing", async () => {
+    it("rechecks publication even when playback resolution is cached", async () => {
       const first = await httpFetch(`${base}/api/yt/auditrev001`);
-      expect(first.status).toBe(404);
+      expect(first.status).toBe(200);
       await first.text();
       await conn.query("UPDATE videos SET published=FALSE WHERE id=10903");
       external.commands = [];
@@ -154,7 +160,7 @@ describe.skipIf(!testDatabaseUrl)(
     });
     it("rejects malformed YouTube IDs without external work", async () => {
       const response = await httpFetch(`${base}/api/yt/bad!`);
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(400);
       expect(external.commands).toEqual([]);
       expect(external.upstream).toEqual([]);
     });
@@ -165,15 +171,12 @@ describe.skipIf(!testDatabaseUrl)(
       expect(external.commands).toEqual([]);
       expect(external.upstream).toEqual([]);
     });
-    it("does not contact upstream for a legacy published video", async () => {
-      let contacted = false;
+    it("rechecks club access after an in-flight upstream response before returning bytes", async () => {
       vi.stubGlobal("fetch",async()=>{
-        contacted = true;
         await conn.query("UPDATE videos SET access='club' WHERE id=10903");
         return new Response("owned private bytes",{status:200,headers:{"content-type":"video/mp4"}});
       });
       expect((await httpFetch(`${base}/api/yt/auditrev001`)).status).toBe(404);
-      expect(contacted).toBe(false);
     });
   },
 );

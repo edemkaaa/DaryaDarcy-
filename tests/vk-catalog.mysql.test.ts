@@ -367,12 +367,16 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       await rows("SELECT id FROM videos WHERE title LIKE 'Owned VK%'"),
     ).toHaveLength(0);
   });
-  it("does not expose stored legacy sources after the VK-only transition", async () => {
+  it("preserves the legacy public YouTube wire shape without new source fields", async () => {
     await conn.query(
       "INSERT INTO videos (id,youtubeId,title) VALUES (11501,'vkpublic001','Owned VK legacy')",
     );
     const row = (await request("videos.getById", { id: 11501 }, null)).data;
-    expect(row).toBeUndefined();
+    expect(row.youtubeId).toBe("vkpublic001");
+    expect(row).not.toHaveProperty("vkEmbedUrl");
+    expect(row).not.toHaveProperty("vkSourceKey");
+    expect(row).not.toHaveProperty("access");
+    expect(row).not.toHaveProperty("provider");
   });
   it("lists source-free cards and gates club playback by current club access", async () => {
     const created = await request("admin.upsertVkVideo", input, admin, true);
@@ -679,7 +683,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
   });
   it("accepts the existing infinite-query client across all pages without exposing club sources", async () => {
     await conn.query(
-      "INSERT INTO videos (id,provider,title,published,access) VALUES (11501,'vk','Owned VK first',TRUE,'public'),(11502,'vk','Owned VK hidden',FALSE,'public'),(11503,'vk','Owned VK club',TRUE,'club'),(11504,'vk','Owned VK last',TRUE,'public')",
+      "INSERT INTO videos (id,youtubeId,title,published,access) VALUES (11501,'vkpublic001','Owned VK first',TRUE,'public'),(11502,'vkpublic002','Owned VK hidden',FALSE,'public'),(11503,'vkpublic003','Owned VK club',TRUE,'club'),(11504,'vkpublic004','Owned VK last',TRUE,'public')",
     );
     const sent: unknown[] = [];
     const client = createTRPCProxyClient<AppRouter>({
@@ -741,7 +745,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
   });
   it("paginates source-free cards and validates safe IDs and strict query fields", async () => {
     await conn.query(
-      "INSERT INTO videos (id,provider,title,published) VALUES (11501,'vk','Owned VK first',TRUE),(11502,'vk','Owned VK second',FALSE),(11503,'vk','Owned VK third',TRUE)",
+      "INSERT INTO videos (id,youtubeId,title,published) VALUES (11501,'vkpublic001','Owned VK first',TRUE),(11502,'vkpublic002','Owned VK second',FALSE),(11503,'vkpublic003','Owned VK third',TRUE)",
     );
     const page = (
       await request("videos.catalog", { cursor: 11500, limit: 1 }, null)
@@ -774,8 +778,14 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       (await request("videos.playback", { id: 11501, access: "public" }, null))
         .code,
     ).toBe(400);
-    // A metadata-only synthetic VK row is not a valid playback source.
-    expect((await request("videos.playback", { id: 11501 }, null)).code).toBe(500);
+    expect(
+      (await request("videos.playback", { id: 11501 }, null)).data,
+    ).toEqual({
+      id: 11501,
+      provider: "youtube",
+      youtubeId: "vkpublic001",
+      videoUrl: null,
+    });
   });
   it("fails closed when the unique source guard is missing", async () => {
     await conn.query("ALTER TABLE videos DROP INDEX videos_vk_source_unique");

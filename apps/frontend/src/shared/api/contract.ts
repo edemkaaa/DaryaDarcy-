@@ -50,12 +50,12 @@ export type PublicVideo = Omit<
     sortOrder: number;
     published: boolean;
     access: "club" | "public";
+    thumbnailUrl: string | null;
     provider: "vk" | "youtube";
     youtubeId: string | null;
     videoUrl: string | null;
     vkEmbedUrl: string | null;
     vkSourceKey: string | null;
-    thumbnailUrl: string | null;
     views: string | null;
     publishedText: string | null;
   },
@@ -349,6 +349,7 @@ export type AppRouter = BuiltRouter<
               limit?: number | undefined;
               cursor?: number | undefined;
               direction?: "forward" | undefined;
+              includeThumbnails?: boolean | undefined;
             }
           | undefined;
         output: {
@@ -358,6 +359,7 @@ export type AppRouter = BuiltRouter<
             duration: string | null;
             access: "club" | "public";
             canWatch: boolean;
+            thumbnailUrl?: string | null | undefined;
           }>;
           nextCursor: number | null;
         };
@@ -904,6 +906,7 @@ export type AppRouter = BuiltRouter<
           title: string;
           access: "club" | "public";
           published: boolean;
+          thumbnailUrl?: string | null | undefined;
           id?: number | undefined;
         };
         output: { id: number };

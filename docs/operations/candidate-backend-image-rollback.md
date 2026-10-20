@@ -1,5 +1,15 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## RELEASE-MIXED — выбран выпуск остальных правок, cutover VK отложен
+
+20 октября пользователь принял временный выпуск без отключения60 текущих
+YouTube до переноса VK. Обратный commit4c04d62 сохраняет историю и mixed API,
+не затрагивает covers/прочие fixes и working content. Generated frontend
+API contract синхронизируется штатно, ручных UI/design changes нет.
+Выпуск в подготовке: fresh tests/audit/artifact/backup/guarded image-only rollout
+и read-only acceptance ещё обязательны. Старые scripts нельзя запускать без
+обновления baseline/config set (теперь включает compose.private-uploads.yaml).
+
 ## RELEASE-VK — разрешение обновления получено, preflight остановил полный выпуск
 
 20 октября2026 пользователь разрешил push в staging и обновление frontend/backend

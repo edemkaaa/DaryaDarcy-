@@ -1,28 +1,15 @@
 # AG8: VK-каталог и клубный доступ
 
-## Действующее уточнение — VK-only,20 октября 2026
+## Выпуск20 октября2026 — VK-only cutover отложен пользователем
 
-Пользователь поручил убрать YouTube из раздела и подтвердил backend-only
-реализацию с документом фронтендеру. Это заменяет нижеописанное сохранение
-YouTube playback/import, но не разрешает frontend/working DB/S3/push/deploy.
-
-- `videos.catalog` выбирает только published provider=vk до limit/cursor.
-- `videos.playback` возвращает только `{ id, provider: "vk", embedUrl }`;
-  старые YouTube ID дают404, существующие club/session checks прежние.
-- Legacy `videos.list` возвращает пустой массив, `videos.getById` — undefined,
-  в том числе при выключенном VK flag. VK URL в эти public adapters не попадает.
-- Валидный admin.importVideos даёт404 без записи, auth/strict validation прежние.
-- Backend YouTube proxy удалён; GET/HEAD `/api/yt/:id` дают404. Старый worker,
-  читающий текущий пустой legacy catalog, отказывает даже с подготовленным cache.
-- Schema/YouTube rows/backup helpers/старые файлы сохранены для отдельно
-  согласованного переноса; автоматического преобразования ID/массовой очистки нет.
-
-Из предоставленного PDF извлечены22 video page URLs, названия/длительности;
-это не22 iframe exports. Подтверждён src только для Англии (id456239238).
-Hash/обложки/доступ public|club не выдумывать, рабочий каталог не заполнять.
-До синхронной интеграции фронта и наполнения не выпускать VK-only backend:
-старый UI или пустая VK-таблица иначе покажут пустой раздел. Обязательная
-передача — [документ фронтендеру](docs/development/frontend-video-fixes-2026-10-20.md).
+После read-only проверки стенда (60 опубликованных YouTube,0 VK) пользователь
+выбрал выпуск остальных правок без отключения YouTube до переноса VK.
+Отменяется только действие cutover4c04d62; работа сохранена в истории Git.
+Временно остаются смешанный каталог/playback, legacy list/getById, прежний
+YouTube proxy/worker и валидированный admin import. Новые VK covers и opt-in
+includeThumbnails сохраняются. Working rows/ID/access/flags не переписывать.
+Переход к VK-only, импорт22 источников и подтверждение playback/качественных
+обложек остаются отдельным согласованным шагом; не включать его при обновлении.
 
 ## Статус — Accepted for local backend implementation, 14 октября 2026
 

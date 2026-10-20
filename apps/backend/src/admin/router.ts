@@ -182,10 +182,10 @@ export const createAdminRouter = (
     )
     .query(({ input }) => content.listAdminPosts(input)),
 
-  // Retired importer: preserve auth/input validation, but refuse new YouTube rows.
+  // Import YouTube videos (admin only)
   importVideos: adminProcedure
     .input(importVideosInput)
-    .mutation(() => posts.importVideos()),
+    .mutation(({ input }) => posts.importVideos(input)),
   upsertVkVideo: adminProcedure
     .input(vkVideoInput)
     .output(z.object({id:z.number().int().positive()}).strict())

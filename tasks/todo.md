@@ -4,7 +4,27 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
-#### RELEASE-VK — запрос обновить staging/server,20 октября: preflight stop
+#### RELEASE-VK — выпуск без отключения YouTube,20 октября
+
+- [x] Пользователь выбрал выпуск остальных правок с отложенным отключением
+  YouTube до переноса VK. Cutover4c04d62 отменяется отдельным обратным commit,
+  без удаления истории; covers/остальные backend fixes сохраняются. Разрешена
+  штатная генерация API-контракта, без ручной правки UI/дизайна.
+- [ ] Проверить release source, SQL/HTTP на own tmpfs backend_test, сборки и
+  native audit. Затем normal push staging, fresh baseline/backup/rollback,
+  image-only rollout API/web/restricted TEST и реальные read-only API postchecks.
+  Working DB/admin/password/schema/S3/config flags сохранить, контент не импортировать.
+- [x] Local release checks:222 tests/8 suites (native HTTP/JWT/SQL, mixed
+  catalog/playback/legacy/worker access, VK covers/replay, content/download names,
+  session availability) +221 tests/7 suites frontend/collector/admin;0skip.
+  Fresh tmpfs backend_test profile42 initialized; первый helper run столкнулся
+  с duplicate sessionVersion из-за отсутствия test-only migration markers.
+  Добавлены markers только уже проверенной fresh fixture, повторный run GREEN.
+  TypeScript/root/frontend/E2E, ESLint, API contract90, boundaries713/docs64 и
+  backend/restricted TEST/frontend29-route build GREEN; native prod audit0.
+  Frontend кроме generated contract byte-exact origin/staging=b32d0bc.
+  Build flags сохраняют прежние TEST/recovery/VK=true, CLUB_TEST=false;
+  новый general private-library frontend flag=false, recipes/Petersburg прежние.
 
 - [x] Получено явное разрешение push/server update с локальным backend и свежим
   frontend. Fresh fetch:origin/staging=b32d0bc, HEAD2e12c80 ahead23/behind0,
