@@ -4,6 +4,27 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### VIDEO — локальный backend контракт и переход на VK
+
+- [x] Пользователь разрешил backend-правки по handoff, без frontend/working
+  DB/S3/push/deploy; затем уточнил VK вместо YouTube. YouTube-доработку
+  приостановить, старый обрыв не считать исправленным.
+- [x] Read-only staging: edge `/api/yt/` → video:8082, cached first video
+  96197089 bytes, public HEAD200/video-mp4/Accept-Ranges. Это не full GET или
+  browser acceptance; несколько SSH подключений зависли до авторизации.
+- [x] RED8 HTTP/SQL400 → opt-in includeThumbnails. True добавляет безопасный
+  thumbnailUrl/null; false/отсутствие сохраняет прежний strict-клиентский ответ.
+  Только existing public image namespaces, без внешних fetch/N+1/миграций.
+- [x] GREEN93/5 suites: real loopback SQL/HTTP, VK access/worker границы,
+  существующие frontend parsers read-only; root TypeScript/backend build GREEN.
+- [ ] Generated frontend contract ожидает штатной генерации фронтендером:
+  check:api RED/outdated, намеренно не менялся под запретом frontend.
+- [ ] Реальный VK export ещё не получен: wall-211171256_41982 и
+  VK.Widgets.Post относятся к посту, не video_ext.php. JS не исполнялся,
+  hash не выдумывался, каталог не заменялся. Live VK/наполнение обложек не приняты.
+- [x] Свой container67ec05eb… удалён после guards exact ID/labels/tmpfs/loopback,
+  volumes отсутствовали. Только synthetic backend_test; images/чужие БД не тронуты.
+
 #### WIN-LIVE — разрешено включение и проверка четырёх выкроек
 
 - [x] Пользователь подтвердил включение Library flag для4 ready winter bindings.

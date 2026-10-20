@@ -236,6 +236,132 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       (await request("videos.playback", { id: created.data.id }, staff)).data,
     ).toEqual({ id: created.data.id, provider: "vk", embedUrl: canonical });
   });
+  it.each([
+    [
+      "/assets/responsive/owned-cover.webp",
+      "/assets/responsive/owned-cover.webp",
+    ],
+    [
+      "https://s3.twcstorage.ru/daryadarcy-s3/feed/owned-cover.webp",
+      "https://s3.twcstorage.ru/daryadarcy-s3/feed/owned-cover.webp",
+    ],
+    [
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/owned-cover.jpg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/owned-cover.jpg",
+    ],
+    [null, null],
+    [canonical, null],
+    [
+      "https://s3.twcstorage.ru/daryadarcy-s3/private-content/secret.webp?X-Amz-Signature=secret",
+      null,
+    ],
+    [
+      "https://s3.twcstorage.ru/daryadarcy-s3/feed/cover.webp?token=secret",
+      null,
+    ],
+    ["https://s3.twcstorage.ru.evil.test/daryadarcy-s3/feed/cover.webp", null],
+    ["javascript:alert(1)", null],
+    ["//evil.test/cover.webp", null],
+    [
+      "https://user:secret@s3.twcstorage.ru/daryadarcy-s3/feed/cover.webp",
+      null,
+    ],
+    ["https://s3.twcstorage.ru/daryadarcy-s3/feed/cover.webp#secret", null],
+    ["https://s3.twcstorage.ru/daryadarcy-s3/feed/movie.mp4", null],
+    [
+      "https://s3.twcstorage.ru/daryadarcy-s3/feed/%2e%2e/private-v1/file.webp",
+      null,
+    ],
+  ])(
+    "returns only a public cover after explicit client opt-in (%s)",
+    async (stored, expected) => {
+      const created = await request("admin.upsertVkVideo", input, admin, true);
+      await conn.query("UPDATE videos SET thumbnailUrl=? WHERE id=?", [
+        stored,
+        created.data.id,
+      ]);
+      const legacy = await request(
+        "videos.catalog",
+        { includeThumbnails: false },
+        null,
+      );
+      expect(legacy.code).toBe(200);
+      expect(legacy.data.items[0]).toEqual({
+        id: created.data.id,
+        title: input.title,
+        duration: null,
+        access: "club",
+        canWatch: false,
+      });
+      const response = await request(
+        "videos.catalog",
+        { includeThumbnails: true },
+        null,
+      );
+      expect(response.code).toBe(200);
+      expect(response.data.items).toEqual([
+        {
+          id: created.data.id,
+          title: input.title,
+          duration: null,
+          access: "club",
+          canWatch: false,
+          thumbnailUrl: expected,
+        },
+      ]);
+      // A public cover never grants playback or exposes the VK source/hash.
+      expect(
+        (await request("videos.playback", { id: created.data.id }, null)).code,
+      ).toBe(401);
+    },
+  );
+  it("keeps cover opt-in and the forward cursor independent across pages", async () => {
+    const first = await request("admin.upsertVkVideo", input, admin, true);
+    const second = await request(
+      "admin.upsertVkVideo",
+      {
+        ...input,
+        embedUrl: embedUrl.replace("id=200", "id=201"),
+        title: "Owned VK next cover",
+      },
+      admin,
+      true,
+    );
+    await conn.query(
+      "UPDATE videos SET thumbnailUrl='/assets/responsive/owned-cover.webp' WHERE id=?",
+      [first.data.id],
+    );
+    const page = await request(
+      "videos.catalog",
+      { limit: 1, includeThumbnails: true },
+      null,
+    );
+    expect(page.code).toBe(200);
+    expect(page.data.nextCursor).toBe(first.data.id);
+    expect(page.data.items[0].thumbnailUrl).toBe(
+      "/assets/responsive/owned-cover.webp",
+    );
+    const next = await request(
+      "videos.catalog",
+      { limit: 1, cursor: page.data.nextCursor, includeThumbnails: true },
+      null,
+    );
+    expect(next.data.items).toEqual([
+      {
+        id: second.data.id,
+        title: "Owned VK next cover",
+        duration: null,
+        access: "club",
+        canWatch: false,
+        thumbnailUrl: null,
+      },
+    ]);
+    expect(next.data.nextCursor).toBeNull();
+    // Clients can still make the original request after a cover-aware request.
+    expect(
+      (await request("videos.catalog", { limit: 1 }, null)).data.items[0],
+    ).not.toHaveProperty("thumbnailUrl");
+  });
   it("serves public VK through additive playback, not through legacy worker authority", async () => {
     const created = await request(
       "admin.upsertVkVideo",

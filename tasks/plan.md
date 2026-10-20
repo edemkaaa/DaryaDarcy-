@@ -63,6 +63,17 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **20 октября, VIDEO — локально backend и VK:** пользователь разрешил правки
+  по backend-video-fixes, затем уточнил VK вместо YouTube. Не менять frontend
+  (включая generated contract), working DB/S3/flags/push/deploy. YouTube-прокси
+  не дорабатывать, прежний обрыв не считать исправленным. Реализован opt-in
+  `videos.catalog.includeThumbnails`: прежние запросы сохраняют прежний ответ,
+  true добавляет public-image URL/null. RED8→GREEN93/5, native HTTP/loopback SQL,
+  TypeScript/backend build GREEN. check:api RED/outdated до работы фронтендера.
+  Wall URL и VK.Widgets.Post не являются video_ext.php; ждать экспорт самого
+  ролика для live приёмки, не исполнять постовый JS и не подменять весь каталог.
+  Подробный статус — VIDEO в начале todo и два video-fixes handoff документа.
+
 - **Результат WIN-LIVE20 октября:** Library/content flags true; API2c604839…
   с прежним image15865765…healthy/restart0. Public verified HTTPS с staging host:
   89 checks, admin/member четыре exact WebP GET/HEAD/Range, guest/unpaid/deleted

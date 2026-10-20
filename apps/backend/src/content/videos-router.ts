@@ -14,6 +14,8 @@ export const createVideosRouter = (content: ContentReadService) =>
             cursor: id.optional(),
             // tRPC infinite queries send this hint; this catalog is forward-only.
             direction: z.literal("forward").optional(),
+            // Existing strict clients must keep receiving the original shape.
+            includeThumbnails: z.boolean().optional(),
           })
           .strict()
           .default({ limit: 20 }),
@@ -29,6 +31,7 @@ export const createVideosRouter = (content: ContentReadService) =>
                   duration: z.string().nullable(),
                   access: z.enum(["public", "club"]),
                   canWatch: z.boolean(),
+                  thumbnailUrl: z.string().nullable().optional(),
                 })
                 .strict(),
             ),

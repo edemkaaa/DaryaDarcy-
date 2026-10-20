@@ -11,6 +11,32 @@ import { parseVkEmbed, type VkVideoInput } from "./vk-video-input";
 import { userHasClubAccess } from "../identity/club-access";
 import { getActiveClubSubscription } from "../db";
 
+/** Only existing public image namespaces; never advertise private/signed media
+ * or a player URL as a cover. This function does not fetch external content. */
+function publicCatalogThumbnail(raw: string | null) {
+  if (!raw || raw.length > 2048) return null;
+  const value = raw.trim();
+  if (/^\/assets\/responsive\/[\w.-]+\.(?:webp|png|jpe?g|avif)$/i.test(value))
+    return value;
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol === "https:" &&
+      url.hostname === "s3.twcstorage.ru" &&
+      !url.port &&
+      !url.username &&
+      !url.password &&
+      !url.search &&
+      !url.hash &&
+      /^\/daryadarcy-s3\/(?:feed|app-assets)\/[\w/.-]+\.(?:webp|png|jpe?g|avif)$/i.test(
+        url.pathname,
+      )
+    )
+      return url.toString();
+  } catch {}
+  return null;
+}
+
 export function requireVkCatalogEnabled() {
   if (process.env.VK_CATALOG_ENABLED !== "true")
     throw new TRPCError({
@@ -119,7 +145,7 @@ export async function upsertVkVideo(actor: User, input: VkVideoInput) {
 
 export async function videoCatalog(
   actor: User | null,
-  input: { limit: number; cursor?: number },
+  input: { limit: number; cursor?: number; includeThumbnails?: boolean },
 ) {
   requireVkCatalogEnabled();
   const database = await getDb();
@@ -138,6 +164,9 @@ export async function videoCatalog(
         title: videos.title,
         duration: videos.duration,
         access: videos.access,
+        ...(input.includeThumbnails
+          ? { thumbnailUrl: videos.thumbnailUrl }
+          : {}),
       })
       .from(videos)
       .where(
@@ -148,13 +177,16 @@ export async function videoCatalog(
       )
       .orderBy(asc(videos.id))
       .limit(input.limit + 1);
-    const items = rows
-      .slice(0, input.limit)
-      .map((row) => ({
-        ...row,
-        title: row.title.normalize("NFC"),
-        canWatch: row.access === "public" || canWatchClub,
-      }));
+    const items = rows.slice(0, input.limit).map((row) => ({
+      id: row.id,
+      title: row.title.normalize("NFC"),
+      duration: row.duration,
+      access: row.access,
+      canWatch: row.access === "public" || canWatchClub,
+      ...(input.includeThumbnails
+        ? { thumbnailUrl: publicCatalogThumbnail(row.thumbnailUrl ?? null) }
+        : {}),
+    }));
     return {
       items,
       nextCursor: rows.length > input.limit ? items.at(-1)!.id : null,
