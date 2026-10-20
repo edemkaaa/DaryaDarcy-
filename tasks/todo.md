@@ -2,6 +2,59 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### AUTH-OUT / ADM-T1 — новые замечания,20 октября; только локально
+
+- Локальные code commits: ADM-T1 `53d800a`, AUTH-OUT `818f00b`.
+- [x] Clean feature/stage-one-completion-2026-10-10/a8431f1; проверены планы,
+  текущая реализация и действующие ограничения. Никаких fetch/merge/push/deploy,
+  правок runtime flags, рабочей БД или S3. Дизайн/frontend runtime не менялись.
+- [x] ADM-T1: native missing post уже возвращал null, но inferred array element
+  считался non-nullable и null исчезал из API type. RED tsc:3 нарушения на
+  repository/server/generated client. Явный Promise<(Post & media) | null>
+  и штатная генерация исправили контракт; existing native missing/detail/media
+  поведение сохранено. Это не новый endpoint/404 и не ручная правка контракта.
+- [x] AUTH-OUT: RED4 native HTTP/JWT/SQL failures подтверждают replay старого
+  токена и ложный200 при недоступности записи. Пользователь доверил решение:
+  logout через REST и tRPC завершает все сессии аккаунта existing sessionVersion.
+  Один conditional UPDATE по id/openId/expectedVersion; нет новой таблицы,
+  миграции, хранения токенов или изменения JWT/password/roles/subscription.
+  Clear-cookie только после успешной записи; guest/invalid/repeated logout
+  идемпотентны. Ошибка SQL даёт REST503/tRPC500, без success/cookie/SQL details.
+- [x] Native58 pass/0skip: admin reads30 + sessions28 на own loopback/tmpfs
+  backend_test, реальные Nest HTTP/JWT/password/SQL. Cookie/Bearer через оба
+  адаптера, отказ старому токену на protected read и session exchange, чужой
+  аккаунт сохранён, новый login рабочий, delayed/concurrent stale snapshot не
+  отзывает новую сессию. SQL trigger fault только на own fixture UPDATE;
+  finally удаляет trigger, недоступность настоящей БД не вызывалась.
+  Первый GREEN attempt выявил ошибку теста: club.subscription намеренно public,
+  заменён protected read, продуктовую политику не меняли.
+- [x] Focused unit/HTTP55 pass; full regression2654 pass/1621 opt-in skips,
+  206 suites pass/96 skipped. Native58 выше выполнены отдельно без skips.
+  Review: атомарный compare-and-swap вместо незащищённого increment; ошибки
+  не маскируются, stale actor не затрагивает новый вход, общий механизм обоим
+  адаптерам. Runtime сервер всё ещё D7; локальные результаты не выдавать за dev.
+- [x] Root/frontend/E2E types, backend build606.8KiB, API90/35243,
+  boundaries692/docs59, scoped format и diff check проходят. Own tmpfs container
+  abe3117f…65487 удалён после exact ID/owner/task/loopback/tmpfs768MiB/no-volume
+  guards. Одноразовые fixture данные воспроизводимы; образы, volumes и чужие
+  контейнеры не удалялись. Реальные S3/письма/платежи и live browser не проверялись.
+- [ ] CAP-U: private upload API подготовлены, рабочие flags всё ещё off;
+  capabilities пока содержат только прежние4 поля, редакторы/фото комментариев
+  не читают доступность private upload. Следующий минимальный контракт:
+  additive booleans для content-photo/file, post-audio/document и post-video,
+  derived только от existing flags (video требует media+video). Unknown/error/
+  false блокируют новые выбор/загрузку без public fallback и потери recovery.
+  Отдельно согласовать contract/integration, затем reviewed enable+acceptance;
+  в этой задаче не включать рабочие flags автоматически.
+- [ ] Библиотека остаётся реально незакрытой:4 CHRISTMAS_PATTERNS — public
+  /assets/responsive originals, «Лошадка» — public Yandex URL; guide импортирует
+  7 full club-result modules. Те же7 modules импортирует quiz-result: убрать
+  только guide import недостаточно. Нужны точная карта paid/free, server-only
+  paid payload с live club check, обе client integration без paid imports,
+  protected file bindings и отдельно согласованное закрытие старых URL/copies/
+  caches после проверки новых. Публичный результат теста и covers не закрывать.
+  LB importer/list/read уже готовы; это не означает перенос настоящих файлов.
+
 ### RELEASE-D7 — сервер обновлён,20 октября; live проверка клуба завершена
 
 - [x] После смены VPN выпуск реально применён на публичном dev, а не только
