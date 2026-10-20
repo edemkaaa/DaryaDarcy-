@@ -63,6 +63,20 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **20 октября, VK-COVER — локальное исследование всех22:** пользователь разрешил
+  разобраться с качественными обложками без frontend/working DB/S3/push/deploy.
+  Проверены metadata22 и исходный PDF:19 embedded native533–537x300–301 PNG
+  извлечены без увеличения,22-row manifest/contact sheet вне Git в private
+  Downloads/daryadarcy-vk-cover-audit-20261020.GjUur6. Geo/link mapping, SHA/size/
+  Pillow decode0600/визуальное соответствие GREEN; source rasters5443271 bytes.
+  В PDF отсутствуют456239226/456239052/456239035; HTML img0; крупных локальных
+  исходников в проверенных image paths нет. Пользователь подтвердил отсутствие
+  оригиналов. High-resolution acceptance0/22: не выдавать резерв за финальные covers.
+  Без исходников предложен разовый official video.get/image export с user
+  authorization (по схеме VKCOM); новое подключение требует отдельного решения.
+  Browser policy не обходить, CDN query не угадывать, tokens/cookies не читать.
+  Код приложения/внешние данные не менялись; дальнейшая публикация не разрешена.
+
 - **20 октября, VK-META — новая разрешённая подготовка:** пользователь согласовал
   сбор iframe/cover metadata по22 page URLs. Только локальная standalone утилита:
   V1 parse/dedupe/owner guards и offline plan; V2 явный oEmbed collect, bounded

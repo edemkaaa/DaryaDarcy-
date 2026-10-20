@@ -4,6 +4,29 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### VK-COVER — качество обложек всех22,20 октября
+
+- [x] Read-only scope: JSON22, предоставленные PDF/HTML и локальные app/own
+  artifact image paths; без VK/CDN media requests, frontend/working DB/S3/push/deploy.
+  PDF2 страницы просмотрены полностью; embedded rasters сопоставлены с22 link
+  annotations по геометрии, split-page объекты дедуплицированы.
+- [x] В новый private Downloads/daryadarcy-vk-cover-audit-20261020.GjUur6 извлечены
+  19 PNG в native533–537x300–301, без crop/upscale/перерисовки. Manifest22 rows,
+  SHA256/size/Pillow decode/permissions0600 проверены, unique images19,
+  candidate bytes5443271; contact sheet визуально просмотрен. Не готовые большие
+  обложки: highResolutionVerified0/importReady=false. Hash/подписанные URLs вне Git.
+  Final QA:22 source mappings/source PDF SHA unchanged/expected3 missing/directory
+  0700/contact JPEG decode GREEN; docs64/diff GREEN, app/tooling/tests diff пуст.
+- [x] PDF не содержит картинок456239226 (зимний декор),456239052 (переделка комнаты),
+  456239035 (День Валентина). Сохранённый HTML:img0; проверенные локальные image
+  paths не дали больших VK-исходников. Пользователь подтвердил: оригиналов нет.
+- [ ] Полный набор22 больших обложек не получен. Предложенный официальный путь —
+  разовая пользовательская выгрузка video.get/image с размерами; схема требует
+  user authorization. Новую авторизацию/сбор токенов не настраивать без решения;
+  не обходить browser site-safety, не менять size подписанного CDN URL наугад.
+  После получения sources проверить actual bytes/dimensions/визуальное соответствие;
+  1280x720 — рекомендация для крупной карточки, не новое требование договора.
+
 #### VK-META — пакетный сбор метаданных,20 октября
 
 - [x] V1: existing TXT распознан как22 unique community-211171256 URLs;
