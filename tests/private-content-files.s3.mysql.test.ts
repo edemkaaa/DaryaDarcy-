@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createHash, randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { crc32 } from "node:zlib";
 import { createServer, request as nativeRequest } from "node:http";
 import type { AddressInfo } from "node:net";
 import mysql, { type Connection, type RowDataPacket } from "mysql2/promise";
@@ -101,6 +102,17 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     const head = await read(url, who, "HEAD"); expect(head.status).toBe(200); expect(head.headers.get("content-length")).toBe(String(bytes.length));
     return bytes;
   }
+  async function maximumPhoto(size: number) {
+    const png = Buffer.from((await photoInput("postPhoto")).base64, "base64");
+    // A valid ancillary text chunk pads the source, not the encoded image pixels.
+    // Sharp must still decode/re-encode the image and discard this metadata.
+    const chunk = Buffer.alloc(size - png.length, 0x61);
+    chunk.writeUInt32BE(chunk.length - 12, 0);
+    chunk.write("tEXt", 4);
+    chunk.write("Comment\0", 8, "ascii");
+    chunk.writeUInt32BE(crc32(chunk.subarray(4, -4)), chunk.length - 4);
+    return Buffer.concat([png.subarray(0, -12), chunk, png.subarray(-12)]);
+  }
   beforeAll(async () => {
     const url = assertTestDatabase(uri!); const id = process.env.CF_S3_DATABASE_CONTAINER_ID;
     if (!id || !/^[a-f0-9]{64}$/.test(id) || url.hostname !== "127.0.0.1" || !url.port || process.env.DATABASE_URL !== uri || process.env.S3_ENDPOINT !== endpoint || process.env.S3_BUCKET !== Bucket || !process.env.S3_ACCESS_KEY || !process.env.S3_SECRET_KEY) throw new Error("Explicit owned acceptance inputs required");
@@ -150,6 +162,43 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
       }
     } finally { await conn?.end(); storage?.destroy(); }
   }, 30000);
+  it.each(["postPhoto", "articlePhoto", "commentPhoto"] as const)("accepts maximum 4 MiB %s through native API/S3 and rejects one extra byte", async usage => {
+    const post = await call("admin.createPost", { text: "Maximum photo fixture", source, photos: [], tags: ["community"], target: "club", status: "published", idempotencyKey: `max-photo-post-${usage}-${owner}` });
+    expect(post.status).toBe(200);
+    const who = usage === "commentPhoto" ? "member" : "admin";
+    const method = usage === "commentPhoto" ? "club.uploadPrivateCommentPhoto" : "admin.uploadPrivateContentFile";
+    const input = { idempotencyKey: `max-${usage}-${owner}`, usage, filename: `cf-api-${owner}-${usage}-maximum.png`, mimeType: "image/png", ...(usage === "commentPhoto" ? { postId: post.data } : {}) };
+    const before = await rows("SELECT assetId FROM private_content_files");
+    const commands = api.commands.length;
+    const oversized = await maximumPhoto(4 * 1024 * 1024 + 1);
+    expect(oversized.length).toBe(4194305);
+    expect((await call(method, { ...input, base64: oversized.toString("base64") }, who)).status).toBe(413);
+    expect(await rows("SELECT assetId FROM private_content_files")).toEqual(before);
+    expect(api.commands.length).toBe(commands);
+    const bytes = await maximumPhoto(4 * 1024 * 1024);
+    expect(bytes.length).toBe(4194304);
+    expect(await sharp(bytes).metadata()).toMatchObject({ format: "png", width: 2, height: 3 });
+    const payload = { ...input, base64: bytes.toString("base64") };
+    const uploaded = await call(method, payload, who);
+    expect(uploaded.status).toBe(200);
+    expect(uploaded.data).toMatchObject({ state: "ready", usage, mimeType: "image/webp" });
+    const puts = api.commands.filter(name => name === "PutObjectCommand").length;
+    expect(await call(method, payload, who)).toEqual(uploaded);
+    expect(api.commands.filter(name => name === "PutObjectCommand").length).toBe(puts);
+    expect((await rows("SELECT assetId FROM private_content_files")).length).toBe(before.length + 1);
+    if (usage === "commentPhoto") {
+      expect((await call("club.addComment", { postId: post.data, text: "Maximum photo", photos: [uploaded.data.url], idempotencyKey: `max-comment-${owner}` }, who)).status).toBe(200);
+    } else if (usage === "articlePhoto") {
+      expect((await call("admin.createArticle", { title: `cf-api-${owner}-maximum`, access: "club", published: true, idempotencyKey: randomUUID(), sections: [{ type: "png", url: uploaded.data.url }] })).status).toBe(200);
+    } else {
+      expect((await call("admin.updatePost", { id: post.data, photos: [uploaded.data.url] })).status).toBe(200);
+    }
+    const output = await photoBytes(uploaded.data.url);
+    expect(output.length).toBe(uploaded.data.fileSize);
+    await directDenial(uploaded.data.assetId);
+    await denied(uploaded.data.url);
+    console.info(`[MAX-S3] ${usage}: source=4194304 stored=${output.length}; extra-byte413; replay/read/HEAD/Range/private GREEN`);
+  }, 60000);
   it("recovers lost upload and article responses in fresh API processes without another file or article", async () => {
     await dropped("admin.uploadPrivateContentFile", document);
     expect(api.commands.filter(name => name === "PutObjectCommand")).toHaveLength(1);
