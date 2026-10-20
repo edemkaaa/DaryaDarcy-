@@ -29,9 +29,15 @@
   RED2→GREEN73/2 suites/0skip/2.29s (55 collector+18 validator), native CLI проверен
   на multiline HTTP fixture с synthetic hash, без raw HTML в отчёте. TypeScript,
   docs64/boundaries704/Prettier/diff GREEN; full suite/live export не запускались.
-- [ ] Повторный live export после fix выполняет пользователь в новый -v2.json;
-  успешный сбор всех22 ещё не подтверждён. ThumbnailSourceUrl — только metadata,
-  bytes/S3/import/public-club policy и playback acceptance требуют отдельного шага.
+- [x] Пользователь выполнил повторный live export после d9e7c50:22 ok/0 incomplete/
+  0 failed. Read-only проверка локального -v2.json:22 unique sources/players,
+  matching oid/id для всех22, source TXT missing0, strict parser принимает все,
+  autoplay0/no __ref, titles/HTTPS cover URLs заполнены, output0600. Агент не
+  выполнял сетевых VK calls и не копировал exports/hash в Git.
+- [ ] Остаток: у13 cover URLs указан size130x96, у9 размер в URL не указан.
+  Реальные bytes/dimensions/качество не проверены; не использовать как готовые
+  большие обложки. Public/club/published, old/new ID mapping, разрешённые публичные
+  covers, импорт и playback acceptance — отдельный шаг. Все readiness flags false.
 
 #### VK-ONLY — убрать YouTube из раздела Видео,20 октября
 
@@ -54,7 +60,7 @@
 - [x] Два существующих video-fixes документа обновлены: VK-only contract,
   removed paths/UI fallback, regenerate types, rollout gate и все22 page URLs
   с названиями/временем из PDF. Hash не сохранён и iframe не выдумывался.
-- [ ] До выпуска:21 недостающий настоящий iframe export, titles/covers/access,
+- [ ] До выпуска:22 iframe/title получены через VK-META; остаются covers/access,
   согласованная карта old/new IDs и наполнение, frontend integration/real VK
   playback acceptance. Один backend не выпускать: старый клиент/пустой VK
   каталог иначе останутся без видео. Рабочие данные/фронт/push/deploy не разрешены.

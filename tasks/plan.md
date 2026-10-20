@@ -85,8 +85,13 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
   collector-only normalization удаляет только это единственное known значение
   перед прежним server validator, без расширения API allowlist. RED2→GREEN73/2
   (55 collector+18 validator)/0skip/2.29s на loopback; raw hash в Git не сохранён.
-  Повторный live export пользователь запускает в новый -v2.json; его результат,
-  скачивание обложек и playback ещё не приняты. Frontend/DB/S3/deploy без изменений.
+  Повторный live export пользователь выполнил в -v2.json:22 ok/0 incomplete/0 failed.
+  Read-only verified22 unique src/players, oid/id matching, strict parse/autoplay0,
+  source TXT missing0, titles/HTTPS thumbnails, output0600.13 cover URLs заявляют
+  size130x96,9 без размера в URL; bytes/качество не проверены. Hash/export вне Git,
+  importReady/playbackVerified/thumbnailBytesDownloaded=false. Остаются public/club,
+  old/new IDs, подходящие публичные covers и приёмка воспроизведения; агент VK
+  requests не выполнял. Frontend/DB/S3/deploy без изменений.
 
 - **20 октября, VK-ONLY — принято и готово локально:** пользователь поручил
   убрать YouTube, затем уточнил backend-only и документ фронтендеру.4c04d62
@@ -96,8 +101,8 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
   RED7→GREEN7, финальный affected260/13 suites/0skip, types/build/docs/boundaries
   GREEN. Own loopback/tmpfs backend_test b58741e5… удалён после guards, volumes0.
   Frontend/generated contract не менялся, check:api ожидаемо outdated. Нет
-  working DB/S3/push/deploy.22 page URLs из PDF — не22 iframe; нужен21 export,
-  согласованные titles/covers/access и синхронная frontend/data интеграция до
+  working DB/S3/push/deploy.22 src/title уже получены через VK-META; остаются
+  согласованные covers/access/ID mapping и синхронная frontend/data интеграция до
   выпуска. Пустую VK-выдачу не считать завершённым переносом. Текущий handoff:
   [фронтендеру](../docs/development/frontend-video-fixes-2026-10-20.md).
 
