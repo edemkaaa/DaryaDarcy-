@@ -25,6 +25,18 @@
   Frontend кроме generated contract byte-exact origin/staging=b32d0bc.
   Build flags сохраняют прежние TEST/recovery/VK=true, CLUB_TEST=false;
   новый general private-library frontend flag=false, recipes/Petersburg прежние.
+- [x] Release source427195a подготовлен локально: backend + restricted TEST
+  bundles, frontend BUILD_ID=3AnAHG4Xnst8bDvWGRSal. Private artifact manifest1616
+  files/context archive206733749 bytes вне Git, source/dependency equality
+  проверены; frontend кроме generated contract совпадает с b32d0bc.
+- [ ] Внешний блокер: после начального успешного baseline SSH четыре раза
+  завершился banner timeout до авторизации; внешний HTTPS стенда SSL timeout,
+  bounded Git fetch SSL_ERROR_SYSCALL. Push НЕ выполнялся, сервер/DB/S3/config
+  не менялись, новый remote release directory/backup/images ещё не созданы.
+  Подготовленные private scripts не запускались на сервере; archive cleanup
+  только намечен по exact трём own tar targets, ничего удалено не было.
+  Запрошено переключение VPN/сети; после восстановления начать с fresh fetch и
+  live baseline, не повторять apply вслепую и не объявлять выпуск завершённым.
 
 - [x] Получено явное разрешение push/server update с локальным backend и свежим
   frontend. Fresh fetch:origin/staging=b32d0bc, HEAD2e12c80 ahead23/behind0,

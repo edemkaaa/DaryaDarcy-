@@ -70,6 +70,12 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
   API-контракта входит в согласованный выпуск; ручного UI/дизайна не менять.
   Проверки/backup/rollback/fresh guards обязательны, rollout только app images;
   текущая DB/admin/password/schema/S3/provider flags без изменений, без VK import.
+  Local source427195a/checks443 tests/0skip/builds/audit GREEN, generated contract
+  согласован; frontend design/manual code не менялись. Выпуск остановлен перед
+  push: SSH banner timeouts/HTTPS SSL timeout/Git fetch SSL_ERROR_SYSCALL после
+  успешного начального baseline. Нужна смена сети, затем fresh baseline/backup/
+  native artifact verification/image-only rollout. Серверные files/DB/config
+  не менялись, архивы/образы не удалялись; не считать local artifact выкладкой.
 
 - **20 октября, RELEASE-VK — новое разрешение с preflight stop:** пользователь
   поручил обновить staging и сервер всеми локальными/свежими frontend изменениями.

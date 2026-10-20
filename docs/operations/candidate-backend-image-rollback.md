@@ -10,6 +10,46 @@ API contract синхронизируется штатно, ручных UI/desi
 и read-only acceptance ещё обязательны. Старые scripts нельзя запускать без
 обновления baseline/config set (теперь включает compose.private-uploads.yaml).
 
+### Локальный пакет готов, сеть остановила публикацию
+
+Source427195a957ed58315c8e32d8f52a50fac8e41f6c.443 tests/15 suites/0skip:
+222 native HTTP/JWT/SQL/worker/content/session +221 frontend/collector/admin.
+Fresh own tmpfs backend_test migration profile42 GREEN. Первый helper run
+не выполнил тесты из-за отсутствия test-only migration markers на full schema;
+markers добавлены только для уже применённых миграций fixture, повтор GREEN.
+Root/frontend/E2E TypeScript, ESLint, API90, boundaries713/docs64, backend/TEST/
+frontend production builds29 routes и native prod audit0 findings GREEN.
+
+Private local directory от workspace:
+`.local-artifacts/release-mixed-20261020.AY5lVU`. Manifest1616 files,
+context.tar.gz206733749 bytes, BUILD_ID `3AnAHG4Xnst8bDvWGRSal`.
+Зависимости/package manifests/lock byte-exact прежнему U1 source2fede813;
+production Linux runtime reuse требует проверки exact base images на сервере.
+Next build сохраняет TEST/recovery/VK=true и CLUB_TEST=false, новый general
+private-library flag=false: recipes/Petersburg прежние; existing patterns hook
+не зависит от нового flag. Handwritten frontend byte-exact b32d0bc, только
+generated contract изменён штатным generator. Source covers/download-name fixes
+сохранены, playback через внешний provider этим прогоном не принят.
+
+Начальный read-only SSH показал830MiB free;8 project services healthy и старые
+images прежние. Позднее4 SSH banner timeout ДО авторизации/исполнения,
+Mac HTTPS SSL timeout, bounded Git fetch SSL_ERROR_SYSCALL. Первый зависший
+fetch остановлен адресно по PID; chained push не исполнялся. Ветка clean после
+source commit, origin/staging остаётся последним проверенным b32d0bc.
+NO push/deploy/restart/remote mkdir/backup/new image/config/DB/S3 writes.
+Запрошено переключение VPN; дальнейшие одинаковые retries не выполнять без
+изменения внешнего состояния. Нельзя выдавать package за deployed image.
+
+В private directory подготовлены, но НЕ выполнены new-baseline scripts:
+prepare-artifact.py (tar path/file/digest guards, pinned image IDs, offline native
+API/web/restricted TEST17 checks и served tree byte checks), rollout-images.py
+(backup/admin+schema/config/inventory guards, image-only apply/verify/rollback).
+Удаление трёх прежних own temporary archives только намечено: контексты,
+backups/images/БД остаются; cleanup на сервере не выполнялся. Перед запуском
+снова проверить source/remote/actual container IDs/config и доступное место.
+Артефакт не содержит env/provider credentials; rollback использует прежние
+images и ту же DB, не restore/DDL. Скрипты не являются новым разрешением.
+
 ## RELEASE-VK — разрешение обновления получено, preflight остановил полный выпуск
 
 20 октября2026 пользователь разрешил push в staging и обновление frontend/backend
