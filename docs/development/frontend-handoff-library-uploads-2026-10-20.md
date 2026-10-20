@@ -70,6 +70,16 @@ API эстетик и API файлов независимы. Для файлов
 Форма текстов определена в [общей схеме](../../packages/shared/src/aesthetic-guide.ts),
 файлов — в [существующем контроллере](../../apps/backend/src/content/library-files.controller.ts).
 
+Локальный backend follow-up20 октября (ещё не выпущен): shared private read
+добавляет расширение к generic имени в `Content-Disposition`, например
+`attachment; filename="file.pdf"` или `inline; filename="file.webp"`.
+Для post media label остаётся `attachment-ID`, для Library — `fileKey`.
+Расширение определяется сохранённым MIME, не original filename и не S3 path;
+нормализованное фото остаётся WebP. JSON API, URL, права и статусы прежние,
+перегенерация клиентского контракта и изменение дизайна не нужны. При интеграционной
+приёмке проверить сохранение PDF/документов с расширением и прежний inline просмотр.
+Это не исправление Library404 и не объяснение незавершённой live U1 read-проверки.
+
 ## Что проверить и при необходимости исправить фронтендеру
 
 - Сверить уже отправленные изменения Библиотеки и загрузок с собственной

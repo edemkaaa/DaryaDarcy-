@@ -5,6 +5,30 @@ import { pipeline } from "node:stream/promises";
 import { PrivateFilesService } from "./private-files.service";
 import { privateObjectReader } from "../media/private-object";
 
+// Keep generic labels, not uploaded filenames or storage paths. Use the stored
+// MIME so normalized photos receive .webp, regardless of the original filename.
+const DOWNLOAD_EXTENSIONS = new Map([
+  ["text/plain", "txt"],
+  ["application/pdf", "pdf"],
+  ["application/msword", "doc"],
+  [
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "docx",
+  ],
+  ["audio/mpeg", "mp3"],
+  ["audio/mp4", "m4a"],
+  ["audio/wav", "wav"],
+  ["audio/x-wav", "wav"],
+  ["audio/ogg", "ogg"],
+  ["audio/webm", "webm"],
+  ["video/mp4", "mp4"],
+  ["video/webm", "webm"],
+  ["video/quicktime", "mov"],
+  ["image/webp", "webp"],
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+]);
+
 /** One safe integer byte range; undefined means invalid/unsatisfiable. */
 function byteRange(raw: string, size: number) {
   const match = /^bytes=(\d*)-(\d*)$/.exec(raw);
@@ -84,9 +108,12 @@ export async function sendPrivateFile(req: Request, res: Response,
       )
         throw new Error("Invalid object metadata");
       res.setHeader("Content-Type", file.mime);
+      const extension = DOWNLOAD_EXTENSIONS.get(
+        file.mime.split(";")[0].trim().toLowerCase(),
+      ) ?? "bin";
       res.setHeader(
         "Content-Disposition",
-        `${file.inline ? "inline" : "attachment"}; filename="${label}"`,
+        `${file.inline ? "inline" : "attachment"}; filename="${label}.${extension}"`,
       );
       res.setHeader("Content-Length", size);
       res.setHeader("Accept-Ranges", "bytes");

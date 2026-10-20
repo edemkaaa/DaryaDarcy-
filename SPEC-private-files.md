@@ -909,6 +909,20 @@ access decision. HEAD ignores Range and returns complete metadata; GET checks it
 Generic attachment disposition avoids SQL filenames/header injection; MIME
 allowlisted from SQL, not blindly copied from provider. No signed URL in response.
 
+20 октября, локальное исправление имени скачивания: shared `sendPrivateFile`
+добавляет canonical extension по сохранённому MIME к существующему безопасному
+label (`file.pdf`, `attachment-123.mp3`, `holly.webp`). Нормализованное фото
+получает `.webp`, а не расширение исходного upload filename. Для opaque MIME
+fallback `.bin`; это не расширяет upload/read MIME allowlist. Исходные имена,
+SQL metadata и storage paths в заголовок не копируются. GET/HEAD/Range используют
+одинаковое имя; inline/attachment, bytes, права и error semantics прежние.
+Настоящие HTTP handler + AWS SDK на собственном loopback wire: RED22 из25
+после исправления fixture для штатного SDK query `x-id`, затем GREEN25/0skip.
+Resolver в этих тестах подставляет разрешённые metadata, SQL/auth/S3 ACL не
+проверяются. Это самостоятельный дефект, не причина неизвестной live U1 assertion;
+live выдача и зимние привязки остаются незавершёнными. Working DB/S3/flags,
+frontend, старые файлы и сервер не менялись; исправление ещё не выпущено.
+
 Default run on final production code: 2327 pass/1208 opt-in skips (3540),
 55.37 s, exit0; subsequently added three opt-in provider consistency cases passed
 in native99, production code unchanged. Types/build479.9kb/boundaries622/API73

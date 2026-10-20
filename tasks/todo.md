@@ -4,6 +4,15 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+- [x] Backend-only follow-up: воспроизведено скачивание закрытых файлов без
+  расширения. Shared HTTP boundary теперь добавляет canonical MIME extension
+  к безопасному label; исходные upload filename/storage paths не раскрываются,
+  права/bytes/inline/error semantics прежние. RED22/25 (ошибка fixture x-id
+  устранена до product fix), GREEN25; final affected60/5 suites/0fail/0skip,
+  root tsc, backend build944.5kb, API90/35243, boundaries704 и docs61 pass.
+  Только локально; frontend/generated contract/working DB/S3/flags не менялись.
+  Это НЕ диагноз прежней live U1 assertion. Повтор SSH снова timeout до banner,
+  staging HTTPS SSL timeout до TLS (HTTP000); живой прогон не возобновлялся.
 - [x] По запросу пользователя подготовлена [подробная передача фронтендеру](../docs/development/frontend-fixes-contract-audit-2026-10-20.md):
   F1 legacy full archive в quick management, F2 смешение review/gallery state,
   F3 отсутствие «Смотреть», F4 links внутри button, F5 безымянные grid links.
