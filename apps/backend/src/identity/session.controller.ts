@@ -188,7 +188,8 @@ export class SessionController {
 
   @Post("logout")
   @HttpCode(200)
-  logout(@Req() req: Request, @Res() res: Response) {
+  async logout(@Req() req: Request, @Res() res: Response) {
+    await this.identity.revokeSessions(await this.identity.optionalUser(req));
     clearSessionCookie(req, res);
     res.json({ success: true });
   }

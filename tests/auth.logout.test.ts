@@ -53,8 +53,11 @@ function createAuthContext(): {
 }
 
 describe("auth.logout", () => {
-  it("clears the session cookie and reports success", async () => {
+  it("idempotently clears a guest session cookie and reports success", async () => {
     const { ctx, clearedCookies } = createAuthContext();
+    // Cookie cleanup is also idempotent for guests; authenticated revocation is
+    // exercised over both real HTTP adapters in nest-sessions.mysql.test.ts.
+    ctx.user = null;
     const caller = appRouter.createCaller(ctx);
 
     const result = await caller.auth.logout();

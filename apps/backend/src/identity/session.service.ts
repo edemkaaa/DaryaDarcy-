@@ -1,7 +1,8 @@
 import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import type { Request } from "express";
+import { and, eq, sql } from "drizzle-orm";
 import { ONE_YEAR_MS } from "../../../../packages/shared/src/const";
-import type { User } from "../../../../packages/database/src/schema";
+import { users, type User } from "../../../../packages/database/src/schema";
 import { HttpError } from "../../../../packages/shared/src/_core/errors";
 import {
   emailToOpenId,
@@ -103,6 +104,29 @@ export class SessionService {
       sessionVersion: user.sessionVersion,
     });
     return { sessionToken, user: publicUser(user) };
+  }
+
+  /** Logout ends all sessions of this account. Replays cannot revoke a later login. */
+  async revokeSessions(user: User | null): Promise<void> {
+    if (!user) return;
+    try {
+      const database = await getDb();
+      if (!database) throw new Error("Database unavailable");
+      await database
+        .update(users)
+        .set({ sessionVersion: sql`${users.sessionVersion}+1` })
+        .where(
+          and(
+            eq(users.id, user.id),
+            eq(users.openId, user.openId),
+            eq(users.sessionVersion, user.sessionVersion),
+          ),
+        );
+    } catch {
+      throw new ServiceUnavailableException({
+        error: "Не удалось завершить сессии",
+      });
+    }
   }
 
   findByPhone(phone: string) {

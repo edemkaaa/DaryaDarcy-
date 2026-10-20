@@ -323,6 +323,154 @@ describe.skipIf(!testDatabaseUrl)(
       expect(response.status).toBe(401);
       expect(response.headers.get("set-cookie")).toBeNull();
     });
+    it.each(
+      ["/api/auth/logout", "/api/trpc/auth.logout"].flatMap((path) =>
+        ["cookie", "bearer"].map((transport) => ({ path, transport })),
+      ),
+    )(
+      "$path via $transport revokes existing tokens on every device, but not another account or a later login",
+      async ({ path, transport }) => {
+        const original = await token();
+        const otherDevice = await sdk.createSessionToken(
+          "native-session-member",
+          {
+            name: "second device",
+            sessionVersion: 0,
+          },
+        );
+        const otherAccount = await staffToken();
+        const headers: Record<string, string> =
+          transport === "cookie"
+            ? { Cookie: `${COOKIE_NAME}=${original}` }
+            : { Authorization: `Bearer ${original}` };
+        const response = await post(path, { json: null }, headers);
+        expect(response.status).toBe(200);
+        expect(response.headers.get("set-cookie")).toContain(
+          "Expires=Thu, 01 Jan 1970",
+        );
+        expect(response.headers.get("cache-control")).toBe("no-store");
+        for (const revoked of [original, otherDevice]) {
+          const bearer = { Authorization: `Bearer ${revoked}` };
+          const me = await fetch(base + "/api/auth/me", { headers: bearer });
+          expect(await me.json()).toEqual({ user: null });
+          expect((await post("/api/auth/session", {}, bearer)).status).toBe(
+            401,
+          );
+          const protectedRead = await fetch(
+            base + "/api/trpc/admin.postCounts",
+            { headers: bearer },
+          );
+          expect(protectedRead.status).toBe(401);
+        }
+        const [rows] = await conn.query<
+          import("mysql2/promise").RowDataPacket[]
+        >(
+          "SELECT id,sessionVersion FROM users WHERE id IN (8940,8941) ORDER BY id",
+        );
+        expect(rows.map((row) => [row.id, row.sessionVersion])).toEqual([
+          [8940, 1],
+          [8941, 0],
+        ]);
+        expect(
+          (
+            await sdk.authenticateRequest({
+              headers: { authorization: `Bearer ${otherAccount}` },
+            } as Request)
+          ).id,
+        ).toBe(8941);
+        const login = await post("/api/auth/login", {
+          email: memberEmail,
+          password,
+        });
+        expect(login.status).toBe(200);
+        const fresh = (await login.json()).sessionToken;
+        expect(await sdk.verifySession(fresh)).toMatchObject({
+          sessionVersion: 1,
+        });
+        // A lost logout response/replay must not revoke a newly issued session.
+        expect((await post(path, { json: null }, headers)).status).toBe(200);
+        expect(
+          (
+            await sdk.authenticateRequest({
+              headers: { authorization: `Bearer ${fresh}` },
+            } as Request)
+          ).id,
+        ).toBe(8940);
+      },
+    );
+    it("a delayed revocation with an old actor snapshot cannot revoke a later session", async () => {
+      const sessions = application.get(SessionService);
+      const actor = await sessions.authenticateRequest({
+        headers: { authorization: `Bearer ${await token()}` },
+      } as Request);
+      await Promise.all([
+        sessions.revokeSessions(actor),
+        sessions.revokeSessions(actor),
+      ]);
+      const fresh = await sdk.createSessionToken(actor.openId, {
+        sessionVersion: 1,
+      });
+      await sessions.revokeSessions(actor);
+      expect(
+        (
+          await sessions.authenticateRequest({
+            headers: { authorization: `Bearer ${fresh}` },
+          } as Request)
+        ).id,
+      ).toBe(8940);
+    });
+    it.each(["/api/auth/logout", "/api/trpc/auth.logout"])(
+      "%s is idempotent for absent and invalid credentials without revoking other accounts",
+      async (path) => {
+        const attempts: Record<string, string>[] = [
+          {},
+          { Authorization: "Bearer invalid.fixture" },
+        ];
+        for (const headers of attempts) {
+          const response = await post(path, { json: null }, headers);
+          expect(response.status).toBe(200);
+          expect(response.headers.get("set-cookie")).toContain(
+            "Expires=Thu, 01 Jan 1970",
+          );
+        }
+        const [rows] = await conn.query<
+          import("mysql2/promise").RowDataPacket[]
+        >(
+          "SELECT sessionVersion FROM users WHERE id IN (8940,8941) ORDER BY id",
+        );
+        expect(rows.map((row) => row.sessionVersion)).toEqual([0, 0]);
+      },
+    );
+    it.each(["/api/auth/logout", "/api/trpc/auth.logout"])(
+      "%s does not report success or clear cookies when revocation cannot be stored",
+      async (path) => {
+        const bearer = await token();
+        await conn.query(`CREATE TRIGGER backend_test_logout_write_failure BEFORE UPDATE ON users FOR EACH ROW
+          BEGIN IF OLD.id=8940 AND NEW.sessionVersion<>OLD.sessionVersion THEN
+          SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='PRIVATE_LOGOUT_SQL_SENTINEL'; END IF; END`);
+        try {
+          const response = await post(
+            path,
+            { json: null },
+            { Authorization: `Bearer ${bearer}` },
+          );
+          expect(response.status).toBeGreaterThanOrEqual(500);
+          expect(response.headers.get("set-cookie")).toBeNull();
+          expect(await response.text()).not.toMatch(
+            /success|PRIVATE_LOGOUT_SQL_SENTINEL|stack/,
+          );
+          expect(
+            (
+              await sdk.authenticateRequest({
+                headers: { authorization: `Bearer ${bearer}` },
+              } as Request)
+            ).id,
+          ).toBe(8940);
+        } finally {
+          await conn.query("DROP TRIGGER backend_test_logout_write_failure");
+        }
+      },
+    );
     it("rechecks session version and blocking in MySQL for a previously valid JWT", async () => {
       const bearer = await token();
       for (const patch of [
