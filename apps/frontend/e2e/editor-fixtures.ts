@@ -26,6 +26,21 @@ export async function editorApi(
   ) => Promise<unknown> | unknown,
 ) {
   await layoutApi(page, true);
+  // These editor fixtures explicitly model a release with private uploads on.
+  // Availability/older-server/failure scenarios override this route themselves.
+  await page.route("**/api/capabilities", (route) =>
+    route.fulfill({
+      json: {
+        smsLogin: false,
+        penPals: false,
+        shopOnlinePayment: false,
+        webPush: false,
+        privateContentUploads: true,
+        privatePostMediaUploads: true,
+        privatePostVideoUploads: true,
+      },
+    }),
+  );
   await page.route("**/api/auth/me", (route) =>
     route.fulfill({
       json: {

@@ -9,6 +9,7 @@ import type { ArticleBlock } from "@/domain/content/article-blocks";
 import { validatePrivateContentFile } from "@/shared/media/private-content-upload";
 import { fileForPhotoUpload, pickWebFiles } from "@/shared/media/image-upload";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
+import { requirePrivateUpload } from "@/shared/api/capabilities";
 
 const empty: PrivateArticleFile[] = [];
 const documentTypes: Record<string, string> = {
@@ -86,6 +87,7 @@ export function useArticleFiles(active: boolean, slot: number | null) {
         ...(block.urls ? { urls: block.urls.map(preview) } : {}),
       })),
     photos: async (multiple: boolean, task: ScopedOperation) => {
+      await requirePrivateUpload("privateContentUploads", task.signal);
       const sources = await pickWebFiles(
         "image/jpeg,image/png,image/webp",
         multiple,
@@ -103,6 +105,7 @@ export function useArticleFiles(active: boolean, slot: number | null) {
       return prepared.map((file) => add(file, "articlePhoto", task));
     },
     document: async (task: ScopedOperation) => {
+      await requirePrivateUpload("privateContentUploads", task.signal);
       const [source] = await pickWebFiles(".pdf,.docx,.txt", false, {
         signal: task.signal,
       });

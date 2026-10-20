@@ -20,6 +20,11 @@ import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { trpc } from "@/shared/api/trpc";
+import {
+  requirePrivateUpload,
+  useCapabilities,
+  uploadUnavailableMessage,
+} from "@/shared/api/capabilities";
 import { ArticleContent } from "@/domain/content/article-content";
 import {
   useSessionOperation,
@@ -60,6 +65,7 @@ export function ArticlesAdmin() {
   return user ? <ArticleEditor key={user.id} ownerId={user.id} /> : null;
 }
 function ArticleEditor({ ownerId }: { ownerId: number }) {
+  const capabilities = useCapabilities();
   const utils = trpc.useUtils();
   const list = trpc.admin.articles.useQuery();
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -135,12 +141,17 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   const privateFiles = useArticleFiles(showForm, editingId);
   const restorePrivateFiles = privateFiles.restore;
   const fileApi = {
-    upload: (
+    upload: async (
       input: Parameters<
         typeof utils.client.admin.uploadPrivateContentFile.mutate
       >[0],
       signal: AbortSignal,
-    ) => utils.client.admin.uploadPrivateContentFile.mutate(input, { signal }),
+    ) => {
+      await requirePrivateUpload("privateContentUploads", signal);
+      return utils.client.admin.uploadPrivateContentFile.mutate(input, {
+        signal,
+      });
+    },
     status: (input: { idempotencyKey: string }, signal: AbortSignal) =>
       utils.client.admin.privateContentFileStatus.query(input, { signal }),
   };
@@ -928,6 +939,14 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
                     <>
                       <Action
                         onClick={() => void pickDocument(index)}
+                        disabled={
+                          operation.busy || !capabilities.privateContentUploads
+                        }
+                        title={
+                          !capabilities.privateContentUploads
+                            ? uploadUnavailableMessage
+                            : undefined
+                        }
                         className={classes.btnSecondary}
                       >
                         <Typography className={classes.btnSecondaryText}>
@@ -963,6 +982,14 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
                   {block.type === "carousel" ? (
                     <>
                       <Action
+                        disabled={
+                          operation.busy || !capabilities.privateContentUploads
+                        }
+                        title={
+                          !capabilities.privateContentUploads
+                            ? uploadUnavailableMessage
+                            : undefined
+                        }
                         onClick={() =>
                           pickImages(false, true, (urls) =>
                             updateBlock(index, {
@@ -1031,6 +1058,14 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
                   {block.type === "photo" || block.type === "png" ? (
                     <>
                       <Action
+                        disabled={
+                          operation.busy || !capabilities.privateContentUploads
+                        }
+                        title={
+                          !capabilities.privateContentUploads
+                            ? uploadUnavailableMessage
+                            : undefined
+                        }
                         onClick={() =>
                           pickImages(block.type === "png", true, (urls) => {
                             const next = [...blocks];

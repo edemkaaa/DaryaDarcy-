@@ -13,7 +13,10 @@ import {
   registerWithEmail,
   logout,
 } from "../apps/frontend/src/shared/api/auth";
-import { getAppCapabilities } from "../apps/frontend/src/shared/api/capabilities";
+import {
+  getAppCapabilities,
+  requirePrivateUpload,
+} from "../apps/frontend/src/shared/api/capabilities";
 let fetcher: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   auth.setSessionToken.mockReset();
@@ -130,6 +133,55 @@ it.each([
     });
   },
 );
+it.each([
+  "privateContentUploads",
+  "privatePostMediaUploads",
+  "privatePostVideoUploads",
+] as const)(
+  "rechecks %s instead of accepting an earlier enabled response",
+  async (name) => {
+    fetcher.mockResolvedValueOnce(
+      Response.json({
+        privateContentUploads: true,
+        privatePostMediaUploads: true,
+        privatePostVideoUploads: true,
+      }),
+    );
+    await expect(requirePrivateUpload(name)).resolves.toBeUndefined();
+    fetcher.mockResolvedValueOnce(Response.json({}));
+    await expect(requirePrivateUpload(name)).rejects.toMatchObject({
+      status: 503,
+    });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  },
+);
+it("requires photo availability for automatically generated private video posters", async () => {
+  fetcher.mockResolvedValueOnce(
+    Response.json({
+      privatePostVideoUploads: true,
+      privateContentUploads: false,
+    }),
+  );
+  await expect(
+    requirePrivateUpload("privatePostVideoUploads"),
+  ).rejects.toMatchObject({ status: 503 });
+});
+it("does not dispatch a capability check from an already cancelled editor", async () => {
+  const operation = new AbortController();
+  operation.abort();
+  await expect(
+    requirePrivateUpload("privateContentUploads", operation.signal),
+  ).rejects.toThrow();
+  expect(fetcher).not.toHaveBeenCalled();
+});
+it("does not allow upload after an infrastructure failure", async () => {
+  fetcher.mockResolvedValueOnce(
+    Response.json({ error: "Unavailable" }, { status: 503 }),
+  );
+  await expect(
+    requirePrivateUpload("privateContentUploads"),
+  ).rejects.toMatchObject({ status: 503 });
+});
 it("does not log session cookies, response headers or failed request bodies", async () => {
   const logs = vi.spyOn(console, "log").mockImplementation(() => {});
   const errors = vi.spyOn(console, "error").mockImplementation(() => {});

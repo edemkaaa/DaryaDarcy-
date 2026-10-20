@@ -8,6 +8,7 @@ import {
 } from "@/domain/session/use-session-operation";
 import type { PostAttachment } from "@/domain/post/save-post";
 import { isRawMediaFilename } from "@/shared/media/media-label";
+import { requirePrivateUpload } from "@/shared/api/capabilities";
 
 type ExistingMedia = {
   id: number;
@@ -72,6 +73,7 @@ export function usePostAttachments(
     const task = operation.begin("attachment");
     if (!task) return;
     try {
+      await requirePrivateUpload("privatePostMediaUploads", task.signal);
       const result = await getDocumentAsync({
         type: type === "audio" ? "audio/*" : Object.values(DOCUMENT_TYPES),
         signal: task.signal,

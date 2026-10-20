@@ -10,6 +10,7 @@ import {
 } from "@/domain/post/private-comment-save";
 import type { ApiInputs } from "@/shared/api/types";
 import { trpc } from "@/shared/api/trpc";
+import { requirePrivateUpload } from "@/shared/api/capabilities";
 import { requireIdList } from "@/shared/api/action-result";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { fileForPhotoUpload, pickWebFiles } from "@/shared/media/image-upload";
@@ -100,6 +101,7 @@ export function usePrivateCommentFiles(enabled: boolean, postId: number) {
       urls.get(url) ?? (url.startsWith("local-comment:") ? "" : url),
     reset,
     pick: async (slots: number, task: ScopedOperation) => {
+      await requirePrivateUpload("privateContentUploads", task.signal);
       const sources = await pickWebFiles(
         "image/jpeg,image/png,image/webp",
         slots > 1,
@@ -158,10 +160,12 @@ export function usePrivateCommentFiles(enabled: boolean, postId: number) {
       const id = await savePrivateComment(
         current,
         {
-          upload: (input, signal) =>
-            utils.client.club.uploadPrivateCommentPhoto.mutate(input, {
+          upload: async (input, signal) => {
+            await requirePrivateUpload("privateContentUploads", signal);
+            return utils.client.club.uploadPrivateCommentPhoto.mutate(input, {
               signal,
-            }),
+            });
+          },
           status: (input, signal) =>
             utils.client.club.privateCommentPhotoStatus.query(input, {
               signal,

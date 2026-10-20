@@ -47,6 +47,7 @@ interface PhotoEditorProps {
   onMove: (index: number, direction: "left" | "right") => void;
   onReorder?: (fromIndex: number, toIndex: number) => void;
   onReplace?: (index: number) => void;
+  replaceDisabled?: boolean;
 }
 export function PhotoEditor({
   photos,
@@ -54,6 +55,7 @@ export function PhotoEditor({
   onMove,
   onReorder,
   onReplace,
+  replaceDisabled,
 }: PhotoEditorProps) {
   const viewport = useViewport();
 
@@ -294,6 +296,7 @@ export function PhotoEditor({
                 onRemove={onRemove}
                 onMove={onMove}
                 onReplace={onReplace}
+                replaceDisabled={replaceDisabled}
                 hideReorder={canDragReorder}
                 hideIndex={canDragReorder}
               />
@@ -356,6 +359,7 @@ export function PhotoEditor({
               onRemove={onRemove}
               onMove={onMove}
               onReplace={onReplace}
+              replaceDisabled={replaceDisabled}
               hideReorder={canDragReorder}
               hideIndex={canDragReorder}
             />
@@ -376,6 +380,7 @@ function PhotoControls({
   onRemove,
   onMove,
   onReplace,
+  replaceDisabled,
   hideReorder = false,
   hideIndex = false,
 }: {
@@ -384,6 +389,7 @@ function PhotoControls({
   onRemove: (index: number) => void;
   onMove: (index: number, direction: "left" | "right") => void;
   onReplace?: (index: number) => void;
+  replaceDisabled?: boolean;
   hideReorder?: boolean;
   hideIndex?: boolean;
 }) {
@@ -434,6 +440,7 @@ function PhotoControls({
       {onReplace ? (
         <Action
           aria-label={`Заменить фото ${index + 1}`}
+          disabled={replaceDisabled}
           onClick={() => onReplace(index)}
           className={classes.replaceBtn}
         >

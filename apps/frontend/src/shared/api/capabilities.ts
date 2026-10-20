@@ -2,6 +2,14 @@
 import { useQuery } from "@tanstack/react-query";
 import type { LaunchCapabilities } from "@shared/capabilities";
 import { apiCall } from "./auth";
+import { ApiError } from "./errors";
+
+export const uploadUnavailableMessage =
+  "Загрузка файлов сейчас недоступна. Попробуйте позже.";
+type PrivateUploadCapability =
+  | "privateContentUploads"
+  | "privatePostMediaUploads"
+  | "privatePostVideoUploads";
 
 const unavailable: LaunchCapabilities = {
   smsLogin: false,
@@ -38,7 +46,25 @@ export function useCapabilities(): LaunchCapabilities {
     queryKey: ["app-capabilities"],
     queryFn: ({ signal }) => getAppCapabilities(signal),
     staleTime: 60_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     retry: false,
   });
   return isError ? unavailable : (data ?? unavailable);
+}
+
+/** Recheck release policy at the write boundary, not a cached UI hint. */
+export async function requirePrivateUpload(
+  name: PrivateUploadCapability,
+  signal?: AbortSignal,
+): Promise<void> {
+  signal?.throwIfAborted();
+  const capabilities = await getAppCapabilities(signal);
+  signal?.throwIfAborted();
+  // Editors generate private photo posters for file videos as well.
+  if (
+    !capabilities[name] ||
+    (name === "privatePostVideoUploads" && !capabilities.privateContentUploads)
+  )
+    throw new ApiError(uploadUnavailableMessage, 503);
 }

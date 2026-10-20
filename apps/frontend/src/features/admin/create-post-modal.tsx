@@ -27,6 +27,11 @@ import { usePostRecovery } from "./use-post-recovery";
 import { usePrivatePostPhotos } from "./use-private-post-photos";
 import { usePrivatePostVideos } from "./use-private-post-videos";
 import { useAuth } from "@/domain/session/session-context";
+import {
+  requirePrivateUpload,
+  useCapabilities,
+  uploadUnavailableMessage,
+} from "@/shared/api/capabilities";
 import { PostAttachmentsField } from "./post-attachments-field";
 import { uploadAdminPrivateVideo } from "@/features/admin/media/private-video-upload";
 import { pickWebFiles } from "@/shared/media/image-upload";
@@ -86,6 +91,7 @@ function CreatePostModalBody({
   defaultTarget,
   editingPost,
 }: CreatePostModalProps) {
+  const capabilities = useCapabilities();
   const [text, setText] = useState(editingPost?.text || "");
   const [photos, setPhotos] = useState<string[]>(editingPost?.photos || []);
   const [tags, setTags] = useState<string[]>(editingPost?.tags || []);
@@ -269,7 +275,14 @@ function CreatePostModalBody({
     },
   });
   const postApi = {
-    uploadPrivateVideo: uploadAdminPrivateVideo,
+    uploadPrivateVideo: async (
+      file: File,
+      key: string,
+      signal?: AbortSignal,
+    ) => {
+      await requirePrivateUpload("privatePostVideoUploads", signal);
+      return uploadAdminPrivateVideo(file, key, signal);
+    },
     create: (
       input: Parameters<typeof utils.client.admin.createPost.mutate>[0],
       signal: AbortSignal,
@@ -286,24 +299,34 @@ function CreatePostModalBody({
       input: Parameters<typeof utils.client.admin.uploadMedia.mutate>[0],
       signal: AbortSignal,
     ) => utils.client.admin.uploadMedia.mutate(input, { signal }),
-    uploadPrivate: (
+    uploadPrivate: async (
       input: Parameters<
         typeof utils.client.admin.uploadPrivateAttachment.mutate
       >[0],
       signal: AbortSignal,
-    ) => utils.client.admin.uploadPrivateAttachment.mutate(input, { signal }),
+    ) => {
+      await requirePrivateUpload("privatePostMediaUploads", signal);
+      return utils.client.admin.uploadPrivateAttachment.mutate(input, {
+        signal,
+      });
+    },
     privateStatus: (
       input: Parameters<
         typeof utils.client.admin.privateAttachmentStatus.query
       >[0],
       signal: AbortSignal,
     ) => utils.client.admin.privateAttachmentStatus.query(input, { signal }),
-    uploadPrivatePhoto: (
+    uploadPrivatePhoto: async (
       input: Parameters<
         typeof utils.client.admin.uploadPrivateContentFile.mutate
       >[0],
       signal: AbortSignal,
-    ) => utils.client.admin.uploadPrivateContentFile.mutate(input, { signal }),
+    ) => {
+      await requirePrivateUpload("privateContentUploads", signal);
+      return utils.client.admin.uploadPrivateContentFile.mutate(input, {
+        signal,
+      });
+    },
     privatePhotoStatus: (
       input: Parameters<
         typeof utils.client.admin.privateContentFileStatus.query
@@ -427,6 +450,7 @@ function CreatePostModalBody({
     const task = operation.begin("video");
     if (!task) return;
     try {
+      await requirePrivateUpload("privatePostVideoUploads", task.signal);
       uploadSelection.assertReady();
       const files = await pickWebFiles("video/*", false, {
         signal: task.signal,
@@ -467,6 +491,7 @@ function CreatePostModalBody({
     const previous = photos[index];
     let selected: number | undefined;
     try {
+      await requirePrivateUpload("privateContentUploads", task.signal);
       uploadSelection.assertReady();
       const files = await pickWebFiles("image/*", false, {
         signal: task.signal,
@@ -585,6 +610,7 @@ function CreatePostModalBody({
     let uploaded = 0;
     let selected: number | undefined;
     try {
+      await requirePrivateUpload("privateContentUploads", task.signal);
       uploadSelection.assertReady();
       const files = await pickWebFiles("image/*,.heic,.heif", true, {
         signal: task.signal,
@@ -916,7 +942,12 @@ function CreatePostModalBody({
             ) : null}
             <Action
               onClick={pickPhotos}
-              disabled={isPending}
+              disabled={isPending || !capabilities.privateContentUploads}
+              title={
+                !capabilities.privateContentUploads
+                  ? uploadUnavailableMessage
+                  : undefined
+              }
               className={({ pressed }) =>
                 [
                   classes.action2,
@@ -948,6 +979,7 @@ function CreatePostModalBody({
               onReplace={(i) => {
                 void replacePhoto(i);
               }}
+              replaceDisabled={isPending || !capabilities.privateContentUploads}
             />
           </div>
 
@@ -960,7 +992,17 @@ function CreatePostModalBody({
             </Typography>
             <Action
               onClick={pickVideo}
-              disabled={isPending}
+              disabled={
+                isPending ||
+                !capabilities.privatePostVideoUploads ||
+                !capabilities.privateContentUploads
+              }
+              title={
+                !capabilities.privatePostVideoUploads ||
+                !capabilities.privateContentUploads
+                  ? uploadUnavailableMessage
+                  : undefined
+              }
               className={({ pressed }) =>
                 [
                   classes.action3,
@@ -1023,6 +1065,7 @@ function CreatePostModalBody({
 
           <PostAttachmentsField
             attachments={mediaAttachments}
+            uploadEnabled={capabilities.privatePostMediaUploads}
             disabled={isPending}
             onPick={pickAttachment}
             onRemove={removeMedia}

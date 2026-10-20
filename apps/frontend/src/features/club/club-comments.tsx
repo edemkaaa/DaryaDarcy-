@@ -16,6 +16,10 @@ import { ContentRequestState } from "@/shared/ui/content-request-state";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { trpc } from "@/shared/api/trpc";
 import {
+  useCapabilities,
+  uploadUnavailableMessage,
+} from "@/shared/api/capabilities";
+import {
   areCommentsOpen,
   commentsCloseAt,
   isCommunityPost,
@@ -201,6 +205,7 @@ function CommentThread({
   commentCount: commentCountProp,
 }: ClubCommentsProps) {
   const { isAuthenticated, user } = useAuth();
+  const capabilities = useCapabilities();
   const [text, setText] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
   const active = useScreenActive();
@@ -835,7 +840,16 @@ function CommentThread({
               onClick={() => void pickPhotos()}
               aria-label={`Фото (${photos.length}/2)`}
               aria-busy={uploading}
-              disabled={composeBlocked || photos.length >= 2}
+              disabled={
+                composeBlocked ||
+                photos.length >= 2 ||
+                !capabilities.privateContentUploads
+              }
+              title={
+                !capabilities.privateContentUploads
+                  ? uploadUnavailableMessage
+                  : undefined
+              }
               className={classes.attachBtn}
             >
               {uploading ? (

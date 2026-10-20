@@ -16,6 +16,11 @@ import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 
 import { trpc } from "@/shared/api/trpc";
+import {
+  requirePrivateUpload,
+  useCapabilities,
+  uploadUnavailableMessage,
+} from "@/shared/api/capabilities";
 import type { AdminPost } from "@/shared/api/types";
 
 import { ScheduleDatetime } from "@/features/admin/schedule-datetime";
@@ -114,6 +119,7 @@ function AdminPostEditorBody({
   onSaved,
 }: AdminPostEditorProps) {
   const viewport = useViewport();
+  const capabilities = useCapabilities();
   const { stylesLayout } = getAdminScreenLayout(viewport);
   const [showForm, setShowForm] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(post?.id ?? null);
@@ -210,7 +216,14 @@ function AdminPostEditorBody({
     },
   });
   const postApi = {
-    uploadPrivateVideo: uploadAdminPrivateVideo,
+    uploadPrivateVideo: async (
+      file: File,
+      key: string,
+      signal?: AbortSignal,
+    ) => {
+      await requirePrivateUpload("privatePostVideoUploads", signal);
+      return uploadAdminPrivateVideo(file, key, signal);
+    },
     create: (
       input: Parameters<typeof utils.client.admin.createPost.mutate>[0],
       signal: AbortSignal,
@@ -227,24 +240,34 @@ function AdminPostEditorBody({
       input: Parameters<typeof utils.client.admin.uploadMedia.mutate>[0],
       signal: AbortSignal,
     ) => utils.client.admin.uploadMedia.mutate(input, { signal }),
-    uploadPrivate: (
+    uploadPrivate: async (
       input: Parameters<
         typeof utils.client.admin.uploadPrivateAttachment.mutate
       >[0],
       signal: AbortSignal,
-    ) => utils.client.admin.uploadPrivateAttachment.mutate(input, { signal }),
+    ) => {
+      await requirePrivateUpload("privatePostMediaUploads", signal);
+      return utils.client.admin.uploadPrivateAttachment.mutate(input, {
+        signal,
+      });
+    },
     privateStatus: (
       input: Parameters<
         typeof utils.client.admin.privateAttachmentStatus.query
       >[0],
       signal: AbortSignal,
     ) => utils.client.admin.privateAttachmentStatus.query(input, { signal }),
-    uploadPrivatePhoto: (
+    uploadPrivatePhoto: async (
       input: Parameters<
         typeof utils.client.admin.uploadPrivateContentFile.mutate
       >[0],
       signal: AbortSignal,
-    ) => utils.client.admin.uploadPrivateContentFile.mutate(input, { signal }),
+    ) => {
+      await requirePrivateUpload("privateContentUploads", signal);
+      return utils.client.admin.uploadPrivateContentFile.mutate(input, {
+        signal,
+      });
+    },
     privatePhotoStatus: (
       input: Parameters<
         typeof utils.client.admin.privateContentFileStatus.query
@@ -353,6 +376,7 @@ function AdminPostEditorBody({
     const task = operation.begin("video");
     if (!task) return;
     try {
+      await requirePrivateUpload("privatePostVideoUploads", task.signal);
       uploadSelection.assertReady();
       const files = await pickWebFiles("video/*", false, {
         signal: task.signal,
@@ -407,6 +431,7 @@ function AdminPostEditorBody({
     let uploaded = 0;
     let selected: number | undefined;
     try {
+      await requirePrivateUpload("privateContentUploads", task.signal);
       uploadSelection.assertReady();
       const files = await pickWebFiles("image/*,.heic,.heif", true, {
         signal: task.signal,
@@ -854,7 +879,12 @@ function AdminPostEditorBody({
               {/* Upload from gallery button */}
               <Action
                 onClick={pickPhotosFromGallery}
-                disabled={operation.busy}
+                disabled={operation.busy || !capabilities.privateContentUploads}
+                title={
+                  !capabilities.privateContentUploads
+                    ? uploadUnavailableMessage
+                    : undefined
+                }
                 className={({ pressed }) =>
                   [
                     classes.action3,
@@ -898,7 +928,17 @@ function AdminPostEditorBody({
               </Typography>
               <Action
                 onClick={pickVideo}
-                disabled={operation.busy}
+                disabled={
+                  operation.busy ||
+                  !capabilities.privatePostVideoUploads ||
+                  !capabilities.privateContentUploads
+                }
+                title={
+                  !capabilities.privatePostVideoUploads ||
+                  !capabilities.privateContentUploads
+                    ? uploadUnavailableMessage
+                    : undefined
+                }
                 className={({ pressed }) =>
                   [
                     classes.action4,
@@ -968,6 +1008,7 @@ function AdminPostEditorBody({
 
             <PostAttachmentsField
               attachments={attachments.attachments}
+              uploadEnabled={capabilities.privatePostMediaUploads}
               disabled={operation.busy}
               onPick={attachments.pick}
               onRemove={attachments.remove}

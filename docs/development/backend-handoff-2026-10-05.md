@@ -13,7 +13,19 @@ PRIVATE_POST_VIDEO_UPLOAD_ENABLED. Только точное значение `t
 Старый сервер без этих полей совместим: клиент трактует missing/invalid/null как
 false, ошибку запроса не использует как разрешение загрузки. Доступность не
 заменяет server authorization. Рабочие flags этим изменением не включаются.
-Интеграция действий редакторов и проверок перед отправкой — следующий срез CAP-U.
+Локально подключены оба post editors, private article files и comment photos.
+Кнопки выбора/замены отключены при false/unknown/error; remove/reorder, текст,
+VK, public cover и восстановление не отключаются вместе с загрузками. Перед
+picker и фактической upload mutation выполняется свежий read с signal операции,
+без публичного fallback. Video workflow требует также content flag для постера.
+UI hint cached60s, stale data обновляются при focus/reconnect; failed refresh
+не продолжает использовать старый enabled hint. Server guards остаются final.
+
+Проверено локально:7 новых browser cases +22 existing photo/comment/article
+recovery/account-switch cases, без skips, с контролируемыми HTTP ответами —
+не actual S3/API/SQL acceptance. Root2672 pass/1628 opt-in skips. Старые files,
+working flags/DB/S3, дизайн и выпуск не затронуты. Для dev ещё нужны reviewed
+enable полного upload→bind→read и живые проверки; capabilities сами S3 не проверяют.
 
 ## 20 октября — logout и nullable admin detail, локально, ещё не dev
 

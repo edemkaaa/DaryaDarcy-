@@ -4,6 +4,7 @@ import { Action, Typography } from "@/shared/ui/elements";
 import { MaterialIcons } from "@/shared/ui/icons";
 import type { PostAttachment } from "@/domain/post/save-post";
 import classes from "./post-attachments-field.module.scss";
+import { uploadUnavailableMessage } from "@/shared/api/capabilities";
 
 type ListProps = {
   attachments: readonly PostAttachment[];
@@ -52,7 +53,9 @@ export function PostAttachmentsField({
   disabled,
   onRemove,
   onPick,
+  uploadEnabled,
 }: ListProps & {
+  uploadEnabled: boolean;
   onRemove: (index: number) => void;
   onPick: (type: PostAttachment["type"]) => void;
 }) {
@@ -66,7 +69,8 @@ export function PostAttachmentsField({
           <Action
             key={type}
             onClick={() => onPick(type)}
-            disabled={disabled}
+            disabled={disabled || !uploadEnabled}
+            title={!uploadEnabled ? uploadUnavailableMessage : undefined}
             className={({ pressed }) =>
               `${classes.pick} ${pressed ? classes.pressed : ""}`
             }
