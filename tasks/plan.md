@@ -30,8 +30,14 @@
 при скачивании через shared private read; canonical MIME extension, прежние
 generic labels/inline/права и отсутствие storage paths сохранены. RED/GREEN и
 границы проверки записаны в todo/SPEC. Это не закрывает live RELEASE-U1, выдачу
-зимних выкроек или старые public sources; сеть SSH/HTTPS по-прежнему блокирует
-их проверку. Frontend, рабочие DB/S3/flags и выпуск в этот срез не входят.
+зимних выкроек или старые public sources. После смены VPN20 октября SSH/HTTPS
+снова доступны: read-only SQL подтвердил Library flag false и pattern bindings0.
+Native Library/SQL/real S3 на отдельной backend_test:4 pass,6 synthetic objects
+точно удалены, policy прежний. Content S3 acceptance дважды остановился до
+fixtures на provider timeout, не accepted. Последний запрет менять рабочую БД
+исключает запуск прежнего U1 live helper (он пишет synthetic rows); не обходить
+его из-за доступной SSH. Frontend, рабочие DB/S3/flags и выпуск не менялись,
+кроме разрешённых новых synthetic S3 fixtures и их точной очистки.
 Последнее явное поручение пользователя уточняет область; противоречие, меняющее
 поведение продукта, разрешать до соответствующей реализации.
 

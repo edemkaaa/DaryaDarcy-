@@ -2,6 +2,38 @@
 
 ## RELEASE-U1 — обновление применено, приёмка загрузок открыта,20 октября 2026
 
+### Позднейшая read-only проверка после смены VPN
+
+SSH и HTTPS снова доступны; API ID035752d8…/image15865765…неизменен,
+healthy/restart0. Working SQL выполнен в `TRANSACTION READ ONLY`, readOnly=1:
+history42, Library flag false/content flag true, pattern bindings0 и0 winter
+bindings. Четыре upload/delivery flags true. Ни deploy, ни restart/DB/S3 policy
+или рабочих flags в этой проверке не выполнялось. Current images ещё не accepted.
+
+Последнее разрешение пользователя: без изменения working DB/старых files,
+push/deploy/frontend. **Не запускать старый `run-live.py`/`live-uploads.mjs` ниже:**
+он создаёт synthetic records в working DB. Сначала отдельный isolated API/DB
+стенд либо новое явное разрешение на такие fixtures. Исторические rollout/
+disable/rollback команды ниже не являются новым поручением их выполнять.
+
+Изолированный current-code native Library API/SQL/real S3:4/4 pass/0skip,
+fresh42/40 tables,6 new objects, PUT/import ACK loss и replay, exact GET/HEAD/
+Range, anonymous denial, expiry/block/session revoke, scoped rollback проверены.
+Все6 objects удалены по metadata/ETag/HEAD404, policy SHA0484dfa2…прежний;
+own a6c4d0e…tmpfs container удалён. Это не working pattern migration/enablement.
+Отдельный content S3 suite:2 provider policy timeouts10s в beforeAll,4 skipped,
+не pass. Перед удалением own c736ae86…fixture проверены все40 таблиц: только
+42 migration rows, users/uploads/bindings0. Никаких S3 writes в этих2 attempts.
+Private evidence: `.local-artifacts/release-u1.pUAwLj/isolated-library-aYMyJE`
+и `isolated-content-TOiFYB`; не добавлять закрытые fixture URIs/профиль в Git.
+
+В публичном anonymous denied read замечены duplicate `nosniff` headers от edge;
+строгое равенство одного значения в старом harness потенциально ложно падает.
+Это не доказательство точной старой read assertion и не основание менять
+proxy/product headers. Working U1 read/access/browser/max-size acceptance открыта.
+
+### Историческая последовательность выпуска U1
+
 Пользователь разрешил выпуск последних правок и live upload acceptance с
 сохранением current DB/admin/password/design/legacy files. На старте работает
 именно D7 ниже. New app source2fede8134b13f0e6ee6d02fb503cb28675846262,

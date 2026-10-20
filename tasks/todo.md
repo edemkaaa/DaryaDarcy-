@@ -4,6 +4,32 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+- [x] После смены VPN повторная SSH попытка успешна; public health200/ok и
+  capabilities проверены браузером и HTTP/1.1 без обхода TLS. Причина прежних
+  сетевых таймаутов не установлена. API035752d8…/image15865765…healthy/restart0,
+  тот же U1; deploy/перезапуск/конфигурация не выполнялись.
+- [x] Рабочая БД проверена только в `TRANSACTION READ ONLY` (readOnly=1):
+  history42; Library flag false, content/media/video/delivery flags true;
+  всего pattern bindings0, winter bindings0. Это подтверждённая причина
+  недоступности зимних выкроек, не задача фронтендера. Anonymous list/holly
+  дают404/no-store; club/admin bytes ещё не проверены и готовыми не считаются.
+- [x] Изолированный native API/SQL/real S3 прогон Библиотеки:4/4 pass,0skip,
+  fresh backend_test42 migrations/40 tables, only-loopback/tmpfs own container.
+  Lost PUT/import ACK, replay без дублей,6 byte-exact files GET/HEAD/Range,
+  anonymous S3 denial и club expiry/block/session revoke проверены. Только
+  новые synthetic материалы; recipes/Petersburg/зимние originals не читались
+  и не менялись.6 S3 objects удалены по metadata/ETag guards/HEAD404; policy
+  SHA0484dfa2…прежний; own test container a6c4d0e…удалён, образы/volumes не тронуты.
+- [ ] Изолированный content-upload S3 прогон не принят:2 attempts stopped in
+  beforeAll на GetBucketPolicy TimeoutError10s, все4 сценария skipped, не pass.
+  Users/receipts не создавались; перед удалением own c736ae86… проверены все
+  40 tables: только42 migration rows, остальное0. Container/tmpfs удалён.
+  Сохранены private logs вне Git; сервер/working DB/старые S3 files не менялись.
+  Native Library success не заменяет ни этот прогон, ни published U1 acceptance.
+- [x] Дополнительное наблюдение U1: edge выдаёт два одинаковых `nosniff`
+  headers. Старый harness строго сравнивает joined value с одним `nosniff`:
+  это возможный источник assertion, но точная причина старого падения всё
+  ещё не доказана. Headers/proxy/product code не исправлялись вслепую.
 - [x] Backend-only follow-up: воспроизведено скачивание закрытых файлов без
   расширения. Shared HTTP boundary теперь добавляет canonical MIME extension
   к безопасному label; исходные upload filename/storage paths не раскрываются,
@@ -26,12 +52,12 @@
   access или admin; гость denied. Handoff/SPEC больше не требуют переноса
   «Лошадки» как пятого платного файла: b06a46a подтверждает исходный free статус,
   2fede81 — переход на закрытый flow. Отдельное решение о платности ещё требуется.
-- [ ] Зимние выкройки на staging: проверить фактические2 flags, ready bindings
-  и byte reads для club/admin/guest. Source gate проверен: disabled даёт404 до
-  роли, admin не обходит flag; без bindings list был бы200/empty после admission,
-  missing single file404, нарушенная активная binding503. Это не live diagnosis:
-  текущая SSH попытка снова timeout до banner, окружение/данные не прочитаны.
-  Флаги, working DB/S3, frontend, рецепты/Петербург не менялись.
+- [ ] Зимние выкройки на staging: после отдельного разрешения подготовить
+  reviewed закрытые копии4 изображений и новые ready bindings, затем проверка
+  club/admin/guest и согласованное enablement. Read-only diagnosis выполнен
+  выше: Library flag false/bindings0. Текущее «рабочую БД и старые файлы не
+  трогай» не разрешает эти записи/перенос/закрытие источников. Не включать
+  один флаг без данных и не возвращать public fallback. «Лошадка» отдельно.
 - [x] Последнее уточнение пользователя: рецепты и Петербург остаются как есть;
   не менять их ссылки, выдачу, флаги или привязки. Backend-only/handoff сохраняется.
 - [x] Повторная диагностика после c0067bc: ветка прежняя, рабочее дерево чистое.
@@ -40,10 +66,12 @@
   причиной read assertion это не объявляется. На Mac свободно337MiB: тяжёлый
   Docker/SQL/build стенд не запускался, никаких очисток не выполнялось.
   Изменены только документы; рабочие конфигурация/DB/S3/frontend прежние.
-- [ ] Продолжить U1 после восстановления SSH/HTTPS: fresh health/config guards,
-  доставка уже исправленного private evidence harness, точная ошибка чтения,
-  затем оставшиеся проверки прав/отзыва. Без точного RED продукт не менять;
-  новые функции или повтор успешно проверенных неизменных срезов не добавлять.
+- [ ] Продолжить U1: SSH/HTTPS теперь доступны, fresh health/flags/read-only
+  guards проверены выше. Старый live helper пишет synthetic rows в рабочую БД,
+  поэтому при последнем запрете её менять не запускать. Для published read
+  assertion и оставшихся прав нужен отдельный согласованный изолированный
+  API/DB стенд или новое явное разрешение на temporary working fixtures.
+  Не подменять этот остаток успешной изолированной проверкой Библиотеки.
 - [x] Подготовлен [документ фронтендеру по Библиотеке и загрузкам](../docs/development/frontend-handoff-library-uploads-2026-10-20.md):
   backend-блокеры, действующие контракты, точные client проверки и совместная
   приёмка. Общий handoff и карта docs ссылаются на текущий документ; frontend
