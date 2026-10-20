@@ -4,6 +4,24 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### FE-SYNC — подтянуть авторские правки фронтендера,20 октября
+
+- [x] По отдельному поручению fetch origin/staging:becaf6d→b32d0bc, один новый
+  frontend commit/70 files. Clean worktree до начала, текущая feature-ветка
+  сохранена; локальный merge467253e с родителями17a0dea/b32d0bc без конфликтов.
+  Apps/frontend byte-exact origin/staging; ручных правок фронта не добавляли.
+  Backend/database/tooling byte-exact17a0dea, все21 локальных commits сохранены.
+- [x] Проверки после объединения:301 pass/12 suites/0skip/5.04s; root/frontend/
+  E2E TypeScript, ESLint, frontend production build29/29, boundaries712/docs64/
+  diff GREEN. Браузер/живые API/SQL/S3 не проверялись; env/flags не менялись.
+- [x] Авторский commit удаляет20 старых public pattern variants только из local
+  frontend tree; публичные обложки сохранены/test GREEN, удалённое восстановимо
+  из Git history. Working S3/server/DB/admin и Downloads exports не затронуты.
+- [ ] Прежний check:api остаётся RED/outdated. Контракт не перегенерирован:
+  отдельная координация с фронтендером, не самостоятельная ручная правка UI.
+  Это локальная синхронизация, не разрешение push/deploy или дальнейших frontend
+  изменений. Публикация/новые flags/закрытие старых внешних sources не выполнялись.
+
 #### VK-COVER — качество обложек всех22,20 октября
 
 - [x] Read-only scope: JSON22, предоставленные PDF/HTML и локальные app/own

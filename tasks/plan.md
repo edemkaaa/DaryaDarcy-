@@ -63,6 +63,17 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **20 октября, FE-SYNC — выполненное разовое поручение:** подтянут origin/staging
+  b32d0bc (один новый frontend commit), локальный merge467253e без конфликтов и
+  переключения ветки. Frontend byte-exact staging; backend/database/tooling
+  сохранены byte-exact17a0dea, все21 собственных commits в истории. Ручного
+  frontend редактирования нет.301 targeted tests/12 suites/0skip, root/frontend/
+  E2E TypeScript, ESLint, production build29/29, boundaries712/docs64/diff GREEN.
+  check:api RED/outdated как до merge; generation оставлена для отдельной
+  координации с фронтендером. Авторское удаление20 local public pattern variants
+  сохранено, восстановимо из Git; S3/working DB/admin/server/flags без изменений.
+  Не push/deploy/live acceptance и не разрешение самостоятельно продолжать UI.
+
 - **20 октября, VK-COVER — локальное исследование всех22:** пользователь разрешил
   разобраться с качественными обложками без frontend/working DB/S3/push/deploy.
   Проверены metadata22 и исходный PDF:19 embedded native533–537x300–301 PNG
