@@ -8,6 +8,15 @@
 даже для администратора. Проверить оба server flags и реальные ready bindings,
 а не предлагать исправление локальных настроек или публичный fallback.
 
+WIN-PREP20 октября после отдельного разрешения: новые закрытые copies четырёх
+WebP и ready bindings подготовлены через existing importer; revision1,
+3681002 bytes, source hash совпал с deployed assets. Signed GET/HEAD/Range и
+anonymous403 проверены, повтор того же manifest без дублей. Fresh backup и
+guards подтвердили сохранность всех прежних записей/admin/schema/policy.
+`PRIVATE_LIBRARY_FILES_ENABLED` работающего API остаётся false: это подготовка
+данных, не включение выдачи или успешная live проверка club/admin/guest.
+Старые public sources/derivatives/cache сохранены и ещё не защищены.
+
 «Лошадка» (`loshadka`) — отдельный материал. В исходном импорте b06a46a она
 имела `isClubOnly: false`; реализация 2fede81 перевела её в закрытый patterns flow.
 Описанные ниже пять slots отражают техническую реализацию, но не подтверждают

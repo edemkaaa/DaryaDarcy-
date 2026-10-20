@@ -4,6 +4,45 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### WIN-PREP — новая разрешённая подготовка четырёх выкроек
+
+- [x] Пользователь разрешил новые private copies и4 bindings в рабочей БД,
+  пока без включения Library flag. Scope зафиксирован в plan; старые public
+  sources/«Лошадка»/recipes/Petersburg/frontend и остальные записи не менять.
+- [x] Проверить точные4 исходника, metadata/hash и соответствие working assets;
+  offline manifest и scoped rehearsal, свежий backup/schema/actor/config guards.
+- [x] Existing importer, stable idempotency key/expectedRevision0, затем4 ready
+  copies/bindings и replay без дублей; signed bytes/HEAD/Range + anonymous403.
+- [x] Проверить unchanged existing rows/admin/schema/runtime flags; записать
+  rollback receipt. API Library flag остаётся false, полная защита старых копий
+  и реальная выдача через работающий API этим не объявляются готовыми.
+- [x] Фактический WIN-PREP: holly/sock/star/apple,4 WebP/3681002 bytes,
+  source SHA совпали с deployed web assets; EXIF/XMP/IPTC нет. Backup40 tables,
+  351868 bytes/SHA9c5ce997… сохранён server/local0600. Existing importer exact
+  deployed image; key `winter-patterns-20261020-v1`, expectedRevision0 → revision1,
+  4 ready bindings. Signed GET/HEAD/Range byte-exact, anonymous403, replay без
+  новых rows/objects. Только +4 private_content_files/+4 library_file_bindings/
+  +1 library_file_migrations; все прежние rows40 tables/admin/schema42/policy
+  unchanged. Эти4 objects рабочие, НЕ fixtures: сохранять. API flag false,
+  image/healthy/restart0 прежние; live Library выдача ещё не включена/не принята.
+- [x] Content API/SQL/real S3 теперь GREEN4/4/0skip: после provider timeouts
+  выявлен RED fixture guard41 при fresh schema42, исправлен только backend test.
+  ACK loss/restart/replay без дублей article/post/comment, account isolation и
+  live access revocation проверены.4 own objects удалены metadata/ETag/HEAD404,
+  policy прежний; own loopback/tmpfs container9e2d2b9f… удалён. Evidence вне Git:
+  isolated-content-FeRT7R/acceptance-retry-1792497505236.log. Это isolated
+  current-code acceptance, НЕ приёмка опубликованного U1/браузера/всех размеров.
+- [x] Дополнительные лёгкие backend проверки: raw-video errors, encoded size
+  ceiling и media read errors —45/3 suites/0fail/0skip. Root tsc/check:docs61/
+  diff check без ошибок; frontend и generated contract не менялись.
+- [ ] Остаток: согласованное включение Library + club/admin/guest live read;
+  отдельно старые public sources. Published U1 read/max-size/audio/video ещё
+  не приняты. Новый SQL/S3 стенд сейчас не запускать: Mac ниже safe512MiB;
+  сначала освободить место отдельным согласованным действием. Образы/БД/чужое
+  не удалялись. Frontend, push/deploy/runtime configuration не менялись.
+
+#### Проверенные результаты до WIN-PREP
+
 - [x] После смены VPN повторная SSH попытка успешна; public health200/ok и
   capabilities проверены браузером и HTTP/1.1 без обхода TLS. Причина прежних
   сетевых таймаутов не установлена. API035752d8…/image15865765…healthy/restart0,
@@ -20,7 +59,7 @@
   новые synthetic материалы; recipes/Petersburg/зимние originals не читались
   и не менялись.6 S3 objects удалены по metadata/ETag guards/HEAD404; policy
   SHA0484dfa2…прежний; own test container a6c4d0e…удалён, образы/volumes не тронуты.
-- [ ] Изолированный content-upload S3 прогон не принят:2 attempts stopped in
+- [x] История до GREEN выше: content-upload S3 прогон,2 attempts stopped in
   beforeAll на GetBucketPolicy TimeoutError10s, все4 сценария skipped, не pass.
   Users/receipts не создавались; перед удалением own c736ae86… проверены все
   40 tables: только42 migration rows, остальное0. Container/tmpfs удалён.
@@ -52,12 +91,10 @@
   access или admin; гость denied. Handoff/SPEC больше не требуют переноса
   «Лошадки» как пятого платного файла: b06a46a подтверждает исходный free статус,
   2fede81 — переход на закрытый flow. Отдельное решение о платности ещё требуется.
-- [ ] Зимние выкройки на staging: после отдельного разрешения подготовить
-  reviewed закрытые копии4 изображений и новые ready bindings, затем проверка
-  club/admin/guest и согласованное enablement. Read-only diagnosis выполнен
-  выше: Library flag false/bindings0. Текущее «рабочую БД и старые файлы не
-  трогай» не разрешает эти записи/перенос/закрытие источников. Не включать
-  один флаг без данных и не возвращать public fallback. «Лошадка» отдельно.
+- [ ] Зимние выкройки на staging: WIN-PREP выше завершил разрешённую подготовку
+  четырёх копий/ready bindings. Остались club/admin/guest через работающий API
+  и согласованное enablement; Library flag false. Не возвращать public fallback,
+  не закрывать старые источники автоматически; «Лошадка» отдельно.
 - [x] Последнее уточнение пользователя: рецепты и Петербург остаются как есть;
   не менять их ссылки, выдачу, флаги или привязки. Backend-only/handoff сохраняется.
 - [x] Повторная диагностика после c0067bc: ветка прежняя, рабочее дерево чистое.

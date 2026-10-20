@@ -33,16 +33,44 @@ generic labels/inline/права и отсутствие storage paths сохр�
 зимних выкроек или старые public sources. После смены VPN20 октября SSH/HTTPS
 снова доступны: read-only SQL подтвердил Library flag false и pattern bindings0.
 Native Library/SQL/real S3 на отдельной backend_test:4 pass,6 synthetic objects
-точно удалены, policy прежний. Content S3 acceptance дважды остановился до
-fixtures на provider timeout, не accepted. Последний запрет менять рабочую БД
+точно удалены, policy прежний. Content S3 acceptance первоначально дважды остановился до
+fixtures на provider timeout. Последний запрет менять рабочую БД
 исключает запуск прежнего U1 live helper (он пишет synthetic rows); не обходить
 его из-за доступной SSH. Frontend, рабочие DB/S3/flags и выпуск не менялись,
 кроме разрешённых новых synthetic S3 fixtures и их точной очистки.
 Последнее явное поручение пользователя уточняет область; противоречие, меняющее
 поведение продукта, разрешать до соответствующей реализации.
 
+Позднейший результат WIN-PREP20 октября: по отдельному разрешению подготовлены
+4 новые закрытые WebP copies/ready bindings holly/sock/star/apple,3681002 bytes.
+Fresh backup40 tables/351868 bytes/SHA9c5ce997… проверен server/local; source SHA
+совпали с deployed assets. Existing importer key `winter-patterns-20261020-v1`,
+revision0→1; byte-exact signed GET/HEAD/Range, anonymous403, replay без дублей.
+Изменились только4 private_content_files,4 bindings,1 migration receipt; прежние
+rows/admin/schema42/runtime images/flags/policy сохранены. Library flag false:
+реальная выдача ещё не включена, старые public copies НЕ закрыты. Rollback и
+receipt — в existing operational runbook; рабочие4 copies не удалять как fixtures.
+Content API/SQL/real S3 повторно GREEN4/4/0skip: исправлен устаревший test guard
+41→42, подтверждены ACK loss/restarts/replay/account isolation/access revocation;
+4 synthetic objects удалены с guards/HEAD404, own tmpfs DB удалена. Это не полная
+приёмка опубликованного U1. Следующий fresh audio/video SQL/S3 стенд отложен:
+Mac ниже safe512MiB; очистку images/БД/чужих files не выполнять.
+
 ### Границы работы
 
+- **20 октября, WIN-PREP — принято пользователем «да — доделай все блокеры»:**
+  подготовить новые закрытые копии ровно4 зимних изображений holly/sock/star/apple
+  и их ready bindings в current DB через existing operator importer. Сначала
+  reviewed source bytes/hash/MIME, fresh consistent backup, schema/actor/current
+  configuration guards и rehearsal; затем status/replay/no duplicate/storage
+  privacy/byte checks. Working Library flag оставить false; отдельный operator
+  процесс может использовать свои local flags, не включая работающий API.
+  Старые public sources/derivatives/cache не изменять и не считать закрытыми;
+  «Лошадка», recipes/Petersburg, frontend, прочие DB records, admin password/role/
+  session, schema, payment/SMTP/CORS/proxy trust, push/deploy не входят в разрешение.
+  Остальные backend фиксы — только подтверждённые в существующей области плана,
+  локально с RED/GREEN/проверками; новые функции и production enablement не выводить
+  из общей фразы автоматически. Полную готовность заявлять только по фактам.
 - **Последнее уточнение пользователя, 20 октября — frontend только через handoff:**
   код фронта больше не менять, включая `apps/frontend`, UI/логику/данные,
   frontend tests и generated API contract. Прежние разрешения frontend-работ

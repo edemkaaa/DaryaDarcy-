@@ -2,6 +2,67 @@
 
 ## RELEASE-U1 — обновление применено, приёмка загрузок открыта,20 октября 2026
 
+### WIN-PREP — четыре зимние выкройки подготовлены, выдача пока выключена
+
+Новое явное разрешение20 октября: только новые private copies и bindings
+holly/sock/star/apple, без включения Library API/старых sources/frontend/deploy.
+Этот scope уточняет прежний запрет записи DB только для четырёх материалов;
+старый U1 live helper всё ещё не разрешён.
+
+До изменения сохранён consistent backup текущей DB:40 tables/351868 bytes,
+SHA256 `9c5ce99735ef1d97a2c762f46450de6ad857d2d8886b80e5feede7adf8eca537`.
+Server/local0600 copies совпали; gzip complete, schema/history42. Backup содержит
+конфиденциальные данные: не публиковать/не читать raw rows в отчёт и не коммитить.
+Private operational directory: local `.local-artifacts/winter-patterns-20261020.LlzoI0`
+от workspace и server `/home/edem/apps/daryadarcy-staging/winter-patterns-20261020.LlzoI0`.
+Там закрытые manifest/preflight/backup/apply receipts; сохранять вне Git.
+
+Существующий importer из exact deployed API image15865765… запущен отдельным
+non-root/read-only/cap-drop operator без HTTP listener в isolated API network.
+Operator-local flag не менял работающий API. Stable idempotency key
+`winter-patterns-20261020-v1`, material `patterns`, expectedRevision0 на каждом
+slot, manifest payload SHA256
+`7d889b8ec0a55c61e3bd98428dfbf8420808137fd0cd6ae5f44999c7defb5c12`.
+
+| fileKey | MIME | bytes | source/body SHA256 |
+| --- | --- | ---: | --- |
+| holly | image/webp | 907380 | 3806194d71bef3f6644d878a354212d958ab60647eab92b9a9115fd498981235 |
+| sock | image/webp | 903476 | 1cc0462841dbff90e9ad0f9d65427289e3d7f453f394e72690ec7631396369c1 |
+| star | image/webp | 897376 | 493a6b466590d5c796ddc5a36bb946e2301be896a02778fabafb4175c7131b4d |
+| apple | image/webp | 972770 | 73f233acce5d7b9589b10f8d5326aabef9bafe6c4428c59e8bff16f488df5a90 |
+
+Все4 source hashes совпали с originals внутри deployed web image; metadata
+EXIF/XMP/IPTC отсутствует. Созданы4 ready libraryPhoto copies и4 enabled
+bindings revision1, total3681002 bytes; signed GET body SHA/HEAD/Range совпали,
+anonymous GET/HEAD/Range403. Same-key replay сохранил rows/objects/revisions.
+Точные SQL increments: private_content_files+4/library_file_bindings+4/
+library_file_migrations+1. Все прежние rows40 tables/admin/password/role/session,
+schema/history42, S3 policy SHA0484dfa2… совпали с baseline. API035752d8… прежний,
+healthy/restart0; Library flag false, content/media/video/delivery true.
+Оператор и его временный env удалены, runtime не перезапускался.
+
+Эти4 S3 copies рабочие, НЕ synthetic fixtures — не удалять. Глобальный Library
+flag не включать без следующего согласования и live club/admin/guest проверки.
+Старые public sources/derivatives/cache не закрыты; «Лошадка», recipes/Petersburg
+не менялись. Не считать full content protection/Library delivery принятыми.
+
+Откат, только по отдельному поручению: existing `rollbackLibraryMigration`
+с тем же key и свежим current admin/session actor проверяет CAS/revision и
+отключает созданные slots; objects/history сохраняет. Сначала dry inspect
+текущих revisions и receipt. Whole-DB restore/delete objects/смена image здесь
+не нужны и не разрешены. `operate.py apply` повторно не запускать: receipt
+уже записан; importer replay проверен внутри успешной операции.
+
+Повторный isolated content API/SQL/real S320 октября:4/4 pass/0skip после
+исправления устаревшего fresh-schema test guard41→42. Потеря ACK upload/save,
+restart/status-first retry/no duplicates, current access/account isolation
+проверены для article/post/comment.4 synthetic objects удалены с metadata/ETag/
+HEAD404, policy прежний; own loopback/tmpfs DB9e2d2b9f… удалена. Evidence:
+`.local-artifacts/release-u1.pUAwLj/isolated-content-FeRT7R/acceptance-retry-1792497505236.log`.
+Это снимает provider-timeout blocker этого isolated suite, не заменяет
+published U1/audio/video/max-size/browser acceptance. Новый свежий стенд
+отложен: Mac ниже safe512MiB; images/БД/чужие files не удалялись.
+
 ### Позднейшая read-only проверка после смены VPN
 
 SSH и HTTPS снова доступны; API ID035752d8…/image15865765…неизменен,
