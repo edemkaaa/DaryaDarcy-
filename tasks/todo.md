@@ -19,9 +19,18 @@
   status/errors/exit0/1/2, JSON0600/outside Git, no overwrite, no HTML execution,
   paused after external failures не выглядит success. Test-only processes/server/
   directories закрыты/удалены. Working DB/S3/frontend/runtime/deploy untouched.
-- [ ] Пользователь запускает реальный export и предоставляет JSON. Все проверки
-  provider были loopback fixtures, реальных VK calls не было, browser policy не
-  обходилась. ThumbnailSourceUrl — только metadata, не проверенный готовый cover;
+- [x] Первый реальный export выполнен пользователем:0 ok/22 incomplete/0 failed;
+  локальный JSON содержит22 titles/thumbnail URLs и22 invalid_embed. Пользователь
+  предоставил raw response одного ролика: причина — единственный `__ref=vk.web2`.
+  Browser policy не обходилась, агент не выполнял реальные VK calls.
+- [x] Узкий collector-only fix: удалить только один известный __ref перед прежним
+  parseVkEmbed; неизвестные/дублированные параметры, чужой host/oid/id, missing hash
+  по-прежнему отвергаются. Application validator/API/frontend не менялись.
+  RED2→GREEN73/2 suites/0skip/2.29s (55 collector+18 validator), native CLI проверен
+  на multiline HTTP fixture с synthetic hash, без raw HTML в отчёте. TypeScript,
+  docs64/boundaries704/Prettier/diff GREEN; full suite/live export не запускались.
+- [ ] Повторный live export после fix выполняет пользователь в новый -v2.json;
+  успешный сбор всех22 ещё не подтверждён. ThumbnailSourceUrl — только metadata,
   bytes/S3/import/public-club policy и playback acceptance требуют отдельного шага.
 
 #### VK-ONLY — убрать YouTube из раздела Видео,20 октября

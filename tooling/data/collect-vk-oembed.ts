@@ -40,6 +40,23 @@ export type VideoMetadata = {
   thumbnailSourceUrl: string | null;
   issues: string[];
 };
+
+function parseOembedPlayer(value: string) {
+  if (value.length > 2048) return null;
+  try {
+    const url = new URL(value);
+    // Observed oEmbed-only tracking; keep the application allowlist unchanged.
+    if (
+      url.searchParams.getAll("__ref").length === 1 &&
+      url.searchParams.get("__ref") === "vk.web2"
+    )
+      url.searchParams.delete("__ref");
+    return parseVkEmbed(url.toString());
+  } catch {
+    return null;
+  }
+}
+
 export async function collectVideo(
   source: string,
   options: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
@@ -132,7 +149,7 @@ export async function collectVideo(
   const sourceValue =
     src.length === 1 ? (src[0]![2] ?? src[0]![3] ?? src[0]![4]) : null;
   const player = sourceValue
-    ? parseVkEmbed(sourceValue.replace(/&(?:amp|#38|#x26);/gi, "&"))
+    ? parseOembedPlayer(sourceValue.replace(/&(?:amp|#38|#x26);/gi, "&"))
     : null;
   if (player) {
     const url = new URL(player.embedUrl);

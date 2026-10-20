@@ -9,6 +9,13 @@
 - Локальный commit `3127a95`:45 новых проверок сборщика и18 существующих
   проверок VK-валидатора прошли, TypeScript/форматирование/границы модулей
   проверены. Это synthetic HTTP/CLI evidence, не успешный ответ настоящего VK.
+- Первый реальный запуск выполнен пользователем:22 названия и22 адреса обложек
+  получены, iframe всех22 отклонены как invalid_embed. Предоставленный затем
+  ответ одного ролика выявил `__ref=vk.web2` в src. Исправленный сборщик удаляет
+  только один такой служебный параметр перед прежней строгой проверкой. Неизвестные
+  значения/дубликаты/прочие параметры не разрешены; серверный контракт прежний.
+  RED2→GREEN73/2 suites (55 collector +18 existing validator). Это репродукция
+  формы ответа на loopback, не повторный live export или playback acceptance.
 - Из PDF владельца уже извлечены22 уникальные страницы роликов сообщества
   -211171256. TXT находится в Downloads, его повторно заполнять не нужно.
 - [Сборщик](../../tooling/data/collect-vk-oembed.ts) использует только официальный
@@ -26,11 +33,12 @@
 Открой Терминал и вставь целиком:
 
 ```sh
-pnpm --dir "/Users/edem/Desktop/ASSIST/dina_project/daryadarcy-app" exec tsx tooling/data/collect-vk-oembed.ts --input "/Users/edem/Downloads/daryadarcy-vk-video-links-2026-10-20.txt" --output "/Users/edem/Downloads/daryadarcy-vk-metadata-2026-10-20.json" --collect
+pnpm --dir "/Users/edem/Desktop/ASSIST/dina_project/daryadarcy-app" exec tsx tooling/data/collect-vk-oembed.ts --input "/Users/edem/Downloads/daryadarcy-vk-video-links-2026-10-20.txt" --output "/Users/edem/Downloads/daryadarcy-vk-metadata-2026-10-20-v2.json" --collect
 ```
 
-После завершения пришли файл `daryadarcy-vk-metadata-2026-10-20.json` из Downloads
+После завершения пришли файл `daryadarcy-vk-metadata-2026-10-20-v2.json` из Downloads
 в этот чат. Его не нужно загружать на сайт, в S3 или коммитить в Git.
+Новый суффикс `-v2` сохраняет первый частичный отчёт, не перезаписывая его.
 
 Команда отправляет последовательные запросы только к фиксированному VK API,
 без авторизации; между роликами пауза400мс, таймаут каждого запроса10секунд,
@@ -65,7 +73,9 @@ networkRequested=false. Если убрать `--collect`, тоже выполн
 отчётах playbackVerified=false, importReady=false, thumbnailBytesDownloaded=false.
 Общие ответы API, сторонний HTML/scripts и тексты ошибок в файл не переносятся.
 Iframe oid/id обязан совпасть с исходным роликом; используется существующий
-серверный валидатор и autoplay0. Встраивание не предполагается по одному ID.
+серверный валидатор и autoplay0 после удаления только известного oEmbed tracking
+параметра. Hash/oid/id не придумываются и не заменяются. Встраивание не
+предполагается по одному ID.
 
 ## Если есть ошибки
 

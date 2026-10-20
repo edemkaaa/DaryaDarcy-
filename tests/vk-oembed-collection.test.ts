@@ -7,6 +7,7 @@ import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 import { collectVideo, parseSources } from "../tooling/data/collect-vk-oembed";
+import { parseVkEmbed } from "../apps/backend/src/content/vk-video-input";
 
 describe("offline VK source selection", () => {
   it("reads the existing TXT shape and deduplicates by video ID", () => {
@@ -52,6 +53,14 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
   const source = "https://vkvideo.ru/video-211171256_456239242";
   const iframe =
     '<iframe src="https://vk.ru/video_ext.php?oid=-211171256&amp;id=456239242&amp;hash=synthetic_hash" width="640" allowfullscreen></iframe>';
+  // Matches the user-supplied oEmbed shape, without copying its real hash/cover.
+  const trackedIframe = `<iframe
+  src="https://vk.com/video_ext.php?oid=-211171256&id=456239242&hash=synthetic_hash&__ref=vk.web2"
+  width="853"
+  height="480"
+  allow="autoplay; encrypted-media; fullscreen; picture-in-picture; screen-wake-lock;"
+  frameborder="0"
+  allowfullscreen></iframe>`;
   const good = () => ({
     response: {
       version: "1.0",
@@ -154,6 +163,46 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
     ).rejects.toThrow();
     expect(requests).toEqual([]);
   });
+  it("normalizes the observed oEmbed tracking parameter before strict backend validation", async () => {
+    reply = JSON.stringify({
+      response: { ...good().response, html: trackedIframe },
+    });
+    const result = await collectVideo(source, { fetchImpl: mappedFetch });
+    expect(result).toMatchObject({
+      status: "ok",
+      embedUrl:
+        "https://vk.com/video_ext.php?oid=-211171256&id=456239242&hash=synthetic_hash&autoplay=0",
+      issues: [],
+    });
+    // The application contract remains strict, including for tracking parameters.
+    expect(
+      parseVkEmbed(
+        "https://vk.com/video_ext.php?oid=-211171256&id=456239242&hash=synthetic_hash&__ref=vk.web2",
+      ),
+    ).toBeNull();
+  });
+  it.each([
+    trackedIframe.replace("__ref=vk.web2", "__ref=unknown"),
+    trackedIframe.replace("__ref=vk.web2", "__ref=vk.web2&__ref=vk.web2"),
+    trackedIframe.replace("__ref=vk.web2", "__ref=vk.web2&unexpected=1"),
+    trackedIframe.replace("&hash=synthetic_hash", ""),
+    trackedIframe.replace("456239242", "456239241"),
+    trackedIframe.replace("-211171256", "-999"),
+    trackedIframe.replace("vk.com", "evil.test"),
+    trackedIframe.replace("&__ref=", "&id=456239242&__ref="),
+  ])(
+    "does not let tracking normalization bypass the player guards",
+    async (html) => {
+      reply = JSON.stringify({ response: { ...good().response, html } });
+      expect(
+        await collectVideo(source, { fetchImpl: mappedFetch }),
+      ).toMatchObject({
+        status: "incomplete",
+        embedUrl: null,
+        issues: ["invalid_embed"],
+      });
+    },
+  );
   it.each([
     iframe.replace("456239242", "456239241"),
     iframe.replace("-211171256", "-999"),
@@ -331,6 +380,30 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
       ).rejects.toMatchObject({ code: 1 });
       expect(await readFile(output, "utf8")).toBe("ORIGINAL_CONTENT");
       expect(requests).toEqual([]);
+    });
+    it("writes a canonical player for the observed multiline oEmbed response", async () => {
+      reply = JSON.stringify({
+        response: { ...good().response, html: trackedIframe },
+      });
+      const output = join(directory, "tracked.json");
+      const result = await run([
+        "--input",
+        input,
+        "--output",
+        output,
+        "--collect",
+      ]);
+      expect(JSON.parse(result.stdout).summary).toEqual({
+        ok: 1,
+        incomplete: 0,
+        failed: 0,
+      });
+      const report = await readFile(output, "utf8");
+      expect(JSON.parse(report).items[0].embedUrl).toBe(
+        "https://vk.com/video_ext.php?oid=-211171256&id=456239242&hash=synthetic_hash&autoplay=0",
+      );
+      expect(report).not.toContain("__ref");
+      expect(report).not.toContain("<iframe");
     });
     it("refuses output inside the repository before collecting", async () => {
       const output = resolve(".owned-vk-oembed-test.json");

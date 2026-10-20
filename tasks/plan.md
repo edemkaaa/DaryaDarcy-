@@ -80,6 +80,13 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
   CLI streams/timeouts/partial batch/private no-overwrite output проверены.
   [Команда владельцу](../docs/development/vk-metadata-export-2026-10-20.md)
   подготовлена; live export/обложки/playback не объявлять принятыми.
+  Follow-up: пользователь запустил export22, получены titles/cover URLs, но22
+  invalid_embed. Предоставленный raw ответ одного ролика показал __ref=vk.web2;
+  collector-only normalization удаляет только это единственное known значение
+  перед прежним server validator, без расширения API allowlist. RED2→GREEN73/2
+  (55 collector+18 validator)/0skip/2.29s на loopback; raw hash в Git не сохранён.
+  Повторный live export пользователь запускает в новый -v2.json; его результат,
+  скачивание обложек и playback ещё не приняты. Frontend/DB/S3/deploy без изменений.
 
 - **20 октября, VK-ONLY — принято и готово локально:** пользователь поручил
   убрать YouTube, затем уточнил backend-only и документ фронтендеру.4c04d62
