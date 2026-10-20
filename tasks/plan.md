@@ -63,6 +63,17 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **21 октября, U1-ISO — продолжение backend:** actual video API/SQL/Timeweb
+  S3: 3 pass/0skip,35.28s и audio/document: 2 pass/0skip,21.35s на отдельных own
+  loopback/tmpfs backend_test с fresh42. Исправлен только устаревший test guard
+ 41→42; потеря ACK/restarts/replay/account isolation/read/revoke подтверждены.
+  Промежуточный provider timeout не скрыт: fixture сохранён, затем точные2
+  созданных объекта убраны; clean GREEN run удалил4 video/poster и2 audio/doc
+  objects с metadata/ETag/HEAD404, policy неизменна. Все3 свои БД удалены по
+  ownership guards. Production API/frontend/working DB/flags/старые файлы и
+  выпуск не менялись. Малые synthetic fixtures и journal double не доказывают
+  max-size upload или browser/playback; это следующий остаток, не закрытый U1.
+
 - **21 октября, PLAYBACK-LIVE — read-only проверка:** штатный embedded VK
   на опубликованной странице доступен через IAB. Реальный запуск3/22 образцов,
   mute controls, точный seek ±10s, pause/resume и fullscreen entry/exit

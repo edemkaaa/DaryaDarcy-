@@ -1,5 +1,16 @@
 # Передача изменений бэкенда фронтендеру
 
+## 21 октября — изолированная проверка аудио/видео
+
+Текущий backend прошёл5 actual API/SQL/Timeweb S3 тестов без пропусков:
+3 video и2 audio/document на own disposable fresh42 БД. Подтверждены потеря
+ответов/restarts/replay без дублей, account isolation, GET/HEAD/Range и отзыв
+доступа. Исправлен только test guard41→42, новых API/клиентских правок нет.
+Промежуточный provider timeout и точная очистка всех новых fixtures отражены
+в U1-ISO [чек-листа](../../tasks/todo.md); все свои БД удалены, policy прежний.
+Это не проверка опубликованного U1/предельных размеров или браузерного редактора.
+Frontend/design/working DB/flags/старые файлы/push/deploy не менялись.
+
 ## 20 октября — отдельные замечания к фронтенду
 
 [Сверка договора и текущего frontend-кода](frontend-fixes-contract-audit-2026-10-20.md)

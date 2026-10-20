@@ -4,6 +4,36 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### U1-ISO — audio/video на актуальной схеме,21 октября
+
+- [x] Clean a0b31fb/прежняя feature branch, disk2.1GiB/Docker29.8.1;
+  новые own loopback/tmpfs backend_test без volumes. Fresh installer/check
+  подтвердили42 миграции, pending0. Working DB/flags/frontend/deploy не менялись.
+- [x] RED video fixture guard ожидал41 вместо42, до upload; минимальный fix
+  только tests/private-video-uploads.s3.mysql.test.ts. Следующий прогон дошёл
+  до read HEAD503/SDK10s timeout; cleanup также timeout, fixture сохранён.
+  После восстановления S3 точные2 созданных объекта удалены metadata/ETag/
+  HEAD404,2 pending keys отсутствовали, policy прежний; own DB8f54ffbd… удалена.
+- [x] Новый чистый video API/SQL/Timeweb S3 прогон:3 pass/0skip,35.28s.
+  Upload/post ACK loss через native HTTP, API restarts/replay без дублей,
+  account switch при upload/status, video/poster GET/HEAD/Range, expired/
+  blocked/revoked sessions и removal denial GREEN.4 новых объекта удалены,
+  HEAD404/policy unchanged; DBf9d7d77b… удалена после повторных ownership guards.
+  Ошибка regex в private runner возникла уже после GREEN; исправлен runner,
+  успешный suite не повторялся, выполнены только cleanup HEAD/DB guards.
+- [x] Отдельный audio/document API/SQL/Timeweb S3:2 pass/0skip,21.35s.
+  Потеря upload/post ACK/restart/retry, private/public/revoked access, exact WAV
+  range и anonymous S3 denial GREEN. Own2 objects удалены с guards/HEAD404,
+  fixture rows0, policy unchanged; DB40f26bd6… удалена. Legacy test-only markers
+  выставлены только после hash-verified fresh42, не вместо реальных миграций.
+- [x] Evidence вне Git: release-u1.pUAwLj/isolated-video-jcL43Z (RED/timeout),
+  isolated-video-l94J6G/acceptance.log и isolated-attachment-1MkdTm/acceptance.log.
+  Секреты не выводились; новые функции/production API код не добавлялись.
+- [ ] Остаток: actual max-size upload/read, published U1 и browser/device
+  приёмка. Video fixture1680 bytes/WAV46/document10 — НЕ проверка предельных
+  размеров. Journal/FileReader doubles — НЕ browser/reload/playback proof.
+  Не повторять эти5 успешных сценариев без изменения кода или новой причины.
+
 #### PLAYBACK-LIVE — выборочная реальная проверка VK,21 октября
 
 - [x] Только guest browser/read-only: на опубликованном стенде штатный iframe
@@ -266,10 +296,10 @@
   exit0,26 pass/0skip,3.83s. Реальный HTTP/JSON/JWT и полные Base64 envelopes
   4/32MiB; превышение decoded/envelope quota413, admission/roles/503 проверены.
   Account SQL заменён double, upload SQL/S3 не вызываются: НЕ сквозная загрузка.
-- [ ] После восстановления соединения с S3 продолжить actual API/SQL/S3
-  на own loopback/tmpfs backend_test: audio/video/read/размеры/revoke,
-  exact metadata/ETag cleanup новых UUID objects. Не повторять неизменный
-  quota suite; published U1 acceptance остаётся незавершённой.
+- [x] Audio/video/read/revoke actual API/SQL/S3 повторно проверены21 октября:
+ 5 pass/0skip; точная очистка новых объектов/своих БД — U1-ISO выше.
+- [ ] Actual max-size upload/read и published U1 acceptance остаются
+  незавершёнными. Не повторять неизменный quota suite как сквозной результат.
 
 #### VIDEO — локальный backend контракт и переход на VK
 

@@ -309,7 +309,7 @@ describe.skipIf(!enabled)(
       conn = await mysql.createConnection({ uri: uri!, timezone: "Z" });
       expect(await rows("SELECT id FROM users")).toEqual([]);
       expect(await rows("SELECT id FROM __drizzle_migrations")).toHaveLength(
-        41,
+        42,
       );
       for (const [id, role] of [
         [admin, "admin"],

@@ -1,5 +1,18 @@
 # Spec: закрытая серверная выдача вложений постов
 
+## 21 октября — повторная isolated audio/video приёмка
+
+На актуальной fresh42 схеме video API/SQL/Timeweb S3:3 pass/0skip35.28s;
+audio/document:2 pass/0skip21.35s. Исправлен только устаревший video test guard
+41→42, production API не менялся. Реальные HTTP ACK loss/API restarts/replay,
+account switch upload/status, GET/HEAD/Range и отзыв доступа подтверждены.
+Промежуточный S3 timeout не считается GREEN: сохранили точный ledger, после
+восстановления удалили2 объекта; новый clean run удалил4 video/poster и2 audio/
+document objects с metadata/ETag/HEAD404, policy прежний. Все own tmpfs БД убраны.
+Evidence/ограничения — U1-ISO в начале tasks/todo.md. Малые fixtures не доказывают
+max-size upload; journal/FileReader doubles не заменяют браузер. Working DB,
+старые S3 objects, runtime flags/frontend/push/deploy не затрагивались.
+
 ## Уточнение доступа к выкройкам — 20 октября 2026
 
 Четыре зимние выкройки `holly`, `sock`, `star`, `apple` должны открываться
