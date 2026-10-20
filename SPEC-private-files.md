@@ -22,10 +22,11 @@ UI query cached60s и revalidates stale data при focus/reconnect; failed refr
 не использует прежний enabled результат. Между refresh UI может быть устаревшим,
 поэтому fresh guard перед выбором/отправкой обязателен, server checks остаются final.
 
-## LIB-P — минимальное предложение переноса платной Библиотеки,20 октября2026
+## LIB-P — контракт платной Библиотеки, принят20 октября2026
 
-**Это предложение следующего среза, не реализованный API и не перенос файлов.**
-Не включать flags и не менять старые источники до отдельной проверенной процедуры.
+Пользователь принял контракт и разрешил локальную реализацию: бесплатный тест и
+дизайн сохранить; рабочую БД, S3 и старые файлы не трогать; без push/deploy.
+Это не разрешение реального переноса/закрытия источников или включения flags.
 
 - Seven existing result modules смешивают free fairyTale/archetype/roleModels/
   depth/challenge и club style/space/rituals/blog/inspiration. Открытый результат
@@ -33,13 +34,13 @@ UI query cached60s и revalidates stale data при focus/reconnect; failed refr
   runtime imports обоих consumers: aesthetics-screen и quiz-result; type-only
   контракт общий, backend не импортирует frontend. Shared result renderer
   получает лишь club payload, не полную mixed data константу.
-- Минимальный proposed read: GET /api/library/guides/aesthetics/:key для7 existing
+- Минимальный read: GET /api/library/guides/aesthetics/:key для7 existing
   aesthetic keys → {key,style,space,rituals,blog,inspiration}, без free duplicate
   fields/новой DB таблицы/редактора. Existing live session + userHasClubAccess,
   denial404 без content, infra503, private/no-store; ни paid JS imports, ни
   static prerender/RSC props с платным payload для гостя. Поздние ответы и кэш
   изолируются по аккаунту; revoke/account-switch/unmount убирают paid view.
-- Patterns:4 slots holly/sock/star/apple и отдельная «Лошадка» сейчас используют
+- Patterns:4 slots holly/sock/star/apple и отдельная «Лошадка» (fileKey=loshadka) используют
   public /assets/responsive originals и Yandex URL. Подключить уже принятые LB
   list/read/bindings для material=patterns; перенос только по reviewed manifest
   и проверенным source bytes. Не загружать/менять реальные файлы автоматически.

@@ -2,6 +2,22 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### LIB-P — принят20 октября; локальная реализация
+
+- [x] Проверены clean fd8378d, feature branch, планы и frontend AGENTS/Next guide.
+  Контракт принят прямым поручением. Рабочие DB/S3/flags/старые файлы не трогаем.
+- [x] Server slice:7 backend-owned payloads, shared shape без текстов, live
+  session/club GET+HEAD,404 denial/503 infra/private no-store. RED15 из19 native
+  checks → GREEN19/0skip на own loopback/tmpfs backend_test65488. Отзыв версии,
+  block/expiry/unpaid/service/cancel-until-end/invalid key/query/infra проверены.
+  Контрольные суммы всех7 paid payloads совпадают с исходными mixed modules.
+- [ ] Оба client consumer без paid imports; free hashes, bundle leakage,
+  identity/revoke/unmount/browser и regression/build review — в работе.
+- [ ] Patterns → existing LB metadata/read,5 known slots, без public originals
+  в guest preview и без Yandex fallback. Только synthetic local acceptance.
+- [ ] Карта originals/derivatives/shared uses, оставшийся rollout и источники.
+  Реальные старые public файлы/JS/cache остаются незакрытыми, полной защиты нет.
+
 ### CAP-U — доступность загрузок связана с интерфейсом,20 октября; локально
 
 - Локальные commits: contract `d368a6c`, integration/tests `156920c`.

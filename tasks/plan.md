@@ -29,6 +29,14 @@
 
 ### Границы работы
 
+- **20 октября, LIB-P — прямое принятие контракта:** локально отделить пять
+  платных блоков семи эстетик, добавить защищённое server read и подключить оба
+  существующих consumer (гид/quiz result); patterns подключить к existing LB
+  bindings без public fallback. Бесплатный тест, CSS/layout/covers сохранить.
+  Проверки только synthetic/own disposable DB/loopback, без настоящего S3,
+  рабочей БД, старых assets/файлов, push/deploy или включения flags. Реальный
+  перенос, закрытие старых URLs/JS/cache и paid visual originals — отдельно;
+  наличие новой выдачи не означает полной защиты старой Библиотеки.
 - **20 октября, CAP-U — пользователь «давай да делаем»:** локально реализовать
   additive upload availability и соединить с existing editors/comment photos,
   не включая рабочие flags. Контракт и проверки — SPEC-private-files/CAP-U;
