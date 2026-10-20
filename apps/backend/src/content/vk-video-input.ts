@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { publicCatalogThumbnail } from "./video-thumbnail";
 
 // Compatible with the staging player; reject unknown/duplicate parameters rather
 // than fetching share links or inventing a private VK hash. No external requests.
@@ -65,6 +66,23 @@ export const vkVideoInput = z
     title: z.string().trim().min(1).max(512),
     access: z.enum(["public", "club"]),
     published: z.boolean(),
+    // Omission preserves the cover on update; null explicitly clears it.
+    thumbnailUrl: z
+      .string()
+      .max(2048)
+      .transform((value, ctx) => {
+        const thumbnail = publicCatalogThumbnail(value);
+        if (thumbnail === null) {
+          ctx.addIssue({
+            code: "custom",
+            message: "Некорректный адрес публичной обложки",
+          });
+          return z.NEVER;
+        }
+        return thumbnail;
+      })
+      .nullable()
+      .optional(),
     id: z.number().int().positive().safe().optional(),
   })
   .strict();

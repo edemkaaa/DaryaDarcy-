@@ -9,6 +9,7 @@ import {
 } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
+import { createServer } from "node:http";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import superjson from "superjson";
 import { createTRPCProxyClient, httpLink } from "@trpc/client";
@@ -141,7 +142,12 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
   it("serializes concurrent creates of the same source without duplicate rows", async () => {
     const results = await Promise.all(
       Array.from({ length: 8 }, () =>
-        request("admin.upsertVkVideo", input, admin, true),
+        request(
+          "admin.upsertVkVideo",
+          { ...input, thumbnailUrl: "/assets/responsive/owned-cover.webp" },
+          admin,
+          true,
+        ),
       ),
     );
     expect(results.map((r) => r.code)).toEqual(Array(8).fill(200));
@@ -150,6 +156,174 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       await rows("SELECT id FROM videos WHERE title='Owned VK fixture'"),
     ).toHaveLength(1);
   });
+  it("saves a VK cover and replays creation after a lost response without duplicates", async () => {
+    const payload = {
+      ...input,
+      thumbnailUrl: "  /assets/responsive/owned-cover.webp  ",
+    };
+    // Commit through the real HTTP API, then cut the acknowledgement at a local relay.
+    const relay = createServer(async (req, res) => {
+      req.resume();
+      try {
+        const upstream = await fetch(`${base}/api/trpc/admin.upsertVkVideo`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${admin}`,
+          },
+          body: superjson.stringify(payload),
+        });
+        await upstream.arrayBuffer();
+      } finally {
+        res.destroy();
+      }
+    });
+    relay.listen(0, "127.0.0.1");
+    await new Promise<void>((resolve) => relay.once("listening", resolve));
+    try {
+      await expect(
+        fetch(`http://127.0.0.1:${(relay.address() as AddressInfo).port}`, {
+          method: "POST",
+        }),
+      ).rejects.toThrow();
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        relay.close((error) => error ? reject(error) : resolve());
+        relay.closeAllConnections();
+      });
+    }
+    const persisted = await rows("SELECT id FROM videos WHERE title=?", [
+      input.title,
+    ]);
+    expect(persisted).toHaveLength(1);
+    const replay = await request(
+      "admin.upsertVkVideo",
+      {
+        ...payload,
+        thumbnailUrl: "/assets/responsive/owned-cover.webp",
+      },
+      admin,
+      true,
+    );
+    expect(replay.code).toBe(200);
+    expect(replay.data.id).toBe(persisted[0].id);
+    expect(
+      await rows("SELECT id,thumbnailUrl FROM videos WHERE title=?", [
+        input.title,
+      ]),
+    ).toEqual([
+      {
+        id: replay.data.id,
+        thumbnailUrl: "/assets/responsive/owned-cover.webp",
+      },
+    ]);
+    const catalog = await request(
+      "videos.catalog",
+      { includeThumbnails: true },
+      null,
+    );
+    expect(catalog.data.items[0].thumbnailUrl).toBe(
+      "/assets/responsive/owned-cover.webp",
+    );
+    expect(
+      (
+        await request(
+          "admin.upsertVkVideo",
+          {
+            ...input,
+            thumbnailUrl: "/assets/responsive/different-cover.webp",
+          },
+          admin,
+          true,
+        )
+      ).code,
+    ).toBe(409);
+    expect(
+      await rows("SELECT thumbnailUrl FROM videos WHERE id=?", [
+        replay.data.id,
+      ]),
+    ).toEqual([{ thumbnailUrl: "/assets/responsive/owned-cover.webp" }]);
+  });
+  it("preserves omitted VK cover on update and clears only explicit null", async () => {
+    const saved = await request(
+      "admin.upsertVkVideo",
+      {
+        ...input,
+        thumbnailUrl: "/assets/responsive/owned-cover.webp",
+      },
+      admin,
+      true,
+    );
+    expect(saved.code).toBe(200);
+    expect(
+      (
+        await request(
+          "admin.upsertVkVideo",
+          {
+            ...input,
+            id: saved.data.id,
+            title: "Owned VK renamed",
+          },
+          admin,
+          true,
+        )
+      ).code,
+    ).toBe(200);
+    expect(
+      await rows("SELECT thumbnailUrl FROM videos WHERE id=?", [saved.data.id]),
+    ).toEqual([{ thumbnailUrl: "/assets/responsive/owned-cover.webp" }]);
+    expect(
+      (
+        await request(
+          "admin.upsertVkVideo",
+          {
+            ...input,
+            id: saved.data.id,
+            thumbnailUrl: null,
+          },
+          admin,
+          true,
+        )
+      ).code,
+    ).toBe(200);
+    expect(
+      await rows("SELECT thumbnailUrl FROM videos WHERE id=?", [saved.data.id]),
+    ).toEqual([{ thumbnailUrl: null }]);
+  });
+  it.each([
+    canonical,
+    "https://s3.twcstorage.ru/daryadarcy-s3/private-v1/cover.webp",
+    "https://s3.twcstorage.ru/daryadarcy-s3/feed/cover.webp?X-Amz-Signature=secret",
+    "https://s3.twcstorage.ru.evil.test/daryadarcy-s3/feed/cover.webp",
+    "javascript:alert(1)",
+    "",
+    false,
+  ])(
+    "rejects an unsafe cover without changing the VK row (%s)",
+    async (thumbnailUrl) => {
+      const saved = await request("admin.upsertVkVideo", input, admin, true);
+      expect(
+        (
+          await request(
+            "admin.upsertVkVideo",
+            {
+              ...input,
+              id: saved.data.id,
+              title: "Owned VK unsafe update",
+              thumbnailUrl,
+            },
+            admin,
+            true,
+          )
+        ).code,
+      ).toBe(400);
+      expect(
+        await rows("SELECT title,thumbnailUrl FROM videos WHERE id=?", [
+          saved.data.id,
+        ]),
+      ).toEqual([{ title: input.title, thumbnailUrl: null }]);
+    },
+  );
   it("rejects changed create payload under the same source", async () => {
     expect(
       (await request("admin.upsertVkVideo", input, admin, true)).code,

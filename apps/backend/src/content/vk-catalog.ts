@@ -8,34 +8,9 @@ import {
 } from "../../../../packages/database/src/schema";
 import { getDb } from "../db";
 import { parseVkEmbed, type VkVideoInput } from "./vk-video-input";
+import { publicCatalogThumbnail } from "./video-thumbnail";
 import { userHasClubAccess } from "../identity/club-access";
 import { getActiveClubSubscription } from "../db";
-
-/** Only existing public image namespaces; never advertise private/signed media
- * or a player URL as a cover. This function does not fetch external content. */
-function publicCatalogThumbnail(raw: string | null) {
-  if (!raw || raw.length > 2048) return null;
-  const value = raw.trim();
-  if (/^\/assets\/responsive\/[\w.-]+\.(?:webp|png|jpe?g|avif)$/i.test(value))
-    return value;
-  try {
-    const url = new URL(value);
-    if (
-      url.protocol === "https:" &&
-      url.hostname === "s3.twcstorage.ru" &&
-      !url.port &&
-      !url.username &&
-      !url.password &&
-      !url.search &&
-      !url.hash &&
-      /^\/daryadarcy-s3\/(?:feed|app-assets)\/[\w/.-]+\.(?:webp|png|jpe?g|avif)$/i.test(
-        url.pathname,
-      )
-    )
-      return url.toString();
-  } catch {}
-  return null;
-}
 
 export function requireVkCatalogEnabled() {
   if (process.env.VK_CATALOG_ENABLED !== "true")
@@ -94,6 +69,9 @@ export async function upsertVkVideo(actor: User, input: VkVideoInput) {
       title: input.title,
       access: input.access,
       published: input.published,
+      ...(input.thumbnailUrl === undefined
+        ? {}
+        : { thumbnailUrl: input.thumbnailUrl }),
     };
     if (input.id !== undefined) {
       const [existing] = await tx
@@ -133,7 +111,8 @@ export async function upsertVkVideo(actor: User, input: VkVideoInput) {
       saved.vkEmbedUrl !== data.vkEmbedUrl ||
       saved.title !== data.title ||
       saved.access !== data.access ||
-      saved.published !== data.published
+      saved.published !== data.published ||
+      saved.thumbnailUrl !== (input.thumbnailUrl ?? null)
     )
       throw new TRPCError({
         code: "CONFLICT",
