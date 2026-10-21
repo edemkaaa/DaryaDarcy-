@@ -179,15 +179,30 @@ describe("profile use cases over native HTTP", () => {
       );
     },
   );
-  it('disabled recovery export remains unavailable without acquiring a broken database',async()=>{
-    vi.stubEnv('CONTENT_RECOVERY_EXPORT_ENABLED','false');
-    vi.spyOn(db,'getDb').mockRejectedValue(new Error('synthetic database failure'));
-    await expect(app.get(ProfileService).recoveryExport(member,{kind:'post',limit:25})).rejects.toMatchObject({code:'NOT_FOUND'});
+  it("disabled recovery export remains unavailable without acquiring a broken database", async () => {
+    vi.stubEnv("CONTENT_RECOVERY_EXPORT_ENABLED", "false");
+    vi.spyOn(db, "getDb").mockRejectedValue(
+      new Error("synthetic database failure"),
+    );
+    await expect(
+      app
+        .get(ProfileService)
+        .recoveryExport(member, { kind: "post", limit: 25 }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
-  it('enabled recovery export reports sanitized unavailability on database acquisition failure',async()=>{
-    vi.stubEnv('CONTENT_RECOVERY_EXPORT_ENABLED','true');
-    vi.spyOn(db,'getDb').mockRejectedValue(new Error('synthetic private database details'));
-    await expect(app.get(ProfileService).recoveryExport(member,{kind:'post',limit:25})).rejects.toMatchObject({code:'SERVICE_UNAVAILABLE',message:'Экспорт временно недоступен'});
+  it("enabled recovery export reports sanitized unavailability on database acquisition failure", async () => {
+    vi.stubEnv("CONTENT_RECOVERY_EXPORT_ENABLED", "true");
+    vi.spyOn(db, "getDb").mockRejectedValue(
+      new Error("synthetic private database details"),
+    );
+    await expect(
+      app
+        .get(ProfileService)
+        .recoveryExport(member, { kind: "post", limit: 25 }),
+    ).rejects.toMatchObject({
+      code: "SERVICE_UNAVAILABLE",
+      message: "Экспорт временно недоступен",
+    });
   });
 
   it.each(operations)(
@@ -219,7 +234,7 @@ describe("profile use cases over native HTTP", () => {
     {
       name: "partial",
       input: { name: "  synthetic name  ", userId: 9999, role: "admin" },
-      want: { name: "  synthetic name  " },
+      want: { name: "synthetic name" },
     },
     {
       name: "all fields",
@@ -248,6 +263,69 @@ describe("profile use cases over native HTTP", () => {
       expect(received).toEqual([9900, want]);
     },
   );
+
+  it.each([
+    { label: "ASCII TEXT boundary", name: "n".repeat(65_535) },
+    { label: "UTF-8 TEXT boundary", name: "я".repeat(32_767) + "a" },
+  ])("accepts a name at the $label", async ({ name }) => {
+    const persist = vi
+      .spyOn(db, "updateUserProfile")
+      .mockResolvedValue(undefined);
+    expect(await client().profile.update.mutate({ name })).toEqual({
+      success: true,
+    });
+    expect(persist).toHaveBeenCalledExactlyOnceWith(member.id, { name });
+  });
+
+  it.each([
+    "http://assets.example.test/avatar.webp",
+    "https://assets.example.test/avatar.webp",
+  ])("preserves supported avatar URL %s", async (avatarUrl) => {
+    const persist = vi
+      .spyOn(db, "updateUserProfile")
+      .mockResolvedValue(undefined);
+    expect(await client().profile.update.mutate({ avatarUrl })).toEqual({
+      success: true,
+    });
+    expect(persist).toHaveBeenCalledExactlyOnceWith(member.id, { avatarUrl });
+  });
+
+  it("returns the same explicit public profile through REST and tRPC", async () => {
+    actor = {
+      ...member,
+      name: "synthetic profile",
+      email: "profile@example.invalid",
+      passwordHash: "private hash",
+      sessionVersion: 17,
+      blockedReason: "private moderation note",
+      accountDeletionRequestedAt: new Date(1),
+      futurePrivateColumn: "must never become public",
+    } as User;
+    const expected = {
+      id: member.id,
+      openId: member.openId,
+      name: "synthetic profile",
+      email: "profile@example.invalid",
+      phone: null,
+      loginMethod: null,
+      gender: null,
+      avatarUrl: null,
+      lastSignedIn: new Date(0).toISOString(),
+      role: "user",
+    };
+    const rest = await fetch(base + "/api/auth/me");
+    expect(rest.status).toBe(200);
+    expect(await rest.json()).toEqual({ user: expected });
+    expect(await client().auth.me.query()).toEqual(expected);
+  });
+
+  it("keeps guest profile responses unchanged in both APIs", async () => {
+    actor = null;
+    const rest = await fetch(base + "/api/auth/me");
+    expect(rest.status).toBe(200);
+    expect(await rest.json()).toEqual({ user: null });
+    expect(await client().auth.me.query()).toBeNull();
+  });
 
   it("stores a sanitized avatar in the actor's folder before updating its URL", async () => {
     vi.spyOn(db, "getDb").mockResolvedValue(drizzle.mock());
@@ -350,6 +428,33 @@ describe("profile use cases over native HTTP", () => {
     {
       name: "empty name",
       run: () => client().profile.update.mutate({ name: "" }),
+    },
+    {
+      name: "whitespace-only name",
+      run: () => client().profile.update.mutate({ name: " \t\n " }),
+    },
+    {
+      name: "name exceeding TEXT bytes",
+      run: () => client().profile.update.mutate({ name: "n".repeat(65_536) }),
+    },
+    {
+      name: "multibyte name exceeding TEXT bytes",
+      run: () => client().profile.update.mutate({ name: "я".repeat(32_768) }),
+    },
+    ...[
+      "javascript:alert(1)",
+      "data:image/png;base64,AA==",
+      "file:///tmp/avatar.png",
+    ].map((avatarUrl) => ({
+      name: "non-HTTP avatar " + avatarUrl.split(":")[0],
+      run: () => client().profile.update.mutate({ avatarUrl }),
+    })),
+    {
+      name: "avatar URL exceeding TEXT bytes",
+      run: () =>
+        client().profile.update.mutate({
+          avatarUrl: "https://example.invalid/" + "a".repeat(65_535),
+        }),
     },
     {
       name: "invalid gender",

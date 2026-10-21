@@ -2,6 +2,18 @@
 
 ## Действующий план агента — 13 октября 2026
 
+Актуализация21 октября по прямому поручению: свежий staging39e66a2 объединён
+локально merge798f079 поверх5b7b26c, без конфликтов. Весь apps/frontend совпадает
+со staging, вручную не менялся. Backend profile update получил нормализацию/
+валидацию по SQL TEXT bytes и HTTP(S), auth.me — существующий REST public DTO.
+RED9→GREEN112 focused; собственная tmpfs backend_test/fresh42:26 HTTP/JWT/SQL
+GREEN, включая fresh read после потери ACK. Final3025 pass/1559 opt-in skips,
+root types/backend build GREEN. Own container убран по guards; working DB/S3,
+push/deploy не тронуты. Frontend purpose/cancellation/generated integration
+остаётся фронтендеру, dates/sortOrder/empty post — последующий validation остаток.
+Точные границы и handoff:
+[frontend-profile-integration-2026-10-21.md](../docs/development/frontend-profile-integration-2026-10-21.md).
+
 **Начинать здесь.** Этот раздел задаёт текущую очередь и границы первого этапа.
 Исполняемый чек-лист — начало [tasks/todo.md](todo.md). Записи под заголовком
 «История реализации и проверок» ниже сохраняются как доказательства, а не как

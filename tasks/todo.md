@@ -6,6 +6,29 @@
 
 #### SEC — исправления по аудиту, 21 октября
 
+- [x] Новое прямое поручение: fetch staging39e66a2 и local merge798f079 поверх
+  5b7b26c без конфликтов; весь apps/frontend byte-identical origin/staging,
+  ручных frontend/generated/design правок нет. Сохранены profile recovery,
+  avatar/account scope и article cache fixes, наши backend fixes тоже.
+  Merged baseline3012 tests, frontend typecheck/lint и root types GREEN.
+- [x] Backend profile integration: RED9→GREEN — trim/nonblank name, существующий
+  SQL TEXT ceiling65535 UTF-8 bytes для name/avatarUrl, только HTTP(S) avatar;
+  success/partial/no-op/ownership прежние. auth.me использует REST public DTO
+  с ISO lastSignedIn без sessionVersion/blocked/deletion/internal timestamps.
+  Fast112 GREEN; own tmpfs backend_test/fresh42:26 HTTP/JWT/SQL GREEN (25 profile
+  +1 registration/subscription). Lost ACK: клиент отбросил успешный ответ,
+  fresh REST read подтвердил запись без нового write/чужих изменений. Own
+  container удалён по guards,3 прежних stopped containers сохранены. Working
+  DB/S3 не использовались. Final3025 pass/1559 opt-in skips, types/build GREEN.
+  Artifact-only contract90/35402 bytes, check:api ожидаемо RED для frontend
+  интеграции (purpose/cancellation/DTO), generated file не менялся. Handoff:
+  [frontend-profile-integration-2026-10-21.md](../docs/development/frontend-profile-integration-2026-10-21.md).
+  Evidence workspace `.local-artifacts/profile-integration-20261021.HtuvyI`.
+  Review: зависимости/миграции/flags/auth policy не менялись; прежний DTO helper
+  переиспользован, новые queries не добавлены. Boundaries720/docs68/format/diff
+  GREEN. В историческом аудите исправлена ссылка на удалённый фронтендером
+  sync-profile.ts с сохранением исторического finding. check:api RED подтверждён,
+  три различия описаны в handoff; frontend/browser/live готовность не заявляется.
 - [x] Первый срез Pen Pals: проверка участия до reject/accept, scoped DELETE/
   UPDATE, чужая и неизвестная заявка дают одинаковый404; ID должен быть
   положительным целым в SQL INT. RED8/8 (в том числе чужой reject200), GREEN
@@ -105,8 +128,9 @@
   auth/price/expiry/backoff/schema/dependencies не менялись. Backend ESLint
   config отсутствует; lint не выдавался за GREEN, новый config не добавлялся.
   Это не обновлённый frontend contract и не приёмка реального провайдера.
-- [ ] Далее по согласованному порядку: input validation и public profile DTO.
-  Не считать закрытыми текущим срезом.
+- [ ] Остаток validation-аудита: некорректные даты, дробный sortOrder и пустой
+  после обработки текст поста. Profile validation/public DTO закрыты срезом
+  выше; весь аудит и live/frontend integration не считать завершёнными.
 
 #### U1-MEM3 — bounded signature reads,21 октября
 

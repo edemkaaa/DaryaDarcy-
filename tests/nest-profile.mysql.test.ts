@@ -55,7 +55,10 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
-    function client(authenticated = true) {
+    async function authorization() {
+      return `Bearer ${await sdk.createSessionToken("profile-http-8441", { sessionVersion: 4 })}`;
+    }
+    function client(authenticated = true, dropAcknowledgement = false) {
       return createTRPCProxyClient<AppRouter>({
         links: [
           httpLink({
@@ -65,8 +68,19 @@ describe.skipIf(!testDatabaseUrl)(
               !authenticated
                 ? {}
                 : {
-                    Authorization: `Bearer ${await sdk.createSessionToken("profile-http-8441", { sessionVersion: 4 })}`,
+                    Authorization: await authorization(),
                   },
+            fetch: async (url, options) => {
+              const response = await fetch(url, options);
+              if (
+                dropAcknowledgement &&
+                String(url).includes("profile.update")
+              ) {
+                await response.text();
+                throw new TypeError("synthetic lost profile acknowledgement");
+              }
+              return response;
+            },
           }),
         ],
       });
@@ -128,6 +142,86 @@ describe.skipIf(!testDatabaseUrl)(
         await client().profile.update.mutate({ name: "Original" }),
       ).toEqual({ success: true });
       expect((await users())[0].name).toBe("Original");
+    });
+    it.each([
+      { label: "ASCII boundary", name: "n".repeat(65_535) },
+      { label: "multibyte boundary", name: "😀".repeat(16_383) + "abc" },
+    ])(
+      "persists a valid $label name without SQL truncation",
+      async ({ name }) => {
+        const before = await users();
+        expect(await client().profile.update.mutate({ name })).toEqual({
+          success: true,
+        });
+        const after = await users();
+        expect(after[0]).toEqual({ ...before[0], name });
+        expect(after[1]).toEqual(before[1]);
+      },
+    );
+    it.each([
+      { label: "whitespace name", input: { name: " \t\n " } },
+      { label: "oversized ASCII name", input: { name: "n".repeat(65_536) } },
+      { label: "oversized UTF-8 name", input: { name: "😀".repeat(16_384) } },
+      {
+        label: "javascript avatar",
+        input: { avatarUrl: "javascript:alert(1)" },
+      },
+      {
+        label: "data avatar",
+        input: { avatarUrl: "data:image/png;base64,AA==" },
+      },
+      { label: "file avatar", input: { avatarUrl: "file:///tmp/avatar.png" } },
+      {
+        label: "oversized avatar",
+        input: { avatarUrl: "https://example.invalid/" + "a".repeat(65_535) },
+      },
+    ])("rejects $label with HTTP 400 and unchanged SQL", async ({ input }) => {
+      const before = await users();
+      await expect(client().profile.update.mutate(input)).rejects.toMatchObject(
+        {
+          data: { code: "BAD_REQUEST", httpStatus: 400 },
+        },
+      );
+      expect(await users()).toEqual(before);
+    });
+    it("recovers the committed profile via REST after the client loses the write response", async () => {
+      const before = await users();
+      await expect(
+        client(true, true).profile.update.mutate({
+          name: "  Updated profile  ",
+          gender: "male",
+        }),
+      ).rejects.toThrow("synthetic lost profile acknowledgement");
+      const rest = await fetch(base + "/api/auth/me", {
+        headers: { Authorization: await authorization() },
+      });
+      expect(rest.status).toBe(200);
+      const { user } = await rest.json();
+      expect(user).toMatchObject({
+        id: 8441,
+        name: "Updated profile",
+        gender: "male",
+        avatarUrl: before[0].avatarUrl,
+      });
+      expect(await client().auth.me.query()).toEqual(user);
+      expect(Object.keys(user).sort()).toEqual(
+        [
+          "id",
+          "openId",
+          "name",
+          "email",
+          "phone",
+          "loginMethod",
+          "gender",
+          "avatarUrl",
+          "lastSignedIn",
+          "role",
+        ].sort(),
+      );
+      expect(await users()).toEqual([
+        { ...before[0], name: "Updated profile", gender: "male" },
+        before[1],
+      ]);
     });
     it.each([
       {

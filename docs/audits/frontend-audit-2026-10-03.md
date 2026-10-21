@@ -62,7 +62,12 @@
 
 ### 4 Локальный профиль предыдущего пользователя остаётся в новом аккаунте
 
-**P1, браузер и код.** [features/profile/profile-screen.tsx](../../apps/frontend/src/features/profile/profile-screen.tsx), [domain/profile/sync-profile.ts](../../apps/frontend/src/domain/profile/sync-profile.ts) и [domain/session/storage.ts](../../apps/frontend/src/domain/session/storage.ts) используют общие ключи `@darcy_club_profile_*` без идентификатора пользователя. Очищение предусмотрено при явном logout, но не при каждом изменении личности сессии. `displayName` предпочитает локальное имя серверному.
+**P1, браузер и код на дату аудита.** [features/profile/profile-screen.tsx](../../apps/frontend/src/features/profile/profile-screen.tsx), прежний `domain/profile/sync-profile.ts` и [domain/session/storage.ts](../../apps/frontend/src/domain/session/storage.ts) используют общие ключи `@darcy_club_profile_*` без идентификатора пользователя. Очищение предусмотрено при явном logout, но не при каждом изменении личности сессии. `displayName` предпочитает локальное имя серверному.
+
+Актуализация21 октября: staging39e66a2 удалил `sync-profile.ts` и ввёл явные
+account-scoped операции профиля. Историческое воспроизведение ниже сохранено;
+текущий статус и границы повторной проверки — в
+[интеграционном документе](../development/frontend-profile-integration-2026-10-21.md).
 
 Воспроизведение: профиль А с локальным именем, переход сессии в гостевую при обновлении, вход Б через интерфейс. На странице Б отображается email Б и имя А. Это подтверждённое смешение состояния аккаунтов. Автоматический `syncClubProfileToServer` дополнительно создаёт риск отправки старых локальных данных в новый аккаунт; такую запись в настоящую базу аудит не выполнял.
 
