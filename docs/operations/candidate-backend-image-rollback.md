@@ -1,5 +1,53 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## STAGE-UPDATE — staging и стенд обновлены,21 октября2026
+
+По прямому поручению «обнови стейдж» выполнены normal push и web-only rollout.
+Fresh origin/staging07cada2 содержал авторские frontend admin/editor изменения;
+merge d9a8c9c сохранил их byte-exact, без ручных UI/style/generated правок.
+Наши6 commits — только tests/docs, production backend/packages/lock не менялись
+от deployed427195a. Поэтому API/TEST images не пересобирались/не переключались.
+Оба CI workflow проверены: verify-only, автоматических deploy/migrations нет.
+
+Проверки: root/frontend types, API90/35404 bytes,48 focused tests/5 suites,
+38 existing browser editor/admin tests/1.1min, native pnpm prod audit0,
+Next29 routes. Browser fixtures подменяют API — не live SQL/S3 acceptance.
+Build `YtXVGc0Hb8niy9-5rNFOG` с прежними public flags, включая thumbnails=true;
+public assets/dependencies прежние. Native Linux image7 offline pages/752 exact
+file SHA checks GREEN. Archive29588603 bytes/SHA
+`d9d8a2823ed16063c3c8a26400c12e03586ea70842b6b8fd9848d3ef683cb78f`.
+
+Working web image
+`sha256:7bee80492b73ba7717162946cb19eb7ac3d5cbbf4e6e21fe17b009274c2a4312`;
+web container `ab26fc39ea7498d85e7fe5203ed7abc6a488c24dd6279145cd3a52e4b096dfa7`.
+Phase accepted: healthy/restart0/OOMfalse,10 public HTTPS checks со staging host,
+13 independent Mac HTTPS checks с SHA новых JS и playback.provider=vk, Chromium
+guest22 cards/19 loaded images/3 null/2 opt-in catalog requests. Реальное новое
+provider playback этим выпуском не проверялось. Старые public copies не закрывались.
+
+Same DB UUID/schema42/all40 table counts/admin credential+role+session fingerprint/
+video82 digest,29 остальных container IDs/images/start states и13 остальных
+config files сохранены. Изменены только .env STAGING_IMAGE/resolved web.image;
+existing edge configtest/reload. Без migrations/SQL writes/S3/payment/mail/flags.
+Fresh backup40 tables/355566 bytes/SHA
+`507e0d90e7cc9b12d8a001a0f892445e1c6ac9576875628380bda642f3830fef`
+проверен на сервере и Mac до переключения, файлы0600/parent0700.
+
+Evidence/procedure/receipts/backup: private `.local-artifacts/release-stage-20261021.0SWvc4-r2`
+и одноимённая папка в `/home/edem/apps/daryadarcy-staging/`. Первый artifact
+attempt0SWvc4 не переключал приложение: BuildKit принял FROM config-ID за имя
+registry image. Исправлен только private Dockerfile на existing local tag с
+проверкой exact base ID b87fece1…; тот же Next build повторно не собирался.
+Mac probe сначала ошибочно ожидал provider в catalog DTO; сверено с контрактом,
+исправлен только private probe — provider проверяется через videos.playback.
+
+Rollback: fresh image/config/DB/concurrent-write guards обязательны. Old web
+b87fece1… и before.env/config/backup сохранены; вернуть только image/env pair
+через web-only --no-deps и edge reload, затем public checks. Не откатывать БД,
+VK publications или весь config. Accepted phase повторно не запускать; живой
+откат ради репетиции не выполнялся. Server free480MiB: перед следующим выпуском
+проверить место; образы/БД/бэкапы/чужие данные не удалять автоматически.
+
 ## COVERS-RELEASE — thumbnail build flag включён,21 октября2026
 
 Явное разрешение: включить обложки при сборке и обновить стенд, без ручных

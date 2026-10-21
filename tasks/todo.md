@@ -4,6 +4,30 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### STAGE-UPDATE — новый разрешённый выпуск,21 октября
+
+- [x] По «обнови стейдж»: fresh fetch07cada2, чистая feature branch. Merge
+  d9a8c9c без конфликтов; frontend byte-exact авторскому origin/staging,
+  наши tests/docs сохранены. Normal push07cada2→d9a8c9c проверен remote ref.
+  Runtime backend/packages/lock неизменны от deployed427195a — API/TEST не
+  пересобирать. Ручных frontend/generated/UI/style изменений нет.
+- [x] Types/API90/native prod audit0/48 focused tests,38 local browser tests
+  admin/calendar/editors GREEN. Next29 routes/buildYtXVGc0Hb8niy9-5rNFOG,
+  thumbnail flag true/остальные прежние; native image7 pages/752 SHA verified.
+- [x] Fresh backup40 tables/355566 bytes/SHA507e0d90… server+Mac0600 verified.
+  Web-only rollout accepted: image7bee8049…/containerab26fc39… healthy,
+  same DB/schema42/admin credential+role+session/video82,29 other containers
+  и config кроме web image сохранены.10 server +13 Mac public HTTPS checks,
+  Chromium guest22 cards/19 loaded covers/3 null/2 opt-in requests GREEN.
+- [x] Private artifact FROM config-ID и ошибочное provider-in-catalog ожидание
+  остановили только свои gates; исправлены только release harness, production
+  код не менялся. Точный current release/evidence/rollback — начало existing
+  operational runbook. S3/старые files/flags/payments/mail/SQL writes отсутствуют.
+- [ ] Остаток приёмки U1/browser/device/старых public sources прежний; публикация
+  тестов не превращает isolated max-size proof в live proxy/client acceptance.
+  Server480MiB free — перед следующим выпуском нужен новый resource preflight;
+  автоматическую очистку images/БД/бэкапов/чужих файлов не выполнять.
+
 #### U1-MAX — реальные предельные размеры,21 октября
 
 - [x] Пользователь разрешил настоящий API/S3 только с одноразовой БД и новыми

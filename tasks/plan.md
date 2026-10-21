@@ -63,6 +63,18 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **21 октября, STAGE-UPDATE — явное разрешение обновить staging:** merge
+  d9a8c9c сохранил frontend07cada2 и наши tests/docs; normal push выполнен.
+  Production backend неизменен, поэтому web-only rollout, не новые API/TEST
+  images/миграции. BuildYtXVGc0Hb8niy9-5rNFOG/image7bee8049… accepted:
+ 38 browser/48 focused/native audit0/types/API90/7 native pages/752 file SHA,
+ 10 server +13 Mac public HTTPS и Chromium22 cards/19 covers/3 null GREEN.
+  Fresh backup40 tables server+Mac проверен; DB/schema42/admin/video82/29 других
+  containers/config flags сохранены. Только STAGING_IMAGE/web.image изменены;
+  frontend вручную/working SQL/S3/платежи/письма не трогались. Current release,
+  private receipts и rollback — начало operational runbook. Server free480MiB;
+  это не приёмка live max-size/client/provider playback или новых функций.
+
 - **21 октября, U1-MAX — проверка предельных размеров:** по прямому разрешению
   проверены7 новых native API/SQL/Timeweb S3 сценариев: post/article/comment
   source photos4MiB, article/post TXT и WAV32MiB, raw MP480MiB. +1 byte →413

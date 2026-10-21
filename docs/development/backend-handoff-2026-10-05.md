@@ -1,5 +1,16 @@
 # Передача изменений бэкенда фронтендеру
 
+## 21 октября — fresh staging выпущен на стенд
+
+Авторский frontend07cada2 сохранён и опубликован через merge d9a8c9c вместе
+с нашими tests/docs. Ручных frontend/style/generated изменений нет. Web build
+YtXVGc0Hb8niy9-5rNFOG/image7bee8049… реально работает; backend API/TEST source
+прежний, новых контрактов/миграций/флагов нет.38 local browser regressions,
+10 server/13 Mac HTTPS и live Chromium22 VK cards/19 covers/3 null GREEN.
+Рабочая БД/админский вход сохранены; детали — STAGE-UPDATE в существующем
+[runbook](../operations/candidate-backend-image-rollback.md). Provider playback
+и полный live upload/client приёмочный прогон этим выпуском не закрыты.
+
 ## 21 октября — подтверждены предельные размеры на isolated API/S3
 
 Ровно4MiB photos (post/article/comment),32MiB TXT (article/post) и WAV,
