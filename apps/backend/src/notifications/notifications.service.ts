@@ -8,6 +8,7 @@ import type {
   RegisterTokenInput,
   SetMarketingConsentInput,
 } from "./notification-input";
+import { requireCapability } from "../launch/capabilities";
 
 /** Adapters authorize/validate; existing helpers own SQL and upsert semantics. */
 @Injectable()
@@ -16,6 +17,7 @@ export class NotificationsService {
     input: RegisterTokenInput,
     userId?: number,
   ): Promise<{ success: boolean }> {
+    requireCapability("webPush");
     await db.registerPushToken(input.token, userId, input.platform);
     return { success: true };
   }

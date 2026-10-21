@@ -30,10 +30,13 @@ import { TRPCError } from "@trpc/server";
 import { ProfileService } from "../apps/backend/src/profile/profile.service";
 import { ModerationService } from "../apps/backend/src/moderation/moderation.service";
 import { ShopService } from "../apps/backend/src/shop/shop.service";
+import * as capabilities from "../apps/backend/src/launch/capabilities";
+import * as rateLimit from "../apps/backend/src/_core/rate-limit";
 
 // Native HTTP/authorization plus explicit composition callers; session lookup
 // and the selected provider or persistence boundary are doubled. No JWT/SQL or
-// real device/provider-delivery acceptance.
+// real device/provider-delivery acceptance. Capability/quota admission is tested
+// separately in push-registration-security; these cases isolate composition.
 describe("notifications over native HTTP", () => {
   let application: INestApplication;
   let sessions: SessionService;
@@ -71,7 +74,7 @@ describe("notifications over native HTTP", () => {
       helper: "registerPushToken" as const,
       run: () =>
         client().notifications.registerToken.mutate({
-          token: "synthetic-token",
+          token: "ExpoPushToken[synthetic-token]",
         }),
       want: { success: true },
     },
@@ -113,6 +116,8 @@ describe("notifications over native HTTP", () => {
     base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
   });
   beforeEach(() => {
+    vi.spyOn(capabilities, "requireCapability").mockImplementation(() => {});
+    vi.spyOn(rateLimit, "checkRateLimit").mockReturnValue({ ok: true });
     actor = { ...member };
     vi.spyOn(sessions, "optionalUser").mockImplementation(async () => actor);
   });
@@ -378,7 +383,7 @@ describe("notifications over native HTTP", () => {
     {
       name: "registerToken",
       want: { success: false },
-      argument: [{ token: "synthetic-token" }, 9600],
+      argument: [{ token: "ExpoPushToken[synthetic-token]" }, 9600],
     },
     {
       name: "marketingConsent",
@@ -434,7 +439,9 @@ describe("notifications over native HTTP", () => {
       } as TrpcContext);
       const results = {
         registerToken: () =>
-          caller.notifications.registerToken({ token: "synthetic-token" }),
+          caller.notifications.registerToken({
+            token: "ExpoPushToken[synthetic-token]",
+          }),
         marketingConsent: () => caller.notifications.marketingConsent(),
         setMarketingConsent: () =>
           caller.notifications.setMarketingConsent({ enabled: false }),
@@ -467,18 +474,18 @@ describe("notifications over native HTTP", () => {
     {
       name: "guest",
       authenticated: false,
-      input: { token: "synthetic-guest-token" },
-      want: ["synthetic-guest-token", undefined, undefined],
+      input: { token: "ExpoPushToken[synthetic-guest-token]" },
+      want: ["ExpoPushToken[synthetic-guest-token]", undefined, undefined],
     },
     {
       name: "member",
       authenticated: true,
       input: {
-        token: "  synthetic-member-token  ",
+        token: "ExpoPushToken[synthetic-member-token]",
         platform: "web",
         userId: 123,
       },
-      want: ["  synthetic-member-token  ", 9600, "web"],
+      want: ["ExpoPushToken[synthetic-member-token]", 9600, "web"],
     },
   ])(
     "registers a $name device using session ownership, not client ownership",

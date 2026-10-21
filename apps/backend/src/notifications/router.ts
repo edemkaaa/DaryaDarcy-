@@ -1,22 +1,31 @@
-import {
-  router,
-  publicProcedure,
-  protectedProcedure,
-} from "../_core/trpc";
+import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import type { ContentReadService } from "../content/content-read.service";
 import type { NotificationsService } from "./notifications.service";
 import {
   registerTokenInput,
   setMarketingConsentInput,
 } from "./notification-input";
+import { TRPCError } from "@trpc/server";
+import { requireCapability } from "../launch/capabilities";
+import { enforcePushRegistrationLimit } from "./registration-limit";
 
 export const createNotificationsRouter = (
   notifications: NotificationsService,
   content: ContentReadService,
 ) =>
   router({
-    // Register device push token (public - any device can register)
+    // Guest devices remain supported only when the server capability permits it.
     registerToken: publicProcedure
+      .use(({ ctx, next }) => {
+        requireCapability("webPush");
+        if (ctx.user?.blockedAt)
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Аккаунт заблокирован",
+          });
+        enforcePushRegistrationLimit(ctx.req, ctx.res, ctx.user?.id);
+        return next();
+      })
       .input(registerTokenInput)
       .mutation(({ input, ctx }) =>
         notifications.registerToken(input, ctx.user?.id),

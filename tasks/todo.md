@@ -53,8 +53,31 @@
   Frontend/generated file без diff. Инструкция:
   [frontend-security-upload-contract-2026-10-21.md](../docs/development/frontend-security-upload-contract-2026-10-21.md).
   Стенд не обновлялся; старые публичные копии этим не закрыты.
-- [ ] Далее по согласованному порядку: push registration, cancellation state,
-  input validation и public profile DTO. Не считать закрытыми текущим срезом.
+- [x] Push registration: disabled capability403 до input/quota/SQL и в service,
+  Expo/legacy format до256 символов, platform allowlist, blocked context403.
+  Existing bounded limiter30/IP +10/account за15минут; invalid input и batch
+  учитываются, Retry-After/429, прежний Express proxy trust сохранён. Нет нового
+  opt-in флага; webPush остаётся false. Счётчики process-local, не shared.
+  RED18/23→GREEN28 native HTTP/service cases; дополнительный RED2→GREEN
+  сохраняет legacy/opaque форматы Expo. Fast suite заменяет session/SQL;
+  enabled-path только policy boundary, не включение настоящего push.
+  Собственная tmpfs backend_test/fresh42:33 HTTP/JWT/MySQL GREEN (18 notifications
+  +15 audience), в том числе disabled insert/re-enable и concurrent14→10/4.
+  Контейнер удалён по guards,3 прежних stopped containers сохранены. Evidence:
+  workspace `.local-artifacts/push-registration-20261021.yDTtki`. Без внешней
+  доставки/working DB/S3; handoff и ограничения —
+  [push-registration-contract-2026-10-21.md](../docs/development/push-registration-contract-2026-10-21.md).
+- [x] Финальная общая регрессия: Vitest3004 pass/1541 opt-in skips,
+ 219 passed files/101 skipped,35.75s. Root types/backend build GREEN; boundaries716.
+  Docs66/selected code formatting/diff GREEN. `check:api` остаётся ожидаемо RED
+  из-за предыдущего publicCover handoff: artifact-only generator90/35438 bytes
+  byte-identical прежнему артефакту, frontend/generated файл не менялся.
+  Review: новых зависимостей/миграций/enable flags нет, store bounded и per-call
+  quota до input/SQL; multi-worker/restart ограничения явно оставлены в handoff.
+  Это не live/browser/delivery приёмка; backend ESLint config отсутствует,
+  lint не выдан за GREEN и новый config вне задачи не добавлялся.
+- [ ] Далее по согласованному порядку: cancellation state, input validation
+  и public profile DTO. Не считать закрытыми текущим срезом.
 
 #### U1-MEM3 — bounded signature reads,21 октября
 

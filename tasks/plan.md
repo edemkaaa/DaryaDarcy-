@@ -63,6 +63,15 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **21 октября, SEC push registration:** по отдельному поручению локально
+  закрыта запись при webPush=false (router/service403), добавлены bounded
+  Expo/legacy token validation и platform allowlist, квоты30/IP и10/account
+  за15минут до разбора входа, включая batch. Использован existing process-local
+  limiter, не распределённая защита; для нескольких workers нужен shared store.
+  Новый флаг/включение/delivery не добавлялись. RED18→GREEN28 HTTP/service,
+  собственная tmpfs backend_test/fresh42:33 HTTP/JWT/MySQL GREEN; контейнер убран
+  по guards, чужие сохранены. Frontend/working DB/S3/deploy без изменений.
+  Контракт/инструкция: [push-registration-contract-2026-10-21.md](../docs/development/push-registration-contract-2026-10-21.md).
 - **21 октября, SEC — новая backend-only очередь по аудиту:** пользователь
   разрешил исправления начиная с Pen Pals и public legacy uploads. Первый
   scoped access срез RED8→GREEN8 +21 capability, types/build: participation

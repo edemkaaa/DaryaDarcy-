@@ -18,6 +18,7 @@ import { getDb } from "../apps/backend/src/db";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import type { AppRouter } from "../apps/backend/src/routers";
+import * as capabilities from "../apps/backend/src/launch/capabilities";
 
 describe.skipIf(!testDatabaseUrl)(
   "notifications through real HTTP, JWT and disposable SQL",
@@ -25,7 +26,9 @@ describe.skipIf(!testDatabaseUrl)(
     let conn: Connection;
     let app: INestApplication;
     let base: string;
-    const fixtureToken = "synthetic-notification-http-device";
+    const fixtureToken = "ExpoPushToken[synthetic-notification-http-device]";
+    const device = (suffix: string) => fixtureToken.replace("]", `${suffix}]`);
+    let clock = Date.now();
     beforeAll(async () => {
       conn = await openTestDatabase();
       // Audience checks query all devices: keep both fixtures mutually exclusive.
@@ -53,11 +56,16 @@ describe.skipIf(!testDatabaseUrl)(
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
     beforeEach(async () => {
+      // Production remains disabled. Only replace the capability policy for
+      // enabled-path HTTP/JWT/SQL tests; the actual limiter is never doubled.
+      vi.spyOn(capabilities, "requireCapability").mockImplementation(() => {});
+      clock += 16 * 60_000;
+      vi.spyOn(Date, "now").mockImplementation(() => clock);
       await conn.query(
         "DROP TRIGGER IF EXISTS notification_http_write_refusal",
       );
       await conn.query(
-        "DELETE FROM push_tokens WHERE token LIKE 'synthetic-notification-http-%'",
+        "DELETE FROM push_tokens WHERE token LIKE 'ExpoPushToken[synthetic-notification-http-%'",
       );
       await conn.query(
         "DELETE FROM push_consent_events WHERE userId BETWEEN 8430 AND 8433",
@@ -71,11 +79,16 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query(
         "DROP TRIGGER IF EXISTS notification_http_write_refusal",
       );
+      vi.restoreAllMocks();
     });
     afterAll(async () => {
       await app?.close();
-      await conn?.query("DELETE FROM push_tokens WHERE token LIKE 'synthetic-notification-http-%'");
-      await conn?.query("DELETE FROM push_consent_events WHERE userId BETWEEN 8430 AND 8433");
+      await conn?.query(
+        "DELETE FROM push_tokens WHERE token LIKE 'ExpoPushToken[synthetic-notification-http-%'",
+      );
+      await conn?.query(
+        "DELETE FROM push_consent_events WHERE userId BETWEEN 8430 AND 8433",
+      );
       await conn?.query("DELETE FROM users WHERE id BETWEEN 8430 AND 8433");
       await conn?.query("SELECT RELEASE_LOCK('backend_test_push_audience')");
       await conn?.end();
@@ -103,10 +116,65 @@ describe.skipIf(!testDatabaseUrl)(
     }
     async function tokens() {
       const [rows] = await conn.query<RowDataPacket[]>(
-        "SELECT token,userId,platform,enabled FROM push_tokens WHERE token LIKE 'synthetic-notification-http-%' ORDER BY token",
+        "SELECT token,userId,platform,enabled FROM push_tokens WHERE token LIKE 'ExpoPushToken[synthetic-notification-http-%' ORDER BY token",
       );
       return rows;
     }
+    it.each([undefined, 8431, 8430])(
+      "disabled capability prevents inserts and re-enables for actor %s",
+      async (actor) => {
+        vi.mocked(capabilities.requireCapability).mockRestore();
+        await conn.query(
+          "INSERT INTO push_tokens (token,userId,enabled) VALUES (?,8431,FALSE)",
+          [fixtureToken],
+        );
+        const before = await tokens();
+        for (const token of [fixtureToken, device("-new")]) {
+          await expect(
+            client(actor).notifications.registerToken.mutate({ token }),
+          ).rejects.toMatchObject({
+            data: { code: "FORBIDDEN", httpStatus: 403 },
+          });
+        }
+        expect(await tokens()).toEqual(before);
+      },
+    );
+    it.each([
+      { token: "   " },
+      { token: "arbitrary-device" },
+      { token: `ExpoPushToken[${"a".repeat(256)}]` },
+      { token: fixtureToken, platform: "a".repeat(17) },
+    ])(
+      "validation refuses invalid input without SQL errors or writes (%j)",
+      async (input) => {
+        await expect(
+          client(8431).notifications.registerToken.mutate(input),
+        ).rejects.toMatchObject({
+          data: { code: "BAD_REQUEST", httpStatus: 400 },
+        });
+        expect(await tokens()).toEqual([]);
+      },
+    );
+    it("limits an account's concurrent HTTP requests before SQL writes", async () => {
+      const results = await Promise.all(
+        Array.from({ length: 14 }, async (_, i) => {
+          try {
+            await client(8431).notifications.registerToken.mutate({
+              token: device(`-burst-${i}`),
+            });
+            return "ok";
+          } catch (error) {
+            expect(error).toMatchObject({
+              data: { code: "TOO_MANY_REQUESTS", httpStatus: 429 },
+            });
+            return "limited";
+          }
+        }),
+      );
+      expect(results.filter((result) => result === "ok")).toHaveLength(10);
+      expect(results.filter((result) => result === "limited")).toHaveLength(4);
+      expect(await tokens()).toHaveLength(10);
+    });
     it("upserts one device using the authenticated actor and re-enables it", async () => {
       expect(
         await client(8431).notifications.registerToken.mutate({
@@ -205,13 +273,13 @@ describe.skipIf(!testDatabaseUrl)(
         token: fixtureToken,
       });
       await client(8431).notifications.registerToken.mutate({
-        token: `${fixtureToken}-second`,
+        token: device("-second"),
       });
       await client(8432).notifications.registerToken.mutate({
-        token: `${fixtureToken}-other`,
+        token: device("-other"),
       });
       await client().notifications.registerToken.mutate({
-        token: `${fixtureToken}-anonymous`,
+        token: device("-anonymous"),
       });
       await client(8431).notifications.setMarketingConsent.mutate({
         enabled: true,
@@ -221,13 +289,13 @@ describe.skipIf(!testDatabaseUrl)(
       ).toEqual({ success: true });
       expect(await tokens()).toEqual([
         {
-          token: `${fixtureToken}-anonymous`,
+          token: device("-anonymous"),
           userId: null,
           platform: null,
           enabled: 1,
         },
         {
-          token: `${fixtureToken}-other`,
+          token: device("-other"),
           userId: 8432,
           platform: null,
           enabled: 1,
