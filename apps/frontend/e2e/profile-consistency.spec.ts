@@ -44,6 +44,7 @@ async function profileApi(page: Page) {
         subscribed: true,
         expiresAt: "2040-11-01T10:00:00Z",
         cancelAtPeriodEnd: false,
+        cancellationStatus: "none",
         isOwner: false,
         monthlyPrice: "790",
       });

@@ -165,17 +165,11 @@ export type AppRouter = BuiltRouter<
           name: string | null;
           email: string | null;
           phone: string | null;
-          sessionVersion: number;
           loginMethod: string | null;
           gender: "female" | "male" | null;
           avatarUrl: string | null;
+          lastSignedIn: string;
           role: "user" | "moderator" | "admin";
-          blockedAt: Date | null;
-          blockedReason: string | null;
-          accountDeletionRequestedAt: Date | null;
-          createdAt: Date;
-          updatedAt: Date;
-          lastSignedIn: Date;
         } | null;
         meta: unknown;
       }>;
@@ -590,6 +584,7 @@ export type AppRouter = BuiltRouter<
         input: {
           base64: string;
           filename: string;
+          purpose: "publicCover";
           mimeType?: string | undefined;
         };
         output: { url: string };
@@ -960,6 +955,7 @@ export type AppRouter = BuiltRouter<
           subscribed: boolean;
           expiresAt: Date | null;
           cancelAtPeriodEnd: boolean;
+          cancellationStatus: "pending" | "none" | "confirmed";
           isOwner: boolean;
           monthlyPrice: string;
         };
@@ -989,7 +985,12 @@ export type AppRouter = BuiltRouter<
       }>;
       cancel: MutationProcedure<{
         input: void;
-        output: { ok: true; expiresAt: Date | null };
+        output: {
+          ok: true;
+          cancellationStatus: "pending" | "confirmed";
+          expiresAt: Date | null;
+          message: string;
+        };
         meta: unknown;
       }>;
       comments: QueryProcedure<{

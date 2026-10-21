@@ -61,6 +61,7 @@ async function fixtures(page: Page, owner: boolean) {
                     hasClubAccess: true,
                     subscribed: true,
                     cancelAtPeriodEnd: false,
+                    cancellationStatus: "none",
                     isOwner: owner,
                     expiresAt: owner ? null : "2040-11-01T10:00:00Z",
                     monthlyPrice: "790",

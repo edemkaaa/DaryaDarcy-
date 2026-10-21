@@ -2,6 +2,15 @@
 
 ## Действующий план агента — 13 октября 2026
 
+21 октября, новое прямое поручение: совместить frontend/backend, push staging и
+обновить dev. Три frontend integration задачи ниже реализованы локально без
+редизайна: publicCover purpose, cancellationStatus (включая expired pending) и
+generated API. RED/GREEN,64 browser cases с контролируемым API,3057 unit pass,
+types/lint/API/boundaries/docs и production build GREEN. Выпуск ещё не принят;
+переключение только после immutable image probes, backup и guards БД/админа.
+Режим TEST, flags, лимиты, существующие файлы/данные не менять. Исторические
+запреты frontend/push/deploy ниже относятся к прежним срезам, не этому поручению.
+
 Следующий backend validation-срез21 октября: подтверждены и локально исправлены
 invalid post dates (400 до SQL), дробный/out-of-INT sortOrder постов/статей и
 пустое после санитизации тело create/update. Media-only и partial edits с уже

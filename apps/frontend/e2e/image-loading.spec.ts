@@ -38,6 +38,7 @@ async function imagesApi(page: Page, posts = [post(1)]) {
         subscribed: true,
         expiresAt: "2040-11-01T10:00:00Z",
         cancelAtPeriodEnd: false,
+        cancellationStatus: "none",
         isOwner: false,
         monthlyPrice: "790",
       });

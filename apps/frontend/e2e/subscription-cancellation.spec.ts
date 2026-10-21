@@ -45,6 +45,7 @@ async function fixture(page: Page) {
       subscribed: true,
       expiresAt: expiration as string | null,
       cancelAtPeriodEnd: false,
+      cancellationStatus: "none" as "none" | "pending" | "confirmed",
       isOwner: false,
       monthlyPrice: "790",
     },
@@ -66,12 +67,29 @@ async function fixture(page: Page) {
           state.writes++;
           if (state.cancel) return state.cancel();
           state.subscription.cancelAtPeriodEnd = true;
-          return ok({ ok: true, expiresAt: expiration });
+          return ok({
+            ok: true,
+            expiresAt: expiration,
+            cancellationStatus: state.subscription.cancelAtPeriodEnd
+              ? "confirmed"
+              : "pending",
+            message: "Запрос обработан",
+          });
         }
         if (name === "club.subscription") {
           expect(route.request().method()).toBe("GET");
           state.reads++;
-          return state.read ? state.read() : ok({ ...state.subscription });
+          return state.read
+            ? state.read()
+            : ok({
+                ...state.subscription,
+                cancellationStatus:
+                  state.subscription.cancellationStatus === "pending"
+                    ? "pending"
+                    : state.subscription.cancelAtPeriodEnd
+                      ? "confirmed"
+                      : "none",
+              });
         }
         if (name === "feed.userInteractions")
           return ok({ likedIds: [], savedIds: [] });
@@ -97,6 +115,34 @@ async function cancel(page: Page) {
   await cancelButton(page).click();
 }
 
+for (const kind of ["active", "expired", "partial"] as const) {
+  test(`server pending state survives reload and uses read-only checks: ${kind}`, async ({ page }) => {
+    const state = await fixture(page);
+    state.subscription.cancellationStatus = "pending";
+    if (kind === "expired") {
+      state.subscription.hasClubAccess = false;
+      state.subscription.subscribed = false;
+      state.subscription.expiresAt = null;
+    }
+    if (kind === "partial") state.subscription.cancelAtPeriodEnd = true;
+    await gotoWithSession(page, "/profile");
+    await expect(card(page).getByRole("status")).toContainText("Запрос на отмену сохранён");
+    await expect(card(page).getByText("Отменена, доступ сохранён", { exact: true })).toHaveCount(0);
+    await page.reload();
+    await expect(checkButton(page)).toBeVisible();
+    const reads = state.reads;
+    await checkButton(page).click();
+    await expect.poll(() => state.reads).toBeGreaterThan(reads);
+    expect(state.writes).toBe(0);
+    if (kind === "expired") await expect(card(page).getByText("У тебя нет активной подписки", { exact: true })).toBeVisible();
+    state.subscription.cancellationStatus = "confirmed";
+    state.subscription.cancelAtPeriodEnd = true;
+    await checkButton(page).click();
+    await expect(checkButton(page)).toHaveCount(0);
+    expect(state.writes).toBe(0);
+  });
+}
+
 for (const width of [320, 390, 1440]) {
   test(`confirmation, single write and preserved access at ${width}px`, async ({
     page,
@@ -107,7 +153,14 @@ for (const width of [320, 390, 1440]) {
     state.cancel = async () => {
       await held.promise;
       state.subscription.cancelAtPeriodEnd = true;
-      return ok({ ok: true, expiresAt: expiration });
+      return ok({
+        ok: true,
+        expiresAt: expiration,
+        cancellationStatus: state.subscription.cancelAtPeriodEnd
+          ? "confirmed"
+          : "pending",
+        message: "Запрос обработан",
+      });
     };
     await open(page);
     await cancelButton(page).scrollIntoViewIfNeeded();
@@ -218,7 +271,14 @@ test("a timed-out cancellation blocks another write until status is checked", as
   const held = deferred();
   state.cancel = async () => {
     await held.promise;
-    return ok({ ok: true, expiresAt: expiration });
+    return ok({
+      ok: true,
+      expiresAt: expiration,
+      cancellationStatus: state.subscription.cancelAtPeriodEnd
+        ? "confirmed"
+        : "pending",
+      message: "Запрос обработан",
+    });
   };
   await open(page);
   await page.clock.install();
@@ -252,7 +312,11 @@ test("a pending status check cannot be duplicated or turn into another write", a
   const held = deferred();
   state.read = async () => {
     await held.promise;
-    return ok({ ...state.subscription, cancelAtPeriodEnd: true });
+    return ok({
+      ...state.subscription,
+      cancelAtPeriodEnd: true,
+      cancellationStatus: "confirmed",
+    });
   };
   const reads = state.reads;
   await checkButton(page).click();
@@ -316,7 +380,15 @@ test("an ok response still needs confirmation from subscription", async ({
   page,
 }) => {
   const state = await fixture(page);
-  state.cancel = () => ok({ ok: true, expiresAt: expiration });
+  state.cancel = () =>
+    ok({
+      ok: true,
+      expiresAt: expiration,
+      cancellationStatus: state.subscription.cancelAtPeriodEnd
+        ? "confirmed"
+        : "pending",
+      message: "Запрос обработан",
+    });
   await open(page);
   const reads = state.reads;
   await cancel(page);
@@ -346,7 +418,14 @@ for (const readResult of [
     const state = await fixture(page);
     state.cancel = () => {
       state.read = () => readResult;
-      return ok({ ok: true, expiresAt: expiration });
+      return ok({
+        ok: true,
+        expiresAt: expiration,
+        cancellationStatus: state.subscription.cancelAtPeriodEnd
+          ? "confirmed"
+          : "pending",
+        message: "Запрос обработан",
+      });
     };
     await open(page);
     await cancel(page);
@@ -398,7 +477,14 @@ test("leaving the profile aborts verification and retains the uncertain write", 
   const held = deferred();
   state.cancel = async () => {
     await held.promise;
-    return ok({ ok: true, expiresAt: expiration });
+    return ok({
+      ok: true,
+      expiresAt: expiration,
+      cancellationStatus: state.subscription.cancelAtPeriodEnd
+        ? "confirmed"
+        : "pending",
+      message: "Запрос обработан",
+    });
   };
   await open(page);
   await cancel(page);
@@ -428,7 +514,14 @@ test("a late response cannot change another account's subscription", async ({
   const held = deferred();
   state.cancel = async () => {
     await held.promise;
-    return ok({ ok: true, expiresAt: expiration });
+    return ok({
+      ok: true,
+      expiresAt: expiration,
+      cancellationStatus: state.subscription.cancelAtPeriodEnd
+        ? "confirmed"
+        : "pending",
+      message: "Запрос обработан",
+    });
   };
   await open(page);
   await cancel(page);
@@ -505,7 +598,12 @@ test("confirmed expiration closes private access without extending its period", 
       expiresAt: "2000-01-01T00:00:00Z",
       cancelAtPeriodEnd: true,
     };
-    return ok({ ok: true, expiresAt: "2000-01-01T00:00:00Z" });
+    return ok({
+      ok: true,
+      expiresAt: "2000-01-01T00:00:00Z",
+      cancellationStatus: "confirmed",
+      message: "Отмена подтверждена",
+    });
   };
   await open(page);
   await cancel(page);

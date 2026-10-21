@@ -59,6 +59,7 @@ for (const screen of ["feed", "club"] as const) {
             subscribed: true,
             expiresAt: "2030-01-01",
             cancelAtPeriodEnd: false,
+            cancellationStatus: "none",
             isOwner: true,
             monthlyPrice: "790",
           });

@@ -89,6 +89,7 @@ it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH).each([false, true])(
                     subscribed: paid,
                     expiresAt: paid ? expiration : null,
                     cancelAtPeriodEnd: cancelled,
+                    cancellationStatus: cancelled ? "confirmed" : "none",
                     isOwner: false,
                     monthlyPrice: "790",
                   },

@@ -53,6 +53,7 @@ export function registerClubServiceAccessBrowserCases(
         expiresAt: null,
         isOwner: false,
         cancelAtPeriodEnd: false,
+        cancellationStatus: "none",
       });
       await browserExpect(
         page.getByRole("button", { name: "Комьюнити", exact: true }),

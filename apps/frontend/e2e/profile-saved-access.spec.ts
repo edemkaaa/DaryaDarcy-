@@ -79,6 +79,7 @@ async function fixture(page: Page, state: State) {
                   : null,
               isOwner: false,
               cancelAtPeriodEnd: false,
+              cancellationStatus: "none",
               monthlyPrice: "790",
             });
       if (name === "feed.savedPosts")

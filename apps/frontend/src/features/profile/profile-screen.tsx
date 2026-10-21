@@ -85,12 +85,13 @@ export default function ProfileScreen() {
     hasServiceAccess,
     isSubscribed,
     expiresAt,
-    cancelAtPeriodEnd,
+    cancellationStatus,
     isOwner,
     monthlyPrice,
     status: subscriptionStatus,
   } = useClub();
   const cancellation = useSubscriptionCancellation();
+  const cancellationConfirmed = cancellationStatus === "confirmed";
   const avatar = useProfileAvatar();
   const savedFromApi = trpc.feed.savedPosts.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -352,6 +353,33 @@ export default function ProfileScreen() {
       </ScreenContainer>
     );
   }
+  const cancellationNotice = cancellation.notice ? (
+    <>
+      <Typography role="status" className={classes.subscriptionInfo}>
+        {cancellation.notice.message}
+      </Typography>
+      {cancellation.notice.status === "unknown" ? (
+        <Action
+          onClick={() => void cancellation.check()}
+          disabled={cancellation.busy}
+          className={({ pressed }) =>
+            [
+              classes.action6,
+              pressed || cancellation.busy ? classes.opacityState11 : "",
+            ]
+              .filter(Boolean)
+              .join(" ")
+          }
+        >
+          <Typography className={classes.subscriptionButtonDangerText}>
+            {cancellation.pending === "check-cancellation"
+              ? "Проверяем…"
+              : "Проверить отмену"}
+          </Typography>
+        </Action>
+      ) : null}
+    </>
+  ) : null;
   return (
     <ScreenContainer backgroundColor="#FDF8F0">
       <Background
@@ -773,7 +801,7 @@ export default function ProfileScreen() {
                         .join(" ")}
                     />
                     <Typography className={classes.subscriptionStatusText}>
-                      {cancelAtPeriodEnd
+                      {cancellationConfirmed
                         ? "Отменена, доступ сохранён"
                         : "Активна"}
                     </Typography>
@@ -785,13 +813,13 @@ export default function ProfileScreen() {
                         : "Профиль владелицы клуба, доступ без оплаты"
                       : prodamusTest
                         ? `Тестовый доступ${expiresAt ? ` до ${formatRuDate(expiresAt)}` : ""}. Без автопродления.`
-                        : cancelAtPeriodEnd && expiresAt
+                        : cancellationConfirmed && expiresAt
                           ? `Автосписание отключено. Доступ до ${formatRuDate(expiresAt)}`
                           : expiresAt
                             ? `Следующее списание: ${formatRuDate(expiresAt)} · ${monthlyPrice} ₽ / месяц`
                             : `Ежемесячная подписка ${monthlyPrice} ₽`}
                   </Typography>
-                  {!isOwner && !cancelAtPeriodEnd && !prodamusTest ? (
+                  {!isOwner && !cancellationConfirmed && !prodamusTest ? (
                     <Action
                       onClick={() => void cancellation.cancel()}
                       disabled={cancellation.blocked}
@@ -815,40 +843,7 @@ export default function ProfileScreen() {
                       </Typography>
                     </Action>
                   ) : null}
-                  {cancellation.notice ? (
-                    <>
-                      <Typography
-                        role="status"
-                        className={classes.subscriptionInfo}
-                      >
-                        {cancellation.notice.message}
-                      </Typography>
-                      {cancellation.notice.status === "unknown" ? (
-                        <Action
-                          onClick={() => void cancellation.check()}
-                          disabled={cancellation.busy}
-                          className={({ pressed }) =>
-                            [
-                              classes.action6,
-                              pressed || cancellation.busy
-                                ? classes.opacityState11
-                                : "",
-                            ]
-                              .filter(Boolean)
-                              .join(" ")
-                          }
-                        >
-                          <Typography
-                            className={classes.subscriptionButtonDangerText}
-                          >
-                            {cancellation.pending === "check-cancellation"
-                              ? "Проверяем…"
-                              : "Проверить отмену"}
-                          </Typography>
-                        </Action>
-                      ) : null}
-                    </>
-                  ) : null}
+                  {cancellationNotice}
                   {!isOwner ? (
                     <Action
                       onClick={() => router.clubCheckout()}
@@ -891,6 +886,7 @@ export default function ProfileScreen() {
                   </Action>
                 </>
               )}
+              {!isSubscribed ? cancellationNotice : null}
             </div>
           </div>
 

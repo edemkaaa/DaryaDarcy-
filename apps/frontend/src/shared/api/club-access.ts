@@ -11,6 +11,9 @@ export function parseClubAccess(
     typeof data.hasClubAccess !== "boolean" ||
     typeof data.subscribed !== "boolean" ||
     typeof data.cancelAtPeriodEnd !== "boolean" ||
+    (data.cancellationStatus !== "none" &&
+      data.cancellationStatus !== "pending" &&
+      data.cancellationStatus !== "confirmed") ||
     typeof data.isOwner !== "boolean" ||
     typeof data.monthlyPrice !== "string" ||
     !data.monthlyPrice.trim()
@@ -29,6 +32,7 @@ export function parseClubAccess(
     hasClubAccess: data.hasClubAccess,
     subscribed: data.subscribed,
     cancelAtPeriodEnd: data.cancelAtPeriodEnd,
+    cancellationStatus: data.cancellationStatus,
     isOwner: data.isOwner,
     monthlyPrice: data.monthlyPrice,
     expiresAt,

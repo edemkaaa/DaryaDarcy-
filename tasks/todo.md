@@ -2,6 +2,23 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Совместный выпуск21 октября — новое прямое поручение
+
+- [x] Подключить три согласованных frontend контракта без изменения дизайна:
+  purpose=publicCover только для обложки; cancellationStatus runtime/parser/UI
+  с восстановлением pending после reload и истечения доступа; generated API.
+  Fresh staging39e66a2 уже включён, правки фронтендера сохранены. RED8 parser,
+  RED2 provider и RED1 cover (предыдущая сборка), затем GREEN:37 parser,4 browser
+  controller/provider,64 Playwright. Последние64 — с контролируемым HTTP API,
+  не живой приёмкой оплаты/S3. Root3057 pass/1586 opt-in skips; root/frontend
+  types, lint, API90, boundaries722/docs68, audit0 и production build GREEN.
+  Build для выпуска сохраняет TEST=true и прежние runtime flags.
+- [ ] Push staging и guarded выпуск api/web/prodamus-test: immutable offline
+  image probes, свежий backup с локальной проверкой, DB/schema/admin/config
+  guards, затем живые read-only API/JS проверки. Миграций/новых flags/лимитов/
+  платежей/внешних писем/изменения старых файлов нет. До receipt не считать
+  сервер обновлённым. Evidence workspace release-integrated-20261021.nA06Qc.
+
 ### Действующая граница — frontend не менять, 20 октября
 
 #### SEC — исправления по аудиту, 21 октября

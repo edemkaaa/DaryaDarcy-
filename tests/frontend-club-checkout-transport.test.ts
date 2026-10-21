@@ -23,6 +23,7 @@ const subscription = {
         subscribed: false,
         expiresAt: null,
         cancelAtPeriodEnd: false,
+        cancellationStatus: "none",
         isOwner: false,
         monthlyPrice: "790",
       },

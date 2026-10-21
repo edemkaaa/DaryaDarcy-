@@ -69,6 +69,7 @@ async function commentsApi(
         subscribed: true,
         expiresAt: "2027-01-01T00:00:00Z",
         cancelAtPeriodEnd: false,
+        cancellationStatus: "none",
         isOwner: role === "admin",
         monthlyPrice: "790",
       });

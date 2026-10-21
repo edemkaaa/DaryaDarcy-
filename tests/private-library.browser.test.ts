@@ -142,6 +142,7 @@ async function fixture(page: Page) {
           subscribed: state.allowed,
           expiresAt: "2030-01-01",
           cancelAtPeriodEnd: false,
+          cancellationStatus: "none",
           isOwner: false,
           monthlyPrice: "790",
         })

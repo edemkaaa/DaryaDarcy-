@@ -41,6 +41,35 @@ const largePng = () =>
     .png({ compressionLevel: 0 })
     .toBuffer();
 
+test("article public banner upload declares its explicit public purpose", async ({
+  page,
+}) => {
+  const uploads: Record<string, unknown>[] = [];
+  await setup(page, uploads);
+  await gotoWithSession(page, "/admin");
+  await page.getByRole("button", { name: "Статьи", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Написать статью", exact: true })
+    .click();
+  const chooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("button", { name: "Выбрать баннер", exact: true })
+    .click();
+  await (
+    await chooser
+  ).setFiles({
+    name: "cover.png",
+    mimeType: "image/png",
+    buffer: await sharp({
+      create: { width: 16, height: 8, channels: 3, background: "red" },
+    })
+      .png()
+      .toBuffer(),
+  });
+  await expect.poll(() => uploads.length).toBe(1);
+  expect(uploads[0].purpose).toBe("publicCover");
+});
+
 test("an original photo above 4 MiB is prepared within the server limit", async ({
   page,
 }) => {

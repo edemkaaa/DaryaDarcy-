@@ -41,6 +41,7 @@ async function fixture(
               subscribed: state.paid || state.owner,
               expiresAt: state.paid ? expiration : null,
               cancelAtPeriodEnd: false,
+              cancellationStatus: "none",
               isOwner: state.owner,
               monthlyPrice: "790",
             });

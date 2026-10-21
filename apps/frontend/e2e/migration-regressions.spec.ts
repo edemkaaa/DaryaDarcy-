@@ -39,6 +39,7 @@ async function mockContent(
           monthlyPrice: "790",
           expiresAt: null,
           cancelAtPeriodEnd: false,
+          cancellationStatus: "none",
           isOwner: admin,
         });
       if (name === "feed.listPaginated" || name === "club.list")
@@ -275,6 +276,7 @@ test("an authenticated payment return still asks the API before opening club acc
           monthlyPrice: "790",
           expiresAt: null,
           cancelAtPeriodEnd: false,
+          cancellationStatus: "none",
           isOwner: false,
         });
       if (name === "club.claimPending") {

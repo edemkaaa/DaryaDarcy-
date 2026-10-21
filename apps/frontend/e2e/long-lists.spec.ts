@@ -76,6 +76,7 @@ async function longListApi(
           subscribed: true,
           expiresAt: "2040-11-01T10:00:00Z",
           cancelAtPeriodEnd: false,
+          cancellationStatus: "none",
           isOwner: false,
           monthlyPrice: "790",
         };
@@ -608,6 +609,7 @@ test("feed stops a repeated cursor, deduplicates posts and retries explicitly", 
           subscribed: true,
           expiresAt: "2040-11-01T10:00:00Z",
           cancelAtPeriodEnd: false,
+          cancellationStatus: "none",
           isOwner: false,
           monthlyPrice: "790",
         };

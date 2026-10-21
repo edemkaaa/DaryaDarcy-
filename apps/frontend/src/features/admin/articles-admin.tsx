@@ -369,9 +369,12 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         });
         task.assertCurrent();
         const url = requireUploadedUrl(
-          await utils.client.admin.uploadPhoto.mutate(payload, {
-            signal: task.signal,
-          }),
+          await utils.client.admin.uploadPhoto.mutate(
+            { ...payload, purpose: "publicCover" },
+            {
+              signal: task.signal,
+            },
+          ),
         );
         task.assertCurrent();
         urls.push(url);

@@ -26,6 +26,8 @@ import type { ScopedOperation } from "@/shared/browser/operation-scope";
 type Notice = { status: "unknown" | "error"; message: string };
 const unconfirmed =
   "Отмена ещё не подтверждена. Автосписание может оставаться активным. Проверьте статус; если отмена не подтверждается, обратитесь в поддержку.";
+const requested =
+  "Запрос на отмену сохранён. Провайдер пока не подтвердил отмену. Автосписание может оставаться активным. Проверьте статус позже.";
 
 function validExpiration(value: unknown): boolean {
   return (
@@ -41,22 +43,28 @@ function requireSubscription(value: ApiOutputs["club"]["subscription"]) {
 
 /** A timed-out write may already be queued by the server; retry only reads. */
 function useCancellationController(active: boolean) {
-  const { isSubscribed, isOwner, cancelAtPeriodEnd } = useClub();
+  const { isSubscribed, isOwner, cancelAtPeriodEnd, cancellationStatus } =
+    useClub();
   const operation = useSessionOperation(active);
   const utils = trpc.useUtils();
   const [notice, setNotice] = useState<Notice | null>(null);
   const noticeRef = useRef(notice);
   useEffect(() => {
-    if (cancelAtPeriodEnd) {
+    if (cancellationStatus === "confirmed") {
       noticeRef.current = null;
       setNotice(null);
     }
-  }, [cancelAtPeriodEnd]);
+  }, [cancellationStatus]);
   const remember = (value: Notice | null) => {
     noticeRef.current = value;
     setNotice(value);
   };
-  const eligible = isSubscribed && !isOwner && !cancelAtPeriodEnd;
+  const serverPending = cancellationStatus === "pending";
+  const eligible =
+    isSubscribed &&
+    !isOwner &&
+    !cancelAtPeriodEnd &&
+    cancellationStatus === "none";
 
   const readStatus = async (task: ScopedOperation) => {
     // Do not let an older background read overwrite this verification.
@@ -71,9 +79,15 @@ function useCancellationController(active: boolean) {
     task.assertCurrent();
     utils.club.subscription.setData(undefined, subscription);
     remember(
-      value.cancelAtPeriodEnd
+      subscription.cancellationStatus === "confirmed"
         ? null
-        : { status: "unknown", message: unconfirmed },
+        : {
+            status: "unknown",
+            message:
+              subscription.cancellationStatus === "pending"
+                ? requested
+                : unconfirmed,
+          },
     );
   };
 
@@ -97,7 +111,15 @@ function useCancellationController(active: boolean) {
       verifying = true;
       task.assertCurrent();
       requireOk(result);
-      if (!validExpiration(result.expiresAt)) throw invalidResponse();
+      if (
+        !validExpiration(result.expiresAt) ||
+        !["pending", "confirmed"].includes(result.cancellationStatus) ||
+        typeof result.message !== "string" ||
+        !result.message.trim()
+      )
+        throw invalidResponse();
+      if (result.cancellationStatus === "pending")
+        remember({ status: "unknown", message: result.message });
       await readStatus(task);
     } catch (cause) {
       checkOperationAccessError(cause);
@@ -112,7 +134,7 @@ function useCancellationController(active: boolean) {
   };
 
   const check = async () => {
-    if (!eligible || noticeRef.current?.status !== "unknown") return;
+    if (!serverPending && noticeRef.current?.status !== "unknown") return;
     const task = operation.begin("check-cancellation");
     if (!task) return;
     try {
@@ -132,10 +154,17 @@ function useCancellationController(active: boolean) {
   return {
     cancel,
     check,
-    notice: eligible ? notice : null,
+    notice:
+      cancellationStatus === "confirmed"
+        ? null
+        : serverPending
+          ? { status: "unknown" as const, message: requested }
+          : eligible || notice?.status === "unknown"
+            ? notice
+            : null,
     busy: operation.busy,
     pending: operation.kind,
-    blocked: operation.busy || notice?.status === "unknown",
+    blocked: operation.busy || serverPending || notice?.status === "unknown",
   };
 }
 

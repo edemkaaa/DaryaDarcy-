@@ -72,6 +72,7 @@ async function fixture(page: Page, authenticated = true) {
         subscribed: state.paid,
         expiresAt: state.paid ? "2040-11-01T10:00:00Z" : null,
         cancelAtPeriodEnd: false,
+        cancellationStatus: "none",
         isOwner: false,
         monthlyPrice: "790",
       });

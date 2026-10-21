@@ -59,6 +59,7 @@ async function fixture(page: Page, count = 3, photos: string[] = []) {
         expiresAt: "2040-01-01T00:00:00Z",
         isOwner: true,
         cancelAtPeriodEnd: false,
+        cancellationStatus: "none",
         monthlyPrice: "790",
       });
   });

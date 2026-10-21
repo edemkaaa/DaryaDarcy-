@@ -66,6 +66,7 @@ async function fixture(
           subscribed: options.paid !== false,
           expiresAt: options.paid === false ? null : "2040-01-01T00:00:00Z",
           cancelAtPeriodEnd: false,
+          cancellationStatus: "none",
           isOwner: false,
           monthlyPrice: "790",
         });

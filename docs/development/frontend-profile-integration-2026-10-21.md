@@ -1,5 +1,23 @@
 # Интеграция staging: профиль и оставшиеся API-подключения
 
+## Актуализация: совместная интеграция21 октября
+
+По новому прямому поручению три перечисленных ниже frontend остатка реализованы
+локально: явный publicCover только в ветке обложки, generated API90 и runtime
+cancellationStatus. Pending восстанавливается после перезагрузки, виден после
+истечения доступа и не превращает служебный доступ в оплаченную подписку.
+Проверка отмены читает статус, не повторяет запись; none после потерянного ответа
+не считается подтверждённой отменой. Старые callbacks защищены account scope.
+Дизайн/стили, оплата, роли, квоты и прежние серверные flags не менялись.
+
+RED8 parser и RED2 actual React provider; cover RED1 на предыдущей сборке с
+неизменённым producer. После fresh сборки37 parser/4 provider и64 Playwright
+GREEN, включая reload/pending/expired/lost ACK/account switch/cover/saved.
+Браузерные API ответы контролируемые; это не реальная отмена у провайдера или
+upload в S3. Root3057 pass/1586 skips, types/lint/check:api/boundaries722/docs68,
+audit0 и production build GREEN. Исторические сведения ниже сохранены.
+Выпуск и живые проверки пока pending; точный receipt будет в operations/todo.
+
 ## Что подтянуто
 
 Локально объединён `origin/staging` на `39e66a2` с нашей веткой на `5b7b26c`.

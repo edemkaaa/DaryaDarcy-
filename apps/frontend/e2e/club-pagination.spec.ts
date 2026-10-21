@@ -54,6 +54,7 @@ async function clubApi(
             hasClubAccess: true,
             subscribed: true,
             cancelAtPeriodEnd: false,
+            cancellationStatus: "none",
             expiresAt: "2040-11-01T10:00:00Z",
             isOwner: false,
             monthlyPrice: "790",

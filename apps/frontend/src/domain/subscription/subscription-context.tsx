@@ -29,6 +29,7 @@ interface ClubContextType {
   refreshSubscription: () => Promise<void>;
   expiresAt: Date | null;
   cancelAtPeriodEnd: boolean;
+  cancellationStatus: "none" | "pending" | "confirmed";
   isOwner: boolean;
   monthlyPrice: string;
 }
@@ -98,6 +99,10 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     expiresAt,
     cancelAtPeriodEnd:
       status === "active" && subscription.data?.cancelAtPeriodEnd === true,
+    cancellationStatus:
+      user && hasConfirmedData
+        ? (subscription.data?.cancellationStatus ?? "none")
+        : "none",
     isOwner,
     monthlyPrice:
       typeof subscription.data?.monthlyPrice === "string"

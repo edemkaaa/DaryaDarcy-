@@ -9,10 +9,35 @@ const paid = {
   subscribed: true,
   expiresAt: "2040-11-01T10:00:00Z",
   cancelAtPeriodEnd: false,
+  cancellationStatus: "none",
   isOwner: false,
   monthlyPrice: "790",
 };
 describe("server-confirmed club access", () => {
+  it.each(["none", "pending", "confirmed"] as const)(
+    "preserves cancellation state %s independently from paid access",
+    (cancellationStatus) => {
+      expect(
+        parseClubAccess({
+          ...paid,
+          subscribed: false,
+          hasClubAccess: false,
+          expiresAt: null,
+          cancellationStatus,
+        }),
+      ).toMatchObject({
+        subscribed: false,
+        hasClubAccess: false,
+        cancellationStatus,
+      });
+    },
+  );
+  it.each([undefined, null, "unknown", false, 1])(
+    "rejects malformed cancellation state %j",
+    (cancellationStatus) => {
+      expect(() => parseClubAccess({ ...paid, cancellationStatus })).toThrow();
+    },
+  );
   it.each([paid.expiresAt, new Date(paid.expiresAt)])(
     "accepts a real expiry in the transport format %s",
     (expiresAt) => {
@@ -44,6 +69,7 @@ describe("server-confirmed club access", () => {
       subscribed: false,
       expiresAt: null,
       cancelAtPeriodEnd: false,
+      cancellationStatus: "none",
       isOwner: false,
     });
   });

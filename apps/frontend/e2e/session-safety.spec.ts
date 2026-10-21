@@ -69,6 +69,7 @@ async function mockApp(
           subscribed: Boolean(current()),
           expiresAt: current() ? "2040-11-01T10:00:00Z" : null,
           cancelAtPeriodEnd: false,
+          cancellationStatus: "none",
           isOwner: false,
           monthlyPrice: "790",
         };
@@ -509,6 +510,7 @@ test("a string subscription flag never grants club access", async ({
                   hasClubAccess: true,
                   subscribed: "true",
                   cancelAtPeriodEnd: false,
+                  cancellationStatus: "none",
                   expiresAt: "2040-11-01T10:00:00Z",
                   isOwner: false,
                   monthlyPrice: "790",
@@ -733,6 +735,7 @@ test("a confirmed subscription revocation still removes the private club screen"
                   hasClubAccess: subscribed,
                   subscribed,
                   cancelAtPeriodEnd: false,
+                  cancellationStatus: "none",
                   expiresAt: subscribed ? "2040-11-01T10:00:00Z" : null,
                   isOwner: false,
                   monthlyPrice: "790",

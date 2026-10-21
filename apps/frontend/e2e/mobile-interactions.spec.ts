@@ -30,6 +30,7 @@ async function fixtures(page: Page) {
         hasClubAccess: true,
         subscribed: true,
         cancelAtPeriodEnd: false,
+        cancellationStatus: "none",
         expiresAt: null,
         isOwner: true,
         monthlyPrice: "790",

@@ -98,6 +98,7 @@ export async function layoutApi(page: Page, subscribed = false) {
               subscribed,
               expiresAt: subscribed ? "2040-11-01T10:00:00Z" : null,
               cancelAtPeriodEnd: false,
+              cancellationStatus: "none",
               isOwner: false,
               monthlyPrice: "790",
             };
