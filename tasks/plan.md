@@ -69,8 +69,12 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
   проверяется до delete/update, unavailable404, bounded integer IDs. Это не
   проверка реальных SQL locks. Lifecycle writer также локально GREEN28 +21:
   ordered users/profiles/match locks, fresh account/profile checks, expiry409,
-  stable retry deadline, serialized profile removal.11 opt-in HTTP/JWT/MySQL
-  regressions пока skipped (disk1.8GiB<2GiB guard); SQL lock acceptance открыта.
+  stable retry deadline, serialized profile removal. После появления4.1GiB
+  guard разрешил собственную tmpfs backend_test/fresh42:11 HTTP/JWT/MySQL GREEN,
+  включая reciprocal concurrency и profile deactivation race. Final30 access
+  tests проверяют также deadline predicate в UPDATE/zero-write409; final SQL11
+  повторён после изменения. Свои fixtures/containers удалены по guards, foreign
+  stopped containers сохранены. Pen flag не включён; live/browser не проверялись.
   Public uploads ещё открыты. Далее push,
   отмена, validation/DTO; working DB/S3/frontend/flags/push/deploy не менять.
 

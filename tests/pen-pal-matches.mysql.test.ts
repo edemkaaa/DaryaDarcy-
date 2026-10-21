@@ -16,6 +16,7 @@ import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { deactivatePenPalProfileV2 } from "../apps/backend/src/platform-db";
+import { getDb } from "../apps/backend/src/db";
 import type { AppRouter } from "../apps/backend/src/routers";
 
 // Requires a separately owned disposable backend_test with the fresh schema.
@@ -113,6 +114,10 @@ describe.skipIf(!testDatabaseUrl)(
         );
       }
       await conn?.end();
+      if (app)
+        await (
+          (await getDb()) as unknown as { $client: { end(): Promise<void> } }
+        )?.$client.end();
       vi.unstubAllEnvs();
     });
     it.each([false, true])(

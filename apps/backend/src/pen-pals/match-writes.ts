@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, gt, or, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
   penPalMatches,
@@ -65,7 +65,7 @@ async function confirm(tx: Transaction, row: Match, actorId: number) {
     return;
   const userLowConfirmed = isLow || row.userLowConfirmed;
   const userHighConfirmed = !isLow || row.userHighConfirmed;
-  await tx
+  const [result] = await tx
     .update(penPalMatches)
     .set({
       userLowConfirmed,
@@ -73,7 +73,17 @@ async function confirm(tx: Transaction, row: Match, actorId: number) {
       mutualConfirmedAt:
         userLowConfirmed && userHighConfirmed ? new Date() : null,
     })
-    .where(ownedMatch(row.id, actorId));
+    .where(
+      and(
+        ownedMatch(row.id, actorId),
+        gt(penPalMatches.confirmDeadline, sql`CURRENT_TIMESTAMP`),
+      ),
+    );
+  if (result.affectedRows !== 1)
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "Срок подтверждения заявки истёк",
+    });
 }
 
 export async function requestMatch(

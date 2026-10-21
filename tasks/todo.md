@@ -15,10 +15,16 @@
   users/profiles/match locks; свежие active/blocked checks, expired pending409,
   повтор без продления deadline, сохранение mutual matches, transactional remove.
   RED13→GREEN28 access tests +21 capabilities; types/build/API90/boundaries714.
-- [ ] SQL-lock acceptance: добавлено11 opt-in HTTP/JWT/MySQL regressions (включая
-  parallel reciprocal requests/deactivation race), пока skipped: disk1.8GiB
-  ниже2GiB preflight. HTTP tests используют SQL transport/session doubles, не
-  заменяют настоящую SQL concurrency acceptance; feature flag не включался.
+- [x] SQL-lock acceptance: после fresh disk4.1GiB>=2GiB guard собственная tmpfs
+  backend_test/fresh42.11 HTTP/JWT/MySQL regressions GREEN, в том числе C→A/B
+  reject/accept, parallel reciprocal requests/одна пара, deactivation race,
+  no-profile/expiry/retry deadline. Дополнительный RED2→GREEN2: срок является
+  predicate финального UPDATE, affectedRows0→409/rollback, не ложный200.
+  Final30 HTTP/SQL-transport +21 capability tests GREEN; final Pen SQL11 повторён
+  после этого изменения. Свои контейнеры удалены по ID/name/label/image/mount/
+  loopback guards,3 чужих stopped containers сохранены, feature flag не включался.
+  Evidence вне Git: `.local-artifacts/security-fixes-20261021.tFY6gP` в workspace;
+  initial и `pen-recheck` logs/receipts сохранены. Без working DB/S3/платежей/писем.
 - [ ] Legacy uploads: перекрыть публичную запись закрытых материалов, сохранить
   public avatars/covers; без правок frontend, working DB/S3, push/deploy.
 - [ ] Далее по согласованному порядку: push registration, cancellation state,

@@ -23,6 +23,7 @@ const transport = vi.hoisted(() => ({
   blockedUser: 0,
   deadline: "2099-01-01 00:00:00",
   mutualAt: null as string | null,
+  affectedRows: 1,
 }));
 vi.mock("mysql2/promise", () => ({
   default: { createPool: () => ({ on() {}, query: transport.query }) },
@@ -64,6 +65,7 @@ beforeEach(() => {
   transport.blockedUser = 0;
   transport.deadline = "2099-01-01 00:00:00";
   transport.mutualAt = null;
+  transport.affectedRows = 1;
   transport.statements = [];
   transport.query
     .mockReset()
@@ -108,7 +110,7 @@ beforeEach(() => {
               : [],
             [],
           ];
-        return [{ affectedRows: 1, insertId: 92 }, []];
+        return [{ affectedRows: transport.affectedRows, insertId: 92 }, []];
       },
     );
 });
@@ -203,6 +205,19 @@ it("already mutual matches remain valid after their original confirmation deadli
   expect(
     await client().penPals.respondMatch.mutate({ matchId: 91, accept: true }),
   ).toEqual({ ok: true });
+});
+it("expiry remains a predicate of the final confirmation SQL", async () => {
+  actorId = 2;
+  await client().penPals.respondMatch.mutate({ matchId: 91, accept: true });
+  expect(writes()[0].sql).toMatch(/`confirmDeadline` > CURRENT_TIMESTAMP/);
+});
+it("expiry refusal at the write is not acknowledged as a successful confirmation", async () => {
+  actorId = 2;
+  transport.affectedRows = 0;
+  await expect(
+    client().penPals.respondMatch.mutate({ matchId: 91, accept: true }),
+  ).rejects.toMatchObject({ data: { code: "CONFLICT" } });
+  expect(transport.statements.at(-1)?.sql).toBe("rollback");
 });
 it.each([0, -1, 1.5, 2147483648])(
   "request rejects invalid target %s before SQL",
