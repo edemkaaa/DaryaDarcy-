@@ -44,6 +44,7 @@ export type ImageProps = Omit<BoxProps, "onLoad" | "onError"> & {
   }) => void;
 };
 const RETRY_DELAYS = [2_000, 5_000];
+const VISIBLE_LOAD_TIMEOUT = 30_000;
 
 export function ImageFailure({ onRetry }: { onRetry?: () => void }) {
   return (
@@ -104,6 +105,11 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
     const [loaded, setLoaded] = useState(false);
     const imageRef = useRef<HTMLImageElement | null>(null);
     const [failed, setFailed] = useState(false);
+    const [timedOut, setTimedOut] = useState(false);
+    const onErrorRef = useRef(onError);
+    useEffect(() => {
+      onErrorRef.current = onError;
+    }, [onError]);
     const [attempt, setAttempt] = useState(0);
     const [useOriginal, setUseOriginal] = useState(false);
     const resolved = resolveImageAttributes(
@@ -112,20 +118,53 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
       optimizeLocal,
       sizes,
     );
-    const terminalFailure = failed && attempt >= RETRY_DELAYS.length;
+    const terminalFailure =
+      timedOut || (failed && attempt >= RETRY_DELAYS.length);
     const hasCustomLoader = loadingFallback !== undefined;
     const retry = () => {
       setLoaded(false);
       setFailed(false);
+      setTimedOut(false);
       setAttempt((value) => value + 1);
     };
     useEffect(() => {
-      if (
-        !hasCustomLoader ||
-        !asset?.uri ||
-        loaded ||
-        failed
-      )
+      if (!asset?.uri || loaded || failed || timedOut) return;
+      const image = imageRef.current;
+      if (!image) return;
+      let timer: number | undefined;
+      const start = () => {
+        if (timer !== undefined) return;
+        timer = window.setTimeout(() => {
+          if (image.complete && image.naturalWidth > 0) {
+            setLoaded(true);
+            return;
+          }
+          // Remove the expired image; a late load/error cannot revive it.
+          // Do not automatically restart a hung request and waste bandwidth.
+          setTimedOut(true);
+          onErrorRef.current?.(new Error("Image loading timed out"));
+        }, VISIBLE_LOAD_TIMEOUT);
+      };
+      // Native lazy loading can defer an offscreen image indefinitely.
+      // Its timeout starts only when the user can actually see it.
+      const observer = new IntersectionObserver(
+        (entries) => {
+          // An adjacent carousel slide can intersect only at an edge (area 0).
+          if (!entries.some((entry) => entry.intersectionRatio >= 0.01)) return;
+          start();
+          observer.disconnect();
+        },
+        { threshold: 0.01 },
+      );
+      if (loading === "eager") start();
+      else observer.observe(image);
+      return () => {
+        observer.disconnect();
+        window.clearTimeout(timer);
+      };
+    }, [asset?.uri, loaded, failed, timedOut, attempt, useOriginal, loading]);
+    useEffect(() => {
+      if (!hasCustomLoader || !asset?.uri || loaded || failed || timedOut)
         return;
       const image = imageRef.current;
       if (!image) return;
@@ -147,12 +186,13 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
       asset?.uri,
       loaded,
       failed,
+      timedOut,
       attempt,
       useOriginal,
     ]);
     useEffect(() => {
       if (!failed) return;
-      // Retry only failed requests. A slow request remains in flight indefinitely.
+      // Retry explicit failures only; a timeout requires a manual retry.
       const resume = () => {
         if (!navigator.onLine) return;
         setLoaded(false);
@@ -195,57 +235,61 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
           .filter(Boolean)
           .join(" ")}
       >
-        <img
-          key={`${attempt}-${useOriginal}`}
-          ref={(image) => {
-            imageRef.current = image;
-            // Cached images may finish before the load handler is attached.
-            if (image?.complete && image.naturalWidth > 0) {
+        {!timedOut && (
+          <img
+            key={`${attempt}-${useOriginal}`}
+            ref={(image) => {
+              imageRef.current = image;
+              // Cached images may finish before the load handler is attached.
+              if (image?.complete && image.naturalWidth > 0) {
+                setLoaded(true);
+              }
+            }}
+            src={resolved.src}
+            alt={label || ""}
+            width={asset?.width}
+            height={asset?.height}
+            loading={loading}
+            decoding={decoding}
+            fetchPriority={fetchPriority}
+            srcSet={useOriginal ? undefined : (srcSet ?? resolved.srcSet)}
+            sizes={sizes ?? resolved.sizes}
+            draggable={false}
+            onError={(event) => {
+              if (imageRef.current !== event.currentTarget) return;
+              // The frontend optimizer has its own upstream timeout. Bypass it
+              // after a failure so the browser can wait for the original photo.
+              if (!useOriginal && resolved.src?.startsWith("/_next/image?")) {
+                setLoaded(false);
+                setUseOriginal(true);
+                return;
+              }
+              setFailed(true);
+              if (attempt >= RETRY_DELAYS.length) onError?.(event);
+            }}
+            onLoad={(event) => {
+              if (imageRef.current !== event.currentTarget) return;
+              setFailed(false);
               setLoaded(true);
-            }
-          }}
-          src={resolved.src}
-          alt={label || ""}
-          width={asset?.width}
-          height={asset?.height}
-          loading={loading}
-          decoding={decoding}
-          fetchPriority={fetchPriority}
-          srcSet={useOriginal ? undefined : (srcSet ?? resolved.srcSet)}
-          sizes={sizes ?? resolved.sizes}
-          draggable={false}
-          onError={(event) => {
-            // The frontend optimizer has its own upstream timeout. Bypass it
-            // after a failure so the browser can wait for the original photo.
-            if (!useOriginal && resolved.src?.startsWith("/_next/image?")) {
-              setLoaded(false);
-              setUseOriginal(true);
-              return;
-            }
-            setFailed(true);
-            if (attempt >= RETRY_DELAYS.length) onError?.(event);
-          }}
-          onLoad={(event) => {
-            setFailed(false);
-            setLoaded(true);
-            const image = event.currentTarget;
-            onLoad?.({
-              source: {
-                width: image.naturalWidth,
-                height: image.naturalHeight,
-                url: image.currentSrc,
-              },
-            });
-          }}
-          style={{
-            visibility: failed ? "hidden" : undefined,
-            opacity: fadeOnLoad && !loaded ? 0 : undefined,
-            objectFit: contentFit,
-            objectPosition: contentPosition,
-            transition: transition ? `opacity ${transition}ms` : undefined,
-          }}
-          className={classes.img}
-        />
+              const image = event.currentTarget;
+              onLoad?.({
+                source: {
+                  width: image.naturalWidth,
+                  height: image.naturalHeight,
+                  url: image.currentSrc,
+                },
+              });
+            }}
+            style={{
+              visibility: failed ? "hidden" : undefined,
+              opacity: fadeOnLoad && !loaded ? 0 : undefined,
+              objectFit: contentFit,
+              objectPosition: contentPosition,
+              transition: transition ? `opacity ${transition}ms` : undefined,
+            }}
+            className={classes.img}
+          />
+        )}
         {terminalFailure ? (
           errorFallback !== undefined ? (
             errorFallback

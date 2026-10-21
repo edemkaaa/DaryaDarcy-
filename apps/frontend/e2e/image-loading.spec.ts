@@ -68,6 +68,7 @@ for (const width of [390, 1440]) {
     page,
   }) => {
     await page.setViewportSize({ width, height: 844 });
+    await page.clock.install();
     const requests = new Set<string>();
     await imagesApi(
       page,
@@ -99,6 +100,7 @@ for (const width of [390, 1440]) {
     ).toEqual([]);
     // Offscreen rows retain geometry while their images are unmounted.
     await expect.poll(() => photos.count()).toBeLessThan(12);
+    await page.clock.runFor(60_000);
     await rows.last().scrollIntoViewIfNeeded();
     const lastPhoto = rows.last().locator(`img[src="${imageUrl(12)}"]`);
     await expect(lastPhoto).toHaveAttribute("loading", "lazy");
@@ -151,46 +153,135 @@ test("a delayed missing photo keeps its frame and shows a readable fallback", as
   }
 });
 
-test("a slow photo stays pending without restarting its request", async ({
+for (const mode of ["direct", "preview", "original-fallback"] as const) {
+  test(`a hung photo stops loading and recovers only after manual retry (${mode})`, async ({
+    page,
+  }) => {
+    const uri =
+      mode === "direct"
+        ? imageUrl(1)
+        : "https://s3.twcstorage.ru/daryadarcy-s3/feed/hung-photo.jpg";
+    await imagesApi(page, [post(1, [uri])]);
+    if (mode === "original-fallback")
+      await page.route("**/_next/image?**", (route) =>
+        route.fulfill({ status: 504 }),
+      );
+    await page.clock.install();
+    let requests = 0;
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route(
+      mode === "preview" ? "**/_next/image?**" : uri,
+      async (route) => {
+        requests += 1;
+        if (requests === 1) await pending;
+        await route.fulfill({ contentType: "image/png", body: await raster() });
+      },
+    );
+    try {
+      await gotoWithSession(page, "/feed");
+      const frame = page.getByRole("button", {
+        name: "Открыть фото",
+        exact: true,
+      });
+      await expect(frame.getByRole("status")).toHaveText(
+        "Загрузка изображения…",
+      );
+      await expect.poll(() => requests).toBe(1);
+      const before = await frame.boundingBox();
+      await page.clock.runFor(31_000);
+      const retry = frame.locator("..").getByRole("button", {
+        name: "Повторить загрузку",
+        exact: true,
+      });
+      await expect(retry).toBeVisible();
+      await expect(frame.getByRole("status")).toHaveCount(0);
+      await expect(frame.locator("img")).toHaveCount(0);
+      await page.clock.runFor(60_000);
+      expect(requests).toBe(1);
+      // A late response from the expired request must not change the new state.
+      release();
+      await expect(retry).toBeVisible();
+      await retry.click();
+      // With srcset, naturalWidth is density-corrected on high-DPR devices.
+      await expect
+        .poll(() =>
+          frame
+            .locator("img")
+            .evaluate((img) => (img as HTMLImageElement).naturalWidth),
+        )
+        .toBeGreaterThan(0);
+      await expect(frame.getByRole("status")).toHaveCount(0);
+      // WebKit can reuse the late response from its image cache on retry.
+      expect(requests).toBeLessThanOrEqual(2);
+      await expect(retry).toHaveCount(0);
+      await expect(
+        page.getByRole("dialog", { name: "Просмотр фотографий" }),
+      ).toHaveCount(0);
+      expect((await frame.boundingBox())!.height).toBeCloseTo(
+        before!.height,
+        1,
+      );
+    } finally {
+      release();
+    }
+  });
+}
+
+test("a mounted photo outside the carousel viewport does not time out before scrolling", async ({
   page,
 }) => {
-  await imagesApi(page);
+  await imagesApi(page, [
+    post(
+      1,
+      Array.from({ length: 10 }, (_, i) => imageUrl(i + 1)),
+    ),
+  ]);
   await page.clock.install();
-  let requests = 0;
   let release!: () => void;
   const pending = new Promise<void>((resolve) => {
     release = resolve;
   });
-  await page.route(imageUrl(1), async (route) => {
-    requests += 1;
-    await pending;
+  await page.route("https://images.example.test/**", async (route) => {
+    if (route.request().url() === imageUrl(2)) await pending;
     await route.fulfill({ contentType: "image/png", body: await raster() });
   });
   try {
     await gotoWithSession(page, "/feed");
-    const frame = page.getByRole("button", {
-      name: "Открыть фото",
+    const first = page.getByRole("button", {
+      name: "Открыть фото 1 из 10",
       exact: true,
     });
-    await expect(frame.getByRole("status")).toHaveText("Загрузка изображения…");
-    await expect.poll(() => requests).toBe(1);
-    const before = await frame.boundingBox();
-    await page.clock.runFor(60_000);
-    await expect(frame.getByRole("status")).toHaveText("Загрузка изображения…");
-    await expect(
-      frame.getByRole("img", { name: "Изображение недоступно" }),
-    ).toHaveCount(0);
-    expect(requests).toBe(1);
-    release();
+    const second = page.getByRole("button", {
+      name: "Открыть фото 2 из 10",
+      exact: true,
+    });
     await expect
       .poll(() =>
-        frame
+        first
           .locator("img")
           .evaluate((img) => (img as HTMLImageElement).naturalWidth),
       )
       .toBe(640);
-    await expect(frame.getByRole("status")).toHaveCount(0);
-    expect((await frame.boundingBox())!.height).toBeCloseTo(before!.height, 1);
+    await expect(second.locator("img")).toHaveCount(1);
+    await page.clock.runFor(60_000);
+    await expect(
+      second.locator("..").getByRole("button", { name: "Повторить загрузку" }),
+    ).toHaveCount(0);
+    await second.scrollIntoViewIfNeeded();
+    await expect(second.getByRole("status")).toHaveText(
+      "Загрузка изображения…",
+    );
+    release();
+    await expect
+      .poll(() =>
+        second
+          .locator("img")
+          .evaluate((img) => (img as HTMLImageElement).naturalWidth),
+      )
+      .toBe(640);
   } finally {
     release();
   }
@@ -325,11 +416,18 @@ for (const count of [1, 9, 10]) {
 test("manual retry also restores a full-size photo in the viewer", async ({
   page,
 }) => {
-  await imagesApi(page);
+  const original =
+    "https://s3.twcstorage.ru/daryadarcy-s3/feed/viewer-photo.jpg";
+  await imagesApi(page, [post(1, [original])]);
   await page.clock.install();
-  let fail = false;
+  // Preview and original are distinct resources, as on the real feed.
+  // WebKit otherwise reuses the already decoded card image in the viewer.
+  await page.route("**/_next/image?**", async (route) =>
+    route.fulfill({ contentType: "image/png", body: await raster() }),
+  );
+  let fail = true;
   let requests = 0;
-  await page.route(imageUrl(1), async (route) => {
+  await page.route(original, async (route) => {
     if (fail) {
       requests += 1;
       return route.fulfill({ status: 503 });
@@ -344,8 +442,7 @@ test("manual retry also restores a full-size photo in the viewer", async ({
         .locator("img")
         .evaluate((img) => (img as HTMLImageElement).naturalWidth),
     )
-    .toBe(640);
-  fail = true;
+    .toBeGreaterThan(0);
   await frame.click();
   const viewer = page.getByRole("dialog", { name: "Просмотр фотографий" });
   await expect(
@@ -400,7 +497,7 @@ test("a failed optimized preview falls back to the original and waits for it", a
     await expect(photo).toHaveCount(1);
     await expect(photo).not.toHaveAttribute("srcset");
     await expect.poll(() => requests).toBe(1);
-    await page.clock.runFor(60_000);
+    await page.clock.runFor(20_000);
     expect(requests).toBe(1);
     await expect(
       page.getByRole("button", { name: "Повторить загрузку", exact: true }),
@@ -437,6 +534,8 @@ async function refresh(page: Page) {
 test("replacing a photo keeps its reserved frame and clears a previous failure", async ({
   page,
 }) => {
+  // The 4:5 assertion below assumes the frame is below its 60svh height cap.
+  await page.setViewportSize({ width: 390, height: 844 });
   const posts = [post(1)];
   await imagesApi(page, posts);
   await page.route("https://images.example.test/**", async (route) => {
@@ -501,6 +600,7 @@ test("replacing a photo keeps its reserved frame and clears a previous failure",
 test("recreated cards reserve the same frame before reloading a landscape photo", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await imagesApi(page);
   let block = false;
   let release!: () => void;
