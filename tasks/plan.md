@@ -63,6 +63,13 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **21 октября, SEC — новая backend-only очередь по аудиту:** пользователь
+  разрешил исправления начиная с Pen Pals и public legacy uploads. Первый
+  scoped access срез RED8→GREEN8 +21 capability, types/build: participation
+  проверяется до delete/update, unavailable404, bounded integer IDs. Это не
+  проверка реальных SQL locks; lifecycle/public uploads ещё открыты. Далее push,
+  отмена, validation/DTO; working DB/S3/frontend/flags/push/deploy не менять.
+
 - **21 октября, U1-MEM3 — ограниченный worker transport, общий gate открыт:**
   локально сохранена изоляция signature worker, но весь input не копируется:
   random-access tokenizer получает independent chunks<=64KiB по запросу,

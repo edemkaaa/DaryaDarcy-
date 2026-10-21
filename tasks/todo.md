@@ -4,6 +4,19 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### SEC — исправления по аудиту, 21 октября
+
+- [x] Первый срез Pen Pals: проверка участия до reject/accept, scoped DELETE/
+  UPDATE, чужая и неизвестная заявка дают одинаковый404; ID должен быть
+  положительным целым в SQL INT. RED8/8 (в том числе чужой reject200), GREEN
+ 8 access +21 capability tests, root types/backend build. HTTP/router/Drizzle
+  настоящие, session lookup/SQL transport doubles; не MySQL locking acceptance.
+- [ ] Pen Pals lifecycle: атомарные проверки активных анкет/срока и гонок.
+- [ ] Legacy uploads: перекрыть публичную запись закрытых материалов, сохранить
+  public avatars/covers; без правок frontend, working DB/S3, push/deploy.
+- [ ] Далее по согласованному порядку: push registration, cancellation state,
+  input validation и public profile DTO. Не считать закрытыми текущим срезом.
+
 #### U1-MEM3 — bounded signature reads,21 октября
 
 - [x] Clean6a00a14/ветка/план сверены, backend-only границы прежние. Diagnostic

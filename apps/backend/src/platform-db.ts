@@ -361,14 +361,17 @@ export async function respondPenPalMatch(userId: number, matchId: number, accept
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const [row] = await db.select().from(penPalMatches).where(eq(penPalMatches.id, matchId)).limit(1);
-  if (!row) throw new Error("Match not found");
+  if (!row || (row.userLowId !== userId && row.userHighId !== userId)) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Заявка недоступна" });
+  }
+  const ownedMatch = and(eq(penPalMatches.id, matchId),
+    or(eq(penPalMatches.userLowId, userId), eq(penPalMatches.userHighId, userId)));
   if (!accept) {
-    await db.delete(penPalMatches).where(eq(penPalMatches.id, matchId));
+    await db.delete(penPalMatches).where(ownedMatch);
     return;
   }
   const isLow = row.userLowId === userId;
   const isHigh = row.userHighId === userId;
-  if (!isLow && !isHigh) throw new Error("Forbidden");
 
   const userLowConfirmed = isLow ? true : row.userLowConfirmed;
   const userHighConfirmed = isHigh ? true : row.userHighConfirmed;
@@ -378,7 +381,7 @@ export async function respondPenPalMatch(userId: number, matchId: number, accept
     userLowConfirmed,
     userHighConfirmed,
     mutualConfirmedAt: mutual ? row.mutualConfirmedAt ?? new Date() : null,
-  }).where(eq(penPalMatches.id, matchId));
+  }).where(ownedMatch);
 }
 
 
