@@ -3,6 +3,7 @@
 services:
   api:
     env_file: [./api.env, ./private-uploads.env]
+    networks: [isolated, s3-client]
     depends_on:
       s3-egress: { condition: service_healthy }
   s3-egress:
@@ -11,7 +12,9 @@ services:
     user: "101:101"
     entrypoint: ["nginx", "-g", "daemon off;"]
     networks:
-      isolated: { aliases: [s3.twcstorage.ru] }
+      # Scope the alias to API. Sharing it with web makes Next's SSRF guard
+      # reject public feed previews because S3 resolves to a private address.
+      s3-client: { aliases: [s3.twcstorage.ru] }
       s3-egress: {}
     volumes: ["./s3-egress.conf:/etc/nginx/nginx.conf:ro"]
     tmpfs: ["/tmp:size=16m,mode=1777"]
@@ -32,4 +35,5 @@ services:
       driver: json-file
       options: { max-size: "1m", max-file: "2" }
 networks:
+  s3-client: { internal: true }
   s3-egress: {}
