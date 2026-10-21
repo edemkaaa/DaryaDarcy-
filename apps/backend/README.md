@@ -76,3 +76,10 @@ pnpm build
 - Изменение API должно сопровождаться тестами; [снимок контракта](../../__tests__/trpc-contract.test.ts) защищает имена процедур.
 
 Актуальные ограничения выпуска — в [tasks/todo.md](../../tasks/todo.md).
+
+Отмена подписки21 октября: `club.cancel` после сохранённого запроса возвращает
+`cancellationStatus=pending|confirmed`, `ok=true`, прежний `expiresAt` и message;
+ожидание провайдера больше не500. `club.subscription` читает none/pending/confirmed
+в согласованном read-only snapshot. Pending не означает отключённое автосписание;
+backoff, подтверждение всех профилей и оплаченный срок прежние. Frontend/стенд
+не обновлялись. [Контракт отмены и handoff](../../docs/development/subscription-cancellation-contract-2026-10-21.md).

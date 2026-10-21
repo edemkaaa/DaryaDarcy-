@@ -16,6 +16,7 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import { EMAIL_REGISTER_CONSENT_VERSION } from "../packages/shared/src/consent-texts";
 
 type FlowResult = {
+  cancellationStatus?: "none" | "pending" | "confirmed";
   state?: string;
   orderId?: string;
   url?: string;
@@ -576,7 +577,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(
         (await trpc("club.subscription", undefined, cookie, true)).data,
-      ).toEqual(renewed);
+      ).toEqual({ ...renewed, cancellationStatus: "pending" });
       expect(
         await rows(
           "SELECT orderId,status,expiresAt,cancelAtPeriodEnd FROM club_payments WHERE userId=? ORDER BY id",
@@ -596,7 +597,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(
         (await trpc("club.subscription", undefined, cookie, true)).data,
-      ).toEqual(renewed);
+      ).toEqual({ ...renewed, cancellationStatus: "pending" });
       await drainMail();
       expect(smtp.messages).toHaveLength(4); // setup + two purchases + reset.
       const resetToken = setupToken(smtp.messages.length - 1);
@@ -640,7 +641,7 @@ describe.skipIf(!testDatabaseUrl)(
       cookie = relogin.headers.get("set-cookie")!.split(";")[0];
       expect(
         (await trpc("club.subscription", undefined, cookie, true)).data,
-      ).toEqual(renewed);
+      ).toEqual({ ...renewed, cancellationStatus: "pending" });
       expect(
         await rows(
           "SELECT orderId,status,expiresAt,cancelAtPeriodEnd FROM club_payments WHERE userId=? ORDER BY id",
@@ -652,10 +653,19 @@ describe.skipIf(!testDatabaseUrl)(
           .sessionVersion,
       ).toBe(initialIdentity[0].sessionVersion + 2); // block + password reset.
       expect((await trpc("club.cancel", undefined, "")).status).toBe(401);
-      expect((await trpc("club.cancel", undefined, cookie)).status).toBe(500);
+      const requestedCancellation = await trpc(
+        "club.cancel",
+        undefined,
+        cookie,
+      );
+      expect(requestedCancellation.status).toBe(200);
+      expect(requestedCancellation.data).toMatchObject({
+        cancellationStatus: "pending",
+        expiresAt: renewed.expiresAt,
+      });
       expect(
         (await trpc("club.subscription", undefined, cookie, true)).data,
-      ).toEqual(renewed);
+      ).toEqual({ ...renewed, cancellationStatus: "pending" });
       expect(
         (
           await rows(
@@ -680,6 +690,7 @@ describe.skipIf(!testDatabaseUrl)(
         hasClubAccess: true,
         subscribed: true,
         cancelAtPeriodEnd: true,
+        cancellationStatus: "confirmed",
         expiresAt: renewed.expiresAt,
       });
       await drainMail();

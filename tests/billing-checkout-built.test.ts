@@ -45,7 +45,7 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
             sessions.optionalUser = async () => null;
             subscriptions.subscription = async (actor) => {
               if (actor !== null) throw Error("Wrong subscription actor");
-              return { subscribed: false, expiresAt: null, cancelAtPeriodEnd: false, isOwner: false, monthlyPrice: "1250" };
+              return { hasClubAccess: false, subscribed: false, expiresAt: null, cancelAtPeriodEnd: false, cancellationStatus: "none", isOwner: false, monthlyPrice: "1250" };
             };
             const status = await client.club.subscription.query();
             subscriptions.cancel = async () => { throw Error("Guest must not reach cancellation"); };
@@ -75,7 +75,7 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
             };
             subscriptions.cancel = async (id) => {
               if (id !== 7) throw Error("Wrong cancellation actor");
-              return { ok: true, expiresAt: new Date("2026-11-01T00:00:00Z") };
+              return { ok: true, cancellationStatus: "confirmed", expiresAt: new Date("2026-11-01T00:00:00Z"), message: "synthetic supplied cancellation confirmation" };
             };
             const claimed = await client.club.claimPending.mutate();
             const cancelled = await client.club.cancel.mutate();
@@ -148,15 +148,22 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
         user: null,
       },
       status: {
+        hasClubAccess: false,
         subscribed: false,
         expiresAt: null,
         cancelAtPeriodEnd: false,
+        cancellationStatus: "none",
         isOwner: false,
         monthlyPrice: "1250",
       },
       anonymousError: { code: "UNAUTHORIZED", status: 401 },
       claimed: { granted: true, orderId: "club-7-confirmed" },
-      cancelled: { ok: true, expiresAt: "2026-11-01T00:00:00.000Z" },
+      cancelled: {
+        ok: true,
+        cancellationStatus: "confirmed",
+        expiresAt: "2026-11-01T00:00:00.000Z",
+        message: "synthetic supplied cancellation confirmation",
+      },
       unsignedWebhook: { status: 400, body: "signature incorrect" },
       signedWebhook: { status: 200, body: "ignored" },
       settlementWebhook: {

@@ -63,6 +63,15 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **21 октября, SEC cancellation state:** локальный API отличает сохранённое
+  pending от confirmed и не отдаёт500 при ожидании. Read-status в подписке
+  восстанавливает состояние после reload/ACK loss; read-only RR snapshot
+  устранил доказанную SQL гонку «ложный none». RED3→GREEN32 focused,
+  final93 HTTP/JWT/MySQL/signed-loopback-provider/SMTP/test-checkout regressions
+  на собственной fresh42 tmpfs БД GREEN,3 own containers убраны по guards.
+  Real provider/платежи/стенд не проверялись; фронт/working DB/S3/flags/release
+  не менялись. Контракт и обязательный frontend handoff:
+  [subscription-cancellation-contract-2026-10-21.md](../docs/development/subscription-cancellation-contract-2026-10-21.md).
 - **21 октября, SEC push registration:** по отдельному поручению локально
   закрыта запись при webPush=false (router/service403), добавлены bounded
   Expo/legacy token validation и platform allowlist, квоты30/IP и10/account

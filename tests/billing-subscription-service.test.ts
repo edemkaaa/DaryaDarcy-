@@ -1,4 +1,4 @@
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { ClubPayment, User } from "../packages/database/src/schema";
 import { ClubSubscriptionService } from "../apps/backend/src/billing/club-subscription.service";
 import * as db from "../apps/backend/src/db";
@@ -43,9 +43,21 @@ const paid: ClubPayment = {
   updatedAt: new Date(0),
 };
 const service = new ClubSubscriptionService();
-// An opaque DB handle is sufficient here: the unchanged durable cancellation
-// helper owns SQL. Tests replace that boundary, not transactions or the service.
-const database = {} as NonNullable<Awaited<ReturnType<typeof db.getDb>>>;
+// Selected read transport only; SQL predicates/ownership are tested on MySQL.
+// Cancellation write tests replace the durable helper, not the service.
+const database = {
+  async transaction(
+    run: (reader: unknown) => Promise<unknown>,
+  ): Promise<unknown> {
+    return run(this);
+  },
+  select: () => ({
+    from: () => ({ where: () => ({ limit: async () => [] }) }),
+  }),
+} as unknown as NonNullable<Awaited<ReturnType<typeof db.getDb>>>;
+beforeEach(() => {
+  vi.spyOn(db, "getDb").mockResolvedValue(database);
+});
 afterEach(() => vi.restoreAllMocks());
 
 it.each([null, { ...member, role: "admin" as const, blockedAt: new Date(0) }])(
@@ -59,6 +71,7 @@ it.each([null, { ...member, role: "admin" as const, blockedAt: new Date(0) }])(
       subscribed: false,
       expiresAt: null,
       cancelAtPeriodEnd: false,
+      cancellationStatus: "none",
       isOwner: false,
       monthlyPrice: CLUB_PRICE,
     });
@@ -79,6 +92,7 @@ it.each(["user", "moderator", "admin"] as const)(
       subscribed: role === "admin",
       expiresAt: null,
       cancelAtPeriodEnd: false,
+      cancellationStatus: "none",
       isOwner: role === "admin",
       monthlyPrice: CLUB_PRICE,
     });
@@ -91,6 +105,7 @@ it("paid status preserves the expiry and confirmed cancellation flag", async () 
     subscribed: true,
     expiresAt: paidUntil,
     cancelAtPeriodEnd: true,
+    cancellationStatus: "confirmed",
     isOwner: false,
     monthlyPrice: CLUB_PRICE,
   });
@@ -151,15 +166,43 @@ it("failed cancellation lookup has a safe public error", async () => {
     message: "Не удалось определить подписку. Обратитесь в поддержку.",
   });
 });
-it("unconfirmed cancellation is not reported as successful", async () => {
+it("an accepted cancellation reports pending instead of a server error", async () => {
   vi.spyOn(db, "getDb").mockResolvedValue(database);
   vi.spyOn(cancellation, "requestClubCancellation").mockResolvedValue({
     confirmed: false,
     expiresAt: paidUntil,
   });
-  await expect(service.cancel(7)).rejects.toMatchObject({
-    code: "INTERNAL_SERVER_ERROR",
+  await expect(service.cancel(7)).resolves.toMatchObject({
+    ok: true,
+    cancellationStatus: "pending",
+    expiresAt: paidUntil,
     message: expect.stringContaining("пока не подтвердила отмену"),
+  });
+});
+it("subscription reads expose a persisted pending cancellation without claiming auto-renewal has stopped", async () => {
+  vi.spyOn(db, "getActiveClubSubscription").mockResolvedValue({
+    ...paid,
+    cancelAtPeriodEnd: false,
+    cancelledAt: null,
+  });
+  // Only the selected SQL transport is doubled. The service must actually
+  // derive pending from durable profile state; a missing response field fails RED.
+  vi.spyOn(db, "getDb").mockResolvedValue({
+    ...database,
+    select: () => ({
+      from: () => ({
+        where: () => ({
+          limit: async () => [{ profileKey: "synthetic-pending-profile" }],
+        }),
+      }),
+    }),
+  } as unknown as typeof database);
+  expect(await service.subscription(member)).toMatchObject({
+    hasClubAccess: true,
+    subscribed: true,
+    cancellationStatus: "pending",
+    cancelAtPeriodEnd: false,
+    expiresAt: paidUntil,
   });
 });
 it.each([paidUntil, null])(
@@ -174,6 +217,11 @@ it.each([paidUntil, null])(
         return { confirmed: true, expiresAt };
       },
     );
-    expect(await service.cancel(7)).toEqual({ ok: true, expiresAt });
+    expect(await service.cancel(7)).toMatchObject({
+      ok: true,
+      cancellationStatus: "confirmed",
+      expiresAt,
+      message: expect.any(String),
+    });
   },
 );

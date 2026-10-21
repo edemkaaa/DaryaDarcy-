@@ -49,7 +49,9 @@
   pen-recheck logs и cleaned receipts; оператор без external service credentials.
 - [ ] Frontend integration остаётся фронтендеру, не выполнена этим backend-only
   срезом. `check:api` ожидаемо RED: artifact-only generator diff подтвердил
-  единственную новую строку purpose:"publicCover" (90 procedures/35438 bytes).
+  для legacy-upload среза purpose:"publicCover" (90 procedures/35438 bytes).
+  Последующий cancellation срез добавил cancellationStatus в subscription/cancel
+  и message в cancel (90 procedures/35613 bytes); новый handoff ниже.
   Frontend/generated file без diff. Инструкция:
   [frontend-security-upload-contract-2026-10-21.md](../docs/development/frontend-security-upload-contract-2026-10-21.md).
   Стенд не обновлялся; старые публичные копии этим не закрыты.
@@ -76,8 +78,35 @@
   quota до input/SQL; multi-worker/restart ограничения явно оставлены в handoff.
   Это не live/browser/delivery приёмка; backend ESLint config отсутствует,
   lint не выдан за GREEN и новый config вне задачи не добавлялся.
-- [ ] Далее по согласованному порядку: cancellation state, input validation
-  и public profile DTO. Не считать закрытыми текущим срезом.
+- [x] Cancellation state локально: `club.cancel` после durable queue даёт200/
+  ok:true с cancellationStatus pending/confirmed, expiresAt и безопасным message,
+  а не500 ожидания. `ok` означает принятие запроса, не отключённое автосписание.
+  `club.subscription` восстанавливает none/pending/confirmed после потери ответа
+  и reload; authenticated read-only RR snapshot исключает ложный none при
+  concurrent worker confirmation (отдельный SQL RED→GREEN). Access/paid period,
+  provider/backoff/queue/settlement rules и cancellation ingress не менялись.
+  RED3→GREEN32 service/HTTP/composition; собственная fresh42 tmpfs backend_test
+  final93/93 в6 SQL suites, включая8 новых HTTP/JWT/signed-loopback-provider,
+  старый registration/SMTP flow и test checkout (не настоящие платежи).
+  Первый SQL run упал на fixture2099 вне TIMESTAMP range; исправлен на2030.
+  Затем7/8 GREEN/1 race RED, после snapshot fix final93 GREEN; эти этапы не
+  выдаются за непрерывный успешный первый запуск.3 own containers убраны по
+  guards, прежние3 stopped containers сохранены. Evidence workspace:
+  `.local-artifacts/cancellation-status-20261021.CnqkWE`. Frontend/generated,
+  working DB/S3, external provider/push/deploy не тронуты. Handoff:
+  [subscription-cancellation-contract-2026-10-21.md](../docs/development/subscription-cancellation-contract-2026-10-21.md).
+- [x] Финальная cancellation regression: Vitest3006 pass/1549 opt-in skips,
+ 219 passed files/102 skipped,33.98s. Types/backend build GREEN; формат8 scoped
+  code/test files GREEN. Artifact-only generation90/35613 bytes, diff ровно
+  status/message сверх прежнего publicCover, frontend hash без изменения.
+  Boundaries716/docs67/diff GREEN. Review: DTO не раскрывает provider profiles,
+  query не запускает cancellation worker, bounded indexed pending lookup;
+  read-only snapshot проверен настоящим concurrent SQL-сценарием. Formatter,
+  auth/price/expiry/backoff/schema/dependencies не менялись. Backend ESLint
+  config отсутствует; lint не выдавался за GREEN, новый config не добавлялся.
+  Это не обновлённый frontend contract и не приёмка реального провайдера.
+- [ ] Далее по согласованному порядку: input validation и public profile DTO.
+  Не считать закрытыми текущим срезом.
 
 #### U1-MEM3 — bounded signature reads,21 октября
 

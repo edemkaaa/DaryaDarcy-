@@ -39,6 +39,7 @@ const subscriptions = {
       subscribed: true,
       expiresAt: paidUntil,
       cancelAtPeriodEnd: false,
+      cancellationStatus: "none" as const,
       isOwner: false,
       monthlyPrice: "1250",
     };
@@ -49,7 +50,12 @@ const subscriptions = {
   },
   async cancel(userId: number) {
     expect(userId).toBe(7);
-    return { ok: true as const, expiresAt: paidUntil };
+    return {
+      ok: true as const,
+      cancellationStatus: "confirmed" as const,
+      expiresAt: paidUntil,
+      message: "synthetic supplied cancellation confirmation",
+    };
   },
 };
 function caller(user: User | null = member) {
@@ -77,6 +83,7 @@ it("subscription status uses the supplied billing service", async () => {
     subscribed: true,
     expiresAt: paidUntil,
     cancelAtPeriodEnd: false,
+    cancellationStatus: "none",
     isOwner: false,
     monthlyPrice: "1250",
   });
@@ -92,7 +99,9 @@ it("cancellation uses the supplied service and retains paid expiry", async () =>
   vi.stubEnv("DATABASE_URL", "");
   expect(await caller().club.cancel()).toEqual({
     ok: true,
+    cancellationStatus: "confirmed",
     expiresAt: paidUntil,
+    message: "synthetic supplied cancellation confirmation",
   });
 });
 it.each(["cancel", "claimPending"] as const)(

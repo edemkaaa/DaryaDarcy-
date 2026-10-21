@@ -28,6 +28,30 @@ import {
 export type Profile = typeof billingProfiles.$inferSelect & {
   manager?: boolean;
 };
+
+/** Read-only recovery after an unknown/lost cancellation response. A stored
+ * request is not proof that the provider has disabled future charges.
+ */
+export async function readClubCancellationStatus(
+  database: Pick<MySql2Database, "select">,
+  userId: number,
+  cancelAtPeriodEnd: boolean,
+): Promise<"none" | "pending" | "confirmed"> {
+  const pending = await database
+    .select({ profileKey: billingProfiles.profileKey })
+    .from(billingProfiles)
+    .where(
+      and(
+        eq(billingProfiles.userId, userId),
+        isNotNull(billingProfiles.cancelRequestedAt),
+        isNull(billingProfiles.cancelledAt),
+      ),
+    )
+    .limit(1);
+  if (pending.length) return "pending";
+  return cancelAtPeriodEnd ? "confirmed" : "none";
+}
+
 export async function queueCancellationForUser(
   tx: Transaction,
   userId: number,

@@ -9,6 +9,8 @@ import { ClubSubscriptionService } from "../apps/backend/src/billing/club-subscr
 import { SessionService } from "../apps/backend/src/identity/session.service";
 import type { AppRouter } from "../apps/backend/src/routers";
 import type { User } from "../packages/database/src/schema";
+import * as db from "../apps/backend/src/db";
+import * as cancellation from "../apps/backend/src/billing/cancellation";
 
 const member: User = {
   id: 7,
@@ -60,6 +62,7 @@ it("HTTP status uses the Nest-managed subscription provider for guests", async (
       subscribed: false,
       expiresAt: null,
       cancelAtPeriodEnd: false,
+      cancellationStatus: "none" as const,
       isOwner: false,
       monthlyPrice: "1250",
     };
@@ -69,6 +72,7 @@ it("HTTP status uses the Nest-managed subscription provider for guests", async (
     subscribed: false,
     expiresAt: null,
     cancelAtPeriodEnd: false,
+    cancellationStatus: "none",
     isOwner: false,
     monthlyPrice: "1250",
   });
@@ -90,11 +94,18 @@ it("HTTP cancellation retains paid expiry via the Nest provider", async () => {
   vi.spyOn(sessions, "optionalUser").mockResolvedValue(member);
   vi.spyOn(subscriptions, "cancel").mockImplementation(async (id) => {
     expect(id).toBe(7);
-    return { ok: true as const, expiresAt: paidUntil };
+    return {
+      ok: true as const,
+      cancellationStatus: "confirmed" as const,
+      expiresAt: paidUntil,
+      message: "synthetic supplied cancellation confirmation",
+    };
   });
   expect(await client().club.cancel.mutate()).toEqual({
     ok: true,
+    cancellationStatus: "confirmed",
     expiresAt: paidUntil,
+    message: "synthetic supplied cancellation confirmation",
   });
 });
 it.each(["cancel", "claimPending"] as const)(
@@ -133,5 +144,26 @@ it("HTTP cancellation failure remains a safe failure, not success", async () => 
   await expect(client().club.cancel.mutate()).rejects.toMatchObject({
     message: "Внутренняя ошибка сервера",
     data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+  });
+});
+
+it("real service exposes a queued cancellation over HTTP without masking it as 500", async () => {
+  vi.spyOn(sessions, "optionalUser").mockResolvedValue(member);
+  const handle = {} as NonNullable<Awaited<ReturnType<typeof db.getDb>>>;
+  vi.spyOn(db, "getDb").mockResolvedValue(handle);
+  vi.spyOn(cancellation, "requestClubCancellation").mockImplementation(
+    async (database, userId) => {
+      if (database !== handle || userId !== member.id)
+        throw new Error("Wrong cancellation owner");
+      return { confirmed: false, expiresAt: paidUntil };
+    },
+  );
+  // Router/service/formatter are real; durable helper is the isolated boundary.
+  // A separate disposable SQL suite covers commit, retries and ownership.
+  await expect(client().club.cancel.mutate()).resolves.toMatchObject({
+    ok: true,
+    cancellationStatus: "pending",
+    expiresAt: paidUntil,
+    message: expect.stringContaining("пока не подтвердила отмену"),
   });
 });
