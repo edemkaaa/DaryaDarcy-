@@ -45,7 +45,10 @@ export default {
     // Keep decoded source images out of the native operation cache.
     // Compressed previews still use the bounded persistent disk cache.
     imgOptOperationCache: false,
-    imgOptMaxInputPixels: 20_000_000,
+    // Existing feed portraits reach 37MP. Keep a finite decoding ceiling;
+    // the deployment serializes Sharp jobs with UV_THREADPOOL_SIZE=1.
+    imgOptMaxInputPixels: 40_000_000,
+    imgOptSequentialRead: true,
     imgOptTimeoutInSeconds: 10,
   },
   async headers() {
