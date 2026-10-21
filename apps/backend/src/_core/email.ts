@@ -1,13 +1,15 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { z } from "zod";
-import { PUBLIC_CONTACT_EMAIL } from "../../../../packages/shared/src/contact";
+// Contact recipients may change independently of an authenticated SMTP identity.
+// Keep the existing Yandex defaults until a complete replacement is configured.
+const DEFAULT_SMTP_IDENTITY = "daryadarcyapp@yandex.ru";
 
 let transporter: Transporter | null = null;
 
 function getTransporter(): Transporter | null {
   if (transporter) return transporter;
   const host = (process.env.SMTP_HOST || "smtp.yandex.ru").trim();
-  const user = (process.env.SMTP_USER || PUBLIC_CONTACT_EMAIL).trim();
+  const user = (process.env.SMTP_USER || DEFAULT_SMTP_IDENTITY).trim();
   const pass = (process.env.SMTP_PASS || "").trim();
   if (!pass) return null;
   transporter = nodemailer.createTransport({
@@ -35,7 +37,7 @@ export async function sendTransactionalEmail(input: {
   messageId?: string;
 }): Promise<boolean> {
   const to = input.to.trim();
-  const from = (process.env.SMTP_FROM || PUBLIC_CONTACT_EMAIL).trim();
+  const from = (process.env.SMTP_FROM || DEFAULT_SMTP_IDENTITY).trim();
   // Access links are private: never accept a display-name/address-list here.
   const recipient = z.email().max(320);
   if (!recipient.safeParse(to).success || !recipient.safeParse(from).success) return false;

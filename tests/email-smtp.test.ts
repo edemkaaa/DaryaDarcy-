@@ -60,6 +60,28 @@ afterEach(async () => {
 
 const mail = { to: "member@example.test", subject: "Access", text: "<tag>&", messageId: "<access-test@example.test>" };
 
+it("keeps the legacy SMTP identity independent of the public contact recipient", async () => {
+  vi.stubEnv("SMTP_USER", "");
+  vi.stubEnv("SMTP_FROM", "");
+  const { sendTransactionalEmail } = await import("../apps/backend/src/_core/email");
+  expect(await sendTransactionalEmail(mail)).toBe(true);
+  expect(commands).toContain("MAIL FROM:<daryadarcyapp@yandex.ru>");
+  const auth = commands.find(command => command.startsWith("AUTH PLAIN "))!;
+  expect(Buffer.from(auth.slice("AUTH PLAIN ".length), "base64").toString()).toBe(
+    "\0daryadarcyapp@yandex.ru\0smtp-test-only",
+  );
+});
+
+it("uses an explicitly configured owner identity on the loopback transport", async () => {
+  vi.stubEnv("SMTP_USER", "daryadarcy19@gmail.com");
+  vi.stubEnv("SMTP_FROM", "daryadarcy19@gmail.com");
+  const { sendTransactionalEmail } = await import("../apps/backend/src/_core/email");
+  expect(await sendTransactionalEmail(mail)).toBe(true);
+  expect(commands).toContain("MAIL FROM:<daryadarcy19@gmail.com>");
+  expect(commands.filter(command => command.startsWith("RCPT TO"))).toEqual(["RCPT TO:<member@example.test>"]);
+  expect(messages[0]).toContain("From: DARYADARCY <daryadarcy19@gmail.com>");
+});
+
 it("delivers one envelope recipient, stable Message-ID and escaped HTML through real SMTP", async () => {
   const { sendTransactionalEmail } = await import("../apps/backend/src/_core/email");
   expect(await sendTransactionalEmail(mail)).toBe(true);

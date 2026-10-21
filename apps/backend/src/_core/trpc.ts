@@ -4,6 +4,7 @@ import superjson from "superjson";
 import type { TrpcContext } from "./context";
 import * as db from "../db";
 import { userHasClubAccess } from "../identity/club-access";
+import { PUBLIC_CONTACT_EMAIL } from "../../../../packages/shared/src/contact";
 export { userHasClubAccess } from "../identity/club-access";
 
 const t = initTRPC.context<TrpcContext>().create({
@@ -36,7 +37,7 @@ const requireUser = t.middleware(async (opts) => {
   if (ctx.user.blockedAt) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Аккаунт заблокирован. Напишите на daryadarcyapp@yandex.ru",
+      message: `Аккаунт заблокирован. Напишите на ${PUBLIC_CONTACT_EMAIL}`,
     });
   }
 
