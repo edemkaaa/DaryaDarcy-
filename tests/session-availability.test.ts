@@ -89,8 +89,6 @@ const upload = (path: string) =>
 
 it.each([
   "/api/trpc/admin.uploadPhoto",
-  "/api/trpc/admin.uploadMedia",
-  "/api/admin/upload-video",
   "/api/admin/private-video-uploads?filename=fixture.mp4",
 ].flatMap(path => ["lookup", "activity", "untyped-denial"].map(boundary => ({ path, boundary }))))(
   "keeps an ingress $boundary failure at $path distinct from invalid authentication",
@@ -109,7 +107,6 @@ it.each([
   },
 );
 it.each([
-  "/api/admin/upload-video",
   "/api/admin/private-video-uploads?filename=fixture.mp4",
 ].flatMap(path => ["lookup", "activity"].map(boundary => ({ path, boundary }))))(
   "keeps a second $boundary check failure at $path distinct from invalid authentication",
@@ -133,7 +130,6 @@ it.each([
   },
 );
 it.each([
-  "/api/admin/upload-video",
   "/api/admin/private-video-uploads?filename=fixture.mp4",
 ].flatMap(path => ["blocked", "revoked", "role"].map(change => ({ path, change }))))(
   "still rejects an account changed by $change after body admission at $path",

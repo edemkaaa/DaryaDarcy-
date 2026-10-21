@@ -1,8 +1,9 @@
 import express, { type Express, type Request, type Response } from "express";
 import { SessionService } from "../identity/session.service";
 import { privateVideoMetadata, privateVideoUploadEnabled } from "../content/private-video-input";
+import { retiredPublicUploads, retiredUploadMessage } from "../media/legacy-upload-policy";
 
-const photoProcedures = new Set(["profile.uploadAvatar", "club.uploadCommentPhoto", "club.uploadPrivateCommentPhoto", "admin.uploadPhoto"]);
+const photoProcedures = new Set(["profile.uploadAvatar", "club.uploadPrivateCommentPhoto", "admin.uploadPhoto"]);
 const sessions = new SessionService();
 export const MEDIA_JSON_BODY_LIMIT = 50 * 1024 * 1024;
 const streamedMediaRequests = new WeakSet<Request>();
@@ -45,12 +46,8 @@ export function registerRequestBodies(app: Express) {
       next();
     });
   });
-  app.post("/api/admin/upload-video", async (req, res, next) => {
-    if (!(await requireUploadIdentity(req, res, true))) return;
-    express.raw({ type: () => true, limit: "80mb" })(req, res, err => {
-      if (err) { bodyError(res, err); return; }
-      next();
-    });
+  app.post("/api/admin/upload-video", (_req, res) => {
+    res.status(404).json({ error: retiredUploadMessage });
   });
   app.use(async (req, res, next) => {
     // POST has its bounded raw parser; GET/its implicit HEAD use query only.
@@ -59,12 +56,15 @@ export function registerRequestBodies(app: Express) {
     let path: string;
     try { path = decodeURIComponent(req.path); } catch { res.sendStatus(400); return; }
     const names = path.startsWith("/api/trpc/") ? path.slice("/api/trpc/".length).split(",") : [];
+    if (names.some(name => retiredPublicUploads.has(name.replace(/\/$/, "")))) {
+      res.status(404).json({ error: retiredUploadMessage }); return;
+    }
     const privateUpload = names.includes("admin.uploadPrivateAttachment");
     if (privateUpload && process.env.PRIVATE_POST_MEDIA_UPLOAD_ENABLED !== "true") { res.status(404).json({ error: "Загрузка недоступна" }); return; }
     const privateContentUpload = names.includes("admin.uploadPrivateContentFile") || names.includes("club.uploadPrivateCommentPhoto");
     if (privateContentUpload && process.env.PRIVATE_CONTENT_FILES_ENABLED !== "true") { res.status(404).json({ error: "Загрузка недоступна" }); return; }
     // Base64 envelopes need room above the existing decoded 4/32 MiB quotas.
-    const media = names.includes("admin.uploadMedia") || privateUpload || names.includes("admin.uploadPrivateContentFile");
+    const media = privateUpload || names.includes("admin.uploadPrivateContentFile");
     const photo = names.some(name => photoProcedures.has(name));
     if ((media || photo) && !(await requireUploadIdentity(req, res, media || names.includes("admin.uploadPhoto")))) return;
     // tRPC 11 stringifies an Express-parsed object and parses it again. Let its

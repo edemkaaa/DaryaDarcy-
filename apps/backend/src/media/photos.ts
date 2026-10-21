@@ -3,6 +3,7 @@ import sharp from "sharp";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { storagePut } from "../storage";
+import { rejectLegacyUpload } from "./legacy-upload-policy";
 
 // Defense in depth for GHSA-wq5f-xc86-pv6w: no API feature needs SVG decoding.
 // Block the native loader family even if a future caller misses the byte gate.
@@ -18,6 +19,7 @@ export const photoInput = z.object({
   filename: z.string().max(256),
   mimeType: z.string().max(128).default("image/jpeg"),
 });
+export const publicCoverPhotoInput = photoInput.extend({ purpose: z.literal("publicCover") });
 
 /** Decode/re-encode on every photo boundary; keys and MIME are server-owned. */
 export async function preparePhoto(base64: string): Promise<Buffer> {
@@ -55,6 +57,8 @@ export async function preparePhoto(base64: string): Promise<Buffer> {
 }
 
 export async function uploadPhoto(base64: string, folder: string): Promise<{ url: string }> {
+  // Public images have an explicit purpose; arbitrary content folders are retired.
+  if (folder !== "covers" && !/^avatars\/[1-9]\d*$/.test(folder)) rejectLegacyUpload();
   const output = await preparePhoto(base64);
   const stored = await storagePut(`${folder}/${randomUUID()}.webp`, output, "image/webp");
   return { url: stored.url };

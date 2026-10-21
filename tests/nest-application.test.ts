@@ -105,11 +105,7 @@ it("keeps malformed JSON out of handlers and out of error responses", async () =
   expect(response.status).toBe(400);
   expect(await response.json()).toEqual({ error: "Некорректный запрос" });
 });
-it.each([
-  "/api/admin/upload-video",
-  "/api/trpc/admin.uploadMedia",
-  "/api/trpc/profile.uploadAvatar,auth.me",
-])(
+it.each(["/api/trpc/profile.uploadAvatar,auth.me"])(
   "authenticates anonymous uploads at %s before allocating the oversized body",
   async (path) => {
     const response = await post(
@@ -119,6 +115,13 @@ it.each([
     expect(response.status).toBe(401);
   },
 );
+it.each([
+  "/api/admin/upload-video",
+  "/api/trpc/admin.uploadMedia",
+  "/api/trpc/club.uploadCommentPhoto",
+])("retires %s before parsing its body", async (path) => {
+  expect((await post(path, "{" + "x".repeat(300000))).status).toBe(404);
+});
 it("keeps tRPC public queries, types and protected-role checks reachable", async () => {
   const client = createTRPCProxyClient<AppRouter>({
     links: [

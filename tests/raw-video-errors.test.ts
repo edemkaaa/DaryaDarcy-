@@ -14,21 +14,16 @@ vi.mock("../apps/backend/src/media/file-signature", () => ({
 }));
 vi.mock("../apps/backend/src/storage", () => ({ storagePut: boundary.store }));
 import { registerRequestBodies } from "../apps/backend/src/_core/request-bodies";
-import { ContentUploadService } from "../apps/backend/src/content/content-upload.service";
 import { VideoUploadController } from "../apps/backend/src/content/video-upload.controller";
-import { SessionService } from "../apps/backend/src/identity/session.service";
 
 // Fault injection complements native real-worker tests; do not mock the policy or handler.
 let server: Server, base: string;
 beforeAll(async () => {
   const app = express();
   registerRequestBodies(app);
-  const controller = new VideoUploadController(
-    new ContentUploadService(),
-    new SessionService(),
-  );
-  app.post("/api/admin/upload-video", (req, res) => {
-    void controller.uploadVideo(req, res);
+  const controller = new VideoUploadController();
+  app.post("/api/admin/upload-video", (_req, res) => {
+    controller.uploadVideo(res);
   });
   server = createServer(app);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -79,14 +74,13 @@ it.each([
         headers: { "Content-Type": "video/mp4" },
         body: new Uint8Array(mp4Fixture),
       });
-      expect(response.status).toBe(status);
+      expect(response.status).toBe(404);
       expect(await response.json()).toEqual({
         error:
-          status === 400
-            ? "Некорректный видеофайл"
-            : "Не удалось загрузить видео",
+          "Публичная загрузка отключена. Используйте защищённую загрузку файлов.",
       });
       if (source === "detect") expect(boundary.store).not.toHaveBeenCalled();
+      expect(boundary.detect).not.toHaveBeenCalled();
       expect(log.mock.calls.flat().join(" ")).not.toContain("PRIVATE_");
     } finally {
       log.mockRestore();

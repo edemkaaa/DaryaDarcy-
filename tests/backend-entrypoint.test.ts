@@ -236,8 +236,13 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
               signal: AbortSignal.timeout(3000),
             },
           );
-          expect(denied.status).toBe(401);
-          expect(await denied.json()).toEqual({ error: "Нужно войти" });
+          expect(denied.status).toBe(method === "uploadMedia" ? 404 : 401);
+          expect(await denied.json()).toEqual({
+            error:
+              method === "uploadMedia"
+                ? "Публичная загрузка отключена. Используйте защищённую загрузку файлов."
+                : "Нужно войти",
+          });
         }
       } finally {
         await stop(child);

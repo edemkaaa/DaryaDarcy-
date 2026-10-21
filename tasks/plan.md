@@ -75,7 +75,19 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
   tests проверяют также deadline predicate в UPDATE/zero-write409; final SQL11
   повторён после изменения. Свои fixtures/containers удалены по guards, foreign
   stopped containers сохранены. Pen flag не включён; live/browser не проверялись.
-  Public uploads ещё открыты. Далее push,
+  Legacy comment/media/raw public uploads локально retired404 без fallback.
+  Согласованное purpose=publicCover обязательно только для public cover upload,
+  аватары остаются public. Final296 focused GREEN,86 distinct HTTP/JWT/SQL
+  checks подтверждены несколькими изолированными прогонами (не один86/86 run):
+  initial6 failures были ошибкой envelope assertions в tests, status contracts
+  не ослаблялись.3 own SQL containers удалены по guards, baseline сохранён.
+  Byte/MIME policy отдельно65 cases, старые unsafe-success tests пересмотрены.
+  Общий Vitest2976 pass/1533 opt-in skips (91.15s); real SQL acceptance отдельно,
+  не выдавать пропущенные S3/browser checks за выполненные.
+  Frontend/generated types не менять: check:api RED до работы фронтендера,
+  artifact-only diff ровно purpose:"publicCover"; handoff в
+  [документе](../docs/development/frontend-security-upload-contract-2026-10-21.md).
+  Не выпускать это как полностью интегрированный frontend. Далее push,
   отмена, validation/DTO; working DB/S3/frontend/flags/push/deploy не менять.
 
 - **21 октября, U1-MEM3 — ограниченный worker transport, общий gate открыт:**

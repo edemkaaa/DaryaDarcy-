@@ -25,8 +25,34 @@
   loopback guards,3 чужих stopped containers сохранены, feature flag не включался.
   Evidence вне Git: `.local-artifacts/security-fixes-20261021.tFY6gP` в workspace;
   initial и `pen-recheck` logs/receipts сохранены. Без working DB/S3/платежей/писем.
-- [ ] Legacy uploads: перекрыть публичную запись закрытых материалов, сохранить
-  public avatars/covers; без правок frontend, working DB/S3, push/deploy.
+- [x] Legacy uploads: `club.uploadCommentPhoto`, `admin.uploadMedia`, raw
+  `/api/admin/upload-video` теперь404 до парсинга body/в batch; service/helper
+  tombstones не допускают public fallback даже при выключенных private flags.
+  Public photo helper допускает только avatars/<id> и covers. По отдельному
+  ответу пользователя `admin.uploadPhoto` требует purpose=publicCover, иначе400;
+  обычный пользователь/модератор не получает право от передачи purpose.
+  Прежние public ACL helper/старые объекты/URL/рабочие flags сохранены.
+- [x] RED6 legacy +RED4 cover cases→GREEN13, общая focused регрессия14 suites/
+ 296 pass. Старые successful public-upload tests заменены refusal/cover tests;
+  byte/MIME policy перенесена в отдельные65 прямых cases, не потеряна ради
+  tombstones. Types/backend build/boundaries715/selected new modules formatting/
+  docs65/diff GREEN. Общий Vitest2976 pass/1533 opt-in skips,218 passed files/
+ 101 skipped,91.15s; внешние DB/S3 credentials и browser gate выключены.
+  Native HTTP/JWT/SQL на собственных tmpfs fresh42: final11 Pen +9 cover/
+  retirement +4 raw/compiled +62 private-file regressions GREEN (86 distinct).
+  Initial80pass/6fail — fixture ошибочно ожидал tRPC envelope от pre-parser
+  HTTP403/404; исправлены именно status assertions, product policy не ослаблялась.
+ 9 cover recheck и11 Pen recheck GREEN; непрерывную общую серию86/86 не заявлять.
+- [x] Все3 SQL containers убраны по ownership guards; baseline3 чужих stopped
+  containers сохранён, mounts/volumes/images/working DB/S3 не тронуты.
+  Evidence: `.local-artifacts/security-fixes-20261021.tFY6gP`, cover-recheck/
+  pen-recheck logs и cleaned receipts; оператор без external service credentials.
+- [ ] Frontend integration остаётся фронтендеру, не выполнена этим backend-only
+  срезом. `check:api` ожидаемо RED: artifact-only generator diff подтвердил
+  единственную новую строку purpose:"publicCover" (90 procedures/35438 bytes).
+  Frontend/generated file без diff. Инструкция:
+  [frontend-security-upload-contract-2026-10-21.md](../docs/development/frontend-security-upload-contract-2026-10-21.md).
+  Стенд не обновлялся; старые публичные копии этим не закрыты.
 - [ ] Далее по согласованному порядку: push registration, cancellation state,
   input validation и public profile DTO. Не считать закрытыми текущим срезом.
 

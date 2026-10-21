@@ -1,5 +1,25 @@
 # Spec: закрытая серверная выдача вложений постов
 
+## 21 октября — SEC, прекращение новых публичных legacy-загрузок
+
+По прямому поручению backend-only закрыты старые `club.uploadCommentPhoto`,
+`admin.uploadMedia` и `POST /api/admin/upload-video`: HTTP404 до body allocation,
+включая batch и выключенные private flags, без public fallback. Service-level
+tombstones также отказывают. Поддерживаются существующие private upload/status/
+association/read flows; их flags, квоты и recovery window не менялись.
+
+Пользователь отдельно принял обязательное `purpose="publicCover"` у
+`admin.uploadPhoto`. Только явно публичная обложка/аватар может использовать
+public photo helper (namespaces `covers/`, `avatars/<actorId>/`); неизвестное
+назначение/старый неоднозначный запрос не публикуется. Public ACL helper для
+разрешённых публичных изображений не менялся. Существующие S3 objects, policy,
+URL и рабочие данные не изменялись; защита старых файлов этим не доказана.
+
+Фронт и generated contract по запрету пользователя не обновлены: `check:api`
+ожидаемо RED до передачи изменений фронтендеру. Инструкция и приёмка клиента:
+[frontend-security-upload-contract-2026-10-21.md](docs/development/frontend-security-upload-contract-2026-10-21.md).
+Это локальная реализация, не выпуск/готовность опубликованного клиента.
+
 ## 21 октября — ограниченные копии для распознавателя, U1-MEM3
 
 Внутренний worker теперь читает весь доступный файл через random-access tokenizer

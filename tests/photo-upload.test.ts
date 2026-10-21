@@ -21,8 +21,7 @@ const user = { id: 7, role: "admin", blockedAt: null } as User;
 function caller() { return appRouter.createCaller({ user, req: {}, res: {} } as TrpcContext); }
 const uploaders = [
   (input: { base64: string; filename: string; mimeType: string }) => caller().profile.uploadAvatar(input),
-  (input: { base64: string; filename: string; mimeType: string }) => caller().admin.uploadPhoto(input),
-  (input: { base64: string; filename: string; mimeType: string }) => caller().club.uploadCommentPhoto(input),
+  (input: { base64: string; filename: string; mimeType: string }) => caller().admin.uploadPhoto({ ...input, purpose: "publicCover" }),
 ];
 beforeEach(() => { storage.writes.length = 0; });
 describe("photo upload validates bytes rather than the client MIME or filename", () => {
@@ -35,7 +34,7 @@ describe("photo upload validates bytes rather than the client MIME or filename",
     for (const upload of uploaders) {
       await upload({ base64: bytes.toString("base64"), filename: "untrusted.svg", mimeType: "image/svg+xml" });
     }
-    expect(storage.writes).toHaveLength(3);
+    expect(storage.writes).toHaveLength(2);
     for (const stored of storage.writes) {
       expect(await sharp(stored.data).metadata()).toMatchObject({ format: "webp", width: 2, height: 3 });
       expect(stored.mime).toBe("image/webp");
@@ -65,21 +64,21 @@ describe("photo upload validates bytes rather than the client MIME or filename",
   });
   it("rejects malformed base64 rather than silently decoding a partial file", async () => {
     const bytes = await sharp({ create: { width: 1, height: 1, channels: 3, background: "red" } }).png().toBuffer();
-    await expect(caller().admin.uploadPhoto({ base64: bytes.toString("base64") + "!", filename: "a.png" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller().admin.uploadPhoto({ base64: bytes.toString("base64") + "!", filename: "a.png", purpose: "publicCover" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(storage.writes).toHaveLength(0);
   });
   it("rejects SVG even when its MIME says JPEG", async () => {
-    await expect(caller().admin.uploadPhoto({ base64: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>').toString("base64"), filename: "a.jpg" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller().admin.uploadPhoto({ base64: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>').toString("base64"), filename: "a.jpg", purpose: "publicCover" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(storage.writes).toHaveLength(0);
   });
   it("rejects small compressed images with excessive decoded pixel dimensions", async () => {
     const bytes = await sharp({ create: { width: 5000, height: 5000, channels: 3, background: "red" } }).png().toBuffer();
-    await expect(caller().admin.uploadPhoto({ base64: bytes.toString("base64"), filename: "a.png" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller().admin.uploadPhoto({ base64: bytes.toString("base64"), filename: "a.png", purpose: "publicCover" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(storage.writes).toHaveLength(0);
   });
   it("rotates by EXIF Orientation before stripping metadata", async () => {
     const bytes = await sharp({ create: { width: 12, height: 8, channels: 3, background: "red" } }).withMetadata({ orientation: 6 }).jpeg().toBuffer();
-    await caller().admin.uploadPhoto({ base64: bytes.toString("base64"), filename: "a.jpg" });
+    await caller().admin.uploadPhoto({ base64: bytes.toString("base64"), filename: "a.jpg", purpose: "publicCover" });
     const metadata = await sharp(storage.writes[0].data).metadata();
     expect(metadata.width).toBe(8);
     expect(metadata.height).toBe(12);

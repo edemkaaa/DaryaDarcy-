@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, adminProcedure } from "../_core/trpc";
 import * as db from "../db";
-import { photoInput } from "../media/photos";
+import { publicCoverPhotoInput } from "../media/photos";
 import type { ContentWriteService } from "../content/content-write.service";
 import { createPostInput, updatePostInput } from "../content/post-write-input";
 import type { ContentUploadService } from "../content/content-upload.service";
@@ -53,7 +53,7 @@ export const createAdminRouter = (
     .mutation(({ input }) => uploads.importVideoFromUrl(input.url)),
 
   // Upload photo (admin only)
-  uploadPhoto: adminProcedure.input(photoInput).mutation(({ input }) => uploads.uploadPhoto(input.base64)),
+  uploadPhoto: adminProcedure.input(publicCoverPhotoInput).mutation(({ input }) => uploads.uploadPhoto(input.base64, input.purpose)),
 
   // Upload media file (video/audio/document) (admin only)
   uploadMedia: adminProcedure

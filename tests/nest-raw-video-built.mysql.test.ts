@@ -7,7 +7,7 @@ import { join, resolve } from "node:path";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
 it.skipIf(!testDatabaseUrl)(
-  "serves the raw Nest controller from compiled ESM with real JWT/SQL and worker",
+  "keeps raw public uploads retired in compiled ESM regardless of live account state",
   async () => {
     const directory = mkdtempSync(resolve(".tmp-nest-raw-video-"));
     const entry = join(directory, "application.mjs");
@@ -76,10 +76,13 @@ it.skipIf(!testDatabaseUrl)(
         .find((line) => line.startsWith("RAW_VIDEO_RESULTS:"));
       expect(result).toBeDefined();
       expect(JSON.parse(result!.slice("RAW_VIDEO_RESULTS:".length))).toEqual([
-        { status: 400, body: { error: "Пустой файл" } },
-        { status: 400, body: { error: "Некорректный видеофайл" } },
-        { status: 403, body: { error: "Нет доступа" } },
-        { status: 401, body: { error: "Нужно войти" } },
+        ...Array.from({ length: 4 }, () => ({
+          status: 404,
+          body: {
+            error:
+              "Публичная загрузка отключена. Используйте защищённую загрузку файлов.",
+          },
+        })),
       ]);
     } finally {
       await conn.query("DELETE FROM users WHERE id=9021");
