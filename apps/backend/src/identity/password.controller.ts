@@ -22,6 +22,7 @@ import {
   type AuthenticatedRequest,
 } from "./http-access";
 import { publicAccessUrl } from "./urls";
+import { passwordPage } from "./password-page";
 
 @Controller("api")
 export class PasswordController {
@@ -129,14 +130,9 @@ export class PasswordController {
   @Get("auth/password")
   @Header("Cache-Control", "no-store")
   page(@Res() res: Response) {
-    let loginUrl: string;
+    let loginUrl: URL;
     try {
-      loginUrl = publicAccessUrl()
-        .toString()
-        .replace(/&/g, "&amp;")
-        .replace(/"/g, "&quot;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+      loginUrl = publicAccessUrl();
     } catch {
       res.status(503).type("text").send("Страница временно недоступна.");
       return;
@@ -146,12 +142,8 @@ export class PasswordController {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader(
       "Content-Security-Policy",
-      `default-src 'none'; script-src 'nonce-${nonce}'; connect-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`,
+      `default-src 'none'; script-src 'nonce-${nonce}'; connect-src 'self'; style-src 'unsafe-inline'; img-src ${loginUrl.origin}; font-src ${loginUrl.origin}; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`,
     );
-    res
-      .type("html")
-      .send(
-        `<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Пароль DARYADARCY</title><style>body{font:18px system-ui;max-width:480px;margin:60px auto;padding:20px}input,button{font:inherit;padding:12px;margin:10px 0;width:100%;box-sizing:border-box}</style><h1>Установить пароль</h1><form id="form"><label>Новый пароль<input id="password" type="password" autocomplete="new-password" minlength="8" maxlength="200" required></label><button>Сохранить</button></form><p id="result" role="status"></p><a href="${loginUrl}">Перейти ко входу</a><script nonce="${nonce}">const token=new URLSearchParams(location.hash.slice(1)).get('token')||'';history.replaceState(null,'',location.pathname);document.getElementById('form').addEventListener('submit',async e=>{e.preventDefault();const button=e.target.querySelector('button');button.disabled=true;try{const r=await fetch('/api/auth/password/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,password:document.getElementById('password').value})});const data=await r.json();document.getElementById('result').textContent=r.ok?'Пароль сохранён. Войдите в аккаунт.':data.error||'Попробуйте позже.';if(r.ok)e.target.remove();}catch{document.getElementById('result').textContent='Нет соединения. Попробуйте ещё раз.';}finally{button.disabled=false;}});</script></html>`,
-      );
+    res.type("html").send(passwordPage(loginUrl, nonce));
   }
 }

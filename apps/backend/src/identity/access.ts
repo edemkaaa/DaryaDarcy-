@@ -34,6 +34,7 @@ export type Mail = {
   to: string;
   subject: string;
   text: string;
+  html?: string;
   messageId: string;
 };
 const digest = (value: string) =>
@@ -389,13 +390,32 @@ export async function processAccessEmails(
             mail.kind === "club-access"
               ? "Оплата получена. Доступ к клубу открыт."
               : "Вы запросили установку или восстановление пароля.";
+          const label = token
+            ? "Установите пароль по одноразовой ссылке"
+            : "Войдите в аккаунт";
+          // Only the operator-configured, validated URL enters the attribute.
+          // Keep the fragment intact; it must not become a server query token.
+          const href = url
+            .toString()
+            .replace(
+              /[&<>"']/g,
+              (character) =>
+                ({
+                  "&": "&amp;",
+                  "<": "&lt;",
+                  ">": "&gt;",
+                  '"': "&quot;",
+                  "'": "&#39;",
+                })[character]!,
+            );
           success = await send({
             to: mail.email,
             subject:
               mail.kind === "club-access"
                 ? "Доступ в клуб Darcy"
                 : "Пароль DARYADARCY",
-            text: `${text}\n${token ? "Установите пароль по одноразовой ссылке" : "Войдите в аккаунт"}:\n${url.toString()}\nЕсли вы не запрашивали письмо, ничего не делайте.`,
+            text: `${text}\n${label}:\n${url.toString()}\nЕсли вы не запрашивали письмо, ничего не делайте.`,
+            html: `<p>${text}</p><p><a href="${href}">${label}</a></p><p>Если вы не запрашивали письмо, ничего не делайте.</p>`,
             messageId: `<${digest(mail.eventKey)}@daryadarcy.com>`,
           });
         }
