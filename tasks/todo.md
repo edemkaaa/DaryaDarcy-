@@ -4,6 +4,34 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### AG5/AG9 — проверка доступной очереди,21 октября
+
+- [x] По новому backend-only поручению проверены clean6ea3ab3, прежняя feature
+  branch, последние STAGE-UPDATE/U1-MAX/U1-ISO/WIN-LIVE и действующие AG5/AG9.
+  Доступного незавершённого локального backend-среза в текущей очереди нет.
+  Успешные неизменные SQL/S3/runtime проверки не повторялись; это не новый аудит
+  всего кода или полная приёмка этапа. Проверки: `pnpm check:docs`64/exit0,
+  `git diff --check`exit0; reviewed docs-only diff, новые runtime tests не нужны.
+- [x] Учтена предыдущая отдельно разрешённая очистка: только15 own временных
+  архивов/контекстов/зависимостей сборки, free497704960→2458550272 bytes.
+  21225 сохраняемых файлов,30 containers,135 image references и15 volumes
+  сверены; общий Docker cache не очищался. Backups/config/rollback images/БД
+  сохранены, home/API200 и8 project services healthy без restart. Receipt вне
+  Git: `.local-artifacts/server-cleanup-20261021.kl8XsH/apply.stdout` от workspace.
+  Это прошлый измеренный результат, не актуальный resource preflight для выпуска.
+- [ ] Следующий AG9/U1: закончить опубликованный upload→bind→read/revoke и
+  proxy/max-size путь. Existing live helper пишет synthetic rows в рабочую БД;
+  при текущем запрете его не запускать. Нужны новое явное разрешение на точные
+  временные fixtures с очисткой либо отдельно согласованный изолированный
+  целевой стенд. Изолированные7 max-size и5 audio/video checks это не заменяют.
+- [ ] AG5/AG9: закрытие старых публичных источников требует согласованных
+  targets/разрешения; recipes/Petersburg и бесплатную «Лошадку» не менять.
+  Реальные ordinary790/recurring/cancel/внешнее письмо и выбор password/setup-link,
+  target-load/устройства/пилот — отдельные решения и внешняя приёмка. Retention,
+  email binding и старую migration history не возвращать как новые задачи.
+  При текущих границах остановиться, без новых функций/push/deploy/frontend/
+  working DB/старых S3-файлов и без повторных внешних действий ради статуса.
+
 #### STAGE-UPDATE — новый разрешённый выпуск,21 октября
 
 - [x] По «обнови стейдж»: fresh fetch07cada2, чистая feature branch. Merge

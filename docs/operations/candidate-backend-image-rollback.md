@@ -1,5 +1,25 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## Очистка временных сборочных материалов,21 октября2026
+
+По отдельному прямому разрешению удалены15 точных own targets: временные
+архивы, распакованные build contexts и старые candidate-only Linux dependencies.
+Все targets проверены по ownership/private parents, provenance/manifest/SHA,
+отсутствию bind mounts и неизменному inventory до удаления.21 225 сохраняемых
+файлов,30 containers,135 image references/15 volumes совпали после очистки;
+backups/env/config/rollback images и рабочая БД не менялись. Общее хранилище
+BuildKit включает чужие проекты и не очищалось. Приложение не перезапускалось.
+
+Свободно497704960→2458550272 bytes, освобождено1960845312 bytes (около1.83GiB).
+8 project services healthy, public home/API capabilities200. Это измерение после
+очистки, не гарантия места для будущей сборки. Private local evidence:
+`.local-artifacts/server-cleanup-20261021.kl8XsH/apply.stdout` от workspace;
+сохранены exact target list/digests/protected inventory. Удалённые контексты и
+архивы не нужны работающим контейнерам; повторная сборка требует нового context
+из соответствующего Git source. Accepted deploy/artifact не запускать повторно:
+их прежние context/archive уже удалены, но receipts/scripts/backups/images сохранены.
+Новый выпуск/откат — только с fresh preflight и действующим разрешением.
+
 ## STAGE-UPDATE — staging и стенд обновлены,21 октября2026
 
 По прямому поручению «обнови стейдж» выполнены normal push и web-only rollout.
