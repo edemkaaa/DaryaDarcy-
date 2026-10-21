@@ -64,6 +64,9 @@ it.each(["/api/auth/password", "/api/auth/password/"])(
     expect(response.headers.get("content-security-policy")).toContain(
       "frame-ancestors 'none'",
     );
+    expect(response.headers.get("content-security-policy")).toContain(
+      "img-src https://club.example.test; font-src https://club.example.test;",
+    );
   },
 );
 it.each([
