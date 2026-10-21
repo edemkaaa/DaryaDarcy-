@@ -115,6 +115,22 @@ describe.skipIf(!testDatabaseUrl)(
       expect(link).toBeDefined();
       const url = new URL(link!);
       expect(url.origin).toBe(base);
+      // Email clients must not have to auto-detect a URL in ordinary HTML text.
+      // The clickable destination must retain the exact one-time fragment.
+      const htmlPart = smtp.messages[index]
+        .split(/\r\n--[^\r\n]+(?:\r\n|$)/)
+        .find((value) => /^Content-Type: text\/html;/im.test(value));
+      expect(htmlPart).toBeDefined();
+      const [htmlHeaders, ...htmlBody] = htmlPart!.split("\r\n\r\n");
+      const htmlWire = htmlBody.join("\r\n\r\n");
+      const html = /Content-Transfer-Encoding: base64/i.test(htmlHeaders)
+        ? Buffer.from(htmlWire, "base64").toString("utf8")
+        : htmlWire
+            .replace(/=\r\n/g, "")
+            .replace(/=([0-9A-F]{2})/gi, (_, byte) =>
+              String.fromCharCode(parseInt(byte, 16)),
+            );
+      expect(html.match(/<a\b[^>]*href="([^"]+)"/i)?.[1]).toBe(link);
       return url.hash.slice("#token=".length);
     }
     async function notify(
