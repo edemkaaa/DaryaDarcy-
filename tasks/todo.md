@@ -2,6 +2,37 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Доступ заказчицы и границы теста22 октября
+
+- [x] Прямое разрешение: выдать admin на указанный пользователем адрес. Fresh
+  read подтвердил absence, перед записью новый backup40 tables server+Mac:
+ 355580 bytes/SHA8e31375c…. Parameterized users-only transaction создала id554/
+  admin/email login/epoch0; пароль random32 chars/реальный scrypt helper,600
+  local file вне Git. Никакой платной подписки/платежа/outbox/внешнего письма.
+  Existing id1 credential/role/epoch2 fingerprint неизменен, runtime3 images/
+  containers/flags прежние, migration history42. Дубли/старые пароли/блокировки
+  не перезаписывались. Серверный код не менялся, перезапуска не было.
+- [x] Actual desktop Chromium/current dev: обычный login через форму с новым
+  паролем200, secure/httpOnly/SameSite=Lax cookie, рольadmin, owner access.
+ 6 pages /admin/profile/videos/library/quiz/shop; admin posts/counters/stats/
+  members, winter bindings4,7 actual guide GET, VK22 — GREEN; API failures0,
+  unexpected writes0. Первый private harness использовал несуществующий list
+  guide route; исправлен только harness на7 canonical keys, не product/fixtures.
+  Полный CRUD/editor save/read/delete этим read-only browser не проверялся.
+- [x] Separate real HTTPS/S3 read для customer admin:4 winter HEAD200,
+  Range0–63=206/64 bytes, guest404. Full download/physical device не заявлять.
+  Объекты/старые public files не менялись. Секреты, cookies, пароль не выводились
+  в логи/Git и не отправлялись письмом. Receipt private workspace/server
+  customer-admin-20261021.2JHYeE; локально browser.json/library.json/after.json.
+- [ ] Полная готовность «все сценарии заказчицы работают» НЕ подтверждена:
+  большие32/80MiB и live memory gate, actual provider renewal/cancel/mail,
+  все22 playback/audio/physical mobile/3 covers, old public sources/pilot.
+  Admin bypass не проверяет поведение обычной неоплаченной участницы.
+  Existing release rollback snapshot теперь намеренно отличается users+1:
+  перед откатом fresh reviewed guard, сохраняющий554; DB не восстанавливать
+  слепо из before backup. Следующий шаг — только согласованный остаток,
+  не запускать valid CRUD/платежи/письма без нового поручения.
+
 ### Совместный выпуск21 октября — новое прямое поручение
 
 - [x] Подключить три согласованных frontend контракта без изменения дизайна:

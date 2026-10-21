@@ -2,6 +2,16 @@
 
 ## Действующий план агента — 13 октября 2026
 
+21 октября, подготовка к тестированию заказчицей22 октября: по прямому запросу
+создан отдельный admin id554 (раньше адрес отсутствовал), без оплаты/писем и
+без изменения existing admin id1/password/role/epoch2. Реальный desktop browser
+password login/secure cookie/admin/profile/catalog/library/quiz/shop GREEN;
+7 guides200,4 winter files authenticated HEAD200/Range206/guest404. Это
+не full live CRUD/payment/mobile acceptance:32/80MiB memory, provider/mail,
+old public copies и devices/pilot остаются открыты. Секретный доступ600 вне Git;
+точная проверка и безопасный сценарий завтра — начало
+[operations](../docs/operations/teamassist-staging.md).
+
 21 октября, новое прямое поручение: совместить frontend/backend, push staging и
 обновить dev. Три frontend integration задачи ниже реализованы локально без
 редизайна: publicCover purpose, cancellationStatus (включая expired pending) и

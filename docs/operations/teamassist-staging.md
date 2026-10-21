@@ -1,5 +1,71 @@
 # Отдельный тестовый стенд TeamAssist
 
+## 21 октября — доступ заказчицы к проверке22 октября
+
+По прямому запросу создан отдельный администратор id554 для указанной почты.
+Адрес прежде отсутствовал; новая запись users/email login/role admin/epoch0,
+без paid subscription/billing/outbox/письма. Права ровно существующей роли admin,
+без нового owner-email bypass или изменения auth logic. Доступ к Клубу без
+оплаты; профиль показывает существующую owner-ветку, не купленную подписку.
+Existing admin id1/hash/role/sessionVersion2 не изменился.3 runtime containers/
+images/flags/config и migration history42 прежние. Только эта новая users row
+и штатный lastSignedIn её входов; существующие материалы не изменялись.
+
+Fresh backup40 tables355580 bytes до выдачи роли, SHA
+`8e31375c5055dce5d019a43bd278631adc846c7457c947ee8edb4691cbe3aec0`,
+server+Mac SHA/gzip/table count verified,600/parent700. Запись параметризована,
+транзакционно проверены DB UUID, текущий owner digest и отсутствие email/openId;
+при появлении аккаунта параллельно — STOP, без сброса чужого пароля.
+Password random32 chars, canonical scrypt helper, только закрытые локальные
+файлы вне Git. Plaintext на сервере/в argv/log/репозитории не сохранялся.
+Письмо заказчице агент не отправлял; доступ передаёт пользователь лично.
+
+### Что подтверждено этим аккаунтом
+
+- Настоящий desktop Chromium, опубликованный сайт, форма обычного парольного
+  входа200, новая роль admin; cookie secure/httpOnly/SameSite=Lax. Это не
+  вручную подписанная сессия и не mock API. Парольный login действительно прошёл.
+- Открылись /admin, /profile, /videos, /library, /quiz, /shop. В админке видны
+  «Статьи»/«Календарь», работают read API postsPage/counters/stats/members.
+  Профиль показывает доступ владелицы без оплаты. API failures0, unexpected
+  writes0; сохранились проверки блокировки нежелательных browser mutations.
+- Реальные API:7 canonical aesthetic guides200,22 VK cards,4 winter bindings.
+  Отдельно каждая из4 winter files: HTTPS authenticated HEAD200, GET Range
+ 0–63=206/64 bytes через настоящий S3, а guest404. Старые объекты не менялись.
+- Не выполнялись полноценные save/publish/delete/editor flows на живой БД,
+  оплата/отмена/рассылка, тест слышимости всех22 роликов и physical devices.
+  /library/quiz/shop200 не равно прохождению всего теста или отправке заказа.
+  Первоначальный private harness ошибочно запросил отсутствующий guide list;
+  после чтения controller/schema исправлен только harness на7 существующих
+  `:key` маршрутов. Ошибка harness не выдаётся за дефект приложения.
+
+Private evidence: workspace/server `customer-admin-20261021.2JHYeE`,
+`before.json`, `backup.json`, `grant.json`, `browser.json`, `library.json`,
+`after.json`. Screenshot admin-desktop.png приватный, не доказательство записи.
+Секретный JSON/TXT находятся только на Mac с600, в Git их не добавлять.
+Для прежнего rollback operator users+1 — ожидаемый drift: перед новым откатом
+обновить reviewed guards так, чтобы сохранить id554/пароль; не восстанавливать
+всю DB из прежнего before backup и не снимать snapshot guard вслепую.
+
+### Минимальный план тестирования заказчицей
+
+1. Войти обычным email/паролем и открыть /admin. Оплата для admin не нужна.
+2. Проверить списки, поиск, календарь, счётчики, участников и открытие редакторов.
+3. Для записи использовать отдельные явно тестовые материалы, например
+   «ТЕСТ22.10»: черновик → редактирование → публикация → проверка → удаление
+   только своего теста. Не менять накопленный контент ради проверки.
+4. Проверить4 зимние выкройки/эстетики и VK на её реальном компьютере/телефоне;
+   у3 из22 роликов пока нет обложек. Проверить звук и fullscreen вручную.
+5. Доступ гостя/неоплаченной участницы проверять отдельной обычной сессией:
+   админский bypass не доказывает работу этих ограничений.
+
+Это тестовый прогон, **не приёмка всего договора**. Не подтверждены max32/80MiB
+на опубликованном API и memory gate; реальные provider payment/renewal/cancel
+и доставка писем; полный mobile/browser/pilot5–7 дней; старые публичные копии.
+Frontend остаётся в Prodamus TEST build mode (отдельный TEST service enabled);
+это не глобальный перевод обычного API в demo и не разрешение реальных платежей.
+Настройки оплаты/памяти/квот и старые public sources ради демонстрации не меняли.
+
 ## 21 октября — INTEGRATED: совместный frontend/backend действительно выпущен
 
 Новое прямое поручение разрешило frontend integration, push staging и обновление
