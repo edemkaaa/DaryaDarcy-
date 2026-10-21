@@ -63,6 +63,76 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **21 октября, U1-MEM — isolated512MiB, STOP по memory gate:** после отдельного
+  разрешения удалены только7 own cache/public-copy leafs из старых build contexts
+  (1582002758 logical bytes), сохранились13011 прочих files и Docker inventory.
+  Published image d602803e… импортирован на Mac; fresh own tmpfs backend_test42,
+  API512MiB/CPU0.4/no swap/read-only, клиент снаружи cgroup. Настройки live не
+  менялись. Direct S3 route timeout обойдён own SSH/TLS relay с исходным endpoint,
+  hostname и проверкой сертификата; policy200/hash прежние, новых S3 objects0.
+  Первый boundary request articleDocument32MiB+1 получил413 без SQL intent,
+  но peak463937536 bytes/442.445MiB превысил согласованный gate384MiB.
+  OOM/max events0/restarts0; нагрузка остановлена, valid32/80MiB/replay/read
+  этим прогоном НЕ приняты. Это точный image на linux-amd64 emulation Mac,
+  не доказательство exact native staging RSS, не подтверждение утечки.
+  Свои API/relay/tmpfs DB удалены, tunnel закрыт/env убраны; original containers/
+  images/volumes сохранены. Read-only live API cap256MiB healthy/restart0 и DB
+  container прежние. Без рабочих SQL/admin login/flags/frontend/старых files/
+  push/deploy. Следующий шаг требует согласовать расследование peak/код либо
+  другое isolated environment; не поднимать memory автоматически и не идти
+  на live. Evidence и точный остаток — U1-MEM в начале todo и existing runbook.
+
+- **21 октября, первоначальный U1-MEM план (история, результат выше):** перед
+  published32/80MiB нужен замер полного cgroup peak, не только V8 heap. Read-only
+  snapshot09:57 UTC: host3915MiB/MemAvailable733MiB/swap0, API137.2MiB при
+  cap256MiB/CPU0.4; lifetime cgroup peak245493760 bytes (234.1MiB), events
+  max/oom/oom_kill0, restarts0. Это исторический peak контейнера, не замер
+  максимальной загрузки. Docker memory+swap512MiB не даёт реального swap:
+  у host он отсутствует. Source-of-truth API mem_limit256m в compose.yaml;
+  остальные service limits/квоты/таймауты не менять.
+  План: (1) после согласования повторить текущий image в изоляции с own tmpfs
+  backend_test на машине с достаточным запасом, клиент не на shared staging VM;
+  пробный API cap512MiB, один upload одновременно, без forced GC/heap tuning.
+  (2) Последовательно валидные article TXT/post TXT/audio32MiB и raw MP4 с
+  16→32→64→80MiB; измерять cgroup current/peak/events, RSS/external если доступно,
+  host MemAvailable/PSI, health и полное время запроса. +1byte413, byte hash/
+  HEAD/Range и один status/replay на том же ключе без второго object/intent.
+  Успешные малые проверки не повторять; padded fixtures доказывают byte envelope,
+  не playback/codec load. Gate: peak<=384MiB (резерв128MiB), без новых OOM/max
+  events/restart/5xx/health failure. После запроса дождаться стабилизации и
+  проверить отсутствие роста на ограниченном повторе; GC не обязан вернуть RSS
+  точно к исходному. Если gate не пройден — остановиться, замерить причину,
+  согласовать другой budget/код отдельно, не повышать до768/1024 автоматически.
+  (3) Только отдельное согласование live memory512MiB и тестовых fixtures:
+  fresh backup/fingerprints/admin/config/image guards, MemAvailable>=1GiB
+  стабильно60s до старта; это консервативный operating gate, не договорной SLO.
+  При нынешних733MiB gate НЕ пройден; foreign services/cache не останавливать,
+  swap/тариф/хост не менять. Client off-host; никаких512/768MiB helper на VM.
+  Изменение только API resource declaration с сохранением исходного значения/
+  config hash; возможный API-only recreate согласовать, image/DB/web прежние.
+  (4) Live serial maxima с независимым watcher: при MemAvailable<512MiB,
+  sustained memory PSI full avg10>1%, API memory>=384MiB, health failure,
+  новом max/OOM/restart/неожиданном5xx немедленно прекратить выдачу новых запросов
+  и ограничить текущий клиент; abort не означает откат уже завершённого PUT.
+  Reconcile status/own receipts после drain; точная очистка только своих rows/
+  objects, baseline fingerprints/admin и старые файлы неизменны. Наблюдение
+  polling не гарантирует предотвращения OOM — поэтому isolated gate обязателен.
+  (5) Вернуть cap256MiB только после drain/проверки actual usage ниже старого cap
+  с запасом; если retained memory высока, согласованный API-only recreate на том
+  же image/config вместо опасного live lowering. Проверить health/новые sessions
+  без сброса существующих/admin и отсутствие изменений DB/web/S3 policy.
+  Позже пользователь одобрил только isolated API512MiB/disposable DB, не live.
+  Новый read-only preflight остановил старт: Mac disk free~788MiB, Docker VM
+ 8GiB доступен, current image d602803e… локально отсутствует (на server он
+ 267743000 bytes/linux-amd64); старый локальный e774b30f… не считать тем же
+  образом. Shared host available685MiB/swap0 недостаточно для второго API/DB.
+  Перед импортом образа/созданием стенда нужен Mac free>=2GiB + fresh memory/
+  disk gate, либо отдельно согласованное окружение. Без очистки чужих cache/
+  images/volumes, без попытки разместить второй стенд на shared server.
+  Контейнеров/сетей/DB/S3 fixtures не создано, новых payloads/лимитов/restart/
+  push/deploy/frontend/working DB/S3 изменений нет. Это failed resource gate,
+  не failed upload или доказанный OOM. Продолжение — U1-MEM в начале todo.
+
 - **21 октября, U1-LIVE — разрешены временные live fixtures:** опубликованный
   API/SQL/Timeweb путь проверен без изменения runtime/frontend/старых files.
  9 групп uploads/read/replay/actor isolation/paid expiry/block/session revoke и

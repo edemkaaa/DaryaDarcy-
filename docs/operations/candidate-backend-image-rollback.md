@@ -1,5 +1,51 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## U1-MEM — isolated512MiB остановлен по memory gate,21 октября2026
+
+Новая область разрешения: очистить только наши временные copies/cache, затем
+изолированно проверить32/80MiB; live resource limits/data/admin/frontend/старые
+S3 не менять. Убраны7 точных leafs:2 старых `.next/cache`,5 copies `public` в
+private release contexts. Каждый public blob сверён с исходным Git revision,
+parents0700/UID/non-symlink/open-path/Docker mount guards. Logical1582002758 bytes;
+free2420482048 после cleanup.13011 прочих files/config/backup/receipts и весь
+Docker inventory совпали. Copies воспроизводимы из Git, cache rebuildable.
+Cleanup receipt/source: `.local-artifacts/local-cleanup-20261021.16bs8k`.
+
+Published image `sha256:d602803efec7286aa04a8a3ff4c6d3ef02b6da842bb0b47952d7e544e4e6d576`
+получен streaming Docker save/load без build/local archive. Тест: Mac Docker
+Desktop8GiB/linux-amd64 emulation, API512MiB/CPU0.4/memory-swap512MiB (swap API
+запрещён), read-only/cap-drop/no-new-privileges; отдельная own MySQL8.4/tmpfs
+backend_test с42 свежими миграциями. Только loopback опубликованные ports,
+клиент вне API cgroup; production boot, без NODE_OPTIONS/forced GC/моков API.
+Read-only backups directory не позволяет boot backup дойти до S3 upload/prune;
+worker backup refusal в этом fixture ожидаем, не скрытый успех резервирования.
+
+Direct S3 connection с Mac timeout до fixtures. Own loopback SSH TCP tunnel +
+отдельный64MiB TLS-byte relay сохранили original endpoint/signed Host/443/SNI
+и реальную проверку сертификата Timeweb. Предварительный вариант endpoint18443
+получил SignatureDoesNotMatch до fixtures; он не использовался в memory probe.
+Policy hash0484dfa2…/versioning прежние. Никаких старых object GET/List/PUT/Delete.
+Это не published HTTPS/edge/proxy/network acceptance, не browser/playback.
+
+Первый probe — articleDocument33554433 bytes (32MiB+1): HTTP413, backend log
+PAYLOAD_TOO_LARGE, обе private ledgers пусты. До следующего запроса watcher
+зафиксировал `memory.peak=463937536` (442.4453125MiB), reserve69.5546875MiB.
+Согласованный gate384MiB/резерв128MiB не пройден: STOP, без повышения budget.
+max/oom/oom_kill0/OOMfalse/restarts0. Valid32MiB docs/audio, video16→80MiB,
+ACK recovery/replay/bind/full read в этом режиме не запускались и НЕ приняты.
+Результат под emulation не переносить как точный native RSS/утечку памяти.
+
+Новых S3 objects0; cleanup подтвердил policy/versioning. Все свои API attempts,
+relay и tmpfs DB убраны по exact ID/name/label/image guards; первая пустая DB
+была пересоздана после отказа ownership guard, без обхода fresh installer.
+Original3 stopped containers/image references/13 volumes сохранены, temp env и
+SSH socket отсутствуют. Live API2cae1064…/тот же image/cap256MiB healthy/restart0/
+OOMfalse и working DB3442fbda… running, без SQL/admin login/settings changes.
+Evidence/source/state/report/memory samples/API log вне Git:
+`.local-artifacts/api-memory-20261021.5Vdbe2` (от workspace). Следующее решение:
+отдельно согласовать профиль/снижение Base64 peak либо иной isolated environment;
+не поднимать512 до768/1024 и не переносить нагрузку на live автоматически.
+
 ## U1-LIVE — приёмка опубликованных вложений,21 октября2026
 
 По новому разрешению пользователя созданы только новые явно тестовые records/

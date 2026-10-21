@@ -4,6 +4,61 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### U1-MEM — isolated512MiB остановлен по memory gate,21 октября
+
+- [x] Только read-only: clean7d8c442/ветка/план/код и ресурсы сервера сверены.
+  Snapshot09:57 UTC: host3915MiB, available733MiB, swap0; API137.2/256MiB,
+  historical cgroup peak234.1MiB, max/oom/oom_kill0/restarts0, CPU0.4. На host
+  есть чужие проекты; Docker memory+swap512MiB при host swap0 не резерв памяти.
+  Docs/audio Base6432MiB→44739244 chars (~42.67MiB), JSON/decoded Buffer и
+  canonical re-encoding создают дополнительные allocations. Raw80MiB тоже
+  целиком buffered до PutObject; точный peak нельзя вывести только из file size.
+- [x] Пользователь одобрил только isolated API512MiB + own disposable DB;
+  live limits/existing data/admin/frontend/старые S3 неизменны. Применяются
+  incremental-implementation/security: ресурсный preflight до создания fixtures.
+- [x] По новому разрешению очищены только7 own leaf targets:2 старых Next cache
+  и5 public copies из private release contexts. Public bytes сверены с Git
+  revisions; no symlink/open file/Docker mount overlap. Logical1582002758 bytes,
+  free2420482048 bytes после очистки;13011 прочих files/config/backup/receipts
+  сохранены, Docker containers/images/volumes совпали. Copies восстановимы из
+  Git, cache rebuildable; активный frontend не менялся, общий Docker cache нет.
+- [x] Exact published image d602803e… импортирован streaming без archive/build;
+  own fresh tmpfs backend_test/history42 и API512MiB/CPU0.4/no swap/read-only,
+  loopback-only ports. Клиент вне API cgroup. Mac Docker Desktop/linux-amd64
+  emulation — не native published resource acceptance. Direct S3 timeout обойдён
+  own SSH TCP tunnel/TLS relay с original endpoint/hostname/certificate validation;
+  policy hash прежний. Нестандартный endpoint port дал signature refusal до
+  fixtures; финальный маршрут сохранял original signed Host и прошёл policy200.
+- [x] Boundary probe articleDocument33554433 bytes→413/PAYLOAD_TOO_LARGE,
+  обе private ledgers остались пусты. Затем cgroup peak463937536 bytes
+  (442.445MiB) превысил stop gate384MiB: резерв69.555MiB вместо128MiB.
+  max/oom/oom_kill0, OOMfalse/restarts0. По правилу STOP дальнейших payloads нет:
+  valid32MiB/replay/bind/read и video80MiB с этим budget НЕ проверены.
+- [x] S3 objects0; cleanup policy/versioning checked. Own API/relay/tmpfs DB
+  удалены с ID/name/label/image guards, original3 stopped containers и все
+  прежние image references/13 volumes сохранены; tunnel/env отсутствуют.
+  Read-only live check: прежний API2cae1064…/image d602803e… cap256MiB healthy,
+  restarts0/OOMfalse; прежний working DB container running. No SQL к working DB,
+  admin login/flags/frontend/старые S3/push/deploy. Private evidence:
+  `.local-artifacts/local-cleanup-20261021.16bs8k` и
+  `.local-artifacts/api-memory-20261021.5Vdbe2` от workspace.
+- [ ] U1-MEM НЕ принят: согласовать отдельное расследование/уменьшение peak
+  Base64 path или другое изолированное resource environment, затем повторить
+  максимумы. Не повышать cap до768/1024 и не переносить тест на live автоматически.
+  Измерение под emulation не доказывает exact native RSS или memory leak.
+- [ ] После isolated gate отдельно одобрить API-only live resource change/
+  recreate и собственные temporary fixtures. Host available>=1GiB60s до старта;
+  current733MiB недостаточно. Не включать swap/не менять чужие services/тариф,
+  CPU/квоты/parsers/timeouts/security, не ставить большой test client на VM.
+- [ ] При live stop-gates (host<512MiB, PSI full avg10>1%, API>=384MiB,
+  unexpected5xx/health failure/новые memory events/restart) остановить нагрузку,
+  reconcile собственный запрос и убрать только свои fixtures. Exact cleanup/
+  baseline fingerprints/admin guard; откат memory256MiB только после drain и
+  usage ниже старого cap с запасом либо согласованный API-only recreate.
+  Подробности/риски — U1-MEM в tasks/plan.md. Live не разрешён; isolated
+  разрешён только после resource gate. Лимиты/runtime/frontend/working DB/
+  admin/S3 не изменены, push/deploy нет.
+
 #### U1-LIVE — опубликованные загрузки и отзыв доступа,21 октября
 
 - [x] Новое прямое разрешение: только свои временные записи/файлы с точной
