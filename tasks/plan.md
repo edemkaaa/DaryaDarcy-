@@ -9,8 +9,10 @@
 без миграций/переключения БД/сброса паролей/изменения SMTP или S3. Обязательны
 backup, digest всех admin credentials, config/container guards и live smoke.
 Локально TypeScript/backend build и27 browser/HTTP тестов прошли; SQL/HTTP/SMTP
-регрессия кликабельной ссылки проверена ранее на одноразовой БД. Выпуск ещё
-не подтверждён; итоговый receipt — в operational runbook после проверки.
+регрессия кликабельной ссылки проверена ранее на одноразовой БД.
+Выпуск44421b1 подтверждён: API243e72d4…,8 public HTTPS checks, native3 и
+живой браузер; БД/schema/counts/credentials всех3 admins сохранены. Полный
+receipt и откат — начало operational runbook. Новое внешнее письмо не отправляли.
 
 21 октября, новое прямое поручение: совместить frontend/backend, push staging и
 обновить dev. Три frontend integration задачи ниже реализованы локально без

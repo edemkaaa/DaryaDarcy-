@@ -1,5 +1,49 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## PASSWORD — узкий API-only выпуск22 октября2026
+
+По прямому разрешению выпущены новый экран установки/восстановления пароля
+в стиле приложения и HTML-anchor в письмах доступа. Source/staging
+`44421b1f370839b68f6648b743320fd1e3415908`, поверх свежего37b790f.
+Отдельная release-ветка переносит только эти identity изменения и их тесты;
+накопленные local contact/PWA/frontend правки основной ветки НЕ выпущены.
+
+- API image `sha256:243e72d439080e975a7bd44d8db96ecb969806639b196232c7626784aad7a72c`;
+  bundle SHA `7056519f7d92de77cefcdb96cd49c80acc50eaa76c326b8ff5734644e0896f5e`.
+  Собран поверх проверенного99ada7f1… без установки зависимостей.
+- Изменён только image API в compose.override.yaml. Web/TEST/SMTP/S3/flags/
+  limits/config и29 остальных контейнеров прежние. Edge config test/reload
+  без изменения файла. API healthy/restart0/OOMfalse.
+- Та же БД daryadarcy_candidate_20261019, UUID2a41f961-c168-11f1-8660-0a4124b25f9f.
+  Schema/history42/counts40 tables и digest credentials всех3 admins (включая
+  id1/554) до/после совпали. Пароли/сессии не сбрасывались, миграций нет.
+- Fresh single-transaction backup356398 bytes/40 tables,
+  SHA `c108faedd33c10b943a5040eab021f2422aeb5792824a6787022ed60bc9ca1c6`;
+  server+Mac copies проверены gzip/SHA, private files0600/parent0700.
+  Pending mail/binding/scheduled/deletion/billing/shopMail перед restart все0.
+- Local35 browser/HTTP/SMTP/worker tests, types/backend build GREEN.
+  Native offline probe3 HTTP, no workers/providers; HTML anchor присутствует
+  в actual image artifact. Public HTTPS8 checks: password/login/guest auth/
+  capabilities,3 fonts иpaper asset200; nonce/no-store/no-referrer сохранены.
+  Живой браузер подтвердил новый стиль, сообщение без token, форму с synthetic
+  fragment (очищается из URL), переключатель показа пароля. POST не выполнялся.
+- Первая build попытка остановилась на неверном синтаксисе local image ID;
+  исправлен Dockerfile на проверенный локальный tag. Затем исправлена только
+  проверка escaped Unicode в probe. Runtime до успешных gates не переключался.
+
+Private receipt/operator/server+local backup:
+`/home/edem/apps/daryadarcy-staging/release-password-20261022.0vPXBI`;
+Mac workspace `.local-artifacts/release-password-20261022.0vPXBI`.
+Rollback: после проверки отсутствия drift выполнить `rollout.py rollback`
+из этой серверной директории. Возвращает только старый API image99ada7f1… и
+reload edge; не восстанавливает/очищает SQL. Старый образ и backup сохранены.
+Новый rollback не выполнялся, процедура проверена по коду.
+
+Внешних писем в rollout не отправляли, реальный пароль не меняли. Клик и
+сохранение через новое письмо на устройстве ещё нужно подтвердить пользователю.
+Старые письма не изменяются. TEST-оплата и весь договор этим выпуском не приняты.
+
+
 ## INTEGRATED — совместный выпуск21 октября2026
 
 По прямому поручению пользователя соединены frontend/backend, выполнен normal
