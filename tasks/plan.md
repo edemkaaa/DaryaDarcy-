@@ -63,6 +63,22 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **21 октября, U1-MEM3 — ограниченный worker transport, общий gate открыт:**
+  локально сохранена изоляция signature worker, но весь input не копируется:
+  random-access tokenizer получает independent chunks<=64KiB по запросу,
+  parent проверяет диапазон. Права/форматы/quota/deadline/one-active-slot прежние.
+  strtok3=10.3.5 уже был locked под file-type, теперь declared runtime dependency,
+  resolved versions не менялись; frozen/offline check GREEN/scripts disabled.
+  Detector-only native Mac80MiB peak219.23→139.98MiB, не API resource acceptance.
+  Diagnostic real S3 PUT80MiB200/9048ms подтвердил восстановленную связь, не
+  прежнюю причину503. Новый full API512MiB: article32 warm/fresh peak384.52/
+ 392.23MiB STOP; отдельные raw16/32/64 GREEN, raw80 upload200/SQL ready, но
+ 384.33MiB STOP до replay/bind/read. Events0/OOMfalse/restarts0, все свои objects
+  и контейнеры убраны, working DB/admin/frontend/runtime/старые S3 без изменений.
+  U1-MEM не закрывать. Следующий шаг — обсудить нативный Linux resource check/
+  HTTP buffering до дальнейшей смены архитектуры, не четвёртый случайный фикс.
+  Подробные проверки/ограничения/evidence — U1-MEM3 в начале todo/runbook.
+
 - **21 октября, U1-MEM2 — Base64 оптимизирован локально, memory gate ещё открыт:**
   новое прямое поручение разрешило расследование/код, не live settings. Убраны
   полный re-encode Base64 и allocation до decoded quota; media UTF-8 JSON POST

@@ -4,6 +4,67 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### U1-MEM3 — bounded signature reads,21 октября
+
+- [x] Clean6a00a14/ветка/план сверены, backend-only границы прежние. Diagnostic
+  artifact на прежнем коде:80MiB PUT9048ms/200, post-PUT HEAD200, ready SQL row.
+  Ошибка503 не повторилась; её прежняя точная причина всё ещё не доказана.
+  API peak536764416 bytes/511.90MiB, memory events0/OOMfalse/restarts0: STOP;
+  один собственный object удалён с metadata/ETag/IfMatch/HEAD404 guards.
+- [x] RED: worker получал весь file Buffer вместо выдачи requested owned range.
+  GREEN: random-access tokenizer передаёт только отдельные copies<=64KiB,
+  parent отказывает отрицательным/нецелым/out-of-bounds/слишком большим reads.
+  Нет detachment/mutation/storage-byte leakage; full-file semantics/EOF,
+  one active worker/5s/env/heap limits/teardown сохранены. Prefix-only sampling
+  или shared mutable storage buffer не использовались.
+- [x] Явный runtime dependency strtok3=10.3.5 — уже установленная/locked
+  зависимость file-type22.1.1, без смены resolved packages/версий. Scripts
+  disabled; frozen/offline lock check GREEN. Нормализация5 ESLint peer snapshot
+  references сгенерирована менеджером, не ручная правка lock/обновление frontend.
+- [x] Native Mac Node23.10 detector-only80MiB maxRSS224496→143344KiB
+  (219.23→139.98MiB),64→32ms в одном измерении, без forced GC. Это доказательство
+  устранения полной worker copy, не API512MiB/native staging latency SLO.
+- [x] Final bundle eb723a4f… на exact Node22 runtime image d602803e…, own fresh
+  tmpfs backend_test42/API512MiB/CPU0.4/no swap/read-only. S3 preflight дважды
+  timeout до любых SQL/S3 fixtures; на Mac public curl не дошёл до TCP за12s,
+  с staging read-only curl200/0.31s. После ответа пользователя о VPN route
+  восстановился. Warm article32MiB upload upstream200/ready, но peak403197952
+  bytes (384.52MiB) STOP. Fresh repeat411279360 (392.23MiB) STOP.32MiB+1→413
+  без intent; оба новых article objects точно удалены. Полная серия НЕ принята.
+- [x] Отдельный fresh raw run:16/32/64MiB upload/status/replay/один asset/bind/
+  full SHA256 GET/HEAD/Range/guest404 GREEN; до64MiB peak347418624/331.32MiB.
+ 80MiB+1→413/ledger unchanged. Valid80MiB upload200, ready receipt/ETag/size
+  в SQL, но peak403001344/384.33MiB>384 gate остановил до status/replay/bind/read.
+  Поэтому полный80MiB flow НЕ принят; memory events0, без OOM/restart.
+- [x] Все7 своих новых ready S3 objects убраны; metadata/ETag/IfMatch/HEAD404,
+  policy SHA0484dfa2…/versioning прежние. Все own API/relay/tmpfs DB убраны по
+  ID/name/label/image/mount guards; original3 stopped containers сохранены.
+  Working DB/admin/live memory256MiB/runtime/frontend/старые файлы/push/deploy
+  не менялись. Архивы и профили вне Git сохранены, новой широкой очистки нет.
+- [x] Final100 focused +24 application/entrypoint tests,202 HTTP/JWT/SQL tests
+  на отдельной own tmpfs backend_test/полной fresh42 схеме GREEN; в SQL suite
+  только S3 transport loopback double, не настоящий Timeweb. Начальный partial
+  fixture дал201 pass/1 timeout5s и missing push table diagnostics; final full
+  schema run использовал только test harness deadline20s (SDK до10s), product
+  timeouts прежние. Один fresh guard отказал wrong own-name prefix: исправлен
+  только operator name, preflight не обходился. Все SQL containers убраны.
+  Types/build/check:api90/35404/boundaries713/Prettier GREEN. Backend-only lint
+  config в репозитории отсутствует; direct ESLint
+  завершился exit2/config missing, это не lint GREEN. Root lint — frontend-only.
+  Reviewed code сохранён локально499e0ab; docs64/diff check GREEN, frontend diff0.
+- [x] E2E bundle eb723a4f…; final formatted bundle03a3fac9… отличается только
+  formatting, canonical minified code совпал (SHA b59364b6…). Final SQL и100
+  tests проверяли отформатированный source. На Mac осталось718MiB: новые тяжёлые
+  прогоны не запускать до disk preflight>=2GiB. Чужое/общие caches/images/БД
+  ради продолжения не удалять. Следующее изменение архитектуры не реализовано.
+- [ ] U1-MEM открыт. Три узких среза не дали устойчивого прохождения общего
+ 384MiB gate под emulation; согласно systematic-debugging не добавлять четвёртый
+  фикс наугад. Перед новой архитектурой загрузок/новым публичным контрактом
+  обсудить нативное Linux resource environment и измерение HTTP buffering.
+  Не повышать cap, менять live timeouts/quotas или frontend автоматически.
+  Evidence: `.local-artifacts/upload-followup-20261021.7Cogk4` и
+  `upload-range-20261021.F8JdsT` от workspace. Детали — existing runbook.
+
 #### U1-MEM2 — снижение Base64 allocations,21 октября
 
 - [x] По новому поручению исследован полный путь, а не только Buffer decode.

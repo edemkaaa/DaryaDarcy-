@@ -1,5 +1,116 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## U1-MEM3 — bounded signature worker transport,21 октября2026
+
+Scope прежний: backend locally, owned loopback/tmpfs backend_test, новые явно
+synthetic S3 objects. Исходно clean6a00a14 и прежняя feature branch. Frontend,
+working DB/admin/runtime/старые S3 не менялись; no push/deploy/flags/limit change.
+Применены systematic-debugging/TDD/incremental/security/API-design/review и
+verification skills. После третьего узкого среза общий memory gate остаётся
+открытым: не добавлять четвёртый фикс наугад, сначала обсудить архитектуру/
+нативное Linux resource environment и фактические HTTP allocations.
+
+### Диагностика80MiB и новая передача байтов
+
+Temporary diagnostic artifact на коде до нового worker: policy200/1002ms,
+HEAD404/216ms, PUT80MiB200/9048ms, HEAD200/168ms. В SQL готовый receipt; никаких
+provider messages/credentials/URLs/payloads в diagnostic logs, только stage,
+elapsed/status и allowlisted error categories. Прежняя503 не повторилась и её
+точная причина не объявлена найденной. Peak536764416 bytes (511.90MiB), events0/
+OOMfalse/restarts0: STOP без дальнейшего replay; собственный object удалён и
+свои API/relay/tmpfs DB убраны по guards. Diagnostic hooks в product не вошли.
+
+RED нового среза: workerData содержал полный input вместо requested owned range.
+GREEN: unchanged file-type22.1.1/fileTypeFromTokenizer + random-access tokenizer
+из strtok3.AbstractTokenizer; он может читать весь файл/seek, не только prefix.
+Parent проверяет целочисленные offsets/lengths, exact source bounds и64KiB max
+на ответ; отдельный transferable Uint8Array не detaches/mutates storage Buffer
+и не раскрывает его pooled neighbours. Это ограничивает дополнительную копию
+при передаче, не весь HTTP body/JSON heap или общую очередь запросов.
+One-active-slot,5s timeout, worker heap caps/env/execArgv и awaited teardown прежние.
+
+strtok310.3.5 уже стоял в resolved graph file-type; он объявлен direct runtime
+dependency с той же точной версией. Package records до/после byte-equivalent по
+parsed lock data, package versions/integrities не менялись. Менеджер нормализовал
+5 ESLint peer snapshot references, без frontend source edits. Initial offline
+add отказал из-за отсутствующей metadata, первый registry attempt timeout;
+ограниченный fetch concurrency/prefer-offline завершился, scripts disabled.
+`pnpm install --lockfile-only --frozen-lockfile --ignore-scripts --offline` GREEN.
+Не было ручной правки lockfile или forced audit remediation.
+
+Native macOS Node23.10 detector-only80MiB profile:224496→143344KiB maxRSS
+(219.23→139.98MiB),64→32ms в одном измерении. Input/result неизменны, forced GC
+нет. Это подтверждает удаление полной worker copy, не native API SLO/полный
+service peak; variance/parallel uploads/сложные большие архивы не приняты.
+Два созданных только для этого generated profile modules удалены из own temp
+directory; source/profile JSON сохранены вне Git.
+
+### Full API512MiB: результат не засчитан полностью
+
+Тот же runtime image d602803e…/Node22.23.3, isolated API512MiB/CPU0.4/no swap/
+read-only и fresh tmpfs backend_test42. Candidate bundle
+`eb723a4fb7394d17ad8698899ed9e9b30ce7f36cff4d1a2f82a950c2db065933`.
+Mac Docker Desktop/linux-amd64 emulation, клиент вне cgroup. Production boot
+без forced GC/NODE_OPTIONS; read-only backup directory останавливает backup
+до внешних writes/pruning. Native staging resource acceptance не заявлена.
+
+Два preflight timeouts до SQL/S3 fixtures. Direct public curl с Mac: TCP/TLS0,
+timeout12s; с staging read-only public HEAD200/0.305s. SSH только для этого
+network check, сервер/config/БД не менялись. После сообщения пользователя о VPN
+подключении маршрут восстановился. Empty users/private ledgers проверены перед
+preflight retry, исходные failed reports сохранены, не заменены задним числом.
+
+- Warm article32MiB: oversize+1→413/ledger unchanged; valid upstream200 ACK lost,
+  ready SQL/storage. Peak403197952 bytes (384.52MiB)>384 gate: STOP до bind/read.
+- Fresh repeat article32MiB: тот же boundary413/ready, peak411279360 bytes
+  (392.23MiB)>384 gate: STOP. Оба own article objects точно удалены.
+- Независимый fresh raw series:16/32/64MiB upload/status/replay/один ledger/bind/
+  full SHA256 GET/HEAD/Range и guest404 GREEN. До64MiB peak347418624 bytes
+  (331.32MiB).80MiB+1→413, нового intent нет. Valid80MiB upload200, SQL ready/
+  ETag/size83886080 подтверждены; peak403001344 bytes (384.33MiB)>384 gate.
+  STOP до status/replay/bind/read80MiB. Events max/oom/oom_kill0, OOMfalse/
+  restarts0. Полный80MiB flow НЕ принят, даже несмотря на успешный первый PUT.
+
+Все7 новых ready S3 objects убраны: metadata/ETag/IfMatch/HEAD404 guards,
+policy SHA0484dfa2… и versioning off прежние. Собственные API/relay/tmpfs DB
+удалены по ID/name/label/image/mount guards; original3 stopped containers прежние.
+Нет операций с working DB/admin/frontend/old objects/SMTP/payments/live limits.
+
+### Regression verification и границы продолжения
+
+100 focused tests/6 suites GREEN: real worker/compiled ESM/tsx, invalid ranges,
+exact chunk/end bounds, unchanged source bytes, EOF/random access beyond prefix,
+deadlines/errors/awaited serialization и прежний HTTP/decoder contract.24
+application/entrypoint tests GREEN. Native SQL first partial-schema fixture:
+201 pass/1 default5s timeout при lost DELETE ACK плюс missing push table logs.
+Новый fixture bootstrap полной fresh42 схемы и только testTimeout20s дал202/202
+в3 suites/30.16s; продуктовые10s SDK timeouts не менялись. Test-only migration
+markers отражают уже проверенную fresh42 схему, __drizzle_migrations вручную
+не менялся. Один промежуточный fresh preflight отказал wrong own name prefix;
+создан новый fixture с разрешённым name/label, guard не обходился. Все свои SQL
+containers удалены, исходный Docker container inventory совпал.
+
+Types/backend build/check:api90 procedures35404 bytes/boundaries713/Prettier
+GREEN. Direct ESLint exit2: root/backend flat config отсутствует; root lint
+запускает только frontend. Backend lint GREEN не заявлен, новый config не добавлен.
+После форматирования final bundle
+`03a3fac971e3af87ab89e7d6be1c26117f816e1f5abb55610ef833d78467dbf6`;
+diff с E2E artifact — formatting только. Canonical esbuild minified code совпал:
+SHA `b59364b62875ae4187498eac8375933cd5ed086de651d118b514bc7f7afd5cd3`.
+Final100 tests/types/SQL проверяли formatted source, повторные heavy E2E ради
+whitespace не запускались. Публичные API и generated frontend snapshot прежние.
+
+Reviewed product/test/dependency change сохранён локально499e0ab. Docs64/diff
+check GREEN, frontend source diff0; push/deploy нет.
+
+Evidence от workspace вне Git: `.local-artifacts/upload-followup-20261021.7Cogk4`
+(diagnostic80) и `upload-range-20261021.F8JdsT` (attempt reports/guards/cleanup/
+profile/operator/SQL evidence). Raw state/config/fixture identities не публиковать.
+На завершении свободно718MiB на Mac: дальнейшие heavy fixtures только после
+disk preflight>=2GiB. Новая широкая очистка не выполнялась, shared caches/
+images/DB/чужое не удалялись. U1-MEM не закрыт; следующий архитектурный выбор
+обсудить с пользователем, не менять request/quotas/timeouts автоматически.
+
 ## U1-MEM2 — Base64 investigation и повтор512MiB,21 октября2026
 
 Область: локальный backend, свои disposable backend_test/tmpfs и новые synthetic

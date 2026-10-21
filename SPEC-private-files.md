@@ -1,5 +1,30 @@
 # Spec: закрытая серверная выдача вложений постов
 
+## 21 октября — ограниченные копии для распознавателя, U1-MEM3
+
+Внутренний worker теперь читает весь доступный файл через random-access tokenizer
+по потребности, а не получает полную копию32/80MiB при старте. Это не обрезанный
+prefix detector: размер файла, seek и EOF semantics сохраняются. Parent проверяет
+целочисленные offset/length, границы исходного Buffer и максимум64KiB на ответ;
+каждый ответ — отдельная transferable copy без pooled neighbours. Worker не может
+отсоединить или изменить storage bytes. Прежние one-active-slot,5s deadline,
+isolated env/execArgv, heap limits, terminate/await и generic errors сохранены.
+
+Использованы публичные file-type.fileTypeFromTokenizer и strtok3.AbstractTokenizer.
+strtok310.3.5 уже был зависимостью file-type22.1.1 в lockfile; закреплён напрямую
+для явного runtime dependency. Resolved package records/версии не менялись;
+package-manager-generated peer snapshot references ESLint нормализованы без
+обновления пакетов. Install scripts запрещены, frozen/offline lock check GREEN.
+Публичный API/форматы/квоты/права/флаги не меняются; frontend правок не требует.
+
+Native Mac detector-only profile80MiB: maxRSS224496→143344KiB, без forced GC;
+это не API/cgroup SLO. Полная isolated512MiB приёмка ещё открыта: Base64 article
+достиг384.52MiB и392.23MiB на повторе. Raw80MiB получил ready receipt200/S3,
+но peak384.33MiB превысил384 gate до replay/bind/read. Не ослаблять gate,
+не переносить эти замеры emulation как точный native staging RSS. Доказательства,
+точная очистка и необходимость обсудить следующий архитектурный шаг — U1-MEM3
+в todo/runbook. Live settings/БД/admin/старые S3/frontend/deploy не менялись.
+
 ## 21 октября — внутренняя оптимизация памяти, контракт прежний
 
 Decoded4/32MiB quota проверяется до Buffer allocation. Canonical Base64 сохраняет
