@@ -63,6 +63,27 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **21 октября, U1-MEM2 — Base64 оптимизирован локально, memory gate ещё открыт:**
+  новое прямое поручение разрешило расследование/код, не live settings. Убраны
+  полный re-encode Base64 и allocation до decoded quota; media UTF-8 JSON POST
+  больше не проходит Express parse→tRPC stringify→Request.json повторный parse.
+  Bounded tRPC reader50MiB после прежнего admission; UTF-16/gzip fallback,
+  quotas/flags/roles сохранены, malformed JSON redacted. RED/GREEN,91 focused+
+  29 application/lifecycle tests, types/build/check:api GREEN; frontend diff0.
+  Exact final bundle1257b290…/runtime image d602803e… на fresh tmpfs backend_test42
+  и API512MiB: один article TXT32MiB ACK loss/replay/bind/SHA256/HEAD/Range прошёл
+  при351.71MiB peak. Fresh repeat дал388.13MiB>384 gate без OOM: это STOP,
+  не стабильная приёмка32MiB. Decoder-only/instrumented runs достигали512MiB;
+  они не считаются финальным результатом. Raw16/32/64MiB полная серия GREEN;
+ 80MiB+1→413, valid80→503/storage pending, exact SDK cause не установлен.
+  Raw peak383.27MiB/events0, но80MiB full flow НЕ принят. Все свои keys/containers
+  точно убраны, cleanup complete; рабочий S3 policy/versioning прежние.
+  Дополнительно убраны только наши воспроизводимые contexts/archives/cache
+  (1053927112+395317117 logical bytes); config/backups/DB/images/чужое сохранены.
+  Live cap256MiB, working DB/admin/frontend/старые S3 не менялись, no push/deploy.
+  Evidence/точные cleanup и оставшиеся gates — U1-MEM2 в начале todo/runbook.
+  Старый пункт ниже — история, разрешение исследовать уже получено.
+
 - **21 октября, U1-MEM — isolated512MiB, STOP по memory gate:** после отдельного
   разрешения удалены только7 own cache/public-copy leafs из старых build contexts
   (1582002758 logical bytes), сохранились13011 прочих files и Docker inventory.

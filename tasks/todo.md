@@ -4,6 +4,63 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### U1-MEM2 — снижение Base64 allocations,21 октября
+
+- [x] По новому поручению исследован полный путь, а не только Buffer decode.
+  Decoder-only run и отдельный instrumented bundle достигли512MiB на32MiB+1
+  без OOM; продолжение остановлено. Установленная tRPC11.8 после Express JSON
+  делает stringify и повторный Request.json/parse. Probe: первый parse299MB RSS,
+  stringify344MB, concat433MB, второй parse460MB до decoder. Это диагностика
+  отдельного временного артефакта, instrumentation в production не добавлялась.
+- [x] Малые RED/GREEN: decoded quota проверяется до Buffer.from; canonical
+  Base64 проверяется без полного bytes.toString(base64). В media POST UTF-8 JSON
+  после прежних flags/auth/role admission используется bounded reader tRPC и
+  единственный parse.50MiB/32MiB/4MiB/80MiB квоты не повышались; UTF-16/gzip
+  fallback сохранён, malformed JSON не раскрывает body в ошибке.
+- [x] RED старого decoder: ignored decoded ceiling; RED транспорта:2 parse
+  вместо1. Final focused6 suites91 pass, application/entrypoint/lifecycle29 pass;
+  TypeScript/backend build/check:api90 procedures GREEN. Generated frontend
+  без diff. Real HTTP tests включают chunked50MiB+framing без Content-Length413,
+  access/feature refusals и fallback. Account SQL doubles — не E2E SQL/S3 proof.
+- [x] Final bundle1257b290… на exact runtime image d602803e…, fresh tmpfs
+  backend_test42, API512MiB/CPU0.4/no swap/read-only, прямой настоящий Timeweb.
+  Article TXT32MiB: потеря upstream200 ACK/status/replay/один asset/bind/full
+  SHA256 GET/HEAD/Range и guest404 пройдены, peak368795648 bytes (351.71MiB).
+  Дальше fixture post.source оказался длиннее varchar32:500 из тестового input,
+  не отказ загрузки. Исправлен только helper source=manual, все2 objects убраны.
+- [x] Fresh repeat остановлен по прежнему gate384MiB: peak406982656 bytes
+  (388.13MiB), max/oom/oom_kill0.32MiB+1→413 без ledger; новый valid asset1
+  точно удалён. Полная повторяемая32MiB серия НЕ принята; первый успешный
+  прогон не скрывает этот STOP. Полная копия в isolated signature worker остаётся
+  намеренной защитой от изменения storage bytes, её не убирали ради метрики.
+- [x] Raw video fresh repeat:16/32/64MiB upload/status/replay/один ledger/bind/
+  full SHA256 GET/HEAD/Range/guest404 GREEN, peak до64MiB351883264 bytes.
+ 80MiB+1→413/пустой новый intent; valid80MiB→503 на storage stage с pending
+  ledger. Exact SDK cause безопасные logs не раскрывают, не объявлять это OOM
+  или доказанным сбоем провайдера. Peak401891328 bytes (383.27MiB), events0.
+ 80MiB full flow НЕ принят. Первый raw run до этого дал16/32 GREEN, read64→503
+  и cleanup TimeoutError; точная повторная очистка3 own keys завершена.
+- [x] Все own S3 fixtures сверены/убраны:6 confirmed ready objects и ещё4 own
+  keys последнего raw run (3 ready и1 pending); pending key отсутствует либо
+  очищен по guard, report.cleanupComplete=true. Policy/versioning прежние.
+  Все own API/relay/tmpfs DB удалены с guards, original3 stopped containers
+  неизменны; env/tunnels отсутствуют. Чужие контейнеры/образы/volumes не трогались.
+- [x] По ранее разрешённой own cleanup дополнительно удалены воспроизводимые
+  source/build contexts/archives1053927112 logical bytes,1212 остальных файлов
+  и Docker inventory сохранены. Затем только local webpack cache395317117 bytes:
+  BUILD_ID проверен, active Next processes нет,2244 остальных frontend files
+  byte-exact. Исходники/дизайн не менялись. Кэш пересобирается, contexts из Git;
+  старые release operators требуют восстановления удалённых contexts/archives.
+  Базы/образы/volumes/backups/закрытый S3 profile не удалялись.
+- [ ] U1-MEM остаётся открытым: нужен устойчивый peak<384MiB для полной32/80
+  серии; cap/live settings не поднимать автоматически. Mac linux-amd64 emulation
+  не доказывает native staging RSS/утечку или published готовность. Working DB,
+  admin, frontend, старые S3/runtime/flags/push/deploy не менялись. Evidence от
+  workspace: `.local-artifacts/base64-memory-20261021.vds48I`,
+  `base64-diag-20261021.LCOBNw`, `base64-acceptance-20261021.SI92SP`,
+  `local-cleanup-extra-20261021.nuzIdl`. Local code commits e70ec07/041eff6,
+  docs64/boundaries713/diff check GREEN. Подробности — existing runbook.
+
 #### U1-MEM — isolated512MiB остановлен по memory gate,21 октября
 
 - [x] Только read-only: clean7d8c442/ветка/план/код и ресурсы сервера сверены.

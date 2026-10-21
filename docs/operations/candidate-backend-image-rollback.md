@@ -1,5 +1,125 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## U1-MEM2 — Base64 investigation и повтор512MiB,21 октября2026
+
+Область: локальный backend, свои disposable backend_test/tmpfs и новые synthetic
+S3 keys, без live limits/SQL/admin/frontend/старых objects/push/deploy. Ветка
+feature/stage-one-completion-2026-10-10, исходно clean8507e11. Применены systematic
+debugging/TDD/incremental/security/review/verification skills. Нет dependency,
+public API/schema/feature/role/quota changes; frontend generated contract прежний.
+
+### Причина и минимальные изменения
+
+Native decoder profile на33554433 bytes: старый decode+canonical re-encode
+maxRSS156192KiB/external124266285 bytes, новый strict preallocation ceiling
+maxRSS112160KiB/external45972608 bytes/413. Это отдельный Mac process, не API SLO.
+Строгая canonical проверка теперь проверяет alphabet/padding/unused tail bits,
+а decoded length — до Buffer.from. Прежние400 для malformed и413 для valid
+oversize сохранены. Фото pipeline/quotas/formats не перепроектировались.
+
+Decoder-only patched runtime на512MiB всё равно достиг memory cap до дальнейших
+payloads. Отдельный instrumented bundle подтвердил установленный tRPC11.8 path:
+Express JSON.parse→adapter JSON.stringify(req.body)→WHATWG Request.json/parse.
+При44739456 chars: RSS299MB после первого parse,344MB после stringify,433MB
+после concat,460MB после второго parse ещё до decoder. Sources:
+node_modules/@trpc/server/src/adapters/node-http/incomingMessageToRequest.ts
+и unstable-core-do-not-import/http/contentType.ts. Instrumentation только во
+временном probe, в tracked production code monkeypatch/forced GC нет.
+
+Media POST со standard UTF-8 application/json теперь пропускает Express JSON и
+urlencoded preparse, но только после прежних feature/auth/role admission.
+createExpressMiddleware получает maxBodySize52428800 bytes; Content-Length guard
+и native reader chunked guard сохраняют50MiB потолок. Другие charset/compression
+идут прежним Express fallback. Общие256KiB/auth16KiB/photo6MiB/raw80MiB без changes.
+SyntaxError превращается в generic400, не отражает фрагмент приватного body.
+Для chunked oversize используется стандартная tRPC413/PAYLOAD_TOO_LARGE envelope;
+для заранее известного oversized Content-Length прежний generic413.
+
+RED: старый decoder игнорировал decoded ceiling; старый HTTP path делал2 parse
+вместо1. GREEN:6 focused suites91 tests, application/entrypoint/lifecycle29 tests,
+TypeScript/backend build/check:api90 procedures/35404 bytes. HTTP checks реальны,
+но account/activity SQL substitutes; это не SQL/S3 E2E. Они покрывают chunked
+50MiB+framing413, identity/role/feature refusals, exact max envelopes/extra byte,
+invalid JSON/nonobject400/no echo, UTF-16 и gzip fallback. Full SQL suite и весь
+договор не заявлены закрытыми.
+
+### Новый isolated runtime
+
+Exact image d602803e… + final backend bundle
+`1257b2904bbf4a05f824c8263b9a956b36cd9433e94fb292ef7ab5d1c625e142`,
+SHA совпадает с normal backend build. API512MiB/memory-swap512MiB/CPU0.4/read-only,
+one read-only bundle bind; own fresh MySQL8.4/tmpfs backend_test/42 migrations,
+loopback-only ports. Mac Docker Desktop linux/amd64 emulation; client вне API
+cgroup, без NODE_OPTIONS/forced GC. Нет SMTP/payment fixtures; backup worker
+refuses read-only backups directory before S3 upload/prune. Это не rollout.
+
+Первый финальный preflight через прежний SSH relay timeout до actor/ledger/S3
+fixtures: master socket исчез. Direct Timeweb TLS/политика200 проверены, новый
+API recreated только в собственном fixture с original endpoint/cert validation.
+Это изменение тестового маршрута, не server config. Policy SHA0484dfa2… прежний,
+bucket versioning off, старые object/list операции не выполнялись.
+
+- Первый direct run: article TXT33554432 bytes→upload upstream200 ACK lost,
+  status/replay stable/один asset/bind/full SHA256 GET/HEAD/Range/guest404 GREEN;
+  +1 byte413 до SQL intent. Peak368795648 bytes (351.71MiB), max/oom/kill0.
+  Post document upload/status/replay прошли, но createPost500: helper передал
+ 47-char marker в source varchar32. Только fixture исправлен source=manual;
+  это не найденная ошибка Base64 upload. Both own objects точно удалены.
+- Новый fresh run тем же bundle:32MiB+1→413/пустые ledgers; на valid article
+  peak406982656 bytes (388.13MiB), выше384MiB gate. STOP, max/oom/oom_kill0,
+  OOMfalse/restarts0; единственный новый asset точно удалён. Серия32MiB не
+  повторяемо принята. Не выбирать удачный первый run и не ослаблять gate.
+- Первый raw-only run:16/32MiB GREEN, на full read64MiB HTTP503; cleanup получил
+  SDK TimeoutError. Ledger сохранён до exact reconcile:3 own keys убраны,
+  policy/versioning прежние, затем свои API/relay/tmpfs DB удалены. Это не memory
+  gate, причина503 не выводится из одного статуса.
+- После восстановления metadata connectivity fresh raw-only repeat:
+ 16/32/64MiB upload/status/replay/один ledger/bind/full SHA256 GET/HEAD/Range/
+  guest404 GREEN. Peak до64MiB351883264 bytes (335.58MiB).80MiB+1→413, нового
+  ledger нет. Valid83886080 bytes→503 на storage stage, durable ledger pending,
+  etag/mediaId нет. Без instrumented SDK trace точная причина503 не установлена:
+  не приписывать её OOM/лимиту размера/провайдеру. Peak401891328 bytes
+  (383.27MiB), max/oom/oom_kill0/OOMfalse/restarts0.80MiB full flow НЕ принят.
+  Cleanup complete:3 ready objects deleted с owner metadata/ETag/IfMatch guards,
+  pending key404 либо точный delete/HEAD404. Все own4 keys больше не существуют,
+  policy/versioning прежние; API/relay/tmpfs DB удалены с ID/name/owner/image/
+  mount guards. Original3 stopped containers неизменны; env/tunnel отсутствуют.
+
+Итог U1-MEM2: code commits e70ec07 и041eff6 только локально. Полная повторяемая
+Base6432MiB acceptance и raw80MiB storage flow остаются открытыми; metadata
+connectivity200 само по себе не доказывает успешный большой PUT. Не менять
+published cap/timeouts или ослаблять384MiB gate по этому результату.
+
+Полная изолированная копия в signature worker остаётся: её простое удаление
+сломало бы гарантию независимости storage bytes. Дальнейшая её переработка
+требует отдельного малого доказуемого среза; текущая оптимизация не объявляется
+полной memory acceptance. PDF/DOCX maximum, parallel load/playback/browser и
+published nginx/native resource acceptance этими TXT/WAV/padded MP4 не доказаны.
+
+### Очистка и evidence
+
+Дополнительно к прошлой cleanup убраны только наши rebuildable release source/
+generated contexts и tar archives1053927112 logical bytes. Проверены Git blobs,
+archive manifests/SHA, UID/private parents/no symlink/open path/mount overlap;
+1212 прочих files/config/backup/receipts и Docker inventory совпали. Две source
+copies release-baaeb47 с отличающимися blobs сохранены. Старые runbooks, где
+archive/context значился существующим, теперь исторические: operator требует
+реконструкции из Git/retained manifests/images, а не запуска вслепую.
+
+После очередного disk gate удалён только local `.next/cache/webpack`395317117
+bytes: BUILD_ID YtXVGc0Hb8niy9-5rNFOG, нет active Next process;2244 остальных
+frontend files сверены byte-exact. Cache восстановим сборкой. Дизайн/исходники,
+БД/volumes/images/backups/credentials и чужие файлы не удалялись.
+
+Evidence вне Git от workspace: `.local-artifacts/base64-memory-20261021.vds48I`
+(decoder/profile), `base64-diag-20261021.LCOBNw` (diagnostic probe),
+`base64-acceptance-20261021.SI92SP` (final attempts/report/memory/guards),
+`local-cleanup-extra-20261021.nuzIdl` (cleanup fingerprints/receipt).
+Raw configs/state/fixture keys не распространять. Первые isolated runs очищены
+с exact ID/name/owner/image/mount guards, original3 stopped containers неизменны.
+Проверки docs64/boundaries713/diff check GREEN. Published API256MiB/settings/DB/admin/frontend не менялись; разрешения на выпуск
+или live resource change нет. U1-MEM остаётся открытым до всех resource gates.
+
 ## U1-MEM — isolated512MiB остановлен по memory gate,21 октября2026
 
 Новая область разрешения: очистить только наши временные copies/cache, затем

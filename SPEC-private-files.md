@@ -1,5 +1,22 @@
 # Spec: закрытая серверная выдача вложений постов
 
+## 21 октября — внутренняя оптимизация памяти, контракт прежний
+
+Decoded4/32MiB quota проверяется до Buffer allocation. Canonical Base64 сохраняет
+строгую проверку алфавита/паддинга/неиспользованных битов без полного re-encoding.
+Для media UTF-8 JSON POST после прежних feature/auth/role checks body читает
+bounded tRPC reader50MiB, без Express parse→stringify→повторного parse. UTF-16/
+compressed JSON сохраняет прежний parser; malformed JSON400 без отражения тела,
+chunked oversized body413. Публичные input/receipt/status/recovery/access и
+квоты/флаги не изменены, клиент менять не нужно. Обычные256KiB/auth16KiB/photo6MiB
+и raw video80MiB parsers остаются прежними.
+
+Это не подтверждение готовности рабочего API256MiB. Новая isolated512MiB серия
+имеет как успешный article32MiB run351.71MiB, так и repeat STOP388.13MiB>384 gate;
+полная resource acceptance ещё открыта. Подробности/очистка — U1-MEM2 в todo и
+existing operational runbook. Более ранние max-size доказательства ниже выполнены
+в другом resource environment и не заменяют этот gate.
+
 ## 21 октября — реальные предельные размеры без изменения лимитов
 
 Семь новых native API/SQL/Timeweb S3 сценариев GREEN: source post/article/comment
