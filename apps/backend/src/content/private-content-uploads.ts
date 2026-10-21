@@ -50,8 +50,7 @@ function receipt(row: FileRow) {
 const requestKey = (actor: PrivateAttachmentActor, key: string) => digest(JSON.stringify(["private.content:v1", actor.id, key]));
 export async function uploadPrivateContentFile(actor: PrivateAttachmentActor, input: z.output<typeof privateContentInput> | z.output<typeof privateCommentPhotoInput>) {
   requirePrivateContentEnabled();
-  const raw = decodeMediaBase64(input.base64);
-  if (raw.length > (input.usage === "articleDocument" ? 32 : 4) * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE" });
+  const raw = decodeMediaBase64(input.base64, (input.usage === "articleDocument" ? 32 : 4) * 1024 * 1024);
   let bytes: Buffer, mimeType: string;
   if (input.usage === "articleDocument") {
     const declared = normalizeMediaContentType("document", input.mimeType);

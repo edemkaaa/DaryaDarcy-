@@ -135,9 +135,7 @@ export async function uploadPrivateAttachment(
   input: z.output<typeof privateUploadInput>,
 ) {
   requirePrivateUploadEnabled();
-  const bytes = decodeMediaBase64(input.base64);
-  if (bytes.length > 32 * 1024 * 1024)
-    throw new TRPCError({ code: "PAYLOAD_TOO_LARGE" });
+  const bytes = decodeMediaBase64(input.base64, 32 * 1024 * 1024);
   const declared = normalizeMediaContentType(input.type, input.mimeType);
   // Existing legacy Word acceptance is not a byte detector; do not claim it here.
   if (declared.split(";")[0] === "application/msword")
