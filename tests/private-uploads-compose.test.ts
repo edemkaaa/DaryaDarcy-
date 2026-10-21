@@ -9,7 +9,11 @@ it.skipIf(process.env.PRIVATE_UPLOADS_COMPOSE_ACCEPTANCE !== "true")(
   () => {
     const directory = mkdtempSync(join(tmpdir(), "darcy-upload-compose-"));
     try {
-      for (const name of ["compose.yaml", "compose.private-uploads.yaml"])
+      for (const name of [
+        "compose.yaml",
+        "compose.private-uploads.yaml",
+        "compose.images.yaml",
+      ])
         copyFileSync(
           resolve("infrastructure/deploy/teamassist", name),
           join(directory, name),
@@ -31,6 +35,8 @@ it.skipIf(process.env.PRIVATE_UPLOADS_COMPOSE_ACCEPTANCE !== "true")(
               directory,
               "-f",
               join(directory, "compose.yaml"),
+              "-f",
+              join(directory, "compose.images.yaml"),
               ...(enabled
                 ? ["-f", join(directory, "compose.private-uploads.yaml")]
                 : []),
@@ -50,8 +56,12 @@ it.skipIf(process.env.PRIVATE_UPLOADS_COMPOSE_ACCEPTANCE !== "true")(
         );
       const before = config(false),
         after = config(true);
-      expect(after.services.api.networks).toEqual(before.services.api.networks);
+      expect(Object.keys(after.services.api.networks).sort()).toEqual([
+        "isolated",
+        "s3-client",
+      ]);
       expect(after.networks.isolated.internal).toBe(true);
+      expect(after.networks["s3-client"].internal).toBe(true);
       expect(after.services.api.environment.S3_ENDPOINT).toBe(
         "https://s3.twcstorage.ru",
       );
@@ -61,10 +71,17 @@ it.skipIf(process.env.PRIVATE_UPLOADS_COMPOSE_ACCEPTANCE !== "true")(
       for (const service of ["web", "mysql", "edge"])
         expect(after.services[service]).toEqual(before.services[service]);
       const proxy = after.services["s3-egress"];
-      expect(proxy.networks.isolated.aliases).toEqual(["s3.twcstorage.ru"]);
+      expect(proxy.networks["s3-client"].aliases).toEqual(["s3.twcstorage.ru"]);
       expect(Object.keys(proxy.networks).sort()).toEqual([
-        "isolated",
+        "s3-client",
         "s3-egress",
+      ]);
+      // The optimizer must resolve public S3, never the API's private proxy.
+      for (const network of Object.keys(after.services.web.networks))
+        expect(proxy.networks[network]).toBeUndefined();
+      expect(Object.keys(after.services.web.networks).sort()).toEqual([
+        "image-egress",
+        "isolated",
       ]);
       expect(proxy.ports).toBeUndefined();
       expect(proxy.read_only).toBe(true);
