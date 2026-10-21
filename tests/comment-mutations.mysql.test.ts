@@ -8,22 +8,29 @@ import { addPostCommentV2, deletePostCommentV2, toggleCommentLike, reportComment
 describe.skipIf(!testDatabaseUrl)("atomic comment mutations on disposable MySQL", () => {
   let conn: Connection;
   beforeAll(async () => { conn = await openContentTestDatabase(); vi.stubEnv("DATABASE_URL", testDatabaseUrl!); });
-  beforeEach(async () => {
+  async function clearFixture() {
     await conn.query("DELETE FROM comment_likes WHERE commentId=9051");
     await conn.query("DELETE FROM comment_likes WHERE commentId=999999 AND userId=787");
     await conn.query("DELETE FROM comment_reports WHERE commentId=9051");
     await conn.query("DELETE FROM post_comments WHERE postId BETWEEN 9050 AND 9059");
     await conn.query("DELETE FROM post_comments WHERE postId=999999 AND userId=786");
     await conn.query("DELETE FROM posts WHERE id BETWEEN 9050 AND 9059");
+  }
+  beforeEach(async () => {
+    await clearFixture();
     await conn.query("INSERT INTO posts (id,text,photos,tags,status,target) VALUES (9050,'discussion',JSON_ARRAY(),JSON_ARRAY('community'),'published','feed'),(9052,'other post',JSON_ARRAY(),JSON_ARRAY('community'),'published','feed')");
     await conn.query("INSERT INTO post_comments (id,postId,userId,text) VALUES (9051,9050,785,'owner comment')");
     await conn.query("INSERT INTO comment_likes (userId,commentId) VALUES (786,9051)");
     await conn.query("INSERT INTO comment_reports (commentId,reporterUserId,reason) VALUES (9051,786,'test report')");
   });
   afterAll(async () => {
-    await conn?.end();
-    const database = await getDb(); await (database as unknown as { $client: { end(): Promise<void> } })?.$client.end();
-    vi.unstubAllEnvs();
+    try {
+      if (conn) await clearFixture();
+    } finally {
+      await conn?.end();
+      const database = await getDb(); await (database as unknown as { $client: { end(): Promise<void> } })?.$client.end();
+      vi.unstubAllEnvs();
+    }
   });
   async function related(table: "post_comments" | "comment_likes" | "comment_reports") {
     const [rows] = await conn.query<RowDataPacket[]>(`SELECT COUNT(*) n FROM ${table} WHERE ${table === "post_comments" ? "id" : "commentId"}=9051`);

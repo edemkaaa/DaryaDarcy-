@@ -290,13 +290,12 @@ export function registerClubCommentsBrowserCases(
           [memberId],
         );
         await context.clearCookies();
-        // This slice starts after local onboarding, which is unrelated to comments.
-        await context.addInitScript((id) => {
-          localStorage.setItem(
-            `darcy:user:${id}:@darcy_club_profile_completed`,
-            "true",
-          );
-        }, memberId);
+        // Onboarding is derived from the server profile, including after reload.
+        // This comment lifecycle slice starts with an already completed profile.
+        await connection.query(
+          "UPDATE users SET gender='female' WHERE id=? AND openId='binding-browser-member'",
+          [memberId],
+        );
         await context.addCookies([
           {
             name: COOKIE_NAME,

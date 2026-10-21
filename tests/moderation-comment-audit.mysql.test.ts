@@ -33,7 +33,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
-    beforeEach(async () => {
+    async function clearFixture() {
       await conn.query(
         "DROP TRIGGER IF EXISTS moderation_comment_audit_failure",
       );
@@ -47,6 +47,9 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DELETE FROM post_comments WHERE id IN (8422,8423)");
       await conn.query("DELETE FROM posts WHERE id=8424");
       await conn.query("DELETE FROM users WHERE id IN (8420,8421)");
+    }
+    beforeEach(async () => {
+      await clearFixture();
       await conn.query(
         "INSERT INTO users (id,openId,role) VALUES (8420,'comment-audit-actor','moderator'),(8421,'comment-audit-author','user')",
       );
@@ -70,12 +73,16 @@ describe.skipIf(!testDatabaseUrl)(
     });
     afterAll(async () => {
       await app?.close();
-      await conn?.end();
-      const database = await getDb();
-      await (
-        database as unknown as { $client: { end(): Promise<void> } }
-      )?.$client.end();
-      vi.unstubAllEnvs();
+      try {
+        if (conn) await clearFixture();
+      } finally {
+        await conn?.end();
+        const database = await getDb();
+        await (
+          database as unknown as { $client: { end(): Promise<void> } }
+        )?.$client.end();
+        vi.unstubAllEnvs();
+      }
     });
     async function state() {
       const [comments] = await conn.query<RowDataPacket[]>(
