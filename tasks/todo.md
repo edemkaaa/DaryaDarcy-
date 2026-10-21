@@ -13,11 +13,25 @@
   не живой приёмкой оплаты/S3. Root3057 pass/1586 opt-in skips; root/frontend
   types, lint, API90, boundaries722/docs68, audit0 и production build GREEN.
   Build для выпуска сохраняет TEST=true и прежние runtime flags.
-- [ ] Push staging и guarded выпуск api/web/prodamus-test: immutable offline
+- [x] Push staging/source e8ea7f5 и guarded выпуск api/web/prodamus-test: immutable offline
   image probes, свежий backup с локальной проверкой, DB/schema/admin/config
   guards, затем живые read-only API/JS проверки. Миграций/новых flags/лимитов/
-  платежей/внешних писем/изменения старых файлов нет. До receipt не считать
-  сервер обновлённым. Evidence workspace release-integrated-20261021.nA06Qc.
+  платежей/внешних писем/изменения старых файлов нет. Receipt accepted:
+  native17; public HTTPS53 (35 JS byte-exact,22 VK/19 covers/3 null, guest Library
+  denied, disabled push403); internal deployed API14 (admin DTO/subscription,
+  pagination/calendar,4 winter bindings, invalid writes400/legacy404).
+  Admin checks используют signed ephemeral cookie с текущей epoch2, без смены
+  пароля/входа по паролю/logout. Внутренний DNS public host дал EAI_AGAIN;
+  auth проверен loopback, внешняя публичная часть — HTTPS с host. Не объявлять
+  это browser/платёжной/S3 приёмкой. Native web buildId Izh-kkFmKfvnGdUW6lxdd,
+  api99ada7f1/webf19115f1,3 healthy/restart0/OOMfalse;27 остальных неизменны.
+  Backup40 tables355586 bytes/server+Mac SHA4cc83719… verified. Schema/history42,
+  admin password/role/epoch, table counts и videos digest сохранены; обычные
+  auth reads обновляли lastSignedIn. Flags/TEST/limits прежние. Финально server
+  free2.2GiB/RAM available754MiB. Evidence workspace и server private directory
+  release-integrated-20261021.nA06Qc. Исторические memory/old public sources/
+  provider/mobile gates этим не закрыты. Подробный immutable/rollback receipt:
+  [runbook](../docs/operations/candidate-backend-image-rollback.md).
 
 ### Действующая граница — frontend не менять, 20 октября
 
@@ -87,8 +101,9 @@
   containers сохранён, mounts/volumes/images/working DB/S3 не тронуты.
   Evidence: `.local-artifacts/security-fixes-20261021.tFY6gP`, cover-recheck/
   pen-recheck logs и cleaned receipts; оператор без external service credentials.
-- [ ] Frontend integration остаётся фронтендеру, не выполнена этим backend-only
-  срезом. `check:api` ожидаемо RED: artifact-only generator diff подтвердил
+- [x] Frontend integration закрыта новым совместным срезом21 октября (см. начало
+  чек-листа). Исторически не выполнялась backend-only срезом: `check:api` был
+  ожидаемо RED; artifact-only generator diff подтвердил
   для legacy-upload среза purpose:"publicCover" (90 procedures/35438 bytes).
   Последующий cancellation срез добавил cancellationStatus в subscription/cancel
   и message в cancel (90 procedures/35613 bytes); новый handoff ниже.

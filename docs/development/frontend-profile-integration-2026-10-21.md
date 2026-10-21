@@ -16,7 +16,14 @@ GREEN, включая reload/pending/expired/lost ACK/account switch/cover/saved
 Браузерные API ответы контролируемые; это не реальная отмена у провайдера или
 upload в S3. Root3057 pass/1586 skips, types/lint/check:api/boundaries722/docs68,
 audit0 и production build GREEN. Исторические сведения ниже сохранены.
-Выпуск и живые проверки пока pending; точный receipt будет в operations/todo.
+Выпуск source e8ea7f5 отправлен в staging и принят на dev: native17,
+public HTTPS53/internal admin14 GREEN, новый frontend JS35 byte-exact.
+Credentials/session epoch2/schema/history сохранены; TEST/flags/лимиты прежние.
+Admin проверен внутри deployed API с краткоживущей signed cookie, не через
+повторный парольный вход; public host из контейнера не разрешается DNS, с host
+внешние HTTPS probes успешны. Реальные cancel/payment/upload не вызывались.
+Полные hashes, ограничения, backup и rollback:
+[operations receipt](../operations/candidate-backend-image-rollback.md).
 
 ## Что подтянуто
 

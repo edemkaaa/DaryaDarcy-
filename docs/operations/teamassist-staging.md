@@ -1,5 +1,29 @@
 # Отдельный тестовый стенд TeamAssist
 
+## 21 октября — INTEGRATED: совместный frontend/backend действительно выпущен
+
+Новое прямое поручение разрешило frontend integration, push staging и обновление
+dev. Source e8ea7f5 (включает staging39e66a2, backend security/validation и
+frontend contracts) отправлен в staging. API/prodamus-test99ada7f1…, webf19115f1…,
+BUILD_ID Izh-kkFmKfvnGdUW6lxdd реально работают,3 healthy/restart0/OOMfalse.
+Дизайн и правки фронтендера сохранены. Подключены publicCover purpose,
+cancellationStatus с reload/expired pending и regenerated API90.
+
+Native offline17, public HTTPS53/internal admin14 GREEN;35 JS byte-exact,
+22 VK/19 covers/3 null, pagination/calendar/4 winter bindings подтверждены.
+Auth admin проверен signed cookie внутри deployed API: public DNS из его
+изолированной сети даёт EAI_AGAIN; внешние HTTPS probes выполнены с server host.
+Это не проверка реальной оплаты/отмены/S3/воспроизведения VK или мобильная приёмка.
+Локально3057 tests/64 controlled-API browser/4 provider GREEN, audit0.
+
+Candidate DB прежняя, без миграций/переноса/очистки. Backup40 tables проверен
+на сервере и Mac; password digest/role/sessionVersion2/history/schema/counts/
+videos digest сохранены. Обычные auth reads обновляли lastSignedIn; парольный
+вход и logout не вызывались.27 остальных контейнеров неизменны. TEST=true,
+flags/limits прежние; S3/старые файлы и публичные копии не менялись. Образы
+отката/backup/чужие файлы не удалялись. Полный receipt и guarded rollback:
+[runbook](candidate-backend-image-rollback.md#integrated--совместный-выпуск21-октября2026).
+
 ## 19 октября — RELEASE-D3: backend/frontend действительно обновлены, candidate активна
 
 После явного разрешения обновлены api/web/prodamus-test, приложение переключено

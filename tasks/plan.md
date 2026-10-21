@@ -6,8 +6,12 @@
 обновить dev. Три frontend integration задачи ниже реализованы локально без
 редизайна: publicCover purpose, cancellationStatus (включая expired pending) и
 generated API. RED/GREEN,64 browser cases с контролируемым API,3057 unit pass,
-types/lint/API/boundaries/docs и production build GREEN. Выпуск ещё не принят;
-переключение только после immutable image probes, backup и guards БД/админа.
+types/lint/API/boundaries/docs и production build GREEN. Выпуск принят:
+staging/source e8ea7f5, native image17, public HTTPS53/internal admin14 GREEN,
+35 новых JS byte-exact. Backup40 tables проверен на сервере и Mac; schema/history,
+admin credentials/sessionVersion2, row counts и videos digest сохранены,
+27 остальных контейнеров не изменились. Runbook — начало
+[candidate-backend-image-rollback.md](../docs/operations/candidate-backend-image-rollback.md).
 Режим TEST, flags, лимиты, существующие файлы/данные не менять. Исторические
 запреты frontend/push/deploy ниже относятся к прежним срезам, не этому поручению.
 

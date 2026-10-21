@@ -1,5 +1,111 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## INTEGRATED — совместный выпуск21 октября2026
+
+По прямому поручению пользователя соединены frontend/backend, выполнен normal
+push в origin/staging и реальное обновление dev. Код/source image revision:
+`e8ea7f54291c96ea7f529643a5a3257974575f9a`. Следующий docs-only commit записывает
+этот receipt и не требует новой пересборки. Свежий staging39e66a2 уже был в ветке;
+ручных CSS/design правок нет, изменения фронтендера сохранены.
+
+### Что вошло и что проверено
+
+- Все накопленные backend fixes Pen Pals/object access/lifecycle, legacy upload
+  retirement, explicit publicCover, disabled push/input/quota, durable cancel
+  state, profile/public DTO, content dates/sort/body и bounded Base64 handling.
+  Pen Pals/webPush не включались; пределы памяти/файлов не менялись.
+- Frontend: cover purpose только для публичной обложки, regenerated API90,
+  strict cancellationStatus parser/context/controller/profile. Pending виден
+  после reload/expired access; check читает, не дублирует mutation; account
+  scope/lost-response guards сохранены. Служебный доступ/owner labels прежние.
+- RED8 parser/RED2 actual provider; cover RED1 на предыдущей сборке; после
+  fresh build37 parser/4 provider/64 Playwright GREEN. API ответы браузерных
+  платежных сценариев контролируемые, не настоящий Prodamus.
+- Root3057 pass/1586 opt-in skips, types/frontend lint/check:api90/boundaries722/
+  docs68/diff GREEN, production dependency audit0. Production Next29 routes и
+  оба backend bundles собраны; отдельная release сборка сохраняет TEST=true.
+- Server native offline17 (api6/web7/restricted TEST4), node non-root/amd64,
+  no providers/workers/network в probes;1615 Next/public files byte-exact.
+  Новые образы построены offline поверх проверенных текущих immutable bases,
+  без network dependency install. strtok3 уже находился в runtime transitively;
+  actual backend bootstrap прошёл. Package/schema изменения не спрятаны.
+- Public HTTPS53: auth guest, capabilities,22 VK/19 covers/3 null, pagination,
+  hidden legacy YouTube, VK playback metadata, guest Library denial, push403,
+ 6 pages/35 новых JS byte-exact. Это не playback со звуком/fullscreen.
+- Deployed API loopback14 с краткоживущей cookie существующего admin/epoch2:
+  REST/tRPC public DTO, cancellationStatus=none, owner access, posts pagination,
+  calendar на дне существующего поста, missing detail null,4 winter bindings,
+  missing-purpose/dates/fraction400, legacy404. Файлы из S3 не скачивались.
+  Реальные cancel/logout/payment/upload/почта не вызывались. Подписанный token
+  и JWT secret не выходили из памяти контейнера, новый аккаунт не создавался.
+
+### Артефакты и текущее окружение
+
+- API и restricted TEST:
+  `sha256:99ada7f1d3eaf5bccc44596ff29595187350192f623267259dd0b7ee9a6253db`
+  (`daryadarcy-backend:integrated-e8ea7f5`).
+- Web:
+  `sha256:f19115f1e28c24b4c402597864b8b23d792116118f6f8278df5495f3d9c9088a`
+  (`daryadarcy-frontend:integrated-e8ea7f5`).
+- Frontend BUILD_ID `Izh-kkFmKfvnGdUW6lxdd`.
+- API bundle SHA `601b552ed7e2e3cafe3367d2bbec62df343c38392eed0d72b453e069ff74bea9`;
+  restricted TEST bundle
+  `d8a4a418d6a7ee0daab1926798530ef2220b6da7c657eaf6f777d1f3bd1e9272`.
+- Artifact29898405 bytes, SHA
+  `b8ef59d39b88d833ffd5776f334d1aba257fadd7d1f344858e08926f230e1403`.
+- Только api/web/prodamus-test пересозданы: healthy, restart0, OOMfalse.
+ 27 остальных контейнеров (включая DB/edge/другие проекты) не меняли ID/image/
+  start state. Edge выполнен config test +reload, не restart.
+- Разрешённый config diff:3 image IDs и путь readonly mount TEST bundle.
+  Env/JWT/S3/SMTP/DB URI/flags/limits/networks прежние. Сохранились frontend
+  TEST=true, club test checkout=false, VK/normal recovery/thumbnails=true,
+  frontend private Library=false; runtime private flags прежние true.
+  Recipes/Petersburg/старые публичные sources не переносились/не закрывались.
+- DB `daryadarcy_candidate_20261019`, UUID
+  `2a41f961-c168-11f1-8660-0a4124b25f9f`, тот же DB container3442fbda….
+ 40 tables/42 migrations byte-digests схемы/history, row counts и videos digest
+  до/после совпали; admin id1/email/password digest/role/epoch2/blocked state
+  сохранены. Обычные авторизованные чтения обновляли lastSignedIn; не объявлять
+  весь SQL data dump byte-identical или новый вход прежним паролем проверенным.
+  Старую source DB и историю0017–0019 не исправляли. Миграции не выполнялись.
+- Before-side-effect guard: unsent mail/binding, scheduled/deletion,
+  billingProfiles/shopMail все0. Fresh single-transaction gzip backup40 tables,
+ 355586 bytes, SHA
+  `4cc8371912bdc3eecec5190cf11bf67479bb7af8727c6e701cfb2a5bf303f96a`.
+  Серверная и Mac копии проверены SHA/gzip/table count, file0600/parent0700.
+  Это не новая restore drill (предыдущие restore evidence сохраняются).
+- Private receipts/operator/before config/backup на сервере:
+  `/home/edem/apps/daryadarcy-staging/release-integrated-20261021.nA06Qc`;
+  локально workspace `.local-artifacts/release-integrated-20261021.nA06Qc`.
+  State `accepted`, native.json/live-public.json/live-admin.json/local-backup-
+  verified.json. Секретные before config в Git не входят.
+  После выпуска server free2.2GiB, available RAM754MiB, swap0.
+
+### Диагностические ограничения и откат
+
+Из API container public host дал DNS EAI_AGAIN, а loopback3000 —200; публичный
+HTTPS с server host — GREEN. Сеть/DNS не расширяли ради проверки. Поэтому
+auth checks не выдаются за public HTTPS/browser acceptance. Уточнены только
+probe assumptions: lastSignedIn меняется при auth read, owner compatibility
+subscribed=true (не доказательство оплаты), календарь опускает пустые дни.
+Product code/данные ради зелёного smoke не менялись. Первый apply остановился
+до config changes guard'ом отсутствующей локальной backup receipt; после
+исправления SFTP copy и SHA-проверки выполнен apply. Никакого bypass не было.
+
+Rollback images сохранены: API/TEST
+`sha256:d602803efec7286aa04a8a3ff4c6d3ef02b6da842bb0b47952d7e544e4e6d576`,
+web `sha256:7bee80492b73ba7717162946cb19eb7ac3d5cbbf4e6e21fe17b009274c2a4312`.
+При новом разрешении на откат: проверить отсутствие новых DB/config изменений,
+сверить snapshot/backup, выполнить `rollout-images.py rollback` из указанной
+private release directory. Оператор сверяет текущие/before/after config SHA,
+восстанавливает только3 config files и3 app images/TEST mount, reload edge,
+ту же БД не восстанавливает/не очищает. При drift STOP, не ослаблять guards.
+Базы, образы отката, backup и чужие файлы в выпуске не удалялись.
+
+Memory gate32/80MiB при API512MiB, настоящие provider/S3 acceptance,
+mobile/pilot и закрытие старых публичных копий этим выпуском не закрыты.
+Не обещать готовность всего договора или реальных автосписаний по этим checks.
+
 ## U1-MEM3 — bounded signature worker transport,21 октября2026
 
 Scope прежний: backend locally, owned loopback/tmpfs backend_test, новые явно
