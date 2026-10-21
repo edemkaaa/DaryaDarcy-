@@ -128,9 +128,29 @@
   auth/price/expiry/backoff/schema/dependencies не менялись. Backend ESLint
   config отсутствует; lint не выдавался за GREEN, новый config не добавлялся.
   Это не обновлённый frontend contract и не приёмка реального провайдера.
-- [ ] Остаток validation-аудита: некорректные даты, дробный sortOrder и пустой
-  после обработки текст поста. Profile validation/public DTO закрыты срезом
-  выше; весь аудит и live/frontend integration не считать завершёнными.
+- [x] Следующий validation-срез: post dates проверяются до SQL (календарь и
+  существующий TIMESTAMP range), sortOrder posts/articles — signed INT без
+  дробного округления; defaults/negative/nullable/local legacy dates сохранены.
+  RED14 HTTP→GREEN64. После санитизации пустое тело create/update даёт400 с
+  транзакционным rollback, но photo/video/audio/document-only посты разрешены;
+  partial учитывает уже сохранённые медиа. Metadata-only legacy edit прежний,
+  data/hash/idempotency normalization не менялась. SQL RED16pass/5fail→GREEN160
+  в5 suites; дополнительный final94/94 в4 suites с private media loopback SDK.
+  Это не настоящий S3 или live max-size приёмка.3 own tmpfs backend_test/fresh42
+  контейнера убраны по guards, прежние3 stopped containers/images/volumes целы.
+  Evidence workspace `.local-artifacts/content-validation-20261021.8sTZyZ`.
+  Новых API types нет: artifact90/35402 byte-identical profile-срезу. Frontend/
+  generated/working DB/S3/flags/push/deploy не менялись. Детали и ограничения:
+  [frontend-profile-integration-2026-10-21.md](../docs/development/frontend-profile-integration-2026-10-21.md).
+  Пункты дат/sortOrder/пустого тела закрыты локально, profile/DTO закрыты выше;
+  общий выпуск, frontend integration, U1-MEM и старые public sources не закрыты.
+  Final Vitest3049 pass/1584 opt-in skips,220 passed files/103 skipped,40.11s.
+  Types/backend build/scoped new-code format/boundaries722/docs68/diff GREEN.
+  Review: API input types прежние, accepted intent не нормализуется повторно,
+  одна bounded media existence query только при отсутствии текста/фото; проверка
+  итогового тела внутри уже существующей write transaction. Metadata-only legacy
+  и standalone deleteMedia semantics сохранены; глобальная непустота старых
+  данных/других системных helpers не заявляется. Frontend byte-identical staging.
 
 #### U1-MEM3 — bounded signature reads,21 октября
 

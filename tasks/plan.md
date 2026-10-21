@@ -2,6 +2,17 @@
 
 ## Действующий план агента — 13 октября 2026
 
+Следующий backend validation-срез21 октября: подтверждены и локально исправлены
+invalid post dates (400 до SQL), дробный/out-of-INT sortOrder постов/статей и
+пустое после санитизации тело create/update. Media-only и partial edits с уже
+сохранёнными вложениями работают; отказ откатывает media/receipt в транзакции.
+RED14 HTTP→GREEN64; fresh42 tmpfs SQL16pass/5RED→160 GREEN, final94 private-media/
+validation GREEN на loopback SDK.3 own контейнера убраны по guards, foreign
+inventory сохранён. Новых wire types/dependencies/migrations/flags нет; working
+DB/S3/frontend/push/deploy не менялись. Существующие U1-MEM/live/old public
+sources и3 frontend integration задачи остаются открыты. Точный статус — начало
+todo и дополнение к [handoff](../docs/development/frontend-profile-integration-2026-10-21.md).
+
 Актуализация21 октября по прямому поручению: свежий staging39e66a2 объединён
 локально merge798f079 поверх5b7b26c, без конфликтов. Весь apps/frontend совпадает
 со staging, вручную не менялся. Backend profile update получил нормализацию/

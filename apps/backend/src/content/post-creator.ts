@@ -16,6 +16,7 @@ import { authorizePrivateAttachmentChanges } from "./private-attachment-associat
 import { assertContentRecoveryWindow } from "./recovery-window";
 import { assertContentRecoveryNotSpent } from "./recovery-markers";
 import { assertContentWriteActor } from "./content-write-actor";
+import { assertPostHasBody } from "./post-body";
 import { bindContentFiles, hasPrivateContent, postPhotoReferences, postFileReferences } from "./private-content-binding";
 
 async function insertPost(
@@ -29,6 +30,7 @@ async function insertPost(
   if (videos.length > 0) await replacePostVideoRows(writer, postId, videos);
   await savePostAttachments(writer, postId, attachments);
   await bindContentFiles(writer, "post", postId, await postFileReferences(writer, postId, data.photos ?? []), [], attachments.actor);
+  await assertPostHasBody(writer, postId, data.text, data.photos ?? []);
   return postId;
 }
 

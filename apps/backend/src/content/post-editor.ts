@@ -14,6 +14,7 @@ import { TRPCError } from "@trpc/server";
 import { authorizePrivateAttachmentChanges } from "./private-attachment-association";
 import { assertContentWriteActor } from "./content-write-actor";
 import { bindContentFiles, postFileReferences } from "./private-content-binding";
+import { assertPostHasBody } from "./post-body";
 
 /** Save a normalized partial edit and optional videos as one committed change. */
 export async function savePostEdit(
@@ -66,6 +67,18 @@ export async function savePostEdit(
     if (filesChanged) await bindContentFiles(tx, "post", postId,
       await postFileReferences(tx, postId, data.photos ?? post.photos ?? []),
       previousFiles, attachments.actor);
+
+    const bodyChanged =
+      data.text !== undefined ||
+      data.photos !== undefined ||
+      videos !== undefined ||
+      Boolean(attachments.attachments?.length) ||
+      Boolean(attachments.privateAssetIds?.length) ||
+      Boolean(attachments.removedMediaIds?.length);
+    if (bodyChanged)
+      await assertPostHasBody(
+        tx, postId, data.text ?? post.text, data.photos ?? post.photos ?? [],
+      );
 
     // The locked previous visibility picks one owner, shared with manual/timed
     // publication. Plain corrections and legacy flag-only edits are not a push.

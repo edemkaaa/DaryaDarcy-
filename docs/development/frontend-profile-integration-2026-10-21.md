@@ -81,10 +81,81 @@ Push/deploy не выполнялись, рабочая БД, S3 и сущест
   Root types/backend build GREEN. Artifact-only API generation90 procedures/
   35402 bytes без записи во frontend. Пропущенные DB/S3/browser checks не
   считаются внешней приёмкой. S3 и настоящий аватарный upload здесь не проверялись.
-- Из общего validation-аудита закрыты только профиль и публичный DTO. Даты,
-  целочисленный sortOrder и пустой после обработки текст поста этим срезом не
-  исправлялись. Memory/rollout/legacy-файловые gates остаются в активном плане.
+- На момент profile-среза9a15836 из validation-аудита были закрыты только профиль
+  и публичный DTO. Следующий срез по датам, sortOrder и пустым постам описан ниже.
+  Memory/rollout/legacy-файловые gates остаются в активном плане.
 - Review: новых зависимостей, миграций, SQL queries, флагов или auth policy нет.
   Boundaries720/docs68/формат scoped code/diff GREEN. Историческая ссылка на
   удалённый фронтендером sync-profile исправлена без переписывания старого аудита.
   `check:api` отдельно запущен и остаётся RED по описанным трём отличиям.
+
+## Следующий backend-срез: валидация контента,21 октября
+
+После отдельного поручения исследован оставшийся validation-остаток. Причины:
+даты принимались как произвольные строки перед `new Date`, sortOrder — любой
+number перед SQL INT, а непустая сырая строка могла превратиться в пустую после
+санитизации. Исправления локальные; frontend/рабочая БД/S3 и выпуск не менялись.
+
+### Даты и порядок
+
+- `admin.createPost/updatePost`: scheduledAt/publishedAt проверяются до записи.
+  Невозможная календарная дата, непонятная строка и дата вне существующего MySQL
+  TIMESTAMP диапазона возвращают400, а не500 от SQL. Диапазон UTC:
+  1970-01-01T00:00:01Z — 2038-01-19T03:14:07Z. Это ограничение существующей
+  схемы, не новый срок хранения материалов.
+- Сохранены ISO datetime с UTC/offset, date-only и прежний local SQL datetime.
+  Для local-строк остаётся прежнее поведение runtime timezone; новый фронт уже
+  отправляет ISO. `null` и пустая строка по-прежнему очищают дату, omission не
+  меняет поле. Новых требований к расписанию/status в этом срезе не добавлено.
+- `admin.createPost/updatePost/createArticle/updateArticle`: sortOrder только
+  целый signed SQL INT, от-2147483648 до2147483647 включительно. Отрицательные
+  приоритеты и default0 сохраняются, дробь не округляется молча в БД.
+- Значения не переписываются при валидации: hash исходного принятого намерения
+  создания и повтор с прежним idempotencyKey остаются прежними.
+
+### Пустой пост и публикации только с медиа
+
+Фронт обоих редакторов допускает пост только с медиа и отправляет text=" ".
+Поэтому правило не стало запретом пустого текста: после санитизации у нового
+или редактируемого тела должен оставаться текст, непустая ссылка фото либо
+сохранённое видео/аудио/документ.
+
+Проверка выполняется в существующей транзакции create/update после привязки/
+удаления медиа. Если итог пустой,400 откатывает материал, изменения вложений и
+новый creation receipt. Никакого S3 DELETE или повторной загрузки не выполняется.
+При partial edit учитываются существующие фото/медиа, а не только новый запрос.
+Удаление последнего фото/видео/файла допускается, если остаётся другое содержимое
+или оно добавлено в том же сохранении.
+
+Metadata-only правки уже пустых legacy-постов намеренно не блокируются; старые
+строки не исправляются массово. Это проверка create/update, а не утверждение,
+что исторические данные или самостоятельные legacy deleteMedia/system helpers
+теперь навсегда обеспечивают глобальную непустоту каждого материала. В текущем
+frontend вызовов standalone deleteMedia не найдено, его прежний контракт здесь
+не менялся.
+
+### Проверки среза
+
+- RED14 HTTP boundary tests → GREEN64 с регрессией публикации/import. В быстрой
+  серии подменены только identity/persistence boundaries; не SQL acceptance.
+- Собственная loopback/tmpfs backend_test/fresh42: сначала16 pass/5 RED на
+  реальных пустых create/update и удалении последнего вложения. После проверки
+  итогового тела160/160 в5 SQL suites: validation21, manual publication52,
+  article CRUD38, post idempotency39, video reconciliation10.
+- Дополнительная final серия94/94 в4 suites: validation25 (включая INT bounds,
+  пустые ссылки и metadata-only legacy edit), private attachments37, private
+  videos27, posters5. AWS SDK здесь работает только с loopback transport, не с
+  настоящим S3; это не provider ACL/реальная max-size приёмка.
+- Все3 своих контейнера удалены по ownership/loopback/tmpfs guards; прежние3
+  stopped containers, images/volumes сохранены. Evidence вне Git:
+  workspace `.local-artifacts/content-validation-20261021.8sTZyZ` с red/green/final
+  logs и cleaned receipts. Нет платежей, внешних писем или push-доставки.
+- Artifact-only API generation90/35402 bytes byte-identical предыдущему срезу:
+  новых wire types нет, generated frontend не менялся. Предыдущие3 frontend
+  задачи из этого документа и ожидаемый check:api RED остаются.
+- Final Vitest3049 pass/1584 opt-in skips,220 passed files/103 skipped,40.11s.
+  Root types/backend build, формат новых/scoped файлов, boundaries722/docs68/
+  diff GREEN. Review: схема/зависимости/флаги/auth/квоты прежние; существующие
+  write transactions сохранены, существование media проверяется bounded query
+  только при отсутствии непустого текста и фото. Никакого дополнительного
+  запроса на каждую карточку каталога или внешнего storage call не добавлено.

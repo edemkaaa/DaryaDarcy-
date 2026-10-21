@@ -1,5 +1,9 @@
 import { z } from "zod";
 import { postAttachmentInput } from "./post-attachments";
+import {
+  contentSortOrderInput,
+  postTimestampInput,
+} from "./content-write-input";
 
 const privateVideoPosters = z
   .array(
@@ -28,11 +32,11 @@ export const createPostInput = z.object({
   privateVideoPosters,
   source: z.string().default("manual"),
   published: z.boolean().default(true),
-  sortOrder: z.number().default(0),
+  sortOrder: contentSortOrderInput.default(0),
   status: z.enum(["draft", "scheduled", "published"]).default("published"),
   target: z.enum(["feed", "club", "both"]).default("feed"),
-  scheduledAt: z.string().nullable().optional(),
-  publishedAt: z.string().nullable().optional(),
+  scheduledAt: postTimestampInput,
+  publishedAt: postTimestampInput,
   richText: z.any().optional(),
 });
 
@@ -47,11 +51,11 @@ export const updatePostInput = z.object({
   privateVideoPosters,
   removedMediaIds: z.array(z.number().int().positive()).max(100).optional(),
   published: z.boolean().optional(),
-  sortOrder: z.number().optional(),
+  sortOrder: contentSortOrderInput.optional(),
   status: z.enum(["draft", "scheduled", "published"]).optional(),
   target: z.enum(["feed", "club", "both"]).optional(),
-  scheduledAt: z.string().nullable().optional(),
-  publishedAt: z.string().nullable().optional(),
+  scheduledAt: postTimestampInput,
+  publishedAt: postTimestampInput,
   richText: z.any().optional(),
 });
 

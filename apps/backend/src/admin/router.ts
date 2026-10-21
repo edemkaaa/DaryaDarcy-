@@ -4,6 +4,7 @@ import * as db from "../db";
 import { publicCoverPhotoInput } from "../media/photos";
 import type { ContentWriteService } from "../content/content-write.service";
 import { createPostInput, updatePostInput } from "../content/post-write-input";
+import { contentSortOrderInput } from "../content/content-write-input";
 import type { ContentUploadService } from "../content/content-upload.service";
 import { mediaUploadInput } from "../content/media-upload-input";
 import type { ContentReadService } from "../content/content-read.service";
@@ -105,7 +106,7 @@ export const createAdminRouter = (
         coverUrl: z.string().nullable().optional(),
         access: z.enum(["public", "club"]).default("club"),
         published: z.boolean().default(true),
-        sortOrder: z.number().optional(),
+        sortOrder: contentSortOrderInput.optional(),
         sections: z.array(
           z.object({
             type: z.enum([
@@ -137,7 +138,7 @@ export const createAdminRouter = (
         coverUrl: z.string().nullable().optional(),
         access: z.enum(["public", "club"]).optional(),
         published: z.boolean().optional(),
-        sortOrder: z.number().optional(),
+        sortOrder: contentSortOrderInput.optional(),
         sections: z
           .array(
             z.object({
