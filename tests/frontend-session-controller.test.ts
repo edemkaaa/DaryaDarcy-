@@ -527,3 +527,118 @@ it("a confirmed role change clears cached access and remounts the old screen", a
   expect(f.controller.getSnapshot().user?.role).toBe("user");
   expect(f.cache.getQueryData(["private"])).toBeUndefined();
 });
+
+it.each(["stale success", "stale denial"])(
+  "a confirmed profile write supersedes an earlier auth/me %s without clearing private state",
+  async (reply) => {
+    const beforeWrite = deferred<AuthUser | null>();
+    const afterWrite = deferred<AuthUser | null>();
+    let signal: AbortSignal | undefined;
+    const getMe = vi.fn((currentSignal?: AbortSignal) => {
+      signal ??= currentSignal;
+      return getMe.mock.calls.length === 1
+        ? beforeWrite.promise
+        : afterWrite.promise;
+    });
+    const f = fixture(getMe);
+    await f.controller.applySession(member(1));
+    const scope = f.controller.getSnapshot().scope;
+    f.cache.setQueryData(["private"], "KEEP_PRIVATE_STATE");
+    f.resetIdentity.mockClear();
+    const old = f.controller.refresh();
+    expect(
+      f.controller.confirmProfileUpdate(1, {
+        name: "Confirmed name",
+        gender: "female",
+      }),
+    ).toBe(true);
+    expect(signal?.aborted).toBe(true);
+    expect(getMe).toHaveBeenCalledTimes(2);
+    beforeWrite.resolve(reply === "stale denial" ? null : member(1));
+    await old;
+    expect(f.controller.getSnapshot()).toMatchObject({
+      status: "authenticated",
+      user: { id: 1, name: "Confirmed name", gender: "female" },
+      scope,
+    });
+    expect(f.cache.getQueryData(["private"])).toBe("KEEP_PRIVATE_STATE");
+    expect(f.resetIdentity).not.toHaveBeenCalled();
+    afterWrite.resolve({
+      ...member(1),
+      name: "Canonical name",
+      gender: "female",
+    });
+    await vi.waitFor(() =>
+      expect(f.controller.getSnapshot().user?.name).toBe("Canonical name"),
+    );
+    f.controller.dispose();
+  },
+);
+
+it("a failed post-write refresh retains the acknowledged profile and merges fields into the current session", async () => {
+  const getMe = vi.fn(async () => {
+    throw new ApiError("offline", 0, undefined, false, "network");
+  });
+  const f = fixture(getMe);
+  await f.controller.applySession({
+    ...member(1),
+    avatarUrl: "https://example.test/current.jpg",
+  });
+  expect(f.controller.confirmProfileUpdate(1, { name: "Saved name" })).toBe(
+    true,
+  );
+  await vi.waitFor(() =>
+    expect(f.controller.getSnapshot().refreshError).toBeInstanceOf(Error),
+  );
+  expect(f.controller.getSnapshot()).toMatchObject({
+    status: "authenticated",
+    user: { name: "Saved name", avatarUrl: "https://example.test/current.jpg" },
+  });
+  f.controller.dispose();
+});
+
+it("a photo ACK changes only the avatar, and late profile writes cannot change another account or a guest", async () => {
+  const waiting = deferred<AuthUser | null>();
+  const f = fixture(vi.fn(() => waiting.promise));
+  await f.controller.applySession({ ...member(1), gender: "female" });
+  expect(
+    f.controller.confirmProfileUpdate(1, {
+      avatarUrl: "https://example.test/new.jpg",
+    }),
+  ).toBe(true);
+  expect(f.controller.getSnapshot().user).toMatchObject({
+    name: "Member 1",
+    gender: "female",
+    avatarUrl: "https://example.test/new.jpg",
+  });
+  await f.controller.applySession(member(2));
+  const second = f.controller.getSnapshot();
+  expect(f.controller.confirmProfileUpdate(1, { name: "Old owner" })).toBe(
+    false,
+  );
+  expect(f.controller.getSnapshot()).toBe(second);
+  await f.controller.applySession(null);
+  expect(f.controller.confirmProfileUpdate(1, { name: "Old owner" })).toBe(
+    false,
+  );
+  waiting.resolve(member(1));
+  await Promise.resolve();
+  expect(f.controller.getSnapshot().status).toBe("guest");
+  f.controller.dispose();
+});
+
+it("profile ACK and reconciliation cannot cancel an in-flight sign-in", async () => {
+  const signIn = deferred<{ user: AuthUser }>();
+  const f = fixture();
+  await f.controller.applySession(member(1));
+  const pending = f.controller.authenticate(() => signIn.promise);
+  expect(f.controller.confirmProfileUpdate(1, { name: "Late ACK" })).toBe(
+    false,
+  );
+  expect(await f.controller.reconcileProfile(1, member(1))).toBe(false);
+  signIn.resolve({ user: member(2) });
+  expect(await pending).toBe(true);
+  expect(f.controller.getSnapshot().user?.id).toBe(2);
+  expect(await f.controller.reconcileProfile(1, member(1))).toBe(false);
+  expect(f.controller.getSnapshot().user?.id).toBe(2);
+});

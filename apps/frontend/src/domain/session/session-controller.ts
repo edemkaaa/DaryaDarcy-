@@ -26,6 +26,9 @@ type Dependencies = {
   broadcast: () => void;
   setLogoutPending: (pending: boolean) => void;
 };
+export type ConfirmedProfilePatch = Partial<
+  Pick<Api.AuthUser, "name" | "gender" | "avatarUrl">
+>;
 
 /** Owns ordering of identity operations independently of screen mounting and query refetches. */
 export class SessionController {
@@ -157,6 +160,39 @@ export class SessionController {
       user ? Api.parseAuthUser(user) : null,
       user ? "authenticated" : "guest",
     );
+  };
+  /** A write ACK supersedes every session read started before that write. */
+  confirmProfileUpdate = (
+    ownerId: number,
+    patch: ConfirmedProfilePatch,
+  ): boolean => {
+    if (
+      this.authenticating ||
+      this.state.status !== "authenticated" ||
+      this.state.user?.id !== ownerId
+    )
+      return false;
+    const user = Api.parseAuthUser({ ...this.state.user, ...patch });
+    this.begin();
+    this.authenticating = false;
+    this.refreshing = false;
+    this.commit(user, "authenticated");
+    // Keep the acknowledged fields if this background read is unavailable.
+    void this.refresh();
+    return true;
+  };
+  reconcileProfile = async (
+    ownerId: number,
+    user: Api.AuthUser | null,
+  ): Promise<boolean> => {
+    if (
+      this.authenticating ||
+      this.state.status !== "authenticated" ||
+      this.state.user?.id !== ownerId
+    )
+      return false;
+    await this.applySession(user);
+    return user?.id === ownerId;
   };
   invalidateAccess = (resetScreens = true): void => {
     if (this.state.status !== "authenticated") return;

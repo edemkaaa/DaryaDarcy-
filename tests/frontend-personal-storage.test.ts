@@ -36,3 +36,17 @@ it("isolates all personal state while keeping ordinary interface preferences", a
   expect(await storage.getItem("@darcy_install_guide_seen")).toBe("1");
   expect([...values.values()].join()).not.toContain("PRIVATE_RESULT");
 });
+
+it("profile drafts and unknown writes are scoped and cleared on account changes", async () => {
+  const keys = [
+    "@darcy_club_profile_draft",
+    "@darcy_profile_name_draft",
+    "@darcy_club_profile_pending",
+    "@darcy_profile_name_pending",
+  ];
+  setPersonalDataOwner(1);
+  for (const key of keys) await storage.setItem(key, "PRIVATE_PROFILE_DRAFT");
+  setPersonalDataOwner(2);
+  for (const key of keys) expect(await storage.getItem(key)).toBeNull();
+  expect([...values.values()]).not.toContain("PRIVATE_PROFILE_DRAFT");
+});

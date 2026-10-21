@@ -9,6 +9,13 @@
   .keyboardView {
     flex: 1;
   }
+  .errorText {
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 20px;
+    color: var(--brown);
+    text-align: center;
+  }
 
   .scrollContent {
     flex-grow: 1;
