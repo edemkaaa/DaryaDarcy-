@@ -6,6 +6,7 @@ import type { WorkerOptions } from "node:worker_threads";
 interface ControlledWorker extends EventEmitter {
   options: WorkerOptions;
   terminate: ReturnType<typeof vi.fn<() => Promise<number>>>;
+  postMessage: ReturnType<typeof vi.fn>;
 }
 const state = vi.hoisted(() => ({
   workers: [] as ControlledWorker[],
@@ -15,6 +16,7 @@ vi.mock("node:worker_threads", () => ({
   Worker: class extends EventEmitter {
     options: WorkerOptions;
     terminate = vi.fn(async (): Promise<number> => 0);
+    postMessage = vi.fn();
     constructor(_source: string, options: WorkerOptions) {
       super();
       if (state.failConstruction) throw new Error("private startup detail");
@@ -34,6 +36,65 @@ beforeEach(async () => {
 });
 afterEach(() => vi.useRealTimers());
 
+it("serves only the requested owned range without copying the entire file", async () => {
+  const source = Buffer.from("private-prefix-visible-private-suffix");
+  const bytes = source.subarray(15, 22);
+  const detection = detect(bytes);
+  await vi.advanceTimersByTimeAsync(0);
+  const worker = state.workers[0];
+  expect(worker.options.workerData.bytes).toBeUndefined();
+  worker.emit("message", { kind: "read", offset: 1, length: 3 });
+  expect(worker.postMessage).toHaveBeenCalledOnce();
+  const [reply, transfer] = worker.postMessage.mock.calls[0];
+  expect(Buffer.from(reply)).toEqual(Buffer.from("isi"));
+  expect(reply.buffer.byteLength).toBe(3);
+  expect(transfer).toEqual([reply.buffer]);
+  reply.fill(0);
+  expect(source.toString()).toBe("private-prefix-visible-private-suffix");
+  worker.emit("message", { kind: "result", result: null });
+  await expect(detection).resolves.toBeUndefined();
+});
+
+it.each([
+  { offset: -1, length: 1 },
+  { offset: 0, length: 0 },
+  { offset: 0, length: 65_537 },
+  { offset: 70_000, length: 1 },
+  { offset: 0.5, length: 1 },
+  { offset: NaN, length: 1 },
+])(
+  "refuses invalid worker ranges $offset/$length without exporting bytes",
+  async (range) => {
+    const failed = expect(detect(Buffer.alloc(70_000))).rejects.toMatchObject({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Внутренняя ошибка сервера",
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const worker = state.workers[0];
+    worker.emit("message", { kind: "read", ...range });
+    await failed;
+    expect(worker.postMessage).not.toHaveBeenCalled();
+    expect(worker.terminate).toHaveBeenCalledOnce();
+    expect(worker.eventNames()).toEqual([]);
+  },
+);
+
+it("caps each exported fragment and permits an exact end-of-file read", async () => {
+  const bytes = Buffer.alloc(65_537, 0x61);
+  bytes[65_536] = 0x62;
+  const detection = detect(bytes);
+  await vi.advanceTimersByTimeAsync(0);
+  const worker = state.workers[0];
+  worker.emit("message", { kind: "read", offset: 0, length: 65_536 });
+  worker.emit("message", { kind: "read", offset: 65_536, length: 1 });
+  expect(worker.postMessage.mock.calls[0][0].byteLength).toBe(65_536);
+  expect(Buffer.from(worker.postMessage.mock.calls[1][0])).toEqual(
+    Buffer.from("b"),
+  );
+  worker.emit("message", { kind: "result", result: null });
+  await detection;
+});
+
 it("terminates a hung detector at its deadline and permits the next request", async () => {
   const stalled = expect(detect(Buffer.from("fixture"))).rejects.toMatchObject({
     code: "BAD_REQUEST",
@@ -44,7 +105,10 @@ it("terminates a hung detector at its deadline and permits the next request", as
   expect(state.workers[0].eventNames()).toEqual([]);
   const next = detect(Buffer.from("next"));
   await vi.advanceTimersByTimeAsync(0);
-  state.workers[1].emit("message", { ext: "mp3", mime: "audio/mpeg" });
+  state.workers[1].emit("message", {
+    kind: "result",
+    result: { ext: "mp3", mime: "audio/mpeg" },
+  });
   await expect(next).resolves.toEqual({ ext: "mp3", mime: "audio/mpeg" });
   expect(vi.getTimerCount()).toBe(0);
 });
@@ -76,7 +140,7 @@ it("does not poison serialization after worker construction fails", async () => 
   state.failConstruction = false;
   const next = detect(Buffer.from("next"));
   await vi.advanceTimersByTimeAsync(0);
-  state.workers[0].emit("message", null);
+  state.workers[0].emit("message", { kind: "result", result: null });
   await expect(next).resolves.toBeUndefined();
 });
 
@@ -89,8 +153,11 @@ it("awaits termination before allocating the next worker and copies only owned b
   const second = detect(Buffer.from("next"));
   await vi.advanceTimersByTimeAsync(0);
   const worker = state.workers[0];
-  expect(Buffer.from(worker.options.workerData.bytes)).toEqual(bytes);
-  expect(worker.options.workerData.bytes.buffer.byteLength).toBe(bytes.length);
+  expect(worker.options.workerData.bytes).toBeUndefined();
+  worker.emit("message", { kind: "read", offset: 0, length: bytes.length });
+  expect(Buffer.from(worker.postMessage.mock.calls[0][0])).toEqual(
+    Buffer.from("visible"),
+  );
   expect(worker.options.env).toEqual({});
   expect(worker.options.execArgv).toEqual([]);
   let finish!: (code: number) => void;
@@ -100,14 +167,14 @@ it("awaits termination before allocating the next worker and copies only owned b
         finish = resolve;
       }),
   );
-  worker.emit("message", null);
+  worker.emit("message", { kind: "result", result: null });
   await vi.advanceTimersByTimeAsync(0);
   expect(state.workers).toHaveLength(1);
   finish(0);
   await first;
   await vi.advanceTimersByTimeAsync(0);
   expect(state.workers).toHaveLength(2);
-  state.workers[1].emit("message", null);
+  state.workers[1].emit("message", { kind: "result", result: null });
   await second;
   expect(vi.getTimerCount()).toBe(0);
 });

@@ -42,6 +42,17 @@ it("recovers after malformed parser input and keeps concurrent results independe
   ]);
 });
 
+it("preserves random-access signature checks instead of sampling only a prefix", async () => {
+  // The ISO signature is intentionally beyond the 4100-byte format prefix.
+  const bytes = Buffer.alloc(3 * 65_536, 0x61);
+  bytes.write("CD001", 32_769, "ascii");
+  expect(await detectBinaryFileType(bytes)).toEqual({
+    ext: "iso",
+    mime: "application/x-iso9660-image",
+  });
+  expect(bytes.toString("ascii", 32_769, 32_774)).toBe("CD001");
+});
+
 it("runs the external detector from compiled ESM in a foreign working directory", async () => {
   const directory = mkdtempSync(resolve(".tmp-media-signature-"));
   const entry = join(directory, "signature.mjs");

@@ -8,16 +8,43 @@ export interface BinaryFileType {
   mime: string;
 }
 
-// Fixed trusted code, never interpolated with caller input. Only bytes cross this
-// boundary; dependency resolution belongs to the application, not the request.
+const DETECTOR_CHUNK_BYTES = 64 * 1024;
+// Fixed trusted code. Random-access reads retain full-file detection semantics,
+// but only bounded independent byte copies cross the worker boundary.
 const DETECTOR_SOURCE = `
 const { parentPort, workerData } = require("node:worker_threads");
 (async () => {
-  const { fileTypeFromBuffer } = await import(workerData.moduleUrl);
+  const { fileTypeFromTokenizer } = await import(workerData.moduleUrl);
+  const { AbstractTokenizer, EndOfStreamError } = await import(workerData.tokenizerUrl);
+  class RangeTokenizer extends AbstractTokenizer {
+    fileInfo = { size: workerData.size };
+    supportsRandomAccess() { return true; }
+    setPosition(position) { this.position = position; }
+    async readBuffer(buffer, options) {
+      if (options?.position) this.position = options.position;
+      const length = await this.peekBuffer(buffer, options);
+      this.position += length;
+      return length;
+    }
+    async peekBuffer(buffer, options) {
+      const normalized = this.normalizeOptions(buffer, options);
+      const length = Math.min(this.fileInfo.size - normalized.position, normalized.length);
+      if (!normalized.mayBeLess && length < normalized.length) throw new EndOfStreamError();
+      for (let offset = 0; offset < length; offset += workerData.chunkBytes) {
+        const chunk = await new Promise(resolve => {
+          parentPort.once("message", resolve);
+          parentPort.postMessage({ kind: "read", offset: normalized.position + offset,
+            length: Math.min(workerData.chunkBytes, length - offset) });
+        });
+        buffer.set(chunk, offset);
+      }
+      return length;
+    }
+  }
   let result;
-  try { result = await fileTypeFromBuffer(workerData.bytes); }
+  try { result = await fileTypeFromTokenizer(new RangeTokenizer()); }
   catch { result = undefined; }
-  parentPort.postMessage(result ?? null);
+  parentPort.postMessage({ kind: "result", result: result ?? null });
 })();
 `;
 const requireDependency = createRequire(
@@ -28,18 +55,17 @@ let precedingDetection: Promise<unknown> = Promise.resolve();
 async function detectInWorker(
   bytes: Buffer,
 ): Promise<BinaryFileType | undefined> {
-  // A fresh backing buffer avoids transferring/detaching the storage bytes or
-  // cloning unrelated bytes from a pooled Buffer. The caller enforces size limits.
-  const copy = new Uint8Array(bytes);
   const worker = new Worker(DETECTOR_SOURCE, {
     eval: true,
     execArgv: [],
     env: {},
     workerData: {
       moduleUrl: pathToFileURL(requireDependency.resolve("file-type")).href,
-      bytes: copy,
+      tokenizerUrl: pathToFileURL(requireDependency.resolve("strtok3/core"))
+        .href,
+      size: bytes.length,
+      chunkBytes: DETECTOR_CHUNK_BYTES,
     },
-    transferList: [copy.buffer],
     resourceLimits: {
       maxOldGenerationSizeMb: 64,
       maxYoungGenerationSizeMb: 16,
@@ -56,8 +82,40 @@ async function detectInWorker(
           }),
         );
       }, 5_000);
-      worker.once("message", (result: BinaryFileType | null) =>
-        resolve(result ?? undefined),
+      worker.on(
+        "message",
+        (
+          message:
+            | { kind: "read"; offset: number; length: number }
+            | { kind: "result"; result: BinaryFileType | null },
+        ) => {
+          if (message?.kind === "result") {
+            resolve(message.result ?? undefined);
+            return;
+          }
+          if (
+            message?.kind !== "read" ||
+            !Number.isSafeInteger(message.offset) ||
+            !Number.isSafeInteger(message.length) ||
+            message.offset < 0 ||
+            message.length < 1 ||
+            message.length > DETECTOR_CHUNK_BYTES ||
+            message.offset > bytes.length - message.length
+          ) {
+            reject(
+              new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Внутренняя ошибка сервера",
+              }),
+            );
+            return;
+          }
+          // Never transfer/detach the storage buffer or include its pooled neighbours.
+          const chunk = new Uint8Array(
+            bytes.subarray(message.offset, message.offset + message.length),
+          );
+          worker.postMessage(chunk, [chunk.buffer]);
+        },
       );
       worker.once("error", () =>
         reject(
