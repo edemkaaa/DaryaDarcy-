@@ -11,7 +11,14 @@
   положительным целым в SQL INT. RED8/8 (в том числе чужой reject200), GREEN
  8 access +21 capability tests, root types/backend build. HTTP/router/Drizzle
   настоящие, session lookup/SQL transport doubles; не MySQL locking acceptance.
-- [ ] Pen Pals lifecycle: атомарные проверки активных анкет/срока и гонок.
+- [x] Pen Pals lifecycle локально: отдельный domain writer, транзакция с ordered
+  users/profiles/match locks; свежие active/blocked checks, expired pending409,
+  повтор без продления deadline, сохранение mutual matches, transactional remove.
+  RED13→GREEN28 access tests +21 capabilities; types/build/API90/boundaries714.
+- [ ] SQL-lock acceptance: добавлено11 opt-in HTTP/JWT/MySQL regressions (включая
+  parallel reciprocal requests/deactivation race), пока skipped: disk1.8GiB
+  ниже2GiB preflight. HTTP tests используют SQL transport/session doubles, не
+  заменяют настоящую SQL concurrency acceptance; feature flag не включался.
 - [ ] Legacy uploads: перекрыть публичную запись закрытых материалов, сохранить
   public avatars/covers; без правок frontend, working DB/S3, push/deploy.
 - [ ] Далее по согласованному порядку: push registration, cancellation state,

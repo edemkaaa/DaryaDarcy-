@@ -21,7 +21,7 @@ import {
   type PenPalProfile,
   type User,
 } from "../../../packages/database/src/schema";
-import { PEN_PAL_CONFIRM_DAYS } from "../../../packages/shared/src/pen-pals";
+import { requestMatch, respondMatch } from "./pen-pals/match-writes";
 import { getDb, isOwnerAccount } from "./db";
 
 type Database = NonNullable<Awaited<ReturnType<typeof getDb>>>;
@@ -39,10 +39,6 @@ export function isStaffAccount(user: { role?: string | null; email?: string | nu
 
 export function isUserBlocked(user: Pick<User, "blockedAt"> | null | undefined): boolean {
   return Boolean(user?.blockedAt);
-}
-
-function penPalPairIds(a: number, b: number): { low: number; high: number } {
-  return a < b ? { low: a, high: b } : { low: b, high: a };
 }
 
 function asInterestList(value: unknown): string[] {
@@ -211,7 +207,10 @@ export async function upsertPenPalProfileV2(
 export async function deactivatePenPalProfileV2(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await deactivatePenPalProfile(db, userId);
+  await db.transaction(async tx => {
+    await tx.select({ id: users.id }).from(users).where(eq(users.id, userId)).for("update");
+    await deactivatePenPalProfile(tx, userId);
+  });
 }
 
 async function deactivatePenPalProfile(db: DataWriter, userId: number): Promise<void> {
@@ -320,68 +319,13 @@ export async function listPenPalCards(userId: number, limit = 2): Promise<PenPal
 export async function requestPenPalMatch(userId: number, targetUserId: number): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  if (userId === targetUserId) throw new Error("Нельзя выбрать себя");
-
-  const { low, high } = penPalPairIds(userId, targetUserId);
-  const deadline = new Date(Date.now() + PEN_PAL_CONFIRM_DAYS * 24 * 60 * 60 * 1000);
-
-  const existing = await db
-    .select()
-    .from(penPalMatches)
-    .where(and(eq(penPalMatches.userLowId, low), eq(penPalMatches.userHighId, high)))
-    .limit(1);
-
-  if (existing[0]) {
-    const row = existing[0];
-    await db.update(penPalMatches).set({
-      userLowConfirmed: row.userLowId === userId ? true : row.userLowConfirmed,
-      userHighConfirmed: row.userHighId === userId ? true : row.userHighConfirmed,
-      confirmDeadline: deadline,
-      mutualConfirmedAt:
-        (row.userLowId === userId || row.userLowConfirmed) && (row.userHighId === userId || row.userHighConfirmed)
-          ? row.mutualConfirmedAt ?? new Date()
-          : row.mutualConfirmedAt,
-    }).where(eq(penPalMatches.id, row.id));
-    return row.id;
-  }
-
-  const result = await db.insert(penPalMatches).values({
-    userLowId: low,
-    userHighId: high,
-    initiatedBy: userId,
-    userLowConfirmed: userId === low,
-    userHighConfirmed: userId === high,
-    confirmDeadline: deadline,
-    mutualConfirmedAt: null,
-  });
-  return Number(result[0].insertId);
+  return requestMatch(db, userId, targetUserId);
 }
 
 export async function respondPenPalMatch(userId: number, matchId: number, accept: boolean): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const [row] = await db.select().from(penPalMatches).where(eq(penPalMatches.id, matchId)).limit(1);
-  if (!row || (row.userLowId !== userId && row.userHighId !== userId)) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Заявка недоступна" });
-  }
-  const ownedMatch = and(eq(penPalMatches.id, matchId),
-    or(eq(penPalMatches.userLowId, userId), eq(penPalMatches.userHighId, userId)));
-  if (!accept) {
-    await db.delete(penPalMatches).where(ownedMatch);
-    return;
-  }
-  const isLow = row.userLowId === userId;
-  const isHigh = row.userHighId === userId;
-
-  const userLowConfirmed = isLow ? true : row.userLowConfirmed;
-  const userHighConfirmed = isHigh ? true : row.userHighConfirmed;
-  const mutual = userLowConfirmed && userHighConfirmed;
-
-  await db.update(penPalMatches).set({
-    userLowConfirmed,
-    userHighConfirmed,
-    mutualConfirmedAt: mutual ? row.mutualConfirmedAt ?? new Date() : null,
-  }).where(ownedMatch);
+  await respondMatch(db, userId, matchId, accept);
 }
 
 

@@ -67,7 +67,11 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
   разрешил исправления начиная с Pen Pals и public legacy uploads. Первый
   scoped access срез RED8→GREEN8 +21 capability, types/build: participation
   проверяется до delete/update, unavailable404, bounded integer IDs. Это не
-  проверка реальных SQL locks; lifecycle/public uploads ещё открыты. Далее push,
+  проверка реальных SQL locks. Lifecycle writer также локально GREEN28 +21:
+  ordered users/profiles/match locks, fresh account/profile checks, expiry409,
+  stable retry deadline, serialized profile removal.11 opt-in HTTP/JWT/MySQL
+  regressions пока skipped (disk1.8GiB<2GiB guard); SQL lock acceptance открыта.
+  Public uploads ещё открыты. Далее push,
   отмена, validation/DTO; working DB/S3/frontend/flags/push/deploy не менять.
 
 - **21 октября, U1-MEM3 — ограниченный worker transport, общий gate открыт:**

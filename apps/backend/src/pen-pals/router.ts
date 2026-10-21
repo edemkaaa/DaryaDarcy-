@@ -76,7 +76,7 @@ export const penPalsRouter = router({
     return { needsProfile: false as const, matches };
   }),
   requestMatch: penPalProcedure
-    .input(z.object({ targetUserId: z.number() }))
+    .input(z.object({ targetUserId: z.number().int().positive().max(2147483647) }))
     .mutation(async ({ ctx, input }) => {
       const matchId = await platformDb.requestPenPalMatch(
         ctx.user.id,
