@@ -63,6 +63,16 @@ Mac ниже safe512MiB; очистку images/БД/чужих files не вып
 
 ### Границы работы
 
+- **21 октября, U1-LIVE — разрешены временные live fixtures:** опубликованный
+  API/SQL/Timeweb путь проверен без изменения runtime/frontend/старых files.
+ 9 групп uploads/read/replay/actor isolation/paid expiry/block/session revoke и
+ отдельно3 photos4MiB/+1byte413 GREEN. Все21 own objects/временные SQL records
+ трёх прогонов удалены; исходные40 tables/admin/config/30 containers сохранены.
+ Причина промежуточного503 — подтверждённый nginx rate limit, исправлен только
+ private test pacing. Остались published32/80MiB (resource gate API256MiB),
+ browser/devices и внешние пункты договора; точные evidence — начало todo.
+ Новых API/продуктовых fixes/флагов/платежей/писем/push/deploy нет.
+
 - **21 октября, новый backend-only checkpoint после очистки:** clean6ea3ab3,
   действующая очередь и последние доказательства сверены. Следующий AG9/U1
   требует разрешённых целевых fixtures/отдельного стенда; существующий helper

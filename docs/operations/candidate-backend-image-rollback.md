@@ -1,5 +1,61 @@
 # БД-кандидат: backend artifact и откат приложения
 
+## U1-LIVE — приёмка опубликованных вложений,21 октября2026
+
+По новому разрешению пользователя созданы только новые явно тестовые records/
+S3 objects; existing данные/admin/frontend/старые files не менялись. Проверены
+реальные public verified HTTPS → current API2cae1064…/image d602803e… → та же
+working DB/schema42 → Timeweb. Web7bee8049…/BUILD_ID прежний, без rollout/restart.
+Перед каждым из3 runs: fresh backup40 tables на server+Mac0600/gzip/SHA checked,
+UUID/history/flags/14 configs/30 container IDs/images/start states guarded.
+Последний backup355564 bytes/SHA
+`14ca0f04815043d15e1fc0aae894a32be53a620c64e30b2d4d8072aabf971873`.
+
+Первый run6 групп GREEN до stale-session HEAD503, cleanup complete. Read-only
+nginx diagnostics доказали rate rejection:21 октября09:31:32 UTC, limiting
+requests/excess40.760/req_per_ip, HEAD собственного post-attachments/6.
+Действующий limit20r/s/burst40 сохранён; private harness ограничен4r/s без
+автоматического маскирования503/retries. Duplicate nosniff values проверяются
+как список, каждое значение только nosniff; product headers не ослаблялись.
+Точная утраченная assertion20 октября неизвестна; её причина не угадана задним
+числом. Новая приёмка ниже подтверждает текущий путь, не старый trace.
+
+Paced run принят:9 групп/9 objects/exit0/OOMfalse. Post photo+video poster,
+article photo+PDF, MP3/TXT/raw MP4,2 comment photos: upload/read/full bytes/HEAD/
+Range, WebP без EXIF/XMP, API guest/unpaid404 и anonymous S3 GET/HEAD/Range403.
+Completed upstream ACK loss/status/replay не создаёт второго asset/parent/media;
+другой actor получает notRecorded/bind409. Только свой synthetic paid record
+(не Prodamus) проверил обычный club access, block, stale session, expiry, staff
+access и отзыв. Open post/read и moderation deletion photo denial пройдены.
+
+Отдельный max-photo run принят:4 группы (capabilities+3 usages),3 новых objects,
+post/article/comment source4194304 bytes;4194305→413 без нового SQL intent.
+Повтор/bind/read/HEAD/Range/private denial GREEN. Синтетический PNG2x3 с valid
+ancillary padding проверяет размер transport, не тяжёлую декомпрессию фото.
+
+Во всех3 runs exact cleanup21 новых S3 objects: ownership UUID/prefix/actor/
+metadata/ETag/IfMatch и HEAD404; versioning off/policy SHA0484dfa2… прежний.
+SQL cleanup только своих rows; fingerprints всех исходных40 tables совпали
+после каждого прогона. Админский пароль/роль/сессии не менялись; AUTO_INCREMENT
+не сбрасывался. Все3 own helpers removed с ID/name/image/owner/exited guards,
+temporary env удалены. Existing configs/runtime/прочие containers сохранены.
+Дампы/rollback images/старые objects сохранены; платежи/почта не запускались.
+
+Private local evidence от workspace и одноимённые server directories в staging:
+`.local-artifacts/stage-uploads-20261021.NaJ69Z` (rate failure/cleanup),
+`stage-uploads-20261021.NaJ69Z-r2` (accepted9 groups),
+`stage-uploads-20261021.NaJ69Z-photos` (accepted4 groups). Там source/bundle/
+operator/backup/state/evidence/result receipts. Не публиковать raw dumps/config/
+fixture URLs; accepted run повторно не запускать, state одноразовый.
+
+Незакрытый остаток: published32MiB docs/audio и80MiB video. Current API cgroup
+268435456 bytes/observed133.7MiB RSS, shared host4GiB/MemAvailable646800KiB.
+Тяжёлые payloads не запускались, чтобы не провоцировать OOM рабочего API;
+это precaution/resource gate, не подтверждённый OOM/утечка памяти. Нужен отдельно
+согласованный план ресурсов. Не повышать memory/квоты/таймауты, не пересоздавать
+API и не менять лимиты самостоятельно. Local isolated7 maximum checks не
+становятся published proof. Browser/mobile/editor/playback приёмка отдельно.
+
 ## Очистка временных сборочных материалов,21 октября2026
 
 По отдельному прямому разрешению удалены15 точных own targets: временные

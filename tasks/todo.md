@@ -4,6 +4,50 @@
 
 ### Действующая граница — frontend не менять, 20 октября
 
+#### U1-LIVE — опубликованные загрузки и отзыв доступа,21 октября
+
+- [x] Новое прямое разрешение: только свои временные записи/файлы с точной
+  очисткой; existing data/admin/frontend/старые S3 не менять. Clean ce26de7,
+  прежние API2cae1064…/image d602803e… и web7bee8049…/BUILD_ID сохранены.
+  Перед каждым прогоном fresh backup40 tables server+Mac0600, SHA/gzip checked;
+  history42/UUID/flags/config/30 container guards. Нового выпуска/DDL/flag нет.
+- [x] Первый прогон прошёл6 групп/9 файлов до stale-session HEAD503. Все свои
+  данные убраны, исходные40 table fingerprints совпали. Причина503 подтверждена
+  nginx error log: limiting requests, req_per_ip20r/s/burst40, собственный HEAD
+  post-attachments/6. Не backend access leak; limits/security не менялись.
+  Старый strict single-nosniff assertion заменён только в private harness:
+  все повторённые значения должны быть nosniff. Точная потерянная assertion
+ 20 октября не восстановлена; текущая выдача подтверждена новым прогоном.
+- [x] Paced4r/s native public HTTPS→deployed API→working SQL→Timeweb S3:
+ 9 групп GREEN/exit0/OOMfalse. PNG/JPEG/WebP, article PDF, MP3/TXT/raw MP4,
+ 2 comment photos; реальные GET/full bytes/HEAD/Range, metadata stripping,
+ guest/unpaid404 и direct anonymous S3 GET/HEAD/Range403. Потеря upload/post/
+ article ACK, status/replay без второго asset/parent/association; другой actor
+ notRecorded/bind409. Своя synthetic paid row без провайдера/письма проверила
+ paid access, block, stale session, expiry, staff access и отзыв; удаление
+ комментария закрывает фото, open post выдаётся через API по прежним правилам.
+- [x] Отдельно published max photos:3 source4194304 bytes post/article/comment,
+ +1 byte413 без нового intent; replay/bind/WebP/full read/HEAD/Range/denial.
+4 группы (capabilities+3 usages) GREEN/exit0/OOMfalse. Малый PNG2x3 с valid tEXt
+ padding — проверка transport/source limit, не тяжёлого pixel decode.
+- [x] Во всех3 прогонах удалены ровно свои21 S3 objects с metadata/ETag/IfMatch
+ guards/HEAD404, own accounts/posts/articles/comments/recovery и3 synthetic
+ access rows. Fingerprints всех40 исходных таблиц и S3 policy совпали; config,
+ runtime/30 containers/admin сохранены. Свои helpers удалены, временные env
+ убраны; backups/rollback images/старые files не удалялись. No payment/mail.
+ Evidence вне Git от workspace: `.local-artifacts/stage-uploads-20261021.NaJ69Z`,
+ `stage-uploads-20261021.NaJ69Z-r2` и `stage-uploads-20261021.NaJ69Z-photos`.
+  Final independent check: все3 own helpers/env отсутствуют,8 existing services
+  healthy и capabilities200. Docs64/exit0, diff check/exit0; product/frontend/
+  tests/package/lock diff пуст. Сохранены только документы, без push/deploy.
+- [ ] Остаток U1: published documents/audio32MiB и video80MiB max-size acceptance.
+ API memory cap256MiB, observed RSS133.7MiB; shared host MemAvailable646800KiB.
+ Большие payloads намеренно не запускались из-за риска OOM; это resource gate,
+ не воспроизведённый runtime дефект. Нужен согласованный безопасный план памяти/
+ окружения, без самовольного изменения quotas/limits/restarts/config. Local
+ isolated maximum checks остаются доказательством только своего окружения.
+ Browser/editor/device/playback и весь договор этой API приёмкой не закрыты.
+
 #### AG5/AG9 — проверка доступной очереди,21 октября
 
 - [x] По новому backend-only поручению проверены clean6ea3ab3, прежняя feature
