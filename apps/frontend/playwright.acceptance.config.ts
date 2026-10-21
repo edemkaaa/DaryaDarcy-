@@ -10,6 +10,7 @@ export default defineConfig({
     "vk-editor.spec.ts",
     "vk-video.spec.ts",
     "media-failure-lifecycle.spec.ts",
+    "image-loading.spec.ts",
     "media-upload-contract.spec.ts",
     "auth-keyboard.spec.ts",
     "post-inline-links.spec.ts",
