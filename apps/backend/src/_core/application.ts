@@ -9,7 +9,7 @@ import { registerProdamusRoutes } from "../prodamus";
 import { registerYoutubeStream } from "../youtube-stream";
 import { TrpcService } from "./trpc.service";
 import { registerHttpSecurity } from "./http-security";
-import { registerRequestBodies } from "./request-bodies";
+import { MEDIA_JSON_BODY_LIMIT, registerRequestBodies } from "./request-bodies";
 import { registerProdamusSandboxBody } from "../billing/prodamus-sandbox.ingress";
 
 /** Composition only: no environment files, listener or scheduled side effects. */
@@ -65,6 +65,7 @@ export async function createBackendApplication(
     http.use(
       "/api/trpc",
       createExpressMiddleware({
+        maxBodySize: MEDIA_JSON_BODY_LIMIT,
         router: trpc.router,
         createContext: trpc.createContext,
         onError({ path, error }) {

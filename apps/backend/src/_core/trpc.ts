@@ -12,7 +12,8 @@ const t = initTRPC.context<TrpcContext>().create({
     const { stack: _stack, ...data } = shape.data;
     return {
       ...shape,
-      message: error.code === "INTERNAL_SERVER_ERROR" ? "Внутренняя ошибка сервера" : shape.message,
+      message: error.code === "INTERNAL_SERVER_ERROR" ? "Внутренняя ошибка сервера"
+        : error.code === "BAD_REQUEST" && error.cause instanceof SyntaxError ? "Некорректный запрос" : shape.message,
       data,
     };
   },

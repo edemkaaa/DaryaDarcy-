@@ -4,11 +4,13 @@ import { privateVideoMetadata, privateVideoUploadEnabled } from "../content/priv
 
 const photoProcedures = new Set(["profile.uploadAvatar", "club.uploadCommentPhoto", "club.uploadPrivateCommentPhoto", "admin.uploadPhoto"]);
 const sessions = new SessionService();
+export const MEDIA_JSON_BODY_LIMIT = 50 * 1024 * 1024;
+const streamedMediaRequests = new WeakSet<Request>();
 const jsonParsers = {
   auth: express.json({ limit: "16kb" }),
   ordinary: express.json({ limit: "256kb" }),
   photo: express.json({ limit: "6mb" }),
-  media: express.json({ limit: "50mb" }),
+  media: express.json({ limit: MEDIA_JSON_BODY_LIMIT }),
 };
 
 async function requireUploadIdentity(req: Request, res: Response, administrator: boolean) {
@@ -65,13 +67,27 @@ export function registerRequestBodies(app: Express) {
     const media = names.includes("admin.uploadMedia") || privateUpload || names.includes("admin.uploadPrivateContentFile");
     const photo = names.some(name => photoProcedures.has(name));
     if ((media || photo) && !(await requireUploadIdentity(req, res, media || names.includes("admin.uploadPhoto")))) return;
+    // tRPC 11 stringifies an Express-parsed object and parses it again. Let its
+    // bounded stream reader handle standard UTF-8 JSON once, after admission.
+    // Other charsets/compressed bodies retain the existing Express JSON path.
+    if (media && req.method === "POST" &&
+        /^application\/json(?:\s*;\s*charset\s*=\s*(?:utf-8|"utf-8"))?\s*$/i.test(req.headers["content-type"] ?? "") &&
+        (!req.headers["content-encoding"] || req.headers["content-encoding"] === "identity")) {
+      if (Number(req.headers["content-length"]) > MEDIA_JSON_BODY_LIMIT) {
+        bodyError(res, { status: 413 }); req.resume(); return;
+      }
+      streamedMediaRequests.add(req);
+      next(); return;
+    }
     const parser = media ? jsonParsers.media : photo ? jsonParsers.photo : path.startsWith("/api/auth/") ? jsonParsers.auth : jsonParsers.ordinary;
     parser(req, res, error => { if (error) bodyError(res, error); else next(); });
   });
   const formParser = express.urlencoded({ limit: "16kb", extended: false, parameterLimit: 100 });
   const providerReturn = express.urlencoded({ limit: "2mb", extended: false, parameterLimit: 100 });
   app.use((req, res, next) => {
-    if (isProviderWebhook(req)) { next(); return; }
+    // urlencoded() otherwise creates req.body={} even for JSON, hiding the
+    // unread stream from tRPC's Node adapter.
+    if (isProviderWebhook(req) || streamedMediaRequests.has(req)) { next(); return; }
     const parser = /^\/api\/prodamus\/return\/?$/.test(req.path) ? providerReturn : formParser;
     parser(req, res, error => { if (error) bodyError(res, error); else next(); });
   });

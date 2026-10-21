@@ -9,6 +9,7 @@ import {
 } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
+import { gzipSync } from "node:zlib";
 import type { User } from "../packages/database/src/schema";
 import superjson from "superjson";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
@@ -101,6 +102,65 @@ function post(name: string, value: unknown, role = "admin", batch = false) {
       : superjson.stringify(value),
   });
 }
+it("parses the authenticated UTF-8 media envelope only once before schema validation", async () => {
+  const encoded = superjson.stringify(input("articleDocument", 256 * 1024));
+  const parse = vi.spyOn(JSON, "parse");
+  const response = await fetch(`${base}/api/trpc/${admin}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=utf-8", Authorization: `Bearer ${tokens.admin}` },
+    body: encoded,
+  });
+  expect(response.status).toBe(400);
+  expect((await response.json()).error.json.data.code).toBe("BAD_REQUEST");
+  // Real parses, not substituted results: a preparse/stringify/reparse cycle
+  // consumes another whole upload's worth of memory before the decoder runs.
+  expect(parse.mock.calls.filter(([value]) => value === encoded)).toHaveLength(1);
+});
+it.each(["null", "1", '"text"', "{SECRET_INVALID_UPLOAD}"])(
+  "keeps malformed/non-object media JSON %s a private 400 response",
+  async body => {
+    const response = await fetch(`${base}/api/trpc/${admin}`, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokens.admin}` }, body,
+    });
+    expect(response.status).toBe(400);
+    expect(await response.text()).not.toContain("SECRET_INVALID_UPLOAD");
+  },
+);
+it("retains the existing UTF-16 JSON fallback for authenticated media", async () => {
+  const encoded = superjson.stringify(input("articleDocument", 8));
+  const response = await fetch(`${base}/api/trpc/${admin}`, {
+    method: "POST", headers: { "Content-Type": "application/json; charset=utf-16le", Authorization: `Bearer ${tokens.admin}` },
+    body: new Uint8Array(Buffer.from(encoded, "utf16le")),
+  });
+  expect(response.status).toBe(400);
+  expect((await response.json()).error.json.data.code).toBe("BAD_REQUEST");
+});
+it("retains the compressed JSON fallback without changing schema validation", async () => {
+  const encoded = superjson.stringify(input("articleDocument", 8));
+  const response = await fetch(`${base}/api/trpc/${admin}`, {
+    method: "POST", headers: { "Content-Type": "application/json", "Content-Encoding": "gzip", Authorization: `Bearer ${tokens.admin}` },
+    body: new Uint8Array(gzipSync(encoded)),
+  });
+  expect(response.status).toBe(400);
+  expect((await response.json()).error.json.data.code).toBe("BAD_REQUEST");
+});
+it("bounds a chunked media envelope even without Content-Length", async () => {
+  const chunk = Buffer.alloc(64 * 1024, 0x61);
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(Buffer.from('{"json":{"payload":"'));
+      for (let i = 0; i < 800; i++) controller.enqueue(chunk); // 50 MiB plus framing.
+      controller.enqueue(Buffer.from('"}}'));
+      controller.close();
+    },
+  });
+  const response = await fetch(`${base}/api/trpc/${admin}`, {
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokens.admin}` },
+    body, duplex: "half",
+  } as RequestInit & { duplex: "half" });
+  expect(response.status).toBe(413);
+  expect((await response.json()).error.json.data.code).toBe("PAYLOAD_TOO_LARGE");
+});
 it.each([
   { name: admin, usage: "postPhoto", bytes: 4 * MiB, role: "admin" },
   { name: admin, usage: "articlePhoto", bytes: 4 * MiB, role: "admin" },
