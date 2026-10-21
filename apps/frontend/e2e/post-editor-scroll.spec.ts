@@ -82,7 +82,7 @@ for (const mode of ["full", "quick"] as const) {
         const open = async () => {
           await page
             .getByRole("button", {
-              name: mode === "full" ? "Новый" : "Новый пост",
+              name: "Новый пост",
               exact: true,
             })
             .click();

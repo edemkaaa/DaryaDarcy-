@@ -10,6 +10,10 @@
     border-color: var(--border);
   }
 
+  .firstPost {
+    margin-top: 0;
+  }
+
   .postItemHeader {
     flex-direction: row;
     gap: 10px;
@@ -497,7 +501,20 @@
   }
 
   .createPost {
-    margin-right: 4px;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    justify-content: center;
+    white-space: nowrap;
+
+    .submitBtnText {
+      font-size: 13px;
+    }
+  }
+
+  .sectionToolbar {
+    padding: 12px 16px;
   }
 
   .viewTabActive {
@@ -520,6 +537,31 @@
     padding-right: 16px;
     padding-top: 8px;
     padding-bottom: 100px;
+  }
+
+  .postsListContent {
+    padding-top: 0;
+    padding-bottom: 24px;
+  }
+
+  .postsFooter {
+    align-items: center;
+    padding-top: 24px;
+  }
+
+  .postsRetry {
+    max-width: 100%;
+    min-height: 44px;
+    padding: 10px 24px;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(253, 248, 240, 0.85);
+    border-radius: 6px;
+    color: var(--brown);
+    font-family: var(--font-body);
+    font-size: 13px;
+    letter-spacing: 0.3px;
+    text-align: center;
   }
 
   .emptyContainer {

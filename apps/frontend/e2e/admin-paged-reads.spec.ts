@@ -197,12 +197,12 @@ test("unknown deletion checks the exact post rather than an incomplete page", as
   await inspect.click();
   await expect.poll(() => inspections).toBe(1);
   await expect(
-    page.getByRole("button", { name: "Новый", exact: true }),
+    page.getByRole("button", { name: "Новый пост", exact: true }),
   ).toBeDisabled();
   deleted = true;
   await inspect.click();
   await expect(
-    page.getByRole("button", { name: "Новый", exact: true }),
+    page.getByRole("button", { name: "Новый пост", exact: true }),
   ).toBeEnabled();
   await expect(page.getByTestId("admin-post-1")).toHaveCount(0);
   expect(writes).toBe(1);

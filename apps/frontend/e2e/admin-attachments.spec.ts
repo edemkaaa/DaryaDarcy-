@@ -95,11 +95,7 @@ async function open(
       .click();
   await page
     .getByRole("button", {
-      name: editing
-        ? "Редактировать пост"
-        : mode === "full"
-          ? "Новый"
-          : "Новый пост",
+      name: editing ? "Редактировать пост" : "Новый пост",
       exact: true,
     })
     .first()
@@ -419,7 +415,7 @@ test("closing during upload ignores a late result and resets attachments and pre
     .getByRole("button", { name: "Закрыть редактор", exact: true })
     .click();
   await expect(form).toHaveCount(0);
-  await page.getByRole("button", { name: "Новый", exact: true }).click();
+  await page.getByRole("button", { name: "Новый пост", exact: true }).click();
   await expect(
     form.getByText("Аудио и документы (0)", { exact: true }),
   ).toBeVisible();

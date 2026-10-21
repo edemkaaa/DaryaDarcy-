@@ -66,7 +66,7 @@ for (const mode of ["full", "quick"] as const) {
     await gotoWithSession(page, mode === "full" ? "/admin" : "/feed");
     await page
       .getByRole("button", {
-        name: mode === "full" ? "Новый" : "Новый пост",
+        name: "Новый пост",
         exact: true,
       })
       .click();

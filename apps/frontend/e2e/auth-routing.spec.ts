@@ -96,7 +96,9 @@ for (const role of ["user", "manager", "admin", "moderator"] as const) {
         page.getByRole("button", { name: "Участницы", exact: true }),
       ).toHaveCount(0);
     } else
-      await expect(page.getByRole("button", { name: /Новый$/ })).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /^Новый пост$/ }),
+      ).toBeVisible();
   });
 }
 
