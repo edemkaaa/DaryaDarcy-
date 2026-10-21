@@ -324,6 +324,33 @@ test("two-finger zoom in the pattern viewer and the following close tap still wo
   page,
 }) => {
   await layoutApi(page, true);
+  await page.route("**/api/library/materials/patterns/files", (route) =>
+    route.fulfill({
+      json: {
+        files: [
+          {
+            fileKey: "holly",
+            sortOrder: 0,
+            revision: 1,
+            filename: "holly.png",
+            mimeType: "image/png",
+            fileSize: 68,
+            url: "/api/media/library-files/patterns/holly",
+          },
+        ],
+        nextCursor: null,
+      },
+    }),
+  );
+  await page.route("**/api/media/library-files/patterns/holly", (route) =>
+    route.fulfill({
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a3ioAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    }),
+  );
   await gotoWithSession(page, "/library/patterns");
   await page
     .getByRole("button", { name: /Открыть выкройку:/ })
