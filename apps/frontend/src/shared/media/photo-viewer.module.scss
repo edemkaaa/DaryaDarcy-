@@ -55,6 +55,8 @@
   .scroll {
     flex: 1;
     width: 100%;
+    // Keep vertical dismissal in the viewer; native horizontal paging remains.
+    touch-action: pan-x;
   }
 
   .div4 {
