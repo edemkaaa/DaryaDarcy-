@@ -1,5 +1,71 @@
 # Отдельный тестовый стенд TeamAssist
 
+## 22 октября — фотографии выпущены отдельно, source b0e1096
+
+По прямому разрешению пользователя в staging отправлены только photo-коммиты
+23ce288/da354cc/b0e1096 поверх a65dbcd. Прочие локальные contact/PWA/frontend
+изменения не выпускались. Дизайн, исходные S3-файлы и пользовательские данные
+не менялись. Новый web image:
+`sha256:863aef8988809eed517696debb8a6f7d4877cdbc48c30669b228752bc1184e3e`,
+BUILD_ID `ewmR4vYYd8BreHDqUk0S3`. API остаётся243e72d4…, TEST99ada7f1….
+Флаги сборки сохранены, в том числе TEST и VK thumbnails.
+
+Причины и минимальное исправление:
+
+- S3 alias раньше попадал в сеть web и вызывал штатный SSRF400. Alias теперь
+  только в internal s3-client между API/gateway; web DNS публичный.
+  `dangerouslyAllowLocalIP` осталсяfalse, private/signed URLs не разрешены.
+- 72 существующих снимка превышают прежние20MP. Конечный предел декодирования
+  поднят до40MP с sequentialRead, operationCache=false и UV_THREADPOOL_SIZE=1.
+  Лимиты384MiB/0.4CPU,8MiB input,128MiB disk cache и timeout10сек сохранены.
+  Это не снятие ограничений: regression40.96MP по-прежнему отклоняется.
+- Видимое зависшее фото через30сек получает существующую ошибку/ручной повтор.
+  Заэкранные lazy-слайды не истекают; оригинал доступен в просмотрщике.
+  При настоящей недоступности источника не обещается бесконечная загрузка.
+
+Проверки до выпуска: RED на37MP → GREEN17 targeted tests, lint/types/build,
+docs68/boundaries723, полный Chromium-mobile/WebKit-mobile86/86.
+Read-only Range-аудит4431 URL из742 публичных постов: все4431 отдают206 и
+JPEG metadata;9 временных сетевых отказов прошли повтор. Максимум37748736px,
+4486179байт; нет исходников выше40MP/8MiB. Это аудит доступности/заголовков,
+не полное декодирование каждого оригинала и не проверка приватных загрузок.
+
+Полный Next+настоящийS3 в own Linux/amd64 на Mac:12cold previews,333.3MiB peak.
+Затем отдельный native Linux probe на сервере:12 WebP,290.0MiB peak/OOM0,
+warmHIT и3private URL400. Пробный контейнер удалён только после ownership check.
+Live после переключения:12 HTTPS previews с byte lengths как native,6 page/API
+checks,3deny400; web DNS217.78.234.145, API DNS192.168.16.2, S3 gateway Range206
+сохранён; web peak262.9MiB/OOM0. Живой браузер подтвердил пост706: вместо
+4550×8088 original используется /_next/image w640; оригинал открывается отдельно.
+Дополнительно все72 исходника выше20MP проверены через живой HTTPS API w960:
+72/72 WebP200,205100879 → 12339736байт суммарно. Запросы ограничены двумя
+одновременными; это функциональная проверка, не нагрузочная приёмка договора.
+
+Сохранность и откат:
+
+- Backup40tables356905bytes, SHA256
+  `5de97e78a63b49d099c4921319b4c5f1395aa7492eea1743aa950a7bd64c077e`;
+  архив проверен на сервере и локально, закрытый каталог вне Git.
+- До/после совпали schema/history42, counts40tables и digest всех3 admin
+  credentials/roles/sessionVersion. Рабочую БД не переключали и не мигрировали.
+- Пересозданы только web/api/s3-egress;27 остальных контейнеров неизменны.
+- Receipt и защищённые before-config/backup находятся в
+  `/home/edem/apps/daryadarcy-staging/photo-release-20261022.lXV4qO`;
+  local artifacts — одноимённый каталог внутри project .local-artifacts.
+- `operate.py rollback` в этом server-каталоге проверяет отсутствие config drift,
+  возвращает только before-.env/before-compose.private-uploads.yaml и прежний
+  web f19115f1…, пересоздаёт те же3 сервиса и перечитывает edge DNS.
+  БД/объекты/пароли при откате не восстанавливаются и не перезаписываются.
+- Первый build остановился на неподходящем FROM image-ID синтаксисе BuildKit:
+  заменён только packaging на существующий tag с проверкой exact image ID.
+  Первый apply остановился **до** пересоздания контейнеров из-за стандартного
+  пустого ipam:{} в normalized Compose; проверено единственное отличие,
+  guard уточнён, применение продолжено. Защитные проверки не отключались.
+
+Браузерный тест не заменяет повтор на физическом iPhone. Музыка, большие
+загрузки32/80МБ, Prodamus, прочие договорные пункты этим выпуском не закрываются.
+
+
 ## 21 октября — INTEGRATED: совместный frontend/backend действительно выпущен
 
 Новое прямое поручение разрешило frontend integration, push staging и обновление
