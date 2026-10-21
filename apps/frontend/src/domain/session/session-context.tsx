@@ -16,7 +16,11 @@ import { isOwnerUser } from "@/shared/config/api";
 import { setPersonalDataOwner } from "@/shared/browser/storage";
 import { cancelSessionRequests } from "@/shared/api/request-lifecycle";
 import { subscribeSessionChecks } from "@/shared/api/session-events";
-import { SessionController, type SessionStatus } from "./session-controller";
+import {
+  SessionController,
+  type ConfirmedProfilePatch,
+  type SessionStatus,
+} from "./session-controller";
 
 const SESSION_EVENT_KEY = "darcy:session-change";
 const LOGOUT_PENDING_KEY = "darcy:logout-pending";
@@ -42,6 +46,14 @@ type SessionContext = {
     request: (signal: AbortSignal) => Promise<{ user: Api.AuthUser }>,
   ) => Promise<boolean>;
   applySession: (user: Api.AuthUser | null) => Promise<void>;
+  reconcileProfile: (
+    ownerId: number,
+    user: Api.AuthUser | null,
+  ) => Promise<boolean>;
+  confirmProfileUpdate: (
+    ownerId: number,
+    patch: ConfirmedProfilePatch,
+  ) => boolean;
   invalidateAccess: (resetScreens?: boolean) => void;
 };
 const Context = createContext<SessionContext | null>(null);
@@ -150,6 +162,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout: controller.logout,
       authenticate: controller.authenticate,
       applySession: controller.applySession,
+      reconcileProfile: controller.reconcileProfile,
+      confirmProfileUpdate: controller.confirmProfileUpdate,
       invalidateAccess: controller.invalidateAccess,
     }),
     [user, state.status, state.error, state.refreshError, controller],

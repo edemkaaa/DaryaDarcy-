@@ -8,7 +8,7 @@ const member = (id: number) => ({
   name: `Member ${id}`,
   email: `member-${id}@example.test`,
   phone: null,
-  gender: null,
+  gender: "female" as const,
   avatarUrl: null,
   loginMethod: "email",
   role: "user",
@@ -186,8 +186,11 @@ test("switching people cannot transfer local profile or quiz data", async ({
   });
   await page.goto("/profile");
   await expect(
-    page.getByText("First person's private name", { exact: true }).first(),
+    page.getByRole("button", { name: "Member 1", exact: true }),
   ).toBeVisible();
+  await expect(
+    page.getByText("First person's private name", { exact: true }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Выйти", exact: true }).click();
   await page.getByRole("button", { name: /^Войти(?: →)?$/ }).click();
   await enter(page, "member-2@example.test");

@@ -45,6 +45,7 @@ export async function layoutApi(page: Page, subscribed = false) {
                 id: 101,
                 openId: "layout-member",
                 name: "Участница",
+                gender: "female",
                 email: "member@example.test",
                 role: "user",
                 avatarUrl: "https://example.test/avatar.jpg",

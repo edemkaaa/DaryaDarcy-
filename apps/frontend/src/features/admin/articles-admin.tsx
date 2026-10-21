@@ -133,6 +133,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
           return result;
         },
         commit: () => {
+          void utils.articles.getById.invalidate();
           void utils.articles.list.invalidate();
           void utils.club.list.invalidate();
         },
@@ -222,6 +223,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     task.assertCurrent();
     setCreation(null);
     setRecoveryMessage(null);
+    void utils.articles.getById.invalidate();
     void utils.articles.list.invalidate();
     void utils.club.list.invalidate();
     reset();
@@ -552,6 +554,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       requireOk(result);
       task.assertCurrent();
       void utils.admin.articles.invalidate();
+      void utils.articles.getById.invalidate();
       void utils.articles.list.invalidate();
       void utils.club.list.invalidate();
       reset();

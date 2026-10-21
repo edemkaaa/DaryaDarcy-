@@ -10,13 +10,13 @@ import {
   ScrollArea,
 } from "@/shared/ui/elements";
 import { openExternalUrl } from "@/shared/browser/actions";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 
 import * as ImagePicker from "@/shared/browser/file-picker";
-import AsyncStorage, { isPersonalDataOwner } from "@/shared/browser/storage";
+import AsyncStorage from "@/shared/browser/storage";
 import { useAuth } from "@/domain/session/session-context";
 import { SessionStatus } from "@/domain/session/session-status";
 import { SubscriptionStatus } from "@/domain/subscription/subscription-status";
@@ -30,6 +30,7 @@ import { useFocusEffect } from "@/shared/navigation/router";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { LoadingIndicator } from "@/shared/ui/loading-indicator";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
+import { useProfileAvatar } from "@/domain/profile/use-profile-avatar";
 import { trpc } from "@/shared/api/trpc";
 import type { ApiOutputs } from "@/shared/api/types";
 import { useCapabilities } from "@/shared/api/capabilities";
@@ -43,8 +44,6 @@ import {
   PAPER_TEXTURE_URI,
   BROWN_MUTED,
   OLIVE,
-  PROFILE_NAME_KEY,
-  PROFILE_AVATAR_KEY,
   SUPPORT_EMAIL,
   PERSONAL_MOODBOARDS_ENABLED,
 } from "./profile-screen.content";
@@ -61,20 +60,6 @@ function openSupportMail(subject: string) {
   void openExternalUrl(
     `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}`,
   );
-}
-async function uriToBase64(uri: string): Promise<string> {
-  if (uri.startsWith("data:")) {
-    return uri.split(",")[1] || "";
-  }
-  const response = await fetch(uri);
-  const blob = await response.blob();
-  return await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () =>
-      resolve(String(reader.result || "").split(",")[1] || "");
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
 }
 interface CropperImage {
   uri: string;
@@ -106,13 +91,12 @@ export default function ProfileScreen() {
     status: subscriptionStatus,
   } = useClub();
   const cancellation = useSubscriptionCancellation();
-  const uploadAvatar = trpc.profile.uploadAvatar.useMutation();
+  const avatar = useProfileAvatar();
   const savedFromApi = trpc.feed.savedPosts.useQuery(undefined, {
     enabled: isAuthenticated,
     refetchOnMount: "always",
   });
-  const [profileName, setProfileName] = useState<string | null>(null);
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarDraft, setAvatarDraft] = useState<string | null>(null);
   const [savedTab, setSavedTab] = useState<SavedTab>("feed");
   const [cropperImage, setCropperImage] = useState<CropperImage | null>(null);
   const [quizResult, setQuizResult] = useState<{
@@ -126,14 +110,10 @@ export default function ProfileScreen() {
   // Reload profile data every time this tab gains focus
   const loadProfileData = useCallback(() => {
     Promise.all([
-      AsyncStorage.getItem(PROFILE_NAME_KEY),
-      AsyncStorage.getItem(PROFILE_AVATAR_KEY),
       AsyncStorage.getItem("@darcy_quiz_result"),
       AsyncStorage.getItem("@darcy_saved_feed"),
       AsyncStorage.getItem("@darcy_saved_club"),
-    ]).then(([name, avatar, quizRaw, feedRaw, clubRaw]) => {
-      if (name) setProfileName(name);
-      if (avatar && avatar.startsWith("http")) setAvatarUri(avatar);
+    ]).then(([quizRaw, feedRaw, clubRaw]) => {
       const quiz = parseSavedQuizResult(quizRaw);
       setQuizResult(
         quiz
@@ -166,19 +146,12 @@ export default function ProfileScreen() {
       }
     }, [isAuthenticated, loadProfileData, refetchSavedPosts]),
   );
-  const displayName = profileName || user?.name || "Участница";
+  const displayName = user?.name || "Участница";
   const serverAvatar =
     user?.avatarUrl && /^https?:\/\//.test(user.avatarUrl)
       ? user.avatarUrl
       : null;
-  const displayAvatar = avatarUri || serverAvatar;
-  useEffect(() => {
-    if (!serverAvatar) return;
-    setAvatarUri((current) =>
-      current === serverAvatar ? current : serverAvatar,
-    );
-    void AsyncStorage.setItem(PROFILE_AVATAR_KEY, serverAvatar);
-  }, [serverAvatar]);
+  const displayAvatar = serverAvatar;
   const savedPosts = useMemo(() => {
     // A retained response must not expose club-only cards after access is lost.
     const rows = (savedFromApi.data || []).filter(
@@ -214,26 +187,13 @@ export default function ProfileScreen() {
       });
     }
   };
+  const saveAvatar = async (uri: string) => {
+    if (await avatar.upload(uri)) setAvatarDraft(null);
+  };
   const handleCropComplete = async (croppedUri: string) => {
-    const ownerId = user?.id;
-    if (!ownerId || !isPersonalDataOwner(ownerId)) return;
-    setAvatarUri(croppedUri);
+    setAvatarDraft(croppedUri);
     setCropperImage(null);
-    try {
-      const base64 = await uriToBase64(croppedUri);
-      if (base64 && isPersonalDataOwner(ownerId)) {
-        const result = await uploadAvatar.mutateAsync({
-          base64,
-          filename: "avatar.jpg",
-          mimeType: "image/jpeg",
-        });
-        if (result?.url && isPersonalDataOwner(ownerId)) {
-          setAvatarUri(result.url);
-          await AsyncStorage.setItem(PROFILE_AVATAR_KEY, result.url);
-        }
-        await refresh();
-      }
-    } catch {}
+    await saveAvatar(croppedUri);
   };
   const handleCropCancel = () => {
     setCropperImage(null);
@@ -408,6 +368,7 @@ export default function ProfileScreen() {
           >
             <Action
               onClick={pickImage}
+              disabled={avatar.busy || avatar.unknown}
               aria-label="Выбрать фото профиля"
               className={({ pressed }) =>
                 [classes.action3, pressed ? classes.opacityState4 : ""]
@@ -439,10 +400,52 @@ export default function ProfileScreen() {
               </div>
             </Action>
 
-            <ProfileNameEditor
-              displayName={displayName}
-              onSaved={setProfileName}
-            />
+            {avatarDraft && (
+              <div className={["ui-stack", classes.nameError].join(" ")}>
+                <Typography className={classes.nameErrorText}>
+                  Черновик фото
+                </Typography>
+                <Picture
+                  source={{ uri: avatarDraft }}
+                  contentFit="cover"
+                  style={{ width: 80, height: 80 }}
+                />
+                {avatar.busy && (
+                  <Typography role="status" className={classes.nameErrorText}>
+                    Сохраняем фото…
+                  </Typography>
+                )}
+                {avatar.error && (
+                  <Typography role="alert" className={classes.nameErrorText}>
+                    {avatar.error}
+                  </Typography>
+                )}
+                {avatar.unknown ? (
+                  <Action
+                    className={classes.action5}
+                    style={{ minHeight: 44 }}
+                    disabled={avatar.busy}
+                    onClick={() => void avatar.check()}
+                  >
+                    <Typography className={classes.cardButtonText}>
+                      Проверить фото в профиле
+                    </Typography>
+                  </Action>
+                ) : avatar.error ? (
+                  <Action
+                    className={classes.action5}
+                    style={{ minHeight: 44 }}
+                    disabled={avatar.busy}
+                    onClick={() => void saveAvatar(avatarDraft)}
+                  >
+                    <Typography className={classes.cardButtonText}>
+                      Повторить загрузку фото
+                    </Typography>
+                  </Action>
+                ) : null}
+              </div>
+            )}
+            <ProfileNameEditor displayName={displayName} />
 
             {hasClubAccess && (
               <div

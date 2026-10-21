@@ -1,65 +1,31 @@
 "use client";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/domain/session/session-context";
+import { useProfileUpdate } from "@/domain/profile/use-profile-update";
 import {
-  checkOperationAccessError,
-  useSessionOperation,
-} from "@/domain/session/use-session-operation";
-import { trpc } from "@/shared/api/trpc";
-import { invalidResponse } from "@/shared/api/errors";
-import AsyncStorage from "@/shared/browser/storage";
+  PROFILE_NAME_DRAFT_KEY,
+  PROFILE_NAME_PENDING_KEY,
+} from "@/domain/profile/profile-draft";
+import AsyncStorage, { isPersonalDataOwner } from "@/shared/browser/storage";
 import { Action, Field, Typography } from "@/shared/ui/elements";
 import { MaterialIcons } from "@/shared/ui/icons";
-import { BROWN_MUTED, PROFILE_NAME_KEY } from "./profile-screen.content";
+import { BROWN_MUTED } from "./profile-screen.content";
 import classes from "./profile-screen.module.scss";
 
-export function ProfileNameEditor({
-  displayName,
-  onSaved,
-}: {
-  displayName: string;
-  onSaved: (name: string) => void;
-}) {
-  const { refresh } = useAuth();
-  const utils = trpc.useUtils();
-  const operation = useSessionOperation();
+export function ProfileNameEditor({ displayName }: { displayName: string }) {
+  const { user } = useAuth();
+  const update = useProfileUpdate(PROFILE_NAME_PENDING_KEY);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
-  const [error, setError] = useState(false);
-  // Enter, disabling the input and removing it can also trigger blur.
-  const editingRef = useRef(false);
-  const errorRef = useRef(false);
+  const finish = async (saved: boolean) => {
+    if (!saved || !user || !isPersonalDataOwner(user.id)) return;
+    await AsyncStorage.removeItem(PROFILE_NAME_DRAFT_KEY);
+    if (isPersonalDataOwner(user.id)) setEditing(false);
+  };
   const save = async () => {
-    if (!editingRef.current) return;
     const name = draft.trim();
-    if (!name) return;
-    const task = operation.begin("save-profile-name");
-    if (!task) return;
-    errorRef.current = false;
-    setError(false);
-    try {
-      const result = await utils.client.profile.update.mutate(
-        { name },
-        { signal: task.signal },
-      );
-      if (result?.success !== true) throw invalidResponse();
-      task.assertCurrent();
-      // Publish and cache only a server-confirmed name for the current owner.
-      onSaved(name);
-      await AsyncStorage.setItem(PROFILE_NAME_KEY, name);
-      task.assertCurrent();
-      editingRef.current = false;
-      setEditing(false);
-      await refresh();
-    } catch (cause) {
-      checkOperationAccessError(cause);
-      if (task.isCurrent()) {
-        errorRef.current = true;
-        setError(true);
-      }
-    } finally {
-      task.finish();
-    }
+    if (!name || !editing) return;
+    await finish(await update.save({ name }));
   };
   if (editing)
     return (
@@ -68,43 +34,57 @@ export function ProfileNameEditor({
           <Field
             aria-label="Имя профиля"
             value={draft}
-            onValueChange={setDraft}
-            autoFocus
-            disabled={operation.busy}
-            onSubmit={() => void save()}
-            onBlur={() => {
-              if (!errorRef.current) void save();
+            onValueChange={(value) => {
+              setDraft(value);
+              void AsyncStorage.setItem(PROFILE_NAME_DRAFT_KEY, value);
             }}
+            autoFocus
+            disabled={update.busy || update.unknown}
+            onSubmit={() => void save()}
             className={classes.nameInput}
           />
         </div>
-        {error && (
+        {!update.unknown && (
+          <Action
+            disabled={update.busy || !draft.trim()}
+            onClick={() => void save()}
+            className={classes.action5}
+          >
+            <Typography className={classes.cardButtonText}>
+              Сохранить имя
+            </Typography>
+          </Action>
+        )}
+        {update.error && (
           <div
             role="alert"
             className={["ui-stack", classes.nameError].join(" ")}
           >
             <Typography className={classes.nameErrorText}>
-              Не удалось сохранить имя: результат не подтверждён. Ваш ввод
-              сохранён.
+              {update.error}
             </Typography>
-            <Action
-              className={classes.action5}
-              disabled={operation.busy}
-              onClick={() => void save()}
-            >
-              <Typography className={classes.cardButtonText}>
-                Повторить сохранение имени
-              </Typography>
-            </Action>
+            {update.unknown && (
+              <Action
+                className={classes.action5}
+                disabled={update.busy}
+                onClick={() => void update.check().then(finish)}
+              >
+                <Typography className={classes.cardButtonText}>
+                  Проверить сохранение имени
+                </Typography>
+              </Action>
+            )}
           </div>
         )}
       </div>
     );
   return (
     <Action
-      onClick={() => {
-        setDraft(displayName);
-        editingRef.current = true;
+      onClick={async () => {
+        const ownerId = user?.id;
+        const savedDraft = await AsyncStorage.getItem(PROFILE_NAME_DRAFT_KEY);
+        if (!ownerId || !isPersonalDataOwner(ownerId)) return;
+        setDraft(savedDraft ?? displayName);
         setEditing(true);
       }}
       className={({ pressed }) =>

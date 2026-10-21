@@ -230,10 +230,9 @@ for (const club of [false, true]) {
     await gotoWithSession(page, club ? "/club" : "/feed");
     await ending(page);
     const before = await clearance(page, club, true);
+    const menu = club ? '[class*="clubTabBar"]' : 'nav[aria-label="Разделы"]';
     await page.addStyleTag({
-      content: club
-        ? '[class*="clubTabBar"] {padding-bottom: 34px;}'
-        : 'nav[aria-label="Разделы"] {height: 96px; padding-bottom: 34px;}',
+      content: `${menu} {height: ${before.menu.height + 20}px;}`,
     });
     await expect
       .poll(async () => {

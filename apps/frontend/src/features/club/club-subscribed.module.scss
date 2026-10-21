@@ -138,10 +138,8 @@
 
   .clubTabBar {
     flex-direction: row;
-    justify-content: space-around;
-    align-items: flex-end;
-    padding-top: 10px;
-    padding-bottom: 14px;
+    align-items: stretch;
+    height: 66px;
     border-top-width: 1px;
     border-top-color: rgba(139, 115, 85, 0.15);
     position: absolute;
@@ -152,22 +150,40 @@
   }
 
   .clubTabItem {
+    flex: 1;
     align-items: center;
-    justify-content: flex-end;
-    gap: 4px;
+    justify-content: center;
+    gap: 2px;
     padding-left: 8px;
     padding-right: 8px;
   }
 
+  .clubTabItem:focus-visible {
+    outline-offset: -2px;
+  }
+
   .tabStickerContainer {
-    height: 44px;
+    height: 28px;
+    flex: 0 0 28px;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
   }
 
   .clubTabLabelActive {
+    width: 100%;
+    height: 13px;
+    flex: 0 0 13px;
     font-size: 10px;
+    line-height: 13px;
     letter-spacing: 0.3px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 359px) {
+    .clubTabBar {
+      height: 63px;
+    }
   }
 
   .div {
@@ -197,16 +213,23 @@
   .appearanceState {
     width: 40px;
     height: 40px;
+    // Compensate the original sticker's transparent bottom edge at this size.
+    transform: translateY(3.61px);
   }
 
   .appearanceState2 {
     width: 46px;
     height: 46px;
+    transform: translateY(4.93px);
   }
 
   .appearanceState3 {
     width: 32px;
     height: 32px;
+  }
+
+  .tabStickerBasket {
+    transform: translateY(2.6px);
   }
 
   .appearanceState4 {

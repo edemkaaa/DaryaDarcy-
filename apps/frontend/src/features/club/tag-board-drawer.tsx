@@ -22,6 +22,7 @@ import { MaterialIcons } from "@/shared/ui/icons";
 import { SEASON_TAGS } from "@/domain/post/post-tags";
 import {
   BROWN,
+  PEEK_STRIP_WIDTH,
   TAG_BOARD_URI,
   TOPIC_TAG_ROWS,
 } from "./tag-board-drawer.content";
@@ -45,7 +46,7 @@ export function TagBoardDrawer({
 
   // translateX: 0 = fully open (drawer visible), DRAWER_WIDTH = fully closed (hidden off-screen right)
   const translateX = useSharedValue(DRAWER_WIDTH);
-  // Peek animation — subtle jiggle of the edge strip
+  // Extend the edge strip while keeping its right edge anchored.
   const peekAnim = useSharedValue(0);
   // Start peek animation loop (only when drawer is closed)
   const startPeekAnimation = useCallback(() => {
@@ -100,9 +101,7 @@ export function TagBoardDrawer({
   const peekStyle = useAnimatedStyle(() => {
     const drawerClosed = translateX.value >= DRAWER_WIDTH - 1;
     return {
-      transform: cssTransform([
-        { translateX: drawerClosed ? peekAnim.value : 0 },
-      ]),
+      width: PEEK_STRIP_WIDTH - (drawerClosed ? peekAnim.value : 0),
       opacity: interpolate(
         translateX.value,
         [DRAWER_WIDTH * 0.5, DRAWER_WIDTH],
@@ -120,7 +119,7 @@ export function TagBoardDrawer({
   };
   return (
     <>
-      {/* Peek strip — visible edge that jiggles, tap to open */}
+      {/* Peek strip — extends from the right edge, tap to open */}
       <Animated.div
         inert={isOpen}
         aria-hidden={isOpen}
@@ -140,6 +139,7 @@ export function TagBoardDrawer({
           }
         >
           <div
+            style={{ width: PEEK_STRIP_WIDTH }}
             className={["ui-stack ", classes.peekHandle]
               .filter(Boolean)
               .join(" ")}

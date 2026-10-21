@@ -9,7 +9,7 @@ import {
   Spinner,
 } from "@/shared/ui/elements";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Picture } from "@/shared/media/image";
 import * as ImagePicker from "@/shared/browser/file-picker";
 import { MaterialIcons } from "@/shared/ui/icons";
@@ -17,13 +17,20 @@ import { SafeArea } from "@/shared/ui/safe-area";
 import { AvatarCropper } from "@/shared/media/avatar-cropper";
 import { BROWN_MUTED, CREAM } from "./profile-setup.content";
 
+import { useAuth } from "@/domain/session/session-context";
+import { useProfileUpdate } from "@/domain/profile/use-profile-update";
+import { useProfileAvatar } from "@/domain/profile/use-profile-avatar";
+import {
+  CLUB_PROFILE_DRAFT_KEY,
+  CLUB_PROFILE_PENDING_KEY,
+  LEGACY_PROFILE_NAME_KEY,
+  LEGACY_PROFILE_GENDER_KEY,
+} from "@/domain/profile/profile-draft";
+import AsyncStorage, { isPersonalDataOwner } from "@/shared/browser/storage";
+
 type Gender = "female" | "male";
 interface ProfileSetupProps {
-  onComplete: (data: {
-    name: string;
-    gender: Gender;
-    avatarUrl?: string;
-  }) => void | Promise<void>;
+  onComplete: () => void;
 }
 interface CropperImage {
   uri: string;
@@ -31,11 +38,92 @@ interface CropperImage {
   height: number;
 }
 export function ProfileSetup({ onComplete }: ProfileSetupProps) {
-  const [name, setName] = useState("");
-  const [gender, setGender] = useState<Gender | null>(null);
+  const { user } = useAuth();
+  const update = useProfileUpdate(CLUB_PROFILE_PENDING_KEY);
+  const initialUser = useRef(user);
+  const avatar = useProfileAvatar();
+  const [ready, setReady] = useState(false);
+  const submittingRef = useRef(false);
+  const [name, setName] = useState(user?.name ?? "");
+  const [gender, setGender] = useState<Gender | null>(user?.gender ?? null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [cropperImage, setCropperImage] = useState<CropperImage | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const completed = useRef(false);
+  useEffect(() => {
+    const user = initialUser.current;
+    const ownerId = user?.id;
+    let cancelled = false;
+    void Promise.all([
+      AsyncStorage.getItem(CLUB_PROFILE_DRAFT_KEY),
+      AsyncStorage.getItem(LEGACY_PROFILE_NAME_KEY),
+      AsyncStorage.getItem(LEGACY_PROFILE_GENDER_KEY),
+    ]).then(([raw, legacyName, legacyGender]) => {
+      if (cancelled || !ownerId || !isPersonalDataOwner(ownerId)) return;
+      let draft: { name?: string; gender?: Gender; avatarUrl?: string } = {};
+      try {
+        const value: unknown = raw ? JSON.parse(raw) : null;
+        if (value && typeof value === "object") {
+          const stored = value as Record<string, unknown>;
+          draft = {
+            name: typeof stored.name === "string" ? stored.name : undefined,
+            gender:
+              stored.gender === "female" || stored.gender === "male"
+                ? stored.gender
+                : undefined,
+            avatarUrl:
+              typeof stored.avatarUrl === "string" &&
+              stored.avatarUrl.startsWith("data:image/")
+                ? stored.avatarUrl
+                : undefined,
+          };
+        }
+      } catch {
+        /* A corrupt optional draft must not prevent explicit setup. */
+      }
+      setName(draft.name ?? user?.name ?? legacyName ?? "");
+      setGender(
+        draft.gender ??
+          user?.gender ??
+          (legacyGender === "female" || legacyGender === "male"
+            ? legacyGender
+            : null),
+      );
+      setAvatarUri(draft.avatarUrl ?? null);
+      setReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Background session reads must not reset typing in this owner-scoped form.
+  }, []);
+  useEffect(() => {
+    if (completed.current || !ready || !user || !isPersonalDataOwner(user.id))
+      return;
+    void AsyncStorage.setItem(
+      CLUB_PROFILE_DRAFT_KEY,
+      JSON.stringify({ name, gender, avatarUrl: avatarUri }),
+    );
+  }, [ready, name, gender, avatarUri, user]);
+  const blocked =
+    !ready ||
+    submitting ||
+    update.busy ||
+    update.unknown ||
+    avatar.busy ||
+    avatar.unknown;
+  const error = [avatar.error, update.error].filter(Boolean).join(" ");
+  const complete = async () => {
+    const ownerId = initialUser.current?.id;
+    if (!ownerId || !isPersonalDataOwner(ownerId)) return;
+    completed.current = true;
+    await AsyncStorage.multiRemove([
+      CLUB_PROFILE_DRAFT_KEY,
+      LEGACY_PROFILE_NAME_KEY,
+      LEGACY_PROFILE_GENDER_KEY,
+    ]);
+    if (isPersonalDataOwner(ownerId)) onComplete();
+  };
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -64,17 +152,17 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
     setCropperImage(null);
   };
   const handleSubmit = async () => {
-    if (!name.trim() || !gender) return;
+    if (!name.trim() || !gender || blocked || submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
-      // Complete profile setup (data saved locally by parent component)
-      await onComplete({
-        name: name.trim(),
-        gender,
-        avatarUrl: avatarUri || undefined,
-      });
-    } catch (error) {
-      console.error("[ProfileSetup] Error:", error);
+      if (avatarUri) {
+        if (!(await avatar.upload(avatarUri))) return;
+        setAvatarUri(null);
+      }
+      if (await update.save({ name: name.trim(), gender })) await complete();
+    } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -113,6 +201,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
           {/* Avatar picker */}
           <Action
             onClick={pickImage}
+            disabled={blocked}
             aria-label="Выбрать фото профиля"
             className={({ pressed }) =>
               [classes.action, pressed ? classes.opacityState : ""]
@@ -120,9 +209,9 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
                 .join(" ")
             }
           >
-            {avatarUri ? (
+            {avatarUri || user?.avatarUrl ? (
               <Picture
-                source={{ uri: avatarUri }}
+                source={{ uri: avatarUri || user!.avatarUrl! }}
                 contentFit="cover"
                 className={classes.avatarImage}
               />
@@ -152,6 +241,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
           >
             <Typography className={classes.label}>Имя или никнейм</Typography>
             <Field
+              disabled={blocked}
               value={name}
               onValueChange={setName}
               placeholder="Как тебя зовут?"
@@ -174,6 +264,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
                 .join(" ")}
             >
               <Action
+                disabled={blocked}
                 onClick={() => setGender("female")}
                 className={({ pressed }) =>
                   [
@@ -201,6 +292,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
                 </Typography>
               </Action>
               <Action
+                disabled={blocked}
                 onClick={() => setGender("male")}
                 className={({ pressed }) =>
                   [
@@ -230,10 +322,41 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
             </div>
           </div>
 
+          {error && (
+            <Typography role="alert" className={classes.errorText}>
+              {error}
+            </Typography>
+          )}
+          {update.unknown && (
+            <Action
+              disabled={update.busy}
+              onClick={() =>
+                void update.check().then((saved) => {
+                  if (saved) void complete();
+                })
+              }
+              className={classes.action3}
+            >
+              <Typography className={classes.submitButtonText}>
+                Проверить сохранение анкеты
+              </Typography>
+            </Action>
+          )}
+          {avatar.unknown && (
+            <Action
+              disabled={avatar.busy}
+              onClick={() => void avatar.check()}
+              className={classes.action3}
+            >
+              <Typography className={classes.submitButtonText}>
+                Проверить фото в профиле
+              </Typography>
+            </Action>
+          )}
           {/* Submit button */}
           <Action
             onClick={handleSubmit}
-            disabled={!isValid || submitting}
+            disabled={!isValid || blocked}
             aria-label="Продолжить"
             aria-busy={submitting}
             className={({ pressed }) =>
@@ -242,7 +365,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
                 pressed && isValid ? classes.transformState : "",
                 pressed && isValid
                   ? classes.opacityState4
-                  : !isValid
+                  : !isValid || blocked
                     ? classes.opacityState5
                     : "",
               ]
