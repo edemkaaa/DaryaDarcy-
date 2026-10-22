@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertLegacyClubStagingIdentity,
   assertLegacyClubStagingConnection,
+  assertLegacyClubSchemaProfile,
 } from "../tooling/operations/import-legacy-club";
 import {
   prepareLegacyClubContent,
@@ -98,5 +99,40 @@ describe("fixed staging identity guard", () => {
       expect(() => assertLegacyClubStagingConnection(changed)).toThrow(
         /staging connection/i,
       );
+  });
+  it("pins schema/history while a final backup-bound plan preserves newer user rows", () => {
+    const profile = {
+      schemaHash: "schema",
+      baseline: {
+        __drizzle_migrations: { rows: 42, sha256: "history" },
+        users: { rows: 7, sha256: "earlier" },
+      },
+    };
+    const latest = {
+      ...profile,
+      baseline: {
+        ...profile.baseline,
+        users: { rows: 7, sha256: "latest-user-profile" },
+      },
+    };
+    expect(() => assertLegacyClubSchemaProfile(latest, profile)).not.toThrow();
+    expect(() =>
+      assertLegacyClubSchemaProfile(
+        { ...latest, schemaHash: "changed" },
+        profile,
+      ),
+    ).toThrow();
+    expect(() =>
+      assertLegacyClubSchemaProfile(
+        {
+          ...latest,
+          baseline: {
+            ...latest.baseline,
+            __drizzle_migrations: { rows: 42, sha256: "changed" },
+          },
+        },
+        profile,
+      ),
+    ).toThrow();
   });
 });

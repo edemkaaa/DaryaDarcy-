@@ -41,6 +41,22 @@ export function assertLegacyClubStagingConnection(uri: string) {
   );
 }
 
+type Profile = Pick<LegacyClubPlan, "schemaHash" | "baseline">;
+export function assertLegacyClubSchemaProfile(plan: Profile, profile: Profile) {
+  assert.equal(
+    plan.schemaHash,
+    profile.schemaHash,
+    "Schema changed since verified backup",
+  );
+  // Current user data is bound to the final frozen backup by the host controller.
+  // Never replace its latest rows with the earlier rehearsal snapshot.
+  assert.deepEqual(
+    plan.baseline.__drizzle_migrations,
+    profile.baseline.__drizzle_migrations,
+    "Migration history changed since verified backup",
+  );
+}
+
 async function main() {
   const [phase] = process.argv.slice(2);
   assert(
@@ -100,23 +116,13 @@ async function main() {
     );
     if (phase === "plan") {
       const plan = await planLegacyClubMerge(connection, source);
-      assert.equal(
-        plan.schemaHash,
-        profile.schemaHash,
-        "Schema changed since verified backup",
-      );
-      assert.deepEqual(
-        plan.baseline,
-        profile.baseline,
-        "Data changed since verified backup",
-      );
+      assertLegacyClubSchemaProfile(plan, profile);
       console.log(JSON.stringify(plan));
     } else {
       const plan: LegacyClubPlan = JSON.parse(
         readFileSync(`${directory}/plan.json`, "utf8"),
       );
-      assert.equal(plan.schemaHash, profile.schemaHash);
-      assert.deepEqual(plan.baseline, profile.baseline);
+      assertLegacyClubSchemaProfile(plan, profile);
       const result =
         phase === "rollback"
           ? await rollbackLegacyClubMerge(connection, source, plan)
