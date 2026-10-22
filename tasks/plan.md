@@ -2,6 +2,24 @@
 
 ## Действующий план агента — 13 октября 2026
 
+22 октября, LEGACY-CLUB — прямое разрешение подготовить перенос и репетицию.
+Получен default_db dump SHA256 2b2ccad2…:22таблицы,190club posts (179telegram,
+9manual,2article cards),2articles,20post_media,375post photo references. У статей
+29/40sections; access club/public сохранять. Исходный dump только читается.
+1. Проверить428 media references/426unique URLs ограниченными GET Range/HEAD,
+   без изменения объектов/ACL и без чтения credentials; записать точные отказы.
+2. Снять read-only fresh snapshot текущего dev: backup/schema/history/counts/
+   admin credential digest; воспроизвести его только на own loopback/tmpfs
+   MySQL backend_test. Не подключать test commands к рабочей БД.
+3. Подготовить узкий импорт только posts/articles/post_media: сохранить тексты,
+   JSON/форматирование/даты/статусы/access, перепривязать article cards и media,
+   выделить новые ID без перезаписи существующих; не переносить users/payments/
+   videos/settings из старой базы. Проверить rollback и повтор после lost ACK.
+4. Реальный local SQL/HTTP: admin/member/unpaid/guest, draft/scheduled,
+   статьи/карточки/вложения; сравнить baseline rows и все admin credentials.
+5. Записать результаты, ограничения старых публичных URL и процедуру будущего
+   выпуска. Рабочие writes/переключение приложения/push/deploy не разрешены.
+
 22 октября, аватар: пользователь разрешил восстановить исправление, push staging
 и обновление сервера с сохранением БД/админов. Незакоммиченная правка оказалась
 точным откатом b3b168e; она заменена исправленным файлом. В staging перенесён

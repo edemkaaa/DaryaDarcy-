@@ -2,6 +2,19 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### LEGACY-CLUB — подготовка переноса22 октября
+
+- [x] Проверить целостность default_db dump:190club posts/2articles/20media,
+  содержимое статей и связи; исходные файлы600 вне Git.
+- [ ] Проверить426unique media URLs/428references, сохранить отчёт отказов;
+  только ограниченное чтение S3, без копирования/ACL/удаления.
+- [ ] Fresh read-only backup текущего dev и сохранение admin credentials;
+  отдельный own loopback/tmpfs backend_test с копией, без production writes.
+- [ ] Узкий импорт с новыми ID/связями/сохранением статусов и access;
+  SQL rollback, replay/lost-response, отказ при конфликте/дрейфе baseline.
+- [ ] Настоящий local HTTP guest/unpaid/member/admin и сохранность baseline;
+  отчёт/план переноса. Приложение/рабочая БД пока не переключаются.
+
 ### Аватар — проверка и выпуск22 октября
 
 - [x] Разобрать точный локальный откат кроппера и восстановить b3b168e.
