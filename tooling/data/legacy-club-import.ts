@@ -148,6 +148,34 @@ const snapshot = z
   .strict();
 export type LegacyClubContent = Omit<z.output<typeof snapshot>, "tags">;
 
+/** User approved only this known overdue source post to become an unscheduled draft. */
+export function prepareLegacyClubStagingContent(
+  input: unknown,
+): LegacyClubContent {
+  const content = prepareLegacyClubContent(input);
+  if (
+    content.sourceSha256 !==
+    "2b2ccad2b74c74b2098760e168ea2c6daedacc62fff8957427095dfc27e3aa8b"
+  )
+    throw new Error("Unapproved source snapshot");
+  const overdue = content.posts.find((row) => row.id === 928);
+  if (
+    !overdue ||
+    overdue.status !== "scheduled" ||
+    overdue.published !== 0 ||
+    overdue.scheduledAt !== "2026-10-19 07:00:00"
+  )
+    throw new Error("Approved overdue post differs");
+  return {
+    ...content,
+    posts: content.posts.map((row) =>
+      row.id === 928
+        ? { ...row, status: "draft", published: 0, scheduledAt: null }
+        : row,
+    ),
+  };
+}
+
 /** Content-only boundary; no source accounts, payments, settings or video catalog. */
 export function prepareLegacyClubContent(input: unknown): LegacyClubContent {
   const parsed = snapshot.safeParse(input);

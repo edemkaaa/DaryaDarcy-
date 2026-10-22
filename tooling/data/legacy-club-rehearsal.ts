@@ -1,4 +1,5 @@
-// Operator-only rehearsal. There is deliberately no remote/production apply mode.
+// Rehearsal entry points always inspect an owned local fixture. The shared merge
+// accepts an already guarded connection; the separate staging operator owns its guard.
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -232,12 +233,11 @@ function verifyImported(
       );
     }
 }
-export async function planLegacyClubRehearsal(
-  target: RehearsalTarget,
+export async function planLegacyClubMerge(
+  connection: Connection,
   input: LegacyClubContent,
 ): Promise<LegacyClubPlan> {
   const source = prepareLegacyClubContent(input);
-  const connection = await connect(target);
   try {
     await connection.query(
       "START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY",
@@ -294,11 +294,13 @@ export async function planLegacyClubRehearsal(
       ids,
     };
   } finally {
-    await connection.end();
+    await connection.rollback();
   }
 }
-export async function applyLegacyClubRehearsal(
-  target: RehearsalTarget,
+/** Caller guards identity and supplies dateStrings/jsonStrings/bigNumberStrings,
+ * supportBigNumbers and UTC; never pass an application's ordinary pool here. */
+export async function applyLegacyClubMerge(
+  connection: Connection,
   input: LegacyClubContent,
   plan: LegacyClubPlan,
 ) {
@@ -323,7 +325,6 @@ export async function applyLegacyClubRehearsal(
       "Invalid ID map",
     );
   }
-  const connection = await connect(target);
   let locked = false;
   try {
     const [lock] = await rows(
@@ -414,11 +415,89 @@ export async function applyLegacyClubRehearsal(
     await connection.rollback();
     throw error;
   } finally {
-    try {
-      if (locked)
-        await connection.query("SELECT RELEASE_LOCK('legacy_club_rehearsal')");
-    } finally {
-      await connection.end();
-    }
+    if (locked)
+      await connection.query("SELECT RELEASE_LOCK('legacy_club_rehearsal')");
+  }
+}
+
+export async function planLegacyClubRehearsal(
+  target: RehearsalTarget,
+  input: LegacyClubContent,
+) {
+  const connection = await connect(target);
+  try {
+    return await planLegacyClubMerge(connection, input);
+  } finally {
+    await connection.end();
+  }
+}
+export async function applyLegacyClubRehearsal(
+  target: RehearsalTarget,
+  input: LegacyClubContent,
+  plan: LegacyClubPlan,
+) {
+  const connection = await connect(target);
+  try {
+    return await applyLegacyClubMerge(connection, input, plan);
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function rollbackLegacyClubMerge(
+  connection: Connection,
+  input: LegacyClubContent,
+  plan: LegacyClubPlan,
+): Promise<{ removed: number; originalRowsUnchanged: boolean }> {
+  const source = prepareLegacyClubContent(input);
+  assert(
+    plan.version === 1 && plan.sourceHash === hash(source),
+    "Source changed; rollback refused",
+  );
+  const expected = mappedRows(source, plan.ids);
+  let locked = false;
+  try {
+    const [lock] = await rows(
+      connection,
+      "SELECT GET_LOCK('legacy_club_rehearsal',10) AS acquired",
+    );
+    assert(Number(lock.acquired) === 1);
+    locked = true;
+    await connection.beginTransaction();
+    const before = await snapshot(connection, true);
+    assert(
+      before.uuid === plan.targetUuid && before.schemaHash === plan.schemaHash,
+      "Fixture identity/schema changed",
+    );
+    verifyImported(before.data, expected);
+    assert.deepEqual(
+      fingerprints(before.data, plan.ids),
+      plan.baseline,
+      "Existing data changed; rollback refused",
+    );
+    let removed = 0;
+    for (const table of [...tables].reverse())
+      for (const row of expected[table]) {
+        const [result] = await connection.execute<ResultSetHeader>(
+          `DELETE FROM ${identifier(table)} WHERE id=?`,
+          [row.id as number],
+        );
+        assert(result.affectedRows === 1 && result.warningStatus === 0);
+        removed++;
+      }
+    const after = await snapshot(connection);
+    assert.deepEqual(
+      fingerprints(after.data),
+      plan.baseline,
+      "Original rows changed",
+    );
+    await connection.commit();
+    return { removed, originalRowsUnchanged: true };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    if (locked)
+      await connection.query("SELECT RELEASE_LOCK('legacy_club_rehearsal')");
   }
 }

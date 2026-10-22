@@ -4,6 +4,7 @@ import { prepareLegacyClubContent } from "../tooling/data/legacy-club-import";
 import {
   planLegacyClubRehearsal,
   applyLegacyClubRehearsal,
+  rollbackLegacyClubMerge,
 } from "../tooling/data/legacy-club-rehearsal";
 import { assertTestDatabase } from "../tooling/scripts/test-database-policy";
 
@@ -85,6 +86,8 @@ describe.skipIf(!uri || !containerId)(
         uri: uri!,
         dateStrings: true,
         jsonStrings: true,
+        supportBigNumbers: true,
+        bigNumberStrings: true,
         timezone: "Z",
       });
     }, 20000);
@@ -188,6 +191,22 @@ describe.skipIf(!uri || !containerId)(
       await expect(
         applyLegacyClubRehearsal(target, content, plan),
       ).rejects.toThrow();
+    }, 20000);
+    it("refuses rollback of edited content, then removes only the unchanged imported rows", async () => {
+      await expect(
+        rollbackLegacyClubMerge(connection, content, plan),
+      ).rejects.toThrow();
+      await connection.execute(
+        "UPDATE posts SET text='Original',updatedAt=? WHERE id=?",
+        [stamp, plan.ids.posts[10]],
+      );
+      expect(await rollbackLegacyClubMerge(connection, content, plan)).toEqual({
+        removed: 3,
+        originalRowsUnchanged: true,
+      });
+      expect((await planLegacyClubRehearsal(target, content)).baseline).toEqual(
+        plan.baseline,
+      );
     }, 20000);
   },
 );
