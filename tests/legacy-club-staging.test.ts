@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { assertLegacyClubStagingIdentity } from "../tooling/operations/import-legacy-club";
+import {
+  assertLegacyClubStagingIdentity,
+  assertLegacyClubStagingConnection,
+} from "../tooling/operations/import-legacy-club";
 import {
   prepareLegacyClubContent,
   prepareLegacyClubStagingContent,
@@ -79,5 +82,21 @@ describe("fixed staging identity guard", () => {
       expect(() =>
         assertLegacyClubStagingIdentity({ ...correct, ...changed }),
       ).toThrow(/staging identity/i);
+  });
+  it("retains the existing utf8mb4 option but refuses alternate hosts, databases and unsafe driver options", () => {
+    const uri =
+      "mysql://operator:local-placeholder@mysql:3306/daryadarcy_candidate_20261019";
+    expect(() =>
+      assertLegacyClubStagingConnection(uri + "?charset=utf8mb4"),
+    ).not.toThrow();
+    for (const changed of [
+      uri.replace("@mysql:", "@remote:"),
+      uri.replace("candidate_20261019", "staging"),
+      uri + "?multipleStatements=true",
+      uri + "?charset=utf8mb4&multipleStatements=true",
+    ])
+      expect(() => assertLegacyClubStagingConnection(changed)).toThrow(
+        /staging connection/i,
+      );
   });
 });

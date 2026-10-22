@@ -28,6 +28,19 @@ export function assertLegacyClubStagingIdentity(identity: {
   );
 }
 
+export function assertLegacyClubStagingConnection(uri: string) {
+  const url = new URL(uri);
+  assert(
+    url.protocol === "mysql:" &&
+      url.hostname === "mysql" &&
+      url.port === "3306" &&
+      url.pathname === "/daryadarcy_candidate_20261019" &&
+      ["", "?charset=utf8mb4"].includes(url.search) &&
+      !url.hash,
+    "Unverified staging connection",
+  );
+}
+
 async function main() {
   const [phase] = process.argv.slice(2);
   assert(
@@ -58,16 +71,7 @@ async function main() {
   );
   const uri = process.env.LEGACY_CLUB_DATABASE_URL;
   assert(uri, "Explicit operator connection required");
-  const url = new URL(uri);
-  assert(
-    url.protocol === "mysql:" &&
-      url.hostname === "mysql" &&
-      url.port === "3306" &&
-      url.pathname === "/daryadarcy_candidate_20261019" &&
-      !url.search &&
-      !url.hash,
-    "Unverified staging connection",
-  );
+  assertLegacyClubStagingConnection(uri);
   const connection = await mysql.createConnection({
     uri,
     dateStrings: true,
