@@ -2,6 +2,18 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Аватар — проверка и выпуск22 октября
+
+- [x] Разобрать точный локальный откат кроппера и восстановить b3b168e.
+- [x] Отделить avatar от остальных local commits; push staging294cbee.
+- [x] Старый live RED2; локально22 и опубликованный frontend22 Chromium/WebKit
+  profile checks GREEN с перехватом API writes; build/types/lint GREEN.
+- [x] Backup40tables и web-only rollout c1d87dfa…; DB/schema/history/counts,
+  все3 admin credentials и остальные контейнеры сохранены. Receipt/rollback
+  в начале operations/teamassist-staging.md. Новый real-S3 upload не заявлен.
+- [ ] Пользователю повторно выбрать фото на физическом iPhone после обновления;
+  ранее сохранённые дефектные файлы автоматически не исправляются.
+
 ### Security audit 22 октября — локальные срезы, 2FA отложена
 
 - [x] RED/GREEN: восстановление пароля прекращает расход email-buckets после
