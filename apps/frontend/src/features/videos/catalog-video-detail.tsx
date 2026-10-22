@@ -9,7 +9,7 @@ import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { parseContentId } from "@/shared/navigation/content-id";
 import { useRouter } from "@/shared/navigation/router";
 import { ScreenContainer } from "@/shared/ui/screen-container";
-import { Background } from "@/shared/ui/elements";
+import { Background, Typography } from "@/shared/ui/elements";
 import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { ContentRequestState } from "@/shared/ui/content-request-state";
@@ -96,12 +96,9 @@ export function CatalogVideoDetail({ id }: { id: string }) {
         >
           <div className={`ui-stack ${classes.loadingContainer}`}>
             {auth.refreshError ? (
-              <QueryRetryState
-                isLoading={false}
-                isError
-                message="Не удалось проверить сессию"
-                onRetry={() => void auth.refresh()}
-              />
+              <Typography className={classes.accessCheck}>
+                Воспроизведение приостановлено до проверки доступа.
+              </Typography>
             ) : pending ? (
               <ContentPlaceholder kind="video" count={1} />
             ) : status === 401 ? (

@@ -18,6 +18,7 @@ import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import { SessionStatus } from "@/domain/session/session-status";
 import { displayVideoTitle } from "@/shared/media/video-title";
 import { Picture } from "@/shared/media/image";
@@ -46,10 +47,9 @@ export function VideoCatalogScreen() {
     initialPageParam: undefined as number | undefined,
     // The same opt-in is included in the cache key and every requested page.
     queryFn: ({ pageParam, signal }) =>
-      utils.client.videos.catalog.query(
-        videoCatalogInput(20, pageParam),
-        { signal },
-      ),
+      utils.client.videos.catalog.query(videoCatalogInput(20, pageParam), {
+        signal,
+      }),
     ...contentRefreshOptions(active && !loading && !sessionError),
     staleTime: 0,
     refetchOnMount: "always",
@@ -66,6 +66,11 @@ export function VideoCatalogScreen() {
     query.data?.pages.at(-1),
     query.data?.pageParams ?? [],
   );
+  useBackgroundNotice({
+    when: query.isRefetchError && query.data !== undefined,
+    message: "Не удалось обновить видео",
+    onRetry: () => query.refetch({ cancelRefetch: false }),
+  });
   const rows = useMemo(
     () => [
       ...new Map(
@@ -162,7 +167,7 @@ export function VideoCatalogScreen() {
             <QueryRetryState
               isLoading={query.isPending}
               loadingContent={<ContentPlaceholder kind="video" />}
-              isError={query.isError}
+              isError={query.isError && query.data === undefined}
               onRetry={retry}
               message="Не удалось загрузить видео"
               className={classes.loadingContainer}
@@ -174,7 +179,7 @@ export function VideoCatalogScreen() {
                 <QueryRetryState
                   isLoading={query.isFetchingNextPage}
                   loadingSize="small"
-                  isError={query.isError || stalled}
+                  isError={query.isFetchNextPageError || stalled}
                   onRetry={retry}
                   message="Не удалось загрузить следующие видео"
                 />
@@ -196,7 +201,6 @@ export function VideoCatalogScreen() {
             paddingBottom: rows.length ? "var(--page-end-gap)" : 0,
           }}
           hideScrollbar
-          refreshing={query.isRefetching}
           onRefresh={async () => {
             await query.refetch({ cancelRefetch: false });
           }}

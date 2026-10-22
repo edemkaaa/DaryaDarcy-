@@ -17,7 +17,7 @@ import { ScreenContainer } from "@/shared/ui/screen-container";
 
 import * as ImagePicker from "@/shared/browser/file-picker";
 import { MAX_AVATAR_SOURCE_BYTES } from "@/shared/browser/file-operations";
-import AsyncStorage from "@/shared/browser/storage";
+import AsyncStorage, { isPersonalDataOwner } from "@/shared/browser/storage";
 import { useAuth } from "@/domain/session/session-context";
 import { SessionStatus } from "@/domain/session/session-status";
 import { SubscriptionStatus } from "@/domain/subscription/subscription-status";
@@ -29,6 +29,8 @@ import { parseSavedQuizResult } from "@/domain/quiz/saved-result";
 import { useRouter } from "@/shared/navigation/router";
 import { useFocusEffect } from "@/shared/navigation/router";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
+import { isTemporaryRequestError } from "@/shared/api/errors";
 import { LoadingIndicator } from "@/shared/ui/loading-indicator";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { useProfileAvatar } from "@/domain/profile/use-profile-avatar";
@@ -99,7 +101,15 @@ export default function ProfileScreen() {
   const avatar = useProfileAvatar();
   const savedFromApi = trpc.feed.savedPosts.useQuery(undefined, {
     ...contentRefreshOptions(active && isAuthenticated),
-    refetchOnMount: "always",
+  });
+  const savedRefreshError =
+    savedFromApi.data !== undefined &&
+    savedFromApi.isError &&
+    isTemporaryRequestError(savedFromApi.error);
+  useBackgroundNotice({
+    when: savedRefreshError,
+    message: "Не удалось обновить сохранённые посты",
+    onRetry: () => savedFromApi.refetch({ cancelRefetch: false }),
   });
   const [avatarDraft, setAvatarDraft] = useState<string | null>(null);
   const [savedTab, setSavedTab] = useState<SavedTab>("feed");
@@ -110,46 +120,29 @@ export default function ProfileScreen() {
     secondaryKey: AestheticKey | null;
     isBlend: boolean;
   } | null>(null);
-  const [, setSavedFeedIds] = useState<number[]>([]);
-  const [, setSavedClubIds] = useState<string[]>([]);
-  // Reload profile data every time this tab gains focus
-  const loadProfileData = useCallback(() => {
-    Promise.all([
-      AsyncStorage.getItem("@darcy_quiz_result"),
-      AsyncStorage.getItem("@darcy_saved_feed"),
-      AsyncStorage.getItem("@darcy_saved_club"),
-    ]).then(([quizRaw, feedRaw, clubRaw]) => {
-      const quiz = parseSavedQuizResult(quizRaw);
-      setQuizResult(
-        quiz
-          ? {
-              primaryKey: quiz.primary.key,
-              primaryTitle: quiz.primary.title,
-              secondaryKey: quiz.secondary?.key ?? null,
-              isBlend: quiz.isBlend,
-            }
-          : null,
-      );
-      if (feedRaw) {
-        try {
-          setSavedFeedIds(JSON.parse(feedRaw));
-        } catch {}
-      }
-      if (clubRaw) {
-        try {
-          setSavedClubIds(JSON.parse(clubRaw));
-        } catch {}
-      }
-    });
-  }, []);
-  const refetchSavedPosts = savedFromApi.refetch;
   useFocusEffect(
     useCallback(() => {
-      loadProfileData();
-      if (isAuthenticated) {
-        void refetchSavedPosts();
-      }
-    }, [isAuthenticated, loadProfileData, refetchSavedPosts]),
+      const ownerId = user?.id;
+      if (!ownerId) return;
+      let current = true;
+      void AsyncStorage.getItem("@darcy_quiz_result").then((raw) => {
+        if (!current || !isPersonalDataOwner(ownerId)) return;
+        const quiz = parseSavedQuizResult(raw);
+        setQuizResult(
+          quiz
+            ? {
+                primaryKey: quiz.primary.key,
+                primaryTitle: quiz.primary.title,
+                secondaryKey: quiz.secondary?.key ?? null,
+                isBlend: quiz.isBlend,
+              }
+            : null,
+        );
+      });
+      return () => {
+        current = false;
+      };
+    }, [user?.id]),
   );
   const displayName = user?.name || "Участница";
   const serverAvatar =
@@ -576,7 +569,7 @@ export default function ProfileScreen() {
               >
                 <ContentPlaceholder kind="feed" />
               </div>
-            ) : savedFromApi.isError ? (
+            ) : savedFromApi.isError && !savedRefreshError ? (
               <QueryRetryState
                 isLoading={false}
                 isError

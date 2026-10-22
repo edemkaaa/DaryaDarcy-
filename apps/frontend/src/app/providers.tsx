@@ -10,6 +10,7 @@ import { InstallGuide } from "@/features/pwa/install-guide";
 import { WebPostAlerts } from "@/features/pwa/web-post-alerts";
 import { ViewportSync } from "@/shared/browser/viewport";
 import { BackgroundCheckNotice } from "@/domain/session/background-check-notice";
+import { BackgroundNoticeProvider } from "@/shared/ui/background-notice";
 import TabShell from "./tab-shell";
 import { NavigationHistory } from "@/shared/navigation/history";
 import { TouchPressGuard } from "@/shared/browser/touch-press-guard";
@@ -32,11 +33,15 @@ export default function Providers({
           <TouchPressGuard />
           <AuthProvider>
             <ClubProvider>
-              <ViewportSync />
-              <TabShell initialHomeDate={initialHomeDate}>{children}</TabShell>
-              <InstallGuide />
-              <WebPostAlerts />
-              <BackgroundCheckNotice />
+              <BackgroundNoticeProvider>
+                <ViewportSync />
+                <TabShell initialHomeDate={initialHomeDate}>
+                  {children}
+                </TabShell>
+                <InstallGuide />
+                <WebPostAlerts />
+                <BackgroundCheckNotice />
+              </BackgroundNoticeProvider>
             </ClubProvider>
           </AuthProvider>
         </QueryClientProvider>

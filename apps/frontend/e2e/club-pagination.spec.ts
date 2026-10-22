@@ -444,7 +444,7 @@ test("refresh failure retains loaded pages and retry refreshes them in order", a
   await expect(page.getByText(/^CLUB_POST_13 /)).toBeAttached();
   fail = true;
   await refreshList(page);
-  const error = page.getByRole("alert").filter({
+  const error = page.getByRole("status").filter({
     hasText: "Не удалось обновить публикации клуба",
   });
   await expect(error).toBeAttached();

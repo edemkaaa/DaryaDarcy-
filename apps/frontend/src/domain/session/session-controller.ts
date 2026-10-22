@@ -226,7 +226,9 @@ export class SessionController {
     });
   };
   logout = async (): Promise<void> => {
-    if (this.state.status === "logging-out") return;
+    // Strict Mode can cancel the initial pending-logout request during cleanup.
+    // Coalesce live requests, but allow the next setup to restart an aborted one.
+    if (this.state.status === "logging-out" && this.pending) return;
     const task = this.begin();
     this.authenticating = false;
     this.refreshing = false;

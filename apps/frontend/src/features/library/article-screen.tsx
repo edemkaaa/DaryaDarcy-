@@ -21,7 +21,7 @@ import { isTemporaryRequestError } from "@/shared/api/errors";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { parseContentId } from "@/shared/navigation/content-id";
 import { ContentRequestState } from "@/shared/ui/content-request-state";
-import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import { useClub } from "@/domain/subscription/subscription-context";
 import { PhotoViewer } from "@/shared/media/photo-viewer";
 import { useClubContentProtection } from "@/shared/browser/use-club-protection";
@@ -46,6 +46,11 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
   // Confirmed absence, denial, or a locked response must hide the old article.
   const blockingError = Boolean(error && !isTemporaryRequestError(error));
   const unavailable = !data || blockingError || data.locked;
+  useBackgroundNotice({
+    when: Boolean(error && !unavailable),
+    message: "Не удалось обновить статью",
+    onRetry: () => refetch({ cancelRefetch: false }),
+  });
   useClubContentProtection(Boolean(data && !data.locked));
   const [viewer, setViewer] = useState<{
     photos: string[];
@@ -135,14 +140,6 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       <Background source={{ uri: PAPER }} fit="cover" className={classes.bg}>
         <ScrollArea hideScrollbar contentClassName={classes.scroll}>
-          {error ? (
-            <QueryRetryState
-              isLoading={false}
-              isError
-              message="Не удалось обновить статью"
-              onRetry={() => void refetch({ cancelRefetch: false })}
-            />
-          ) : null}
           <ArticleContent
             title={data.title}
             coverUrl={data.coverUrl}

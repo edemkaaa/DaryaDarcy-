@@ -2,6 +2,7 @@
 
 @layer components {
   .shell {
+    --app-header-height: calc(44px + env(safe-area-inset-top, 0px));
     position: relative;
     display: flex;
     flex-direction: column;
@@ -10,7 +11,11 @@
     width: 100%;
     overflow: hidden;
   }
+  .shopHeader {
+    --app-header-height: calc(46px + env(safe-area-inset-top, 0px));
+  }
   .content {
+    position: relative;
     --screen-safe-top: 0px;
     --screen-safe-bottom: 0px;
     display: flex;
@@ -24,12 +29,29 @@
   .insetHeader {
     // Paper screens already reserved this space for their original header.
     // Keep the inset inside the screen so its texture extends behind the icons.
-    --screen-safe-top: calc(44px + env(safe-area-inset-top, 0px));
+    --screen-safe-top: var(--app-header-height);
   }
   .scrollingHeader {
     // Reserve the header's space inside scrolling content. An outer safe-area
     // inset would leave a fixed strip of paper after the header slides away.
     --screen-safe-top: 0px;
+  }
+  // A content/access error may replace a scroll area with a centered block.
+  // Keep the same header clearance while that scroll area is absent.
+  .scrollingHeader
+    .screens
+    > :not(
+      :has(
+        :global(
+          .ui-scroll:not(.ui-scroll-horizontal):not(
+              [data-scroll-header="ignore"],
+              [data-scroll-header="ignore"] *,
+              [role="dialog"] *
+            )
+        )
+      )
+    ) {
+    --screen-safe-top: var(--app-header-height);
   }
   .scrollingHeader
     :global(
@@ -40,7 +62,7 @@
         )
     )::before {
     content: "";
-    flex: 0 0 calc(44px + env(safe-area-inset-top, 0px));
+    flex: 0 0 var(--app-header-height);
   }
   // Bound route wrappers before sizing their own scroll areas.
   .content > * {

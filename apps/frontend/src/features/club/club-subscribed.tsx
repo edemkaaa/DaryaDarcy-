@@ -15,6 +15,7 @@ import {
 } from "@/shared/ui/elements";
 import { ClubPostCard } from "./club-post-card";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import {
   useState,
   useEffect,
@@ -137,6 +138,13 @@ export function ClubSubscribed({
     lastPage?.nextCursor != null &&
     Boolean(clubQuery.data?.pageParams.includes(lastPage.nextCursor));
   const hasPageError = clubQuery.isError || stalledCursor;
+  const backgroundPostError =
+    clubQuery.isRefetchError && clubQuery.data !== undefined;
+  useBackgroundNotice({
+    when: backgroundPostError,
+    message: "Не удалось обновить публикации клуба",
+    onRetry: () => clubQuery.refetch({ cancelRefetch: false }),
+  });
   const { fetchNextPage, hasNextPage, isFetching, isError } = clubQuery;
   const loadMore = useCallback(() => {
     if (active && hasNextPage && !isFetching && !isError && !stalledCursor)
@@ -248,8 +256,14 @@ export function ClubSubscribed({
   const displayedBanner = preparedAppearance?.banner ?? null;
   const retryAppearance = () => {
     setFailedImages([]);
-    void appearanceQuery.refetch({ cancelRefetch: false });
+    return appearanceQuery.refetch({ cancelRefetch: false });
   };
+  useBackgroundNotice({
+    when: appearanceQuery.isError || imageError,
+    message:
+      "Не удалось обновить оформление Клуба. Используется доступное оформление.",
+    onRetry: retryAppearance,
+  });
   const renderPost = ({ item }: { item: ClubPost }) => (
     <ClubPostCard
       item={item}
@@ -316,22 +330,6 @@ export function ClubSubscribed({
           />
         ) : null}
       </div>
-      {appearanceQuery.isError || imageError ? (
-        <div
-          style={{
-            backgroundColor: CREAM,
-            borderRadius: 12,
-            margin: "12px 20px",
-          }}
-        >
-          <QueryRetryState
-            isLoading={false}
-            isError={appearanceQuery.isError || imageError}
-            onRetry={retryAppearance}
-            message="Не удалось обновить оформление Клуба. Используется доступное оформление."
-          />
-        </div>
-      ) : null}
       {/* Greeting only on main (no tab selected) */}
       {activeTab === null && displayName ? (
         <Typography className={classes.greeting}>
@@ -453,13 +451,9 @@ export function ClubSubscribed({
               <QueryRetryState
                 isLoading={clubQuery.isFetchingNextPage}
                 loadingSize="small"
-                isError={hasPageError}
+                isError={clubQuery.isFetchNextPageError || stalledCursor}
                 onRetry={retryPosts}
-                message={
-                  clubQuery.isRefetchError
-                    ? "Не удалось обновить публикации клуба"
-                    : "Не удалось загрузить следующие публикации клуба"
-                }
+                message="Не удалось загрузить следующие публикации клуба"
                 className={classes.emptyTab}
               >
                 {clubQuery.hasNextPage ? (
@@ -491,7 +485,7 @@ export function ClubSubscribed({
                 (!hasPageError &&
                   (clubQuery.isPending || Boolean(clubQuery.hasNextPage)))
               }
-              isError={hasPageError}
+              isError={hasPageError && !backgroundPostError}
               onRetry={retryPosts}
               message="Не удалось загрузить публикации клуба"
             >
@@ -507,7 +501,6 @@ export function ClubSubscribed({
           onLoadMore={active ? loadMore : undefined}
           loadMoreThreshold={2}
           onRefresh={onRefresh}
-          refreshing={clubQuery.isRefetching}
           contentClassName={classes.postList}
           divider={<div className={classes.postDivider} aria-hidden="true" />}
         />
@@ -516,6 +509,7 @@ export function ClubSubscribed({
         <Background
           role="navigation"
           aria-label="Разделы клуба"
+          data-background-notice-menu
           source={{ uri: PAPER_TEXTURE_URI }}
           fit="cover"
           className={classes.clubTabBar}

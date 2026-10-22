@@ -519,7 +519,7 @@ native(
       await refresh(page);
       await ui(
         page.getByRole("button", { name: "Открыть PDF →", exact: true }),
-      ).toBeDisabled();
+      ).toBeEnabled();
       await ui(
         page.getByRole("button", {
           name: "Открыть выкройку: Остролист",
@@ -610,7 +610,7 @@ sqlBrowser(
       await refresh(page);
       await ui(
         page.getByRole("button", { name: "Открыть PDF →", exact: true }),
-      ).toBeDisabled();
+      ).toBeEnabled();
       await ui(
         page.locator('img[src^="/api/media/library-files/"]'),
       ).toHaveCount(0);

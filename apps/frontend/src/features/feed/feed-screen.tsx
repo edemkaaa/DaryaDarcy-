@@ -28,6 +28,7 @@ import { ScreenContainer } from "@/shared/ui/screen-container";
 
 import { trpc } from "@/shared/api/trpc";
 import { contentRefreshOptions } from "@/shared/api/content-refresh";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import { useRouter } from "@/shared/navigation/router";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { usePostInteractions } from "@/domain/post/use-post-interactions";
@@ -157,6 +158,11 @@ export default function FeedScreen() {
     },
   );
   const lastPage = paginatedData?.pages.at(-1);
+  useBackgroundNotice({
+    when: isRefetchError && paginatedData !== undefined,
+    message: "Не удалось обновить ленту",
+    onRetry: () => refetch({ cancelRefetch: false }),
+  });
   const stalledCursor =
     lastPage?.nextCursor != null &&
     Boolean(paginatedData?.pageParams.includes(lastPage.nextCursor));
@@ -386,15 +392,6 @@ export default function FeedScreen() {
         error={interactions.error}
         retry={interactions.retry}
       />
-      {isRefetchError && paginatedData && (
-        <QueryRetryState
-          isLoading={false}
-          isError
-          message="Не удалось обновить ленту"
-          onRetry={() => void refetch()}
-          className={classes.refreshError}
-        />
-      )}
       {renderSearchRow()}
       {renderTagChips()}
     </div>

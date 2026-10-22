@@ -14,6 +14,7 @@ import { isTemporaryRequestError } from "@/shared/api/errors";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { parseContentId } from "@/shared/navigation/content-id";
 import { ContentRequestState } from "@/shared/ui/content-request-state";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import { YouTubeEmbed } from "@/shared/media/youtube-embed";
 import { getVkVideoEmbedUrl } from "@/shared/media/vk-video-url";
 import { VkVideoEmbed } from "@/shared/media/vk-video-embed";
@@ -45,6 +46,11 @@ function LegacyVideoDetail({ id }: { id: string }) {
       (await utils.client.videos.getById.query(input, { signal })) ?? null,
     ...contentRefreshOptions(active && videoId !== null),
     staleTime: 30_000,
+  });
+  useBackgroundNotice({
+    when: Boolean(video && error && isTemporaryRequestError(error)),
+    message: "Не удалось обновить видео",
+    onRetry: () => refetch({ cancelRefetch: false }),
   });
   if (isLoading || (error && !isTemporaryRequestError(error)) || !video) {
     return (

@@ -329,6 +329,28 @@ it("initial refresh can restart after Strict Mode cleanup", async () => {
   expect(f.controller.getSnapshot().user?.id).toBe(2);
 });
 
+it("a pending logout restarts after Strict Mode cleanup without restoring access", async () => {
+  const interrupted = deferred<void>();
+  const logout = vi.fn(async () => {
+    throw new Error("offline");
+  });
+  logout.mockImplementationOnce(() => interrupted.promise);
+  const f = fixture(undefined, logout);
+  await f.controller.applySession(member(1));
+  const first = f.controller.logout();
+  await f.controller.logout();
+  expect(logout).toHaveBeenCalledTimes(1);
+  f.controller.dispose();
+  expect(f.controller.getSnapshot().user).toBeNull();
+  await f.controller.logout();
+  expect(logout).toHaveBeenCalledTimes(2);
+  expect(f.controller.getSnapshot().status).toBe("logout-error");
+  interrupted.resolve();
+  await first;
+  expect(f.controller.getSnapshot().status).toBe("logout-error");
+  expect(f.controller.getSnapshot().user).toBeNull();
+});
+
 it("a 403 permission failure does not discard a valid identity or cause query refetch loops", async () => {
   const f = fixture(vi.fn(async () => member(1)));
   await f.controller.applySession(member(1));

@@ -15,6 +15,8 @@ import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
+import { isTemporaryRequestError } from "@/shared/api/errors";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import type { LibraryMaterialKey } from "./library-files-api";
 import { LibraryFilesDialog } from "./library-files-dialog";
@@ -74,6 +76,15 @@ export default function LibraryScreen() {
   const articlesQuery = trpc.articles.list.useQuery(undefined, {
     staleTime: 30_000,
     ...contentRefreshOptions(active),
+  });
+  const articlesRefreshError =
+    articlesQuery.data !== undefined &&
+    articlesQuery.isError &&
+    isTemporaryRequestError(articlesQuery.error);
+  useBackgroundNotice({
+    when: articlesRefreshError,
+    message: "Не удалось обновить статьи библиотеки",
+    onRetry: () => articlesQuery.refetch({ cancelRefetch: false }),
   });
   const allMaterials = useMemo(() => {
     const extra: MaterialItem[] = (articlesQuery.data || []).map((article) => ({
@@ -313,7 +324,7 @@ export default function LibraryScreen() {
         <QueryRetryState
           isLoading={articlesQuery.isPending}
           loadingContent={<ContentPlaceholder kind="library" />}
-          isError={articlesQuery.isError}
+          isError={articlesQuery.isError && !articlesRefreshError}
           onRetry={() => void articlesQuery.refetch()}
           message="Не удалось загрузить статьи библиотеки"
         />

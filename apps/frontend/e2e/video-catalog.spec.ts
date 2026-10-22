@@ -58,6 +58,7 @@ async function fixture(page: Page) {
     providers: [] as string[],
     legacy: [] as string[],
     gate: undefined as Promise<void> | undefined,
+    catalogGate: undefined as Promise<void> | undefined,
     saveStatus: 0,
     dropSaveResponse: false,
     savedId: 42,
@@ -65,6 +66,7 @@ async function fixture(page: Page) {
   await editorApi(page, async (name, input, route) => {
     if (name === "videos.catalog") {
       state.reads.push({ name, input });
+      if (state.catalogGate) await state.catalogGate;
       // Model the documented opt-in separately from the currently deployed contract.
       const allowed = [
         "limit",
@@ -145,6 +147,49 @@ for (const actor of ["guest", "member", "moderator"] as const) {
     expect(state.legacy).toEqual([]);
   });
 }
+for (const width of [390, 1440]) {
+  test(`catalog background refresh leaves cards still while pending (${width}px)`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.clock.install();
+    const state = await fixture(page);
+    await gotoWithSession(page, "/videos");
+    const card = page.getByRole("button", {
+      name: "Открыть видео: CATALOG_VIDEO",
+      exact: true,
+    });
+    await expect(card).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    const before = await card.boundingBox();
+    const previous = state.reads.filter(
+      (row) => row.name === "videos.catalog",
+    ).length;
+    const gate = deferred();
+    state.catalogGate = gate.promise;
+    try {
+      await page.clock.fastForward(61_000);
+      await page.clock.runFor(100);
+      await expect
+        .poll(
+          () =>
+            state.reads.filter((row) => row.name === "videos.catalog").length,
+        )
+        .toBe(previous + 1);
+      await page.clock.runFor(100);
+      expect(await card.boundingBox()).toEqual(before);
+      await expect(
+        page.locator('[data-tab-screen="/videos"] .ui-refresh'),
+      ).toHaveCount(0);
+    } finally {
+      state.catalogGate = undefined;
+      gate.resolve();
+    }
+    await expect(card).toBeVisible();
+    expect(await card.boundingBox()).toEqual(before);
+  });
+}
+
 test("catalog does not prefetch any source and paginates without duplicate cards", async ({
   page,
 }) => {
@@ -522,10 +567,15 @@ test("unknown admin result keeps original fields and retries the same payload", 
   await expect(
     page.getByRole("textbox", { name: "Название видео VK" }),
   ).toBeDisabled();
+  const retry = page.getByRole("button", {
+    name: "Повторить сохранение",
+    exact: true,
+  });
+  // Disabled fields also occur while the first request is still pending.
+  // Keep its failure configured until the unknown-result UI is confirmed.
+  await expect(retry).toBeVisible();
   state.saveStatus = 0;
-  await page
-    .getByRole("button", { name: "Повторить сохранение", exact: true })
-    .click();
+  await retry.click();
   await expect(
     page.getByText("Видео сохранено. ID: 42", { exact: true }),
   ).toBeVisible();
@@ -637,7 +687,7 @@ test.describe("documented thumbnail save contract", () => {
       await page
         .getByRole("button", { name: "Сохранить видео", exact: true })
         .click();
-      await expect(page.locator('span[role="alert"]')).toContainText(
+      await expect(page.getByRole("main").getByRole("alert")).toContainText(
         "Укажите публичный адрес обложки",
       );
       await expect(input).toBeEnabled();
@@ -658,7 +708,7 @@ test.describe("documented thumbnail save contract", () => {
       await page
         .getByRole("button", { name: "Сохранить видео", exact: true })
         .click();
-      await expect(page.locator('span[role="alert"]')).toBeVisible();
+      await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
       await expect(input).toBeEnabled();
       await expect(
         page.getByRole("button", { name: "Повторить сохранение", exact: true }),

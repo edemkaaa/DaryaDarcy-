@@ -246,7 +246,7 @@ test("a failed background refresh retains the confirmed theme and offers an expl
   fail = true;
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
   const warning = page
-    .getByRole("alert")
+    .getByRole("status")
     .filter({ hasText: "Не удалось обновить оформление Клуба" });
   await expect(warning).toBeVisible();
   await expect(background(page)).toHaveAttribute(
@@ -288,7 +288,7 @@ for (const malformed of [false, true]) {
     ).toBeVisible();
     await expect(
       page
-        .getByRole("alert")
+        .getByRole("status")
         .filter({ hasText: "Не удалось обновить оформление Клуба" }),
     ).toBeVisible();
   });
@@ -322,7 +322,7 @@ test("missing and failed images fall back without changing the banner dimensions
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
   await expect(
     page
-      .getByRole("alert")
+      .getByRole("status")
       .filter({ hasText: "Не удалось обновить оформление Клуба" }),
   ).toBeVisible();
   await expect(banner(page)).toHaveAttribute("src", winter);
@@ -330,7 +330,7 @@ test("missing and failed images fall back without changing the banner dimensions
   expect(after?.width).toBe(before?.width);
   expect(after?.height).toBe(before?.height);
   const warningBox = await page
-    .getByRole("alert")
+    .getByRole("status")
     .filter({ hasText: "Не удалось обновить оформление Клуба" })
     .boundingBox();
   expect(warningBox!.y).toBeGreaterThanOrEqual(after!.y + after!.height);

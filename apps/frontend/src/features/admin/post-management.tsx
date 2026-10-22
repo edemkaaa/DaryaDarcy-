@@ -131,6 +131,7 @@ function ActionSheet({
           </div>
           <Action
             onClick={onClose}
+            activeOpacity={1}
             className={({ pressed }) =>
               [
                 classes.actionSheetItemPressed2,

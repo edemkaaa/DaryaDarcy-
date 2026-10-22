@@ -41,6 +41,7 @@ import { useAuth } from "@/domain/session/session-context";
 import { PrivateLibraryState } from "./private-library-state";
 import type { PatternItem } from "./patterns-screen.content";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
+import { LOSHADKA_PDF_URL } from "./library-screen.content";
 export default function PatternsScreen() {
   const { user } = useAuth();
   const { hasClubAccess } = useClub();
@@ -91,8 +92,7 @@ function PatternsScreenContent() {
     }
   }, [viewerImage, hasClubAccess, bindings.files]);
   const handleOpenLoshadka = async () => {
-    if (hasClubAccess && bindings.files?.loshadka)
-      await WebBrowser.openBrowserAsync(bindings.files.loshadka.url);
+    await WebBrowser.openBrowserAsync(LOSHADKA_PDF_URL);
   };
   const closeViewer = () => {
     setViewerVisible(false);
@@ -272,59 +272,49 @@ function PatternsScreenContent() {
                   ))}
                 </div>
               </div>
-
-              {/* Лошадка-качалка PDF */}
-              <div
-                className={["ui-stack ", classes.pdfSection]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                <div
-                  className={["ui-stack ", classes.pdfDivider]
-                    .filter(Boolean)
-                    .join(" ")}
-                />
-                <Action
-                  disabled={!bindings.files?.loshadka}
-                  onClick={handleOpenLoshadka}
-                  aria-label="Открыть выкройку лошадки-качалки"
-                  activeOpacity={0.8}
-                  className={classes.loshadkaCoverContainer}
-                >
-                  <Picture
-                    source={{ uri: LOSHADKA_COVER_URL }}
-                    contentFit="cover"
-                    contentPosition="top"
-                    transition={300}
-                    className={classes.loshadkaCover}
-                  />
-                </Action>
-                <Typography className={classes.sectionTitle}>
-                  Выкройка лошадка-качалка
-                </Typography>
-                <Typography className={classes.sectionSubtitle}>
-                  Выкройка в формате PDF для печати
-                </Typography>
-                {!bindings.files?.loshadka && (
-                  <PrivateLibraryState
-                    isLoading={bindings.isLoading}
-                    error={bindings.error}
-                    retry={bindings.retry}
-                  />
-                )}
-                <Action
-                  disabled={!bindings.files?.loshadka}
-                  onClick={handleOpenLoshadka}
-                  activeOpacity={0.8}
-                  className={classes.ctaButtonOlive}
-                >
-                  <Typography className={classes.ctaButtonOliveText}>
-                    Открыть PDF →
-                  </Typography>
-                </Action>
-              </div>
             </>
           )}
+          {/* Лошадка-качалка PDF */}
+          <div
+            className={["ui-stack ", classes.pdfSection]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            <div
+              className={["ui-stack ", classes.pdfDivider]
+                .filter(Boolean)
+                .join(" ")}
+            />
+            <Action
+              onClick={handleOpenLoshadka}
+              aria-label="Открыть выкройку лошадки-качалки"
+              activeOpacity={0.8}
+              className={classes.loshadkaCoverContainer}
+            >
+              <Picture
+                source={{ uri: LOSHADKA_COVER_URL }}
+                contentFit="cover"
+                contentPosition="top"
+                transition={300}
+                className={classes.loshadkaCover}
+              />
+            </Action>
+            <Typography className={classes.sectionTitle}>
+              Выкройка лошадка-качалка
+            </Typography>
+            <Typography className={classes.sectionSubtitle}>
+              Выкройка в формате PDF для печати
+            </Typography>
+            <Action
+              onClick={handleOpenLoshadka}
+              activeOpacity={0.8}
+              className={classes.ctaButtonOlive}
+            >
+              <Typography className={classes.ctaButtonOliveText}>
+                Открыть PDF →
+              </Typography>
+            </Action>
+          </div>
         </ScrollArea>
 
         {/* Full-screen Image Viewer */}

@@ -112,7 +112,7 @@ const bindingsPageSchema = z
   })
   .strict();
 export type PatternBinding = z.infer<typeof bindingSchema>;
-const patternKeys = ["holly", "sock", "star", "apple", "loshadka"];
+const patternKeys = ["holly", "sock", "star", "apple"];
 
 export async function readPatternBindings(signal?: AbortSignal) {
   const files: Record<string, PatternBinding> = {};
@@ -131,11 +131,7 @@ export async function readPatternBindings(signal?: AbortSignal) {
         throw invalidResponse();
       if (patternKeys.includes(file.fileKey)) {
         if (files[file.fileKey]) throw invalidResponse();
-        if (
-          file.fileKey === "loshadka"
-            ? file.mimeType !== "application/pdf"
-            : !["image/jpeg", "image/png", "image/webp"].includes(file.mimeType)
-        )
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.mimeType))
           throw invalidResponse();
         files[file.fileKey] = file;
       }

@@ -25,6 +25,7 @@ import { useClubPayment } from "./use-club-payment";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
+import { ScreenStatus } from "@/shared/ui/screen-status";
 import { ClubTestimonials } from "./club-testimonials";
 import {
   COMMUNITY_TESTIMONIALS,
@@ -97,9 +98,9 @@ function LegacyClubScreen() {
   if (authLoading || sessionError) return <SessionStatus />;
   if (subscriptionStatus === "checking" || subscriptionStatus === "error") {
     return (
-      <ScreenContainer backgroundColor="#FDF8F0">
+      <ScreenStatus>
         <SubscriptionStatus />
-      </ScreenContainer>
+      </ScreenStatus>
     );
   }
   if (hasClubAccess && !forceCheckout) {

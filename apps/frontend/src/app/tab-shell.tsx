@@ -10,6 +10,7 @@ import TabScreens from "./tab-screens";
 import { SubscriptionCancellationProvider } from "@/features/profile/use-subscription-cancellation";
 import { useAuth } from "@/domain/session/session-context";
 import { useClub } from "@/domain/subscription/subscription-context";
+import { BackgroundNoticeSlot } from "@/shared/ui/background-notice";
 export default function TabShell({
   children,
   initialHomeDate,
@@ -29,7 +30,15 @@ export default function TabShell({
   );
   return (
     <SubscriptionCancellationProvider active={path === "/profile"}>
-      <div className={"ui-stack " + styles.shell}>
+      <div
+        className={[
+          "ui-stack",
+          styles.shell,
+          path === "/shop" ? styles.shopHeader : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
         <TabHeader
           headerRef={headerRef}
           overlay={overlayHeader}
@@ -62,6 +71,7 @@ export default function TabShell({
           <TabScreens path={path} initialHomeDate={initialHomeDate}>
             {children}
           </TabScreens>
+          <BackgroundNoticeSlot />
         </main>
         {!(path === "/club" && hasClubAccess) && <BottomTabs />}
       </div>

@@ -53,6 +53,7 @@ const screens = {
   ),
   "/library/about-me": dynamic(() => import("@/features/library/about-screen")),
   "/shop": dynamic(() => import("@/features/shop/shop-screen")),
+  "/profile": dynamic(() => import("@/features/profile/profile-screen")),
 };
 type TabPath = keyof typeof screens;
 const isTabPath = (path: string): path is TabPath =>

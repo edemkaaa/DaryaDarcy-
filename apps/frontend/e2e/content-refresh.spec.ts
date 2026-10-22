@@ -174,6 +174,81 @@ test("club refresh preserves the selected section and sees another admin's edits
   expect(reads).toBe(afterExit);
 });
 
+for (const width of [390, 1440]) {
+  test(`club background refresh keeps content still while pending and after completion at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.clock.install();
+    let version = "А";
+    let requests = 0;
+    let pending: Promise<void> | undefined;
+    await layoutApi(page, true, (name) => {
+      if (name === "club.list")
+        return ok({
+          posts: Array.from({ length: 12 }, (_, index) => ({
+            ...post(index + 1, `Клуб версия ${version} ${index + 1}`),
+            target: "club",
+          })),
+          nextCursor: null,
+        });
+    });
+    await page.route("**/api/trpc/**", async (route) => {
+      const names = decodeURIComponent(new URL(route.request().url()).pathname)
+        .split("/api/trpc/")[1]
+        .split(",");
+      if (names.includes("club.list")) {
+        requests++;
+        if (pending) await pending;
+      }
+      await route.fallback();
+    });
+    await gotoWithSession(page, "/club");
+    await expect(page.getByText(/^Клуб версия А 1\./).first()).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    const list = page.locator(
+      '[data-tab-screen="/club"] [data-windowed-collection]',
+    );
+    const geometry = () =>
+      list.evaluate((node) => ({
+        scrollTop: node.scrollTop,
+        contentTop: node
+          .querySelector(":scope > .ui-scroll-content")!
+          .getBoundingClientRect().top,
+        firstPostTop: node
+          .querySelector('[data-item-index="0"]')!
+          .getBoundingClientRect().top,
+      }));
+    for (const scrollTop of [0, 300]) {
+      await list.evaluate((node, top) => {
+        node.scrollTop = top;
+      }, scrollTop);
+      await page.clock.runFor(250);
+      const before = await geometry();
+      const previousRequests = requests;
+      let release!: () => void;
+      pending = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      try {
+        await advance(page);
+        await expect.poll(() => requests).toBe(previousRequests + 1);
+        await page.clock.runFor(100);
+        expect(await geometry()).toEqual(before);
+        await expect(list.locator(":scope > .ui-refresh")).toHaveCount(0);
+        version = version === "А" ? "Б" : "В";
+      } finally {
+        pending = undefined;
+        release();
+      }
+      await expect(
+        page.getByText(new RegExp(`^Клуб версия ${version} 1\\.`)).first(),
+      ).toBeVisible();
+      expect(await geometry()).toEqual(before);
+    }
+  });
+}
+
 for (const route of ["article", "post", "video"] as const) {
   test(`${route} keeps cached reading content during a failed refresh, then reflects edits and deletion`, async ({
     page,
