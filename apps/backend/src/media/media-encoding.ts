@@ -9,8 +9,8 @@ const invalidEncoding = () => new TRPCError({
   message: "Некорректные данные файла",
 });
 
-/** Strict canonical encoding; an optional decoded ceiling is checked before allocation. */
-export function decodeMediaBase64(base64: string, maxDecodedBytes?: number): Buffer {
+/** Strict canonical encoding and decoded-size check without allocating a media buffer. */
+export function validateMediaBase64(base64: string, maxDecodedBytes?: number): void {
   if (
     !base64.length ||
     base64.length > MAX_ENCODED_MEDIA_LENGTH ||
@@ -34,5 +34,10 @@ export function decodeMediaBase64(base64: string, maxDecodedBytes?: number): Buf
   if (maxDecodedBytes !== undefined && decodedLength > maxDecodedBytes) {
     throw new TRPCError({ code: "PAYLOAD_TOO_LARGE" });
   }
+}
+
+/** Strict canonical encoding; an optional decoded ceiling is checked before allocation. */
+export function decodeMediaBase64(base64: string, maxDecodedBytes?: number): Buffer {
+  validateMediaBase64(base64, maxDecodedBytes);
   return Buffer.from(base64, "base64");
 }

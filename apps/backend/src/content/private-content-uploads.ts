@@ -5,7 +5,7 @@ import { z } from "zod";
 import { privateContentFiles } from "../../../../packages/database/src/schema";
 import { getDb } from "../db";
 import { preparePhoto } from "../media/photos";
-import { decodeMediaBase64 } from "../media/media-encoding";
+import { decodeMediaBase64, validateMediaBase64 } from "../media/media-encoding";
 import { digest, ensurePrivateUploadObject, privateStorageNamespace } from "../media/private-upload-object";
 import { resolveMediaContentType, normalizeMediaContentType } from "./media-content-type";
 import { lockPrivateAttachmentActor, type PrivateAttachmentActor, type PrivateAttachmentTransaction } from "./private-attachment-uploads";
@@ -50,6 +50,13 @@ function receipt(row: FileRow) {
 const requestKey = (actor: PrivateAttachmentActor, key: string) => digest(JSON.stringify(["private.content:v1", actor.id, key]));
 export async function uploadPrivateContentFile(actor: PrivateAttachmentActor, input: z.output<typeof privateContentInput> | z.output<typeof privateCommentPhotoInput>) {
   requirePrivateContentEnabled();
+  if (input.usage === "commentPhoto") {
+    validateMediaBase64(input.base64, 4 * 1024 * 1024);
+    try {
+      const database = await getDb(); if (!database) throw unavailable();
+      await database.transaction(async tx => requireCommentFilePost(tx, actor, input.postId));
+    } catch (error) { if (error instanceof TRPCError) throw error; throw unavailable(); }
+  }
   const raw = decodeMediaBase64(input.base64, (input.usage === "articleDocument" ? 32 : 4) * 1024 * 1024);
   let bytes: Buffer, mimeType: string;
   if (input.usage === "articleDocument") {
