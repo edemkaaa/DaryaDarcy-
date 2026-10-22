@@ -20,6 +20,23 @@
 5. Записать результаты, ограничения старых публичных URL и процедуру будущего
    выпуска. Рабочие writes/переключение приложения/push/deploy не разрешены.
 
+LEGACY-CLUB результат22 октября:426/426unique URLs доступны (Range≤64КиБ,
+не полное воспроизведение); fresh40tables/42history/3admins восстановлены в
+own loopback/tmpfs backend_test. Добавлены190posts/2articles/20media, сохранены
+JSON/даты/статусы/access, перепривязаны cards/media; все исходные строки40tables
+остались прежними.15 unit/native-SQL tests GREEN, включая rollback на последнем
+INSERT, replay, конфликты и ограничение размера snapshot;19 настоящих HTTP
+групп GREEN (admin/member/unpaid/guest,187published, locked club article/public
+article, отзыв доступа). Backend build GREEN; root tsc только прежний TS7016.
+Текущий dev counts/admin credential digest/history повторно совпали; writes,
+push/deploy/переключения нет. Подробности и receipts — начало
+docs/operations/teamassist-staging.md. До живого переноса отдельно решить
+scheduled928 (19 октября07:00UTC — просрочен, jobs могут опубликовать/уведомить);
+scheduled932 (26 октября07:00UTC) и draft927 не изменены. Старые публичные
+S3-ссылки сохраняются, их закрытие не входит в эту репетицию. Production apply
+режима у локального helper намеренно нет; нужен fresh backup/diff и отдельное
+разрешение/проверенная процедура. Старые настройки/аккаунты/VK не импортируются.
+
 22 октября, аватар: пользователь разрешил восстановить исправление, push staging
 и обновление сервера с сохранением БД/админов. Незакоммиченная правка оказалась
 точным откатом b3b168e; она заменена исправленным файлом. В staging перенесён

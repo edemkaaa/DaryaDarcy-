@@ -6,14 +6,23 @@
 
 - [x] Проверить целостность default_db dump:190club posts/2articles/20media,
   содержимое статей и связи; исходные файлы600 вне Git.
-- [ ] Проверить426unique media URLs/428references, сохранить отчёт отказов;
+- [x] Проверить426unique media URLs/428references, сохранить отчёт отказов;
   только ограниченное чтение S3, без копирования/ACL/удаления.
-- [ ] Fresh read-only backup текущего dev и сохранение admin credentials;
+- [x] Fresh read-only backup текущего dev и сохранение admin credentials;
   отдельный own loopback/tmpfs backend_test с копией, без production writes.
-- [ ] Узкий импорт с новыми ID/связями/сохранением статусов и access;
+- [x] Узкий импорт с новыми ID/связями/сохранением статусов и access;
   SQL rollback, replay/lost-response, отказ при конфликте/дрейфе baseline.
-- [ ] Настоящий local HTTP guest/unpaid/member/admin и сохранность baseline;
+- [x] Настоящий local HTTP guest/unpaid/member/admin и сохранность baseline;
   отчёт/план переноса. Приложение/рабочая БД пока не переключаются.
+- Результат:15 unit/SQL +19 HTTP groups GREEN,190posts/2articles/20media,
+  все исходные строки40tables и3admins прежние; backend build GREEN.426URL
+  доступны, но старые ссылки публичные; полное воспроизведение не заявлено.
+  Root tsc — только прежний TS7016 frontend-image-optimizer.test.ts.
+- [ ] Перед живым переносом отдельно согласовать просроченный scheduled928
+  (19 октября07:00UTC); не запускать jobs автоматически. Scheduled932 на
+  26 октября и draft927 сохранены. Fresh backup/diff, write/job window,
+  рабочий узкий apply/rollback требуют отдельной процедуры и разрешения;
+  helper ограничен local backend_test. См. начало operational runbook.
 
 ### Аватар — проверка и выпуск22 октября
 
