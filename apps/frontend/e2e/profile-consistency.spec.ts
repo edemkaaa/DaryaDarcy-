@@ -347,6 +347,52 @@ test("failed photo upload retains a labeled draft and never changes name or the 
   expect(state.user.name).toBe("Server name");
 });
 
+test("portrait avatar crop contains photo pixels across the full square", async ({
+  page,
+}) => {
+  const { state } = await profileApi(page);
+  const portrait = await sharp({
+    create: {
+      width: 576,
+      height: 1280,
+      channels: 3,
+      background: { r: 16, g: 192, b: 32 },
+    },
+  })
+    .png()
+    .toBuffer();
+  await gotoWithSession(page, "/profile");
+  const chooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("button", { name: "Выбрать фото профиля", exact: true })
+    .click();
+  await (
+    await chooser
+  ).setFiles({ name: "portrait.png", mimeType: "image/png", buffer: portrait });
+  await page.getByRole("button", { name: "Готово", exact: true }).click();
+  await expect.poll(() => state.avatarWrites.length).toBe(1);
+
+  const uploaded = Buffer.from(String(state.avatarWrites[0].base64), "base64");
+  const { data, info } = await sharp(uploaded)
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const pixelAt = (x: number) => {
+    const offset = (Math.floor(info.height / 2) * info.width + x) * 3;
+    return {
+      red: data[offset],
+      green: data[offset + 1],
+      blue: data[offset + 2],
+    };
+  };
+  for (const x of [20, Math.floor(info.width / 2), info.width - 21]) {
+    const pixel = pixelAt(x);
+    expect(pixel.green).toBeGreaterThan(120);
+    expect(pixel.red).toBeLessThan(80);
+    expect(pixel.blue).toBeLessThan(80);
+  }
+});
+
 test("a late name ACK cannot replace a different account", async ({ page }) => {
   const { state } = await profileApi(page);
   const gate = barrier();
