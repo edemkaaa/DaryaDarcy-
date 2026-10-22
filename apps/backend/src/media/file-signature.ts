@@ -51,6 +51,10 @@ const requireDependency = createRequire(
   typeof __filename === "string" ? __filename : import.meta.url,
 );
 let precedingDetection: Promise<unknown> = Promise.resolve();
+const MAX_OUTSTANDING_DETECTIONS = 12;
+const MAX_OUTSTANDING_BYTES = 128 * 1024 * 1024;
+let outstandingDetections = 0;
+let outstandingBytes = 0;
 
 async function detectInWorker(
   bytes: Buffer,
@@ -142,11 +146,20 @@ async function detectInWorker(
   }
 }
 
-/** A bounded active detector, not an HTTP quota; pending requests keep their own bytes. */
+/** One active detector with bounded pending requests and retained input bytes. */
 export function detectBinaryFileType(
   bytes: Buffer,
 ): Promise<BinaryFileType | undefined> {
-  const detection = precedingDetection.then(() => detectInWorker(bytes));
+  if (outstandingDetections >= MAX_OUTSTANDING_DETECTIONS ||
+      bytes.length > MAX_OUTSTANDING_BYTES - outstandingBytes) {
+    return Promise.reject(new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Обработка файлов временно занята" }));
+  }
+  outstandingDetections += 1;
+  outstandingBytes += bytes.length;
+  const detection = precedingDetection.then(() => detectInWorker(bytes)).finally(() => {
+    outstandingDetections -= 1;
+    outstandingBytes -= bytes.length;
+  });
   precedingDetection = detection.catch(() => undefined);
   return detection;
 }

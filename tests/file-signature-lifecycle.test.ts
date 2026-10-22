@@ -178,3 +178,30 @@ it("awaits termination before allocating the next worker and copies only owned b
   await second;
   expect(vi.getTimerCount()).toBe(0);
 });
+
+it("bounds waiting detections and admits a new request after a slot is released", async () => {
+  const first = detect(Buffer.from("one"));
+  const waiting = Array.from({ length: 11 }, (_, index) => detect(Buffer.from(`waiting-${index}`)));
+  await vi.advanceTimersByTimeAsync(0);
+  await expect(detect(Buffer.from("overflow"))).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
+  expect(state.workers).toHaveLength(1);
+  state.workers[0].emit("message", { kind: "result", result: null });
+  await first;
+  const admitted = detect(Buffer.from("admitted"));
+  for (const [index, detection] of [...waiting, admitted].entries()) {
+    await vi.advanceTimersByTimeAsync(0);
+    expect(state.workers).toHaveLength(index + 2);
+    state.workers[index + 1].emit("message", { kind: "result", result: null });
+    await detection;
+  }
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("rejects queued buffers that would exceed the aggregate detector budget", async () => {
+  const first = detect(Buffer.alloc(80 * 1024 * 1024));
+  await vi.advanceTimersByTimeAsync(0);
+  await expect(detect(Buffer.alloc(49 * 1024 * 1024))).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
+  expect(state.workers).toHaveLength(1);
+  state.workers[0].emit("message", { kind: "result", result: null });
+  await first;
+});
