@@ -2,6 +2,16 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### LEGACY-CLUB LIVE — разрешённый перенос22 октября
+
+- [ ] Fresh backup/diff/schema/history/current admins; проверить доступ к dev.
+- [ ] RED/GREEN draft928, отдельный точный operator guard, native SQL
+  replay/rollback; local rehearsal guard не обходить.
+- [ ] Короткое write/job-free окно, final backup/plan, атомарный merge только
+ 190posts/2articles/20media. Post928 draft без scheduledAt и уведомлений.
+- [ ] Тот же API/БД/config после импорта, live HTTP/details/access и SHA
+  исходных данных/admins; receipts/ID map/rollback. Старые S3-файлы прежние.
+
 ### LEGACY-CLUB — подготовка переноса22 октября
 
 - [x] Проверить целостность default_db dump:190club posts/2articles/20media,

@@ -2,6 +2,21 @@
 
 ## Действующий план агента — 13 октября 2026
 
+22 октября, LEGACY-CLUB LIVE — пользователь разрешил узкий перенос на dev.
+Просроченный source post928 оставить draft/published0/scheduledAtNULL,
+без уведомлений. Сохранить текущую БД/всех admins/старые файлы; приложение
+не переключать на другую БД. Scope: только190posts/2articles/20media.
+1. Fresh read-only backup, сверка diff/schema/history/admins после репетиции.
+2. Проверить отдельно guarded operator, draft928, атомарность/replay/узкий
+   rollback на own loopback/tmpfs backend_test; guard репетиции не ослаблять.
+3. В коротком окне без API writes/jobs сделать final backup/plan, проверить
+   прежний DB UUID/schema/baseline, вставить только новые строки одной
+   транзакцией. SQL не вызывает mail/push, старые accounts/settings/VK прежние.
+4. Восстановить тот же API/image/config, проверить live guest/admin API,
+  190 details/media/article links/status, baseline/admin credential hashes;
+   сохранить backup/ID map/receipts и точный rollback. Без правок фронта/S3,
+   миграций, новых аккаунтов/платежей и выпуска посторонних local commits.
+
 22 октября, LEGACY-CLUB — прямое разрешение подготовить перенос и репетицию.
 Получен default_db dump SHA256 2b2ccad2…:22таблицы,190club posts (179telegram,
 9manual,2article cards),2articles,20post_media,375post photo references. У статей
