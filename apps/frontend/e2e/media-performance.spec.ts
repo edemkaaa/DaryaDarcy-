@@ -114,7 +114,7 @@ test("YouTube covers use our media route instead of the old production site", as
     .toBeGreaterThan(0);
 });
 
-test("public feed cards request resized previews while the viewer retains the original", async ({
+test("public feed cards and the viewer use bounded previews without fetching the original", async ({
   page,
 }) => {
   const original =
@@ -162,8 +162,19 @@ test("public feed cards request resized previews while the viewer retains the or
   expect(Number(current.searchParams.get("w"))).toBeLessThanOrEqual(1440);
   await photo.click();
   const viewer = page.getByRole("dialog", { name: "Просмотр фотографий" });
-  await expect(viewer.locator("img").first()).toHaveAttribute("src", original);
-  await expect.poll(() => originals.length).toBe(1);
+  const viewerPhoto = viewer.locator("img").first();
+  await expect(viewerPhoto).toHaveAttribute("src", /^\/_next\/image\?/);
+  await expect
+    .poll(() =>
+      viewerPhoto.evaluate((img) => (img as HTMLImageElement).naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  const viewerSource = new URL(
+    await viewerPhoto.evaluate((img) => (img as HTMLImageElement).currentSrc),
+  );
+  expect(viewerSource.searchParams.get("url")).toBe(original);
+  expect(Number(viewerSource.searchParams.get("w"))).toBeLessThanOrEqual(1440);
+  expect(originals).toEqual([]);
 });
 
 test("club previews are smaller WebP files served by the real image processor", async ({
