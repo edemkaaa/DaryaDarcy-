@@ -8,7 +8,8 @@ const proxyAddress = expressRequire("proxy-addr") as {
 };
 
 // GHSA-jqcg-44mw-7w3h: dependency rollback must not restore IPv4 trust through
-// an IPv6 prefix which does not cover the mapped marker. App policy stays loopback.
+// an IPv6 prefix which does not cover the mapped marker. The edge-only app
+// trusts one hop; this retains a separate check of proxy-addr's loopback behavior.
 it.each(["::ffff:10.0.0.0/8", "::/1"])(
   "does not trust public IPv4 through ambiguous IPv6 subnet %s",
   (subnet) => {

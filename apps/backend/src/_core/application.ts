@@ -18,7 +18,9 @@ export async function createBackendApplication(
 ): Promise<INestApplication> {
   const adapter = new ExpressAdapter();
   const http = adapter.getInstance<Express>();
-  http.set("trust proxy", "loopback");
+  // The API has no published port: its only external ingress is the private
+  // edge container. Trust that one hop, not a client-supplied XFF chain.
+  http.set("trust proxy", 1);
   registerHttpSecurity(http);
   if (options.allowedPostPaths) {
     const allowed = new Set(options.allowedPostPaths);
