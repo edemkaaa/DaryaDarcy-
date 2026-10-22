@@ -137,9 +137,18 @@ if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 )
-  main().catch(() => {
+  main().catch((error: unknown) => {
+    const failure = error as { name?: string; code?: string; message?: string };
     console.error(
-      "Guarded Club operator refused or failed; inspect private receipts. Credentials/content withheld.",
+      JSON.stringify({
+        operatorFailure: true,
+        name: failure.name,
+        code: failure.code,
+        reason:
+          failure.name === "AssertionError"
+            ? failure.message?.split("\n")[0]
+            : undefined,
+      }),
     );
     process.exitCode = 1;
   });
