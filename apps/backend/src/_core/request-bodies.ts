@@ -56,6 +56,10 @@ export function registerRequestBodies(app: Express) {
     let path: string;
     try { path = decodeURIComponent(req.path); } catch { res.sendStatus(400); return; }
     const names = path.startsWith("/api/trpc/") ? path.slice("/api/trpc/".length).split(",") : [];
+    // Reject amplification before parsing a body or entering any procedure.
+    if (names.length > 20 || names.filter(name => name === "feed.list").length > 1) {
+      res.status(400).json({ error: "Слишком много операций в запросе" }); return;
+    }
     if (names.some(name => retiredPublicUploads.has(name.replace(/\/$/, "")))) {
       res.status(404).json({ error: retiredUploadMessage }); return;
     }
