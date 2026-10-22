@@ -4,7 +4,7 @@ import {
 } from "./static-image-catalog";
 import { getImageProps } from "next/image";
 
-function isPublicFeedPhoto(uri: string) {
+export function isPublicFeedPhoto(uri: string) {
   try {
     const url = new URL(uri);
     return (

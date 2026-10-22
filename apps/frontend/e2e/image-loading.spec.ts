@@ -413,18 +413,21 @@ for (const count of [1, 9, 10]) {
   });
 }
 
-test("manual retry also restores a full-size photo in the viewer", async ({
+test("manual retry restores a viewer photo when optimized and original requests fail", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 1000, height: 844 });
   const original =
     "https://s3.twcstorage.ru/daryadarcy-s3/feed/viewer-photo.jpg";
   await imagesApi(page, [post(1, [original])]);
   await page.clock.install();
-  // Preview and original are distinct resources, as on the real feed.
-  // WebKit otherwise reuses the already decoded card image in the viewer.
-  await page.route("**/_next/image?**", async (route) =>
-    route.fulfill({ contentType: "image/png", body: await raster() }),
-  );
+  // The 480px card succeeds; the wider viewer preview fails and falls back
+  // to the original before exposing manual retry.
+  await page.route("**/_next/image?**", async (route) => {
+    const width = Number(new URL(route.request().url()).searchParams.get("w"));
+    if (width > 640) return route.fulfill({ status: 503 });
+    return route.fulfill({ contentType: "image/png", body: await raster() });
+  });
   let fail = true;
   let requests = 0;
   await page.route(original, async (route) => {

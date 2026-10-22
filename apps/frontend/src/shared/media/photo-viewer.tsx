@@ -12,6 +12,7 @@ import {
 import { useViewport } from "@/shared/browser/viewport";
 import { useState, useCallback, useRef, useLayoutEffect } from "react";
 import { Picture } from "@/shared/media/image";
+import { isPublicFeedPhoto } from "@/shared/ui/static-images";
 import { PhotoDots } from "./photo-dots";
 import {
   scrollPhotoTo,
@@ -193,7 +194,8 @@ function PhotoViewerInner({
                   source={
                     Math.abs(index - currentIndex) <= 1 ? { uri } : undefined
                   }
-                  fullSize
+                  fullSize={!isPublicFeedPhoto(uri)}
+                  sizes="100vw"
                   showRetryButton
                   loadingFallback={
                     <div className={classes.loading}>
