@@ -1,5 +1,107 @@
 # Отдельный тестовый стенд TeamAssist
 
+## 22 октября — старый Клуб перенесён в текущую БД, data-only
+
+Прямое разрешение пользователя: перенести клубные посты/статьи на dev,
+просроченный пост оставить черновиком без уведомлений; сохранить БД, admins
+и старые файлы. Выполнено без смены БД, миграций, frontend/S3/ACL правок,
+push или выпуска остальных локальных backend/security commits.
+
+### Что добавлено и сохранено
+
+- Добавлены только190 `posts`,2 `articles`,20 `post_media` из проверенного
+  content-only источника SHA256 `2b2ccad2…`. Старые users/passwords/payments/
+  роли/настройки/реакции/comments/VK catalog не копировались и не перезаписывались.
+- Итог:932 posts (742 прежних feed +190 club),2 articles,20 media.
+  В Клубе187 published,2 draft,1 scheduled. Полные texts/richText/photos/tags/
+  sections, media metadata/порядок/связи и даты совпали с источником.
+- По отдельному решению только source928 стал draft/published0/scheduledAtNULL;
+  новый ID934. Оригинальные createdAt/updatedAt сохранены. Source927 остаётся
+  черновиком; source932 → ID938 запланирован на26октября07:00UTC как в дампе.
+- Articles1/2 → IDs5/6; access соответственно club/public,29/40sections;
+  teaser `source=article:<id>` и media.postId перепривязаны по карте.
+- Все исходные строки всех40 таблиц совпали по SHA после исключения только
+  явно перечисленных новых IDs. Включая users/passwordHash/sessionVersion/
+  roles, payments, settings,82video rows и42 migration history rows.
+  Админские credentials всех3 аккаунтов совпали также после live HTTP проверок.
+
+### Как выполнено безопасно
+
+1. Новый initial snapshot357064bytes/40tables SHA256
+   `35f1ee769e71462bd288e291c51906ba685832c4dc08f8301816632bfe412f4c`
+   независимо проверен и восстановлен только в own loopback/tmpfs backend_test.
+   После ранней репетиции изменились users; новые значения не заменялись старым
+   снимком. Credentials администраторов, schema/history остались прежними.
+2. RED/GREEN21 unit/native-SQL tests: source boundary/draft928, exact identity/
+   existing utf8mb4 URI/schema/history guards, атомарный rollback последнего
+   INSERT, replay, конфликт, snapshot bounds и узкий rollback только неизменённых
+   собственных строк. Local real API19groups GREEN с актуальным draft928.
+   Root tsc — прежний TS7016 frontend-image-optimizer.test.ts; operator bundles
+   собраны успешно, новых TypeScript ошибок нет.
+3. Отдельный operator работает в native Linux runtime текущего API image,
+   без application executable/jobs и SMTP/S3/JWT/provider environment; только
+   изолированная сеть к MySQL, без ports, read-only mount/rootfs, caps dropped,
+   no-new-privileges,192MiB, UID владельца закрытого каталога. Локальный
+   rehearsal guard не отключался. Рабочая запись требует explicit approval,
+   точные DB name/UUID/MySQL8.4/40tables/42history и sealed source/code/profile.
+4. API кратко остановлен штатно вместе со своими workers, не пересоздан.
+   Перед записью сделан **финальный backup**357066bytes/40tables SHA256
+   `d9972b71605602c1bfd7aeed0de807c9d58a8e7f84c851b2a0dcc22ea404f56c`.
+   Полные read-only планы до/после dump совпали: backup привязан к последним
+   данным, а не к устаревающей rehearsal-копии. Новый plan связан с текущим
+   UUID/schema и SHA всех исходных строк. Вставка одной DML-транзакцией,
+   ни одного UPDATE/DELETE/DDL текущих данных; второй запуск вернул replayed.
+5. SQL-перенос не создаёт outbox/push rows и не вызывает уведомления. При
+   возврате workers source928 не может автопубликоваться: у ID934 нет schedule.
+   Будущий ID938 остаётся scheduled на26окт; маркетинговые уведомления при
+   будущей штатной публикации не менялись. Старые файлы и публичные URL прежние.
+6. В finally возвращён тот же API container ID7a94ed0…/image243e72d…/config,
+   healthy; БД не переключалась. Web image c1d87dfa…, edge и остальные сервисы
+   не переустанавливались. Нативный operator удалён автоматически (`--rm`).
+
+### Проверка после переноса
+
+Настоящий работающий API:587 read-only HTTP requests,19 групп проверок GREEN.
+Все3 существующие admin sessions приняты; каждый получает187 клубных публикаций.
+Проверены все190 admin details (полный текст, formatting, photos/media, даты,
+статусы, article links), пагинация50, draft934 и future938, статьи5/6.
+Гость и существующий неоплаченный пользователь не получают тела ни одного
+из190 клубных постов. Статья5 отдаёт locked card безsections, статья6 остаётся
+public с полным телом. Каталог — только metadata, закрытые посты не попали
+в публичную ленту. Новые тестовые аккаунты/доступы/платежи не создавались;
+JWT проверки краткоживущие, не сохранены и не меняют пароли/сессии аккаунтов.
+
+Через действующий HTTPS ingress: `/club`200, `articles.list`200/2cards/no
+sections, гостевой `club.list`401; все3 admin credential digests повторно
+совпали. Нативное воспроизведение каждого старого видео/аудио на устройствах
+не заявляется: ранее426URLs проверены ограниченным чтением, а здесь проверены
+точные связи/URL и API-доступ. Прямые старые S3-ссылки по-прежнему публичные.
+
+### Receipts и условия отката
+
+Закрытый server root700:
+`/home/edem/apps/daryadarcy-staging/legacy-club-live-20261022.g8Ox4k`.
+Защищённая локальная копия вне Git:
+`/Users/edem/Desktop/ASSIST/dina_project/.local-artifacts/legacy-club-live-20261022.g8Ox4k`.
+Там initial/final dumps600, SHA manifests, `plan.json` с картой IDs и baseline,
+`backup-binding.json`, `import-receipt.json`, `sql-verification.json`,
+`database-preservation.json`, `runtime-preservation.json`, `live-http.json`,
+`final-verification.json`, sealed operator и host controller `rollout.py`.
+Final gzip/SHA/40tables независимо проверены на Mac. Источник/backup не
+отправлять в Git или заказчице: они содержат закрытые материалы/данные аккаунтов.
+
+Рабочий SQL entry point — `tooling/operations/import-legacy-club.ts` (private
+bundle, не endpoint приложения). `rollback` — отдельная фаза этого operator,
+НЕ `rollout.py apply` повторно: host controller автоматически не откатывает
+успешный перенос и не делает полный restore. До отката нужны новое разрешение,
+новый backup и окно без API writes/jobs; через тот же guarded runtime передать
+прежние source/plan и фазу `rollback`. Core `rollbackLegacyClubMerge` проверяет
+UUID/schema, точные тела всех добавленных строк и SHA всех исходных строк,
+затем удаляет только перечисленные собственные media/posts/articles обратным
+порядком одной транзакцией. Любой последующий edit/reference/baseline drift
+приводит к отказу, а не удалению/полной перезаписи БД. Нужна ручная сверка
+новых данных, если после выпуска уже были изменения. Файлы S3 не удаляются.
+
 ## 22 октября — репетиция переноса старого Клуба, без рабочего импорта
 
 Поручение: проверить вложения и восстановить posts/articles на отдельной БД,

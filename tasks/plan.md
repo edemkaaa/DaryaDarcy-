@@ -17,6 +17,25 @@
    сохранить backup/ID map/receipts и точный rollback. Без правок фронта/S3,
    миграций, новых аккаунтов/платежей и выпуска посторонних local commits.
 
+LEGACY-CLUB LIVE завершён22 октября: guarded operator01cc51c/00b5e9d/83e600b,
+21 unit/native SQL tests GREEN,19 local HTTP groups GREEN. Fresh initial backup
+35f1ee76… проверен и восстановлен в own backend_test; после rehearsal изменились
+только users, credentials3admins прежние. В остановленном API созданы новый
+final backup d9972b71…/357066bytes/40tables и plan с точными SHA всех строк;
+полные before/after snapshot совпали вокруг backup. Импорт190posts/2articles/
+20media атомарный, replay подтвердил отсутствие дублей и неизменность всех
+исходных строк40tables. Source928 → target934: draft/published0/scheduledAtNULL;
+source932 → target938: scheduled26окт07:00UTC. Статьи1/2 →5/6, access club/public.
+Тот же API ID/image243e72d…/config/БД, healthy; frontend/VK/settings/старые S3
+не менялись. Live587 HTTP requests/19groups GREEN:3admin sessions, существующий
+unpaid, guest,190details/media/dates/card links,locked/public articles,187club
+published. Итог932totalposts/190club(187published,2draft,1scheduled)/2articles/
+20media. HTTPS /club200, article catalog200(metadata only), guest club401;
+credentials3admins снова совпали после всех HTTP reads. Новых accounts/payment/
+mail/push requests не было. Receipts/backup/rollback gates — начало runbook;
+root tsc — прежний TS7016 frontend-image-optimizer.test.ts, новых ошибок нет.
+Ничего не пушили и не перевыкладывали; это data-only merge в текущую БД.
+
 22 октября, LEGACY-CLUB — прямое разрешение подготовить перенос и репетицию.
 Получен default_db dump SHA256 2b2ccad2…:22таблицы,190club posts (179telegram,
 9manual,2article cards),2articles,20post_media,375post photo references. У статей

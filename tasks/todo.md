@@ -4,13 +4,19 @@
 
 ### LEGACY-CLUB LIVE — разрешённый перенос22 октября
 
-- [ ] Fresh backup/diff/schema/history/current admins; проверить доступ к dev.
-- [ ] RED/GREEN draft928, отдельный точный operator guard, native SQL
+- [x] Fresh backup/diff/schema/history/current admins; проверить доступ к dev.
+- [x] RED/GREEN draft928, отдельный точный operator guard, native SQL
   replay/rollback; local rehearsal guard не обходить.
-- [ ] Короткое write/job-free окно, final backup/plan, атомарный merge только
+- [x] Короткое write/job-free окно, final backup/plan, атомарный merge только
  190posts/2articles/20media. Post928 draft без scheduledAt и уведомлений.
-- [ ] Тот же API/БД/config после импорта, live HTTP/details/access и SHA
+- [x] Тот же API/БД/config после импорта, live HTTP/details/access и SHA
   исходных данных/admins; receipts/ID map/rollback. Старые S3-файлы прежние.
+- Результат:21 unit/SQL,19 local HTTP groups; на dev587 HTTP requests/19groups
+  GREEN, все3admin sessions/guest/existing unpaid.932posts =742feed+190club,
+  изclub187published/2draft/1scheduled;2articles/20media. Source928→934 draft,
+  source932→938 scheduled26окт;article1/2→5/6 club/public. Final backup d9972b71…,
+  все исходные строки40tables и3admin credentials прежние. Runtime image/ID/
+  config/БД/фронт/старые файлы прежние; ничего не пушили/не выкладывали.
 
 ### LEGACY-CLUB — подготовка переноса22 октября
 
@@ -28,11 +34,10 @@
   все исходные строки40tables и3admins прежние; backend build GREEN.426URL
   доступны, но старые ссылки публичные; полное воспроизведение не заявлено.
   Root tsc — только прежний TS7016 frontend-image-optimizer.test.ts.
-- [ ] Перед живым переносом отдельно согласовать просроченный scheduled928
-  (19 октября07:00UTC); не запускать jobs автоматически. Scheduled932 на
-  26 октября и draft927 сохранены. Fresh backup/diff, write/job window,
-  рабочий узкий apply/rollback требуют отдельной процедуры и разрешения;
-  helper ограничен local backend_test. См. начало operational runbook.
+- [x] Перед живым переносом согласовать просроченный scheduled928:
+  пользователь22окт разрешил перенос и draft без уведомлений; выполнено.
+  Scheduled932 на26окт сохранён. Fresh backup/diff, write/job window и guarded
+  operator проверены; local rehearsal guard прежний. См. LIVE выше/runbook.
 
 ### Аватар — проверка и выпуск22 октября
 
