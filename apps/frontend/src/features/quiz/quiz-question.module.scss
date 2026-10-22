@@ -12,8 +12,9 @@
   }
 
   .progressContainer {
-    padding-left: 16px;
-    padding-right: 16px;
+    // The progress row now shares the scroll content's horizontal gutters.
+    padding-left: 0;
+    padding-right: 0;
     padding-top: 12px;
     padding-bottom: 8px;
     flex-direction: row;

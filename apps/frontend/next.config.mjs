@@ -41,6 +41,9 @@ export default {
     dangerouslyAllowSVG: false,
   },
   experimental: {
+    // Reuse visited route shells in this browser session. Live content and
+    // access checks still have their own React Query/session lifecycles.
+    staleTimes: { dynamic: 300 },
     imgOptConcurrency: 1,
     // Keep decoded source images out of the native operation cache.
     // Compressed previews still use the bounded persistent disk cache.

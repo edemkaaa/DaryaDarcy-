@@ -21,6 +21,7 @@ import { VideosBannerHeader } from "./videos-banner";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { trpc } from "@/shared/api/trpc";
+import { contentRefreshOptions } from "@/shared/api/content-refresh";
 import { PAPER_TEXTURE_URI } from "./videos-screen.content";
 import { apiUrl } from "@/shared/config/api";
 import { isVkCatalogEnabled } from "./catalog-api";
@@ -53,7 +54,7 @@ function VideosScreenInner() {
     refetch,
   } = trpc.videos.list.useQuery(undefined, {
     staleTime: 30_000,
-    enabled: active,
+    ...contentRefreshOptions(active),
   });
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

@@ -16,6 +16,7 @@ import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 
 import * as ImagePicker from "@/shared/browser/file-picker";
+import { MAX_AVATAR_SOURCE_BYTES } from "@/shared/browser/file-operations";
 import AsyncStorage from "@/shared/browser/storage";
 import { useAuth } from "@/domain/session/session-context";
 import { SessionStatus } from "@/domain/session/session-status";
@@ -32,6 +33,8 @@ import { LoadingIndicator } from "@/shared/ui/loading-indicator";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { useProfileAvatar } from "@/domain/profile/use-profile-avatar";
 import { trpc } from "@/shared/api/trpc";
+import { contentRefreshOptions } from "@/shared/api/content-refresh";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 import type { ApiOutputs } from "@/shared/api/types";
 import { useCapabilities } from "@/shared/api/capabilities";
 import { displayPostTitle } from "@/shared/media/media-label";
@@ -67,6 +70,7 @@ interface CropperImage {
   height: number;
 }
 export default function ProfileScreen() {
+  const active = useScreenActive();
   const prodamusTest = getClubPaymentMode() === "prodamus-test";
   const capabilities = useCapabilities();
   const router = useRouter();
@@ -94,7 +98,7 @@ export default function ProfileScreen() {
   const cancellationConfirmed = cancellationStatus === "confirmed";
   const avatar = useProfileAvatar();
   const savedFromApi = trpc.feed.savedPosts.useQuery(undefined, {
-    enabled: isAuthenticated,
+    ...contentRefreshOptions(active && isAuthenticated),
     refetchOnMount: "always",
   });
   const [avatarDraft, setAvatarDraft] = useState<string | null>(null);
@@ -171,6 +175,7 @@ export default function ProfileScreen() {
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      maxBytes: MAX_AVATAR_SOURCE_BYTES,
       allowsEditing: false,
       quality: 0.9,
     }).catch((error: unknown) => {

@@ -10,7 +10,8 @@
     min-height: 182px;
     position: relative;
     overflow: visible;
-    z-index: 2;
+    // Decorative overflow stays behind the following video cards.
+    z-index: 0;
   }
 
   .filmDecor {

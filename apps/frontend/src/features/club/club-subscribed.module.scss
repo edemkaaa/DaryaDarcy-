@@ -120,6 +120,11 @@
     gap: 14px;
   }
 
+  .postDivider {
+    height: 14px;
+    flex-shrink: 0;
+  }
+
   .emptyTab {
     padding-left: 24px;
     padding-right: 24px;
@@ -139,7 +144,8 @@
   .clubTabBar {
     flex-direction: row;
     align-items: stretch;
-    height: 66px;
+    height: calc(66px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     border-top-width: 1px;
     border-top-color: rgba(139, 115, 85, 0.15);
     position: absolute;
@@ -182,7 +188,7 @@
 
   @media (max-width: 359px) {
     .clubTabBar {
-      height: 63px;
+      height: calc(63px + env(safe-area-inset-bottom, 0px));
     }
   }
 

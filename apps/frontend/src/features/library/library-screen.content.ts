@@ -1,4 +1,5 @@
 import type { ViewportSize } from "@/shared/browser/viewport";
+import type { LibraryMaterialKey } from "./library-files-api";
 
 export const PAPER_TEXTURE_URI =
   "/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.fe3ce71852fa6634.webp";
@@ -12,10 +13,8 @@ export const STILIZACII_COVER_URL =
 export const STILIZACII_YANDEX_URL = "https://disk.yandex.ru/i/Y-XvbPF-NwOiLg";
 export const RECIPES_COVER_URL =
   "/assets/responsive/877a6c2a49ef-JZjLEpuxmhqHszUD.w1200.44a1ac31d1637bd8.webp";
-export const RECIPES_YANDEX_URL = "https://disk.yandex.ru/i/nUoIS8gQ5VkClA";
 export const PETERBURG_COVER_URL =
   "/assets/responsive/925076516046-CkdCchNXtpJkPNVd.w1200.c85757962e32576f.webp";
-export const PETERBURG_YANDEX_URL = "https://disk.yandex.ru/d/BM0uzv2cWZeM0Q";
 export const PATTERNS_COVER_URL =
   "/assets/responsive/4327bffa91b1-TRkGduziKBAAVhso.w1200.f8dbe5d9ca763eb2.webp";
 export const LOSHADKA_COVER_URL =
@@ -25,16 +24,22 @@ export const ABOUT_ME_COVER_URL =
 export const BROWN = "#5C4033";
 export const BROWN_MUTED = "#8B7355";
 export const OLIVE_BG = "#e4e0cd";
-export interface MaterialItem {
+type MaterialCard = {
   id: string;
   title: string;
   coverUrl: string;
   coverAspectRatio: number; // width/height
-  isClubOnly: boolean;
-  action: "navigate" | "pdf" | "browser";
-  route?: string;
-  pdfUrl?: string;
-}
+};
+export type MaterialItem = MaterialCard &
+  (
+    | { action: "navigate"; isClubOnly: boolean; route: string }
+    | { action: "browser"; isClubOnly: false; pdfUrl: string }
+    | {
+        action: "private-file";
+        isClubOnly: true;
+        material: LibraryMaterialKey;
+      }
+  );
 export const MATERIALS: MaterialItem[] = [
   {
     id: "aesthetics-guide",
@@ -69,8 +74,8 @@ export const MATERIALS: MaterialItem[] = [
     coverUrl: RECIPES_COVER_URL,
     coverAspectRatio: 1200 / 801,
     isClubOnly: true,
-    action: "browser",
-    pdfUrl: RECIPES_YANDEX_URL,
+    action: "private-file",
+    material: "recipes",
   },
   {
     id: "peterburg",
@@ -78,8 +83,8 @@ export const MATERIALS: MaterialItem[] = [
     coverUrl: PETERBURG_COVER_URL,
     coverAspectRatio: 1200 / 2133,
     isClubOnly: true,
-    action: "browser",
-    pdfUrl: PETERBURG_YANDEX_URL,
+    action: "private-file",
+    material: "peterburg",
   },
   {
     id: "loshadka",

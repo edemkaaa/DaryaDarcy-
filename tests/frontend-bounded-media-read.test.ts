@@ -4,6 +4,7 @@ import { uriToBase64 } from "../apps/frontend/src/shared/media/image-upload";
 import { uploadAdminVideoFromUri } from "../apps/frontend/src/features/admin/media/video-upload";
 import {
   MAX_ATTACHMENT_BYTES,
+  MAX_AVATAR_SOURCE_BYTES,
   MAX_VIDEO_BYTES,
 } from "../apps/frontend/src/shared/browser/file-operations";
 import { cancelSessionRequests } from "../apps/frontend/src/shared/api/request-lifecycle";
@@ -20,6 +21,12 @@ afterEach(() => {
 it.each([
   ["attachment", MAX_ATTACHMENT_BYTES, attachmentBase64],
   ["photo", MAX_ATTACHMENT_BYTES, uriToBase64],
+  [
+    "avatar",
+    MAX_AVATAR_SOURCE_BYTES,
+    (url: string) =>
+      uriToBase64(url, { maxInputBytes: MAX_AVATAR_SOURCE_BYTES }),
+  ],
   [
     "video",
     MAX_VIDEO_BYTES,
@@ -62,6 +69,18 @@ it.each([
     expect(requests).toBe(1);
   },
 );
+
+it("rejects oversized local avatar data before decoding or fetching", async () => {
+  const fetch = vi.fn();
+  const decode = vi.fn();
+  vi.stubGlobal("fetch", fetch);
+  vi.stubGlobal("atob", decode);
+  await expect(
+    uriToBase64("data:image/jpeg;base64,AAAAAAAAAAAA", { maxInputBytes: 8 }),
+  ).rejects.toThrow(/Файл больше/);
+  expect(fetch).not.toHaveBeenCalled();
+  expect(decode).not.toHaveBeenCalled();
+});
 
 it.each([undefined, "1", "8"])(
   "preserves bytes and MIME up to the exact limit, headers=%j",

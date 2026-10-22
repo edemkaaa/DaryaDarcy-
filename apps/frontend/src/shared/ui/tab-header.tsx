@@ -30,7 +30,7 @@ export function TabHeader({
       aria-label="Навигация профиля"
       className={[
         classes.header,
-        overlay ? classes.overlay : "",
+        overlay ? classes.overlay : classes.paper,
         classes[variant],
         title ? classes.withTitle : "",
       ]
@@ -38,7 +38,12 @@ export function TabHeader({
         .join(" ")}
     >
       <div className={classes.group}>
-        <Link href="/" aria-label="На главную" className={classes.action}>
+        <Link
+          href="/"
+          prefetch={false}
+          aria-label="На главную"
+          className={classes.action}
+        >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
           </svg>
@@ -67,6 +72,7 @@ export function TabHeader({
         {musicUrl ? <TabMusicToggle url={musicUrl} /> : null}
         <Link
           href="/profile"
+          prefetch={false}
           aria-label="Открыть профиль"
           className={classes.action}
         >

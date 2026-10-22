@@ -10,11 +10,20 @@
 
   .pressed {
     align-self: center;
+    touch-action: pan-y pinch-zoom;
+    user-select: none;
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
   }
 
   .card {
     overflow: hidden;
     background-color: var(--paper);
+    // Keep the gesture target mounted when the slide image changes on release.
+    pointer-events: none;
   }
 
   .cardPaper {

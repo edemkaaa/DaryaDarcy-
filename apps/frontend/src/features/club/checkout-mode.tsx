@@ -7,6 +7,7 @@ import { ClubTestCheckoutResult } from "./checkout-result";
 import { useAuth } from "@/domain/session/session-context";
 import { getClubPaymentMode } from "./payment-mode";
 import { ProdamusReturnDialog } from "./prodamus-return-dialog";
+import { StatusNotice } from "@/shared/ui/status-notice";
 
 export function ClubCheckoutMode({ children }: { children: ReactNode }) {
   // Direct lookup is inlined by Next at build time. URL/storage cannot opt in.
@@ -22,7 +23,7 @@ export function ClubCheckoutMode({ children }: { children: ReactNode }) {
   if (mode === "unavailable")
     return (
       <ScreenContainer>
-        <p role="alert">Оплата временно недоступна.</p>
+        <StatusNotice tone="error">Оплата временно недоступна.</StatusNotice>
       </ScreenContainer>
     );
   return <TestCheckoutScreen />;

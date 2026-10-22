@@ -8,6 +8,7 @@ import {
 import { trpc } from "@/shared/api/trpc";
 import { getHttpStatus, getRequestErrorMessage } from "@/shared/api/errors";
 import { Action, Field, ScrollArea, Typography } from "@/shared/ui/elements";
+import { StatusNotice } from "@/shared/ui/status-notice";
 import {
   getVkCatalogEmbedUrl,
   isVideoThumbnailsEnabled,
@@ -279,20 +280,18 @@ function Editor() {
         />{" "}
         Опубликовано
       </label>
-      {error ? (
-        <Typography role="alert" className={classes.hint}>
-          {error}
-        </Typography>
-      ) : null}
+      {error ? <StatusNotice tone="error">{error}</StatusNotice> : null}
       {pending ? (
-        <Typography role="status" className={classes.hint}>
+        <StatusNotice>
           Результат сохранения не подтверждён. Данные сохранены в этой форме.
           Повтор использует тот же набор данных; после перезагрузки сначала
           проверьте каталог.
-        </Typography>
+        </StatusNotice>
       ) : null}
       {resultId !== null ? (
-        <Typography role="status">Видео сохранено. ID: {resultId}</Typography>
+        <StatusNotice tone="success">
+          Видео сохранено. ID: {resultId}
+        </StatusNotice>
       ) : (
         <Action
           className={classes.btn}

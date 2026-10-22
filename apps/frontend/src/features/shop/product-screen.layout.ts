@@ -7,9 +7,6 @@ export function getProductScreenLayout(viewport: ViewportSize) {
     getProductScreenContent(viewport);
   const stylesLayout = {
     coverImage: {
-      width: SCREEN_WIDTH * 0.88,
-    },
-    coverImagePng: {
       width: SCREEN_WIDTH * 0.72,
     },
     carouselItem: {

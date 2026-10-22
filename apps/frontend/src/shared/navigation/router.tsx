@@ -79,7 +79,7 @@ export const Link = ({
   children: ReactNode;
   [k: string]: unknown;
 }) => (
-  <NextLink href={publicPath(href)} {...props}>
+  <NextLink href={publicPath(href)} prefetch={false} {...props}>
     {children}
   </NextLink>
 );

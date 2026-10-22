@@ -1,6 +1,7 @@
 "use client";
 import classes from "./post-management.module.scss";
 import { Dialog, Action, Typography, ScrollArea } from "@/shared/ui/elements";
+import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
 import { useState, useCallback, useEffect, type ReactNode } from "react";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { trpc } from "@/shared/api/trpc";
@@ -428,19 +429,19 @@ export function usePostManagement(onRefresh: () => void) {
   const status = (
     <>
       {actions.operation.busy ? (
-        <Typography role="status">
+        <StatusNotice>
           {actions.operation.kind === "check"
             ? "Проверяем публикации…"
             : "Сохраняем изменения…"}
-        </Typography>
+        </StatusNotice>
       ) : null}
       {actions.error ? (
-        <Typography role="alert">{actions.error}</Typography>
+        <StatusNotice tone="error">{actions.error}</StatusNotice>
       ) : null}
       {actions.unknown && !actions.operation.busy ? (
-        <Action onClick={() => void actions.check()}>
+        <StatusNoticeAction onClick={() => void actions.check()}>
           Обновить публикации
-        </Action>
+        </StatusNoticeAction>
       ) : null}
     </>
   );
@@ -458,7 +459,9 @@ export function usePostManagement(onRefresh: () => void) {
           <div className={classes.modalContainer}>
             {status}
             {!actions.unknown ? (
-              <Action onClick={() => actions.setError(null)}>Закрыть</Action>
+              <StatusNoticeAction onClick={() => actions.setError(null)}>
+                Закрыть
+              </StatusNoticeAction>
             ) : null}
           </div>
         </Dialog>

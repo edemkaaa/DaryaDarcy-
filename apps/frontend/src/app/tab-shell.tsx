@@ -9,14 +9,21 @@ import styles from "./tab-shell.module.scss";
 import TabScreens from "./tab-screens";
 import { SubscriptionCancellationProvider } from "@/features/profile/use-subscription-cancellation";
 import { useAuth } from "@/domain/session/session-context";
-export default function TabShell({ children }: { children: ReactNode }) {
+import { useClub } from "@/domain/subscription/subscription-context";
+export default function TabShell({
+  children,
+  initialHomeDate,
+}: {
+  children: ReactNode;
+  initialHomeDate: string;
+}) {
   const path = usePathname();
   const isPostDetail = path.startsWith("/post/");
   const { isOwner, user } = useAuth();
-  const { headerRef, contentRef } = useScrollHeader(
-    path,
-    !isPostDetail && !["/videos", "/admin", "/profile"].includes(path),
-  );
+  const { hasClubAccess } = useClub();
+  const hideHeaderOnScroll =
+    !isPostDetail && !["/videos", "/admin", "/profile"].includes(path);
+  const { headerRef, contentRef } = useScrollHeader(path, hideHeaderOnScroll);
   const overlayHeader = ["/", "/feed", "/club", "/library", "/shop"].includes(
     path,
   );
@@ -44,13 +51,19 @@ export default function TabShell({ children }: { children: ReactNode }) {
         />
         <main
           ref={contentRef}
-          className={[styles.content, overlayHeader ? "" : styles.insetHeader]
+          className={[
+            styles.content,
+            overlayHeader ? "" : styles.insetHeader,
+            !overlayHeader && hideHeaderOnScroll ? styles.scrollingHeader : "",
+          ]
             .filter(Boolean)
             .join(" ")}
         >
-          <TabScreens path={path}>{children}</TabScreens>
+          <TabScreens path={path} initialHomeDate={initialHomeDate}>
+            {children}
+          </TabScreens>
         </main>
-        <BottomTabs />
+        {!(path === "/club" && hasClubAccess) && <BottomTabs />}
       </div>
     </SubscriptionCancellationProvider>
   );

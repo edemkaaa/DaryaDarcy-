@@ -1,5 +1,6 @@
 "use client";
 import { useClubAppearance } from "@/domain/launch/use-club-appearance";
+import { usePreparedAppearance } from "./use-prepared-appearance";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { useViewport } from "@/shared/browser/viewport";
 
@@ -38,6 +39,7 @@ import { usePostManagement } from "@/features/admin/post-management";
 import { usePostInteractions } from "@/domain/post/use-post-interactions";
 import { PostInteractionStatus } from "@/domain/post/post-interaction-status";
 import { trpc } from "@/shared/api/trpc";
+import { contentRefreshOptions } from "@/shared/api/content-refresh";
 import {
   displayPostTitle,
   isRawMediaFilename,
@@ -123,8 +125,7 @@ export function ClubSubscribed({
   const clubQuery = trpc.club.list.useInfiniteQuery(
     { limit: 12 },
     {
-      refetchOnWindowFocus: false,
-      enabled: active,
+      ...contentRefreshOptions(active),
       getNextPageParam: (lastPage, _pages, _lastParam, pageParams) =>
         pageParams.includes(lastPage.nextCursor)
           ? undefined
@@ -138,9 +139,9 @@ export function ClubSubscribed({
   const hasPageError = clubQuery.isError || stalledCursor;
   const { fetchNextPage, hasNextPage, isFetching, isError } = clubQuery;
   const loadMore = useCallback(() => {
-    if (hasNextPage && !isFetching && !isError && !stalledCursor)
+    if (active && hasNextPage && !isFetching && !isError && !stalledCursor)
       void fetchNextPage({ cancelRefetch: false });
-  }, [fetchNextPage, hasNextPage, isFetching, isError, stalledCursor]);
+  }, [active, fetchNextPage, hasNextPage, isFetching, isError, stalledCursor]);
   const retryPosts = () => {
     if (clubQuery.isFetching) return;
     if (clubQuery.isFetchNextPageError)
@@ -205,17 +206,23 @@ export function ClubSubscribed({
   useEffect(() => {
     if (posts.length === 0) loadMore();
   }, [posts.length, loadMore]);
-  const season = appearanceQuery.data?.season ?? "winter";
+  // Winter is an error fallback, never a placeholder for a pending response.
+  const season =
+    appearanceQuery.data?.season ?? (appearanceQuery.isError ? "winter" : null);
   const builtInSeason = season === "autumn" ? "autumn" : "winter";
-  const backgroundCandidates = [
-    appearanceQuery.data?.appearance.backgroundUrl,
-    SEASONAL_TARTANS[builtInSeason],
-    PAPER_TEXTURE_URI,
-  ];
-  const bannerCandidates = [
-    appearanceQuery.data?.appearance.bannerUrl,
-    SEASONAL_BANNERS[builtInSeason],
-  ];
+  const backgroundCandidates = season
+    ? [
+        appearanceQuery.data?.appearance.backgroundUrl,
+        SEASONAL_TARTANS[builtInSeason],
+        PAPER_TEXTURE_URI,
+      ]
+    : [];
+  const bannerCandidates = season
+    ? [
+        appearanceQuery.data?.appearance.bannerUrl,
+        SEASONAL_BANNERS[builtInSeason],
+      ]
+    : [];
   const tartanUri =
     backgroundCandidates.find((url) => url && !failedImages.includes(url)) ??
     null;
@@ -225,12 +232,20 @@ export function ClubSubscribed({
     backgroundCandidates.find(Boolean),
     bannerCandidates.find(Boolean),
   ].some((url) => url && failedImages.includes(url));
-  const failImage = (url: string | null) => {
+  const failImage = useCallback((url: string | null) => {
     if (url)
       setFailedImages((previous) =>
         previous.includes(url) ? previous : [...previous, url],
       );
-  };
+  }, []);
+  const preparedAppearance = usePreparedAppearance(
+    season,
+    tartanUri,
+    bannerUri,
+    failImage,
+  );
+  const displayedBackground = preparedAppearance?.background ?? null;
+  const displayedBanner = preparedAppearance?.banner ?? null;
   const retryAppearance = () => {
     setFailedImages([]);
     void appearanceQuery.refetch({ cancelRefetch: false });
@@ -289,10 +304,10 @@ export function ClubSubscribed({
           .filter(Boolean)
           .join(" ")}
       >
-        {bannerUri ? (
+        {displayedBanner ? (
           <Picture
-            source={{ uri: bannerUri }}
-            onError={() => failImage(bannerUri)}
+            source={{ uri: displayedBanner }}
+            onError={() => failImage(displayedBanner)}
             contentFit="cover"
             contentPosition="top"
             className={classes.bannerImage}
@@ -403,9 +418,9 @@ export function ClubSubscribed({
   );
   return (
     <Background
-      source={tartanUri}
-      onImageError={() => failImage(tartanUri)}
-      data-club-season={season}
+      source={displayedBackground}
+      onImageError={() => failImage(displayedBackground)}
+      data-club-season={preparedAppearance?.season ?? "loading"}
       style={
         {
           backgroundColor: CREAM,
@@ -489,14 +504,18 @@ export function ClubSubscribed({
               </div>
             </QueryRetryState>
           }
-          onLoadMore={loadMore}
+          onLoadMore={active ? loadMore : undefined}
+          loadMoreThreshold={2}
           onRefresh={onRefresh}
           refreshing={clubQuery.isRefetching}
           contentClassName={classes.postList}
+          divider={<div className={classes.postDivider} aria-hidden="true" />}
         />
 
         {/* Internal Tab Bar */}
         <Background
+          role="navigation"
+          aria-label="Разделы клуба"
           source={{ uri: PAPER_TEXTURE_URI }}
           fit="cover"
           className={classes.clubTabBar}

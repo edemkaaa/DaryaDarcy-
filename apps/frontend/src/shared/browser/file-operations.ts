@@ -1,6 +1,7 @@
 "use client";
 
 export const MAX_ATTACHMENT_BYTES = 32 * 1024 * 1024;
+export const MAX_AVATAR_SOURCE_BYTES = 50 * 1024 * 1024;
 export const MAX_VIDEO_BYTES = 80 * 1024 * 1024;
 export const MAX_FILES_PER_SELECTION = 20;
 export type FileSelectionOptions = {

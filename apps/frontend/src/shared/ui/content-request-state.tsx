@@ -1,7 +1,7 @@
 "use client";
 import { getHttpStatus, getRequestErrorMessage } from "@/shared/api/errors";
 import { QueryRetryState } from "./query-retry-state";
-import { Typography } from "./typography";
+import { StatusNotice } from "./status-notice";
 
 export function ContentRequestState({
   error,
@@ -19,7 +19,7 @@ export function ContentRequestState({
       message={getRequestErrorMessage(error)}
       onRetry={onRetry}
     >
-      <Typography>{notFoundText}</Typography>
+      <StatusNotice>{notFoundText}</StatusNotice>
     </QueryRetryState>
   );
 }

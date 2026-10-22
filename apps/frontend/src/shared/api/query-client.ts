@@ -59,7 +59,7 @@ function limitContentCache(cache: QueryCache) {
   });
 }
 
-/** Content stays cached across window/network events. Access checks opt in separately. */
+/** Defaults keep cache stable; content refresh and access checks opt in separately. */
 export function createAppQueryClient() {
   const checkAccess = (error: unknown) => {
     const status = getHttpStatus(error);

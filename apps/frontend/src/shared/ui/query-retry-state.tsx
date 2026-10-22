@@ -1,7 +1,7 @@
 "use client";
 import classes from "./query-retry-state.module.scss";
 import { type CSSProperties, mergeStyles } from "@/shared/ui/css";
-import { Typography, Action } from "@/shared/ui/elements";
+import { StatusNotice, StatusNoticeAction } from "./status-notice";
 import { LoadingIndicator } from "./loading-indicator";
 type Props = {
   isLoading: boolean;
@@ -43,23 +43,19 @@ export function QueryRetryState({
   if (isError && !hasData) {
     return (
       <div
-        role="alert"
         style={mergeStyles(style)}
         className={["ui-stack ", classes.div, className]
           .filter(Boolean)
           .join(" ")}
       >
-        <Typography className={classes.message}>{message}</Typography>
-        <Action
-          onClick={onRetry}
-          className={({ pressed }) =>
-            [classes.action, pressed ? classes.opacityState : ""]
-              .filter(Boolean)
-              .join(" ")
+        <StatusNotice
+          tone="error"
+          actions={
+            <StatusNoticeAction onClick={onRetry}>Повторить</StatusNoticeAction>
           }
         >
-          <Typography className={classes.buttonText}>Повторить</Typography>
-        </Action>
+          {message}
+        </StatusNotice>
       </div>
     );
   }

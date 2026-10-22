@@ -1,7 +1,10 @@
 "use client";
-import { Action, Typography } from "@/shared/ui/elements";
+import { Typography } from "@/shared/ui/elements";
+import {
+  StatusNotice,
+  StatusNoticeAction as Action,
+} from "@/shared/ui/status-notice";
 import type { usePostUploadSelection } from "./use-post-upload-selection";
-import classes from "./post-upload-status.module.scss";
 
 export function PostUploadStatus({
   selection,
@@ -14,7 +17,7 @@ export function PostUploadStatus({
 }) {
   if (!selection.pending.length) return null;
   return (
-    <div role="alert" className={classes.notice}>
+    <StatusNotice tone="error">
       <Typography>
         Выбранные файлы ещё не добавлены:{" "}
         {selection.pending.map((item) => item.name).join(", ")}
@@ -37,6 +40,6 @@ export function PostUploadStatus({
       >
         Отказаться от выбранных файлов
       </Action>
-    </div>
+    </StatusNotice>
   );
 }

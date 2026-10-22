@@ -40,6 +40,7 @@ import { usePatternBindings } from "@/domain/library/private-library";
 import { useAuth } from "@/domain/session/session-context";
 import { PrivateLibraryState } from "./private-library-state";
 import type { PatternItem } from "./patterns-screen.content";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 export default function PatternsScreen() {
   const { user } = useAuth();
   const { hasClubAccess } = useClub();
@@ -48,6 +49,7 @@ export default function PatternsScreen() {
   );
 }
 function PatternsScreenContent() {
+  const active = useScreenActive();
   const router = useRouter();
   const viewport = useViewport();
   const { stylesLayout } = getPatternsScreenLayout(viewport);
@@ -58,12 +60,12 @@ function PatternsScreenContent() {
   const [viewerTitle, setViewerTitle] = useState("");
   const [downloading] = useState(false);
   useEffect(() => {
-    if (!hasClubAccess || bindings.error) {
+    if (!active || !hasClubAccess || bindings.error) {
       setViewerVisible(false);
       setViewerImage("");
       setViewerTitle("");
     }
-  }, [hasClubAccess, bindings.error]);
+  }, [active, hasClubAccess, bindings.error]);
   const handleClubCTA = () => {
     router.push("/club");
   };
@@ -248,6 +250,7 @@ function PatternsScreenContent() {
                     >
                       <Picture
                         source={{ uri: bindings.files![pattern.id].url }}
+                        retryKey={bindings.files![pattern.id].revision}
                         contentFit="cover"
                         sizes="(max-width: 480px) calc((100vw - 60px) / 2), 210px"
                         transition={200}
@@ -337,6 +340,11 @@ function PatternsScreenContent() {
             )
           }
           imageUrl={viewerImage}
+          revision={
+            Object.values(bindings.files ?? {}).find(
+              (file) => file.url === viewerImage,
+            )?.revision
+          }
           title={viewerTitle}
           onClose={closeViewer}
           onDownload={handleDownload}
@@ -349,6 +357,7 @@ function PatternsScreenContent() {
 interface FullScreenViewerProps {
   visible: boolean;
   imageUrl: string;
+  revision?: number;
   title: string;
   onClose: () => void;
   onDownload: () => void;
@@ -357,6 +366,7 @@ interface FullScreenViewerProps {
 function FullScreenViewer({
   visible,
   imageUrl,
+  revision,
   title,
   onClose,
   onDownload,
@@ -498,6 +508,7 @@ function FullScreenViewer({
             >
               <Picture
                 source={{ uri: imageUrl }}
+                retryKey={revision}
                 fullSize
                 style={{
                   width: viewerStylesLayout.image.width,

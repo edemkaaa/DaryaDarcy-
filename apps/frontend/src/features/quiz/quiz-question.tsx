@@ -144,28 +144,32 @@ export function QuizQuestion() {
         fit="cover"
         className={classes.background}
       >
-        {/* Progress bar */}
-        <div
-          className={["ui-stack ", classes.progressContainer]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <div className={["ui-stack ", classes.div].filter(Boolean).join(" ")}>
-            <div
-              style={{ width: `${progress * 100}%` }}
-              className={["ui-stack ", classes.div2].filter(Boolean).join(" ")}
-            />
-          </div>
-          <Typography className={classes.typography2}>
-            {state.currentQuestion + 1} / {QUESTIONS.length}
-          </Typography>
-        </div>
-
         <ScrollArea
           hideScrollbar
           key={question.id}
           contentClassName={classes.scrollContent}
         >
+          {/* Progress bar */}
+          <div
+            className={["ui-stack ", classes.progressContainer]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            <div
+              className={["ui-stack ", classes.div].filter(Boolean).join(" ")}
+            >
+              <div
+                style={{ width: `${progress * 100}%` }}
+                className={["ui-stack ", classes.div2]
+                  .filter(Boolean)
+                  .join(" ")}
+              />
+            </div>
+            <Typography className={classes.typography2}>
+              {state.currentQuestion + 1} / {QUESTIONS.length}
+            </Typography>
+          </div>
+
           <Animated.div entering={FadeIn.duration(300)}>
             {/* Question title */}
             <Typography className={classes.typography3}>

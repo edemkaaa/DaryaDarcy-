@@ -10,6 +10,7 @@ import { ZoomCard } from "./zoom-card";
 import { useState, useEffect } from "react";
 import { Picture } from "@/shared/media/image";
 import { useRouter } from "@/shared/navigation/router";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 
 import Animated, {
   useSharedValue,
@@ -27,6 +28,7 @@ import Animated, {
   Extrapolation,
   withRepeat,
   withSequence,
+  cancelAnimation,
 } from "@/shared/browser/motion";
 import { LinearGradient } from "@/shared/ui/gradient";
 import { LegalDocumentsFooter } from "@/features/legal/legal-documents-footer";
@@ -104,6 +106,7 @@ function isSectionNew(
   return now - updated <= twoDaysMs;
 }
 export default function HomeScreen({ initialDate }: { initialDate: string }) {
+  const active = useScreenActive();
   const [season, setSeason] = useState(() =>
     getCurrentSeason(new Date(initialDate).getUTCMonth()),
   );
@@ -111,9 +114,10 @@ export default function HomeScreen({ initialDate }: { initialDate: string }) {
     new Date(initialDate).getTime(),
   );
   useEffect(() => {
+    if (!active) return;
     setSeason(getCurrentSeason(new Date().getMonth()));
     setCalendarTime(Date.now());
-  }, [initialDate]);
+  }, [initialDate, active]);
   const viewport = useViewport();
   const { stylesLayout } = getHomeScreenLayout(viewport);
   const { SCREEN_WIDTH, HERO_HEIGHT } = getHomeScreenContent(viewport);
@@ -125,6 +129,7 @@ export default function HomeScreen({ initialDate }: { initialDate: string }) {
   const [, setNextSlide] = useState(1);
   const slideCount = season.heroImages.length;
   useEffect(() => {
+    if (!active) return;
     let transitionTimer: ReturnType<typeof setTimeout> | undefined;
     const interval = setInterval(() => {
       if (document.hidden) return;
@@ -148,8 +153,10 @@ export default function HomeScreen({ initialDate }: { initialDate: string }) {
     return () => {
       clearInterval(interval);
       clearTimeout(transitionTimer);
+      fadeAnim.value = 1;
+      nextFadeAnim.value = 0;
     };
-  }, [currentSlide, slideCount, fadeAnim, nextFadeAnim]);
+  }, [currentSlide, slideCount, fadeAnim, nextFadeAnim, active]);
   const currentSlideStyle = useAnimatedStyle(() => ({
     opacity: fadeAnim.value,
   }));
@@ -183,6 +190,7 @@ export default function HomeScreen({ initialDate }: { initialDate: string }) {
   // ── Badge pulse glow animation ──
   const badgePulse = useSharedValue(1);
   useEffect(() => {
+    if (!active) return;
     badgePulse.value = withRepeat(
       withSequence(
         withTiming(0.6, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
@@ -191,7 +199,8 @@ export default function HomeScreen({ initialDate }: { initialDate: string }) {
       -1,
       false,
     );
-  }, [badgePulse]);
+    return () => cancelAnimation(badgePulse);
+  }, [badgePulse, active]);
   const newBadgePulseStyle = useAnimatedStyle(() => ({
     opacity: badgePulse.value,
   }));

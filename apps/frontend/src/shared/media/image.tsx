@@ -11,6 +11,10 @@ import {
   type ReactNode,
 } from "react";
 import { resolveImageAttributes } from "@/shared/ui/static-images";
+import {
+  rememberImageDisplay,
+  wasImageDisplayed,
+} from "./image-display-history";
 export type ImageSource = {
   uri: string;
   width?: number;
@@ -73,7 +77,7 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
     {
       source,
       loading = "lazy",
-      decoding = "async",
+      decoding,
       fetchPriority = "auto",
       srcSet,
       sizes,
@@ -83,7 +87,7 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
       contentPosition = "center",
       transition = 0,
       fadeOnLoad = false,
-      retryKey: _retryKey,
+      retryKey,
       showRetryButton = false,
       loadingFallback,
       errorFallback,
@@ -118,6 +122,14 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
       optimizeLocal,
       sizes,
     );
+    const displayKey = JSON.stringify([
+      resolved.src,
+      srcSet ?? resolved.srcSet,
+      sizes ?? resolved.sizes,
+      retryKey,
+    ]);
+    const [displayedBefore] = useState(() => wasImageDisplayed(displayKey));
+    const revealOnLoad = fadeOnLoad && !displayedBefore;
     const terminalFailure =
       timedOut || (failed && attempt >= RETRY_DELAYS.length);
     const hasCustomLoader = loadingFallback !== undefined;
@@ -242,6 +254,7 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
               imageRef.current = image;
               // Cached images may finish before the load handler is attached.
               if (image?.complete && image.naturalWidth > 0) {
+                rememberImageDisplay(displayKey);
                 setLoaded(true);
               }
             }}
@@ -250,7 +263,7 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
             width={asset?.width}
             height={asset?.height}
             loading={loading}
-            decoding={decoding}
+            decoding={decoding ?? (displayedBefore ? "sync" : "async")}
             fetchPriority={fetchPriority}
             srcSet={useOriginal ? undefined : (srcSet ?? resolved.srcSet)}
             sizes={sizes ?? resolved.sizes}
@@ -271,6 +284,7 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
               if (imageRef.current !== event.currentTarget) return;
               setFailed(false);
               setLoaded(true);
+              rememberImageDisplay(displayKey);
               const image = event.currentTarget;
               onLoad?.({
                 source: {
@@ -282,10 +296,13 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
             }}
             style={{
               visibility: failed ? "hidden" : undefined,
-              opacity: fadeOnLoad && !loaded ? 0 : undefined,
+              opacity: revealOnLoad && !loaded ? 0 : undefined,
               objectFit: contentFit,
               objectPosition: contentPosition,
-              transition: transition ? `opacity ${transition}ms` : undefined,
+              transition:
+                transition && !displayedBefore
+                  ? `opacity ${transition}ms`
+                  : undefined,
             }}
             className={classes.img}
           />
@@ -298,7 +315,7 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
           )
         ) : asset?.uri &&
           !loaded &&
-          (fadeOnLoad ||
+          (revealOnLoad ||
             showRetryButton ||
             failed ||
             attempt > 0 ||

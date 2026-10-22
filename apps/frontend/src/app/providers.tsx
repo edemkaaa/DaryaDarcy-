@@ -13,7 +13,13 @@ import { BackgroundCheckNotice } from "@/domain/session/background-check-notice"
 import TabShell from "./tab-shell";
 import { NavigationHistory } from "@/shared/navigation/history";
 import { TouchPressGuard } from "@/shared/browser/touch-press-guard";
-export default function Providers({ children }: { children: ReactNode }) {
+export default function Providers({
+  children,
+  initialHomeDate,
+}: {
+  children: ReactNode;
+  initialHomeDate: string;
+}) {
   const [queryClient] = useState(createAppQueryClient);
   const [client] = useState(createTRPCClient);
   return (
@@ -27,7 +33,7 @@ export default function Providers({ children }: { children: ReactNode }) {
           <AuthProvider>
             <ClubProvider>
               <ViewportSync />
-              <TabShell>{children}</TabShell>
+              <TabShell initialHomeDate={initialHomeDate}>{children}</TabShell>
               <InstallGuide />
               <WebPostAlerts />
               <BackgroundCheckNotice />

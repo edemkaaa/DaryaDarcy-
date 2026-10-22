@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import sharp from "sharp";
+import { writeFile } from "node:fs/promises";
 import { editorApi, ok, failure } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
@@ -297,6 +298,73 @@ for (const committed of [false, true]) {
     expect(state.writes).toHaveLength(1);
   });
 }
+
+for (const sourceMiB of [30, 50]) {
+  test(`a ${sourceMiB} MiB avatar source is cropped and uploaded within the server limit`, async ({
+    page,
+  }) => {
+    const { state, raster } = await profileApi(page);
+    const jpeg = await sharp(raster).jpeg().toBuffer();
+    // Valid JPEG with padding tests source bytes independently of pixel count.
+    const source = Buffer.concat([
+      jpeg,
+      Buffer.alloc(sourceMiB * 1024 * 1024 - jpeg.length),
+    ]);
+    const sourcePath = test.info().outputPath("large-avatar.jpg");
+    await writeFile(sourcePath, source);
+    await gotoWithSession(page, "/profile");
+    const chooser = page.waitForEvent("filechooser");
+    await page
+      .getByRole("button", { name: "Выбрать фото профиля", exact: true })
+      .click();
+    await (await chooser).setFiles(sourcePath);
+    await page.getByRole("button", { name: "Готово", exact: true }).click();
+    await expect.poll(() => state.avatarWrites.length).toBe(1);
+    const uploaded = Buffer.from(
+      state.avatarWrites[0].base64 as string,
+      "base64",
+    );
+    expect(uploaded.length).toBeLessThanOrEqual(4 * 1024 * 1024);
+    expect(await sharp(uploaded).metadata()).toMatchObject({
+      format: "jpeg",
+      width: 400,
+      height: 400,
+    });
+    await expect(
+      page
+        .getByRole("button", { name: "Выбрать фото профиля", exact: true })
+        .locator("img"),
+    ).toHaveAttribute(
+      "src",
+      "https://images.example.test/confirmed-avatar.jpg",
+    );
+    expect(state.writes).toEqual([]);
+  });
+}
+
+test("an avatar above 50 MiB is rejected before cropping or uploading", async ({
+  page,
+}) => {
+  const { state } = await profileApi(page);
+  const sourcePath = test.info().outputPath("oversized-avatar.jpg");
+  await writeFile(sourcePath, Buffer.alloc(50 * 1024 * 1024 + 1));
+  await gotoWithSession(page, "/profile");
+  let message = "";
+  page.once("dialog", async (dialog) => {
+    message = dialog.message();
+    await dialog.accept();
+  });
+  const chooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("button", { name: "Выбрать фото профиля", exact: true })
+    .click();
+  await (await chooser).setFiles(sourcePath);
+  await expect.poll(() => message).toBe("Файл больше 50 МБ.");
+  await expect(
+    page.getByRole("button", { name: "Готово", exact: true }),
+  ).toHaveCount(0);
+  expect(state.avatarWrites).toEqual([]);
+});
 
 test("failed photo upload retains a labeled draft and never changes name or the confirmed avatar", async ({
   page,

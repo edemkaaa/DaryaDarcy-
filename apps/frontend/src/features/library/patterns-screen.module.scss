@@ -54,20 +54,25 @@
   }
 
   .ctaButtonOlive {
-    padding-top: 16px;
-    padding-bottom: 16px;
-    padding-left: 32px;
-    padding-right: 32px;
-    border-radius: 14px;
+    min-height: 48px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    justify-content: center;
     align-items: center;
     background-color: #e4e0cd;
+
+    &:disabled {
+      opacity: 0.65;
+    }
   }
 
   .ctaButtonOliveText {
     color: var(--brown);
-    font-size: 18px;
+    font-size: 17px;
     font-family: var(--font-body);
-    letter-spacing: 1px;
+    line-height: 22px;
+    text-align: center;
+    letter-spacing: 0.5px;
   }
 
   .quizLinkContainer {

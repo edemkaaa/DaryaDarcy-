@@ -1,5 +1,5 @@
 "use client";
-import { Action, Typography } from "@/shared/ui/elements";
+import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
 export function PostInteractionStatus({
   error,
   retry,
@@ -9,9 +9,15 @@ export function PostInteractionStatus({
 }) {
   if (!error) return null;
   return (
-    <div role="alert">
-      <Typography>{error}</Typography>
-      <Action onClick={() => void retry()}>Обновить отметки</Action>
-    </div>
+    <StatusNotice
+      tone="error"
+      actions={
+        <StatusNoticeAction onClick={() => void retry()}>
+          Обновить отметки
+        </StatusNoticeAction>
+      }
+    >
+      {error}
+    </StatusNotice>
   );
 }

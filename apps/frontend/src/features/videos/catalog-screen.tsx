@@ -3,6 +3,7 @@ import { useCallback, useMemo } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
 import { trpc } from "@/shared/api/trpc";
+import { contentRefreshOptions } from "@/shared/api/content-refresh";
 import { useAuth } from "@/domain/session/session-context";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { useRouter } from "@/shared/navigation/router";
@@ -49,11 +50,9 @@ export function VideoCatalogScreen() {
         videoCatalogInput(20, pageParam),
         { signal },
       ),
-    enabled: active && !loading && !sessionError,
+    ...contentRefreshOptions(active && !loading && !sessionError),
     staleTime: 0,
     refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
     getNextPageParam: (last, _pages, _lastParam, params) => {
       try {
         return nextVideoCursor(parseVideoCatalog(last), params);

@@ -21,6 +21,8 @@ import { usePostInteractions } from "@/domain/post/use-post-interactions";
 import { PostInteractionStatus } from "@/domain/post/post-interaction-status";
 import { ClubComments } from "@/features/club/club-comments";
 import { trpc } from "@/shared/api/trpc";
+import { contentRefreshOptions } from "@/shared/api/content-refresh";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { parseContentId } from "@/shared/navigation/content-id";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { ContentRequestState } from "@/shared/ui/content-request-state";
@@ -57,6 +59,7 @@ function formatDate(date: Date | string, browserCalendar: boolean): string {
   return `${browserCalendar ? d.getDate() : d.getUTCDate()} ${months[browserCalendar ? d.getMonth() : d.getUTCMonth()]} ${browserCalendar ? d.getFullYear() : d.getUTCFullYear()}`;
 }
 function PostDetailScreenInner({ id }: { id: string }) {
+  const active = useScreenActive();
   const browserCalendar = useBrowserReady();
 
   const router = useRouter();
@@ -79,7 +82,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
     // Missing/hidden posts are successful absence, never a stale cached copy.
     queryFn: async ({ signal }) =>
       (await utils.client.feed.getById.query(input, { signal })) ?? null,
-    enabled: postId > 0,
+    ...contentRefreshOptions(active && postId > 0),
     staleTime: 30_000,
     refetchOnMount: "always",
     refetchOnWindowFocus: "always",

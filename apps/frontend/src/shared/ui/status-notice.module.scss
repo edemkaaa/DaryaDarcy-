@@ -1,0 +1,93 @@
+@use "../styles/layers";
+
+@layer components {
+  .notice {
+    width: fit-content;
+    max-width: 100%;
+    min-width: 0;
+    margin: 12px auto 10px;
+    padding: 10px 12px;
+    gap: 10px;
+    border: 1px solid rgba(160, 132, 92, 0.22);
+    border-radius: 10px;
+    background-color: #f3efdf;
+    color: var(--brown);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 20px;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  .info {
+    color: var(--brown);
+  }
+
+  .error {
+    background-color: #f5ece5;
+    border-color: rgba(142, 85, 70, 0.25);
+    color: #804b3e;
+  }
+
+  .success {
+    background-color: #eeefdf;
+    border-color: rgba(107, 123, 94, 0.28);
+    color: #526047;
+  }
+
+  .compact {
+    padding: 8px 12px;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 18px;
+  }
+
+  .content {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .message {
+    flex: 1;
+    gap: 6px;
+    white-space: pre-line;
+  }
+
+  .actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding-left: 24px;
+  }
+
+  .action {
+    display: flex;
+    text-decoration: none;
+    min-height: 36px;
+    max-width: 100%;
+    padding: 6px 12px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(160, 132, 92, 0.3);
+    border-radius: 8px;
+    background-color: #e4e0cd;
+    color: var(--brown);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 20px;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+
+    &:disabled {
+      opacity: 0.65;
+    }
+  }
+}

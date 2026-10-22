@@ -1,4 +1,5 @@
 @use "../../shared/styles/layers";
+@use "../../shared/styles/search";
 
 @layer components {
   .bannerContainer {
@@ -27,36 +28,12 @@
   }
 
   .searchContainer {
-    --search-inset: 10px;
+    @include search.container;
     flex: 1;
-    height: var(--search-control-size);
-    flex-direction: row;
-    align-items: center;
-    gap: var(--search-inset);
-    background-color: #f3eddd;
-    border-radius: 8px;
-    padding-inline: var(--search-inset);
-    padding-top: 0;
-    padding-bottom: 0;
-    border-width: 1px;
-    border-color: rgba(139, 115, 85, 0.25);
-
-    &:focus-within {
-      border-color: var(--muted);
-    }
-
-    .searchInput:focus {
-      border: 0;
-    }
   }
 
   .searchInput {
-    flex: 1;
-    font-size: 14px;
-    font-family: var(--font-body);
-    color: var(--ink);
-    padding-top: 0;
-    padding-bottom: 0;
+    @include search.input;
   }
 
   .videoFilterButton {

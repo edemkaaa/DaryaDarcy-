@@ -16,6 +16,7 @@ export function ZoomCard({
   return (
     <Link
       href={publicPath(route)}
+      prefetch={false}
       className={`ui-action ui-navigation-card ${className}`}
       style={style}
     >

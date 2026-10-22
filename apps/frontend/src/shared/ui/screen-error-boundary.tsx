@@ -1,7 +1,7 @@
 "use client";
 import classes from "./screen-error-boundary.module.scss";
 
-import { Typography, Action } from "@/shared/ui/elements";
+import { StatusNotice, StatusNoticeAction } from "./status-notice";
 import { Component, type ReactNode } from "react";
 type Props = {
   children: ReactNode;
@@ -30,15 +30,17 @@ export class ScreenErrorBoundary extends Component<Props, State> {
     if (this.state.error) {
       return (
         <div className={["ui-stack ", classes.wrap].filter(Boolean).join(" ")}>
-          <Typography className={classes.title}>
+          <StatusNotice
+            tone="error"
+            actions={
+              <StatusNoticeAction onClick={this.handleRetry}>
+                Повторить
+              </StatusNoticeAction>
+            }
+          >
             {this.props.message || "Не удалось показать раздел"}
-          </Typography>
-          <Typography className={classes.body}>
-            Обновите страницу или попробуйте ещё раз.
-          </Typography>
-          <Action onClick={this.handleRetry} className={classes.btn}>
-            <Typography className={classes.btnText}>Повторить</Typography>
-          </Action>
+            <span>Обновите страницу или попробуйте ещё раз.</span>
+          </StatusNotice>
         </div>
       );
     }

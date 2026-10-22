@@ -1,6 +1,7 @@
 "use client";
 import classes from "./audio-player.module.scss";
 import { Action, Typography } from "@/shared/ui/elements";
+import { StatusNotice } from "@/shared/ui/status-notice";
 import { useCollectionItemRetention } from "@/shared/ui/collection-item-window";
 import { useMemo } from "react";
 import { useAudioPlayer, useAudioPlayerState } from "@/shared/media/audio";
@@ -35,7 +36,9 @@ export function AudioPlayerCard({ url, filename, duration }: AudioPlayerProps) {
     duration: actualDuration,
     error,
   } = useAudioPlayerState(player);
-  useCollectionItemRetention(isPlaying || starting || currentTime > 0 || Boolean(error));
+  useCollectionItemRetention(
+    isPlaying || starting || currentTime > 0 || Boolean(error),
+  );
   const progress = actualDuration > 0 ? currentTime / actualDuration : 0;
   const WAVEFORM_BARS = 30;
   const waveform = useMemo(() => generateWaveform(WAVEFORM_BARS, url), [url]);
@@ -85,7 +88,11 @@ export function AudioPlayerCard({ url, filename, duration }: AudioPlayerProps) {
         <Typography lines={1} className={classes.filename}>
           {displayName}
         </Typography>
-        {error ? <Typography role="alert">{error}</Typography> : null}
+        {error ? (
+          <StatusNotice tone="error" compact>
+            {error}
+          </StatusNotice>
+        ) : null}
         {/* Waveform visualization */}
         <div
           className={["ui-stack ", classes.waveformContainer]

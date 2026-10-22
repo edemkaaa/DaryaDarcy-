@@ -36,6 +36,12 @@
   .overlay {
     color: #ffffff;
   }
+  .paper {
+    // The background belongs to the moving header, not a fixed screen inset.
+    background: var(--paper)
+      url("/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.fe3ce71852fa6634.webp")
+      center / cover;
+  }
   .overlay .action svg {
     // Keep light icons visible when paper content scrolls under the header.
     filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9))

@@ -16,14 +16,19 @@ import { ScreenContainer } from "@/shared/ui/screen-container";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { ArticleContent } from "@/domain/content/article-content";
 import { trpc } from "@/shared/api/trpc";
+import { contentRefreshOptions } from "@/shared/api/content-refresh";
+import { isTemporaryRequestError } from "@/shared/api/errors";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { parseContentId } from "@/shared/navigation/content-id";
 import { ContentRequestState } from "@/shared/ui/content-request-state";
+import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { useClub } from "@/domain/subscription/subscription-context";
 import { PhotoViewer } from "@/shared/media/photo-viewer";
 import { useClubContentProtection } from "@/shared/browser/use-club-protection";
 import type { ArticleBlock } from "@/domain/content/article-blocks";
 import { PAPER } from "./article-screen.content";
 export default function LibraryArticleScreen({ id }: { id: string }) {
+  const active = useScreenActive();
   const router = useRouter();
   const { hasClubAccess } = useClub();
   const articleId = parseContentId(id);
@@ -35,8 +40,12 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
     // Query requires a defined success value; normalize absence, not failures.
     queryFn: async ({ signal }) =>
       (await utils.client.articles.getById.query(input, { signal })) ?? null,
-    enabled: articleId !== null,
+    ...contentRefreshOptions(active && articleId !== null),
   });
+  // A temporary background failure keeps the reading position and content.
+  // Confirmed absence, denial, or a locked response must hide the old article.
+  const blockingError = Boolean(error && !isTemporaryRequestError(error));
+  const unavailable = !data || blockingError || data.locked;
   useClubContentProtection(Boolean(data && !data.locked));
   const [viewer, setViewer] = useState<{
     photos: string[];
@@ -45,7 +54,7 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
   useEffect(() => {
     // Discard the old viewer intent; a later successful retry must not reopen it.
     setViewer(null);
-  }, [articleId, error, data?.locked]);
+  }, [articleId, unavailable]);
   const blocks = useMemo(
     () => (data?.sections || []) as ArticleBlock[],
     [data],
@@ -66,7 +75,7 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
     ],
     [blocks, coverUrl],
   );
-  if (isLoading || error || !data) {
+  if (isLoading || blockingError || !data) {
     return (
       <ScreenContainer edges={["top", "bottom", "left", "right"]}>
         <Background source={{ uri: PAPER }} fit="cover" className={classes.bg}>
@@ -126,6 +135,14 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       <Background source={{ uri: PAPER }} fit="cover" className={classes.bg}>
         <ScrollArea hideScrollbar contentClassName={classes.scroll}>
+          {error ? (
+            <QueryRetryState
+              isLoading={false}
+              isError
+              message="Не удалось обновить статью"
+              onRetry={() => void refetch({ cancelRefetch: false })}
+            />
+          ) : null}
           <ArticleContent
             title={data.title}
             coverUrl={data.coverUrl}

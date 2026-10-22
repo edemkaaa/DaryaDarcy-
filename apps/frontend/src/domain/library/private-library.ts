@@ -1,5 +1,6 @@
 "use client";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { z } from "zod";
 import {
   aestheticGuideSchema,
@@ -9,14 +10,40 @@ import { apiCall } from "@/shared/api/auth";
 import { invalidResponse } from "@/shared/api/errors";
 import { useAuth } from "@/domain/session/session-context";
 import { useClub } from "@/domain/subscription/subscription-context";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
+import { contentRefreshOptions } from "@/shared/api/content-refresh";
 
 const privateReadOptions = {
   retry: false,
-  staleTime: 0,
-  gcTime: 0,
+  staleTime: 30_000,
+  gcTime: 5 * 60_000,
   refetchOnWindowFocus: "always",
   refetchOnReconnect: "always",
 } as const;
+
+function useCancelHiddenRead(
+  namespace: string,
+  ownerId: number | undefined,
+  active: boolean,
+) {
+  const client = useQueryClient();
+  useEffect(() => {
+    if (active) return;
+    let hidden = true;
+    // Query observers apply enabled=false in their own effects. Check after
+    // those updates, and never cancel a shared guide used by another screen.
+    queueMicrotask(() => {
+      if (hidden)
+        void client.cancelQueries({
+          queryKey: [namespace, ownerId],
+          predicate: (query) => !query.isActive(),
+        });
+    });
+    return () => {
+      hidden = false;
+    };
+  }, [active, client, namespace, ownerId]);
+}
 
 export async function readAestheticGuide(
   key: AestheticGuideKey,
@@ -32,30 +59,34 @@ export async function readAestheticGuide(
   return parsed.data;
 }
 
-/** Private reads never reuse another identity's result or display failed/stale refreshes. */
+/** Private data stays in this identity's memory; denied/failed reads hide it.
+ * Revalidation keeps the confirmed DOM until a result arrives, rather than
+ * replacing it with a loader on every visit or resume.
+ */
 export function useAestheticGuides(
   keys: readonly AestheticGuideKey[],
   requested = true,
 ) {
   const { user } = useAuth();
   const { hasClubAccess } = useClub();
-  const enabled = Boolean(user && hasClubAccess && requested);
+  const active = useScreenActive();
+  const allowed = Boolean(user && hasClubAccess && requested);
+  useCancelHiddenRead("private-library-guide", user?.id, active);
   const queries = useQueries({
     queries: keys.map((key) => ({
+      ...contentRefreshOptions(allowed && active),
       ...privateReadOptions,
       queryKey: ["private-library-guide", user?.id, key],
-      enabled,
       queryFn: ({ signal }: { signal: AbortSignal }) =>
         readAestheticGuide(key, signal),
     })),
   });
   return queries.map((query) => ({
-    data:
-      enabled && query.isSuccess && !query.isFetching ? query.data : undefined,
-    isLoading: enabled && (query.isPending || query.isFetching),
-    error: enabled ? query.error : null,
+    data: allowed && query.isSuccess ? query.data : undefined,
+    isLoading: allowed && query.isPending,
+    error: allowed ? query.error : null,
     retry: () => {
-      if (enabled) void query.refetch();
+      if (allowed && active) void query.refetch({ cancelRefetch: false });
     },
   }));
 }
@@ -119,20 +150,21 @@ export async function readPatternBindings(signal?: AbortSignal) {
 export function usePatternBindings() {
   const { user } = useAuth();
   const { hasClubAccess } = useClub();
-  const enabled = Boolean(user && hasClubAccess);
+  const active = useScreenActive();
+  const allowed = Boolean(user && hasClubAccess);
+  useCancelHiddenRead("private-library-patterns", user?.id, active);
   const query = useQuery({
+    ...contentRefreshOptions(allowed && active),
     ...privateReadOptions,
     queryKey: ["private-library-patterns", user?.id],
-    enabled,
     queryFn: ({ signal }) => readPatternBindings(signal),
   });
   return {
-    files:
-      enabled && query.isSuccess && !query.isFetching ? query.data : undefined,
-    isLoading: enabled && (query.isPending || query.isFetching),
-    error: enabled ? query.error : null,
+    files: allowed && query.isSuccess ? query.data : undefined,
+    isLoading: allowed && query.isPending,
+    error: allowed ? query.error : null,
     retry: () => {
-      if (enabled) void query.refetch();
+      if (allowed && active) void query.refetch({ cancelRefetch: false });
     },
   };
 }

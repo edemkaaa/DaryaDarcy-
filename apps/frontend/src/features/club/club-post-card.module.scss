@@ -53,6 +53,14 @@
     margin-top: 0;
   }
 
+  .postTextLink {
+    cursor: pointer;
+  }
+
+  .postTextLink:active {
+    opacity: 0.92;
+  }
+
   .readArticleBtn {
     align-self: flex-start;
     margin-top: 8px;

@@ -104,18 +104,11 @@ export default function ProductDetailScreen({ id }: { id: string }) {
           <Picture
             source={{ uri: coverUrl }}
             style={{
-              width:
-                product.type === "book"
-                  ? stylesLayout.coverImagePng.width
-                  : stylesLayout.coverImage.width,
+              width: stylesLayout.coverImage.width,
             }}
-            contentFit={product.type === "book" ? "contain" : "cover"}
+            contentFit="contain"
             transition={300}
-            className={
-              product.type === "book"
-                ? classes.appearanceState
-                : classes.appearanceState2
-            }
+            className={classes.appearanceState}
           />
         </div>
 
