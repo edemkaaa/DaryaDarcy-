@@ -53,11 +53,11 @@ export function AvatarCropper({
   const translateY = useSharedValue(0);
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
-  // Image display size (fill circle width or height depending on aspect)
+  // Cover the circle before zooming; fitting inside it leaves empty edges.
   const displayWidth =
-    aspectRatio >= 1 ? CIRCLE_SIZE : CIRCLE_SIZE * aspectRatio;
+    aspectRatio >= 1 ? CIRCLE_SIZE * aspectRatio : CIRCLE_SIZE;
   const displayHeight =
-    aspectRatio >= 1 ? CIRCLE_SIZE / aspectRatio : CIRCLE_SIZE;
+    aspectRatio >= 1 ? CIRCLE_SIZE : CIRCLE_SIZE / aspectRatio;
   const pinchGesture = Gesture.Pinch()
     .onUpdate((e) => {
       scale.value = Math.max(0.5, Math.min(savedScale.value * e.scale, 4));
@@ -105,26 +105,34 @@ export function AvatarCropper({
       // Convert to original image pixels
       const scaleToOriginalX = imageWidth / scaledDisplayWidth;
       const scaleToOriginalY = imageHeight / scaledDisplayHeight;
-      const cropX = Math.max(0, Math.round(centerOffsetX * scaleToOriginalX));
-      const cropY = Math.max(0, Math.round(centerOffsetY * scaleToOriginalY));
-      const cropSize = Math.round(CIRCLE_SIZE * scaleToOriginalX);
-      // Ensure crop doesn't exceed image bounds
-      const safeCropX = Math.min(cropX, imageWidth - cropSize);
-      const safeCropY = Math.min(cropY, imageHeight - cropSize);
-      const safeCropSize = Math.min(
-        cropSize,
-        imageWidth - safeCropX,
-        imageHeight - safeCropY,
+      const cropSize = Math.min(
+        imageWidth,
+        imageHeight,
+        Math.round(CIRCLE_SIZE * scaleToOriginalX),
+      );
+      const cropX = Math.max(
+        0,
+        Math.min(
+          Math.round(centerOffsetX * scaleToOriginalX),
+          imageWidth - cropSize,
+        ),
+      );
+      const cropY = Math.max(
+        0,
+        Math.min(
+          Math.round(centerOffsetY * scaleToOriginalY),
+          imageHeight - cropSize,
+        ),
       );
       const manipResult = await ImageManipulator.manipulateAsync(
         imageUri,
         [
           {
             crop: {
-              originX: Math.max(0, safeCropX),
-              originY: Math.max(0, safeCropY),
-              width: Math.max(100, safeCropSize),
-              height: Math.max(100, safeCropSize),
+              originX: cropX,
+              originY: cropY,
+              width: cropSize,
+              height: cropSize,
             },
           },
           { resize: { width: 400, height: 400 } },
