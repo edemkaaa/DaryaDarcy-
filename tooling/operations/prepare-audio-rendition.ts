@@ -12,6 +12,7 @@ import { chmod, lstat } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { z } from "zod";
+import { audioRenditionBitrate } from "../data/audio-rendition-policy";
 
 const execute = promisify(execFile);
 const probeSchema = z.object({
@@ -113,6 +114,7 @@ async function prepareAudioRendition(input: string, outputDirectory: string) {
   );
   const sourceSha256 = await hash(source);
   const sourceMetadata = await probe(source);
+  const bitrate = audioRenditionBitrate(sourceMetadata.duration);
   assert(
     ["alac", "aac", "mp3"].includes(sourceMetadata.codec_name),
     "Unsupported source audio codec",
@@ -152,7 +154,7 @@ async function prepareAudioRendition(input: string, outputDirectory: string) {
         "-profile:a",
         "aac_low",
         "-b:a",
-        "96k",
+        `${bitrate}k`,
         "-movflags",
         "+faststart",
         "-f",
@@ -183,12 +185,12 @@ async function prepareAudioRendition(input: string, outputDirectory: string) {
       metadata.channels === sourceMetadata.channels &&
       Math.abs(metadata.duration - sourceMetadata.duration) < 0.2 &&
       result.size > 0 &&
-      result.size <= 180 * 1024 * 1024 &&
+      result.size <= 32 * 1024 * 1024 &&
       hasFastStart(output, result.size),
     "Invalid browser audio rendition",
   );
   return {
-    recipe: "aac-lc-96k-faststart-v1",
+    recipe: `aac-lc-${bitrate}k-faststart-v1`,
     filename,
     mimeType: "audio/mp4",
     sourceSha256,
