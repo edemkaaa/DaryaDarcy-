@@ -66,16 +66,10 @@ export class PasswordController {
   async request(@Req() req: Request, @Res() res: Response) {
     const email =
       typeof req.body?.email === "string" ? normalizeEmail(req.body.email) : "";
-    const emailKey = createHash("sha256").update(email).digest("hex");
     const ipLimit = checkRateLimit(
       `password-request-ip:${clientIp(req)}`,
       10,
       900000,
-    );
-    const emailLimit = checkRateLimit(
-      `password-request-email:${emailKey}`,
-      3,
-      3600000,
     );
     if (!ipLimit.ok) {
       res
@@ -84,8 +78,13 @@ export class PasswordController {
       return;
     }
     try {
-      if (emailLimit.ok && isValidEmail(email) && email.length <= 320) {
-        await this.passwords.request(email);
+      if (isValidEmail(email) && email.length <= 320) {
+        const emailKey = createHash("sha256").update(email).digest("hex");
+        if (
+          checkRateLimit(`password-request-email:${emailKey}`, 3, 3600000).ok
+        ) {
+          await this.passwords.request(email);
+        }
       }
       // Same response for unknown, blocked, throttled recipients and real accounts.
       res.status(202).json({
