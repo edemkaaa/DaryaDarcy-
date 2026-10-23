@@ -1,12 +1,13 @@
 import { and, asc, desc, eq } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
+import { requireContentDatabase } from "./read-database";
 import {
   videos,
   type InsertVideo,
   type Video,
 } from "../../../../packages/database/src/schema";
 
-// Connection ownership stays in db.ts; reads retain their unavailable-DB defaults.
+// Connection ownership stays in db.ts; unavailable reads must not look empty.
 type Database = MySql2Database | null;
 export type PublicVideo = Omit<
   Video,
@@ -24,7 +25,7 @@ function publicVideo(row: Video): PublicVideo {
 }
 
 export async function getVideos(db: Database): Promise<PublicVideo[]> {
-  if (!db) return [];
+  requireContentDatabase(db);
   const rows = await db
     .select()
     .from(videos)
@@ -43,7 +44,7 @@ export async function getVideoById(
   db: Database,
   id: number,
 ): Promise<PublicVideo | undefined> {
-  if (!db) return undefined;
+  requireContentDatabase(db);
   const result = await db
     .select()
     .from(videos)
@@ -66,7 +67,7 @@ export async function getVideoByYoutubeId(
   db: Database,
   youtubeId: string,
 ): Promise<Video | undefined> {
-  if (!db) return undefined;
+  requireContentDatabase(db);
   const result = await db
     .select()
     .from(videos)

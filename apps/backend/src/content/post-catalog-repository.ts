@@ -1,5 +1,6 @@
 import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
+import { requireContentDatabase } from "./read-database";
 import {
   posts,
   tags,
@@ -15,7 +16,7 @@ type Database = MySql2Database | null;
 
 // The full reference catalog includes tags not yet used by published posts.
 export async function getAllTags(db: Database): Promise<Tag[]> {
-  if (!db) return [];
+  requireContentDatabase(db);
 
   try {
     return await db.select().from(tags).orderBy(asc(tags.sortOrder));

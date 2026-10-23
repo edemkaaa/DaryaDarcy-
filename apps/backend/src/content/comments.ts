@@ -16,6 +16,7 @@ import { requireCommentFilePost } from "./private-comment-actor";
 import { requirePrivateContentEnabled } from "./private-content-uploads";
 import { claimCommentFileCreation } from "./comment-file-creation";
 import type { ContentWriteActor } from "./content-write-actor";
+import { requireContentDatabase } from "./read-database";
 
 export type PostCommentRow = PostComment & {
   authorName: string | null;
@@ -60,7 +61,7 @@ export async function listPostCommentsV2(
   viewerUserId?: number | null,
 ): Promise<PostCommentRow[]> {
   const db = await getDb();
-  if (!db) return [];
+  requireContentDatabase(db);
   const rows = await db
     .select({
       comment: postComments,
@@ -91,7 +92,7 @@ export async function getPostCommentById(
   id: number,
 ): Promise<PostComment | null> {
   const db = await getDb();
-  if (!db) return null;
+  requireContentDatabase(db);
   const rows = await db
     .select()
     .from(postComments)
@@ -312,7 +313,7 @@ export async function listCommentReports(
   limit = 100,
 ): Promise<CommentReportInboxRow[]> {
   const db = await getDb();
-  if (!db) return [];
+  requireContentDatabase(db);
   const author = alias(users, "comment_author");
   const reporter = alias(users, "comment_reporter");
   const rows = await db

@@ -28,7 +28,9 @@ it("rejects repeated full-feed reads in one batch", async () => {
 });
 
 it("preserves ordinary short batches", async () => {
-  const response = await batch(["feed.tags", "feed.tags"]);
+  // Use a read that is valid without a configured database. DB unavailability
+  // is a separate 503 contract, not a batch admission failure.
+  const response = await batch(["auth.me", "auth.me"]);
   expect(response.status).toBe(200);
   expect(await response.json()).toHaveLength(2);
 });

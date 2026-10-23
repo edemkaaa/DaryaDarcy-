@@ -17,9 +17,9 @@ it.each([
     expected: undefined,
   },
 ])(
-  "keeps $name empty when no database is configured",
-  async ({ read, expected }) => {
-    expect(await read()).toEqual(expected);
+  "reports $name unavailable rather than empty when no database is configured",
+  async ({ read }) => {
+    await expect(read()).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
   },
 );
 

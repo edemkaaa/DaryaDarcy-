@@ -187,16 +187,17 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
             data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
           });
         }
-        expect(await client.feed.tags.query()).toEqual([]);
+        const unavailable = { data: { code: "SERVICE_UNAVAILABLE", httpStatus: 503 } };
+        await expect(client.feed.tags.query()).rejects.toMatchObject(unavailable);
         await expect(
           client.feed.listPaginated.query({ limit: 1.5 }),
         ).rejects.toMatchObject({
           data: { code: "BAD_REQUEST", httpStatus: 400 },
         });
-        expect(await client.videos.list.query()).toEqual([]);
-        expect(await client.videos.getById.query({ id: 1 })).toBeUndefined();
-        expect(await client.articles.list.query()).toEqual([]);
-        expect(await client.articles.getById.query({ id: 1 })).toBeUndefined();
+        await expect(client.videos.list.query()).rejects.toMatchObject(unavailable);
+        await expect(client.videos.getById.query({ id: 1 })).rejects.toMatchObject(unavailable);
+        await expect(client.articles.list.query()).rejects.toMatchObject(unavailable);
+        await expect(client.articles.getById.query({ id: 1 })).rejects.toMatchObject(unavailable);
         await expect(client.feed.savedPosts.query()).rejects.toMatchObject({
           data: { code: "UNAUTHORIZED", httpStatus: 401 },
         });

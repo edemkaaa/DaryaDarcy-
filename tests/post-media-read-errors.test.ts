@@ -178,9 +178,9 @@ describe("post media read integrity", () => {
     vi.stubEnv("DATABASE_URL", "");
     expect(await database.getPostsByIds([])).toEqual([]);
   });
-  it("keeps the historical empty tag catalog when no database is configured", async () => {
+  it("distinguishes an unavailable database from an empty tag catalog", async () => {
     vi.stubEnv("DATABASE_URL", "");
-    expect(await database.getAllTags()).toEqual([]);
+    await expect(database.getAllTags()).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
   });
   it("keeps a genuinely empty reference tag table successful", async () => {
     transport.query.mockResolvedValue([[], []]);

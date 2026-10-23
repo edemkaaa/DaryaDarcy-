@@ -46,6 +46,7 @@ import {
 } from "./content/video-repository";
 import {
   listPublishedArticles as readPublishedArticles,
+  listPublishedArticleCards as readPublishedArticleCards,
   listAllArticles as readAllArticles,
   getArticleById as readArticleById,
 } from "./content/article-repository";
@@ -1153,6 +1154,10 @@ export async function userOwnsShopProduct(userId: number, productId: string): Pr
 export async function listPublishedArticles(): Promise<Article[]> {
   const db = await getDb();
   return readPublishedArticles(db);
+}
+
+export async function listPublishedArticleCards() {
+  return readPublishedArticleCards(await getDb());
 }
 
 export async function listAllArticles(): Promise<Article[]> {

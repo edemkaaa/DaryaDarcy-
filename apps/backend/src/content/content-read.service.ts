@@ -127,14 +127,8 @@ export class ContentReadService {
   }
 
   async listArticles() {
-    const rows = await db.listPublishedArticles();
-    // Public catalog cards do not grant access to the article's sections.
-    return rows.map((row) => ({
-      id: row.id,
-      title: row.title,
-      coverUrl: row.coverUrl,
-      access: row.access,
-    }));
+    // Do not load private sections just to discard them for public cards.
+    return db.listPublishedArticleCards();
   }
 
   async articleById(id: number, user: User | null) {
