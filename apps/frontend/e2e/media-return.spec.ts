@@ -38,6 +38,18 @@ async function api(page: Page) {
           published: true,
         })),
       );
+    if (name === "videos.catalog")
+      return ok({
+        items: Array.from({ length: 5 }, (_, index) => ({
+          id: index + 1,
+          title: `Видео ${index + 1}`,
+          duration: null,
+          access: "public",
+          canWatch: true,
+          thumbnailUrl: `https://return.example.test/video-${index + 1}.svg`,
+        })),
+        nextCursor: null,
+      });
   });
   await page.route("https://return.example.test/**", (route) =>
     route.fulfill({ contentType: "image/svg+xml", body: svg }),
@@ -218,7 +230,7 @@ test("pattern revalidation retains unchanged images, replaces a new revision, an
   await expect(photo).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Открыть PDF →", exact: true }),
-  ).toBeDisabled();
+  ).toBeEnabled(); // The horse PDF is explicitly free, unlike the four patterns.
 });
 
 test("retained pattern images are removed across all panels when the session ends", async ({

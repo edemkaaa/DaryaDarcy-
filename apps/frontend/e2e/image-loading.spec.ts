@@ -659,7 +659,6 @@ for (const width of [390, 1440]) {
     const hero = page.locator('img[src*="hero_header"]').first();
     await expect(hero).toHaveAttribute("loading", "eager");
     await expect(hero).toHaveAttribute("fetchpriority", "high");
-    await expect(hero).toHaveAttribute("decoding", "async");
     await expect(hero).toHaveAttribute("srcset", /320w/);
     await expect(hero).toHaveAttribute("width", "1400");
     await expect(hero).toHaveAttribute("height", "875");
@@ -668,6 +667,8 @@ for (const width of [390, 1440]) {
         hero.evaluate((img) => (img as HTMLImageElement).naturalWidth),
       )
       .toBeGreaterThan(0);
+    // Displayed images remount with synchronous decoding to avoid a second fade.
+    await expect(hero).toHaveAttribute("decoding", /^(async|sync)$/);
     const source = await hero.evaluate(
       (img) => (img as HTMLImageElement).currentSrc,
     );
@@ -699,7 +700,7 @@ for (const width of [390, 1440]) {
 for (const width of [390, 1440]) {
   for (const path of ["/feed", "/club", "/post/1"]) {
     for (const count of [1, 4, 10]) {
-      test(`reserved gallery frames keep text stable while loading ${count} photos in ${path} at ${width}px`, async ({
+      test(`${path === "/club" ? "club aspect-aware galleries load" : "reserved gallery frames keep text stable while loading"} ${count} photos in ${path} at ${width}px`, async ({
         page,
       }) => {
         await page.setViewportSize({ width, height: 844 });
@@ -748,12 +749,14 @@ for (const width of [390, 1440]) {
             }),
           );
           const frame = page.locator("[data-post-photo-frame]");
-          const frameBefore = (await frame.boundingBox())!;
+          const frameBefore =
+            path === "/club" ? null : (await frame.boundingBox())!;
           const textBefore = (await text.boundingBox())!;
-          expect(frameBefore.height).toBeCloseTo(
-            Math.min(frameBefore.width * 1.25, 844 * 0.6),
-            1,
-          );
+          if (frameBefore)
+            expect(frameBefore.height).toBeCloseTo(
+              Math.min(frameBefore.width * 1.25, 844 * 0.6),
+              1,
+            );
           for (const box of before) {
             expect(box.width).toBeGreaterThan(0);
             expect(box.height).toBeGreaterThan(0);
@@ -774,19 +777,41 @@ for (const width of [390, 1440]) {
             }),
           );
           after.forEach((box, index) => {
-            expect(box.width).toBeCloseTo(before[index].width, 1);
-            expect(box.height).toBeCloseTo(before[index].height, 1);
-            expect(box.fit).toBe("cover");
+            if (path !== "/club") {
+              expect(box.width).toBeCloseTo(before[index].width, 1);
+              expect(box.height).toBeCloseTo(before[index].height, 1);
+            } else {
+              expect(box.width).toBeGreaterThan(0);
+              expect(box.width).toBeLessThanOrEqual(width);
+              expect(box.height).toBeGreaterThan(0);
+            }
+            expect(box.fit).toBe(
+              path === "/club" && count === 10 ? "contain" : "cover",
+            );
           });
-          expect((await frame.boundingBox())!.height).toBeCloseTo(
-            frameBefore.height,
-            1,
-          );
-          expect((await text.boundingBox())!.y).toBeCloseTo(textBefore.y, 1);
+          if (frameBefore) {
+            expect((await frame.boundingBox())!.height).toBeCloseTo(
+              frameBefore.height,
+              1,
+            );
+            expect((await text.boundingBox())!.y).toBeCloseTo(textBefore.y, 1);
+          } else if (count === 1) {
+            const cell = page
+              .getByRole("button", { name: "Открыть фото 1", exact: true })
+              .locator("..");
+            await expect
+              .poll(async () => {
+                const box = (await cell.boundingBox())!;
+                return box.width / box.height;
+              })
+              .toBeCloseTo(4, 1);
+          }
           if (count === 4) {
             // Both rows fill the same reserved gallery, including failed photos.
-            expect(after[0].height).toBeCloseTo(after[1].height, 1);
-            expect(after[2].height).toBeCloseTo(after[3].height, 1);
+            if (path !== "/club") {
+              expect(after[0].height).toBeCloseTo(after[1].height, 1);
+              expect(after[2].height).toBeCloseTo(after[3].height, 1);
+            }
             await expect(
               page.getByRole("img", { name: "Изображение недоступно" }),
             ).toBeVisible({ timeout: 12_000 });
@@ -808,10 +833,11 @@ for (const width of [390, 1440]) {
                   .evaluate((img) => (img as HTMLImageElement).naturalHeight),
               )
               .toBe(1200);
-            expect((await carousel.boundingBox())!.height).toBeCloseTo(
-              height,
-              1,
-            );
+            if (path !== "/club")
+              expect((await carousel.boundingBox())!.height).toBeCloseTo(
+                height,
+                1,
+              );
           }
           if (path === "/post/1" && count === 1) {
             await photos.first().click();

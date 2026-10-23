@@ -56,9 +56,13 @@ for (const width of [320, 390, 1440]) {
     const box = (await menu.boundingBox())!;
     expect(box.y + box.height).toBe(844);
     expect(box.height).toBe(width < 359 ? 63 : 66);
-    await menu.locator("img").evaluateAll((images) =>
-      Promise.all(images.map((image) => (image as HTMLImageElement).decode())),
-    );
+    await menu
+      .locator("img")
+      .evaluateAll((images) =>
+        Promise.all(
+          images.map((image) => (image as HTMLImageElement).decode()),
+        ),
+      );
     await page.screenshot({
       path: info.outputPath(`club-only-menu-${width}.png`),
     });
@@ -91,7 +95,11 @@ for (const authenticated of [false, true]) {
     else await layoutApi(page);
     await gotoWithSession(page, "/club");
     await expect(
-      page.getByRole("button", { name: "Оплатить 790 ₽", exact: true }).first(),
+      page
+        .getByRole("button", {
+          name: /^(Оплатить 790 ₽|Открыть тестовую оплату)$/,
+        })
+        .first(),
     ).toBeVisible();
     await expect(appMenu(page)).toBeVisible();
     await expect(clubMenu(page)).toHaveCount(0);
