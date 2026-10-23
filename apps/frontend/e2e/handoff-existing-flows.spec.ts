@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { passwordPage } from "../../backend/src/identity/password-page";
+import { passwordPageHtml } from "../../../tests/fixtures/password-page-html";
 import superjson from "superjson";
 import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
@@ -279,12 +279,8 @@ test("the existing password page reports completion and still requires a separat
 }) => {
   const state = await fixture(page, false);
   // Exercise the actual shipped HTML/script with stubbed API responses. No SQL or mail server.
-  const html = passwordPage(
-    new URL("/login", "http://localhost:8081"),
-    "fixture-nonce",
-  );
   await page.route("**/api/auth/password", (route) =>
-    route.fulfill({ contentType: "text/html", body: html }),
+    route.fulfill({ contentType: "text/html", body: passwordPageHtml }),
   );
   let completions = 0;
   await page.route("**/api/auth/password/complete", (route) => {
