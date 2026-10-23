@@ -2,6 +2,16 @@
 
 ## Действующий план агента — 13 октября 2026
 
+24 октября, восстановлены VK-обложки после проверки разделов. Выпущен только
+web того же production source с build-time NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED=true;
+компоненты/дизайн/зависимости не редактировались, остальные5флагов сохранены.
+BUILD_ID GbgO1tDZohx-aaIgV5mYv; native5, targeted unit67, types/lint/API93 GREEN.
+Live catalog22/19 PNG decode, browser19/19 loaded/0broken/3 ожидаемых missing,
+догрузка20→22 и возврат через Магазин с той же прокруткой GREEN. Fresh backup
+40tables/SHA/server+Mac, DB/schema/history/content/3admin credentials и29other
+containers сохранены. Никаких S3 writes/backend/TEST переключений. Подробности
+и guarded web-only rollback — в operations/teamassist-staging.
+
 23 октября, адресный ремонт публичного image cache: после разрешения пользователя
 43 TTL30 записи сопоставлены с открытым feed и пересозданы по одной. Backup
 ровно этих производных файлов проверен на сервере/Mac. Теперь TTL>=3600,

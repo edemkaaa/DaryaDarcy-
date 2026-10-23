@@ -2,6 +2,23 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### VK-обложки: восстановление build-time флага — 24 октября
+
+- [x] Fresh staging a4d223f не содержит новых production frontend правок;
+  сохранён текущий код без ручных изменений компонентов/дизайна/зависимостей.
+- [x] RED: live первые20карточек без img; API opt-in отдаёт19cover URLs/22.
+  Пересборка с NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED=true, остальные5флагов прежние;
+  flag встроен в клиентский JS, не оставлен runtime lookup. Source a212159.
+- [x]67targeted tests, root types/lint/API93, Next build29routes/native5 GREEN.
+- [x] Fresh backup40tables/486718bytes/SHA44012569… проверен server+Mac;
+  guarded web-only rollout, старый образ сохранён. API/TEST/DB/S3 прежние.
+- [x] Live22cards/19PNG decode, новый chunk SHA совпал; браузер19/19loaded,
+  broken0/3expected missing,20→22 и возврат через Магазин с той же позицией.
+  DB/schema/history/content/3admin credentials и29othercontainers сохранены.
+- [ ] Три исходно отсутствующие обложки остаются отдельным контентным остатком;
+  чужими изображениями автоматически не заменять. Полная приёмка договора
+  и физического iPhone этим узким выпуском не заявляется.
+
 ### Адресный ремонт публичного кеша — 23 октября
 
 - [x] Подтвердить 43 TTL30 записи, источник каждой через public feed/canonical

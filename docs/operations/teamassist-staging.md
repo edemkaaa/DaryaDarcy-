@@ -1,5 +1,60 @@
 # Отдельный тестовый стенд TeamAssist
 
+## VK-обложки: build-only исправление — 24 октября
+
+После явного согласия пользователя восстановлен пропущенный при предыдущей
+сборке `NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED=true`. Это не изменение S3,
+видеозаписей или дизайна: исходные компоненты/API/dependencies не менялись.
+Свежий fetch: staging по-прежнему a4d223f; локальный source выпуска
+`a2121599b969e3cdd6097ec1ead304b6ff090705`, production frontend совпадает
+с прежним, кроме параметра сборки (между source-коммитами лишь docs/test).
+
+### Проверка и сохранность
+
+- До выпуска в браузере первые20карточек содержали0img; запрос API с
+  includeThumbnails=true отдавал19адресов для22роликов. При обычной пересборке
+  с build-time env флаг стал литеральным true в клиентском коде. Ручной правки
+  next.config или компонентов не потребовалось; SSR/browser работают на одной
+  сборке. Все5ранее замороженных publicEnv сохранены, TEST/оплата не менялись.
+- Unit67/2files, root tsc, frontend lint, API93, production Next29routes GREEN.
+  Native offline HTTP5 на новом образе без сети/БД/провайдеров GREEN.
+- Backup40tables,486718bytes, SHA256
+  `4401256936133f703a37c75c0f41a84e80780ef5d8679b77d41cb77e9e8d3deb`.
+  Gzip/состав/SHA подтверждены на сервере и Mac **до переключения**; права600,
+  родительские каталоги700. Резервная копия не применялась к рабочей БД.
+- Сменён только image web через Compose --no-deps; edge configuration не
+  менялась, выполнены nginx test/reload для нового адреса web. API/TEST/MySQL,
+  остальные29контейнеров/их время запуска, DB/schema/history/content/counts
+  и3admin credential+role+session fingerprints сохранены. S3 PUT/DELETE,
+  payments/mail/account mutations отсутствуют.
+- Public HTTPS: catalog22public,19существующих PNG декодированы Sharp,
+  5443271bytes суммарно; опубликованный thumbnail JS chunk SHA совпал с новым
+  release manifest. Никаких автоматических замен трёх отсутствующих обложек.
+- Browser:20→22карточки,19/19img complete/naturalWidth>0,broken0,3ожидаемых
+  заглушки. Прокрутка всего каталога и возврат Видео→Магазин→Видео сохраняют
+  22карточки/19готовых фото/scrollTop5588.5. Warn/error logs пусты. Это не новая
+  физическая iPhone или playback-проверка; cache network bytes не измерялись.
+
+### Идентичность и откат
+
+- Новый web `sha256:e03b430ea08341acaa3f91ec0aa832008275b9a837514a2e89821d25eceacd5d`,
+  tag `daryadarcy-integrated:web-covers-a2121599b969`,
+  BUILD_ID `GbgO1tDZohx-aaIgV5mYv`.
+- Сохранён прежний web
+  `sha256:99372ae7fca6f7360f8e218aec384dd2bd5153a9908549049694c0da234b34d1`.
+- Context551files/29266593bytes,
+  SHA256 `7bf40d38b46cad07b09b9c0ce16ca8269dc1a5c1a7c336ecee2a03dfb644829f`.
+- Private operator/guards/backup/receipts на сервере:
+  `/home/edem/apps/daryadarcy-staging/release-vk-covers-20261024.e0JFkL`;
+  Mac: `.local-artifacts/vk-covers-release-20261024.V1wj89` родительского workspace.
+  На Mac актуальные inputs — context-v2.tar.gz и manifest-v2.json; первая пара
+  context/manifest не использовалась для сборки (уточнён pinned base tag guard).
+- При отдельном разрешении отката запустить phase rollback сохранённого
+  release.py после проверки отсутствия более позднего выпуска. Operator
+  откажет при постороннем configuration drift, возвращает только прежний web
+  image и reload edge. Не восстанавливать БД, не менять API/TEST/S3 и не чистить
+  общий image cache. Откат намеренно вернёт прежнее отсутствие VK-обложек.
+
 ## Публичные превью: адресное пересоздание старого кеша — 23 октября
 
 По отдельному разрешению пользователя пересозданы только 43 подтверждённые
