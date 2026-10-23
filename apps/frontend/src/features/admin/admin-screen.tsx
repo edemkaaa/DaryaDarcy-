@@ -15,7 +15,14 @@ import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { LoadingIndicator } from "@/shared/ui/loading-indicator";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { trpc } from "@/shared/api/trpc";
-import type { AdminPost, AdminPostCard } from "@/shared/api/types";
+import type { AdminPost, AdminPostCard, ApiOutputs } from "@/shared/api/types";
+import { getQueryKey } from "@trpc/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useCursorPages,
+  requireCursorPage,
+} from "@/shared/api/use-cursor-pages";
+import type { CursorChain } from "@/shared/api/cursor-pages";
 import {
   useSessionOperation,
   checkOperationAccessError,
@@ -127,6 +134,7 @@ export default function AdminScreen() {
   });
   const counts = countsQuery.isError ? undefined : countsQuery.data;
   const utils = trpc.useUtils();
+  const cache = useQueryClient();
   const invalidatePublicFeeds = () => {
     void utils.admin.postsPage.invalidate();
     void utils.admin.postCounts.invalidate();
@@ -136,8 +144,12 @@ export default function AdminScreen() {
     void utils.feed.listPaginated.invalidate();
     void utils.club.list.invalidate();
   };
-  const membersQuery = trpc.admin.members.useQuery(undefined, {
-    enabled: isOwner && (viewTab === "members" || viewTab === "payments"),
+  const membersQuery = useCursorPages({
+    key: getQueryKey(trpc.admin.membersPage, { limit: 20 }, "query"),
+    scope: String(user?.id ?? "guest"),
+    enabled: isOwner && viewTab === "members" && !showForm,
+    fetchPage: (cursor, signal) =>
+      utils.client.admin.membersPage.query({ limit: 20, cursor }, { signal }),
   });
   const paymentsQuery = trpc.admin.payments.useQuery(undefined, {
     enabled: isOwner && viewTab === "payments",
@@ -164,7 +176,33 @@ export default function AdminScreen() {
         validate,
       }),
   });
-  const readMembers = () => readQuery(membersQuery);
+  const readMembers = async (
+    input: { userId: number },
+    signal: AbortSignal,
+  ) => {
+    const page = await utils.client.admin.membersPage.query(
+      { userId: input.userId, limit: 1 },
+      { signal },
+    );
+    signal.throwIfAborted();
+    requireCursorPage(page);
+    const member = page.items.find((row) => row.id === input.userId);
+    if (page.items.length !== 1 || !member || page.nextCursor !== null)
+      throw invalidResponse();
+    cache.setQueriesData<CursorChain<ApiOutputs["admin"]["membersPage"]>>(
+      { queryKey: getQueryKey(trpc.admin.membersPage) },
+      (chain) =>
+        chain && {
+          ...chain,
+          pages: chain.pages.map((current) => ({
+            ...current,
+            items: current.items.map((row) =>
+              row.id === member.id ? member : row,
+            ),
+          })),
+        },
+    );
+  };
   const readReports = () => readQuery(reportsQuery);
   const deleteMutation = mutation(
     "delete-post",
@@ -192,12 +230,17 @@ export default function AdminScreen() {
   const grantClub = mutation(
     "grant",
     "Продлить клуб",
-    (input: { userId: number }, signal) =>
-      utils.client.admin.grantClub.mutate(input, { signal }),
+    async (input: { userId: number }, signal) => {
+      const result = await utils.client.admin.grantClub.mutate(input, {
+        signal,
+      });
+      requireGrant(result);
+      await readMembers(input, signal);
+      return result;
+    },
     readMembers,
     (result) => {
-      void membersQuery.refetch();
-      void paymentsQuery.refetch();
+      void utils.admin.payments.invalidate();
       const until = new Date(
         (result as { expiresAt: string }).expiresAt,
       ).toLocaleDateString("ru-RU", {
@@ -212,21 +255,32 @@ export default function AdminScreen() {
   const blockUser = mutation(
     "block",
     "Заблокировать пользователя",
-    (input: { userId: number; reason: string }, signal) =>
-      utils.client.moderation.blockUser.mutate(input, { signal }),
+    async (input: { userId: number; reason: string }, signal) => {
+      const result = await utils.client.moderation.blockUser.mutate(input, {
+        signal,
+      });
+      requireOk(result);
+      if (isOwner && viewTab === "members") await readMembers(input, signal);
+      return result;
+    },
     isOwner && viewTab === "members" ? readMembers : readReports,
     () => {
-      if (isOwner) void membersQuery.refetch();
       void reportsQuery.refetch();
     },
   );
   const unblockUser = mutation(
     "unblock",
     "Разблокировать пользователя",
-    (input: { userId: number }, signal) =>
-      utils.client.moderation.unblockUser.mutate(input, { signal }),
+    async (input: { userId: number }, signal) => {
+      const result = await utils.client.moderation.unblockUser.mutate(input, {
+        signal,
+      });
+      requireOk(result);
+      await readMembers(input, signal);
+      return result;
+    },
     readMembers,
-    () => void membersQuery.refetch(),
+    () => {},
   );
   const dismissReport = mutation(
     "dismiss",
@@ -245,6 +299,7 @@ export default function AdminScreen() {
     () => {
       void reportsQuery.refetch();
       void utils.club.comments.invalidate();
+      void utils.club.commentsPage.invalidate();
       void utils.club.list.invalidate();
     },
   );
@@ -260,6 +315,7 @@ export default function AdminScreen() {
             : null;
   const listFailed =
     Boolean(selectedListQuery?.isError) &&
+    !(viewTab === "members" && membersQuery.isFetchNextPageError) &&
     !(viewTab === "posts" && postsQuery.isFetchNextPageError);
   const handleCreate = () => {
     setEditingPost(null);
@@ -911,7 +967,26 @@ export default function AdminScreen() {
         <StatsDashboard />
       ) : viewTab === "members" ? (
         <Collection
-          data={membersQuery.data || []}
+          data={membersQuery.items}
+          footer={
+            membersQuery.hasNextPage && !membersQuery.denied ? (
+              <Action
+                disabled={
+                  membersQuery.isFetching || membersQuery.isFetchingNextPage
+                }
+                onClick={() => void membersQuery.fetchNextPage()}
+                className={classes.postsRetry}
+              >
+                <Typography>
+                  {membersQuery.isFetchingNextPage
+                    ? "Загрузка…"
+                    : membersQuery.isFetchNextPageError
+                      ? "Повторить загрузку участниц"
+                      : "Загрузить ещё участниц"}
+                </Typography>
+              </Action>
+            ) : null
+          }
           keyExtractor={(item) => String(item.id)}
           empty={
             <div

@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { cursorFixture, legacyCursorFixture } from "./cursor-fixture";
 
 /** Wait for client startup before interacting with server-rendered controls. */
 export async function gotoWithSession(page: Page, path: string) {
@@ -131,7 +132,17 @@ export async function layoutApi(
       return route.fulfill({
         json: procedures.map(
           (name, index) =>
-            answer?.(name, inputs[index]?.json ?? {}) ?? {
+            answer?.(name, inputs[index]?.json ?? {}) ??
+            (legacyCursorFixture[name]
+              ? cursorFixture(
+                  answer?.(
+                    legacyCursorFixture[name]!,
+                    inputs[index]?.json ?? {},
+                  ),
+                  name,
+                  inputs[index]?.json ?? {},
+                )
+              : undefined) ?? {
               result: { data: { json: data(name) } },
             },
         ),

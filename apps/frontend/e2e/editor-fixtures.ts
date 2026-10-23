@@ -1,5 +1,6 @@
 import type { Page, Route } from "@playwright/test";
 import { layoutApi } from "./layout-fixtures";
+import { cursorFixture, legacyCursorFixture } from "./cursor-fixture";
 
 export const ok = (data: unknown) => ({ result: { data: { json: data } } });
 export const failure = (status = 400) => ({
@@ -78,6 +79,13 @@ export async function editorApi(
           return ok({ state: "notRecorded" });
         const custom = await answer?.(name, input, route);
         if (custom !== undefined) return custom;
+        const legacy = legacyCursorFixture[name];
+        if (legacy)
+          return cursorFixture(
+            await answer?.(legacy, input, route),
+            name,
+            input,
+          );
         // Existing editor scenarios provide a full synthetic catalog. Serve the
         // new card/detail transport from that same fixture, not from production
         // repositories. Pagination itself is covered by native SQL + dedicated UI tests.
