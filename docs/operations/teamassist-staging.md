@@ -1,5 +1,140 @@
 # Отдельный тестовый стенд TeamAssist
 
+## AUDIO и оформление Клуба — узкое исправление22 октября
+
+Разрешения: исправить старое аудио без frontend/source edits; после проверки
+загрузить3 отдельные совместимые копии и заменить только их привязки с backup.
+Затем пользователь сообщил об отказе PNG-баннера и поручил исправление.
+Ни push, ни выпуск остальных локальных изменений не выполнялись.
+
+### Аудио: применено и проверено
+
+- Media13/post826,17/post931,18/post932 ранее указывали на `club/tg/2935`,
+  `3063`, `3158`. Все3 исходника — M4A/ALAC mono48k с индексом в конце;
+  ошибочная metadata `audio/mpeg`. Chromium отвергает даже исходник с верным
+  MIME; WebKit локально воспроизводит оба варианта MIME. Причина конкретной
+  iPhone-ошибки не доказана только кодеком: прямой доступ к S3/сеть также важны.
+- Offline helper `tooling/operations/prepare-audio-rendition.ts` не обращается
+  в сеть/БД, запрещает overwrite, проверяет source SHA до/после, codec/duration/
+  channels/faststart. Отдельные AAC-LC копии:30 850 869/16 445 668/27 964 119bytes
+  вместо234 977 806/56 742 241/91 859 912. Длительности5832,88/1305,76/2224,8s;
+  расхождение с оригиналами<0,2s. Все укладываются в существующие32МиБ.
+  Для97мин mono bitrate40k, для двух остальных96k; квота не повышалась.
+- Fresh backup `before3.sql.gz`,485805bytes/40tables SHA256
+  `3c32aa55edf9bf1e2951f60e6e5be4dee2901cd1faf9e286e9f249925837535e`.
+  Начальный/конечный fingerprints при успешном backup совпали. Dump независимо
+  проверен на Mac и восстановлен только в own loopback/tmpfs `backend_test`.
+  Rehearsal apply→replay→rollback→rollbackReplay сохранил все остальные строки;
+  после отката остались только6 audit rows. Тесты с настоящим MySQL:8 GREEN,
+  включая ошибку SQL на последнем UPDATE, collision/drift/blocked actor.
+- Live оператор использовал тот же API image, read-only mount/rootfs,
+  dropped caps, no-new-privileges,192MiB/0,5CPU, без публичных ports. Сеть —
+  существующий namespace API с закреплённым S3-egress, без изменения DNS/proxy/
+  trust/ACL/policy. Первоначальная попытка только в DB-isolated сети получила
+  EAI_AGAIN до PUT/SQL; доступ не расширялся. Использован canonical
+  `ensurePrivateUploadObject`: current policy/server identity, private ACL,
+  IfNoneMatch, MD5, ETag/metadata reconciliation, только3 новые UUID keys.
+- В одной транзакции изменены только `url/mimeType/fileSize/duration` трёх
+  media, добавлены3 bound ready `private_attachment_uploads` и3 audit entries.
+  ID/postId/type/filename/order/dates/post bodies прежние. URL теперь
+  `/api/media/post-attachments/{13,17,18}`, MIME `audio/mp4`. SQL helper:
+  `tooling/data/legacy-audio-repair.ts`; не новый HTTP endpoint.
+- Live проверки:3 новых S3 URL анонимно403;33 API assertions —3 существующих
+  admins получают HEAD200/audio/mp4/length/Accept-Ranges/private no-store и
+  GET206 начала/хвоста. Полученные байты совпали с подготовленными копиями.
+  Гость и существующий unpaid получают404. Новых accounts/платежей/писем нет.
+- Текущий опубликованный интерфейс Chromium: все3 карточки воспроизводят,
+  currentTime растёт, seek70%, pause/resume, error=null, muted=false, volume1.
+  Это не физическое прослушивание и не приёмка iPhone. Loopback HTTP с
+  неизменённым production player:12 real Chromium/WebKit cases GREEN для3
+  записей. Live WebKit harness зависал; эта часть не принята. Карточку установки
+  приложения в проверке закрывали штатной «Понятно →», без force/mocks API.
+- Before/after SQL fingerprints с исключением только своих3 изменений/
+  receipts/audits совпали для39 таблиц; в users была живая активность, которая
+  не откатывалась. Credentials всех3 admins прежние. Source HEAD ETag/length
+  совпали до/после, исходные объекты не перезаписывались и не удалялись.
+  Во время собственно audio apply API container/image/config не менялись.
+
+### Оформление: data-only revision3→4
+
+В revision3 были HTML share-page URL Яндекс Диска для обоих зимних изображений.
+Баннер302→showcaptcha, не image response. Через официальный public resource
+API подтверждены PNG8 896 834bytes/3640×2316/alpha и JPEG499411bytes/1200×1200.
+Оригиналы скачаны с ограничениями размера/redirect hosts и сверены по SHA256;
+ни Яндекс Диск, ни старые S3 объекты не изменялись.
+
+Из тех же материалов подготовлены WebP: banner2560×1629/355766bytes с alpha,
+background1200×1200/378398bytes. Созданы только новые объекты:
+
+- `covers/appearance-20261022-bd917c8d3770e0215baf2aacce553796ed8360ee82b2528a8caeb2a8c5591523.webp`
+- `covers/appearance-20261022-32320a4f4b1603f396958f138221fa6700a5efd9f4027ddfa74a7a1390e68cc9.webp`
+
+Это публичные элементы оформления, не закрытые материалы; назначение
+`publicCover`. PUT IfNoneMatch/ContentMD5, HEAD ETag/length/MIME и anonymous
+HEAD200 проверены. Подготовка файлов на Mac, upload из отдельного read-only
+128MiB/0,5CPU процесса без Sharp/DB/JWT/SMTP, без перезапуска приложения.
+
+Важный сбой первой попытки: вызов существующего `admin.uploadPhoto` с
+подготовленным баннером завершился без ответа; затем у API зафиксирован
+restartCount1/start16:08:17UTC и действующий memory limit256MiB. Диагностический
+stderr пуст; историческое Docker events окно не дало данных. Связь с нехваткой
+памяти вероятна, но OOM как причина не доказан журналом. Сейчас API running;
+лимит не повышали, тяжёлый маршрут повторно не вызывали. SQL-настройки на этом
+неуспешном шаге не менялись. Это ограничение загрузок, не ошибка поддержки PNG.
+
+Настройки сохранены через **существующий** авторизованный PUT launch-settings
+с expectedRevision3, backup полного before snapshot, recheck actor/3admin
+credential digest, conflict guard. Только winter.bannerUrl/backgroundUrl
+изменены, revision4. Режим fixed/winter, даты,3 остальных сезона и managerEmail
+прежние. После PUT публичный launch-config вернул revision4 и обе новые ссылки.
+Первая внешняя браузерная приёмка упиралась в SSH/HTTPS timeouts. Повторная
+прошла23октября: настоящий `/club` в Chromium показывает новый баннер,
+naturalWidth>0, обе новые картинки декодируются, ошибки оформления нет,
+публичный config revision4. Screenshot/receipt сохранены. iPhone отдельно.
+
+Локальная backend-защита от повторного сохранения `disk.yandex.ru/.com`,
+`yadi.sk` share pages: RED5+3/GREEN75 unit/native-SQL/HTTP/frontend-boundary
+checks; HTTP400 с постоянным безопасным пояснением о прямой ссылке. Остальные
+ошибки остаются прежними; malformed URL теперь даёт отказ валидации, не throw
+из URL constructor. Нет runtime fetching/SSRF/image-extension guessing.
+Этот код **не выложен**, изображения/настройки уже применены без выпуска кода.
+
+### Артефакты, ограничения проверки и откат
+
+Закрытые каталоги вне Git:
+
+- Mac `.local-artifacts/club-audio-20261022.nnBDYx` и
+  `.local-artifacts/club-appearance-20261022.20PSEu` в родительской папке проекта.
+- Server `/home/edem/apps/daryadarcy-staging/audio-repair-20261022.tzaX5h`
+  и `/home/edem/apps/daryadarcy-staging/appearance-repair-20261022.bdOptA`.
+
+Там backup600/SHA, exact before rows, sealed plan/копии/operators, upload/apply/
+verify/preservation receipts, browser/HTTP evidence; исходные аудио и изображения
+на Mac. Не коммитить/не пересылать dumps, private plans и учётные данные.
+
+Audio rollback — отдельная guarded фаза `audio-run.py rollback`, только после
+нового решения/свежего backup. Helper сверяет точные current rows/receipts и
+отказывается при последующих edits; восстанавливает4 поля, удаляет только свои
+3receipts и сохраняет rollback audit. S3 не удаляет. Полный restore запрещён:
+он затрёт живые изменения users/оформления после backup. Применять прежний
+`repair-plan.json`, не генерировать asset UUID/request keys заново.
+
+Для оформления после согласования откатить только две ссылки штатным PUT с
+новой expectedRevision и проверкой, что они всё ещё наши; прочие настройки
+брать из свежего snapshot. Не перезаписывать весь старый config и не удалять
+объекты. Старые Yandex share-page ссылки сохранены в before.json, но возвращать
+их автоматически нельзя — это снова сломает картинки.
+
+Backend build/API contract/boundaries/docs проходят. Общий root tsc всё ещё
+останавливается на прежнем TS7016 frontend-image-optimizer.test.ts. Полный suite:
+3110pass/1fail/1610skip — прежний push test посылает40операций и ожидает40
+ответов, тогда как уже введённый pre-parser отклоняет batch>20 с400. Фокусный
+rerun подтвердил эту несвязанную несовместимость fixture; в audio-задаче не
+меняли ни push, ни batch protection. Не объявлять полный suite зелёным.
+
+Frontend handoff:
+[Клуб: аудио и оформление](../development/frontend-club-audio-season-assets-2026-10-22.md).
+
 ## 22 октября — старый Клуб перенесён в текущую БД, data-only
 
 Прямое разрешение пользователя: перенести клубные посты/статьи на dev,
