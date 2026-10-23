@@ -84,6 +84,19 @@ describe.skipIf(!testDatabaseUrl)(
         nextCursor: null,
       });
     });
+    it("honors a 50-member page while retaining its next boundary", async () => {
+      await seed(51);
+      const first = await read({ limit: 50 });
+      expect(first.status).toBe(200);
+      expect(first.data.items.map((row) => row.id)).toEqual(
+        extraIds.slice(1).reverse(),
+      );
+      expect(first.data.nextCursor).toBeTypeOf("string");
+      expect(
+        (await read({ limit: 1, cursor: first.data.nextCursor })).data.items[0]
+          .id,
+      ).toBe(extraIds[0]);
+    });
     it("continues after the cursor account is deleted and new accounts arrive", async () => {
       await seed(3);
       const first = await read({ limit: 1 });

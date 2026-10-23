@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openListPageFixture } from "./helpers/list-page-fixture";
+import { deletePostCommentV2 } from "../apps/backend/src/content/comments";
 
 describe.skipIf(!testDatabaseUrl)(
   "comment groups over real HTTP/JWT/disposable MySQL",
@@ -88,6 +89,34 @@ describe.skipIf(!testDatabaseUrl)(
       expect(
         (await read({ parentId: base + 501 })).data.items.map((row) => row.id),
       ).toEqual([base + 552]);
+    });
+    it("honors a 50-comment group with a reachable final item", async () => {
+      for (let i = 0; i < 51; i++) await comment(i);
+      const first = await read({ limit: 50 });
+      expect(first.status).toBe(200);
+      expect(first.data.items).toHaveLength(50);
+      const last = await read({ limit: 50, cursor: first.data.nextCursor });
+      expect(last.data.items.map((row) => row.id)).toEqual([base + 550]);
+      expect(last.data.nextCursor).toBeNull();
+    });
+    it("shows promoted replies as roots after the existing delete transaction", async () => {
+      await comment(0);
+      await comment(1, base + 500);
+      await comment(2, base + 501);
+      await deletePostCommentV2(base + 500, base);
+      const roots = await read();
+      expect(roots.status).toBe(200);
+      expect(roots.data.items).toHaveLength(1);
+      expect(roots.data.items[0]).toMatchObject({
+        id: base + 501,
+        parentId: null,
+        replyCount: 1,
+      });
+      expect(roots.data.totalCount).toBe(2);
+      expect((await read({ parentId: base + 500 })).status).toBe(404);
+      expect(
+        (await read({ parentId: base + 501 })).data.items.map((row) => row.id),
+      ).toEqual([base + 502]);
     });
     it("keeps author/photo/like fields without loading another parent's replies", async () => {
       await comment(0);

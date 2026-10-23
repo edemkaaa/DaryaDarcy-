@@ -73,6 +73,15 @@ describe.skipIf(!testDatabaseUrl)(
         base + 127,
       ]);
     });
+    it("honors the explicit 50-item maximum without truncating the last item", async () => {
+      await seed(51);
+      const first = await read({ limit: 50 });
+      expect(first.status).toBe(200);
+      expect(first.data.items).toHaveLength(50);
+      const last = await read({ limit: 50, cursor: first.data.nextCursor });
+      expect(last.data.items.map((row) => row.id)).toEqual([base + 100]);
+      expect(last.data.nextCursor).toBeNull();
+    });
     it("deduplicates historical saves using the newest actual row, preserving media/reactions", async () => {
       const a = await fixture.post(0),
         b = await fixture.post(1);
