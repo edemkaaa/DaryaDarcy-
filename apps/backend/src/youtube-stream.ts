@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { promisify } from "node:util";
 import type { Express, Request, Response } from "express";
 import { getVideoByYoutubeId } from "./db";
@@ -14,7 +15,8 @@ function ytBin(): string {
   );
 }
 
-async function playbackUrl(id: string): Promise<string> {
+async function playbackUrl(id: string, signal: AbortSignal): Promise<string> {
+  signal.throwIfAborted();
   const hit = cache.get(id);
   if (hit && hit.exp > Date.now()) return hit.url;
   const { stdout } = await execFileAsync(
@@ -29,7 +31,7 @@ async function playbackUrl(id: string): Promise<string> {
       "--no-playlist",
       `https://www.youtube.com/watch?v=${id}`,
     ],
-    { timeout: 28000, maxBuffer: 2 * 1024 * 1024 },
+    { timeout: 28000, maxBuffer: 2 * 1024 * 1024, signal },
   );
   const url = stdout
     .trim()
@@ -49,6 +51,16 @@ export function registerYoutubeStream(app: Express) {
       res.status(400).json({ error: "bad id" });
       return;
     }
+    const controller = new AbortController();
+    const onClose = () => controller.abort();
+    res.once("close", onClose);
+    req.once("aborted", onClose);
+    // Match the bounded legacy video-service request window, not video length.
+    const deadline = setTimeout(() => {
+      controller.abort();
+      res.destroy();
+    }, 170000);
+    deadline.unref();
     try {
       // Check current publication before cache resolution or external work.
       // A public catalog player must not become a proxy for arbitrary IDs.
@@ -62,15 +74,20 @@ export function registerYoutubeStream(app: Express) {
         res.status(404).json({ error: "video unavailable" });
         return;
       }
-      const url = await playbackUrl(id);
+      const url = await playbackUrl(id, controller.signal);
       const headers: Record<string, string> = {
         "User-Agent":
           "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/122.0.0.0 Mobile Safari/537.36",
       };
       if (req.headers.range) headers.Range = String(req.headers.range);
-      const upstream = await fetch(url, { headers, redirect: "follow" });
+      const upstream = await fetch(url, {
+        headers,
+        redirect: "follow",
+        signal: controller.signal,
+      });
       if (!upstream.ok && upstream.status !== 206) {
         cache.delete(id);
+        await upstream.body?.cancel();
         res.status(upstream.status).end();
         return;
       }
@@ -100,12 +117,21 @@ export function registerYoutubeStream(app: Express) {
         res.end();
         return;
       }
-      Readable.fromWeb(upstream.body as never).pipe(res);
+      await pipeline(Readable.fromWeb(upstream.body as never), res, {
+        signal: controller.signal,
+      });
     } catch (err) {
       cache.delete(id);
-      console.error("[yt]", id, err instanceof Error ? err.message : err);
-      if (!res.headersSent)
+      if (!controller.signal.aborted)
+        console.error("[yt]", id, "stream unavailable");
+      if (!res.headersSent && !res.destroyed && !controller.signal.aborted)
         res.status(502).json({ error: "video unavailable" });
+      else if (!res.writableEnded) res.destroy();
+    } finally {
+      clearTimeout(deadline);
+      res.off("close", onClose);
+      req.off("aborted", onClose);
+      controller.abort();
     }
   });
 }
