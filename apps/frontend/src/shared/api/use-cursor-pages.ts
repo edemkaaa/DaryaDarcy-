@@ -35,11 +35,15 @@ export function useCursorPages<P extends CursorPage>({
   scope,
   enabled,
   fetchPage,
+  staleTime,
+  gcTime,
 }: {
   key: QueryKey;
   scope: string;
   enabled: boolean;
   fetchPage: (cursor: string | null, signal: AbortSignal) => Promise<P>;
+  staleTime?: number;
+  gcTime?: number;
 }) {
   const client = useQueryClient();
   const queryKey = [...key, { ownerScope: scope }];
@@ -53,6 +57,8 @@ export function useCursorPages<P extends CursorPage>({
   const query = useQuery<CursorChain<P>>({
     queryKey,
     ...contentRefreshOptions(enabled),
+    ...(staleTime === undefined ? {} : { staleTime }),
+    ...(gcTime === undefined ? {} : { gcTime }),
     queryFn: async ({ signal }) => {
       const head = await fetchPage(null, signal);
       requireCursorPage(head);

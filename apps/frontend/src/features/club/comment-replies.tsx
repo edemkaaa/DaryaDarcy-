@@ -45,6 +45,8 @@ function ReplyGroup({
   const page = useCursorPages({
     key: getQueryKey(trpc.club.commentsPage, input, "query"),
     scope,
+    staleTime: 60_000,
+    gcTime: 60_000,
     enabled,
     fetchPage: (cursor, signal) =>
       utils.client.club.commentsPage.query({ ...input, cursor }, { signal }),

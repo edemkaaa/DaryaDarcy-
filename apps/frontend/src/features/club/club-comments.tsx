@@ -266,6 +266,8 @@ function CommentThread({
   const comments = useCursorPages({
     key: getQueryKey(trpc.club.commentsPage, commentInput, "query"),
     scope: commentScope,
+    staleTime: 60_000,
+    gcTime: 60_000,
     enabled: commentsEnabled,
     fetchPage: (cursor, signal) =>
       utils.client.club.commentsPage.query(
@@ -462,12 +464,10 @@ function CommentThread({
             },
             (chain) =>
               chain && {
-                pages: chain.pages
-                  .slice(0, 1)
-                  .map((page) => ({
-                    ...page,
-                    items: page.items.filter((row) => row.id !== input.id),
-                  })),
+                pages: chain.pages.slice(0, 1).map((page) => ({
+                  ...page,
+                  items: page.items.filter((row) => row.id !== input.id),
+                })),
                 pageParams: [null],
               },
           );
