@@ -2,6 +2,17 @@
 
 ## Действующий план агента — 13 октября 2026
 
+23 октября, BE-03 — сначала минимальный контракт пагинации, без реализации.
+Проверены потребители на4891a30: feed/VK/admin posts уже постраничные;
+предложены savedPostsPage, membersPage и commentsPage с отдельными группами
+корней/ответов. Defaults20/max50, keyset только новых методов; старые числовые
+cursor и формы ответов не менять. Старые полные routes не обрезать и не удалять
+до перехода потребителей/скриптов и отдельного согласования вывода. Документ
+frontend-legacy-list-pagination-contract-2026-10-23.md — на принятие; API ещё
+не существует. Фронт/runtime/рабочая БД/S3 не меняются, без push/deploy.
+После принятия: локальный RED/GREEN saved→members→comments на disposable SQL,
+отдельно сгенерированный контракт фронтендеру, затем совместная проверка.
+
 23 октября, три аудита be029ed — backend-only локальные исправления.
 BE-01: свежий actor/target lock и запрет moderator→staff/self; BE-02: bounded
 storage-call/HTTP disconnect/S3Client destroy без автоповтора; BE-04:503 вместо
