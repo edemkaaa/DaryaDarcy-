@@ -38,6 +38,7 @@ export function createTRPCClient() {
           },
         }),
         false: httpBatchLink({
+          maxItems: 20,
           url: `${getApiBaseUrl()}/api/trpc`,
           transformer: superjson,
           fetch: fetchApiResponse,

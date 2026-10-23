@@ -29,13 +29,13 @@ export type Post = {
   createdAt: Date;
   updatedAt: Date;
   tags: Array<string>;
+  target: "feed" | "club" | "both";
   photos: Array<string>;
   source: string;
   instagramId: string | null;
   sortOrder: number;
   published: boolean;
   status: "published" | "draft" | "scheduled";
-  target: "feed" | "club" | "both";
   scheduledAt: Date | null;
   publishedAt: Date | null;
   richText: Array<RichTextBlock> | null;
@@ -209,13 +209,13 @@ export type AppRouter = BuiltRouter<
             createdAt: Date;
             updatedAt: Date;
             tags: Array<string>;
+            target: "feed" | "club" | "both";
             photos: Array<string>;
             source: string;
             instagramId: string | null;
             sortOrder: number;
             published: boolean;
             status: "published" | "draft" | "scheduled";
-            target: "feed" | "club" | "both";
             scheduledAt: Date | null;
             publishedAt: Date | null;
             richText: Array<RichTextBlock> | null;
@@ -245,13 +245,13 @@ export type AppRouter = BuiltRouter<
               createdAt: Date;
               updatedAt: Date;
               tags: Array<string>;
+              target: "feed" | "club" | "both";
               photos: Array<string>;
               source: string;
               instagramId: string | null;
               sortOrder: number;
               published: boolean;
               status: "published" | "draft" | "scheduled";
-              target: "feed" | "club" | "both";
               scheduledAt: Date | null;
               publishedAt: Date | null;
               richText: Array<RichTextBlock> | null;
@@ -294,18 +294,49 @@ export type AppRouter = BuiltRouter<
             createdAt: Date;
             updatedAt: Date;
             tags: Array<string>;
+            target: "feed" | "club" | "both";
             photos: Array<string>;
             source: string;
             instagramId: string | null;
             sortOrder: number;
             published: boolean;
             status: "published" | "draft" | "scheduled";
-            target: "feed" | "club" | "both";
             scheduledAt: Date | null;
             publishedAt: Date | null;
             richText: Array<RichTextBlock> | null;
           } & { likeCount: number; media: PostMedia[] }
         >;
+        meta: unknown;
+      }>;
+      savedPostsPage: QueryProcedure<{
+        input: {
+          target: "feed" | "club";
+          limit?: number | undefined;
+          cursor?: string | null | undefined;
+          direction?: "forward" | undefined;
+        };
+        output: {
+          items: Array<
+            {
+              id: number;
+              text: string;
+              createdAt: Date;
+              updatedAt: Date;
+              tags: Array<string>;
+              target: "feed" | "club" | "both";
+              photos: Array<string>;
+              source: string;
+              instagramId: string | null;
+              sortOrder: number;
+              published: boolean;
+              status: "published" | "draft" | "scheduled";
+              scheduledAt: Date | null;
+              publishedAt: Date | null;
+              richText: Array<RichTextBlock> | null;
+            } & { likeCount: number; media: PostMedia[] }
+          >;
+          nextCursor: string | null;
+        };
         meta: unknown;
       }>;
     };
@@ -392,13 +423,13 @@ export type AppRouter = BuiltRouter<
             createdAt: Date;
             updatedAt: Date;
             tags: Array<string>;
+            target: "feed" | "club" | "both";
             photos: Array<string>;
             source: string;
             instagramId: string | null;
             sortOrder: number;
             published: boolean;
             status: "published" | "draft" | "scheduled";
-            target: "feed" | "club" | "both";
             scheduledAt: Date | null;
             publishedAt: Date | null;
             richText: Array<RichTextBlock> | null;
@@ -444,13 +475,13 @@ export type AppRouter = BuiltRouter<
               createdAt: Date;
               updatedAt: Date;
               tags: Array<string>;
+              target: "feed" | "club" | "both";
               photos: Array<string>;
               source: string;
               instagramId: string | null;
               sortOrder: number;
               published: boolean;
               status: "published" | "draft" | "scheduled";
-              target: "feed" | "club" | "both";
               scheduledAt: Date | null;
               publishedAt: Date | null;
               richText: Array<RichTextBlock> | null;
@@ -711,13 +742,13 @@ export type AppRouter = BuiltRouter<
           createdAt: Date;
           updatedAt: Date;
           tags: Array<string>;
+          target: "feed" | "club" | "both";
           photos: Array<string>;
           source: string;
           instagramId: string | null;
           sortOrder: number;
           published: boolean;
           status: "published" | "draft" | "scheduled";
-          target: "feed" | "club" | "both";
           scheduledAt: Date | null;
           publishedAt: Date | null;
           richText: Array<RichTextBlock> | null;
@@ -741,6 +772,30 @@ export type AppRouter = BuiltRouter<
           blockedAt: Date | null;
           blockedReason: string | null;
         }>;
+        meta: unknown;
+      }>;
+      membersPage: QueryProcedure<{
+        input:
+          | {
+              userId?: number | undefined;
+              limit?: number | undefined;
+              cursor?: string | null | undefined;
+              direction?: "forward" | undefined;
+            }
+          | undefined;
+        output: {
+          items: Array<{
+            clubExpiresAt: Date | null;
+            id: number;
+            email: string | null;
+            name: string | null;
+            role: "user" | "moderator" | "admin";
+            createdAt: Date;
+            blockedAt: Date | null;
+            blockedReason: string | null;
+          }>;
+          nextCursor: string | null;
+        };
         meta: unknown;
       }>;
       payments: QueryProcedure<{
@@ -864,13 +919,13 @@ export type AppRouter = BuiltRouter<
           createdAt: Date;
           updatedAt: Date;
           tags: Array<string>;
+          target: "feed" | "club" | "both";
           photos: Array<string>;
           source: string;
           instagramId: string | null;
           sortOrder: number;
           published: boolean;
           status: "published" | "draft" | "scheduled";
-          target: "feed" | "club" | "both";
           scheduledAt: Date | null;
           publishedAt: Date | null;
           richText: Array<RichTextBlock> | null;
@@ -996,6 +1051,34 @@ export type AppRouter = BuiltRouter<
       comments: QueryProcedure<{
         input: { postId: number };
         output: Array<PostCommentRow>;
+        meta: unknown;
+      }>;
+      commentsPage: QueryProcedure<{
+        input: {
+          postId: number;
+          parentId?: number | null | undefined;
+          limit?: number | undefined;
+          cursor?: string | null | undefined;
+          direction?: "forward" | undefined;
+        };
+        output: {
+          items: Array<{
+            authorName: string | null;
+            authorAvatarUrl: string | null;
+            likeCount: number;
+            likedByMe: boolean;
+            replyCount: number;
+            id: number;
+            postId: number;
+            parentId: number | null;
+            userId: number;
+            text: string;
+            photos: Array<string> | null;
+            createdAt: Date;
+          }>;
+          totalCount: number;
+          nextCursor: string | null;
+        };
         meta: unknown;
       }>;
       addComment: MutationProcedure<{
