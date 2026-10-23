@@ -2,6 +2,18 @@
 
 ## Действующий план агента — 13 октября 2026
 
+23 октября, вечер: по новому прямому поручению объединены staging463a5f6 и
+local978a3f4 без конфликтов, push source515b39c и фактический выпуск web/API/TEST.
+Frontend source полностью сохранён со staging, новых ручных правок нет.
+Та же БД/схема/история/контент и3admin credentials; fresh backup проверен
+на сервере и Mac.3155pass/1687skip +171SQL +62local browser; liveAPI62 и
+Chromium banner whole-image fit320/390/1440/новый build byte-exact GREEN.
+Три новых pagination API уже на стенде, переключение frontend-потребителей
+не выполнено. Default check:api stale/старые полные методы остаются открытым
+остатком, не считать BE-03 полностью закрытым. S3/провайдеры/лимиты прежние.
+Подробные immutable IDs, сохранность и rollback — в operations/teamassist-staging.
+Ниже сохранена история локальных этапов до этого разрешённого выпуска.
+
 23 октября, принят контракт BE-03. Локально реализованы savedPostsPage→
 membersPage→commentsPage; три независимых коммита badb909/215df0c/33f50af.
 Keyset20/max50/context; visibility до LIMIT, дедуп saves, page-only media/expiry,

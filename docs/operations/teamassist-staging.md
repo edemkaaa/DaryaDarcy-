@@ -1,5 +1,89 @@
 # Отдельный тестовый стенд TeamAssist
 
+## Объединённый staging и backend pagination — 23 октября, вечер
+
+Прямое поручение: объединить свежий staging с локальной веткой, сохранить
+правки фронтендера, проверить, push и обновить сервер без потери БД/входов.
+Источник выпуска — `515b39cae7240731e2621c45a1593daa328d890e`: merge локального
+`978a3f4` и staging `463a5f6`. Конфликтов не было; весь `apps/frontend`
+побайтно совпадает с `463a5f6`, ручных правок фронта/дизайна не делали.
+Документационный коммит после этого источника не требует новой сборки.
+
+### Изменения и проверка
+
+- Сохранён frontend fix: настраиваемый зимний баннер показывается целиком
+  с его пропорциями, увеличены промежутки между постами. Наши backend fixes:
+  модерация staff/self, bounded public storage/disconnect, ошибки чтения503,
+  card-only article SQL, обработка обрывов legacy stream; новые совместимые
+  `feed.savedPostsPage`, `admin.membersPage`, `club.commentsPage`.
+- Старые методы не удалены и не обрезаны. Потребителей новых трёх страниц
+  фронтендер ещё переключает отдельно; generated AppRouter93 передан в docs,
+  frontend contract не перезаписан. Default `check:api` остаётся stale до
+  этого перехода; отдельный generated93 `--output/--check` проходит.
+- Свежий общий прогон:3155 passed/1687 skipped,240 passed files/113 skipped.
+  На отдельном loopback/tmpfs MySQL:171 passed/13files, включая пагинацию,
+  реальные HTTP/JWT/SQL, модерацию, комментарии, регистрацию/подписки, card SQL
+  и отключение загрузчика. После проверки удалён только собственный контейнер
+  `2e290349…`; никакие другие контейнеры/volumes/images не удалялись.
+- Root и frontend types, lint, boundaries754/docs81, обычный и restricted TEST
+  backend bundles и production Next29 routes — GREEN. Браузерные controlled-API
+  проверки:29 seasons +33 admin/profile/saved — GREEN; не живые оплаты/загрузки.
+- На сервере собраны только небольшие offline layers поверх текущих immutable
+  runtime bases, без установки пакетов. Проверены558 файлов context, archive
+  SHA и OCI revision; native API5 без сети/БД/providers/workers — GREEN.
+- Live API62: все3admin роли/доступ, публичный профиль без внутренних полей,
+  guest/unpaid запреты,4 winter file bindings list, оба saved targets,
+  members cursor/no duplicates/limit51→400, comments roots/count/access,
+  существующие admin pagination/calendar/counts/detail и checkout-status read.
+  VK22public/19covers/3null,22playback descriptors provider=vk. Комментариев
+  у выбранного клубного поста0; непустые roots/replies проверены локально SQL,
+  не созданы специально в рабочей БД.
+- Live Chromium: admin/club/profile/videos/feed открываются; новый зимний
+  WebP2560×1707, contain и пропорциональная высота на320/390/1440px,
+  JS errors0, manual retries0. Публичный build asset byte-exact с локальным.
+  Script CSP nonce/strict-dynamic сохранён, inline/eval scripts запрещены.
+  Первый harness ошибочно запрещал также штатный inline-style; исправлено
+  только условие проверки script-src, не приложение/политика безопасности.
+  Это не физический iPhone и не новая приёмка VK playback со звуком.
+
+### Реальный выпуск и сохранность
+
+- API `sha256:13b04991cd3cb6e3cc8cd4b11494a0bed1cda443151351a4d2658145e4629b53`;
+  web `sha256:fd19a2f69f9096f5dba3a15930e29292cd07bfe03822737588a7f70dcc075711`;
+  TEST `sha256:c76439ac843c837b360f2468c9fb82ff615f21dbba1858136ce240fcf5969fb7`.
+  BUILD_ID `63Xiu4GWB1DlN6xp1MQ1X`. Все3 healthy/restart0/OOMfalse;
+  actual running API и TEST bundle SHA совпадают с manifest, не только labels.
+- Разрешённый config diff: три image references и readonly TEST bundle path.
+  Старый TEST mount указывал на артефакт21октября поверх нового image;
+  теперь `PRODAMUS_TEST_BUNDLE` закреплён на текущем проверенном файле.
+  TEST mode, SMTP/S3/DB/JWT/env/flags/limits/networks прежние. Frontend public
+  flags: TEST/VK/normal recovery=true, club test/private Library=false.
+- Та же `daryadarcy_candidate_20261019`, UUID
+  `2a41f961-c168-11f1-8660-0a4124b25f9f`: схема/история42/числа строк40tables,
+  содержимое posts/articles/media/library bindings/launch settings/videos и
+  digest credentials всех3admins совпали.932posts:929published/1scheduled/2draft.
+  Пароли/роли/sessionVersion не сбрасывались; обычные auth reads могут менять
+  lastSignedIn. Парольный вход этим smoke заново не проверяли. Миграций нет.
+- Fresh single-transaction backup486735bytes/40tables, SHA256
+  `1dc4220cb98928bc395de2d6e2479d8a7abc3a2d851b20fd4f0c82f54724a24f`;
+  серверная и Mac копии проверены gzip/SHA/table count, private600/parent700.
+  Это не новая restore drill.27 остальных контейнеров сохранили ID/image/start
+  state; DB/edge не пересоздавались, только config test/reload edge.
+  S3 объекты/policy/ACL/фон/оригинал баннера не менялись; писем/платежей нет.
+
+Private receipts/operator/backup:
+`/home/edem/apps/daryadarcy-staging/release-pagination-20261023.Od1utp`;
+Mac `.local-artifacts/staging-release-20261023.RhT0pH` в родительском workspace.
+Логи и дампы вне Git. После выпуска server free1.6GiB/MemAvailable~722MiB;
+базы, образы отката, резервные копии и чужие файлы не очищались.
+
+Узкий rollback после свежей проверки drift: `python3 release.py rollback`
+из этого серверного каталога возвращает только3 app image references и прежний
+readonly TEST mount, затем app-only Compose up и edge reload. Guard откажет,
+если конфигурация изменилась после выпуска. БД не восстанавливать/не очищать:
+это затрёт живые изменения. Rollback images `ecfef4e6…/bde53c86…/d2a06fc1…`
+сохранены. Процедура проверена по коду; реальный rollback не выполнялся.
+
 ## Новый зимний баннер Дарьи — 23 октября 2026
 
 Пользователь разрешил подключить новый баннер, сделать лёгкую WebP-копию с

@@ -2,6 +2,22 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Объединение staging и выпуск —23октября, вечер
+
+- [x] Fresh staging463a5f6, clean local978a3f4; merge без конфликтов515b39c.
+  Весь frontend совпадает со staging; ручных изменений дизайна/фронта нет.
+- [x]3155unit pass/1687skip,171real SQL/HTTP checks на own disposable DB,
+  29seasons+33admin/profile/saved browser, types/lint/обе backend/Next builds.
+- [x] Normal push source515b39c; fresh backup40tables/gzip/SHA/server+Mac,
+  native offline5, guarded app-only rollout web/API/TEST, runtime bundle SHA.
+- [x] Live API62, новые3страницы/access/calendar/VK22; live browser новый build
+  и whole-image winter banner320/390/1440px, JSerrors0/manualRetries0.
+- [x] БД/schema/history42/content/counts/3admin credentials и27other containers
+  сохранены; никаких миграций/S3 writes/mail/payments/лимитов. Own SQL fixture
+  удалена; базы/образы/backup/чужие файлы не чистились. Receipt/rollback записан.
+- [ ] Frontend-переход на3новых pagination APIs и generated93 остаётся фронтендеру;
+  старые полные методы/defaultcheck:api пока не считать закрытыми.
+
 ### BE-03 — контракт пагинации старых списков,23октября
 
 - [x] Проверить ветку/clean tree/последние результаты и текущих consumers;
@@ -28,7 +44,8 @@
   обычный check:api ожидаемо stale; отдельный --output/--check GREEN.
 - [ ] Совместный переход потребителей/скриптов, затем отдельное согласование
   вывода старых полных чтений. Пока они доступны, BE-03 не считать закрытым.
-- Backend реализован только локально. Фронт/рабочая БД/S3 прежние; без push/deploy.
+- Backend после нового разрешения выпущен source515b39c; frontend-переход
+  на новые методы ещё не сделан. Рабочая БД и S3 прежние; см. выпуск выше.
 
 ### Три аудита be029ed — backend-only,23октября
 
@@ -65,8 +82,8 @@
   совпал, старый баннер доступен, фон/оригинал прежние. Холодные browser/S3
   таймауты отдельных контекстов и остаточную обрезку не скрывать.
 - [x] Документ фронтендеру: frontend-winter-banner-fit-2026-10-23.md.
-- [ ] Полное отсутствие кадрирования блока: current cover/top/height0.55W
-  срезает в основном alpha, но также60pixels видимого края; правит фронтендер.
+- [x] Правка фронтендера463a5f6 сохранена и выпущена515b39c: configurable winter
+  banner contain/intrinsic ratio. Local29 и live320/390/1440 GREEN.
 - [ ] Приёмка нового баннера на физическом iPhone.
 
 ### AUDIO — совместимая выдача старых подкастов22октября
