@@ -4,6 +4,7 @@ import { userHasClubAccess } from "../identity/club-access";
 import * as db from "../db";
 import type { z } from "zod";
 import type { adminPostsPageInput, adminPostCalendarInput } from "./admin-post-reads";
+import { savedPostsPage, type savedPostsPageInput } from "./saved-posts-page";
 
 @Injectable()
 export class ContentReadService {
@@ -116,6 +117,10 @@ export class ContentReadService {
         post.status === "published" &&
         (hasClub || post.target !== "club"),
     );
+  }
+
+  async savedPostsPage(user: User, input: z.infer<typeof savedPostsPageInput>) {
+    return savedPostsPage(await db.getDb(), user, input);
   }
 
   async userInteractions(userId: number) {

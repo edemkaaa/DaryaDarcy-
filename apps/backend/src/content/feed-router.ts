@@ -2,6 +2,7 @@ import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import type { ContentReadService } from "./content-read.service";
 import type { ContentWriteService } from "./content-write.service";
+import { savedPostsPageInput } from "./saved-posts-page";
 
 export const createFeedRouter = (
   content: ContentReadService,
@@ -54,4 +55,6 @@ export const createFeedRouter = (
     savedPosts: protectedProcedure.query(({ ctx }) =>
       content.savedPosts(ctx.user),
     ),
+    savedPostsPage: protectedProcedure.input(savedPostsPageInput)
+      .query(({ ctx, input }) => content.savedPostsPage(ctx.user, input)),
   });
