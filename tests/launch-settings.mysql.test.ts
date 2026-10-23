@@ -96,6 +96,26 @@ describe.skipIf(!testDatabaseUrl)(
       expect(results.filter((r) => r.status === "rejected")).toHaveLength(1);
       expect((await getLaunchConfiguration((await getDb())!)).revision).toBe(1);
     });
+    it("returns an actionable HTTP error for a Yandex sharing page without saving or auditing", async () => {
+      const config = structuredClone(defaultLaunchConfiguration);
+      config.seasons.winter.bannerUrl =
+        "https://disk.yandex.ru/i/iXiEA9lCjqzCkA";
+      const response = await fetch(base + "/api/admin/launch-settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `app_session_id=${token}`,
+        },
+        body: JSON.stringify({ expectedRevision: 0, config }),
+      });
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toContain("прямую ссылку");
+      expect((await getLaunchConfiguration((await getDb())!)).revision).toBe(0);
+      const [audit] = await conn.query<RowDataPacket[]>(
+        "SELECT id FROM admin_audit_log WHERE actorUserId=783",
+      );
+      expect(audit).toHaveLength(0);
+    });
     it("rejects ordinary users and freshly blocked administrators", async () => {
       await expect(
         saveLaunchConfiguration(

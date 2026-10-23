@@ -11,10 +11,16 @@ const annualDate = z.string().regex(/^\d{2}-\d{2}$/).refine(value => {
   const parsed = new Date(`2001-${value}T00:00:00Z`);
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(5, 10) === value;
 }, "Нужна ежегодная дата MM-DD (без 29 февраля)");
-const assetUrl = z.string().max(2048).url().refine(value => {
+export const SEASON_IMAGE_SHARING_PAGE_MESSAGE = "Укажите прямую ссылку на изображение, а не страницу Яндекс Диска";
+const assetUrl = z.string().max(2048).url().pipe(z.string().refine(value => {
   const url = new URL(value);
   return url.protocol === "https:" && !url.username && !url.password;
-}, "Изображения должны использовать HTTPS").nullable();
+}, "Изображения должны использовать HTTPS").refine(value => {
+  // Reject known HTML share pages without introducing server-side URL fetching.
+  // Direct images need not have an extension (e.g. signed CDN URLs).
+  const host = new URL(value).hostname.toLowerCase().replace(/\.$/, "");
+  return !["disk.yandex.ru", "disk.yandex.com", "yadi.sk"].includes(host);
+}, SEASON_IMAGE_SHARING_PAGE_MESSAGE)).nullable();
 const appearance = z.object({ startsOn: annualDate, backgroundUrl: assetUrl, bannerUrl: assetUrl }).strict();
 export const launchConfigurationSchema = z.object({
   timezone: z.literal("Europe/Moscow"), seasonMode: z.enum(["fixed", "calendar"]), fixedSeason: seasonName,
@@ -40,7 +46,8 @@ export async function getLaunchConfiguration(database: MySql2Database): Promise<
 export async function saveLaunchConfiguration(database: MySql2Database, actorId: number, expectedRevision: number, input: unknown): Promise<LaunchConfigurationSnapshot> {
   const parsed = launchConfigurationSchema.safeParse(input);
   if (!parsed.success || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0 || expectedRevision >= 2147483647) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Некорректные настройки" });
+    const sharingPage = !parsed.success && parsed.error.issues.some(issue => issue.message === SEASON_IMAGE_SHARING_PAGE_MESSAGE);
+    throw new TRPCError({ code: "BAD_REQUEST", message: sharingPage ? SEASON_IMAGE_SHARING_PAGE_MESSAGE : "Некорректные настройки" });
   }
   const config = parsed.data;
   return database.transaction(async tx => {

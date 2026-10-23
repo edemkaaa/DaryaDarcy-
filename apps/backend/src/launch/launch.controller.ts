@@ -17,6 +17,7 @@ import {
   type AuthenticatedRequest,
 } from "../identity/http-access";
 import { LaunchService } from "./launch.service";
+import { SEASON_IMAGE_SHARING_PAGE_MESSAGE } from "./settings";
 
 @Controller("api")
 export class LaunchController {
@@ -74,9 +75,13 @@ export class LaunchController {
         : 503;
     res.status(status).json({
       error:
-        status === 409
-          ? "Настройки изменились. Обновите страницу"
-          : "Запрос недоступен",
+        status === 400 &&
+        error instanceof TRPCError &&
+        error.message === SEASON_IMAGE_SHARING_PAGE_MESSAGE
+          ? SEASON_IMAGE_SHARING_PAGE_MESSAGE
+          : status === 409
+            ? "Настройки изменились. Обновите страницу"
+            : "Запрос недоступен",
     });
   }
 }
