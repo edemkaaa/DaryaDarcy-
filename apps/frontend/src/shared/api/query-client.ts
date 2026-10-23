@@ -29,7 +29,7 @@ function limitContentCache(cache: QueryCache) {
     const path = event.query.queryKey[0];
     if (!Array.isArray(path)) return;
     const entries =
-      path.length === 2 && path[0] === "club" && path[1] === "comments"
+      path.length === 2 && path[0] === "club" && ["comments", "commentsPage"].includes(path[1])
         ? comments
         : path.length === 2 && path[0] === "feed" && path[1] === "listPaginated"
           ? feeds

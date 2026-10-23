@@ -9,13 +9,19 @@ import {
 } from "@/shared/ui/elements";
 import { safeExternalUrl } from "@/shared/navigation/external-url";
 import { useEffect, useMemo, useState } from "react";
+import { getQueryKey } from "@trpc/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useClub } from "@/domain/subscription/subscription-context";
+import { useCursorPages } from "@/shared/api/use-cursor-pages";
+import type { CursorChain } from "@/shared/api/cursor-pages";
+import type { ApiOutputs } from "@/shared/api/types";
+import { CommentReplies, type PagedComment } from "./comment-replies";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { useAuth } from "@/domain/session/session-context";
 import { ContentRequestState } from "@/shared/ui/content-request-state";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { trpc } from "@/shared/api/trpc";
-import { contentRefreshOptions } from "@/shared/api/content-refresh";
 import {
   useCapabilities,
   uploadUnavailableMessage,
@@ -206,6 +212,9 @@ function CommentThread({
   commentCount: commentCountProp,
 }: ClubCommentsProps) {
   const { isAuthenticated, user } = useAuth();
+  const { hasClubAccess } = useClub();
+  const cache = useQueryClient();
+  const [branchError, setBranchError] = useState<unknown>(null);
   const capabilities = useCapabilities();
   const [text, setText] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
@@ -241,6 +250,7 @@ function CommentThread({
   const privateFiles = usePrivateCommentFiles(
     active && nearby && community && isAuthenticated,
     postId,
+    (task) => readComments(task.signal),
   );
   const pendingPrivate = privateFiles.record;
   const composeBlocked =
@@ -250,15 +260,25 @@ function CommentThread({
     Boolean(privateFiles.error);
   const open = areCommentsOpen(tags, createdAt);
   const until = commentsCloseAt(createdAt);
-  const comments = trpc.club.comments.useQuery(
-    { postId },
-    {
-      ...contentRefreshOptions(isAuthenticated && community && active && nearby),
-      staleTime: 60_000,
-      gcTime: 60_000,
-    },
-  );
-  const denied = [401, 403, 404].includes(getHttpStatus(comments.error) ?? 0);
+  const commentInput = { postId, limit: 20 };
+  const commentScope = `${user?.id ?? "guest"}:${hasClubAccess}`;
+  const commentsEnabled = isAuthenticated && community && active && nearby;
+  const comments = useCursorPages({
+    key: getQueryKey(trpc.club.commentsPage, commentInput, "query"),
+    scope: commentScope,
+    enabled: commentsEnabled,
+    fetchPage: (cursor, signal) =>
+      utils.client.club.commentsPage.query(
+        { ...commentInput, cursor },
+        { signal },
+      ),
+  });
+  useEffect(() => {
+    setBranchError(null);
+  }, [comments.dataUpdatedAt]);
+  const denied =
+    comments.denied ||
+    [401, 403, 404].includes(getHttpStatus(branchError) ?? 0);
   const cancelOperation = operation.cancel;
   const resetUploads = privateFiles.reset;
   useEffect(() => {
@@ -278,10 +298,25 @@ function CommentThread({
     "comments",
     !comments.data,
   );
-  const readComments = async () => {
+  const readComments = async (signal?: AbortSignal) => {
+    signal?.throwIfAborted();
     const result = await comments.refetch();
-    if (!result.isSuccess || !Array.isArray(result.data))
+    signal?.throwIfAborted();
+    if (!result.isSuccess || !Array.isArray(result.data?.pages))
       throw result.error ?? invalidResponse();
+    await cache.refetchQueries(
+      {
+        queryKey: getQueryKey(trpc.club.commentsPage, { postId }, "query"),
+        type: "active",
+        predicate: (query) =>
+          Boolean(
+            (query.queryKey[1] as { input?: { parentId?: number } })?.input
+              ?.parentId,
+          ),
+      },
+      { throwOnError: true, cancelRefetch: false },
+    );
+    signal?.throwIfAborted();
   };
   const refreshCounts = () => {
     void utils.club.list.invalidate();
@@ -302,7 +337,7 @@ function CommentThread({
       validate,
       commit: (result) => {
         commit(result);
-        void utils.club.comments.invalidate({ postId });
+        void utils.club.commentsPage.invalidate({ postId });
       },
       read: readComments,
       keepBlocked,
@@ -417,6 +452,25 @@ function CommentThread({
         (signal) => utils.client.club.deleteComment.mutate(input, { signal }),
         () => {
           if (replyTo === input.id) setReplyTo(null);
+          cache.setQueriesData<CursorChain<ApiOutputs["club"]["commentsPage"]>>(
+            {
+              queryKey: getQueryKey(
+                trpc.club.commentsPage,
+                { postId },
+                "query",
+              ),
+            },
+            (chain) =>
+              chain && {
+                pages: chain.pages
+                  .slice(0, 1)
+                  .map((page) => ({
+                    ...page,
+                    items: page.items.filter((row) => row.id !== input.id),
+                  })),
+                pageParams: [null],
+              },
+          );
           refreshCounts();
         },
       ),
@@ -437,55 +491,62 @@ function CommentThread({
         "like",
         "Изменить лайк комментария",
         async (signal) => {
-          await utils.club.comments.cancel({ postId });
+          await utils.club.commentsPage.cancel({ postId });
           if (signal.aborted) throw signal.reason;
           const result = await utils.client.club.toggleCommentLike.mutate(
             input,
             { signal },
           );
-          await utils.club.comments.cancel({ postId });
+          await utils.club.commentsPage.cancel({ postId });
           return result;
         },
         (result) => {
           const confirmed = result as { liked: boolean; likeCount: number };
-          utils.club.comments.setData({ postId }, (rows) =>
-            rows?.map((row) =>
-              row.id === input.commentId
-                ? {
-                    ...row,
-                    likedByMe: confirmed.liked,
-                    likeCount: confirmed.likeCount,
-                  }
-                : row,
-            ),
+          cache.setQueriesData<CursorChain<ApiOutputs["club"]["commentsPage"]>>(
+            {
+              queryKey: getQueryKey(
+                trpc.club.commentsPage,
+                { postId },
+                "query",
+              ),
+            },
+            (chain) =>
+              chain && {
+                ...chain,
+                pages: chain.pages.map((page) => ({
+                  ...page,
+                  items: page.items.map((row) =>
+                    row.id === input.commentId
+                      ? {
+                          ...row,
+                          likedByMe: confirmed.liked,
+                          likeCount: confirmed.likeCount,
+                        }
+                      : row,
+                  ),
+                })),
+              },
           );
         },
         requireCommentLike,
       ),
   };
   const tree = useMemo(() => {
-    const rows = isAuthenticated && !denied ? comments.data || [] : [];
+    const rows = isAuthenticated && !denied ? comments.items : [];
     const roots = rows.filter((c) => !c.parentId);
-    const byParent = new Map<number, typeof rows>();
-    for (const row of rows) {
-      if (!row.parentId) continue;
-      const list = byParent.get(row.parentId) || [];
-      list.push(row);
-      byParent.set(row.parentId, list);
-    }
-    return { roots, byParent };
-  }, [comments.data, isAuthenticated, denied]);
+    return { roots };
+  }, [comments.items, isAuthenticated, denied]);
   if (!community) return null;
   if (denied && isAuthenticated)
     return (
       <ContentRequestState
-        error={comments.error}
+        error={branchError ?? comments.error}
         notFoundText="Комментарии недоступны"
         onRetry={() => void comments.refetch()}
       />
     );
-  const loadedCount = comments.data?.length ?? 0;
-  const commentCount = comments.data ? loadedCount : (commentCountProp ?? 0);
+  const commentCount =
+    comments.data?.pages[0]?.totalCount ?? commentCountProp ?? 0;
   const untilLabel = until
     ? until.toLocaleString("ru-RU", {
         day: "numeric",
@@ -495,8 +556,13 @@ function CommentThread({
       })
     : "";
   const staff = user?.role === "admin" || user?.role === "moderator";
+  const allComments = cache
+    .getQueriesData<
+      CursorChain<ApiOutputs["club"]["commentsPage"]>
+    >({ queryKey: getQueryKey(trpc.club.commentsPage, { postId }, "query"), predicate: (query) => (query.queryKey[2] as { ownerScope?: string })?.ownerScope === commentScope })
+    .flatMap(([, chain]) => chain?.pages.flatMap((page) => page.items) ?? []);
   const menuComment =
-    comments.data?.find((row) => row.id === menuCommentId) ?? null;
+    allComments.find((row) => row.id === menuCommentId) ?? null;
   const menuIsOwner = !!menuComment && user?.id === menuComment.userId;
   const menuIsStaffOther =
     !!menuComment && staff && user?.id !== menuComment.userId;
@@ -510,7 +576,7 @@ function CommentThread({
     setMenuCommentId(null);
     if (!id) return;
     if (action === "edit") {
-      const row = comments.data?.find((c) => c.id === id);
+      const row = allComments.find((c) => c.id === id);
       if (row) {
         setEditingId(id);
         setEditText(row.text);
@@ -543,7 +609,7 @@ function CommentThread({
       task.finish();
     }
   };
-  const renderComment = (item: (typeof tree.roots)[number], depth = 0) => {
+  const renderComment = (item: PagedComment, depth = 0) => {
     const isEditing = editingId === item.id;
     const canOpenMenu =
       isAuthenticated &&
@@ -731,9 +797,16 @@ function CommentThread({
             ) : null}
           </div>
         </div>
-        {(tree.byParent.get(item.id) || []).map((child) =>
-          renderComment(child, depth + 1),
-        )}
+        <CommentReplies
+          postId={postId}
+          parentId={item.id}
+          count={item.replyCount}
+          depth={depth + 1}
+          enabled={commentsEnabled && !denied}
+          scope={commentScope}
+          render={renderComment}
+          onDenied={setBranchError}
+        />
       </div>
     );
   };
@@ -756,11 +829,25 @@ function CommentThread({
       >
         <QueryRetryState
           isLoading={comments.isLoading}
-          isError={comments.isError}
+          isError={comments.isError && !comments.isFetchNextPageError}
           onRetry={() => void comments.refetch()}
           message="Не удалось загрузить комментарии"
         />
         {tree.roots.map((item) => renderComment(item))}
+        {comments.hasNextPage ? (
+          <Action
+            disabled={comments.isFetching || comments.isFetchingNextPage}
+            onClick={() => void comments.fetchNextPage()}
+          >
+            <Typography className={classes.replyBtn}>
+              {comments.isFetchingNextPage
+                ? "Загрузка…"
+                : comments.isFetchNextPageError
+                  ? "Повторить комментарии"
+                  : "Ещё комментарии"}
+            </Typography>
+          </Action>
+        ) : null}
       </div>
       {open && isAuthenticated ? (
         <div

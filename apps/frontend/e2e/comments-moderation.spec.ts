@@ -100,6 +100,7 @@ async function commentsApi(
           id: 101,
           openId: "test-member",
           name: "Участница",
+          gender: "female",
           role,
           email: "member@example.test",
           lastSignedIn: now(),

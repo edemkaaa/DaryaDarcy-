@@ -47,6 +47,7 @@ export function useProfileAvatar() {
         throw invalidResponse();
       task.assertCurrent();
       void utils.club.comments.invalidate();
+      void utils.club.commentsPage.invalidate();
       return true;
     } catch (cause) {
       checkOperationAccessError(cause);

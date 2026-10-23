@@ -79,6 +79,7 @@ export function useProfileUpdate(recoveryKey: string) {
       task.assertCurrent();
       remember(null);
       void utils.club.comments.invalidate();
+      void utils.club.commentsPage.invalidate();
       return true;
     } catch (cause) {
       checkOperationAccessError(cause);
@@ -116,6 +117,7 @@ export function useProfileUpdate(recoveryKey: string) {
           : "Изменения не найдены на сервере. Проверьте данные и повторите сохранение.",
       );
       if (saved) void utils.club.comments.invalidate();
+      if (saved) void utils.club.commentsPage.invalidate();
       return saved;
     } catch (cause) {
       checkOperationAccessError(cause);

@@ -11,14 +11,17 @@ import {
 import type { ApiInputs } from "@/shared/api/types";
 import { trpc } from "@/shared/api/trpc";
 import { requirePrivateUpload } from "@/shared/api/capabilities";
-import { requireIdList } from "@/shared/api/action-result";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { fileForPhotoUpload, pickWebFiles } from "@/shared/media/image-upload";
 import { checkPrivateUploadAvailability } from "@/shared/media/private-upload-availability";
 const reference = (file: PrivateCommentPhoto) => `local-comment:${file.key}`;
 
 /** The keyed comment thread owns selection, previews and this account/post journal. */
-export function usePrivateCommentFiles(enabled: boolean, postId: number) {
+export function usePrivateCommentFiles(
+  enabled: boolean,
+  postId: number,
+  refreshComments: (task: ScopedOperation) => Promise<void>,
+) {
   const { user } = useAuth(),
     utils = trpc.useUtils();
   const journal = useMemo(
@@ -72,17 +75,9 @@ export function usePrivateCommentFiles(enabled: boolean, postId: number) {
     setFiles([]);
   }, [release]);
   const read = async (task: ScopedOperation) => {
-    await utils.club.comments.cancel({ postId });
     task.assertCurrent();
-    const rows = await utils.client.club.comments.query(
-      { postId },
-      { signal: task.signal },
-    );
+    await refreshComments(task);
     task.assertCurrent();
-    requireIdList(rows);
-    await utils.club.comments.cancel({ postId });
-    task.assertCurrent();
-    utils.club.comments.setData({ postId }, rows);
   };
   const clear = async (
     current: PrivateCommentRecord,
