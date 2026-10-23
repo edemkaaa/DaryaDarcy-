@@ -1,5 +1,112 @@
 # Отдельный тестовый стенд TeamAssist
 
+## Frontend: три постраничных списка — 23 октября, поздний выпуск
+
+После отдельного согласия пользователя подключены только ранее согласованные
+saved/members/comments к готовому API. Source/staging:
+`87d7810743d3f67db6469efdef13b0f6e15df353`. Коммиты5f49768/4a19865/eb450b2/
+03e6bc7/37ce471/87d7810; frontend463a5f6 с winter banner fit сохранён.
+Ручных CSS/SCSS/макетов, backend/schema/dependency/lockfile изменений нет.
+
+### Что работает и как проверено
+
+- Saved: target feed/club до запроса,20 за раз, отдельная цепочка аккаунта/
+  доступа/вкладки, явная догрузка/retry, дедуп ID. Head-only refresh60с;
+  смена ID/границы сбрасывает tail, не выкачивает весь архив. Подтверждённый
+  unpaid видит открытые saved, closed snapshot скрывается при отзыве доступа.
+- Members:20, не запрашиваются во вкладке оплат. Grant/block/unblock сверяют
+  конкретный userId через membersPage(limit1), обновляют нужную загруженную
+  карточку, не объявляют успех по произвольной первой странице. Unknown grant
+  не становится автоматически повторяемой оплатой/выдачей; ручная проверка
+  прежнего интерфейса сохранена, exactly-once grant не заявляется.
+- Comments: roots отдельно, replies по явному открытию ветки, каждый group20,
+  вложенность сохранена. totalCount серверный, не длина страницы. Like cache,
+  удаление/перенос ответов, инвалидирование профиля, private-photo journal и
+  восстановление переведены на новые группы без поиска ID перебором страниц.
+  Неактивный comment cache60с сохранён; общий запрос не отменяется уходом
+  одного экрана, если его ещё наблюдает другой. Group403 скрывает retained
+  данные поста. httpBatchLink maxItems20, backend-предел не повышался.
+- Сгенерирован frontend AppRouter93; default check:api теперь GREEN.
+  Новых npm-зависимостей/маршрутов/backend флагов нет; старые полные API
+  не удалялись. Их вывод — отдельный согласуемый этап BE-03.
+- Общий финальный прогон3159pass/1687skip,241passed/113skippedfiles.
+  Root/frontend types, lint, API93, boundaries759, production Next29routes
+  GREEN. RED→GREEN: старый UI не читает новые страницы; unknown member write;
+  roots/replies; shared-query cancellation; comment cache lifetime.
+- Local Chromium final42:6new cursor +admin pages +saved access +comments
+  moderation/private photos; дополнительно29season checks.6new scenarios
+  WebKit GREEN через имеющийся webkit2336/pw_run.sh. Первый WebKit запуск
+  не нашёл ожидаемый дистрибутив, пакеты/браузеры не скачивались; это не iPhone.
+- Существующие длинные дискуссии/скролл/кеш проверены с новым synthetic wire.
+  Measured Club360posts:3mounted/1062DOM, после возврата1681DOM, черновик
+  остаётся; expiration/reply draft GREEN. Исправлены только устаревшие fixtures:
+  completed gender, новые page envelopes, actual passwordPage/43-char synthetic
+  token/current copy, ожидание write dispatch, выход из Club через Home перед
+  глобальными tabs (они намеренно скрыты в subscribed Club). Продуктовые
+  password/nav/security правила ради теста не ослаблялись.
+
+### Реальное обновление и граница отката
+
+- Выпущен **только web**, image
+  `sha256:99372ae7fca6f7360f8e218aec384dd2bd5153a9908549049694c0da234b34d1`,
+  BUILD_ID `wlX3oegpfXrSGBUbcP1CO`. Context551files/29266773bytes, SHA256
+  `0b28301a61c5a388e6f2eba4cfc718f3cfe9af19280c9edb2c86f71289bb6aca`.
+  Native offline HTTP5 после actual Next start без providers/API/SQL GREEN.
+- Изменён только image pin в .env. API/TEST и27 прочих контейнеров сохранили
+  ID/image/start; web healthy/restart0/OOMfalse. Edge config test/reload,
+  без config edit/restart. Все public flags/limits/JWT/SMTP/S3 прежние.
+- Fresh40table single-transaction backup486713bytes, SHA256
+  `8a2102de4af596729b8851d05cd730fb7999535a3d79d8981a9be99fe77269c3`;
+  серверная и Mac копии проверены gzip/SHA/table count,600/parent700.
+  Та же candidate DB/UUID/schema/history42/content/counts и3admin credential
+  digests; без миграций, новых users/posts/payments/писем/S3 writes. Auth reads
+  обновляют lastSignedIn; новый password login не заявляется.
+- Live internal API: 62 проверки GREEN — роли, запреты, новые списки, календарь,
+  VK (22 ролика, 19 обложек). Public HTTPS Chromium: вкладка участников получает
+  7 строк; переход в «Оплаты» не перечитывает участников. «Сохранённое» отдельно
+  запрашивает feed и club. Пост 913 вызывает commentsPage; totalCount=0 совпал
+  с SQL. Старые savedPosts/members/comments не вызываются (legacyCalls=0).
+  У выбранного администратора обе вкладки сохранённого пустые; непустые страницы,
+  ответы, retry и смена аккаунта проверены локально, не заявляются live-проверкой.
+- Новый public build asset побайтно совпал с локальным BUILD_ID. Баннер целиком
+  при viewport 320/390/1440, object-fit:contain, исходные пропорции; JS errors=0,
+  manual retries=0. Два первоначальных ожидания commentsPage остановились на
+  неправильно выбранном проверочным скриптом посте 835: tags podborki/community
+  по существующему primaryClubTab относятся к «Подборкам», без комментариев.
+  После выбора настоящего community-поста 913 повторный прогон GREEN; правила
+  рубрик и данные ради теста не менялись. Проверка не является physical iPhone QA.
+- Финальный read-only preservation после live-проверки: те же DB/UUID/schema/
+  history/content, три admin credential digests, остальные 29 контейнеров;
+  web healthy, restart=0, OOM=false. Никаких тестовых данных на стенде не создавали.
+
+Дополнительный test-only срез после образа: password HTML fixture перенесён
+в tests/fixtures, чтобы browser spec не импортировал backend из frontend-слоя.
+Строгий boundary gate не ослаблялся; boundaries 759 и password browser GREEN.
+В production src/сборку этот fixture не входит, повторный rollout не нужен.
+
+Private receipts/operator/backup — server
+`/home/edem/apps/daryadarcy-staging/release-frontend-pages-20261023.csH59x`,
+Mac `.local-artifacts/frontend-pagination-20261023.KeGtIV` родительского workspace.
+Rollback: после fresh drift check `python3 release.py rollback` из серверного
+каталога вернёт только web pin `fd19a2f6…`, app-only up и edge reload.
+Не восстанавливать всю БД: это потеряет живые данные. Старый image/backup
+сохранены, rollback не выполнялся; current config защищён checksum guards.
+
+### Зависимости: проверенные ограничения, не нулевой audit
+
+Production audit по текущему lockfile сообщает2critical/1high у Next16.3.8.
+Ничего не обновлялось автоматически. Для
+[image advisory](https://github.com/advisories/GHSA-2464-fhr4-w9xw)
+проверен указанный maintainers workaround: actual Sharp0.35.5.
+[Server Actions advisory](https://github.com/advisories/GHSA-p3m5-59mp-jv5r)
+требует хотя бы одного action; compiled server-reference manifest содержит0.
+[Cache Components advisory](https://github.com/advisories/GHSA-673q-mjm6-r5xr)
+относится к use-cache/typed-array functions; compiled cacheComponents=false,
+таких функций нет. Эти условия повторно проверяются native image gate.
+Это не заявление audit0/полной безопасности Next: maintainer рекомендует
+16.4.1, отдельное проверенное обновление оставить в плане на следующий срез,
+проверить заново при включении Actions/cache или изменении Sharp.
+
 ## Объединённый staging и backend pagination — 23 октября, вечер
 
 Прямое поручение: объединить свежий staging с локальной веткой, сохранить

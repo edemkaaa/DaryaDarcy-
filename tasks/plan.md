@@ -2,15 +2,31 @@
 
 ## Действующий план агента — 13 октября 2026
 
+23 октября, поздний frontend-срез: по новому согласию подключены saved tabs,
+members и comment roots/replies к3новым APIs. Дизайн/SCSS и backend прежние;
+generated93/maxItems20/head-only refresh/context guards реализованы.
+Source87d7810 отправлен в staging, выпущен только web; свежий backup40tables,
+схема/history/контент/3admin credential digests и29other containers прежние.
+3159unit pass/1687skip, final42 Chromium+29seasons+6WebKit, types/lint/API93/
+boundaries759/Next build/native HTTP5 GREEN. Live API62 и public HTTPS browser:
+members7, saved feed/club0, comments пост913=0/SQL, legacy calls0; новый build
+byte-exact, banner320/390/1440 без обрезки, JSerrors0. Непустые группы проверены
+локально, без новых живых данных. Final preservation GREEN; см. runbook.
+Старые полные API сохраняются до отдельного решения по операционным consumers;
+BE-03 целиком не закрывать. Audit Next2critical/1high имеет проверенные текущие
+условия mitigation/non-use; отдельный upgrade16.4.1+compatibility оставить
+следующим срезом, не смешивать с пагинацией. Платежей/писем/новых DB/S3 writes нет.
+
 23 октября, вечер: по новому прямому поручению объединены staging463a5f6 и
 local978a3f4 без конфликтов, push source515b39c и фактический выпуск web/API/TEST.
 Frontend source полностью сохранён со staging, новых ручных правок нет.
 Та же БД/схема/история/контент и3admin credentials; fresh backup проверен
 на сервере и Mac.3155pass/1687skip +171SQL +62local browser; liveAPI62 и
 Chromium banner whole-image fit320/390/1440/новый build byte-exact GREEN.
-Три новых pagination API уже на стенде, переключение frontend-потребителей
-не выполнено. Default check:api stale/старые полные методы остаются открытым
-остатком, не считать BE-03 полностью закрытым. S3/провайдеры/лимиты прежние.
+На этом историческом срезе frontend ещё не был переключён, check:api был stale.
+Поздним выпуском выше переход сделан и check:api GREEN. Старые полные методы
+остаются открытым остатком, не считать BE-03 полностью закрытым.
+S3/провайдеры/лимиты прежние.
 Подробные immutable IDs, сохранность и rollback — в operations/teamassist-staging.
 Ниже сохранена история локальных этапов до этого разрешённого выпуска.
 

@@ -2,6 +2,28 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Frontend pagination — 23 октября, поздний выпуск
+
+- [x] После согласия user: saved target20, members20/exact-user recovery,
+  comments roots/replies20; старые numeric feed/admin/VK cursors прежние.
+- [x] Head-only60с/cursor reset/dedup/retry/owner scope; shared observer cancel
+  RED→GREEN; comment minute GC восстановлен после дополнительного RED.
+- [x] Переведён private-comment journal refresh/likes/profile invalidations;
+  replyCount/totalCount и nested replies сохранены. maxItems20/API93 GREEN.
+- [x] 3159pass/1687skip; final42 Chromium,29seasons,6WebKit с local2336;
+  old-comment expiry/draft и Club360 retention GREEN; types/lint/build/boundaries759.
+- [x] Source87d7810 normal push; native web5; backup40tables/gzip/SHA/server+Mac;
+  web-only rollout,3admin credentials/content/DB и29other containers сохранены.
+- [x] Live API62/public HTTPS browser: members7, saved feed/club0,
+  comments913=0/SQL, legacy calls0; build byte-exact/banner320/390/1440,
+  JSerrors0. Непустые случаи проверены локально; новых живых данных нет.
+- [x] Final preservation GREEN: контент/schema/history/3admin credentials,
+  остальные29containers прежние, web healthy/restarts0/OOMfalse.
+- [x] Test-only password HTML composition вне frontend слоя; строгий
+  boundaries759 и дополнительный password browser GREEN, prod src прежние.
+- [ ] Вывод legacy full routes/операционных потребителей отдельно; Next16.4.1
+  upgrade отдельно (current audit2critical/1high, verified mitigations в runbook).
+
 ### Объединение staging и выпуск —23октября, вечер
 
 - [x] Fresh staging463a5f6, clean local978a3f4; merge без конфликтов515b39c.
@@ -15,8 +37,8 @@
 - [x] БД/schema/history42/content/counts/3admin credentials и27other containers
   сохранены; никаких миграций/S3 writes/mail/payments/лимитов. Own SQL fixture
   удалена; базы/образы/backup/чужие файлы не чистились. Receipt/rollback записан.
-- [ ] Frontend-переход на3новых pagination APIs и generated93 остаётся фронтендеру;
-  старые полные методы/defaultcheck:api пока не считать закрытыми.
+- [x] Frontend-переход на3новых pagination APIs и generated93 выполнен87d7810;
+  defaultcheck:api GREEN. Вывод старых полных методов остаётся отдельным этапом.
 
 ### BE-03 — контракт пагинации старых списков,23октября
 
@@ -44,8 +66,8 @@
   обычный check:api ожидаемо stale; отдельный --output/--check GREEN.
 - [ ] Совместный переход потребителей/скриптов, затем отдельное согласование
   вывода старых полных чтений. Пока они доступны, BE-03 не считать закрытым.
-- Backend после нового разрешения выпущен source515b39c; frontend-переход
-  на новые методы ещё не сделан. Рабочая БД и S3 прежние; см. выпуск выше.
+- Backend выпущен source515b39c; frontend-переход выполнен87d7810 поздним
+  выпуском выше. Рабочая БД и S3 прежние; legacy retirement отдельно.
 
 ### Три аудита be029ed — backend-only,23октября
 
