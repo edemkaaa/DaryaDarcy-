@@ -25,7 +25,7 @@ export type PostCommentRow = PostComment & {
   likedByMe: boolean;
 };
 
-async function commentLikeCounts(
+export async function commentLikeCounts(
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
   commentIds: number[],
 ) {
@@ -38,7 +38,7 @@ async function commentLikeCounts(
   return new Map(rows.map((row) => [row.commentId, Number(row.likeCount)]));
 }
 
-async function viewerLikedCommentIds(
+export async function viewerLikedCommentIds(
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
   userId: number,
   commentIds: number[],

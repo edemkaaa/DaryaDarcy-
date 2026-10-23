@@ -8,6 +8,7 @@ import {
 import * as db from "../db";
 import type { ContentCommentService } from "../content/content-comment.service";
 import { addCommentInput } from "../content/comment-input";
+import { commentsPageInput } from "../content/comments-page";
 import { photoInput, uploadPhoto } from "../media/photos";
 import { privateCommentPhotoInput, privateContentStatusInput, uploadPrivateContentFile, privateContentFileStatus } from "../content/private-content-uploads";
 import type { ClubBillingServices } from "../billing/billing.module";
@@ -106,6 +107,8 @@ export const createClubRouter = (
     comments: protectedProcedure
       .input(z.object({ postId: z.number() }))
       .query(({ ctx, input }) => comments.list(input.postId, ctx.user)),
+    commentsPage: protectedProcedure.input(commentsPageInput)
+      .query(({ ctx, input }) => comments.listPage(input, ctx.user)),
     addComment: protectedProcedure
       .input(addCommentInput)
       .mutation(({ ctx, input }) => comments.add(ctx.user, input)),

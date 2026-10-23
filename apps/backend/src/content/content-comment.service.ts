@@ -9,6 +9,8 @@ import { sendServicePushNotification } from "../push";
 import type { AddCommentInput } from "./comment-input";
 import * as comments from "./comments";
 import { hasPrivateContent } from "./private-content-binding";
+import { commentsPage, type commentsPageInput } from "./comments-page";
+import type { z } from "zod";
 
 /** Transport owns validation/authentication; SQL helpers retain transaction locks. */
 @Injectable()
@@ -47,6 +49,10 @@ export class ContentCommentService {
       });
     }
     return comments.listPostCommentsV2(postId, user.id);
+  }
+
+  async listPage(input: z.infer<typeof commentsPageInput>, user: User) {
+    return commentsPage(await db.getDb(), user, input);
   }
 
   async add(user: User, input: AddCommentInput): Promise<{ id: number }> {
