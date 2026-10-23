@@ -12,7 +12,8 @@ import type { AddressInfo } from "node:net";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { createTRPCProxyClient, httpLink } from "@trpc/client";
 import superjson from "superjson";
-import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
+import { testDatabaseUrl } from "./helpers/backend-mysql";
+import { openContentTestDatabase } from "./helpers/content-mysql";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { getDb } from "../apps/backend/src/db";
 import { sdk } from "../apps/backend/src/_core/sdk";
@@ -64,7 +65,15 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DELETE FROM posts WHERE source='article:99214'");
     }
     beforeAll(async () => {
-      conn = await openTestDatabase();
+      conn = await openContentTestDatabase();
+      // This suite must also run first against an empty disposable fixture.
+      await conn.query(`CREATE TABLE IF NOT EXISTS articles (
+        id INT AUTO_INCREMENT PRIMARY KEY,title VARCHAR(255) NOT NULL,coverUrl TEXT,
+        access ENUM('public','club') NOT NULL DEFAULT 'public',published BOOLEAN NOT NULL DEFAULT TRUE,
+        sortOrder INT NOT NULL DEFAULT 0,sections JSON NOT NULL,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB`);
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
       vi.stubEnv("JWT_SECRET", "content-validation-synthetic-secret-32");
       await conn.query(
