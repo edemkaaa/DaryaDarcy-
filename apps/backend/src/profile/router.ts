@@ -14,8 +14,8 @@ export const createProfileRouter = (profiles: ProfileService) =>
       .mutation(({ ctx, input }) => profiles.update(ctx.user.id, input)),
     uploadAvatar: protectedProcedure
       .input(photoInput)
-      .mutation(({ ctx, input }) =>
-        profiles.uploadAvatar(ctx.user.id, input.base64),
+      .mutation(({ ctx, input, signal }) =>
+        profiles.uploadAvatar(ctx.user.id, input.base64, signal),
       ),
   });
 

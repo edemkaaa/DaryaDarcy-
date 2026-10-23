@@ -40,11 +40,12 @@ export class ProfileService {
     return { success: true };
   }
 
-  async uploadAvatar(userId: number, base64: string): Promise<{ url: string }> {
+  async uploadAvatar(userId: number, base64: string, signal?: AbortSignal): Promise<{ url: string }> {
     // Avoid an external write when persistence is already known to be unavailable.
     // Client acquisition is not a connection probe or a guarantee of the write.
     if (!(await db.getDb())) throw new Error("Database not available");
-    const result = await uploadPhoto(base64, `avatars/${userId}`);
+    const result = await uploadPhoto(base64, `avatars/${userId}`, signal);
+    signal?.throwIfAborted();
     await db.updateUserProfile(userId, { avatarUrl: result.url });
     return { url: result.url };
   }

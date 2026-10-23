@@ -39,13 +39,14 @@ export class ContentUploadService {
   uploadPhoto(
     base64: string,
     purpose: "publicCover",
+    signal?: AbortSignal,
   ): Promise<{ url: string }> {
     if (purpose !== "publicCover")
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: "Укажите назначение публичной обложки",
       });
-    return uploadPhoto(base64, "covers");
+    return uploadPhoto(base64, "covers", signal);
   }
 
   async uploadMedia(_input: MediaUploadInput): Promise<{

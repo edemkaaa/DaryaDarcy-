@@ -54,7 +54,7 @@ export const createAdminRouter = (
     .mutation(({ input }) => uploads.importVideoFromUrl(input.url)),
 
   // Upload photo (admin only)
-  uploadPhoto: adminProcedure.input(publicCoverPhotoInput).mutation(({ input }) => uploads.uploadPhoto(input.base64, input.purpose)),
+  uploadPhoto: adminProcedure.input(publicCoverPhotoInput).mutation(({ input, signal }) => uploads.uploadPhoto(input.base64, input.purpose, signal)),
 
   // Upload media file (video/audio/document) (admin only)
   uploadMedia: adminProcedure

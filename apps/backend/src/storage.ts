@@ -36,6 +36,12 @@ function getS3Client(): S3Client | null {
       secretAccessKey: ENV.s3SecretKey,
     },
     forcePathStyle: true,
+    maxAttempts: 1,
+    requestHandler: {
+      connectionTimeout: 3000,
+      requestTimeout: 10000,
+      throwOnRequestTimeout: true,
+    },
   });
 }
 
@@ -43,6 +49,7 @@ async function s3Put(
   relKey: string,
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
+  signal?: AbortSignal,
 ): Promise<{ key: string; url: string }> {
   const client = getS3Client();
   if (!client) throw new Error("S3 not configured");
@@ -50,18 +57,23 @@ async function s3Put(
   const key = relKey.replace(/^\/+/, "");
   const body = typeof data === "string" ? Buffer.from(data) : data;
 
-  await client.send(
-    new PutObjectCommand({
-      Bucket: ENV.s3Bucket,
-      Key: key,
-      Body: body,
-      ContentType: contentType,
-      ACL: "public-read",
-    }),
-  );
+  try {
+    await client.send(
+      new PutObjectCommand({
+        Bucket: ENV.s3Bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+        ACL: "public-read",
+      }),
+      { abortSignal: signal },
+    );
 
-  const url = s3ObjectUrl(key);
-  return { key, url };
+    const url = s3ObjectUrl(key);
+    return { key, url };
+  } finally {
+    client.destroy();
+  }
 }
 
 // --- Manus Built-in Storage (fallback) ---
@@ -87,7 +99,9 @@ async function buildDownloadUrl(baseUrl: string, relKey: string, apiKey: string)
   const response = await fetch(downloadApiUrl, {
     method: "GET",
     headers: { Authorization: `Bearer ${apiKey}` },
+    signal: AbortSignal.timeout(10000),
   });
+  if (!response.ok) throw new Error("Storage URL unavailable");
   return (await response.json()).url;
 }
 
@@ -95,6 +109,7 @@ async function manusPut(
   relKey: string,
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
+  signal?: AbortSignal,
 ): Promise<{ key: string; url: string }> {
   const config = getManusStorageConfig();
   if (!config) throw new Error("No storage configured (neither S3 nor Manus)");
@@ -112,6 +127,7 @@ async function manusPut(
     method: "POST",
     headers: { Authorization: `Bearer ${config.apiKey}` },
     body: form,
+    signal,
   });
 
   if (!response.ok) {
@@ -128,14 +144,21 @@ export async function storagePut(
   relKey: string,
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
+  options: { signal?: AbortSignal } = {},
 ): Promise<{ key: string; url: string }> {
   const key = storageKey(relKey);
+  // A timed-out PUT may already exist remotely: never retry it automatically.
+  const deadline = AbortSignal.timeout(10000);
+  const signal = options.signal
+    ? AbortSignal.any([options.signal, deadline])
+    : deadline;
+  signal.throwIfAborted();
   // Prefer Timeweb S3 if configured
   if (ENV.s3Endpoint && ENV.s3AccessKey && ENV.s3SecretKey && ENV.s3Bucket) {
-    return s3Put(key, data, contentType);
+    return s3Put(key, data, contentType, signal);
   }
   // Fallback to Manus built-in storage
-  return manusPut(key, data, contentType);
+  return manusPut(key, data, contentType, signal);
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
@@ -155,21 +178,17 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
 // --- Test helper ---
 export async function testS3Connection(): Promise<{ success: boolean; message: string }> {
   try {
-    const client = getS3Client();
-    if (!client) return { success: false, message: "S3 not configured" };
+    if (
+      !ENV.s3Endpoint ||
+      !ENV.s3AccessKey ||
+      !ENV.s3SecretKey ||
+      !ENV.s3Bucket
+    )
+      return { success: false, message: "S3 not configured" };
 
     const testKey = "_test/connection-test.txt";
     const testData = `Connection test at ${new Date().toISOString()}`;
-    await client.send(
-      new PutObjectCommand({
-        Bucket: ENV.s3Bucket,
-        Key: testKey,
-        Body: Buffer.from(testData),
-        ContentType: "text/plain",
-        ACL: "public-read",
-      }),
-    );
-    const url = s3ObjectUrl(testKey);
+    const { url } = await storagePut(testKey, testData, "text/plain");
     return { success: true, message: `S3 connected. Test file: ${url}` };
   } catch (err: any) {
     return { success: false, message: err.message || "Unknown error" };

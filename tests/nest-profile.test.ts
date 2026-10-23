@@ -174,7 +174,7 @@ describe("profile use cases over native HTTP", () => {
         method === "update"
           ? [9900, { name: "synthetic name" }]
           : method === "uploadAvatar"
-            ? [9900, photo]
+            ? [9900, photo, undefined]
             : [9900],
       );
     },
