@@ -2,6 +2,20 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Адресный ремонт публичного кеша — 23 октября
+
+- [x] Подтвердить 43 TTL30 записи, источник каждой через public feed/canonical
+  cache key; protected/signed/unknown не включать. Private guard tests 9 GREEN.
+- [x] Сохранить ровно эти 43 производных файла; архив 6 359 040 байт проверен
+  SHA и содержимым на сервере и Mac до удаления. Остальные кеши не чистить.
+- [x] По одному evict → regenerate → conditional GET: 43 TTL>=3600,
+  43 ответа 304/0bytes; public HTTPS43 HIT. TTL30 осталось 0.
+- [x] Остальные389 cache SHA,19original metadata,30container identities и
+  конфигурация прежние; DB-команд/S3 writes/restarts/админских входов нет.
+- [x] Browser возвраты library/post744 → feed:9/9 готовых фото без loaders,
+  ошибок/предупреждений нет. Source/фронт/дизайн не менялись, без push/deploy.
+  Физический iPhone и browser transfer bytes не проверялись.
+
 ### Frontend pagination — 23 октября, поздний выпуск
 
 - [x] После согласия user: saved target20, members20/exact-user recovery,

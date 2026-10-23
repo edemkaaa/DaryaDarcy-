@@ -2,6 +2,16 @@
 
 ## Действующий план агента — 13 октября 2026
 
+23 октября, адресный ремонт публичного image cache: после разрешения пользователя
+43 TTL30 записи сопоставлены с открытым feed и пересозданы по одной. Backup
+ровно этих производных файлов проверен на сервере/Mac. Теперь TTL>=3600,
+public HTTPS43 HIT, conditional GET304/0bytes; остальные389 cache SHA и
+метаданные19 оригиналов прежние. БД/входы/закрытые файлы/S3 writes/конфиги/
+образы/контейнеры не менялись, перезапусков нет. Live два возврата:9/9 готовых
+фото,0 видимых loaders/ошибок; physical iPhone и точный browser network transfer
+не заявляются. Frontend/source/dependency изменений, push и нового выпуска нет.
+Детальные receipts и безопасная граница восстановления — в staging runbook.
+
 23 октября, поздний frontend-срез: по новому согласию подключены saved tabs,
 members и comment roots/replies к3новым APIs. Дизайн/SCSS и backend прежние;
 generated93/maxItems20/head-only refresh/context guards реализованы.
