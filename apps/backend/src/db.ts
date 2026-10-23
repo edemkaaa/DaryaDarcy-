@@ -4,6 +4,7 @@ import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { settleClubOrder } from "./billing/settlement";
 import { grantClubAccess } from "./billing/grants";
+import { membersPage, type membersPageInput } from "./admin/members-page";
 import {
   listAdminMembers as readAdminMembers,
   listAdminPayments as readAdminPayments,
@@ -366,6 +367,10 @@ export async function listAdminMembers(): Promise<{
 export async function listAdminPayments(limit = 50) {
   const db = await getDb();
   return readAdminPayments(db, limit);
+}
+
+export async function listAdminMembersPage(actorId: number, input: z.infer<typeof membersPageInput>) {
+  return membersPage(await getDb(), actorId, input);
 }
 
 // ── Admin: Post CRUD ──

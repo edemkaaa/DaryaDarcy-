@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { membersPageInput } from "./members-page";
 import { router, adminProcedure } from "../_core/trpc";
 import * as db from "../db";
 import { publicCoverPhotoInput } from "../media/photos";
@@ -88,6 +89,8 @@ export const createAdminRouter = (
   members: adminProcedure.query(() => {
     return db.listAdminMembers();
   }),
+  membersPage: adminProcedure.input(membersPageInput)
+    .query(({ ctx, input }) => db.listAdminMembersPage(ctx.user.id, input)),
   payments: adminProcedure.query(() => {
     return db.listAdminPayments();
   }),
