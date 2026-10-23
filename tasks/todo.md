@@ -9,11 +9,26 @@
 - [x] Подготовить frontend-legacy-list-pagination-contract-2026-10-23.md:
   saved по вкладке/доступу до LIMIT; members без чтения всех payments;
   comments roots/replies отдельно, counts/recovery не потерять.
-- [ ] Получить принятие контракта. Только затем backend RED/GREEN на
-  одноразовой БД и отдельный type artifact фронтендеру; код ещё не реализован.
+- [x] Получить принятие контракта. Backend RED/GREEN на own loopback/tmpfs
+  backend_test: saved17RED→17GREEN, members21RED→21GREEN,
+  comments19RED→20GREEN (один404-случай совпадал и до реализации);
+  старые чтения не менялись.
+- [x] Дополнительные проверки SQL LIMIT/обогащения только ID страницы,
+  missing DB503 и экспорта типов без записи в frontend. AppRouter93 отдельно,
+  у90 прежних методов/алиасов структурных изменений нет.
+- [x] SQL168/11files: страницы0/20/21/50/51, лимит50, orphan promotion,
+  старые комментарии/модерация/подписки/content validation; query bounds3.
+  Root tsc/обычный и TEST build/boundaries754 GREEN.
+- [x] Завершающий общий прогон3155pass/1687skip,240files pass/113skip;
+  docs81 GREEN. Отдельный generated93 --output/--check GREEN.
+  Own tmpfs SQL fixture33adf193 удалён после168SQL checks; логи сохранены
+  вне Git в .local-artifacts/pagination-20261023.lxHIYU родительского workspace.
+- [x] Фронтендеру frontend-pagination-handoff-2026-10-23.md и отдельный
+  api-contract-pagination-2026-10-23.ts. Старый frontend contract не менялся:
+  обычный check:api ожидаемо stale; отдельный --output/--check GREEN.
 - [ ] Совместный переход потребителей/скриптов, затем отдельное согласование
   вывода старых полных чтений. Пока они доступны, BE-03 не считать закрытым.
-- Фронт, backend runtime, рабочая БД и S3 не менялись; без push/deploy.
+- Backend реализован только локально. Фронт/рабочая БД/S3 прежние; без push/deploy.
 
 ### Три аудита be029ed — backend-only,23октября
 
