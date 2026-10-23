@@ -35,7 +35,8 @@ import { LoadingIndicator } from "@/shared/ui/loading-indicator";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { useProfileAvatar } from "@/domain/profile/use-profile-avatar";
 import { trpc } from "@/shared/api/trpc";
-import { contentRefreshOptions } from "@/shared/api/content-refresh";
+import { getQueryKey } from "@trpc/react-query";
+import { useCursorPages } from "@/shared/api/use-cursor-pages";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import type { ApiOutputs } from "@/shared/api/types";
 import { useCapabilities } from "@/shared/api/capabilities";
@@ -52,7 +53,7 @@ import {
   SUPPORT_EMAIL,
   PERSONAL_MOODBOARDS_ENABLED,
 } from "./profile-screen.content";
-type SavedPost = ApiOutputs["feed"]["savedPosts"][number];
+type SavedPost = ApiOutputs["feed"]["savedPostsPage"]["items"][number];
 type SavedTab = "feed" | "club";
 function formatRuDate(date: Date): string {
   return date.toLocaleDateString("ru-RU", {
@@ -99,12 +100,23 @@ export default function ProfileScreen() {
   const cancellation = useSubscriptionCancellation();
   const cancellationConfirmed = cancellationStatus === "confirmed";
   const avatar = useProfileAvatar();
-  const savedFromApi = trpc.feed.savedPosts.useQuery(undefined, {
-    ...contentRefreshOptions(active && isAuthenticated),
+  const [savedTab, setSavedTab] = useState<SavedTab>("feed");
+  const utils = trpc.useUtils();
+  const savedInput = { target: savedTab, limit: 20 };
+  const savedFromApi = useCursorPages({
+    key: getQueryKey(trpc.feed.savedPostsPage, savedInput, "query"),
+    scope: `${user?.id ?? "guest"}:${hasClubAccess}`,
+    enabled: active && isAuthenticated,
+    fetchPage: (cursor, signal) =>
+      utils.client.feed.savedPostsPage.query(
+        { ...savedInput, cursor },
+        { signal },
+      ),
   });
   const savedRefreshError =
     savedFromApi.data !== undefined &&
     savedFromApi.isError &&
+    !savedFromApi.isFetchNextPageError &&
     isTemporaryRequestError(savedFromApi.error);
   useBackgroundNotice({
     when: savedRefreshError,
@@ -112,7 +124,6 @@ export default function ProfileScreen() {
     onRetry: () => savedFromApi.refetch({ cancelRefetch: false }),
   });
   const [avatarDraft, setAvatarDraft] = useState<string | null>(null);
-  const [savedTab, setSavedTab] = useState<SavedTab>("feed");
   const [cropperImage, setCropperImage] = useState<CropperImage | null>(null);
   const [quizResult, setQuizResult] = useState<{
     primaryKey: AestheticKey;
@@ -152,7 +163,7 @@ export default function ProfileScreen() {
   const displayAvatar = serverAvatar;
   const savedPosts = useMemo(() => {
     // A retained response must not expose club-only cards after access is lost.
-    const rows = (savedFromApi.data || []).filter(
+    const rows = savedFromApi.items.filter(
       (post) => hasClubAccess || post.target !== "club",
     );
     const feedRows = rows.filter((p) => p.target !== "club");
@@ -163,7 +174,7 @@ export default function ProfileScreen() {
       return feedRows;
     }
     return clubRows;
-  }, [savedTab, savedFromApi.data, hasClubAccess]);
+  }, [savedTab, savedFromApi.items, hasClubAccess]);
   const isLoadingSaved = savedFromApi.isLoading;
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -569,7 +580,9 @@ export default function ProfileScreen() {
               >
                 <ContentPlaceholder kind="feed" />
               </div>
-            ) : savedFromApi.isError && !savedRefreshError ? (
+            ) : savedFromApi.isError &&
+              !savedRefreshError &&
+              !savedFromApi.isFetchNextPageError ? (
               <QueryRetryState
                 isLoading={false}
                 isError
@@ -611,6 +624,23 @@ export default function ProfileScreen() {
                 ))}
               </div>
             )}
+            {savedFromApi.hasNextPage && !savedFromApi.denied ? (
+              <Action
+                onClick={() => void savedFromApi.fetchNextPage()}
+                disabled={
+                  savedFromApi.isFetching || savedFromApi.isFetchingNextPage
+                }
+                aria-busy={savedFromApi.isFetchingNextPage}
+              >
+                <Typography className={classes.emptyStateText}>
+                  {savedFromApi.isFetchingNextPage
+                    ? "Загрузка…"
+                    : savedFromApi.isFetchNextPageError
+                      ? "Повторить загрузку сохранённых"
+                      : "Загрузить ещё сохранённые"}
+                </Typography>
+              </Action>
+            ) : null}
           </div>
 
           {/* ─── Aesthetics Section ─── */}

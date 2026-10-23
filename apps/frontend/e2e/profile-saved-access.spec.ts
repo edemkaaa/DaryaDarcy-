@@ -82,16 +82,24 @@ async function fixture(page: Page, state: State) {
               cancellationStatus: "none",
               monthlyPrice: "790",
             });
-      if (name === "feed.savedPosts")
+      if (name === "feed.savedPostsPage") {
+        const input =
+          (url.searchParams.has("batch") ? inputs[index]?.json : inputs.json) ??
+          {};
+        const rows = state.savedPosts ?? [
+          openPost,
+          bothPost,
+          ...(state.access || state.staleSavedSnapshot ? [clubPost] : []),
+        ];
         return state.savedError
           ? failure(503)
-          : ok(
-              state.savedPosts ?? [
-                openPost,
-                bothPost,
-                ...(state.access || state.staleSavedSnapshot ? [clubPost] : []),
-              ],
-            );
+          : ok({
+              items: rows.filter(
+                (row) => row.target === input.target || row.target === "both",
+              ),
+              nextCursor: null,
+            });
+      }
       if (name === "feed.getById") {
         const id = (
           url.searchParams.has("batch") ? inputs[index]?.json : inputs.json

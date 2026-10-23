@@ -123,6 +123,7 @@ export function usePostInteractions() {
       });
       void utils.feed.userInteractions.invalidate();
       void utils.feed.savedPosts.invalidate();
+      void utils.feed.savedPostsPage.invalidate();
       if (kind === "like") {
         void utils.feed.getById.invalidate({ id: postId });
         void utils.feed.list.invalidate();
