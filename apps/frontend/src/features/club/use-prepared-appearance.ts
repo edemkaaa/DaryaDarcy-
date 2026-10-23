@@ -39,6 +39,7 @@ export function usePreparedAppearance(
     season: Season;
     background: string | null;
     banner: string | null;
+    bannerSize: { width: number; height: number } | null;
     images: HTMLImageElement[];
   } | null>(null);
 
@@ -60,12 +61,26 @@ export function usePreparedAppearance(
       }),
     ).then((images) => {
       if (signal.aborted || images.some((image) => image === null)) return;
+      const preparedImages = images as HTMLImageElement[];
+      const bannerImage = banner
+        ? preparedImages[urls.indexOf(banner)]
+        : undefined;
       setPrepared({
         season,
         background,
         banner,
+        // Use the existing decode, and publish dimensions with their own URL.
+        bannerSize:
+          bannerImage &&
+          bannerImage.naturalWidth > 0 &&
+          bannerImage.naturalHeight > 0
+            ? {
+                width: bannerImage.naturalWidth,
+                height: bannerImage.naturalHeight,
+              }
+            : null,
         // Retain decoded resources until their replacement is ready.
-        images: images as HTMLImageElement[],
+        images: preparedImages,
       });
     });
     return () => controller.abort();
