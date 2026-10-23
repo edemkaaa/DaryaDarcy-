@@ -1,5 +1,59 @@
 # Отдельный тестовый стенд TeamAssist
 
+## Новый зимний баннер Дарьи — 23 октября 2026
+
+Пользователь разрешил подключить новый баннер, сделать лёгкую WebP-копию с
+прозрачностью и проверить кадрирование. Фон, оригинал и фронт не менять;
+если требуется изменение вёрстки — передать документ фронтендеру.
+
+- Источник `/Users/edem/Downloads/IMG_1301.PNG`:3636×2424,9174625bytes,
+  alpha; SHA256 `c31160306694b823dda7020ca4959a570912e32f8c1f040966fd72798e36cdf1`.
+  Оригинал до/после подготовки одинаков. Копия WebP quality90/alphaQuality100,
+  пропорционально2560×1707,438886bytes; без crop/flatten/дорисовки.
+- Новый объект: `https://s3.twcstorage.ru/daryadarcy-s3/covers/banner-20261023-0739b7e94c1cffb9a681370e45b0cc301aa3409a30cee1aa9c02ffb4b47da26a.webp`.
+  SHA256 `0739b7e94c1cffb9a681370e45b0cc301aa3409a30cee1aa9c02ffb4b47da26a`,
+  ETag `3630dea1eb81fd7dcacef2ae5563416a`, image/webp/publicCover/immutable.
+  Условный PUT `IfNoneMatch:*` с MD5, сверка HEAD/metadata/public HEAD.
+  Bucket policy/ACL старых объектов не менялись. Подготовленный файл загружен
+  отдельным read-only128MiB/0,5CPU оператором в существующем network namespace;
+  без декодера и нагрузки upload API256MiB. S3 credentials не записывались в
+  скрипты/репозиторий/логи, приложение не перезапускалось.
+- Fresh backup40tables,486711bytes, SHA256
+  `588bf888a8c93f0db1da4e418632a9b7bb6243efa58a3ee595687eadc85c7c1b`;
+  gzip/размер/SHA независимо проверены на Mac. Серверные backup/receipt:
+  `/home/edem/apps/daryadarcy-staging/banner-20261023.d9VVdT` (700);
+  локальные — `.local-artifacts/winter-banner-20261023.XY4Z87` (700), вне Git.
+- Штатным `/api/admin/launch-settings` выполнен CAS revision4→5, только
+  `config.seasons.winter.bannerUrl`. Прежний background URL `.../covers/appearance-20261022-32320a4f4b1603f396958f138221fa6700a5efd9f4027ddfa74a7a1390e68cc9.webp`
+  сохранён; остальные сезоны/режим/даты/managerEmail прежние. Fingerprints
+  posts/articles/post_media/library_file_bindings/videos и3admin credentials
+  совпали до/после. APIcontainer `cb0f0b9b…`, image `bde53c86…`, env/host config,
+  StartedAt/RestartCount прежние. Схема БД и приложение не переключались.
+- Актуальная public launch-config возвращает revision5/winter/новый URL.
+  Focused73tests GREEN. В настоящем Chromium получены мобильные screenshots
+ 320/390 с новым баннером; холодные загрузки S3 периодически прерываются
+  после15s подготовки темы, срабатывает текущий fallback. Это не успешная
+  приёмка холодной загрузки на всех устройствах и не доказательство её причины.
+- Кадрирование: при текущих `cover/top` и `height:width*0.55` из1707строк
+  отображаются1408. Почти весь срез — прозрачный низ; alpha>8 даёт60pixels
+  видимого края ниже границы (0,00185% видимой области), до строки1414.
+  Поэтому полное отсутствие обрезки не объявлять. Фронт не исправлялся;
+  [передан точный handoff](../development/frontend-winter-banner-fit-2026-10-23.md).
+- Повторный live Chromium в одной сессии:320/390/1440px прошли без повторов,
+  новый URL/decoded2560×1707/opacity1/JSerrors0. Реальная ширина блока
+ 320/390/480; небольшой край срезается максимум на0,875/1,066/1,313CSSpx.
+  GET438886bytes совпал с подготовленным SHA; старый banner HEAD200/прежний
+  ETag, background HEAD200/378398bytes; original PNG SHA прежний. Screenshots
+  и JSON сохранены в защищённом локальном каталоге. Успех общей сессии не
+  отменяет отмеченные выше cold-context таймауты. Не physical iPhone.
+
+Узкий откат: прочитать свежие launch-settings, убедиться, что winter.bannerUrl
+всё ещё равен новому URL, и штатным CAS заменить только это поле на прежний
+`https://s3.twcstorage.ru/daryadarcy-s3/covers/appearance-20261022-bd917c8d3770e0215baf2aacce553796ed8360ee82b2528a8caeb2a8c5591523.webp`.
+Использовать актуальную revision; если есть более поздние чужие изменения —
+сначала сверить их, не восстанавливать всю старую конфигурацию/БД. Новый и
+старый S3-объекты при откате не удалять. Полного restore БД не требуется.
+
 ## AUDIO и оформление Клуба — узкое исправление22 октября
 
 Разрешения: исправить старое аудио без frontend/source edits; после проверки
