@@ -9,7 +9,8 @@ import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { parseContentId } from "@/shared/navigation/content-id";
 import { useRouter } from "@/shared/navigation/router";
 import { ScreenContainer } from "@/shared/ui/screen-container";
-import { Action, Background, Typography } from "@/shared/ui/elements";
+import { Background, Typography } from "@/shared/ui/elements";
+import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { ContentRequestState } from "@/shared/ui/content-request-state";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
@@ -95,28 +96,33 @@ export function CatalogVideoDetail({ id }: { id: string }) {
         >
           <div className={`ui-stack ${classes.loadingContainer}`}>
             {auth.refreshError ? (
-              <QueryRetryState
-                isLoading={false}
-                isError
-                message="Не удалось проверить сессию"
-                onRetry={() => void auth.refresh()}
-              />
+              <Typography className={classes.accessCheck}>
+                Воспроизведение приостановлено до проверки доступа.
+              </Typography>
             ) : pending ? (
               <ContentPlaceholder kind="video" count={1} />
             ) : status === 401 ? (
-              <>
-                <Typography>Войдите, чтобы смотреть это видео</Typography>
-                <Action onClick={() => router.login(`/video/${id}`)}>
-                  <Typography>Войти</Typography>
-                </Action>
-              </>
+              <StatusNotice
+                actions={
+                  <StatusNoticeAction
+                    onClick={() => router.login(`/video/${id}`)}
+                  >
+                    Войти
+                  </StatusNoticeAction>
+                }
+              >
+                Войдите, чтобы смотреть это видео
+              </StatusNotice>
             ) : status === 403 ? (
-              <>
-                <Typography>Для просмотра нужен доступ к клубу</Typography>
-                <Action onClick={() => router.push("/club")}>
-                  <Typography>Перейти в клуб</Typography>
-                </Action>
-              </>
+              <StatusNotice
+                actions={
+                  <StatusNoticeAction onClick={() => router.push("/club")}>
+                    Перейти в клуб
+                  </StatusNoticeAction>
+                }
+              >
+                Для просмотра нужен доступ к клубу
+              </StatusNotice>
             ) : status === 412 ? (
               <QueryRetryState
                 isLoading={false}

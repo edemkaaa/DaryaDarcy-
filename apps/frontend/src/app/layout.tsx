@@ -2,6 +2,7 @@ import "@/shared/styles/global.scss";
 import "./tab-styles";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { connection } from "next/server";
 import Providers from "./providers";
 import { resolveImageUri } from "@/shared/ui/static-images";
 export const metadata: Metadata = {
@@ -25,7 +26,13 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
   themeColor: "#FDF8F0",
 };
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  // Nonces must be attached at request time, including to previously static pages.
+  await connection();
   return (
     <html lang="ru">
       <head>
@@ -40,7 +47,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <div id="root" className="ui-stack ">
-          <Providers>{children}</Providers>
+          <Providers initialHomeDate={new Date().toISOString()}>
+            {children}
+          </Providers>
         </div>
       </body>
     </html>

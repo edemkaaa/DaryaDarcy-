@@ -13,7 +13,11 @@ export default function LegalHubScreen() {
         <span className={`ui-text ${classes.subtitle}`}>
           Клуб Darcy · daryadarcy.com
         </span>
-        <Link href="/privacy" className={`ui-action ${classes.linkRow}`}>
+        <Link
+          href="/privacy"
+          prefetch={false}
+          className={`ui-action ${classes.linkRow}`}
+        >
           <span className={`ui-text ${classes.linkText}`}>
             Политика конфиденциальности
           </span>
@@ -23,6 +27,7 @@ export default function LegalHubScreen() {
           <Link
             key={item.slug}
             href={`/legal/${item.slug}`}
+            prefetch={false}
             className={`ui-action ${classes.linkRow}`}
           >
             <span className={`ui-text ${classes.linkText}`}>{item.label}</span>

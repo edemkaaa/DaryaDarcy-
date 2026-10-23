@@ -33,12 +33,27 @@ class ScreenErrorBoundary extends Component<
 // Load only visited sections. Keeping their own DOM preserves scroll, filters,
 // decoded images and first-entry motion, including after opening a detail page.
 const screens = {
+  "/": dynamic(() => import("@/features/home/home-screen")),
   "/feed": dynamic(() => import("@/features/feed/feed-screen")),
   "/videos": dynamic(() => import("@/features/videos/videos-screen")),
   "/club": dynamic(() => import("@/features/club/club-screen")),
   "/interactive": dynamic(() => import("@/features/quiz/interactive-screen")),
+  "/quiz": dynamic(() => import("@/features/quiz/quiz-screen")),
+  "/quiz/result": dynamic(() =>
+    import("@/features/quiz/quiz-screen").then(
+      (module) => module.SavedQuizScreen,
+    ),
+  ),
   "/library": dynamic(() => import("@/features/library/library-screen")),
+  "/library/patterns": dynamic(
+    () => import("@/features/library/patterns-screen"),
+  ),
+  "/library/aesthetics-guide": dynamic(
+    () => import("@/features/library/aesthetics-screen"),
+  ),
+  "/library/about-me": dynamic(() => import("@/features/library/about-screen")),
   "/shop": dynamic(() => import("@/features/shop/shop-screen")),
+  "/profile": dynamic(() => import("@/features/profile/profile-screen")),
 };
 type TabPath = keyof typeof screens;
 const isTabPath = (path: string): path is TabPath =>
@@ -47,9 +62,11 @@ const isTabPath = (path: string): path is TabPath =>
 export default function TabScreens({
   path,
   children,
+  initialHomeDate,
 }: {
   path: string;
   children: ReactNode;
+  initialHomeDate: string;
 }) {
   const [visited, setVisited] = useState<TabPath[]>(() =>
     isTabPath(path) ? [path] : [],
@@ -78,7 +95,7 @@ export default function TabScreens({
             >
               <ScreenErrorBoundary>
                 <Suspense fallback={<TabLoading path={tab} />}>
-                  <Screen />
+                  <Screen initialDate={initialHomeDate} />
                 </Suspense>
               </ScreenErrorBoundary>
             </div>

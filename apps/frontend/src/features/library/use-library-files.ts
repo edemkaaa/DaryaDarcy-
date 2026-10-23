@@ -2,17 +2,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/domain/session/session-context";
 import { useClub } from "@/domain/subscription/subscription-context";
-import {
-  getLibraryFiles,
-  isPrivateLibraryEnabled,
-  type LibraryMaterialKey,
-} from "./library-files-api";
+import { getLibraryFiles, type LibraryMaterialKey } from "./library-files-api";
 
 export function useLibraryFiles(material: LibraryMaterialKey, active = true) {
   const { user, isAuthenticated } = useAuth();
   const { hasClubAccess } = useClub();
-  const allowed =
-    isPrivateLibraryEnabled() && isAuthenticated && hasClubAccess && active;
+  // Club downloads always use the authenticated API, even in older builds with
+  // the optional library switch off. An unavailable server returns an error.
+  const allowed = isAuthenticated && hasClubAccess && active;
   const query = useQuery({
     queryKey: ["private-library-files", user?.id, material],
     queryFn: ({ signal }) => getLibraryFiles(material, signal),

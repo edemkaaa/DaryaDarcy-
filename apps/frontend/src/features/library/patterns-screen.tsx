@@ -40,6 +40,8 @@ import { usePatternBindings } from "@/domain/library/private-library";
 import { useAuth } from "@/domain/session/session-context";
 import { PrivateLibraryState } from "./private-library-state";
 import type { PatternItem } from "./patterns-screen.content";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
+import { LOSHADKA_PDF_URL } from "./library-screen.content";
 export default function PatternsScreen() {
   const { user } = useAuth();
   const { hasClubAccess } = useClub();
@@ -48,6 +50,7 @@ export default function PatternsScreen() {
   );
 }
 function PatternsScreenContent() {
+  const active = useScreenActive();
   const router = useRouter();
   const viewport = useViewport();
   const { stylesLayout } = getPatternsScreenLayout(viewport);
@@ -58,12 +61,12 @@ function PatternsScreenContent() {
   const [viewerTitle, setViewerTitle] = useState("");
   const [downloading] = useState(false);
   useEffect(() => {
-    if (!hasClubAccess || bindings.error) {
+    if (!active || !hasClubAccess || bindings.error) {
       setViewerVisible(false);
       setViewerImage("");
       setViewerTitle("");
     }
-  }, [hasClubAccess, bindings.error]);
+  }, [active, hasClubAccess, bindings.error]);
   const handleClubCTA = () => {
     router.push("/club");
   };
@@ -89,8 +92,7 @@ function PatternsScreenContent() {
     }
   }, [viewerImage, hasClubAccess, bindings.files]);
   const handleOpenLoshadka = async () => {
-    if (hasClubAccess && bindings.files?.loshadka)
-      await WebBrowser.openBrowserAsync(bindings.files.loshadka.url);
+    await WebBrowser.openBrowserAsync(LOSHADKA_PDF_URL);
   };
   const closeViewer = () => {
     setViewerVisible(false);
@@ -248,6 +250,7 @@ function PatternsScreenContent() {
                     >
                       <Picture
                         source={{ uri: bindings.files![pattern.id].url }}
+                        retryKey={bindings.files![pattern.id].revision}
                         contentFit="cover"
                         sizes="(max-width: 480px) calc((100vw - 60px) / 2), 210px"
                         transition={200}
@@ -269,59 +272,49 @@ function PatternsScreenContent() {
                   ))}
                 </div>
               </div>
-
-              {/* Лошадка-качалка PDF */}
-              <div
-                className={["ui-stack ", classes.pdfSection]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                <div
-                  className={["ui-stack ", classes.pdfDivider]
-                    .filter(Boolean)
-                    .join(" ")}
-                />
-                <Action
-                  disabled={!bindings.files?.loshadka}
-                  onClick={handleOpenLoshadka}
-                  aria-label="Открыть выкройку лошадки-качалки"
-                  activeOpacity={0.8}
-                  className={classes.loshadkaCoverContainer}
-                >
-                  <Picture
-                    source={{ uri: LOSHADKA_COVER_URL }}
-                    contentFit="cover"
-                    contentPosition="top"
-                    transition={300}
-                    className={classes.loshadkaCover}
-                  />
-                </Action>
-                <Typography className={classes.sectionTitle}>
-                  Выкройка лошадка-качалка
-                </Typography>
-                <Typography className={classes.sectionSubtitle}>
-                  Выкройка в формате PDF для печати
-                </Typography>
-                {!bindings.files?.loshadka && (
-                  <PrivateLibraryState
-                    isLoading={bindings.isLoading}
-                    error={bindings.error}
-                    retry={bindings.retry}
-                  />
-                )}
-                <Action
-                  disabled={!bindings.files?.loshadka}
-                  onClick={handleOpenLoshadka}
-                  activeOpacity={0.8}
-                  className={classes.ctaButtonOlive}
-                >
-                  <Typography className={classes.ctaButtonOliveText}>
-                    Открыть PDF →
-                  </Typography>
-                </Action>
-              </div>
             </>
           )}
+          {/* Лошадка-качалка PDF */}
+          <div
+            className={["ui-stack ", classes.pdfSection]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            <div
+              className={["ui-stack ", classes.pdfDivider]
+                .filter(Boolean)
+                .join(" ")}
+            />
+            <Action
+              onClick={handleOpenLoshadka}
+              aria-label="Открыть выкройку лошадки-качалки"
+              activeOpacity={0.8}
+              className={classes.loshadkaCoverContainer}
+            >
+              <Picture
+                source={{ uri: LOSHADKA_COVER_URL }}
+                contentFit="cover"
+                contentPosition="top"
+                transition={300}
+                className={classes.loshadkaCover}
+              />
+            </Action>
+            <Typography className={classes.sectionTitle}>
+              Выкройка лошадка-качалка
+            </Typography>
+            <Typography className={classes.sectionSubtitle}>
+              Выкройка в формате PDF для печати
+            </Typography>
+            <Action
+              onClick={handleOpenLoshadka}
+              activeOpacity={0.8}
+              className={classes.ctaButtonOlive}
+            >
+              <Typography className={classes.ctaButtonOliveText}>
+                Открыть PDF →
+              </Typography>
+            </Action>
+          </div>
         </ScrollArea>
 
         {/* Full-screen Image Viewer */}
@@ -337,6 +330,11 @@ function PatternsScreenContent() {
             )
           }
           imageUrl={viewerImage}
+          revision={
+            Object.values(bindings.files ?? {}).find(
+              (file) => file.url === viewerImage,
+            )?.revision
+          }
           title={viewerTitle}
           onClose={closeViewer}
           onDownload={handleDownload}
@@ -349,6 +347,7 @@ function PatternsScreenContent() {
 interface FullScreenViewerProps {
   visible: boolean;
   imageUrl: string;
+  revision?: number;
   title: string;
   onClose: () => void;
   onDownload: () => void;
@@ -357,6 +356,7 @@ interface FullScreenViewerProps {
 function FullScreenViewer({
   visible,
   imageUrl,
+  revision,
   title,
   onClose,
   onDownload,
@@ -498,6 +498,7 @@ function FullScreenViewer({
             >
               <Picture
                 source={{ uri: imageUrl }}
+                retryKey={revision}
                 fullSize
                 style={{
                   width: viewerStylesLayout.image.width,

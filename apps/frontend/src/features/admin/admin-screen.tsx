@@ -258,6 +258,9 @@ export default function AdminScreen() {
           : viewTab === "reports"
             ? reportsQuery
             : null;
+  const listFailed =
+    Boolean(selectedListQuery?.isError) &&
+    !(viewTab === "posts" && postsQuery.isFetchNextPageError);
   const handleCreate = () => {
     setEditingPost(null);
     setScheduledDate(null);
@@ -517,7 +520,10 @@ export default function AdminScreen() {
     );
   }
   return (
-    <ScreenContainer edges={["top", "bottom", "left", "right"]}>
+    <ScreenContainer
+      edges={["top", "bottom", "left", "right"]}
+      scrollable={listFailed}
+    >
       {adminActions.error ? (
         <Typography role="alert" className={classes.loadingText}>
           {adminActions.error}
@@ -871,12 +877,11 @@ export default function AdminScreen() {
         </>
       ) : null}
 
-      {selectedListQuery?.isError &&
-      !(viewTab === "posts" && postsQuery.isFetchNextPageError) ? (
+      {listFailed ? (
         <QueryRetryState
           isLoading={false}
           isError
-          onRetry={() => void selectedListQuery.refetch()}
+          onRetry={() => void selectedListQuery?.refetch()}
           message="Не удалось загрузить список"
         />
       ) : viewTab === "seasons" ? (

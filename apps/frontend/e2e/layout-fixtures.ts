@@ -14,7 +14,11 @@ export async function gotoWithSession(page: Page, path: string) {
 }
 
 /** Browser-only data: layout checks must not start an API or write to a database. */
-export async function layoutApi(page: Page, subscribed = false) {
+export async function layoutApi(
+  page: Page,
+  subscribed = false,
+  answer?: (name: string, input: Record<string, unknown>) => unknown,
+) {
   await page.addInitScript(() => {
     localStorage.setItem("@darcy_install_guide_seen", "1");
     localStorage.setItem(
@@ -90,6 +94,7 @@ export async function layoutApi(page: Page, subscribed = false) {
       const procedures = decodeURIComponent(
         url.pathname.slice("/api/trpc/".length),
       ).split(",");
+      const inputs = JSON.parse(url.searchParams.get("input") ?? "{}");
       const data = (name: string) => {
         switch (name) {
           case "club.subscription":
@@ -124,9 +129,12 @@ export async function layoutApi(page: Page, subscribed = false) {
         }
       };
       return route.fulfill({
-        json: procedures.map((name) => ({
-          result: { data: { json: data(name) } },
-        })),
+        json: procedures.map(
+          (name, index) =>
+            answer?.(name, inputs[index]?.json ?? {}) ?? {
+              result: { data: { json: data(name) } },
+            },
+        ),
       });
     }
     return route.fulfill({

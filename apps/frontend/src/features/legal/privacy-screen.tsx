@@ -15,7 +15,11 @@ export default function PrivacyScreen() {
         <span className={`ui-text ${classes.date}`}>
           Клуб Darcy · 17 августа 2026 г.
         </span>
-        <Link href="/legal" className={`ui-action ${classes.legalLink}`}>
+        <Link
+          href="/legal"
+          prefetch={false}
+          className={`ui-action ${classes.legalLink}`}
+        >
           <span className={`ui-text ${classes.legalLinkText}`}>
             Все юридические документы →
           </span>

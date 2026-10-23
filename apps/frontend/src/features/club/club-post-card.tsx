@@ -12,7 +12,7 @@ import Animated, {
 import { PostMenuButton } from "@/shared/ui/post-menu-button";
 import { resolvePostVideos } from "@/domain/post/resolve-post-video";
 import { PostMediaSection } from "@/shared/media/post-media-section";
-import { NaturalPhotoStack } from "@/shared/media/natural-photo-stack";
+import { ClubPostPhotos } from "./club-post-photos";
 import { RichTextRenderer } from "@/domain/content/rich-text-renderer";
 import {
   clubTagLabel,
@@ -102,7 +102,7 @@ export function ClubPostCard({
               .filter(Boolean)
               .join(" ")}
           >
-            <NaturalPhotoStack
+            <ClubPostPhotos
               photos={stackPhotos}
               videos={resolved.videos}
               onPhotoPress={
@@ -136,7 +136,26 @@ export function ClubPostCard({
               <PostMenuButton onClick={onMenuPress} />
             </div>
           ) : null}
-          <div className="ui-stack">
+          <div
+            className={`ui-stack ${canOpen && !item.articleId ? classes.postTextLink : ""}`}
+            role={canOpen && !item.articleId ? "link" : undefined}
+            tabIndex={canOpen && !item.articleId ? 0 : undefined}
+            aria-label={
+              canOpen && !item.articleId ? "Открыть публикацию" : undefined
+            }
+            onClick={canOpen && !item.articleId ? openPost : undefined}
+            onKeyDown={(event) => {
+              if (
+                canOpen &&
+                !item.articleId &&
+                event.key === "Enter" &&
+                event.target === event.currentTarget
+              ) {
+                event.preventDefault();
+                openPost();
+              }
+            }}
+          >
             <RichTextRenderer
               richText={item.richText}
               plainText={item.preview}
@@ -144,14 +163,9 @@ export function ClubPostCard({
               textClassName={classes.postPreview}
             />
           </div>
-          {item.articleId || canOpen ? (
+          {item.articleId ? (
             <Action
-              onClick={
-                item.articleId
-                  ? () => router.push(`/library/article/${item.articleId}`)
-                  : openPost
-              }
-              aria-label={item.articleId ? undefined : "Открыть публикацию"}
+              onClick={() => router.push(`/library/article/${item.articleId}`)}
               className={classes.readArticleBtn}
             >
               <Typography className={classes.readArticleText}>

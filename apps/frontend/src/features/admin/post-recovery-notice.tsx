@@ -1,7 +1,10 @@
 "use client";
-import { Action, Typography } from "@/shared/ui/elements";
+import { Typography } from "@/shared/ui/elements";
+import {
+  StatusNotice,
+  StatusNoticeAction as Action,
+} from "@/shared/ui/status-notice";
 import type { usePostRecovery } from "./use-post-recovery";
-import classes from "./post-upload-status.module.scss";
 
 export function PostRecoveryNotice({
   recovery,
@@ -17,24 +20,20 @@ export function PostRecoveryNotice({
   onDiscard: () => void;
 }) {
   if (recovery.status === "loading")
-    return (
-      <div role="status" className={classes.notice}>
-        Проверяем сохранённый черновик…
-      </div>
-    );
+    return <StatusNotice>Проверяем сохранённый черновик…</StatusNotice>;
   if (recovery.status === "offered")
     return (
-      <div role="status" className={classes.notice}>
+      <StatusNotice>
         <Typography>
           На этом устройстве есть незавершённая публикация.
         </Typography>
         <Action onClick={recovery.restore}>Восстановить черновик</Action>
         <Action onClick={onDiscard}>Удалить локальную копию</Action>
-      </div>
+      </StatusNotice>
     );
   if (recovery.status === "error")
     return (
-      <div role="alert" className={classes.notice}>
+      <StatusNotice tone="error">
         <Typography>{recovery.error}</Typography>
         <Action
           disabled={busy}
@@ -47,23 +46,23 @@ export function PostRecoveryNotice({
         <Action disabled={busy} onClick={onDiscard}>
           Проверил список — удалить локальную копию
         </Action>
-      </div>
+      </StatusNotice>
     );
   const phase = recovery.saveState?.phase;
   if (phase === "complete")
     return (
-      <div role="status" className={classes.notice}>
+      <StatusNotice tone="success">
         <Typography>
           Публикация №{recovery.saveState?.savedId} сохранена.
         </Typography>
         <Action disabled={busy} onClick={onFinish}>
           Завершить восстановление
         </Action>
-      </div>
+      </StatusNotice>
     );
   if (phase && phase !== "idle" && !busy)
     return (
-      <div role="alert" className={classes.notice}>
+      <StatusNotice tone="error">
         <Typography>
           Результат предыдущего сохранения не подтверждён. Новая отправка
           заблокирована.
@@ -92,10 +91,10 @@ export function PostRecoveryNotice({
         <Action onClick={onDiscard}>
           Проверил список — удалить локальную копию
         </Action>
-      </div>
+      </StatusNotice>
     );
   return (
-    <div role="status" className={classes.notice}>
+    <StatusNotice>
       {recovery.autoRestored ? (
         <Typography>
           Незавершённый черновик восстановлен автоматически.
@@ -106,6 +105,6 @@ export function PostRecoveryNotice({
           ? "Черновик сохранён на этом устройстве"
           : "Сохраняем черновик…"}
       </Typography>
-    </div>
+    </StatusNotice>
   );
 }

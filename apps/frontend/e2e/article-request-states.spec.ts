@@ -142,7 +142,7 @@ async function openCachedArticle(page: Page) {
 
 for (const width of [320, 1440])
   for (const outcome of [403, 404, 500, "network"] as const)
-    test(`article refetch ${outcome} hides cached content and closes photos at ${width}px`, async ({
+    test(`article refetch ${outcome} ${outcome === 500 || outcome === "network" ? "keeps confirmed content" : "hides cached content and closes photos"} at ${width}px`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 844 });
@@ -167,11 +167,23 @@ for (const width of [320, 1440])
           .click();
         await expect(viewer(page)).toBeVisible();
         release();
-        await expect(viewer(page)).toHaveCount(0);
-        await expect(page.getByText(originalText, { exact: true })).toHaveCount(
-          0,
-        );
-        await expect(page.locator(`main img[src="${photo}"]`)).toHaveCount(0);
+        const temporary = outcome === 500 || outcome === "network";
+        if (temporary) {
+          await expect(
+            page.getByText("Не удалось обновить статью", { exact: true }),
+          ).toHaveCount(1);
+          await expect(viewer(page)).toBeVisible();
+          await page.keyboard.press("Escape");
+          await expect(
+            page.getByText(originalText, { exact: true }),
+          ).toBeVisible();
+        } else {
+          await expect(viewer(page)).toHaveCount(0);
+          await expect(
+            page.getByText(originalText, { exact: true }),
+          ).toHaveCount(0);
+          await expect(page.locator(`main img[src="${photo}"]`)).toHaveCount(0);
+        }
         await expect(page.getByText("PRIVATE_INTERNAL_DETAILS")).toHaveCount(0);
         if (outcome === 404)
           await expect(
@@ -208,7 +220,7 @@ for (const width of [320, 1440])
         }
         await expect.poll(() => api.reads).toBeGreaterThan(beforeRetry);
         await expect(page.getByText(originalText, { exact: true })).toHaveCount(
-          0,
+          temporary ? 1 : 0,
         );
         await expect(viewer(page)).toHaveCount(0);
         releaseRetry();

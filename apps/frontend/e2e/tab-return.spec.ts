@@ -297,6 +297,7 @@ test("a hidden club never processes another page's paid flag and retained state 
   await expect(
     page.getByRole("button", { name: "Открыть фильтры клуба" }),
   ).toBeVisible();
+  await page.getByRole("link", { name: "На главную", exact: true }).click();
   await tab(page, "/library").click();
   await page.getByPlaceholder("Поиск материалов...").fill("Сборник");
   await page.evaluate(() => history.pushState(null, "", "/library?paid=1"));

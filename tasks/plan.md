@@ -331,6 +331,17 @@ password login/secure cookie/admin/profile/catalog/library/quiz/shop GREEN;
 old public copies и devices/pilot остаются открыты. Секретный доступ600 вне Git;
 точная проверка и безопасный сценарий завтра — начало
 [operations](../docs/operations/teamassist-staging.md).
+22 октября: пользователь разрешил узкий выпуск страницы восстановления пароля
+в стиле Darcy и кликабельной ссылки в письме. Release основан на свежем staging
+37b790f; перенесены только identity/access, password controller/template и тесты.
+Остальные локальные contact/PWA/frontend изменения не входят. API-only rollout,
+без миграций/переключения БД/сброса паролей/изменения SMTP или S3. Обязательны
+backup, digest всех admin credentials, config/container guards и live smoke.
+Локально TypeScript/backend build и27 browser/HTTP тестов прошли; SQL/HTTP/SMTP
+регрессия кликабельной ссылки проверена ранее на одноразовой БД.
+Выпуск44421b1 подтверждён: API243e72d4…,8 public HTTPS checks, native3 и
+живой браузер; БД/schema/counts/credentials всех3 admins сохранены. Полный
+receipt и откат — начало operational runbook. Новое внешнее письмо не отправляли.
 
 21 октября, новое прямое поручение: совместить frontend/backend, push staging и
 обновить dev. Три frontend integration задачи ниже реализованы локально без

@@ -20,7 +20,9 @@ import { ScreenContainer } from "@/shared/ui/screen-container";
 import { VideosBannerHeader } from "./videos-banner";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import { trpc } from "@/shared/api/trpc";
+import { contentRefreshOptions } from "@/shared/api/content-refresh";
 import { PAPER_TEXTURE_URI } from "./videos-screen.content";
 import { apiUrl } from "@/shared/config/api";
 import { isVkCatalogEnabled } from "./catalog-api";
@@ -53,13 +55,18 @@ function VideosScreenInner() {
     refetch,
   } = trpc.videos.list.useQuery(undefined, {
     staleTime: 30_000,
-    enabled: active,
+    ...contentRefreshOptions(active),
   });
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
   }, [refetch]);
+  useBackgroundNotice({
+    when: isError && videos !== undefined,
+    message: "Не удалось обновить видео",
+    onRetry: () => refetch({ cancelRefetch: false }),
+  });
   const handleVideoPress = useCallback(
     (video: Video) => {
       router.push(`/video/${video.id}`);
@@ -158,7 +165,7 @@ function VideosScreenInner() {
             <QueryRetryState
               isLoading={isLoading}
               loadingContent={<ContentPlaceholder kind="video" />}
-              isError={isError}
+              isError={isError && videos === undefined}
               onRetry={() => void refetch()}
               message="Не удалось загрузить видео"
               className={classes.loadingContainer}

@@ -8,9 +8,15 @@ const scrollSelector = "main .ui-scroll:not(.ui-scroll-horizontal):visible";
 test.setTimeout(90_000);
 test.use({ viewport: { width: 390, height: 400 } });
 
-async function checkChrome(page: Page) {
+function bottomNavigation(page: Page, insideClub = false) {
+  return insideClub
+    ? page.getByRole("navigation", { name: "Разделы клуба", exact: true })
+    : page.locator(tabsSelector);
+}
+
+async function checkChrome(page: Page, insideClub = false) {
   const header = page.locator(headerSelector);
-  const tabs = page.locator(tabsSelector);
+  const tabs = bottomNavigation(page, insideClub);
   await expect(header).toHaveCount(1);
   await expect(tabs).toHaveCount(1);
   await expect(
@@ -28,10 +34,14 @@ async function checkChrome(page: Page) {
   expect(bottom.height).toBe(66);
   expect(bottom.y + bottom.height).toBe(400);
   expect(main.y).toBe(0);
-  expect(main.y + main.height).toBe(bottom.y);
+  expect(main.y + main.height).toBe(insideClub ? 400 : bottom.y);
   expect(
     await header.evaluate((node) => getComputedStyle(node).backgroundColor),
-  ).toBe("rgba(0, 0, 0, 0)");
+  ).toBe(
+    ["/", "/feed", "/club", "/library", "/shop"].includes(path)
+      ? "rgba(0, 0, 0, 0)"
+      : "rgb(253, 248, 240)",
+  );
   return { top, bottom };
 }
 
@@ -51,7 +61,8 @@ for (const subscribed of [false, true]) {
       "/profile",
     ]) {
       await gotoWithSession(page, path);
-      const before = await checkChrome(page);
+      const insideClub = subscribed && path === "/club";
+      const before = await checkChrome(page, insideClub);
       expect(
         (await page
           .locator(headerSelector)
@@ -103,7 +114,7 @@ for (const subscribed of [false, true]) {
       await expect
         .poll(() => page.locator(headerSelector).boundingBox())
         .toEqual(before.top);
-      expect(await page.locator(tabsSelector).boundingBox()).toEqual(
+      expect(await bottomNavigation(page, insideClub).boundingBox()).toEqual(
         before.bottom,
       );
       if (path === "/club")

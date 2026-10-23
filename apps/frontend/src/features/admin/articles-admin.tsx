@@ -19,6 +19,7 @@ import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
 import { trpc } from "@/shared/api/trpc";
 import {
   requirePrivateUpload,
@@ -630,7 +631,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     return (
       <ScrollArea contentClassName={classes.form}>
         {recoveryMessage ? (
-          <Typography role="alert">{recoveryMessage}</Typography>
+          <StatusNotice tone="error">{recoveryMessage}</StatusNotice>
         ) : null}
         {pendingCreation ? (
           <div>
@@ -1234,12 +1235,14 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   return (
     <ScrollArea contentClassName={classes.list}>
       {recoveryMessage ? (
-        <Typography role="alert">{recoveryMessage}</Typography>
+        <StatusNotice tone="error">{recoveryMessage}</StatusNotice>
       ) : null}
       {storageStatus === "error" ? (
-        <Action onClick={() => setLoadAttempt((value) => value + 1)}>
+        <StatusNoticeAction
+          onClick={() => setLoadAttempt((value) => value + 1)}
+        >
           Повторить чтение операции
-        </Action>
+        </StatusNoticeAction>
       ) : null}
       {creation ? (
         <Typography className={classes.hint}>
@@ -1248,10 +1251,12 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         </Typography>
       ) : null}
       {deletion.error ? (
-        <Typography role="alert">{deletion.error}</Typography>
+        <StatusNotice tone="error">{deletion.error}</StatusNotice>
       ) : null}
       {deletion.unknown && !deletion.operation.busy ? (
-        <Action onClick={() => void deletion.check()}>Обновить список</Action>
+        <StatusNoticeAction onClick={() => void deletion.check()}>
+          Обновить список
+        </StatusNoticeAction>
       ) : null}
       <Action
         disabled={remove.isPending || storageStatus !== "ready"}

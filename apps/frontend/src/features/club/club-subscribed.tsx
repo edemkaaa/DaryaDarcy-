@@ -1,5 +1,6 @@
 "use client";
 import { useClubAppearance } from "@/domain/launch/use-club-appearance";
+import { usePreparedAppearance } from "./use-prepared-appearance";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { useViewport } from "@/shared/browser/viewport";
 
@@ -14,6 +15,7 @@ import {
 } from "@/shared/ui/elements";
 import { ClubPostCard } from "./club-post-card";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import {
   useState,
   useEffect,
@@ -38,6 +40,7 @@ import { usePostManagement } from "@/features/admin/post-management";
 import { usePostInteractions } from "@/domain/post/use-post-interactions";
 import { PostInteractionStatus } from "@/domain/post/post-interaction-status";
 import { trpc } from "@/shared/api/trpc";
+import { contentRefreshOptions } from "@/shared/api/content-refresh";
 import {
   displayPostTitle,
   isRawMediaFilename,
@@ -123,8 +126,7 @@ export function ClubSubscribed({
   const clubQuery = trpc.club.list.useInfiniteQuery(
     { limit: 12 },
     {
-      refetchOnWindowFocus: false,
-      enabled: active,
+      ...contentRefreshOptions(active),
       getNextPageParam: (lastPage, _pages, _lastParam, pageParams) =>
         pageParams.includes(lastPage.nextCursor)
           ? undefined
@@ -136,11 +138,18 @@ export function ClubSubscribed({
     lastPage?.nextCursor != null &&
     Boolean(clubQuery.data?.pageParams.includes(lastPage.nextCursor));
   const hasPageError = clubQuery.isError || stalledCursor;
+  const backgroundPostError =
+    clubQuery.isRefetchError && clubQuery.data !== undefined;
+  useBackgroundNotice({
+    when: backgroundPostError,
+    message: "Не удалось обновить публикации клуба",
+    onRetry: () => clubQuery.refetch({ cancelRefetch: false }),
+  });
   const { fetchNextPage, hasNextPage, isFetching, isError } = clubQuery;
   const loadMore = useCallback(() => {
-    if (hasNextPage && !isFetching && !isError && !stalledCursor)
+    if (active && hasNextPage && !isFetching && !isError && !stalledCursor)
       void fetchNextPage({ cancelRefetch: false });
-  }, [fetchNextPage, hasNextPage, isFetching, isError, stalledCursor]);
+  }, [active, fetchNextPage, hasNextPage, isFetching, isError, stalledCursor]);
   const retryPosts = () => {
     if (clubQuery.isFetching) return;
     if (clubQuery.isFetchNextPageError)
@@ -205,17 +214,23 @@ export function ClubSubscribed({
   useEffect(() => {
     if (posts.length === 0) loadMore();
   }, [posts.length, loadMore]);
-  const season = appearanceQuery.data?.season ?? "winter";
+  // Winter is an error fallback, never a placeholder for a pending response.
+  const season =
+    appearanceQuery.data?.season ?? (appearanceQuery.isError ? "winter" : null);
   const builtInSeason = season === "autumn" ? "autumn" : "winter";
-  const backgroundCandidates = [
-    appearanceQuery.data?.appearance.backgroundUrl,
-    SEASONAL_TARTANS[builtInSeason],
-    PAPER_TEXTURE_URI,
-  ];
-  const bannerCandidates = [
-    appearanceQuery.data?.appearance.bannerUrl,
-    SEASONAL_BANNERS[builtInSeason],
-  ];
+  const backgroundCandidates = season
+    ? [
+        appearanceQuery.data?.appearance.backgroundUrl,
+        SEASONAL_TARTANS[builtInSeason],
+        PAPER_TEXTURE_URI,
+      ]
+    : [];
+  const bannerCandidates = season
+    ? [
+        appearanceQuery.data?.appearance.bannerUrl,
+        SEASONAL_BANNERS[builtInSeason],
+      ]
+    : [];
   const tartanUri =
     backgroundCandidates.find((url) => url && !failedImages.includes(url)) ??
     null;
@@ -225,16 +240,30 @@ export function ClubSubscribed({
     backgroundCandidates.find(Boolean),
     bannerCandidates.find(Boolean),
   ].some((url) => url && failedImages.includes(url));
-  const failImage = (url: string | null) => {
+  const failImage = useCallback((url: string | null) => {
     if (url)
       setFailedImages((previous) =>
         previous.includes(url) ? previous : [...previous, url],
       );
-  };
+  }, []);
+  const preparedAppearance = usePreparedAppearance(
+    season,
+    tartanUri,
+    bannerUri,
+    failImage,
+  );
+  const displayedBackground = preparedAppearance?.background ?? null;
+  const displayedBanner = preparedAppearance?.banner ?? null;
   const retryAppearance = () => {
     setFailedImages([]);
-    void appearanceQuery.refetch({ cancelRefetch: false });
+    return appearanceQuery.refetch({ cancelRefetch: false });
   };
+  useBackgroundNotice({
+    when: appearanceQuery.isError || imageError,
+    message:
+      "Не удалось обновить оформление Клуба. Используется доступное оформление.",
+    onRetry: retryAppearance,
+  });
   const renderPost = ({ item }: { item: ClubPost }) => (
     <ClubPostCard
       item={item}
@@ -289,10 +318,10 @@ export function ClubSubscribed({
           .filter(Boolean)
           .join(" ")}
       >
-        {bannerUri ? (
+        {displayedBanner ? (
           <Picture
-            source={{ uri: bannerUri }}
-            onError={() => failImage(bannerUri)}
+            source={{ uri: displayedBanner }}
+            onError={() => failImage(displayedBanner)}
             contentFit="cover"
             contentPosition="top"
             className={classes.bannerImage}
@@ -301,22 +330,6 @@ export function ClubSubscribed({
           />
         ) : null}
       </div>
-      {appearanceQuery.isError || imageError ? (
-        <div
-          style={{
-            backgroundColor: CREAM,
-            borderRadius: 12,
-            margin: "12px 20px",
-          }}
-        >
-          <QueryRetryState
-            isLoading={false}
-            isError={appearanceQuery.isError || imageError}
-            onRetry={retryAppearance}
-            message="Не удалось обновить оформление Клуба. Используется доступное оформление."
-          />
-        </div>
-      ) : null}
       {/* Greeting only on main (no tab selected) */}
       {activeTab === null && displayName ? (
         <Typography className={classes.greeting}>
@@ -403,9 +416,9 @@ export function ClubSubscribed({
   );
   return (
     <Background
-      source={tartanUri}
-      onImageError={() => failImage(tartanUri)}
-      data-club-season={season}
+      source={displayedBackground}
+      onImageError={() => failImage(displayedBackground)}
+      data-club-season={preparedAppearance?.season ?? "loading"}
       style={
         {
           backgroundColor: CREAM,
@@ -438,13 +451,9 @@ export function ClubSubscribed({
               <QueryRetryState
                 isLoading={clubQuery.isFetchingNextPage}
                 loadingSize="small"
-                isError={hasPageError}
+                isError={clubQuery.isFetchNextPageError || stalledCursor}
                 onRetry={retryPosts}
-                message={
-                  clubQuery.isRefetchError
-                    ? "Не удалось обновить публикации клуба"
-                    : "Не удалось загрузить следующие публикации клуба"
-                }
+                message="Не удалось загрузить следующие публикации клуба"
                 className={classes.emptyTab}
               >
                 {clubQuery.hasNextPage ? (
@@ -476,7 +485,7 @@ export function ClubSubscribed({
                 (!hasPageError &&
                   (clubQuery.isPending || Boolean(clubQuery.hasNextPage)))
               }
-              isError={hasPageError}
+              isError={hasPageError && !backgroundPostError}
               onRetry={retryPosts}
               message="Не удалось загрузить публикации клуба"
             >
@@ -489,14 +498,18 @@ export function ClubSubscribed({
               </div>
             </QueryRetryState>
           }
-          onLoadMore={loadMore}
+          onLoadMore={active ? loadMore : undefined}
+          loadMoreThreshold={2}
           onRefresh={onRefresh}
-          refreshing={clubQuery.isRefetching}
           contentClassName={classes.postList}
+          divider={<div className={classes.postDivider} aria-hidden="true" />}
         />
 
         {/* Internal Tab Bar */}
         <Background
+          role="navigation"
+          aria-label="Разделы клуба"
+          data-background-notice-menu
           source={{ uri: PAPER_TEXTURE_URI }}
           fit="cover"
           className={classes.clubTabBar}

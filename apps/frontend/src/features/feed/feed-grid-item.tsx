@@ -38,6 +38,7 @@ export function GridItem({
   return (
     <Link
       href={href}
+      prefetch={false}
       aria-label={label}
       style={{
         width: stylesLayout.gridItem.width,

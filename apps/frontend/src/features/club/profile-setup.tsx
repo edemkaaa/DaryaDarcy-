@@ -12,6 +12,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Picture } from "@/shared/media/image";
 import * as ImagePicker from "@/shared/browser/file-picker";
+import { MAX_AVATAR_SOURCE_BYTES } from "@/shared/browser/file-operations";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { SafeArea } from "@/shared/ui/safe-area";
 import { AvatarCropper } from "@/shared/media/avatar-cropper";
@@ -127,6 +128,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      maxBytes: MAX_AVATAR_SOURCE_BYTES,
       allowsEditing: false,
       quality: 0.9,
     }).catch((error: unknown) => {

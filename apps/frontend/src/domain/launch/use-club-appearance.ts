@@ -1,6 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { contentRefreshOptions } from "@/shared/api/content-refresh";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { parsePublicAppearance, untilMoscowMidnight } from "./settings";
 import {
@@ -14,7 +15,7 @@ export function useClubAppearance() {
   const query = useQuery({
     ...publicConfigurationOptions(),
     select: parsePublicAppearance,
-    enabled: active,
+    ...contentRefreshOptions(active),
   });
   const { refetch } = query;
   useEffect(() => {

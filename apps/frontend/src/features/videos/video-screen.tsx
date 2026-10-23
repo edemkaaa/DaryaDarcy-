@@ -7,8 +7,14 @@ import { Background } from "@/shared/ui/elements";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { trpc } from "@/shared/api/trpc";
+import { useQuery } from "@tanstack/react-query";
+import { getQueryKey } from "@trpc/react-query";
+import { contentRefreshOptions } from "@/shared/api/content-refresh";
+import { isTemporaryRequestError } from "@/shared/api/errors";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { parseContentId } from "@/shared/navigation/content-id";
 import { ContentRequestState } from "@/shared/ui/content-request-state";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import { YouTubeEmbed } from "@/shared/media/youtube-embed";
 import { getVkVideoEmbedUrl } from "@/shared/media/vk-video-url";
 import { VkVideoEmbed } from "@/shared/media/vk-video-embed";
@@ -25,17 +31,28 @@ export default function VideoDetailScreen({ id }: { id: string }) {
   );
 }
 function LegacyVideoDetail({ id }: { id: string }) {
+  const active = useScreenActive();
   const videoId = parseContentId(id);
+  const utils = trpc.useUtils();
+  const input = { id: videoId ?? 0 };
   const {
     data: video,
     isLoading,
     error,
     refetch,
-  } = trpc.videos.getById.useQuery(
-    { id: videoId ?? 0 },
-    { enabled: videoId !== null, staleTime: 30_000 },
-  );
-  if (isLoading || error || !video) {
+  } = useQuery({
+    queryKey: getQueryKey(trpc.videos.getById, input, "query"),
+    queryFn: async ({ signal }) =>
+      (await utils.client.videos.getById.query(input, { signal })) ?? null,
+    ...contentRefreshOptions(active && videoId !== null),
+    staleTime: 30_000,
+  });
+  useBackgroundNotice({
+    when: Boolean(video && error && isTemporaryRequestError(error)),
+    message: "Не удалось обновить видео",
+    onRetry: () => refetch({ cancelRefetch: false }),
+  });
+  if (isLoading || (error && !isTemporaryRequestError(error)) || !video) {
     return (
       <ScreenContainer edges={["top", "bottom", "left", "right"]}>
         <Background

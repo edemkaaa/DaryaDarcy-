@@ -1,0 +1,32 @@
+@mixin container {
+  --search-inset: 10px;
+  --search-muted-color: #7a6b5e;
+  height: var(--search-control-size, 36px);
+  flex-direction: row;
+  align-items: center;
+  gap: var(--search-inset);
+  background-color: #f3eddd;
+  border-radius: 8px;
+  padding-inline: var(--search-inset);
+  padding-top: 0;
+  padding-bottom: 0;
+  border-width: 1px;
+  border-color: rgba(139, 115, 85, 0.25);
+
+  &:focus-within {
+    border-color: var(--muted);
+  }
+
+  input:focus {
+    border: 0;
+  }
+}
+
+@mixin input {
+  flex: 1;
+  font-size: 14px;
+  font-family: var(--font-body);
+  color: var(--ink);
+  padding-top: 0;
+  padding-bottom: 0;
+}

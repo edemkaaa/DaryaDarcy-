@@ -15,16 +15,15 @@ import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
+import { isTemporaryRequestError } from "@/shared/api/errors";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
-import {
-  isPrivateLibraryEnabled,
-  libraryMaterialKey,
-} from "./library-files-api";
 import type { LibraryMaterialKey } from "./library-files-api";
 import { LibraryFilesDialog } from "./library-files-dialog";
 
 import { useClub } from "@/domain/subscription/subscription-context";
 import { trpc } from "@/shared/api/trpc";
+import { contentRefreshOptions } from "@/shared/api/content-refresh";
 import * as WebBrowser from "@/shared/browser/links";
 import {
   PAPER_TEXTURE_URI,
@@ -76,7 +75,16 @@ export default function LibraryScreen() {
   }, [hasClubAccess]);
   const articlesQuery = trpc.articles.list.useQuery(undefined, {
     staleTime: 30_000,
-    enabled: active,
+    ...contentRefreshOptions(active),
+  });
+  const articlesRefreshError =
+    articlesQuery.data !== undefined &&
+    articlesQuery.isError &&
+    isTemporaryRequestError(articlesQuery.error);
+  useBackgroundNotice({
+    when: articlesRefreshError,
+    message: "Не удалось обновить статьи библиотеки",
+    onRetry: () => articlesQuery.refetch({ cancelRefetch: false }),
   });
   const allMaterials = useMemo(() => {
     const extra: MaterialItem[] = (articlesQuery.data || []).map((article) => ({
@@ -102,14 +110,11 @@ export default function LibraryScreen() {
       router.push("/club");
       return;
     }
-    if (item.action === "navigate" && item.route) {
+    if (item.action === "navigate") {
       router.push(item.route);
-    } else if (item.action === "browser" && item.pdfUrl) {
-      const key = libraryMaterialKey(item.id);
-      if (isPrivateLibraryEnabled() && key) {
-        setFileMaterial({ key, title: item.title });
-        return;
-      }
+    } else if (item.action === "private-file") {
+      setFileMaterial({ key: item.material, title: item.title });
+    } else if (item.action === "browser") {
       await WebBrowser.openBrowserAsync(item.pdfUrl);
     }
   };
@@ -117,7 +122,8 @@ export default function LibraryScreen() {
     if (item.isClubOnly && !hasClubAccess) {
       return "Для участниц клуба Darcy →";
     }
-    if (item.action === "browser") return "Скачать →";
+    if (item.action !== "navigate" || item.route === "/library/patterns")
+      return "Скачать →";
     return "Читать →";
   };
   const masonry = useMemo(
@@ -208,7 +214,9 @@ export default function LibraryScreen() {
                 .join(" ")}
             >
               <MaterialIcons
-                name={item.action === "browser" ? "file-download" : "menu-book"}
+                name={
+                  item.action !== "navigate" ? "file-download" : "menu-book"
+                }
                 size={13}
                 color={BROWN}
               />
@@ -252,10 +260,15 @@ export default function LibraryScreen() {
 
         {/* Search bar */}
         <div className={["ui-stack ", classes.div].filter(Boolean).join(" ")}>
-          <MaterialIcons name="search" size={20} color={BROWN_MUTED} />
+          <MaterialIcons
+            name="search"
+            size={18}
+            color="var(--search-muted-color)"
+          />
           <Field
+            aria-label="Поиск по библиотеке"
             placeholder="Поиск материалов..."
-            placeholderColor={BROWN_MUTED}
+            placeholderColor="var(--search-muted-color)"
             value={searchQuery}
             onValueChange={setSearchQuery}
             className={classes.field}
@@ -264,8 +277,13 @@ export default function LibraryScreen() {
             <Action
               aria-label="Очистить поиск"
               onClick={() => setSearchQuery("")}
+              activeOpacity={0.5}
             >
-              <MaterialIcons name="close" size={18} color={BROWN_MUTED} />
+              <MaterialIcons
+                name="close"
+                size={18}
+                color="var(--search-muted-color)"
+              />
             </Action>
           )}
         </div>
@@ -306,7 +324,7 @@ export default function LibraryScreen() {
         <QueryRetryState
           isLoading={articlesQuery.isPending}
           loadingContent={<ContentPlaceholder kind="library" />}
-          isError={articlesQuery.isError}
+          isError={articlesQuery.isError && !articlesRefreshError}
           onRetry={() => void articlesQuery.refetch()}
           message="Не удалось загрузить статьи библиотеки"
         />

@@ -70,6 +70,88 @@ async function openSettings(page: Page) {
   await expect(form(page)).toBeVisible();
 }
 
+test("entry and reload keep a neutral background until the configured season arrives", async ({
+  page,
+}) => {
+  await clubApi(page);
+  let releaseConfiguration!: () => void;
+  let configuration: Promise<void>;
+  await page.route("**/api/launch-config", async (route) => {
+    await configuration;
+    await route.fulfill({ json: publicConfig("autumn") });
+  });
+  for (const entry of ["navigate", "reload"]) {
+    configuration = new Promise<void>((resolve) => {
+      releaseConfiguration = resolve;
+    });
+    if (entry === "navigate") await gotoWithSession(page, "/club");
+    else await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(theme(page)).toHaveAttribute("data-club-season", "loading");
+    await expect(background(page)).not.toHaveAttribute("src");
+    await expect(banner(page)).toHaveCount(0);
+    releaseConfiguration();
+    await expect(theme(page)).toHaveAttribute("data-club-season", "autumn");
+    await expect(background(page)).toHaveAttribute(
+      "src",
+      imageUrl("autumn", "background"),
+    );
+    await expect(banner(page)).toHaveAttribute(
+      "src",
+      imageUrl("autumn", "banner"),
+    );
+  }
+});
+
+test("a new season waits for both images while the confirmed pair stays visible", async ({
+  page,
+}) => {
+  await clubApi(page);
+  let season: Season = "autumn";
+  await page.route("**/api/launch-config", (route) =>
+    route.fulfill({ json: publicConfig(season) }),
+  );
+  let releaseBanner!: () => void;
+  let bannerRequested!: () => void;
+  const waitingForBanner = new Promise<void>((resolve) => {
+    bannerRequested = resolve;
+  });
+  const bannerReady = new Promise<void>((resolve) => {
+    releaseBanner = resolve;
+  });
+  await page.route(imageUrl("summer", "banner"), async (route) => {
+    bannerRequested();
+    await bannerReady;
+    await route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600"><rect width="1200" height="600" fill="#b3ad9b"/></svg>',
+    });
+  });
+  await gotoWithSession(page, "/club");
+  await expect(theme(page)).toHaveAttribute("data-club-season", "autumn");
+  season = "summer";
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await waitingForBanner;
+  await expect(theme(page)).toHaveAttribute("data-club-season", "autumn");
+  await expect(background(page)).toHaveAttribute(
+    "src",
+    imageUrl("autumn", "background"),
+  );
+  await expect(banner(page)).toHaveAttribute(
+    "src",
+    imageUrl("autumn", "banner"),
+  );
+  releaseBanner();
+  await expect(theme(page)).toHaveAttribute("data-club-season", "summer");
+  await expect(background(page)).toHaveAttribute(
+    "src",
+    imageUrl("summer", "background"),
+  );
+  await expect(banner(page)).toHaveAttribute(
+    "src",
+    imageUrl("summer", "banner"),
+  );
+});
+
 for (const season of ["winter", "spring", "summer", "autumn"] as const) {
   test(`the server-selected ${season} appearance overrides the browser calendar`, async ({
     page,
@@ -132,6 +214,8 @@ test("returning to Club and resuming the page refreshes changed settings while p
   );
   await gotoWithSession(page, "/club");
   await page.getByRole("button", { name: "Комьюнити", exact: true }).click();
+  await page.getByRole("link", { name: "На главную", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
   await page.getByRole("link", { name: "Лента", exact: true }).click();
   await expect(page).toHaveURL(/\/feed$/);
   season = "spring";
@@ -162,7 +246,7 @@ test("a failed background refresh retains the confirmed theme and offers an expl
   fail = true;
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
   const warning = page
-    .getByRole("alert")
+    .getByRole("status")
     .filter({ hasText: "Не удалось обновить оформление Клуба" });
   await expect(warning).toBeVisible();
   await expect(background(page)).toHaveAttribute(
@@ -204,7 +288,7 @@ for (const malformed of [false, true]) {
     ).toBeVisible();
     await expect(
       page
-        .getByRole("alert")
+        .getByRole("status")
         .filter({ hasText: "Не удалось обновить оформление Клуба" }),
     ).toBeVisible();
   });
@@ -238,7 +322,7 @@ test("missing and failed images fall back without changing the banner dimensions
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
   await expect(
     page
-      .getByRole("alert")
+      .getByRole("status")
       .filter({ hasText: "Не удалось обновить оформление Клуба" }),
   ).toBeVisible();
   await expect(banner(page)).toHaveAttribute("src", winter);
@@ -246,7 +330,7 @@ test("missing and failed images fall back without changing the banner dimensions
   expect(after?.width).toBe(before?.width);
   expect(after?.height).toBe(before?.height);
   const warningBox = await page
-    .getByRole("alert")
+    .getByRole("status")
     .filter({ hasText: "Не удалось обновить оформление Клуба" })
     .boundingBox();
   expect(warningBox!.y).toBeGreaterThanOrEqual(after!.y + after!.height);

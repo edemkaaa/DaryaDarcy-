@@ -12,7 +12,8 @@ import {
   Collection,
   MeasuredBox,
 } from "@/shared/ui/elements";
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { Picture } from "@/shared/media/image";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 import { PhotoViewer } from "@/shared/media/photo-viewer";
@@ -25,11 +26,15 @@ import {
   PART_TEXTS,
 } from "./about-screen.content";
 export default function AboutMeScreen() {
+  const active = useScreenActive();
   const viewport = useViewport();
   const { stylesLayout } = getAboutScreenLayout(viewport);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [viewerVisible, setViewerVisible] = useState(false);
+  useEffect(() => {
+    if (!active) setViewerVisible(false);
+  }, [active]);
   const [viewerPhotos, setViewerPhotos] = useState<string[]>([]);
   const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
   const [tocExpanded, setTocExpanded] = useState(false);

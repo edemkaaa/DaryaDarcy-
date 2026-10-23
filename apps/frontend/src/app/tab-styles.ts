@@ -1,24 +1,39 @@
 // Retained tabs render outside the changing route subtree. Their CSS must be
 // available before the first frame; keep JS/components lazy in tab-screens.
-// Include the static stylesheet dependencies of the six tab entry points here.
+// Include static stylesheet dependencies of the retained entry points here.
 import "@/domain/content/rich-text-renderer.module.scss";
 import "@/features/admin/admin-fab.module.scss";
 import "@/features/admin/post-management.module.scss";
 import "@/features/club/club-comments.module.scss";
 import "@/features/club/club-post-card.module.scss";
+import "@/features/club/club-post-photos.module.scss";
 import "@/features/club/club-screen.module.scss";
 import "@/features/club/club-subscribed.module.scss";
 import "@/features/club/club-testimonials.module.scss";
 import "@/features/club/pen-pals.module.scss";
 import "@/features/club/profile-setup.module.scss";
 import "@/features/club/tag-board-drawer.module.scss";
+import "@/features/auth/sms-code-form.module.scss";
 import "@/features/feed/feed-grid-item.module.scss";
 import "@/features/feed/feed-screen.module.scss";
 import "@/features/feed/post-card.module.scss";
+import "@/features/home/garden-confetti.module.scss";
+import "@/features/home/garden-tour-video.module.scss";
+import "@/features/home/home-promo-carousel.module.scss";
+import "@/features/home/home-screen.module.scss";
 import "@/features/legal/contact-email-footer.module.scss";
 import "@/features/legal/legal-documents-footer.module.scss";
 import "@/features/library/library-screen.module.scss";
+import "@/features/library/patterns-screen.module.scss";
+import "@/features/library/aesthetics-screen.module.scss";
+import "@/features/library/about-screen.module.scss";
+import "@/features/profile/profile-screen.module.scss";
+import "@/shared/ui/status-notice.module.scss";
 import "@/features/quiz/interactive-screen.module.scss";
+import "@/features/quiz/quiz-welcome.module.scss";
+import "@/features/quiz/quiz-question.module.scss";
+import "@/features/quiz/quiz-result.module.scss";
+import "@/features/quiz/aesthetic-result-content.module.scss";
 import "@/features/shop/shelf-item.module.scss";
 import "@/features/shop/shelf-label.module.scss";
 import "@/features/shop/shop-screen.module.scss";

@@ -10,10 +10,17 @@ import { InstallGuide } from "@/features/pwa/install-guide";
 import { WebPostAlerts } from "@/features/pwa/web-post-alerts";
 import { ViewportSync } from "@/shared/browser/viewport";
 import { BackgroundCheckNotice } from "@/domain/session/background-check-notice";
+import { BackgroundNoticeProvider } from "@/shared/ui/background-notice";
 import TabShell from "./tab-shell";
 import { NavigationHistory } from "@/shared/navigation/history";
 import { TouchPressGuard } from "@/shared/browser/touch-press-guard";
-export default function Providers({ children }: { children: ReactNode }) {
+export default function Providers({
+  children,
+  initialHomeDate,
+}: {
+  children: ReactNode;
+  initialHomeDate: string;
+}) {
   const [queryClient] = useState(createAppQueryClient);
   const [client] = useState(createTRPCClient);
   return (
@@ -26,11 +33,15 @@ export default function Providers({ children }: { children: ReactNode }) {
           <TouchPressGuard />
           <AuthProvider>
             <ClubProvider>
-              <ViewportSync />
-              <TabShell>{children}</TabShell>
-              <InstallGuide />
-              <WebPostAlerts />
-              <BackgroundCheckNotice />
+              <BackgroundNoticeProvider>
+                <ViewportSync />
+                <TabShell initialHomeDate={initialHomeDate}>
+                  {children}
+                </TabShell>
+                <InstallGuide />
+                <WebPostAlerts />
+                <BackgroundCheckNotice />
+              </BackgroundNoticeProvider>
             </ClubProvider>
           </AuthProvider>
         </QueryClientProvider>

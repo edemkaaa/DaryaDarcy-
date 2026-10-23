@@ -15,6 +15,7 @@ import { useAuth } from "@/domain/session/session-context";
 import { ContentRequestState } from "@/shared/ui/content-request-state";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { trpc } from "@/shared/api/trpc";
+import { contentRefreshOptions } from "@/shared/api/content-refresh";
 import {
   useCapabilities,
   uploadUnavailableMessage,
@@ -252,7 +253,7 @@ function CommentThread({
   const comments = trpc.club.comments.useQuery(
     { postId },
     {
-      enabled: isAuthenticated && community && active && nearby,
+      ...contentRefreshOptions(isAuthenticated && community && active && nearby),
       staleTime: 60_000,
       gcTime: 60_000,
     },

@@ -139,7 +139,9 @@ test("an unpaid member opens saved public posts without opening club-only conten
   await card(page, "OPEN_SAVED_POST").click();
   await expect(page).toHaveURL(/\/post\/42$/);
   await expect(
-    page.getByText("OPEN_SAVED_POST", { exact: true }),
+    page
+      .getByText("OPEN_SAVED_POST", { exact: true })
+      .filter({ visible: true }),
   ).toBeVisible();
   await page.goto("/post/44");
   await expect(page.getByText("Пост не найден", { exact: true })).toBeVisible();

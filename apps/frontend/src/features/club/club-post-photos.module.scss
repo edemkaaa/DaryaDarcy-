@@ -1,0 +1,53 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .stack {
+    width: 100%;
+    gap: 1px;
+  }
+  .row {
+    flex-direction: row;
+    gap: 1px;
+  }
+  .cell {
+    flex: 1 1 0%;
+    min-width: 0;
+    overflow: hidden;
+    background-color: #ede6da;
+  }
+  .single {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+  .open,
+  .picture {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .carousel {
+    width: 100%;
+    background-color: #ede6da;
+  }
+  .carouselScroll {
+    flex: 0 0 auto;
+  }
+  .slide {
+    flex: 0 0 auto;
+  }
+  .counter {
+    pointer-events: none;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.45);
+    border-radius: 12px;
+    padding: 4px 10px;
+  }
+  .counterText {
+    color: var(--paper);
+    font-size: 12px;
+    font-weight: 600;
+  }
+}

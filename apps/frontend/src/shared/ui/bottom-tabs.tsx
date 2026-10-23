@@ -52,6 +52,7 @@ export function BottomTabs() {
         return (
           <Link
             href={href}
+            prefetch={false}
             key={href}
             aria-label={label}
             className={styles.tab}

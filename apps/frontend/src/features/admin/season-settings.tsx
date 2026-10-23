@@ -29,6 +29,7 @@ import {
 import { CLUB_APPEARANCE_KEY } from "@/domain/launch/use-club-appearance";
 import { Action, Field, ScrollArea, Typography } from "@/shared/ui/elements";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { StatusNotice } from "@/shared/ui/status-notice";
 import classes from "./admin-screen.module.scss";
 
 const readSettings = async (signal: AbortSignal) =>
@@ -216,14 +217,14 @@ function SeasonEditor({
           ссылки используют готовое оформление: осеннее для осени, зимнее для
           остальных сезонов.
         </Typography>
-        {error ? <Typography role="alert">{error}</Typography> : null}
-        {notice ? <Typography role="status">{notice}</Typography> : null}
+        {error ? <StatusNotice tone="error">{error}</StatusNotice> : null}
+        {notice ? <StatusNotice tone="success">{notice}</StatusNotice> : null}
         {operation.busy ? (
-          <Typography role="status">
+          <StatusNotice>
             {operation.kind === "save"
               ? "Сохраняем настройки…"
               : "Проверяем настройки…"}
-          </Typography>
+          </StatusNotice>
         ) : null}
         <div
           className="ui-stack"

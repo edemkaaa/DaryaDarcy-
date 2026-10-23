@@ -1,7 +1,7 @@
 "use client";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { getRequestErrorMessage } from "@/shared/api/errors";
-import { Typography } from "@/shared/ui/elements";
+import { StatusNotice } from "@/shared/ui/status-notice";
 
 export function PrivateLibraryState({
   isLoading,
@@ -19,7 +19,7 @@ export function PrivateLibraryState({
       onRetry={retry}
       message={getRequestErrorMessage(error)}
     >
-      <Typography>Материал пока недоступен.</Typography>
+      <StatusNotice compact>Материал пока недоступен.</StatusNotice>
     </QueryRetryState>
   );
 }

@@ -10,6 +10,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 
 const ItemWindow = createContext<{
   nearby: boolean;
@@ -63,6 +64,11 @@ export function CollectionItemWindow({
   style?: CSSProperties;
   children: ReactNode;
 }) {
+  const active = useScreenActive();
+  const activeRef = useRef(active);
+  useLayoutEffect(() => {
+    activeRef.current = active;
+  }, [active]);
   const node = useRef<HTMLDivElement>(null);
   const measurements = useRef(new Map<string, number>());
   const [nearby, setNearby] = useState(false);
@@ -144,14 +150,18 @@ export function CollectionItemWindow({
   }, [mounted, epoch, root, anchorLocked]);
 
   useEffect(() => {
-    if (!node.current || !root.current) return;
+    // display:none on a retained tab is not a user scrolling past every row.
+    // Keep its last nearby window, including decoded photos and paused media.
+    if (!active || !node.current || !root.current) return;
     const observer = new IntersectionObserver(
-      ([entry]) => setNearby(entry.isIntersecting),
+      ([entry]) => {
+        if (activeRef.current) setNearby(entry.isIntersecting);
+      },
       { root: root.current, rootMargin: `${root.current.clientHeight * 2}px` },
     );
     observer.observe(node.current);
     return () => observer.disconnect();
-  }, [root, epoch]);
+  }, [active, root, epoch]);
 
   return (
     <div

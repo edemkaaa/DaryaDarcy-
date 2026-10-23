@@ -7,6 +7,7 @@ import {
   invalidResponse,
 } from "@/shared/api/errors";
 import { uriToBase64 } from "@/shared/media/image-upload";
+import { MAX_AVATAR_SOURCE_BYTES } from "@/shared/browser/file-operations";
 import { trpc } from "@/shared/api/trpc";
 import { useAuth } from "@/domain/session/session-context";
 import {
@@ -28,7 +29,10 @@ export function useProfileAvatar() {
     setError(null);
     let dispatched = false;
     try {
-      const base64 = await uriToBase64(uri);
+      const base64 = await uriToBase64(uri, {
+        maxInputBytes: MAX_AVATAR_SOURCE_BYTES,
+        signal: task.signal,
+      });
       task.assertCurrent();
       if (!base64) throw new Error("Не удалось прочитать фото");
       dispatched = true;

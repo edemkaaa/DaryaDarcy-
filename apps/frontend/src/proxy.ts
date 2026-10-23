@@ -1,13 +1,37 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { randomBytes } from "node:crypto";
+import { documentSecurityHeaders } from "./shared/security/document-headers";
 
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/** A request-specific CSP for documents; API/media retain upstream policies. */
+export function proxy(request: NextRequest) {
+  if (/^\/(?:api|media)(?:\/|$)/.test(request.nextUrl.pathname))
+    return proxyApi(request);
+
+  const nonce = randomBytes(16).toString("base64");
+  const security = documentSecurityHeaders(
+    nonce,
+    process.env.NODE_ENV === "development",
+    process.env.NEXT_PUBLIC_API_BASE_URL,
+  );
+  const headers = new Headers(request.headers);
+  // Override client-supplied values. Next reads the request CSP to attach this
+  // nonce to its framework bundles and inline hydration scripts.
+  headers.set("x-nonce", nonce);
+  headers.set("Content-Security-Policy", security["Content-Security-Policy"]);
+  const response = NextResponse.next({ request: { headers } });
+  for (const [name, value] of Object.entries(security))
+    response.headers.set(name, value);
+  return response;
+}
 
 /** Remote development API sees the same Origin as its deployed frontend.
  * Accept only the local frontend's own browser requests; preserve cookies and
  * the upstream's authorization checks. Production and a local HTTP API keep
  * their existing behavior.
  */
-export function proxy(request: NextRequest) {
+function proxyApi(request: NextRequest) {
   const target = process.env.API_PROXY_TARGET;
   if (process.env.NODE_ENV !== "development" || !target)
     return NextResponse.next();
@@ -40,4 +64,8 @@ function forbidden() {
   });
 }
 
-export const config = { matcher: ["/api/:path*", "/media/:path*"] };
+export const config = {
+  matcher: [
+    "/((?!_next(?:/|$)|assets(?:/|$)|fonts(?:/|$)|favicon\\.ico$|manifest\\.webmanifest$).*)",
+  ],
+};

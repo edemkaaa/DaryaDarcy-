@@ -1,9 +1,15 @@
-import Link from "next/link";
+import { StatusNotice, StatusNoticeLink } from "@/shared/ui/status-notice";
+import { ScreenStatus } from "@/shared/ui/screen-status";
 export default function NotFound() {
   return (
-    <div className="ui-stack route-error">
-      <p>Страница не найдена.</p>
-      <Link href="/">Вернуться на главную →</Link>
-    </div>
+    <ScreenStatus>
+      <StatusNotice
+        actions={
+          <StatusNoticeLink href="/">Вернуться на главную →</StatusNoticeLink>
+        }
+      >
+        Страница не найдена.
+      </StatusNotice>
+    </ScreenStatus>
   );
 }

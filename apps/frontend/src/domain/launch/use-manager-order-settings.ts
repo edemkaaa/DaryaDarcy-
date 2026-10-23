@@ -1,5 +1,6 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
+import { contentRefreshOptions } from "@/shared/api/content-refresh";
 import { useEffect } from "react";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { publicConfigurationOptions } from "./public-configuration";
@@ -10,7 +11,7 @@ export function useManagerOrderSettings(enabled = true) {
   const query = useQuery({
     ...publicConfigurationOptions(),
     select: parseManagerOrderSettings,
-    enabled: enabled && active,
+    ...contentRefreshOptions(enabled && active),
     refetchOnWindowFocus: "always",
     refetchOnReconnect: "always",
   });

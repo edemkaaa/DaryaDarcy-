@@ -53,6 +53,11 @@ for (const width of [320, 390, 1440]) {
       const player = page.getByTitle("VK Видео", { exact: true });
       await expect(player).toBeVisible();
       await expect(player).toHaveAttribute("src", embed + "&autoplay=0");
+      await expect(
+        page
+          .frameLocator('iframe[title="VK Видео"]')
+          .getByText("Player fixture", { exact: true }),
+      ).toBeVisible();
       const sizes = await player.evaluate((node) => {
         const rect = node.getBoundingClientRect(),
           frame = node.parentElement!.getBoundingClientRect();

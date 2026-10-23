@@ -42,6 +42,11 @@ const imageTypes: Record<string, string> = {
   bmp: "image/bmp",
 };
 export const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
+type PhotoPreparationOptions = {
+  preserveAlpha?: boolean;
+  signal?: AbortSignal;
+  maxInputBytes?: number;
+};
 
 /** Reject animation before canvas can silently reduce it to a single frame. */
 async function assertStaticImage(blob: Blob, signal?: AbortSignal) {
@@ -220,9 +225,9 @@ export async function compressImageBlob(
 }
 async function preparePhotoBlob(
   raw: Blob,
-  opts?: { preserveAlpha?: boolean; signal?: AbortSignal },
+  opts?: PhotoPreparationOptions,
 ): Promise<Blob> {
-  validateFileSize(raw);
+  validateFileSize(raw, opts?.maxInputBytes);
   if (!Object.values(imageTypes).includes(imageType(raw)))
     throw new Error(
       "Неподдерживаемый формат фото. Выберите JPG, PNG, WebP, AVIF, HEIC или BMP.",
@@ -253,18 +258,46 @@ async function preparePhotoBlob(
     "Подготовленное фото больше 4 МБ. Уменьшите изображение или выберите другое.",
   );
 }
+/** Canvas/FileReader data URLs are local bytes, not network connections. */
+function readPhotoDataUrl(uri: string, maxBytes: number): Blob {
+  const comma = uri.indexOf(",");
+  const header = uri.slice(0, comma);
+  const match = /^data:([^;,]+);base64$/i.exec(header);
+  if (comma < 0 || !match) throw new Error("Не удалось прочитать фото");
+  const encoded = uri.slice(comma + 1);
+  const padding = encoded.endsWith("==") ? 2 : encoded.endsWith("=") ? 1 : 0;
+  if (Math.floor((encoded.length * 3) / 4) - padding > maxBytes)
+    throw new Error(`Файл больше ${Math.round(maxBytes / 1024 / 1024)} МБ.`);
+  const parts: BlobPart[] = [];
+  try {
+    // Bound temporary decoded strings even for a 50 MiB original.
+    for (let offset = 0; offset < encoded.length; offset += 64 * 1024) {
+      const decoded = atob(encoded.slice(offset, offset + 64 * 1024));
+      const bytes = new Uint8Array(decoded.length);
+      for (let index = 0; index < decoded.length; index++)
+        bytes[index] = decoded.charCodeAt(index);
+      parts.push(bytes);
+    }
+  } catch {
+    throw new Error("Не удалось прочитать фото");
+  }
+  const blob = new Blob(parts, { type: match[1] });
+  validateFileSize(blob, maxBytes);
+  return blob;
+}
+
 export async function uriToBase64(
   uri: string,
-  opts?: { preserveAlpha?: boolean; signal?: AbortSignal },
+  opts?: PhotoPreparationOptions,
 ): Promise<string> {
-  const raw = await runApiRequest(
-    uri,
-    { signal: opts?.signal },
-    async (response) => {
-      if (!response.ok) throw new Error("Не удалось прочитать фото");
-      return readResponseBlob(response, MAX_ATTACHMENT_BYTES, opts?.signal);
-    },
-  );
+  opts?.signal?.throwIfAborted();
+  const maxInputBytes = opts?.maxInputBytes ?? MAX_ATTACHMENT_BYTES;
+  const raw = /^data:/i.test(uri)
+    ? readPhotoDataUrl(uri, maxInputBytes)
+    : await runApiRequest(uri, { signal: opts?.signal }, async (response) => {
+        if (!response.ok) throw new Error("Не удалось прочитать фото");
+        return readResponseBlob(response, maxInputBytes, opts?.signal);
+      });
   const blob = await preparePhotoBlob(raw, opts);
   return blobToBase64(blob, opts?.signal);
 }

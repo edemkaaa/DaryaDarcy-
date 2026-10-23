@@ -184,23 +184,31 @@ describe("push registration admission", () => {
   });
   it("counts every batch member before any asynchronous write", async () => {
     enabled();
-    const body = Object.fromEntries(
-      Array.from({ length: 40 }, (_, i) => [String(i), { json: input }]),
-    );
-    const response = await fetch(
-      `${base}/api/trpc/${Array(40).fill("notifications.registerToken").join(",")}?batch=1`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Forwarded-For": "198.51.100.70",
-        },
-        body: JSON.stringify(body),
-      },
-    );
-    const results = (await response.json()) as Array<{
+    const results: Array<{
       error?: { json: { data: { code: string } } };
-    }>;
+    }> = [];
+    // Exercise forty admissions without violating the shared twenty-item
+    // pre-parser gate; the per-IP quota must span both allowed HTTP batches.
+    for (let batch = 0; batch < 2; batch++) {
+      const body = Object.fromEntries(
+        Array.from({ length: 20 }, (_, i) => [String(i), { json: input }]),
+      );
+      const response = await fetch(
+        `${base}/api/trpc/${Array(20).fill("notifications.registerToken").join(",")}?batch=1`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Forwarded-For": "198.51.100.70",
+          },
+          body: JSON.stringify(body),
+        },
+      );
+      expect(response.status).toBe(batch === 0 ? 200 : 207);
+      const page = await response.json();
+      expect(page).toHaveLength(20);
+      results.push(...page);
+    }
     expect(results).toHaveLength(40);
     expect(
       results.filter(

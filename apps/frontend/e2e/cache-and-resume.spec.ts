@@ -48,6 +48,7 @@ for (const subscribed of [false, true]) {
     const content: string[] = [];
     let sessionChecks = 0;
     let subscriptionChecks = 0;
+    let interactionChecks = 0;
     let documentRequests = 0;
     page.on("request", (request) => {
       if (request.isNavigationRequest() && request.frame() === page.mainFrame())
@@ -59,6 +60,7 @@ for (const subscribed of [false, true]) {
           path.split("/api/trpc/")[1],
         ).split(",")) {
           if (name === "club.subscription") subscriptionChecks++;
+          else if (name === "feed.userInteractions") interactionChecks++;
           else content.push(name);
         }
       }
@@ -82,6 +84,7 @@ for (const subscribed of [false, true]) {
     const before = [...content];
     const beforeSession = sessionChecks;
     const beforeSubscription = subscriptionChecks;
+    const beforeInteractions = interactionChecks;
     const beforeDocuments = documentRequests;
     await page.clock.install();
     const timeOrigin = await page.evaluate(() => performance.timeOrigin);
@@ -100,8 +103,27 @@ for (const subscribed of [false, true]) {
       await expect
         .poll(() => subscriptionChecks)
         .toBeGreaterThan(beforeSubscription);
+    // Access/personal state and stale visible content refresh without a reload.
+    if (subscribed)
+      await expect
+        .poll(() => interactionChecks)
+        .toBeGreaterThan(beforeInteractions);
     await page.clock.runFor(200);
-    expect(content).toEqual(before);
+    await expect
+      .poll(
+        () => content.filter((name) => name === "feed.listPaginated").length,
+      )
+      .toBeGreaterThan(
+        before.filter((name) => name === "feed.listPaginated").length,
+      );
+    await expect
+      .poll(() => content.filter((name) => name === "feed.tags").length)
+      .toBeGreaterThan(before.filter((name) => name === "feed.tags").length);
+    expect(
+      content
+        .slice(before.length)
+        .every((name) => name === "feed.listPaginated" || name === "feed.tags"),
+    ).toBe(true);
     expect(documentRequests).toBe(beforeDocuments);
     expect(await scroll.evaluate((element) => element.isConnected)).toBe(true);
     expect(await scroll.evaluate((element) => element.scrollTop)).toBe(

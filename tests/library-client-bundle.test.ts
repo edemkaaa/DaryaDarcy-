@@ -61,7 +61,11 @@ describe("Library client privacy", () => {
         ])
           expect(served.includes(marker)).toBe(false);
       }
-      expect(served.includes("disk.yandex.ru/i/nDfsd5ptLO1xRA")).toBe(false);
+      // The horse PDF was explicitly confirmed free. Paid pattern fallbacks
+      // remain forbidden; removing the free PDF is not a privacy fix.
+      expect(served.includes("disk.yandex.ru/i/nDfsd5ptLO1xRA")).toBe(true);
+      for (const share of ["nUoIS8gQ5VkClA", "BM0uzv2cWZeM0Q"])
+        expect(served.includes(share)).toBe(false);
     },
   );
   it.each(Object.keys(free) as (keyof typeof free)[])(
@@ -102,7 +106,11 @@ describe("Library client privacy", () => {
       expect(js.includes(paid.style.intro)).toBe(false);
     // The public static image catalog still inventories old assets; closing those
     // objects is a separate, explicitly excluded migration, not this text move.
-    expect(js.includes("disk.yandex.ru/i/nDfsd5ptLO1xRA")).toBe(false);
+    expect(js.includes("disk.yandex.ru/i/nDfsd5ptLO1xRA")).toBe(true);
+    for (const share of ["nUoIS8gQ5VkClA", "BM0uzv2cWZeM0Q"])
+      expect(js.includes(share)).toBe(false);
+    // The explicitly free collection remains available without a club session.
+    expect(js.includes("disk.yandex.ru/i/Y-XvbPF-NwOiLg")).toBe(true);
     expect(
       Object.keys(bundle.metafile.inputs).filter((path) =>
         path.startsWith("apps/backend/"),

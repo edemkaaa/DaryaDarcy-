@@ -70,11 +70,25 @@ it("follows bounded metadata pages and returns only canonical known pattern slot
   expect(Object.keys(await readPatternBindings()).sort()).toEqual([
     "apple",
     "holly",
-    "loshadka",
     "sock",
     "star",
   ]);
   expect(fetcher.mock.calls[1][0]).toContain("?cursor=0%3A2");
+});
+it("finishes after the four winter files without requesting a free PDF binding", async () => {
+  fetcher.mockResolvedValueOnce(
+    response({
+      files: ["holly", "sock", "star", "apple"].map(file),
+      nextCursor: "0:5",
+    }),
+  );
+  expect(Object.keys(await readPatternBindings()).sort()).toEqual([
+    "apple",
+    "holly",
+    "sock",
+    "star",
+  ]);
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });
 it.each([
   {

@@ -328,7 +328,10 @@ test("video API errors offer retry and preserve a real not-found state", async (
   await mockApp(
     page,
     () => null,
-    (name) => (name === "videos.getById" ? failure(status) : undefined),
+    (name) =>
+      name === "videos.getById" || name === "videos.playback"
+        ? failure(status)
+        : undefined,
   );
   await page.goto("/video/1");
   await expect(

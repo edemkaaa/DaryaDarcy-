@@ -1,6 +1,13 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  .accessCheck {
+    max-width: 300px;
+    padding: 24px;
+    color: var(--brown);
+    font: 16px/1.4 var(--font-body);
+    text-align: center;
+  }
   .background {
     flex: 1;
   }
