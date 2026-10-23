@@ -73,6 +73,60 @@ describe.skipIf(!testDatabaseUrl)(
       BEGIN IF NEW.actorUserId=8400 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='synthetic audit failure'; END IF; END`);
     }
     for (const operation of ["blockUser", "unblockUser"] as const) {
+      for (const target of ["admin", "moderator", "self"] as const) {
+        it(`forbids moderator ${operation} against ${target} without account, cancellation or audit changes`, async () => {
+          const targetId = target === "self" ? 8400 : 8401;
+          if (target !== "self")
+            await conn.query("UPDATE users SET role=? WHERE id=8401", [target]);
+          if (operation === "unblockUser" && target !== "self")
+            await conn.query(
+              "UPDATE users SET blockedAt='2026-10-01 00:00:00',blockedReason='saved reason' WHERE id=8401",
+            );
+          const before = await state();
+          const [actorBefore] = await conn.query(
+            "SELECT id,role,blockedAt,blockedReason,sessionVersion FROM users WHERE id=8400",
+          );
+          const token = await sdk.createSessionToken("moderation-audit-actor", {
+            sessionVersion: 0,
+          });
+          const response = await fetch(
+            `${base}/api/trpc/moderation.${operation}`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                json: {
+                  userId: targetId,
+                  ...(operation === "blockUser"
+                    ? { reason: "native reason" }
+                    : {}),
+                },
+              }),
+            },
+          );
+          expect(response.status).toBe(403);
+          expect(await state()).toEqual(before);
+          const [actorAfter] = await conn.query(
+            "SELECT id,role,blockedAt,blockedReason,sessionVersion FROM users WHERE id=8400",
+          );
+          expect(actorAfter).toEqual(actorBefore);
+        });
+      }
+      it(`rechecks a revoked actor inside the ${operation} transaction`, async () => {
+        await conn.query("UPDATE users SET role='user' WHERE id=8400");
+        const before = await state();
+        const result =
+          operation === "blockUser"
+            ? moderation.blockUser(8400, 8401, "native reason")
+            : moderation.unblockUser(8400, 8401);
+        await expect(result).rejects.toMatchObject({ code: "FORBIDDEN" });
+        expect(await state()).toEqual(before);
+      });
+    }
+    for (const operation of ["blockUser", "unblockUser"] as const) {
       it(`does not confirm ${operation} for a deleted member or write a misleading audit`, async () => {
         await conn.query("DELETE FROM users WHERE id=8401");
         const before = await state();
