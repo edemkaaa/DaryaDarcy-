@@ -2,6 +2,45 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Три аудита be029ed — backend-only,23октября
+
+- [x] BE-01 RED/GREEN: свежие роли в транзакции, moderator→staff/self403;
+  block/unblock rollback/session/cancel/audit сохранены.
+- [x] BE-02 RED/GREEN: ограниченное ожидание S3/Forge, одна попытка,
+  destroy/AbortSignal; настоящий HTTP disconnect аватара/обложки на loopback.
+- [x] BE-04 RED/GREEN: unavailable503 вместо empty/not found при missing DB;
+  BE-05 RED/GREEN: SELECT карточек без sections, прежний публичный контракт.
+- [x] BE-07 RED/GREEN: upstream/client disconnect не завершает API процесс;
+  separate video-service не менялся. TEST-0125 RED→25 GREEN на свежей БД.
+- [x] Исследовать клубные картинки:220 иллюстраций/295 full+variant paths,
+ 89 public origins; legacy/current gates подтверждены, бесплатный тест отдельно.
+- [x] Полный локальный прогон3151pass/1622skip;90процедур API contract совпали.
+- [x] Финальный SQL68/7files, обе backend-сборки, root tsc,
+  boundaries750/docs79; код сохранён пятью отдельными локальными коммитами.
+- [x] Документы backend-remediation, frontend-audit-remediation и
+  aesthetic-visual-access-2026-10-23; исходники фронта не менялись.
+- [ ] Совместные контракты pagination/aliases и закрытых иллюстраций;
+  EXPLAIN кандидатов индексов; durable recovery публичного unknown PUT.
+- Никаких working DB/S3 writes/push/deploy/реальных mail/payment. Старые
+  public-файлы не закрывались; новый баннер — отдельная предыдущая работа.
+
+### Новый зимний баннер Дарьи — 23 октября
+
+- [x] Проверить оригинал PNG3636×2424/9174625bytes/alpha; отдельная WebP
+  2560×1707/438886bytes/alpha. SHA оригинала прежний, композиция не менялась.
+- [x] Fresh backup40tables, независимая проверка gzip/SHA на Mac; отдельный
+  public cover, IfNoneMatch/MD5/HEAD/receipt, без overwrite старых объектов.
+- [x] CAS4→5: только winter.bannerUrl; фон/остальная конфигурация, контент,
+  3admin credentials сохранены, без restart/выпуска/изменений frontend source.
+- [x] Проверка server API и 73 focused tests; live Chromium320/390/1440
+  в общей сессии: новый баннер декодируется, opacity1, JS errors0; GET SHA
+  совпал, старый баннер доступен, фон/оригинал прежние. Холодные browser/S3
+  таймауты отдельных контекстов и остаточную обрезку не скрывать.
+- [x] Документ фронтендеру: frontend-winter-banner-fit-2026-10-23.md.
+- [ ] Полное отсутствие кадрирования блока: current cover/top/height0.55W
+  срезает в основном alpha, но также60pixels видимого края; правит фронтендер.
+- [ ] Приёмка нового баннера на физическом iPhone.
+
 ### AUDIO — совместимая выдача старых подкастов22октября
 
 - [x] Настоящий HTTP/browser: исходный ALAC с прежним/правильным MIME;

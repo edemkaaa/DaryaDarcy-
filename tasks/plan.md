@@ -2,6 +2,29 @@
 
 ## Действующий план агента — 13 октября 2026
 
+23 октября, три аудита be029ed — backend-only локальные исправления.
+BE-01: свежий actor/target lock и запрет moderator→staff/self; BE-02: bounded
+storage-call/HTTP disconnect/S3Client destroy без автоповтора; BE-04:503 вместо
+ложного empty при missing DB; BE-05: card-only article SQL; BE-07: awaited
+pipeline с отменой и безопасным обрывом. TEST-01 готовит собственную SQL-схему.
+Фронт не менять, рабочую БД/S3 не трогать, без push/deploy/почты/платежей.
+Иллюстрации исследованы:220 относятся к клубному дополнению в legacy/current,
+не к бесплатным домикам теста. Перенос совместный, public-файлы не удалять.
+BE-03 pagination/FE-02 aliases, BE-06 EXPLAIN и recovery публичного unknown PUT
+не считать готовыми. Точные статусы — backend-remediation-2026-10-23.md;
+фронту frontend-audit-remediation-2026-10-23.md. Приёмку VPS не подменять local.
+
+23 октября, новый зимний баннер Дарьи: отдельная WebP-копия PNG3636×2424,
+438886bytes/2560×1707/alpha, без кадрирования и изменения оригинала.
+После fresh backup40tables применён CAS revision4→5 штатным settings API:
+только seasons.winter.bannerUrl. Фон/прочие сезоны/контакт/контент/3admin
+credentials прежние; API/image/config не переключались. Один новый public
+cover с условным PUT, старые объекты не удалялись. Фронт не редактировать.
+Текущий cover/top/height0.55W всё ещё срезает в основном прозрачный низ и
+60 alpha>8 pixels края (0,00185% видимой области); строгий whole-image fit
+передан фронтендеру в frontend-winter-banner-fit-2026-10-23.md.
+Физический iPhone отдельно; сетевые таймауты browser/S3 не считать приёмкой.
+
 22 октября, AUDIO LIVE и зимнее оформление: три подкаста переведены на
 совместимые AAC/private API после отдельного разрешения; исходные объекты
 прежние. Native SQL8, liveHTTP33, live Chromium3play/seek/pause/resume GREEN;
