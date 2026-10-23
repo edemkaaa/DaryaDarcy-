@@ -156,7 +156,14 @@ for (const name of ["RichTextInline", "ArticleBlockType"]) {
 }
 const result = `// Generated from apps/backend/src/routers.ts. Run pnpm api:contract after API changes.\n// Types only; frontend has no dependency on backend runtime or folder layout.\nimport type { BuiltRouter, QueryProcedure, MutationProcedure, DefaultErrorShape } from '@trpc/server/unstable-core-do-not-import';\n${[...aliases].map(([n, t]) => "export type " + n + " = " + t + ";").join("\n")}\nexport type AppRouter = BuiltRouter<{ctx: object; meta: object; errorShape: DefaultErrorShape; transformer: true}, ${record}>;\n`;
 if (/import\(/.test(result)) throw Error("Backend import remains");
-const dest = path.resolve(source, "apps/frontend/src/shared/api/contract.ts");
+// Backend-only work can hand off generated types without editing frontend sources.
+const outputIndex = process.argv.indexOf("--output");
+const outputPath = outputIndex < 0 ? null : process.argv[outputIndex + 1];
+if (outputIndex >= 0 && (!outputPath || outputPath.startsWith("--")))
+  throw Error("--output requires a file path");
+const dest = outputPath
+  ? path.resolve(outputPath)
+  : path.resolve(source, "apps/frontend/src/shared/api/contract.ts");
 async function writeContract() {
   const formatted = await require("prettier").format(result, {
     parser: "typescript",
