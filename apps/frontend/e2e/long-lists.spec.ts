@@ -90,30 +90,35 @@ async function longListApi(
           nextCursor: end < posts.length ? end : null,
         };
       }
-      if (name === "club.comments") {
+      if (name === "club.commentsPage") {
         commentRequests.push(input.postId);
-        data = [
-          {
-            id: input.postId * 100,
-            postId: input.postId,
-            userId: 101,
-            parentId: null,
-            text: "Комментарий участницы",
-            photos: [],
-            createdAt: "2026-10-05T10:00:00Z",
-            authorName: "Участница",
-            authorAvatarUrl: null,
-            likeCount: 0,
-            likedByMe: false,
-          },
-        ];
+        data = {
+          items: [
+            {
+              id: input.postId * 100,
+              postId: input.postId,
+              userId: 101,
+              parentId: null,
+              text: "Комментарий участницы",
+              photos: [],
+              createdAt: "2026-10-05T10:00:00Z",
+              authorName: "Участница",
+              authorAvatarUrl: null,
+              likeCount: 0,
+              likedByMe: false,
+              replyCount: 0,
+            },
+          ],
+          nextCursor: null,
+          totalCount: 1,
+        };
       }
       return { result: { data: { json: data } } };
     });
     const delay = Math.max(
       0,
       ...names.map((name, index) =>
-        name === "club.comments"
+        name === "club.commentsPage"
           ? commentDelay(inputs[index]?.json?.postId)
           : 0,
       ),
@@ -321,6 +326,8 @@ for (const path of ["/feed", "/club"]) {
     if (path === "/club") expect(new Set(requests).size).toBeLessThan(240);
     // Revisiting a retained tab must not mount or fetch hundreds of old rows.
     const requestCount = requests.length;
+    // Subscribed Club intentionally hides the global bottom tabs.
+    if (path === "/club") await page.getByRole("link", { name: "На главную", exact: true }).click();
     await page.locator('nav a[href="/shop"]').click();
     await page.locator(`nav a[href="${path}"]`).click();
     await expect(

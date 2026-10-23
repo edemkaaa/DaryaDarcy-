@@ -1,6 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { passwordPage } from "../../backend/src/identity/password-page";
 import superjson from "superjson";
 import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
@@ -280,18 +279,10 @@ test("the existing password page reports completion and still requires a separat
 }) => {
   const state = await fixture(page, false);
   // Exercise the actual shipped HTML/script with stubbed API responses. No SQL or mail server.
-  const source = readFileSync(
-    resolve(
-      test.info().project.testDir,
-      "../../backend/src/identity/password.controller.ts",
-    ),
-    "utf8",
+  const html = passwordPage(
+    new URL("/login", "http://localhost:8081"),
+    "fixture-nonce",
   );
-  const template = /`(<!doctype html>[\s\S]*?)`,/.exec(source)?.[1];
-  expect(template).toBeTruthy();
-  const html = template!
-    .replaceAll("${nonce}", "fixture-nonce")
-    .replaceAll("${loginUrl}", "/login");
   await page.route("**/api/auth/password", (route) =>
     route.fulfill({ contentType: "text/html", body: html }),
   );
@@ -301,12 +292,18 @@ test("the existing password page reports completion and still requires a separat
     state.password = route.request().postDataJSON().password;
     return route.fulfill({ json: { ok: true } });
   });
-  await page.goto("/api/auth/password#token=synthetic-link");
+  await page.goto(
+    "/api/auth/password#token=" + "a".repeat(43),
+  );
   await expect(page).toHaveURL(/\/api\/auth\/password$/);
   await page.getByLabel("Новый пароль").fill("installed-password");
-  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Сохранить пароль", exact: true })
+    .click();
   await expect(
-    page.getByText("Пароль сохранён. Войдите в аккаунт.", { exact: true }),
+    page.getByText("Теперь вы можете войти в аккаунт с новым паролем.", {
+      exact: true,
+    }),
   ).toBeVisible();
   expect(completions).toBe(1);
   expect(state.user).toBeNull();
@@ -397,7 +394,7 @@ test("temporary post failure preserves confirmed content and does not manufactur
   await wake(page);
   await expect.poll(() => state.postReads).toBeGreaterThanOrEqual(reads + 2);
   await expect(
-    page.getByText("Сервис временно недоступен. Попробуйте ещё раз.", {
+    page.getByText("Не удалось обновить публикацию", {
       exact: true,
     }),
   ).toBeVisible();
@@ -484,8 +481,10 @@ test("returning after an unknown save reads state before allowing another toggle
   await expect(
     page.getByRole("button", { name: "Сохранить пост", exact: true }),
   ).toBeDisabled();
-  expect(state.toggleWrites).toHaveLength(1);
-  await page.getByRole("button", { name: "Вернуться назад", exact: true }).click();
+  await expect.poll(() => state.toggleWrites.length).toBe(1);
+  await page
+    .getByRole("button", { name: "Вернуться назад", exact: true })
+    .click();
   const gate = deferred();
   state.interactionsGate = gate.promise;
   const reads = state.interactionReads;
