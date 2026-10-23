@@ -70,6 +70,164 @@ async function openSettings(page: Page) {
   await expect(form(page)).toBeVisible();
 }
 
+const transparentBanner = (width: number, height: number) => ({
+  contentType: "image/svg+xml",
+  body: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="${width}" height="${height * 0.7}" fill="#b3ad9b"/><rect x="10" y="${height - 10}" width="20" height="10" fill="#754630"/></svg>`,
+});
+
+async function expectWinterBannerFit(page: Page, url: string) {
+  await expect(banner(page)).toHaveAttribute("src", url);
+  await expect(banner(page)).toHaveCSS("object-fit", "contain");
+  await expect(banner(page)).toHaveCSS("object-position", "50% 0%");
+  await expect
+    .poll(() =>
+      banner(page).evaluate((image: HTMLImageElement) => {
+        if (!image.complete || !image.naturalWidth) return Infinity;
+        const box = image.getBoundingClientRect();
+        return Math.abs(
+          box.height - (box.width * image.naturalHeight) / image.naturalWidth,
+        );
+      }),
+    )
+    .toBeLessThan(0.1);
+}
+
+for (const width of [320, 390, 1440]) {
+  test(`configured winter banner preserves its full transparent canvas at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await clubApi(page);
+    const url = imageUrl("winter", "full-canvas");
+    await page.route(url, (route) =>
+      route.fulfill(transparentBanner(2560, 1707)),
+    );
+    await page.route("**/api/launch-config", (route) =>
+      route.fulfill({
+        json: {
+          ...publicConfig(),
+          appearance: { ...appearance("winter"), bannerUrl: url },
+        },
+      }),
+    );
+    await gotoWithSession(page, "/club");
+    await expectWinterBannerFit(page, url);
+    const box = (await page.getByTestId("club-season-banner").boundingBox())!;
+    expect(box.width).toBe(Math.min(width, 480));
+    expect(box.height).toBeCloseTo((box.width * 1707) / 2560, 1);
+    await expect(background(page)).toHaveAttribute(
+      "src",
+      imageUrl("winter", "background"),
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  });
+}
+
+test("winter banner dimensions change with the decoded URL, not pending or superseded images", async ({
+  page,
+}) => {
+  await clubApi(page);
+  let url = imageUrl("winter", "first");
+  await page.route(url, (route) => route.fulfill(transparentBanner(1200, 800)));
+  await page.route("**/api/launch-config", (route) =>
+    route.fulfill({
+      json: {
+        ...publicConfig(),
+        appearance: { ...appearance("winter"), bannerUrl: url },
+      },
+    }),
+  );
+  await gotoWithSession(page, "/club");
+  await expectWinterBannerFit(page, url);
+  const initial = (await page.getByTestId("club-season-banner").boundingBox())!;
+  let release!: () => void;
+  let requested!: () => void;
+  let finished!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const waiting = new Promise<void>((resolve) => {
+    requested = resolve;
+  });
+  const drained = new Promise<void>((resolve) => {
+    finished = resolve;
+  });
+  url = imageUrl("winter", "superseded");
+  await page.route(url, async (route) => {
+    requested();
+    await held;
+    await route.fulfill(transparentBanner(600, 1200)).catch(() => {});
+    finished();
+  });
+  try {
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await waiting;
+    await expectWinterBannerFit(page, imageUrl("winter", "first"));
+    expect(
+      (await page.getByTestId("club-season-banner").boundingBox())!.height,
+    ).toBe(initial.height);
+    url = imageUrl("winter", "replacement");
+    await page.route(url, (route) =>
+      route.fulfill(transparentBanner(1200, 1200)),
+    );
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await expectWinterBannerFit(page, url);
+    expect(
+      (await page.getByTestId("club-season-banner").boundingBox())!.height,
+    ).toBeCloseTo(initial.width, 1);
+    release();
+    await drained;
+    await expectWinterBannerFit(page, url);
+    await page.setViewportSize({ width: 320, height: 844 });
+    await expectWinterBannerFit(page, url);
+    expect(
+      (await page.getByTestId("club-season-banner").boundingBox())!.height,
+    ).toBeCloseTo(320, 1);
+  } finally {
+    release();
+  }
+});
+
+test("a failed winter banner preserves fallback geometry and explicit retry uses the recovered image size", async ({
+  page,
+}) => {
+  await clubApi(page);
+  let failed = true;
+  const url = imageUrl("winter", "retry");
+  await page.route(url, (route) =>
+    route.fulfill(
+      failed ? { status: 404, body: "missing" } : transparentBanner(1200, 900),
+    ),
+  );
+  await page.route("**/api/launch-config", (route) =>
+    route.fulfill({
+      json: {
+        ...publicConfig(),
+        appearance: { ...appearance("winter"), bannerUrl: url },
+      },
+    }),
+  );
+  await gotoWithSession(page, "/club");
+  await expect(banner(page)).toHaveAttribute("src", winter);
+  await expect(banner(page)).toHaveCSS("object-fit", "cover");
+  const fallback = (await page
+    .getByTestId("club-season-banner")
+    .boundingBox())!;
+  expect(fallback.height).toBeCloseTo(fallback.width * 0.55, 1);
+  const warning = page
+    .getByRole("status")
+    .filter({ hasText: "Не удалось обновить оформление Клуба" });
+  await expect(warning).toBeVisible();
+  failed = false;
+  await warning.getByRole("button", { name: "Повторить", exact: true }).click();
+  await expectWinterBannerFit(page, url);
+  await expect(warning).toHaveCount(0);
+});
+
 test("entry and reload keep a neutral background until the configured season arrives", async ({
   page,
 }) => {
@@ -171,6 +329,13 @@ for (const season of ["winter", "spring", "summer", "autumn"] as const) {
       "src",
       imageUrl(season, "banner"),
     );
+    if (season === "winter") {
+      await expectWinterBannerFit(page, imageUrl(season, "banner"));
+    } else {
+      await expect(banner(page)).toHaveCSS("object-fit", "cover");
+      const box = (await page.getByTestId("club-season-banner").boundingBox())!;
+      expect(box.height).toBeCloseTo(box.width * 0.55, 1);
+    }
   });
 }
 

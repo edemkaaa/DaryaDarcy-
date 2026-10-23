@@ -76,7 +76,6 @@ export function ClubSubscribed({
   const capabilities = useCapabilities();
   const penPalsAvailable = PEN_PALS_ENABLED && capabilities.penPals;
   const viewport = useViewport();
-  const { stylesLayout } = getClubSubscribedLayout(viewport);
 
   const [activeTab, setActiveTab] = useState<ClubTab | null>(null);
   const [showPenPals, setShowPenPals] = useState(false);
@@ -254,6 +253,15 @@ export function ClubSubscribed({
   );
   const displayedBackground = preparedAppearance?.background ?? null;
   const displayedBanner = preparedAppearance?.banner ?? null;
+  // Fit configured winter artwork in full. Keep the built-in fallback and
+  // other seasons unchanged; pending settings must not resize the old theme.
+  const bannerSize =
+    preparedAppearance?.season === "winter" &&
+    displayedBanner &&
+    displayedBanner !== SEASONAL_BANNERS.winter
+      ? preparedAppearance.bannerSize
+      : null;
+  const { stylesLayout } = getClubSubscribedLayout(viewport, bannerSize);
   const retryAppearance = () => {
     setFailedImages([]);
     return appearanceQuery.refetch({ cancelRefetch: false });
@@ -322,7 +330,7 @@ export function ClubSubscribed({
           <Picture
             source={{ uri: displayedBanner }}
             onError={() => failImage(displayedBanner)}
-            contentFit="cover"
+            contentFit={bannerSize ? "contain" : "cover"}
             contentPosition="top"
             className={classes.bannerImage}
             loading="eager"
