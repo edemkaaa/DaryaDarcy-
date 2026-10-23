@@ -2,6 +2,46 @@
 
 ## Действующий план агента — 13 октября 2026
 
+22 октября, AUDIO LIVE и зимнее оформление: три подкаста переведены на
+совместимые AAC/private API после отдельного разрешения; исходные объекты
+прежние. Native SQL8, liveHTTP33, live Chromium3play/seek/pause/resume GREEN;
+local Chromium/WebKit12cases GREEN, live WebKit/iPhone отдельно. Backup
+3c32aa55…/40tables, чужие строки и3admin credentials сохранены; user activity
+не откатывать. Оформление revision3 содержало две HTML-ссылки Яндекс Диска,
+banner302/showcaptcha. Подготовлены те же изображения WebP356КБ/378КБ с alpha;
+новые public covers и CAS revision4 только winter banner/background, прочие
+настройки сохранены. Обычная cover-загрузка сопровождалась restart API256МиБ;
+успешная повторная загрузка выполнена отдельным128МиБ оператором без декодера.
+Лимиты/фронт/образы/БД не переключать. Защита от сохранения Yandex share pages
+подготовлена локально (75tests/build GREEN), ещё не выпущена. Live Chromium
+подтвердил новый баннер/декодирование обеих картинок/отсутствие ошибки, revision4.
+Физический iPhone отдельно. Runbook и
+frontend-club-audio-season-assets-2026-10-22 содержат границы и откат.
+
+22 октября, AUDIO — исправить выдачу/проверить воспроизведение, исходники сохранить.
+Фронт не менять. Начать с воспроизведения исходного ALAC/M4A и неверного
+audio/mpeg; сравнить правильный MIME и отдельную AAC-LC/faststart копию на
+настоящем loopback HTTP в Chromium/WebKit. Не объявлять ALAC причиной отказа
+Safari без проверки. Минимальный offline helper с RED/GREEN: локальный input,
+без overwrite/network/DB, SHA до/после, проверка duration/codec/faststart.
+Подготовить совместимые копии существующих аудио и план привязок без изменений
+исходных S3 объектов. Runtime transcoding/новые API/квоты не добавлять. Живое
+применение новых копий/привязок и выпуск отдельно обозначить, не смешивать с
+проверкой на локальном стенде. При необходимости передать фронтендеру документ.
+
+22 октября, повторная backend-only сверка договора после LEGACY-CLUB LIVE:
+оригинал §2.1/3/4/5 и поздние receipts перечитаны. Публичный API свежий:
+uploads включены; launch revision2/autumn/managerEmail пользователя/email-client;
+VK22public/3covers null; manifest только512. Не менять сезон/получателя по
+устаревшему отчёту. Полный текущий остаток — начало contract-admin-user-acceptance;
+фронтендеру frontend-contract-remainder и бесплатная loshadka, исходники не менять.
+Приоритет приёмки backend: Prodamus790/renew/cancel + password click/login,
+точный отдельный допуск закрытия старых платных URL, финальная конфигурация
+сезонов/заказа и узкий выпуск ещё локальных fixes по отдельному разрешению.
+U1-MEM/нагрузка/пилот отложены пользователем, Android/standalone отдельно;
+2FA/Pen Pals/push не добавлять. В этой сверке только docs и публичные GET,
+не новые SQL/S3/платёжные испытания и не разрешение live writes/push/deploy.
+
 22 октября, LEGACY-CLUB LIVE — пользователь разрешил узкий перенос на dev.
 Просроченный source post928 оставить draft/published0/scheduledAtNULL,
 без уведомлений. Сохранить текущую БД/всех admins/старые файлы; приложение
