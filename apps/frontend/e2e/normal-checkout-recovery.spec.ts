@@ -337,6 +337,34 @@ test("a late payment URL cannot navigate after leaving the purchase page", async
   expect(await saved(page)).not.toBeNull();
 });
 
+test("an explicit check can recover after a navigation attempt without reviving its cancelled redirect", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  const gate = deferred();
+  state.loseReply = false;
+  state.createGate = gate.promise;
+  await gotoWithSession(page, "/club?checkout=1");
+  await action(page, /Оплатить 790/).click();
+  await expect.poll(() => state.writes.length).toBe(1);
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new CustomEvent("darcy:navigation-start", { detail: "/feed" }),
+    ),
+  );
+  gate.resolve();
+  await action(page, "Проверить покупку").click();
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "Оплата этой покупки пока не подтверждена" }),
+  ).toBeVisible();
+  expect(state.writes).toHaveLength(1);
+  expect(state.orders.size).toBe(1);
+  expect(state.navigations).toHaveLength(0);
+  expect(await saved(page)).not.toBeNull();
+});
+
 test("a late payment URL cannot enter the next account or bind its order", async ({
   page,
 }) => {

@@ -75,6 +75,8 @@ async function mockApp(
         };
       if (name === "feed.userInteractions")
         data = { likedIds: [], savedIds: [] };
+      if (name === "feed.savedPostsPage")
+        data = { items: [], nextCursor: null };
       if (name === "feed.listPaginated" || name === "club.list")
         data = { posts: [], nextCursor: null };
       if (name === "admin.postsPage") data = { posts: [], nextCursor: null };
@@ -392,7 +394,7 @@ test("an expired session closes private data after a protected query returns 401
     page,
     () => current,
     (name) => {
-      if (name !== "feed.savedPosts") return undefined;
+      if (name !== "feed.savedPostsPage") return undefined;
       current = null;
       return failure(401);
     },

@@ -11,6 +11,8 @@ import { SubscriptionCancellationProvider } from "@/features/profile/use-subscri
 import { useAuth } from "@/domain/session/session-context";
 import { useClub } from "@/domain/subscription/subscription-context";
 import { BackgroundNoticeSlot } from "@/shared/ui/background-notice";
+import { useClubNavigation } from "@/shared/navigation/use-club-navigation";
+import { getClubPaymentMode } from "@/features/club/payment-mode";
 export default function TabShell({
   children,
   initialHomeDate,
@@ -22,6 +24,13 @@ export default function TabShell({
   const isPostDetail = path.startsWith("/post/");
   const { isOwner, user } = useAuth();
   const { hasClubAccess } = useClub();
+  const clubNavigation = useClubNavigation(path === "/club");
+  const mode = getClubPaymentMode();
+  const clubMenuVisible =
+    path === "/club" &&
+    hasClubAccess &&
+    !clubNavigation?.checkout &&
+    (mode === "live" || mode === "prodamus-test");
   const hideHeaderOnScroll =
     !isPostDetail && !["/videos", "/admin", "/profile"].includes(path);
   const { headerRef, contentRef } = useScrollHeader(path, hideHeaderOnScroll);
@@ -73,7 +82,7 @@ export default function TabShell({
           </TabScreens>
           <BackgroundNoticeSlot />
         </main>
-        {!(path === "/club" && hasClubAccess) && <BottomTabs />}
+        {!clubMenuVisible && <BottomTabs />}
       </div>
     </SubscriptionCancellationProvider>
   );

@@ -9,6 +9,10 @@ import {
 import { COMMENT_CHAR_LIMIT } from "./comment-count-label";
 
 export type PrivateCommentPhoto = PrivateContentFile<"commentPhoto">;
+type CommentDraft = Pick<
+  ApiInputs["club"]["addComment"],
+  "postId" | "text" | "parentId"
+>;
 export type PrivateCommentRecord = {
   version: 1;
   ownerId: number;
@@ -87,7 +91,6 @@ export function requirePrivateCommentRecord(
     !/^[A-Za-z0-9._:-]{16,128}$/.test(record.key) ||
     !["upload", "write"].includes(record.phase) ||
     !Array.isArray(record.files) ||
-    record.files.length < 1 ||
     record.files.length > 2 ||
     (record.savedId !== null && !positive(record.savedId))
   )
@@ -128,7 +131,21 @@ export function requirePrivateCommentRecord(
 }
 export function preparePrivateComment(
   ownerId: number,
-  input: Pick<ApiInputs["club"]["addComment"], "postId" | "text" | "parentId">,
+  input: CommentDraft,
+  files: PrivateCommentPhoto[],
+): PrivateCommentRecord {
+  if (!files.length) throw error();
+  return prepareComment(ownerId, input, files);
+}
+export function prepareTextComment(
+  ownerId: number,
+  input: CommentDraft,
+): PrivateCommentRecord {
+  return prepareComment(ownerId, input, []);
+}
+function prepareComment(
+  ownerId: number,
+  input: CommentDraft,
   files: PrivateCommentPhoto[],
 ): PrivateCommentRecord {
   if (typeof globalThis.crypto?.randomUUID !== "function") throw error();

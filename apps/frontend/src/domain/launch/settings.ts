@@ -49,6 +49,16 @@ export function validSeasonUrl(value: unknown): value is string | null {
     return false;
   }
 }
+/** Existing saved URLs remain readable; reject share pages when editing. */
+export function isSeasonSharingPage(value: string | null): boolean {
+  if (!value) return false;
+  try {
+    const host = new URL(value).hostname.toLowerCase().replace(/\.$/, "");
+    return ["disk.yandex.ru", "disk.yandex.com", "yadi.sk"].includes(host);
+  } catch {
+    return false;
+  }
+}
 function appearance(value: unknown): SeasonAppearance {
   const row = record(value);
   if (

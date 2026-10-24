@@ -181,8 +181,8 @@ test("a partial private photo failure blocks the frozen comment until explicit d
     {
       postId: 1,
       text: "FRESH_TEXT_ONLY",
-      parentId: null,
-      photos: null,
+      photos: [],
+      idempotencyKey: expect.stringMatching(/^[a-f0-9-]{36}$/),
     },
   ]);
   expect(uploads).toBe(2);

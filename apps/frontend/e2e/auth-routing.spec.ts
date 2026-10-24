@@ -230,11 +230,15 @@ test("renewal uses a clean club URL, survives reload and does not affect normal 
     .click();
   await expect(page).toHaveURL(/\/club$/);
   await expect(
-    page.getByRole("button", { name: /Оплатить 790/ }).first(),
+    page
+      .getByRole("button", { name: /Оплатить 790|Открыть тестовую оплату/ })
+      .first(),
   ).toBeVisible();
   await page.reload();
   await expect(
-    page.getByRole("button", { name: /Оплатить 790/ }).first(),
+    page
+      .getByRole("button", { name: /Оплатить 790|Открыть тестовую оплату/ })
+      .first(),
   ).toBeVisible();
   await page
     .getByRole("navigation", { name: "Разделы" })
@@ -248,7 +252,7 @@ test("renewal uses a clean club URL, survives reload and does not affect normal 
   await expect(
     page.getByRole("button", { name: "Открыть фильтры клуба" }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: /Оплатить 790/ })).toHaveCount(
-    0,
-  );
+  await expect(
+    page.getByRole("button", { name: /Оплатить 790|Открыть тестовую оплату/ }),
+  ).toHaveCount(0);
 });

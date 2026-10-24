@@ -5,7 +5,9 @@
     flex: 1;
     background-color: var(--paper);
     align-items: center;
-    justify-content: center;
+    justify-content: safe center;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
     padding-left: 24px;
     padding-right: 24px;
   }

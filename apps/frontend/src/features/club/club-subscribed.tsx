@@ -21,7 +21,6 @@ import {
   useEffect,
   useRef,
   useCallback,
-  useMemo,
   type CSSProperties,
   type ReactNode,
 } from "react";
@@ -40,7 +39,9 @@ import { usePostManagement } from "@/features/admin/post-management";
 import { usePostInteractions } from "@/domain/post/use-post-interactions";
 import { PostInteractionStatus } from "@/domain/post/post-interaction-status";
 import { trpc } from "@/shared/api/trpc";
-import { contentRefreshOptions } from "@/shared/api/content-refresh";
+import { getQueryKey } from "@trpc/react-query";
+import { useCursorPages } from "@/shared/api/use-cursor-pages";
+import { invalidResponse } from "@/shared/api/errors";
 import {
   displayPostTitle,
   isRawMediaFilename,
@@ -89,7 +90,7 @@ export function ClubSubscribed({
   const interactions = usePostInteractions();
   // Admin post management (edit/delete)
   const onRefresh = () => {
-    utils.club.list.invalidate();
+    void clubQuery.restart();
   };
   const { openMenu, ManagementModals } = usePostManagement(onRefresh);
   const [viewerVisible, setViewerVisible] = useState(false);
@@ -122,23 +123,33 @@ export function ClubSubscribed({
   const displayName = user?.name;
   const displayGender = user?.gender;
   // Keep local rubric/alias filtering; the API currently supports one tag only.
-  const clubQuery = trpc.club.list.useInfiniteQuery(
-    { limit: 12 },
-    {
-      ...contentRefreshOptions(active),
-      getNextPageParam: (lastPage, _pages, _lastParam, pageParams) =>
-        pageParams.includes(lastPage.nextCursor)
-          ? undefined
-          : lastPage.nextCursor,
+  const clubQuery = useCursorPages({
+    key: getQueryKey(trpc.club.list, { limit: 12 }, "query"),
+    scope: String(user?.id ?? "guest"),
+    enabled: active,
+    fetchPage: async (cursor, signal) => {
+      // Offset cursors remain numeric on the wire. The local cursor-chain
+      // helper uses strings and refreshes only the first page in the background.
+      const page = await utils.client.club.list.query(
+        { limit: 12, ...(cursor === null ? {} : { cursor: Number(cursor) }) },
+        { signal },
+      );
+      if (
+        page.nextCursor !== null &&
+        (!Number.isSafeInteger(page.nextCursor) || page.nextCursor < 0)
+      )
+        throw invalidResponse();
+      return {
+        items: page.posts,
+        nextCursor: page.nextCursor === null ? null : String(page.nextCursor),
+      };
     },
-  );
-  const lastPage = clubQuery.data?.pages.at(-1);
-  const stalledCursor =
-    lastPage?.nextCursor != null &&
-    Boolean(clubQuery.data?.pageParams.includes(lastPage.nextCursor));
-  const hasPageError = clubQuery.isError || stalledCursor;
+  });
+  const hasPageError = clubQuery.isError;
   const backgroundPostError =
-    clubQuery.isRefetchError && clubQuery.data !== undefined;
+    clubQuery.isRefetchError &&
+    !clubQuery.isFetchNextPageError &&
+    clubQuery.data !== undefined;
   useBackgroundNotice({
     when: backgroundPostError,
     message: "Не удалось обновить публикации клуба",
@@ -146,23 +157,14 @@ export function ClubSubscribed({
   });
   const { fetchNextPage, hasNextPage, isFetching, isError } = clubQuery;
   const loadMore = useCallback(() => {
-    if (active && hasNextPage && !isFetching && !isError && !stalledCursor)
-      void fetchNextPage({ cancelRefetch: false });
-  }, [active, fetchNextPage, hasNextPage, isFetching, isError, stalledCursor]);
+    if (active && hasNextPage && !isFetching && !isError) void fetchNextPage();
+  }, [active, fetchNextPage, hasNextPage, isFetching, isError]);
   const retryPosts = () => {
     if (clubQuery.isFetching) return;
-    if (clubQuery.isFetchNextPageError)
-      void clubQuery.fetchNextPage({ cancelRefetch: false });
+    if (clubQuery.isFetchNextPageError) void clubQuery.fetchNextPage();
     else void clubQuery.refetch({ cancelRefetch: false });
   };
-  const rows = useMemo(() => {
-    const unique = new Map(
-      (clubQuery.data?.pages.flatMap((page) => page.posts) ?? []).map(
-        (post) => [post.id, post] as const,
-      ),
-    );
-    return [...unique.values()];
-  }, [clubQuery.data]);
+  const rows = clubQuery.items;
   // Convert API posts to the club presentation model.
   const dbPosts: ClubPost[] = rows
     .map((row) => {
@@ -459,7 +461,7 @@ export function ClubSubscribed({
               <QueryRetryState
                 isLoading={clubQuery.isFetchingNextPage}
                 loadingSize="small"
-                isError={clubQuery.isFetchNextPageError || stalledCursor}
+                isError={clubQuery.isFetchNextPageError}
                 onRetry={retryPosts}
                 message="Не удалось загрузить следующие публикации клуба"
                 className={classes.emptyTab}

@@ -1,36 +1,40 @@
 "use client";
 import { useEffect } from "react";
-/**
- * Club posts: protect copying and selection in the browser.
- * Screenshots in a mobile browser cannot be fully blocked; this covers what the platform allows.
- */
+import { useScreenActive } from "@/shared/navigation/screen-activity";
+
+const owners = new Set<symbol>();
+const events = ["copy", "cut", "contextmenu", "dragstart"] as const;
+function block(event: Event) {
+  const target = event.target;
+  if (
+    target instanceof HTMLElement &&
+    target.closest('input, textarea, [contenteditable="true"]')
+  )
+    return;
+  event.preventDefault();
+}
+function protect() {
+  document.getElementById("root")?.classList.add("club-protected");
+  document.body.classList.add("club-protected");
+  for (const event of events) document.addEventListener(event, block, true);
+}
+function release() {
+  document.getElementById("root")?.classList.remove("club-protected");
+  document.body.classList.remove("club-protected");
+  for (const event of events) document.removeEventListener(event, block, true);
+}
+
+/** Retained hidden screens cannot own document-wide copy protection. */
 export function useClubContentProtection(enabled: boolean) {
+  const active = useScreenActive();
   useEffect(() => {
-    if (!enabled) return;
-    const root =
-      typeof document !== "undefined" ? document.getElementById("root") : null;
-    root?.classList.add("club-protected");
-    document.body?.classList.add("club-protected");
-    const isEditable = (target: EventTarget | null) => {
-      if (!(target instanceof HTMLElement)) return false;
-      const tag = target.tagName;
-      return tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable;
-    };
-    const block = (event: Event) => {
-      if (isEditable(event.target)) return;
-      event.preventDefault();
-    };
-    document.addEventListener("copy", block, true);
-    document.addEventListener("cut", block, true);
-    document.addEventListener("contextmenu", block, true);
-    document.addEventListener("dragstart", block, true);
+    if (!enabled || !active) return;
+    const owner = Symbol();
+    if (!owners.size) protect();
+    owners.add(owner);
     return () => {
-      root?.classList.remove("club-protected");
-      document.body?.classList.remove("club-protected");
-      document.removeEventListener("copy", block, true);
-      document.removeEventListener("cut", block, true);
-      document.removeEventListener("contextmenu", block, true);
-      document.removeEventListener("dragstart", block, true);
+      owners.delete(owner);
+      if (!owners.size) release();
     };
-  }, [enabled]);
+  }, [enabled, active]);
 }

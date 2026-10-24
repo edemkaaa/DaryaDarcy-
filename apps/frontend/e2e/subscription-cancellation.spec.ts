@@ -2,6 +2,11 @@ import { expect, test, type Page } from "@playwright/test";
 import { ok, failure } from "./editor-fixtures";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+test.skip(
+  process.env.PRODAMUS_RETURN_UI_ENABLED === "true",
+  "Live subscription cancellation is verified against a live-mode build.",
+);
+
 test.use({ hasTouch: true });
 const expiration = "2040-11-01T10:00:00Z";
 const cancelButton = (page: Page) =>
@@ -116,7 +121,9 @@ async function cancel(page: Page) {
 }
 
 for (const kind of ["active", "expired", "partial"] as const) {
-  test(`server pending state survives reload and uses read-only checks: ${kind}`, async ({ page }) => {
+  test(`server pending state survives reload and uses read-only checks: ${kind}`, async ({
+    page,
+  }) => {
     const state = await fixture(page);
     state.subscription.cancellationStatus = "pending";
     if (kind === "expired") {
@@ -126,15 +133,22 @@ for (const kind of ["active", "expired", "partial"] as const) {
     }
     if (kind === "partial") state.subscription.cancelAtPeriodEnd = true;
     await gotoWithSession(page, "/profile");
-    await expect(card(page).getByRole("status")).toContainText("Запрос на отмену сохранён");
-    await expect(card(page).getByText("Отменена, доступ сохранён", { exact: true })).toHaveCount(0);
+    await expect(card(page).getByRole("status")).toContainText(
+      "Запрос на отмену сохранён",
+    );
+    await expect(
+      card(page).getByText("Отменена, доступ сохранён", { exact: true }),
+    ).toHaveCount(0);
     await page.reload();
     await expect(checkButton(page)).toBeVisible();
     const reads = state.reads;
     await checkButton(page).click();
     await expect.poll(() => state.reads).toBeGreaterThan(reads);
     expect(state.writes).toBe(0);
-    if (kind === "expired") await expect(card(page).getByText("У тебя нет активной подписки", { exact: true })).toBeVisible();
+    if (kind === "expired")
+      await expect(
+        card(page).getByText("У тебя нет активной подписки", { exact: true }),
+      ).toBeVisible();
     state.subscription.cancellationStatus = "confirmed";
     state.subscription.cancelAtPeriodEnd = true;
     await checkButton(page).click();

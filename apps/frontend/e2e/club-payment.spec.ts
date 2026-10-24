@@ -2,6 +2,12 @@ import { expect, test, type Page } from "@playwright/test";
 import { ok, failure } from "./editor-fixtures";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+test.skip(
+  process.env.PRODAMUS_RETURN_UI_ENABLED === "true" ||
+    process.env.NORMAL_CHECKOUT_UI_ENABLED === "true",
+  "Legacy live checkout: TEST and keyed NORMAL use their own suites.",
+);
+
 test.use({ hasTouch: true });
 const destination = "https://payments.example.test/checkout/legacy-one";
 const expiration = "2040-11-01T10:00:00Z";
