@@ -2,6 +2,20 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Разрешённый выпуск staging — ночь25–26октября
+
+- [x] Security RED/GREEN: encoded requests415 до parser/auth; Zod4.6.6.
+- [x] Полные3217pass/1718skip, types/API102/lint/builds; только наши build caches.
+- [x] Native dependency3/offline API6/web7/candidate13; preflight42→44 без drift.
+- [x] Backup40tables/487641bytes: gzip/SHA server+Mac;3admin credentials сохранены.
+- [x] Миграции0042/0043,15live API/5restricted TEST/64HTTPS/26JS byte-exact;
+  22VK covers, browser admin session/статьи/календарь/оплаты-read GREEN.
+- [x] Все прежние строки (кроме login timestamps),3admin credentials,27other
+  containers сохранены;44history/41table/4indexes проверены. TEST bind на старый
+  bundle обнаружен/исправлен, actual2bundles byte-exact. Backup/3rollback images
+  сохранены;2temporary credential files удалены. Дизайн/S3/флаги не менялись.
+- [ ] Отдельно: dependency follow-up27октября; audit9 не объявлять чистым.
+
 ### Исправления аудитов24октября — локальная очередь25октября
 
 Перед push: свежий frontend8f610f6 принят mergef37a7ad,53 локальных файла

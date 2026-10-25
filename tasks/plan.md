@@ -2,6 +2,21 @@
 
 ## Действующий план агента — 13 октября 2026
 
+Ночь25–26октября: отдельно разрешены security-исправление, очистка только наших
+build caches и выпуск staging с проверкой миграций/backup/сохранением БД,
+админских входов и rollback images. Глобальный отказ encoded bodies415 и Zod4.6.6
+проверены RED/GREEN, полные3217pass/1718skip; source3557444 отправлен в staging.
+Native3/dependency+6API+7web, candidate13 и read-only42→44 GREEN; backup40tables
+проверен server+Mac. Выпущены API/web/TEST3557444;44миграции/41таблица,
+15live API+5restricted TEST+64HTTPS/26byte-exact JS GREEN. Все прежние строки,
+кроме login timestamps,3admin credentials и27other containers сохранены.
+Финальная проверка нашла старый TEST bind: изменён только его versioned pointer,
+старый bundle сохранён; actual API/TEST bytes совпали с manifest. Rollback images3
+и backup сохранены; временные credentials2 убраны. Браузерная админская сессия,
+посты/2статьи/календарь/оплаты чтения работают; это не payment/device acceptance.
+Next/дизайн/frontend source/flags/S3 не менять. Audit9advisories не объявлять чистым;
+reachability/компенсирующие меры и review27октября описаны в audit backend-remediation.
+
 25 октября, новый запрос: отправить все объединённые правки в Git staging,
 без отдельной выкладки сервера/SQL/флагов. Код разделён на schema/history,
 club filters, bounded reads, public upload recovery, library namespaces;
