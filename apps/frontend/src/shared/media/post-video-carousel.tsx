@@ -51,6 +51,7 @@ export function PostVideoCarousel({ videos }: { videos: PostVideoSlide[] }) {
       <div className={`${frameClasses.frame} ${classes.viewport}`}>
         <ScrollArea
           {...mouseDrag}
+          mouseDrag={false}
           ref={scrollRef}
           horizontal
           paging

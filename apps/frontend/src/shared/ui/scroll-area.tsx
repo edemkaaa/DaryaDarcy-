@@ -9,11 +9,14 @@ import {
   type ReactNode,
 } from "react";
 import type { BoxProps } from "./types";
+import { useMouseDragScroll } from "@/shared/browser/use-mouse-drag-scroll";
 export type ScrollAreaProps = BoxProps & {
   contentStyle?: CSSProperties;
   contentClassName?: string;
   contentInert?: boolean;
   horizontal?: boolean;
+  /** Existing photo/video viewers keep their specialized paging gestures. */
+  mouseDrag?: boolean;
   hideScrollbar?: boolean;
   paging?: boolean;
   snapInterval?: number;
@@ -30,6 +33,7 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(
       contentInert,
       style,
       horizontal,
+      mouseDrag = true,
       hideScrollbar,
       paging,
       snapInterval,
@@ -43,6 +47,8 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(
     },
     ref,
   ) {
+    const mouseSwiping = Boolean(horizontal && mouseDrag);
+    const drag = useMouseDragScroll(mouseSwiping);
     const node = useRef<HTMLDivElement | null>(null),
       settle = useRef<ReturnType<typeof setTimeout> | null>(null),
       pullStart = useRef<number | null>(null),
@@ -58,6 +64,40 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(
       <div
         tabIndex={0}
         {...props}
+        data-horizontal-scroll={horizontal || undefined}
+        onPointerDown={
+          mouseSwiping
+            ? (event) => {
+                props.onPointerDown?.(event);
+                if (!event.defaultPrevented) drag.onPointerDown(event);
+              }
+            : props.onPointerDown
+        }
+        onClickCapture={
+          mouseSwiping
+            ? (event) => {
+                drag.onClickCapture(event);
+                if (!event.isPropagationStopped())
+                  props.onClickCapture?.(event);
+              }
+            : props.onClickCapture
+        }
+        onLostPointerCapture={
+          mouseSwiping
+            ? (event) => {
+                drag.onLostPointerCapture(event);
+                props.onLostPointerCapture?.(event);
+              }
+            : props.onLostPointerCapture
+        }
+        onDragStart={
+          mouseSwiping
+            ? (event) => {
+                props.onDragStart?.(event);
+                if (!event.defaultPrevented) drag.onDragStart(event);
+              }
+            : props.onDragStart
+        }
         ref={(el) => {
           node.current = el;
           if (typeof ref === "function") ref(el);

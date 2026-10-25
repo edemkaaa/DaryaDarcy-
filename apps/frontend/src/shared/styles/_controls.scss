@@ -105,6 +105,13 @@
   .ui-scroll-hide {
     scrollbar-width: none;
   }
+  [data-horizontal-scroll][data-mouse-dragging] {
+    cursor: grabbing;
+    user-select: none;
+    * {
+      cursor: grabbing;
+    }
+  }
   .ui-scroll-hide::-webkit-scrollbar {
     display: none;
   }

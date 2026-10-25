@@ -106,6 +106,7 @@ export function HomePromoCarousel() {
   return (
     <div className={["ui-stack ", classes.wrap].filter(Boolean).join(" ")}>
       <Action
+        pressFeedback={false}
         onPointerDown={(event) => {
           if (!event.isPrimary || event.button !== 0 || swipe.current) return;
           suppressClick.current = false;

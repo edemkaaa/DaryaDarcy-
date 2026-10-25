@@ -289,6 +289,9 @@ test.describe("mobile video carousel", () => {
       region.getByLabel("Свайпните для переключения видео", { exact: true }),
     );
     await expect(region.getByText("3 / 3", { exact: true })).toBeVisible();
+    // Chromium briefly suppresses compatibility clicks after a synthetic native
+    // fling. Check a fresh tap once that suppression has expired.
+    await page.waitForTimeout(1200);
     await region
       .getByRole("button", { name: "Открыть видео", exact: true })
       .tap();

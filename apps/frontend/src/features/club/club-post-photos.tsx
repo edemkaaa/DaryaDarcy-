@@ -115,6 +115,7 @@ function ClubPhotoCarousel({
       {width > 0 ? (
         <ScrollArea
           {...drag}
+          mouseDrag={false}
           ref={scroll}
           horizontal
           paging

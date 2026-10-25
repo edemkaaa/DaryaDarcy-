@@ -156,6 +156,78 @@ async function textFixture(page: Page, lost: "network" | "503" = "503") {
   return state;
 }
 
+for (const readFailure of ["missing-parent", "unavailable"] as const) {
+  test(`discarding an uncertain reply survives ${readFailure} and allows a new comment`, async ({
+    page,
+  }) => {
+    let missing = false,
+      unavailable = false;
+    const calls: Record<string, unknown>[] = [];
+    await editorApi(page, (name, input) => {
+      if (name === "club.list")
+        return ok({ posts: [post()], nextCursor: null });
+      if (name === "club.commentsPage") {
+        if (unavailable) return failure(503);
+        return ok({
+          items: missing ? [] : [comment(10, "DISAPPEARING_PARENT")],
+          nextCursor: null,
+          totalCount: missing ? 0 : 1,
+        });
+      }
+      if (name === "club.addComment") {
+        calls.push(input);
+        missing = true;
+        unavailable = calls.length === 1 && readFailure === "unavailable";
+        return calls.length === 1 ? failure(503) : ok({ id: 200 });
+      }
+    });
+    await gotoWithSession(page, "/club");
+    await page.getByRole("button", { name: "Ответить", exact: true }).click();
+    await page.getByPlaceholder("Ваш ответ...").fill("UNCERTAIN_REPLY");
+    await page.getByRole("button", { name: "Отправить", exact: true }).click();
+    const retry = page.getByRole("button", {
+      name: "Повторить отправку",
+      exact: true,
+    });
+    await expect(retry).toBeEnabled();
+    const discard = page.getByRole("button", {
+      name: "Отказаться от неподтверждённой отправки",
+      exact: true,
+    });
+    page.once("dialog", (dialog) => dialog.dismiss());
+    await discard.click();
+    await expect(retry).toBeEnabled();
+    await expect(page.getByPlaceholder("Ваш ответ...")).toBeDisabled();
+    expect(calls).toHaveLength(1);
+    page.once("dialog", async (dialog) => {
+      expect(dialog.message()).toContain(
+        "Уже отправленный комментарий останется в списке",
+      );
+      await dialog.accept();
+    });
+    await discard.click();
+    await expect(retry).toHaveCount(0);
+    const composer = page.getByPlaceholder("Написать комментарий...");
+    await expect(composer).toBeEnabled();
+    await expect(composer).toHaveValue("");
+    expect(calls).toHaveLength(1);
+
+    // The local operation stays cleared after reopening; no old write is replayed.
+    unavailable = false;
+    await gotoWithSession(page, "/club");
+    await expect(retry).toHaveCount(0);
+    await expect(composer).toBeEnabled();
+    await composer.fill("NEW_ROOT_COMMENT");
+    await page.getByRole("button", { name: "Отправить", exact: true }).click();
+    await expect(composer).toHaveValue("");
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toMatchObject({ text: "UNCERTAIN_REPLY", parentId: 10 });
+    expect(calls[1]).toMatchObject({ text: "NEW_ROOT_COMMENT" });
+    expect(calls[1].parentId).toBeUndefined();
+    expect(calls[1].idempotencyKey).not.toBe(calls[0].idempotencyKey);
+  });
+}
+
 for (const lost of ["network", "503"] as const) {
   test(`lost text comment ACK (${lost}) survives reload and replays the original key and payload`, async ({
     page,
@@ -271,6 +343,54 @@ test("a failed capability read never silently dispatches an unkeyed text comment
   );
   expect(state.calls).toHaveLength(0);
 });
+
+for (const [label, payload] of [
+  ["null", null],
+  ["array", []],
+  ["missing gate", {}],
+  ["string gate", { privateContentUploads: "false" }],
+  [
+    "invalid optional switch",
+    { privateContentUploads: true, privatePostMediaUploads: 1 },
+  ],
+] as const) {
+  test(`malformed capabilities (${label}) preserve the draft without dispatching a comment`, async ({
+    page,
+  }) => {
+    const state = await textFixture(page);
+    state.loseReply = false;
+    let malformed = true;
+    await page.route("**/api/capabilities", (route) =>
+      malformed
+        ? route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify(payload),
+          })
+        : route.fallback(),
+    );
+    await gotoWithSession(page, "/club");
+    const composer = page.getByPlaceholder("Написать комментарий...");
+    await composer.fill("PERSISTED_TEXT_COMMENT");
+    await page.getByRole("button", { name: "Отправить", exact: true }).click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Некорректный ответ сервера" }),
+    ).toBeVisible();
+    await expect(composer).toBeEnabled();
+    await expect(composer).toHaveValue("PERSISTED_TEXT_COMMENT");
+    expect(state.calls).toHaveLength(0);
+    await expect(
+      page.getByRole("button", { name: "Повторить отправку", exact: true }),
+    ).toHaveCount(0);
+
+    // A manual retry after the server recovers uses the keyed contract.
+    malformed = false;
+    await page.getByRole("button", { name: "Отправить", exact: true }).click();
+    await expect(composer).toHaveValue("");
+    expect(state.calls).toHaveLength(1);
+    expect(state.calls[0].idempotencyKey).toMatch(/^[a-f0-9-]{36}$/);
+  });
+}
 
 test("the payments screen states the current API history limit", async ({
   page,
