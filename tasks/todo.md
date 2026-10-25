@@ -2,6 +2,22 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Сохранённое и лайки на стенде — 25 октября
+
+- [x] Fresh backup40tables/server+Mac/SHA;2ordinary users/4synthetic posts,
+  1synthetic access row, без providers/mail/files/новых staff-прав.
+- [x]48API assertions: save/like cycles, guest/basic403/401, feed/club limit1
+  two-page traversal без дублей, foreign/filter/malformed cursors400;
+  отзыв по старой сессии/курсору, draft404 и blocked401 GREEN.
+- [x] Browser A→B→A: собственные закладки/лайки, открытый saved без подписки,
+  club/direct denial; снятие/возврат закладки, reload, отзыв и draft фильтрация.
+  6reaction writes/3fixture logouts200; финальные SQL5saves/2likes/0duplicates.
+- [x]64local tests GREEN;2users/4posts/5saves/2likes/1synthetic access row
+  удалены,39tables exact/7existing profiles+credentials/3admins/30containers
+  сохранены. User login timestamps не откатывались. Нет S3/source/push/deploy;
+  temp secrets/proxy/tab убраны. Подготовительные повторы и точная граница —
+  audits/staging-saved-likes-2026-10-25.md, не новая приёмка всего договора.
+
 ### Закрытые комментарии, фото и реальное сохранение аватара — 25 октября
 
 - [x] Fresh backup40tables/SHA/server+Mac;3fixture-users/закрытый community-пост,

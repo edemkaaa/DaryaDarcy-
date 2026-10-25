@@ -2,6 +2,16 @@
 
 ## Действующий план агента — 13 октября 2026
 
+25 октября, продолжение живой приёмки: saved/likes на2temporary users/4posts.
+48API assertions/64local tests GREEN: feed/club limit1 keyset/cursor isolation,
+guest/basic/blocked guards, отзыв доступа по прежней сессии/курсору, draft denial;
+browser A→B→A, открытое saved без подписки, снятие/возврат/reload, club скрыт.
+Финально5saves/2likes/0duplicates; fixture удалён с backup40tables/SHA/server+Mac.
+39tables exact,7existing profiles/credentials/3admins/config/30containers прежние,
+только служебная user login metadata не откатывалась. S3/source/push/deploy/
+mail/providers не затрагивались. Подготовительные повторы не скрыты;
+audit staging-saved-likes-2026-10-25.md содержит точный scope/непринятые сценарии.
+
 25 октября, следующий согласованный живой срез: закрытые комментарии, replies,
 фото и реальное сохранение аватара на3временных обычных аккаунтах/посте945.
 32API assertions и141local tests GREEN: member/basic/blocked/guest и отзыв,
