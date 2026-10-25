@@ -14,7 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useClub } from "@/domain/subscription/subscription-context";
 import { useCursorPages } from "@/shared/api/use-cursor-pages";
 import type { CursorChain } from "@/shared/api/cursor-pages";
-import type { ApiOutputs } from "@/shared/api/types";
+import type { ApiInputs, ApiOutputs } from "@/shared/api/types";
 import { CommentReplies, type PagedComment } from "./comment-replies";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
@@ -24,6 +24,7 @@ import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { trpc } from "@/shared/api/trpc";
 import {
   useCapabilities,
+  getAppCapabilities,
   uploadUnavailableMessage,
 } from "@/shared/api/capabilities";
 import {
@@ -250,7 +251,7 @@ function CommentThread({
   const privateFiles = usePrivateCommentFiles(
     active && nearby && community && isAuthenticated,
     postId,
-    (task) => readComments(task.signal),
+    (task, parentId) => readComments(task.signal, parentId),
   );
   const pendingPrivate = privateFiles.record;
   const composeBlocked =
@@ -300,8 +301,68 @@ function CommentThread({
     "comments",
     !comments.data,
   );
-  const readComments = async (signal?: AbortSignal) => {
+  // Read the existing page containing a changed parent; head polling must not
+  // leave replyCount stale on a retained second or later page.
+  const refreshCommentRow = async (
+    id: number,
+    signal?: AbortSignal,
+    refreshGroup = false,
+  ) => {
+    const queries = cache.getQueryCache().findAll({
+      queryKey: getQueryKey(trpc.club.commentsPage, { postId }, "query"),
+      predicate: (query) =>
+        (query.queryKey[2] as { ownerScope?: string })?.ownerScope ===
+        commentScope,
+    });
+    for (const query of queries) {
+      const chain = query.state.data as
+        | CursorChain<ApiOutputs["club"]["commentsPage"]>
+        | undefined;
+      const index =
+        chain?.pages.findIndex((page) =>
+          page.items.some((row) => row.id === id),
+        ) ?? -1;
+      if (!chain || index < 0) continue;
+      const input = (
+        query.queryKey[1] as {
+          input: { postId: number; parentId?: number; limit: number };
+        }
+      ).input;
+      const page = await utils.client.club.commentsPage.query(
+        { ...input, cursor: chain.pageParams[index] },
+        { signal },
+      );
+      signal?.throwIfAborted();
+      const row = page.items.find((item) => item.id === id);
+      if (!row && !refreshGroup) throw invalidResponse();
+      cache.setQueryData<CursorChain<ApiOutputs["club"]["commentsPage"]>>(
+        query.queryKey,
+        (current) => {
+          if (!current) return current;
+          // A deletion can promote replies and change this page's boundary.
+          // Keep only the prefix whose cursors still describe the server list.
+          if (refreshGroup)
+            return current.pageParams[index] === chain.pageParams[index]
+              ? {
+                  pages: [...current.pages.slice(0, index), page],
+                  pageParams: current.pageParams.slice(0, index + 1),
+                }
+              : current;
+          if (!row) return current;
+          return {
+            ...current,
+            pages: current.pages.map((part) => ({
+              ...part,
+              items: part.items.map((item) => (item.id === id ? row : item)),
+            })),
+          };
+        },
+      );
+    }
+  };
+  const readComments = async (signal?: AbortSignal, parentId?: number) => {
     signal?.throwIfAborted();
+    if (parentId) await refreshCommentRow(parentId, signal);
     const result = await comments.refetch();
     signal?.throwIfAborted();
     if (!result.isSuccess || !Array.isArray(result.data?.pages))
@@ -324,6 +385,26 @@ function CommentThread({
     void utils.club.list.invalidate();
     void utils.feed.getById.invalidate({ id: postId });
   };
+  const refreshMissingBranch = async (parentId: number) => {
+    const task = operation.begin("refresh-comments");
+    if (!task) return;
+    setActionError(null);
+    try {
+      await refreshCommentRow(parentId, task.signal, true);
+      const result = await comments.refetch();
+      task.assertCurrent();
+      if (!result.isSuccess) throw result.error ?? invalidResponse();
+      // Keep the composed text/photos; only the vanished reply target is lost.
+      if (replyTo === parentId) setReplyTo(null);
+      if (editingId === parentId) setEditingId(null);
+      refreshCounts();
+    } catch (cause) {
+      checkOperationAccessError(cause);
+      if (task.isCurrent()) setActionError(getRequestErrorMessage(cause));
+    } finally {
+      task.finish();
+    }
+  };
   const runAction = (
     kind: string,
     label: string,
@@ -331,6 +412,7 @@ function CommentThread({
     commit: (result: unknown) => void,
     validate = requireOk,
     keepBlocked = false,
+    read: (signal: AbortSignal) => Promise<void> = readComments,
   ) =>
     void action.run({
       kind,
@@ -341,37 +423,58 @@ function CommentThread({
         commit(result);
         void utils.club.commentsPage.invalidate({ postId });
       },
-      read: readComments,
+      read,
       keepBlocked,
     });
-  const add = {
-    isPending: operation.kind === "send",
-    error: actionError ? { message: actionError } : null,
-    mutate: (
-      input: Parameters<typeof utils.client.club.addComment.mutate>[0],
-    ) => {
-      if (photos.length) {
-        void sendPrivate();
-        return;
-      }
-      runAction(
-        "send",
-        "Отправить комментарий",
-        (signal) => utils.client.club.addComment.mutate(input, { signal }),
-        () => {
-          setText("");
-          setPhotos([]);
-          setReplyTo(null);
-          refreshCounts();
-        },
-        (result) => {
-          const id = (result as { id?: unknown } | null)?.id;
-          if (!Number.isSafeInteger(id) || (id as number) <= 0)
-            throw invalidResponse();
-        },
-        true,
-      );
-    },
+  const sendLegacy = (input: ApiInputs["club"]["addComment"]) => {
+    runAction(
+      "send",
+      "Отправить комментарий",
+      (signal) => utils.client.club.addComment.mutate(input, { signal }),
+      () => {
+        if (input.parentId) {
+          // The write is already confirmed. A failed follow-up read must
+          // neither hide the reply button nor turn it into an unknown write.
+          cache.setQueriesData<CursorChain<ApiOutputs["club"]["commentsPage"]>>(
+            {
+              queryKey: getQueryKey(
+                trpc.club.commentsPage,
+                { postId },
+                "query",
+              ),
+            },
+            (chain) =>
+              chain && {
+                ...chain,
+                pages: chain.pages.map((page) => ({
+                  ...page,
+                  items: page.items.map((row) =>
+                    row.id === input.parentId
+                      ? { ...row, replyCount: row.replyCount + 1 }
+                      : row,
+                  ),
+                })),
+              },
+          );
+          void refreshCommentRow(input.parentId).catch((cause) => {
+            checkOperationAccessError(cause);
+            setActionError(
+              "Комментарий сохранён, но обновить обсуждение не удалось. Откройте ответы повторно.",
+            );
+          });
+        }
+        setText("");
+        setPhotos([]);
+        setReplyTo(null);
+        refreshCounts();
+      },
+      (result) => {
+        const id = (result as { id?: unknown } | null)?.id;
+        if (!Number.isSafeInteger(id) || (id as number) <= 0)
+          throw invalidResponse();
+      },
+      true,
+    );
   };
   const clearComposer = () => {
     setText("");
@@ -379,18 +482,32 @@ function CommentThread({
     setReplyTo(null);
     refreshCounts();
   };
-  const sendPrivate = async (record?: PrivateCommentRecord) => {
+  const sendPrivate = async (
+    record?: PrivateCommentRecord,
+    input: ApiInputs["club"]["addComment"] = {
+      postId,
+      text: text.trim(),
+      parentId: replyTo ?? undefined,
+    },
+  ) => {
     const task = operation.begin("send");
     if (!task) return;
     setActionError(null);
+    let legacy = false;
     try {
       let current = record;
       if (!current) {
-        const prepared = await privateFiles.prepare(
-          { text: text.trim(), parentId: replyTo ?? undefined },
-          photos,
-          task,
-        );
+        if (!photos.length) {
+          // Resolve the actual server gate before choosing a wire contract.
+          // A pending/stale capability query cannot cause an unkeyed write.
+          const currentCapabilities = await getAppCapabilities(task.signal);
+          task.assertCurrent();
+          if (!currentCapabilities.privateContentUploads) {
+            legacy = true;
+            return;
+          }
+        }
+        const prepared = await privateFiles.prepare(input, photos, task);
         if (prepared.restored) {
           setActionError(
             "На этом устройстве уже есть отправка. Восстановите её перед повтором.",
@@ -406,8 +523,16 @@ function CommentThread({
       checkOperationAccessError(error);
       if (task.isCurrent()) setActionError(getRequestErrorMessage(error));
     } finally {
+      const handoff = legacy && task.isCurrent();
       task.finish();
+      if (handoff) sendLegacy(input);
     }
+  };
+  const add = {
+    isPending: operation.kind === "send",
+    error: actionError ? { message: actionError } : null,
+    mutate: (input: ApiInputs["club"]["addComment"]) =>
+      void sendPrivate(undefined, input),
   };
   const readOrDiscardPrivate = async (discard: boolean) => {
     if (!pendingPrivate) return;
@@ -441,8 +566,33 @@ function CommentThread({
         "Сохранить комментарий",
         (signal) => utils.client.club.updateComment.mutate(input, { signal }),
         () => {
+          cache.setQueriesData<CursorChain<ApiOutputs["club"]["commentsPage"]>>(
+            {
+              queryKey: getQueryKey(
+                trpc.club.commentsPage,
+                { postId },
+                "query",
+              ),
+            },
+            (chain) =>
+              chain && {
+                ...chain,
+                pages: chain.pages.map((page) => ({
+                  ...page,
+                  items: page.items.map((row) =>
+                    row.id === input.id ? { ...row, text: input.text } : row,
+                  ),
+                })),
+              },
+          );
           setEditingId(null);
           setEditText("");
+        },
+        requireOk,
+        false,
+        async (signal) => {
+          await refreshCommentRow(input.id, signal);
+          await readComments(signal);
         },
       ),
   };
@@ -472,6 +622,12 @@ function CommentThread({
               },
           );
           refreshCounts();
+        },
+        requireOk,
+        false,
+        async (signal) => {
+          await refreshCommentRow(input.id, signal, true);
+          await readComments(signal);
         },
       ),
   };
@@ -529,6 +685,11 @@ function CommentThread({
           );
         },
         requireCommentLike,
+        false,
+        async (signal) => {
+          await refreshCommentRow(input.commentId, signal);
+          await readComments(signal);
+        },
       ),
   };
   const tree = useMemo(() => {
@@ -806,6 +967,7 @@ function CommentThread({
           scope={commentScope}
           render={renderComment}
           onDenied={setBranchError}
+          onMissing={(parentId) => void refreshMissingBranch(parentId)}
         />
       </div>
     );
@@ -985,7 +1147,7 @@ function CommentThread({
           {privateFiles.error}
         </Typography>
       ) : null}
-      {pendingPrivate ? (
+      {pendingPrivate && !operation.busy ? (
         <div className="ui-stack">
           <Typography role="alert" className={classes.error}>
             На устройстве сохранена отправка комментария.

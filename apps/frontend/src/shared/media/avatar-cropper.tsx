@@ -6,6 +6,9 @@ import { cssTransform } from "@/shared/ui/css";
 import { Typography, Action } from "@/shared/ui/elements";
 
 import { useState } from "react";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
+import { useSessionOperation } from "@/domain/session/use-session-operation";
+import { StatusNotice } from "@/shared/ui/status-notice";
 import { Picture } from "@/shared/media/image";
 import { Gesture, GestureDetector } from "@/shared/browser/gestures";
 import Animated, {
@@ -43,7 +46,10 @@ export function AvatarCropper({
     },
   };
 
-  const [cropping, setCropping] = useState(false);
+  const active = useScreenActive();
+  const operation = useSessionOperation(active, imageUri);
+  const cropping = operation.busy;
+  const [error, setError] = useState<string | null>(null);
   // Calculate initial scale to fill the circle
   const aspectRatio = imageWidth / imageHeight;
   // Shared values for gestures
@@ -60,6 +66,7 @@ export function AvatarCropper({
     aspectRatio >= 1 ? CIRCLE_SIZE : CIRCLE_SIZE / aspectRatio;
   const pinchGesture = Gesture.Pinch()
     .onUpdate((e) => {
+      if (cropping) return;
       scale.value = Math.max(0.5, Math.min(savedScale.value * e.scale, 4));
     })
     .onEnd(() => {
@@ -72,6 +79,7 @@ export function AvatarCropper({
     });
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
+      if (cropping) return;
       translateX.value = savedTranslateX.value + e.translationX;
       translateY.value = savedTranslateY.value + e.translationY;
     })
@@ -88,7 +96,9 @@ export function AvatarCropper({
     ]),
   }));
   const handleCrop = async () => {
-    setCropping(true);
+    const task = operation.begin("crop-avatar");
+    if (!task) return;
+    setError(null);
     try {
       // Calculate crop region based on current transform
       const currentScale = scale.value;
@@ -137,15 +147,21 @@ export function AvatarCropper({
           },
           { resize: { width: 400, height: 400 } },
         ],
-        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
+        {
+          compress: 0.8,
+          format: ImageManipulator.SaveFormat.JPEG,
+          signal: task.signal,
+        },
       );
+      task.assertCurrent();
       onCrop(manipResult.uri);
-    } catch (error) {
-      console.error("[AvatarCropper] Crop error:", error);
-      // Fallback: just use the original image
-      onCrop(imageUri);
+    } catch {
+      if (task.isCurrent())
+        setError(
+          "Не удалось обрезать фото. Выбранное изображение сохранено — попробуйте ещё раз или выберите другое.",
+        );
     } finally {
-      setCropping(false);
+      task.finish();
     }
   };
   return (
@@ -184,12 +200,17 @@ export function AvatarCropper({
         </div>
       </div>
 
+      {error ? <StatusNotice tone="error">{error}</StatusNotice> : null}
+
       {/* Buttons */}
       <div
         className={["ui-stack ", classes.buttonRow].filter(Boolean).join(" ")}
       >
         <Action
-          onClick={onCancel}
+          onClick={() => {
+            operation.cancel();
+            onCancel();
+          }}
           className={({ pressed }) =>
             [classes.action, pressed ? classes.opacityState : ""]
               .filter(Boolean)
@@ -201,6 +222,7 @@ export function AvatarCropper({
         <Action
           onClick={handleCrop}
           disabled={cropping}
+          aria-busy={cropping}
           className={({ pressed }) =>
             [
               classes.action2,

@@ -7,6 +7,7 @@ import { parseClubAccess } from "@/shared/api/club-access";
 import { getHttpStatus, getRequestErrorMessage } from "@/shared/api/errors";
 import { getSessionRequestSignal } from "@/shared/api/request-lifecycle";
 import { isPersonalDataOwner } from "@/shared/browser/storage";
+import { watchCheckoutDeparture } from "@/shared/navigation/navigation-start";
 import {
   OperationScope,
   type ScopedOperation,
@@ -66,16 +67,21 @@ export function useNormalClubPayment({
     () => null,
   );
   const [state, setState] = useState<PurchaseState | null>(null);
+  const departing = useRef(false);
   const identity = useRef({ ready, ownerId });
   identity.current = { ready, ownerId };
   const current = state?.ownerId === ownerId ? state : null;
   const begin = (name: string) => {
     if (!ready || !ownerId || document.hidden) return null;
+    // A fresh explicit action may recover if an attempted navigation failed.
+    // The cancelled operation itself cannot regain ownership of its redirect.
+    departing.current = false;
     return scope.begin(
       name,
       getSessionRequestSignal(),
       () =>
         identity.current.ready &&
+        !departing.current &&
         identity.current.ownerId === ownerId &&
         !document.hidden &&
         isPersonalDataOwner(ownerId),
@@ -92,6 +98,14 @@ export function useNormalClubPayment({
     document.addEventListener("visibilitychange", hidden);
     return () => document.removeEventListener("visibilitychange", hidden);
   }, [scope]);
+  useEffect(() => {
+    departing.current = false;
+    if (!enabled || !active) return;
+    return watchCheckoutDeparture(() => {
+      departing.current = true;
+      scope.cancel();
+    });
+  }, [scope, enabled, active, ownerId, returnKey]);
 
   const apply = async (
     intent: NormalCheckoutIntent,

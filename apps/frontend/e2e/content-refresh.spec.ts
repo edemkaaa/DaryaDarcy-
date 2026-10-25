@@ -253,6 +253,10 @@ for (const route of ["article", "post", "video"] as const) {
   test(`${route} keeps cached reading content during a failed refresh, then reflects edits and deletion`, async ({
     page,
   }) => {
+    test.skip(
+      route === "video" && process.env.VK_CATALOG_UI_ENABLED === "true",
+      "Legacy detail refresh; catalog playback revalidation is covered in video-catalog.spec.ts.",
+    );
     await page.clock.install();
     let mode: "initial" | "unavailable" | "edited" | "deleted" = "initial";
     let reads = 0;

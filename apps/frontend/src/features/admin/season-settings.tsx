@@ -25,6 +25,7 @@ import {
   sameLaunchConfiguration,
   validAnnualDate,
   validSeasonUrl,
+  isSeasonSharingPage,
 } from "@/domain/launch/settings";
 import { CLUB_APPEARANCE_KEY } from "@/domain/launch/use-club-appearance";
 import { Action, Field, ScrollArea, Typography } from "@/shared/ui/elements";
@@ -37,6 +38,14 @@ const readSettings = async (signal: AbortSignal) =>
     await apiCall<unknown>("/api/admin/launch-settings", { signal }),
   );
 function validationMessage(config: LaunchConfiguration): string | null {
+  if (
+    SEASONS.some(
+      (key) =>
+        isSeasonSharingPage(config.seasons[key].backgroundUrl) ||
+        isSeasonSharingPage(config.seasons[key].bannerUrl),
+    )
+  )
+    return "Укажите прямую ссылку на изображение, а не страницу Яндекс Диска";
   if (SEASONS.some((key) => !validAnnualDate(config.seasons[key].startsOn)))
     return "Укажите даты начала в формате ММ-ДД. 29 февраля не поддерживается.";
   if (new Set(SEASONS.map((key) => config.seasons[key].startsOn)).size !== 4)
@@ -341,14 +350,15 @@ function SeasonEditor({
             {(["backgroundUrl", "bannerUrl"] as const).map((field) => (
               <label key={field} className="ui-stack">
                 <Typography className={classes.formHint}>
-                  {field === "backgroundUrl" ? "Фон" : "Баннер"}, HTTPS-ссылка
+                  {field === "backgroundUrl" ? "Фон" : "Баннер"}, прямая
+                  HTTPS-ссылка на изображение
                 </Typography>
                 <Field
                   aria-label={`${SEASON_NAMES[key]}: ${field === "backgroundUrl" ? "фон" : "баннер"}`}
                   disabled={blocked}
                   value={draft.seasons[key][field] ?? ""}
                   maxLength={2048}
-                  placeholder="https://… или пустое поле"
+                  placeholder="Прямая ссылка на картинку или пустое поле"
                   className={classes.sortInput}
                   style={{ width: "100%", minWidth: 0 }}
                   onValueChange={(value) => changeAppearance(key, field, value)}

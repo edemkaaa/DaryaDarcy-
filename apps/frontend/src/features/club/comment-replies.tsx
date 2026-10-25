@@ -5,6 +5,8 @@ import { trpc } from "@/shared/api/trpc";
 import { useCursorPages } from "@/shared/api/use-cursor-pages";
 import { Action, Typography } from "@/shared/ui/elements";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
+import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
+import { getHttpStatus } from "@/shared/api/errors";
 import type { ApiOutputs } from "@/shared/api/types";
 import classes from "./club-comments.module.scss";
 export type PagedComment = ApiOutputs["club"]["commentsPage"]["items"][number];
@@ -17,6 +19,7 @@ type Props = {
   scope: string;
   render: (item: PagedComment, depth: number) => ReactNode;
   onDenied: (error: unknown) => void;
+  onMissing: (parentId: number) => void;
 };
 export function CommentReplies(props: Props) {
   const [open, setOpen] = useState(false);
@@ -39,6 +42,7 @@ function ReplyGroup({
   scope,
   render,
   onDenied,
+  onMissing,
 }: Props) {
   const utils = trpc.useUtils();
   const input = { postId, parentId, limit: 20 };
@@ -52,8 +56,24 @@ function ReplyGroup({
       utils.client.club.commentsPage.query({ ...input, cursor }, { signal }),
   });
   useEffect(() => {
-    if (page.denied) onDenied(page.error);
+    if (page.denied && getHttpStatus(page.error) !== 404) onDenied(page.error);
   }, [page.denied, page.error, onDenied]);
+  // A deleted parent is local to this branch; it does not revoke post access.
+  if (getHttpStatus(page.error) === 404)
+    return (
+      <StatusNotice
+        actions={
+          <StatusNoticeAction
+            disabled={!enabled}
+            onClick={() => onMissing(parentId)}
+          >
+            Обновить обсуждение
+          </StatusNoticeAction>
+        }
+      >
+        Этот комментарий больше недоступен.
+      </StatusNotice>
+    );
   return (
     <div className="ui-stack" data-comment-replies={parentId}>
       <QueryRetryState

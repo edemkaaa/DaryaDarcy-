@@ -1,5 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
+// The base suite expects the default legacy-video build. Opt-in catalog builds
+// use playwright.catalog.config.ts so their API fixtures match the chosen UI.
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,

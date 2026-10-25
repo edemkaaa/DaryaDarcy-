@@ -583,6 +583,17 @@ for (const [field, value, message] of [
   ],
   ["Весна: дата начала", "02-29", "29 февраля не поддерживается"],
   ["Зима: фон", "http://seasons.example.test/image.svg", "HTTPS-ссылки"],
+  [
+    "Зима: фон",
+    "https://disk.yandex.ru/i/example",
+    "прямую ссылку на изображение",
+  ],
+  [
+    "Зима: баннер",
+    "https://disk.yandex.com/i/example",
+    "прямую ссылку на изображение",
+  ],
+  ["Зима: баннер", "https://yadi.sk/i/example", "прямую ссылку на изображение"],
 ] as const) {
   test(`invalid season setting ${value} is rejected before dispatch`, async ({
     page,

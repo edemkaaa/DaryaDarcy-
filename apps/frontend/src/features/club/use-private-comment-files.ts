@@ -4,13 +4,18 @@ import { useAuth } from "@/domain/session/session-context";
 import { PrivateCommentJournal } from "@/domain/post/private-comment-journal";
 import {
   preparePrivateComment,
+  prepareTextComment,
   savePrivateComment,
   type PrivateCommentPhoto,
   type PrivateCommentRecord,
 } from "@/domain/post/private-comment-save";
 import type { ApiInputs } from "@/shared/api/types";
 import { trpc } from "@/shared/api/trpc";
-import { requirePrivateUpload } from "@/shared/api/capabilities";
+import {
+  getAppCapabilities,
+  requirePrivateUpload,
+} from "@/shared/api/capabilities";
+import { ApiError } from "@/shared/api/errors";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { fileForPhotoUpload, pickWebFiles } from "@/shared/media/image-upload";
 import { checkPrivateUploadAvailability } from "@/shared/media/private-upload-availability";
@@ -20,7 +25,7 @@ const reference = (file: PrivateCommentPhoto) => `local-comment:${file.key}`;
 export function usePrivateCommentFiles(
   enabled: boolean,
   postId: number,
-  refreshComments: (task: ScopedOperation) => Promise<void>,
+  refreshComments: (task: ScopedOperation, parentId?: number) => Promise<void>,
 ) {
   const { user } = useAuth(),
     utils = trpc.useUtils();
@@ -74,16 +79,16 @@ export function usePrivateCommentFiles(
     release();
     setFiles([]);
   }, [release]);
-  const read = async (task: ScopedOperation) => {
+  const read = async (task: ScopedOperation, parentId?: number) => {
     task.assertCurrent();
-    await refreshComments(task);
+    await refreshComments(task, parentId);
     task.assertCurrent();
   };
   const clear = async (
     current: PrivateCommentRecord,
     task: ScopedOperation,
   ) => {
-    await read(task);
+    await read(task, current.parentId);
     await journal.clear(current);
     task.assertCurrent();
     setRecord(null);
@@ -152,11 +157,9 @@ export function usePrivateCommentFiles(
           task,
         );
       }
-      const proposed = preparePrivateComment(
-        journal.ownerId,
-        { postId, ...input },
-        selected,
-      );
+      const proposed = selected.length
+        ? preparePrivateComment(journal.ownerId, { postId, ...input }, selected)
+        : prepareTextComment(journal.ownerId, { postId, ...input });
       const prepared = await journal.prepare(proposed);
       task.assertCurrent();
       setRecord(prepared.record);
@@ -176,8 +179,16 @@ export function usePrivateCommentFiles(
             utils.client.club.privateCommentPhotoStatus.query(input, {
               signal,
             }),
-          add: (input, signal) =>
-            utils.client.club.addComment.mutate(input, { signal }),
+          add: async (input, signal) => {
+            // Keyed text comments share the private-content server gate.
+            // Never downgrade a stored keyed operation to an unkeyed write.
+            if (!(await getAppCapabilities(signal)).privateContentUploads)
+              throw new ApiError(
+                "Отправка комментария сейчас недоступна. Попробуйте позже.",
+                503,
+              );
+            return utils.client.club.addComment.mutate(input, { signal });
+          },
         },
         task,
         async (value) => {

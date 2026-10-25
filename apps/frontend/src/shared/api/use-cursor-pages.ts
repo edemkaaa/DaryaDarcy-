@@ -120,5 +120,14 @@ export function useCursorPages<P extends CursorPage>({
     isFetchingNextPage: operation.kind === "page",
     hasNextPage: Boolean(query.data?.pages.at(-1)?.nextCursor),
     fetchNextPage: loadMore,
+    restart: async () => {
+      await client.cancelQueries({ queryKey, exact: true });
+      client.setQueryData<CursorChain<P>>(
+        queryKey,
+        (chain) =>
+          chain && { pages: chain.pages.slice(0, 1), pageParams: [null] },
+      );
+      return query.refetch();
+    },
   };
 }

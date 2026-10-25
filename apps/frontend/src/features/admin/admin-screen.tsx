@@ -1213,7 +1213,7 @@ export default function AdminScreen() {
                     Удалить комментарий
                   </Typography>
                 </Action>
-                {item.authorUserId ? (
+                {item.authorUserId && item.authorUserId !== user?.id ? (
                   <Action
                     onClick={() => {
                       const reason =
@@ -1242,6 +1242,11 @@ export default function AdminScreen() {
       ) : viewTab === "payments" ? (
         <Collection
           data={paymentsQuery.data || []}
+          header={
+            <Typography className={classes.postItemDate}>
+              Последние 50 оплат. Более ранние записи здесь не отображаются.
+            </Typography>
+          }
           keyExtractor={(item) => String(item.id)}
           empty={
             <div

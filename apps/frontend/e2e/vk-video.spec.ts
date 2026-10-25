@@ -25,6 +25,30 @@ async function fixture(page: Page, url: string) {
         youtubeId: "",
         videoUrl: url,
       });
+    if (name === "videos.catalog")
+      return ok({
+        items: [
+          {
+            id: 42,
+            title: "VK_TEST_VIDEO",
+            duration: null,
+            access: "public",
+            canWatch: true,
+          },
+        ],
+        nextCursor: null,
+      });
+    if (name === "videos.playback")
+      return ok(
+        url.includes("/video_ext.php")
+          ? { id: 42, provider: "vk", embedUrl: url }
+          : {
+              id: 42,
+              provider: "youtube",
+              youtubeId: "testvideo42",
+              videoUrl: url,
+            },
+      );
     if (name === "feed.getById") return ok(post);
     if (name === "feed.listPaginated")
       return ok({ posts: [post], nextCursor: null });

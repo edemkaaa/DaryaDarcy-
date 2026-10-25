@@ -508,3 +508,145 @@ test("a late name ACK cannot replace a different account", async ({ page }) => {
     gate.release();
   }
 });
+
+test("failed avatar cropping retains the selection and retries without uploading the original", async ({
+  page,
+}) => {
+  const { state, raster } = await profileApi(page);
+  await gotoWithSession(page, "/profile");
+  const chooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("button", { name: "Выбрать фото профиля", exact: true })
+    .click();
+  await (
+    await chooser
+  ).setFiles({ name: "avatar.png", mimeType: "image/png", buffer: raster });
+  await expect(
+    page.getByRole("button", { name: "Готово", exact: true }),
+  ).toBeVisible();
+  await page.evaluate(() => {
+    const original = HTMLCanvasElement.prototype.toDataURL;
+    window.addEventListener(
+      "audit-restore-canvas",
+      () => {
+        HTMLCanvasElement.prototype.toDataURL = original;
+      },
+      { once: true },
+    );
+    HTMLCanvasElement.prototype.toDataURL = () => {
+      throw new Error("Synthetic crop failure");
+    };
+  });
+  await page.getByRole("button", { name: "Готово", exact: true }).click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Не удалось" }),
+  ).toBeVisible();
+  expect(state.avatarWrites).toHaveLength(0);
+  await expect(
+    page.getByRole("button", { name: "Готово", exact: true }),
+  ).toBeEnabled();
+  await page.evaluate(() =>
+    window.dispatchEvent(new Event("audit-restore-canvas")),
+  );
+  await page.getByRole("button", { name: "Готово", exact: true }).click();
+  await expect.poll(() => state.avatarWrites.length).toBe(1);
+  expect(
+    await sharp(
+      Buffer.from(state.avatarWrites[0].base64 as string, "base64"),
+    ).metadata(),
+  ).toMatchObject({ width: 400, height: 400 });
+});
+
+for (const outcome of ["cancel", "timeout"] as const) {
+  test(`a stalled avatar crop supports ${outcome} without uploading`, async ({
+    page,
+  }) => {
+    const { state, raster } = await profileApi(page);
+    await page.clock.install();
+    await gotoWithSession(page, "/profile");
+    const chooser = page.waitForEvent("filechooser");
+    await page
+      .getByRole("button", { name: "Выбрать фото профиля", exact: true })
+      .click();
+    await (
+      await chooser
+    ).setFiles({ name: "avatar.png", mimeType: "image/png", buffer: raster });
+    await expect(
+      page.getByRole("button", { name: "Готово", exact: true }),
+    ).toBeVisible();
+    await page.evaluate(() => {
+      const NativeImage = window.Image;
+      window.Image = class extends NativeImage {
+        set src(_value: string) {
+          /* Simulate an image that never loads. */
+        }
+      };
+    });
+    await page.getByRole("button", { name: "Готово", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "...", exact: true }),
+    ).toBeDisabled();
+    if (outcome === "cancel") {
+      await page.getByRole("button", { name: "Отмена", exact: true }).click();
+      await expect(
+        page.getByRole("button", { name: "Выбрать фото профиля", exact: true }),
+      ).toBeVisible();
+    }
+    await page.clock.fastForward(16_000);
+    if (outcome === "timeout") {
+      await expect(
+        page.getByRole("alert").filter({ hasText: "Не удалось" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Готово", exact: true }),
+      ).toBeEnabled();
+    }
+    expect(state.avatarWrites).toHaveLength(0);
+  });
+}
+
+test("avatar crop error keeps retry and cancel reachable in a short viewport", async ({
+  page,
+}) => {
+  const { state, raster } = await profileApi(page);
+  await gotoWithSession(page, "/profile");
+  const chooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("button", { name: "Выбрать фото профиля", exact: true })
+    .click();
+  await (
+    await chooser
+  ).setFiles({ name: "avatar.png", mimeType: "image/png", buffer: raster });
+  await expect(
+    page.getByRole("button", { name: "Готово", exact: true }),
+  ).toBeVisible();
+  await page.evaluate(() => {
+    HTMLCanvasElement.prototype.toDataURL = () => {
+      throw new Error("Synthetic crop failure");
+    };
+  });
+  await page.getByRole("button", { name: "Готово", exact: true }).click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Не удалось обрезать фото" }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 400 });
+  for (const name of ["Готово", "Отмена"]) {
+    const action = page.getByRole("button", { name, exact: true });
+    await action.scrollIntoViewIfNeeded();
+    expect(
+      await action.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const target = document.elementFromPoint(
+          rect.x + rect.width / 2,
+          rect.y + rect.height / 2,
+        );
+        return Boolean(target && element.contains(target));
+      }),
+    ).toBe(true);
+  }
+  expect(state.avatarWrites).toHaveLength(0);
+  await page.getByRole("button", { name: "Отмена", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Выбрать фото профиля", exact: true }),
+  ).toBeVisible();
+});
