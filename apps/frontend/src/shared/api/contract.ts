@@ -15,9 +15,9 @@ export type PostMedia = {
   duration: number | null;
   id: number;
   createdAt: Date;
-  url: string;
   filename: string | null;
   mimeType: string | null;
+  url: string;
   postId: number;
   sortOrder: number;
   posterUrl: string | null;
@@ -122,6 +122,7 @@ export type CommentReportInboxRow = {
   authorName: string | null;
   reporterUserId: number;
   reporterName: string | null;
+  canBlockAuthor: boolean;
 };
 export type RichTextInline = {
   text: string;
@@ -180,6 +181,35 @@ export type AppRouter = BuiltRouter<
       }>;
     };
     profile: {
+      uploadAvatarWithReceipt: MutationProcedure<{
+        input: {
+          base64: string;
+          filename: string;
+          idempotencyKey: string;
+          mimeType?: string | undefined;
+        };
+        output:
+          | { state: "missing" | "pending" }
+          | {
+              state: "ready";
+              url: string;
+              avatarApplied: boolean;
+              isCurrent: boolean | null;
+            };
+        meta: unknown;
+      }>;
+      avatarUploadStatus: QueryProcedure<{
+        input: { idempotencyKey: string };
+        output:
+          | { state: "missing" | "pending" }
+          | {
+              state: "ready";
+              url: string;
+              avatarApplied: boolean;
+              isCurrent: boolean | null;
+            };
+        meta: unknown;
+      }>;
       update: MutationProcedure<{
         input: {
           name?: string | undefined;
@@ -283,6 +313,11 @@ export type AppRouter = BuiltRouter<
       userInteractions: QueryProcedure<{
         input: void;
         output: { likedIds: Array<number>; savedIds: Array<number> };
+        meta: unknown;
+      }>;
+      interactionsForPosts: QueryProcedure<{
+        input: { postIds: Array<number> };
+        output: { likedIds: number[]; savedIds: number[] };
         meta: unknown;
       }>;
       savedPosts: QueryProcedure<{
@@ -621,6 +656,36 @@ export type AppRouter = BuiltRouter<
         output: { url: string };
         meta: unknown;
       }>;
+      uploadPublicCover: MutationProcedure<{
+        input: {
+          base64: string;
+          filename: string;
+          idempotencyKey: string;
+          purpose: "publicCover";
+          mimeType?: string | undefined;
+        };
+        output:
+          | { state: "missing" | "pending" }
+          | {
+              state: "ready";
+              url: string;
+              avatarApplied: boolean;
+              isCurrent: boolean | null;
+            };
+        meta: unknown;
+      }>;
+      publicCoverUploadStatus: QueryProcedure<{
+        input: { idempotencyKey: string };
+        output:
+          | { state: "missing" | "pending" }
+          | {
+              state: "ready";
+              url: string;
+              avatarApplied: boolean;
+              isCurrent: boolean | null;
+            };
+        meta: unknown;
+      }>;
       uploadMedia: MutationProcedure<{
         input: {
           base64: string;
@@ -719,9 +784,9 @@ export type AppRouter = BuiltRouter<
           duration: number | null;
           id: number;
           createdAt: Date;
-          url: string;
           filename: string | null;
           mimeType: string | null;
+          url: string;
           postId: number;
           sortOrder: number;
           posterUrl: string | null;
@@ -816,6 +881,33 @@ export type AppRouter = BuiltRouter<
         }>;
         meta: unknown;
       }>;
+      paymentsPage: QueryProcedure<{
+        input:
+          | {
+              limit?: number | undefined;
+              cursor?: string | null | undefined;
+              direction?: "forward" | undefined;
+            }
+          | undefined;
+        output: {
+          items: Array<{
+            id: number;
+            userId: number;
+            orderId: string;
+            email: string | null;
+            sum: string | null;
+            status: "pending" | "paid" | "failed";
+            paidAt: Date | null;
+            expiresAt: Date | null;
+            cancelAtPeriodEnd: boolean;
+            cancelledAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
+          }>;
+          nextCursor: string | null;
+        };
+        meta: unknown;
+      }>;
       grantClub: MutationProcedure<{
         input: { userId: number };
         output: { ok: true; expiresAt: string };
@@ -834,6 +926,44 @@ export type AppRouter = BuiltRouter<
           coverUrl: string | null;
           sections: Array<ArticleBlock>;
         }>;
+        meta: unknown;
+      }>;
+      articlesPage: QueryProcedure<{
+        input:
+          | {
+              limit?: number | undefined;
+              cursor?: string | null | undefined;
+              direction?: "forward" | undefined;
+            }
+          | undefined;
+        output: {
+          items: Array<{
+            id: number;
+            title: string;
+            coverUrl: string | null;
+            access: "club" | "public";
+            published: boolean;
+            sortOrder: number;
+            createdAt: Date;
+            updatedAt: Date;
+          }>;
+          nextCursor: string | null;
+        };
+        meta: unknown;
+      }>;
+      articleDetail: QueryProcedure<{
+        input: { id: number };
+        output: {
+          id: number;
+          createdAt: Date;
+          updatedAt: Date;
+          title: string;
+          sortOrder: number;
+          published: boolean;
+          access: "club" | "public";
+          coverUrl: string | null;
+          sections: Array<ArticleBlock>;
+        } | null;
         meta: unknown;
       }>;
       createArticle: MutationProcedure<{
@@ -969,6 +1099,24 @@ export type AppRouter = BuiltRouter<
       }>;
     };
     club: {
+      listByCategory: QueryProcedure<{
+        input: {
+          category?:
+            | "podborki"
+            | "community"
+            | "exclusive"
+            | "life"
+            | undefined;
+          tag?: string | undefined;
+          limit?: number | undefined;
+          cursor?: number | null | undefined;
+        };
+        output: {
+          posts: (Post & { likeCount: number })[];
+          nextCursor: number | null;
+        };
+        meta: unknown;
+      }>;
       normalCheckoutStatus: QueryProcedure<{
         input: { idempotencyKey: string };
         output:
