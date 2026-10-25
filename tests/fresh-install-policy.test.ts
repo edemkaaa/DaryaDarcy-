@@ -23,24 +23,27 @@ describe("separate fresh-install migration manifest", () => {
   async function fresh(journal: unknown, files: Map<string, string>) {
     return policy.inspectFreshInstallManifest(journal, files);
   }
-  it("includes missing original consent/comment migrations without changing the legacy upgrade manifest", async () => {
+  it("keeps the canonical release/fresh identities and can still recognize the historical layout", async () => {
     const { journal, files } = await source();
     const before = JSON.stringify(journal);
     const result = await fresh(journal, files);
     expect(result.issues).toEqual([]);
-    expect(result.migrations).toHaveLength(42);
-    expect(result.migrations.at(-1)?.tag).toBe("0041_library_files");
+    expect(result.migrations).toHaveLength(44);
+    expect(result.migrations.at(-1)?.tag).toBe("0043_public_photo_uploads");
     expect(result.migrations.slice(17, 20).map((row) => row.tag)).toEqual([
       "0017_consent_text",
       "0018_push_consent_text",
       "0019_comment_likes",
     ]);
     expect(JSON.stringify(journal)).toBe(before);
-    expect(policy.inspectMigrationManifest(journal, files).issues).toEqual([
+    expect(policy.inspectMigrationManifest(journal, files).issues).toEqual([]);
+    const legacy = { ...journal, entries: journal.entries.filter((row: {tag:string}) => !/^001[789]_/.test(row.tag)).map((row: object, idx: number) => ({ ...row, idx })) };
+    expect(policy.inspectMigrationManifest(legacy, files).issues).toEqual([
       "untracked-file:0017_consent_text.sql",
       "untracked-file:0018_push_consent_text.sql",
       "untracked-file:0019_comment_likes.sql",
     ]);
+    expect(policy.inspectFreshInstallManifest(legacy, files).migrations).toEqual(result.migrations);
     const baseline = policy.inspectMigrationManifest(journal, files).migrations;
     for (const row of baseline)
       expect(result.migrations.find((f) => f.tag === row.tag)).toEqual(row);

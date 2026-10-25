@@ -119,7 +119,7 @@ describe("non-mutating migration preflight", () => {
       ]).issues,
     ).toContain("applied-history-gap:0000_first");
   });
-  it("recognizes the actual repository gap and hashes the same bytes as Drizzle", async () => {
+  it("accepts the reconciled repository and hashes the same bytes as Drizzle", async () => {
     const folder = new URL("../packages/database/drizzle/", import.meta.url);
     const actual = JSON.parse(
       await readFile(new URL("meta/_journal.json", folder), "utf8"),
@@ -135,11 +135,7 @@ describe("non-mutating migration preflight", () => {
       ),
     );
     const report = inspectMigrationManifest(actual, source);
-    expect(report.issues).toEqual([
-      "untracked-file:0017_consent_text.sql",
-      "untracked-file:0018_push_consent_text.sql",
-      "untracked-file:0019_comment_likes.sql",
-    ]);
+    expect(report.issues).toEqual([]);
     const reference = readMigrationFiles({
       migrationsFolder: fileURLToPath(folder),
     });

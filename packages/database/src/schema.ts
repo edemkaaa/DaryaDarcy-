@@ -134,7 +134,7 @@ export const postMedia = mysqlTable("post_media", {
   /** Display order within the post */
   sortOrder: int("sortOrder").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => [index("post_media_post_order").on(table.postId, table.sortOrder)]);
 
 export type PostMedia = typeof postMedia.$inferSelect;
 export type InsertPostMedia = typeof postMedia.$inferInsert;
@@ -245,6 +245,7 @@ export const likes = mysqlTable("likes", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [
   index("likes_post_lookup").on(table.postId),
+  index("likes_user_post_lookup").on(table.userId, table.postId),
 ]);
 
 export type Like = typeof likes.$inferSelect;
@@ -256,10 +257,30 @@ export const savedPosts = mysqlTable("saved_posts", {
   userId: int("userId").notNull(),
   postId: int("postId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => [
+  index("saved_posts_user_created").on(table.userId, table.createdAt, table.id),
+  index("saved_posts_user_post_created").on(table.userId, table.postId, table.createdAt, table.id),
+]);
 
 export type SavedPost = typeof savedPosts.$inferSelect;
 export type InsertSavedPost = typeof savedPosts.$inferInsert;
+
+// New public-purpose uploads only; receipt retention never authorizes object deletion.
+export const publicPhotoUploads = mysqlTable("public_photo_uploads", {
+  requestId: varchar("requestId", { length: 64 }).primaryKey(),
+  actorUserId: int("actorUserId"),
+  purpose: mysqlEnum("purpose", ["avatar", "publicCover"]).notNull(),
+  assetId: varchar("assetId", { length: 36 }).notNull(),
+  payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
+  outputHash: varchar("outputHash", { length: 64 }).notNull(),
+  namespaceHash: varchar("namespaceHash", { length: 64 }).notNull(),
+  fileSize: int("fileSize").notNull(),
+  expectedAvatarUrl: text("expectedAvatarUrl"),
+  state: mysqlEnum("state", ["pending", "ready"]).default("pending").notNull(),
+  url: text("url"),
+  avatarApplied: boolean("avatarApplied").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [uniqueIndex("public_photo_asset").on(table.assetId), index("public_photo_owner").on(table.actorUserId)]);
 
 // ── Push Notification Tokens ──
 export const pushTokens = mysqlTable("push_tokens", {

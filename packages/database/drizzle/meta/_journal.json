@@ -124,155 +124,190 @@
     {
       "idx": 17,
       "version": "5",
+      "when": 1787090001000,
+      "tag": "0017_consent_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1787090002000,
+      "tag": "0018_push_consent_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1787090003000,
+      "tag": "0019_comment_likes",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
       "when": 1790937000000,
       "tag": "0020_billing_identity",
       "breakpoints": true
     },
     {
-      "idx": 18,
+      "idx": 21,
       "version": "5",
       "when": 1790937100000,
       "tag": "0021_access_mail_status",
       "breakpoints": true
     },
     {
-      "idx": 19,
+      "idx": 22,
       "version": "5",
       "when": 1790937200000,
       "tag": "0022_password_token_recipient",
       "breakpoints": true
     },
     {
-      "idx": 20,
+      "idx": 23,
       "version": "5",
       "when": 1790937300000,
       "tag": "0023_launch_settings",
       "breakpoints": true
     },
     {
-      "idx": 21,
+      "idx": 24,
       "version": "5",
       "when": 1790937400000,
       "tag": "0024_identity_query_indexes",
       "breakpoints": true
     },
     {
-      "idx": 22,
+      "idx": 25,
       "version": "5",
       "when": 1791158400000,
       "tag": "0025_post_creation_requests",
       "breakpoints": true
     },
     {
-      "idx": 23,
+      "idx": 26,
       "version": "5",
       "when": 1791360000000,
       "tag": "0026_billing_checkout_intents",
       "breakpoints": true
     },
     {
-      "idx": 24,
+      "idx": 27,
       "version": "5",
       "when": 1791580800000,
       "tag": "0027_user_email_identity",
       "breakpoints": true
     },
     {
-      "idx": 25,
+      "idx": 28,
       "version": "5",
       "when": 1791580801000,
       "tag": "0028_member_email_bindings",
       "breakpoints": true
     },
     {
-      "idx": 26,
+      "idx": 29,
       "version": "5",
       "when": 1791849600000,
       "tag": "0029_article_creation_requests",
       "breakpoints": true
     },
     {
-      "idx": 27,
+      "idx": 30,
       "version": "5",
       "when": 1791936000000,
       "tag": "0030_normal_checkout_requests",
       "breakpoints": true
     },
     {
-      "idx": 28,
+      "idx": 31,
       "version": "5",
       "when": 1791936001000,
       "tag": "0031_vk_catalog_access",
       "breakpoints": true
     },
     {
-      "idx": 29,
+      "idx": 32,
       "version": "5",
       "when": 1791936002000,
       "tag": "0032_private_attachment_uploads",
       "breakpoints": true
     },
     {
-      "idx": 30,
+      "idx": 33,
       "version": "5",
       "when": 1791936003000,
       "tag": "0033_content_recovery_markers",
       "breakpoints": true
     },
     {
-      "idx": 31,
+      "idx": 34,
       "version": "5",
       "when": 1791936004000,
       "tag": "0034_private_recovery_lifecycle",
       "breakpoints": true
     },
     {
-      "idx": 32,
+      "idx": 35,
       "version": "5",
       "when": 1791936005000,
       "tag": "0035_recovery_retirement",
       "breakpoints": true
     },
     {
-      "idx": 33,
+      "idx": 36,
       "version": "5",
       "when": 1792022400000,
       "tag": "0036_private_content_files",
       "breakpoints": true
     },
     {
-      "idx": 34,
+      "idx": 37,
       "version": "5",
       "when": 1792022401000,
       "tag": "0037_comment_creation_requests",
       "breakpoints": true
     },
     {
-      "idx": 35,
+      "idx": 38,
       "version": "5",
       "when": 1792022402000,
       "tag": "0038_content_count_indexes",
       "breakpoints": true
     },
     {
-      "idx": 36,
+      "idx": 39,
       "version": "5",
       "when": 1792108800000,
       "tag": "0039_private_video_uploads",
       "breakpoints": true
     },
     {
-      "idx": 37,
+      "idx": 40,
       "version": "5",
       "when": 1792108801000,
       "tag": "0040_private_video_posters",
       "breakpoints": true
     },
     {
-      "idx": 38,
+      "idx": 41,
       "version": "5",
       "when": 1792195200000,
       "tag": "0041_library_files",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "5",
+      "when": 1792886400000,
+      "tag": "0042_read_lookup_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "5",
+      "when": 1792886401000,
+      "tag": "0043_public_photo_uploads",
       "breakpoints": true
     }
   ]

@@ -64,12 +64,15 @@ export function candidateTargetAllowed(
     return false;
   }
 }
-/** Separate NEW-database profile, never a reconciliation of an existing history. */
+/** Canonical manifest, or the explicitly recognized historical fresh-only layout. */
 export function inspectFreshInstallManifest(
   journal: unknown,
   files: ReadonlyMap<string, string>,
 ) {
   const original = inspectMigrationManifest(journal, files);
+  if (!original.issues.length) {
+    return { ...original, journal: journalSchema.parse(journal) };
+  }
   const additions = [
     "0017_consent_text",
     "0018_push_consent_text",
