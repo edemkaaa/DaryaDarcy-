@@ -2,6 +2,26 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Закрытые комментарии, фото и реальное сохранение аватара — 25 октября
+
+- [x] Fresh backup40tables/SHA/server+Mac;3fixture-users/закрытый community-пост,
+  только2synthetic access rows без платежей/писем/новых staff-прав.
+- [x] Member200/basic403/blocked stale-session401/guest401: оба comments APIs
+  и write; закрытый post body не раскрыт. После отзыва прежняя сессия403.
+- [x] Reply503+reload/replay и photo upload503→write503/reload/replay:
+  4writes/2keys/2IDs/0duplicates;1private file, фото открывается, EXIF/XMP удалены.
+- [x] Прямой photo API member200/остальным404/private-no-store, S3 anon403;
+  отзыв404, foreign receipt notRecorded; admin UI delete→фото URL404.
+- [x] Обычный fixture-user без подписки: crop→реальный avatar write200→SQL→
+  reload/image decode400×400; существующие аватары не менялись.
+- [x]32API assertions +141local tests GREEN;3users/1post/3comments/3journals/
+  1file receipt/2synthetic access rows/2новыхS3objects удалены;39tables exact,
+  7existing profiles/credentials/3admin fingerprints и30containers сохранены.
+  Только служебные login timestamps отличаются и не откатывались. Прокси/сессии
+  закрыты, temp secrets убраны. Нет production source/push/deploy. См. audit report.
+- [ ] Отдельная роль moderator, реальный iPhone/HEIC и точный4MiB acceptance
+  этим срезом не проверены; большие файлы/реальные платежи/SMTP/пилот прежние.
+
 ### Живые текстовые комментарии — 25 октября
 
 - [x] Отдельное разрешение на временные данные; backup40tables/SHA/server+Mac,

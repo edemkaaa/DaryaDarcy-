@@ -2,6 +2,18 @@
 
 ## Действующий план агента — 13 октября 2026
 
+25 октября, следующий согласованный живой срез: закрытые комментарии, replies,
+фото и реальное сохранение аватара на3временных обычных аккаунтах/посте945.
+32API assertions и141local tests GREEN: member/basic/blocked/guest и отзыв,
+reply/photo lost-ACK+reload/same-key replay без дублей, private photo API/S3
+denial/no-store/EXIF scrub/admin delete, avatar crop→write→SQL→reload/decode.
+Production source/фронт/дизайн/конфиги прежние; без push/deploy/payments/mail.
+Fresh backup40tables проверен server+Mac; fixture SQL и2новыхS3objects удалены,
+39tables exact,7existing profiles/credentials/3admin fingerprints и30containers
+сохранены. User login timestamps не откатывались; сессии/proxy/temp secrets убраны.
+Отдельная роль moderator/iPhone/HEIC/ровно4MiB не приняты этим прогоном.
+Подробности и границы — audits/staging-club-comments-avatar-2026-10-25.md.
+
 25 октября, после отдельного разрешения проверены живые текстовые комментарии
 на временном feed/community посте и двух обычных аккаунтах, без подписок/файлов/
 платежей/писем. Неизменённый deployed frontend → isolated loopback fault proxy →
