@@ -5,6 +5,7 @@ import mysql from "mysql2/promise";
 import { settleClubOrder } from "./billing/settlement";
 import { grantClubAccess } from "./billing/grants";
 import { membersPage, type membersPageInput } from "./admin/members-page";
+import { paymentsPage, type paymentsPageInput } from "./admin/payments-page";
 import type { ClubTabId } from "../../../packages/shared/src/club-tags";
 import {
   listAdminMembers as readAdminMembers,
@@ -372,6 +373,9 @@ export async function listAdminPayments(limit = 50) {
 
 export async function listAdminMembersPage(actorId: number, input: z.infer<typeof membersPageInput>) {
   return membersPage(await getDb(), actorId, input);
+}
+export async function listAdminPaymentsPage(actorId: number, input: z.infer<typeof paymentsPageInput>) {
+  return paymentsPage(await getDb(), actorId, input);
 }
 
 // ── Admin: Post CRUD ──

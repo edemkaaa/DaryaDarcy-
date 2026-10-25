@@ -209,6 +209,27 @@ describe("native admin content maintenance service boundary", () => {
       ok: true,
     });
   });
+  describe("bounded payment history", () => {
+    const page = (input: unknown = { limit: 20 }) => fetch(base + "/api/trpc/admin.paymentsPage?input=" + encodeURIComponent(JSON.stringify({ json: input })));
+    it.each(["guest", "user", "moderator", "blocked-admin"] as const)(
+      "refuses %s before accessing payment history", async (access) => {
+        actor = access === "guest" ? null : { ...administrator,
+          role: access === "blocked-admin" ? "admin" : access,
+          blockedAt: access === "blocked-admin" ? new Date() : null };
+        expect((await page()).status).toBe(access === "guest" ? 401 : 403);
+      },
+    );
+    it.each([{ limit: 0 }, { limit: 51 }, { limit: 1.5 }, { cursor: "" }, { direction: "backward" }])(
+      "rejects invalid pagination input %j", async (input) => {
+        expect((await page(input)).status).toBe(400);
+      },
+    );
+    it("returns service unavailability rather than a false empty page", async () => {
+      const response = await page();
+      expect(response.status).toBe(503);
+      expect(await response.json()).toMatchObject({ error: { json: { data: { code: "SERVICE_UNAVAILABLE" } } } });
+    });
+  });
   describe.each([
     { name: "members", read: db.listAdminMembers },
     { name: "payments", read: db.listAdminPayments },

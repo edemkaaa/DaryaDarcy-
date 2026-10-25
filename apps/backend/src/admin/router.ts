@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { membersPageInput } from "./members-page";
+import { paymentsPageInput } from "./payments-page";
+import { adminArticlesPageInput } from "../content/admin-article-page";
 import { router, adminProcedure } from "../_core/trpc";
 import * as db from "../db";
 import { publicCoverPhotoInput } from "../media/photos";
@@ -94,6 +96,8 @@ export const createAdminRouter = (
   payments: adminProcedure.query(() => {
     return db.listAdminPayments();
   }),
+  paymentsPage: adminProcedure.input(paymentsPageInput)
+    .query(({ ctx, input }) => db.listAdminPaymentsPage(ctx.user.id, input)),
   grantClub: adminProcedure
     .input(z.object({ userId: z.number() }))
     .mutation(async ({ input }) => {
@@ -101,6 +105,10 @@ export const createAdminRouter = (
       return { ok: true as const, expiresAt: expiresAt.toISOString() };
     }),
   articles: adminProcedure.query(() => content.listAllAdminArticles()),
+  articlesPage: adminProcedure.input(adminArticlesPageInput)
+    .query(({ ctx, input }) => content.listAdminArticleCards(ctx.user.id, input)),
+  articleDetail: adminProcedure.input(z.object({ id: z.number().int().positive().safe() }).strict())
+    .query(({ input }) => content.adminArticleDetail(input.id)),
   createArticle: adminProcedure
     .input(
       z.object({

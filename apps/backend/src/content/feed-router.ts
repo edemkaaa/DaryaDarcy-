@@ -3,6 +3,7 @@ import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import type { ContentReadService } from "./content-read.service";
 import type { ContentWriteService } from "./content-write.service";
 import { savedPostsPageInput } from "./saved-posts-page";
+import { postInteractionsInput } from "./post-interactions-batch";
 
 export const createFeedRouter = (
   content: ContentReadService,
@@ -52,6 +53,8 @@ export const createFeedRouter = (
     userInteractions: protectedProcedure.query(({ ctx }) =>
       content.userInteractions(ctx.user.id),
     ),
+    interactionsForPosts: protectedProcedure.input(postInteractionsInput)
+      .query(({ ctx, input }) => content.interactionsForPosts(ctx.user, input.postIds)),
     savedPosts: protectedProcedure.query(({ ctx }) =>
       content.savedPosts(ctx.user),
     ),

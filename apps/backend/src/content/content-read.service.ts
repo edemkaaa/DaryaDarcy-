@@ -5,6 +5,8 @@ import * as db from "../db";
 import type { z } from "zod";
 import type { adminPostsPageInput, adminPostCalendarInput } from "./admin-post-reads";
 import { savedPostsPage, type savedPostsPageInput } from "./saved-posts-page";
+import { postInteractionsForIds } from "./post-interactions-batch";
+import { adminArticlesPage, type adminArticlesPageInput } from "./admin-article-page";
 
 @Injectable()
 export class ContentReadService {
@@ -32,6 +34,12 @@ export class ContentReadService {
 
   listAllAdminArticles() {
     return db.listAllArticles();
+  }
+  async listAdminArticleCards(actorId: number, input: z.infer<typeof adminArticlesPageInput>) {
+    return adminArticlesPage(await db.getDb(), actorId, input);
+  }
+  async adminArticleDetail(id: number) {
+    return (await db.getArticleById(id)) ?? null;
   }
 
   listAdminPosts(input?: {
@@ -129,6 +137,9 @@ export class ContentReadService {
       db.getUserSavedPostIds(userId),
     ]);
     return { likedIds, savedIds };
+  }
+  async interactionsForPosts(user: User, postIds: number[]) {
+    return postInteractionsForIds(await db.getDb(), user, postIds);
   }
 
   async listArticles() {

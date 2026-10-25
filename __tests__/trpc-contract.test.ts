@@ -4,7 +4,9 @@ import { appRouter } from "../apps/backend/src/routers";
 const expectedProcedures = {
   admin: [
     "articleCreationStatus",
+    "articleDetail",
     "articles",
+    "articlesPage",
     "cleanupMediaNames",
     "confirmPost",
     "createArticle",
@@ -19,6 +21,7 @@ const expectedProcedures = {
     "members",
     "membersPage",
     "payments",
+    "paymentsPage",
     "postCalendar",
     "postCounts",
     "postDetail",
@@ -63,6 +66,7 @@ const expectedProcedures = {
   ],
   feed: [
     "getById",
+    "interactionsForPosts",
     "list",
     "listPaginated",
     "savedPosts",
