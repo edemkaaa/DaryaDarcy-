@@ -2,6 +2,17 @@
 
 ## Действующий план агента — 13 октября 2026
 
+25 октября, после отдельного разрешения проверены живые текстовые комментарии
+на временном feed/community посте и двух обычных аккаунтах, без подписок/файлов/
+платежей/писем. Неизменённый deployed frontend → isolated loopback fault proxy →
+реальный staging API/SQL: normal, dropped ACK,503+reload/manual replay, A→B→A
+с задержанным ответом GREEN;9writes/6unique IDs/0duplicates/0cross-account writes.
+Fixture удалён:2users/1post/6comments/6journals.39tables exact;7existing users
+profile/credentials/roles прежние, только id2 lastSignedIn/updatedAt изменились
+за время проверки и сохранены.3admin fingerprints/schema/history/content/
+containers/config прежние;86unit GREEN. Нет production source/push/deploy.
+Границы/backup/честная оговорка о timeout — audits/staging-comments-2026-10-25.md.
+
 25 октября, объединённый source014a780 уже в staging и на сервере: выпущен
 только web с сохранением5publicEnv и build-time VK thumbnails=true. Новый
 BUILD_ID xoiuyRUQ1qHuIKHPy7_v7; immutable image/rollback/backup40tables проверены.

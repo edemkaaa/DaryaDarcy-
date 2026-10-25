@@ -2,6 +2,22 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Живые текстовые комментарии — 25 октября
+
+- [x] Отдельное разрешение на временные данные; backup40tables/SHA/server+Mac,
+  baseline всех строк/конфигов/контейнеров, исходная админская сессия не тронута.
+- [x] Реальный frontend/API через test-only loopback proxy: обычная отправка,
+  drop после commit/browser replay;503 после commit/reload/manual same-key replay.
+- [x] Межвкладочная смена A→B→A: нет чужого draft/recovery, поздний ответ
+  отброшен; A восстановил свой ключ и прежний ID.9requests/6comments/0duplicates.
+- [x] SQL/trace сверены;2users/1post/6comments/6journals удалены точно по ID/owner;
+  39tables exact, существующие7profile/credentials/roles и3admin fingerprints
+  сохранены. Только id2 lastSignedIn/updatedAt обновились; не откатывались.
+- [x] Конфиги/образы/все контейнеры прежние; proxy/tabs закрыты, temporary
+  plaintext пароли убраны.86unit GREEN. Платежей/писем/S3 writes нет.
+  Scope: только root text, не фото/replies/подписной доступ/iPhone;
+  точное положение logout относительно timeout не измерялось. См. audit report.
+
 ### Объединённый frontend: staging и сервер — 25 октября
 
 - [x] Frontend775369f сохранён целиком; normal push014a780 подтверждён.
@@ -15,9 +31,10 @@
   новые admin payments/season hints, VK22/22img/0broken и возврат GREEN.
 - [x] После browser smoke DB/schema/history/content/counts/3admin credentials
   и29othercontainers прежние; web healthy/restarts0/OOMfalse, warn/error0.
-- [ ] Полные живые write/recovery/fault-injection сценарии комментариев и
-  смены аккаунта не повторялись; аватар не сохранялся. Платежи/письма/iPhone
-  не проверялись. Эти границы не закрывать на основании read-only smoke.
+- [x] Текстовые root write/recovery/fault-injection и смена аккаунта проверены
+  отдельным разрешённым живым срезом выше, не на существующих данных.
+  Аватар не сохранялся; фото/replies/подписной доступ/платежи/письма/iPhone
+  этим выпуском и узкой проверкой не подтверждаются.
 
 ### VK-обложки: восстановление build-time флага — 24 октября
 
