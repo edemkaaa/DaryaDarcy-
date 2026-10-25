@@ -2,12 +2,14 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import express from "express";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
+import { gzipSync } from "node:zlib";
 import { registerHttpSecurity } from "../apps/backend/src/_core/http-security";
 let server: Server;
 let base: string;
 beforeAll(async () => {
   vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
   const app = express(); registerHttpSecurity(app);
+  app.use(express.json({ limit: "16kb" }));
   app.post("/api/write", (_req, res) => res.json({ saved: true }));
   app.post("/api/prodamus/webhook", (_req, res) => res.json({ checkedByWebhook: true }));
   app.post("/api/prodamus/return", (_req, res) => res.redirect(303, "/club"));
@@ -17,6 +19,32 @@ beforeAll(async () => {
 });
 afterAll(async () => { await new Promise<void>(resolve => server.close(() => resolve())); vi.unstubAllEnvs(); });
 describe("HTTP policy preserves supported browser/native access", () => {
+  it.each(["/api/write", "/api/prodamus/webhook", "/api/prodamus/return", "/api/not-found"])("rejects compressed bodies before parsing or handling %s", async path => {
+    const response = await fetch(`${base}${path}`, {
+      method: "POST", redirect: "manual",
+      headers: { "Content-Type": "application/json", "Content-Encoding": "gzip" },
+      body: new Uint8Array(gzipSync('{"probe":true}')),
+    });
+    expect(response.status).toBe(415);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(await response.json()).toEqual({ error: "Сжатые запросы не поддерживаются" });
+    const healthy = await fetch(`${base}/api/write`, { method: "POST" });
+    expect(healthy.status).toBe(200);
+  });
+  it.each(["br", "deflate", "gzip, identity", "unknown"])("rejects unsupported Content-Encoding %s", async encoding => {
+    const response = await fetch(`${base}/api/write`, {
+      method: "POST", headers: { "Content-Encoding": encoding }, body: "probe",
+    });
+    expect(response.status).toBe(415);
+  });
+  it("keeps explicit identity encoding supported", async () => {
+    const response = await fetch(`${base}/api/write`, {
+      method: "POST", headers: { "Content-Type": "application/json", "Content-Encoding": "identity" }, body: "{}",
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ saved: true });
+  });
   it("allows credentialed preflight from the configured frontend", async () => {
     const response = await fetch(`${base}/api/write`, { method: "OPTIONS", headers: { Origin: "https://club.example.test", "Access-Control-Request-Method": "POST" } });
     expect(response.status).toBe(200);

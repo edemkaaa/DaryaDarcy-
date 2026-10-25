@@ -53,6 +53,12 @@ export function registerHttpSecurity(app: Express): void {
       res.header("Access-Control-Allow-Credentials", "true");
     }
     if (req.method === "OPTIONS") { res.sendStatus(200); return; }
+    // No client/provider contract requires compressed request bodies. Reject
+    // before every parser: GHSA-27r3-jxmh-p828 can crash an active decoder.
+    if ((req.headers["content-encoding"] ?? "identity").trim().toLowerCase() !== "identity") {
+      res.status(415).json({ error: "Сжатые запросы не поддерживаются" });
+      return;
+    }
     next();
   });
 }
