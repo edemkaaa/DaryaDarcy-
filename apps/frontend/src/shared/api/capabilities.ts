@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { LaunchCapabilities } from "@shared/capabilities";
 import { apiCall } from "./auth";
-import { ApiError } from "./errors";
+import { ApiError, invalidResponse } from "./errors";
 
 export const uploadUnavailableMessage =
   "Загрузка файлов сейчас недоступна. Попробуйте позже.";
@@ -24,20 +24,27 @@ const unavailable: LaunchCapabilities = {
 export async function getAppCapabilities(
   signal?: AbortSignal,
 ): Promise<LaunchCapabilities> {
-  const response = await apiCall<Partial<LaunchCapabilities> | null>(
-    "/api/capabilities",
-    { signal },
-  );
+  const response = await apiCall<unknown>("/api/capabilities", { signal });
   if (!response || typeof response !== "object" || Array.isArray(response))
-    return unavailable;
+    throw invalidResponse();
+  const capabilities = response as Record<string, unknown>;
+  // Only an explicit boolean can select the unkeyed text-comment contract.
+  // Omitted optional release switches stay disabled; malformed values are errors.
+  if (
+    typeof capabilities.privateContentUploads !== "boolean" ||
+    Object.keys(unavailable).some(
+      (key) => key in capabilities && typeof capabilities[key] !== "boolean",
+    )
+  )
+    throw invalidResponse();
   return {
-    smsLogin: response.smsLogin === true,
-    penPals: response.penPals === true,
-    shopOnlinePayment: response.shopOnlinePayment === true,
-    webPush: response.webPush === true,
-    privateContentUploads: response.privateContentUploads === true,
-    privatePostMediaUploads: response.privatePostMediaUploads === true,
-    privatePostVideoUploads: response.privatePostVideoUploads === true,
+    smsLogin: capabilities.smsLogin === true,
+    penPals: capabilities.penPals === true,
+    shopOnlinePayment: capabilities.shopOnlinePayment === true,
+    webPush: capabilities.webPush === true,
+    privateContentUploads: capabilities.privateContentUploads,
+    privatePostMediaUploads: capabilities.privatePostMediaUploads === true,
+    privatePostVideoUploads: capabilities.privatePostVideoUploads === true,
   };
 }
 

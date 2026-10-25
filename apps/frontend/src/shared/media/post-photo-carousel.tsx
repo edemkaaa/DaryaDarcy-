@@ -61,6 +61,7 @@ export function PostPhotoCarousel({
       {width > 0 ? (
         <ScrollArea
           {...mouseDrag}
+          mouseDrag={false}
           ref={scrollRef}
           horizontal
           paging

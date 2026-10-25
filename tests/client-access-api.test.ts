@@ -91,20 +91,26 @@ it("reads capabilities from the server and does not accept a string as permissio
         penPals: false,
         shopOnlinePayment: false,
         webPush: false,
+        privateContentUploads: false,
       }),
       { headers: { "Content-Type": "application/json" } },
     ),
   );
   expect((await getAppCapabilities()).smsLogin).toBe(true);
   fetcher.mockResolvedValueOnce(
-    new Response(JSON.stringify({ smsLogin: "true" }), {
-      headers: { "Content-Type": "application/json" },
-    }),
+    new Response(
+      JSON.stringify({ smsLogin: "true", privateContentUploads: false }),
+      {
+        headers: { "Content-Type": "application/json" },
+      },
+    ),
   );
-  expect((await getAppCapabilities()).smsLogin).toBe(false);
+  await expect(getAppCapabilities()).rejects.toMatchObject({
+    kind: "invalid-response",
+  });
 });
 it.each([
-  [{}, false],
+  [{ privateContentUploads: false }, false],
   [
     {
       privateContentUploads: true,
@@ -113,23 +119,34 @@ it.each([
     },
     true,
   ],
-  [
-    {
-      privateContentUploads: "true",
-      privatePostMediaUploads: 1,
-      privatePostVideoUploads: {},
-    },
-    false,
-  ],
-  [null, false],
 ])(
-  "normalizes private upload availability conservatively: %j",
+  "reads explicitly advertised private upload availability: %j",
   async (payload, allowed) => {
     fetcher.mockResolvedValueOnce(new Response(JSON.stringify(payload)));
     expect(await getAppCapabilities()).toMatchObject({
       privateContentUploads: allowed,
       privatePostMediaUploads: allowed,
       privatePostVideoUploads: allowed,
+    });
+  },
+);
+it.each([
+  { payload: {} },
+  { payload: null },
+  { payload: [] },
+  {
+    payload: {
+      privateContentUploads: "true",
+      privatePostMediaUploads: 1,
+      privatePostVideoUploads: {},
+    },
+  },
+])(
+  "rejects unknown or malformed availability instead of choosing the legacy contract: $payload",
+  async ({ payload }) => {
+    fetcher.mockResolvedValueOnce(Response.json(payload));
+    await expect(getAppCapabilities()).rejects.toMatchObject({
+      kind: "invalid-response",
     });
   },
 );
@@ -148,7 +165,9 @@ it.each([
       }),
     );
     await expect(requirePrivateUpload(name)).resolves.toBeUndefined();
-    fetcher.mockResolvedValueOnce(Response.json({}));
+    fetcher.mockResolvedValueOnce(
+      Response.json({ privateContentUploads: false }),
+    );
     await expect(requirePrivateUpload(name)).rejects.toMatchObject({
       status: 503,
     });

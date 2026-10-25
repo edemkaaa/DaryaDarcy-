@@ -172,6 +172,7 @@ function PhotoViewerInner({
 
           <ScrollArea
             {...mouseDrag}
+            mouseDrag={false}
             ref={scrollRef}
             horizontal
             paging

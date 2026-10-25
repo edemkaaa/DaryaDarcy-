@@ -6,6 +6,7 @@ import { Action } from "@/shared/ui/elements";
 import { PhotoViewer } from "@/shared/media/photo-viewer";
 import type { ClubTestimonial } from "./club-testimonials.content";
 import classes from "./club-testimonials.module.scss";
+import { useMouseDragScroll } from "@/shared/browser/use-mouse-drag-scroll";
 
 export function ClubTestimonials({
   items,
@@ -17,6 +18,7 @@ export function ClubTestimonials({
   title?: string;
 }) {
   const track = useRef<HTMLDivElement>(null);
+  const drag = useMouseDragScroll();
   const [current, setCurrent] = useState(0);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   if (!items.length) return null;
@@ -38,7 +40,9 @@ export function ClubTestimonials({
     <section className={classes.section} aria-label={label}>
       {title ? <h2 className={classes.title}>{title}</h2> : null}
       <div
+        {...drag}
         ref={track}
+        data-horizontal-scroll
         className={classes.track}
         tabIndex={0}
         aria-label="Письма участниц — листайте в стороны"

@@ -99,9 +99,14 @@ for (const lostEdit of [false, true]) {
       ).toBeEnabled();
       await page.getByRole("button", { name: "Отмена", exact: true }).click();
     }
-    expect(editWrites).toBe(1);
+    // The textarea already contains the edited text while the request is pending.
+    // Wait for editing to finish before inspecting the committed row and write count.
+    await expect(
+      page.getByRole("button", { name: "Сохранить", exact: true }),
+    ).toHaveCount(0);
     const updated = page.getByText("UPDATED_TAIL_COMMENT", { exact: true });
     await expect(updated).toBeVisible();
+    expect(editWrites).toBe(1);
     await updated
       .locator(
         "xpath=ancestor::div[.//button[@aria-label='Действия с комментарием']][1]",

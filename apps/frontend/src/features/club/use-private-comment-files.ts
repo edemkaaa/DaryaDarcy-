@@ -88,7 +88,9 @@ export function usePrivateCommentFiles(
     current: PrivateCommentRecord,
     task: ScopedOperation,
   ) => {
-    await read(task, current.parentId);
+    // Explicit discard is local: a missing parent or failed read cannot block it.
+    // The journal still checks the owner, original intent and stored revision.
+    task.assertCurrent();
     await journal.clear(current);
     task.assertCurrent();
     setRecord(null);
@@ -197,6 +199,7 @@ export function usePrivateCommentFiles(
           setRecord({ ...value });
         },
       );
+      await read(task, current.parentId);
       await clear(current, task);
       return id;
     },

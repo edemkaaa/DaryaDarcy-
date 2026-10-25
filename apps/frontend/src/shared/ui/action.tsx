@@ -29,6 +29,7 @@ type ActionProps = Omit<
   onHold?: () => void;
   holdDelay?: number;
   activeOpacity?: number;
+  pressFeedback?: boolean;
   hitArea?: number;
 };
 export const Action = forwardRef<HTMLButtonElement, ActionProps>(
@@ -39,6 +40,7 @@ export const Action = forwardRef<HTMLButtonElement, ActionProps>(
       onHold,
       holdDelay = 500,
       activeOpacity = 0.8,
+      pressFeedback = true,
       hitArea,
       children,
       onClick,
@@ -108,7 +110,11 @@ export const Action = forwardRef<HTMLButtonElement, ActionProps>(
           );
           // Touch taps retain the action, but never dim/scale a card while the
           // browser is still deciding whether this is a scrolling gesture.
-          setPressed(e.pointerType !== "touch");
+          setPressed(
+            pressFeedback &&
+              e.pointerType !== "touch" &&
+              !e.currentTarget.closest("[data-horizontal-scroll]"),
+          );
           touchStart.current =
             e.pointerType === "touch" ? { x: e.clientX, y: e.clientY } : null;
           held.current = false;
