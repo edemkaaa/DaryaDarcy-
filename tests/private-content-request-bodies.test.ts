@@ -135,14 +135,15 @@ it("retains the existing UTF-16 JSON fallback for authenticated media", async ()
   expect(response.status).toBe(400);
   expect((await response.json()).error.json.data.code).toBe("BAD_REQUEST");
 });
-it("retains the compressed JSON fallback without changing schema validation", async () => {
+it("rejects compressed media before authentication, parsing, SQL or S3", async () => {
   const encoded = superjson.stringify(input("articleDocument", 8));
   const response = await fetch(`${base}/api/trpc/${admin}`, {
     method: "POST", headers: { "Content-Type": "application/json", "Content-Encoding": "gzip", Authorization: `Bearer ${tokens.admin}` },
     body: new Uint8Array(gzipSync(encoded)),
   });
-  expect(response.status).toBe(400);
-  expect((await response.json()).error.json.data.code).toBe("BAD_REQUEST");
+  expect(response.status).toBe(415);
+  expect(await response.json()).toEqual({ error: "Сжатые запросы не поддерживаются" });
+  expect(admissionBodies).toEqual([]);
 });
 it("bounds a chunked media envelope even without Content-Length", async () => {
   const chunk = Buffer.alloc(64 * 1024, 0x61);

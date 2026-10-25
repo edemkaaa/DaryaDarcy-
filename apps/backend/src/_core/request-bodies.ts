@@ -73,7 +73,8 @@ export function registerRequestBodies(app: Express) {
     if ((media || photo) && !(await requireUploadIdentity(req, res, media || names.includes("admin.uploadPhoto") || names.includes("admin.uploadPublicCover")))) return;
     // tRPC 11 stringifies an Express-parsed object and parses it again. Let its
     // bounded stream reader handle standard UTF-8 JSON once, after admission.
-    // Other charsets/compressed bodies retain the existing Express JSON path.
+    // Other charsets retain the existing Express JSON path. Encoded bodies
+    // have already been rejected by the HTTP security boundary.
     if (media && req.method === "POST" &&
         /^application\/json(?:\s*;\s*charset\s*=\s*(?:utf-8|"utf-8"))?\s*$/i.test(req.headers["content-type"] ?? "") &&
         (!req.headers["content-encoding"] || req.headers["content-encoding"] === "identity")) {
