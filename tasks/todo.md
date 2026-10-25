@@ -2,6 +2,26 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Посты и статьи в админке — 25 октября
+
+- [x] Fresh backup40tables/487641bytes/SHA/gzip server+Mac; existing admin session,
+  только fixture-post950/article7/auto-teaser951, без новых прав/файлов/писем/оплат.
+  Enabled push tokens0/consents0 во всех контрольных точках; рассылки нет.
+- [x] Через UI8сохранений: create draft → publish → edit → draft для обоих;
+  SQL/23read-only API assertions и реальные страницы чтения подтверждены.
+  Черновики скрыты; анонс статьи синхронизирован и удалён при unpublish.
+- [x]64local tests/5files GREEN. Найден frontend stale counts после article writes:
+  actual933/929 против UI934/930, reload исправляет. Код не менялся;
+  handoff frontend-admin-article-invalidation-2026-10-25.md подготовлен.
+- [ ] Живое удаление обоими кнопками повторить: native confirm блокирует
+  проверочный браузер, post delete POST не подтверждён, article delete не начат.
+  Не считать SQL-cleanup успешным UI/API deletion test.
+- [x] Только fixture950/7 и2точных журнала адресно очищены SQL; teaser951 уже
+  удалён штатным unpublish.39tables exact,7profiles/credentials/3admins,
+  schema/history/content/config/30containers прежние; user login dates не
+  откатывались. Reader tab закрыт, исходная admin session сохранена.
+  Нет production source/push/deploy/S3. См. staging-admin-lifecycle audit.
+
 ### Сохранённое и лайки на стенде — 25 октября
 
 - [x] Fresh backup40tables/server+Mac/SHA;2ordinary users/4synthetic posts,

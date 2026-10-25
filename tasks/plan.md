@@ -2,6 +2,20 @@
 
 ## Действующий план агента — 13 октября 2026
 
+25 октября, живой admin lifecycle на fixture-post950/article7/auto-teaser951:
+create draft → publish → edit → draft через8UI saves подтверждены SQL,
+23read-only API assertions и страницами читателя;64local tests GREEN.
+Черновики скрыты, анонс статьи синхронизирован/удалён при unpublish.
+Найдена frontend invalidation gap: postCounts после article writes устаревает
+до reload; отдельный handoff подготовлен, production code не менялся.
+Кнопки удаления НЕ приняты: native confirm заблокировал browser tool,
+delete POST не подтверждён. Следующий узкий шаг — повтор удаления поста/статьи.
+Чтобы не оставлять мусор,950/7/2own journals адресно очищены SQL; это не UI test.
+Fresh backup40tables/SHA/server+Mac;39tables exact,7profiles/credentials/3admins,
+schema/history/content/config/30containers сохранены; login metadata не откатывалась.
+Нет файлов/S3/mail/payments/notifications/source/push/deploy. Детали и границы —
+audits/staging-admin-lifecycle-2026-10-25.md.
+
 25 октября, продолжение живой приёмки: saved/likes на2temporary users/4posts.
 48API assertions/64local tests GREEN: feed/club limit1 keyset/cursor isolation,
 guest/basic/blocked guards, отзыв доступа по прежней сессии/курсору, draft denial;
