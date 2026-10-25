@@ -4,8 +4,8 @@ import type { ModerationService } from "./moderation.service";
 
 export const createModerationRouter = (moderation: ModerationService) =>
   router({
-    listCommentReports: moderatorProcedure.query(async () => {
-      return moderation.listCommentReports();
+    listCommentReports: moderatorProcedure.query(async ({ ctx }) => {
+      return moderation.listCommentReports(ctx.user);
     }),
     dismissCommentReport: moderatorProcedure
       .input(z.object({ reportId: z.number().int().positive() }))

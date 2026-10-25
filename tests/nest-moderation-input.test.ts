@@ -144,7 +144,7 @@ describe("moderation ID inputs over native HTTP", () => {
   });
 
   it.each([
-    { method: "listCommentReports", want: [] },
+    { method: "listCommentReports", want: [moderator] },
     { method: "dismissCommentReport", want: [9810, 9811] },
     { method: "deleteReportedComment", want: [9810, 9811] },
     { method: "blockUser", want: [9810, 9811, "synthetic reason"] },
@@ -277,6 +277,7 @@ describe("moderation ID inputs over native HTTP", () => {
           authorName: null,
           reporterUserId: 9815,
           reporterName: null,
+          canBlockAuthor: true,
         },
       ];
       vi.spyOn(comments, "listCommentReports").mockImplementation(
@@ -288,7 +289,7 @@ describe("moderation ID inputs over native HTTP", () => {
       expect(await client().moderation.listCommentReports.query()).toEqual(
         rows,
       );
-      expect(received).toEqual([100]);
+      expect(received).toEqual([100, actor]);
     },
   );
 

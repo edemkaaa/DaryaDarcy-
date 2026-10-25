@@ -150,5 +150,25 @@ describe.skipIf(!testDatabaseUrl)(
         ],
       });
     });
+    it("recomputes author actions and still rejects a stale hint after a role change", async () => {
+      const actor = { id: 8410, role: "moderator" as const, blockedAt: null, accountDeletionRequestedAt: null };
+      expect((await moderation.listCommentReports(actor)).find(row => row.id === 8413)?.canBlockAuthor).toBe(true);
+      // The write must not trust the earlier allowed hint.
+      await conn.query("UPDATE users SET role='admin' WHERE id=8411");
+      expect((await moderation.listCommentReports(actor)).find(row => row.id === 8413)?.canBlockAuthor).toBe(false);
+      await expect(moderation.blockUser(8410, 8411, "synthetic stale hint")).rejects.toMatchObject({ code: "FORBIDDEN" });
+      const [rows] = await conn.query<RowDataPacket[]>("SELECT blockedAt FROM users WHERE id=8411");
+      expect(rows[0].blockedAt).toBe(null);
+    });
+    it("does not offer self, absent or already blocked report authors", async () => {
+      const actor = { id: 8410, role: "admin" as const, blockedAt: null, accountDeletionRequestedAt: null };
+      await conn.query("UPDATE post_comments SET userId=8410 WHERE id=8412");
+      expect((await moderation.listCommentReports(actor))[0].canBlockAuthor).toBe(false);
+      await conn.query("UPDATE post_comments SET userId=8411 WHERE id=8412");
+      await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=8411");
+      expect((await moderation.listCommentReports(actor))[0].canBlockAuthor).toBe(false);
+      await conn.query("DELETE FROM users WHERE id=8411");
+      expect((await moderation.listCommentReports(actor))[0].canBlockAuthor).toBe(false);
+    });
   },
 );

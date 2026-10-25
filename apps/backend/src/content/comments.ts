@@ -17,6 +17,10 @@ import { requirePrivateContentEnabled } from "./private-content-uploads";
 import { claimCommentFileCreation } from "./comment-file-creation";
 import type { ContentWriteActor } from "./content-write-actor";
 import { requireContentDatabase } from "./read-database";
+import {
+  canModerateUserTarget,
+  type ModerationActor,
+} from "../moderation/user-target";
 
 export type PostCommentRow = PostComment & {
   authorName: string | null;
@@ -307,10 +311,12 @@ export type CommentReportInboxRow = {
   authorName: string | null;
   reporterUserId: number;
   reporterName: string | null;
+  canBlockAuthor: boolean;
 };
 
 export async function listCommentReports(
   limit = 100,
+  actor?: ModerationActor,
 ): Promise<CommentReportInboxRow[]> {
   const db = await getDb();
   requireContentDatabase(db);
@@ -327,6 +333,8 @@ export async function listCommentReports(
       postId: postComments.postId,
       authorUserId: postComments.userId,
       authorName: author.name,
+      authorRole: author.role,
+      authorBlockedAt: author.blockedAt,
       reporterUserId: commentReports.reporterUserId,
       reporterName: reporter.name,
     })
@@ -336,7 +344,15 @@ export async function listCommentReports(
     .leftJoin(reporter, eq(reporter.id, commentReports.reporterUserId))
     .orderBy(desc(commentReports.createdAt))
     .limit(limit);
-  return rows;
+  return rows.map(({ authorRole, authorBlockedAt, ...report }) => ({
+    ...report,
+    canBlockAuthor:
+      !authorBlockedAt &&
+      canModerateUserTarget(
+        actor,
+        authorRole ? { id: report.authorUserId, role: authorRole } : undefined,
+      ),
+  }));
 }
 
 export async function dismissCommentReport(reportId: number): Promise<void> {
