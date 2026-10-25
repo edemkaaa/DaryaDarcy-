@@ -50,6 +50,7 @@ const expectedProcedures = {
     "createNormalCheckout",
     "deleteComment",
     "list",
+    "listByCategory",
     "normalCheckoutStatus",
     "privateCommentPhotoStatus",
     "reconcileCheckout",

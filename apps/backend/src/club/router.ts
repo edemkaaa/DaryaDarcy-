@@ -9,6 +9,7 @@ import * as db from "../db";
 import type { ContentCommentService } from "../content/content-comment.service";
 import { addCommentInput } from "../content/comment-input";
 import { commentsPageInput } from "../content/comments-page";
+import { clubCategoryInput } from "../content/club-category-filter";
 import { photoInput, uploadPhoto } from "../media/photos";
 import { privateCommentPhotoInput, privateContentStatusInput, uploadPrivateContentFile, privateContentFileStatus } from "../content/private-content-uploads";
 import type { ClubBillingServices } from "../billing/billing.module";
@@ -27,6 +28,11 @@ export const createClubRouter = (
   billing: ClubBillingServices,
 ) =>
   router({
+    listByCategory: clubMemberProcedure.input(clubCategoryInput)
+      .query(({ input }) => db.getPostsForTarget("club", {
+        category: input.category, clubTag: input.tag, limit: input.limit,
+        cursor: input.cursor ?? undefined,
+      })),
     normalCheckoutStatus: protectedProcedure
       .input(z.object({ idempotencyKey: normalCheckoutKey }).strict())
       .output(normalCheckoutStatusResult)

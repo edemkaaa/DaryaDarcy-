@@ -10,6 +10,8 @@ import {
 } from "../../../../packages/database/src/schema";
 import { attachPostMedia } from "./post-media-repository";
 import { postListOrder } from "./post-order";
+import { clubCategoryCondition, clubBoardTagCondition } from "./club-category-filter";
+import type { ClubTabId } from "../../../../packages/shared/src/club-tags";
 
 // db.ts owns the connection; services and adapters retain access decisions.
 type Database = MySql2Database | null;
@@ -187,6 +189,8 @@ export async function getPostsForTarget(
     search?: string;
     limit?: number;
     cursor?: number;
+    category?: ClubTabId;
+    clubTag?: string;
   },
 ): Promise<{
   posts: (Post & { likeCount: number })[];
@@ -201,6 +205,8 @@ export async function getPostsForTarget(
     eq(posts.status, "published"),
     or(eq(posts.target, target), eq(posts.target, "both")),
   ];
+  if (options?.category) conditions.push(clubCategoryCondition(options.category));
+  if (options?.clubTag) conditions.push(clubBoardTagCondition(options.clubTag));
   if (options?.tagFilter && options.tagFilter !== "all") {
     conditions.push(
       sql`JSON_CONTAINS(${posts.tags}, JSON_QUOTE(${options.tagFilter}))`,

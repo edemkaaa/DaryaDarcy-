@@ -14,7 +14,7 @@ export const CLUB_TAB_TAGS: Record<ClubTabId, string[]> = {
   life: [...CLUB_SECTION_TAGS.life, "личное", "personal", "backstage", "закулисье"],
 };
 
-const SECTION_ORDER: ClubTabId[] = ["podborki", "community", "exclusive", "life"];
+export const SECTION_ORDER = ["podborki", "community", "exclusive", "life"] as const;
 
 export function primaryClubTab(tags: string[] | null | undefined): ClubTabId | null {
   const set = new Set((tags || []).map(normalizeClubTag));

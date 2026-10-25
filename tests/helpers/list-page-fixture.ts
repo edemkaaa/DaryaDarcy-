@@ -39,6 +39,7 @@ export async function openListPageFixture(name: string, base: number) {
     await conn.query("DELETE FROM users WHERE id IN (?)", [ids]);
   }
   return {
+    app,
     conn,
     ids,
     reset: async () => {

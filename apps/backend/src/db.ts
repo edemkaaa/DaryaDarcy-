@@ -5,6 +5,7 @@ import mysql from "mysql2/promise";
 import { settleClubOrder } from "./billing/settlement";
 import { grantClubAccess } from "./billing/grants";
 import { membersPage, type membersPageInput } from "./admin/members-page";
+import type { ClubTabId } from "../../../packages/shared/src/club-tags";
 import {
   listAdminMembers as readAdminMembers,
   listAdminPayments as readAdminPayments,
@@ -737,6 +738,8 @@ export async function getPostsForTarget(target: "feed" | "club", options?: {
   search?: string;
   limit?: number;
   cursor?: number;
+  category?: ClubTabId;
+  clubTag?: string;
 }): Promise<{ posts: (Post & { likeCount: number })[]; nextCursor: number | null }> {
   return readTargetPosts(await getDb(), target, options);
 }
