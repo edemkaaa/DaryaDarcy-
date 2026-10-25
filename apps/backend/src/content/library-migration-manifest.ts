@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import sharp from "sharp";
 import { digest } from "../media/private-upload-object";
 import { privateUploadKey } from "./private-upload-key";
+import { libraryMaterialKeys } from "./library-material-keys";
 import {
   normalizeMediaContentType,
   resolveMediaContentType,
@@ -25,7 +26,7 @@ const entry = z
   .strict();
 const manifest = z
   .object({
-    materialKey: z.enum(["recipes", "peterburg", "patterns"]),
+    materialKey: z.enum(libraryMaterialKeys),
     idempotencyKey: privateUploadKey,
     files: z.array(entry).min(1).max(100),
   })

@@ -4,13 +4,14 @@ import {
   privateContentFiles,
 } from "../../../../packages/database/src/schema";
 import { getDb } from "../db";
+import { libraryMaterialKeys } from "./library-material-keys";
 import {
   privateStorageNamespace,
   privateAttachmentObjectKey,
 } from "../media/private-upload-object";
 
 export const libraryMaterialKey = (key: string) =>
-  ["recipes", "peterburg", "patterns"].includes(key);
+  (libraryMaterialKeys as readonly string[]).includes(key);
 export const libraryFileKey = (key: string) =>
   /^[a-z][a-z0-9-]{0,63}$/.test(key);
 export const libraryFilesEnabled = () =>

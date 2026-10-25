@@ -105,6 +105,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query(
         "UPDATE users SET blockedAt=NULL,sessionVersion=0,accountDeletionRequestedAt=NULL,role='admin' WHERE id IN (98701,98702)",
       );
+      await conn.query("UPDATE users SET blockedAt=NULL,sessionVersion=0,accountDeletionRequestedAt=NULL,role='moderator' WHERE id=98703");
       vi.stubEnv("PRIVATE_LIBRARY_FILES_ENABLED", "true");
     });
     afterAll(async () => {
@@ -359,6 +360,37 @@ describe.skipIf(!testDatabaseUrl)(
         wire.effects.some((effect) => effect.includes("public-control")),
       ).toBe(false);
     }, 40000);
+    it("serves seven synthetic aesthetic photos only to admin/current members and revokes prior URLs", async () => {
+      const bytes=await sharp({create:{width:4,height:4,channels:3,background:"blue"}}).webp({lossless:true}).toBuffer();
+      const photo={...document("moodboards-moodboard1"),filename:"synthetic.webp",mimeType:"image/webp",bytes,sha256:hash(bytes)};
+      const adminToken=await sdk.createSessionToken("library-rehearsal-other",{sessionVersion:0});
+      await conn.query("UPDATE users SET role='user' WHERE id=98703");
+      const requests=[];
+      for(const key of ["castlecore","cottagecore","darkacademia","fairycore","goblincore","lightacademia","witchcore"]){
+        const request=input([photo],`aesthetic-${key}`);
+        await applyLibraryMigration(actor,request);requests.push(request);
+      }
+      await conn.query("INSERT INTO club_payments(userId,orderId,status,expiresAt) VALUES(98703,'library-rehearsal-paid','paid','2030-01-01')");
+      for(const request of requests){
+        const listing=`/api/library/materials/${request.materialKey}/files`;
+        const file=`/api/media/library-files/${request.materialKey}/${photo.fileKey}`;
+        for(const path of [listing,file]){
+          expect((await fetch(base+path)).status).toBe(404);
+          expect((await fetch(base+path,{headers:{authorization:`Bearer ${adminToken}`}})).status).toBe(200);
+          const response=await read(path);expect(response.status).toBe(200);
+          expect(response.headers.get("cache-control")).toContain("no-store");
+          if(path===file)expect(hash(Buffer.from(await response.arrayBuffer()))).toBe(photo.sha256);
+        }
+      }
+      const puts=wire.effects.filter(effect=>effect.startsWith("PUT ")).length;
+      for(const request of requests)await applyLibraryMigration(actor,request);
+      expect(wire.effects.filter(effect=>effect.startsWith("PUT "))).toHaveLength(puts);
+      await conn.query("UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='library-rehearsal-paid'");
+      for(const request of requests){
+        expect((await read(`/api/library/materials/${request.materialKey}/files`)).status).toBe(404);
+        expect((await read(`/api/media/library-files/${request.materialKey}/${photo.fileKey}`)).status).toBe(404);
+      }
+    });
     it("serializes simultaneous retries into one committed operation and one asset per slot", async () => {
       const request = input([document("first"), document("second")]);
       const attempts = await Promise.allSettled(

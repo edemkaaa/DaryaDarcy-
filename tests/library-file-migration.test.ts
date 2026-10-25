@@ -1,6 +1,8 @@
 import { expect, expectTypeOf, it } from "vitest";
 import sharp from "sharp";
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { libraryFileKey, libraryMaterialKey } from "../apps/backend/src/content/library-files";
 import { inspectLibraryMigration } from "../apps/backend/src/content/library-migration-manifest";
 import { uploadPrivateContentFile } from "../apps/backend/src/content/private-content-uploads";
 
@@ -24,6 +26,29 @@ const document = () => {
     expectedRevision: 0,
   };
 };
+it("accepts the seven club aesthetic namespaces without broadening free/public namespaces", async () => {
+  for(const key of ["castlecore","cottagecore","darkacademia","fairycore","goblincore","lightacademia","witchcore"]){
+    const materialKey=`aesthetic-${key}`;
+    expect(libraryMaterialKey(materialKey)).toBe(true);
+    await expect(inspectLibraryMigration({materialKey,idempotencyKey:"aesthetic-rehearsal-0001",files:[document()]})).resolves.toMatchObject({materialKey,files:1});
+  }
+  for(const key of ["houses","horse","loshadka","aesthetic-unknown","aesthetic-castlecore/../houses"])
+    expect(libraryMaterialKey(key)).toBe(false);
+});
+it("maps exactly the audited 220 visual slots without key collisions or a hidden second page",async()=>{
+  const registry=JSON.parse(await readFile(new URL("../docs/audits/library-source-map-2026-10-20.json",import.meta.url),"utf8"));
+  const slots=new Set<string>(),counts=new Map<string,number>();
+  for(const file of registry.visuals.files){
+    const match=/^\/assets\/results\/([a-z]+)\/(interiors|moodboards|outfits)\/([a-z0-9-]+)(\.lossless)?\.webp$/.exec(file.uri);
+    expect(match).not.toBe(null);
+    const material=`aesthetic-${match![1]}`,key=`${match![2]}-${match![3]}`;
+    expect(libraryMaterialKey(material)).toBe(true);expect(libraryFileKey(key)).toBe(true);
+    expect(slots.has(`${material}/${key}`)).toBe(false);slots.add(`${material}/${key}`);
+    counts.set(material,(counts.get(material)??0)+1);
+  }
+  expect(slots.size).toBe(220);expect(counts.size).toBe(7);
+  expect([...counts.values()].every(count=>count<=50)).toBe(true);
+});
 it("dry-runs a verified manifest without database/storage configuration or exposing bytes and names", async () => {
   const report = await inspectLibraryMigration({
     materialKey: "recipes",
