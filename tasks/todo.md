@@ -8,6 +8,8 @@
 сохранены побайтно. FE01/FE02 пришли от фронтендера; повторно не переписывать.
 По отдельному разрешению обновлён только generated API contract; компоненты,
 дизайн и настройки не менялись. Сам push не применяет SQL/флаги и не выкладывает сервер.
+Повторный default Vitest после merge:3207pass/1718skip,244suites pass;
+первый ENOSPC отдельно отмечен в audit. Пропуски не считать внешней приёмкой.
 
 - [x] B07 локально: additive canBlockAuthor для жалоб; actor/self/role/deleted/blocked
   матрица, актуальный transactional write guard прежний; types/handoff.

@@ -17,6 +17,9 @@ ca8a032 (generated wire types). Общий прогон после merge сна�
 71tests pass; проверки типов backend/frontend, backend build и check:api прошли.
 Серверная БД при этих командах не используется. SQL-репетиции ниже относятся
 к предшествующей проверке тех же backend-байтов на disposable MySQL.
+Повторный полный последовательный прогон после исправления условий запуска:
+244suites pass/119skip,3207tests pass/1718skip. Это GREEN локального default
+Vitest; opt-in SQL/S3/browser/device skips по-прежнему не сквозная приёмка.
 
 ## Что реализовано
 
