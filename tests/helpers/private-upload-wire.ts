@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import type { AddressInfo } from "node:net";
 
 /** Owned SDK wire fixture, not Timeweb ACL acceptance. Stores actual request bytes. */
-export async function openPrivateUploadWire(options: { content?: boolean } = {}) {
+export async function openPrivateUploadWire(options: { content?: boolean; publicPhotos?: boolean } = {}) {
   const objects = new Map<
     string,
     {
@@ -15,6 +15,7 @@ export async function openPrivateUploadWire(options: { content?: boolean } = {})
   >();
   const effects: string[] = [];
   let deleteGate: { entered: () => void; wait: Promise<void> } | undefined;
+  let putGate: { entered: () => void; wait: Promise<void> } | undefined;
   let dropNextPut = false,
     dropNextDelete = false,
     rejectPolicy = false;
@@ -65,8 +66,8 @@ export async function openPrivateUploadWire(options: { content?: boolean } = {})
     if (req.method === "PUT") {
       if (
         req.headers["if-none-match"] !== "*" ||
-        req.headers["x-amz-acl"] !== "private" ||
-        !(options.content ? /^content\/private-v1\/[a-f0-9-]{36}$/ : /^feed\/(audio|documents)\/private-v1\/[a-f0-9-]{36}$/).test(key)
+        req.headers["x-amz-acl"] !== (options.publicPhotos ? "public-read" : "private") ||
+        !(options.publicPhotos ? /^(covers|avatars\/[1-9]\d*)\/public-v1\/[a-f0-9-]{36}\.webp$/ : options.content ? /^content\/private-v1\/[a-f0-9-]{36}$/ : /^feed\/(audio|documents)\/private-v1\/[a-f0-9-]{36}$/).test(key)
       ) {
         res.writeHead(400).end();
         return;
@@ -78,6 +79,9 @@ export async function openPrivateUploadWire(options: { content?: boolean } = {})
       const chunks: Buffer[] = [];
       for await (const chunk of req) chunks.push(Buffer.from(chunk));
       const bytes = Buffer.concat(chunks);
+      if(putGate){const gate=putGate;putGate=undefined;gate.entered();await gate.wait;}
+      // Recheck at commit too: a concurrent conditional PUT may have won while reading.
+      if(objects.has(key)){res.writeHead(412).end();return;}
       const etag = `"${createHash("md5").update(bytes).digest("hex")}"`;
       if (
         req.headers["content-md5"] !==
@@ -163,6 +167,12 @@ export async function openPrivateUploadWire(options: { content?: boolean } = {})
     endpoint: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
     dropPutAck: () => {
       dropNextPut = true;
+    },
+    pausePut: () => {
+      let enter!:()=>void,release!:()=>void;
+      const entered=new Promise<void>(resolve=>{enter=resolve;});
+      const wait=new Promise<void>(resolve=>{release=resolve;});
+      putGate={entered:enter,wait};return {entered,release};
     },
     dropDeleteAck: () => {
       dropNextDelete = true;

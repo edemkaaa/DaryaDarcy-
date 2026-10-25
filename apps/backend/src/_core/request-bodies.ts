@@ -3,7 +3,7 @@ import { SessionService } from "../identity/session.service";
 import { privateVideoMetadata, privateVideoUploadEnabled } from "../content/private-video-input";
 import { retiredPublicUploads, retiredUploadMessage } from "../media/legacy-upload-policy";
 
-const photoProcedures = new Set(["profile.uploadAvatar", "club.uploadPrivateCommentPhoto", "admin.uploadPhoto"]);
+const photoProcedures = new Set(["profile.uploadAvatar", "profile.uploadAvatarWithReceipt", "club.uploadPrivateCommentPhoto", "admin.uploadPhoto", "admin.uploadPublicCover"]);
 const sessions = new SessionService();
 export const MEDIA_JSON_BODY_LIMIT = 50 * 1024 * 1024;
 const streamedMediaRequests = new WeakSet<Request>();
@@ -70,7 +70,7 @@ export function registerRequestBodies(app: Express) {
     // Base64 envelopes need room above the existing decoded 4/32 MiB quotas.
     const media = privateUpload || names.includes("admin.uploadPrivateContentFile");
     const photo = names.some(name => photoProcedures.has(name));
-    if ((media || photo) && !(await requireUploadIdentity(req, res, media || names.includes("admin.uploadPhoto")))) return;
+    if ((media || photo) && !(await requireUploadIdentity(req, res, media || names.includes("admin.uploadPhoto") || names.includes("admin.uploadPublicCover")))) return;
     // tRPC 11 stringifies an Express-parsed object and parses it again. Let its
     // bounded stream reader handle standard UTF-8 JSON once, after admission.
     // Other charsets/compressed bodies retain the existing Express JSON path.

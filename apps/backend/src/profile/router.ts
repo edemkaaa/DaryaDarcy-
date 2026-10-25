@@ -1,5 +1,6 @@
 import { router, protectedProcedure } from "../_core/trpc";
 import { photoInput } from "../media/photos";
+import { avatarReceiptInput, publicPhotoStatusInput, uploadPublicPhoto, publicPhotoStatus } from "../media/public-photo-receipts";
 import { profileUpdateInput } from "./profile-input";
 import type { ProfileService } from "./profile.service";
 import {
@@ -9,6 +10,10 @@ import {
 
 export const createProfileRouter = (profiles: ProfileService) =>
   router({
+    uploadAvatarWithReceipt: protectedProcedure.input(avatarReceiptInput)
+      .mutation(({ctx,input,signal})=>uploadPublicPhoto(ctx.user,"avatar",input,signal)),
+    avatarUploadStatus: protectedProcedure.input(publicPhotoStatusInput)
+      .query(({ctx,input})=>publicPhotoStatus(ctx.user,"avatar",input.idempotencyKey)),
     update: protectedProcedure
       .input(profileUpdateInput)
       .mutation(({ ctx, input }) => profiles.update(ctx.user.id, input)),

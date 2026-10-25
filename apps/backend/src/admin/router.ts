@@ -5,6 +5,7 @@ import { adminArticlesPageInput } from "../content/admin-article-page";
 import { router, adminProcedure } from "../_core/trpc";
 import * as db from "../db";
 import { publicCoverPhotoInput } from "../media/photos";
+import { coverReceiptInput, publicPhotoStatusInput, uploadPublicPhoto, publicPhotoStatus } from "../media/public-photo-receipts";
 import type { ContentWriteService } from "../content/content-write.service";
 import { createPostInput, updatePostInput } from "../content/post-write-input";
 import { contentSortOrderInput } from "../content/content-write-input";
@@ -58,6 +59,10 @@ export const createAdminRouter = (
 
   // Upload photo (admin only)
   uploadPhoto: adminProcedure.input(publicCoverPhotoInput).mutation(({ input, signal }) => uploads.uploadPhoto(input.base64, input.purpose, signal)),
+  uploadPublicCover: adminProcedure.input(coverReceiptInput)
+    .mutation(({ctx,input,signal})=>uploadPublicPhoto(ctx.user,"publicCover",input,signal)),
+  publicCoverUploadStatus: adminProcedure.input(publicPhotoStatusInput)
+    .query(({ctx,input})=>publicPhotoStatus(ctx.user,"publicCover",input.idempotencyKey)),
 
   // Upload media file (video/audio/document) (admin only)
   uploadMedia: adminProcedure
