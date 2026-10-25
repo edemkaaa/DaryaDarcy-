@@ -2,6 +2,17 @@
 
 ## Действующий план агента — 13 октября 2026
 
+25 октября, объединённый source014a780 уже в staging и на сервере: выпущен
+только web с сохранением5publicEnv и build-time VK thumbnails=true. Новый
+BUILD_ID xoiuyRUQ1qHuIKHPy7_v7; immutable image/rollback/backup40tables проверены.
+Fresh290unit, types/lint/API93, production29routes/native5 GREEN; HTTPS6/38JS
+byte-exact. Браузер: переходы Club/profile/admin, снятие copy protection,
+выбор/отмена аватара без upload, новые подсказки оплат/сезонов, VK22/22img,
+возврат через Библиотеку и0warn/error GREEN. Финально DB/schema/history/content/
+counts/3admin credentials и29othercontainers прежние, web healthy/restarts0.
+Live mutations/fault-injection/payment/mail/iPhone не выполнялись и не приняты.
+Подробные границы, receipt и code-only rollback — в staging runbook.
+
 24 октября, восстановлены VK-обложки после проверки разделов. Выпущен только
 web того же production source с build-time NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED=true;
 компоненты/дизайн/зависимости не редактировались, остальные5флагов сохранены.

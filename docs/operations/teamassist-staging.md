@@ -1,5 +1,53 @@
 # Отдельный тестовый стенд TeamAssist
 
+## Объединённый frontend: выпуск — 25 октября
+
+По явному разрешению пользователя staging fast-forward `775369f..014a780`;
+source `014a780379d558bd2eee5775638a45b2c55aa130`. Правки фронтендера сохранены
+целиком, новых ручных изменений production frontend/backend/dependencies нет.
+После переключения VPN штатный SSH восстановился. Выпущен **только web**;
+API, TEST, MySQL, S3 и платёжные настройки не менялись.
+
+- Fresh unit 290/11files, check:api93, root/frontend/E2E types и lint GREEN.
+  Production Next29routes собран с прежними5 publicEnv и явным
+  NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED=true (4 compiled opt-in chunks).
+  Native offline probe5 страниц без сети/БД/провайдеров GREEN. Изменённый
+  public/privacy.html включён отдельно и проверен по SHA, а не оставлен из base.
+- Архив551files/29272509bytes, SHA256
+  `0c102690642f0c996969c57c9d1b718202fb36a794234aab7584c1c5e460ff70`.
+  Новый web `sha256:1aa44544b1da340fcd5cfb9448e759bb6b408bbf4ffe4cd72105fea66207237c`,
+  tag `daryadarcy-integrated:web-merged-014a780379d5`,
+  BUILD_ID `xoiuyRUQ1qHuIKHPy7_v7`. Прежний e03b430e… образ сохранён.
+- До переключения свежий backup40tables/487635bytes, SHA256
+  `4ff57d440586490184867c41efa34cbe9541741cce0a940720143ebcc770dccf`.
+  Gzip/состав/SHA проверены на сервере и Mac, каталоги700/backup600.
+  БД `daryadarcy_candidate_20261019` не переключалась и не восстанавливалась;
+  миграций/SQL writes не было. Compose --no-deps заменил только web;
+  nginx test/reload выполнен без изменения edge configuration.
+- Проверки сразу после выпуска **и после браузера**: схема/история/контент/
+  counts/3admin credential-role-session fingerprints и остальные29контейнеров
+  неизменны. Web healthy/restarts0/OOMfalse. После выпуска свободно975MiB;
+  образы отката, базы, backup и чужие файлы не удалялись.
+- Public HTTPS6 страниц200;38 опубликованных JS assets byte-exact с manifest,
+  privacy.html SHA совпадает. В браузере после явного reload: админская сессия
+  сохранена; Club protection true → profile false; выбор тестовой картинки
+  открывает cropper, «Отмена» возвращает профиль без изменения аватара.
+  Видны новые подсказки «Последние50оплат» и прямых ссылок сезонов; настройки
+  не сохранялись. Club/Комьюнити загружаются. VK20→22 через «Показать ещё»,
+  все22img complete/naturalWidth>0,broken0; возврат через Библиотеку сохраняет
+  каталог; horizontal overflow=false, browser warn/error0.
+- Это read-only live smoke, не полная fault-injection приёмка. Новые отправки
+  комментариев, искусственная потеря ACK/смена аккаунта, сохранение аватара,
+  платежи и письма на стенде не запускались. Физический iPhone не проверялся.
+  Unit и успешный выпуск не выдаются за подтверждение этих сценариев.
+
+Private receipt/backup/operator на сервере:
+`/home/edem/apps/daryadarcy-staging/release-frontend-20261025.dkxrpc`;
+Mac: `.local-artifacts/frontend-release-20261025.6LzUsn` родительского workspace.
+При необходимости code-only отката проверить отсутствие более позднего выпуска
+и запустить phase rollback этого release.py: возвращает только прежний web и
+reload edge, не SQL. Откат подготовлен, но не выполнялся — выпуск здоров.
+
 ## VK-обложки: build-only исправление — 24 октября
 
 После явного согласия пользователя восстановлен пропущенный при предыдущей

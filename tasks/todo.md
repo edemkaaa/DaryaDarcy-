@@ -2,6 +2,23 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Объединённый frontend: staging и сервер — 25 октября
+
+- [x] Frontend775369f сохранён целиком; normal push014a780 подтверждён.
+  Backend/lockfile/schema не менялись, новых ручных frontend правок нет.
+- [x] Fresh290unit/11files, API93/types/E2E types/lint; production29routes
+  с прежними5флагами и VK thumbnails=true; offline native5 GREEN.
+- [x] Fresh backup40tables/SHA/gzip проверен server+Mac; web-only rollout,
+  old web image/guarded rollback сохранены. API/TEST/MySQL/S3 прежние.
+- [x] HTTPS6/38compiled JS SHA/privacy SHA exact; после reload живая сессия,
+  Club→profile снимает protection, cropper selection/cancel без записи,
+  новые admin payments/season hints, VK22/22img/0broken и возврат GREEN.
+- [x] После browser smoke DB/schema/history/content/counts/3admin credentials
+  и29othercontainers прежние; web healthy/restarts0/OOMfalse, warn/error0.
+- [ ] Полные живые write/recovery/fault-injection сценарии комментариев и
+  смены аккаунта не повторялись; аватар не сохранялся. Платежи/письма/iPhone
+  не проверялись. Эти границы не закрывать на основании read-only smoke.
+
 ### VK-обложки: восстановление build-time флага — 24 октября
 
 - [x] Fresh staging a4d223f не содержит новых production frontend правок;
@@ -15,9 +32,10 @@
 - [x] Live22cards/19PNG decode, новый chunk SHA совпал; браузер19/19loaded,
   broken0/3expected missing,20→22 и возврат через Магазин с той же позицией.
   DB/schema/history/content/3admin credentials и29othercontainers сохранены.
-- [ ] Три исходно отсутствующие обложки остаются отдельным контентным остатком;
-  чужими изображениями автоматически не заменять. Полная приёмка договора
-  и физического iPhone этим узким выпуском не заявляется.
+- [x] После отдельного разрешения на три thumbnailUrl привязки обложки
+  заполнены; живой выпуск25октября подтверждает22/22готовых изображений.
+  Две официальные VK миниатюры остаются130×96 — HD-качество не заявляется.
+  Полная приёмка договора и физического iPhone этим не подтверждаются.
 
 ### Адресный ремонт публичного кеша — 23 октября
 
