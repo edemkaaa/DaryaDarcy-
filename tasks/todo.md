@@ -2,6 +2,96 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Исправления аудитов24октября — локальная очередь25октября
+
+Перед push: свежий frontend8f610f6 принят mergef37a7ad,53 локальных файла
+сохранены побайтно. FE01/FE02 пришли от фронтендера; повторно не переписывать.
+По отдельному разрешению обновлён только generated API contract; компоненты,
+дизайн и настройки не менялись. Сам push не применяет SQL/флаги и не выкладывает сервер.
+
+- [x] B07 локально: additive canBlockAuthor для жалоб; actor/self/role/deleted/blocked
+  матрица, актуальный transactional write guard прежний; types/handoff.
+- [x] B02 локально: category+tag фильтруются SQL до limit; shared aliases, прежний numeric
+  cursor, invalid category reject, bounded empty; contract/tests/handoff.
+- [x] B06 локально: additive paymentsPage/items/nextCursor, stable ordering/admin-only;
+  >50/equal-time/insert-between-pages, settlement не меняется.
+- [ ] B03: bounded reactions batch и article cards/detail; consumer inventory,
+  legacy retirement после перехода, без тихого truncate.
+  Новые три API и inventory реализованы/проверены; переход frontend/retirement не выполнен.
+- [x] B04 локально: EXPLAIN на одноразовой БД до/после, non-unique indexes/schema/migration;
+  новые индексы не включать в рабочую БД, historical duplicates не удалять.
+- [ ] B05: public upload recovery/receipt контракт, lost-ACK+late-bind cleanup
+  гонки на собственном стенде; действующие аватары/обложки сохранять.
+  Контракт принят без автоочистки;0043/четыре API/8native HTTP-SQL-wire cases готовы.
+  Ручная сборка orphan-файлов не включена, старые calls остаются до перехода frontend.
+- [ ] B01: private visual bindings и synthetic rehearsal; точный registry,
+  оба consumers и отзыв; старые публичные копии только отдельным safe rollout.
+  Семь namespaces/220slots/синтетическая выдача и отзыв готовы; реальный перенос и оба consumers ещё нет.
+- [x] FE01/FE02: получен отказ на frontend changes; подготовлен документ с критериями,
+  сами дефекты остаются фронтендеру. Дизайн/исходники frontend не менялись.
+- [x] Migration release gate0017–0019 локально: existing/fresh reconciliation без
+  редактирования применённых SQL/истории вслепую. Не заменять рабочую БД.
+- [x] Checkpoint: focused tests/API contract/types/backend build/docs/diff;
+  реальные SQL/S3/browser/ресурсные ограничения отдельно, без push/deploy.
+  3185unit/pass,1718external skip; отдельные SQL/HTTP42+56 и fresh44/9cases GREEN.
+  Кандидат wire-типа102процедуры вне frontend, handoff audit-remediation-2026-10-25.
+  Новые маршруты/индексы/receipts на staging НЕ установлены.
+
+### Оставшиеся UI-сценарии — 25 октября
+
+- [x] Feed поиск/пустой результат/Дом/grid/detail/back с сохранением фильтра;
+  4patterns decode/modal/print image/реальный WebP download; free horse PDF10pages.
+- [x] Quiz10ответов/назад/результат21Cottagecore/direct result/reload/restart;
+  гостевая изоляция, PWA hint dismiss. Не standalone/device acceptance.
+- [x] Все3подкаста: воспроизведение/time advance/pause; club filters reset,
+  background-music toggle restored off. Физически слышимый звук не подтверждён.
+- [x]9admin sections/read counts/calendar next-back/settings freshness;
+  temporary draft952: bold/italic/2links сохранены после reopen.
+- [x]118local pass/2skip;952и1own journal guarded SQL cleanup,39tables exact,
+  7profiles/credentials/3admins/schema/history/config/images сохранены.
+- [ ] VK61ошибка playback; позднее iframe показал другую рекомендацию — не успех61.
+  UI delete обоих редакторов всё ещё не принято: tooling blocked, не app bug proof.
+- [ ] Дополнительный HTTP-probe внутри256MiB API завершился137; API перезапустился1раз,
+  затем healthy/3public HTTP200. Причина не доказана, повтор не выполнять внутри API.
+ 29other containers exact, но все30runtime неизменными не объявлять.
+- Proxy остановлен, temp tabs закрыты; source/frontend/S3/push/deploy/mail/payments нет.
+  Recipes/Petersburg bindings/боевой payment/старая counts gap/публичные платные копии/
+  отложенные большие файлы/devices/pilot остаются. Полный отчёт:
+  staging-remaining-flows-2026-10-25.md; предыдущие узкие receipts не заменены.
+
+### Полная read-only сверка БД — 25 октября
+
+- [x] Все40таблиц consistent read-only;42migration identities/schema совпали.
+ 742feed/190club/2articles/20media присутствуют;50связей и7duplicate checks без отказов.
+- [x]742feed/2articles/17tags совпали с исходным dump;3audio соответствуют repair-plan.
+ 185club posts exact,5изменены24октября;39non-user tables exact baseline,
+ все7профилей и3admin credentials сохранены, исключены только login timestamps.
+- [ ] Подтвердить намеренность поздних изменений913/914/918/930/935;
+ у9137→5уникальных фото. Ничего автоматически не восстанавливать.
+- Исторические accounts/payments/reactions не входили в content-only перенос;
+ recipes/peterburg bindings отсутствуют. Полный отчёт: staging-database-reconciliation-
+ 2026-10-25.md. No DB/S3/config/source writes/push/deploy/restart.
+
+### Загрузка экранов и готовность чтения — 25 октября
+
+- [x]36route states/45accepted viewport measurements:37mobile390 и8основных1440;
+  фактические URL/ширина проверены, document overflow0/visible broken images0.
+  First loading states не засчитывались как ready; pending lazy не объявлен ошибкой.
+- [x]40read-only HTTP checks,10authenticated queries/5REST+7guide reads;
+  guest club/admin/saved401, library/guides404, private article без body.
+ 4patterns/7guides admin ready; **recipes/peterburg files=[]**, перенос не разрешён.
+- [x]22covers GET+decode GREEN;music206/64bytes и2private audio guest404/no-store.
+  Это не playback acceptance.377unit/24files GREEN; console warn/error0.
+- [x] Snapshot/schema/history/content/counts/3admins/config/30containers совпали
+  с последним принятым baseline. Нет fixture/data/source/S3 writes/push/deploy/
+  mail/payments. GET-only guest proxy остановлен, temp tabs закрыты, viewport reset.
+- [ ] Разблокировать старый native confirm и повторить реальные UI-нажатия:
+  filters/search/carousels/quiz/PWA/admin delete; не считать tooling fail UI-багом.
+- [ ] Закрыть2library bindings только после согласования исходников/импорта;
+  согласовать документы магазина с email-client flow; прежний article counts fix.
+  TEST/боевой payment/renewal остаются отдельной неприёмленной цепочкой.
+  Матрица: staging-screen-readiness audit; handoff: screen-readiness-handoff.
+
 ### Посты и статьи в админке — 25 октября
 
 - [x] Fresh backup40tables/487641bytes/SHA/gzip server+Mac; existing admin session,

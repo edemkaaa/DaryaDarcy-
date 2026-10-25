@@ -2,6 +2,73 @@
 
 ## Действующий план агента — 13 октября 2026
 
+25 октября, новый запрос: отправить все объединённые правки в Git staging,
+без отдельной выкладки сервера/SQL/флагов. Код разделён на schema/history,
+club filters, bounded reads, public upload recovery, library namespaces;
+frontend8f610f6 сохранён, по отдельному разрешению обновлены только generated
+API-типы102процедур. Документы и результаты проверок входят в тот же push.
+Новые bindings/ручная очистка/переключение consumers не подменяются публикацией Git.
+
+25октября, поручение закрыть замечания двух аудитов24октября — только локально,
+без рабочей БД/S3/deploy. Последовательность: B07 moderation hints → B02 серверные
+рубрики → B06 payment pages → B03 bounded reads/инвентаризация consumers → B04
+SQL-планы/индексы → B05 upload receipts → B01 private visual bindings/репетиция.
+Старые API не обрезать молча; новые контракты additive, проверка прав остаётся
+в write-транзакциях. Для каждого шага RED/GREEN, wire check/types/build и handoff.
+FE01/FE02: пользователь запретил frontend-изменения — только документ.
+25 октября локально реализованы B07, B02, B06 и новые bounded reads B03;
+B04: четыре non-unique индекса 0042, EXPLAIN на 10 000 synthetic rows/table,
+оценка candidates ~9–10 тысяч → 10–11, данные/исторические дубли сохранены.
+Журнал0017–0019 согласован с уже проверенным fresh-порядком: первые42 identities
+и SQL неизменны, обычный db:push прошёл42→43→44 на disposable DB, fresh44 тоже.
+B05: принят additive ключ/status без автоочистки; 0043 + четыре API реализованы,
+проверены lost PUT ACK/потерянный HTTP-результат/повторы/чужой actor/late bind/
+отзыв роли/SQL failure/retirement. Новых DELETE/TTL/cron нет.
+B01: семь aesthetic-* namespaces и synthetic rehearsal готовы; registry220
+проверен без коллизий. Реальный импорт/оба consumers/закрытие публичных копий
+не выполнены. Legacy arrays сохранены до перехода consumers; B03 retirement
+и ручная очистка B05 не объявлены законченными. Фронт/рабочая БД/S3/push/deploy
+не трогались. Handoff: docs/development/audit-remediation-handoff-2026-10-25.md,
+кандидат102процедуры сгенерирован вне frontend. Общие3185pass/1718skip — не
+полная сквозная приёмка; целевые SQL/HTTP проверки выполнены отдельно.
+
+25октября, реальные оставшиеся нажатия: Feed search/filter/grid/detail/back,
+4patterns/image download, free horse PDF10pages, quiz10/result/reload/restart,
+PWA hint,9admin sections/calendar/settings freshness и3podcasts play/time/pause
+подтверждены.952draft bold/italic/2links пережили reopen; статья не создавалась.
+Native browser вновь заблокирован: UI delete не принят; VK61playback error,
+другая рекомендация iframe не считается успехом61.118local pass/2skip.
+Дополнительный API-probe в256MiB контейнере завершился137, API restartCount1,
+причина не установлена; повтор не делался, сейчас healthy/3HTTPS200.
+952/own journal очищены guarded SQL;39tables/7profiles/3admin credentials/schema/
+history/config/images preserved,29other runtime exact, но API started изменён.
+Proxy/temp tabs убраны; no source/frontend/S3/push/deploy/mail/payments.
+Остаток — VK/delete tooling/counts/library bindings/реальный payment/старые
+публичные копии и ранее отложенные device/large upload/pilot; точные границы:
+audits/staging-remaining-flows-2026-10-25.md. Не заявлять полную приёмку договора.
+
+25октября: полная сверка40таблиц в consistent read-only snapshot,42миграции/
+schema exact,50relations/7duplicate checks без нарушений.742feed/190club/
+2articles/20media присутствуют.185club exact,5изменены24октября:9137→5фото,
+914/918/930/935 text/richText/photo edits; намеренность не подтверждена,
+автоматически не восстанавливать.3audio exact approved repair;7profiles/
+3admin credentials preserved. Старые users/payments не входили в content-only
+перенос,2library materials не привязаны. См. staging-database-reconciliation-
+2026-10-25 audit; no DB/S3/config/source writes/push/deploy/restart.
+
+25 октября, продолжение проверки экранов:36route states/45accepted measurements
+(37при390,8при1440),40read-only HTTP cases,10authenticated queries/5REST+7guides.
+Visible broken images/document overflow0;22VK covers GET+decode,377unit GREEN.
+4patterns/7guides готовы admin, guest private denial; recipes/Petersburg files=[]:
+необходимы исходники/согласование переноса, публичный fallback не включать.
+Копирайт юридических страниц магазина расходится с email-client flow; отдельный
+handoff. Сохраняется article counts gap и TEST-only payment acceptance.
+Из-за старого native confirm нажатия не приняты; маршрутные чтения не подменяют
+проверку кнопок/PWA/quiz/playback. Snapshot/3admins/config/30containers совпали с
+последним принятым baseline; no data/source/S3/mail/payment writes/push/deploy.
+GET-only proxy/temp tabs убраны. Матрица/ограничения: staging-screen-readiness audit,
+порядок остатка: screen-readiness-handoff-2026-10-25.md.
+
 25 октября, живой admin lifecycle на fixture-post950/article7/auto-teaser951:
 create draft → publish → edit → draft через8UI saves подтверждены SQL,
 23read-only API assertions и страницами читателя;64local tests GREEN.
