@@ -2,6 +2,24 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Скорость фотографий и экранов — 26 октября
+
+- [x] Read-only DOM пяти разделов, два HTTP-прохода/host stats. Размеры слота
+  не соответствуют sizes:106px→640,85px→900при наличии320. Первый WebP640/320:
+  54212/17518bytes; cold320MISS1,485s/warmHIT0,306s, не p95/LCP.
+- [x] Локальная одна VK cover PNG297943→WebP37150q85 или198984lossless
+  с RGBA exact. Оригиналы/привязки сохранены; приёмка всех22не выполнялась.
+- [x] Safari src-order/fallback/source paths сверены с Next; нет доказательства
+  фактического duplicate на iPhone. Возврат Клуб→Лента:9видимых complete,
+  browser cache-hit этим не доказан. Стенд не подвергался нагрузке.
+- [x] Отчёт photo-performance-2026-10-26.md, единый frontend doc раздел13,
+  DevOps актуализирован: disk97%/1186MiBfree, available659MiB/no swap.
+- [ ] Следующий совместный срез: frontend sizes/Safari с сохранением дизайна,
+  реальные cache-on/first-screen/return checks; затем public VK copies/fallback.
+  Пока frontend source/config/рабочие DB/S3 не менялись, без push/deploy.
+- [ ] После ресурса/отдельного кандидата — согласованная приёмка100users
+  и cold/warm image queue. Старый25RPSfixture не равен production acceptance.
+
 ### Пересмотр контейнерных лимитов — 26 октября
 
 - [x] Read-only host/runtime/stats:2CPU/~4GB/~610MiBavailable/no swap;
