@@ -148,8 +148,8 @@ export function AvatarCropper({
           { resize: { width: 400, height: 400 } },
         ],
         {
-          compress: 0.8,
-          format: ImageManipulator.SaveFormat.JPEG,
+          // Keep the crop lossless; the server performs the final WebP encode.
+          format: ImageManipulator.SaveFormat.PNG,
           signal: task.signal,
         },
       );

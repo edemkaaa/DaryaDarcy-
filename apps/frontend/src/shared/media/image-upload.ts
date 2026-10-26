@@ -168,6 +168,7 @@ export async function compressImageBlob(
   quality = 0.82,
   signal?: AbortSignal,
   outputType: "image/jpeg" | "image/webp" = "image/jpeg",
+  preserveBoundedSource = false,
 ): Promise<Blob> {
   signal?.throwIfAborted();
   if (
@@ -178,7 +179,7 @@ export async function compressImageBlob(
   if (imageType(blob) === "image/gif") return blob;
   return runFileTask(async (taskSignal) => {
     const drawable = await loadDrawableFromBlob(blob, taskSignal);
-    const canvas = document.createElement("canvas");
+    let canvas: HTMLCanvasElement | undefined;
     try {
       taskSignal.throwIfAborted();
       if (!drawable.width || !drawable.height)
@@ -187,6 +188,18 @@ export async function compressImageBlob(
         1,
         maxEdge / Math.max(drawable.width, drawable.height),
       );
+      // The API still validates bytes, strips metadata and encodes the final
+      // WebP. Avoid a lossy canvas round-trip when no resize is needed.
+      if (
+        preserveBoundedSource &&
+        scale === 1 &&
+        blob.size <= MAX_PHOTO_BYTES &&
+        ["image/jpeg", "image/png", "image/webp"].includes(imageType(blob))
+      ) {
+        return blob;
+      }
+      canvas = document.createElement("canvas");
+      const outputCanvas = canvas;
       canvas.width = Math.max(1, Math.round(drawable.width * scale));
       canvas.height = Math.max(1, Math.round(drawable.height * scale));
       const ctx = canvas.getContext("2d");
@@ -196,12 +209,12 @@ export async function compressImageBlob(
       drawable.release();
       const compressed = await new Promise<Blob | null>((resolve, reject) => {
         const cancel = () => {
-          canvas.width = canvas.height = 0;
+          outputCanvas.width = outputCanvas.height = 0;
           reject(taskSignal.reason);
         };
         taskSignal.addEventListener("abort", cancel, { once: true });
         try {
-          canvas.toBlob(
+          outputCanvas.toBlob(
             (blob) => {
               taskSignal.removeEventListener("abort", cancel);
               resolve(blob);
@@ -219,7 +232,7 @@ export async function compressImageBlob(
       return compressed;
     } finally {
       drawable.release();
-      canvas.width = canvas.height = 0;
+      if (canvas) canvas.width = canvas.height = 0;
     }
   }, signal);
 }
@@ -243,6 +256,7 @@ async function preparePhotoBlob(
       0.82,
       opts?.signal,
       outputType,
+      true,
     );
     opts?.signal?.throwIfAborted();
     if (!["image/jpeg", "image/png", "image/webp"].includes(blob.type))
