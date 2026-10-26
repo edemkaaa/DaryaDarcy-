@@ -40,11 +40,16 @@ export function privateAttachmentObjectKey(
     )
   )
     throw new Error("Invalid asset identity");
-  return scope === "content" || type === "video" ? `content/private-v1/${assetId}` : `feed/${type === "audio" ? "audio" : "documents"}/private-v1/${assetId}`;
+  return scope === "content" || type === "video"
+    ? `content/private-v1/${assetId}`
+    : `feed/${type === "audio" ? "audio" : "documents"}/private-v1/${assetId}`;
 }
 const ruleSchema = z
   .object({
-    Sid: z.enum(["DaryadarcyPrivateAttachmentsV1", "DaryadarcyPrivateContentV1"]),
+    Sid: z.enum([
+      "DaryadarcyPrivateAttachmentsV1",
+      "DaryadarcyPrivateContentV1",
+    ]),
     Effect: z.literal("Deny"),
     Principal: z.literal("*"),
     Action: z.array(z.string()),
@@ -69,6 +74,43 @@ export type PrivateUploadObject = {
   fileSize: number;
   namespaceHash: string;
 };
+
+export function verifyPrivateUploadPolicy(
+  policy: unknown,
+  bucket: string,
+  contentScope: boolean,
+) {
+  const statements = z
+    .object({ Statement: z.array(z.unknown()) })
+    .passthrough()
+    .parse(policy).Statement;
+  const sid = contentScope
+    ? "DaryadarcyPrivateContentV1"
+    : "DaryadarcyPrivateAttachmentsV1";
+  const rule = statements.find(
+    (row) =>
+      row !== null &&
+      typeof row === "object" &&
+      "Sid" in row &&
+      row.Sid === sid,
+  );
+  const accepted = ruleSchema.parse(rule);
+  const username =
+    accepted.Condition.StringNotEqualsIfExists["aws:username"][0];
+  const resources = contentScope
+    ? [`arn:aws:s3:::${bucket}/content/private-v1/*`]
+    : ["audio", "documents"].map(
+        (folder) => `arn:aws:s3:::${bucket}/feed/${folder}/private-v1/*`,
+      );
+  if (
+    ["anonymous", "*"].includes(username.toLowerCase()) ||
+    JSON.stringify([...accepted.Action].sort()) !==
+      JSON.stringify(["s3:GetObject", "s3:GetObjectVersion"].sort()) ||
+    JSON.stringify([...accepted.Resource].sort()) !==
+      JSON.stringify(resources.sort())
+  )
+    throw new Error("Private policy unavailable");
+}
 
 /** Only new owned keys. Never overwrite, delete, grant public ACL or fall back. */
 export async function ensurePrivateUploadObject(
@@ -102,7 +144,11 @@ export async function ensurePrivateUploadObject(
   const signal = AbortSignal.timeout(30000);
   const object = {
     Bucket: namespace.bucket,
-    Key: privateAttachmentObjectKey(receipt.type, receipt.assetId, receipt.scope),
+    Key: privateAttachmentObjectKey(
+      receipt.type,
+      receipt.assetId,
+      receipt.scope,
+    ),
   };
   try {
     // Private ACL alone does not defeat this bucket's broad public read policy.
@@ -110,31 +156,11 @@ export async function ensurePrivateUploadObject(
       new GetBucketPolicyCommand({ Bucket: namespace.bucket }),
       { abortSignal: signal },
     );
-    const policy = JSON.parse(result.Policy ?? "null");
-    const rule = Array.isArray(policy?.Statement)
-      ? policy.Statement.find(
-          (row: { Sid?: string }) =>
-            row?.Sid === (contentScope ? "DaryadarcyPrivateContentV1" : "DaryadarcyPrivateAttachmentsV1"),
-        )
-      : undefined;
-    const accepted = ruleSchema.parse(rule);
-    const username =
-      accepted.Condition.StringNotEqualsIfExists["aws:username"][0];
-    if (
-      ["anonymous", "*"].includes(username.toLowerCase()) ||
-      JSON.stringify([...accepted.Action].sort()) !==
-        JSON.stringify(["s3:GetObject", "s3:GetObjectVersion"].sort()) ||
-      JSON.stringify([...accepted.Resource].sort()) !==
-        JSON.stringify(
-          (contentScope ? [`arn:aws:s3:::${namespace.bucket}/content/private-v1/*`] : ["audio", "documents"]
-            .map(
-              (folder) =>
-                `arn:aws:s3:::${namespace.bucket}/feed/${folder}/private-v1/*`,
-            )
-            .sort()),
-        )
-    )
-      throw new Error("Private policy unavailable");
+    verifyPrivateUploadPolicy(
+      JSON.parse(result.Policy ?? "null"),
+      namespace.bucket,
+      contentScope,
+    );
     const head = () =>
       client.send(new HeadObjectCommand(object), { abortSignal: signal });
     let meta;
