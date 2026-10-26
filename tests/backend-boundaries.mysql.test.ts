@@ -78,6 +78,11 @@ describe.skipIf(!testDatabaseUrl)(
     afterAll(async () => {
       await application?.close();
       await new Promise<void>((resolve) => provider?.close(() => resolve()));
+      if (conn) {
+        for (const table of ["access_email_outbox", "password_tokens", "billing_receipts", "billing_profiles", "club_payments"])
+          await conn.query(`DELETE FROM ${table} WHERE userId=780`);
+        await conn.query("DELETE FROM users WHERE id=780 AND openId='http-test'");
+      }
       await conn?.end();
       const database = await getDb();
       await (

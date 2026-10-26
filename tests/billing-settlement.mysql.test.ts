@@ -41,6 +41,11 @@ describe.skipIf(!testDatabaseUrl)(
     });
     afterAll(async () => {
       vi.useRealTimers();
+      if (conn) {
+        for (const table of ["billing_receipts", "billing_profiles", "password_tokens", "access_email_outbox", "club_payments"])
+          await conn.query(`DELETE FROM ${table} WHERE userId=777`);
+        await conn.query("DELETE FROM users WHERE id=777 AND openId='billing-test'");
+      }
       await conn?.end();
       const database = await getDb();
       // The application owns this connection; tests close its actual driver, not a test-only production method.

@@ -28,6 +28,9 @@ describe.skipIf(!testDatabaseUrl)("durable subscription cancellation", () => {
   });
   afterAll(async () => {
     await pool?.end();
+    await conn?.query("DELETE FROM billing_profiles WHERE userId=779");
+    await conn?.query("DELETE FROM club_payments WHERE userId=779");
+    await conn?.query("DELETE FROM users WHERE id=779 AND openId='cancel-test'");
     await conn?.end();
   });
   async function flags() {

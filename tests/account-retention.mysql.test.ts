@@ -82,6 +82,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     if (conn) await cleanupBindings();
     await conn?.query("DELETE FROM push_tokens WHERE token='retention-fixture-token'");
     await conn?.query("UPDATE users SET accountDeletionRequestedAt=NULL WHERE id BETWEEN 92101 AND 92104");
+    await conn?.query("DELETE FROM club_payments WHERE userId BETWEEN 92101 AND 92104");
     await conn?.end();
     const database = await getDb();
     await (database as unknown as { $client: { end(): Promise<void> } })?.$client.end();
