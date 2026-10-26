@@ -2,6 +2,31 @@
 
 ## Действующий план агента — 13 октября 2026
 
+27 октября: LEGACY-MOVE — по шагам после согласованного плана.
+1. Адресный draft manifest по inventory; отдельно shared/public и неизвестные
+   ссылки. Без source SHA/bytes это ещё не готовый список для применения.
+2. Operator-only перенос одной ссылки за операцию: проверенные собственные байты,
+   прежняя ссылка, durable receipt, новые private ключи, atomic bind/replay/rollback.
+   Без повторного сжатия, новых HTTP API, DDL, уведомлений и удаления исходников.
+3. Репетиция на одноразовой MySQL + настоящем API/собственном storage wire:
+   byte/SHA, фото/GIF/видео/документы, роли/отзыв, lost ACK/повтор, конфликт и откат.
+4. Проверки, docs/commits и конкретный live-план: реальные источники/ACL/снимок
+   проверять отдельно; не объявлять synthetic wire проверкой Timeweb.
+Фронт, рабочие привязки, S3 originals/ACL и стенд пока не менять.
+
+Результат 27 октября: LM1–4 локально завершены. 388 точных привязок,
+все источники HEAD200; фото/документ проверены целиком, видео — ETag/probe.
+9видео>80MiB: отдельный потоковый процесс с conditional PUT, SHA/MD5,
+без транскода/диска/fullbuffer и без SQL-lock во время сети. CopyObject исключён:
+на Timeweb destination condition проигнорирован200; обычный PUT защищён412.
+Репетиция20nativeSQL/API +1tinyrealS3 прошла, canaries и одноразоваяБД убраны.
+3396unit passed/1755skipped,42focused,types/API102/boundaries805/builds/docs/audit0.
+Реальный перенос/выключение старых публичных адресов ещё не разрешены этим шагом:
+нужны согласование применения, свежий backup/manifest и server-only guard
+optimizer со стороны фронта. Две shared covers и49посторонних объектов сохранить.
+[Порядок и доказательства](../docs/operations/legacy-media-transfer-2026-10-27.md).
+Фронтендеру: [минимальная связка](../docs/development/frontend-legacy-media-retirement-2026-10-27.md).
+
 Backend completion,26октября: выполнять только подтверждённый доступный остаток.
 1. SPEED4: стандартное response compression для allowlist анонимных GET JSON,
    без auth/private/media/ошибок/Range, с реальной loopback HTTP проверкой.

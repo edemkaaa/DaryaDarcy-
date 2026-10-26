@@ -2,6 +2,31 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Адресный перенос старых клубных источников — 27 октября
+
+- [x] LM1: draft manifest + shared/public/manual blockers; ready=false до SHA/bytes.
+- [x] LM2: операторская подготовка/новая копия/atomic expected-old bind,
+  durable повтор после потери ответа и guarded rollback, без новых HTTP API/DDL.
+- [x] LM3: одноразовая SQL/API/storage-wire репетиция с побайтной проверкой,
+  admin/member/guest/revoke, потерей ACK/повтором/конфликтом и откатом.
+- [x] LM4: ревью/регрессия/types/build/API/docs, локальные commits, live-остаток.
+  Рабочие БД/S3/фронт не меняются; источник не удалять/не закрывать по draft.
+
+Результат LM: 388 проверенных входов (369JPEG/1GIF/1PNG/16video/1DOCX),
+две общие публичные обложки сохранены отдельно, 49 посторонних ключей не затронуты.
+Timeweb игнорирует destination IfNoneMatch в CopyObject: этот путь заменён на
+потоковый PutObject (реальный отказ перезаписи412). Нет перекодирования,
+полной буферизации видео/записи на диск или сети внутри SQL-lock.
+Общий прогон3396passed/1755skipped; отдельно42focused/20native/1realS3canary,
+types/API102/boundaries805/backend+TEST builds/docs/audit0 GREEN.
+Свои S3 canaries удалены с HEAD404, одноразовая БД удалена OOM=false/restarts0.
+[Отчёт/следующий шаг](../docs/operations/legacy-media-transfer-2026-10-27.md),
+[документ фронтендеру](../docs/development/frontend-legacy-media-retirement-2026-10-27.md).
+Массовые рабочие привязки и policy НЕ применены; push/deploy не выполнялись.
+Следующий gate: согласованный выпуск/backup/перенос, затем server-only guard
+старых image optimizer URL + адресный отзыв источников/кеша. Реальные большие
+видео и полную приёмку договора этим прогоном не закрывать.
+
 ### Доведение backend по подтверждённому остатку — 26 октября
 
 - [x] BE-FINAL1: bounded public response compression; RED/GREEN настоящим HTTP,
