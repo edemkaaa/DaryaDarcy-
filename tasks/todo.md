@@ -8,7 +8,12 @@
 - [x] Private visual consumers/1635 exact denied HTTP paths.
 - [x] Репетиция 220 иллюстраций + 6 PDF на одноразовой БД.
 - [x] 3268 unit passed, 1733 skipped; types/lint/build/API/boundaries GREEN.
-- [ ] Backup, guarded private import, выпуск staging и живая проверка.
+- [x] Backup 41 tables/44 migration checks; DDL/ledger без изменений.
+- [x] 226 private copies импортированы; admin SHA, guest API, anonymous S3 denied.
+- [x] Member/outsider/revoke 13 файлов до/после выпуска; свои fixtures удалены.
+- [x] ff2c229 выложен; live API 15 checks, web native11; все сервисы healthy.
+- [x] Browser: recipes5/PetersburgPDF/7visual groups; фото через private API.
+- [x] Existing rows/schema/admin credentials/rollback images сохранены.
 - [ ] Приёмка запуска всех 22 VK; внешние ошибки не маскировать.
 - [ ] Боевой Prodamus: у владельца пока нет настроек; оставить TEST.
 - [ ] После private API владелец отзывает два старых Yandex share.

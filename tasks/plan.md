@@ -2,16 +2,18 @@
 
 ## Действующий план агента — 13 октября 2026
 
-26 октября, исправление четырёх блокеров: локально готовы VK optional hash и
-кнопка вне iframe, private visual consumers без public fallback и блокировка
-1635 точных старых/форматных/hashed URL (включая optimizer). На tmpfs БД прошли
-220 реальных иллюстраций + 6 PDF; 226 PUT без дублей, member bytes exact,
-guest/outsider denied. Рецепты разделены на 5 частей без перекодирования,
-оригиналы сохранены. Unit 3268 passed/1733 skipped; types/lint/API/boundaries/
-build GREEN. Импорт/выкладка и real VK acceptance ещё НЕ подтверждены.
-Боевых Prodamus настроек нет (ответ владельца): TEST не переключать.
-После private API старые Yandex shares должен отозвать владелец.
-Отчёт: docs/audits/staging-four-blockers-2026-10-26.md.
+26 октября, 18:35 МСК: ff2c229 выложен со staging (API/web/TEST), healthy/0OOM/
+0restart. Backup 41 таблицы проверен на сервере и Mac; 44 migrations совпали,
+DDL/ledger не менялись. Импортированы 220 private illustrations + 6 PDF,
+226 admin SHA/guest API/anonymous S3 проверок. До и после выкладки member/
+outsider/revoke для 13 материалов; свои 2 accounts в каждом прогоне удалены.
+Существующие строки/схема/7users/3admin credentials/933posts/2articles/82videos
+сохранены; добавления только 3 library tables. Browser: recipes 5 частей,
+Петербург PDF, 7 visual namespaces и private photos отображаются, public fallback0.
+VK код/hash/reload исправлен, каталог22/22 с covers; playback22 не принят,
+прямой VK блокирует site-safety браузера. Боевых Prodamus настроек нет: TEST
+сохранён. Владелец должен отозвать 2 старых Yandex shares после проверки PDF.
+Точный отчёт/границы: docs/audits/staging-four-blockers-2026-10-26.md.
 
 26 октября, живое тестирование по документам: runtime API/web3557444,
 origin/staging d5bcbf1; последние19commits ещё не выложены.9admin sections,
