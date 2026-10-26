@@ -2,6 +2,15 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26 октября, продолжение локального тестирования: fresh frontend production
+build/types и135unit/loopback checks GREEN. С Cua/настоящим HTTP-кешем своего
+loopback fixture прошли8сценариев фото/viewer/cache/retry503/session503/account
+switch. Найден1новый сбой: retry пока image response всё ещё pending не создаёт
+новый GET, воспроизведено дважды; release старого ответа восстанавливает загрузку.
+E2E image-loading освобождает ответ до retry, поэтому требуется новая проверка.
+Frontend передан пункт15; live/DB/S3/source frontend не менять. Codec sample
+подтвердил большую pixel error повторного lossy encode, без визуальной приёмки.
+
 26 октября, проверить photo handlers с приоритетом качества: Picture
 load/error/retry/timers, blob URL, picker/canvas/encode, session scopes и
 backend streaming.102existing tests/7files и6private probes прошли.

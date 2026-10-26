@@ -4,6 +4,17 @@
 
 ### Скорость фотографий и экранов — 26 октября
 
+- [x] Продолжение в реальном локальном браузере: fresh production build/types,
+  135unit/loopback checks.8browser-сценариев прошли: cache-on reload/return,
+  viewer,503recovery, session503/retry и A→B без старого имени/аватара.
+  Синтетический API/HTTP, без рабочей БД/S3. Код фронта не менялся.
+- [ ] Новая подтверждённая frontend ошибка: retry до окончания старого image
+  response присоединяется к зависшему запросу; два воспроизведения, счётчикGET1.
+  После release старого response GET2/recovery проходит. Handoff пункт15;
+  текущий E2E вызывает release до retry и этот случай пропускает.
+- [x] Codec comparison одного public sample: один server encode против
+  JPEG80→JPEG82→server, RMSE3,57/5,57. Это synthetic codec comparison,
+  не визуальная приёмка или новая политика качества. Отчёт актуализирован.
 - [x] Продолжение по обработчикам/качеству:102existing tests/7files и6private
   characterization probes GREEN. Offscreen100ms polling и comment blob URL
   churn подтверждены; маленький/cropped JPEG повторно encode, avatar имеет
