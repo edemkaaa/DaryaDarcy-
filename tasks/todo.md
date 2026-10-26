@@ -2,18 +2,29 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
-### Остаток после свежего frontend — 26 октября
+### Выпуск свежего frontend и проверка — 26 октября, 21:06 МСК
 
-- [x] Кодовая сверка staging b1ea522/фронт1d3e7ab: category filters, bounded
-  reactions, articles/payments pages, avatar/cover receipts и canBlockAuthor
-  подключены; Next/package+lock16.4.1. Не переделывать повторно.
-- [x] Read-only SSH: API/webff2c229, healthy/OOMfalse/restart0; новый frontend
-  ещё не выложен. БД/флаги/образы/S3 не менялись.
-- [ ] Сборка/типы/audit нового frontend, затем согласованный выпуск и regression.
-- [ ] Frontend: guide TOC/slot sizes/Safari source order/fallback/polling/blob URLs/
-  лишние lossy encode. Единый handoff содержит текущую карту и старые наблюдения.
-- [ ] Внешние: live Prodamus и payment-mail chain, owner revoke2Yandex, VK22.
-  Отложенные большие файлы/нагрузка/devices/pilot отдельно, не новые функции.
+- [x] Web a49193f/frontend1d3e7ab/Next16.4.1 опубликован. API/TESTff2c229:
+  backend-код с тех пор не менялся; пересоздан только web, edge reload.
+- [x] Frozen install/types/lint/API102/build; 3310unit passed/1733skipped,
+  verify248/focused44. Production audit0advisory/323dependencies; native26checks.
+- [x] Первый кандидат без build-time thumbnail flag откатан; финальная сборка
+  includeThumbnails:true,22карточки/0missingcovers. HTTPS35checks/SHA16assets.
+- [x] Настоящие admin9sections/draft post+article CRUD/richText/comment lost
+  response без дублей/edit/delete/saved/account switch/private PDF/member/revoke.
+  Фото cache-on12→12; HTTPS max-age3600/conditional304. Не полный playback VK.
+- [x] Backup41tables/44migrations/безDDL; исходные7users/3admins/933posts/
+  2articles/82videos и хеши данных сохранены; свои fixtures/пароли удалены.
+  Образы отката/бэкапы/старыеS3 сохранены, без платежей/писем/S3writes.
+- [x] Единый frontend handoff актуализирован:2–7/11готовы, не реализовывать заново.
+- [ ] Frontend9/13–14: guideTOC/slot sizes/Safari source order/fallback/polling/
+  blob URLs/лишние lossy encode. Live avatar/cover lost-ACK и unknown-op switch
+  не повторялись; manager block prompt и payments51+ отдельно не приняты.
+- [ ] Внешние: live Prodamus/payment-mail chain, owner revoke2Yandex, VK22playback.
+  Отложенные большие файлы/нагрузка/devices/PWA/pilot. Shared host98%/876MiBdisk,
+  ~511MiBavailable/no swap: лимиты не увеличивались, stress не проводился.
+- [x] Отчёт: docs/audits/staging-frontend-rollout-2026-10-26.md. Шлюз/Next
+  остановлены, рабочие тестовые вкладки закрыты; исходная вкладка сохранена.
 
 ### Сквозная регрессия после выпуска — 26 октября, 19:40 МСК
 

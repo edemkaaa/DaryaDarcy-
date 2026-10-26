@@ -2,6 +2,21 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26 октября, 21:06 МСК: свежий frontend1d3e7ab выпущен как weba49193f,
+Next16.4.1/nativeSWC; API/TESTff2c229 имеют тот же backend-код и сохранены.
+Первый кандидат без compile-time thumbnail flag откатан без восстановления БД;
+финальная сборка передаёт includeThumbnails:true и показывает22/22covers.
+3310unit passed/1733skipped, verify248/focused44, prod audit0advisory,
+native26 и HTTPS35checks прошли. Admin9sections, свои draft post/article CRUD,
+richText, comment lost response/replay/edit/delete, saved/account switch,
+private PDF/member/guest/revoke, фото12→12 и HTTP3600/304 проверены.
+Backup41tables/44migration безDDL; свои fixtures удалены, исходные7users/
+3admin credentials/933posts/2articles/82videos и хеши данных сохранены.
+S3/письма/платежи/дизайн не менялись; rollback images сохранены. Остаток:
+frontend9/13–14 и live upload-recovery acceptance, liveProdamus/VK22playback/
+owner2shares/отложенные размеры/нагрузка/devices/PWA/pilot. Shared host почти
+заполнен; лимиты не повышались. Полный отчёт: [выпуск и регрессия](../docs/audits/staging-frontend-rollout-2026-10-26.md). Дальнейший push документации не означает новый product release.
+
 26 октября, 19:40 МСК: сквозная браузерная регрессия настоящего стенда ff2c229.
 Auth/session503/retry/saved/account switch/comment lost response без дублей,
 редактирование comment, draft post/article CRUD и форматирование проверены.
