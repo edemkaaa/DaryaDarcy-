@@ -2,6 +2,16 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26 октября, 19:40 МСК: сквозная браузерная регрессия настоящего стенда ff2c229.
+Auth/session503/retry/saved/account switch/comment lost response без дублей,
+редактирование comment, draft post/article CRUD и форматирование проверены.
+Viewer/cache возврат12→12, истечение синтетического доступа, запрет user→admin,
+9admin sections/guest quiz10/shop проверены с границами отчёта. Castlecore TOC и
+payments50 остаются во frontend handoff; block prompt/unknown-op switch не закрыты.
+Все свои fixtures удалены; SHA41таблиц/schema/configs/containers/3admins baseline
+совпали. Свои gateway/вкладки закрыты, backup сохранён, S3/product code без правок,
+push/deploy нет. docs/audits/staging-browser-regression-2026-10-26.md.
+
 26 октября, 18:35 МСК: ff2c229 выложен со staging (API/web/TEST), healthy/0OOM/
 0restart. Backup 41 таблицы проверен на сервере и Mac; 44 migrations совпали,
 DDL/ledger не менялись. Импортированы 220 private illustrations + 6 PDF,

@@ -2,6 +2,22 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Сквозная регрессия после выпуска — 26 октября, 19:40 МСК
+
+- [x] Настоящие frontend/API: auth/logout, session503/retry, публичное saved без
+  подписки, смена аккаунта, один comment после потерянного ответа без дубля,
+  редактирование comment, черновики поста/статьи CRUD и richText bold/italic/2links.
+- [x] Cache-on возврат через профиль: 12 → 12 image requests; viewer 1280 decoded.
+  Истечение синтетического доступа закрыло Клуб/гид; обычный user не вошёл в admin.
+- [x] Девять admin-разделов прочитаны; guest quiz10/result, магазин/карточка книги.
+- [x] Свои fixtures удалены; хеши всех41таблиц/схемы/3admin credentials/configs/
+  containers совпали с baseline. Backup сохранён, gateway/свои3вкладки закрыты.
+- [ ] Handoff9: Castlecore после установления прокрутки ниже viewport; payments50
+  остаётся. Manager block prompt не проверен; switch во время unknown op не проверен.
+  Боевой Prodamus/VK22/старые2shares/отложенные размеры/пилот остаются открыты.
+- [x] Product-код/фронт/S3 не менялись, push/deploy нет. Точные границы:
+  docs/audits/staging-browser-regression-2026-10-26.md.
+
 ### Исправление четырёх блокеров — 26 октября
 
 - [x] VK optional hash/кнопка вне iframe; локальный браузер.
@@ -25,8 +41,8 @@
   result/reload/PWA hint,9legal pages иmanifest192/512. Приватный отчёт сохранён.
 - [x] Подтверждён release gap: сервер3557444/Gitd5bcbf1. На API прежние
   Nodemailer/body-parser/Multer; на webNext16.3.8, audit2critical/1high.
-- [ ] Выпуск согласованного staging и повтор smoke новых исправлений;
-  в текущем запросе только тестирование, образ/flags/ресурсы не менялись.
+- [x] Выпуск ff2c229 и повтор smoke выполнены позднее 26 октября; см. разделы
+  выпуска и регрессии выше. Здесь сохранены исторические результаты до выпуска.
 - [ ] Боевой recurring/почта-платёжная цепочка,старые публичные paid copies,
   visual bindings220+consumers,recipes/peterburg по согласованию и прежний
   frontend handoff. VK начальный error→play не равен полной приёмке22роликов.
