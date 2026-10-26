@@ -2,6 +2,30 @@
 
 ## Действующий план агента — 13 октября 2026
 
+Backend completion,26октября: выполнять только подтверждённый доступный остаток.
+1. SPEED4: стандартное response compression для allowlist анонимных GET JSON,
+   без auth/private/media/ошибок/Range, с реальной loopback HTTP проверкой.
+2. LEGACY-PHOTO: проверяемая адресная инвентаризация старых post media,
+   различать club/public/shared/unknown; read-only фактическая карта, без ACL/DELETE.
+3. Репетиция fresh44→backup→restore в собственных одноразовых БД;
+   не объявлять проверкой рабочего снимка/финального образа при другом транспорте.
+4. Backend regression/types/build/API/audit, ревью и единый остаток.
+Frontend/code, workingDB/S3/flags/limits не менять; push/deploy в этот шаг не входят.
+Физические устройства/VK/пилот, liveProdamus и реальное закрытие публичных
+источников остаются отдельной приёмкой/операцией. Новых продуктовых функций нет.
+
+Результат 26 октября: public compression реализован и проверен настоящим HTTP;
+inventory CLI + READ ONLY карта 4 945 ссылок/4 943 группы, 384 кандидата и 2 общих
+публичных обложки. Исходники/привязки не менялись. Fresh44 backup/restore всех
+41 таблицы на двух tmpfs MySQL: 8passed/2image-only skipped, cleanup без OOM/restarts.
+Фронт и API-контракт прежние; код сохранён локально отдельными commits, без выпуска.
+Отчёт: [доведение backend](../docs/audits/backend-completion-2026-10-26.md).
+Следующий значимый остаток — адресная репетиция переноса старых клубных источников,
+затем отдельная проверяемая операция; не закрывать shared обложки и всю feed-папку.
+Финальный прогон после ревью: 3 365passed/1 735skipped, 94focused passed;
+types/API102/boundaries799/backend+TEST build/docs/frozen lockfile/audit0 GREEN.
+SQL/live suites, требующие отдельного окружения, не объявлены пройденными.
+
 26 октября, исследование скорости экранов: docs/audits/post-video-screen-speed-2026-10-26.md.
 Проверены свежие feed/list/grid/post/viewer, Club, Saved(empty), Library/article6,
 admin posts/videos/articles/calendar, VK20→22; playback provider не активировался.

@@ -2,6 +2,24 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Доведение backend по подтверждённому остатку — 26 октября
+
+- [x] BE-FINAL1: bounded public response compression; RED/GREEN настоящим HTTP,
+  идентичный JSON после распаковки, auth/Range/media/ошибки не сжимаются.
+- [x] BE-FINAL2: inventory legacy post media + shared/public blockers;
+  unit cases и read-only карта стенда, без сохранения персональных текстов.
+- [x] BE-FINAL3: fresh44 backup/restore на своих одноразовых БД;
+  SHA/DDL/ledger/незавершённые операции и cleanup, без рабочей БД.
+- [x] BE-FINAL4: свежие backend проверки/build/types/API/audit/review;
+  отдельные локальные commits, инструкция фронтендеру только при нужном контракте.
+
+Итог: 3 365 passed / 1 735 skipped в общем прогоне; отдельно 94 focused passed
+и 8 native backup/restore passed / 2 image-only skipped. Types, API102,
+boundaries799, backend+TEST build, docs, frozen lockfile и production audit0 прошли.
+Код: a4c1589/a9d0815/e556baa; без push/deploy. Остаток — перенос клубных
+источников, внешняя приёмка и настройки владельца, не новые продуктовые функции.
+Отчёт: docs/audits/backend-completion-2026-10-26.md.
+
 ### Исследование скорости постов/видео — 26 октября
 
 - [x] Живые экраны/возвраты, API/headers/READ ONLY SQL/cache,22covers,
@@ -13,10 +31,13 @@
 - [ ] SPEED2: отдельный выпуск19losslessVKcovers+immutable/versionedURLs,
   backup/expected-old bindings. Кандидаты готовы локально, S3/БД не менялись.
 - [ ] SPEED3: bounded head-only background refresh Ленты; сейчас refetch4pages→4GET.
-- [ ] SPEED4: адресное сжатие публичных текстовых API; GIF3 только послеbrowserQA.
-- [ ] LEGACY-PHOTO: post938club photoanonymousHEAD/optimizer200; составить
-  адресную карту передпереносом/закрытием. Старые файлы не трогать вслепую;
-  publicTTL всей feed-папки не увеличивать. Это дополнение кR2 ниже.
+- [x] SPEED4: адресное сжатие публичных текстовых API реализовано локально.
+- [ ] GIF3: lossless-кандидат только после отдельной browser QA, пока не внедрён.
+- [x] LEGACY-PHOTO inventory: READ ONLY карта 4 945 ссылок/4 943 группы;
+  384 restricted-candidate, 2 shared-public (посты937/942 = обложки статей5/6).
+- [ ] LEGACY-PHOTO перенос/закрытие: составить адресный manifest и отрепетировать
+  отдельные копии/привязки; исходники/публичные обложки сохранить, без blanket ACL.
+  publicTTL всей feed-папки не увеличивать. Это дополнение к R2 ниже.
 
 ### Действующий остаток после исследования — 26 октября, после22:18МСК
 
@@ -35,7 +56,8 @@
 - [ ] R6: iPhone/Android/desktop/домашний экран, нагрузка и5–7дней пилота;
   отложенные32/80MiB остаются отдельно. Не нагружать заполненный shared host.
 - [ ] Дополнительная приёмка: liveTimeweb public-photo unknown-op/account switch;
-  legacy read retirement/restore44/orphan cleanup — по отдельным границам отчёта.
+  legacy read retirement/рабочий snapshot restore/orphan cleanup — по отдельным
+  границам отчёта; синтетический fresh44 restore уже пройден (BE-FINAL3).
 
 Ниже — история проверок. Старые незакрытые галочки frontend9/13–14 и переноса
 материалов не означают, что нужно переделывать уже опубликованные исправления.
