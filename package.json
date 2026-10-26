@@ -57,7 +57,7 @@
     "express": "^4.22.1",
     "jose": "6.1.0",
     "mysql2": "3.24.5",
-    "nodemailer": "10.0.13",
+    "nodemailer": "10.1.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-router-dom": "^7.18.2",
