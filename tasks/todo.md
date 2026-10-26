@@ -4,6 +4,11 @@
 
 ### Скорость фотографий и экранов — 26 октября
 
+- [x] Новый срез:94unit/5files,12real-browser journal checks (3reload+
+  9конфликтов),4проверки карусели с pending первым фото/End/viewer/Home.
+  File bytes/имена/ключи/aliases сохранены, чужой owner/post/подмена отказаны;
+  API callbacks синтетические, не real S3/backend E2E. Новых ошибок нет.
+  Handoff пункт16. Две свои вкладки и3локальных сервера закрыты.
 - [x] Продолжение в реальном локальном браузере: fresh production build/types,
   135unit/loopback checks.8browser-сценариев прошли: cache-on reload/return,
   viewer,503recovery, session503/retry и A→B без старого имени/аватара.
@@ -70,9 +75,10 @@
   14 локальных guard/rollback checks, затем 9 реальных HTTPS GET/304,
   SHA/ETag/размеры совпадают, HEAD оригиналов прежние. Остальные 550 файлов
   не менялись; API/MySQL и другие 23 контейнера не перезапускались.
-- [ ] Контроль после часа: одноразовая автоматизация ttl в текущем чате,
-  примерно 16:02 МСК 26 октября. Проверить HTTP и дисковый TTL после expiry;
-  результат пока не получен. Исторический возврат30 после23октября не доказан.
+- [x] Контроль после часа завершён26октября16:04МСК:9GETmax-age3600,
+  9conditional304/0bytes, прежние SHA/ETag/originHEAD и9diskTTL3600.
+  Тот же web healthy/OOMfalse/RestartCount0, helperRO удалён; ttl automation
+  отключена (PAUSED). Исторический возврат30 после23октября не доказан.
   Frontend/БД/S3/config/образы/лимиты не менялись; push/deploy не выполнялись.
   Отчёт: photo-cache-investigation-2026-10-26.md.
 

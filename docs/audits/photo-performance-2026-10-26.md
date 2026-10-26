@@ -267,6 +267,54 @@ PSNR33,22dB. Эти числа характеризуют ошибку pixels о
 после проверки PID/command/cwd, listeners18081/19092 больше нет.
 Frontend source, рабочая БД/S3/админские входы и live cache не менялись.
 
+## Независимая серия: перезагрузка журналов и быстрые переключения
+
+26октября, HEADaa08066 до отчёта.94unit checks из5файлов прошли:
+
+```sh
+pnpm exec vitest run tests/frontend-post-save.test.ts tests/frontend-post-save-atomic.test.ts tests/frontend-post-create-intent.test.ts tests/frontend-post-draft.test.ts tests/post-video-journal.test.ts --maxWorkers=1
+```
+
+Существующие callbacks из12browser journal test cases извлечены AST и собраны
+с действительными клиентскими модулями в отдельную локальную test harness.
+Кнопки запускались через Cua. Новый случайный loopback port создаёт отдельный
+origin; только его собственные синтетические IndexedDB очищаются между cases.
+Рабочие origin/БД/файлы/учётные данные не используются, сеть ограничена self.
+Это не новая функциональность и не правка исходников приложения.
+
+Три проверки с настоящим reload: photo post, article document и comment photo
+сохранили bytes/name/MIME/lastModified и стабильные key; у поста сохранены
+alias editor/coordinator, у статьи совпал idempotencyKey, у комментария —
+исходный parentId/postId/text. Дополнительно9cases прошли: поддельная receipt,
+подмена File под прежним key, другой owner, stale checkpoint/clear, замороженная
+write-фаза, одновременный prepare и другой post. Это конфликты двух экземпляров
+журнала в одном browser context, не полноценная проверка двух вкладок UI.
+Подставные upload/add callbacks проверяют клиентский протокол, не S3/SQL.
+
+Машинный report содержит11успешных событий:подготовка, одна общая проверка
+трёх восстановленных журналов и9отдельных conflict cases. Поэтому12journal
+cases не нужно путать с11report events или количеством проверок всего приложения.
+
+Отдельно в production UI на loopback fixture проверены4перехода альбома12фото:
+первый response удерживается; End выбирает12/12, viewer готов с последним
+ресурсом; закрытие старого ответа с ошибкой не меняет активное фото;
+после закрытия viewer Home возвращает1/12, первое фото загружается.
+При прямом jump до возвращения было3GET к изображениям0/10/11, а не12.
+Это подтверждает существующее ограничение соседних источников. Поздний успешный
+image response в этой серии не моделировался — только ошибочное закрытие.
+
+Новых неисправностей эта серия не выявила. Ручной retry при ещё pending
+старом response из предыдущей серии остаётся неисправленным и передан фронту.
+Скриншот/JSON, скомпилированный test harness и исходные callbacks сохранены вне
+Git: соседний `.local-artifacts/journal-browser-review-20261026`.
+Собственные2вкладки и3локальных сервера закрыты по окончании; source frontend,
+working DB/S3/live config не менялись. Настоящие большие загрузки, устройства,
+визуальная приёмка качества и нагрузка100users не запускались.
+
+В рамках того же продолжения прошёл отдельно согласованный read-only контроль
+9превью после часа; HTTP/disk TTL3600 и прежние SHA/ETag подтверждены в16:04МСК.
+Подробный результат в [отчёте TTL](photo-cache-investigation-2026-10-26.md).
+
 ## Источники и артефакты
 
 - [Next: sizes](https://nextjs.org/docs/pages/api-reference/components/image#sizes).

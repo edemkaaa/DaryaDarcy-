@@ -2,6 +2,15 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26 октября, новая серия:94unit/5files и12browser journal checks (3reload+
+9conflicts) пройдены на настоящих File/IndexedDB с synthetic API callbacks.
+Production carousel End/viewer/late error/Home также пройден, прямой jump
+запросил только3фото. Новых ошибок нет; retry пока старый response pending
+из пункта15 не исправлялся. Handoff пункт16; свои2tabs/3localservers закрыты.
+Параллельно завершён контроль live TTL после часа16:04МСК:9HTTP/disk3600,
+SHA/ETag/originHEAD прежние, web без restart/OOM. Одноразовая ttl automation
+отключена; это read-only контроль, не новая выкладка. Source/DB/S3 не менялись.
+
 26 октября, продолжение локального тестирования: fresh frontend production
 build/types и135unit/loopback checks GREEN. С Cua/настоящим HTTP-кешем своего
 loopback fixture прошли8сценариев фото/viewer/cache/retry503/session503/account
@@ -40,8 +49,8 @@ sizes/Safari, затем public covers/fallback и контролируемая 
 сохранены, остальные 550 записей неизменны. Тот же web запущен на прежнем
 образе и с прежними настройками/лимитами; API/MySQL/другие контейнеры прежние.
 Публичные 9 GET имеют max-age3600, прежние SHA/ETag/размеры, 9 условных304
-без тела; оригиналы HEAD неизменны. Проверка после часа ещё ожидается:
-одноразовая автоматизация ttl, примерно16:02МСК26октября. Не объявлять
+без тела; оригиналы HEAD неизменны. Контроль после часа завершён16:04МСК:
+HTTP/disk3600 и прежние bytes, ttl automation отключена. Не объявлять
 историческую причину возврата30 установленной. Продуктовый код/frontend/БД/
 S3/образы/config не менялись; обновление приложения и push не выполнялись.
 
