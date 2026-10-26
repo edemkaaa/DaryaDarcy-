@@ -132,7 +132,6 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
     const revealOnLoad = fadeOnLoad && !displayedBefore;
     const terminalFailure =
       timedOut || (failed && attempt >= RETRY_DELAYS.length);
-    const hasCustomLoader = loadingFallback !== undefined;
     const retry = () => {
       setLoaded(false);
       setFailed(false);
@@ -146,6 +145,10 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
       let timer: number | undefined;
       const start = () => {
         if (timer !== undefined) return;
+        if (image.complete && image.naturalWidth > 0) {
+          setLoaded(true);
+          return;
+        }
         timer = window.setTimeout(() => {
           if (image.complete && image.naturalWidth > 0) {
             setLoaded(true);
@@ -178,33 +181,6 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
         window.clearTimeout(timer);
       };
     }, [asset?.uri, loaded, failed, timedOut, attempt, useOriginal, loading]);
-    useEffect(() => {
-      if (!hasCustomLoader || !asset?.uri || loaded || failed || timedOut)
-        return;
-      const image = imageRef.current;
-      if (!image) return;
-      // Also detect completion if a cached image's load event was missed.
-      // Intrinsic dimensions alone do not mean a progressive photo is finished.
-      const isComplete = () => image.complete && image.naturalWidth > 0;
-      if (isComplete()) {
-        setLoaded(true);
-        return;
-      }
-      const timer = window.setInterval(() => {
-        if (!isComplete()) return;
-        setLoaded(true);
-        window.clearInterval(timer);
-      }, 100);
-      return () => window.clearInterval(timer);
-    }, [
-      hasCustomLoader,
-      asset?.uri,
-      loaded,
-      failed,
-      timedOut,
-      attempt,
-      useOriginal,
-    ]);
     useEffect(() => {
       if (!failed) return;
       // Retry explicit failures only; a timeout requires a manual retry.
@@ -260,23 +236,28 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
               setLoaded(true);
             }
           }}
-          src={timedOut ? undefined : resolved.src}
           alt={label || ""}
           width={asset?.width}
           height={asset?.height}
           loading={loading}
           decoding={decoding ?? (displayedBefore ? "sync" : "async")}
           fetchPriority={fetchPriority}
+          // Safari can start the fallback before seeing its responsive sizes.
+          sizes={sizes ?? resolved.sizes}
           srcSet={
             timedOut || useOriginal ? undefined : (srcSet ?? resolved.srcSet)
           }
-          sizes={sizes ?? resolved.sizes}
+          src={timedOut ? undefined : resolved.src}
           draggable={false}
           onError={(event) => {
             if (timedOut || imageRef.current !== event.currentTarget) return;
-            // The frontend optimizer has its own upstream timeout. Bypass it
-            // after a failure so the browser can wait for the original photo.
-            if (!useOriginal && resolved.src?.startsWith("/_next/image?")) {
+            // Recover a temporary preview failure before fetching a much
+            // larger original. Preserve its URL/signature across retries.
+            if (
+              !useOriginal &&
+              resolved.src?.startsWith("/_next/image?") &&
+              attempt >= RETRY_DELAYS.length
+            ) {
               setLoaded(false);
               setUseOriginal(true);
               return;
