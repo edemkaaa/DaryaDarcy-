@@ -292,3 +292,30 @@ test("a failed access refetch hides a previously loaded video instead of retaini
     page.getByRole("button", { name: "Повторить", exact: true }),
   ).toBeVisible();
 });
+
+test("VK reload stays outside the provider's interactive frame", async ({
+  page,
+}) => {
+  await editorApi(page, (name) =>
+    name === "videos.getById"
+      ? ok({ id: 42, title: "VK_CONTROLS", videoUrl: embed, youtubeId: "" })
+      : undefined,
+  );
+  await page.route("https://vkvideo.ru/**", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: "<p>VK controls fixture</p>",
+    }),
+  );
+  await gotoWithSession(page, "/video/42");
+  const frame = page.getByTitle("VK Видео", { exact: true });
+  const reload = page.getByRole("button", {
+    name: "Перезагрузить плеер VK",
+    exact: true,
+  });
+  await expect(frame).toBeVisible();
+  await expect(reload).toBeVisible();
+  const playerBox = (await frame.boundingBox())!;
+  const reloadBox = (await reload.boundingBox())!;
+  expect(reloadBox.y).toBeGreaterThanOrEqual(playerBox.y + playerBox.height);
+});

@@ -34,7 +34,7 @@ export function VkVideoField({
     const url = validateUrl(value.trim());
     if (!url) {
       setError(
-        "Вставьте HTTPS-ссылку video_ext.php из экспорта VK с параметрами oid, id и hash. Ссылка на страницу ролика и HTML-код не подходят.",
+        "Вставьте HTTPS-ссылку video_ext.php из экспорта VK с параметрами oid и id. Сохраните hash, если он есть. Ссылка на страницу ролика и HTML-код не подходят.",
       );
       return;
     }

@@ -22,17 +22,15 @@ export function getVkVideoEmbedUrl(value: string): string | null {
       !/^-?[1-9]\d{0,19}$/.test(oid) ||
       !id ||
       !/^[1-9]\d{0,19}$/.test(id) ||
-      !hash ||
-      !/^[a-zA-Z0-9_-]{8,128}$/.test(hash) ||
-      ["oid", "id", "hash"].some(
-        (key) => url.searchParams.getAll(key).length !== 1,
-      )
+      (hash !== null && !/^[a-zA-Z0-9_-]{8,128}$/.test(hash)) ||
+      url.searchParams.getAll("hash").length > 1 ||
+      ["oid", "id"].some((key) => url.searchParams.getAll(key).length !== 1)
     )
       return null;
     const player = new URL("/video_ext.php", url.origin);
     player.searchParams.set("oid", oid);
     player.searchParams.set("id", id);
-    player.searchParams.set("hash", hash);
+    if (hash !== null) player.searchParams.set("hash", hash);
     const hd = url.searchParams.get("hd");
     if (hd && /^[0-3]$/.test(hd)) player.searchParams.set("hd", hd);
     player.searchParams.set("autoplay", "0");
