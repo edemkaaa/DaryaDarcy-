@@ -2,6 +2,21 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26 октября, 21:59 МСК: по новому разрешению исправлены frontend9/13–14:
+guide live DOM position, slot sizes/static variants/src order, bounded preview
+retries/no polling, comment URL reuse, bounded-source passthrough/lossless avatar
+crop/MIME-compatible journal, cancellable poster probe. Полный native MySQL/HTTP
+и unit прогон4732passed/332skipped,0failures. Types/lint/API102/boundaries798,
+backend+TEST/frontend builds,verify248,prod audit0. Browser7TOC+reflow1400,
+preview recovery/cache/offscreen0polls,manual retry3modes и synthetic avatar GREEN.
+Backend product-код прежний; исправлена изоляция SQL fixtures, ложные lock
+failures вызваны отключённой диагностикой первого одноразового контейнера.
+ce56ebe запушен и web обновлён; native26/backup41/44migrations/noDDL,
+row/schema/admin3 digests сохранены. API/TESTff2c229 — тот же код.
+Финальный HTTPS35/SHA16assets и browser smoke пройдены:9thumbs320px, viewer
+1440→naturalWidth1280, Castlecore19.875px. Receipts сохранены; внешний/отложенный
+остаток не объявлять закрытым. Отчёт: docs/audits/final-recheck-2026-10-26.md.
+
 26 октября, 21:06 МСК: свежий frontend1d3e7ab выпущен как weba49193f,
 Next16.4.1/nativeSWC; API/TESTff2c229 имеют тот же backend-код и сохранены.
 Первый кандидат без compile-time thumbnail flag откатан без восстановления БД;

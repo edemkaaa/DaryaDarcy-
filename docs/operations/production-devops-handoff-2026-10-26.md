@@ -137,7 +137,9 @@ password hashes, роли и sessionVersion существующих админ�
    Git-контекста. Использовать pnpm9.12.0/frozen lockfile и существующие Dockerfile.
    Зафиксировать source SHA, digest каждого образа и build-time публичные флаги.
    Образы отката сохранять. На 26 октября backend dependency/VK parser fixes
-   уже выпущены в ff2c229; текущий web a49193f содержит frontend1d3e7ab и Next16.4.1.
+   уже выпущены в ff2c229; web ce56ebe содержит правки поверх frontend1d3e7ab и Next16.4.1.
+   26 октября повторный прогон4732passed/332skipped и native26/HTTPS35 прошли;
+   [результат повторной проверки](../audits/final-recheck-2026-10-26.md).
    Backend-код между этими source одинаков; проверять code diff и образ отдельно
    от одного лишь общего Git SHA.
 2. **Окружение.** Отдельные production env/secrets. NEXT_PUBLIC_* фиксируются

@@ -2,6 +2,30 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Повторная проверка и исправления — 26 октября, 21:59 МСК
+
+- [x] Разрешены frontend/backend исправления. Гид: актуальные DOM coords вместо
+  stale y, все7переходов~20px + reflow1400 Castlecore19.875px в browser.
+- [x] Фото: slot sizes/static variants/Safari attribute order, preview retries,
+  отсутствие100ms polling, стабильные comment blob URLs, quality-aware preparation,
+  lossless crop400/MIME journal compatibility, cancel/deadline poster metadata.
+- [x] RED→GREEN targeted regressions; native loopback MySQL/HTTP полный прогон
+  4732passed/332skipped/0failed. Ошибки fixture diagnostics/cleanup разобраны и
+  исправлены в тестах; backend product-код менять без причины не понадобилось.
+- [x] Types/lint/API102/boundaries798/backend+TEST/frontend builds/verify248/audit0.
+- [x] Browser: preview503→third success/cache,18offscreen polls0, три pending
+  modes manual retry2requests/no3on reload; synthetic avatar crop→HTTP→profile.
+- [x] ce56ebe запушен в staging и web выпущен: native26, backup41tables/44migrations
+  noDDL, 7users/3admins/933posts/2articles/82videos и row/schema/admin digests прежние.
+  API/TESTff2c229 тот же код, только web recreated, rollback image сохранён.
+- [x] Финальный HTTPS35/SHA16assets; живой пост744:9thumbs320px/viewer1440→
+  naturalWidth1280, Castlecore19.875px. Receipts сохранены приватно.
+- [ ] Остаток: live Prodamus/payment-mail, VK22playback, owner2shares, физический
+  Safari/device/PWA/pilot, live Timeweb avatar/cover unknown-op и manager prompt.
+  Отложенные32/80MiB/100users остаются отдельно; новых функций не добавлять.
+- [x] Одноразовый tmpfs MySQL удалён с exact ID/label guard, без OOM/restarts.
+  Отчёт: docs/audits/final-recheck-2026-10-26.md; единый frontend handoff обновлён.
+
 ### Выпуск свежего frontend и проверка — 26 октября, 21:06 МСК
 
 - [x] Web a49193f/frontend1d3e7ab/Next16.4.1 опубликован. API/TESTff2c229:
