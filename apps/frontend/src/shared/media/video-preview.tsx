@@ -29,18 +29,15 @@ export function VideoPreviewCard({
   const [isPortrait, setIsPortrait] = useState(false);
   const isReel = /\/reels\//i.test(url);
   useEffect(() => {
+    setIsPortrait(false);
     if (!thumbnailUrl) return;
-    let cancelled = false;
-    DomImage.getSize(
+    return DomImage.getSize(
       thumbnailUrl,
       (width, height) => {
-        if (!cancelled && width && height) setIsPortrait(height > width * 1.05);
+        if (width && height) setIsPortrait(height > width * 1.05);
       },
       () => {},
     );
-    return () => {
-      cancelled = true;
-    };
   }, [thumbnailUrl]);
   const frameHeight =
     isReel || isPortrait

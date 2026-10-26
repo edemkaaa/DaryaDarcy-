@@ -51,9 +51,35 @@ export const DomImage = Object.assign(
       failure?: (error: Event | string) => void,
     ) => {
       const img = new window.Image();
-      img.onload = () => success(img.naturalWidth, img.naturalHeight);
-      img.onerror = failure || null;
-      img.src = resolveImageUri(uri)!;
+      let finished = false;
+      const cancel = () => {
+        finished = true;
+        clearTimeout(timer);
+        img.onload = img.onerror = null;
+        img.removeAttribute("srcset");
+        img.removeAttribute("src");
+      };
+      const timer = setTimeout(() => {
+        if (finished) return;
+        cancel();
+        failure?.("Image dimensions timed out");
+      }, 10_000);
+      img.onload = () => {
+        if (finished) return;
+        const { naturalWidth, naturalHeight } = img;
+        cancel();
+        success(naturalWidth, naturalHeight);
+      };
+      img.onerror = (event) => {
+        if (finished) return;
+        cancel();
+        failure?.(event);
+      };
+      const attributes = resolveImageAttributes(uri);
+      img.sizes = attributes.sizes ?? "";
+      img.srcset = attributes.srcSet ?? "";
+      img.src = attributes.src!;
+      return cancel;
     },
     prefetch: (uri: string) =>
       new Promise<boolean>((resolve, reject) => {
