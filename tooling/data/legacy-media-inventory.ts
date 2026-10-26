@@ -3,6 +3,7 @@ import { open } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { z } from "zod";
+import { planLegacyMedia } from "./legacy-media-plan";
 
 const reference = z
   .object({
@@ -135,7 +136,8 @@ export function inventoryLegacyMedia(input: unknown) {
 
 async function main(args: string[]) {
   if (
-    args.length !== 4 ||
+    ![4, 5].includes(args.length) ||
+    (args.length === 5 && args[4] !== "--plan") ||
     args[0] !== "--input" ||
     args[2] !== "--output" ||
     !args[1] ||
@@ -160,15 +162,16 @@ async function main(args: string[]) {
     await input.close();
   }
   const report = inventoryLegacyMedia(JSON.parse(bytes.toString("utf8")));
+  const result = args[4] === "--plan" ? planLegacyMedia(report) : report;
   const output = await open(resolve(args[3]), "wx", 0o600);
   try {
-    await output.writeFile(JSON.stringify(report, null, 2) + "\n");
+    await output.writeFile(JSON.stringify(result, null, 2) + "\n");
   } finally {
     await output.close();
   }
   console.log(
     JSON.stringify({
-      mode: "inventory",
+      mode: args[4] === "--plan" ? "plan" : "inventory",
       references: report.referenceCount,
       groups: report.groups.length,
       retirementAllowed: false,

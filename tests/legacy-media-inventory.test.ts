@@ -53,6 +53,43 @@ async function run(
   return { input, output, snapshot, code, stdout, stderr };
 }
 describe("read-only legacy media inventory", () => {
+  it("prepares an explicit plan without source checksums or permission to retire originals", async () => {
+    const result = await run(
+      [
+        ref(938),
+        {
+          kind: "publicReference",
+          id: 5,
+          slot: "article.cover",
+          access: "public",
+          url,
+        },
+        ref(1, "public", url + "-public"),
+        ref(2, "restricted", url + "?signature=hidden"),
+        ref(
+          3,
+          "restricted",
+          "/api/media/content-files/00000000-0000-4000-8000-000000000000",
+        ),
+      ],
+      ["--plan"],
+    );
+    expect(result.code, result.stderr).toBe(0);
+    const plan = JSON.parse(await readFile(result.output, "utf8"));
+    expect(plan.operations).toHaveLength(1);
+    expect(plan.operations[0]).toMatchObject({
+      subject: { kind: "postPhoto", id: 938, slot: "photos.0" },
+      expectedOldUrl: url,
+      expectedSourceSha256: null,
+      preserveOriginal: true,
+      sharedPublic: true,
+      ready: false,
+    });
+    expect(plan.blocked).toHaveLength(1);
+    expect(plan.alreadyProtected).toHaveLength(1);
+    expect(JSON.stringify(plan)).not.toContain("signature");
+    expect(plan.retirementAllowed).toBe(false);
+  });
   it("maps restricted, shared, unpublished and orphan references without granting deletion", async () => {
     const result = await run([
       ref(938),
