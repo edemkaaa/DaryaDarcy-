@@ -53,6 +53,6 @@ export class PrivateContentFilesService {
       try { const user = await this.sessions.authenticateRequest(req); if (club && !(await userHasClubAccess(user))) return; }
       catch (error) { if (error instanceof HttpError && error.statusCode === 403) return; throw error; }
     }
-    return { key: privateAttachmentObjectKey("document", assetId, "content"), mime: file.mimeType, etag: file.etag, inline: file.mimeType === "image/webp" || file.usage === "libraryPhoto" };
+    return { key: privateAttachmentObjectKey("document", assetId, "content"), mime: file.mimeType, etag: file.etag, inline: ["image/webp", "image/jpeg", "image/png", "image/gif"].includes(file.mimeType) || file.usage === "libraryPhoto" };
   }
 }

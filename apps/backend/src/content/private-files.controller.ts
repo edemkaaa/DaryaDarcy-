@@ -27,6 +27,7 @@ const DOWNLOAD_EXTENSIONS = new Map([
   ["image/webp", "webp"],
   ["image/jpeg", "jpg"],
   ["image/png", "png"],
+  ["image/gif", "gif"],
 ]);
 
 /** One safe integer byte range; undefined means invalid/unsatisfiable. */
