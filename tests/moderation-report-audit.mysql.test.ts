@@ -33,7 +33,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
-    beforeEach(async () => {
+    async function cleanup() {
       await conn.query(
         "DROP TRIGGER IF EXISTS moderation_report_audit_failure",
       );
@@ -42,6 +42,9 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DELETE FROM post_comments WHERE id=8412");
       await conn.query("DELETE FROM posts WHERE id=8415");
       await conn.query("DELETE FROM users WHERE id IN (8410,8411)");
+    }
+    beforeEach(async () => {
+      await cleanup();
       await conn.query(
         "INSERT INTO users (id,openId,role) VALUES (8410,'report-audit-actor','moderator'),(8411,'report-audit-author','user')",
       );
@@ -62,6 +65,7 @@ describe.skipIf(!testDatabaseUrl)(
     });
     afterAll(async () => {
       await app?.close();
+      if (conn) await cleanup();
       await conn?.end();
       const database = await getDb();
       await (
