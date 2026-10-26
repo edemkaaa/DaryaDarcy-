@@ -18,10 +18,12 @@
   135unit/loopback checks.8browser-сценариев прошли: cache-on reload/return,
   viewer,503recovery, session503/retry и A→B без старого имени/аватара.
   Синтетический API/HTTP, без рабочей БД/S3. Код фронта не менялся.
-- [ ] Новая подтверждённая frontend ошибка: retry до окончания старого image
-  response присоединяется к зависшему запросу; два воспроизведения, счётчикGET1.
-  После release старого response GET2/recovery проходит. Handoff пункт15;
-  текущий E2E вызывает release до retry и этот случай пропускает.
+- [x] Исправлен локально retry pending image: перед timeout освобождены
+  srcset/src. RED GET1→stuck; GREEN direct/srcset/preview GET2→ready,
+  reload без GET3. Production UI Ленты/просмотрщик также GREEN, без
+  operator-release. 16 unit, types/root types/lint/build прошли; 3 browser
+  cases проверены через Cua, CLI opt-in cases отмечены skipped. Handoff15
+  обновлён; без push/deploy, рабочих DB/S3 и изменения дизайна/качества.
 - [x] Codec comparison одного public sample: один server encode против
   JPEG80→JPEG82→server, RMSE3,57/5,57. Это synthetic codec comparison,
   не визуальная приёмка или новая политика качества. Отчёт актуализирован.

@@ -373,6 +373,55 @@ Harness перехватывает создание Audio только для н
 Приватные логи, browser JSON/ranges, harness и скриншот:
 соседний `.local-artifacts/media-access-review-20261026` вне Git.
 
+## Исправление ручного повтора зависшего фото — 26 октября
+
+По новому запросу пользователя внесена узкая локальная правка frontend.
+Причина повторно зафиксирована на HEAD `341b099` в настоящем браузере:
+после 30 секунд и нажатия retry GET остаётся один, HTTP body открыт,
+новый img имеет complete=false/naturalWidth=0. Сервер не завершал первый
+ответ. RED JSON сохранён до изменения исходников.
+
+`Picture` теперь перед переходом в timeout явно удаляет `srcset`, затем
+`src` прежнего img. Это закрывает старую передачу до нового ручного повтора.
+Новые параметры URL, режим no-cache и дополнительный fetch/blob слой не нужны.
+Сжатие/качество, CSS, сервер, API и файлы не менялись.
+
+На настоящем loopback HTTP fixture с реальным компонентом и включённым кешем
+прошли три случая: direct URL с неизменённым query, responsive srcset,
+Next preview URL. У каждого GET1 закрыт клиентом, pending=0; retry получает
+GET2 по **точно тому же URL**, complete=true/naturalWidth>0, без ошибки.
+Настоящий reload каждого из трёх случаев не делает GET3. Ещё на свежей
+production-сборке Ленты с синтетическим API воспроизведён исходный сценарий:
+timeout закрывает GET1 ровно через 30 секунд, retry успешно делает GET2,
+просмотрщик открывает готовое фото. Operator-release не использовался.
+
+В репозитории добавлены собственный HTTP fixture и три опциональных browser
+регрессии: `tests/helpers/picture-http-fixture.ts`,
+`tests/picture-retry.browser.test.ts`. Они не используют page.route и не
+освобождают зависший ответ на сервере до retry. Fixture собирает действительный
+Picture; подменены только каталог bundled assets, CSS и неиспользуемый barrel
+импорта. Проверка настоящего CSS выполнена отдельно в production UI.
+
+```sh
+pnpm exec vitest run tests/frontend-static-images.test.ts tests/frontend-image-optimizer.test.ts tests/picture-retry.browser.test.ts --maxWorkers=1
+pnpm --filter @daryadarcy/frontend typecheck
+pnpm exec tsc --noEmit
+pnpm --filter @daryadarcy/frontend exec eslint src/shared/media/image.tsx
+pnpm --filter @daryadarcy/frontend build
+```
+
+16 unit checks прошли; 3 опциональных browser tests в Vitest пропущены по
+флагу, **не объявлены успешным CLI-прогоном**. Три браузерных случая и reload
+в этой сессии проверены через Cua на том же HTTP fixture. Root/frontend types,
+lint изменённого компонента, форматирование tests и production build прошли.
+Сборка предназначена для локального стенда с loopback API, не для выпуска.
+Нагрузка, iPhone/Safari, реальный S3 и качество фотографий здесь не принимались.
+
+Приватные RED/GREEN JSON, исходные логи/fixture, screenshot и production
+proxy counters находятся в соседнем `.local-artifacts/picture-retry-fix-20261026`.
+Пять собственных вкладок и тестовые серверы закрыты; порты проверены закрытыми.
+Рабочие DB/админские входы/S3 не менялись; push/deploy не выполнялись.
+
 ## Источники и артефакты
 
 - [Next: sizes](https://nextjs.org/docs/pages/api-reference/components/image#sizes).

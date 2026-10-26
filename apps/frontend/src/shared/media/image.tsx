@@ -151,7 +151,10 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
             setLoaded(true);
             return;
           }
-          // Remove the expired image; a late load/error cannot revive it.
+          // Detaching the node alone leaves its request alive in some browsers:
+          // a retry with the same URL then joins that stalled transfer.
+          image.removeAttribute("srcset");
+          image.removeAttribute("src");
           // Do not automatically restart a hung request and waste bandwidth.
           setTimedOut(true);
           onErrorRef.current?.(new Error("Image loading timed out"));

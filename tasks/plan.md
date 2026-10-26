@@ -2,6 +2,14 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26 октября, по запросу «правь ошибки»: pending-image retry исправлен локально.
+Тест RED подтвердил GET1/stuck; явное освобождение srcset/src до timeout
+позволило direct/srcset/preview сделать GET2 по прежнему URL. Reload не
+делает GET3. Исходный сценарий и viewer прошли на свежей production-сборке
+Ленты с синтетическим API. 16 unit, types/root types/lint/build GREEN;
+3 opt-in browser cases через Cua (CLI skipped), handoff15 актуализирован.
+Дизайн/качество/API/рабочие DB/S3 не менялись, push/deploy не выполнялись.
+
 26 октября, продолжение: 138 unit и 64 настоящих локальных HTTP/SQL проверки
 закрытой выдачи/привязок пройдены; 19 cases отфильтрованы, не объявлены GREEN.
 В браузере 5 групп существующих audio/video компонентов прошли playback,
