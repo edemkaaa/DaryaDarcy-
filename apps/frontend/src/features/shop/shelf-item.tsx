@@ -56,6 +56,7 @@ export function ShelfItem({
       <Animated.div className={classes.imageMotion} style={animatedStyle}>
         <Picture
           source={{ uri: product.imageUrl }}
+          sizes={`${width || BOOK_WIDTH}px`}
           style={{ width: width || BOOK_WIDTH, height: height || BOOK_HEIGHT }}
           contentFit="contain"
           transition={300}

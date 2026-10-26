@@ -62,6 +62,6 @@ export function resolveImageAttributes(
     srcSet: variants
       .map((variant) => `${resolveImageUri(variant.uri)} ${variant.width}w`)
       .join(", "),
-    sizes: "(max-width: 480px) 100vw, 480px",
+    sizes,
   };
 }

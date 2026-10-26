@@ -20,14 +20,14 @@ export const DomImage = Object.assign(
     ref,
   ) {
     const asset = typeof source === "string" ? { uri: source } : source;
-    const resolved = resolveImageAttributes(asset?.uri);
+    const resolved = resolveImageAttributes(asset?.uri, false, false, props.sizes);
     return (
       <img
         {...props}
         ref={ref}
-        src={resolved.src}
-        srcSet={props.srcSet ?? resolved.srcSet}
         sizes={props.sizes ?? resolved.sizes}
+        srcSet={props.srcSet ?? resolved.srcSet}
+        src={resolved.src}
         alt={alt}
         width={asset?.width}
         height={asset?.height}

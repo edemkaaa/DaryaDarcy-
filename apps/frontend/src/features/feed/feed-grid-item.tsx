@@ -5,6 +5,7 @@ import { getFeedScreenLayout } from "./feed-screen.layout";
 import classes from "./feed-grid-item.module.scss";
 import Link from "next/link";
 import { Picture } from "@/shared/media/image";
+import { imageSlotSizes } from "@/shared/media/image-sizes";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { sanitizePlainPostText } from "@/domain/content/post-text-sanitize";
 import { truncateSelectionPreview } from "@shared/rich-text-edit";
@@ -50,6 +51,7 @@ export function GridItem({
         {item.photos?.[0] ? (
           <Picture
             source={{ uri: item.photos[0] }}
+            sizes={imageSlotSizes(3)}
             contentFit="cover"
             transition={200}
             className={classes.gridImage}

@@ -70,6 +70,28 @@ describe("static image previews", () => {
     });
   });
 
+  it("lets a small card select an existing small variant without shrinking its viewer", () => {
+    const thumbnail = resolveImageAttributes(
+      "/assets/photo.jpg",
+      false,
+      false,
+      "120px",
+    );
+    expect(thumbnail.sizes).toBe("120px");
+    expect(thumbnail.srcSet).toContain("320w");
+    expect(resolveImageAttributes("/assets/photo.jpg", true).src).toBe(
+      "/_next/static/media/photo.hash.jpg",
+    );
+    expect(
+      resolveImageAttributes(
+        "/api/media/library-files/private/photo",
+        false,
+        false,
+        "120px",
+      ).srcSet,
+    ).toBeUndefined();
+  });
+
   it("preserves signed media URLs, data, blobs and unknown local paths exactly", () => {
     for (const uri of [
       "https://s3.twcstorage.ru/daryadarcy-s3/uploads/photo.webp?X-Amz-Signature=abc&x=1%2F2",

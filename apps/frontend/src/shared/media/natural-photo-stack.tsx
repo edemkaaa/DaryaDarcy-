@@ -2,6 +2,7 @@
 import classes from "./natural-photo-stack.module.scss";
 import frameClasses from "./post-photo-frame.module.scss";
 import { PhotoTile } from "./photo-tile";
+import { imageSlotSizes } from "./image-sizes";
 import { usePhotoAspectRatios } from "./photo-aspect-ratios";
 import { postPhotoRows } from "./post-photo-rows";
 import { PostPhotoCarousel } from "@/shared/media/post-photo-carousel";
@@ -79,7 +80,9 @@ export function NaturalPhotoStack({
           <div
             key={rowIndex}
             className={`ui-stack ${classes.row} ${landscapePair ? classes.landscapePair : ""}`}
-            style={!video ? { flexGrow: photos.length / row.length } : undefined}
+            style={
+              !video ? { flexGrow: photos.length / row.length } : undefined
+            }
           >
             {video && rowIndex === 0 ? (
               <div className={`ui-stack ${classes.cell}`}>
@@ -94,6 +97,11 @@ export function NaturalPhotoStack({
               <PhotoTile
                 key={index}
                 uri={uri}
+                sizes={imageSlotSizes(
+                  landscapePair
+                    ? 1
+                    : row.length + (video && rowIndex === 0 ? 1 : 0),
+                )}
                 className={classes.cell}
                 onLoad={pair ? onLoad(uri) : undefined}
                 onPhotoPress={

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type CSSProperties } from "react";
+import { imageSlotSizes } from "@/shared/media/image-sizes";
 import {
   Action,
   MeasuredBox,
@@ -35,6 +36,7 @@ function ClubPhoto({
   contain = false,
   preload = true,
   onImageLoad,
+  columns = 1,
 }: {
   uri: string;
   index: number;
@@ -44,6 +46,7 @@ function ClubPhoto({
   contain?: boolean;
   preload?: boolean;
   onImageLoad?: ImageProps["onLoad"];
+  columns?: number;
 }) {
   const nearby = useCollectionItemRetention(false);
   const active = useScreenActive();
@@ -63,6 +66,7 @@ function ClubPhoto({
       >
         <Picture
           source={uri}
+          sizes={imageSlotSizes(columns, 42)}
           // Collection rows enter the nearby window two screens ahead. Native
           // lazy loading inside the clipped scroller can otherwise start late.
           loading={preload && active && nearby ? "eager" : "lazy"}
@@ -250,6 +254,7 @@ export function ClubPostPhotos({
               key={`${photos[index]}-${index}`}
               uri={photos[index]}
               index={index}
+              columns={landscapePair ? 1 : row.columns}
               onImageLoad={pair ? onLoad(photos[index]) : undefined}
               onPhotoPress={onPhotoPress}
             />

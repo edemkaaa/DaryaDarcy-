@@ -12,6 +12,7 @@ type PhotoTileProps = {
   className?: string;
   style?: CSSProperties;
   onLoad?: ImageProps["onLoad"];
+  sizes?: string;
 };
 
 /** Keep the retry button beside the photo action, avoiding nested buttons. */
@@ -26,6 +27,7 @@ function PhotoTileContent({
   className,
   style,
   onLoad,
+  sizes,
 }: PhotoTileProps) {
   const [failedUri, setFailedUri] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
@@ -41,6 +43,7 @@ function PhotoTileContent({
       >
         <Picture
           source={uri}
+          sizes={sizes}
           retryKey={retryKey}
           contentFit="cover"
           transition={180}

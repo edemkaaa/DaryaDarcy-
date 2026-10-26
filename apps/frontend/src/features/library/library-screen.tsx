@@ -13,6 +13,7 @@ import { getLibraryScreenContent } from "./library-screen.content";
 import { useRouter } from "@/shared/navigation/router";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { Picture } from "@/shared/media/image";
+import { imageSlotSizes } from "@/shared/media/image-sizes";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { useBackgroundNotice } from "@/shared/ui/background-notice";
@@ -156,6 +157,7 @@ export default function LibraryScreen() {
         >
           <Picture
             source={{ uri: item.coverUrl }}
+            sizes={imageSlotSizes(2, 32, 12)}
             style={{ aspectRatio: aspect }}
             contentFit={item.id === "loshadka" ? "cover" : "contain"}
             contentPosition={item.id === "loshadka" ? "top" : "center"}
