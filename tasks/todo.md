@@ -4,6 +4,11 @@
 
 ### Скорость фотографий и экранов — 26 октября
 
+- [x] Следующий срез: 138 unit + 64 настоящих локальных HTTP/SQL cases
+  закрытой выдачи/привязок; 19 cases исключены фильтром, большие файлы не входят.
+  5 browser-групп audio/video playback/seek/inactive/source/unmount GREEN.
+  VK только lifecycle iframe, сеть запрещена; не real S3/full UI E2E.
+  Новых ошибок нет, handoff пункт17; свой tmpfs MySQL/сервер/вкладка убраны.
 - [x] Новый срез:94unit/5files,12real-browser journal checks (3reload+
   9конфликтов),4проверки карусели с pending первым фото/End/viewer/Home.
   File bytes/имена/ключи/aliases сохранены, чужой owner/post/подмена отказаны;

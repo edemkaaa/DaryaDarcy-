@@ -2,6 +2,15 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26 октября, продолжение: 138 unit и 64 настоящих локальных HTTP/SQL проверки
+закрытой выдачи/привязок пройдены; 19 cases отфильтрованы, не объявлены GREEN.
+В браузере 5 групп существующих audio/video компонентов прошли playback,
+seek/pause/resume, inactive screen, source replacement и unmount/remount.
+VK проверен только на lifecycle iframe, внешняя сеть запрещена CSP. Новых
+ошибок нет; прежний retry pending image остаётся открытым. Подробности в
+фотоотчёте и handoff пункт17. Свои tmpfs-БД, сервер и вкладка убраны;
+исходники приложения, рабочие DB/S3 и стенд не менялись, push/deploy не было.
+
 26 октября, новая серия:94unit/5files и12browser journal checks (3reload+
 9conflicts) пройдены на настоящих File/IndexedDB с synthetic API callbacks.
 Production carousel End/viewer/late error/Home также пройден, прямой jump

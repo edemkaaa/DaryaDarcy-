@@ -315,6 +315,64 @@ working DB/S3/live config не менялись. Настоящие больши
 9превью после часа; HTTP/disk TTL3600 и прежние SHA/ETag подтверждены в16:04МСК.
 Подробный результат в [отчёте TTL](photo-cache-investigation-2026-10-26.md).
 
+## Закрытая выдача и жизненный цикл медиа — продолжение 26 октября
+
+На исходном HEAD `dd98876` пройдены ещё **202 автоматические проверки**:
+138 unit checks в 7 файлах, 58 HTTP/SQL cases закрытой выдачи в 2 файлах и
+6 выбранных HTTP/SQL cases привязки файлов в третьем файле. Ещё 19 cases
+последнего файла исключены фильтром; они не считаются пройденными. Большие
+загрузки 32/80 МиБ в этот срез не входили.
+
+```sh
+pnpm exec vitest run tests/frontend-audio-player.test.ts tests/frontend-vk-video.test.ts tests/frontend-video-catalog.test.ts tests/frontend-library-files.test.ts tests/access-policy.test.ts tests/access-urls.test.ts tests/comment-access.test.ts --maxWorkers=1
+pnpm exec vitest run tests/private-files.mysql.test.ts tests/library-files.mysql.test.ts --maxWorkers=1
+pnpm exec vitest run tests/private-content-files.mysql.test.ts -t 'binds a post photo|atomically binds article|keeps comment photos|authorizes comment uploads|refuses finishing a pending comment-photo upload|retries the same committed comment after a real downstream HTTP response drop' --maxWorkers=1
+```
+
+Два последних прогона использовали настоящий Nest HTTP/JWT/MySQL и локальный
+транспорт объектов. Для них создан собственный MySQL 8.4 arm64: случайный
+порт только на loopback, 512 МиБ RAM, tmpfs 384 МиБ, без постоянного volume.
+Обе переменные URL БД были направлены только на эту новую тестовую БД.
+Реальный Timeweb/S3 и рабочая БД не использовались.
+
+Проверены отказ гостю/без подписки/после истечения периода/блокировки/отзыва
+сессии до чтения объекта, текущая роль администратора, доступ по состоянию
+публикации и привязки поста/статьи/комментария, отсутствие дубля комментария
+после настоящего обрыва HTTP-ответа. Для выдачи проверены HEAD, Range,
+private/no-store, ошибки SQL/хранилища, несовпадение версии объекта, закрытие
+upstream при уходе клиента и idle timeout. Продолжающаяся передача успешно
+переживает idle interval без усечения. Это не проверка настоящей S3-policy.
+
+Дополнительно **5 групп проверок в настоящем встроенном браузере** прошли на
+loopback harness с неизменёнными `useAudioPlayer`, `BrowserAudioPlayer`,
+`ManagedVideo`, `VkVideoEmbed` и `ScreenActivity` под React StrictMode:
+
+1. Синтетическое AAC-аудио 20 секунд декодируется, играет, перематывается
+   к 65%, ставится на паузу и продолжает играть; `muted=false`, `volume=1`,
+   native media error отсутствует. Физический вывод звука не измерялся.
+2. При неактивном retained screen аудио/видео останавливаются, VK iframe
+   удаляется. Возврат восстанавливает iframe без автозапуска аудио/видео.
+3. Замена источника освобождает предыдущие audio/video: paused и src=null;
+   новый аудиоплеер начинает с нулевого состояния.
+4. Unmount освобождает ресурсы и сбрасывает snapshot; remount снова играет
+   при действующем StrictMode, без оживления старого ресурса.
+5. Синтетическое WebM-видео декодируется в 160×90, перематывается к 65% и
+   останавливается без native error.
+
+Harness перехватывает создание Audio только для наблюдения нативных свойств;
+реальные UI-компоненты и effects импортированы без правок. Это компонентная
+проверка с настоящим браузером, а не полный production UI E2E. CSP запрещает
+внешние iframe: VK здесь проверен только на mount/unmount, **не воспроизведение
+роликов**. Блокированная рамка на скриншоте ожидаема. Нативные HTTP Range
+запросы к собственным маленьким файлам зафиксированы.
+
+Новых ошибок этот срез не выявил; retry зависшего фото из предыдущего среза
+остаётся открытым. Source frontend/backend, конфигурация стенда и данные не
+менялись. Свой контейнер удалён с проверкой отсутствия; свой сервер остановлен,
+порт закрыт, тестовая вкладка закрыта. Образы/постоянные volumes не удалялись.
+Приватные логи, browser JSON/ranges, harness и скриншот:
+соседний `.local-artifacts/media-access-review-20261026` вне Git.
+
 ## Источники и артефакты
 
 - [Next: sizes](https://nextjs.org/docs/pages/api-reference/components/image#sizes).
