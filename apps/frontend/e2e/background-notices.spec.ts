@@ -241,7 +241,7 @@ for (const width of [320, 390, 1440]) {
     await page.clock.install();
     let fail = false;
     await editorApi(page, (name) =>
-      name === "club.list"
+      name === "club.listByCategory"
         ? fail
           ? failure(503)
           : ok({ posts: [post(1, "club")], nextCursor: null })

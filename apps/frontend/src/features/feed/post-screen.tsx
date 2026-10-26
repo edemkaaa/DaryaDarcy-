@@ -65,9 +65,6 @@ function PostDetailScreenInner({ id }: { id: string }) {
   const router = useRouter();
   const { user } = useAuth();
   const postId = parseContentId(id) ?? 0;
-  const interactions = usePostInteractions();
-  const isLiked = interactions.likedIds.has(postId);
-  const isSaved = interactions.savedIds.has(postId);
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
   const utils = trpc.useUtils();
@@ -90,6 +87,9 @@ function PostDetailScreenInner({ id }: { id: string }) {
   });
   const denied = [401, 403, 404].includes(getHttpStatus(error) ?? 0);
   const unavailable = !post || denied;
+  const interactions = usePostInteractions(unavailable ? [] : [postId]);
+  const isLiked = interactions.likedIds.has(postId);
+  const isSaved = interactions.savedIds.has(postId);
   useBackgroundNotice({
     when: Boolean(error && !unavailable),
     message: "Не удалось обновить публикацию",
@@ -289,7 +289,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
                   aria-pressed={isLiked}
                   disabled={
                     Boolean(user) &&
-                    (!interactions.ready ||
+                    (!interactions.isReady(postId) ||
                       interactions.isPending("like", postId))
                   }
                   className={({ pressed }) =>
@@ -323,7 +323,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
                   aria-pressed={isSaved}
                   disabled={
                     Boolean(user) &&
-                    (!interactions.ready ||
+                    (!interactions.isReady(postId) ||
                       interactions.isPending("save", postId))
                   }
                   className={({ pressed }) =>

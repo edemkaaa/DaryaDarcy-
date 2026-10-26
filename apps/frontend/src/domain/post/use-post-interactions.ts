@@ -1,5 +1,14 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
+import { useQueries, useQueryClient, type Query } from "@tanstack/react-query";
+import { getQueryKey } from "@trpc/react-query";
+import { cancelInactiveCursorQuery } from "@/shared/api/cursor-pages";
+import {
+  interactionBatches,
+  requirePostInteractions,
+  type PostInteractions,
+} from "./post-interaction-data";
+import { usePostInteractionState } from "./post-interactions-context";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { trpc } from "@/shared/api/trpc";
 import { useAuth } from "@/domain/session/session-context";
@@ -14,74 +23,123 @@ import {
 } from "@/shared/api/errors";
 
 type InteractionKind = "like" | "save";
-export function usePostInteractions() {
+export function usePostInteractions(postIds: readonly number[]) {
   const { user } = useAuth();
   const active = useScreenActive();
   const utils = trpc.useUtils();
-  const query = trpc.feed.userInteractions.useQuery(undefined, {
-    enabled: Boolean(user) && active,
-    staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
+  const cache = useQueryClient();
+  const ownerScope = String(user?.id ?? "guest");
+  const batches = interactionBatches(postIds);
+  const queryKeys = batches.map((ids) => [
+    ...getQueryKey(trpc.feed.interactionsForPosts, { postIds: ids }, "query"),
+    { ownerScope },
+  ]);
+  const enabled = Boolean(user) && active;
+  const queries = useQueries({
+    queries: batches.map((ids, index) => ({
+      queryKey: queryKeys[index],
+      queryFn: async ({ signal }: { signal: AbortSignal }) => {
+        const data = await utils.client.feed.interactionsForPosts.query(
+          { postIds: ids },
+          { signal },
+        );
+        signal.throwIfAborted();
+        return requirePostInteractions(data, ids);
+      },
+      enabled,
+      staleTime: 0,
+      refetchOnMount: "always" as const,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+    })),
   });
-  const scopes = useRef(new Map<string, OperationScope>());
-  const blocked = useRef(new Set<string>());
-  const [overrides, setOverrides] = useState(new Map<string, boolean>());
-  const [pending, setPending] = useState(new Set<string>());
-  const [error, setError] = useState<string | null>(null);
+  const identity = JSON.stringify(queryKeys);
   useEffect(() => {
-    const activeScopes = scopes.current;
-    return () => {
-      for (const scope of activeScopes.values()) scope.cancel();
-      activeScopes.clear();
+    const cancelUnused = () => {
+      for (const key of JSON.parse(identity))
+        cancelInactiveCursorQuery(cache, key);
     };
-  }, [user?.id]);
-  const idsAreValid = (value: unknown): value is number[] =>
-    Array.isArray(value) &&
-    value.every((id) => Number.isSafeInteger(id) && id > 0);
-  const validData =
-    query.data &&
-    idsAreValid(query.data.likedIds) &&
-    idsAreValid(query.data.savedIds)
-      ? query.data
-      : null;
-  const likedIds = new Set(validData?.likedIds ?? []);
-  const savedIds = new Set(validData?.savedIds ?? []);
+    if (!enabled) cancelUnused();
+    return cancelUnused;
+  }, [cache, enabled, identity]);
+  const affectedQueries = (postId: number) => ({
+    queryKey: getQueryKey(trpc.feed.interactionsForPosts),
+    predicate: (query: Query) => {
+      const input = query.queryKey[1] as
+        | { input?: { postIds?: number[] } }
+        | undefined;
+      const scope = query.queryKey[2] as { ownerScope?: string } | undefined;
+      return (
+        scope?.ownerScope === ownerScope &&
+        Boolean(input?.input?.postIds?.includes(postId))
+      );
+    },
+  });
+  const {
+    scopes,
+    overrides,
+    setOverrides,
+    pending,
+    setPending,
+    failures,
+    setFailures,
+  } = usePostInteractionState();
+  const requested = new Set(batches.flat());
+  const likedIds = new Set<number>();
+  const savedIds = new Set<number>();
+  const readyIds = new Set<number>();
+  queries.forEach((query, index) => {
+    if ([401, 403, 404].includes(getHttpStatus(query.error) ?? 0)) return;
+    for (const id of query.data?.likedIds ?? []) likedIds.add(id);
+    for (const id of query.data?.savedIds ?? []) savedIds.add(id);
+    if (enabled && query.isSuccess && !query.isFetching && !query.isError)
+      for (const id of batches[index]) readyIds.add(id);
+  });
   for (const [key, value] of overrides) {
     const [kind, id] = key.split(":");
+    if (!requested.has(Number(id))) continue;
     const ids = kind === "like" ? likedIds : savedIds;
     if (value) ids.add(Number(id));
     else ids.delete(Number(id));
   }
-  const ready = Boolean(
-    active && user && validData && !query.isFetching && !query.isError,
+  const relevantFailures = [...failures].filter(([key]) =>
+    requested.has(Number(key.split(":")[1])),
   );
   const retry = async () => {
+    if (!enabled) return;
     const parent = getSessionRequestSignal();
     const owner = user?.id;
-    const result = await query.refetch();
+    const failuresBeforeRead = relevantFailures;
+    const recovered = new Set<number>();
+    await Promise.all(
+      queries.map(async (query, index) => {
+        const updatedBeforeRead = query.dataUpdatedAt;
+        const result = await query.refetch();
+        if (result.isSuccess && result.dataUpdatedAt > updatedBeforeRead)
+          for (const id of batches[index]) recovered.add(id);
+      }),
+    );
     if (parent.aborted || !owner || !isPersonalDataOwner(owner)) return;
-    if (
-      result.isSuccess &&
-      idsAreValid(result.data?.likedIds) &&
-      idsAreValid(result.data?.savedIds)
-    ) {
-      blocked.current.clear();
-      setError(null);
-    }
+    // Only a fresh successful read of this post may release its earlier failure.
+    setFailures((current) => {
+      const next = new Map(current);
+      for (const [key, failure] of failuresBeforeRead)
+        if (
+          recovered.has(Number(key.split(":")[1])) &&
+          next.get(key) === failure
+        )
+          next.delete(key);
+      return next;
+    });
   };
   const toggle = async (kind: InteractionKind, postId: number) => {
-    if (!ready || !user || !Number.isSafeInteger(postId) || postId <= 0) return;
+    if (!readyIds.has(postId) || !user) return;
     const key = `${kind}:${postId}`;
-    if (blocked.current.has(key)) {
-      setError("Изменение не подтверждено. Обновите отметки перед повтором.");
-      return;
-    }
-    let scope = scopes.current.get(key);
+    if (failures.get(key)?.blocked) return;
+    let scope = scopes.get(key);
     if (!scope) {
       scope = new OperationScope();
-      scopes.current.set(key, scope);
+      scopes.set(key, scope);
     }
     const owner = user.id;
     const task = scope.begin(kind, getSessionRequestSignal(), () =>
@@ -89,11 +147,15 @@ export function usePostInteractions() {
     );
     if (!task) return;
     const previous = (kind === "like" ? likedIds : savedIds).has(postId);
-    setError(null);
+    setFailures((prev) => {
+      const next = new Map(prev);
+      next.delete(key);
+      return next;
+    });
     setPending((prev) => new Set(prev).add(key));
     setOverrides((prev) => new Map(prev).set(key, !previous));
     try {
-      await utils.feed.userInteractions.cancel();
+      await cache.cancelQueries(affectedQueries(postId));
       task.assertCurrent();
       const confirmed =
         kind === "like"
@@ -108,44 +170,51 @@ export function usePostInteractions() {
       if (typeof confirmed !== "boolean") throw invalidResponse();
       task.assertCurrent();
       // Cancel any read that started before this write was confirmed.
-      await utils.feed.userInteractions.cancel();
+      await cache.cancelQueries(affectedQueries(postId));
       task.assertCurrent();
-      utils.feed.userInteractions.setData(undefined, (data) => {
-        const field = kind === "like" ? "likedIds" : "savedIds";
-        const values = new Set(data?.[field] ?? []);
-        if (confirmed) values.add(postId);
-        else values.delete(postId);
-        return {
-          likedIds: data?.likedIds ?? [],
-          savedIds: data?.savedIds ?? [],
-          [field]: [...values],
-        };
-      });
-      void utils.feed.userInteractions.invalidate();
+      cache.setQueriesData<PostInteractions>(
+        affectedQueries(postId),
+        (data) => {
+          if (!data) return data;
+          const field = kind === "like" ? "likedIds" : "savedIds";
+          const values = new Set(data?.[field] ?? []);
+          if (confirmed) values.add(postId);
+          else values.delete(postId);
+          return {
+            likedIds: data?.likedIds ?? [],
+            savedIds: data?.savedIds ?? [],
+            [field]: [...values],
+          };
+        },
+      );
+      void cache.invalidateQueries(affectedQueries(postId));
       void utils.feed.savedPosts.invalidate();
       void utils.feed.savedPostsPage.invalidate();
       if (kind === "like") {
         void utils.feed.getById.invalidate({ id: postId });
         void utils.feed.list.invalidate();
         void utils.feed.listPaginated.invalidate();
-        void utils.club.list.invalidate();
+        void utils.club.listByCategory.invalidate();
       }
     } catch (cause) {
       checkOperationAccessError(cause);
       if (task.isCurrent()) {
         const status = getHttpStatus(cause);
-        if (!status || status >= 500) blocked.current.add(key);
-        setError(getRequestErrorMessage(cause));
+        setFailures((prev) =>
+          new Map(prev).set(key, {
+            message: getRequestErrorMessage(cause),
+            blocked: !status || status >= 500,
+          }),
+        );
       }
     } finally {
-      if (task.isCurrent())
-        setOverrides((prev) => {
-          const next = new Map(prev);
-          next.delete(key);
-          return next;
-        });
-      else setOverrides(new Map());
+      setOverrides((prev) => {
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
       task.finish();
+      if (!scope.getSnapshot()) scopes.delete(key);
       setPending((prev) => {
         const next = new Set(prev);
         next.delete(key);
@@ -156,18 +225,17 @@ export function usePostInteractions() {
   return {
     likedIds,
     savedIds,
-    ready,
+    isReady: (id: number) => readyIds.has(id),
     // Counts are read from refreshed post data, rather than guessed after a server write.
     error:
-      error ??
-      (query.error
-        ? getRequestErrorMessage(query.error)
-        : query.data && !validData
-          ? invalidResponse().message
-          : null),
+      relevantFailures[0]?.[1].message ??
+      (queries.find((query) => query.error)?.error
+        ? getRequestErrorMessage(queries.find((query) => query.error)!.error)
+        : null),
     retry,
     isPending: (kind: InteractionKind, id: number) =>
-      pending.has(`${kind}:${id}`) || blocked.current.has(`${kind}:${id}`),
+      pending.has(`${kind}:${id}`) ||
+      Boolean(failures.get(`${kind}:${id}`)?.blocked),
     like: (id: number) => void toggle("like", id),
     save: (id: number) => void toggle("save", id),
   };

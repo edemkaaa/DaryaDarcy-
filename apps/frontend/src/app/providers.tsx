@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { createAppQueryClient } from "@/shared/api/query-client";
 import { trpc, createTRPCClient } from "@/shared/api/trpc";
 import { AuthProvider } from "@/domain/session/session-context";
+import { PostInteractionsProvider } from "@/domain/post/post-interactions-context";
 import { ClubProvider } from "@/domain/subscription/subscription-context";
 import { ThemeProvider } from "@/shared/styles/theme-provider";
 import { InstallGuide } from "@/features/pwa/install-guide";
@@ -32,17 +33,19 @@ export default function Providers({
           </Suspense>
           <TouchPressGuard />
           <AuthProvider>
-            <ClubProvider>
-              <BackgroundNoticeProvider>
-                <ViewportSync />
-                <TabShell initialHomeDate={initialHomeDate}>
-                  {children}
-                </TabShell>
-                <InstallGuide />
-                <WebPostAlerts />
-                <BackgroundCheckNotice />
-              </BackgroundNoticeProvider>
-            </ClubProvider>
+            <PostInteractionsProvider>
+              <ClubProvider>
+                <BackgroundNoticeProvider>
+                  <ViewportSync />
+                  <TabShell initialHomeDate={initialHomeDate}>
+                    {children}
+                  </TabShell>
+                  <InstallGuide />
+                  <WebPostAlerts />
+                  <BackgroundCheckNotice />
+                </BackgroundNoticeProvider>
+              </ClubProvider>
+            </PostInteractionsProvider>
           </AuthProvider>
         </QueryClientProvider>
       </trpc.Provider>

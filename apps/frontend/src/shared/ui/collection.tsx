@@ -193,7 +193,10 @@ function CollectionInner<T>(
       },
       { root: container.current, threshold: visiblePercent / 100 },
     );
-    [...body.current.children].forEach((el) => obs.observe(el));
+    // Dividers are siblings of rows and do not represent collection items.
+    [...body.current.children].forEach((el) => {
+      if (el.hasAttribute("data-item-index")) obs.observe(el);
+    });
     return () => obs.disconnect();
   }, [data, onVisibleItemsChange, visiblePercent, keyExtractor]);
   const groups: Array<readonly T[]> = [];

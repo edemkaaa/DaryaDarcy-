@@ -80,7 +80,7 @@ for (const path of ["/feed", "/post/42", "/video/42"]) {
   });
 }
 
-test("VK unloads in a hidden retained tab, reloads explicitly and never autoplays on return", async ({
+test("VK unloads in a hidden retained tab and never autoplays on return", async ({
   page,
 }) => {
   let requests = 0;
@@ -116,10 +116,9 @@ test("VK unloads in a hidden retained tab, reloads explicitly and never autoplay
   const player = page.getByTitle("VK Видео", { exact: true });
   await expect(player).toBeVisible();
   await expect.poll(() => requests).toBe(1);
-  await page
-    .getByRole("button", { name: "Перезагрузить плеер VK", exact: true })
-    .click();
-  await expect.poll(() => requests).toBe(2);
+  await expect(
+    page.getByRole("button", { name: "Перезагрузить плеер VK", exact: true }),
+  ).toHaveCount(0);
   await page
     .getByRole("navigation", { name: "Разделы" })
     .getByRole("link", { name: "Видео", exact: true })
@@ -130,10 +129,16 @@ test("VK unloads in a hidden retained tab, reloads explicitly and never autoplay
     .getByRole("link", { name: "Лента", exact: true })
     .click();
   // Windowing may evict the hidden card; reopening is an explicit user action.
-  if (!(await player.count()))
-    await page
-      .getByRole("button", { name: "Открыть видео", exact: true })
-      .click();
+  const preview = page.getByRole("button", {
+    name: "Открыть видео",
+    exact: true,
+  });
+  // Route restoration is asynchronous; do not choose a branch while both
+  // the retained player and a recreated preview are temporarily absent.
+  await expect
+    .poll(async () => (await player.isVisible()) || (await preview.isVisible()))
+    .toBe(true);
+  if (!(await player.count())) await preview.click();
   await expect(player).toHaveAttribute("src", embed + "&autoplay=0");
   // Visibility event emulation covers lifecycle logic, not an actual OS background transition.
   await page.evaluate(() => {
@@ -293,14 +298,27 @@ test("a failed access refetch hides a previously loaded video instead of retaini
   ).toBeVisible();
 });
 
-test("VK reload stays outside the provider's interactive frame", async ({
+test("loaded VK keeps recovery controls away from the provider's interactive frame", async ({
   page,
 }) => {
-  await editorApi(page, (name) =>
-    name === "videos.getById"
-      ? ok({ id: 42, title: "VK_CONTROLS", videoUrl: embed, youtubeId: "" })
-      : undefined,
-  );
+  await editorApi(page, (name) => {
+    if (name === "videos.getById")
+      return ok({
+        id: 42,
+        title: "VK_CONTROLS",
+        videoUrl: embed,
+        youtubeId: "",
+      });
+    if (name === "videos.catalog")
+      return ok({
+        items: [
+          { id: 42, title: "VK_CONTROLS", access: "public", canWatch: true },
+        ],
+        nextCursor: null,
+      });
+    if (name === "videos.playback")
+      return ok({ id: 42, provider: "vk", embedUrl: embed });
+  });
   await page.route("https://vkvideo.ru/**", (route) =>
     route.fulfill({
       contentType: "text/html",
@@ -314,8 +332,10 @@ test("VK reload stays outside the provider's interactive frame", async ({
     exact: true,
   });
   await expect(frame).toBeVisible();
-  await expect(reload).toBeVisible();
-  const playerBox = (await frame.boundingBox())!;
-  const reloadBox = (await reload.boundingBox())!;
-  expect(reloadBox.y).toBeGreaterThanOrEqual(playerBox.y + playerBox.height);
+  await expect(
+    page
+      .frameLocator('iframe[title="VK Видео"]')
+      .getByText("VK controls fixture"),
+  ).toBeVisible();
+  await expect(reload).toHaveCount(0);
 });

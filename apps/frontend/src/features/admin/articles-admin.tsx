@@ -21,6 +21,12 @@ import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
 import { trpc } from "@/shared/api/trpc";
+import { getQueryKey } from "@trpc/react-query";
+import {
+  useCursorPages,
+  requireCursorPage,
+} from "@/shared/api/use-cursor-pages";
+import { useScreenActive } from "@/shared/navigation/screen-activity";
 import {
   requirePrivateUpload,
   useCapabilities,
@@ -31,18 +37,18 @@ import {
   useSessionOperation,
   checkOperationAccessError,
 } from "@/domain/session/use-session-operation";
-import { requireUploadedUrl } from "@/shared/media/upload-result";
-import { getHttpStatus, invalidResponse } from "@/shared/api/errors";
+import {
+  getHttpStatus,
+  getRequestErrorMessage,
+  invalidResponse,
+} from "@/shared/api/errors";
 import { checkPrivateUploadAvailability } from "@/shared/media/private-upload-availability";
 import { privateUploadRejectionMessage } from "@/shared/api/upload-errors";
 import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
-import {
-  requireOk,
-  requireAbsentId,
-  requireIdList,
-} from "@/shared/api/action-result";
-import { fileToUpload, pickWebFiles } from "@/shared/media/image-upload";
+import { requireOk } from "@/shared/api/action-result";
 import { useArticleFiles } from "./use-article-files";
+import { useArticleCover } from "./use-article-cover";
+import type { PrivateArticleFile } from "@/domain/content/private-article-files";
 import { selectArticleFiles } from "@/domain/content/private-article-files";
 import {
   recoverArticleFileUploads,
@@ -69,9 +75,70 @@ export function ArticlesAdmin() {
 function ArticleEditor({ ownerId }: { ownerId: number }) {
   const capabilities = useCapabilities();
   const utils = trpc.useUtils();
-  const list = trpc.admin.articles.useQuery();
+  const active = useScreenActive();
+  const refreshRelatedContent = () => {
+    // Article writes also create, update or remove their club post teasers.
+    void utils.admin.postsPage.invalidate();
+    void utils.admin.postCounts.invalidate();
+    void utils.admin.postCalendar.invalidate();
+    void utils.admin.stats.invalidate();
+    void utils.admin.articleDetail.invalidate();
+    void utils.articles.getById.invalidate();
+    void utils.articles.list.invalidate();
+    void utils.club.listByCategory.invalidate();
+  };
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const list = useCursorPages({
+    key: getQueryKey(trpc.admin.articlesPage, { limit: 20 }, "query"),
+    scope: String(ownerId),
+    enabled: active && !showForm,
+    fetchPage: (cursor, signal) =>
+      utils.client.admin.articlesPage.query({ limit: 20, cursor }, { signal }),
+  });
+  const opening = useSessionOperation(active && !showForm);
+  const [openingId, setOpeningId] = useState<number | null>(null);
+  const [openingError, setOpeningError] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastCardRef = useRef<HTMLDivElement>(null);
+  const {
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    isError,
+    fetchNextPage,
+  } = list;
+  const cardCount = list.items.length;
+  useEffect(() => {
+    if (
+      !active ||
+      showForm ||
+      !hasNextPage ||
+      isFetching ||
+      isFetchingNextPage ||
+      isError ||
+      !lastCardRef.current ||
+      !scrollRef.current
+    )
+      return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) void fetchNextPage();
+      },
+      { root: scrollRef.current, rootMargin: "200px" },
+    );
+    observer.observe(lastCardRef.current);
+    return () => observer.disconnect();
+  }, [
+    active,
+    showForm,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    isError,
+    fetchNextPage,
+    cardCount,
+  ]);
   const [title, setTitle] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
   const [access, setAccess] = useState<Access>("club");
@@ -107,12 +174,36 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       alive = false;
     };
   }, [journal, loadAttempt]);
-  const deletion = useConfirmedAction(!showForm);
-  const readArticles = async () => {
-    const result = await list.refetch();
-    if (!result.isSuccess || !Array.isArray(result.data))
+  const deletion = useConfirmedAction(active && !showForm);
+  const readArticles = async (signal: AbortSignal) => {
+    const result = await list.restart();
+    signal.throwIfAborted();
+    if (!result.isSuccess || !result.data)
       throw result.error ?? invalidResponse();
-    requireIdList(result.data);
+    requireCursorPage(result.data.pages[0]);
+  };
+  const inspectArticleDeletion = async (
+    id: number,
+    signal: AbortSignal,
+    requireAbsent: boolean,
+  ) => {
+    const detail = await utils.client.admin.articleDetail.query(
+      { id },
+      { signal },
+    );
+    signal.throwIfAborted();
+    // Confirm deletion only from null. An explicit recovery read may also find
+    // the article still present, allowing a deliberate retry of the deletion.
+    if (
+      detail !== null &&
+      (requireAbsent ||
+        !detail ||
+        detail.id !== id ||
+        typeof detail.title !== "string" ||
+        !Array.isArray(detail.sections))
+    )
+      throw invalidResponse();
+    await readArticles(signal);
   };
   const remove = {
     isPending: deletion.blocked,
@@ -120,28 +211,25 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       void deletion.run({
         kind: "delete-article",
         label: "Удалить статью",
-        read: readArticles,
+        read: async (signal) => {
+          await inspectArticleDeletion(input.id, signal, false);
+          refreshRelatedContent();
+        },
         validate: requireOk,
         perform: async (signal) => {
           const result = await utils.client.admin.deleteArticle.mutate(input, {
             signal,
           });
           requireOk(result);
-          const refreshed = await list.refetch();
-          if (!refreshed.isSuccess || !Array.isArray(refreshed.data))
-            throw refreshed.error ?? invalidResponse();
-          requireAbsentId(refreshed.data, input.id);
+          await inspectArticleDeletion(input.id, signal, true);
           return result;
         },
-        commit: () => {
-          void utils.articles.getById.invalidate();
-          void utils.articles.list.invalidate();
-          void utils.club.list.invalidate();
-        },
+        commit: refreshRelatedContent,
       }),
   };
   const operation = useSessionOperation(showForm, editingId);
   const privateFiles = useArticleFiles(showForm, editingId);
+  const cover = useArticleCover(ownerId, operation);
   const restorePrivateFiles = privateFiles.restore;
   const fileApi = {
     upload: async (
@@ -161,12 +249,16 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   const uploading = operation.kind === "photos";
   const [published, setPublished] = useState(true);
   const uncertainSave = useRef(false);
-  const restoreFiles = useRef<ArticleCreationRecord | null>(null);
+  const restoreFiles = useRef<{
+    editingId: number | null;
+    files: PrivateArticleFile[];
+  } | null>(null);
   const notify = (message: string) => {
     window.alert(message);
   };
   const reset = () => {
     operation.cancel();
+    cover.detach();
     privateFiles.reset();
     restoreFiles.current = null;
     uncertainSave.current = false;
@@ -181,6 +273,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   };
   const restoreCreation = (record: ArticleCreationRecord) => {
     operation.cancel();
+    cover.detach();
     uncertainSave.current = false;
     setCreation(record);
     const payload = structuredClone(record.payload);
@@ -190,29 +283,42 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     setAccess(payload.access);
     setPublished(payload.published);
     setBlocks(payload.sections);
-    restoreFiles.current = record;
+    restoreFiles.current = {
+      editingId: record.media?.editingId ?? null,
+      files: record.media?.files ?? [],
+    };
     // Restore after the editing scope has rendered; the keyed effect below owns the URLs.
     setPreviewing(false);
     setShowForm(true);
   };
   useEffect(() => {
     const record = restoreFiles.current;
-    if (showForm && record && (record.media?.editingId ?? null) === editingId) {
+    if (showForm && record && record.editingId === editingId) {
       restoreFiles.current = null;
-      restorePrivateFiles(record.media?.files ?? []);
+      restorePrivateFiles(record.files);
     }
   }, [creation, showForm, editingId, restorePrivateFiles]);
+  const restoreCover = () => {
+    if (!cover.record || creation || storageStatus !== "ready") return;
+    opening.cancel();
+    operation.cancel();
+    uncertainSave.current = false;
+    const { snapshot, files } = cover.record;
+    setEditingId(snapshot.editingId);
+    setTitle(snapshot.title);
+    setCoverUrl(snapshot.coverUrl || "");
+    setAccess(snapshot.access);
+    setPublished(snapshot.published);
+    setBlocks(structuredClone(snapshot.sections));
+    restoreFiles.current = { editingId: snapshot.editingId, files };
+    cover.attach(cover.record);
+    setRecoveryMessage(null);
+    setPreviewing(false);
+    setShowForm(true);
+  };
   const readCurrentArticles = async (task: ScopedOperation) => {
-    await utils.admin.articles.cancel();
+    await readArticles(task.signal);
     task.assertCurrent();
-    const articles = await utils.client.admin.articles.query(undefined, {
-      signal: task.signal,
-    });
-    task.assertCurrent();
-    requireIdList(articles);
-    await utils.admin.articles.cancel();
-    task.assertCurrent();
-    utils.admin.articles.setData(undefined, articles);
   };
   const completeCreation = async (
     record: ArticleCreationRecord,
@@ -224,9 +330,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     task.assertCurrent();
     setCreation(null);
     setRecoveryMessage(null);
-    void utils.articles.getById.invalidate();
-    void utils.articles.list.invalidate();
-    void utils.club.list.invalidate();
+    refreshRelatedContent();
     reset();
   };
   const cancelEditing = async () => {
@@ -343,43 +447,15 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     }
   };
   const pickImages = async (
-    preserveAlpha: boolean,
     multiple: boolean,
     commit: (urls: string[]) => void,
-    publicCover = false,
   ) => {
     const task = operation.begin("photos");
     if (!task) return;
-    const urls: string[] = [];
     try {
-      if (!publicCover) {
-        const selected = await privateFiles.photos(multiple, task);
-        task.assertCurrent();
-        if (selected.length) commit(selected);
-        return;
-      }
-      const files = await pickWebFiles(
-        preserveAlpha ? "image/png,image/webp" : "image/*",
-        multiple,
-        { signal: task.signal },
-      );
-      for (const file of files) {
-        const payload = await fileToUpload(file, {
-          preserveAlpha,
-          signal: task.signal,
-        });
-        task.assertCurrent();
-        const url = requireUploadedUrl(
-          await utils.client.admin.uploadPhoto.mutate(
-            { ...payload, purpose: "publicCover" },
-            {
-              signal: task.signal,
-            },
-          ),
-        );
-        task.assertCurrent();
-        urls.push(url);
-      }
+      const selected = await privateFiles.photos(multiple, task);
+      task.assertCurrent();
+      if (selected.length) commit(selected);
     } catch (error) {
       checkOperationAccessError(error);
       if (task.isCurrent())
@@ -387,7 +463,6 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
           error instanceof Error ? error.message : "Не удалось загрузить файл",
         );
     } finally {
-      if (task.isCurrent() && urls.length) commit(urls);
       task.finish();
     }
   };
@@ -454,6 +529,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     });
   };
   const save = async () => {
+    if (cover.pending) return;
     if (!title.trim()) {
       notify("Напишите название статьи");
       return;
@@ -557,10 +633,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       );
       requireOk(result);
       task.assertCurrent();
-      void utils.admin.articles.invalidate();
-      void utils.articles.getById.invalidate();
-      void utils.articles.list.invalidate();
-      void utils.club.list.invalidate();
+      void list.restart();
+      refreshRelatedContent();
       reset();
     } catch (error) {
       checkOperationAccessError(error);
@@ -597,25 +671,67 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       task.finish();
     }
   };
-  const startEdit = (item: {
-    id: number;
-    title: string;
-    coverUrl: string | null;
-    access: Access;
-    published: boolean;
-    sections: unknown;
-  }) => {
-    operation.cancel();
-    uncertainSave.current = false;
-    setPublished(item.published);
-    setEditingId(item.id);
-    setTitle(item.title);
-    setCoverUrl(item.coverUrl || "");
-    setAccess(item.access);
-    setPreviewing(false);
-    setBlocks(normalizeArticleBlocks(item.sections));
-    privateFiles.reset();
-    setShowForm(true);
+  const startEdit = async (id: number) => {
+    const task = opening.begin("article-detail");
+    if (!task) return;
+    setOpeningId(id);
+    setOpeningError(null);
+    try {
+      const item = await utils.client.admin.articleDetail.query(
+        { id },
+        { signal: task.signal },
+      );
+      task.assertCurrent();
+      if (item === null) {
+        setOpeningError("Статья не найдена. Обновите список статей.");
+        return;
+      }
+      if (
+        !item ||
+        item.id !== id ||
+        typeof item.title !== "string" ||
+        typeof item.published !== "boolean" ||
+        !["public", "club"].includes(item.access) ||
+        !(item.coverUrl === null || typeof item.coverUrl === "string") ||
+        !Array.isArray(item.sections) ||
+        !item.sections.every(
+          (block) =>
+            block &&
+            ["heading", "text", "photo", "png", "link", "carousel"].includes(
+              block.type,
+            ) &&
+            [
+              block.text,
+              block.url,
+              block.label,
+              "caption" in block ? block.caption : undefined,
+            ].every(
+              (value) => value === undefined || typeof value === "string",
+            ) &&
+            (block.urls === undefined ||
+              (Array.isArray(block.urls) &&
+                block.urls.every((value) => typeof value === "string"))),
+        )
+      )
+        throw invalidResponse();
+      operation.cancel();
+      cover.detach();
+      uncertainSave.current = false;
+      setPublished(item.published);
+      setEditingId(item.id);
+      setTitle(item.title);
+      setCoverUrl(item.coverUrl || "");
+      setAccess(item.access);
+      setPreviewing(false);
+      setBlocks(normalizeArticleBlocks(item.sections));
+      privateFiles.reset();
+      setShowForm(true);
+    } catch (error) {
+      checkOperationAccessError(error);
+      if (task.isCurrent()) setOpeningError(getRequestErrorMessage(error));
+    } finally {
+      task.finish();
+    }
   };
   const confirmDelete = (id: number) => {
     const run = () => remove.mutate({ id });
@@ -670,7 +786,40 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
             ) : null}
           </div>
         ) : null}
-        <div inert={busy || pendingCreation} style={{ display: "contents" }}>
+        {cover.message ? (
+          <StatusNotice tone="error">{cover.message}</StatusNotice>
+        ) : null}
+        {cover.pending && cover.message ? (
+          <div>
+            <Action
+              disabled={busy}
+              onClick={() => void cover.recover(false, setCoverUrl)}
+              className={classes.btnGhost}
+            >
+              Проверить загрузку баннера
+            </Action>
+            {cover.canRetry ? (
+              <Action
+                disabled={busy}
+                onClick={() => void cover.recover(true, setCoverUrl)}
+                className={classes.btnGhost}
+              >
+                Повторить загрузку баннера
+              </Action>
+            ) : null}
+            <Action
+              disabled={busy}
+              onClick={() => void cover.discard()}
+              className={classes.btnGhost}
+            >
+              Отменить загрузку баннера
+            </Action>
+          </div>
+        ) : null}
+        <div
+          inert={busy || pendingCreation || cover.pending}
+          style={{ display: "contents" }}
+        >
           <Typography className={classes.formTitle}>
             {editingId ? "Редактировать статью" : "Новая статья"}
           </Typography>
@@ -793,15 +942,20 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
               </Typography>
               <Action
                 onClick={() =>
-                  pickImages(
-                    false,
-                    false,
-                    (urls) => {
-                      if (urls[0]) setCoverUrl(urls[0]);
+                  void cover.start(
+                    {
+                      editingId,
+                      title,
+                      coverUrl: coverUrl || null,
+                      access,
+                      published,
+                      sections: blocks,
                     },
-                    true,
+                    privateFiles.files,
+                    setCoverUrl,
                   )
                 }
+                disabled={cover.storageStatus !== "ready" || !!cover.record}
                 className={classes.btn}
               >
                 <MaterialIcons
@@ -1002,7 +1156,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
                             : undefined
                         }
                         onClick={() =>
-                          pickImages(false, true, (urls) =>
+                          pickImages(true, (urls) =>
                             updateBlock(index, {
                               urls: [...(block.urls || []), ...urls],
                             }),
@@ -1078,7 +1232,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
                             : undefined
                         }
                         onClick={() =>
-                          pickImages(block.type === "png", true, (urls) => {
+                          pickImages(true, (urls) => {
                             const next = [...blocks];
                             next[index] = {
                               type: block.type,
@@ -1204,6 +1358,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
             disabled={
               busy ||
               pendingCreation ||
+              cover.pending ||
               (!editingId && storageStatus !== "ready")
             }
             aria-busy={busy}
@@ -1233,9 +1388,35 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     );
   }
   return (
-    <ScrollArea contentClassName={classes.list}>
+    <ScrollArea
+      ref={scrollRef}
+      contentClassName={classes.list}
+      onRefresh={() => void list.restart()}
+      refreshing={list.isRefetching && !list.isFetchingNextPage}
+    >
       {recoveryMessage ? (
         <StatusNotice tone="error">{recoveryMessage}</StatusNotice>
+      ) : null}
+      {cover.message ? (
+        <StatusNotice tone="error">{cover.message}</StatusNotice>
+      ) : null}
+      {cover.storageStatus === "error" ? (
+        <StatusNoticeAction onClick={cover.retryRead}>
+          Повторить чтение загрузки баннера
+        </StatusNoticeAction>
+      ) : null}
+      {cover.record ? (
+        <StatusNoticeAction
+          disabled={
+            remove.isPending ||
+            opening.busy ||
+            !!creation ||
+            storageStatus !== "ready"
+          }
+          onClick={restoreCover}
+        >
+          Восстановить загрузку баннера
+        </StatusNoticeAction>
       ) : null}
       {storageStatus === "error" ? (
         <StatusNoticeAction
@@ -1243,6 +1424,12 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         >
           Повторить чтение операции
         </StatusNoticeAction>
+      ) : null}
+      {cover.record && creation ? (
+        <Typography className={classes.hint}>
+          Перед восстановлением баннера проверьте незавершённое сохранение
+          статьи.
+        </Typography>
       ) : null}
       {creation ? (
         <Typography className={classes.hint}>
@@ -1259,7 +1446,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         </StatusNoticeAction>
       ) : null}
       <Action
-        disabled={remove.isPending || storageStatus !== "ready"}
+        disabled={remove.isPending || opening.busy || storageStatus !== "ready"}
         onClick={() =>
           creation ? restoreCreation(creation) : setShowForm(true)
         }
@@ -1280,13 +1467,22 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       </Typography>
       <QueryRetryState
         isLoading={list.isLoading}
-        isError={list.isError}
+        isError={list.isError && !list.isFetchNextPageError}
         onRetry={() => void list.refetch()}
         message="Не удалось загрузить статьи"
       />
-      {(list.data || []).map((item) => (
+      <QueryRetryState
+        isLoading={opening.busy}
+        isError={Boolean(openingError)}
+        onRetry={() => {
+          if (openingId !== null) void startEdit(openingId);
+        }}
+        message={openingError ?? "Не удалось загрузить статью"}
+      />
+      {list.items.map((item, index) => (
         <div
           key={item.id}
+          ref={index === list.items.length - 1 ? lastCardRef : undefined}
           className={["ui-stack ", classes.card].filter(Boolean).join(" ")}
         >
           {item.coverUrl ? (
@@ -1300,15 +1496,14 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
             <Typography className={classes.cardTitle}>{item.title}</Typography>
             <Typography className={classes.cardMeta}>
               {item.access === "public" ? "Клуб + библиотека" : "Эксклюзив"}
-              {item.published ? "" : " · черновик"} ·{" "}
-              {(item.sections || []).length} бл.
+              {item.published ? "" : " · черновик"}
             </Typography>
             <div
               className={["ui-stack ", classes.row].filter(Boolean).join(" ")}
             >
               <Action
-                disabled={remove.isPending}
-                onClick={() => startEdit(item)}
+                disabled={remove.isPending || opening.busy}
+                onClick={() => void startEdit(item.id)}
                 className={classes.linkBtn}
               >
                 <Typography className={classes.btnSecondaryText}>
@@ -1316,7 +1511,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
                 </Typography>
               </Action>
               <Action
-                disabled={remove.isPending}
+                disabled={remove.isPending || opening.busy}
                 onClick={() => confirmDelete(item.id)}
                 className={classes.linkBtn}
               >
@@ -1326,7 +1521,14 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
           </div>
         </div>
       ))}
-      {!list.isLoading && !list.isError && !(list.data || []).length ? (
+      <QueryRetryState
+        isLoading={list.isFetchingNextPage}
+        isError={list.isFetchNextPageError}
+        loadingSize="small"
+        onRetry={() => void list.fetchNextPage()}
+        message="Не удалось загрузить следующие статьи"
+      />
+      {!list.isLoading && !list.isError && !list.items.length ? (
         <Typography className={classes.hint}>
           Пока нет статей — напишите подборку, гид или «обо мне».
         </Typography>

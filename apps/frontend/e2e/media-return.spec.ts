@@ -20,11 +20,11 @@ const post = (id: number) => ({
 async function api(page: Page) {
   const state = { revision: 1, denied: false, metadataReads: 0 };
   await layoutApi(page, true, (name) => {
-    if (name === "feed.listPaginated" || name === "club.list")
+    if (name === "feed.listPaginated" || name === "club.listByCategory")
       return ok({
         posts: Array.from({ length: 12 }, (_, index) => ({
           ...post(index + 1),
-          target: name === "club.list" ? "club" : "feed",
+          target: name === "club.listByCategory" ? "club" : "feed",
         })),
         nextCursor: null,
       });

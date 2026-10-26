@@ -37,7 +37,7 @@ for (const width of [320, 390, 1440]) {
     await page.setViewportSize({ width, height: 844 });
     let missing = false;
     await editorApi(page, (name, input) => {
-      if (name === "club.list")
+      if (name === "club.listByCategory")
         return ok({ posts: [post()], nextCursor: null });
       if (name === "club.commentsPage") {
         if (input.parentId) {
@@ -113,7 +113,8 @@ async function textFixture(page: Page, lost: "network" | "503" = "503") {
     loseReply: true,
   };
   await editorApi(page, async (name, input, route) => {
-    if (name === "club.list") return ok({ posts: [post()], nextCursor: null });
+    if (name === "club.listByCategory")
+      return ok({ posts: [post()], nextCursor: null });
     if (name === "club.addComment") {
       state.calls.push(input);
       if (state.enabled)
@@ -164,7 +165,7 @@ for (const readFailure of ["missing-parent", "unavailable"] as const) {
       unavailable = false;
     const calls: Record<string, unknown>[] = [];
     await editorApi(page, (name, input) => {
-      if (name === "club.list")
+      if (name === "club.listByCategory")
         return ok({ posts: [post()], nextCursor: null });
       if (name === "club.commentsPage") {
         if (unavailable) return failure(503);
@@ -392,7 +393,7 @@ for (const [label, payload] of [
   });
 }
 
-test("the payments screen states the current API history limit", async ({
+test("the payments screen explains automatic history loading", async ({
   page,
 }) => {
   await editorApi(page);
@@ -400,7 +401,7 @@ test("the payments screen states the current API history limit", async ({
   await page.getByRole("button", { name: /Оплаты/ }).click();
   await expect(
     page.getByText(
-      "Последние 50 оплат. Более ранние записи здесь не отображаются.",
+      "История оплат. Более ранние записи загружаются при прокрутке.",
       { exact: true },
     ),
   ).toBeVisible();

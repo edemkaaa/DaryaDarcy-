@@ -2,6 +2,7 @@
 export const legacyCursorFixture = {
   "feed.savedPostsPage": "feed.savedPosts",
   "admin.membersPage": "admin.members",
+  "admin.paymentsPage": "admin.payments",
   "club.commentsPage": "club.comments",
 } as Record<string, string | undefined>;
 export function cursorFixture(

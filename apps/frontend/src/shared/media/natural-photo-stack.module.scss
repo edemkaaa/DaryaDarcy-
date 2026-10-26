@@ -19,6 +19,9 @@
     overflow: hidden;
     background-color: #ede6da;
   }
+  .landscapePair {
+    flex-direction: column;
+  }
   .picture {
     position: absolute;
     inset: 0;

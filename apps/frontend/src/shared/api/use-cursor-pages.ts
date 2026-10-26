@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import {
   useSessionOperation,
@@ -37,6 +37,7 @@ export function useCursorPages<P extends CursorPage>({
   fetchPage,
   staleTime,
   gcTime,
+  poll = true,
 }: {
   key: QueryKey;
   scope: string;
@@ -44,10 +45,12 @@ export function useCursorPages<P extends CursorPage>({
   fetchPage: (cursor: string | null, signal: AbortSignal) => Promise<P>;
   staleTime?: number;
   gcTime?: number;
+  poll?: boolean;
 }) {
   const client = useQueryClient();
   const queryKey = [...key, { ownerScope: scope }];
   const identity = JSON.stringify(queryKey);
+  const pendingRestart = useRef<string | null>(null);
   const operation = useSessionOperation(enabled, identity);
   const [failure, setFailure] = useState<{
     identity: string;
@@ -57,15 +60,20 @@ export function useCursorPages<P extends CursorPage>({
   const query = useQuery<CursorChain<P>>({
     queryKey,
     ...contentRefreshOptions(enabled),
+    ...(!poll ? { refetchInterval: false as const } : {}),
     ...(staleTime === undefined ? {} : { staleTime }),
     ...(gcTime === undefined ? {} : { gcTime }),
     queryFn: async ({ signal }) => {
       const head = await fetchPage(null, signal);
+      signal.throwIfAborted();
       requireCursorPage(head);
-      return mergeCursorHead(
-        client.getQueryData<CursorChain<P>>(queryKey),
+      const restarting = pendingRestart.current === identity;
+      const chain = mergeCursorHead(
+        restarting ? undefined : client.getQueryData<CursorChain<P>>(queryKey),
         head,
       );
+      if (restarting) pendingRestart.current = null;
+      return chain;
     },
   });
   useEffect(() => {
@@ -121,12 +129,11 @@ export function useCursorPages<P extends CursorPage>({
     hasNextPage: Boolean(query.data?.pages.at(-1)?.nextCursor),
     fetchNextPage: loadMore,
     restart: async () => {
+      operation.cancel();
       await client.cancelQueries({ queryKey, exact: true });
-      client.setQueryData<CursorChain<P>>(
-        queryKey,
-        (chain) =>
-          chain && { pages: chain.pages.slice(0, 1), pageParams: [null] },
-      );
+      // Keep confirmed pages through failures; the next successful head starts
+      // a fresh chain, including when the user retries the failed refresh.
+      pendingRestart.current = identity;
       return query.refetch();
     },
   };

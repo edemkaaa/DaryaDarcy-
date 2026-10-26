@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getMe } from "@/shared/api/auth";
 import {
   getHttpStatus,
@@ -8,86 +8,265 @@ import {
 } from "@/shared/api/errors";
 import { uriToBase64 } from "@/shared/media/image-upload";
 import { MAX_AVATAR_SOURCE_BYTES } from "@/shared/browser/file-operations";
+import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { trpc } from "@/shared/api/trpc";
 import { useAuth } from "@/domain/session/session-context";
 import {
   checkOperationAccessError,
   useSessionOperation,
 } from "@/domain/session/use-session-operation";
+import {
+  avatarIntentUri,
+  readAvatarIntent,
+  saveAvatarIntent,
+  removeAvatarIntent,
+  requireAvatarReceipt,
+  type AvatarUploadIntent,
+} from "./avatar-upload-journal";
 
-/** Uploading a photo never sends cached name/gender fields. */
+const uncertainMessage =
+  "Загрузка фото не подтверждена. Черновик сохранён. Проверьте фото в профиле перед повторной загрузкой.";
+const storageMessage =
+  "Не удалось подготовить, сохранить или прочитать черновик фото. Проверьте доступность хранилища браузера и повторите проверку.";
+type State = {
+  ownerId: number;
+  intent: AvatarUploadIntent | null;
+  draft: string | null;
+  unknown: boolean;
+  error: string | null;
+  canRetry: boolean;
+};
+
+/** A retry always checks the receipt and sends the original bytes with one key. */
 export function useProfileAvatar() {
   const { user, reconcileProfile, confirmProfileUpdate } = useAuth();
+  const ownerId = user?.id;
   const utils = trpc.useUtils();
   const operation = useSessionOperation();
-  const [unknown, setUnknown] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<State | null>(null);
+  const current = state?.ownerId === ownerId ? state : null;
+  useEffect(() => {
+    let active = true;
+    // Wait until the authenticated owner has been installed by the session.
+    void Promise.resolve().then(() => {
+      if (!active || !ownerId) return;
+      try {
+        const intent = readAvatarIntent(ownerId);
+        setState({
+          ownerId,
+          intent,
+          draft: intent ? avatarIntentUri(intent) : null,
+          unknown: !!intent,
+          error: intent ? uncertainMessage : null,
+          canRetry: false,
+        });
+      } catch {
+        setState({
+          ownerId,
+          intent: null,
+          draft: null,
+          unknown: true,
+          error: storageMessage,
+          canRetry: false,
+        });
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [ownerId]);
+
+  const complete = async (
+    intent: AvatarUploadIntent,
+    value: unknown,
+    task: ScopedOperation,
+  ) => {
+    const receipt = requireAvatarReceipt(value);
+    task.assertCurrent();
+    if (receipt.state !== "ready") {
+      setState({
+        ownerId: intent.ownerId,
+        intent,
+        draft: avatarIntentUri(intent),
+        unknown: false,
+        canRetry: true,
+        error:
+          "Фото ещё не подтверждено. Можно повторить загрузку сохранённого черновика.",
+      });
+      return false;
+    }
+    if (receipt.isCurrent) {
+      if (!confirmProfileUpdate(intent.ownerId, { avatarUrl: receipt.url }))
+        throw invalidResponse();
+    } else {
+      // The upload must not replace a newer avatar, even if it once applied.
+      const fresh = await getMe(task.signal);
+      task.assertCurrent();
+      if (!(await reconcileProfile(intent.ownerId, fresh))) return false;
+    }
+    task.assertCurrent();
+    removeAvatarIntent(intent);
+    setState({
+      ownerId: intent.ownerId,
+      intent: null,
+      draft: null,
+      unknown: false,
+      error: null,
+      canRetry: false,
+    });
+    void utils.club.comments.invalidate();
+    void utils.club.commentsPage.invalidate();
+    return true;
+  };
+
+  const failed = (
+    cause: unknown,
+    task: ScopedOperation,
+    intent: AvatarUploadIntent | null,
+  ) => {
+    checkOperationAccessError(cause);
+    if (!task.isCurrent()) return;
+    const status = getHttpStatus(cause);
+    // A conflict is terminal, not an instruction to retry with a new key.
+    if (status === 409 && intent) {
+      try {
+        removeAvatarIntent(intent);
+        setState({
+          ownerId: intent.ownerId,
+          intent: null,
+          draft: avatarIntentUri(intent),
+          unknown: false,
+          canRetry: false,
+          error: "Эту загрузку нельзя продолжить. Выберите фото заново.",
+        });
+        return;
+      } catch {
+        /* Keep recovery locked if durable cleanup failed. */
+      }
+    }
+    setState(
+      (previous) =>
+        previous && {
+          ...previous,
+          intent,
+          unknown: true,
+          canRetry: false,
+          error: intent
+            ? !status || status >= 500
+              ? uncertainMessage
+              : getRequestErrorMessage(cause)
+            : storageMessage,
+        },
+    );
+  };
+
   const upload = async (uri: string): Promise<boolean> => {
-    if (!user || unknown) return false;
+    if (!ownerId || !current || current.unknown) return false;
     const task = operation.begin("upload-profile-photo");
     if (!task) return false;
-    setError(null);
-    let dispatched = false;
+    let intent = current.intent;
+    setState({ ...current, draft: uri, error: null, canRetry: false });
     try {
-      const base64 = await uriToBase64(uri, {
-        maxInputBytes: MAX_AVATAR_SOURCE_BYTES,
-        signal: task.signal,
-      });
+      // Also detect a pending upload created in another tab before replacing it.
+      const saved = readAvatarIntent(ownerId);
+      if (saved && saved.idempotencyKey !== intent?.idempotencyKey) {
+        setState({
+          ownerId,
+          intent: saved,
+          draft: avatarIntentUri(saved),
+          unknown: true,
+          error: uncertainMessage,
+          canRetry: false,
+        });
+        return false;
+      }
+      if (intent) {
+        saveAvatarIntent(intent);
+        const status = await utils.client.profile.avatarUploadStatus.query(
+          { idempotencyKey: intent.idempotencyKey },
+          { signal: task.signal },
+        );
+        task.assertCurrent();
+        if (requireAvatarReceipt(status).state === "ready")
+          return await complete(intent, status, task);
+      } else {
+        const base64 = await uriToBase64(uri, {
+          maxInputBytes: MAX_AVATAR_SOURCE_BYTES,
+          signal: task.signal,
+        });
+        task.assertCurrent();
+        const prepared: AvatarUploadIntent = {
+          version: 1,
+          ownerId,
+          base64,
+          filename: "avatar.jpg",
+          mimeType: "image/jpeg",
+          idempotencyKey: crypto.randomUUID(),
+        };
+        saveAvatarIntent(prepared);
+        intent = prepared;
+        setState({
+          ownerId,
+          intent,
+          draft: avatarIntentUri(intent),
+          unknown: true,
+          error: null,
+          canRetry: false,
+        });
+      }
       task.assertCurrent();
-      if (!base64) throw new Error("Не удалось прочитать фото");
-      dispatched = true;
-      const result = await utils.client.profile.uploadAvatar.mutate(
-        { base64, filename: "avatar.jpg", mimeType: "image/jpeg" },
+      const { base64, filename, mimeType, idempotencyKey } = intent;
+      const result = await utils.client.profile.uploadAvatarWithReceipt.mutate(
+        { base64, filename, mimeType, idempotencyKey },
         { signal: task.signal },
       );
-      task.assertCurrent();
-      if (!result?.url || !/^https?:\/\//.test(result.url))
-        throw invalidResponse();
-      if (!confirmProfileUpdate(user.id, { avatarUrl: result.url }))
-        throw invalidResponse();
-      task.assertCurrent();
-      void utils.club.comments.invalidate();
-      void utils.club.commentsPage.invalidate();
-      return true;
+      return await complete(intent, result, task);
     } catch (cause) {
-      checkOperationAccessError(cause);
-      if (task.isCurrent()) {
-        const status = getHttpStatus(cause);
-        const uncertain = dispatched && (!status || status >= 500);
-        setUnknown(uncertain);
-        setError(
-          uncertain
-            ? "Загрузка фото не подтверждена. Черновик сохранён. Проверьте фото в профиле перед повторной загрузкой."
-            : getRequestErrorMessage(cause),
-        );
-      }
+      failed(cause, task, intent);
       return false;
     } finally {
       task.finish();
     }
   };
+
   const check = async () => {
-    if (!user) return;
+    if (!ownerId || !current) return;
     const task = operation.begin("check-profile-photo");
     if (!task) return;
+    let intent = current.intent;
     try {
-      const fresh = await getMe(task.signal);
-      task.assertCurrent();
-      if (!(await reconcileProfile(user.id, fresh))) return;
-      task.assertCurrent();
-      setUnknown(false);
-      setError(
-        "Профиль обновлён. Проверьте фото; при необходимости повторите загрузку черновика.",
+      intent = readAvatarIntent(ownerId) ?? intent;
+      if (!intent) {
+        setState({
+          ...current,
+          intent: null,
+          unknown: false,
+          canRetry: !!current.draft,
+          error: current.draft
+            ? "Черновик не отправлен. Повторите загрузку фото."
+            : null,
+        });
+        return;
+      }
+      const result = await utils.client.profile.avatarUploadStatus.query(
+        { idempotencyKey: intent.idempotencyKey },
+        { signal: task.signal },
       );
+      await complete(intent, result, task);
     } catch (cause) {
-      checkOperationAccessError(cause);
-      if (task.isCurrent())
-        setError(
-          "Не удалось проверить фото. Черновик сохранён. Попробуйте проверить ещё раз.",
-        );
+      failed(cause, task, intent);
     } finally {
       task.finish();
     }
   };
-  return { upload, check, unknown, error, busy: operation.busy };
+  return {
+    upload,
+    check,
+    draft: current?.draft ?? null,
+    error: current?.error ?? null,
+    unknown: current?.unknown ?? true,
+    canRetry: current?.canRetry ?? false,
+    busy: operation.busy,
+    canChoose: !!current && !current.unknown && !current.intent,
+  };
 }

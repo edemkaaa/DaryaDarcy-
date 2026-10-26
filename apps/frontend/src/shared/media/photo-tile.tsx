@@ -2,7 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 import { Action } from "@/shared/ui/elements";
-import { ImageFailure, Picture } from "./image";
+import { ImageFailure, Picture, type ImageProps } from "./image";
 import classes from "./photo-tile.module.scss";
 
 type PhotoTileProps = {
@@ -11,6 +11,7 @@ type PhotoTileProps = {
   label?: string;
   className?: string;
   style?: CSSProperties;
+  onLoad?: ImageProps["onLoad"];
 };
 
 /** Keep the retry button beside the photo action, avoiding nested buttons. */
@@ -24,6 +25,7 @@ function PhotoTileContent({
   label = "Открыть фото",
   className,
   style,
+  onLoad,
 }: PhotoTileProps) {
   const [failedUri, setFailedUri] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
@@ -46,7 +48,10 @@ function PhotoTileContent({
           errorFallback={null}
           className={classes.picture}
           onError={() => setFailedUri(uri ?? null)}
-          onLoad={() => setFailedUri(null)}
+          onLoad={(event) => {
+            setFailedUri(null);
+            onLoad?.(event);
+          }}
         />
       </Action>
       {uri && failedUri === uri ? (

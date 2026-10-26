@@ -114,7 +114,6 @@ export default function FeedScreen() {
   const browserCalendar = useBrowserReady();
   const router = useRouter();
   const { user, isOwner } = useAuth();
-  const interactions = usePostInteractions();
   const [selectedTag, setSelectedTag] = useState<TagSlug>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("feed");
   const [searchQuery, setSearchQuery] = useState("");
@@ -199,6 +198,7 @@ export default function FeedScreen() {
     }
     return [];
   }, [paginatedData, browserCalendar]);
+  const interactions = usePostInteractions(posts.map((post) => post.id));
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -414,11 +414,13 @@ export default function FeedScreen() {
       isSaved={interactions.savedIds.has(item.id)}
       likePending={
         Boolean(user) &&
-        (!interactions.ready || interactions.isPending("like", item.id))
+        (!interactions.isReady(item.id) ||
+          interactions.isPending("like", item.id))
       }
       savePending={
         Boolean(user) &&
-        (!interactions.ready || interactions.isPending("save", item.id))
+        (!interactions.isReady(item.id) ||
+          interactions.isPending("save", item.id))
       }
       onLike={handleLike}
       onSave={handleSave}

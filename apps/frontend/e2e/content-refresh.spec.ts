@@ -148,7 +148,7 @@ test("club refresh preserves the selected section and sees another admin's edits
   let title = "Клуб до изменения";
   let reads = 0;
   await layoutApi(page, true, (name) => {
-    if (name === "club.list") {
+    if (name === "club.listByCategory") {
       reads++;
       return ok({
         posts: [{ ...post(700, title), tags: ["life"], target: "club" }],
@@ -184,7 +184,7 @@ for (const width of [390, 1440]) {
     let requests = 0;
     let pending: Promise<void> | undefined;
     await layoutApi(page, true, (name) => {
-      if (name === "club.list")
+      if (name === "club.listByCategory")
         return ok({
           posts: Array.from({ length: 12 }, (_, index) => ({
             ...post(index + 1, `Клуб версия ${version} ${index + 1}`),
@@ -197,7 +197,7 @@ for (const width of [390, 1440]) {
       const names = decodeURIComponent(new URL(route.request().url()).pathname)
         .split("/api/trpc/")[1]
         .split(",");
-      if (names.includes("club.list")) {
+      if (names.includes("club.listByCategory")) {
         requests++;
         if (pending) await pending;
       }

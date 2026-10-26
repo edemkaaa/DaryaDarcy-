@@ -463,7 +463,7 @@ for (const status of [403, 404]) {
     await expect(draft).toHaveValue("");
   });
 }
-test("returning after an unknown save reads state before allowing another toggle", async ({
+test("returning after an unknown save keeps recovery available before allowing another toggle", async ({
   page,
 }) => {
   const state = await fixture(page);
@@ -494,6 +494,14 @@ test("returning after an unknown save reads state before allowing another toggle
   expect(state.toggleWrites).toHaveLength(1);
   state.interactionsGate = undefined;
   gate.resolve();
+  // Changing screens must not discard an uncertain write. Reconcile it through
+  // the same explicit recovery action that is available on the original screen.
+  const retry = page.getByRole("button", {
+    name: "Обновить отметки",
+    exact: true,
+  });
+  await expect(retry).toBeVisible();
+  await retry.click();
   await expect(
     page.getByRole("button", { name: "Сохранить пост", exact: true }),
   ).toBeEnabled();

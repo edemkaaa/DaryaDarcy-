@@ -114,8 +114,17 @@ async function fixture(page: Page, state: State) {
                 : null,
         );
       }
-      if (name === "feed.userInteractions")
-        return ok({ likedIds: [], savedIds: [42, 43, 44] });
+      if (name === "feed.interactionsForPosts") {
+        const input = url.searchParams.has("batch")
+          ? inputs[index]?.json
+          : inputs.json;
+        return ok({
+          likedIds: [],
+          savedIds: [42, 43, 44].filter((id) =>
+            (input.postIds as number[]).includes(id),
+          ),
+        });
+      }
       if (name === "notifications.latest")
         return ok({ feedId: null, clubId: null });
       return ok([]);

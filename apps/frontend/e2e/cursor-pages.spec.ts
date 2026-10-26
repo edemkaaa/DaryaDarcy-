@@ -21,7 +21,7 @@ test("a forbidden reply group immediately hides retained comments of the post", 
   page,
 }) => {
   await editorApi(page, (name, input) => {
-    if (name === "club.list")
+    if (name === "club.listByCategory")
       return ok({
         posts: [
           {
@@ -224,7 +224,7 @@ test("comment roots and nested replies load independently and keep the server to
     likedByMe: false,
   });
   await editorApi(page, (name, input) => {
-    if (name === "club.list")
+    if (name === "club.listByCategory")
       return ok({
         posts: [
           {

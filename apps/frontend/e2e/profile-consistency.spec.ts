@@ -25,6 +25,14 @@ async function profileApi(page: Page) {
     },
     mode: "ok" as "ok" | "reject" | "lost-committed" | "lost-uncommitted",
     avatarFails: false,
+    avatarLostCommitted: false,
+    avatarConflict: false,
+    avatarStatusFails: false,
+    avatarPending: false,
+    avatarReceiptOverride: undefined as unknown,
+    avatarStatuses: [] as Record<string, unknown>[],
+    avatarReceipts: new Map<string, string>(),
+    avatarGate: null as ReturnType<typeof barrier> | null,
     writes: [] as Record<string, unknown>[],
     avatarWrites: [] as Record<string, unknown>[],
     holdNextRead: false,
@@ -58,11 +66,40 @@ async function profileApi(page: Page) {
         ? failure(503)
         : ok({ success: true });
     }
-    if (name === "profile.uploadAvatar") {
+    if (name === "profile.uploadAvatarWithReceipt") {
       state.avatarWrites.push(input);
+      const uploadingUser = state.user;
+      await state.avatarGate?.promise;
+      if (state.avatarConflict) return failure(409);
       if (state.avatarFails) return failure(503);
-      state.user.avatarUrl = "https://images.example.test/confirmed-avatar.jpg";
-      return ok({ url: state.user.avatarUrl });
+      const url = "https://images.example.test/confirmed-avatar.jpg";
+      state.avatarReceipts.set(input.idempotencyKey as string, url);
+      uploadingUser.avatarUrl = url;
+      if (state.avatarLostCommitted) return failure(503);
+      return ok(
+        state.avatarReceiptOverride ?? {
+          state: "ready",
+          url,
+          avatarApplied: true,
+          isCurrent: true,
+        },
+      );
+    }
+    if (name === "profile.avatarUploadStatus") {
+      state.avatarStatuses.push(input);
+      if (state.avatarStatusFails) return failure(503);
+      const url = state.avatarReceipts.get(input.idempotencyKey as string);
+      return ok(
+        state.avatarReceiptOverride ??
+          (url
+            ? {
+                state: "ready",
+                url,
+                avatarApplied: true,
+                isCurrent: url === state.user.avatarUrl,
+              }
+            : { state: state.avatarPending ? "pending" : "missing" }),
+      );
     }
     if (name === "feed.savedPosts") return ok([]);
   });
@@ -649,4 +686,285 @@ test("avatar crop error keeps retry and cancel reachable in a short viewport", a
   await expect(
     page.getByRole("button", { name: "Выбрать фото профиля", exact: true }),
   ).toBeVisible();
+});
+
+async function chooseAvatar(page: Page, raster: Buffer) {
+  const chooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("button", { name: "Выбрать фото профиля", exact: true })
+    .click();
+  await (
+    await chooser
+  ).setFiles({ name: "photo.png", mimeType: "image/png", buffer: raster });
+  await page.getByRole("button", { name: "Готово", exact: true }).click();
+}
+const checkAvatar = (page: Page) =>
+  page.getByRole("button", { name: "Проверить фото в профиле", exact: true });
+const retryAvatar = (page: Page) =>
+  page.getByRole("button", { name: "Повторить загрузку фото", exact: true });
+const avatarJournal = (page: Page) =>
+  page.evaluate(() => {
+    const raw = localStorage.getItem("darcy:user:101:avatar-upload");
+    return raw ? JSON.parse(raw) : null;
+  });
+
+test.describe("avatar receipt recovery", () => {
+  test("a lost committed response survives reload and is checked without uploading again", async ({
+    page,
+  }) => {
+    const { state, raster } = await profileApi(page);
+    state.avatarLostCommitted = true;
+    await gotoWithSession(page, "/profile");
+    await chooseAvatar(page, raster);
+    await expect(checkAvatar(page)).toBeVisible();
+    const intent = await avatarJournal(page);
+    expect(intent).toMatchObject({ ownerId: 101, ...state.avatarWrites[0] });
+    await page.reload();
+    await expect(
+      page.getByText("Черновик фото", { exact: true }),
+    ).toBeVisible();
+    await checkAvatar(page).click();
+    await expect(page.getByText("Черновик фото", { exact: true })).toHaveCount(
+      0,
+    );
+    expect(state.avatarWrites).toHaveLength(1);
+    expect(state.avatarStatuses).toEqual([
+      { idempotencyKey: intent.idempotencyKey },
+    ]);
+    expect(await avatarJournal(page)).toBeNull();
+    expect(state.writes).toEqual([]);
+  });
+
+  for (const pending of [false, true]) {
+    test(`${pending ? "pending" : "missing"} receipt retries exactly the saved bytes and key after reload`, async ({
+      page,
+    }) => {
+      const { state, raster } = await profileApi(page);
+      state.avatarFails = true;
+      state.avatarPending = pending;
+      await gotoWithSession(page, "/profile");
+      await chooseAvatar(page, raster);
+      await expect(checkAvatar(page)).toBeVisible();
+      await page.reload();
+      await checkAvatar(page).click();
+      await expect(retryAvatar(page)).toBeVisible();
+      state.avatarFails = false;
+      await retryAvatar(page).click();
+      await expect(
+        page.getByText("Черновик фото", { exact: true }),
+      ).toHaveCount(0);
+      expect(state.avatarWrites).toHaveLength(2);
+      expect(state.avatarWrites[1]).toEqual(state.avatarWrites[0]);
+      expect(state.avatarStatuses).toHaveLength(2);
+      expect(await avatarJournal(page)).toBeNull();
+    });
+  }
+
+  test("a ready receipt discovered on retry avoids a second upload", async ({
+    page,
+  }) => {
+    const { state, raster } = await profileApi(page);
+    state.avatarFails = true;
+    await gotoWithSession(page, "/profile");
+    await chooseAvatar(page, raster);
+    await checkAvatar(page).click();
+    await expect(retryAvatar(page)).toBeVisible();
+    const intent = await avatarJournal(page);
+    state.user.avatarUrl =
+      "https://images.example.test/completed-elsewhere.jpg";
+    state.avatarReceipts.set(intent.idempotencyKey, state.user.avatarUrl);
+    await retryAvatar(page).click();
+    await expect(page.getByText("Черновик фото", { exact: true })).toHaveCount(
+      0,
+    );
+    expect(state.avatarWrites).toHaveLength(1);
+  });
+
+  test("an old ready receipt reads the current profile without reapplying the old avatar", async ({
+    page,
+  }) => {
+    const { state, raster } = await profileApi(page);
+    state.avatarLostCommitted = true;
+    await gotoWithSession(page, "/profile");
+    await chooseAvatar(page, raster);
+    await expect(checkAvatar(page)).toBeVisible();
+    state.user.avatarUrl = "https://images.example.test/newer-avatar.jpg";
+    await checkAvatar(page).click();
+    await expect(page.getByText("Черновик фото", { exact: true })).toHaveCount(
+      0,
+    );
+    await expect(
+      page
+        .getByRole("button", { name: "Выбрать фото профиля", exact: true })
+        .locator("img"),
+    ).toHaveAttribute("src", state.user.avatarUrl);
+    expect(state.writes).toEqual([]);
+    expect(state.avatarWrites).toHaveLength(1);
+  });
+
+  test("status 503 preserves the intent and prevents a blind retry", async ({
+    page,
+  }) => {
+    const { state, raster } = await profileApi(page);
+    state.avatarFails = true;
+    state.avatarStatusFails = true;
+    await gotoWithSession(page, "/profile");
+    await chooseAvatar(page, raster);
+    await expect(checkAvatar(page)).toBeVisible();
+    const intent = await avatarJournal(page);
+    await checkAvatar(page).click();
+    await expect.poll(() => state.avatarStatuses.length).toBe(1);
+    await expect(checkAvatar(page)).toBeEnabled();
+    await expect(retryAvatar(page)).toHaveCount(0);
+    expect(await avatarJournal(page)).toEqual(intent);
+    expect(state.avatarWrites).toHaveLength(1);
+  });
+
+  test("a conflict stops retries and allows only an explicit new photo", async ({
+    page,
+  }) => {
+    const { state, raster } = await profileApi(page);
+    state.avatarConflict = true;
+    await gotoWithSession(page, "/profile");
+    await chooseAvatar(page, raster);
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Выберите фото заново" }),
+    ).toBeVisible();
+    await expect(retryAvatar(page)).toHaveCount(0);
+    expect(await avatarJournal(page)).toBeNull();
+    expect(state.avatarWrites).toHaveLength(1);
+    state.avatarConflict = false;
+    await chooseAvatar(page, raster);
+    await expect(page.getByText("Черновик фото", { exact: true })).toHaveCount(
+      0,
+    );
+    expect(state.avatarWrites).toHaveLength(2);
+    expect(state.avatarWrites[1].idempotencyKey).not.toBe(
+      state.avatarWrites[0].idempotencyKey,
+    );
+  });
+
+  test("an invalid ready receipt keeps recovery available", async ({
+    page,
+  }) => {
+    const { state, raster } = await profileApi(page);
+    state.avatarReceiptOverride = {
+      state: "ready",
+      url: "javascript:alert(1)",
+      avatarApplied: true,
+      isCurrent: null,
+    };
+    await gotoWithSession(page, "/profile");
+    await chooseAvatar(page, raster);
+    await expect(checkAvatar(page)).toBeVisible();
+    expect(await avatarJournal(page)).not.toBeNull();
+    await expect(retryAvatar(page)).toHaveCount(0);
+    expect(state.avatarWrites).toHaveLength(1);
+  });
+
+  test("storage failure blocks upload until the exact draft can be saved", async ({
+    page,
+  }) => {
+    const { state, raster } = await profileApi(page);
+    await gotoWithSession(page, "/profile");
+    await page.evaluate(() => {
+      const original = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) {
+        if (key.endsWith(":avatar-upload"))
+          throw new DOMException("full", "QuotaExceededError");
+        return original.call(this, key, value);
+      };
+      Object.assign(window, {
+        restoreAvatarStorage: () => {
+          Storage.prototype.setItem = original;
+        },
+      });
+    });
+    await chooseAvatar(page, raster);
+    await expect(
+      page
+        .getByRole("alert")
+        .filter({ hasText: "Проверьте доступность хранилища" }),
+    ).toBeVisible();
+    expect(state.avatarWrites).toEqual([]);
+    await page.evaluate(() =>
+      (
+        window as unknown as { restoreAvatarStorage: () => void }
+      ).restoreAvatarStorage(),
+    );
+    await checkAvatar(page).click();
+    await retryAvatar(page).click();
+    await expect(page.getByText("Черновик фото", { exact: true })).toHaveCount(
+      0,
+    );
+    expect(state.avatarWrites).toHaveLength(1);
+  });
+
+  test("another account never sees or sends the previous owner's pending photo", async ({
+    page,
+  }) => {
+    const { state, raster } = await profileApi(page);
+    state.avatarFails = true;
+    await gotoWithSession(page, "/profile");
+    await chooseAvatar(page, raster);
+    await expect(checkAvatar(page)).toBeVisible();
+    const intent = await avatarJournal(page);
+    state.user.id = 202;
+    state.user.openId = "another-person";
+    await page.reload();
+    await expect(
+      page.getByRole("button", { name: "Выбрать фото профиля", exact: true }),
+    ).toBeEnabled();
+    await expect(page.getByText("Черновик фото", { exact: true })).toHaveCount(
+      0,
+    );
+    expect(state.avatarWrites).toHaveLength(1);
+    expect(state.avatarStatuses).toEqual([]);
+    expect(await avatarJournal(page)).toEqual(intent);
+  });
+});
+
+test("a delayed avatar response cannot update the next account", async ({
+  page,
+}) => {
+  const { state, raster } = await profileApi(page);
+  state.avatarGate = barrier();
+  try {
+    await gotoWithSession(page, "/profile");
+    await chooseAvatar(page, raster);
+    await expect.poll(() => state.avatarWrites.length).toBe(1);
+    const intent = await avatarJournal(page);
+    state.user = {
+      ...state.user,
+      id: 202,
+      openId: "second-person",
+      name: "Second person",
+      avatarUrl: "https://images.example.test/second-person.jpg",
+    };
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "darcy:session-change",
+          newValue: "second-account",
+        }),
+      ),
+    );
+    await expect(
+      page.getByRole("button", { name: "Second person", exact: true }),
+    ).toBeVisible();
+    state.avatarGate.release();
+    await expect(
+      page
+        .getByRole("button", { name: "Выбрать фото профиля", exact: true })
+        .locator("img"),
+    ).toHaveAttribute("src", "https://images.example.test/second-person.jpg");
+    await expect(page.getByText("Черновик фото", { exact: true })).toHaveCount(
+      0,
+    );
+    expect(state.writes).toEqual([]);
+    expect(state.avatarStatuses).toEqual([]);
+    expect(await avatarJournal(page)).toEqual(intent);
+  } finally {
+    state.avatarGate.release();
+  }
 });

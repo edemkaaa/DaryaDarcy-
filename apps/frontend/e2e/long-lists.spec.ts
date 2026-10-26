@@ -80,9 +80,9 @@ async function longListApi(
           isOwner: false,
           monthlyPrice: "790",
         };
-      if (name === "feed.userInteractions")
+      if (name === "feed.interactionsForPosts")
         data = { likedIds: [], savedIds: [] };
-      if (name === "club.list" || name === "feed.listPaginated") {
+      if (name === "club.listByCategory" || name === "feed.listPaginated") {
         const start = input.cursor ?? 0;
         const end = Math.min(start + (input.limit ?? 12), posts.length);
         data = {
@@ -608,7 +608,7 @@ test("feed stops a repeated cursor, deduplicates posts and retries explicitly", 
     const inputs = JSON.parse(url.searchParams.get("input") ?? "{}");
     const results = names.map((name, index) => {
       let data: unknown = [];
-      if (name === "feed.userInteractions")
+      if (name === "feed.interactionsForPosts")
         data = { likedIds: [], savedIds: [] };
       if (name === "club.subscription")
         data = {

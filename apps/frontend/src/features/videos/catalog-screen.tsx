@@ -1,9 +1,5 @@
 "use client";
-import { useCallback, useMemo } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { getQueryKey } from "@trpc/react-query";
-import { trpc } from "@/shared/api/trpc";
-import { contentRefreshOptions } from "@/shared/api/content-refresh";
+import { useMemo } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { useRouter } from "@/shared/navigation/router";
@@ -22,76 +18,43 @@ import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import { SessionStatus } from "@/domain/session/session-status";
 import { displayVideoTitle } from "@/shared/media/video-title";
 import { Picture } from "@/shared/media/image";
-import {
-  parseVideoCatalog,
-  nextVideoCursor,
-  stalledVideoCursor,
-  videoThumbnailUrl,
-  videoCatalogInput,
-  type VideoCard,
-} from "./catalog-api";
+import { videoThumbnailUrl, type VideoCard } from "./catalog-api";
+import { useVideoCatalog } from "./use-video-catalog";
 import { getVideosScreenLayout } from "./videos-screen.layout";
 import { VideosBannerHeader } from "./videos-banner";
 import { PAPER_TEXTURE_URI } from "./videos-screen.content";
 import classes from "./videos-screen.module.scss";
 
 export function VideoCatalogScreen() {
+  const { user } = useAuth();
+  const owner = String(user?.id ?? "guest");
+  return <Catalog key={owner} owner={owner} />;
+}
+
+function Catalog({ owner }: { owner: string }) {
   const active = useScreenActive();
   const { loading, error: sessionError } = useAuth();
   const { stylesLayout } = getVideosScreenLayout(useViewport());
   const router = useRouter();
-  const utils = trpc.useUtils();
-  const catalogInput = videoCatalogInput(20);
-  const query = useInfiniteQuery({
-    queryKey: getQueryKey(trpc.videos.catalog, catalogInput, "infinite"),
-    initialPageParam: undefined as number | undefined,
-    // The same opt-in is included in the cache key and every requested page.
-    queryFn: ({ pageParam, signal }) =>
-      utils.client.videos.catalog.query(videoCatalogInput(20, pageParam), {
-        signal,
-      }),
-    ...contentRefreshOptions(active && !loading && !sessionError),
-    staleTime: 0,
-    refetchOnMount: "always",
-    getNextPageParam: (last, _pages, _lastParam, params) => {
-      try {
-        return nextVideoCursor(parseVideoCatalog(last), params);
-      } catch {
-        return undefined;
-      } // select reports an invalid response without breaking the screen.
-    },
-    select: (data) => ({ ...data, pages: data.pages.map(parseVideoCatalog) }),
-  });
-  const stalled = stalledVideoCursor(
-    query.data?.pages.at(-1),
-    query.data?.pageParams ?? [],
-  );
+  const query = useVideoCatalog(active && !loading && !sessionError, owner);
+  const { stalled } = query;
   useBackgroundNotice({
-    when: query.isRefetchError && query.data !== undefined,
+    when: query.isRefetchError && query.pages.length > 0,
     message: "Не удалось обновить видео",
-    onRetry: () => query.refetch({ cancelRefetch: false }),
+    onRetry: query.refresh,
   });
   const rows = useMemo(
     () => [
       ...new Map(
-        (query.data?.pages.flatMap((page) => page.items) ?? []).map((item) => [
-          item.id,
-          item,
-        ]),
+        query.pages
+          .flatMap((page) => page.items)
+          .map((item) => [item.id, item]),
       ).values(),
     ],
-    [query.data],
+    [query.pages],
   );
-  const loadMore = useCallback(() => {
-    if (query.hasNextPage && !query.isFetching && !query.isError && !stalled)
-      void query.fetchNextPage({ cancelRefetch: false });
-  }, [query, stalled]);
-  const retry = () => {
-    if (query.isFetching) return;
-    if (query.isFetchNextPageError)
-      void query.fetchNextPage({ cancelRefetch: false });
-    else void query.refetch({ cancelRefetch: false });
-  };
+  const loadMore = query.fetchNextPage;
+  const retry = query.retry;
   if (loading || sessionError) return <SessionStatus />;
   const renderCard = ({ item }: { item: VideoCard }) => {
     const thumbnail = videoThumbnailUrl(item.thumbnailUrl);
@@ -167,7 +130,7 @@ export function VideoCatalogScreen() {
             <QueryRetryState
               isLoading={query.isPending}
               loadingContent={<ContentPlaceholder kind="video" />}
-              isError={query.isError && query.data === undefined}
+              isError={query.isError && query.pages.length === 0}
               onRetry={retry}
               message="Не удалось загрузить видео"
               className={classes.loadingContainer}
@@ -201,9 +164,9 @@ export function VideoCatalogScreen() {
             paddingBottom: rows.length ? "var(--page-end-gap)" : 0,
           }}
           hideScrollbar
-          onRefresh={async () => {
-            await query.refetch({ cancelRefetch: false });
-          }}
+          onRefresh={query.refresh}
+          onVisibleItemsChange={query.onVisibleItemsChange}
+          visiblePercent={1}
           divider={() => <div className={classes.separator} />}
           contentClassName={classes.collectioncontent}
         />

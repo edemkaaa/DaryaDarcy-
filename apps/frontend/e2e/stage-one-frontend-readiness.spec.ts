@@ -340,7 +340,7 @@ test("comment: an unavailable photo upload keeps selection and allows another se
 }) => {
   const now = new Date().toISOString();
   await editorApi(page, (name) => {
-    if (name === "club.list")
+    if (name === "club.listByCategory")
       return ok({
         posts: [
           {

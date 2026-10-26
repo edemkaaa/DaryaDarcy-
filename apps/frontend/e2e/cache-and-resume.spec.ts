@@ -60,7 +60,7 @@ for (const subscribed of [false, true]) {
           path.split("/api/trpc/")[1],
         ).split(",")) {
           if (name === "club.subscription") subscriptionChecks++;
-          else if (name === "feed.userInteractions") interactionChecks++;
+          else if (name === "feed.interactionsForPosts") interactionChecks++;
           else content.push(name);
         }
       }

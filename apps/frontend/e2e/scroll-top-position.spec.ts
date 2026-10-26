@@ -66,15 +66,15 @@ async function fixtures(page: Page, owner: boolean) {
                     expiresAt: owner ? null : "2040-11-01T10:00:00Z",
                     monthlyPrice: "790",
                   }
-                : name === "feed.listPaginated" || name === "club.list"
+                : name === "feed.listPaginated" || name === "club.listByCategory"
                   ? {
                       posts: posts.map((post) => ({
                         ...post,
-                        target: name === "club.list" ? "club" : "feed",
+                        target: name === "club.listByCategory" ? "club" : "feed",
                       })),
                       nextCursor: null,
                     }
-                  : name === "feed.userInteractions"
+                  : name === "feed.interactionsForPosts"
                     ? { likedIds: [], savedIds: [] }
                     : [],
           },

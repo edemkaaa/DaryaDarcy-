@@ -505,12 +505,12 @@ async function photoPostApi(page: Page, count: number) {
   let photos = makePhotos(count);
   await editorApi(page, (name) => {
     if (name === "feed.getById") return ok(contentPost({ photos }));
-    if (name === "feed.listPaginated" || name === "club.list")
+    if (name === "feed.listPaginated" || name === "club.listByCategory")
       return ok({
         posts: [
           contentPost({
             photos,
-            target: name === "club.list" ? "club" : "feed",
+            target: name === "club.listByCategory" ? "club" : "feed",
           }),
         ],
         nextCursor: null,
@@ -765,7 +765,7 @@ test("a failed comment photo upload keeps the text and reports its error", async
 }) => {
   let uploads = 0;
   await editorApi(page, (name) => {
-    if (name === "club.list")
+    if (name === "club.listByCategory")
       return ok({
         posts: [
           contentPost({

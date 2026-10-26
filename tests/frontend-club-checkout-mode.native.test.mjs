@@ -169,7 +169,7 @@ test("real /club build respects its explicit mode and never trusts return flags"
                       }
                     : name === "club.list" || name === "feed.listPaginated"
                       ? { posts: [], nextCursor: null }
-                      : name === "feed.userInteractions"
+                      : name === "feed.interactionsForPosts"
                         ? { likedIds: [], savedIds: [] }
                         : name === "clubProfile.get" || name === "quiz.myResult"
                           ? null

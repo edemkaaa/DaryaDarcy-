@@ -46,8 +46,6 @@ import {
   displayPostTitle,
   isRawMediaFilename,
 } from "@/shared/media/media-label";
-import { postMatchesClubTab } from "@/domain/post/club-tags";
-import { postHasTag } from "@/domain/post/post-tags";
 import {
   sanitizePlainPostText,
   sanitizeRichTextForDisplay,
@@ -87,7 +85,6 @@ export function ClubSubscribed({
   const [selectedBoardTag, setSelectedBoardTag] = useState<string | null>(null);
   useClubContentProtection(true);
   const utils = trpc.useUtils();
-  const interactions = usePostInteractions();
   // Admin post management (edit/delete)
   const onRefresh = () => {
     void clubQuery.restart();
@@ -122,16 +119,23 @@ export function ClubSubscribed({
   const needsProfileSetup = !setupHidden && !isOwner;
   const displayName = user?.name;
   const displayGender = user?.gender;
-  // Keep local rubric/alias filtering; the API currently supports one tag only.
+  const clubFilters = {
+    limit: 12,
+    ...(activeTab ? { category: activeTab } : {}),
+    ...(selectedBoardTag ? { tag: selectedBoardTag } : {}),
+  };
   const clubQuery = useCursorPages({
-    key: getQueryKey(trpc.club.list, { limit: 12 }, "query"),
+    key: getQueryKey(trpc.club.listByCategory, clubFilters, "query"),
     scope: String(user?.id ?? "guest"),
     enabled: active,
     fetchPage: async (cursor, signal) => {
       // Offset cursors remain numeric on the wire. The local cursor-chain
       // helper uses strings and refreshes only the first page in the background.
-      const page = await utils.client.club.list.query(
-        { limit: 12, ...(cursor === null ? {} : { cursor: Number(cursor) }) },
+      const page = await utils.client.club.listByCategory.query(
+        {
+          ...clubFilters,
+          ...(cursor === null ? {} : { cursor: Number(cursor) }),
+        },
         { signal },
       );
       if (
@@ -165,6 +169,7 @@ export function ClubSubscribed({
     else void clubQuery.refetch({ cancelRefetch: false });
   };
   const rows = clubQuery.items;
+  const interactions = usePostInteractions(rows.map((post) => post.id));
   // Convert API posts to the club presentation model.
   const dbPosts: ClubPost[] = rows
     .map((row) => {
@@ -204,17 +209,8 @@ export function ClubSubscribed({
       const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return tb - ta;
     });
-  const allPosts = dbPosts;
-  const tabPosts = activeTab
-    ? allPosts.filter((post) => postMatchesClubTab(post.tags, activeTab))
-    : allPosts;
-  const posts = selectedBoardTag
-    ? tabPosts.filter((p) => postHasTag(p.tags, selectedBoardTag))
-    : tabPosts;
-  // An empty filtered page is not an empty section until all pages are checked.
-  useEffect(() => {
-    if (posts.length === 0) loadMore();
-  }, [posts.length, loadMore]);
+  // The server applies rubric and board-tag aliases before pagination.
+  const posts = dbPosts;
   // Winter is an error fallback, never a placeholder for a pending response.
   const season =
     appearanceQuery.data?.season ?? (appearanceQuery.isError ? "winter" : null);
@@ -280,10 +276,12 @@ export function ClubSubscribed({
       isSaved={interactions.savedIds.has(Number(item.id))}
       isLiked={interactions.likedIds.has(Number(item.id))}
       likePending={
-        !interactions.ready || interactions.isPending("like", Number(item.id))
+        !interactions.isReady(Number(item.id)) ||
+        interactions.isPending("like", Number(item.id))
       }
       savePending={
-        !interactions.ready || interactions.isPending("save", Number(item.id))
+        !interactions.isReady(Number(item.id)) ||
+        interactions.isPending("save", Number(item.id))
       }
       onSave={() => handleClubSave(item.id)}
       onLike={() => handleClubLike(item.id)}

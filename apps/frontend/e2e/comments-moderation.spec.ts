@@ -52,6 +52,7 @@ const report = () => ({
   postId: 1,
   authorUserId: 201,
   authorName: "Автор",
+  canBlockAuthor: true,
   reporterUserId: 202,
   reporterName: "Участница",
 });
@@ -73,7 +74,7 @@ async function commentsApi(
         isOwner: role === "admin",
         monthlyPrice: "790",
       });
-    if (name === "club.list")
+    if (name === "club.listByCategory")
       return ok({
         posts: [
           {

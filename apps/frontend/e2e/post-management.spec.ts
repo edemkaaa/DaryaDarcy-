@@ -64,7 +64,7 @@ for (const screen of ["feed", "club"] as const) {
             monthlyPrice: "790",
           });
         if (
-          ["feed.listPaginated", "club.list", "admin.postsPage"].includes(name)
+          ["feed.listPaginated", "club.listByCategory", "admin.postsPage"].includes(name)
         )
           return ok({
             posts: exists

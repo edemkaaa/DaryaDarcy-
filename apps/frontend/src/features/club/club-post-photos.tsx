@@ -7,7 +7,8 @@ import {
   ScrollArea,
   Typography,
 } from "@/shared/ui/elements";
-import { ImageFailure, Picture } from "@/shared/media/image";
+import { ImageFailure, Picture, type ImageProps } from "@/shared/media/image";
+import { postPhotoRows } from "@/shared/media/post-photo-rows";
 import {
   usePhotoAspectRatios,
   FALLBACK_PHOTO_RATIO,
@@ -33,6 +34,7 @@ function ClubPhoto({
   width,
   contain = false,
   preload = true,
+  onImageLoad,
 }: {
   uri: string;
   index: number;
@@ -41,6 +43,7 @@ function ClubPhoto({
   width?: number;
   contain?: boolean;
   preload?: boolean;
+  onImageLoad?: ImageProps["onLoad"];
 }) {
   const nearby = useCollectionItemRetention(false);
   const active = useScreenActive();
@@ -71,6 +74,7 @@ function ClubPhoto({
           errorFallback={null}
           onLoad={(event) => {
             onLoad(uri)(event);
+            onImageLoad?.(event);
             setFailed(false);
           }}
           onError={() => setFailed(true)}
@@ -173,6 +177,9 @@ export function ClubPostPhotos({
   videos: PostVideoSlide[];
   onPhotoPress?: (index: number) => void;
 }) {
+  const pair = photos.length === 2 && videos.length === 0;
+  const { ratios, onLoad } = usePhotoAspectRatios(pair ? photos : []);
+  const landscapePair = pair && ratios.every((ratio) => ratio > 1);
   if (videos.length > 1)
     return (
       <div className={`ui-stack ${classes.stack}`}>
@@ -207,14 +214,6 @@ export function ClubPostPhotos({
         onPhotoPress={onPhotoPress}
       />
     );
-  const columns =
-    photos.length <= 3
-      ? photos.length
-      : photos.length === 4
-        ? 2
-        : photos.length === 8
-          ? 4
-          : 3;
   const rows: { indices: number[]; columns: number }[] = [];
   if (video) {
     rows.push({
@@ -228,19 +227,9 @@ export function ClubPostPhotos({
           .map((_, index) => offset + index),
         columns: Math.min(4, photos.length - offset),
       });
-  } else if (photos.length === 7) {
-    rows.push(
-      { indices: [0, 1, 2], columns: 3 },
-      { indices: [3, 4, 5, 6], columns: 4 },
-    );
   } else {
-    for (let offset = 0; offset < photos.length; offset += columns)
-      rows.push({
-        indices: photos
-          .slice(offset, offset + columns)
-          .map((_, index) => offset + index),
-        columns,
-      });
+    for (const indices of postPhotoRows(photos.length))
+      rows.push({ indices, columns: indices.length });
   }
   return (
     <div
@@ -249,7 +238,10 @@ export function ClubPostPhotos({
       aria-label="Фотографии поста"
     >
       {rows.map((row, rowIndex) => (
-        <div key={rowIndex} className={`ui-stack ${classes.row}`}>
+        <div
+          key={rowIndex}
+          className={`ui-stack ${classes.row} ${landscapePair ? classes.landscapePair : ""}`}
+        >
           {video && rowIndex === 0 ? (
             <VideoGridCell url={video.url} thumbnailUrl={video.posterUrl} />
           ) : null}
@@ -258,6 +250,7 @@ export function ClubPostPhotos({
               key={`${photos[index]}-${index}`}
               uri={photos[index]}
               index={index}
+              onImageLoad={pair ? onLoad(photos[index]) : undefined}
               onPhotoPress={onPhotoPress}
             />
           ))}

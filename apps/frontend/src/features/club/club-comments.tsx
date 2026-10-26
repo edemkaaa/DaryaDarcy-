@@ -382,7 +382,7 @@ function CommentThread({
     signal?.throwIfAborted();
   };
   const refreshCounts = () => {
-    void utils.club.list.invalidate();
+    void utils.club.listByCategory.invalidate();
     void utils.feed.getById.invalidate({ id: postId });
   };
   const refreshMissingBranch = async (parentId: number) => {

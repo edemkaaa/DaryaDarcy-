@@ -87,7 +87,7 @@ async function articleApi(page: Page) {
           isOwner: false,
           monthlyPrice: "790",
         });
-      if (name === "feed.userInteractions")
+      if (name === "feed.interactionsForPosts")
         return ok({ likedIds: [], savedIds: [] });
       return ok([]);
     });

@@ -1,5 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
+import {
+  postMatchesClubTab,
+  type ClubTabId,
+} from "../../../packages/shared/src/club-tags";
+import { postFilterTagAliases } from "../../../packages/shared/src/post-tag-aliases";
 
 test.setTimeout(60_000);
 const ok = (data: unknown) => ({ result: { data: { json: data } } });
@@ -26,7 +31,12 @@ const post = (id: number, tags = ["life"]) => ({
   publishedAt: new Date(Date.UTC(2026, 9, 5) - id * 60_000).toISOString(),
 });
 type Post = ReturnType<typeof post>;
-type Input = { cursor?: number | null; limit?: number; tag?: string };
+type Input = {
+  cursor?: number | null;
+  limit?: number;
+  tag?: string;
+  category?: ClubTabId;
+};
 
 async function clubApi(
   page: Page,
@@ -48,7 +58,8 @@ async function clubApi(
     const inputs = JSON.parse(url.searchParams.get("input") ?? "{}");
     const results = await Promise.all(
       names.map(async (name, index) => {
-        if (name === "club.list") return answer(inputs[index]?.json ?? {});
+        if (name === "club.listByCategory")
+          return answer(inputs[index]?.json ?? {});
         if (name === "club.subscription")
           return ok({
             hasClubAccess: true,
@@ -59,7 +70,7 @@ async function clubApi(
             isOwner: false,
             monthlyPrice: "790",
           });
-        if (name === "feed.userInteractions")
+        if (name === "feed.interactionsForPosts")
           return ok({ likedIds: [], savedIds: [] });
         return ok([]);
       }),
@@ -71,11 +82,19 @@ async function clubApi(
 }
 
 function paged(posts: Post[], input: Input) {
+  const matches = posts.filter(
+    (row) =>
+      (!input.category || postMatchesClubTab(row.tags, input.category)) &&
+      (!input.tag ||
+        row.tags.some((tag) =>
+          postFilterTagAliases(input.tag!).includes(tag.trim().toLowerCase()),
+        )),
+  );
   const start = input.cursor ?? 0;
-  const end = Math.min(start + (input.limit ?? 12), posts.length);
+  const end = Math.min(start + (input.limit ?? 12), matches.length);
   return ok({
-    posts: posts.slice(start, end),
-    nextCursor: end < posts.length ? end : null,
+    posts: matches.slice(start, end),
+    nextCursor: end < matches.length ? end : null,
   });
 }
 const list = (page: Page) =>
@@ -96,12 +115,14 @@ async function refreshList(page: Page) {
       Object.defineProperty(event, property, {
         value: [{ identifier: 1, target: node, clientY: y }],
       });
+      if (type === "touchend")
+        Object.defineProperty(event, "touches", { value: [] });
       node.dispatchEvent(event);
     }
   });
 }
 
-test("a club rubric finds a publication beyond the first 200 records", async ({
+test("a club rubric finds a publication beyond the first 200 records without downloading the archive", async ({
   page,
 }) => {
   const posts = Array.from({ length: 221 }, (_, index) =>
@@ -119,13 +140,7 @@ test("a club rubric finds a publication beyond the first 200 records", async ({
   await expect(
     page.getByText("Пока нет публикаций в этом разделе"),
   ).toHaveCount(0);
-  expect(calls.some((input) => (input.cursor ?? 0) >= 200)).toBe(true);
-  expect(
-    calls.every((input) => input.limit === 12 && input.tag === undefined),
-  ).toBe(true);
-  expect(new Set(calls.map((input) => input.cursor ?? null)).size).toBe(
-    calls.length,
-  );
+  expect(calls).toEqual([{ limit: 12 }, { limit: 12, category: "community" }]);
 });
 
 test("the unfiltered club list exposes all 221 posts through successive pages", async ({
@@ -291,7 +306,7 @@ test("retry in an empty filtered section displays loading until the page arrives
     release = resolve;
   });
   await clubApi(page, async (input) => {
-    if (input.cursor == null)
+    if (!input.category)
       return ok({
         posts: Array.from({ length: 12 }, (_, index) => post(index + 1)),
         nextCursor: 12,
@@ -317,52 +332,60 @@ test("retry in an empty filtered section displays loading until the page arrives
   await expect(page.getByText(/^CLUB_POST_13 /)).toBeVisible();
 });
 
-test("empty intermediate pages and legacy rubric aliases do not hide later matches", async ({
+test("a server-filtered empty rubric stops without scanning unrelated pages", async ({
   page,
 }) => {
-  const calls: (number | null)[] = [];
+  const calls: Input[] = [];
   await clubApi(page, (input) => {
-    calls.push(input.cursor ?? null);
-    if (input.cursor == null) return ok({ posts: [post(1)], nextCursor: 1 });
-    if (input.cursor === 1) return ok({ posts: [], nextCursor: 2 });
-    return ok({ posts: [post(2, ["Письмо"])], nextCursor: null });
+    calls.push(input);
+    if (input.category === "podborki")
+      return ok({ posts: [], nextCursor: null });
+    if (input.category === "exclusive")
+      return ok({ posts: [post(2, ["Письмо"])], nextCursor: null });
+    return ok({ posts: [post(1)], nextCursor: null });
   });
   await gotoWithSession(page, "/club");
   await expect(page.getByText(/^CLUB_POST_1 /)).toBeVisible();
   await page.getByRole("button", { name: "Эксклюзив", exact: true }).click();
   await expect(page.getByText(/^CLUB_POST_2 /)).toBeVisible();
-  expect(calls).toEqual([null, 1, 2]);
   await page.getByRole("button", { name: "Подборки", exact: true }).click();
   await expect(
     page.getByText("Пока нет публикаций в этом разделе"),
   ).toBeVisible();
-  expect(calls).toEqual([null, 1, 2]);
+  expect(calls).toEqual([
+    { limit: 12 },
+    { limit: 12, category: "exclusive" },
+    { limit: 12, category: "podborki" },
+  ]);
 });
 
 test("a repeated cursor stops automatic loading and exposes a recoverable error", async ({
   page,
 }) => {
-  const calls: (number | null)[] = [];
+  const calls: Input[] = [];
   await clubApi(page, (input) => {
-    calls.push(input.cursor ?? null);
-    return ok({ posts: [post(1)], nextCursor: 1 });
+    calls.push(input);
+    if (input.category === "life")
+      return ok({ posts: [post(99)], nextCursor: null });
+    return ok({
+      posts: Array.from({ length: 12 }, (_, index) => post(index + 1)),
+      nextCursor: 12,
+    });
   });
   await gotoWithSession(page, "/club");
   await expect(page.getByText(/^CLUB_POST_1 /)).toBeVisible();
-  await page.getByRole("button", { name: "Подборки", exact: true }).click();
+  await scrollToEnd(page);
   const error = page
     .getByRole("alert")
-    .filter({ hasText: "Не удалось загрузить публикации клуба" });
+    .filter({ hasText: "Не удалось загрузить следующие публикации клуба" });
   await expect(error).toBeVisible();
-  expect(calls).toEqual([null, 1]);
+  expect(calls).toEqual([{ limit: 12 }, { limit: 12, cursor: 12 }]);
   await page.getByRole("button", { name: "Лайф", exact: true }).click();
-  await expect(page.getByText(/^CLUB_POST_1 /)).toHaveCount(1);
-  await expect(
-    page
-      .getByRole("alert")
-      .filter({ hasText: "Не удалось загрузить следующие публикации клуба" }),
-  ).toBeVisible();
-  expect(calls).toEqual([null, 1]);
+  await expect(page.getByText(/^CLUB_POST_99 /)).toBeVisible();
+  await expect(error).toHaveCount(0);
+  await expect
+    .poll(() => calls.at(-1))
+    .toEqual({ limit: 12, category: "life" });
 });
 
 test("rubric and board filters find a Russian-tagged match on a later page", async ({
@@ -384,7 +407,11 @@ test("rubric and board filters find a Russian-tagged match on a later page", asy
   await page.getByRole("button", { name: "Закрыть фильтры клуба" }).click();
   await expect(page.getByText(/^CLUB_POST_25 /)).toBeVisible();
   await expect(page.getByText(/^CLUB_POST_1 /)).toHaveCount(0);
-  expect(calls.map((input) => input.cursor ?? null)).toEqual([null, 12, 24]);
+  expect(calls).toEqual([
+    { limit: 12 },
+    { limit: 12, category: "life" },
+    { limit: 12, category: "life", tag: "spring" },
+  ]);
   const reset = page.getByRole("button", {
     name: "Сбросить фильтр клуба: spring",
     exact: true,
@@ -392,7 +419,14 @@ test("rubric and board filters find a Russian-tagged match on a later page", asy
   await expect(reset).toHaveText("spring ×");
   await reset.click();
   await expect(page.getByText(/^CLUB_POST_1 /)).toBeAttached();
+  // The previous category page is still fresh in the 30-second query cache.
+  await expect(list(page).locator(".ui-collection-item")).toHaveCount(12);
   expect(calls).toHaveLength(3);
+  await refreshList(page);
+  await expect
+    .poll(() => calls.at(-1))
+    .toEqual({ limit: 12, category: "life" });
+  expect(calls.every((input) => input.cursor === undefined)).toBe(true);
 });
 
 test("pull to refresh updates the loaded page without losing its posts", async ({
@@ -419,46 +453,296 @@ test("pull to refresh updates the loaded page without losing its posts", async (
   expect(calls).toBe(2);
 });
 
-test("refresh failure retains loaded pages and retry refreshes them in order", async ({
+test("pagination uses offsets within the selected category and board tag", async ({
   page,
 }) => {
-  const posts = Array.from({ length: 13 }, (_, index) => post(index + 1));
-  const calls: (number | null)[] = [];
-  let fail = false;
-  let updated = false;
+  const posts = [
+    ...Array.from({ length: 200 }, (_, i) => post(i + 1)),
+    ...Array.from({ length: 25 }, (_, i) =>
+      post(i + 201, ["Эксклюзив", "Весна"]),
+    ),
+  ];
+  const calls: Input[] = [];
   await clubApi(page, (input) => {
-    calls.push(input.cursor ?? null);
-    if (fail) return failure;
-    return paged(
-      posts.map((item) =>
-        updated && item.id === 13
-          ? { ...item, text: "REFRESHED_LAST_CLUB_POST" }
-          : item,
-      ),
-      input,
-    );
+    calls.push(input);
+    return paged(posts, input);
   });
+  await gotoWithSession(page, "/club");
+  await expect(page.getByText(/^CLUB_POST_1 /)).toBeVisible();
+  await page.getByRole("button", { name: "Эксклюзив", exact: true }).click();
+  await expect(page.getByText(/^CLUB_POST_201 /)).toBeVisible();
+  await page.getByRole("button", { name: "Открыть фильтры клуба" }).click();
+  await page.getByRole("button", { name: "Весна", exact: true }).click();
+  await page.getByRole("button", { name: "Закрыть фильтры клуба" }).click();
+  const cards = list(page).locator(".ui-collection-item");
+  await expect(cards).toHaveCount(12);
+  await scrollToEnd(page);
+  await expect(cards).toHaveCount(24);
+  await scrollToEnd(page);
+  await expect(cards).toHaveCount(25);
+  await expect(page.getByText(/^CLUB_POST_225 /)).toBeAttached();
+  expect(calls.filter((input) => input.tag === "spring")).toEqual([
+    { limit: 12, category: "exclusive", tag: "spring" },
+    { limit: 12, category: "exclusive", tag: "spring", cursor: 12 },
+    { limit: 12, category: "exclusive", tag: "spring", cursor: 24 },
+  ]);
+  // Turning off the rubric keeps the board tag, but starts another cursor chain.
+  await page.getByRole("button", { name: "Эксклюзив", exact: true }).click();
+  await expect.poll(() => calls.at(-1)).toEqual({ limit: 12, tag: "spring" });
+  await expect(cards).toHaveCount(12);
+});
+
+for (const pending of ["head", "next"] as const) {
+  test(`switching rubric cancels the previous ${pending} response and resets the cursor`, async ({
+    page,
+  }) => {
+    const calls: Input[] = [];
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let cancelled = false;
+    page.on("requestfailed", (request) => {
+      if (request.url().includes("club.listByCategory")) cancelled = true;
+    });
+    await clubApi(page, async (input) => {
+      calls.push(input);
+      if (input.category === "exclusive")
+        return ok({ posts: [post(99, ["exclusive"])], nextCursor: null });
+      if (input.category === "community") {
+        if (pending === "head" || input.cursor != null) {
+          await held;
+          return ok({ posts: [post(88, ["community"])], nextCursor: null });
+        }
+        return ok({
+          posts: Array.from({ length: 12 }, (_, i) =>
+            post(i + 20, ["community"]),
+          ),
+          nextCursor: 12,
+        });
+      }
+      return ok({ posts: [post(1)], nextCursor: null });
+    });
+    try {
+      await gotoWithSession(page, "/club");
+      await expect(page.getByText(/^CLUB_POST_1 /)).toBeVisible();
+      await page
+        .getByRole("button", { name: "Комьюнити", exact: true })
+        .click();
+      if (pending === "next") {
+        await expect(page.getByText(/^CLUB_POST_20 /)).toBeVisible();
+        await scrollToEnd(page);
+      }
+      await expect.poll(() => calls.length).toBe(pending === "head" ? 2 : 3);
+      await page
+        .getByRole("button", { name: "Эксклюзив", exact: true })
+        .click();
+      await expect(page.getByText(/^CLUB_POST_99 /)).toBeVisible();
+      await expect.poll(() => cancelled).toBe(true);
+      release();
+      await refreshList(page);
+      await expect
+        .poll(
+          () => calls.filter((input) => input.category === "exclusive").length,
+        )
+        .toBe(2);
+      await expect(page.getByText(/^CLUB_POST_88 /)).toHaveCount(0);
+      expect(
+        calls
+          .filter((input) => input.category === "exclusive")
+          .every((input) => input.cursor === undefined),
+      ).toBe(true);
+      await expect(list(page).locator(".ui-collection-item")).toHaveCount(1);
+    } finally {
+      release();
+    }
+  });
+}
+
+test("a missing category API is an error, never an unfiltered fallback", async ({
+  page,
+}) => {
+  await clubApi(page, () => ok({ posts: [post(1)], nextCursor: null }));
+  const calls: string[] = [];
+  await page.route("**/api/trpc/**", async (route) => {
+    const names = new URL(route.request().url()).pathname
+      .split("/api/trpc/")[1]
+      .split(",");
+    calls.push(...names);
+    if (names.includes("club.listByCategory")) {
+      await route.fulfill({
+        json: names.map(() => ({
+          error: {
+            json: {
+              message: "No procedure",
+              code: -32004,
+              data: { code: "NOT_FOUND", httpStatus: 404 },
+            },
+          },
+        })),
+      });
+    } else await route.fallback();
+  });
+  await gotoWithSession(page, "/club");
+  await expect(
+    page
+      .getByRole("alert")
+      .filter({ hasText: "Не удалось загрузить публикации клуба" }),
+  ).toBeVisible();
+  await expect(page.getByText("Публикации клуба скоро появятся")).toHaveCount(
+    0,
+  );
+  expect(calls.filter((name) => name === "club.listByCategory")).toHaveLength(
+    1,
+  );
+  expect(calls).not.toContain("club.list");
+});
+
+for (const status of [400, 503]) {
+  test(`refresh failure ${status} retains loaded pages and retry refreshes them in order`, async ({
+    page,
+  }) => {
+    const posts = Array.from({ length: 13 }, (_, index) => post(index + 1));
+    const calls: (number | null)[] = [];
+    let fail = false;
+    let updated = false;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await clubApi(page, async (input) => {
+      calls.push(input.cursor ?? null);
+      if (fail) {
+        await held;
+        return {
+          error: {
+            json: {
+              message: "PRIVATE_REFRESH_DETAILS",
+              code: -32603,
+              data: {
+                code: status === 503 ? "SERVICE_UNAVAILABLE" : "BAD_REQUEST",
+                httpStatus: status,
+              },
+            },
+          },
+        };
+      }
+      return paged(
+        posts.map((item) =>
+          updated && item.id === 13
+            ? { ...item, text: "REFRESHED_LAST_CLUB_POST" }
+            : item,
+        ),
+        input,
+      );
+    });
+    await gotoWithSession(page, "/club");
+    await expect(page.getByText(/^CLUB_POST_1 /)).toBeVisible();
+    await scrollToEnd(page);
+    await expect(page.getByText(/^CLUB_POST_13 /)).toBeAttached();
+    fail = true;
+    await refreshList(page);
+    await expect.poll(() => calls.length).toBe(3);
+    // A pending refresh must preserve the whole confirmed list too.
+    try {
+      await expect(list(page).locator(".ui-collection-item")).toHaveCount(13);
+    } finally {
+      release();
+    }
+    const error = page.getByRole("status").filter({
+      hasText: "Не удалось обновить публикации клуба",
+    });
+    await expect(error).toBeAttached();
+    await expect(page.getByText(/^CLUB_POST_1 /)).toBeAttached();
+    await expect(list(page).locator(".ui-collection-item")).toHaveCount(13);
+    const failedReads = status === 503 ? [null, null] : [null];
+    expect(calls).toEqual([null, 12, ...failedReads]);
+    fail = false;
+    updated = true;
+    await error.getByRole("button", { name: "Повторить" }).click();
+    await expect(error).toHaveCount(0);
+    await scrollToEnd(page);
+    await expect(
+      page.getByText("REFRESHED_LAST_CLUB_POST", { exact: true }),
+    ).toBeAttached();
+    await expect(list(page).locator(".ui-collection-item")).toHaveCount(13);
+    await expect(page.getByText(/^CLUB_POST_13 /)).toHaveCount(0);
+    await expect(error).toHaveCount(0);
+    expect(calls).toEqual([null, 12, ...failedReads, null, 12]);
+  });
+}
+
+test("a forbidden refresh hides all retained club pages", async ({ page }) => {
+  const posts = Array.from({ length: 13 }, (_, index) => post(index + 1));
+  let denied = false;
+  await clubApi(page, (input) =>
+    denied
+      ? {
+          error: {
+            json: {
+              message: "Club access ended",
+              code: -32003,
+              data: { code: "FORBIDDEN", httpStatus: 403 },
+            },
+          },
+        }
+      : paged(posts, input),
+  );
   await gotoWithSession(page, "/club");
   await expect(page.getByText(/^CLUB_POST_1 /)).toBeVisible();
   await scrollToEnd(page);
   await expect(page.getByText(/^CLUB_POST_13 /)).toBeAttached();
-  fail = true;
+  denied = true;
   await refreshList(page);
-  const error = page.getByRole("status").filter({
-    hasText: "Не удалось обновить публикации клуба",
+  await expect(page.getByText(/^CLUB_POST_\d+ /)).toHaveCount(0);
+});
+
+test("refresh cancels an older page request before starting a new chain", async ({
+  page,
+}) => {
+  const calls: (number | null)[] = [];
+  let nextCalls = 0;
+  let cancelled = false;
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
   });
-  await expect(error).toBeAttached();
-  await expect(page.getByText(/^CLUB_POST_1 /)).toBeAttached();
-  await expect(list(page).locator(".ui-collection-item")).toHaveCount(13);
-  expect(calls).toEqual([null, 12, null]);
-  fail = false;
-  updated = true;
-  await error.getByRole("button", { name: "Повторить" }).click();
-  await expect(error).toHaveCount(0);
-  await scrollToEnd(page);
-  await expect(
-    page.getByText("REFRESHED_LAST_CLUB_POST", { exact: true }),
-  ).toBeAttached();
-  await expect(error).toHaveCount(0);
-  expect(calls).toEqual([null, 12, null, null, 12]);
+  page.on("requestfailed", (request) => {
+    const url = new URL(request.url());
+    if (
+      decodeURIComponent(url.pathname).includes("club.listByCategory") &&
+      url.searchParams.get("input")?.includes('"cursor":12')
+    )
+      cancelled = true;
+  });
+  await clubApi(page, async (input) => {
+    calls.push(input.cursor ?? null);
+    if (input.cursor == null)
+      return ok({
+        posts: Array.from({ length: 12 }, (_, index) => post(index + 1)),
+        nextCursor: 12,
+      });
+    if (++nextCalls === 1) {
+      await held;
+      return ok({ posts: [post(99)], nextCursor: null });
+    }
+    return ok({ posts: [post(13)], nextCursor: null });
+  });
+  try {
+    await gotoWithSession(page, "/club");
+    await expect(page.getByText(/^CLUB_POST_1 /)).toBeVisible();
+    await scrollToEnd(page);
+    await expect.poll(() => nextCalls).toBe(1);
+    await refreshList(page);
+    await expect.poll(() => cancelled).toBe(true);
+    await expect.poll(() => calls).toEqual([null, 12, null]);
+    await expect(list(page).locator(".ui-refresh")).toHaveCount(0);
+    release();
+    await scrollToEnd(page);
+    await expect(page.getByText(/^CLUB_POST_13 /)).toBeAttached();
+    await expect(page.getByText(/^CLUB_POST_99 /)).toHaveCount(0);
+    expect(calls).toEqual([null, 12, null, 12]);
+  } finally {
+    release();
+  }
 });

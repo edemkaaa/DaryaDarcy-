@@ -15,6 +15,12 @@
     overflow: hidden;
     background-color: #ede6da;
   }
+  .landscapePair {
+    flex-direction: column;
+  }
+  .landscapePair > .cell {
+    flex: 0 0 auto;
+  }
   .single {
     flex: 0 0 auto;
     width: 100%;

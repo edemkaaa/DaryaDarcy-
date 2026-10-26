@@ -1,14 +1,6 @@
 @use "../styles/layers";
 
 @layer elements {
-  .vkFrame {
-    display: grid;
-    grid-template-rows: minmax(0, 1fr) 32px;
-    gap: 4px;
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-  }
   .frame {
     position: relative;
     width: 100%;
@@ -35,21 +27,5 @@
     text-decoration: underline;
     padding: 10px;
     min-height: 44px;
-  }
-  .reload {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 32px;
-    height: 32px;
-    border-radius: 16px;
-    background: #2a2a2a;
-    color: #fff;
-    align-items: center;
-    justify-content: center;
-  }
-  .vkReload {
-    position: static;
-    justify-self: end;
   }
 }

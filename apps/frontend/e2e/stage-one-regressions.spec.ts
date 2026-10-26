@@ -70,10 +70,10 @@ async function fixture(
           isOwner: false,
           monthlyPrice: "790",
         });
-      if (name === "feed.listPaginated" || name === "club.list")
+      if (name === "feed.listPaginated" || name === "club.listByCategory")
         return ok({ posts, nextCursor: null });
       if (name === "feed.getById") return ok(posts[0]);
-      if (name === "feed.userInteractions")
+      if (name === "feed.interactionsForPosts")
         return ok({ likedIds: [], savedIds: [1] });
       if (name === "feed.savedPosts") return ok(posts);
       if (name === "articles.getById") return ok(options.article ?? null);

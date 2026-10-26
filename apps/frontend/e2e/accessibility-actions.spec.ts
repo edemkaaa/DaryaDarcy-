@@ -132,7 +132,7 @@ test("comment links and actions work with the keyboard and menu focus is restore
   let liked = false;
   const createdAt = new Date().toISOString();
   await editorApi(page, (name) => {
-    if (name === "club.list")
+    if (name === "club.listByCategory")
       return ok({
         posts: [
           {

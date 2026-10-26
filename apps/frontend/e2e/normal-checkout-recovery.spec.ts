@@ -148,9 +148,9 @@ async function fixture(page: Page, paid = false) {
         }
         if (name === "club.claimPending" || name === "club.reconcileCheckout")
           throw new Error("NORMAL must not use TEST/legacy payment proof");
-        if (name === "feed.userInteractions")
+        if (name === "feed.interactionsForPosts")
           return result({ likedIds: [], savedIds: [] });
-        if (name === "feed.listPaginated" || name === "club.list")
+        if (name === "feed.listPaginated" || name === "club.listByCategory")
           return result({ posts: [], nextCursor: null });
         if (name === "notifications.latest")
           return result({ feedId: null, clubId: null });

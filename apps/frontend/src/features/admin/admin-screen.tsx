@@ -142,7 +142,7 @@ export default function AdminScreen() {
     void utils.admin.stats.invalidate();
     void utils.feed.list.invalidate();
     void utils.feed.listPaginated.invalidate();
-    void utils.club.list.invalidate();
+    void utils.club.listByCategory.invalidate();
   };
   const membersQuery = useCursorPages({
     key: getQueryKey(trpc.admin.membersPage, { limit: 20 }, "query"),
@@ -151,8 +151,13 @@ export default function AdminScreen() {
     fetchPage: (cursor, signal) =>
       utils.client.admin.membersPage.query({ limit: 20, cursor }, { signal }),
   });
-  const paymentsQuery = trpc.admin.payments.useQuery(undefined, {
-    enabled: isOwner && viewTab === "payments",
+  const paymentsQuery = useCursorPages({
+    key: getQueryKey(trpc.admin.paymentsPage, { limit: 20 }, "query"),
+    scope: String(user?.id ?? "guest"),
+    enabled: isOwner && viewTab === "payments" && !showForm,
+    poll: false,
+    fetchPage: (cursor, signal) =>
+      utils.client.admin.paymentsPage.query({ limit: 20, cursor }, { signal }),
   });
   const reportsQuery = trpc.moderation.listCommentReports.useQuery(undefined, {
     enabled: staff && viewTab === "reports",
@@ -240,7 +245,7 @@ export default function AdminScreen() {
     },
     readMembers,
     (result) => {
-      void utils.admin.payments.invalidate();
+      void utils.admin.paymentsPage.invalidate();
       const until = new Date(
         (result as { expiresAt: string }).expiresAt,
       ).toLocaleDateString("ru-RU", {
@@ -300,7 +305,7 @@ export default function AdminScreen() {
       void reportsQuery.refetch();
       void utils.club.comments.invalidate();
       void utils.club.commentsPage.invalidate();
-      void utils.club.list.invalidate();
+      void utils.club.listByCategory.invalidate();
     },
   );
   const selectedListQuery =
@@ -315,6 +320,11 @@ export default function AdminScreen() {
             : null;
   const listFailed =
     Boolean(selectedListQuery?.isError) &&
+    !(
+      viewTab === "payments" &&
+      !paymentsQuery.denied &&
+      (paymentsQuery.isFetchNextPageError || paymentsQuery.items.length > 0)
+    ) &&
     !(viewTab === "members" && membersQuery.isFetchNextPageError) &&
     !(viewTab === "posts" && postsQuery.isFetchNextPageError);
   const handleCreate = () => {
@@ -937,7 +947,11 @@ export default function AdminScreen() {
         <QueryRetryState
           isLoading={false}
           isError
-          onRetry={() => void selectedListQuery?.refetch()}
+          onRetry={() =>
+            void (viewTab === "payments"
+              ? paymentsQuery.restart()
+              : selectedListQuery?.refetch())
+          }
           message="Не удалось загрузить список"
         />
       ) : viewTab === "seasons" ? (
@@ -1213,7 +1227,9 @@ export default function AdminScreen() {
                     Удалить комментарий
                   </Typography>
                 </Action>
-                {item.authorUserId && item.authorUserId !== user?.id ? (
+                {item.canBlockAuthor === true &&
+                item.authorUserId &&
+                item.authorUserId !== user?.id ? (
                   <Action
                     onClick={() => {
                       const reason =
@@ -1241,11 +1257,41 @@ export default function AdminScreen() {
         />
       ) : viewTab === "payments" ? (
         <Collection
-          data={paymentsQuery.data || []}
+          data={paymentsQuery.items}
           header={
-            <Typography className={classes.postItemDate}>
-              Последние 50 оплат. Более ранние записи здесь не отображаются.
-            </Typography>
+            <>
+              <Typography className={classes.postItemDate}>
+                История оплат. Более ранние записи загружаются при прокрутке.
+              </Typography>
+              <QueryRetryState
+                isLoading={false}
+                isError={
+                  paymentsQuery.isError && !paymentsQuery.isFetchNextPageError
+                }
+                onRetry={() => void paymentsQuery.restart()}
+                message="Не удалось обновить историю оплат"
+              />
+            </>
+          }
+          onRefresh={() => void paymentsQuery.restart()}
+          refreshing={paymentsQuery.isRefetching}
+          onLoadMore={
+            paymentsQuery.hasNextPage &&
+            !paymentsQuery.isFetching &&
+            !paymentsQuery.isFetchingNextPage &&
+            !paymentsQuery.isError &&
+            !showForm
+              ? () => void paymentsQuery.fetchNextPage()
+              : undefined
+          }
+          footer={
+            <QueryRetryState
+              isLoading={paymentsQuery.isFetchingNextPage}
+              isError={paymentsQuery.isFetchNextPageError}
+              onRetry={() => void paymentsQuery.fetchNextPage()}
+              message="Не удалось загрузить следующие оплаты"
+              loadingSize="small"
+            />
           }
           keyExtractor={(item) => String(item.id)}
           empty={

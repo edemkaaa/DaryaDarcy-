@@ -151,8 +151,8 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
             setLoaded(true);
             return;
           }
-          // Detaching the node alone leaves its request alive in some browsers:
-          // a retry with the same URL then joins that stalled transfer.
+          // Clear sources immediately, then keep the expired element mounted
+          // so a retry cannot join the old, still pending browser request.
           image.removeAttribute("srcset");
           image.removeAttribute("src");
           // Do not automatically restart a hung request and waste bandwidth.
@@ -250,66 +250,66 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
           .filter(Boolean)
           .join(" ")}
       >
-        {!timedOut && (
-          <img
-            key={`${attempt}-${useOriginal}`}
-            ref={(image) => {
-              imageRef.current = image;
-              // Cached images may finish before the load handler is attached.
-              if (image?.complete && image.naturalWidth > 0) {
-                rememberImageDisplay(displayKey);
-                setLoaded(true);
-              }
-            }}
-            src={resolved.src}
-            alt={label || ""}
-            width={asset?.width}
-            height={asset?.height}
-            loading={loading}
-            decoding={decoding ?? (displayedBefore ? "sync" : "async")}
-            fetchPriority={fetchPriority}
-            srcSet={useOriginal ? undefined : (srcSet ?? resolved.srcSet)}
-            sizes={sizes ?? resolved.sizes}
-            draggable={false}
-            onError={(event) => {
-              if (imageRef.current !== event.currentTarget) return;
-              // The frontend optimizer has its own upstream timeout. Bypass it
-              // after a failure so the browser can wait for the original photo.
-              if (!useOriginal && resolved.src?.startsWith("/_next/image?")) {
-                setLoaded(false);
-                setUseOriginal(true);
-                return;
-              }
-              setFailed(true);
-              if (attempt >= RETRY_DELAYS.length) onError?.(event);
-            }}
-            onLoad={(event) => {
-              if (imageRef.current !== event.currentTarget) return;
-              setFailed(false);
-              setLoaded(true);
+        <img
+          key={`${attempt}-${useOriginal}`}
+          ref={(image) => {
+            imageRef.current = image;
+            // Cached images may finish before the load handler is attached.
+            if (!timedOut && image?.complete && image.naturalWidth > 0) {
               rememberImageDisplay(displayKey);
-              const image = event.currentTarget;
-              onLoad?.({
-                source: {
-                  width: image.naturalWidth,
-                  height: image.naturalHeight,
-                  url: image.currentSrc,
-                },
-              });
-            }}
-            style={{
-              visibility: failed ? "hidden" : undefined,
-              opacity: revealOnLoad && !loaded ? 0 : undefined,
-              objectFit: contentFit,
-              objectPosition: contentPosition,
-              transition:
-                transition && !displayedBefore
-                  ? `opacity ${transition}ms`
-                  : undefined,
-            }}
-            className={classes.img}
-          />
-        )}
+              setLoaded(true);
+            }
+          }}
+          src={timedOut ? undefined : resolved.src}
+          alt={label || ""}
+          width={asset?.width}
+          height={asset?.height}
+          loading={loading}
+          decoding={decoding ?? (displayedBefore ? "sync" : "async")}
+          fetchPriority={fetchPriority}
+          srcSet={
+            timedOut || useOriginal ? undefined : (srcSet ?? resolved.srcSet)
+          }
+          sizes={sizes ?? resolved.sizes}
+          draggable={false}
+          onError={(event) => {
+            if (timedOut || imageRef.current !== event.currentTarget) return;
+            // The frontend optimizer has its own upstream timeout. Bypass it
+            // after a failure so the browser can wait for the original photo.
+            if (!useOriginal && resolved.src?.startsWith("/_next/image?")) {
+              setLoaded(false);
+              setUseOriginal(true);
+              return;
+            }
+            setFailed(true);
+            if (attempt >= RETRY_DELAYS.length) onError?.(event);
+          }}
+          onLoad={(event) => {
+            if (timedOut || imageRef.current !== event.currentTarget) return;
+            setFailed(false);
+            setLoaded(true);
+            rememberImageDisplay(displayKey);
+            const image = event.currentTarget;
+            onLoad?.({
+              source: {
+                width: image.naturalWidth,
+                height: image.naturalHeight,
+                url: image.currentSrc,
+              },
+            });
+          }}
+          style={{
+            visibility: failed || timedOut ? "hidden" : undefined,
+            opacity: revealOnLoad && !loaded ? 0 : undefined,
+            objectFit: contentFit,
+            objectPosition: contentPosition,
+            transition:
+              transition && !displayedBefore
+                ? `opacity ${transition}ms`
+                : undefined,
+          }}
+          className={classes.img}
+        />
         {terminalFailure ? (
           errorFallback !== undefined ? (
             errorFallback

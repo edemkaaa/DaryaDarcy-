@@ -52,6 +52,7 @@ async function mockApp(
         penPals: false,
         shopOnlinePayment: false,
         webPush: false,
+        privateContentUploads: false,
       },
     }),
   );
@@ -73,11 +74,11 @@ async function mockApp(
           isOwner: false,
           monthlyPrice: "790",
         };
-      if (name === "feed.userInteractions")
+      if (name === "feed.interactionsForPosts")
         data = { likedIds: [], savedIds: [] };
       if (name === "feed.savedPostsPage")
         data = { items: [], nextCursor: null };
-      if (name === "feed.listPaginated" || name === "club.list")
+      if (name === "feed.listPaginated" || name === "club.listByCategory")
         data = { posts: [], nextCursor: null };
       if (name === "admin.postsPage") data = { posts: [], nextCursor: null };
       if (name === "admin.postCounts")

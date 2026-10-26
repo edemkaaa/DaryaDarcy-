@@ -39,7 +39,7 @@ for (const article of [false, true]) {
       ],
     };
     await editorApi(page, (name, input) => {
-      if (name === "club.list") return ok({ posts: [post], nextCursor: null });
+      if (name === "club.listByCategory") return ok({ posts: [post], nextCursor: null });
       if (name === "feed.getById") {
         reads.push({ name, input });
         return ok(post);

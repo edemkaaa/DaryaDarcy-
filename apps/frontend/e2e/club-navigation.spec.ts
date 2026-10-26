@@ -29,9 +29,9 @@ async function memberApi(page: Page, hasAccess: () => boolean) {
                     isOwner: false,
                     monthlyPrice: "790",
                   }
-                : name === "club.list"
+                : name === "club.listByCategory"
                   ? { posts: [], nextCursor: null }
-                  : name === "feed.userInteractions"
+                  : name === "feed.interactionsForPosts"
                     ? { likedIds: [], savedIds: [] }
                     : [],
           },

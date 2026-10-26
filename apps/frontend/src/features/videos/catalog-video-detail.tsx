@@ -50,8 +50,9 @@ export function CatalogVideoDetail({ id }: { id: string }) {
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
+    // PlaybackLifecycle refreshes both authority and metadata for each return.
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     queryFn: async ({ signal }) =>
       parseVideoPlayback(
         await utils.client.videos.playback.query({ id: videoId! }, { signal }),

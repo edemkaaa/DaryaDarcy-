@@ -123,7 +123,7 @@ export default function ProfileScreen() {
     message: "Не удалось обновить сохранённые посты",
     onRetry: () => savedFromApi.refetch({ cancelRefetch: false }),
   });
-  const [avatarDraft, setAvatarDraft] = useState<string | null>(null);
+  const avatarDraft = avatar.draft;
   const [cropperImage, setCropperImage] = useState<CropperImage | null>(null);
   const [quizResult, setQuizResult] = useState<{
     primaryKey: AestheticKey;
@@ -198,10 +198,9 @@ export default function ProfileScreen() {
     }
   };
   const saveAvatar = async (uri: string) => {
-    if (await avatar.upload(uri)) setAvatarDraft(null);
+    await avatar.upload(uri);
   };
   const handleCropComplete = async (croppedUri: string) => {
-    setAvatarDraft(croppedUri);
     setCropperImage(null);
     await saveAvatar(croppedUri);
   };
@@ -405,7 +404,7 @@ export default function ProfileScreen() {
           >
             <Action
               onClick={pickImage}
-              disabled={avatar.busy || avatar.unknown}
+              disabled={avatar.busy || !avatar.canChoose}
               aria-label="Выбрать фото профиля"
               className={({ pressed }) =>
                 [classes.action3, pressed ? classes.opacityState4 : ""]
@@ -437,16 +436,20 @@ export default function ProfileScreen() {
               </div>
             </Action>
 
-            {avatarDraft && (
+            {(avatarDraft || avatar.error) && (
               <div className={["ui-stack", classes.nameError].join(" ")}>
-                <Typography className={classes.nameErrorText}>
-                  Черновик фото
-                </Typography>
-                <Picture
-                  source={{ uri: avatarDraft }}
-                  contentFit="cover"
-                  style={{ width: 80, height: 80 }}
-                />
+                {avatarDraft && (
+                  <>
+                    <Typography className={classes.nameErrorText}>
+                      Черновик фото
+                    </Typography>
+                    <Picture
+                      source={{ uri: avatarDraft }}
+                      contentFit="cover"
+                      style={{ width: 80, height: 80 }}
+                    />
+                  </>
+                )}
                 {avatar.busy && (
                   <Typography role="status" className={classes.nameErrorText}>
                     Сохраняем фото…
@@ -468,7 +471,7 @@ export default function ProfileScreen() {
                       Проверить фото в профиле
                     </Typography>
                   </Action>
-                ) : avatar.error ? (
+                ) : avatar.canRetry && avatarDraft ? (
                   <Action
                     className={classes.action5}
                     style={{ minHeight: 44 }}

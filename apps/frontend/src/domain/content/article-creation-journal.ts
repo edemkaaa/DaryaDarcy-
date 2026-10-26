@@ -90,6 +90,8 @@ const recordSchema = z
       .optional(),
   })
   .strict();
+// An unsaved editor may still have an empty or overlong title.
+export const articleDraftSchema = payloadSchema.extend({ title: z.string() });
 export type ArticleCreationPayload = z.infer<typeof payloadSchema>;
 export type ArticleCreationRecord = z.infer<typeof recordSchema>;
 

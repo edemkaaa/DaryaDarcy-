@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import type { LaunchCapabilities } from "@shared/capabilities";
+import { APP_CAPABILITIES_QUERY_KEY } from "@/shared/api/capabilities";
 import * as Api from "@/shared/api/auth";
 import * as Auth from "./storage";
 import { isOwnerUser } from "@/shared/config/api";
@@ -65,9 +67,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         getMe: Api.getMe,
         logout: Api.logout,
         resetIdentity: (owner) => {
+          const publicCapabilities = cache.getQueryState<LaunchCapabilities>(
+            APP_CAPABILITIES_QUERY_KEY,
+          );
           cancelSessionRequests();
           void cache.cancelQueries();
           cache.clear();
+          // These switches describe the deployment, not the account. Keep only
+          // a completed, valid public read, without extending its freshness.
+          if (
+            publicCapabilities?.status === "success" &&
+            publicCapabilities.fetchStatus === "idle" &&
+            !publicCapabilities.isInvalidated
+          )
+            cache.setQueryData(
+              APP_CAPABILITIES_QUERY_KEY,
+              publicCapabilities.data,
+              { updatedAt: publicCapabilities.dataUpdatedAt },
+            );
           setPersonalDataOwner(owner);
           void Auth.clearUserInfo();
         },

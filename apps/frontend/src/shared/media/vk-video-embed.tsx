@@ -79,44 +79,41 @@ function Player({
     return () => clearTimeout(timer);
   }, [attempt]);
   return (
-    <div className={classes.vkFrame}>
-      <div className={classes.frame}>
-        <iframe
-          ref={frame}
-          key={attempt}
-          src={src}
-          title="VK Видео"
-          className={className}
-          style={{ border: 0 }}
-          allow="encrypted-media; fullscreen; picture-in-picture"
-          allowFullScreen
-          loading="lazy"
-          referrerPolicy="strict-origin-when-cross-origin"
-          onLoad={() => setLoaded(true)}
-        />
-        {!loaded && slow && (
-          <div className={classes.notice} role="status">
-            Плеер VK загружается дольше обычного. Проверьте соединение и
-            повторите загрузку.
-          </div>
-        )}
-      </div>
-      <Action
-        className={`${classes.reload} ${classes.vkReload}`}
-        aria-label="Перезагрузить плеер VK"
-        title="Перезагрузить плеер VK"
-        onClick={() => {
-          if (onRetry) {
-            onRetry();
-            return;
-          }
-          setLoaded(false);
-          setSlow(false);
-          setAttempt((value) => value + 1);
-        }}
-      >
-        ↻
-      </Action>
+    <div className={classes.frame}>
+      <iframe
+        ref={frame}
+        key={attempt}
+        src={src}
+        title="VK Видео"
+        className={className}
+        style={{ border: 0 }}
+        allow="encrypted-media; fullscreen; picture-in-picture"
+        allowFullScreen
+        loading="lazy"
+        referrerPolicy="strict-origin-when-cross-origin"
+        onLoad={() => setLoaded(true)}
+      />
+      {!loaded && slow && (
+        <div className={classes.notice} role="status">
+          Плеер VK загружается дольше обычного. Проверьте соединение и повторите
+          загрузку.
+          <Action
+            className={classes.retry}
+            aria-label="Перезагрузить плеер VK"
+            onClick={() => {
+              if (onRetry) {
+                onRetry();
+                return;
+              }
+              setLoaded(false);
+              setSlow(false);
+              setAttempt((value) => value + 1);
+            }}
+          >
+            Повторить загрузку
+          </Action>
+        </div>
+      )}
     </div>
   );
 }

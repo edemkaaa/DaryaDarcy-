@@ -2,7 +2,13 @@
 import classes from "./rich-text-field.module.scss";
 
 import { Field, Action, Typography, Dialog } from "@/shared/ui/elements";
-import { forwardRef, useImperativeHandle, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { RichTextRenderer } from "@/domain/content/rich-text-renderer";
 import type { RichTextBlock } from "@/domain/content/types";
@@ -38,6 +44,36 @@ export const RichTextField = forwardRef<
   ref,
 ) {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const editor = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = editor.current;
+    const scroll = node?.closest<HTMLElement>(".ui-scroll");
+    if (!node || !scroll) return;
+    let frame = 0;
+    const reveal = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (!node.contains(document.activeElement) || node.closest("[inert]"))
+          return;
+        // Keep the toolbar with the native textarea when the keyboard shrinks
+        // the form. Scroll only this form, without changing focus or selection.
+        const area = scroll.getBoundingClientRect();
+        const box = node.getBoundingClientRect();
+        if (box.bottom > area.bottom)
+          scroll.scrollTop += box.bottom - area.bottom;
+        else if (box.top < area.top && box.height <= area.height)
+          scroll.scrollTop += box.top - area.top;
+      });
+    };
+    const observer = new ResizeObserver(reveal);
+    observer.observe(scroll);
+    node.addEventListener("focusin", reveal);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      node.removeEventListener("focusin", reveal);
+    };
+  }, []);
   const fmt = useRichTextFormatting(
     value,
     richTextSeed,
@@ -63,6 +99,7 @@ export const RichTextField = forwardRef<
   return (
     <>
       <div
+        ref={editor}
         className={[`ui-stack ${textAreaClassName}`, classes.div]
           .filter(Boolean)
           .join(" ")}

@@ -2,6 +2,7 @@
 
 @layer components {
   .editorDialog {
+    top: var(--visual-viewport-top, 0px);
     bottom: auto;
     width: 100%;
     max-width: var(--app-max-width);

@@ -45,9 +45,9 @@ async function fixture(
               isOwner: state.owner,
               monthlyPrice: "790",
             });
-      if (name === "feed.userInteractions")
+      if (name === "feed.interactionsForPosts")
         return ok({ likedIds: [], savedIds: [] });
-      if (name === "club.list" || name === "feed.listPaginated")
+      if (name === "club.listByCategory" || name === "feed.listPaginated")
         return ok({ posts: [], nextCursor: null });
       return ok([]);
     });

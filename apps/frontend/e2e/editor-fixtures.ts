@@ -1,6 +1,7 @@
 import type { Page, Route } from "@playwright/test";
 import { layoutApi } from "./layout-fixtures";
 import { cursorFixture, legacyCursorFixture } from "./cursor-fixture";
+import { interactionFixture } from "./interaction-fixture";
 
 export const ok = (data: unknown) => ({ result: { data: { json: data } } });
 export const failure = (status = 400) => ({
@@ -79,6 +80,11 @@ export async function editorApi(
           return ok({ state: "notRecorded" });
         const custom = await answer?.(name, input, route);
         if (custom !== undefined) return custom;
+        if (name === "feed.interactionsForPosts")
+          return interactionFixture(
+            await answer?.("feed.userInteractions", input, route),
+            input,
+          );
         const legacy = legacyCursorFixture[name];
         if (legacy)
           return cursorFixture(
@@ -89,6 +95,39 @@ export async function editorApi(
         // Existing editor scenarios provide a full synthetic catalog. Serve the
         // new card/detail transport from that same fixture, not from production
         // repositories. Pagination itself is covered by native SQL + dedicated UI tests.
+        if (name === "admin.articlesPage" || name === "admin.articleDetail") {
+          const full = (await answer?.("admin.articles", input, route)) as
+            | ReturnType<typeof ok>
+            | undefined;
+          const rows = full?.result?.data?.json;
+          if (full !== undefined && !Array.isArray(rows)) return full;
+          const catalog = (rows ?? []) as Record<string, unknown>[];
+          if (name === "admin.articleDetail")
+            return ok(
+              catalog.find((row) => String(row.id) === String(input.id)) ??
+                null,
+            );
+          const offset = Number(
+            String(input.cursor ?? "article-fixture:0").split(":")[1],
+          );
+          const limit = Number(input.limit ?? 20);
+          return ok({
+            items: catalog.slice(offset, offset + limit).map((row) => ({
+              id: row.id,
+              title: row.title,
+              coverUrl: row.coverUrl,
+              access: row.access,
+              published: row.published,
+              sortOrder: row.sortOrder ?? 0,
+              createdAt: row.createdAt ?? "2026-10-10T10:00:00Z",
+              updatedAt: row.updatedAt ?? "2026-10-10T10:00:00Z",
+            })),
+            nextCursor:
+              offset + limit < catalog.length
+                ? `article-fixture:${offset + limit}`
+                : null,
+          });
+        }
         if (name === "admin.postsPage" || name === "admin.postDetail") {
           const full = (await answer?.("admin.posts", input, route)) as
             | ReturnType<typeof ok>
@@ -126,7 +165,7 @@ export async function editorApi(
           return ok({ days: [], upcoming: [] });
         if (name === "feed.userInteractions")
           return ok({ likedIds: [], savedIds: [] });
-        if (name === "feed.listPaginated" || name === "club.list")
+        if (name === "feed.listPaginated" || name === "club.listByCategory")
           return ok({ posts: [], nextCursor: null });
         if (name === "admin.createPost" || name === "admin.createArticle")
           return ok(42);

@@ -4,6 +4,8 @@ import type { LaunchCapabilities } from "@shared/capabilities";
 import { apiCall } from "./auth";
 import { ApiError, invalidResponse } from "./errors";
 
+export const APP_CAPABILITIES_QUERY_KEY = ["app-capabilities"] as const;
+
 export const uploadUnavailableMessage =
   "Загрузка файлов сейчас недоступна. Попробуйте позже.";
 type PrivateUploadCapability =
@@ -50,7 +52,7 @@ export async function getAppCapabilities(
 
 export function useCapabilities(): LaunchCapabilities {
   const { data, isError } = useQuery({
-    queryKey: ["app-capabilities"],
+    queryKey: APP_CAPABILITIES_QUERY_KEY,
     queryFn: ({ signal }) => getAppCapabilities(signal),
     staleTime: 60_000,
     refetchOnWindowFocus: true,

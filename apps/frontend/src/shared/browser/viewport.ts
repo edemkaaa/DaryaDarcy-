@@ -17,7 +17,15 @@ const serverViewport: ViewportSize = {
 let browserViewport = serverViewport;
 let browserScreenViewport = serverViewport;
 const listeners = new Set<() => void>();
+function measureViewportOffset() {
+  // iOS can pan the visual viewport above its keyboard without resizing again.
+  document.documentElement.style.setProperty(
+    "--visual-viewport-top",
+    `${window.visualViewport?.offsetTop ?? 0}px`,
+  );
+}
 function measureViewport() {
+  measureViewportOffset();
   const nextScreen = getViewport("screen");
   const next = { ...nextScreen, width: Math.min(nextScreen.width, 480) };
   document.documentElement.style.setProperty(
@@ -54,6 +62,7 @@ function subscribeViewport(listener: () => void) {
   if (listeners.size === 1) {
     window.addEventListener("resize", measureViewport);
     window.visualViewport?.addEventListener("resize", measureViewport);
+    window.visualViewport?.addEventListener("scroll", measureViewportOffset);
   }
   measureViewport();
   return () => {
@@ -61,6 +70,10 @@ function subscribeViewport(listener: () => void) {
     if (!listeners.size) {
       window.removeEventListener("resize", measureViewport);
       window.visualViewport?.removeEventListener("resize", measureViewport);
+      window.visualViewport?.removeEventListener(
+        "scroll",
+        measureViewportOffset,
+      );
     }
   };
 }

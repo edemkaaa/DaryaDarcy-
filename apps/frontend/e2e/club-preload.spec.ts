@@ -26,7 +26,7 @@ async function setup(page: Page) {
     releasePhoto = resolve;
   });
   await layoutApi(page, true, (name, input) => {
-    if (name !== "club.list") return undefined;
+    if (name !== "club.listByCategory") return undefined;
     const cursor = Number(input.cursor ?? 0);
     state.pages++;
     if (cursor > 0) {

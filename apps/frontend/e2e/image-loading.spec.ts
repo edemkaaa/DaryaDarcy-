@@ -24,10 +24,10 @@ const post = (id: number, photos = [imageUrl(id)]) => ({
 });
 async function imagesApi(page: Page, posts = [post(1)]) {
   await editorApi(page, (name) => {
-    if (name === "feed.listPaginated" || name === "club.list")
+    if (name === "feed.listPaginated" || name === "club.listByCategory")
       return ok({
         posts:
-          name === "club.list"
+          name === "club.listByCategory"
             ? posts.map((item) => ({ ...item, target: "club" }))
             : posts,
         nextCursor: null,
@@ -198,7 +198,9 @@ for (const mode of ["direct", "preview", "original-fallback"] as const) {
       });
       await expect(retry).toBeVisible();
       await expect(frame.getByRole("status")).toHaveCount(0);
-      await expect(frame.locator("img")).toHaveCount(0);
+      await expect(frame.locator("img")).toBeHidden();
+      await expect(frame.locator("img")).not.toHaveAttribute("src", uri);
+      await expect(frame.locator("img")).not.toHaveAttribute("srcset");
       await page.clock.runFor(60_000);
       expect(requests).toBe(1);
       // A late response from the expired request must not change the new state.

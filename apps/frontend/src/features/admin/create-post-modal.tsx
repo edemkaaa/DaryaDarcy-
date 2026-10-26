@@ -391,7 +391,7 @@ function CreatePostModalBody({
       await recovery.clear();
       invalidateAdminReads();
       void utils.feed.listPaginated.invalidate();
-      void utils.club.list.invalidate();
+      void utils.club.listByCategory.invalidate();
       closeEditor();
     } catch (error) {
       notifyError((error as Error).message);
@@ -411,7 +411,7 @@ function CreatePostModalBody({
       task.assertCurrent();
       invalidateAdminReads();
       void utils.feed.listPaginated.invalidate();
-      void utils.club.list.invalidate();
+      void utils.club.listByCategory.invalidate();
       closeEditor();
     } catch (error) {
       checkOperationAccessError(error);
@@ -609,7 +609,7 @@ function CreatePostModalBody({
       void utils.admin.scheduledPosts.invalidate();
       void utils.feed.list.invalidate();
       void utils.feed.listPaginated.invalidate();
-      void utils.club.list.invalidate();
+      void utils.club.listByCategory.invalidate();
       closeEditor();
     } catch (error) {
       checkOperationAccessError(error);

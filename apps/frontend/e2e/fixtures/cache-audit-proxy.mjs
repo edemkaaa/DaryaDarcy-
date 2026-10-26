@@ -136,7 +136,7 @@ function answer(name, input, role) {
       return { granted: false, orderId: null };
     case "feed.listPaginated":
       return { posts: [post()], nextCursor: null };
-    case "club.list":
+    case "club.listByCategory":
       return {
         posts: ["podborki", "community", "exclusive", "life"].map((tag, i) =>
           post(511 + i, "club", tag),
@@ -149,6 +149,8 @@ function answer(name, input, role) {
       return [{ slug: "books", label: "Книги" }];
     case "feed.userInteractions":
       return { likedIds: [], savedIds: [501] };
+    case "feed.interactionsForPosts":
+      return { likedIds: [], savedIds: input.postIds.includes(501) ? [501] : [] };
     case "feed.savedPosts":
       return [post()];
     case "articles.list":
@@ -156,6 +158,13 @@ function answer(name, input, role) {
       return [article];
     case "articles.getById":
       return input.id === 701 ? article : null;
+    case "admin.articlesPage": {
+      const card = { ...article };
+      delete card.sections;
+      return { items: [card], nextCursor: null };
+    }
+    case "admin.articleDetail":
+      return input.id === article.id ? article : null;
     case "videos.list":
       return [videoCard];
     case "videos.getById":
@@ -183,6 +192,8 @@ function answer(name, input, role) {
       };
     case "admin.postsPage":
       return { posts: [post()], nextCursor: null };
+    case "admin.paymentsPage":
+      return { items: [], nextCursor: null };
     case "admin.postDetail":
       return post();
     case "admin.postCounts":

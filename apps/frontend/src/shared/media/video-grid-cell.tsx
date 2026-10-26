@@ -32,7 +32,10 @@ export function VideoGridCell({
   const { ratios, onLoad } = usePhotoAspectRatios(
     thumbnailUrl ? [thumbnailUrl] : [],
   );
-  const aspectRatio = ratios[0] ?? FALLBACK_PHOTO_RATIO;
+  const vkEmbedUrl = getVkVideoEmbedUrl(url);
+  // Match the video detail page; a portrait poster must not size the VK player.
+  const aspectRatio =
+    standalone && vkEmbedUrl ? 16 / 9 : (ratios[0] ?? FALLBACK_PHOTO_RATIO);
   const isPortrait = aspectRatio < 0.95;
   const fitMode = isPortrait ? "contain" : "cover";
   if (isPlaying) {
@@ -54,7 +57,7 @@ export function VideoGridCell({
           .filter(Boolean)
           .join(" ")}
       >
-        {getVkVideoEmbedUrl(url) ? (
+        {vkEmbedUrl ? (
           <VkVideoEmbed url={url} className={classes.videoElement} />
         ) : (
           <ManagedVideo

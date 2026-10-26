@@ -42,9 +42,9 @@ async function mockContent(
           cancellationStatus: "none",
           isOwner: admin,
         });
-      if (name === "feed.listPaginated" || name === "club.list")
+      if (name === "feed.listPaginated" || name === "club.listByCategory")
         return ok({ posts: [], nextCursor: null });
-      if (name === "feed.userInteractions")
+      if (name === "feed.interactionsForPosts")
         return ok({ likedIds: [], savedIds: [] });
       return ok([]);
     });

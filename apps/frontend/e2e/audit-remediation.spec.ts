@@ -52,7 +52,7 @@ for (const lostEdit of [false, true]) {
       replyCount: id === 21 && replied ? 1 : 0,
     });
     await editorApi(page, (name, input) => {
-      if (name === "club.list")
+      if (name === "club.listByCategory")
         return ok({ posts: [post(1)], nextCursor: null });
       if (name === "club.updateComment") {
         edited = true;
@@ -158,7 +158,7 @@ test("Club background refresh reads the head only and keeps numeric wire cursors
   await page.clock.install();
   const reads: number[] = [];
   await editorApi(page, (name, input) => {
-    if (name !== "club.list") return;
+    if (name !== "club.listByCategory") return;
     const cursor = Number(input.cursor ?? 0);
     if (input.cursor !== undefined) expect(typeof input.cursor).toBe("number");
     reads.push(cursor);
@@ -242,7 +242,7 @@ for (const committed of [false, true]) {
       replyCount: 0,
     });
     await editorApi(page, (name, input) => {
-      if (name === "club.list")
+      if (name === "club.listByCategory")
         return ok({
           posts: [{ ...post(1), commentCount: 22 }],
           nextCursor: null,

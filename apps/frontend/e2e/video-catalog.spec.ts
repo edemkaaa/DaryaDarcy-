@@ -59,14 +59,29 @@ async function fixture(page: Page) {
     legacy: [] as string[],
     gate: undefined as Promise<void> | undefined,
     catalogGate: undefined as Promise<void> | undefined,
+    catalogFailures: new Map<number, number>(),
+    pageErrors: [] as string[],
     saveStatus: 0,
     dropSaveResponse: false,
     savedId: 42,
   };
+  page.on("pageerror", (error) => state.pageErrors.push(error.message));
   await editorApi(page, async (name, input, route) => {
     if (name === "videos.catalog") {
       state.reads.push({ name, input });
+      const catalogSnapshot = structuredClone(
+        input.limit === 1
+          ? { items: [state.card], nextCursor: null }
+          : (state.pages.get(Number(input.cursor ?? 0)) ?? {
+              items: [state.card],
+              nextCursor: null,
+            }),
+      );
       if (state.catalogGate) await state.catalogGate;
+      const catalogStatus = state.catalogFailures.get(
+        Number(input.cursor ?? 0),
+      );
+      if (catalogStatus) return failure(catalogStatus);
       // Model the documented opt-in separately from the currently deployed contract.
       const allowed = [
         "limit",
@@ -81,14 +96,7 @@ async function fixture(page: Page) {
         input.includeThumbnails !== true
       )
         return failure(400);
-      if (input.limit === 1)
-        return ok({ items: [state.card], nextCursor: null });
-      return ok(
-        state.pages.get(Number(input.cursor ?? 0)) ?? {
-          items: [state.card],
-          nextCursor: null,
-        },
-      );
+      return ok(catalogSnapshot);
     }
     if (name === "videos.playback") {
       state.reads.push({ name, input });
@@ -128,6 +136,247 @@ async function fixture(page: Page) {
   );
   return state;
 }
+
+const authorityReads = (state: Awaited<ReturnType<typeof fixture>>) => ({
+  playback: state.reads.filter((row) => row.name === "videos.playback").length,
+  metadata: state.reads.filter(
+    (row) => row.name === "videos.catalog" && row.input.limit === 1,
+  ).length,
+});
+async function dispatchResume(page: Page, event: string) {
+  await page.evaluate((event) => {
+    (event === "visibilitychange" ? document : window).dispatchEvent(
+      new Event(event),
+    );
+  }, event);
+  await page.clock.runFor(100);
+}
+async function prepareReturnClock(page: Page) {
+  await page.clock.install({ time: new Date("2026-10-26T12:00:00Z") });
+  await page.clock.fastForward(1100);
+}
+
+for (const provider of ["vk", "youtube"] as const) {
+  test(`player focus: ${provider} keeps playback when clicking the page outside the iframe`, async ({
+    page,
+  }) => {
+    const state = await fixture(page);
+    if (provider === "youtube")
+      state.playback = {
+        id: 42,
+        provider: "youtube",
+        youtubeId: "dQw4w9WgXcQ",
+        videoUrl: null,
+      };
+    await page.route(
+      /https:\/\/(vkvideo\.ru\/video_ext\.php|www\.youtube\.com\/embed\/)/,
+      (route) => {
+        state.providers.push(route.request().url());
+        return route.fulfill({
+          contentType: "text/html",
+          body: `<button onclick="this.textContent='Playing'; document.body.dataset.playing='true'">Play</button>`,
+        });
+      },
+    );
+    await gotoWithSession(page, "/video/42");
+    const frame = page.locator("iframe");
+    await expect(frame).toBeVisible();
+    await prepareReturnClock(page);
+    const before = authorityReads(state);
+    const requests = state.providers.length;
+    const button = frame.contentFrame().getByRole("button");
+    await button.click();
+    await expect(button).toHaveText("Playing");
+    // Real clicks move focus between a cross-origin iframe and the page.
+    // On desktop these coordinates lie in the left and right page margins.
+    for (const x of [2, page.viewportSize()!.width - 2, 2]) {
+      await button.click();
+      await page.clock.runFor(1100);
+      await page.mouse.click(x, 450);
+      await page.clock.runFor(200);
+      await expect(frame.contentFrame().locator("body")).toHaveAttribute(
+        "data-playing",
+        "true",
+      );
+      expect(authorityReads(state)).toEqual(before);
+      expect(state.providers).toHaveLength(requests);
+    }
+    await button.click();
+    await page.keyboard.press("Tab");
+    await page.clock.runFor(200);
+    await expect(frame.contentFrame().locator("body")).toHaveAttribute(
+      "data-playing",
+      "true",
+    );
+    expect(authorityReads(state)).toEqual(before);
+    expect(state.providers).toHaveLength(requests);
+    // Focusing the player must not suppress subsequent mandatory checks.
+    await button.click();
+    state.status = 403;
+    await dispatchResume(page, "pagehide");
+    await dispatchResume(page, "pageshow");
+    await expect(
+      page.getByText("Для просмотра нужен доступ к клубу", { exact: true }),
+    ).toBeVisible();
+    await expect(frame).toHaveCount(0);
+  });
+}
+
+for (const first of ["focus", "visibilitychange"]) {
+  test(`playback return: ${first} and its paired event share one successful authority and metadata read`, async ({
+    page,
+  }) => {
+    const state = await fixture(page);
+    await gotoWithSession(page, "/video/42");
+    const frame = page.getByTitle("VK Видео", { exact: true });
+    await expect(frame).toBeVisible();
+    await prepareReturnClock(page);
+    const before = authorityReads(state);
+    await dispatchResume(page, first);
+    await expect
+      .poll(() => authorityReads(state))
+      .toEqual({
+        playback: before.playback + 1,
+        metadata: before.metadata + 1,
+      });
+    // The first request has completed before the paired event is delivered.
+    await expect(frame).toBeVisible();
+    await dispatchResume(
+      page,
+      first === "focus" ? "visibilitychange" : "focus",
+    );
+    expect(authorityReads(state)).toEqual({
+      playback: before.playback + 1,
+      metadata: before.metadata + 1,
+    });
+    // Another later return must still recheck both reads.
+    await page.clock.runFor(1100);
+    await dispatchResume(page, "focus");
+    await expect
+      .poll(() => authorityReads(state))
+      .toEqual({
+        playback: before.playback + 2,
+        metadata: before.metadata + 2,
+      });
+    await expect(frame).toBeVisible();
+  });
+}
+
+for (const event of ["online", "pageshow"]) {
+  test(`playback return: ${event} bypasses coalescing and a fresh denial removes the source`, async ({
+    page,
+  }) => {
+    const state = await fixture(page);
+    await gotoWithSession(page, "/video/42");
+    const frame = page.getByTitle("VK Видео", { exact: true });
+    await expect(frame).toBeVisible();
+    await prepareReturnClock(page);
+    await dispatchResume(page, "focus");
+    await expect(frame).toBeVisible();
+    const before = authorityReads(state);
+    state.status = 403;
+    await dispatchResume(page, event);
+    await expect(
+      page.getByText("Для просмотра нужен доступ к клубу", { exact: true }),
+    ).toBeVisible();
+    await expect(frame).toHaveCount(0);
+    expect(authorityReads(state)).toEqual({
+      playback: before.playback + 1,
+      metadata: before.metadata + 1,
+    });
+  });
+}
+
+test("playback return: quick hide and window blur require fresh authority within the same second", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  await gotoWithSession(page, "/video/42");
+  const frame = page.getByTitle("VK Видео", { exact: true });
+  await expect(frame).toBeVisible();
+  await prepareReturnClock(page);
+  await dispatchResume(page, "focus");
+  await expect(frame).toBeVisible();
+  const before = authorityReads(state);
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      value: true,
+    });
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden",
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(frame).toHaveCount(0);
+  await dispatchResume(page, "online");
+  expect(authorityReads(state)).toEqual(before);
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      value: false,
+    });
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+  });
+  await dispatchResume(page, "visibilitychange");
+  await expect(frame).toBeVisible();
+  await dispatchResume(page, "focus");
+  expect(authorityReads(state)).toEqual({
+    playback: before.playback + 1,
+    metadata: before.metadata + 1,
+  });
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hasFocus", {
+      configurable: true,
+      value: () => false,
+    });
+    window.dispatchEvent(new Event("blur"));
+    delete (document as unknown as { hasFocus?: () => boolean }).hasFocus;
+  });
+  await dispatchResume(page, "focus");
+  await expect(frame).toBeVisible();
+  expect(authorityReads(state)).toEqual({
+    playback: before.playback + 2,
+    metadata: before.metadata + 2,
+  });
+});
+
+test("playback return: a late previous check cannot restore a source after a newer denial", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  const gate = deferred();
+  try {
+    await gotoWithSession(page, "/video/42");
+    const frame = page.getByTitle("VK Видео", { exact: true });
+    await expect(frame).toBeVisible();
+    await prepareReturnClock(page);
+    const before = authorityReads(state);
+    state.gate = gate.promise;
+    await dispatchResume(page, "focus");
+    await expect
+      .poll(() => authorityReads(state).playback)
+      .toBe(before.playback + 1);
+    await expect(frame).toHaveCount(0);
+    state.gate = undefined;
+    state.status = 403;
+    await dispatchResume(page, "pagehide");
+    await dispatchResume(page, "pageshow");
+    await expect(
+      page.getByText("Для просмотра нужен доступ к клубу", { exact: true }),
+    ).toBeVisible();
+    gate.resolve();
+    await page.clock.runFor(100);
+    await expect(frame).toHaveCount(0);
+    expect(authorityReads(state).playback).toBe(before.playback + 2);
+  } finally {
+    gate.resolve();
+  }
+});
 
 for (const actor of ["guest", "member", "moderator"] as const) {
   test(`authorized public VK is available for ${actor}`, async ({ page }) => {
@@ -257,6 +506,380 @@ test("repeated cursor stops pagination and offers a fresh read", async ({
     state.reads.filter((row) => row.name === "videos.catalog"),
   ).toHaveLength(2);
 });
+const catalogCards = (page: Page) =>
+  page.getByRole("button", { name: /^Открыть видео:/ });
+const catalogReads = (state: Awaited<ReturnType<typeof fixture>>) =>
+  state.reads.filter(
+    (row) => row.name === "videos.catalog" && row.input.limit === 20,
+  );
+const catalogScroll = (page: Page) =>
+  page.locator('[data-tab-screen="/videos"] .ui-scroll').first();
+
+function catalogPages(state: Awaited<ReturnType<typeof fixture>>, count = 5) {
+  for (let index = 0; index < count; index++)
+    state.pages.set(index * 20, {
+      items: Array.from({ length: 20 }, (_, offset) => ({
+        ...card,
+        id: index * 20 + offset + 1,
+        title: `VIDEO_${index * 20 + offset + 1}`,
+      })),
+      nextCursor: index === count - 1 ? null : (index + 1) * 20,
+    });
+}
+async function loadCatalog(page: Page, count = 5) {
+  await gotoWithSession(page, "/videos");
+  await expect(catalogCards(page)).toHaveCount(20);
+  for (let index = 1; index < count; index++) {
+    await page
+      .getByRole("button", { name: "Показать ещё", exact: true })
+      .click();
+    await expect(catalogCards(page)).toHaveCount((index + 1) * 20);
+  }
+}
+async function settleCatalogVisibility(page: Page) {
+  // Clock advancement does not deliver native IntersectionObserver callbacks.
+  // Wait for a browser observation before measuring the next polling cycle.
+  await catalogScroll(page).evaluate(
+    (root) =>
+      new Promise<void>((resolve) => {
+        const observer = new IntersectionObserver(
+          () => {
+            observer.disconnect();
+            resolve();
+          },
+          { root },
+        );
+        observer.observe(root.querySelector("[data-item-index]")!);
+      }),
+  );
+  await page.clock.runFor(200);
+}
+async function pullCatalog(page: Page) {
+  await catalogScroll(page).evaluate((node) => {
+    node.scrollTop = 0;
+    for (const [type, property, y] of [
+      ["touchstart", "touches", 0],
+      ["touchend", "changedTouches", 200],
+    ] as const) {
+      const event = new Event(type, { bubbles: true });
+      Object.defineProperty(event, property, {
+        value: [{ identifier: 1, target: node, clientY: y }],
+      });
+      if (type === "touchend")
+        Object.defineProperty(event, "touches", { value: [] });
+      node.dispatchEvent(event);
+    }
+  });
+}
+
+test("bounded catalog: polling reads only the head and visible page; revisiting refreshes stale edits and deletions", async ({
+  page,
+}) => {
+  await page.clock.install();
+  const state = await fixture(page);
+  catalogPages(state);
+  await loadCatalog(page);
+  await page
+    .getByRole("button", { name: "Открыть видео: VIDEO_90", exact: true })
+    .scrollIntoViewIfNeeded();
+  await settleCatalogVisibility(page);
+  const start = catalogReads(state).length;
+  state.pages.get(80)!.items[9].title = "VISIBLE_EDIT";
+  state.pages.get(40)!.items[4].title = "REVISITED_EDIT";
+  state.pages.get(40)!.items = state.pages
+    .get(40)!
+    .items.filter((item) => item.id !== 44);
+  await page.clock.fastForward(61_000);
+  await settleCatalogVisibility(page);
+  await expect(
+    page.getByRole("button", { name: "Открыть видео: VISIBLE_EDIT" }),
+  ).toBeVisible();
+  expect(
+    catalogReads(state)
+      .slice(start)
+      .map((row) => row.input.cursor ?? 0)
+      .sort((a, b) => Number(a) - Number(b)),
+  ).toEqual([0, 80]);
+  const revisit = catalogReads(state).length;
+  await page
+    .getByRole("button", { name: "Открыть видео: VIDEO_45", exact: true })
+    .scrollIntoViewIfNeeded();
+  await expect(
+    page.getByRole("button", { name: "Открыть видео: REVISITED_EDIT" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Открыть видео: VIDEO_44", exact: true }),
+  ).toHaveCount(0);
+  expect(
+    catalogReads(state)
+      .slice(revisit)
+      .map((row) => row.input.cursor),
+  ).toEqual([40]);
+  await expect(catalogCards(page)).toHaveCount(99);
+  // At a page boundary both adjacent pages are visible: the budget is three.
+  await page
+    .getByRole("button", { name: "Открыть видео: VIDEO_60", exact: true })
+    .scrollIntoViewIfNeeded();
+  await settleCatalogVisibility(page);
+  await expect.poll(() => catalogReads(state).at(-1)!.input.cursor).toBe(60);
+  const boundary = catalogReads(state).length;
+  await page.clock.fastForward(61_000);
+  await settleCatalogVisibility(page);
+  await expect.poll(() => catalogReads(state).length).toBe(boundary + 3);
+  expect(
+    catalogReads(state)
+      .slice(boundary)
+      .map((row) => row.input.cursor ?? 0)
+      .sort((a, b) => Number(a) - Number(b)),
+  ).toEqual([0, 40, 60]);
+  expect(state.pageErrors).toEqual([]);
+});
+
+test("bounded catalog: a hidden screen and a hidden document do not poll; return refreshes the visible page", async ({
+  page,
+}) => {
+  await page.clock.install();
+  const state = await fixture(page);
+  catalogPages(state);
+  await loadCatalog(page);
+  await page
+    .getByRole("button", { name: "Открыть видео: VIDEO_90", exact: true })
+    .scrollIntoViewIfNeeded();
+  await settleCatalogVisibility(page);
+  await page.getByRole("link", { name: "Лента", exact: true }).click();
+  await expect(page.locator('[data-tab-screen="/videos"]')).toBeHidden();
+  const hidden = catalogReads(state).length;
+  await page.clock.fastForward(121_000);
+  await settleCatalogVisibility(page);
+  expect(catalogReads(state)).toHaveLength(hidden);
+  state.pages.get(80)!.items[9].title = "RETURN_EDIT";
+  await page.getByRole("link", { name: "Видео", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Открыть видео: RETURN_EDIT" }),
+  ).toBeVisible();
+  expect(
+    catalogReads(state)
+      .slice(hidden)
+      .map((row) => row.input.cursor ?? 0)
+      .sort((a, b) => Number(a) - Number(b)),
+  ).toEqual([0, 80]);
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      value: true,
+    });
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden",
+    });
+    document.dispatchEvent(new Event("visibilitychange", { bubbles: true }));
+  });
+  const background = catalogReads(state).length;
+  await page.clock.fastForward(121_000);
+  await settleCatalogVisibility(page);
+  expect(catalogReads(state)).toHaveLength(background);
+  await page.evaluate(() => {
+    delete (document as unknown as { hidden?: boolean }).hidden;
+    delete (document as unknown as { visibilityState?: string })
+      .visibilityState;
+    document.dispatchEvent(new Event("visibilitychange", { bubbles: true }));
+  });
+  await expect.poll(() => catalogReads(state).length).toBe(background + 2);
+});
+
+test("bounded catalog: failed manual refresh retains all cards; success restarts and refetches the tail", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  catalogPages(state, 3);
+  await loadCatalog(page, 3);
+  state.catalogFailures.set(0, 500);
+  await pullCatalog(page);
+  await expect(
+    page.getByText("Не удалось обновить видео", { exact: true }),
+  ).toBeVisible();
+  await expect(catalogCards(page)).toHaveCount(60);
+  state.catalogFailures.clear();
+  state.pages.get(20)!.items[0].title = "FRESH_TAIL";
+  await page.getByRole("button", { name: "Повторить", exact: true }).click();
+  await expect(catalogCards(page)).toHaveCount(20);
+  const before = catalogReads(state).length;
+  await page.getByRole("button", { name: "Показать ещё", exact: true }).click();
+  await expect(catalogCards(page)).toHaveCount(40);
+  await expect(
+    page.getByRole("button", { name: "Открыть видео: FRESH_TAIL" }),
+  ).toHaveCount(1);
+  expect(
+    catalogReads(state)
+      .slice(before)
+      .map((row) => row.input.cursor),
+  ).toEqual([20]);
+});
+
+test("bounded catalog: a cached next-page error stays a pagination error and never restores stale cards", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  catalogPages(state, 2);
+  await loadCatalog(page, 2);
+  await pullCatalog(page);
+  await expect(catalogCards(page)).toHaveCount(20);
+  state.catalogFailures.set(20, 500);
+  await page.getByRole("button", { name: "Показать ещё", exact: true }).click();
+  await expect(
+    page.getByText("Не удалось загрузить следующие видео", { exact: true }),
+  ).toBeVisible();
+  await expect(catalogCards(page)).toHaveCount(20);
+  await expect(
+    page.getByText("Не удалось обновить видео", { exact: true }),
+  ).toHaveCount(0);
+  state.catalogFailures.clear();
+  state.pages.get(20)!.items[0].title = "RETRIED_CACHED_PAGE";
+  const before = catalogReads(state).length;
+  await page.getByRole("button", { name: "Повторить", exact: true }).click();
+  await expect(catalogCards(page)).toHaveCount(40);
+  await expect(
+    page.getByRole("button", { name: "Открыть видео: RETRIED_CACHED_PAGE" }),
+  ).toHaveCount(1);
+  expect(
+    catalogReads(state)
+      .slice(before)
+      .map((row) => row.input.cursor),
+  ).toEqual([20]);
+});
+
+test("bounded catalog: a changed boundary discards disconnected pages and loads the new cursor", async ({
+  page,
+}) => {
+  await page.clock.install();
+  const state = await fixture(page);
+  catalogPages(state, 3);
+  await loadCatalog(page, 3);
+  await page
+    .getByRole("button", { name: "Открыть видео: VIDEO_1", exact: true })
+    .scrollIntoViewIfNeeded();
+  await settleCatalogVisibility(page);
+  state.pages.set(0, {
+    items: [
+      ...state.pages.get(0)!.items.slice(0, 19),
+      state.pages.get(20)!.items[0],
+    ],
+    nextCursor: 21,
+  });
+  state.pages.set(21, {
+    items: [{ ...card, id: 22, title: "AFTER_NEW_CURSOR" }],
+    nextCursor: null,
+  });
+  const before = catalogReads(state).length;
+  await page.clock.fastForward(61_000);
+  await expect(catalogCards(page)).toHaveCount(20);
+  expect(
+    catalogReads(state)
+      .slice(before)
+      .map((row) => row.input.cursor ?? 0),
+  ).toEqual([0]);
+  await page.getByRole("button", { name: "Показать ещё", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Открыть видео: AFTER_NEW_CURSOR" }),
+  ).toBeVisible();
+  await expect(catalogCards(page)).toHaveCount(21);
+  expect(catalogReads(state).at(-1)!.input.cursor).toBe(21);
+});
+
+test("bounded catalog: a visible-page refresh error preserves confirmed cards and can be recovered", async ({
+  page,
+}) => {
+  await page.clock.install();
+  const state = await fixture(page);
+  catalogPages(state, 3);
+  await loadCatalog(page, 3);
+  await page
+    .getByRole("button", { name: "Открыть видео: VIDEO_50", exact: true })
+    .scrollIntoViewIfNeeded();
+  await settleCatalogVisibility(page);
+  state.catalogFailures.set(40, 500);
+  await page.clock.fastForward(61_000);
+  await page.clock.runFor(2000);
+  await expect(
+    page.getByText("Не удалось обновить видео", { exact: true }),
+  ).toBeVisible();
+  await expect(catalogCards(page)).toHaveCount(60);
+  await expect(
+    page.getByRole("button", { name: "Открыть видео: VIDEO_50", exact: true }),
+  ).toBeVisible();
+  state.catalogFailures.clear();
+  await page.getByRole("button", { name: "Повторить", exact: true }).click();
+  await expect(catalogCards(page)).toHaveCount(20);
+  expect(state.pageErrors).toEqual([]);
+});
+
+test("bounded catalog: an old account's late page cannot enter the guest catalog", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  catalogPages(state, 2);
+  await gotoWithSession(page, "/videos");
+  await expect(catalogCards(page)).toHaveCount(20);
+  const gate = deferred();
+  state.catalogGate = gate.promise;
+  try {
+    await page
+      .getByRole("button", { name: "Показать ещё", exact: true })
+      .click();
+    await expect.poll(() => catalogReads(state).at(-1)!.input.cursor).toBe(20);
+    state.user = null;
+    state.pages.set(0, {
+      items: [{ ...card, id: 999, title: "GUEST_CATALOG" }],
+      nextCursor: null,
+    });
+    state.catalogGate = undefined;
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await expect(
+      page.getByRole("button", { name: "Открыть видео: GUEST_CATALOG" }),
+    ).toBeVisible();
+    gate.resolve();
+    await expect(catalogCards(page)).toHaveCount(1);
+    await expect(
+      page.getByRole("button", {
+        name: "Открыть видео: VIDEO_21",
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    expect(state.pageErrors).toEqual([]);
+  } finally {
+    state.catalogGate = undefined;
+    gate.resolve();
+  }
+});
+
+for (const guest of [false, true]) {
+  test(`bounded catalog: next-page error retries only that cursor (${guest ? "guest" : "member"})`, async ({
+    page,
+  }) => {
+    const state = await fixture(page);
+    if (guest) state.user = null;
+    catalogPages(state, 2);
+    state.catalogFailures.set(20, 500);
+    await gotoWithSession(page, "/videos");
+    await page
+      .getByRole("button", { name: "Показать ещё", exact: true })
+      .click();
+    await expect(
+      page.getByText("Не удалось загрузить следующие видео", { exact: true }),
+    ).toBeVisible();
+    await expect(catalogCards(page)).toHaveCount(20);
+    state.catalogFailures.clear();
+    const before = catalogReads(state).length;
+    await page.getByRole("button", { name: "Повторить", exact: true }).click();
+    await expect(catalogCards(page)).toHaveCount(40);
+    expect(
+      catalogReads(state)
+        .slice(before)
+        .map((row) => row.input.cursor),
+    ).toEqual([20]);
+  });
+}
+
 test("canWatch false still asks playback and accepts current authorization", async ({
   page,
 }) => {

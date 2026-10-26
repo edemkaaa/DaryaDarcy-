@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { cursorFixture, legacyCursorFixture } from "./cursor-fixture";
+import { interactionFixture } from "./interaction-fixture";
 
 /** Wait for client startup before interacting with server-rendered controls. */
 export async function gotoWithSession(page: Page, path: string) {
@@ -114,11 +115,15 @@ export async function layoutApi(
             return { posts, nextCursor: null };
           case "admin.postsPage":
             return { posts: [], nextCursor: null };
+          case "admin.articlesPage":
+            return { items: [], nextCursor: null };
+          case "admin.articleDetail":
+            return null;
           case "admin.postCounts":
             return { total: 0, published: 0, scheduled: 0, draft: 0 };
           case "admin.postCalendar":
             return { days: [], upcoming: [] };
-          case "club.list":
+          case "club.listByCategory":
             return {
               posts: posts.map((post) => ({ ...post, target: "club" })),
               nextCursor: null,
@@ -133,6 +138,12 @@ export async function layoutApi(
         json: procedures.map(
           (name, index) =>
             answer?.(name, inputs[index]?.json ?? {}) ??
+            (name === "feed.interactionsForPosts"
+              ? interactionFixture(
+                  answer?.("feed.userInteractions", inputs[index]?.json ?? {}),
+                  inputs[index]?.json ?? {},
+                )
+              : undefined) ??
             (legacyCursorFixture[name]
               ? cursorFixture(
                   answer?.(

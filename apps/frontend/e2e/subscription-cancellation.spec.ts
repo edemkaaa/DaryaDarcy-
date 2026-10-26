@@ -96,9 +96,9 @@ async function fixture(page: Page) {
                       : "none",
               });
         }
-        if (name === "feed.userInteractions")
+        if (name === "feed.interactionsForPosts")
           return ok({ likedIds: [], savedIds: [] });
-        if (name === "feed.listPaginated" || name === "club.list")
+        if (name === "feed.listPaginated" || name === "club.listByCategory")
           return ok({ posts: [], nextCursor: null });
         return ok([]);
       }),

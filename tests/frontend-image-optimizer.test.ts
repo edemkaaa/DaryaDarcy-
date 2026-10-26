@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
-import { optimizeImage } from "next/dist/server/image-optimizer";
+import { optimizeImage } from "next/dist/server/image-optimizer/transform";
 import config from "../apps/frontend/next.config.mjs";
 
 const optimize = (buffer: Buffer) => optimizeImage({

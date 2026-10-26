@@ -130,9 +130,9 @@ test("one recovered purchase opens club playback; account changes remove payment
         }
         if (name === "videos.list" || name === "videos.getById")
           throw new Error("Mixed catalog must not fall back to legacy sources");
-        if (name === "feed.userInteractions")
+        if (name === "feed.interactionsForPosts")
           return result({ likedIds: [], savedIds: [] });
-        if (name === "club.list" || name === "feed.listPaginated")
+        if (name === "club.listByCategory" || name === "feed.listPaginated")
           return result({ posts: [], nextCursor: null });
         if (name === "notifications.latest")
           return result({ feedId: null, clubId: null });

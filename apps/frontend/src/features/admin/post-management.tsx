@@ -323,7 +323,7 @@ export function usePostManagement(onRefresh: () => void) {
     void utils.feed.getById.invalidate({ id });
     void utils.feed.list.invalidate();
     void utils.feed.listPaginated.invalidate();
-    void utils.club.list.invalidate();
+    void utils.club.listByCategory.invalidate();
     onRefresh();
   };
   const closePost = () => {

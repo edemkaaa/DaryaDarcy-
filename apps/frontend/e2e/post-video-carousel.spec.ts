@@ -49,7 +49,7 @@ async function fixture(page: Page, count = 3, photos: string[] = []) {
     commentCount: 0,
   };
   await editorApi(page, (name) => {
-    if (name === "feed.listPaginated" || name === "club.list")
+    if (name === "feed.listPaginated" || name === "club.listByCategory")
       return ok({ posts: [post], nextCursor: null });
     if (name === "feed.getById") return ok(post);
     if (name === "club.subscription")
