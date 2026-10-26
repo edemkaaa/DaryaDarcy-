@@ -94,13 +94,20 @@ export async function collectVideo(
   }
   let raw: unknown;
   const reader = response.body?.getReader();
+  // Keep the body deadline explicit after fetch has returned its headers.
+  const abortBody = () => {
+    void reader?.cancel().catch(() => {});
+  };
+  signal.addEventListener("abort", abortBody, { once: true });
   try {
+    signal.throwIfAborted();
     if (!reader || Number(response.headers.get("content-length")) > 65536)
       throw new Error("Response unavailable or too large");
     let length = 0;
     const chunks: Uint8Array[] = [];
     for (;;) {
       const { done, value } = await reader.read();
+      signal.throwIfAborted();
       if (done) break;
       length += value.byteLength;
       if (length > 65536) throw new Error("Response too large");
@@ -112,6 +119,7 @@ export async function collectVideo(
   } catch {
     return fail(signal.aborted ? "request_timeout" : "invalid_response");
   } finally {
+    signal.removeEventListener("abort", abortBody);
     await reader?.cancel().catch(() => {});
   }
   const refusal = z

@@ -299,6 +299,48 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
       await collectVideo(source, { fetchImpl: mappedFetch, timeoutMs: 25 }),
     ).toMatchObject({ status: "failed", issues: ["request_timeout"] });
   });
+  it.each([0, 50])(
+    "cancels a stalled response body even when its transport ignores abort (headers after %sms)",
+    async (headerDelay) => {
+      let controller!: ReadableStreamDefaultController<Uint8Array>;
+      let cancelled = false;
+      const body = new ReadableStream<Uint8Array>({
+        start(value) {
+          controller = value;
+          value.enqueue(new TextEncoder().encode('{"response":'));
+        },
+        cancel() {
+          cancelled = true;
+        },
+      });
+      const pending = collectVideo(source, {
+        timeoutMs: 25,
+        fetchImpl: async () => {
+          if (headerDelay)
+            await new Promise((resolve) => setTimeout(resolve, headerDelay));
+          return new Response(body);
+        },
+      });
+      let guard: ReturnType<typeof setTimeout> | undefined;
+      try {
+        const result = await Promise.race([
+          pending,
+          new Promise<string>((resolve) => {
+            guard = setTimeout(() => resolve("body deadline missed"), 500);
+          }),
+        ]);
+        expect(result).toMatchObject({
+          status: "failed",
+          issues: ["request_timeout"],
+        });
+        expect(cancelled).toBe(true);
+      } finally {
+        clearTimeout(guard);
+        if (!cancelled) controller.close();
+        await pending;
+      }
+    },
+  );
 
   describe("native CLI and private export", () => {
     let directory: string, input: string, bootstrap: string;
