@@ -9,7 +9,6 @@ import {
   ScrollArea,
   Action,
   Typography,
-  MeasuredBox,
   Collection,
 } from "@/shared/ui/elements";
 import { useRef } from "react";
@@ -28,6 +27,7 @@ import {
 import { useAestheticGuides } from "@/domain/library/private-library";
 import { PrivateLibraryState } from "./private-library-state";
 import { useAestheticVisuals } from "./use-aesthetic-visuals";
+import { scrollToGuideSection } from "./guide-navigation";
 import { formatInspirationList } from "@/domain/post/inspiration-titles";
 import {
   PAPER_TEXTURE_URI,
@@ -82,12 +82,11 @@ export default function AestheticsGuideScreen() {
   const handleClubCTA = () => {
     router.push("/club");
   };
-  // Scroll to section by index
-  const sectionRefs = useRef<Record<string, number>>({});
+  const sectionRefs = useRef<Partial<Record<AestheticKey, HTMLDivElement>>>({});
   const scrollToSection = (key: AestheticKey) => {
-    const y = sectionRefs.current[key];
-    if (y !== undefined && scrollRef.current) {
-      scrollRef.current.scrollTo({ top: y - 20, behavior: "smooth" });
+    const section = sectionRefs.current[key];
+    if (section && scrollRef.current) {
+      scrollToGuideSection(scrollRef.current, section);
     }
   };
   return (
@@ -253,12 +252,13 @@ export default function AestheticsGuideScreen() {
               const interiors = images?.interiors ?? [];
               const [header1, header2] = getTableHeaders(key);
               return (
-                <MeasuredBox
+                <div
                   key={key}
-                  onResize={(e) => {
-                    sectionRefs.current[key] = e.y;
+                  ref={(element) => {
+                    if (element) sectionRefs.current[key] = element;
+                    else delete sectionRefs.current[key];
                   }}
-                  className={classes.aestheticSection}
+                  className={`ui-stack ${classes.aestheticSection}`}
                 >
                   {/* Hero Image */}
                   <div
@@ -807,7 +807,7 @@ export default function AestheticsGuideScreen() {
                       .filter(Boolean)
                       .join(" ")}
                   />
-                </MeasuredBox>
+                </div>
               );
             })}
 
