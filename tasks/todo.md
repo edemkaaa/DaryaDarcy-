@@ -2,6 +2,19 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Остаток после свежего frontend — 26 октября
+
+- [x] Кодовая сверка staging b1ea522/фронт1d3e7ab: category filters, bounded
+  reactions, articles/payments pages, avatar/cover receipts и canBlockAuthor
+  подключены; Next/package+lock16.4.1. Не переделывать повторно.
+- [x] Read-only SSH: API/webff2c229, healthy/OOMfalse/restart0; новый frontend
+  ещё не выложен. БД/флаги/образы/S3 не менялись.
+- [ ] Сборка/типы/audit нового frontend, затем согласованный выпуск и regression.
+- [ ] Frontend: guide TOC/slot sizes/Safari source order/fallback/polling/blob URLs/
+  лишние lossy encode. Единый handoff содержит текущую карту и старые наблюдения.
+- [ ] Внешние: live Prodamus и payment-mail chain, owner revoke2Yandex, VK22.
+  Отложенные большие файлы/нагрузка/devices/pilot отдельно, не новые функции.
+
 ### Сквозная регрессия после выпуска — 26 октября, 19:40 МСК
 
 - [x] Настоящие frontend/API: auth/logout, session503/retry, публичное saved без
