@@ -2,6 +2,17 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26 октября, живое тестирование по документам: runtime API/web3557444,
+origin/staging d5bcbf1; последние19commits ещё не выложены.9admin sections,
+2страницыposts/payments,4patterns viewers,7guides,3audio timers,22cover HEADs,
+guest quiz10/result/reload и9legal routes проверены. Paid illustration
+анониму206; recipes/peterburg/visuals пусты, TEST без recurring; Next audit
+2critical/1high остаётся. SQL READ ONLY:7users/3admins/933posts/2articles/
+21media/82videos/44migrations/4bindings, postCounts933в начале/конце.
+Свой gateway93GET/HEAD/0writes/0cookies и5вкладок убраны; runtime/DB/S3/
+credentials не меняли, deploy/push нет. Полная матрица: audit staging-readiness-
+2026-10-26, frontend handoff актуализирован. Договор целиком не принят.
+
 26 октября, по запросу «правь ошибки»: pending-image retry исправлен локально.
 Тест RED подтвердил GET1/stuck; явное освобождение srcset/src до timeout
 позволило direct/srcset/preview сделать GET2 по прежнему URL. Reload не

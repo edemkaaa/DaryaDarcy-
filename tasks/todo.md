@@ -2,6 +2,22 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Живая готовность по договору — 26 октября
+
+- [x] Read-only runtime/HTTP/browser/SQL:9admin sections,2страницыposts/payments,
+  4patterns viewers,7guide texts,3audio timers,22cover HEAD200,guest quiz10+
+  result/reload/PWA hint,9legal pages иmanifest192/512. Приватный отчёт сохранён.
+- [x] Подтверждён release gap: сервер3557444/Gitd5bcbf1. На API прежние
+  Nodemailer/body-parser/Multer; на webNext16.3.8, audit2critical/1high.
+- [ ] Выпуск согласованного staging и повтор smoke новых исправлений;
+  в текущем запросе только тестирование, образ/flags/ресурсы не менялись.
+- [ ] Боевой recurring/почта-платёжная цепочка,старые публичные paid copies,
+  visual bindings220+consumers,recipes/peterburg по согласованию и прежний
+  frontend handoff. VK начальный error→play не равен полной приёмке22роликов.
+- [x] SQL READ ONLY/счётчики933до/после; без DML,писем/оплат/новыхfixtures в БД.
+  Свой gateway/вкладки убраны; исходная сессия сохранена. Детали/границы:
+  docs/audits/staging-readiness-2026-10-26.md. Отложенные размеры/пилот не закрыты.
+
 ### Скорость фотографий и экранов — 26 октября
 
 - [x] Следующий срез: 138 unit + 64 настоящих локальных HTTP/SQL cases
