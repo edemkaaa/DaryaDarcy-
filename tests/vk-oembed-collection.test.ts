@@ -182,10 +182,24 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
     ).toBeNull();
   });
   it.each([
+    iframe.replace("&amp;hash=synthetic_hash", ""),
+    trackedIframe.replace("&hash=synthetic_hash", ""),
+  ])("accepts an exported iframe without an optional hash", async (html) => {
+    reply = JSON.stringify({ response: { ...good().response, html } });
+    const result = await collectVideo(source, { fetchImpl: mappedFetch });
+    expect(result).toMatchObject({ status: "ok", issues: [] });
+    const player = new URL(result.embedUrl!);
+    expect(player.searchParams.get("oid")).toBe("-211171256");
+    expect(player.searchParams.get("id")).toBe("456239242");
+    expect(player.searchParams.get("autoplay")).toBe("0");
+    expect(player.searchParams.has("hash")).toBe(false);
+    expect(player.searchParams.has("__ref")).toBe(false);
+  });
+  it.each([
     trackedIframe.replace("__ref=vk.web2", "__ref=unknown"),
     trackedIframe.replace("__ref=vk.web2", "__ref=vk.web2&__ref=vk.web2"),
     trackedIframe.replace("__ref=vk.web2", "__ref=vk.web2&unexpected=1"),
-    trackedIframe.replace("&hash=synthetic_hash", ""),
+    trackedIframe.replace("hash=synthetic_hash", "hash="),
     trackedIframe.replace("456239242", "456239241"),
     trackedIframe.replace("-211171256", "-999"),
     trackedIframe.replace("vk.com", "evil.test"),
@@ -207,7 +221,7 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
     iframe.replace("456239242", "456239241"),
     iframe.replace("-211171256", "-999"),
     iframe.replace("vk.ru", "evil.test"),
-    iframe.replace("&amp;hash=synthetic_hash", ""),
+    iframe.replace("hash=synthetic_hash", "hash="),
     iframe + "<script>unsafe()</script>",
     `<iframe title=' src="https://vk.ru/video_ext.php?oid=-211171256&id=456239242&hash=synthetic_hash"'></iframe>`,
     '<iframe src="https://vk.ru/video_ext.php?oid=-211171256&id=456239242&hash=synthetic_hash" src="https://evil.test"></iframe>',

@@ -2,6 +2,21 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### VK export без hash — 26 октября
+
+- [x] Причина: обязательный hash в backend parser/collector и frontend validator.
+  Поле videos постов на сервере не требует hash; клиенту нужна отдельная правка.
+- [x] RED4parser+2collector → GREEN159targeted: отсутствие hash допустимо;
+  пустое/невалидное/повторное
+  значение и unsafe URL запрещены; identity/autoplay сохраняются.
+- [x] Native HTTP/SQL120/3suites,0skip: сохранение/replay/playback/access без hash;
+  предыдущие hash-ссылки и клубные границы, blocked/revoked/expired работают.
+  Собственный tmpfs-контейнер удалён, чужие containers/images сохранены.
+- [x] Types/build/API102/docs93/diff/review, единый frontend handoff раздел8;
+  frontend/working DB/S3/стенд не менялись, без push/deploy.
+- [ ] Frontend helper/help/tests: убрать обязательность hash в обоих редакторах
+  и каталоге; затем согласованный выпуск и живой playback. Пока UI не исправлен.
+
 ### Оставшиеся backend security dependencies — 26 октября
 
 - [x] Fresh native audit: 9 advisory. Прочитаны upstream advisory/releases,

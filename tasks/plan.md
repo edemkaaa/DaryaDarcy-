@@ -2,6 +2,19 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26октября, VK export без hash: пользователь подтвердил исправление.
+Разрешить отсутствие hash в backend parseVkEmbed и сборщике oEmbed, но
+отклонять пустое/повреждённое/повторное значение, сохранив HTTPS/host/path/
+query guards и autoplay0. Не менять identity/replay/access. RED/GREEN parser/
+collector, HTTP/SQL на отдельной БД; фронтендеру единый handoff с тем же
+контрактом для getVkVideoEmbedUrl/help/tests. Frontend source/working DB/S3/
+стенд не трогать, без push/deploy; миграции не нужны.
+Результат: RED4parser+2collector → GREEN159targeted и120native HTTP/SQL/3suites,
+0skip. Hash-ссылки/replay/явное редактирование/клубные права и отзыв сохранены;
+свой tmpfs-контейнер удалён. Types/build/API102/docs93 GREEN. Handoff раздел8
+уточняет обязательный переход frontend: текущий UI всё ещё требует hash;
+локальная серверная правка не выдаётся за выпуск или живой playback.
+
 26октября, повторное поручение завершить backend по документам: выполнен
 досрочный dependency follow-up. Nodemailer10.1.4/body-parser1.20.9+2.4.0/
 Nest Multer2.5.0: RED/GREEN child/loopback characterization, scripts disabled,

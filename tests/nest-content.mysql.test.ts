@@ -197,13 +197,21 @@ describe.skipIf(!testDatabaseUrl)(
         paid: false,
         allowed: true,
       },
-    ])(
-      "gates club VK attachment URLs across detail/list/saved/admin reads ($name)",
+    ].flatMap((fixture) =>
+      [true, false].map((hasHash) => ({ ...fixture, hasHash })),
+    ))(
+      "gates club VK attachment URLs across detail/list/saved/admin reads ($name, hash=$hasHash)",
       async (fixture) => {
+        const clubSource = fixture.hasHash
+          ? clubVk
+          : clubVk.replace("&hash=clubfixture123", "");
+        const publicSource = fixture.hasHash
+          ? publicVk
+          : publicVk.replace("&hash=publicfixture123", "");
         await conn.query(
           `INSERT INTO post_media (id,postId,type,url) VALUES
         (8980,8971,'video',?),(8981,8970,'video',?),(8982,8972,'video',?)`,
-          [clubVk, publicVk, clubVk],
+          [clubSource, publicSource, clubSource],
         );
         try {
           await conn.query(`UPDATE users SET ${fixture.patch} WHERE id=8970`);
@@ -219,28 +227,28 @@ describe.skipIf(!testDatabaseUrl)(
           if (fixture.allowed)
             expect(detail).toMatchObject({
               media: expect.arrayContaining([
-                expect.objectContaining({ url: clubVk }),
+                expect.objectContaining({ url: clubSource }),
               ]),
             });
           else expect(detail).toBeUndefined();
           const publicDetail = await caller.feed.getById.query({ id: 8970 });
           expect(publicDetail).toMatchObject({
             media: expect.arrayContaining([
-              expect.objectContaining({ url: publicVk }),
+              expect.objectContaining({ url: publicSource }),
             ]),
           });
           expect(await caller.feed.getById.query({ id: 8972 })).toBeUndefined();
           const list = await caller.feed.list.query();
           const page = await caller.feed.listPaginated.query({ limit: 50 });
           for (const data of [list, page])
-            expect(JSON.stringify(data)).not.toContain(clubVk);
+            expect(JSON.stringify(data)).not.toContain(clubSource);
           if (fixture.allowed) {
             expect(JSON.stringify(await caller.club.list.query())).toContain(
-              clubVk,
+              clubSource,
             );
             expect(
               JSON.stringify(await caller.feed.savedPosts.query()),
-            ).toContain(clubVk);
+            ).toContain(clubSource);
           } else {
             await expect(caller.club.list.query()).rejects.toMatchObject({
               data: {
@@ -259,7 +267,7 @@ describe.skipIf(!testDatabaseUrl)(
               JSON.stringify(
                 await caller.admin.getPostMedia.query({ postId: 8971 }),
               ),
-            ).toContain(clubVk);
+            ).toContain(clubSource);
           else
             await expect(
               caller.admin.getPostMedia.query({ postId: 8971 }),

@@ -1,5 +1,32 @@
 # Backend: локальное исправление аудита 24 октября
 
+## VK export без hash — 26 октября
+
+Пользователь предоставил iframe самого видео с oid/id/autoplay, без hash,
+и согласовал исправление. Backend parseVkEmbed требовал hash безусловно;
+сборщик oEmbed использует тот же parser. Теперь отсутствие допустимо, но
+переданный hash обязан оставаться непустым, корректным и единственным.
+Остальные host/HTTPS/path/credentials/port/query/length guards сохранены,
+autoplay0 прежний, hash не подбирается и не копируется от другого ролика.
+
+RED4parser+2collector подтвердили исходный отказ; GREEN159targeted/4files
+прошли после узкой правки. На отдельной native localhost/tmpfs БД прошли
+120HTTP/SQL cases/3suites без пропусков: сохранение/replay, явная замена
+экспорта с hash/без hash без дубликатов, public/club playback response,
+платный/истёкший/blocked/revoked доступ, клубные attachments/detail/list/saved/
+admin и прежняя worker boundary. Внешний VK не запрашивался: проверен API,
+не реальное воспроизведение. Собственный контейнер удалён по owner/ID/image,
+другие containers/images/volumes сохранены.
+
+Types/backend build/API102/42120bytes/docs93/diff check GREEN. API wire shape
+не менялся; миграции/правка старых записей не нужны. Frontend source, рабочая
+БД, S3 и стенд не менялись; push/deploy не было. **В обоих редакторах frontend
+ещё отклоняет URL без hash**: исправление helper/help/tests описано в разделе8
+единого frontend-audit-final-handoff-2026-10-26.md. Серверный приём videos у
+постов hash не требовал; его закрытую выдачу не ослабляли.
+Приватные результаты проверки вне Git: соседний
+`.local-artifacts/vk-optional-hash-20261026.vz7t649_`.
+
 ## Dependency follow-up — 26 октября, локальные исправления
 
 Повторное поручение завершить backend позволило досрочно закрыть серверную

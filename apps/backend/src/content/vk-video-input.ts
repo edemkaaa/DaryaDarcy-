@@ -3,7 +3,8 @@ import { z } from "zod";
 import { publicCatalogThumbnail } from "./video-thumbnail";
 
 // Compatible with the staging player; reject unknown/duplicate parameters rather
-// than fetching share links or inventing a private VK hash. No external requests.
+// than fetching share links or inventing a private VK hash. VK exports may omit
+// hash; when present it must remain intact. No external requests.
 export function parseVkEmbed(raw: string) {
   if (!raw || raw.length > 2048) return null;
   try {
@@ -30,8 +31,7 @@ export function parseVkEmbed(raw: string) {
       !/^-?[1-9]\d{0,19}$/.test(oid) ||
       !id ||
       !/^[1-9]\d{0,19}$/.test(id) ||
-      !hash ||
-      !/^[a-zA-Z0-9_-]{8,128}$/.test(hash)
+      (hash !== null && !/^[a-zA-Z0-9_-]{8,128}$/.test(hash))
     )
       return null;
     const hd = url.searchParams.get("hd"),
@@ -44,7 +44,7 @@ export function parseVkEmbed(raw: string) {
     const player = new URL("/video_ext.php", url.origin);
     player.searchParams.set("oid", oid);
     player.searchParams.set("id", id);
-    player.searchParams.set("hash", hash);
+    if (hash !== null) player.searchParams.set("hash", hash);
     if (hd !== null) player.searchParams.set("hd", hd);
     player.searchParams.set("autoplay", "0");
     return {

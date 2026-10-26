@@ -139,6 +139,62 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       (await request("videos.getById", { id: first.data.id }, null)).data,
     ).toBeUndefined();
   });
+  it("saves a hash-free export, replays it and changes hash only through an explicit edit", async () => {
+    const bare = embedUrl.replace("&hash=synthetic_hash", "");
+    const payload = { ...input, embedUrl: bare + "&autoplay=1" };
+    const first = await request("admin.upsertVkVideo", payload, admin, true);
+    expect(first.code).toBe(200);
+    expect(await request("admin.upsertVkVideo", payload, admin, true)).toEqual(
+      first,
+    );
+    const playback = {
+      id: first.data.id,
+      provider: "vk",
+      embedUrl: bare + "&autoplay=0",
+    };
+    expect(
+      (await request("videos.playback", { id: first.data.id }, admin)).data,
+    ).toEqual(playback);
+    expect(
+      (await request("videos.playback", { id: first.data.id }, null)).code,
+    ).toBe(401);
+    const [before] = await rows("SELECT vkSourceKey FROM videos WHERE id=?", [
+      first.data.id,
+    ]);
+    expect(
+      (await request("admin.upsertVkVideo", input, admin, true)).code,
+    ).toBe(409);
+    expect(
+      (
+        await request(
+          "admin.upsertVkVideo",
+          { ...input, id: first.data.id },
+          admin,
+          true,
+        )
+      ).code,
+    ).toBe(200);
+    expect(
+      (await request("videos.playback", { id: first.data.id }, admin)).data
+        .embedUrl,
+    ).toBe(canonical);
+    expect(
+      (
+        await request(
+          "admin.upsertVkVideo",
+          { ...payload, id: first.data.id, access: "public" },
+          admin,
+          true,
+        )
+      ).code,
+    ).toBe(200);
+    expect(
+      (await request("videos.playback", { id: first.data.id }, null)).data,
+    ).toEqual(playback);
+    expect(
+      await rows("SELECT vkSourceKey FROM videos WHERE title LIKE 'Owned VK%'"),
+    ).toEqual([before]);
+  });
   it("serializes concurrent creates of the same source without duplicate rows", async () => {
     const results = await Promise.all(
       Array.from({ length: 8 }, () =>
@@ -548,34 +604,47 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
     ).toEqual({ id: created.data.id, provider: "vk", embedUrl: canonical });
     expect((await request("videos.list", undefined, null)).data).toEqual([]);
   });
-  it("accepts real paid membership but denies expired, blocked and revoked identities", async () => {
-    const created = await request("admin.upsertVkVideo", input, admin, true);
-    await conn.query(
-      "INSERT INTO club_payments (userId,orderId,status,paidAt,expiresAt) VALUES (9151,'owned-vk-paid','paid',NOW(),'2030-01-01 00:00:00'),(9153,'owned-vk-expired','paid','2024-01-01 00:00:00','2024-02-01 00:00:00')",
-    );
-    const member = await sdk.createSessionToken("vk-member", {
-      sessionVersion: 0,
-    });
-    const expired = await sdk.createSessionToken("vk-expired", {
-      sessionVersion: 0,
-    });
-    expect(
-      (await request("videos.playback", { id: created.data.id }, member)).code,
-    ).toBe(200);
-    expect(
-      (await request("videos.playback", { id: created.data.id }, expired)).code,
-    ).toBe(403);
-    await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=9151");
-    expect(
-      (await request("videos.playback", { id: created.data.id }, member)).code,
-    ).toBe(401);
-    await conn.query(
-      "UPDATE users SET blockedAt=NULL,sessionVersion=1 WHERE id=9151",
-    );
-    expect(
-      (await request("videos.playback", { id: created.data.id }, member)).code,
-    ).toBe(401);
-  });
+  it.each([embedUrl, embedUrl.replace("&hash=synthetic_hash", "")])(
+    "accepts paid membership but denies expired, blocked and revoked identities (%s)",
+    async (source) => {
+      const created = await request(
+        "admin.upsertVkVideo",
+        { ...input, embedUrl: source },
+        admin,
+        true,
+      );
+      expect(created.code).toBe(200);
+      await conn.query(
+        "INSERT INTO club_payments (userId,orderId,status,paidAt,expiresAt) VALUES (9151,'owned-vk-paid','paid',NOW(),'2030-01-01 00:00:00'),(9153,'owned-vk-expired','paid','2024-01-01 00:00:00','2024-02-01 00:00:00')",
+      );
+      const member = await sdk.createSessionToken("vk-member", {
+        sessionVersion: 0,
+      });
+      const expired = await sdk.createSessionToken("vk-expired", {
+        sessionVersion: 0,
+      });
+      expect(
+        (await request("videos.playback", { id: created.data.id }, member))
+          .code,
+      ).toBe(200);
+      expect(
+        (await request("videos.playback", { id: created.data.id }, expired))
+          .code,
+      ).toBe(403);
+      await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=9151");
+      expect(
+        (await request("videos.playback", { id: created.data.id }, member))
+          .code,
+      ).toBe(401);
+      await conn.query(
+        "UPDATE users SET blockedAt=NULL,sessionVersion=1 WHERE id=9151",
+      );
+      expect(
+        (await request("videos.playback", { id: created.data.id }, member))
+          .code,
+      ).toBe(401);
+    },
+  );
   it("uses explicit updates for existing VK rows, and denies moderator writes", async () => {
     const created = await request("admin.upsertVkVideo", input, admin, true);
     const staff = await sdk.createSessionToken("vk-staff", {
