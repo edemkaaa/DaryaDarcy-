@@ -26,7 +26,7 @@ export function registerPublicResponseCompression(app: Express): void {
           req.headers["if-range"] !== undefined ||
           res.statusCode !== 200 ||
           res.getHeader("Set-Cookie") !== undefined ||
-          /(?:^|,)\s*(?:private|no-store)(?:\s*(?:,|$))/i.test(
+          /(?:^|,)\s*(?:private|no-store)(?=\s*(?:[=,]|$))/i.test(
             String(res.getHeader("Cache-Control") ?? ""),
           ) ||
           !/^application\/json(?:;|$)/i.test(

@@ -18,6 +18,8 @@ beforeAll(async () => {
     if (req.query.status) res.status(Number(req.query.status));
     if (req.query.noTransform) res.setHeader("Cache-Control", "no-transform");
     if (req.query.private) res.setHeader("Cache-Control", "private, no-store");
+    if (req.query.privateFields)
+      res.setHeader("Cache-Control", 'private="X-Internal"');
     if (req.query.cookie)
       res.setHeader("Set-Cookie", "fixture=opaque; HttpOnly");
     if (req.query.small) {
@@ -131,6 +133,7 @@ describe("public JSON response compression", () => {
     "?sse=1",
     "?small=1",
     "?private=1",
+    "?privateFields=1",
     "?cookie=1",
   ])(
     "skips errors, partial/mixed responses and non-transformable data: %s",
