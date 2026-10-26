@@ -1,0 +1,14 @@
+# Resource ceilings only, for a dedicated host with at least 4 vCPU and 8 GiB RAM.
+# Append AFTER all existing overlays. This is not a complete production config.
+# Do not apply to the current shared 2-vCPU/4-GB staging host.
+# CPU ceilings are not reserved cores; their sum may exceed the host capacity.
+services:
+  api:
+    mem_limit: 1536m
+    cpus: 1.5
+  web:
+    mem_limit: 2048m
+    cpus: 2.0
+  mysql:
+    mem_limit: 2048m
+    cpus: 1.0

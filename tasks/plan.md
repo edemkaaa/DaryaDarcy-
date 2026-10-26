@@ -2,6 +2,21 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26октября, пересмотреть лимиты контейнеров: read-only inspect подтвердил
+2CPU/около4ГБhost/около610MiB available/no swap. API256/web384/MySQL512MiB,
+CPU0.4. На этом shared host повышать потолки небезопасно. Подготовить отдельный
+resource-only overlay для выделенного4CPU/8GiB VPS: API1536MiB/1.5CPU,
+web2048MiB/2CPU, MySQL2048MiB/1CPU. Остальные настройки/сервисы сохранить.
+Реальный Compose config на synthetic env: точный diff только mem_limit/cpus,
+совместимость overlays/candidate и возврат к baseline; без up/pull/restarts/
+DB/S3/source frontend. Обновить DevOps handoff и точную границу готовности.
+Результат: отдельный compose.resources-8gb.example.yaml, RED3→GREEN5offline
+Compose tests/3suites, source/root types GREEN. Mem_limit в actual CLI JSON —
+строка, test boundary уточнён. Точный diff только2resource fields/3services;
+все images/flags/env/networks/volumes сохранены. Весь synthetic stack сvideo/TEST/
+SMTP caps6624MiB. Live не менялся: новый VPS и реальные100посетителей/большие
+загрузки — отдельная приёмка. Детали и запуск тестов в DevOps handoff.
+
 26октября, исследование оригиналов/TTL: только read-only SSH/HTTP. Реальные
 source+compiled images.minimumCacheTTL3600, web/edge/public header30 идёт из
 9cache files1440поста744; другие550файлов сTTL>=3600. Next16.3.8 возвращает

@@ -2,6 +2,20 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Пересмотр контейнерных лимитов — 26 октября
+
+- [x] Read-only host/runtime/stats:2CPU/~4GB/~610MiBavailable/no swap;
+  API256/web384/MySQL512MiB и0.4CPU. Повышение live не выполнять на shared host.
+- [x] Отдельный8GiB resource-only overlay: API1536MiB/1.5CPU,
+  web2048MiB/2CPU, MySQL2048MiB/1CPU; base template остаётся прежним.
+- [x] RED3missing profile → GREEN5real Compose tests/3suites на synthetic env,
+  все прежние networks/volumes/images/flags/commands/ports сохранены.
+  JSON mem_limit приходит строкой: исправлено только ожидание test boundary,
+  не настройки профиля.8ГиБ full-stack caps6624MiB,без изменения других сервисов.
+- [x] DevOps handoff/types/format/docs/diff checks; live ресурсы не менялись.
+- [ ] Новый выделенный VPS/ресурсный запас и отдельная приёмка нагрузки,
+  cold images/32–80MiB. На текущий2CPU/4GBhost профиль не применён.
+
 ### Оригиналы и расхождение TTL — 26 октября
 
 - [x] Read-only runtime/volume/headers: Next16.3.8/source+compiled3600,
