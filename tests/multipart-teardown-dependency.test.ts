@@ -7,8 +7,15 @@ import { expect, it } from "vitest";
 // without adding a production handler or allowing a late stream error to kill Vitest.
 it("keeps a late multipart filter callback from crashing after teardown", () => {
   const backend = createRequire(path.resolve("apps/backend/package.json"));
-  const entry = createRequire(backend.resolve("@nestjs/platform-express")).resolve("multer");
-  const result = spawnSync(process.execPath, ["--max-old-space-size=96", "-e", String.raw`
+  const entry = createRequire(
+    backend.resolve("@nestjs/platform-express"),
+  ).resolve("multer");
+  const result = spawnSync(
+    process.execPath,
+    [
+      "--max-old-space-size=96",
+      "-e",
+      String.raw`
     const assert=require('node:assert/strict');
     const {PassThrough}=require('node:stream');
     const multer=require(process.argv[1]);
@@ -34,7 +41,11 @@ it("keeps a late multipart filter callback from crashing after teardown", () => 
       });
     });
     req.end(body);
-  `, entry], { encoding: "utf8", timeout: 5000 });
+  `,
+      entry,
+    ],
+    { encoding: "utf8", timeout: 5000 },
+  );
   expect(result.status, result.stderr).toBe(0);
   expect(JSON.parse(result.stdout)).toEqual({ lateParserClosed: true });
 });

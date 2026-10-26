@@ -21,8 +21,15 @@ const parsers = [
 // The application already refuses encoded requests before parsing. This narrow
 // upstream regression also verifies the installed decoder remains safe itself.
 // Run the tiny fixture in an isolated child: a vulnerable parser must not crash Vitest.
-it.each(parsers)("$name survives a late error after a compressed frame", ({ entry }) => {
-  const result = spawnSync(process.execPath, ["--max-old-space-size=96", "-e", String.raw`
+it.each(parsers)(
+  "$name survives a late error after a compressed frame",
+  ({ entry }) => {
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--max-old-space-size=96",
+        "-e",
+        String.raw`
     const assert=require('node:assert/strict');
     const {createServer,request}=require('node:http');
     const {gzipSync}=require('node:zlib');
@@ -44,7 +51,12 @@ it.each(parsers)("$name survives a late error after a compressed frame", ({ entr
       server.closeAllConnections();await new Promise(resolve=>server.close(resolve));
       console.log(JSON.stringify({alive:true}));
     })().catch(()=>process.exit(9));
-  `, entry], { encoding: "utf8", timeout: 5000 });
-  expect(result.status, result.stderr).toBe(0);
-  expect(JSON.parse(result.stdout)).toEqual({ alive: true });
-});
+  `,
+        entry,
+      ],
+      { encoding: "utf8", timeout: 5000 },
+    );
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual({ alive: true });
+  },
+);
