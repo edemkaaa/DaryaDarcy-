@@ -2,6 +2,33 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26 октября, исследование скорости экранов: docs/audits/post-video-screen-speed-2026-10-26.md.
+Проверены свежие feed/list/grid/post/viewer, Club, Saved(empty), Library/article6,
+admin posts/videos/articles/calendar, VK20→22; playback provider не активировался.
+Подтверждено: admin56px→w960(146128B), вариант160=7256B; feed4pages refetch4
+последовательно;19PNG→losslessWebP −32,29% с exactRGBA;22covers5,49→3,73MB.
+GIF3кандидата10,67MB:1стал больше,2delay0→100не принят,3exact−16,6%.
+Кеш573files/55,7MB,TTL≥3600/304,не заполнен; SQLfeed~7,74ms,счётчики indexed.
+Нельзя увеличивать publicTTL всего feed: legacyphoto post938(club) anonymous
+S3HEAD200 иoptimizerGET200. Нужна адресная карта/перенос старых клубных файлов;
+новые immutable только для проверенных открытых VKcovers. Продуктовый код,
+БД/S3/лимиты/дизайн не менялись;96targetedtests GREEN, безpush/deploy.
+
+26 октября, после22:18МСК: завершено исследование остатка по оригиналу договора
+§2.1/3/4.1–4.16, актуальным исходникам и новому READ ONLY срезу стенда.
+HEAD=origin/staging a762b4a; webce56ebe/APIff2c229 healthy, 3admin credentials
+совпали с baseline. Новое уточнение: winter включён, но seasonMode=fixed,
+автосмена выключена; calendar с текущими датами до11-20 выберет autumn.
+Платёжные secret/subscription ID отсутствуют. Заказ Магазина остаётся mailto:
+диагностическое SMTP-письмо не закрывает путь покупатель→отправка→менеджер.
+Первый пароль задаётся по одноразовой ссылке — отклонение от буквальной формулировки
+договора требует фиксации. Android/домашний экран/нагрузка прямо есть в §4;
+старые отложенные пункты не закрывать. Отдельно: legacy read retirement,
+liveTimeweb recovery, restore44, orphan cleanup — с границами/без новых функций.
+Свежие5suites/102tests GREEN. Код/БД/S3/настройки/выпуск не менялись.
+Действующий остаток: [исследование](../docs/audits/remaining-work-research-2026-10-26.md).
+Следующие старые сводки — история; руководство и frontend handoff актуализированы.
+
 26 октября, 21:59 МСК: по новому разрешению исправлены frontend9/13–14:
 guide live DOM position, slot sizes/static variants/src order, bounded preview
 retries/no polling, comment URL reuse, bounded-source passthrough/lossless avatar

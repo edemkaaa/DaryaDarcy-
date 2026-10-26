@@ -2,6 +2,44 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Исследование скорости постов/видео — 26 октября
+
+- [x] Живые экраны/возвраты, API/headers/READ ONLY SQL/cache,22covers,
+  offline lossless RGBA/animation checks;96targeted tests passed,0failed/skip.
+- [x] docs/audits/post-video-screen-speed-2026-10-26.md: измерения, границы,
+  минимальные действия дляfrontend/backend. Продуктовый код/DB/S3 без изменений.
+- [ ] SPEED1: sizes56px вadmin; Saved31%/articlecarousel/постеры/декор по slot×DPR,
+  viewer иquality неизменны. На примере146128→7256B; внедрение ещё не выполнено.
+- [ ] SPEED2: отдельный выпуск19losslessVKcovers+immutable/versionedURLs,
+  backup/expected-old bindings. Кандидаты готовы локально, S3/БД не менялись.
+- [ ] SPEED3: bounded head-only background refresh Ленты; сейчас refetch4pages→4GET.
+- [ ] SPEED4: адресное сжатие публичных текстовых API; GIF3 только послеbrowserQA.
+- [ ] LEGACY-PHOTO: post938club photoanonymousHEAD/optimizer200; составить
+  адресную карту передпереносом/закрытием. Старые файлы не трогать вслепую;
+  publicTTL всей feed-папки не увеличивать. Это дополнение кR2 ниже.
+
+### Действующий остаток после исследования — 26 октября, после22:18МСК
+
+- [x] Перечитан оригинал договора §2.1/3/4.1–4.16; старые открытые пункты
+  сопоставлены с последним выпуском, без повторной реализации готового.
+- [x] Fetch: HEAD=staging a762b4a; READ ONLY runtime/SQL:4healthy, 44migrations,
+  исходные counts, все3admin credentials совпали.5локальных suites/102tests GREEN.
+- [x] Один актуальный отчёт: docs/audits/remaining-work-research-2026-10-26.md.
+  Настройки/рабочаяБД/S3/код не менялись, push/deploy/письма/платежи не выполнялись.
+- [ ] R1: liveProdamus790/recurring/платёж→письмо→вход, повтор/отмена/блокировка;
+  нужны настройки владельца и фиксация одноразовой установки первого пароля.
+- [ ] R2: владелец отзывает только2старых платных Yandex shares; free/covers сохранить.
+- [ ] R3: принять calendar/4даты/дату старта. Сейчас fixed winter, автосмена выключена.
+- [ ] R4: полный mailto-заказ→получение менеджером и manager block UI на fixtures.
+- [ ] R5: приёмка всех22VK со звуком/перемоткой/fullscreen; без обхода site-safety.
+- [ ] R6: iPhone/Android/desktop/домашний экран, нагрузка и5–7дней пилота;
+  отложенные32/80MiB остаются отдельно. Не нагружать заполненный shared host.
+- [ ] Дополнительная приёмка: liveTimeweb public-photo unknown-op/account switch;
+  legacy read retirement/restore44/orphan cleanup — по отдельным границам отчёта.
+
+Ниже — история проверок. Старые незакрытые галочки frontend9/13–14 и переноса
+материалов не означают, что нужно переделывать уже опубликованные исправления.
+
 ### Повторная проверка и исправления — 26 октября, 21:59 МСК
 
 - [x] Разрешены frontend/backend исправления. Гид: актуальные DOM coords вместо
