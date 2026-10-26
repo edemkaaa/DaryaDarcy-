@@ -6,6 +6,7 @@ import { detectBinaryFileType } from "../media/file-signature";
 import { resolveMediaContentType } from "./media-content-type";
 import { isDeliverableAttachmentMime } from "../media/private-attachment-mime";
 import { privateUploadKey } from "./private-upload-key";
+import { legacySource } from "../media/legacy-source";
 
 const subjectSchema = z
   .object({
@@ -30,15 +31,7 @@ const manifest = z
     expectedOldUrl: z
       .string()
       .max(8192)
-      .regex(
-        /^https:\/\/s3\.twcstorage\.ru\/daryadarcy-s3\/(?:feed|articles)\/[A-Za-z0-9._/-]+$/,
-      )
-      .refine(
-        (url) =>
-          new URL(url).href === url &&
-          !url.includes("private-v1") &&
-          !url.includes("//", "https://".length),
-      ),
+      .refine((url) => Boolean(legacySource(url))),
     expectedSourceSha256: z.string().regex(/^[a-f0-9]{64}$/),
     expectedSourceBytes: z
       .number()
@@ -142,7 +135,94 @@ export async function prepareLegacyMedia(raw: unknown) {
       bytes.length,
     ]),
   );
-  return { ...input, bytes, mimeType, sha256, payloadHash };
+  return {
+    ...input,
+    transport: "bytes" as const,
+    bytes,
+    mimeType,
+    sha256,
+    payloadHash,
+  };
 }
 
-export type LegacyMediaPlan = Awaited<ReturnType<typeof prepareLegacyMedia>>;
+const streamManifest = manifest
+  .omit({ bytes: true, expectedSourceSha256: true })
+  .extend({
+    transport: z.literal("s3Stream"),
+    type: z.literal("video"),
+    expectedSourceBytes: z
+      .number()
+      .int()
+      .positive()
+      .max(1024 * 1024 * 1024),
+    expectedSourceSha256: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .nullable(),
+    expectedSourceETag: z
+      .string()
+      .max(128)
+      .regex(/^"[a-zA-Z0-9-]+"$/),
+    probe: z.instanceof(Buffer),
+  })
+  .strict();
+
+async function prepareLegacyStream(raw: unknown) {
+  const parsed = streamManifest.safeParse(raw);
+  if (!parsed.success) throw invalid();
+  const input = parsed.data;
+  if (
+    input.subject.kind !== "postMedia" ||
+    input.probe.length < 16 ||
+    input.probe.length > 65536 ||
+    input.probe.length > input.expectedSourceBytes ||
+    digest(JSON.stringify([input.subject, input.expectedOldUrl])) !==
+      input.operationId
+  )
+    throw invalid();
+  const key = legacySource(input.expectedOldUrl)!.key;
+  if (!/^(?:feed\/(videos|reels)|club\/tg)\//.test(key)) throw invalid();
+  const probe = Buffer.from(input.probe);
+  let mimeType: string;
+  try {
+    mimeType = await resolveMediaContentType("video", "video/mp4", probe);
+  } catch {
+    throw invalid();
+  }
+  if (!["video/mp4", "video/webm", "video/quicktime"].includes(mimeType))
+    throw invalid();
+  const payloadHash = digest(
+    JSON.stringify([
+      "legacy-stream:v1",
+      input.operationId,
+      input.type,
+      input.filename,
+      mimeType,
+      input.expectedSourceETag,
+      input.expectedSourceSha256,
+      input.expectedSourceBytes,
+      digest(probe),
+    ]),
+  );
+  return {
+    ...input,
+    probe,
+    mimeType,
+    sha256: input.expectedSourceSha256,
+    payloadHash,
+    transferSource: {
+      key,
+      etag: input.expectedSourceETag,
+      sha256: input.expectedSourceSha256,
+    },
+  };
+}
+
+export async function prepareLegacyMigration(raw: unknown) {
+  return z.object({ transport: z.literal("s3Stream") }).safeParse(raw).success
+    ? prepareLegacyStream(raw)
+    : prepareLegacyMedia(raw);
+}
+export type LegacyMediaPlan = Awaited<
+  ReturnType<typeof prepareLegacyMigration>
+>;
