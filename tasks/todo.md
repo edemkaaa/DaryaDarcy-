@@ -2,6 +2,53 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Доделать backend по аудитам и единая передача фронту — 26 октября
+
+- [x] Проверены все независимые backend-срезы: 171passed/17files/0skips,
+  отдельный validation-first на пустой DB, реальные HTTP/SQL/SDK loopback.
+- [x] Реальные220визуалов:4EXIF исходника отклонены; отдельные lossless копии
+  очищены, raw RGBA/alpha exact, оригиналы сохранены.7manifest проходят проверку.
+- [x] Полный локальный импорт220/7: lost ACK/replay220PUT без дублей,
+  member bytes SHA, guest/nonmember denial и отзыв220прежнихURL; без real S3.
+- [x] Собственные3tmpfs контейнера убраны, другие containers/images/volumes
+  сохранены. Build/tsc/API102/docs93 GREEN; source/frontend/DB/S3 не менялись.
+- [x] Один frontend-audit-final-handoff-2026-10-26.md: все контракты,
+  deployment gate, порядок перехода, canBlockAuthor/payments/VK/guide/counts.
+- [ ] Совместный rollout: frontend consumers → real220bindings/S3 → оба экрана
+  и закрытие точных public copies; retirement legacy только после перехода.
+  Это зависимый остаток, не новый backend API; auto cleanup не включать.
+
+### Повторная сверка аудита23октября —26октября
+
+- [x] Все19находок FE/BE/INT + TEST-01 сопоставлены с HEAD/remote staging093bdcb;
+  source/config/DB/S3 не менялись. Исторические инструкции отделены от актуальных.
+- [x]114fresh tests/9files,0skip/0fail; check:api102,check:docs92,diff check GREEN.
+  Anonymous privacy/HTML canonical email200; клубная иллюстрация всё ещё200безcookie.
+- [ ] Совместный остаток:220private visuals/оба consumers/публичные копии;
+  club.listByCategory consumer; bounded interactions/admin articles/legacy retirement;
+  public avatar/cover receipts consumer. Polling head уже исправлен.
+- Полная актуальная матрица: backend-remediation-2026-10-25.md и
+  frontend-audit-remediation-2026-10-23.md (дополнения26октября).
+  Нового browser/SQL/device/payment acceptance нет; push/deploy не выполнялись.
+
+### Остаток проверок после выпуска —26октября
+
+- [x] VK61 исследован: начальная ошибка, затем media926с/time60→79/error=null,
+  позже рекомендации/paused; стабильный playback не принят. Прямой iframe
+  site-safety blocked, обхода нет. Старое reload/close перекрытие подтверждено.
+- [x] Ровно2разрешённых черновика953/8: свежий backup41/schema44/gzip/SHA,
+  UI create→delete/SQL absence. Только2own journals очищены; все41таблица,
+  3admin credentials/44history/configs/все container runtimes exact baseline.
+- [x] Модератор/отмена/receipt recovery и registration:81/81PASS,9native suites,
+  реальная одноразовая localhost/tmpfs БД, loopback mail/payments/S3 substitutes.
+  Свой --rm контейнер убран, образы/прочие контейнеры сохранены; не live acceptance.
+- [x] Доступные read-only сценарии/матрица: production mailto digital-1 верный,
+  9legal pages открываются, писем нет. Оглавление гида: Witchcore/Castlecore
+  остаются вне viewport, повтор Castlecore подтверждён; frontend handoff обновлён.
+  Все7якорей/стабильный VK/внешняя приёмка не закрыты. Временная вкладка убрана,
+  исходная возвращена к videos; никаких source/config/S3/push/deploy изменений.
+  Полный отчёт: staging-remaining-flows-2026-10-25.md, дополнение26октября.
+
 ### Разрешённый выпуск staging — ночь25–26октября
 
 - [x] Security RED/GREEN: encoded requests415 до parser/auth; Zod4.6.6.

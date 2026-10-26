@@ -1,5 +1,140 @@
 # Backend: локальное исправление аудита 24 октября
 
+## Завершение доступной backend-части — 26 октября
+
+Поручение — доделать backend по аудитам и выдать один документ фронту.
+Новых серверных дефектов в проверках ниже не обнаружено; рабочие реализации
+повторно не переписывались. Рабочая БД, S3, frontend, настройки и стенд
+не менялись. Нет push/deploy/писем/платежей. Это локальная готовность,
+а не завершение совместного выпуска/всего договора.
+
+### Свежая проверка на одноразовых БД
+
+Существующий immutable native arm64 mysql:8.4; собственные label/ID контейнеры,
+localhost/backend_test, tmpfs512MiB без host mounts. Только loopback S3-wire,
+синтетические пользователи и платежные записи; без реальных провайдеров.
+Использованы штатные test-schema helpers, не новый прогон всех44миграций.
+
+| Последовательный прогон | Фактически выполнено |
+| --- | --- |
+| content-write-validation первым suite на пустой БД | 25 passed, 1 файл; TEST-01 не воспроизводится |
+| Проекция статей, категории, bounded interactions/articles/saved/members/comments, SQL LIMIT, library migration/read, public receipts, moderation | 139 passed, 14 файлов |
+| admin-payments-page отдельно | 6 passed, 1 файл |
+| Все220реальных подготовленных иллюстраций через SQL/API/локальный wire | 1 passed, 1 файл |
+| Итого | 171 passed, 17 файлов, 0 failed, 0 skipped, все exit0 |
+
+Первый список команды содержал неверное имя payments-page.mysql.test.ts;
+Vitest выполнил14файлов вместо15. Расхождение замечено, настоящий
+admin-payments-page отдельно запущен и прошёл6тестов. Итог содержит только
+реально выполненные проверки. Проверены owner/name/image/tmpfs/Mounts=[],
+удалены только три собственных --rm контейнера. Прочие контейнеры, образы,
+volumes сохранены. Диагностических процессов в живом API не запускали.
+
+### Реальные иллюстрации: найден и устранён локальный блокер подготовки
+
+Четыре исходных WebP содержали EXIF, и строгий импорт правильно их отклонил:
+castlecore/outfits/outfit3, darkacademia/outfits/outfit13,
+witchcore/outfits/outfit10 и witchcore/outfits/outfit14 (lossless variants).
+Валидация не ослаблена. Созданы отдельные копии без метаданных; raw RGBA bytes,
+размеры и alpha совпали. SHA всех220оригиналов сохранены, public не редактирован.
+
+Все7manifest/220files прошли inspectLibraryMigration, каждый namespace≤50.
+Registry SHA256: `5e6429281020715866f0e572de26cfd20491a83cd6b0b00e8546e45f4682967f`.
+Есть operator input с source/prepared SHA и путями к копиям. Полная репетиция:
+
+- Потерян первый PUT ACK → восстановление, все7операций committed.
+- Ровно220объектов/PUT/bindings; повтор manifest не создаёт копий.
+- Admin/member list200, полные7материалов без скрытой второй страницы.
+- Участник получает все220файлов, SHA HTTP-body совпадает, no-store соблюдён.
+- Гость и user без подписки получают404 на7списков и все220direct URLs.
+- После окончания синтетического доступа прежние220URL тоже дают404.
+
+Это настоящие SQL/HTTP/SDK bytes с локальной имитацией S3, **не** Timeweb ACL
+или production импорт. Начальный helper не запустился из-за CJS/ESM import;
+после исправления запуска выявлен EXIF. Неуспешные проходы не считались GREEN.
+Артефакты вне Git, права700/600: родительский
+`.local-artifacts/backend-audit-finish-20261026.yqS3vS` — native logs/results,
+private-visual-copies, visuals-operator-input.json, visuals-result.json,
+real-visuals-result.json и воспроизводящие helper scripts.
+
+### Передача и точный остаток
+
+Один актуальный документ: [frontend-audit-final-handoff-2026-10-26.md](../development/frontend-audit-final-handoff-2026-10-26.md).
+Контракты, порядок перехода и проверки в нём самодостаточны.
+Backend build, tsc --noEmit, check:api102/42120bytes и check:docs93 прошли,
+git diff --check без ошибок. Продуктовые API/типы не менялись.
+
+Дальше нужны frontend consumers, затем retirement старых методов;
+согласованный реальный импорт220bindings/копий и совместный выпуск обоих
+экранов, затем адресное закрытие public copies. До этого BE-03/FE-03/INT-04
+целиком не закрыты. Новых API ради отчёта не добавляли; автоочистку не включали.
+Dependency follow-up27октября и внешняя приёмка остаются отдельными пунктами.
+
+## Повторное чтение трёх исходных аудитов —26октября
+
+Запрос пользователя — повторно посмотреть аудит, не реализовать или выложить
+очередные правки. Прочитаны все находки FE-01…07, BE-01…07, INT-01…05,
+TEST-01 и ограничения проверок из файлов23октября/be029ed. Приложения с
+реестрами файлов не выдаются за новую построчную ревизию каждого файла.
+HEAD и remote refs/heads/staging совпадают:093bdcb; незакоммиченные документы
+предыдущего прогона сохранены. Код, frontend, настройки, БД и S3 не менялись;
+push/deploy/письма/платежи/живые записи не выполнялись.
+
+| Исходный пункт | Текущая оценка | Доказательство и граница |
+| --- | --- | --- |
+| BE-01, moderator→admin/self/staff | Исходная ошибка исправлена | platform-db вызывает lockUserModerationTarget до block/unblock. Актуальные роли под row locks в порядке ID, self запрещён, moderator только→user. Реальная HTTP/SQL матрица подтверждена предыдущим сегодняшним81-test прогоном; в этом повторе она не запускалась заново |
+| BE-02 / INT-02, бесконечный public PUT | Сетевая часть исправлена | Свежие3loopback теста: зависший PUT завершается примерно10s без второго запроса, S3/Forge отменяются. AbortSignal/deadline/maxAttempts1/destroy есть в коде. Не обещание полной обработки фото за10s; receipt consumer/ручные orphan-процедуры отдельно |
+| BE-03, неограниченные чтения | Частично, остаётся | savedPostsPage/membersPage/commentsPage уже реализованы и используются актуальным frontend. VK catalog bounded. Но legacy feed.list/savedPosts/comments/admin members остаются доступны; текущий frontend всё ещё читает полные feed.userInteractions и admin.articles. Готовы interactionsForPosts до50ID, articlesPage/detail; требуется переключение consumers и затем retirement, без тихого truncate. Старый YouTube repository/маршрут в mixed-compatible коде также ещё существует; не объявлять его удалённым |
+| BE-04, unavailable выглядит empty | Найденные чтения исправлены | Свежие11availability +40read-error tests:503 при отсутствующей БД и отказ при SQL/media ошибке, recovery после ошибки. Здоровые empty/not found не меняются |
+| BE-05, полные sections ради публичных карточек | Исправлено в коде | ContentReadService.listArticles вызывает listPublishedArticleCards с явными4колонками, без sections. SQL projection proof уже описан в отчёте23октября, в этой сверке SQL не повторяли. Полный admin list остаётся отдельным BE-03 |
+| BE-06, недостающие индексы | Реализовано и ранее выпущено | schema/0042 содержат likes(userId,postId), два saved_posts owner indexes и post_media(postId,sortOrder). EXPLAIN/ночная установка44history описаны ниже. Не делали новый production EXPLAIN/DDL или дедупликацию в этом повторе |
+| BE-07, crash при разрыве upstream | Исходная ошибка исправлена | Свежие2изолированных Node/loopback теста: разрыв источника и получателя не завершают API, upstream закрывается; pipeline/abort/finally присутствуют. Это старый YouTube fallback, не причина/доказательство исправности внешнего VK-плеера |
+| TEST-01, зависимость content validation от порядка SQL suites | Fixture исправлен в коде | Suite теперь openContentTestDatabase + CREATE articles перед cleanup. Исторические25ошибок не считать25текущими дефектами API. Новый standalone SQL-прогон в этой сверке не проводился |
+
+### Что остаётся между готовым backend и frontend
+
+- FE-02/INT-05: listByCategory реализован, но ClubSubscribed всё ещё читает
+  club.list без category/tag и догружает пустой локальный фильтр. Полный polling
+  архива уже исправлен useCursorPages: обновляется только голова, старый тезис
+  о повторе всех сохранённых страниц устарел.
+- FE-03/INT-04: публичный клубный visual всё ещё доступен. Свежий anonymous GET
+  к /assets/results/cottagecore/moodboards/moodboard1.webp:200,image/webp,63044bytes.
+  Защищённые slots готовы, но реальные bindings/оба consumers/старые копии ещё
+  не переключены. Бесплатные материалы и обложки не относятся к закрытию.
+- Новые public avatar/cover receipts готовы, но текущие use-profile-avatar и
+  articles-admin ещё вызывают legacy uploadAvatar/uploadPhoto. Deadline не равен
+  восстановлению результата потерянного ответа. Автоочистку не включать.
+- FE-01/04/05/06/07 и INT-01/03 исправлены в текущем коде;
+  [точная таблица статусов и границ](../development/frontend-audit-remediation-2026-10-23.md).
+  Не поручать повторное исправление старых строк без воспроизведения.
+
+### Свежая проверка в этой сверке
+
+Один worker, санитарное окружение без рабочих credentials/БД;9файлов,
+**114passed,0failed,0skipped**,exit0,14.51s:
+public-storage-lifecycle3,post-media-read-errors40,youtube-stream-lifecycle2,
+content-read-availability11,trpc-batch-admission3,frontend-media-safety23,
+frontend-navigation-intent27,frontend-cursor-pages4,staff-role1.
+Провайдеры только loopback/моки; рабочие БД/S3 не подключались. Это не новый
+браузерный прогон cropper/NORMAL/renewal и не production отказ БД.
+
+Свежие anonymous GET /privacy200 и /privacy.html200: обе содержат
+daryadarcy19@gmail.com, старого daryadarcyapp@yandex.ru нет. Тем самым FE-07
+устарел и на стенде. Изображение проверено одним read-only GET, без файловых
+операций S3. Свежий check:api прошёл:102процедуры,42120bytes,exit0; старые90 —
+историческая цифра. check:docs прошёл для92документов, git diff --check без ошибок.
+
+Нет основания объявлять исходный аудит целиком закрытым. Приоритет — платные
+публичные иллюстрации, server-side club filters, переход на bounded reads и
+public receipts; отдельно ранее найденные VK controls/оглавление/счётчики.
+Реальные оплаты/SMTP/device/PWA/pilot и отложенные большие файлы не становятся
+принятыми из-за114локальных тестов. Старые49frontend failures нельзя суммировать
+с текущими дефектами: сам аудит содержит классификацию fixtures/режимов/timeout.
+Скан зависимостей из исходного аудита не заменён этим прогоном; поздний
+dependency-follow-up27октября остаётся в действующем плане.
+
+## Исторический протокол25октября и последующего выпуска
+
 Дата: 25 октября 2026. Ветка `feature/stage-one-completion-2026-10-10`.
 Это локальная проверка, не отчёт о выпуске на staging и не полная приёмка договора.
 

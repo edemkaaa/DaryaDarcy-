@@ -2,6 +2,57 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26октября, поручение доделать backend по аудитам и выдать единый frontend doc:
+все независимые серверные срезы проверены171/17files/0skip, validation suite
+первым на свежей БД. Реальная подготовка220visuals обнаружила4EXIF-файла:
+сделаны отдельные lossless копии без metadata, RGBA/alpha exact, originals SHA
+прежние.7manifest и полный220-import/replay/member bytes/denial/revoke прошли
+на disposable DB/loopback S3, без рабочего хранилища.3own containers убраны,
+images/other containers/volumes preserved. Build/tsc/API102/docs93 GREEN.
+Новых backend-багов не обнаружено, уже готовые source/API не переписывались.
+Единая передача: docs/development/frontend-audit-final-handoff-2026-10-26.md.
+Остаются зависимые rollout/consumer/legacy retirement; real DB/S3/frontend/
+пуш/выкладка не трогались. Не объявлять закрытым весь аудит до совместного выпуска.
+
+26октября, повторный запрос сверить три исходных аудита23октября/be029ed:
+все FE/BE/INT находки и TEST-01 сопоставлены с исходниками093bdcb и совпадающим
+remote staging.114fresh tests/9files/0skips GREEN,check:api102/check:docs92 GREEN.
+Anonymous /privacy и /privacy.html canonical email совпали; club visual всё ещё
+public200. Исторический polling all-pages уже исправлен, category filter consumer
+ещё нет. Главный остаток: private visual rollout/оба consumers, club categories,
+bounded interactions/admin articles + retirement и public receipts consumer.
+В docs/audits/backend-remediation-2026-10-25.md и frontend-audit-remediation-
+2026-10-23 handoff отделены актуальные статусы от старых инструкций. Продуктовый
+код/frontend/DB/S3/config не менялись; без push/deploy/новой внешней приёмки.
+
+26октября, продолжить оставшиеся проверки без реализации/push/deploy:
+1) VK61: исходный iframe, попытка старта, состояние и сравнение с прямым VK;
+   не принимать рекомендованный другой ролик за успех исходного.
+2) Пользователь отдельно разрешил ровно1fixture post draft и1article draft
+   на staging, затем их адресное удаление. Fresh backup41/schema44 перед записью,
+   никаких публикаций/вложений/notifications/mail/payments;3admin входа сохранить.
+3) Native HTTP/SQL: отдельный localhost backend_test/tmpfs MySQL, synthetic roles,
+   moderation/cancellation/public receipts, только loopback provider/S3 substitutes.
+4) Оставшиеся read-only переходы/магазин/PWA/library states и точный отчёт.
+   Большие вложения/нагрузка/физические устройства/пилот остаются отложенными;
+   реальные оплаты/письма/смену пароля человеком не имитировать как приёмку.
+
+Результат26октября:81/81native HTTP/SQL (9suites), собственный localhost/tmpfs
+контейнер проверен/удалён без образов. Fresh backup41/44 проверен server+Mac;
+пост953/статья8 созданы только drafts, удалены кнопками, отсутствие подтверждено
+SQL; только2own journals очищены. Все41таблица/колонки/строки (кроме login
+timestamps),3admin credentials,44history,конфиги/все container runtime сохранены.
+VK61: после первой ошибки media926с/time60→79, затем paused/recommendations;
+полной приёмки нет. Direct VK заблокирован site-safety без обхода, старое
+reload/close перекрытие повторно подтверждено, существующий frontend handoff.
+Production digital-1 mailto корректен,9legal pages открылись; писем/платежей нет.
+Гид: Witchcore/Castlecore после завершения scroll остаются вне видимой области,
+повтор Castlecore подтверждён; отдельный handoff в frontend-handoff-library-uploads.
+Быстрый цикл7якорей не принят; только прошедшие одиночные переходы не означают
+приёмку всех7. Временная вкладка закрыта, исходная возвращена к videos.
+No source/frontend/design/S3/config changes,push/deploy. Доказательства и точный
+остаток: docs/audits/staging-remaining-flows-2026-10-25.md (дополнение26октября).
+
 Ночь25–26октября: отдельно разрешены security-исправление, очистка только наших
 build caches и выпуск staging с проверкой миграций/backup/сохранением БД,
 админских входов и rollback images. Глобальный отказ encoded bodies415 и Zod4.6.6
