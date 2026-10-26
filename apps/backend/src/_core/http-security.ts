@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { registerPublicResponseCompression } from "./public-response-compression";
 
 export function registerHttpSecurity(app: Express): void {
   const origins = new Set<string>();
@@ -61,4 +62,5 @@ export function registerHttpSecurity(app: Express): void {
     }
     next();
   });
+  registerPublicResponseCompression(app);
 }
