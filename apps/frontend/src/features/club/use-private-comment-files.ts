@@ -19,7 +19,12 @@ import { ApiError } from "@/shared/api/errors";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { fileForPhotoUpload, pickWebFiles } from "@/shared/media/image-upload";
 import { checkPrivateUploadAvailability } from "@/shared/media/private-upload-availability";
-const reference = (file: PrivateCommentPhoto) => `local-comment:${file.key}`;
+import {
+  commentPhotoReference as reference,
+  syncCommentPhotoPreviews,
+  releaseCommentPhotoPreviews,
+  type CommentPhotoPreviews,
+} from "./comment-photo-previews";
 
 /** The keyed comment thread owns selection, previews and this account/post journal. */
 export function usePrivateCommentFiles(
@@ -33,15 +38,14 @@ export function usePrivateCommentFiles(
     () => new PrivateCommentJournal(user?.id ?? 0, postId),
     [user?.id, postId],
   );
-  const [urls] = useState(() => new Map<string, string>());
+  const [urls] = useState<CommentPhotoPreviews>(() => new Map());
   const [files, setFiles] = useState<PrivateCommentPhoto[]>([]);
   const [record, setRecord] = useState<PrivateCommentRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [, redraw] = useState(0);
   const release = useCallback(() => {
-    for (const url of urls.values()) URL.revokeObjectURL(url);
-    urls.clear();
+    releaseCommentPhotoPreviews(urls);
   }, [urls]);
   useEffect(() => {
     let current = true;
@@ -69,12 +73,11 @@ export function usePrivateCommentFiles(
   }, [enabled, journal]);
   useEffect(() => {
     if (enabled) {
-      for (const file of files)
-        urls.set(reference(file), URL.createObjectURL(file.file));
-      redraw((value) => value + 1);
-    }
-    return release;
+      syncCommentPhotoPreviews(urls, files);
+    } else release();
+    redraw((value) => value + 1);
   }, [enabled, files, release, urls]);
+  useEffect(() => release, [release]);
   const reset = useCallback(() => {
     release();
     setFiles([]);
@@ -101,7 +104,7 @@ export function usePrivateCommentFiles(
     loading: enabled && loading,
     error,
     preview: (url: string) =>
-      urls.get(url) ?? (url.startsWith("local-comment:") ? "" : url),
+      urls.get(url)?.url ?? (url.startsWith("local-comment:") ? "" : url),
     reset,
     pick: async (slots: number, task: ScopedOperation) => {
       await requirePrivateUpload("privateContentUploads", task.signal);
@@ -125,7 +128,7 @@ export function usePrivateCommentFiles(
     },
     remove: (ref: string) => {
       const url = urls.get(ref);
-      if (url) URL.revokeObjectURL(url);
+      if (url) URL.revokeObjectURL(url.url);
       urls.delete(ref);
       setFiles((previous) =>
         previous.filter((file) => reference(file) !== ref),
