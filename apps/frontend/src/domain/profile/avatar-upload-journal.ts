@@ -12,8 +12,8 @@ const intentSchema = z
       .min(4)
       .max(6 * 1024 * 1024)
       .regex(/^[A-Za-z0-9+/]+={0,2}$/),
-    filename: z.literal("avatar.jpg"),
-    mimeType: z.literal("image/jpeg"),
+    filename: z.enum(["avatar.jpg", "avatar.png", "avatar.webp"]),
+    mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
   })
   .strict();
 export type AvatarUploadIntent = z.infer<typeof intentSchema>;
@@ -46,7 +46,7 @@ function storage(ownerId: number) {
   return window.localStorage;
 }
 
-// The cropped 512px JPEG is small. Storage failures must stop the write,
+// The cropped 400px image is small. Storage failures must stop the write,
 // unlike optional preferences: the exact bytes and key are needed after reload.
 export function readAvatarIntent(ownerId: number): AvatarUploadIntent | null {
   const raw = storage(ownerId).getItem(key(ownerId));

@@ -6,7 +6,7 @@ import {
   getRequestErrorMessage,
   invalidResponse,
 } from "@/shared/api/errors";
-import { uriToBase64 } from "@/shared/media/image-upload";
+import { uriToPhotoUpload } from "@/shared/media/image-upload";
 import { MAX_AVATAR_SOURCE_BYTES } from "@/shared/browser/file-operations";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { trpc } from "@/shared/api/trpc";
@@ -190,7 +190,7 @@ export function useProfileAvatar() {
         if (requireAvatarReceipt(status).state === "ready")
           return await complete(intent, status, task);
       } else {
-        const base64 = await uriToBase64(uri, {
+        const { base64, mimeType } = await uriToPhotoUpload(uri, {
           maxInputBytes: MAX_AVATAR_SOURCE_BYTES,
           signal: task.signal,
         });
@@ -199,8 +199,13 @@ export function useProfileAvatar() {
           version: 1,
           ownerId,
           base64,
-          filename: "avatar.jpg",
-          mimeType: "image/jpeg",
+          filename:
+            mimeType === "image/png"
+              ? "avatar.png"
+              : mimeType === "image/webp"
+                ? "avatar.webp"
+                : "avatar.jpg",
+          mimeType,
           idempotencyKey: crypto.randomUUID(),
         };
         saveAvatarIntent(prepared);

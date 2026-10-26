@@ -196,7 +196,8 @@ export async function compressImageBlob(
         blob.size <= MAX_PHOTO_BYTES &&
         ["image/jpeg", "image/png", "image/webp"].includes(imageType(blob))
       ) {
-        return blob;
+        const type = imageType(blob);
+        return blob.type === type ? blob : new Blob([blob], { type });
       }
       canvas = document.createElement("canvas");
       const outputCanvas = canvas;
@@ -304,6 +305,15 @@ export async function uriToBase64(
   uri: string,
   opts?: PhotoPreparationOptions,
 ): Promise<string> {
+  return (await uriToPhotoUpload(uri, opts)).base64;
+}
+export async function uriToPhotoUpload(
+  uri: string,
+  opts?: PhotoPreparationOptions,
+): Promise<{
+  base64: string;
+  mimeType: "image/jpeg" | "image/png" | "image/webp";
+}> {
   opts?.signal?.throwIfAborted();
   const maxInputBytes = opts?.maxInputBytes ?? MAX_ATTACHMENT_BYTES;
   const raw = /^data:/i.test(uri)
@@ -313,7 +323,14 @@ export async function uriToBase64(
         return readResponseBlob(response, maxInputBytes, opts?.signal);
       });
   const blob = await preparePhotoBlob(raw, opts);
-  return blobToBase64(blob, opts?.signal);
+  const mimeType = blob.type;
+  if (
+    mimeType !== "image/jpeg" &&
+    mimeType !== "image/png" &&
+    mimeType !== "image/webp"
+  )
+    throw new Error("Не удалось подготовить фото");
+  return { base64: await blobToBase64(blob, opts?.signal), mimeType };
 }
 export async function fileForPhotoUpload(
   file: File,

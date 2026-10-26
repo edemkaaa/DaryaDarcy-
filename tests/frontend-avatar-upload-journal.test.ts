@@ -42,6 +42,17 @@ it("retains exact bytes and key for the same owner across session changes", () =
   setPersonalDataOwner(101);
   expect(readAvatarIntent(101)).toEqual(intent);
 });
+it.each([
+  ["avatar.png", "image/png"],
+  ["avatar.webp", "image/webp"],
+] as const)(
+  "retains the actual prepared image format for %s across recovery",
+  (filename, mimeType) => {
+    const prepared = { ...intent, filename, mimeType };
+    saveAvatarIntent(prepared);
+    expect(readAvatarIntent(101)).toEqual(prepared);
+  },
+);
 it("does not silently replace a pending file or key in another tab", () => {
   saveAvatarIntent(intent);
   expect(() => saveAvatarIntent({ ...intent, base64: "bmV3" })).toThrow();
