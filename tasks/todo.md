@@ -2,6 +2,17 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Исправление четырёх блокеров — 26 октября
+
+- [x] VK optional hash/кнопка вне iframe; локальный браузер.
+- [x] Private visual consumers/1635 exact denied HTTP paths.
+- [x] Репетиция 220 иллюстраций + 6 PDF на одноразовой БД.
+- [x] 3268 unit passed, 1733 skipped; types/lint/build/API/boundaries GREEN.
+- [ ] Backup, guarded private import, выпуск staging и живая проверка.
+- [ ] Приёмка запуска всех 22 VK; внешние ошибки не маскировать.
+- [ ] Боевой Prodamus: у владельца пока нет настроек; оставить TEST.
+- [ ] После private API владелец отзывает два старых Yandex share.
+
 ### Живая готовность по договору — 26 октября
 
 - [x] Read-only runtime/HTTP/browser/SQL:9admin sections,2страницыposts/payments,

@@ -2,6 +2,17 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26 октября, исправление четырёх блокеров: локально готовы VK optional hash и
+кнопка вне iframe, private visual consumers без public fallback и блокировка
+1635 точных старых/форматных/hashed URL (включая optimizer). На tmpfs БД прошли
+220 реальных иллюстраций + 6 PDF; 226 PUT без дублей, member bytes exact,
+guest/outsider denied. Рецепты разделены на 5 частей без перекодирования,
+оригиналы сохранены. Unit 3268 passed/1733 skipped; types/lint/API/boundaries/
+build GREEN. Импорт/выкладка и real VK acceptance ещё НЕ подтверждены.
+Боевых Prodamus настроек нет (ответ владельца): TEST не переключать.
+После private API старые Yandex shares должен отозвать владелец.
+Отчёт: docs/audits/staging-four-blockers-2026-10-26.md.
+
 26 октября, живое тестирование по документам: runtime API/web3557444,
 origin/staging d5bcbf1; последние19commits ещё не выложены.9admin sections,
 2страницыposts/payments,4patterns viewers,7guides,3audio timers,22cover HEADs,

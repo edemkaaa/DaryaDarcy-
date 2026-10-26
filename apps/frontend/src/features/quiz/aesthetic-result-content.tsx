@@ -9,6 +9,8 @@ import { Picture } from "@/shared/media/image";
 import { type AestheticKey } from "@/domain/quiz/quiz-data";
 import type { AestheticGuideContent } from "@shared/aesthetic-guide";
 import { formatInspirationList } from "@/domain/post/inspiration-titles";
+import { useAestheticVisuals } from "@/features/library/use-aesthetic-visuals";
+import { PrivateLibraryState } from "@/features/library/private-library-state";
 import {
   COTTAGECORE_MOODBOARDS,
   COTTAGECORE_OUTFITS,
@@ -42,7 +44,7 @@ export function ClubContentSection({
   const viewport = useViewport();
   const { stylesLayout } = getQuizResultLayout(viewport);
 
-  const moodboards =
+  const publicMoodboards =
     aestheticKey === "cottagecore"
       ? COTTAGECORE_MOODBOARDS
       : aestheticKey === "darkAcademia"
@@ -58,7 +60,7 @@ export function ClubContentSection({
                 : aestheticKey === "lightAcademia"
                   ? LIGHTACADEMIA_MOODBOARDS
                   : [];
-  const outfits =
+  const publicOutfits =
     aestheticKey === "cottagecore"
       ? COTTAGECORE_OUTFITS
       : aestheticKey === "darkAcademia"
@@ -74,7 +76,7 @@ export function ClubContentSection({
                 : aestheticKey === "lightAcademia"
                   ? LIGHTACADEMIA_OUTFITS
                   : [];
-  const interiors =
+  const publicInteriors =
     aestheticKey === "cottagecore"
       ? COTTAGECORE_INTERIORS
       : aestheticKey === "darkAcademia"
@@ -90,6 +92,23 @@ export function ClubContentSection({
                 : aestheticKey === "lightAcademia"
                   ? LIGHTACADEMIA_INTERIORS
                   : [];
+  const [visuals] = useAestheticVisuals([
+    {
+      key: aestheticKey,
+      moodboards: publicMoodboards,
+      outfits: publicOutfits,
+      interiors: publicInteriors,
+    },
+  ]);
+  if (!visuals.data)
+    return (
+      <PrivateLibraryState
+        isLoading={visuals.isPending}
+        error={visuals.error}
+        retry={visuals.retry}
+      />
+    );
+  const { moodboards, outfits, interiors } = visuals.data;
   return (
     <div
       className={["ui-stack ", classes.clubContent].filter(Boolean).join(" ")}

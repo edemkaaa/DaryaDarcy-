@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const frontend = path.join(root, "apps/frontend");
 const output = path.join(frontend, "src/shared/ui/static-image-catalog.ts");
+const retired = new Set(JSON.parse(await fs.readFile(path.join(frontend, "private-library-assets.json"), "utf8")).paths);
 const manifest = await fs.readFile(path.join(frontend, "image-variants.json"), "utf8")
   .then(JSON.parse).catch((error) => {
     if (error.code === "ENOENT") return { images: [] };
@@ -23,7 +24,7 @@ const uris = new Set();
 for (const file of await walk(path.join(frontend, "src"))) {
   if (file === output) continue;
   const text = await fs.readFile(file, "utf8");
-  for (const match of text.matchAll(/\/assets\/[^\s"'`<>)]*\.(?:jpe?g|png|webp|avif)/gi)) uris.add(match[0]);
+  for (const match of text.matchAll(/\/assets\/[^\s"'`<>)]*\.(?:jpe?g|png|webp|avif)/gi)) if (!retired.has(match[0])) uris.add(match[0]);
 }
 const entries = [...uris].sort();
 for (const uri of entries) await fs.access(path.join(frontend, "public", uri));
@@ -32,7 +33,7 @@ for (const uri of entries) await fs.access(path.join(frontend, "public", uri));
 const imports = entries.flatMap((uri, index) => uri.startsWith("/assets/responsive/")
   ? [] : [`import image${index} from ${JSON.stringify("../../../public" + uri)};`]);
 const mapping = entries.map((uri, index) => `  ${JSON.stringify(uri)}: ${uri.startsWith("/assets/responsive/") ? JSON.stringify(uri) : `image${index}.src`},`);
-const variants = manifest.images.map((item) => {
+const variants = manifest.images.filter((item) => !retired.has(item.full)).map((item) => {
   const candidates = item.variants.map(({ uri, width }) => ({ uri, width }));
   return `  ${JSON.stringify(item.full)}: ${JSON.stringify(candidates)},`;
 });

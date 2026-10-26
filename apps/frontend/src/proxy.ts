@@ -1,11 +1,24 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { randomBytes } from "node:crypto";
 import { documentSecurityHeaders } from "./shared/security/document-headers";
+import { isRetiredLibraryAsset } from "./shared/security/retired-library-assets";
 
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 /** A request-specific CSP for documents; API/media retain upstream policies. */
 export function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  if (
+    isRetiredLibraryAsset(pathname) ||
+    (pathname === "/_next/image" &&
+      isRetiredLibraryAsset(request.nextUrl.searchParams.get("url") ?? ""))
+  )
+    return new NextResponse("Материал недоступен.", {
+      status: 404,
+      headers: { "Cache-Control": "private, no-store" },
+    });
+  // Static resources keep their existing cache/security headers, without a document nonce.
+  if (/^\/(?:assets|_next)\//.test(pathname)) return NextResponse.next();
   if (/^\/(?:api|media)(?:\/|$)/.test(request.nextUrl.pathname))
     return proxyApi(request);
 
@@ -66,6 +79,8 @@ function forbidden() {
 
 export const config = {
   matcher: [
+    "/assets/:path*",
+    "/_next/:path*",
     "/((?!_next(?:/|$)|assets(?:/|$)|fonts(?:/|$)|favicon\\.ico$|manifest\\.webmanifest$).*)",
   ],
 };

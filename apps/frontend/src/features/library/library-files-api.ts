@@ -1,13 +1,23 @@
 import { z } from "zod";
 import { apiCall } from "@/shared/api/auth";
 import { invalidResponse } from "@/shared/api/errors";
+import type { AestheticGuideKey } from "@shared/aesthetic-guide";
 
-export type LibraryMaterialKey = "recipes" | "peterburg" | "patterns";
+export type LibraryMaterialKey =
+  | "recipes"
+  | "peterburg"
+  | "patterns"
+  | `aesthetic-${Lowercase<AestheticGuideKey>}`;
 export const isPrivateLibraryEnabled = () =>
   process.env.NEXT_PUBLIC_PRIVATE_LIBRARY_FILES_ENABLED === "true";
 export function libraryMaterialKey(value: string): LibraryMaterialKey | null {
-  return value === "recipes" || value === "peterburg" || value === "patterns"
-    ? value
+  return value === "recipes" ||
+    value === "peterburg" ||
+    value === "patterns" ||
+    /^aesthetic-(?:castlecore|cottagecore|darkacademia|fairycore|goblincore|lightacademia|witchcore)$/.test(
+      value,
+    )
+    ? (value as LibraryMaterialKey)
     : null;
 }
 const integer = z.number().int().safe().nonnegative();

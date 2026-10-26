@@ -27,6 +27,7 @@ import {
 } from "@/domain/quiz/quiz-data";
 import { useAestheticGuides } from "@/domain/library/private-library";
 import { PrivateLibraryState } from "./private-library-state";
+import { useAestheticVisuals } from "./use-aesthetic-visuals";
 import { formatInspirationList } from "@/domain/post/inspiration-titles";
 import {
   PAPER_TEXTURE_URI,
@@ -61,8 +62,20 @@ export default function AestheticsGuideScreen() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { hasClubAccess } = useClub();
   const guides = useAestheticGuides(AESTHETIC_ORDER);
-  const loadingGuides = guides.some((guide) => guide.isLoading);
-  const guideError = guides.find((guide) => guide.error)?.error;
+  const visuals = useAestheticVisuals(
+    AESTHETIC_ORDER.map((key) => ({
+      key,
+      moodboards: MOODBOARDS[key],
+      outfits: OUTFITS[key],
+      interiors: INTERIORS[key],
+    })),
+  );
+  const loadingGuides =
+    guides.some((guide) => guide.isLoading) ||
+    visuals.some((query) => query.isPending);
+  const guideError =
+    guides.find((guide) => guide.error)?.error ||
+    visuals.find((query) => query.error)?.error;
   const handleQuizCTA = () => {
     router.push("/quiz");
   };
@@ -224,16 +237,20 @@ export default function AestheticsGuideScreen() {
             <PrivateLibraryState
               isLoading={loadingGuides}
               error={guideError}
-              retry={() => guides.forEach((guide) => guide.retry())}
+              retry={() => {
+                guides.forEach((guide) => guide.retry());
+                visuals.forEach((query) => query.retry());
+              }}
             />
           )}
           {hasClubAccess &&
             AESTHETIC_ORDER.map((key) => {
               const result = AESTHETIC_RESULTS[key];
               const clubContent = guides[AESTHETIC_ORDER.indexOf(key)]?.data;
-              const moodboards = MOODBOARDS[key];
-              const outfits = OUTFITS[key];
-              const interiors = INTERIORS[key];
+              const images = visuals[AESTHETIC_ORDER.indexOf(key)]?.data;
+              const moodboards = images?.moodboards ?? [];
+              const outfits = images?.outfits ?? [];
+              const interiors = images?.interiors ?? [];
               const [header1, header2] = getTableHeaders(key);
               return (
                 <MeasuredBox
