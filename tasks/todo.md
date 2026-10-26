@@ -2,6 +2,23 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Оставшиеся backend security dependencies — 26 октября
+
+- [x] Fresh native audit: 9 advisory. Прочитаны upstream advisory/releases,
+  registry integrity/scripts/provenance metadata; install scripts отключены.
+- [x] Nodemailer10.1.4:3RED envelope-domain cases → GREEN35mail tests,
+  build/types. Отправитель/получатели/настройки не менялись, внешних писем нет.
+- [x] body-parser1.20.9/2.4.0:2RED child crashes → GREEN;100targeted cases,
+  build/types. Global encoded415 policy сохранена, рабочий API не атаковали.
+- [x] Multer2.5.0: REDlate teardown child crash → GREEN57/3files, build/types.
+- [x] Общая регрессия нашла VK metadata body-deadline зависание: новый RED2 →
+  явная отмена reader по deadline → GREEN57collection tests, build/types.
+- [x] Full regression3225pass/0fail/1718external skip; native81/9suites;
+  frozen install/re-audit9→3, backend/TEST builds/types/API102/docs93/boundaries773.
+  Один frontend doc дополнен пунктом11: Next16.4.1, frontend source не менялся.
+- [ ] Совместный остаток: Next frontend upgrade/приёмка и согласованный rollout
+  consumers/private visuals/legacy retirement; эти изменения локально не выпущены.
+
 ### Доделать backend по аудитам и единая передача фронту — 26 октября
 
 - [x] Проверены все независимые backend-срезы: 171passed/17files/0skips,
@@ -61,7 +78,8 @@
   containers сохранены;44history/41table/4indexes проверены. TEST bind на старый
   bundle обнаружен/исправлен, actual2bundles byte-exact. Backup/3rollback images
   сохранены;2temporary credential files удалены. Дизайн/S3/флаги не менялись.
-- [ ] Отдельно: dependency follow-up27октября; audit9 не объявлять чистым.
+- [x] Backend dependency follow-up выполнен досрочно26октября локально:
+  audit9→3Next; frontend upgrade/выпуск остаются отдельными, audit не чистый.
 
 ### Исправления аудитов24октября — локальная очередь25октября
 

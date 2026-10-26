@@ -2,6 +2,18 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26октября, повторное поручение завершить backend по документам: выполнен
+досрочный dependency follow-up. Nodemailer10.1.4/body-parser1.20.9+2.4.0/
+Nest Multer2.5.0: RED/GREEN child/loopback characterization, scripts disabled,
+manager-generated lockfile/frozen install. Fresh production audit9→3:
+остаток Next16.3.8 передан в пункт11 единого frontend doc. Native81/9files
+GREEN, собственный tmpfs-контейнер удалён. Общая регрессия выявила зависание
+VK metadata reader после headers; новый RED2 → явный reader cancel/deadline →
+GREEN57/types/build. Финальная общая регрессия3225pass/0fail/1718external skip;
+backend/TEST builds/types/API102/docs93/boundaries773 GREEN. Frontend/SMTPconfig/
+working DB/S3/стенд не менять; отдельные локальные коммиты, без автоматического
+push/deploy или legacy retirement до consumer transition.
+
 26октября, поручение доделать backend по аудитам и выдать единый frontend doc:
 все независимые серверные срезы проверены171/17files/0skip, validation suite
 первым на свежей БД. Реальная подготовка220visuals обнаружила4EXIF-файла:

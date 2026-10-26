@@ -1,5 +1,71 @@
 # Backend: локальное исправление аудита 24 октября
 
+## Dependency follow-up — 26 октября, локальные исправления
+
+Повторное поручение завершить backend позволило досрочно закрыть серверную
+часть dependency follow-up. Исходная база `5263d51`; три отдельных коммита:
+`e09b8ce` (Nodemailer), `a27f58e` (body-parser), `bcb0b6c` (Multer).
+Настройки SMTP, адресаты, frontend source, рабочие БД/S3 и стенд не менялись.
+Нет push/deploy, внешних писем или платежей.
+
+### Что изменено и почему
+
+| Зависимость | Было → стало | Проверка исходной ошибки |
+| --- | --- | --- |
+| Nodemailer | 10.0.13 → 10.1.4, root и backend | Три synthetic address cases меняли домен SMTP envelope: nested comment, semicolon group comment, quoted localpart с angle bracket. RED3 → GREEN3; streamTransport, без SMTP |
+| body-parser Express4 | 1.20.6 → 1.20.9 | Маленький gzip + trailing bytes вызывал необработанную ошибку decoder и завершение отдельного процесса. После обновления процесс жив и health отвечает |
+| body-parser Nest/Express5 | 2.3.0 → 2.4.0 | Та же проверка второй реально установленной ветки; RED crash → GREEN |
+| Multer в Nest | 2.4.0 → 2.5.0 | Поздний fileFilter callback после teardown приводил к unhandled error. RED crash → GREEN; multipart-маршруты не добавлялись |
+
+Источники: [Nodemailer release](https://github.com/nodemailer/nodemailer/releases/tag/v10.1.4),
+[parser advisory](https://github.com/expressjs/body-parser/security/advisories/GHSA-27r3-jxmh-p828),
+[Multer advisory](https://github.com/expressjs/multer/security/advisories/GHSA-q7qp-rjg7-q26m).
+Перед установкой проверены upstream releases и registry integrity/scripts/engines,
+наличие signature/provenance metadata. Криптографическая проверка подписи отдельно
+не выполнялась. Lockfile сгенерирован pnpm9.12.0, install scripts отключены.
+Транзитивное изменение qs6.16.1 у body-parser2.4.0 принято после проверки diff;
+остальные версии не обновлялись массово.
+
+Ранняя общая граница Content-Encoding415 остаётся прежней. Ошибки parser/Multer
+воспроизводились только в собственных 96MiB дочерних процессах с маленькими
+данными/loopback; это не доказательство эксплуатации текущего публичного API.
+Multer handlers приложением не зарегистрированы, его исправление профилактическое.
+
+### Проверки и оставшаяся граница
+
+Целевые серии: Nodemailer35/5files, parser100/8files, Multer57/3files — прошли.
+Backend build и tsc прошли после каждого среза. Frozen install со scripts disabled
+прошёл без изменения lockfile. API102/42120bytes, docs93 и boundaries773 GREEN.
+Первые два общих Vitest:3222pass/1fail/1718skip; единственный fail — таймаут
+старого oEmbed body-deadline теста. Отдельный набор55/55 проходил, но общий
+сбой воспроизвёлся. Установлена граница: после headers сборщик полагался на
+транспортный abort без собственной отмены reader. Два новых теста с зависшим
+body и headers до/после deadline стабильно показали RED. Коммит `f3af07d`
+добавляет abort listener/cancel, проверку уже истёкшего signal и снятие listener;
+оба RED → GREEN, все57collection tests/types/build прошли. Внешний VK не
+вызывался, API-контракт/плеер/frontend не менялись. Финальный общий прогон:
+**3225passed,248suites,0fail;1718tests/119suites skipped**. Пропуски внешних
+проверок не считаются успешной приёмкой. Backend/TEST builds, types и формат
+пяти затронутых TS-файлов прошли; новые dependency tests только отформатированы.
+
+Свежие81native HTTP/SQL cases в9suites прошли уже с обновлёнными зависимостями:
+registration retry/subscription flow, cancellation pending/confirmed,
+moderation locks/audit, content deletion, article consistency, public upload
+lost-ACK receipts. Собственный localhost/backend_test MySQL на tmpfs, только
+loopback mail/payment/S3 substitutes. Контейнер проверен по owner/image/ID и
+удалён; инвентарь других контейнеров совпал, образы/volumes не удалялись.
+
+Повторный native production audit: **9 → 3 advisory**, все шесть серверных
+предупреждений отсутствуют. Оставшиеся2critical/1high относятся к Next16.3.8;
+audit exit1 сохранён и не назван чистым. Нужен frontend upgrade16.4.1 с
+проверкой совместимости, пункт11 единого frontend handoff. SVG allowlist,
+отсутствие Server Actions/Cache Components — меры снижения риска, не patched Next.
+
+Не закрыты совместные B01/BE-03/B05 consumers, реальный импорт/отзыв public
+visuals и retirement legacy после перехода. Автоочистка не добавлялась.
+Артефакты: соседний закрытый `.local-artifacts/backend-security-20261026.NUOh09`,
+не Git: audit-before/after, RED/GREEN и full-regression logs, native verification.
+
 ## Завершение доступной backend-части — 26 октября
 
 Поручение — доделать backend по аудитам и выдать один документ фронту.
