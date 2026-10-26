@@ -2,6 +2,16 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26октября, продолжить backend после40d5917: дерево чистое, текущие consumers
+повторно сверены. Независимых открытых backend-срезов в актуальном плане нет.
+Остаются frontend VK hash/helper; переход club/categories, reactions/articles/
+payments и avatar/cover receipts; затем retirement legacy. Private visuals:
+сначала оба consumers, затем согласованный импорт220/закрытие точных public
+copies. Next upgrade — frontend; реальные большие загрузки/платежи/SMTP/device/
+pilot не возвращать в работу без соответствующего scope. Продуктовый код,
+frontend/DB/S3/стенд не менялись; push/deploy нет. Следующий шаг — согласованный
+совместный переход, не новые backend endpoints ради продолжения работы.
+
 26октября, VK export без hash: пользователь подтвердил исправление.
 Разрешить отсутствие hash в backend parseVkEmbed и сборщике oEmbed, но
 отклонять пустое/повреждённое/повторное значение, сохранив HTTPS/host/path/

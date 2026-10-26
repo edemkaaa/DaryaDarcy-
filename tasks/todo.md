@@ -2,6 +2,17 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Продолжение backend после VK-исправления — 26 октября
+
+- [x] HEAD40d5917/чистое дерево и актуальные consumers проверены чтением:
+  старые articles/payments/userInteractions, avatar/cover upload и VK hash
+  ещё используются; library allowlist не содержит7visual namespaces.
+- [ ] Зависимый остаток: frontend consumers → backend legacy retirement;
+  оба визуальных экрана → согласованный реальный импорт220/закрытие public copies.
+  Новых независимых backend-пунктов нет; frontend Next/hash — отдельная передача.
+  Продуктовый код/БД/S3/стенд не менялись; без повторных тестов неизменённого
+  кода, push/deploy. Точная передача: frontend-audit-final-handoff-2026-10-26.md.
+
 ### VK export без hash — 26 октября
 
 - [x] Причина: обязательный hash в backend parser/collector и frontend validator.
