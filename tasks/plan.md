@@ -2,6 +2,17 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26октября, исследование оригиналов/TTL: только read-only SSH/HTTP. Реальные
+source+compiled images.minimumCacheTTL3600, web/edge/public header30 идёт из
+9cache files1440поста744; другие550файлов сTTL>=3600. Next16.3.8 возвращает
+старый revalidate при reuse неизменного ETag;3ветви actual runtime функций
+проверены в локальном96MiB-процессе со synthetic codec. Историческая причина
+возврата9ключей после23октября не установлена. Фото3МБ скачивал сам проверяющий;
+public feed и viewer обычно используют превью, браузерный оригинал возможен
+при fallback/неподдерживаемом URI/размерах video poster. Отчёт и адресный план:
+docs/audits/photo-cache-investigation-2026-10-26.md; cache/source/config/restarts/
+DB/S3/frontend не менялись. Исправление живого кеша — отдельный согласованный шаг.
+
 26октября, продолжить backend после40d5917: дерево чистое, текущие consumers
 повторно сверены. Независимых открытых backend-срезов в актуальном плане нет.
 Остаются frontend VK hash/helper; переход club/categories, reactions/articles/

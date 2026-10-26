@@ -2,6 +2,21 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Оригиналы и расхождение TTL — 26 октября
+
+- [x] Read-only runtime/volume/headers: Next16.3.8/source+compiled3600,
+  старые9files1440поста744 с30; web/edge/public30, Nginx не источник.
+  Другие550files>=3600; один active volume user, исходный volume с7октября.
+- [x] Три локальные ветви actual runtime: old30 reuse→30, corrected3600→3600,
+  changed ETag→3600. Это TTL proof со synthetic codec, не полный Next E2E.
+- [x] Карта оригиналов: обычный feed/viewer — превью; fallback/direct URI/
+  video poster size probe могут идти к source.3МБ — собственный контрольный GET,
+  не доказательство фактического fallback пользователя на проблемном VPN.
+- [ ] Отдельно согласовать адресный ремонт9derivatives/процессного кеша,
+  принять сразу/после expiry/restart/release; повторное появление30 объяснить
+  наблюдением. До этого live cache/source/config/DB/S3 не менять.
+  Отчёт: photo-cache-investigation-2026-10-26.md; frontend/DevOps handoff обновлены.
+
 ### Продолжение backend после VK-исправления — 26 октября
 
 - [x] HEAD40d5917/чистое дерево и актуальные consumers проверены чтением:
