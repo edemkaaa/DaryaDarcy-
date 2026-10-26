@@ -4,6 +4,14 @@
 
 ### Скорость фотографий и экранов — 26 октября
 
+- [x] Продолжение по обработчикам/качеству:102existing tests/7files и6private
+  characterization probes GREEN. Offscreen100ms polling и comment blob URL
+  churn подтверждены; маленький/cropped JPEG повторно encode, avatar имеет
+  цепочкуJPEG0.8→JPEG0.82→WebP85. Late bitmap/toBlob cleanup подтверждён.
+  Единый frontend doc пункт14, фотоотчёт расширен; исходники не менялись.
+- [ ] Согласованный quality-aware срез: убрать лишние encode без ослабления
+  server validation, сохранить pending/replay контракт; устранить polling/
+  URL churn с browser-проверкой. Max decode RSS и Safari всё ещё не измерены.
 - [x] Read-only DOM пяти разделов, два HTTP-прохода/host stats. Размеры слота
   не соответствуют sizes:106px→640,85px→900при наличии320. Первый WebP640/320:
   54212/17518bytes; cold320MISS1,485s/warmHIT0,306s, не p95/LCP.

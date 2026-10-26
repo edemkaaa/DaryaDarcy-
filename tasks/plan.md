@@ -2,6 +2,16 @@
 
 ## Действующий план агента — 13 октября 2026
 
+26 октября, проверить photo handlers с приоритетом качества: Picture
+load/error/retry/timers, blob URL, picker/canvas/encode, session scopes и
+backend streaming.102existing tests/7files и6private probes прошли.
+Подтверждены offscreen100ms polling и пересоздание preview URL неизменённого
+файла комментария; avatar400/JPEG0.8→JPEG0.82→WebP85, новые editor photos
+обычно1920/WebP0.82→WebP85. Backend normalization нельзя менять без pending
+payloadHash/replay совместимости. Cleanup late bitmap/toBlob и session bounds
+работают; их не переписывать. Дополнены photo-performance отчёт и единый
+frontend handoff пункт14; исходники/DB/S3/config/live не менялись.
+
 26 октября, продолжить исследование скорости фото/экранов: read-only DOM
 Ленты/Клуба/Видео/Библиотеки/Магазина, два последовательных HTTP-прохода и
 host stats. Подтверждены избыточные sizes:106px→640,85px→900при320варианте;

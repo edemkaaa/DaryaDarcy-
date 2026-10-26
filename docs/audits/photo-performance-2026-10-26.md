@@ -134,6 +134,78 @@ write p95≤1000ms/p99≤2000ms, без ошибок/пропущенных ст
 рабочий сервер. Архитектурные изменения и CDN — только если после этих
 простых шагов измерения покажут необходимость.
 
+## Дополнительная проверка обработчиков и качества
+
+26 октября после уточнения владельца проверены Picture load/error/retry,
+IntersectionObserver/timers, file picker/preparation/canvas, private upload
+receipts, session cancellation, blob URLs, серверный photo decoder и streaming.
+Внесены только документы; API/frontend/config/БД/S3 не менялись.
+
+Подтверждены102проверки из7существующих файлов:
+
+```sh
+pnpm exec vitest run tests/frontend-media-safety.test.ts tests/frontend-bounded-media-read.test.ts tests/frontend-static-images.test.ts tests/frontend-private-post-photos.test.ts tests/private-content-files.test.ts tests/photo-upload.test.ts tests/private-files.test.ts --maxWorkers=1
+```
+
+Проверки S3 здесь используют собственный loopback wire, не настоящий S3;
+SQL/рабочие аккаунты не используются. Первый запуск с устаревшим minWorkers
+был отклонён CLI до тестов; приведённая команда с текущим CLI прошла.
+
+Ещё6characterization probes в игнорируемом
+`tmp/media-handler-review-20261026/probe.test.ts` и отдельном config прошли:
+
+1. Даже маленький JPEG проходит encode; для4032×3024 encoder получает
+   1920×1440, JPEG0.82. Это проверка вызовов, не качества синтетических pixels.
+2. Уже обрезанный400×400JPEG кодируется повторно JPEG0.82.
+3. Bitmap, завершившийся после15s timeout, закрывается до создания canvas.
+4. При зависшем toBlob bitmap закрыт и canvas обнулён.
+5. Извлечённый действительный effect комментариев при добавлении B отзывает
+   blob URL A и создаёт A новый адрес, хотя bytes A не менялись.
+6. Извлечённый completion effect Picture для18неготовых lazy ресурсов
+   создаёт18interval100ms; cleanup отзывает все18. Видимость/active не входят
+   в условия этого effect. Это потенциальные180проверок/с, не замер CPU.
+
+Команда этих вспомогательных проб:
+
+```sh
+pnpm exec vitest run --config tmp/media-handler-review-20261026/vitest.config.mts
+```
+
+Проблемы переданы в пункт14 единого frontend handoff. Blob URL churn означает
+повторное локальное чтение/декодирование, не повторное скачивание S3 и не
+доказанную утечку. Polling ограничен временем mounted-ресурса, но вне viewport
+может продолжаться долго, включая retained screen. Нужно сохранить исправление
+пропущенного load при попадании картинки в кеш, убрав ненужный фоновый polling.
+
+Качество: путь аватара сейчас crop400/JPEG0.8 → JPEG0.82 → WebP85.
+Новые фото редакторов обычно1920/WebP0.82 → server2560inside/WebP85;
+предел2560 не восстанавливает утраченные клиентом детали1920.
+Серверное withoutEnlargement не увеличивает этот файл до2560.
+Исходный пользовательский File не записывается этим путём как отдельная
+неизменённая камера-копия. Существующие оригиналы в S3 в аудите сохраняются;
+это другой факт, не гарантия raw retention для новых загрузок.
+Минимальное направление — один финальный lossy encode с сохранением всех
+серверных проверок; конкретный переход требует проверки контрактов/журналов.
+payloadHash private uploads включает raw и нормализованные bytes: глобальная
+смена server quality может изменить hash ожидающего повтора. Не менять её
+одной строкой без pending/replay совместимости.
+
+Дополнительный путь getSize у video-preview загружает исходный poster через
+отдельный Image. Cleanup блокирует поздний setState, но не отменяет сеть;
+deadline у getSize отсутствует. Не объявлять это происходящим для всех22VK:
+каталог использует другой renderer. Неиспользуемый prefetch не назван живой
+ошибкой. Callback failImage в usePreparedAppearance стабилен через useCallback;
+повторный decode на каждом render здесь не подтверждён.
+
+На сервере preparePhoto имеет byte/magic/pixel/animation/EXIF guards,
+rotate/withoutEnlargement и finite deadline, native decode admission4.
+Приватная выдача проверяет доступ до S3, передаёт stream с backpressure,
+имеет header/idle deadlines, disconnect abort и finally cleanup.
+Это работающие меры; оснований переписывать их в этом срезе не выявлено.
+Пик4decode на действующем API256МиБ всё ещё требует изолированного замера:
+теоретический pixel budget не равен реально измеренному RSS. Live нагрузка
+ради этой проверки не запускалась, безопасность100users не заявляется.
+
 ## Источники и артефакты
 
 - [Next: sizes](https://nextjs.org/docs/pages/api-reference/components/image#sizes).
