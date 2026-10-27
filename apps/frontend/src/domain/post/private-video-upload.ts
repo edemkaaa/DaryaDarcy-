@@ -1,5 +1,6 @@
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { MAX_VIDEO_BYTES } from "@/shared/browser/file-operations";
+import { ApiError } from "@/shared/api/errors";
 import {
   requirePrivateReceipt,
   type PrivateUploadReceipt,
@@ -14,6 +15,7 @@ export type PrivatePostVideo = {
   readonly file: File;
   poster?: PrivatePostPhoto;
   attempted?: boolean;
+  retryNotBefore?: number;
   receipt?: PrivateUploadReceipt & { type: "video" };
 };
 export type PrivatePostVideoApi = {
@@ -33,6 +35,9 @@ export function validatePrivatePostVideo(video: PrivatePostVideo) {
   const file = video.file;
   if (
     !/^[A-Za-z0-9._:-]{16,128}$/.test(video.key) ||
+    (video.retryNotBefore !== undefined &&
+      (!Number.isSafeInteger(video.retryNotBefore) ||
+        video.retryNotBefore < 0)) ||
     !(file instanceof File) ||
     file.size < 1 ||
     file.size > MAX_VIDEO_BYTES ||
@@ -113,6 +118,15 @@ export async function uploadPrivatePostVideo(
     requirePrivateVideoReceipt(video.receipt, video.file);
     return;
   }
+  const remaining = Math.ceil(
+    ((video.retryNotBefore ?? 0) - Date.now()) / 1000,
+  );
+  if (remaining > 0)
+    throw new ApiError(
+      "Сервер обрабатывает другую видеозагрузку. Повторите загрузку позже.",
+      429,
+      remaining,
+    );
   const accept = async (value: unknown) => {
     operation.assertCurrent();
     const receipt = requirePrivateVideoReceipt(value, video.file);
@@ -142,11 +156,29 @@ export async function uploadPrivatePostVideo(
   video.attempted = true;
   await checkpoint();
   operation.assertCurrent();
-  if (
-    !(await accept(
-      await api.uploadPrivateVideo(video.file, video.key, operation.signal),
-    ))
-  )
+  let response: unknown;
+  try {
+    response = await api.uploadPrivateVideo(
+      video.file,
+      video.key,
+      operation.signal,
+    );
+    operation.assertCurrent();
+  } catch (error) {
+    operation.assertCurrent();
+    if (
+      error instanceof ApiError &&
+      error.status === 429 &&
+      error.retryAfterSec
+    ) {
+      video.retryNotBefore = Date.now() + error.retryAfterSec * 1000;
+      await checkpoint();
+      operation.assertCurrent();
+    }
+    throw error;
+  }
+  delete video.retryNotBefore;
+  if (!(await accept(response)))
     throw new Error(
       "Загрузка видео ещё не подтверждена. Проверьте результат перед повтором.",
     );

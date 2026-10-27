@@ -13,7 +13,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { LaunchCapabilities } from "@shared/capabilities";
 import { APP_CAPABILITIES_QUERY_KEY } from "@/shared/api/capabilities";
 import * as Api from "@/shared/api/auth";
-import * as Auth from "./storage";
+import type { User } from "./storage";
+import { discardLegacyCredentials } from "@/shared/api/token-storage";
 import { isOwnerUser } from "@/shared/config/api";
 import { setPersonalDataOwner } from "@/shared/browser/storage";
 import { cancelSessionRequests } from "@/shared/api/request-lifecycle";
@@ -35,7 +36,7 @@ function logoutIsPending(): boolean {
   }
 }
 type SessionContext = {
-  user: Auth.User | null;
+  user: User | null;
   status: SessionStatus;
   loading: boolean;
   error: Error | null;
@@ -86,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               { updatedAt: publicCapabilities.dataUpdatedAt },
             );
           setPersonalDataOwner(owner);
-          void Auth.clearUserInfo();
+          discardLegacyCredentials();
         },
         broadcast: () => {
           try {
@@ -119,10 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [state.status, state.user],
   );
   useEffect(() => {
-    if (user) void Auth.setUserInfo(user);
-    else void Auth.clearUserInfo();
-  }, [user]);
-  useEffect(() => {
+    discardLegacyCredentials();
     setPersonalDataOwner(null);
     const recheck = () => {
       if (logoutIsPending()) void controller.logout();

@@ -26,6 +26,8 @@ import { PostUploadStatus } from "./post-upload-status";
 import { PostEditorTags } from "./post-editor-tags";
 import { PostRecoveryNotice } from "./post-recovery-notice";
 import { usePostRecovery } from "./use-post-recovery";
+import { usePostEditComparison } from "./use-post-edit-comparison";
+import { readEditRevision } from "@/domain/content/edit-revision";
 import { usePrivatePostPhotos } from "./use-private-post-photos";
 import { usePrivatePostVideos } from "./use-private-post-videos";
 import { useAuth } from "@/domain/session/session-context";
@@ -76,6 +78,7 @@ interface CreatePostModalProps {
       filename?: string | null;
       mimeType?: string | null;
     }[];
+    editRevision?: string;
   } | null;
 }
 export function CreatePostModal(props: CreatePostModalProps) {
@@ -195,6 +198,7 @@ function CreatePostModalBody({
             richText: editingPost.richText,
           })
         : undefined,
+      editingPost ? readEditRevision(editingPost) : undefined,
     );
     setPublishedAt(date);
     setRichTextSeed(editingPost?.richText ?? null);
@@ -277,6 +281,8 @@ function CreatePostModalBody({
     },
   });
   const postApi = {
+    read: (id: number, signal: AbortSignal) =>
+      utils.client.admin.postDetail.query({ id }, { signal }),
     checkUploadsAvailable: async (
       kinds: readonly ("content" | "attachment")[],
       task: ScopedOperation,
@@ -354,6 +360,13 @@ function CreatePostModalBody({
       signal: AbortSignal,
     ) => utils.client.admin.privateContentFileStatus.query(input, { signal }),
   };
+  const editComparison = usePostEditComparison(
+    saveCoordinator,
+    recovery,
+    postApi,
+    operation,
+    editorSnapshot,
+  );
   const closeEditor = () => {
     privatePhotos.reset();
     privateVideos.reset();
@@ -774,6 +787,7 @@ function CreatePostModalBody({
           onFinish={() => void finishRecovery()}
           onDiscard={() => void discardRecovery()}
         />
+        {editComparison}
         <PostUploadStatus selection={uploadSelection} busy={operation.busy} />
 
         <ScrollArea

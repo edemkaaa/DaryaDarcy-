@@ -93,3 +93,41 @@ it("does not retry a request whose outcome is unknown", async () => {
   });
   expect(sent).toBe(1);
 });
+
+it.each(["2", " 2 ", "0", "-1", "1.5", "invalid", "999999999999999999999"])(
+  "validates RAW Retry-After %s without retrying or treating 429 as logout",
+  async (header) => {
+    const fetcher = vi.fn(
+      async () =>
+        new Response("", { status: 429, headers: { "Retry-After": header } }),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    await expect(uploadAdminPrivateVideo(file(), key)).rejects.toMatchObject({
+      status: 429,
+      retryAfterSec: header.trim() === "2" ? 2 : undefined,
+      message:
+        "Сервер обрабатывает другую видеозагрузку. Повторите загрузку позже.",
+    });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  },
+);
+
+it("accepts a future HTTP-date Retry-After", async () => {
+  vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-27T12:00:00Z"));
+  try {
+    vi.stubGlobal(
+      "fetch",
+      async () =>
+        new Response("", {
+          status: 429,
+          headers: { "Retry-After": "Tue, 27 Oct 2026 12:00:02 GMT" },
+        }),
+    );
+    await expect(uploadAdminPrivateVideo(file(), key)).rejects.toMatchObject({
+      status: 429,
+      retryAfterSec: 2,
+    });
+  } finally {
+    vi.restoreAllMocks();
+  }
+});

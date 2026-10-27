@@ -275,6 +275,16 @@ function validRecord(
         typeof item.uncertain === "boolean",
     ) &&
     save &&
+    (save.editRevision === undefined ||
+      (typeof save.editRevision === "string" &&
+        save.editRevision.length > 0)) &&
+    (save.editConflict === undefined ||
+      save.editConflict === 409 ||
+      save.editConflict === 412) &&
+    (save.attemptedUpdate === undefined ||
+      (save.attemptedUpdate &&
+        typeof save.attemptedUpdate === "object" &&
+        !Array.isArray(save.attemptedUpdate))) &&
     validPhotos(record.editor, save) &&
     validVideos(record.editor, save) &&
     ["idle", "upload", "create", "update", "complete"].includes(save.phase) &&

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { invalidResponse } from "@/shared/api/errors";
+import { editBaseSchema, type ContentEditBase } from "./edit-revision";
 import {
   selectArticleFiles,
   resolveArticleFiles,
@@ -42,6 +43,8 @@ const recordSchema = z
     ownerId: z.number().int().positive().safe(),
     idempotencyKey: keySchema,
     payload: payloadSchema,
+    editBase: editBaseSchema.optional(),
+    editConflict: z.union([z.literal(409), z.literal(412)]).optional(),
     media: z
       .object({
         editingId: z.number().int().positive().safe().nullable(),
@@ -91,7 +94,10 @@ const recordSchema = z
   })
   .strict();
 // An unsaved editor may still have an empty or overlong title.
-export const articleDraftSchema = payloadSchema.extend({ title: z.string() });
+export const articleDraftSchema = payloadSchema.extend({
+  title: z.string(),
+  editBase: editBaseSchema.optional(),
+});
 export type ArticleCreationPayload = z.infer<typeof payloadSchema>;
 export type ArticleCreationRecord = z.infer<typeof recordSchema>;
 
@@ -321,6 +327,7 @@ export class ArticleCreationJournal {
   async prepare(
     payload: ArticleCreationPayload,
     media?: { editingId: number | null; files: PrivateArticleFile[] },
+    editBase?: ContentEditBase,
   ): Promise<{ record: ArticleCreationRecord; restored: boolean }> {
     // Snapshot before awaiting storage: replay must preserve empty blocks and URLs.
     const snapshot = payloadSchema.parse(payload);
@@ -335,6 +342,7 @@ export class ArticleCreationJournal {
         ownerId: this.ownerId,
         idempotencyKey: crypto.randomUUID().toLowerCase(),
         payload: snapshot,
+        ...(editBase ? { editBase } : {}),
         ...(media ? { media: { ...media, phase: "upload", revision: 0 } } : {}),
       },
       this.ownerId,
@@ -359,6 +367,30 @@ export class ArticleCreationJournal {
       throw new Error(
         "Операция статьи изменилась в другой вкладке. Откройте статьи заново.",
       );
+  }
+  async recordConflict(
+    record: ArticleCreationRecord,
+    status: 409 | 412,
+  ): Promise<ArticleCreationRecord> {
+    if (!record.media?.editingId || record.media.phase !== "write")
+      throw storageError();
+    const next = parseArticleCreationRecord(
+      {
+        ...record,
+        editConflict: status,
+        media: { ...record.media, revision: record.media.revision + 1 },
+      },
+      this.ownerId,
+    );
+    const packed = await storeRecord(next);
+    this.assertOwner();
+    return this.transaction("readwrite", (store, value, finish) => {
+      const current =
+        value === undefined ? null : restoreRecord(value, this.ownerId);
+      if (!matches(current, record)) throw storageError();
+      store.put(packed, this.ownerId);
+      finish(next);
+    });
   }
   async checkpoint(
     record: ArticleCreationRecord,

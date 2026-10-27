@@ -21,6 +21,7 @@ const video = () => ({
     lastModified: 1234,
   }),
   attempted: true,
+  retryNotBefore: Date.now() + 2000,
   poster: {
     key: "private-poster-original-key",
     file: new File(["poster bytes"], "poster.png", {
@@ -69,6 +70,7 @@ it("stores video and poster as ArrayBuffer, restores exact Files and editor/coor
   expect(restored.poster!.file.lastModified).toBe(5678);
   expect(await restored.poster!.file.text()).toBe("poster bytes");
   expect(restored.key).toBe("private-video-original-key");
+  expect(restored.retryNotBefore).toBe(selected.retryNotBefore);
   expect(restored.poster!.key).toBe("private-poster-original-key");
   expect(loaded!.save.privateVideos![0]).toBe(restored);
 });

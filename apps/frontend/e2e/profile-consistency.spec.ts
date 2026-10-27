@@ -363,7 +363,8 @@ for (const sourceMiB of [30, 50]) {
     );
     expect(uploaded.length).toBeLessThanOrEqual(4 * 1024 * 1024);
     expect(await sharp(uploaded).metadata()).toMatchObject({
-      format: "jpeg",
+      // AvatarCropper preserves a lossless PNG before the server's WebP encode.
+      format: "png",
       width: 400,
       height: 400,
     });

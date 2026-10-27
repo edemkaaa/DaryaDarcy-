@@ -1,8 +1,114 @@
 import { test, expect } from "@playwright/test";
-import { editorApi, failure } from "./editor-fixtures";
+import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
 for (const mode of ["full", "quick"] as const) {
+  test(`${mode}: video 429 waits for Retry-After and manually recovers the original upload`, async ({
+    page,
+  }) => {
+    const uploads: string[] = [];
+    const creates: Record<string, unknown>[] = [];
+    let statusReads = 0;
+    const messages: string[] = [];
+    page.on("dialog", async (dialog) => {
+      messages.push(dialog.message());
+      await dialog.accept();
+    });
+    await editorApi(page, (name, input) => {
+      if (name === "admin.createPost") {
+        creates.push(input);
+        return ok(42);
+      }
+      if (name === "admin.privateAttachmentStatus") {
+        statusReads++;
+        expect(input.idempotencyKey).toBe(uploads[0]);
+        return ok({ state: "notRecorded" });
+      }
+    });
+    await page.route("**/api/admin/private-video-uploads?*", (route) => {
+      uploads.push(route.request().headers()["idempotency-key"]);
+      return uploads.length === 1
+        ? route.fulfill({
+            status: 429,
+            headers: { "Retry-After": "2" },
+            body: "",
+          })
+        : route.fulfill({
+            json: {
+              state: "ready",
+              assetId: "3af23d8c-140f-454b-a123-123456789abc",
+              type: "video",
+              filename: "chosen.webm",
+              mimeType: "video/webm",
+              fileSize: 13,
+            },
+          });
+    });
+    await gotoWithSession(page, mode === "full" ? "/admin" : "/feed");
+    await page.getByRole("button", { name: "Новый пост", exact: true }).click();
+    const form = page.getByRole("dialog", { name: "Редактор публикации" });
+    await expect(
+      form.getByText("Черновик сохранён на этом устройстве", { exact: true }),
+    ).toBeVisible();
+    await form
+      .getByPlaceholder("Текст поста… Enter — новый абзац")
+      .fill("BUSY_VIDEO");
+    const chooser = page.waitForEvent("filechooser");
+    await form
+      .getByRole("button", { name: "Выбрать видеофайл", exact: true })
+      .click();
+    await (
+      await chooser
+    ).setFiles({
+      name: "chosen.webm",
+      mimeType: "video/webm",
+      buffer: Buffer.from("video fixture"),
+    });
+    await expect(
+      form.getByText("Черновик сохранён на этом устройстве", { exact: true }),
+    ).toBeVisible();
+    const now = Date.now();
+    await page.clock.setFixedTime(now);
+    const submit = form
+      .getByRole("button", {
+        name: mode === "full" ? "Сохранить" : "Опубликовать",
+        exact: true,
+      })
+      .first();
+    await submit.click();
+    const retry = form.getByRole("button", {
+      name: "Проверить сохранение",
+      exact: true,
+    });
+    await expect(retry).toBeDisabled();
+    await expect(form.getByText(/Повтор через 2 с/)).toBeVisible();
+    await expect
+      .poll(() =>
+        messages.some((message) => message.includes("другую видеозагрузку")),
+      )
+      .toBe(true);
+    await page.clock.setFixedTime(now + 1999);
+    await expect(form.getByText(/Повтор через 1 с/)).toBeVisible();
+    await expect(retry).toBeDisabled();
+    expect(uploads).toHaveLength(1);
+    expect(statusReads).toBe(0);
+    expect(creates).toHaveLength(0);
+    await page.clock.setFixedTime(now + 2000);
+    await expect(retry).toBeEnabled();
+    expect(uploads).toHaveLength(1);
+    await retry.click();
+    await expect(submit).toBeEnabled();
+    expect(statusReads).toBe(1);
+    expect(uploads).toEqual([uploads[0], uploads[0]]);
+    expect(creates).toHaveLength(0);
+    await submit.click();
+    await expect(form).toHaveCount(0);
+    expect(creates).toHaveLength(1);
+    expect(creates[0].privateAssetIds).toEqual([
+      "3af23d8c-140f-454b-a123-123456789abc",
+    ]);
+    expect(page.url()).not.toContain("/login");
+  });
   test(`${mode}: closing an unconfirmed create cannot reset the draft and create it twice`, async ({
     page,
   }) => {

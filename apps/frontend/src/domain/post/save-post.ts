@@ -1,6 +1,12 @@
 import { serializePostDraft } from "./draft";
+import { assertPostTextSize } from "./text-limit";
+import {
+  matchesEditableWrite,
+  readEditRevision,
+  withExpectedRevision,
+} from "@/domain/content/edit-revision";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
-import { getHttpStatus } from "@/shared/api/errors";
+import { ApiError, getHttpStatus } from "@/shared/api/errors";
 import { privateUploadRejectionMessage } from "@/shared/api/upload-errors";
 import { attachmentBase64 } from "@/shared/media/read-attachment";
 import { validateFileSize } from "@/shared/browser/file-operations";
@@ -37,7 +43,7 @@ export type SavePayload = Payload & {
   privateVideoPosters?: { videoAssetId: string; posterAssetId: string }[];
 };
 type CreatePayload = SavePayload & { idempotencyKey: string };
-type UpdatePayload = Partial<SavePayload>;
+type UpdatePayload = Partial<SavePayload> & { expectedRevision?: string };
 export type PostAttachment = {
   type: "audio" | "document";
   name: string;
@@ -58,6 +64,7 @@ export type PostSaveApi = PrivatePostPhotoApi &
       payload: UpdatePayload,
       signal: AbortSignal,
     ) => Promise<unknown>;
+    read?: (id: number, signal: AbortSignal) => Promise<unknown>;
     uploadPrivate?: (
       input: PrivateUploadInput,
       signal: AbortSignal,
@@ -79,6 +86,9 @@ export type PostSaveApi = PrivatePostPhotoApi &
 export type PostSaveSnapshot = {
   savedId: number | null;
   original?: Payload;
+  editRevision?: string;
+  editConflict?: 409 | 412;
+  attemptedUpdate?: UpdatePayload;
   phase: "idle" | "upload" | "create" | "update" | "complete";
   creationIntent?: { key: string; payloadJson: string };
   uploaded: [PostAttachment, UploadedAttachment][];
@@ -111,16 +121,27 @@ export class PostSaveCoordinator {
   private postWritePending = false;
   private creationIntent?: { key: string; payloadJson: string };
   private original?: Payload;
+  private editRevision?: string;
+  private editConflict?: 409 | 412;
+  private attemptedUpdate?: UpdatePayload;
   private phase: PostSaveSnapshot["phase"] = "idle";
   private checkpoint?: (state: PostSaveSnapshot) => Promise<void>;
-  constructor(editingId: number | null = null, original?: Payload) {
+  constructor(
+    editingId: number | null = null,
+    original?: Payload,
+    editRevision?: string,
+  ) {
     this.savedId = editingId;
     this.original = original ? structuredClone(original) : undefined;
+    this.editRevision = editRevision;
   }
   snapshot(): PostSaveSnapshot {
     return {
       savedId: this.savedId,
       original: this.original,
+      editRevision: this.editRevision,
+      editConflict: this.editConflict,
+      attemptedUpdate: this.attemptedUpdate,
       phase: this.phase,
       creationIntent: this.creationIntent,
       uploaded: [...this.uploaded],
@@ -132,6 +153,10 @@ export class PostSaveCoordinator {
   restore(state: PostSaveSnapshot): void {
     this.savedId = state.savedId;
     this.original = state.original;
+    // Never fill a restored draft's missing/old revision from a fresh GET.
+    this.editRevision = state.editRevision;
+    this.editConflict = state.editConflict;
+    this.attemptedUpdate = state.attemptedUpdate;
     this.creationIntent = state.creationIntent;
     this.uploaded = new Map(state.uploaded);
     this.privateUploads = new Map(state.privateUploads ?? []);
@@ -145,6 +170,61 @@ export class PostSaveCoordinator {
   }
   setCheckpoint(checkpoint: (state: PostSaveSnapshot) => Promise<void>): void {
     this.checkpoint = checkpoint;
+  }
+  async compareUpdate(
+    api: PostSaveApi,
+    operation: ScopedOperation,
+  ): Promise<unknown> {
+    if (this.savedId === null || !api.read)
+      throw new Error("Не удалось прочитать публикацию");
+    const detail = await api.read(this.savedId, operation.signal);
+    operation.assertCurrent();
+    if (detail === null)
+      throw new Error("Публикация удалена. Ваш черновик сохранён.");
+    if (
+      !detail ||
+      typeof detail !== "object" ||
+      (detail as { id?: unknown }).id !== this.savedId
+    )
+      throw new Error("Сервер вернул другую публикацию. Черновик сохранён.");
+    readEditRevision(detail);
+    if (
+      this.attemptedUpdate &&
+      matchesEditableWrite(detail, this.attemptedUpdate, "post")
+    ) {
+      this.completed = true;
+      this.postWritePending = false;
+      this.uncertain = false;
+      this.editConflict = undefined;
+      await this.remember("complete");
+    }
+    return detail;
+  }
+  async acceptComparedRevision(detail: unknown): Promise<void> {
+    if (
+      !detail ||
+      typeof detail !== "object" ||
+      (detail as { id?: unknown }).id !== this.savedId
+    )
+      throw new Error("Сравните актуальную версию этой публикации.");
+    const revision = readEditRevision(detail);
+    if (!revision)
+      throw new Error(
+        "Сервер ещё не передаёт версию публикации. Черновик сохранён.",
+      );
+    if (
+      !this.editConflict &&
+      (!this.editRevision || revision === this.editRevision)
+    )
+      throw new Error(
+        "Предыдущий запрос ещё может выполняться. Повторная запись заблокирована; проверьте результат позже.",
+      );
+    this.editRevision = revision;
+    this.editConflict = undefined;
+    this.attemptedUpdate = undefined;
+    this.postWritePending = false;
+    this.uncertain = false;
+    await this.remember("idle");
   }
   private async remember(phase: PostSaveSnapshot["phase"]): Promise<void> {
     this.phase = phase;
@@ -278,6 +358,7 @@ export class PostSaveCoordinator {
         "Для этой операции нужна ручная проверка списка публикаций",
       );
     const payload = JSON.parse(this.creationIntent.payloadJson) as SavePayload;
+    assertPostTextSize(payload.text);
     operation.assertCurrent();
     await this.remember("create");
     operation.assertCurrent();
@@ -312,6 +393,7 @@ export class PostSaveCoordinator {
     videos: PrivatePostVideo[] = this.privateVideos,
   ): Promise<number> {
     this.assertCanSave();
+    assertPostTextSize(payload.text);
     for (const attachment of attachments)
       if (attachment.file) validateFileSize(attachment.file);
     operation.assertCurrent();
@@ -466,6 +548,11 @@ export class PostSaveCoordinator {
           changes.privateVideoPosters = savePayload.privateVideoPosters;
         if (removedIds.length)
           changes.removedMediaIds = [...new Set(removedIds)];
+        const revisionedChanges = withExpectedRevision(
+          changes,
+          this.editRevision,
+        );
+        this.attemptedUpdate = structuredClone(revisionedChanges);
         this.postWritePending = true;
         if (this.checkpoint) await this.remember("update");
         else this.phase = "update";
@@ -473,7 +560,7 @@ export class PostSaveCoordinator {
         writing = true;
         this.postWritePending = true;
         this.assertUpdate(
-          await api.update(this.savedId, changes, operation.signal),
+          await api.update(this.savedId, revisionedChanges, operation.signal),
         );
       }
       // A confirmed commit is terminal, even if closing/refreshing the UI is cancelled.
@@ -483,9 +570,33 @@ export class PostSaveCoordinator {
       writing = false;
       await this.remember("complete");
       operation.assertCurrent();
+      // The ACK is terminal even when this follow-up read fails.
+      if (api.read && this.attemptedUpdate) {
+        const detail = await api.read(this.savedId, operation.signal);
+        operation.assertCurrent();
+        if (
+          !detail ||
+          typeof detail !== "object" ||
+          (detail as { id?: unknown }).id !== this.savedId
+        )
+          throw new Error(
+            "Публикация сохранена, но не удалось прочитать её актуальную версию.",
+          );
+        readEditRevision(detail);
+      }
       return this.savedId;
     } catch (error) {
       const status = getHttpStatus(error);
+      if (
+        !this.completed &&
+        this.phase === "update" &&
+        (status === 409 || status === 412)
+      ) {
+        this.editConflict = status;
+        this.postWritePending = false;
+        this.uncertain = true;
+        await this.remember("update").catch(() => {});
+      }
       if (status && status >= 400 && status < 500)
         this.postWritePending = false;
       this.uncertain =
@@ -506,16 +617,22 @@ export class PostSaveCoordinator {
         }
       }
       const uploadRejection =
-        this.phase === "upload" ? privateUploadRejectionMessage(error) : null;
+        this.phase === "upload"
+          ? error instanceof ApiError && error.status === 429
+            ? error.message
+            : privateUploadRejectionMessage(error)
+          : null;
       const message = this.completed
         ? "Публикация сохранена. Обновите список перед новой правкой."
-        : uploadRejection
-          ? `${uploadRejection} Исходные файлы сохранены в черновике на этом устройстве. Проверьте загрузку перед повторным сохранением.`
-          : this.uncertain
-            ? "Результат сохранения не подтверждён. Проверьте публикацию в списке перед новой попыткой."
-            : error instanceof Error
-              ? error.message
-              : "Не удалось сохранить публикацию";
+        : this.editConflict
+          ? "Публикация изменилась или сохранена без версии. Ваш ввод и файлы сохранены. Сравните с серверной версией перед новой записью."
+          : uploadRejection
+            ? `${uploadRejection} Исходные файлы сохранены в черновике на этом устройстве. Проверьте загрузку перед повторным сохранением.`
+            : this.uncertain
+              ? "Результат сохранения не подтверждён. Проверьте публикацию в списке перед новой попыткой."
+              : error instanceof Error
+                ? error.message
+                : "Не удалось сохранить публикацию";
       throw new PostSaveError(message, this.uncertain, error);
     }
   }

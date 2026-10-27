@@ -69,7 +69,7 @@ test("a forbidden reply group immediately hides retained comments of the post", 
   ).toHaveCount(0);
 });
 
-test("saved head polling never rereads tails and resets a changed cursor chain", async ({
+test("saved polling refreshes the visible tail and rebuilds a changed cursor chain", async ({
   page,
 }) => {
   await page.clock.install();
@@ -80,7 +80,10 @@ test("saved head polling never rereads tails and resets a changed cursor chain",
     cursors.push(input.cursor ?? null);
     return ok(
       input.cursor
-        ? { items: [saved(21)], nextCursor: null }
+        ? {
+            items: [saved(input.cursor === "fresh" ? 51 : 21)],
+            nextCursor: null,
+          }
         : {
             items: [saved(moved ? 50 : 1)],
             nextCursor: moved ? "fresh" : "next",
@@ -101,7 +104,7 @@ test("saved head polling never rereads tails and resets a changed cursor chain",
   await expect
     .poll(() => cursors.filter((x) => x === null).length)
     .toBeGreaterThan(1);
-  expect(cursors.filter(Boolean)).toEqual(["next"]);
+  await expect.poll(() => cursors.filter(Boolean)).toEqual(["next", "next"]);
   await expect(
     page.getByRole("button", {
       name: "Открыть публикацию: SAVED_PAGE_21",
@@ -122,7 +125,9 @@ test("saved head polling never rereads tails and resets a changed cursor chain",
       exact: true,
     }),
   ).toHaveCount(0);
-  expect(cursors.filter(Boolean)).toEqual(["next"]);
+  await expect
+    .poll(() => cursors.filter(Boolean))
+    .toEqual(["next", "next", "fresh"]);
 });
 
 test("a late saved page cannot enter another account cache", async ({

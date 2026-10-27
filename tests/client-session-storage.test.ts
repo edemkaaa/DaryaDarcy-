@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import * as Auth from "../apps/frontend/src/domain/session/storage";
+import { getMe } from "../apps/frontend/src/shared/api/auth";
 
 const profile: Auth.User = {
   id: 1,
@@ -20,7 +21,7 @@ let storage: {
   setItem: ReturnType<typeof vi.fn>;
   removeItem: ReturnType<typeof vi.fn>;
 };
-beforeEach(async () => {
+beforeEach(() => {
   values = new Map();
   storage = {
     getItem: vi.fn((key) => values.get(key) ?? null),
@@ -33,7 +34,6 @@ beforeEach(async () => {
   };
   vi.stubGlobal("window", { localStorage: storage });
   vi.clearAllMocks();
-  await Auth.clearUserInfo();
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -50,15 +50,22 @@ it("does not persist a newly issued browser token or invoke native storage", asy
   expect(values.has("app_session_token")).toBe(false);
   expect(storage.setItem).not.toHaveBeenCalled();
 });
-it("keeps the web profile in memory and removes legacy personal data", async () => {
+it("uses only the server profile and removes legacy personal data", async () => {
   values.set("daryadarcy-user-info", JSON.stringify(profile));
-  expect(await Auth.getUserInfo()).toBeNull();
+  const wireProfile = {
+    ...profile,
+    lastSignedIn: profile.lastSignedIn.toISOString(),
+  };
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(Response.json({ user: wireProfile }))
+    .mockResolvedValueOnce(Response.json({ user: null }));
+  vi.stubGlobal("fetch", fetcher);
+  expect(await getMe()).toEqual(wireProfile);
   expect(values.has("daryadarcy-user-info")).toBe(false);
-  await Auth.setUserInfo(profile);
-  expect(await Auth.getUserInfo()).toEqual(profile);
   expect(storage.setItem).not.toHaveBeenCalled();
-  await Auth.clearUserInfo();
-  expect(await Auth.getUserInfo()).toBeNull();
+  // A later guest response cannot fall back to a module-level profile copy.
+  expect(await getMe()).toBeNull();
 });
 it("continues cookie-only web auth if local storage is unavailable", async () => {
   storage.removeItem.mockImplementation(() => {
@@ -72,9 +79,11 @@ it("continues cookie-only web auth if local storage is unavailable", async () =>
 it("does not log cached personal data or storage exception contents", async () => {
   const logs = vi.spyOn(console, "log").mockImplementation(() => {});
   const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-  await Auth.setUserInfo(profile);
-  await Auth.getUserInfo();
-  storage.removeItem.mockImplementation(() => { throw new Error("PRIVATE_STORAGE_ERROR"); });
+  values.set("daryadarcy-user-info", JSON.stringify(profile));
+  await Auth.getSessionToken();
+  storage.removeItem.mockImplementation(() => {
+    throw new Error("PRIVATE_STORAGE_ERROR");
+  });
   expect(await Auth.getSessionToken()).toBeNull();
   expect(
     JSON.stringify([...logs.mock.calls, ...errors.mock.calls]),

@@ -54,12 +54,21 @@ export function useCapabilities(): LaunchCapabilities {
   const { data, isError } = useQuery({
     queryKey: APP_CAPABILITIES_QUERY_KEY,
     queryFn: ({ signal }) => getAppCapabilities(signal),
+    select: frontendCapabilities,
     staleTime: 60_000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     retry: false,
   });
   return isError ? unavailable : (data ?? unavailable);
+}
+
+function frontendCapabilities(
+  capabilities: LaunchCapabilities,
+): LaunchCapabilities {
+  // SMS login and phone binding are paused by product decision, even if an
+  // older server advertises support. Keep the wire contract intact.
+  return { ...capabilities, smsLogin: false };
 }
 
 /** Recheck release policy at the write boundary, not a cached UI hint. */

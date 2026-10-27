@@ -1,5 +1,6 @@
 import type { RichTextBlock } from "@/domain/content/types";
 import { preparePostRichTextForSave } from "@/domain/content/rich-text-save";
+import { assertPostTextSize } from "./text-limit";
 export type PostDraft = {
   text: string;
   photos: string[];
@@ -21,7 +22,9 @@ export function serializePostDraft(draft: PostDraft) {
     throw new Error("Выберите дату и время публикации");
   if (draft.status !== "scheduled" && Number.isNaN(draft.publishedAt.getTime()))
     throw new Error("Выберите дату публикации");
-  return postDraftSnapshot(draft);
+  const payload = postDraftSnapshot(draft);
+  assertPostTextSize(payload.text);
+  return payload;
 }
 /** Normalize the initial editor state without requiring an incomplete schedule to be valid. */
 export function postDraftSnapshot(draft: PostDraft) {

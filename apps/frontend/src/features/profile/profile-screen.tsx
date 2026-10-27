@@ -265,6 +265,7 @@ export default function ProfileScreen() {
             source={{ uri: item.photos[0] }}
             contentFit="cover"
             className={classes.savedPostImage}
+            sizes="(max-width: 480px) calc(31vw - 12.4px), 136.4px"
           />
         ) : (
           <div

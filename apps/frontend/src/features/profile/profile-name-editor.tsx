@@ -6,7 +6,10 @@ import {
   PROFILE_NAME_DRAFT_KEY,
   PROFILE_NAME_PENDING_KEY,
 } from "@/domain/profile/profile-draft";
-import AsyncStorage, { isPersonalDataOwner } from "@/shared/browser/storage";
+import AsyncStorage, {
+  isPersonalDataOwner,
+  requiredStorage,
+} from "@/shared/browser/storage";
 import { Action, Field, Typography } from "@/shared/ui/elements";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { BROWN_MUTED } from "./profile-screen.content";
@@ -17,6 +20,7 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
   const update = useProfileUpdate(PROFILE_NAME_PENDING_KEY);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
+  const [draftError, setDraftError] = useState<string | null>(null);
   const finish = async (saved: boolean) => {
     if (!saved || !user || !isPersonalDataOwner(user.id)) return;
     await AsyncStorage.removeItem(PROFILE_NAME_DRAFT_KEY);
@@ -36,7 +40,14 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
             value={draft}
             onValueChange={(value) => {
               setDraft(value);
-              void AsyncStorage.setItem(PROFILE_NAME_DRAFT_KEY, value);
+              try {
+                requiredStorage.setItem(PROFILE_NAME_DRAFT_KEY, value);
+                setDraftError(null);
+              } catch {
+                setDraftError(
+                  "Черновик имени не сохранён на устройстве. Не закрывайте страницу до сохранения имени.",
+                );
+              }
             }}
             autoFocus
             disabled={update.busy || update.unknown}
@@ -55,13 +66,13 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
             </Typography>
           </Action>
         )}
-        {update.error && (
+        {(update.error || draftError) && (
           <div
             role="alert"
             className={["ui-stack", classes.nameError].join(" ")}
           >
             <Typography className={classes.nameErrorText}>
-              {update.error}
+              {update.error || draftError}
             </Typography>
             {update.unknown && (
               <Action
@@ -84,7 +95,7 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
         const ownerId = user?.id;
         const savedDraft = await AsyncStorage.getItem(PROFILE_NAME_DRAFT_KEY);
         if (!ownerId || !isPersonalDataOwner(ownerId)) return;
-        setDraft(savedDraft ?? displayName);
+        setDraft(update.pendingInput?.name ?? savedDraft ?? displayName);
         setEditing(true);
       }}
       className={({ pressed }) =>

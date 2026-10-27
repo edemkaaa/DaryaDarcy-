@@ -212,6 +212,7 @@ function ArticleBlockView({
                   source={{ uri: item }}
                   contentFit="cover"
                   className={classes.carouselImage}
+                  sizes="(max-width: 480px) 58vw, 278.4px"
                 />
               </Action>
             )}

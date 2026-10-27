@@ -1035,25 +1035,44 @@ test("reloading a VK player requires fresh authority before restoring its iframe
   page,
 }) => {
   const state = await fixture(page);
-  await gotoWithSession(page, "/video/42");
-  await expect(page.getByTitle("VK Видео", { exact: true })).toBeVisible();
-  await expect.poll(() => state.providers.length).toBe(1);
-  const before = state.reads.filter(
-    (row) => row.name === "videos.playback",
-  ).length;
-  state.status = 403;
-  await page
-    .getByRole("button", { name: "Перезагрузить плеер VK", exact: true })
-    .click();
-  await expect(
-    page.getByText("Для просмотра нужен доступ к клубу", { exact: true }),
-  ).toBeVisible();
-  expect(
-    state.reads.filter((row) => row.name === "videos.playback"),
-  ).toHaveLength(before + 1);
-  await expect(page.locator("iframe, video")).toHaveCount(0);
-  expect(state.providers).toHaveLength(1);
-  expect(state.legacy).toEqual([]);
+  const providerReply = deferred();
+  await page.clock.install();
+  await page.route(/https:\/\/vkvideo\.ru\/video_ext\.php\?/, async (route) => {
+    state.providers.push(route.request().url());
+    await providerReply.promise;
+    await route
+      .fulfill({ contentType: "text/html", body: "Synthetic player" })
+      .catch(() => {});
+  });
+  try {
+    await gotoWithSession(page, "/video/42");
+    await expect(page.getByTitle("VK Видео", { exact: true })).toBeVisible();
+    await expect.poll(() => state.providers.length).toBe(1);
+    // Retry is offered only while the provider iframe has not finished loading.
+    const retry = page.getByRole("button", {
+      name: "Перезагрузить плеер VK",
+      exact: true,
+    });
+    await expect(retry).toHaveCount(0);
+    await page.clock.runFor(15_100);
+    await expect(retry).toBeVisible();
+    const before = state.reads.filter(
+      (row) => row.name === "videos.playback",
+    ).length;
+    state.status = 403;
+    await retry.click();
+    await expect(
+      page.getByText("Для просмотра нужен доступ к клубу", { exact: true }),
+    ).toBeVisible();
+    expect(
+      state.reads.filter((row) => row.name === "videos.playback"),
+    ).toHaveLength(before + 1);
+    await expect(page.locator("iframe, video")).toHaveCount(0);
+    expect(state.providers).toHaveLength(1);
+    expect(state.legacy).toEqual([]);
+  } finally {
+    providerReply.resolve();
+  }
 });
 
 test("pageshow requires new authority and keeps an old iframe removed", async ({

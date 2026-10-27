@@ -48,6 +48,8 @@ import { PostUploadStatus } from "./post-upload-status";
 import { PostEditorTags } from "./post-editor-tags";
 import { PostRecoveryNotice } from "./post-recovery-notice";
 import { usePostRecovery } from "./use-post-recovery";
+import { usePostEditComparison } from "./use-post-edit-comparison";
+import { readEditRevision } from "@/domain/content/edit-revision";
 import { usePrivatePostPhotos } from "./use-private-post-photos";
 import { usePrivatePostVideos } from "./use-private-post-videos";
 import { useAuth } from "@/domain/session/session-context";
@@ -149,6 +151,7 @@ function AdminPostEditorBody({
         post
           ? postDraftSnapshot({ ...formForPost(post), richText: post.richText })
           : undefined,
+        post ? readEditRevision(post) : undefined,
       ),
   );
   const saveCoordinator = useRef(coordinator);
@@ -218,6 +221,8 @@ function AdminPostEditorBody({
     },
   });
   const postApi = {
+    read: (id: number, signal: AbortSignal) =>
+      utils.client.admin.postDetail.query({ id }, { signal }),
     checkUploadsAvailable: async (
       kinds: readonly ("content" | "attachment")[],
       task: ScopedOperation,
@@ -295,6 +300,13 @@ function AdminPostEditorBody({
       signal: AbortSignal,
     ) => utils.client.admin.privateContentFileStatus.query(input, { signal }),
   };
+  const editComparison = usePostEditComparison(
+    saveCoordinator,
+    recovery,
+    postApi,
+    operation,
+    editorSnapshot,
+  );
   const resetAttachments = attachments.reset;
   useEffect(() => {
     resetAttachments(post?.media);
@@ -657,6 +669,7 @@ function AdminPostEditorBody({
             onFinish={() => void finishRecovery()}
             onDiscard={() => void discardRecovery()}
           />
+          {editComparison}
           {/* Preview/Edit toggle */}
           <PostUploadStatus selection={uploadSelection} busy={operation.busy} />
           <div
