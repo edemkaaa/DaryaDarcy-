@@ -13,6 +13,14 @@ WebP-копия public cover в S3. Контракт/API105/дизайн пре�
 Далее push/stage release API+TEST+web, proxy-only настройки, CAS poster954,
 проверка браузером и сохранности. Не объявлять выпуск до фактического apply.
 
+Выполнено: sourcee16bcd1 отправлен в staging и выпущен API/TEST/web. Candidate26,
+live47/compression9, nativeweb26 и publicHTTPS37 GREEN; runtime bundles/16assets
+byte-exact. После общего сравнения41таблицы изменён только media30.posterUrl
+параметризованным CAS; остальные строки/индексы/45ledger/3admin сохранены.
+Браузер показывает1280×720обложку доPlay и послеreload, consolewarn/error0.
+Исходники/старыеобъекты/backup/rollback images сохранены, flags прежние.
+[Отчёт выпуска](../docs/operations/vk-cover-release-2026-10-28.md).
+
 27 октября отдельный запрос: автоматическая обложка VK-поста при сохранении.
 Реализовано локально через JSON-prefetch плеера с hash, до SQL-транзакции;
 существующий media.posterUrl, без нового API/DDL/ручных frontend-правок.

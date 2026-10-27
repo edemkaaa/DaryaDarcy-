@@ -14,9 +14,11 @@
 - [x] Freshbackup41tables/45ledger/3admin, реальное isolated restore совпало.
  165backend/120frontend tests, types/API105/builds/lint; qs moderate advisory
  не вызывает найденного прямого qs.stringify(comma) пути; deps не менялись.
-- [ ] Запушить объединённую версию, выпустить API/TEST/web и узкий gateway.
-- [ ] Проверить candidate, привязать только poster media30/post954 по CAS,
+- [x] Запушить объединённую версиюe16bcd1, выпустить API/TEST/web и узкий gateway.
+- [x] Проверить candidate, привязать только poster media30/post954 по CAS,
   сверить данные/админов/старые файлы и принять реальную картинку в браузере.
+
+[Фактический выпуск и проверки](../docs/operations/vk-cover-release-2026-10-28.md).
 
 ### Автоматические обложки VK-постов — 27 октября
 
@@ -35,8 +37,8 @@
 - [x] Финально146tests/7files/0skip; root/frontend/E2Etypes, API105,
   boundaries828, docs124 и backend build прошли. OwnMySQL OOMfalse/restart0,
   временный контейнер удалён; рабочие БД/входы/S3/сервер не менялись.
-- [ ] Выпуск не запрошен. Post954 не изменён: после выпуска отдельно проверить
-  обычное сохранение и картинку до Play. Browser-приёмка этим срезом не закрыта.
+- [x] Следующим поручением выпуск разрешён и выполнен вe16bcd1; poster954
+  адресно привязан. Картинка доPlay/послеreload проверена браузером — см. срез выше.
 
 ### Подтянуть frontend d36e1b7 — 27 октября
 
@@ -69,7 +71,7 @@
   внеcheckout:1544варианта/preserve2/disabled pass; текущийfrontend не менялся.
   В handoff учтено, что код уже сделан; browser/cold-warmcache не заявляются.
 - [ ] Frontend guest journal/POST contract и cold/warm optimizer guard;
-  новые процедуры ещё не выпущены, не включать interface/LIVE раньше backend.
+  backend105 уже выпущенe16bcd1; не включать guest/LIVE до frontend-приёмки/ключей.
 - [ ] Получить боевые настройки, проверить routing/webhook/тариф790/месяц и
   согласованную реальную цепочку; без ключей LIVE не переключать.
 - [ ] Реальный отзыв386 уже разрешён: после guard — freshbackup/restore,
