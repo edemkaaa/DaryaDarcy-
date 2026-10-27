@@ -2,6 +2,17 @@
 
 ## Действующий план агента — 13 октября 2026
 
+27 октября завершена следующая разрешённая партия: **10 JPEG / 3 поста**,
+5 434 302 байта. Freshbackup16:36МСК восстановлен отдельно:41таблица/45миграций/
+индексы/admin3 совпали. Expected-old/sourceSHA/ETag и policy проверены до записи;
+apply/replay без дублей, admin/member200+fullSHA, guest/outsider/revoke404,
+directS3403, externalHTTPS10 Range206/64bytes/no-store. Tempusers удалены.
+39untouched table digests/прочиепосты/старыеreceipts/контейнеры/конфигурация
+сохранены. Всего **15/388**, остаток **373**. СтарыеURL200; frontend/сезоны/
+админские входы прежние, no push/deploy.
+[Вторая партия, backup и откат](../docs/operations/legacy-media-batch2-2026-10-27.md).
+Ниже — история предыдущих операций; текущий остаток берётся из этого абзаца.
+
 По новому разрешению27октября объединённый22ebe31 запушен и выпущен толькоweb:
 79browser/37unit/types/lint/API103/audit0/build/native26/HTTPS37 GREEN.
 Freshbackup16:15МСК реально восстановлен отдельно41tables/45ledger/индексы/

@@ -2,6 +2,22 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Вторая ограниченная партия клубных файлов — 27 октября
+
+- [x] LM-BATCH2-BACKUP: свежий снимок16:36МСК, две проверенные копии;
+  реальный network-none restore41таблицы/45миграций/индексов/admin3.
+- [x] LM-BATCH2-APPLY: десять JPEG в posts943/941/940; expected-old/size/ETag/
+  SHA/policy проверены, копии без перекодирования, replay без дублей.
+- [x] LM-BATCH2-ACCESS: admin/member200+полныйSHA, guest/outsider/revoke404,
+  directS3403/старыеURL200, HTTPS10 Range206/64байта/no-store; tempusers удалены.
+- [x] LM-BATCH2-PRESERVE:39otherTableHashes/прочиеposts/старыеreceipts/схема/
+  индексы/контейнеры/config/admin3 сохранены. Фронт/сезоны прежние, no push/deploy.
+- [ ] Осталось373/388привязки (358JPEG+15video, девять больших отдельно).
+  Следующая партия — свежийbackup/сверка. СтарыеURL/policy/ACL/guard не закрывать.
+
+[Вторая партия и откат](../docs/operations/legacy-media-batch2-2026-10-27.md).
+Числа383/5 в предыдущих разделах ниже — исторический результат первой партии.
+
 ### Выпуск объединённого фронтенда — 27 октября
 
 - [x] Freshfetch/newcommits0; ordinarypush341b9d9→22ebe31, remoteSHAсовпал.
