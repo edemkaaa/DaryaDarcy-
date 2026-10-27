@@ -52,6 +52,8 @@ function requireLocalFixture() {
     ENV.isProduction ||
     uri.protocol !== "mysql:" ||
     uri.pathname !== "/backend_test" ||
+    uri.search !== "" ||
+    uri.hash !== "" ||
     !["localhost", "127.0.0.1"].includes(uri.hostname)
   )
     throw new Error("Only disposable local recovery maintenance is enabled");

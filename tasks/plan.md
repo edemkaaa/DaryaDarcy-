@@ -2,6 +2,18 @@
 
 ## Действующий план агента — 13 октября 2026
 
+28 октября после auth-выпуска: ff3808d=origin/staging/incoming0. Выполнен узкий
+срез BE-02 — безопасный локальный URI: подтверждён socketPath query mysql2 без
+сети, query/fragment отклоняются maintenance/test guards. Production/local-only
+границы не ослаблены, новой автоочистки нет. RED11→guard19GREEN; последовательный
+SQL/HTTP/wire прогон174pass/5opt-in skips, types/API105/boundaries831/builds GREEN.
+Parallel13fail разобран: общие SQL fault trigger/rename мешают соседним suites;
+CI-изоляция остаётся отдельной задачей, рабочий SQL не менялся. По read-only
+frontend-сверке версии редакторов уже есть/unit51GREEN, осталась browser QA.
+Guest105 выпущен, guard-код в web, но runtime gates ещё не пройдены. Единый
+handoff/backend remaining актуализированы. Без push/deploy; фронт, рабочую БД,
+S3 и флаги не менялись. Свой tmpfs SQL удалён/OOMfalse/restart0; docs/diff GREEN.
+
 28 октября новый запрос безопасности auth: унифицировать публичный исход
 регистрации, добавить account cooldown к IP-квоте и убрать token из JSON входа.
 Реализовано локально без DDL/зависимостей/2FA/ручных frontend-изменений.

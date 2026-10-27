@@ -2,6 +2,20 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Доступный backend-срез и актуальный остаток — 28 октября
+
+- [x] ff3808d/staging, freshfetch incoming0; прочитать план и результат выпуска.
+- [x] BE-02 local slice: подтвердить socketPath query без сети; RED11,
+  отказ query/fragment в двух guards,19guard-проверок GREEN.
+- [x] Own loopback MySQL/S3-wire: sequential174pass/5opt-in skips,
+  roottypes/API105/boundaries831/обе backend-сборки GREEN. Parallel13fail
+  разобран: конфликт общих SQL fault fixtures; CI-изоляция отдельно.
+- [x] Фронт прочитан без правок: версии и legacy guard уже есть/unit51GREEN;
+  browser/cold-warm QA не заявляется. Единый handoff/остаток обновлены.
+- [x] Docs126/diff GREEN, свой tmpfs SQL удалён/OOMfalse/restart0;
+  результат сохраняется локальным коммитом.
+  Фронт/сервер/рабочую БД/S3/флаги не менять, без push/deploy.
+
 ### Публичная регистрация и защита входа — 28 октября
 
 - [x] Воспроизвести409, IP-only quota и JSON-token native HTTP-тестами.
