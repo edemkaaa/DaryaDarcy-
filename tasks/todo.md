@@ -2,6 +2,16 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Подтянуть frontend d36e1b7 — 27 октября
+
+- [x] Freshfetch:4local/1incoming; чистое дерево до merge.
+- [x] Merge275f3c5 без конфликтов, backend f274354/остальные localcommits
+  сохранены. Frontend совпадает сd36e1b7, кроме generatedcontract105.
+- [x] Root/frontend/E2Etypes/API105/lint/docs124/boundaries827;118tests passed,
+  3optionalbrowser/2files skipped. Полной browser-приёмки не было.
+- [x] Единый handoff обновлён; ручных frontend-правок/пуша/выкладки/БД/S3/
+  runtimeflag изменений нет. Строгий режим не включать.
+
 ### Гостевой LIVE recovery и разрешённый отзыв старых URL — 27 октября
 
 - [x] Новый guest-контракт: POST create/status, пара secret+UUID, email только

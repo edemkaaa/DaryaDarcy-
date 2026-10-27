@@ -2,6 +2,14 @@
 
 ## Действующий план агента — 13 октября 2026
 
+По поручению подтянуть frontend27октября: freshfetch origin/staging=d36e1b7,
+merge275f3c5 без конфликтов. Сохранены четыре localcommits, включая guest
+recoveryf274354; frontend точно изd36e1b7, кроме generatedcontract105.
+Root/frontend/E2Etypes/API105/lint/docs124/boundaries827 и118tests GREEN;
+3optionalbrowser/2files skipped, полная browserприёмка не заявляется.
+Ручных frontend-правок нет, сервер/БД/S3/флаги не менялись; push/deploy нет.
+Единый handoff обновлён с учётом локального merge.
+
 27 октября владелец разрешил гостевой LIVE recovery и отзыв старыхURL.
 Гостевой backend реализован локально:2POSTmethods/105contract, namespace
 secret+UUID, атомарный ledger+order/replay безDDL, no login/access byemail,
