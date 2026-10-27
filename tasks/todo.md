@@ -2,6 +2,21 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Подготовка переноса на стенд — 27 октября, новое разрешение
+
+- [x] LM-PREP1: свежий working snapshot41/ledger44, SHA/gzip, вторая закрытая копия;
+  реальное восстановление на own network-none БД, схема/rows/admin3 совпали.
+- [x] LM-PREP2: fresh READ ONLY полный набор4945refs,388/388expected-old/access,
+  388/388sourceETag/size; local pack hashes388; public/shared/unmatched без изменений.
+- [x] LM-PREP3: финальный контроль healthy/admin/images/refs, cleanup ownrestore,
+  обновлённый frontend handoff и следующий ограниченный этап без old-retirement.
+- [ ] LM-APPLY: отдельно согласовать выпуск и ограниченную партию; рабочие
+  привязки/старые S3 URL в подготовке не переключать. Большие видео ещё не приняты.
+
+[Проверенная подготовка](../docs/operations/legacy-media-stage-preparation-2026-10-27.md).
+Backup27.10 10:51:23МСК;3admin credentials совпали с прошлым выпуском;
+serverAPIff2c229/webce56ebe unchanged. Исходники/policy/frontend не менялись.
+
 ### Адресный перенос старых клубных источников — 27 октября
 
 - [x] LM1: draft manifest + shared/public/manual blockers; ready=false до SHA/bytes.

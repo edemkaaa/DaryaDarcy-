@@ -2,6 +2,18 @@
 
 ## Действующий план агента — 13 октября 2026
 
+27 октября, подготовка на стенде по новому разрешению: свежая backup10:51:23МСК
+создана/скачана/SHA-gzip проверена и реально восстановлена в own network-none
+MySQL;41таблица/44ledger/3admin digests совпали, контейнер удалён OOM=false/restarts0.
+Новый READ ONLY срез4945refs и388/388target/access/oldURL совпали; все388источников
+HEAD200/ETag/size, локальные388bytes/probesSHA совпали. Policy и полныйclub/tg
+список прежние;2shared covers/49посторонних ключей сохранить.
+Последний read-onlyконтроль: API/web healthy/images/starts/admin/refs unchanged.
+Выпуск и рабочий bind не выполнялись; только подготовка. Следующий этап —
+согласованный backend release и ограниченная партия, без закрытия старыхURL;
+большие видео отдельно. Frontend server-only retirement guard — документ, не код.
+[Отчёт подготовки](../docs/operations/legacy-media-stage-preparation-2026-10-27.md).
+
 27 октября: LEGACY-MOVE — по шагам после согласованного плана.
 1. Адресный draft manifest по inventory; отдельно shared/public и неизвестные
    ссылки. Без source SHA/bytes это ещё не готовый список для применения.
