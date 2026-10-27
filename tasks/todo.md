@@ -2,6 +2,17 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Повторная проверка post API-типов — 27 октября
+
+- [x] Замечание для ea40c4a воспроизведено компилятором: шесть TS2339 на
+  прямом доступе через клиентский ApiOutputs. Исправление060366a уже входит
+  в текущие HEAD/staging e9ee479; SQL/доступ/формат ответов повторно не менять.
+- [x] Расширена проверка server/client для feed.getById.media,
+  feed.listPaginated.posts[].commentCount и media/commentCount обоих списков
+  Клуба, включая listByCategory. Detail не объявляет commentCount.
+- [x] tsc --noEmit и три contract suites (4 теста) GREEN; повторная генерация
+  контракта/API103 без изменений. Ручные обходы фронта и Date/string вне задачи.
+
 ### Остаток после выпуска — 27 октября, около14:05МСК
 
 - [x] POST-REL1: fresh fetch HEAD=staging0414dc9; READ ONLY API/video5c0df13,
