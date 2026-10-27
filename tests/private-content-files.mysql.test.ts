@@ -116,6 +116,21 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect(await rows("SELECT state,parentId FROM private_content_files WHERE actorUserId=98150")).toEqual([{ state: "ready", parentId: null }]);
     expect((await status()).data).toEqual(result.data);
   });
+  it("does not hold the comment actor or post lock across storage and rechecks post visibility", async () => {
+    const post = await makePost({ ...postInput(""), photos: [], target: "feed", status: "published", tags: ["community"] });
+    expect(post.status).toBe(200);
+    const postId = Number(post.data), gate = wire.pausePut();
+    const pending = commentPhoto(postId);
+    try {
+      await gate.entered;
+      await conn.query("SET SESSION innodb_lock_wait_timeout=1");
+      await conn.query("UPDATE users SET name='changed while storage waits' WHERE id=98152");
+      await conn.query("UPDATE posts SET published=0,status='draft' WHERE id=?", [postId]);
+    } finally { gate.release(); }
+    expect((await pending).status).toBe(404);
+    expect(await rows("SELECT state,etag FROM private_content_files WHERE actorUserId=98152")).toEqual([{ state: "pending", etag: null }]);
+    expect(wire.objects.size).toBe(1);
+  });
   it("accepts a full 32 MiB document over Base64 HTTP and replays one stored asset", async () => {
     const bytes = Buffer.alloc(32 * 1024 * 1024, 0x61);
     const value = { ...input, base64: bytes.toString("base64") };

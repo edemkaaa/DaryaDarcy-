@@ -503,9 +503,22 @@ describe.skipIf(!testDatabaseUrl)(
           "SELECT assetId FROM private_attachment_uploads WHERE actorUserId=97330",
         ),
       ).toHaveLength(1);
-      expect(
-        wire.effects.filter((value) => value.startsWith("PUT")),
-      ).toHaveLength(1);
+      // Concurrent conditional writes may race; only one object can win.
+      expect(wire.objects.size).toBe(1);
+    });
+    it("releases SQL locks while storage waits and refuses finalization after revocation", async () => {
+      const gate = wire.pausePut();
+      const pending = request("uploadPrivateAttachment");
+      try {
+        await gate.entered;
+        await conn.query("SET SESSION innodb_lock_wait_timeout=1");
+        // This UPDATE must complete while the S3 request is still paused.
+        await conn.query("UPDATE users SET sessionVersion=1 WHERE id=97330");
+        expect(await rows("SELECT state FROM private_attachment_uploads WHERE actorUserId=97330")).toEqual([{ state: "pending" }]);
+      } finally { gate.release(); }
+      expect((await pending).status).toBe(401);
+      expect(await rows("SELECT state,etag FROM private_attachment_uploads WHERE actorUserId=97330")).toEqual([{ state: "pending", etag: null }]);
+      expect(wire.objects.size).toBe(1);
     });
     it("changed storage namespace cannot replay or report a ready receipt", async () => {
       expect((await request("uploadPrivateAttachment")).status).toBe(200);

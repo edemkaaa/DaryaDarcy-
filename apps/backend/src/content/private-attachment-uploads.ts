@@ -180,7 +180,7 @@ export async function storePrivateAttachment(
     const database = await getDb();
     if (!database) throw unavailable();
     // Commit durable intent BEFORE the external effect. A restart cannot lose its key.
-    await database.transaction(async (tx) => {
+    const intent = await database.transaction(async (tx) => {
       await lockPrivateAttachmentActor(tx, actor);
       await requirePrivateAttachmentSchema(tx);
       if (input.type === "video") {
@@ -221,7 +221,12 @@ export async function storePrivateAttachment(
         [key],
         actor.id,
       );
+      return row;
     });
+    if (intent.state === "ready") return privateUploadReceipt(intent);
+    // The durable intent fixes the object identity. Do not hold a SQL connection
+    // or actor lock across slow storage; authority is checked again at commit.
+    const etag = await ensurePrivateUploadObject(intent, bytes);
     return await database.transaction(async (tx) => {
       await lockPrivateAttachmentActor(tx, actor);
       await requirePrivateAttachmentSchema(tx);
@@ -237,8 +242,9 @@ export async function storePrivateAttachment(
         [key],
         actor.id,
       );
+      if (row.assetId !== intent.assetId || (row.state === "ready" && row.etag !== etag))
+        throw unavailable();
       if (row.state === "ready") return privateUploadReceipt(row);
-      const etag = await ensurePrivateUploadObject(row, bytes);
       await tx
         .update(privateAttachmentUploads)
         .set({ state: "ready", etag })

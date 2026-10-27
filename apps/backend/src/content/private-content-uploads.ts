@@ -74,22 +74,27 @@ export async function uploadPrivateContentFile(actor: PrivateAttachmentActor, in
       if (row.namespaceHash !== namespace.hash) throw unavailable();
       receipt(row); return row;
     };
-    await database.transaction(async tx => {
+    const intent = await database.transaction(async tx => {
       if (input.usage === "commentPhoto") await requireCommentFilePost(tx, actor, input.postId);
       else await lockPrivateAttachmentActor(tx, actor);
       await requirePrivateContentSchema(tx);
       await tx.insert(privateContentFiles).values({ requestKey: key, actorUserId: actor.id, assetId: randomUUID(), payloadHash: hash,
         namespaceHash: namespace.hash, usage: input.usage, targetPostId: input.usage === "commentPhoto" ? input.postId : null, filename: input.filename, mimeType, fileSize: bytes.length })
         .onDuplicateKeyUpdate({ set: { requestKey: sql`${privateContentFiles.requestKey}` } });
-      const [row] = await tx.select().from(privateContentFiles).where(eq(privateContentFiles.requestKey, key)).for("update"); check(row);
+      const [row] = await tx.select().from(privateContentFiles).where(eq(privateContentFiles.requestKey, key)).for("update"); return check(row);
     });
+    if (intent.state === "ready") return receipt(intent);
+    // A restart still recovers the same object; no network operation owns a SQL
+    // lock. The final transaction rechecks the actor, post and recovery window.
+    const etag = await ensurePrivateUploadObject({ ...intent, type: "document", scope: "content" }, bytes);
     return await database.transaction(async tx => {
       if (input.usage === "commentPhoto") await requireCommentFilePost(tx, actor, input.postId);
       else await lockPrivateAttachmentActor(tx, actor);
       await requirePrivateContentSchema(tx);
       const [existing] = await tx.select().from(privateContentFiles).where(eq(privateContentFiles.requestKey, key)).for("update");
-      const row = check(existing); if (row.state === "ready") return receipt(row);
-      const etag = await ensurePrivateUploadObject({ ...row, type: "document", scope: "content" }, bytes);
+      const row = check(existing);
+      if (row.assetId !== intent.assetId || (row.state === "ready" && row.etag !== etag)) throw unavailable();
+      if (row.state === "ready") return receipt(row);
       await tx.update(privateContentFiles).set({ state: "ready", etag }).where(eq(privateContentFiles.requestKey, key));
       return receipt({ ...row, state: "ready", etag });
     });

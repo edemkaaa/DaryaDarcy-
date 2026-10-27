@@ -174,7 +174,7 @@ export async function ensurePrivateUploadObject(
         throw error;
     }
     if (!meta) {
-      await client.send(
+      try { await client.send(
         new PutObjectCommand({
           ...object,
           Body: bytes,
@@ -190,7 +190,11 @@ export async function ensurePrivateUploadObject(
           },
         }),
         { abortSignal: signal },
-      );
+      ); } catch (error) {
+        // Another retry may have won the same conditional write. Accept only
+        // matching durable evidence from HEAD below; never overwrite an object.
+        if ((error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode !== 412) throw error;
+      }
       meta = await head();
     }
     // A lost PUT ACK is reconciled from the same object on a later retry.
