@@ -476,10 +476,13 @@ describe.skipIf(!testDatabaseUrl)(
       );
     });
     it("preserves club pagination defaults, null cursor, upper limit and visibility", async () => {
+      // Explicit dates keep this independent from wall-clock seconds and the
+      // old manual ranks. Club order is date DESC, then ID ASC before LIMIT.
+      await conn.query("UPDATE posts SET publishedAt=CASE id WHEN 8971 THEN '2026-10-02' ELSE '2026-10-01' END WHERE id IN (8971,8975)");
       const first = await client(bearer).club.list.query({
         tag: "native-catalog",
       });
-      expect(first.posts.map((post) => post.id)).toEqual([8975, 8971]);
+      expect(first.posts.map((post) => post.id)).toEqual([8971, 8975]);
       expect(first.nextCursor).toBeNull();
       for (const input of [
         { tag: "native-catalog", cursor: null },
@@ -491,14 +494,14 @@ describe.skipIf(!testDatabaseUrl)(
         tag: "native-catalog",
         limit: 1,
       });
-      expect(page.posts.map((post) => post.id)).toEqual([8975]);
+      expect(page.posts.map((post) => post.id)).toEqual([8971]);
       expect(page.nextCursor).toBe(1);
       const last = await client(bearer).club.list.query({
         tag: "native-catalog",
         limit: 1,
         cursor: 1,
       });
-      expect(last.posts.map((post) => post.id)).toEqual([8971]);
+      expect(last.posts.map((post) => post.id)).toEqual([8975]);
       expect(last.nextCursor).toBeNull();
       expect(
         (await client(bearer).club.list.query()).posts.length,

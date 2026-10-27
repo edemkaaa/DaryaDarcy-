@@ -104,7 +104,7 @@ const expectedProcedures = {
   profileExtras: ["recoveryExport", "requestAccountDeletion"],
   shop: ["createCheckout", "owned"],
   system: ["health", "notifyOwner"],
-  videos: ["catalog", "getById", "list", "playback"],
+  videos: ["catalog", "getById", "list", "playback", "publicYoutubeState"],
 } as const;
 
 describe("public tRPC contract", () => {
