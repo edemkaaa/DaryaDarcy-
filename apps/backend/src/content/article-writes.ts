@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { eq, sql } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
@@ -38,24 +38,23 @@ function sectionsForStorage(value: unknown): ArticleBlock[] {
   });
 }
 
-async function findTeaser(tx: ContentTransaction, articleId: number) {
+async function findTeasers(tx: ContentTransaction, articleId: number) {
   // Article writers acquire the article PK first. source has no index: a locking
-  // source scan would block unrelated posts. Legacy first-match behavior remains.
-  const [teaser] = await tx
+  // source scan would block unrelated posts. Read IDs, then write by primary key.
+  return tx
     .select({ id: posts.id })
     .from(posts)
     .where(eq(posts.source, `article:${articleId}`))
-    .limit(1);
-  return teaser;
+    .orderBy(asc(posts.id));
 }
 
 async function syncTeaser(
   tx: ContentTransaction,
   article: Pick<Article, "id" | "title" | "coverUrl" | "published">,
 ): Promise<void> {
-  const existing = await findTeaser(tx, article.id);
+  const existing = await findTeasers(tx, article.id);
   if (!article.published) {
-    if (existing) await deletePostRows(tx, existing.id);
+    for (const teaser of existing) await deletePostRows(tx, teaser.id);
     return;
   }
   const payload = {
@@ -67,8 +66,10 @@ async function syncTeaser(
     published: true,
     status: "published" as const,
   };
-  if (existing) {
-    await tx.update(posts).set(payload).where(eq(posts.id, existing.id));
+  if (existing.length) {
+    // Keep discussion on historical duplicates; synchronizing an article must
+    // not silently erase their comments. New manual duplicates are rejected.
+    await tx.update(posts).set(payload).where(inArray(posts.id, existing.map(row => row.id)));
   } else {
     await tx.insert(posts).values(payload);
   }
@@ -189,9 +190,9 @@ export async function deleteArticle(
       .from(articles)
       .where(eq(articles.id, id))
       .for("update");
-    const teaser = await findTeaser(tx, id);
+    const teasers = await findTeasers(tx, id);
     // Missing articles still clean their legacy orphan teaser, as before.
-    if (teaser) await deletePostRows(tx, teaser.id);
+    for (const teaser of teasers) await deletePostRows(tx, teaser.id);
     await tx.delete(articles).where(eq(articles.id, id));
   });
 }

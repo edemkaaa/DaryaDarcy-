@@ -233,12 +233,17 @@ describe.skipIf(!testDatabaseUrl)(
     });
     it("isolates status from another account and converges simultaneous same-key uploads", async () => {
       const responses = await Promise.all([upload(), upload(), upload()]);
-      expect(responses.map((response) => response.status)).toEqual([
-        200, 200, 200,
-      ]);
-      const receipts = await Promise.all(
-        responses.map((response) => response.json()),
-      );
+      expect(responses.map(response => response.status).sort()).toEqual([200, 429, 429]);
+      const receipts = [];
+      for (let response of responses) {
+        if (response.status === 429) {
+          expect(response.headers.get("retry-after")).toBe("2");
+          await response.json();
+          response = await upload();
+          expect(response.status).toBe(200);
+        }
+        receipts.push(await response.json());
+      }
       expect(receipts[1]).toEqual(receipts[0]);
       expect(receipts[2]).toEqual(receipts[0]);
       const other = await sdk.createSessionToken("vu1-other", {

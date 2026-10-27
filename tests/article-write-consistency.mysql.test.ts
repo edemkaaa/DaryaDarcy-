@@ -189,6 +189,25 @@ describe.skipIf(!testDatabaseUrl)("atomic article/teaser writes", () => {
       ]),
     ).toEqual([]);
   });
+  it("updates every legacy teaser atomically without discarding their discussion", async () => {
+    await conn.query("INSERT INTO posts(text,photos,tags,source,target) VALUES ('duplicate',JSON_ARRAY(),JSON_ARRAY(),'article:9070','club')");
+    await admin.updateArticle.mutate({ id: 9070, title: prefix + "reconciled" });
+    const updated = await teasers();
+    expect(updated).toHaveLength(2);
+    expect(updated.map(row => row.text)).toEqual([prefix + "reconciled", prefix + "reconciled"]);
+    expect(await rows("SELECT id FROM posts WHERE id=9072")).toHaveLength(1);
+  });
+  it.each(["unpublish", "delete"])("removes every duplicate teaser on article %s", async action => {
+    await conn.query("INSERT INTO posts(text,photos,tags,source,target) VALUES ('duplicate',JSON_ARRAY(),JSON_ARRAY(),'article:9070','club')");
+    if (action === "unpublish") await admin.updateArticle.mutate({ id: 9070, published: false });
+    else await admin.deleteArticle.mutate({ id: 9070 });
+    expect(await teasers()).toEqual([]);
+    expect(await rows("SELECT id FROM posts WHERE id=9072")).toHaveLength(1);
+  });
+  it.each(["article:9070", "ARTICLE:9070", "árticle:9070", "a".repeat(33)])("rejects reserved or overlong manual source %s before SQL", async source => {
+    await expect(admin.createPost.mutate({ text: "source fixture", photos: [], tags: [], source, status: "draft" })).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } });
+    expect(await rows("SELECT id FROM posts WHERE text='source fixture'")).toEqual([]);
+  });
   it("rolls back all article fields when its existing teaser edit fails", async () => {
     const before = await article(),
       teaserBefore = await teasers();

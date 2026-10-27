@@ -30,7 +30,10 @@ export const createPostInput = z.object({
   attachments: z.array(postAttachmentInput).max(100).optional(),
   privateAssetIds: z.array(z.string().uuid()).max(100).optional(),
   privateVideoPosters,
-  source: z.string().default("manual"),
+  source: z.string().max(32).refine(value =>
+    !value.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().startsWith("article:"),
+    "Анонс статьи создаётся автоматически",
+  ).default("manual"),
   published: z.boolean().default(true),
   sortOrder: contentSortOrderInput.default(0),
   status: z.enum(["draft", "scheduled", "published"]).default("published"),
@@ -41,7 +44,7 @@ export const createPostInput = z.object({
 });
 
 export const updatePostInput = z.object({
-  id: z.number(),
+  id: z.number().int().positive().safe(),
   text: z.string().optional(),
   photos: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),

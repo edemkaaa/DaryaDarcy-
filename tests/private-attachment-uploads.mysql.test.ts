@@ -663,6 +663,20 @@ describe.skipIf(!testDatabaseUrl)(
       ).toHaveLength(0);
       expect(wire.objects.size).toBe(1);
     });
+    it("legacy deleteMedia rolls back removal of the final post body", async () => {
+      const asset = (await request("uploadPrivateAttachment")).data;
+      const created = await request("createPost", postInput(asset.assetId));
+      const [media] = await rows("SELECT id FROM post_media WHERE postId=?", [created.data]);
+      await conn.query("UPDATE posts SET text='',status='published',published=1 WHERE id=?", [created.data]);
+      expect((await request("deleteMedia", { id: media.id })).status).toBe(400);
+      expect(await rows("SELECT id FROM post_media WHERE id=?", [media.id])).toHaveLength(1);
+      await conn.query("UPDATE posts SET text='Remaining body' WHERE id=?", [created.data]);
+      expect((await request("deleteMedia", { id: media.id })).status).toBe(200);
+      expect(await rows("SELECT id FROM post_media WHERE id=?", [media.id])).toEqual([]);
+      expect((await request("updatePost", { id: created.data, privateAssetIds: [asset.assetId] })).status).toBe(409);
+      // The historical binding is a fence against resurrection, not a live URL.
+      expect((await fetch(`${base}/api/media/post-attachments/${media.id}`)).status).toBe(404);
+    });
     it("legacy URL attachment cannot bypass ownership for a private-v1 object", async () => {
       await request("uploadPrivateAttachment");
       const url = `${wire.endpoint}/${wire.bucket}/${[...wire.objects.keys()][0]}`;

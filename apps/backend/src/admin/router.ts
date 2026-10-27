@@ -85,8 +85,8 @@ export const createAdminRouter = (
 
   // Delete a media attachment (admin only)
   deleteMedia: adminProcedure
-    .input(z.object({ id: z.number() }))
-    .mutation(({ input }) => posts.deleteMedia(input.id)),
+    .input(z.object({ id: z.number().int().positive().safe() }).strict())
+    .mutation(({ input, ctx }) => posts.deleteMedia(input.id, ctx.user)),
 
   // Get scheduled posts for calendar (admin only)
   scheduledPosts: adminProcedure.query(() => content.listScheduledPosts()),

@@ -783,11 +783,15 @@ export async function getPostMediaByPostId(postId: number): Promise<PostMedia[]>
   return readPostMediaByPostId(db, postId);
 }
 
-export async function deletePostMediaById(id: number): Promise<void> {
+export async function deletePostMediaById(id: number, actor?: ContentWriteActor): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.delete(postMedia).where(eq(postMedia.id, id));
+  const [media] = await db.select({ postId: postMedia.postId }).from(postMedia).where(eq(postMedia.id, id)).limit(1);
+  if (!media) return;
+  await persistPostEdit(db, media.postId, {}, undefined, {
+    actor, removedMediaIds: [id], allowLegacyVideoRemoval: true,
+  });
 }
 
 export async function deletePostMediaByPostId(postId: number): Promise<void> {

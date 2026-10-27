@@ -37,6 +37,8 @@ export type PostAttachmentInput = z.infer<typeof postAttachmentInput>;
 export type PostAttachmentChanges = PrivateAttachmentChanges & {
   attachments?: PostAttachmentInput[];
   removedMediaIds?: number[];
+  /** Internal compatibility path only, never accepted from the editor schema. */
+  allowLegacyVideoRemoval?: boolean;
 };
 type AttachmentWriter = Pick<MySql2Database, "select" | "insert" | "delete" | "update" | "execute">;
 
@@ -74,7 +76,7 @@ export async function savePostAttachments(
         asset.postId !== postId || asset.type !== "video" ||
         asset.state !== "ready" || !asset.etag || asset.namespaceHash !== namespace;
     });
-    if (rows.length !== ids.length || legacyVideo || invalidVideo)
+    if (rows.length !== ids.length || (legacyVideo && !changes.allowLegacyVideoRemoval) || invalidVideo)
       throw new TRPCError({
         code: "BAD_REQUEST",
         message:

@@ -66,8 +66,8 @@ export class ContentWriteService {
     return db.deletePost(id, actor);
   }
 
-  deleteMedia(id: number): Promise<void> {
-    return db.deletePostMediaById(id);
+  deleteMedia(id: number, actor?: PrivateAttachmentActor): Promise<void> {
+    return db.deletePostMediaById(id, actor);
   }
 
   async cleanupMediaNames(): Promise<{ ok: true }> {
