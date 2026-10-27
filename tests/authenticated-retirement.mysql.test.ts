@@ -48,6 +48,17 @@ describe.skipIf(!testDatabaseUrl)(
         },
       } as Request;
     }
+    it("records activity at most once per five minutes, including stale concurrent snapshots", async () => {
+      const stale = (await db.getUserByOpenId("r6-activity-fixture"))!;
+      const start = new Date("2026-10-27T12:00:00Z");
+      await db.recordAuthenticatedActivity(stale, start);
+      await Promise.all([1, 2, 3, 4].map(seconds => db.recordAuthenticatedActivity(stale, new Date(start.getTime() + seconds * 1000))));
+      const [rows] = await conn.query<RowDataPacket[]>("SELECT lastSignedIn FROM users WHERE id=97560");
+      expect(rows[0].lastSignedIn.toISOString()).toBe("2026-10-27T12:00:00.000Z");
+      await db.recordAuthenticatedActivity((await db.getUserByOpenId(stale.openId))!, new Date("2026-10-27T12:05:00Z"));
+      const [later] = await conn.query<RowDataPacket[]>("SELECT lastSignedIn FROM users WHERE id=97560");
+      expect(later[0].lastSignedIn.toISOString()).toBe("2026-10-27T12:05:00.000Z");
+    });
     it("never recreates a retired identity between session lookup and activity recording", async () => {
       const native = db.getUserByOpenId;
       let read!: () => void, resume!: () => void;

@@ -129,9 +129,13 @@ export async function getDb() {
 
 /** Activity is not identity creation. Busy owners are skipped, never resurrected. */
 export async function recordAuthenticatedActivity(
-  user: Pick<User, "id" | "openId" | "sessionVersion">,
+  user: Pick<User, "id" | "openId" | "sessionVersion"> & Partial<Pick<User, "lastSignedIn">>,
   signedInAt: Date,
 ): Promise<void> {
+  const cutoff = new Date(signedInAt.getTime() - 5 * 60_000);
+  // The actor was freshly read for authentication. Most reads need no write
+  // transaction; the SQL condition below also arbitrates stale parallel reads.
+  if (user.lastSignedIn && user.lastSignedIn > cutoff) return;
   const database = await getDb();
   if (!database) return;
   await database.transaction(async tx => {
@@ -140,6 +144,7 @@ export async function recordAuthenticatedActivity(
       eq(users.openId, user.openId),
       eq(users.sessionVersion, user.sessionVersion),
       isNull(users.blockedAt),
+      sql`(${users.lastSignedIn} IS NULL OR ${users.lastSignedIn} <= ${cutoff})`,
     )).for("update", { skipLocked: true });
     if (current) {
       await tx.update(users).set({ lastSignedIn: signedInAt }).where(eq(users.id, current.id));
