@@ -17,6 +17,7 @@ import { assertContentRecoveryWindow } from "./recovery-window";
 import { assertContentRecoveryNotSpent } from "./recovery-markers";
 import { assertContentWriteActor, type ContentWriteActor } from "./content-write-actor";
 import { articleFileReferences, assertPublicContentCover, bindContentFiles, hasPrivateContent } from "./private-content-binding";
+import { articleEditRevision, assertEditRevision, expectedEditRevision, type ContentEditPrecondition } from "./content-edit-revision";
 
 export type CreateArticleInput = {
   title: string;
@@ -152,18 +153,22 @@ export async function updateArticle(
   id: number,
   data: UpdateArticleInput,
   actor?: ContentWriteActor,
+  condition?: ContentEditPrecondition,
 ): Promise<void> {
   assertPublicContentCover(data.coverUrl);
   await database.transaction(async (tx) => {
     await assertContentWriteActor(tx,actor);
+    const expectedRevision = expectedEditRevision(condition);
     // A current read before any snapshot/teaser read serializes article writers.
     const [existing] = await tx
-      .select({ id: articles.id, sections: articles.sections })
+      .select()
       .from(articles)
       .where(eq(articles.id, id))
       .for("update");
     if (!existing)
       throw new TRPCError({ code: "NOT_FOUND", message: "Статья не найдена" });
+    if (expectedRevision !== undefined)
+      assertEditRevision(expectedRevision, articleEditRevision(existing));
     const patch = { ...data };
     if (data.sections) patch.sections = sectionsForStorage(data.sections);
     // Preserve the existing empty-patch error for an existing article.

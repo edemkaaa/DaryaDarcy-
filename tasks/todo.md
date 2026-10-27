@@ -2,6 +2,25 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Новый аудит: BE-01 и INT-04 — локально27октября
+
+- [x] RED:10native конфликтных сценариев/3UTF-8 schema/2service bounds.
+- [x] BE-01-BE: admin detail editRevision, optional expectedRevision,
+  сравнение под parent/child current locks,409 без частичной записи/анонса.
+- [x] INT-04-BE:65535 UTF-8 bytes доSQL; ASCII/кириллица/emoji, точнаяграница
+  сохранена наодноразовойMySQL; превышение400, неSQL500 и безобрезания.
+- [x] Совместимый переход + строгий флаг; supplied revision проверяется всегда,
+  required=true/missing412; invalid config503. Не включали на стенде.
+- [x] 1074passed/18skipped/0failed в66связанных файлах; root/frontend/E2Etypes,
+  API103/boundaries813/backend+TESTbuilds GREEN. OwnDB удалена/OOMfalse/restart0.
+- [x] Обновлены только machine-generated frontend contract и единый handoff;
+  компоненты/дизайн/рабочаяБД/S3/настройки не менялись, no push/deploy.
+- [ ] Фронтендер: версии во всех редакторах/сохранность ввода/UTF-8; отдельная
+  приёмка и включение CONTENT_EDIT_REVISIONS_REQUIRED=true. До этого BE-01
+  нельзя считать закрытым для старых клиентов/на стенде.
+
+[Контракт и доказательства](../docs/audits/content-edit-fixes-2026-10-27.md).
+
 ### Весь остаток старых клубных привязок — 27 октября
 
 - [x] LM-ALL-BACKUP: freshbackup16:51МСК/две проверенные копии, реальный

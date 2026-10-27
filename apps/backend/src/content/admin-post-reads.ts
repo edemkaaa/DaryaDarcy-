@@ -9,6 +9,7 @@ import {
 } from "../../../../packages/database/src/schema";
 import { postListOrder } from "./post-order";
 import { attachPostMedia } from "./post-media-repository";
+import { postEditRevision } from "./content-edit-revision";
 
 export const adminPostsPageInput = z
   .object({
@@ -83,11 +84,13 @@ export async function getAdminPostsPage(
 export async function getAdminPostDetail(
   db: Database,
   id: number,
-): Promise<(Post & { media: PostMedia[] }) | null> {
+): Promise<(Post & { media: PostMedia[]; editRevision: string }) | null> {
   if (!db) throw new Error("Database not available");
-  const rows = await db.select().from(posts).where(eq(posts.id, id)).limit(1);
-  const [post] = await attachPostMedia(db, rows);
-  return post ?? null;
+  return db.transaction(async tx => {
+    const rows = await tx.select().from(posts).where(eq(posts.id, id)).limit(1);
+    const [post] = await attachPostMedia(tx, rows);
+    return post ? { ...post, editRevision: postEditRevision(post, post.media) } : null;
+  }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
 export const adminPostCalendarInput = z

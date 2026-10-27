@@ -533,7 +533,7 @@ export type AppRouter = BuiltRouter<
               scheduledAt: Date | null;
               publishedAt: Date | null;
               richText: Array<RichTextBlock> | null;
-            } & { media: PostMedia[] })
+            } & { media: PostMedia[]; editRevision: string })
           | null;
         meta: unknown;
       }>;
@@ -620,6 +620,7 @@ export type AppRouter = BuiltRouter<
       updatePost: MutationProcedure<{
         input: {
           id: number;
+          expectedRevision?: string | undefined;
           text?: string | undefined;
           photos?: Array<string> | undefined;
           tags?: Array<string> | undefined;
@@ -967,15 +968,16 @@ export type AppRouter = BuiltRouter<
       articleDetail: QueryProcedure<{
         input: { id: number };
         output: {
+          sections: Array<ArticleBlock>;
+          editRevision: string;
           id: number;
+          title: string;
+          coverUrl: string | null;
+          access: "club" | "public";
+          published: boolean;
+          sortOrder: number;
           createdAt: Date;
           updatedAt: Date;
-          title: string;
-          sortOrder: number;
-          published: boolean;
-          access: "club" | "public";
-          coverUrl: string | null;
-          sections: Array<ArticleBlock>;
         } | null;
         meta: unknown;
       }>;
@@ -1009,6 +1011,7 @@ export type AppRouter = BuiltRouter<
       updateArticle: MutationProcedure<{
         input: {
           id: number;
+          expectedRevision?: string | undefined;
           title?: string | undefined;
           coverUrl?: string | null | undefined;
           access?: "club" | "public" | undefined;

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { postAttachmentInput } from "./post-attachments";
 import { postTextInput } from "./post-text-limit";
+import { editRevisionInput } from "./content-edit-revision";
 import {
   contentSortOrderInput,
   postTimestampInput,
@@ -46,6 +47,7 @@ export const createPostInput = z.object({
 
 export const updatePostInput = z.object({
   id: z.number().int().positive().safe(),
+  expectedRevision: editRevisionInput,
   text: postTextInput.optional(),
   photos: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),

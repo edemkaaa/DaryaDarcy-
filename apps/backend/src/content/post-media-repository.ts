@@ -8,7 +8,7 @@ import {
 // Reuse one batched hydration path for feed, detail, bookmarks and admin lists.
 // Connection ownership and visibility decisions remain with the callers.
 export async function attachPostMedia<T extends { id: number }>(
-  db: MySql2Database,
+  db: Pick<MySql2Database, "select">,
   page: T[],
 ): Promise<(T & { media: PostMedia[] })[]> {
   if (page.length === 0) return [];

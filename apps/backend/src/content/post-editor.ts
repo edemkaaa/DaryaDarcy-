@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
   posts,
+  postMedia,
   type InsertPost,
 } from "../../../../packages/database/src/schema";
 import type { PostPublication } from "./publication";
@@ -15,6 +16,7 @@ import { authorizePrivateAttachmentChanges } from "./private-attachment-associat
 import { assertContentWriteActor } from "./content-write-actor";
 import { bindContentFiles, postFileReferences } from "./private-content-binding";
 import { assertPostHasBody } from "./post-body";
+import { assertEditRevision, expectedEditRevision, postEditRevision, type ContentEditPrecondition } from "./content-edit-revision";
 
 /** Save a normalized partial edit and optional videos as one committed change. */
 export async function savePostEdit(
@@ -23,20 +25,14 @@ export async function savePostEdit(
   data: Partial<InsertPost>,
   videos?: string[],
   attachments: PostAttachmentChanges = {},
+  condition?: ContentEditPrecondition,
 ): Promise<PostPublication | undefined> {
   return database.transaction(async (tx) => {
     await assertContentWriteActor(tx,attachments.actor);
+    const expectedRevision = expectedEditRevision(condition);
     await authorizePrivateAttachmentChanges(tx, attachments);
     const [post] = await tx
-      .select({
-        id: posts.id,
-        text: posts.text,
-        target: posts.target,
-        status: posts.status,
-        published: posts.published,
-        publishedAt: posts.publishedAt,
-        photos: posts.photos,
-      })
+      .select()
       .from(posts)
       .where(eq(posts.id, postId))
       .for("update");
@@ -45,6 +41,12 @@ export async function savePostEdit(
         code: "NOT_FOUND",
         message: "Публикация не найдена",
       });
+    }
+    if (expectedRevision !== undefined) {
+      // A locking child read stays current even if an earlier authorization read
+      // established a REPEATABLE READ snapshot before the parent lock was acquired.
+      const media = await tx.select().from(postMedia).where(eq(postMedia.postId, postId)).for("update");
+      assertEditRevision(expectedRevision, postEditRevision(post, media));
     }
 
     const filesChanged = data.photos !== undefined ||

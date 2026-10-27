@@ -20,6 +20,7 @@ import type { NotificationsService } from "../notifications/notifications.servic
 import { articleCreationKey } from "../content/article-creation-request";
 import { privateUploadInput, privateUploadStatusInput, uploadPrivateAttachment, privateAttachmentStatus } from "../content/private-attachment-uploads";
 import { privateContentInput, privateContentStatusInput, uploadPrivateContentFile, privateContentFileStatus } from "../content/private-content-uploads";
+import { editRevisionInput } from "../content/content-edit-revision";
 
 export const createAdminRouter = (
   content: ContentReadService,
@@ -150,6 +151,7 @@ export const createAdminRouter = (
     .input(
       z.object({
         id: z.number(),
+        expectedRevision: editRevisionInput,
         title: z.string().trim().min(1).max(255).optional(),
         coverUrl: z.string().nullable().optional(),
         access: z.enum(["public", "club"]).optional(),

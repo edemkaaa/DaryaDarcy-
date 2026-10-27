@@ -39,7 +39,7 @@ export class ContentReadService {
     return adminArticlesPage(await db.getDb(), actorId, input);
   }
   async adminArticleDetail(id: number) {
-    return (await db.getArticleById(id)) ?? null;
+    return db.getAdminArticleDetail(id);
   }
 
   listAdminPosts(input?: {

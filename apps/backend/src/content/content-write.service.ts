@@ -15,6 +15,7 @@ import type { ReactionAccessCheck } from "./post-reactions";
 import { TRPCError } from "@trpc/server";
 import type { PrivateAttachmentActor } from "./private-attachment-uploads";
 import { assertPostTextSize } from "./post-text-limit";
+import type { ContentEditPrecondition } from "./content-edit-revision";
 
 /** The adapter authorizes/validates inputs; existing helpers own transactions. */
 @Injectable()
@@ -50,11 +51,11 @@ export class ContentWriteService {
   }
 
   async updateArticle(
-    input: { id: number } & Parameters<typeof db.updateArticle>[1],
+    input: { id: number } & Parameters<typeof db.updateArticle>[1] & ContentEditPrecondition,
     actor?: PrivateAttachmentActor,
   ): Promise<{ ok: true }> {
-    const { id, ...data } = input;
-    await db.updateArticle(id, data, actor);
+    const { id, expectedRevision, ...data } = input;
+    await db.updateArticle(id, data, actor, { expectedRevision });
     return { ok: true };
   }
 
@@ -171,6 +172,7 @@ export class ContentWriteService {
   async updatePost(input: UpdatePostInput, actor?: PrivateAttachmentActor): Promise<{ success: boolean }> {
     const {
       id,
+      expectedRevision,
       scheduledAt,
       publishedAt,
       videos,
@@ -218,7 +220,7 @@ export class ContentWriteService {
       ...(privateVideoPosters?.length ? { privateVideoPosters } : {}),
       actor,
       ...(privateAssetIds?.length ? { privateAssetIds } : {}),
-    });
+    }, { expectedRevision });
     if (publication) {
       void sendMarketingPostNotification(
         publication.text,

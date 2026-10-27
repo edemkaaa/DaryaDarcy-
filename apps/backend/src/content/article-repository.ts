@@ -7,10 +7,20 @@ import {
 import { normalizeArticleBlocks } from "../../../../packages/shared/src/article-blocks";
 import { requireContentDatabase } from "./read-database";
 import { boundedLegacyList, LEGACY_LIST_CAP } from "./legacy-list-limit";
+import { articleEditRevision } from "./content-edit-revision";
 
 // Connection ownership stays in db.ts; public visibility/body policy stays in
 // ContentReadService. Internal detail and admin lists must retain hidden rows.
 type Database = MySql2Database | null;
+export async function getAdminArticleDetail(db: Database, id: number) {
+  requireContentDatabase(db);
+  const [row] = await db.select().from(articles).where(eq(articles.id, id)).limit(1);
+  return row ? {
+    ...row,
+    sections: normalizeArticleBlocks(row.sections),
+    editRevision: articleEditRevision(row),
+  } : null;
+}
 export async function listPublishedArticleCards(db: Database) {
   requireContentDatabase(db);
   return db.select({ id: articles.id, title: articles.title, coverUrl: articles.coverUrl, access: articles.access })

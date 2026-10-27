@@ -13,6 +13,7 @@ import {
 } from "./admin/membership-repository";
 import { confirmPostPublication, type PostPublication } from "./content/publication";
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
+import type { ContentEditPrecondition } from "./content/content-edit-revision";
 import { deletePost as persistPostDeletion } from "./content/post-deletion";
 import type { ContentWriteActor } from "./content/content-write-actor";
 import {
@@ -53,6 +54,7 @@ import {
   listPublishedArticleCards as readPublishedArticleCards,
   listAllArticles as readAllArticles,
   getArticleById as readArticleById,
+  getAdminArticleDetail as readAdminArticleDetail,
 } from "./content/article-repository";
 import {
   createArticle as persistArticleCreation,
@@ -434,10 +436,11 @@ export async function savePostEdit(
   data: Partial<InsertPost>,
   videos?: string[],
   attachments: PostAttachmentChanges = {},
+  condition?: ContentEditPrecondition,
 ): Promise<PostPublication | undefined> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return persistPostEdit(db, id, data, videos, attachments);
+  return persistPostEdit(db, id, data, videos, attachments, condition);
 }
 
 export async function deletePost(id: number, actor?: ContentWriteActor): Promise<void> {
@@ -1203,6 +1206,10 @@ export async function getArticleById(id: number): Promise<Article | undefined> {
   return readArticleById(db, id);
 }
 
+export async function getAdminArticleDetail(id: number) {
+  return readAdminArticleDetail(await getDb(), id);
+}
+
 export async function createArticle(data: CreateArticleInput, intent?: ArticleCreationIntent, actor?: ContentWriteActor): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1215,10 +1222,10 @@ export async function getArticleCreationStatus(actorUserId: number, key: string)
   return readArticleCreationStatus(db, actorUserId, key);
 }
 
-export async function updateArticle(id: number, data: UpdateArticleInput, actor?: ContentWriteActor): Promise<void> {
+export async function updateArticle(id: number, data: UpdateArticleInput, actor?: ContentWriteActor, condition?: ContentEditPrecondition): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await persistArticleUpdate(db, id, data, actor);
+  await persistArticleUpdate(db, id, data, actor, condition);
 }
 
 export async function deleteArticle(id: number, actor?: ContentWriteActor): Promise<void> {

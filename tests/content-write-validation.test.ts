@@ -133,7 +133,7 @@ describe("admin content write validation before persistence", () => {
         [],
         expect.anything(),
       );
-      expect(db.updateArticle).toHaveBeenCalledWith(9914, { sortOrder }, actor);
+      expect(db.updateArticle).toHaveBeenCalledWith(9914, { sortOrder }, actor, { expectedRevision: undefined });
     },
   );
   it.each([
@@ -154,6 +154,7 @@ describe("admin content write validation before persistence", () => {
       },
       undefined,
       expect.anything(),
+      { expectedRevision: undefined },
     );
   });
 });

@@ -141,6 +141,7 @@ describe("publication notification follows successful persistence", () => {
       }),
       [],
       { attachments: undefined, removedMediaIds: undefined, actor:{id:1,role:'admin',blockedAt:null,sessionVersion:0} },
+      { expectedRevision: undefined },
     );
   });
   it("does not reannounce an already published post", async () => {
