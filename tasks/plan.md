@@ -2,6 +2,12 @@
 
 ## Действующий план агента — 13 октября 2026
 
+Сверка frontend341b9d9 на локальном merge8a140fe:1–5 и coverE2E учтены
+в коде. Остались client maxURLLength (factory10723B,edge414), slot sizes,
+RAW429 Retry-After (теряется, без автоповтора/разлогина); guard пока выключен.
+53focusedtests GREEN; browser-приёмка отдельно. Единый handoff актуализирован,
+компоненты/backend/рабочаяБД/S3/выкладка не менялись.
+
 По новому разрешению27октября: LM-APPLY-LIMITED5 завершён. Freshbackup15:40МСК,
 реальный restore41tables/45ledger/admin3, пять exact bindings+source checks;
 JPEG/GIF/PNG/DOCX/4.7MBvideo перенесены, полныеSHA/байты/admin/member/guest/revoke,
