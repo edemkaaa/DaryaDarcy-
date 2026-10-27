@@ -18,6 +18,9 @@ export function registerPublicResponseCompression(app: Express): void {
       level: 4,
       brotli: { params: { [constants.BROTLI_PARAM_QUALITY]: 4 } },
       filter(req, res) {
+        // The mounted tRPC adapter strips /api/trpc from req.path while
+        // responding; originalUrl retains the public ingress path.
+        const path = req.originalUrl.split("?", 1)[0];
         if (
           req.method !== "GET" ||
           req.headers.cookie !== undefined ||
@@ -32,10 +35,10 @@ export function registerPublicResponseCompression(app: Express): void {
           !/^application\/json(?:;|$)/i.test(
             String(res.getHeader("Content-Type") ?? ""),
           ) ||
-          !req.path.startsWith("/api/trpc/")
+          !path.startsWith("/api/trpc/")
         )
           return false;
-        const procedures = req.path.slice("/api/trpc/".length).split(",");
+        const procedures = path.slice("/api/trpc/".length).split(",");
         return (
           procedures.length <= 20 &&
           procedures.every((path) => publicReads.has(path)) &&
