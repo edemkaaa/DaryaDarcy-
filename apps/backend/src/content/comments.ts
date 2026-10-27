@@ -17,6 +17,7 @@ import { requirePrivateContentEnabled } from "./private-content-uploads";
 import { claimCommentFileCreation } from "./comment-file-creation";
 import type { ContentWriteActor } from "./content-write-actor";
 import { requireContentDatabase } from "./read-database";
+import { boundedLegacyList, LEGACY_LIST_CAP } from "./legacy-list-limit";
 import {
   canModerateUserTarget,
   type ModerationActor,
@@ -66,7 +67,7 @@ export async function listPostCommentsV2(
 ): Promise<PostCommentRow[]> {
   const db = await getDb();
   requireContentDatabase(db);
-  const rows = await db
+  const rows = boundedLegacyList(await db
     .select({
       comment: postComments,
       authorName: users.name,
@@ -75,7 +76,7 @@ export async function listPostCommentsV2(
     .from(postComments)
     .leftJoin(users, eq(users.id, postComments.userId))
     .where(eq(postComments.postId, postId))
-    .orderBy(asc(postComments.createdAt));
+    .orderBy(asc(postComments.createdAt)).limit(LEGACY_LIST_CAP + 1));
   const commentIds = rows.map((row) => row.comment.id);
   const [likeCounts, likedSet] = await Promise.all([
     commentLikeCounts(db, commentIds),

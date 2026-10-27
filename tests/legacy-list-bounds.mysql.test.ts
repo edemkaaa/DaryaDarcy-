@@ -11,6 +11,7 @@ import { getDb } from "../apps/backend/src/db";
 
 describe.skipIf(!testDatabaseUrl || process.env.LEGACY_LIST_BOUNDS_DATABASE_URL !== testDatabaseUrl)("bounded legacy post collections", () => {
   let conn: Connection, app: INestApplication, base: string, token: string;
+  let commentPostId: number;
   async function call(path: string, input?: unknown) {
     const res = await fetch(`${base}/api/trpc/${path}${input === undefined ? "" : `?input=${encodeURIComponent(superjson.stringify(input))}`}`, { headers: { authorization: `Bearer ${token}` } });
     const body = await res.json();
@@ -23,6 +24,8 @@ describe.skipIf(!testDatabaseUrl || process.env.LEGACY_LIST_BOUNDS_DATABASE_URL 
     await conn.query("INSERT INTO articles(title,sections,published) VALUES ?", [Array.from({ length: 201 }, () => ["Legacy bounds article fixture", "[]", false])]);
     await conn.query("INSERT INTO posts(text,photos,tags,source,target) VALUES ?", [Array.from({ length: 201 }, (_, i) => ["Bounded fixture", "[]", JSON.stringify([i === 200 ? "last-only" : "ordinary"]), "legacy-list-bounds", "feed"])]);
     const [rows] = await conn.query<RowDataPacket[]>("SELECT id FROM posts WHERE source='legacy-list-bounds'");
+    commentPostId = Number(rows[0].id);
+    await conn.query("INSERT INTO post_comments(userId,postId,text) VALUES ?", [Array.from({ length: 201 }, () => [98640, commentPostId, "Legacy comments fixture"])]);
     await conn.query("INSERT INTO saved_posts(userId,postId) VALUES ?", [rows.map(row => [98640, row.id])]);
     app = await createBackendApplication(); await app.listen(0, "127.0.0.1");
     base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`; token = await sdk.createSessionToken("legacy-list-bounds-admin", { sessionVersion: 0 });
@@ -31,6 +34,7 @@ describe.skipIf(!testDatabaseUrl || process.env.LEGACY_LIST_BOUNDS_DATABASE_URL 
     await app?.close();
     if (conn) {
       await conn.query("DELETE FROM saved_posts WHERE userId=98640");
+      await conn.query("DELETE FROM post_comments WHERE userId=98640");
       await conn.query("DELETE FROM posts WHERE source='legacy-list-bounds'");
       await conn.query("DELETE FROM users WHERE openId LIKE 'legacy-bounds-extra-%'");
       await conn.query("DELETE FROM articles WHERE title='Legacy bounds article fixture'");
@@ -48,6 +52,11 @@ describe.skipIf(!testDatabaseUrl || process.env.LEGACY_LIST_BOUNDS_DATABASE_URL 
     expect(paged.status).toBe(200); expect((paged.data as { posts: unknown[] }).posts).toHaveLength(12); expect(paged.data).toMatchObject({ nextCursor: 12 });
     const saved = await call("feed.savedPostsPage", { limit: 12, target: "feed" });
     expect(saved.status).toBe(200); expect((saved.data as { items: unknown[] }).items).toHaveLength(12);
+  });
+  it("bounds the old comments collection and preserves its page endpoint", async () => {
+    expect((await call("club.comments", { postId: commentPostId })).status).toBe(413);
+    const page = await call("club.commentsPage", { postId: commentPostId, limit: 12 });
+    expect(page.status).toBe(200); expect((page.data as { items: unknown[] }).items).toHaveLength(12);
   });
   it.each([
     ["feed.getById", { id: 1.5 }], ["feed.getById", { id: -1 }],
