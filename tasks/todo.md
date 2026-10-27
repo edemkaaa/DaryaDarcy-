@@ -2,6 +2,26 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Весь остаток старых клубных привязок — 27 октября
+
+- [x] LM-ALL-BACKUP: freshbackup16:51МСК/две проверенные копии, реальный
+  network-none restore41таблицы/45миграций/индексов/admin3, ownDB удалена.
+- [x] LM-ALL-APPLY:373 exact bindings/HEAD/ETag/SHA/policy;358JPEG+15MP4,
+  включая9больших, перенесены без перекодирования и удаления исходников.
+- [x] LM-ALL-REPLAY: новый процесс, те же373asset IDs/URL, без новых строк/объектов.
+- [x] LM-ALL-ACCESS:373admin/member200+полныйSHA, guest/outsider/revoke404,
+  directS3403/старыеURL200;45video ranges/исходныебайты, HTTPS373 GREEN.
+- [x] LM-ALL-PRESERVE:36otherTableHashes, все родительские поля после точной
+  нормализации слотов, старыеreceipts/45ledger/schema/indexes/admin3/config/
+  контейнеры сохранены. Tempusers/credentials удалены, API256МиБ/OOM0/restart0.
+- [x] Согласованный список **388/388 завершён, остаток0**. SSH-разрыв проверки
+  восстановлен по готовым receipts/exit0; повторной записи не было.
+- [ ] Отзыв старыхURL/optimizer cache — отдельно, после guard и разрешения;
+  пока старые источники открыты. Фронт/сезоны прежние; no push/deploy.
+
+[Полная операция и откат](../docs/operations/legacy-media-complete-2026-10-27.md).
+Ниже — история; незакрытые LM-APPLY/числа373/383 не являются текущим остатком.
+
 ### Вторая ограниченная партия клубных файлов — 27 октября
 
 - [x] LM-BATCH2-BACKUP: свежий снимок16:36МСК, две проверенные копии;
