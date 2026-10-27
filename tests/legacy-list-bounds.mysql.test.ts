@@ -9,7 +9,7 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
 
-describe.skipIf(!testDatabaseUrl)("bounded legacy post collections", () => {
+describe.skipIf(!testDatabaseUrl || process.env.LEGACY_LIST_BOUNDS_DATABASE_URL !== testDatabaseUrl)("bounded legacy post collections", () => {
   let conn: Connection, app: INestApplication, base: string, token: string;
   async function call(path: string, input?: unknown) {
     const res = await fetch(`${base}/api/trpc/${path}${input === undefined ? "" : `?input=${encodeURIComponent(superjson.stringify(input))}`}`, { headers: { authorization: `Bearer ${token}` } });
@@ -19,6 +19,8 @@ describe.skipIf(!testDatabaseUrl)("bounded legacy post collections", () => {
   beforeAll(async () => {
     conn = await openContentTestDatabase(); vi.stubEnv("DATABASE_URL", testDatabaseUrl!); vi.stubEnv("JWT_SECRET", "legacy-bounds-fixture-secret-32-characters");
     await conn.query("INSERT INTO users(id,openId,role) VALUES (98640,'legacy-list-bounds-admin','admin')");
+    await conn.query("INSERT INTO users(openId) VALUES ?", [Array.from({ length: 201 }, (_, i) => [`legacy-bounds-extra-${i}`])]);
+    await conn.query("INSERT INTO articles(title,sections,published) VALUES ?", [Array.from({ length: 201 }, () => ["Legacy bounds article fixture", "[]", false])]);
     await conn.query("INSERT INTO posts(text,photos,tags,source,target) VALUES ?", [Array.from({ length: 201 }, (_, i) => ["Bounded fixture", "[]", JSON.stringify([i === 200 ? "last-only" : "ordinary"]), "legacy-list-bounds", "feed"])]);
     const [rows] = await conn.query<RowDataPacket[]>("SELECT id FROM posts WHERE source='legacy-list-bounds'");
     await conn.query("INSERT INTO saved_posts(userId,postId) VALUES ?", [rows.map(row => [98640, row.id])]);
@@ -30,11 +32,13 @@ describe.skipIf(!testDatabaseUrl)("bounded legacy post collections", () => {
     if (conn) {
       await conn.query("DELETE FROM saved_posts WHERE userId=98640");
       await conn.query("DELETE FROM posts WHERE source='legacy-list-bounds'");
+      await conn.query("DELETE FROM users WHERE openId LIKE 'legacy-bounds-extra-%'");
+      await conn.query("DELETE FROM articles WHERE title='Legacy bounds article fixture'");
       await conn.query("DELETE FROM users WHERE id=98640"); await conn.end();
     }
     await ((await getDb()) as unknown as { $client: Pool })?.$client.end(); vi.unstubAllEnvs();
   });
-  it.each(["feed.list", "feed.savedPosts", "admin.posts"])("refuses oversized %s explicitly instead of hydrating or silently truncating", async path => {
+  it.each(["feed.list", "feed.savedPosts", "admin.posts", "admin.members", "admin.articles"])("refuses oversized %s explicitly instead of hydrating or silently truncating", async path => {
     expect(await call(path)).toEqual({ status: 413, data: "PAYLOAD_TOO_LARGE" });
   });
   it("filters legacy feed tags before the cap and keeps page APIs usable", async () => {

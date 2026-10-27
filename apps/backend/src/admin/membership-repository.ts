@@ -1,13 +1,14 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { clubPayments, users } from "../../../../packages/database/src/schema";
+import { boundedLegacyList, LEGACY_LIST_CAP } from "../content/legacy-list-limit";
 
 // The compatibility facade owns the lazy connection; this module only reads it.
 type Database = MySql2Database | null;
 
 export async function listAdminMembers(db: Database) {
   if (!db) throw new Error("Database not available");
-  const allUsers = await db
+  const allUsers = boundedLegacyList(await db
     .select({
       id: users.id,
       email: users.email,
@@ -18,11 +19,13 @@ export async function listAdminMembers(db: Database) {
       blockedReason: users.blockedReason,
     })
     .from(users)
-    .orderBy(desc(users.createdAt));
+    .orderBy(desc(users.createdAt)).limit(LEGACY_LIST_CAP + 1));
+  if (!allUsers.length) return [];
   const payments = await db
-    .select()
+    .select({ userId: clubPayments.userId, expiresAt: sql<string>`MAX(${clubPayments.expiresAt})`.mapWith(clubPayments.expiresAt) })
     .from(clubPayments)
-    .where(eq(clubPayments.status, "paid"));
+    .where(and(eq(clubPayments.status, "paid"), gt(clubPayments.expiresAt, new Date()), inArray(clubPayments.userId, allUsers.map(user => user.id))))
+    .groupBy(clubPayments.userId);
   const now = Date.now();
   const expiresByUser = new Map<number, Date>();
   for (const row of payments) {
