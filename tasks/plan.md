@@ -2,6 +2,17 @@
 
 ## Действующий план агента — 13 октября 2026
 
+28 октября продолжение VK по разрешению владельца: исправить и выпустить всё
+на подтверждённый daryadarcy.dev.reeskeen.ru. Найдены CDN404/429 и отсутствие
+DNS/интернета у isolated API. Минимальное решение — bounded thumbnail/frame
+fetch через существующий fixed-host TLS-verified gateway и новая immutable
+WebP-копия public cover в S3. Контракт/API105/дизайн прежние. Native proof
+1280×720/309522B/public200; старые объекты не менялись.165backend SQL/HTTP и
+120frontend tests, типы/сборки/lint прошли; backup41/ledger45/admin3 восстановлен
+на отдельном MySQL. Строгий/guestLIVE/retirement режимы не включать.
+Далее push/stage release API+TEST+web, proxy-only настройки, CAS poster954,
+проверка браузером и сохранности. Не объявлять выпуск до фактического apply.
+
 27 октября отдельный запрос: автоматическая обложка VK-поста при сохранении.
 Реализовано локально через JSON-prefetch плеера с hash, до SQL-транзакции;
 существующий media.posterUrl, без нового API/DDL/ручных frontend-правок.

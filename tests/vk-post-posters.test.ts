@@ -1,4 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+const stored = "https://s3.twcstorage.ru/daryadarcy-s3/covers/vk-v1/cover.webp";
+const storage = vi.hoisted(() => ({ save: vi.fn() }));
+vi.mock("../apps/backend/src/media/vk-poster-object", () => ({
+  saveVkPoster: storage.save,
+}));
 import { resolveVkPostPosters } from "../apps/backend/src/content/vk-post-posters";
 
 const link =
@@ -40,10 +45,13 @@ const transport = (html = page()) =>
   );
 
 describe("VK post covers", () => {
+  beforeEach(() => {
+    storage.save.mockReset().mockResolvedValue(stored);
+  });
   it("uses the exact hash at a fixed VK host and keeps the largest signed image intact", async () => {
     const fetchImpl = transport();
     const result = await resolveVkPostPosters([link, link], { fetchImpl });
-    expect([...result]).toEqual([[link, large]]);
+    expect([...result]).toEqual([[link, stored]]);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
     const [destination, options] = fetchImpl.mock.calls[0];
     const url = new URL(String(destination));
@@ -51,6 +59,34 @@ describe("VK post covers", () => {
     expect(url.pathname).toBe("/video_ext.php");
     expect(url.searchParams.get("hash")).toBe("a1b2c3d4e5f60708");
     expect(options).toMatchObject({ redirect: "error", credentials: "omit" });
+    expect(String(fetchImpl.mock.calls[1][0])).toBe(large);
+    expect(storage.save).toHaveBeenCalledTimes(1);
+  });
+  it("falls back to a matching VK first frame when the cover CDN refuses it", async () => {
+    const frame =
+      "https://iv.okcdn.ru/getVideoPreview?id=own-video&tkn=synthetic";
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async (url) => {
+      const value = String(url);
+      if (new URL(value).hostname === "vk.com")
+        return new Response(
+          page({ first_frame: [{ url: frame, width: 1280, height: 720 }] }),
+        );
+      if (value === frame)
+        return new Response(new Uint8Array([255, 216, 255, 0]), {
+          headers: { "Content-Type": "image/jpeg" },
+        });
+      return new Response("Missing", { status: 404 });
+    });
+    expect((await resolveVkPostPosters([link], { fetchImpl })).get(link)).toBe(
+      stored,
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+  it("does not return a transient VK URL if storing its stable copy fails", async () => {
+    storage.save.mockRejectedValue(new Error("storage unavailable"));
+    expect(
+      (await resolveVkPostPosters([link], { fetchImpl: transport() })).size,
+    ).toBe(0);
   });
   it("never requests arbitrary hosts, share pages, private uploads or duplicate parameters", async () => {
     const fetchImpl = transport();
@@ -111,7 +147,7 @@ describe("VK post covers", () => {
       (await resolveVkPostPosters([link], { fetchImpl: transport(html) })).get(
         link,
       ),
-    ).toBe(small);
+    ).toBe(stored);
   });
   it.each([
     "<html>Access denied</html>",
@@ -128,7 +164,7 @@ describe("VK post covers", () => {
           fetchImpl: transport(page({ title: '}); doNotExecute(); {"' })),
         })
       ).get(link),
-    ).toBe(large);
+    ).toBe(stored);
   });
   it("does not turn refusal, network errors or oversized bodies into a save failure", async () => {
     for (const fetchImpl of [

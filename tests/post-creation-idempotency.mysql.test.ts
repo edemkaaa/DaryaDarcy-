@@ -16,6 +16,10 @@ import { openContentTestDatabase } from "./helpers/content-mysql";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 
 const transport = vi.hoisted(() => ({ announcements: [] as number[] }));
+const stableVkCover = "https://s3.twcstorage.ru/daryadarcy-s3/covers/vk-v1/fixture.webp";
+vi.mock("../apps/backend/src/media/vk-poster-object", () => ({
+  saveVkPoster: async () => "https://s3.twcstorage.ru/daryadarcy-s3/covers/vk-v1/fixture.webp",
+}));
 vi.mock("../apps/backend/src/push", () => ({
   sendMarketingPostNotification: async (_text: string, id: number) => {
     transport.announcements.push(id);
@@ -164,7 +168,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await admin.admin.createPost.mutate(request)).toBe(id);
         const detail = await admin.admin.postDetail.query({ id });
         expect(detail?.media).toHaveLength(1);
-        expect(detail?.media[0]).toMatchObject({ url: vk, posterUrl: vkCover });
+        expect(detail?.media[0]).toMatchObject({ url: vk, posterUrl: stableVkCover });
         await admin.admin.updatePost.mutate({ id, videos: [vk], text: "Edited VK",
           expectedRevision: detail!.editRevision });
         const edited = await admin.admin.postDetail.query({ id });
@@ -183,7 +187,7 @@ describe.skipIf(!testDatabaseUrl)(
         denied = false;
         await admin.admin.updatePost.mutate({ id, videos: [vk], expectedRevision: before!.editRevision });
         const after = await admin.admin.postDetail.query({ id });
-        expect(after?.media[0]).toEqual({ ...before?.media[0], posterUrl: vkCover });
+        expect(after?.media[0]).toEqual({ ...before?.media[0], posterUrl: stableVkCover });
         expect(transport.announcements).toEqual([]);
       } finally { external.mockRestore(); }
     });
@@ -205,9 +209,9 @@ describe.skipIf(!testDatabaseUrl)(
       try {
         const id = await admin.admin.createPost.mutate({ ...input, target: "both", videos: [vk] });
         const clubPage = await admin.club.list.query({ limit: 200 });
-        expect(clubPage.posts.find(post => post.id === id)?.media[0]?.posterUrl).toBe(vkCover);
+        expect(clubPage.posts.find(post => post.id === id)?.media[0]?.posterUrl).toBe(stableVkCover);
         const post = await admin.feed.getById.query({ id });
-        expect(post?.media[0]?.posterUrl).toBe(vkCover);
+        expect(post?.media[0]?.posterUrl).toBe(stableVkCover);
         expect(transport.announcements).toEqual([id]);
       } finally { external.mockRestore(); }
     });

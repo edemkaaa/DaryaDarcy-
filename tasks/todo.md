@@ -2,6 +2,22 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### VK: стабильные копии и согласованный выпуск — 28 октября
+
+- [x] Freshfetch: новых incoming нет; пользователь подтвердил выпуск именно
+  daryadarcy.dev.reeskeen.ru. LIVE/strict/retirement flags не включать.
+- [x] Причины: частичные404/429 CDN и EAI_AGAIN внутри isolated API.
+  Добавлены bounded frame fallback, immutable S3 WebP cover и fixed-host GET
+  proxy в существующем gateway, без общего доступа API в интернет.
+- [x] Native Linux/S3 proof:1280×720/309522B, public200/year cache;
+  новый объект, старые файлы/БД пока прежние. Повтор/ACK/integrity покрыты тестами.
+- [x] Freshbackup41tables/45ledger/3admin, реальное isolated restore совпало.
+ 165backend/120frontend tests, types/API105/builds/lint; qs moderate advisory
+ не вызывает найденного прямого qs.stringify(comma) пути; deps не менялись.
+- [ ] Запушить объединённую версию, выпустить API/TEST/web и узкий gateway.
+- [ ] Проверить candidate, привязать только poster media30/post954 по CAS,
+  сверить данные/админов/старые файлы и принять реальную картинку в браузере.
+
 ### Автоматические обложки VK-постов — 27 октября
 
 - [x] Подтвердить причину первого Club-видео: post954/media30, пустой poster,
