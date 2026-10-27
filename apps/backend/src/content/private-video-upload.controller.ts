@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { getHTTPStatusCodeFromError } from "@trpc/server/http";
 import type { Request, Response } from "express";
 import { SessionService } from "../identity/session.service";
+import { releaseVideoUpload } from "../_core/video-upload-admission";
 import {
   normalizeMediaContentType,
   resolveMediaContentType,
@@ -71,6 +72,10 @@ export class PrivateVideoUploadController {
           ? error
           : new TRPCError({ code: "SERVICE_UNAVAILABLE" });
       res.status(getHTTPStatusCodeFromError(known)).json({ error: known.code });
+    } finally {
+      // A disconnected client does not cancel the SQL/storage operation. Keep
+      // its admission until the operation settles, not merely until res.close.
+      releaseVideoUpload(req);
     }
   }
 }

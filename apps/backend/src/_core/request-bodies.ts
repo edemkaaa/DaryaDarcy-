@@ -2,6 +2,7 @@ import express, { type Express, type Request, type Response } from "express";
 import { SessionService } from "../identity/session.service";
 import { privateVideoMetadata, privateVideoUploadEnabled } from "../content/private-video-input";
 import { retiredPublicUploads, retiredUploadMessage } from "../media/legacy-upload-policy";
+import { admitVideoUpload, releaseVideoUpload } from "./video-upload-admission";
 
 const photoProcedures = new Set(["profile.uploadAvatar", "profile.uploadAvatarWithReceipt", "club.uploadPrivateCommentPhoto", "admin.uploadPhoto", "admin.uploadPublicCover"]);
 const sessions = new SessionService();
@@ -41,8 +42,9 @@ export function registerRequestBodies(app: Express) {
     if (!privateVideoMetadata.safeParse({ query: req.query, idempotencyKey: req.headers["idempotency-key"], mimeType: req.headers["content-type"] ?? "application/octet-stream" }).success) {
       res.status(400).json({ error: "Некорректный запрос" }); return;
     }
+    if (!admitVideoUpload(req, res)) return;
     express.raw({ type: () => true, limit: "80mb", inflate: false })(req, res, err => {
-      if (err) { bodyError(res, err); return; }
+      if (err) { releaseVideoUpload(req); bodyError(res, err); return; }
       next();
     });
   });
