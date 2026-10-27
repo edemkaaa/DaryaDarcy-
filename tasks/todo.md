@@ -2,6 +2,21 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Исправление порядка Клуба — 27 октября
+
+- [x] CLUB-ORDER1: отдельный клубный порядок dateDESC/idASC до LIMIT;
+  ручной admin/calendar и порядок feed сохранены, без правок данных/DDL.
+- [x] CLUB-ORDER2: RED6/GREEN8 real HTTP/JWT/fresh44, три страницы/ties/NULL,
+  category/board/access-revoke и admin/calendar/feed controls; metadata189→16pages,
+  post887:189→11 в репетиции, stored ranks unchanged.
+- [x] CLUB-ORDER3: unit3396passed/1764skipped, native8 separately,
+  types/API102/boundaries805/backend+TEST builds; ownDB cleanup, frontend handoff.
+- [ ] CLUB-ORDER-RELEASE: совместный выпуск backend + frontend remove-sort/reset
+  старой цепочки; пока безpush/deploy, frontend-код не менялся.
+
+[Контракт/задача фронтендеру](../docs/development/frontend-club-chronology-2026-10-27.md).
+Остальные пункты AUDIT-FIX ещё не исправлены. Рабочие БД/S3/админские входы прежние.
+
 ### Глубокая перепроверка нового аудита — 27 октября
 
 - [x] AUDIT-DEEP1: fresh44 real HTTP/SQL и owned loopback S3: A5–12/14/15,
@@ -11,7 +26,7 @@
 - [x] AUDIT-DEEP3: индекс-кандидат read-fast/write-unsafe отклонён;
   каноническая схема восстановлена,20native positive controls GREEN; ownDB удалена.
 - [ ] AUDIT-FIX: исправления по приоритетам отчёта ещё не реализованы.
-  Порядок Клуба — отдельный контракт; frontend не менять без разрешения.
+  Порядок Клуба принят и исправлен локально в CLUB-ORDER; frontend — документ.
 
 [Глубокая перепроверка](../docs/audits/backend-audit-recheck-2026-10-27.md).
 Код/рабочаяБД/S3/flags/выпуск прежние; исследование не означает исправление.

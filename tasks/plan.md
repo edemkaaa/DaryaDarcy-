@@ -2,6 +2,15 @@
 
 ## Действующий план агента — 13 октября 2026
 
+27 октября, согласованная правка сортировки Клуба: отдельно от ручного admin
+задан COALESCE(publishedAt,createdAt)DESC,idASC доpagination дляclub.list/listByCategory.
+Feed/admin/calendar прежние, DB ranks/даты/файлы не менялись, безDDL/новыхAPI.
+RED6→GREEN8 на realHTTP/fresh44; metadata189 записей→16pages, post887189→11.
+Unit3396passed/1764skipped, native8отдельно; types/API102/boundaries805/builds GREEN.
+OwnDB удалена; frontend не менялся, remove-sort/cache-chain-reset передан документом.
+Пуш/выкладка не выполнялись; другие AUDIT-FIX ещё открыты.
+[Контракт/приёмка](../docs/development/frontend-club-chronology-2026-10-27.md).
+
 27 октября, глубокая перепроверка аудита a762b4a на4e87bcc: A5–12/14/15
 подтверждены независимыми fresh44 HTTP/SQL/process/TypeScript probes.
 P1: API256MiB+rawVideo=true без общего допуска; S3 SQL-lock/pool10 starvation.
