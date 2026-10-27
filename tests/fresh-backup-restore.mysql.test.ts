@@ -315,7 +315,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
             "SELECT COUNT(*) AS count FROM __drizzle_migrations",
           )
         )[0]?.count,
-      ).toBe(44);
+      ).toBe(45);
       expect(
         (await rows(target, "SELECT name,role FROM users WHERE id=70001"))[0],
       ).toEqual({ name: "Тест 🧪", role: "user" });
@@ -413,7 +413,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         },
       );
       expect(JSON.parse(result.stdout)).toMatchObject({
-        migrations: 44,
+        migrations: 45,
         initialized: false,
         pending: [],
         releaseApproval: false,

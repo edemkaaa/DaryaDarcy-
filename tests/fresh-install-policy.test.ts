@@ -28,8 +28,8 @@ describe("separate fresh-install migration manifest", () => {
     const before = JSON.stringify(journal);
     const result = await fresh(journal, files);
     expect(result.issues).toEqual([]);
-    expect(result.migrations).toHaveLength(44);
-    expect(result.migrations.at(-1)?.tag).toBe("0043_public_photo_uploads");
+    expect(result.migrations).toHaveLength(45);
+    expect(result.migrations.at(-1)?.tag).toBe("0044_post_listing_indexes");
     expect(result.migrations.slice(17, 20).map((row) => row.tag)).toEqual([
       "0017_consent_text",
       "0018_push_consent_text",

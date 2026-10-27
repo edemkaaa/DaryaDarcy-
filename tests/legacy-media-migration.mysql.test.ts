@@ -160,7 +160,7 @@ describe.skipIf(!uri)(
         Number(
           (await rows("SELECT COUNT(*) n FROM __drizzle_migrations"))[0].n,
         ),
-      ).toBe(44);
+      ).toBe(45);
       wire = await openPrivateUploadWire({ content: true });
       for (const [key, value] of Object.entries({
         DATABASE_URL: uri!,
