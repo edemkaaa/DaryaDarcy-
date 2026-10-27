@@ -2,7 +2,7 @@ import { invalidResponse } from "@/shared/api/errors";
 
 export type PostInteractions = { likedIds: number[]; savedIds: number[] };
 
-/** Keep completed groups stable as another page is appended. */
+/** Deduplicate requested IDs and keep each wire batch within the API limit. */
 export function interactionBatches(postIds: readonly number[]): number[][] {
   const ids = [...new Set(postIds)].filter(
     (id) => Number.isSafeInteger(id) && id > 0,

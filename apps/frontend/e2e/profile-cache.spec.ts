@@ -45,7 +45,7 @@ for (const width of [390, 1440]) {
       const names = decodeURIComponent(new URL(route.request().url()).pathname)
         .split("/api/trpc/")[1]
         .split(",");
-      if (names.includes("feed.savedPosts")) {
+      if (names.includes("feed.savedPostsPage")) {
         reads++;
         if (pending) {
           pendingReads++;
@@ -54,7 +54,18 @@ for (const width of [390, 1440]) {
       }
       await route.fallback();
     });
-    await gotoWithSession(page, "/profile");
+    // Establish session/access before measuring profile-cache requests: the
+    // profile uses a new cache scope when club access is first confirmed.
+    const subscription = page.waitForResponse((response) =>
+      response.url().includes("club.subscription"),
+    );
+    await gotoWithSession(page, "/library");
+    await (await subscription).finished();
+    await expect(page.getByPlaceholder("Поиск материалов...")).toBeVisible();
+    await page.clock.runFor(100);
+    await page
+      .getByRole("link", { name: "Открыть профиль", exact: true })
+      .click();
     await expect(
       page.getByRole("button", {
         name: "Открыть публикацию: OLD_SAVED_1",
@@ -103,12 +114,13 @@ for (const width of [390, 1440]) {
       }),
     ).toHaveCount(0);
     await page.clock.runFor(100);
-    expect(reads).toBe(1);
+    // Feed and club bookmarks have independent paginated queries.
+    expect(reads).toBe(2);
 
     await page.locator('nav[aria-label="Разделы"] a[href="/library"]').click();
     await page.clock.fastForward(61_000);
     await page.clock.runFor(100);
-    expect(reads).toBe(1);
+    expect(reads).toBe(2);
     let release!: () => void;
     pending = new Promise<void>((resolve) => {
       release = resolve;
@@ -139,7 +151,7 @@ for (const width of [390, 1440]) {
         exact: true,
       }),
     ).toBeVisible();
-    expect(reads).toBe(2);
+    expect(reads).toBe(3);
     expect(await field.evaluate((node) => node.isConnected)).toBe(true);
     await expect(name).toHaveValue("UNSAVED_PROFILE_DRAFT");
   });

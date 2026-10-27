@@ -1,16 +1,29 @@
 import { test, expect, type Page } from "@playwright/test";
 import sharp from "sharp";
 import { randomFillSync } from "node:crypto";
-import { editorApi, ok } from "./editor-fixtures";
+import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
+const coverUrl = "https://example.test/cover.png";
 async function setup(page: Page, uploads: Record<string, unknown>[]) {
+  const state = { legacyUploads: 0, articleWrites: 0 };
   await editorApi(page, (name, input) => {
     if (name === "admin.uploadPhoto") {
-      uploads.push(input);
-      return ok({ url: "https://example.test/photo.webp" });
+      state.legacyUploads++;
+      return failure(500);
     }
+    if (name === "admin.uploadPublicCover") {
+      uploads.push(input);
+      return ok({
+        state: "ready",
+        url: coverUrl,
+        avatarApplied: false,
+        isCurrent: null,
+      });
+    }
+    if (name === "admin.createArticle" || name === "admin.updateArticle")
+      state.articleWrites++;
     if (name === "admin.uploadPrivateContentFile") {
       uploads.push(input);
       return ok({
@@ -26,6 +39,14 @@ async function setup(page: Page, uploads: Record<string, unknown>[]) {
   });
   await page.route("https://s3.twcstorage.ru/**", (route) => route.abort());
   await page.route("https://example.test/**", (route) => route.abort());
+  await page.route(coverUrl, (route) => {
+    const upload = uploads.find((input) => input.purpose === "publicCover");
+    return route.fulfill({
+      contentType: String(upload?.mimeType),
+      body: Buffer.from(String(upload?.base64), "base64"),
+    });
+  });
+  return state;
 }
 async function open(page: Page) {
   await gotoWithSession(page, "/feed");
@@ -41,11 +62,11 @@ const largePng = () =>
     .png({ compressionLevel: 0 })
     .toBuffer();
 
-test("article public banner upload declares its explicit public purpose", async ({
+test("article banner accepts the public cover receipt without publishing the article", async ({
   page,
 }) => {
   const uploads: Record<string, unknown>[] = [];
-  await setup(page, uploads);
+  const state = await setup(page, uploads);
   await gotoWithSession(page, "/admin");
   await page.getByRole("button", { name: "Статьи", exact: true }).click();
   await page
@@ -67,7 +88,22 @@ test("article public banner upload declares its explicit public purpose", async 
       .toBuffer(),
   });
   await expect.poll(() => uploads.length).toBe(1);
-  expect(uploads[0].purpose).toBe("publicCover");
+  expect(uploads[0]).toMatchObject({
+    purpose: "publicCover",
+    idempotencyKey: expect.any(String),
+    filename: "cover.png",
+    mimeType: "image/png",
+  });
+  expect(String(uploads[0].idempotencyKey).length).toBeGreaterThan(0);
+  const image = page.locator(`img[src="${coverUrl}"]`);
+  await expect(image).toBeVisible();
+  await expect
+    .poll(() =>
+      image.evaluate((element: HTMLImageElement) => element.naturalWidth),
+    )
+    .toBe(16);
+  expect(state.legacyUploads).toBe(0);
+  expect(state.articleWrites).toBe(0);
 });
 
 test("an original photo above 4 MiB is prepared within the server limit", async ({

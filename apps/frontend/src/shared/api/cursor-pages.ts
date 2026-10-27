@@ -1,4 +1,14 @@
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
+
+/** A changed list contract starts from the head without clearing personal data. */
+export function cursorQueryKey(
+  key: QueryKey,
+  scope: string,
+  version?: string,
+): QueryKey {
+  return [...key, { ownerScope: scope, ...(version ? { version } : {}) }];
+}
+
 export function cancelInactiveCursorQuery(client: QueryClient, key: QueryKey) {
   queueMicrotask(() => {
     const query = client.getQueryCache().find({ queryKey: key, exact: true });
@@ -10,20 +20,15 @@ export type CursorPage = { items: { id: number }[]; nextCursor: string | null };
 export type CursorChain<P extends CursorPage> = {
   pages: P[];
   pageParams: (string | null)[];
+  refreshedAt?: number[];
+  head?: P;
 };
-export function mergeCursorHead<P extends CursorPage>(
-  previous: CursorChain<P> | undefined,
-  head: P,
-): CursorChain<P> {
-  const before = previous?.pages[0];
-  const unchanged =
-    before?.nextCursor === head.nextCursor &&
-    before.items.length === head.items.length &&
-    before.items.every((item, index) => item.id === head.items[index].id);
-  return unchanged && previous
-    ? { ...previous, pages: [head, ...previous.pages.slice(1)] }
-    : { pages: [head], pageParams: [null] };
+export class CursorChainError extends Error {
+  constructor() {
+    super("Курсор списка повторился. Обновите список.");
+  }
 }
+
 export function appendCursorPage<P extends CursorPage>(
   previous: CursorChain<P>,
   cursor: string,
@@ -34,9 +39,125 @@ export function appendCursorPage<P extends CursorPage>(
     page.nextCursor === cursor ||
     (page.nextCursor !== null && previous.pageParams.includes(page.nextCursor))
   )
-    throw new Error("Курсор списка повторился. Обновите список.");
+    throw new CursorChainError();
   return {
+    ...previous,
     pages: [...previous.pages, page],
     pageParams: [...previous.pageParams, cursor],
+    refreshedAt: [
+      ...(previous.refreshedAt ?? previous.pages.map(() => 0)),
+      Date.now(),
+    ],
+  };
+}
+
+export const POST_PAGE_WINDOW = { maxPages: 8, pageSize: 12 };
+
+export function boundCursorChain<P extends CursorPage>(
+  chain: CursorChain<P>,
+  maxPages: number,
+  direction: "next" | "previous",
+): CursorChain<P> {
+  const start =
+    direction === "next" ? Math.max(0, chain.pages.length - maxPages) : 0;
+  return {
+    ...chain,
+    head: chain.pageParams[0] === null ? chain.pages[0] : chain.head,
+    pages: chain.pages.slice(start, start + maxPages),
+    pageParams: chain.pageParams.slice(start, start + maxPages),
+    refreshedAt: chain.refreshedAt?.slice(start, start + maxPages),
+  };
+}
+
+const sameBoundary = (a: CursorPage | undefined, b: CursorPage) =>
+  a?.nextCursor === b.nextCursor &&
+  a.items.length === b.items.length &&
+  a.items.every((item, index) => item.id === b.items[index].id);
+
+/** Commit a refresh atomically. Offset shifts require rebuilding the retained
+ * window; otherwise only the head and visible pages need network reads. */
+export async function refreshCursorChain<P extends CursorPage>(
+  previous: CursorChain<P> | undefined,
+  fetchPage: (cursor: string | null) => Promise<P>,
+  visibleIds: ReadonlySet<number>,
+  mode: "background" | "all" | "restart",
+): Promise<CursorChain<P>> {
+  const fresh = new Map<string | null, P>();
+  const read = async (cursor: string | null) => {
+    const cached = fresh.get(cursor);
+    if (cached) return cached;
+    const page = await fetchPage(cursor);
+    if (
+      page.nextCursor !== null &&
+      (page.nextCursor === cursor || page.nextCursor === "0")
+    )
+      throw new CursorChainError();
+    fresh.set(cursor, page);
+    return page;
+  };
+  const head = await read(null);
+  const now = Date.now();
+  if (!previous || mode === "restart")
+    return { pages: [head], pageParams: [null], refreshedAt: [now], head };
+  const selected = previous.pages
+    .map((page, index) => ({ page, index }))
+    .filter(
+      ({ page, index }) =>
+        previous.pageParams[index] !== null &&
+        page.items.some((item) => visibleIds.has(item.id)),
+    )
+    .slice(0, 2);
+  // Lists without visibility reporting still rotate through their retained tail.
+  if (!visibleIds.size && !selected.length && previous.pages.length > 1) {
+    const index = previous.pages
+      .map((_, i) => i)
+      .filter((i) => previous.pageParams[i] !== null)
+      .sort(
+        (a, b) =>
+          (previous.refreshedAt?.[a] ?? 0) - (previous.refreshedAt?.[b] ?? 0),
+      )[0];
+    if (index !== undefined)
+      selected.push({ page: previous.pages[index], index });
+  }
+  let changed = !sameBoundary(
+    previous.pageParams[0] === null ? previous.pages[0] : previous.head,
+    head,
+  );
+  if (mode !== "all" && !changed) {
+    for (const { page, index } of selected) {
+      if (!sameBoundary(page, await read(previous.pageParams[index])))
+        changed = true;
+    }
+  }
+  if (mode === "all" || changed) {
+    const pages: P[] = [],
+      pageParams: (string | null)[] = [];
+    let cursor = previous.pageParams[0];
+    for (let index = 0; index < previous.pages.length; index++) {
+      if (pageParams.includes(cursor)) throw new CursorChainError();
+      const page = await read(cursor);
+      pages.push(page);
+      pageParams.push(cursor);
+      if (page.nextCursor === null) break;
+      cursor = page.nextCursor;
+    }
+    if (
+      pages.at(-1)?.nextCursor !== null &&
+      pageParams.includes(pages.at(-1)!.nextCursor)
+    )
+      throw new CursorChainError();
+    return { pages, pageParams, refreshedAt: pages.map(() => now), head };
+  }
+  return {
+    ...previous,
+    head,
+    pages: previous.pages.map(
+      (page, index) => fresh.get(previous.pageParams[index]) ?? page,
+    ),
+    refreshedAt: previous.pages.map((_, index) =>
+      fresh.has(previous.pageParams[index])
+        ? now
+        : (previous.refreshedAt?.[index] ?? 0),
+    ),
   };
 }

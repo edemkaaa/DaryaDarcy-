@@ -55,6 +55,8 @@ export function CollectionItemWindow({
   className,
   style,
   children,
+  itemKey,
+  onRetentionChange,
 }: {
   root: RefObject<HTMLDivElement | null>;
   anchorLocked: RefObject<boolean>;
@@ -63,6 +65,8 @@ export function CollectionItemWindow({
   className: string;
   style?: CSSProperties;
   children: ReactNode;
+  itemKey?: string;
+  onRetentionChange?: (key: string, retained: boolean) => void;
 }) {
   const active = useScreenActive();
   const activeRef = useRef(active);
@@ -89,6 +93,13 @@ export function CollectionItemWindow({
   const previousHeight = useRef(0);
   const mounted =
     nearby || focused || retained || mediaActive || measurement.epoch !== epoch;
+  const keepState = focused || retained || mediaActive;
+  useLayoutEffect(() => {
+    if (itemKey !== undefined) onRetentionChange?.(itemKey, keepState);
+    return () => {
+      if (itemKey !== undefined) onRetentionChange?.(itemKey, false);
+    };
+  }, [itemKey, onRetentionChange, keepState]);
   const updateMediaRetention = () => {
     setMediaActive(
       [...(node.current?.querySelectorAll("video, audio") ?? [])].some(
@@ -169,6 +180,8 @@ export function CollectionItemWindow({
       className={className}
       style={{ ...style, height: mounted ? undefined : measurement.height }}
       data-item-index={index}
+      data-item-key={itemKey}
+      data-window-hidden={style?.display === "none" ? "" : undefined}
       data-window-mounted={mounted ? "true" : "false"}
       tabIndex={mounted ? undefined : 0}
       aria-label={mounted ? undefined : `Публикация ${index + 1}`}

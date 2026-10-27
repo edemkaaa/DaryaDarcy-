@@ -213,3 +213,39 @@ it("allows an unobserved comment request to settle before cache eviction", async
     client.clear();
   }
 });
+
+it("bounds abandoned club filters independently of feed filters", async () => {
+  const client = createAppQueryClient();
+  const activeKey = [
+    ["club", "listByCategory"],
+    { input: { category: "life" }, type: "query" },
+  ];
+  const observer = new QueryObserver(client, {
+    queryKey: activeKey,
+    queryFn: async () => ({ pages: [] }),
+  });
+  const unsubscribe = observer.subscribe(() => {});
+  try {
+    for (let index = 0; index < 7; index++) {
+      client.setQueryData(
+        [
+          ["club", "listByCategory"],
+          { input: { tag: `tag-${index}` }, type: "query" },
+        ],
+        { pages: [] },
+      );
+      await Promise.resolve();
+    }
+    expect(
+      client.getQueryCache().find({ queryKey: activeKey, exact: true }),
+    ).toBeDefined();
+    expect(
+      client
+        .getQueryCache()
+        .findAll({ queryKey: [["club", "listByCategory"]] }),
+    ).toHaveLength(3);
+  } finally {
+    unsubscribe();
+    client.clear();
+  }
+});

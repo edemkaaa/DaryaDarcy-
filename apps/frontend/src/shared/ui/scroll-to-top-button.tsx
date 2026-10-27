@@ -7,8 +7,12 @@ import { useEffect, useState, type RefObject } from "react";
 const CREAM_BG = "#FDF8F0";
 interface ScrollToTopButtonProps {
   scrollRef: RefObject<HTMLDivElement | null>;
+  onScrollToTop?: () => Promise<boolean>;
 }
-export function ScrollToTopButton({ scrollRef }: ScrollToTopButtonProps) {
+export function ScrollToTopButton({
+  scrollRef,
+  onScrollToTop,
+}: ScrollToTopButtonProps) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const scroll = scrollRef.current;
@@ -27,11 +31,18 @@ export function ScrollToTopButton({ scrollRef }: ScrollToTopButtonProps) {
     >
       <Action
         aria-label="Наверх"
-        onClick={() => {
+        onClick={async () => {
           const scroll = scrollRef.current;
           if (scroll?.hasAttribute("data-windowed-collection"))
             scroll.dataset.collectionScrollTarget = "start";
-          scroll?.scrollTo({ top: 0, behavior: "smooth" });
+          if (onScrollToTop && !(await onScrollToTop())) {
+            if (scroll) delete scroll.dataset.collectionScrollTarget;
+            return;
+          }
+          scroll?.scrollTo({
+            top: 0,
+            behavior: onScrollToTop ? "instant" : "smooth",
+          });
         }}
         className={({ pressed }) =>
           [

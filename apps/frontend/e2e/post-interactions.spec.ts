@@ -27,6 +27,11 @@ async function fixture(page: Page) {
     readGate: undefined as Promise<void> | undefined,
     status: 0,
     readStatus: 0,
+    detailStatus: 0,
+    detailMissing: false,
+    detailGate: undefined as Promise<void> | undefined,
+    totalLikes: 17,
+    calls: [] as string[],
   };
   const post = () => ({
     id: 1,
@@ -38,12 +43,13 @@ async function fixture(page: Page) {
     published: true,
     status: "published",
     richText: null,
-    likeCount: state.liked.length,
+    likeCount: state.totalLikes + state.liked.length,
     commentCount: 0,
     createdAt: "2026-10-04T10:00:00Z",
     publishedAt: "2026-10-04T10:00:00Z",
   });
   await editorApi(page, async (name) => {
+    state.calls.push(name);
     if (name === "club.subscription")
       return ok({
         hasClubAccess: true,
@@ -56,7 +62,13 @@ async function fixture(page: Page) {
       });
     if (name === "feed.listPaginated" || name === "club.listByCategory")
       return ok({ posts: [post()], nextCursor: null });
-    if (name === "feed.getById") return ok(post());
+    if (name === "feed.getById") {
+      const result = state.detailStatus
+        ? failure(state.detailStatus)
+        : ok(state.detailMissing ? null : post());
+      await state.detailGate;
+      return result;
+    }
     if (name === "feed.userInteractions") {
       state.reads++;
       const result = state.readStatus
@@ -97,6 +109,125 @@ async function fixture(page: Page) {
   );
   return state;
 }
+
+test("confirmed likes read only their post and copy the server count into the retained feed", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  await gotoWithSession(page, "/feed");
+  const like = page.getByRole("button", { name: "Нравится", exact: true });
+  await expect(like).toBeEnabled();
+  await expect(like).toHaveText(/(?:^|\D)17$/);
+  state.calls.length = 0;
+  await like.click();
+  await expect(like).toBeEnabled();
+  await expect(like).toHaveText(/(?:^|\D)18$/);
+  expect(state.calls).toEqual(["feed.toggleLike", "feed.getById"]);
+  const detailRead = page.waitForResponse(
+    (response) =>
+      response.url().includes("feed.getById") && response.status() === 200,
+  );
+  await page.getByText("SHARED_INTERACTION_POST", { exact: true }).click();
+  await expect(page).toHaveURL(/\/post\/1$/);
+  await detailRead;
+  await expect(like).toBeVisible();
+  await expect(like).toBeEnabled();
+  // Another user's likes must be reflected; subtracting one locally is wrong.
+  state.totalLikes = 40;
+  state.calls.length = 0;
+  await like.click();
+  await expect(like).toBeEnabled();
+  await expect(like).toHaveText(/(?:^|\D)40$/);
+  expect(state.calls).toEqual(["feed.toggleLike", "feed.getById"]);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/feed$/);
+  await expect(like).toHaveText(/(?:^|\D)40$/);
+  await expect(like).toHaveAttribute("aria-pressed", "false");
+});
+
+test("a failed count refresh preserves the confirmed mark and recovers without replaying the mutation", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  await gotoWithSession(page, "/feed");
+  const like = page.getByRole("button", { name: "Нравится", exact: true });
+  await expect(like).toBeEnabled();
+  state.detailStatus = 503;
+  await like.click();
+  await expect(
+    page.getByText(
+      "Отметка обновлена, но не удалось обновить счётчик. Обновите отметки.",
+    ),
+  ).toBeVisible();
+  await expect(like).toBeEnabled();
+  await expect(like).toHaveAttribute("aria-pressed", "true");
+  await expect(like).toHaveText(/(?:^|\D)17$/);
+  state.detailStatus = 0;
+  await page
+    .getByRole("button", { name: "Обновить отметки", exact: true })
+    .click();
+  await expect(like).toHaveText(/(?:^|\D)18$/);
+  await expect(
+    page.getByRole("button", { name: "Обновить отметки", exact: true }),
+  ).toHaveCount(0);
+  expect(state.writes).toEqual(["feed.toggleLike"]);
+});
+
+test("a post removed before the count read disappears from the cached feed", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  await gotoWithSession(page, "/feed");
+  const like = page.getByRole("button", { name: "Нравится", exact: true });
+  await expect(like).toBeEnabled();
+  state.detailMissing = true;
+  await like.click();
+  await expect(
+    page.getByText("SHARED_INTERACTION_POST", { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("Публикаций пока нет", { exact: true }),
+  ).toBeVisible();
+  expect(state.writes).toEqual(["feed.toggleLike"]);
+});
+
+test("a delayed count refresh cannot restore the previous account's cache", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  const gate = deferred();
+  try {
+    await gotoWithSession(page, "/feed");
+    const like = page.getByRole("button", { name: "Нравится", exact: true });
+    await expect(like).toBeEnabled();
+    state.detailGate = gate.promise;
+    await like.click();
+    await expect.poll(() => state.calls.includes("feed.getById")).toBe(true);
+    state.owner = 202;
+    state.liked = [];
+    state.totalLikes = 99;
+    state.detailGate = undefined;
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "darcy:session-change",
+          newValue: "new-count-owner",
+        }),
+      ),
+    );
+    await expect(like).toBeEnabled();
+    await expect(like).toHaveText(/(?:^|\D)99$/);
+    gate.release();
+    await page.getByText("SHARED_INTERACTION_POST", { exact: true }).click();
+    await expect(page).toHaveURL(/\/post\/1$/);
+    await expect(like).toBeEnabled();
+    await expect(like).toHaveText(/(?:^|\D)99$/);
+    await expect(like).toHaveAttribute("aria-pressed", "false");
+    expect(state.writes).toEqual(["feed.toggleLike"]);
+  } finally {
+    gate.release();
+  }
+});
 
 for (const action of actions) {
   for (const source of ["feed", "club", "post"] as const) {
@@ -205,6 +336,7 @@ for (const action of actions) {
     await expect(button).toHaveAttribute("aria-pressed", "true");
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "false");
+    await expect(button).toBeEnabled();
     expect(
       state.writes.filter((name) => name === action.procedure),
     ).toHaveLength(2);
@@ -244,6 +376,7 @@ test("an old account's pending response cannot change the new account's marks", 
     await expect(like).toHaveAttribute("aria-pressed", "false");
     await like.click();
     await expect(like).toHaveAttribute("aria-pressed", "true");
+    await expect(like).toBeEnabled();
     expect(
       state.writes.filter((name) => name === "feed.toggleLike"),
     ).toHaveLength(2);

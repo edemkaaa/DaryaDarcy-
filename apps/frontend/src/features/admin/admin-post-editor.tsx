@@ -1214,7 +1214,8 @@ function AdminPostEditorBody({
                 className={classes.sortInput}
               />
               <Typography className={classes.formHint}>
-                Чем меньше число, тем выше пост в ленте
+                Чем меньше число, тем выше пост в Ленте и админском списке. В
+                Клубе публикации идут по дате публикации — от новых к старым.
               </Typography>
             </div>
           </ScrollArea>

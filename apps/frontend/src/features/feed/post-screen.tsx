@@ -159,23 +159,9 @@ function PostDetailScreenInner({ id }: { id: string }) {
       </ScreenContainer>
     );
   }
-  const photos = (post.photos as string[]) || [];
-  const tags = (post.tags as string[]) || [];
-  const media =
-    (
-      post as {
-        media?: {
-          id: number;
-          type: "video" | "audio" | "document";
-          url: string;
-          filename?: string | null;
-          mimeType?: string | null;
-          fileSize?: number | null;
-          duration?: number | null;
-          posterUrl?: string | null;
-        }[];
-      }
-    ).media || [];
+  const photos = post.photos || [];
+  const tags = post.tags || [];
+  const media = post.media || [];
   const resolved = resolvePostVideos(photos, media);
   const viewPhotos = resolved.stackPhotos;
   const hasVideo = resolved.videos.length > 0;
