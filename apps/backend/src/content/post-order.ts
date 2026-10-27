@@ -3,7 +3,7 @@ import { posts } from "../../../../packages/database/src/schema";
 
 // Shared by public catalog reads and admin date-only reads; keep one definition.
 export const postDateOrder = desc(
-  sql`COALESCE(${posts.publishedAt}, ${posts.createdAt})`,
+  sql`CAST(COALESCE(${posts.publishedAt}, ${posts.createdAt}) AS DATETIME)`,
 );
 // LIMIT/OFFSET pages need a total order even when imported posts share dates.
 export const postListOrder = [

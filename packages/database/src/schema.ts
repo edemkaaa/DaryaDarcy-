@@ -72,7 +72,12 @@ export const posts = mysqlTable("posts", {
   richText: json("richText").$type<RichTextBlock[]>(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, table => ({
+  feedListing: index("posts_feed_listing_idx").on(table.published, table.status, table.sortOrder,
+    sql`(CAST(COALESCE(${table.publishedAt}, ${table.createdAt}) AS DATETIME)) DESC`, table.id),
+  clubListing: index("posts_club_listing_idx").on(table.published, table.status,
+    sql`(CAST(COALESCE(${table.publishedAt}, ${table.createdAt}) AS DATETIME)) DESC`, table.id),
+}));
 
 /** Post status: draft, scheduled, published */
 export type PostStatus = "draft" | "scheduled" | "published";

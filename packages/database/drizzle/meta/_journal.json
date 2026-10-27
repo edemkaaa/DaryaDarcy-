@@ -309,6 +309,13 @@
       "when": 1792886401000,
       "tag": "0043_public_photo_uploads",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "5",
+      "when": 1793091600000,
+      "tag": "0044_post_listing_indexes",
+      "breakpoints": true
     }
   ]
 }
