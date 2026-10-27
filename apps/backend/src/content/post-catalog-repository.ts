@@ -9,7 +9,7 @@ import {
   type Tag,
 } from "../../../../packages/database/src/schema";
 import { attachPostMedia } from "./post-media-repository";
-import { postListOrder } from "./post-order";
+import { clubPostListOrder, postListOrder } from "./post-order";
 import { clubCategoryCondition, clubBoardTagCondition } from "./club-category-filter";
 import type { ClubTabId } from "../../../../packages/shared/src/club-tags";
 
@@ -221,7 +221,7 @@ export async function getPostsForTarget(
     .select(postListColumns)
     .from(posts)
     .where(and(...conditions))
-    .orderBy(...postListOrder)
+    .orderBy(...(target === "club" ? clubPostListOrder : postListOrder))
     .limit(limit + 1)
     .offset(offset);
 

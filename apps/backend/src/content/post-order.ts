@@ -11,3 +11,6 @@ export const postListOrder = [
   postDateOrder,
   asc(posts.id),
 ] as const;
+
+// Club pages are chronological; imported timestamp ranks remain admin metadata.
+export const clubPostListOrder = [postDateOrder, asc(posts.id)] as const;
