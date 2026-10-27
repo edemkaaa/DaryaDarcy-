@@ -2,7 +2,7 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
-### Исправления backend-аудита — 27 октября, локально
+### Исправления backend-аудита — 27 октября, выпущены
 
 - [x] AUDIT-BE5: допуск одного RAW-видео до парсера; 429/Retry-After,
   ошибка/abort/отключение клиента не обходят ограничение.
@@ -11,7 +11,7 @@
 - [x] AUDIT-BE7: activity не чаще пяти минут, SQL arbitration/SKIP LOCKED,
   auth/block/session-version/retirement не подменяются кешем полномочий.
 - [x] AUDIT-BE8: CAST-safe миграция0044, два listing index; implicit/NULL даты,
-  EXPLAIN и совпадение страниц; fresh45 install9passed. Рабочая схема прежняя.
+  EXPLAIN и совпадение страниц; fresh45 install9passed. На стенде ledger45.
 - [x] AUDIT-BE9: bounded старые feed/saved/liked/admin posts/members/articles/
   comments; 413 вместо полного чтения, фильтр доLIMIT, page API сохранены.
 - [x] AUDIT-BE10/11: синхронизация/удаление всех анонсов, reserved source/max32,
@@ -25,8 +25,12 @@
   fresh45install9 и restore8/2image-only skips; Node-service46passed.
   Types/API103/boundaries808/backend+TEST builds/docs113/audit0; review/secret scan.
   Финальные3ownSQL containers удалены поID/owner/tmpfs, OOM=false/restarts0.
-- [ ] Совместный выпуск/0044 preflight+backup+write window — отдельно;
-  нет разрешения менять рабочую БД/S3/фронт/сервер в этой локальной работе.
+- [x] Выпуск backend5c0df13/API+TEST+video: fresh fetch/push, history44,
+  backup/реальный restore41tables/admin3, окно записи/Drizzle0044/ledger45.
+  Live API34/HTTP35/VK22, все строки/admin credentials/старые образы сохранены.
+  Web/дизайн/S3/лимиты/оплата/SMTP прежние; клиентский handoff остаётся открытым.
+
+[Фактический выпуск и откат](../docs/operations/backend-audit-release-2026-10-27.md).
 
 [Отчёт и ограничения](../docs/audits/backend-audit-fixes-2026-10-27.md),
 [единый frontend handoff](../docs/development/frontend-audit-handoff-2026-10-27.md).
@@ -42,9 +46,9 @@
   post887:189→11 в репетиции, stored ranks unchanged.
 - [x] CLUB-ORDER3: unit3396passed/1764skipped, native8 separately,
   types/API102/boundaries805/backend+TEST builds; ownDB cleanup, frontend handoff.
-- [ ] CLUB-ORDER-RELEASE: совместный выпуск backend + frontend remove-sort/reset
-  старой цепочки; backend порядок уже вstaging ea40c4a, выкладка ещё открыта;
-  новые AUDIT-BE commits пока локальные, frontend-код не менялся.
+- [ ] CLUB-ORDER-RELEASE: backend порядок выложен в5c0df13, live40IDs/date-order
+  проверены. На фронте остаются remove-sort/reset старой цепочки по документу;
+  frontend-код в backend-выпуске не менялся.
 
 [Контракт/задача фронтендеру](../docs/development/frontend-club-chronology-2026-10-27.md).
 Актуальное состояние остальных AUDIT-FIX — в блоке исправлений выше.
