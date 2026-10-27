@@ -65,11 +65,13 @@ async function startWithCompletedCapabilities(
   state.authGate = gate.promise;
   try {
     await page.goto("/login", { waitUntil: "domcontentloaded" });
-    // The visible control proves that the query has been consumed and cached,
-    // while the initial identity is still awaiting confirmation.
+    // SMS stays disabled by frontend policy even when the server advertises it.
+    // Let the completed public read reach the cache before confirming identity.
+    await expect.poll(() => state.capReplies).toBe(1);
+    await page.clock.runFor(200);
     await expect(
       page.getByRole("button", { name: "Войти по телефону", exact: true }),
-    ).toBeVisible();
+    ).toHaveCount(0);
     expect(state.capReads).toBe(1);
   } finally {
     state.authGate = undefined;
@@ -83,7 +85,7 @@ async function startWithCompletedCapabilities(
     await expect(
       page.getByText(state.user.email, { exact: true }),
     ).toBeVisible();
-    await expect(phoneOffer(page)).toBeVisible();
+    await expect(phoneOffer(page)).toHaveCount(0);
   }
   await page.clock.runFor(200);
 }
@@ -116,7 +118,7 @@ test("capabilities: the guest keeps the same completed public read", async ({
   expect(state.capReads).toBe(1);
   await expect(
     page.getByRole("button", { name: "Войти по телефону", exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
 });
 
 test("capabilities: switching accounts preserves public freshness without extending its lifetime", async ({

@@ -44,6 +44,7 @@ async function fixture(
           id: 101,
           openId: "audit-user",
           name: "Аудит",
+          gender: "female",
           email: "audit@example.test",
           role: options.admin ? "admin" : "user",
           lastSignedIn: new Date().toISOString(),
@@ -73,9 +74,16 @@ async function fixture(
       if (name === "feed.listPaginated" || name === "club.listByCategory")
         return ok({ posts, nextCursor: null });
       if (name === "feed.getById") return ok(posts[0]);
+      if (name === "admin.postDetail")
+        return ok(
+          posts.find(
+            (post) => post.id === (input[i]?.json ?? input.json ?? {}).id,
+          ) ?? null,
+        );
       if (name === "feed.interactionsForPosts")
         return ok({ likedIds: [], savedIds: [1] });
-      if (name === "feed.savedPosts") return ok(posts);
+      if (name === "feed.savedPostsPage")
+        return ok({ items: posts, nextCursor: null });
       if (name === "articles.getById") return ok(options.article ?? null);
       if (name === "admin.updatePost") {
         writes.push(input[i]?.json ?? input.json ?? {});

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import storage, {
   setPersonalDataOwner,
+  requiredStorage,
 } from "../apps/frontend/src/shared/browser/storage";
 let values: Map<string, string>;
 beforeEach(() => {
@@ -30,11 +31,26 @@ it("isolates all personal state while keeping ordinary interface preferences", a
   setPersonalDataOwner(1);
   await storage.setItem("@darcy_club_profile_name", "First person");
   await storage.setItem("@darcy_quiz_result", "PRIVATE_RESULT");
+  requiredStorage.setItem("@darcy_quiz_progress", "PRIVATE_PROGRESS");
   setPersonalDataOwner(2);
   expect(await storage.getItem("@darcy_club_profile_name")).toBeNull();
   expect(await storage.getItem("@darcy_quiz_result")).toBeNull();
+  expect(requiredStorage.getItem("@darcy_quiz_progress")).toBeNull();
   expect(await storage.getItem("@darcy_install_guide_seen")).toBe("1");
   expect([...values.values()].join()).not.toContain("PRIVATE_RESULT");
+  expect([...values.values()].join()).not.toContain("PRIVATE_PROGRESS");
+});
+
+it("required drafts expose storage failures while optional preferences stay optional", async () => {
+  vi.spyOn(window.localStorage, "setItem").mockImplementation(() => {
+    throw new Error("Storage full");
+  });
+  expect(() =>
+    requiredStorage.setItem("@darcy_profile_name_pending", "draft"),
+  ).toThrow("Storage full");
+  await expect(
+    storage.setItem("optional-ui-preference", "1"),
+  ).resolves.toBeUndefined();
 });
 
 it("profile drafts and unknown writes are scoped and cleared on account changes", async () => {

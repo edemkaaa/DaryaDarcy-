@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { AppRouter } from "./contract";
 import { fetchApiResponse } from "./request-lifecycle";
 import { userFacingErrorsLink } from "./user-facing-errors-link";
+import { operationAbortLink } from "./operation-abort-link";
 import { getApiBaseUrl } from "@/shared/config/api";
 /**
  * tRPC React client for type-safe API calls.
@@ -23,6 +24,7 @@ export function createTRPCClient() {
   return trpc.createClient({
     links: [
       userFacingErrorsLink,
+      operationAbortLink,
       splitLink({
         // A per-operation key cannot safely be shared by a request batch.
         condition: (op) => op.context.idempotencyKey !== undefined,
@@ -37,11 +39,25 @@ export function createTRPCClient() {
             return { "Idempotency-Key": key.data };
           },
         }),
-        false: httpBatchLink({
-          maxItems: 20,
-          url: `${getApiBaseUrl()}/api/trpc`,
-          transformer: superjson,
-          fetch: fetchApiResponse,
+        false: splitLink({
+          // The calendar sends up to 62 day intervals in one query (~6.6 KB).
+          // It cannot fit the ordinary batch limit and must travel alone.
+          condition: (op) =>
+            op.type === "query" && op.path === "admin.postCalendar",
+          true: httpBatchLink({
+            maxItems: 1,
+            maxURLLength: 8192,
+            url: `${getApiBaseUrl()}/api/trpc`,
+            transformer: superjson,
+            fetch: fetchApiResponse,
+          }),
+          false: httpBatchLink({
+            maxItems: 20,
+            maxURLLength: 2048,
+            url: `${getApiBaseUrl()}/api/trpc`,
+            transformer: superjson,
+            fetch: fetchApiResponse,
+          }),
         }),
       }),
     ],

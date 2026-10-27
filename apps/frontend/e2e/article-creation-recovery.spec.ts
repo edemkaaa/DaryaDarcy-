@@ -386,7 +386,17 @@ test("another tab cannot overwrite the outstanding operation with a new payload"
   await titleField(page).fill("SECOND_TAB_PAYLOAD");
   const other = await context.newPage();
   await fixture(other);
-  await loseCreation(other);
+  await openArticles(other);
+  await other
+    .getByRole("button", { name: "Продолжить черновик статьи", exact: true })
+    .click();
+  await titleField(other).fill("RECOVERY_ARTICLE");
+  await other
+    .getByRole("button", { name: "Опубликовать", exact: true })
+    .click();
+  await expect(
+    other.getByRole("button", { name: "Проверить сохранение", exact: true }),
+  ).toBeEnabled();
   const original = await storedOperation(other);
   await page.getByRole("button", { name: "Опубликовать", exact: true }).click();
   await expect(titleField(page)).toHaveValue("RECOVERY_ARTICLE");

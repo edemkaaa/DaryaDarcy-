@@ -75,3 +75,19 @@ export function resolveArticleFiles(
     return receipt.url;
   });
 }
+
+/** Keep original File objects editable when a resolved write is moved back to a draft. */
+export function restoreArticleFileReferences(
+  blocks: ArticleBlock[],
+  files: PrivateArticleFile[],
+): ArticleBlock[] {
+  return mapArticleFiles(blocks, (url, usage) => {
+    const file = files.find(
+      (item) =>
+        item.usage === usage &&
+        item.receipt?.state === "ready" &&
+        item.receipt.url === url,
+    );
+    return file ? articleFileReference(file) : url;
+  });
+}

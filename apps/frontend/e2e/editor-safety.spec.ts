@@ -552,7 +552,7 @@ test("a photo scroll immediately followed by resize preserves the new selection"
 });
 
 for (const path of ["/post/1", "/feed", "/club"]) {
-  test(`photo carousel dots, edges and resize work in ${path}`, async ({
+  test(`photo carousel position, edges and resize work in ${path}`, async ({
     page,
   }) => {
     await photoPostApi(page, 10);
@@ -560,16 +560,21 @@ for (const path of ["/post/1", "/feed", "/club"]) {
     const carousel = page.getByRole("region", { name: "Фотографии поста" });
     const scroll = carousel.locator(".ui-scroll-horizontal");
     const dots = carousel.getByRole("img", { name: "Фото 1 из 10" });
-    await expect(dots).toBeVisible();
-    await expect(dots.locator("[aria-current=true]")).toHaveCount(1);
+    if (path === "/club")
+      await expect(carousel.getByText("1 / 10", { exact: true })).toBeVisible();
+    else {
+      await expect(dots).toBeVisible();
+      await expect(dots.locator("[aria-current=true]")).toHaveCount(1);
+    }
     await scroll.focus();
     await page.keyboard.press("End");
     await expect(carousel.getByText("10 / 10", { exact: true })).toBeVisible();
-    await expect(
-      carousel
-        .getByRole("img", { name: "Фото 10 из 10" })
-        .locator("[aria-current=true]"),
-    ).toHaveCount(1);
+    if (path !== "/club")
+      await expect(
+        carousel
+          .getByRole("img", { name: "Фото 10 из 10" })
+          .locator("[aria-current=true]"),
+      ).toHaveCount(1);
     await page.keyboard.press("ArrowRight");
     await expect(carousel.getByText("10 / 10", { exact: true })).toBeVisible();
     await page.setViewportSize({ width: 844, height: 390 });
@@ -582,17 +587,16 @@ for (const path of ["/post/1", "/feed", "/club"]) {
       )
       .toBeLessThan(2);
     await page.keyboard.press("Home");
-    await expect(
-      carousel.getByRole("img", { name: "Фото 1 из 10" }),
-    ).toBeVisible();
+    await expect(carousel.getByText("1 / 10", { exact: true })).toBeVisible();
     await page.keyboard.press("ArrowLeft");
     await expect(carousel.getByText("1 / 10", { exact: true })).toBeVisible();
     await page.keyboard.press("ArrowRight");
-    await expect(
-      carousel.getByRole("img", { name: "Фото 2 из 10" }),
-    ).toBeVisible();
+    await expect(carousel.getByText("2 / 10", { exact: true })).toBeVisible();
     await carousel
-      .getByRole("button", { name: "Открыть фото 2 из 10" })
+      .getByRole("button", {
+        name: path === "/club" ? "Открыть фото 2" : "Открыть фото 2 из 10",
+        exact: true,
+      })
       .click();
     const viewer = page.getByRole("dialog", { name: "Просмотр фотографий" });
     await expect(
@@ -625,7 +629,7 @@ for (const path of ["/post/1", "/feed", "/club"]) {
     await viewer.getByRole("button", { name: "Закрыть фотографии" }).click();
     await expect(viewer).toHaveCount(0);
     await expect(
-      carousel.getByRole("img", { name: "Фото 2 из 10" }),
+      carousel.getByText("2 / 10", { exact: true }),
     ).toBeVisible();
   });
 }

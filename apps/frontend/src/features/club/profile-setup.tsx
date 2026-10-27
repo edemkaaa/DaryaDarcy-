@@ -27,7 +27,10 @@ import {
   LEGACY_PROFILE_NAME_KEY,
   LEGACY_PROFILE_GENDER_KEY,
 } from "@/domain/profile/profile-draft";
-import AsyncStorage, { isPersonalDataOwner } from "@/shared/browser/storage";
+import AsyncStorage, {
+  isPersonalDataOwner,
+  requiredStorage,
+} from "@/shared/browser/storage";
 
 type Gender = "female" | "male";
 interface ProfileSetupProps {
@@ -44,6 +47,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   const initialUser = useRef(user);
   const avatar = useProfileAvatar();
   const [ready, setReady] = useState(false);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const submittingRef = useRef(false);
   const [name, setName] = useState(user?.name ?? "");
   const [gender, setGender] = useState<Gender | null>(user?.gender ?? null);
@@ -101,10 +105,17 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   useEffect(() => {
     if (completed.current || !ready || !user || !isPersonalDataOwner(user.id))
       return;
-    void AsyncStorage.setItem(
-      CLUB_PROFILE_DRAFT_KEY,
-      JSON.stringify({ name, gender, avatarUrl: avatarUri }),
-    );
+    try {
+      requiredStorage.setItem(
+        CLUB_PROFILE_DRAFT_KEY,
+        JSON.stringify({ name, gender, avatarUrl: avatarUri }),
+      );
+      setDraftError(null);
+    } catch {
+      setDraftError(
+        "Черновик профиля не сохранён на устройстве. Не закрывайте страницу до сохранения профиля.",
+      );
+    }
   }, [ready, name, gender, avatarUri, user]);
   const blocked =
     !ready ||
@@ -113,7 +124,14 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
     update.unknown ||
     avatar.busy ||
     avatar.unknown;
-  const error = [avatar.error, update.error].filter(Boolean).join(" ");
+  useEffect(() => {
+    if (!update.unknown || !update.pendingInput) return;
+    if (update.pendingInput.name) setName(update.pendingInput.name);
+    if (update.pendingInput.gender) setGender(update.pendingInput.gender);
+  }, [update.unknown, update.pendingInput]);
+  const error = [avatar.error, update.error, draftError]
+    .filter(Boolean)
+    .join(" ");
   const complete = async () => {
     const ownerId = initialUser.current?.id;
     if (!ownerId || !isPersonalDataOwner(ownerId)) return;

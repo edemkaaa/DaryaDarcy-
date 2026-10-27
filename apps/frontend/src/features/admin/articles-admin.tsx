@@ -1,4 +1,13 @@
 "use client";
+import {
+  captureEditBase,
+  editableSnapshot,
+  matchesEditableWrite,
+  readEditRevision,
+  withExpectedRevision,
+  type ContentEditBase,
+} from "@/domain/content/edit-revision";
+import { EditComparison } from "./edit-comparison";
 import classes from "./articles-admin.module.scss";
 import {
   ScrollArea,
@@ -48,8 +57,13 @@ import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
 import { requireOk } from "@/shared/api/action-result";
 import { useArticleFiles } from "./use-article-files";
 import { useArticleCover } from "./use-article-cover";
+import { useArticleDraft } from "./use-article-draft";
+import {
+  ArticleDraftJournal,
+  type ArticleDraftRecord,
+} from "@/domain/content/article-draft-journal";
 import type { PrivateArticleFile } from "@/domain/content/private-article-files";
-import { selectArticleFiles } from "@/domain/content/private-article-files";
+import { selectArticleFiles, restoreArticleFileReferences } from "@/domain/content/private-article-files";
 import {
   recoverArticleFileUploads,
   sealArticleFileWrite,
@@ -249,6 +263,29 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   const uploading = operation.kind === "photos";
   const [published, setPublished] = useState(true);
   const uncertainSave = useRef(false);
+  const [editBase, setEditBase] = useState<ContentEditBase>();
+  const [editConflict, setEditConflict] = useState<409 | 412>();
+  const [serverComparison, setServerComparison] =
+    useState<Record<string, unknown>>();
+  const attemptedEdit = useRef<Record<string, unknown> | null>(null);
+  const draft = useArticleDraft(
+    ownerId,
+    showForm &&
+      !(creation && (creation.media?.editingId ?? null) === editingId) &&
+      !cover.pending,
+    {
+      editingId,
+      title,
+      coverUrl: coverUrl || null,
+      access,
+      published,
+      sections: blocks,
+      writeUncertain: uncertainSave.current,
+      editBase,
+      editConflict,
+    },
+    privateFiles.files,
+  );
   const restoreFiles = useRef<{
     editingId: number | null;
     files: PrivateArticleFile[];
@@ -262,6 +299,10 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     privateFiles.reset();
     restoreFiles.current = null;
     uncertainSave.current = false;
+    setEditBase(undefined);
+    setEditConflict(undefined);
+    setServerComparison(undefined);
+    attemptedEdit.current = null;
     setPublished(true);
     setEditingId(null);
     setShowForm(false);
@@ -276,6 +317,9 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     cover.detach();
     uncertainSave.current = false;
     setCreation(record);
+    setEditBase(record.editBase);
+    setEditConflict(record.editConflict);
+    setServerComparison(undefined);
     const payload = structuredClone(record.payload);
     setEditingId(record.media?.editingId ?? null);
     setTitle(payload.title);
@@ -291,6 +335,40 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     setPreviewing(false);
     setShowForm(true);
   };
+  const restoreDraft = (saved: ArticleDraftRecord) => {
+    if (
+      creation &&
+      (creation.media?.editingId ?? null) === saved.snapshot.editingId
+    )
+      return;
+    if (cover.record?.snapshot.editingId === saved.snapshot.editingId) {
+      void restoreCover();
+      return;
+    }
+    const { snapshot, files } = saved;
+    setEditBase(snapshot.editBase);
+    setEditConflict(snapshot.editConflict);
+    setServerComparison(undefined);
+    draft.resume();
+    opening.cancel();
+    operation.cancel();
+    cover.detach();
+    uncertainSave.current = snapshot.writeUncertain === true;
+    setRecoveryMessage(
+      snapshot.writeUncertain
+        ? "Перед перезагрузкой было отправлено изменение статьи. Проверьте статью в списке; повторная запись автоматически не выполняется."
+        : null,
+    );
+    setEditingId(snapshot.editingId);
+    setTitle(snapshot.title);
+    setCoverUrl(snapshot.coverUrl || "");
+    setAccess(snapshot.access);
+    setPublished(snapshot.published);
+    setBlocks(structuredClone(snapshot.sections));
+    restoreFiles.current = { editingId: snapshot.editingId, files };
+    setPreviewing(false);
+    setShowForm(true);
+  };
   useEffect(() => {
     const record = restoreFiles.current;
     if (showForm && record && record.editingId === editingId) {
@@ -300,10 +378,29 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   }, [creation, showForm, editingId, restorePrivateFiles]);
   const restoreCover = () => {
     if (!cover.record || creation || storageStatus !== "ready") return;
+    const saved = draft.records.find(
+      (record) =>
+        record.snapshot.editingId === cover.record!.snapshot.editingId,
+    );
+    if (saved) {
+      const { writeUncertain: _writeUncertain, ...snapshot } = saved.snapshot;
+      if (JSON.stringify(snapshot) !== JSON.stringify(cover.record.snapshot)) {
+        if (
+          !window.confirm(
+            "Заменить текущий локальный черновик этой статьи данными сохранённой загрузки баннера?",
+          )
+        )
+          return;
+      }
+    }
     opening.cancel();
+    draft.resume();
     operation.cancel();
     uncertainSave.current = false;
     const { snapshot, files } = cover.record;
+    setEditBase(snapshot.editBase);
+    setEditConflict(undefined);
+    setServerComparison(undefined);
     setEditingId(snapshot.editingId);
     setTitle(snapshot.title);
     setCoverUrl(snapshot.coverUrl || "");
@@ -320,11 +417,164 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     await readArticles(task.signal);
     task.assertCurrent();
   };
+  const readUpdatedArticle = async (id: number, task: ScopedOperation) => {
+    const detail = await utils.client.admin.articleDetail.query(
+      { id },
+      { signal: task.signal },
+    );
+    task.assertCurrent();
+    if (!detail || detail.id !== id) throw invalidResponse();
+    readEditRevision(detail);
+    return detail;
+  };
+  const compareArticle = async () => {
+    const id = creation?.media?.editingId ?? editingId;
+    if (!id) return;
+    const task = operation.begin("compare-article");
+    if (!task) return;
+    try {
+      const detail = await readUpdatedArticle(id, task);
+      const wanted =
+        creation?.media?.phase === "write"
+          ? creation.payload
+          : (attemptedEdit.current ?? {
+              title: title.trim(),
+              coverUrl: coverUrl || null,
+              access,
+              published,
+              sections: blocks,
+            });
+      if (matchesEditableWrite(detail, wanted, "article")) {
+        if (creation?.media?.editingId === id)
+          await completeCreation(creation, task);
+        else {
+          await draft.clear();
+          task.assertCurrent();
+          void list.restart();
+          refreshRelatedContent();
+          reset();
+        }
+        return;
+      }
+      setServerComparison(detail);
+      setRecoveryMessage(
+        "Серверная версия прочитана. Ваш черновик не изменён; автоматической повторной записи нет.",
+      );
+    } catch (error) {
+      checkOperationAccessError(error);
+      if (task.isCurrent())
+        setRecoveryMessage(
+          error instanceof Error
+            ? error.message
+            : "Не удалось прочитать статью",
+        );
+    } finally {
+      task.finish();
+    }
+  };
+  const acceptArticleRevision = async () => {
+    if (!serverComparison || !editingId) return;
+    const task = operation.begin("accept-article-revision");
+    if (!task) return;
+    try {
+      const revision = readEditRevision(serverComparison);
+      if (!revision)
+        throw new Error(
+          "Сервер ещё не передаёт версию статьи. Черновик сохранён.",
+        );
+      if (
+        !editConflict &&
+        (!editBase?.revision || revision === editBase.revision)
+      )
+        throw new Error(
+          "Предыдущий запрос ещё может выполняться. Повторная запись пока заблокирована.",
+        );
+      if (
+        !window.confirm(
+          "Продолжить с вашим вариантом относительно показанной серверной версии? Сохранение потребуется нажать отдельно.",
+        )
+      )
+        return;
+      task.assertCurrent();
+      // Move an immutable file operation back to an editable, durable draft
+      // before clearing it. The selected File objects and receipts are retained.
+      const record = creation?.media?.editingId === editingId ? creation : null;
+      if (record) {
+        const saved = await new ArticleDraftJournal(ownerId).load();
+        const current = saved.find(
+          (entry) => entry.snapshot.editingId === editingId,
+        );
+        if (current)
+          throw new Error(
+            "Есть другой черновик этой статьи. Сначала сохраните его отдельно.",
+          );
+        const payload = { ...record.payload, sections: restoreArticleFileReferences(record.payload.sections, record.media!.files) };
+        const base = {
+          revision,
+          snapshot:
+            editBase?.snapshot ?? editableSnapshot(serverComparison, "article"),
+        };
+        await new ArticleDraftJournal(ownerId).save(
+          { ...payload, editingId, editBase: base, writeUncertain: false },
+          record.media!.files,
+          null,
+        );
+        task.assertCurrent();
+        await draft.reload();
+        task.assertCurrent();
+        await journal.clear(record);
+        task.assertCurrent();
+        // Reload the editor's journal rather than inventing a local revision.
+        setCreation(null);
+        reset();
+        return;
+      }
+      const base = {
+        revision,
+        snapshot:
+          editBase?.snapshot ?? editableSnapshot(serverComparison, "article"),
+      };
+      await draft.saveSnapshot(
+        {
+          editingId,
+          title,
+          coverUrl: coverUrl || null,
+          access,
+          published,
+          sections: blocks,
+          editBase: base,
+          writeUncertain: false,
+        },
+        privateFiles.files,
+      );
+      task.assertCurrent();
+      setEditBase(base);
+      setEditConflict(undefined);
+      uncertainSave.current = false;
+      draft.resume();
+      setServerComparison(undefined);
+      setRecoveryMessage(
+        "Версия для следующего сохранения выбрана. Проверьте ваш вариант и нажмите сохранение отдельно.",
+      );
+    } catch (error) {
+      if (task.isCurrent())
+        setRecoveryMessage(
+          error instanceof Error
+            ? error.message
+            : "Не удалось сохранить версию черновика",
+        );
+    } finally {
+      task.finish();
+    }
+  };
   const completeCreation = async (
     record: ArticleCreationRecord,
     task: ScopedOperation,
   ) => {
     await readCurrentArticles(task);
+    task.assertCurrent();
+    if (draft.record?.snapshot.editingId === (record.media?.editingId ?? null))
+      await draft.clear();
     task.assertCurrent();
     await journal.clear(record);
     task.assertCurrent();
@@ -338,6 +588,9 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     const task = operation.begin("cancel-article");
     if (!task) return;
     try {
+      if (cover.pending) await draft.clear(true);
+      else await draft.flush();
+      task.assertCurrent();
       // A cancelled POST can still commit. Keep its durable operation.
       const record = await journal.load();
       task.assertCurrent();
@@ -350,7 +603,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       checkOperationAccessError(error);
       if (task.isCurrent())
         setRecoveryMessage(
-          "Не удалось обновить список статей. Отмена не подтверждена; форма сохранена.",
+          "Не удалось сохранить черновик или обновить список статей. Отмена не подтверждена. Не закрывайте редактор; попробуйте снова.",
         );
     } finally {
       task.finish();
@@ -382,16 +635,25 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         setCreation(record);
         if (record.media?.editingId) {
           const result = await utils.client.admin.updateArticle.mutate(
-            { id: record.media.editingId, ...record.payload },
+            withExpectedRevision(
+              { id: record.media.editingId, ...record.payload },
+              record.editBase?.revision,
+            ),
             { signal: task.signal },
           );
           requireOk(result);
           task.assertCurrent();
+          await readUpdatedArticle(record.media.editingId, task);
           await completeCreation(record, task);
           return;
         }
       } else if (record.media?.editingId) {
-        await readCurrentArticles(task);
+        const detail = await readUpdatedArticle(record.media.editingId, task);
+        if (matchesEditableWrite(detail, record.payload, "article")) {
+          await completeCreation(record, task);
+          return;
+        }
+        setServerComparison(detail);
         setRecoveryMessage(
           "Результат изменения не подтверждён. Список обновлён. Проверьте статью; повторная запись не выполнялась.",
         );
@@ -430,6 +692,22 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       await completeCreation(record, task);
     } catch (error) {
       checkOperationAccessError(error);
+      const revisionStatus = getHttpStatus(error);
+      if (
+        task.isCurrent() &&
+        record.media?.editingId &&
+        record.media.phase === "write" &&
+        (revisionStatus === 409 || revisionStatus === 412)
+      ) {
+        setEditConflict(revisionStatus);
+        try {
+          const next = await journal.recordConflict(record, revisionStatus);
+          task.assertCurrent();
+          setCreation(next);
+        } catch {
+          /* Keep the immutable original when storage cannot checkpoint. */
+        }
+      }
       const uploadRejection =
         record.media?.phase === "upload"
           ? privateUploadRejectionMessage(error)
@@ -490,6 +768,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     try {
       await readCurrentArticles(task);
       task.assertCurrent();
+      await draft.clear(true);
+      task.assertCurrent();
       await journal.clear(creation);
       task.assertCurrent();
       setCreation(null);
@@ -546,12 +826,18 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       );
       return;
     }
+    if (editConflict) {
+      notify("Сначала сравните ваш черновик с серверной версией статьи.");
+      return;
+    }
     const task = operation.begin("save");
     if (!task) return;
     let storedCreation = false;
     let uploadingFiles = false;
     let writeStarted = false;
     try {
+      await draft.flush();
+      task.assertCurrent();
       const payload = {
         title: title.trim(),
         coverUrl: coverUrl || null,
@@ -562,10 +848,14 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       const selected = selectArticleFiles(blocks, privateFiles.files);
       if (selected.length) {
         await checkPrivateUploadAvailability(fileApi.status, task);
-        const prepared = await journal.prepare(payload, {
-          editingId,
-          files: selected,
-        });
+        const prepared = await journal.prepare(
+          payload,
+          {
+            editingId,
+            files: selected,
+          },
+          editBase,
+        );
         task.assertCurrent();
         storedCreation = true;
         setCreation(prepared.record);
@@ -573,6 +863,9 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
           restoreCreation(prepared.record);
           return;
         }
+        // The immutable operation now owns all fields/files; free the editable draft.
+        await draft.clear();
+        task.assertCurrent();
         uploadingFiles = true;
         let record = await recoverArticleFileUploads(
           prepared.record,
@@ -584,14 +877,19 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         uploadingFiles = false;
         record = await sealArticleFileWrite(record, journal, task);
         setCreation(record);
-        if (editingId)
+        if (editingId) {
+          attemptedEdit.current = record.payload;
           requireOk(
             await utils.client.admin.updateArticle.mutate(
-              { id: editingId, ...record.payload },
+              withExpectedRevision(
+                { id: editingId, ...record.payload },
+                record.editBase?.revision,
+              ),
               { signal: task.signal },
             ),
           );
-        else {
+          await readUpdatedArticle(editingId, task);
+        } else {
           const id = await utils.client.admin.createArticle.mutate(
             { ...record.payload, idempotencyKey: record.idempotencyKey },
             { signal: task.signal },
@@ -614,6 +912,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
           );
           return;
         }
+        await draft.clear();
+        task.assertCurrent();
         const id = await utils.client.admin.createArticle.mutate(
           {
             ...prepared.record.payload,
@@ -626,12 +926,18 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         await completeCreation(prepared.record, task);
         return;
       }
+      await draft.markWriteStarted();
+      task.assertCurrent();
       writeStarted = true;
+      attemptedEdit.current = payload;
       const result = await utils.client.admin.updateArticle.mutate(
-        { id: editingId, ...payload },
+        withExpectedRevision({ id: editingId, ...payload }, editBase?.revision),
         { signal: task.signal },
       );
       requireOk(result);
+      task.assertCurrent();
+      await readUpdatedArticle(editingId, task);
+      await draft.clear();
       task.assertCurrent();
       void list.restart();
       refreshRelatedContent();
@@ -639,14 +945,38 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     } catch (error) {
       checkOperationAccessError(error);
       const status = getHttpStatus(error);
+      if (task.isCurrent() && editingId && (status === 409 || status === 412)) {
+        setEditConflict(status);
+        uncertainSave.current = true;
+        try {
+          const record = await journal.load();
+          task.assertCurrent();
+          if (
+            record?.media?.editingId === editingId &&
+            record.media.phase === "write"
+          ) {
+            const next = await journal.recordConflict(record, status);
+            task.assertCurrent();
+            setCreation(next);
+          } else await draft.markWriteStarted(status);
+        } catch {
+          /* The original write marker remains durable and blocks replay. */
+        }
+        setRecoveryMessage(
+          "Статья изменилась или не указана версия. Ваш ввод и файлы сохранены. Сравните с серверной записью.",
+        );
+      }
       const uploadRejection = uploadingFiles
         ? privateUploadRejectionMessage(error)
         : null;
       const uploadMessage = uploadRejection
         ? `${uploadRejection} Исходные файлы сохранены на этом устройстве. Проверьте загрузку позже.`
         : null;
-      if (task.isCurrent() && editingId)
-        uncertainSave.current = writeStarted && (!status || status >= 500);
+      if (task.isCurrent() && editingId) {
+        uncertainSave.current =
+          uncertainSave.current || (writeStarted && (!status || status >= 500));
+        if (!uncertainSave.current) draft.resume();
+      }
       if (task.isCurrent() && (uploadMessage || !editingId))
         setRecoveryMessage(
           uploadMessage ??
@@ -672,6 +1002,18 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     }
   };
   const startEdit = async (id: number) => {
+    if (!draft.loaded) return;
+    const saved = draft.records.find(
+      (record) => record.snapshot.editingId === id,
+    );
+    if (saved) {
+      restoreDraft(saved);
+      return;
+    }
+    if (cover.record?.snapshot.editingId === id) {
+      void restoreCover();
+      return;
+    }
     const task = opening.begin("article-detail");
     if (!task) return;
     setOpeningId(id);
@@ -715,9 +1057,13 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       )
         throw invalidResponse();
       operation.cancel();
+      draft.resume();
       cover.detach();
       uncertainSave.current = false;
       setPublished(item.published);
+      setEditBase(captureEditBase(item, editableSnapshot(item, "article")));
+      setEditConflict(undefined);
+      setServerComparison(undefined);
       setEditingId(item.id);
       setTitle(item.title);
       setCoverUrl(item.coverUrl || "");
@@ -746,6 +1092,41 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       creation !== null && (creation.media?.editingId ?? null) === editingId;
     return (
       <ScrollArea contentClassName={classes.form}>
+        {editingId &&
+        (editConflict ||
+          uncertainSave.current ||
+          creation?.media?.phase === "write") ? (
+          <EditComparison
+            current={
+              creation?.media?.editingId === editingId
+                ? creation.payload
+                : { title, coverUrl, access, published, sections: blocks }
+            }
+            server={
+              serverComparison
+                ? editableSnapshot(serverComparison, "article")
+                : undefined
+            }
+            busy={busy}
+            onRead={() => void compareArticle()}
+            onAccept={
+              serverComparison ? () => void acceptArticleRevision() : undefined
+            }
+          />
+        ) : null}
+        <StatusNotice tone={draft.error ? "error" : "info"}>
+          {draft.error ||
+            (draft.saving
+              ? "Сохраняем черновик на устройстве…"
+              : "Черновик статьи сохраняется на этом устройстве.")}
+        </StatusNotice>
+        {draft.error && (
+          <StatusNoticeAction
+            onClick={() => void draft.flush().catch(() => {})}
+          >
+            Повторить сохранение черновика
+          </StatusNoticeAction>
+        )}
         {recoveryMessage ? (
           <StatusNotice tone="error">{recoveryMessage}</StatusNotice>
         ) : null}
@@ -918,7 +1299,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
           <Typography className={classes.hint}>
             {access === "public"
               ? "Появится в Эксклюзиве клуба и в библиотеке. В библиотеке статью можно читать без подписки. В общую ленту статьи не попадают."
-              : "Только во вкладке Эксклюзив клуба, без библиотеки и без общей ленты."}
+              : "Появится в Эксклюзиве клуба и в библиотеке. Читать статью смогут только участники клуба. В общую ленту статьи не попадают."}
           </Typography>
 
           {previewing ? (
@@ -950,6 +1331,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
                       access,
                       published,
                       sections: blocks,
+                      editBase,
                     },
                     privateFiles.files,
                     setCoverUrl,
@@ -1394,6 +1776,45 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       onRefresh={() => void list.restart()}
       refreshing={list.isRefetching && !list.isFetchingNextPage}
     >
+      {draft.error && <StatusNotice tone="error">{draft.error}</StatusNotice>}
+      {draft.records.map(
+        (saved) =>
+          (!creation ||
+            (creation.media?.editingId ?? null) !==
+              saved.snapshot.editingId) && (
+            <StatusNotice
+              key={saved.snapshot.editingId ?? "new"}
+              actions={
+                <>
+                  <StatusNoticeAction
+                    disabled={opening.busy || remove.isPending}
+                    onClick={() => restoreDraft(saved)}
+                  >
+                    Продолжить черновик статьи
+                  </StatusNoticeAction>
+                  <StatusNoticeAction
+                    disabled={opening.busy || remove.isPending}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          "Удалить локальный черновик статьи вместе с выбранными файлами?",
+                        )
+                      )
+                        void draft
+                          .clear(true, saved.snapshot.editingId)
+                          .catch(() => {});
+                    }}
+                  >
+                    Удалить черновик с устройства
+                  </StatusNoticeAction>
+                </>
+              }
+            >
+              На устройстве сохранён черновик:{" "}
+              {saved.snapshot.title || "Без названия"}.
+            </StatusNotice>
+          ),
+      )}
       {recoveryMessage ? (
         <StatusNotice tone="error">{recoveryMessage}</StatusNotice>
       ) : null}
@@ -1413,7 +1834,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
             !!creation ||
             storageStatus !== "ready"
           }
-          onClick={restoreCover}
+          onClick={() => void restoreCover()}
         >
           Восстановить загрузку баннера
         </StatusNoticeAction>
@@ -1446,10 +1867,23 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         </StatusNoticeAction>
       ) : null}
       <Action
-        disabled={remove.isPending || opening.busy || storageStatus !== "ready"}
-        onClick={() =>
-          creation ? restoreCreation(creation) : setShowForm(true)
+        disabled={
+          remove.isPending ||
+          opening.busy ||
+          storageStatus !== "ready" ||
+          !draft.loaded
         }
+        onClick={() => {
+          draft.resume();
+          if (creation) restoreCreation(creation);
+          else {
+            const saved = draft.records.find(
+              (record) => record.snapshot.editingId === null,
+            );
+            if (saved) restoreDraft(saved);
+            else setShowForm(true);
+          }
+        }}
         className={classes.btn}
       >
         <MaterialIcons name="menu-book" size={16} color={CREAM} />
@@ -1462,8 +1896,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         </Typography>
       </Action>
       <Typography className={classes.hint}>
-        Два варианта: только Эксклюзив клуба по подписке или Эксклюзив +
-        библиотека с чтением без подписки. В общую ленту статьи не попадают.
+        Статьи появляются в Эксклюзиве клуба и в библиотеке. Чтение — по
+        подписке или без подписки. В общую ленту статьи не попадают.
       </Typography>
       <QueryRetryState
         isLoading={list.isLoading}
@@ -1502,7 +1936,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
               className={["ui-stack ", classes.row].filter(Boolean).join(" ")}
             >
               <Action
-                disabled={remove.isPending || opening.busy}
+                disabled={remove.isPending || opening.busy || !draft.loaded}
                 onClick={() => void startEdit(item.id)}
                 className={classes.linkBtn}
               >

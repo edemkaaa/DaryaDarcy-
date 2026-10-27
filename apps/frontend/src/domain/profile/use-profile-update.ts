@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import AsyncStorage, { isPersonalDataOwner } from "@/shared/browser/storage";
+import { isPersonalDataOwner, requiredStorage } from "@/shared/browser/storage";
 import { getMe } from "@/shared/api/auth";
 import {
   getHttpStatus,
@@ -25,51 +25,71 @@ export function useProfileUpdate(recoveryKey: string) {
   const [unknown, setUnknown] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(true);
+  const [storageError, setStorageError] = useState(false);
   const ownerId = user?.id;
   useEffect(() => {
     let cancelled = false;
-    void AsyncStorage.getItem(recoveryKey).then((raw) => {
-      if (cancelled || !ownerId || !isPersonalDataOwner(ownerId)) return;
-      try {
-        const value: unknown = raw ? JSON.parse(raw) : null;
-        if (value && typeof value === "object") {
-          const stored = value as Record<string, unknown>;
-          const input: ProfileInput = {};
-          if (typeof stored.name === "string" && stored.name.trim())
-            input.name = stored.name;
-          if (stored.gender === "female" || stored.gender === "male")
-            input.gender = stored.gender;
-          if (Object.keys(input).length) {
-            pending.current = input;
-            setUnknown(true);
-            setError(
-              "Сохранение прервалось. Ваш ввод сохранён. Проверьте результат перед новой попыткой.",
-            );
+    void Promise.resolve()
+      .then(() => requiredStorage.getItem(recoveryKey))
+      .then((raw) => {
+        if (cancelled || !ownerId || !isPersonalDataOwner(ownerId)) return;
+        try {
+          const value: unknown = raw ? JSON.parse(raw) : null;
+          if (value && typeof value === "object") {
+            const stored = value as Record<string, unknown>;
+            const input: ProfileInput = {};
+            if (typeof stored.name === "string" && stored.name.trim())
+              input.name = stored.name;
+            if (stored.gender === "female" || stored.gender === "male")
+              input.gender = stored.gender;
+            if (Object.keys(input).length) {
+              pending.current = input;
+              setUnknown(true);
+              setError(
+                "Сохранение прервалось. Ваш ввод сохранён. Проверьте результат перед новой попыткой.",
+              );
+            }
           }
+        } catch {
+          /* Keep an invalid optional recovery record out of writes. */
         }
-      } catch {
-        /* Keep an invalid optional recovery record out of writes. */
-      }
-      setRestoring(false);
-    });
+        setRestoring(false);
+        setStorageError(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setStorageError(true);
+        setRestoring(false);
+        setError(
+          "Не удалось прочитать сохранённый ввод. Разрешите хранение данных сайта и перезагрузите страницу.",
+        );
+      });
     return () => {
       cancelled = true;
     };
   }, [ownerId, recoveryKey]);
   const remember = (input: ProfileInput | null) => {
+    if (!ownerId || !isPersonalDataOwner(ownerId))
+      throw new Error("Аккаунт изменился");
+    if (input) requiredStorage.setItem(recoveryKey, JSON.stringify(input));
+    else requiredStorage.removeItem(recoveryKey);
     pending.current = input;
     setUnknown(input !== null);
-    if (!ownerId || !isPersonalDataOwner(ownerId)) return;
-    if (input) void AsyncStorage.setItem(recoveryKey, JSON.stringify(input));
-    else void AsyncStorage.removeItem(recoveryKey);
   };
   const save = async (input: ProfileInput): Promise<boolean> => {
-    if (restoring || pending.current || !user) return false;
+    if (restoring || storageError || pending.current || !user) return false;
     const task = operation.begin("save-profile");
     if (!task) return false;
     setError(null);
-    remember(input);
     try {
+      try {
+        remember(input);
+      } catch {
+        setError(
+          "Не удалось сохранить ввод на устройстве. Запрос не отправлен. Не закрывайте страницу; разрешите хранение данных сайта и повторите сохранение.",
+        );
+        return false;
+      }
       const result = await utils.client.profile.update.mutate(input, {
         signal: task.signal,
       });
@@ -85,7 +105,13 @@ export function useProfileUpdate(recoveryKey: string) {
       checkOperationAccessError(cause);
       if (task.isCurrent()) {
         const status = getHttpStatus(cause);
-        if (status && status < 500) remember(null);
+        if (status && status < 500) {
+          try {
+            remember(null);
+          } catch {
+            /* Keep the durable recovery record. */
+          }
+        }
         setError(
           pending.current
             ? "Результат сохранения не подтверждён. Ваш ввод сохранён. Проверьте сохранение перед новой попыткой."
@@ -130,5 +156,12 @@ export function useProfileUpdate(recoveryKey: string) {
       task.finish();
     }
   };
-  return { save, check, unknown, error, busy: operation.busy || restoring };
+  return {
+    save,
+    check,
+    unknown,
+    pendingInput: pending.current,
+    error,
+    busy: operation.busy || restoring || storageError,
+  };
 }

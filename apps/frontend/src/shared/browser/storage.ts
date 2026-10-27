@@ -11,6 +11,7 @@ const personalKeys = new Set([
   "@darcy_saved_feed",
   "@darcy_saved_club",
   "@darcy_quiz_result",
+  "@darcy_quiz_progress",
   "@darcy_last_seen_feed_id",
   "@darcy_last_seen_club_id",
 ]);
@@ -18,9 +19,17 @@ let personalDataOwner: number | null = null;
 const scopedKey = (key: string, owner = personalDataOwner) =>
   personalKeys.has(key) ? `darcy:user:${owner ?? "guest"}:${key}` : key;
 
-export function isPersonalDataOwner(userId: number): boolean {
+export function isPersonalDataOwner(userId: number | null): boolean {
   return personalDataOwner === userId;
 }
+
+/** Required drafts must report storage failures rather than pretend to persist. */
+export const requiredStorage = {
+  getItem: (key: string) => window.localStorage.getItem(scopedKey(key)),
+  setItem: (key: string, value: string) =>
+    window.localStorage.setItem(scopedKey(key), value),
+  removeItem: (key: string) => window.localStorage.removeItem(scopedKey(key)),
+};
 
 /** Unowned legacy data must never be assigned to the next person who signs in. */
 export function setPersonalDataOwner(owner: number | null): void {

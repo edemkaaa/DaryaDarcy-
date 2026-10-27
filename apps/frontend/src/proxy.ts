@@ -2,12 +2,19 @@ import { NextResponse, type NextRequest } from "next/server";
 import { randomBytes } from "node:crypto";
 import { documentSecurityHeaders } from "./shared/security/document-headers";
 import { isRetiredLibraryAsset } from "./shared/security/retired-library-assets";
+import { legacyClubImageStatus } from "./shared/security/legacy-club-images";
 
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 /** A request-specific CSP for documents; API/media retain upstream policies. */
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const legacyStatus = legacyClubImageStatus(request.nextUrl);
+  if (legacyStatus)
+    return new NextResponse("Материал недоступен.", {
+      status: legacyStatus,
+      headers: { "Cache-Control": "private, no-store" },
+    });
   if (
     isRetiredLibraryAsset(pathname) ||
     (pathname === "/_next/image" &&

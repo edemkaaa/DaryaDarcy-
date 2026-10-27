@@ -8,6 +8,7 @@ import {
 } from "@/shared/api/errors";
 import { requestSessionCheck } from "@/shared/api/session-events";
 import { privateUploadRejectionMessage } from "@/shared/api/upload-errors";
+import { parseRetryAfter } from "@/shared/api/retry-after";
 import {
   validatePrivatePostVideo,
   requirePrivateVideoReceipt,
@@ -39,16 +40,23 @@ export async function uploadAdminPrivateVideo(
         requestSessionCheck(response.status);
       if (!response.ok) {
         void response.body?.cancel().catch(() => {});
+        const delay =
+          response.status === 429
+            ? parseRetryAfter(response.headers.get("Retry-After"))
+            : undefined;
         throw new ApiError(
-          response.status === 413
-            ? "Видео слишком большое для загрузки. Сожмите файл или выберите другой."
-            : (privateUploadRejectionMessage({
-                data: { httpStatus: response.status },
-              }) ??
+          response.status === 429
+            ? "Сервер обрабатывает другую видеозагрузку. Повторите загрузку позже."
+            : response.status === 413
+              ? "Видео слишком большое для загрузки. Сожмите файл или выберите другой."
+              : (privateUploadRejectionMessage({
+                  data: { httpStatus: response.status },
+                }) ??
                 getRequestErrorMessage({
                   data: { httpStatus: response.status },
                 })),
           response.status,
+          delay,
         );
       }
       let value: unknown;

@@ -7,8 +7,13 @@ import { MaterialIcons } from "@/shared/ui/icons";
 import { trpc } from "@/shared/api/trpc";
 import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
 import { useAuth } from "@/domain/session/session-context";
-import { invalidResponse } from "@/shared/api/errors";
-import { isPersonalDataOwner } from "@/shared/browser/storage";
+import { getHttpStatus, invalidResponse } from "@/shared/api/errors";
+import { isPersonalDataOwner, requiredStorage } from "@/shared/browser/storage";
+import {
+  readEditRevision,
+  withExpectedRevision,
+} from "@/domain/content/edit-revision";
+import { EditComparison } from "./edit-comparison";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import dynamic from "next/dynamic";
 const CreatePostModal = dynamic(
@@ -26,6 +31,10 @@ interface PostData {
   publishedAt?: string | Date | null;
   createdAt?: string | Date | null;
   target?: "feed" | "club" | "both";
+  status?: "draft" | "scheduled" | "published";
+  scheduledAt?: string | Date | null;
+  sortOrder?: number;
+  editRevision?: string;
   media?: {
     id: number;
     type: string;
@@ -37,6 +46,8 @@ interface PostData {
   }[];
 }
 type MenuAction = "edit" | "tags" | "delete";
+const tagDraftKey = (owner: number, post: number) =>
+  `darcy:tag-draft:${owner}:${post}`;
 function ActionSheet({
   visible,
   onClose,
@@ -159,32 +170,104 @@ function TagSelectionModal({
   onSave,
   blocked,
   status,
+  acceptedRevision,
 }: {
   visible: boolean;
   post: PostData | null;
   onClose: () => void;
-  onSave: (tags: string[]) => void;
+  onSave: (tags: string[], revision?: string) => void;
   blocked: boolean;
   status: ReactNode;
+  acceptedRevision?: string;
 }) {
-  const [selectedTags, setSelectedTags] = useState<string[]>(post?.tags || []);
-  // Reset when post changes
-  useEffect(() => {
-    if (post) {
-      setSelectedTags([...post.tags]);
+  const { user } = useAuth();
+  const key = user && post ? tagDraftKey(user.id, post.id) : "";
+  const [draft, setDraft] = useState<{
+    tags: string[];
+    originalTags: string[];
+    revision?: string;
+    loadError?: string;
+  }>(() => {
+    try {
+      const raw = key ? requiredStorage.getItem(key) : null;
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (
+          !Array.isArray(saved.tags) ||
+          !saved.tags.every((tag: unknown) => typeof tag === "string") ||
+          !Array.isArray(saved.originalTags) ||
+          !saved.originalTags.every(
+            (tag: unknown) => typeof tag === "string",
+          ) ||
+          (saved.revision !== undefined &&
+            (typeof saved.revision !== "string" || !saved.revision.length))
+        )
+          throw new Error("Повреждён черновик тегов");
+        return saved as {
+          tags: string[];
+          originalTags: string[];
+          revision?: string;
+        };
+      }
+    } catch {
+      return {
+        tags: post?.tags ?? [],
+        originalTags: post?.tags ?? [],
+        loadError:
+          "Не удалось прочитать прежний черновик тегов. Не закрывайте редактор; проверьте хранение данных сайта и перезагрузите страницу.",
+      };
     }
-  }, [post]);
+    return {
+      tags: post?.tags ?? [],
+      originalTags: post?.tags ?? [],
+      revision: post ? readEditRevision(post) : undefined,
+    };
+  });
+  const [storageError, setStorageError] = useState<string | null>(null);
+  useEffect(() => {
+    if (acceptedRevision)
+      setDraft((current) => ({ ...current, revision: acceptedRevision }));
+  }, [acceptedRevision]);
+  useEffect(() => {
+    if (!key) return;
+    if (draft.loadError) {
+      setStorageError(draft.loadError);
+      return;
+    }
+    try {
+      requiredStorage.setItem(key, JSON.stringify(draft));
+      setStorageError(null);
+    } catch {
+      setStorageError(
+        "Черновик тегов не сохранён. Разрешите хранение данных сайта и не закрывайте редактор.",
+      );
+    }
+  }, [draft, key]);
+  const selectedTags = draft.tags;
   const toggleTag = (slug: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(slug) ? prev.filter((t) => t !== slug) : [...prev, slug],
-    );
+    setDraft((prev) => ({
+      ...prev,
+      tags: prev.tags.includes(slug)
+        ? prev.tags.filter((t) => t !== slug)
+        : [...prev.tags, slug],
+    }));
   };
   const handleSave = () => {
-    if (!blocked) onSave(selectedTags);
+    if (blocked || !key || draft.loadError) return;
+    try {
+      requiredStorage.setItem(key, JSON.stringify(draft));
+      setStorageError(null);
+      onSave(selectedTags, draft.revision);
+    } catch {
+      setStorageError(
+        "Не удалось сохранить черновик тегов. Запрос не отправлен.",
+      );
+    }
   };
   if (!visible || !post) return null;
   return (
     <Dialog label="Теги публикации" open motion="slide" onClose={onClose}>
+      {storageError && <StatusNotice tone="error">{storageError}</StatusNotice>}
       <div
         className={["ui-stack ", classes.modalContainer]
           .filter(Boolean)
@@ -292,6 +375,9 @@ export function usePostManagement(onRefresh: () => void) {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [tagModalVisible, setTagModalVisible] = useState(false);
   const [activePost, setActivePost] = useState<PostData | null>(null);
+  const [tagConflict, setTagConflict] = useState(false);
+  const [tagServer, setTagServer] = useState<Record<string, unknown>>();
+  const [acceptedTagRevision, setAcceptedTagRevision] = useState<string>();
   const { isOwner, user } = useAuth();
   const active = useScreenActive();
   const actions = useConfirmedAction(isOwner && active && !editModalVisible);
@@ -312,6 +398,7 @@ export function usePostManagement(onRefresh: () => void) {
         post.tags.some((tag) => typeof tag !== "string"))
     )
       throw invalidResponse();
+    if (post) readEditRevision(post);
     return post;
   };
   const refreshPosts = (id: number) => {
@@ -332,11 +419,30 @@ export function usePostManagement(onRefresh: () => void) {
     setTagModalVisible(false);
     setActionSheetVisible(false);
   };
-  const inspectTags = async (id: number, signal: AbortSignal) => {
+  const inspectTags = async (
+    id: number,
+    signal: AbortSignal,
+    wanted?: string[],
+  ) => {
     const post = await readPost(id, signal);
     assertReadCurrent(signal);
     if (post === null) closePost();
-    else
+    else if (
+      wanted &&
+      JSON.stringify([...post.tags].sort()) ===
+        JSON.stringify([...wanted].sort())
+    ) {
+      if (user) {
+        try {
+          requiredStorage.removeItem(tagDraftKey(user.id, id));
+        } catch {
+          /* The confirmed result must still close this editor. */
+        }
+      }
+      setTagModalVisible(false);
+      setTagConflict(false);
+      actions.setError(null);
+    } else
       setActivePost((current) =>
         current?.id === id &&
         (current.tags.length !== post.tags.length ||
@@ -358,13 +464,31 @@ export function usePostManagement(onRefresh: () => void) {
       void actions.run({
         kind: "tags",
         label: "Сохранить теги",
-        read: (signal) => inspectTags(input.id, signal),
-        perform: (signal) =>
-          utils.client.admin.updatePost.mutate(input, { signal }),
+        read: (signal) => inspectTags(input.id, signal, input.tags),
+        perform: async (signal) => {
+          try {
+            const result = await utils.client.admin.updatePost.mutate(input, {
+              signal,
+            });
+            if (!(await readPost(input.id, signal))) throw invalidResponse();
+            return result;
+          } catch (cause) {
+            if (getHttpStatus(cause) === 409 || getHttpStatus(cause) === 412)
+              setTagConflict(true);
+            throw cause;
+          }
+        },
         validate: (result) => {
           if (result?.success !== true) throw invalidResponse();
         },
         commit: () => {
+          if (user) {
+            try {
+              requiredStorage.removeItem(tagDraftKey(user.id, input.id));
+            } catch {
+              /* Keep the confirmed mutation terminal. */
+            }
+          }
           setActivePost((current) =>
             current?.id === input.id
               ? { ...current, tags: input.tags }
@@ -405,13 +529,33 @@ export function usePostManagement(onRefresh: () => void) {
   const closeMenu = useCallback(() => {
     setActionSheetVisible(false);
   }, []);
-  const handleAction = (action: MenuAction) => {
+  const handleAction = async (action: MenuAction) => {
     if (actions.blocked) return;
     setActionSheetVisible(false);
-    if (action === "edit") {
-      setEditModalVisible(true);
-    } else if (action === "tags") {
-      setTagModalVisible(true);
+    if (action === "edit" || action === "tags") {
+      if (!activePost) return;
+      const task = actions.operation.begin("read-post");
+      if (!task) return;
+      try {
+        const full = await readPost(activePost.id, task.signal);
+        task.assertCurrent();
+        if (!full || !Array.isArray(full.media)) throw invalidResponse();
+        setActivePost({ ...full, editRevision: readEditRevision(full) });
+        setTagConflict(false);
+        setTagServer(undefined);
+        setAcceptedTagRevision(undefined);
+        if (action === "edit") setEditModalVisible(true);
+        else setTagModalVisible(true);
+      } catch (cause) {
+        if (task.isCurrent())
+          actions.setError(
+            cause instanceof Error
+              ? cause.message
+              : "Не удалось открыть публикацию",
+          );
+      } finally {
+        task.finish();
+      }
     } else if (action === "delete") {
       {
         if (confirm("Удалить этот пост? Это действие нельзя отменить.")) {
@@ -422,9 +566,51 @@ export function usePostManagement(onRefresh: () => void) {
       }
     }
   };
-  const handleTagsSave = (tags: string[]) => {
+  const handleTagsSave = (tags: string[], revision?: string) => {
     if (activePost) {
-      updateMutation.mutate({ id: activePost.id, tags });
+      const input = withExpectedRevision({ id: activePost.id, tags }, revision);
+      updateMutation.mutate(input);
+    }
+  };
+  const compareTags = async () => {
+    if (!activePost) return;
+    const task = actions.operation.begin("compare-tags");
+    if (!task) return;
+    try {
+      const detail = await readPost(activePost.id, task.signal);
+      task.assertCurrent();
+      if (!detail)
+        throw new Error("Публикация удалена. Черновик тегов сохранён.");
+      if (user) {
+        const local = JSON.parse(
+          requiredStorage.getItem(tagDraftKey(user.id, activePost.id)) ?? "{}",
+        );
+        if (
+          Array.isArray(local.tags) &&
+          JSON.stringify([...local.tags].sort()) ===
+            JSON.stringify([...detail.tags].sort())
+        ) {
+          try {
+            requiredStorage.removeItem(tagDraftKey(user.id, activePost.id));
+          } catch {
+            /* Keep the read-confirmed result terminal. */
+          }
+          setTagModalVisible(false);
+          setTagConflict(false);
+          actions.setError(null);
+          return;
+        }
+      }
+      setTagServer(detail);
+    } catch (cause) {
+      if (task.isCurrent())
+        actions.setError(
+          cause instanceof Error
+            ? cause.message
+            : "Не удалось прочитать публикацию",
+        );
+    } finally {
+      task.finish();
     }
   };
   const status = (
@@ -438,6 +624,51 @@ export function usePostManagement(onRefresh: () => void) {
       ) : null}
       {actions.error ? (
         <StatusNotice tone="error">{actions.error}</StatusNotice>
+      ) : null}
+      {tagModalVisible && tagConflict ? (
+        <EditComparison
+          current={{
+            tags:
+              user && activePost
+                ? (() => {
+                    try {
+                      return JSON.parse(
+                        requiredStorage.getItem(
+                          tagDraftKey(user.id, activePost.id),
+                        ) ?? "{}",
+                      ).tags;
+                    } catch {
+                      return activePost.tags;
+                    }
+                  })()
+                : [],
+          }}
+          server={tagServer ? { tags: tagServer.tags } : undefined}
+          busy={actions.operation.busy}
+          onRead={() => void compareTags()}
+          onAccept={
+            tagServer
+              ? () => {
+                  const revision = readEditRevision(tagServer);
+                  if (!revision) {
+                    actions.setError(
+                      "Сервер пока не передаёт версию публикации. Черновик тегов сохранён.",
+                    );
+                    return;
+                  }
+                  if (
+                    window.confirm(
+                      "Использовать выбранные вами теги относительно показанной версии? Сохранение потребуется нажать отдельно.",
+                    )
+                  ) {
+                    setAcceptedTagRevision(revision);
+                    setTagConflict(false);
+                    actions.setError(null);
+                  }
+                }
+              : undefined
+          }
+        />
       ) : null}
       {actions.unknown && !actions.operation.busy ? (
         <StatusNoticeAction onClick={() => void actions.check()}>
@@ -484,9 +715,12 @@ export function usePostManagement(onRefresh: () => void) {
                   text: activePost.text,
                   photos: activePost.photos,
                   tags: activePost.tags,
-                  status: "published",
+                  editRevision: activePost.editRevision,
+                  status: activePost.status ?? "published",
                   target: activePost.target || "feed",
-                  scheduledAt: null,
+                  scheduledAt: activePost.scheduledAt
+                    ? new Date(activePost.scheduledAt).toISOString()
+                    : null,
                   publishedAt: activePost.publishedAt
                     ? new Date(activePost.publishedAt).toISOString()
                     : activePost.createdAt
@@ -502,16 +736,20 @@ export function usePostManagement(onRefresh: () => void) {
           }
         />
       ) : null}
-      <TagSelectionModal
-        visible={tagModalVisible}
-        post={activePost}
-        onClose={() => {
-          if (!actions.blocked) setTagModalVisible(false);
-        }}
-        onSave={handleTagsSave}
-        blocked={actions.blocked}
-        status={status}
-      />
+      {tagModalVisible && (
+        <TagSelectionModal
+          key={`${user?.id}:${activePost?.id}`}
+          visible={tagModalVisible}
+          post={activePost}
+          onClose={() => {
+            if (!actions.blocked) setTagModalVisible(false);
+          }}
+          onSave={handleTagsSave}
+          blocked={actions.blocked || tagConflict}
+          acceptedRevision={acceptedTagRevision}
+          status={status}
+        />
+      )}
     </>
   );
   return {

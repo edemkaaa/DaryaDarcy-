@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import { Typography } from "@/shared/ui/elements";
 import {
   StatusNotice,
@@ -19,6 +20,24 @@ export function PostRecoveryNotice({
   onFinish: () => void;
   onDiscard: () => void;
 }) {
+  const retryNotBefore = Math.max(
+    0,
+    ...(recovery.saveState?.privateVideos ?? []).map(
+      (video) => video.retryNotBefore ?? 0,
+    ),
+  );
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    setNow(Date.now());
+    if (retryNotBefore <= Date.now()) return;
+    const timer = window.setInterval(() => {
+      const current = Date.now();
+      setNow(current);
+      if (current >= retryNotBefore) window.clearInterval(timer);
+    }, 200);
+    return () => window.clearInterval(timer);
+  }, [retryNotBefore]);
+  const retrySeconds = Math.max(0, Math.ceil((retryNotBefore - now) / 1000));
   if (recovery.status === "loading")
     return <StatusNotice>Проверяем сохранённый черновик…</StatusNotice>;
   if (recovery.status === "offered")
@@ -80,7 +99,15 @@ export function PostRecoveryNotice({
                 ? "Проверка восстановит загрузку с прежним ключом и файлом. Публикация пока не сохраняется."
                 : "Проверка вернёт сохранённую публикацию или завершит создание с прежним содержимым. Файлы повторно не загружаются."}
             </Typography>
-            <Action onClick={onRecover}>Проверить сохранение</Action>
+            {retrySeconds > 0 ? (
+              <Typography role="status">
+                Сервер обрабатывает другую видеозагрузку. Повтор через{" "}
+                {retrySeconds} с.
+              </Typography>
+            ) : null}
+            <Action disabled={retrySeconds > 0} onClick={onRecover}>
+              Проверить сохранение
+            </Action>
           </>
         ) : (
           <Typography>

@@ -33,7 +33,9 @@ it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH).each([false, true])(
     const adapters: Record<string, string> = {
       "@/domain/session/session-context": `import {useSyncExternalStore} from 'react';
         export function useAuth(){return useSyncExternalStore(window.subscribeOwner,()=>window.owner)}`,
-      "@/shared/browser/storage": `export default {getItem(){return new Promise(resolve=>window.reads.push(resolve))}}`,
+      "@/shared/browser/storage": `export const requiredStorage={}; export const isPersonalDataOwner=()=>true; export default {getItem(){return new Promise(resolve=>window.reads.push(resolve))}}`,
+      "@/shared/ui/route-loading": `export default function Loading(){return <p>loading</p>}`,
+      "@/shared/ui/status-notice": `export function StatusNotice({children}){return <p>{children}</p>}`,
       "@/features/quiz/quiz-welcome": `export function QuizWelcome(){return <p>welcome</p>}`,
       "@/features/quiz/quiz-question": `export function QuizQuestion(){return <p>question</p>}`,
       "@/features/quiz/quiz-result": `import {useQuiz} from '@/domain/quiz/quiz-state';
@@ -117,7 +119,7 @@ it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH).each([false, true])(
               requestAnimationFrame(() => requestAnimationFrame(() => done())),
             ),
         );
-        await browserExpect(page.locator("#root")).toHaveText("welcome");
+        await browserExpect(page.locator("#root")).toHaveText("loading");
         expect(
           await page.evaluate(() =>
             localStorage.getItem("darcy:user:1:@darcy_quiz_result"),
@@ -149,7 +151,7 @@ it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH).each([false, true])(
           requestAnimationFrame(() => requestAnimationFrame(() => done())),
         );
       }, saved("cottagecore"));
-      await browserExpect(page.locator("#root")).toHaveText("welcome");
+      await browserExpect(page.locator("#root")).toHaveText("loading");
       await page.evaluate(
         (raw) => (window as unknown as QuizHarness).reads[1](raw),
         saved("goblincore"),

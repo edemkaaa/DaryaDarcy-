@@ -407,6 +407,7 @@ export default function AdminScreen() {
             source={{ uri: (item.photos as string[])[0] }}
             contentFit="cover"
             className={classes.postThumb}
+            sizes="56px"
           />
         )}
         {!(item.photos && (item.photos as string[]).length > 0) &&

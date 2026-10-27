@@ -6,6 +6,7 @@ import { PostSaveCoordinator } from "../apps/frontend/src/domain/post/save-post"
 import { serializePostDraft } from "../apps/frontend/src/domain/post/draft";
 import { requirePrivateReceipt } from "../apps/frontend/src/domain/post/private-upload";
 import { OperationScope } from "../apps/frontend/src/shared/browser/operation-scope";
+import { ApiError } from "../apps/frontend/src/shared/api/errors";
 
 const key = "private-video-original-key";
 const assetId = "3af23d8c-140f-454b-a123-123456789abc";
@@ -33,6 +34,19 @@ const receipt = {
   mimeType: "video/mp4",
   fileSize: 14,
 };
+
+it("preserves the busy-video message through the save coordinator for both editors", async () => {
+  const api = boundary();
+  api.uploadPrivateVideo.mockRejectedValueOnce(new ApiError(
+    "Сервер обрабатывает другую видеозагрузку. Повторите загрузку позже.", 429, 2,
+  ));
+  const c = coordinator();
+  await expect(c.save(payload(), [], [], api, task(), [], [selected()]))
+    .rejects.toThrow("Сервер обрабатывает другую видеозагрузку");
+  expect(c.snapshot().privateVideos?.[0].retryNotBefore).toBeGreaterThan(Date.now());
+  expect(api.create).not.toHaveBeenCalled();
+  expect(api.update).not.toHaveBeenCalled();
+});
 function boundary() {
   return {
     create: vi.fn(async (_payload: unknown) => 42),
