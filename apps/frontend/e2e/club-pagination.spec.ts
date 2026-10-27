@@ -160,14 +160,13 @@ test("the unfiltered club list exposes all 221 posts through successive pages", 
   );
   for (let end = 24; end <= 228; end += 12) {
     await scrollToEnd(page);
-    await expect(cards).toHaveCount(Math.min(end, 221));
+    await expect(
+      list(page).locator(`[data-item-key="${Math.min(end, 221)}"]`),
+    ).toBeAttached();
+    await expect(cards).toHaveCount(Math.min(end, 96) - (end > 221 ? 7 : 0));
   }
   await scrollToEnd(page);
   await expect(page.getByText(/^CLUB_POST_221 /)).toBeAttached();
-  await list(page).evaluate((node) => {
-    node.scrollTop = 0;
-  });
-  await expect(page.getByText(/^CLUB_POST_1 /)).toBeVisible();
   expect(calls).toEqual([
     null,
     ...Array.from({ length: 18 }, (_, index) => (index + 1) * 12),
@@ -175,12 +174,15 @@ test("the unfiltered club list exposes all 221 posts through successive pages", 
   await expect(page.getByRole("button", { name: "Загрузить ещё" })).toHaveCount(
     0,
   );
+  await page.getByRole("button", { name: "Наверх", exact: true }).click();
+  await expect(page.getByText(/^CLUB_POST_1 /)).toBeVisible();
+  expect(calls.at(-1)).toBe(null);
   await testInfo.attach("club-list-dom.json", {
     contentType: "application/json",
     body: JSON.stringify({
       initial: { posts: 12, nodes: initialNodes },
       final: {
-        posts: 221,
+        posts: await cards.count(),
         nodes: await list(page).evaluate(
           (node) => node.querySelectorAll("*").length,
         ),
@@ -745,4 +747,95 @@ test("refresh cancels an older page request before starting a new chain", async 
   } finally {
     release();
   }
+});
+
+// These are API-order checks: the browser must never re-rank the received pages.
+test("club keeps publication dates and ID ties in API order across three pages", async ({
+  page,
+}) => {
+  const rows = [
+    {
+      ...post(80),
+      target: "both",
+      sortOrder: 999,
+      publishedAt: "2026-10-25T12:00:00Z",
+      createdAt: "2026-01-01T12:00:00Z",
+    },
+    {
+      ...post(70),
+      sortOrder: -999,
+      publishedAt: null,
+      createdAt: "2026-10-24T12:00:00Z",
+    },
+    ...Array.from({ length: 23 }, (_, index) => ({
+      ...post(index + 1),
+      sortOrder: 100 - index,
+      publishedAt: "2026-10-20T12:00:00Z",
+      createdAt: "2026-10-26T12:00:00Z",
+    })),
+  ];
+  const calls: Input[] = [];
+  await clubApi(page, (input) => {
+    calls.push(input);
+    const offset = input.cursor ?? 0;
+    return ok({
+      posts: rows.slice(offset, offset + 12),
+      nextCursor: offset + 12 < rows.length ? offset + 12 : null,
+    });
+  });
+  await gotoWithSession(page, "/club");
+  const ids = () =>
+    list(page)
+      .locator(".ui-collection-item:not([data-window-hidden])")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => Number((node as HTMLElement).dataset.itemKey)),
+      );
+  const expected = rows.map((row) => row.id);
+  await expect.poll(ids).toEqual(expected.slice(0, 12));
+  await expect(
+    list(page)
+      .locator('[data-item-key="80"]')
+      .getByText(/25 октября 2026/),
+  ).toBeAttached();
+  await expect(
+    list(page)
+      .locator('[data-item-key="70"]')
+      .getByText(/24 октября 2026/),
+  ).toBeAttached();
+  await expect(
+    list(page)
+      .locator('[data-item-key="1"]')
+      .getByText(/20 октября 2026/),
+  ).toBeAttached();
+  await scrollToEnd(page);
+  await expect.poll(ids).toEqual(expected.slice(0, 24));
+  await scrollToEnd(page);
+  await expect.poll(ids).toEqual(expected);
+  expect(calls.map((input) => input.cursor ?? null)).toEqual([null, 12, 24]);
+  // The selected rubric gets its own chain starting at the head.
+  await page.getByRole("button", { name: "Лайф", exact: true }).click();
+  await expect.poll(ids).toEqual(expected.slice(0, 12));
+  expect(calls.at(-1)).toEqual({ limit: 12, category: "life" });
+});
+
+test("club appends an API page without locally moving a newer-dated card ahead of loaded posts", async ({
+  page,
+}) => {
+  // Deliberately nonchronological fixture isolates client behavior from the SQL
+  // ordering tests: even a changed server snapshot must not be sorted locally.
+  const rows = Array.from({ length: 13 }, (_, index) => ({
+    ...post(index + 1),
+    publishedAt: index === 12 ? "2026-10-27T12:00:00Z" : "2026-10-01T12:00:00Z",
+  }));
+  await clubApi(page, (input) => paged(rows, input));
+  await gotoWithSession(page, "/club");
+  await expect(list(page).locator(".ui-collection-item")).toHaveCount(12);
+  await scrollToEnd(page);
+  await expect(list(page).locator(".ui-collection-item")).toHaveCount(13);
+  const ids = await list(page)
+    .locator(".ui-collection-item")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => Number((node as HTMLElement).dataset.itemKey)),
+    );
+  expect(ids).toEqual(rows.map((row) => row.id));
 });

@@ -19,7 +19,7 @@ const post = (id: number) => ({
   publishedAt: "2026-10-04T10:00:00Z",
 });
 const list = (page: Page) =>
-  page.locator("main .ui-scroll:not(.ui-scroll-horizontal)").first();
+  page.locator("main .ui-scroll:not(.ui-scroll-horizontal):visible").first();
 const row = (page: Page, id: number) =>
   page
     .locator(".ui-collection-item")
@@ -47,6 +47,7 @@ async function fixture(page: Page, count = 2) {
     saved: new Set<number>(),
     liked: new Set<number>(),
     writes: [] as number[],
+    calls: [] as { name: string; input: Record<string, unknown> }[],
     writeStatus: 0,
     readStatus: 0,
     failedId: 0,
@@ -54,6 +55,7 @@ async function fixture(page: Page, count = 2) {
     gate: undefined as Promise<void> | undefined,
   };
   await editorApi(page, async (name, input) => {
+    state.calls.push({ name, input });
     if (name === "club.subscription")
       return ok({
         hasClubAccess: true,
@@ -75,7 +77,26 @@ async function fixture(page: Page, count = 2) {
       });
     }
     if (name === "feed.getById")
-      return ok(state.missing ? null : post(Number(input.id)));
+      return ok(
+        state.missing
+          ? null
+          : {
+              ...post(Number(input.id)),
+              likeCount: state.liked.has(Number(input.id)) ? 1 : 0,
+            },
+      );
+    if (name === "feed.savedPostsPage") {
+      const after = Number(String(input.cursor ?? "saved:0").split(":")[1]);
+      const ids = [...state.saved]
+        .sort((a, b) => a - b)
+        .filter((id) => id > after);
+      const pageIds = ids.slice(0, Number(input.limit));
+      return ok({
+        items: pageIds.map(post),
+        nextCursor:
+          ids.length > pageIds.length ? `saved:${pageIds.at(-1)}` : null,
+      });
+    }
     if (name === "feed.userInteractions") {
       state.legacy++;
       return ok({ likedIds: [], savedIds: [] });
@@ -103,6 +124,12 @@ async function fixture(page: Page, count = 2) {
       else state.saved.add(id);
       return ok(state.saved.has(id));
     }
+    if (name === "feed.toggleLike") {
+      const id = Number(input.postId);
+      if (state.liked.has(id)) state.liked.delete(id);
+      else state.liked.add(id);
+      return ok(state.liked.has(id));
+    }
   });
   await page.route("**/api/auth/me", (route) =>
     route.fulfill({
@@ -124,8 +151,41 @@ async function fixture(page: Page, count = 2) {
   return state;
 }
 
+test("unsaving a retained second-page card removes it even when the refreshed head is unchanged", async ({
+  page,
+}) => {
+  const state = await fixture(page, 22);
+  state.saved = new Set(Array.from({ length: 22 }, (_, i) => i + 1));
+  await gotoWithSession(page, "/profile");
+  await page
+    .getByRole("button", { name: "Загрузить ещё сохранённые", exact: true })
+    .click();
+  const card = (id: number) =>
+    page.getByRole("button", {
+      name: `Открыть публикацию: BOUNDED_POST_${id}`,
+      exact: true,
+    });
+  await card(22).click();
+  await expect(page).toHaveURL(/\/post\/22$/);
+  await expect(save(page)).toBeEnabled();
+  await expect(save(page)).toHaveAttribute("aria-pressed", "true");
+  state.calls.length = 0;
+  await save(page).click();
+  await expect(save(page)).toBeEnabled();
+  await expect(save(page)).toHaveAttribute("aria-pressed", "false");
+  expect(state.calls.map(({ name }) => name)).toEqual(["feed.toggleSave"]);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/profile$/);
+  await expect(card(21)).toBeVisible();
+  await expect(card(22)).toHaveCount(0);
+  await expect
+    .poll(() => state.calls.some(({ name }) => name === "feed.savedPostsPage"))
+    .toBe(true);
+  expect(state.saved.has(22)).toBe(false);
+});
+
 for (const screen of ["feed", "club"]) {
-  test(`${screen}: only loaded cards are requested, groups stay bounded and a save refreshes only its group`, async ({
+  test(`${screen}: loaded groups stay bounded; confirmed reactions do not reload groups or pages`, async ({
     page,
   }) => {
     const state = await fixture(page, 72);
@@ -157,18 +217,32 @@ for (const screen of ["feed", "club"]) {
           new Set(read.ids).size === read.ids.length,
       ),
     ).toBe(true);
-    expect(state.reads.filter((read) => read.ids.length === 50)).toHaveLength(
-      1,
+    expect(state.reads.map((read) => read.ids)).toEqual(
+      Array.from({ length: 6 }, (_, page) =>
+        Array.from({ length: 12 }, (_, i) => page * 12 + i + 1),
+      ),
     );
     const before = state.reads.length;
     await button.click();
     await expect(button).toBeEnabled();
     await expect(button).toHaveAttribute("aria-pressed", "true");
-    expect(state.reads.slice(before).map((read) => read.ids)).toEqual([
-      Array.from({ length: 22 }, (_, i) => i + 51),
-    ]);
+    expect(state.reads.slice(before)).toEqual([]);
     expect(state.writes).toEqual([72]);
     expect(state.legacy).toBe(0);
+    state.calls.length = 0;
+    const like = row(page, 72).getByRole("button", {
+      name: "Нравится",
+      exact: true,
+    });
+    await like.click();
+    await expect(like).toBeEnabled();
+    await expect(like).toHaveAttribute("aria-pressed", "true");
+    expect(state.calls.map(({ name }) => name)).toEqual([
+      "feed.toggleLike",
+      "feed.getById",
+    ]);
+    expect(state.calls[1].input).toEqual({ id: 72 });
+    if (screen === "feed") await expect(like).toHaveText(/(?:^|\D)1$/);
   });
 }
 
@@ -216,7 +290,7 @@ test("one failed group does not block ready cards, and an explicit retry recover
   expect(state.writes).toEqual([1]);
 });
 
-test("detail requests one ID and confirmed marks reach the retained list before a delayed refresh", async ({
+test("detail reuses fresh marks and confirmed changes reach the retained list without another read", async ({
   page,
 }) => {
   const state = await fixture(page);
@@ -230,7 +304,7 @@ test("detail requests one ID and confirmed marks reach the retained list before 
     await expect(page).toHaveURL(/\/post\/1$/);
     await expect(save(page)).toHaveCount(1);
     await expect(save(page)).toBeEnabled();
-    expect(state.reads.at(-1)?.ids).toEqual([1]);
+    expect(state.reads.map((read) => read.ids)).toEqual([[1, 2]]);
     await save(page).click();
     await expect(save(page)).toBeEnabled();
     state.gate = gate.promise;
@@ -242,16 +316,104 @@ test("detail requests one ID and confirmed marks reach the retained list before 
     await expect(saved).toHaveAttribute("aria-pressed", "true");
     gate.release();
     await expect(saved).toBeEnabled();
+    expect(state.reads.map((read) => read.ids)).toEqual([[1, 2]]);
     expect(state.legacy).toBe(0);
   } finally {
     gate.release();
   }
 });
 
+test("a cold detail reads only its post", async ({ page }) => {
+  const state = await fixture(page);
+  await gotoWithSession(page, "/post/2");
+  await expect(save(page)).toBeEnabled();
+  expect(state.reads.map((read) => read.ids)).toEqual([[2]]);
+});
+
+test("feed and club reuse overlapping marks and request only previously unseen posts", async ({
+  page,
+}) => {
+  const state = await fixture(page, 24);
+  const first = () =>
+    row(page, 1).getByRole("button", { name: "Сохранить пост", exact: true });
+  await gotoWithSession(page, "/feed");
+  await expect(first()).toBeEnabled();
+  await page.locator('nav[aria-label="Разделы"] a[href="/club"]').click();
+  await expect(page).toHaveURL(/\/club$/);
+  await expect(first()).toBeEnabled();
+  // The club may already prefetch the next page to fill its viewport. Its
+  // overlapping first page must still reuse the feed's existing marks.
+  expect(
+    state.reads.flatMap((read) => read.ids).filter((id) => id <= 12),
+  ).toEqual(Array.from({ length: 12 }, (_, i) => i + 1));
+  await list(page).evaluate((node) => {
+    node.scrollTop = node.scrollHeight;
+  });
+  await expect(
+    row(page, 24).getByRole("button", { name: "Сохранить пост", exact: true }),
+  ).toBeEnabled();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/feed$/);
+  await list(page).evaluate((node) => {
+    node.scrollTop = node.scrollHeight;
+  });
+  await expect(
+    row(page, 24).getByRole("button", { name: "Сохранить пост", exact: true }),
+  ).toBeEnabled();
+  expect(state.reads.map((read) => read.ids)).toEqual([
+    Array.from({ length: 12 }, (_, i) => i + 1),
+    Array.from({ length: 12 }, (_, i) => i + 13),
+  ]);
+});
+
+test("opening a detail after freshness expires reads its current mark without reloading other marks", async ({
+  page,
+}) => {
+  await page.clock.install();
+  const state = await fixture(page);
+  await gotoWithSession(page, "/feed");
+  await expect(
+    row(page, 1).getByRole("button", { name: "Сохранить пост", exact: true }),
+  ).toBeEnabled();
+  state.saved.add(1);
+  await page.clock.fastForward(31_000);
+  await page.getByText("BOUNDED_POST_1", { exact: true }).click();
+  await expect(page).toHaveURL(/\/post\/1$/);
+  await expect(save(page)).toBeEnabled();
+  await expect(save(page)).toHaveAttribute("aria-pressed", "true");
+  expect(state.reads.map((read) => read.ids)).toEqual([[1, 2], [1]]);
+});
+
+for (const event of ["visibilitychange", "online"]) {
+  test(`${event}: fresh cached marks are rechecked in a batch`, async ({
+    page,
+  }) => {
+    const state = await fixture(page, 12);
+    await gotoWithSession(page, "/feed");
+    const first = row(page, 1).getByRole("button", {
+      name: "Сохранить пост",
+      exact: true,
+    });
+    await expect(first).toBeEnabled();
+    state.saved.add(1);
+    await page.evaluate((event) => {
+      if (event === "online") window.dispatchEvent(new Event("offline"));
+      window.dispatchEvent(new Event(event));
+    }, event);
+    await expect(first).toHaveAttribute("aria-pressed", "true");
+    await expect(first).toBeEnabled();
+    expect(state.reads.map((read) => read.ids)).toEqual([
+      Array.from({ length: 12 }, (_, i) => i + 1),
+      Array.from({ length: 12 }, (_, i) => i + 1),
+    ]);
+  });
+}
+
 test("recovering another post cannot unlock an uncertain save outside the read set", async ({
   page,
 }) => {
   const state = await fixture(page);
+  await page.clock.install();
   await gotoWithSession(page, "/feed");
   state.writeStatus = 500;
   await row(page, 1)
@@ -259,6 +421,7 @@ test("recovering another post cannot unlock an uncertain save outside the read s
     .click();
   await expect(retry(page)).toBeVisible();
   state.readStatus = 400;
+  await page.clock.fastForward(31_000);
   await page.getByText("BOUNDED_POST_2", { exact: true }).click();
   await expect(page).toHaveURL(/\/post\/2$/);
   await expect(save(page)).toHaveCount(1);

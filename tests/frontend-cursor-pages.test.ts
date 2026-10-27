@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import {
   appendCursorPage,
-  mergeCursorHead,
   type CursorChain,
   cancelInactiveCursorQuery,
 } from "../apps/frontend/src/shared/api/cursor-pages";
@@ -45,27 +44,6 @@ describe("bounded cursor chains", () => {
     expect(client.getQueryData(key)).toBe(7);
     two();
     client.clear();
-  });
-  it("keeps later pages when the head IDs and boundary are unchanged", () => {
-    const next = mergeCursorHead(chain, {
-      items: [{ id: 1, text: "new" }],
-      nextCursor: "next",
-    });
-    expect(next.pages).toEqual([
-      { items: [{ id: 1, text: "new" }], nextCursor: "next" },
-      chain.pages[1],
-    ]);
-  });
-  it("discards stale tails after changed order or boundary", () => {
-    expect(
-      mergeCursorHead(chain, { items: [{ id: 3 }], nextCursor: "other" }),
-    ).toEqual({
-      pages: [{ items: [{ id: 3 }], nextCursor: "other" }],
-      pageParams: [null],
-    });
-    expect(
-      mergeCursorHead(chain, { ...head, nextCursor: null }).pages,
-    ).toHaveLength(1);
   });
   it("does not accept a repeated boundary, preventing automatic loops", () => {
     expect(() =>

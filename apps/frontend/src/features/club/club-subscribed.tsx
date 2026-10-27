@@ -63,6 +63,7 @@ import {
   MAILBOX_URI,
   PEN_PALS_ENABLED,
 } from "./club-subscribed.content";
+import { POST_PAGE_WINDOW } from "@/shared/api/cursor-pages";
 import type { ClubTab, ClubPost } from "./club-subscribed.content";
 export function ClubSubscribed({
   purchaseNotice,
@@ -87,7 +88,7 @@ export function ClubSubscribed({
   const utils = trpc.useUtils();
   // Admin post management (edit/delete)
   const onRefresh = () => {
-    void clubQuery.restart();
+    void clubQuery.refetch();
   };
   const { openMenu, ManagementModals } = usePostManagement(onRefresh);
   const [viewerVisible, setViewerVisible] = useState(false);
@@ -127,10 +128,15 @@ export function ClubSubscribed({
   const clubQuery = useCursorPages({
     key: getQueryKey(trpc.club.listByCategory, clubFilters, "query"),
     scope: String(user?.id ?? "guest"),
+    // Old sortOrder-based offsets must never enter the chronological chain,
+    // including cached rubric/tag combinations. Ship with the chronological API.
+    cacheVersion: "club-publication-date-v1",
     enabled: active,
+    gcTime: 60_000,
+    window: POST_PAGE_WINDOW,
     fetchPage: async (cursor, signal) => {
       // Offset cursors remain numeric on the wire. The local cursor-chain
-      // helper uses strings and refreshes only the first page in the background.
+      // helper uses strings and refreshes the head and visible pages.
       const page = await utils.client.club.listByCategory.query(
         {
           ...clubFilters,
@@ -170,45 +176,39 @@ export function ClubSubscribed({
   };
   const rows = clubQuery.items;
   const interactions = usePostInteractions(rows.map((post) => post.id));
-  // Convert API posts to the club presentation model.
-  const dbPosts: ClubPost[] = rows
-    .map((row) => {
-      const p: typeof row & Pick<ClubPost, "media" | "commentCount"> = row;
-      const cleanLines = String(p.text || "")
-        .split("\n")
-        .map((line: string) => line.trim())
-        .filter((line: string) => line && !isRawMediaFilename(line));
-      const body = cleanLines.join("\n");
-      const displayDate = postDisplayDate(p);
-      const rawText = sanitizePlainPostText(String(p.text || ""));
-      return {
-        id: String(p.id),
-        target: p.target,
-        title: displayPostTitle(rawText),
-        preview: sanitizePlainPostText(body),
-        rawText,
-        date: displayDate
-          ? displayDate.toLocaleDateString("ru-RU", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })
-          : "",
-        createdAt: displayDate,
-        publishedAt: p.publishedAt ?? p.createdAt ?? null,
-        tags: (p.tags as string[]) || [],
-        photos: p.photos || [],
-        media: p.media || [],
-        richText: sanitizeRichTextForDisplay(p.richText),
-        articleId: articleIdFromSource(p.source),
-        commentCount: Number(p.commentCount) || 0,
-      };
-    })
-    .sort((a, b) => {
-      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return tb - ta;
-    });
+  // Keep the API's publication-date/ID order across page boundaries.
+  const dbPosts: ClubPost[] = rows.map((row) => {
+    const p = row;
+    const cleanLines = String(p.text || "")
+      .split("\n")
+      .map((line: string) => line.trim())
+      .filter((line: string) => line && !isRawMediaFilename(line));
+    const body = cleanLines.join("\n");
+    const displayDate = postDisplayDate(p);
+    const rawText = sanitizePlainPostText(String(p.text || ""));
+    return {
+      id: String(p.id),
+      target: p.target,
+      title: displayPostTitle(rawText),
+      preview: sanitizePlainPostText(body),
+      rawText,
+      date: displayDate
+        ? displayDate.toLocaleDateString("ru-RU", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })
+        : "",
+      createdAt: displayDate,
+      publishedAt: p.publishedAt ?? p.createdAt ?? null,
+      tags: p.tags || [],
+      photos: p.photos || [],
+      media: p.media || [],
+      richText: sanitizeRichTextForDisplay(p.richText),
+      articleId: articleIdFromSource(p.source),
+      commentCount: Number(p.commentCount) || 0,
+    };
+  });
   // The server applies rubric and board-tag aliases before pagination.
   const posts = dbPosts;
   // Winter is an error fallback, never a placeholder for a pending response.
@@ -443,6 +443,7 @@ export function ClubSubscribed({
         {/* Content — banner scrolls with posts, tartan stays fixed behind */}
         <Collection
           windowItems
+          retentionKey={clubQuery.identity}
           ref={listRef}
           data={posts}
           renderItem={renderPost}
@@ -452,6 +453,18 @@ export function ClubSubscribed({
             <>
               {purchaseNotice}
               {ListHeader()}
+              {clubQuery.hasPreviousPage && (
+                <Action
+                  disabled={clubQuery.isFetchingPreviousPage}
+                  onClick={() => void clubQuery.fetchPreviousPage()}
+                >
+                  {clubQuery.isFetchingPreviousPage
+                    ? "Загрузка…"
+                    : clubQuery.isFetchPreviousPageError
+                      ? "Повторить загрузку предыдущих публикаций"
+                      : "Предыдущие публикации"}
+                </Action>
+              )}
             </>
           }
           footer={
@@ -507,6 +520,13 @@ export function ClubSubscribed({
             </QueryRetryState>
           }
           onLoadMore={active ? loadMore : undefined}
+          onLoadPrevious={
+            active && clubQuery.hasPreviousPage && !isError && !isFetching
+              ? () => void clubQuery.fetchPreviousPage()
+              : undefined
+          }
+          onVisibleItemsChange={clubQuery.onVisibleItemsChange}
+          visiblePercent={0}
           loadMoreThreshold={2}
           onRefresh={onRefresh}
           contentClassName={classes.postList}
@@ -620,7 +640,14 @@ export function ClubSubscribed({
         initialIndex={viewerInitialIndex}
         onClose={() => setViewerVisible(false)}
       />
-      <ScrollToTopButton scrollRef={listRef} />
+      <ScrollToTopButton
+        scrollRef={listRef}
+        onScrollToTop={
+          clubQuery.hasPreviousPage
+            ? async () => !(await clubQuery.restart()).isError
+            : undefined
+        }
+      />
       <AdminFAB target="club" />
     </Background>
   );

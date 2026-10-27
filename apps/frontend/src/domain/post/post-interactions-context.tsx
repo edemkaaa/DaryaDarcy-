@@ -8,10 +8,18 @@ import {
 } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import { OperationScope } from "@/shared/browser/operation-scope";
+import { trpc } from "@/shared/api/trpc";
+import { createPostInteractionReader } from "./post-interaction-reader";
 
 type InteractionFailure = { message: string; blocked: boolean };
 
 function useInteractionState() {
+  const utils = trpc.useUtils();
+  const [reader] = useState(() =>
+    createPostInteractionReader((postIds, signal) =>
+      utils.client.feed.interactionsForPosts.query({ postIds }, { signal }),
+    ),
+  );
   const [scopes] = useState(() => new Map<string, OperationScope>());
   const [overrides, setOverrides] = useState(new Map<string, boolean>());
   const [pending, setPending] = useState(new Set<string>());
@@ -20,12 +28,14 @@ function useInteractionState() {
   );
   useEffect(
     () => () => {
+      reader.cancel();
       for (const scope of scopes.values()) scope.cancel();
       scopes.clear();
     },
-    [scopes],
+    [scopes, reader],
   );
   return {
+    reader,
     scopes,
     overrides,
     setOverrides,

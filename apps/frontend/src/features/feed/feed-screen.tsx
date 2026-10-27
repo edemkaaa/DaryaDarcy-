@@ -26,7 +26,12 @@ import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { LoadingIndicator } from "@/shared/ui/loading-indicator";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 
+import { getQueryKey } from "@trpc/react-query";
+import { useCursorPages } from "@/shared/api/use-cursor-pages";
+import { POST_PAGE_WINDOW } from "@/shared/api/cursor-pages";
+import { invalidResponse } from "@/shared/api/errors";
 import { trpc } from "@/shared/api/trpc";
+import type { ApiOutputs } from "@/shared/api/types";
 import { contentRefreshOptions } from "@/shared/api/content-refresh";
 import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import { useRouter } from "@/shared/navigation/router";
@@ -71,16 +76,14 @@ function formatDate(date: Date | string, browserCalendar: boolean): string {
   return `${browserCalendar ? d.getDate() : d.getUTCDate()} ${months[browserCalendar ? d.getMonth() : d.getUTCMonth()]} ${browserCalendar ? d.getFullYear() : d.getUTCFullYear()}`;
 }
 function normalizeFeedPost(
-  p: Record<string, unknown>,
+  p: ApiOutputs["feed"]["listPaginated"]["posts"][number],
   browserCalendar: boolean,
 ): FeedPost {
   const photos = sanitizePhotoUrls(p.photos);
-  const tags = Array.isArray(p.tags) ? (p.tags as string[]) : [];
+  const tags = Array.isArray(p.tags) ? p.tags : [];
   const text = typeof p.text === "string" ? p.text : "";
   const richText = sanitizeRichTextForDisplay(p.richText);
-  const media = Array.isArray(p.media)
-    ? (p.media as FeedPost["media"])
-    : undefined;
+  const media = Array.isArray(p.media) ? p.media : undefined;
   const targetRaw = p.target;
   const target =
     targetRaw === "club" || targetRaw === "both" || targetRaw === "feed"
@@ -92,17 +95,14 @@ function normalizeFeedPost(
     photos,
     tags,
     date: (() => {
-      const d = postDisplayDate(p as Parameters<typeof postDisplayDate>[0]);
+      const d = postDisplayDate(p);
       return d ? formatDate(d, browserCalendar) : "";
     })(),
     likeCount: typeof p.likeCount === "number" ? p.likeCount : 0,
     media,
     richText,
-    publishedAt:
-      (p.publishedAt as FeedPost["publishedAt"]) ??
-      (p.createdAt as FeedPost["createdAt"]) ??
-      null,
-    createdAt: (p.createdAt as FeedPost["createdAt"]) ?? null,
+    publishedAt: p.publishedAt ?? p.createdAt ?? null,
+    createdAt: p.createdAt ?? null,
     target,
     articleId: articleIdFromSource(
       typeof p.source === "string" ? p.source : null,
@@ -128,7 +128,38 @@ export default function FeedScreen() {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
-  // Fetch posts from API with pagination and search
+  const utils = trpc.useUtils();
+  const feedFilters = {
+    tag: selectedTag === "all" ? undefined : selectedTag,
+    search: debouncedSearch || undefined,
+    limit: 12,
+  };
+  const feedQuery = useCursorPages({
+    key: getQueryKey(trpc.feed.listPaginated, feedFilters, "query"),
+    scope: String(user?.id ?? "guest"),
+    enabled: active,
+    staleTime: 30_000,
+    gcTime: 60_000,
+    window: POST_PAGE_WINDOW,
+    fetchPage: async (cursor, signal) => {
+      const page = await utils.client.feed.listPaginated.query(
+        {
+          ...feedFilters,
+          ...(cursor === null ? {} : { cursor: Number(cursor) }),
+        },
+        { signal },
+      );
+      if (
+        page.nextCursor !== null &&
+        (!Number.isSafeInteger(page.nextCursor) || page.nextCursor < 0)
+      )
+        throw invalidResponse();
+      return {
+        items: page.posts,
+        nextCursor: page.nextCursor === null ? null : String(page.nextCursor),
+      };
+    },
+  });
   const {
     data: paginatedData,
     isLoading,
@@ -140,31 +171,12 @@ export default function FeedScreen() {
     isFetching,
     isFetchNextPageError,
     isRefetchError,
-  } = trpc.feed.listPaginated.useInfiniteQuery(
-    {
-      tag: selectedTag === "all" ? undefined : selectedTag,
-      search: debouncedSearch || undefined,
-      limit: 12,
-    },
-    {
-      getNextPageParam: (lastPage, _pages, _lastParam, pageParams) =>
-        pageParams.includes(lastPage.nextCursor)
-          ? undefined
-          : lastPage.nextCursor,
-      staleTime: 30_000,
-      gcTime: 60_000,
-      ...contentRefreshOptions(active),
-    },
-  );
-  const lastPage = paginatedData?.pages.at(-1);
+  } = feedQuery;
   useBackgroundNotice({
     when: isRefetchError && paginatedData !== undefined,
     message: "Не удалось обновить ленту",
     onRetry: () => refetch({ cancelRefetch: false }),
   });
-  const stalledCursor =
-    lastPage?.nextCursor != null &&
-    Boolean(paginatedData?.pageParams.includes(lastPage.nextCursor));
   // Fetch tags from API
   const { data: apiTags } = trpc.feed.tags.useQuery(undefined, {
     staleTime: 30_000,
@@ -180,24 +192,13 @@ export default function FeedScreen() {
     }
     return DEFAULT_TAGS;
   }, [apiTags]);
-  const posts: FeedPost[] = useMemo(() => {
-    if (paginatedData?.pages) {
-      const allPosts = [
-        ...new Map(
-          paginatedData.pages
-            .flatMap((page) => page.posts)
-            .filter((p) => p.target !== "club")
-            .map((post) => [post.id, post] as const),
-        ).values(),
-      ];
-      if (allPosts.length > 0) {
-        return allPosts.map((p) =>
-          normalizeFeedPost(p as Record<string, unknown>, browserCalendar),
-        );
-      }
-    }
-    return [];
-  }, [paginatedData, browserCalendar]);
+  const posts: FeedPost[] = useMemo(
+    () =>
+      feedQuery.items
+        .filter((post) => post.target !== "club")
+        .map((post) => normalizeFeedPost(post, browserCalendar)),
+    [feedQuery.items, browserCalendar],
+  );
   const interactions = usePostInteractions(posts.map((post) => post.id));
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(() => {
@@ -394,6 +395,18 @@ export default function FeedScreen() {
       />
       {renderSearchRow()}
       {renderTagChips()}
+      {feedQuery.hasPreviousPage && (
+        <Action
+          disabled={feedQuery.isFetchingPreviousPage}
+          onClick={() => void feedQuery.fetchPreviousPage()}
+        >
+          {feedQuery.isFetchingPreviousPage
+            ? "Загрузка…"
+            : feedQuery.isFetchPreviousPageError
+              ? "Повторить загрузку предыдущих публикаций"
+              : "Предыдущие публикации"}
+        </Action>
+      )}
     </div>
   );
   const handlePostPress = (postId: number) => {
@@ -445,12 +458,12 @@ export default function FeedScreen() {
     />
   );
   const handleLoadMore = useCallback(() => {
-    if (hasNextPage && !isFetching && !isError && !stalledCursor) {
-      void fetchNextPage({ cancelRefetch: false });
+    if (hasNextPage && !isFetching && !isError) {
+      void fetchNextPage();
     }
-  }, [hasNextPage, isFetching, isError, stalledCursor, fetchNextPage]);
+  }, [hasNextPage, isFetching, isError, fetchNextPage]);
   const renderFooter = () => {
-    if (posts.length > 0 && (isFetchNextPageError || stalledCursor)) {
+    if (posts.length > 0 && isFetchNextPageError) {
       return (
         <QueryRetryState
           isLoading={isFetchingNextPage}
@@ -459,8 +472,7 @@ export default function FeedScreen() {
           message="Не удалось загрузить следующие публикации ленты"
           onRetry={() => {
             if (isFetching) return;
-            if (isFetchNextPageError)
-              void fetchNextPage({ cancelRefetch: false });
+            if (isFetchNextPageError) void fetchNextPage();
             else void refetch({ cancelRefetch: false });
           }}
         />
@@ -510,6 +522,7 @@ export default function FeedScreen() {
       {viewMode === "feed" ? (
         <Collection
           windowItems
+          retentionKey={feedQuery.identity}
           revealItems
           ref={listRef}
           key="feed"
@@ -521,6 +534,13 @@ export default function FeedScreen() {
           empty={empty}
           hideScrollbar
           onLoadMore={handleLoadMore}
+          onLoadPrevious={
+            feedQuery.hasPreviousPage && !isError && !isFetching
+              ? () => void feedQuery.fetchPreviousPage()
+              : undefined
+          }
+          onVisibleItemsChange={feedQuery.onVisibleItemsChange}
+          visiblePercent={0}
           loadMoreThreshold={0.5}
           refreshing={refreshing}
           onRefresh={onRefresh}
@@ -531,6 +551,7 @@ export default function FeedScreen() {
       ) : (
         <Collection
           windowItems
+          retentionKey={feedQuery.identity}
           revealItems
           ref={listRef}
           key="grid"
@@ -543,6 +564,13 @@ export default function FeedScreen() {
           empty={empty}
           hideScrollbar
           onLoadMore={handleLoadMore}
+          onLoadPrevious={
+            feedQuery.hasPreviousPage && !isError && !isFetching
+              ? () => void feedQuery.fetchPreviousPage()
+              : undefined
+          }
+          onVisibleItemsChange={feedQuery.onVisibleItemsChange}
+          visiblePercent={0}
           loadMoreThreshold={0.5}
           refreshing={refreshing}
           onRefresh={onRefresh}
@@ -561,7 +589,15 @@ export default function FeedScreen() {
         />
       ) : null}
       {isOwner ? ManagementModals : null}
-      <ScrollToTopButton key={`scroll-top-${viewMode}`} scrollRef={listRef} />
+      <ScrollToTopButton
+        key={`scroll-top-${viewMode}`}
+        scrollRef={listRef}
+        onScrollToTop={
+          feedQuery.hasPreviousPage
+            ? async () => !(await feedQuery.restart()).isError
+            : undefined
+        }
+      />
       <AdminFAB target="feed" />
     </ScreenContainer>
   );

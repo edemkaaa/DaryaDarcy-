@@ -137,6 +137,16 @@ async function loadAll(page: Page, total = 48) {
       async () => {
         await expect(list(page)).toHaveCount(1);
         const count = await list(page).locator(".ui-collection-item").count();
+        if (total > 96) {
+          await list(page).evaluate((node) => {
+            node.scrollTop = node.scrollHeight;
+          });
+          return (await list(page)
+            .getByText(new RegExp(`LONG_POST_${total} `))
+            .count())
+            ? total
+            : count;
+        }
         if (count < total)
           await list(page).evaluate((node) => {
             node.scrollTop = node.scrollHeight;
@@ -326,9 +336,18 @@ for (const path of ["/feed", "/club"]) {
     if (path === "/club") expect(new Set(requests).size).toBeLessThan(240);
     // Revisiting a retained tab must not mount or fetch hundreds of old rows.
     const requestCount = requests.length;
-    // Subscribed Club intentionally hides the global bottom tabs.
-    if (path === "/club") await page.getByRole("link", { name: "На главную", exact: true }).click();
-    await page.locator('nav a[href="/shop"]').click();
+    // Club has no global bottom tabs, and its header is intentionally hidden
+    // at the end of a long scroll. Exercise retained routing independently.
+    if (path === "/club") {
+      await page.evaluate(() => {
+        const next = (
+          window as Window & { next?: { router: { push(path: string): void } } }
+        ).next;
+        if (!next) throw new Error("Client router unavailable");
+        next.router.push("/shop");
+      });
+      await expect(page).toHaveURL(/\/shop$/);
+    } else await page.locator('nav a[href="/shop"]').click();
     await page.locator(`nav a[href="${path}"]`).click();
     await expect(
       list(page)
@@ -383,7 +402,9 @@ for (const path of ["/feed", "/club"]) {
         .getByText(/LONG_POST_1 /)
         .last(),
     ).toBeVisible();
-    await expect(list(page).locator(".ui-collection-item")).toHaveCount(360);
+    await expect(list(page).locator(".ui-collection-item:visible")).toHaveCount(
+      12,
+    );
     console.log(
       JSON.stringify({
         path,
@@ -686,16 +707,16 @@ test("windowing preserves the chosen photo and audio playback", async ({
   await page.route("https://media.example.test/**", (route) =>
     route.fulfill({ contentType: "audio/wav", body: wav }),
   );
-  await longListApi(page, "/feed", 48, () => 0, true);
+  await longListApi(page, "/feed", 120, () => 0, true);
   await gotoWithSession(page, "/feed");
-  const photoRow = list(page).locator(".ui-collection-item").nth(1);
+  const photoRow = list(page).locator('[data-item-key="2"]');
   const carousel = photoRow.getByLabel("Перелистывание фотографий", {
     exact: true,
   });
   await carousel.focus();
   await carousel.press("End");
   await expect(photoRow.getByText("10 / 10", { exact: true })).toBeVisible();
-  const audioRow = list(page).locator(".ui-collection-item").nth(2);
+  const audioRow = list(page).locator('[data-item-key="3"]');
   await audioRow
     .getByRole("button", { name: "Воспроизвести аудио", exact: true })
     .click();
@@ -703,16 +724,14 @@ test("windowing preserves the chosen photo and audio playback", async ({
     audioRow.getByRole("button", { name: "Приостановить аудио", exact: true }),
   ).toBeVisible();
   await list(page).focus();
-  await loadAll(page);
+  await loadAll(page, 120);
   await expect(photoRow).toHaveAttribute("data-window-mounted", "true");
   await expect(audioRow).toHaveAttribute("data-window-mounted", "true");
   await expect(
     audioRow.getByRole("button", { name: "Приостановить аудио", exact: true }),
   ).not.toBeInViewport();
-  await list(page)
-    .locator(".ui-collection-item")
-    .last()
-    .scrollIntoViewIfNeeded();
+  await page.getByRole("button", { name: "Наверх", exact: true }).click();
+  await expect(photoRow).toBeVisible();
   await photoRow.scrollIntoViewIfNeeded();
   await expect(photoRow.getByText("10 / 10", { exact: true })).toBeVisible();
   await photoRow

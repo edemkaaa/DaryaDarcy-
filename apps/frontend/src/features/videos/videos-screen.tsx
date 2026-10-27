@@ -22,25 +22,13 @@ import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import { trpc } from "@/shared/api/trpc";
+import type { ApiOutputs } from "@/shared/api/types";
 import { contentRefreshOptions } from "@/shared/api/content-refresh";
 import { PAPER_TEXTURE_URI } from "./videos-screen.content";
 import { apiUrl } from "@/shared/config/api";
 import { isVkCatalogEnabled } from "./catalog-api";
 import { VideoCatalogScreen } from "./catalog-screen";
-type Video = {
-  id: number;
-  youtubeId: string;
-  title: string;
-  duration: string | null;
-  thumbnailUrl: string | null;
-  videoUrl: string | null;
-  views: string | null;
-  publishedText: string | null;
-  sortOrder: number;
-  published: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
+type Video = ApiOutputs["videos"]["list"][number];
 function VideosScreenInner() {
   const active = useScreenActive();
   const viewport = useViewport();
@@ -157,7 +145,7 @@ function VideosScreenInner() {
       >
         <Collection
           revealItems
-          data={videos as Video[] | undefined}
+          data={videos}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderVideoCard}
           header={<VideosBannerHeader />}
