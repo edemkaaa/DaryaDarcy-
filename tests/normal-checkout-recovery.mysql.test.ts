@@ -73,6 +73,9 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
   }
   beforeAll(async () => {
     conn = await openTestDatabase();
+    // This suite deliberately removes ledger guards/tables. Keep other users
+    // of the same disposable ledger outside those fault-injection windows.
+    expect((await rows("SELECT GET_LOCK('backend_test_normal_checkout',30) AS held"))[0].held).toBe(1);
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
     vi.stubEnv("JWT_SECRET", "normal-checkout-synthetic-session-key");
     vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
@@ -91,7 +94,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
     bearer = await sdk.createSessionToken("normal-checkout-member", {
       sessionVersion: 0,
     });
-  });
+  }, 45_000);
   beforeEach(async () => {
     await cleanup();
     await conn.query(
@@ -107,6 +110,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
     if (conn) {
       await cleanup();
       await conn.query("DELETE FROM users WHERE id IN (9140,9141)");
+      await conn.query("SELECT RELEASE_LOCK('backend_test_normal_checkout')");
       await conn.end();
     }
     await (

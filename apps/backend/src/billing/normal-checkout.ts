@@ -281,3 +281,9 @@ export async function createNormalCheckout(
     return { state: "pending" as const, orderId, url };
   });
 }
+
+// Guest recovery shares evidence checks, never the authenticated actor namespace.
+export {
+  requireSchema as requireNormalCheckoutSchema,
+  orderState as readNormalCheckoutOrderState,
+};

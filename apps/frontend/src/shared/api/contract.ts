@@ -1115,6 +1115,28 @@ export type AppRouter = BuiltRouter<
       }>;
     };
     club: {
+      createGuestNormalCheckout: MutationProcedure<{
+        input: {
+          idempotencyKey: string;
+          recoveryToken: string;
+          email: string;
+          plan?: "monthly" | "semiannual" | undefined;
+        };
+        output:
+          | { state: "pending"; orderId: string; url: string }
+          | { state: "succeeded"; orderId: string; expiresAt: Date }
+          | { state: "failed"; orderId: string };
+        meta: unknown;
+      }>;
+      guestNormalCheckoutStatus: MutationProcedure<{
+        input: { idempotencyKey: string; recoveryToken: string };
+        output:
+          | { state: "succeeded"; orderId: string; expiresAt: Date }
+          | { state: "failed"; orderId: string }
+          | { state: "notRecorded" }
+          | { state: "pending"; orderId: string };
+        meta: unknown;
+      }>;
       listByCategory: QueryProcedure<{
         input: {
           category?:
@@ -1156,10 +1178,10 @@ export type AppRouter = BuiltRouter<
       normalCheckoutStatus: QueryProcedure<{
         input: { idempotencyKey: string };
         output:
-          | { state: "notRecorded" }
-          | { state: "pending"; orderId: string }
           | { state: "succeeded"; orderId: string; expiresAt: Date }
-          | { state: "failed"; orderId: string };
+          | { state: "failed"; orderId: string }
+          | { state: "notRecorded" }
+          | { state: "pending"; orderId: string };
         meta: unknown;
       }>;
       createNormalCheckout: MutationProcedure<{
@@ -1168,9 +1190,9 @@ export type AppRouter = BuiltRouter<
           plan?: "monthly" | "semiannual" | undefined;
         };
         output:
+          | { state: "pending"; orderId: string; url: string }
           | { state: "succeeded"; orderId: string; expiresAt: Date }
-          | { state: "failed"; orderId: string }
-          | { state: "pending"; orderId: string; url: string };
+          | { state: "failed"; orderId: string };
         meta: unknown;
       }>;
       list: QueryProcedure<{

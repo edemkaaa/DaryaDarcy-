@@ -77,6 +77,9 @@ export class ClubCheckoutService {
         code: "PRECONDITION_FAILED",
         message: "Тестовая оплата временно недоступна. Попробуйте позже.",
       });
+    const guestRecovery = process.env.GUEST_CHECKOUT_RECOVERY_ENABLED;
+    if (!actor && guestRecovery !== undefined && guestRecovery !== "false")
+      throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Обновите страницу оплаты и повторите прежнюю заявку" });
     assertClubCheckoutConfigured(plan);
     // An email names the billing recipient, not a proven authenticated identity.
     const user = actor || existing || (await db.ensureUserByEmail(email));

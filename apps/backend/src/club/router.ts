@@ -15,6 +15,13 @@ import { privateCommentPhotoInput, privateContentStatusInput, uploadPrivateConte
 import type { ClubBillingServices } from "../billing/billing.module";
 import { enforceReturnCheckLimit } from "../billing/yookassa/return-check-limit";
 import {
+  createGuestNormalCheckout,
+  guestNormalCheckoutStatus,
+  guestCheckoutInput,
+  guestCheckoutProof,
+  enforceGuestCheckoutLimit,
+} from "../billing/guest-normal-checkout";
+import {
   createNormalCheckout,
   normalCheckoutInput,
   normalCheckoutKey,
@@ -28,6 +35,20 @@ export const createClubRouter = (
   billing: ClubBillingServices,
 ) =>
   router({
+    createGuestNormalCheckout: publicProcedure
+      .input(guestCheckoutInput)
+      .output(normalCheckoutResult)
+      .mutation(({ ctx, input }) => {
+        enforceGuestCheckoutLimit(ctx.req, ctx.res, input);
+        return createGuestNormalCheckout(input, ctx.req.headers?.["idempotency-key"], ctx.user);
+      }),
+    guestNormalCheckoutStatus: publicProcedure
+      .input(guestCheckoutProof)
+      .output(normalCheckoutStatusResult)
+      .mutation(({ ctx, input }) => {
+        enforceGuestCheckoutLimit(ctx.req, ctx.res, input);
+        return guestNormalCheckoutStatus(input, ctx.user);
+      }),
     listByCategory: clubMemberProcedure.input(clubCategoryInput)
       .query(({ input }) => db.getPostsForTarget("club", {
         category: input.category, clubTag: input.tag, limit: input.limit,
