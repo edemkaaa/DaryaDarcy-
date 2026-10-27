@@ -40,8 +40,9 @@ export class WorkerJobs {
     const published = await this.operations.publishDueScheduledPosts();
     for (const post of published) {
       console.log(`[schedule] published post #${post.id}`);
-      // Preserve the existing detached send; this is not a publication outbox.
-      void this.operations.sendMarketingPostNotification(
+      // Include delivery in this running job so graceful shutdown can await it.
+      // This still does not claim a durable publication notification outbox.
+      await this.operations.sendMarketingPostNotification(
         post.text,
         post.id,
         post.target,

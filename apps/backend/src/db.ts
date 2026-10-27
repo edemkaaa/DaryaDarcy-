@@ -108,6 +108,13 @@ export function isOwnerAccount(user: { email?: string | null; openId?: string | 
 
 let _db: MySql2Database | null = null;
 
+/** Shutdown only, after HTTP and workers have drained; never opens a connection. */
+export async function closeDb(): Promise<void> {
+  const database = _db;
+  _db = null;
+  if (database) await (database as MySql2Database & { $client: mysql.Pool }).$client.end();
+}
+
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (_db) return _db;

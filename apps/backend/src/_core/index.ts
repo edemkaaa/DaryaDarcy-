@@ -3,6 +3,7 @@ import type { Server } from "node:http";
 import net from "net";
 import { createBackendApplication } from "./application";
 import { WorkerJobs } from "../workers/worker-jobs.service";
+import { registerApiShutdown } from "./api-shutdown";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -51,7 +52,9 @@ async function startServer() {
 
   await application.listen(port, host);
   console.log(`[api] server listening on ${host}:${port}`);
-  application.get(WorkerJobs).start();
+  const jobs = application.get(WorkerJobs);
+  registerApiShutdown(application, server, jobs);
+  jobs.start();
 }
 
 startServer().catch((error) => {
