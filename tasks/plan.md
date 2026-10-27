@@ -2,7 +2,14 @@
 
 ## Действующий план агента — 13 октября 2026
 
-27 октября, сверка после выкладки: HEAD=staging0414dc9/API5c0df13/ledger45,
+27 октября около14:24МСК: compression3d34209 выпущен в81191c8/API+TEST.
+Preflight45/pendingnone;freshbackup41tables восстановлен отдельно со всеми
+индексами/строками/admin3. На HTTPS16573→4025gzip/3915br, exact JSON;
+9external+9nativecompression/liveAPI34/HTTP35 GREEN, web/video/БД/S3 прежние.
+[Факт и откат](../docs/operations/public-json-compression-release-2026-10-27.md).
+Следом LM-APPLY/решения владельца/отложенная приёмка; повторного compression fix нет.
+
+Предшествующая сверка27октября после выкладки: HEAD=staging0414dc9/API5c0df13/ledger45,
 старый backend-аудит выпущен. Найден актуальный узкий остаток: compression
 не узнаёт mounted tRPC path; локально исправлен по originalUrl, RED2/GREEN75,
 types/API103/обе backend builds GREEN. Стенд и frontend здесь не менялись.

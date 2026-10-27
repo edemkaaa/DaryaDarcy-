@@ -9,11 +9,14 @@
   TEST=true, seasons fixed winter/4даты; без изменения настроек/строк/S3.
 - [x] POST-REL2: выявлен несжатый public feed16573B; RED2 на настоящем mounted
   Nest/tRPC, filter req.path→originalUrl;75tests/types/API103/backend+TEST builds.
-  Cookie/mixed/private/Range ограничения сохранены; исправление пока локальное.
+  Cookie/mixed/private/Range ограничения сохранены; выпуск подтверждён ниже.
 - [x] POST-REL3: сводный backend-остаток и единый frontend handoff актуализированы;
   старые фразы о невыложенном операторе/0044 не являются текущим блокером.
-- [ ] POST-REL-RELEASE: отдельный выпуск compression, затем внешний gzip/br/
-  JSON-equality и controls. В этой сверке push/deploy не выполнялись.
+- [x] POST-REL-RELEASE: код81191c8 вstaging/API+TEST;backup45 реально восстановлен
+  отдельно/41таблица/admin3/индексы сохранены. External+native по9compression,
+  liveAPI34/HTTP35;16573→4025gzip/3915br, exact JSON. Web/video/БД/S3 прежние.
+
+[Выпуск compression и откат](../docs/operations/public-json-compression-release-2026-10-27.md).
 
 [Актуальный backend-остаток](../docs/audits/backend-remaining-after-release-2026-10-27.md).
 Следом остаются LM-APPLY по отдельному разрешению, настройки/решения владельца
