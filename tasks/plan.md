@@ -2,6 +2,25 @@
 
 ## Действующий план агента — 13 октября 2026
 
+27 октября, новые локальные исправления по подтверждённому аудиту:
+допуск RAW video доbuffering; private S3 внеSQL-lock с повторной авторизацией;
+throttleactivity5мин; все старые teaser updates/deletes; canonical deleteMedia;
+SQL cap200+явный413 длястарых полныхсписков; post DTO/API103; graceful8s shutdown;
+compact point authority legacyYouTube (1001records/46servicechecks), без VK-правок.
+Индексы0044 используют CAST AS DATETIME: старый вариант3751 не применяется.
+Fresh45install9passed; рабочую схему/историю не менять. МиграцияLOCK=SHARED требует
+перед будущим выпуском preflight/backup/согласованного окна запрета записей.
+Оптимизатор feed иногда оставляет filesort; FORCE INDEX в продукт не добавляется.
+Финальная общая регрессия4822passed/375skipped/0failed; отдельно42native,
+fresh45install9/restore8+2image-only skips, Node-service46. Финальные3ownDB
+удалены OOM=false/restarts0; types/API103/boundaries808/builds/docs113/audit0 GREEN.
+Компоненты/дизайн frontend не менялись, только генерируемый contract;
+для остальных A1–4/13/14 подготовлен один актуальный документ. Безpush/deploy.
+[Исправления/границы](../docs/audits/backend-audit-fixes-2026-10-27.md),
+[фронтендеру](../docs/development/frontend-audit-handoff-2026-10-27.md).
+Keyset/full-text/новая очередь уведомлений не вводятся как лишние функции.
+Далее — предшествующие исследования, их статусы не заменяют текущий todo.
+
 27 октября, согласованная правка сортировки Клуба: отдельно от ручного admin
 задан COALESCE(publishedAt,createdAt)DESC,idASC доpagination дляclub.list/listByCategory.
 Feed/admin/calendar прежние, DB ranks/даты/файлы не менялись, безDDL/новыхAPI.

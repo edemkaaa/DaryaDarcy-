@@ -2,6 +2,37 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Исправления backend-аудита — 27 октября, локально
+
+- [x] AUDIT-BE5: допуск одного RAW-видео до парсера; 429/Retry-After,
+  ошибка/abort/отключение клиента не обходят ограничение.
+- [x] AUDIT-BE6: private attachment/content/comment S3 вне SQL-транзакций;
+  повторная проверка actor/post/recovery перед ready, условные PUT/recovery.
+- [x] AUDIT-BE7: activity не чаще пяти минут, SQL arbitration/SKIP LOCKED,
+  auth/block/session-version/retirement не подменяются кешем полномочий.
+- [x] AUDIT-BE8: CAST-safe миграция0044, два listing index; implicit/NULL даты,
+  EXPLAIN и совпадение страниц; fresh45 install9passed. Рабочая схема прежняя.
+- [x] AUDIT-BE9: bounded старые feed/saved/liked/admin posts/members/articles/
+  comments; 413 вместо полного чтения, фильтр доLIMIT, page API сохранены.
+- [x] AUDIT-BE10/11: синхронизация/удаление всех анонсов, reserved source/max32,
+  legacy deleteMedia через общий edit/actor/body/private-file rollback.
+- [x] AUDIT-BE12: executable shutdown HTTP/workers/pool +8sdeadline,
+  повторный SIGTERM не обрывает drain; durable pending сохраняется.
+- [x] AUDIT-BE14/15: полные post DTO/API103 + компактная authority старого
+  YouTube worker, каталог1001 и 46 Node-service checks; VK/старые файлы прежние.
+- [x] Документ фронтендеру: A1–4/13/14, URL batch, E2E и изменённые границы API.
+- [x] Финальная общая регрессия4822passed/375skipped/0failed, отдельно42native,
+  fresh45install9 и restore8/2image-only skips; Node-service46passed.
+  Types/API103/boundaries808/backend+TEST builds/docs113/audit0; review/secret scan.
+  Финальные3ownSQL containers удалены поID/owner/tmpfs, OOM=false/restarts0.
+- [ ] Совместный выпуск/0044 preflight+backup+write window — отдельно;
+  нет разрешения менять рабочую БД/S3/фронт/сервер в этой локальной работе.
+
+[Отчёт и ограничения](../docs/audits/backend-audit-fixes-2026-10-27.md),
+[единый frontend handoff](../docs/development/frontend-audit-handoff-2026-10-27.md).
+Размеры32/80MiB/суммарная нагрузка всех форматов и реальная приёмка не выводятся
+из этих тестов. Keyset/full-text/новая push-очередь не добавлены. Ниже — история.
+
 ### Исправление порядка Клуба — 27 октября
 
 - [x] CLUB-ORDER1: отдельный клубный порядок dateDESC/idASC до LIMIT;
@@ -12,10 +43,12 @@
 - [x] CLUB-ORDER3: unit3396passed/1764skipped, native8 separately,
   types/API102/boundaries805/backend+TEST builds; ownDB cleanup, frontend handoff.
 - [ ] CLUB-ORDER-RELEASE: совместный выпуск backend + frontend remove-sort/reset
-  старой цепочки; пока безpush/deploy, frontend-код не менялся.
+  старой цепочки; backend порядок уже вstaging ea40c4a, выкладка ещё открыта;
+  новые AUDIT-BE commits пока локальные, frontend-код не менялся.
 
 [Контракт/задача фронтендеру](../docs/development/frontend-club-chronology-2026-10-27.md).
-Остальные пункты AUDIT-FIX ещё не исправлены. Рабочие БД/S3/админские входы прежние.
+Актуальное состояние остальных AUDIT-FIX — в блоке исправлений выше.
+Рабочие БД/S3/админские входы прежние.
 
 ### Глубокая перепроверка нового аудита — 27 октября
 
@@ -25,8 +58,8 @@
   реальный порядок189club/162timestamp-rank + модель смещения при пагинации.
 - [x] AUDIT-DEEP3: индекс-кандидат read-fast/write-unsafe отклонён;
   каноническая схема восстановлена,20native positive controls GREEN; ownDB удалена.
-- [ ] AUDIT-FIX: исправления по приоритетам отчёта ещё не реализованы.
-  Порядок Клуба принят и исправлен локально в CLUB-ORDER; frontend — документ.
+- [x] AUDIT-FIX: подтверждённые backend-пункты реализованы в AUDIT-BE выше;
+  release и внешняя приёмка открыты. Frontend — документ, не правки компонентов.
 
 [Глубокая перепроверка](../docs/audits/backend-audit-recheck-2026-10-27.md).
 Код/рабочаяБД/S3/flags/выпуск прежние; исследование не означает исправление.
