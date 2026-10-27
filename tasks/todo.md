@@ -2,6 +2,26 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Ограниченная партия и календарь — новое разрешение27октября
+
+- [x] LM-LIMIT1: freshbackup15:40МСК/две копии/SHA/gzip; реальный network-none
+  restore41tables/45ledger/индексов/admin3, ownDB removed/OOMfalse/restart0.
+- [x] LM-LIMIT2:5exactslots/source HEAD/ETag/bytes/policy; JPEG/GIF/PNG/DOCX и
+  небольшоеvideo перенесены по одному, без транскода/удаления/retirement.
+- [x] LM-LIMIT3: новыйпроцесс/replay тежеassetIDs/URL,3content+2media receipts;
+  admin/member200+fullSHA, guest/outsider/revoke404, directS3403, oldURLs200,
+  Range206/64bytes, externalHTTPS5. Два разрешённых tempusers удалены, no mail/pay.
+- [x] LM-LIMIT4:34untouched table digests/схема/индексы/counts/admin credentials/
+  все контейнеры сохранены. Worker256MiB/OOMfalse; frontend не менялся.
+- [x] R3-CALENDAR: по решению владельца calendar/Moscow,12-01/03-01/06-01/09-01,
+  revision6/сейчасautumn;9boundarycases+public HTTPS, все assetURLs/managerEmail
+  сохранены, один admin audit. Способ первого пароля не менялся.
+- [ ] Следующая партия383 — отдельное разрешение/backup/expected-old; девять
+  большихвидео отдельно. СтарыеURL/ACL/policy/optimizer не закрывать этим шагом.
+
+[Факт операции, backup и откат](../docs/operations/legacy-media-limited-batch-2026-10-27.md).
+Более ранние LM-APPLY/R3 ниже — история до нового разрешения, не текущий статус.
+
 ### Сверка следующего backend-пункта после edf4ffe — 27 октября
 
 - [x] Свежийfetch: HEAD=staging edf4ffe, incoming0, чистое рабочее дерево;

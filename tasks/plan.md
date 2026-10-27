@@ -2,6 +2,17 @@
 
 ## Действующий план агента — 13 октября 2026
 
+По новому разрешению27октября: LM-APPLY-LIMITED5 завершён. Freshbackup15:40МСК,
+реальный restore41tables/45ledger/admin3, пять exact bindings+source checks;
+JPEG/GIF/PNG/DOCX/4.7MBvideo перенесены, полныеSHA/байты/admin/member/guest/revoke,
+Range/внешнийHTTPS/replay бездублей GREEN; tempusers удалены,34otherTableHashes
+совпали, схема/индексы/контейнеры прежние. СтарыеURL200/исходники/policy сохранены.
+Календарь по решению владельца:12-01/03-01/06-01/09-01, Moscow/calendar/revision6,
+сейчасautumn;9boundarycases GREEN, banner/background URL/managerEmail прежние.
+Осталось383привязки и отдельно отзыв старыхURL/guard; первыйпароль/Prodamus
+ещё ждут решения/доступов. Фронт не менялся; единый handoff обновлён.
+[Операция и откат](../docs/operations/legacy-media-limited-batch-2026-10-27.md).
+
 Повторная сверка27октября послеpush edf4ffe: HEAD=staging, incoming0;
 health/capabilities200,8контейнеров healthy/API+TEST+web restart0, image IDs
 прежние. Боевых Prodamus secrets нет. Локально87focused GREEN;
