@@ -2,6 +2,15 @@
 
 ## Действующий план агента — 13 октября 2026
 
+27 октября, сверка после выкладки: HEAD=staging0414dc9/API5c0df13/ledger45,
+старый backend-аудит выпущен. Найден актуальный узкий остаток: compression
+не узнаёт mounted tRPC path; локально исправлен по originalUrl, RED2/GREEN75,
+types/API103/обе backend builds GREEN. Стенд и frontend здесь не менялись.
+Следующий выпуск этой правки отдельно; затем LM-APPLY с разрешённой партией,
+Prodamus/первый пароль/calendar решения владельца, отложенная внешняя приёмка.
+[Точный остаток](../docs/audits/backend-remaining-after-release-2026-10-27.md),
+[одна очередь фронтендеру](../docs/development/frontend-audit-handoff-2026-10-27.md).
+
 27 октября, выпуск по новому разрешению пользователя: staging5c0df13,
 API/TEST/video обновлены, рабочая БД прежняя. История44 проверена поSHA/времени,
 freshbackup41tables реально восстановлена отдельно/admin3 совпали; Drizzle0044

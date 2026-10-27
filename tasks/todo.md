@@ -2,6 +2,23 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Остаток после выпуска — 27 октября, около14:05МСК
+
+- [x] POST-REL1: fresh fetch HEAD=staging0414dc9; READ ONLY API/video5c0df13,
+  webce56ebe/healthy/restart0/ledger45, private flags true, live Prodamus keys нет,
+  TEST=true, seasons fixed winter/4даты; без изменения настроек/строк/S3.
+- [x] POST-REL2: выявлен несжатый public feed16573B; RED2 на настоящем mounted
+  Nest/tRPC, filter req.path→originalUrl;75tests/types/API103/backend+TEST builds.
+  Cookie/mixed/private/Range ограничения сохранены; исправление пока локальное.
+- [x] POST-REL3: сводный backend-остаток и единый frontend handoff актуализированы;
+  старые фразы о невыложенном операторе/0044 не являются текущим блокером.
+- [ ] POST-REL-RELEASE: отдельный выпуск compression, затем внешний gzip/br/
+  JSON-equality и controls. В этой сверке push/deploy не выполнялись.
+
+[Актуальный backend-остаток](../docs/audits/backend-remaining-after-release-2026-10-27.md).
+Следом остаются LM-APPLY по отдельному разрешению, настройки/решения владельца
+и отложенная приёмка. Не добавлять новые функции ради исторических галочек.
+
 ### Исправления backend-аудита — 27 октября, выпущены
 
 - [x] AUDIT-BE5: допуск одного RAW-видео до парсера; 429/Retry-After,
