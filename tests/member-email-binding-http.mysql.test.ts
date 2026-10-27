@@ -394,6 +394,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
     await conn.query("DROP TRIGGER binding_http_audit_failure");
     expect((await call(confirmPath, { token }, false)).status).toBe(200);
   });
+  // Includes bundling and a separate HTTP/SQL server; keep this budget local.
   it("registers request, recovery and confirmation in compiled production ESM", async () => {
     const directory = mkdtempSync(resolve(".tmp-binding-http-"));
     const entry = join(directory, "application.mjs");
@@ -478,5 +479,5 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       if (existsSync(entry)) unlinkSync(entry);
       rmdirSync(directory);
     }
-  });
+  }, 30_000);
 });

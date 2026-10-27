@@ -358,6 +358,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
     }
     expect((await request("createNormalCheckout")).code).toBe(200);
   });
+  // Bundling plus two independent server processes needs more than the default 5s.
   it("preserves the original intention across independent compiled server processes", async () => {
     const directory = mkdtempSync(resolve(".tmp-normal-checkout-"));
     const entry = join(directory, "application.mjs");
@@ -426,7 +427,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       rmSync(entry, { force: true });
       rmdirSync(directory);
     }
-  });
+  }, 30_000);
   it("rejects TEST headers, blocked/revoked sessions, and client-controlled identity", async () => {
     expect(
       (
