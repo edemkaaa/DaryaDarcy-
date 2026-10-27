@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { postAttachmentInput } from "./post-attachments";
+import { postTextInput } from "./post-text-limit";
 import {
   contentSortOrderInput,
   postTimestampInput,
@@ -19,7 +20,7 @@ const privateVideoPosters = z
 
 // These existing wire schemas also define the validated service inputs.
 export const createPostInput = z.object({
-  text: z.string().min(1),
+  text: postTextInput.min(1),
   idempotencyKey: z
     .string()
     .regex(/^[A-Za-z0-9._:-]{16,128}$/)
@@ -45,7 +46,7 @@ export const createPostInput = z.object({
 
 export const updatePostInput = z.object({
   id: z.number().int().positive().safe(),
-  text: z.string().optional(),
+  text: postTextInput.optional(),
   photos: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
   videos: z.array(z.string()).optional(),

@@ -14,6 +14,7 @@ import { userHasClubAccess } from "../identity/club-access";
 import type { ReactionAccessCheck } from "./post-reactions";
 import { TRPCError } from "@trpc/server";
 import type { PrivateAttachmentActor } from "./private-attachment-uploads";
+import { assertPostTextSize } from "./post-text-limit";
 
 /** The adapter authorizes/validates inputs; existing helpers own transactions. */
 @Injectable()
@@ -110,6 +111,7 @@ export class ContentWriteService {
     } = payload;
     if (privateAssetIds?.length && !idempotencyKey) throw new TRPCError({ code: "BAD_REQUEST", message: "Для закрытых вложений нужен ключ создания поста" });
     const text = sanitizePlainPostText(rest.text);
+    assertPostTextSize(text);
     const richText = normalizeRichTextForStorage(rest.richText, text);
     const tags =
       videos.length > 0 && !rest.tags.includes("video")
@@ -181,6 +183,7 @@ export class ContentWriteService {
     const updateData: Partial<InsertPost> = { ...data };
     if (typeof data.text === "string") {
       updateData.text = sanitizePlainPostText(data.text);
+      assertPostTextSize(updateData.text);
     }
     if (data.richText !== undefined) {
       const plain =
