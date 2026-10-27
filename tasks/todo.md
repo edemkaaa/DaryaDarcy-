@@ -2,6 +2,24 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Выпуск объединённого фронтенда — 27 октября
+
+- [x] Freshfetch/newcommits0; ordinarypush341b9d9→22ebe31, remoteSHAсовпал.
+- [x] 79localbrowser/37unit/types/lint/API103/docs/build/audit0 GREEN;
+  флагиVK/обложек/TEST сохранены, ручных frontend-правок нет.
+- [x] Freshbackup16:15МСК/две копии/SHA/gzip и actual network-none restore
+  41tables/45ledger/индексов/admin3; ownDB removed/OOMfalse/restart0.
+- [x] Миграции45hash/time/pendingnone, DDLне запускались. Offlineweb image,
+  native26GREEN; толькоweb pin/container+edge reload, rollbackimage сохранён.
+- [x] ExternalHTTPS37/16staticSHA/22VKcards/4private404/capabilities/season6;
+  browser feedphotos/club24unique/paging/top/return/VK22cards, adminsession intact.
+- [x] После выпуска41table/schema/index/admin digests совпали; API/TEST/video/
+  чужие контейнеры/settings/S3/originals прежние, no mail/pay/content writes.
+- [ ] Frontendостаток9/10/7 и выключеннаяподготовка11;383legacybindings,
+  liveProdamus/первыйпароль и полная внешняяприёмка остаются отдельно.
+
+[Факт выпуска, backup и откат](../docs/operations/frontend-staging-release-2026-10-27.md).
+
 ### Сверка правок фронтендера341b9d9 — 27 октября
 
 - [x] Новыйfetch: origin/staging341b9d9, локально объединён в8a140fe;

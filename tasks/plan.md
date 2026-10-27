@@ -2,6 +2,15 @@
 
 ## Действующий план агента — 13 октября 2026
 
+По новому разрешению27октября объединённый22ebe31 запушен и выпущен толькоweb:
+79browser/37unit/types/lint/API103/audit0/build/native26/HTTPS37 GREEN.
+Freshbackup16:15МСК реально восстановлен отдельно41tables/45ledger/индексы/
+admin3, послеweb switch всё совпало. LiveКлуб24unique/догрузка/top/return,
+feed photos/VK22cards GREEN; текущаяадминская сессия сохранилась. API/TEST/
+video/БД/S3/старыефайлы/настройки/лимиты прежние. Остатокfrontend9/10/7,
+guard11выключен,383legacybindings/Prodamus/первыйпароль/внешняяприёмка отдельно.
+[Факт и откат](../docs/operations/frontend-staging-release-2026-10-27.md).
+
 Сверка frontend341b9d9 на локальном merge8a140fe:1–5 и coverE2E учтены
 в коде. Остались client maxURLLength (factory10723B,edge414), slot sizes,
 RAW429 Retry-After (теряется, без автоповтора/разлогина); guard пока выключен.
