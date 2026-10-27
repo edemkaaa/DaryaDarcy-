@@ -69,6 +69,6 @@ export const createVideosRouter = (content: ContentReadService) =>
     list: publicProcedure.query(() => content.listVideos()),
 
     getById: publicProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id }))
       .query(({ input }) => content.videoById(input.id)),
   });

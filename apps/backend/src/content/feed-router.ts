@@ -29,7 +29,7 @@ export const createFeedRouter = (
 
     // Get single post by ID (public feed; club posts only for subscribers)
     getById: publicProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.number().int().positive().safe() }))
       .query(({ input, ctx }) => content.postById(input.id, ctx.user)),
 
     // Get all tags (public)

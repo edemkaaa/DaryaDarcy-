@@ -45,4 +45,10 @@ describe.skipIf(!testDatabaseUrl)("bounded legacy post collections", () => {
     const saved = await call("feed.savedPostsPage", { limit: 12, target: "feed" });
     expect(saved.status).toBe(200); expect((saved.data as { items: unknown[] }).items).toHaveLength(12);
   });
+  it.each([
+    ["feed.getById", { id: 1.5 }], ["feed.getById", { id: -1 }],
+    ["admin.getPostMedia", { postId: 1.5 }], ["videos.getById", { id: -1 }],
+  ])("refuses invalid identifiers before reading %s", async (path, input) => {
+    expect((await call(path, input)).status).toBe(400);
+  });
 });

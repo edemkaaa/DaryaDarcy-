@@ -46,7 +46,7 @@ export const createAdminRouter = (
 
   // Delete a post (admin only)
   deletePost: adminProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.number().int().positive().safe() }))
     .mutation(({ input, ctx }) => posts.deletePost(input.id, ctx.user)),
 
   importVideoUrl: adminProcedure
@@ -80,7 +80,7 @@ export const createAdminRouter = (
 
   // Get media for a post (admin only)
   getPostMedia: adminProcedure
-    .input(z.object({ postId: z.number() }))
+    .input(z.object({ postId: z.number().int().positive().safe() }))
     .query(({ input }) => content.postMedia(input.postId)),
 
   // Delete a media attachment (admin only)
