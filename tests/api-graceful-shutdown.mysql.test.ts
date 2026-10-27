@@ -61,6 +61,8 @@ describe.skipIf(!testDatabaseUrl)("real executable shutdown", () => {
       }, { timeout: 1500 });
       expect(exit).toBeUndefined();
       if (mode === "drain") {
+        // Repeated supervisor signals must not turn a graceful stop into a kill.
+        child.kill("SIGTERM");
         gate.release();
         expect((await pending).status).toBe(200);
       }

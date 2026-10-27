@@ -30,6 +30,6 @@ export function registerApiShutdown(app: INestApplication, server: Server, jobs:
         process.exit(1);
       });
   };
-  process.once("SIGTERM", stop);
-  process.once("SIGINT", stop);
+  process.on("SIGTERM", stop);
+  process.on("SIGINT", stop);
 }
