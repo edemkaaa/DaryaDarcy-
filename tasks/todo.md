@@ -2,6 +2,26 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Автоматические обложки VK-постов — 27 октября
+
+- [x] Подтвердить причину первого Club-видео: post954/media30, пустой poster,
+  нетphotos, серая заглушка без запроса картинки. Реальную запись не менять.
+- [x] Локально получать превью при create/update до SQL-транзакции: фиксированный
+  VK-host/hash, проверка owner/id и image-host,3с/2workers/8links/1МиБ,
+  проверка imageGET/MIME/сигнатуры4МиБ под тем же сроком,
+  без выполнения JS, S3-записи и нового API/DDL. VK-отказы не мешают save.
+- [x] Сохранить существующие posters/ручныеphotos/private assets/idempotency.
+  Настоящий VK243 отдаёт метаданные; разовый GET1280×720JPEG200,
+  повторные image-запросы404/429: стабильная доставка не принята.
+  Proxy-original429 исключён.
+- [x] RED/green: извлечение, сохранение; native HTTP/JWT/ownMySQL create/retry/
+  edit/Club/feed. Обновить единый frontend handoff; фронт не менять.
+- [x] Финально146tests/7files/0skip; root/frontend/E2Etypes, API105,
+  boundaries828, docs124 и backend build прошли. OwnMySQL OOMfalse/restart0,
+  временный контейнер удалён; рабочие БД/входы/S3/сервер не менялись.
+- [ ] Выпуск не запрошен. Post954 не изменён: после выпуска отдельно проверить
+  обычное сохранение и картинку до Play. Browser-приёмка этим срезом не закрыта.
+
 ### Подтянуть frontend d36e1b7 — 27 октября
 
 - [x] Freshfetch:4local/1incoming; чистое дерево до merge.

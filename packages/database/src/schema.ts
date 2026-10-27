@@ -126,7 +126,7 @@ export const postMedia = mysqlTable("post_media", {
   type: mysqlEnum("type", ["video", "audio", "document"]).notNull(),
   /** URL to the media file (S3) */
   url: text("url").notNull(),
-  /** Canonical private postPhoto reference for newly uploaded video only. */
+  /** Private postPhoto reference for uploaded video, or validated VK preview URL. */
   posterUrl: text("posterUrl"),
   /** Original filename */
   filename: varchar("filename", { length: 512 }),

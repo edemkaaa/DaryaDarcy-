@@ -134,6 +134,83 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await created()).toEqual([{ id, text: "One creation intent" }]);
       expect(transport.announcements).toEqual([id]);
     });
+    const vk = "https://vkvideo.ru/video_ext.php?oid=-211171256&id=456239243&hash=a1b2c3d4e5f60708&autoplay=0";
+    const vkCover = "https://sun9.userapi.com/vk.jpg?size=1280x720&sign=original";
+    function provider(response: () => Response) {
+      const nativeFetch = globalThis.fetch;
+      return vi.spyOn(globalThis, "fetch").mockImplementation(async (input, options) => {
+        const address = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+        if (new URL(address).origin === "https://vk.com") return response();
+        if (new URL(address).hostname === "sun9.userapi.com")
+          return new Response(new Uint8Array([255,216,255,0]), { headers: { "Content-Type": "image/jpeg" } });
+        return nativeFetch(input, options);
+      });
+    }
+    function vkPage(cover: string) {
+      return new Response("window.cur = Object.assign(window.cur || {}, " + JSON.stringify({
+        apiPrefetchCache: [{ method: "video.get", response: { items: [{
+          owner_id: -211171256, id: 456239243,
+          image: [{ url: cover, width: 1280, height: 720 }],
+        }] } }],
+      }) + ", {screen: 'embed'});");
+    }
+    it("returns an automatic VK cover through real HTTP/SQL and preserves it on retry/edit", async () => {
+      let cover = vkCover;
+      const external = provider(() => vkPage(cover));
+      try {
+        const request = { ...input, published: false, status: "draft" as const, videos: [vk] };
+        const id = await admin.admin.createPost.mutate(request);
+        cover = vkCover.replace("original", "changed");
+        expect(await admin.admin.createPost.mutate(request)).toBe(id);
+        const detail = await admin.admin.postDetail.query({ id });
+        expect(detail?.media).toHaveLength(1);
+        expect(detail?.media[0]).toMatchObject({ url: vk, posterUrl: vkCover });
+        await admin.admin.updatePost.mutate({ id, videos: [vk], text: "Edited VK",
+          expectedRevision: detail!.editRevision });
+        const edited = await admin.admin.postDetail.query({ id });
+        expect(edited?.media).toEqual(detail?.media);
+        expect(await created()).toEqual([{ id, text: "Edited VK" }]);
+        expect(transport.announcements).toEqual([]);
+      } finally { external.mockRestore(); }
+    });
+    it("fills a missing VK cover on explicit video edit without replacing the attachment", async () => {
+      let denied = true;
+      const external = provider(() => denied ? new Response("Denied", { status: 403 }) : vkPage(vkCover));
+      try {
+        const id = await admin.admin.createPost.mutate({ ...input, published: false, videos: [vk] });
+        const before = await admin.admin.postDetail.query({ id });
+        expect(before?.media[0]?.posterUrl).toBeNull();
+        denied = false;
+        await admin.admin.updatePost.mutate({ id, videos: [vk], expectedRevision: before!.editRevision });
+        const after = await admin.admin.postDetail.query({ id });
+        expect(after?.media[0]).toEqual({ ...before?.media[0], posterUrl: vkCover });
+        expect(transport.announcements).toEqual([]);
+      } finally { external.mockRestore(); }
+    });
+    it("preserves existing photo-as-cover without a VK request", async () => {
+      let requests = 0;
+      const external = provider(() => { requests++; return vkPage(vkCover); });
+      try {
+        const photos = ["https://assets.example.test/manual-cover.jpg"];
+        const id = await admin.admin.createPost.mutate({ ...input, published: false, videos: [vk], photos });
+        const detail = await admin.admin.postDetail.query({ id });
+        expect(detail?.photos).toEqual(photos);
+        expect(detail?.media[0]?.posterUrl).toBeNull();
+        await admin.admin.updatePost.mutate({ id, videos: [vk], photos, expectedRevision: detail!.editRevision });
+        expect(requests).toBe(0);
+      } finally { external.mockRestore(); }
+    });
+    it("exposes the VK poster to both Club and feed readers after publication", async () => {
+      const external = provider(() => vkPage(vkCover));
+      try {
+        const id = await admin.admin.createPost.mutate({ ...input, target: "both", videos: [vk] });
+        const clubPage = await admin.club.list.query({ limit: 200 });
+        expect(clubPage.posts.find(post => post.id === id)?.media[0]?.posterUrl).toBe(vkCover);
+        const post = await admin.feed.getById.query({ id });
+        expect(post?.media[0]?.posterUrl).toBe(vkCover);
+        expect(transport.announcements).toEqual([id]);
+      } finally { external.mockRestore(); }
+    });
     it("refuses expired keyed creation without duplicating the post", async () => {
       const id = await admin.admin.createPost.mutate(input);
       await conn.query(

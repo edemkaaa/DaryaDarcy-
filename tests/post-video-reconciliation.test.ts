@@ -40,6 +40,23 @@ function selection() {
 }
 
 describe("post video reconciliation", () => {
+  it("persists a resolved VK poster with a new video", async () => {
+    rows = [];
+    const vk = "https://vk.com/video_ext.php?oid=-1&id=2";
+    const cover = "https://sun9.userapi.com/a.jpg?sign=keep";
+    await replacePostVideoRows(database, 41, [vk], new Map([[vk, cover]]));
+    expect(writes()).toHaveLength(1);
+    expect(writes()[0].params).toContain(cover);
+  });
+  it("fills a missing poster on edit without replacing an existing manual poster", async () => {
+    rows = [[51, first, 0, null], [52, second, 1, "https://assets.example.test/manual.jpg"]];
+    await replacePostVideoRows(database, 41, [first, second], new Map([
+      [first, "https://sun9.userapi.com/a.jpg"], [second, "https://sun9.userapi.com/b.jpg"],
+    ]));
+    expect(writes()).toHaveLength(1);
+    expect(writes()[0].params).toEqual(["https://sun9.userapi.com/a.jpg", 41, "video", 51]);
+    expect(writes()[0].sql).toContain("set `posterUrl` = ?");
+  });
   it("does not rewrite unchanged rows, preserving IDs and every metadata column", async () => {
     await replacePostVideoRows(database, 41, [first, second]);
     expect(writes()).toEqual([]);

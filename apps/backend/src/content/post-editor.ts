@@ -7,6 +7,7 @@ import {
 } from "../../../../packages/database/src/schema";
 import type { PostPublication } from "./publication";
 import { replacePostVideoRows } from "./post-videos";
+import { resolveVkPostPosters } from "./vk-post-posters";
 import {
   savePostAttachments,
   type PostAttachmentChanges,
@@ -27,6 +28,8 @@ export async function savePostEdit(
   attachments: PostAttachmentChanges = {},
   condition?: ContentEditPrecondition,
 ): Promise<PostPublication | undefined> {
+  // Provider requests must finish before taking actor/post row locks.
+  const posters = data.photos?.length ? new Map<string, string>() : await resolveVkPostPosters(videos ?? []);
   return database.transaction(async (tx) => {
     await assertContentWriteActor(tx,attachments.actor);
     const expectedRevision = expectedEditRevision(condition);
@@ -64,7 +67,8 @@ export async function savePostEdit(
       updateData.publishedAt = new Date();
     if (Object.values(updateData).some((value) => value !== undefined))
       await tx.update(posts).set(updateData).where(eq(posts.id, postId));
-    if (videos !== undefined) await replacePostVideoRows(tx, postId, videos);
+    if (videos !== undefined) await replacePostVideoRows(tx, postId, videos,
+      (data.photos ?? post.photos ?? []).length ? new Map() : posters);
     await savePostAttachments(tx, postId, attachments);
     if (filesChanged) await bindContentFiles(tx, "post", postId,
       await postFileReferences(tx, postId, data.photos ?? post.photos ?? []),

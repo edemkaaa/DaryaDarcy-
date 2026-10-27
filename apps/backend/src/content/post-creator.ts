@@ -7,6 +7,7 @@ import {
   type InsertPost,
 } from "../../../../packages/database/src/schema";
 import { replacePostVideoRows } from "./post-videos";
+import { resolveVkPostPosters } from "./vk-post-posters";
 import {
   savePostAttachments,
   type PostAttachmentChanges,
@@ -24,10 +25,11 @@ async function insertPost(
   data: InsertPost,
   videos: string[],
   attachments: PostAttachmentChanges,
+  posters: ReadonlyMap<string, string>,
 ): Promise<number> {
   const [result] = await writer.insert(posts).values(data);
   const postId = Number(result.insertId);
-  if (videos.length > 0) await replacePostVideoRows(writer, postId, videos);
+  if (videos.length > 0) await replacePostVideoRows(writer, postId, videos, posters);
   await savePostAttachments(writer, postId, attachments);
   await bindContentFiles(writer, "post", postId, await postFileReferences(writer, postId, data.photos ?? []), [], attachments.actor);
   await assertPostHasBody(writer, postId, data.text, data.photos ?? []);
@@ -42,10 +44,11 @@ export async function createPostWithVideos(
   attachments: PostAttachmentChanges = {},
 ): Promise<number> {
   if (hasPrivateContent(postPhotoReferences(data.photos ?? []))) throw new TRPCError({ code: "BAD_REQUEST", message: "Для новых закрытых фото нужен ключ создания" });
+  const posters = data.photos?.length ? new Map<string, string>() : await resolveVkPostPosters(videos);
   return database.transaction(async (tx) => {
     await assertContentWriteActor(tx,attachments.actor);
     await authorizePrivateAttachmentChanges(tx, attachments);
-    return insertPost(tx, data, videos, attachments);
+    return insertPost(tx, data, videos, attachments, posters);
   });
 }
 
@@ -56,6 +59,7 @@ export async function createPostOnce(
   attachments: PostAttachmentChanges,
   intent: PostCreationIntent,
 ): Promise<{ postId: number; created: boolean }> {
+  const posters = data.photos?.length ? new Map<string, string>() : await resolveVkPostPosters(videos);
   return database.transaction(async (tx) => {
     await assertContentWriteActor(tx,attachments.actor);
     await authorizePrivateAttachmentChanges(tx, attachments);
@@ -89,7 +93,7 @@ export async function createPostOnce(
     assertContentRecoveryWindow(request.createdAt);
     if (request.postId !== null)
       return { postId: request.postId, created: false };
-    const postId = await insertPost(tx, data, videos, attachments);
+    const postId = await insertPost(tx, data, videos, attachments, posters);
     await tx
       .update(postCreationRequests)
       .set({ postId })

@@ -14,12 +14,14 @@ export async function replacePostVideoRows(
   writer: VideoWriter,
   postId: number,
   urls: string[],
+  posters: ReadonlyMap<string, string> = new Map(),
 ): Promise<void> {
   const existing = await writer
     .select({
       id: postMedia.id,
       url: postMedia.url,
       sortOrder: postMedia.sortOrder,
+      posterUrl: postMedia.posterUrl,
     })
     .from(postMedia)
     .where(and(eq(postMedia.postId, postId), eq(postMedia.type, "video")))
@@ -87,11 +89,16 @@ export async function replacePostVideoRows(
         ),
       );
   for (const { url, sortOrder, video, filename } of changes) {
+    const posterUrl = posters.get(url);
     if (video) {
-      if (video.sortOrder !== sortOrder)
+      const update = {
+        ...(video.sortOrder !== sortOrder ? { sortOrder } : {}),
+        ...(!video.posterUrl && posterUrl ? { posterUrl } : {}),
+      };
+      if (Object.keys(update).length)
         await writer
           .update(postMedia)
-          .set({ sortOrder })
+          .set(update)
           .where(
             and(
               eq(postMedia.postId, postId),
@@ -105,6 +112,7 @@ export async function replacePostVideoRows(
         postId,
         type: "video",
         url,
+        ...(posterUrl ? { posterUrl } : {}),
         filename,
         mimeType: null,
         sortOrder,
