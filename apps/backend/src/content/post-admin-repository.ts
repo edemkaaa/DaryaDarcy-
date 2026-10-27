@@ -9,6 +9,7 @@ import {
 } from "../../../../packages/database/src/schema";
 import { attachPostMedia } from "./post-media-repository";
 import { postDateOrder, postListOrder } from "./post-order";
+import { boundedLegacyList, LEGACY_LIST_CAP } from "./legacy-list-limit";
 
 // db.ts owns the connection; the native admin boundary owns access checks.
 // These projections deliberately retain hidden posts and legacy row counts.
@@ -22,8 +23,8 @@ export async function getAllPostsAdmin(
   const rows = await db
     .select()
     .from(posts)
-    .orderBy(...postListOrder);
-  return attachPostMedia(db, rows);
+    .orderBy(...postListOrder).limit(LEGACY_LIST_CAP + 1);
+  return attachPostMedia(db, boundedLegacyList(rows));
 }
 
 export async function getAdminPostsFiltered(
@@ -48,17 +49,17 @@ export async function getAdminPostsFiltered(
           .orderBy(postDateOrder)
       : db.select().from(posts).orderBy(postDateOrder);
 
-  return query;
+  return boundedLegacyList(await query.limit(LEGACY_LIST_CAP + 1));
 }
 
 export async function getScheduledPosts(db: Database): Promise<Post[]> {
   if (!db) throw new Error("Database not available");
 
-  return db
+  return boundedLegacyList(await db
     .select()
     .from(posts)
     .where(eq(posts.status, "scheduled"))
-    .orderBy(asc(posts.scheduledAt));
+    .orderBy(asc(posts.scheduledAt)).limit(LEGACY_LIST_CAP + 1));
 }
 
 export async function getPostStatistics(db: Database) {

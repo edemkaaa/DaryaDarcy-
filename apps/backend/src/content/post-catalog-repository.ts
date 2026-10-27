@@ -12,6 +12,7 @@ import { attachPostMedia } from "./post-media-repository";
 import { clubPostListOrder, postListOrder } from "./post-order";
 import { clubCategoryCondition, clubBoardTagCondition } from "./club-category-filter";
 import type { ClubTabId } from "../../../../packages/shared/src/club-tags";
+import { boundedLegacyList, LEGACY_LIST_CAP } from "./legacy-list-limit";
 
 // db.ts owns the connection; services and adapters retain access decisions.
 type Database = MySql2Database | null;
@@ -28,7 +29,7 @@ export async function getAllTags(db: Database): Promise<Tag[]> {
   }
 }
 
-// Legacy list keeps its own fields and exact JavaScript tag membership.
+// Legacy list keeps its own fields; filter before the bounded SQL read.
 export async function getPosts(
   db: Database,
   tagFilter?: string,
@@ -60,24 +61,12 @@ export async function getPosts(
     .from(posts)
     .where(
       and(
-        eq(posts.published, true),
-        eq(posts.status, "published"),
-        or(eq(posts.target, "feed"), eq(posts.target, "both")),
+        ...feedFilterConditions({ tagFilter }),
       ),
     )
-    .orderBy(...postListOrder);
+    .orderBy(...postListOrder).limit(LEGACY_LIST_CAP + 1);
 
-  const results = await query;
-
-  let filtered = results;
-  if (tagFilter && tagFilter !== "all") {
-    filtered = results.filter((p) => {
-      const postTags = p.tags as string[];
-      return postTags.includes(tagFilter);
-    });
-  }
-
-  return attachPostMedia(db, filtered);
+  return attachPostMedia(db, boundedLegacyList(await query));
 }
 
 const postListColumns = {

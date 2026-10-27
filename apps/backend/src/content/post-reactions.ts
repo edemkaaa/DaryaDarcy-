@@ -8,6 +8,7 @@ import {
   type User,
 } from "../../../../packages/database/src/schema";
 import { TRPCError } from "@trpc/server";
+import { boundedLegacyList, LEGACY_LIST_CAP } from "./legacy-list-limit";
 
 export type ReactionAccessCheck = (
   actor: Pick<User, "id" | "role" | "email" | "openId" | "blockedAt">,
@@ -23,8 +24,8 @@ export async function getUserLikedPostIds(
   const result = await db
     .select({ postId: likes.postId })
     .from(likes)
-    .where(eq(likes.userId, userId));
-  return result.map((r) => r.postId);
+    .where(eq(likes.userId, userId)).limit(LEGACY_LIST_CAP + 1);
+  return boundedLegacyList(result).map((r) => r.postId);
 }
 
 export async function getUserSavedPostIds(
@@ -37,8 +38,8 @@ export async function getUserSavedPostIds(
     .select({ postId: savedPosts.postId })
     .from(savedPosts)
     .where(eq(savedPosts.userId, userId))
-    .orderBy(desc(savedPosts.createdAt));
-  return result.map((r) => r.postId);
+    .orderBy(desc(savedPosts.createdAt)).limit(LEGACY_LIST_CAP + 1);
+  return boundedLegacyList(result).map((r) => r.postId);
 }
 
 /** Toggle once per committed request; a network retry is still a new toggle. */
