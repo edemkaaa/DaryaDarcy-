@@ -377,7 +377,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
       const original = await user(),
         originalMails = await mails();
       const response = await register("Replacement");
-      expect(response.status).toBe(409);
+      await accepted(response);
       expect(response.headers.get("set-cookie")).toBeNull();
       expect(await user()).toEqual(original);
       expect(await mails()).toEqual(originalMails);
@@ -389,7 +389,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
       [emailToOpenId(email()), email()],
     );
     const original = await user();
-    expect((await register("Replacement")).status).toBe(409);
+    await accepted(await register("Replacement"));
     expect(await user()).toEqual(original);
     expect(await mails()).toEqual([]);
     expect(await tokens()).toEqual([]);

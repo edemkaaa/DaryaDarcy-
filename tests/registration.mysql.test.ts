@@ -255,7 +255,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       );
       const result = await post();
-      expect(result.status).toBe(409);
+      expect(result.status).toBe(202);
       expect(result.headers.getSetCookie()).toHaveLength(0);
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT passwordHash FROM users WHERE email=?",

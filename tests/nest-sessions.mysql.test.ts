@@ -87,6 +87,15 @@ describe.skipIf(!testDatabaseUrl)(
       sdk.createSessionToken("native-session-member", { sessionVersion: 0 });
     const staffToken = () =>
       sdk.createSessionToken("native-session-staff", { sessionVersion: 0 });
+    const cookieToken = (response: Response) => {
+      const cookie = response.headers
+        .getSetCookie()
+        .find((value) => value.startsWith(`${COOKIE_NAME}=`));
+      expect(cookie).toBeDefined();
+      return decodeURIComponent(
+        cookie!.split(";")[0].slice(COOKIE_NAME.length + 1),
+      );
+    };
     it.each(["GET", "PUT"])(
       "preserves plain settings denial and rejects identity supplied in JSON on %s",
       async (method) => {
@@ -269,7 +278,8 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(data.user).not.toHaveProperty("passwordHash");
       expect(data.user).not.toHaveProperty("sessionVersion");
-      expect(await sdk.verifySession(data.sessionToken)).toMatchObject({
+      expect(Object.keys(data)).toEqual(["user"]);
+      expect(await sdk.verifySession(cookieToken(response))).toMatchObject({
         openId: "native-session-member",
         sessionVersion: 0,
       });
@@ -383,7 +393,8 @@ describe.skipIf(!testDatabaseUrl)(
           password,
         });
         expect(login.status).toBe(200);
-        const fresh = (await login.json()).sessionToken;
+        expect(await login.json()).not.toHaveProperty("sessionToken");
+        const fresh = cookieToken(login);
         expect(await sdk.verifySession(fresh)).toMatchObject({
           sessionVersion: 1,
         });
@@ -553,6 +564,78 @@ describe.skipIf(!testDatabaseUrl)(
         retryAfterSec: expect.any(Number),
       });
       expect(last!.headers.get("set-cookie")).toBeNull();
+    });
+    it("shares account cooldown across IPs, then accepts the real password and cookie after expiry", async () => {
+      const email = "native-distributed-limit@example.test";
+      await conn.query(
+        "UPDATE users SET email=?,lastSignedIn='2020-01-01 00:00:00' WHERE id=8940",
+        [email],
+      );
+      try {
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const response = await post(
+            "/api/auth/login",
+            {
+              email: [
+                email,
+                `  ${email.toUpperCase()} `,
+                "nátive-distributed-limit@example.test",
+                "native-distributed-límít@example.test",
+                "native-distributed-limit@exámple.test",
+              ][attempt],
+              password: "wrong-password",
+            },
+            { "X-Forwarded-For": `203.0.113.${120 + attempt}` },
+          );
+          expect(response.status).toBe(401);
+          expect(response.headers.get("set-cookie")).toBeNull();
+        }
+        const refused = await post(
+          "/api/auth/login",
+          { email, password },
+          { "X-Forwarded-For": "203.0.113.130" },
+        );
+        expect(refused.status).toBe(429);
+        const retryAfter = Number(refused.headers.get("Retry-After"));
+        expect(retryAfter).toBeGreaterThan(0);
+        expect(await refused.json()).toMatchObject({
+          retryAfterSec: retryAfter,
+        });
+        expect(refused.headers.get("set-cookie")).toBeNull();
+        const [rows] = await conn.query<
+          import("mysql2/promise").RowDataPacket[]
+        >("SELECT lastSignedIn FROM users WHERE id=8940");
+        expect(rows[0].lastSignedIn.toISOString()).toBe(
+          "2020-01-01T00:00:00.000Z",
+        );
+        const clock = vi
+          .spyOn(Date, "now")
+          .mockReturnValue(Date.now() + retryAfter * 1000 + 1);
+        try {
+          const login = await post(
+            "/api/auth/login",
+            { email, password },
+            { "X-Forwarded-For": "203.0.113.131" },
+          );
+          expect(login.status).toBe(200);
+          expect(Object.keys(await login.json())).toEqual(["user"]);
+          const me = await fetch(base + "/api/auth/me", {
+            headers: { Cookie: `${COOKIE_NAME}=${cookieToken(login)}` },
+          });
+          expect(me.status).toBe(200);
+          expect((await me.json()).user).toMatchObject({
+            id: 8940,
+            email,
+            role: "user",
+          });
+        } finally {
+          clock.mockRestore();
+        }
+      } finally {
+        await conn.query("UPDATE users SET email=? WHERE id=8940", [
+          memberEmail,
+        ]);
+      }
     });
   },
 );

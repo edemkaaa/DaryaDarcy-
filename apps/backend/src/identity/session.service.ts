@@ -83,8 +83,7 @@ export class SessionService {
       : "duplicate";
   }
 
-  async passwordUser(email: string, password: string) {
-    const user = await getUserByEmail(email);
+  async passwordUser(user: User | undefined, password: string) {
     if (
       !user?.passwordHash ||
       !(await verifyPassword(password, user.passwordHash))
@@ -131,6 +130,9 @@ export class SessionService {
 
   findByPhone(phone: string) {
     return getUserByPhone(phone);
+  }
+  findByEmail(email: string) {
+    return getUserByEmail(email);
   }
   findByOpenId(openId: string) {
     return getUserByOpenId(openId);

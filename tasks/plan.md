@@ -2,6 +2,17 @@
 
 ## Действующий план агента — 13 октября 2026
 
+28 октября новый запрос безопасности auth: унифицировать публичный исход
+регистрации, добавить account cooldown к IP-квоте и убрать token из JSON входа.
+Реализовано локально без DDL/зависимостей/2FA/ручных frontend-изменений.
+Account key основан на найденном SQL-email, чтобы учитывать collation;
+резервирование до password check, короткая пауза до30с, конечное окно/ёмкость.
+Native HTTP и собственная MySQL проверяют вход/cookie/повторы/сохранность.
+Итог177pass/14files/0skip, root/frontend/E2Etypes, API105/boundaries831,
+обе backend-сборки/docs126 GREEN. Свой tmpfs MySQL удалён/OOMfalse/restart0.
+Единый frontend handoff обновлён. Push/выкладку этим поручением не делать.
+[Контракт и границы](../docs/operations/auth-public-boundary-2026-10-28.md).
+
 28 октября продолжение VK по разрешению владельца: исправить и выпустить всё
 на подтверждённый daryadarcy.dev.reeskeen.ru. Найдены CDN404/429 и отсутствие
 DNS/интернета у isolated API. Минимальное решение — bounded thumbnail/frame

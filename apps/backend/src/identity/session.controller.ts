@@ -25,6 +25,7 @@ import {
 } from "../../../../packages/shared/src/consent-texts";
 import { adminTotpEnabled, verifyTotp } from "../_core/totp";
 import { publicUser, SessionService } from "./session.service";
+import { loginAccountLimiter } from "./login-account-limit";
 
 function verifyStaffTotp(req: Request, res: Response): boolean {
   if (!adminTotpEnabled()) return true;
@@ -71,7 +72,7 @@ export class SessionController {
   private async issueSession(req: Request, res: Response, user: User) {
     const session = await this.identity.issueSession(user);
     setSessionCookie(req, res, session.sessionToken);
-    return session;
+    return { user: session.user };
   }
 
   @Post("register")
@@ -115,13 +116,6 @@ export class SessionController {
       }
 
       const outcome = await this.identity.register(email, name);
-      if (outcome === "duplicate") {
-        res
-          .status(409)
-          .json({ error: "Этот email уже зарегистрирован. Войдите." });
-        return;
-      }
-
       if (outcome === "unavailable") {
         res.status(503).json({ error: "Регистрация временно недоступна" });
         return;
@@ -131,7 +125,7 @@ export class SessionController {
         .json({
           ok: true,
           message:
-            "Запрос принят. Проверьте почту: в письме будет ссылка для установки пароля.",
+            "Запрос принят. Если регистрация доступна для этого адреса, на почту придёт ссылка для установки пароля. Если у вас уже есть аккаунт, войдите или восстановите пароль.",
         });
     } catch (error) {
       console.error("[Auth] Register failed");
@@ -146,6 +140,7 @@ export class SessionController {
       const ip = clientIp(req);
       const limited = checkRateLimit(`auth:login:${ip}`, 20, 15 * 60_000);
       if (!limited.ok) {
+        res.setHeader("Retry-After", limited.retryAfterSec);
         res
           .status(429)
           .json({
@@ -161,12 +156,25 @@ export class SessionController {
       const password =
         typeof req.body?.password === "string" ? req.body.password : "";
 
-      if (!isValidEmail(email) || password.length < 1) {
+      if (!isValidEmail(email) || email.length > 320 || password.length < 1) {
         res.status(400).json({ error: "Неверный email или пароль" });
         return;
       }
 
-      const user = await this.identity.passwordUser(email, password);
+      const candidate = await this.identity.findByEmail(email);
+      // Use the stored address: SQL collations can equate spelling variants
+      // that lowercasing alone does not (for example accented characters).
+      const attempt = loginAccountLimiter.begin(candidate?.email ?? email);
+      if (!attempt.ok) {
+        res.setHeader("Retry-After", attempt.retryAfterSec);
+        res.status(429).json({
+          error: "Слишком много попыток. Попробуйте позже.",
+          retryAfterSec: attempt.retryAfterSec,
+        });
+        return;
+      }
+
+      const user = await this.identity.passwordUser(candidate, password);
       if (!user) {
         res.status(401).json({ error: "Неверный email или пароль" });
         return;
@@ -179,6 +187,7 @@ export class SessionController {
         lastSignedIn: new Date(),
       });
       const session = await this.issueSession(req, res, user);
+      attempt.succeeded();
       res.json(session);
     } catch (error) {
       console.error("[Auth] Login failed");

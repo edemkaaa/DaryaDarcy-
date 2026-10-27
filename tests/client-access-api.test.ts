@@ -11,6 +11,7 @@ import {
   apiCall,
   requestPasswordInstructions,
   registerWithEmail,
+  loginWithEmail,
   logout,
 } from "../apps/frontend/src/shared/api/auth";
 import {
@@ -81,6 +82,33 @@ it("starts registration without a password or a client session", async () => {
     name: "Member",
     consentVersion: "2026-09-1",
   });
+  expect(auth.setSessionToken).not.toHaveBeenCalled();
+});
+it("accepts login with only a public profile and uses the browser cookie transport", async () => {
+  const user = {
+    id: 4301,
+    openId: "cookie-only-login",
+    role: "user",
+    name: "Fixture",
+    email: "cookie-only@example.test",
+    phone: null,
+    loginMethod: "email",
+    gender: null,
+    avatarUrl: null,
+    lastSignedIn: "2026-10-28T10:00:00.000Z",
+  };
+  fetcher.mockResolvedValue(new Response(JSON.stringify({ user })));
+  await expect(loginWithEmail(user.email, "fixture-password")).resolves.toEqual(
+    { user },
+  );
+  expect(fetcher).toHaveBeenCalledWith(
+    "https://api.example.test/api/auth/login",
+    expect.objectContaining({
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+    }),
+  );
   expect(auth.setSessionToken).not.toHaveBeenCalled();
 });
 it("reads capabilities from the server and does not accept a string as permission", async () => {

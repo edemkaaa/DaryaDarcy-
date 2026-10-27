@@ -494,7 +494,7 @@ async function main() {
         ensure(
           response.status === 200 &&
             data.user?.id === i + 1 &&
-            data.sessionToken &&
+            !Object.hasOwn(data, "sessionToken") &&
             response.headers.get("set-cookie")?.includes("HttpOnly"),
           "Real login failed",
         );
