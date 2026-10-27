@@ -10,7 +10,7 @@ type Database = MySql2Database | null;
 export async function getPostById(
   db: Database,
   id: number,
-): Promise<(Post & { likeCount: number }) | undefined> {
+) {
   if (!db) throw new Error("Database not available");
 
   const result = await db

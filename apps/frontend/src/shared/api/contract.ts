@@ -23,23 +23,6 @@ export type PostMedia = {
   posterUrl: string | null;
   fileSize: number | null;
 };
-export type Post = {
-  id: number;
-  text: string;
-  createdAt: Date;
-  updatedAt: Date;
-  tags: Array<string>;
-  target: "feed" | "club" | "both";
-  photos: Array<string>;
-  source: string;
-  instagramId: string | null;
-  sortOrder: number;
-  published: boolean;
-  status: "published" | "draft" | "scheduled";
-  scheduledAt: Date | null;
-  publishedAt: Date | null;
-  richText: Array<RichTextBlock> | null;
-};
 export type PublicVideo = Omit<
   {
     duration: string | null;
@@ -261,7 +244,27 @@ export type AppRouter = BuiltRouter<
           cursor?: number | null | undefined;
         };
         output: {
-          posts: (Post & { likeCount: number; media: PostMedia[] })[];
+          posts: Array<
+            {
+              id: number;
+              text: string;
+              photos: Array<string>;
+              tags: Array<string>;
+              source: string;
+              instagramId: string | null;
+              sortOrder: number;
+              published: boolean;
+              status: "published" | "draft" | "scheduled";
+              target: "feed" | "club" | "both";
+              scheduledAt: Date | null;
+              publishedAt: Date | null;
+              richText: Array<RichTextBlock> | null;
+              createdAt: Date;
+              updatedAt: Date;
+              likeCount: number;
+              commentCount: number;
+            } & { media: PostMedia[] }
+          >;
           nextCursor: number | null;
         };
         meta: unknown;
@@ -272,20 +275,21 @@ export type AppRouter = BuiltRouter<
           | ({
               id: number;
               text: string;
-              createdAt: Date;
-              updatedAt: Date;
-              tags: Array<string>;
-              target: "feed" | "club" | "both";
               photos: Array<string>;
+              tags: Array<string>;
               source: string;
               instagramId: string | null;
               sortOrder: number;
               published: boolean;
               status: "published" | "draft" | "scheduled";
+              target: "feed" | "club" | "both";
               scheduledAt: Date | null;
               publishedAt: Date | null;
               richText: Array<RichTextBlock> | null;
-            } & { likeCount: number })
+              createdAt: Date;
+              updatedAt: Date;
+              likeCount: number;
+            } & { media: PostMedia[] })
           | undefined;
         meta: unknown;
       }>;
@@ -326,20 +330,22 @@ export type AppRouter = BuiltRouter<
           {
             id: number;
             text: string;
-            createdAt: Date;
-            updatedAt: Date;
-            tags: Array<string>;
-            target: "feed" | "club" | "both";
             photos: Array<string>;
+            tags: Array<string>;
             source: string;
             instagramId: string | null;
             sortOrder: number;
             published: boolean;
             status: "published" | "draft" | "scheduled";
+            target: "feed" | "club" | "both";
             scheduledAt: Date | null;
             publishedAt: Date | null;
             richText: Array<RichTextBlock> | null;
-          } & { likeCount: number; media: PostMedia[] }
+            createdAt: Date;
+            updatedAt: Date;
+            likeCount: number;
+            commentCount: number;
+          } & { media: PostMedia[] }
         >;
         meta: unknown;
       }>;
@@ -355,20 +361,22 @@ export type AppRouter = BuiltRouter<
             {
               id: number;
               text: string;
-              createdAt: Date;
-              updatedAt: Date;
-              tags: Array<string>;
-              target: "feed" | "club" | "both";
               photos: Array<string>;
+              tags: Array<string>;
               source: string;
               instagramId: string | null;
               sortOrder: number;
               published: boolean;
               status: "published" | "draft" | "scheduled";
+              target: "feed" | "club" | "both";
               scheduledAt: Date | null;
               publishedAt: Date | null;
               richText: Array<RichTextBlock> | null;
-            } & { likeCount: number; media: PostMedia[] }
+              createdAt: Date;
+              updatedAt: Date;
+              likeCount: number;
+              commentCount: number;
+            } & { media: PostMedia[] }
           >;
           nextCursor: string | null;
         };
@@ -1112,7 +1120,27 @@ export type AppRouter = BuiltRouter<
           cursor?: number | null | undefined;
         };
         output: {
-          posts: (Post & { likeCount: number })[];
+          posts: Array<
+            {
+              id: number;
+              text: string;
+              photos: Array<string>;
+              tags: Array<string>;
+              source: string;
+              instagramId: string | null;
+              sortOrder: number;
+              published: boolean;
+              status: "published" | "draft" | "scheduled";
+              target: "feed" | "club" | "both";
+              scheduledAt: Date | null;
+              publishedAt: Date | null;
+              richText: Array<RichTextBlock> | null;
+              createdAt: Date;
+              updatedAt: Date;
+              likeCount: number;
+              commentCount: number;
+            } & { media: PostMedia[] }
+          >;
           nextCursor: number | null;
         };
         meta: unknown;
@@ -1146,7 +1174,27 @@ export type AppRouter = BuiltRouter<
             }
           | undefined;
         output: {
-          posts: (Post & { likeCount: number })[];
+          posts: Array<
+            {
+              id: number;
+              text: string;
+              photos: Array<string>;
+              tags: Array<string>;
+              source: string;
+              instagramId: string | null;
+              sortOrder: number;
+              published: boolean;
+              status: "published" | "draft" | "scheduled";
+              target: "feed" | "club" | "both";
+              scheduledAt: Date | null;
+              publishedAt: Date | null;
+              richText: Array<RichTextBlock> | null;
+              createdAt: Date;
+              updatedAt: Date;
+              likeCount: number;
+              commentCount: number;
+            } & { media: PostMedia[] }
+          >;
           nextCursor: number | null;
         };
         meta: unknown;

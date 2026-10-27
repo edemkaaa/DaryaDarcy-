@@ -312,12 +312,12 @@ export async function getPostsPaginated(options: {
   search?: string;
   limit: number;
   cursor?: number; // offset (page number * limit)
-}): Promise<{ posts: (Post & { likeCount: number; media: PostMedia[] })[]; nextCursor: number | null }> {
+}) {
   return readPostPage(await getDb(), options);
 }
 
 // Get a single post by ID
-export async function getPostById(id: number): Promise<(Post & { likeCount: number }) | undefined> {
+export async function getPostById(id: number) {
   return readPostDetail(await getDb(), id);
 }
 
@@ -352,7 +352,7 @@ export async function getUserSavedPostIds(userId: number): Promise<number[]> {
   return readUserSavedPostIds(await getDb(), userId);
 }
 
-export async function getPostsByIds(ids: number[]): Promise<(Post & { likeCount: number; media: PostMedia[] })[]> {
+export async function getPostsByIds(ids: number[]) {
   if (ids.length === 0) return [];
   return readPostsByIds(await getDb(), ids);
 }
@@ -749,7 +749,7 @@ export async function getPostsForTarget(target: "feed" | "club", options?: {
   cursor?: number;
   category?: ClubTabId;
   clubTag?: string;
-}): Promise<{ posts: (Post & { likeCount: number })[]; nextCursor: number | null }> {
+}) {
   return readTargetPosts(await getDb(), target, options);
 }
 

@@ -135,10 +135,7 @@ export async function getPostsPaginated(
     limit: number;
     cursor?: number; // offset (page number * limit)
   },
-): Promise<{
-  posts: (Post & { likeCount: number; media: PostMedia[] })[];
-  nextCursor: number | null;
-}> {
+) {
   if (!db) throw new Error("Database not available");
 
   const offset = options.cursor ?? 0;
@@ -161,7 +158,7 @@ export async function getPostsPaginated(
 export async function getPostsByIds(
   db: Database,
   ids: number[],
-): Promise<(Post & { likeCount: number; media: PostMedia[] })[]> {
+) {
   if (ids.length === 0) return [];
   if (!db) throw new Error("Database not available");
   const rows = await db
@@ -192,10 +189,7 @@ export async function getPostsForTarget(
     category?: ClubTabId;
     clubTag?: string;
   },
-): Promise<{
-  posts: (Post & { likeCount: number })[];
-  nextCursor: number | null;
-}> {
+) {
   if (!db) throw new Error("Database not available");
 
   const offset = options?.cursor ?? 0;
