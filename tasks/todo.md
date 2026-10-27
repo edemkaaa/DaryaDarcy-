@@ -2,6 +2,25 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Выпуск BE-01/INT-04 — 27 октября
+
+- [x] Fresh fetch без новых изменений; push cda1087→6969c93 в staging проверен.
+- [x] Preflight45/pendingnone; freshbackup восстановлен в own network-none
+  MySQL:41таблица/строки/индексы/admin3 совпали; ownDB удалена/OOMfalse/restart0.
+- [x] Только API/TEST: candidate26/live47API,35HTTPS,9+9compression GREEN.
+  Strict mode выключен; предоставленная устаревшая версия409, oversized text400.
+- [x] Первая попытка откатилась из-за600прав TEST-кода; RED EACCES/GREEN
+  network-none mounted syntax check после644 только code file; повтор успешен.
+- [x] После проверок совпали строки41таблицы/схема/индексы/45ledger/admin3;
+  обычные auth activity timestamps исключены. Web22ebe31/остальные контейнеры/
+  настройки/лимиты/старыефайлы сохранены. Миграций/писем/оплат/S3-записей нет.
+- [x] Обновлён единый handoff; backend protection не объявлена полной для
+  старых клиентов. Подключение frontend expectedRevision/приёмка/required=true
+  остаются открытыми, в этом выпуске строгий режим не включается.
+
+[Отчёт и откат](../docs/operations/content-edit-release-2026-10-27.md).
+Ниже — сохранённая история локального этапа до разрешения выпуска.
+
 ### Новый аудит: BE-01 и INT-04 — локально27октября
 
 - [x] RED:10native конфликтных сценариев/3UTF-8 schema/2service bounds.
