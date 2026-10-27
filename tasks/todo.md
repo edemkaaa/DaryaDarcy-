@@ -14,6 +14,11 @@
   boundaries831, обе backend-сборки, docs126 и diffcheck. Удалён только свой
   tmpfs MySQL/OOMfalse/restart0. Сервер/S3/рабочая БД/2FA/фронт прежние.
   Правки локальные; push/выкладки нет. Единый handoff обновлён.
+- [x] Следующее разрешённое поручение: freshfetch incoming0, pushbce4f32
+  в staging; backup41/45ledger/3admin восстановлен в отдельной БД.
+  Выпущены только API/TEST, web прежний. Candidate26/live47/compression9+9,
+  publicHTTPS37/static16/auth18 GREEN. Тестовый аккаунт/credentials удалены,
+  все прежние строки и admin credential digests сохранены. Отчёт обновлён.
 
 ### VK: стабильные копии и согласованный выпуск — 28 октября
 

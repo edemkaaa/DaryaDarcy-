@@ -10,7 +10,12 @@ Account key основан на найденном SQL-email, чтобы учи�
 Native HTTP и собственная MySQL проверяют вход/cookie/повторы/сохранность.
 Итог177pass/14files/0skip, root/frontend/E2Etypes, API105/boundaries831,
 обе backend-сборки/docs126 GREEN. Свой tmpfs MySQL удалён/OOMfalse/restart0.
-Единый frontend handoff обновлён. Push/выкладку этим поручением не делать.
+Единый frontend handoff обновлён. Следующим поручением push/выпуск разрешены:
+freshfetch incoming0, staging6151642→bce4f32; обновлены только API/TEST.
+Свежий backup восстановлен отдельно:41таблица/45ledger/3admin совпали.
+Candidate26/live47/compression9+9, publicHTTPS37/staticSHA16 и authHTTPS18
+GREEN. Тестовый аккаунт удалён, полная сверка существующих строк/админских
+входов после удаления совпала. Web/флаги/рабочая БД/S3/rollback images сохранены.
 [Контракт и границы](../docs/operations/auth-public-boundary-2026-10-28.md).
 
 28 октября продолжение VK по разрешению владельца: исправить и выпустить всё
