@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { createServer } from "node:http";
-import { readPublicCatalog, readThumbnail } from "../upstream.mjs";
+import { readPublicCatalog, readPublicYoutubeState, readThumbnail } from "../upstream.mjs";
 
 const servers = [];
 afterEach(async () => {
@@ -18,6 +18,29 @@ async function upstream(handler) {
   await new Promise((resolve) => server.once("listening", resolve));
   return `http://127.0.0.1:${server.address().port}`;
 }
+
+test("reads only strict compact publication authority for the requested identifier", async () => {
+  let published = true;
+  const url = await upstream((req, res) => {
+    const input = JSON.parse(new URL(req.url, "http://fixture.invalid").searchParams.get("input"));
+    assert.deepEqual(input, { json: { youtubeId: "sq7pY1H_fYU" } });
+    res.end(JSON.stringify({ result: { data: { json: { published } } } }));
+  });
+  assert.equal(await readPublicYoutubeState(url, "sq7pY1H_fYU"), true);
+  published = false;
+  assert.equal(await readPublicYoutubeState(url, "sq7pY1H_fYU"), false);
+  await assert.rejects(readPublicYoutubeState(url, "../invalid"), /invalid video id/);
+});
+test("compact authority fails closed on malformed, oversized and redirected responses", async () => {
+  for (const state of [[], null, { published: "true" }, { published: true, access: "club" }]) {
+    const url = await upstream((_req, res) => res.end(JSON.stringify({ result: { data: { json: state } } })));
+    await assert.rejects(readPublicYoutubeState(url, "sq7pY1H_fYU"), /invalid publication state/);
+  }
+  const oversized = await upstream((_req, res) => res.end(" ".repeat(4097)));
+  await assert.rejects(readPublicYoutubeState(oversized, "sq7pY1H_fYU"), /upstream reply too large/);
+  const redirect = await upstream((_req, res) => { res.writeHead(302, { location: "http://127.0.0.1:1/private" }); res.end(); });
+  await assert.rejects(readPublicYoutubeState(redirect, "sq7pY1H_fYU"));
+});
 
 test("reads the real tRPC catalog shape and retains only publication fields", async () => {
   const url = await upstream((_req, res) =>

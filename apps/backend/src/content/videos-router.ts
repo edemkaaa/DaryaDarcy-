@@ -6,6 +6,10 @@ const id = z.number().int().positive().safe();
 
 export const createVideosRouter = (content: ContentReadService) =>
   router({
+    publicYoutubeState: publicProcedure
+      .input(z.object({ youtubeId: z.string().regex(/^[\w-]{11}$/) }).strict())
+      .output(z.object({ published: z.boolean() }).strict())
+      .query(({ input }) => content.publicYoutubeState(input.youtubeId)),
     catalog: publicProcedure
       .input(
         z

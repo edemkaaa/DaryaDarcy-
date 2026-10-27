@@ -40,6 +40,16 @@ export async function getVideos(db: Database): Promise<PublicVideo[]> {
   return rows.map(publicVideo);
 }
 
+/** Constant-size public authority for the legacy stream service, never a catalog. */
+export async function isPublicYoutubeVideo(db: Database, youtubeId: string) {
+  requireContentDatabase(db);
+  const rows = await db.select({ id: videos.id }).from(videos).where(and(
+    eq(videos.youtubeId, youtubeId), eq(videos.provider, "youtube"),
+    eq(videos.access, "public"), eq(videos.published, true),
+  )).limit(1);
+  return rows.length === 1;
+}
+
 export async function getVideoById(
   db: Database,
   id: number,

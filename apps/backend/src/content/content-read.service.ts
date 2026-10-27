@@ -101,6 +101,10 @@ export class ContentReadService {
     return db.getVideos();
   }
 
+  async publicYoutubeState(youtubeId: string) {
+    return { published: await db.isPublicYoutubeVideo(youtubeId) };
+  }
+
   videoById(id: number) {
     return db.getVideoById(id);
   }

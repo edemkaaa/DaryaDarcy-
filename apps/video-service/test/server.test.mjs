@@ -46,6 +46,30 @@ test("serves a complete prepared video with a bounded content length", async () 
   assert.equal(response.headers.get("x-content-type-options"), "nosniff");
   assert.equal(await response.text(), "0123456789");
 });
+test("uses compact authority twice for GET HEAD Range and thumbnails without reading the catalog", async () => {
+  let checks = 0;
+  const base = await start({
+    readCatalog: async () => { throw new Error("whole catalog must not be requested"); },
+    readPublication: async requested => { assert.equal(requested, id); checks++; return true; },
+    readThumbnail: async () => Buffer.from([0xff, 0xd8, 0xff]),
+  });
+  for (const [path, options, status] of [
+    [`/api/yt/${id}`, {}, 200], [`/api/yt/${id}`, { method: "HEAD" }, 200],
+    [`/api/yt/${id}`, { headers: { range: "bytes=0-3" } }, 206],
+    [`/media/yt-thumb/${id}/hqdefault.jpg`, {}, 200],
+  ]) {
+    const response = await fetch(base + path, options); assert.equal(response.status, status); await response.arrayBuffer();
+  }
+  assert.equal(checks, 8);
+});
+test("rechecks compact authority after preparation and never returns unpublished bytes", async () => {
+  let published = true;
+  const base = await start({
+    readPublication: async () => published,
+    makeCache: path => ({ acquire: async () => { published = false; return { path, release() {} }; } }),
+  });
+  assert.equal((await fetch(`${base}/api/yt/${id}`)).status, 404);
+});
 test("rejects explicit club authority for GET HEAD Range and thumbnail before preparation", async () => {
   const base = await start({
     readCatalog: async () => [

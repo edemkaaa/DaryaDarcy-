@@ -50,6 +50,22 @@ export async function readPublicCatalog(url, signal) {
     .map(({ youtubeId, published }) => ({ youtubeId, published }));
 }
 
+export async function readPublicYoutubeState(url, id, signal) {
+  if (!/^[\w-]{11}$/.test(id)) throw new Error("invalid video id");
+  const authority = new URL(url);
+  authority.searchParams.set("input", JSON.stringify({ json: { youtubeId: id } }));
+  const response = await fetch(authority, {
+    redirect: "error",
+    signal: AbortSignal.any([AbortSignal.timeout(5000), ...(signal ? [signal] : [])]),
+  });
+  const payload = JSON.parse((await boundedBody(response, 4096)).toString("utf8"));
+  const state = payload?.result?.data?.json;
+  if (!state || typeof state !== "object" || Array.isArray(state) ||
+      Object.keys(state).length !== 1 || typeof state.published !== "boolean")
+    throw new Error("invalid publication state");
+  return state.published;
+}
+
 export async function readThumbnail(id, signal, request = fetch) {
   if (!/^[\w-]{11}$/.test(id)) throw new Error("invalid video id");
   const response = await request(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`, {

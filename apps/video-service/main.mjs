@@ -1,13 +1,13 @@
 import { createVideoCache } from "./cache.mjs";
 import { prepareVideo } from "./prepare.mjs";
 import { createVideoServer } from "./server.mjs";
-import { readPublicCatalog, createThumbnailReader } from "./upstream.mjs";
+import { readPublicYoutubeState, createThumbnailReader } from "./upstream.mjs";
 
 const cache = await createVideoCache({ root: "/cache", prepare: prepareVideo });
 const server = createVideoServer({
   cache,
-  readCatalog: (signal) =>
-    readPublicCatalog("http://edge:8080/api/trpc/videos.list", signal),
+  readPublication: (id, signal) =>
+    readPublicYoutubeState("http://edge:8080/api/trpc/videos.publicYoutubeState", id, signal),
   readThumbnail: createThumbnailReader(),
 });
 server.listen(8082, "0.0.0.0");

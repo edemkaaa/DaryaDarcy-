@@ -39,6 +39,7 @@ import { getAdminPostsPage as readAdminPostsPage, getAdminPostDetail as readAdmi
 import type { z } from "zod";
 import {
   getVideos as readVideos,
+  isPublicYoutubeVideo as readPublicYoutubeVideo,
   getVideoById as readVideoById,
   getVideoByYoutubeId as readVideoByYoutubeId,
   createVideo as persistVideoCreation,
@@ -724,6 +725,10 @@ export async function getVideoById(id: number): Promise<PublicVideo | undefined>
 // Get video by YouTube ID (for dedup)
 export async function getVideoByYoutubeId(youtubeId: string): Promise<Video | undefined> {
   return readVideoByYoutubeId(await getDb(), youtubeId);
+}
+
+export async function isPublicYoutubeVideo(youtubeId: string) {
+  return readPublicYoutubeVideo(await getDb(), youtubeId);
 }
 
 // Create a video entry

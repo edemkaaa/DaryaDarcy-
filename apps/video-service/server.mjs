@@ -23,6 +23,7 @@ function error(response, status) {
 /** Public catalog playback only; never accepts upstream URLs or credentials. */
 export function createVideoServer({
   readCatalog,
+  readPublication,
   cache,
   readThumbnail,
   maxRequests = 16,
@@ -65,7 +66,9 @@ export function createVideoServer({
     let lease;
     let file;
     try {
-      const published = async () =>
+      const published = async () => readPublication
+        ? (await readPublication(id, controller.signal)) === true
+        :
         (await readCatalog(controller.signal)).some(
           (video) =>
             video.youtubeId === id &&

@@ -32,17 +32,17 @@ export type PublicVideo = Omit<
     title: string;
     sortOrder: number;
     published: boolean;
+    youtubeId: string | null;
     access: "club" | "public";
     thumbnailUrl: string | null;
     provider: "vk" | "youtube";
-    youtubeId: string | null;
     videoUrl: string | null;
     vkEmbedUrl: string | null;
     vkSourceKey: string | null;
     views: string | null;
     publishedText: string | null;
   },
-  "access" | "provider" | "youtubeId" | "vkEmbedUrl" | "vkSourceKey"
+  "youtubeId" | "access" | "provider" | "vkEmbedUrl" | "vkSourceKey"
 > & { youtubeId: string };
 export type PostStatistics = {
   totalPosts: number;
@@ -411,6 +411,11 @@ export type AppRouter = BuiltRouter<
       }>;
     };
     videos: {
+      publicYoutubeState: QueryProcedure<{
+        input: { youtubeId: string };
+        output: { published: boolean };
+        meta: unknown;
+      }>;
       catalog: QueryProcedure<{
         input:
           | {
