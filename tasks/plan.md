@@ -2,6 +2,15 @@
 
 ## Действующий план агента — 13 октября 2026
 
+Повторная сверка27октября послеpush edf4ffe: HEAD=staging, incoming0;
+health/capabilities200,8контейнеров healthy/API+TEST+web restart0, image IDs
+прежние. Боевых Prodamus secrets нет. Локально87focused GREEN;
+исправление post DTO060366a уже выпущено, повторной реализации не требует.
+Доступных локальных backend-пунктов не выявлено. Следом LM-APPLY только после
+разрешения конкретной рабочей партии и нового backup/expected-old/source check;
+отзыв старыхURL отдельно. Остальное — решения/доступы владельца и приёмка.
+Единый frontend handoff обновлён; frontend/БД/S3/настройки/выпуск не менялись.
+
 27 октября около14:24МСК: compression3d34209 выпущен в81191c8/API+TEST.
 Preflight45/pendingnone;freshbackup41tables восстановлен отдельно со всеми
 индексами/строками/admin3. На HTTPS16573→4025gzip/3915br, exact JSON;
