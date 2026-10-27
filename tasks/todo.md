@@ -2,6 +2,36 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Гостевой LIVE recovery и разрешённый отзыв старых URL — 27 октября
+
+- [x] Новый guest-контракт: POST create/status, пара secret+UUID, email только
+  billing recipient, без нового входа/ролей/доступа; прежний ledger/безDDL.
+- [x] RED14; local nativeHTTP/SQL: lossACK через proxy, retry/concurrency/
+  дваполучателя/новыйprocess, namespace/params/rollback/receipt/blocked/flags/
+  TEST/429 и переход послеlogin. Финальный278pass/16files/0skip.
+- [x] Root/frontend/E2Etypes/API105/boundaries814/обе serverbuilds; изменён только
+  generated contract, не frontend-компоненты. OwnDB удалена/OOMfalse/restart0.
+- [x] Runtime read-only: API/TEST6969c93/web22ebe31 healthy/restart0; strictOFF,
+  guestOFF; боевых merchant/subscription настроек нет, TEST остаётся включён.
+- [x] Прочитать S3policy/ACL: общий public Allow, одной privateACL недостаточно.
+  Подготовить exactDeny386/preserve2/other49 с serveridentity exception.
+- [x] Подтвердить размер29991B реальным Timeweb policy trial на386несуществующих
+  ресурсах пустого namespace; прежняяpolicy восстановлена с тем жеSHA.
+  Реальные objects/ACL/bytes не менялись; tempenv/ownprobecontainers удалены.
+- [x] Единый handoff и старое техническое приложение актуализированы.
+- [x] Finalfetch: incomingd36e1b7. Готовыйfrontendguard прочитан и проверен
+  внеcheckout:1544варианта/preserve2/disabled pass; текущийfrontend не менялся.
+  В handoff учтено, что код уже сделан; browser/cold-warmcache не заявляются.
+- [ ] Frontend guest journal/POST contract и cold/warm optimizer guard;
+  новые процедуры ещё не выпущены, не включать interface/LIVE раньше backend.
+- [ ] Получить боевые настройки, проверить routing/webhook/тариф790/месяц и
+  согласованную реальную цепочку; без ключей LIVE не переключать.
+- [ ] Реальный отзыв386 уже разрешён: после guard — freshbackup/restore,
+  свежая карта публичных ссылок/388private targets, expected-oldpolicy,
+  direct/optimizer denial и protected/public controls. ПокаURL открыты.
+
+[Факт и следующий шаг](../docs/operations/guest-checkout-and-legacy-retirement-2026-10-27.md).
+
 ### Следующий доступный backend-срез после49a6d63 — 27 октября
 
 - [x] Freshfetch: HEAD=staging49a6d63/incoming0; дерево до изменений чистое.

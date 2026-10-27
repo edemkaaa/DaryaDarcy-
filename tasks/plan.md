@@ -2,6 +2,25 @@
 
 ## Действующий план агента — 13 октября 2026
 
+27 октября владелец разрешил гостевой LIVE recovery и отзыв старыхURL.
+Гостевой backend реализован локально:2POSTmethods/105contract, namespace
+secret+UUID, атомарный ledger+order/replay безDDL, no login/access byemail,
+guard старого guestLIVE/TEST/keys и квоты, replay собственного intent после
+login без нового заказа. Финальный278pass/16files/0skip,
+root/frontend/E2Etypes/boundaries814/обе сборки GREEN.
+OwnDB удалена/OOMfalse/restart0. Боевыхключей нет; LIVE/guest/strict не включались,
+frontend-компоненты/рабочаяБД/входы прежние. Backend ещё не выложен.
+Отзыв386подготовлен, preserve2/other49; policy29991B принята на386synthetic
+несуществующих resources и восстановлена с исходнымSHA0484dfa2… без object
+writes/deletes/ACL changes. Реальные старыеURL ещё открыты: нужен frontend
+cold/warm optimizer guard, затемfreshbackup/актуальная карта/проверка доступа.
+Единый handoff дополнен; разрешение уже есть, повторно не запрашивать.
+Финальныйfetch: origin/staging=d36e1b7,1новый frontend-коммит. Его готовыйguard
+прочитан gitshow/проверен внеcheckout наmanifest1544variants/preserve2;
+frontend не объединялся/не редактировался/не выкладывался. Cold/warmNextcache
+не проверен. В handoff исправлен статус: нужен выпуск, не разработка guard.
+[Факт, контракт и подготовка](../docs/operations/guest-checkout-and-legacy-retirement-2026-10-27.md).
+
 Повторная сверка27октября после49a6d63: freshfetch/incoming0, чистаяветка.
 Взят доступный остаток нового аудита: BE-04 —30с только двум compiled-process
 SQL/HTTP тестам; общий timeout/child10с прежние. До/после45pass на own backend_test;
