@@ -2,6 +2,20 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Глубокая перепроверка нового аудита — 27 октября
+
+- [x] AUDIT-DEEP1: fresh44 real HTTP/SQL и owned loopback S3: A5–12/14/15,
+  pool10, raw ingress3×8MiB, SIGTERM, DTO4×TS2339, validation, legacyYT1001/2MiB.
+- [x] AUDIT-DEEP2: READ ONLY runtime256MiB/privateVideo=true/edgeбезlimit_conn;
+  реальный порядок189club/162timestamp-rank + модель смещения при пагинации.
+- [x] AUDIT-DEEP3: индекс-кандидат read-fast/write-unsafe отклонён;
+  каноническая схема восстановлена,20native positive controls GREEN; ownDB удалена.
+- [ ] AUDIT-FIX: исправления по приоритетам отчёта ещё не реализованы.
+  Порядок Клуба — отдельный контракт; frontend не менять без разрешения.
+
+[Глубокая перепроверка](../docs/audits/backend-audit-recheck-2026-10-27.md).
+Код/рабочаяБД/S3/flags/выпуск прежние; исследование не означает исправление.
+
 ### Подготовка переноса на стенд — 27 октября, новое разрешение
 
 - [x] LM-PREP1: свежий working snapshot41/ledger44, SHA/gzip, вторая закрытая копия;

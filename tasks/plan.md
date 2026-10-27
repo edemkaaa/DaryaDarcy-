@@ -2,6 +2,17 @@
 
 ## Действующий план агента — 13 октября 2026
 
+27 октября, глубокая перепроверка аудита a762b4a на4e87bcc: A5–12/14/15
+подтверждены независимыми fresh44 HTTP/SQL/process/TypeScript probes.
+P1: API256MiB+rawVideo=true без общего допуска; S3 SQL-lock/pool10 starvation.
+Есть конкретные A10duplicate teaser/A11empty post+stale receipt; DTO4поля/validation.
+YT1001/2MiB — legacy путь, неVK. Read-fast functional index отвергнут: INSERT
+безpublishedAt даёт3751; оба тестовыхиндекса удалены,20native controls прошли.
+READ ONLY Клуб189/162Unix sortOrder: frontend сортирует лишь загруженный хвост,
+нужен согласованный порядок доpagination с сохранением отдельной админскойлогики.
+OwnDB/процессы убраны; product/frontend/рабочиеDB/S3/выпуск не менялись.
+[Проверка/границы/очередь исправлений](../docs/audits/backend-audit-recheck-2026-10-27.md).
+
 27 октября, подготовка на стенде по новому разрешению: свежая backup10:51:23МСК
 создана/скачана/SHA-gzip проверена и реально восстановлена в own network-none
 MySQL;41таблица/44ledger/3admin digests совпали, контейнер удалён OOM=false/restarts0.
