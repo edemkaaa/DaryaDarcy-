@@ -1,6 +1,17 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  .profileDialog {
+    top: var(--visual-viewport-top, 0px);
+    bottom: auto;
+    width: 100%;
+    max-width: var(--app-max-width);
+    height: var(--app-height, 100dvh);
+    margin-inline: auto;
+    overflow: hidden;
+    background-color: var(--paper);
+  }
+
   .bannerContainer {
     overflow: hidden;
   }

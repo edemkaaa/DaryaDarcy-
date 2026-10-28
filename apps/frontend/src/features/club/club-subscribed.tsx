@@ -610,7 +610,12 @@ export function ClubSubscribed({
 
         {/* Profile setup — local dismissal is not a confirmed server save */}
         {needsProfileSetup ? (
-          <Dialog label="Настройка профиля клуба" open motion="slide">
+          <Dialog
+            label="Настройка профиля клуба"
+            open
+            motion="slide"
+            className={classes.profileDialog}
+          >
             <div
               className={["ui-stack ", classes.div].filter(Boolean).join(" ")}
             >

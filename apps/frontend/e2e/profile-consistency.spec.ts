@@ -986,6 +986,34 @@ test("a delayed avatar response cannot update the next account", async ({
   }
 });
 
+test("name editor closes on the first click beside the input and retains an unsaved draft", async ({
+  page,
+}) => {
+  const { state } = await profileApi(page);
+  await gotoWithSession(page, "/profile");
+  const name = page.getByRole("button", { name: "Server name", exact: true });
+  await name.click();
+  const field = page.getByRole("textbox", { name: "Имя профиля", exact: true });
+  await field.fill("Unsaved name");
+  // One click just below the name row must dismiss the whole editor.
+  const row = field.locator("..");
+  const box = await row.boundingBox();
+  if (!box) throw new Error("Name input row is missing");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height + 2);
+  await expect(field).toHaveCount(0);
+  await expect(name).toBeVisible();
+  expect(state.writes).toHaveLength(0);
+  await name.click();
+  await expect(field).toHaveValue("Unsaved name");
+  await page
+    .getByRole("button", { name: "Сохранить имя", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Unsaved name", exact: true }),
+  ).toBeVisible();
+  expect(state.writes).toHaveLength(1);
+});
+
 test("a stale name revision preserves the draft and needs an explicit reviewed retry", async ({
   page,
 }) => {

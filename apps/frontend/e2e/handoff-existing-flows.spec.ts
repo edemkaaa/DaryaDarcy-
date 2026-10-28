@@ -1,5 +1,4 @@
 import { expect, test, type Page } from "@playwright/test";
-import { passwordPageHtml } from "../../../tests/fixtures/password-page-html";
 import superjson from "superjson";
 import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
@@ -274,24 +273,18 @@ test("accepted password instructions stay separate from login and leave the old 
   await login(page, "initial-password");
   await expect(page).toHaveURL(/\/profile$/);
 });
-test("the existing password page reports completion and still requires a separate frontend login", async ({
+test("the frontend password page reports completion and still requires a separate login", async ({
   page,
 }) => {
   const state = await fixture(page, false);
-  // Exercise the actual shipped HTML/script with stubbed API responses. No SQL or mail server.
-  await page.route("**/api/auth/password", (route) =>
-    route.fulfill({ contentType: "text/html", body: passwordPageHtml }),
-  );
   let completions = 0;
   await page.route("**/api/auth/password/complete", (route) => {
     completions++;
     state.password = route.request().postDataJSON().password;
     return route.fulfill({ json: { ok: true } });
   });
-  await page.goto(
-    "/api/auth/password#token=" + "a".repeat(43),
-  );
-  await expect(page).toHaveURL(/\/api\/auth\/password$/);
+  await page.goto("/password#token=" + "a".repeat(43));
+  await expect(page).toHaveURL(/\/password$/);
   await page.getByLabel("Новый пароль").fill("installed-password");
   await page
     .getByRole("button", { name: "Сохранить пароль", exact: true })
@@ -304,7 +297,7 @@ test("the existing password page reports completion and still requires a separat
   expect(completions).toBe(1);
   expect(state.user).toBeNull();
   expect(state.logins).toEqual([]);
-  await page.getByRole("link", { name: "Перейти ко входу" }).click();
+  await page.getByRole("link", { name: "Войти", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Войти", exact: true }),
   ).toBeEnabled();
@@ -487,21 +480,29 @@ test("returning after an unknown save keeps recovery available before allowing a
   await expect(page).toHaveURL(/\/feed$/);
   await page.getByLabel("Открыть публикацию", { exact: true }).press("Enter");
   await expect(page).toHaveURL(/\/post\/1$/);
-  await expect.poll(() => state.interactionReads).toBeGreaterThan(reads);
   await expect(
     page.getByRole("button", { name: "Сохранить пост", exact: true }),
   ).toBeDisabled();
   expect(state.toggleWrites).toHaveLength(1);
-  state.interactionsGate = undefined;
-  gate.resolve();
   // Changing screens must not discard an uncertain write. Reconcile it through
-  // the same explicit recovery action that is available on the original screen.
+  // the explicit recovery action, rather than expecting navigation to bypass
+  // the shared interaction cache's freshness window.
   const retry = page.getByRole("button", {
     name: "Обновить отметки",
     exact: true,
   });
   await expect(retry).toBeVisible();
-  await retry.click();
+  try {
+    await retry.click();
+    await expect.poll(() => state.interactionReads).toBeGreaterThan(reads);
+    await expect(
+      page.getByRole("button", { name: "Сохранить пост", exact: true }),
+    ).toBeDisabled();
+    expect(state.toggleWrites).toHaveLength(1);
+  } finally {
+    state.interactionsGate = undefined;
+    gate.resolve();
+  }
   await expect(
     page.getByRole("button", { name: "Сохранить пост", exact: true }),
   ).toBeEnabled();

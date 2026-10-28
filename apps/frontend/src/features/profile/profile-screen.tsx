@@ -40,7 +40,8 @@ import { useCursorPages } from "@/shared/api/use-cursor-pages";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import type { ApiOutputs } from "@/shared/api/types";
 import { useCapabilities } from "@/shared/api/capabilities";
-import { displayPostTitle } from "@/shared/media/media-label";
+import { friendlyMediaName } from "@/shared/media/media-label";
+import { resolvePostVideos } from "@/domain/post/resolve-post-video";
 import { articleIdFromSource } from "@/domain/content/article-blocks";
 import { sanitizePlainPostText } from "@/domain/content/post-text-sanitize";
 import { truncateSelectionPreview } from "@shared/rich-text-edit";
@@ -241,15 +242,55 @@ export default function ProfileScreen() {
             .join("\n") ?? "",
         ),
     );
+    const { videos, stackPhotos } = resolvePostVideos(item.photos, item.media);
+    const videoFilename = item.media?.find(
+      (media) => media.type === "video",
+    )?.filename;
+    const attachment = item.media?.find((media) => media.type !== "video");
+    const cover = videos[0]?.posterUrl || stackPhotos[0];
+    const kind = videos.length
+      ? "Видео"
+      : attachment?.type === "audio"
+        ? "Аудио"
+        : attachment?.type === "document"
+          ? "Документ"
+          : articleIdFromSource(item.source)
+            ? "Статья"
+            : "Публикация";
+    const title =
+      preview ||
+      (videos.length
+        ? friendlyMediaName(videoFilename, "video")
+        : attachment
+          ? friendlyMediaName(attachment.filename, attachment.type)
+          : null) ||
+      kind;
+    const icon = videos.length
+      ? "play-arrow"
+      : attachment?.type === "audio"
+        ? "audiotrack"
+        : attachment?.type === "document"
+          ? "description"
+          : "article";
+    const badgeLabel = videos.length
+      ? videos.length > 1
+        ? `Видео · ${videos.length}`
+        : "Видео"
+      : attachment
+        ? kind
+        : stackPhotos.length > 1
+          ? `${stackPhotos.length} фото`
+          : null;
     const action = articleIdFromSource(item.source)
       ? "Открыть статью"
       : "Открыть публикацию";
     const date = new Date(item.publishedAt ?? item.createdAt);
-    const label = preview
-      ? `${action}: ${preview}`
-      : Number.isFinite(date.getTime())
-        ? `${action} от ${formatRuDate(date)}`
-        : action;
+    const label =
+      preview || videos.length || attachment
+        ? `${action}: ${title}`
+        : Number.isFinite(date.getTime())
+          ? `${action} от ${formatRuDate(date)}`
+          : action;
     return (
       <Action
         aria-label={label}
@@ -260,27 +301,40 @@ export default function ProfileScreen() {
             .join(" ")
         }
       >
-        {item.photos && item.photos.length > 0 ? (
+        {cover ? (
           <Picture
-            source={{ uri: item.photos[0] }}
+            source={{ uri: cover }}
             contentFit="cover"
+            aria-label={title}
             className={classes.savedPostImage}
             sizes="(max-width: 480px) calc(31vw - 12.4px), 136.4px"
           />
         ) : (
           <div
-            className={["ui-stack ", classes.savedPostTextOnly]
+            className={[
+              "ui-stack ",
+              classes.savedPostTextOnly,
+              badgeLabel ? classes.savedPostWithBadge : "",
+            ]
               .filter(Boolean)
               .join(" ")}
           >
-            <Typography lines={2} className={classes.savedPostTitle}>
-              {displayPostTitle(item.text)}
-            </Typography>
-            <Typography lines={3} className={classes.savedPostPreview}>
-              {item.text || ""}
+            {!preview ? (
+              <MaterialIcons name={icon} size={22} color={BROWN_MUTED} />
+            ) : null}
+            <Typography lines={3} className={classes.savedPostTitle}>
+              {title}
             </Typography>
           </div>
         )}
+        {badgeLabel ? (
+          <span className={classes.savedPostBadge}>
+            {videos.length ? (
+              <MaterialIcons name="play-arrow" size={13} />
+            ) : null}
+            {badgeLabel}
+          </span>
+        ) : null}
       </Action>
     );
   };
@@ -413,21 +467,27 @@ export default function ProfileScreen() {
                   .join(" ")
               }
             >
-              {displayAvatar ? (
-                <Picture
-                  source={{ uri: displayAvatar }}
-                  contentFit="cover"
-                  className={classes.savedPostImage}
-                />
-              ) : (
-                <div
-                  className={["ui-stack ", classes.avatarPlaceholder]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  <MaterialIcons name="person" size={40} color={BROWN_MUTED} />
-                </div>
-              )}
+              <div className={["ui-stack", classes.avatarFrame].join(" ")}>
+                {displayAvatar ? (
+                  <Picture
+                    source={{ uri: displayAvatar }}
+                    contentFit="cover"
+                    className={classes.savedPostImage}
+                  />
+                ) : (
+                  <div
+                    className={["ui-stack ", classes.avatarPlaceholder]
+                      .filter(Boolean)
+                      .join(" ")}
+                  >
+                    <MaterialIcons
+                      name="person"
+                      size={40}
+                      color={BROWN_MUTED}
+                    />
+                  </div>
+                )}
+              </div>
               <div
                 className={["ui-stack ", classes.avatarEditBadge]
                   .filter(Boolean)

@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import { isValidEmail, normalizeEmail } from "../_core/password";
 import { checkRateLimit } from "../_core/rate-limit";
 import { clientIp } from "../sms-auth";
@@ -22,7 +22,6 @@ import {
   type AuthenticatedRequest,
 } from "./http-access";
 import { publicAccessUrl } from "./urls";
-import { passwordPage } from "./password-page";
 
 @Controller("api")
 export class PasswordController {
@@ -129,20 +128,21 @@ export class PasswordController {
   @Get("auth/password")
   @Header("Cache-Control", "no-store")
   page(@Res() res: Response) {
-    let loginUrl: URL;
+    let destination: URL;
     try {
-      loginUrl = publicAccessUrl();
+      destination = new URL("/password", publicAccessUrl().origin);
     } catch {
       res.status(503).type("text").send("Страница временно недоступна.");
       return;
     }
-    const nonce = randomBytes(16).toString("base64");
     res.setHeader("Referrer-Policy", "no-referrer");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader(
       "Content-Security-Policy",
-      `default-src 'none'; script-src 'nonce-${nonce}'; connect-src 'self'; style-src 'unsafe-inline'; img-src ${loginUrl.origin}; font-src ${loginUrl.origin}; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`,
+      "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
     );
-    res.type("html").send(passwordPage(loginUrl, nonce));
+    // No fragment in Location: browsers inherit #token from already sent emails.
+    // Do not accept a redirect target from Host, query parameters or the caller.
+    res.redirect(303, destination.toString());
   }
 }
