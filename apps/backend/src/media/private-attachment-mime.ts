@@ -1,15 +1,11 @@
+import { AUDIO_MIMES } from "../../../../packages/shared/src/audio-formats";
 // Keep private upload acceptance aligned with the existing closed read boundary.
 const DELIVERABLE_MIMES = new Set([
   "text/plain",
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "audio/mpeg",
-  "audio/mp4",
-  "audio/wav",
-  "audio/x-wav",
-  "audio/ogg",
-  "audio/webm",
+  ...AUDIO_MIMES,
   "video/mp4",
   "video/webm",
   "video/quicktime",

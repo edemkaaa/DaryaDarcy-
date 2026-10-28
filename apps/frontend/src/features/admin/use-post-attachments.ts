@@ -9,6 +9,11 @@ import {
 import type { PostAttachment } from "@/domain/post/save-post";
 import { isRawMediaFilename } from "@/shared/media/media-label";
 import { requirePrivateUpload } from "@/shared/api/capabilities";
+import {
+  AUDIO_TYPES,
+  AUDIO_MIMES,
+  AUDIO_FORMAT_MESSAGE,
+} from "@shared/audio-formats";
 
 type ExistingMedia = {
   id: number;
@@ -21,19 +26,6 @@ const DOCUMENT_TYPES: Record<string, string> = {
   pdf: "application/pdf",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   txt: "text/plain",
-};
-const AUDIO_TYPES: Record<string, string> = {
-  mp3: "audio/mpeg",
-  wav: "audio/wav",
-  m4a: "audio/mp4",
-  aac: "audio/aac",
-  ogg: "audio/ogg",
-  oga: "audio/ogg",
-  opus: "audio/ogg",
-  flac: "audio/flac",
-  aif: "audio/aiff",
-  aiff: "audio/aiff",
-  webm: "audio/webm",
 };
 
 /** Both editors keep File objects until the shared save coordinator reads them. */
@@ -75,7 +67,7 @@ export function usePostAttachments(
     try {
       await requirePrivateUpload("privatePostMediaUploads", task.signal);
       const result = await getDocumentAsync({
-        type: type === "audio" ? "audio/*" : Object.values(DOCUMENT_TYPES),
+        type: type === "audio" ? AUDIO_MIMES : Object.values(DOCUMENT_TYPES),
         signal: task.signal,
         createPreviewUrl: false,
       });
@@ -98,12 +90,15 @@ export function usePostAttachments(
       )
         throw new Error("Формат файла не соответствует расширению документа.");
       const declared = asset.mimeType?.trim().toLowerCase();
+      if (
+        type === "audio" &&
+        !fallbackMime &&
+        !AUDIO_MIMES.includes(declared ?? "")
+      )
+        throw new Error(AUDIO_FORMAT_MESSAGE);
       const mimeType =
-        (type === "document"
-          ? fallbackMime
-          : !declared || declared === "application/octet-stream"
-            ? fallbackMime
-            : declared) ?? "application/octet-stream";
+        (type === "document" ? fallbackMime : (fallbackMime ?? declared)) ??
+        "application/octet-stream";
       if (type === "audio" && !mimeType?.startsWith("audio/"))
         throw new Error("Выберите аудиофайл поддерживаемого формата.");
       setAttachments((previous) => [

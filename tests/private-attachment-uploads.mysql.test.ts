@@ -1,3 +1,4 @@
+import { flacFixtureBase64 } from "./helpers/flac-fixture";
 import {
   afterAll,
   beforeAll,
@@ -810,8 +811,8 @@ describe.skipIf(!testDatabaseUrl)(
       ).toBe(503);
       expect(wire.effects).toEqual([]);
     });
-    it("refuses a detected audio format that the closed read route cannot serve", async () => {
-      const bytes = Buffer.concat([Buffer.from("fLaC"), Buffer.alloc(64)]);
+    it("accepts detected FLAC and preserves its bytes for closed delivery", async () => {
+      const bytes = Buffer.from(flacFixtureBase64, "base64");
       expect(
         (
           await request("uploadPrivateAttachment", {
@@ -822,8 +823,8 @@ describe.skipIf(!testDatabaseUrl)(
             base64: bytes.toString("base64"),
           })
         ).status,
-      ).toBe(400);
-      expect(wire.effects).toEqual([]);
+      ).toBe(200);
+      expect(wire.effects.some(effect => effect.startsWith("PUT"))).toBe(true);
     });
     it("expired upload intent refuses replay and status without another storage effect", async () => {
       const original = await request("uploadPrivateAttachment");
