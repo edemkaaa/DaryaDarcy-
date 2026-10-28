@@ -2,6 +2,23 @@
 
 ## Действующий план агента — 13 октября 2026
 
+28 октября отдельное поручение: изолировать SQL-тесты в CI локально, без
+push/deploy и изменений frontend/рабочей БД/S3. На базе5a8d21f root Vitest
+разделён на unit и mysql projects: unit параллельный и без SQL URI, mysql
+запускается следующим, fileParallelism=false. Классификация419/419файлов без
+дублей/потерь включает два legacy имени. RED/GREEN реальным дочерним Vitest
+проверяет перекрытие unit и эксклюзивность SQL. SQL-globalSetup проверяет URI
+до выполнения suites; для явно разрешённого GitLab backend-mysql поднимает
+временный loopback TCP-forwarder и закрывает его после прогона. Production
+local-only guard не ослабляется; таймауты и SQL приложения прежние.
+Устаревший tRPC snapshot дополнен двумя уже существующими guest methods.
+Полный SQL:1485pass/299skip/113files, unit:3568pass/77skip/306files.
+Mixed13files:186pass/5opt-in skips без ручного serial CLI-флага; прежних13
+SQL-конфликтов нет. Типы/API105/границы831/docs126/format/diff GREEN; свой
+tmpfs контейнер удалён, рабочие ресурсы прежние. Единый handoff и остаток
+обновлены; сохранение локальным коммитом, без push/deploy. Опциональные
+browser/S3/worker сценарии и настоящий удалённый CI pipeline не приняты.
+
 28 октября после auth-выпуска: ff3808d=origin/staging/incoming0. Выполнен узкий
 срез BE-02 — безопасный локальный URI: подтверждён socketPath query mysql2 без
 сети, query/fragment отклоняются maintenance/test guards. Production/local-only

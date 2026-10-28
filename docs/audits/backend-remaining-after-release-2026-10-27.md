@@ -1,8 +1,9 @@
 # Остаток по бэкенду после выпуска — актуально на 28 октября
 
-## Текущий срез: ff3808d, локально и без нового выпуска
+## Текущий срез: после5a8d21f, локально и без нового выпуска
 
-Свежий fetch: HEAD=origin/staging=ff3808d, incoming0, исходное дерево чистое.
+Исходная сверка origin/staging=ff3808d/incoming0; предыдущая локальная правка
+5a8d21f сохранена. На старте CI-изоляции дерево чистое, нового fetch здесь нет.
 Последний подтверждённый backend на стенде — bce4f32, web — e16bcd1 с frontend
 d36e1b7. Это сведения последнего выпуска, не новый опрос сервера. Этим шагом
 сервер/рабочая БД/S3/фронт/флаги не менялись, push/deploy нет. Старые сведения
@@ -15,10 +16,40 @@ d36e1b7. Это сведения последнего выпуска, не но�
 | INT-01 |388привязок перенесены, отзыв386 разрешён. Guard уже в выпущенном web-коде, но по сохранённой конфигурации выключен и manifest не подключён. Остались runtime UID/600 manifest, cold/warm cache/кодированные URL, свежие backup/binding/access проверки и точный Deny. Повторное разрешение на уже согласованный отзыв не требуется; этим локальным шагом отзыв не выполняется |
 | INT-02 | Backend guest POST/API105 уже на стенде. В frontend вне generated contract нет createGuestNormalCheckout/guestNormalCheckoutStatus: нужен guest journal/POST proof. Затем боевые настройки владельца и согласованная LIVE-приёмка. TEST не менять |
 | BE-02 | Рабочая очистка/расписание запрещены прежним решением и не реализованы. Нужен отдельный operator dry-run/apply контракт: фактическая identity БД/namespace, живые привязки/сроки, bounded партия, журнал/неизвестный DELETE.30дней уже приняты; срок заново не согласовывать. Local-only guard не снимать |
-| Backend/CI | Подтверждён конфликт SQL fault suites на общей backend_test: account-retention временно переименовывает общую таблицу и ставит глобальный users UPDATE trigger.13падений исчезают при последовательном запуске. Нужна изоляция/сериализация таких suites, не увеличение таймаутов. GitLab backend-mysql и local-only maintenance требуют отдельной тестовой топологии; guard ради CI не ослаблять |
+| Backend/CI | Локально закрыто: unit параллельно без SQL URI, mysql последовательно следующим (113файлов, включая2legacy имени). GitLab service через временный loopback-forwarder, production guard не ослаблен. SQL1485pass/299skip, unit3568pass/77skip; mixed186pass/5skip без ручного serial CLI-флага. Остался настоящий удалённый pipeline после отдельно разрешённого push; опциональные сценарии не приняты |
 | INT-07 | Публичные карточки Библиотеки без пагинации, но последний снимок содержит всего2статьи, замедление не измерено. Новый endpoint — совместный контракт при росте, не обязательная новая функция запуска |
 | BE-03 | PenPals выключен и не добавляется для текущего договорного запуска |
 | Владелец/приёмка | Боевые Prodamus-настройки и цепочка790/месяц отсутствуют. Способ первого пароля остаётся решением владельца. Два Yandex shares и внешняя device/VK/PWA/пилот-приёмка отдельно;32/80МиБ и нагрузка отложены пользователем |
+
+### Изоляция SQL-тестов: локальная проверка 28 октября
+
+Настройка общая для существующего `pnpm test` в GitHub Actions и GitLab CI.
+Unit-файлы не получают SQL URI; mysql project запускается после них с одним
+файлом одновременно. В SQL-группу входят `*.mysql.test.ts`, `mysql-backup.test.ts`
+и `private-library.browser.test.ts`; новые SQL suites следует именовать
+`*.mysql.test.ts`.419/419файлов классифицированы без пропусков и дублей.
+Для раздельного запуска: `pnpm test --project unit` и
+`pnpm test --project mysql` (после `pnpm test:db:wait` на собственной backend_test).
+Одновременные независимые процессы должны иметь отдельные одноразовые БД.
+
+SQL-globalSetup отказывает неподходящей БД до выполнения тестовых файлов и
+не печатает URI. В GitLab оба разрешения CI=true и BACKEND_TEST_CI_SERVICE=true
+нужны для точного alias backend-mysql; только этот service временно пробрасывается
+на127.0.0.1 со случайным портом. URI меняется лишь в окружении SQL-workers,
+listener/сокеты закрываются в teardown. Runtime maintenance остаётся local-only.
+Транспорт/teardown проверены настоящими loopback-сокетами с заменой только DNS
+CI-service; удалённый GitLab runner этим шагом не запускался.
+
+RED/GREEN дочерним Vitest проверяет эксклюзивность SQL, параллельность unit,
+однократность legacy-файлов и безопасный preflight. На своей tmpfs MySQL8.4
+полный SQL-прогон:91passed/22skipped files,1485passed/299skipped tests.
+Полный unit:284passed/22skipped files,3568passed/77skipped tests.
+Mixed13files:186passed/5opt-in skips без --no-file-parallelism.
+Пять mixed-пропусков — прежний BACKEND_RETENTION_WORKER_ACCEPTANCE; остальные
+опциональные browser/S3/worker проверки также не объявляются принятыми.
+Устаревший tRPC snapshot дополнен двумя уже существующими guest-процедурами,
+новых API/DDL/зависимостей нет. Типы/API105/границы831/docs126/format/diff GREEN.
+Своя tmpfs БД удалена; frontend/сервер/рабочая БД/S3 прежние, без push/deploy.
 
 ### Выполненный узкий срез BE-02: безопасность локального URI
 

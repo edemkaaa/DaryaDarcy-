@@ -2,6 +2,27 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Изоляция SQL-тестов в CI — 28 октября
+
+- [x] Проверить ветку и чистое исходное дерево:5a8d21f, staging ff3808d.
+- [x] RED/GREEN реальным Vitest: unit-файлы параллельны, общие SQL fixtures
+  последовательны и запускаются ровно один раз; учтены mysql-backup и
+  private-library.browser.419файлов:306unit+113SQL, без пропусков/дублей.
+- [x] Добавить SQL-only preflight до выполнения suites; чужая БД запрещена,
+  credentials не печатаются. GitLab backend-mysql доступен через временный
+  loopback-forwarder с teardown, оба CI-разрешения обязательны. Production
+  maintenance guard/таймауты/схема/API не меняются.
+- [x] Обновить устаревший tRPC snapshot двумя уже существующими guest methods;
+  новых процедур и изменений runtime нет.20целевых проверок GREEN.
+- [x] Полный SQL:1485pass/299skip,91passed/22skipped files; полный unit:
+  3568pass/77skip,284passed/22skipped files. Опциональные browser/S3/worker
+  сценарии не включались и не считаются принятыми. Mixed13files:186pass/5skip
+  без --no-file-parallelism, прежних13SQL-конфликтов нет.
+- [x] Типы/API105/границы831/docs126/format/diff GREEN; единый handoff и
+  backend-остаток обновлены. Удалён только свой tmpfs контейнер по ID/owner.
+  Сохранить локально; фронт, рабочие БД, S3 и сервер прежние, без push/deploy.
+  Настоящий удалённый CI pipeline этим шагом не запускался.
+
 ### Доступный backend-срез и актуальный остаток — 28 октября
 
 - [x] ff3808d/staging, freshfetch incoming0; прочитать план и результат выпуска.
