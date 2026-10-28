@@ -71,7 +71,9 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
+    let checkoutClient = 0;
     beforeEach(async () => {
+      checkoutClient++;
       vi.useFakeTimers({ toFake: ["Date"] });
       vi.setSystemTime(new Date("2026-10-07T00:00:00Z"));
       await clearOrders();
@@ -151,6 +153,8 @@ describe.skipIf(!testDatabaseUrl)(
         method: "POST",
         headers: {
           "content-type": "application/json",
+          // Separate scenarios use distinct trusted loopback-proxy clients.
+          "X-Forwarded-For": `198.18.0.${checkoutClient}`,
           ...(intentKey ? { "Idempotency-Key": intentKey } : {}),
         },
         body: JSON.stringify({
