@@ -14,6 +14,7 @@ import { photoInput, uploadPhoto } from "../media/photos";
 import { privateCommentPhotoInput, privateContentStatusInput, uploadPrivateContentFile, privateContentFileStatus } from "../content/private-content-uploads";
 import type { ClubBillingServices } from "../billing/billing.module";
 import { enforceReturnCheckLimit } from "../billing/yookassa/return-check-limit";
+import { enforceLegacyCheckoutLimit } from "../billing/legacy-checkout-limit";
 import {
   createGuestNormalCheckout,
   guestNormalCheckoutStatus,
@@ -110,6 +111,10 @@ export const createClubRouter = (
         ),
       ),
     createCheckout: publicProcedure
+      .use(({ ctx, next }) => {
+        enforceLegacyCheckoutLimit(ctx.req, ctx.res, ctx.user?.id);
+        return next();
+      })
       .input(
         z
           .object({

@@ -69,7 +69,10 @@ function caller(user: User | null = null, intentKey?: string) {
   context.req.headers = { "idempotency-key": intentKey };
   return appRouter.createCaller(context);
 }
+let checkoutClock = 1790940000000;
 beforeEach(() => {
+  checkoutClock += 16 * 60_000;
+  vi.spyOn(Date, "now").mockImplementation(() => checkoutClock);
   vi.stubEnv("YOOKASSA_TEST_ENABLED", "");
   vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
   vi.stubEnv("PRODAMUS_PAYFORM_URL", "https://fixture.payform.ru");
@@ -161,7 +164,7 @@ describe("checkout cannot establish identity or payment", () => {
   it.each(["monthly", "semiannual"] as const)(
     "creates distinct %s orders for concurrent requests in the same millisecond",
     async (plan) => {
-      vi.spyOn(Date, "now").mockReturnValue(1790940000000);
+      vi.spyOn(Date, "now").mockReturnValue(checkoutClock);
       const results = await Promise.all(
         Array.from({ length: 8 }, () =>
           caller().club.createCheckout({ email: member.email!, plan }),
