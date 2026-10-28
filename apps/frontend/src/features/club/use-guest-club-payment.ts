@@ -15,6 +15,7 @@ import { watchCheckoutDeparture } from "@/shared/navigation/navigation-start";
 import {
   GUEST_CHECKOUT_STORAGE_KEY,
   GuestCheckoutJournal,
+  GuestCheckoutRecipientError,
   checkGuestCheckout,
   createGuestCheckout,
   type GuestCheckoutIntent,
@@ -28,6 +29,7 @@ type PurchaseState = {
   result?: NormalCheckoutStatus;
   notice: string | null;
   error: string | null;
+  foreignRecipient?: boolean;
 };
 function describe(result: NormalCheckoutStatus, authenticated: boolean) {
   switch (result.state) {
@@ -180,10 +182,14 @@ export function useGuestClubPayment({
               : `${getRequestErrorMessage(cause)} Результат покупки не подтверждён. Сначала проверьте сохранённую покупку.`;
     setState({
       identity: identityKey,
-      present: true,
+      present: !(
+        ownerId !== null && cause instanceof GuestCheckoutRecipientError
+      ),
       intent,
       notice: null,
       error: message,
+      foreignRecipient:
+        ownerId !== null && cause instanceof GuestCheckoutRecipientError,
     });
   };
   const check = async () => {
@@ -354,6 +360,7 @@ export function useGuestClubPayment({
     hasSavedPurchase: Boolean(current?.intent),
     savedGuestEmail: !terminal ? (current?.intent?.email ?? null) : null,
     guestEmailLocked: Boolean(current?.intent) && !terminal,
+    foreignRecipient: current?.foreignRecipient === true,
     purchaseLabel: terminal
       ? ownerId !== null
         ? "Перейти к новой покупке своего аккаунта"

@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   createContext,
   type ReactNode,
 } from "react";
@@ -45,6 +46,39 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     select: parseClubAccess,
   });
   const refetchSubscription = subscription.refetch;
+  const [now, setNow] = useState(() => Date.now());
+  const staff = user?.role === "admin" || user?.role === "moderator";
+  const deadline =
+    user &&
+    !staff &&
+    subscription.data?.hasClubAccess === true &&
+    subscription.data.subscribed === true
+      ? (subscription.data.expiresAt?.getTime() ?? null)
+      : null;
+  const expired = deadline !== null && now >= deadline;
+  useEffect(() => {
+    if (deadline === null) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const check = () => {
+      clearTimeout(timer);
+      const time = Date.now();
+      setNow(time);
+      if (time >= deadline) void refetchSubscription();
+      else timer = setTimeout(check, Math.min(deadline - time, 2_147_483_647));
+    };
+    const visible = () => {
+      if (!document.hidden) check();
+    };
+    timer = setTimeout(
+      check,
+      Math.min(Math.max(0, deadline - Date.now()), 2_147_483_647),
+    );
+    document.addEventListener("visibilitychange", visible);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", visible);
+    };
+  }, [deadline, refetchSubscription]);
   const refreshSubscription = useCallback(async () => {
     if (user) await refetchSubscription();
   }, [user, refetchSubscription]);
@@ -60,15 +94,19 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     ? "guest"
     : isOwner
       ? "active"
-      : subscription.isError && !backgroundFailure
-        ? "error"
-        : subscription.isPending
-          ? "checking"
-          : !hasConfirmedData
-            ? "error"
-            : subscription.data?.hasClubAccess === true
-              ? "active"
-              : "inactive";
+      : expired
+        ? subscription.isError
+          ? "error"
+          : "checking"
+        : subscription.isError && !backgroundFailure
+          ? "error"
+          : subscription.isPending
+            ? "checking"
+            : !hasConfirmedData
+              ? "error"
+              : subscription.data?.hasClubAccess === true
+                ? "active"
+                : "inactive";
   const wasActive = useRef(false);
   useEffect(() => {
     if (wasActive.current && status !== "active")

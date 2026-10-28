@@ -50,10 +50,15 @@ const changed = () =>
   new Error(
     "Сохранённая покупка изменилась или её ключ восстановления утрачен. Другой заказ автоматически не создаётся. Проверьте оплату или обратитесь в поддержку.",
   );
-const differentRecipient = () =>
-  new Error(
-    "На устройстве сохранена гостевая покупка другого получателя. Для восстановления войдите в соответствующий аккаунт. Прежняя покупка сохранена.",
-  );
+export class GuestCheckoutRecipientError extends Error {
+  constructor() {
+    super(
+      "На устройстве сохранена гостевая покупка другого получателя. Для восстановления войдите в соответствующий аккаунт. Прежняя покупка сохранена.",
+    );
+    this.name = "GuestCheckoutRecipientError";
+  }
+}
+const differentRecipient = () => new GuestCheckoutRecipientError();
 
 /** One durable guest intent. Its secret is never a login credential or payment proof. */
 export class GuestCheckoutJournal {

@@ -422,3 +422,17 @@ it("the guest build opt-in cannot enable either TEST payment mode", () => {
   vi.stubEnv("NEXT_PUBLIC_CLUB_TEST_CHECKOUT", "true");
   expect(isGuestCheckoutRecoveryEnabled()).toBe(false);
 });
+
+it("identifies a foreign recipient without exposing or deleting its saved proof", async () => {
+  await new GuestCheckoutJournal(null).prepare(selection, signal());
+  const before = values.get(slot);
+  setPersonalDataOwner(102);
+  try {
+    new GuestCheckoutJournal({id:102,email:"other@example.test"}).read();
+    throw new Error("foreign journal unexpectedly read");
+  } catch (error) {
+    expect(error).toMatchObject({name:"GuestCheckoutRecipientError"});
+  }
+  expect(values.get(slot)).toBe(before);
+  expect(fetcher).not.toHaveBeenCalled();
+});

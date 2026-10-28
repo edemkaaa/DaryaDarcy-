@@ -289,7 +289,7 @@ test("429 persists its pause through reload; time alone does not retry a passwor
   await action(page, /Оплатить 790/).click();
   await expect(page.getByRole("alert").first()).toBeVisible();
   await expect
-    .poll(async () => JSON.parse((await saved(page))!).retryAt ?? 0)
+    .poll(async () => JSON.parse((await saved(page)) ?? "null")?.retryAt ?? 0)
     .toBeGreaterThan(0);
   await expect(action(page, "Восстановить ссылку оплаты")).toBeDisabled();
   const before = JSON.parse((await saved(page))!);
@@ -399,16 +399,19 @@ test("a different account cannot see the recipient, dispatch its proof, or recei
     email: "other@example.test",
   };
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
-  await expect(page.getByRole("alert").first()).toContainText(
-    "другого получателя",
-  );
+  await expect(
+    page.getByRole("status").filter({ hasText: "другого получателя" }).first(),
+  ).toBeVisible();
   gate.resolve();
-  await action(page, "Проверить покупку").click();
-  await expect(action(page, "Проверить покупку")).toBeEnabled();
+  await expect(action(page, /Оплатить 790/)).toBeEnabled();
   expect(await saved(page)).toBe(before);
   expect(state.statuses).toHaveLength(reads);
   expect(state.navigations).toHaveLength(0);
   expect(state.normal + state.legacy).toBe(0);
+  await action(page, /Оплатить 790/).click();
+  await expect.poll(() => state.normal).toBe(1);
+  expect(await saved(page)).toBe(before);
+  expect(state.statuses).toHaveLength(reads);
 });
 test("guest success does not log in or grant access; a fresh terminal check is required for a new recipient", async ({
   page,

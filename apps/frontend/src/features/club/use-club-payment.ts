@@ -79,7 +79,17 @@ export function useClubPayment({
   return guest.handlesPurchase
     ? guest
     : normal
-      ? recovery
+      ? {
+          ...recovery,
+          accessNotice: guest.foreignRecipient
+            ? [
+                "На устройстве сохранена покупка другого получателя. Она сохранена; новая оплата будет оформлена для вашего аккаунта.",
+                recovery.accessNotice,
+              ]
+                .filter(Boolean)
+                .join(" ")
+            : recovery.accessNotice,
+        }
       : {
           ...legacy,
           normalRecovery: false,
