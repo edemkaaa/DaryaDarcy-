@@ -1,6 +1,6 @@
 # ADR-010: Profile form writes use optimistic revisions
 
-- **Status:** Accepted for user-authorized local implementation; not rollout approval
+- **Status:** Accepted; rollout completed after separate user authorization on 2026-10-28
 - **Date:** 2026-10-28
 
 ## Context
@@ -45,7 +45,9 @@ Client abort and a later GET alone do not prevent a delayed database mutation.
 The migration and API/frontend form changes require a coordinated release after
 backup and migration-history verification. Old clients without expectedRevision
 receive 400; rolling back code keeps the additive column, without down-DDL.
-Working databases, sessions, administrator accounts and S3 were not modified.
+During local implementation, working resources were not modified. The later
+user-authorized release applied only additive 0045 and preserved existing data,
+sessions, administrator credentials and S3; see the release report.
 Tests cover real SQL ABA/aborted-A/new-B ordering, actor revocation before write,
 HTTP responses, preserved browser drafts and session/account boundaries.
 

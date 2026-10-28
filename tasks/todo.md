@@ -2,6 +2,20 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Выпуск независимого аудита — 28 октября
+
+- [x] Fresh fetch incoming0, staging d32c78f→5efedbe, правки фронтендера сохранены.
+- [x] Backup41таблица, restore в своей отдельной БД, репетиция0045; копия удалена.
+- [x] Проверить45ledger hash/when, применить только0045 и проверить46ledger.
+- [x] Обновить API/TEST/web без смены БД, паролей, flags, лимитов или S3.
+- [x] Native web26/candidate36/live51 и compression9, HTTPS37/staticSHA16,
+  browser TEST15, сохранённая сессия profile/admin/club прошли.
+- [x] Прежние данные41таблицы/индексы/3admin digests, остальные серверные
+  контейнеры и образы отката сохранены. [Отчёт](../docs/operations/independent-audit-release-2026-10-28.md).
+- [ ] Только локальный housekeeping: когда Docker ответит, проверить marker
+  daryadarcy-restore-legacy-e551ed19 и удалить fixture лишь при exact label/
+  network/tmpfs guard. На сервере временная БД уже удалена; выпуск завершён.
+
 ### Независимый аудит 28 октября: локальная реализация
 
 - [x] Fresh fetch и merge staging d32c78f:6c2d5e3, сохранён frontend guest recovery.
@@ -27,8 +41,8 @@
   успешный fixture OOM=false/restart0. Рабочие БД/S3/аккаунты прежние.
 - [x] Проверенные срезы сохранены локальными коммитами10f8207/60a3fc2/
   5e0e90f/0abb489/6e2efa7 (+checkout f8d5fd1). Без push/deploy.
-- [ ] Будущий выпуск отдельно: backup/history0045 и совместный API+frontend,
-  без down-DDL. Это не незавершённая локальная реализация и не разрешение выкладки.
+- [x] По последующему разрешению владельца совместный выпуск выполнен с
+  backup/history0045 и без down-DDL; детали в верхнем разделе.
 
 ### Frontend: восстановление гостевой оплаты — 28 октября
 
