@@ -28,6 +28,13 @@ export function isNormalCheckoutRecoveryEnabled(): boolean {
   );
 }
 
+export function isGuestCheckoutRecoveryEnabled(): boolean {
+  return (
+    process.env.NEXT_PUBLIC_GUEST_CHECKOUT_RECOVERY_ENABLED === "true" &&
+    getClubPaymentMode() === "live"
+  );
+}
+
 /** Refuse a live payment URL when this build promises a Prodamus demo. */
 export function requireProdamusTestUrl(value: string): string {
   const url = new URL(value);

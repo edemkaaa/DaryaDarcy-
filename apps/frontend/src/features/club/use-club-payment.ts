@@ -16,8 +16,12 @@ import { OperationScope } from "@/shared/browser/operation-scope";
 import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { requirePaymentUrl } from "@/shared/navigation/external-url";
 import { requireProdamusTestUrl } from "./payment-mode";
-import { isNormalCheckoutRecoveryEnabled } from "./payment-mode";
+import {
+  isNormalCheckoutRecoveryEnabled,
+  isGuestCheckoutRecoveryEnabled,
+} from "./payment-mode";
 import { useNormalClubPayment } from "./use-normal-club-payment";
+import { useGuestClubPayment } from "./use-guest-club-payment";
 
 const uncertainCheckout =
   "Создание ссылки не подтверждено. Если вы уже оплатили, не платите повторно: проверьте доступ или обратитесь в поддержку.";
@@ -54,23 +58,36 @@ export function useClubPayment({
   prodamusTest?: boolean;
 }) {
   const { isAuthenticated } = useAuth();
+  const guest = useGuestClubPayment({
+    enabled: !prodamusTest && isGuestCheckoutRecoveryEnabled(),
+    active,
+    returnKey,
+    guestEmail,
+  });
   const normal =
-    isAuthenticated && !prodamusTest && isNormalCheckoutRecoveryEnabled();
+    !guest.handlesPurchase &&
+    isAuthenticated &&
+    !prodamusTest &&
+    (isNormalCheckoutRecoveryEnabled() || isGuestCheckoutRecoveryEnabled());
   const legacy = useLegacyClubPayment({
-    active: active && !normal,
+    active: active && !normal && !guest.handlesPurchase,
     returnKey,
     guestEmail,
     prodamusTest,
   });
   const recovery = useNormalClubPayment({ enabled: normal, active, returnKey });
-  return normal
-    ? recovery
-    : {
-        ...legacy,
-        normalRecovery: false,
-        hasSavedPurchase: false,
-        purchaseLabel: null,
-      };
+  return guest.handlesPurchase
+    ? guest
+    : normal
+      ? recovery
+      : {
+          ...legacy,
+          normalRecovery: false,
+          hasSavedPurchase: false,
+          purchaseLabel: null,
+          savedGuestEmail: null,
+          guestEmailLocked: false,
+        };
 }
 
 function useLegacyClubPayment({

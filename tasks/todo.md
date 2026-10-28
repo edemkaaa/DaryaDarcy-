@@ -2,6 +2,20 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Frontend: восстановление гостевой оплаты — 28 октября
+
+- [x] Сверить готовые backend mutations, ограничения batch/секрета и сохранение TEST.
+- [x] Добавить проверяемый журнал UUID/secret/email/plan и отдельный POST transport.
+- [x] Подключить guest/reload/login/terminal flow без автоматической новой покупки;
+  сохранить Retry-After, owner guards и отмену поздних результатов.
+- [x] 161 unit/session проверка; guest+NORMAL Chromium31pass/1ожидаемыйskip,
+  Prodamus TEST15pass на отдельной сборке даже при guest flag=true.
+  Общий клиентский `pnpm verify`:251pass; наборы пересекаются, не суммировать.
+  Обе production-сборки29routes, root/frontend/E2E types, lint, API105,
+  boundaries835 и docs126 проверены. Синтетический API не подтверждает реальную оплату.
+- [ ] Совместный выпуск/боевые настройки/письмо/реальная оплата остаются отдельными;
+  guest flag по умолчанию false. Тексты предпросмотра не менять по решению владельца.
+
 ### Изоляция SQL-тестов в CI — 28 октября
 
 - [x] Следующим поручением push/deploy разрешены: freshfetch incoming0,
@@ -134,8 +148,10 @@
 - [x] Finalfetch: incomingd36e1b7. Готовыйfrontendguard прочитан и проверен
   внеcheckout:1544варианта/preserve2/disabled pass; текущийfrontend не менялся.
   В handoff учтено, что код уже сделан; browser/cold-warmcache не заявляются.
-- [ ] Frontend guest journal/POST contract и cold/warm optimizer guard;
-  backend105 уже выпущенe16bcd1; не включать guest/LIVE до frontend-приёмки/ключей.
+- [x] Frontend guest journal/POST contract реализован локально28октября;
+  синтетическая browser-приёмка выше, backend105 уже выпущенe16bcd1.
+- [ ] Cold/warm optimizer guard и совместный guest/LIVE выпуск с боевыми
+  настройками/проверками остаются отдельными; runtime-флаги не включались.
 - [ ] Получить боевые настройки, проверить routing/webhook/тариф790/месяц и
   согласованную реальную цепочку; без ключей LIVE не переключать.
 - [ ] Реальный отзыв386 уже разрешён: после guard — freshbackup/restore,

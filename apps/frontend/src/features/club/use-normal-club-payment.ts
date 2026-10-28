@@ -274,6 +274,8 @@ export function useNormalClubPayment({
     current?.result?.state === "failed";
   return {
     normalRecovery: true,
+    savedGuestEmail: null,
+    guestEmailLocked: false,
     hasSavedPurchase: Boolean(current?.intent),
     purchaseLabel: terminal
       ? "Новая покупка подписки"

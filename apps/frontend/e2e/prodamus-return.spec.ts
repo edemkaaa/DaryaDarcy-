@@ -13,6 +13,52 @@ const token =
 const returned = `/club?paid=1#paymentReturn=${token}`;
 const dialog = (page: Page) =>
   page.getByRole("dialog", { name: "Результат оплаты клуба", exact: true });
+
+test("Prodamus TEST keeps its checkout endpoint even when the guest LIVE build flag is set", async ({
+  page,
+}) => {
+  await fixture(page);
+  const calls: string[] = [];
+  const destination =
+    "https://testpage1.payform.ru/?demo_mode=1&payments_limit=1&sum=790.00&currency=rub&order_id=club-test-101-00000000-0000-4000-8000-000000000001";
+  await page.route("https://testpage1.payform.ru/**", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: "Synthetic Prodamus demo",
+    }),
+  );
+  await page.route("**/api/trpc/**", async (route) => {
+    const names = new URL(route.request().url()).pathname
+      .split("/api/trpc/")[1]
+      .split(",");
+    expect(names).not.toContain("club.createGuestNormalCheckout");
+    expect(names).not.toContain("club.guestNormalCheckoutStatus");
+    if (!names.includes("club.createCheckout")) return route.fallback();
+    calls.push("club.createCheckout");
+    expect(route.request().method()).toBe("POST");
+    expect(route.request().postDataJSON()).toMatchObject({
+      0: { json: { email: "guest@example.test" } },
+    });
+    expect(
+      await page.evaluate(() =>
+        localStorage.getItem("darcy:guest:normal-checkout:v1"),
+      ),
+    ).toBeNull();
+    await route.fulfill({ json: [ok({ url: destination, user: null })] });
+  });
+  await gotoWithSession(page, "/club");
+  await page
+    .getByPlaceholder("Почта для чека и входа")
+    .first()
+    .fill("guest@example.test");
+  await page
+    .getByRole("button", { name: "Открыть тестовую оплату", exact: true })
+    .first()
+    .click();
+  await expect(page).toHaveURL(destination);
+  expect(calls).toEqual(["club.createCheckout"]);
+});
+
 async function fixture(page: Page, member = false) {
   await layoutApi(page, member);
   const state = {
