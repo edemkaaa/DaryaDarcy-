@@ -39,6 +39,7 @@ jobs:
       - run: pnpm check:boundaries
       - run: pnpm check
       - run: pnpm check:api
+      - run: pnpm lint
       - run: pnpm test
       - run: pnpm build
 

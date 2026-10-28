@@ -28,6 +28,7 @@ verify:
     - pnpm check:boundaries
     - pnpm check
     - pnpm check:api
+    - pnpm lint
     - pnpm test
     - pnpm build
     - pnpm build:web
