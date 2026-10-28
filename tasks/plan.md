@@ -2,6 +2,27 @@
 
 ## Действующий план агента — 13 октября 2026
 
+28 октября: пользователь разрешил серверную cold/warm репетицию INT-01 перед
+закрытием публичных ссылок. Не менять рабочие web flags/исходники/кэш, БД,
+админские входы и S3 policy. Проверить точный выпущенный image/UID1000, закрытый
+manifest386/preserve2 и существующие реальные cache entries, затем отдельный
+контейнер network=none с собственным tmpfs cache, без API/SQL/SMTP env.
+Подтвердить warm HIT200 до guard →404/no-store после, cold/encoded/conditional/
+Range/HEAD и публичные controls. Результаты не означают включение защиты на
+рабочем сайте или закрытие прямых S3 URL. Удалить только свой probe-контейнер,
+сравнить рабочие container IDs/config hashes/admin credentials до/после.
+
+Выполнено:38 настоящих warm preview copies200/HIT до guard,348 coldkeys,
+1589 отказов с no-store по386keys/encoded/conditional/Range/HEAD/duplicate;
+preserve2 по точному SHA, local publicMISS→HIT, invalidmanifest503. Mounted
+manifest600 прочитан UID1000, networknone/readonlyroot/tmpfscache/384МиБ;
+exit0/OOMfalse/restart0, только свой контейнер удалён. Прежние контейнеры/config
+и3admin credentials совпали; HTTPS /club и /api/health200. Ошибка первого
+fixture с неэкранированным пробелом исправлена без изменения guard. Основной
+guard OFF и manifest не подключён, S3 policy прежняя: не объявлять старые URL
+защищёнными на сайте. Следующий переход — backup/restore и актуальные bindings/
+private-access, подключение основного web/edge guard, затем отдельный exact Deny.
+
 28 октября, после выпуска1ddca3c: новое поручение — backend-only сверка и единый
 handoff, без push/deploy. Freshfetch incoming0, дерево чистое. Локальный Docker
 по-прежнему не отвечает: orphan marker не удалять вслепую/не перезапускать Docker.

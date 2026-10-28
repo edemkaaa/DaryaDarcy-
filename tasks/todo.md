@@ -2,6 +2,23 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Серверная cold/warm репетиция INT-01 — 28 октября
+
+- [x] Read-only: web5efedbe, UID1000, guard OFF; manifest386/preserve2 с прежним SHA.
+- [x] Найдены38 старых изображений (после canonical URL encoding) и2 общие
+  обложки в рабочем cache; без его очистки.
+- [x] Проверить mounted manifest600 штатным UID1000 в контейнере того же image.
+- [x] Настоящий HTTP:38warm/348cold/encoded/conditional/Range/HEAD, controls200,
+  fail-closed503; network none, лимит384МиБ, только свой tmpfs cache.
+- [x] Удалить только свой probe, сверить контейнеры/config/admin digests; обновить
+  остаток и единый handoff. Старые URL/S3 policy и рабочий guard не менять.
+- [x] 1589 ожидаемых отказов/386keys, preserve2, invalid503; exit0/OOMfalse/
+  restart0. Публичные HTTPS /club и /api/health200. Ошибка первого fixture
+  (сырой пробел в URL) исправлена без изменения guard/критериев.
+- [ ] Перед отзывом — свежие backup/restore/bindings/access, подключение guard/
+  manifest к основному web с edge-проверкой, затем exact Deny/прямые URL.
+  Текущим шагом старые URL не закрываются.
+
 ### После выкладки: локальная проверка кэша старых изображений — 28 октября
 
 - [x] Проверить1ddca3c/чистое дерево/freshfetch incoming0, выпущенный5efedbe и
@@ -16,9 +33,10 @@
 - [x] Обновить единый handoff и актуальную таблицу backend-остатка. Без push/deploy.
 - [x] Новый gate + существующий guard:29pass,17deny/5public/invalid503,0upstream.
   Root types/API105/границы проверены; frontend исходники прежние.
-- [ ] Следующий INT-01 gate только на настоящем web: runtime UID/manifest600,
-  реальные cold/warm URL/preserve2, свежие backup/bindings/access, exact Deny.
-  Текущим локальным поручением этот переход/настройки/S3 не разрешены.
+- [x] Следующим поручением выполнена изолированная серверная проверка UID/
+  manifest600 и реальных cold/warm keys/preserve2; результаты выше.
+- [ ] Основной web/edge guard, свежие backup/bindings/access и exact Deny
+  остаются отдельным переходом; старые URL пока не закрывать.
 
 
 ### Выпуск независимого аудита — 28 октября
