@@ -2,14 +2,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import { useProfileUpdate } from "@/domain/profile/use-profile-update";
+import { ProfileDraftReview } from "@/domain/profile/profile-draft-review";
 import {
   PROFILE_NAME_DRAFT_KEY,
   PROFILE_NAME_PENDING_KEY,
 } from "@/domain/profile/profile-draft";
-import AsyncStorage, {
-  isPersonalDataOwner,
-  requiredStorage,
-} from "@/shared/browser/storage";
+import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { Action, Field, Spinner, Typography } from "@/shared/ui/elements";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { BROWN_MUTED } from "./profile-screen.content";
@@ -17,10 +15,12 @@ import classes from "./profile-screen.module.scss";
 
 export function ProfileNameEditor({ displayName }: { displayName: string }) {
   const { user } = useAuth();
-  const update = useProfileUpdate(PROFILE_NAME_PENDING_KEY);
+  const update = useProfileUpdate(
+    PROFILE_NAME_PENDING_KEY,
+    PROFILE_NAME_DRAFT_KEY,
+  );
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
-  const [draftError, setDraftError] = useState<string | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const restoreFocus = useRef(false);
@@ -53,12 +53,18 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
   };
   const finish = async (saved: boolean) => {
     if (!saved || !user || !isPersonalDataOwner(user.id)) return;
-    await AsyncStorage.removeItem(PROFILE_NAME_DRAFT_KEY);
     if (isPersonalDataOwner(user.id)) closeWithFocus();
   };
   const save = async () => {
     const name = draft.trim();
-    if (!name || !editing || update.busy || update.unknown) return;
+    if (
+      !name ||
+      !editing ||
+      update.busy ||
+      update.unknown ||
+      update.needsReview
+    )
+      return;
     await finish(await update.save({ name }));
   };
   const cancel = () => {
@@ -90,14 +96,7 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
               value={draft}
               onValueChange={(value) => {
                 setDraft(value);
-                try {
-                  requiredStorage.setItem(PROFILE_NAME_DRAFT_KEY, value);
-                  setDraftError(null);
-                } catch {
-                  setDraftError(
-                    "Черновик имени не сохранён на устройстве. Не закрывайте страницу до сохранения имени.",
-                  );
-                }
+                update.storeDraft({ name: value });
               }}
               autoFocus
               autoComplete="name"
@@ -110,7 +109,12 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
               <Action
                 aria-label="Сохранить имя"
                 title="Сохранить имя"
-                disabled={update.busy || update.unknown || !draft.trim()}
+                disabled={
+                  update.busy ||
+                  update.unknown ||
+                  update.needsReview ||
+                  !draft.trim()
+                }
                 onClick={() => void save()}
                 className={[
                   classes.nameIconButton,
@@ -140,14 +144,13 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
         ) : (
           <Action
             ref={triggerRef}
-            onClick={async () => {
+            disabled={update.busy}
+            onClick={() => {
               const ownerId = user?.id;
-              const savedDraft = await AsyncStorage.getItem(
-                PROFILE_NAME_DRAFT_KEY,
-              );
               if (!ownerId || !isPersonalDataOwner(ownerId)) return;
-              update.beginEdit();
-              setDraft(update.pendingInput?.name ?? savedDraft ?? displayName);
+              const restored = update.beginEdit({ name: displayName });
+              if (!restored) return;
+              setDraft(restored.name ?? displayName);
               setEditing(true);
             }}
             className={classes.nameRow}
@@ -164,23 +167,33 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
           </Action>
         )}
       </div>
-      {editing && (update.error || draftError) && (
+      {(update.error || update.draftError) && (
         <div role="alert" className={["ui-stack", classes.nameError].join(" ")}>
           <Typography className={classes.nameErrorText}>
-            {update.error || draftError}
+            {[update.error, update.draftError].filter(Boolean).join(" ")}
           </Typography>
-          {update.unknown && (
-            <Action
-              className={classes.action5}
-              disabled={update.busy}
-              onClick={() => void update.check().then(finish)}
-            >
-              <Typography className={classes.cardButtonText}>
-                Проверить сохранение имени
-              </Typography>
-            </Action>
-          )}
+          {editing &&
+            (update.unknown || (update.needsReview && !update.review)) && (
+              <Action
+                className={classes.action5}
+                disabled={update.busy}
+                onClick={() => void update.check().then(finish)}
+              >
+                <Typography className={classes.cardButtonText}>
+                  {update.unknown
+                    ? "Проверить сохранение имени"
+                    : "Сверить черновик имени"}
+                </Typography>
+              </Action>
+            )}
         </div>
+      )}
+      {editing && update.needsReview && update.review && (
+        <ProfileDraftReview
+          snapshot={update.review}
+          busy={update.busy || update.unknown}
+          onAccept={update.acceptReview}
+        />
       )}
     </div>
   );

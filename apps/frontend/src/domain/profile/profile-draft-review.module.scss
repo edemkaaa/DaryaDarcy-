@@ -1,0 +1,23 @@
+@use "../../shared/styles/layers";
+
+@layer components {
+  .review {
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    padding: 8px 20px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 20px;
+    color: var(--brown);
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  .accept {
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: var(--olive);
+    background-color: rgba(107, 123, 94, 0.1);
+  }
+}

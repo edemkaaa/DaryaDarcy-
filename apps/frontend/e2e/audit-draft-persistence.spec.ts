@@ -217,10 +217,13 @@ test("profile storage failure is visible and prevents an unrecoverable mutation"
   page,
 }) => {
   let writes = 0;
-  await editorApi(page, (name) => {
+  await editorApi(page, (name, input) => {
     if (name === "profile.update") {
       writes++;
-      return ok({ success: true });
+      return ok({
+        success: true,
+        profileRevision: Number(input.expectedRevision) + 1,
+      });
     }
   });
   await gotoWithSession(page, "/profile");

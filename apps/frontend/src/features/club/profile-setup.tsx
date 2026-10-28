@@ -20,6 +20,7 @@ import { BROWN_MUTED, CREAM } from "./profile-setup.content";
 
 import { useAuth } from "@/domain/session/session-context";
 import { useProfileUpdate } from "@/domain/profile/use-profile-update";
+import { ProfileDraftReview } from "@/domain/profile/profile-draft-review";
 import { useProfileAvatar } from "@/domain/profile/use-profile-avatar";
 import {
   CLUB_PROFILE_DRAFT_KEY,
@@ -43,8 +44,12 @@ interface CropperImage {
 }
 export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   const { user } = useAuth();
-  const update = useProfileUpdate(CLUB_PROFILE_PENDING_KEY);
+  const update = useProfileUpdate(
+    CLUB_PROFILE_PENDING_KEY,
+    CLUB_PROFILE_DRAFT_KEY,
+  );
   const initialUser = useRef(user);
+  const { storeDraft } = update;
   const beginInitialEdit = useRef(update.beginEdit);
   const avatar = useProfileAvatar();
   const [ready, setReady] = useState(false);
@@ -60,44 +65,33 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
     const user = initialUser.current;
     const ownerId = user?.id;
     let cancelled = false;
-    void Promise.all([
-      AsyncStorage.getItem(CLUB_PROFILE_DRAFT_KEY),
-      AsyncStorage.getItem(LEGACY_PROFILE_NAME_KEY),
-      AsyncStorage.getItem(LEGACY_PROFILE_GENDER_KEY),
-    ]).then(([raw, legacyName, legacyGender]) => {
+    void Promise.resolve().then(() => {
       if (cancelled || !ownerId || !isPersonalDataOwner(ownerId)) return;
-      let draft: { name?: string; gender?: Gender; avatarUrl?: string } = {};
       try {
-        const value: unknown = raw ? JSON.parse(raw) : null;
-        if (value && typeof value === "object") {
-          const stored = value as Record<string, unknown>;
-          draft = {
-            name: typeof stored.name === "string" ? stored.name : undefined,
+        const legacyName = requiredStorage.getItem(LEGACY_PROFILE_NAME_KEY);
+        const legacyGender = requiredStorage.getItem(LEGACY_PROFILE_GENDER_KEY);
+        const restored = beginInitialEdit.current(
+          {
+            name: user?.name ?? legacyName ?? "",
             gender:
-              stored.gender === "female" || stored.gender === "male"
-                ? stored.gender
-                : undefined,
-            avatarUrl:
-              typeof stored.avatarUrl === "string" &&
-              stored.avatarUrl.startsWith("data:image/")
-                ? stored.avatarUrl
-                : undefined,
-          };
-        }
+              user?.gender ??
+              (legacyGender === "female" || legacyGender === "male"
+                ? legacyGender
+                : null),
+            avatarUrl: null,
+          },
+          legacyName !== null || legacyGender !== null,
+        );
+        if (!restored) return;
+        setName(restored.name ?? "");
+        setGender(restored.gender ?? null);
+        setAvatarUri(restored.avatarUrl ?? null);
+        setReady(true);
       } catch {
-        /* A corrupt optional draft must not prevent explicit setup. */
+        setDraftError(
+          "Не удалось прочитать черновик профиля. Разрешите хранение данных сайта и перезагрузите страницу.",
+        );
       }
-      setName(draft.name ?? user?.name ?? legacyName ?? "");
-      setGender(
-        draft.gender ??
-          user?.gender ??
-          (legacyGender === "female" || legacyGender === "male"
-            ? legacyGender
-            : null),
-      );
-      setAvatarUri(draft.avatarUrl ?? null);
-      beginInitialEdit.current();
-      setReady(true);
     });
     return () => {
       cancelled = true;
@@ -107,18 +101,8 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   useEffect(() => {
     if (completed.current || !ready || !user || !isPersonalDataOwner(user.id))
       return;
-    try {
-      requiredStorage.setItem(
-        CLUB_PROFILE_DRAFT_KEY,
-        JSON.stringify({ name, gender, avatarUrl: avatarUri }),
-      );
-      setDraftError(null);
-    } catch {
-      setDraftError(
-        "Черновик профиля не сохранён на устройстве. Не закрывайте страницу до сохранения профиля.",
-      );
-    }
-  }, [ready, name, gender, avatarUri, user]);
+    storeDraft({ name, gender, avatarUrl: avatarUri });
+  }, [ready, name, gender, avatarUri, user, storeDraft]);
   const blocked =
     !ready ||
     submitting ||
@@ -131,7 +115,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
     if (update.pendingInput.name) setName(update.pendingInput.name);
     if (update.pendingInput.gender) setGender(update.pendingInput.gender);
   }, [update.unknown, update.pendingInput]);
-  const error = [avatar.error, update.error, draftError]
+  const error = [avatar.error, update.error, update.draftError, draftError]
     .filter(Boolean)
     .join(" ");
   const complete = async () => {
@@ -139,7 +123,6 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
     if (!ownerId || !isPersonalDataOwner(ownerId)) return;
     completed.current = true;
     await AsyncStorage.multiRemove([
-      CLUB_PROFILE_DRAFT_KEY,
       LEGACY_PROFILE_NAME_KEY,
       LEGACY_PROFILE_GENDER_KEY,
     ]);
@@ -174,7 +157,14 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
     setCropperImage(null);
   };
   const handleSubmit = async () => {
-    if (!name.trim() || !gender || blocked || submittingRef.current) return;
+    if (
+      !name.trim() ||
+      !gender ||
+      blocked ||
+      update.needsReview ||
+      submittingRef.current
+    )
+      return;
     submittingRef.current = true;
     setSubmitting(true);
     try {
@@ -349,7 +339,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
               {error}
             </Typography>
           )}
-          {update.unknown && (
+          {(update.unknown || (update.needsReview && !update.review)) && (
             <Action
               disabled={update.busy}
               onClick={() =>
@@ -360,9 +350,19 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
               className={classes.action3}
             >
               <Typography className={classes.submitButtonText}>
-                Проверить сохранение анкеты
+                {update.unknown
+                  ? "Проверить сохранение анкеты"
+                  : "Сверить черновик анкеты"}
               </Typography>
             </Action>
+          )}
+          {update.needsReview && update.review && (
+            <ProfileDraftReview
+              snapshot={update.review}
+              busy={update.busy || update.unknown}
+              onAccept={update.acceptReview}
+              showGender
+            />
           )}
           {avatar.unknown && (
             <Action
@@ -378,7 +378,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
           {/* Submit button */}
           <Action
             onClick={handleSubmit}
-            disabled={!isValid || blocked}
+            disabled={!isValid || blocked || update.needsReview}
             aria-label="Продолжить"
             aria-busy={submitting}
             className={({ pressed }) =>

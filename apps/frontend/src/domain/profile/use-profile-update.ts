@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { isPersonalDataOwner, requiredStorage } from "@/shared/browser/storage";
 import { getMe } from "@/shared/api/auth";
 import {
@@ -13,22 +13,105 @@ import {
   checkOperationAccessError,
   useSessionOperation,
 } from "@/domain/session/use-session-operation";
+import {
+  PROFILE_NAME_DRAFT_KEY,
+  profileSnapshot,
+  restoreProfileDraft,
+  type ProfileDraft,
+  type ProfileDraftValues,
+  type ProfileInput,
+} from "./profile-draft";
 
-type ProfileInput = { name?: string; gender?: "female" | "male" };
 type PendingProfile = ProfileInput & { expectedRevision?: number };
 
 /** Explicit profile edits only. An unknown write is reconciled by a fresh read. */
-export function useProfileUpdate(recoveryKey: string) {
+export function useProfileUpdate(recoveryKey: string, draftKey: string) {
   const { user, reconcileProfile, confirmProfileUpdate } = useAuth();
   const utils = trpc.useUtils();
   const operation = useSessionOperation();
   const pending = useRef<PendingProfile | null>(null);
-  const editingRevision = useRef<number | undefined>(undefined);
+  const draft = useRef<ProfileDraft | null>(null);
+  const [draftState, setDraftState] = useState<ProfileDraft | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const [unknown, setUnknown] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(true);
   const [storageError, setStorageError] = useState(false);
   const ownerId = user?.id;
+  const writeDraft = useCallback(
+    (value: ProfileDraft) => {
+      if (!ownerId || !isPersonalDataOwner(ownerId))
+        throw new Error("Аккаунт изменился");
+      // Keep the in-memory input even if durable storage is unavailable.
+      draft.current = value;
+      setDraftState(value);
+      const encoded = JSON.stringify(value);
+      requiredStorage.setItem(draftKey, encoded);
+      if (requiredStorage.getItem(draftKey) !== encoded)
+        throw new Error("Черновик не сохранён");
+      setDraftError(null);
+    },
+    [ownerId, draftKey],
+  );
+  const clearDraft = () => {
+    if (!ownerId || !isPersonalDataOwner(ownerId)) return;
+    // A successful older operation must not delete a different tab's draft.
+    if (requiredStorage.getItem(draftKey) === JSON.stringify(draft.current))
+      requiredStorage.removeItem(draftKey);
+    draft.current = null;
+    setDraftState(null);
+    setDraftError(null);
+  };
+  const beginEdit = (
+    defaults: ProfileDraftValues,
+    legacyInput = false,
+  ): ProfileDraftValues | null => {
+    if (!user || !isPersonalDataOwner(user.id)) return null;
+    try {
+      const raw = requiredStorage.getItem(draftKey);
+      const restored = restoreProfileDraft(
+        raw ?? (legacyInput ? JSON.stringify(defaults) : null),
+        user.id,
+        profileSnapshot(user),
+        defaults,
+        draftKey === PROFILE_NAME_DRAFT_KEY,
+      );
+      // An in-memory draft also survives closing/reopening after a storage error.
+      const value = draft.current ?? restored;
+      draft.current = value;
+      setDraftState(value);
+      if (value.needsReview)
+        setError(
+          "Сверьте сохранённый ввод с актуальным профилем перед сохранением.",
+        );
+      return { ...value.values, ...pending.current };
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Не удалось прочитать черновик.",
+      );
+      return null;
+    }
+  };
+  const storeDraft = useCallback(
+    (input: ProfileDraftValues) => {
+      if (!draft.current) return;
+      try {
+        writeDraft({
+          ...draft.current,
+          values: { ...draft.current.values, ...input },
+        });
+      } catch {
+        setDraftError(
+          draftKey === PROFILE_NAME_DRAFT_KEY
+            ? "Черновик имени не сохранён на устройстве. Не закрывайте страницу до сохранения имени."
+            : "Черновик профиля не сохранён на устройстве. Не закрывайте страницу до сохранения профиля.",
+        );
+      }
+    },
+    [draftKey, writeDraft],
+  );
   useEffect(() => {
     let cancelled = false;
     void Promise.resolve()
@@ -78,15 +161,25 @@ export function useProfileUpdate(recoveryKey: string) {
   const remember = (input: PendingProfile | null) => {
     if (!ownerId || !isPersonalDataOwner(ownerId))
       throw new Error("Аккаунт изменился");
-    if (input) requiredStorage.setItem(recoveryKey, JSON.stringify(input));
-    else requiredStorage.removeItem(recoveryKey);
+    if (input) {
+      const encoded = JSON.stringify(input);
+      requiredStorage.setItem(recoveryKey, encoded);
+      if (requiredStorage.getItem(recoveryKey) !== encoded)
+        throw new Error("Ввод не сохранён");
+    } else requiredStorage.removeItem(recoveryKey);
     pending.current = input;
     setUnknown(input !== null);
   };
   const save = async (input: ProfileInput): Promise<boolean> => {
     if (restoring || storageError || pending.current || !user) return false;
-    const expectedRevision = editingRevision.current;
-    if (expectedRevision === undefined) {
+    if (!draft.current || draft.current.needsReview) {
+      setError(
+        "Сверьте сохранённый ввод с актуальным профилем перед сохранением.",
+      );
+      return false;
+    }
+    const expectedRevision = draft.current.base.revision;
+    if (expectedRevision === null) {
       setError(
         "Версия профиля недоступна. Обновите страницу перед сохранением.",
       );
@@ -97,6 +190,10 @@ export function useProfileUpdate(recoveryKey: string) {
     setError(null);
     try {
       try {
+        writeDraft({
+          ...draft.current,
+          values: { ...draft.current.values, ...input },
+        });
         remember({ ...input, expectedRevision });
       } catch {
         setError(
@@ -124,7 +221,7 @@ export function useProfileUpdate(recoveryKey: string) {
       )
         throw invalidResponse();
       task.assertCurrent();
-      editingRevision.current = result.profileRevision;
+      clearDraft();
       remember(null);
       void utils.club.comments.invalidate();
       void utils.club.commentsPage.invalidate();
@@ -153,7 +250,7 @@ export function useProfileUpdate(recoveryKey: string) {
   };
   const check = async (): Promise<boolean> => {
     const input = pending.current;
-    if (!input || !user) return false;
+    if (!user || (!input && !draft.current)) return false;
     const task = operation.begin("check-profile");
     if (!task) return false;
     try {
@@ -162,6 +259,7 @@ export function useProfileUpdate(recoveryKey: string) {
       if (!(await reconcileProfile(user.id, fresh)) || !fresh) return false;
       task.assertCurrent();
       const saved =
+        !!input &&
         Object.entries(input).every(
           ([key, value]) =>
             key === "expectedRevision" ||
@@ -171,15 +269,44 @@ export function useProfileUpdate(recoveryKey: string) {
           (fresh.profileRevision !== undefined &&
             fresh.profileRevision > input.expectedRevision));
       if (fresh.profileRevision === undefined) throw invalidResponse();
-      editingRevision.current = fresh.profileRevision;
+      if (saved) clearDraft();
+      else {
+        const currentDraft =
+          draft.current ??
+          restoreProfileDraft(
+            requiredStorage.getItem(draftKey),
+            user.id,
+            profileSnapshot(user),
+            input ?? {},
+            draftKey === PROFILE_NAME_DRAFT_KEY,
+          );
+        // Persist the review BEFORE retiring the pending operation. Reload must
+        // retain the conflict and must never silently rebase the user's input.
+        writeDraft({
+          ...currentDraft,
+          values: {
+            ...currentDraft.values,
+            ...(input
+              ? {
+                  name: input.name ?? currentDraft.values.name,
+                  gender: input.gender ?? currentDraft.values.gender,
+                }
+              : {}),
+          },
+          needsReview: true,
+          review: profileSnapshot(fresh),
+        });
+      }
       remember(null);
       setError(
         saved
           ? null
-          : input.expectedRevision !== undefined &&
-              fresh.profileRevision > input.expectedRevision
-            ? "Профиль уже изменён. Ваш ввод сохранён; проверьте его и сохраните явно, если хотите заменить актуальные данные."
-            : "Предыдущий запрос мог ещё выполняться. Ваш ввод сохранён; повторное сохранение защищено проверкой версии профиля.",
+          : !input
+            ? "Сравните актуальные данные с вашим вводом и подтвердите использование черновика."
+            : input.expectedRevision !== undefined &&
+                fresh.profileRevision > input.expectedRevision
+              ? "Профиль уже изменён. Ваш ввод сохранён; проверьте его и сохраните явно, если хотите заменить актуальные данные."
+              : "Предыдущий запрос мог ещё выполняться. Ваш ввод сохранён; повторное сохранение защищено проверкой версии профиля.",
       );
       if (saved) void utils.club.comments.invalidate();
       if (saved) void utils.club.commentsPage.invalidate();
@@ -196,8 +323,35 @@ export function useProfileUpdate(recoveryKey: string) {
     }
   };
   return {
-    beginEdit: () => {
-      if (!pending.current) editingRevision.current = user?.profileRevision;
+    beginEdit,
+    storeDraft,
+    draftError,
+    needsReview: draftState?.needsReview ?? false,
+    review: draftState?.review,
+    acceptReview: () => {
+      const current = draft.current;
+      if (
+        !current?.review ||
+        current.review.revision === null ||
+        pending.current
+      )
+        return;
+      try {
+        writeDraft({
+          ...current,
+          base: current.review,
+          review: undefined,
+          needsReview: false,
+        });
+        setError(null);
+      } catch {
+        // Saving stays blocked until the reviewed baseline is durable.
+        draft.current = current;
+        setDraftState(current);
+        setDraftError(
+          "Не удалось сохранить сверенный черновик. Повторите после восстановления хранилища.",
+        );
+      }
     },
     save,
     check,

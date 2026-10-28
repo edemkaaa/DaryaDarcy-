@@ -6,9 +6,13 @@ const questions = JSON.stringify(
   QUESTIONS.map((q) => [q.id, q.answers.map((a) => a.id)]),
 );
 
-export function serializeQuizProgress(state: QuizState): string {
+export function serializeQuizProgress(
+  state: QuizState,
+  run?: { runId: string; revision: number },
+): string {
   return JSON.stringify({
-    version: 1,
+    version: run ? 2 : 1,
+    ...run,
     questions,
     currentQuestion: state.currentQuestion,
     answers: state.answers,
@@ -21,7 +25,12 @@ export function parseQuizProgress(raw: string | null): QuizState | null {
   try {
     const value = JSON.parse(raw);
     if (
-      value.version !== 1 ||
+      (value.version !== 1 && value.version !== 2) ||
+      (value.version === 2 &&
+        (typeof value.runId !== "string" ||
+          !/^[a-z0-9-]{36}$/.test(value.runId) ||
+          !Number.isSafeInteger(value.revision) ||
+          value.revision < 0)) ||
       value.questions !== questions ||
       !Number.isInteger(value.currentQuestion) ||
       value.currentQuestion < 0 ||

@@ -32,3 +32,26 @@ it.each([
     ),
   ).toBeNull();
 });
+
+it("restores versioned progress while retaining a unique run and monotonic revision on the wire", () => {
+  const run = { runId: "11111111-1111-4111-8111-111111111111", revision: 7 };
+  const serialized = serializeQuizProgress(next, run);
+  expect(JSON.parse(serialized)).toMatchObject({ version: 2, ...run });
+  expect(parseQuizProgress(serialized)).toEqual(next);
+});
+
+it.each([
+  { runId: "" },
+  { runId: "old" },
+  { revision: -1 },
+  { revision: 1.5 },
+  { revision: Number.MAX_SAFE_INTEGER + 1 },
+])("rejects unsafe versioned quiz metadata: %j", (change) => {
+  const raw = JSON.parse(
+    serializeQuizProgress(next, {
+      runId: "11111111-1111-4111-8111-111111111111",
+      revision: 0,
+    }),
+  );
+  expect(parseQuizProgress(JSON.stringify({ ...raw, ...change }))).toBeNull();
+});
