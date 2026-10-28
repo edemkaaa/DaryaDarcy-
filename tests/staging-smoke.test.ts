@@ -25,9 +25,11 @@ async function runSmoke(
   deployment: "closed" | "prodamus-test",
   mode?: string,
   broken?: BrokenReply,
+  capabilities: Record<string, unknown> = {},
 ) {
   const requests: Probe[] = [];
   const server = createServer(async (req, res) => {
+    const pathname = new URL(req.url!, "http://fixture.local").pathname;
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(Buffer.from(chunk));
     requests.push({
@@ -38,12 +40,16 @@ async function runSmoke(
       sign: req.headers.sign as string | undefined,
     });
     res.setHeader("Content-Type", "application/json");
-    if (broken && req.method === broken.method && req.url === broken.path) {
+    if (
+      broken &&
+      req.method === broken.method &&
+      (req.url === broken.path || pathname === broken.path)
+    ) {
       res.writeHead(broken.status, broken.headers);
       res.end(broken.body ?? "unexpectedly accepted");
       return;
     }
-    switch (req.url) {
+    switch (pathname) {
       case "/":
         res.setHeader("Content-Type", "text/html");
         res.end("<html><body>synthetic staging</body></html>");
@@ -61,12 +67,16 @@ async function runSmoke(
               penPals: false,
               shopOnlinePayment: false,
               webPush: false,
+              privateContentUploads: false,
+              privatePostMediaUploads: false,
+              privatePostVideoUploads: false,
+              ...capabilities,
             },
           }),
         );
         return;
-      case "/api/trpc/feed.list":
-        res.end('{"result":{"data":{"json":[]}}}');
+      case "/api/trpc/feed.listPaginated":
+        res.end('{"result":{"data":{"json":{"posts":[],"nextCursor":null}}}}');
         return;
       case "/api/admin/launch-settings":
       case "/api/trpc/admin.stats":
@@ -128,6 +138,72 @@ it("retains the closed-payment deployment as the default baseline", async () => 
   expect(result.stderr).toBe("");
 });
 
+it("uses a single-card paginated read instead of the retired unbounded feed", async () => {
+  const result = await runSmoke("closed");
+  expect(result.code).toBe(0);
+  expect(result.requests.some((r) => r.path === "/api/trpc/feed.list")).toBe(
+    false,
+  );
+  const pages = result.requests.filter((r) =>
+    r.path.startsWith("/api/trpc/feed.listPaginated?"),
+  );
+  expect(pages).toHaveLength(1);
+  expect(
+    JSON.parse(
+      new URL(pages[0].path, "http://fixture.local").searchParams.get("input")!,
+    ),
+  ).toEqual({ json: { limit: 1 } });
+});
+
+it("accepts private uploads and additive capabilities without skipping the remaining access checks", async () => {
+  const result = await runSmoke("prodamus-test", "prodamus-test", undefined, {
+    privateContentUploads: true,
+    privatePostMediaUploads: true,
+    privatePostVideoUploads: true,
+    futureCapability: true,
+  });
+  expect(result.code).toBe(0);
+  expect(result.stdout).toContain("smoke passed");
+  expect(result.requests.some((r) => r.path === "/api/trpc/admin.stats")).toBe(
+    true,
+  );
+  expect(
+    result.requests.some((r) => r.path === "/api/prodamus/test/webhook"),
+  ).toBe(true);
+});
+
+it.each(["smsLogin", "penPals", "shopOnlinePayment", "webPush"])(
+  "still rejects the excluded %s capability when private uploads are enabled",
+  async (capability) => {
+    const result = await runSmoke("prodamus-test", "prodamus-test", undefined, {
+      privateContentUploads: true,
+      privatePostMediaUploads: true,
+      privatePostVideoUploads: true,
+      [capability]: true,
+    });
+    expect(result.code).toBe(1);
+    expect(result.stdout).not.toContain("smoke passed");
+  },
+);
+
+it.each([
+  ["privateContentUploads", undefined],
+  ["privatePostMediaUploads", undefined],
+  ["privatePostVideoUploads", undefined],
+  ["privateContentUploads", "true"],
+  ["privatePostMediaUploads", null],
+  ["privatePostVideoUploads", 1],
+])(
+  "rejects a missing or malformed %s capability (%s)",
+  async (capability, value) => {
+    const result = await runSmoke("prodamus-test", "prodamus-test", undefined, {
+      [String(capability)]: value,
+    });
+    expect(result.code).toBe(1);
+    expect(result.stdout).not.toContain("smoke passed");
+  },
+);
+
 it("accepts the explicit TEST deployment without preparing a purchase or signed callback", async () => {
   const result = await runSmoke("prodamus-test", "prodamus-test");
   expect(result.code).toBe(0);
@@ -181,6 +257,20 @@ it("rejects unknown payment modes before making any request", async () => {
 });
 
 it.each<BrokenReply & { name: string }>([
+  {
+    name: "paginated feed returns the old array shape",
+    method: "GET",
+    path: "/api/trpc/feed.listPaginated",
+    status: 200,
+    body: '{"result":{"data":{"json":[]}}}',
+  },
+  {
+    name: "paginated feed ignores the requested bound",
+    method: "GET",
+    path: "/api/trpc/feed.listPaginated",
+    status: 200,
+    body: '{"result":{"data":{"json":{"posts":[{"id":1},{"id":2}],"nextCursor":null}}}}',
+  },
   {
     name: "live callback enabled",
     method: "POST",

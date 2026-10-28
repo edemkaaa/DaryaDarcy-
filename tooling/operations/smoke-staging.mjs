@@ -52,16 +52,35 @@ try {
   assert.match(me.headers.get("cache-control") || "", /no-store/);
   const configuration = await (await read("/api/launch-config")).json();
   assert.equal(configuration.orderMethod, "email-client");
-  assert.deepEqual(configuration.capabilities, {
-    smsLogin: false,
-    penPals: false,
-    shopOnlinePayment: false,
-    webPush: false,
+  for (const name of ["smsLogin", "penPals", "shopOnlinePayment", "webPush"]) {
+    assert.equal(
+      configuration.capabilities?.[name],
+      false,
+      `${name} must remain disabled`,
+    );
+  }
+  // Uploads are released independently; additive flags do not change this baseline.
+  for (const name of [
+    "privateContentUploads",
+    "privatePostMediaUploads",
+    "privatePostVideoUploads",
+  ]) {
+    assert.equal(
+      typeof configuration.capabilities?.[name],
+      "boolean",
+      `${name} must be a boolean`,
+    );
+  }
+  const feedQuery = new URLSearchParams({
+    input: JSON.stringify({ json: { limit: 1 } }),
   });
-  const feed = await (await read("/api/trpc/feed.list")).json();
+  const feed = await (
+    await read(`/api/trpc/feed.listPaginated?${feedQuery}`)
+  ).json();
   assert.ok(
-    Array.isArray(feed.result?.data?.json),
-    "Feed must return a SQL catalog",
+    Array.isArray(feed.result?.data?.json?.posts) &&
+      feed.result.data.json.posts.length <= 1,
+    "Feed must return a bounded SQL page",
   );
   await read("/api/admin/launch-settings", 401);
   await read("/api/trpc/admin.stats", 401);
