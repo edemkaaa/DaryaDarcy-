@@ -2,6 +2,28 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Включение основной защиты и отзыв 386 — 28 октября
+
+- [x] Явное разрешение владельца:386 URL закрыть, preserve2/оригиналы/БД/входы сохранить.
+- [x] Read-only подтвердить TEST заказ 31: paid/receipt79000/30 дней/result succeeded,
+  письмо sent; без повторной оплаты/ручной выдачи/отправки писем.
+- [x] Freshbackup/restore после заказа 31 и fresh388binding/policy check, вторую копию сохранить.
+- [x] Exact web-only resolved diff: manifest600 UID1000/read-only mount/3env,
+  тот же image/build/cache volume; backup config и процедура отката.
+- [x] Основной web+edge: cold/warm/encoded/conditional/HEAD404/no-store,
+  preserve2 byte hashes200, внешний HTTPS gate до изменения S3.
+- [x] Expected-old policy +exact386 Deny, server exception прежний, no ACL/object writes;
+  intent/result journal, при unknown outcome сначала GET policy.
+- [x] После:386direct403, сохранённые covers/free/public-controls, private API,
+  аккаунты/рабочие 41 таблица/прочие контейнеры; обновить единый handoff и остаток.
+
+- [x] Результат:backup433ca913…/вторая копия, restore удалён;1568edge+
+  410external отказы.386HEAD+386Range403, preserve2/public-controls работают.
+  Все 388admin/member206 и 388guest404;64 байта совпали. Policy8559f78b…/29991B.
+- [x] Финальный read-only:41 таблица/46ledger/3admin/content/config/контейнеры
+  сохранены, API/web healthy; только новые likes2→4/saved1→3, не откатывались.
+  Свои probes/env удалены; единый handoff/остаток/процедура отката обновлены.
+
 ### Доступ участницы и отзыв: копия БД — 28 октября
 
 - [x] Проверить666e906/чистое дерево и неизменность backend/shared после5efedbe.
@@ -21,8 +43,8 @@
 - [x] После SSH cleanup timeout success marker проверен read-only: своя БД/user/
   env удалены,41рабочая таблица/admin/config/контейнеры сохранены, кроме обычных
   auth timestamps. HTTPS /club и /api/health200, повторного DROP не было.
-- [ ] Основной web/edge manifest+guard и exact Deny386 пока не включать:
-  ограничение «старые URL не закрывать» сохраняется.
+- [x] Прежний подготовительный запрет сменён явным разрешением владельца:
+  guard и exact Deny386 включены отдельным проверенным этапом выше.
 
 ### Свежая подготовка отзыва источников — 28 октября
 
@@ -43,8 +65,8 @@
   только updatedAt/lastSignedIn одной строки. Остальные user fields/40таблиц/
   схема/индексы/ledger46/3admin/контейнеры/config прежние. Обе временные БД удалены,
   рабочая БД не откатывалась. HTTPS /club и /api/health200.
-- [ ] Основной web/edge guard и exact Deny пока не включать: предыдущее
-  ограничение «старые URL не закрывать» остаётся в силе.
+- [x] Прежний подготовительный запрет отменён новым разрешением владельца;
+  основной guard и exact Deny386 включены отдельным этапом выше.
 
 ### Серверная cold/warm репетиция INT-01 — 28 октября
 
