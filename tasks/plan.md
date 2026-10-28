@@ -2,6 +2,30 @@
 
 ## Действующий план агента — 13 октября 2026
 
+Подключение 19 WebP завершено на стенде 28 октября. Backup2f10ed92… сохранён
+на сервере и Mac; restore41/46ledger/3admin и apply19/rollback19/fault7/stale
+проверены на своей БД с restricted user. Новые conditional PUT19/HTTP200/SHA/
+cache31536000/304 приняты до SQL. AtomicCAS сменил только 19 thumbnailUrl,
+updatedAt и остальные 63 строки videos прежние. Внешний каталог 22/новые 19/
+preserve69,75,78 проверены; исходники/policy/guard/config/containers/admin сохранены.
+Финальное отличие users — только sessionVersion639, подтверждено копией backup,
+прочие поля прежние; новое состояние сессии не откатывалось. Свои БД/user/env/
+контейнеры удалены. Отчёт vk-lossless-covers-2026-10-28.md и единый handoff
+обновлены. CI lint739b55e локально/31 тест/YAML/lintGREEN, безpush/code deploy.
+Далее: крупные исходники 75/78, frontend fixtures, CI flag builds/remote pipeline,
+LIVE Prodamus и внешняя приёмка. Строгий режим и чужой frontend source не менять.
+
+28 октября: владелец разрешил подключить 19 подготовленных lossless WebP
+на текущем стенде. Сначала свежий backup/restore и репетиция на своей копии БД,
+проверка исходных 19/сохранённых 3 привязок и fingerprint всех 82 videos. Затем
+только новые content-addressed app-assets keys, conditional PUT без перезаписи,
+image/webp и public max-age31536000 immutable; проверить публичные bytes SHA.
+Один guarded SQL transaction меняет только 19 thumbnailUrl, updatedAt сохраняется.
+При конфликте или неизвестном результате сначала read/resolve, не повторять
+запись вслепую. Оригиналы/3 остальныхобложки/policy/guard/конфиги/входы сохранить.
+Фронт/дизайн/strict и код сервера не менять. CI lint добавлен локально в оба
+pipeline (739b55e):31 профильный тест/YAMLparse/lint пройдены, удалённый CI не принят.
+
 28 октября, исследование послеe058dc8: свежий staging без входящих изменений.
 Локальный 5bd1896 исправляет только smoke tooling: новые upload-capabilities
 не являются ошибкой, вместо большого legacy feed.list читается страница limit1.
