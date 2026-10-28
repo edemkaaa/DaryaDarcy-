@@ -2,6 +2,25 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### После выкладки: локальная проверка кэша старых изображений — 28 октября
+
+- [x] Проверить1ddca3c/чистое дерево/freshfetch incoming0, выпущенный5efedbe и
+  ledger46; не повторять уже готовые guest frontend/backend fixes.
+- [x] Docker API всё ещё недоступен; marker fixture сохранить до exact inspect,
+  нового restart/слепого удаления не выполнять.
+- [x] Реальный Next HTTP на собственной копии сборки: synthetic cache/manifest,
+  запрет внешней сети, warm200 до guard и404/no-store после него с синтетическими cookies,
+  conditional/range/encoded вариантов; cold deny без upstream, public controls200.
+- [x] Неверный manifest503, app shell200, cleanup только своей fixture;
+  apps/frontend/рабочая БД/S3/серверные флаги прежние.
+- [x] Обновить единый handoff и актуальную таблицу backend-остатка. Без push/deploy.
+- [x] Новый gate + существующий guard:29pass,17deny/5public/invalid503,0upstream.
+  Root types/API105/границы проверены; frontend исходники прежние.
+- [ ] Следующий INT-01 gate только на настоящем web: runtime UID/manifest600,
+  реальные cold/warm URL/preserve2, свежие backup/bindings/access, exact Deny.
+  Текущим локальным поручением этот переход/настройки/S3 не разрешены.
+
+
 ### Выпуск независимого аудита — 28 октября
 
 - [x] Fresh fetch incoming0, staging d32c78f→5efedbe, правки фронтендера сохранены.
@@ -55,8 +74,9 @@
   Общий клиентский `pnpm verify`:251pass; наборы пересекаются, не суммировать.
   Обе production-сборки29routes, root/frontend/E2E types, lint, API105,
   boundaries835 и docs126 проверены. Синтетический API не подтверждает реальную оплату.
-- [ ] Совместный выпуск/боевые настройки/письмо/реальная оплата остаются отдельными;
-  guest flag по умолчанию false. Тексты предпросмотра не менять по решению владельца.
+- [x] Совместный выпуск guest frontend/backend выполнен в5efedbe.
+- [ ] Боевые настройки/письмо/реальная оплата остаются отдельными;
+  guest flag false. Тексты предпросмотра не менять по решению владельца.
 
 ### Изоляция SQL-тестов в CI — 28 октября
 
@@ -192,8 +212,10 @@
   В handoff учтено, что код уже сделан; browser/cold-warmcache не заявляются.
 - [x] Frontend guest journal/POST contract реализован локально28октября;
   синтетическая browser-приёмка выше, backend105 уже выпущенe16bcd1.
-- [ ] Cold/warm optimizer guard и совместный guest/LIVE выпуск с боевыми
-  настройками/проверками остаются отдельными; runtime-флаги не включались.
+- [x] Локальный cold/warm optimizer gate закрыт28октября:29pass; гостевой
+  frontend/backend уже в5efedbe, flags OFF.
+- [ ] Production manifest/UID/реальные cold-warm и LIVE-настройки/приёмка
+  остаются отдельными; runtime-флаги не включались.
 - [ ] Получить боевые настройки, проверить routing/webhook/тариф790/месяц и
   согласованную реальную цепочку; без ключей LIVE не переключать.
 - [ ] Реальный отзыв386 уже разрешён: после guard — freshbackup/restore,

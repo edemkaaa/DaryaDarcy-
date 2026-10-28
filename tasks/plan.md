@@ -2,6 +2,31 @@
 
 ## Действующий план агента — 13 октября 2026
 
+28 октября, после выпуска1ddca3c: новое поручение — backend-only сверка и единый
+handoff, без push/deploy. Freshfetch incoming0, дерево чистое. Локальный Docker
+по-прежнему не отвечает: orphan marker не удалять вслепую/не перезапускать Docker.
+Следующий доступный gate INT-01 — настоящий локальный HTTP cold/warm optimizer:
+использовать копию готовой production Next-сборки, synthetic manifest600 и
+синтетические bytes; внешние HTTP/DNS запрещены тестовому процессу. Не менять apps/frontend, рабочую БД/S3/серверные flags. Критерии:
+при выключенном guard прогретое изображение HIT200; после включения тот же
+HIT/conditional/range/encoded URL возвращает404/no-store до кэша; холодный
+запрещённый ключ не запрашивается; публичные controls сохраняют200/MISS→HIT;
+невалидный manifest даёт503. Это gate подготовки, не отзыв старых URL и не
+подтверждение runtime UID/manifest реального web-контейнера.
+
+Результат: gate выполнен,29 тестов прошли.17 отказов404/no-store после
+подтверждённого200/HIT,5 публичных контролей,503 при неверном digest,0 внешних
+запросов. Своя копия сборки/процесс удалены; frontend source/API/DDL не менялись.
+Root types и check:api/границы проверены. Непосредственный следующий INT-01 gate
+требует рабочего web-контейнера: UID/manifest600, реальные cold/warm URL,
+свежий backup/bindings/private-access и exact Deny. В текущем local-only scope
+его не выполнять. Остальные открытые пункты — LIVE-настройки/первое письмо,
+общая приёмка редакторов до strict, remote CI и отложенная внешняя приёмка.
+Guest journal/POST уже выпущены, новую реализацию не планировать.
+[Текущий остаток](../docs/audits/backend-remaining-after-release-2026-10-27.md),
+[единый handoff](../docs/development/frontend-audit-handoff-2026-10-27.md).
+
+
 28 октября, отдельное разрешение на push/deploy: source5efedbe отправлен в staging
 (incoming0) и выпущен на daryadarcy.dev.reeskeen.ru: API+TEST+web. Свежий backup
 41таблицы восстановлен отдельно;0045 отрепетирована и применена, ledger46.
