@@ -4,6 +4,12 @@
 
 ### Изоляция SQL-тестов в CI — 28 октября
 
+- [x] Следующим поручением push/deploy разрешены: freshfetch incoming0,
+  staging5cfb8d9; backup41/ledger45/admin3 восстановлен на отдельной БД.
+  API/TEST обновлены; candidate26/live47/compression9+9/publicHTTPS37/static16
+  GREEN. Строки/схема/индексы/admin credentials/web/флаги/старые файлы сохранены.
+  GitLab API403, настоящий CI pipeline не подтверждён. Своя restoreDB удалена.
+  [Отчёт выпуска](../docs/operations/sql-test-isolation-release-2026-10-28.md).
 - [x] Проверить ветку и чистое исходное дерево:5a8d21f, staging ff3808d.
 - [x] RED/GREEN реальным Vitest: unit-файлы параллельны, общие SQL fixtures
   последовательны и запускаются ровно один раз; учтены mysql-backup и

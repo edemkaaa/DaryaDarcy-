@@ -2,6 +2,15 @@
 
 ## Действующий план агента — 13 октября 2026
 
+28 октября следующее поручение разрешило push и обновление сервера. Freshfetch
+incoming0: stagingff3808d→5cfb8d9, сохранены frontend d36e1b7/web e16bcd1.
+Свежий backup41таблица/45ledger/3admin восстановлен отдельно и совпал.
+Обновлены только API/TEST, DDL/БД/флаги/секреты/лимиты прежние. Candidate26+
+compression9, live47+compression9 и publicHTTPS37/staticSHA16 GREEN;
+все строки/схема/индексы/админские входы сохранены. Своя restoreDB удалена.
+Remote CI не подтверждён: GitLab API403. Это не отменяет локальные проверки,
+но pipeline не объявлять зелёным. [Отчёт](../docs/operations/sql-test-isolation-release-2026-10-28.md).
+
 28 октября отдельное поручение: изолировать SQL-тесты в CI локально, без
 push/deploy и изменений frontend/рабочей БД/S3. На базе5a8d21f root Vitest
 разделён на unit и mysql projects: unit параллельный и без SQL URI, mysql
