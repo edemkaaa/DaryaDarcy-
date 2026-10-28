@@ -36,7 +36,7 @@ describe("native admin content maintenance service boundary", () => {
     email: null,
     phone: null,
     passwordHash: null,
-    sessionVersion: 0,
+    sessionVersion: 0, profileRevision: 0,
     loginMethod: null,
     gender: null,
     avatarUrl: null,

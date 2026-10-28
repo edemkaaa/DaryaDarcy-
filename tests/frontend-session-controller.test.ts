@@ -664,3 +664,38 @@ it("profile ACK and reconciliation cannot cancel an in-flight sign-in", async ()
   expect(await f.controller.reconcileProfile(1, member(1))).toBe(false);
   expect(f.controller.getSnapshot().user?.id).toBe(2);
 });
+
+it("compares profile revisions only inside the same account", async () => {
+  const f = fixture();
+  await f.controller.applySession({ ...member(1), profileRevision: 8 });
+  expect(
+    await f.controller.reconcileProfile(1, {
+      ...member(1),
+      profileRevision: 7,
+    }),
+  ).toBe(false);
+  expect(f.controller.getSnapshot().user?.profileRevision).toBe(8);
+  expect(
+    await f.controller.reconcileProfile(1, {
+      ...member(2),
+      profileRevision: 0,
+    }),
+  ).toBe(false);
+  expect(f.controller.getSnapshot().user?.id).toBe(2);
+});
+
+it("a late lower-revision profile ACK cannot overwrite a newer confirmed profile", async () => {
+  const f = fixture();
+  await f.controller.applySession({
+    ...member(1),
+    name: "New B",
+    profileRevision: 2,
+  });
+  expect(
+    f.controller.confirmProfileUpdate(1, { name: "Old A", profileRevision: 1 }),
+  ).toBe(false);
+  expect(f.controller.getSnapshot().user).toMatchObject({
+    name: "New B",
+    profileRevision: 2,
+  });
+});

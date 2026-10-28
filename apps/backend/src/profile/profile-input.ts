@@ -5,6 +5,7 @@ const fitsTextColumn = (value: string) =>
   Buffer.byteLength(value, "utf8") <= 65_535;
 
 export const profileUpdateInput = z.object({
+  expectedRevision: z.number().int().min(0).max(2_147_483_647),
   name: z
     .string()
     .trim()

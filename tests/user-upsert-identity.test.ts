@@ -87,7 +87,7 @@ describe("identity-scoped user upsert SQL boundary", () => {
     )!;
     expect(write).toBeDefined();
     expect(write.sql).toBe(
-      "update `users` set `name` = ?, `email` = ?, `passwordHash` = ?, `role` = ?, `lastSignedIn` = ? where `users`.`id` = ?",
+      "update `users` set `name` = ?, `email` = ?, `passwordHash` = ?, `profileRevision` = `users`.`profileRevision`+1, `role` = ?, `lastSignedIn` = ? where `users`.`id` = ?",
     );
     expect(write.params).toEqual([
       null,

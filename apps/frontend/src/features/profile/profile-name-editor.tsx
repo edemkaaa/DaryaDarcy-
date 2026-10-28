@@ -95,6 +95,7 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
         const ownerId = user?.id;
         const savedDraft = await AsyncStorage.getItem(PROFILE_NAME_DRAFT_KEY);
         if (!ownerId || !isPersonalDataOwner(ownerId)) return;
+        update.beginEdit();
         setDraft(update.pendingInput?.name ?? savedDraft ?? displayName);
         setEditing(true);
       }}

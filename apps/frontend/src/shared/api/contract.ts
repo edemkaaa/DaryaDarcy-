@@ -152,6 +152,7 @@ export type AppRouter = BuiltRouter<
           loginMethod: string | null;
           gender: "female" | "male" | null;
           avatarUrl: string | null;
+          profileRevision: number;
           lastSignedIn: string;
           role: "user" | "moderator" | "admin";
         } | null;
@@ -195,11 +196,12 @@ export type AppRouter = BuiltRouter<
       }>;
       update: MutationProcedure<{
         input: {
+          expectedRevision: number;
           name?: string | undefined;
           gender?: "female" | "male" | undefined;
           avatarUrl?: string | undefined;
         };
-        output: { success: boolean };
+        output: { success: true; profileRevision: number };
         meta: unknown;
       }>;
       uploadAvatar: MutationProcedure<{

@@ -83,7 +83,7 @@ function caller(id = 7, email: string | null = "buyer@example.test") {
     name: null,
     phone: null,
     passwordHash: null,
-    sessionVersion: 0,
+    sessionVersion: 0, profileRevision: 0,
     loginMethod: "email",
     gender: null,
     avatarUrl: null,

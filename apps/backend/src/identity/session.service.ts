@@ -27,6 +27,7 @@ export function publicUser(user: User) {
     loginMethod: user.loginMethod ?? null,
     gender: user.gender ?? null,
     avatarUrl: user.avatarUrl ?? null,
+    profileRevision: user.profileRevision ?? 0,
     lastSignedIn: (user.lastSignedIn ?? new Date()).toISOString(),
     role: user.role ?? "user",
   };

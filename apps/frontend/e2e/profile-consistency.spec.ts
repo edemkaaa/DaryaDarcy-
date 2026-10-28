@@ -1,8 +1,15 @@
 import { test, expect, type Page } from "@playwright/test";
 import sharp from "sharp";
-import { writeFile } from "node:fs/promises";
+import { writeFile, rm } from "node:fs/promises";
+import { join } from "node:path";
 import { editorApi, ok, failure } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
+
+// Large padded JPEGs belong only to this test, never retain them as artifacts.
+test.afterEach(async ({}, info) => {
+  for (const filename of ["large-avatar.jpg", "oversized-avatar.jpg"])
+    await rm(join(info.outputDir, filename), { force: true });
+});
 
 function barrier() {
   let release!: () => void;
@@ -16,6 +23,7 @@ async function profileApi(page: Page) {
     user: {
       id: 101,
       openId: "profile-consistency",
+      profileRevision: 0,
       name: "Server name" as string | null,
       gender: "female" as "female" | "male" | null,
       avatarUrl: null as string | null,
@@ -60,11 +68,17 @@ async function profileApi(page: Page) {
     if (name === "profile.update") {
       state.writes.push(input);
       if (state.mode === "reject") return failure(400);
-      if (state.mode !== "lost-uncommitted") Object.assign(state.user, input);
+      if (input.expectedRevision !== state.user.profileRevision)
+        return failure(409);
+      if (state.mode !== "lost-uncommitted") {
+        const { expectedRevision, ...patch } = input;
+        Object.assign(state.user, patch);
+        state.user.profileRevision = Number(expectedRevision) + 1;
+      }
       await state.writeGate?.promise;
       return state.mode.startsWith("lost-")
         ? failure(503)
-        : ok({ success: true });
+        : ok({ success: true, profileRevision: state.user.profileRevision });
     }
     if (name === "profile.uploadAvatarWithReceipt") {
       state.avatarWrites.push(input);
@@ -195,7 +209,9 @@ test("name changes require an explicit save and supersede a delayed pre-write se
     await expect(
       page.getByRole("button", { name: "Explicit saved name", exact: true }),
     ).toBeVisible();
-    expect(state.writes).toEqual([{ name: "Explicit saved name" }]);
+    expect(state.writes).toEqual([
+      { expectedRevision: 0, name: "Explicit saved name" },
+    ]);
   } finally {
     state.readGate.release();
   }
@@ -839,7 +855,7 @@ test.describe("avatar receipt recovery", () => {
     await expect(page.getByText("Черновик фото", { exact: true })).toHaveCount(
       0,
     );
-    expect(state.avatarWrites).toHaveLength(2);
+    await expect.poll(() => state.avatarWrites.length).toBe(2);
     expect(state.avatarWrites[1].idempotencyKey).not.toBe(
       state.avatarWrites[0].idempotencyKey,
     );
@@ -968,4 +984,40 @@ test("a delayed avatar response cannot update the next account", async ({
   } finally {
     state.avatarGate.release();
   }
+});
+
+test("a stale name revision preserves the draft and needs an explicit reviewed retry", async ({
+  page,
+}) => {
+  const { state } = await profileApi(page);
+  await gotoWithSession(page, "/profile");
+  await page.getByRole("button", { name: "Server name", exact: true }).click();
+  const field = page.getByRole("textbox", { name: "Имя профиля", exact: true });
+  await field.fill("My preserved draft");
+  state.user.name = "Changed in another tab";
+  state.user.profileRevision++;
+  await page
+    .getByRole("button", { name: "Сохранить имя", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", {
+      name: "Проверить сохранение имени",
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(state.user.name).toBe("Changed in another tab");
+  await expect(field).toHaveValue("My preserved draft");
+  await page
+    .getByRole("button", { name: "Проверить сохранение имени", exact: true })
+    .click();
+  await expect(field).toBeEnabled();
+  await expect(field).toHaveValue("My preserved draft");
+  expect(state.writes).toHaveLength(1);
+  await page
+    .getByRole("button", { name: "Сохранить имя", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "My preserved draft", exact: true }),
+  ).toBeVisible();
+  expect(state.writes.map((w) => w.expectedRevision)).toEqual([0, 1]);
 });

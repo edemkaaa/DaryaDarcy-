@@ -77,6 +77,7 @@ export type AuthUser = {
   avatarUrl: string | null;
   lastSignedIn: string;
   role: string;
+  profileRevision?: number;
 };
 type Session = {
   user: AuthUser;
@@ -110,10 +111,19 @@ export function parseAuthUser(value: unknown): AuthUser {
     value.gender !== "male"
   )
     throw invalidResponse();
+  if (
+    value.profileRevision !== undefined &&
+    (!Number.isSafeInteger(value.profileRevision) ||
+      Number(value.profileRevision) < 0)
+  )
+    throw invalidResponse();
   return {
     id: value.id as number,
     openId: value.openId,
     role: value.role,
+    ...(value.profileRevision === undefined
+      ? {}
+      : { profileRevision: value.profileRevision as number }),
     lastSignedIn: value.lastSignedIn,
     name: (value.name ?? null) as string | null,
     email: (value.email ?? null) as string | null,
@@ -194,8 +204,7 @@ export async function logout(signal?: AbortSignal): Promise<void> {
     method: "POST",
     signal,
   });
-  if (!isObject(result) || result.success !== true)
-    throw invalidResponse();
+  if (!isObject(result) || result.success !== true) throw invalidResponse();
 }
 export async function getMe(signal?: AbortSignal): Promise<AuthUser | null> {
   const result = await apiCall<unknown>("/api/auth/me", { signal });

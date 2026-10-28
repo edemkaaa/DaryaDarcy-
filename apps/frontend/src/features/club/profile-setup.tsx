@@ -45,6 +45,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   const { user } = useAuth();
   const update = useProfileUpdate(CLUB_PROFILE_PENDING_KEY);
   const initialUser = useRef(user);
+  const beginInitialEdit = useRef(update.beginEdit);
   const avatar = useProfileAvatar();
   const [ready, setReady] = useState(false);
   const [draftError, setDraftError] = useState<string | null>(null);
@@ -95,6 +96,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
             : null),
       );
       setAvatarUri(draft.avatarUrl ?? null);
+      beginInitialEdit.current();
       setReady(true);
     });
     return () => {

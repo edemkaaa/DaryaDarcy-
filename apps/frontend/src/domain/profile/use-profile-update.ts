@@ -15,13 +15,15 @@ import {
 } from "@/domain/session/use-session-operation";
 
 type ProfileInput = { name?: string; gender?: "female" | "male" };
+type PendingProfile = ProfileInput & { expectedRevision?: number };
 
 /** Explicit profile edits only. An unknown write is reconciled by a fresh read. */
 export function useProfileUpdate(recoveryKey: string) {
   const { user, reconcileProfile, confirmProfileUpdate } = useAuth();
   const utils = trpc.useUtils();
   const operation = useSessionOperation();
-  const pending = useRef<ProfileInput | null>(null);
+  const pending = useRef<PendingProfile | null>(null);
+  const editingRevision = useRef<number | undefined>(undefined);
   const [unknown, setUnknown] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(true);
@@ -37,12 +39,17 @@ export function useProfileUpdate(recoveryKey: string) {
           const value: unknown = raw ? JSON.parse(raw) : null;
           if (value && typeof value === "object") {
             const stored = value as Record<string, unknown>;
-            const input: ProfileInput = {};
+            const input: PendingProfile = {};
             if (typeof stored.name === "string" && stored.name.trim())
               input.name = stored.name;
             if (stored.gender === "female" || stored.gender === "male")
               input.gender = stored.gender;
             if (Object.keys(input).length) {
+              if (
+                Number.isSafeInteger(stored.expectedRevision) &&
+                Number(stored.expectedRevision) >= 0
+              )
+                input.expectedRevision = Number(stored.expectedRevision);
               pending.current = input;
               setUnknown(true);
               setError(
@@ -68,7 +75,7 @@ export function useProfileUpdate(recoveryKey: string) {
       cancelled = true;
     };
   }, [ownerId, recoveryKey]);
-  const remember = (input: ProfileInput | null) => {
+  const remember = (input: PendingProfile | null) => {
     if (!ownerId || !isPersonalDataOwner(ownerId))
       throw new Error("Аккаунт изменился");
     if (input) requiredStorage.setItem(recoveryKey, JSON.stringify(input));
@@ -78,25 +85,46 @@ export function useProfileUpdate(recoveryKey: string) {
   };
   const save = async (input: ProfileInput): Promise<boolean> => {
     if (restoring || storageError || pending.current || !user) return false;
+    const expectedRevision = editingRevision.current;
+    if (expectedRevision === undefined) {
+      setError(
+        "Версия профиля недоступна. Обновите страницу перед сохранением.",
+      );
+      return false;
+    }
     const task = operation.begin("save-profile");
     if (!task) return false;
     setError(null);
     try {
       try {
-        remember(input);
+        remember({ ...input, expectedRevision });
       } catch {
         setError(
           "Не удалось сохранить ввод на устройстве. Запрос не отправлен. Не закрывайте страницу; разрешите хранение данных сайта и повторите сохранение.",
         );
         return false;
       }
-      const result = await utils.client.profile.update.mutate(input, {
-        signal: task.signal,
-      });
+      const result = await utils.client.profile.update.mutate(
+        { ...input, expectedRevision },
+        {
+          signal: task.signal,
+        },
+      );
       task.assertCurrent();
-      if (result?.success !== true) throw invalidResponse();
-      if (!confirmProfileUpdate(user.id, input)) throw invalidResponse();
+      if (
+        result?.success !== true ||
+        result.profileRevision !== expectedRevision + 1
+      )
+        throw invalidResponse();
+      if (
+        !confirmProfileUpdate(user.id, {
+          ...input,
+          profileRevision: result.profileRevision,
+        })
+      )
+        throw invalidResponse();
       task.assertCurrent();
+      editingRevision.current = result.profileRevision;
       remember(null);
       void utils.club.comments.invalidate();
       void utils.club.commentsPage.invalidate();
@@ -105,7 +133,7 @@ export function useProfileUpdate(recoveryKey: string) {
       checkOperationAccessError(cause);
       if (task.isCurrent()) {
         const status = getHttpStatus(cause);
-        if (status && status < 500) {
+        if (status && status < 500 && status !== 409) {
           try {
             remember(null);
           } catch {
@@ -133,14 +161,25 @@ export function useProfileUpdate(recoveryKey: string) {
       task.assertCurrent();
       if (!(await reconcileProfile(user.id, fresh)) || !fresh) return false;
       task.assertCurrent();
-      const saved = Object.entries(input).every(
-        ([key, value]) => fresh[key as keyof ProfileInput] === value,
-      );
+      const saved =
+        Object.entries(input).every(
+          ([key, value]) =>
+            key === "expectedRevision" ||
+            fresh[key as keyof ProfileInput] === value,
+        ) &&
+        (input.expectedRevision === undefined ||
+          (fresh.profileRevision !== undefined &&
+            fresh.profileRevision > input.expectedRevision));
+      if (fresh.profileRevision === undefined) throw invalidResponse();
+      editingRevision.current = fresh.profileRevision;
       remember(null);
       setError(
         saved
           ? null
-          : "Изменения не найдены на сервере. Проверьте данные и повторите сохранение.",
+          : input.expectedRevision !== undefined &&
+              fresh.profileRevision > input.expectedRevision
+            ? "Профиль уже изменён. Ваш ввод сохранён; проверьте его и сохраните явно, если хотите заменить актуальные данные."
+            : "Предыдущий запрос мог ещё выполняться. Ваш ввод сохранён; повторное сохранение защищено проверкой версии профиля.",
       );
       if (saved) void utils.club.comments.invalidate();
       if (saved) void utils.club.commentsPage.invalidate();
@@ -157,6 +196,9 @@ export function useProfileUpdate(recoveryKey: string) {
     }
   };
   return {
+    beginEdit: () => {
+      if (!pending.current) editingRevision.current = user?.profileRevision;
+    },
     save,
     check,
     unknown,

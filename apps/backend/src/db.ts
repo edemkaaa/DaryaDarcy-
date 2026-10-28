@@ -191,6 +191,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     };
 
     textFields.forEach(assignNullable);
+    if (user.name !== undefined) updateSet.profileRevision = sql`${users.profileRevision}+1`;
 
     if (user.lastSignedIn !== undefined) {
       values.lastSignedIn = user.lastSignedIn;
@@ -301,6 +302,8 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
   if (data.avatarUrl !== undefined) updateSet.avatarUrl = data.avatarUrl;
 
   if (Object.keys(updateSet).length === 0) return;
+  if (data.name !== undefined || data.gender !== undefined)
+    updateSet.profileRevision = sql`${users.profileRevision}+1`;
 
   const [result] = await db.update(users).set(updateSet).where(eq(users.id, userId));
   if (result.affectedRows === 0) throw new Error("Profile account not found");

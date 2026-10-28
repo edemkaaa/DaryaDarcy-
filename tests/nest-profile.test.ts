@@ -8,6 +8,7 @@ import {
   it,
   vi,
 } from "vitest";
+import * as profileWrites from "../apps/backend/src/profile/profile-writes";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
 import { createTRPCProxyClient, httpLink } from "@trpc/client";
@@ -52,7 +53,7 @@ describe("profile use cases over native HTTP", () => {
     email: null,
     phone: null,
     passwordHash: null,
-    sessionVersion: 0,
+    sessionVersion: 0, profileRevision: 0,
     loginMethod: null,
     gender: null,
     avatarUrl: null,
@@ -76,7 +77,7 @@ describe("profile use cases over native HTTP", () => {
   const operations = [
     {
       name: "update" as const,
-      run: () => client().profile.update.mutate({ name: "synthetic name" }),
+      run: () => client().profile.update.mutate({ expectedRevision: 0, name: "synthetic name" }),
     },
     {
       name: "uploadAvatar" as const,
@@ -104,6 +105,7 @@ describe("profile use cases over native HTTP", () => {
   });
   beforeEach(() => {
     actor = { ...member };
+    vi.spyOn(db,"getDb").mockResolvedValue({} as never);
     vi.spyOn(sessions, "optionalUser").mockImplementation(async () => actor);
     vi.spyOn(sdk, "authenticateRequest").mockImplementation(async () => {
       if (!actor) throw ForbiddenError("synthetic missing identity");
@@ -161,7 +163,7 @@ describe("profile use cases over native HTTP", () => {
         res: {},
       } as TrpcContext);
       const calls = {
-        update: () => caller.profile.update({ name: "synthetic name" }),
+        update: () => caller.profile.update({ expectedRevision: 0, name: "synthetic name" }),
         uploadAvatar: () => caller.profile.uploadAvatar(avatarInput()),
         requestAccountDeletion: () =>
           caller.profileExtras.requestAccountDeletion(),
@@ -172,7 +174,7 @@ describe("profile use cases over native HTTP", () => {
       });
       expect(received).toEqual(
         method === "update"
-          ? [9900, { name: "synthetic name" }]
+          ? [9900, { expectedRevision:0, name: "synthetic name" },0]
           : method === "uploadAvatar"
             ? [9900, photo, undefined]
             : [9900],
@@ -254,13 +256,13 @@ describe("profile use cases over native HTTP", () => {
     "preserves a $name update and session ownership",
     async ({ input, want }) => {
       let received: unknown;
-      vi.spyOn(db, "updateUserProfile").mockImplementation(async (...args) => {
-        received = args;
+      vi.spyOn(profileWrites, "saveProfile").mockImplementation(async (...args) => {
+        received = args; return Object.keys(want).length ? 1 : 0;
       });
-      expect(await client().profile.update.mutate(input)).toEqual({
+      expect(await client().profile.update.mutate({expectedRevision:0,...(input)})).toMatchObject({
         success: true,
       });
-      expect(received).toEqual([9900, want]);
+      expect(received).toEqual([{},9900,0,{expectedRevision:0,...want}]);
     },
   );
 
@@ -269,12 +271,12 @@ describe("profile use cases over native HTTP", () => {
     { label: "UTF-8 TEXT boundary", name: "я".repeat(32_767) + "a" },
   ])("accepts a name at the $label", async ({ name }) => {
     const persist = vi
-      .spyOn(db, "updateUserProfile")
-      .mockResolvedValue(undefined);
-    expect(await client().profile.update.mutate({ name })).toEqual({
+      .spyOn(profileWrites, "saveProfile")
+      .mockResolvedValue(1);
+    expect(await client().profile.update.mutate({ expectedRevision: 0, name })).toMatchObject({
       success: true,
     });
-    expect(persist).toHaveBeenCalledExactlyOnceWith(member.id, { name });
+    expect(persist).toHaveBeenCalledExactlyOnceWith({},member.id,0,{expectedRevision:0,name});
   });
 
   it.each([
@@ -282,12 +284,12 @@ describe("profile use cases over native HTTP", () => {
     "https://assets.example.test/avatar.webp",
   ])("preserves supported avatar URL %s", async (avatarUrl) => {
     const persist = vi
-      .spyOn(db, "updateUserProfile")
-      .mockResolvedValue(undefined);
-    expect(await client().profile.update.mutate({ avatarUrl })).toEqual({
+      .spyOn(profileWrites, "saveProfile")
+      .mockResolvedValue(1);
+    expect(await client().profile.update.mutate({ expectedRevision: 0, avatarUrl })).toMatchObject({
       success: true,
     });
-    expect(persist).toHaveBeenCalledExactlyOnceWith(member.id, { avatarUrl });
+    expect(persist).toHaveBeenCalledExactlyOnceWith({},member.id,0,{expectedRevision:0,avatarUrl});
   });
 
   it("returns the same explicit public profile through REST and tRPC", async () => {
@@ -302,6 +304,7 @@ describe("profile use cases over native HTTP", () => {
       futurePrivateColumn: "must never become public",
     } as User;
     const expected = {
+      profileRevision: 0,
       id: member.id,
       openId: member.openId,
       name: "synthetic profile",
@@ -427,19 +430,19 @@ describe("profile use cases over native HTTP", () => {
   it.each([
     {
       name: "empty name",
-      run: () => client().profile.update.mutate({ name: "" }),
+      run: () => client().profile.update.mutate({ expectedRevision: 0, name: "" }),
     },
     {
       name: "whitespace-only name",
-      run: () => client().profile.update.mutate({ name: " \t\n " }),
+      run: () => client().profile.update.mutate({ expectedRevision: 0, name: " \t\n " }),
     },
     {
       name: "name exceeding TEXT bytes",
-      run: () => client().profile.update.mutate({ name: "n".repeat(65_536) }),
+      run: () => client().profile.update.mutate({ expectedRevision: 0, name: "n".repeat(65_536) }),
     },
     {
       name: "multibyte name exceeding TEXT bytes",
-      run: () => client().profile.update.mutate({ name: "я".repeat(32_768) }),
+      run: () => client().profile.update.mutate({ expectedRevision: 0, name: "я".repeat(32_768) }),
     },
     ...[
       "javascript:alert(1)",
@@ -447,23 +450,23 @@ describe("profile use cases over native HTTP", () => {
       "file:///tmp/avatar.png",
     ].map((avatarUrl) => ({
       name: "non-HTTP avatar " + avatarUrl.split(":")[0],
-      run: () => client().profile.update.mutate({ avatarUrl }),
+      run: () => client().profile.update.mutate({ expectedRevision: 0, avatarUrl }),
     })),
     {
       name: "avatar URL exceeding TEXT bytes",
       run: () =>
-        client().profile.update.mutate({
+        client().profile.update.mutate({ expectedRevision: 0,
           avatarUrl: "https://example.invalid/" + "a".repeat(65_535),
         }),
     },
     {
       name: "invalid gender",
       run: () =>
-        client().profile.update.mutate({ gender: "other" as "female" }),
+        client().profile.update.mutate({ expectedRevision: 0, gender: "other" as "female" }),
     },
     {
       name: "invalid avatar URL",
-      run: () => client().profile.update.mutate({ avatarUrl: "not a URL" }),
+      run: () => client().profile.update.mutate({ expectedRevision: 0, avatarUrl: "not a URL" }),
     },
     {
       name: "short photo",
@@ -499,6 +502,7 @@ describe("profile use cases over native HTTP", () => {
     async (failure) => {
       vi.spyOn(db, "getDb").mockResolvedValue(drizzle.mock());
       const effects: string[] = [];
+      vi.spyOn(profileWrites,"saveProfile").mockImplementation(async()=>{effects.push("update");throw new Error("synthetic SQL detail");});
       vi.spyOn(storage, "storagePut").mockImplementation(async (key) => {
         effects.push("storage");
         if (failure === "avatar storage")
@@ -522,8 +526,7 @@ describe("profile use cases over native HTTP", () => {
             ? operations[2].run
             : operations[1].run;
       await expect(run()).rejects.toMatchObject({
-        message: "Внутренняя ошибка сервера",
-        data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+        ...(failure === "update" ? {data:{code:"SERVICE_UNAVAILABLE",httpStatus:503}} : {message:"Внутренняя ошибка сервера",data:{code:"INTERNAL_SERVER_ERROR",httpStatus:500}}),
       });
       expect(effects).toEqual(
         failure === "avatar storage"
@@ -541,17 +544,18 @@ describe("profile use cases over native HTTP", () => {
   ])(
     "refuses a $name update when no database is available",
     async ({ input }) => {
+      vi.spyOn(db,"getDb").mockResolvedValue(null);
       vi.spyOn(console, "warn").mockImplementation(() => undefined);
-      await expect(client().profile.update.mutate(input)).rejects.toMatchObject(
+      await expect(client().profile.update.mutate({expectedRevision:0,...(input)})).rejects.toMatchObject(
         {
-          message: "Внутренняя ошибка сервера",
-          data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+          data: { code: "SERVICE_UNAVAILABLE", httpStatus: 503 },
         },
       );
     },
   );
 
   it("does not upload an avatar when no database client is available", async () => {
+    vi.spyOn(db,"getDb").mockResolvedValue(null);
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const uploaded: string[] = [];
     vi.spyOn(storage, "storagePut").mockImplementation(async (key) => {

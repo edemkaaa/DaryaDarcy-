@@ -94,15 +94,15 @@ describe.skipIf(!testDatabaseUrl)(
     it("stores only profile fields for the session user despite a forged target or role", async () => {
       const before = await users();
       expect(
-        await client().profile.update.mutate({
+        await client().profile.update.mutate({expectedRevision:0,...({
           name: "Updated",
           gender: "male",
           avatarUrl: "https://example.invalid/new.webp",
           userId: 8442,
           role: "admin",
           email: "forged@example.invalid",
-        } as { name: string; gender: "male"; avatarUrl: string }),
-      ).toEqual({ success: true });
+        } as { name: string; gender: "male"; avatarUrl: string })}),
+      ).toMatchObject({ success: true });
       expect(await users()).toEqual([
         {
           id: 8441,
@@ -120,7 +120,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
     });
     it("keeps omitted fields on a partial patch", async () => {
-      await client().profile.update.mutate({ name: "Name only" });
+      await client().profile.update.mutate({ expectedRevision: 0, name: "Name only" });
       const result = await users();
       expect(result[0]).toMatchObject({
         name: "Name only",
@@ -136,11 +136,11 @@ describe.skipIf(!testDatabaseUrl)(
     });
     it("accepts repeated identical profile writes for an existing account", async () => {
       expect(
-        await client().profile.update.mutate({ name: "Original" }),
-      ).toEqual({ success: true });
+        await client().profile.update.mutate({ expectedRevision: 0, name: "Original" }),
+      ).toMatchObject({ success: true });
       expect(
-        await client().profile.update.mutate({ name: "Original" }),
-      ).toEqual({ success: true });
+        await client().profile.update.mutate({ expectedRevision: 1, name: "Original" }),
+      ).toMatchObject({ success: true });
       expect((await users())[0].name).toBe("Original");
     });
     it.each([
@@ -150,7 +150,7 @@ describe.skipIf(!testDatabaseUrl)(
       "persists a valid $label name without SQL truncation",
       async ({ name }) => {
         const before = await users();
-        expect(await client().profile.update.mutate({ name })).toEqual({
+        expect(await client().profile.update.mutate({ expectedRevision: 0, name })).toMatchObject({
           success: true,
         });
         const after = await users();
@@ -177,7 +177,7 @@ describe.skipIf(!testDatabaseUrl)(
       },
     ])("rejects $label with HTTP 400 and unchanged SQL", async ({ input }) => {
       const before = await users();
-      await expect(client().profile.update.mutate(input)).rejects.toMatchObject(
+      await expect(client().profile.update.mutate({expectedRevision:0,...(input)})).rejects.toMatchObject(
         {
           data: { code: "BAD_REQUEST", httpStatus: 400 },
         },
@@ -187,7 +187,7 @@ describe.skipIf(!testDatabaseUrl)(
     it("recovers the committed profile via REST after the client loses the write response", async () => {
       const before = await users();
       await expect(
-        client(true, true).profile.update.mutate({
+        client(true, true).profile.update.mutate({ expectedRevision: 0,
           name: "  Updated profile  ",
           gender: "male",
         }),
@@ -214,6 +214,7 @@ describe.skipIf(!testDatabaseUrl)(
           "loginMethod",
           "gender",
           "avatarUrl",
+          "profileRevision",
           "lastSignedIn",
           "role",
         ].sort(),
@@ -227,14 +228,14 @@ describe.skipIf(!testDatabaseUrl)(
       {
         name: "profile field",
         run: (service: ProfileService) =>
-          service.update(8441, { name: "Gone" }),
+          service.update(8441, { expectedRevision:0, name: "Gone" },4),
       },
       {
         name: "avatar URL persistence",
         run: (service: ProfileService) =>
-          service.update(8441, {
+          service.update(8441, {expectedRevision:0,
             avatarUrl: "https://example.invalid/gone.webp",
-          }),
+          },4),
       },
       {
         name: "deletion request",
@@ -253,7 +254,7 @@ describe.skipIf(!testDatabaseUrl)(
     );
     it("preserves the existing no-op success for an empty patch", async () => {
       const before = await users();
-      expect(await client().profile.update.mutate({})).toEqual({
+      expect(await client().profile.update.mutate({ expectedRevision: 0,})).toMatchObject({
         success: true,
       });
       expect(await users()).toEqual(before);
@@ -277,9 +278,9 @@ describe.skipIf(!testDatabaseUrl)(
         // but before the canonical write. No authorization or SQL write is mocked.
         if (input) {
           const update = service.update.bind(service);
-          vi.spyOn(service, "update").mockImplementation(async (id, patch) => {
+          vi.spyOn(service, "update").mockImplementation(async (id, patch, version) => {
             await conn.query("DELETE FROM users WHERE id=?", [id]);
-            return update(id, patch);
+            return update(id, patch, version);
           });
         } else {
           const request = service.requestAccountDeletion.bind(service);
@@ -291,11 +292,10 @@ describe.skipIf(!testDatabaseUrl)(
           );
         }
         const result = input
-          ? client().profile.update.mutate(input)
+          ? client().profile.update.mutate({expectedRevision:0,...(input)})
           : client().profileExtras.requestAccountDeletion.mutate();
         await expect(result).rejects.toMatchObject({
-          message: "Внутренняя ошибка сервера",
-          data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+          ...(input ? {data:{code:"UNAUTHORIZED",httpStatus:401}} : {message:"Внутренняя ошибка сервера",data:{code:"INTERNAL_SERVER_ERROR",httpStatus:500}}),
         });
         expect(await users()).toEqual([before[1]]);
       },
@@ -320,7 +320,7 @@ describe.skipIf(!testDatabaseUrl)(
     it.each([
       {
         name: "profile update",
-        run: () => client(false).profile.update.mutate({ name: "Forbidden" }),
+        run: () => client(false).profile.update.mutate({ expectedRevision: 0, name: "Forbidden" }),
       },
       {
         name: "deletion request",
@@ -339,7 +339,7 @@ describe.skipIf(!testDatabaseUrl)(
     it.each([
       {
         name: "profile update",
-        run: () => client().profile.update.mutate({ name: "Rejected" }),
+        run: () => client().profile.update.mutate({ expectedRevision: 0, name: "Rejected" }),
       },
       {
         name: "deletion request",
@@ -347,7 +347,7 @@ describe.skipIf(!testDatabaseUrl)(
       },
     ])(
       "does not report success or expose SQL when $name fails to persist",
-      async ({ run }) => {
+      async ({ name, run }) => {
         const before = await users();
         await conn.query(`CREATE TRIGGER profile_http_write_refusal BEFORE UPDATE ON users FOR EACH ROW
       BEGIN IF NEW.id=8441 AND (
@@ -355,8 +355,7 @@ describe.skipIf(!testDatabaseUrl)(
         NOT (NEW.accountDeletionRequestedAt <=> OLD.accountDeletionRequestedAt)
       ) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='synthetic profile SQL failure'; END IF; END`);
         await expect(run()).rejects.toMatchObject({
-          message: "Внутренняя ошибка сервера",
-          data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+          ...(name === "profile update" ? {data:{code:"SERVICE_UNAVAILABLE",httpStatus:503}} : {message:"Внутренняя ошибка сервера",data:{code:"INTERNAL_SERVER_ERROR",httpStatus:500}}),
         });
         expect(await users()).toEqual(before);
       },

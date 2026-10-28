@@ -27,7 +27,7 @@ type Dependencies = {
   setLogoutPending: (pending: boolean) => void;
 };
 export type ConfirmedProfilePatch = Partial<
-  Pick<Api.AuthUser, "name" | "gender" | "avatarUrl">
+  Pick<Api.AuthUser, "name" | "gender" | "avatarUrl" | "profileRevision">
 >;
 
 /** Owns ordering of identity operations independently of screen mounting and query refetches. */
@@ -172,6 +172,12 @@ export class SessionController {
       this.state.user?.id !== ownerId
     )
       return false;
+    if (
+      patch.profileRevision !== undefined &&
+      this.state.user.profileRevision !== undefined &&
+      patch.profileRevision < this.state.user.profileRevision
+    )
+      return false;
     const user = Api.parseAuthUser({ ...this.state.user, ...patch });
     this.begin();
     this.authenticating = false;
@@ -189,6 +195,13 @@ export class SessionController {
       this.authenticating ||
       this.state.status !== "authenticated" ||
       this.state.user?.id !== ownerId
+    )
+      return false;
+    if (
+      user?.id === ownerId &&
+      this.state.user.profileRevision !== undefined &&
+      user.profileRevision !== undefined &&
+      user.profileRevision < this.state.user.profileRevision
     )
       return false;
     await this.applySession(user);

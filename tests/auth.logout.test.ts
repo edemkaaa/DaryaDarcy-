@@ -22,7 +22,7 @@ function createAuthContext(): {
     email: "sample@example.com",
     phone: null,
     passwordHash: null,
-    sessionVersion: 0,
+    sessionVersion: 0, profileRevision: 0,
     blockedAt: null,
     blockedReason: null,
     accountDeletionRequestedAt: null,

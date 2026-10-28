@@ -25,7 +25,7 @@ const member = {
   name: "Fixture",
   email: "auth@example.test",
   role: "user",
-  sessionVersion: 0,
+  sessionVersion: 0, profileRevision: 0,
   blockedAt: null,
   phone: null,
   passwordHash: null,

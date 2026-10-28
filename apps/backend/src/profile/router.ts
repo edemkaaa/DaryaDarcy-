@@ -16,7 +16,7 @@ export const createProfileRouter = (profiles: ProfileService) =>
       .query(({ctx,input})=>publicPhotoStatus(ctx.user,"avatar",input.idempotencyKey)),
     update: protectedProcedure
       .input(profileUpdateInput)
-      .mutation(({ ctx, input }) => profiles.update(ctx.user.id, input)),
+      .mutation(({ ctx, input }) => profiles.update(ctx.user.id, input, ctx.user.sessionVersion)),
     uploadAvatar: protectedProcedure
       .input(photoInput)
       .mutation(({ ctx, input, signal }) =>

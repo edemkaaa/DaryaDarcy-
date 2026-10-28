@@ -24,6 +24,7 @@ export const users = mysqlTable("users", {
   phone: varchar("phone", { length: 16 }).unique(),
   passwordHash: varchar("passwordHash", { length: 255 }),
   sessionVersion: int("sessionVersion").default(0).notNull(),
+  profileRevision: int("profileRevision").default(0).notNull(),
   loginMethod: varchar("loginMethod", { length: 64 }),
   gender: mysqlEnum("gender", ["female", "male"]),
   avatarUrl: text("avatarUrl"),

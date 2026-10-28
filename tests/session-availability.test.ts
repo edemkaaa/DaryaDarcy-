@@ -26,7 +26,7 @@ const member: User = {
   email: "availability@example.test",
   phone: null,
   passwordHash: "PRIVATE_PASSWORD_HASH_FIXTURE",
-  sessionVersion: 4,
+  sessionVersion: 4, profileRevision: 0,
   loginMethod: "email",
   gender: null,
   avatarUrl: null,
