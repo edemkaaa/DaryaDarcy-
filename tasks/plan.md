@@ -2,6 +2,30 @@
 
 ## Действующий план агента — 13 октября 2026
 
+28 октября, после666e906: следующий срез INT-01 — authenticated/member/revoke
+на копии последнего проверенного backup. Не включать основной guard и не
+закрывать старые URL. Сверить code-only API bundle SHA с действующим5efedbe;
+собственная новая БД + ограниченный SQL user только на неё, отдельный JWT key,
+без SMTP/Prodamus/owner env и без WorkerJobs.start. Все388 файлов через настоящий
+HTTP/S3 Range64: admin/member206 и одинаковые bytes, guest/no-access404; затем
+тот же member JWT после blockedAt и expiresAt должен дать404 до обращения к S3.
+Изменения тестовых аккаунтов/синтетического paid доступа — только в копии БД.
+Удалить свой контейнер, SQL user/БД и временный env; исходные41таблицы/админские
+входы/config/контейнеры сохранить, кроме обычных live auth timestamps. Без push/deploy.
+
+Выполнено на image03e0bab03376: reference bundle SHA ae99f405… совпал с реально
+работающим кодом. Ограниченный SQL user не может читать рабочую схему.388файлов:
+admin/member206 Range64/равные bytes, guest/outsider404; block paid member и
+expiry с тем жеJWT388×404, все отказы до S3.32доп. позиции16видео,844Head+
+844Get,0команд записи. Probe exit0/OOMfalse/restart0,256МиБ. Первый запуск
+UID1001 не загрузил Zod из закрытых каталогов node; повтор того же probe SHA
+под штатным UID1000 прошёл, права зависимостей/рабочий image не менялись.
+Свои SQL user/БД/контейнеры/env удалены,41рабочая таблица/admin/config сохранены
+(кроме естественных auth timestamps). SSH cleanup timeout разобран по success
+marker, DROP не повторялся. HTTPS /club и /api/health200. Остались baseline
+preflight + основной web/edge guard, затем exact Deny386 — пока не выполнять
+по ограничению «старые URL не закрывать». Фронт/БД/S3 не переключались.
+
 28 октября, продолжение по плану после9c04a95: выполнить только следующий
 подготовительный срез INT-01 — свежий backup/restore и READ ONLY проверку
 актуальных388 привязок/386deny+2preserve. Не включать основной guard и не

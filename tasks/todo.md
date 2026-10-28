@@ -2,6 +2,28 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Доступ участницы и отзыв: копия БД — 28 октября
+
+- [x] Проверить666e906/чистое дерево и неизменность backend/shared после5efedbe.
+- [x] Пересобранный reference API bundle SHA совпал с последним выпуском.
+- [x] Сверить SHA реально работающего bundle; восстановить отдельную БД и выдать
+  fixture SQL user только SELECT/INSERT/UPDATE/DELETE на неё, без рабочих прав.
+- [x] Поднять createBackendApplication без WorkerJobs.start, отдельный fixture JWT,
+  без SMTP/Prodamus/owner env/публичных портов; S3 commands только чтение.
+- [x] 388 файлов: admin/member206 Range64 и одинаковые bytes, guest/outsider404;
+  доп. позиции видео, блокировка paid участницы и expiry с тем же JWT, без S3 reads.
+- [x] Удалить только свой контейнер/SQL user/БД/env; проверить41таблицы/admin/
+  config/контейнеры, обновить единый handoff/остаток. Старые URL/guard не менять.
+- [x] Native256МиБ exit0/OOMfalse/restart0;388success/по388 guest/outsider/
+  blocked/expired404 до S3.32доп. позиции16видео,844Head/844Get,0writecommands.
+- [x] Первый probe UID1001 остановился на правах Zod; copy/user/container удалены.
+  Тот же probe SHA со штатным UID1000 прошёл; зависимости не менялись.
+- [x] После SSH cleanup timeout success marker проверен read-only: своя БД/user/
+  env удалены,41рабочая таблица/admin/config/контейнеры сохранены, кроме обычных
+  auth timestamps. HTTPS /club и /api/health200, повторного DROP не было.
+- [ ] Основной web/edge manifest+guard и exact Deny386 пока не включать:
+  ограничение «старые URL не закрывать» сохраняется.
+
 ### Свежая подготовка отзыва источников — 28 октября
 
 - [x] Свежий backup602738B/SHA c36ab5e8…/41таблица/46миграций; все поля включены.
@@ -38,8 +60,9 @@
   restart0. Публичные HTTPS /club и /api/health200. Ошибка первого fixture
   (сырой пробел в URL) исправлена без изменения guard/критериев.
 - [x] Следующим срезом freshbackup/restore/bindings/S3+guest проверены выше.
-- [ ] Перед отзывом — актуальность baseline, authenticated/member/revoke, основной
-  web/edge guard и затем exact Deny/прямые URL.
+- [x] Следующим срезом authenticated/member/revoke на копии приняты выше.
+- [ ] Перед отзывом — актуальность baseline, основной web/edge guard, затем
+  exact Deny/прямые URL.
   Текущим шагом старые URL не закрываются.
 
 ### После выкладки: локальная проверка кэша старых изображений — 28 октября
@@ -58,8 +81,8 @@
   Root types/API105/границы проверены; frontend исходники прежние.
 - [x] Следующим поручением выполнена изолированная серверная проверка UID/
   manifest600 и реальных cold/warm keys/preserve2; результаты выше.
-- [ ] Основной web/edge guard, authenticated/member/revoke и exact Deny
-  остаются отдельным переходом; backup/bindings/S3+guest проверены выше.
+- [ ] Основной web/edge guard и exact Deny остаются отдельным переходом;
+  backup/bindings/S3+guest и authenticated/member/revoke на копии приняты выше.
   Старые URL пока не закрывать.
 
 

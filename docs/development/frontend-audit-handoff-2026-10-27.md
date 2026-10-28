@@ -143,9 +143,14 @@ ledger46; [отчёт выпуска](../operations/independent-audit-release-20
    пользовательских полях БД или literal frontend/shared URL, preserve2 остаются
    публичными coverUrl. Для388 S3-копий подтверждены size/ETag/asset-id и403
    анонимно, гостевой API404/no-store; старые источники200, policy прежняя.
-   Перед отзывом остаются актуальность baseline, authenticated API/member/
-   revoke, подключение основного web/edge guard, затем exact Deny/прямые URL.
-   Это не новая приёмка ролей: auth HTTP в текущем probe не использовался.
+   Затем принята authenticated HTTP-проверка на серверной копии БД с текущим
+   кодом: все388 admin/member206 Range64 с совпадающими bytes, guest/outsider404,
+   блокировка оплаченной участницы и expiry с прежним JWT388×404 до S3;32 доп.
+   позиции16 видео. У проверочного API отдельные SQL grants/JWT, без запуска
+   worker/почты/платежей; свои user/БД/контейнер удалены, рабочие41таблица/входы сохранены.
+   Это API/S3-приёмка на копии с синтетическими ролями, не browser/UI/Prodamus.
+   Перед отзывом остаются актуальность baseline, основной web/edge guard,
+   затем exact Deny/прямые URL. Рабочий guard OFF, старые URL не закрывались.
    Фронтендеру не нужно повторно реализовывать guard или менять дизайн.
 3. **Гостевая LIVE-оплата:** secret+UUID journal и отдельные POST уже сделаны
    фронтендером и включены в выпуск5efedbe вместе с backend105. Прежнее замечание
