@@ -390,6 +390,10 @@ test("a late payment URL cannot enter the next account or bind its order", async
 test("guests keep the existing checkout even when the NORMAL integration build is enabled", async ({
   page,
 }) => {
+  test.skip(
+    process.env.GUEST_CHECKOUT_UI_ENABLED === "true",
+    "Guest recovery has its own opt-in and contract suite.",
+  );
   const state = await fixture(page);
   state.user = null;
   await gotoWithSession(page, "/club");

@@ -237,7 +237,8 @@ function LegacyClubScreen() {
                   autoComplete="email"
                   maxLength={320}
                   disabled={payment.busy}
-                  value={guestEmail}
+                  value={payment.savedGuestEmail ?? guestEmail}
+                  readOnly={payment.guestEmailLocked}
                   onValueChange={setGuestEmail}
                   className={classes.guestEmail}
                 />
@@ -551,7 +552,8 @@ function LegacyClubScreen() {
                     autoComplete="email"
                     maxLength={320}
                     disabled={payment.busy}
-                    value={guestEmail}
+                    value={payment.savedGuestEmail ?? guestEmail}
+                    readOnly={payment.guestEmailLocked}
                     onValueChange={setGuestEmail}
                     className={classes.guestEmail}
                   />
@@ -582,7 +584,7 @@ function LegacyClubScreen() {
                     {payLabel}
                   </Typography>
                 </Action>
-                {isAuthenticated ? (
+                {isAuthenticated || payment.normalRecovery ? (
                   <Action
                     onClick={() => void payment.check()}
                     disabled={payment.disabled}
@@ -604,7 +606,8 @@ function LegacyClubScreen() {
                     {payment.accessNotice}
                   </Typography>
                 ) : null}
-                {(justPaid || prodamusTest) && !isAuthenticated ? (
+                {(justPaid || prodamusTest || payment.hasSavedPurchase) &&
+                !isAuthenticated ? (
                   <Action
                     onClick={() =>
                       router.login({

@@ -40,23 +40,34 @@ export function createTRPCClient() {
           },
         }),
         false: splitLink({
-          // The calendar sends up to 62 day intervals in one query (~6.6 KB).
-          // It cannot fit the ordinary batch limit and must travel alone.
+          // Guest recovery proofs must stay in one POST body, never a batch or URL.
           condition: (op) =>
-            op.type === "query" && op.path === "admin.postCalendar",
-          true: httpBatchLink({
-            maxItems: 1,
-            maxURLLength: 8192,
+            op.path === "club.createGuestNormalCheckout" ||
+            op.path === "club.guestNormalCheckoutStatus",
+          true: httpLink({
             url: `${getApiBaseUrl()}/api/trpc`,
             transformer: superjson,
             fetch: fetchApiResponse,
           }),
-          false: httpBatchLink({
-            maxItems: 20,
-            maxURLLength: 2048,
-            url: `${getApiBaseUrl()}/api/trpc`,
-            transformer: superjson,
-            fetch: fetchApiResponse,
+          false: splitLink({
+            // The calendar sends up to 62 day intervals in one query (~6.6 KB).
+            // It cannot fit the ordinary batch limit and must travel alone.
+            condition: (op) =>
+              op.type === "query" && op.path === "admin.postCalendar",
+            true: httpBatchLink({
+              maxItems: 1,
+              maxURLLength: 8192,
+              url: `${getApiBaseUrl()}/api/trpc`,
+              transformer: superjson,
+              fetch: fetchApiResponse,
+            }),
+            false: httpBatchLink({
+              maxItems: 20,
+              maxURLLength: 2048,
+              url: `${getApiBaseUrl()}/api/trpc`,
+              transformer: superjson,
+              fetch: fetchApiResponse,
+            }),
           }),
         }),
       }),
