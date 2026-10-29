@@ -9,8 +9,10 @@
 - [x] API contract обновлён; TEST production build, browser77+recovery32/1skip и HTTP/SQL180/5skip.
 - [x] Свежий backup41/46ledger/3admin, SHA второй копии; restore+0046/0047 rehearsal.
 - [x] Финальные unit3667/74skip, root/frontend/E2E types, lint/API105/build.
-- [ ] Push staging, runtime images и native checks.
-- [ ] Apply0046/0047, API/TEST/web release; live/API/phone/сохранность и откат.
+- [x] Push staging681bcec5, runtime images и native Linux27 checks.
+- [x] Apply0046/0047→48ledger, API/TEST/web release; live55+compression9/HTTPS37.
+- [x] Phone14 на своих данных, cleanup;41таблица/3admin/прочие контейнеры сохранены.
+- [x] Кодовый откат подготовлен, старые images/backup сохранены; отчёт обновлён.
 
 ### Телефон в форме подписки — 29 октября
 
@@ -30,7 +32,7 @@
 - [x] Финальные unit3645/78skip, SQL173/5skip, types/build/boundaries841, fresh48.
 - [x] API105 в отдельный артефакт/diff; фронтендеру регенерация, без правок фронта.
 - [x] Профильный lint новых тестов; отчёт, план и единый handoff обновлены.
-- [ ] Совместный выпуск формы/API и0046/0047: отдельно, пока не запрошен.
+- [x] Совместный выпуск формы/API и0046/0047 разрешён позднее и завершён29.10; см. верхний чек-лист.
 
 
 ### Подключение 19 lossless VK-обложек — 28 октября

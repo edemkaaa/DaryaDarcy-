@@ -16,8 +16,13 @@ Generated contract обновлён: contactPhone в admin members/membersPage.
 
 Локально:77 Chromium TEST checks,32 guest/NORMAL checks (1 legacy skip)
 и180 HTTP/SQL checks (5 opt-in skipped) прошли.
-Для выкладки сначала backup/restore и миграции0046/0047, затем API/TEST/web.
-Фактический ход выпуска фиксируется в
+Выпущено29.10: код681bcec5, миграции0046/0047 применены после backup/restore.
+На стенде55 API+9 compression,37 HTTPS и14 phone checks прошли; свои данные
+удалены, существующие записи и3 admin credentials сохранены. Форма уже связана
+с API, повторно применять patch не нужно. Админское отображение contactPhone
+доступно через контракт; отдельно менять интерфейс этого раздела не требовалось.
+Срезы ниже описывают историю до выпуска и не отменяют этот статус.
+Подробности в
 [отчёте](../operations/phone-merge-release-2026-10-29.md).
 
 
