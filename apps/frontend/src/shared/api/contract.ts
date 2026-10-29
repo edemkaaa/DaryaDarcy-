@@ -846,6 +846,7 @@ export type AppRouter = BuiltRouter<
         output: Array<{
           id: number;
           email: string | null;
+          contactPhone: string | null;
           name: string | null;
           role: string | null;
           createdAt: Date;
@@ -869,6 +870,7 @@ export type AppRouter = BuiltRouter<
             clubExpiresAt: Date | null;
             id: number;
             email: string | null;
+            contactPhone: string | null;
             name: string | null;
             role: "user" | "moderator" | "admin";
             createdAt: Date;

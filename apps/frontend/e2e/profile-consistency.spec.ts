@@ -263,6 +263,9 @@ for (const committed of [false, true]) {
       await expect(field).toHaveValue("Confirmed setup name");
       state.mode = "ok";
       await setup
+        .getByRole("button", { name: "Использовать мой черновик", exact: true })
+        .click();
+      await setup
         .getByRole("button", { name: "Продолжить", exact: true })
         .click();
     }
@@ -986,6 +989,34 @@ test("a delayed avatar response cannot update the next account", async ({
   }
 });
 
+test("name editor closes on the first click beside the input and retains an unsaved draft", async ({
+  page,
+}) => {
+  const { state } = await profileApi(page);
+  await gotoWithSession(page, "/profile");
+  const name = page.getByRole("button", { name: "Server name", exact: true });
+  await name.click();
+  const field = page.getByRole("textbox", { name: "Имя профиля", exact: true });
+  await field.fill("Unsaved name");
+  // One click just below the name row must dismiss the whole editor.
+  const row = field.locator("..");
+  const box = await row.boundingBox();
+  if (!box) throw new Error("Name input row is missing");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height + 2);
+  await expect(field).toHaveCount(0);
+  await expect(name).toBeVisible();
+  expect(state.writes).toHaveLength(0);
+  await name.click();
+  await expect(field).toHaveValue("Unsaved name");
+  await page
+    .getByRole("button", { name: "Сохранить имя", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Unsaved name", exact: true }),
+  ).toBeVisible();
+  expect(state.writes).toHaveLength(1);
+});
+
 test("a stale name revision preserves the draft and needs an explicit reviewed retry", async ({
   page,
 }) => {
@@ -1014,10 +1045,310 @@ test("a stale name revision preserves the draft and needs an explicit reviewed r
   await expect(field).toHaveValue("My preserved draft");
   expect(state.writes).toHaveLength(1);
   await page
+    .getByRole("button", { name: "Использовать мой черновик", exact: true })
+    .click();
+  await page
     .getByRole("button", { name: "Сохранить имя", exact: true })
     .click();
   await expect(
     page.getByRole("button", { name: "My preserved draft", exact: true }),
   ).toBeVisible();
   expect(state.writes.map((w) => w.expectedRevision)).toEqual([0, 1]);
+});
+
+for (const form of ["name", "setup"] as const) {
+  test(`${form} draft retains its original revision through reload and reviewed recovery`, async ({
+    page,
+  }) => {
+    const { state } = await profileApi(page);
+    if (form === "setup") {
+      state.user.name = null;
+      state.user.gender = null;
+    }
+    const open = async () => {
+      await gotoWithSession(page, form === "name" ? "/profile" : "/club");
+      if (form === "name")
+        await page
+          .getByRole("button", { name: state.user.name!, exact: true })
+          .click();
+    };
+    const field =
+      form === "name"
+        ? page.getByRole("textbox", { name: "Имя профиля", exact: true })
+        : page.getByPlaceholder("Как тебя зовут?");
+    const save = page.getByRole("button", {
+      name: form === "name" ? "Сохранить имя" : "Продолжить",
+      exact: true,
+    });
+    await open();
+    await field.fill("Older unsent draft");
+    if (form === "setup")
+      await page.getByRole("button", { name: "Женский", exact: true }).click();
+    state.user.name = "Newer server name";
+    state.user.profileRevision = 1;
+    await page.reload();
+    if (form === "name")
+      await page
+        .getByRole("button", { name: state.user.name, exact: true })
+        .click();
+    await expect(field).toHaveValue("Older unsent draft");
+    await save.click();
+    const check = page.getByRole("button", {
+      name:
+        form === "name"
+          ? "Проверить сохранение имени"
+          : "Проверить сохранение анкеты",
+      exact: true,
+    });
+    await expect(check).toBeEnabled();
+    await expect.poll(() => state.writes.map((w) => w.expectedRevision)).toEqual([0]);
+    expect(state.user.name).toBe("Newer server name");
+    await check.click();
+    await expect(
+      page.getByText(/Сейчас в профиле: Newer server name/),
+    ).toBeVisible();
+    await expect(save).toBeDisabled();
+    // Reload after checking must retain the unresolved review, not adopt revision 1.
+    await page.reload();
+    if (form === "name")
+      await page
+        .getByRole("button", { name: state.user.name, exact: true })
+        .click();
+    await expect(field).toHaveValue("Older unsent draft");
+    await expect(save).toBeDisabled();
+    await page
+      .getByRole("button", { name: "Использовать мой черновик", exact: true })
+      .click();
+    await save.click();
+    await expect.poll(() => state.user.name).toBe("Older unsent draft");
+    expect(state.writes.map((w) => w.expectedRevision)).toEqual([0, 1]);
+  });
+
+  test(`${form} legacy draft requires a fresh read and explicit review`, async ({
+    page,
+  }) => {
+    const { state } = await profileApi(page);
+    if (form === "setup") {
+      state.user.name = null;
+      state.user.gender = null;
+    }
+    await page.addInitScript((kind) => {
+      localStorage.setItem(
+        `darcy:user:101:@darcy_${kind === "name" ? "profile_name" : "club_profile"}_draft`,
+        kind === "name"
+          ? "Legacy preserved input"
+          : JSON.stringify({
+              name: "Legacy preserved input",
+              gender: "female",
+            }),
+      );
+    }, form);
+    await gotoWithSession(page, form === "name" ? "/profile" : "/club");
+    if (form === "name")
+      await page
+        .getByRole("button", { name: "Server name", exact: true })
+        .click();
+    const field =
+      form === "name"
+        ? page.getByRole("textbox", { name: "Имя профиля", exact: true })
+        : page.getByPlaceholder("Как тебя зовут?");
+    await expect(field).toHaveValue("Legacy preserved input");
+    const save = page.getByRole("button", {
+      name: form === "name" ? "Сохранить имя" : "Продолжить",
+      exact: true,
+    });
+    await expect(save).toBeDisabled();
+    expect(state.writes).toHaveLength(0);
+    await page
+      .getByRole("button", {
+        name:
+          form === "name"
+            ? "Сверить черновик имени"
+            : "Сверить черновик анкеты",
+        exact: true,
+      })
+      .click();
+    await expect(save).toBeDisabled();
+    await page
+      .getByRole("button", { name: "Использовать мой черновик", exact: true })
+      .click();
+    await save.click();
+    await expect.poll(() => state.user.name).toBe("Legacy preserved input");
+    expect(state.writes).toHaveLength(1);
+  });
+}
+
+test("closing and reopening a name draft never upgrades its original revision", async ({
+  page,
+}) => {
+  const { state } = await profileApi(page);
+  await gotoWithSession(page, "/profile");
+  await page.getByRole("button", { name: "Server name", exact: true }).click();
+  const field = page.getByRole("textbox", { name: "Имя профиля", exact: true });
+  await field.fill("Kept old draft");
+  await field.press("Escape");
+  state.user.name = "Fresh name elsewhere";
+  state.user.profileRevision = 1;
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await page
+    .getByRole("button", { name: "Fresh name elsewhere", exact: true })
+    .click();
+  await expect(field).toHaveValue("Kept old draft");
+  await page
+    .getByRole("button", { name: "Сохранить имя", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", {
+      name: "Проверить сохранение имени",
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(state.writes.map((w) => w.expectedRevision)).toEqual([0]);
+});
+
+for (const form of ["name", "setup"] as const) {
+  test(`${form} recovery keeps pending input when persisting the review fails`, async ({
+    page,
+  }) => {
+    const { state } = await profileApi(page);
+    if (form === "setup") {
+      state.user.name = null;
+      state.user.gender = null;
+    }
+    state.mode = "lost-uncommitted";
+    await gotoWithSession(page, form === "name" ? "/profile" : "/club");
+    if (form === "name")
+      await page
+        .getByRole("button", { name: "Server name", exact: true })
+        .click();
+    const field =
+      form === "name"
+        ? page.getByRole("textbox", { name: "Имя профиля", exact: true })
+        : page.getByPlaceholder("Как тебя зовут?");
+    await field.fill("Keep this input");
+    if (form === "setup")
+      await page.getByRole("button", { name: "Женский", exact: true }).click();
+    await page
+      .getByRole("button", {
+        name: form === "name" ? "Сохранить имя" : "Продолжить",
+        exact: true,
+      })
+      .click();
+    const check = page.getByRole("button", {
+      name:
+        form === "name"
+          ? "Проверить сохранение имени"
+          : "Проверить сохранение анкеты",
+      exact: true,
+    });
+    await expect(check).toBeVisible();
+    const pendingKey = `darcy:user:101:@darcy_${form === "name" ? "profile_name" : "club_profile"}_pending`;
+    const before = await page.evaluate(
+      (key) => localStorage.getItem(key),
+      pendingKey,
+    );
+    await page.evaluate(
+      (key) => {
+        const original = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (name, value) {
+          if (name === key)
+            throw new DOMException("Full", "QuotaExceededError");
+          return original.call(this, name, value);
+        };
+      },
+      pendingKey.replace(/_pending$/, "_draft"),
+    );
+    await check.click();
+    await expect(
+      page
+        .getByRole("alert")
+        .filter({ hasText: "Не удалось проверить сохранение" }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate((key) => localStorage.getItem(key), pendingKey),
+    ).toBe(before);
+    await expect(field).toHaveValue("Keep this input");
+    await page.reload();
+    if (form === "name")
+      await page
+        .getByRole("button", { name: "Server name", exact: true })
+        .click();
+    await expect(field).toHaveValue("Keep this input");
+    await expect(field).toBeDisabled();
+    await check.click();
+    await expect(
+      page.getByRole("button", {
+        name: "Использовать мой черновик",
+        exact: true,
+      }),
+    ).toBeEnabled();
+    expect(state.writes).toHaveLength(1);
+  });
+}
+
+test("missing profile revision blocks a write independently of storage errors", async ({
+  page,
+}) => {
+  const { state } = await profileApi(page);
+  await page.route("**/api/auth/me", (route) => {
+    const { profileRevision: _revision, ...user } = state.user;
+    return route.fulfill({ json: { user } });
+  });
+  await gotoWithSession(page, "/profile");
+  await page.getByRole("button", { name: "Server name", exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "Имя профиля", exact: true })
+    .fill("Input without a baseline");
+  await page
+    .getByRole("button", { name: "Сохранить имя", exact: true })
+    .click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Версия профиля недоступна" }),
+  ).toBeVisible();
+  expect(state.writes).toHaveLength(0);
+});
+
+test("a failed review confirmation keeps saving blocked and the persisted comparison intact", async ({
+  page,
+}) => {
+  const { state } = await profileApi(page);
+  await gotoWithSession(page, "/profile");
+  await page.getByRole("button", { name: "Server name", exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "Имя профиля", exact: true })
+    .fill("Reviewed old draft");
+  state.user.name = "Server changed";
+  state.user.profileRevision = 1;
+  const save = page.getByRole("button", { name: "Сохранить имя", exact: true });
+  await save.click();
+  await page
+    .getByRole("button", { name: "Проверить сохранение имени", exact: true })
+    .click();
+  // Finish the server comparison before injecting failure into accepting it.
+  await expect(page.getByRole("button", { name: "Использовать мой черновик", exact: true })).toBeEnabled();
+  const draftKey = "darcy:user:101:@darcy_profile_name_draft";
+  const before = await page.evaluate(
+    (key) => localStorage.getItem(key),
+    draftKey,
+  );
+  await page.evaluate((key) => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (name, value) {
+      if (name === key) throw new DOMException("Full", "QuotaExceededError");
+      return original.call(this, name, value);
+    };
+  }, draftKey);
+  await page
+    .getByRole("button", { name: "Использовать мой черновик", exact: true })
+    .click();
+  await expect(
+    page
+      .getByRole("alert")
+      .filter({ hasText: "Не удалось сохранить сверенный черновик" }),
+  ).toBeVisible();
+  await expect(save).toBeDisabled();
+  expect(
+    await page.evaluate((key) => localStorage.getItem(key), draftKey),
+  ).toBe(before);
+  expect(state.writes).toHaveLength(1);
 });

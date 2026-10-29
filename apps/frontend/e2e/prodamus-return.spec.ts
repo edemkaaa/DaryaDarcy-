@@ -37,7 +37,7 @@ test("Prodamus TEST keeps its checkout endpoint even when the guest LIVE build f
     calls.push("club.createCheckout");
     expect(route.request().method()).toBe("POST");
     expect(route.request().postDataJSON()).toMatchObject({
-      0: { json: { email: "guest@example.test" } },
+      0: { json: { email: "guest@example.test", contactPhone: "+79991234567" } },
     });
     expect(
       await page.evaluate(() =>
@@ -51,6 +51,7 @@ test("Prodamus TEST keeps its checkout endpoint even when the guest LIVE build f
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill("guest@example.test");
+  await page.getByRole("textbox", { name: "Номер телефона", exact: true }).first().fill("+79991234567");
   await page
     .getByRole("button", { name: "Открыть тестовую оплату", exact: true })
     .first()

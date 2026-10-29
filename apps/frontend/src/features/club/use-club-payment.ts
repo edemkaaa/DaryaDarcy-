@@ -193,7 +193,7 @@ function useLegacyClubPayment({
     const phone = contactPhoneSchema.safeParse(contactPhone);
     if (!phone.success) {
       setPayError(
-        "Укажите номер телефона с кодом страны, например +7 999 123-45-67.",
+        "Укажите корректный номер телефона с кодом страны, например +7 999 123-45-67.",
       );
       return;
     }

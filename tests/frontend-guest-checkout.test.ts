@@ -446,3 +446,10 @@ it("keeps a canonical contact in the guest intent and rejects a retry with anoth
   expect(journal.read()).toEqual(intent);
   expect(fetcher).not.toHaveBeenCalled();
 });
+
+it.each(["", "   ", "invalid"])("reports invalid phone rather than blaming a valid email (%j)", async (contactPhone) => {
+  const journal = new GuestCheckoutJournal(null);
+  await expect(journal.prepare({ ...selection, contactPhone }, signal())).rejects.toThrow("корректный номер телефона");
+  expect(values.get(slot)).toBeUndefined();
+  expect(fetcher).not.toHaveBeenCalled();
+});

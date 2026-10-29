@@ -74,6 +74,22 @@ it("enables development tooling only in development", () => {
   expect(csp).toContain("connect-src 'self' ws: wss:");
 });
 
+it.each(["/password", "/password/"])(
+  "isolates the password document policy at %s",
+  (path) => {
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://unrelated.example.test");
+    const response = proxy(new NextRequest(`https://app.example.test${path}`));
+    const csp = response.headers.get("Content-Security-Policy")!;
+    expect(csp).toContain("connect-src 'self';");
+    expect(csp).toContain("frame-src 'none'");
+    expect(csp).toContain("form-action 'none'");
+    expect(csp).toContain("default-src 'none'");
+    expect(csp).not.toContain("unrelated.example.test");
+    expect(response.headers.get("Referrer-Policy")).toBe("no-referrer");
+    expect(response.headers.get("Cache-Control")).toContain("no-store");
+  },
+);
+
 it.each(["javascript:alert(1)", "https://user:password@api.example.test"])(
   "rejects unsafe configured API origins: %s",
   (value) =>

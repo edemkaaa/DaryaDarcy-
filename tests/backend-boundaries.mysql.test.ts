@@ -148,7 +148,9 @@ describe.skipIf(!testDatabaseUrl)(
         { timeout: 3000, interval: 20 },
       );
       const token = new URL(message.match(/http:\/\/\S+/)![0]).hash.slice(7);
-      const page = await fetch(`${base}/api/auth/password`);
+      const page = await fetch(`${base}/api/auth/password`, { redirect: "manual" });
+      expect(page.status).toBe(303);
+      expect(page.headers.get("location")).toBe(`${base}/password`);
       expect(page.headers.get("referrer-policy")).toBe("no-referrer");
       expect(page.headers.get("cache-control")).toBe("no-store");
       const complete = await post("/api/auth/password/complete", {

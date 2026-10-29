@@ -144,10 +144,10 @@ export class GuestCheckoutJournal {
       throw new Error(
         "Новую покупку после входа нужно начать из своего аккаунта.",
       );
-    const parsed = selectionSchema.safeParse(selection);
+    const parsed = selectionSchema.omit({ contactPhone: true }).safeParse(selection);
     if (!parsed.success)
       throw new Error("Укажите корректную почту для чека и входа.");
-    const phone = contactPhoneSchema.safeParse(parsed.data.contactPhone);
+    const phone = contactPhoneSchema.safeParse(selection.contactPhone);
     if (!phone.success)
       throw new Error("Укажите корректный номер телефона с кодом страны.");
     if (

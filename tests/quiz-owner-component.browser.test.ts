@@ -35,7 +35,8 @@ it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH).each([false, true])(
         export function useAuth(){return useSyncExternalStore(window.subscribeOwner,()=>window.owner)}`,
       "@/shared/browser/storage": `export const requiredStorage={}; export const isPersonalDataOwner=()=>true; export default {getItem(){return new Promise(resolve=>window.reads.push(resolve))}}`,
       "@/shared/ui/route-loading": `export default function Loading(){return <p>loading</p>}`,
-      "@/shared/ui/status-notice": `export function StatusNotice({children}){return <p>{children}</p>}`,
+      "@/shared/ui/status-notice": `export function StatusNotice({children}){return <p>{children}</p>}
+        export function StatusNoticeAction({children,onClick}){return <button onClick={onClick}>{children}</button>}`,
       "@/features/quiz/quiz-welcome": `export function QuizWelcome(){return <p>welcome</p>}`,
       "@/features/quiz/quiz-question": `export function QuizQuestion(){return <p>question</p>}`,
       "@/features/quiz/quiz-result": `import {useQuiz} from '@/domain/quiz/quiz-state';

@@ -34,6 +34,7 @@ export function proxy(request: NextRequest) {
     nonce,
     process.env.NODE_ENV === "development",
     process.env.NEXT_PUBLIC_API_BASE_URL,
+    pathname === "/password" || pathname === "/password/",
   );
   const headers = new Headers(request.headers);
   // Override client-supplied values. Next reads the request CSP to attach this

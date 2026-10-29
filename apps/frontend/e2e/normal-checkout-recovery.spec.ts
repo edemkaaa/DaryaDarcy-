@@ -110,7 +110,8 @@ async function fixture(page: Page, paid = false) {
           expect(route.request().headers()).not.toHaveProperty(
             "idempotency-key",
           );
-          expect(Object.keys(input).sort()).toEqual(["idempotencyKey", "plan"]);
+          expect(Object.keys(input).sort()).toEqual(["contactPhone", "idempotencyKey", "plan"]);
+          expect(input.contactPhone).toBe("+79991234567");
           expect(input.idempotencyKey).toMatch(
             /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
           );

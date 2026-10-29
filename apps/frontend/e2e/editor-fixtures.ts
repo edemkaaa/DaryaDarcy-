@@ -48,6 +48,7 @@ export async function editorApi(
       json: {
         user: {
           id: 101,
+          profileRevision: 0,
           openId: "test-admin",
           name: "Тест",
           email: "test@example.test",

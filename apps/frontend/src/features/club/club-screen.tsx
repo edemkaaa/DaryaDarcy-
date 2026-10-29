@@ -10,7 +10,6 @@ import {
   Background,
   ScrollArea,
   Typography,
-  Field,
   Action,
   Spinner,
   Collection,
@@ -22,6 +21,7 @@ import { useAuth } from "@/domain/session/session-context";
 import { SessionStatus } from "@/domain/session/session-status";
 import { SubscriptionStatus } from "@/domain/subscription/subscription-status";
 import { useClubPayment } from "./use-club-payment";
+import { GuestContactFields } from "./guest-contact-fields";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
@@ -36,7 +36,6 @@ import { useRouter } from "@/shared/navigation/router";
 import {
   PAPER_TEXTURE_URI,
   CLUB_BANNER_URL,
-  BROWN_MUTED,
   CREAM,
   OLIVE,
   LETTER_CAROUSEL_IMAGES,
@@ -94,19 +93,15 @@ function LegacyClubScreen() {
   const payError = payment.payError;
   const payLabel = payment.purchaseLabel ?? defaultPayLabel;
   const contactPhoneField = (
-    <Field
-      placeholder="Номер телефона с кодом страны"
-      aria-label="Номер телефона"
-      type="tel"
-      inputMode="tel"
-      autoComplete="tel"
-      required
-      maxLength={40}
+    <GuestContactFields
+      email={payment.savedGuestEmail ?? guestEmail}
+      phone={payment.savedContactPhone ?? contactPhone}
+      showEmail={!isAuthenticated}
       disabled={payment.busy}
-      readOnly={payment.contactPhoneLocked}
-      value={payment.savedContactPhone ?? contactPhone}
-      onValueChange={(value) => setPhoneDraft({ owner: phoneOwner, value })}
-      className={classes.guestEmail}
+      readOnly={payment.guestEmailLocked}
+      phoneReadOnly={payment.contactPhoneLocked}
+      onEmailChange={setGuestEmail}
+      onPhoneChange={(value) => setPhoneDraft({ owner: phoneOwner, value })}
     />
   );
   const [, setActiveLetterIndex] = useState(0);
@@ -251,23 +246,6 @@ function LegacyClubScreen() {
                 .filter(Boolean)
                 .join(" ")}
             >
-              {!isAuthenticated ? (
-                <Field
-                  placeholder="Почта для чека и входа"
-                  placeholderColor={BROWN_MUTED}
-                  autoCapitalize="off"
-                  inputMode="email"
-                  type="email"
-                  aria-label="Почта для чека и входа"
-                  autoComplete="email"
-                  maxLength={320}
-                  disabled={payment.busy}
-                  value={payment.savedGuestEmail ?? guestEmail}
-                  readOnly={payment.guestEmailLocked}
-                  onValueChange={setGuestEmail}
-                  className={classes.guestEmail}
-                />
-              ) : null}
               {contactPhoneField}
               <Action
                 style={({ pressed }) => ({
@@ -567,23 +545,6 @@ function LegacyClubScreen() {
                     ? "Однократная тестовая оплата. Доступ появится после подтверждения сервером; повторно платить для проверки не нужно."
                     : "Автосписание каждый месяц. Отменить можно в профиле в любой момент — доступ сохранится до конца оплаченного периода."}
                 </Typography>
-                {!isAuthenticated ? (
-                  <Field
-                    placeholder="Почта для чека и входа"
-                    placeholderColor={BROWN_MUTED}
-                    autoCapitalize="off"
-                    inputMode="email"
-                    type="email"
-                    aria-label="Почта для чека и входа"
-                    autoComplete="email"
-                    maxLength={320}
-                    disabled={payment.busy}
-                    value={payment.savedGuestEmail ?? guestEmail}
-                    readOnly={payment.guestEmailLocked}
-                    onValueChange={setGuestEmail}
-                    className={classes.guestEmail}
-                  />
-                ) : null}
                 {contactPhoneField}
                 <Action
                   style={({ pressed }) => ({

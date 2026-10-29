@@ -43,7 +43,7 @@ async function fixture(page: Page, authenticated = false, subscribed = false) {
       isOwner: false,
       monthlyPrice: "790",
     },
-    creates: [] as { email: string }[],
+    creates: [] as { email: string; contactPhone: string }[],
     reads: 0,
     claims: 0,
     create: undefined as (() => unknown | Promise<unknown>) | undefined,
@@ -131,15 +131,45 @@ for (const width of [320, 390, 1440]) {
     await pay(page).first().click();
     expect(state.creates).toEqual([]);
     await email.fill("  Guest@Example.Test  ");
+    const phone = page.getByRole("textbox", {
+      name: "Номер телефона",
+      exact: true,
+    });
+    await expect(phone).toHaveCount(2);
+    await expect(phone.first()).toHaveAttribute("type", "tel");
+    await expect(phone.first()).toHaveAttribute("required", "");
+    await pay(page).first().click();
+    await expect(page.getByRole("alert").first()).toContainText(
+      "корректный номер телефона",
+    );
+    expect(state.creates).toEqual([]);
+    await phone.first().fill("   ");
+    await pay(page).first().click();
+    await expect(page.getByRole("alert").first()).toContainText(
+      "корректный номер телефона",
+    );
+    expect(state.creates).toEqual([]);
+    await expect(phone.first()).toHaveAccessibleDescription(
+      "(Для тех. поддержки)",
+    );
+    await phone.first().fill("invalid");
+    await pay(page).first().click();
+    await expect(page.getByRole("alert").first()).toContainText(
+      "корректный номер телефона",
+    );
+    expect(state.creates).toEqual([]);
+    await phone.first().fill("+7 (999) 123-45-67");
+    await expect(phone.last()).toHaveValue("+7 (999) 123-45-67");
     await pay(page).first().focus();
     await expect(pay(page).first()).toBeFocused();
     await pay(page).first().press("Enter");
     await expect(pay(page).first()).toBeDisabled();
     await expect(pay(page).last()).toBeDisabled();
     await expect(email).toBeDisabled();
+    await expect(phone.first()).toBeDisabled();
     await pay(page).last().dispatchEvent("click");
     await expect.poll(() => state.creates.length).toBe(1);
-    expect(state.creates).toEqual([{ email: "guest@example.test" }]);
+    expect(state.creates).toEqual([{ email: "guest@example.test", contactPhone: "+79991234567" }]);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,

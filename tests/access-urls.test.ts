@@ -7,7 +7,11 @@ import { publicAccessUrl } from "../apps/backend/src/identity/urls";
 let application: INestApplication, base: string;
 // Node fetch overwrites Sec-Fetch-Mode with "cors". Send the browser's actual
 // navigation metadata over HTTP instead of accidentally testing a fetch.
-function requestWithBrowserMetadata(path: string, options: RequestOptions, body?: string): Promise<Response> {
+function requestWithBrowserMetadata(
+  path: string,
+  options: RequestOptions,
+  body?: string,
+): Promise<Response> {
   return new Promise((resolve, reject) => {
     const req = request(`${base}${path}`, options, (res) => {
       const chunks: Buffer[] = [];
@@ -18,7 +22,12 @@ function requestWithBrowserMetadata(path: string, options: RequestOptions, body?
         for (let index = 0; index < res.rawHeaders.length; index += 2) {
           headers.append(res.rawHeaders[index], res.rawHeaders[index + 1]);
         }
-        resolve(new Response(Buffer.concat(chunks).toString("utf8"), { status: res.statusCode, headers }));
+        resolve(
+          new Response(Buffer.concat(chunks).toString("utf8"), {
+            status: res.statusCode,
+            headers,
+          }),
+        );
       });
     });
     req.on("error", reject);
@@ -35,7 +44,7 @@ afterAll(async () => {
 });
 afterEach(() => vi.unstubAllEnvs());
 it.each(["/api/auth/password", "/api/auth/password/"])(
-  "opens %s from an email as a public document without issuing a session",
+  "redirects old email links from %s without issuing a session",
   async (path) => {
     vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
     const response = await requestWithBrowserMetadata(path, {
@@ -46,50 +55,106 @@ it.each(["/api/auth/password", "/api/auth/password/"])(
         Cookie: "app_session=invalid-test-session",
       },
     });
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toContain("text/html");
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe(
+      "https://club.example.test/password",
+    );
     expect(response.headers.get("set-cookie")).toBeNull();
     expect(response.headers.get("access-control-allow-origin")).toBeNull();
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
     expect(response.headers.get("x-frame-options")).toBe("DENY");
     const page = await response.text();
-    expect(page).toContain("Установить пароль");
-    expect(page).toContain("history.replaceState(null,'',location.pathname)");
-    const nonce = page.match(/<script nonce="([^"]+)"/)![1];
-    expect(nonce).not.toBe("");
-    expect(response.headers.get("content-security-policy")).toContain(
-      `script-src 'nonce-${nonce}'`,
-    );
+    expect(page).not.toContain("<script");
     expect(response.headers.get("content-security-policy")).toContain(
       "frame-ancestors 'none'",
     );
     expect(response.headers.get("content-security-policy")).toContain(
-      "img-src https://club.example.test; font-src https://club.example.test;",
+      "default-src 'none'",
     );
   },
 );
 it.each([
-  { name: "iframe", path: "/api/auth/password", method: "GET", mode: "navigate", dest: "iframe" },
-  { name: "fetch", path: "/api/auth/password", method: "GET", mode: "cors", dest: "empty" },
-  { name: "missing mode", path: "/api/auth/password", method: "GET", mode: "", dest: "document" },
-  { name: "missing destination", path: "/api/auth/password", method: "GET", mode: "navigate", dest: "" },
-  { name: "page form submission", path: "/api/auth/password", method: "POST", mode: "navigate", dest: "document" },
-  { name: "password completion", path: "/api/auth/password/complete", method: "POST", mode: "navigate", dest: "document" },
-  { name: "password request", path: "/api/auth/password/request", method: "POST", mode: "navigate", dest: "document" },
-  { name: "nested password path", path: "/api/auth/password/complete", method: "GET", mode: "navigate", dest: "document" },
-  { name: "another API document", path: "/api/auth/me", method: "GET", mode: "navigate", dest: "document" },
+  {
+    name: "iframe",
+    path: "/api/auth/password",
+    method: "GET",
+    mode: "navigate",
+    dest: "iframe",
+  },
+  {
+    name: "fetch",
+    path: "/api/auth/password",
+    method: "GET",
+    mode: "cors",
+    dest: "empty",
+  },
+  {
+    name: "missing mode",
+    path: "/api/auth/password",
+    method: "GET",
+    mode: "",
+    dest: "document",
+  },
+  {
+    name: "missing destination",
+    path: "/api/auth/password",
+    method: "GET",
+    mode: "navigate",
+    dest: "",
+  },
+  {
+    name: "page form submission",
+    path: "/api/auth/password",
+    method: "POST",
+    mode: "navigate",
+    dest: "document",
+  },
+  {
+    name: "password completion",
+    path: "/api/auth/password/complete",
+    method: "POST",
+    mode: "navigate",
+    dest: "document",
+  },
+  {
+    name: "password request",
+    path: "/api/auth/password/request",
+    method: "POST",
+    mode: "navigate",
+    dest: "document",
+  },
+  {
+    name: "nested password path",
+    path: "/api/auth/password/complete",
+    method: "GET",
+    mode: "navigate",
+    dest: "document",
+  },
+  {
+    name: "another API document",
+    path: "/api/auth/me",
+    method: "GET",
+    mode: "navigate",
+    dest: "document",
+  },
 ])("still rejects cross-site $name", async ({ path, method, mode, dest }) => {
-  const response = await requestWithBrowserMetadata(path, {
-    method,
-    headers: {
-      "Sec-Fetch-Site": "cross-site",
-      "Sec-Fetch-Mode": mode,
-      "Sec-Fetch-Dest": dest,
-      Cookie: "app_session=invalid-test-session",
-      ...(method === "POST" ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
+  const response = await requestWithBrowserMetadata(
+    path,
+    {
+      method,
+      headers: {
+        "Sec-Fetch-Site": "cross-site",
+        "Sec-Fetch-Mode": mode,
+        "Sec-Fetch-Dest": dest,
+        Cookie: "app_session=invalid-test-session",
+        ...(method === "POST"
+          ? { "Content-Type": "application/x-www-form-urlencoded" }
+          : {}),
+      },
     },
-  }, method === "POST" ? "token=synthetic-test-token" : undefined);
+    method === "POST" ? "token=synthetic-test-token" : undefined,
+  );
   expect(response.status).toBe(403);
   expect(response.headers.get("set-cookie")).toBeNull();
   expect(response.headers.get("access-control-allow-origin")).toBeNull();
@@ -106,20 +171,18 @@ it("does not grant foreign origins CORS access to the password document", async 
   expect(response.status).toBe(403);
   expect(response.headers.get("access-control-allow-origin")).toBeNull();
 });
-it("links from the backend password page to the configured frontend login", async () => {
+it("redirects to the configured frontend without trusting query or legacy auth origins", async () => {
   vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
   vi.stubEnv("PUBLIC_AUTH_URL", "https://api.example.test");
-  const response = await fetch(`${base}/api/auth/password`);
-  expect(response.status).toBe(200);
-  const page = await response.text();
-  expect(page).toContain('href="https://club.example.test/login"');
-  expect(response.headers.get("cache-control")).toBe("no-store");
-  const nonce = page.match(/<script nonce="([^"]+)"/)![1];
-  expect(page).toContain("history.replaceState(null,'',location.pathname)");
-  expect(response.headers.get("content-security-policy")).toContain(
-    `script-src 'nonce-${nonce}'`,
+  const response = await fetch(
+    `${base}/api/auth/password?next=https://foreign.example.test&token=ignored-query-token`,
+    { redirect: "manual" },
   );
-  expect(nonce).not.toBe("");
+  expect(response.status).toBe(303);
+  expect(response.headers.get("location")).toBe(
+    "https://club.example.test/password",
+  );
+  expect(response.headers.get("cache-control")).toBe("no-store");
   expect(response.headers.get("referrer-policy")).toBe("no-referrer");
 });
 it.each([
@@ -134,12 +197,12 @@ it.each([
   expect(response.status).toBe(503);
   expect(await response.text()).not.toContain("PRIVATE_PASSWORD");
 });
-it("uses the backend for setup links and the frontend for login, without retaining query parameters", () => {
+it("uses the frontend for setup and login without retaining configured paths or queries", () => {
   vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test/unused?tracking=1");
   vi.stubEnv("PUBLIC_AUTH_URL", "https://api.example.test/unused?tracking=1");
   const token = "A".repeat(43);
   expect(publicAccessUrl(token).toString()).toBe(
-    `https://api.example.test/api/auth/password#token=${token}`,
+    `https://club.example.test/password#token=${token}`,
   );
   expect(publicAccessUrl().toString()).toBe("https://club.example.test/login");
 });
@@ -148,7 +211,7 @@ it("supports local HTTP in development, but never another local scheme", () => {
   vi.stubEnv("PUBLIC_APP_URL", "http://localhost:8081");
   vi.stubEnv("PUBLIC_AUTH_URL", "http://127.0.0.1:3000");
   expect(publicAccessUrl("local-test-token").protocol).toBe("http:");
-  vi.stubEnv("PUBLIC_AUTH_URL", "ftp://localhost");
+  vi.stubEnv("PUBLIC_APP_URL", "ftp://localhost");
   expect(() => publicAccessUrl("local-test-token")).toThrow(
     "Invalid public access URL",
   );
@@ -156,7 +219,7 @@ it("supports local HTTP in development, but never another local scheme", () => {
 it("rejects credentials in the mail-link origin without exposing their value", () => {
   vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
   vi.stubEnv(
-    "PUBLIC_AUTH_URL",
+    "PUBLIC_APP_URL",
     "https://member:PRIVATE_PASSWORD@api.example.test",
   );
   expect(() => publicAccessUrl("local-test-token")).toThrow(
