@@ -2,6 +2,19 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Остаток backend после выпуска — 29 октября
+
+- [x] Freshfetch:4c3bbf2d совпадает со staging, исходное дерево чистое.
+- [x] Сверить план с реальным выпуском681bcec5/0046/0047 и историческими галочками.
+- [x] Backend117/11files/0skip, API105 и13 безопасных live smoke прошли.
+- [x] Read-only сервер:образы681bcec5/healthy/restart0/OOMfalse, ledger48,
+  обе contactPhone; strictOFF/TESTON/боевых настроек нет, свой fixture отсутствует.
+- [x] Exact-name Docker check:старый fixture e551ed19 отсутствует, marker разрешён;
+  ничего не удалено, базы/образы/чужие контейнеры сохранены.
+- [x] Единый handoff и backend-остаток актуализированы, фронт не менять.
+- [ ] Внешние/совместные зависимости:LIVE-настройки, password decision,
+  редакторы→strict, удалённый CI/flag builds и полная внешняя приёмка.
+
 ### Объединённый выпуск 29 октября
 
 - [x] Fresh fetch2fbde316, merge с локальным a29d917, сохранить обе стороны.
@@ -200,9 +213,9 @@
   browser TEST15, сохранённая сессия profile/admin/club прошли.
 - [x] Прежние данные41таблицы/индексы/3admin digests, остальные серверные
   контейнеры и образы отката сохранены. [Отчёт](../docs/operations/independent-audit-release-2026-10-28.md).
-- [ ] Только локальный housekeeping: когда Docker ответит, проверить marker
-  daryadarcy-restore-legacy-e551ed19 и удалить fixture лишь при exact label/
-  network/tmpfs guard. На сервере временная БД уже удалена; выпуск завершён.
+- [x] Локальный housekeeping разрешён29.10: exact-name docker ps -a вернул0
+  совпадений, fixture e551ed19 отсутствует, marker обновлён; ничего не удалено.
+  На сервере временная БД уже удалена; выпуск завершён.
 
 ### Независимый аудит 28 октября: локальная реализация
 
