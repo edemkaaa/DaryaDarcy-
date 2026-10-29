@@ -192,10 +192,42 @@ async function loseCheckout(page: Page) {
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
+  await page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first()
+    .fill("+79991234567");
   await action(page, /Оплатить 790/).click();
   await expect(page.getByRole("alert").first()).toBeVisible();
   await expect(action(page, "Восстановить ссылку оплаты")).toBeEnabled();
 }
+test("a new guest purchase requires a phone before saving evidence or creating an order", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  await gotoWithSession(page, "/club?checkout=1");
+  await page
+    .getByPlaceholder("Почта для чека и входа")
+    .first()
+    .fill(user.email);
+  const phone = page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first();
+  await expect(phone).toHaveAttribute("required", "");
+  for (const value of ["", "   ", "invalid"]) {
+    await phone.fill(value);
+    await action(page, /Оплатить 790/).click();
+    await expect(page.getByRole("alert").first()).toContainText(
+      "корректный номер телефона",
+    );
+    expect(state.writes).toHaveLength(0);
+    expect(await saved(page)).toBeNull();
+  }
+  await phone.fill("+7 (999) 123-45-67");
+  await action(page, /Оплатить 790/).click();
+  await expect.poll(() => state.writes.length).toBe(1);
+  expect(state.writes[0]).not.toHaveProperty("phone");
+});
+
 test("lost response and reload preserve proof; status never creates another order; manual replay restores its URL", async ({
   page,
 }) => {
@@ -268,6 +300,10 @@ test("storage refusal prevents every checkout/status call and retains the entere
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
+  await page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first()
+    .fill("+79991234567");
   await action(page, /Оплатить 790/).click();
   await expect(page.getByRole("alert").first()).toContainText("не начата");
   await expect(
@@ -286,6 +322,10 @@ test("429 persists its pause through reload; time alone does not retry a passwor
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
+  await page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first()
+    .fill("+79991234567");
   await action(page, /Оплатить 790/).click();
   await expect(page.getByRole("alert").first()).toBeVisible();
   await expect
@@ -388,6 +428,10 @@ test("a different account cannot see the recipient, dispatch its proof, or recei
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
+  await page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first()
+    .fill("+79991234567");
   await action(page, /Оплатить 790/).click();
   await expect.poll(() => state.writes.length).toBe(1);
   const before = await saved(page);
@@ -475,6 +519,10 @@ test("a return without proof never creates a purchase and requires explicit conf
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
+  await page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first()
+    .fill("+79991234567");
   await action(page, /Оплатить 790/).click();
   await expect(action(page, /Оплатить 790/)).toBeEnabled();
   expect(state.writes.length + state.statuses.length).toBe(0);
@@ -491,6 +539,10 @@ test("leaving checkout cancels a late redirect while keeping recovery evidence",
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
+  await page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first()
+    .fill("+79991234567");
   await action(page, /Оплатить 790/).click();
   await expect.poll(() => state.writes.length).toBe(1);
   await page
@@ -521,10 +573,18 @@ test("two tabs share one guest intent without a loop of status requests", async 
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
+  await page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first()
+    .fill("+79991234567");
   await second
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
+  await second
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first()
+    .fill("+79991234567");
   await Promise.all([
     action(page, /Оплатить 790/).click(),
     action(second, /Оплатить 790/).click(),
@@ -558,6 +618,10 @@ test("a client timeout retains the keys and checks the committed order without r
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
+  await page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first()
+    .fill("+79991234567");
   await action(page, /Оплатить 790/).click();
   await expect.poll(() => state.writes.length).toBe(1);
   const before = await saved(page);

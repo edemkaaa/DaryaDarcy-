@@ -10,7 +10,6 @@ import {
   Background,
   ScrollArea,
   Typography,
-  Field,
   Action,
   Spinner,
   Collection,
@@ -22,6 +21,7 @@ import { useAuth } from "@/domain/session/session-context";
 import { SessionStatus } from "@/domain/session/session-status";
 import { SubscriptionStatus } from "@/domain/subscription/subscription-status";
 import { useClubPayment } from "./use-club-payment";
+import { GuestContactFields } from "./guest-contact-fields";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
@@ -36,7 +36,6 @@ import { useRouter } from "@/shared/navigation/router";
 import {
   PAPER_TEXTURE_URI,
   CLUB_BANNER_URL,
-  BROWN_MUTED,
   CREAM,
   OLIVE,
   LETTER_CAROUSEL_IMAGES,
@@ -75,12 +74,14 @@ function LegacyClubScreen() {
     error: sessionError,
   } = useAuth();
   const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
   const forceCheckout = navigation?.checkout === true;
   const justPaid = navigation?.paymentReturn === true;
   const payment = useClubPayment({
     active,
     returnKey: justPaid ? navigation.key : null,
     guestEmail,
+    guestPhone,
     prodamusTest,
   });
   const payError = payment.payError;
@@ -227,20 +228,13 @@ function LegacyClubScreen() {
                 .join(" ")}
             >
               {!isAuthenticated ? (
-                <Field
-                  placeholder="Почта для чека и входа"
-                  placeholderColor={BROWN_MUTED}
-                  autoCapitalize="off"
-                  inputMode="email"
-                  type="email"
-                  aria-label="Почта для чека и входа"
-                  autoComplete="email"
-                  maxLength={320}
+                <GuestContactFields
+                  email={payment.savedGuestEmail ?? guestEmail}
+                  phone={guestPhone}
                   disabled={payment.busy}
-                  value={payment.savedGuestEmail ?? guestEmail}
                   readOnly={payment.guestEmailLocked}
-                  onValueChange={setGuestEmail}
-                  className={classes.guestEmail}
+                  onEmailChange={setGuestEmail}
+                  onPhoneChange={setGuestPhone}
                 />
               ) : null}
               <Action
@@ -542,20 +536,13 @@ function LegacyClubScreen() {
                     : "Автосписание каждый месяц. Отменить можно в профиле в любой момент — доступ сохранится до конца оплаченного периода."}
                 </Typography>
                 {!isAuthenticated ? (
-                  <Field
-                    placeholder="Почта для чека и входа"
-                    placeholderColor={BROWN_MUTED}
-                    autoCapitalize="off"
-                    inputMode="email"
-                    type="email"
-                    aria-label="Почта для чека и входа"
-                    autoComplete="email"
-                    maxLength={320}
+                  <GuestContactFields
+                    email={payment.savedGuestEmail ?? guestEmail}
+                    phone={guestPhone}
                     disabled={payment.busy}
-                    value={payment.savedGuestEmail ?? guestEmail}
                     readOnly={payment.guestEmailLocked}
-                    onValueChange={setGuestEmail}
-                    className={classes.guestEmail}
+                    onEmailChange={setGuestEmail}
+                    onPhoneChange={setGuestPhone}
                   />
                 ) : null}
                 <Action

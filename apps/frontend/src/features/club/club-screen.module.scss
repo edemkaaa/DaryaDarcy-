@@ -94,6 +94,19 @@
     margin-bottom: 4px;
   }
 
+  .guestPhone {
+    margin-top: 8px;
+  }
+
+  .guestPhoneHint {
+    margin: 2px 0 4px;
+    padding-left: 2px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 18px;
+    color: var(--muted);
+  }
+
   .action {
     flex-direction: row;
     align-items: center;

@@ -22,6 +22,7 @@ import {
 } from "./payment-mode";
 import { useNormalClubPayment } from "./use-normal-club-payment";
 import { useGuestClubPayment } from "./use-guest-club-payment";
+import { supportPhoneInput } from "./support-phone";
 
 const uncertainCheckout =
   "Создание ссылки не подтверждено. Если вы уже оплатили, не платите повторно: проверьте доступ или обратитесь в поддержку.";
@@ -50,11 +51,13 @@ export function useClubPayment({
   active,
   returnKey,
   guestEmail,
+  guestPhone = "",
   prodamusTest = false,
 }: {
   active: boolean;
   returnKey: string | null;
   guestEmail: string;
+  guestPhone?: string;
   prodamusTest?: boolean;
 }) {
   const { isAuthenticated } = useAuth();
@@ -63,6 +66,7 @@ export function useClubPayment({
     active,
     returnKey,
     guestEmail,
+    guestPhone,
   });
   const normal =
     !guest.handlesPurchase &&
@@ -73,6 +77,7 @@ export function useClubPayment({
     active: active && !normal && !guest.handlesPurchase,
     returnKey,
     guestEmail,
+    guestPhone,
     prodamusTest,
   });
   const recovery = useNormalClubPayment({ enabled: normal, active, returnKey });
@@ -104,11 +109,13 @@ function useLegacyClubPayment({
   active,
   returnKey,
   guestEmail,
+  guestPhone = "",
   prodamusTest = false,
 }: {
   active: boolean;
   returnKey: string | null;
   guestEmail: string;
+  guestPhone?: string;
   prodamusTest?: boolean;
 }) {
   const retryLabel = prodamusTest ? "Проверить доступ" : "Я уже оплатила";
@@ -173,6 +180,13 @@ function useLegacyClubPayment({
           ? "В аккаунте нет почты. Для оплаты обратитесь в поддержку."
           : "Укажите корректную почту для чека и входа.",
       );
+      return;
+    }
+    const phone = supportPhoneInput.safeParse(
+      isAuthenticated ? undefined : guestPhone,
+    );
+    if (!phone.success || (!isAuthenticated && !phone.data)) {
+      setPayError("Укажите корректный номер телефона.");
       return;
     }
     if (

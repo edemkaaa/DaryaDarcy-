@@ -21,6 +21,7 @@ import {
   type GuestCheckoutIntent,
 } from "./guest-normal-checkout";
 import type { NormalCheckoutStatus } from "./normal-checkout";
+import { supportPhoneInput } from "./support-phone";
 
 type PurchaseState = {
   identity: string;
@@ -50,11 +51,13 @@ export function useGuestClubPayment({
   active,
   returnKey,
   guestEmail,
+  guestPhone = "",
 }: {
   enabled: boolean;
   active: boolean;
   returnKey: string | null;
   guestEmail: string;
+  guestPhone?: string;
 }) {
   const { user, loading, error, refreshError } = useAuth();
   const utils = trpc.useUtils();
@@ -280,6 +283,12 @@ export function useGuestClubPayment({
             : guestEmail || saved?.email || "",
         plan: saved?.plan ?? ("monthly" as const),
       };
+      // Existing purchases keep their original contact data and recovery proof.
+      if (!saved || terminal) {
+        const phone = supportPhoneInput.safeParse(guestPhone);
+        if (!phone.success || !phone.data)
+          throw new Error("Укажите корректный номер телефона.");
+      }
       let intent: GuestCheckoutIntent;
       if (terminal && current?.intent) {
         const next = await journal.next(
