@@ -16,7 +16,7 @@ vi.mock("../apps/backend/src/content/comments", () => ({ listCommentReports: asy
 import { appRouter } from "../apps/backend/src/routers";
 import { userHasClubAccess } from "../apps/backend/src/_core/trpc";
 const member: User = {
-  id: 7, openId: "member", email: "member@example.test", name: null, phone: null,
+  id: 7, openId: "member", email: "member@example.test", name: null, phone: null, contactPhone: null,
   passwordHash: null, sessionVersion: 0, profileRevision: 0, loginMethod: "email", gender: null, avatarUrl: null, role: "user",
   blockedAt: null, blockedReason: null, accountDeletionRequestedAt: null,
   createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date(),

@@ -28,8 +28,8 @@ describe("separate fresh-install migration manifest", () => {
     const before = JSON.stringify(journal);
     const result = await fresh(journal, files);
     expect(result.issues).toEqual([]);
-    expect(result.migrations).toHaveLength(47);
-    expect(result.migrations.at(-1)?.tag).toBe("0046_checkout_contact_phone");
+    expect(result.migrations).toHaveLength(48);
+    expect(result.migrations.at(-1)?.tag).toBe("0047_user_contact_phone");
     expect(result.migrations.slice(17, 20).map((row) => row.tag)).toEqual([
       "0017_consent_text",
       "0018_push_consent_text",

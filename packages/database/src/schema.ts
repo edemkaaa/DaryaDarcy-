@@ -21,6 +21,8 @@ export const users = mysqlTable("users", {
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
+  /** Self-reported checkout contact; never verified or used for authentication. */
+  contactPhone: varchar("contactPhone", { length: 16 }),
   phone: varchar("phone", { length: 16 }).unique(),
   passwordHash: varchar("passwordHash", { length: 255 }),
   sessionVersion: int("sessionVersion").default(0).notNull(),

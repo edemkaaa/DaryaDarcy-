@@ -37,7 +37,7 @@ const buyer: User = {
   openId: "shop-composition-fixture",
   email: "buyer@example.test",
   name: null,
-  phone: null,
+  phone: null, contactPhone: null,
   passwordHash: null,
   sessionVersion: 0, profileRevision: 0,
   loginMethod: "email",

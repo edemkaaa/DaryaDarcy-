@@ -229,7 +229,7 @@ export async function createGuestNormalCheckout(
   const contactPhone = requireCheckoutContact(input.contactPhone);
   assertClubCheckoutConfigured(input.plan);
   // Preserve existing guest registration policy. No session, credentials or grant.
-  const user = await ensureUserByEmail(input.email);
+  const user = await ensureUserByEmail(input.email, contactPhone);
   try {
     return await database.transaction(
       async (tx) => {

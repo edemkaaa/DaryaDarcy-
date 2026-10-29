@@ -13,7 +13,7 @@ const member: User = {
   openId: "subscription-fixture",
   email: "member@example.test",
   name: null,
-  phone: null,
+  phone: null, contactPhone: null,
   passwordHash: null,
   sessionVersion: 0, profileRevision: 0,
   loginMethod: "email",

@@ -23,7 +23,7 @@ const actor: User = {
   openId: "body-member",
   name: null,
   email: "body@example.test",
-  phone: null,
+  phone: null, contactPhone: null,
   passwordHash: null,
   sessionVersion: 0, profileRevision: 0,
   loginMethod: "email",

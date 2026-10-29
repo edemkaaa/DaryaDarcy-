@@ -91,6 +91,7 @@ export class ProdamusTestClubService {
     plan: "monthly" | "semiannual",
     intentKey?: unknown,
     contactPhone?: string,
+    contactActor?: User | null,
   ) {
     const configured = requireProdamusTestConfiguration();
     if (plan !== "monthly" || intentKey !== undefined)
@@ -98,7 +99,7 @@ export class ProdamusTestClubService {
         code: "PRECONDITION_FAILED",
         message: unavailable,
       });
-    const user = existing || (await db.ensureUserByEmail(email));
+    const user = existing || (await db.ensureUserByEmail(email, contactPhone));
     const orderId = `club-test-${user.id}-${randomUUID()}`;
     const payload = {
       do: "pay",
@@ -127,6 +128,7 @@ export class ProdamusTestClubService {
       orderId,
       email,
       contactPhone,
+      contactActor: contactActor ?? undefined,
       sum: "790.00",
     });
     return { url, user: null } as const;

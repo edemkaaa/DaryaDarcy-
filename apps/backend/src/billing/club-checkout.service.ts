@@ -72,6 +72,7 @@ export class ClubCheckoutService {
         plan,
         intentKey,
         contactPhone,
+        actor,
       );
     if (selected && selected !== "false" && selected !== "true")
       throw new TRPCError({
@@ -100,7 +101,7 @@ export class ClubCheckoutService {
       });
     assertClubCheckoutConfigured(plan);
     // An email names the billing recipient, not a proven authenticated identity.
-    const user = actor || existing || (await db.ensureUserByEmail(email));
+    const user = actor || existing || (await db.ensureUserByEmail(email, contactPhone));
     const orderId =
       plan === "semiannual"
         ? `club6m-${user.id}-${randomUUID()}`
@@ -111,6 +112,7 @@ export class ClubCheckoutService {
       orderId,
       email,
       contactPhone,
+      contactActor: actor ?? undefined,
       sum: plan === "semiannual" ? CLUB_SEMIANNUAL_PRICE : CLUB_PRICE,
     });
     return { url, user: null };

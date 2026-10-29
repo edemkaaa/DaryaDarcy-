@@ -27,7 +27,7 @@ const member = {
   role: "user",
   sessionVersion: 0, profileRevision: 0,
   blockedAt: null,
-  phone: null,
+  phone: null, contactPhone: "+79991234567",
   passwordHash: null,
   loginMethod: "email",
   gender: null,

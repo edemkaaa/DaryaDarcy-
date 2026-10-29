@@ -12,6 +12,7 @@ export async function listAdminMembers(db: Database) {
     .select({
       id: users.id,
       email: users.email,
+      contactPhone: users.contactPhone,
       name: users.name,
       role: users.role,
       createdAt: users.createdAt,

@@ -147,6 +147,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await rows("SELECT contactPhone FROM club_payments WHERE userId=981401")).toEqual([{ contactPhone: null }]);
     });
     it("requires contact before new guest creation and preserves it on replay", async () => {
+      await conn.query("UPDATE users SET contactPhone='+12025550123' WHERE id=981401");
       const { contactPhone: ignored, ...missing } = input;
       expect((await call("createGuestNormalCheckout", missing)).code).toBe(400);
       expect(await rows("SELECT orderId FROM club_payments WHERE userId=981401")).toHaveLength(0);
@@ -157,6 +158,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await create()).data).toEqual(first.data);
       expect(await rows("SELECT orderId FROM club_payments WHERE userId=981401")).toHaveLength(1);
       expect((await rows("SELECT phone FROM users WHERE id=981401"))[0].phone).toBeNull();
+      expect(await rows("SELECT contactPhone FROM users WHERE id=981401")).toEqual([{ contactPhone: "+12025550123" }]);
     });
     it("replays one order without a login cookie, identity changes or an access grant", async () => {
       const identity = await rows(
@@ -230,6 +232,8 @@ describe.skipIf(!testDatabaseUrl)(
       expect(
         await rows("SELECT id FROM users WHERE email=?", [emails[2]]),
       ).toHaveLength(1);
+      expect(await rows("SELECT email,contactPhone,phone FROM users WHERE email=?", [emails[2]]))
+        .toEqual([{ email: emails[2], contactPhone: input.contactPhone, phone: null }]);
       expect(
         await rows("SELECT orderId FROM club_payments WHERE email=?", [
           emails[2],

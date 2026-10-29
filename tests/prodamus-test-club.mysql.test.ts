@@ -299,8 +299,10 @@ describe.skipIf(!testDatabaseUrl)(
         expect(url.searchParams.has(name)).toBe(false);
       const id = url.searchParams.get("order_id");
       expect(id).toMatch(/^club-test-94321-[a-f0-9-]{36}$/);
-      const [contacts] = await conn.query<RowDataPacket[]>("SELECT contactPhone FROM club_payments WHERE orderId=?", [id]);
-      expect(contacts).toEqual([{ contactPhone: "+79991234567" }]);
+      const [contacts] = await conn.query<RowDataPacket[]>(
+        "SELECT email,contactPhone,userId FROM club_payments WHERE orderId=?", [id],
+      );
+      expect(contacts).toEqual([{ email, contactPhone: "+79991234567", userId: 94321 }]);
       const [owners] = await conn.query<RowDataPacket[]>("SELECT phone FROM users WHERE id=94321");
       expect(owners).toEqual([{ phone: null }]);
       expect(url.searchParams.has("customer_phone")).toBe(false);

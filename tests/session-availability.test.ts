@@ -24,7 +24,7 @@ const member: User = {
   openId: "session-availability-fixture",
   name: "Fixture member",
   email: "availability@example.test",
-  phone: null,
+  phone: null, contactPhone: null,
   passwordHash: "PRIVATE_PASSWORD_HASH_FIXTURE",
   sessionVersion: 4, profileRevision: 0,
   loginMethod: "email",

@@ -31,6 +31,7 @@ export async function membersPage(
       .select({
         id: users.id,
         email: users.email,
+        contactPhone: users.contactPhone,
         name: users.name,
         role: users.role,
         createdAt: users.createdAt,

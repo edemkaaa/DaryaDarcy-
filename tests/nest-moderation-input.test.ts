@@ -46,7 +46,7 @@ describe("moderation ID inputs over native HTTP", () => {
     role: "moderator",
     name: null,
     email: null,
-    phone: null,
+    phone: null, contactPhone: null,
     passwordHash: null,
     sessionVersion: 0, profileRevision: 0,
     loginMethod: null,

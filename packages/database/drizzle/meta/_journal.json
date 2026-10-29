@@ -330,6 +330,13 @@
       "when": 1793275200000,
       "tag": "0046_checkout_contact_phone",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "5",
+      "when": 1793275201000,
+      "tag": "0047_user_contact_phone",
+      "breakpoints": true
     }
   ]
 }

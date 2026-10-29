@@ -280,6 +280,9 @@ export async function createNormalCheckout(
       )
         throw unavailable();
     } else {
+      // A fresh authenticated intent updates the owner contact atomically.
+      // Replaying an older intent must not revert a newer contact.
+      await tx.update(users).set({ contactPhone }).where(eq(users.id, current.id));
       await tx
         .insert(clubPayments)
         .values({ userId: actor.id, orderId, email, sum, contactPhone });

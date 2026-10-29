@@ -47,7 +47,7 @@ it("uses the already accepted fresh identities as the canonical release journal 
     ),
   ).toEqual({
     issues: [],
-    pending: ["0042_read_lookup_indexes", "0043_public_photo_uploads", "0044_post_listing_indexes", "0045_profile_revision", "0046_checkout_contact_phone"],
+    pending: ["0042_read_lookup_indexes", "0043_public_photo_uploads", "0044_post_listing_indexes", "0045_profile_revision", "0046_checkout_contact_phone", "0047_user_contact_phone"],
   });
   const oldHole = canonical.migrations.filter((m) => !/^001[789]_/.test(m.tag));
   expect(

@@ -51,7 +51,7 @@ describe("profile use cases over native HTTP", () => {
     openId: "synthetic-profile-member",
     name: null,
     email: null,
-    phone: null,
+    phone: null, contactPhone: null,
     passwordHash: null,
     sessionVersion: 0, profileRevision: 0,
     loginMethod: null,

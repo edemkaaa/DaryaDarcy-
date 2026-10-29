@@ -449,6 +449,7 @@ export async function processScheduledAccountDeletions(): Promise<number> {
         name: DELETED_USER_LABEL,
         email: null,
         phone: null,
+        contactPhone: null,
         avatarUrl: null,
         passwordHash: null,
         loginMethod: null,

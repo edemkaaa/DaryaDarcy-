@@ -136,10 +136,20 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
     const first = await request("createNormalCheckout", { ...input, contactPhone: "8 (999) 123-45-67" });
     expect(first.code).toBe(200);
     expect(await rows("SELECT contactPhone FROM club_payments WHERE userId=9140")).toEqual([{ contactPhone: "+79991234567" }]);
+    expect(await rows("SELECT contactPhone FROM users WHERE id=9140")).toEqual([{ contactPhone: "+79991234567" }]);
     expect((await request("createNormalCheckout", { ...input, contactPhone: "+447700900123" })).code).toBe(409);
     expect((await request("createNormalCheckout", input)).code).toBe(200);
     expect(await rows("SELECT orderId FROM club_payments WHERE userId=9140")).toHaveLength(1);
     expect((await rows("SELECT phone FROM users WHERE id=9140"))[0].phone).toBeNull();
+  });
+  it("replaying an old intent cannot revert the contact saved by a newer intent", async () => {
+    expect((await request("createNormalCheckout", input)).code).toBe(200);
+    const newer = { ...input, idempotencyKey: "136f6bc5-e4c7-442a-b3df-68d44b7ee823", contactPhone: "+447700900123" };
+    expect((await request("createNormalCheckout", newer)).code).toBe(200);
+    expect((await request("createNormalCheckout", input)).code).toBe(200);
+    expect((await request("createNormalCheckout", { ...input, contactPhone: "+12025550123" })).code).toBe(409);
+    expect(await rows("SELECT contactPhone FROM users WHERE id=9140")).toEqual([{ contactPhone: newer.contactPhone }]);
+    expect(await rows("SELECT orderId FROM club_payments WHERE userId=9140")).toHaveLength(2);
   });
   it("replays one committed checkout without another pending order or identity effect", async () => {
     const identity = await rows(

@@ -20,7 +20,7 @@ function createAuthContext(): {
     id: 1,
     openId: "sample-user",
     email: "sample@example.com",
-    phone: null,
+    phone: null, contactPhone: null,
     passwordHash: null,
     sessionVersion: 0, profileRevision: 0,
     blockedAt: null,

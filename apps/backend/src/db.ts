@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { TRPCError } from "@trpc/server";
 import { eq, inArray } from "drizzle-orm";
 import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
@@ -191,6 +192,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     };
 
     textFields.forEach(assignNullable);
+    // Guest checkout may capture a contact on INSERT, never replace an
+    // existing identity's contact through a duplicate email/openId.
+    if (user.contactPhone !== undefined) values.contactPhone = user.contactPhone;
     if (user.name !== undefined) updateSet.profileRevision = sql`${users.profileRevision}+1`;
 
     if (user.lastSignedIn !== undefined) {
@@ -271,7 +275,7 @@ export async function getUserByPhone(phone: string): Promise<User | undefined> {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function ensureUserByEmail(email: string): Promise<User> {
+export async function ensureUserByEmail(email: string, contactPhone?: string): Promise<User> {
   const normalized = normalizeEmail(email);
   const existing = await getUserByEmail(normalized);
   if (existing) return existing;
@@ -279,6 +283,7 @@ export async function ensureUserByEmail(email: string): Promise<User> {
   await upsertUser({
     openId,
     email: normalized,
+    contactPhone,
     name: null,
     loginMethod: "email",
     lastSignedIn: new Date(),
@@ -373,6 +378,7 @@ export async function getPostsByIds(ids: number[]) {
 export async function listAdminMembers(): Promise<{
   id: number;
   email: string | null;
+  contactPhone: string | null;
   name: string | null;
   role: string | null;
   createdAt: Date;
@@ -1021,16 +1027,40 @@ export async function settleClubPayment(input: Parameters<typeof settleClubOrder
   return settleClubOrder(database, input);
 }
 
-export async function createClubPayment(data: { userId: number; orderId: string; email?: string | null; contactPhone?: string | null; sum:string }): Promise<void> {
+export async function createClubPayment(data: {
+  userId: number;
+  orderId: string;
+  email?: string | null;
+  contactPhone?: string | null;
+  contactActor?: Pick<User, "id" | "openId" | "sessionVersion">;
+  sum: string;
+}): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(clubPayments).values({
-    userId: data.userId,
-    orderId: data.orderId,
-    email: data.email ?? null,
-    contactPhone: data.contactPhone ?? null,
-    status: "pending",
-    sum: data.sum,
+  await db.transaction(async (tx) => {
+    // An email on a public checkout is not permission to edit that account.
+    // Fence the authenticated owner under the same lock as the payment write.
+    if (data.contactActor) {
+      const actor = data.contactActor;
+      const [current] = await tx.select().from(users)
+        .where(eq(users.id, actor.id)).for("update");
+      if (!current || current.openId !== actor.openId || current.sessionVersion !== actor.sessionVersion)
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      if (current.blockedAt || current.accountDeletionRequestedAt)
+        throw new TRPCError({ code: "FORBIDDEN" });
+      if (current.id !== data.userId || normalizeEmail(current.email || "") !== normalizeEmail(data.email || ""))
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Используйте почту своего аккаунта" });
+      if (data.contactPhone)
+        await tx.update(users).set({ contactPhone: data.contactPhone }).where(eq(users.id, current.id));
+    }
+    await tx.insert(clubPayments).values({
+      userId: data.userId,
+      orderId: data.orderId,
+      email: data.email ?? null,
+      contactPhone: data.contactPhone ?? null,
+      status: "pending",
+      sum: data.sum,
+    });
   });
 }
 

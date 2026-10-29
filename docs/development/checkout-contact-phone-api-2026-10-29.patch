@@ -1,0 +1,18 @@
+--- a/apps/frontend/src/shared/api/contract.ts
++++ b/apps/frontend/src/shared/api/contract.ts
+@@ -846,6 +846,7 @@
+         output: Array<{
+           id: number;
+           email: string | null;
++          contactPhone: string | null;
+           name: string | null;
+           role: string | null;
+           createdAt: Date;
+@@ -869,6 +870,7 @@
+             clubExpiresAt: Date | null;
+             id: number;
+             email: string | null;
++            contactPhone: string | null;
+             name: string | null;
+             role: "user" | "moderator" | "admin";
+             createdAt: Date;
