@@ -131,6 +131,7 @@ describe("notifications over native HTTP", () => {
     const feed = { id: 9701, text: "synthetic public announcement" };
     const club = { id: 9702, text: "synthetic private announcement" };
     const active: ClubPayment = {
+      contactPhone: null,
       id: 9703,
       userId: member.id,
       orderId: "synthetic-latest-subscription",

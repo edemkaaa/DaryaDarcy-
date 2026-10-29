@@ -9,6 +9,8 @@ import {
   type NormalCheckoutStatus,
 } from "./normal-checkout";
 
+import { contactPhoneSchema } from "@shared/checkout-contact";
+
 export const GUEST_CHECKOUT_STORAGE_KEY = "darcy:guest:normal-checkout:v1";
 const selectionSchema = z.object({
   email: z
@@ -18,6 +20,7 @@ const selectionSchema = z.object({
     .max(320)
     .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/),
   plan: z.enum(["monthly", "semiannual"]),
+  contactPhone: contactPhoneSchema.optional(),
 });
 const intentSchema = selectionSchema
   .extend({
@@ -144,6 +147,9 @@ export class GuestCheckoutJournal {
     const parsed = selectionSchema.safeParse(selection);
     if (!parsed.success)
       throw new Error("Укажите корректную почту для чека и входа.");
+    const phone = contactPhoneSchema.safeParse(parsed.data.contactPhone);
+    if (!phone.success)
+      throw new Error("Укажите корректный номер телефона с кодом страны.");
     if (
       typeof crypto === "undefined" ||
       !crypto.randomUUID ||
@@ -165,6 +171,7 @@ export class GuestCheckoutJournal {
     return this.persist({
       version: 1,
       ...parsed.data,
+      contactPhone: phone.data,
       idempotencyKey,
       recoveryToken,
       ownerId: null,
@@ -179,6 +186,7 @@ export class GuestCheckoutJournal {
       current.recoveryToken !== intent.recoveryToken ||
       current.email !== intent.email ||
       current.plan !== intent.plan ||
+      current.contactPhone !== intent.contactPhone ||
       current.ownerId !== intent.ownerId
     )
       throw changed();
@@ -202,7 +210,8 @@ export class GuestCheckoutJournal {
         if (
           !parsed.success ||
           parsed.data.email !== current.email ||
-          parsed.data.plan !== current.plan
+          parsed.data.plan !== current.plan ||
+          parsed.data.contactPhone !== current.contactPhone
         )
           throw new Error(
             "Сначала проверьте сохранённую покупку. Её почту и срок доступа менять нельзя.",
@@ -332,7 +341,12 @@ export async function createGuestCheckout(
   try {
     const result = parseNormalCheckoutResult(
       await client.club.createGuestNormalCheckout.mutate(
-        { ...proof(intent), email: intent.email, plan: intent.plan },
+        {
+          ...proof(intent),
+          email: intent.email,
+          plan: intent.plan,
+          contactPhone: intent.contactPhone,
+        },
         { signal },
       ),
     );

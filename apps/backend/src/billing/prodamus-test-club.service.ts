@@ -90,6 +90,7 @@ export class ProdamusTestClubService {
     existing: User | null | undefined,
     plan: "monthly" | "semiannual",
     intentKey?: unknown,
+    contactPhone?: string,
   ) {
     const configured = requireProdamusTestConfiguration();
     if (plan !== "monthly" || intentKey !== undefined)
@@ -125,6 +126,7 @@ export class ProdamusTestClubService {
       userId: user.id,
       orderId,
       email,
+      contactPhone,
       sum: "790.00",
     });
     return { url, user: null } as const;

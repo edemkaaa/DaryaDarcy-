@@ -119,6 +119,7 @@ export const createClubRouter = (
         z
           .object({
             email: z.string().email().optional(),
+            contactPhone: z.string().max(40).optional(),
             plan: z.enum(["monthly", "semiannual"]).optional(),
           })
           .optional(),

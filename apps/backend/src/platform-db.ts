@@ -444,6 +444,7 @@ export async function processScheduledAccountDeletions(): Promise<number> {
       await cancelDeletedUserEmailBindings(tx, user.id);
       await retireContentRecovery(tx, user.id);
       await retirePublicPhotoReceipts(tx, user.id);
+      await tx.update(clubPayments).set({ contactPhone: null }).where(eq(clubPayments.userId, user.id));
       await tx.update(users).set({
         name: DELETED_USER_LABEL,
         email: null,

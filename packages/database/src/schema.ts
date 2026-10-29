@@ -401,6 +401,7 @@ export type PenPalMatch = typeof penPalMatches.$inferSelect;
 export type InsertPenPalMatch = typeof penPalMatches.$inferInsert;
 
 export const clubPayments = mysqlTable("club_payments", {
+  contactPhone: varchar("contactPhone", { length: 16 }),
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   orderId: varchar("orderId", { length: 64 }).notNull().unique(),

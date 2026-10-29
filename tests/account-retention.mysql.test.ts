@@ -320,6 +320,12 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     const [again] = await conn.query<RowDataPacket[]>("SELECT sessionVersion FROM users WHERE id=92101");
     expect(again).toEqual([{sessionVersion:8}]);
   });
+  it("clears the unverified checkout contact when an eligible account is anonymized", async () => {
+    await conn.query("INSERT INTO club_payments(userId,orderId,status,contactPhone) VALUES(92101,'retention-fixture-contact','failed','+79991234567')");
+    expect(await processScheduledAccountDeletions()).toBe(1);
+    const [rows] = await conn.query<RowDataPacket[]>("SELECT orderId,contactPhone FROM club_payments WHERE orderId='retention-fixture-contact'");
+    expect(rows).toEqual([{ orderId: 'retention-fixture-contact', contactPhone: null }]);
+  });
   it("completes eligible scrubbing once and retains the discussion structure", async () => {
     expect(await processScheduledAccountDeletions()).toBe(1);
     const state = await snapshot();

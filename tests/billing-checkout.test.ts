@@ -103,7 +103,7 @@ describe("checkout cannot establish identity or payment", () => {
             caller(
               null,
               "8d427a00-4a92-4508-874c-b265d7e92d1c",
-            ).club.createCheckout({ email: member.email!, plan }),
+            ).club.createCheckout({ contactPhone: "+79991234567", email: member.email!, plan }),
           ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
         }
       }
@@ -118,7 +118,7 @@ describe("checkout cannot establish identity or payment", () => {
       throw new Error("synthetic checkout failure");
     });
     await expect(
-      caller().club.createCheckout({ email: member.email! }),
+      caller().club.createCheckout({ contactPhone: "+79991234567", email: member.email! }),
     ).rejects.toThrow("synthetic checkout failure");
     expect(state.orders).toEqual([]);
     expect(state.issued).toBe(false);
@@ -138,7 +138,7 @@ describe("checkout cannot establish identity or payment", () => {
       for (const existing of [false, true]) {
         state.existing = existing;
         await expect(
-          caller().club.createCheckout({ email: member.email! }),
+          caller().club.createCheckout({ contactPhone: "+79991234567", email: member.email! }),
         ).rejects.toMatchObject({
           code: "PRECONDITION_FAILED",
           message: "Оплата временно недоступна. Попробуйте позже.",
@@ -153,7 +153,7 @@ describe("checkout cannot establish identity or payment", () => {
     vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "");
     state.existing = false;
     const result = await caller().club.createCheckout({
-      email: member.email!,
+      contactPhone: "+79991234567", email: member.email!,
       plan: "semiannual",
     });
     expect(new URL(result.url).searchParams.has("subscription")).toBe(false);
@@ -167,7 +167,7 @@ describe("checkout cannot establish identity or payment", () => {
       vi.spyOn(Date, "now").mockReturnValue(checkoutClock);
       const results = await Promise.all(
         Array.from({ length: 8 }, () =>
-          caller().club.createCheckout({ email: member.email!, plan }),
+          caller().club.createCheckout({ contactPhone: "+79991234567", email: member.email!, plan }),
         ),
       );
       expect(new Set(state.orders).size).toBe(8);
@@ -187,21 +187,21 @@ describe("checkout cannot establish identity or payment", () => {
     },
   );
   it("creates checkout without logging into a passwordless existing account", async () => {
-    const result = await caller().club.createCheckout({ email: member.email! });
+    const result = await caller().club.createCheckout({ contactPhone: "+79991234567", email: member.email! });
     expect(result.url).toContain("order_id=club-7-");
     expect(result.user).toBeNull();
     expect(state.issued).toBe(false);
   });
   it("can pay for an existing account without changing its password or authenticating", async () => {
     state.password = true;
-    const result = await caller().club.createCheckout({ email: member.email! });
+    const result = await caller().club.createCheckout({ contactPhone: "+79991234567", email: member.email! });
     expect(result.user).toBeNull();
     expect(state.issued).toBe(false);
   });
   it("rejects a blocked checkout email", async () => {
     state.blocked = true;
     await expect(
-      caller().club.createCheckout({ email: member.email! }),
+      caller().club.createCheckout({ contactPhone: "+79991234567", email: member.email! }),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(state.orders).toEqual([]);
   });

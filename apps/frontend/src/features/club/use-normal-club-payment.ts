@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { contactPhoneSchema } from "@shared/checkout-contact";
 import { useAuth } from "@/domain/session/session-context";
 import { checkOperationAccessError } from "@/domain/session/use-session-operation";
 import { trpc } from "@/shared/api/trpc";
@@ -45,10 +46,12 @@ export function useNormalClubPayment({
   enabled,
   active,
   returnKey,
+  contactPhone,
 }: {
   enabled: boolean;
   active: boolean;
   returnKey: string | null;
+  contactPhone: string;
 }) {
   const { user, loading, error, refreshError } = useAuth();
   const utils = trpc.useUtils();
@@ -222,13 +225,30 @@ export function useNormalClubPayment({
         current?.result?.state === "failed";
       if (current?.intent) journal.requireCurrent(current.intent, task.signal);
       const saved = journal.read();
+      if (
+        (!saved || terminal) &&
+        !contactPhoneSchema.safeParse(contactPhone).success
+      ) {
+        setState({
+          ownerId,
+          intent: current?.intent ?? null,
+          notice: null,
+          error: "Укажите корректный номер телефона с кодом страны.",
+        });
+        return;
+      }
       let intent: NormalCheckoutIntent;
       if (terminal && current?.intent) {
         // A separate click on "new purchase" verifies fresh terminal proof before rotating.
-        intent = await journal.next(utils.client, current.intent, task.signal);
+        intent = await journal.next(
+          utils.client,
+          current.intent,
+          task.signal,
+          contactPhone,
+        );
         task.assertCurrent();
       } else {
-        intent = saved ?? (await journal.prepare(task.signal));
+        intent = saved ?? (await journal.prepare(task.signal, contactPhone));
         task.assertCurrent();
         const checked = await checkNormalCheckout(
           utils.client,
@@ -275,6 +295,15 @@ export function useNormalClubPayment({
   return {
     normalRecovery: true,
     savedGuestEmail: null,
+    savedContactPhone:
+      current?.intent &&
+      !["succeeded", "failed"].includes(current.result?.state ?? "")
+        ? (current.intent.contactPhone ?? null)
+        : null,
+    contactPhoneLocked: Boolean(
+      current?.intent &&
+      !["succeeded", "failed"].includes(current.result?.state ?? ""),
+    ),
     guestEmailLocked: false,
     hasSavedPurchase: Boolean(current?.intent),
     purchaseLabel: terminal

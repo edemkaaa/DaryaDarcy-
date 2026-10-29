@@ -33,7 +33,7 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
             const client = createTRPCProxyClient({ links: [httpLink({url: base + "/api/trpc", transformer: superjson})] });
             const checkout = application.get(ClubCheckoutService);
             let realError;
-            try { await client.club.createCheckout.mutate({ email: "guest@example.test" }); }
+            try { await client.club.createCheckout.mutate({ email: "guest@example.test", contactPhone: "+79991234567" }); }
             catch(error) { realError = { code: error.data.code, status: error.data.httpStatus }; }
             checkout.createCheckout = async (actor, input) => {
               if (actor !== null || input.email !== "guest@example.test" || input.plan !== "semiannual") throw Error("Wrong checkout arguments");

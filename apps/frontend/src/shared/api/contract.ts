@@ -882,6 +882,7 @@ export type AppRouter = BuiltRouter<
       payments: QueryProcedure<{
         input: void;
         output: Array<{
+          contactPhone: string | null;
           id: number;
           userId: number;
           orderId: string;
@@ -1123,6 +1124,7 @@ export type AppRouter = BuiltRouter<
           recoveryToken: string;
           email: string;
           plan?: "monthly" | "semiannual" | undefined;
+          contactPhone?: string | undefined;
         };
         output:
           | { state: "pending"; orderId: string; url: string }
@@ -1189,6 +1191,7 @@ export type AppRouter = BuiltRouter<
       createNormalCheckout: MutationProcedure<{
         input: {
           idempotencyKey: string;
+          contactPhone?: string | undefined;
           plan?: "monthly" | "semiannual" | undefined;
         };
         output:
@@ -1253,6 +1256,7 @@ export type AppRouter = BuiltRouter<
         input:
           | {
               email?: string | undefined;
+              contactPhone?: string | undefined;
               plan?: "monthly" | "semiannual" | undefined;
             }
           | undefined;

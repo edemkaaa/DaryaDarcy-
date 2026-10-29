@@ -29,6 +29,7 @@ const member: User = {
 };
 const paidUntil = new Date("2026-11-01T00:00:00Z");
 const paid: ClubPayment = {
+      contactPhone: null,
   id: 11,
   userId: 7,
   orderId: "club-7-confirmed",

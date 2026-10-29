@@ -1021,13 +1021,14 @@ export async function settleClubPayment(input: Parameters<typeof settleClubOrder
   return settleClubOrder(database, input);
 }
 
-export async function createClubPayment(data: { userId: number; orderId: string; email?: string | null; sum:string }): Promise<void> {
+export async function createClubPayment(data: { userId: number; orderId: string; email?: string | null; contactPhone?: string | null; sum:string }): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.insert(clubPayments).values({
     userId: data.userId,
     orderId: data.orderId,
     email: data.email ?? null,
+    contactPhone: data.contactPhone ?? null,
     status: "pending",
     sum: data.sum,
   });

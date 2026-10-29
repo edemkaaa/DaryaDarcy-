@@ -71,20 +71,44 @@ function LegacyClubScreen() {
     : `Оплатить ${price} ₽`;
   const {
     isAuthenticated,
+    user,
     loading: authLoading,
     error: sessionError,
   } = useAuth();
   const [guestEmail, setGuestEmail] = useState("");
+  const phoneOwner = user?.id ?? null;
+  const [phoneDraft, setPhoneDraft] = useState<{
+    owner: number | null;
+    value: string;
+  }>({ owner: phoneOwner, value: "" });
+  const contactPhone = phoneDraft.owner === phoneOwner ? phoneDraft.value : "";
   const forceCheckout = navigation?.checkout === true;
   const justPaid = navigation?.paymentReturn === true;
   const payment = useClubPayment({
     active,
     returnKey: justPaid ? navigation.key : null,
     guestEmail,
+    contactPhone,
     prodamusTest,
   });
   const payError = payment.payError;
   const payLabel = payment.purchaseLabel ?? defaultPayLabel;
+  const contactPhoneField = (
+    <Field
+      placeholder="Номер телефона с кодом страны"
+      aria-label="Номер телефона"
+      type="tel"
+      inputMode="tel"
+      autoComplete="tel"
+      required
+      maxLength={40}
+      disabled={payment.busy}
+      readOnly={payment.contactPhoneLocked}
+      value={payment.savedContactPhone ?? contactPhone}
+      onValueChange={(value) => setPhoneDraft({ owner: phoneOwner, value })}
+      className={classes.guestEmail}
+    />
+  );
   const [, setActiveLetterIndex] = useState(0);
   const onLetterScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
@@ -131,6 +155,7 @@ function LegacyClubScreen() {
                   {payment.checking ? "Проверяем…" : "Проверить покупку"}
                 </Typography>
               </Action>
+              {payment.hasSavedPurchase ? contactPhoneField : null}
               {payment.hasSavedPurchase ? (
                 <Action
                   disabled={payment.disabled}
@@ -243,6 +268,7 @@ function LegacyClubScreen() {
                   className={classes.guestEmail}
                 />
               ) : null}
+              {contactPhoneField}
               <Action
                 style={({ pressed }) => ({
                   transform: cssTransform([{ scale: pressed ? 0.97 : 1 }]),
@@ -558,6 +584,7 @@ function LegacyClubScreen() {
                     className={classes.guestEmail}
                   />
                 ) : null}
+                {contactPhoneField}
                 <Action
                   style={({ pressed }) => ({
                     transform: cssTransform([{ scale: pressed ? 0.97 : 1 }]),

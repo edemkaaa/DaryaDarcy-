@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   afterAll,
   beforeAll,
@@ -26,7 +27,7 @@ import { join, resolve } from "node:path";
 describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
   let conn: Connection, app: INestApplication, base: string, bearer: string;
   const key = "ac7cb3a4-8c2e-4c87-9595-b2f5ec5b5201";
-  const input = { idempotencyKey: key, plan: "monthly" };
+  const input = { idempotencyKey: key, plan: "monthly", contactPhone: "+79991234567" };
   async function rows(query: string, values: unknown[] = []) {
     const [data] = await conn.query<RowDataPacket[]>(query, values);
     return data;
@@ -117,6 +118,28 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       (await getDb()) as unknown as { $client: { end(): Promise<void> } }
     )?.$client.end();
     vi.unstubAllEnvs();
+  });
+  it("recovers an old nullable-contact order without requiring or changing a phone", async () => {
+    const first = await request("createNormalCheckout", input);
+    expect(first.code).toBe(200);
+    const oldHash = createHash("sha256").update(JSON.stringify(["v1", "monthly", "normal-checkout@example.test"])).digest("hex");
+    await conn.query("UPDATE club_payments SET contactPhone=NULL WHERE userId=9140");
+    await conn.query("UPDATE normal_checkout_requests SET requestHash=? WHERE actorUserId=9140", [oldHash]);
+    const oldInput = { idempotencyKey: key, plan: "monthly" };
+    expect((await request("createNormalCheckout", oldInput)).data).toEqual(first.data);
+    expect(await rows("SELECT contactPhone FROM club_payments WHERE userId=9140")).toEqual([{ contactPhone: null }]);
+  });
+  it("requires contact only for a fresh order and freezes it across retries", async () => {
+    const missing = { idempotencyKey: key, plan: "monthly" };
+    expect((await request("createNormalCheckout", missing)).code).toBe(400);
+    expect(await rows("SELECT orderId FROM club_payments WHERE userId=9140")).toHaveLength(0);
+    const first = await request("createNormalCheckout", { ...input, contactPhone: "8 (999) 123-45-67" });
+    expect(first.code).toBe(200);
+    expect(await rows("SELECT contactPhone FROM club_payments WHERE userId=9140")).toEqual([{ contactPhone: "+79991234567" }]);
+    expect((await request("createNormalCheckout", { ...input, contactPhone: "+447700900123" })).code).toBe(409);
+    expect((await request("createNormalCheckout", input)).code).toBe(200);
+    expect(await rows("SELECT orderId FROM club_payments WHERE userId=9140")).toHaveLength(1);
+    expect((await rows("SELECT phone FROM users WHERE id=9140"))[0].phone).toBeNull();
   });
   it("replays one committed checkout without another pending order or identity effect", async () => {
     const identity = await rows(

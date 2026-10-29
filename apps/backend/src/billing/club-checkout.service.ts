@@ -13,7 +13,10 @@ import {
   CLUB_SEMIANNUAL_PRICE,
 } from "../prodamus";
 
+import { contactPhoneSchema } from "../../../../packages/shared/src/checkout-contact";
+
 export type ClubCheckoutInput = {
+  contactPhone?: string;
   email?: string;
   plan?: "monthly" | "semiannual";
 };
@@ -44,6 +47,15 @@ export class ClubCheckoutService {
         message: "Используйте почту своего аккаунта",
       });
     }
+    if (actor?.blockedAt) throw new TRPCError({ code: "FORBIDDEN" });
+    const selected = process.env.YOOKASSA_TEST_ENABLED;
+    const contact = contactPhoneSchema.safeParse(input?.contactPhone);
+    if (selected !== "true" && !contact.success)
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Укажите корректный номер телефона с кодом страны",
+      });
+    const contactPhone = contact.success ? contact.data : undefined;
     const existing = await db.getUserByEmail(email);
     if (actor?.blockedAt || existing?.blockedAt) {
       throw new TRPCError({
@@ -55,9 +67,12 @@ export class ClubCheckoutService {
     const prodamusTest = process.env.PRODAMUS_TEST_ENABLED;
     if (prodamusTest && prodamusTest !== "false")
       return new ProdamusTestClubService().createCheckout(
-        email, actor || existing, plan, intentKey,
+        email,
+        actor || existing,
+        plan,
+        intentKey,
+        contactPhone,
       );
-    const selected = process.env.YOOKASSA_TEST_ENABLED;
     if (selected && selected !== "false" && selected !== "true")
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
@@ -79,7 +94,10 @@ export class ClubCheckoutService {
       });
     const guestRecovery = process.env.GUEST_CHECKOUT_RECOVERY_ENABLED;
     if (!actor && guestRecovery !== undefined && guestRecovery !== "false")
-      throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Обновите страницу оплаты и повторите прежнюю заявку" });
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "Обновите страницу оплаты и повторите прежнюю заявку",
+      });
     assertClubCheckoutConfigured(plan);
     // An email names the billing recipient, not a proven authenticated identity.
     const user = actor || existing || (await db.ensureUserByEmail(email));
@@ -92,6 +110,7 @@ export class ClubCheckoutService {
       userId: user.id,
       orderId,
       email,
+      contactPhone,
       sum: plan === "semiannual" ? CLUB_SEMIANNUAL_PRICE : CLUB_PRICE,
     });
     return { url, user: null };

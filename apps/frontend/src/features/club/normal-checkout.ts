@@ -5,6 +5,8 @@ import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { invalidResponse } from "@/shared/api/errors";
 import { requirePaymentUrl } from "@/shared/navigation/external-url";
 
+import { contactPhoneSchema } from "@shared/checkout-contact";
+
 const key = z
   .string()
   .regex(
@@ -32,6 +34,7 @@ const intentSchema = z
     ownerId: z.number().int().positive().safe(),
     idempotencyKey: key,
     plan: z.enum(["monthly", "semiannual"]),
+    contactPhone: contactPhoneSchema.optional(),
     orderId: orderId.optional(),
   })
   .strict();
@@ -134,7 +137,11 @@ export class NormalCheckoutJournal {
   private newIntent(
     plan: NormalCheckoutIntent["plan"],
     previous?: NormalCheckoutIntent,
+    contactPhone?: string,
   ): NormalCheckoutIntent {
+    const phone = contactPhoneSchema.safeParse(contactPhone);
+    if (!phone.success)
+      throw new Error("Укажите корректный номер телефона с кодом страны.");
     if (typeof crypto?.randomUUID !== "function") throw unreadable();
     const idempotencyKey = key.parse(crypto.randomUUID().toLowerCase());
     if (previous?.idempotencyKey === idempotencyKey) throw unreadable();
@@ -143,6 +150,7 @@ export class NormalCheckoutJournal {
       ownerId: this.ownerId,
       idempotencyKey,
       plan,
+      contactPhone: phone.data,
     });
   }
   requireCurrent(
@@ -154,13 +162,20 @@ export class NormalCheckoutJournal {
     if (
       !current ||
       current.idempotencyKey !== intent.idempotencyKey ||
-      current.plan !== intent.plan
+      current.plan !== intent.plan ||
+      current.contactPhone !== intent.contactPhone
     )
       throw changed();
     return current;
   }
-  prepare(signal: AbortSignal): Promise<NormalCheckoutIntent> {
-    return this.locked(signal, () => this.read() ?? this.newIntent("monthly"));
+  prepare(
+    signal: AbortSignal,
+    contactPhone?: string,
+  ): Promise<NormalCheckoutIntent> {
+    return this.locked(
+      signal,
+      () => this.read() ?? this.newIntent("monthly", undefined, contactPhone),
+    );
   }
   rememberOrder(
     intent: NormalCheckoutIntent,
@@ -182,6 +197,7 @@ export class NormalCheckoutJournal {
     client: TRPCClient<AppRouter>,
     intent: NormalCheckoutIntent,
     signal: AbortSignal,
+    contactPhone?: string,
   ): Promise<NormalCheckoutIntent> {
     return this.locked(signal, async () => {
       const prior = this.requireCurrent(intent, signal);
@@ -198,7 +214,7 @@ export class NormalCheckoutJournal {
         );
       if (prior.orderId && prior.orderId !== status.orderId)
         throw invalidResponse();
-      return this.newIntent("monthly", prior);
+      return this.newIntent("monthly", prior, contactPhone);
     });
   }
 }
@@ -230,7 +246,11 @@ export async function createNormalCheckout(
   // NORMAL uses the payload key. The backend rejects the TEST-only header.
   const result = parseNormalCheckoutResult(
     await client.club.createNormalCheckout.mutate(
-      { idempotencyKey: intent.idempotencyKey, plan: intent.plan },
+      {
+        idempotencyKey: intent.idempotencyKey,
+        plan: intent.plan,
+        contactPhone: intent.contactPhone,
+      },
       { signal },
     ),
   );

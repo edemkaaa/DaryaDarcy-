@@ -14,7 +14,7 @@ import { isGuestCheckoutRecoveryEnabled } from "../apps/frontend/src/features/cl
 let values: Map<string, string>;
 let response: unknown;
 let status: number;
-const selection = { email: "guest@example.test", plan: "monthly" as const };
+const selection = { contactPhone: "+79991234567", email: "guest@example.test", plan: "monthly" as const };
 const signal = () => new AbortController().signal;
 const fetcher = vi.fn(
   async (_url: RequestInfo | URL, _options?: RequestInit) =>
@@ -96,6 +96,7 @@ it("persists a canonical email, UUID and 32 cryptographic bytes before dispatch;
     expect(JSON.parse(String(options?.body))).toEqual({
       json: {
         email: selection.email,
+        contactPhone: selection.contactPhone,
         plan: "monthly",
         idempotencyKey: intent.idempotencyKey,
         recoveryToken: intent.recoveryToken,
@@ -178,7 +179,7 @@ it.each(["succeeded", "failed"] as const)(
     const next = await journal.next(
       createTRPCClient(),
       intent,
-      { email: "second@example.test", plan: "semiannual" },
+      { email: "second@example.test", plan: "semiannual", contactPhone: "+447700900123" },
       signal(),
     );
     expect(next?.idempotencyKey).not.toBe(intent.idempotencyKey);
@@ -434,5 +435,14 @@ it("identifies a foreign recipient without exposing or deleting its saved proof"
     expect(error).toMatchObject({name:"GuestCheckoutRecipientError"});
   }
   expect(values.get(slot)).toBe(before);
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
+it("keeps a canonical contact in the guest intent and rejects a retry with another contact", async () => {
+  const journal = new GuestCheckoutJournal(null);
+  const intent = await journal.prepare({ ...selection, contactPhone: "8 (999) 123-45-67" }, signal());
+  expect(intent.contactPhone).toBe("+79991234567");
+  await expect(journal.prepare({ ...selection, contactPhone: "+447700900123" }, signal())).rejects.toThrow();
+  expect(journal.read()).toEqual(intent);
   expect(fetcher).not.toHaveBeenCalled();
 });

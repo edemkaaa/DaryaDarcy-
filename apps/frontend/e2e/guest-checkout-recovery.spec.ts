@@ -24,6 +24,14 @@ const user = {
   role: "user",
   lastSignedIn: "2026-10-01T12:00:00Z",
 };
+async function startPurchase(page: Page, name: string | RegExp) {
+  await action(page, name).waitFor({ state: "visible" });
+  const phone = page.getByRole("textbox", { name: "Номер телефона", exact: true }).first();
+  if (await phone.count() && await phone.isEditable() && !(await phone.inputValue())) {
+    await phone.fill("+79991234567");
+  }
+  await action(page, name).click();
+}
 const deferred = () => {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {
@@ -192,7 +200,7 @@ async function loseCheckout(page: Page) {
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect(page.getByRole("alert").first()).toBeVisible();
   await expect(action(page, "Восстановить ссылку оплаты")).toBeEnabled();
 }
@@ -268,7 +276,7 @@ test("storage refusal prevents every checkout/status call and retains the entere
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect(page.getByRole("alert").first()).toContainText("не начата");
   await expect(
     page.getByPlaceholder("Почта для чека и входа").first(),
@@ -286,7 +294,7 @@ test("429 persists its pause through reload; time alone does not retry a passwor
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect(page.getByRole("alert").first()).toBeVisible();
   await expect
     .poll(async () => JSON.parse((await saved(page)) ?? "null")?.retryAt ?? 0)
@@ -366,12 +374,13 @@ test("a terminal guest purchase is retained after login until an explicit fresh 
   await expect(next).toBeEnabled();
   const reads = state.statuses.length;
   expect(await saved(page)).not.toBeNull();
+  await page.getByRole("textbox", { name: "Номер телефона", exact: true }).first().fill("+79991234567");
   await next.click();
   await expect(action(page, /Оплатить 790/)).toBeEnabled();
   expect(state.statuses.length).toBeGreaterThan(reads);
   expect(await saved(page)).toBeNull();
   expect(state.normal).toBe(0);
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect.poll(() => state.normal).toBe(1);
   expect(state.writes).toHaveLength(1);
   expect(state.legacy).toBe(0);
@@ -388,7 +397,7 @@ test("a different account cannot see the recipient, dispatch its proof, or recei
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect.poll(() => state.writes.length).toBe(1);
   const before = await saved(page);
   const reads = state.statuses.length;
@@ -408,7 +417,7 @@ test("a different account cannot see the recipient, dispatch its proof, or recei
   expect(state.statuses).toHaveLength(reads);
   expect(state.navigations).toHaveLength(0);
   expect(state.normal + state.legacy).toBe(0);
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect.poll(() => state.normal).toBe(1);
   expect(await saved(page)).toBe(before);
   expect(state.statuses).toHaveLength(reads);
@@ -438,7 +447,7 @@ test("guest success does not log in or grant access; a fresh terminal check is r
     .first()
     .fill("second@example.test");
   const reads = state.statuses.length;
-  await action(page, "Новая покупка подписки").click();
+  await startPurchase(page, "Новая покупка подписки");
   await expect.poll(() => state.writes.length).toBe(2);
   expect(state.statuses.length).toBeGreaterThan(reads);
   expect(state.writes[1].email).toBe("second@example.test");
@@ -475,7 +484,7 @@ test("a return without proof never creates a purchase and requires explicit conf
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect(action(page, /Оплатить 790/)).toBeEnabled();
   expect(state.writes.length + state.statuses.length).toBe(0);
 });
@@ -491,7 +500,7 @@ test("leaving checkout cancels a late redirect while keeping recovery evidence",
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect.poll(() => state.writes.length).toBe(1);
   await page
     .getByRole("navigation", { name: "Разделы" })
@@ -526,8 +535,8 @@ test("two tabs share one guest intent without a loop of status requests", async 
     .first()
     .fill(user.email);
   await Promise.all([
-    action(page, /Оплатить 790/).click(),
-    action(second, /Оплатить 790/).click(),
+    startPurchase(page, /Оплатить 790/),
+    startPurchase(second, /Оплатить 790/),
   ]);
   await expect(page.getByRole("alert").first()).toBeVisible();
   await expect(second.getByRole("alert").first()).toBeVisible();
@@ -558,7 +567,7 @@ test("a client timeout retains the keys and checks the committed order without r
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill(user.email);
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect.poll(() => state.writes.length).toBe(1);
   const before = await saved(page);
   await page.clock.fastForward(15000);

@@ -274,7 +274,7 @@ describe.skipIf(!testDatabaseUrl)(
       },
     );
     it("creates only a saved monthly demo order and a signed one-off redirect, never a session or access", async () => {
-      const response = await client().club.createCheckout.mutate({ email });
+      const response = await client().club.createCheckout.mutate({ email, contactPhone: "+79991234567" });
       expect(response.user).toBeNull();
       const url = new URL(response.url);
       expect(url.origin).toBe("https://testpage1.payform.ru");
@@ -299,6 +299,11 @@ describe.skipIf(!testDatabaseUrl)(
         expect(url.searchParams.has(name)).toBe(false);
       const id = url.searchParams.get("order_id");
       expect(id).toMatch(/^club-test-94321-[a-f0-9-]{36}$/);
+      const [contacts] = await conn.query<RowDataPacket[]>("SELECT contactPhone FROM club_payments WHERE orderId=?", [id]);
+      expect(contacts).toEqual([{ contactPhone: "+79991234567" }]);
+      const [owners] = await conn.query<RowDataPacket[]>("SELECT phone FROM users WHERE id=94321");
+      expect(owners).toEqual([{ phone: null }]);
+      expect(url.searchParams.has("customer_phone")).toBe(false);
       const returned = new URL(url.searchParams.get("urlSuccess")!);
       expect(returned.origin + returned.pathname + returned.search).toBe(
         "https://daryadarcy.dev.reeskeen.ru/club?paid=1",
@@ -500,7 +505,7 @@ describe.skipIf(!testDatabaseUrl)(
         vi.stubEnv(name, value);
         const before = await state();
         await expect(
-          client().club.createCheckout.mutate({ email }),
+          client().club.createCheckout.mutate({ email, contactPhone: "+79991234567" }),
         ).rejects.toMatchObject({ data: { code: "PRECONDITION_FAILED" } });
         expect((await notification()).status).toBe(503);
         expect(await state()).toEqual(before);
@@ -509,7 +514,7 @@ describe.skipIf(!testDatabaseUrl)(
     it("refuses six-month checkout rather than enabling subscription or charging a different price", async () => {
       const before = await state();
       await expect(
-        client().club.createCheckout.mutate({ email, plan: "semiannual" }),
+        client().club.createCheckout.mutate({ email, plan: "semiannual", contactPhone: "+79991234567" }),
       ).rejects.toMatchObject({ data: { code: "PRECONDITION_FAILED" } });
       expect(await state()).toEqual(before);
     });
@@ -521,7 +526,7 @@ describe.skipIf(!testDatabaseUrl)(
           "Content-Type": "application/json",
           "Idempotency-Key": "83be933e-a277-41f3-801d-45771c12b051",
         },
-        body: JSON.stringify({ json: { email } }),
+        body: JSON.stringify({ json: { email, contactPhone: "+79991234567" } }),
       });
       expect(response.status).toBe(412);
       expect(await state()).toEqual(before);

@@ -13,6 +13,14 @@ const saved = (page: Page, owner = 101) =>
   page.evaluate((name) => localStorage.getItem(name), slot(owner));
 const action = (page: Page, name: RegExp | string) =>
   page.getByRole("button", { name }).first();
+async function startPurchase(page: Page, name: string | RegExp) {
+  await action(page, name).waitFor({ state: "visible" });
+  const phone = page.getByRole("textbox", { name: "Номер телефона", exact: true }).first();
+  if (await phone.count() && await phone.isEditable() && !(await phone.inputValue())) {
+    await phone.fill("+79991234567");
+  }
+  await action(page, name).click();
+}
 const deferred = () => {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {
@@ -165,7 +173,7 @@ async function fixture(page: Page, paid = false) {
 }
 async function loseCheckout(page: Page) {
   await gotoWithSession(page, "/club?checkout=1");
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect(page.getByRole("alert").first()).toBeVisible();
   await expect(action(page, "Восстановить ссылку оплаты")).toBeEnabled();
 }
@@ -278,7 +286,7 @@ test("failed allows a deliberate new purchase only after fresh terminal verifica
   await action(page, "Проверить покупку").click();
   await expect(action(page, "Новая покупка подписки")).toBeEnabled();
   const reads = state.statuses.length;
-  await action(page, "Новая покупка подписки").click();
+  await startPurchase(page, "Новая покупка подписки");
   await expect.poll(() => state.writes.length).toBe(2);
   expect(state.statuses.length).toBeGreaterThan(reads);
   expect(state.writes[1].idempotencyKey).not.toBe(original.idempotencyKey);
@@ -325,7 +333,7 @@ test("a late payment URL cannot navigate after leaving the purchase page", async
   state.loseReply = false;
   state.createGate = gate.promise;
   await gotoWithSession(page, "/club?checkout=1");
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect.poll(() => state.writes.length).toBe(1);
   await page
     .getByRole("navigation", { name: "Разделы" })
@@ -345,7 +353,7 @@ test("an explicit check can recover after a navigation attempt without reviving 
   state.loseReply = false;
   state.createGate = gate.promise;
   await gotoWithSession(page, "/club?checkout=1");
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect.poll(() => state.writes.length).toBe(1);
   await page.evaluate(() =>
     window.dispatchEvent(
@@ -373,7 +381,7 @@ test("a late payment URL cannot enter the next account or bind its order", async
   state.loseReply = false;
   state.createGate = gate.promise;
   await gotoWithSession(page, "/club?checkout=1");
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect.poll(() => state.writes.length).toBe(1);
   state.user = { ...defaultUser, id: 102, openId: "second-member" };
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
@@ -401,7 +409,7 @@ test("guests keep the existing checkout even when the NORMAL integration build i
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill("guest@example.test");
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect(page).toHaveURL("https://payments.example.test/guest");
   expect(state.legacyWrites).toBe(1);
   expect(state.writes).toHaveLength(0);
@@ -417,7 +425,7 @@ test("a real client timeout retains one order and its key; checking afterwards n
   state.createGate = gate.promise;
   await gotoWithSession(page, "/club?checkout=1");
   await page.clock.install();
-  await action(page, /Оплатить 790/).click();
+  await startPurchase(page, /Оплатить 790/);
   await expect.poll(() => state.writes.length).toBe(1);
   const original = await saved(page);
   await page.clock.fastForward(15_000);

@@ -7,7 +7,7 @@ import {
   it,
   vi,
 } from "vitest";
-import { randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { createServer, request as httpRequest } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
@@ -32,6 +32,7 @@ describe.skipIf(!testDatabaseUrl)(
       recoveryToken: string;
       email: string;
       plan: "monthly";
+      contactPhone: string;
     };
     const emails = [
       "guest-recovery@example.test",
@@ -120,6 +121,7 @@ describe.skipIf(!testDatabaseUrl)(
         recoveryToken: randomBytes(32).toString("base64url"),
         email: emails[0],
         plan: "monthly",
+        contactPhone: "+79991234567",
       };
     });
     afterAll(async () => {
@@ -133,6 +135,28 @@ describe.skipIf(!testDatabaseUrl)(
         (await getDb()) as unknown as { $client: { end(): Promise<void> } }
       )?.$client.end();
       vi.unstubAllEnvs();
+    });
+    it("recovers an old guest order with NULL contact without rotating the order", async () => {
+      const first = await create();
+      expect(first.code).toBe(200);
+      const oldHash = createHash("sha256").update(JSON.stringify(["v1", input.plan, input.email])).digest("hex");
+      await conn.query("UPDATE club_payments SET contactPhone=NULL WHERE orderId=?", [first.data.orderId]);
+      await conn.query("UPDATE normal_checkout_requests SET requestHash=? WHERE orderId=?", [oldHash, first.data.orderId]);
+      const { contactPhone: ignored, ...oldInput } = input;
+      expect((await call("createGuestNormalCheckout", oldInput)).data).toEqual(first.data);
+      expect(await rows("SELECT contactPhone FROM club_payments WHERE userId=981401")).toEqual([{ contactPhone: null }]);
+    });
+    it("requires contact before new guest creation and preserves it on replay", async () => {
+      const { contactPhone: ignored, ...missing } = input;
+      expect((await call("createGuestNormalCheckout", missing)).code).toBe(400);
+      expect(await rows("SELECT orderId FROM club_payments WHERE userId=981401")).toHaveLength(0);
+      const first = await call("createGuestNormalCheckout", { ...input, contactPhone: "8 (999) 123-45-67" });
+      expect(first.code).toBe(200);
+      expect(await rows("SELECT contactPhone FROM club_payments WHERE userId=981401")).toEqual([{ contactPhone: "+79991234567" }]);
+      expect((await call("createGuestNormalCheckout", { ...input, contactPhone: "+447700900123" })).code).toBe(409);
+      expect((await create()).data).toEqual(first.data);
+      expect(await rows("SELECT orderId FROM club_payments WHERE userId=981401")).toHaveLength(1);
+      expect((await rows("SELECT phone FROM users WHERE id=981401"))[0].phone).toBeNull();
     });
     it("replays one order without a login cookie, identity changes or an access grant", async () => {
       const identity = await rows(
@@ -482,27 +506,30 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await r.text()).not.toContain(input.recoveryToken);
     });
     it("requires the durable path for legacy guest LIVE checkout only when enabled", async () => {
-      expect((await call("createCheckout", { email: input.email })).code).toBe(
+      expect((await call("createCheckout", { email: input.email, contactPhone: input.contactPhone })).code).toBe(
         412,
       );
       vi.stubEnv("GUEST_CHECKOUT_RECOVERY_ENABLED", "invalid");
-      expect((await call("createCheckout", { email: input.email })).code).toBe(
+      expect((await call("createCheckout", { email: input.email, contactPhone: input.contactPhone })).code).toBe(
         412,
       );
       expect((await create()).code).toBe(412);
       vi.stubEnv("GUEST_CHECKOUT_RECOVERY_ENABLED", "false");
-      expect((await call("createCheckout", { email: input.email })).code).toBe(
+      expect((await call("createCheckout", { email: input.email, contactPhone: input.contactPhone })).code).toBe(
         200,
       );
     });
     it("bounds status polling and returns Retry-After without creating orders", async () => {
-      for (let i = 0; i < 12; i++) expect((await status()).code).toBe(200);
-      const r = await status();
-      expect(r.code).toBe(429);
-      expect(Number(r.retry)).toBeGreaterThan(0);
-      expect(
-        await rows("SELECT orderId FROM club_payments WHERE userId=981401"),
-      ).toHaveLength(0);
+      // This test measures one proof budget, independently of the previous HTTP
+      // cases' shared IP budget. Production limits remain unchanged.
+      const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 61_000);
+      try {
+        for (let i = 0; i < 12; i++) expect((await status()).code).toBe(200);
+        const r = await status();
+        expect(r.code).toBe(429);
+        expect(Number(r.retry)).toBeGreaterThan(0);
+        expect(await rows("SELECT orderId FROM club_payments WHERE userId=981401")).toHaveLength(0);
+      } finally { clock.mockRestore(); }
     });
   },
 );

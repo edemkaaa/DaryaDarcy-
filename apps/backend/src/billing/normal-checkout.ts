@@ -20,6 +20,12 @@ import {
 } from "../prodamus";
 import { moneyMinor } from "./protocol";
 
+import { contactPhoneSchema } from "../../../../packages/shared/src/checkout-contact";
+import {
+  checkoutRequestHash,
+  requireCheckoutContact,
+} from "./checkout-contact";
+
 export const normalCheckoutKey = z
   .string()
   .regex(
@@ -28,6 +34,7 @@ export const normalCheckoutKey = z
 export const normalCheckoutInput = z
   .object({
     idempotencyKey: normalCheckoutKey,
+    contactPhone: contactPhoneSchema.optional(),
     plan: z.enum(["monthly", "semiannual"]).default("monthly"),
   })
   .strict();
@@ -139,7 +146,8 @@ async function orderState(
     payment.userId !== request.actorUserId ||
     moneyMinor(payment.sum || "") !== request.amountMinor ||
     !isValidEmail(email) ||
-    hash(JSON.stringify(["v1", plan, email])) !== request.requestHash
+    checkoutRequestHash(plan, email, payment.contactPhone) !==
+      request.requestHash
   )
     throw new Error("Invalid checkout result");
   if (payment.status === "failed")
@@ -217,7 +225,11 @@ export async function createNormalCheckout(
         message: "Укажите почту аккаунта",
       });
     const requestKey = requestKeyFor(actor, input.idempotencyKey);
-    const requestHash = hash(JSON.stringify(["v1", input.plan, email]));
+    const requestHash = checkoutRequestHash(
+      input.plan,
+      email,
+      input.contactPhone,
+    );
     const [previous] = await tx
       .select()
       .from(normalCheckoutRequests)
@@ -235,6 +247,9 @@ export async function createNormalCheckout(
       const state = await orderState(tx, previous);
       if (state.state !== "pending") return state;
     }
+    const contactPhone = previous
+      ? input.contactPhone
+      : requireCheckoutContact(input.contactPhone);
     assertClubCheckoutConfigured(input.plan);
     const sum =
       input.plan === "semiannual" ? CLUB_SEMIANNUAL_PRICE : CLUB_PRICE;
@@ -267,7 +282,7 @@ export async function createNormalCheckout(
     } else {
       await tx
         .insert(clubPayments)
-        .values({ userId: actor.id, orderId, email, sum });
+        .values({ userId: actor.id, orderId, email, sum, contactPhone });
       await tx.insert(normalCheckoutRequests).values({
         requestKey,
         actorUserId: actor.id,

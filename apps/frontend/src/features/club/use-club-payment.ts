@@ -23,6 +23,8 @@ import {
 import { useNormalClubPayment } from "./use-normal-club-payment";
 import { useGuestClubPayment } from "./use-guest-club-payment";
 
+import { contactPhoneSchema } from "@shared/checkout-contact";
+
 const uncertainCheckout =
   "Создание ссылки не подтверждено. Если вы уже оплатили, не платите повторно: проверьте доступ или обратитесь в поддержку.";
 const pendingAccess =
@@ -50,11 +52,13 @@ export function useClubPayment({
   active,
   returnKey,
   guestEmail,
+  contactPhone,
   prodamusTest = false,
 }: {
   active: boolean;
   returnKey: string | null;
   guestEmail: string;
+  contactPhone: string;
   prodamusTest?: boolean;
 }) {
   const { isAuthenticated } = useAuth();
@@ -63,6 +67,7 @@ export function useClubPayment({
     active,
     returnKey,
     guestEmail,
+    contactPhone,
   });
   const normal =
     !guest.handlesPurchase &&
@@ -73,9 +78,15 @@ export function useClubPayment({
     active: active && !normal && !guest.handlesPurchase,
     returnKey,
     guestEmail,
+    contactPhone,
     prodamusTest,
   });
-  const recovery = useNormalClubPayment({ enabled: normal, active, returnKey });
+  const recovery = useNormalClubPayment({
+    enabled: normal,
+    active,
+    returnKey,
+    contactPhone,
+  });
   return guest.handlesPurchase
     ? guest
     : normal
@@ -96,6 +107,8 @@ export function useClubPayment({
           hasSavedPurchase: false,
           purchaseLabel: null,
           savedGuestEmail: null,
+          savedContactPhone: null,
+          contactPhoneLocked: false,
           guestEmailLocked: false,
         };
 }
@@ -104,11 +117,13 @@ function useLegacyClubPayment({
   active,
   returnKey,
   guestEmail,
+  contactPhone,
   prodamusTest = false,
 }: {
   active: boolean;
   returnKey: string | null;
   guestEmail: string;
+  contactPhone: string;
   prodamusTest?: boolean;
 }) {
   const retryLabel = prodamusTest ? "Проверить доступ" : "Я уже оплатила";
@@ -175,6 +190,13 @@ function useLegacyClubPayment({
       );
       return;
     }
+    const phone = contactPhoneSchema.safeParse(contactPhone);
+    if (!phone.success) {
+      setPayError(
+        "Укажите номер телефона с кодом страны, например +7 999 123-45-67.",
+      );
+      return;
+    }
     if (
       unknownCheckout.current &&
       !window.confirm(
@@ -188,7 +210,7 @@ function useLegacyClubPayment({
     unknownCheckout.current = true;
     try {
       const result = await utils.client.club.createCheckout.mutate(
-        { email },
+        { email, contactPhone: phone.data },
         { signal: task.signal },
       );
       task.assertCurrent();

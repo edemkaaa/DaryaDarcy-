@@ -50,11 +50,13 @@ export function useGuestClubPayment({
   active,
   returnKey,
   guestEmail,
+  contactPhone,
 }: {
   enabled: boolean;
   active: boolean;
   returnKey: string | null;
   guestEmail: string;
+  contactPhone: string;
 }) {
   const { user, loading, error, refreshError } = useAuth();
   const utils = trpc.useUtils();
@@ -279,6 +281,7 @@ export function useGuestClubPayment({
             ? current.intent.email
             : guestEmail || saved?.email || "",
         plan: saved?.plan ?? ("monthly" as const),
+        contactPhone: saved && !terminal ? saved.contactPhone : contactPhone,
       };
       let intent: GuestCheckoutIntent;
       if (terminal && current?.intent) {
@@ -359,6 +362,10 @@ export function useGuestClubPayment({
     normalRecovery: true,
     hasSavedPurchase: Boolean(current?.intent),
     savedGuestEmail: !terminal ? (current?.intent?.email ?? null) : null,
+    savedContactPhone: !terminal
+      ? (current?.intent?.contactPhone ?? null)
+      : null,
+    contactPhoneLocked: Boolean(current?.intent && !terminal),
     guestEmailLocked: Boolean(current?.intent) && !terminal,
     foreignRecipient: current?.foreignRecipient === true,
     purchaseLabel: terminal

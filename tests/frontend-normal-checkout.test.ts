@@ -63,7 +63,7 @@ afterEach(() => {
 
 it("persists a lowercase UUID and the account's plan before POST, without the TEST header or email", async () => {
   const journal = new NormalCheckoutJournal(101);
-  const intent = await journal.prepare(signal());
+  const intent = await journal.prepare(signal(), "+79991234567");
   expect(JSON.parse(values.get(slot)!)).toEqual(intent);
   expect(intent.idempotencyKey).toMatch(
     /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
@@ -82,17 +82,17 @@ it("persists a lowercase UUID and the account's plan before POST, without the TE
   expect(options?.method).toBe("POST");
   expect(new Headers(options?.headers).has("Idempotency-Key")).toBe(false);
   expect(JSON.parse(String(options?.body))).toEqual({
-    0: { json: { idempotencyKey: intent.idempotencyKey, plan: "monthly" } },
+    0: { json: { idempotencyKey: intent.idempotencyKey, plan: "monthly", contactPhone: "+79991234567" } },
   });
   expect([...values.values()].join()).not.toMatch(
     /https|email|signature|expiresAt/,
   );
 });
 it("reload keeps the key and selected plan instead of reserving a new purchase", async () => {
-  const first = await new NormalCheckoutJournal(101).prepare(signal());
+  const first = await new NormalCheckoutJournal(101).prepare(signal(), "+79991234567");
   const encoded = { ...first, plan: "semiannual" };
   values.set(slot, JSON.stringify(encoded));
-  const restored = await new NormalCheckoutJournal(101).prepare(signal());
+  const restored = await new NormalCheckoutJournal(101).prepare(signal(), "+79991234567");
   expect(restored).toEqual(encoded);
   await createNormalCheckout(
     createTRPCClient(),
@@ -106,7 +106,7 @@ it("reload keeps the key and selected plan instead of reserving a new purchase",
 });
 it("checks only the saved key with GET and accepts a Date through SuperJSON", async () => {
   const journal = new NormalCheckoutJournal(101);
-  const intent = await journal.prepare(signal());
+  const intent = await journal.prepare(signal(), "+79991234567");
   response = {
     state: "succeeded",
     orderId: "order-one",
@@ -130,12 +130,12 @@ it.each(["notRecorded", "pending"] as const)(
   "%s cannot rotate the saved purchase",
   async (state) => {
     const journal = new NormalCheckoutJournal(101);
-    const intent = await journal.prepare(signal());
+    const intent = await journal.prepare(signal(), "+79991234567");
     const before = values.get(slot);
     response =
       state === "notRecorded" ? { state } : { state, orderId: "order-one" };
     await expect(
-      journal.next(createTRPCClient(), intent, signal()),
+      journal.next(createTRPCClient(), intent, signal(), "+79991234567"),
     ).rejects.toThrow("ещё не завершена");
     expect(values.get(slot)).toBe(before);
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -145,12 +145,12 @@ it.each(["succeeded", "failed"] as const)(
   "a deliberate next purchase verifies fresh %s before creating its distinct key",
   async (state) => {
     const journal = new NormalCheckoutJournal(101);
-    const first = await journal.prepare(signal());
+    const first = await journal.prepare(signal(), "+79991234567");
     response =
       state === "succeeded"
         ? { state, orderId: "order-one", expiresAt: expiration }
         : { state, orderId: "order-one" };
-    const next = await journal.next(createTRPCClient(), first, signal());
+    const next = await journal.next(createTRPCClient(), first, signal(), "+79991234567");
     expect(next.idempotencyKey).not.toBe(first.idempotencyKey);
     expect(next).not.toHaveProperty("orderId");
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -159,7 +159,7 @@ it.each(["succeeded", "failed"] as const)(
 );
 it("an order mismatch never turns another purchase into this intent's successful result", async () => {
   const journal = new NormalCheckoutJournal(101);
-  const first = await journal.prepare(signal());
+  const first = await journal.prepare(signal(), "+79991234567");
   await createNormalCheckout(createTRPCClient(), journal, first, signal());
   response = {
     state: "succeeded",
@@ -170,13 +170,13 @@ it("an order mismatch never turns another purchase into this intent's successful
     checkNormalCheckout(createTRPCClient(), journal, first, signal()),
   ).rejects.toThrow("Некорректный ответ");
   await expect(
-    journal.next(createTRPCClient(), first, signal()),
+    journal.next(createTRPCClient(), first, signal(), "+79991234567"),
   ).rejects.toThrow("Некорректный ответ");
   expect(journal.read()?.idempotencyKey).toBe(first.idempotencyKey);
 });
 it("a change of account prevents dispatch of the previous account's intent", async () => {
   const journal = new NormalCheckoutJournal(101);
-  const intent = await journal.prepare(signal());
+  const intent = await journal.prepare(signal(), "+79991234567");
   setPersonalDataOwner(102);
   await expect(
     createNormalCheckout(createTRPCClient(), journal, intent, signal()),
@@ -186,7 +186,7 @@ it("a change of account prevents dispatch of the previous account's intent", asy
 });
 it("a late response cannot bind an order to a replaced browser intent", async () => {
   const journal = new NormalCheckoutJournal(101);
-  const intent = await journal.prepare(signal());
+  const intent = await journal.prepare(signal(), "+79991234567");
   fetcher.mockImplementationOnce(async () => {
     values.set(
       slot,
@@ -207,7 +207,7 @@ it("a late response cannot bind an order to a replaced browser intent", async ()
 it("corrupt evidence is never overwritten by a temporary key", async () => {
   values.set(slot, "corrupt");
   await expect(
-    new NormalCheckoutJournal(101).prepare(signal()),
+    new NormalCheckoutJournal(101).prepare(signal(), "+79991234567"),
   ).rejects.toThrow();
   expect(values.get(slot)).toBe("corrupt");
   expect(fetcher).not.toHaveBeenCalled();
@@ -230,4 +230,14 @@ it.each([
   { state: "pending", orderId: "", url: "https://payments.example.test" },
 ])("malformed create reply never opens a payment URL (%#)", (value) => {
   expect(() => parseNormalCheckoutResult(value)).toThrow();
+});
+
+it("freezes the unverified contact through a lost response and rejects a changed contact", async () => {
+  const journal = new NormalCheckoutJournal(101);
+  const intent = await journal.prepare(signal(), "8 (999) 123-45-67");
+  expect(intent.contactPhone).toBe("+79991234567");
+  await expect(journal.prepare(signal(), "+447700900123")).resolves.toEqual(intent);
+  values.set(slot, JSON.stringify({ ...intent, contactPhone: "+447700900123" }));
+  expect(() => journal.requireCurrent(intent, signal())).toThrow();
+  expect(fetcher).not.toHaveBeenCalled();
 });

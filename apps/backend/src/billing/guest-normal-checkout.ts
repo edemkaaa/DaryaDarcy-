@@ -27,6 +27,12 @@ import {
 } from "./normal-checkout";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 
+import { contactPhoneSchema } from "../../../../packages/shared/src/checkout-contact";
+import {
+  checkoutRequestHash,
+  requireCheckoutContact,
+} from "./checkout-contact";
+
 const secret = z
   .string()
   .regex(/^[A-Za-z0-9_-]{43}$/)
@@ -46,6 +52,7 @@ export const guestCheckoutInput = guestCheckoutProof
       .transform(normalizeEmail)
       .refine(isValidEmail, "Укажите почту для оплаты"),
     plan: z.enum(["monthly", "semiannual"]).default("monthly"),
+    contactPhone: contactPhoneSchema.optional(),
   })
   .strict();
 type Proof = z.infer<typeof guestCheckoutProof>;
@@ -59,7 +66,7 @@ const requestKey = (input: Proof) =>
     input.idempotencyKey,
   ]);
 const payloadHash = (input: Input) =>
-  billingKey(["v1", input.plan, input.email]);
+  checkoutRequestHash(input.plan, input.email, input.contactPhone);
 const unavailable = () =>
   new TRPCError({
     code: "PRECONDITION_FAILED",
@@ -219,6 +226,7 @@ export async function createGuestNormalCheckout(
       code: "BAD_REQUEST",
       message: "Используйте оплату своего аккаунта",
     });
+  const contactPhone = requireCheckoutContact(input.contactPhone);
   assertClubCheckoutConfigured(input.plan);
   // Preserve existing guest registration policy. No session, credentials or grant.
   const user = await ensureUserByEmail(input.email);
@@ -249,7 +257,13 @@ export async function createGuestNormalCheckout(
         });
         await tx
           .insert(clubPayments)
-          .values({ userId: current.id, orderId, email: input.email, sum });
+          .values({
+            userId: current.id,
+            orderId,
+            email: input.email,
+            sum,
+            contactPhone,
+          });
         await tx.insert(normalCheckoutRequests).values({
           requestKey: key,
           actorUserId: current.id,
