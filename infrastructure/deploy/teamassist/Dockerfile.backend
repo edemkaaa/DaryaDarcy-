@@ -18,7 +18,7 @@ COPY apps/backend/src ./apps/backend/src
 COPY packages/database/src ./packages/database/src
 COPY packages/shared/src ./packages/shared/src
 COPY tsconfig.json ./tsconfig.json
-RUN pnpm --filter @daryadarcy/backend build
+RUN pnpm --filter @daryadarcy/backend build && pnpm --filter @daryadarcy/backend build:prodamus-test
 
 FROM manifests AS production-dependencies
 RUN CI=true pnpm install --prod --frozen-lockfile --ignore-scripts

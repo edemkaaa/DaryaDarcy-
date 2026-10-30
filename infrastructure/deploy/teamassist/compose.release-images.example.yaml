@@ -1,0 +1,7 @@
+# Image pins only. Append to the COMPLETE accepted runtime stack after its overlays.
+# Preserve the current database, private manifests, egress/SMTP and image-cache mounts.
+services:
+  api:
+    image: ${API_RUNTIME_IMAGE:?Set the accepted API image digest}
+  web:
+    image: ${WEB_RUNTIME_IMAGE:?Set the accepted web image digest}
