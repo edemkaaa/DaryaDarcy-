@@ -8,6 +8,6 @@ process.env.NORMAL_CHECKOUT_UI_ENABLED = "false";
 
 export default defineConfig({
   ...base,
-  testMatch: ["prodamus-return.spec.ts"],
+  testMatch: ["prodamus-return.spec.ts", "legacy-checkout-guard.spec.ts"],
   outputDir: "test-results/prodamus-test",
 });

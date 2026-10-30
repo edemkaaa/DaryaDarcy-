@@ -391,3 +391,40 @@ runtime и не меняет маршрутизацию checkout. Перед с�
 Прежний статический `web-dist` и старый `deploy:web` не подходят для Next.js: защитная проверка останавливает этот деплой. Запуск процесса Next.js за nginx, маршруты `/api` и `/media`, переменные сборки/запуска и rollback ещё требуют отдельной проверки и согласования. Локальная сборка не является разрешением production-релиза.
 
 [Ограничения push](../../docs/architecture/push.md) · [рабочий процесс](../../docs/development/workflow.md) · [задачи](../../tasks/todo.md)
+
+## Профиль оплаты NORMAL/GUEST
+
+Из корня монорепозитория: `pnpm build:web:normal-guest`. Команда собирает frontend
+и проверяет флаги, фактически записанные в `.next/required-server-files.json`:
+
+```env
+NEXT_PUBLIC_CLUB_TEST_CHECKOUT=false
+NEXT_PUBLIC_PRODAMUS_TEST_ENABLED=false
+NEXT_PUBLIC_NORMAL_CHECKOUT_RECOVERY_ENABLED=true
+NEXT_PUBLIC_GUEST_CHECKOUT_RECOVERY_ENABLED=true
+```
+
+Next фиксирует их при сборке. Команда пересобирает `.next` в своём checkout;
+для проверки используйте отдельную копию, чтобы сохранить сборку запущенного
+локального приложения. Команда не публикует сайт и не настраивает сервер.
+
+Вошедший пользователь использует существующие `club.createNormalCheckout` /
+`normalCheckoutStatus`, гость — отдельные POST `createGuestNormalCheckout` /
+`guestNormalCheckoutStatus`. После входа получателя сохраняется исходная гостевая
+покупка; неизвестный результат не должен превращаться в новый NORMAL-заказ.
+
+`pnpm test:checkout:real` создаёт собственный временный Docker/MySQL, применяет
+fresh-install миграции, запускает существующий Nest API с синтетическими
+платёжными настройками и собирает временный production frontend этого профиля.
+11 browser-сценариев сверяют настоящие SQL-строки и квитанции. Fault injection
+теряет запрос или ответ после commit; ответы API не подменяются. Подписанное
+уведомление отправляется только локальному API. Платёжный провайдер, SMTP worker
+и строгий режим ревизий не включаются. Для запуска нужны уже доступные Docker,
+образ `mysql:8.4` и Chromium Playwright; runner ничего не скачивает и не
+устанавливает. Другой установленный Chromium задаётся переменной
+`PLAYWRIGHT_EXECUTABLE_PATH`. Все 11 сценариев должны пройти без skip и flaky.
+
+Перед выпуском этого профиля нужны оба recovery-флага API, существующая схема,
+боевые настройки merchant/подписи/подписки и рабочие маршруты webhook/return.
+Текущий сайт остаётся в TEST до отдельно согласованного перехода. Локальная
+сборка и проверки подставных ответов не закрывают приёмку настоящего API/оплаты.

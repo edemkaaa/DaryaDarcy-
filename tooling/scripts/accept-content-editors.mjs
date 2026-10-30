@@ -14,10 +14,22 @@ import { join, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "node:net";
 import { randomUUID } from "node:crypto";
+import {
+  normalGuestFlags,
+  assertNormalGuestBuild,
+} from "./normal-guest-profile.mjs";
 
 // Explicit opt-in: owns its Docker container, empty schema and temporary Next copy.
 // No environment files, background jobs, production credentials or remote services.
 const root = fileURLToPath(new URL("../../", import.meta.url));
+const profile = process.argv[2] ?? "editors";
+if (
+  !["editors", "recovery", "checkout"].includes(profile) ||
+  process.argv.length > 3
+)
+  throw new Error("Expected editors, recovery or checkout acceptance profile");
+const recovery = profile === "recovery";
+const checkout = profile === "checkout";
 const temp = await mkdtemp(join(tmpdir(), "darcy-editor-acceptance-"));
 const container = `daryadarcy-fresh-editor-${randomUUID()}`;
 const fixtureFile = join(temp, "fixture.json");
@@ -226,7 +238,7 @@ try {
   const origin = `http://127.0.0.1:${webPort}`;
   await writeFile(
     fixtureFile,
-    JSON.stringify({ databaseUrl, origin, password: randomUUID() }),
+    JSON.stringify({ databaseUrl, origin, password: randomUUID(), profile }),
     { mode: 0o600 },
   );
   const api = launch(
@@ -237,6 +249,8 @@ try {
       DATABASE_URL: databaseUrl,
       JWT_SECRET: randomUUID() + randomUUID(),
       PUBLIC_APP_URL: origin,
+      ...(recovery ? { DARYADARCY_RECOVERY_ACCEPTANCE: "true" } : {}),
+      ...(checkout ? { DARYADARCY_CHECKOUT_ACCEPTANCE: "true" } : {}),
     },
   );
   await waitFor(
@@ -272,8 +286,9 @@ try {
     NEXT_PUBLIC_CLUB_TEST_CHECKOUT: "false",
     NEXT_PUBLIC_NORMAL_CHECKOUT_RECOVERY_ENABLED: "false",
     NEXT_PUBLIC_GUEST_CHECKOUT_RECOVERY_ENABLED: "false",
-    NEXT_PUBLIC_VK_CATALOG_ENABLED: "false",
+    NEXT_PUBLIC_VK_CATALOG_ENABLED: String(recovery),
     NEXT_PUBLIC_PRIVATE_LIBRARY_FILES_ENABLED: "false",
+    ...(checkout ? normalGuestFlags : {}),
   };
   await run(
     process.execPath,
@@ -281,6 +296,15 @@ try {
     webEnv,
     directory,
   );
+  if (checkout)
+    assertNormalGuestBuild(
+      JSON.parse(
+        await readFile(
+          join(directory, ".next/required-server-files.json"),
+          "utf8",
+        ),
+      ),
+    );
   const web = launch(
     process.execPath,
     [
@@ -304,14 +328,14 @@ try {
     web,
     "Own production web/API",
   );
-  const output = join(root, "apps/frontend/test-results/real-editors");
+  const output = join(root, `apps/frontend/test-results/real-${profile}`);
   await run(
     process.execPath,
     [
       join(root, "node_modules/@playwright/test/cli.js"),
       "test",
       "--config",
-      "playwright.real-editors.config.ts",
+      `playwright.real-${profile}.config.ts`,
       ...(process.env.DARYADARCY_EDITOR_GREP
         ? ["--grep", process.env.DARYADARCY_EDITOR_GREP]
         : []),
@@ -327,12 +351,16 @@ try {
   const stats = JSON.parse(
     await readFile(join(output, "results.json"), "utf8"),
   ).stats;
-  if (!stats.expected || stats.unexpected || stats.skipped)
+  if (!stats.expected || stats.unexpected || stats.skipped || stats.flaky)
     throw new Error(
-      "Real editor acceptance requires executed passing tests without skips",
+      "Real acceptance requires executed passing tests without skips or flakes",
+    );
+  if (checkout && stats.expected !== 11)
+    throw new Error(
+      "NORMAL/GUEST acceptance requires all 11 checkout scenarios",
     );
   console.log(
-    `Real editor acceptance passed: ${stats.expected} tests, no skips.`,
+    `Real ${profile} acceptance passed: ${stats.expected} tests, no skips.`,
   );
 } catch (error) {
   console.error(error);

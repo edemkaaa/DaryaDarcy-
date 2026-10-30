@@ -6,7 +6,6 @@ import { checkOperationAccessError } from "@/domain/session/use-session-operatio
 import { parseClubAccess, requireClubClaim } from "@/shared/api/club-access";
 import {
   ApiError,
-  getHttpStatus,
   getRequestErrorMessage,
   invalidResponse,
 } from "@/shared/api/errors";
@@ -22,6 +21,10 @@ import {
 } from "./payment-mode";
 import { useNormalClubPayment } from "./use-normal-club-payment";
 import { useGuestClubPayment } from "./use-guest-club-payment";
+import {
+  LegacyCheckoutJournal,
+  LegacyCheckoutJournalError,
+} from "./legacy-checkout-journal";
 
 import { contactPhoneSchema } from "@shared/checkout-contact";
 
@@ -147,6 +150,31 @@ function useLegacyClubPayment({
   const [payError, setPayError] = useState<string | null>(null);
   const [accessNotice, setAccessNotice] = useState<string | null>(null);
   useEffect(() => {
+    if (!active || loading || error || refreshError) return;
+    const journal = new LegacyCheckoutJournal(
+      user?.id ?? null,
+      prodamusTest ? "prodamus-test" : "legacy",
+    );
+    const restore = () => {
+      try {
+        unknownCheckout.current = journal.read()?.state === "unknown";
+        setPayError(unknownCheckout.current ? uncertainCheckout : null);
+      } catch (cause) {
+        setPayError(
+          cause instanceof Error
+            ? cause.message
+            : "Не удалось проверить сохранённую заявку оплаты.",
+        );
+      }
+    };
+    restore();
+    const changed = (event: StorageEvent) => {
+      if (event.key === journal.storageKey || event.key === null) restore();
+    };
+    window.addEventListener("storage", changed);
+    return () => window.removeEventListener("storage", changed);
+  }, [active, loading, error, refreshError, user?.id, prodamusTest]);
+  useEffect(() => {
     if (!returnKey) setAccessNotice(null);
   }, [returnKey]);
   useEffect(() => () => scope.cancel(), [scope, active, returnKey, user?.id]);
@@ -197,8 +225,23 @@ function useLegacyClubPayment({
       );
       return;
     }
+    const journal = new LegacyCheckoutJournal(
+      user?.id ?? null,
+      prodamusTest ? "prodamus-test" : "legacy",
+    );
+    let previous;
+    try {
+      previous = journal.read();
+    } catch (cause) {
+      setPayError(
+        cause instanceof Error
+          ? cause.message
+          : "Не удалось проверить сохранённую заявку оплаты.",
+      );
+      return;
+    }
     if (
-      unknownCheckout.current &&
+      previous?.state === "unknown" &&
       !window.confirm(
         "Результат предыдущего запроса неизвестен. Новый запрос создаст другую заявку на оплату. Если вы уже оплатили, отмените это действие и проверьте доступ. Подготовить новую ссылку?",
       )
@@ -209,36 +252,48 @@ function useLegacyClubPayment({
     setPayError(null);
     unknownCheckout.current = true;
     try {
-      const result = await utils.client.club.createCheckout.mutate(
-        { email, contactPhone: phone.data },
-        { signal: task.signal },
+      const url = await journal.submit(
+        previous?.id ?? null,
+        previous?.state === "unknown",
+        task.signal,
+        async () => {
+          const result = await utils.client.club.createCheckout.mutate(
+            { email, contactPhone: phone.data },
+            { signal: task.signal },
+          );
+          task.assertCurrent();
+          let destination: string;
+          try {
+            destination = requirePaymentUrl(result?.url);
+            if (prodamusTest) destination = requireProdamusTestUrl(destination);
+          } catch {
+            throw new ApiError(
+              "Не удалось открыть оплату: получен некорректный адрес.",
+              0,
+              undefined,
+              false,
+              "invalid-response",
+            );
+          }
+          if (result.user !== null) throw invalidResponse();
+          return destination;
+        },
       );
-      task.assertCurrent();
-      let url: string;
-      try {
-        url = requirePaymentUrl(result?.url);
-        if (prodamusTest) url = requireProdamusTestUrl(url);
-      } catch {
-        throw new ApiError(
-          "Не удалось открыть оплату: получен некорректный адрес.",
-          0,
-          undefined,
-          false,
-          "invalid-response",
-        );
-      }
-      if (result.user !== null) throw invalidResponse();
       task.assertCurrent();
       unknownCheckout.current = false;
       window.location.assign(url);
     } catch (cause) {
       checkOperationAccessError(cause);
       if (!task.isCurrent()) return;
-      const status = getHttpStatus(cause);
-      if (status && status >= 400 && status < 500)
-        unknownCheckout.current = false;
+      // Even a proxy's HTTP refusal is not a receipt for this order. Preserve
+      // uncertain evidence across reload; never infer a cancelled purchase.
+      try {
+        unknownCheckout.current = journal.read()?.state === "unknown";
+      } catch {
+        unknownCheckout.current = true;
+      }
       setPayError(
-        `${getRequestErrorMessage(cause)}${unknownCheckout.current ? ` ${uncertainCheckout}` : ""}`,
+        `${cause instanceof LegacyCheckoutJournalError ? cause.message : getRequestErrorMessage(cause)}${unknownCheckout.current ? ` ${uncertainCheckout}` : ""}`,
       );
     } finally {
       task.finish();
