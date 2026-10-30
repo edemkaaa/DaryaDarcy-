@@ -155,6 +155,9 @@ describe.skipIf(!testDatabaseUrl)(
       });
     }
     it("grants one paid period and one durable access mail across sequential and concurrent HTTP replays", async () => {
+      await conn.query(
+        "UPDATE club_payments SET contactPhone='+79991234567' WHERE orderId='club-94301-native-fixture'",
+      );
       const first = await notify();
       expect(first.status).toBe(200);
       expect(await first.text()).toBe("success");
@@ -179,6 +182,13 @@ describe.skipIf(!testDatabaseUrl)(
         ],
         effects: [{ receipts: 1, profiles: 1, mails: 1, tokens: 1 }],
       });
+      const [contacts] = await conn.query<RowDataPacket[]>(
+        "SELECT id,contactPhone,phone FROM users WHERE id IN (94301,94302) ORDER BY id",
+      );
+      expect(contacts).toEqual([
+        { id: 94301, contactPhone: "+79991234567", phone: null },
+        { id: 94302, contactPhone: null, phone: null },
+      ]);
     });
     it.each([
       {

@@ -150,6 +150,42 @@ describe.skipIf(!testDatabaseUrl)(
         body: JSON.stringify({ token }),
       });
     }
+    it.each([null, "+447700900123"])(
+      "only a verified success can fill an empty user contact, preserving an existing one (%j)",
+      async (existingPhone) => {
+        await conn.query("UPDATE users SET contactPhone=? WHERE id=94321", [
+          existingPhone,
+        ]);
+        await conn.query(
+          "UPDATE club_payments SET contactPhone='+79991234567' WHERE orderId=?",
+          [order],
+        );
+        const contact = async () =>
+          (
+            await conn.query<RowDataPacket[]>(
+              "SELECT contactPhone,phone FROM users WHERE id=94321",
+            )
+          )[0][0];
+        expect((await notification({ payment_status: "pending" })).status).toBe(
+          200,
+        );
+        expect((await contact()).contactPhone).toBe(existingPhone);
+        expect((await notification({}, "wrong-synthetic-key")).status).toBe(
+          400,
+        );
+        expect((await contact()).contactPhone).toBe(existingPhone);
+        expect((await notification()).status).toBe(200);
+        expect(await contact()).toEqual({
+          contactPhone: existingPhone ?? "+79991234567",
+          phone: null,
+        });
+        expect((await notification()).status).toBe(200);
+        expect(await contact()).toEqual({
+          contactPhone: existingPhone ?? "+79991234567",
+          phone: null,
+        });
+      },
+    );
     it("keeps an unpaid guest order pending without creating a session or mail", async () => {
       const before = await state();
       const response = await checkReturn();

@@ -6,6 +6,7 @@ import {
   clubPayments,
   users,
 } from "../../../../packages/database/src/schema";
+import { normalizeContactPhone } from "../../../../packages/shared/src/checkout-contact";
 import { queueAccessEmail } from "../identity/access";
 import { moneyMinor, profileKey } from "./protocol";
 import {
@@ -146,6 +147,17 @@ export async function settleClubOrder(
       payloadHash,
       amountMinor: amount,
     });
+    // The user lock prevents concurrent payments from replacing the first
+    // contact. Only this validated order's saved contact is eligible.
+    const contactPhone = payment.contactPhone
+      ? normalizeContactPhone(payment.contactPhone)
+      : null;
+    if (
+      contactPhone &&
+      !user.contactPhone?.trim() &&
+      !user.accountDeletionRequestedAt
+    )
+      await tx.update(users).set({ contactPhone }).where(eq(users.id, user.id));
     await queueAccessEmail(
       tx,
       user.id,

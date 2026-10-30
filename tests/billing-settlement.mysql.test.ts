@@ -36,6 +36,9 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DELETE FROM access_email_outbox WHERE userId=777");
       await conn.query("DELETE FROM club_payments WHERE userId=777");
       await conn.query(
+        "UPDATE users SET contactPhone=NULL,phone=NULL,blockedAt=NULL,accountDeletionRequestedAt=NULL WHERE id=777",
+      );
+      await conn.query(
         "INSERT INTO club_payments (userId,orderId,email,sum) VALUES (777,'club-777-a','member@example.test','790'),(777,'club-777-b','member@example.test','790')",
       );
     });
@@ -73,6 +76,101 @@ describe.skipIf(!testDatabaseUrl)(
         userId: 777,
         proof: proof(orderId),
       });
+    async function contact() {
+      const [rows] = await conn.query<import("mysql2").RowDataPacket[]>(
+        "SELECT contactPhone,phone FROM users WHERE id=777",
+      );
+      return rows[0];
+    }
+    it.each([null, "", "   "])(
+      "fills an empty existing contact only after settlement (%j)",
+      async (empty) => {
+        await conn.query("UPDATE users SET contactPhone=? WHERE id=777", [
+          empty,
+        ]);
+        await conn.query(
+          "UPDATE club_payments SET contactPhone='+79991234567' WHERE orderId='club-777-a'",
+        );
+        expect((await contact()).contactPhone).toBe(empty);
+        expect(await pay("club-777-a")).toBe("club");
+        expect(await contact()).toEqual({
+          contactPhone: "+79991234567",
+          phone: null,
+        });
+      },
+    );
+    it("preserves an established contact and all identity fields after payment", async () => {
+      await conn.query(
+        "UPDATE users SET contactPhone='+447700900123' WHERE id=777",
+      );
+      await conn.query(
+        "UPDATE club_payments SET contactPhone='+79991234567' WHERE orderId='club-777-a'",
+      );
+      const [before] = await conn.query("SELECT * FROM users WHERE id=777");
+      expect(await pay("club-777-a")).toBe("club");
+      const [after] = await conn.query("SELECT * FROM users WHERE id=777");
+      expect(after).toEqual(before);
+    });
+    it.each([null, "", "not-a-phone"])(
+      "settles a legacy order without inventing a contact (%j)",
+      async (saved) => {
+        await conn.query(
+          "UPDATE club_payments SET contactPhone=? WHERE orderId='club-777-a'",
+          [saved],
+        );
+        expect(await pay("club-777-a")).toBe("club");
+        expect(await contact()).toEqual({ contactPhone: null, phone: null });
+      },
+    );
+    it.each([
+      "UPDATE club_payments SET sum='1' WHERE orderId='club-777-a'",
+      "UPDATE club_payments SET email='other@example.test' WHERE orderId='club-777-a'",
+      "UPDATE club_payments SET status='failed' WHERE orderId='club-777-a'",
+      "UPDATE users SET blockedAt=CURRENT_TIMESTAMP WHERE id=777",
+    ])(
+      "does not copy contact from a rejected payment (%s)",
+      async (mutation) => {
+        await conn.query(
+          "UPDATE club_payments SET contactPhone='+79991234567' WHERE orderId='club-777-a'",
+        );
+        await conn.query(mutation);
+        expect(await pay("club-777-a")).toBeNull();
+        expect((await contact()).contactPhone).toBeNull();
+      },
+    );
+    it("does not restore contact while account deletion is requested", async () => {
+      await conn.query(
+        "UPDATE users SET accountDeletionRequestedAt=CURRENT_TIMESTAMP WHERE id=777",
+      );
+      await conn.query(
+        "UPDATE club_payments SET contactPhone='+79991234567' WHERE orderId='club-777-a'",
+      );
+      expect(await pay("club-777-a")).toBe("club");
+      expect((await contact()).contactPhone).toBeNull();
+    });
+    it("concurrent payments fill once without replacing the first committed contact", async () => {
+      await conn.query(
+        "UPDATE club_payments SET contactPhone=IF(orderId='club-777-a','+79991234567','+447700900123') WHERE userId=777",
+      );
+      await Promise.all([pay("club-777-a"), pay("club-777-b")]);
+      expect(["+79991234567", "+447700900123"]).toContain(
+        (await contact()).contactPhone,
+      );
+      const first = await contact();
+      await Promise.all([pay("club-777-a"), pay("club-777-b")]);
+      expect(await contact()).toEqual(first);
+      expect(await latestExpiry()).toBe("2026-12-01T00:00:00.000Z");
+    });
+    it("does not repopulate a deliberately cleared contact on receipt replay", async () => {
+      await conn.query(
+        "UPDATE club_payments SET contactPhone='+79991234567' WHERE orderId='club-777-a'",
+      );
+      expect(await pay("club-777-a")).toBe("club");
+      expect((await contact()).contactPhone).toBe("+79991234567");
+      await conn.query("UPDATE users SET contactPhone=NULL WHERE id=777");
+      expect(await pay("club-777-a")).toBe("club");
+      expect((await contact()).contactPhone).toBeNull();
+    });
     it("sequential replay extends access only once", async () => {
       await pay("club-777-a");
       await pay("club-777-a");
@@ -105,9 +203,13 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await latestExpiry()).toBeUndefined();
     });
     it("missing link encryption configuration rolls back the payment", async () => {
+      await conn.query(
+        "UPDATE club_payments SET contactPhone='+79991234567' WHERE orderId='club-777-a'",
+      );
       vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", "");
       await expect(pay("club-777-a")).rejects.toThrow();
       expect(await latestExpiry()).toBeUndefined();
+      expect((await contact()).contactPhone).toBeNull();
       vi.stubEnv(
         "AUTH_LINK_ENCRYPTION_KEY",
         Buffer.alloc(32, 7).toString("base64"),
