@@ -87,9 +87,14 @@ API-образ содержит TEST bundle, но его наличие не в�
 2. Сохранить текущие JWT_SECRET/AUTH_LINK_ENCRYPTION_KEY, БД, password hashes,
    sessionVersion/роли, image-cache и backups volumes. Сохранить private manifest
    и image guard mounts/flags: чистый base Compose их не восстанавливает.
-3. Свежий backup, проверка SHA второй копии, restore на отдельной БД. История
-   после текущего выпуска48,0046/0047 уже применены. Использовать штатный preflight;
-   не применять их второй раз и не исправлять 0017–0019 вслепую.
+3. Свежий полный backup, проверка SHA второй копии, restore на отдельной БД.
+   После выпуска 30 октября в истории 50 миграций: 0046–0049 уже применены.
+   Использовать штатный preflight; не применять их второй раз и не исправлять
+   0017–0019 вслепую.
+   Включать admin_action_operations, access_email_outbox/password_tokens и
+   videos.editRevision. До запуска workers на копии проверить старые status/ключи
+   и конфликты ревизий. Для шифрованной очереди нужен исходный
+   AUTH_LINK_ENCRYPTION_KEY; SQL-dump сам его не восстанавливает.
 4. Подставить принятые API_RUNTIME_IMAGE и WEB_RUNTIME_IMAGE по digest. В полном
    прежнем стеке STAGING_IMAGE всё ещё нужен базовому Compose для interpolation;
    задать его принятым web digest, затем добавить compose.release-images.example.yaml
@@ -98,9 +103,15 @@ API-образ содержит TEST bundle, но его наличие не в�
 5. Проверить кандидат: native amd64, health, API/сессии/роли, фото, closed files,
    версии редакторов и публичные build flags. Только после согласования обновить
    нужные сервисы; остальные не пересоздавать. Миграции не выполняются entrypoint.
-6. После: реальные image IDs/health/OOM/restarts, правильная БД и48ledger,
+6. После: реальные image IDs/health/OOM/restarts, правильная БД и 50 записей в журнале,
    сохранённые админские входы, /api/health, /api/capabilities, страницы,22VK-карточки
    с thumbnailUrl, гостевой отказ закрытым bytes и TEST/LIVE режим.
+
+Восстановление заполненных журналов и очереди с исходным ключом проверено локально:
+[backup/restore и границы проверки](../../../docs/operations/admin-journals-restore-2026-10-30.md).
+Снимок не содержит действий после времени backup; перед включением доставки
+или реального биллинга сверить внешние эффекты. Восстановление старой копии
+не даёт гарантии однократной доставки SMTP.
 
 Текущий общий хост не подходит для автоматического применения8GB resource overlay.
 Ресурсы и 32/80MiB/100users принимать на выделенном кандидате. Строгий content-флаг
