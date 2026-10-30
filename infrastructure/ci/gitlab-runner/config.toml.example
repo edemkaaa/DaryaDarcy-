@@ -1,0 +1,36 @@
+# Copy outside Git, replace the placeholder privately, and chmod 600.
+# The example cannot authenticate until a project runner token is supplied.
+concurrent = 1
+check_interval = 3
+shutdown_timeout = 30
+log_level = "info"
+
+[[runners]]
+  name = "daryadarcy-staging-ci"
+  url = "https://git.reeskeen.ru/"
+  token = "REPLACE_WITH_PROJECT_RUNNER_AUTH_TOKEN"
+  executor = "docker"
+  limit = 1
+  request_concurrency = 1
+  output_limit = 4096
+  debug_trace_disabled = true
+  environment = ["FF_NETWORK_PER_BUILD=true"]
+
+  [runners.docker]
+    image = "node:22-bookworm"
+    privileged = false
+    services_privileged = false
+    disable_cache = true
+    volumes = []
+    pull_policy = "always"
+    allowed_pull_policies = ["always"]
+    allowed_images = ["node:22-bookworm", "docker.io/library/node:22-bookworm"]
+    allowed_services = ["mysql:8.4", "docker.io/library/mysql:8.4"]
+    services_limit = 1
+    memory = "4g"
+    memory_swap = "4g"
+    cpus = "2"
+    service_memory = "2g"
+    service_memory_swap = "2g"
+    service_cpus = "1"
+    shm_size = 268435456

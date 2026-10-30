@@ -1,0 +1,33 @@
+name: daryadarcy-ci
+
+services:
+  runner:
+    image: gitlab/gitlab-runner:alpine-v19.5.0@sha256:b7dead3b57cd9e5e5d6aedc6c0736c43972af9a24aa19875c2802bc8afcd3978
+    platform: linux/amd64
+    restart: unless-stopped
+    read_only: true
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 0.5
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    volumes:
+      - type: bind
+        source: ${RUNNER_CONFIG_DIR:?Set an absolute private runner config directory}
+        target: /etc/gitlab-runner
+        bind:
+          create_host_path: false
+      # Only the runner manager receives the socket. Jobs do not mount it.
+      # This still grants control of Docker on the dedicated CI machine.
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        bind:
+          create_host_path: false
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
