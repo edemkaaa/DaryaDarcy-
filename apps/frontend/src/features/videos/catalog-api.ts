@@ -153,3 +153,28 @@ export function requireVkVideoId(value: unknown): number {
   if (!result.success) throw invalidResponse();
   return result.data.id;
 }
+
+const vkEditorDetail = z.object({
+  id,
+  title: z.string().max(512),
+  embedUrl: z.string().nullable(),
+  access: z.enum(["public", "club"]),
+  published: z.boolean(),
+  thumbnailUrl: z.string().nullable(),
+  editRevision: z.number().int().nonnegative().safe(),
+});
+export type VkEditorDetail = z.infer<typeof vkEditorDetail>;
+export function parseVkEditorDetail(
+  value: unknown,
+  requestedId: number,
+): VkEditorDetail {
+  const result = vkEditorDetail.safeParse(value);
+  if (
+    !result.success ||
+    result.data.id !== requestedId ||
+    (result.data.embedUrl !== null &&
+      !getVkCatalogEmbedUrl(result.data.embedUrl))
+  )
+    throw invalidResponse();
+  return result.data;
+}

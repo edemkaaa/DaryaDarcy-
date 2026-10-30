@@ -1,4 +1,5 @@
 "use client";
+import { CursorPagePrevious } from "@/shared/ui/cursor-page-previous";
 import classes from "./admin-screen.module.scss";
 import {
   Typography,
@@ -27,7 +28,7 @@ import {
   useSessionOperation,
   checkOperationAccessError,
 } from "@/domain/session/use-session-operation";
-import { getRequestErrorMessage } from "@/shared/api/errors";
+import { getRequestErrorMessage, getHttpStatus } from "@/shared/api/errors";
 import { useRouter } from "@/shared/navigation/router";
 
 import { CalendarTracker } from "@/features/admin/calendar-tracker";
@@ -38,6 +39,8 @@ import { isVkCatalogEnabled } from "@/features/videos/catalog-api";
 import { ArticlesAdmin } from "@/features/admin/articles-admin";
 import { SeasonSettings } from "@/features/admin/season-settings";
 import { MemberAccessEmail } from "./member-access-email";
+import { useAdminActionRecovery } from "./use-admin-action-recovery";
+import { AdminActionRecoveryNotice } from "./admin-action-recovery-notice";
 import {
   canResendAccessEmail,
   useAccessEmailResend,
@@ -46,11 +49,7 @@ import { useAuth } from "@/domain/session/session-context";
 import { SessionStatus } from "@/domain/session/session-status";
 
 import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
-import {
-  requireOk,
-  requireGrant,
-  requireIdList,
-} from "@/shared/api/action-result";
+import { requireOk, requireIdList } from "@/shared/api/action-result";
 import { invalidResponse } from "@/shared/api/errors";
 
 import {
@@ -92,9 +91,6 @@ export default function AdminScreen() {
   const viewTab = isOwner ? ownerViewTab : "reports";
   const adminActions = useConfirmedAction(staff && !showForm, viewTab);
   const detailRead = useSessionOperation(isOwner && !showForm, viewTab);
-  const accessEmail = useAccessEmailResend(
-    isOwner && viewTab === "members" && !showForm,
-  );
   const readQuery = async (query: {
     refetch: () => Promise<{
       isSuccess: boolean;
@@ -111,8 +107,17 @@ export default function AdminScreen() {
     { limit: 20 },
     {
       enabled: isOwner && viewTab === "posts" && !showForm,
-      getNextPageParam: (lastPage, _pages, _lastParam, params) =>
-        params.includes(lastPage.nextCursor) ? undefined : lastPage.nextCursor,
+      maxPages: 8,
+      getPreviousPageParam: (_firstPage, _pages, firstParam) =>
+        typeof firstParam === "number" && firstParam > 0
+          ? Math.max(0, firstParam - 20)
+          : undefined,
+      getNextPageParam: (lastPage, _pages, lastParam, params) =>
+        lastPage.nextCursor !== null &&
+        lastPage.nextCursor > (typeof lastParam === "number" ? lastParam : 0) &&
+        !params.includes(lastPage.nextCursor)
+          ? lastPage.nextCursor
+          : undefined,
       staleTime: 30_000,
     },
   );
@@ -209,6 +214,16 @@ export default function AdminScreen() {
     );
   };
   const readReports = () => readQuery(reportsQuery);
+  const memberActions = useAdminActionRecovery(
+    isOwner && viewTab === "members" && !showForm,
+    async (outcome, signal) => {
+      if (outcome.state !== "succeeded" || outcome.kind !== "grantClub") return;
+      await readMembers(outcome, signal);
+      signal.throwIfAborted();
+      void utils.admin.paymentsPage.invalidate();
+    },
+  );
+  const accessEmail = useAccessEmailResend(memberActions);
   const deleteMutation = mutation(
     "delete-post",
     "Удалить пост",
@@ -231,31 +246,6 @@ export default function AdminScreen() {
       requireIdList(result.data.pages.flatMap((page) => page.posts));
     },
     () => invalidatePublicFeeds(),
-  );
-  const grantClub = mutation(
-    "grant",
-    "Продлить клуб",
-    async (input: { userId: number }, signal) => {
-      const result = await utils.client.admin.grantClub.mutate(input, {
-        signal,
-      });
-      requireGrant(result);
-      await readMembers(input, signal);
-      return result;
-    },
-    readMembers,
-    (result) => {
-      void utils.admin.paymentsPage.invalidate();
-      const until = new Date(
-        (result as { expiresAt: string }).expiresAt,
-      ).toLocaleDateString("ru-RU", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
-      window.alert(`Клуб продлён до ${until}`);
-    },
-    requireGrant,
   );
   const blockUser = mutation(
     "block",
@@ -325,8 +315,17 @@ export default function AdminScreen() {
       !paymentsQuery.denied &&
       (paymentsQuery.isFetchNextPageError || paymentsQuery.items.length > 0)
     ) &&
-    !(viewTab === "members" && membersQuery.isFetchNextPageError) &&
-    !(viewTab === "posts" && postsQuery.isFetchNextPageError);
+    !(
+      viewTab === "members" &&
+      !membersQuery.denied &&
+      (membersQuery.isFetchNextPageError ||
+        membersQuery.isFetchPreviousPageError)
+    ) &&
+    !(
+      viewTab === "posts" &&
+      ![401, 403, 404].includes(getHttpStatus(postsQuery.error) ?? 0) &&
+      (postsQuery.isFetchNextPageError || postsQuery.isFetchPreviousPageError)
+    );
   const handleCreate = () => {
     setEditingPost(null);
     setScheduledDate(null);
@@ -365,7 +364,8 @@ export default function AdminScreen() {
   const handleGrantClub = (userId: number, label: string) => {
     const message = `Выдать клуб на 31 день: ${label}?`;
     {
-      if (confirm(message)) grantClub.mutate({ userId });
+      if (!adminActions.blocked && !memberActions.blocked && confirm(message))
+        void memberActions.start("grantClub", userId);
       return;
     }
   };
@@ -595,6 +595,9 @@ export default function AdminScreen() {
         <Typography role="alert" className={classes.loadingText}>
           {adminActions.error}
         </Typography>
+      ) : null}
+      {isOwner && viewTab === "members" && listFailed ? (
+        <AdminActionRecoveryNotice recovery={memberActions} />
       ) : null}
       {countsQuery.isError && isOwner ? (
         <Action
@@ -983,6 +986,16 @@ export default function AdminScreen() {
       ) : viewTab === "members" ? (
         <Collection
           data={membersQuery.items}
+          preserveScroll
+          header={
+            <>
+              <AdminActionRecoveryNotice recovery={memberActions} />
+              <CursorPagePrevious
+                query={membersQuery}
+                label="Предыдущие участницы"
+              />
+            </>
+          }
           footer={
             membersQuery.hasNextPage && !membersQuery.denied ? (
               <Action
@@ -1096,7 +1109,7 @@ export default function AdminScreen() {
                       item.email || item.name || String(item.id),
                     )
                   }
-                  disabled={grantClub.isPending || accessEmail.busy}
+                  disabled={adminActions.blocked || memberActions.blocked}
                   className={classes.action}
                 >
                   <Typography className={classes.grantBtnText}>
@@ -1106,7 +1119,7 @@ export default function AdminScreen() {
                 {item.blockedAt ? (
                   <Action
                     onClick={() => unblockUser.mutate({ userId: item.id })}
-                    disabled={unblockUser.isPending || accessEmail.busy}
+                    disabled={unblockUser.isPending || memberActions.blocked}
                     className={classes.action}
                   >
                     <Typography className={classes.grantBtnText}>
@@ -1128,7 +1141,7 @@ export default function AdminScreen() {
                         });
                       }
                     }}
-                    disabled={blockUser.isPending || accessEmail.busy}
+                    disabled={blockUser.isPending || memberActions.blocked}
                     className={classes.action}
                   >
                     <Typography className={classes.typography}>
@@ -1143,7 +1156,11 @@ export default function AdminScreen() {
                     pending={
                       accessEmail.pendingId === `access-email-${item.id}`
                     }
-                    disabled={adminActions.blocked || accessEmail.busy}
+                    disabled={
+                      adminActions.blocked ||
+                      memberActions.blocked ||
+                      memberActions.cooldown
+                    }
                     onSend={accessEmail.send}
                   />
                 ) : null}
@@ -1259,15 +1276,22 @@ export default function AdminScreen() {
       ) : viewTab === "payments" ? (
         <Collection
           data={paymentsQuery.items}
+          preserveScroll
           header={
             <>
+              <CursorPagePrevious
+                query={paymentsQuery}
+                label="Предыдущие оплаты"
+              />
               <Typography className={classes.postItemDate}>
                 История оплат. Более ранние записи загружаются при прокрутке.
               </Typography>
               <QueryRetryState
                 isLoading={false}
                 isError={
-                  paymentsQuery.isError && !paymentsQuery.isFetchNextPageError
+                  paymentsQuery.isError &&
+                  !paymentsQuery.isFetchNextPageError &&
+                  !paymentsQuery.isFetchPreviousPageError
                 }
                 onRetry={() => void paymentsQuery.restart()}
                 message="Не удалось обновить историю оплат"
@@ -1343,6 +1367,13 @@ export default function AdminScreen() {
       ) : (
         <Collection
           data={posts || []}
+          preserveScroll
+          header={
+            <CursorPagePrevious
+              query={postsQuery}
+              label="Предыдущие публикации"
+            />
+          }
           renderItem={renderPostItem}
           keyExtractor={(item) => item.id.toString()}
           hideScrollbar

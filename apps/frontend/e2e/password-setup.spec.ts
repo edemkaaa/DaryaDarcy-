@@ -82,6 +82,9 @@ for (const width of [320, 390, 1280]) {
     const state = await fixture(page);
     const response = await page.goto(`/password#token=${token}`);
     await expect(passwordField(page)).toBeEnabled();
+    await expect(page.getByText("Новый пароль", { exact: true })).toHaveCount(
+      0,
+    );
     await expect(page).toHaveURL(/\/password$/);
     expect(response?.headers()["referrer-policy"]).toBe("no-referrer");
     expect(response?.headers()["cache-control"]).toContain("no-store");
@@ -242,43 +245,77 @@ test("429 preserves input but requires a manual retry after Retry-After", async 
   expect(state.writes).toHaveLength(2);
 });
 
-test("a pending save cannot be duplicated by submitting again", async ({
-  page,
-}) => {
-  const state = await fixture(page);
-  let release!: () => void;
-  const gate = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  let requests = 0;
-  await page.route("**/api/auth/password/complete", async (route) => {
-    requests++;
-    await gate;
-    await route.fulfill({ json: { ok: true } });
-  });
-  await page.goto(`/password#token=${token}`);
-  await passwordField(page).fill(secret);
-  await save(page).click();
-  try {
-    await expect(
-      page.getByRole("button", { name: "Сохраняем…", exact: true }),
-    ).toBeDisabled();
-    await page
-      .locator("form")
-      .evaluate((form) =>
-        form.dispatchEvent(
-          new Event("submit", { bubbles: true, cancelable: true }),
-        ),
+for (const width of [320, 390, 1280]) {
+  test(`a pending save keeps button geometry and cannot be duplicated at ${width}px`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    const state = await fixture(page);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let requests = 0;
+    await page.route("**/api/auth/password/complete", async (route) => {
+      requests++;
+      await gate;
+      await route.fulfill({ json: { ok: true } });
+    });
+    await page.goto(`/password#token=${token}`);
+    await passwordField(page).fill(secret);
+    await page.evaluate(() => document.fonts.ready);
+    const before = await save(page).boundingBox();
+    expect(before).not.toBeNull();
+    await save(page).click();
+    try {
+      const pending = page.getByRole("button", {
+        name: "Сохраняем…",
+        exact: true,
+      });
+      await expect(pending).toBeDisabled();
+      const after = await pending.boundingBox();
+      expect(after).not.toBeNull();
+      for (const dimension of ["x", "y", "width", "height"] as const) {
+        expect(after![dimension]).toBeCloseTo(before![dimension], 1);
+      }
+      const spinner = await pending
+        .getByRole("status", { name: "Сохраняем пароль", exact: true })
+        .boundingBox();
+      const label = await pending
+        .getByText("Сохраняем…", { exact: true })
+        .boundingBox();
+      expect(spinner).not.toBeNull();
+      expect(label).not.toBeNull();
+      expect(spinner!.y + spinner!.height / 2).toBeCloseTo(
+        after!.y + after!.height / 2,
+        0,
       );
-    expect(requests).toBe(1);
-  } finally {
-    release();
-  }
-  await expect(
-    page.getByRole("heading", { name: "Пароль сохранён", exact: true }),
-  ).toBeVisible();
-  expect(state.unexpected).toEqual([]);
-});
+      expect(label!.y + label!.height / 2).toBeCloseTo(
+        after!.y + after!.height / 2,
+        0,
+      );
+      expect(spinner!.x + spinner!.width).toBeLessThan(label!.x);
+      await page.screenshot({
+        path: info.outputPath(`password-pending-${width}.png`),
+        fullPage: true,
+      });
+      await page
+        .locator("form")
+        .evaluate((form) =>
+          form.dispatchEvent(
+            new Event("submit", { bubbles: true, cancelable: true }),
+          ),
+        );
+      expect(requests).toBe(1);
+    } finally {
+      release();
+    }
+    await expect(
+      page.getByRole("heading", { name: "Пароль сохранён", exact: true }),
+    ).toBeVisible();
+    expect(state.unexpected).toEqual([]);
+  });
+}
 
 test("leaving the document clears its in-memory proof and password before a cached return", async ({
   page,

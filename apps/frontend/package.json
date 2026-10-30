@@ -9,6 +9,7 @@
     "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tsconfig.e2e.json",
     "lint": "eslint src e2e playwright*.config.ts",
     "test:e2e": "playwright test",
+    "test:e2e:prodamus": "playwright test --config playwright.prodamus-test.config.ts",
     "test:e2e:catalog": "playwright test --config playwright.catalog.config.ts",
     "test:e2e:guest-checkout": "playwright test --config playwright.guest-checkout.config.ts"
   },

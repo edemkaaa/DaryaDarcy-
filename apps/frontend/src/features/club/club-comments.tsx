@@ -1,4 +1,5 @@
 "use client";
+import { CursorPagePrevious } from "@/shared/ui/cursor-page-previous";
 import classes from "./club-comments.module.scss";
 import {
   Typography,
@@ -991,10 +992,16 @@ function CommentThread({
       >
         <QueryRetryState
           isLoading={comments.isLoading}
-          isError={comments.isError && !comments.isFetchNextPageError}
+          isError={
+            comments.denied ||
+            (comments.isError &&
+              !comments.isFetchNextPageError &&
+              !comments.isFetchPreviousPageError)
+          }
           onRetry={() => void comments.refetch()}
           message="Не удалось загрузить комментарии"
         />
+        <CursorPagePrevious query={comments} label="Предыдущие комментарии" />
         {tree.roots.map((item) => renderComment(item))}
         {comments.hasNextPage ? (
           <Action

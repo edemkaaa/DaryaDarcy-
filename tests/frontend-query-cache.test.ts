@@ -18,6 +18,40 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+it.each([
+  "feed.savedPostsPage",
+  "admin.postsPage",
+  "admin.articlesPage",
+  "admin.membersPage",
+  "admin.paymentsPage",
+])(
+  "bounds abandoned %s scopes while retaining an observed screen",
+  async (path) => {
+    const client = createAppQueryClient();
+    const key = (id: number) => [
+      path.split("."),
+      { input: { id }, type: "query" },
+    ];
+    client.setQueryData(key(0), { pages: ["CONFIRMED"] });
+    const observer = new QueryObserver(client, {
+      queryKey: key(0),
+      enabled: false,
+    });
+    const unsubscribe = observer.subscribe(() => {});
+    try {
+      for (let index = 1; index <= 40; index++)
+        client.setQueryData(key(index), { pages: [index] });
+      await Promise.resolve();
+      expect(client.getQueryData(key(0))).toEqual({ pages: ["CONFIRMED"] });
+      expect(client.getQueryData(key(1))).toBeUndefined();
+      expect(client.getQueryCache().getAll()).toHaveLength(3);
+    } finally {
+      unsubscribe();
+      client.clear();
+    }
+  },
+);
+
 it("reuses fresh data and refetches after an explicit invalidation", async () => {
   const client = createAppQueryClient();
   const queryFn = vi.fn(async () => ["POST"]);

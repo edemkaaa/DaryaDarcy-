@@ -2,7 +2,15 @@ import { expect, test, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 import { ok } from "./editor-fixtures";
 
-type Outcome = "success" | "network" | "missing" | "locked" | 403 | 404 | 500;
+type Outcome =
+  | "success"
+  | "network"
+  | "missing"
+  | "locked"
+  | "invalid"
+  | 403
+  | 404
+  | 500;
 const title = "Статья для проверки повторного чтения";
 const originalText = "Прежний текст статьи";
 const recoveredText = "Содержание после успешного повтора";
@@ -55,6 +63,8 @@ async function articleApi(page: Page) {
     const results = names.map((name) => {
       if (name === "articles.list") return ok([snapshot]);
       if (name === "articles.getById") {
+        if (responseOutcome === "invalid")
+          return ok({ ...snapshot, sections: [null] });
         if (typeof responseOutcome === "number")
           return {
             error: {
@@ -141,7 +151,7 @@ async function openCachedArticle(page: Page) {
 }
 
 for (const width of [320, 1440])
-  for (const outcome of [403, 404, 500, "network"] as const)
+  for (const outcome of [403, 404, 500, "network", "invalid"] as const)
     test(`article refetch ${outcome} ${outcome === 500 || outcome === "network" ? "keeps confirmed content" : "hides cached content and closes photos"} at ${width}px`, async ({
       page,
     }) => {

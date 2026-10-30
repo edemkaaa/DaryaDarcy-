@@ -36,6 +36,8 @@ type CollectionProps<T> = Omit<ScrollAreaProps, "children"> & {
   revealItems?: boolean;
   /** Release measured offscreen rows while preserving explicit interaction state. */
   windowItems?: boolean;
+  /** Keep visible rows fixed through page and pagination-status changes. */
+  preserveScroll?: boolean;
   retentionKey?: string;
 };
 function CollectionInner<T>(
@@ -57,6 +59,7 @@ function CollectionInner<T>(
     visiblePercent = 50,
     revealItems = false,
     windowItems = false,
+    preserveScroll = false,
     retentionKey,
     contentStyle,
     horizontal,
@@ -285,6 +288,7 @@ function CollectionInner<T>(
       root={container}
       data={data}
       itemKeys={[...currentKeys]}
+      trackLayout={preserveScroll}
     >
       <ScrollArea
         {...props}
@@ -293,7 +297,7 @@ function CollectionInner<T>(
         contentStyle={contentStyle}
         style={{
           ...props.style,
-          ...(windowItems ? { overflowAnchor: "none" } : {}),
+          ...(windowItems || preserveScroll ? { overflowAnchor: "none" } : {}),
         }}
         ref={(el) => {
           container.current = el;
@@ -401,47 +405,67 @@ function CollectionRow({
   );
 }
 
-type ScrollSnapshot = { element: Element; offset: number }[] | null;
+type ScrollSnapshot = {
+  root: HTMLDivElement;
+  anchors: { element: Element; offset: number }[];
+} | null;
 /** Capture before React changes the DOM; keep the first surviving visible row
  * in place when pages are prepended, removed, or revalidated. */
-class CollectionScrollAnchor extends React.Component<{
+export class CollectionScrollAnchor extends React.Component<{
   root: React.RefObject<HTMLDivElement | null>;
   data: readonly unknown[];
   itemKeys: readonly string[];
   children: ReactNode;
+  trackLayout?: boolean;
 }> {
   getSnapshotBeforeUpdate(
     previous: Readonly<typeof this.props>,
   ): ScrollSnapshot {
     const root = this.props.root.current;
     if (
-      previous.data === this.props.data ||
+      (previous.data === this.props.data && !this.props.trackLayout) ||
       !root ||
-      (root.scrollTop <= 0 &&
+      (!this.props.trackLayout &&
+        root.scrollTop <= 0 &&
         this.props.itemKeys.indexOf(previous.itemKeys[0]) <= 0) ||
       root.dataset.collectionScrollTarget === "start"
     )
       return null;
     const top = root.getBoundingClientRect().top;
-    return [...root.querySelectorAll("[data-item-index]")]
-      .filter((row) => row.getBoundingClientRect().bottom > top)
-      .slice(0, 4)
-      .map((element) => ({
-        element,
-        offset: element.getBoundingClientRect().top - top,
-      }));
+    return {
+      root,
+      anchors: [...root.querySelectorAll("[data-item-index]")]
+        .filter((row) => {
+          const bounds = row.getBoundingClientRect();
+          return (
+            bounds.bottom > top &&
+            (!this.props.trackLayout ||
+              bounds.top < root.getBoundingClientRect().bottom)
+          );
+        })
+        .slice(0, 4)
+        .map((row) => {
+          // A former first card may gain a margin when older rows precede it.
+          const element = this.props.trackLayout
+            ? (row.firstElementChild ?? row)
+            : row;
+          return { element, offset: element.getBoundingClientRect().top - top };
+        }),
+    };
   }
   componentDidUpdate(
     _previous: Readonly<typeof this.props>,
     _state: unknown,
     snapshot: ScrollSnapshot,
   ) {
-    const root = this.props.root.current;
-    const anchor = snapshot?.find(
+    // A parent ScrollArea reattaches its callback ref after child layout effects.
+    // Use the still-connected element captured before mutation, not that ref.
+    const root = snapshot?.root;
+    const anchor = snapshot?.anchors.find(
       ({ element }) =>
         element.isConnected && element.getBoundingClientRect().height > 0,
     );
-    if (root && anchor)
+    if (root?.isConnected && anchor)
       root.scrollTop +=
         anchor.element.getBoundingClientRect().top -
         root.getBoundingClientRect().top -

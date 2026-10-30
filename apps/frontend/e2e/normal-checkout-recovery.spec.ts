@@ -15,8 +15,14 @@ const action = (page: Page, name: RegExp | string) =>
   page.getByRole("button", { name }).first();
 async function startPurchase(page: Page, name: string | RegExp) {
   await action(page, name).waitFor({ state: "visible" });
-  const phone = page.getByRole("textbox", { name: "Номер телефона", exact: true }).first();
-  if (await phone.count() && await phone.isEditable() && !(await phone.inputValue())) {
+  const phone = page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first();
+  if (
+    (await phone.count()) &&
+    (await phone.isEditable()) &&
+    !(await phone.inputValue())
+  ) {
     await phone.fill("+79991234567");
   }
   await action(page, name).click();
@@ -58,6 +64,7 @@ async function fixture(page: Page, paid = false) {
     rejectCreate: 0,
     forceNotRecorded: false,
     createGate: undefined as Promise<void> | undefined,
+    statusReply: undefined as unknown,
   };
   await page.route("https://payments.example.test/**", async (route) => {
     state.navigations.push(route.request().url());
@@ -100,9 +107,11 @@ async function fixture(page: Page, paid = false) {
             `${state.user?.id}:${input.idempotencyKey}`,
           );
           return result(
-            state.forceNotRecorded
-              ? { state: "notRecorded" }
-              : (order ?? { state: "notRecorded" }),
+            state.statusReply !== undefined
+              ? state.statusReply
+              : state.forceNotRecorded
+                ? { state: "notRecorded" }
+                : (order ?? { state: "notRecorded" }),
           );
         }
         if (name === "club.createNormalCheckout") {
@@ -110,7 +119,11 @@ async function fixture(page: Page, paid = false) {
           expect(route.request().headers()).not.toHaveProperty(
             "idempotency-key",
           );
-          expect(Object.keys(input).sort()).toEqual(["contactPhone", "idempotencyKey", "plan"]);
+          expect(Object.keys(input).sort()).toEqual([
+            "contactPhone",
+            "idempotencyKey",
+            "plan",
+          ]);
           expect(input.contactPhone).toBe("+79991234567");
           expect(input.idempotencyKey).toMatch(
             /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
@@ -199,6 +212,75 @@ test("lost response and reload restore the same pending order; status does not c
   expect(state.navigations).toHaveLength(0);
   expect(state.legacyWrites).toBe(0);
 });
+
+test("two NORMAL tabs retain one key and one order for the same account", async ({
+  page,
+  context,
+}) => {
+  const state = await fixture(page);
+  const second = await context.newPage();
+  const other = await fixture(second);
+  other.orders = state.orders;
+  other.writes = state.writes;
+  other.statuses = state.statuses;
+  await Promise.all([
+    gotoWithSession(page, "/club?checkout=1"),
+    gotoWithSession(second, "/club?checkout=1"),
+  ]);
+  await Promise.all([
+    startPurchase(page, /Оплатить 790/),
+    startPurchase(second, /Оплатить 790/),
+  ]);
+  await expect(action(page, "Восстановить ссылку оплаты")).toBeEnabled();
+  await expect(action(second, "Восстановить ссылку оплаты")).toBeEnabled();
+  expect(state.orders.size).toBe(1);
+  expect(state.writes.length).toBeGreaterThan(0);
+  expect(
+    state.writes.every(
+      (write) => JSON.stringify(write) === JSON.stringify(state.writes[0]),
+    ),
+  ).toBe(true);
+  expect(JSON.parse((await saved(page))!).idempotencyKey).toBe(
+    JSON.parse((await saved(second))!).idempotencyKey,
+  );
+  expect(state.legacyWrites + other.legacyWrites).toBe(0);
+  await second.close();
+});
+
+for (const fault of ["invalid expiry", "another order"] as const) {
+  test(`NORMAL ${fault} status retains evidence without confirming payment`, async ({
+    page,
+  }) => {
+    const state = await fixture(page);
+    await loseCheckout(page);
+    await action(page, "Проверить покупку").click();
+    await expect(
+      page
+        .getByRole("status")
+        .filter({ hasText: "Оплата этой покупки пока не подтверждена" }),
+    ).toBeVisible();
+    const evidence = await saved(page);
+    state.statusReply = {
+      state: "succeeded",
+      orderId: fault === "another order" ? "foreign-order" : "normal-order-1",
+      expiresAt:
+        fault === "invalid expiry"
+          ? "2040-12-01T00:00:00Z"
+          : new Date("2040-12-01T00:00:00Z"),
+    };
+    await action(page, "Проверить покупку").click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Некорректный ответ" }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Оплата этой покупки подтверждена/),
+    ).toHaveCount(0);
+    expect(await saved(page)).toBe(evidence);
+    expect(state.writes).toHaveLength(1);
+    expect(state.navigations).toEqual([]);
+    expect(state.legacyWrites).toBe(0);
+  });
+}
 
 test("explicit recovery obtains the original payment URL with the same key and plan", async ({
   page,

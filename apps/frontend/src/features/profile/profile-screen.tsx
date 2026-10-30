@@ -10,7 +10,9 @@ import {
   ScrollArea,
 } from "@/shared/ui/elements";
 import { openExternalUrl } from "@/shared/browser/actions";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
+import { CursorPagePrevious } from "@/shared/ui/cursor-page-previous";
+import { CollectionScrollAnchor } from "@/shared/ui/collection";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
@@ -102,6 +104,7 @@ export default function ProfileScreen() {
   const cancellationConfirmed = cancellationStatus === "confirmed";
   const avatar = useProfileAvatar();
   const [savedTab, setSavedTab] = useState<SavedTab>("feed");
+  const profileScroll = useRef<HTMLDivElement>(null);
   const utils = trpc.useUtils();
   const savedInput = { target: savedTab, limit: 20 };
   const savedFromApi = useCursorPages({
@@ -118,6 +121,7 @@ export default function ProfileScreen() {
     savedFromApi.data !== undefined &&
     savedFromApi.isError &&
     !savedFromApi.isFetchNextPageError &&
+    !savedFromApi.isFetchPreviousPageError &&
     isTemporaryRequestError(savedFromApi.error);
   useBackgroundNotice({
     when: savedRefreshError,
@@ -450,7 +454,11 @@ export default function ProfileScreen() {
         fit="cover"
         className={classes.background2}
       >
-        <ScrollArea hideScrollbar>
+        <ScrollArea
+          hideScrollbar
+          ref={profileScroll}
+          style={{ overflowAnchor: "none" }}
+        >
           {/* ─── Profile Header ─── */}
           <div
             className={["ui-stack ", classes.profileHeader]
@@ -636,75 +644,89 @@ export default function ProfileScreen() {
             </div>
 
             {/* Saved posts grid */}
-            {isLoadingSaved ? (
-              <div
-                className={["ui-stack ", classes.emptyState]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                <ContentPlaceholder kind="feed" />
-              </div>
-            ) : savedFromApi.isError &&
-              !savedRefreshError &&
-              !savedFromApi.isFetchNextPageError ? (
-              <QueryRetryState
-                isLoading={false}
-                isError
-                onRetry={() => void savedFromApi.refetch()}
-                message="Не удалось загрузить сохранённые посты"
+            <CollectionScrollAnchor
+              trackLayout
+              root={profileScroll}
+              data={savedPosts}
+              itemKeys={savedPosts.map((post) => String(post.id))}
+            >
+              <CursorPagePrevious
+                query={savedFromApi}
+                label="Предыдущие сохранённые"
               />
-            ) : savedPosts.length === 0 ? (
-              <div
-                className={["ui-stack ", classes.emptyState]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                <MaterialIcons
-                  name="bookmark-border"
-                  size={36}
-                  color={BROWN_MUTED}
+              {isLoadingSaved ? (
+                <div
+                  className={["ui-stack ", classes.emptyState]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  <ContentPlaceholder kind="feed" />
+                </div>
+              ) : savedFromApi.isError &&
+                !savedRefreshError &&
+                (savedFromApi.denied ||
+                  (!savedFromApi.isFetchNextPageError &&
+                    !savedFromApi.isFetchPreviousPageError)) ? (
+                <QueryRetryState
+                  isLoading={false}
+                  isError
+                  onRetry={() => void savedFromApi.refetch()}
+                  message="Не удалось загрузить сохранённые посты"
                 />
-                <Typography className={classes.emptyStateText}>
-                  {savedTab === "feed"
-                    ? "Здесь будут сохранённые посты из ленты"
-                    : "Здесь будут сохранённые посты из клуба"}
-                </Typography>
-              </div>
-            ) : (
-              <div
-                className={["ui-stack ", classes.savedGrid]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                {savedPosts.map((post) => (
-                  <div
-                    key={post.id}
-                    className={["ui-stack ", classes.savedGridItem]
-                      .filter(Boolean)
-                      .join(" ")}
-                  >
-                    {renderSavedPost({ item: post })}
-                  </div>
-                ))}
-              </div>
-            )}
-            {savedFromApi.hasNextPage && !savedFromApi.denied ? (
-              <Action
-                onClick={() => void savedFromApi.fetchNextPage()}
-                disabled={
-                  savedFromApi.isFetching || savedFromApi.isFetchingNextPage
-                }
-                aria-busy={savedFromApi.isFetchingNextPage}
-              >
-                <Typography className={classes.emptyStateText}>
-                  {savedFromApi.isFetchingNextPage
-                    ? "Загрузка…"
-                    : savedFromApi.isFetchNextPageError
-                      ? "Повторить загрузку сохранённых"
-                      : "Загрузить ещё сохранённые"}
-                </Typography>
-              </Action>
-            ) : null}
+              ) : savedPosts.length === 0 ? (
+                <div
+                  className={["ui-stack ", classes.emptyState]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  <MaterialIcons
+                    name="bookmark-border"
+                    size={36}
+                    color={BROWN_MUTED}
+                  />
+                  <Typography className={classes.emptyStateText}>
+                    {savedTab === "feed"
+                      ? "Здесь будут сохранённые посты из ленты"
+                      : "Здесь будут сохранённые посты из клуба"}
+                  </Typography>
+                </div>
+              ) : (
+                <div
+                  className={["ui-stack ", classes.savedGrid]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {savedPosts.map((post, index) => (
+                    <div
+                      key={post.id}
+                      data-item-index={index}
+                      className={["ui-stack ", classes.savedGridItem]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      {renderSavedPost({ item: post })}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {savedFromApi.hasNextPage && !savedFromApi.denied ? (
+                <Action
+                  onClick={() => void savedFromApi.fetchNextPage()}
+                  disabled={
+                    savedFromApi.isFetching || savedFromApi.isFetchingNextPage
+                  }
+                  aria-busy={savedFromApi.isFetchingNextPage}
+                >
+                  <Typography className={classes.emptyStateText}>
+                    {savedFromApi.isFetchingNextPage
+                      ? "Загрузка…"
+                      : savedFromApi.isFetchNextPageError
+                        ? "Повторить загрузку сохранённых"
+                        : "Загрузить ещё сохранённые"}
+                  </Typography>
+                </Action>
+              ) : null}
+            </CollectionScrollAnchor>
           </div>
 
           {/* ─── Aesthetics Section ─── */}

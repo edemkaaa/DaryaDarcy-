@@ -38,6 +38,13 @@ async function mockApp(
   current: () => Member | null = () => null,
   answer?: (name: string) => unknown,
 ) {
+  const capabilities = {
+    smsLogin: false,
+    penPals: false,
+    shopOnlinePayment: false,
+    webPush: false,
+    privateContentUploads: false,
+  };
   await page.addInitScript(() => {
     localStorage.setItem("@darcy_install_guide_seen", "1");
     localStorage.setItem("darcy:user:1:@darcy_club_profile_completed", "true");
@@ -46,13 +53,21 @@ async function mockApp(
     route.fulfill({ json: { user: current() } }),
   );
   await page.route("**/api/capabilities", (route) =>
+    route.fulfill({ json: capabilities }),
+  );
+  await page.route("**/api/launch-config", (route) =>
     route.fulfill({
       json: {
-        smsLogin: false,
-        penPals: false,
-        shopOnlinePayment: false,
-        webPush: false,
-        privateContentUploads: false,
+        revision: 0,
+        season: "autumn",
+        appearance: {
+          startsOn: "09-01",
+          backgroundUrl: null,
+          bannerUrl: null,
+        },
+        managerEmail: "manager@example.test",
+        orderMethod: "email-client",
+        capabilities,
       },
     }),
   );
@@ -409,6 +424,33 @@ test("an expired session closes private data after a protected query returns 401
   ).toHaveCount(0);
 });
 
+test("an HTML 401 from a protected query closes private data through the session recheck", async ({
+  page,
+}) => {
+  let current: Member | null = member(1);
+  await mockApp(page, () => current);
+  await page.route("**/api/trpc/**", (route) => {
+    if (!route.request().url().includes("feed.savedPostsPage"))
+      return route.fallback();
+    current = null;
+    return route.fulfill({
+      status: 401,
+      contentType: "text/html",
+      body: "<html>PRIVATE_PROXY_DETAIL</html>",
+    });
+  });
+  await page.goto("/profile");
+  await expect(
+    page.getByRole("button", { name: /^Войти(?: →)?$/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("member-1@example.test", { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("PRIVATE_PROXY_DETAIL", { exact: false }),
+  ).toHaveCount(0);
+});
+
 test("logout is reflected in another tab", async ({ page, context }) => {
   let current: Member | null = member(1);
   await mockApp(page, () => current);
@@ -681,7 +723,7 @@ for (const problem of ["network", "503"]) {
   });
 }
 
-for (const problem of ["network", "503"]) {
+for (const problem of ["network", "503", "html503"]) {
   test(`the selected club section survives a temporary subscription ${problem} failure`, async ({
     page,
   }) => {
@@ -700,6 +742,17 @@ for (const problem of ["network", "503"]) {
           : route.fallback(),
       );
     }
+    if (problem === "html503") {
+      await page.route("**/api/trpc/**", (route) =>
+        fail && route.request().url().includes("club.subscription")
+          ? route.fulfill({
+              status: 503,
+              contentType: "text/html",
+              body: "<html>PRIVATE_PROXY_DETAIL</html>",
+            })
+          : route.fallback(),
+      );
+    }
     await gotoWithSession(page, "/club");
     const tab = page.getByRole("button", { name: "Подборки", exact: true });
     await tab.click();
@@ -709,6 +762,9 @@ for (const problem of ["network", "503"]) {
     await expect(page.getByRole("status")).toContainText(
       "Не удалось обновить подписку",
     );
+    await expect(
+      page.getByText("PRIVATE_PROXY_DETAIL", { exact: false }),
+    ).toHaveCount(0);
     await expect(tab).toHaveAttribute("aria-pressed", "true");
     await screen.expectPreserved();
     fail = false;

@@ -21,7 +21,7 @@ export function MemberAccessEmail({
   onSend: (member: AccessEmailMember) => Promise<void>;
 }) {
   const noticeId = useId();
-  const blocked = disabled || pending || (result && result.status !== "error");
+  const blocked = disabled || pending || result?.status === "unknown";
   return (
     <>
       <Action
@@ -40,7 +40,7 @@ export function MemberAccessEmail({
           {pending
             ? "Ставим в очередь…"
             : result?.status === "queued"
-              ? "Письмо в очереди"
+              ? "Отправить ещё одно письмо"
               : "Повторить письмо"}
         </Typography>
       </Action>

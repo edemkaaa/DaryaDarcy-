@@ -31,7 +31,11 @@ verify:
     - pnpm lint
     - pnpm test
     - pnpm build
-    - pnpm build:web
+    - >-
+      CIRCLE_NODE_TOTAL=2 NODE_OPTIONS=--max-old-space-size=1536
+      NEXT_PUBLIC_PRODAMUS_TEST_ENABLED=false NEXT_PUBLIC_CLUB_TEST_CHECKOUT=false
+      NEXT_PUBLIC_NORMAL_CHECKOUT_RECOVERY_ENABLED=false
+      NEXT_PUBLIC_GUEST_CHECKOUT_RECOVERY_ENABLED=false pnpm build:web
     - pnpm --filter @daryadarcy/frontend exec playwright install --with-deps chromium
     - pnpm test:frontend
     - pnpm test:regression
@@ -48,6 +52,7 @@ checkout-browser:
     matrix:
       - CHECKOUT_BROWSER_PROFILE: [prodamus-test, guest-normal]
   variables:
+    CIRCLE_NODE_TOTAL: "2"
     NODE_OPTIONS: --max-old-space-size=2048
   before_script:
     - corepack enable

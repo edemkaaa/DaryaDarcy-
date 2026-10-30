@@ -1,6 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 import { ok } from "./editor-fixtures";
+import {
+  seedOtherPaymentModes,
+  paymentModeSnapshots,
+} from "./payment-mode-fixtures";
 
 test.skip(
   process.env.PRODAMUS_RETURN_UI_ENABLED !== "true",
@@ -13,6 +17,74 @@ const token =
 const returned = `/club?paid=1#paymentReturn=${token}`;
 const dialog = (page: Page) =>
   page.getByRole("dialog", { name: "Результат оплаты клуба", exact: true });
+
+test("TEST return ignores foreign checkout journals and only reads its own result", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  state.result = { state: "unknown", nextAction: null, emailStatus: null };
+  const snapshots = await seedOtherPaymentModes(page);
+  const forbidden: string[] = [];
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (
+      /[Gg]uestNormalCheckout|normalCheckoutStatus|createNormalCheckout|createCheckout|reconcileCheckout/.test(
+        path,
+      )
+    )
+      forbidden.push(path);
+  });
+  await gotoWithSession(page, returned);
+  await expect(dialog(page)).toContainText("Не удалось подтвердить оплату");
+  expect(state.reads).toBe(1);
+  expect(state.claims).toBe(0);
+  expect(forbidden).toEqual([]);
+  expect(await paymentModeSnapshots(page, Object.keys(snapshots))).toEqual(
+    snapshots,
+  );
+});
+
+for (const url of [
+  "https://payments.example.test/live",
+  "javascript:alert(1)",
+]) {
+  test(`TEST refuses a mismatched checkout URL ${url}`, async ({ page }) => {
+    await fixture(page);
+    const calls: string[] = [];
+    await page.route("**/api/trpc/**", async (route) => {
+      const names = new URL(route.request().url()).pathname
+        .split("/api/trpc/")[1]
+        .split(",");
+      expect(names).not.toContain("club.createGuestNormalCheckout");
+      expect(names).not.toContain("club.createNormalCheckout");
+      if (!names.includes("club.createCheckout")) return route.fallback();
+      calls.push("club.createCheckout");
+      await route.fulfill({ json: [ok({ url, user: null })] });
+    });
+    await gotoWithSession(page, "/club");
+    await page
+      .getByPlaceholder("Почта для чека и входа")
+      .first()
+      .fill("guest@example.test");
+    await page
+      .getByRole("textbox", { name: "Номер телефона", exact: true })
+      .first()
+      .fill("+79991234567");
+    await page
+      .getByRole("button", { name: "Открыть тестовую оплату", exact: true })
+      .first()
+      .click();
+    await expect(
+      page
+        .getByRole("main")
+        .getByRole("alert")
+        .filter({ hasText: "некорректный адрес" })
+        .first(),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/club$/);
+    expect(calls).toHaveLength(1);
+  });
+}
 
 test("Prodamus TEST keeps its checkout endpoint even when the guest LIVE build flag is set", async ({
   page,
@@ -37,7 +109,9 @@ test("Prodamus TEST keeps its checkout endpoint even when the guest LIVE build f
     calls.push("club.createCheckout");
     expect(route.request().method()).toBe("POST");
     expect(route.request().postDataJSON()).toMatchObject({
-      0: { json: { email: "guest@example.test", contactPhone: "+79991234567" } },
+      0: {
+        json: { email: "guest@example.test", contactPhone: "+79991234567" },
+      },
     });
     expect(
       await page.evaluate(() =>
@@ -51,7 +125,10 @@ test("Prodamus TEST keeps its checkout endpoint even when the guest LIVE build f
     .getByPlaceholder("Почта для чека и входа")
     .first()
     .fill("guest@example.test");
-  await page.getByRole("textbox", { name: "Номер телефона", exact: true }).first().fill("+79991234567");
+  await page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first()
+    .fill("+79991234567");
   await page
     .getByRole("button", { name: "Открыть тестовую оплату", exact: true })
     .first()

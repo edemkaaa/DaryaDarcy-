@@ -1,8 +1,14 @@
 import { TRPCClientError, type TRPCLink } from "@trpc/client";
 import { observable } from "@trpc/server/observable";
 import type { AppRouter } from "./contract";
-import { ApiError, getHttpStatus, getRequestErrorMessage } from "./errors";
+import {
+  ApiError,
+  getHttpStatus,
+  getRequestErrorMessage,
+  invalidResponse,
+} from "./errors";
 import { privateUploadRejectionMessage } from "./upload-errors";
+import { parseRetryAfter } from "./retry-after";
 
 const privateUploadProcedures = new Set([
   "admin.uploadPrivateContentFile",
@@ -29,29 +35,39 @@ export const userFacingErrorsLink: TRPCLink<AppRouter> =
             (response instanceof Response && !response.ok
               ? response.status
               : undefined);
-          const transportError =
-            !error.shape && status ? new ApiError("", status) : null;
+          const seconds =
+            (response instanceof Response
+              ? parseRetryAfter(response.headers.get("Retry-After"))
+              : undefined) ??
+            (error.cause instanceof ApiError
+              ? error.cause.retryAfterSec
+              : undefined);
+          const transportError = error.shape
+            ? null
+            : status
+              ? new ApiError("", status, seconds)
+              : response instanceof Response
+                ? invalidResponse()
+                : null;
           const details = transportError ?? error;
           const message =
             (privateUploadProcedures.has(op.path)
               ? privateUploadRejectionMessage(details)
               : null) ??
             getRequestErrorMessage(
-              transportError ? { data: { httpStatus: status } } : error,
+              transportError?.kind === "http"
+                ? { data: { httpStatus: status } }
+                : (transportError ?? error),
             );
           if (transportError) transportError.message = message;
-          const retryAfter =
-            response instanceof Response
-              ? response.headers.get("Retry-After")
-              : null;
-          const seconds =
-            retryAfter && /^\d+$/.test(retryAfter) ? Number(retryAfter) : 0;
           observer.error(
             new TRPCClientError<AppRouter>(message, {
               cause: transportError ?? error.cause,
               // Keep only the validated delay, not private response/body metadata.
               meta:
-                Number.isSafeInteger(seconds) && seconds > 0
+                seconds !== undefined &&
+                Number.isSafeInteger(seconds) &&
+                seconds > 0
                   ? { retryAfterSec: seconds }
                   : undefined,
               result: error.shape

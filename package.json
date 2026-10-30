@@ -38,6 +38,7 @@
     "build:frontend": "pnpm --filter @daryadarcy/frontend build",
     "start:frontend": "pnpm --filter @daryadarcy/frontend start",
     "test:frontend": "pnpm --filter @daryadarcy/frontend test:e2e",
+    "test:editors:real": "node tooling/scripts/accept-content-editors.mjs",
     "api:contract": "node tooling/scripts/extract-api-contract.cjs",
     "check:api": "node tooling/scripts/extract-api-contract.cjs --check",
     "db:dev:prepare": "tsx tooling/scripts/prepare-dev-database.ts",

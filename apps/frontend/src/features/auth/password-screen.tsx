@@ -186,9 +186,6 @@ export default function PasswordScreen() {
         )}
         {phase === "ready" && (
           <form method="post" onSubmit={submit} aria-busy={busy}>
-            <label htmlFor="new-password" className={classes.label}>
-              Новый пароль
-            </label>
             <div className={controls.passwordField}>
               <Field
                 id="new-password"
@@ -197,6 +194,7 @@ export default function PasswordScreen() {
                 type={visible ? "text" : "password"}
                 autoComplete="new-password"
                 placeholder="Новый пароль"
+                aria-label="Новый пароль"
                 placeholderColor="#8b7355"
                 minLength={8}
                 maxLength={200}
@@ -252,19 +250,20 @@ export default function PasswordScreen() {
             <Action
               type="submit"
               aria-label={busy ? "Сохраняем…" : "Сохранить пароль"}
+              aria-busy={busy}
               disabled={busy || remaining > 0}
               className={`${controls.action2} ${classes.submit}`}
             >
-              {busy ? (
+              {busy && (
                 <Spinner
                   size="small"
                   color="#fdf8f0"
                   label="Сохраняем пароль"
                 />
-              ) : (
-                <span className={controls.buttonText}>Сохранить пароль</span>
               )}
-              {busy && <span className={controls.buttonText}>Сохраняем…</span>}
+              <span className={controls.buttonText}>
+                {busy ? "Сохраняем…" : "Сохранить пароль"}
+              </span>
             </Action>
           </form>
         )}

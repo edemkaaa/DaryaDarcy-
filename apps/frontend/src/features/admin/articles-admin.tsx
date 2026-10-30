@@ -1,4 +1,6 @@
 "use client";
+import { CursorPagePrevious } from "@/shared/ui/cursor-page-previous";
+import { CollectionScrollAnchor } from "@/shared/ui/collection";
 import {
   captureEditBase,
   editableSnapshot,
@@ -63,7 +65,10 @@ import {
   type ArticleDraftRecord,
 } from "@/domain/content/article-draft-journal";
 import type { PrivateArticleFile } from "@/domain/content/private-article-files";
-import { selectArticleFiles, restoreArticleFileReferences } from "@/domain/content/private-article-files";
+import {
+  selectArticleFiles,
+  restoreArticleFileReferences,
+} from "@/domain/content/private-article-files";
 import {
   recoverArticleFileUploads,
   sealArticleFileWrite,
@@ -508,7 +513,13 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
           throw new Error(
             "Есть другой черновик этой статьи. Сначала сохраните его отдельно.",
           );
-        const payload = { ...record.payload, sections: restoreArticleFileReferences(record.payload.sections, record.media!.files) };
+        const payload = {
+          ...record.payload,
+          sections: restoreArticleFileReferences(
+            record.payload.sections,
+            record.media!.files,
+          ),
+        };
         const base = {
           revision,
           snapshot:
@@ -1772,6 +1783,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   return (
     <ScrollArea
       ref={scrollRef}
+      style={{ overflowAnchor: "none" }}
       contentClassName={classes.list}
       onRefresh={() => void list.restart()}
       refreshing={list.isRefetching && !list.isFetchingNextPage}
@@ -1901,7 +1913,12 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       </Typography>
       <QueryRetryState
         isLoading={list.isLoading}
-        isError={list.isError && !list.isFetchNextPageError}
+        isError={
+          list.denied ||
+          (list.isError &&
+            !list.isFetchNextPageError &&
+            !list.isFetchPreviousPageError)
+        }
         onRetry={() => void list.refetch()}
         message="Не удалось загрузить статьи"
       />
@@ -1913,48 +1930,63 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         }}
         message={openingError ?? "Не удалось загрузить статью"}
       />
-      {list.items.map((item, index) => (
-        <div
-          key={item.id}
-          ref={index === list.items.length - 1 ? lastCardRef : undefined}
-          className={["ui-stack ", classes.card].filter(Boolean).join(" ")}
-        >
-          {item.coverUrl ? (
-            <Picture
-              source={{ uri: item.coverUrl }}
-              contentFit="cover"
-              className={classes.cardCover}
-            />
-          ) : null}
-          <div className={["ui-stack ", classes.div].filter(Boolean).join(" ")}>
-            <Typography className={classes.cardTitle}>{item.title}</Typography>
-            <Typography className={classes.cardMeta}>
-              {item.access === "public" ? "Клуб + библиотека" : "Эксклюзив"}
-              {item.published ? "" : " · черновик"}
-            </Typography>
+      <CursorPagePrevious query={list} label="Предыдущие статьи" />
+      <CollectionScrollAnchor
+        trackLayout
+        root={scrollRef}
+        data={list.items}
+        itemKeys={list.items.map((item) => String(item.id))}
+      >
+        {list.items.map((item, index) => (
+          <div
+            key={item.id}
+            data-item-index={index}
+            ref={index === list.items.length - 1 ? lastCardRef : undefined}
+            className={["ui-stack ", classes.card].filter(Boolean).join(" ")}
+          >
+            {item.coverUrl ? (
+              <Picture
+                source={{ uri: item.coverUrl }}
+                contentFit="cover"
+                className={classes.cardCover}
+              />
+            ) : null}
             <div
-              className={["ui-stack ", classes.row].filter(Boolean).join(" ")}
+              className={["ui-stack ", classes.div].filter(Boolean).join(" ")}
             >
-              <Action
-                disabled={remove.isPending || opening.busy || !draft.loaded}
-                onClick={() => void startEdit(item.id)}
-                className={classes.linkBtn}
+              <Typography className={classes.cardTitle}>
+                {item.title}
+              </Typography>
+              <Typography className={classes.cardMeta}>
+                {item.access === "public" ? "Клуб + библиотека" : "Эксклюзив"}
+                {item.published ? "" : " · черновик"}
+              </Typography>
+              <div
+                className={["ui-stack ", classes.row].filter(Boolean).join(" ")}
               >
-                <Typography className={classes.btnSecondaryText}>
-                  Править
-                </Typography>
-              </Action>
-              <Action
-                disabled={remove.isPending || opening.busy}
-                onClick={() => confirmDelete(item.id)}
-                className={classes.linkBtn}
-              >
-                <Typography className={classes.typography}>Удалить</Typography>
-              </Action>
+                <Action
+                  disabled={remove.isPending || opening.busy || !draft.loaded}
+                  onClick={() => void startEdit(item.id)}
+                  className={classes.linkBtn}
+                >
+                  <Typography className={classes.btnSecondaryText}>
+                    Править
+                  </Typography>
+                </Action>
+                <Action
+                  disabled={remove.isPending || opening.busy}
+                  onClick={() => confirmDelete(item.id)}
+                  className={classes.linkBtn}
+                >
+                  <Typography className={classes.typography}>
+                    Удалить
+                  </Typography>
+                </Action>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </CollectionScrollAnchor>
       <QueryRetryState
         isLoading={list.isFetchingNextPage}
         isError={list.isFetchNextPageError}

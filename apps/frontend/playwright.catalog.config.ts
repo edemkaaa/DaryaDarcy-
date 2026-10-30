@@ -11,6 +11,7 @@ export default defineConfig({
   ...base,
   testMatch: [
     "video-catalog.spec.ts",
+    "vk-catalog-revisions.spec.ts",
     "vk-video.spec.ts",
     "content-refresh.spec.ts",
   ],

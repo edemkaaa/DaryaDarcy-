@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import type { AddressInfo } from "node:net";
 
 /** Owned SDK wire fixture, not Timeweb ACL acceptance. Stores actual request bytes. */
-export async function openPrivateUploadWire(options: { content?: boolean; publicPhotos?: boolean } = {}) {
+export async function openPrivateUploadWire(options: { content?: boolean; publicPhotos?: boolean; attachments?: boolean } = {}) {
   const objects = new Map<
     string,
     {
@@ -50,6 +50,13 @@ export async function openPrivateUploadWire(options: { content?: boolean; public
                     },
                   },
                 },
+                ...(options.content && options.attachments ? [{
+                  Sid: "DaryadarcyPrivateAttachmentsV1",
+                  Effect: "Deny", Principal: "*",
+                  Action: ["s3:GetObject", "s3:GetObjectVersion"],
+                  Resource: ["audio", "documents"].map(folder => `arn:aws:s3:::${bucket}/feed/${folder}/private-v1/*`),
+                  Condition: { StringNotEqualsIfExists: { "aws:username": ["fixture-service-user"] } },
+                }] : []),
               ],
         }),
       );
@@ -67,7 +74,8 @@ export async function openPrivateUploadWire(options: { content?: boolean; public
       if (
         req.headers["if-none-match"] !== "*" ||
         req.headers["x-amz-acl"] !== (options.publicPhotos ? "public-read" : "private") ||
-        !(options.publicPhotos ? /^(covers|avatars\/[1-9]\d*)\/public-v1\/[a-f0-9-]{36}\.webp$/ : options.content ? /^content\/private-v1\/[a-f0-9-]{36}$/ : /^feed\/(audio|documents)\/private-v1\/[a-f0-9-]{36}$/).test(key)
+        !((options.publicPhotos ? /^(covers|avatars\/[1-9]\d*)\/public-v1\/[a-f0-9-]{36}\.webp$/ : options.content ? /^content\/private-v1\/[a-f0-9-]{36}$/ : /^feed\/(audio|documents)\/private-v1\/[a-f0-9-]{36}$/).test(key) ||
+          (options.attachments && /^feed\/(audio|documents)\/private-v1\/[a-f0-9-]{36}$/.test(key)))
       ) {
         res.writeHead(400).end();
         return;

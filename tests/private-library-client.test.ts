@@ -5,6 +5,7 @@ vi.mock("../apps/frontend/src/shared/config/api", () => ({
 import {
   readAestheticGuide,
   readPatternBindings,
+  PATTERN_READ_BUDGET,
 } from "../apps/frontend/src/domain/library/private-library";
 import { aestheticGuides } from "../apps/backend/src/content/aesthetic-guides";
 const response = (value: unknown, status = 200) =>
@@ -121,4 +122,53 @@ it("honors cancellation without starting a read", async () => {
   const signal = AbortSignal.abort();
   await expect(readAestheticGuide("cottagecore", signal)).rejects.toThrow();
   expect(fetcher).not.toHaveBeenCalled();
+});
+
+it("stops an endless stream of new binding cursors at the page budget", async () => {
+  let index = 0;
+  fetcher.mockImplementation(async () =>
+    response({ files: [], nextCursor: `0:${++index}` }),
+  );
+  await expect(readPatternBindings()).rejects.toMatchObject({
+    kind: "invalid-response",
+  });
+  expect(fetcher).toHaveBeenCalledTimes(PATTERN_READ_BUDGET.maxPages);
+});
+
+it("bounds the whole binding chain even when each individual page fits its own timeout", async () => {
+  vi.useFakeTimers();
+  let index = 0;
+  fetcher.mockImplementation(
+    (_url: string, options: RequestInit) =>
+      new Promise<Response>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          options.signal?.removeEventListener("abort", abort);
+          resolve(response({ files: [], nextCursor: `0:${++index}` }));
+        }, 8_000);
+        const abort = () => {
+          clearTimeout(timer);
+          reject(options.signal?.reason);
+        };
+        options.signal?.addEventListener("abort", abort, { once: true });
+      }),
+  );
+  const result = readPatternBindings().catch((error: unknown) => error);
+  try {
+    await vi.advanceTimersByTimeAsync(PATTERN_READ_BUDGET.timeoutMs + 1);
+    expect(await result).toMatchObject({ kind: "timeout" });
+    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(vi.getTimerCount()).toBe(0);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("cancels the full binding chain between pages without returning partial bindings", async () => {
+  const controller = new AbortController();
+  fetcher.mockImplementation(async () => {
+    controller.abort();
+    return response({ files: [file("holly")], nextCursor: "0:2" });
+  });
+  await expect(readPatternBindings(controller.signal)).rejects.toThrow();
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });
