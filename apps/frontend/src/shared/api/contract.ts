@@ -37,12 +37,18 @@ export type PublicVideo = Omit<
     thumbnailUrl: string | null;
     provider: "vk" | "youtube";
     videoUrl: string | null;
+    editRevision: number;
     vkEmbedUrl: string | null;
     vkSourceKey: string | null;
     views: string | null;
     publishedText: string | null;
   },
-  "youtubeId" | "access" | "provider" | "vkEmbedUrl" | "vkSourceKey"
+  | "youtubeId"
+  | "access"
+  | "provider"
+  | "editRevision"
+  | "vkEmbedUrl"
+  | "vkSourceKey"
 > & { youtubeId: string };
 export type PostStatistics = {
   totalPosts: number;
@@ -928,8 +934,32 @@ export type AppRouter = BuiltRouter<
         meta: unknown;
       }>;
       grantClub: MutationProcedure<{
-        input: { userId: number };
+        input: { userId: number; idempotencyKey?: string | undefined };
         output: { ok: true; expiresAt: string };
+        meta: unknown;
+      }>;
+      actionStatus: QueryProcedure<{
+        input: { idempotencyKey: string };
+        output:
+          | {
+              state: "succeeded";
+              kind: "grantClub";
+              userId: number;
+              expiresAt: string;
+            }
+          | {
+              state: "succeeded";
+              kind: "resendAccessEmail";
+              userId: number;
+              queued: true;
+            }
+          | {
+              state: "rejected";
+              kind: "grantClub" | "resendAccessEmail";
+              userId: number;
+              code: "NOT_FOUND" | "CONFLICT";
+            }
+          | { state: "notFound" };
         meta: unknown;
       }>;
       articles: QueryProcedure<{
@@ -1109,8 +1139,22 @@ export type AppRouter = BuiltRouter<
           published: boolean;
           thumbnailUrl?: string | null | undefined;
           id?: number | undefined;
+          expectedRevision?: number | undefined;
         };
         output: { id: number };
+        meta: unknown;
+      }>;
+      vkVideoDetail: QueryProcedure<{
+        input: { id: number };
+        output: {
+          id: number;
+          title: string;
+          embedUrl: string | null;
+          access: "club" | "public";
+          published: boolean;
+          thumbnailUrl: string | null;
+          editRevision: number;
+        };
         meta: unknown;
       }>;
       purgeUserPushData: MutationProcedure<{
