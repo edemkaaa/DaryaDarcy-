@@ -2,6 +2,28 @@
 
 ## Действующий план агента — 13 октября 2026
 
+### CI-приёмка режимов checkout — 30 октября
+
+Следующий доступный пункт: отдельные build-time варианты TEST и guest/NORMAL
+в обоих CI. Новый локальный runner задаёт явный публичный профиль, убирает SQL/
+API target из окружения, строит frontend и запускает существующие synthetic
+browser tests. Отчёт обязан содержать реальные pass для нужных файлов; весь
+набор skipped/пропавший отчёт не может дать зелёный результат. Один известный
+legacy guest skip разрешён только в guest/NORMAL. Никаких frontend source,
+рабочих настроек, БД, S3, push/deploy или strict-переключения. SQL-изоляция и
+общий verify job сохраняются; старые 3 fixture failures не скрывать новым job.
+Проверить runner RED/GREEN, оба настоящих локальных build/browser профиля и
+YAML matrices; обновить единый handoff. Удалённый pipeline остаётся отдельной
+проверкой после публикации, не считать локальный успех его подтверждением.
+
+Локальный срез CI завершён: оба YAML matrix/runner, 10 guard tests / 41 targeted,
+TEST 16 pass и guest/NORMAL 32 pass/1 legacy skip на настоящих production build.
+Полный unit 3677/78 skip, root types/API 105/boundaries 854/format/docs прошли.
+Свой Git-снимок для build удалён, SHA основной .next прежние. Общий verify,
+frontend source/3fixtures, рабочие БД/S3/сервер/strict не менялись. Реальный
+удалённый pipeline и native Docker-builder остаются внешними gates; push/deploy
+в этом срезе нет. Инструкция: docs/operations/checkout-browser-ci-2026-10-30.md.
+
 ### Редакторы, таблицы и пакет DevOps — 29 октября
 
 Новое поручение: проверить полный цикл админки и редакторов на своих данных,

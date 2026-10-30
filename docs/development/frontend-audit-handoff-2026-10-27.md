@@ -2,6 +2,26 @@
 
 
 
+
+## CI-профили checkout готовы локально — 30 октября
+
+Добавлены отдельные jobs TEST и guest/NORMAL в GitLab/GitHub, общий verify не
+отключён. Продуктовый frontend, contract и рабочие flags не менялись. Компоненты
+для этого пункта фронтендеру дорабатывать не нужно. Build-time flags выставляет
+новый runner; результат не может быть зелёным по полностью skipped набору.
+
+Настоящие локальные production builds в отдельной копии: TEST 16 pass/0 skip;
+guest/NORMAL 32 pass/1 предусмотренный legacy skip,0 unexpected/flake. Новый
+runner: 10 guard tests, с прежними preflight/scheduling/smoke: 41 pass. Полный unit:
+3677 pass/78 skip; types/API 105/boundaries 854 и обе YAML прошли. Основная .next
+сохранена по SHA, своя копия source удалена; рабочие ресурсы не использовались.
+
+Это не принятие удалённого CI: нового push нет, реальный pipeline не подтверждён.
+Прежние 3 отказа fixtures редакторов ниже остаются открытыми и не исключались
+из общего browser job. Новый профильный job их не скрывает и не разрешает
+включить content strict. [Команды, профили и отчёты](../operations/checkout-browser-ci-2026-10-30.md).
+
+
 ## Приёмка админки и редакторов — 30 октября
 
 Frontend source/design не менялись. На существующей production-сборке Chromium:

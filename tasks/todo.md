@@ -2,6 +2,16 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### CI-профили checkout — 30 октября
+
+- [x] Guarded runner: явные TEST/guest-NORMAL flags, SQL/API target пустые, CI=true.
+- [x] RED 5 / GREEN 10; с preflight/scheduling/smoke: 41 pass. Неверный профиль/build/report/skip дают отказ.
+- [x] Обе matrices по 2 профиля, 20 мин, reports при отказе, без SQL services; общий verify прежний.
+- [x] В своей копии production build: TEST 16 pass, guest/NORMAL 32 pass/1 legacy skip;0 flake.
+- [x] Полный unit 3677/78 skip, root types/API 105/boundaries 854/YAML/format/docs; handoff обновлён.
+- [x] SHA основного build сохранены, своя source/.next копия удалена; без push/deploy.
+- [ ] Удалённый pipeline после публикации: пока не принят; 3 frontend fixtures остаются отдельно.
+
 ### Редакторы, таблицы и DevOps — 29–30 октября
 
 - [x] Карта admin actions/API/таблиц;40прикладных+ledger, не путать fixtures с рабочими строками.

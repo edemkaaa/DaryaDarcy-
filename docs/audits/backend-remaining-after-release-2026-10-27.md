@@ -2,6 +2,20 @@
 
 
 
+
+## Следующий доступный CI-срез выполнен локально — 30 октября
+
+Feature-specific builds теперь описаны в обоих CI: 2 независимых checkout-профиля,
+явные public flags, no SQL/proxy env, JSON guard от skip/неполного отчёта и
+сохранение diagnostics. Общие verify/SQL/browser jobs не заменены.
+Локально TEST 16 и guest/NORMAL 32/1 legacy skip, unit 3677/78 skip,
+41 targeted/root types/API 105/boundaries 854/YAML прошли. Своя build-копия удалена,
+основные frontend source/.next неизменны. [Подробности](../operations/checkout-browser-ci-2026-10-30.md).
+Нового push/deploy нет. Принятие настоящего remote pipeline, 3 frontend fixtures,
+native Docker build, LIVE-настройки и внешняя приёмка остаются; новых
+продуктовых backend ошибок не найдено и новых функций не добавлено.
+
+
 ## Приёмка редакторов и заполнения таблиц — 30 октября
 
 На временных данных:1511SQL pass/299opt-in skip, fresh48/466schema+HTTP checks,
