@@ -18,7 +18,7 @@ import type { ContentReadService } from "../content/content-read.service";
 import { importVideosInput } from "../content/video-import-input";
 import { adminPostsPageInput, adminPostCalendarInput } from "../content/admin-post-reads";
 import { vkVideoInput } from "../content/vk-video-input";
-import { upsertVkVideo } from "../content/vk-catalog";
+import { upsertVkVideo, adminVkVideoDetail } from "../content/vk-catalog";
 import type { NotificationsService } from "../notifications/notifications.service";
 import { articleCreationKey } from "../content/article-creation-request";
 import { privateUploadInput, privateUploadStatusInput, uploadPrivateAttachment, privateAttachmentStatus } from "../content/private-attachment-uploads";
@@ -225,6 +225,8 @@ export const createAdminRouter = (
     .input(vkVideoInput)
     .output(z.object({id:z.number().int().positive()}).strict())
     .mutation(({ctx,input})=>upsertVkVideo(ctx.user,input)),
+  vkVideoDetail: adminProcedure.input(z.object({ id: z.number().int().positive().safe() }).strict())
+    .query(({ ctx, input }) => adminVkVideoDetail(ctx.user, input.id)),
 
   /** Remove push tokens when deleting/deactivating a user account (manual deletion workflow). */
   purgeUserPushData: adminProcedure

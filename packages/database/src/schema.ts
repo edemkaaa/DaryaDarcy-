@@ -338,6 +338,7 @@ export type InsertPushConsentEvent = typeof pushConsentEvents.$inferInsert;
 // ── Videos (YouTube imports) ──
 export const videos = mysqlTable("videos", {
   id: int("id").autoincrement().primaryKey(),
+  editRevision: int("editRevision").notNull().default(0),
   /** YouTube video ID (e.g. sq7pY1H_fYU) */
   youtubeId: varchar("youtubeId", { length: 32 }).unique(),
   provider: mysqlEnum("provider", ["youtube", "vk"]).default("youtube").notNull(),

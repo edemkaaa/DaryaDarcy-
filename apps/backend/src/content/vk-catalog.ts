@@ -74,6 +74,11 @@ export async function upsertVkVideo(actor: User, input: VkVideoInput) {
         : { thumbnailUrl: input.thumbnailUrl }),
     };
     if (input.id !== undefined) {
+      const strict = process.env.CONTENT_EDIT_REVISIONS_REQUIRED;
+      if (strict !== undefined && strict !== "true" && strict !== "false")
+        throw new TRPCError({ code: "SERVICE_UNAVAILABLE" });
+      if (input.expectedRevision === undefined && strict === "true")
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Загрузите актуальную версию видео" });
       const [existing] = await tx
         .select()
         .from(videos)
@@ -81,13 +86,15 @@ export async function upsertVkVideo(actor: User, input: VkVideoInput) {
         .for("update");
       if (!existing || existing.provider !== "vk")
         throw new TRPCError({ code: "NOT_FOUND" });
+      if (input.expectedRevision !== undefined && input.expectedRevision !== existing.editRevision)
+        throw new TRPCError({ code: "CONFLICT", message: "Видео уже изменено. Сверьте актуальную версию" });
       const [duplicate] = await tx
         .select({ id: videos.id })
         .from(videos)
         .where(eq(videos.vkSourceKey, source.sourceKey));
       if (duplicate && duplicate.id !== input.id)
         throw new TRPCError({ code: "CONFLICT" });
-      await tx.update(videos).set(data).where(eq(videos.id, input.id));
+      await tx.update(videos).set({ ...data, editRevision: sql`${videos.editRevision} + 1` }).where(eq(videos.id, input.id));
       return { id: input.id };
     }
     await tx
@@ -119,6 +126,19 @@ export async function upsertVkVideo(actor: User, input: VkVideoInput) {
         message: "Ролик уже существует с другими данными",
       });
     return { id: saved.id };
+  });
+}
+
+export async function adminVkVideoDetail(actor: User, id: number) {
+  requireVkCatalogEnabled();
+  const database = await getDb();
+  if (!database) throw new Error("Database unavailable");
+  return database.transaction(async tx => {
+    const current = await currentVideoActor(tx, actor);
+    if (current.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+    const [video] = await tx.select().from(videos).where(eq(videos.id, id));
+    if (!video || video.provider !== "vk") throw new TRPCError({ code: "NOT_FOUND" });
+    return { id: video.id, title: video.title, embedUrl: video.vkEmbedUrl, access: video.access, published: video.published, thumbnailUrl: video.thumbnailUrl, editRevision: video.editRevision };
   });
 }
 

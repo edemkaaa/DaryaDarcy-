@@ -35,6 +35,13 @@ export async function openVideoTestDatabase() {
           "INSERT INTO backend_test_migrations VALUES ('0031_vk_catalog_access')",
         );
       }
+      const [revision] = await conn.query<RowDataPacket[]>(
+        "SELECT name FROM backend_test_migrations WHERE name='0049_video_edit_revision'",
+      );
+      if (!revision.length) {
+        await conn.query(await readFile(new URL("../../packages/database/drizzle/0049_video_edit_revision.sql", import.meta.url), "utf8"));
+        await conn.query("INSERT INTO backend_test_migrations VALUES ('0049_video_edit_revision')");
+      }
       // Fixed fixtures reserve IDs below one million. Use live metadata: cached
       // counters could repeat ALTER while another suite holds a transaction lock.
       await conn.query("SET SESSION information_schema_stats_expiry=0");

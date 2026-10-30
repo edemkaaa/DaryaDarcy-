@@ -89,7 +89,7 @@ describe.skipIf(!testDatabaseUrl)(
       const before = await stored();
       await db.updateVideo(firstId, { title: "Updated", published: false });
       expect(await stored()).toEqual([
-        { ...before[0], title: "Updated", published: 0 },
+        { ...before[0], title: "Updated", published: 0, editRevision: 1 },
         before[1],
       ]);
       expect(await db.getVideoById(firstId)).toBeUndefined();

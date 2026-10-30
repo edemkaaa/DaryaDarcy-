@@ -84,6 +84,7 @@ export const vkVideoInput = z
       .nullable()
       .optional(),
     id: z.number().int().positive().safe().optional(),
+    expectedRevision: z.number().int().nonnegative().safe().optional(),
   })
   .strict();
 export type VkVideoInput = z.infer<typeof vkVideoInput>;

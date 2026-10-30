@@ -43,6 +43,7 @@ const expectedProcedures = {
     "uploadPrivateContentFile",
     "uploadPublicCover",
     "upsertVkVideo",
+    "vkVideoDetail",
   ],
   articles: ["getById", "list"],
   auth: ["logout", "me"],

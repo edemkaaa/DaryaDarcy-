@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { requireContentDatabase } from "./read-database";
 import {
@@ -11,12 +11,12 @@ import {
 type Database = MySql2Database | null;
 export type PublicVideo = Omit<
   Video,
-  "provider" | "access" | "vkEmbedUrl" | "vkSourceKey" | "youtubeId"
+  "provider" | "access" | "vkEmbedUrl" | "vkSourceKey" | "youtubeId" | "editRevision"
 > & { youtubeId: string };
 function publicVideo(row: Video): PublicVideo {
   if (typeof row.youtubeId !== "string" || !row.youtubeId)
     throw new Error("Invalid public video");
-  const { provider, access, vkEmbedUrl, vkSourceKey, ...legacy } = row;
+  const { provider, access, vkEmbedUrl, vkSourceKey, editRevision, ...legacy } = row;
   return {
     ...legacy,
     youtubeId: row.youtubeId,
@@ -124,7 +124,7 @@ export async function updateVideo(
   data: Partial<InsertVideo>,
 ): Promise<void> {
   if (!db) throw new Error("Database not available");
-  await db.update(videos).set(data).where(eq(videos.id, id));
+  await db.update(videos).set({ ...data, editRevision: sql`${videos.editRevision} + 1` }).where(eq(videos.id, id));
 }
 
 export async function deleteVideo(db: Database, id: number): Promise<void> {
