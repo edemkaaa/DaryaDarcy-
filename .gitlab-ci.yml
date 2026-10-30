@@ -39,3 +39,24 @@ verify:
     paths: [dist/index.mjs]
     expire_in: 7 days
     when: on_success
+
+# A build-time variant gets its own workspace and no MySQL/provider service.
+checkout-browser:
+  stage: verify
+  timeout: 20m
+  parallel:
+    matrix:
+      - CHECKOUT_BROWSER_PROFILE: [prodamus-test, guest-normal]
+  variables:
+    NODE_OPTIONS: --max-old-space-size=2048
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@9.12.0 --activate
+    - pnpm install --frozen-lockfile --ignore-scripts
+    - pnpm --filter @daryadarcy/frontend exec playwright install --with-deps chromium
+  script:
+    - node tooling/scripts/check-checkout-browser.mjs "$CHECKOUT_BROWSER_PROFILE"
+  artifacts:
+    when: always
+    paths: [apps/frontend/test-results/]
+    expire_in: 7 days

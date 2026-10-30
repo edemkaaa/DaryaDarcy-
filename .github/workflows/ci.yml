@@ -58,3 +58,35 @@ jobs:
         run: pnpm --filter @daryadarcy/frontend exec playwright install --with-deps chromium
       - name: Browser regression tests
         run: pnpm test:frontend
+
+  checkout-browser:
+    name: Checkout browser (${{ matrix.profile }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [prodamus-test, guest-normal]
+    env:
+      NODE_OPTIONS: --max-old-space-size=2048
+      CHECKOUT_BROWSER_PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm --filter @daryadarcy/frontend exec playwright install --with-deps chromium
+      - run: node tooling/scripts/check-checkout-browser.mjs "$CHECKOUT_BROWSER_PROFILE"
+      - name: Browser reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkout-browser-${{ matrix.profile }}
+          path: apps/frontend/test-results/
+          if-no-files-found: warn
+          retention-days: 7
