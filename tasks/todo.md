@@ -2,6 +2,20 @@
 
 ## Активный чек-лист агента — 13 октября 2026
 
+### Редакторы, таблицы и DevOps — 29–30 октября
+
+- [x] Карта admin actions/API/таблиц;40прикладных+ledger, не путать fixtures с рабочими строками.
+- [x] Полный MySQL1511pass/299opt-in skips; старые phone fixtures и bulk barrier исправлены.
+- [x] Fresh48миграций/40таблиц+ledger,466HTTP/schema checks, cleanup/OOMfalse.
+- [x] Browser171pass/3fixture failures из174;3diagnostic pass, frontend source прежний.
+- [x] Build Compose/Next flags/TEST bundle/image-only overlay,4build+5merge checks и build-check API/web.
+- [ ] Полная новая native amd64 Docker-сборка/кандидат на builder DevOps: не заменять static checks.
+- [x] Стенд18HTTPS на своих drafts/admin-fixtures:409/lostACK/replay/cleanup; strictOFF.
+- [x] Рабочая БД read-only:40+ledger/358колонок/48миграций/29инвариантов,0нарушений.
+- [x] Unit3667/78skip, types/lint/API105/boundaries854, backend/TEST builds.
+- [x] Отчёт приёмки, единый handoff и DevOps-инструкция; cleanup/type/docs checks.
+- [ ] Фронтендеру3browser failures:1missing detail fixture и2устаревших quick-media ожидания; strictOFF.
+
 ### Остаток backend после выпуска — 29 октября
 
 - [x] Freshfetch:4c3bbf2d совпадает со staging, исходное дерево чистое.

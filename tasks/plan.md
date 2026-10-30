@@ -2,6 +2,27 @@
 
 ## Действующий план агента — 13 октября 2026
 
+### Редакторы, таблицы и пакет DevOps — 29 октября
+
+Новое поручение: проверить полный цикл админки и редакторов на своих данных,
+конфликты/потерю ответа/сохранность ввода, таблицы и связи. Frontend source,
+существующие аккаунты/контент/админские входы и рабочий strict не менять.
+Сначала HTTP/MySQL regression на одноразовой локальной БД и проверка свежей
+схемы, затем browser существующего клиента на synthetic API; ограничения
+такой проверки явно отразить. При найденном backend-дефекте RED→минимальный fix.
+Файлы DevOps: дополнить существующие Dockerfile/build-time flags/TEST artifact,
+проверить Compose без запуска рабочих сервисов, дать воспроизводимый build/run/
+backup/migration/rollback handoff без секретов. Никакого push/deploy этим шагом.
+
+Проверка завершена30октября: полный SQL1511pass/299opt-in skip; fresh48/
+466HTTP/schema checks; browser171/174 и3diagnostic pass на отдельной копии.
+Стенд18HTTPS на своих черновиках, cleanup и исходные41таблицы/admin3 подтверждены.
+Рабочая БД:358колонок модели совпали,29read-only инвариантов без нарушений.
+Параллельные реакции сохранены, контрольная копия обновлена без отката данных.
+Docker-пакет56358071:явные flags/TEST bundle/build-only Compose/image pins;
+native full image build остаётся gate DevOps. Продуктовый frontend/strict прежние,
+нового push/deploy нет. Подробности: docs/audits/admin-editors-and-database-acceptance-2026-10-30.md.
+
 ### Сверка после выпуска — 29 октября
 
 Свежий staging совпал с4c3bbf2d. Product runtime681bcec5/ledger48 уже принят;

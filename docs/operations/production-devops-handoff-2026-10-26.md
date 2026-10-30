@@ -1,5 +1,24 @@
 # Daryadarcy Требования к серверу и подготовка запуска
 
+
+## Дополнение 30 октября: готовый сборочный пакет
+
+Подготовлены [build-only Compose и инструкция](../../infrastructure/deploy/teamassist/README.build.md),
+[публичный env-пример](../../infrastructure/deploy/teamassist/build.public.env.example)
+и [image-only overlay](../../infrastructure/deploy/teamassist/compose.release-images.example.yaml).
+Существующий web Dockerfile теперь явно принимает Next public build flags;
+API и combined Dockerfile собирают также отдельный Prodamus TEST bundle.
+API/web Docker build checks и настоящий Compose config/merge прошли.
+Полная новая native amd64 сборка/запуск образов — обязательный gate выбранного
+builder; на текущем малоресурсном рабочем сервере не выполнялась.
+
+Текущий код стенда681bcec5, ledger48 после0046/0047; БД не переключалась,
+админские входы и private guard/manifest сохранены. В этом этапе нового deploy нет.
+Дата/source SHA/ресурсные замеры26октября ниже являются историей, не свежими
+показателями хоста. Для переезда сохранить полный действующий Compose stack,
+а не только base файл из репозитория. TEST не переносить в боевую оплату автоматически.
+
+
 Дата: 26 октября 2026 года. Получатель: DevOps проекта Daryadarcy.
 
 Ожидаемая аудитория, подтверждённая владельцем: до100одновременных посетителей.
