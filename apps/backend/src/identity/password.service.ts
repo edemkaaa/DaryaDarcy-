@@ -1,5 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { getDb } from "../db";
+import type { User } from "../../../../packages/database/src/schema";
+import { executeAdminAction } from "../admin/actions";
 import {
   completePassword,
   requestPasswordEmail,
@@ -22,7 +24,10 @@ export class PasswordService {
     return completePassword(await this.database(), token, password);
   }
 
-  async resend(actorId: number, userId: number) {
-    return resendClubAccess(await this.database(), actorId, userId);
+  async resend(actor: User, userId: number, idempotencyKey?: string) {
+    const database = await this.database();
+    if (idempotencyKey === undefined) return resendClubAccess(database, actor.id, userId);
+    const result = await executeAdminAction(database, actor, { idempotencyKey, userId, kind: "resendAccessEmail" });
+    return result.state === "succeeded";
   }
 }

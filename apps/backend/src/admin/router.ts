@@ -2,7 +2,10 @@ import { z } from "zod";
 import { membersPageInput } from "./members-page";
 import { paymentsPageInput } from "./payments-page";
 import { adminArticlesPageInput } from "../content/admin-article-page";
-import { router, adminProcedure } from "../_core/trpc";
+import { router, adminProcedure, moderatorProcedure } from "../_core/trpc";
+import { TRPCError } from "@trpc/server";
+import { adminActionKey } from "../../../../packages/shared/src/admin-action";
+import { executeAdminAction, readAdminAction } from "./actions";
 import * as db from "../db";
 import { publicCoverPhotoInput } from "../media/photos";
 import { coverReceiptInput, publicPhotoStatusInput, uploadPublicPhoto, publicPhotoStatus } from "../media/public-photo-receipts";
@@ -105,11 +108,24 @@ export const createAdminRouter = (
   paymentsPage: adminProcedure.input(paymentsPageInput)
     .query(({ ctx, input }) => db.listAdminPaymentsPage(ctx.user.id, input)),
   grantClub: adminProcedure
-    .input(z.object({ userId: z.number() }))
-    .mutation(async ({ input }) => {
+    .input(z.object({ userId: z.number().int().positive().safe(), idempotencyKey: adminActionKey.optional() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      if (input.idempotencyKey !== undefined) {
+        const database = await db.getDb();
+        if (!database) throw new Error("Database unavailable");
+        const result = await executeAdminAction(database, ctx.user, { ...input, idempotencyKey: input.idempotencyKey, kind: "grantClub" });
+        if (result.state === "rejected") throw new TRPCError({ code: result.code, message: "Аккаунт недоступен для выдачи доступа" });
+        if (result.kind !== "grantClub") throw new Error("Unexpected operation result");
+        return { ok: true as const, expiresAt: result.expiresAt };
+      }
       const expiresAt = await db.grantClubDays(input.userId);
       return { ok: true as const, expiresAt: expiresAt.toISOString() };
     }),
+  actionStatus: moderatorProcedure.input(z.object({ idempotencyKey: adminActionKey }).strict()).query(async ({ ctx, input }) => {
+    const database = await db.getDb();
+    if (!database) throw new Error("Database unavailable");
+    return readAdminAction(database, ctx.user, input.idempotencyKey);
+  }),
   articles: adminProcedure.query(() => content.listAllAdminArticles()),
   articlesPage: adminProcedure.input(adminArticlesPageInput)
     .query(({ ctx, input }) => content.listAdminArticleCards(ctx.user.id, input)),

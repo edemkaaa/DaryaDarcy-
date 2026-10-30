@@ -86,7 +86,7 @@ it("plans the complete fresh order without Docker, credentials or modifying the 
     initialized: false,
     releaseApproval: false,
   });
-  expect(plan.migrations).toHaveLength(48);
+  expect(plan.migrations).toHaveLength(49);
   expect(
     plan.migrations.slice(17, 20).map((row: { tag: string }) => row.tag),
   ).toEqual([
@@ -94,7 +94,7 @@ it("plans the complete fresh order without Docker, credentials or modifying the 
     "0018_push_consent_text",
     "0019_comment_likes",
   ]);
-  expect(plan.migrations.at(-1).tag).toBe("0047_user_contact_phone");
+  expect(plan.migrations.at(-1).tag).toBe("0048_admin_action_operations");
   for (const row of plan.migrations) {
     const bytes = await readFile(
       join(scratch, "packages/database/drizzle", `${row.tag}.sql`),

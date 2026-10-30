@@ -1,5 +1,6 @@
 import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean, unique, index, uniqueIndex, primaryKey } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
+import type { AdminActionOutcome } from "../../shared/src/admin-action";
 import type { RichTextBlock, RichTextInline } from "../../shared/src/rich-text-types";
 import type { LaunchConfiguration } from "../../shared/src/launch-settings";
 
@@ -45,6 +46,17 @@ export const users = mysqlTable("users", {
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+
+/** Durable intent receipts contain IDs/results only; never mail tokens or personal contacts. */
+export const adminActionOperations = mysqlTable("admin_action_operations", {
+  actorUserId: int("actorUserId").notNull(),
+  operationKey: varchar("operationKey", { length: 36 }).notNull(),
+  kind: mysqlEnum("kind", ["grantClub", "resendAccessEmail"]).notNull(),
+  targetUserId: int("targetUserId").notNull(),
+  payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
+  result: json("result").$type<AdminActionOutcome>().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [primaryKey({ columns: [table.actorUserId, table.operationKey] }), index("admin_action_target").on(table.targetUserId)]);
 
 // ── Feed: Posts ──
 export const posts = mysqlTable("posts", {

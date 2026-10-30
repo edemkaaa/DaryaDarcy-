@@ -12,6 +12,9 @@ import {
 } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { createHash } from "node:crypto";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import { adminActionKey } from "../../../../packages/shared/src/admin-action";
 import { isValidEmail, normalizeEmail } from "../_core/password";
 import { checkRateLimit } from "../_core/rate-limit";
 import { clientIp } from "../sms-auth";
@@ -41,12 +44,12 @@ export class PasswordController {
         res.sendStatus(429);
         return;
       }
-      const userId = req.body?.userId;
-      if (!Number.isSafeInteger(userId) || userId <= 0) {
+      const parsed = z.object({ userId: z.number().int().positive().safe(), idempotencyKey: adminActionKey.optional() }).strict().safeParse(req.body);
+      if (!parsed.success) {
         res.sendStatus(400);
         return;
       }
-      const queued = await this.passwords.resend(actor.id, userId);
+      const queued = await this.passwords.resend(actor, parsed.data.userId, parsed.data.idempotencyKey);
       res
         .status(queued ? 202 : 400)
         .json(
@@ -54,8 +57,11 @@ export class PasswordController {
             ? { queued: true }
             : { error: "Нет доступного аккаунта с оплаченной подпиской." },
         );
-    } catch {
-      res.status(403).json({ error: "Запрос недоступен." });
+    } catch (error) {
+      const status = error instanceof TRPCError
+        ? ({ BAD_REQUEST: 400, CONFLICT: 409, UNAUTHORIZED: 401, FORBIDDEN: 403 } as Record<string, number>)[error.code] ?? 503
+        : 503;
+      res.status(status).json({ error: "Запрос недоступен." });
     }
   }
 

@@ -272,46 +272,52 @@ export async function resendClubAccess(
   actorId: number,
   userId: number,
 ): Promise<boolean> {
-  return database.transaction(async (tx) => {
-    const [actor] = await tx.select().from(users).where(eq(users.id, actorId));
-    if (
-      !actor ||
-      actor.blockedAt ||
-      !["admin", "moderator"].includes(actor.role)
+  return database.transaction(tx => resendClubAccessInTransaction(tx, actorId, userId));
+}
+
+export async function resendClubAccessInTransaction(
+  tx: Transaction,
+  actorId: number,
+  userId: number,
+): Promise<boolean> {
+  const [actor] = await tx.select().from(users).where(eq(users.id, actorId));
+  if (
+    !actor ||
+    actor.blockedAt ||
+    !["admin", "moderator"].includes(actor.role)
+  )
+    return false;
+  const [user] = await tx
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .for("update");
+  if (!user || user.blockedAt || !user.email) return false;
+  const [payment] = await tx
+    .select()
+    .from(clubPayments)
+    .where(
+      and(eq(clubPayments.userId, userId), eq(clubPayments.status, "paid")),
     )
-      return false;
-    const [user] = await tx
-      .select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .for("update");
-    if (!user || user.blockedAt || !user.email) return false;
-    const [payment] = await tx
-      .select()
-      .from(clubPayments)
-      .where(
-        and(eq(clubPayments.userId, userId), eq(clubPayments.status, "paid")),
-      )
-      .orderBy(desc(clubPayments.expiresAt))
-      .limit(1);
-    if (!payment?.expiresAt || payment.expiresAt.getTime() <= Date.now())
-      return false;
-    await queueAccessEmail(
-      tx,
-      userId,
-      user.email,
-      "club-access",
-      `resend:${randomUUID()}`,
-      payment.orderId,
-    );
-    await tx.insert(adminAuditLog).values({
-      actorUserId: actorId,
-      action: "resend_club_access",
-      targetType: "user",
-      targetId: userId,
-    });
-    return true;
+    .orderBy(desc(clubPayments.expiresAt))
+    .limit(1);
+  if (!payment?.expiresAt || payment.expiresAt.getTime() <= Date.now())
+    return false;
+  await queueAccessEmail(
+    tx,
+    userId,
+    user.email,
+    "club-access",
+    `resend:${randomUUID()}`,
+    payment.orderId,
+  );
+  await tx.insert(adminAuditLog).values({
+    actorUserId: actorId,
+    action: "resend_club_access",
+    targetType: "user",
+    targetId: userId,
   });
+  return true;
 }
 export async function processAccessEmails(
   database: MySql2Database,

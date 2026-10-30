@@ -337,6 +337,13 @@
       "when": 1793275201000,
       "tag": "0047_user_contact_phone",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "5",
+      "when": 1793361600000,
+      "tag": "0048_admin_action_operations",
+      "breakpoints": true
     }
   ]
 }
