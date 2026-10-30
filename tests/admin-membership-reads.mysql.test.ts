@@ -92,6 +92,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(members[0]).toEqual({
         id: 92522,
         email: null,
+        contactPhone: null,
         name: null,
         role: "moderator",
         createdAt: new Date("2025-03-01T00:00:00Z"),
@@ -102,6 +103,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(members[1]).toEqual({
         id: 92521,
         email: "admin-read-member@example.test",
+        contactPhone: null,
         name: "Member",
         role: "user",
         createdAt: new Date("2025-02-01T00:00:00Z"),
@@ -189,6 +191,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(Object.keys(history[0]).sort()).toEqual([
         "cancelAtPeriodEnd",
         "cancelledAt",
+        "contactPhone",
         "createdAt",
         "email",
         "expiresAt",

@@ -66,7 +66,7 @@ describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () =
     const expiresAt = await grantClubDays(92401);
     const member = (await listAdminMembers()).find(row => row.id === 92401);
     expect(member).toMatchObject({ id: 92401, email: "grant@example.test", clubExpiresAt: expiresAt, blockedAt: null, blockedReason: null });
-    expect(Object.keys(member!).sort()).toEqual(["blockedAt", "blockedReason", "clubExpiresAt", "createdAt", "email", "id", "name", "role"]);
+    expect(Object.keys(member!).sort()).toEqual(["blockedAt", "blockedReason", "clubExpiresAt", "contactPhone", "createdAt", "email", "id", "name", "role"]);
   });
   it("keeps the admin payment limit and confirmed grant fields", async () => {
     const expiresAt = await grantClubDays(92401);

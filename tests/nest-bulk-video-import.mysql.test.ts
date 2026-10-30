@@ -209,8 +209,9 @@ describe.skipIf(!testDatabaseUrl)(
         batches.map((batch) => client().admin.importVideos.mutate(batch)),
       );
       try {
-        // Both transactions must reach the shared insert before the conflict
-        // is released. No production hooks, database mocks or guessed sleep.
+        // InnoDB can block either the shared row or the preceding insert in
+        // the same unique-index gap. Observe both real INSERTs before release,
+        // without assuming the contested gap is reached on the second row.
         const deadline = Date.now() + 3000;
         let blocked = 0;
         do {
@@ -220,7 +221,7 @@ describe.skipIf(!testDatabaseUrl)(
           blocked = processes.filter(
             (p) =>
               /insert into .videos./i.test(p.Info || "") &&
-              String(p.Info).includes("bulk-http-failure"),
+              /bulk-http-(first|second|failure)/.test(String(p.Info)),
           ).length;
           if (blocked === 2) break;
           await new Promise((done) => setTimeout(done, 10));

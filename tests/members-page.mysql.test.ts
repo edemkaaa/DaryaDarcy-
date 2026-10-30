@@ -65,6 +65,7 @@ describe.skipIf(!testDatabaseUrl)(
         [
           "id",
           "email",
+          "contactPhone",
           "name",
           "role",
           "createdAt",

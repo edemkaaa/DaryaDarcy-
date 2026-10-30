@@ -389,7 +389,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(
         (await trpc("club.subscription", undefined, cookie, true)).data,
       ).toMatchObject({ hasClubAccess: false, subscribed: false });
-      const intent = { plan: "monthly", idempotencyKey: randomUUID() };
+      const intent = { plan: "monthly", idempotencyKey: randomUUID(), contactPhone: "+79990000001" };
       const order = await trpc("club.createNormalCheckout", intent, cookie);
       expect(order.status).toBe(200);
       expect(order.data?.state).toBe("pending");
@@ -398,8 +398,9 @@ describe.skipIf(!testDatabaseUrl)(
       expect(replay.data).toEqual(order.data);
       expect(new URL(order.data!.url!).hostname).toBe("fixture.payform.ru"); // Never opened.
       expect(
-        await rows("SELECT status FROM club_payments WHERE userId=?", [userId]),
-      ).toEqual([{ status: "pending" }]);
+        await rows("SELECT status,contactPhone FROM club_payments WHERE userId=?", [userId]),
+      ).toEqual([{ status: "pending", contactPhone: "+79990000001" }]);
+      expect(await rows("SELECT contactPhone FROM users WHERE id=?", [userId])).toEqual([{contactPhone: "+79990000001"}]);
       expect(
         (await trpc("club.subscription", undefined, cookie, true)).data
           ?.hasClubAccess,
