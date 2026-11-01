@@ -1,5 +1,15 @@
 # Daryadarcy Modular Monorepo
 
+## Выпуск отдельной Mini — 1 ноября
+
+- [x] Push staging c11d1210 и отдельной Telegram-ветки c765bebe, без force.
+- [x] Offline image/candidate8/8, переключён только Mini web, откат сохранён.
+- [x] Public WebKit8/8+SDK, covers22/22, read-only bot URL/commands.
+- [x] Все42таблицы/admin hashes/конфиги/остальные контейнеры прежние.
+- [ ] Подтверждение native-кнопки владельцем; Mac automation AXError.
+
+[Отчёт](../docs/operations/telegram-mini-release-2026-11-01.md).
+
 ## Совместная локальная приёмка — 1 ноября
 
 - [x] recovery11/11: продление, очередь письма, VK revision, reload/ACK/account.
