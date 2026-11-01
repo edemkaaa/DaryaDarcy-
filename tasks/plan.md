@@ -2,6 +2,23 @@
 
 ## Действующий план агента — 13 октября 2026
 
+### Актуализация остатка и старых browser-отказов — 2 ноября
+
+Свежий fetch61e42ef2, новых коммитов нет, исходное дерево чистое. В своей
+production-копии повторены3исходныхотказа: editor-safety теперьPASS,
+дваquick incomplete-media timeout45с до кнопки действий. Причина — невалидный
+начальный feed fixture, который текущий валидатор безопасно отклоняет.
+Main frontend/.next прежние, копия/свои процессы убраны;0skip/flaky.
+Поставлена ровно2fixture задача фронтендеру, backend runtime-дефект не установлен.
+Новый runtime-код не добавлять ради GREEN. Обновлены текущая очередь и единый
+handoff, исторические пункты отделены. На сервере только read-only metadata:
+API54ea/webhfJOeSHp1OdIsAVRqe_v_/Minic765 healthy/restart0; основной web не
+обновляли. Native-кнопку Mini владелец явно отложил. Дальше frontend/выпуск,
+LIVE/CI/native builder/ресурсы MySQL и решения владельца. Push/deploy нет.
+[Протокол](../docs/development/editor-fixture-check-2026-11-02.md),
+[точная очередь](../docs/audits/backend-remaining-after-release-2026-10-27.md).
+
+
 ### Разрешённый выпуск отдельной Mini — 1 ноября
 
 Актуальные изменения запушены: staging c11d1210, Mini отдельно c765bebe.

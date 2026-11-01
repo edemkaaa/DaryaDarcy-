@@ -1,5 +1,18 @@
 # Daryadarcy Modular Monorepo
 
+## Реальная очередь после Mini-выпуска — 2 ноября
+
+- [x] Свежий fetch61e42ef2: входящих нет, чистое дерево.
+- [x]3исходныхbrowser-случая в своей production-копии:1pass/2fail, без skip/flaky.
+- [x] Подтверждён безопасный отказ невалидного feed, исходники фронта неизменны.
+- [x] Основная .next прежняя, own Next/Chromium/копия убраны.
+- [x] Точный2fixture-handoff и текущая backend-очередь без устаревших3fail.
+- [ ] Фронтендер: исправить2quick fixtures; обычный web выпуск отдельно согласовать.
+- [ ] Внешние gates: LIVE/CI/native builder/ресурсы MySQL/первый пароль/Yandex shares.
+- [ ] Native Mini/iPhone PDF/fullscreen и большие загрузки/нагрузка/пилот отложены.
+
+[Протокол](../docs/development/editor-fixture-check-2026-11-02.md).
+
 ## Выпуск отдельной Mini — 1 ноября
 
 - [x] Push staging c11d1210 и отдельной Telegram-ветки c765bebe, без force.
