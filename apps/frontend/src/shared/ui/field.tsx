@@ -59,7 +59,15 @@ export const Field = forwardRef<
       e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
     ) => {
       props.onKeyDown?.(e);
-      if (e.key === "Enter" && !multiline && onSubmit) {
+      if (
+        e.key === "Enter" &&
+        !multiline &&
+        onSubmit &&
+        !e.defaultPrevented &&
+        !e.nativeEvent.isComposing &&
+        // Some IMEs report Enter with keyCode 229 after isComposing clears.
+        e.nativeEvent.keyCode !== 229
+      ) {
         e.preventDefault();
         onSubmit?.();
       }

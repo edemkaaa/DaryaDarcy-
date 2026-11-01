@@ -140,6 +140,41 @@ async function profileApi(page: Page) {
   return { state, raster };
 }
 
+for (const ime of ["composition", "keyCode 229"] as const) {
+  test(`profile name waits for IME ${ime} to finish before saving`, async ({
+    page,
+  }) => {
+    const { state } = await profileApi(page);
+    await gotoWithSession(page, "/profile");
+    await page
+      .getByRole("button", { name: "Server name", exact: true })
+      .click();
+    const field = page.getByRole("textbox", { name: "Имя профиля" });
+    await field.fill("途中");
+    await field.dispatchEvent("compositionstart", { data: "途中" });
+    await field.dispatchEvent("keydown", {
+      key: "Enter",
+      code: "Enter",
+      keyCode: ime === "keyCode 229" ? 229 : 13,
+      isComposing: ime === "composition",
+      bubbles: true,
+      cancelable: true,
+    });
+    await expect(field).toBeEditable();
+    expect(state.writes).toEqual([]);
+
+    await field.dispatchEvent("compositionend", { data: "完成" });
+    await field.fill("完成");
+    await field.press("Enter");
+    await expect
+      .poll(() => state.writes)
+      .toEqual([{ name: "完成", expectedRevision: 0 }]);
+    await expect(
+      page.getByRole("button", { name: "完成", exact: true }),
+    ).toBeVisible();
+  });
+}
+
 for (const width of [390, 1280]) {
   test(`opening Club and profile never uploads stale local name, gender or avatar (${width}px)`, async ({
     page,
@@ -442,7 +477,7 @@ test("failed photo upload retains a labeled draft and never changes name or the 
   await page.getByRole("button", { name: "Готово", exact: true }).click();
   await expect(
     page
-      .getByRole("alert")
+      .locator("[data-background-notice] [role=status]")
       .filter({ hasText: "Загрузка фото не подтверждена" }),
   ).toBeVisible();
   await expect(picker.locator("img")).toHaveAttribute(
@@ -455,9 +490,7 @@ test("failed photo upload retains a labeled draft and never changes name or the 
     fullPage: true,
   });
   expect(state.writes).toEqual([]);
-  await page
-    .getByRole("button", { name: "Проверить фото в профиле", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Повторить", exact: true }).click();
   state.avatarFails = false;
   await page
     .getByRole("button", { name: "Повторить загрузку фото", exact: true })
@@ -719,7 +752,7 @@ async function chooseAvatar(page: Page, raster: Buffer) {
   await page.getByRole("button", { name: "Готово", exact: true }).click();
 }
 const checkAvatar = (page: Page) =>
-  page.getByRole("button", { name: "Проверить фото в профиле", exact: true });
+  page.getByRole("button", { name: "Повторить", exact: true });
 const retryAvatar = (page: Page) =>
   page.getByRole("button", { name: "Повторить загрузку фото", exact: true });
 const avatarJournal = (page: Page) =>
@@ -727,6 +760,302 @@ const avatarJournal = (page: Page) =>
     const raw = localStorage.getItem("darcy:user:101:avatar-upload");
     return raw ? JSON.parse(raw) : null;
   });
+
+test.describe("damaged avatar journal", () => {
+  const key = "darcy:user:101:avatar-upload";
+  const reset = (page: Page) =>
+    page.getByRole("button", {
+      name: "Сбросить черновик",
+      exact: true,
+    });
+  const choose = (page: Page) =>
+    page.getByRole("button", { name: "Выбрать фото профиля", exact: true });
+  async function damaged(page: Page, raw = "{damaged") {
+    const fixture = await profileApi(page);
+    await gotoWithSession(page, "/profile");
+    await page.evaluate(({ key, raw }) => localStorage.setItem(key, raw), {
+      key,
+      raw,
+    });
+    await page.reload();
+    await expect(reset(page)).toBeVisible();
+    await expect(choose(page)).toBeDisabled();
+    return fixture;
+  }
+  test("downloads the exact copy, respects cancel and enables an explicit new upload after checking the profile", async ({
+    page,
+  }) => {
+    const { state, raster } = await damaged(page);
+    const download = page.waitForEvent("download");
+    await page
+      .getByRole("button", {
+        name: "Скачать копию",
+        exact: true,
+      })
+      .click();
+    const file = await download;
+    const stream = await file.createReadStream();
+    let text = "";
+    for await (const chunk of stream!) text += chunk.toString();
+    expect(text).toBe("{damaged");
+    page.once("dialog", (dialog) => dialog.dismiss());
+    await reset(page).click();
+    expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe(
+      "{damaged",
+    );
+    state.user.avatarUrl = "https://images.example.test/current-avatar.jpg";
+    page.once("dialog", (dialog) => dialog.accept());
+    await reset(page).click();
+    await expect(choose(page)).toBeEnabled();
+    await expect(choose(page).locator("img")).toHaveAttribute(
+      "src",
+      state.user.avatarUrl,
+    );
+    expect(await avatarJournal(page)).toBeNull();
+    expect(state.avatarWrites).toEqual([]);
+    expect(state.writes).toEqual([]);
+    await chooseAvatar(page, raster);
+    await expect.poll(() => state.avatarWrites.length).toBe(1);
+    await expect(choose(page)).toBeEnabled();
+  });
+  test("keeps a recoverable receipt key locked while its upload is pending", async ({
+    page,
+  }) => {
+    const raw = JSON.stringify({
+      version: 1,
+      ownerId: 101,
+      idempotencyKey: "avatar-damaged-operation-01",
+      base64: "invalid!",
+      filename: "avatar.png",
+      mimeType: "image/png",
+    });
+    const { state } = await damaged(page, raw);
+    state.avatarPending = true;
+    page.on("dialog", (dialog) => dialog.accept());
+    await reset(page).click();
+    await expect(
+      page
+        .locator("[data-background-notice] [role=status]")
+        .filter({ hasText: "ещё обрабатывается" }),
+    ).toBeVisible();
+    expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe(
+      raw,
+    );
+    await expect(choose(page)).toBeDisabled();
+    state.avatarPending = false;
+    await reset(page).click();
+    await expect(choose(page)).toBeEnabled();
+    expect(state.avatarStatuses).toEqual(
+      Array(2).fill({ idempotencyKey: "avatar-damaged-operation-01" }),
+    );
+    expect(state.avatarWrites).toEqual([]);
+  });
+  test("checks the damaged replacement's receipt even when an older intent remains in memory", async ({
+    page,
+  }) => {
+    const { state, raster } = await profileApi(page);
+    state.avatarFails = true;
+    await gotoWithSession(page, "/profile");
+    await chooseAvatar(page, raster);
+    await checkAvatar(page).click();
+    await expect(retryAvatar(page)).toBeVisible();
+    const replacement = JSON.stringify({
+      version: 1,
+      ownerId: 101,
+      idempotencyKey: "avatar-new-damaged-operation-01",
+      base64: "broken!",
+      filename: "avatar.png",
+      mimeType: "image/png",
+    });
+    await page.evaluate(
+      ({ key, replacement }) => localStorage.setItem(key, replacement),
+      { key, replacement },
+    );
+    await retryAvatar(page).click();
+    await expect(reset(page)).toBeVisible();
+    state.avatarPending = true;
+    page.once("dialog", (dialog) => dialog.accept());
+    await reset(page).click();
+    await expect(
+      page
+        .locator("[data-background-notice] [role=status]")
+        .filter({ hasText: "ещё обрабатывается" }),
+    ).toBeVisible();
+    expect(state.avatarStatuses.at(-1)).toEqual({
+      idempotencyKey: "avatar-new-damaged-operation-01",
+    });
+    expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe(
+      replacement,
+    );
+    await expect(choose(page)).toBeDisabled();
+    expect(state.avatarWrites).toHaveLength(1);
+  });
+  test("a failed profile check does not remove the damaged record", async ({
+    page,
+  }) => {
+    const { state } = await damaged(page);
+    await page.route("**/api/auth/me", (route) =>
+      route.fulfill({ status: 503, json: { error: "unavailable" } }),
+    );
+    page.once("dialog", (dialog) => dialog.accept());
+    await reset(page).click();
+    await expect(reset(page)).toBeEnabled();
+    await expect(choose(page)).toBeDisabled();
+    expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe(
+      "{damaged",
+    );
+    expect(state.avatarWrites).toEqual([]);
+  });
+  for (const outcome of ["status unavailable", "invalid receipt"] as const) {
+    test(`reset preserves the damaged record when ${outcome}`, async ({
+      page,
+    }) => {
+      const raw = JSON.stringify({
+        ownerId: 101,
+        idempotencyKey: "avatar-reset-status-operation-01",
+        base64: "broken!",
+      });
+      const { state } = await damaged(page, raw);
+      state.avatarStatusFails = outcome === "status unavailable";
+      if (outcome === "invalid receipt")
+        state.avatarReceiptOverride = {
+          state: "ready",
+          url: "javascript:alert(1)",
+          avatarApplied: true,
+          isCurrent: true,
+        };
+      state.holdNextRead = true;
+      page.once("dialog", (dialog) => dialog.accept());
+      await reset(page).click();
+      await expect(
+        page.locator("[data-background-notice] [role=status]").filter({
+          hasText:
+            outcome === "status unavailable"
+              ? "Сервис временно недоступен"
+              : "Некорректный ответ сервера",
+        }),
+      ).toBeVisible();
+      await expect(reset(page)).toBeEnabled();
+      expect(state.avatarStatuses).toEqual([
+        { idempotencyKey: "avatar-reset-status-operation-01" },
+      ]);
+      expect(state.readHeld).toBe(false);
+      expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe(
+        raw,
+      );
+      await expect(choose(page)).toBeDisabled();
+      expect(state.avatarWrites).toEqual([]);
+      state.holdNextRead = false;
+      state.avatarStatusFails = false;
+      state.avatarReceiptOverride = undefined;
+      page.once("dialog", (dialog) => dialog.accept());
+      await reset(page).click();
+      await expect(choose(page)).toBeEnabled();
+      expect(
+        await page.evaluate((key) => localStorage.getItem(key), key),
+      ).toBeNull();
+    });
+  }
+  test("does not remove a valid replacement installed during the profile check", async ({
+    page,
+    context,
+  }) => {
+    const { state } = await damaged(page);
+    const other = await context.newPage();
+    await profileApi(other);
+    await gotoWithSession(other, "/profile");
+    state.holdNextRead = true;
+    const replacement = {
+      version: 1,
+      ownerId: 101,
+      idempotencyKey: "avatar-replacement-operation-01",
+      base64: "aGVsbG8=",
+      filename: "avatar.png",
+      mimeType: "image/png",
+    };
+    try {
+      page.once("dialog", (dialog) => dialog.accept());
+      await reset(page).click();
+      await expect.poll(() => state.readHeld).toBe(true);
+      await other.evaluate(
+        ({ key, value }) => localStorage.setItem(key, JSON.stringify(value)),
+        { key, value: replacement },
+      );
+      state.readGate.release();
+      await expect(
+        page
+          .locator("[data-background-notice] [role=status]")
+          .filter({ hasText: "изменился в другой вкладке" }),
+      ).toBeVisible();
+      expect(await avatarJournal(page)).toEqual(replacement);
+      await checkAvatar(page).click();
+      await expect(retryAvatar(page)).toBeVisible();
+      await expect(reset(page)).toHaveCount(0);
+      expect(state.avatarWrites).toEqual([]);
+    } finally {
+      state.readGate.release();
+    }
+  });
+  test("an account switch cancels reset without clearing the previous owner's record", async ({
+    page,
+  }) => {
+    const { state } = await damaged(page);
+    state.holdNextRead = true;
+    try {
+      page.once("dialog", (dialog) => dialog.accept());
+      await reset(page).click();
+      await expect.poll(() => state.readHeld).toBe(true);
+      state.user = {
+        ...state.user,
+        id: 202,
+        openId: "second-owner",
+        name: "Second person",
+      };
+      await page.evaluate(() =>
+        window.dispatchEvent(
+          new StorageEvent("storage", {
+            key: "darcy:session-change",
+            newValue: "other-owner",
+          }),
+        ),
+      );
+      await expect(
+        page.getByRole("button", { name: "Second person", exact: true }),
+      ).toBeVisible();
+      state.readGate.release();
+      await expect(choose(page)).toBeEnabled();
+      await expect(reset(page)).toHaveCount(0);
+      expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe(
+        "{damaged",
+      );
+      expect(state.avatarWrites).toEqual([]);
+    } finally {
+      state.readGate.release();
+    }
+  });
+  test("a failed local removal keeps reset available and the picker locked", async ({
+    page,
+  }) => {
+    await damaged(page);
+    await page.evaluate((key) => {
+      const remove = Storage.prototype.removeItem;
+      Storage.prototype.removeItem = function (name) {
+        if (name !== key) remove.call(this, name);
+      };
+    }, key);
+    page.once("dialog", (dialog) => dialog.accept());
+    await reset(page).click();
+    await expect(
+      page
+        .locator("[data-background-notice] [role=status]")
+        .filter({ hasText: "Не удалось сбросить" }),
+    ).toBeVisible();
+    await expect(choose(page)).toBeDisabled();
+    expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe(
+      "{damaged",
+    );
+  });
+});
 
 test.describe("avatar receipt recovery", () => {
   test("a lost committed response survives reload and is checked without uploading again", async ({
@@ -848,7 +1177,9 @@ test.describe("avatar receipt recovery", () => {
     await gotoWithSession(page, "/profile");
     await chooseAvatar(page, raster);
     await expect(
-      page.getByRole("alert").filter({ hasText: "Выберите фото заново" }),
+      page
+        .locator("[data-background-notice] [role=status]")
+        .filter({ hasText: "Выберите фото заново" }),
     ).toBeVisible();
     await expect(retryAvatar(page)).toHaveCount(0);
     expect(await avatarJournal(page)).toBeNull();
@@ -903,7 +1234,7 @@ test.describe("avatar receipt recovery", () => {
     await chooseAvatar(page, raster);
     await expect(
       page
-        .getByRole("alert")
+        .locator("[data-background-notice] [role=status]")
         .filter({ hasText: "Проверьте доступность хранилища" }),
     ).toBeVisible();
     expect(state.avatarWrites).toEqual([]);
@@ -1101,7 +1432,9 @@ for (const form of ["name", "setup"] as const) {
       exact: true,
     });
     await expect(check).toBeEnabled();
-    await expect.poll(() => state.writes.map((w) => w.expectedRevision)).toEqual([0]);
+    await expect
+      .poll(() => state.writes.map((w) => w.expectedRevision))
+      .toEqual([0]);
     expect(state.user.name).toBe("Newer server name");
     await check.click();
     await expect(
@@ -1325,7 +1658,12 @@ test("a failed review confirmation keeps saving blocked and the persisted compar
     .getByRole("button", { name: "Проверить сохранение имени", exact: true })
     .click();
   // Finish the server comparison before injecting failure into accepting it.
-  await expect(page.getByRole("button", { name: "Использовать мой черновик", exact: true })).toBeEnabled();
+  await expect(
+    page.getByRole("button", {
+      name: "Использовать мой черновик",
+      exact: true,
+    }),
+  ).toBeEnabled();
   const draftKey = "darcy:user:101:@darcy_profile_name_draft";
   const before = await page.evaluate(
     (key) => localStorage.getItem(key),

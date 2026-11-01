@@ -36,6 +36,7 @@ import { isTemporaryRequestError } from "@/shared/api/errors";
 import { LoadingIndicator } from "@/shared/ui/loading-indicator";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";
 import { useProfileAvatar } from "@/domain/profile/use-profile-avatar";
+import { downloadText } from "@/shared/browser/download-text";
 import { trpc } from "@/shared/api/trpc";
 import { getQueryKey } from "@trpc/react-query";
 import { useCursorPages } from "@/shared/api/use-cursor-pages";
@@ -129,6 +130,48 @@ export default function ProfileScreen() {
     onRetry: () => savedFromApi.refetch({ cancelRefetch: false }),
   });
   const avatarDraft = avatar.draft;
+  useBackgroundNotice({
+    when: Boolean(avatar.error),
+    message: avatar.error ?? "",
+    priority: 1,
+    busy: avatar.busy,
+    onRetry: avatar.unknown ? avatar.check : undefined,
+    actions: [
+      ...(avatar.corrupt
+        ? [
+            {
+              id: "download-avatar-draft",
+              label: "Скачать копию",
+              onClick: () => {
+                if (avatar.corrupt)
+                  downloadText(avatar.corrupt.raw, "profile-photo-draft.txt");
+              },
+            },
+            {
+              id: "reset-avatar-draft",
+              label: "Сбросить черновик",
+              onClick: () => {
+                if (
+                  window.confirm(
+                    "Сбросить повреждённый черновик фото на этом устройстве? Сначала скачайте копию, если она нужна. Сброс не отменяет ранее отправленную загрузку и не удаляет текущее фото профиля.",
+                  )
+                )
+                  return avatar.resetCorrupt();
+              },
+            },
+          ]
+        : []),
+      ...(avatar.canRetry && avatarDraft
+        ? [
+            {
+              id: "retry-avatar-upload",
+              label: "Повторить загрузку фото",
+              onClick: () => saveAvatar(avatarDraft),
+            },
+          ]
+        : []),
+    ],
+  });
   const [cropperImage, setCropperImage] = useState<CropperImage | null>(null);
   const [quizResult, setQuizResult] = useState<{
     primaryKey: AestheticKey;
@@ -505,7 +548,7 @@ export default function ProfileScreen() {
               </div>
             </Action>
 
-            {(avatarDraft || avatar.error) && (
+            {avatarDraft && (
               <div className={["ui-stack", classes.nameError].join(" ")}>
                 {avatarDraft && (
                   <>
@@ -524,34 +567,6 @@ export default function ProfileScreen() {
                     Сохраняем фото…
                   </Typography>
                 )}
-                {avatar.error && (
-                  <Typography role="alert" className={classes.nameErrorText}>
-                    {avatar.error}
-                  </Typography>
-                )}
-                {avatar.unknown ? (
-                  <Action
-                    className={classes.action5}
-                    style={{ minHeight: 44 }}
-                    disabled={avatar.busy}
-                    onClick={() => void avatar.check()}
-                  >
-                    <Typography className={classes.cardButtonText}>
-                      Проверить фото в профиле
-                    </Typography>
-                  </Action>
-                ) : avatar.canRetry && avatarDraft ? (
-                  <Action
-                    className={classes.action5}
-                    style={{ minHeight: 44 }}
-                    disabled={avatar.busy}
-                    onClick={() => void saveAvatar(avatarDraft)}
-                  >
-                    <Typography className={classes.cardButtonText}>
-                      Повторить загрузку фото
-                    </Typography>
-                  </Action>
-                ) : null}
               </div>
             )}
             <ProfileNameEditor displayName={displayName} />

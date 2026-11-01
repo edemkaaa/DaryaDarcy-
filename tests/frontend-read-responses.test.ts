@@ -6,6 +6,7 @@ import { createAppQueryClient } from "../apps/frontend/src/shared/api/query-clie
 import { validateReadResponse } from "../apps/frontend/src/shared/api/read-response-contracts";
 import { shouldRetryQuery } from "../apps/frontend/src/shared/api/errors";
 import { cancelSessionRequests } from "../apps/frontend/src/shared/api/request-lifecycle";
+import type { CommentReportInboxRow } from "../apps/frontend/src/shared/api/contract";
 
 afterEach(() => {
   cancelSessionRequests();
@@ -105,12 +106,31 @@ const comment = {
   likedByMe: false,
   replyCount: 0,
 };
+const report = {
+  id: 31,
+  commentId: 12,
+  reason: "Reported comment",
+  createdAt: date,
+  commentText: "Comment",
+  commentPhotos: [],
+  postId: 7,
+  authorUserId: 201,
+  authorName: "Author",
+  reporterUserId: 202,
+  reporterName: "Reporter",
+  canBlockAuthor: true,
+} satisfies CommentReportInboxRow;
 const input = {
   id: 7,
   postId: 7,
   days: [{ from: "2026-10-30", to: "2026-10-31" }],
 };
 const valid = [
+  ["moderation.listCommentReports", [report]],
+  [
+    "moderation.listCommentReports",
+    [{ ...report, authorName: null, reporterName: null, commentPhotos: null }],
+  ],
   ["admin.membersPage", { items: [member], nextCursor: null }],
   ["admin.paymentsPage", { items: [payment], nextCursor: null }],
   ["club.commentsPage", { items: [comment], nextCursor: null, totalCount: 1 }],
@@ -158,6 +178,24 @@ const valid = [
   ["admin.postCalendar", { days: [day], upcoming: [card] }],
 ] as const;
 const bad = [
+  ["moderation.listCommentReports", null],
+  ["moderation.listCommentReports", {}],
+  ["moderation.listCommentReports", [null]],
+  ["moderation.listCommentReports", [{ ...report, id: "31" }]],
+  ["moderation.listCommentReports", [{ ...report, commentId: 0 }]],
+  ["moderation.listCommentReports", [{ ...report, postId: -1 }]],
+  ["moderation.listCommentReports", [{ ...report, authorUserId: null }]],
+  ["moderation.listCommentReports", [{ ...report, reporterUserId: 1.5 }]],
+  ["moderation.listCommentReports", [{ ...report, reason: {} }]],
+  ["moderation.listCommentReports", [{ ...report, createdAt: "yesterday" }]],
+  ["moderation.listCommentReports", [{ ...report, createdAt: new Date(NaN) }]],
+  ["moderation.listCommentReports", [{ ...report, commentText: {} }]],
+  ["moderation.listCommentReports", [{ ...report, authorName: {} }]],
+  ["moderation.listCommentReports", [{ ...report, reporterName: [] }]],
+  [
+    "moderation.listCommentReports",
+    [{ ...report, commentPhotos: ["valid", { private: "PRIVATE_PAYLOAD" }] }],
+  ],
   ["feed.getById", { ...post, likeCount: undefined }],
   [
     "feed.listPaginated",
@@ -294,13 +332,26 @@ it.each(valid)(
   },
 );
 
-it.each(["articles.list", "videos.list", "feed.tags"])(
-  "accepts an empty %s",
-  async (path) => {
-    vi.stubGlobal("fetch", async () => Response.json([envelope([])]));
+it.each([
+  "articles.list",
+  "videos.list",
+  "feed.tags",
+  "moderation.listCommentReports",
+])("accepts an empty %s", async (path) => {
+  vi.stubGlobal("fetch", async () => Response.json([envelope([])]));
+  await expect(
+    getUntypedClient(createTRPCClient()).query(path),
+  ).resolves.toEqual([]);
+});
+
+it.each([undefined, false, "true"])(
+  "preserves readable reports with a non-authorizing permission hint %s",
+  async (canBlockAuthor) => {
+    const value = [{ ...report, canBlockAuthor }];
+    vi.stubGlobal("fetch", async () => Response.json([envelope(value)]));
     await expect(
-      getUntypedClient(createTRPCClient()).query(path),
-    ).resolves.toEqual([]);
+      createTRPCClient().moderation.listCommentReports.query(),
+    ).resolves.toEqual(value);
   },
 );
 it.each(
@@ -327,32 +378,48 @@ it("accepts a locked article and valid ISO dates", () => {
   );
 });
 
-it("does not poison or erase the last confirmed Query cache and does not retry a malformed 200", async () => {
-  const cache = createAppQueryClient();
-  let value: unknown = [article];
-  const fetcher = vi.fn(async () => Response.json([envelope(value)]));
-  vi.stubGlobal("fetch", fetcher);
-  const client = createTRPCClient();
-  const options = {
-    queryKey: ["validated-articles"],
-    staleTime: 0,
-    queryFn: () => client.articles.list.query(),
-  };
-  try {
-    await cache.fetchQuery(options);
-    value = [null];
-    await expect(cache.fetchQuery(options)).rejects.toMatchObject({
-      cause: { kind: "invalid-response" },
-    });
-    expect(cache.getQueryData(options.queryKey)).toEqual([article]);
-    expect(cache.getQueryState(options.queryKey)?.status).toBe("error");
-    expect(fetcher).toHaveBeenCalledTimes(2);
-    value = [];
-    await expect(cache.fetchQuery(options)).resolves.toEqual([]);
-  } finally {
-    cache.clear();
-  }
-});
+it.each([
+  {
+    name: "articles",
+    value: article,
+    read: (client: ReturnType<typeof createTRPCClient>) =>
+      client.articles.list.query(),
+  },
+  {
+    name: "reports",
+    value: report,
+    read: (client: ReturnType<typeof createTRPCClient>) =>
+      client.moderation.listCommentReports.query(),
+  },
+])(
+  "does not poison or erase the last confirmed $name cache or retry a malformed 200",
+  async ({ name, value: row, read }) => {
+    const cache = createAppQueryClient();
+    let value: unknown = [row];
+    const fetcher = vi.fn(async () => Response.json([envelope(value)]));
+    vi.stubGlobal("fetch", fetcher);
+    const client = createTRPCClient();
+    const options = {
+      queryKey: [`validated-${name}`],
+      staleTime: 0,
+      queryFn: async () => read(client),
+    };
+    try {
+      await cache.fetchQuery(options);
+      value = [null];
+      await expect(cache.fetchQuery(options)).rejects.toMatchObject({
+        cause: { kind: "invalid-response" },
+      });
+      expect(cache.getQueryData(options.queryKey)).toEqual([row]);
+      expect(cache.getQueryState(options.queryKey)?.status).toBe("error");
+      expect(fetcher).toHaveBeenCalledTimes(2);
+      value = [];
+      await expect(cache.fetchQuery(options)).resolves.toEqual([]);
+    } finally {
+      cache.clear();
+    }
+  },
+);
 
 it("keeps a malformed success isolated from another success in the same batch", async () => {
   const fetcher = vi.fn(async () =>

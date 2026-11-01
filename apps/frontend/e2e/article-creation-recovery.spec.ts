@@ -135,7 +135,7 @@ async function loseCreation(page: Page, title = "RECOVERY_ARTICLE") {
   await page.getByRole("button", { name: "Опубликовать", exact: true }).click();
   await expect(
     page
-      .getByRole("alert")
+      .locator("[data-background-notice] [role=status]")
       .filter({ hasText: "Результат сохранения не подтверждён" }),
   ).toBeVisible();
   await expect(
@@ -190,7 +190,7 @@ test("notRecorded keeps the original operation and only an explicit replay sends
     .click();
   await expect(
     page
-      .getByRole("alert")
+      .locator("[data-background-notice] [role=status]")
       .filter({ hasText: "Первый запрос ещё может завершиться" }),
   ).toBeVisible();
   expect(state.writes).toHaveLength(1);
@@ -250,7 +250,9 @@ test("CONFLICT retains the key and immutable payload instead of starting another
     .getByRole("button", { name: "Повторить сохранение", exact: true })
     .click();
   await expect(
-    page.getByRole("alert").filter({ hasText: "конфликт данных" }),
+    page
+      .locator("[data-background-notice] [role=status]")
+      .filter({ hasText: "конфликт данных" }),
   ).toBeVisible();
   expect(await storedOperation(page)).toEqual(original);
   expect(state.writes[1]).toEqual(state.writes[0]);
@@ -267,7 +269,9 @@ test("cancellation requires a fresh real list and retains the pending operation 
   state.listError = true;
   await page.getByRole("button", { name: "Отмена", exact: true }).click();
   await expect(
-    page.getByRole("alert").filter({ hasText: "Отмена не подтверждена" }),
+    page
+      .locator("[data-background-notice] [role=status]")
+      .filter({ hasText: "Отмена не подтверждена" }),
   ).toBeVisible();
   await expect(titleField(page)).toHaveValue("RECOVERY_ARTICLE");
   state.listError = false;
@@ -411,7 +415,9 @@ test("storage failure prevents creation before any POST", async ({ page }) => {
   );
   await openArticles(page);
   await expect(
-    page.getByRole("alert").filter({ hasText: "операцию статьи" }),
+    page
+      .locator("[data-background-notice] [role=status]")
+      .filter({ hasText: "операцию статьи" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Написать статью", exact: true }),
@@ -438,7 +444,7 @@ test("a real client timeout retains the persisted operation without automaticall
   await page.clock.fastForward(15_000);
   await expect(
     page
-      .getByRole("alert")
+      .locator("[data-background-notice] [role=status]")
       .filter({ hasText: "Результат сохранения не подтверждён" }),
   ).toBeVisible();
   expect(state.writes).toHaveLength(1);

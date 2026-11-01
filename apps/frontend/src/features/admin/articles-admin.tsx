@@ -31,6 +31,7 @@ import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import { trpc } from "@/shared/api/trpc";
 import { getQueryKey } from "@trpc/react-query";
 import {
@@ -118,6 +119,9 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   const opening = useSessionOperation(active && !showForm);
   const [openingId, setOpeningId] = useState<number | null>(null);
   const [openingError, setOpeningError] = useState<string | null>(null);
+  const [draftRecoveryError, setDraftRecoveryError] = useState<string | null>(
+    null,
+  );
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastCardRef = useRef<HTMLDivElement>(null);
   const {
@@ -291,6 +295,32 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     },
     privateFiles.files,
   );
+  const recoverLocalDrafts = async (key?: string) => {
+    if (
+      key &&
+      !window.confirm(
+        "Сохранить повреждённый черновик и его файлы в резервной копии на этом устройстве и освободить редактор? Автоматически открыть эту копию нельзя. Статьи на сервере не изменятся.",
+      )
+    )
+      return;
+    const task = opening.begin("recover-local-article-draft");
+    if (!task) return;
+    setDraftRecoveryError(null);
+    try {
+      if (key) await draft.archiveDamaged(key);
+      else await draft.reload();
+      task.assertCurrent();
+    } catch (cause) {
+      if (task.isCurrent())
+        setDraftRecoveryError(
+          cause instanceof Error
+            ? cause.message
+            : "Не удалось восстановить доступ к черновикам.",
+        );
+    } finally {
+      task.finish();
+    }
+  };
   const restoreFiles = useRef<{
     editingId: number | null;
     files: PrivateArticleFile[];
@@ -1013,7 +1043,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     }
   };
   const startEdit = async (id: number) => {
-    if (!draft.loaded) return;
+    if (!draft.loaded || draft.isDamaged(id)) return;
     const saved = draft.records.find(
       (record) => record.snapshot.editingId === id,
     );
@@ -1097,6 +1127,43 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       return;
     }
   };
+  const damagedDraft =
+    !showForm && !draft.readError ? draft.damaged[0] : undefined;
+  const draftIssue = draft.error || draft.readError || draftRecoveryError;
+  const noticeMessage =
+    draft.error ||
+    (draft.readError
+      ? "Не удалось прочитать черновики на этом устройстве."
+      : null) ||
+    draftRecoveryError ||
+    recoveryMessage ||
+    cover.message ||
+    deletion.error ||
+    (damagedDraft ? "Не удалось открыть локальный черновик статьи." : null);
+  useBackgroundNotice({
+    when: Boolean(noticeMessage),
+    message: noticeMessage ?? "",
+    priority: 1,
+    busy: opening.busy || operation.busy || remove.isPending,
+    onRetry:
+      draftIssue || damagedDraft
+        ? async () => {
+            if (showForm) {
+              if (draft.error) await draft.flush().catch(() => {});
+              else await draft.reload().catch(() => {});
+            } else await recoverLocalDrafts();
+          }
+        : undefined,
+    actions: damagedDraft
+      ? [
+          {
+            id: "recover-article-draft",
+            label: "Восстановить редактор",
+            onClick: () => recoverLocalDrafts(damagedDraft.key),
+          },
+        ]
+      : undefined,
+  });
   if (showForm) {
     const busy = operation.busy;
     const pendingCreation =
@@ -1125,22 +1192,13 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
             }
           />
         ) : null}
-        <StatusNotice tone={draft.error ? "error" : "info"}>
-          {draft.error ||
-            (draft.saving
+        {!draft.error && (
+          <StatusNotice>
+            {draft.saving
               ? "Сохраняем черновик на устройстве…"
-              : "Черновик статьи сохраняется на этом устройстве.")}
-        </StatusNotice>
-        {draft.error && (
-          <StatusNoticeAction
-            onClick={() => void draft.flush().catch(() => {})}
-          >
-            Повторить сохранение черновика
-          </StatusNoticeAction>
+              : "Черновик статьи сохраняется на этом устройстве."}
+          </StatusNotice>
         )}
-        {recoveryMessage ? (
-          <StatusNotice tone="error">{recoveryMessage}</StatusNotice>
-        ) : null}
         {pendingCreation ? (
           <div>
             <Typography className={classes.hint}>
@@ -1177,9 +1235,6 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
               </Action>
             ) : null}
           </div>
-        ) : null}
-        {cover.message ? (
-          <StatusNotice tone="error">{cover.message}</StatusNotice>
         ) : null}
         {cover.pending && cover.message ? (
           <div>
@@ -1788,7 +1843,6 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       onRefresh={() => void list.restart()}
       refreshing={list.isRefetching && !list.isFetchingNextPage}
     >
-      {draft.error && <StatusNotice tone="error">{draft.error}</StatusNotice>}
       {draft.records.map(
         (saved) =>
           (!creation ||
@@ -1827,12 +1881,6 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
             </StatusNotice>
           ),
       )}
-      {recoveryMessage ? (
-        <StatusNotice tone="error">{recoveryMessage}</StatusNotice>
-      ) : null}
-      {cover.message ? (
-        <StatusNotice tone="error">{cover.message}</StatusNotice>
-      ) : null}
       {cover.storageStatus === "error" ? (
         <StatusNoticeAction onClick={cover.retryRead}>
           Повторить чтение загрузки баннера
@@ -1870,9 +1918,6 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
           новой статьёй.
         </Typography>
       ) : null}
-      {deletion.error ? (
-        <StatusNotice tone="error">{deletion.error}</StatusNotice>
-      ) : null}
       {deletion.unknown && !deletion.operation.busy ? (
         <StatusNoticeAction onClick={() => void deletion.check()}>
           Обновить список
@@ -1883,7 +1928,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
           remove.isPending ||
           opening.busy ||
           storageStatus !== "ready" ||
-          !draft.loaded
+          !draft.loaded ||
+          (!creation && draft.isDamaged(null))
         }
         onClick={() => {
           draft.resume();
@@ -1965,7 +2011,12 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
                 className={["ui-stack ", classes.row].filter(Boolean).join(" ")}
               >
                 <Action
-                  disabled={remove.isPending || opening.busy || !draft.loaded}
+                  disabled={
+                    remove.isPending ||
+                    opening.busy ||
+                    !draft.loaded ||
+                    draft.isDamaged(item.id)
+                  }
                   onClick={() => void startEdit(item.id)}
                   className={classes.linkBtn}
                 >

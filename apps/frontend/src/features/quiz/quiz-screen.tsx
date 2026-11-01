@@ -13,7 +13,7 @@ import {
   parseQuizProgress,
   serializeQuizProgress,
 } from "@/domain/quiz/quiz-progress";
-import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import { withQuizStorageLock } from "@/domain/quiz/quiz-storage-lock";
 import { parseSavedQuizResult } from "@/domain/quiz/saved-result";
 import { useAuth } from "@/domain/session/session-context";
@@ -56,6 +56,8 @@ function QuizFlow({
   const current = useRef(state);
   const active = useScreenActive();
   const inspected = useRef<string | null | undefined>(undefined);
+  const followingSavedResult = useRef(showSavedResult);
+  const [resultVersion, setResultVersion] = useState(0);
   const [inspectedOnce, setInspectedOnce] = useState(false);
   const [storageError, setStorageError] = useState(false);
   const [changedElsewhere, setChangedElsewhere] = useState(false);
@@ -119,6 +121,8 @@ function QuizFlow({
           )
             return;
           next = quizReducer(previous, action);
+          if (action.type === "START_QUIZ" || action.type === "RESTART")
+            followingSavedResult.current = false;
           if (next.phase === "question") {
             const metadata = run.current
               ? { ...run.current, revision: run.current.revision + 1 }
@@ -135,6 +139,7 @@ function QuizFlow({
               const result = JSON.stringify({
                 runId: run.current?.runId,
                 primaryKey: next.result.primary.key,
+                primaryTitle: next.result.primary.title,
                 secondaryKey: next.result.secondary?.key ?? null,
                 isBlend: next.result.isBlend,
                 scores: next.result.scores,
@@ -143,12 +148,15 @@ function QuizFlow({
               requiredStorage.setItem("@darcy_quiz_result", result);
               if (requiredStorage.getItem("@darcy_quiz_result") !== result)
                 throw new Error("Результат не сохранён");
+              inspected.current = result;
             }
             // A saved-result screen owns no in-progress run to delete.
             if (stored.current !== null)
               requiredStorage.removeItem(QUIZ_PROGRESS_KEY);
             stored.current = null;
             run.current = null;
+            if (next.result && !next.restored)
+              followingSavedResult.current = showSavedResult;
           }
           setStorageError(false);
           setChangedElsewhere(false);
@@ -223,11 +231,15 @@ function QuizFlow({
           const progress = restoreProgress(
             requiredStorage.getItem(QUIZ_PROGRESS_KEY),
           );
-          const result = progress
+          const rawResult = progress
             ? null
-            : parseSavedQuizResult(
-                requiredStorage.getItem("@darcy_quiz_result"),
-              );
+            : requiredStorage.getItem("@darcy_quiz_result");
+          const result = parseSavedQuizResult(rawResult);
+          followingSavedResult.current = showSavedResult && !progress;
+          if (!progress) {
+            inspected.current = rawResult;
+            setResultVersion((version) => version + 1);
+          }
           epoch.current++;
           setCurrent(
             progress ??
@@ -245,55 +257,80 @@ function QuizFlow({
     });
   };
   useEffect(() => {
-    if (!showSavedResult || !active || current.current.phase === "question")
-      return;
+    if (!showSavedResult || !active) return;
     let cancelled = false;
-    const loadEpoch = epoch.current;
-    void AsyncStorage.getItem("@darcy_quiz_result").then((raw) => {
-      if (cancelled || loadEpoch !== epoch.current) return;
-      if (inspected.current !== raw) {
-        inspected.current = raw;
-        const result = parseSavedQuizResult(raw);
-        if (result) {
-          const restored = quizReducer(current.current, {
-            type: "RESTORE_RESULT",
-            result,
-          });
+    let readVersion = 0;
+    const canRead = () =>
+      !cancelled &&
+      followingSavedResult.current &&
+      isPersonalDataOwner(ownerId) &&
+      current.current.phase !== "question";
+    const load = () => {
+      if (!canRead()) return;
+      const version = ++readVersion;
+      const loadEpoch = epoch.current;
+      void AsyncStorage.getItem("@darcy_quiz_result").then((raw) => {
+        if (
+          !canRead() ||
+          version !== readVersion ||
+          loadEpoch !== epoch.current
+        )
+          return;
+        if (inspected.current !== raw) {
+          inspected.current = raw;
+          const result = parseSavedQuizResult(raw);
+          const restored = result
+            ? quizReducer(initialState, { type: "RESTORE_RESULT", result })
+            : initialState;
           current.current = restored;
           setState(restored);
+          setResultVersion((value) => value + 1);
         }
-      }
-      setInspectedOnce(true);
-    });
+        setInspectedOnce(true);
+      });
+    };
+    const onStorage = (event: StorageEvent) => {
+      if (
+        event.key === null ||
+        event.key === `darcy:user:${ownerId ?? "guest"}:@darcy_quiz_result`
+      )
+        load();
+    };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", load);
+    window.addEventListener("pageshow", load);
+    load();
     return () => {
       cancelled = true;
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", load);
+      window.removeEventListener("pageshow", load);
     };
-  }, [showSavedResult, active]);
+  }, [showSavedResult, active, ownerId]);
+  useBackgroundNotice({
+    when: storageError || changedElsewhere,
+    priority: 1,
+    message: storageError
+      ? changedElsewhere
+        ? "Тест не сохранён. В другой вкладке уже есть изменения."
+        : "Прогресс теста не сохранён на устройстве. Не закрывайте страницу."
+      : "Тест изменён в другой вкладке. Ваши ответы не перезаписаны.",
+    actions: changedElsewhere
+      ? [
+          {
+            id: "continue-saved-quiz",
+            label: "Продолжить сохранённый тест",
+            onClick: continueSaved,
+          },
+        ]
+      : undefined,
+  });
   if (!inspectedOnce) return <RouteLoading path="/quiz/result" />;
   return (
     <QuizContext.Provider value={{ state, dispatch }}>
-      {changedElsewhere && (
-        <StatusNotice
-          tone="info"
-          actions={
-            <StatusNoticeAction onClick={continueSaved}>
-              Продолжить сохранённый тест
-            </StatusNoticeAction>
-          }
-        >
-          Тест изменён в другой вкладке. Сохранённые ответы оставлены без
-          изменений.
-        </StatusNotice>
-      )}
-      {storageError && (
-        <StatusNotice tone="error">
-          Прогресс теста не сохранён на устройстве. Не закрывайте страницу;
-          разрешите хранение данных сайта.
-        </StatusNotice>
-      )}
       {state.phase === "welcome" && <QuizWelcome />}
       {state.phase === "question" && <QuizQuestion />}
-      {state.phase === "result" && <QuizResultScreen />}
+      {state.phase === "result" && <QuizResultScreen key={resultVersion} />}
     </QuizContext.Provider>
   );
 }

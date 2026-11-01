@@ -1,8 +1,9 @@
 "use client";
 import classes from "./garden-tour-video.module.scss";
 import { Action, Typography, type LayoutRect } from "@/shared/ui/elements";
-import { createElement, useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Picture } from "@/shared/media/image";
+import { ManagedVideo } from "@/shared/media/managed-video";
 import Animated, {
   FadeInDown,
   runOnJS,
@@ -44,21 +45,19 @@ export function GardenTourVideo() {
   if (!isPlaying) {
     return <GardenPoster onClick={() => setIsPlaying(true)} />;
   }
-  {
-    return (
-      <div className={["ui-stack ", classes.frame].filter(Boolean).join(" ")}>
-        {createElement("video", {
-          src: GARDEN_VIDEO_URL,
-          poster: GARDEN_POSTER_URL,
-          controls: true,
-          playsInline: true,
-          autoPlay: true,
-          preload: "metadata",
-          className: classes.videoElement,
-        })}
-      </div>
-    );
-  }
+  return (
+    <div className={["ui-stack ", classes.frame].filter(Boolean).join(" ")}>
+      <ManagedVideo
+        src={GARDEN_VIDEO_URL}
+        poster={GARDEN_POSTER_URL}
+        controls
+        playsInline
+        autoPlay
+        preload="metadata"
+        className={classes.videoElement}
+      />
+    </div>
+  );
 }
 type SectionProps = {
   scrollY?: SharedValue<number>;

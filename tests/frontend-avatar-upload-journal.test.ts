@@ -5,6 +5,8 @@ import {
   saveAvatarIntent,
   removeAvatarIntent,
   requireAvatarReceipt,
+  CorruptAvatarIntentError,
+  discardCorruptAvatarIntent,
   type AvatarUploadIntent,
 } from "../apps/frontend/src/domain/profile/avatar-upload-journal";
 let values: Map<string, string>;
@@ -105,4 +107,58 @@ it("accepts a completed upload that is no longer current without implying reappl
       isCurrent: false,
     }),
   ).toMatchObject({ isCurrent: false });
+});
+
+function corrupt(raw: string) {
+  values.set("darcy:user:101:avatar-upload", raw);
+  try {
+    readAvatarIntent(101);
+  } catch (error) {
+    expect(error).toBeInstanceOf(CorruptAvatarIntentError);
+    return error as CorruptAvatarIntentError;
+  }
+  throw new Error("Expected corrupt data");
+}
+it("preserves the original damaged bytes and a usable same-owner receipt key", () => {
+  const raw = JSON.stringify({ ...intent, base64: "broken!" });
+  const error = corrupt(raw);
+  expect(error.raw).toBe(raw);
+  expect(error.idempotencyKey).toBe(intent.idempotencyKey);
+  expect(values.get("darcy:user:101:avatar-upload")).toBe(raw);
+  discardCorruptAvatarIntent(error);
+  expect(readAvatarIntent(101)).toBeNull();
+});
+it("never uses a foreign owner's receipt key", () => {
+  const error = corrupt(JSON.stringify({ ...intent, ownerId: 202 }));
+  expect(error.idempotencyKey).toBeNull();
+});
+it("does not mistake unavailable storage for a corrupt record", () => {
+  window.localStorage.getItem = () => {
+    throw new DOMException("denied", "SecurityError");
+  };
+  expect(() => readAvatarIntent(101)).toThrow("denied");
+  try {
+    readAvatarIntent(101);
+  } catch (error) {
+    expect(error).not.toBeInstanceOf(CorruptAvatarIntentError);
+  }
+});
+it("refuses to discard a replacement or another owner's data", () => {
+  const error = corrupt("{bad");
+  values.set("darcy:user:101:avatar-upload", JSON.stringify(intent));
+  expect(() => discardCorruptAvatarIntent(error)).toThrow("изменился");
+  expect(readAvatarIntent(101)).toEqual(intent);
+  setPersonalDataOwner(202);
+  expect(() => discardCorruptAvatarIntent(error)).toThrow();
+  expect(values.get("darcy:user:101:avatar-upload")).toBe(
+    JSON.stringify(intent),
+  );
+});
+it("reports failed durable removal rather than pretending recovery succeeded", () => {
+  const error = corrupt("{bad");
+  window.localStorage.removeItem = () => {};
+  expect(() => discardCorruptAvatarIntent(error)).toThrow(
+    "Не удалось сбросить",
+  );
+  expect(values.get("darcy:user:101:avatar-upload")).toBe("{bad");
 });

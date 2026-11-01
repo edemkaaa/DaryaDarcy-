@@ -14,10 +14,18 @@ import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { StatusNotice, StatusNoticeAction } from "./status-notice";
 import classes from "./background-notice.module.scss";
 
+type NoticeAction = {
+  id: string;
+  label: string;
+  onClick: () => unknown | Promise<unknown>;
+  disabled?: boolean;
+};
 type Notice = {
   message: string;
   priority?: number;
-  onRetry: () => unknown | Promise<unknown>;
+  onRetry?: () => unknown | Promise<unknown>;
+  actions?: NoticeAction[];
+  busy?: boolean;
 };
 const Registry = createContext<{
   notices: Map<string, Notice>;
@@ -53,23 +61,51 @@ export function useBackgroundNotice({
   message,
   priority = 0,
   onRetry,
+  actions,
+  busy = false,
 }: Notice & { when: boolean }) {
   const active = useScreenActive();
   const registry = useContext(Registry);
   const register = registry?.register;
   const id = useId();
-  const retry = useRef(onRetry);
+  const callbacks = useRef({ onRetry, actions });
   useLayoutEffect(() => {
-    retry.current = onRetry;
+    callbacks.current = { onRetry, actions };
   });
+  const hasRetry = Boolean(onRetry);
+  // Only presentation changes update the registry. Handlers use their current
+  // versions, and stable action IDs prevent an old button invoking a new action.
+  const actionKey = JSON.stringify(
+    actions?.map(({ id, label, disabled }) => [id, label, !!disabled]) ?? [],
+  );
   useEffect(() => {
     if (active && when && register)
       return register(id, {
         message,
         priority,
-        onRetry: () => retry.current(),
+        busy,
+        onRetry: hasRetry ? () => callbacks.current.onRetry?.() : undefined,
+        actions: callbacks.current.actions?.map(({ id, label, disabled }) => ({
+          id,
+          label,
+          disabled,
+          onClick: () =>
+            callbacks.current.actions
+              ?.find((action) => action.id === id)
+              ?.onClick(),
+        })),
       });
-  }, [active, when, register, id, message, priority]);
+  }, [
+    active,
+    when,
+    register,
+    id,
+    message,
+    priority,
+    hasRetry,
+    actionKey,
+    busy,
+  ]);
 }
 
 export function BackgroundNoticeSlot() {
@@ -81,6 +117,9 @@ export function BackgroundNoticeSlot() {
     (a, b) => (b.priority ?? 0) - (a.priority ?? 0),
   )[0];
   const visible = Boolean(notice);
+  const canRetry = [...(registry?.notices.values() ?? [])].some(
+    (entry) => entry.onRetry,
+  );
   useLayoutEffect(() => {
     const host = slot.current;
     const panel = card.current;
@@ -136,26 +175,41 @@ export function BackgroundNoticeSlot() {
         className={classes.notice}
         role="status"
         actions={
-          <StatusNoticeAction
-            disabled={retrying}
-            aria-busy={retrying}
-            onClick={async () => {
-              if (retrying) return;
-              setRetrying(true);
-              try {
-                // One recovery action for coexisting session/content errors.
-                await Promise.allSettled(
-                  [...(registry?.notices.values() ?? [])].map(async (entry) =>
-                    entry.onRetry(),
-                  ),
-                );
-              } finally {
-                setRetrying(false);
-              }
-            }}
-          >
-            {retrying ? "Проверяем…" : "Повторить"}
-          </StatusNoticeAction>
+          canRetry || notice.actions?.length ? (
+            <>
+              {canRetry && (
+                <StatusNoticeAction
+                  disabled={retrying || notice.busy}
+                  aria-busy={retrying}
+                  onClick={async () => {
+                    if (retrying) return;
+                    setRetrying(true);
+                    try {
+                      // One recovery action for coexisting session/content errors.
+                      await Promise.allSettled(
+                        [...(registry?.notices.values() ?? [])].map(
+                          async (entry) => entry.onRetry?.(),
+                        ),
+                      );
+                    } finally {
+                      setRetrying(false);
+                    }
+                  }}
+                >
+                  {retrying ? "Проверяем…" : "Повторить"}
+                </StatusNoticeAction>
+              )}
+              {notice.actions?.map((action) => (
+                <StatusNoticeAction
+                  key={action.id}
+                  disabled={retrying || notice.busy || action.disabled}
+                  onClick={() => void action.onClick()}
+                >
+                  {action.label}
+                </StatusNoticeAction>
+              ))}
+            </>
+          ) : undefined
         }
       >
         {notice.message}

@@ -177,6 +177,20 @@ const comment = z.object({
   likedByMe: z.boolean(),
   replyCount: count,
 });
+const commentReport = z.object({
+  id,
+  commentId: id,
+  reason: z.string(),
+  createdAt: date,
+  commentText: z.string(),
+  commentPhotos: strings.nullable(),
+  postId: id,
+  authorUserId: id,
+  authorName: z.string().nullable(),
+  reporterUserId: id,
+  reporterName: z.string().nullable(),
+  // canBlockAuthor is a compatible UI hint; the view only acts on literal true.
+});
 
 // These are read/view contracts, not ORM models. Unknown fields stay compatible.
 // Checkout, private files and the new video catalog already validate their own
@@ -210,6 +224,7 @@ const readContracts: Record<string, z.ZodType> = {
   "admin.membersPage": cursorPage(member),
   "admin.paymentsPage": cursorPage(payment),
   "club.commentsPage": cursorPage(comment).extend({ totalCount: count }),
+  "moderation.listCommentReports": z.array(commentReport),
 };
 
 /** Assert before caching; never strip unknown fields, coerce or replace data. */

@@ -1,31 +1,35 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { editorApi, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
+import { validateReadResponse } from "../src/shared/api/read-response-contracts";
 
 async function fixtures(page: Page, count = 10) {
   const photos = Array.from(
     { length: count },
     (_, i) => `https://photo-navigation.example.test/${i + 1}.svg`,
   );
+  const response = {
+    posts: [
+      {
+        id: 1,
+        text: "PHOTO_NAVIGATION",
+        photos,
+        media: [],
+        tags: [],
+        target: "feed",
+        likeCount: 0,
+        commentCount: 0,
+        richText: null,
+        createdAt: "2026-10-13T10:00:00Z",
+        publishedAt: "2026-10-13T10:00:00Z",
+      },
+    ],
+    nextCursor: null,
+  };
+  // Fail on fixture drift before navigation, using the application's read contract.
+  validateReadResponse("feed.listPaginated", response, undefined);
   await editorApi(page, (name) =>
-    name === "feed.listPaginated"
-      ? ok({
-          posts: [
-            {
-              id: 1,
-              text: "PHOTO_NAVIGATION",
-              photos,
-              media: [],
-              tags: [],
-              target: "feed",
-              likeCount: 0,
-              commentCount: 0,
-              createdAt: "2026-10-13T10:00:00Z",
-            },
-          ],
-          nextCursor: null,
-        })
-      : undefined,
+    name === "feed.listPaginated" ? ok(response) : undefined,
   );
   await page.route("https://photo-navigation.example.test/**", (route) =>
     route.fulfill({
