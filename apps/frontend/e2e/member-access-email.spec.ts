@@ -8,6 +8,7 @@ const member = (id: number, name: string, extra = {}) => ({
   id,
   name,
   email: `member-${id}@example.test`,
+  contactPhone: null,
   role: "user",
   createdAt: "2026-10-01T10:00:00Z",
   clubExpiresAt: "2040-11-01T10:00:00Z",
@@ -20,6 +21,7 @@ const card = (page: Page, name = "Участница для письма") =>
 
 async function fixtures(page: Page) {
   await editorApi(page, (name) => {
+    if (name === "admin.actionStatus") return ok({ state: "notFound" });
     if (name === "admin.members")
       return ok([
         member(201, "Участница для письма"),
@@ -82,8 +84,11 @@ for (const width of [320, 390, 1440]) {
       "Письмо с доступом поставлено в очередь. Доставка ещё не подтверждена.",
     );
     await expect(
-      card(page).getByRole("button", { name: "Письмо в очереди", exact: true }),
-    ).toBeDisabled();
+      card(page).getByRole("button", {
+        name: "Отправить ещё одно письмо",
+        exact: true,
+      }),
+    ).toBeEnabled();
     await expect(
       card(page, "Другая участница").getByRole("button", {
         name: "Повторить письмо",
@@ -97,7 +102,10 @@ for (const width of [320, 390, 1440]) {
     expect(writes).toEqual([
       {
         method: "POST",
-        body: { userId: 201 },
+        body: {
+          userId: 201,
+          idempotencyKey: expect.stringMatching(/^[0-9a-f-]{36}$/),
+        },
         contentType: "application/json",
       },
     ]);
@@ -130,16 +138,15 @@ for (const status of [400, 403, 429]) {
     await openMembers(page);
     await send(page);
     await expect(card(page).getByRole("alert")).toContainText(
-      status === 400
-        ? "Проверьте почту"
-        : status === 403
-          ? "Нет доступа"
-          : "Слишком много",
+      "не подтверждена",
     );
     await expect(page.getByText(/PRIVATE_SMTP_DETAILS/)).toHaveCount(0);
     await expect(card(page).getByRole("status")).toHaveCount(0);
     expect(writes).toBe(1);
-    await send(page);
+    page.once("dialog", (dialog) => dialog.accept());
+    await page
+      .getByRole("button", { name: "Повторить исходное действие", exact: true })
+      .click();
     await expect(card(page).getByRole("status")).toContainText(
       "поставлено в очередь",
     );
@@ -194,7 +201,7 @@ for (const outcome of unconfirmed) {
         name: "Повторить письмо",
         exact: true,
       }),
-    ).toBeEnabled();
+    ).toBeDisabled();
   });
 }
 

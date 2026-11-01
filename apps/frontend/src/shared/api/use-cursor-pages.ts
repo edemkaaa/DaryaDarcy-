@@ -18,6 +18,8 @@ import {
   boundCursorChain,
   CursorChainError,
   cursorQueryKey,
+  CURSOR_PAGE_LIMIT,
+  prependCursorPage,
   type CursorChain,
   type CursorPage,
 } from "./cursor-pages";
@@ -30,7 +32,9 @@ export function requireCursorPage(value: unknown): void {
   if (
     !page ||
     !Array.isArray(page.items) ||
-    !page.items.every((item) => Number.isSafeInteger(item.id) && item.id > 0) ||
+    !page.items.every(
+      (item) => item && Number.isSafeInteger(item.id) && item.id > 0,
+    ) ||
     !(
       page.nextCursor === null ||
       (typeof page.nextCursor === "string" && page.nextCursor.length > 0)
@@ -62,7 +66,11 @@ export function useCursorPages<P extends CursorPage>({
   cacheVersion?: string;
 }) {
   const client = useQueryClient();
-  const queryKey = cursorQueryKey(key, scope, cacheVersion);
+  const queryKey = cursorQueryKey(
+    key,
+    scope,
+    `${cacheVersion ?? ""}:bounded-v2`,
+  );
   const identity = JSON.stringify(queryKey);
   const refreshMode = useRef<{
     identity: string;
@@ -119,7 +127,12 @@ export function useCursorPages<P extends CursorPage>({
       setFailure((current) =>
         current?.identity === identity ? null : current,
       );
-      return chain;
+      return boundCursorChain(
+        chain,
+        pageWindow?.maxPages ?? CURSOR_PAGE_LIMIT,
+        "next",
+        !pageWindow,
+      );
     },
   });
   useEffect(() => {
@@ -141,7 +154,9 @@ export function useCursorPages<P extends CursorPage>({
   }, [query.data, denied]);
   const firstCursor = query.data?.pageParams[0];
   const hasPreviousPage = Boolean(
-    pageWindow && firstCursor != null && Number(firstCursor) > 0,
+    pageWindow
+      ? firstCursor != null && Number(firstCursor) > 0
+      : query.data?.previousCursors?.length,
   );
   const loadPage = async (direction: "next" | "previous") => {
     const before = query.data;
@@ -153,14 +168,16 @@ export function useCursorPages<P extends CursorPage>({
     )
       return;
     const offset =
-      direction === "previous"
+      direction === "previous" && pageWindow
         ? Math.max(0, Number(firstCursor) - pageWindow!.pageSize)
         : null;
     const cursor =
       direction === "previous"
-        ? offset === 0
-          ? null
-          : String(offset)
+        ? !pageWindow
+          ? before.previousCursors!.at(-1)!
+          : offset === 0
+            ? null
+            : String(offset)
         : before.pages.at(-1)?.nextCursor;
     if (direction === "next" && !cursor) return;
     if (cursor === undefined) return;
@@ -170,7 +187,6 @@ export function useCursorPages<P extends CursorPage>({
       () => enabled,
     );
     if (!task) return;
-    setFailure(null);
     try {
       const page = await fetchPage(cursor, task.signal);
       task.assertCurrent();
@@ -184,23 +200,29 @@ export function useCursorPages<P extends CursorPage>({
       client.setQueryData<CursorChain<P>>(queryKey, (current) => {
         if (current !== before) return current;
         if (direction === "previous" && page.nextCursor !== firstCursor)
-          throw new Error("Список изменился. Обновите публикации.");
+          throw new CursorChainError();
         const chain =
           direction === "next"
             ? appendCursorPage(current, cursor!, page)
-            : {
-                ...current,
-                pages: [page, ...current.pages],
-                pageParams: [cursor, ...current.pageParams],
-                refreshedAt: [
-                  Date.now(),
-                  ...(current.refreshedAt ?? current.pages.map(() => 0)),
-                ],
-              };
-        return pageWindow
-          ? boundCursorChain(chain, pageWindow.maxPages, direction)
-          : chain;
+            : !pageWindow
+              ? prependCursorPage(current, page)
+              : {
+                  ...current,
+                  pages: [page, ...current.pages],
+                  pageParams: [cursor, ...current.pageParams],
+                  refreshedAt: [
+                    Date.now(),
+                    ...(current.refreshedAt ?? current.pages.map(() => 0)),
+                  ],
+                };
+        return boundCursorChain(
+          chain,
+          pageWindow?.maxPages ?? CURSOR_PAGE_LIMIT,
+          direction,
+          !pageWindow,
+        );
       });
+      setFailure(null);
     } catch (cause) {
       checkOperationAccessError(cause);
       if (task.isCurrent()) setFailure({ identity, error: cause, direction });
@@ -242,6 +264,7 @@ export function useCursorPages<P extends CursorPage>({
     error,
     denied,
     isError: Boolean(error),
+    isFetching: query.isFetching || operationKind !== null,
     isFetchNextPageError: Boolean(nextError && failure?.direction === "next"),
     isFetchPreviousPageError: Boolean(
       nextError && failure?.direction === "previous",
@@ -249,7 +272,13 @@ export function useCursorPages<P extends CursorPage>({
     isFetchingNextPage: operationKind === "next",
     isFetchingPreviousPage: operationKind === "previous",
     hasPreviousPage,
-    fetchPreviousPage: () => loadPage("previous"),
+    fetchPreviousPage: () => {
+      if (nextError instanceof CursorChainError) {
+        refreshMode.current = { identity, mode: "restart" };
+        return query.refetch();
+      }
+      return loadPage("previous");
+    },
     hasNextPage: Boolean(query.data?.pages.at(-1)?.nextCursor),
     fetchNextPage: () => {
       if (nextError instanceof CursorChainError) {

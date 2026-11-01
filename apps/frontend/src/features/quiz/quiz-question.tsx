@@ -432,7 +432,10 @@ export function QuizQuestion() {
         </ScrollArea>
 
         {/* Navigation */}
-        <div className={["ui-stack ", classes.div5].filter(Boolean).join(" ")}>
+        <div
+          data-background-notice-menu
+          className={["ui-stack ", classes.div5].filter(Boolean).join(" ")}
+        >
           <Action
             onClick={handlePrev}
             disabled={state.currentQuestion === 0}

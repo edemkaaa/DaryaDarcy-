@@ -6,6 +6,7 @@ import {
 } from "@/shared/api/errors";
 import { runApiRequest } from "@/shared/api/request-lifecycle";
 import { apiUrl } from "@/shared/config/api";
+import { parseRetryAfter } from "@/shared/api/retry-after";
 
 const referencePattern =
   /^club-test-[1-9]\d*-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}\.[1-9]\d{9}\.[a-f0-9]{64}$/;
@@ -92,11 +93,9 @@ export async function readProdamusReturnResult(
     },
     async (response) => {
       if (!response.ok) {
-        const retry = response.headers.get("Retry-After");
+        const retry = parseRetryAfter(response.headers.get("Retry-After"));
         const retryAfterSec =
-          retry && /^[1-9]\d?$/.test(retry) && Number(retry) <= 60
-            ? Number(retry)
-            : undefined;
+          retry !== undefined && retry <= 60 ? retry : undefined;
         throw new ApiError(
           getRequestErrorMessage({ data: { httpStatus: response.status } }),
           response.status,

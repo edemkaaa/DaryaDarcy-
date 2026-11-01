@@ -12,7 +12,6 @@ import {
 import { shareContent } from "@/shared/browser/actions";
 import { ClubContentSection } from "./aesthetic-result-content";
 import { useState, useEffect } from "react";
-import AsyncStorage from "@/shared/browser/storage";
 import { Picture } from "@/shared/media/image";
 import { LinearGradient } from "@/shared/ui/gradient";
 import { ScreenContainer } from "@/shared/ui/screen-container";
@@ -42,20 +41,6 @@ export function QuizResultScreen() {
   useEffect(() => {
     if (!hasClubAccess) setShowClubContent(false);
   }, [hasClubAccess]);
-  // Persist result to AsyncStorage when it becomes available
-  useEffect(() => {
-    if (result && !state.restored) {
-      const resultData = {
-        primaryKey: result.primary.key,
-        primaryTitle: result.primary.title,
-        secondaryKey: result.secondary?.key || null,
-        isBlend: result.isBlend,
-        scores: result.scores,
-        completedAt: new Date().toISOString(),
-      };
-      AsyncStorage.setItem("@darcy_quiz_result", JSON.stringify(resultData));
-    }
-  }, [result, state.restored]);
   const requestedKey = activeKey || result?.primary.key;
   const [guide] = useAestheticGuides(
     requestedKey ? [requestedKey] : [],

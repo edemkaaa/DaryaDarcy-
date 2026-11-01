@@ -106,6 +106,7 @@ test("a confirmed club grant invalidates the new payment history cache", async (
           id: 201,
           name: "Участница",
           email: "member@example.test",
+          contactPhone: null,
           role: "user",
           createdAt: "2026-10-01T00:00:00Z",
           blockedAt: null,

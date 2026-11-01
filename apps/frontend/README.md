@@ -150,6 +150,26 @@ pnpm test:frontend
 
 Playwright запускает production-сервер на 8081, если порт свободен. При уже запущенном сервере используется он; для проверки именно новой сборки предварительно остановите прежний процесс. Можно выбрать установленный Chromium через `PLAYWRIGHT_EXECUTABLE_PATH`.
 
+В GitHub Actions и GitLab CI браузерные проверки выполняются последовательно
+в одном job. Перед каждым режимом заново выполняется `pnpm build:web` с явными
+build-time флагами; Next build и Playwright используют по одному worker.
+
+| Сборка | Prodamus TEST | YooKassa TEST | NORMAL recovery | Guest recovery | Browser-команда внутри frontend |
+| --- | --- | --- | --- | --- | --- |
+| Обычная | false | false | false | false | `pnpm test:e2e` |
+| Prodamus TEST | true | false | true | true | `pnpm test:e2e:prodamus` |
+| Guest/NORMAL | false | false | true | true | `pnpm test:e2e:guest-checkout` |
+
+Колонки соответствуют `NEXT_PUBLIC_PRODAMUS_TEST_ENABLED`,
+`NEXT_PUBLIC_CLUB_TEST_CHECKOUT`, `NEXT_PUBLIC_NORMAL_CHECKOUT_RECOVERY_ENABLED`
+и `NEXT_PUBLIC_GUEST_CHECKOUT_RECOVERY_ENABLED`. В TEST-сборке recovery включён
+намеренно: проверяется приоритет TEST над гостевым путём.
+[TEST-конфигурация](playwright.prodamus-test.config.ts) и
+[guest/NORMAL-конфигурация](playwright.guest-checkout.config.ts) явно выбирают
+нужные suites и тестовые переключатели. Все ответы платежей синтетические;
+эти сборки не включают LIVE на стенде и не подтверждают удалённый CI-прогон
+до его фактического запуска. Лимит heap каждого CI build — 1536 МиБ.
+
 Не запускайте `next build` в той же рабочей копии одновременно с `next dev`: оба процесса используют `.next`. Если dev-сервер нужен для просмотра во время production-проверок, собирайте отдельную копию проекта и запускайте её на другом порту. Режим разработки с HMR не подходит для проверки production-заголовков кеша.
 
 ### Защитные заголовки HTML
@@ -174,6 +194,32 @@ API и `/media` сохраняют собственные заголовки б�
 и [library-client-bundle.test.ts](../../tests/library-client-bundle.test.ts).
 
 Проверки настоящего API выключены по умолчанию. `RUN_REAL_API_TESTS=1` включает отдельные интеграционные сценарии, включая запись черновика, и требует специально подготовленного тестового API. Успешные тесты с подставными ответами не подтверждают серверные права доступа, реальные платежи или работу на всех устройствах.
+
+### Изолированная приёмка редакторов с настоящим API
+
+Из корня репозитория: `pnpm test:editors:real`. Требуются Linux, работающий Docker,
+уже загруженный `mysql:8.4` и установленный Chromium для Playwright. Для другого
+установленного браузера задайте `PLAYWRIGHT_EXECUTABLE_PATH`.
+
+[Запуск](../../tooling/scripts/accept-content-editors.mjs) создаёт собственный
+MySQL-контейнер с tmpfs и лимитом 768 МиБ, применяет штатные fresh-install миграции
+к пустой `backend_test`, создаёт двух администраторов и запускает настоящий API
+без фоновых jobs и чтения `.env`. Production Next собирается в отдельной
+временной копии. Рабочая `.next`, существующие контейнеры и данные не меняются.
+
+[Сценарии](e2e/real-content-editors.spec.ts) проверяют обычный/быстрый редакторы,
+статьи и теги: конфликты независимых администраторов, настоящий 412, потерянный
+ACK после SQL commit, reload, файлы и смену аккаунта. Ответы API не подменяются.
+Для 412 только в тестовом запросе удаляется отправленная версия; strict включён
+только в своём API. Файлы проходят настоящий SDK до локального S3 wire-стенда
+и скачиваются через API с проверкой байтов; это не приёмка Timeweb/S3 ACL.
+
+Сценарии opt-in и не запускаются обычным CI. Логи/trace и JSON-результат находятся
+в игнорируемом `test-results/real-editors/`. Запуск запрещает успешный итог с
+пропущенными тестами. Сборка и браузер используют по одному worker; общий
+Linux MemTotal − MemAvailable контролируется каждые 250 мс, при 13,2 ГБ
+свои процессы останавливаются. Контейнер, временные данные и процессы удаляются
+при завершении и SIGINT/SIGTERM. SMTP, платежи и рабочие флаги не используются.
 
 ## Черновики профиля и прогресс теста
 
@@ -345,3 +391,40 @@ runtime и не меняет маршрутизацию checkout. Перед с�
 Прежний статический `web-dist` и старый `deploy:web` не подходят для Next.js: защитная проверка останавливает этот деплой. Запуск процесса Next.js за nginx, маршруты `/api` и `/media`, переменные сборки/запуска и rollback ещё требуют отдельной проверки и согласования. Локальная сборка не является разрешением production-релиза.
 
 [Ограничения push](../../docs/architecture/push.md) · [рабочий процесс](../../docs/development/workflow.md) · [задачи](../../tasks/todo.md)
+
+## Профиль оплаты NORMAL/GUEST
+
+Из корня монорепозитория: `pnpm build:web:normal-guest`. Команда собирает frontend
+и проверяет флаги, фактически записанные в `.next/required-server-files.json`:
+
+```env
+NEXT_PUBLIC_CLUB_TEST_CHECKOUT=false
+NEXT_PUBLIC_PRODAMUS_TEST_ENABLED=false
+NEXT_PUBLIC_NORMAL_CHECKOUT_RECOVERY_ENABLED=true
+NEXT_PUBLIC_GUEST_CHECKOUT_RECOVERY_ENABLED=true
+```
+
+Next фиксирует их при сборке. Команда пересобирает `.next` в своём checkout;
+для проверки используйте отдельную копию, чтобы сохранить сборку запущенного
+локального приложения. Команда не публикует сайт и не настраивает сервер.
+
+Вошедший пользователь использует существующие `club.createNormalCheckout` /
+`normalCheckoutStatus`, гость — отдельные POST `createGuestNormalCheckout` /
+`guestNormalCheckoutStatus`. После входа получателя сохраняется исходная гостевая
+покупка; неизвестный результат не должен превращаться в новый NORMAL-заказ.
+
+`pnpm test:checkout:real` создаёт собственный временный Docker/MySQL, применяет
+fresh-install миграции, запускает существующий Nest API с синтетическими
+платёжными настройками и собирает временный production frontend этого профиля.
+11 browser-сценариев сверяют настоящие SQL-строки и квитанции. Fault injection
+теряет запрос или ответ после commit; ответы API не подменяются. Подписанное
+уведомление отправляется только локальному API. Платёжный провайдер, SMTP worker
+и строгий режим ревизий не включаются. Для запуска нужны уже доступные Docker,
+образ `mysql:8.4` и Chromium Playwright; runner ничего не скачивает и не
+устанавливает. Другой установленный Chromium задаётся переменной
+`PLAYWRIGHT_EXECUTABLE_PATH`. Все 11 сценариев должны пройти без skip и flaky.
+
+Перед выпуском этого профиля нужны оба recovery-флага API, существующая схема,
+боевые настройки merchant/подписи/подписки и рабочие маршруты webhook/return.
+Текущий сайт остаётся в TEST до отдельно согласованного перехода. Локальная
+сборка и проверки подставных ответов не закрывают приёмку настоящего API/оплаты.

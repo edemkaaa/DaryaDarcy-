@@ -1,4 +1,5 @@
 "use client";
+import { CursorPagePrevious } from "@/shared/ui/cursor-page-previous";
 import { useEffect, useState, type ReactNode } from "react";
 import { getQueryKey } from "@trpc/react-query";
 import { trpc } from "@/shared/api/trpc";
@@ -76,9 +77,15 @@ function ReplyGroup({
     );
   return (
     <div className="ui-stack" data-comment-replies={parentId}>
+      <CursorPagePrevious query={page} label="Предыдущие ответы" />
       <QueryRetryState
         isLoading={page.isLoading}
-        isError={page.isError && !page.isFetchNextPageError}
+        isError={
+          page.denied ||
+          (page.isError &&
+            !page.isFetchNextPageError &&
+            !page.isFetchPreviousPageError)
+        }
         onRetry={() => void page.refetch()}
         message="Не удалось загрузить ответы"
       />

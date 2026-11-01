@@ -33,10 +33,9 @@ it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH).each([false, true])(
     const adapters: Record<string, string> = {
       "@/domain/session/session-context": `import {useSyncExternalStore} from 'react';
         export function useAuth(){return useSyncExternalStore(window.subscribeOwner,()=>window.owner)}`,
-      "@/shared/browser/storage": `export const requiredStorage={}; export const isPersonalDataOwner=()=>true; export default {getItem(){return new Promise(resolve=>window.reads.push(resolve))}}`,
+      "@/shared/browser/storage": `export const requiredStorage={getItem:()=>null}; export const isPersonalDataOwner=()=>true; export default {getItem(){return new Promise(resolve=>window.reads.push(resolve))}}`,
       "@/shared/ui/route-loading": `export default function Loading(){return <p>loading</p>}`,
-      "@/shared/ui/status-notice": `export function StatusNotice({children}){return <p>{children}</p>}
-        export function StatusNoticeAction({children,onClick}){return <button onClick={onClick}>{children}</button>}`,
+      "@/shared/ui/background-notice": `export function useBackgroundNotice(){}`,
       "@/features/quiz/quiz-welcome": `export function QuizWelcome(){return <p>welcome</p>}`,
       "@/features/quiz/quiz-question": `export function QuizQuestion(){return <p>question</p>}`,
       "@/features/quiz/quiz-result": `import {useQuiz} from '@/domain/quiz/quiz-state';
@@ -163,6 +162,26 @@ it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH).each([false, true])(
           () => (window as unknown as QuizHarness).reads.length,
         ),
       ).toBe(2);
+      await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await page.waitForFunction(
+        () => (window as unknown as QuizHarness).reads.length === 3,
+      );
+      await page.evaluate(() => window.dispatchEvent(new Event("pageshow")));
+      await page.waitForFunction(
+        () => (window as unknown as QuizHarness).reads.length === 4,
+      );
+      await page.evaluate(
+        (raw) => (window as unknown as QuizHarness).reads[3](raw),
+        saved("castlecore"),
+      );
+      await browserExpect(page.locator("#root")).toHaveText("castlecore");
+      await page.evaluate(async (raw) => {
+        (window as unknown as QuizHarness).reads[2](raw);
+        await new Promise<void>((done) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => done())),
+        );
+      }, saved("cottagecore"));
+      await browserExpect(page.locator("#root")).toHaveText("castlecore");
       expect(errors).toEqual([]);
     } finally {
       await browser.close();

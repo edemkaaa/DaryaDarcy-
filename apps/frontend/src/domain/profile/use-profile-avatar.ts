@@ -21,13 +21,15 @@ import {
   saveAvatarIntent,
   removeAvatarIntent,
   requireAvatarReceipt,
+  CorruptAvatarIntentError,
+  discardCorruptAvatarIntent,
   type AvatarUploadIntent,
 } from "./avatar-upload-journal";
 
 const uncertainMessage =
-  "Загрузка фото не подтверждена. Черновик сохранён. Проверьте фото в профиле перед повторной загрузкой.";
+  "Загрузка фото не подтверждена. Проверьте её перед повторной загрузкой.";
 const storageMessage =
-  "Не удалось подготовить, сохранить или прочитать черновик фото. Проверьте доступность хранилища браузера и повторите проверку.";
+  "Не удалось сохранить или прочитать фото на устройстве. Не закрывайте страницу.";
 type State = {
   ownerId: number;
   intent: AvatarUploadIntent | null;
@@ -35,6 +37,7 @@ type State = {
   unknown: boolean;
   error: string | null;
   canRetry: boolean;
+  corrupt: CorruptAvatarIntentError | null;
 };
 
 /** A retry always checks the receipt and sends the original bytes with one key. */
@@ -59,15 +62,20 @@ export function useProfileAvatar() {
           unknown: !!intent,
           error: intent ? uncertainMessage : null,
           canRetry: false,
+          corrupt: null,
         });
-      } catch {
+      } catch (cause) {
         setState({
           ownerId,
           intent: null,
           draft: null,
           unknown: true,
-          error: storageMessage,
+          error:
+            cause instanceof CorruptAvatarIntentError
+              ? cause.message
+              : storageMessage,
           canRetry: false,
+          corrupt: cause instanceof CorruptAvatarIntentError ? cause : null,
         });
       }
     });
@@ -90,6 +98,7 @@ export function useProfileAvatar() {
         draft: avatarIntentUri(intent),
         unknown: false,
         canRetry: true,
+        corrupt: null,
         error:
           "Фото ещё не подтверждено. Можно повторить загрузку сохранённого черновика.",
       });
@@ -113,6 +122,7 @@ export function useProfileAvatar() {
       unknown: false,
       error: null,
       canRetry: false,
+      corrupt: null,
     });
     void utils.club.comments.invalidate();
     void utils.club.commentsPage.invalidate();
@@ -137,6 +147,7 @@ export function useProfileAvatar() {
           draft: avatarIntentUri(intent),
           unknown: false,
           canRetry: false,
+          corrupt: null,
           error: "Эту загрузку нельзя продолжить. Выберите фото заново.",
         });
         return;
@@ -151,11 +162,18 @@ export function useProfileAvatar() {
           intent,
           unknown: true,
           canRetry: false,
-          error: intent
-            ? !status || status >= 500
-              ? uncertainMessage
-              : getRequestErrorMessage(cause)
-            : storageMessage,
+          error:
+            cause instanceof CorruptAvatarIntentError
+              ? cause.message
+              : intent
+                ? !status || status >= 500
+                  ? uncertainMessage
+                  : getRequestErrorMessage(cause)
+                : storageMessage,
+          corrupt:
+            cause instanceof CorruptAvatarIntentError
+              ? cause
+              : previous.corrupt,
         },
     );
   };
@@ -177,6 +195,7 @@ export function useProfileAvatar() {
           unknown: true,
           error: uncertainMessage,
           canRetry: false,
+          corrupt: null,
         });
         return false;
       }
@@ -217,6 +236,7 @@ export function useProfileAvatar() {
           unknown: true,
           error: null,
           canRetry: false,
+          corrupt: null,
         });
       }
       task.assertCurrent();
@@ -246,6 +266,7 @@ export function useProfileAvatar() {
           ...current,
           intent: null,
           unknown: false,
+          corrupt: null,
           canRetry: !!current.draft,
           error: current.draft
             ? "Черновик не отправлен. Повторите загрузку фото."
@@ -264,9 +285,62 @@ export function useProfileAvatar() {
       task.finish();
     }
   };
+  const resetCorrupt = async () => {
+    if (!ownerId || !current?.corrupt) return;
+    const task = operation.begin("reset-corrupt-profile-photo");
+    if (!task) return;
+    try {
+      const keys = new Set([
+        current.corrupt.idempotencyKey,
+        current.intent?.idempotencyKey,
+      ]);
+      for (const key of keys) {
+        if (!key) continue;
+        const receipt = requireAvatarReceipt(
+          await utils.client.profile.avatarUploadStatus.query(
+            { idempotencyKey: key },
+            { signal: task.signal },
+          ),
+        );
+        task.assertCurrent();
+        if (receipt.state === "pending")
+          throw new Error(
+            "Предыдущая загрузка фото ещё обрабатывается. Повторите проверку позже.",
+          );
+      }
+      const fresh = await getMe(task.signal);
+      task.assertCurrent();
+      if (!(await reconcileProfile(ownerId, fresh))) return;
+      task.assertCurrent();
+      discardCorruptAvatarIntent(current.corrupt);
+      setState({
+        ownerId,
+        intent: null,
+        draft: null,
+        unknown: false,
+        error: null,
+        canRetry: false,
+        corrupt: null,
+      });
+    } catch (cause) {
+      checkOperationAccessError(cause);
+      if (task.isCurrent())
+        setState(
+          (previous) =>
+            previous && {
+              ...previous,
+              error: cause instanceof Error ? cause.message : storageMessage,
+            },
+        );
+    } finally {
+      task.finish();
+    }
+  };
   return {
     upload,
     check,
+    resetCorrupt,
+    corrupt: current?.corrupt ?? null,
     draft: current?.draft ?? null,
     error: current?.error ?? null,
     unknown: current?.unknown ?? true,

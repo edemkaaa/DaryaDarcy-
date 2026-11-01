@@ -2,6 +2,7 @@ import { apiUrl } from "@/shared/config/api";
 import { discardLegacyCredentials } from "@/shared/api/token-storage";
 import { ApiError, invalidResponse } from "./errors";
 import { runApiRequest } from "./request-lifecycle";
+import { parseRetryAfter } from "./retry-after";
 export { ApiError } from "./errors";
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -12,16 +13,11 @@ function retryAfter(
   data: Record<string, unknown>,
 ): number | undefined {
   const value = data.retryAfterSec;
-  if (typeof value === "number" && Number.isFinite(value) && value > 0)
-    return Math.ceil(value);
-  const header = response.headers.get("Retry-After");
-  if (!header) return undefined;
-  const seconds = /^\d+$/.test(header)
-    ? Number(header)
-    : (Date.parse(header) - Date.now()) / 1000;
-  return Number.isFinite(seconds) && seconds > 0
-    ? Math.ceil(seconds)
-    : undefined;
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    const seconds = parseRetryAfter(String(Math.ceil(value)));
+    if (seconds !== undefined) return seconds;
+  }
+  return parseRetryAfter(response.headers.get("Retry-After"));
 }
 export async function apiCall<T>(
   endpoint: string,

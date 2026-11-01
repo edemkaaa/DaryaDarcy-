@@ -13,6 +13,8 @@ const saved = (id: number, target = "feed") => ({
   status: "published",
   source: "manual",
   richText: null,
+  likeCount: 0,
+  commentCount: 0,
   createdAt: "2026-10-01T00:00:00Z",
   publishedAt: null,
 });
@@ -312,6 +314,7 @@ test("members do not load for payments, and lost moderation replies inspect the 
     id,
     name: `MEMBER_${id}`,
     email: `m${id}@example.test`,
+    contactPhone: null,
     role: "user",
     createdAt: "2026-10-01T00:00:00Z",
     blockedAt: id === 21 && blocked ? "2026-10-23T00:00:00Z" : null,

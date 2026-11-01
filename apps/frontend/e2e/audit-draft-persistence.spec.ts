@@ -156,7 +156,9 @@ test("a second article tab cannot overwrite a newer draft", async ({
     .toBe("SECOND_TAB");
   await title(page).fill("DO_NOT_OVERWRITE");
   await expect(
-    page.getByRole("alert").filter({ hasText: "изменился в другой вкладке" }),
+    page
+      .locator("[data-background-notice] [role=status]")
+      .filter({ hasText: "изменился в другой вкладке" }),
   ).toBeVisible();
   expect((await savedDraft(page))?.title).toBe("SECOND_TAB");
   await expect(title(page)).toHaveValue("DO_NOT_OVERWRITE");
@@ -185,7 +187,7 @@ test("article storage failure keeps the editor open and reports unsaved input", 
   await title(page).fill("UNSAVED_INPUT");
   await expect(
     page
-      .getByRole("alert")
+      .locator("[data-background-notice] [role=status]")
       .filter({ hasText: "Не удалось сохранить или прочитать черновик" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Отмена", exact: true }).click();
@@ -292,7 +294,7 @@ test("an uncertain article update remains blocked after reload", async ({
   await expect(title(page)).toHaveValue("UNCERTAIN_EDIT");
   await expect(
     page
-      .getByRole("alert")
+      .locator("[data-background-notice] [role=status]")
       .filter({ hasText: "Перед перезагрузкой было отправлено" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Сохранить", exact: true }).click();

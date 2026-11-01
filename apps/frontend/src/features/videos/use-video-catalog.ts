@@ -1,13 +1,30 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { useQueries, useQueryClient } from "@tanstack/react-query";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useCallback,
+} from "react";
+import {
+  QueryObserver,
+  useQueries,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
 import { trpc } from "@/shared/api/trpc";
 import {
   contentRefreshOptions,
   CONTENT_REFRESH_INTERVAL_MS,
 } from "@/shared/api/content-refresh";
-import { cancelInactiveCursorQuery } from "@/shared/api/cursor-pages";
+import {
+  cancelInactiveCursorQuery,
+  CURSOR_PAGE_LIMIT,
+  CursorChainError,
+} from "@/shared/api/cursor-pages";
+import { OperationScope } from "@/shared/browser/operation-scope";
+import { getSessionRequestSignal } from "@/shared/api/request-lifecycle";
+import { checkOperationAccessError } from "@/domain/session/use-session-operation";
 import type { VisibleItem } from "@/shared/ui/types";
 import {
   nextVideoCursor,
@@ -27,6 +44,18 @@ export function useVideoCatalog(enabled: boolean, ownerScope: string) {
   >([{ cursor: undefined, requestedAt: 0 }]);
   const cursors = requests.map(({ cursor }) => cursor);
   const [visibleCursors, setVisibleCursors] = useState<number[]>([]);
+  const [windowed, setWindowed] = useState(false);
+  const previousCursors = useRef(new Map<number, number | undefined>());
+  const previousReservation = useRef<(() => void) | null>(null);
+  const [previousFailure, setPreviousFailure] = useState<unknown>(null);
+  const [previousRead] = useState(() => new OperationScope());
+  const previousBusy =
+    useSyncExternalStore(
+      previousRead.subscribe,
+      previousRead.getSnapshot,
+      () => null,
+    ) !== null;
+  useEffect(() => () => previousRead.cancel(), [previousRead, enabled]);
   const restart = useRef(0);
   const pageKey = (cursor?: number) => [
     ...getQueryKey(trpc.videos.catalog, videoCatalogInput(20, cursor), "query"),
@@ -52,7 +81,9 @@ export function useVideoCatalog(enabled: boolean, ownerScope: string) {
         refetchInterval:
           enabled && watched ? CONTENT_REFRESH_INTERVAL_MS : (false as const),
         staleTime: CONTENT_REFRESH_INTERVAL_MS,
-        refetchOnMount: "always" as const,
+        // Removed observers must release their pages, including after restart.
+        gcTime: 0,
+        refetchOnMount: false,
       };
     }),
   });
@@ -61,13 +92,16 @@ export function useVideoCatalog(enabled: boolean, ownerScope: string) {
   const disconnected = cursors.findIndex(
     (cursor, index) =>
       index > 0 &&
+      (index > 1 || !windowed) &&
       queries[index - 1].data !== undefined &&
       queries[index - 1].data!.nextCursor !== cursor,
   );
   if (disconnected > 0) setRequests(requests.slice(0, disconnected));
   const connected = disconnected > 0 ? queries.slice(0, disconnected) : queries;
   const pages = connected.flatMap((query, index) =>
-    query.data && query.dataUpdatedAt >= requests[index].requestedAt
+    !(windowed && index === 0) &&
+    query.data &&
+    query.dataUpdatedAt >= requests[index].requestedAt
       ? [query.data]
       : [],
   );
@@ -75,13 +109,39 @@ export function useVideoCatalog(enabled: boolean, ownerScope: string) {
   const waitingForTail =
     !tail.data ||
     tail.dataUpdatedAt < requests[connected.length - 1].requestedAt;
-  const params = cursors.slice(0, pages.length);
+  const params = cursors.slice(0, pages.length + (windowed ? 1 : 0));
   const stalled = stalledVideoCursor(pages.at(-1), params);
   const next =
-    pages.length === connected.length && pages.length
+    pages.length === connected.length - (windowed ? 1 : 0) && pages.length
       ? nextVideoCursor(pages.at(-1)!, params)
       : undefined;
   const queryIdentity = JSON.stringify(keys);
+  useEffect(() => {
+    // Keep a directly read page observed until useQueries adopts it. Otherwise
+    // setQueryData would create a second cache with the default five-minute GC.
+    previousReservation.current?.();
+    previousReservation.current = null;
+    return () => {
+      previousReservation.current?.();
+      previousReservation.current = null;
+    };
+  }, [queryIdentity, enabled]);
+  const headBoundary = useRef<number | null | undefined>(undefined);
+  const headNext = queries[0].data?.nextCursor;
+  useEffect(() => {
+    if (
+      headBoundary.current !== undefined &&
+      headNext !== undefined &&
+      headBoundary.current !== headNext &&
+      windowed
+    ) {
+      previousRead.cancel();
+      previousCursors.current.clear();
+      setRequests([{ cursor: undefined, requestedAt: 0 }]);
+      setWindowed(false);
+    }
+    headBoundary.current = headNext;
+  }, [headNext, windowed, previousRead]);
   const visibleIdentity = JSON.stringify(visibleCursors);
   useEffect(() => {
     const currentKeys = JSON.parse(queryIdentity);
@@ -102,9 +162,9 @@ export function useVideoCatalog(enabled: boolean, ownerScope: string) {
     visibleItems: VisibleItem<VideoCard>[];
   }) => {
     const ids = new Set(visibleItems.map(({ item }) => item.id));
-    const visible = pages
-      .flatMap((page, index) =>
-        index > 0 && page.items.some((item) => ids.has(item.id))
+    const visible = connected
+      .flatMap((query, index) =>
+        index > 0 && query.data?.items.some((item) => ids.has(item.id))
           ? [cursors[index]!]
           : [],
       )
@@ -117,21 +177,101 @@ export function useVideoCatalog(enabled: boolean, ownerScope: string) {
     );
   };
   const refresh = async () => {
+    previousRead.cancel();
     const ticket = ++restart.current;
     const result = await queries[0].refetch({ cancelRefetch: false });
     if (ticket === restart.current && result.isSuccess && !result.isFetching) {
       setRequests([{ cursor: undefined, requestedAt: 0 }]);
+      previousCursors.current.clear();
+      setWindowed(false);
+      setPreviousFailure(null);
     }
   };
-  const isFetching = connected.some((query) => query.isFetching);
-  const fetchNextPage = () => {
+  const isFetching =
+    previousBusy || connected.some((query) => query.isFetching);
+  const fetchNextPage = useCallback(() => {
     if (!enabled || isFetching) return;
     if (tail.isError && waitingForTail)
       return tail.refetch({ cancelRefetch: false });
     // An explicit page request needs a fresh reply even if that cursor was
     // cached before a restart or a changed boundary.
-    if (next !== undefined)
-      setRequests([...requests, { cursor: next, requestedAt: Date.now() }]);
+    if (next !== undefined) {
+      setPreviousFailure(null);
+      previousCursors.current.set(next, cursors.at(-1));
+      const extended = [...requests, { cursor: next, requestedAt: Date.now() }];
+      if (extended.length > CURSOR_PAGE_LIMIT) {
+        setRequests([extended[0], ...extended.slice(-(CURSOR_PAGE_LIMIT - 1))]);
+        setWindowed(true);
+      } else setRequests(extended);
+    }
+  }, [
+    enabled,
+    isFetching,
+    tail,
+    waitingForTail,
+    next,
+    requests,
+    cursors,
+    setWindowed,
+    setPreviousFailure,
+  ]);
+  const hasPreviousPage =
+    windowed &&
+    cursors[1] !== undefined &&
+    previousCursors.current.has(cursors[1]);
+  const fetchPreviousPage = async () => {
+    if (!enabled || isFetching || !hasPreviousPage) return;
+    if (previousFailure instanceof CursorChainError) return refresh();
+    const task = previousRead.begin(
+      "previous",
+      getSessionRequestSignal(),
+      () => enabled,
+    );
+    if (!task) return;
+    const cursor = previousCursors.current.get(cursors[1]!);
+    const reservation = new QueryObserver(client, {
+      queryKey: pageKey(cursor),
+      enabled: false,
+      gcTime: 0,
+    });
+    const release = reservation.subscribe(() => {});
+    let adopted = false;
+    try {
+      const page = parseVideoCatalog(
+        await utils.client.videos.catalog.query(videoCatalogInput(20, cursor), {
+          signal: task.signal,
+        }),
+      );
+      task.assertCurrent();
+      if (page.nextCursor !== cursors[1]) throw new CursorChainError();
+      client.setQueryData(pageKey(cursor), page);
+      previousReservation.current?.();
+      previousReservation.current = release;
+      setRequests(
+        cursor === undefined
+          ? requests
+          : [
+              requests[0],
+              { cursor, requestedAt: 0 },
+              ...requests.slice(1, CURSOR_PAGE_LIMIT - 1),
+            ],
+      );
+      setWindowed(
+        cursor !== undefined && cursor !== queries[0].data?.nextCursor,
+      );
+      adopted = cursor !== undefined;
+      setPreviousFailure(null);
+      if (!adopted) {
+        release();
+        previousReservation.current = null;
+      }
+    } catch (error) {
+      checkOperationAccessError(error);
+      if (task.isCurrent()) setPreviousFailure(error);
+    } finally {
+      if (!adopted) release();
+      task.finish();
+    }
   };
   const retry = () => {
     if (isFetching) return;
@@ -144,6 +284,10 @@ export function useVideoCatalog(enabled: boolean, ownerScope: string) {
   };
   return {
     pages,
+    hasPreviousPage,
+    fetchPreviousPage,
+    isFetchingPreviousPage: previousBusy,
+    isFetchPreviousPageError: Boolean(previousFailure),
     stalled,
     onVisibleItemsChange,
     refresh,

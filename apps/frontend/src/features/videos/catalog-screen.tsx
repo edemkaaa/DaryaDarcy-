@@ -1,4 +1,5 @@
 "use client";
+import { CursorPagePrevious } from "@/shared/ui/cursor-page-previous";
 import { useMemo } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
@@ -121,11 +122,17 @@ function Catalog({ owner }: { owner: string }) {
         className={classes.background}
       >
         <Collection
+          preserveScroll
           revealItems
           data={rows}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderCard}
-          header={<VideosBannerHeader />}
+          header={
+            <>
+              <VideosBannerHeader />
+              <CursorPagePrevious query={query} label="Предыдущие видео" />
+            </>
+          }
           empty={
             <QueryRetryState
               isLoading={query.isPending}

@@ -320,6 +320,7 @@ test("a rejected attachment upload cannot unpublish an existing post; retry save
   const edits: Record<string, unknown>[] = [];
   let failUpload = true;
   await editorApi(page, (name, input) => {
+    if (name === "admin.postDetail") return ok(post);
     if (name === "feed.listPaginated")
       return ok({ posts: [post], nextCursor: null });
     if (name === "admin.privateAttachmentStatus")

@@ -7,7 +7,7 @@ import {
   type AestheticGuideKey,
 } from "@shared/aesthetic-guide";
 import { apiCall } from "@/shared/api/auth";
-import { invalidResponse } from "@/shared/api/errors";
+import { ApiError, invalidResponse } from "@/shared/api/errors";
 import { useAuth } from "@/domain/session/session-context";
 import { useClub } from "@/domain/subscription/subscription-context";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
@@ -113,34 +113,64 @@ const bindingsPageSchema = z
   .strict();
 export type PatternBinding = z.infer<typeof bindingSchema>;
 const patternKeys = ["holly", "sock", "star", "apple"];
+export const PATTERN_READ_BUDGET = { maxPages: 8, timeoutMs: 30_000 };
 
 export async function readPatternBindings(signal?: AbortSignal) {
-  const files: Record<string, PatternBinding> = {};
-  const cursors = new Set<string>();
-  let cursor: string | null = null;
-  do {
-    const value = await apiCall<unknown>(
-      `/api/library/materials/patterns/files${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
-      { signal },
-    );
-    signal?.throwIfAborted();
-    const parsed = bindingsPageSchema.safeParse(value);
-    if (!parsed.success) throw invalidResponse();
-    for (const file of parsed.data.files) {
-      if (file.url !== `/api/media/library-files/patterns/${file.fileKey}`)
-        throw invalidResponse();
-      if (patternKeys.includes(file.fileKey)) {
-        if (files[file.fileKey]) throw invalidResponse();
-        if (!["image/jpeg", "image/png", "image/webp"].includes(file.mimeType))
+  signal?.throwIfAborted();
+  const controller = new AbortController();
+  let timedOut = false;
+  const cancel = () => controller.abort(signal?.reason);
+  signal?.addEventListener("abort", cancel, { once: true });
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, PATTERN_READ_BUDGET.timeoutMs);
+  try {
+    const files: Record<string, PatternBinding> = {};
+    const cursors = new Set<string>();
+    let cursor: string | null = null;
+    let pages = 0;
+    do {
+      controller.signal.throwIfAborted();
+      if (++pages > PATTERN_READ_BUDGET.maxPages) throw invalidResponse();
+      const value = await apiCall<unknown>(
+        `/api/library/materials/patterns/files${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
+        { signal: controller.signal },
+      );
+      controller.signal.throwIfAborted();
+      const parsed = bindingsPageSchema.safeParse(value);
+      if (!parsed.success) throw invalidResponse();
+      for (const file of parsed.data.files) {
+        if (file.url !== `/api/media/library-files/patterns/${file.fileKey}`)
           throw invalidResponse();
-        files[file.fileKey] = file;
+        if (patternKeys.includes(file.fileKey)) {
+          if (files[file.fileKey]) throw invalidResponse();
+          if (
+            !["image/jpeg", "image/png", "image/webp"].includes(file.mimeType)
+          )
+            throw invalidResponse();
+          files[file.fileKey] = file;
+        }
       }
-    }
-    cursor = parsed.data.nextCursor;
-    if (cursor && cursors.has(cursor)) throw invalidResponse();
-    if (cursor) cursors.add(cursor);
-  } while (cursor && !patternKeys.every((key) => files[key]));
-  return files;
+      cursor = parsed.data.nextCursor;
+      if (cursor && cursors.has(cursor)) throw invalidResponse();
+      if (cursor) cursors.add(cursor);
+    } while (cursor && !patternKeys.every((key) => files[key]));
+    return files;
+  } catch (error) {
+    if (timedOut && !signal?.aborted)
+      throw new ApiError(
+        "Не удалось загрузить выкройки. Попробуйте ещё раз.",
+        0,
+        undefined,
+        false,
+        "timeout",
+      );
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", cancel);
+  }
 }
 
 export function usePatternBindings() {

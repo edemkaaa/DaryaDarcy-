@@ -19,9 +19,14 @@ export type ArticleDraftRecord = {
   snapshot: ArticleDraftSnapshot;
   files: PrivateArticleFile[];
 };
+export type DamagedArticleDraft = { key: string };
+export type ArticleDraftInspection = {
+  records: ArticleDraftRecord[];
+  damaged: DamagedArticleDraft[];
+};
 const storageError = () =>
   new Error(
-    "Не удалось сохранить или прочитать черновик статьи на устройстве. Не закрывайте редактор; разрешите хранение данных сайта или освободите место.",
+    "Не удалось сохранить или прочитать черновик статьи на устройстве. Не закрывайте редактор.",
   );
 function parse(value: unknown, ownerId: number): ArticleDraftRecord {
   const record = value as ArticleDraftRecord;
@@ -47,6 +52,11 @@ export class ArticleDraftJournal {
   private key(editingId: number | null) {
     return `${this.ownerId}:${editingId ?? "new"}`;
   }
+  private parseEntry(key: string, value: unknown) {
+    const record = parse(value, this.ownerId);
+    if (key !== this.key(record.snapshot.editingId)) throw storageError();
+    return record;
+  }
   private assertOwner() {
     if (!isPersonalDataOwner(this.ownerId))
       throw new Error("Аккаунт редактора изменился. Откройте статьи заново.");
@@ -57,8 +67,9 @@ export class ArticleDraftJournal {
       store: IDBObjectStore,
       value: unknown,
       finish: (result: T) => void,
+      exists: boolean,
     ) => void,
-    editingId?: number | null,
+    editingId?: number | null | string,
   ): Promise<T> {
     this.assertOwner();
     return new Promise((resolve, reject) => {
@@ -113,25 +124,46 @@ export class ArticleDraftJournal {
               resolve(result);
             };
             const store = tx.objectStore("drafts");
-            const read =
-              editingId === undefined
-                ? store.getAll(
-                    IDBKeyRange.bound(
-                      `${this.ownerId}:`,
-                      `${this.ownerId}:\uffff`,
-                    ),
-                  )
-                : store.get(this.key(editingId));
-            read.onsuccess = () => {
+            const apply = (value: unknown, exists = true) => {
               try {
                 this.assertOwner();
-                work(store, read.result, (value) => {
-                  result = value;
-                });
+                work(
+                  store,
+                  value,
+                  (value) => {
+                    result = value;
+                  },
+                  exists,
+                );
               } catch (error) {
                 fail(error);
               }
             };
+            if (editingId === undefined) {
+              const entries: { key: string; value: unknown }[] = [];
+              const read = store.openCursor(
+                IDBKeyRange.bound(`${this.ownerId}:`, `${this.ownerId}:\uffff`),
+              );
+              read.onsuccess = () => {
+                const cursor = read.result;
+                if (!cursor) {
+                  apply(entries);
+                  return;
+                }
+                entries.push({ key: String(cursor.key), value: cursor.value });
+                cursor.continue();
+              };
+            } else {
+              const read = store.openCursor(
+                IDBKeyRange.only(
+                  typeof editingId === "string"
+                    ? editingId
+                    : this.key(editingId),
+                ),
+              );
+              read.onsuccess = () =>
+                apply(read.result?.value, read.result !== null);
+            }
           } catch (error) {
             fail(error);
           }
@@ -141,9 +173,50 @@ export class ArticleDraftJournal {
       }
     });
   }
-  load(): Promise<ArticleDraftRecord[]> {
-    return this.transaction("readonly", (_store, value, finish) =>
-      finish((value as unknown[]).map((record) => parse(record, this.ownerId))),
+  inspect(): Promise<ArticleDraftInspection> {
+    return this.transaction("readonly", (_store, value, finish) => {
+      const result: ArticleDraftInspection = { records: [], damaged: [] };
+      for (const entry of value as { key: string; value: unknown }[]) {
+        try {
+          result.records.push(this.parseEntry(entry.key, entry.value));
+        } catch {
+          result.damaged.push({ key: entry.key });
+        }
+      }
+      finish(result);
+    });
+  }
+  async load(): Promise<ArticleDraftRecord[]> {
+    return (await this.inspect()).records;
+  }
+  /** Keep the original structured clone (including File bytes) atomically. */
+  archiveDamaged(key: string): Promise<void> {
+    if (!key.startsWith(`${this.ownerId}:`)) throw storageError();
+    return this.transaction(
+      "readwrite",
+      (store, value, finish, exists) => {
+        if (!exists)
+          throw new Error(
+            "Черновик уже изменился. Повторите чтение черновиков.",
+          );
+        let damaged = false;
+        try {
+          this.parseEntry(key, value);
+        } catch {
+          damaged = true;
+        }
+        if (!damaged)
+          throw new Error(
+            "Черновик уже восстановлен в другой вкладке. Повторите чтение черновиков.",
+          );
+        store.add(
+          { originalKey: key, record: value },
+          `recovery:${this.ownerId}:${crypto.randomUUID()}`,
+        );
+        store.delete(key);
+        finish(undefined);
+      },
+      key,
     );
   }
   save(
@@ -163,8 +236,8 @@ export class ArticleDraftJournal {
     );
     return this.transaction(
       "readwrite",
-      (store, value, finish) => {
-        this.requireRevision(value, expected);
+      (store, value, finish, exists) => {
+        this.requireRevision(value, expected, snapshot.editingId, exists);
         store.put(record, this.key(snapshot.editingId));
         finish(record);
       },
@@ -174,17 +247,23 @@ export class ArticleDraftJournal {
   clear(editingId: number | null, expected: string | null): Promise<void> {
     return this.transaction(
       "readwrite",
-      (store, value, finish) => {
-        this.requireRevision(value, expected);
+      (store, value, finish, exists) => {
+        this.requireRevision(value, expected, editingId, exists);
         store.delete(this.key(editingId));
         finish(undefined);
       },
       editingId,
     );
   }
-  private requireRevision(value: unknown, expected: string | null) {
-    const revision =
-      value === undefined ? null : parse(value, this.ownerId).revision;
+  private requireRevision(
+    value: unknown,
+    expected: string | null,
+    editingId: number | null,
+    exists: boolean,
+  ) {
+    const revision = !exists
+      ? null
+      : this.parseEntry(this.key(editingId), value).revision;
     if (revision !== expected)
       throw new Error(
         "Черновик статьи изменился в другой вкладке. Текущий ввод не перезаписан; скопируйте его перед перезагрузкой страницы.",

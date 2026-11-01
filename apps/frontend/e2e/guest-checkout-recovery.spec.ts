@@ -2,6 +2,11 @@ import { expect, test, type Page } from "@playwright/test";
 import superjson from "superjson";
 import { layoutApi, gotoWithSession } from "./layout-fixtures";
 import { failure } from "./editor-fixtures";
+import {
+  modeReturnToken,
+  seedOtherPaymentModes,
+  paymentModeSnapshots,
+} from "./payment-mode-fixtures";
 
 test.skip(
   process.env.GUEST_CHECKOUT_UI_ENABLED !== "true",
@@ -26,8 +31,14 @@ const user = {
 };
 async function startPurchase(page: Page, name: string | RegExp) {
   await action(page, name).waitFor({ state: "visible" });
-  const phone = page.getByRole("textbox", { name: "Номер телефона", exact: true }).first();
-  if (await phone.count() && await phone.isEditable() && !(await phone.inputValue())) {
+  const phone = page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first();
+  if (
+    (await phone.count()) &&
+    (await phone.isEditable()) &&
+    !(await phone.inputValue())
+  ) {
     await phone.fill("+79991234567");
   }
   await action(page, name).click();
@@ -66,6 +77,7 @@ async function fixture(page: Page) {
     paid: false,
     navigations: [] as string[],
     gate: undefined as Promise<void> | undefined,
+    statusReply: undefined as unknown,
   };
   await page.route("https://payments.example.test/**", async (route) => {
     state.navigations.push(route.request().url());
@@ -117,11 +129,13 @@ async function fixture(page: Page) {
               return failure(httpStatus);
             }
             return result(
-              state.notRecorded
-                ? { state: "notRecorded" }
-                : (state.orders.get(
-                    `${input.recoveryToken}:${input.idempotencyKey}`,
-                  ) ?? { state: "notRecorded" }),
+              state.statusReply !== undefined
+                ? state.statusReply
+                : state.notRecorded
+                  ? { state: "notRecorded" }
+                  : (state.orders.get(
+                      `${input.recoveryToken}:${input.idempotencyKey}`,
+                    ) ?? { state: "notRecorded" }),
             );
           }
           state.writes.push(input);
@@ -204,6 +218,35 @@ async function loseCheckout(page: Page) {
   await expect(page.getByRole("alert").first()).toBeVisible();
   await expect(action(page, "Восстановить ссылку оплаты")).toBeEnabled();
 }
+
+test("GUEST/NORMAL ignores a TEST return token and its stored journal", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  const snapshots = await seedOtherPaymentModes(page, false);
+  const forbidden: string[] = [];
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (/prodamus\/test\/result|reconcileCheckout/.test(path))
+      forbidden.push(path);
+  });
+  await gotoWithSession(page, `/club?paid=1#paymentReturn=${modeReturnToken}`);
+  await expect(
+    page.getByRole("dialog", { name: "Результат оплаты клуба", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Открыть тестовую оплату", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByText(/Оплата этой покупки подтверждена/)).toHaveCount(
+    0,
+  );
+  expect(await paymentModeSnapshots(page, Object.keys(snapshots))).toEqual(
+    snapshots,
+  );
+  expect(state.writes).toEqual([]);
+  expect(state.normal + state.legacy).toBe(0);
+  expect(forbidden).toEqual([]);
+});
 test("a new guest purchase requires a phone before saving evidence or creating an order", async ({
   page,
 }) => {
@@ -230,6 +273,30 @@ test("a new guest purchase requires a phone before saving evidence or creating a
   await action(page, /Оплатить 790/).click();
   await expect.poll(() => state.writes.length).toBe(1);
   expect(state.writes[0]).not.toHaveProperty("phone");
+});
+
+test("malformed guest success retains both recovery keys and never grants access or sends a replacement", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  await loseCheckout(page);
+  const evidence = await saved(page);
+  state.statusReply = {
+    state: "succeeded",
+    orderId: "guest-order-1",
+    expiresAt: "2040-12-01T00:00:00Z",
+  };
+  await action(page, "Проверить покупку").click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Некорректный ответ" }).first(),
+  ).toBeVisible();
+  await expect(page.getByText(/Оплата этой покупки подтверждена/)).toHaveCount(
+    0,
+  );
+  expect(await saved(page)).toBe(evidence);
+  expect(state.writes).toHaveLength(1);
+  expect(state.legacy + state.normal).toBe(0);
+  expect(state.navigations).toEqual([]);
 });
 
 test("lost response and reload preserve proof; status never creates another order; manual replay restores its URL", async ({
@@ -402,7 +469,10 @@ test("a terminal guest purchase is retained after login until an explicit fresh 
   await expect(next).toBeEnabled();
   const reads = state.statuses.length;
   expect(await saved(page)).not.toBeNull();
-  await page.getByRole("textbox", { name: "Номер телефона", exact: true }).first().fill("+79991234567");
+  await page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first()
+    .fill("+79991234567");
   await next.click();
   await expect(action(page, /Оплатить 790/)).toBeEnabled();
   expect(state.statuses.length).toBeGreaterThan(reads);

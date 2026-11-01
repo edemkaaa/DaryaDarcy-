@@ -35,6 +35,7 @@ const comment = (id = 11, userId = 101) => ({
 const member = () => ({
   id: 201,
   email: "member@example.test",
+  contactPhone: null,
   name: "Участница",
   role: "user",
   createdAt: now(),
@@ -84,6 +85,7 @@ async function commentsApi(
             target: "club",
             photos: [],
             media: [],
+            richText: null,
             createdAt: now(),
             publishedAt: now(),
             commentCount: 1,
@@ -104,6 +106,7 @@ async function commentsApi(
           gender: "female",
           role,
           email: "member@example.test",
+          contactPhone: null,
           lastSignedIn: now(),
         },
       },
@@ -789,18 +792,21 @@ test("a confirmed club grant announces the returned expiry and refreshes members
     if (name === "admin.members")
       return ok([{ ...member(), clubExpiresAt: granted ? expiresAt : null }]);
     if (name === "admin.grantClub") {
-      expect(input).toEqual({ userId: 201 });
+      expect(input).toEqual({
+        userId: 201,
+        idempotencyKey: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      });
       granted = true;
       return ok({ ok: true, expiresAt });
     }
   });
-  const messages = dialogs(page);
+  dialogs(page);
   await gotoWithSession(page, "/admin");
   await page.getByRole("button", { name: "Участницы", exact: true }).click();
   await page.getByRole("button", { name: "Выдать клуб", exact: true }).click();
-  await expect
-    .poll(() => messages)
-    .toContain("Клуб продлён до 15 января 2027 г.");
+  await expect(
+    page.getByText(/Продление подтверждено.*15.01.2027/),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Продлить клуб", exact: true }),
   ).toBeVisible();

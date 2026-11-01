@@ -8,6 +8,9 @@ const article = (id: number) => ({
   coverUrl: null,
   access: "club",
   published: false,
+  sortOrder: id,
+  createdAt: "2026-10-30T12:00:00Z",
+  updatedAt: "2026-10-30T12:00:00Z",
   sections: [{ type: "text", text: `BODY_${id}` }],
 });
 const titles = (page: Page) =>

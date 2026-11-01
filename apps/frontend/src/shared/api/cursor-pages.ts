@@ -21,7 +21,8 @@ export type CursorChain<P extends CursorPage> = {
   pages: P[];
   pageParams: (string | null)[];
   refreshedAt?: number[];
-  head?: P;
+  head?: CursorPage;
+  previousCursors?: (string | null)[];
 };
 export class CursorChainError extends Error {
   constructor() {
@@ -36,7 +37,10 @@ export function appendCursorPage<P extends CursorPage>(
 ): CursorChain<P> {
   if (
     previous.pageParams.includes(cursor) ||
+    previous.previousCursors?.includes(cursor) ||
     page.nextCursor === cursor ||
+    (page.nextCursor !== null &&
+      previous.previousCursors?.includes(page.nextCursor)) ||
     (page.nextCursor !== null && previous.pageParams.includes(page.nextCursor))
   )
     throw new CursorChainError();
@@ -52,20 +56,58 @@ export function appendCursorPage<P extends CursorPage>(
 }
 
 export const POST_PAGE_WINDOW = { maxPages: 8, pageSize: 12 };
+export const CURSOR_PAGE_LIMIT = 8;
+const boundary = (page: CursorPage): CursorPage => ({
+  nextCursor: page.nextCursor,
+  items: page.items.map(({ id }) => ({ id })),
+});
 
 export function boundCursorChain<P extends CursorPage>(
   chain: CursorChain<P>,
   maxPages: number,
   direction: "next" | "previous",
+  rememberPrevious = true,
 ): CursorChain<P> {
   const start =
     direction === "next" ? Math.max(0, chain.pages.length - maxPages) : 0;
   return {
     ...chain,
-    head: chain.pageParams[0] === null ? chain.pages[0] : chain.head,
+    head:
+      chain.pageParams[0] === null
+        ? boundary(chain.pages[0])
+        : chain.head && boundary(chain.head),
     pages: chain.pages.slice(start, start + maxPages),
     pageParams: chain.pageParams.slice(start, start + maxPages),
     refreshedAt: chain.refreshedAt?.slice(start, start + maxPages),
+    previousCursors: !rememberPrevious
+      ? undefined
+      : direction === "next"
+        ? [
+            ...(chain.previousCursors ?? []),
+            ...chain.pageParams.slice(0, start),
+          ]
+        : chain.previousCursors,
+  };
+}
+
+/** Opaque cursors cannot be derived or reversed. Keep navigation tokens only;
+ * discarded cards are read again, never retained in a second page cache. */
+export function prependCursorPage<P extends CursorPage>(
+  chain: CursorChain<P>,
+  page: P,
+): CursorChain<P> {
+  const trail = chain.previousCursors ?? [];
+  if (!trail.length || page.nextCursor !== chain.pageParams[0])
+    throw new CursorChainError();
+  return {
+    ...chain,
+    pages: [page, ...chain.pages],
+    pageParams: [trail.at(-1)!, ...chain.pageParams],
+    previousCursors: trail.slice(0, -1),
+    refreshedAt: [
+      Date.now(),
+      ...(chain.refreshedAt ?? chain.pages.map(() => 0)),
+    ],
   };
 }
 
@@ -98,7 +140,12 @@ export async function refreshCursorChain<P extends CursorPage>(
   const head = await read(null);
   const now = Date.now();
   if (!previous || mode === "restart")
-    return { pages: [head], pageParams: [null], refreshedAt: [now], head };
+    return {
+      pages: [head],
+      pageParams: [null],
+      refreshedAt: [now],
+      head: boundary(head),
+    };
   const selected = previous.pages
     .map((page, index) => ({ page, index }))
     .filter(
@@ -146,11 +193,17 @@ export async function refreshCursorChain<P extends CursorPage>(
       pageParams.includes(pages.at(-1)!.nextCursor)
     )
       throw new CursorChainError();
-    return { pages, pageParams, refreshedAt: pages.map(() => now), head };
+    return {
+      pages,
+      pageParams,
+      refreshedAt: pages.map(() => now),
+      head: boundary(head),
+      previousCursors: previous.previousCursors,
+    };
   }
   return {
     ...previous,
-    head,
+    head: boundary(head),
     pages: previous.pages.map(
       (page, index) => fresh.get(previous.pageParams[index]) ?? page,
     ),

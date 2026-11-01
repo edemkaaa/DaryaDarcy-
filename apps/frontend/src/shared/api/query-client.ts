@@ -15,6 +15,7 @@ function limitContentCache(cache: QueryCache) {
   const comments = new Map<string, Query>();
   const feeds = new Map<string, Query>();
   const clubPosts = new Map<string, Query>();
+  const lists = new Map<string, Map<string, Query>>();
   let scheduled = false;
   const trim = (entries: Map<string, Query>, limit: number) => {
     const inactive = [...entries.values()].filter(
@@ -29,6 +30,15 @@ function limitContentCache(cache: QueryCache) {
   cache.subscribe((event) => {
     const path = event.query.queryKey[0];
     if (!Array.isArray(path)) return;
+    const listPath = path.join(".");
+    const boundedList = [
+      "feed.savedPostsPage",
+      "admin.postsPage",
+      "admin.articlesPage",
+      "admin.membersPage",
+      "admin.paymentsPage",
+    ].includes(listPath);
+    if (boundedList && !lists.has(listPath)) lists.set(listPath, new Map());
     const entries =
       path.length === 2 &&
       path[0] === "club" &&
@@ -40,7 +50,7 @@ function limitContentCache(cache: QueryCache) {
               path[0] === "club" &&
               path[1] === "listByCategory"
             ? clubPosts
-            : null;
+            : (lists.get(listPath) ?? null);
     if (!entries) return;
     if (event.type === "removed") {
       entries.delete(event.query.queryHash);
@@ -63,6 +73,8 @@ function limitContentCache(cache: QueryCache) {
       trim(comments, INACTIVE_COMMENT_QUERY_LIMIT);
       trim(feeds, INACTIVE_FEED_QUERY_LIMIT);
       trim(clubPosts, INACTIVE_FEED_QUERY_LIMIT);
+      for (const entries of lists.values())
+        trim(entries, INACTIVE_FEED_QUERY_LIMIT);
     });
   });
 }

@@ -1,6 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { ok, failure } from "./editor-fixtures";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
+import {
+  modeReturnToken,
+  seedOtherPaymentModes,
+  paymentModeSnapshots,
+} from "./payment-mode-fixtures";
 
 test.skip(
   process.env.PRODAMUS_RETURN_UI_ENABLED === "true" ||
@@ -103,10 +108,47 @@ async function fixture(page: Page, authenticated = false, subscribed = false) {
   });
   return state;
 }
-async function open(page: Page, path = "/club?checkout=1") {
+async function open(page: Page, path = "/club?checkout=1", withPhone = true) {
   await gotoWithSession(page, path);
   await expect(pay(page).first()).toBeEnabled();
+  const phone = page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first();
+  if (withPhone && (await phone.count()) && (await phone.isEditable()))
+    await phone.fill("+79991234567");
 }
+
+test("legacy build ignores TEST return parameters and recovery journals without switching modes", async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  const snapshots = await seedOtherPaymentModes(page);
+  const forbidden: string[] = [];
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (
+      /[Gg]uestNormalCheckout|normalCheckoutStatus|createNormalCheckout|reconcileCheckout|prodamus\/test\/result/.test(
+        path,
+      )
+    )
+      forbidden.push(path);
+  });
+  await open(
+    page,
+    `/club?checkout=1&paid=1&NEXT_PUBLIC_PRODAMUS_TEST_ENABLED=true#paymentReturn=${modeReturnToken}`,
+  );
+  await expect(
+    page.getByRole("button", { name: "Открыть тестовую оплату", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("dialog", { name: "Результат оплаты клуба", exact: true }),
+  ).toHaveCount(0);
+  expect(await paymentModeSnapshots(page, Object.keys(snapshots))).toEqual(
+    snapshots,
+  );
+  expect(forbidden).toEqual([]);
+  expect(state.creates).toEqual([]);
+});
 
 for (const width of [320, 390, 1440]) {
   test(`guest validates email and sends one checkout at ${width}px`, async ({
@@ -121,7 +163,7 @@ for (const width of [320, 390, 1440]) {
       await held.promise;
       return ok({ url: destination, user: null });
     };
-    await open(page);
+    await open(page, undefined, false);
     const email = page.getByLabel("Почта для чека и входа").first();
     await pay(page).first().tap();
     await expect(page.getByRole("alert").first()).toContainText(
@@ -169,7 +211,9 @@ for (const width of [320, 390, 1440]) {
     await expect(phone.first()).toBeDisabled();
     await pay(page).last().dispatchEvent("click");
     await expect.poll(() => state.creates.length).toBe(1);
-    expect(state.creates).toEqual([{ email: "guest@example.test", contactPhone: "+79991234567" }]);
+    expect(state.creates).toEqual([
+      { email: "guest@example.test", contactPhone: "+79991234567" },
+    ]);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -197,9 +241,15 @@ test("profile renewal uses the existing email and never submits a password", asy
     .click();
   await expect(pay(page).first()).toBeEnabled();
   await expect(page.getByLabel("Почта для чека и входа")).toHaveCount(0);
+  await page
+    .getByRole("textbox", { name: "Номер телефона", exact: true })
+    .first()
+    .fill("+79991234567");
   await pay(page).first().click();
   await expect(page).toHaveURL(destination);
-  expect(state.creates).toEqual([{ email: "member-101@example.test" }]);
+  expect(state.creates).toEqual([
+    { email: "member-101@example.test", contactPhone: "+79991234567" },
+  ]);
 });
 
 for (const result of [

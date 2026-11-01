@@ -4,6 +4,7 @@ import {
   ArticleDraftJournal,
   type ArticleDraftRecord,
   type ArticleDraftSnapshot,
+  type DamagedArticleDraft,
 } from "@/domain/content/article-draft-journal";
 import {
   selectArticleFiles,
@@ -19,6 +20,9 @@ export function useArticleDraft(
   const [journal] = useState(() => new ArticleDraftJournal(ownerId));
   const current = useRef(new Map<number | null, ArticleDraftRecord>());
   const [records, setRecords] = useState<ArticleDraftRecord[]>([]);
+  const [damaged, setDamaged] = useState<DamagedArticleDraft[]>([]);
+  const [readError, setReadError] = useState<string | null>(null);
+  const readSequence = useRef(0);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,27 +41,39 @@ export function useArticleDraft(
         : "Не удалось сохранить черновик. Не закрывайте редактор.";
     if (alive.current) setError(errorRef.current);
   }, []);
-  useEffect(() => {
-    let cancelled = false;
-    alive.current = true;
-    void journal
-      .load()
-      .then((value) => {
-        if (cancelled || !alive.current) return;
-        current.current = new Map(
-          value.map((record) => [record.snapshot.editingId, record]),
+  const invalidatePendingReads = useCallback(() => {
+    readSequence.current++;
+  }, []);
+  const reload = useCallback(async () => {
+    const sequence = ++readSequence.current;
+    try {
+      const inspection = await journal.inspect();
+      if (!alive.current || sequence !== readSequence.current) return;
+      current.current = new Map(
+        inspection.records.map((record) => [record.snapshot.editingId, record]),
+      );
+      setRecords(inspection.records);
+      setDamaged(inspection.damaged);
+      setLoaded(true);
+      setReadError(null);
+    } catch (cause) {
+      if (alive.current && sequence === readSequence.current)
+        setReadError(
+          cause instanceof Error
+            ? cause.message
+            : "Не удалось прочитать черновики статей на устройстве.",
         );
-        setRecords(value);
-        setLoaded(true);
-      })
-      .catch((cause: unknown) => {
-        if (!cancelled) report(cause);
-      });
+      throw cause;
+    }
+  }, [journal]);
+  useEffect(() => {
+    alive.current = true;
+    void reload().catch(() => {});
     return () => {
-      cancelled = true;
       alive.current = false;
+      invalidatePendingReads();
     };
-  }, [journal, report]);
+  }, [reload, invalidatePendingReads]);
 
   const flush = useCallback(async (): Promise<void> => {
     if (running.current) return running.current;
@@ -191,13 +207,15 @@ export function useArticleDraft(
     }
   };
   return {
-    reload: async () => {
-      const value = await journal.load();
-      current.current = new Map(
-        value.map((record) => [record.snapshot.editingId, record]),
-      );
-      if (alive.current) setRecords(value);
+    reload,
+    archiveDamaged: async (key: string) => {
+      await journal.archiveDamaged(key);
+      await reload();
     },
+    damaged,
+    readError,
+    isDamaged: (slot: number | null) =>
+      damaged.some((entry) => entry.key === `${ownerId}:${slot ?? "new"}`),
     saveSnapshot: async (
       snapshot: ArticleDraftSnapshot,
       files: PrivateArticleFile[],

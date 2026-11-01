@@ -62,6 +62,7 @@ async function fixture(page: Page) {
     catalogFailures: new Map<number, number>(),
     pageErrors: [] as string[],
     saveStatus: 0,
+    detailStatus: 0,
     dropSaveResponse: false,
     savedId: 42,
   };
@@ -110,6 +111,20 @@ async function fixture(page: Page) {
       state.legacy.push(name);
       return failure(500);
     }
+    if (name === "admin.vkVideoDetail") {
+      state.reads.push({ name, input });
+      return state.detailStatus
+        ? failure(state.detailStatus)
+        : ok({
+            id: input.id,
+            title: "SERVER_TITLE",
+            embedUrl: embed,
+            access: "club",
+            published: false,
+            thumbnailUrl: null,
+            editRevision: 0,
+          });
+    }
     if (name === "admin.upsertVkVideo") {
       state.writes.push(input);
       if (state.dropSaveResponse) {
@@ -118,7 +133,7 @@ async function fixture(page: Page) {
       }
       return state.saveStatus
         ? failure(state.saveStatus)
-        : ok({ id: state.savedId });
+        : ok({ id: input.id ?? state.savedId });
     }
   });
   await page.route("**/api/auth/me", (route) =>
@@ -748,6 +763,91 @@ test("bounded catalog: a cached next-page error stays a pagination error and nev
   ).toEqual([20]);
 });
 
+test("bounded catalog: more than eight pages release old cards and return to an evicted page", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const state = await fixture(page);
+  catalogPages(state, 12);
+  await gotoWithSession(page, "/videos");
+  await expect(catalogCards(page)).toHaveCount(20);
+  for (let index = 1; index < 12; index++) {
+    await page
+      .getByRole("button", { name: "Показать ещё", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", {
+        name: `Открыть видео: VIDEO_${(index + 1) * 20}`,
+        exact: true,
+      }),
+    ).toHaveCount(1);
+    expect(await catalogCards(page).count()).toBeLessThanOrEqual(160);
+  }
+  // One retained head serves polling; seven later pages form the visible window.
+  await expect(catalogCards(page)).toHaveCount(140);
+  await expect(
+    page.getByRole("button", { name: "Открыть видео: VIDEO_1", exact: true }),
+  ).toHaveCount(0);
+  const previous = page.getByRole("button", {
+    name: "Предыдущие видео",
+    exact: true,
+  });
+  await previous.scrollIntoViewIfNeeded();
+  const retained = page.getByRole("button", {
+    name: "Открыть видео: VIDEO_101",
+    exact: true,
+  });
+  const before = (await retained.boundingBox())!.y;
+  const reads = catalogReads(state).length;
+  await previous.click();
+  await expect(
+    page.getByRole("button", { name: "Открыть видео: VIDEO_81", exact: true }),
+  ).toHaveCount(1);
+  await expect(catalogCards(page)).toHaveCount(140);
+  expect(
+    catalogReads(state)
+      .slice(reads)
+      .map((row) => row.input.cursor),
+  ).toEqual([80]);
+  expect(Math.abs((await retained.boundingBox())!.y - before)).toBeLessThan(3);
+  // A late previous-page response belongs to the old identity as well.
+  state.pages.get(60)!.items[0].title = "OLD_PREVIOUS_PRIVATE";
+  const gate = deferred();
+  state.catalogGate = gate.promise;
+  try {
+    await previous.click();
+    await expect.poll(() => catalogReads(state).at(-1)!.input.cursor).toBe(60);
+    state.user = null;
+    state.pages.set(0, {
+      items: [{ ...card, id: 999, title: "GUEST_WINDOW" }],
+      nextCursor: null,
+    });
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "darcy:session-change",
+          newValue: "bounded-catalog-guest",
+        }),
+      ),
+    );
+    state.catalogGate = undefined;
+    gate.resolve();
+    await expect(
+      page.getByRole("button", {
+        name: "Открыть видео: GUEST_WINDOW",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("OLD_PREVIOUS_PRIVATE", { exact: true }),
+    ).toHaveCount(0);
+  } finally {
+    state.catalogGate = undefined;
+    gate.resolve();
+  }
+  expect(state.pageErrors).toEqual([]);
+});
+
 test("bounded catalog: a changed boundary discards disconnected pages and loads the new cursor", async ({
   page,
 }) => {
@@ -1131,6 +1231,11 @@ async function openAdmin(page: Page) {
   return state;
 }
 async function fillAdmin(page: Page, url = embed) {
+  const load = page.getByRole("button", {
+    name: "Загрузить видео",
+    exact: true,
+  });
+  if (await load.count()) await load.click();
   await page
     .getByRole("textbox", { name: "Название видео VK" })
     .fill("VK_TITLE");
@@ -1168,34 +1273,25 @@ test("admin creates an exact VK payload without an ID or provider preview", asyn
     path: test.info().outputPath("vk-admin-mobile.png"),
   });
 });
-test("admin edit sends the explicit ID and never converts a rejected YouTube entry", async ({
+test("admin never converts a rejected YouTube detail into a VK update", async ({
   page,
 }) => {
   const state = await openAdmin(page);
-  state.saveStatus = 409;
+  state.detailStatus = 404;
   await page
     .getByRole("button", { name: "Редактировать по ID", exact: true })
     .click();
   await page.getByRole("textbox", { name: "ID видео VK" }).fill("18");
-  await fillAdmin(page);
   await page
-    .getByRole("button", { name: "Сохранить видео", exact: true })
+    .getByRole("button", { name: "Загрузить видео", exact: true })
     .click();
+  await expect(page.getByRole("main").getByRole("alert")).toContainText(
+    "не является VK",
+  );
   await expect(
-    page.getByText(
-      "Запись с этим ID нельзя сохранить как VK с указанными данными. Проверьте ID и источник ролика.",
-      { exact: true },
-    ),
-  ).toBeVisible();
-  expect(state.writes).toEqual([
-    {
-      id: 18,
-      embedUrl: embed + "&autoplay=0",
-      title: "VK_TITLE",
-      access: "club",
-      published: false,
-    },
-  ]);
+    page.getByRole("button", { name: "Сохранить видео", exact: true }),
+  ).toBeDisabled();
+  expect(state.writes).toEqual([]);
 });
 test("unknown admin result keeps original fields and retries the same payload", async ({
   page,
@@ -1292,7 +1388,10 @@ test.describe("documented thumbnail save contract", () => {
         .getByRole("button", { name: "Сохранить видео", exact: true })
         .click();
       await expect(
-        page.getByText("Видео сохранено. ID: 42", { exact: true }),
+        page.getByText(
+          `Видео сохранено. ID: ${intent === "create" ? 42 : 18}`,
+          { exact: true },
+        ),
       ).toBeVisible();
       const expected =
         intent === "keep"
@@ -1302,7 +1401,7 @@ test.describe("documented thumbnail save contract", () => {
             };
       expect(state.writes).toEqual([
         {
-          ...(intent === "create" ? {} : { id: 18 }),
+          ...(intent === "create" ? {} : { id: 18, expectedRevision: 0 }),
           embedUrl: embed + "&autoplay=0",
           title: "VK_TITLE",
           access: "club",
