@@ -135,6 +135,8 @@ async function writeMysqlDump(
       }
     }
     if (cleanupFailed)
+      // Credential-file cleanup failure must override even a failed dump; never report success.
+      // eslint-disable-next-line no-unsafe-finally
       throw new Error("MySQL backup temporary-file cleanup failed");
   }
 }

@@ -4,6 +4,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
+    "lint": "eslint --config eslint.config.mjs src --max-warnings 0",
     "dev": "cross-env NODE_ENV=development tsx watch src/_core/index.ts",
     "build": "esbuild src/_core/index.ts --platform=node --packages=external --bundle --format=esm --outfile=../../dist/index.mjs",
     "build:sandbox": "esbuild src/billing/prodamus-sandbox.index.ts --platform=node --packages=external --bundle --format=esm --outfile=../../dist/prodamus-sandbox.mjs",

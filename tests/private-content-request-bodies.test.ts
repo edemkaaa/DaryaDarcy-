@@ -15,6 +15,7 @@ import superjson from "superjson";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import * as db from "../apps/backend/src/db";
+import { privateVideoMetadata } from "../apps/backend/src/content/private-video-input";
 
 // Real JWT/SDK/Nest/JSON/tRPC validation; only account/activity SQL is substituted.
 // Invalid intent keys or oversized decoded bytes stop before upload SQL or S3.
@@ -102,6 +103,29 @@ function post(name: string, value: unknown, role = "admin", batch = false) {
       : superjson.stringify(value),
   });
 }
+it("forwards unexpected upload middleware rejection to Nest without leaking details", async () => {
+  const previousMedia = process.env.PRIVATE_POST_MEDIA_UPLOAD_ENABLED;
+  const previousVideo = process.env.PRIVATE_POST_VIDEO_UPLOAD_ENABLED;
+  vi.stubEnv("PRIVATE_POST_MEDIA_UPLOAD_ENABLED", "true");
+  vi.stubEnv("PRIVATE_POST_VIDEO_UPLOAD_ENABLED", "true");
+  try {
+    vi.spyOn(privateVideoMetadata, "safeParse").mockImplementationOnce(() => {
+      throw new Error("SYNTHETIC_PRIVATE_DETAIL");
+    });
+    const response = await fetch(`${base}/api/admin/private-video-uploads?filename=sample.mp4`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tokens.admin}`, "Content-Type": "video/mp4" },
+      body: new Uint8Array([0]),
+      signal: AbortSignal.timeout(2000),
+    });
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ statusCode: 500, message: "Internal server error" });
+    expect(admissionBodies).toEqual([undefined]);
+  } finally {
+    vi.stubEnv("PRIVATE_POST_MEDIA_UPLOAD_ENABLED", previousMedia);
+    vi.stubEnv("PRIVATE_POST_VIDEO_UPLOAD_ENABLED", previousVideo);
+  }
+});
 it("parses the authenticated UTF-8 media envelope only once before schema validation", async () => {
   const encoded = superjson.stringify(input("articleDocument", 256 * 1024));
   const parse = vi.spyOn(JSON, "parse");

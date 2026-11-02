@@ -18,7 +18,8 @@
     "check:boundaries": "tsx tooling/scripts/verify-boundaries.ts",
     "check:docs": "tsx tooling/scripts/check-docs.ts",
     "test:db:wait": "tsx tooling/scripts/wait-test-database.ts",
-    "lint": "pnpm --filter @daryadarcy/frontend lint",
+    "lint": "pnpm lint:backend && pnpm --filter @daryadarcy/frontend lint",
+    "lint:backend": "pnpm --filter @daryadarcy/backend lint",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:video": "node --test --test-reporter=spec apps/video-service/test/*.test.mjs",
@@ -85,6 +86,7 @@
     "sharp": "0.35.5",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
+    "typescript-eslint": "8.71.0",
     "vite": "^8.2.1",
     "vitest": "4.1.11",
     "yaml": "2.8.3"

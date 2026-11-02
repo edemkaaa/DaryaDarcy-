@@ -128,6 +128,8 @@ export async function getDb() {
     const pool = mysql.createPool({ uri: url, charset: "utf8mb4_unicode_ci", timezone: "Z", connectionLimit: 10 });
     pool.on("connection", (connection) => {
       // mysql2 queues this before the first command on each new connection.
+      // PromisePool forwards the raw callback connection event, despite its Promise typings.
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       connection.query("SET time_zone = '+00:00'");
     });
     _db = drizzle({ client: pool });

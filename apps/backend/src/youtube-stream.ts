@@ -4,6 +4,7 @@ import { pipeline } from "node:stream/promises";
 import { promisify } from "node:util";
 import type { Express, Request, Response } from "express";
 import { getVideoByYoutubeId } from "./db";
+import { asyncHandler } from "./_core/async-handler";
 
 const execFileAsync = promisify(execFile);
 const YT_ID = /^[\w-]{6,20}$/;
@@ -45,7 +46,7 @@ async function playbackUrl(id: string, signal: AbortSignal): Promise<string> {
 }
 
 export function registerYoutubeStream(app: Express) {
-  app.get("/api/yt/:id", async (req: Request, res: Response) => {
+  app.get("/api/yt/:id", asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id || "");
     if (!YT_ID.test(id)) {
       res.status(400).json({ error: "bad id" });
@@ -133,5 +134,5 @@ export function registerYoutubeStream(app: Express) {
       req.off("aborted", onClose);
       controller.abort();
     }
-  });
+  }));
 }

@@ -3,6 +3,7 @@ import { SessionService } from "../identity/session.service";
 import { privateVideoMetadata, privateVideoUploadEnabled } from "../content/private-video-input";
 import { retiredPublicUploads, retiredUploadMessage } from "../media/legacy-upload-policy";
 import { admitVideoUpload, releaseVideoUpload } from "./video-upload-admission";
+import { asyncHandler } from "./async-handler";
 
 const photoProcedures = new Set(["profile.uploadAvatar", "profile.uploadAvatarWithReceipt", "club.uploadPrivateCommentPhoto", "admin.uploadPhoto", "admin.uploadPublicCover"]);
 const sessions = new SessionService();
@@ -35,7 +36,7 @@ function isProviderWebhook(req: Request): boolean {
 }
 
 export function registerRequestBodies(app: Express) {
-  app.post("/api/admin/private-video-uploads", async (req, res, next) => {
+  app.post("/api/admin/private-video-uploads", asyncHandler(async (req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
     if (!privateVideoUploadEnabled()) { res.status(404).json({ error: "Загрузка недоступна" }); return; }
     if (!(await requireUploadIdentity(req, res, true))) return;
@@ -47,11 +48,11 @@ export function registerRequestBodies(app: Express) {
       if (err) { releaseVideoUpload(req); bodyError(res, err); return; }
       next();
     });
-  });
+  }));
   app.post("/api/admin/upload-video", (_req, res) => {
     res.status(404).json({ error: retiredUploadMessage });
   });
-  app.use(async (req, res, next) => {
+  app.use(asyncHandler(async (req, res, next) => {
     // POST has its bounded raw parser; GET/its implicit HEAD use query only.
     // Ordinary JSON/form parsers must not change what the provider signature binds.
     if (isProviderWebhook(req)) { next(); return; }
@@ -88,7 +89,7 @@ export function registerRequestBodies(app: Express) {
     }
     const parser = media ? jsonParsers.media : photo ? jsonParsers.photo : path.startsWith("/api/auth/") ? jsonParsers.auth : jsonParsers.ordinary;
     parser(req, res, error => { if (error) bodyError(res, error); else next(); });
-  });
+  }));
   const formParser = express.urlencoded({ limit: "16kb", extended: false, parameterLimit: 100 });
   const providerReturn = express.urlencoded({ limit: "2mb", extended: false, parameterLimit: 100 });
   app.use((req, res, next) => {
