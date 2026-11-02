@@ -191,6 +191,143 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
       false,
     );
   });
+  it("a failed reset preparation preserves the previous link and credentials", async () => {
+    const oldHash = await hashPassword("old-password-123");
+    await conn.query("UPDATE users SET passwordHash=? WHERE id=778", [oldHash]);
+    await requestPasswordEmail(database, "identity@example.test");
+    const token = await link();
+    const [before] = await conn.query<mysql.RowDataPacket[]>(
+      "SELECT id,consumedAt FROM password_tokens WHERE userId=778",
+    );
+    vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", "invalid-test-key");
+    try {
+      await expect(
+        requestPasswordEmail(database, "identity@example.test"),
+      ).rejects.toThrow("AUTH_LINK_ENCRYPTION_KEY");
+      const [after] = await conn.query<mysql.RowDataPacket[]>(
+        "SELECT id,consumedAt FROM password_tokens WHERE userId=778",
+      );
+      expect(after).toEqual(before);
+      const [outbox] = await conn.query<mysql.RowDataPacket[]>(
+        "SELECT sentAt FROM access_email_outbox WHERE userId=778",
+      );
+      expect(outbox).toHaveLength(1);
+      expect(outbox[0].sentAt).not.toBeNull();
+      const [user] = await conn.query<mysql.RowDataPacket[]>(
+        "SELECT passwordHash,sessionVersion FROM users WHERE id=778",
+      );
+      expect(user[0]).toMatchObject({
+        passwordHash: oldHash,
+        sessionVersion: 0,
+      });
+      expect(await completePassword(database, token, "new-password-123")).toBe(
+        true,
+      );
+    } finally {
+      vi.stubEnv(
+        "AUTH_LINK_ENCRYPTION_KEY",
+        Buffer.alloc(32, 7).toString("base64"),
+      );
+    }
+  });
+  it("recovers an expired mail lease but never takes an active lease", async () => {
+    await requestPasswordEmail(database, "identity@example.test");
+    await conn.query(
+      "UPDATE access_email_outbox SET leaseId='lost-worker',leaseUntil=DATE_ADD(NOW(),INTERVAL 5 MINUTE),attempts=1 WHERE userId=778",
+    );
+    const delivered: string[] = [];
+    const send = async (mail: { messageId: string }) => {
+      delivered.push(mail.messageId);
+      return true;
+    };
+    await processAccessEmails(database, send, 778);
+    expect(delivered).toHaveLength(0);
+    await conn.query(
+      "UPDATE access_email_outbox SET leaseUntil=DATE_SUB(NOW(),INTERVAL 1 MINUTE) WHERE userId=778",
+    );
+    await processAccessEmails(database, send, 778);
+    await processAccessEmails(database, send, 778);
+    expect(delivered).toHaveLength(1);
+    const [rows] = await conn.query<mysql.RowDataPacket[]>(
+      "SELECT attempts,sentAt,lastError,leaseId,leaseUntil,payload FROM access_email_outbox WHERE userId=778",
+    );
+    expect(rows[0]).toMatchObject({
+      attempts: 2,
+      lastError: null,
+      leaseId: null,
+      leaseUntil: null,
+    });
+    expect(rows[0].sentAt).not.toBeNull();
+    expect(rows[0].payload.tokenCipher).toBeUndefined();
+  });
+  it("a late failure from an expired lease cannot erase replacement delivery", async () => {
+    await requestPasswordEmail(database, "identity@example.test");
+    let release!: () => void;
+    let entered!: () => void;
+    const sending = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const delayed = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const messageIds: string[] = [];
+    const staleWorker = processAccessEmails(
+      database,
+      async (mail) => {
+        messageIds.push(mail.messageId);
+        entered();
+        await delayed;
+        return false;
+      },
+      778,
+    );
+    try {
+      // Reject promptly if the worker fails before reaching the sender.
+      await Promise.race([
+        sending,
+        staleWorker.then(() => {
+          throw new Error("Sender not reached");
+        }),
+      ]);
+      await conn.query(
+        "UPDATE access_email_outbox SET leaseUntil=DATE_SUB(NOW(),INTERVAL 1 MINUTE) WHERE userId=778",
+      );
+      await processAccessEmails(
+        database,
+        async (mail) => {
+          messageIds.push(mail.messageId);
+          return true;
+        },
+        778,
+      );
+    } finally {
+      release();
+      await staleWorker;
+    }
+    expect(messageIds).toHaveLength(2);
+    expect(messageIds[0]).toBe(messageIds[1]);
+    const [rows] = await conn.query<mysql.RowDataPacket[]>(
+      "SELECT attempts,sentAt,lastError,leaseId,leaseUntil,payload FROM access_email_outbox WHERE userId=778",
+    );
+    expect(rows[0]).toMatchObject({
+      attempts: 2,
+      lastError: null,
+      leaseId: null,
+      leaseUntil: null,
+    });
+    expect(rows[0].sentAt).not.toBeNull();
+    expect(rows[0].payload.tokenCipher).toBeUndefined();
+    let sends = 0;
+    await processAccessEmails(
+      database,
+      async () => {
+        sends++;
+        return true;
+      },
+      778,
+    );
+    expect(sends).toBe(0);
+  });
   it("expired mail is explicitly discarded, never recorded as delivered", async () => {
     await requestPasswordEmail(database, "identity@example.test");
     await conn.query(
