@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { scryptSync } from "node:crypto";
 import { hashPassword, isValidEmail, normalizeEmail, verifyPassword } from "../apps/backend/src/_core/password";
 
 describe("email auth helpers", () => {
@@ -30,5 +31,27 @@ describe("email auth helpers", () => {
       expect(await verifyPassword("synthetic-wrong-password", damaged)).toBe(false);
     },
   );
+
+
+  it.each([
+    [1, "invalid"],
+    [1, "3"],
+    [1, "1048576"],
+    [2, "-1"],
+    [3, "-1"],
+  ])("rejects invalid stored scrypt field %i=%s without throwing", async (index, value) => {
+    const parts = (await hashPassword("synthetic-password")).split("$");
+    parts[Number(index)] = String(value);
+    await expect(verifyPassword("synthetic-password", parts.join("$"))).resolves.toBe(false);
+  });
+
+
+  it("retains supported encoded parameters rather than forcing the current hashing defaults", async () => {
+    const salt = Buffer.alloc(16, 7);
+    const digest = scryptSync("synthetic-password", salt, 32, { N: 8192, r: 8, p: 1 });
+    const stored = `scrypt$8192$8$1$${salt.toString("base64")}$${digest.toString("base64")}`;
+    expect(await verifyPassword("synthetic-password", stored)).toBe(true);
+    expect(await verifyPassword("wrong-password", stored)).toBe(false);
+  });
 
 });

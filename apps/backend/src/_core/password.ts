@@ -30,7 +30,22 @@ export async function verifyPassword(password: string, stored: string): Promise<
   // Stored digests use KEYLEN. Corruption must not shorten the comparison to
   // a prefix, or to zero bytes where every password would match.
   if (expected.length !== KEYLEN) return false;
-  const derived = (await scryptAsync(password, salt, KEYLEN, { N: n, r, p })) as Buffer;
+  let derived: Buffer;
+  try {
+    derived = await scryptAsync(password, salt, KEYLEN, { N: n, r, p });
+  } catch (error) {
+    // Node rejects unsupported stored parameters before checking the password.
+    // Other crypto failures still need the server-error path, not a fake denial.
+    if (
+      error instanceof RangeError &&
+      "code" in error &&
+      (error.code === "ERR_OUT_OF_RANGE" ||
+        error.code === "ERR_CRYPTO_INVALID_SCRYPT_PARAMS")
+    ) {
+      return false;
+    }
+    throw error;
+  }
   if (derived.length !== expected.length) return false;
   return timingSafeEqual(derived, expected);
 }

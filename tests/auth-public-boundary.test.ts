@@ -283,3 +283,39 @@ it("keeps a valid stored password usable through the real verifier and HTTP sess
   expect(sessions.updateUser).toHaveBeenCalledOnce();
   expect(await response.json()).not.toHaveProperty("sessionToken");
 });
+
+
+it.each(["invalid", "3", "1048576"])(
+  "returns an ordinary login refusal for unsupported stored cost %s",
+  async (cost) => {
+    const password = "synthetic-parameter-password";
+    const parts = (await hashPassword(password)).split("$");
+    parts[1] = cost;
+    vi.mocked(sessions.findByEmail).mockResolvedValueOnce({
+      ...member,
+      email: `bad-cost-${cost}@example.test`,
+      passwordHash: parts.join("$"),
+    });
+    vi.mocked(sessions.passwordUser).mockImplementation((user, input) =>
+      SessionService.prototype.passwordUser.call(sessions, user, input),
+    );
+    const response = await post("/api/auth/login", {
+      email: `bad-cost-${cost}@example.test`, password,
+    }, "198.51.100.242");
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "Неверный email или пароль" });
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(sessions.updateUser).not.toHaveBeenCalled();
+  },
+);
+
+it("keeps an infrastructure verifier failure distinct from invalid credentials", async () => {
+  vi.mocked(sessions.passwordUser).mockRejectedValueOnce(new Error("PRIVATE_VERIFIER_FAILURE"));
+  const response = await post("/api/auth/login", {
+    email: "verifier-unavailable@example.test", password: "synthetic-password",
+  }, "198.51.100.243");
+  expect(response.status).toBe(500);
+  expect(response.headers.get("set-cookie")).toBeNull();
+  expect(sessions.updateUser).not.toHaveBeenCalled();
+  expect(await response.text()).not.toContain("PRIVATE_VERIFIER_FAILURE");
+});
