@@ -2,7 +2,6 @@
 import {
   captureEditBase,
   editableSnapshot,
-  matchesEditableWrite,
   readEditRevision,
   withExpectedRevision,
   type ContentEditBase,
@@ -12,6 +11,7 @@ import { ArticleCatalog } from "./article-catalog";
 import { useArticleCatalog } from "./use-article-catalog";
 import { recoverArticleCreation } from "./recover-article-creation";
 import { createArticleEditorExit } from "./article-editor-exit";
+import { createArticleRevisionActions } from "./article-revision-actions";
 import classes from "./articles-admin.module.scss";
 import {
   ScrollArea,
@@ -59,13 +59,11 @@ import { useArticleFiles } from "./use-article-files";
 import { useArticleCover } from "./use-article-cover";
 import { useArticleDraft } from "./use-article-draft";
 import {
-  ArticleDraftJournal,
   type ArticleDraftRecord,
 } from "@/domain/content/article-draft-journal";
 import type { PrivateArticleFile } from "@/domain/content/private-article-files";
 import {
   selectArticleFiles,
-  restoreArticleFileReferences,
 } from "@/domain/content/private-article-files";
 import {
   recoverArticleFileUploads,
@@ -414,152 +412,6 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     readEditRevision(detail);
     return detail;
   };
-  const compareArticle = async () => {
-    const id = creation?.media?.editingId ?? editingId;
-    if (!id) return;
-    const task = operation.begin("compare-article");
-    if (!task) return;
-    try {
-      const detail = await readUpdatedArticle(id, task);
-      const wanted =
-        creation?.media?.phase === "write"
-          ? creation.payload
-          : (attemptedEdit.current ?? {
-              title: title.trim(),
-              coverUrl: coverUrl || null,
-              access,
-              published,
-              sections: blocks,
-            });
-      if (matchesEditableWrite(detail, wanted, "article")) {
-        if (creation?.media?.editingId === id)
-          await completeCreation(creation, task);
-        else {
-          await draft.clear();
-          task.assertCurrent();
-          void list.restart();
-          refreshRelatedContent();
-          reset();
-        }
-        return;
-      }
-      setServerComparison(detail);
-      setRecoveryMessage(
-        "Серверная версия прочитана. Ваш черновик не изменён; автоматической повторной записи нет.",
-      );
-    } catch (error) {
-      checkOperationAccessError(error);
-      if (task.isCurrent())
-        setRecoveryMessage(
-          error instanceof Error
-            ? error.message
-            : "Не удалось прочитать статью",
-        );
-    } finally {
-      task.finish();
-    }
-  };
-  const acceptArticleRevision = async () => {
-    if (!serverComparison || !editingId) return;
-    const task = operation.begin("accept-article-revision");
-    if (!task) return;
-    try {
-      const revision = readEditRevision(serverComparison);
-      if (!revision)
-        throw new Error(
-          "Сервер ещё не передаёт версию статьи. Черновик сохранён.",
-        );
-      if (
-        !editConflict &&
-        (!editBase?.revision || revision === editBase.revision)
-      )
-        throw new Error(
-          "Предыдущий запрос ещё может выполняться. Повторная запись пока заблокирована.",
-        );
-      if (
-        !window.confirm(
-          "Продолжить с вашим вариантом относительно показанной серверной версии? Сохранение потребуется нажать отдельно.",
-        )
-      )
-        return;
-      task.assertCurrent();
-      // Move an immutable file operation back to an editable, durable draft
-      // before clearing it. The selected File objects and receipts are retained.
-      const record = creation?.media?.editingId === editingId ? creation : null;
-      if (record) {
-        const saved = await new ArticleDraftJournal(ownerId).load();
-        const current = saved.find(
-          (entry) => entry.snapshot.editingId === editingId,
-        );
-        if (current)
-          throw new Error(
-            "Есть другой черновик этой статьи. Сначала сохраните его отдельно.",
-          );
-        const payload = {
-          ...record.payload,
-          sections: restoreArticleFileReferences(
-            record.payload.sections,
-            record.media!.files,
-          ),
-        };
-        const base = {
-          revision,
-          snapshot:
-            editBase?.snapshot ?? editableSnapshot(serverComparison, "article"),
-        };
-        await new ArticleDraftJournal(ownerId).save(
-          { ...payload, editingId, editBase: base, writeUncertain: false },
-          record.media!.files,
-          null,
-        );
-        task.assertCurrent();
-        await draft.reload();
-        task.assertCurrent();
-        await journal.clear(record);
-        task.assertCurrent();
-        // Reload the editor's journal rather than inventing a local revision.
-        setCreation(null);
-        reset();
-        return;
-      }
-      const base = {
-        revision,
-        snapshot:
-          editBase?.snapshot ?? editableSnapshot(serverComparison, "article"),
-      };
-      await draft.saveSnapshot(
-        {
-          editingId,
-          title,
-          coverUrl: coverUrl || null,
-          access,
-          published,
-          sections: blocks,
-          editBase: base,
-          writeUncertain: false,
-        },
-        privateFiles.files,
-      );
-      task.assertCurrent();
-      setEditBase(base);
-      setEditConflict(undefined);
-      uncertainSave.current = false;
-      draft.resume();
-      setServerComparison(undefined);
-      setRecoveryMessage(
-        "Версия для следующего сохранения выбрана. Проверьте ваш вариант и нажмите сохранение отдельно.",
-      );
-    } catch (error) {
-      if (task.isCurrent())
-        setRecoveryMessage(
-          error instanceof Error
-            ? error.message
-            : "Не удалось сохранить версию черновика",
-        );
-    } finally {
-      task.finish();
-    }
-  };
   const { completeCreation, cancelEditing, discardUnknownEdit } =
     createArticleEditorExit({
       creation,
@@ -573,6 +425,31 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       refreshRelatedContent,
       reset,
     });
+  const { compareArticle, acceptArticleRevision } = createArticleRevisionActions({
+    ownerId,
+    editingId,
+    creation,
+    form: { title, coverUrl, access, published, sections: blocks },
+    editBase,
+    editConflict,
+    serverComparison,
+    attemptedEdit,
+    uncertainSave,
+    operation,
+    draft,
+    journal,
+    privateFiles,
+    list,
+    readUpdatedArticle,
+    completeCreation,
+    refreshRelatedContent,
+    reset,
+    setCreation,
+    setEditBase,
+    setEditConflict,
+    setServerComparison,
+    setRecoveryMessage,
+  });
   const recoverCreation = (replay: boolean) =>
     recoverArticleCreation(creation, replay, {
       operation,
