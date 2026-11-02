@@ -11,6 +11,7 @@ import { EditComparison } from "./edit-comparison";
 import { ArticleCatalog } from "./article-catalog";
 import { useArticleCatalog } from "./use-article-catalog";
 import { recoverArticleCreation } from "./recover-article-creation";
+import { createArticleEditorExit } from "./article-editor-exit";
 import classes from "./articles-admin.module.scss";
 import {
   ScrollArea,
@@ -559,48 +560,19 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       task.finish();
     }
   };
-  const completeCreation = async (
-    record: ArticleCreationRecord,
-    task: ScopedOperation,
-  ) => {
-    await readCurrentArticles(task);
-    task.assertCurrent();
-    if (draft.record?.snapshot.editingId === (record.media?.editingId ?? null))
-      await draft.clear();
-    task.assertCurrent();
-    await journal.clear(record);
-    task.assertCurrent();
-    setCreation(null);
-    setRecoveryMessage(null);
-    refreshRelatedContent();
-    reset();
-  };
-  const cancelEditing = async () => {
-    operation.cancel();
-    const task = operation.begin("cancel-article");
-    if (!task) return;
-    try {
-      if (cover.pending) await draft.clear(true);
-      else await draft.flush();
-      task.assertCurrent();
-      // A cancelled POST can still commit. Keep its durable operation.
-      const record = await journal.load();
-      task.assertCurrent();
-      setCreation(record);
-      await readCurrentArticles(task);
-      task.assertCurrent();
-      setRecoveryMessage(null);
-      reset();
-    } catch (error) {
-      checkOperationAccessError(error);
-      if (task.isCurrent())
-        setRecoveryMessage(
-          "Не удалось сохранить черновик или обновить список статей. Отмена не подтверждена. Не закрывайте редактор; попробуйте снова.",
-        );
-    } finally {
-      task.finish();
-    }
-  };
+  const { completeCreation, cancelEditing, discardUnknownEdit } =
+    createArticleEditorExit({
+      creation,
+      operation,
+      draft,
+      journal,
+      cover,
+      readCurrentArticles,
+      setCreation,
+      setRecoveryMessage,
+      refreshRelatedContent,
+      reset,
+    });
   const recoverCreation = (replay: boolean) =>
     recoverArticleCreation(creation, replay, {
       operation,
@@ -647,30 +619,6 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       if (task.isCurrent())
         notify(
           error instanceof Error ? error.message : "Не удалось выбрать файл",
-        );
-    } finally {
-      task.finish();
-    }
-  };
-  const discardUnknownEdit = async () => {
-    if (!creation?.media?.editingId || creation.media.phase !== "write") return;
-    const task = operation.begin("discard-article");
-    if (!task) return;
-    try {
-      await readCurrentArticles(task);
-      task.assertCurrent();
-      await draft.clear(true);
-      task.assertCurrent();
-      await journal.clear(creation);
-      task.assertCurrent();
-      setCreation(null);
-      setRecoveryMessage(null);
-      reset();
-    } catch (error) {
-      checkOperationAccessError(error);
-      if (task.isCurrent())
-        setRecoveryMessage(
-          "Не удалось обновить список. Локальная копия сохранена.",
         );
     } finally {
       task.finish();
