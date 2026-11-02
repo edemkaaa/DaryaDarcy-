@@ -1,5 +1,16 @@
 # Daryadarcy Modular Monorepo
 
+## Инфраструктурный блокер — 2 ноября
+
+- [x] Чистая локальная586dfcf6; fetch недоступен, remote freshness неизвестна.
+- [x] Read-only диагностика: Google/Cloudflare SERVFAIL/EDE22, NS Beget не отвечают.
+- [x] Контроль cd=true/parent DS/beget.com SOA; никакой смены DNSSEC/настроек.
+- [x] DevOps handoff: данные, готовый текст поддержки и критерии восстановления.
+- [ ] Владелец DNS/провайдер: восстановить авторитетные ответы reeskeen.ru.
+- [ ] DevOps: связь с VPS/SSH, затем health исходных сервисов без выкладки.
+
+[Инструкция](../docs/operations/dns-incident-2026-11-02.md).
+
 ## Реальная очередь после Mini-выпуска — 2 ноября
 
 - [x] Свежий fetch61e42ef2: входящих нет, чистое дерево.

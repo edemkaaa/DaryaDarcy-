@@ -4,6 +4,11 @@
 
 ## Актуальный остаток — 2 ноября
 
+Обновление доступности: сайт/Mini/GitLab блокируются DNS SERVFAIL/EDE22
+авторитетных NS Beget. Remote freshness после586dfcf6 неизвестна, git fetch
+не проходит. Локальные2fixture правки остаются возможны; выпуск и live-приёмка
+ждут восстановления DNS/SSH. [Передать DevOps](../operations/dns-incident-2026-11-02.md).
+
 Пункты3/4 уже подключены во frontend b86f48c6 и приняты с настоящими API/SQL:
 recovery11, checkout11 и editors18, всего40 без skip/flaky/ошибок.
 [Доказательства](joint-acceptance-2026-11-01.md). Ниже сохранён исходный контракт
