@@ -79,3 +79,36 @@ it("rejects repeated cursors and duplicates across pages", async () => {
     getLibraryFiles("patterns", signal, duplicate),
   ).rejects.toThrow();
 });
+
+it.each([
+  "text/html",
+  "image/svg+xml",
+  "application/msword",
+  "application/octet-stream",
+  "text/plain;",
+  "text/plain; charset=",
+  'text/plain; charset="utf-8',
+  "text/plain; charset=utf-8\r\nX-Header: value",
+  "text/plain\u0000",
+  `text/plain; name=${"x".repeat(128)}`,
+])("rejects unsupported or malformed library MIME: %s", (mimeType) => {
+  expect(() =>
+    parseLibraryFiles(page([{ ...file(), mimeType }]), "patterns"),
+  ).toThrow();
+});
+
+it.each([
+  "",
+  "x".repeat(513),
+  "../file.pdf",
+  "dir\\file.pdf",
+  "file\n.pdf",
+  "file\u007f.pdf",
+])(
+  "rejects a filename outside the server metadata contract: %s",
+  (filename) => {
+    expect(() =>
+      parseLibraryFiles(page([{ ...file(), filename }]), "patterns"),
+    ).toThrow();
+  },
+);

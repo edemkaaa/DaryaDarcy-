@@ -22,20 +22,26 @@ export function libraryMaterialKey(value: string): LibraryMaterialKey | null {
 }
 const integer = z.number().int().safe().nonnegative();
 const cursor = z.string().regex(/^(0|[1-9]\d*):[1-9]\d*$/);
+// Keep the server's allowlist and bounded MIME parameter syntax. Charset is
+// delivery metadata, not a different file format; never accept active content.
+const libraryMime = z
+  .string()
+  .max(128)
+  .regex(
+    /^(?:image\/(?:jpeg|png|webp)|application\/(?:pdf|vnd\.openxmlformats-officedocument\.wordprocessingml\.document)|text\/plain)(?: *; *[!#$%&'*+.^_`|~a-z0-9-]+=(?:[!#$%&'*+.^_`|~a-z0-9-]+|"(?:[\x20-\x21\x23-\x5b\x5d-\x7e]|\\[\x20-\x7e])*"))* *$/i,
+  )
+  .refine((value) => !/[\x00-\x1f\x7f]/.test(value));
 const file = z
   .object({
     fileKey: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
     sortOrder: integer,
     revision: integer.positive(),
-    filename: z.string().min(1).max(255),
-    mimeType: z.enum([
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "application/pdf",
-      "text/plain",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ]),
+    filename: z
+      .string()
+      .min(1)
+      .max(512)
+      .refine((value) => !/[\x00-\x1f\x7f/\\]/.test(value)),
+    mimeType: libraryMime,
     fileSize: integer.positive(),
     url: z.string(),
   })
