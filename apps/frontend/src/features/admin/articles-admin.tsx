@@ -1,6 +1,4 @@
 "use client";
-import { CursorPagePrevious } from "@/shared/ui/cursor-page-previous";
-import { CollectionScrollAnchor } from "@/shared/ui/collection";
 import {
   captureEditBase,
   editableSnapshot,
@@ -10,6 +8,8 @@ import {
   type ContentEditBase,
 } from "@/domain/content/edit-revision";
 import { EditComparison } from "./edit-comparison";
+import { ArticleCatalog } from "./article-catalog";
+import { useArticleCatalog } from "./use-article-catalog";
 import classes from "./articles-admin.module.scss";
 import {
   ScrollArea,
@@ -33,11 +33,7 @@ import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
 import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import { trpc } from "@/shared/api/trpc";
-import { getQueryKey } from "@trpc/react-query";
-import {
-  useCursorPages,
-  requireCursorPage,
-} from "@/shared/api/use-cursor-pages";
+import { requireCursorPage } from "@/shared/api/use-cursor-pages";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import {
   requirePrivateUpload,
@@ -109,59 +105,14 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   };
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const list = useCursorPages({
-    key: getQueryKey(trpc.admin.articlesPage, { limit: 20 }, "query"),
-    scope: String(ownerId),
-    enabled: active && !showForm,
-    fetchPage: (cursor, signal) =>
-      utils.client.admin.articlesPage.query({ limit: 20, cursor }, { signal }),
-  });
+  const catalog = useArticleCatalog(ownerId, active && !showForm);
+  const { list } = catalog;
   const opening = useSessionOperation(active && !showForm);
   const [openingId, setOpeningId] = useState<number | null>(null);
   const [openingError, setOpeningError] = useState<string | null>(null);
   const [draftRecoveryError, setDraftRecoveryError] = useState<string | null>(
     null,
   );
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const lastCardRef = useRef<HTMLDivElement>(null);
-  const {
-    hasNextPage,
-    isFetching,
-    isFetchingNextPage,
-    isError,
-    fetchNextPage,
-  } = list;
-  const cardCount = list.items.length;
-  useEffect(() => {
-    if (
-      !active ||
-      showForm ||
-      !hasNextPage ||
-      isFetching ||
-      isFetchingNextPage ||
-      isError ||
-      !lastCardRef.current ||
-      !scrollRef.current
-    )
-      return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) void fetchNextPage();
-      },
-      { root: scrollRef.current, rootMargin: "200px" },
-    );
-    observer.observe(lastCardRef.current);
-    return () => observer.disconnect();
-  }, [
-    active,
-    showForm,
-    hasNextPage,
-    isFetching,
-    isFetchingNextPage,
-    isError,
-    fetchNextPage,
-    cardCount,
-  ]);
   const [title, setTitle] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
   const [access, setAccess] = useState<Access>("club");
@@ -1836,12 +1787,24 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     );
   }
   return (
-    <ScrollArea
-      ref={scrollRef}
-      style={{ overflowAnchor: "none" }}
-      contentClassName={classes.list}
-      onRefresh={() => void list.restart()}
-      refreshing={list.isRefetching && !list.isFetchingNextPage}
+    <ArticleCatalog
+      catalog={catalog}
+      openingNotice={
+        <QueryRetryState
+          isLoading={opening.busy}
+          isError={Boolean(openingError)}
+          onRetry={() => {
+            if (openingId !== null) void startEdit(openingId);
+          }}
+          message={openingError ?? "Не удалось загрузить статью"}
+        />
+      }
+      editDisabled={(id) =>
+        remove.isPending || opening.busy || !draft.loaded || draft.isDamaged(id)
+      }
+      deleteDisabled={remove.isPending || opening.busy}
+      onEdit={(id) => void startEdit(id)}
+      onDelete={confirmDelete}
     >
       {draft.records.map(
         (saved) =>
@@ -1957,99 +1920,6 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         Статьи появляются в Эксклюзиве клуба и в библиотеке. Чтение — по
         подписке или без подписки. В общую ленту статьи не попадают.
       </Typography>
-      <QueryRetryState
-        isLoading={list.isLoading}
-        isError={
-          list.denied ||
-          (list.isError &&
-            !list.isFetchNextPageError &&
-            !list.isFetchPreviousPageError)
-        }
-        onRetry={() => void list.refetch()}
-        message="Не удалось загрузить статьи"
-      />
-      <QueryRetryState
-        isLoading={opening.busy}
-        isError={Boolean(openingError)}
-        onRetry={() => {
-          if (openingId !== null) void startEdit(openingId);
-        }}
-        message={openingError ?? "Не удалось загрузить статью"}
-      />
-      <CursorPagePrevious query={list} label="Предыдущие статьи" />
-      <CollectionScrollAnchor
-        trackLayout
-        root={scrollRef}
-        data={list.items}
-        itemKeys={list.items.map((item) => String(item.id))}
-      >
-        {list.items.map((item, index) => (
-          <div
-            key={item.id}
-            data-item-index={index}
-            ref={index === list.items.length - 1 ? lastCardRef : undefined}
-            className={["ui-stack ", classes.card].filter(Boolean).join(" ")}
-          >
-            {item.coverUrl ? (
-              <Picture
-                source={{ uri: item.coverUrl }}
-                contentFit="cover"
-                className={classes.cardCover}
-              />
-            ) : null}
-            <div
-              className={["ui-stack ", classes.div].filter(Boolean).join(" ")}
-            >
-              <Typography className={classes.cardTitle}>
-                {item.title}
-              </Typography>
-              <Typography className={classes.cardMeta}>
-                {item.access === "public" ? "Клуб + библиотека" : "Эксклюзив"}
-                {item.published ? "" : " · черновик"}
-              </Typography>
-              <div
-                className={["ui-stack ", classes.row].filter(Boolean).join(" ")}
-              >
-                <Action
-                  disabled={
-                    remove.isPending ||
-                    opening.busy ||
-                    !draft.loaded ||
-                    draft.isDamaged(item.id)
-                  }
-                  onClick={() => void startEdit(item.id)}
-                  className={classes.linkBtn}
-                >
-                  <Typography className={classes.btnSecondaryText}>
-                    Править
-                  </Typography>
-                </Action>
-                <Action
-                  disabled={remove.isPending || opening.busy}
-                  onClick={() => confirmDelete(item.id)}
-                  className={classes.linkBtn}
-                >
-                  <Typography className={classes.typography}>
-                    Удалить
-                  </Typography>
-                </Action>
-              </div>
-            </div>
-          </div>
-        ))}
-      </CollectionScrollAnchor>
-      <QueryRetryState
-        isLoading={list.isFetchingNextPage}
-        isError={list.isFetchNextPageError}
-        loadingSize="small"
-        onRetry={() => void list.fetchNextPage()}
-        message="Не удалось загрузить следующие статьи"
-      />
-      {!list.isLoading && !list.isError && !list.items.length ? (
-        <Typography className={classes.hint}>
-          Пока нет статей — напишите подборку, гид или «обо мне».
-        </Typography>
-      ) : null}
-    </ScrollArea>
+    </ArticleCatalog>
   );
 }
