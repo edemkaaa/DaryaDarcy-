@@ -3,7 +3,8 @@
 @layer components {
   .form {
     padding: 16px;
-    padding-bottom: 60px;
+    // Let the last controls scroll above the persistent recovery notice.
+    padding-bottom: calc(60px + var(--background-notice-clearance, 0px));
     gap: 10px;
   }
 

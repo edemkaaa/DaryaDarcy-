@@ -261,33 +261,40 @@ test("CONFLICT retains the key and immutable payload instead of starting another
   ).toBeDisabled();
 });
 
-test("cancellation requires a fresh real list and retains the pending operation on a read failure", async ({
-  page,
-}) => {
-  const state = await fixture(page);
-  await loseCreation(page);
-  state.listError = true;
-  await page.getByRole("button", { name: "Отмена", exact: true }).click();
-  await expect(
-    page
-      .locator("[data-background-notice] [role=status]")
-      .filter({ hasText: "Отмена не подтверждена" }),
-  ).toBeVisible();
-  await expect(titleField(page)).toHaveValue("RECOVERY_ARTICLE");
-  state.listError = false;
-  await page.getByRole("button", { name: "Отмена", exact: true }).click();
-  await expect(titleField(page)).toHaveCount(0);
-  await expect(page.getByText("RECOVERY_ARTICLE", { exact: true })).toHaveCount(
-    1,
-  );
-  await expect(
-    page.getByRole("button", {
-      name: "Восстановить создание статьи",
-      exact: true,
-    }),
-  ).toBeVisible();
-  expect(state.writes).toHaveLength(1);
-});
+for (const viewport of [
+  { width: 320, height: 568 },
+  { width: 390, height: 844 },
+  { width: 1280, height: 800 },
+]) {
+  test(`cancellation requires a fresh real list and retains the pending operation on a read failure (${viewport.width}px)`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    const state = await fixture(page);
+    await loseCreation(page);
+    state.listError = true;
+    await page.getByRole("button", { name: "Отмена", exact: true }).click();
+    await expect(
+      page
+        .locator("[data-background-notice] [role=status]")
+        .filter({ hasText: "Отмена не подтверждена" }),
+    ).toBeVisible();
+    await expect(titleField(page)).toHaveValue("RECOVERY_ARTICLE");
+    state.listError = false;
+    await page.getByRole("button", { name: "Отмена", exact: true }).click();
+    await expect(titleField(page)).toHaveCount(0);
+    await expect(page.getByText("RECOVERY_ARTICLE", { exact: true })).toHaveCount(
+      1,
+    );
+    await expect(
+      page.getByRole("button", {
+        name: "Восстановить создание статьи",
+        exact: true,
+      }),
+    ).toBeVisible();
+    expect(state.writes).toHaveLength(1);
+  });
+}
 
 test("a late status reply cannot reset a different form after navigation", async ({
   page,

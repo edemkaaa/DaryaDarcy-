@@ -273,39 +273,46 @@ test("post rejects overlong UTF-8 before any write and keeps the full input", as
     .toBe(value.length);
 });
 
-test("article conflict preserves the old revision across reload and requires an explicit comparison decision", async ({
-  page,
-}) => {
-  const state = await fixture(page);
-  await editArticle(page);
-  await title(page).fill("MY_ARTICLE");
-  state.article = {
-    ...state.article,
-    title: "OTHER_ARTICLE",
-    editRevision: "article:r2",
-  };
-  state.reject = 409;
-  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
-  await expect(compare(page)).toBeVisible();
-  expect(state.writes[0].input.expectedRevision).toBe("article:r1");
-  await page.reload();
-  await page.getByRole("button", { name: "Статьи", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Продолжить черновик статьи", exact: true })
-    .click();
-  await expect(title(page)).toHaveValue("MY_ARTICLE");
-  await compare(page).click();
-  await expect(page.getByText("OTHER_ARTICLE", { exact: true })).toBeVisible();
-  expect(state.writes).toHaveLength(1);
-  await accept(page).click();
-  state.reject = 0;
-  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
-  await expect(title(page)).toHaveCount(0);
-  expect(state.writes[1].input).toMatchObject({
-    expectedRevision: "article:r2",
-    title: "MY_ARTICLE",
+for (const viewport of [
+  { width: 320, height: 568 },
+  { width: 390, height: 844 },
+  { width: 1280, height: 800 },
+]) {
+  test(`article conflict preserves the old revision across reload and requires an explicit comparison decision (${viewport.width}px)`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    const state = await fixture(page);
+    await editArticle(page);
+    await title(page).fill("MY_ARTICLE");
+    state.article = {
+      ...state.article,
+      title: "OTHER_ARTICLE",
+      editRevision: "article:r2",
+    };
+    state.reject = 409;
+    await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+    await expect(compare(page)).toBeVisible();
+    expect(state.writes[0].input.expectedRevision).toBe("article:r1");
+    await page.reload();
+    await page.getByRole("button", { name: "Статьи", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Продолжить черновик статьи", exact: true })
+      .click();
+    await expect(title(page)).toHaveValue("MY_ARTICLE");
+    await compare(page).click();
+    await expect(page.getByText("OTHER_ARTICLE", { exact: true })).toBeVisible();
+    expect(state.writes).toHaveLength(1);
+    await accept(page).click();
+    state.reject = 0;
+    await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+    await expect(title(page)).toHaveCount(0);
+    expect(state.writes[1].input).toMatchObject({
+      expectedRevision: "article:r2",
+      title: "MY_ARTICLE",
+    });
   });
-});
+}
 
 test("article private file operation retains original bytes and revision through conflict and a manual rebase", async ({
   page,
