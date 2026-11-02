@@ -56,7 +56,16 @@ async function fixture(page: Page, existing: boolean) {
       return ok({ total: count, published: count, scheduled: 0, draft: 0 });
     if (name === "admin.postCalendar")
       return ok({
-        days: [{ dayIndex: 9, published: count, scheduled: 0, draft: 0 }],
+        days: [
+          {
+            ...card(1, "BASE_POST"),
+            dayIndex: 9,
+            total: count,
+            published: count,
+            scheduled: 0,
+            draft: 0,
+          },
+        ],
         upcoming: [],
       });
     if (name === "admin.stats")
@@ -152,7 +161,7 @@ for (const action of ["create", "edit", "delete", "recover"] as const) {
       if (action === "recover") {
         await expect(
           page
-            .getByRole("alert")
+            .locator("[data-background-notice] [role=status]")
             .filter({ hasText: "Результат сохранения не подтверждён" }),
         ).toBeVisible();
         expect(state.reads.get("admin.postCounts")).toBe(

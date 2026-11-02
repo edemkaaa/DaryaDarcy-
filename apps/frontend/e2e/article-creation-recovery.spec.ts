@@ -417,7 +417,7 @@ test("storage failure prevents creation before any POST", async ({ page }) => {
   await expect(
     page
       .locator("[data-background-notice] [role=status]")
-      .filter({ hasText: "операцию статьи" }),
+      .filter({ hasText: "Не удалось прочитать черновики на этом устройстве" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Написать статью", exact: true }),

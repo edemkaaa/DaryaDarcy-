@@ -229,9 +229,9 @@ test("absence from the first page cannot confirm article deletion", async ({
   page.on("dialog", (dialog) => dialog.accept());
   await open(page);
   await page.getByRole("button", { name: "Удалить", exact: true }).click();
-  await expect(page.getByRole("main").getByRole("alert")).toContainText(
-    "не подтверждён",
-  );
+  await expect(
+    page.locator("[data-background-notice] [role=status]"),
+  ).toContainText("не подтверждён");
   await expect(
     page.getByRole("button", { name: "Написать статью", exact: true }),
   ).toBeDisabled();
