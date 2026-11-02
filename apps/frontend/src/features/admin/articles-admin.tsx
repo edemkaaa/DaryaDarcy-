@@ -24,10 +24,6 @@ import {
 } from "@/shared/ui/elements";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/domain/session/session-context";
-import {
-  ArticleCreationJournal,
-  type ArticleCreationRecord,
-} from "@/domain/content/article-creation-journal";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
@@ -59,6 +55,7 @@ import { requireOk } from "@/shared/api/action-result";
 import { useArticleFiles } from "./use-article-files";
 import { useArticleCover } from "./use-article-cover";
 import { useArticleDraft } from "./use-article-draft";
+import { useArticleCreationJournal } from "./use-article-creation-journal";
 import type { PrivateArticleFile } from "@/domain/content/private-article-files";
 import { selectArticleFiles } from "@/domain/content/private-article-files";
 import {
@@ -113,36 +110,15 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   const [access, setAccess] = useState<Access>("club");
   const [previewing, setPreviewing] = useState(false);
   const [blocks, setBlocks] = useState<ArticleBlock[]>([emptyBlock("text")]);
-  const [journal] = useState(() => new ArticleCreationJournal(ownerId));
-  const [creation, setCreation] = useState<ArticleCreationRecord | null>(null);
-  const [storageStatus, setStorageStatus] = useState<
-    "loading" | "ready" | "error"
-  >("loading");
-  const [loadAttempt, setLoadAttempt] = useState(0);
-  const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
-  useEffect(() => {
-    let alive = true;
-    void journal
-      .load()
-      .then((record) => {
-        if (!alive) return;
-        setCreation(record);
-        setStorageStatus("ready");
-        setRecoveryMessage(null);
-      })
-      .catch((error: unknown) => {
-        if (!alive) return;
-        setStorageStatus("error");
-        setRecoveryMessage(
-          error instanceof Error
-            ? error.message
-            : "Не удалось прочитать операцию статьи",
-        );
-      });
-    return () => {
-      alive = false;
-    };
-  }, [journal, loadAttempt]);
+  const {
+    journal,
+    creation,
+    setCreation,
+    storageStatus,
+    recoveryMessage,
+    setRecoveryMessage,
+    retryRead: retryCreationJournalRead,
+  } = useArticleCreationJournal(ownerId);
   const deletion = useConfirmedAction(active && !showForm);
   const readArticles = async (signal: AbortSignal) => {
     const result = await list.restart();
@@ -1516,7 +1492,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       ) : null}
       {storageStatus === "error" ? (
         <StatusNoticeAction
-          onClick={() => setLoadAttempt((value) => value + 1)}
+          onClick={retryCreationJournalRead}
         >
           Повторить чтение операции
         </StatusNoticeAction>
