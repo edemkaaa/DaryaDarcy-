@@ -73,6 +73,8 @@ const existing = {
   sortOrder: 35,
   scheduledAt: null,
   richText: null,
+  likeCount: 0,
+  commentCount: 0,
   createdAt: "2026-10-04T10:00:00Z",
   publishedAt: "2026-10-04T10:00:00Z",
   media: [
@@ -82,6 +84,12 @@ const existing = {
       url: "https://example.test/old.pdf",
       filename: "old.pdf",
       mimeType: "application/pdf",
+      duration: null,
+      posterUrl: null,
+      fileSize: 100,
+      postId: 7,
+      sortOrder: 0,
+      createdAt: "2026-10-04T10:00:00Z",
     },
   ],
 };
@@ -93,11 +101,15 @@ for (const mode of ["full", "quick"] as const) {
     }) => {
       const writes: string[] = [];
       let availableMedia = media as typeof existing.media | null | undefined;
+      let detailReads = 0;
       await editorApi(page, (name) => {
-        const post = { ...existing, media: availableMedia };
-        if (name === "admin.posts") return ok([post]);
+        if (name === "admin.postDetail") {
+          detailReads++;
+          return ok({ ...existing, media: availableMedia });
+        }
+        if (name === "admin.posts") return ok([existing]);
         if (name === "feed.listPaginated")
-          return ok({ posts: [post], nextCursor: null });
+          return ok({ posts: [existing], nextCursor: null });
         if (
           /admin\.(createPost|updatePost|uploadPrivateAttachment|uploadMedia)/.test(
             name,
@@ -120,14 +132,35 @@ for (const mode of ["full", "quick"] as const) {
         expect(writes).toEqual([]);
         return;
       }
-      const messages = dialogs(page);
-      const form = await open(page, mode, true);
-      await field(form).fill("KEEP_EDIT_WITH_MISSING_MEDIA");
-      await saved(form);
-      await submit(form, mode, true).click();
-      await expect.poll(() => messages.length).toBe(1);
-      expect(messages[0]).toContain("Не удалось загрузить вложения поста");
-      await expect(field(form)).toHaveValue("KEEP_EDIT_WITH_MISSING_MEDIA");
+      await gotoWithSession(page, "/feed");
+      const requestEdit = async () => {
+        await page
+          .getByRole("button", { name: "Действия с постом", exact: true })
+          .first()
+          .click();
+        await page
+          .getByRole("button", { name: "Редактировать пост", exact: true })
+          .click();
+      };
+      await requestEdit();
+      const result = page.getByRole("dialog", {
+        name: "Результат действия с публикацией",
+      });
+      await expect(result).toContainText("Некорректный ответ сервера");
+      await expect(editor(page)).toHaveCount(0);
+      expect(detailReads).toBe(1);
+      expect(writes).toEqual([]);
+      await result
+        .getByRole("button", { name: "Закрыть", exact: true })
+        .click();
+      availableMedia = existing.media;
+      await requestEdit();
+      await expect(editor(page)).toBeVisible();
+      await expect(field(editor(page))).toHaveValue(existing.text);
+      await expect(
+        editor(page).getByText("old.pdf", { exact: true }),
+      ).toBeVisible();
+      expect(detailReads).toBe(2);
       expect(writes).toEqual([]);
     });
   }
