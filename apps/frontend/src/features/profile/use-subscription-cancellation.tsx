@@ -1,4 +1,5 @@
 "use client";
+import { TRPCClientError } from "@trpc/client";
 import {
   createContext,
   useContext,
@@ -124,9 +125,17 @@ function useCancellationController(active: boolean) {
     } catch (cause) {
       checkOperationAccessError(cause);
       if (!task.isCurrent()) return;
-      // These middleware refusals happen before the cancellation handler.
-      // A BAD_REQUEST from that handler can follow an already stored request.
-      if (!verifying && [401, 403, 429].includes(getHttpStatus(cause) ?? 0))
+      // club.cancel reserves BAD_REQUEST for a refusal before any write.
+      // A proxy's HTTP 400 or a failed status read cannot prove that refusal.
+      const refused =
+        cause instanceof TRPCClientError &&
+        cause.data?.code === "BAD_REQUEST" &&
+        cause.data?.httpStatus === 400 &&
+        cause.data?.path === "club.cancel";
+      if (
+        !verifying &&
+        (refused || [401, 403, 429].includes(getHttpStatus(cause) ?? 0))
+      )
         remember({ status: "error", message: getRequestErrorMessage(cause) });
     } finally {
       task.finish();
