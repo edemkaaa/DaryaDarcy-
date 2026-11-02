@@ -21,13 +21,10 @@ import {
   useCapabilities,
   uploadUnavailableMessage,
 } from "@/shared/api/capabilities";
-import { checkPrivateUploadAvailability } from "@/shared/media/private-upload-availability";
-import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import type { AdminPost } from "@/shared/api/types";
 
 import { ScheduleDatetime } from "@/features/admin/schedule-datetime";
 
-import { uploadAdminPrivateVideo } from "@/features/admin/media/private-video-upload";
 import { pickWebFiles } from "@/shared/media/image-upload";
 import { PhotoEditor } from "@/features/admin/photo-editor";
 import {
@@ -41,6 +38,7 @@ import {
   checkOperationAccessError,
 } from "@/domain/session/use-session-operation";
 import { PostSaveCoordinator } from "@/domain/post/save-post";
+import { createPostEditorApi } from "./post-editor-api";
 import { VkVideoField, VkVideoPreviewButton } from "./vk-video-field";
 import { usePostAttachments } from "./use-post-attachments";
 import { usePostUploadSelection } from "./use-post-upload-selection";
@@ -220,86 +218,7 @@ function AdminPostEditorBody({
       uploadSelection.restore(snapshot.pending);
     },
   });
-  const postApi = {
-    read: (id: number, signal: AbortSignal) =>
-      utils.client.admin.postDetail.query({ id }, { signal }),
-    checkUploadsAvailable: async (
-      kinds: readonly ("content" | "attachment")[],
-      task: ScopedOperation,
-    ) => {
-      for (const kind of kinds) {
-        await checkPrivateUploadAvailability(
-          (input, signal) =>
-            kind === "content"
-              ? utils.client.admin.privateContentFileStatus.query(input, {
-                  signal,
-                })
-              : utils.client.admin.privateAttachmentStatus.query(input, {
-                  signal,
-                }),
-          task,
-        );
-      }
-    },
-    uploadPrivateVideo: async (
-      file: File,
-      key: string,
-      signal?: AbortSignal,
-    ) => {
-      await requirePrivateUpload("privatePostVideoUploads", signal);
-      return uploadAdminPrivateVideo(file, key, signal);
-    },
-    create: (
-      input: Parameters<typeof utils.client.admin.createPost.mutate>[0],
-      signal: AbortSignal,
-    ) => utils.client.admin.createPost.mutate(input, { signal }),
-    update: (
-      id: number,
-      input: Omit<
-        Parameters<typeof utils.client.admin.updatePost.mutate>[0],
-        "id"
-      >,
-      signal: AbortSignal,
-    ) => utils.client.admin.updatePost.mutate({ id, ...input }, { signal }),
-    upload: (
-      input: Parameters<typeof utils.client.admin.uploadMedia.mutate>[0],
-      signal: AbortSignal,
-    ) => utils.client.admin.uploadMedia.mutate(input, { signal }),
-    uploadPrivate: async (
-      input: Parameters<
-        typeof utils.client.admin.uploadPrivateAttachment.mutate
-      >[0],
-      signal: AbortSignal,
-    ) => {
-      await requirePrivateUpload("privatePostMediaUploads", signal);
-      return utils.client.admin.uploadPrivateAttachment.mutate(input, {
-        signal,
-      });
-    },
-    privateStatus: (
-      input: Parameters<
-        typeof utils.client.admin.privateAttachmentStatus.query
-      >[0],
-      signal: AbortSignal,
-    ) => utils.client.admin.privateAttachmentStatus.query(input, { signal }),
-    uploadPrivatePhoto: async (
-      input: Parameters<
-        typeof utils.client.admin.uploadPrivateContentFile.mutate
-      >[0],
-      signal: AbortSignal,
-    ) => {
-      await requirePrivateUpload("privateContentUploads", signal);
-      return utils.client.admin.uploadPrivateContentFile.mutate(input, {
-        signal,
-      });
-    },
-    privatePhotoStatus: (
-      input: Parameters<
-        typeof utils.client.admin.privateContentFileStatus.query
-      >[0],
-      signal: AbortSignal,
-    ) => utils.client.admin.privateContentFileStatus.query(input, { signal }),
-  };
+  const postApi = createPostEditorApi(utils.client);
   const editComparison = usePostEditComparison(
     saveCoordinator,
     recovery,
