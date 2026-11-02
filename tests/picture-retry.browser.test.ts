@@ -12,7 +12,11 @@ for (const mode of ["direct", "srcset", "preview"]) {
       try {
         browser = await chromium.launch({ headless: true });
         const page = await browser.newPage();
-        await page.goto(`${fixture.origin}/?mode=${mode}`);
+        // The first image intentionally never completes, so document load is
+        // not a readiness signal for the retry controls under test.
+        await page.goto(`${fixture.origin}/?mode=${mode}`, {
+          waitUntil: "domcontentloaded",
+        });
         await ui.poll(() => fixture.state().requests.length).toBe(1);
         const retry = page.getByRole("button", {
           name: "Повторить загрузку",

@@ -279,6 +279,9 @@ for (const route of ["article", "post", "video"] as const) {
           title,
           youtubeId: "test-video-id",
           videoUrl: null,
+          duration: null,
+          views: null,
+          publishedText: null,
         });
       return ok({
         id: 700,
@@ -338,6 +341,7 @@ test("an article switched to club access hides its cached sections after polling
       return ok({
         id: 700,
         title: "Статья",
+        coverUrl: null,
         access: locked ? "club" : "public",
         locked,
         sections: locked

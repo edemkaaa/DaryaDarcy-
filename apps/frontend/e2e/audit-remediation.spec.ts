@@ -9,6 +9,7 @@ const post = (id: number) => ({
   text: `AUDIT_POST_${id}`,
   photos: [],
   media: [],
+  richText: null,
   tags: ["community"],
   target: "club",
   createdAt: now(),

@@ -17,6 +17,8 @@ const post = () => ({
   scheduledAt: null,
   createdAt: "2026-10-04T10:00:00Z",
   publishedAt: "2026-10-04T10:00:00Z",
+  likeCount: 0,
+  commentCount: 0,
   richText: null,
   media: [
     {
@@ -25,6 +27,12 @@ const post = () => ({
       url: "https://example.test/existing.mp3",
       filename: "existing.mp3",
       mimeType: "audio/mpeg",
+      duration: null,
+      posterUrl: null,
+      fileSize: null,
+      postId: 1,
+      sortOrder: 0,
+      createdAt: "2026-10-04T10:00:00Z",
     },
     {
       id: 8,
@@ -32,6 +40,12 @@ const post = () => ({
       url: "https://example.test/existing.pdf",
       filename: "existing.pdf",
       mimeType: "application/pdf",
+      duration: null,
+      posterUrl: null,
+      fileSize: null,
+      postId: 1,
+      sortOrder: 1,
+      createdAt: "2026-10-04T10:00:00Z",
     },
     {
       id: 9,
@@ -39,6 +53,12 @@ const post = () => ({
       url: "https://example.test/existing.mp4",
       filename: "existing.mp4",
       mimeType: "video/mp4",
+      duration: null,
+      posterUrl: null,
+      fileSize: null,
+      postId: 1,
+      sortOrder: 2,
+      createdAt: "2026-10-04T10:00:00Z",
     },
   ],
 });
@@ -186,6 +206,7 @@ test("removing and adding attachments commits once and the reopened editor reads
           current.media[1],
           current.media[2],
           {
+            ...current.media[1],
             id: 10,
             type: "document",
             filename: "new.pdf",

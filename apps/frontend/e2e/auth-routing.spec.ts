@@ -198,6 +198,7 @@ test("a post save entry returns to that exact post after login", async ({
                   richText: null,
                   likeCount: 0,
                   createdAt: "2026-10-01T12:00:00Z",
+                  publishedAt: null,
                 }
               : [],
         },

@@ -39,9 +39,9 @@ for (const confirmed of [false, true]) {
       ).toBeEnabled();
       await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
     } else {
-      await expect(page.getByRole("main").getByRole("alert")).toContainText(
-        "не подтверждён",
-      );
+      await expect(
+        page.locator("[data-background-notice]").getByRole("status"),
+      ).toContainText("не подтверждён");
       const create = page.getByRole("button", {
         name: "Написать статью",
         exact: true,
@@ -53,7 +53,8 @@ for (const confirmed of [false, true]) {
         .click();
       await expect(
         page
-          .getByRole("alert")
+          .locator("[data-background-notice]")
+          .getByRole("status")
           .filter({ hasText: "Сервис временно недоступен" }),
       ).toBeVisible();
       await expect(create).toBeDisabled();
@@ -83,6 +84,7 @@ test("blocking and unblocking members use confirmed replies and refresh the visi
           id: 201,
           name: "Участница",
           email: "member@example.test",
+          contactPhone: null,
           role: "user",
           createdAt: "2026-10-01T10:00:00Z",
           clubExpiresAt: null,
@@ -137,18 +139,18 @@ test("a malformed deletion verification list cannot unlock article actions", asy
   await gotoWithSession(page, "/admin");
   await page.getByRole("button", { name: "Статьи", exact: true }).click();
   await page.getByRole("button", { name: "Удалить", exact: true }).click();
-  await expect(page.getByRole("main").getByRole("alert")).toContainText(
-    "не подтверждён",
-  );
+  await expect(
+    page.locator("[data-background-notice]").getByRole("status"),
+  ).toContainText("не подтверждён");
   await expect(
     page.getByRole("button", { name: "Написать статью", exact: true }),
   ).toBeDisabled();
   await page
     .getByRole("button", { name: "Обновить список", exact: true })
     .click();
-  await expect(page.getByRole("main").getByRole("alert")).toContainText(
-    "Некорректный ответ сервера",
-  );
+  await expect(
+    page.locator("[data-background-notice]").getByRole("status"),
+  ).toContainText("Некорректный ответ сервера");
   await expect(
     page.getByRole("button", { name: "Написать статью", exact: true }),
   ).toBeDisabled();

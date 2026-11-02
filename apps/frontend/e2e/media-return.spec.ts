@@ -13,6 +13,7 @@ const post = (id: number) => ({
   media: [],
   target: "feed",
   likeCount: 0,
+  commentCount: 0,
   createdAt: "2026-10-01T12:00:00Z",
   publishedAt: "2026-10-01T12:00:00Z",
 });
@@ -36,6 +37,10 @@ async function api(page: Page) {
           title: `Видео ${index + 1}`,
           thumbnailUrl: `https://return.example.test/video-${index + 1}.svg`,
           published: true,
+          duration: null,
+          views: null,
+          publishedText: null,
+          videoUrl: null,
         })),
       );
     if (name === "videos.catalog")

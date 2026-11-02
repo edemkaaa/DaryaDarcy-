@@ -61,7 +61,7 @@ describe.skipIf(!uri)(
         Number(
           (await rows("SELECT COUNT(*) n FROM __drizzle_migrations"))[0].n,
         ),
-      ).toBe(45);
+      ).toBe(50);
       expect(
         await rows("SELECT id FROM users WHERE id IN (98301,98302)"),
       ).toHaveLength(0);

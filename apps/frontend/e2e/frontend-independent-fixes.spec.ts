@@ -19,11 +19,14 @@ test("calendar reads its own projection without fetching the stale post archive"
             photos: [],
             tags: [],
             media: [],
+            hasVideo: false,
+            tagCount: 0,
             status: "scheduled",
             published: false,
             target: "club",
             scheduledAt: "2026-10-20T10:00:00Z",
             createdAt: "2026-10-19T10:00:00Z",
+            publishedAt: null,
           },
         ],
         nextCursor: null,
@@ -119,6 +122,9 @@ for (const width of [320, 1440]) {
             title: "YOUTUBE_RETRY",
             videoUrl: null,
             youtubeId: "sq7pY1H_fYU",
+            duration: null,
+            views: null,
+            publishedText: null,
           })
         : undefined,
     );
@@ -245,8 +251,8 @@ for (const status of [404, 413]) {
         ? "Загрузка файлов сейчас недоступна"
         : "ограничения размера";
     const notice = page
-      .getByRole("main")
-      .getByRole("alert")
+      .locator("[data-background-notice]")
+      .getByRole("status")
       .filter({ hasText: message });
     await expect(notice).toBeVisible();
     await expect(notice).toContainText("Исходные файлы сохранены");
@@ -277,7 +283,10 @@ for (const status of [404, 413]) {
       .getByRole("button", { name: "Проверить сохранение", exact: true })
       .click();
     await expect(
-      page.getByRole("alert").filter({ hasText: "Файлы подтверждены" }),
+      page
+        .locator("[data-background-notice]")
+        .getByRole("status")
+        .filter({ hasText: "Файлы подтверждены" }),
     ).toBeVisible();
     expect(uploads).toHaveLength(2);
     expect(uploads[1]).toEqual(original);

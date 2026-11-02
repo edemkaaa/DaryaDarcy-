@@ -8,6 +8,7 @@ const post = () => ({
   text: "RECOVERY_POST",
   photos: [],
   media: [],
+  richText: null,
   tags: ["community"],
   target: "club",
   createdAt: now(),

@@ -79,7 +79,9 @@ test.describe("private library delivery", () => {
     });
     await gotoWithSession(page, "/library/patterns");
     await expect(
-      page.getByText("привилегия участниц Клуба Darcy", { exact: true }),
+      page
+        .locator('[data-tab-screen="/library/patterns"]:not([hidden])')
+        .getByText("привилегия участниц Клуба Darcy", { exact: true }),
     ).toBeVisible();
     expect(requests).toEqual([]);
   });
@@ -346,6 +348,7 @@ test("comment: an unavailable photo upload keeps selection and allows another se
           {
             id: 1,
             text: "DISCUSSION",
+            richText: null,
             tags: ["community"],
             target: "club",
             photos: [],

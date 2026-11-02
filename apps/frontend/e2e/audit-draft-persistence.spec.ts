@@ -204,6 +204,10 @@ test("quiz answers and current question survive reload", async ({ page }) => {
   await page
     .getByRole("button", { name: "Выбрать изображение 1", exact: true })
     .click();
+  // A committed selection is shown only after the storage lock and write finish.
+  await expect(
+    page.getByRole("button", { name: "Выбрать изображение 1", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   await page.reload();
   await expect(
     page.getByRole("button", { name: "Выбрать изображение 1", exact: true }),

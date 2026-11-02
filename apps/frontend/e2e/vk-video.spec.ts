@@ -9,13 +9,30 @@ async function fixture(page: Page, url: string, posterUrl?: string) {
     id: 42,
     text: "VK_POST",
     photos: [],
+    richText: null,
+    likeCount: 0,
+    commentCount: 0,
     tags: ["video"],
     target: "feed",
     published: true,
     status: "published",
     createdAt: "2026-10-12T10:00:00Z",
     publishedAt: "2026-10-12T10:00:00Z",
-    media: [{ id: 10, type: "video", url, posterUrl }],
+    media: [
+      {
+        id: 10,
+        type: "video",
+        url,
+        posterUrl: posterUrl ?? null,
+        duration: null,
+        filename: null,
+        mimeType: null,
+        fileSize: null,
+        postId: 42,
+        sortOrder: 0,
+        createdAt: "2026-10-12T10:00:00Z",
+      },
+    ],
   };
   await editorApi(page, (name) => {
     if (name === "videos.getById")
