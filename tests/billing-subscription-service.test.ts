@@ -157,14 +157,23 @@ it("cancellation fails closed without a database", async () => {
   });
   expect(request).not.toHaveBeenCalled();
 });
-it("failed cancellation lookup has a safe public error", async () => {
+it("a business cancellation refusal has a safe public client error", async () => {
   vi.spyOn(db, "getDb").mockResolvedValue(database);
   vi.spyOn(cancellation, "requestClubCancellation").mockRejectedValue(
-    new Error("PRIVATE_LOOKUP_DETAIL"),
+    new cancellation.CancellationUnavailableError("PRIVATE_LOOKUP_DETAIL"),
   );
   await expect(service.cancel(7)).rejects.toMatchObject({
     code: "BAD_REQUEST",
     message: "Не удалось определить подписку. Обратитесь в поддержку.",
+  });
+});
+it("unexpected cancellation failures remain server errors without private details", async () => {
+  vi.spyOn(cancellation, "requestClubCancellation").mockRejectedValue(
+    new Error("PRIVATE_SQL_DETAIL"),
+  );
+  await expect(service.cancel(7)).rejects.toMatchObject({
+    code: "INTERNAL_SERVER_ERROR",
+    message: expect.not.stringContaining("PRIVATE_SQL_DETAIL"),
   });
 });
 it("an accepted cancellation reports pending instead of a server error", async () => {

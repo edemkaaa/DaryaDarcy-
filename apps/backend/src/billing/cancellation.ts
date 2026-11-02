@@ -29,6 +29,9 @@ export type Profile = typeof billingProfiles.$inferSelect & {
   manager?: boolean;
 };
 
+/** Expected pre-effect refusal; SQL/worker failures must remain server errors. */
+export class CancellationUnavailableError extends Error {}
+
 /** Read-only recovery after an unknown/lost cancellation response. A stored
  * request is not proof that the provider has disabled future charges.
  */
@@ -100,7 +103,8 @@ export async function requestClubCancellation(
       .from(users)
       .where(eq(users.id, userId))
       .for("update");
-    if (!user || user.blockedAt) throw new Error("Account unavailable");
+    if (!user || user.blockedAt)
+      throw new CancellationUnavailableError("Account unavailable");
     const [paid] = await tx
       .select()
       .from(clubPayments)
@@ -109,7 +113,7 @@ export async function requestClubCancellation(
       )
       .orderBy(desc(clubPayments.expiresAt))
       .limit(1);
-    if (!paid) throw new Error("No paid subscription");
+    if (!paid) throw new CancellationUnavailableError("No paid subscription");
     const profiles = await tx
       .select()
       .from(billingProfiles)
@@ -172,7 +176,9 @@ export async function requestClubCancellation(
           !paid.orderId.startsWith("admin-grant-") &&
           !verifiedOneOff)
       )
-        throw new Error("Verified billing profile required; contact support");
+        throw new CancellationUnavailableError(
+          "Verified billing profile required; contact support",
+        );
       await markConfirmed(tx, userId);
     } else await queueCancellationForUser(tx, userId);
     return paid.expiresAt;

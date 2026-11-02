@@ -5,6 +5,7 @@ import * as db from "../db";
 import { userHasClubAccess } from "../identity/club-access";
 import { cancelProdamusSubscription, CLUB_PRICE } from "../prodamus";
 import {
+  CancellationUnavailableError,
   readClubCancellationStatus,
   requestClubCancellation,
 } from "./cancellation";
@@ -78,7 +79,11 @@ export class ClubSubscriptionService {
         userId,
         cancelProdamusSubscription,
       );
-    } catch {
+    } catch (error) {
+      // A request may already be committed when a worker/SQL failure occurs.
+      // Do not turn an unknown result into a terminal client-side rejection.
+      if (!(error instanceof CancellationUnavailableError))
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: "Не удалось определить подписку. Обратитесь в поддержку.",

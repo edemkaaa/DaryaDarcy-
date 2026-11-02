@@ -194,7 +194,8 @@ describe.skipIf(!testDatabaseUrl)(
         [actorId],
       );
     });
-    afterEach(() => {
+    afterEach(async () => {
+      await conn.query("DROP TRIGGER IF EXISTS owned_cancellation_sql_failure");
       vi.restoreAllMocks();
       expect(protocolErrors).toBe(0);
     });
@@ -220,6 +221,63 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllGlobals();
       vi.unstubAllEnvs();
+    });
+    it.each(["before commit", "after commit"] as const)(
+      "SQL failure %s is a server error, never a terminal client rejection",
+      async (stage) => {
+        const before = await state();
+        await conn.query(`CREATE TRIGGER owned_cancellation_sql_failure
+          BEFORE UPDATE ON billing_profiles FOR EACH ROW
+          BEGIN
+            IF NEW.userId = 98710 AND ${stage === "before commit" ? "NEW.cancelRequestedAt IS NOT NULL" : "NEW.leaseId IS NOT NULL"} THEN
+              SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'PRIVATE_CANCELLATION_SQL_DETAIL';
+            END IF;
+          END`);
+        await expect(
+          client(actorId).club.cancel.mutate(),
+        ).rejects.toMatchObject({
+          message: "Внутренняя ошибка сервера",
+          data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+        });
+        expect(calls).toEqual([]);
+        const saved = await state();
+        expect(saved.payments).toEqual(before.payments);
+        if (stage === "before commit") {
+          expect(saved).toEqual(before);
+        } else {
+          expect(saved.profiles[0]).toMatchObject({
+            cancelRequestedAt: expect.any(Date),
+            cancelledAt: null,
+            attempts: 0,
+            leaseId: null,
+            leaseUntil: null,
+          });
+        }
+        expect(await client(actorId).club.subscription.query()).toMatchObject({
+          cancellationStatus: stage === "before commit" ? "none" : "pending",
+          hasClubAccess: true,
+          cancelAtPeriodEnd: false,
+          expiresAt,
+        });
+        await conn.query("DROP TRIGGER owned_cancellation_sql_failure");
+        mode = "success";
+        expect(await client(actorId).club.cancel.mutate()).toMatchObject({
+          ok: true,
+          cancellationStatus: "confirmed",
+          expiresAt,
+        });
+        expect(calls).toEqual(["456"]);
+      },
+    );
+    it("an unverified legacy billing profile remains a safe client refusal", async () => {
+      await conn.query("DELETE FROM billing_profiles WHERE userId=?", [actorId]);
+      const before = await state();
+      await expect(client(actorId).club.cancel.mutate()).rejects.toMatchObject({
+        message: "Не удалось определить подписку. Обратитесь в поддержку.",
+        data: { code: "BAD_REQUEST", httpStatus: 400 },
+      });
+      expect(await state()).toEqual(before);
+      expect(calls).toEqual([]);
     });
     it("returns pending on provider 503, then restores it with a read-only fresh client", async () => {
       expect(await client(actorId).club.subscription.query()).toMatchObject({
