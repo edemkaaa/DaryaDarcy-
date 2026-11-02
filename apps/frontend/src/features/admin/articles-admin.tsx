@@ -12,6 +12,7 @@ import { useArticleCatalog } from "./use-article-catalog";
 import { recoverArticleCreation } from "./recover-article-creation";
 import { createArticleEditorExit } from "./article-editor-exit";
 import { createArticleRevisionActions } from "./article-revision-actions";
+import { createArticleDraftRestoration } from "./article-draft-restoration";
 import classes from "./articles-admin.module.scss";
 import {
   ScrollArea,
@@ -58,13 +59,8 @@ import { requireOk } from "@/shared/api/action-result";
 import { useArticleFiles } from "./use-article-files";
 import { useArticleCover } from "./use-article-cover";
 import { useArticleDraft } from "./use-article-draft";
-import {
-  type ArticleDraftRecord,
-} from "@/domain/content/article-draft-journal";
 import type { PrivateArticleFile } from "@/domain/content/private-article-files";
-import {
-  selectArticleFiles,
-} from "@/domain/content/private-article-files";
+import { selectArticleFiles } from "@/domain/content/private-article-files";
 import {
   recoverArticleFileUploads,
   sealArticleFileWrite,
@@ -297,63 +293,32 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     setPreviewing(false);
     setBlocks([emptyBlock("text")]);
   };
-  const restoreCreation = (record: ArticleCreationRecord) => {
-    operation.cancel();
-    cover.detach();
-    uncertainSave.current = false;
-    setCreation(record);
-    setEditBase(record.editBase);
-    setEditConflict(record.editConflict);
-    setServerComparison(undefined);
-    const payload = structuredClone(record.payload);
-    setEditingId(record.media?.editingId ?? null);
-    setTitle(payload.title);
-    setCoverUrl(payload.coverUrl || "");
-    setAccess(payload.access);
-    setPublished(payload.published);
-    setBlocks(payload.sections);
-    restoreFiles.current = {
-      editingId: record.media?.editingId ?? null,
-      files: record.media?.files ?? [],
-    };
-    // Restore after the editing scope has rendered; the keyed effect below owns the URLs.
-    setPreviewing(false);
-    setShowForm(true);
-  };
-  const restoreDraft = (saved: ArticleDraftRecord) => {
-    if (
-      creation &&
-      (creation.media?.editingId ?? null) === saved.snapshot.editingId
-    )
-      return;
-    if (cover.record?.snapshot.editingId === saved.snapshot.editingId) {
-      void restoreCover();
-      return;
-    }
-    const { snapshot, files } = saved;
-    setEditBase(snapshot.editBase);
-    setEditConflict(snapshot.editConflict);
-    setServerComparison(undefined);
-    draft.resume();
-    opening.cancel();
-    operation.cancel();
-    cover.detach();
-    uncertainSave.current = snapshot.writeUncertain === true;
-    setRecoveryMessage(
-      snapshot.writeUncertain
-        ? "Перед перезагрузкой было отправлено изменение статьи. Проверьте статью в списке; повторная запись автоматически не выполняется."
-        : null,
-    );
-    setEditingId(snapshot.editingId);
-    setTitle(snapshot.title);
-    setCoverUrl(snapshot.coverUrl || "");
-    setAccess(snapshot.access);
-    setPublished(snapshot.published);
-    setBlocks(structuredClone(snapshot.sections));
-    restoreFiles.current = { editingId: snapshot.editingId, files };
-    setPreviewing(false);
-    setShowForm(true);
-  };
+  const { restoreCreation, restoreDraft, restoreCover } =
+    createArticleDraftRestoration({
+      creation,
+      storageStatus,
+      operation,
+      opening,
+      draft,
+      cover,
+      form: {
+        uncertainSave,
+        restoreFiles,
+        setCreation,
+        setEditBase,
+        setEditConflict,
+        setServerComparison,
+        setEditingId,
+        setTitle,
+        setCoverUrl,
+        setAccess,
+        setPublished,
+        setBlocks,
+        setPreviewing,
+        setShowForm,
+        setRecoveryMessage,
+      },
+    });
   useEffect(() => {
     const record = restoreFiles.current;
     if (showForm && record && record.editingId === editingId) {
@@ -361,43 +326,6 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       restorePrivateFiles(record.files);
     }
   }, [creation, showForm, editingId, restorePrivateFiles]);
-  const restoreCover = () => {
-    if (!cover.record || creation || storageStatus !== "ready") return;
-    const saved = draft.records.find(
-      (record) =>
-        record.snapshot.editingId === cover.record!.snapshot.editingId,
-    );
-    if (saved) {
-      const { writeUncertain: _writeUncertain, ...snapshot } = saved.snapshot;
-      if (JSON.stringify(snapshot) !== JSON.stringify(cover.record.snapshot)) {
-        if (
-          !window.confirm(
-            "Заменить текущий локальный черновик этой статьи данными сохранённой загрузки баннера?",
-          )
-        )
-          return;
-      }
-    }
-    opening.cancel();
-    draft.resume();
-    operation.cancel();
-    uncertainSave.current = false;
-    const { snapshot, files } = cover.record;
-    setEditBase(snapshot.editBase);
-    setEditConflict(undefined);
-    setServerComparison(undefined);
-    setEditingId(snapshot.editingId);
-    setTitle(snapshot.title);
-    setCoverUrl(snapshot.coverUrl || "");
-    setAccess(snapshot.access);
-    setPublished(snapshot.published);
-    setBlocks(structuredClone(snapshot.sections));
-    restoreFiles.current = { editingId: snapshot.editingId, files };
-    cover.attach(cover.record);
-    setRecoveryMessage(null);
-    setPreviewing(false);
-    setShowForm(true);
-  };
   const readCurrentArticles = async (task: ScopedOperation) => {
     await readArticles(task.signal);
     task.assertCurrent();
